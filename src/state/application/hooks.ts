@@ -78,6 +78,10 @@ export function useToggleFeatureFlags(): () => void {
   return useToggleModal(ApplicationModal.FEATURE_FLAGS)
 }
 
+export function useToggleMetamaskConnectionErrorModal(): () => void {
+  return useToggleModal(ApplicationModal.METAMASK_CONNECTION_ERROR)
+}
+
 // returns a function that allows adding a popup
 export function useAddPopup(): (content: PopupContent, key?: string, removeAfterMs?: number) => void {
   const dispatch = useAppDispatch()

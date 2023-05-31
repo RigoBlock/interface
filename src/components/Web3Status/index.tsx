@@ -4,12 +4,12 @@ import { BrowserEvent, ElementName, EventName } from '@uniswap/analytics-events'
 import { useWeb3React } from '@web3-react/core'
 import { IconWrapper } from 'components/Identicon/StatusIcon'
 import WalletDropdown from 'components/WalletDropdown'
-import { getConnection } from 'connection/utils'
+import { getConnection, getIsMetaMask } from 'connection/utils'
 import { NftVariant, useNftFlag } from 'featureFlags/flags/nft'
 import { Portal } from 'nft/components/common/Portal'
 import { getIsValidSwapQuote } from 'pages/Swap'
 import { darken } from 'polished'
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { AlertTriangle, ChevronDown, ChevronUp } from 'react-feather'
 import { useAppSelector } from 'state/hooks'
 import { useDerivedSwapInfo } from 'state/swap/hooks'
@@ -20,6 +20,7 @@ import { useOnClickOutside } from '../../hooks/useOnClickOutside'
 import {
   useCloseModal,
   useModalIsOpen,
+  useToggleMetamaskConnectionErrorModal,
   useToggleWalletDropdown,
   useToggleWalletModal,
 } from '../../state/application/hooks'
@@ -32,6 +33,7 @@ import StatusIcon from '../Identicon/StatusIcon'
 import Loader from '../Loader'
 import { RowBetween } from '../Row'
 import WalletModal from '../WalletModal'
+import MetamaskConnectionError from './MetamaskConnectionError'
 
 // https://stackoverflow.com/a/31617326
 const FULL_BORDER_RADIUS = 9999
@@ -201,9 +203,16 @@ function Web3StatusInner() {
   const theme = useTheme()
   const toggleWalletDropdown = useToggleWalletDropdown()
   const toggleWalletModal = useToggleWalletModal()
+  const toggleMetamaskConnectionErrorModal = useToggleMetamaskConnectionErrorModal()
   const walletIsOpen = useModalIsOpen(ApplicationModal.WALLET_DROPDOWN)
 
   const error = useAppSelector((state) => state.connection.errorByConnectionType[getConnection(connector).type])
+  useEffect(() => {
+    if (getIsMetaMask() && error) {
+      toggleMetamaskConnectionErrorModal()
+    }
+  }, [error, toggleMetamaskConnectionErrorModal])
+
   const isNftActive = useNftFlag() === NftVariant.Enabled
 
   const allTransactions = useAllTransactions()
@@ -308,6 +317,7 @@ export default function Web3Status() {
     <span ref={ref}>
       <Web3StatusInner />
       <WalletModal ENSName={ENSName ?? undefined} pendingTransactions={pending} confirmedTransactions={confirmed} />
+      <MetamaskConnectionError />
       <Portal>
         <span ref={walletRef}>
           <WalletDropdown />
