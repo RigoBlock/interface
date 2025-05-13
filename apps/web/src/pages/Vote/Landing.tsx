@@ -3,7 +3,6 @@ import { CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { ButtonPrimary } from 'components/Button/buttons'
 import { AutoColumn } from 'components/deprecated/Column'
 import { AutoRow, RowBetween } from 'components/deprecated/Row'
-import FormattedCurrencyAmount from 'components/FormattedCurrencyAmount'
 import Loader from 'components/Icons/LoadingSpinner'
 import { SwitchLocaleLink } from 'components/SwitchLocaleLink'
 import Toggle from 'components/Toggle'
@@ -24,6 +23,7 @@ import { ProposalData, ProposalState, useAllProposalData, useProposalThreshold, 
 import { ThemedText } from 'theme/components'
 import { ExternalLink } from 'theme/components/Links'
 import Trace from 'uniswap/src/features/telemetry/Trace'
+import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
 import { Trans } from 'react-i18next'
 //import { shortenAddress } from 'utilities/src/addresses'
 //import { ExplorerDataType, getExplorerLink } from 'utils/getExplorerLink'
@@ -196,9 +196,7 @@ export default function Landing() {
                     ) : availableVotes ? (
                       <Trans
                         i18nKey="vote.landing.voteAmount"
-                        values={{
-                          amount: <FormattedCurrencyAmount currencyAmount={availableVotes} />,
-                        }}
+                        values={{ amount: availableVotes && formatCurrencyAmount(availableVotes, 4) }}
                       />
                     ) : (
                       ''

@@ -25,7 +25,7 @@ import {
 import { ProposalEditor } from 'pages/CreateProposal/ProposalEditor'
 import { ProposalSubmissionModal } from 'pages/CreateProposal/ProposalSubmissionModal'
 import { useCallback, useMemo, useState } from 'react'
-import { ArrowLeft } from 'react-feather'
+import { ArrowLeft, X } from 'react-feather'
 import { Link } from 'react-router-dom'
 import {
   CreateProposalData,
@@ -138,90 +138,179 @@ const AutonomousProposalCTA = styled.div`
   margin-top: 10px;
 `
 
+const AddActionButton = styled.button`
+  margin-top: 10px;
+  padding: 8px 16px;
+  background-color: ${({ theme }) => theme.accent1};
+  color: ${({ theme }) => theme.neutral1};
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  &:hover {
+    background-color: ${({ theme }) => theme.accent2};
+  }
+`
+
+const ActionContainer = styled.div`
+  position: relative;
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid ${({ theme }) => theme.neutral3};
+  border-radius: 8px;
+`
+
+const RemoveActionButton = styled(X)`
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  cursor: pointer;
+  color: ${({ theme }) => theme.neutral2};
+  &:hover {
+    color: ${({ theme }) => theme.neutral1};
+  }
+`
+
+// TODO: verify which params to make optional
+interface ActionData {
+  id: number
+  proposalAction: ProposalAction
+  toAddress: string
+  currency: Currency
+  amount: string
+  methods?: string[]
+  values?: (string | boolean)[][]
+  target?: string
+}
+
 export default function CreateProposal() {
   const account = useAccount()
 
   const { votes: availableVotes } = useUserVotes()
   const proposalThreshold: CurrencyAmount<Token> | undefined = useProposalThreshold()
 
-  const [modalOpen, setModalOpen] = useState(false)
+  //const [modalOpen, setModalOpen] = useState(false)
+  const [modalOpen, setModalOpen] = useState<{ open: boolean; actionId?: number }>({ open: false })
   const [hash, setHash] = useState<string | undefined>()
   const [attempting, setAttempting] = useState(false)
-  const [proposalAction, setProposalAction] = useState(ProposalAction.UPGRADE_IMPLEMENTATION)
-  const [toAddressValue, setToAddressValue] = useState('')
-  // TODO: check we are covering all chains
-  const [currencyValue, setCurrencyValue] = useState<Currency>(GRG[account.chainId ?? UniverseChainId.Mainnet])
-  const [amountValue, setAmountValue] = useState('')
+  const [actions, setActions] = useState<ActionData[]>([
+    {
+      id: 1,
+      proposalAction: ProposalAction.UPGRADE_IMPLEMENTATION,
+      toAddress: '',
+      currency: GRG[account.chainId ?? UniverseChainId.Mainnet],
+      amount: '',
+    },
+  ])
   const [titleValue, setTitleValue] = useState('')
   const [bodyValue, setBodyValue] = useState('')
 
-  const handleActionSelectorClick = useCallback(() => {
-    setModalOpen(true)
-  }, [setModalOpen])
+  const handleActionSelectorClick = useCallback((actionId: number) => {
+    setModalOpen({ open: true, actionId })
+  }, [])
 
   const handleActionChange = useCallback(
-    (proposalAction: ProposalAction) => {
-      setProposalAction(proposalAction)
+    (proposalAction: ProposalAction, actionId: number) => {
+      setActions((prev) =>
+        prev.map((action) =>
+          action.id === actionId ? { ...action, proposalAction } : action,
+        ),
+      )
+      setModalOpen({ open: false })
     },
-    [setProposalAction],
+    [],
   )
 
   const handleDismissActionSelector = useCallback(() => {
-    setModalOpen(false)
-  }, [setModalOpen])
+    setModalOpen({ open: false })
+  }, [])
 
   const handleDismissSubmissionModal = useCallback(() => {
     setHash(undefined)
     setAttempting(false)
-  }, [setHash, setAttempting])
+  }, [])
 
   const handleToAddressInput = useCallback(
-    (toAddress: string) => {
-      setToAddressValue(toAddress)
+    (toAddress: string, actionId: number) => {
+      setActions((prev) =>
+        prev.map((action) =>
+          action.id === actionId ? { ...action, toAddress } : action,
+        ),
+      )
     },
-    [setToAddressValue],
+    [],
   )
 
   const handleCurrencySelect = useCallback(
-    (currency: Currency) => {
-      setCurrencyValue(currency)
+    (currency: Currency, actionId: number) => {
+      setActions((prev) =>
+        prev.map((action) =>
+          action.id === actionId ? { ...action, currency } : action,
+        ),
+      )
     },
-    [setCurrencyValue],
+    [],
   )
 
   const handleAmountInput = useCallback(
-    (amount: string) => {
-      setAmountValue(amount)
+    (amount: string, actionId: number) => {
+      setActions((prev) =>
+        prev.map((action) =>
+          action.id === actionId ? { ...action, amount } : action,
+        ),
+      )
     },
-    [setAmountValue],
+    [],
   )
 
   const handleTitleInput = useCallback(
     (title: string) => {
       setTitleValue(title)
     },
-    [setTitleValue],
+    [],
   )
 
   const handleBodyInput = useCallback(
     (body: string) => {
       setBodyValue(body)
     },
-    [setBodyValue],
+    [],
   )
+
+  const handleAddAction = useCallback(() => {
+    setActions((prev) => [
+      ...prev,
+      {
+        id: prev.length + 1,
+        proposalAction: ProposalAction.UPGRADE_IMPLEMENTATION,
+        toAddress: '',
+        currency: GRG[account.chainId ?? UniverseChainId.Mainnet],
+        amount: '',
+      },
+    ])
+  }, [account.chainId])
+
+  const handleRemoveAction = useCallback((actionId: number) => {
+    setActions((prev) => prev.filter((action) => action.id !== actionId))
+  }, [])
 
   const isFormInvalid = useMemo(
     () =>
       Boolean(
-        !proposalAction ||
-          !isAddress(toAddressValue) ||
-          !currencyValue?.isToken ||
-          titleValue === '' ||
-          bodyValue === '',
+        actions.length === 0 ||
+        actions.some(
+          (action) =>
+            !action.proposalAction ||
+            !isAddress(action.toAddress) ||
+            !action.currency?.isToken ||
+            (action.proposalAction === ProposalAction.TRANSFER_TOKEN && action.amount === '') ||
+            (action.proposalAction === ProposalAction.APPROVE_TOKEN && action.amount === ''),
+        ) ||
+        titleValue === '' ||
+        bodyValue === '',
       ),
-    [proposalAction, toAddressValue, currencyValue, titleValue, bodyValue],
+    [actions, titleValue, bodyValue],
   )
-  console.log('isFormInvalid', isFormInvalid, proposalAction, isAddress(toAddressValue), currencyValue?.isToken, titleValue, bodyValue)
 
   const hasEnoughVote = Boolean(
     availableVotes && proposalThreshold && JSBI.greaterThanOrEqual(availableVotes.quotient, proposalThreshold.quotient),
@@ -234,106 +323,111 @@ export default function CreateProposal() {
 
     const createProposalData: CreateProposalData = {} as CreateProposalData
 
-    if (!createProposalCallback || !proposalAction || !currencyValue.isToken) {
+    if (!createProposalCallback) {
+      setAttempting(false)
       return
     }
 
-    const tokenAmount = tryParseCurrencyAmount(amountValue, currencyValue)
-    //if (!tokenAmount) {
-    //  return
-    //}
-
-    createProposalData.description = `# ${titleValue}
-
-${bodyValue}
-`
-
-    let values: (string | boolean)[][]
-    let methods: string[]
-    let targets: string[]
-    let interfaces: Interface[]
-    // TODO: add all governance owned methods
-    switch (proposalAction) {
-      case ProposalAction.TRANSFER_TOKEN: {
-        if (!tokenAmount) {
-          return
-        }
-        values = [[getAddress(toAddressValue), tokenAmount.quotient.toString()]]
-        interfaces = [new Interface(TOKEN_ABI)]
-        targets = [currencyValue.address]
-        methods = ['transfer']
-        break
-      }
-
-      case ProposalAction.APPROVE_TOKEN: {
-        if (!tokenAmount) {
-          return
-        }
-        values = [[getAddress(toAddressValue), tokenAmount.quotient.toString()]]
-        interfaces = [new Interface(TOKEN_ABI)]
-        targets = [currencyValue.address]
-        methods = ['approve']
-        break
-      }
-
-      case ProposalAction.UPGRADE_IMPLEMENTATION: {
-        values = [[getAddress(toAddressValue)]]
-        interfaces = [new Interface(RB_POOL_FACTORY_ABI)]
-        targets = [RB_FACTORY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet]]
-        methods = ['setImplementation']
-        break
-      }
-
-      case ProposalAction.UPGRADE_GOVERNANCE: {
-        values = [[getAddress(toAddressValue)]]
-        interfaces = [new Interface(GOVERNANCE_RB_ABI)]
-        targets = [GOVERNANCE_PROXY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet]]
-        methods = ['upgradeImplementation']
-        break
-      }
-
-      case ProposalAction.UPGRADE_STAKING: {
-        values = [
-          [STAKING_PROXY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet]],
-          [],
-          [getAddress(toAddressValue)],
-          [STAKING_PROXY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet]],
-        ]
-        interfaces = [new Interface(STAKING_PROXY_ABI)]
-        targets = [STAKING_PROXY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet]]
-        methods = ['addAuthorizedAddress', 'detachStakingContract', 'attachStakingContract', 'removeAuthorizedAddress']
-        break
-      }
-
-      // any non-empty string for the boolean value will result in adding an adapter
-      case ProposalAction.ADD_ADAPTER: {
-        values = [[getAddress(toAddressValue), true]]
-        interfaces = [new Interface(AUTHORITY_ABI)]
-        targets = [AUTHORITY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet]]
-        methods = ['setAdapter']
-        break
-      }
-
-      // an empty string for the boolean value will result in removing an adapter
-      case ProposalAction.REMOVE_ADAPTER: {
-        values = [[getAddress(toAddressValue), false]]
-        interfaces = [new Interface(AUTHORITY_ABI)]
-        targets = [AUTHORITY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet]]
-        methods = ['setAdapter']
-        break
-      }
-    }
-
+    createProposalData.description = `# ${titleValue}\n\n${bodyValue}`
     createProposalData.actions = []
-    for (let i = 0; i < values.length; i++) {
-      createProposalData.actions[i] = {
-        target: targets[0],
-        value: 0,
-        data: interfaces[0].encodeFunctionData(methods[i], values[i]),
+
+    for (const action of actions) {
+      // TODO: verify action.currency.isToken
+      if (!action.proposalAction || !action.currency.isToken) {
+        setAttempting(false)
+        return
+      }
+
+      const tokenAmount = tryParseCurrencyAmount(action.amount, action.currency)
+
+      let values: (string | boolean)[][]
+      let methods: string[] = []
+      let target: string = ''
+      let interfaces: Interface[] = []
+
+      // TODO: add all governance owned methods
+      switch (action.proposalAction) {
+        case ProposalAction.TRANSFER_TOKEN: {
+          if (!tokenAmount) {
+            setAttempting(false)
+            return
+          }
+          values = [[getAddress(action.toAddress), tokenAmount.quotient.toString()]]
+          interfaces = [new Interface(TOKEN_ABI)]
+          target = action.currency.address
+          methods = ['transfer']
+          break
+        }
+
+        case ProposalAction.APPROVE_TOKEN: {
+          if (!tokenAmount) {
+            return
+          }
+          values = [[getAddress(action.toAddress), tokenAmount.quotient.toString()]]
+          interfaces = [new Interface(TOKEN_ABI)]
+          target = action.currency.address
+          methods = ['approve']
+          break
+        }
+
+        case ProposalAction.UPGRADE_IMPLEMENTATION: {
+          values = [[getAddress(action.toAddress)]]
+          interfaces = [new Interface(RB_POOL_FACTORY_ABI)]
+          target = RB_FACTORY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet]
+          methods = ['setImplementation']
+          break
+        }
+
+        case ProposalAction.UPGRADE_GOVERNANCE: {
+          values = [[getAddress(action.toAddress)]]
+          interfaces = [new Interface(GOVERNANCE_RB_ABI)]
+          target = GOVERNANCE_PROXY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet]
+          methods = ['upgradeImplementation']
+          break
+        }
+
+        case ProposalAction.UPGRADE_STAKING: {
+          values = [
+            [STAKING_PROXY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet]],
+            [],
+            [getAddress(action.toAddress)],
+            [STAKING_PROXY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet]],
+          ]
+          interfaces = [new Interface(STAKING_PROXY_ABI)]
+          target = STAKING_PROXY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet]
+          methods = ['addAuthorizedAddress', 'detachStakingContract', 'attachStakingContract', 'removeAuthorizedAddress']
+          break
+        }
+
+        // any non-empty string for the boolean value will result in adding an adapter
+        case ProposalAction.ADD_ADAPTER: {
+          values = [[getAddress(action.toAddress), true]]
+          interfaces = [new Interface(AUTHORITY_ABI)]
+          target = AUTHORITY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet]
+          methods = ['setAdapter']
+          break
+        }
+
+        // an empty string for the boolean value will result in removing an adapter
+        case ProposalAction.REMOVE_ADAPTER: {
+          values = [[getAddress(action.toAddress), false]]
+          interfaces = [new Interface(AUTHORITY_ABI)]
+          target = AUTHORITY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet]
+          methods = ['setAdapter']
+          break
+        }
+      }
+
+      for (let i = 0; i < values.length; i++) {
+        createProposalData.actions.push({
+          target,
+          value: 0,
+          data: interfaces[0].encodeFunctionData(methods[i], values[i]),
+        })
       }
     }
 
-    const hash = await createProposalCallback(createProposalData ?? undefined)?.catch(() => {
+    const hash = await createProposalCallback(createProposalData)?.catch(() => {
       setAttempting(false)
     })
 
@@ -371,16 +465,29 @@ ${bodyValue}
               </AutoColumn>
             </BlueCard>
 
-            <ProposalActionSelector onClick={handleActionSelectorClick} proposalAction={proposalAction} />
-            <ProposalActionDetail
-              proposalAction={proposalAction}
-              currency={currencyValue}
-              amount={amountValue}
-              toAddress={toAddressValue}
-              onCurrencySelect={handleCurrencySelect}
-              onAmountInput={handleAmountInput}
-              onToAddressInput={handleToAddressInput}
-            />
+            {actions.map((action) => (
+              <ActionContainer key={action.id}>
+                {actions.length > 1 && (
+                  <RemoveActionButton onClick={() => handleRemoveAction(action.id)} />
+                )}
+                <ProposalActionSelector
+                  onClick={() => handleActionSelectorClick(action.id)}
+                  proposalAction={action.proposalAction}
+                />
+                <ProposalActionDetail
+                  proposalAction={action.proposalAction}
+                  currency={action.currency}
+                  amount={action.amount}
+                  toAddress={action.toAddress}
+                  onCurrencySelect={(currency) => handleCurrencySelect(currency, action.id)}
+                  onAmountInput={(amount) => handleAmountInput(amount, action.id)}
+                  onToAddressInput={(toAddress) => handleToAddressInput(toAddress, action.id)}
+                />
+              </ActionContainer>
+            ))}
+            <AddActionButton onClick={handleAddAction}>
+              <Trans i18nKey="vote.proposal.addAction" />
+            </AddActionButton>
             <ProposalEditor
               title={titleValue}
               body={bodyValue}
@@ -402,9 +509,11 @@ ${bodyValue}
             ) : null}
           </CreateProposalWrapper>
           <ProposalActionSelectorModal
-            isOpen={modalOpen}
+            isOpen={modalOpen.open}
             onDismiss={handleDismissActionSelector}
-            onProposalActionSelect={(proposalAction: ProposalAction) => handleActionChange(proposalAction)}
+            onProposalActionSelect={(proposalAction: ProposalAction) =>
+              modalOpen.actionId && handleActionChange(proposalAction, modalOpen.actionId)
+            }
           />
           <ProposalSubmissionModal isOpen={attempting} hash={hash} onDismiss={handleDismissSubmissionModal} />
         </BodyWrapper>
