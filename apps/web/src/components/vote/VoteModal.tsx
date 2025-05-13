@@ -83,6 +83,8 @@ export default function VoteModal({ isOpen, onDismiss, proposalId, voteOption }:
     }
   }
 
+  const formattedVoteAmount = availableVotes ? formatCurrencyAmount(availableVotes, 4) : '0'
+
   return (
     <Modal name={ModalName.DappRequest} isModalOpen={isOpen} isDismissible onClose={wrappedOnDismiss} maxHeight="90vh">
       {!attempting && !hash && (
@@ -101,7 +103,7 @@ export default function VoteModal({ isOpen, onDismiss, proposalId, voteOption }:
               <StyledClosed onClick={wrappedOnDismiss} />
             </RowBetween>
             <ThemedText.DeprecatedLargeHeader>
-              <Trans i18nKey="vote.landing.voteAmount" values={{ amount: formatCurrencyAmount(availableVotes, 4) }} />
+              <Trans i18nKey="vote.landing.voteAmount" values={{ amount: formattedVoteAmount }} />
             </ThemedText.DeprecatedLargeHeader>
             <ButtonPrimary onClick={onVote}>
               <ThemedText.DeprecatedMediumHeader color="white">
