@@ -97,5 +97,5 @@ export const POP_ADDRESSES: AddressMap = {
   [UniverseChainId.Polygon]: '0x4170B7d618F3E5B29b3DBdCDADd626fF3746be9A',
   [UniverseChainId.Bnb]: '0xAe1D80A6731c44eeF098D4C6Cf979f596c7cd6F7',
   [UniverseChainId.Base]: '0x979Af6DDC1562b4B6D8B2Ab60A1B7221a0d6C8DB',
-  [UniverseChainId.Unichain]: 'TBD', // TODO: update with correct block number once pop is deployed
+  [UniverseChainId.Unichain]: '0xa094BEB834b439bA77763c5889DaBf434Bc26662',
 }

@@ -58,7 +58,7 @@ Insert your conclusion here
       <ProposalEditorHeader>
         <Trans i18nKey="vote.proposal.title" />
       </ProposalEditorHeader>
-      <ProposalTitle value={title} onUserInput={onTitleInput} placeholder={i18n.t('proposal.title')} fontSize="1.25rem" />
+      <ProposalTitle value={title} onChangeText={onTitleInput} placeholder={i18n.t('proposal.title')} fontSize="1.25rem" />
       <hr />
       <ResizingTextArea value={body} onUserInput={onBodyInput} placeholder={bodyPlaceholder} fontSize="1rem" />
     </ProposalEditorContainer>

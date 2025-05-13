@@ -221,6 +221,7 @@ export default function CreateProposal() {
       ),
     [proposalAction, toAddressValue, currencyValue, titleValue, bodyValue],
   )
+  console.log('isFormInvalid', isFormInvalid, proposalAction, isAddress(toAddressValue), currencyValue?.isToken, titleValue, bodyValue)
 
   const hasEnoughVote = Boolean(
     availableVotes && proposalThreshold && JSBI.greaterThanOrEqual(availableVotes.quotient, proposalThreshold.quotient),
@@ -238,9 +239,9 @@ export default function CreateProposal() {
     }
 
     const tokenAmount = tryParseCurrencyAmount(amountValue, currencyValue)
-    if (!tokenAmount) {
-      return
-    }
+    //if (!tokenAmount) {
+    //  return
+    //}
 
     createProposalData.description = `# ${titleValue}
 
