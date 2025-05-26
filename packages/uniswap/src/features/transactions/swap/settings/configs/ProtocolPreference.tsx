@@ -237,7 +237,7 @@ function DefaultOptionDescription({
   isDefault: boolean
   v4SwapEnabled: boolean
 }): JSX.Element {
-  const uniswapXEnabled = useFeatureFlag(FeatureFlags.UniswapX)
+  const uniswapXEnabled = false //useFeatureFlag(FeatureFlags.UniswapX)
   const { t } = useTranslation()
 
   const showIncludesUniswapX = uniswapXEnabled && isDefault

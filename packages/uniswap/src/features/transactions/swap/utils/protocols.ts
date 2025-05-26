@@ -19,7 +19,7 @@ export function useProtocolsForChain(
   userSelectedProtocols: FrontendSupportedProtocol[],
   chainId?: UniverseChainId,
 ): ProtocolItems[] {
-  const uniswapXEnabled = useFeatureFlag(FeatureFlags.UniswapX)
+  const uniswapXEnabled = false //useFeatureFlag(FeatureFlags.UniswapX)
   const priorityOrdersAllowed = useUniswapXPriorityOrderFlag(chainId)
   const xv2ArbitrumRoutingType = useExperimentValue<
     Experiments.ArbitrumXV2Sampling,

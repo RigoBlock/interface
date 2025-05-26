@@ -8,8 +8,8 @@ import { Modal } from 'uniswap/src/components/modals/Modal'
 import { LearnMoreLink } from 'uniswap/src/components/text/LearnMoreLink'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
 import { AssetType, TradeableAsset } from 'uniswap/src/entities/assets'
-import { FeatureFlags } from 'uniswap/src/features/gating/flags'
-import { useFeatureFlag } from 'uniswap/src/features/gating/hooks'
+//import { FeatureFlags } from 'uniswap/src/features/gating/flags'
+//import { useFeatureFlag } from 'uniswap/src/features/gating/hooks'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { useSelectAddressTransactions } from 'uniswap/src/features/transactions/selectors'
@@ -33,7 +33,7 @@ import { useActiveSignerAccount } from 'wallet/src/features/wallet/hooks'
 
 export function QueuedOrderModal(): JSX.Element | null {
   const { t } = useTranslation()
-  const uniswapXEnabled = useFeatureFlag(FeatureFlags.UniswapX)
+  const uniswapXEnabled = false //useFeatureFlag(FeatureFlags.UniswapX)
   const isShortMobileDevice = useIsShortMobileDevice()
 
   const account = useActiveSignerAccount()

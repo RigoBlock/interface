@@ -161,7 +161,7 @@ export default function VoteModal({ isOpen, onDismiss, proposalId, voteOption }:
                 style={{ marginLeft: '4px' }}
               >
                 <ThemedText.DeprecatedSubHeader>
-                  <Trans i18nKey="common.exploere.link" />
+                  <Trans i18nKey="common.explorer.link" />
                 </ThemedText.DeprecatedSubHeader>
               </ExternalLink>
             )}
