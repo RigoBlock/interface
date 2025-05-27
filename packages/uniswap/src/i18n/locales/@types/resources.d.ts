@@ -749,6 +749,8 @@ interface Resources {
     "error.noData": "No data found",
     "error.request.provideId": "Sorry, an error occured while processing your request. If you request support, be sure to provide your error ID.",
     "error.tokenApproval": "Token approval failed",
+    "error.tokenPriceFeed": "Price feed does not exist for this token",
+    "error.tokenPriceFeed.message": "Rigoblock allows any token to be ownable, but some tokens may not have a price feed available. You can create a price feed for any token.",
     "errors.crash.message": "Something crashed.",
     "errors.crash.restart": "Restart app",
     "errors.crash.title": "Uh oh!",

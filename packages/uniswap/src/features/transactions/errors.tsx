@@ -113,6 +113,14 @@ export class ApprovalEditedInWalletError extends TransactionStepFailedError {
   }
 }
 
+export class TokenPriceFeedError extends TransactionStepFailedError {
+  logToSentry = false
+
+  constructor({ step }: { step: TransactionStep }) {
+    super({ message: 'Token price feed does not exist', step })
+  }
+}
+
 /** Thrown when a transaction flow is interrupted by a known circumstance; should be handled gracefully in UI */
 export class HandledTransactionInterrupt extends TransactionError {
   constructor(message: string) {
@@ -157,6 +165,13 @@ function getStepSpecificErrorContent(
       }
     case TransactionStepType.SwapTransaction:
     case TransactionStepType.SwapTransactionAsync:
+      if (error instanceof TokenPriceFeedError) {
+        return {
+          title: t('error.tokenPriceFeed'),
+          message: t('error.tokenPriceFeed.message'),
+          supportArticleURL: 'https://docs.rigoblock.com/oracles-and-price-feeds',
+        }
+      }
       return {
         title: t('common.swap.failed'),
         message: t('swap.fail.message'),

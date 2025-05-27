@@ -1,5 +1,7 @@
 /* eslint-disable rulesdir/no-undefined-or */
 import { SwapEventName } from '@uniswap/analytics-events'
+import { Currency } from '@uniswap/sdk-core'
+import { PendingModalError } from 'components/ConfirmSwapModal/Error'
 import { popupRegistry } from 'components/Popups/registry'
 import { PopupType } from 'components/Popups/types'
 import { ZERO_PERCENT } from 'constants/misc'
@@ -19,9 +21,10 @@ import {
   //handleSignatureStep,
 } from 'state/sagas/transactions/utils'
 import { handleWrapStep } from 'state/sagas/transactions/wrapSaga'
+import { logger } from 'utilities/src/logger/logger'
 import { VitalTxFields } from 'state/transactions/types'
 import invariant from 'tiny-invariant'
-import { call } from 'typed-redux-saga'
+import { call, put } from 'typed-redux-saga'
 import { FetchError } from 'uniswap/src/data/apiClients/FetchError'
 import { Routing } from 'uniswap/src/data/tradingApi/__generated__/index'
 import { SignerMnemonicAccountMeta } from 'uniswap/src/features/accounts/types'
@@ -31,6 +34,7 @@ import { selectSwapStartTimestamp } from 'uniswap/src/features/timing/selectors'
 import { updateSwapStartTimestamp } from 'uniswap/src/features/timing/slice'
 import {
   HandledTransactionInterrupt,
+  TokenPriceFeedError,
   TransactionError,
   TransactionStepFailedError,
   UnexpectedTransactionStateError,
@@ -60,9 +64,12 @@ import { generateTransactionSteps } from 'uniswap/src/features/transactions/swap
 import { isClassic } from 'uniswap/src/features/transactions/swap/utils/routing'
 import { getClassicQuoteFromResponse } from 'uniswap/src/features/transactions/swap/utils/tradingApi'
 import { createSaga } from 'uniswap/src/utils/saga'
-import { logger } from 'utilities/src/logger/logger'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
 import { didUserReject } from 'utils/swapErrorToUserReadableMessage'
+import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
+import { getContract } from 'utilities/src/contracts/getContract'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { RPC_PROVIDERS } from 'constants/providers'
 
 interface HandleSwapStepParams extends Omit<HandleOnChainStepParams, 'step' | 'info'> {
   step: SwapTransactionStep | SwapTransactionStepAsync
@@ -178,12 +185,76 @@ function* swap(params: SwapParams) {
   }
 }
 
+function getPoolExtendedContract(poolAddress: string, chainId: number): any | undefined {
+  const provider = RPC_PROVIDERS[chainId as UniverseChainId]
+  if (!provider) {
+    return undefined
+  }
+
+  try {
+    return getContract(
+      poolAddress,
+      POOL_EXTENDED_ABI,
+      provider,
+    )
+  } catch (error) {
+    const wrappedError = new Error('failed to get contract', { cause: error })
+      logger.warn('useContract', 'useContract', wrappedError.message, {
+        error: wrappedError,
+        contractAddress: poolAddress,
+      })
+    return undefined
+  }
+}
+
+export function* getIsTokenOwnable(poolAddress?: string, token?: Currency): Generator<any, boolean | undefined, any> {
+  if (!poolAddress || !token) {
+    return undefined
+  }
+
+  // If token is not a token, treat it as ownable.
+  if (!token.isToken) {
+    return true
+  }
+
+  const extendedPool = getPoolExtendedContract(poolAddress, token?.chainId)
+  if (!extendedPool) {
+    return undefined
+  }
+
+  try {
+    // Call the hasPriceFeed method on the contract with the token address.
+    const isTokenOwnable: boolean = yield call([extendedPool, extendedPool.hasPriceFeed], token.address)
+    return isTokenOwnable
+  } catch (error) {
+    logger.error('Error calling hasPriceFeed on pool contract', { tags: { file: 'swapSaga', function: 'getPoolExtendedContract' } })
+    // Handle error appropriately. Here we return false on failure.
+    return false
+  }
+}
+
+function* validateTokenPriceFeed(selectedPool: string | undefined, outputCurrency: Currency) {
+  const isTokenOwnable: boolean | undefined = yield call(getIsTokenOwnable, selectedPool, outputCurrency)
+
+  if (isTokenOwnable === undefined) {
+    return true
+  }
+  if (!isTokenOwnable) {
+    yield put({
+      type: 'SWAP_ERROR',
+      error: PendingModalError.TOKEN_PRICE_FEED_ERROR,
+    })
+    return false
+  }
+  return true
+}
+
 function* classicSwap(
   params: SwapParams & {
     swapTxContext: ValidatedClassicSwapTxAndGasInfo | ValidatedBridgeSwapTxAndGasInfo
     steps: TransactionStep[]
   },
-) {
+): Generator<any, void, unknown> {
   const {
     account,
     setCurrentStep,
@@ -193,6 +264,11 @@ function* classicSwap(
     onSuccess,
     onFailure,
   } = params
+
+  const validTokenFeed = yield call(validateTokenPriceFeed, account.address, trade.outputAmount.currency)
+  if (!validTokenFeed) {
+    throw new TokenPriceFeedError({ step: steps[0] })
+  }
 
   let signature: string | undefined
 
