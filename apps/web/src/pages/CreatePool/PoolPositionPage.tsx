@@ -324,7 +324,6 @@ export default function PoolPositionPage() {
   // Check if the pool needs an upgrade
   const [currentImplementation, beaconImplementation] = useImplementation(poolAddressFromUrl ?? undefined, IMPLEMENTATION_SLOT) ?? [undefined, undefined]
 
-  // TODO: after debugging, restrict to pool operator only, plus try to wrap onchain calls when caller is pool operator to save on rpc calls
   const needsUpgrade = useMemo(() => {
     return currentImplementation && beaconImplementation && currentImplementation.toLowerCase() !== beaconImplementation.toLowerCase()
   }, [currentImplementation, beaconImplementation])
@@ -468,7 +467,7 @@ export default function PoolPositionPage() {
                     </HoverText>
                   </Link>
                 )}
-                {needsUpgrade && (
+                {needsUpgrade && owner === account.address && (
                   <ResponsiveButtonPrimary
                     style={{ marginRight: '8px' }}
                     width="fit-content"

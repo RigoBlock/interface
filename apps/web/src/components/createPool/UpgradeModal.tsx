@@ -94,7 +94,7 @@ export default function UpgradeModal({ isOpen, implementation, onDismiss, title 
         <LoadingView onDismiss={wrappedOnDismiss}>
           <AutoColumn gap="12px" justify="center">
             <ThemedText.DeprecatedLargeHeader>
-              <Trans>Upgrading Implementation to {implementation}</Trans>
+              <Trans>Upgrading Implementation</Trans>
             </ThemedText.DeprecatedLargeHeader>
           </AutoColumn>
         </LoadingView>
