@@ -42,7 +42,7 @@ export function useRegistryContract(): Contract | null {
   )
 }
 
-function usePoolFactoryContract(): Contract | null {
+export function usePoolFactoryContract(): Contract | null {
   const account = useAccount()
   return useContract(
     account.chainId ? RB_FACTORY_ADDRESSES[account.chainId] : undefined,
@@ -312,6 +312,37 @@ export function useSetValueCallback(): () => undefined | Promise<string> {
           .then((response: TransactionResponse) => {
             addTransaction(response, {
               type: TransactionType.SET_VALUE,
+            })
+            return response.hash
+          })
+      })
+    },
+    [account.address, account.chainId, provider, poolContract, addTransaction]
+  )
+}
+
+export function useUpgradeCallback(): () => undefined | Promise<string> {
+  const account = useAccount()
+  const { provider } = useWeb3React()
+  const addTransaction = useTransactionAdder()
+
+  const { poolAddress: poolAddressFromUrl } = useParams<{ poolAddress?: string }>()
+  const poolContract = usePoolExtendedContract(poolAddressFromUrl ?? undefined)
+
+  return useCallback(
+    () => {
+      if (!provider || !account.chainId || !account.address) {
+        return undefined
+      }
+      if (!poolContract) {
+        throw new Error('No Pool Contract!')
+      }
+      return poolContract.estimateGas.upgradeImplementation().then((estimatedGasLimit) => {
+        return poolContract
+          .upgradeImplementation({ value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
+          .then((response: TransactionResponse) => {
+            addTransaction(response, {
+              type: TransactionType.UPGRADE_IMPLEMENTATION,
             })
             return response.hash
           })

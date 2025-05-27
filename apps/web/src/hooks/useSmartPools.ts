@@ -2,7 +2,7 @@ import { BigNumber } from '@ethersproject/bignumber'
 import { useSingleCallResult } from 'lib/hooks/multicall'
 import { useMemo } from 'react'
 // TODO: remove duplicate method definition and reorg code
-import { usePoolExtendedContract } from 'state/pool/hooks'
+import { usePoolExtendedContract, usePoolFactoryContract } from 'state/pool/hooks'
 
 interface PoolInitParams {
   name: string
@@ -34,6 +34,21 @@ interface PoolDetails {
 export interface UserAccount {
   userBalance: BigNumber
   activation: BigNumber
+}
+
+export function useImplementation(poolAddress: string | undefined, implementationSlot: string): [string, string] | undefined {
+  const poolExtendedContract = usePoolExtendedContract(poolAddress)
+  const currentImplementation = useSingleCallResult(poolExtendedContract ?? undefined, 'getStorageAt', [implementationSlot, 1]).result?.[0]
+  const poolFactory = usePoolFactoryContract()
+  const beaconImplementation = useSingleCallResult(poolFactory ?? undefined, 'implementation').result?.[0]
+
+  // TODO: verify if memoization is needed here
+  return useMemo(() => {
+    if (!currentImplementation || !beaconImplementation) {
+      return undefined
+    }
+    return ["0x" + currentImplementation.slice(-40), beaconImplementation]
+  }, [currentImplementation, beaconImplementation])
 }
 
 export function useSmartPoolFromAddress(poolAddress: string | undefined): PoolDetails | undefined {

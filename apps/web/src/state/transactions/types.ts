@@ -41,6 +41,7 @@ export enum TransactionType {
   BRIDGE = 33,
   CREATE_POSITION = 34,
   MIGRATE_LIQUIDITY_V3_TO_V4 = 35,
+  UPGRADE_IMPLEMENTATION = 36,
 }
 interface BaseTransactionInfo {
   type: TransactionType
@@ -247,6 +248,14 @@ export interface SetSmartPoolValuePoolTransactionInfo {
   type: TransactionType.SET_VALUE
 }
 
+export interface UpgradeImplementationTransactionInfo {
+  type: TransactionType.UPGRADE_IMPLEMENTATION
+  //currentImplementation: number
+  //newImplementation: number
+  //contractAddress: string
+  //chainId: UniverseChainId
+}
+
 export type TransactionInfo =
   | ApproveTransactionInfo
   | ExactOutputSwapTransactionInfo
@@ -277,6 +286,7 @@ export type TransactionInfo =
   | BridgeTransactionInfo
   | CreatePositionTransactionInfo
   | MigrateV3LiquidityToV4TransactionInfo
+  | UpgradeImplementationTransactionInfo
 
 interface BaseTransactionDetails {
   status: TransactionStatus

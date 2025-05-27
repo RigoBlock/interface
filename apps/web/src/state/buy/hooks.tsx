@@ -5,6 +5,7 @@ import { Trans } from 'react-i18next'
 import JSBI from 'jsbi'
 import tryParseCurrencyAmount from 'lib/utils/tryParseCurrencyAmount'
 import { ReactNode } from 'react'
+import { parseEther } from 'viem'
 
 // TODO: check if should batch userPoolBalance and activation in UserAccount, transform user tokens after
 export interface PoolInfo {
@@ -47,12 +48,21 @@ export function useDerivedPoolInfo(
     tokenBalance?.quotient ?? JSBI.BigInt(0)
   )
 
+  // activation param is flag for sell, so we can use it to return an error if the user transaction involves less than minimum amount
+  const isMintBelowMinimum: boolean | undefined =
+    parsedAmount?.quotient &&
+    !activation &&
+    JSBI.lessThanOrEqual(JSBI.add(parsedAmount.quotient, JSBI.BigInt(1)), JSBI.BigInt(parseEther('0.001').toString()))
+
   let error: ReactNode | undefined
   if (!account.isConnected) {
     error = <Trans>Connect Wallet</Trans>
   }
   if (!parsedAmount) {
     error = error ?? <Trans>Enter an amount</Trans>
+  }
+  if (isMintBelowMinimum) {
+    error = error ?? <Trans>Minimum 0.001 {token?.symbol}</Trans>
   }
   if (!userHasEnough) {
     if (activation) {

@@ -15,6 +15,7 @@ import SellModal from 'components/createPool/SellModal'
 import SetLockupModal from 'components/createPool/SetLockupModal'
 import SetSpreadModal from 'components/createPool/SetSpreadModal'
 import SetValueModal from 'components/createPool/SetValueModal'
+import UpgradeModal from 'components/createPool/UpgradeModal'
 import Row, { RowBetween, RowFixed } from 'components/deprecated/Row'
 import HarvestYieldModal from 'components/earn/HarvestYieldModal'
 import MoveStakeModal from 'components/earn/MoveStakeModal'
@@ -28,7 +29,7 @@ import DelegateModal from 'components/vote/DelegateModal'
 import { /*BIG_INT_ZERO,*/ ZERO_ADDRESS } from 'constants/misc'
 import { useCurrency } from 'hooks/Tokens'
 import { useAccount } from 'hooks/useAccount'
-import { UserAccount, useSmartPoolFromAddress, useUserPoolBalance } from 'hooks/useSmartPools'
+import { UserAccount, useImplementation, useSmartPoolFromAddress, useUserPoolBalance } from 'hooks/useSmartPools'
 // TODO: this import is from node modules
 import JSBI from 'jsbi'
 //import { PoolState, usePool } from 'hooks/usePools'
@@ -242,8 +243,10 @@ export default function PoolPositionPage() {
   }>()
   const account = useAccount()
   //const theme = useTheme()
+  const IMPLEMENTATION_SLOT = '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc'
 
   const [showConfirm, setShowConfirm] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false) // State for upgrade modal
 
   const [showBuyModal, setShowBuyModal] = useState(false)
   const [showSellModal, setShowSellModal] = useState(false)
@@ -318,6 +321,13 @@ export default function PoolPositionPage() {
   const freeStakeBalance = useFreeStakeBalance()
   const hasFreeStake = JSBI.greaterThan(freeStakeBalance ? freeStakeBalance.quotient : JSBI.BigInt(0), JSBI.BigInt(0))
 
+  // Check if the pool needs an upgrade
+  const [currentImplementation, beaconImplementation] = useImplementation(poolAddressFromUrl ?? undefined, IMPLEMENTATION_SLOT) ?? [undefined, undefined]
+
+  const needsUpgrade = useMemo(() => {
+    return currentImplementation && beaconImplementation && currentImplementation.toLowerCase() !== beaconImplementation.toLowerCase()
+  }, [currentImplementation, beaconImplementation])
+
   const handleMoveStakeClick = useCallback(() => {
     setShowMoveStakeModal(true)
     if (deactivate) {
@@ -328,6 +338,10 @@ export default function PoolPositionPage() {
   const handleDeactivateStakeClick = useCallback(() => {
     setShowMoveStakeModal(true)
     setDeactivate(true)
+  }, [])
+
+  const handleUpgradeClick = useCallback(() => {
+    setShowUpgradeModal(true)
   }, [])
 
   function modalHeader() {
@@ -398,6 +412,14 @@ export default function PoolPositionPage() {
                 title={<Trans>Set Value</Trans>}
               />
             )}
+            {needsUpgrade && beaconImplementation && (
+              <UpgradeModal 
+                isOpen={showUpgradeModal}
+                onDismiss={() => setShowUpgradeModal(false)}
+                implementation={beaconImplementation}
+                title={<Trans>Upgrade Implementation</Trans>}
+              />
+            )}
             <DelegateModal
               isOpen={showStakeModal}
               poolInfo={poolInfo}
@@ -444,6 +466,17 @@ export default function PoolPositionPage() {
                       <Trans>← Back to Pools</Trans>
                     </HoverText>
                   </Link>
+                )}
+                {needsUpgrade && owner === account.address && (
+                  <ResponsiveButtonPrimary
+                    style={{ marginRight: '8px' }}
+                    width="fit-content"
+                    padding="6px 8px"
+                    $borderRadius="12px"
+                    onClick={handleUpgradeClick}
+                  >
+                    <Trans>Upgrade</Trans>
+                  </ResponsiveButtonPrimary>
                 )}
                 {unclaimedRewards && unclaimedRewards[0]?.yieldAmount && (
                   <ResponsiveButtonPrimary
