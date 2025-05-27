@@ -1,7 +1,5 @@
-import { parseUnits } from '@ethersproject/units'
 import { Trans } from 'react-i18next'
-import JSBI from 'jsbi'
-import { ReactNode, useCallback, useState } from 'react'
+import { ReactNode, useState } from 'react'
 import { X } from 'react-feather'
 import styled from 'lib/styled-components'
 import { ThemedText } from 'theme/components/text'
@@ -16,7 +14,6 @@ import { AutoColumn } from 'components/deprecated/Column'
 import { RowBetween } from 'components/deprecated/Row'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { LoadingView, SubmittedView } from 'components/ModalViews'
-import NameInputPanel from 'components/NameInputPanel'
 import { useAccount } from 'hooks/useAccount'
 
 const ContentWrapper = styled(AutoColumn)`
@@ -87,7 +84,7 @@ export default function UpgradeModal({ isOpen, implementation, onDismiss, title 
             </RowBetween>
             <ButtonError onClick={onUpgrade} disabled={!implementation}>
               <ThemedText.DeprecatedMediumHeader color="white">
-                <Trans>Upgrade Implementation to {implementation}</Trans>
+                <Trans>Upgrade Implementation</Trans>
               </ThemedText.DeprecatedMediumHeader>
             </ButtonError>
           </AutoColumn>
@@ -111,7 +108,7 @@ export default function UpgradeModal({ isOpen, implementation, onDismiss, title 
                   <Trans>Transaction Submitted</Trans>
                 </ThemedText.DeprecatedLargeHeader>
                 <ThemedText.DeprecatedBody fontSize={20}>
-                  <Trans>Upgrading implementation to {implementation}</Trans>
+                  <Trans>Upgrading implementation</Trans>
                 </ThemedText.DeprecatedBody>
               </>
             ) : transactionSuccess ? (
@@ -120,7 +117,7 @@ export default function UpgradeModal({ isOpen, implementation, onDismiss, title 
                   <Trans>Transaction Success</Trans>
                 </ThemedText.DeprecatedLargeHeader>
                 <ThemedText.DeprecatedBody fontSize={20}>
-                  <Trans>Implementation Upgraded to {implementation}</Trans>
+                  <Trans>Implementation Upgraded</Trans>
                 </ThemedText.DeprecatedBody>
               </>
             ) : (

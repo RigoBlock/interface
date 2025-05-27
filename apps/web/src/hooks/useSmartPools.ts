@@ -38,7 +38,7 @@ export interface UserAccount {
 
 export function useImplementation(poolAddress: string | undefined, implementationSlot: string): [string, string] | undefined {
   const poolExtendedContract = usePoolExtendedContract(poolAddress)
-  const currentImplementation = useSingleCallResult(poolExtendedContract ?? undefined, 'getStorageSlotsAt', [implementationSlot]).result?.[0]
+  const currentImplementation = useSingleCallResult(poolExtendedContract ?? undefined, 'getStorageAt', [implementationSlot, 1]).result?.[0]
   const poolFactory = usePoolFactoryContract()
   const beaconImplementation = useSingleCallResult(poolFactory ?? undefined, 'implementation').result?.[0]
 
@@ -47,7 +47,7 @@ export function useImplementation(poolAddress: string | undefined, implementatio
     if (!currentImplementation || !beaconImplementation) {
       return undefined
     }
-    return [currentImplementation, beaconImplementation]
+    return ["0x" + currentImplementation.slice(-40), beaconImplementation]
   }, [currentImplementation, beaconImplementation])
 }
 

@@ -326,7 +326,7 @@ export default function PoolPositionPage() {
 
   // TODO: after debugging, restrict to pool operator only, plus try to wrap onchain calls when caller is pool operator to save on rpc calls
   const needsUpgrade = useMemo(() => {
-    return currentImplementation && beaconImplementation && currentImplementation !== beaconImplementation
+    return currentImplementation && beaconImplementation && currentImplementation.toLowerCase() !== beaconImplementation.toLowerCase()
   }, [currentImplementation, beaconImplementation])
 
   const handleMoveStakeClick = useCallback(() => {
