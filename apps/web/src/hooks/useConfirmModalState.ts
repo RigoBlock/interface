@@ -13,7 +13,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useMultichainContext } from 'state/multichain/useMultichainContext'
 import { InterfaceTrade } from 'state/routing/types'
 import { isUniswapXTrade } from 'state/routing/utils'
-import { useIsWhitelistedToken } from 'state/swap/hooks'
+import { useIsTokenOwnable } from 'state/swap/hooks'
 import { useIsTransactionConfirmed } from 'state/transactions/hooks'
 import invariant from 'tiny-invariant'
 import { CurrencyField } from 'uniswap/src/types/currency'
@@ -58,22 +58,22 @@ export function useConfirmModalState({
   const account = useAccount()
   const { chainId } = useMultichainContext()
 
-  const isWhitelistedToken: boolean | undefined = useIsWhitelistedToken(
+  const isTokenOwnable: boolean | undefined = useIsTokenOwnable(
     selectedPool?.isToken ? selectedPool?.address : undefined,
     trade.outputAmount.currency
   )
 
   useEffect(() => {
     // we do not want to display token error until the whitelist check returns a boolean
-    if (isWhitelistedToken === undefined) {
+    if (isTokenOwnable === undefined) {
       return
     }
-    if (!isWhitelistedToken) {
-      setTokenError(PendingModalError.TOKEN_WHITELIST_ERROR)
+    if (!isTokenOwnable) {
+      setTokenError(PendingModalError.TOKEN_PRICE_FEED_ERROR)
     } else {
       setTokenError(undefined)
     }
-  }, [isWhitelistedToken, setTokenError])
+  }, [isTokenOwnable, setTokenError])
 
   // This is a function instead of a memoized value because we do _not_ want it to update as the allowance changes.
   // For example, if the user needs to complete 3 steps initially, we should always show 3 step indicators

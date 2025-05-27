@@ -73,16 +73,16 @@ function getErrorContent({ errorType, trade }: { errorType: PendingModalError; t
         message: <Trans i18nKey="token.wrap.fail.message" />,
         supportArticleURL: uniswapUrls.helpArticleUrls.wethExplainer,
       }
-    case PendingModalError.TOKEN_WHITELIST_ERROR:
+    case PendingModalError.TOKEN_PRICE_FEED_ERROR:
       return {
-        title: <Trans>Token not whitelisted</Trans>,
+        title: <Trans>Token price not found</Trans>,
         message: (
           <Trans>
-            Rigoblock provides an extra security feature that allows only whitelisted tokens to be swapped. Request the
-            addition of a new token.
+            Rigoblock allows any token to be swapped, but some tokens may not have a price feed available. You
+            can create a price feed for the token you want to swap, or ask us to do it for you.
           </Trans>
         ),
-        supportArticleURL: RigoblockUrls.TOKEN_ADDITION_FORM,
+        supportArticleURL: RigoblockUrls.TOKEN_PRICE_FEED_FORM,
       }
     default:
       return {

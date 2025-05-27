@@ -1,8 +1,10 @@
 import { Currency } from '@uniswap/sdk-core'
 import { NATIVE_CHAIN_ID } from 'constants/tokens'
 import { useCurrency } from 'hooks/Tokens'
+import { useSingleCallResult } from 'lib/hooks/multicall'
 import { ParsedQs } from 'qs'
 import { useCallback, useEffect, useMemo } from 'react'
+import { usePoolExtendedContract } from 'state/governance/hooks'
 import { useMultichainContext } from 'state/multichain/useMultichainContext'
 import { CurrencyState, SerializedCurrencyState, SwapState } from 'state/swap/types'
 import { useSwapAndLimitContext, useSwapContext } from 'state/swap/useSwapContext'
@@ -200,11 +202,12 @@ export function queryParametersToCurrencyState(parsedQs: ParsedQs): SerializedCu
   }
 }
 
-// TODO: replace with hasPriceFeed()
-export function useIsWhitelistedToken(poolAddress?: string, token?: Currency): boolean | undefined {
-  const contract = usePoolExtendedContract(poolAddress)
-
-  const isWhitelistedToken: boolean | undefined = useSingleCallResult(contract, 'isWhitelistedToken', [
+export function useIsTokenOwnable(poolAddress?: string, token?: Currency): boolean | undefined {
+  const extendedPool = usePoolExtendedContract(poolAddress)
+  if (!extendedPool || !token) {
+    return undefined
+  }
+  const isWhitelistedToken: boolean | undefined = useSingleCallResult(extendedPool, 'hasPriceFeed', [
     token?.isToken ? token.address : undefined,
   ])?.result?.[0]
 
