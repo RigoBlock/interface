@@ -758,6 +758,8 @@
   "error.tokenApproval": "Token approval failed",
   "error.tokenApprovalEdited": "Insufficient approval amount",
   "error.tokenApprovalEdited.message": "The approval amount set in your wallet is too low to complete this transaction. Please try again and increase the amount.",
+  "error.tokenPriceFeed": "Price feed does not exist for this token",
+  "error.tokenPriceFeed.message": "Rigoblock allows any token to be ownable, but some tokens may not have a price feed available. You can create a price feed for any token.",
   "errors.crash.message": "Something crashed.",
   "errors.crash.restart": "Restart app",
   "errors.crash.title": "Uh oh!",

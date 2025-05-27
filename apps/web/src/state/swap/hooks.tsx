@@ -204,14 +204,11 @@ export function queryParametersToCurrencyState(parsedQs: ParsedQs): SerializedCu
 
 export function useIsTokenOwnable(poolAddress?: string, token?: Currency): boolean | undefined {
   const extendedPool = usePoolExtendedContract(poolAddress)
-  if (!extendedPool || !token) {
-    return undefined
-  }
-  const isWhitelistedToken: boolean | undefined = useSingleCallResult(extendedPool, 'hasPriceFeed', [
+  const isTokenOwnable: boolean | undefined = useSingleCallResult(extendedPool, 'hasPriceFeed', [
     token?.isToken ? token.address : undefined,
   ])?.result?.[0]
 
-  return useMemo(() => (token?.isToken ? isWhitelistedToken : true), [token, isWhitelistedToken])
+  return useMemo(() => (token?.isToken ? isTokenOwnable : true), [token, isTokenOwnable])
 }
 
 // Despite a lighter QuickTokenBalances query we've received feedback that the initial load time is too slow.
