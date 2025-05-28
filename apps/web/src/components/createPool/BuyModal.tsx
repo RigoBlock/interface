@@ -11,7 +11,7 @@ import ProgressCircles from 'components/ProgressSteps'
 import { ApprovalState, useApproveCallback } from 'hooks/useApproveCallback'
 import { Trans } from 'react-i18next'
 import JSBI from 'jsbi'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, useEffect } from 'react'
 import { PoolInfo, useDerivedPoolInfo } from 'state/buy/hooks'
 import { usePoolExtendedContract } from 'state/pool/hooks'
 import { useIsTransactionConfirmed, useTransaction, useTransactionAdder } from 'state/transactions/hooks'
@@ -24,6 +24,9 @@ import { ModalName} from 'uniswap/src/features/telemetry/constants'
 import { calculateGasMargin } from 'utils/calculateGasMargin'
 import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
 import { maxAmountSpend } from 'utils/maxAmountSpend'
+import { parseEther } from 'viem'
+
+const mintAmountCache = new Map()
 
 const ContentWrapper = styled(AutoColumn)`
   width: 100%;
@@ -64,30 +67,54 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
   const [approval, approveCallback] = useApproveCallback(parsedAmount, poolInfo?.pool?.address)
 
   const poolContract = usePoolExtendedContract(poolInfo?.pool?.address)
+  const [expectedMintAmount, setExpectedMintAmount] = useState<any>(undefined)
+  
+  useEffect(() => {
+    async function retrieveRealTimeMintAmount() {
+      if (!poolContract || !poolInfo?.recipient || !parsedAmount?.quotient || !JSBI.greaterThan(parsedAmount.quotient, JSBI.BigInt(parseEther('0.0001').toString()))) {
+        return
+      }
+
+      // TODO: handle error if contract call fails
+      const value = userBaseTokenBalance?.currency.isNative ? parsedAmount.quotient.toString() : null
+      const args = [poolInfo.recipient, parsedAmount.quotient.toString(), 1]
+      let mintAmount
+      try {
+        const cacheKey =
+          JSON.stringify(args) + (value ? value.toString() : '')
+        if (mintAmountCache.has(cacheKey)) {
+          mintAmount = mintAmountCache.get(cacheKey)
+        } else {
+          mintAmount = await poolContract.callStatic[
+            'mint(address,uint256,uint256)'
+          ](...args, value ? { value } : {})
+          mintAmountCache.set(cacheKey, mintAmount)
+        }
+      } catch (error) {
+        setExpectedMintAmount(undefined)
+        return
+      }
+      setExpectedMintAmount(mintAmount)
+    }
+    retrieveRealTimeMintAmount()
+  }, [poolContract, poolInfo?.recipient, parsedAmount?.quotient, userBaseTokenBalance?.currency.isNative])
 
   const { expectedPoolTokens, minimumAmount } = useMemo(() => {
-    if (!parsedAmount || !poolInfo) {
+    if (!parsedAmount || !poolInfo || !expectedMintAmount) {
       return {
         expectedPoolTokens: undefined,
         minimumAmount: undefined,
       }
     }
 
-    // price plus spread
-    const poolAmount = JSBI.divide(
-      JSBI.multiply(
-        parsedAmount.quotient,
-        JSBI.exponentiate(JSBI.BigInt(10), JSBI.BigInt(parsedAmount.currency.decimals ?? 18))
-      ),
-      poolInfo.poolPriceAmount.quotient
-    )
-    // extra 20% margin
-    const minimumAmount = JSBI.subtract(poolAmount, JSBI.divide(poolAmount, JSBI.BigInt(20)))
+    // extra 10% margin
+    const mintJSBI = JSBI.BigInt(expectedMintAmount.toString())
+    const minimumAmount = JSBI.subtract(mintJSBI, JSBI.divide(mintJSBI, JSBI.BigInt(10)))
     return {
-      expectedPoolTokens: CurrencyAmount.fromRawAmount(poolInfo.poolPriceAmount.currency, poolAmount),
+      expectedPoolTokens: CurrencyAmount.fromRawAmount(poolInfo.poolPriceAmount.currency, expectedMintAmount),
       minimumAmount: CurrencyAmount.fromRawAmount(poolInfo.poolPriceAmount.currency, minimumAmount),
     }
-  }, [parsedAmount, poolInfo])
+  }, [parsedAmount, poolInfo, expectedMintAmount])
 
   async function onBuy(): Promise<void | undefined> {
     setAttempting(true)

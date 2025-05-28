@@ -3,7 +3,7 @@ import { Currency, CurrencyAmount /*, Token*/ } from '@uniswap/sdk-core'
 //import { useWeb3React } from '@web3-react/core'
 import { Trans } from 'react-i18next'
 import JSBI from 'jsbi'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, useEffect } from 'react'
 import styled from 'lib/styled-components'
 import { ThemedText } from 'theme/components'
 import { ModalCloseIcon } from 'ui/src'
@@ -24,6 +24,8 @@ import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName} from 'uniswap/src/features/telemetry/constants'
 import { LoadingView, SubmittedView } from 'components/ModalViews'
 import ProgressCircles from 'components/ProgressSteps'
+
+const burnAmountCache = new Map()
 
 const ContentWrapper = styled(AutoColumn)`
   width: 100%;
@@ -73,6 +75,35 @@ export default function SellModal({
   )
 
   const poolContract = usePoolExtendedContract(poolInfo?.pool?.address)
+  const [expectedBurnOutputAmount, setExpectedBurnOutputAmount] = useState<any>(undefined)
+    
+  useEffect(() => {
+    async function retrieveBurnOutputAmount() {
+      if (!poolContract || !poolInfo?.recipient || !parsedAmount?.quotient) {
+        return
+      }
+
+      // TODO: handle error if contract call fails
+      const args = [parsedAmount.quotient.toString(), 1]
+      let burnOutputAmount
+      try {
+        const cacheKey = JSON.stringify(args)
+        if (burnAmountCache.has(cacheKey)) {
+          burnOutputAmount = burnAmountCache.get(cacheKey)
+        } else {
+          burnOutputAmount = await poolContract.callStatic[
+            'burn(uint256,uint256)'
+          ](...args)
+          burnAmountCache.set(cacheKey, burnOutputAmount)
+        }
+      } catch (error) {
+        setExpectedBurnOutputAmount(undefined)
+        return
+      }
+      setExpectedBurnOutputAmount(burnOutputAmount)
+    }
+    retrieveBurnOutputAmount()
+  }, [poolContract, poolInfo?.recipient, parsedAmount?.quotient])
 
   const { expectedBaseTokens, minimumAmount } = useMemo(() => {
     if (!parsedAmount || !poolInfo) {
@@ -81,33 +112,23 @@ export default function SellModal({
         minimumAmount: undefined,
       }
     }
-
-    // price plus spread
-    const baseTokenAmount = JSBI.divide(
-      JSBI.multiply(
-        JSBI.subtract(
-          parsedAmount.quotient,
-          JSBI.divide(JSBI.multiply(parsedAmount.quotient, JSBI.BigInt(poolInfo.spread)), JSBI.BigInt(10000))
-        ),
-        poolInfo.poolPriceAmount.quotient
-      ),
-      JSBI.exponentiate(JSBI.BigInt(10), JSBI.BigInt(parsedAmount.currency.decimals ?? 18))
-    )
-    // extra 2% margin
-    const minimumAmount = JSBI.subtract(baseTokenAmount, JSBI.divide(baseTokenAmount, JSBI.BigInt(50)))
-    // TODO: we use pool currency instead of base currency as same decimals, double check if changed
+    const burnValue = expectedBurnOutputAmount !== undefined ? expectedBurnOutputAmount : "0"
+    const burnJSBI = JSBI.BigInt(burnValue.toString())
+    const minJSBI = JSBI.subtract(burnJSBI, JSBI.divide(burnJSBI, JSBI.BigInt(10)))
+    // extra 10% margin applied; if burn output is 0, corresponding amounts will also be 0
     return {
-      expectedBaseTokens: CurrencyAmount.fromRawAmount(parsedAmount.currency, baseTokenAmount),
-      minimumAmount: CurrencyAmount.fromRawAmount(parsedAmount.currency, minimumAmount),
+      expectedBaseTokens: CurrencyAmount.fromRawAmount(parsedAmount.currency, burnJSBI.toString()),
+      minimumAmount: CurrencyAmount.fromRawAmount(parsedAmount.currency, minJSBI.toString()),
     }
-  }, [parsedAmount, poolInfo])
+  }, [expectedBurnOutputAmount, parsedAmount, poolInfo])
 
   // it is possible that user is requesting more that its balance
   const poolHoldsEnough: boolean = useMemo(() => {
     if (!poolBaseTokenBalance || !expectedBaseTokens || !poolInfo) {
       return true
     }
-    return JSBI.greaterThanOrEqual(poolBaseTokenBalance.quotient, expectedBaseTokens.quotient)
+    return !JSBI.equal(expectedBaseTokens.quotient, JSBI.BigInt(0)) &&
+      JSBI.greaterThanOrEqual(poolBaseTokenBalance.quotient, expectedBaseTokens.quotient)
   }, [poolBaseTokenBalance, expectedBaseTokens, poolInfo])
 
   async function onSell(): Promise<void | undefined> {
