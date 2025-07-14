@@ -45,7 +45,7 @@ export const STAKING_PROXY_ADDRESSES: AddressMap = {
   [UniverseChainId.Polygon]: '0xC87d1B952303ae3A9218727692BAda6723662dad',
   [UniverseChainId.Bnb]: '0xa4a94cCACa8ccCdbCD442CF8eECa0cd98f69e99e',
   [UniverseChainId.Base]: '0xc758Ea84d6D978fe86Ee29c1fbD47B4F302F1992',
-  [UniverseChainId.Unichain]: '0xD40edcc947fF35637233d765CB9efCFc10fC8c22',
+  [UniverseChainId.Unichain]: '0x550Ed0bFFdbE38e8Bd33446D5c165668Ea071643',
 }
 
 /* GRG Transfer Proxy Addresses */
