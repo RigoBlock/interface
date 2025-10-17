@@ -66,30 +66,43 @@ export interface PoolRegisteredLog {
 }
 
 function useStartBlock(chainId?: number): {fromBlock: number, toBlock?: number } {
-  let registryStartBlock
+  let registryStartBlock: number
   const blockNumber = useBlockNumber()
 
-  // TODO: bsc is served by infura via proxy, and returns an error on past logs regardless of range
-  const toBlock: number | undefined = chainId === 56 ? blockNumber : undefined
+  const toBlock = typeof blockNumber === 'number' ? blockNumber : undefined
 
-  if (chainId === UniverseChainId.Mainnet) {
-    registryStartBlock = 15834693
-  } else if (chainId === UniverseChainId.Sepolia) {
-    registryStartBlock = 7707806
-  } else if (chainId === UniverseChainId.ArbitrumOne) {
-    registryStartBlock = 35439804
-  } else if (chainId === UniverseChainId.Optimism) {
-    registryStartBlock = 34629059
-  } else if (chainId === UniverseChainId.Polygon) {
-    registryStartBlock = 35228892
-  } else if (chainId === UniverseChainId.Base) {
-    registryStartBlock = 2565256 //typeof blockNumber === 'number' ? blockNumber - 4000 : blockNumber
-  } else if (chainId === UniverseChainId.Bnb) {
-    registryStartBlock = 25549625 //typeof blockNumber === 'number' ? blockNumber - 4000 : blockNumber
-  } else if (chainId === UniverseChainId.Unichain) {
-    registryStartBlock = 16121684
+  // Notice: we now query logs from the api, so start block is less relevant
+  if (!chainId) {
+    registryStartBlock = 0
   } else {
-    registryStartBlock = 1000
+    switch (chainId) {
+      case UniverseChainId.Mainnet:
+        registryStartBlock = 15834693
+        break
+      case UniverseChainId.Sepolia:
+        registryStartBlock = 7707806
+        break
+      case UniverseChainId.ArbitrumOne:
+        registryStartBlock = 35439804
+        break
+      case UniverseChainId.Optimism:
+        registryStartBlock = 34629059
+        break
+      case UniverseChainId.Polygon:
+        registryStartBlock = 35228892
+        break
+      case UniverseChainId.Base:
+        registryStartBlock = 2565256
+        break
+      case UniverseChainId.Bnb:
+        registryStartBlock = 25549625
+        break
+      case UniverseChainId.Unichain:
+        registryStartBlock = 16121684
+        break
+      default:
+        registryStartBlock = 1000
+    }
   }
 
   return { fromBlock: registryStartBlock, toBlock }
