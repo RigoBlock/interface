@@ -88,44 +88,72 @@ export default function PoolPositionList({ positions, filterByOperator }: PoolPo
   // notice: this call will not return pools if account is not connected and the endpoint is not responsive, which
   //   is fine as we don't want to display empty pools when endpoint is not responsive.
   const results = useMultipleContractSingleData(poolAddresses, PoolInterface, 'getPool')
-  // TODO: if we initiate this in state, we can later query from state instead of making rpc call
-  //  in 1) swap and 2) each pool url, we could also store poolId at that point
+
   const poolsWithStats = useMemo(() => {
     return results
       ?.map((result, i) => {
         const { result: pool, loading } = result
-        // if pool is not correctly returned by endpoint it means endpoint is down, and we don't want to display pools
-        if (!account.chainId || loading || !pool) {
-          return undefined
+        const position = positions[i]
+        const userBalance = userBalances?.[i]?.result
+        const poolReward = poolsRewards[i]
+        const userIsOwner = pool && account.address ? pool[0]?.owner === account.address : false
+
+        let shouldDisplay: boolean | undefined = true
+        let decimals, owner, symbol, name, apr, irr, poolOwnStake, poolDelegatedStake, userHasStake
+
+        if (loading || !pool) {
+          // Use position data for placeholders when loading
+          symbol = position?.symbol
+          name = position?.name
+          apr = position?.apr
+          irr = position?.irr
+          poolOwnStake = position?.poolOwnStake
+          poolDelegatedStake = position?.poolDelegatedStake
+          userHasStake = position?.userHasStake ?? false
+
+          // Display during loading for owned pools (filterByOperator) or held pools (userBalance) to improve UX
+          shouldDisplay = filterByOperator ? userIsOwner || (userBalance && Number(userBalance) > 0) : true
+        } else {
+          decimals = pool[0].decimals
+          owner = pool[0].owner
+          symbol = position?.symbol
+          name = position?.name
+          apr = position?.apr
+          irr = position?.irr
+          poolOwnStake = position?.poolOwnStake
+          poolDelegatedStake = position?.poolDelegatedStake
+          userHasStake = position?.userHasStake ?? false
+
+          if (filterByOperator) {
+            shouldDisplay = Boolean(owner === account.address)
+          } else {
+            shouldDisplay = true
+          }
         }
 
-        const { decimals, owner } = pool[0]
-        if (!decimals || !owner) {
-          return undefined
-        }
-        const shouldDisplay = filterByOperator
-          ? Boolean(owner === account.address || Number(userBalances?.[i]?.result) > 0)
-          : true
+        if (!account.chainId) { return undefined }
+
         return {
-          ...result,
-          apr: positions?.[i]?.apr,
-          irr: positions?.[i]?.irr,
-          poolOwnStake: positions?.[i]?.poolOwnStake,
-          poolDelegatedStake: positions?.[i]?.poolDelegatedStake,
-          userHasStake: positions?.[i]?.userHasStake ?? false,
+          ...position,
+          loading,
           address: poolAddresses[i],
-          decimals,
-          symbol: positions?.[i]?.symbol,
-          name: positions?.[i]?.name,
           chainId: account.chainId,
           shouldDisplay,
-          userIsOwner: account.address ? owner === account.address : false,
-          userBalance: userBalances?.[i]?.result,
+          userIsOwner,
           id: poolIds[i],
-          currentEpochReward: poolsRewards[i],
+          currentEpochReward: poolReward || '0',
+          userBalance: userBalance || '0',
+          decimals,
+          symbol,
+          name,
+          apr,
+          irr,
+          poolOwnStake,
+          poolDelegatedStake,
+          userHasStake,
         }
       })
-      .filter((p) => p && p.shouldDisplay)
+      .filter((p) => p && p.shouldDisplay) || []
   }, [account.address, account.chainId, filterByOperator, poolAddresses, positions, results, userBalances, poolIds, poolsRewards])
 
   return (
