@@ -67,7 +67,7 @@ export function useV2MigratorContract() {
   )
 }
 
-export function useTokenContract(tokenAddress?: string, withSignerIfPossible?: boolean, chainId?: UniverseChainId) {
+export function useTokenContract(tokenAddress?: string, withSignerIfPossible?: boolean, chainId?: UniverseChainId): Erc20 | null {
   return useContract<Erc20>(tokenAddress, ERC20_ABI, withSignerIfPossible, chainId)
 }
 

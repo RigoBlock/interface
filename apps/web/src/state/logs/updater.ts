@@ -14,21 +14,30 @@ export default function Updater(): null {
   const dispatch = useAppDispatch()
   const state = useAppSelector((state) => state.logs)
   const { chainId } = useAccount()
-  //const { provider } = useWeb3React()
-  // TODO: test that using our providers works inside mobile wallets
-  // TODO: should be dependent on chainId, so we can switch provider on switch chain, unless we
-  //  use our multichain provider
-  let provider = RPC_PROVIDERS[chainId ?? UniverseChainId.Mainnet]
 
-  if (SUPPORTED_TESTNET_CHAIN_IDS.includes(chainId ?? UniverseChainId.Sepolia)) {
-    provider = TESTNET_RPC_PROVIDERS[chainId ?? UniverseChainId.Sepolia]
-  }
+  // Notice: for testnets we use infura
+  const provider = useMemo(() => {
+    if (!chainId) {
+      return undefined
+    }
 
-  // TODO: check if we want to use our endpoints as addition to use onchain logs and ours combined
-  // TODO: check define provider inside useEffect, so will update on chain switch.
-  if (chainId === UniverseChainId.Bnb) {
-    provider = getBackupRpcProvider(chainId ?? UniverseChainId.Mainnet)
-  }
+    if (SUPPORTED_TESTNET_CHAIN_IDS.includes(chainId)) {
+      return TESTNET_RPC_PROVIDERS[chainId]
+    } else {
+      switch (chainId) {
+        case UniverseChainId.Mainnet:
+        case UniverseChainId.Unichain:
+        case UniverseChainId.Bnb:
+        case UniverseChainId.Polygon:
+        case UniverseChainId.ArbitrumOne:
+        case UniverseChainId.Optimism:
+        case UniverseChainId.Base:
+          return getBackupRpcProvider(chainId)
+        default:
+          return RPC_PROVIDERS[chainId]
+      }
+    }
+  }, [chainId])
 
   const blockNumber = useBlockNumber()
 
