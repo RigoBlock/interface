@@ -285,7 +285,7 @@ export default function Stake() {
                 dataLength={orderedPools.length}
                 style={{ overflow: 'unset' }}
               >
-                <PoolPositionList positions={items} filterByOperator={false} />
+                <PoolPositionList positions={items} />
               </InfiniteScroll>
             ) : (loading || loadingPools) && account.isConnected ? (
               <Loader style={{ margin: 'auto' }} />

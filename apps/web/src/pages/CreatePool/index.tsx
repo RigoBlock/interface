@@ -8,12 +8,12 @@ import CreateModal from 'components/createPool/CreateModal'
 import { CardBGImage, CardNoise, CardSection, DataCard } from 'components/earn/styled'
 import Loader from 'components/Icons/LoadingSpinner'
 import PoolPositionList from 'components/PoolPositionList'
-import { Trans } from 'react-i18next'
 import { useAccount } from 'hooks/useAccount'
+import styled from 'lib/styled-components'
+import { Trans } from 'react-i18next'
 import { useCloseModal, useModalIsOpen, useToggleCreateModal } from 'state/application/hooks'
 import { ApplicationModal } from 'state/application/reducer'
 import { useAllPoolsData } from 'state/pool/hooks'
-import styled from 'lib/styled-components'
 import { ThemedText } from 'theme/components/text'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 
@@ -141,7 +141,6 @@ export default function CreatePool() {
           </DataRow>
 
           <MainContentWrapper>
-            {/* TODO: check why on some mobile wallets pool list not rendered */}
             {!account.address ? (
               <OutlineCard>
                 <Trans>Please connect your wallet</Trans>
@@ -149,7 +148,7 @@ export default function CreatePool() {
             ) : loadingPools ? (
               <Loader style={{ margin: 'auto' }} />
             ) : allPools && allPools?.length > 0 ? (
-              <PoolPositionList positions={allPools} filterByOperator={true} />
+              <PoolPositionList positions={allPools} shouldFilterByUserPools={true} />
             ) : allPools && allPools?.length === 0 ? (
               <OutlineCard>
                 <Trans>No pool found, create your own!</Trans>
