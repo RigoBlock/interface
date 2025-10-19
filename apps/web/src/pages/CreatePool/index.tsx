@@ -1,19 +1,17 @@
 import { InterfaceElementName, InterfaceEventName, InterfacePageName } from '@uniswap/analytics-events'
 import { useAccountDrawer } from 'components/AccountDrawer/MiniPortfolio/hooks'
 import { ButtonPrimary } from 'components/Button/buttons'
-import { OutlineCard } from 'components/Card/cards'
 import { AutoColumn } from 'components/deprecated/Column'
 import { RowBetween, RowFixed } from 'components/deprecated/Row'
 import CreateModal from 'components/createPool/CreateModal'
 import { CardBGImage, CardNoise, CardSection, DataCard } from 'components/earn/styled'
-import Loader from 'components/Icons/LoadingSpinner'
 import PoolPositionList from 'components/PoolPositionList'
-import { Trans } from 'react-i18next'
 import { useAccount } from 'hooks/useAccount'
+import styled from 'lib/styled-components'
+import { Trans } from 'react-i18next'
 import { useCloseModal, useModalIsOpen, useToggleCreateModal } from 'state/application/hooks'
 import { ApplicationModal } from 'state/application/reducer'
 import { useAllPoolsData } from 'state/pool/hooks'
-import styled from 'lib/styled-components'
 import { ThemedText } from 'theme/components/text'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 
@@ -76,7 +74,7 @@ export default function CreatePool() {
   const open = useModalIsOpen(ApplicationModal.CREATE)
   const closeModal = useCloseModal(ApplicationModal.CREATE)
   const toggleCreateModal = useToggleCreateModal()
-  const { data: allPools, loading: loadingPools } = useAllPoolsData()
+  const { data: allPools } = useAllPoolsData()
 
   return (
     <Trace logImpression page={InterfacePageName.POOL_PAGE}>
@@ -89,7 +87,7 @@ export default function CreatePool() {
               <AutoColumn gap="md">
                 <RowBetween>
                   <ThemedText.DeprecatedWhite fontWeight={600}>
-                    <Trans>Rigoblock Pools</Trans>
+                    <Trans>Rigoblock Vaults</Trans>
                   </ThemedText.DeprecatedWhite>
                 </RowBetween>
                 <RowBetween>
@@ -106,10 +104,10 @@ export default function CreatePool() {
 
         <AutoColumn gap="lg" style={{ width: '100%', maxWidth: '720px' }}>
           <DataRow style={{ alignItems: 'baseline' }}>
-            <CreateModal isOpen={open} onDismiss={() => closeModal()} title={<Trans>Create Pool</Trans>} />
+            <CreateModal isOpen={open} onDismiss={() => closeModal()} title={<Trans>Create Vault</Trans>} />
             <WrapSmall>
               <ThemedText.DeprecatedMediumHeader style={{ marginTop: '0.5rem' }}>
-                <Trans>Pools</Trans>
+                <Trans>Vaults</Trans>
               </ThemedText.DeprecatedMediumHeader>
               <RowFixed gap="8px" style={{ marginRight: '4px' }}>
                 {account.isConnected ? (
@@ -119,7 +117,7 @@ export default function CreatePool() {
                     $borderRadius="8px"
                     onClick={toggleCreateModal}
                   >
-                    <Trans>Create Pool</Trans>
+                    <Trans>Create Vault</Trans>
                   </ButtonPrimary>
                 ) : (
                   <Trace
@@ -139,22 +137,8 @@ export default function CreatePool() {
               </RowFixed>
             </WrapSmall>
           </DataRow>
-
           <MainContentWrapper>
-            {/* TODO: check why on some mobile wallets pool list not rendered */}
-            {!account.address ? (
-              <OutlineCard>
-                <Trans>Please connect your wallet</Trans>
-              </OutlineCard>
-            ) : loadingPools ? (
-              <Loader style={{ margin: 'auto' }} />
-            ) : allPools && allPools?.length > 0 ? (
-              <PoolPositionList positions={allPools} filterByOperator={true} />
-            ) : allPools && allPools?.length === 0 ? (
-              <OutlineCard>
-                <Trans>No pool found, create your own!</Trans>
-              </OutlineCard>
-            ) : null}
+            <PoolPositionList positions={allPools} shouldFilterByUserPools={true} />
           </MainContentWrapper>
         </AutoColumn>
       </PageWrapper>

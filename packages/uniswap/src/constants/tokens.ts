@@ -367,7 +367,6 @@ export const GRG: { [chainId: number]: Token } = {
     'GRG',
     'Rigo'
   ),
-  // TODO: add Sepolia GRG
   [UniverseChainId.Sepolia]: new Token(
     UniverseChainId.Sepolia,
     '0x076C619e7ebaBe40746106B66bFBed731F2c1339',

@@ -1,5 +1,6 @@
 import { Interface } from '@ethersproject/abi'
 import { RowFixed } from 'components/deprecated/Row'
+import Loader from 'components/Icons/LoadingSpinner'
 import PoolPositionListItem from 'components/PoolPositionListItem'
 import { MouseoverTooltip } from 'components/Tooltip'
 import { useAccount } from 'hooks/useAccount'
@@ -63,81 +64,77 @@ const InfoIconContainer = styled.div`
 `
 
 type PoolPositionListProps = React.PropsWithChildren<{
-  positions: PoolPositionDetails[]
-  filterByOperator?: any
-  filterByHolder?: string
+  positions?: PoolPositionDetails[]
+  shouldFilterByUserPools?: boolean
 }>
 
-export default function PoolPositionList({ positions, filterByOperator }: PoolPositionListProps) {
+export default function PoolPositionList({ positions, shouldFilterByUserPools }: PoolPositionListProps) {
   const account = useAccount()
   // TODO: we should merge this part with same part in swap page and move to a custom hook
-  const poolAddresses: string[] = useMemo(() => positions.map((p) => p.pool), [positions])
-  const poolIds: string[] = useMemo(() => positions.map((p) => p.id), [positions])
+  const poolAddresses = useMemo(() => positions?.map((p) => p.pool), [positions])
+  const poolIds = useMemo(() => positions?.map((p) => p.id), [positions])
   const PoolInterface = new Interface(POOL_EXTENDED_ABI)
 
-  const poolsRewards: string[] = useStakingPoolsRewards(poolIds)
+  const poolsRewards = useStakingPoolsRewards(poolIds)
 
-  // notice: if RPC endpoint is not available the following calls will result in empty poolsWithStats. However,
-  //  we do not want to return pools with partial data, so will prompt user to connect or return error.
+  // notice: this call will not return pools if account is not connected and the endpoint is not responsive, which
+  //   is fine as we don't want to display empty pools when endpoint is not responsive.
+  const results = useMultipleContractSingleData(poolAddresses ?? [], PoolInterface, 'getPool')
   const userBalances = useMultipleContractSingleData(
-    poolAddresses,
+    poolAddresses ?? [],
     PoolInterface,
     'balanceOf',
     useMemo(() => [account.address], [account.address])
   )
-  // notice: this call will not return pools if account is not connected and the endpoint is not responsive, which
-  //   is fine as we don't want to display empty pools when endpoint is not responsive.
-  const results = useMultipleContractSingleData(poolAddresses, PoolInterface, 'getPool')
-  // TODO: if we initiate this in state, we can later query from state instead of making rpc call
-  //  in 1) swap and 2) each pool url, we could also store poolId at that point
-  const poolsWithStats = useMemo(() => {
-    return results
-      ?.map((result, i) => {
-        const { result: pool, loading } = result
-        // if pool is not correctly returned by endpoint it means endpoint is down, and we don't want to display pools
-        if (!account.chainId || loading || !pool) {
-          return undefined
-        }
 
-        const { decimals, owner } = pool[0]
-        if (!decimals || !owner) {
-          return undefined
-        }
-        const shouldDisplay = filterByOperator
-          ? Boolean(owner === account.address || Number(userBalances?.[i]?.result) > 0)
-          : true
+  // TODO: check if should define isLoading inside useMemo to avoid unnecessary re-renders (we can use loading from results and userBalances)
+  const poolsWithStats = useMemo(() => {
+    if (!positions) { return undefined }
+    return positions
+      .map((p, i) => {
+        const { result: pool, loading } = results[i] || {}
+        const userBalance = Number(userBalances?.[i]?.result)
+        const userIsOwner = pool && account.address ? pool[0]?.owner === account.address : false
+        const shouldDisplay: boolean = shouldFilterByUserPools
+          ? Boolean(userIsOwner || (userBalance && userBalance > 0))
+          :  true
+
         return {
-          ...result,
-          apr: positions?.[i]?.apr,
-          irr: positions?.[i]?.irr,
-          poolOwnStake: positions?.[i]?.poolOwnStake,
-          poolDelegatedStake: positions?.[i]?.poolDelegatedStake,
-          userHasStake: positions?.[i]?.userHasStake ?? false,
-          address: poolAddresses[i],
-          decimals,
-          symbol: positions?.[i]?.symbol,
-          name: positions?.[i]?.name,
+          ...p,
+          loading,
+          address: poolAddresses?.[i],
           chainId: account.chainId,
           shouldDisplay,
-          userIsOwner: account.address ? owner === account.address : false,
-          userBalance: userBalances?.[i]?.result,
-          id: poolIds[i],
-          currentEpochReward: poolsRewards[i],
+          userIsOwner,
+          userBalance,
+          id: poolIds?.[i],
+          currentEpochReward: poolsRewards[i] ?? '0',
+          decimals: pool?.[0]?.decimals ?? 18,
+          symbol: p?.symbol,
+          name: p?.name,
+          apr: p?.apr,
+          irr: p?.irr,
+          poolOwnStake: p?.poolOwnStake,
+          poolDelegatedStake: p?.poolDelegatedStake,
+          userHasStake: p?.userHasStake
         }
       })
-      .filter((p) => p && p.shouldDisplay)
-  }, [account.address, account.chainId, filterByOperator, poolAddresses, positions, results, userBalances, poolIds, poolsRewards])
+      .filter((p) => p && p.shouldDisplay) || []
+  }, [account.address, account.chainId, poolAddresses, positions, results, poolIds, poolsRewards, shouldFilterByUserPools, userBalances])
+
+  const isLoading = !poolsWithStats
+  //const isLoadingResults = results?.some((r) => r.loading) || userBalances?.some((r) => r.loading)
 
   return (
     <>
       <DesktopHeader>
         <Flex>
           <Text>
-            {filterByOperator ? <Trans>Your pools</Trans> : <Trans>Loaded pools</Trans>}
-            {positions && ` (${poolsWithStats.length})`}
+            {shouldFilterByUserPools ? <Trans>Your vaults</Trans> : <Trans>Vaults</Trans>}
+            {positions && ` (${poolsWithStats?.length})`}
           </Text>
         </Flex>
-        {filterByOperator && (
+        {shouldFilterByUserPools && (
           <RowFixed gap="32px">
             <RowFixed gap="2px">
               <Trans>Points</Trans>
@@ -157,7 +154,7 @@ export default function PoolPositionList({ positions, filterByOperator }: PoolPo
             </RowFixed>
           </RowFixed>
         )}
-        {!filterByOperator && (
+        {!shouldFilterByUserPools && (
           <RowFixed gap="32px">
             <RowFixed gap="2px">
               <Trans>IRR</Trans>
@@ -197,10 +194,10 @@ export default function PoolPositionList({ positions, filterByOperator }: PoolPo
       <MobileHeader>
         <Flex>
           <Text>
-            {filterByOperator ? <Trans>Your pools</Trans> : <Trans>Loaded pools</Trans>}
+            {shouldFilterByUserPools ? <Trans>Your vaults</Trans> : <Trans>Vaults</Trans>}
           </Text>
         </Flex>
-        {!filterByOperator ? (
+        {!shouldFilterByUserPools ? (
           <RowFixed style={{ gap: '40px', marginRight: '8px' }}>
             <Flex>
               <Text>
@@ -223,40 +220,42 @@ export default function PoolPositionList({ positions, filterByOperator }: PoolPo
           </RowFixed>
         )}
       </MobileHeader>
-      {poolsWithStats.length > 0 ? (
-        poolsWithStats.map((p: any) => {
+      {(poolsWithStats?.length ?? 0) > 0 ? (
+        poolsWithStats?.map((p: any) => {
           return (
             <PoolPositionListItem
               key={p?.address.toString()}
               positionDetails={p}
-              returnPage={filterByOperator ? 'mint' : 'stake'}
+              returnPage={shouldFilterByUserPools ? 'mint' : 'stake'}
             />
           )
         })
-      ) : !filterByOperator && !account.isConnected ? (
+      ) : isLoading ? (
+        <Loader style={{ margin: 'auto' }} />
+      ) : !shouldFilterByUserPools && !account.isConnected ? (
         <>
           <DesktopHeader>
             <Flex>
               <Text>
-                <Trans>Could not retrieve pools. Try again by connecting your wallet.</Trans>
+                <Trans>Could not retrieve vaults. Try again by connecting your wallet.</Trans>
               </Text>
             </Flex>
           </DesktopHeader>
           <MobileHeader>
-            <Trans>Could not retrieve pools. Try again by connecting your wallet.</Trans>
+            <Trans>Could not retrieve vaults. Try again by connecting your wallet.</Trans>
           </MobileHeader>
         </>
-      ) : filterByOperator && account.isConnected ? (
+      ) : shouldFilterByUserPools && account.isConnected ? (
         <>
           <DesktopHeader>
             <Flex>
               <Text>
-                <Trans>You don&apos;t have a smart pool. Create yours or buy an existing one.</Trans>
+                <Trans>You don&apos;t have a smart vault. Create yours or buy an existing one.</Trans>
               </Text>
             </Flex>
           </DesktopHeader>
           <MobileHeader>
-            <Trans>You don&apos;t have a smart pool. Create yours or buy an existing one.</Trans>
+            <Trans>You don&apos;t have a smart vault. Create yours or buy an existing one.</Trans>
           </MobileHeader>
         </>
       ) : (
@@ -264,12 +263,12 @@ export default function PoolPositionList({ positions, filterByOperator }: PoolPo
           <DesktopHeader>
             <Flex>
               <Text>
-                <Trans>Could not retrieve pools. RPC endpoint is down.</Trans>
+                <Trans>Could not retrieve vaults. RPC endpoint is down.</Trans>
               </Text>
             </Flex>
           </DesktopHeader>
           <MobileHeader>
-            <Trans>Could not retrieve pools. RPC endpoint is down.</Trans>
+            <Trans>Could not retrieve vaults. RPC endpoint is down.</Trans>
           </MobileHeader>
         </>
       )}

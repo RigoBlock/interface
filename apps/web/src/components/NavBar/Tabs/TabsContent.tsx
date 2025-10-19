@@ -34,7 +34,7 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
       isActive: pathname.startsWith('/mint') || pathname.startsWith('/stake'),
       items: [
         { label: t('common.mint'), quickKey: 'T', href: '/mint', internal: true },
-        { label: t('common.stake'), quickKey: 'P', href: '/stake', internal: true },
+        { label: t('common.earn'), quickKey: 'P', href: '/stake', internal: true },
         //{ label: t('common.nfts'), quickKey: 'N', href: '/nfts', internal: true },
       ],
     },

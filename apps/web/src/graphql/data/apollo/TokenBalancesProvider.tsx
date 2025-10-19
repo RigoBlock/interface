@@ -72,7 +72,7 @@ export function TokenBalancesProvider({ children }: PropsWithChildren) {
   const { address: smartPoolAddress } = useActiveSmartPool()
 
   // TODO: define shouldQueryPoolBalances as useMemo to check if we can set correct state without further updating
-  // on send we only allow user token transfer, as smart pool cannot execute arbitrary transfers
+  // on send we only allow user token transfer, as smart vault cannot execute arbitrary transfers
   const { pathname: page } = useLocation()
   const isSendPage = page === '/send'
   const shouldQueryPoolBalances = smartPoolAddress && !isSendPage

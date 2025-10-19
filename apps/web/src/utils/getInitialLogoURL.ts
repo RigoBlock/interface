@@ -14,7 +14,9 @@ export function getInitialLogoUrl(
   const checksummedAddress = isAddress(address)
 
   if (
-    (address === GRG[UniverseChainId.ArbitrumOne].address ||
+    (address === GRG[UniverseChainId.Mainnet].address ||
+      address === GRG[UniverseChainId.Sepolia].address ||
+      address === GRG[UniverseChainId.ArbitrumOne].address ||
       address === GRG[UniverseChainId.Base].address ||
       address === GRG[UniverseChainId.Bnb].address ||
       address === GRG[UniverseChainId.Optimism].address ||

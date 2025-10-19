@@ -203,7 +203,7 @@ export function useTransactionRequestInfo({
     // We add a small buffer in case connection is too slow
     immediateGcTime: tradingApiSwapRequestMs + ONE_SECOND_MS * 5,
   })
-  // Notice: We override from, to, value when routing to smart pool
+  // Notice: We override from, to, value when routing to smart vault
   const signerObj = useSigner()
   const [signerAddress, setSignerAddress] = useState<string | undefined>(undefined)
   useEffect(() => {
@@ -219,7 +219,7 @@ export function useTransactionRequestInfo({
     data?.swap?.to && (data.swap.to = account.address)
     data?.swap?.value && (data.swap.value = '0x0')
 
-    // TODO: should we overwrite the data?.swap?.data fee recipient with the smart pool address?
+    // TODO: should we overwrite the data?.swap?.data fee recipient with the smart vault address?
   }
 
   // We use the gasFee estimate from quote, as its more accurate

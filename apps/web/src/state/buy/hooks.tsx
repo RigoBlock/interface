@@ -9,7 +9,7 @@ import { parseEther } from 'viem'
 
 // TODO: check if should batch userPoolBalance and activation in UserAccount, transform user tokens after
 export interface PoolInfo {
-  // the smart pool token
+  // the smart vault token
   pool: Token
   // TODO: check where we use recipient
   recipient: string

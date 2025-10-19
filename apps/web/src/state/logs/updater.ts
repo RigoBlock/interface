@@ -21,7 +21,7 @@ export default function Updater(): null {
       return undefined
     }
 
-    if (SUPPORTED_TESTNET_CHAIN_IDS.includes(chainId)) {
+    if (SUPPORTED_TESTNET_CHAIN_IDS.includes(chainId) && chainId !== UniverseChainId.Sepolia) {
       return TESTNET_RPC_PROVIDERS[chainId]
     } else {
       switch (chainId) {
@@ -32,6 +32,7 @@ export default function Updater(): null {
         case UniverseChainId.ArbitrumOne:
         case UniverseChainId.Optimism:
         case UniverseChainId.Base:
+        case UniverseChainId.Sepolia:
           return getBackupRpcProvider(chainId)
         default:
           return RPC_PROVIDERS[chainId]

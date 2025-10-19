@@ -7,7 +7,6 @@ import { parseBytes32String } from '@ethersproject/strings'
 import { Currency, Token } from '@uniswap/sdk-core'
 import { useWeb3React } from '@web3-react/core'
 import { RB_FACTORY_ADDRESSES, RB_REGISTRY_ADDRESSES } from 'constants/addresses'
-import { POOLS_LIST } from 'constants/lists'
 import { ZERO_ADDRESS } from 'constants/misc'
 import { useAccount } from 'hooks/useAccount'
 import { useContract } from 'hooks/useContract'
@@ -19,7 +18,6 @@ import { useCallback, useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { useSelectActiveSmartPool } from 'state/application/hooks'
 import { useStakingContract } from 'state/governance/hooks'
-import { usePoolsFromUrl } from 'state/lists/poolsList/hooks'
 import { useLogs } from 'state/logs/hooks'
 import { useTransactionAdder } from 'state/transactions/hooks'
 import { TransactionType } from 'state/transactions/types'
@@ -108,60 +106,17 @@ function useStartBlock(chainId?: number): {fromBlock: number, toBlock?: number }
   return { fromBlock: registryStartBlock, toBlock }
 }
 
-export function useAllPoolsData(): { data: PoolRegisteredLog[]; loading: boolean } {
-  const account = useAccount()
-  const registry = useRegistryContract()
-  const formattedLogsV1: PoolRegisteredLog[] | undefined = useRegisteredPools()
-
-  const poolsFromList = usePoolsFromList(registry, account.chainId)
+export function useAllPoolsData(): { data?: PoolRegisteredLog[] } {
+  const pools: PoolRegisteredLog[] | undefined = useRegisteredPools()
 
   // early return until events are fetched
   return useMemo(() => {
-    // we append pools from url and filter for duplicates in case the rpc endpoint is down or slow.
-    // eslint-disable-next-line
-    const pools: PoolRegisteredLog[] = ([...(formattedLogsV1 ?? []), ...(poolsFromList ?? [])])
-
-    const uniquePools = pools.filter((obj, index) => {
-      return index === pools.findIndex((o) => obj.pool === o.pool)
+    const uniquePools = pools?.filter((obj, index) => {
+      return index === pools?.findIndex((o) => obj?.pool === o?.pool)
     })
 
-    if (registry && !formattedLogsV1 && !poolsFromList) {
-      return { data: [], loading: true }
-    }
-
-    return { data: uniquePools, loading: false }
-  }, [formattedLogsV1, registry, poolsFromList])
-}
-
-// Bsc endpoints have eth_getLogs limit, so we query pools before recent history from pools list endpoint
-export function usePoolsFromList(
-  regitry: Contract | null,
-  chainId?: number
-): PoolRegisteredLog[] | undefined {
-  const poolsFromList = usePoolsFromUrl(POOLS_LIST)
-  const pools = useMemo(
-    () => poolsFromList?.filter((n) => n?.chainId === chainId),
-    [chainId, poolsFromList]
-  )
-  const poolAddresses = useMemo(() => pools?.map((p) => [p.address]), [pools])
-  const result = useSingleContractMultipleData(regitry, 'getPoolIdFromAddress', poolAddresses ?? [])
-  //const poolsLoading = useMemo(() => result.some(({ loading }) => loading), [result])
-  //const poolsError = useMemo(() => result.some(({ error }) => error), [result])
-  return useMemo(() => {
-    //if (poolsLoading || poolsError) return undefined
-    const poolIds = result.map((call) => {
-      const result = call?.result as CallStateResult
-      return result?.[0]
-    })
-    return pools?.map((p, i) => {
-      const pool = p.address
-      const name = p.name
-      const symbol = p.symbol
-      const id = poolIds[i]
-
-      return { pool, name, symbol, id }
-    })
-  }, [pools, /*poolsLoading, poolsError,*/ result])
+    return { data: uniquePools }
+  }, [pools])
 }
 
 export function useCreateCallback(): (

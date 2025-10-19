@@ -292,7 +292,7 @@ export function useAllProposalData(): { data: ProposalData[]; loading: boolean }
     govStartBlock = 16121684 // TODO: update with correct block number once governance is deployed
   }
 
-  // Notice: bsc endpoint is proxied our rpc endpoint
+  // Notice: logs are proxied through our rpc endpoint
   const formattedLogsV1 = useFormattedProposalCreatedLogs(gov, govProposalIndexes, govStartBlock)
 
   // TODO: we must use staked GRG instead
