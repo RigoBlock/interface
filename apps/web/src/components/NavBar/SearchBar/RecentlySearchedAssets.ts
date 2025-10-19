@@ -64,16 +64,22 @@ export function useRecentlySearchedAssets(): { data?: InterfaceRemoteSearchHisto
     })
 
     const data: InterfaceRemoteSearchHistoryItem[] = []
+    const addedKeys = new Set<string>()
     shortenedHistory.forEach((asset: SearchResult) => {
       const result = generateInterfaceHistoryItem(asset, resultsMap)
 
       if (result) {
-        data.push(result)
+        const uniqueKey = result.address || (isNFTCollectionSearchResult(asset) ? asset.address : undefined)
+        if (uniqueKey && !addedKeys.has(uniqueKey)) {
+          data.push(result)
+          addedKeys.add(uniqueKey)
+        }
       } else {
         // If no result from generate function, check resultsMap directly
         const key = isTokenSearchResult(asset) ? asset.address : undefined
-        if (key && resultsMap[key]) {
+        if (key && resultsMap[key] && !addedKeys.has(key)) {
           data.push(resultsMap[key])
+          addedKeys.add(key)
         }
       }
     })
