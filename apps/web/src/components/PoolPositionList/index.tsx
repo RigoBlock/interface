@@ -120,12 +120,14 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
       .filter((p) => p && p.shouldDisplay) || []
   }, [account.address, account.chainId, poolAddresses, positions, results, poolIds, poolsRewards, shouldFilterByUserPools, userBalances])
 
+  const isLoading = results.some((r) => r.loading)
+
   return (
     <>
       <DesktopHeader>
         <Flex>
           <Text>
-            {shouldFilterByUserPools ? <Trans>My vaults</Trans> : <Trans>Vaults</Trans>}
+            {shouldFilterByUserPools ? <Trans>Your vaults</Trans> : <Trans>Vaults</Trans>}
             {positions && ` (${poolsWithStats.length})`}
           </Text>
         </Flex>
@@ -189,7 +191,7 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
       <MobileHeader>
         <Flex>
           <Text>
-            {shouldFilterByUserPools ? <Trans>Your pools</Trans> : <Trans>Loaded pools</Trans>}
+            {shouldFilterByUserPools ? <Trans>Your vaults</Trans> : <Trans>Vaults</Trans>}
           </Text>
         </Flex>
         {!shouldFilterByUserPools ? (
@@ -225,7 +227,7 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
             />
           )
         })
-      ) : !shouldFilterByUserPools && !account.isConnected ? (
+      ) : !shouldFilterByUserPools && !account.isConnected && !isLoading? (
         <>
           <DesktopHeader>
             <Flex>
@@ -238,7 +240,7 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
             <Trans>Could not retrieve pools. Try again by connecting your wallet.</Trans>
           </MobileHeader>
         </>
-      ) : shouldFilterByUserPools && account.isConnected ? (
+      ) : shouldFilterByUserPools && account.isConnected && !isLoading ? (
         <>
           <DesktopHeader>
             <Flex>
