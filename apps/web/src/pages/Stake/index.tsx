@@ -2,7 +2,6 @@ import { InterfaceElementName, InterfaceEventName, InterfacePageName } from '@un
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { useAccountDrawer } from 'components/AccountDrawer/MiniPortfolio/hooks'
 import { ButtonPrimary } from 'components/Button/buttons'
-import { OutlineCard } from 'components/Card/cards'
 import { AutoColumn } from 'components/deprecated/Column'
 import { RowBetween, RowFixed } from 'components/deprecated/Row'
 import HarvestYieldModal from 'components/earn/HarvestYieldModal'
@@ -88,7 +87,7 @@ export default function Stake() {
   const [records, setRecords] = useState(itemsPerPage)
 
   // we retrieve logs again as we want to be able to load pools when switching chain from stake page.
-  const { data: allPools, loading } = useAllPoolsData()
+  const { data: allPools } = useAllPoolsData()
 
   const account = useAccount()
   const accountDrawer = useAccountDrawer()
@@ -96,7 +95,7 @@ export default function Stake() {
   const hasFreeStake = JSBI.greaterThan(freeStakeBalance ? freeStakeBalance.quotient : JSBI.BigInt(0), JSBI.BigInt(0))
   const poolAddresses = allPools?.map((p) => p.pool)
   const poolIds = allPools?.map((p) => p.id)
-  const { stakingPools, loading: loadingPools } = useStakingPools(poolAddresses, poolIds)
+  const { stakingPools } = useStakingPools(poolAddresses, poolIds)
   const grg = useMemo(() => (account.chainId ? GRG[account.chainId] : undefined), [account.chainId])
   const unclaimedRewards = useUnclaimedRewards(poolIds ?? [])
   // TODO: check if want to return null, but returning undefined will simplify displaying only if positive reward
@@ -117,9 +116,9 @@ export default function Stake() {
 
   // TODO: check PoolPositionDetails type as irr and apr are number not string
   //  also check why this typecheck does not return an error as poolOwnStake and poolDelegatedStake are not defined in PoolRegisteredLog
-  const poolsWithStats: PoolRegisteredLog[] = useMemo(() => {
+  const poolsWithStats = useMemo(() => {
     if (!allPools || !stakingPools) {
-      return []
+      return undefined
     }
     return allPools
       .map((p, i) => {
@@ -179,9 +178,6 @@ export default function Stake() {
   }
 
   const items = useMemo(() => {
-    if (!orderedPools) {
-      return []
-    }
     return showItems(records, orderedPools)
   }, [records, orderedPools])
 
@@ -271,33 +267,21 @@ export default function Stake() {
           </DataRow>
 
           <MainContentWrapper>
-            {orderedPools?.length > 0 ? (
-              <InfiniteScroll
-                next={fetchMoreData}
-                hasMore={!!hasMore}
-                loader={
-                  orderedPools?.length !== items?.length ? (
-                    <Flex width="fit-content" alignItems="center" justifyContent="center">
-                      <Loader style={{ margin: 'auto' }} />
-                    </Flex>
-                  ) : null
-                }
-                dataLength={orderedPools.length}
-                style={{ overflow: 'unset' }}
-              >
-                <PoolPositionList positions={items} />
-              </InfiniteScroll>
-            ) : (loading || loadingPools) && account.isConnected ? (
-              <Loader style={{ margin: 'auto' }} />
-            ) : !account.isConnected || (!account.isConnected && orderedPools?.length === 0) ? (
-              <OutlineCard>
-                <Trans>Please connect your wallet to view smart pools</Trans>
-              </OutlineCard>
-            ) : orderedPools?.length === 0 ? (
-              <OutlineCard>
-                <Trans>No pool found</Trans>
-              </OutlineCard>
-            ) : null}
+            <InfiniteScroll
+              next={fetchMoreData}
+              hasMore={!!hasMore}
+              loader={
+                orderedPools?.length !== items?.length ? (
+                  <Flex width="fit-content" alignItems="center" justifyContent="center">
+                    <Loader style={{ margin: 'auto' }} />
+                  </Flex>
+                ) : null
+              }
+              dataLength={orderedPools?.length}
+              style={{ overflow: 'unset' }}
+            >
+              <PoolPositionList positions={items.length > 0 ? items : undefined} />
+            </InfiniteScroll>
           </MainContentWrapper>
         </AutoColumn>
       </PageWrapper>

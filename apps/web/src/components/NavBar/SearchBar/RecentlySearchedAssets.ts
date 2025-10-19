@@ -28,15 +28,25 @@ export function useRecentlySearchedAssets(): { data?: InterfaceRemoteSearchHisto
     [history],
   )
 
+  const tokenContracts = useMemo(() => 
+    shortenedHistory.filter(isTokenSearchResult).map((token) => ({
+      address: token.address ?? undefined,
+      chain: toGraphQLChain(token.chainId),
+    })),
+    [shortenedHistory]
+  )
+
+  const collectionAddresses = useMemo(() =>
+    shortenedHistory.filter(isNFTCollectionSearchResult).map((asset) => asset.address).filter((address): address is string => address !== null),
+    [shortenedHistory]
+  )
+
   const { data: queryData, loading } = useRecentlySearchedAssetsQuery({
     variables: {
-      collectionAddresses: shortenedHistory.filter(isNFTCollectionSearchResult).map((asset) => asset.address),
-      contracts: shortenedHistory.filter(isTokenSearchResult).map((token) => ({
-        address: token.address ?? undefined,
-        chain: toGraphQLChain(token.chainId),
-      })),
+      collectionAddresses,
+      contracts: tokenContracts,
     },
-    skip: shortenedHistory.length === 0,
+    skip: shortenedHistory.length === 0 || (tokenContracts.length === 0 && collectionAddresses.length === 0),
   })
 
   const data = useMemo((): InterfaceRemoteSearchHistoryItem[] | undefined => {
@@ -56,12 +66,19 @@ export function useRecentlySearchedAssets(): { data?: InterfaceRemoteSearchHisto
     const data: InterfaceRemoteSearchHistoryItem[] = []
     shortenedHistory.forEach((asset: SearchResult) => {
       const result = generateInterfaceHistoryItem(asset, resultsMap)
+
       if (result) {
         data.push(result)
+      } else {
+        // If no result from generate function, check resultsMap directly
+        const key = isTokenSearchResult(asset) ? asset.address : undefined
+        if (key && resultsMap[key]) {
+          data.push(resultsMap[key])
+        }
       }
     })
     return data
-  }, [queryData, shortenedHistory])
+  }, [shortenedHistory, queryData])
 
   return { data, loading }
 }
@@ -70,12 +87,17 @@ function generateInterfaceHistoryItem(
   asset: SearchResult,
   resultsMap: Record<string, InterfaceRemoteSearchHistoryItem>,
 ): InterfaceRemoteSearchHistoryItem | undefined {
-  if (!isTokenSearchResult(asset)) {
-    return undefined
+
+  if (isNFTCollectionSearchResult(asset)) {
+    return asset.address ? resultsMap[asset.address] : undefined
   }
 
-  if (!isNativeCurrencyAddress(asset.chainId, asset.address) && asset.address) {
-    return resultsMap[asset.address]
+  if (!isTokenSearchResult(asset)) {
+    // For pool search results or other types, try to find by address
+    if ('address' in asset && asset.address) {
+      return resultsMap[asset.address]
+    }
+    return undefined
   }
 
   // Handle native assets
@@ -83,9 +105,13 @@ function generateInterfaceHistoryItem(
     // Handles special case where wMATIC data needs to be used for MATIC
     const chain = toGraphQLChain(asset.chainId)
     const native = nativeOnChain(asset.chainId)
-    const queryAddress = asset.address ?? getNativeQueryAddress(chain)
+    const queryAddress = getNativeQueryAddress(chain)
     const result = resultsMap[queryAddress]
     return { ...result, address: NATIVE_CHAIN_ID, ...native }
+  }
+
+  if (asset.address) {
+    return resultsMap[asset.address.toLowerCase()]
   }
 
   return undefined

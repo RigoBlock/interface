@@ -1,5 +1,6 @@
 import { Interface } from '@ethersproject/abi'
 import { RowFixed } from 'components/deprecated/Row'
+import Loader from 'components/Icons/LoadingSpinner'
 import PoolPositionListItem from 'components/PoolPositionListItem'
 import { MouseoverTooltip } from 'components/Tooltip'
 import { useAccount } from 'hooks/useAccount'
@@ -63,33 +64,34 @@ const InfoIconContainer = styled.div`
 `
 
 type PoolPositionListProps = React.PropsWithChildren<{
-  positions: PoolPositionDetails[]
+  positions?: PoolPositionDetails[]
   shouldFilterByUserPools?: boolean
 }>
 
 export default function PoolPositionList({ positions, shouldFilterByUserPools }: PoolPositionListProps) {
   const account = useAccount()
   // TODO: we should merge this part with same part in swap page and move to a custom hook
-  const poolAddresses: string[] = useMemo(() => positions.map((p) => p.pool), [positions])
-  const poolIds: string[] = useMemo(() => positions.map((p) => p.id), [positions])
+  const poolAddresses = useMemo(() => positions?.map((p) => p.pool), [positions])
+  const poolIds = useMemo(() => positions?.map((p) => p.id), [positions])
   const PoolInterface = new Interface(POOL_EXTENDED_ABI)
 
-  const poolsRewards: string[] = useStakingPoolsRewards(poolIds)
+  const poolsRewards = useStakingPoolsRewards(poolIds)
 
   // notice: this call will not return pools if account is not connected and the endpoint is not responsive, which
   //   is fine as we don't want to display empty pools when endpoint is not responsive.
-  const results = useMultipleContractSingleData(poolAddresses, PoolInterface, 'getPool')
-
+  const results = useMultipleContractSingleData(poolAddresses ?? [], PoolInterface, 'getPool')
   const userBalances = useMultipleContractSingleData(
-    poolAddresses,
+    poolAddresses ?? [],
     PoolInterface,
     'balanceOf',
     useMemo(() => [account.address], [account.address])
   )
 
+  // TODO: check if should define isLoading inside useMemo to avoid unnecessary re-renders (we can use loading from results and userBalances)
   const poolsWithStats = useMemo(() => {
+    if (!positions) { return undefined }
     return positions
-      ?.map((p, i) => {
+      .map((p, i) => {
         const { result: pool, loading } = results[i] || {}
         const userBalance = Number(userBalances?.[i]?.result)
         const userIsOwner = pool && account.address ? pool[0]?.owner === account.address : false
@@ -100,12 +102,12 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
         return {
           ...p,
           loading,
-          address: poolAddresses[i],
+          address: poolAddresses?.[i],
           chainId: account.chainId,
           shouldDisplay,
           userIsOwner,
           userBalance,
-          id: poolIds[i],
+          id: poolIds?.[i],
           currentEpochReward: poolsRewards[i] ?? '0',
           decimals: pool?.[0]?.decimals ?? 18,
           symbol: p?.symbol,
@@ -120,7 +122,8 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
       .filter((p) => p && p.shouldDisplay) || []
   }, [account.address, account.chainId, poolAddresses, positions, results, poolIds, poolsRewards, shouldFilterByUserPools, userBalances])
 
-  const isLoading = results.some((r) => r.loading)
+  const isLoading = !poolsWithStats
+  //const isLoadingResults = results?.some((r) => r.loading) || userBalances?.some((r) => r.loading)
 
   return (
     <>
@@ -128,7 +131,7 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
         <Flex>
           <Text>
             {shouldFilterByUserPools ? <Trans>Your vaults</Trans> : <Trans>Vaults</Trans>}
-            {positions && ` (${poolsWithStats.length})`}
+            {positions && ` (${poolsWithStats?.length})`}
           </Text>
         </Flex>
         {shouldFilterByUserPools && (
@@ -217,8 +220,8 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
           </RowFixed>
         )}
       </MobileHeader>
-      {poolsWithStats.length > 0 ? (
-        poolsWithStats.map((p: any) => {
+      {(poolsWithStats?.length ?? 0) > 0 ? (
+        poolsWithStats?.map((p: any) => {
           return (
             <PoolPositionListItem
               key={p?.address.toString()}
@@ -227,30 +230,32 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
             />
           )
         })
-      ) : !shouldFilterByUserPools && !account.isConnected && !isLoading? (
+      ) : isLoading ? (
+        <Loader style={{ margin: 'auto' }} />
+      ) : !shouldFilterByUserPools && !account.isConnected ? (
         <>
           <DesktopHeader>
             <Flex>
               <Text>
-                <Trans>Could not retrieve pools. Try again by connecting your wallet.</Trans>
+                <Trans>Could not retrieve vaults. Try again by connecting your wallet.</Trans>
               </Text>
             </Flex>
           </DesktopHeader>
           <MobileHeader>
-            <Trans>Could not retrieve pools. Try again by connecting your wallet.</Trans>
+            <Trans>Could not retrieve vaults. Try again by connecting your wallet.</Trans>
           </MobileHeader>
         </>
-      ) : shouldFilterByUserPools && account.isConnected && !isLoading ? (
+      ) : shouldFilterByUserPools && account.isConnected ? (
         <>
           <DesktopHeader>
             <Flex>
               <Text>
-                <Trans>You don&apos;t have a smart pool. Create yours or buy an existing one.</Trans>
+                <Trans>You don&apos;t have a smart vault. Create yours or buy an existing one.</Trans>
               </Text>
             </Flex>
           </DesktopHeader>
           <MobileHeader>
-            <Trans>You don&apos;t have a smart pool. Create yours or buy an existing one.</Trans>
+            <Trans>You don&apos;t have a smart vault. Create yours or buy an existing one.</Trans>
           </MobileHeader>
         </>
       ) : (
@@ -258,12 +263,12 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
           <DesktopHeader>
             <Flex>
               <Text>
-                <Trans>Could not retrieve pools. RPC endpoint is down.</Trans>
+                <Trans>Could not retrieve vaults. RPC endpoint is down.</Trans>
               </Text>
             </Flex>
           </DesktopHeader>
           <MobileHeader>
-            <Trans>Could not retrieve pools. RPC endpoint is down.</Trans>
+            <Trans>Could not retrieve vaults. RPC endpoint is down.</Trans>
           </MobileHeader>
         </>
       )}

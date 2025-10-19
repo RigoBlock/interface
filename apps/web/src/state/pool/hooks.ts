@@ -106,24 +106,17 @@ function useStartBlock(chainId?: number): {fromBlock: number, toBlock?: number }
   return { fromBlock: registryStartBlock, toBlock }
 }
 
-export function useAllPoolsData(): { data: PoolRegisteredLog[]; loading: boolean } {
-  const registry = useRegistryContract()
-  const formattedLogsV1: PoolRegisteredLog[] | undefined = useRegisteredPools()
+export function useAllPoolsData(): { data?: PoolRegisteredLog[] } {
+  const pools: PoolRegisteredLog[] | undefined = useRegisteredPools()
 
   // early return until events are fetched
   return useMemo(() => {
-    const pools: PoolRegisteredLog[] = ([...(formattedLogsV1 ?? [])])
-
-    const uniquePools = pools.filter((obj, index) => {
-      return index === pools.findIndex((o) => obj.pool === o.pool)
+    const uniquePools = pools?.filter((obj, index) => {
+      return index === pools?.findIndex((o) => obj?.pool === o?.pool)
     })
 
-    if (registry && !formattedLogsV1) {
-      return { data: [], loading: true }
-    }
-
-    return { data: uniquePools, loading: false }
-  }, [formattedLogsV1, registry])
+    return { data: uniquePools }
+  }, [pools])
 }
 
 export function useCreateCallback(): (

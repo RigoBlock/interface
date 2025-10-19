@@ -207,13 +207,13 @@ export const SearchBar = ({
   const allPools = useAllPoolsData().data
   const account = useAccount()
 
-  const smartPools: Token[] = useMemo(() => {
+  const smartPools = useMemo(() => {
     //const mockToken = new Token(1, ZERO_ADDRESS, 0, '', '')
     //if (!uniquePools || !account.chainId) {
     //  return [mockToken]
     //}
     // TODO: smart pools can have decimals != 18, but we probably do not use decimals from here
-    return allPools.map((p) => {
+    return allPools?.map((p) => {
       const { name, symbol, pool: address } = p
       //if (!name || !symbol || !address) return
       return new Token(account.chainId ?? UniverseChainId.Mainnet, address ?? undefined, 18, symbol ?? 'NAN', name ?? '')
@@ -221,8 +221,8 @@ export const SearchBar = ({
   }, [account.chainId, allPools])
 
   // TODO: check if we can remove getTokenFilter module
-  const filteredPools: Token[] = useMemo(() => {
-    return Object.values(smartPools).filter(getTokenFilter(debouncedSearchValue))
+  const filteredPools = useMemo(() => {
+    return Object.values(smartPools ?? []).filter(getTokenFilter(debouncedSearchValue))
   }, [smartPools, debouncedSearchValue])
   const chain: GqlChainId | undefined = account.chainId ? toGraphQLChain(account.chainId) : undefined
   // TODO: check using a different struct for pools

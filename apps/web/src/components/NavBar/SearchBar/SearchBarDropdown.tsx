@@ -3,6 +3,7 @@ import Badge from 'components/Badge/Badge'
 import { ChainLogo } from 'components/Logo/ChainLogo'
 import {
   InterfaceRemoteSearchHistoryItem,
+  useRecentlySearchedAssets,
 } from 'components/NavBar/SearchBar/RecentlySearchedAssets'
 import { SkeletonRow, SuggestionRow, suggestionIsToken } from 'components/NavBar/SearchBar/SuggestionRow'
 import QuestionHelper from 'components/QuestionHelper'
@@ -150,8 +151,7 @@ function SearchBarDropdownContents({
   hasInput,
 }: SearchBarDropdownProps): JSX.Element {
   const [hoveredIndex, setHoveredIndex] = useState<number | undefined>(0)
-  //const { data: searchHistory } = useRecentlySearchedAssets()
-  const searchHistory: InterfaceRemoteSearchHistoryItem[] = pools
+  const { data: searchHistory } = useRecentlySearchedAssets()
   const shortenedHistory = useMemo(
     () => searchHistory?.filter((item) => (item as Token).chain) ?? [...Array<GqlSearchToken>(2)],
     [searchHistory],

@@ -1,12 +1,10 @@
 import { InterfaceElementName, InterfaceEventName, InterfacePageName } from '@uniswap/analytics-events'
 import { useAccountDrawer } from 'components/AccountDrawer/MiniPortfolio/hooks'
 import { ButtonPrimary } from 'components/Button/buttons'
-import { OutlineCard } from 'components/Card/cards'
 import { AutoColumn } from 'components/deprecated/Column'
 import { RowBetween, RowFixed } from 'components/deprecated/Row'
 import CreateModal from 'components/createPool/CreateModal'
 import { CardBGImage, CardNoise, CardSection, DataCard } from 'components/earn/styled'
-import Loader from 'components/Icons/LoadingSpinner'
 import PoolPositionList from 'components/PoolPositionList'
 import { useAccount } from 'hooks/useAccount'
 import styled from 'lib/styled-components'
@@ -76,7 +74,7 @@ export default function CreatePool() {
   const open = useModalIsOpen(ApplicationModal.CREATE)
   const closeModal = useCloseModal(ApplicationModal.CREATE)
   const toggleCreateModal = useToggleCreateModal()
-  const { data: allPools, loading: loadingPools } = useAllPoolsData()
+  const { data: allPools } = useAllPoolsData()
 
   return (
     <Trace logImpression page={InterfacePageName.POOL_PAGE}>
@@ -139,21 +137,8 @@ export default function CreatePool() {
               </RowFixed>
             </WrapSmall>
           </DataRow>
-
           <MainContentWrapper>
-            {!account.address ? (
-              <OutlineCard>
-                <Trans>Please connect your wallet</Trans>
-              </OutlineCard>
-            ) : loadingPools ? (
-              <Loader style={{ margin: 'auto' }} />
-            ) : allPools && allPools?.length > 0 ? (
-              <PoolPositionList positions={allPools} shouldFilterByUserPools={true} />
-            ) : allPools && allPools?.length === 0 ? (
-              <OutlineCard>
-                <Trans>No pool found, create your own!</Trans>
-              </OutlineCard>
-            ) : null}
+            <PoolPositionList positions={allPools} shouldFilterByUserPools={true} />
           </MainContentWrapper>
         </AutoColumn>
       </PageWrapper>
