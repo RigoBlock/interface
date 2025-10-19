@@ -90,6 +90,11 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
   // TODO: check if should define isLoading inside useMemo to avoid unnecessary re-renders (we can use loading from results and userBalances)
   const poolsWithStats = useMemo(() => {
     if (!positions) { return undefined }
+    const isResultsLoading = results?.some((r) => r.loading)
+    const isBalancesLoading = userBalances?.some((r) => r.loading)
+    
+    if (isResultsLoading || isBalancesLoading) { return undefined }
+    
     return positions
       .map((p, i) => {
         const { result: pool, loading } = results[i] || {}
@@ -122,16 +127,13 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
       .filter((p) => p && p.shouldDisplay) || []
   }, [account.address, account.chainId, poolAddresses, positions, results, poolIds, poolsRewards, shouldFilterByUserPools, userBalances])
 
-  const isLoading = !poolsWithStats
-  //const isLoadingResults = results?.some((r) => r.loading) || userBalances?.some((r) => r.loading)
-
   return (
     <>
       <DesktopHeader>
         <Flex>
           <Text>
-            {shouldFilterByUserPools ? <Trans>Your vaults</Trans> : <Trans>Vaults</Trans>}
-            {positions && ` (${poolsWithStats?.length})`}
+            {shouldFilterByUserPools ? <Trans>Your vaults</Trans> : <Trans>Top Vaults</Trans>}
+            {poolsWithStats && ` (${poolsWithStats?.length})`}
           </Text>
         </Flex>
         {shouldFilterByUserPools && (
@@ -230,7 +232,7 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
             />
           )
         })
-      ) : isLoading ? (
+      ) : !poolsWithStats ? (
         <Loader style={{ margin: 'auto' }} />
       ) : !shouldFilterByUserPools && !account.isConnected ? (
         <>

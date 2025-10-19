@@ -192,12 +192,12 @@ export default function Stake() {
               <AutoColumn gap="md">
                 <RowBetween>
                   <ThemedText.DeprecatedWhite fontWeight={600}>
-                    <Trans>Staking Pools</Trans>
+                    <Trans>Smart Vaults</Trans>
                   </ThemedText.DeprecatedWhite>
                 </RowBetween>
                 <RowBetween>
                   <ThemedText.DeprecatedWhite fontSize={14}>
-                    <Trans>Stake your GRGs, activate your voting power and earn rewards</Trans>
+                    <Trans>Get exposure to best DeFi vaults and stake your GRG to grow your assets</Trans>
                   </ThemedText.DeprecatedWhite>
                 </RowBetween>{' '}
               </AutoColumn>
@@ -224,7 +224,7 @@ export default function Stake() {
             />
             <WrapSmall>
               <ThemedText.DeprecatedMediumHeader style={{ marginTop: '0.5rem' }}>
-                <Trans>All Pools</Trans>
+                <Trans>Vaults</Trans>
               </ThemedText.DeprecatedMediumHeader>
               <RowFixed gap="8px" style={{ marginRight: '4px' }}>
                 {yieldAmount && (
@@ -271,14 +271,14 @@ export default function Stake() {
               next={fetchMoreData}
               hasMore={!!hasMore}
               loader={
-                orderedPools?.length !== items?.length ? (
+                orderedPools && orderedPools.length !== items?.length ? (
                   <Flex width="fit-content" alignItems="center" justifyContent="center">
                     <Loader style={{ margin: 'auto' }} />
                   </Flex>
                 ) : null
               }
               dataLength={orderedPools?.length}
-              style={{ overflow: 'unset' }}
+              style={{ overflow: 'unset', display: 'flex', flexDirection: 'column' }}
             >
               <PoolPositionList positions={items.length > 0 ? items : undefined} />
             </InfiniteScroll>

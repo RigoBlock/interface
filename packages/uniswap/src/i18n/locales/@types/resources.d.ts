@@ -652,6 +652,7 @@ interface Resources {
     "common.unwrap.failed": "Unwrap failed",
     "common.unwrapped": "Unwrapped",
     "common.unwrapping": "Unwrapping",
+    "common.vaults": "Vaults",
     "common.version": "Version",
     "common.viewOnBlockExplorer": "View on Block Explorer",
     "common.viewOnExplorer": "View on Explorer",
