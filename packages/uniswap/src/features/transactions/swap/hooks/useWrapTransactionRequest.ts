@@ -63,6 +63,6 @@ export const getWrapTransactionRequest = async (
       ? await wrapperContract.populateTransaction.wrapETH(`0x${currencyAmountIn.quotient.toString(16)}`)
       : await wrapperContract.populateTransaction.unwrapWETH9(`0x${currencyAmountIn.quotient.toString(16)}`)
 
-  // TODO: overwrite from with smart pool address
+  // TODO: overwrite from with smart vault address
   return { ...wethTx, from: signerAddress, chainId }
 }

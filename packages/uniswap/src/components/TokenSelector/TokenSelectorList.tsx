@@ -117,7 +117,7 @@ function _TokenSelectorList({
 
   const renderItem = useCallback(
     ({ item, section, index }: ItemRowInfo<TokenSelectorItemTypes>) => {
-      // TODO: should not render smart pools here
+      // TODO: should not render smart vaults here
       if (isHorizontalListTokenItem(item)) {
         return (
           <HorizontalTokenList

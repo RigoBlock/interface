@@ -61,7 +61,7 @@ export default function usePermit2Allowance(
   const updateTokenAllowance = useUpdateTokenAllowance(amount, permit2AddressForChain)
   const revokeTokenAllowance = useRevokeTokenAllowance(token, permit2AddressForChain)
   const isApproved = useMemo(() => {
-    // early return for smart pools
+    // early return for smart vaults
     if (isPool) {
       return true
     }

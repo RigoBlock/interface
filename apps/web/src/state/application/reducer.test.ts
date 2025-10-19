@@ -40,7 +40,7 @@ describe('application reducer', () => {
   })
 
   describe('setSmartPoolValue', () => {
-    it('sets smart pool address and name', () => {
+    it('sets smart vault address and name', () => {
       expect(store.getState().smartPool.address).toEqual(null)
       expect(store.getState().smartPool.name).toEqual('')
 

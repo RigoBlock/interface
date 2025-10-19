@@ -391,7 +391,7 @@ export const routes: RouteDefinition[] = [
   createRouteDefinition({
     path: '/mint',
     getElement: () => <CreatePool />,
-    getTitle: () => i18n.t(`Buy smart pools on Rigoblock`),
+    getTitle: () => i18n.t(`Buy smart vaults on Rigoblock`),
   }),
   createRouteDefinition({
     path: '/stake',
@@ -409,7 +409,7 @@ export const routes: RouteDefinition[] = [
       ':poolAddress/:returnPage/:poolStake/:apr/:poolOwnStake/:irr',
     ],
     getElement: () => <PoolPositionPage />,
-    getTitle: () => i18n.t(`Buy smart pools on Rigoblock`),
+    getTitle: () => i18n.t(`Buy smart vaults on Rigoblock`),
   }),
   createRouteDefinition({ path: '*', getElement: () => <Navigate to="/not-found" replace /> }),
   createRouteDefinition({ path: '/not-found', getElement: () => <NotFound /> }),

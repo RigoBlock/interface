@@ -130,7 +130,7 @@ export default function UnstakeModal({ isOpen, isPool, freeStakeBalance, onDismi
               <StyledClosed stroke="black" onClick={wrappedOnDismiss} />
             </RowBetween>
             <RowBetween>
-              {isPool ? <Trans>Unstaking smart pool free stake.</Trans> : <Trans>Unstaking your free stake.</Trans>}
+              {isPool ? <Trans>Unstaking smart vault free stake.</Trans> : <Trans>Unstaking your free stake.</Trans>}
             </RowBetween>
             <RowBetween>
               <ResponsiveHeaderText>

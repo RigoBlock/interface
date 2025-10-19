@@ -375,23 +375,23 @@ function SwapSummary({ info }: { info: ExactInputSwapTransactionInfo | ExactOutp
 }
 
 function BuySmartPoolSummary() {
-  return <Trans>Buy smart pool</Trans>
+  return <Trans>Buy smart vault</Trans>
 }
 
 function SellSmartPoolSummary() {
-  return <Trans>Sell smart pool</Trans>
+  return <Trans>Sell smart vault</Trans>
 }
 
 function SetSmartPoolSpreadSummary() {
-  return <Trans>Set smart pool</Trans>
+  return <Trans>Set smart vault</Trans>
 }
 
 function SetSmartPoolLockupSummary() {
-  return <Trans>Set smart pool lockup</Trans>
+  return <Trans>Set smart vault lockup</Trans>
 }
 
 function SetSmartPoolValueSummary() {
-  return <Trans>Set smart pool value</Trans>
+  return <Trans>Set smart vault value</Trans>
 }
 
 

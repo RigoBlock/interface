@@ -87,7 +87,7 @@ export default function CreatePool() {
               <AutoColumn gap="md">
                 <RowBetween>
                   <ThemedText.DeprecatedWhite fontWeight={600}>
-                    <Trans>Rigoblock Pools</Trans>
+                    <Trans>Rigoblock Vaults</Trans>
                   </ThemedText.DeprecatedWhite>
                 </RowBetween>
                 <RowBetween>
@@ -104,10 +104,10 @@ export default function CreatePool() {
 
         <AutoColumn gap="lg" style={{ width: '100%', maxWidth: '720px' }}>
           <DataRow style={{ alignItems: 'baseline' }}>
-            <CreateModal isOpen={open} onDismiss={() => closeModal()} title={<Trans>Create Pool</Trans>} />
+            <CreateModal isOpen={open} onDismiss={() => closeModal()} title={<Trans>Create Vault</Trans>} />
             <WrapSmall>
               <ThemedText.DeprecatedMediumHeader style={{ marginTop: '0.5rem' }}>
-                <Trans>Pools</Trans>
+                <Trans>Vaults</Trans>
               </ThemedText.DeprecatedMediumHeader>
               <RowFixed gap="8px" style={{ marginRight: '4px' }}>
                 {account.isConnected ? (
@@ -117,7 +117,7 @@ export default function CreatePool() {
                     $borderRadius="8px"
                     onClick={toggleCreateModal}
                   >
-                    <Trans>Create Pool</Trans>
+                    <Trans>Create Vault</Trans>
                   </ButtonPrimary>
                 ) : (
                   <Trace

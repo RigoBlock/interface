@@ -15,12 +15,12 @@ const recentAccountIdentifierMapAtom = atomWithStorage<{
 // Returns an identifier for the current or recently connected account, prioritizing unitag -> ENS name -> address
 export function useAccountIdentifier() {
   const [recentAccountIdentifierMap, updateRecentAccountIdentifierMap] = useAtom(recentAccountIdentifierMapAtom)
-  // TODO: check if we can dynamically return correct target (smart pool or user wallet) in useAccount hook
+  // TODO: check if we can dynamically return correct target (smart vault or user wallet) in useAccount hook
   const account = useAccount()
   const activeSmartPool = useActiveSmartPool()
   const { pathname: page } = useLocation()
 
-  // display user address if user does not have an operated smart pool
+  // display user address if user does not have an operated smart vault
   const address =
     activeSmartPool.address && activeSmartPool.address !== '' && page !== '/send'
       ? activeSmartPool.address

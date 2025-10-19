@@ -212,7 +212,7 @@ export const SearchBar = ({
     //if (!uniquePools || !account.chainId) {
     //  return [mockToken]
     //}
-    // TODO: smart pools can have decimals != 18, but we probably do not use decimals from here
+    // TODO: smart vaults can have decimals != 18, but we probably do not use decimals from here
     return allPools?.map((p) => {
       const { name, symbol, pool: address } = p
       //if (!name || !symbol || !address) return
