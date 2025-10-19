@@ -396,7 +396,7 @@ export const routes: RouteDefinition[] = [
   createRouteDefinition({
     path: '/stake',
     getElement: () => <Stake />,
-    getTitle: () => i18n.t(`Find the best pools on Rigoblock`),
+    getTitle: () => i18n.t(`Find the best vaults on Rigoblock`),
   }),
   createRouteDefinition({
     path: '/smart-pool',

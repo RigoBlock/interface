@@ -332,6 +332,7 @@ interface Resources {
     "common.downloadPlayStore": "Download in the Play Store",
     "common.downloadUniswap": "Download Uniswap",
     "common.downloadUniswapApp": "Download the Uniswap app",
+    "common.earn": "Earn",
     "common.edit.button": "Edit",
     "common.error.general": "Something went wrong",
     "common.error.label": "Error",
