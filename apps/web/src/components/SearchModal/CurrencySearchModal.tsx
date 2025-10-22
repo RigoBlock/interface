@@ -59,13 +59,14 @@ export default memo(function CurrencySearchModal({
       flex={1}
       name={ModalName.CurrencySearch}
     >
-      {!shouldDisplayPoolsOnly && <CurrencySearch
-        currencyField={currencyField}
-        onCurrencySelect={onCurrencySelect}
-        onDismiss={onDismiss}
-        chainIds={chainIds}
-      />
-      } : {
+      {!shouldDisplayPoolsOnly ? (
+        <CurrencySearch
+          currencyField={currencyField}
+          onCurrencySelect={onCurrencySelect}
+          onDismiss={onDismiss}
+          chainIds={chainIds}
+        />
+      ) : (
         <PoolListWrapper>
           <PoolListContainer>
             {operatedPools?.map((pool) => (
@@ -85,7 +86,7 @@ export default memo(function CurrencySearchModal({
             ))}
           </PoolListContainer>
         </PoolListWrapper>
-      }
+      )}
     </Modal>
   )
 })
