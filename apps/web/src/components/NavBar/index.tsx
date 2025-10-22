@@ -16,7 +16,7 @@ import { PageType, useIsPage } from 'hooks/useIsPage'
 import deprecatedStyled, { css } from 'lib/styled-components'
 import { useProfilePageState } from 'nft/hooks'
 import { ProfilePageStateType } from 'nft/types'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useOperatedPools } from 'state/pool/hooks'
 import { Flex, Nav as TamaguiNav, styled, useMedia } from 'ui/src'
 import { INTERFACE_NAV_HEIGHT, breakpoints, zIndexes } from 'ui/src/theme'
@@ -126,35 +126,54 @@ export default function Navbar() {
 
   const isSignInExperimentControl = !isEmbeddedWalletEnabled && isControl
   const shouldDisplayCreateAccountButton = false
-  const operatedPools = useOperatedPools()
-  const memoizedOperatedPools = useMemo(() => operatedPools, [operatedPools])
-  const userIsOperator = memoizedOperatedPools && memoizedOperatedPools?.length > 0
+  const rawOperatedPools = useOperatedPools()
+  const cachedPoolsRef = useRef<typeof rawOperatedPools | undefined>(undefined)
+  const prevChainIdRef = useRef<number | undefined>(account.chainId)
+  
+  useEffect(() => {
+    if (account.chainId !== prevChainIdRef.current) {
+      cachedPoolsRef.current = undefined
+      prevChainIdRef.current = account.chainId
+    }
+  }, [account.chainId])
+  
+  useEffect(() => {
+    if (rawOperatedPools && rawOperatedPools.length > 0) {
+      cachedPoolsRef.current = rawOperatedPools
+    }
+  }, [rawOperatedPools])
+  
+  const cachedOperatedPools = cachedPoolsRef.current ?? rawOperatedPools
+  const cachedUserIsOperator = useMemo(() => 
+    Boolean(cachedOperatedPools && cachedOperatedPools.length > 0),
+    [cachedOperatedPools]
+  )
 
-  return (
-    <Nav>
-      <UnpositionedFlex row centered width="100%">
-        <Left>
-          <CompanyMenu />
-          {areTabsVisible && <Tabs userIsOperator={userIsOperator} />}
-        </Left>
-        <SearchContainer>
-          {memoizedOperatedPools && memoizedOperatedPools.length > 0 && (
-            <SelectedPoolContainer>
-              <PoolSelect operatedPools={memoizedOperatedPools} />
-            </SelectedPoolContainer>
-          )}
-          {!collapseSearchBar && <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} />}
-        </SearchContainer>
-        <Right>
-            {collapseSearchBar && (
-            <>
-              {memoizedOperatedPools && memoizedOperatedPools.length > 0 && (
+    return (
+      <Nav>
+        <UnpositionedFlex row centered width="100%">
+          <Left>
+            <CompanyMenu />
+            {areTabsVisible && <Tabs userIsOperator={cachedUserIsOperator} />}
+          </Left>
+          <SearchContainer>
+            {cachedOperatedPools && cachedOperatedPools.length > 0 && (
               <SelectedPoolContainer>
-                <PoolSelect operatedPools={memoizedOperatedPools} />
+                <PoolSelect operatedPools={cachedOperatedPools} />
               </SelectedPoolContainer>
-              )}
-              <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} />
-            </>
+            )}
+            {!collapseSearchBar && <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} />}
+          </SearchContainer>
+          <Right>
+              {collapseSearchBar && (
+              <>
+                {cachedOperatedPools && cachedOperatedPools.length > 0 && (
+                <SelectedPoolContainer>
+                  <PoolSelect operatedPools={cachedOperatedPools} />
+                </SelectedPoolContainer>
+                )}
+                <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} />
+              </>
             )}
           {isNFTPage && sellPageState !== ProfilePageStateType.LISTING && <Bag />}
           {shouldDisplayCreateAccountButton && isSignInExperimentControl && !isSignInExperimentControlLoading && isLandingPage && !isSmallScreen && (

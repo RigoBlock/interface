@@ -13,7 +13,7 @@ import { useContract } from 'hooks/useContract'
 import usePrevious from 'hooks/usePrevious'
 import { useTotalSupply } from 'hooks/useTotalSupply'
 import { CallStateResult, useMultipleContractSingleData, useSingleContractMultipleData } from 'lib/hooks/multicall'
-import useBlockNumber from 'lib/hooks/useBlockNumber'
+//import useBlockNumber from 'lib/hooks/useBlockNumber'
 import { useCallback, useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { useSelectActiveSmartPool } from 'state/application/hooks'
@@ -28,7 +28,7 @@ import { GRG } from 'uniswap/src/constants/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { calculateGasMargin } from 'utils/calculateGasMargin'
 
-//const PoolInterface = new Interface(POOL_EXTENDED_ABI)
+const PoolInterface = new Interface(POOL_EXTENDED_ABI)
 const RegistryInterface = new Interface(RB_REGISTRY_ABI)
 
 export function useRegistryContract(): Contract | null {
@@ -65,9 +65,11 @@ export interface PoolRegisteredLog {
 
 function useStartBlock(chainId?: number): {fromBlock: number, toBlock?: number } {
   let registryStartBlock: number
-  const blockNumber = useBlockNumber()
+  //const blockNumber = useBlockNumber()
 
-  const toBlock = typeof blockNumber === 'number' ? blockNumber : undefined
+  //const toBlock = typeof blockNumber === 'number' ? blockNumber : undefined
+  // Notice: this prevents re-rendering from scratch at every new block
+  const toBlock = undefined
 
   // Notice: we now query logs from the api, so start block is less relevant
   if (!chainId) {
@@ -109,7 +111,6 @@ function useStartBlock(chainId?: number): {fromBlock: number, toBlock?: number }
 export function useAllPoolsData(): { data?: PoolRegisteredLog[] } {
   const pools: PoolRegisteredLog[] | undefined = useRegisteredPools()
 
-  // early return until events are fetched
   return useMemo(() => {
     const uniquePools = pools?.filter((obj, index) => {
       return index === pools?.findIndex((o) => obj?.pool === o?.pool)
@@ -468,7 +469,6 @@ export function useOperatedPools(): Token[] | undefined {
 
     return poolsLogs.map((p) => p.pool)
   }, [poolsLogs])
-  const PoolInterface = new Interface(POOL_EXTENDED_ABI)
   const results = useMultipleContractSingleData(poolAddresses, PoolInterface, 'getPool')
 
   const account = useAccount()

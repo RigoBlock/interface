@@ -175,7 +175,7 @@ useEffect(() => {
         {!shouldFilterByUserPools && (
           <RowFixed gap="32px">
             <RowFixed gap="2px">
-              <Trans>IRR</Trans>
+              <Trans>irr</Trans>
               <MouseoverTooltip
                 text={
                   <Trans>
@@ -191,7 +191,7 @@ useEffect(() => {
               </MouseoverTooltip>
             </RowFixed>
             <RowFixed gap="2px">
-              <Trans>APR</Trans>
+              <Trans>apr</Trans>
               <MouseoverTooltip
                 text={
                   <Trans>
@@ -219,12 +219,12 @@ useEffect(() => {
           <Flex gap={40} style={{ marginRight: '8px' }}>
             <Flex>
               <Text>
-                <Trans>IRR</Trans>
+                <Trans>irr</Trans>
               </Text>
             </Flex>
             <Flex>
               <Text>
-                <Trans>APR</Trans>
+                <Trans>apr</Trans>
               </Text>
             </Flex>
           </Flex>
