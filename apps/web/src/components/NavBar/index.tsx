@@ -186,9 +186,9 @@ export default function Navbar() {
 
         <Right>
             {collapseSearchBar && (
-            <div style={{ marginRight: '-20px' }}>
+            <Flex mr={-20}>
               <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} />
-            </div>
+            </Flex>
             )}
           {isNFTPage && sellPageState !== ProfilePageStateType.LISTING && <Bag />}
           {shouldDisplayCreateAccountButton && isSignInExperimentControl && !isSignInExperimentControlLoading && isLandingPage && !isSmallScreen && (
