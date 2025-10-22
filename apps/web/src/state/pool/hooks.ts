@@ -28,7 +28,7 @@ import { GRG } from 'uniswap/src/constants/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { calculateGasMargin } from 'utils/calculateGasMargin'
 
-const PoolInterface = new Interface(POOL_EXTENDED_ABI)
+export const PoolInterface = new Interface(POOL_EXTENDED_ABI)
 const RegistryInterface = new Interface(RB_REGISTRY_ABI)
 
 export function useRegistryContract(): Contract | null {

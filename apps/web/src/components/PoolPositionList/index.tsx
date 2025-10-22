@@ -1,6 +1,5 @@
-import { Interface } from '@ethersproject/abi'
-import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
 import Loader from 'components/Icons/LoadingSpinner'
+import { RowFixed } from 'components/deprecated/Row'
 import PoolPositionListItem from 'components/PoolPositionListItem'
 import { MouseoverTooltip } from 'components/Tooltip'
 import { useAccount } from 'hooks/useAccount'
@@ -8,12 +7,11 @@ import { Trans } from 'react-i18next'
 import { useMultipleContractSingleData } from 'lib/hooks/multicall'
 import React, { useMemo, useEffect } from 'react'
 import { Info } from 'react-feather'
-import { useStakingPoolsRewards } from 'state/pool/hooks'
+import { PoolInterface, useStakingPoolsRewards } from 'state/pool/hooks'
 import styled from 'lib/styled-components'
 import { MEDIA_WIDTHS } from 'theme'
 import { PoolPositionDetails } from 'types/position'
 import { Flex, Text } from 'ui/src'
-import { RowFixed } from 'components/deprecated/Row'
 
 // TODO: check if we want to keep margin right 12px by keeping list item margin right at 12px
 const DesktopHeader = styled.div`
@@ -79,7 +77,6 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
     [positions]
   )
 
-  const PoolInterface = useMemo(() => new Interface(POOL_EXTENDED_ABI), [])
   const poolsRewards = useStakingPoolsRewards(poolIds)
 
   // notice: this call will not return pools if account is not connected and the endpoint is not responsive, which
