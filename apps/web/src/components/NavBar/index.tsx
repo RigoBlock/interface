@@ -46,7 +46,7 @@ const NavItems = css`
 const Left = deprecatedStyled(Row)`
   display: flex;
   align-items: center;
-  wrap: nowrap;
+  flex-wrap: nowrap;
   ${NavItems}
 `
 const Right = deprecatedStyled(Row)`
@@ -54,9 +54,12 @@ const Right = deprecatedStyled(Row)`
   ${NavItems}
 `
 const SearchContainer = styled(UnpositionedFlex, {
+  position: 'absolute',
+  left: '50%',
+  transform: 'translateX(-50%)',
   width: 'max-content',
-  flex: 1,
-  flexShrink: 1,
+  maxWidth: '50%',
+  minWidth: 0,
   flexDirection: 'row',
   justifyContent: 'center',
   alignSelf: 'center',
@@ -67,15 +70,26 @@ const SearchContainer = styled(UnpositionedFlex, {
 
 const SelectedPoolContainer = styled(UnpositionedFlex, {
   width: 'max-content',
-  maxWidth: '100%',
-  minWidth: 300,
-  maxHeight: 42,
+  maxWidth: '40%',
+  minWidth: 100,
+  height: 42,
   flexShrink: 0,
   flexDirection: 'row',
   justifyContent: 'center',
   alignSelf: 'center',
-  alignItems: 'flex-start',
-  height: 42,
+  alignItems: 'center',
+  overflow: 'hidden',
+  mt: 8,
+  $md: {
+    position: 'absolute',
+    left: -100,
+    transform: 'translateX(0)',
+    minWidth: 150,
+    maxWidth: 'calc(40% - 200px)',
+    height: 42,
+    overflow: 'hidden',
+    mt: 8,
+  },
 })
 
 function useShouldHideChainSelector() {
@@ -149,31 +163,32 @@ export default function Navbar() {
     [cachedOperatedPools]
   )
 
-    return (
-      <Nav>
-        <UnpositionedFlex row centered width="100%">
-          <Left>
-            <CompanyMenu />
-            {areTabsVisible && <Tabs userIsOperator={cachedUserIsOperator} />}
-          </Left>
-          <SearchContainer>
-            {cachedOperatedPools && cachedOperatedPools.length > 0 && (
-              <SelectedPoolContainer>
-                <PoolSelect operatedPools={cachedOperatedPools} />
-              </SelectedPoolContainer>
-            )}
-            {!collapseSearchBar && <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} />}
-          </SearchContainer>
-          <Right>
-              {collapseSearchBar && (
-              <>
-                {cachedOperatedPools && cachedOperatedPools.length > 0 && (
-                <SelectedPoolContainer>
-                  <PoolSelect operatedPools={cachedOperatedPools} />
-                </SelectedPoolContainer>
-                )}
-                <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} />
-              </>
+  return (
+    <Nav>
+      <Flex row centered width="100%" style={{ position: 'relative' }}>
+        <Left style={{ flexShrink: 0 }}>
+          <CompanyMenu />
+          {areTabsVisible && <Tabs userIsOperator={cachedUserIsOperator} />}
+        </Left>
+
+        <SearchContainer>
+          {cachedOperatedPools && cachedOperatedPools.length > 0 && (
+            <SelectedPoolContainer>
+              <PoolSelect operatedPools={cachedOperatedPools} />
+            </SelectedPoolContainer>
+          )}
+          {!collapseSearchBar && (
+            <UnpositionedFlex flex={1} flexShrink={1} ml="$spacing16">
+              <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} />
+            </UnpositionedFlex>
+          )}
+        </SearchContainer>
+
+        <Right>
+            {collapseSearchBar && (
+            <Flex mr={-20}>
+              <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} />
+            </Flex>
             )}
           {isNFTPage && sellPageState !== ProfilePageStateType.LISTING && <Bag />}
           {shouldDisplayCreateAccountButton && isSignInExperimentControl && !isSignInExperimentControlLoading && isLandingPage && !isSmallScreen && (
@@ -187,7 +202,7 @@ export default function Navbar() {
             <NewUserCTAButton />
           )}
         </Right>
-      </UnpositionedFlex>
+      </Flex>
     </Nav>
   )
 }
