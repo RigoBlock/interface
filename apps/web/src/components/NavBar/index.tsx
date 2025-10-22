@@ -76,6 +76,13 @@ const SelectedPoolContainer = styled(UnpositionedFlex, {
   alignSelf: 'center',
   alignItems: 'flex-start',
   height: 42,
+  variants: {
+    isSmallScreen: {
+      true: {
+        transform: 'translateY(-6px)',
+      },
+    },
+  },
 })
 
 function useShouldHideChainSelector() {
@@ -149,32 +156,29 @@ export default function Navbar() {
     [cachedOperatedPools]
   )
 
-    return (
-      <Nav>
-        <UnpositionedFlex row centered width="100%">
-          <Left>
-            <CompanyMenu />
-            {areTabsVisible && <Tabs userIsOperator={cachedUserIsOperator} />}
-          </Left>
+  return (
+    <Nav>
+      <UnpositionedFlex row centered width="100%">
+        <Left>
+          <CompanyMenu />
+          {areTabsVisible && <Tabs userIsOperator={cachedUserIsOperator} />}
+        </Left>
+        <UnpositionedFlex flex={1} flexShrink={1} style={{ minWidth: 0, maxWidth: isSmallScreen ? '40%' : '60%', marginLeft: isSmallScreen ? '-85px' : 0 }}>
           <SearchContainer>
             {cachedOperatedPools && cachedOperatedPools.length > 0 && (
-              <SelectedPoolContainer>
+              <SelectedPoolContainer isSmallScreen={isSmallScreen}>
                 <PoolSelect operatedPools={cachedOperatedPools} />
               </SelectedPoolContainer>
             )}
-            {!collapseSearchBar && <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} />}
-          </SearchContainer>
-          <Right>
-              {collapseSearchBar && (
-              <>
-                {cachedOperatedPools && cachedOperatedPools.length > 0 && (
-                <SelectedPoolContainer>
-                  <PoolSelect operatedPools={cachedOperatedPools} />
-                </SelectedPoolContainer>
-                )}
+            {!collapseSearchBar && (
+              <UnpositionedFlex flex={1} flexShrink={1}>
                 <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} />
-              </>
+              </UnpositionedFlex>
             )}
+          </SearchContainer>
+        </UnpositionedFlex>
+        <Right>
+          {collapseSearchBar && <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} />}
           {isNFTPage && sellPageState !== ProfilePageStateType.LISTING && <Bag />}
           {shouldDisplayCreateAccountButton && isSignInExperimentControl && !isSignInExperimentControlLoading && isLandingPage && !isSmallScreen && (
             <NewUserCTAButton />
