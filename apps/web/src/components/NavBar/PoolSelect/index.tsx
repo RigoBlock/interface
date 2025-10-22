@@ -76,15 +76,20 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
   // on chain switch revert to default pool if selected does not exist on new chain
   const activePoolExistsOnChain = operatedPools?.some(pool => pool.address === activeSmartPool?.address);
 
-  // initialize selected pool
+  // initialize selected pool - use ref to prevent re-initialization
+  const hasInitialized = React.useRef(false);
+  
   useEffect(() => {
-    if (!activeSmartPool?.name || !activePoolExistsOnChain) {
+    if (!hasInitialized.current && (!activeSmartPool?.name || !activePoolExistsOnChain)) {
       onPoolSelect(operatedPools[0]);
+      hasInitialized.current = true;
     }
-  }, [activePoolExistsOnChain, activeSmartPool?.name, operatedPools, onPoolSelect])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePoolExistsOnChain, activeSmartPool?.name])
 
-  const poolsAsCurrrencies = operatedPools.map((pool: Token) => {
-    return {
+  // Memoize poolsAsCurrrencies to prevent recreation on every render
+  const poolsAsCurrrencies = React.useMemo(() => 
+    operatedPools.map((pool: Token) => ({
       currency: pool,
       currencyId: pool.address,
       safetyLevel: null,
@@ -92,9 +97,8 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
       spamCode: null,
       logoUrl: null,
       isSpam: null
-    }
-  }
-  ) as CurrencyInfo[];
+    })) as CurrencyInfo[]
+  , [operatedPools]);
 
   const handleSelectPool = useCallback((pool: Currency) => {
     onPoolSelect(pool);
