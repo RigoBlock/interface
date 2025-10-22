@@ -123,12 +123,12 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
       )}
 
       <CurrencySearchModal
-          isOpen={showModal}
-          onDismiss={() => setShowModal(false)}
-          onCurrencySelect={handleSelectPool}
-          operatedPools={poolsAsCurrrencies}
-          shouldDisplayPoolsOnly={true}
-        />
+        isOpen={showModal}
+        onDismiss={() => setShowModal(false)}
+        onCurrencySelect={handleSelectPool}
+        operatedPools={poolsAsCurrrencies}
+        shouldDisplayPoolsOnly={true}
+      />
     </>
   );
 };
