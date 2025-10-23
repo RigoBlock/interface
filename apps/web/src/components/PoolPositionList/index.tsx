@@ -6,6 +6,10 @@ import { useAccount } from 'hooks/useAccount'
 import { Trans } from 'react-i18next'
 import { useMultipleContractSingleData } from 'lib/hooks/multicall'
 import React, { useMemo, useEffect } from 'react'
+import { AbiCoder } from '@ethersproject/abi'
+import { BigNumber } from '@ethersproject/bignumber'
+import { getAddress } from '@ethersproject/address'
+import { keccak256 } from '@ethersproject/keccak256'
 import { Info } from 'react-feather'
 import { PoolInterface, useStakingPoolsRewards } from 'state/pool/hooks'
 import styled from 'lib/styled-components'
@@ -66,6 +70,10 @@ type PoolPositionListProps = React.PropsWithChildren<{
   shouldFilterByUserPools?: boolean
 }>
 
+const ACCOUNTS_SLOT = '0xfd7547127f88410746fb7969b9adb4f9e9d8d2436aa2d2277b1103542deb7b8e'
+const POOLS_SLOT = '0xe48b9bb119adfc3bccddcc581484cc6725fe8d292ebfcec7d67b1f93138d8bd8'
+const POOL_OWNER_SLOT = BigNumber.from(POOLS_SLOT).add(1)
+
 export default function PoolPositionList({ positions, shouldFilterByUserPools }: PoolPositionListProps) {
   const account = useAccount()
   // TODO: we should merge this part with same part in swap page and move to a custom hook
@@ -79,66 +87,108 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
 
   const poolsRewards = useStakingPoolsRewards(poolIds)
 
-  // notice: this call will not return pools if account is not connected and the endpoint is not responsive, which
-  //   is fine as we don't want to display empty pools when endpoint is not responsive.
-  const results = useMultipleContractSingleData(poolAddresses ?? [undefined], PoolInterface, 'getPool')
-  const userBalances = useMultipleContractSingleData(
-    poolAddresses ?? [undefined],
+  // Calculate the storage slot for a specific user account in the mapping
+  const getUserAccountSlot = (userAddress: string) => {
+    const abiCoder = new AbiCoder()
+    const encoded = abiCoder.encode(['address', 'bytes32'], [userAddress, ACCOUNTS_SLOT])
+    return keccak256(encoded)
+  }
+
+  const userAccountSlot = account.address ? getUserAccountSlot(account.address) : undefined
+  const poolResults = useMultipleContractSingleData(
+    poolAddresses ?? [undefined], // display results regardless of account connection
     PoolInterface,
-    'balanceOf',
-    useMemo(() => [account.address], [account.address])
+    'getStorageSlotsAt',
+    useMemo(() => [userAccountSlot ? [POOL_OWNER_SLOT, userAccountSlot] : [POOL_OWNER_SLOT]], [userAccountSlot])
   )
 
-const [cachedPoolsWithStats, setCachedPoolsWithStats] = React.useState<any[] | undefined>(undefined)
+  // Extract owner address from the first storage slot (POOLS_SLOT + 1)
+  // The storage slot contains: [unlocked (bool, 1 byte)][owner (address, 20 bytes)][decimals (bytes8, 8 bytes)][symbol (bytes8, 8 bytes)]
+  // Format in 32 bytes (64 hex chars): unlocked + owner + decimals + symbol
+  // Packing from right to left: [symbol (16 hex)][decimals (16 hex)][owner (40 hex)][unlocked (2 hex)]
+  // Extract user balance from second storage slot
+  // The storage slot contains both activation timestamp and balance packed together in 32 bytes
+  const extractValues = (storageValue?: string) => {
+    if (!storageValue || storageValue === '0x') { return {} }
+    let shouldOnlyReturnPoolData = false
 
-const poolsWithStats = useMemo(() => {
-  if (!positions) { return undefined }
-  const isResultsLoading = results?.some((r) => r.loading)
-  const isBalancesLoading = userBalances?.some((r) => r.loading)
-  
-  if (isResultsLoading || isBalancesLoading) { return undefined }
-  
-  return positions
-    .map((p, i) => {
-      const result = results?.[i]
-      const loading = result?.loading
-      const pool = result?.result
-      const userBalance = Number(userBalances?.[i]?.result)
-      const userIsOwner = pool && account.address ? pool[0]?.owner === account.address : false
-      const shouldDisplay: boolean = shouldFilterByUserPools
-        ? Boolean(userIsOwner || (userBalance && userBalance > 0))
-        : true
+    // Remove '0x' prefix
+    const hex = storageValue.slice(2).padStart(128, '0') // 128 hex chars = 64 bytes (2 slots)
 
-      return {
-        ...p,
-        loading,
-        address: poolAddresses?.[i],
-        chainId: account.chainId,
-        shouldDisplay,
-        userIsOwner,
-        userBalance,
-        id: poolIds?.[i],
-        currentEpochReward: poolsRewards[i] ?? '0',
-        decimals: pool?.[0]?.decimals ?? 18,
-        symbol: p?.symbol,
-        name: p?.name,
-        apr: p?.apr,
-        irr: p?.irr,
-        poolOwnStake: p?.poolOwnStake,
-        poolDelegatedStake: p?.poolDelegatedStake,
-        userHasStake: p?.userHasStake
+    if (hex.length !== 128) {
+      if (hex.length === 64) {
+        shouldOnlyReturnPoolData = true
       }
-    })
-    .filter((p) => p && p.shouldDisplay)
-}, [account.address, account.chainId, poolAddresses, positions, results, poolIds, poolsRewards, shouldFilterByUserPools, userBalances])
+    }
 
-const displayPools = poolsWithStats ?? cachedPoolsWithStats
+    // - First 6 hex chars = unlocked (bool)
+    // - Next 40 hex chars = owner (address)
+    const ownerHex = hex.slice(6, 46)
+    const decimalsHex = hex.slice(46, 48)
+    let decimals: number | undefined = undefined
+    if (decimalsHex && decimalsHex !== '00') {
+      decimals = BigNumber.from('0x' + decimalsHex).toNumber()
+    }
+    if (shouldOnlyReturnPoolData) {
+      return { userBalance: '0', owner: getAddress('0x' + ownerHex), decimals }
+    }
 
-useEffect(() => {
-  if (poolsWithStats && poolsWithStats.length > 0) {
-    setCachedPoolsWithStats(poolsWithStats)
+    const secondSlot = hex.slice(64, 128)
+    // - First 24 hex chars = activation timestamp (uint48)
+    const userBalanceHex = secondSlot.slice(12, 64)
+    const userBalance = BigNumber.from('0x' + userBalanceHex)
+    const checksummedOwner = getAddress('0x' + ownerHex)
+
+    return { userBalance: userBalance.toString(), owner: checksummedOwner, decimals }
   }
-}, [poolsWithStats])
+
+  const [cachedPoolsWithStats, setCachedPoolsWithStats] = React.useState<any[] | undefined>(undefined)
+
+  const poolsWithStats = useMemo(() => {
+    if (!positions) { return undefined }
+    const isResultsLoading = poolResults?.some((r) => r.loading)
+    if (isResultsLoading) { return undefined }
+
+    return positions
+      .map((p, i) => {
+        const poolResult = poolResults?.[i]
+        const loading = poolResult?.loading
+        const { userBalance, owner, decimals } = extractValues(poolResult.result?.[0])
+        const userIsOwner = owner && account.address ? owner === account.address : false
+        const shouldDisplay: boolean = shouldFilterByUserPools
+          ? Boolean(userIsOwner || (userBalance && BigNumber.from(userBalance).gt(0)))
+          : true
+
+        return {
+          ...p,
+          loading,
+          address: poolAddresses?.[i],
+          chainId: account.chainId,
+          shouldDisplay,
+          userIsOwner,
+          userBalance,
+          id: poolIds?.[i],
+          currentEpochReward: poolsRewards[i] ?? '0',
+          decimals: decimals ?? 18,
+          symbol: p?.symbol,
+          name: p?.name,
+          apr: p?.apr,
+          irr: p?.irr,
+          poolOwnStake: p?.poolOwnStake,
+          poolDelegatedStake: p?.poolDelegatedStake,
+          userHasStake: p?.userHasStake
+        }
+      })
+      .filter((p) => p && p.shouldDisplay)
+  }, [account.address, account.chainId, poolAddresses, positions, poolResults, poolIds, poolsRewards, shouldFilterByUserPools])
+
+  const displayPools = poolsWithStats ?? cachedPoolsWithStats
+
+  useEffect(() => {
+    if (poolsWithStats && poolsWithStats.length > 0) {
+      setCachedPoolsWithStats(poolsWithStats)
+    }
+  }, [poolsWithStats])
 
   return (
     <>

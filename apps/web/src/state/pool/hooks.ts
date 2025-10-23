@@ -469,6 +469,8 @@ export function useOperatedPools(): Token[] | undefined {
 
     return poolsLogs.map((p) => p.pool)
   }, [poolsLogs])
+
+  // TODO: as we are reading the same storage slot in PoolPositionList, we could merge the methods and return filtered data where needed
   const results = useMultipleContractSingleData(poolAddresses, PoolInterface, 'getPool')
 
   const account = useAccount()
