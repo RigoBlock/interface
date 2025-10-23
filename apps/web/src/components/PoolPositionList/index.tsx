@@ -113,13 +113,13 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
     let shouldOnlyReturnPoolData = false
 
     // Remove '0x' prefix
-    const hex = storageValue.slice(2).padStart(128, '0') // 128 hex chars = 64 bytes (2 slots)
-
-    if (hex.length !== 128) {
-      if (hex.length === 64) {
-        shouldOnlyReturnPoolData = true
-      }
+    const hexRaw = storageValue.slice(2)
+    
+    if (hexRaw.length === 64) {
+      shouldOnlyReturnPoolData = true
     }
+    
+    const hex = hexRaw.padStart(128, '0') // 128 hex chars = 64 bytes (2 slots)
 
     // - First 6 hex chars = unlocked (bool)
     // - Next 40 hex chars = owner (address)
@@ -130,7 +130,7 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
       decimals = BigNumber.from('0x' + decimalsHex).toNumber()
     }
     if (shouldOnlyReturnPoolData) {
-      return { userBalance: '0', owner: getAddress('0x' + ownerHex), decimals }
+      return { userBalance: undefined, owner: getAddress('0x' + ownerHex), decimals }
     }
 
     const secondSlot = hex.slice(64, 128)
@@ -321,6 +321,19 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
           </DesktopHeader>
           <MobileHeader>
             <Trans>You don&apos;t have a smart vault. Create yours or buy an existing one.</Trans>
+          </MobileHeader>
+        </>
+      ) : !account.address ? (
+        <>
+          <DesktopHeader>
+            <Flex>
+              <Text>
+                <Trans>Connect your wallet to view your vaults.</Trans>
+              </Text>
+            </Flex>
+          </DesktopHeader>
+          <MobileHeader>
+            <Trans>Connect your wallet to view your vaults.</Trans>
           </MobileHeader>
         </>
       ) : (

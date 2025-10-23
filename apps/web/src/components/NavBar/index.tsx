@@ -172,7 +172,7 @@ export default function Navbar() {
         </Left>
 
         <SearchContainer>
-          {cachedOperatedPools && cachedOperatedPools.length > 0 && (
+          {!collapseSearchBar && cachedOperatedPools && cachedOperatedPools.length > 0 && (
             <SelectedPoolContainer>
               <PoolSelect operatedPools={cachedOperatedPools} />
             </SelectedPoolContainer>
@@ -186,22 +186,27 @@ export default function Navbar() {
 
         <Right>
             {collapseSearchBar && (
-            <Flex mr={-20}>
+            <Flex row gap={-12} alignItems="center" mr={-15} ml={-12}>
               <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} />
+              {cachedOperatedPools && cachedOperatedPools.length > 0 && (
+              <Flex mt={8}>
+                <PoolSelect operatedPools={cachedOperatedPools} />
+              </Flex>
+              )}
+              {!hideChainSelector && <ChainSelector />}
             </Flex>
             )}
-          {isNFTPage && sellPageState !== ProfilePageStateType.LISTING && <Bag />}
-          {shouldDisplayCreateAccountButton && isSignInExperimentControl && !isSignInExperimentControlLoading && isLandingPage && !isSmallScreen && (
-            <NewUserCTAButton />
-          )}
-          {!account.isConnected && !account.isConnecting && <PreferenceMenu />}
-          {!hideChainSelector && <ChainSelector />}
-          {isTestnetModeEnabled && <TestnetModeTooltip />}
-          <Web3Status />
-          {shouldDisplayCreateAccountButton && !isSignInExperimentControl && !isSignInExperimentControlLoading && !account.address && !isMediumScreen && (
-            <NewUserCTAButton />
-          )}
-        </Right>
+            {isNFTPage && sellPageState !== ProfilePageStateType.LISTING && <Bag />}
+            {shouldDisplayCreateAccountButton && isSignInExperimentControl && !isSignInExperimentControlLoading && isLandingPage && !isSmallScreen && (
+              <NewUserCTAButton />
+            )}
+            {!account.isConnected && !account.isConnecting && <PreferenceMenu />}
+            {isTestnetModeEnabled && <TestnetModeTooltip />}
+            <Web3Status />
+            {shouldDisplayCreateAccountButton && !isSignInExperimentControl && !isSignInExperimentControlLoading && !account.address && !isMediumScreen && (
+              <NewUserCTAButton />
+            )}
+          </Right>
       </Flex>
     </Nav>
   )
