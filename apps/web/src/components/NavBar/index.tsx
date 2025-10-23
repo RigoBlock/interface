@@ -190,7 +190,7 @@ export default function Navbar() {
               <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} />
               {cachedOperatedPools && cachedOperatedPools.length > 0 && (
               <Flex mt={8}>
-              <PoolSelect operatedPools={cachedOperatedPools} />
+                <PoolSelect operatedPools={cachedOperatedPools} />
               </Flex>
               )}
               {!hideChainSelector && <ChainSelector />}
@@ -198,13 +198,13 @@ export default function Navbar() {
             )}
             {isNFTPage && sellPageState !== ProfilePageStateType.LISTING && <Bag />}
             {shouldDisplayCreateAccountButton && isSignInExperimentControl && !isSignInExperimentControlLoading && isLandingPage && !isSmallScreen && (
-            <NewUserCTAButton />
+              <NewUserCTAButton />
             )}
             {!account.isConnected && !account.isConnecting && <PreferenceMenu />}
             {isTestnetModeEnabled && <TestnetModeTooltip />}
             <Web3Status />
             {shouldDisplayCreateAccountButton && !isSignInExperimentControl && !isSignInExperimentControlLoading && !account.address && !isMediumScreen && (
-            <NewUserCTAButton />
+              <NewUserCTAButton />
             )}
           </Right>
       </Flex>
