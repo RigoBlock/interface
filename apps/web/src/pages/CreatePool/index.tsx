@@ -11,7 +11,7 @@ import styled from 'lib/styled-components'
 import { Trans } from 'react-i18next'
 import { useCloseModal, useModalIsOpen, useToggleCreateModal } from 'state/application/hooks'
 import { ApplicationModal } from 'state/application/reducer'
-import { useAllPoolsData, useInitializeMultiChainPools, useOperatedPoolsMultiChain } from 'state/pool/hooks'
+import { useInitializeMultiChainPools, useOperatedPoolsDataFromCache } from 'state/pool/hooks'
 import { ThemedText } from 'theme/components/text'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 
@@ -74,10 +74,12 @@ export default function CreatePool() {
   const open = useModalIsOpen(ApplicationModal.CREATE)
   const closeModal = useCloseModal(ApplicationModal.CREATE)
   const toggleCreateModal = useToggleCreateModal()
-  const { data: allPools } = useAllPoolsData()
   
   // Initialize multi-chain pools
   useInitializeMultiChainPools()
+  
+  // Use cached operated pools instead of querying
+  const { data: allPools } = useOperatedPoolsDataFromCache()
 
   return (
     <Trace logImpression page={InterfacePageName.POOL_PAGE}>

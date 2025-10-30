@@ -596,8 +596,36 @@ export function useOperatedPoolsMultiChain(chainId?: number): PoolWithChain[] {
 /**
  * Hook to get all pools data from cached state (for Stake page)
  * Returns pools in PoolRegisteredLog format for compatibility
+ * Falls back to current chain query if no cached data available
  */
 export function useAllPoolsDataFromCache(): { data?: PoolRegisteredLog[] } {
+  const account = useAccount()
+  const cachedPools = useOperatedPoolsMultiChain(account.chainId)
+  const { data: allPoolsFromQuery } = useAllPoolsData()
+  
+  return useMemo(() => {
+    // If we have cached operated pools for this chain, use them
+    if (cachedPools && cachedPools.length > 0) {
+      const poolsAsLogs: PoolRegisteredLog[] = cachedPools.map(pool => ({
+        pool: pool.address,
+        name: pool.name,
+        symbol: pool.symbol,
+        id: pool.id,
+        group: pool.group,
+      }))
+      return { data: poolsAsLogs }
+    }
+    
+    // Otherwise fall back to query result (includes all pools, not just operated)
+    return { data: allPoolsFromQuery }
+  }, [cachedPools, allPoolsFromQuery])
+}
+
+/**
+ * Hook to get operated pools data from cache for CreatePool page
+ * Returns pools in PoolRegisteredLog format for compatibility
+ */
+export function useOperatedPoolsDataFromCache(): { data?: PoolRegisteredLog[] } {
   const account = useAccount()
   const cachedPools = useOperatedPoolsMultiChain(account.chainId)
   
