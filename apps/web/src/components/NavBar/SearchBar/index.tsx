@@ -160,10 +160,12 @@ export const SearchBar = ({
   maxHeight,
   isDropdown = true,
   fullScreen = false,
+  poolsData,
 }: {
   maxHeight?: string
   isDropdown?: boolean
   fullScreen?: boolean
+  poolsData?: ReturnType<typeof useAllPoolsData>['data']
 }) => {
   const [isOpen, setOpen] = useState<boolean>(false)
   const [searchValue, setSearchValue] = useState<string>('')
@@ -204,7 +206,8 @@ export const SearchBar = ({
 
   const { data: tokens, loading: tokensAreLoading } = useSearchTokens(debouncedSearchValue)
   const reducedTokens = tokens?.slice(0, 8) ?? []
-  const allPools = useAllPoolsData().data
+  // Use poolsData prop if provided, otherwise fall back to hook (for backward compatibility)
+  const allPools = poolsData ?? useAllPoolsData().data
   const account = useAccount()
 
   const smartPools = useMemo(() => {

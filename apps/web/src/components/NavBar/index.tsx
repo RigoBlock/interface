@@ -17,7 +17,7 @@ import deprecatedStyled, { css } from 'lib/styled-components'
 import { useProfilePageState } from 'nft/hooks'
 import { ProfilePageStateType } from 'nft/types'
 import { useEffect, useMemo, useRef } from 'react'
-import { useOperatedPools } from 'state/pool/hooks'
+import { useOperatedPools, useAllPoolsData } from 'state/pool/hooks'
 import { Flex, Nav as TamaguiNav, styled, useMedia } from 'ui/src'
 import { INTERFACE_NAV_HEIGHT, breakpoints, zIndexes } from 'ui/src/theme'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
@@ -140,6 +140,9 @@ export default function Navbar() {
 
   const isSignInExperimentControl = !isEmbeddedWalletEnabled && isControl
   const shouldDisplayCreateAccountButton = false
+  
+  // Get all pools data once to avoid duplicate calls
+  const { data: allPoolsData } = useAllPoolsData()
   const rawOperatedPools = useOperatedPools()
   
   // Cache pools per chain to maintain display across chain switches
@@ -196,7 +199,7 @@ export default function Navbar() {
           )}
           {!collapseSearchBar && (
             <UnpositionedFlex flex={1} flexShrink={1} ml="$spacing16">
-              <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} />
+              <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} poolsData={allPoolsData} />
             </UnpositionedFlex>
           )}
         </SearchContainer>
@@ -204,7 +207,7 @@ export default function Navbar() {
         <Right>
             {collapseSearchBar && (
             <Flex row gap={-12} alignItems="center" mr={-15} ml={-12}>
-              <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} />
+              <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} poolsData={allPoolsData} />
               {cachedOperatedPools && cachedOperatedPools.length > 0 && (
               <Flex mt={8}>
                 <PoolSelect operatedPools={cachedOperatedPools} />
