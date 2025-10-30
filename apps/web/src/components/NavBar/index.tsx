@@ -144,17 +144,18 @@ export default function Navbar() {
   
   // Cache pools per chain to maintain display across chain switches
   const cachedPoolsByChainRef = useRef<Map<number, typeof rawOperatedPools>>(new Map())
-  const lastValidChainIdRef = useRef<number | undefined>(undefined)
+  const hasEverHadPoolsRef = useRef(false)
   
   useEffect(() => {
     if (rawOperatedPools && rawOperatedPools.length > 0 && account.chainId) {
       cachedPoolsByChainRef.current.set(account.chainId, rawOperatedPools)
-      lastValidChainIdRef.current = account.chainId
+      hasEverHadPoolsRef.current = true
     }
   }, [rawOperatedPools, account.chainId])
   
+  // Get pools for current chain only
   const cachedOperatedPools = useMemo(() => {
-    // Try to get pools for current chain
+    // Try to get cached pools for current chain
     if (account.chainId && cachedPoolsByChainRef.current.has(account.chainId)) {
       return cachedPoolsByChainRef.current.get(account.chainId)
     }
@@ -164,19 +165,20 @@ export default function Navbar() {
       return rawOperatedPools
     }
     
-    // Otherwise, show the last chain's pools to avoid disappearing UI
-    // This handles the case when switching to a chain we haven't seen before
-    if (lastValidChainIdRef.current && cachedPoolsByChainRef.current.has(lastValidChainIdRef.current)) {
-      return cachedPoolsByChainRef.current.get(lastValidChainIdRef.current)
-    }
-    
-    return rawOperatedPools
+    // If no pools for current chain, return undefined (don't show wrong chain's pools)
+    return undefined
   }, [rawOperatedPools, account.chainId])
   
-  const cachedUserIsOperator = useMemo(() => 
-    Boolean(cachedOperatedPools && cachedOperatedPools.length > 0),
-    [cachedOperatedPools]
-  )
+  // Keep userIsOperator true if user has ever had pools on any chain
+  // This prevents the Pool tab from disappearing during chain switches
+  const cachedUserIsOperator = useMemo(() => {
+    // If we have pools for current chain, use that
+    if (cachedOperatedPools && cachedOperatedPools.length > 0) {
+      return true
+    }
+    // Otherwise, keep showing operator UI if they've ever had pools
+    return hasEverHadPoolsRef.current
+  }, [cachedOperatedPools])
 
   return (
     <Nav>
