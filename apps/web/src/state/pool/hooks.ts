@@ -11,6 +11,7 @@ import { ZERO_ADDRESS } from 'constants/misc'
 import { useAccount } from 'hooks/useAccount'
 import { useContract } from 'hooks/useContract'
 import usePrevious from 'hooks/usePrevious'
+import useSelectChain from 'hooks/useSelectChain'
 import { useTotalSupply } from 'hooks/useTotalSupply'
 import { CallStateResult, useMultipleContractSingleData, useSingleContractMultipleData } from 'lib/hooks/multicall'
 //import useBlockNumber from 'lib/hooks/useBlockNumber'
@@ -19,12 +20,14 @@ import { useParams } from 'react-router-dom'
 import { useSelectActiveSmartPool } from 'state/application/hooks'
 import { useStakingContract } from 'state/governance/hooks'
 import { useLogs } from 'state/logs/hooks'
+import { useMultichainContext } from 'state/multichain/useMultichainContext'
 import { useTransactionAdder } from 'state/transactions/hooks'
 import { TransactionType } from 'state/transactions/types'
 import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
 import RB_POOL_FACTORY_ABI from 'uniswap/src/abis/rb-pool-factory.json'
 import RB_REGISTRY_ABI from 'uniswap/src/abis/rb-registry.json'
 import { GRG } from 'uniswap/src/constants/tokens'
+import { useSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { calculateGasMargin } from 'utils/calculateGasMargin'
 
@@ -162,7 +165,22 @@ export function useCreateCallback(): (
 function useRegisteredPools(): PoolRegisteredLog[] | undefined {
   const account = useAccount()
   const registry = useRegistryContract()
-  const { fromBlock, toBlock } = useStartBlock(account.chainId)
+  const supportedConnectedChainId = useSupportedChainId(account.chainId)
+  const { chainId: mintChainId } = useMultichainContext()
+  const selectChain = useSelectChain()
+  useEffect(() => {
+    if (!mintChainId) {
+      return
+    }
+    if (!supportedConnectedChainId || supportedConnectedChainId !== mintChainId) {
+      selectChain(mintChainId).then((correctChain) => {
+        if (!correctChain) {
+          throw new Error('wallet must be connected to correct chain to swap')
+        }
+      })
+    }
+  }, [mintChainId, supportedConnectedChainId, selectChain])
+  const { fromBlock, toBlock } = useStartBlock(mintChainId)
 
   // create filters for Registered events
   const filter = useMemo(() => {
