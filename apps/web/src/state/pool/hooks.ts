@@ -16,7 +16,7 @@ import { CallStateResult, useMultipleContractSingleData, useSingleContractMultip
 //import useBlockNumber from 'lib/hooks/useBlockNumber'
 import { useCallback, useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
-import { useSelectActiveSmartPool } from 'state/application/hooks'
+import { PoolWithChain, useOperatedPoolsFromState, useSelectActiveSmartPool, useSetOperatedPools } from 'state/application/hooks'
 import { useStakingContract } from 'state/governance/hooks'
 import { useLogs } from 'state/logs/hooks'
 import { useTransactionAdder } from 'state/transactions/hooks'
@@ -520,4 +520,72 @@ export function useOperatedPools(): Token[] | undefined {
   }, [accountChanged, defaultPool, onPoolSelect])
 
   return operatedPools
+}
+
+// Get all supported chains for pool registry
+function getSupportedChains(isTestnet: boolean): UniverseChainId[] {
+  if (isTestnet) {
+    return [UniverseChainId.Sepolia]
+  }
+  return [
+    UniverseChainId.Mainnet,
+    UniverseChainId.Optimism,
+    UniverseChainId.ArbitrumOne,
+    UniverseChainId.Polygon,
+    UniverseChainId.Bnb,
+    UniverseChainId.Base,
+    UniverseChainId.Unichain,
+  ]
+}
+
+/**
+ * Hook to initialize and load operated pools for all supported chains
+ * This should be called at app initialization to load all operated pools
+ */
+export function useInitializeMultiChainPools() {
+  const account = useAccount()
+  const setOperatedPools = useSetOperatedPools()
+  const existingPools = useOperatedPoolsFromState()
+  
+  // TODO: For now, we'll fetch pools only for the current chain
+  // In the future, this should be extended to fetch from all chains using an API or multi-chain RPC
+  const currentChainPools = useOperatedPools()
+  
+  useEffect(() => {
+    if (!account.address || !account.chainId || !currentChainPools) {
+      return
+    }
+    
+    // Convert Token[] to PoolWithChain[]
+    const poolsWithChain: PoolWithChain[] = currentChainPools.map((pool) => ({
+      address: pool.address,
+      chainId: pool.chainId ?? account.chainId ?? UniverseChainId.Mainnet,
+      name: pool.name ?? '',
+      symbol: pool.symbol ?? '',
+      decimals: pool.decimals,
+    }))
+    
+    // Merge with existing pools from other chains (don't override pools from other chains)
+    const otherChainPools = existingPools.filter((p) => p.chainId !== account.chainId)
+    const mergedPools = [...otherChainPools, ...poolsWithChain]
+    
+    // Only update if pools have changed
+    if (JSON.stringify(mergedPools) !== JSON.stringify(existingPools)) {
+      setOperatedPools(mergedPools)
+    }
+  }, [account.address, account.chainId, currentChainPools, existingPools, setOperatedPools])
+}
+
+/**
+ * Hook to get operated pools from state with optional chain filter
+ */
+export function useOperatedPoolsMultiChain(chainId?: number): PoolWithChain[] {
+  const pools = useOperatedPoolsFromState()
+  
+  return useMemo(() => {
+    if (!chainId) {
+      return pools
+    }
+    return pools.filter((p) => p.chainId === chainId)
+  }, [pools, chainId])
 }

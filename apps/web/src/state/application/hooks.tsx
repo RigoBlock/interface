@@ -5,10 +5,12 @@ import {
   ApplicationModal,
   CloseModalParams,
   OpenModalParams,
+  PoolWithChain,
   addSuppressedPopups,
   removeSuppressedPopups,
   setCloseModal,
   setOpenModal,
+  setOperatedPools,
   setSmartPoolValue,
 } from 'state/application/reducer'
 import { useAppDispatch, useAppSelector } from 'state/hooks'
@@ -81,21 +83,36 @@ export function useTogglePrivacyPolicy(): () => void {
   return useToggleModal(ApplicationModal.PRIVACY_POLICY)
 }
 
-export function useSelectActiveSmartPool(): (smartPoolValue?: Currency) => void {
+export function useSelectActiveSmartPool(): (smartPoolValue?: Currency, chainId?: number) => void {
   const dispatch = useAppDispatch()
   return useCallback(
-    (smartPoolValue?: Currency) => {
+    (smartPoolValue?: Currency, chainId?: number) => {
       dispatch(
         setSmartPoolValue({
           smartPool: {
             address: smartPoolValue?.isToken ? smartPoolValue.address : undefined,
             name: smartPoolValue?.isToken && smartPoolValue.name ? smartPoolValue.name : undefined,
+            chainId: chainId,
           },
         })
       )
     },
     [dispatch]
   )
+}
+
+export function useSetOperatedPools(): (pools: PoolWithChain[]) => void {
+  const dispatch = useAppDispatch()
+  return useCallback(
+    (pools: PoolWithChain[]) => {
+      dispatch(setOperatedPools(pools))
+    },
+    [dispatch]
+  )
+}
+
+export function useOperatedPoolsFromState(): PoolWithChain[] {
+  return useAppSelector((state: InterfaceState) => state.application.operatedPools)
 }
 
 // returns functions to suppress and unsuppress popups by type

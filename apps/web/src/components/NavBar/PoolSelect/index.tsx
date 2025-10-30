@@ -1,10 +1,13 @@
 import { Currency, Token } from '@uniswap/sdk-core';
 import { ButtonGray } from 'components/Button/buttons'
 import CurrencySearchModal from 'components/SearchModal/CurrencySearchModal'
+import { ChainLogo } from 'components/Logo/ChainLogo'
 import styled from 'lib/styled-components'
 import React, { useCallback, useEffect, useState } from 'react';
 import { useActiveSmartPool, useSelectActiveSmartPool } from 'state/application/hooks';
+import { PoolWithChain } from 'state/application/reducer';
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types';
+import { UniverseChainId } from 'uniswap/src/features/chains/types';
 
 const PoolSelectButton = styled(ButtonGray)<{
     visible: boolean
@@ -64,8 +67,14 @@ const StyledTokenName = styled.span<{ active?: boolean }>`
   }
 `;
 
+const ChainBadgeContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+
 interface PoolSelectProps {
-  operatedPools: Token[];
+  operatedPools: PoolWithChain[];
 }
 
 const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
@@ -73,37 +82,58 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
   const activeSmartPool = useActiveSmartPool();
   const onPoolSelect = useSelectActiveSmartPool();
 
-  // on chain switch revert to default pool if selected does not exist on new chain
-  const activePoolExistsOnChain = operatedPools?.some(pool => pool.address === activeSmartPool?.address);
+  // Convert PoolWithChain[] to Token[] for display
+  const poolsAsTokens = React.useMemo(() => 
+    operatedPools.map((pool) => 
+      new Token(pool.chainId, pool.address, pool.decimals, pool.symbol, pool.name)
+    ),
+    [operatedPools]
+  );
+
+  // on chain switch revert to default pool if selected does not exist
+  const activePoolExistsInList = operatedPools?.some(pool => pool.address === activeSmartPool?.address);
 
   // initialize selected pool - use ref to prevent re-initialization
   const hasInitialized = React.useRef(false);
   
   useEffect(() => {
-    if (!hasInitialized.current && (!activeSmartPool?.name || !activePoolExistsOnChain)) {
-      onPoolSelect(operatedPools[0]);
+    if (!hasInitialized.current && (!activeSmartPool?.name || !activePoolExistsInList)) {
+      if (poolsAsTokens[0]) {
+        const firstPool = operatedPools[0];
+        onPoolSelect(poolsAsTokens[0], firstPool.chainId);
+      }
       hasInitialized.current = true;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePoolExistsOnChain, activeSmartPool?.name])
+  }, [activePoolExistsInList, activeSmartPool?.name])
 
   // Memoize poolsAsCurrrencies to prevent recreation on every render
   const poolsAsCurrrencies = React.useMemo(() => 
-    operatedPools.map((pool: Token) => ({
+    poolsAsTokens.map((pool: Token, index: number) => ({
       currency: pool,
       currencyId: pool.address,
       safetyLevel: null,
       safetyInfo: null,
       spamCode: null,
       logoUrl: null,
-      isSpam: null
+      isSpam: null,
+      // Store chainId in a way accessible to the search modal
+      chainId: operatedPools[index].chainId,
     })) as CurrencyInfo[]
-  , [operatedPools]);
+  , [poolsAsTokens, operatedPools]);
 
   const handleSelectPool = useCallback((pool: Currency) => {
-    onPoolSelect(pool);
+    // Find the chain ID for the selected pool
+    const selectedPoolData = operatedPools.find(p => p.address === (pool.isToken ? pool.address : ''));
+    onPoolSelect(pool, selectedPoolData?.chainId);
     setShowModal(false);
-  }, [onPoolSelect]);
+  }, [onPoolSelect, operatedPools]);
+
+  // Get active pool's chain ID for badge display
+  const activePoolChainId = React.useMemo(() => {
+    const activePool = operatedPools.find(p => p.address === activeSmartPool?.address);
+    return activePool?.chainId;
+  }, [operatedPools, activeSmartPool?.address]);
 
   return (
     <>
@@ -116,9 +146,14 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
           className="operated-pool-select-button"
           onClick={() => setShowModal(true)}
         >
-          <StyledTokenName className="pool-name-container" active={true}>
-            {activeSmartPool.name}
-          </StyledTokenName>
+          <ChainBadgeContainer>
+            {activePoolChainId && (
+              <ChainLogo chainId={activePoolChainId as UniverseChainId} size={20} />
+            )}
+            <StyledTokenName className="pool-name-container" active={true}>
+              {activeSmartPool.name}
+            </StyledTokenName>
+          </ChainBadgeContainer>
         </PoolSelectButton>
       )}
 

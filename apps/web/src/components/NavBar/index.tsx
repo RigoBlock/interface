@@ -16,8 +16,8 @@ import { PageType, useIsPage } from 'hooks/useIsPage'
 import deprecatedStyled, { css } from 'lib/styled-components'
 import { useProfilePageState } from 'nft/hooks'
 import { ProfilePageStateType } from 'nft/types'
-import { useEffect, useMemo, useRef } from 'react'
-import { useOperatedPools } from 'state/pool/hooks'
+import { useMemo } from 'react'
+import { useInitializeMultiChainPools, useOperatedPoolsMultiChain } from 'state/pool/hooks'
 import { Flex, Nav as TamaguiNav, styled, useMedia } from 'ui/src'
 import { INTERFACE_NAV_HEIGHT, breakpoints, zIndexes } from 'ui/src/theme'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
@@ -140,27 +140,15 @@ export default function Navbar() {
 
   const isSignInExperimentControl = !isEmbeddedWalletEnabled && isControl
   const shouldDisplayCreateAccountButton = false
-  const rawOperatedPools = useOperatedPools()
-  const cachedPoolsRef = useRef<typeof rawOperatedPools | undefined>(undefined)
-  const prevChainIdRef = useRef<number | undefined>(account.chainId)
   
-  useEffect(() => {
-    if (account.chainId !== prevChainIdRef.current) {
-      cachedPoolsRef.current = undefined
-      prevChainIdRef.current = account.chainId
-    }
-  }, [account.chainId])
+  // Initialize multi-chain pools
+  useInitializeMultiChainPools()
   
-  useEffect(() => {
-    if (rawOperatedPools && rawOperatedPools.length > 0) {
-      cachedPoolsRef.current = rawOperatedPools
-    }
-  }, [rawOperatedPools])
-  
-  const cachedOperatedPools = cachedPoolsRef.current ?? rawOperatedPools
-  const cachedUserIsOperator = useMemo(() => 
-    Boolean(cachedOperatedPools && cachedOperatedPools.length > 0),
-    [cachedOperatedPools]
+  // Get all operated pools from state (no chain filtering)
+  const operatedPools = useOperatedPoolsMultiChain()
+  const userIsOperator = useMemo(() => 
+    Boolean(operatedPools && operatedPools.length > 0),
+    [operatedPools]
   )
 
   return (
@@ -168,13 +156,13 @@ export default function Navbar() {
       <Flex row centered width="100%" style={{ position: 'relative' }}>
         <Left style={{ flexShrink: 0 }}>
           <CompanyMenu />
-          {areTabsVisible && <Tabs userIsOperator={cachedUserIsOperator} />}
+          {areTabsVisible && <Tabs userIsOperator={userIsOperator} />}
         </Left>
 
         <SearchContainer>
-          {!collapseSearchBar && cachedOperatedPools && cachedOperatedPools.length > 0 && (
+          {!collapseSearchBar && operatedPools && operatedPools.length > 0 && (
             <SelectedPoolContainer>
-              <PoolSelect operatedPools={cachedOperatedPools} />
+              <PoolSelect operatedPools={operatedPools} />
             </SelectedPoolContainer>
           )}
           {!collapseSearchBar && (
@@ -188,9 +176,9 @@ export default function Navbar() {
             {collapseSearchBar && (
             <Flex row gap={-12} alignItems="center" mr={-15} ml={-12}>
               <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} />
-              {cachedOperatedPools && cachedOperatedPools.length > 0 && (
+              {operatedPools && operatedPools.length > 0 && (
               <Flex mt={8}>
-                <PoolSelect operatedPools={cachedOperatedPools} />
+                <PoolSelect operatedPools={operatedPools} />
               </Flex>
               )}
               {!hideChainSelector && <ChainSelector />}

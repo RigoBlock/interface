@@ -50,18 +50,28 @@ export type OpenModalParams =
 
 export type CloseModalParams = ModalNameType | ApplicationModal
 
+export interface PoolWithChain {
+  address: string
+  chainId: number
+  name: string
+  symbol: string
+  decimals: number
+}
+
 export interface ApplicationState {
   readonly chainId: number | null
   readonly openModal: OpenModalParams | null
-  readonly smartPool: { address?: string | null; name: string | null }
+  readonly smartPool: { address?: string | null; name: string | null; chainId?: number | null }
   readonly suppressedPopups: PopupType[]
+  readonly operatedPools: PoolWithChain[]
 }
 
 const initialState: ApplicationState = {
   chainId: null,
   openModal: null,
-  smartPool: { address: null, name: '' },
+  smartPool: { address: null, name: '', chainId: null },
   suppressedPopups: [],
+  operatedPools: [],
 }
 
 const applicationSlice = createSlice({
@@ -76,6 +86,10 @@ const applicationSlice = createSlice({
       const { smartPool } = action.payload
       state.smartPool.address = smartPool.address
       state.smartPool.name = smartPool.name
+      state.smartPool.chainId = smartPool.chainId
+    },
+    setOperatedPools(state, action: PayloadAction<PoolWithChain[]>) {
+      state.operatedPools = action.payload
     },
     setOpenModal(state, action: PayloadAction<OpenModalParams>) {
       state.openModal = action.payload
@@ -102,5 +116,6 @@ export const {
   setSmartPoolValue,
   addSuppressedPopups,
   removeSuppressedPopups,
+  setOperatedPools,
 } = applicationSlice.actions
 export default applicationSlice.reducer
