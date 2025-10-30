@@ -1,13 +1,11 @@
 import { Currency, Token } from '@uniswap/sdk-core';
 import { ButtonGray } from 'components/Button/buttons'
 import CurrencySearchModal from 'components/SearchModal/CurrencySearchModal'
-import { ChainLogo } from 'components/Logo/ChainLogo'
 import styled from 'lib/styled-components'
 import React, { useCallback, useEffect, useState } from 'react';
 import { useActiveSmartPool, useSelectActiveSmartPool } from 'state/application/hooks';
 import { PoolWithChain } from 'state/application/reducer';
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types';
-import { UniverseChainId } from 'uniswap/src/features/chains/types';
 
 const PoolSelectButton = styled(ButtonGray)<{
     visible: boolean
@@ -65,12 +63,6 @@ const StyledTokenName = styled.span<{ active?: boolean }>`
     white-space: normal;
     word-wrap: break-word;
   }
-`;
-
-const ChainBadgeContainer = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 6px;
 `;
 
 interface PoolSelectProps {
@@ -135,14 +127,6 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
     setShowModal(false);
   }, [onPoolSelect, poolChainMap]);
 
-  // Get active pool's chain ID for badge display
-  const activePoolChainId = React.useMemo(() => {
-    if (!activeSmartPool?.address) {
-      return undefined;
-    }
-    return poolChainMap.get(activeSmartPool.address);
-  }, [poolChainMap, activeSmartPool?.address]);
-
   return (
     <>
       {activeSmartPool && (
@@ -154,14 +138,9 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
           className="operated-pool-select-button"
           onClick={() => setShowModal(true)}
         >
-          <ChainBadgeContainer>
-            {activePoolChainId && (
-              <ChainLogo chainId={activePoolChainId as UniverseChainId} size={20} />
-            )}
-            <StyledTokenName className="pool-name-container" active={true}>
-              {activeSmartPool.name}
-            </StyledTokenName>
-          </ChainBadgeContainer>
+          <StyledTokenName className="pool-name-container" active={true}>
+            {activeSmartPool.name}
+          </StyledTokenName>
         </PoolSelectButton>
       )}
 

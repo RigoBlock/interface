@@ -17,6 +17,9 @@ import { useAppDispatch, useAppSelector } from 'state/hooks'
 import { InterfaceState } from 'state/webReducer'
 import { ModalNameType } from 'uniswap/src/features/telemetry/constants'
 
+// Re-export PoolWithChain for external use
+export type { PoolWithChain } from 'state/application/reducer'
+
 export function useModalIsOpen(modal: ApplicationModal | ModalNameType): boolean {
   const openModal = useAppSelector((state: InterfaceState) => state.application.openModal?.name)
   return openModal === modal
