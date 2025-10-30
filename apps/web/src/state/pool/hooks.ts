@@ -460,9 +460,8 @@ export function useStakingPools(addresses: string[] | undefined, poolIds: string
 }
 
 // TODO: our rpc endpoint returns multichain pools, we can render by chainId, i.e. on chain switch should update.
-export function useOperatedPools(providedPoolsLogs?: PoolRegisteredLog[]): Token[] | undefined {
-  const { data: fetchedPoolsLogs } = useAllPoolsData()
-  const poolsLogs = providedPoolsLogs ?? fetchedPoolsLogs
+export function useOperatedPools(): Token[] | undefined {
+  const { data: poolsLogs } = useAllPoolsData()
   
   const poolAddresses: (string | undefined)[] = useMemo(() => {
     if (!poolsLogs) {
