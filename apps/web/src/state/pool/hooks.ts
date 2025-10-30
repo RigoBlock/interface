@@ -14,7 +14,7 @@ import usePrevious from 'hooks/usePrevious'
 import { useTotalSupply } from 'hooks/useTotalSupply'
 import { CallStateResult, useMultipleContractSingleData, useSingleContractMultipleData } from 'lib/hooks/multicall'
 //import useBlockNumber from 'lib/hooks/useBlockNumber'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { useSelectActiveSmartPool } from 'state/application/hooks'
 import { useStakingContract } from 'state/governance/hooks'
@@ -477,13 +477,18 @@ export function useOperatedPools(): Token[] | undefined {
   const prevAccount = usePrevious(account.address)
   const accountChanged = prevAccount && prevAccount !== account.address
 
+  // Cache last valid pools to prevent disappearance during chain switches
+  // TODO: When implementing multi-chain vault display, review if this caching needs modification
+  const cachedPoolsRef = useRef<Token[] | undefined>(undefined)
+
   // TODO: careful: on swap page returns [], only by goint to 'Mint' page will it query events
   const operatedPools: Token[] | undefined = useMemo(() => {
     if (!account.address || !account.chainId || !results || !poolAddresses) {
-      return undefined
+      // Return cached pools if available to prevent disappearance during chain switch
+      return cachedPoolsRef.current
     }
     const mockToken = new Token(0, account.address, 1)
-    return results
+    const pools = results
       .map((result, i) => {
         const { result: pools, loading } = result
         const poolAddress = poolAddresses[i]
@@ -504,6 +509,13 @@ export function useOperatedPools(): Token[] | undefined {
         return new Token(account.chainId ?? UniverseChainId.Mainnet, poolAddress, decimals, symbol, name)
       })
       .filter((p) => p !== mockToken)
+    
+    // Update cache if we have valid pools
+    if (pools && pools.length > 0) {
+      cachedPoolsRef.current = pools
+    }
+    
+    return pools
     //.filter((p) => account.address === owner)
   }, [account.address, account.chainId, poolAddresses, results])
 
@@ -516,6 +528,8 @@ export function useOperatedPools(): Token[] | undefined {
     // TODO: this is probably unnecessary as state is reloaded on account change
     if (accountChanged) {
       onPoolSelect(defaultPool ?? emptyPool)
+      // Clear cache on account change to prevent showing previous account's pools
+      cachedPoolsRef.current = undefined
     }
   }, [accountChanged, defaultPool, onPoolSelect])
 
