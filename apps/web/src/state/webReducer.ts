@@ -1,5 +1,6 @@
 import { combineReducers } from '@reduxjs/toolkit'
 import multicall from 'lib/state/multicall'
+import poolMulticall from 'lib/state/multicallForPools'
 import application from 'state/application/reducer'
 import fiatOnRampTransactions from 'state/fiatOnRampTransactions/reducer'
 import poolsList from 'state/lists/poolsList/reducer'
@@ -28,6 +29,7 @@ const interfaceReducers = {
   mint,
   mintV3,
   multicall: multicall.reducer,
+  poolMulticall: poolMulticall.reducer,
   logs,
   [routingApi.reducerPath]: routingApi.reducer,
   [quickRouteApi.reducerPath]: quickRouteApi.reducer,

@@ -15,6 +15,7 @@ import { useAccount } from 'hooks/useAccount'
 import { LanguageProvider } from 'i18n/LanguageProvider'
 import { BlockNumberProvider } from 'lib/hooks/useBlockNumber'
 import { MulticallUpdater } from 'lib/state/multicall'
+import { PoolMulticallUpdater } from 'lib/state/multicallForPools'
 import App from 'pages/App'
 import { PropsWithChildren, StrictMode, useEffect, useMemo } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -74,6 +75,7 @@ function Updaters() {
       <ApplicationUpdater />
       <ActivityStateUpdater />
       <MulticallUpdater />
+      <PoolMulticallUpdater />
       <LogsUpdater />
       <FiatOnRampTransactionsUpdater />
       <Web3ProviderUpdater />
