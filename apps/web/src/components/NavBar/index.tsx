@@ -141,23 +141,23 @@ export default function Navbar() {
   const isSignInExperimentControl = !isEmbeddedWalletEnabled && isControl
   const shouldDisplayCreateAccountButton = false
   const rawOperatedPools = useOperatedPools()
-  const cachedPoolsRef = useRef<typeof rawOperatedPools | undefined>(undefined)
-  const prevChainIdRef = useRef<number | undefined>(account.chainId)
+  
+  // Cache pools per chain to maintain display across chain switches
+  const cachedPoolsByChainRef = useRef<Map<number, typeof rawOperatedPools>>(new Map())
   
   useEffect(() => {
-    if (account.chainId !== prevChainIdRef.current) {
-      cachedPoolsRef.current = undefined
-      prevChainIdRef.current = account.chainId
+    if (rawOperatedPools && rawOperatedPools.length > 0 && account.chainId) {
+      cachedPoolsByChainRef.current.set(account.chainId, rawOperatedPools)
     }
-  }, [account.chainId])
+  }, [rawOperatedPools, account.chainId])
   
-  useEffect(() => {
-    if (rawOperatedPools && rawOperatedPools.length > 0) {
-      cachedPoolsRef.current = rawOperatedPools
+  const cachedOperatedPools = useMemo(() => {
+    if (account.chainId && cachedPoolsByChainRef.current.has(account.chainId)) {
+      return cachedPoolsByChainRef.current.get(account.chainId)
     }
-  }, [rawOperatedPools])
+    return rawOperatedPools
+  }, [rawOperatedPools, account.chainId])
   
-  const cachedOperatedPools = cachedPoolsRef.current ?? rawOperatedPools
   const cachedUserIsOperator = useMemo(() => 
     Boolean(cachedOperatedPools && cachedOperatedPools.length > 0),
     [cachedOperatedPools]
