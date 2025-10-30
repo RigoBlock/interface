@@ -56,6 +56,8 @@ export interface PoolWithChain {
   name: string
   symbol: string
   decimals: number
+  id: string
+  group?: string
 }
 
 export interface ApplicationState {

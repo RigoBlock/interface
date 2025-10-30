@@ -531,23 +531,34 @@ export function useInitializeMultiChainPools() {
   const setOperatedPools = useSetOperatedPools()
   const existingPools = useOperatedPoolsFromState()
   
+  // Get pools data with id field from logs
+  const { data: poolsLogs } = useAllPoolsData()
+  
   // TODO: For now, we'll fetch pools only for the current chain
   // In the future, this should be extended to fetch from all chains using an API or multi-chain RPC
   const currentChainPools = useOperatedPools()
   
   useEffect(() => {
-    if (!account.address || !account.chainId || !currentChainPools) {
+    if (!account.address || !account.chainId || !currentChainPools || !poolsLogs) {
       return
     }
     
-    // Convert Token[] to PoolWithChain[]
-    const poolsWithChain: PoolWithChain[] = currentChainPools.map((pool) => ({
-      address: pool.address,
-      chainId: pool.chainId ?? account.chainId ?? UniverseChainId.Mainnet,
-      name: pool.name ?? '',
-      symbol: pool.symbol ?? '',
-      decimals: pool.decimals,
-    }))
+    // Create a map of pool address to pool log data for quick lookup
+    const poolLogMap = new Map(poolsLogs.map(log => [log.pool, log]))
+    
+    // Convert Token[] to PoolWithChain[] including id from logs
+    const poolsWithChain: PoolWithChain[] = currentChainPools.map((pool) => {
+      const logData = poolLogMap.get(pool.address)
+      return {
+        address: pool.address,
+        chainId: pool.chainId ?? account.chainId ?? UniverseChainId.Mainnet,
+        name: pool.name ?? '',
+        symbol: pool.symbol ?? '',
+        decimals: pool.decimals,
+        id: logData?.id ?? '',
+        group: logData?.group,
+      }
+    })
     
     // Merge with existing pools from other chains (don't override pools from other chains)
     const otherChainPools = existingPools.filter((p) => p.chainId !== account.chainId)
@@ -565,7 +576,7 @@ export function useInitializeMultiChainPools() {
     if (hasChanged) {
       setOperatedPools(mergedPools)
     }
-  }, [account.address, account.chainId, currentChainPools, existingPools, setOperatedPools])
+  }, [account.address, account.chainId, currentChainPools, poolsLogs, existingPools, setOperatedPools])
 }
 
 /**
@@ -580,4 +591,30 @@ export function useOperatedPoolsMultiChain(chainId?: number): PoolWithChain[] {
     }
     return pools.filter((p) => p.chainId === chainId)
   }, [pools, chainId])
+}
+
+/**
+ * Hook to get all pools data from cached state (for Stake page)
+ * Returns pools in PoolRegisteredLog format for compatibility
+ */
+export function useAllPoolsDataFromCache(): { data?: PoolRegisteredLog[] } {
+  const account = useAccount()
+  const cachedPools = useOperatedPoolsMultiChain(account.chainId)
+  
+  return useMemo(() => {
+    if (!cachedPools || cachedPools.length === 0) {
+      return { data: undefined }
+    }
+    
+    // Convert PoolWithChain to PoolRegisteredLog format
+    const poolsAsLogs: PoolRegisteredLog[] = cachedPools.map(pool => ({
+      pool: pool.address,
+      name: pool.name,
+      symbol: pool.symbol,
+      id: pool.id,
+      group: pool.group,
+    }))
+    
+    return { data: poolsAsLogs }
+  }, [cachedPools])
 }
