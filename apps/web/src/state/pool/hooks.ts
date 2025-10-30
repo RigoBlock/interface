@@ -522,22 +522,6 @@ export function useOperatedPools(): Token[] | undefined {
   return operatedPools
 }
 
-// Get all supported chains for pool registry
-function getSupportedChains(isTestnet: boolean): UniverseChainId[] {
-  if (isTestnet) {
-    return [UniverseChainId.Sepolia]
-  }
-  return [
-    UniverseChainId.Mainnet,
-    UniverseChainId.Optimism,
-    UniverseChainId.ArbitrumOne,
-    UniverseChainId.Polygon,
-    UniverseChainId.Bnb,
-    UniverseChainId.Base,
-    UniverseChainId.Unichain,
-  ]
-}
-
 /**
  * Hook to initialize and load operated pools for all supported chains
  * This should be called at app initialization to load all operated pools
@@ -569,8 +553,16 @@ export function useInitializeMultiChainPools() {
     const otherChainPools = existingPools.filter((p) => p.chainId !== account.chainId)
     const mergedPools = [...otherChainPools, ...poolsWithChain]
     
-    // Only update if pools have changed
-    if (JSON.stringify(mergedPools) !== JSON.stringify(existingPools)) {
+    // Only update if pools have changed - use shallow comparison for performance
+    const hasChanged = 
+      mergedPools.length !== existingPools.length ||
+      mergedPools.some((pool, index) => 
+        !existingPools[index] || 
+        pool.address !== existingPools[index].address ||
+        pool.chainId !== existingPools[index].chainId
+      )
+    
+    if (hasChanged) {
       setOperatedPools(mergedPools)
     }
   }, [account.address, account.chainId, currentChainPools, existingPools, setOperatedPools])

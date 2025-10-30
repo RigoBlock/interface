@@ -82,6 +82,12 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
   const activeSmartPool = useActiveSmartPool();
   const onPoolSelect = useSelectActiveSmartPool();
 
+  // Create a map for quick chainId lookup by address
+  const poolChainMap = React.useMemo(() => 
+    new Map(operatedPools.map(pool => [pool.address, pool.chainId])),
+    [operatedPools]
+  );
+
   // Convert PoolWithChain[] to Token[] for display
   const poolsAsTokens = React.useMemo(() => 
     operatedPools.map((pool) => 
@@ -98,18 +104,17 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
   
   useEffect(() => {
     if (!hasInitialized.current && (!activeSmartPool?.name || !activePoolExistsInList)) {
-      if (poolsAsTokens[0]) {
+      if (poolsAsTokens.length > 0 && operatedPools.length > 0) {
         const firstPool = operatedPools[0];
         onPoolSelect(poolsAsTokens[0], firstPool.chainId);
       }
       hasInitialized.current = true;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePoolExistsInList, activeSmartPool?.name])
+  }, [activePoolExistsInList, activeSmartPool?.name, poolsAsTokens, operatedPools, onPoolSelect])
 
   // Memoize poolsAsCurrrencies to prevent recreation on every render
   const poolsAsCurrrencies = React.useMemo(() => 
-    poolsAsTokens.map((pool: Token, index: number) => ({
+    poolsAsTokens.map((pool: Token) => ({
       currency: pool,
       currencyId: pool.address,
       safetyLevel: null,
@@ -117,23 +122,26 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
       spamCode: null,
       logoUrl: null,
       isSpam: null,
-      // Store chainId in a way accessible to the search modal
-      chainId: operatedPools[index].chainId,
+      // Store chainId using our map for safer access
+      chainId: poolChainMap.get(pool.address),
     })) as CurrencyInfo[]
-  , [poolsAsTokens, operatedPools]);
+  , [poolsAsTokens, poolChainMap]);
 
   const handleSelectPool = useCallback((pool: Currency) => {
-    // Find the chain ID for the selected pool
-    const selectedPoolData = operatedPools.find(p => p.address === (pool.isToken ? pool.address : ''));
-    onPoolSelect(pool, selectedPoolData?.chainId);
+    // Find the chain ID for the selected pool using our map
+    const poolAddress = pool.isToken ? pool.address : '';
+    const chainId = poolChainMap.get(poolAddress);
+    onPoolSelect(pool, chainId);
     setShowModal(false);
-  }, [onPoolSelect, operatedPools]);
+  }, [onPoolSelect, poolChainMap]);
 
   // Get active pool's chain ID for badge display
   const activePoolChainId = React.useMemo(() => {
-    const activePool = operatedPools.find(p => p.address === activeSmartPool?.address);
-    return activePool?.chainId;
-  }, [operatedPools, activeSmartPool?.address]);
+    if (!activeSmartPool?.address) {
+      return undefined;
+    }
+    return poolChainMap.get(activeSmartPool.address);
+  }, [poolChainMap, activeSmartPool?.address]);
 
   return (
     <>
