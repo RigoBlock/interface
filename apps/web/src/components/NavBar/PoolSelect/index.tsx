@@ -95,8 +95,8 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
     }
   }, [activePoolExistsOnChain, activeSmartPool?.name, onPoolSelect, operatedPools, currentChainId])
 
-  // Memoize poolsAsCurrrencies to prevent recreation on every render
-  const poolsAsCurrrencies = React.useMemo(() => 
+  // Memoize poolsAsCurrencies to prevent recreation on every render
+  const poolsAsCurrencies = React.useMemo(() => 
     operatedPools.map((pool: Token) => ({
       currency: pool,
       currencyId: pool.address,
@@ -134,7 +134,7 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
         isOpen={showModal}
         onDismiss={() => setShowModal(false)}
         onCurrencySelect={handleSelectPool}
-        operatedPools={poolsAsCurrrencies}
+        operatedPools={poolsAsCurrencies}
         shouldDisplayPoolsOnly={true}
       />
     </>
