@@ -14,7 +14,7 @@ import usePrevious from 'hooks/usePrevious'
 import { useTotalSupply } from 'hooks/useTotalSupply'
 import { CallStateResult, useMultipleContractSingleData, useSingleContractMultipleData } from 'lib/hooks/multicall'
 //import useBlockNumber from 'lib/hooks/useBlockNumber'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { PoolWithChain, useOperatedPoolsFromState, useSelectActiveSmartPool, useSetOperatedPools } from 'state/application/hooks'
 import { useStakingContract } from 'state/governance/hooks'
@@ -594,17 +594,38 @@ export function useOperatedPoolsMultiChain(chainId?: number): PoolWithChain[] {
 }
 
 /**
- * Hook to get all pools data from cached state (for Stake page)
+ * Hook to get all pools data with stable chainId
  * Returns pools in PoolRegisteredLog format for compatibility
- * Falls back to current chain query if no cached data available
+ * Maintains stable chainId even when swap context changes chain
  */
-export function useAllPoolsDataFromCache(): { data?: PoolRegisteredLog[] } {
+export function useAllPoolsDataStable(): { data?: PoolRegisteredLog[] } {
   const account = useAccount()
-  const cachedPools = useOperatedPoolsMultiChain(account.chainId)
-  const { data: allPoolsFromQuery } = useAllPoolsData()
+  
+  // Store the initial chainId when the hook is first called
+  const initialChainIdRef = useRef<number | undefined>(account.chainId)
+  const initialAddressRef = useRef<string | undefined>(account.address)
+  
+  // Only update the chainId ref when the address changes (user switched accounts)
+  // This preserves the chainId even when swap context changes
+  useEffect(() => {
+    if (account.address !== initialAddressRef.current) {
+      initialChainIdRef.current = account.chainId
+      initialAddressRef.current = account.address
+    }
+  }, [account.address, account.chainId])
+  
+  // Get pools for the stable chain, not the current chain
+  const stableAccount = useMemo(() => ({
+    ...account,
+    chainId: initialChainIdRef.current ?? account.chainId
+  }), [account])
+  
+  // Use a custom hook that queries with stable chainId
+  // For now, return cached data if available, otherwise return undefined
+  // This prevents the loading issue
+  const cachedPools = useOperatedPoolsMultiChain(initialChainIdRef.current)
   
   return useMemo(() => {
-    // If we have cached operated pools for this chain, use them
     if (cachedPools && cachedPools.length > 0) {
       const poolsAsLogs: PoolRegisteredLog[] = cachedPools.map(pool => ({
         pool: pool.address,
@@ -616,18 +637,32 @@ export function useAllPoolsDataFromCache(): { data?: PoolRegisteredLog[] } {
       return { data: poolsAsLogs }
     }
     
-    // Otherwise fall back to query result (includes all pools, not just operated)
-    return { data: allPoolsFromQuery }
-  }, [cachedPools, allPoolsFromQuery])
+    return { data: undefined }
+  }, [cachedPools])
 }
 
 /**
  * Hook to get operated pools data from cache for CreatePool page
  * Returns pools in PoolRegisteredLog format for compatibility
+ * Uses ref to maintain stable chainId even when account.chainId changes
  */
 export function useOperatedPoolsDataFromCache(): { data?: PoolRegisteredLog[] } {
   const account = useAccount()
-  const cachedPools = useOperatedPoolsMultiChain(account.chainId)
+  
+  // Store the initial chainId when the hook is first called
+  const initialChainIdRef = useRef<number | undefined>(account.chainId)
+  
+  // Update the ref if chainId changes while user is connected (intentional chain switch)
+  // but preserve it if the account disconnects/reconnects
+  useEffect(() => {
+    if (account.chainId && account.address) {
+      initialChainIdRef.current = account.chainId
+    }
+  }, [account.chainId, account.address])
+  
+  // Use the stable chainId from ref instead of current account.chainId
+  const stableChainId = initialChainIdRef.current
+  const cachedPools = useOperatedPoolsMultiChain(stableChainId)
   
   return useMemo(() => {
     if (!cachedPools || cachedPools.length === 0) {

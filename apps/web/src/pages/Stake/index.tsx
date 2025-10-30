@@ -14,7 +14,7 @@ import { Trans } from 'react-i18next'
 import JSBI from 'jsbi'
 import { useMemo, useState } from 'react'
 import InfiniteScroll from 'react-infinite-scroll-component'
-import { PoolRegisteredLog, useAllPoolsDataFromCache, useInitializeMultiChainPools, useStakingPools } from 'state/pool/hooks'
+import { PoolRegisteredLog, useAllPoolsDataStable, useInitializeMultiChainPools, useStakingPools } from 'state/pool/hooks'
 import { useFreeStakeBalance, useUnclaimedRewards, useUserStakeBalances } from 'state/stake/hooks'
 import styled from 'lib/styled-components'
 import { ThemedText } from 'theme/components/text'
@@ -89,8 +89,8 @@ export default function Stake() {
   // Initialize multi-chain pools to ensure pools persist across chain switches
   useInitializeMultiChainPools()
 
-  // Get all registered pools with fallback to cached data
-  const { data: allPools } = useAllPoolsDataFromCache()
+  // Get all registered pools with stable chainId (won't break on swap chain changes)
+  const { data: allPools } = useAllPoolsDataStable()
 
   const account = useAccount()
   const accountDrawer = useAccountDrawer()
