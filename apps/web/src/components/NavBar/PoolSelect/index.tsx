@@ -76,27 +76,19 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
   // on chain switch revert to default pool if selected does not exist on new chain
   const activePoolExistsOnChain = operatedPools?.some(pool => pool.address === activeSmartPool?.address);
 
-  // Track chain ID to reset initialization when chain changes
-  const currentChainId = operatedPools?.[0]?.chainId;
-  const prevChainIdRef = React.useRef<number | undefined>(currentChainId);
-  const hasInitializedRef = React.useRef(false);
+  // initialize selected pool - use ref to prevent re-initialization
+  const hasInitialized = React.useRef(false);
   
   useEffect(() => {
-    // Reset initialization flag when chain changes
-    if (currentChainId !== prevChainIdRef.current) {
-      hasInitializedRef.current = false;
-      prevChainIdRef.current = currentChainId;
-    }
-    
-    // Initialize or re-initialize when pool doesn't exist on current chain
-    if (!hasInitializedRef.current && operatedPools?.[0] && (!activeSmartPool?.name || !activePoolExistsOnChain)) {
+    if (!hasInitialized.current && (!activeSmartPool?.name || !activePoolExistsOnChain)) {
       onPoolSelect(operatedPools[0]);
-      hasInitializedRef.current = true;
+      hasInitialized.current = true;
     }
-  }, [activePoolExistsOnChain, activeSmartPool?.name, onPoolSelect, operatedPools, currentChainId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePoolExistsOnChain, activeSmartPool?.name])
 
-  // Memoize poolsAsCurrencies to prevent recreation on every render
-  const poolsAsCurrencies = React.useMemo(() => 
+  // Memoize poolsAsCurrrencies to prevent recreation on every render
+  const poolsAsCurrrencies = React.useMemo(() => 
     operatedPools.map((pool: Token) => ({
       currency: pool,
       currencyId: pool.address,
@@ -134,7 +126,7 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
         isOpen={showModal}
         onDismiss={() => setShowModal(false)}
         onCurrencySelect={handleSelectPool}
-        operatedPools={poolsAsCurrencies}
+        operatedPools={poolsAsCurrrencies}
         shouldDisplayPoolsOnly={true}
       />
     </>
