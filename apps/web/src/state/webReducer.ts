@@ -43,7 +43,7 @@ export const interfacePersistedStateList: Array<keyof typeof interfaceReducers> 
   'lists',
   'poolsList',
   'fiatOnRampTransactions',
-  'logs', // TODO: When implementing multi-chain vault display, review if logs persistence needs modification
+  'logs',
 ]
 
 export type InterfaceState = ReturnType<typeof interfaceReducer>
