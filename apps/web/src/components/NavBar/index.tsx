@@ -144,17 +144,32 @@ export default function Navbar() {
   
   // Cache pools per chain to maintain display across chain switches
   const cachedPoolsByChainRef = useRef<Map<number, typeof rawOperatedPools>>(new Map())
+  const lastValidChainIdRef = useRef<number | undefined>(undefined)
   
   useEffect(() => {
     if (rawOperatedPools && rawOperatedPools.length > 0 && account.chainId) {
       cachedPoolsByChainRef.current.set(account.chainId, rawOperatedPools)
+      lastValidChainIdRef.current = account.chainId
     }
   }, [rawOperatedPools, account.chainId])
   
   const cachedOperatedPools = useMemo(() => {
+    // Try to get pools for current chain
     if (account.chainId && cachedPoolsByChainRef.current.has(account.chainId)) {
       return cachedPoolsByChainRef.current.get(account.chainId)
     }
+    
+    // If we have fresh data for current chain, use it
+    if (rawOperatedPools && rawOperatedPools.length > 0) {
+      return rawOperatedPools
+    }
+    
+    // Otherwise, show the last chain's pools to avoid disappearing UI
+    // This handles the case when switching to a chain we haven't seen before
+    if (lastValidChainIdRef.current && cachedPoolsByChainRef.current.has(lastValidChainIdRef.current)) {
+      return cachedPoolsByChainRef.current.get(lastValidChainIdRef.current)
+    }
+    
     return rawOperatedPools
   }, [rawOperatedPools, account.chainId])
   
