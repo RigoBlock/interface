@@ -619,10 +619,10 @@ export function useAllPoolsDataStable(): { data?: PoolRegisteredLog[] } {
   }, [account.address, account.chainId])
   
   // Get pools for the stable chain, not the current chain
-  const stableAccount = useMemo(() => ({
-    ...account,
-    chainId: initialChainIdRef.current ?? account.chainId
-  }), [account])
+  //const stableAccount = useMemo(() => ({
+  //  ...account,
+  //  chainId: initialChainIdRef.current ?? account.chainId
+  //}), [account])
   
   // Use a custom hook that queries with stable chainId
   // For now, return cached data if available, otherwise return undefined

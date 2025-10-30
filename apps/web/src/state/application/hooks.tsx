@@ -95,7 +95,7 @@ export function useSelectActiveSmartPool(): (smartPoolValue?: Currency, chainId?
           smartPool: {
             address: smartPoolValue?.isToken ? smartPoolValue.address : undefined,
             name: smartPoolValue?.isToken && smartPoolValue.name ? smartPoolValue.name : undefined,
-            chainId: chainId,
+            chainId,
           },
         })
       )

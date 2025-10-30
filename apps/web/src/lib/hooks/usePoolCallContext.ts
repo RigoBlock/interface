@@ -2,8 +2,6 @@ import { useAccount } from 'hooks/useAccount'
 import { useContext } from 'react'
 import { BlockNumberContext } from 'lib/hooks/useBlockNumber'
 
-const MISSING_PROVIDER = Symbol()
-
 /**
  * Get block number for the wallet's actual chainId.
  * This accesses the BlockNumberContext which tracks blocks independently,
@@ -11,13 +9,14 @@ const MISSING_PROVIDER = Symbol()
  */
 function useWalletBlockNumber(): number | undefined {
   const blockNumberContext = useContext(BlockNumberContext)
-  if (blockNumberContext === MISSING_PROVIDER) {
+  if (!blockNumberContext) {
     return undefined
   }
   
   // Return the current block number from context
   // The PoolMulticallUpdater ensures this is for the wallet's actual chainId
-  return blockNumberContext.block
+  const latestBlockNumber = typeof blockNumberContext === 'object' ? blockNumberContext?.block : undefined
+  return latestBlockNumber
 }
 
 /**

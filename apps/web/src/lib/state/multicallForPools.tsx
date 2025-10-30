@@ -5,8 +5,6 @@ import { useContext, useMemo } from 'react'
 import { BlockNumberContext } from 'lib/hooks/useBlockNumber'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 
-const MISSING_PROVIDER = Symbol()
-
 // Create a separate multicall instance specifically for pool queries
 // This is independent from the main multicall system and won't be affected
 // by chain switches in the swap context
@@ -28,8 +26,7 @@ export function PoolMulticallUpdater() {
   
   // Get block number from context
   const blockNumberContext = useContext(BlockNumberContext)
-  const latestBlockNumber = blockNumberContext !== MISSING_PROVIDER ? blockNumberContext.block : undefined
-  
+  const latestBlockNumber = typeof blockNumberContext === 'object' ? blockNumberContext?.block : undefined
   const contract = useInterfaceMulticall(chainId)
   const listenerOptions: ListenerOptions = useMemo(
     () => ({ blocksPerFetch: chainId ? getChainInfo(chainId).blockPerMainnetEpochForChainId : 1 }),
