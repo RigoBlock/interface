@@ -74,47 +74,35 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
   const activeSmartPool = useActiveSmartPool();
   const onPoolSelect = useSelectActiveSmartPool();
 
-  // Deduplicate pools by address (keep first occurrence)
-  const uniquePools = React.useMemo(() => {
-    const seen = new Set<string>();
-    return operatedPools.filter(pool => {
-      if (seen.has(pool.address)) {
-        return false;
-      }
-      seen.add(pool.address);
-      return true;
-    });
-  }, [operatedPools]);
-
   // Create a map for quick chainId lookup by address
   const poolChainMap = React.useMemo(() => 
-    new Map(uniquePools.map(pool => [pool.address, pool.chainId])),
-    [uniquePools]
+    new Map(operatedPools.map(pool => [pool.address, pool.chainId])),
+    [operatedPools]
   );
 
   // Convert PoolWithChain[] to Token[] for display
   const poolsAsTokens = React.useMemo(() => 
-    uniquePools.map((pool) => 
+    operatedPools.map((pool) => 
       new Token(pool.chainId, pool.address, pool.decimals, pool.symbol, pool.name)
     ),
-    [uniquePools]
+    [operatedPools]
   );
 
   // on chain switch revert to default pool if selected does not exist
-  const activePoolExistsInList = uniquePools?.some(pool => pool.address === activeSmartPool?.address);
+  const activePoolExistsInList = operatedPools?.some(pool => pool.address === activeSmartPool?.address);
 
   // initialize selected pool - use ref to prevent re-initialization
   const hasInitialized = React.useRef(false);
   
   useEffect(() => {
     if (!hasInitialized.current && (!activeSmartPool?.name || !activePoolExistsInList)) {
-      if (poolsAsTokens.length > 0 && uniquePools.length > 0) {
-        const firstPool = uniquePools[0];
+      if (poolsAsTokens.length > 0 && operatedPools.length > 0) {
+        const firstPool = operatedPools[0];
         onPoolSelect(poolsAsTokens[0], firstPool.chainId);
       }
       hasInitialized.current = true;
     }
-  }, [activePoolExistsInList, activeSmartPool?.name, poolsAsTokens, uniquePools, onPoolSelect])
+  }, [activePoolExistsInList, activeSmartPool?.name, poolsAsTokens, operatedPools, onPoolSelect])
 
   // Memoize poolsAsCurrrencies to prevent recreation on every render
   const poolsAsCurrrencies = React.useMemo(() => 
