@@ -12,7 +12,11 @@ import { useAccount } from 'hooks/useAccount'
 import { useContract } from 'hooks/useContract'
 import usePrevious from 'hooks/usePrevious'
 import { useTotalSupply } from 'hooks/useTotalSupply'
-import { CallStateResult, useMultipleContractSingleData, useSingleContractMultipleData } from 'lib/hooks/multicall'
+import { CallStateResult } from 'lib/hooks/multicall'
+import {
+  useMultipleContractSingleDataForPools as useMultipleContractSingleData,
+  useSingleContractMultipleDataForPools as useSingleContractMultipleData,
+} from 'lib/hooks/multicallForPools'
 //import useBlockNumber from 'lib/hooks/useBlockNumber'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useParams } from 'react-router-dom'
