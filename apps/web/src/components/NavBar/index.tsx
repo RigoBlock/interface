@@ -1,3 +1,4 @@
+import { Token } from '@uniswap/sdk-core'
 import { Bag } from 'components/NavBar/Bag'
 import { ChainSelector } from 'components/NavBar/ChainSelector'
 import { CompanyMenu } from 'components/NavBar/CompanyMenu'
@@ -13,14 +14,16 @@ import Web3Status from 'components/Web3Status'
 import Row from 'components/deprecated/Row'
 import { useAccount } from 'hooks/useAccount'
 import { PageType, useIsPage } from 'hooks/useIsPage'
+import { useMultipleContractSingleData } from 'lib/hooks/multicall'
 import deprecatedStyled, { css } from 'lib/styled-components'
 import { useProfilePageState } from 'nft/hooks'
 import { ProfilePageStateType } from 'nft/types'
 import { useEffect, useMemo, useRef } from 'react'
-import { useOperatedPools, useAllPoolsData } from 'state/pool/hooks'
+import { useAllPoolsData, PoolInterface } from 'state/pool/hooks'
 import { Flex, Nav as TamaguiNav, styled, useMedia } from 'ui/src'
 import { INTERFACE_NAV_HEIGHT, breakpoints, zIndexes } from 'ui/src/theme'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { FeatureFlags } from 'uniswap/src/features/gating/flags'
 import { useFeatureFlag } from 'uniswap/src/features/gating/hooks'
 
@@ -141,9 +144,44 @@ export default function Navbar() {
   const isSignInExperimentControl = !isEmbeddedWalletEnabled && isControl
   const shouldDisplayCreateAccountButton = false
   
-  // Get all pools data once to avoid duplicate calls
+  // Get all pools data once - single source of truth
   const { data: allPoolsData } = useAllPoolsData()
-  const rawOperatedPools = useOperatedPools()
+  
+  // Filter to get operated pools (replaces useOperatedPools to avoid duplicate calls)
+  const poolAddresses: (string | undefined)[] = useMemo(() => {
+    if (!allPoolsData) {
+      return []
+    }
+    return allPoolsData.map((p) => p.pool)
+  }, [allPoolsData])
+  
+  const poolDetailsResults = useMultipleContractSingleData(poolAddresses, PoolInterface, 'getPool')
+  
+  const rawOperatedPools = useMemo(() => {
+    if (!account.address || !account.chainId || !poolDetailsResults || !poolAddresses || poolAddresses.length === 0) {
+      return undefined
+    }
+    const mockToken = new Token(0, account.address, 1)
+    return poolDetailsResults
+      .map((result, i) => {
+        const { result: pools, loading } = result
+        const poolAddress = poolAddresses[i]
+        
+        if (loading || !pools || !pools?.[0] || !poolAddress) {
+          return mockToken
+        }
+        const { name, symbol, decimals, owner } = pools[0]
+        if (!name || !symbol || !decimals || !owner || !poolAddress) {
+          return mockToken
+        }
+        const isPoolOperator = owner === account.address
+        if (!isPoolOperator) {
+          return mockToken
+        }
+        return new Token(account.chainId ?? UniverseChainId.Mainnet, poolAddress, decimals, symbol, name)
+      })
+      .filter((p) => p !== mockToken)
+  }, [account.address, account.chainId, poolAddresses, poolDetailsResults])
   
   // Cache pools per chain to maintain display across chain switches
   const cachedPoolsByChainRef = useRef<Map<number, typeof rawOperatedPools>>(new Map())
