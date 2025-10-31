@@ -4,18 +4,19 @@ import PoolPositionListItem from 'components/PoolPositionListItem'
 import { MouseoverTooltip } from 'components/Tooltip'
 import { useAccount } from 'hooks/useAccount'
 import { Trans } from 'react-i18next'
-import { useMultipleContractSingleData } from 'lib/hooks/multicall'
 import React, { useMemo, useEffect } from 'react'
 import { AbiCoder } from '@ethersproject/abi'
 import { BigNumber } from '@ethersproject/bignumber'
 import { getAddress } from '@ethersproject/address'
 import { keccak256 } from '@ethersproject/keccak256'
 import { Info } from 'react-feather'
-import { PoolInterface, useStakingPoolsRewards } from 'state/pool/hooks'
+import { useStakingPoolsRewards } from 'state/pool/hooks'
 import styled from 'lib/styled-components'
 import { MEDIA_WIDTHS } from 'theme'
 import { PoolPositionDetails } from 'types/position'
 import { Flex, Text } from 'ui/src'
+import { assume0xAddress } from 'utils/wagmi'
+import { useReadContracts } from 'wagmi'
 
 // TODO: check if we want to keep margin right 12px by keeping list item margin right at 12px
 const DesktopHeader = styled.div`
@@ -76,6 +77,8 @@ const POOL_OWNER_SLOT = BigNumber.from(POOLS_SLOT).add(1)
 
 export default function PoolPositionList({ positions, shouldFilterByUserPools }: PoolPositionListProps) {
   const account = useAccount()
+  const { address, chainId } = account
+
   // TODO: we should merge this part with same part in swap page and move to a custom hook
   const [poolAddresses, poolIds] = useMemo(
     () => [
@@ -94,13 +97,40 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
     return keccak256(encoded)
   }
 
-  const userAccountSlot = account.address ? getUserAccountSlot(account.address) : undefined
-  const poolResults = useMultipleContractSingleData(
-    poolAddresses ?? [undefined], // display results regardless of account connection
-    PoolInterface,
-    'getStorageSlotsAt',
-    useMemo(() => [userAccountSlot ? [POOL_OWNER_SLOT, userAccountSlot] : [POOL_OWNER_SLOT]], [userAccountSlot])
-  )
+  const userAccountSlot = address ? getUserAccountSlot(address) : undefined
+  const { data, isLoading } = useReadContracts({
+      contracts: useMemo(() => {
+        return poolAddresses?.map(
+          (vaultAddress) => ({
+            address: assume0xAddress(vaultAddress) ?? '0x',
+            abi: [
+              {
+                "inputs": [
+                  {
+                    "internalType": "uint256[]",
+                    "name": "slots",
+                    "type": "uint256[]"
+                  }
+                ],
+                "name": "getStorageSlotsAt",
+                "outputs": [
+                  {
+                    "internalType": "bytes",
+                    "name": "",
+                    "type": "bytes"
+                  }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+              }
+            ],
+            functionName: 'getStorageSlotsAt',
+            chainId,
+            args: [[POOL_OWNER_SLOT, userAccountSlot].filter((slot) => slot !== undefined) as BigNumber[]],
+          }) as const,
+        )
+      }, [poolAddresses, chainId, userAccountSlot]),
+    })
 
   // Extract owner address from the first storage slot (POOLS_SLOT + 1)
   // The storage slot contains: [unlocked (bool, 1 byte)][owner (address, 20 bytes)][decimals (bytes8, 8 bytes)][symbol (bytes8, 8 bytes)]
@@ -145,15 +175,11 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
   const [cachedPoolsWithStats, setCachedPoolsWithStats] = React.useState<any[] | undefined>(undefined)
 
   const poolsWithStats = useMemo(() => {
-    if (!positions) { return undefined }
-    const isResultsLoading = poolResults?.some((r) => r.loading)
-    if (isResultsLoading) { return undefined }
+    if (!positions || isLoading) { return undefined }
 
     return positions
       .map((p, i) => {
-        const poolResult = poolResults?.[i]
-        const loading = poolResult?.loading
-        const { userBalance, owner, decimals } = extractValues(poolResult.result?.[0])
+        const { userBalance, owner, decimals } = extractValues(data?.[i].result)
         const userIsOwner = owner && account.address ? owner === account.address : false
         const shouldDisplay: boolean = shouldFilterByUserPools
           ? Boolean(userIsOwner || (userBalance && BigNumber.from(userBalance).gt(0)))
@@ -161,7 +187,6 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
 
         return {
           ...p,
-          loading,
           address: poolAddresses?.[i],
           chainId: account.chainId,
           shouldDisplay,
@@ -180,7 +205,7 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
         }
       })
       .filter((p) => p && p.shouldDisplay)
-  }, [account.address, account.chainId, poolAddresses, positions, poolResults, poolIds, poolsRewards, shouldFilterByUserPools])
+  }, [account.address, account.chainId, poolAddresses, positions, poolIds, poolsRewards, shouldFilterByUserPools, data, isLoading])
 
   const displayPools = poolsWithStats ?? cachedPoolsWithStats
 
