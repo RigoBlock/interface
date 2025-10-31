@@ -17,6 +17,7 @@ import deprecatedStyled, { css } from 'lib/styled-components'
 import { useProfilePageState } from 'nft/hooks'
 import { ProfilePageStateType } from 'nft/types'
 import { useEffect, useMemo, useRef } from 'react'
+import { MultichainContextProvider } from 'state/multichain/MultichainContext'
 import { useOperatedPools } from 'state/pool/hooks'
 import { Flex, Nav as TamaguiNav, styled, useMedia } from 'ui/src'
 import { INTERFACE_NAV_HEIGHT, breakpoints, zIndexes } from 'ui/src/theme'
@@ -171,6 +172,7 @@ export default function Navbar() {
           {areTabsVisible && <Tabs userIsOperator={cachedUserIsOperator} />}
         </Left>
 
+        <MultichainContextProvider initialChainId={account.chainId}>
         <SearchContainer>
           {!collapseSearchBar && cachedOperatedPools && cachedOperatedPools.length > 0 && (
             <SelectedPoolContainer>
@@ -183,19 +185,21 @@ export default function Navbar() {
             </UnpositionedFlex>
           )}
         </SearchContainer>
+        </MultichainContextProvider>
 
         <Right>
             {collapseSearchBar && (
-            <Flex row gap={-12} alignItems="center" mr={-15} ml={-12}>
-              <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} />
-              {cachedOperatedPools && cachedOperatedPools.length > 0 && (
-              <Flex mt={8}>
-                <PoolSelect operatedPools={cachedOperatedPools} />
+              <Flex row gap={-12} alignItems="center" mr={-15} ml={-12}>
+                <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} />
+                {cachedOperatedPools && cachedOperatedPools.length > 0 && (
+                  <Flex mt={8}>
+                    <PoolSelect operatedPools={cachedOperatedPools} />
+                  </Flex>
+                )}
+                {!hideChainSelector && <ChainSelector />}
               </Flex>
-              )}
-              {!hideChainSelector && <ChainSelector />}
-            </Flex>
             )}
+            {!collapseSearchBar && !hideChainSelector && <ChainSelector />}
             {isNFTPage && sellPageState !== ProfilePageStateType.LISTING && <Bag />}
             {shouldDisplayCreateAccountButton && isSignInExperimentControl && !isSignInExperimentControlLoading && isLandingPage && !isSmallScreen && (
               <NewUserCTAButton />

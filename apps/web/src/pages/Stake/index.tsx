@@ -21,6 +21,7 @@ import { ThemedText } from 'theme/components/text'
 import { Flex } from 'ui/src'
 import { GRG } from 'uniswap/src/constants/tokens'
 import Trace from 'uniswap/src/features/telemetry/Trace'
+import { MultichainContextProvider } from 'state/multichain/MultichainContext'
 
 const PageWrapper = styled(AutoColumn)`
   padding: 68px 8px 0px;
@@ -183,108 +184,110 @@ export default function Stake() {
 
   return (
     <Trace logImpression page={InterfacePageName.VOTE_PAGE}>
-      <PageWrapper gap="lg" justify="center">
-        <TopSection gap="md">
-          <DataCard>
-            <CardBGImage />
-            <CardNoise />
-            <CardSection>
-              <AutoColumn gap="md">
-                <RowBetween>
-                  <ThemedText.DeprecatedWhite fontWeight={600}>
-                    <Trans>Smart Vaults</Trans>
-                  </ThemedText.DeprecatedWhite>
-                </RowBetween>
-                <RowBetween>
-                  <ThemedText.DeprecatedWhite fontSize={14}>
-                    <Trans>Get exposure to best DeFi vaults and stake your GRG to grow your assets</Trans>
-                  </ThemedText.DeprecatedWhite>
-                </RowBetween>{' '}
-              </AutoColumn>
-            </CardSection>
-            <CardBGImage />
-            <CardNoise />
-          </DataCard>
-        </TopSection>
+      <MultichainContextProvider initialChainId={account.chainId}>
+        <PageWrapper gap="lg" justify="center">
+          <TopSection gap="md">
+            <DataCard>
+              <CardBGImage />
+              <CardNoise />
+              <CardSection>
+                <AutoColumn gap="md">
+                  <RowBetween>
+                    <ThemedText.DeprecatedWhite fontWeight={600}>
+                      <Trans>Smart Vaults</Trans>
+                    </ThemedText.DeprecatedWhite>
+                  </RowBetween>
+                  <RowBetween>
+                    <ThemedText.DeprecatedWhite fontSize={14}>
+                      <Trans>Get exposure to best DeFi vaults and stake your GRG to grow your assets</Trans>
+                    </ThemedText.DeprecatedWhite>
+                  </RowBetween>{' '}
+                </AutoColumn>
+              </CardSection>
+              <CardBGImage />
+              <CardNoise />
+            </DataCard>
+          </TopSection>
 
-        <AutoColumn gap="lg" style={{ width: '100%', maxWidth: '720px' }}>
-          <DataRow style={{ alignItems: 'baseline' }}>
-            <HarvestYieldModal
-              isOpen={showHarvestYieldModal}
-              yieldAmount={yieldAmount}
-              poolIds={farmingPoolIds}
-              onDismiss={() => setShowHarvestYieldModal(false)}
-              title={<Trans>Harvest</Trans>}
-            />
-            <UnstakeModal
-              isOpen={showUnstakeModal}
-              freeStakeBalance={freeStakeBalance}
-              onDismiss={() => setShowUnstakeModal(false)}
-              title={<Trans>Withdraw</Trans>}
-            />
-            <WrapSmall>
-              <ThemedText.DeprecatedMediumHeader style={{ marginTop: '0.5rem' }}>
-                <Trans>Vaults</Trans>
-              </ThemedText.DeprecatedMediumHeader>
-              <RowFixed gap="8px" style={{ marginRight: '4px' }}>
-                {yieldAmount && (
-                  <ButtonPrimary
-                    style={{ width: 'fit-content', height: '40px' }}
-                    padding="8px"
-                    $borderRadius="8px"
-                    onClick={() => setShowHarvestYieldModal(true)}
-                  >
-                    <Trans>Harvest</Trans>
-                  </ButtonPrimary>
-                )}
-                {hasFreeStake && (
-                  <ButtonPrimary
-                    style={{ width: 'fit-content', height: '40px' }}
-                    padding="8px"
-                    $borderRadius="8px"
-                    onClick={() => setShowUnstakeModal(true)}
-                  >
-                    <Trans>Unstake</Trans>
-                  </ButtonPrimary>
-                )}
-                {!account.isConnected && (
-                  <Trace
-                    logPress
-                    eventOnTrigger={InterfaceEventName.CONNECT_WALLET_BUTTON_CLICKED}
-                    properties={{ received_swap_quote: false }}
-                    element={InterfaceElementName.CONNECT_WALLET_BUTTON}
-                  >
+          <AutoColumn gap="lg" style={{ width: '100%', maxWidth: '720px' }}>
+            <DataRow style={{ alignItems: 'baseline' }}>
+              <HarvestYieldModal
+                isOpen={showHarvestYieldModal}
+                yieldAmount={yieldAmount}
+                poolIds={farmingPoolIds}
+                onDismiss={() => setShowHarvestYieldModal(false)}
+                title={<Trans>Harvest</Trans>}
+              />
+              <UnstakeModal
+                isOpen={showUnstakeModal}
+                freeStakeBalance={freeStakeBalance}
+                onDismiss={() => setShowUnstakeModal(false)}
+                title={<Trans>Withdraw</Trans>}
+              />
+              <WrapSmall>
+                <ThemedText.DeprecatedMediumHeader style={{ marginTop: '0.5rem' }}>
+                  <Trans>Vaults</Trans>
+                </ThemedText.DeprecatedMediumHeader>
+                <RowFixed gap="8px" style={{ marginRight: '4px' }}>
+                  {yieldAmount && (
                     <ButtonPrimary
-                      style={{ marginTop: '2em', marginBottom: '2em', padding: '8px 16px' }}
-                      onClick={accountDrawer.open}
+                      style={{ width: 'fit-content', height: '40px' }}
+                      padding="8px"
+                      $borderRadius="8px"
+                      onClick={() => setShowHarvestYieldModal(true)}
                     >
-                      <Trans i18nKey="common.connectAWallet.button" />
+                      <Trans>Harvest</Trans>
                     </ButtonPrimary>
-                  </Trace>
-                )}
-              </RowFixed>
-            </WrapSmall>
-          </DataRow>
+                  )}
+                  {hasFreeStake && (
+                    <ButtonPrimary
+                      style={{ width: 'fit-content', height: '40px' }}
+                      padding="8px"
+                      $borderRadius="8px"
+                      onClick={() => setShowUnstakeModal(true)}
+                    >
+                      <Trans>Unstake</Trans>
+                    </ButtonPrimary>
+                  )}
+                  {!account.isConnected && (
+                    <Trace
+                      logPress
+                      eventOnTrigger={InterfaceEventName.CONNECT_WALLET_BUTTON_CLICKED}
+                      properties={{ received_swap_quote: false }}
+                      element={InterfaceElementName.CONNECT_WALLET_BUTTON}
+                    >
+                      <ButtonPrimary
+                        style={{ marginTop: '2em', marginBottom: '2em', padding: '8px 16px' }}
+                        onClick={accountDrawer.open}
+                      >
+                        <Trans i18nKey="common.connectAWallet.button" />
+                      </ButtonPrimary>
+                    </Trace>
+                  )}
+                </RowFixed>
+              </WrapSmall>
+            </DataRow>
 
-          <MainContentWrapper>
-            <InfiniteScroll
-              next={fetchMoreData}
-              hasMore={!!hasMore}
-              loader={
-                orderedPools && orderedPools.length !== items?.length ? (
-                  <Flex width="fit-content" alignItems="center" justifyContent="center">
-                    <Loader style={{ margin: 'auto' }} />
-                  </Flex>
-                ) : null
-              }
-              dataLength={orderedPools?.length}
-              style={{ overflow: 'unset', display: 'flex', flexDirection: 'column' }}
-            >
-              <PoolPositionList positions={items.length > 0 ? items : undefined} />
-            </InfiniteScroll>
-          </MainContentWrapper>
-        </AutoColumn>
-      </PageWrapper>
+            <MainContentWrapper>
+              <InfiniteScroll
+                next={fetchMoreData}
+                hasMore={!!hasMore}
+                loader={
+                  orderedPools && orderedPools.length !== items?.length ? (
+                    <Flex width="fit-content" alignItems="center" justifyContent="center">
+                      <Loader style={{ margin: 'auto' }} />
+                    </Flex>
+                  ) : null
+                }
+                dataLength={orderedPools?.length}
+                style={{ overflow: 'unset', display: 'flex', flexDirection: 'column' }}
+              >
+                <PoolPositionList positions={items.length > 0 ? items : undefined} />
+              </InfiniteScroll>
+            </MainContentWrapper>
+          </AutoColumn>
+        </PageWrapper>
+      </MultichainContextProvider>
     </Trace>
   )
 }

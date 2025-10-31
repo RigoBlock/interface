@@ -479,12 +479,12 @@ export function useOperatedPools(): Token[] | undefined {
 
   // TODO: careful: on swap page returns [], only by goint to 'Mint' page will it query events
   const operatedPools: Token[] | undefined = useMemo(() => {
-    if (!account.address || !account.chainId || !results || !poolAddresses) {
+    if (!account.address || !account.chainId || !poolAddresses) {
       return undefined
     }
     const mockToken = new Token(0, account.address, 1)
     return results
-      .map((result, i) => {
+      ?.map((result, i) => {
         const { result: pools, loading } = result
         const poolAddress = poolAddresses[i]
 

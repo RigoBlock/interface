@@ -14,6 +14,7 @@ import { ApplicationModal } from 'state/application/reducer'
 import { useAllPoolsData } from 'state/pool/hooks'
 import { ThemedText } from 'theme/components/text'
 import Trace from 'uniswap/src/features/telemetry/Trace'
+import { MultichainContextProvider } from 'state/multichain/MultichainContext'
 
 const PageWrapper = styled(AutoColumn)`
   padding: 68px 8px 0px;
@@ -78,70 +79,72 @@ export default function CreatePool() {
 
   return (
     <Trace logImpression page={InterfacePageName.POOL_PAGE}>
-      <PageWrapper gap="lg" justify="center">
-        <TopSection gap="md">
-          <DataCard>
-            <CardBGImage />
-            <CardNoise />
-            <CardSection>
-              <AutoColumn gap="md">
-                <RowBetween>
-                  <ThemedText.DeprecatedWhite fontWeight={600}>
-                    <Trans>Rigoblock Vaults</Trans>
-                  </ThemedText.DeprecatedWhite>
-                </RowBetween>
-                <RowBetween>
-                  <ThemedText.DeprecatedWhite fontSize={14}>
-                    <Trans>Your smart interface with DeFi. Create, mint, swap, earn on your tokens.</Trans>
-                  </ThemedText.DeprecatedWhite>
-                </RowBetween>{' '}
-              </AutoColumn>
-            </CardSection>
-            <CardBGImage />
-            <CardNoise />
-          </DataCard>
-        </TopSection>
+      <MultichainContextProvider initialChainId={account.chainId}>
+        <PageWrapper gap="lg" justify="center">
+          <TopSection gap="md">
+            <DataCard>
+              <CardBGImage />
+              <CardNoise />
+              <CardSection>
+                <AutoColumn gap="md">
+                  <RowBetween>
+                    <ThemedText.DeprecatedWhite fontWeight={600}>
+                      <Trans>Rigoblock Vaults</Trans>
+                    </ThemedText.DeprecatedWhite>
+                  </RowBetween>
+                  <RowBetween>
+                    <ThemedText.DeprecatedWhite fontSize={14}>
+                      <Trans>Your smart interface with DeFi. Create, mint, swap, earn on your tokens.</Trans>
+                    </ThemedText.DeprecatedWhite>
+                  </RowBetween>{' '}
+                </AutoColumn>
+              </CardSection>
+              <CardBGImage />
+              <CardNoise />
+            </DataCard>
+          </TopSection>
 
-        <AutoColumn gap="lg" style={{ width: '100%', maxWidth: '720px' }}>
-          <DataRow style={{ alignItems: 'baseline' }}>
-            <CreateModal isOpen={open} onDismiss={() => closeModal()} title={<Trans>Create Vault</Trans>} />
-            <WrapSmall>
-              <ThemedText.DeprecatedMediumHeader style={{ marginTop: '0.5rem' }}>
-                <Trans>Vaults</Trans>
-              </ThemedText.DeprecatedMediumHeader>
-              <RowFixed gap="8px" style={{ marginRight: '4px' }}>
-                {account.isConnected ? (
-                  <ButtonPrimary
-                    style={{ width: 'fit-content', height: '40px' }}
-                    padding="8px"
-                    $borderRadius="8px"
-                    onClick={toggleCreateModal}
-                  >
-                    <Trans>Create Vault</Trans>
-                  </ButtonPrimary>
-                ) : (
-                  <Trace
-                    logPress
-                    eventOnTrigger={InterfaceEventName.CONNECT_WALLET_BUTTON_CLICKED}
-                    properties={{ received_swap_quote: false }}
-                    element={InterfaceElementName.CONNECT_WALLET_BUTTON}
-                  >
+          <AutoColumn gap="lg" style={{ width: '100%', maxWidth: '720px' }}>
+            <DataRow style={{ alignItems: 'baseline' }}>
+              <CreateModal isOpen={open} onDismiss={() => closeModal()} title={<Trans>Create Vault</Trans>} />
+              <WrapSmall>
+                <ThemedText.DeprecatedMediumHeader style={{ marginTop: '0.5rem' }}>
+                  <Trans>Vaults</Trans>
+                </ThemedText.DeprecatedMediumHeader>
+                <RowFixed gap="8px" style={{ marginRight: '4px' }}>
+                  {account.isConnected ? (
                     <ButtonPrimary
-                      style={{ marginTop: '2em', marginBottom: '2em', padding: '8px 16px' }}
-                      onClick={accountDrawer.open}
+                      style={{ width: 'fit-content', height: '40px' }}
+                      padding="8px"
+                      $borderRadius="8px"
+                      onClick={toggleCreateModal}
                     >
-                      <Trans i18nKey="common.connectAWallet.button" />
+                      <Trans>Create Vault</Trans>
                     </ButtonPrimary>
-                  </Trace>
-                )}
-              </RowFixed>
-            </WrapSmall>
-          </DataRow>
-          <MainContentWrapper>
-            <PoolPositionList positions={allPools} shouldFilterByUserPools={true} />
-          </MainContentWrapper>
-        </AutoColumn>
-      </PageWrapper>
+                  ) : (
+                    <Trace
+                      logPress
+                      eventOnTrigger={InterfaceEventName.CONNECT_WALLET_BUTTON_CLICKED}
+                      properties={{ received_swap_quote: false }}
+                      element={InterfaceElementName.CONNECT_WALLET_BUTTON}
+                    >
+                      <ButtonPrimary
+                        style={{ marginTop: '2em', marginBottom: '2em', padding: '8px 16px' }}
+                        onClick={accountDrawer.open}
+                      >
+                        <Trans i18nKey="common.connectAWallet.button" />
+                      </ButtonPrimary>
+                    </Trace>
+                  )}
+                </RowFixed>
+              </WrapSmall>
+            </DataRow>
+            <MainContentWrapper>
+              <PoolPositionList positions={allPools} shouldFilterByUserPools={true} />
+            </MainContentWrapper>
+          </AutoColumn>
+        </PageWrapper>
+      </MultichainContextProvider>
     </Trace>
   )
 }
