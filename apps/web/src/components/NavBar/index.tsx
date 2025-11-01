@@ -1,4 +1,4 @@
-import { Token } from '@uniswap/sdk-core'
+import { Currency, Token } from '@uniswap/sdk-core'
 import { Bag } from 'components/NavBar/Bag'
 import { ChainSelector } from 'components/NavBar/ChainSelector'
 import { CompanyMenu } from 'components/NavBar/CompanyMenu'
@@ -17,17 +17,18 @@ import { PageType, useIsPage } from 'hooks/useIsPage'
 import deprecatedStyled, { css } from 'lib/styled-components'
 import { useProfilePageState } from 'nft/hooks'
 import { ProfilePageStateType } from 'nft/types'
-import { /*useEffect,*/ useMemo /*, useRef*/ } from 'react'
+import { useEffect, useMemo /*, useRef*/ } from 'react'
 import { useAllPoolsData } from 'state/pool/hooks'
 import { Flex, Nav as TamaguiNav, styled, useMedia } from 'ui/src'
 import { INTERFACE_NAV_HEIGHT, breakpoints, zIndexes } from 'ui/src/theme'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { FeatureFlags } from 'uniswap/src/features/gating/flags'
 import { useFeatureFlag } from 'uniswap/src/features/gating/hooks'
-//import usePrevious from 'hooks/usePrevious'
+import usePrevious from 'hooks/usePrevious'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { assume0xAddress } from 'utils/wagmi'
 import { useReadContracts } from 'wagmi'
+import { useSelectActiveSmartPool } from 'state/application/hooks'
 
 // Flex is position relative by default, we must unset the position on every Flex
 // between the body and search component
@@ -137,8 +138,8 @@ export default function Navbar() {
 
   const account = useAccount()
   const { address, chainId, isConnected, isConnecting } = account
-  //const prevAccount = usePrevious(address)
-  //const accountChanged = prevAccount && prevAccount !== address
+  const prevAccount = usePrevious(address)
+  const accountChanged = prevAccount && prevAccount !== address
 
   const hideChainSelector = useShouldHideChainSelector()
 
@@ -221,6 +222,18 @@ export default function Navbar() {
   const operatedPools = useMemo(() => poolsWithOwners
     ?.filter((pool) => pool?.owner?.toLowerCase() === address?.toLowerCase()) || [], [poolsWithOwners, address])
     .map((pool) => new Token(chainId ?? UniverseChainId.Mainnet, pool!.pool, pool!.decimals, pool!.symbol, pool!.name))
+
+  const defaultPool = useMemo(() => operatedPools?.[0], [operatedPools])
+  const onPoolSelect = useSelectActiveSmartPool()
+
+  useEffect(() => {
+    const emptyPool = { isToken: false } as Currency
+
+    // Notice: this is necessary to reset the selected pool when the user changes account
+    if (accountChanged) {
+      onPoolSelect(defaultPool ?? emptyPool)
+    }
+  }, [accountChanged, defaultPool, onPoolSelect])
 
   //const rawOperatedPools = operatedPools
   //const cachedPoolsRef = useRef<typeof rawOperatedPools | undefined>(undefined)
