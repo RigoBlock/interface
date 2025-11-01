@@ -28,7 +28,8 @@ import usePrevious from 'hooks/usePrevious'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { assume0xAddress } from 'utils/wagmi'
 import { useReadContracts } from 'wagmi'
-import { useSelectActiveSmartPool } from 'state/application/hooks'
+import { useActiveSmartPool, useSelectActiveSmartPool } from 'state/application/hooks'
+import { useRef } from 'react'
 
 // Flex is position relative by default, we must unset the position on every Flex
 // between the body and search component
@@ -219,44 +220,52 @@ export default function Navbar() {
       })
   }, [address, chainId, poolAddresses, data, isLoading])
 
-  const operatedPools = useMemo(() => poolsWithOwners
+  // Cache operatedPools and userIsOperator until new data is loaded
+  const rawOperatedPools = useMemo(() => poolsWithOwners
     ?.filter((pool) => pool?.owner?.toLowerCase() === address?.toLowerCase()) || [], [poolsWithOwners, address])
     .map((pool) => new Token(chainId ?? UniverseChainId.Mainnet, pool!.pool, pool!.decimals, pool!.symbol, pool!.name))
+
+  const cachedPoolsRef = useRef<{ pools: typeof rawOperatedPools } | undefined>(undefined)
+
+  useEffect(() => {
+    if (rawOperatedPools && rawOperatedPools.length > 0) {
+      cachedPoolsRef.current = { pools: rawOperatedPools }
+    }
+  }, [chainId, rawOperatedPools])
+
+  const activeSmartVault = useActiveSmartPool()
+
+  // Use cached pools while loading new data
+  const { operatedPools, newDefaultVaultLoaded } = useMemo(() => {
+    let newDefaultVaultLoaded = false
+    
+    if (!rawOperatedPools || rawOperatedPools.length === 0) {
+      return { operatedPools: cachedPoolsRef.current?.pools || [], newDefaultVaultLoaded }
+    }
+
+    const operatedAddresses = rawOperatedPools.map((pool) => pool.address.toLowerCase())
+    if (activeSmartVault.address && !operatedAddresses.includes(activeSmartVault.address.toLowerCase())) {
+      newDefaultVaultLoaded = true
+    }
+
+    return { operatedPools: rawOperatedPools, newDefaultVaultLoaded }
+  }, [rawOperatedPools, activeSmartVault.address])
 
   const defaultPool = useMemo(() => operatedPools?.[0], [operatedPools])
   const onPoolSelect = useSelectActiveSmartPool()
 
+  const prevChainId = usePrevious(chainId)
+  const chainChanged = prevChainId && prevChainId !== chainId
+
   useEffect(() => {
     const emptyPool = { isToken: false } as Currency
 
-    // Notice: this is necessary to reset the selected pool when the user changes account
-    if (accountChanged) {
+    // Notice: this is necessary to reset the selected pool when the user changes account or chain
+    if (accountChanged || newDefaultVaultLoaded) {
       onPoolSelect(defaultPool ?? emptyPool)
     }
-  }, [accountChanged, defaultPool, onPoolSelect])
+  }, [accountChanged, chainChanged, defaultPool, onPoolSelect, newDefaultVaultLoaded])
 
-  //const rawOperatedPools = operatedPools
-  //const cachedPoolsRef = useRef<typeof rawOperatedPools | undefined>(undefined)
-  //const prevChainIdRef = useRef<number | undefined>(account.chainId)
-  
-  //useEffect(() => {
-  //  if (account.chainId !== prevChainIdRef.current) {
-  //    //    cachedPoolsRef.current = undefined
-  //    prevChainIdRef.current = account.chainId
-  //  }
-  //}, [account.chainId])
-
-  //useEffect(() => {
-  //  if (rawOperatedPools && rawOperatedPools.length > 0) {
-  //    cachedPoolsRef.current = rawOperatedPools
-  //  }
-  //}, [rawOperatedPools])
-  
-  //const cachedOperatedPools = cachedPoolsRef.current ?? rawOperatedPools
-  //const cachedUserIsOperator = useMemo(() => 
-  //  Boolean(cachedOperatedPools && cachedOperatedPools.length > 0),
-  //  [cachedOperatedPools]
-  //)
   const userIsOperator = Boolean(operatedPools && operatedPools.length > 0)
 
   return (
