@@ -15,7 +15,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Search } from 'react-feather'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
-import { useAllPoolsData } from 'state/pool/hooks'
+import { PoolRegisteredLog } from 'state/pool/hooks'
 import { Z_INDEX } from 'theme/zIndex'
 import { Input, useMedia } from 'ui/src'
 import { CloseIconWithHover } from 'ui/src/components/icons/CloseIconWithHover'
@@ -160,10 +160,12 @@ export const SearchBar = ({
   maxHeight,
   isDropdown = true,
   fullScreen = false,
+  allPools,
 }: {
   maxHeight?: string
   isDropdown?: boolean
   fullScreen?: boolean
+  allPools?: PoolRegisteredLog[]
 }) => {
   const [isOpen, setOpen] = useState<boolean>(false)
   const [searchValue, setSearchValue] = useState<string>('')
@@ -204,7 +206,6 @@ export const SearchBar = ({
 
   const { data: tokens, loading: tokensAreLoading } = useSearchTokens(debouncedSearchValue)
   const reducedTokens = tokens?.slice(0, 8) ?? []
-  const allPools = useAllPoolsData().data
   const account = useAccount()
 
   const smartPools = useMemo(() => {

@@ -4,19 +4,16 @@ import { BigNumber } from '@ethersproject/bignumber'
 import { Contract } from '@ethersproject/contracts'
 import type { TransactionResponse } from '@ethersproject/providers'
 import { parseBytes32String } from '@ethersproject/strings'
-import { Currency, Token } from '@uniswap/sdk-core'
+import { Currency } from '@uniswap/sdk-core'
 import { useWeb3React } from '@web3-react/core'
 import { RB_FACTORY_ADDRESSES, RB_REGISTRY_ADDRESSES } from 'constants/addresses'
 import { ZERO_ADDRESS } from 'constants/misc'
 import { useAccount } from 'hooks/useAccount'
 import { useContract } from 'hooks/useContract'
-import usePrevious from 'hooks/usePrevious'
 import { useTotalSupply } from 'hooks/useTotalSupply'
-import { CallStateResult, useMultipleContractSingleData, useSingleContractMultipleData } from 'lib/hooks/multicall'
-//import useBlockNumber from 'lib/hooks/useBlockNumber'
-import { useCallback, useEffect, useMemo } from 'react'
+import { CallStateResult, useSingleContractMultipleData } from 'lib/hooks/multicall'
+import { useCallback, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
-import { useSelectActiveSmartPool } from 'state/application/hooks'
 import { useStakingContract } from 'state/governance/hooks'
 import { useLogs } from 'state/logs/hooks'
 import { useTransactionAdder } from 'state/transactions/hooks'
@@ -160,9 +157,9 @@ export function useCreateCallback(): (
 }
 
 function useRegisteredPools(): PoolRegisteredLog[] | undefined {
-  const account = useAccount()
   const registry = useRegistryContract()
-  const { fromBlock, toBlock } = useStartBlock(account.chainId)
+  const { chainId } = useAccount()
+  const { fromBlock, toBlock } = useStartBlock(chainId)
 
   // create filters for Registered events
   const filter = useMemo(() => {
@@ -457,67 +454,4 @@ export function useStakingPools(addresses: string[] | undefined, poolIds: string
       poolOwnStake: delegatedOwnStakes ? delegatedOwnStakes[i].poolOwnStake : 0,
     })),
   }
-}
-
-// TODO: our rpc endpoint returns multichain pools, we can render by chainId, i.e. on chain switch should update.
-export function useOperatedPools(): Token[] | undefined {
-  const { data: poolsLogs } = useAllPoolsData()
-  const poolAddresses: (string | undefined)[] = useMemo(() => {
-    if (!poolsLogs) {
-      return []
-    }
-
-    return poolsLogs.map((p) => p.pool)
-  }, [poolsLogs])
-
-  // TODO: as we are reading the same storage slot in PoolPositionList, we could merge the methods and return filtered data where needed
-  const results = useMultipleContractSingleData(poolAddresses, PoolInterface, 'getPool')
-
-  const account = useAccount()
-  const prevAccount = usePrevious(account.address)
-  const accountChanged = prevAccount && prevAccount !== account.address
-
-  // TODO: careful: on swap page returns [], only by goint to 'Mint' page will it query events
-  const operatedPools: Token[] | undefined = useMemo(() => {
-    if (!account.address || !account.chainId || !results || !poolAddresses) {
-      return undefined
-    }
-    const mockToken = new Token(0, account.address, 1)
-    return results
-      .map((result, i) => {
-        const { result: pools, loading } = result
-        const poolAddress = poolAddresses[i]
-
-        if (loading || !pools || !pools?.[0] || !poolAddress) {
-          return mockToken
-        }
-        //const parsed: PoolInitParams[] | undefined = pools?.[0]
-        const { name, symbol, decimals, owner } = pools[0]
-        if (!name || !symbol || !decimals || !owner || !poolAddress) {
-          return mockToken
-        }
-        //const poolWithAddress: PoolWithAddress = { name, symbol, decimals, owner, poolAddress }
-        const isPoolOperator = owner === account.address
-        if (!isPoolOperator) {
-          return mockToken
-        }
-        return new Token(account.chainId ?? UniverseChainId.Mainnet, poolAddress, decimals, symbol, name)
-      })
-      .filter((p) => p !== mockToken)
-    //.filter((p) => account.address === owner)
-  }, [account.address, account.chainId, poolAddresses, results])
-
-  const defaultPool = useMemo(() => operatedPools?.[0], [operatedPools])
-  const onPoolSelect = useSelectActiveSmartPool()
-
-  useEffect(() => {
-    const emptyPool = { isToken: false } as Currency
-
-    // TODO: this is probably unnecessary as state is reloaded on account change
-    if (accountChanged) {
-      onPoolSelect(defaultPool ?? emptyPool)
-    }
-  }, [accountChanged, defaultPool, onPoolSelect])
-
-  return operatedPools
 }
