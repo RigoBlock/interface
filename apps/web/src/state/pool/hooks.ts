@@ -12,7 +12,6 @@ import { useAccount } from 'hooks/useAccount'
 import { useContract } from 'hooks/useContract'
 import { useTotalSupply } from 'hooks/useTotalSupply'
 import { CallStateResult, useSingleContractMultipleData } from 'lib/hooks/multicall'
-import { useCallContext } from 'lib/hooks/useCallContext'
 import { useCallback, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { useStakingContract } from 'state/governance/hooks'
@@ -159,8 +158,7 @@ export function useCreateCallback(): (
 
 function useRegisteredPools(): PoolRegisteredLog[] | undefined {
   const registry = useRegistryContract()
-  //const account = useAccount()
-  const { chainId } = useCallContext()
+  const { chainId } = useAccount()
   const { fromBlock, toBlock } = useStartBlock(chainId)
 
   // create filters for Registered events

@@ -293,11 +293,11 @@ export default function Navbar() {
           {collapseSearchBar && (
             <Flex row gap={-12} alignItems="center" mr={-15} ml={-12}>
               <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} />
-                {userIsOperator && (
-                  <Flex mt={8}>
-                    <PoolSelect operatedPools={operatedPools} />
-                  </Flex>
-                )}
+              {userIsOperator && (
+                <Flex mt={8}>
+                  <PoolSelect operatedPools={operatedPools} />
+                </Flex>
+              )}
               {!hideChainSelector && <ChainSelector />}
             </Flex>
           )}
