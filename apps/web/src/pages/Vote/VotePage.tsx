@@ -228,9 +228,9 @@ export default function VotePage() {
   //const eta = proposalData?.eta ? new Date(proposalData.eta.mul(ms`1 second`).toNumber()) : undefined
 
   // get total votes and format percentages for UI
-  const totalVotes = proposalData?.forCount?.add(proposalData.againstCount)
+  const totalVotes = proposalData?.forCount?.add(proposalData?.againstCount)
   const forPercentage = totalVotes
-    ? proposalData?.forCount?.asFraction?.divide(totalVotes.asFraction)?.multiply(100)
+    ? proposalData?.forCount?.asFraction?.divide(totalVotes?.asFraction)?.multiply(100)
     : undefined
   const againstPercentage = forPercentage ? new Fraction(100).subtract(forPercentage) : undefined
   const { votes: availableVotes } = useUserVotes()
