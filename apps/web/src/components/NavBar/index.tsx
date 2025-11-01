@@ -271,48 +271,48 @@ export default function Navbar() {
   return (
     <Nav>
       <Flex row centered width="100%" style={{ position: 'relative' }}>
-          <Left style={{ flexShrink: 0 }}>
-            <CompanyMenu />
-            {areTabsVisible && <Tabs userIsOperator={userIsOperator} />}
-          </Left>
+        <Left style={{ flexShrink: 0 }}>
+          <CompanyMenu />
+          {areTabsVisible && <Tabs userIsOperator={userIsOperator} />}
+        </Left>
 
-          <SearchContainer>
-            {!collapseSearchBar && userIsOperator && (
-              <SelectedPoolContainer>
-                <PoolSelect operatedPools={operatedPools} />
-              </SelectedPoolContainer>
-            )}
-            {!collapseSearchBar && (
-              <UnpositionedFlex flex={1} flexShrink={1} ml="$spacing16">
-                <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} allPools={allPools} />
-              </UnpositionedFlex>
-            )}
-          </SearchContainer>
+        <SearchContainer>
+          {!collapseSearchBar && userIsOperator && (
+            <SelectedPoolContainer>
+              <PoolSelect operatedPools={operatedPools} />
+            </SelectedPoolContainer>
+          )}
+          {!collapseSearchBar && (
+            <UnpositionedFlex flex={1} flexShrink={1} ml="$spacing16">
+              <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} allPools={allPools} />
+            </UnpositionedFlex>
+          )}
+        </SearchContainer>
 
         <Right>
-            {collapseSearchBar && (
-              <Flex row gap={-12} alignItems="center" mr={-15} ml={-12}>
-                <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} />
-                  {userIsOperator && (
-                    <Flex mt={8}>
-                      <PoolSelect operatedPools={operatedPools} />
-                    </Flex>
-                  )}
-                {!hideChainSelector && <ChainSelector />}
-              </Flex>
-            )}
-            {!collapseSearchBar && !hideChainSelector && <ChainSelector />}
-            {isNFTPage && sellPageState !== ProfilePageStateType.LISTING && <Bag />}
-            {shouldDisplayCreateAccountButton && isSignInExperimentControl && !isSignInExperimentControlLoading && isLandingPage && !isSmallScreen && (
-              <NewUserCTAButton />
-            )}
-            {!isConnected && !isConnecting && <PreferenceMenu />}
-            {isTestnetModeEnabled && <TestnetModeTooltip />}
-            <Web3Status />
-            {shouldDisplayCreateAccountButton && !isSignInExperimentControl && !isSignInExperimentControlLoading && !address && !isMediumScreen && (
-              <NewUserCTAButton />
-            )}
-          </Right>
+          {collapseSearchBar && (
+            <Flex row gap={-12} alignItems="center" mr={-15} ml={-12}>
+              <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} />
+                {userIsOperator && (
+                  <Flex mt={8}>
+                    <PoolSelect operatedPools={operatedPools} />
+                  </Flex>
+                )}
+              {!hideChainSelector && <ChainSelector />}
+            </Flex>
+          )}
+          {!collapseSearchBar && !hideChainSelector && <ChainSelector />}
+          {isNFTPage && sellPageState !== ProfilePageStateType.LISTING && <Bag />}
+          {shouldDisplayCreateAccountButton && isSignInExperimentControl && !isSignInExperimentControlLoading && isLandingPage && !isSmallScreen && (
+            <NewUserCTAButton />
+          )}
+          {!isConnected && !isConnecting && <PreferenceMenu />}
+          {isTestnetModeEnabled && <TestnetModeTooltip />}
+          <Web3Status />
+          {shouldDisplayCreateAccountButton && !isSignInExperimentControl && !isSignInExperimentControlLoading && !address && !isMediumScreen && (
+            <NewUserCTAButton />
+          )}
+        </Right>
       </Flex>
     </Nav>
   )
