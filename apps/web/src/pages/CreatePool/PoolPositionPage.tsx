@@ -309,7 +309,9 @@ export default function PoolPositionPage() {
     poolOwnStake: Number(poolOwnStakeFromUrl),
     irr: Number(irrFromUrl),
   } as PoolInfo
-  const baseTokenBalances = useCurrencyBalancesMultipleAccounts(
+
+  // TODO: can use loadingBalances returned from the hook to show loading state
+  const [baseTokenBalances, ] = useCurrencyBalancesMultipleAccounts(
     [account.address ?? undefined, poolAddressFromUrl ?? undefined],
     base ?? undefined
   )
