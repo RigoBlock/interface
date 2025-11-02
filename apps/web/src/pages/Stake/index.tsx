@@ -95,7 +95,7 @@ export default function Stake() {
   const hasFreeStake = JSBI.greaterThan(freeStakeBalance ? freeStakeBalance.quotient : JSBI.BigInt(0), JSBI.BigInt(0))
   const poolAddresses = allPools?.map((p) => p.pool)
   const poolIds = allPools?.map((p) => p.id)
-  const { stakingPools } = useStakingPools(poolAddresses, poolIds)
+  const { stakingPools } = useStakingPools(poolAddresses ?? [], poolIds ?? [])
   const grg = useMemo(() => (account.chainId ? GRG[account.chainId] : undefined), [account.chainId])
   const unclaimedRewards = useUnclaimedRewards(poolIds ?? [])
   // TODO: check if want to return null, but returning undefined will simplify displaying only if positive reward
@@ -136,7 +136,7 @@ export default function Stake() {
           userHasStake,
         }
       })
-      .filter(p => JSBI.greaterThan(JSBI.BigInt(p.poolOwnStake), JSBI.BigInt(0)))
+      .filter(p => JSBI.greaterThan(JSBI.BigInt(p.poolOwnStake.toString()), JSBI.BigInt(0)))
       .sort(biggestOwnStakeFirst)
   }, [allPools, stakingPools, userStakeBalances])
 

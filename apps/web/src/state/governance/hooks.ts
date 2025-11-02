@@ -3,8 +3,6 @@ import { isAddress } from '@ethersproject/address'
 import { BigNumber } from '@ethersproject/bignumber'
 import { Contract } from '@ethersproject/contracts'
 import type { TransactionResponse } from '@ethersproject/providers'
-// eslint-disable-next-line no-restricted-imports
-//import GovernorAlphaJSON from '@uniswap/governance/build/GovernorAlpha.json'
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { useWeb3React } from '@web3-react/core'
 import { GOVERNANCE_PROXY_ADDRESSES, RB_REGISTRY_ADDRESSES, STAKING_PROXY_ADDRESSES } from 'constants/addresses'
@@ -13,14 +11,14 @@ import { ZERO_ADDRESS } from 'constants/misc'
 import { useAccount } from 'hooks/useAccount'
 import { useEthersWeb3Provider } from 'hooks/useEthersProvider'
 import { useContract } from 'hooks/useContract'
-import { useSingleCallResult, useSingleContractMultipleData } from 'lib/hooks/multicall'
+import { useSingleCallResult } from 'lib/hooks/multicall'
 import { useCallback, useMemo } from 'react'
 import { VoteOption } from 'state/governance/types'
 import { useLogs } from 'state/logs/hooks'
 import { useTransactionAdder } from 'state/transactions/hooks'
 import { TransactionType } from 'state/transactions/types'
 import GOVERNANCE_RB_ABI from 'uniswap/src/abis/governance.json'
-//import GOVERNOR_BRAVO_ABI from 'uniswap/src/abis/governor-bravo.json'
+import type { Abi } from 'viem'
 import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
 import RB_REGISTRY_ABI from 'uniswap/src/abis/rb-registry.json'
 import STAKING_ABI from 'uniswap/src/abis/staking-impl.json'
@@ -29,6 +27,8 @@ import { GRG } from 'uniswap/src/constants/tokens'
 import i18n from 'uniswap/src/i18n'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { calculateGasMargin } from 'utils/calculateGasMargin'
+import { useReadContracts } from 'wagmi'
+import JSBI from 'jsbi'
 
 function useGovernanceProxyContract(): Contract | null {
   const { chainId } = useAccount()
@@ -253,8 +253,9 @@ function countToIndices(count: number | undefined, skip = 0) {
 }
 
 // get data for all past and active proposals
-export function useAllProposalData(): { data: ProposalData[]; loading: boolean } {
-  const { chainId } = useAccount()
+export function useAllProposalData(): { data: ProposalData[]; userVotingPower?: CurrencyAmount<Token>; loading: boolean } {
+  const account = useAccount()
+  const { address, chainId } = account
   const gov = useGovernanceProxyContract()
 
   const proposalCount = useProposalCount(gov)
@@ -264,11 +265,56 @@ export function useAllProposalData(): { data: ProposalData[]; loading: boolean }
   }, [proposalCount])
 
   // TODO: we can query all proposals by calling proposals()
-  //const proposals = useSingleContractMultipleData(gov, 'proposals', govProposalIndexes)
-  const proposals = useSingleContractMultipleData(gov, 'getProposalById', govProposalIndexes)
+  const proposalCalls = useMemo(() => {
+    return govProposalIndexes?.flatMap((index) => [
+      {
+        address: gov?.address as `0x${string}`,
+        abi: GOVERNANCE_RB_ABI as Abi,
+        functionName: 'getProposalById' as const,
+        args: index as readonly unknown[],
+        chainId,
+      },
+      {
+        address: gov?.address as `0x${string}`,
+        abi: GOVERNANCE_RB_ABI as Abi,
+        functionName: 'getProposalState' as const,
+        args: index as readonly unknown[],
+        chainId,
+      },
+    ])
+  }, [gov?.address, govProposalIndexes, chainId])
 
-  // get all proposal states
-  const proposalStates = useSingleContractMultipleData(gov, 'getProposalState', govProposalIndexes)
+  const votingPowerCall = [{
+    address: gov?.address as `0x${string}`,
+    abi: GOVERNANCE_RB_ABI as Abi,
+    functionName: 'getVotingPower' as const,
+    args: [address as `0x${string}`],
+    chainId,
+  }]
+
+  const { data: combinedData, isLoading } = useReadContracts({
+    contracts: [...votingPowerCall, ...proposalCalls],
+    query: {
+      enabled: !!gov?.address && !!govProposalIndexes,
+    },
+  })
+
+  const { mergedData, votingPower } = useMemo(() => {
+    if (!combinedData || isLoading) { return { mergedData: undefined, votingPower: undefined } }
+    const result: any[] = []
+
+    for (let i = 1; i < combinedData.length; i += 2) {
+      const proposalData = combinedData[i].result
+      if (proposalData && typeof proposalData === 'object') {
+        result.push({
+          ...proposalData,
+          state: combinedData[i + 1].result,
+        })
+      }
+    }
+
+    return { mergedData: result, votingPower: JSBI.BigInt(Number(combinedData[0]?.result) ?? 0) }
+  }, [combinedData, isLoading])
 
   // get metadata from past events
   let govStartBlock
@@ -294,35 +340,30 @@ export function useAllProposalData(): { data: ProposalData[]; loading: boolean }
 
   // Notice: logs are proxied through our rpc endpoint
   const formattedLogsV1 = useFormattedProposalCreatedLogs(gov, govProposalIndexes, govStartBlock)
-
-  // TODO: we must use staked GRG instead
   const grg = useMemo(() => (chainId ? GRG[chainId] : undefined), [chainId])
+  const userVotingPower = grg && votingPower ? CurrencyAmount.fromRawAmount(grg, votingPower) : undefined
 
   // early return until events are fetched
   return useMemo(() => {
-    const proposalsCallData = [...proposals]
-    const proposalStatesCallData = [...proposalStates]
-    // TODO: check what we are doing wrong here
-    const formattedLogs = [...(formattedLogsV1 ?? [])]
-
-    if (
-      !grg ||
-      proposalsCallData.some((p) => p.loading) ||
-      proposalStatesCallData.some((p) => p.loading) ||
-      (gov && !formattedLogs)
-    ) {
-      return { data: [], loading: true }
+    // early return if no proposals (i.e. fresh governance contract)
+    if (govProposalIndexes && govProposalIndexes.length === 0) {
+      return { data: [], userVotingPower, loading: false }
     }
 
-    // TODO: remove unnecessary code
+    const formattedLogs = [...(formattedLogsV1 ?? [])]
+
+    if (!grg || isLoading || (gov && !formattedLogs) || !mergedData || mergedData.length === 0) {
+      return { data: [], userVotingPower, loading: true }
+    }
+
     return {
-      data: proposalsCallData.map((proposal, i) => {
-        const startBlock = parseInt(proposal?.result?.proposalWrapper?.proposal?.startBlockOrTime?.toString())
+      data: mergedData.map(({ proposal, proposedAction, state }, i) => {
+        const startBlock = parseInt(proposal.startBlockOrTime?.toString())
 
         const description = formattedLogs[i]?.description ?? ''
         const title = description?.split(/#+\s|\n/g)[1]
 
-        const details = proposal?.result?.proposalWrapper?.proposedAction.map((action: ProposedAction) => {
+        const details = proposedAction.map((action: ProposedAction) => {
           let calldata = action.data
 
           const fourbyte = calldata.slice(0, 10)
@@ -347,24 +388,25 @@ export function useAllProposalData(): { data: ProposalData[]; loading: boolean }
           title: title ?? i18n.t('common.untitled'),
           description: description ?? i18n.t('common.noDescription'),
           proposer: formattedLogs[i]?.proposer, //proposal?.result?.proposer,
-          status: proposalStatesCallData[i]?.result?.[0] ?? ProposalState.UNDETERMINED,
-          forCount: CurrencyAmount.fromRawAmount(grg, proposal?.result?.proposalWrapper?.proposal?.votesFor),
-          againstCount: CurrencyAmount.fromRawAmount(grg, proposal?.result?.proposalWrapper?.proposal?.votesAgainst),
+          status: state ?? ProposalState.UNDETERMINED,
+          forCount: CurrencyAmount.fromRawAmount(grg, BigNumber.from(proposal.votesFor).toString()),
+          againstCount: CurrencyAmount.fromRawAmount(grg, BigNumber.from(proposal.votesAgainst).toString()),
           startBlock,
-          endBlock: parseInt(proposal?.result?.proposalWrapper?.proposal?.endBlockOrTime?.toString()),
+          endBlock: parseInt(proposal.endBlockOrTime?.toString()),
           eta: BigNumber.from(0), //proposal?.result?.eta,
           details, //: formattedLogs[i]?.details,
           governorIndex: 1,
         }
       }),
+      userVotingPower,
       loading: false,
     }
-  }, [formattedLogsV1, gov, proposalStates, proposals, grg])
+  }, [formattedLogsV1, gov, mergedData, grg, isLoading, govProposalIndexes, userVotingPower])
 }
 
 export function useProposalData(governorIndex: number, id: string): ProposalData | undefined {
   const { data } = useAllProposalData()
-  return data.filter((p) => p.governorIndex === governorIndex)?.find((p) => p.id === id)
+  return data?.filter((p) => p.governorIndex === governorIndex)?.find((p) => p.id === id)
 }
 
 export function useQuorum(governorIndex: number): CurrencyAmount<Token> | undefined {

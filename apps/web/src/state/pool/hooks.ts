@@ -24,6 +24,8 @@ import RB_REGISTRY_ABI from 'uniswap/src/abis/rb-registry.json'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { calculateGasMargin } from 'utils/calculateGasMargin'
+import { useReadContracts } from 'wagmi'
+import type { Abi } from 'viem'
 
 export const PoolInterface = new Interface(POOL_EXTENDED_ABI)
 const RegistryInterface = new Interface(RB_REGISTRY_ABI)
@@ -345,113 +347,131 @@ export function useStakingPoolsRewards(poolIds: string[] | undefined) {
   }, [results])
 }
 
-export function useStakingPools(addresses: string[] | undefined, poolIds: string[] | undefined): UseStakingPools {
+export function useStakingPools(addresses: string[], poolIds: string[]): UseStakingPools {
   const stakingContract = useStakingContract()
+  const { chainId } = useAccount()
 
-  const inputs = useMemo(() => (poolIds ? poolIds.map((poolId) => [poolId]) : []), [poolIds])
-  const poolAddresses = useMemo(() => (addresses ? addresses.map((address) => [address, 1]) : []), [addresses])
+  const calls = useMemo(() => {
+    if (addresses.length === 0 || addresses.length !== poolIds.length) { return undefined }
+    return poolIds.flatMap((poolId, index) => [
+      {
+        address: stakingContract?.address as `0x${string}`,
+        abi: stakingContract?.interface.fragments as Abi,
+        functionName: 'getStakingPool',
+        args: [poolId],
+        chainId,
+      },
+      {
+        address: stakingContract?.address as `0x${string}`,
+        abi: stakingContract?.interface.fragments as Abi,
+        functionName: 'getTotalStakeDelegatedToPool',
+        args: [poolId],
+        chainId,
+      },
+      {
+        address: stakingContract?.address as `0x${string}`,
+        abi: stakingContract?.interface.fragments as Abi,
+        functionName: 'getOwnerStakeByStatus',
+        args: (addresses && addresses[index]) ? [addresses[index], 1] : undefined,
+        chainId,
+      },
+    ])
+  }, [poolIds, addresses, stakingContract?.address, stakingContract?.interface.fragments, chainId])
 
-  const poolsData = useSingleContractMultipleData(stakingContract, 'getStakingPool', inputs)
-  const poolsStakes = useSingleContractMultipleData(stakingContract, 'getTotalStakeDelegatedToPool', inputs)
-  // TODO: if we allow pools to stake pools other then self we'll have to use getStakeDelegatedToPoolByOwner
-  const poolsOwnStakes = useSingleContractMultipleData(stakingContract, 'getOwnerStakeByStatus', poolAddresses)
+  const { data: combinedData, isLoading } = useReadContracts({
+    contracts: calls,
+    query: {
+      enabled: !!stakingContract?.address && addresses.length > 0 && poolIds.length > 0,
+      staleTime: 30_000, // Cache data for 30 seconds
+      gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    },
+  })
 
-  const poolsLoading = useMemo(() => poolsData.some(({ loading }) => loading), [poolsData])
-  const stakesLoading = useMemo(() => poolsStakes.some(({ loading }) => loading), [poolsStakes])
-  const ownStakesLoading = useMemo(() => poolsOwnStakes.some(({ loading }) => loading), [poolsOwnStakes])
-  const poolsError = useMemo(() => poolsData.some(({ error }) => error), [poolsData])
-  const stakesError = useMemo(() => poolsStakes.some(({ error }) => error), [poolsStakes])
-  const ownStakesError = useMemo(() => poolsOwnStakes.some(({ error }) => error), [poolsOwnStakes])
+  const supplyAmount = useTotalSupply(GRG[chainId ?? UniverseChainId.Mainnet])
 
-  const stakingPools = useMemo(() => {
-    if (!poolsLoading && !poolsError && poolIds) {
-      return poolsData.map((call, i) => {
-        const id = poolIds[i]
-        const result = call.result as CallStateResult
-        return {
-          id,
-          operatorShare: result?.[0].operatorShare,
-        }
-      })
-    }
-    return undefined
-  }, [poolsError, poolsLoading, poolIds, poolsData])
-
-  const delegatedStakes = useMemo(() => {
-    if (!stakesLoading && !stakesError && addresses && poolIds) {
-      return poolsStakes.map((call: any, i: number) => {
-        const id = poolIds[i]
-        const result = call.result as CallStateResult
-        return {
-          id,
-          delegatedStake: result?.[0].nextEpochBalance,
-        }
-      })
-    }
-    return undefined
-  }, [stakesLoading, stakesError, addresses, poolIds, poolsStakes])
-
-  const delegatedOwnStakes = useMemo(() => {
-    if (!ownStakesLoading && !ownStakesError && addresses && poolIds) {
-      return poolsOwnStakes.map((call: any, i: number) => {
-        const id = poolIds[i]
-        const result = call.result as CallStateResult
-        return {
-          id,
-          poolOwnStake: result?.[0].nextEpochBalance,
-        }
-      })
-    }
-    return undefined
-  }, [ownStakesLoading, ownStakesError, addresses, poolIds, poolsOwnStakes])
-
-  const totalDelegatedStake = delegatedStakes?.reduce((prev: any, curr: any) => prev + Number(curr.delegatedStake), 0)
-  const totalPoolsOwnStake = delegatedOwnStakes?.reduce((prev: any, curr: any) => prev + Number(curr.poolOwnStake), 0)
-  // TODO: check if should pass supply from parent
-  const account = useWeb3React()
-  const supplyAmount = useTotalSupply(GRG[account.chainId ?? UniverseChainId.Mainnet])
-
-  const yieldData = useMemo(() => {
-    if (!delegatedStakes || !delegatedOwnStakes || !totalDelegatedStake || !totalPoolsOwnStake || !supplyAmount) {
+  const stakingPoolsData = useMemo(() => {
+    if (!combinedData || !poolIds || isLoading) {
       return undefined
     }
-    const poolsInfo = stakingPools?.map((pool, i) => ({
-      ...pool,
-      operatorShare: stakingPools[i].operatorShare,
-      delegatedStake: delegatedStakes[i].delegatedStake,
-      delegatedOwnStake: delegatedOwnStakes[i].poolOwnStake,
-    }))
 
-    return poolsInfo?.map((p) => {
-      // if we want to return NaN when pool has no delegated stake, we can remove the following assertion
-      const reward =
-        Math.pow(p.delegatedOwnStake / totalPoolsOwnStake, 2 / 3) *
-        Math.pow(p.delegatedStake / totalDelegatedStake, 1 / 3) *
-        ((Number(supplyAmount?.quotient) * 2) / 100)
+    let totalDelegatedStake = BigNumber.from(0)
+    let totalPoolsOwnStake = BigNumber.from(0)
+
+    const pools = poolIds.reduce((acc, _, i) => {
+      const baseIndex = i * 3
+      const operatorShare = (combinedData[baseIndex]?.result as any)?.operatorShare as any[] | undefined
+      const delegatedStake = (combinedData[baseIndex + 1]?.result as any)?.nextEpochBalance as any[] | undefined
+      const poolOwnStake = (combinedData[baseIndex + 2]?.result as any)?.nextEpochBalance as any[] | undefined
+
+      const delegatedStakeBN = delegatedStake ? BigNumber.from(delegatedStake) : BigNumber.from(0)
+      const poolOwnStakeBN = poolOwnStake ? BigNumber.from(poolOwnStake) : BigNumber.from(0)
+
+      totalDelegatedStake = totalDelegatedStake.add(delegatedStakeBN)
+      totalPoolsOwnStake = totalPoolsOwnStake.add(poolOwnStakeBN)
+
+      acc[poolIds[i]] = { 
+        operatorShare: Number(operatorShare ?? 0), 
+        delegatedStake: delegatedStakeBN, 
+        poolOwnStake: poolOwnStakeBN, 
+      }
+      return acc
+    }, {} as Record<string, { operatorShare: number; delegatedStake: BigNumber; poolOwnStake: BigNumber }>)
+
+    return { pools, totalDelegatedStake, totalPoolsOwnStake }
+  }, [combinedData, isLoading, poolIds])
+
+  return useMemo(() => {
+    if (!stakingPoolsData || !supplyAmount) {
+      return { loading: isLoading, stakingPools: undefined }
+    }
+
+    const { pools, totalDelegatedStake, totalPoolsOwnStake } = stakingPoolsData
+    const totalRewardPool = Number(supplyAmount.quotient.toString()) * 0.02
+
+    const stakingPools = poolIds?.map((poolId) => {
+      const pool = pools[poolId]
+      if (!pool) {
+        return {
+          id: poolId,
+          operatorShare: 0,
+          apr: 0,
+          irr: 0,
+          delegatedStake: BigNumber.from(0),
+          poolOwnStake: BigNumber.from(0),
+        }
+      }
+
+      const totalDelegatedStakeNum = parseFloat(totalDelegatedStake.toString())
+      const totalPoolsOwnStakeNum = parseFloat(totalPoolsOwnStake.toString())
+      const poolOwnStakeNum = parseFloat(pool.poolOwnStake.toString())
+      const poolDelegatedStakeNum = parseFloat(pool.delegatedStake.toString())
+
+      const rewardRatio =
+        totalDelegatedStakeNum > 0 && totalPoolsOwnStakeNum > 0
+          ? Math.pow(poolOwnStakeNum / totalPoolsOwnStakeNum, 2 / 3) *
+            Math.pow(poolDelegatedStakeNum / totalDelegatedStakeNum, 1 / 3)
+          : 0
+
+      const totalReward = rewardRatio * totalRewardPool
       const apr =
-        p.delegatedStake.toString() !== BigNumber.from(0).toString()
-          ? (reward * ((1_000_000 - p.operatorShare) / 1_000_000)) / p.delegatedStake
+        poolDelegatedStakeNum !== 0
+          ? (totalReward * ((1_000_000 - pool.operatorShare) / 1_000_000)) / poolDelegatedStakeNum
           : 0
       const irr =
-        p.delegatedOwnStake.toString() !== BigNumber.from(0).toString()
-          ? (reward * (p.operatorShare / 1_000_000)) / p.delegatedOwnStake
+        poolOwnStakeNum !== 0
+          ? (totalReward * (pool.operatorShare / 1_000_000)) / poolOwnStakeNum
           : 0
-      return { apr, irr }
+
+      return {
+        id: poolId,
+        operatorShare: pool.operatorShare,
+        apr,
+        irr,
+        delegatedStake: pool.delegatedStake,
+        poolOwnStake: pool.poolOwnStake,
+      }
     })
-  }, [delegatedStakes, delegatedOwnStakes, stakingPools, supplyAmount, totalDelegatedStake, totalPoolsOwnStake])
 
-  const loading = poolsLoading || stakesLoading || ownStakesLoading
-
-  return {
-    loading,
-    stakingPools: stakingPools?.map((pool, i) => ({
-      ...pool,
-      id: inputs[i][0],
-      apr: yieldData ? yieldData[i]?.apr : 0,
-      irr: yieldData ? yieldData[i]?.irr : 0,
-      operatorShare: stakingPools[i].operatorShare,
-      delegatedStake: delegatedStakes ? delegatedStakes[i].delegatedStake : 0,
-      poolOwnStake: delegatedOwnStakes ? delegatedOwnStakes[i].poolOwnStake : 0,
-    })),
-  }
+    return { loading: isLoading, stakingPools }
+  }, [stakingPoolsData, supplyAmount, isLoading, poolIds])
 }
