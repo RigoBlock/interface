@@ -136,7 +136,6 @@ export default function Stake() {
           userHasStake,
         }
       })
-      //.filter(p => p.poolOwnStake !== undefined && JSBI.greaterThan(JSBI.BigInt(p.poolOwnStake.toString()), JSBI.BigInt(0)))
       .filter(p => JSBI.greaterThan(JSBI.BigInt(p.poolOwnStake.toString()), JSBI.BigInt(0)))
       .sort(biggestOwnStakeFirst)
   }, [allPools, stakingPools, userStakeBalances])

@@ -196,7 +196,7 @@ export default function Landing() {
                     ) : availableVotes ? (
                       <Trans
                         i18nKey="vote.landing.voteAmount"
-                        values={{ amount: availableVotes && formatCurrencyAmount((availableVotes), 4) }}
+                        values={{ amount: availableVotes && formatCurrencyAmount(availableVotes, 4) }}
                       />
                     ) : (
                       ''

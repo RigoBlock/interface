@@ -347,8 +347,6 @@ export function useStakingPoolsRewards(poolIds: string[] | undefined) {
   }, [results])
 }
 
-// TODO: this should reduce the number of rpc multicalls, check if increase is due to localhost not caching
-// @NOTE: addresses and poolIds must be of same length if both provided
 export function useStakingPools(addresses: string[], poolIds: string[]): UseStakingPools {
   const stakingContract = useStakingContract()
   const { chainId } = useAccount()
