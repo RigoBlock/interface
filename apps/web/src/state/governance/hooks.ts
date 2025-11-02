@@ -285,7 +285,7 @@ export function useAllProposalData(): { data: ProposalData[]; loading: boolean }
   const { data: combinedData, isLoading } = useReadContracts({
     contracts: proposalCalls,
     query: {
-      enabled: !!gov?.address && govProposalIndexes.length > 0,
+      enabled: !!gov?.address && govProposalIndexes?.length > 0,
     },
   })
 
@@ -336,13 +336,14 @@ export function useAllProposalData(): { data: ProposalData[]; loading: boolean }
 
   // early return until events are fetched
   return useMemo(() => {
-    const formattedLogs = [...(formattedLogsV1 ?? [])]
-
-    if (!grg || isLoading || (gov && !formattedLogs)) {
-      return { data: [], loading: true }
+    // early return if no proposals (i.e. fresh governance contract)
+    if (govProposalIndexes && govProposalIndexes.length === 0) {
+      return { data: [], loading: false }
     }
 
-    if (!mergedData || mergedData.length === 0) {
+    const formattedLogs = [...(formattedLogsV1 ?? [])]
+
+    if (!grg || isLoading || (gov && !formattedLogs) || !mergedData || mergedData.length === 0) {
       return { data: [], loading: true }
     }
 
@@ -390,7 +391,7 @@ export function useAllProposalData(): { data: ProposalData[]; loading: boolean }
       }),
       loading: false,
     }
-  }, [formattedLogsV1, gov, mergedData, grg, isLoading])
+  }, [formattedLogsV1, gov, mergedData, grg, isLoading, govProposalIndexes])
 }
 
 export function useProposalData(governorIndex: number, id: string): ProposalData | undefined {
