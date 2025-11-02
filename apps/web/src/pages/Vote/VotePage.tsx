@@ -37,13 +37,7 @@ import {
 } from 'state/application/hooks'
 import { ApplicationModal } from 'state/application/reducer'
 import { useTokenBalance } from 'state/connection/hooks'
-import {
-  ProposalData,
-  ProposalState,
-  useProposalData,
-  useQuorum,
-  useUserVotes,
-} from 'state/governance/hooks'
+import { ProposalState, useProposalData, useUserVotes } from 'state/governance/hooks'
 import { VoteOption } from 'state/governance/types'
 import { ThemedText } from 'theme/components'
 import { ExternalLink, StyledInternalLink } from 'theme/components/Links'
@@ -173,10 +167,8 @@ export default function VotePage() {
 
   const account = useAccount()
 
-  const quorumAmount = useQuorum(parsedGovernorIndex)
-
   // get data for this specific proposal
-  const proposalData: ProposalData | undefined = useProposalData(parsedGovernorIndex, id)
+  const { data: proposalData, quorumAmount } = useProposalData(parsedGovernorIndex, id)
 
   // update vote option based on button interactions
   const [voteOption, setVoteOption] = useState<VoteOption | undefined>(undefined)
@@ -200,15 +192,15 @@ export default function VotePage() {
   // get and format date from data
   const currentTimestamp = useCurrentBlockTimestamp({ refetchInterval: false })
   const currentBlock = useBlockNumber()
-  const startDate = getDateFromBlockOrTime(
-    proposalData?.startBlock,
+  const startDate = !!proposalData?.startBlock && getDateFromBlockOrTime(
+    proposalData.startBlock,
     currentBlock,
     (account.chainId && AVERAGE_BLOCK_TIME_IN_SECS[account.chainId]) ?? DEFAULT_AVERAGE_BLOCK_TIME_IN_SECS,
     BigNumber.from(currentTimestamp),
     true,
   )
-  const endDate = getDateFromBlockOrTime(
-    proposalData?.endBlock,
+  const endDate = !!proposalData?.endBlock && getDateFromBlockOrTime(
+    proposalData.endBlock,
     currentBlock,
     (account.chainId && AVERAGE_BLOCK_TIME_IN_SECS[account.chainId]) ?? DEFAULT_AVERAGE_BLOCK_TIME_IN_SECS,
     BigNumber.from(currentTimestamp),
