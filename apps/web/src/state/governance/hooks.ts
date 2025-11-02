@@ -398,7 +398,6 @@ export function useProposalData(governorIndex: number, id: string): ProposalData
   if (!data || data.length === 0) {
     return undefined
   }
-  console.log('useProposalData', data, governorIndex, id)
   return data?.filter((p) => p.governorIndex === governorIndex)?.find((p) => p.id === id)
 }
 
