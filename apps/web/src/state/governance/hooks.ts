@@ -253,7 +253,12 @@ function countToIndices(count: number | undefined, skip = 0) {
 }
 
 // get data for all past and active proposals
-export function useAllProposalData(): { data: ProposalData[]; userVotingPower?: CurrencyAmount<Token>; loading: boolean } {
+export function useAllProposalData(): {
+  data: ProposalData[];
+  userVotingPower?: CurrencyAmount<Token>;
+  proposalThreshold?: CurrencyAmount<Token>;
+  loading: boolean;
+} {
   const account = useAccount()
   const { address, chainId } = account
   const gov = useGovernanceProxyContract()
@@ -292,18 +297,25 @@ export function useAllProposalData(): { data: ProposalData[]; userVotingPower?: 
     chainId,
   }]
 
+  const govParamsCall = [{
+    address: gov?.address as `0x${string}`,
+    abi: GOVERNANCE_RB_ABI as Abi,
+    functionName: 'governanceParameters' as const,
+    chainId,
+  }]
+
   const { data: combinedData, isLoading } = useReadContracts({
-    contracts: [...votingPowerCall, ...proposalCalls],
+    contracts: [...votingPowerCall, ...govParamsCall, ...proposalCalls],
     query: {
       enabled: !!gov?.address && !!govProposalIndexes,
     },
   })
 
-  const { mergedData, votingPower } = useMemo(() => {
+  const { mergedData, votingPower, govParams } = useMemo(() => {
     if (!combinedData || isLoading) { return { mergedData: undefined, votingPower: undefined } }
     const result: any[] = []
 
-    for (let i = 1; i < combinedData.length; i += 2) {
+    for (let i = 2; i < combinedData.length; i += 2) {
       const proposalData = combinedData[i].result
       if (proposalData && typeof proposalData === 'object') {
         result.push({
@@ -313,7 +325,11 @@ export function useAllProposalData(): { data: ProposalData[]; userVotingPower?: 
       }
     }
 
-    return { mergedData: result, votingPower: JSBI.BigInt(Number(combinedData[0]?.result) ?? 0) }
+    return {
+      mergedData: result,
+      votingPower: JSBI.BigInt(Number(combinedData[0]?.result) ?? 0),
+      govParams: combinedData[1]?.result as any,
+    }
   }, [combinedData, isLoading])
 
   // get metadata from past events
@@ -342,18 +358,24 @@ export function useAllProposalData(): { data: ProposalData[]; userVotingPower?: 
   const formattedLogsV1 = useFormattedProposalCreatedLogs(gov, govProposalIndexes, govStartBlock)
   const grg = useMemo(() => (chainId ? GRG[chainId] : undefined), [chainId])
   const userVotingPower = grg && votingPower ? CurrencyAmount.fromRawAmount(grg, votingPower) : undefined
+  const proposalThreshold = grg && govParams?.params?.proposalThreshold !== undefined 
+    ? CurrencyAmount.fromRawAmount(
+        grg,
+        JSBI.BigInt(Number(govParams.params.proposalThreshold)),
+      )
+    : undefined
 
   // early return until events are fetched
   return useMemo(() => {
     // early return if no proposals (i.e. fresh governance contract)
     if (govProposalIndexes && govProposalIndexes.length === 0) {
-      return { data: [], userVotingPower, loading: false }
+      return { data: [], userVotingPower, proposalThreshold, loading: false }
     }
 
     const formattedLogs = [...(formattedLogsV1 ?? [])]
 
     if (!grg || isLoading || (gov && !formattedLogs) || !mergedData || mergedData.length === 0) {
-      return { data: [], userVotingPower, loading: true }
+      return { data: [], userVotingPower, proposalThreshold, loading: true }
     }
 
     return {
@@ -399,11 +421,62 @@ export function useAllProposalData(): { data: ProposalData[]; userVotingPower?: 
         }
       }),
       userVotingPower,
+      proposalThreshold,
       loading: false,
     }
-  }, [formattedLogsV1, gov, mergedData, grg, isLoading, govProposalIndexes, userVotingPower])
+  }, [formattedLogsV1, gov, mergedData, grg, isLoading, govProposalIndexes, userVotingPower, proposalThreshold])
 }
 
+export function useVotingParams(address?: string): {
+  userVotingPower?: CurrencyAmount<Token>;
+  proposalThreshold?: CurrencyAmount<Token>;
+} {
+  const { chainId } = useAccount()
+
+  const gov = useGovernanceProxyContract()
+
+  const votingPowerCall = [{
+    address: gov?.address as `0x${string}`,
+    abi: GOVERNANCE_RB_ABI as Abi,
+    functionName: 'getVotingPower' as const,
+    args: [address as `0x${string}`],
+    chainId,
+  }]
+
+  const govParamsCall = [{
+    address: gov?.address as `0x${string}`,
+    abi: GOVERNANCE_RB_ABI as Abi,
+    functionName: 'governanceParameters' as const,
+    chainId,
+  }]
+
+  const { data: combinedData, isLoading } = useReadContracts({
+    contracts: [...votingPowerCall, ...govParamsCall],
+    query: {
+      enabled: !!gov?.address && !!address,
+    },
+  })
+
+  return useMemo(() => {
+    if (!combinedData || isLoading) {
+      return { userVotingPower: undefined, proposalThreshold: undefined }
+    }
+    
+    const votingPower = JSBI.BigInt(Number(combinedData[0]?.result) ?? 0)
+    const govParams = combinedData[1]?.result as any
+    const grg = chainId ? GRG[chainId] : undefined
+    
+    const userVotingPower = grg && votingPower ? CurrencyAmount.fromRawAmount(grg, votingPower) : undefined
+    const proposalThreshold = grg && CurrencyAmount.fromRawAmount(
+      grg,
+      JSBI.BigInt(Number(govParams?.params?.proposalThreshold) ?? 0),
+    )
+
+    return { userVotingPower, proposalThreshold }
+  }, [combinedData, isLoading, chainId])
+}
+
+// TODO: this should not loop through all proposals, but fetch a single one by id
 export function useProposalData(governorIndex: number, id: string): ProposalData | undefined {
   const { data } = useAllProposalData()
   return data?.filter((p) => p.governorIndex === governorIndex)?.find((p) => p.id === id)
@@ -819,24 +892,4 @@ export function useCreateProposalCallback(): (
     },
     [account.address, addTransaction, latestGovernanceContract, account.chainId],
   )
-}
-
-//export function useLatestProposalId(address: string | undefined): string | undefined {
-//  const latestGovernanceContract = useGovernanceProxyContract()
-//  const res = useSingleCallResult(latestGovernanceContract, 'latestProposalIds', [address])
-//  return res?.result?.[0]?.toString()
-//}
-
-export function useProposalThreshold(): CurrencyAmount<Token> | undefined {
-  const { chainId } = useAccount()
-
-  const latestGovernanceContract = useGovernanceProxyContract()
-  const res = useSingleCallResult(latestGovernanceContract, 'governanceParameters')
-  const grg = useMemo(() => (chainId ? GRG[chainId] : undefined), [chainId])
-
-  if (res?.result?.[0].params?.quorumThreshold && grg) {
-    return CurrencyAmount.fromRawAmount(grg, res.result[0].params.proposalThreshold)
-  }
-
-  return undefined
 }

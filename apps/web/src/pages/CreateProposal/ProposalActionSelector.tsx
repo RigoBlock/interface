@@ -85,7 +85,9 @@ export const ProposalActionSelector = ({
         <ActionSelectorHeader>
           <Trans i18nKey="proposal.action" />
         </ActionSelectorHeader>
-        <ActionDropdown onClick={onClick}>{proposalAction}</ActionDropdown>
+        <ActionDropdown onClick={onClick}>
+          <Text>{proposalAction}</Text>
+        </ActionDropdown>
       </ProposalActionSelectorContainer>
     </ProposalActionSelectorFlex>
   )
@@ -119,35 +121,35 @@ export function ProposalActionSelectorModal({
         <MenuItem onClick={() => handleProposalActionSelect(ProposalAction.UPGRADE_IMPLEMENTATION)}>
           <Column>
             <Text fontWeight={500}>
-              <Trans>Protocol: Upgrade</Trans>
+              <Trans i18nKey="proposal.action.upgradeImplementation" />
             </Text>
           </Column>
         </MenuItem>
         <MenuItem onClick={() => handleProposalActionSelect(ProposalAction.ADD_ADAPTER)}>
           <Column>
             <Text fontWeight={500}>
-              <Trans>Protocol: Add Adapter</Trans>
+              <Trans i18nKey="proposal.action.addAdapter" />
             </Text>
           </Column>
         </MenuItem>
         <MenuItem onClick={() => handleProposalActionSelect(ProposalAction.REMOVE_ADAPTER)}>
           <Column>
             <Text fontWeight={500}>
-              <Trans>Protocol: Remove Adapter</Trans>
+              <Trans i18nKey="proposal.action.removeAdapter" />
             </Text>
           </Column>
         </MenuItem>
         <MenuItem onClick={() => handleProposalActionSelect(ProposalAction.UPGRADE_STAKING)}>
           <Column>
             <Text fontWeight={500}>
-              <Trans>Staking: Upgrade</Trans>
+              <Trans i18nKey="proposal.action.upgradeStaking" />
             </Text>
           </Column>
         </MenuItem>
         <MenuItem onClick={() => handleProposalActionSelect(ProposalAction.UPGRADE_GOVERNANCE)}>
           <Column>
             <Text fontWeight={500}>
-              <Trans>Governance: Upgrade</Trans>
+              <Trans i18nKey="proposal.action.upgradeGovernance" />
             </Text>
           </Column>
         </MenuItem>

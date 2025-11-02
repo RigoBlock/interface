@@ -30,8 +30,7 @@ import { Link } from 'react-router-dom'
 import {
   CreateProposalData,
   useCreateProposalCallback,
-  useProposalThreshold,
-  useUserVotes,
+  useVotingParams,
 } from 'state/governance/hooks'
 import { ThemedText } from 'theme/components'
 import { ExternalLink, StyledInternalLink } from 'theme/components/Links'
@@ -185,9 +184,7 @@ interface ActionData {
 
 export default function CreateProposal() {
   const account = useAccount()
-
-  const { votes: availableVotes } = useUserVotes()
-  const proposalThreshold: CurrencyAmount<Token> | undefined = useProposalThreshold()
+  const { userVotingPower: availableVotes, proposalThreshold } = useVotingParams(account.address)
 
   //const [modalOpen, setModalOpen] = useState(false)
   const [modalOpen, setModalOpen] = useState<{ open: boolean; actionId?: number }>({ open: false })
