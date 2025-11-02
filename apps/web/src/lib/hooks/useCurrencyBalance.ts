@@ -1,22 +1,16 @@
-import { Interface } from '@ethersproject/abi'
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { useAccount } from 'hooks/useAccount'
-import { useInterfaceMulticall, useTokenContract } from 'hooks/useContract'
+import { useInterfaceMulticall } from 'hooks/useContract'
 import { useTokenBalances } from 'hooks/useTokenBalances'
 import JSBI from 'jsbi'
-import { useMultipleContractSingleData, useSingleContractMultipleData } from 'lib/hooks/multicall'
 import { useMemo } from 'react'
-import ERC20ABI from 'uniswap/src/abis/erc20.json'
-import { Erc20Interface } from 'uniswap/src/abis/types/Erc20'
 import { ValueType, getCurrencyAmount } from 'uniswap/src/features/tokens/getCurrencyAmount'
 import { isAddress } from 'utilities/src/addresses'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
 import { currencyKey } from 'utils/currencyKey'
 import { assume0xAddress } from 'utils/wagmi'
-import { useBalance } from 'wagmi'
-
-const ERC20Interface = new Interface(ERC20ABI) as Erc20Interface
-const tokenBalancesGasRequirement = { gasRequired: 185_000 }
+import { useBalance, useReadContracts } from 'wagmi'
+import { Abi, erc20Abi } from 'viem'
 
 /**
  * Returns a currency address to its eventually consistent currency balances for multiple account.
@@ -24,9 +18,7 @@ const tokenBalancesGasRequirement = { gasRequired: 185_000 }
 export function useCurrencyBalancesMultipleAccounts(
   uncheckedAddresses?: (string | undefined)[],
   currency?: Currency | undefined
-): {
-  [address: string]: CurrencyAmount<Currency> | undefined
-} {
+): [{ [address: string]: CurrencyAmount<Currency> | undefined }, boolean] {
   const { chainId } = useAccount()
   const multicallContract = useInterfaceMulticall()
 
@@ -47,18 +39,40 @@ export function useCurrencyBalancesMultipleAccounts(
     [chainId, currency]
   )
 
-  const tokenContract = useTokenContract(validatedToken?.address, false)
-  const balances = useSingleContractMultipleData(
-    tokenContract ?? multicallContract,
-    tokenContract ? 'balanceOf' : 'getEthBalance',
-    validAddressInputs
-  )
+  const { data, isLoading: balancesLoading } = useReadContracts({
+    contracts: useMemo(
+      () =>
+        (validatedToken
+          ? validAddressInputs.map(
+              ([address]) =>
+                ({
+                  address: assume0xAddress(validatedToken.address),
+                  chainId,
+                  abi: erc20Abi,
+                  functionName: 'balanceOf',
+                  args: [address],
+                }) as const,
+            )
+          : validAddressInputs.map(
+              ([address]) =>
+                ({
+                  address: assume0xAddress(multicallContract?.address),
+                  chainId,
+                  abi: multicallContract?.interface.fragments as Abi,
+                  functionName: 'getEthBalance',
+                  args: [address],
+                }) as const,
+            )) as any,
+      [validAddressInputs, validatedToken, chainId, multicallContract?.address, multicallContract?.interface.fragments],
+    ),
+    query: { enabled: validAddressInputs.length > 0 && (!!validatedToken || !!multicallContract) },
+  })
 
   // if a type is returned instead of a mapping, must assert no sort() op is performed.
   return useMemo(
-    () =>
+    () => [
       validAddressInputs.reduce<{ [address: string]: CurrencyAmount<Currency> }>((memo, [address], i) => {
-        const value = balances?.[i]?.result?.[0]
+        const value = data?.[i]?.result
         if (value && chainId) {
           memo[address] = CurrencyAmount.fromRawAmount(
             validatedToken ?? nativeOnChain(chainId),
@@ -67,7 +81,9 @@ export function useCurrencyBalancesMultipleAccounts(
         }
         return memo
       }, {}),
-    [validAddressInputs, chainId, balances, validatedToken]
+      balancesLoading,
+    ],
+    [validAddressInputs, chainId, balancesLoading, validatedToken, data]
   )
 }
 
@@ -87,23 +103,35 @@ export function useRpcTokenBalancesWithLoadingIndicator(
         : tokens?.filter((t?: Token): t is Token => isAddress(t?.address) !== false && t?.chainId === chainId) ?? [],
     [chainId, tokens, skip],
   )
-  const validatedTokenAddresses = useMemo(() => validatedTokens.map((vt) => vt.address), [validatedTokens])
 
-  const balances = useMultipleContractSingleData(
-    validatedTokenAddresses,
-    ERC20Interface,
-    'balanceOf',
-    useMemo(() => [address], [address]),
-    tokenBalancesGasRequirement,
-  )
-
-  const anyLoading: boolean = useMemo(() => balances.some((callState) => callState.loading), [balances])
+  const { data, isLoading: balancesLoading } = useReadContracts({
+    contracts: useMemo(
+      () =>
+        validatedTokens.map(
+          (token) =>
+            ({
+              address: assume0xAddress(token.address),
+              chainId,
+              abi: erc20Abi,
+              functionName: 'balanceOf',
+              args: [address],
+            }) as const,
+        ),
+      [address, chainId, validatedTokens],
+    ),
+    query: { enabled: !!address },
+  })
 
   return useMemo(
     () => [
       address && validatedTokens.length > 0
-        ? validatedTokens.reduce<{ [tokenAddress: string]: CurrencyAmount<Token> | undefined }>((memo, token, i) => {
-            const value = balances?.[i]?.result?.[0]
+        ? // eslint-disable-next-line max-params
+          validatedTokens.reduce<{ [tokenAddress: string]: CurrencyAmount<Token> | undefined }>((memo, token, i) => {
+            const value = data?.[i]?.result
+            if (!value) {
+              return memo
+            }
+
             const amount = value ? JSBI.BigInt(value.toString()) : undefined
             if (amount) {
               memo[token.address] = CurrencyAmount.fromRawAmount(token, amount)
@@ -111,9 +139,9 @@ export function useRpcTokenBalancesWithLoadingIndicator(
             return memo
           }, {})
         : {},
-      anyLoading,
+      balancesLoading,
     ],
-    [address, validatedTokens, anyLoading, balances],
+    [address, validatedTokens, balancesLoading, data],
   )
 }
 
@@ -150,8 +178,7 @@ function useRpcCurrencyBalances(
         }
         if (currency.isToken) {
           return tokenBalances[currency.address]
-        }
-        if (currency.isNative && nativeBalance?.value) {
+        } else if (nativeBalance?.value) {
           return CurrencyAmount.fromRawAmount(currency, nativeBalance.value.toString())
         }
         return undefined

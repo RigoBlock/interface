@@ -1,5 +1,4 @@
 import { InterfacePageName } from '@uniswap/analytics-events'
-import { CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { ButtonPrimary } from 'components/Button/buttons'
 import { AutoColumn } from 'components/deprecated/Column'
 import { AutoRow, RowBetween } from 'components/deprecated/Row'
@@ -19,14 +18,12 @@ import { Link } from 'react-router-dom'
 import { Button } from 'rebass/styled-components'
 import { useCloseModal, useModalIsOpen, useToggleDelegateModal } from 'state/application/hooks'
 import { ApplicationModal } from 'state/application/reducer'
-import { ProposalData, ProposalState, useAllProposalData, useProposalThreshold } from 'state/governance/hooks'
+import { ProposalData, ProposalState, useAllProposalData } from 'state/governance/hooks'
 import { ThemedText } from 'theme/components'
 import { ExternalLink } from 'theme/components/Links'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
 import { Trans } from 'react-i18next'
-//import { shortenAddress } from 'utilities/src/addresses'
-//import { ExplorerDataType, getExplorerLink } from 'utils/getExplorerLink'
 
 const PageWrapper = styled(AutoColumn)`
   padding-top: 68px;
@@ -112,14 +109,15 @@ export default function Landing() {
   const toggleDelegateModal = useToggleDelegateModal()
 
   // get data to list all proposals
-  const { data: allProposals, userVotingPower: availableVotes, loading: loadingProposals } = useAllProposalData()
-
-  // user data
-  //const { loading: loadingAvailableVotes, votes: availableVotes } = useUserVotes()
+  const {
+    data: allProposals,
+    userVotingPower: availableVotes,
+    proposalThreshold,
+    loading: loadingProposals,
+  } = useAllProposalData()
 
   // show delegation option if they have have a balance, but have not delegated
   const showUnlockVoting = availableVotes && Boolean(JSBI.equal(availableVotes.quotient, JSBI.BigInt(0)))
-  const proposalThreshold: CurrencyAmount<Token> | undefined = useProposalThreshold()
   const formattedProposalThreshold = proposalThreshold
     ? JSBI.divide(
         proposalThreshold.quotient,

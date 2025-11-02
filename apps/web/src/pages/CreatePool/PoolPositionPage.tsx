@@ -39,7 +39,7 @@ import JSBI from 'jsbi'
 import styled /*, { useTheme }*/ from 'lib/styled-components'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
 import { Trans } from 'react-i18next'
-import { useCallback, useMemo, /*useRef,*/ useState } from 'react'
+import { useCallback, useEffect, useMemo, /*useRef,*/ useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 //import { Bound } from 'state/mint/v3/actions'
 import { PoolInfo } from 'state/buy/hooks'
@@ -56,6 +56,7 @@ import { shortenAddress } from 'utilities/src/addresses'
 //import { currencyId } from 'utils/currencyId'
 import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { useWeb3React } from '@web3-react/core'
 //import { formatTickPrice } from 'utils/formatTickPrice'
 //import { unwrappedToken } from 'utils/unwrappedToken'
 
@@ -66,6 +67,8 @@ import { UniverseChainId } from 'uniswap/src/features/chains/types'
 //import { TransactionType } from '../../state/transactions/types'
 //import { calculateGasMargin } from '../../utils/calculateGasMargin'
 //import { LoadingRows } from '../Pool/styleds'
+
+const NAV_SIMULATE_DEPLOYMENT_BYTECODE = '0x608060405234801561000f575f5ffd5b5060405161017738038061017783398101604081905261002e916100ef565b806001600160a01b031663e7d8724e6040518163ffffffff1660e01b81526004015f604051808303815f87803b158015610066575f5ffd5b505af1158015610078573d5f5f3e3d5ffd5b505050505f816001600160a01b03166389c065686040518163ffffffff1660e01b81526004016040805180830381865afa1580156100b8573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906100dc919061011c565b80515f8181524260205291925090604090f35b5f602082840312156100ff575f5ffd5b81516001600160a01b0381168114610115575f5ffd5b9392505050565b5f604082840312801561012d575f5ffd5b50604080519081016001600160401b038111828210171561015c57634e487b7160e01b5f52604160045260245ffd5b60405282518152602092830151928101929092525091905056fe'
 
 const PageWrapper = styled.div`
   padding: 68px 8px 0px;
@@ -267,7 +270,49 @@ export default function PoolPositionPage() {
 
   const { name, symbol, decimals, owner, baseToken } = poolStorage?.poolInitParams || {}
   const { minPeriod, spread, transactionFee } = poolStorage?.poolVariables || {}
-  const { unitaryValue, totalSupply } = poolStorage?.poolTokensInfo || {}
+  const { unitaryValue: storedUnitaryValue, totalSupply } = poolStorage?.poolTokensInfo || {}
+
+  // Custom hook to simulate updateUnitaryValue
+  function useSimulatedUnitaryValue(poolAddress?: string, fallback?: string) {
+    const { provider } = useWeb3React()
+    const [simulatedValue, setSimulatedValue] = useState<string>()
+    
+    useEffect(() => {
+      if (!poolAddress || !provider) { return }
+      
+      // @Notice: simulate function to deploy ephemeral contract that returns the real-time updateUnitaryValue
+      async function simulate(address: string) {
+        try {
+          // Method 1: Simulate contract deployment that returns value from constructor
+          // Deploy ephemeral contract that calls updateUnitaryValue and returns the result
+          const encodedPoolAddress = address.slice(2).padStart(64, '0') // Remove 0x and pad to 32 bytes
+          const deploymentBytecode = NAV_SIMULATE_DEPLOYMENT_BYTECODE + encodedPoolAddress
+          
+          const tx = {
+            data: deploymentBytecode
+          }
+          
+          // eth_call simulates the deployment without actually deploying
+          const result = await provider?.call(tx)
+          
+          if (result && result !== '0x') {
+            // Extract first 32 bytes (uint256) from the 64-byte return value
+            const unitaryValue = result.slice(0, 66) // '0x' + 64 hex chars = 66 chars
+            setSimulatedValue(unitaryValue)
+            return
+          }
+        } catch {
+          setSimulatedValue(fallback)
+        }
+      }
+      
+      simulate(poolAddress)
+    }, [poolAddress, provider, fallback])
+    
+    return simulatedValue
+  }
+
+  const unitaryValue = useSimulatedUnitaryValue(poolAddressFromUrl, storedUnitaryValue?.toString()) ?? storedUnitaryValue
 
   let base = useCurrency(baseToken !== ZERO_ADDRESS ? baseToken : undefined)
   if (baseToken === ZERO_ADDRESS) {
@@ -309,7 +354,9 @@ export default function PoolPositionPage() {
     poolOwnStake: Number(poolOwnStakeFromUrl),
     irr: Number(irrFromUrl),
   } as PoolInfo
-  const baseTokenBalances = useCurrencyBalancesMultipleAccounts(
+
+  // TODO: can use loadingBalances returned from the hook to show loading state
+  const [baseTokenBalances, ] = useCurrencyBalancesMultipleAccounts(
     [account.address ?? undefined, poolAddressFromUrl ?? undefined],
     base ?? undefined
   )
