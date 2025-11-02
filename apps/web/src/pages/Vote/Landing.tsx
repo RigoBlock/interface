@@ -19,7 +19,7 @@ import { Link } from 'react-router-dom'
 import { Button } from 'rebass/styled-components'
 import { useCloseModal, useModalIsOpen, useToggleDelegateModal } from 'state/application/hooks'
 import { ApplicationModal } from 'state/application/reducer'
-import { ProposalData, ProposalState, useAllProposalData, useProposalThreshold, useUserVotes } from 'state/governance/hooks'
+import { ProposalData, ProposalState, useAllProposalData, useProposalThreshold } from 'state/governance/hooks'
 import { ThemedText } from 'theme/components'
 import { ExternalLink } from 'theme/components/Links'
 import Trace from 'uniswap/src/features/telemetry/Trace'
@@ -112,10 +112,10 @@ export default function Landing() {
   const toggleDelegateModal = useToggleDelegateModal()
 
   // get data to list all proposals
-  const { data: allProposals, loading: loadingProposals } = useAllProposalData()
+  const { data: allProposals, userVotingPower: availableVotes, loading: loadingProposals } = useAllProposalData()
 
   // user data
-  const { loading: loadingAvailableVotes, votes: availableVotes } = useUserVotes()
+  //const { loading: loadingAvailableVotes, votes: availableVotes } = useUserVotes()
 
   // show delegation option if they have have a balance, but have not delegated
   const showUnlockVoting = availableVotes && Boolean(JSBI.equal(availableVotes.quotient, JSBI.BigInt(0)))
@@ -182,7 +182,7 @@ export default function Landing() {
                 <Trans i18nKey="vote.landing.proposals" />
               </ThemedText.DeprecatedMediumHeader>
               <AutoRow gap="6px" justify="flex-end">
-                {loadingProposals || loadingAvailableVotes ? (
+                {loadingProposals ? (
                   <Loader />
                 ) : account.isConnected ? (
                   <ButtonPrimary
@@ -196,7 +196,7 @@ export default function Landing() {
                     ) : availableVotes ? (
                       <Trans
                         i18nKey="vote.landing.voteAmount"
-                        values={{ amount: availableVotes && formatCurrencyAmount(availableVotes, 4) }}
+                        values={{ amount: availableVotes && formatCurrencyAmount((availableVotes), 4) }}
                       />
                     ) : (
                       ''

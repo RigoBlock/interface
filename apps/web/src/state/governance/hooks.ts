@@ -28,6 +28,7 @@ import i18n from 'uniswap/src/i18n'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { calculateGasMargin } from 'utils/calculateGasMargin'
 import { useReadContracts } from 'wagmi'
+import JSBI from 'jsbi'
 
 function useGovernanceProxyContract(): Contract | null {
   const { chainId } = useAccount()
@@ -252,8 +253,9 @@ function countToIndices(count: number | undefined, skip = 0) {
 }
 
 // get data for all past and active proposals
-export function useAllProposalData(): { data: ProposalData[]; loading: boolean } {
-  const { chainId } = useAccount()
+export function useAllProposalData(): { data: ProposalData[]; userVotingPower?: CurrencyAmount<Token>; loading: boolean } {
+  const account = useAccount()
+  const { address, chainId } = account
   const gov = useGovernanceProxyContract()
 
   const proposalCount = useProposalCount(gov)
@@ -282,18 +284,26 @@ export function useAllProposalData(): { data: ProposalData[]; loading: boolean }
     ])
   }, [gov?.address, govProposalIndexes, chainId])
 
+  const votingPowerCall = [{
+    address: gov?.address as `0x${string}`,
+    abi: GOVERNANCE_RB_ABI as Abi,
+    functionName: 'getVotingPower' as const,
+    args: [address as `0x${string}`],
+    chainId,
+  }]
+
   const { data: combinedData, isLoading } = useReadContracts({
-    contracts: proposalCalls,
+    contracts: [...votingPowerCall, ...proposalCalls],
     query: {
-      enabled: !!gov?.address && govProposalIndexes?.length > 0,
+      enabled: !!gov?.address && !!govProposalIndexes,
     },
   })
 
-  const mergedData = useMemo(() => {
-    if (!combinedData || isLoading) { return undefined }
+  const { mergedData, votingPower } = useMemo(() => {
+    if (!combinedData || isLoading) { return { mergedData: undefined, votingPower: undefined } }
     const result: any[] = []
-    
-    for (let i = 0; i < combinedData.length; i += 2) {
+
+    for (let i = 1; i < combinedData.length; i += 2) {
       const proposalData = combinedData[i].result
       if (proposalData && typeof proposalData === 'object') {
         result.push({
@@ -302,8 +312,8 @@ export function useAllProposalData(): { data: ProposalData[]; loading: boolean }
         })
       }
     }
-    
-    return result
+
+    return { mergedData: result, votingPower: JSBI.BigInt(Number(combinedData[0]?.result) ?? 0) }
   }, [combinedData, isLoading])
 
   // get metadata from past events
@@ -330,21 +340,20 @@ export function useAllProposalData(): { data: ProposalData[]; loading: boolean }
 
   // Notice: logs are proxied through our rpc endpoint
   const formattedLogsV1 = useFormattedProposalCreatedLogs(gov, govProposalIndexes, govStartBlock)
-
-  // TODO: we must use staked GRG instead
   const grg = useMemo(() => (chainId ? GRG[chainId] : undefined), [chainId])
+  const userVotingPower = grg && votingPower ? CurrencyAmount.fromRawAmount(grg, votingPower) : undefined
 
   // early return until events are fetched
   return useMemo(() => {
     // early return if no proposals (i.e. fresh governance contract)
     if (govProposalIndexes && govProposalIndexes.length === 0) {
-      return { data: [], loading: false }
+      return { data: [], userVotingPower, loading: false }
     }
 
     const formattedLogs = [...(formattedLogsV1 ?? [])]
 
     if (!grg || isLoading || (gov && !formattedLogs) || !mergedData || mergedData.length === 0) {
-      return { data: [], loading: true }
+      return { data: [], userVotingPower, loading: true }
     }
 
     return {
@@ -389,16 +398,14 @@ export function useAllProposalData(): { data: ProposalData[]; loading: boolean }
           governorIndex: 1,
         }
       }),
+      userVotingPower,
       loading: false,
     }
-  }, [formattedLogsV1, gov, mergedData, grg, isLoading, govProposalIndexes])
+  }, [formattedLogsV1, gov, mergedData, grg, isLoading, govProposalIndexes, userVotingPower])
 }
 
 export function useProposalData(governorIndex: number, id: string): ProposalData | undefined {
   const { data } = useAllProposalData()
-  if (!data || data.length === 0) {
-    return undefined
-  }
   return data?.filter((p) => p.governorIndex === governorIndex)?.find((p) => p.id === id)
 }
 
