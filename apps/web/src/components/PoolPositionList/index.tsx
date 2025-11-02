@@ -288,7 +288,7 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
           </Text>
         </Flex>
         {!shouldFilterByUserPools ? (
-          <Flex gap={40} style={{ marginRight: '8px' }}>
+          <Flex row gap={40} style={{ marginRight: '8px' }}>
             <Flex>
               <Text>
                 <Trans>irr</Trans>
