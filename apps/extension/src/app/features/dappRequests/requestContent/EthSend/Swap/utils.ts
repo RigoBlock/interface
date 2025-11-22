@@ -1,38 +1,37 @@
 /* eslint-disable max-depth */
 /* eslint-disable complexity */
-import { BigNumber, BigNumberish } from 'ethers'
+import { BigNumber, BigNumberish } from '@ethersproject/bignumber'
 import { formatUnits as formatUnitsEthers } from 'ethers/lib/utils'
 import { useDappLastChainId } from 'src/app/features/dapp/hooks'
 import {
   CONTRACT_BALANCE,
-  ETH_ADDRESS,
   MAX_UINT160,
   MAX_UINT256,
 } from 'src/app/features/dappRequests/requestContent/EthSend/Swap/constants'
-import { SwapSendTransactionRequest } from 'src/app/features/dappRequests/types/DappRequestTypes'
 import {
   AmountInMaxParam,
   AmountInParam,
   AmountOutMinParam,
   AmountOutParam,
-  Param,
-  UniversalRouterCommand,
-  V4SwapExactInParamSchema,
-  V4SwapExactInSingleParamSchema,
-  V4SwapExactOutParamSchema,
-  V4SwapExactOutSingleParamSchema,
   isAmountInMaxParam,
   isAmountInParam,
   isAmountMinParam,
   isAmountOutMinParam,
   isAmountOutParam,
+  isSettleParam,
   isURCommandASwap,
   isUrCommandSweep,
   isUrCommandUnwrapWeth,
+  Param,
+  UniversalRouterCall,
+  UniversalRouterCommand,
+  V4SwapExactInParamSchema,
+  V4SwapExactInSingleParamSchema,
+  V4SwapExactOutParamSchema,
+  V4SwapExactOutSingleParamSchema,
 } from 'src/app/features/dappRequests/types/UniversalRouterTypes'
-import { DEFAULT_NATIVE_ADDRESS } from 'uniswap/src/features/chains/chainInfo'
+import { DEFAULT_NATIVE_ADDRESS, DEFAULT_NATIVE_ADDRESS_LEGACY } from 'uniswap/src/features/chains/evm/defaults'
 import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
-import { assert } from 'utilities/src/errors'
 
 // Like ethers.formatUnits except it parses specific constants
 export function formatUnits(amount: BigNumberish, units: number): string {
@@ -50,7 +49,7 @@ export function formatUnits(amount: BigNumberish, units: number): string {
 }
 
 export function useSwapDetails(
-  request: SwapSendTransactionRequest,
+  parsedCalldata: UniversalRouterCall,
   dappUrl: string,
 ): {
   inputIdentifier: string | undefined
@@ -59,96 +58,35 @@ export function useSwapDetails(
   outputValue: string
 } {
   const activeChain = useDappLastChainId(dappUrl)
-  let inputAddress: string | undefined
-  let outputAddress: string | undefined
-  let inputValue: string = '0'
-  let outputValue: string = '0'
+  const commands = parsedCalldata.commands
 
-  // Attempt to find a V4_SWAP command
-  const v4Command = request.parsedCalldata.commands.find((command) => command.commandName.startsWith('V4_SWAP'))
-
-  if (v4Command) {
-    // Extract details using the V4 helper
-    const v4Details = getTokenDetailsFromV4SwapCommands(v4Command)
-    inputAddress = v4Details.inputAddress === ETH_ADDRESS ? DEFAULT_NATIVE_ADDRESS : v4Details.inputAddress
-    outputAddress = v4Details.outputAddress === ETH_ADDRESS ? DEFAULT_NATIVE_ADDRESS : v4Details.outputAddress
-    inputValue = v4Details.inputValue || '0'
-    outputValue = v4Details.outputValue || '0'
-  } else {
-    // Fallback to V2/V3 extraction
-    const addresses = extractTokenAddresses(request.parsedCalldata.commands)
-    const amounts = getTokenAmounts(request.parsedCalldata.commands)
-
-    inputAddress = addresses.inputAddress
-    outputAddress = addresses.outputAddress
-    inputValue = amounts.inputValue
-    outputValue = amounts.outputValue
-  }
-
-  const inputIdentifier = activeChain && inputAddress ? buildCurrencyId(activeChain, inputAddress) : undefined
-
-  const outputIdentifier = activeChain && outputAddress ? buildCurrencyId(activeChain, outputAddress) : undefined
-
-  return { inputIdentifier, outputIdentifier, inputValue, outputValue }
-}
-
-// Existing Helper Function to Extract Token Addresses (for V2/V3)
-function extractTokenAddresses(commands: UniversalRouterCommand[]): {
-  inputAddress: string | undefined
-  outputAddress: string | undefined
-} {
-  let inputAddress: string | undefined
-  let outputAddress: string | undefined
-
-  for (const command of commands) {
-    const result = getTokenAddressesFromV2V3SwapCommands(command)
-    if (result.inputAddress) {
-      inputAddress = result.inputAddress
-    }
-    if (result.outputAddress) {
-      outputAddress = result.outputAddress
-    }
-  }
-
-  return { inputAddress, outputAddress }
-}
-
-function getTokenAmounts(commands: UniversalRouterCommand[]): {
-  inputValue: string
-  outputValue: string
-} {
+  // Find first and last swap commands
   const firstSwapCommand = commands.find(isURCommandASwap)
   const lastSwapCommand = commands.findLast(isURCommandASwap)
-  const sweepCommand = commands.find(isUrCommandSweep)
-  const unwrapWethCommand = commands.find(isUrCommandUnwrapWeth)
 
-  assert(
-    firstSwapCommand && lastSwapCommand,
-    'SwapRequestContent: All swaps must have a defined input and output Universal Router command.',
-  )
+  // Extract input details from first swap command
+  const inputDetails = firstSwapCommand ? extractInputDetails(firstSwapCommand) : { address: undefined, value: '0' }
 
-  const firstAmountInParam = firstSwapCommand?.params.find(isAmountInOrMaxParam)
-  const lastAmountOutParam = lastSwapCommand?.params.find(isAmountOutMinOrOutParam)
-  const sweepAmountOutParam = sweepCommand?.params.find(isAmountMinParam)
-  const unwrapWethAmountOutParam = unwrapWethCommand?.params.find(isAmountMinParam)
+  // Extract output details from last swap command
+  const outputDetails = lastSwapCommand
+    ? extractOutputDetails(lastSwapCommand, commands)
+    : { address: undefined, value: '0' }
 
-  assert(
-    firstAmountInParam && lastAmountOutParam,
-    'SwapRequestContent: All swaps must have a defined input and output amount parameter.',
-  )
+  // Normalize addresses (handling ETH address)
+  const inputAddress =
+    inputDetails.address === DEFAULT_NATIVE_ADDRESS ? DEFAULT_NATIVE_ADDRESS_LEGACY : inputDetails.address
+  const outputAddress =
+    outputDetails.address === DEFAULT_NATIVE_ADDRESS ? DEFAULT_NATIVE_ADDRESS_LEGACY : outputDetails.address
 
-  // There's a special case where V3_SWAP command's amountOutMin param is zero (0x00... some gas optimization slippage thing)
-  // In this case fallback to the amountMin from the SWEEP or UNWRAP_WETH command as the outputValue
-  const inputValue = firstAmountInParam?.value
-  const fallbackOutputValue = sweepAmountOutParam?.value || unwrapWethAmountOutParam?.value
-  const outputValue =
-    fallbackOutputValue && isZeroBigNumberParam(lastAmountOutParam?.value)
-      ? fallbackOutputValue
-      : lastAmountOutParam?.value
+  // Build currency identifiers
+  const inputIdentifier = activeChain && inputAddress ? buildCurrencyId(activeChain, inputAddress) : undefined
+  const outputIdentifier = activeChain && outputAddress ? buildCurrencyId(activeChain, outputAddress) : undefined
 
   return {
-    inputValue: inputValue || '0', // Safe due to assert
-    outputValue: outputValue || '0', // Safe due to assert
+    inputIdentifier,
+    outputIdentifier,
+    inputValue: inputDetails.value,
+    outputValue: outputDetails.value,
   }
 }
 
@@ -159,6 +97,67 @@ function isAmountInOrMaxParam(param: Param): param is AmountInParam | AmountInMa
 
 function isAmountOutMinOrOutParam(param: Param): param is AmountOutMinParam | AmountOutParam {
   return isAmountOutMinParam(param) || isAmountOutParam(param)
+}
+
+// Extract input details (address and value) from a swap command
+function extractInputDetails(command: UniversalRouterCommand): { address: string | undefined; value: string } {
+  // Default values
+  let address: string | undefined
+  let value = '0'
+
+  // Handle V4 swap commands
+  if (command.commandName === 'V4_SWAP') {
+    const v4Details = getTokenDetailsFromV4SwapCommands(command)
+    address = v4Details.inputAddress
+    value = v4Details.inputValue || '0'
+  }
+  // Handle V2/V3 swap commands
+  else if (command.commandName.startsWith('V2_SWAP') || command.commandName.startsWith('V3_SWAP')) {
+    const addressDetails = getTokenAddressesFromV2V3SwapCommands(command)
+    address = addressDetails.inputAddress
+
+    const amountInParam = command.params.find(isAmountInOrMaxParam)
+    value = amountInParam?.value || '0'
+  }
+
+  // Handle edge case where input amount is zero - look for SETTLE parameter
+  if (address && isZeroBigNumberParam(value)) {
+    value = getFallbackInputValue(command) || '0'
+  }
+
+  return { address, value }
+}
+
+// Extract output details (address and value) from a swap command
+function extractOutputDetails(
+  command: UniversalRouterCommand,
+  allCommands: UniversalRouterCommand[],
+): { address: string | undefined; value: string } {
+  // Default values
+  let address: string | undefined
+  let value = '0'
+
+  // Handle V4 swap commands
+  if (command.commandName === 'V4_SWAP') {
+    const v4Details = getTokenDetailsFromV4SwapCommands(command)
+    address = v4Details.outputAddress
+    value = v4Details.outputValue || '0'
+  }
+  // Handle V2/V3 swap commands
+  else if (command.commandName.startsWith('V2_SWAP') || command.commandName.startsWith('V3_SWAP')) {
+    const addressDetails = getTokenAddressesFromV2V3SwapCommands(command)
+    address = addressDetails.outputAddress
+
+    const amountOutParam = command.params.find(isAmountOutMinOrOutParam)
+    value = amountOutParam?.value || '0'
+  }
+
+  // Handle special case where V3_SWAP command's amountOutMin param is zero
+  if (isZeroBigNumberParam(value)) {
+    value = getFallbackOutputValue(allCommands) || '0'
+  }
+
+  return { address, value }
 }
 
 // Helper Function to Extract Addresses from V2 and V3 Swap Commands
@@ -194,8 +193,6 @@ function getTokenAddressesFromV2V3SwapCommands(command: UniversalRouterCommand):
     }
   }
 
-  // Future handling for V4_SWAP can be added here
-
   return { inputAddress, outputAddress }
 }
 
@@ -224,6 +221,7 @@ function getTokenDetailsFromV4SwapCommands(command: UniversalRouterCommand): {
           }
 
           for (const p of parsed.data.value) {
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             if (p.name === 'swap') {
               const swap = p.value
 
@@ -248,6 +246,7 @@ function getTokenDetailsFromV4SwapCommands(command: UniversalRouterCommand): {
           }
 
           for (const p of parsed.data.value) {
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             if (p.name === 'swap') {
               const swap = p.value
 
@@ -272,6 +271,7 @@ function getTokenDetailsFromV4SwapCommands(command: UniversalRouterCommand): {
           }
 
           for (const p of parsed.data.value) {
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             if (p.name === 'swap') {
               const swap = p.value
 
@@ -298,6 +298,7 @@ function getTokenDetailsFromV4SwapCommands(command: UniversalRouterCommand): {
           }
 
           for (const p of parsed.data.value) {
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             if (p.name === 'swap') {
               const swap = p.value
 
@@ -322,6 +323,29 @@ function getTokenDetailsFromV4SwapCommands(command: UniversalRouterCommand): {
   }
 
   return { inputAddress, outputAddress, inputValue, outputValue }
+}
+
+// Helper function to get fallback output value from sweep or unwrapWeth commands
+function getFallbackOutputValue(allCommands?: UniversalRouterCommand[]): string {
+  if (!allCommands) {
+    return '0'
+  }
+
+  const sweepCommand = allCommands.find(isUrCommandSweep)
+  const unwrapWethCommand = allCommands.find(isUrCommandUnwrapWeth)
+
+  const sweepAmountOutParam = sweepCommand?.params.find(isAmountMinParam)
+  const unwrapWethAmountOutParam = unwrapWethCommand?.params.find(isAmountMinParam)
+
+  return sweepAmountOutParam?.value || unwrapWethAmountOutParam?.value || '0'
+}
+
+// Helper function to get fallback input value from SETTLE parameter
+function getFallbackInputValue(command: UniversalRouterCommand): string {
+  const potentialSettleParam = command.params.find(isSettleParam)
+  const settleParam = potentialSettleParam && isSettleParam(potentialSettleParam) ? potentialSettleParam : undefined
+  const settleAmountValue = settleParam?.value.find((item) => item.name === 'amount')
+  return settleAmountValue?.value || '0'
 }
 
 export function isNonZeroBigNumber(value: string | undefined): boolean {

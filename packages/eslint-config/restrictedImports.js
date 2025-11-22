@@ -30,15 +30,22 @@ const sharedRules = {
         'Avoid using due to issue with unsupported locales. Use utilities/src/device/locales.ts getDeviceLocales instead',
     },
     {
-      name: 'uniswap/src/features/dataApi/balances',
+      name: 'uniswap/src/features/dataApi/balances/balances',
       importNames: ['usePortfolioValueModifiers'],
       message:
         'Use the wrapper hooks `usePortfolioTotalValue`, `useAccountListData` or `usePortfolioBalances` instead of `usePortfolioValueModifiers` directly.',
     },
     {
+      name: 'uniswap/src/features/dataApi/balances/balancesRest',
+      importNames: ['useRESTPortfolioTotalValue'],
+      message:
+        'Use the wrapper hooks `usePortfolioTotalValue`, `useAccountListData` or `usePortfolioBalances` instead of `useRESTPortfolioTotalValue` directly.',
+    },
+    {
       name: 'i18next',
       importNames: ['t'],
-      message: 'Please avoid direct imports of t, using `useTranslation` and `i18n.t` when absolutely needed outside of a React context',
+      message:
+        'Please avoid direct imports of t, using `useTranslation` and `i18n.t` when absolutely needed outside of a React context',
     },
     {
       name: 'utilities/src/format/localeBased',
@@ -55,18 +62,24 @@ const sharedRules = {
       message: 'Use via `useLocalizationContext` instead.',
     },
     {
+      name: 'uniswap/src/features/chains/hooks/useOrderedChainIds',
+      importNames: ['useOrderedChainIds'],
+      message: 'Use `useEnabledChains` instead, which returns the ordered chains that are currently enabled.',
+    },
+    {
       name: 'ui/src/hooks/useDeviceInsets',
       importNames: ['useDeviceInsets'],
-      message: 'Use `useAppInsets` instead.'
+      message: 'Use `useAppInsets` instead.',
     },
     {
       name: 'react-native-device-info',
       importNames: ['getUniqueId'],
-      message: 'Not supported for web/extension, use `getUniqueId` from `utilities/src/device/getUniqueId` instead.'
+      message: 'Not supported for web/extension, use `getUniqueId` from `utilities/src/device/getUniqueId` instead.',
     },
     {
       name: 'lodash',
-      message: 'Use specific imports (e.g. `import isEqual from \'lodash/isEqual\'`) to avoid pulling in all of lodash to web to keep bundle size down!',
+      message:
+        "Use specific imports (e.g. `import isEqual from 'lodash/isEqual'`) to avoid pulling in all of lodash to web to keep bundle size down!",
     },
     {
       name: 'uniswap/src/features/chains/chainInfo',
@@ -79,12 +92,12 @@ const sharedRules = {
       message: 'Use `useEnabledChains` instead.',
     },
     {
-      name: 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks',
+      name: 'api/src/clients/graphql/__generated__/react-hooks',
       importNames: ['useAccountListQuery'],
       message: 'Use `useAccountListData` instead.',
     },
     {
-      name: 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks',
+      name: 'api/src/clients/graphql/__generated__/react-hooks',
       importNames: ['usePortfolioBalancesQuery'],
       message: 'Use `usePortfolioBalances` instead.',
     },
@@ -98,10 +111,19 @@ const sharedRules = {
       name: 'statsig-react',
       message: 'Import from internal module uniswap/src/features/gating instead',
     },
+    {
+      name: 'wallet/src/components/ErrorBoundary/restart',
+      message: 'Use `wallet/src/components/ErrorBoundary/restartApp` instead.',
+    },
   ],
-  patterns: [],
+  patterns: [
+    {
+      group: ['ui/src/assets/icons/*.svg'],
+      message:
+        'Please do not import SVG files directly from `ui/src/assets/icons/*.svg`. Use generated icon components instead, e.g., `ui/src/components/icons/{iconName}`.',
+    },
+  ],
 }
-
 
 // Rules that should apply to native code only
 const nativeRules = {
@@ -141,10 +163,36 @@ const nativeRules = {
     },
     {
       name: 'expo-haptics',
-      message: "Use our internal `HapticFeedback` wrapper instead: `import { HapticFeedback } from 'mobile/src'`",
+      message:
+        "Use our internal `HapticFeedback` wrapper instead: `import { HapticFeedback } from 'packages/uniswap/src/features/settings/useHapticFeedback/types'`",
+    },
+    {
+      name: 'react-router',
+      message: 'Do not import react-router in native code. Use react-navigation instead.',
     },
   ],
   patterns: sharedRules.patterns,
+}
+
+const reactNativeRuleMessage =
+  "React Native modules should not be imported outside of .native.ts files unless they are only types (import type { ... }). If the file isn't used outside of native usage, add it to the excluded files in webPlatform.js."
+
+const reactNative = {
+  patterns: [
+    {
+      group: [
+        '*react-native*',
+        // The following are allowed to be imported in cross-platform code.
+        '!react-native-reanimated',
+        '!react-native-image-colors',
+        '!@testing-library/react-native',
+        '!@react-native-community/netinfo',
+        '!react-native-localize',
+      ],
+      allowTypeImports: true,
+      message: reactNativeRuleMessage,
+    },
+  ],
 }
 
 // Rules that should apply to any code that's run on the web (interface) platform
@@ -159,33 +207,26 @@ const webPlatformRules = {
     },
     {
       name: 'ui/src/components/icons',
-      message: "Please import icons directly from their respective files, e.g. `ui/src/components/icons/SpecificIcon`. This is to avoid importing the entire icons folder when only some icons are needed, which increases bundle size",
-    },
-    {
-      name: 'ui/src/components/logos',
-      message: "Please import logos directly from their respective files, e.g. `ui/src/components/logos/SpecificLogo`. This is to avoid importing the entire logos folder when only some logos are needed, which increases bundle size",
+      message:
+        'Please import icons directly from their respective files, e.g. `ui/src/components/icons/SpecificIcon`. This is to avoid importing the entire icons folder when only some icons are needed, which increases bundle size',
     },
     {
       name: 'ui/src/components/modal/AdaptiveWebModal',
-      message: 'Please import Modal from `uniswap/src/components/modals/Modal` instead. Modal uses AdaptiveWebModal under the hood but has extra logic for handling animation, mounting, and dismounting.',
-    }
+      message:
+        'Please import Modal from `uniswap/src/components/modals/Modal` instead. Modal uses AdaptiveWebModal under the hood but has extra logic for handling animation, mounting, and dismounting.',
+    },
+  ],
+  patterns: [...sharedRules.patterns, ...reactNative.patterns],
+}
+
+const extensionRules = {
+  paths: [
+    // Allow general icon path in extension
+    ...webPlatformRules.paths.filter((p) => p.name !== 'ui/src/components/icons'),
   ],
   patterns: [
-    ...sharedRules.patterns,
-    {
-      group: [
-        '*react-native*',
-        // The following are allowed to be imported in cross-platform code.
-        '!react-native-reanimated',
-        '!react-native-image-colors',
-        '!@testing-library/react-native',
-        '!@react-native-community/netinfo',
-        '!react-native-localize',
-      ],
-      allowTypeImports: true,
-      message:
-        "React Native modules should not be imported outside of .native.ts files unless they are only types. If this is a .native.ts file, add an ignore comment to the top of the file. If you're trying to import a cross-platform module, add it to the excluded files in webPlatform.js.",
-    },
+    // Remove react native rules for extension
+    ...webPlatformRules.patterns.filter((p) => p.message !== reactNativeRuleMessage),
   ],
 }
 
@@ -208,7 +249,7 @@ const interfaceRules = {
       message: 'Styled components is deprecated, please use Flex or styled from "ui/src" instead.',
     },
     {
-      name: 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks',
+      name: 'api/src/clients/graphql/__generated__/react-hooks',
       importNames: ['useActivityWebQuery'],
       message: 'Import cached/subscription-based activity hooks from `AssetActivityProvider` instead.',
     },
@@ -225,7 +266,7 @@ const interfaceRules = {
     {
       name: 'react-helmet-async',
       // default package's esm export is broken, but the explicit cjs export works.
-      message: `Import from 'react-helment-async/lib/index' instead.`,
+      message: `Import from 'react-helmet-async/lib/index' instead.`,
     },
     {
       name: 'zustand',
@@ -235,34 +276,26 @@ const interfaceRules = {
     {
       name: 'utilities/src/platform',
       importNames: ['isIOS', 'isAndroid'],
+      message: 'Importing isIOS and isAndroid from platform is not allowed. Use isWebIOS and isWebAndroid instead.',
+    },
+    {
+      name: 'wagmi',
+      importNames: ['useChainId', 'useAccount', 'useConnect', 'useDisconnect', 'useBlockNumber', 'useWatchBlockNumber'],
       message:
-        'Importing isIOS and isAndroid from platform is not allowed. Use isWebIOS and isWebAndroid instead.',
-    },
-    {
-      name: 'wagmi',
-      importNames: ['useChainId', 'useAccount'],
-      message: 'Import properly typed account data from `hooks/useAccount` instead.',
-    },
-    {
-      name: 'wagmi',
-      importNames: ['useConnect'],
-      message: 'Import wrapped useConnect util from `hooks/useConnect` instead.',
-    },
-    {
-      name: 'wagmi',
-      importNames: ['useDisconnect'],
-      message: 'Import wrapped useDisconnect util from `hooks/useDisconnect` instead.',
-    },
-    {
-      name: 'wagmi',
-      importNames: ['useBlockNumber', 'useWatchBlockNumber'],
-      message: 'Import wrapped useBlockNumber util from `hooks/useBlockNumber` instead.',
+        'Import wrapped utilities from internal hooks instead: useAccount from `hooks/useAccount`, useConnect from `hooks/useConnect`, useDisconnect from `hooks/useDisconnect`, useBlockNumber from `hooks/useBlockNumber`.',
     },
   ],
-  patterns: webPlatformRules.patterns
+  patterns: webPlatformRules.patterns,
 }
 
+// Universal
 exports.shared = sharedRules
+
+// Platform
 exports.native = nativeRules
 exports.webPlatform = webPlatformRules
+exports.reactNative = reactNative
+
+// App Specific
 exports.interface = interfaceRules
+exports.extension = extensionRules

@@ -1,4 +1,3 @@
-/* eslint-disable react/forbid-elements */
 import { PropsWithChildren, SyntheticEvent, useEffect, useRef, useState } from 'react'
 import { Popover, PopperProps, Portal } from 'ui/src'
 import { Flex, FlexProps } from 'ui/src/components/layout'
@@ -14,6 +13,7 @@ type ContextMenuProps = {
   menuOptions: MenuContentItem[]
   itemId: string
   menuStyleProps?: FlexProps
+  menuContainerStyleProps?: FlexProps
   onLeftClick?: boolean
   closeOnClick?: boolean
   hoverable?: boolean
@@ -29,6 +29,7 @@ export function ContextMenu({
   children,
   menuOptions,
   menuStyleProps,
+  menuContainerStyleProps,
   itemId,
   onLeftClick = false,
   closeOnClick = false,
@@ -91,6 +92,7 @@ export function ContextMenu({
       )}
       {/* TRIGGER/BUTTON */}
       <Popover.Trigger>
+        {/* biome-ignore lint/correctness/noRestrictedElements: probably we can replace it here */}
         <div
           ref={triggerContainerRef}
           onClick={onLeftClick ? onContextMenu : undefined}
@@ -117,7 +119,9 @@ export function ContextMenu({
         exitStyle={{ y: -10, opacity: 0 }}
         p="$none"
         {...contentShadowProps}
+        {...menuContainerStyleProps}
       >
+        {/* biome-ignore lint/correctness/noRestrictedElements: probably we can replace it here */}
         <div>
           <MenuContent
             items={menuOptions}

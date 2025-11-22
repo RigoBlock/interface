@@ -1,22 +1,20 @@
-import { useMenuContent } from 'components/NavBar/CompanyMenu/Content'
-import { DownloadApp } from 'components/NavBar/CompanyMenu/DownloadAppCTA'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { HelpModal } from 'components/HelpModal/HelpModal'
+import { MenuSectionTitle, useMenuContent } from 'components/NavBar/CompanyMenu/Content'
 import { MenuLink } from 'components/NavBar/CompanyMenu/MenuDropdown'
 import { LegalAndPrivacyMenu } from 'components/NavBar/LegalAndPrivacyMenu'
 import { NavDropdown } from 'components/NavBar/NavDropdown'
 import { getSettingsViewIndex } from 'components/NavBar/PreferencesMenu'
 import { CurrencySettings } from 'components/NavBar/PreferencesMenu/Currency'
 import { LanguageSettings } from 'components/NavBar/PreferencesMenu/Language'
-import { PreferenceSettings } from 'components/NavBar/PreferencesMenu/Preferences'
 import { PreferencesView } from 'components/NavBar/PreferencesMenu/shared'
 import { useTabsContent } from 'components/NavBar/Tabs/TabsContent'
-import { useTheme } from 'lib/styled-components'
 import { Socials } from 'pages/Landing/sections/Footer'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'react-feather'
 import { useTranslation } from 'react-i18next'
-import { Accordion, AnimateTransition, Flex, Square, Text } from 'ui/src'
-import { FeatureFlags } from 'uniswap/src/features/gating/flags'
-import { useFeatureFlag } from 'uniswap/src/features/gating/hooks'
+import { Accordion, AnimateTransition, Flex, Separator, Square, Text, useSporeColors } from 'ui/src'
+import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 
 function MenuSection({
   title,
@@ -27,27 +25,27 @@ function MenuSection({
   children: JSX.Element | JSX.Element[]
   collapsible?: boolean
 }) {
-  const theme = useTheme()
+  const colors = useSporeColors()
 
   return (
     <Accordion.Item value={title} disabled={!collapsible}>
-      <Flex gap="10px">
+      <Flex gap="8px">
         <Accordion.Trigger flexDirection="row" p="0" gap="4px">
           {({ open }: { open: boolean }) => (
             <>
-              <Text variant="body1" color="$neutral1">
+              <Text variant="body4" color="$neutral2">
                 {title}
               </Text>
               {collapsible && (
                 <Square animation="200ms" rotate={open ? '-180deg' : '0deg'}>
-                  <ChevronDown size="20px" color={theme.neutral2} />
+                  <ChevronDown size="16px" color={colors.neutral2.val} />
                 </Square>
               )}
             </>
           )}
         </Accordion.Trigger>
         <Accordion.Content p="0" forceMount={!collapsible || undefined}>
-          <Flex gap="10px">{children}</Flex>
+          <Flex gap="8px">{children}</Flex>
         </Accordion.Content>
       </Flex>
     </Accordion.Item>
@@ -59,10 +57,11 @@ export function MobileMenuDrawer({ isOpen, closeMenu }: { isOpen: boolean; close
   const [settingsView, setSettingsView] = useState<PreferencesView>(PreferencesView.SETTINGS)
   const isConversionTrackingEnabled = useFeatureFlag(FeatureFlags.ConversionTracking)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: +setSettingsView, +dropdownRef
   const changeView = useCallback(
     (view: PreferencesView) => {
       setSettingsView(view)
-      if (dropdownRef?.current) {
+      if (dropdownRef.current) {
         dropdownRef.current.scroll({
           top: 0,
         })
@@ -73,7 +72,12 @@ export function MobileMenuDrawer({ isOpen, closeMenu }: { isOpen: boolean; close
   const onExitPreferencesMenu = useCallback(() => changeView(PreferencesView.SETTINGS), [changeView])
   const { t } = useTranslation()
   const tabsContent = useTabsContent()
-  const menuContent = useMenuContent()
+  const productContent = useMenuContent({
+    keys: [MenuSectionTitle.Products],
+  })
+  const menuContent = useMenuContent({
+    keys: [MenuSectionTitle.Protocol, MenuSectionTitle.Company],
+  })
 
   // Collapse sections on close
   useEffect(() => {
@@ -83,7 +87,12 @@ export function MobileMenuDrawer({ isOpen, closeMenu }: { isOpen: boolean; close
   }, [isOpen])
 
   return (
-    <NavDropdown dropdownRef={dropdownRef} isOpen={isOpen} dataTestId="company-menu-mobile-drawer">
+    <NavDropdown
+      dropdownRef={dropdownRef}
+      isOpen={isOpen}
+      dataTestId={TestID.CompanyMenuMobileDrawer}
+      borderColor="$surface3"
+    >
       <Flex pt="$spacing12" pb="$spacing32" px="$spacing24">
         <AnimateTransition
           currentIndex={getSettingsViewIndex(settingsView)}
@@ -96,7 +105,7 @@ export function MobileMenuDrawer({ isOpen, closeMenu }: { isOpen: boolean; close
             value={openSections}
             onValueChange={setOpenSections}
           >
-            <Flex gap="$spacing24">
+            <Flex gap="$spacing20">
               <MenuSection title={t('common.app')} collapsible={false}>
                 {tabsContent.map((tab, index) => (
                   <MenuLink
@@ -105,11 +114,30 @@ export function MobileMenuDrawer({ isOpen, closeMenu }: { isOpen: boolean; close
                     href={tab.href}
                     internal
                     closeMenu={closeMenu}
+                    icon={tab.icon}
+                    textVariant="body2"
                   />
                 ))}
               </MenuSection>
+              {Object.values(productContent).map((sectionContent, index) => (
+                <MenuSection key={`${sectionContent.title}_${index}`} title={sectionContent.title} collapsible={false}>
+                  {sectionContent.items.map(({ label, href, internal, icon }, index) => (
+                    <MenuLink
+                      key={`${label}_${index}}`}
+                      label={label}
+                      href={href}
+                      internal={internal}
+                      closeMenu={closeMenu}
+                      icon={icon}
+                      textVariant="body2"
+                    />
+                  ))}
+                </MenuSection>
+              ))}
 
-              {menuContent.map((sectionContent, index) => (
+              <Separator backgroundColor="$surface3" />
+
+              {Object.values(menuContent).map((sectionContent, index) => (
                 <MenuSection key={`${sectionContent.title}_${index}`} title={sectionContent.title}>
                   {sectionContent.items.map(({ label, href, internal }, index) => (
                     <MenuLink
@@ -122,14 +150,13 @@ export function MobileMenuDrawer({ isOpen, closeMenu }: { isOpen: boolean; close
                   ))}
                 </MenuSection>
               ))}
-
-              <MenuSection title={t('common.displaySettings')}>
-                <PreferenceSettings showHeader={false} showThemeLabel={false} setSettingsView={changeView} />
-              </MenuSection>
-
-              <DownloadApp onClick={closeMenu} />
-              <Socials iconSize="25px" />
               {isConversionTrackingEnabled && <LegalAndPrivacyMenu closeMenu={closeMenu} />}
+              <Flex row width="100%" justifyContent="space-between" alignItems="flex-end">
+                <HelpModal showOnXL />
+                <Flex gap="$spacing16">
+                  <Socials iconSize="20px" />
+                </Flex>
+              </Flex>
             </Flex>
           </Accordion>
 

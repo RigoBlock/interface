@@ -51,6 +51,8 @@ const IconButtonFrame = styled(CustomButtonFrame, {
   } as const,
 })
 
+IconButtonFrame.displayName = 'IconButtonFrame'
+
 export const IconButton = forwardRef<TamaguiElement, IconButtonProps>(function IconButton(
   {
     icon,
@@ -60,6 +62,7 @@ export const IconButton = forwardRef<TamaguiElement, IconButtonProps>(function I
     size = 'medium',
     variant = 'default',
     emphasis = 'primary',
+    focusScaling = 'equal:smaller-button',
     ...props
   },
   ref,
@@ -79,6 +82,7 @@ export const IconButton = forwardRef<TamaguiElement, IconButtonProps>(function I
       size={size}
       variant={variant}
       emphasis={emphasis}
+      focusScaling={focusScaling}
       {...props}
     >
       <ThemedIcon isDisabled={isDisabled} emphasis={emphasis} size={size} variant={variant} typeOfButton="icon">

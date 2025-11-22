@@ -1,12 +1,35 @@
-import React from 'react'
-import { Accordion, Flex, Input, Separator, Switch, Text } from 'ui/src'
+import {
+  DynamicConfigs,
+  EmbeddedWalletConfigKey,
+  Experiments,
+  ExtensionBiometricUnlockConfigKey,
+  FeatureFlags,
+  ForceUpgradeConfigKey,
+  getFeatureFlagName,
+  getOverrideAdapter,
+  Layers,
+  useFeatureFlagWithExposureLoggingDisabled,
+  WALLET_FEATURE_FLAG_NAMES,
+} from '@universe/gating'
+import React, { PropsWithChildren, useCallback } from 'react'
+import { Accordion, Flex, Separator, Switch, Text } from 'ui/src'
 import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
+import {
+  DynamicConfigDropdown,
+  DynamicConfigDropdownBoolean,
+} from 'uniswap/src/components/gating/DynamicConfigDropdown'
+import {
+  EMBEDDED_WALLET_BASE_URL_OPTIONS,
+  FORCE_UPGRADE_STATUS_OPTIONS,
+  FORCE_UPGRADE_TRANSLATIONS_OPTIONS,
+} from 'uniswap/src/components/gating/dynamicConfigOverrides'
 import { GatingButton } from 'uniswap/src/components/gating/GatingButton'
-import { Experiments } from 'uniswap/src/features/gating/experiments'
-import { FeatureFlags, WALLET_FEATURE_FLAG_NAMES, getFeatureFlagName } from 'uniswap/src/features/gating/flags'
-import { useFeatureFlagWithExposureLoggingDisabled } from 'uniswap/src/features/gating/hooks'
-import { Statsig, useExperiment } from 'uniswap/src/features/gating/sdk/statsig'
-import { isMobileApp } from 'utilities/src/platform'
+import { ExperimentRow, LayerRow } from 'uniswap/src/components/gating/Rows'
+import { useForceUpgradeStatus } from 'uniswap/src/features/forceUpgrade/hooks/useForceUpgradeStatus'
+import { useForceUpgradeTranslations } from 'uniswap/src/features/forceUpgrade/hooks/useForceUpgradeTranslations'
+import { useEmbeddedWalletBaseUrl } from 'uniswap/src/features/passkey/hooks/useEmbeddedWalletBaseUrl'
+import { isExtensionApp, isMobileApp } from 'utilities/src/platform'
+import { useEvent } from 'utilities/src/react/hooks'
 
 export function GatingOverrides(): JSX.Element {
   const featureFlagRows: JSX.Element[] = []
@@ -23,33 +46,73 @@ export function GatingOverrides(): JSX.Element {
     experimentRows.push(
       <Flex key={experiment} gap="$gap8">
         <Separator />
-        <ExperimentRow key={experiment} experiment={experiment} />
+        <ExperimentRow key={experiment} value={experiment} />
       </Flex>,
     )
   }
 
+  const layerRows: JSX.Element[] = []
+  for (const layer of Object.values(Layers)) {
+    layerRows.push(
+      <Flex key={layer} gap="$gap8">
+        <Separator />
+        <LayerRow key={layer} value={layer} />
+      </Flex>,
+    )
+  }
+
+  const onClearAllLocalFeatureGateOverrides = useEvent(() => {
+    WALLET_FEATURE_FLAG_NAMES.forEach((flag) => {
+      getOverrideAdapter().removeGateOverride(flag)
+    })
+  })
+
+  const onClearAllLocalExperimentConfigOverrides = useEvent(() => {
+    const experiments = Object.keys(Experiments)
+    experiments.forEach((experiment) => {
+      getOverrideAdapter().removeExperimentOverride(experiment)
+    })
+  })
+
+  const onClearAllLocalLayerConfigOverrides = useEvent(() => {
+    const layers = Object.values(Layers)
+    layers.forEach((layer) => {
+      getOverrideAdapter().removeLayerOverride(layer)
+    })
+  })
+
+  const onClearAllLocalDynamicConfigOverrides = useEvent(() => {
+    const dynamicConfigs = Object.values(DynamicConfigs)
+    dynamicConfigs.forEach((config) => {
+      getOverrideAdapter().removeDynamicConfigOverride(config)
+    })
+  })
+
+  const onClearAllGatingOverrides = useEvent(() => {
+    getOverrideAdapter().removeAllOverrides()
+  })
+
   return (
     <>
-      <Text variant="heading3">Gating</Text>
       <Flex flexDirection="column">
         <Accordion.Item value="feature-flags">
           <AccordionHeader title="⛳️ Feature Flags" />
 
           <Accordion.Content>
-            <GatingButton onPress={() => Statsig.removeGateOverride()}>
+            <GatingButton onPress={onClearAllLocalFeatureGateOverrides}>
               Clear all local feature gate overrides
             </GatingButton>
-
             <Flex gap="$spacing12" mt="$spacing12">
               {featureFlagRows}
             </Flex>
           </Accordion.Content>
         </Accordion.Item>
+
         <Accordion.Item value="experiments">
           <AccordionHeader title="🔬 Experiments" />
 
           <Accordion.Content>
-            <GatingButton onPress={() => Statsig.removeConfigOverride()}>
+            <GatingButton onPress={onClearAllLocalExperimentConfigOverrides}>
               Clear all local experiment/config overrides
             </GatingButton>
 
@@ -58,25 +121,92 @@ export function GatingOverrides(): JSX.Element {
             </Flex>
           </Accordion.Content>
         </Accordion.Item>
+
+        <Accordion.Item value="layers">
+          <AccordionHeader title=" 💇 Layers" />
+
+          <Accordion.Content>
+            <GatingButton onPress={onClearAllLocalLayerConfigOverrides}>
+              Clear all local layer/config overrides
+            </GatingButton>
+
+            <Flex gap="$spacing12" mt="$spacing12">
+              {layerRows}
+            </Flex>
+          </Accordion.Content>
+        </Accordion.Item>
+
+        <Accordion.Item value="dynamic-configs">
+          <AccordionHeader title="🕺 Dynamic Configs" />
+
+          <Accordion.Content>
+            <GatingButton onPress={onClearAllLocalDynamicConfigOverrides}>
+              Clear all local dynamic config overrides
+            </GatingButton>
+
+            <Flex mt="$spacing12" gap="$spacing12">
+              <DynamicConfigGroup title="Biometric Unlock" hidden={!isExtensionApp}>
+                <DynamicConfigDropdownBoolean
+                  config={DynamicConfigs.ExtensionBiometricUnlock}
+                  configKey={ExtensionBiometricUnlockConfigKey.EnableUnlocking}
+                  label="Unlocking"
+                />
+
+                <DynamicConfigDropdownBoolean
+                  config={DynamicConfigs.ExtensionBiometricUnlock}
+                  configKey={ExtensionBiometricUnlockConfigKey.EnableOnboardingEnrollment}
+                  label="Onboarding Enrollment"
+                />
+
+                <DynamicConfigDropdownBoolean
+                  config={DynamicConfigs.ExtensionBiometricUnlock}
+                  configKey={ExtensionBiometricUnlockConfigKey.EnableSettingsEnrollment}
+                  label="Settings Enrollment"
+                />
+              </DynamicConfigGroup>
+
+              <DynamicConfigGroup title="Embedded Wallet">
+                <DynamicConfigDropdown
+                  config={DynamicConfigs.EmbeddedWalletConfig}
+                  configKey={EmbeddedWalletConfigKey.BaseUrl}
+                  label="Base URL"
+                  options={EMBEDDED_WALLET_BASE_URL_OPTIONS}
+                  selected={useEmbeddedWalletBaseUrl()}
+                />
+              </DynamicConfigGroup>
+
+              <DynamicConfigGroup title="Force/Soft Upgrade">
+                <DynamicConfigDropdown
+                  config={DynamicConfigs.ForceUpgrade}
+                  configKey={ForceUpgradeConfigKey.Status}
+                  label="Status"
+                  options={FORCE_UPGRADE_STATUS_OPTIONS}
+                  selected={useForceUpgradeStatus()}
+                />
+
+                <DynamicConfigDropdown
+                  config={DynamicConfigs.ForceUpgrade}
+                  configKey={ForceUpgradeConfigKey.Translations}
+                  label="Translations"
+                  options={FORCE_UPGRADE_TRANSLATIONS_OPTIONS}
+                  selected={JSON.stringify(useForceUpgradeTranslations())}
+                />
+              </DynamicConfigGroup>
+            </Flex>
+          </Accordion.Content>
+        </Accordion.Item>
       </Flex>
 
-      <GatingButton
-        mt="$spacing12"
-        onPress={() => {
-          Statsig.removeGateOverride()
-          Statsig.removeConfigOverride()
-          Statsig.removeLayerOverride()
-        }}
-      >
+      <GatingButton mt="$spacing12" onPress={onClearAllGatingOverrides}>
         Clear all gating overrides
       </GatingButton>
     </>
   )
 }
 
-export function AccordionHeader({ title }: { title: React.ReactNode }): JSX.Element {
+export function AccordionHeader({ title, testId }: { title: React.ReactNode; testId?: string }): JSX.Element {
   return (
-    <Accordion.Header mt="$spacing12">
+    <Accordion.Header mt="$spacing12" testID={testId}>
       <Accordion.Trigger width="100%">
         {({ open }: { open: boolean }): JSX.Element => (
           <>
@@ -94,6 +224,12 @@ export function AccordionHeader({ title }: { title: React.ReactNode }): JSX.Elem
 function FeatureFlagRow({ flag }: { flag: FeatureFlags }): JSX.Element {
   const status = useFeatureFlagWithExposureLoggingDisabled(flag)
   const name = getFeatureFlagName(flag)
+  const onCheckedChange = useCallback(
+    (newValue: boolean): void => {
+      getOverrideAdapter().overrideGate(name, newValue)
+    },
+    [name],
+  )
 
   return (
     <Flex row alignItems="center" gap="$spacing16" width="100%">
@@ -103,81 +239,24 @@ function FeatureFlagRow({ flag }: { flag: FeatureFlags }): JSX.Element {
         </Text>
       </Flex>
       <Flex minWidth={52}>
-        <Switch
-          checked={status}
-          variant="branded"
-          onCheckedChange={(newValue: boolean): void => {
-            Statsig.overrideGate(name, newValue)
-          }}
-        />
+        <Switch checked={status} variant="branded" onCheckedChange={onCheckedChange} />
       </Flex>
     </Flex>
   )
 }
 
-export function ExperimentRow({ experiment }: { experiment: Experiments }): JSX.Element {
-  const { config } = useExperiment(experiment)
-
-  const paramRows = Object.entries(config.value).map(([key, value]) => {
-    let valueElement: JSX.Element | undefined
-    if (typeof value === 'boolean') {
-      valueElement = (
-        <Switch
-          key={key}
-          checked={value}
-          variant="branded"
-          onCheckedChange={(newValue: boolean): void => {
-            Statsig.overrideConfig(experiment, {
-              ...config.value,
-              [key]: newValue,
-            })
-          }}
-        />
-      )
-    } else if (typeof value === 'number') {
-      valueElement = (
-        <Input
-          value={value.toString()}
-          onChangeText={(newValue: string): void => {
-            Statsig.overrideConfig(experiment, {
-              ...config.value,
-              [key]: Number(newValue),
-            })
-          }}
-        />
-      )
-    } else if (typeof value === 'string') {
-      valueElement = (
-        <Input
-          value={value}
-          onChangeText={(newValue: string): void => {
-            Statsig.overrideConfig(experiment, {
-              ...config.value,
-              [key]: newValue,
-            })
-          }}
-        />
-      )
-    }
-
-    return (
-      valueElement && (
-        <Flex key={key} row alignItems="center" gap="$spacing16" justifyContent="space-between">
-          <Text variant="body1">{key}</Text>
-          {valueElement}
-        </Flex>
-      )
-    )
-  })
-
-  return (
-    <Flex>
-      <Text variant="body1">{experiment}</Text>
-      <Flex>
-        <Flex gap="$spacing8" pl="$spacing8">
-          {paramRows}
-        </Flex>
-      </Flex>
+function DynamicConfigGroup({
+  title,
+  hidden = false,
+  children,
+}: PropsWithChildren<{
+  title: string
+  hidden?: boolean
+}>): JSX.Element | null {
+  return hidden ? null : (
+    <Flex flexDirection="column" backgroundColor="$surface2" p="$spacing16" borderRadius="$rounded16" gap="$spacing12">
+      <Text variant="subheading1">{title}</Text>
+      {children}
     </Flex>
   )
 }

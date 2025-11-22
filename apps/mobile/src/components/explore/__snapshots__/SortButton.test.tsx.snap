@@ -3,84 +3,94 @@
 exports[`SortButton renders without error 1`] = `
 [
   <View
-    hitSlop={
-      {
-        "bottom": 5,
-        "left": 5,
-        "right": 5,
-        "top": 5,
-      }
-    }
-    onBlur={[Function]}
-    onClick={[Function]}
-    onFocus={[Function]}
-    onResponderGrant={[Function]}
-    onResponderMove={[Function]}
-    onResponderRelease={[Function]}
-    onResponderTerminate={[Function]}
-    onResponderTerminationRequest={[Function]}
-    onStartShouldSetResponder={[Function]}
     style={
       {
-        "flexDirection": "column",
-        "opacity": 1,
-        "transform": [
-          {
-            "scale": 1,
+        "alignItems": "center",
+        "backgroundColor": {
+          "dynamic": {
+            "dark": "rgba(255,255,255,0.12)",
+            "light": "rgba(19, 19, 19, 0.08)",
           },
-        ],
+        },
+        "borderBottomLeftRadius": 20,
+        "borderBottomRightRadius": 20,
+        "borderTopLeftRadius": 20,
+        "borderTopRightRadius": 20,
+        "flexDirection": "row",
+        "gap": 4,
+        "justifyContent": "center",
+        "paddingLeft": 12,
+        "paddingRight": 8,
       }
     }
+    testID="explore-sort-button"
   >
     <View
       collapsable={false}
-      style={
+      focusVisibleStyle={{}}
+      forwardedRef={[Function]}
+      jestAnimatedStyle={
         {
-          "alignItems": "center",
-          "flexDirection": "row",
-          "gap": 8,
-          "justifyContent": "center",
-          "paddingBottom": 8,
-          "paddingTop": 8,
+          "value": {},
         }
       }
-      testID="dropdown-toggle"
+      onBlur={[Function]}
+      onClick={[Function]}
+      onFocus={[Function]}
+      onLayout={[Function]}
+      onResponderGrant={[Function]}
+      onResponderMove={[Function]}
+      onResponderRelease={[Function]}
+      onResponderTerminate={[Function]}
+      onResponderTerminationRequest={[Function]}
+      onStartShouldSetResponder={[Function]}
+      role="button"
+      style={
+        {
+          "backgroundColor": "transparent",
+          "borderBottomLeftRadius": 12,
+          "borderBottomRightRadius": 12,
+          "borderTopLeftRadius": 12,
+          "borderTopRightRadius": 12,
+          "flexDirection": "column",
+          "opacity": 1,
+          "transform": [
+            {
+              "scale": 1,
+            },
+          ],
+        }
+      }
     >
       <View
+        collapsable={false}
+        onBlur={[Function]}
+        onFocus={[Function]}
         style={
           {
             "alignItems": "center",
-            "backgroundColor": {
-              "dynamic": {
-                "dark": "rgba(255,255,255,0.12)",
-                "light": "rgba(34,34,34,0.05)",
-              },
-            },
-            "borderBottomLeftRadius": 20,
-            "borderBottomRightRadius": 20,
-            "borderTopLeftRadius": 20,
-            "borderTopRightRadius": 20,
             "flexDirection": "row",
-            "gap": 4,
+            "gap": 8,
             "justifyContent": "center",
             "paddingBottom": 8,
-            "paddingLeft": 12,
-            "paddingRight": 8,
             "paddingTop": 8,
           }
         }
+        testID="dropdown-toggle"
       >
         <Text
           allowFontScaling={true}
           lineBreakMode="clip"
           maxFontSizeMultiplier={1.2}
           numberOfLines={1}
+          onBlur={[Function]}
+          onFocus={[Function]}
           style={
             {
               "color": {
                 "dynamic": {
-                  "dark": "#9B9B9B",
-                  "light": "#7D7D7D",
+                  "dark": "rgba(255, 255, 255, 0.65)",
+                  "light": "rgba(19, 19, 19, 0.63)",
                 },
               },
               "flexShrink": 1,
@@ -100,106 +110,20 @@ exports[`SortButton renders without error 1`] = `
           jestAnimatedStyle={
             {
               "value": {
-                "borderBottomLeftRadius": {
-                  "callStart": null,
-                  "callback": [Function],
-                  "current": 999999,
-                  "finished": true,
-                  "lastTimestamp": 0,
-                  "omega0": 31.622776601683793,
-                  "omega1": NaN,
-                  "onFrame": [Function],
-                  "onStart": [Function],
-                  "reduceMotion": false,
-                  "startTimestamp": 0,
-                  "startValue": 999999,
-                  "timestamp": 0,
-                  "toValue": 999999,
-                  "velocity": 0,
-                  "zeta": 1.1858541225631423,
-                },
-                "borderBottomRightRadius": {
-                  "callStart": null,
-                  "callback": [Function],
-                  "current": 999999,
-                  "finished": true,
-                  "lastTimestamp": 0,
-                  "omega0": 31.622776601683793,
-                  "omega1": NaN,
-                  "onFrame": [Function],
-                  "onStart": [Function],
-                  "reduceMotion": false,
-                  "startTimestamp": 0,
-                  "startValue": 999999,
-                  "timestamp": 0,
-                  "toValue": 999999,
-                  "velocity": 0,
-                  "zeta": 1.1858541225631423,
-                },
-                "borderTopLeftRadius": {
-                  "callStart": null,
-                  "callback": [Function],
-                  "current": 999999,
-                  "finished": true,
-                  "lastTimestamp": 0,
-                  "omega0": 31.622776601683793,
-                  "omega1": NaN,
-                  "onFrame": [Function],
-                  "onStart": [Function],
-                  "reduceMotion": false,
-                  "startTimestamp": 0,
-                  "startValue": 999999,
-                  "timestamp": 0,
-                  "toValue": 999999,
-                  "velocity": 0,
-                  "zeta": 1.1858541225631423,
-                },
-                "borderTopRightRadius": {
-                  "callStart": null,
-                  "callback": [Function],
-                  "current": 999999,
-                  "finished": true,
-                  "lastTimestamp": 0,
-                  "omega0": 31.622776601683793,
-                  "omega1": NaN,
-                  "onFrame": [Function],
-                  "onStart": [Function],
-                  "reduceMotion": false,
-                  "startTimestamp": 0,
-                  "startValue": 999999,
-                  "timestamp": 0,
-                  "toValue": 999999,
-                  "velocity": 0,
-                  "zeta": 1.1858541225631423,
-                },
+                "borderBottomLeftRadius": 999999,
+                "borderBottomRightRadius": 999999,
+                "borderTopLeftRadius": 999999,
+                "borderTopRightRadius": 999999,
                 "transform": [
                   {
-                    "rotate": {
-                      "__prefix": "",
-                      "__suffix": "deg",
-                      "callStart": null,
-                      "callback": [Function],
-                      "current": "270deg",
-                      "finished": true,
-                      "lastTimestamp": 0,
-                      "omega0": 31.622776601683793,
-                      "omega1": NaN,
-                      "onFrame": [Function],
-                      "onStart": [Function],
-                      "reduceMotion": false,
-                      "startTimestamp": 0,
-                      "startValue": 270,
-                      "strippedCurrent": 270,
-                      "timestamp": 0,
-                      "toValue": 270,
-                      "velocity": 0,
-                      "zeta": 1.1858541225631423,
-                    },
+                    "rotate": "270deg",
                   },
                 ],
               },
             }
           }
+          onBlur={[Function]}
+          onFocus={[Function]}
           style={
             {
               "alignItems": "center",
@@ -234,7 +158,7 @@ exports[`SortButton renders without error 1`] = `
                   "borderWidth": 0,
                 },
                 {
-                  "color": "#7D7D7D",
+                  "color": "rgba(19, 19, 19, 0.63)",
                   "height": 20,
                   "width": 20,
                 },
@@ -249,7 +173,7 @@ exports[`SortButton renders without error 1`] = `
             vbWidth={24}
           >
             <RNSVGGroup
-              color="#7D7D7D"
+              color="rgba(19, 19, 19, 0.63)"
               fill={null}
               propList={
                 [

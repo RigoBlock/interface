@@ -1,40 +1,51 @@
-import { DdRum } from '@datadog/mobile-react-native'
 import React, { useCallback, useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
+import { AppStackScreenProp } from 'src/app/navigation/types'
 import { BiometricsIconProps, useBiometricsIcon } from 'src/components/icons/useBiometricsIcon'
+import { useReactNavigationModal } from 'src/components/modals/useReactNavigationModal'
+import { WalletRestoreType } from 'src/components/RestoreWalletModal/RestoreWalletModalState'
 import { useBiometricAppSettings } from 'src/features/biometrics/useBiometricAppSettings'
 import { useOsBiometricAuthEnabled } from 'src/features/biometrics/useOsBiometricAuthEnabled'
 import { useBiometricPrompt } from 'src/features/biometricsSettings/hooks'
-import { closeModal } from 'src/features/modals/modalSlice'
-import { selectModalState } from 'src/features/modals/selectModalState'
-import { useWalletRestore } from 'src/features/wallet/hooks'
-import { useHapticFeedback } from 'src/utils/haptics/useHapticFeedback'
+import { useWalletRestore } from 'src/features/wallet/useWalletRestore'
+import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
+import { clearNotificationQueue } from 'uniswap/src/features/notifications/slice/slice'
+import { useHapticFeedback } from 'uniswap/src/features/settings/useHapticFeedback/useHapticFeedback'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { updateSwapStartTimestamp } from 'uniswap/src/features/timing/slice'
-import { useSwapPrefilledState } from 'uniswap/src/features/transactions/swap/hooks/useSwapPrefilledState'
+import { useSwapPrefilledState } from 'uniswap/src/features/transactions/swap/form/hooks/useSwapPrefilledState'
+import { logger } from 'utilities/src/logger/logger'
 import { WalletSwapFlow } from 'wallet/src/features/transactions/swap/WalletSwapFlow'
+import { invalidateAndRefetchWalletDelegationQueries } from 'wallet/src/features/transactions/watcher/transactionFinalizationSaga'
+import { useSignerAccounts } from 'wallet/src/features/wallet/hooks'
 
-/* Need to track the swap modal manually until it's integrated in to react-navigation */
-const DATADOG_VIEW_KEY = 'global-swap-modal'
-
-export function SwapModal(): JSX.Element {
+export function SwapModal({ route }: AppStackScreenProp<typeof ModalName.Swap>): JSX.Element {
   const appDispatch = useDispatch()
-  const { initialState } = useSelector(selectModalState(ModalName.Swap))
+  const initialState = route.params
   const { hapticFeedback } = useHapticFeedback()
 
-  const onClose = useCallback((): void => {
-    appDispatch(closeModal({ name: ModalName.Swap }))
-    DdRum.stopView(DATADOG_VIEW_KEY, {}, Date.now()).catch(() => undefined)
-  }, [appDispatch])
+  const signerMnemonicAccounts = useSignerAccounts()
+  const chains = useEnabledChains()
+  const accountAddresses = signerMnemonicAccounts.map((account) => account.address)
+
+  const { onClose: onCloseModal } = useReactNavigationModal()
+
+  // Clear all notification toasts when the swap modal closes
+  const onClose = useCallback(() => {
+    appDispatch(clearNotificationQueue())
+    onCloseModal()
+  }, [appDispatch, onCloseModal])
 
   // Update flow start timestamp every time modal is opened for logging
   useEffect(() => {
     const timestamp = Date.now()
-    DdRum.startView(DATADOG_VIEW_KEY, ModalName.Swap, {}, timestamp).catch(() => undefined)
     appDispatch(updateSwapStartTimestamp({ timestamp }))
-  }, [appDispatch])
+    invalidateAndRefetchWalletDelegationQueries({ accountAddresses, chainIds: chains.chains }).catch((error) =>
+      logger.debug('SwapModal', 'useEffect', 'Failed to invalidate and refetch wallet delegation queries', error),
+    )
+  }, [appDispatch, accountAddresses, chains.chains])
 
-  const { openWalletRestoreModal, walletNeedsRestore } = useWalletRestore()
+  const { openWalletRestoreModal, walletRestoreType } = useWalletRestore()
 
   const swapPrefilledState = useSwapPrefilledState(initialState)
 
@@ -48,7 +59,7 @@ export function SwapModal(): JSX.Element {
       authTrigger={requiresBiometrics ? biometricsTrigger : undefined}
       openWalletRestoreModal={openWalletRestoreModal}
       prefilledState={swapPrefilledState}
-      walletNeedsRestore={Boolean(walletNeedsRestore)}
+      walletNeedsRestore={walletRestoreType === WalletRestoreType.NewDevice}
       onSubmitSwap={hapticFeedback.success}
       onClose={onClose}
     />

@@ -1,12 +1,12 @@
 import { AutoColumn } from 'components/deprecated/Column'
 import { RowBetween } from 'components/deprecated/Row'
 import { useAccount } from 'hooks/useAccount'
-import styled, { useTheme } from 'lib/styled-components'
+import { styled } from 'lib/styled-components'
 import { ChangeEvent, ReactNode, useCallback } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { ExternalLink } from 'theme/components/Links'
 import { flexColumnNoWrap } from 'theme/styles'
-import { Text } from 'ui/src'
+import { Text, useSporeColors } from 'ui/src'
 import { useENS } from 'uniswap/src/features/ens/useENS'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
 
@@ -88,7 +88,7 @@ export default function AddressInputPanel({
 }) {
   const { t } = useTranslation()
   const { chainId } = useAccount()
-  const theme = useTheme()
+  const colors = useSporeColors()
 
   const { address, loading, name } = useENS({ nameOrAddress: value })
 
@@ -109,12 +109,12 @@ export default function AddressInputPanel({
         <InputContainer>
           <AutoColumn gap="md">
             <RowBetween>
-              <Text variant="body1" color={theme.neutral2}>
+              <Text variant="body1" color={colors.neutral2.val}>
                 {label ?? <Trans i18nKey="addressInput.recipient" />}
               </Text>
               {address && chainId && (
                 <ExternalLink
-                  href={getExplorerLink(chainId, name ?? address, ExplorerDataType.ADDRESS)}
+                  href={getExplorerLink({ chainId, data: name ?? address, type: ExplorerDataType.ADDRESS })}
                   style={{ fontSize: '14px' }}
                 >
                   (<Trans i18nKey="common.viewOnExplorer" />)

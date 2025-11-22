@@ -4,56 +4,70 @@ import { useDispatch } from 'react-redux'
 import { Flex, Switch, Text, TouchableArea } from 'ui/src'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { useHideSmallBalancesSetting, useHideSpamTokensSetting } from 'uniswap/src/features/settings/hooks'
-import { setHideSmallBalances, setHideSpamTokens } from 'uniswap/src/features/settings/slice'
+import {
+  useHideReportedActivitySetting,
+  useHideSmallBalancesSetting,
+  useHideSpamTokensSetting,
+} from 'uniswap/src/features/settings/hooks'
+import { setHideReportedActivity, setHideSmallBalances, setHideSpamTokens } from 'uniswap/src/features/settings/slice'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { isExtension } from 'utilities/src/platform'
+import { isExtensionApp } from 'utilities/src/platform'
 
 // avoids rendering during animation which makes it laggy
 // set to a bit above the Switch animation "simple" which is 80ms
 const AVOID_RENDER_DURING_ANIMATION_MS = 100
 
 type PortfolioBalanceModalProps = {
+  isOpen: boolean
   onClose: () => void
 }
 
-export function PortfolioBalanceModal({ onClose }: PortfolioBalanceModalProps): JSX.Element {
+export type PortfolioBalanceModalState = Omit<PortfolioBalanceModalProps, 'onClose' | 'isOpen'>
+
+export function PortfolioBalanceModal({ isOpen, onClose }: PortfolioBalanceModalProps): JSX.Element {
   const { t } = useTranslation()
-  const hideSpamTokens = useHideSpamTokensSetting()
-  const { isTestnetModeEnabled } = useEnabledChains()
   const dispatch = useDispatch()
 
-  const hideSmallBalances = useHideSmallBalancesSetting()
+  const { isTestnetModeEnabled } = useEnabledChains()
 
+  const hideSmallBalances = useHideSmallBalancesSetting()
   const onToggleHideSmallBalances = useCallback(() => {
     setTimeout(() => {
       dispatch(setHideSmallBalances(!hideSmallBalances))
     }, AVOID_RENDER_DURING_ANIMATION_MS)
   }, [dispatch, hideSmallBalances])
 
+  const hideSpamTokens = useHideSpamTokensSetting()
   const onToggleHideSpamTokens = useCallback(() => {
     setTimeout(() => {
       dispatch(setHideSpamTokens(!hideSpamTokens))
     }, AVOID_RENDER_DURING_ANIMATION_MS)
   }, [dispatch, hideSpamTokens])
 
+  const hideReportedActivity = useHideReportedActivitySetting()
+  const onToggleHideReportedActivity = useCallback(() => {
+    setTimeout(() => {
+      dispatch(setHideReportedActivity(!hideReportedActivity))
+    }, AVOID_RENDER_DURING_ANIMATION_MS)
+  }, [dispatch, hideReportedActivity])
+
   return (
-    <Modal name={ModalName.PortfolioBalanceModal} onClose={onClose}>
+    <Modal isModalOpen={isOpen} name={ModalName.PortfolioBalanceModal} onClose={onClose}>
       <Flex
         animation="fast"
         gap="$spacing16"
-        pb={isExtension ? undefined : '$spacing60'}
-        py={isExtension ? '$spacing16' : undefined}
+        pb={isExtensionApp ? undefined : '$spacing24'}
+        py={isExtensionApp ? '$spacing16' : undefined}
         px="$spacing12"
         width="100%"
       >
         <Flex centered>
           <Text color="$neutral1" variant="subheading1">
-            {t('settings.setting.smallBalances.title')}
+            {t('settings.setting.balancesActivity.title')}
           </Text>
         </Flex>
 
-        <Flex>
+        <Flex pr="$spacing12">
           <PortfolioBalanceOption
             active={hideSmallBalances && !isTestnetModeEnabled}
             subtitle={t('settings.hideSmallBalances.subtitle')}
@@ -65,6 +79,12 @@ export function PortfolioBalanceModal({ onClose }: PortfolioBalanceModalProps): 
             subtitle={t('settings.setting.unknownTokens.subtitle')}
             title={t('settings.setting.unknownTokens.title')}
             onCheckedChange={onToggleHideSpamTokens}
+          />
+          <PortfolioBalanceOption
+            active={hideReportedActivity}
+            subtitle={t('settings.setting.reportedActivity.subtitle')}
+            title={t('settings.setting.reportedActivity.title')}
+            onCheckedChange={onToggleHideReportedActivity}
           />
         </Flex>
       </Flex>

@@ -1,24 +1,48 @@
-import { TransactionRequest } from '@ethersproject/providers'
-import { UseQueryResult, skipToken } from '@tanstack/react-query'
+import { type TransactionRequest } from '@ethersproject/providers'
+import { keepPreviousData, skipToken, type UseQueryResult } from '@tanstack/react-query'
+import {
+  type UseQueryWithImmediateGarbageCollectionApiHelperHookArgs,
+  useQueryWithImmediateGarbageCollection,
+} from '@universe/api'
+import { useStatsigClientStatus } from '@universe/gating'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
-import { useQueryWithImmediateGarbageCollection } from 'uniswap/src/data/apiClients/hooks/useQueryWithImmediateGarbageCollection'
-import { UseQueryWithImmediateGarbageCollectionApiHelperHookArgs } from 'uniswap/src/data/apiClients/types'
-import { UNISWAP_API_CACHE_KEY, fetchGasFee } from 'uniswap/src/data/apiClients/uniswapApi/UniswapApiClient'
-import { GasStrategy } from 'uniswap/src/data/tradingApi/types'
-import { GasFeeResponse } from 'uniswap/src/features/gas/types'
+import {
+  createFetchGasFee,
+  type GasFeeResultWithoutState,
+} from 'uniswap/src/data/apiClients/uniswapApi/UniswapApiClient'
+import { getActiveGasStrategy } from 'uniswap/src/features/gas/utils'
+import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
 
 export function useGasFeeQuery({
   params,
+  // Warning: only use when it's Ok to return old data even when params change.
+  shouldUsePreviousValueDuringLoading,
   ...rest
 }: UseQueryWithImmediateGarbageCollectionApiHelperHookArgs<
-  TransactionRequest & { gasStrategies: GasStrategy[] },
-  GasFeeResponse
->): UseQueryResult<GasFeeResponse> {
-  const queryKey = [UNISWAP_API_CACHE_KEY, uniswapUrls.gasServicePath, params]
+  { tx: TransactionRequest; fallbackGasLimit?: number; smartContractDelegationAddress?: Address },
+  GasFeeResultWithoutState
+> & { shouldUsePreviousValueDuringLoading?: boolean }): UseQueryResult<GasFeeResultWithoutState> {
+  const { isStatsigReady } = useStatsigClientStatus()
+  const queryKey = [ReactQueryCacheKey.UniswapApi, uniswapUrls.gasServicePath, params]
 
-  return useQueryWithImmediateGarbageCollection<GasFeeResponse>({
+  return useQueryWithImmediateGarbageCollection<GasFeeResultWithoutState>({
     queryKey,
-    queryFn: params ? async (): ReturnType<typeof fetchGasFee> => await fetchGasFee(params) : skipToken,
+    queryFn: params
+      ? (): Promise<GasFeeResultWithoutState> => fetchGasFeeQuery({ ...params, isStatsigReady })
+      : skipToken,
+    ...(shouldUsePreviousValueDuringLoading && { placeholderData: keepPreviousData }),
     ...rest,
   })
+}
+
+export async function fetchGasFeeQuery(params: {
+  tx: TransactionRequest
+  fallbackGasLimit?: number
+  smartContractDelegationAddress?: Address
+  isStatsigReady: boolean
+}): Promise<GasFeeResultWithoutState> {
+  const { tx, smartContractDelegationAddress, isStatsigReady } = params
+  const gasStrategy = getActiveGasStrategy({ chainId: tx.chainId, type: 'general', isStatsigReady })
+  const fetchGasFee = createFetchGasFee({ gasStrategy, smartContractDelegationAddress })
+  return fetchGasFee(params)
 }

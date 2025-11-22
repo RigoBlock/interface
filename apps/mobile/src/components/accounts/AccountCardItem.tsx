@@ -3,32 +3,33 @@ import React, { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import ContextMenu from 'react-native-context-menu-view'
 import { useDispatch } from 'react-redux'
+import { MODAL_OPEN_WAIT_TIME } from 'src/app/navigation/constants'
+import { navigate } from 'src/app/navigation/rootNavigation'
 import { NotificationBadge } from 'src/components/notifications/Badge'
-import { closeModal, openModal } from 'src/features/modals/modalSlice'
-import { disableOnPress } from 'src/utils/disableOnPress'
 import { Flex, Text, TouchableArea } from 'ui/src'
 import { iconSizes } from 'ui/src/theme'
+import { AddressDisplay } from 'uniswap/src/components/accounts/AddressDisplay'
+import { useUnitagsAddressQuery } from 'uniswap/src/data/apiClients/unitagsApi/useUnitagsAddressQuery'
 import { AccountType } from 'uniswap/src/features/accounts/types'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { useENS } from 'uniswap/src/features/ens/useENS'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { pushNotification } from 'uniswap/src/features/notifications/slice'
-import { AppNotificationType, CopyNotificationType } from 'uniswap/src/features/notifications/types'
+import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
+import { AppNotificationType, CopyNotificationType } from 'uniswap/src/features/notifications/slice/types'
 import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
-import { useUnitagByAddress } from 'uniswap/src/features/unitags/hooks'
+import { UnitagScreens } from 'uniswap/src/types/screens/mobile'
 import { setClipboard } from 'uniswap/src/utils/clipboard'
 import { NumberType } from 'utilities/src/format/types'
-import { AddressDisplay } from 'wallet/src/components/accounts/AddressDisplay'
+import { noop } from 'utilities/src/react/noop'
 import { useAccountListData } from 'wallet/src/features/accounts/useAccountListData'
 import { useAccounts } from 'wallet/src/features/wallet/hooks'
-
-const MODAL_CLOSE_WAIT_TIME = 300
 
 type AccountCardItemProps = {
   address: Address
   isViewOnly: boolean
   onPress: (address: Address) => void
+  onClose: () => void
 } & PortfolioValueProps
 
 type PortfolioValueProps = {
@@ -75,12 +76,15 @@ export function AccountCardItem({
   isPortfolioValueLoading,
   portfolioValue,
   onPress,
+  onClose,
 }: AccountCardItemProps): JSX.Element {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const { defaultChainId } = useEnabledChains()
-  const ensName = useENS({ nameOrAddress: address, chainId: defaultChainId })?.name
-  const { unitag } = useUnitagByAddress(address)
+  const ensName = useENS({ nameOrAddress: address, chainId: defaultChainId }).name
+  const { data: unitag } = useUnitagsAddressQuery({
+    params: address ? { address } : undefined,
+  })
 
   const addressToAccount = useAccounts()
   const selectedAccount = addressToAccount[address]
@@ -102,28 +106,36 @@ export function AccountCardItem({
   }, [address, dispatch])
 
   const onPressEditWalletSettings = useCallback(() => {
-    dispatch(closeModal({ name: ModalName.AccountSwitcher }))
+    onClose()
 
     if (selectedAccount?.type === AccountType.SignerMnemonic && !onlyLabeledWallet) {
-      dispatch(openModal({ name: ModalName.EditProfileSettingsModal, initialState: { address } }))
+      navigate(ModalName.EditProfileSettingsModal, {
+        address,
+        accessPoint: UnitagScreens.UnitagConfirmation,
+      })
     } else {
-      dispatch(openModal({ name: ModalName.EditLabelSettingsModal, initialState: { address } }))
+      navigate(ModalName.EditLabelSettingsModal, {
+        address,
+        accessPoint: UnitagScreens.UnitagConfirmation,
+      })
     }
-  }, [selectedAccount?.type, onlyLabeledWallet, address, dispatch])
+  }, [selectedAccount?.type, onlyLabeledWallet, address, onClose])
 
   const onPressConnectionSettings = useCallback(() => {
-    dispatch(closeModal({ name: ModalName.AccountSwitcher }))
+    onClose()
 
     //Wait 300ms to open the the connection Modal and avoid overlapping animation
     setTimeout(() => {
-      dispatch(openModal({ name: ModalName.ConnectionsDappListModal, initialState: { address } }))
-    }, MODAL_CLOSE_WAIT_TIME)
-  }, [address, dispatch])
+      navigate(ModalName.ConnectionsDappListModal, {
+        address,
+      })
+    }, MODAL_OPEN_WAIT_TIME)
+  }, [address, onClose])
 
   const onPressRemoveWallet = useCallback(() => {
-    dispatch(closeModal({ name: ModalName.AccountSwitcher }))
-    dispatch(openModal({ name: ModalName.RemoveWallet, initialState: { address } }))
-  }, [address, dispatch])
+    onClose()
+    navigate(ModalName.RemoveWallet, { address })
+  }, [address, onClose])
 
   const menuActions = useMemo(
     () => [
@@ -198,7 +210,7 @@ export function AccountCardItem({
         pb="$spacing12"
         pt="$spacing8"
         px="$spacing24"
-        onLongPress={disableOnPress}
+        onLongPress={noop}
         onPress={(): void => onPress(address)}
       >
         <Flex row alignItems="flex-start" gap="$spacing16" testID={`account-item/${address}`}>

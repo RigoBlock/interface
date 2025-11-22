@@ -3,7 +3,7 @@ import {
   getQuicknodeChainId,
   getQuicknodeChainIdPathSuffix,
   getQuicknodeEndpointUrl,
-} from 'uniswap/src/features/chains/chainInfo'
+} from 'uniswap/src/features/chains/evm/rpc'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 
 jest.mock('uniswap/src/config', () => ({
@@ -23,6 +23,7 @@ describe('getQuicknodeChainIdPathSuffix', () => {
     [UniverseChainId.Bnb, '', 'BNB chain'],
     [UniverseChainId.Celo, '', 'Celo chain'],
     [UniverseChainId.MonadTestnet, '', 'Monad testnet'],
+    [UniverseChainId.Monad, '', 'Monad'],
     [UniverseChainId.Optimism, '', 'Optimism chain'],
     [UniverseChainId.Polygon, '', 'Polygon chain'],
     [UniverseChainId.Sepolia, '', 'Sepolia testnet'],
@@ -32,6 +33,7 @@ describe('getQuicknodeChainIdPathSuffix', () => {
     [UniverseChainId.Zora, '', 'Zora chain'],
   ]
 
+  // eslint-disable-next-line max-params
   it.each(testCases)('returns correct path suffix for %s', (chainId, expectedSuffix, _testName) => {
     expect(getQuicknodeChainIdPathSuffix(chainId)).toBe(expectedSuffix)
   })
@@ -67,6 +69,7 @@ describe('getQuicknodeEndpointUrl', () => {
       UniverseChainId.Bnb,
       UniverseChainId.Celo,
       UniverseChainId.MonadTestnet,
+      UniverseChainId.Monad,
       UniverseChainId.Optimism,
       UniverseChainId.Polygon,
       UniverseChainId.Sepolia,
@@ -97,6 +100,7 @@ describe('getQuicknodeChainId', () => {
     expect(getQuicknodeChainId(UniverseChainId.Bnb)).toBe('bsc')
     expect(getQuicknodeChainId(UniverseChainId.Celo)).toBe('celo-mainnet')
     expect(getQuicknodeChainId(UniverseChainId.MonadTestnet)).toBe('monad-testnet')
+    expect(getQuicknodeChainId(UniverseChainId.Monad)).toBe('monad-mainnet')
     expect(getQuicknodeChainId(UniverseChainId.Optimism)).toBe('optimism')
     expect(getQuicknodeChainId(UniverseChainId.Polygon)).toBe('matic')
     expect(getQuicknodeChainId(UniverseChainId.Sepolia)).toBe('ethereum-sepolia')

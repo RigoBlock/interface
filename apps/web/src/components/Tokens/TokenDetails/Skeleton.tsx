@@ -2,22 +2,22 @@ import { Currency } from '@uniswap/sdk-core'
 import { BreadcrumbNavContainer, BreadcrumbNavLink } from 'components/BreadcrumbNav'
 import { ChartSkeleton } from 'components/Charts/LoadingState'
 import { ChartType } from 'components/Charts/utils'
+import { SwapSkeleton } from 'components/swap/SwapSkeleton'
+import { LoadingBubble } from 'components/Tokens/loading'
 import { AboutContainer, AboutHeader } from 'components/Tokens/TokenDetails/About'
 import { TDP_CHART_HEIGHT_PX } from 'components/Tokens/TokenDetails/ChartSection'
-import { StatPair, StatWrapper, StatsWrapper } from 'components/Tokens/TokenDetails/StatsSection'
+import { StatPair, StatsWrapper, StatWrapper } from 'components/Tokens/TokenDetails/StatsSection'
 import { Hr } from 'components/Tokens/TokenDetails/shared'
-import { LoadingBubble } from 'components/Tokens/loading'
-import { SwapSkeleton } from 'components/swap/SwapSkeleton'
 import { NATIVE_CHAIN_ID } from 'constants/tokens'
 import { useCurrency } from 'hooks/Tokens'
-import deprecatedStyled from 'lib/styled-components'
+import { styled as deprecatedStyled } from 'lib/styled-components'
 import { ReactNode } from 'react'
 import { ChevronRight } from 'react-feather'
 import { Trans } from 'react-i18next'
-import { useParams } from 'react-router-dom'
+import { useParams } from 'react-router'
 import { ClickableTamaguiStyle } from 'theme/components/styles'
 import { capitalize } from 'tsafe'
-import { Anchor, Flex, Text, TextProps, styled } from 'ui/src'
+import { Anchor, Flex, styled, Text, TextProps } from 'ui/src'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
@@ -195,19 +195,24 @@ const LoadingFooterLink = styled(Anchor, {
 })
 
 // exported for testing
-export function getLoadingTitle(
-  token: Currency | undefined,
-  tokenAddress: string,
-  chainId: number,
-  chainName: string | undefined,
-): ReactNode {
+export function getLoadingTitle({
+  token,
+  tokenAddress,
+  chainId,
+  chainName,
+}: {
+  token?: Currency
+  tokenAddress: string
+  chainId: number
+  chainName?: string
+}): ReactNode {
   let tokenName = ''
-  if (token?.name && token?.symbol) {
-    tokenName = `${token?.name} (${token?.symbol})`
+  if (token?.name && token.symbol) {
+    tokenName = `${token.name} (${token.symbol})`
   } else if (token?.name) {
-    tokenName = token?.name
+    tokenName = token.name
   } else if (token?.symbol) {
-    tokenName = token?.symbol
+    tokenName = token.symbol
   } else {
     tokenName = tokenAddress || ''
   }
@@ -215,7 +220,7 @@ export function getLoadingTitle(
     <>{tokenName}</>
   ) : (
     <LoadingFooterLink
-      href={getExplorerLink(chainId, tokenAddress, ExplorerDataType.TOKEN)}
+      href={getExplorerLink({ chainId, data: tokenAddress, type: ExplorerDataType.TOKEN })}
       target="_blank"
       rel="noopener noreferrer"
     >
@@ -271,7 +276,10 @@ function LoadingStats() {
 function TokenDetailsSkeleton() {
   const { id: chainId, urlParam } = getChainInfo(useChainIdFromUrlParam() ?? UniverseChainId.Mainnet)
   const { tokenAddress } = useParams<{ tokenAddress?: string }>()
-  const token = useCurrency(tokenAddress === NATIVE_CHAIN_ID ? 'ETH' : tokenAddress, chainId)
+  const token = useCurrency({
+    address: tokenAddress === NATIVE_CHAIN_ID ? 'ETH' : tokenAddress,
+    chainId,
+  })
 
   return (
     <LeftPanel>
@@ -314,7 +322,9 @@ function TokenDetailsSkeleton() {
       {tokenAddress && (
         <LoadingFooterHeaderContainer gap="xs">
           <Trans i18nKey="common.loading" />
-          <LoadingFooterHeader>{getLoadingTitle(token, tokenAddress, chainId, urlParam)}</LoadingFooterHeader>
+          <LoadingFooterHeader>
+            {getLoadingTitle({ token, tokenAddress, chainId, chainName: urlParam })}
+          </LoadingFooterHeader>
         </LoadingFooterHeaderContainer>
       )}
     </LeftPanel>

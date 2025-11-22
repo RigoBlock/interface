@@ -9,8 +9,8 @@ import { AccountType } from 'uniswap/src/features/accounts/types'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import Trace from 'uniswap/src/features/telemetry/Trace'
 import { MobileEventName } from 'uniswap/src/features/telemetry/constants'
+import Trace from 'uniswap/src/features/telemetry/Trace'
 import { CurrencyId } from 'uniswap/src/types/currency'
 import { getSymbolDisplayText } from 'uniswap/src/utils/currency'
 import { NumberType } from 'utilities/src/format/types'
@@ -103,7 +103,7 @@ function CurrentChainBalance({
         </Text>
         <Flex row gap="$spacing8" alignItems="flex-end">
           <Text variant="heading3">{isTestnetModeEnabled ? tokenBalance : fiatBalance}</Text>
-          <Text color="$neutral2" variant="body2">
+          <Text color="$neutral2" variant="body2" lineHeight="$large">
             {!isTestnetModeEnabled && tokenBalance}
           </Text>
         </Flex>
@@ -141,6 +141,7 @@ function OtherChainBalance({
                 chainId={balance.currencyInfo.currency.chainId}
                 showBackgroundColor={false}
                 textVariant="buttonLabel2"
+                testID={`TokenDetailsChainPill_${balance.currencyInfo.currency.chainId}`}
               />
             </Flex>
           </Flex>

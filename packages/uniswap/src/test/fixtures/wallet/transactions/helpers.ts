@@ -2,7 +2,7 @@ import { TransactionRequest, TransactionResponse } from '@ethersproject/provider
 import { formatEther } from '@ethersproject/units'
 import { BigNumber, providers } from 'ethers/lib/ethers'
 import merge from 'lodash/merge'
-import { NativeCurrency } from 'uniswap/src/features/tokens/NativeCurrency'
+import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { finalizeTransaction } from 'uniswap/src/features/transactions/slice'
 import {
   ClassicTransactionDetails,
@@ -34,7 +34,9 @@ type TxFixtures<T extends ClassicTransactionDetails> = {
   finalizedTxAction: ReturnType<typeof finalizeTransaction>
 }
 
-export const getTxFixtures = <T extends ClassicTransactionDetails>(transaction?: T): TxFixtures<T> => {
+export const getTxFixtures = <T extends ClassicTransactionDetails>(
+  transaction?: T,
+): TxFixtures<T & { hash: string }> => {
   const txBase = merge(
     {},
     transactionDetails({
@@ -75,6 +77,8 @@ export const getTxFixtures = <T extends ClassicTransactionDetails>(transaction?:
     wait: () => Promise.resolve(ethersTxReceipt),
   })
 
+  const { nativeCurrency } = getChainInfo(txDetailsPending.chainId)
+
   // 3. Create successful/failed transaction
   const txDetailsSuccess = finalizedTransactionDetails({
     ...txDetailsPending,
@@ -82,8 +86,8 @@ export const getTxFixtures = <T extends ClassicTransactionDetails>(transaction?:
     receipt: txReceipt,
     networkFee: {
       quantity: formatEther(ethersTxReceipt.effectiveGasPrice.mul(ethersTxReceipt.gasUsed)),
-      tokenSymbol: NativeCurrency.onChain(txDetailsPending.chainId).symbol,
-      tokenAddress: NativeCurrency.onChain(txDetailsPending.chainId).address,
+      tokenSymbol: nativeCurrency.symbol,
+      tokenAddress: nativeCurrency.address,
       chainId: txDetailsPending.chainId,
     },
   })

@@ -1,8 +1,6 @@
+import { GraphQLApi } from '@universe/api'
 import { createMigrate } from 'redux-persist'
 import { migration1 } from 'state/migrations/1'
-import { migration10 } from 'state/migrations/10'
-import { migration11 } from 'state/migrations/11'
-import { OldTransactionState, PersistAppStateV12, migration12 } from 'state/migrations/12'
 import { migration2 } from 'state/migrations/2'
 import { migration3 } from 'state/migrations/3'
 import { migration4 } from 'state/migrations/4'
@@ -11,13 +9,14 @@ import { migration6 } from 'state/migrations/6'
 import { migration7 } from 'state/migrations/7'
 import { migration8 } from 'state/migrations/8'
 import { migration9 } from 'state/migrations/9'
-import { LocalWebTransactionState } from 'state/transactions/reducer'
-import { TransactionStatus } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
+import { migration10 } from 'state/migrations/10'
+import { migration11 } from 'state/migrations/11'
+import { migration12, NewTransactionState, OldTransactionState, PersistAppStateV12 } from 'state/migrations/12'
 
 const oldTransactionState: OldTransactionState = {
-  [1]: {
+  1: {
     // Confirmed
-    ['0x0']: {
+    '0x0': {
       hash: '0x0',
       addedTime: 0,
       from: '0x0',
@@ -37,7 +36,7 @@ const oldTransactionState: OldTransactionState = {
       },
     },
     // Pending
-    ['0x1']: {
+    '0x1': {
       hash: '0x01',
       addedTime: 0,
       from: '0x0',
@@ -47,7 +46,7 @@ const oldTransactionState: OldTransactionState = {
       deadline: 10,
     },
     // Errored (status !== 1)
-    ['0x2']: {
+    '0x2': {
       hash: '0x02',
       addedTime: 0,
       from: '0x0',
@@ -69,18 +68,18 @@ const oldTransactionState: OldTransactionState = {
   },
 }
 
-const newTransactionState: LocalWebTransactionState = {
-  [1]: {
-    ['0x0']: {
-      status: TransactionStatus.Confirmed,
+const newTransactionState: NewTransactionState = {
+  1: {
+    '0x0': {
+      status: GraphQLApi.TransactionStatus.Confirmed,
       hash: '0x0',
       addedTime: 0,
       from: '0x0',
       info: {} as any,
       confirmedTime: 5,
     },
-    ['0x1']: {
-      status: TransactionStatus.Pending,
+    '0x1': {
+      status: GraphQLApi.TransactionStatus.Pending,
       hash: '0x01',
       addedTime: 0,
       from: '0x0',
@@ -88,8 +87,8 @@ const newTransactionState: LocalWebTransactionState = {
       lastCheckedBlockNumber: 0,
       deadline: 10,
     },
-    ['0x2']: {
-      status: TransactionStatus.Failed,
+    '0x2': {
+      status: GraphQLApi.TransactionStatus.Failed,
       hash: '0x02',
       addedTime: 0,
       from: '0x0',

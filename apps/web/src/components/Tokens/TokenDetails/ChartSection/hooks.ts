@@ -1,34 +1,29 @@
+import { GraphQLApi } from '@universe/api'
 import { PriceChartData } from 'components/Charts/PriceChart'
 import { StackedLineData } from 'components/Charts/StackedLineChart'
-import { SingleHistogramData } from 'components/Charts/VolumeChart/renderer'
 import { ChartType, PriceChartType } from 'components/Charts/utils'
+import { SingleHistogramData } from 'components/Charts/VolumeChart/renderer'
 import {
   ChartQueryResult,
-  DataQuality,
   checkDataQuality,
+  DataQuality,
   withUTCTimestamp,
 } from 'components/Tokens/TokenDetails/ChartSection/util'
 import { UTCTimestamp } from 'lightweight-charts'
 import { useMemo, useReducer } from 'react'
-import {
-  CandlestickOhlcFragment,
-  Chain,
-  HistoryDuration,
-  PriceHistoryFallbackFragment,
-  useTokenHistoricalTvlsQuery,
-  useTokenHistoricalVolumesQuery,
-  useTokenPriceQuery,
-} from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
+import { fromGraphQLChain } from 'uniswap/src/features/chains/utils'
+import { currencyIdToContractInput } from 'uniswap/src/features/dataApi/utils/currencyIdToContractInput'
+import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
 
-type TDPChartQueryVariables = { chain: Chain; address?: string; duration: HistoryDuration }
+type TDPChartQueryVariables = { chain: GraphQLApi.Chain; address?: string; duration: GraphQLApi.HistoryDuration }
 
-function fallbackToPriceChartData(priceHistoryEntry: PriceHistoryFallbackFragment): PriceChartData {
+function fallbackToPriceChartData(priceHistoryEntry: GraphQLApi.PriceHistoryFallbackFragment): PriceChartData {
   const { value, timestamp } = priceHistoryEntry
   const time = timestamp as UTCTimestamp
   return { time, value, open: value, high: value, low: value, close: value }
 }
 
-function toPriceChartData(ohlc: CandlestickOhlcFragment): PriceChartData {
+function toPriceChartData(ohlc: GraphQLApi.CandlestickOhlcFragment): PriceChartData {
   const { open, high, low, close } = ohlc
   const time = ohlc.timestamp as UTCTimestamp
   return { time, value: close.value, open: open.value, high: high.value, low: low.value, close: close.value }
@@ -37,23 +32,73 @@ function toPriceChartData(ohlc: CandlestickOhlcFragment): PriceChartData {
 const currentTimeSeconds = () => (Date.now() / 1000) as UTCTimestamp
 
 const CANDLESTICK_FALLBACK_THRESHOLD = 0.1
-export function useTDPPriceChartData(
-  variables: TDPChartQueryVariables,
-  skip: boolean,
-  priceChartType: PriceChartType,
-): ChartQueryResult<PriceChartData, ChartType.PRICE> & { disableCandlestickUI: boolean } {
+export function useTDPPriceChartData({
+  variables,
+  skip,
+  priceChartType,
+}: {
+  variables: TDPChartQueryVariables
+  skip: boolean
+  priceChartType: PriceChartType
+}): ChartQueryResult<PriceChartData, ChartType.PRICE> & { disableCandlestickUI: boolean } {
   const [fallback, enablePriceHistoryFallback] = useReducer(() => true, false)
-  const { data, loading } = useTokenPriceQuery({ variables: { ...variables, fallback }, skip })
+
+  // For candlestick charts, use subgraph OHLC data (required, not available in CoinGecko)
+  // For line charts when fallback is needed, fetch both CoinGecko and subgraph data
+  const { data: subgraphData, loading: subgraphLoading } = GraphQLApi.useTokenPriceQuery({
+    variables: { ...variables, fallback },
+    skip,
+  })
+
+  // Fetch CoinGecko data for line charts to prefer its priceHistory
+  // Construct currencyId from chain and address for the CoinGecko query
+  const currencyIdValue = useMemo(() => {
+    if (!variables.address) {
+      return undefined
+    }
+    const chainId = fromGraphQLChain(variables.chain)
+    return chainId ? buildCurrencyId(chainId, variables.address) : undefined
+  }, [variables.chain, variables.address])
+
+  const { data: coinGeckoData, loading: coinGeckoLoading } = GraphQLApi.useTokenPriceHistoryQuery({
+    variables: {
+      contract: currencyIdValue
+        ? currencyIdToContractInput(currencyIdValue)
+        : { address: undefined, chain: variables.chain },
+      duration: variables.duration,
+    },
+    skip: skip || !currencyIdValue || priceChartType === PriceChartType.CANDLESTICK,
+  })
+
+  const loading = subgraphLoading || (priceChartType === PriceChartType.LINE && coinGeckoLoading)
 
   return useMemo(() => {
-    const { ohlc, priceHistory, price } = data?.token?.market ?? {}
+    const subgraphMarket = subgraphData?.token?.market
+    const { ohlc, priceHistory: subgraphPriceHistory, price: subgraphPrice } = subgraphMarket ?? {}
+
+    // Data source strategy: prefer CoinGecko for line charts, use subgraph for candlesticks
+    // Prefer per-chain CoinGecko history when available so multi-chain tokens render correctly
+    const coinGeckoProject = coinGeckoData?.tokenProjects?.[0]
+    const coinGeckoMarket = coinGeckoProject?.markets?.[0]
+    const coinGeckoTokenMarket = coinGeckoProject?.tokens.find((token) => token.chain === variables.chain)?.market
+    const coinGeckoPriceHistory = coinGeckoTokenMarket?.priceHistory ?? coinGeckoMarket?.priceHistory
+    const coinGeckoAggregatedPrice = coinGeckoTokenMarket?.price?.value ?? coinGeckoMarket?.price?.value
+
+    // For line charts, prefer CoinGecko priceHistory but use PER-CHAIN current price
+    // For candlestick charts, always use subgraph OHLC (only source)
+    const useCoinGeckoHistory = priceChartType === PriceChartType.LINE && coinGeckoPriceHistory
+    const priceHistory = useCoinGeckoHistory ? coinGeckoPriceHistory : subgraphPriceHistory
+
+    // CRITICAL: Always use per-chain price from subgraph for multi-chain tokens
+    // This ensures USDC on Ethereum shows Ethereum price, not aggregated price
+    const currentPrice = subgraphPrice?.value ?? coinGeckoAggregatedPrice
+
     let entries =
       (ohlc
-        ? ohlc?.filter((v): v is CandlestickOhlcFragment => v !== undefined).map(toPriceChartData)
+        ? ohlc.filter((v): v is GraphQLApi.CandlestickOhlcFragment => v !== undefined).map(toPriceChartData)
         : priceHistory
-            ?.filter((v): v is PriceHistoryFallbackFragment => v !== undefined)
+            ?.filter((v): v is GraphQLApi.PriceHistoryFallbackFragment => v !== undefined)
             .map(fallbackToPriceChartData)) ?? []
-    const currentPrice = price?.value
 
     if (ohlc) {
       // Special case: backend returns invalid OHLC data on some chains. If we detect long series of 0's, return an empty array to trigger fallback.
@@ -96,6 +141,7 @@ export function useTDPPriceChartData(
         }
       }
       // Special case: backend data for OHLC data is currently too granular, so points should be combined, halving the data
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       else if (priceChartType === PriceChartType.CANDLESTICK) {
         const combinedEntries = []
 
@@ -142,22 +188,30 @@ export function useTDPPriceChartData(
       }
     }
 
-    const dataQuality = checkDataQuality(entries, ChartType.PRICE, variables.duration)
+    const dataQuality = checkDataQuality({ data: entries, chartType: ChartType.PRICE, duration: variables.duration })
     return { chartType: ChartType.PRICE, entries, loading, dataQuality, disableCandlestickUI: fallback }
-  }, [data?.token?.market, fallback, loading, priceChartType, variables.duration])
+  }, [
+    subgraphData?.token?.market,
+    coinGeckoData?.tokenProjects?.[0],
+    fallback,
+    loading,
+    priceChartType,
+    variables.duration,
+    variables.chain,
+  ])
 }
 
 export function useTDPVolumeChartData(
   variables: TDPChartQueryVariables,
   skip: boolean,
 ): ChartQueryResult<SingleHistogramData, ChartType.VOLUME> {
-  const { data, loading } = useTokenHistoricalVolumesQuery({ variables, skip })
+  const { data, loading } = GraphQLApi.useTokenHistoricalVolumesQuery({ variables, skip })
   return useMemo(() => {
     const entries =
       data?.token?.market?.historicalVolume
-        ?.filter((v): v is PriceHistoryFallbackFragment => v !== undefined)
+        ?.filter((v): v is GraphQLApi.PriceHistoryFallbackFragment => v !== undefined)
         .map(withUTCTimestamp) ?? []
-    const dataQuality = checkDataQuality(entries, ChartType.VOLUME, variables.duration)
+    const dataQuality = checkDataQuality({ data: entries, chartType: ChartType.VOLUME, duration: variables.duration })
     return { chartType: ChartType.VOLUME, entries, loading, dataQuality }
   }, [data?.token?.market?.historicalVolume, loading, variables.duration])
 }
@@ -170,11 +224,13 @@ export function useTDPTVLChartData(
   variables: TDPChartQueryVariables,
   skip: boolean,
 ): ChartQueryResult<StackedLineData, ChartType.TVL> {
-  const { data, loading } = useTokenHistoricalTvlsQuery({ variables, skip })
+  const { data, loading } = GraphQLApi.useTokenHistoricalTvlsQuery({ variables, skip })
   return useMemo(() => {
     const { historicalTvl, totalValueLocked } = data?.token?.market ?? {}
     const entries =
-      historicalTvl?.filter((v): v is PriceHistoryFallbackFragment => v !== undefined).map(toStackedLineData) ?? []
+      historicalTvl
+        ?.filter((v): v is GraphQLApi.PriceHistoryFallbackFragment => v !== undefined)
+        .map(toStackedLineData) ?? []
     const currentTvl = totalValueLocked?.value
 
     // Append current tvl to end of array to ensure data freshness and that each time period ends with same tvl
@@ -194,7 +250,7 @@ export function useTDPTVLChartData(
       }
     }
 
-    const dataQuality = checkDataQuality(entries, ChartType.TVL, variables.duration)
+    const dataQuality = checkDataQuality({ data: entries, chartType: ChartType.TVL, duration: variables.duration })
     return { chartType: ChartType.TVL, entries, loading, dataQuality }
   }, [data?.token?.market, loading, variables.duration])
 }

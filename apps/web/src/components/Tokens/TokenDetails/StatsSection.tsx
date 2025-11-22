@@ -1,170 +1,141 @@
-import { HEADER_DESCRIPTIONS } from 'components/Tokens/TokenTable'
-import { UNSUPPORTED_METADATA_CHAINS } from 'components/Tokens/constants'
+import { TokenQueryData } from 'appGraphql/data/Token'
 import { TokenSortMethod } from 'components/Tokens/state'
+import { HEADER_DESCRIPTIONS } from 'components/Tokens/TokenTable'
 import { MouseoverTooltip } from 'components/Tooltip'
-import { TokenQueryData } from 'graphql/data/Token'
-import styled from 'lib/styled-components'
-import { ReactNode } from 'react'
-import { Trans } from 'react-i18next'
-import { ThemedText } from 'theme/components'
-import { ExternalLink } from 'theme/components/Links'
-import { textFadeIn } from 'theme/styles'
-import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { useIsSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { NumberType, useFormatter } from 'utils/formatNumbers'
+import { useTDPContext } from 'pages/TokenDetails/TDPContext'
+import { ReactNode, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Flex, FlexProps, Text } from 'ui/src'
+import { useTokenMarketStats } from 'uniswap/src/features/dataApi/tokenDetails/useTokenDetailsData'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { currencyId } from 'uniswap/src/utils/currencyId'
+import { NumberType } from 'utilities/src/format/types'
 
-export const StatWrapper = styled.div`
-  color: ${({ theme }) => theme.neutral2};
-  font-size: 14px;
-  min-width: 121px;
-  flex: 1;
-  padding-top: 24px;
-  padding-bottom: 0px;
+export const StatWrapper = ({ children, ...props }: { children: ReactNode } & FlexProps) => (
+  <Flex minWidth={121} flex={1} mr="$spacing12" pt="$spacing24" {...props}>
+    {children}
+  </Flex>
+)
 
-  @media screen and (max-width: ${({ theme }) => theme.breakpoint.md}px) {
-    min-width: 168px;
-  }
-`
-const TokenStatsSection = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-`
-export const StatPair = styled.div`
-  display: flex;
-  flex: 1;
-  flex-wrap: wrap;
-`
+export const StatPair = ({ children, ...props }: { children: ReactNode } & FlexProps) => (
+  <Flex row flex={1} flexWrap="wrap" {...props}>
+    {children}
+  </Flex>
+)
 
-const Header = styled(ThemedText.MediumHeader)`
-  font-size: 28px !important;
-  padding-top: 40px;
-`
+export const StatsWrapper = ({ children, ...props }: { children: ReactNode } & FlexProps) => (
+  <Flex animation="200ms" animateEnter="fadeIn" {...props}>
+    {children}
+  </Flex>
+)
 
-const StatPrice = styled.div`
-  margin-top: 4px;
-  font-size: 28px;
-  color: ${({ theme }) => theme.neutral1};
-`
-const NoData = styled.div`
-  color: ${({ theme }) => theme.neutral3};
-  padding-top: 40px;
-`
-export const StatsWrapper = styled.div`
-  gap: 16px;
-  ${textFadeIn}
-`
+const TokenStatsSection = ({ children }: { children: ReactNode }) => (
+  <Flex row flexWrap="wrap">
+    {children}
+  </Flex>
+)
 
 type NumericStat = number | undefined | null
 
 function Stat({
-  dataCy,
+  testID,
   value,
   title,
   description,
 }: {
-  dataCy: string
+  testID: string
   value: NumericStat
   title: ReactNode
   description?: ReactNode
 }) {
-  const { formatNumber } = useFormatter()
+  const { convertFiatAmountFormatted } = useLocalizationContext()
 
   return (
-    <StatWrapper data-cy={`${dataCy}`}>
-      <MouseoverTooltip disabled={!description} text={description}>
-        {title}
-      </MouseoverTooltip>
-      <StatPrice>
-        {formatNumber({
-          input: value,
-          type: NumberType.FiatTokenStats,
-        })}
-      </StatPrice>
+    <StatWrapper data-cy={`${testID}`} data-testid={`${testID}`}>
+      <Text variant="body3" color="$neutral2">
+        <MouseoverTooltip disabled={!description} text={description}>
+          {title}
+        </MouseoverTooltip>
+      </Text>
+      <Text
+        mt="$spacing8"
+        fontSize={28}
+        color="$neutral1"
+        fontWeight="$book"
+        $platform-web={{
+          overflowWrap: 'break-word',
+        }}
+      >
+        {convertFiatAmountFormatted(value, NumberType.FiatTokenStats)}
+      </Text>
     </StatWrapper>
   )
 }
 
 type StatsSectionProps = {
-  chainId: UniverseChainId
-  address: string
   tokenQueryData: TokenQueryData
 }
 export default function StatsSection(props: StatsSectionProps) {
-  const { chainId, address, tokenQueryData } = props
-  const isSupportedChain = useIsSupportedChainId(chainId)
-  const { label, infoLink } = isSupportedChain ? getChainInfo(chainId) : { label: undefined, infoLink: undefined }
+  const { tokenQueryData } = props
+  const { t } = useTranslation()
+  const { currency } = useTDPContext()
 
-  const tokenMarketInfo = tokenQueryData?.market
-  const tokenProjectMarketInfo = tokenQueryData?.project?.markets?.[0] // aggregated market price from CoinGecko
+  // Construct currencyId for shared hooks
+  const currencyIdValue = useMemo(() => currencyId(currency), [currency])
 
-  const FDV = tokenProjectMarketInfo?.fullyDilutedValuation?.value
-  const marketCap = tokenProjectMarketInfo?.marketCap?.value
-  const TVL = tokenMarketInfo?.totalValueLocked?.value
-  const volume24H = tokenMarketInfo?.volume24H?.value
+  // Use shared hook for unified data fetching (CoinGecko-first strategy)
+  const { marketCap, fdv } = useTokenMarketStats(currencyIdValue)
 
-  const hasStats = TVL || FDV || marketCap || volume24H
+  // Volume and TVL come from tokenQueryData to avoid fragment timing issues
+  // These are already loaded with the main TokenWebQuery
+  const volume = tokenQueryData?.market?.volume24H?.value
+  const tvl = tokenQueryData?.market?.totalValueLocked?.value
+
+  const hasStats = tvl || fdv || marketCap || volume
 
   if (hasStats) {
     return (
       <StatsWrapper data-testid="token-details-stats">
-        <Header>
-          <Trans i18nKey="common.stats" />
-        </Header>
+        <Text variant="heading2" color="$neutral1" fontSize={28} pt="$spacing40">
+          {t('common.stats')}
+        </Text>
         <TokenStatsSection>
           <StatPair>
             <Stat
-              dataCy="tvl"
-              value={TVL}
-              description={<Trans i18nKey="stats.tvl.description" />}
-              title={<Trans i18nKey="common.totalValueLocked" />}
+              testID="tvl"
+              value={tvl}
+              description={t('stats.tvl.description')}
+              title={t('common.totalValueLocked')}
             />
             <Stat
-              dataCy="market-cap"
+              testID="market-cap"
               value={marketCap}
-              description={<Trans i18nKey="stats.marketCap.description" />}
-              title={<Trans i18nKey="stats.marketCap" />}
+              description={t('stats.marketCap.description')}
+              title={t('stats.marketCap')}
             />
           </StatPair>
           <StatPair>
             <Stat
-              dataCy="fdv"
-              value={FDV}
+              testID="fdv"
+              value={fdv}
               description={HEADER_DESCRIPTIONS[TokenSortMethod.FULLY_DILUTED_VALUATION]}
-              title={<Trans i18nKey="stats.fdv" />}
+              title={t('stats.fdv')}
             />
             <Stat
-              dataCy="volume-24h"
-              value={volume24H}
-              description={<Trans i18nKey="stats.volume.1d.description" />}
-              title={<Trans i18nKey="stats.volume.1d" />}
+              testID="volume-24h"
+              value={volume}
+              description={t('stats.volume.1d.description')}
+              title={t('stats.volume.1d')}
             />
           </StatPair>
         </TokenStatsSection>
       </StatsWrapper>
     )
   } else {
-    return UNSUPPORTED_METADATA_CHAINS.includes(chainId) ? (
-      <>
-        <Header>
-          <Trans i18nKey="common.stats" />
-        </Header>
-        <ThemedText.BodySecondary pt="12px">
-          <Trans
-            i18nKey="tdp.stats.unsupportedChainDescription"
-            values={{
-              chain: label,
-              infoLink: (
-                <ExternalLink color="currentColor" href={`${infoLink}tokens/${address}`}>
-                  info.uniswap.org
-                </ExternalLink>
-              ),
-            }}
-          />
-        </ThemedText.BodySecondary>
-      </>
-    ) : (
-      <NoData data-cy="token-details-no-stats-data">No stats available</NoData>
+    return (
+      <Text color="$neutral3" pt="$spacing40" data-cy="token-details-no-stats-data">
+        {t('stats.noStatsAvailable')}
+      </Text>
     )
   }
 }

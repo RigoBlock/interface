@@ -1,34 +1,36 @@
-import { InterfaceElementName, SwapEventName } from '@uniswap/analytics-events'
-import { Currency, CurrencyAmount, Percent } from '@uniswap/sdk-core'
-import { Pair } from '@uniswap/v2-sdk'
+import { PrefetchBalancesWrapper } from 'appGraphql/data/apollo/AdaptiveTokenBalancesProvider'
+import type { Currency, CurrencyAmount, Percent } from '@uniswap/sdk-core'
+import type { Pair } from '@uniswap/v2-sdk'
 import { ReactComponent as DropDown } from 'assets/images/dropdown.svg'
-import { ButtonGray } from 'components/Button/DeprecatedWebButtons'
 import { FiatValue } from 'components/CurrencyInputPanel/FiatValue'
 import { formatCurrencySymbol } from 'components/CurrencyInputPanel/utils'
+import { AutoColumn } from 'components/deprecated/Column'
+import { RowBetween, RowFixed } from 'components/deprecated/Row'
 import { LoadingOpacityContainer } from 'components/Loader/styled'
 import CurrencyLogo from 'components/Logo/CurrencyLogo'
 import { DoubleCurrencyLogo } from 'components/Logo/DoubleLogo'
 import { StyledNumericalInput } from 'components/NumericalInput'
+import { SwitchNetworkAction } from 'components/Popups/types'
 import CurrencySearchModal from 'components/SearchModal/CurrencySearchModal'
 import { MouseoverTooltip } from 'components/Tooltip'
-import { AutoColumn } from 'components/deprecated/Column'
-import { RowBetween, RowFixed } from 'components/deprecated/Row'
-import { PrefetchBalancesWrapper } from 'graphql/data/apollo/AdaptiveTokenBalancesProvider'
 import { useAccount } from 'hooks/useAccount'
-import styled, { useTheme } from 'lib/styled-components'
+import { styled } from 'lib/styled-components'
 import ms from 'ms'
-import { ReactNode, forwardRef, useCallback, useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
+import { forwardRef, useCallback, useEffect, useState } from 'react'
 import { Lock } from 'react-feather'
 import { Trans, useTranslation } from 'react-i18next'
 import { useCurrencyBalance } from 'state/connection/hooks'
 import { useMultichainContext } from 'state/multichain/useMultichainContext'
 import { ThemedText } from 'theme/components'
 import { flexColumnNoWrap, flexRowNoWrap } from 'theme/styles'
-import { AnimatePresence, Button, Flex, Text } from 'ui/src'
+import { AnimatePresence, Button, Flex, Text, useSporeColors } from 'ui/src'
 import { useIsSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { CurrencyField } from 'uniswap/src/types/currency'
-import { NumberType, useFormatter } from 'utils/formatNumbers'
+import { NumberType } from 'utilities/src/format/types'
 
 export const InputPanel = styled.div<{ hideInput?: boolean }>`
   ${flexColumnNoWrap};
@@ -65,7 +67,7 @@ interface CurrencySelectProps {
   animateShake?: boolean
 }
 
-export const CurrencySelect = styled(ButtonGray)<CurrencySelectProps>`
+const CurrencySelect = styled.button<CurrencySelectProps>`
   align-items: center;
   background-color: ${({ selected, theme }) => (selected ? theme.surface1 : theme.accent1)};
   opacity: ${({ disabled }) => (!disabled ? 1 : 0.4)};
@@ -76,7 +78,7 @@ export const CurrencySelect = styled(ButtonGray)<CurrencySelectProps>`
   outline: none;
   user-select: none;
   border: 1px solid ${({ selected, theme }) => (selected ? theme.surface3 : theme.accent1)};
-  font-size: 24px;
+  font-size: 16px;
   font-weight: 485;
   width: ${({ hideInput }) => (hideInput ? '100%' : 'initial')};
   padding: ${({ selected }) => (selected ? '4px 8px 4px 4px' : '6px 6px 6px 8px')};
@@ -87,7 +89,7 @@ export const CurrencySelect = styled(ButtonGray)<CurrencySelectProps>`
 
   &:hover,
   &:active {
-    background-color: ${({ theme, selected }) => (selected ? theme.surface2 : theme.accent1)};
+    background-color: ${({ theme, selected }) => (selected ? theme.surface1Hovered : theme.accent1Hovered)};
   }
 
   &:before {
@@ -103,13 +105,17 @@ export const CurrencySelect = styled(ButtonGray)<CurrencySelectProps>`
     content: '';
   }
 
-  &:hover:before {
-    background-color: ${({ theme }) => theme.deprecated_stateOverlayHover};
-  }
+  ${({ hideInput, theme }) =>
+    hideInput &&
+    `
+      &:hover:before {
+        background-color: ${theme.deprecated_stateOverlayHover};
+      }
 
-  &:active:before {
-    background-color: ${({ theme }) => theme.deprecated_stateOverlayPressed};
-  }
+      &:active:before {
+        background-color: ${theme.deprecated_stateOverlayPressed};
+      }
+    `}
 
   visibility: ${({ visible }) => (visible ? 'visible' : 'hidden')};
 
@@ -153,7 +159,7 @@ const LabelRow = styled.div`
   ${flexRowNoWrap};
   align-items: center;
   color: ${({ theme }) => theme.neutral2};
-  font-size: 0.75rem;
+  font-size: 12px;
   line-height: 1rem;
 `
 
@@ -183,7 +189,7 @@ const StyledDropDown = styled(DropDown)<{ selected: boolean }>`
 
 const StyledTokenName = styled.span<{ active?: boolean }>`
   ${({ active }) => (active ? '  margin: 0 0.25rem 0 0.25rem;' : '  margin: 0 0.25rem 0 0.25rem;')}
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 535;
 `
 
@@ -248,10 +254,11 @@ const SwapCurrencyInputPanel = forwardRef<HTMLInputElement, SwapCurrencyInputPan
     const { chainId, isUserSelectedToken } = useMultichainContext()
     const chainAllowed = useIsSupportedChainId(chainId)
     const selectedCurrencyBalance = useCurrencyBalance(account.address, currency ?? undefined)
-    const theme = useTheme()
-    const { formatCurrencyAmount } = useFormatter()
+    const colors = useSporeColors()
+    const { formatCurrencyAmount } = useLocalizationContext()
     const { t } = useTranslation()
 
+    // biome-ignore lint/correctness/useExhaustiveDependencies: +setModalOpen
     const handleDismissSearch = useCallback(() => {
       setModalOpen(false)
     }, [setModalOpen])
@@ -266,6 +273,7 @@ const SwapCurrencyInputPanel = forwardRef<HTMLInputElement, SwapCurrencyInputPan
     }, [tooltipVisible, numericalInputSettings])
 
     // reset tooltip state when currency changes
+    // biome-ignore lint/correctness/useExhaustiveDependencies: currency dependency is sufficient for this effect
     useEffect(() => setTooltipVisible(false), [currency])
 
     const showCurrencyLoadingSpinner =
@@ -331,14 +339,20 @@ const SwapCurrencyInputPanel = forwardRef<HTMLInputElement, SwapCurrencyInputPan
                   <Aligner>
                     <RowFixed>
                       <AnimatePresence>
-                        <Flex row animation="300ms" exitStyle={{ opacity: 0 }} enterStyle={{ opacity: 0 }}>
+                        <Flex
+                          row
+                          alignItems="center"
+                          animation="300ms"
+                          exitStyle={{ opacity: 0 }}
+                          enterStyle={{ opacity: 0 }}
+                        >
                           {pair ? (
-                            <span style={{ marginRight: '0.5rem' }}>
+                            <span style={{ marginRight: '6px' }}>
                               <DoubleCurrencyLogo currencies={[pair.token0, pair.token1]} size={24} />
                             </span>
                           ) : currency ? (
                             <CurrencyLogo
-                              style={{ marginRight: '2px' }}
+                              style={{ marginRight: '6px' }}
                               currency={currency}
                               size={24}
                               loading={showCurrencyLoadingSpinner}
@@ -346,7 +360,7 @@ const SwapCurrencyInputPanel = forwardRef<HTMLInputElement, SwapCurrencyInputPan
                           ) : null}
                           {pair ? (
                             <StyledTokenName className="pair-name-container">
-                              {pair?.token0.symbol}:{pair?.token1.symbol}
+                              {pair.token0.symbol}:{pair.token1.symbol}
                             </StyledTokenName>
                           ) : (
                             <StyledTokenName
@@ -377,11 +391,11 @@ const SwapCurrencyInputPanel = forwardRef<HTMLInputElement, SwapCurrencyInputPan
                     <FiatValue fiatValue={fiatValue} priceImpact={priceImpact} testId={`fiat-value-${id}`} />
                   )}
                 </LoadingOpacityContainer>
-                {account && !initialCurrencyLoading ? (
+                {!initialCurrencyLoading ? (
                   <RowFixed style={{ height: '16px' }}>
                     <ThemedText.DeprecatedBody
                       data-testid="balance-text"
-                      color={theme.neutral2}
+                      color={colors.neutral2.val}
                       fontWeight={485}
                       fontSize={14}
                       style={{ display: 'inline' }}
@@ -394,7 +408,7 @@ const SwapCurrencyInputPanel = forwardRef<HTMLInputElement, SwapCurrencyInputPan
                             i18nKey="swap.balance.amount"
                             values={{
                               amount: formatCurrencyAmount({
-                                amount: selectedCurrencyBalance,
+                                value: selectedCurrencyBalance,
                                 type: NumberType.TokenNonTx,
                               }),
                             }}
@@ -403,17 +417,14 @@ const SwapCurrencyInputPanel = forwardRef<HTMLInputElement, SwapCurrencyInputPan
                       ) : null}
                     </ThemedText.DeprecatedBody>
                     {showMaxButton && selectedCurrencyBalance ? (
-                      <Trace
-                        logPress
-                        eventOnTrigger={SwapEventName.SWAP_MAX_TOKEN_AMOUNT_SELECTED}
-                        element={InterfaceElementName.MAX_TOKEN_AMOUNT_BUTTON}
-                      >
+                      <Trace logPress element={ElementName.MaxTokenAmountButton}>
                         <Button
+                          alignSelf="center"
                           variant="branded"
-                          emphasis="secondary"
-                          size="xxsmall"
-                          py="$spacing4"
-                          ml="$spacing4"
+                          pr="$spacing6"
+                          pl="$spacing12"
+                          emphasis="text-only"
+                          size="small"
                           isDisabled={disabled}
                           onPress={onMax}
                         >
@@ -437,6 +448,7 @@ const SwapCurrencyInputPanel = forwardRef<HTMLInputElement, SwapCurrencyInputPan
             onCurrencySelect={onCurrencySelect}
             selectedCurrency={currency}
             otherSelectedCurrency={otherCurrency}
+            switchNetworkAction={SwitchNetworkAction.Swap}
           />
         )}
       </InputPanel>

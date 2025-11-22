@@ -1,11 +1,10 @@
 import 'utilities/jest-package-mocks'
 import 'uniswap/jest-package-mocks'
 import 'wallet/jest-package-mocks'
-import 'ui/jest-package-mocks'
+import 'config/jest-presets/ui/ui-package-mocks'
 
 import { chrome } from 'jest-chrome'
 import { AppearanceSettingType } from 'wallet/src/features/appearance/slice'
-import { mockSharedPersistQueryClientProvider } from 'uniswap/src/test/mocks/mockSharedPersistQueryClientProvider'
 
 process.env.IS_UNISWAP_EXTENSION = true
 
@@ -45,7 +44,15 @@ globalThis.matchMedia =
 
 require('react-native-reanimated').setUpTests()
 
-global.chrome = chrome
+const MOCK_LANGUAGE = 'en-US'
+
+global.chrome = {
+  ...chrome,
+  i18n: {
+    ...global.chrome.i18n,
+    getUILanguage: jest.fn().mockReturnValue(MOCK_LANGUAGE)
+  }
+}
 
 jest.mock('src/app/navigation/utils', () => ({
   useExtensionNavigation: () => ({
@@ -69,4 +76,3 @@ jest.mock('wallet/src/features/appearance/hooks', () => {
     useSelectedColorScheme: () => 'light',
   }
 })
-

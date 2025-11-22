@@ -1,38 +1,64 @@
 import { useApolloClient } from '@apollo/client'
 import { SharedEventName } from '@uniswap/analytics-events'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { memo, useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { ActivityTab } from 'src/app/components/tabs/ActivityTab'
 import { NftsTab } from 'src/app/components/tabs/NftsTab'
+import { useSmartWalletNudges } from 'src/app/context/SmartWalletNudgesContext'
 import AppRatingModal from 'src/app/features/appRating/AppRatingModal'
 import { useAppRating } from 'src/app/features/appRating/hooks/useAppRating'
-import { ForceUpgradeModal } from 'src/app/features/forceUpgrade/ForceUpgradeModal'
+import { HomeIntroCardStack } from 'src/app/features/home/introCards/HomeIntroCardStack'
 import { PortfolioActionButtons } from 'src/app/features/home/PortfolioActionButtons'
 import { PortfolioHeader } from 'src/app/features/home/PortfolioHeader'
-import { TokenBalanceList } from 'src/app/features/home/TokenBalanceList'
-import { HomeIntroCardStack } from 'src/app/features/home/introCards/HomeIntroCardStack'
-import { PinReminder } from 'src/app/features/onboarding/PinReminder'
+import { ExtensionTokenBalanceList } from 'src/app/features/home/TokenBalanceList'
 import { selectAlertsState } from 'src/app/features/onboarding/alerts/selectors'
 import { AlertName, closeAlert } from 'src/app/features/onboarding/alerts/slice'
+import { PinReminder } from 'src/app/features/onboarding/PinReminder'
 import { useOptimizedSearchParams } from 'src/app/hooks/useOptimizedSearchParams'
 import { HomeQueryParams, HomeTabs } from 'src/app/navigation/constants'
 import { navigate } from 'src/app/navigation/state'
-import { Flex, Loader, Text, TouchableArea, styled } from 'ui/src'
-import { useSelectAddressHasNotifications } from 'uniswap/src/features/notifications/hooks'
-import { setNotificationStatus } from 'uniswap/src/features/notifications/slice'
+import { Flex, Loader, styled, Text, TouchableArea } from 'ui/src'
+import { SMART_WALLET_UPGRADE_VIDEO } from 'ui/src/assets'
+import { NFTS_TAB_DATA_DEPENDENCIES } from 'uniswap/src/components/nfts/constants'
+import { useSelectAddressHasNotifications } from 'uniswap/src/features/notifications/slice/hooks'
+import { setNotificationStatus } from 'uniswap/src/features/notifications/slice/slice'
+import { PortfolioBalance } from 'uniswap/src/features/portfolio/PortfolioBalance/PortfolioBalance'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { logger } from 'utilities/src/logger/logger'
+import { useEvent } from 'utilities/src/react/hooks'
 import { ONE_MINUTE_MS, ONE_SECOND_MS } from 'utilities/src/time/time'
 import { useTimeout } from 'utilities/src/time/timing'
-import { NFTS_TAB_DATA_DEPENDENCIES } from 'wallet/src/components/nfts/NftsList'
+import { SmartWalletEnabledModal } from 'wallet/src/components/smartWallet/modals/SmartWalletEnabledModal'
+import { SmartWalletUpgradeModals } from 'wallet/src/components/smartWallet/modals/SmartWalletUpgradeModal'
+import { useOpenSmartWalletNudgeOnCompletedSwap } from 'wallet/src/components/smartWallet/smartAccounts/hooks'
+import { setIncrementNumPostSwapNudge } from 'wallet/src/features/behaviorHistory/slice'
 import { PendingNotificationBadge } from 'wallet/src/features/notifications/components/PendingNotificationBadge'
-import { PortfolioBalance } from 'wallet/src/features/portfolio/PortfolioBalance'
-import { useHeartbeatReporter, useLastBalancesReporter } from 'wallet/src/features/telemetry/hooks'
-import { useActiveAccountAddressWithThrow } from 'wallet/src/features/wallet/hooks'
+import { useActiveAccountAddressWithThrow, useActiveAccountWithThrow } from 'wallet/src/features/wallet/hooks'
+import { setSmartWalletConsent } from 'wallet/src/features/wallet/slice'
+
+const MemoizedVideo = memo(() => (
+  <Flex borderRadius="$rounded12" overflow="hidden" height="auto" maxWidth="100%" aspectRatio="16 / 9">
+    <video
+      src={SMART_WALLET_UPGRADE_VIDEO}
+      style={{
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+      }}
+      autoPlay
+      muted
+    />
+  </Flex>
+))
+
+MemoizedVideo.displayName = 'MemoizedVideo'
 
 export const HomeScreen = memo(function _HomeScreen(): JSX.Element {
   const { t } = useTranslation()
+  const activeAccount = useActiveAccountWithThrow()
   const [showTabs, setShowTabs] = useState(false)
 
   const apolloClient = useApolloClient()
@@ -42,12 +68,9 @@ export const HomeScreen = memo(function _HomeScreen(): JSX.Element {
 
   const address = useActiveAccountAddressWithThrow()
   const [selectedTab, setSelectedTab] = useSelectedTabState()
+  const isSmartWalletEnabled = useFeatureFlag(FeatureFlags.SmartWallet)
+  const [isSmartWalletEnabledModalOpen, setIsSmartWalletEnabledModalOpen] = useState(false)
   const dispatch = useDispatch()
-
-  // Record a heartbeat for anonymous user DAU
-  useHeartbeatReporter()
-  // Report balances at most every 24 hours, checking every 15 seconds when app is open
-  useLastBalancesReporter()
 
   useEffect(() => {
     if (selectedTab) {
@@ -60,6 +83,27 @@ export const HomeScreen = memo(function _HomeScreen(): JSX.Element {
   // defaults to true, but store state will persist to future loads once updated
   const { isOpen: isPinRequestOpen } = useSelector(selectAlertsState(AlertName.PinToToolbar))
   const onClosePinRequest = useCallback(() => dispatch(closeAlert(AlertName.PinToToolbar)), [dispatch])
+
+  const handleSmartWalletEnable = useCallback(
+    (onComplete?: () => void): void => {
+      dispatch(setSmartWalletConsent({ address: activeAccount.address, smartWalletConsent: true }))
+      onComplete?.()
+      setIsSmartWalletEnabledModalOpen(true)
+    },
+    [dispatch, activeAccount.address],
+  )
+
+  // Handle the smart wallet nudge when a swap transaction is completed
+  const { openModal, activeModal } = useSmartWalletNudges()
+  useOpenSmartWalletNudgeOnCompletedSwap(
+    useEvent(() => {
+      if (!activeAccount.address) {
+        return
+      }
+      dispatch(setIncrementNumPostSwapNudge({ walletAddress: address }))
+      openModal(ModalName.SmartWalletNudge)
+    }),
+  )
 
   useEffect(() => {
     let intervalId: number
@@ -130,7 +174,7 @@ export const HomeScreen = memo(function _HomeScreen(): JSX.Element {
               <PortfolioHeader address={address} />
             </Flex>
             <Flex pb="$spacing8" pl="$spacing4">
-              <PortfolioBalance owner={address} />
+              <PortfolioBalance evmOwner={address} />
             </Flex>
 
             <PortfolioActionButtons />
@@ -166,7 +210,7 @@ export const HomeScreen = memo(function _HomeScreen(): JSX.Element {
                 {showTabs ? (
                   <>
                     <AnimatedTab hideLeft={selectedTab !== HomeTabs.Tokens} isActive={selectedTab === HomeTabs.Tokens}>
-                      <TokenBalanceList owner={address} />
+                      <ExtensionTokenBalanceList owner={address} />
                     </AnimatedTab>
 
                     <AnimatedTab
@@ -174,14 +218,14 @@ export const HomeScreen = memo(function _HomeScreen(): JSX.Element {
                       hideRight={selectedTab === HomeTabs.Tokens}
                       isActive={selectedTab === HomeTabs.NFTs}
                     >
-                      <NftsTab owner={address} />
+                      <NftsTab owner={address} skip={selectedTab !== HomeTabs.NFTs} />
                     </AnimatedTab>
 
                     <AnimatedTab
                       hideRight={selectedTab !== HomeTabs.Activity}
                       isActive={selectedTab === HomeTabs.Activity}
                     >
-                      <ActivityTab address={address} />
+                      <ActivityTab address={address} skip={selectedTab !== HomeTabs.Activity} />
                     </AnimatedTab>
                   </>
                 ) : (
@@ -199,7 +243,21 @@ export const HomeScreen = memo(function _HomeScreen(): JSX.Element {
         </Text>
       )}
       {appRatingModalVisible && <AppRatingModal onClose={onAppRatingModalClose} />}
-      <ForceUpgradeModal />
+      {isSmartWalletEnabled && !activeModal && (
+        <SmartWalletUpgradeModals
+          account={activeAccount}
+          video={<MemoizedVideo />}
+          onEnableSmartWallet={handleSmartWalletEnable}
+        />
+      )}
+
+      {isSmartWalletEnabledModalOpen && isSmartWalletEnabled ? (
+        <SmartWalletEnabledModal
+          isOpen
+          showReconnectDappPrompt={false}
+          onClose={() => setIsSmartWalletEnabledModalOpen(false)}
+        />
+      ) : undefined}
     </Flex>
   )
 })

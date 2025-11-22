@@ -1,32 +1,37 @@
 import 'test-utils/tokens/mocks'
 
 import { WETH9 } from '@uniswap/sdk-core'
-import { Activity } from 'components/AccountDrawer/MiniPortfolio/Activity/types'
+import { TradingApi } from '@universe/api'
 import { LimitDetailActivityRow } from 'components/AccountDrawer/MiniPortfolio/Limits/LimitDetailActivityRow'
-import { SignatureType, UniswapXOrderDetails } from 'state/signatures/types'
 import { render, screen } from 'test-utils/render'
-import { UniswapXOrderStatus } from 'types/uniswapx'
 import { DAI } from 'uniswap/src/constants/tokens'
-import { TransactionStatus } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import {
+  TransactionOriginType,
+  TransactionStatus,
+  TransactionType,
+  UniswapXOrderDetails,
+} from 'uniswap/src/features/transactions/types/transactionDetails'
+import { currencyId } from 'uniswap/src/utils/currencyId'
 
-jest.mock('components/AccountDrawer/MiniPortfolio/formatTimestamp', () => {
+vi.mock('components/AccountDrawer/MiniPortfolio/formatTimestamp', async () => {
+  const actual = await vi.importActual('components/AccountDrawer/MiniPortfolio/formatTimestamp')
   return {
-    ...jest.requireActual('components/AccountDrawer/MiniPortfolio/formatTimestamp'),
+    ...actual,
     formatTimestamp: () => 'Expires January 1, 1970 at 12:00 AM',
   }
 })
 
 const mockOrderDetails: UniswapXOrderDetails = {
-  type: SignatureType.SIGN_LIMIT,
+  routing: TradingApi.Routing.DUTCH_LIMIT,
   orderHash: '0x1234',
-  status: UniswapXOrderStatus.OPEN,
-  swapInfo: {
+  status: TransactionStatus.Pending,
+  typeInfo: {
     isUniswapXOrder: true,
-    type: 1,
+    type: TransactionType.Swap,
     tradeType: 0,
-    inputCurrencyId: DAI.address,
-    outputCurrencyId: WETH9[UniverseChainId.Mainnet].address,
+    inputCurrencyId: currencyId(DAI),
+    outputCurrencyId: currencyId(WETH9[UniverseChainId.Mainnet]),
     inputCurrencyAmountRaw: '252074033564766400000',
     expectedOutputCurrencyAmountRaw: '106841079134757921',
     minimumOutputCurrencyAmountRaw: '106841079134757921',
@@ -37,56 +42,26 @@ const mockOrderDetails: UniswapXOrderDetails = {
   addedTime: 3,
   chainId: UniverseChainId.Mainnet,
   expiry: 4,
-  offerer: '0x1234',
-}
-
-const mockOrder: Activity = {
-  hash: '0x123',
-  chainId: UniverseChainId.Mainnet,
-  status: TransactionStatus.Pending,
-  timestamp: 1,
-  title: 'Limit pending',
-  from: '0x456',
-  offchainOrderDetails: mockOrderDetails,
-  currencies: [DAI, WETH9[UniverseChainId.Mainnet]],
+  from: '0x1234',
+  transactionOriginType: TransactionOriginType.Internal,
 }
 
 describe('LimitDetailActivityRow', () => {
-  it('should not render with invalid details', () => {
+  it('should not render with invalid order details', () => {
+    const invalidOrder = { ...mockOrderDetails, typeInfo: undefined } as any
     const { container } = render(
-      <LimitDetailActivityRow
-        order={{ ...mockOrder, offchainOrderDetails: undefined }}
-        onToggleSelect={jest.fn()}
-        selected={false}
-      />,
+      <LimitDetailActivityRow order={invalidOrder} onToggleSelect={vi.fn()} selected={false} />,
     )
-    expect(container.firstChild?.firstChild?.firstChild?.firstChild?.firstChild).toBeNull()
-  })
-
-  it('should not render with invalid amounts', () => {
-    const { container } = render(
-      <LimitDetailActivityRow
-        onToggleSelect={jest.fn()}
-        selected={false}
-        order={{
-          ...mockOrder,
-          offchainOrderDetails: {
-            ...mockOrderDetails,
-            swapInfo: undefined as any,
-          },
-        }}
-      />,
-    )
-    expect(container.firstChild?.firstChild?.firstChild?.firstChild?.firstChild).toBeNull()
+    expect(container.firstChild?.firstChild?.firstChild).toBeNull()
   })
 
   it('should render with valid details', () => {
     // Addresses a console.error -- `Warning: React does not recognize the `scaleIcon` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `scaleicon` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
     // This is from tamagui's Checkbox component`
-    jest.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'error').mockImplementation(() => {})
 
     const { container } = render(
-      <LimitDetailActivityRow onToggleSelect={jest.fn()} selected={false} order={mockOrder} />,
+      <LimitDetailActivityRow onToggleSelect={vi.fn()} selected={false} order={mockOrderDetails} />,
     )
     expect(container.firstChild).toMatchSnapshot()
     expect(screen.getByText('when 0.00042 WETH/DAI')).toBeInTheDocument()

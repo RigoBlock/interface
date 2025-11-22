@@ -1,4 +1,4 @@
-import { ethers } from 'ethers'
+import { toUtf8String } from '@ethersproject/strings'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DappRequestContent } from 'src/app/features/dappRequests/DappRequestContent'
@@ -28,7 +28,7 @@ export function PersonalSignRequestContent({ dappRequest }: PersonalSignRequestP
   const containsUnrenderableCharacters = !utf8Message || containsNonPrintableChars(utf8Message)
   useEffect(() => {
     try {
-      const decodedMessage = ethers.utils.toUtf8String(hexMessage)
+      const decodedMessage = toUtf8String(hexMessage)
       setUtf8Message(decodedMessage)
     } catch {
       // If the message is not valid UTF-8, we'll show the hex message instead (e.g. Polymark claim deposit message )
@@ -39,6 +39,7 @@ export function PersonalSignRequestContent({ dappRequest }: PersonalSignRequestP
 
   const [isScrollable, setIsScrollable] = useState(false)
   const messageRef = useRef<HTMLElement>(null)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: viewEncoding and utf8Message affect rendered content which changes scroll height
   useEffect(() => {
     const checkScroll = (): void => {
       if (!messageRef.current) {
@@ -51,7 +52,7 @@ export function PersonalSignRequestContent({ dappRequest }: PersonalSignRequestP
     window.addEventListener('resize', checkScroll)
 
     return () => window.removeEventListener('resize', checkScroll)
-  }, [setIsScrollable, viewEncoding, utf8Message])
+  }, [viewEncoding, utf8Message])
 
   return (
     <DappRequestContent
@@ -95,7 +96,7 @@ export function PersonalSignRequestContent({ dappRequest }: PersonalSignRequestP
             />
           </Tooltip.Trigger>
         </Flex>
-        <Tooltip.Content>
+        <Tooltip.Content animationDirection="left">
           <Tooltip.Arrow />
           <Text variant="body4">
             {viewEncoding === ViewEncoding.UTF8

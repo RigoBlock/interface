@@ -1,13 +1,14 @@
-import { BottomSheetModal as BaseModal } from '@gorhom/bottom-sheet'
-import { ComponentProps, PropsWithChildren, ReactNode } from 'react'
-import { SharedValue } from 'react-native-reanimated'
-import { ColorTokens, SpaceTokens, View } from 'ui/src'
-import { HandleBarProps } from 'uniswap/src/components/modals/HandleBar'
-import { ModalNameType } from 'uniswap/src/features/telemetry/constants'
+import type { BottomSheetModal as BaseModal, BottomSheetView } from '@gorhom/bottom-sheet'
+import type { ComponentProps, PropsWithChildren, ReactNode } from 'react'
+import type { SharedValue } from 'react-native-reanimated'
+import type { ColorTokens, SpaceTokens, View } from 'ui/src'
+import type { HandleBarProps } from 'uniswap/src/components/modals/HandleBar'
+import type { ModalNameType } from 'uniswap/src/features/telemetry/constants'
 
 export type ModalProps = PropsWithChildren<{
   animatedPosition?: SharedValue<number>
   hideHandlebar?: boolean
+  forceRoundedCorners?: boolean
   name: ModalNameType
   enableDynamicSizing?: boolean
   onClose?: () => void
@@ -37,14 +38,19 @@ export type ModalProps = PropsWithChildren<{
   // TODO MOB-2526 refactor Modal to more platform-agnostic
   alignment?: 'center' | 'top'
   hideScrim?: boolean
-  maxWidth?: number
+  maxWidth?: ComponentProps<typeof View>['maxWidth']
   maxHeight?: ComponentProps<typeof View>['maxHeight']
   height?: 'max-content' | 'auto' | '100vh' | '100%' | number | null
   padding?: SpaceTokens
   paddingX?: SpaceTokens
   paddingY?: SpaceTokens
+  pt?: SpaceTokens
+  pb?: SpaceTokens
+  mx?: SpaceTokens
   bottomAttachment?: ReactNode
   gap?: ComponentProps<typeof View>['gap']
   flex?: ComponentProps<typeof View>['flex']
   zIndex?: number
+  borderWidth?: number
+  focusHook?: ComponentProps<typeof BottomSheetView>['focusHook']
 }>

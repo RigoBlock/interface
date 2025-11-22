@@ -1,11 +1,11 @@
 import { Protocol } from '@uniswap/router-sdk'
-import UniswapXBrandMark from 'components/Logo/UniswapXBrandMark'
-import QuestionHelper from 'components/QuestionHelper'
 import Column from 'components/deprecated/Column'
 import Row, { RowBetween } from 'components/deprecated/Row'
+import UniswapXBrandMark from 'components/Logo/UniswapXBrandMark'
+import QuestionHelper from 'components/QuestionHelper'
 import { useIsUniswapXSupportedChain } from 'hooks/useIsUniswapXSupportedChain'
 import { atom, useAtom } from 'jotai'
-import styled from 'lib/styled-components'
+import { styled } from 'lib/styled-components'
 import { ReactNode, useCallback } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { RouterPreference } from 'state/routing/types'
@@ -13,7 +13,7 @@ import { ThemedText } from 'theme/components'
 import { ExternalLink } from 'theme/components/Links'
 import { Flex, Switch } from 'ui/src'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
-import { useV4SwapEnabled } from 'uniswap/src/features/transactions/swap/useV4SwapEnabled'
+import { useV4SwapEnabled } from 'uniswap/src/features/transactions/swap/hooks/useV4SwapEnabled'
 
 const LabelWrapper = styled(Column)`
   height: 100%;
@@ -57,7 +57,7 @@ const DEFAULT_ROUTING_PREFERENCE: RoutingPreference = {
   protocols: [Protocol.V2, Protocol.V3, Protocol.MIXED],
 }
 
-export const routingPreferencesAtom = atom(DEFAULT_ROUTING_PREFERENCE)
+const routingPreferencesAtom = atom(DEFAULT_ROUTING_PREFERENCE)
 const routePreferenceOptionsAtom = atom<RoutePreferenceOptionsType>(DEFAULT_ROUTE_PREFERENCE_OPTIONS)
 
 function UniswapXPreferenceLabel() {

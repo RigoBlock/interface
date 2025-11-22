@@ -1,12 +1,17 @@
 import { useTranslation } from 'react-i18next'
 import { Text } from 'ui/src'
-import { WarningModal } from 'uniswap/src/components/modals/WarningModal/WarningModal'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
+import { WarningModal } from 'uniswap/src/components/modals/WarningModal/WarningModal'
 import { LearnMoreLink } from 'uniswap/src/components/text/LearnMoreLink'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 
-export function ContractAddressExplainerModal({ onAcknowledge }: { onAcknowledge: () => void }): JSX.Element | null {
+export function ContractAddressExplainerModal({
+  onAcknowledge,
+}: {
+  onAcknowledge: (markViewed: boolean) => void
+}): JSX.Element | null {
   const { t } = useTranslation()
 
   return (
@@ -16,7 +21,12 @@ export function ContractAddressExplainerModal({ onAcknowledge }: { onAcknowledge
       title={t('token.safety.warning.copyContractAddress.title')}
       captionComponent={
         <>
-          <Text variant="body3" color="$neutral2" textAlign="center">
+          <Text
+            testID={TestID.ContractAddressExplainerModalWarning}
+            variant="body3"
+            color="$neutral2"
+            textAlign="center"
+          >
             {t('token.safety.warning.copyContractAddress.message')}
           </Text>
           <LearnMoreLink
@@ -29,8 +39,8 @@ export function ContractAddressExplainerModal({ onAcknowledge }: { onAcknowledge
       }
       severity={WarningSeverity.Low}
       acknowledgeText={t('common.button.understand')}
-      onAcknowledge={onAcknowledge}
-      onClose={onAcknowledge}
+      onAcknowledge={() => onAcknowledge(true)}
+      onClose={() => onAcknowledge(false)}
     />
   )
 }

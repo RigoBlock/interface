@@ -1,12 +1,15 @@
-import { DropdownSelector, InternalMenuItem } from 'components/DropdownSelector'
+import { TimePeriod } from 'appGraphql/data/util'
+import { Dropdown, InternalMenuItem } from 'components/Dropdowns/Dropdown'
 import { filterTimeAtom } from 'components/Tokens/state'
-import { TimePeriod } from 'graphql/data/util'
 import { useAtom } from 'jotai'
-import { useTheme } from 'lib/styled-components'
-import { useState } from 'react'
+import { useExploreParams } from 'pages/Explore/redirects'
+import { useEffect, useState } from 'react'
 import { Check } from 'react-feather'
 import { useTranslation } from 'react-i18next'
-import { Flex, useMedia } from 'ui/src'
+import { Flex, useMedia, useSporeColors } from 'ui/src'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { TestID } from 'uniswap/src/test/fixtures/testIDs'
+import { getChainIdFromChainUrlParam } from 'utils/chainParams'
 
 export enum TimePeriodDisplay {
   HOUR = '1H',
@@ -40,6 +43,8 @@ export function getTimePeriodFromDisplay(display: TimePeriodDisplay): TimePeriod
   }
 }
 
+const SOLANA_ORDERED_TIMES: TimePeriod[] = [TimePeriod.HOUR, TimePeriod.DAY]
+
 export const ORDERED_TIMES: TimePeriod[] = [
   TimePeriod.HOUR,
   TimePeriod.DAY,
@@ -51,27 +56,38 @@ export const ORDERED_TIMES: TimePeriod[] = [
 // TODO: change this to reflect data pipeline
 export default function VolumeTimeFrameSelector() {
   const { t } = useTranslation()
-  const theme = useTheme()
+  const colors = useSporeColors()
   const [isMenuOpen, toggleMenu] = useState(false)
   const [activeTime, setTime] = useAtom(filterTimeAtom)
 
   const media = useMedia()
   const isLargeScreen = !media.xl
 
+  // Solana volume data is only available for time frames < 1 day
+  const { chainName } = useExploreParams()
+  const currentChainId = chainName ? getChainIdFromChainUrlParam(chainName) : undefined
+  const orderedTimes = currentChainId === UniverseChainId.Solana ? SOLANA_ORDERED_TIMES : ORDERED_TIMES
+  useEffect(() => {
+    // if the current displayed time period is not available for Solana, set it 1 Day
+    if (currentChainId === UniverseChainId.Solana && !SOLANA_ORDERED_TIMES.includes(activeTime)) {
+      setTime(TimePeriod.DAY)
+    }
+  }, [currentChainId, activeTime, setTime])
+
   return (
     <Flex>
-      <DropdownSelector
+      <Dropdown
         isOpen={isMenuOpen}
         toggleOpen={toggleMenu}
         menuLabel={`${DISPLAYS[activeTime]} ${isLargeScreen ? t('common.volume').toLowerCase() : ''}`}
-        dataTestId="time-selector"
+        dataTestId={TestID.TimeSelector}
         buttonStyle={{ height: 40 }}
         dropdownStyle={{ maxHeight: 300 }}
         adaptToSheet
         allowFlip
         alignRight={!media.lg}
       >
-        {ORDERED_TIMES.map((time) => (
+        {orderedTimes.map((time) => (
           <InternalMenuItem
             key={DISPLAYS[time]}
             data-testid={DISPLAYS[time]}
@@ -83,10 +99,10 @@ export default function VolumeTimeFrameSelector() {
             <Flex>
               {DISPLAYS[time]} {t('common.volume').toLowerCase()}
             </Flex>
-            {time === activeTime && <Check color={theme.accent1} size={16} />}
+            {time === activeTime && <Check color={colors.accent1.val} size={16} />}
           </InternalMenuItem>
         ))}
-      </DropdownSelector>
+      </Dropdown>
     </Flex>
   )
 }

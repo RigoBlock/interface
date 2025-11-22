@@ -47,7 +47,7 @@ Note: If you are indeed using an Apple Silicon Mac, we recommend setting up your
 ### Packages and Software
 
 1. Install `homebrew`. We’ll be using Homebrew to install many of the other required tools through the command line. Open a terminal and Copy and paste the command from [brew.sh](https://brew.sh/) into your terminal and run it
-2. Install `nvm` [Node Version Manager](https://github.com/nvm-sh/nvm) While not required, it makes it easy to install Node and switch between different versions. A minimum Node version of 18 (verify version in `.nvmrc`) is required to use this repository.
+2. Install `nvm` [Node Version Manager](https://github.com/nvm-sh/nvm) While not required, it makes it easy to install Node and switch between different versions. Use the version of `node` specified in `.nvmrc`.
 
    - Copy the curl command listed under _Install & Update Script_ on [this page](https://github.com/nvm-sh/nvm#install--update-script) and run it in your terminal.
    - To make sure nvm installed correctly, try running `nvm -v` (you may need to re-source your shell with `source {base config}`). It should return a version number. If it returns something like `zsh: command not found: nvm`, it hasn’t been installed correctly.
@@ -98,18 +98,18 @@ Note: If you are indeed using an Apple Silicon Mac, we recommend setting up your
     load-nvmrc
     ```
 
-4. Install `yarn`. We use yarn as our package manager and to run scripts.
+4. Install `bun`. We use bun as our package manager and to run scripts.
 
     Run the following command to install it (npm comes with node, so it should work if the above step has been completed correctly)
 
     ```bash
-    npm install --global yarn
+    curl -fsSL https://bun.sh/install | bash
     ```
 
     Check version to verify installation
 
     ```bash
-    > yarn -v
+    > bun -v
     3.2.3
     ```
 
@@ -209,7 +209,7 @@ Select the version that pops up.
 
     ```bash
     adb reverse tcp:8081 tcp:8081
-    yarn mobile android
+    bun mobile android
     ```
 
 If it fails, quit the terminal and run it directly from Android Studio. Once you get the first build running, retry the previous step.
@@ -224,21 +224,21 @@ Note: The app will likely have limited functionality when running it locally wit
 
 Use the environment variables defined in the `.env.defaults.local` file to run the app locally.
 
-You can use the command `yarn mobile env:local:download` if you have the 1password CLI to copy that file to your root folder.
+You can use the command `bun mobile env:local:download` if you have the 1password CLI to copy that file to your root folder.
 
 ### Compile contract ABI types
 
-This is done in bootstrap but good to know about. Before the code will compile you need to generate types for the smart contracts the wallet interacts with. Run `yarn g:prepare` at the top level. Re-run this if the ABIs are ever changed.
+This is done in bootstrap but good to know about. Before the code will compile you need to generate types for the smart contracts the wallet interacts with. Run `bun g:prepare` at the top level. Re-run this if the ABIs are ever changed.
 
 ### Run the app
 
-In the root directory, run `yarn` to install all the necessary npm packages.
+In the root directory, run `bun install` to install all the necessary npm packages.
 
-Then run `yarn mobile pod` to install all the necessary pods. (You may need to updated source repos with `pod repo update` if this fails.)
+Then run `bun mobile pod` to install all the necessary pods. (You may need to updated source repos with `pod repo update` if this fails.)
 
-Finally, run `yarn mobile ios` to boot up the iOS Simulator and run the app inside it. The JS bundler (metro) should automatically open in a new terminal window. If it does not, start it manually with `yarn start`.
+Finally, run `bun mobile ios` to boot up the iOS Simulator and run the app inside it. The JS bundler (metro) should automatically open in a new terminal window. If it does not, start it manually with `bun start`.
 
-Or you can use one command to run them all one after the other: `yarn && yarn pod && yarn ios`
+Or you can use one command to run them all one after the other: `bun install && bun pod && bun ios`
 
 You can also run the app from Xcode, which is necessary for any Swift related changes. Xcode will automatically start the metro bundler.
 
@@ -331,8 +331,8 @@ If something isn’t working the way it should or you’re getting a weird error
 8. Go to Product → Clean Build Folder
 9. Open your terminal again
 10. Navigate to the `mobile` directory in the terminal
-11. Run `yarn && yarn pod` again
-12. Run `yarn ios`
+11. Run `bun install && bun pod` again
+12. Run `bun ios`
 
 ### Shell profile setup
 

@@ -9,8 +9,8 @@ import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { GasFeeResult } from 'uniswap/src/features/gas/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { ValueType, getCurrencyAmount } from 'uniswap/src/features/tokens/getCurrencyAmount'
-import { useUSDCValue } from 'uniswap/src/features/transactions/swap/hooks/useUSDCPrice'
+import { getCurrencyAmount, ValueType } from 'uniswap/src/features/tokens/getCurrencyAmount'
+import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'
 import { NumberType } from 'utilities/src/format/types'
 
 export function SwapDisplay({
@@ -20,6 +20,7 @@ export function SwapDisplay({
   outputCurrencyInfo,
   chainId,
   transactionGasFeeResult,
+  showSmartWalletActivation,
   onCancel,
   onConfirm,
   isUniswapX,
@@ -32,6 +33,7 @@ export function SwapDisplay({
   outputCurrencyInfo: Maybe<CurrencyInfo>
   chainId: UniverseChainId | null
   transactionGasFeeResult?: GasFeeResult
+  showSmartWalletActivation?: boolean
   onCancel?: () => Promise<void>
   onConfirm?: () => Promise<void>
   isUniswapX?: boolean
@@ -92,6 +94,7 @@ export function SwapDisplay({
       isUniswapX={isUniswapX}
       title={title}
       transactionGasFeeResult={transactionGasFeeResult}
+      showSmartWalletActivation={showSmartWalletActivation}
       onCancel={onCancel}
       onConfirm={onConfirm}
     >

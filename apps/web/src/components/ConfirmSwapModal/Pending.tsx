@@ -5,28 +5,26 @@ import {
   LogoContainer,
 } from 'components/AccountDrawer/MiniPortfolio/Activity/Logos'
 import { OrderContent } from 'components/AccountDrawer/MiniPortfolio/Activity/OffchainActivityModal'
-import { TradeSummary } from 'components/ConfirmSwapModal/TradeSummary'
 import { slideInAnimation, slideOutAnimation } from 'components/ConfirmSwapModal/animations'
+import { TradeSummary } from 'components/ConfirmSwapModal/TradeSummary'
 import Column, { ColumnCenter } from 'components/deprecated/Column'
 import Row from 'components/deprecated/Row'
 import { useAccount } from 'hooks/useAccount'
 import { SwapResult, useSwapTransactionStatus } from 'hooks/useSwapCallback'
 import { useUnmountingAnimation } from 'hooks/useUnmountingAnimation'
 import { TFunction } from 'i18next'
-import styled, { css } from 'lib/styled-components'
+import { css, styled } from 'lib/styled-components'
 import { ReactNode, useMemo, useRef } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { InterfaceTrade, TradeFillType } from 'state/routing/types'
 import { isLimitTrade, isUniswapXTradeType } from 'state/routing/utils'
-import { useOrder } from 'state/signatures/hooks'
-import { useIsTransactionConfirmed } from 'state/transactions/hooks'
+import { useIsTransactionConfirmed, useUniswapXOrderByOrderHash } from 'state/transactions/hooks'
 import { AnimationType } from 'theme/components/FadePresence'
 import { ExternalLink } from 'theme/components/Links'
 import { ThemedText } from 'theme/components/text'
-import { UniswapXOrderStatus } from 'types/uniswapx'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
-import { TransactionStatus } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
 
 const Container = styled(ColumnCenter)`
@@ -117,40 +115,45 @@ export function Pending({
   const { t } = useTranslation()
 
   const swapStatus = useSwapTransactionStatus(swapResult)
-  const uniswapXOrder = useOrder(isUniswapXTradeType(swapResult?.type) ? swapResult.response.orderHash : '')
+  const uniswapXOrder = useUniswapXOrderByOrderHash(
+    isUniswapXTradeType(swapResult?.type) ? swapResult.response.orderHash : '',
+  )
 
-  const limitPlaced = isLimitTrade(initialTrade) && uniswapXOrder?.status === UniswapXOrderStatus.OPEN
-  const swapConfirmed =
-    swapStatus === TransactionStatus.Confirmed || uniswapXOrder?.status === UniswapXOrderStatus.FILLED
+  const limitPlaced = isLimitTrade(initialTrade) && uniswapXOrder?.status === TransactionStatus.Pending
+  const swapConfirmed = swapStatus === TransactionStatus.Success || uniswapXOrder?.status === TransactionStatus.Success
   const wrapConfirmed = useIsTransactionConfirmed(wrapTxHash)
 
   const swapPending = swapResult !== undefined && !swapConfirmed
-  const wrapPending = wrapTxHash != undefined && !wrapConfirmed
+  const wrapPending = wrapTxHash !== undefined && !wrapConfirmed
   const transactionPending = revocationPending || tokenApprovalPending || wrapPending || swapPending
 
-  const showSubmitted = swapPending && !swapConfirmed && chainId === UniverseChainId.Mainnet
+  const showSubmitted = swapPending && chainId === UniverseChainId.Mainnet
   const showSuccess = swapConfirmed || (chainId !== UniverseChainId.Mainnet && swapPending)
 
   const currentStepContainerRef = useRef<HTMLDivElement>(null)
-  useUnmountingAnimation(currentStepContainerRef, () => AnimationType.EXITING)
+  useUnmountingAnimation({ node: currentStepContainerRef, getAnimatingClass: () => AnimationType.EXITING })
 
   const explorerLink = useMemo(() => {
     let txHash
     if (swapResult && swapResult.type === TradeFillType.Classic) {
       txHash = swapResult.response.hash
-    } else if (uniswapXOrder && uniswapXOrder.status === UniswapXOrderStatus.FILLED) {
-      txHash = uniswapXOrder.txHash
+    } else if (uniswapXOrder && uniswapXOrder.status === TransactionStatus.Success) {
+      txHash = uniswapXOrder.hash
     } else {
       return undefined
     }
-    return getExplorerLink(chainId || UniverseChainId.Mainnet, txHash, ExplorerDataType.TRANSACTION)
+    return getExplorerLink({
+      chainId: chainId || UniverseChainId.Mainnet,
+      data: txHash,
+      type: ExplorerDataType.TRANSACTION,
+    })
   }, [chainId, swapResult, uniswapXOrder])
 
   // Handle special statuses for UniswapX orders
   if (
     uniswapXOrder &&
-    uniswapXOrder.status !== UniswapXOrderStatus.OPEN &&
-    uniswapXOrder.status !== UniswapXOrderStatus.FILLED
+    uniswapXOrder.status !== TransactionStatus.Pending &&
+    uniswapXOrder.status !== TransactionStatus.Success
   ) {
     return <OrderContent order={uniswapXOrder} />
   }
@@ -186,7 +189,7 @@ export function Pending({
           </Row>
         )}
         {/* Display while UniswapX order is still pending */}
-        {uniswapXOrder && uniswapXOrder.status === UniswapXOrderStatus.OPEN && (
+        {uniswapXOrder && uniswapXOrder.status === TransactionStatus.Pending && (
           <Row justify="center" marginTop="32px" minHeight="24px">
             <ThemedText.BodySmall color="neutral2">
               <ExternalLink

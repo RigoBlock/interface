@@ -1,29 +1,26 @@
-import { useAtom } from 'jotai'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { getExploreDescription, getExploreTitle } from 'pages/getExploreTitle'
 import { getAddLiquidityPageTitle, getPositionPageDescription, getPositionPageTitle } from 'pages/getPositionPageTitle'
-import { ReactNode, Suspense, lazy, useMemo } from 'react'
-import { Navigate, Route, Routes, matchPath, useLocation } from 'react-router-dom'
-import { shouldDisableNFTRoutesAtom } from 'state/application/atoms'
-import { isBrowserRouterEnabled } from 'utils/env'
 // High-traffic pages (index and /swap) should not be lazy-loaded.
 import Landing from 'pages/Landing'
-import { RemoveLiquidityV2WithTokenRedirects } from 'pages/LegacyPool/redirects'
 import Swap from 'pages/Swap'
+import { lazy, ReactNode, Suspense, useMemo } from 'react'
+import { matchPath, Navigate, Route, Routes, useLocation } from 'react-router'
+import { CHROME_EXTENSION_UNINSTALL_URL_PATH } from 'uniswap/src/constants/urls'
+import { WRAPPED_SOL_ADDRESS_SOLANA } from 'uniswap/src/features/chains/svm/defaults'
+import { EXTENSION_PASSKEY_AUTH_PATH } from 'uniswap/src/features/passkey/constants'
 import i18n from 'uniswap/src/i18n'
+import { isBrowserRouterEnabled } from 'utils/env'
 
-const NftExplore = lazy(() => import('nft/pages/explore'))
-const Collection = lazy(() => import('nft/pages/collection'))
-const CreatePosition = lazy(() => import('pages/Pool/Positions/create/CreatePosition'))
-const Profile = lazy(() => import('nft/pages/profile'))
-const Asset = lazy(() => import('nft/pages/asset/Asset'))
+const CreatePosition = lazy(() => import('pages/CreatePosition/CreatePosition'))
 const AddLiquidityV3WithTokenRedirects = lazy(() => import('pages/AddLiquidityV3/redirects'))
 const AddLiquidityV2WithTokenRedirects = lazy(() => import('pages/AddLiquidityV2/redirects'))
 const RedirectExplore = lazy(() => import('pages/Explore/redirects'))
-const MigrateV2 = lazy(() => import('pages/MigrateV2'))
-const MigrateV2Pair = lazy(() => import('pages/MigrateV2/MigrateV2Pair'))
-const MigrateV3 = lazy(() => import('pages/MigrateV3'))
+const LegacyMigrateV2 = lazy(() => import('pages/MigrateV2'))
+const LegacyMigrateV2Pair = lazy(() => import('pages/MigrateV2/MigrateV2Pair'))
+const MigrateV3 = lazy(() => import('pages/Migrate'))
 const NotFound = lazy(() => import('pages/NotFound'))
-const Pool = lazy(() => import('pages/Pool'))
+const Pool = lazy(() => import('pages/Positions'))
 const LegacyPoolRedirects = lazy(() =>
   import('pages/LegacyPool/redirects').then((module) => ({ default: module.LegacyPoolRedirects })),
 )
@@ -33,15 +30,25 @@ const PoolFinderRedirects = lazy(() =>
 const LegacyPositionPageRedirects = lazy(() =>
   import('pages/LegacyPool/redirects').then((module) => ({ default: module.LegacyPositionPageRedirects })),
 )
-const PositionPage = lazy(() => import('pages/Pool/Positions/PositionPage'))
-const V2PositionPage = lazy(() => import('pages/Pool/Positions/V2PositionPage'))
+const RemoveLiquidityV2WithTokenRedirects = lazy(() =>
+  import('pages/LegacyPool/redirects').then((module) => ({ default: module.RemoveLiquidityV2WithTokenRedirects })),
+)
+const PositionPage = lazy(() => import('pages/Positions/PositionPage'))
+const V2PositionPage = lazy(() => import('pages/Positions/V2PositionPage'))
 const PoolDetails = lazy(() => import('pages/PoolDetails'))
 const TokenDetails = lazy(() => import('pages/TokenDetails'))
+const ExtensionPasskeyAuthPopUp = lazy(() => import('pages/ExtensionPasskeyAuthPopUp'))
+const PasskeyManagement = lazy(() => import('pages/PasskeyManagement'))
+const ExtensionUninstall = lazy(() => import('pages/ExtensionUninstall/ExtensionUninstall'))
+const Portfolio = lazy(() => import('pages/Portfolio/Portfolio'))
+const ToucanToken = lazy(() => import('pages/Explore/ToucanToken'))
 
 interface RouterConfig {
   browserRouterEnabled?: boolean
   hash?: string
-  shouldDisableNFTRoutes?: boolean
+  isEmbeddedWalletEnabled?: boolean
+  isPortfolioPageEnabled?: boolean
+  isToucanEnabled?: boolean
 }
 
 /**
@@ -50,15 +57,19 @@ interface RouterConfig {
 export function useRouterConfig(): RouterConfig {
   const browserRouterEnabled = isBrowserRouterEnabled()
   const { hash } = useLocation()
-  const [shouldDisableNFTRoutes] = useAtom(shouldDisableNFTRoutesAtom)
+  const isEmbeddedWalletEnabled = useFeatureFlag(FeatureFlags.EmbeddedWallet)
+  const isPortfolioPageEnabled = useFeatureFlag(FeatureFlags.PortfolioPage)
+  const isToucanEnabled = useFeatureFlag(FeatureFlags.Toucan)
 
   return useMemo(
     () => ({
       browserRouterEnabled,
       hash,
-      shouldDisableNFTRoutes: Boolean(shouldDisableNFTRoutes),
+      isEmbeddedWalletEnabled,
+      isPortfolioPageEnabled,
+      isToucanEnabled,
     }),
-    [browserRouterEnabled, hash, shouldDisableNFTRoutes],
+    [browserRouterEnabled, hash, isEmbeddedWalletEnabled, isPortfolioPageEnabled, isToucanEnabled],
   )
 }
 
@@ -71,12 +82,16 @@ const StaticTitlesAndDescriptions = {
   DetailsPageBaseTitle: i18n.t('common.buyAndSell'),
   TDPDescription: i18n.t('title.realTime'),
   PDPDescription: i18n.t('title.tradeTokens'),
-  NFTTitle: i18n.t('title.explore'),
   MigrateTitle: i18n.t('title.migratev2'),
   MigrateTitleV3: i18n.t('title.migratev3'),
   MigrateDescription: i18n.t('title.easilyRemove'),
   MigrateDescriptionV4: i18n.t('title.easilyRemoveV4'),
   AddLiquidityDescription: i18n.t('title.earnFees'),
+  PasskeyManagementTitle: i18n.t('title.managePasskeys'),
+  PortfolioTitle: i18n.t('portfolio.title'),
+  PortfolioDescription: i18n.t('portfolio.description'),
+  // TODO(LP-295): Update after launch
+  ToucanPlaceholderDescription: 'Placeholder description for Toucan page',
 }
 
 export interface RouteDefinition {
@@ -118,11 +133,22 @@ export const routes: RouteDefinition[] = [
     nestedPaths: [':tab', ':chainName', ':tab/:chainName'],
     getElement: () => <RedirectExplore />,
   }),
+  // Special case: redirect WSOL to SOL TDP, as directly trading WSOL is not supported currently.
+  createRouteDefinition({
+    path: `/explore/tokens/solana/${WRAPPED_SOL_ADDRESS_SOLANA}`,
+    getTitle: () => i18n.t('common.buyAndSell'),
+    getDescription: () => StaticTitlesAndDescriptions.TDPDescription,
+    getElement: () => <Navigate to="/explore/tokens/solana/NATIVE" replace />,
+  }),
   createRouteDefinition({
     path: '/explore/tokens/:chainName/:tokenAddress',
     getTitle: () => i18n.t('common.buyAndSell'),
     getDescription: () => StaticTitlesAndDescriptions.TDPDescription,
-    getElement: () => <TokenDetails />,
+    getElement: () => (
+      <Suspense fallback={null}>
+        <TokenDetails />
+      </Suspense>
+    ),
   }),
   createRouteDefinition({
     path: '/tokens',
@@ -153,6 +179,17 @@ export const routes: RouteDefinition[] = [
     ),
   }),
   createRouteDefinition({
+    path: '/explore/toucan/:id',
+    getTitle: () => StaticTitlesAndDescriptions.DetailsPageBaseTitle,
+    getDescription: () => StaticTitlesAndDescriptions.ToucanPlaceholderDescription,
+    enabled: (args) => args.isToucanEnabled ?? false,
+    getElement: () => (
+      <Suspense fallback={null}>
+        <ToucanToken />
+      </Suspense>
+    ),
+  }),
+  createRouteDefinition({
     path: '/vote/*',
     getTitle: () => i18n.t('title.voteOnGov'),
     getDescription: () => i18n.t('title.uniToken'),
@@ -178,6 +215,11 @@ export const routes: RouteDefinition[] = [
   }),
   createRouteDefinition({
     path: '/buy',
+    getElement: () => <Swap />,
+    getTitle: () => StaticTitlesAndDescriptions.SwapTitle,
+  }),
+  createRouteDefinition({
+    path: '/sell',
     getElement: () => <Swap />,
     getTitle: () => StaticTitlesAndDescriptions.SwapTitle,
   }),
@@ -237,6 +279,12 @@ export const routes: RouteDefinition[] = [
     getElement: () => <PositionPage />,
     getTitle: getPositionPageTitle,
     getDescription: getPositionPageDescription,
+  }),
+  createRouteDefinition({
+    path: '/migrate/v2/:chainName/:pairAddress',
+    getElement: () => <MigrateV3 />,
+    getTitle: () => StaticTitlesAndDescriptions.MigrateTitle,
+    getDescription: () => StaticTitlesAndDescriptions.MigrateDescription,
   }),
   createRouteDefinition({
     path: '/migrate/v3/:chainName/:tokenId',
@@ -320,67 +368,41 @@ export const routes: RouteDefinition[] = [
   }),
   createRouteDefinition({
     path: '/migrate/v2',
-    getElement: () => <MigrateV2 />,
+    getElement: () => <LegacyMigrateV2 />,
     getTitle: () => StaticTitlesAndDescriptions.MigrateTitle,
     getDescription: () => StaticTitlesAndDescriptions.MigrateDescription,
   }),
   createRouteDefinition({
     path: '/migrate/v2/:address',
-    getElement: () => <MigrateV2Pair />,
+    getElement: () => <LegacyMigrateV2Pair />,
     getTitle: () => StaticTitlesAndDescriptions.MigrateTitle,
     getDescription: () => StaticTitlesAndDescriptions.MigrateDescription,
   }),
   createRouteDefinition({
-    path: '/nfts',
-    getElement: () => (
-      <Suspense fallback={null}>
-        <NftExplore />
-      </Suspense>
-    ),
-    enabled: (args) => !args.shouldDisableNFTRoutes,
-    getTitle: () => i18n.t('title.exploreNFTs'),
-    getDescription: () => i18n.t('title.betterPricesMoreListings'),
+    path: EXTENSION_PASSKEY_AUTH_PATH,
+    getElement: () => <ExtensionPasskeyAuthPopUp />,
+    getTitle: () => i18n.t('title.extensionPasskeyLogIn'),
   }),
   createRouteDefinition({
-    path: '/nfts/asset/:contractAddress/:tokenId',
-    getElement: () => (
-      <Suspense fallback={null}>
-        <Asset />
-      </Suspense>
-    ),
-    enabled: (args) => !args.shouldDisableNFTRoutes,
-    getTitle: () => StaticTitlesAndDescriptions.NFTTitle,
+    path: '/manage/passkey/:walletAddress',
+    getElement: () => <PasskeyManagement />,
+    getTitle: () => StaticTitlesAndDescriptions.PasskeyManagementTitle,
+    enabled: (args) => args.isEmbeddedWalletEnabled ?? false,
   }),
+  // Portfolio Pages
   createRouteDefinition({
-    path: '/nfts/profile',
-    getElement: () => (
-      <Suspense fallback={null}>
-        <Profile />
-      </Suspense>
-    ),
-    enabled: (args) => !args.shouldDisableNFTRoutes,
-    getTitle: () => StaticTitlesAndDescriptions.NFTTitle,
-    getDescription: () => i18n.t('title.manageNFT'),
+    path: '/portfolio',
+    getElement: () => <Portfolio />,
+    getTitle: () => StaticTitlesAndDescriptions.PortfolioTitle,
+    getDescription: () => StaticTitlesAndDescriptions.PortfolioDescription,
+    enabled: (args) => args.isPortfolioPageEnabled ?? false,
+    nestedPaths: ['tokens', 'defi', 'nfts', 'activity'],
   }),
+  // Uniswap Extension Uninstall Page
   createRouteDefinition({
-    path: '/nfts/collection/:contractAddress',
-    getElement: () => (
-      <Suspense fallback={null}>
-        <Collection />
-      </Suspense>
-    ),
-    enabled: (args) => !args.shouldDisableNFTRoutes,
-    getTitle: () => StaticTitlesAndDescriptions.NFTTitle,
-  }),
-  createRouteDefinition({
-    path: '/nfts/collection/:contractAddress/activity',
-    getElement: () => (
-      <Suspense fallback={null}>
-        <Collection />
-      </Suspense>
-    ),
-    enabled: (args) => !args.shouldDisableNFTRoutes,
-    getTitle: () => StaticTitlesAndDescriptions.NFTTitle,
+    path: CHROME_EXTENSION_UNINSTALL_URL_PATH,
+    getElement: () => <ExtensionUninstall />,
+    getTitle: () => i18n.t('title.extension.uninstall'),
   }),
   createRouteDefinition({ path: '*', getElement: () => <Navigate to="/not-found" replace /> }),
   createRouteDefinition({ path: '/not-found', getElement: () => <NotFound /> }),

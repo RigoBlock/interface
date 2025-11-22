@@ -1,21 +1,20 @@
+import { GraphQLApi } from '@universe/api'
 import { default as React } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader } from 'src/components/loading/loaders'
 import { PriceAmount } from 'src/features/nfts/collection/ListPriceCard'
 import { Flex, Text, TouchableArea, useSporeColors } from 'ui/src'
-import VerifiedIcon from 'ui/src/assets/icons/verified.svg'
-import { RotatableChevron } from 'ui/src/components/icons'
+import { RotatableChevron, Verified } from 'ui/src/components/icons'
 import { iconSizes, imageSizes, spacing } from 'ui/src/theme'
-import { Currency, NftItemScreenQuery } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
-import { NFTViewer } from 'wallet/src/features/images/NFTViewer'
-import { NFTItem } from 'wallet/src/features/nfts/types'
+import { NFTViewer } from 'uniswap/src/components/nfts/images/NFTViewer'
+import { NFTItem } from 'uniswap/src/features/nfts/types'
 
 type Collection = NonNullable<
-  NonNullable<NonNullable<NftItemScreenQuery['nftAssets']>>['edges'][0]
+  NonNullable<NonNullable<GraphQLApi.NftItemScreenQuery['nftAssets']>>['edges'][0]
 >['node']['collection']
 
 interface CollectionPreviewCardProps {
-  collection: Maybe<Collection>
+  collection: GraphQLApi.Maybe<Collection>
   fallbackData?: NFTItem
   onPress: () => void
   loading: boolean
@@ -64,9 +63,7 @@ export function CollectionPreviewCard({
                   {collection?.name || fallbackData?.collectionName || '-'}
                 </Text>
               </Flex>
-              {collection?.isVerified && (
-                <VerifiedIcon color={colors.accent1.get()} height={iconSizes.icon16} width={iconSizes.icon16} />
-              )}
+              {collection?.isVerified && <Verified color="$accent1" size="$icon.16" />}
             </Flex>
             {collection?.markets?.[0]?.floorPrice && (
               <Flex row gap="$spacing4">
@@ -77,7 +74,7 @@ export function CollectionPreviewCard({
                   iconColor="$neutral2"
                   price={{
                     value: collection.markets[0].floorPrice.value,
-                    currency: Currency.Eth,
+                    currency: GraphQLApi.Currency.Eth,
                   }}
                   textColor="$neutral2"
                   textVariant="subheading2"

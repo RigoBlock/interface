@@ -1,10 +1,9 @@
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
-import { Maybe } from 'graphql/jsutils/Maybe'
 import { useTranslation } from 'react-i18next'
 import { Flex, Text, TouchableArea } from 'ui/src'
 import { RotatableChevron } from 'ui/src/components/icons'
 import { iconSizes } from 'ui/src/theme'
-import { PresetAmountButton } from 'uniswap/src/components/CurrencyInputPanel/PresetAmountButton'
+import { PresetAmountButton } from 'uniswap/src/components/CurrencyInputPanel/AmountInputPresets/PresetAmountButton'
 import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
 import { TokenSelectorModal, TokenSelectorVariation } from 'uniswap/src/components/TokenSelector/TokenSelector'
 import { TokenSelectorFlow } from 'uniswap/src/components/TokenSelector/types'
@@ -20,7 +19,15 @@ interface TokenSelectorPanelProps {
   currencyBalance: Maybe<CurrencyAmount<Currency>>
   currencyAmount: Maybe<CurrencyAmount<Currency>>
   showTokenSelector: boolean
-  onSelectCurrency: (currency: Currency, field: CurrencyField, isBridgePair: boolean) => void
+  onSelectCurrency: ({
+    currency,
+    field,
+    allowCrossChainPair,
+  }: {
+    currency: Currency
+    field: CurrencyField
+    allowCrossChainPair: boolean
+  }) => void
   onHideTokenSelector: () => void
   onShowTokenSelector: () => void
   onSetMax: (amount: string) => void
@@ -50,7 +57,7 @@ export function TokenSelectorPanel({
     <>
       <Flex fill overflow="hidden">
         <TokenSelectorModal
-          activeAccountAddress={activeAccountAddress}
+          evmAddress={activeAccountAddress}
           currencyField={CurrencyField.INPUT}
           flow={TokenSelectorFlow.Send}
           isModalOpen={showTokenSelector}
@@ -79,8 +86,9 @@ export function TokenSelectorPanel({
             </Flex>
           </Flex>
           <Flex row gap="$spacing12">
-            {showMaxButton && onSetMax && (
+            {showMaxButton && (
               <PresetAmountButton
+                percentage="max"
                 currencyAmount={currencyAmount}
                 currencyBalance={currencyBalance}
                 currencyField={CurrencyField.INPUT}

@@ -2,22 +2,26 @@ import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { Input } from 'src/app/components/Input'
-import { PasswordInput } from 'src/app/components/PasswordInput'
 import { InfoModal, ModalProps } from 'src/app/components/modal/InfoModal'
+import { PasswordInputWithBiometrics } from 'src/app/components/PasswordInput'
+import { BiometricUnlockStorage } from 'src/app/features/biometricUnlock/BiometricUnlockStorage'
+import { useUnlockWithBiometricCredentialMutation } from 'src/app/features/biometricUnlock/useUnlockWithBiometricCredentialMutation'
+import { useUnlockWithPassword } from 'src/app/features/lockScreen/useUnlockWithPassword'
 import { useSagaStatus } from 'src/app/hooks/useSagaStatus'
 import { OnboardingRoutes, TopLevelRoutes } from 'src/app/navigation/constants'
-import { focusOrCreateOnboardingTab } from 'src/app/navigation/utils'
+import { focusOrCreateOnboardingTab } from 'src/app/navigation/focusOrCreateOnboardingTab'
 import { Button, Flex, InputProps, Text } from 'ui/src'
 import { AlertTriangleFilled, Lock } from 'ui/src/components/icons'
 import { spacing, zIndexes } from 'ui/src/theme'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { useEvent } from 'utilities/src/react/hooks'
 import { LandingBackground } from 'wallet/src/components/landing/LandingBackground'
-import { authActions, authSagaName } from 'wallet/src/features/auth/saga'
-import { AuthActionType, AuthSagaError } from 'wallet/src/features/auth/types'
-import { Keyring } from 'wallet/src/features/wallet/Keyring/Keyring'
+import { authSagaName } from 'wallet/src/features/auth/saga'
+import { AuthSagaError } from 'wallet/src/features/auth/types'
 import { EditAccountAction, editAccountActions } from 'wallet/src/features/wallet/accounts/editAccountSaga'
 import { useSignerAccounts } from 'wallet/src/features/wallet/hooks'
+import { Keyring } from 'wallet/src/features/wallet/Keyring/Keyring'
 import { SagaStatus } from 'wallet/src/utils/saga'
 
 function usePasswordInput(defaultValue = ''): Pick<InputProps, 'onChangeText' | 'disabled'> & { value: string } {
@@ -53,22 +57,16 @@ export function Locked(): JSX.Element {
   const onChangeText = useCallback(
     (text: string) => {
       if (onChangePasswordText) {
-        onChangePasswordText?.(text)
+        onChangePasswordText(text)
       }
     },
     [onChangePasswordText],
   )
 
-  const { status, error } = useSagaStatus(authSagaName, undefined, false)
+  const { status, error } = useSagaStatus({ sagaName: authSagaName, resetSagaOnSuccess: false })
 
-  const onPress = async (): Promise<void> => {
-    await dispatch(
-      authActions.trigger({
-        type: AuthActionType.Unlock,
-        password: enteredPassword,
-      }),
-    )
-  }
+  const unlockWithPassword = useUnlockWithPassword()
+  const onPressUnlockWithPassword = useEvent(() => unlockWithPassword({ password: enteredPassword }))
 
   const [forgotPasswordModalOpen, setForgotPasswordModalOpen] = useState(false)
   const [modalStep, setModalStep] = useState(ForgotPasswordModalStep.Initial)
@@ -80,9 +78,9 @@ export function Locked(): JSX.Element {
     const currAccount = associatedAccounts[0]
 
     if (currAccount?.mnemonicId) {
-      await Keyring.removeMnemonic(currAccount?.mnemonicId)
+      await Keyring.removeMnemonic(currAccount.mnemonicId)
     }
-    await Keyring.removePassword()
+    await Promise.all([Keyring.removePassword(), BiometricUnlockStorage.remove()])
 
     // We open the recovery tab before removing the accounts so that the proper reset route is loaded.
     // Otherwise, the main onboarding route is automatically loaded when accounts are all removed, and then a duplicate recovery tab is opened.
@@ -131,7 +129,7 @@ export function Locked(): JSX.Element {
       linkText: t('extension.lock.password.reset.speedbump.help'),
       linkUrl: uniswapUrls.helpArticleUrls.recoveryPhraseForgotten,
       icon: (
-        <Flex backgroundColor="$DEP_accentCriticalSoft" borderRadius="$rounded12" p="$spacing12">
+        <Flex backgroundColor="$statusCritical2" borderRadius="$rounded12" p="$spacing12">
           <AlertTriangleFilled color="$statusCritical" size="$icon.24" />
         </Flex>
       ),
@@ -157,6 +155,8 @@ export function Locked(): JSX.Element {
       setContainerPaddingTop(newPaddingTop)
     }
   }, [availableHeight, inputHeight])
+
+  const { mutate: unlockWithBiometricCredential } = useUnlockWithBiometricCredentialMutation()
 
   return (
     <>
@@ -186,15 +186,16 @@ export function Locked(): JSX.Element {
             </Flex>
 
             <Flex alignItems="stretch" gap="$spacing12" width="100%">
-              <PasswordInput
+              <PasswordInputWithBiometrics
                 ref={inputRef}
                 autoFocus
                 hideInput={hideInput}
                 placeholder={t('common.input.password.placeholder')}
                 value={enteredPassword}
                 onChangeText={onChangeText}
-                onSubmitEditing={onPress}
+                onSubmitEditing={onPressUnlockWithPassword}
                 onToggleHideInput={toggleHideInput}
+                onPressBiometricUnlock={unlockWithBiometricCredential}
               />
 
               <Flex
@@ -212,7 +213,7 @@ export function Locked(): JSX.Element {
 
         <Flex gap="$spacing12" justifyContent="flex-end" zIndex={zIndexes.sticky}>
           <Flex row>
-            <Button size="large" variant="branded" onPress={onPress}>
+            <Button size="large" variant="branded" onPress={onPressUnlockWithPassword}>
               {t('extension.lock.button.submit')}
             </Button>
           </Flex>

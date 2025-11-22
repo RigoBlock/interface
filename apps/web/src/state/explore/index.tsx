@@ -1,6 +1,6 @@
 import { ExploreStatsResponse, ProtocolStatsResponse } from '@uniswap/client-explore/dist/uniswap/explore/v1/service_pb'
+import { ALL_NETWORKS_ARG } from '@universe/api'
 import { createContext, useMemo } from 'react'
-import { ALL_NETWORKS_ARG } from 'uniswap/src/data/rest/base'
 import { useExploreStatsQuery } from 'uniswap/src/data/rest/exploreStats'
 import { useProtocolStatsQuery } from 'uniswap/src/data/rest/protocolStats'
 import { useIsSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
@@ -54,15 +54,15 @@ export function ExploreContextProvider({
     data: exploreStatsData,
     isLoading: exploreStatsLoading,
     error: exploreStatsError,
-  } = useExploreStatsQuery({
-    chainId: isSupportedChain ? chainId?.toString() : ALL_NETWORKS_ARG,
+  } = useExploreStatsQuery<ExploreStatsResponse>({
+    input: { chainId: isSupportedChain ? chainId.toString() : ALL_NETWORKS_ARG },
   })
   const {
     data: protocolStatsData,
     isLoading: protocolStatsLoading,
     error: protocolStatsError,
   } = useProtocolStatsQuery({
-    chainId: isSupportedChain ? chainId?.toString() : ALL_NETWORKS_ARG,
+    chainId: isSupportedChain ? chainId.toString() : ALL_NETWORKS_ARG,
   })
 
   const exploreContext = useMemo(() => {

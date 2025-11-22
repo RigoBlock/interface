@@ -1,31 +1,32 @@
+import { PoolData } from 'appGraphql/data/pools/usePoolData'
+import { getTokenDetailsURL, unwrapToken } from 'appGraphql/data/util'
 import { Currency } from '@uniswap/sdk-core'
-import CurrencyLogo from 'components/Logo/CurrencyLogo'
-import { DetailBubble } from 'components/Pools/PoolDetails/shared'
-import { DeltaArrow } from 'components/Tokens/TokenDetails/Delta'
-import { LoadingBubble } from 'components/Tokens/loading'
+import { GraphQLApi } from '@universe/api'
 import Column from 'components/deprecated/Column'
 import Row from 'components/deprecated/Row'
+import CurrencyLogo from 'components/Logo/CurrencyLogo'
+import { DetailBubble } from 'components/Pools/PoolDetails/shared'
+import { LoadingBubble } from 'components/Tokens/loading'
+import { DeltaArrow } from 'components/Tokens/TokenDetails/Delta'
 import { NATIVE_CHAIN_ID } from 'constants/tokens'
-import { PoolData } from 'graphql/data/pools/usePoolData'
-import { getTokenDetailsURL, unwrapToken } from 'graphql/data/util'
 import { useCurrency } from 'hooks/Tokens'
-import styled, { css, useTheme } from 'lib/styled-components'
+import { css, styled } from 'lib/styled-components'
 import { ReactNode, useMemo } from 'react'
 import { Trans } from 'react-i18next'
-import { Link } from 'react-router-dom'
-import { Text } from 'rebass'
+import { Link } from 'react-router'
+import { Text as RebassText } from 'rebass'
 import { ThemedText } from 'theme/components'
 import { ClickableStyle } from 'theme/components/styles'
-import { Flex, useMedia } from 'ui/src'
+import { Flex, Text, useMedia } from 'ui/src'
 import { breakpoints } from 'ui/src/theme'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
-import { Token } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { toGraphQLChain } from 'uniswap/src/features/chains/utils'
-import { NumberType, useFormatter } from 'utils/formatNumbers'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { NumberType } from 'utilities/src/format/types'
 
-const HeaderText = styled(Text)`
+const HeaderText = styled(RebassText)`
   font-weight: 485;
   font-size: 24px;
   line-height: 36px;
@@ -121,7 +122,7 @@ const StatHeaderBubble = styled(LoadingBubble)`
   border-radius: 8px;
 `
 
-type TokenFullData = Token & {
+type TokenFullData = GraphQLApi.Token & {
   price: number
   tvl: number
   percent: number
@@ -131,9 +132,9 @@ type TokenFullData = Token & {
 const PoolBalanceTokenNames = ({ token, chainId }: { token: TokenFullData; chainId?: UniverseChainId }) => {
   const media = useMedia()
   const isLargeScreen = !media.xl
-  const { formatNumber } = useFormatter()
+  const { formatNumberOrString } = useLocalizationContext()
   const unwrappedToken = chainId ? unwrapToken(chainId, token) : token
-  const isNative = unwrappedToken?.address === NATIVE_CHAIN_ID
+  const isNative = unwrappedToken.address === NATIVE_CHAIN_ID
   const currency = isNative && chainId ? nativeOnChain(chainId) : token.currency
   const { defaultChainId } = useEnabledChains()
 
@@ -141,10 +142,12 @@ const PoolBalanceTokenNames = ({ token, chainId }: { token: TokenFullData; chain
     <PoolBalanceTokenNamesContainer>
       <Flex row alignItems="center" gap="$spacing4">
         {!isLargeScreen && <CurrencyLogo currency={currency} size={20} />}
-        {formatNumber({
-          input: token.tvl,
-          type: NumberType.TokenQuantityStats,
-        })}
+        <Text variant="heading3" fontSize={20}>
+          {formatNumberOrString({
+            value: token.tvl,
+            type: NumberType.TokenQuantityStats,
+          })}
+        </Text>
         <StyledLink
           to={getTokenDetailsURL({
             address: unwrappedToken.address,
@@ -160,34 +163,48 @@ const PoolBalanceTokenNames = ({ token, chainId }: { token: TokenFullData; chain
 
 interface PoolDetailsStatsProps {
   poolData?: PoolData
+  tokenAColor: string
+  tokenBColor: string
   isReversed?: boolean
   chainId?: number
   loading?: boolean
 }
 
-export function PoolDetailsStats({ poolData, isReversed, chainId, loading }: PoolDetailsStatsProps) {
+export function PoolDetailsStats({
+  poolData,
+  tokenAColor,
+  tokenBColor,
+  isReversed,
+  chainId,
+  loading,
+}: PoolDetailsStatsProps) {
   const media = useMedia()
   const isLargeScreen = !media.xl
-  const theme = useTheme()
 
-  const currency0 = useCurrency(poolData?.token0?.address, chainId)
-  const currency1 = useCurrency(poolData?.token1?.address, chainId)
+  const currency0 = useCurrency({
+    address: poolData?.token0.address,
+    chainId,
+  })
+  const currency1 = useCurrency({
+    address: poolData?.token1.address,
+    chainId,
+  })
 
-  const [token0, token1] = useMemo(() => {
+  const [token0, token1]: [TokenFullData | undefined, TokenFullData | undefined] = useMemo(() => {
     if (poolData && poolData.tvlToken0 && poolData.token0Price && poolData.tvlToken1 && poolData.token1Price) {
-      const fullWidth = poolData?.tvlToken0 * poolData?.token0Price + poolData?.tvlToken1 * poolData?.token1Price
+      const fullWidth = poolData.tvlToken0 * poolData.token0Price + poolData.tvlToken1 * poolData.token1Price
       const token0FullData: TokenFullData = {
-        ...poolData?.token0,
-        price: poolData?.token0Price,
-        tvl: poolData?.tvlToken0,
-        percent: (poolData?.tvlToken0 * poolData?.token0Price) / fullWidth,
+        ...poolData.token0,
+        price: poolData.token0Price,
+        tvl: poolData.tvlToken0,
+        percent: (poolData.tvlToken0 * poolData.token0Price) / fullWidth,
         currency: currency0,
       }
       const token1FullData: TokenFullData = {
-        ...poolData?.token1,
-        price: poolData?.token1Price,
-        tvl: poolData?.tvlToken1,
-        percent: (poolData?.tvlToken1 * poolData?.token1Price) / fullWidth,
+        ...poolData.token1,
+        price: poolData.token1Price,
+        tvl: poolData.tvlToken1,
+        percent: (poolData.tvlToken1 * poolData.token1Price) / fullWidth,
         currency: currency1,
       }
       return isReversed ? [token1FullData, token0FullData] : [token0FullData, token1FullData]
@@ -227,29 +244,29 @@ export function PoolDetailsStats({ poolData, isReversed, chainId, loading }: Poo
         </PoolBalanceSymbols>
         {isLargeScreen && (
           <Row data-testid="pool-balance-chart">
-            <BalanceChartSide percent={token0.percent} $color={theme.token0} isLeft={true} />
-            <BalanceChartSide percent={token1.percent} $color={theme.token1} isLeft={false} />
+            <BalanceChartSide percent={token0.percent} $color={tokenAColor} isLeft={true} />
+            <BalanceChartSide percent={token1.percent} $color={tokenBColor} isLeft={false} />
           </Row>
         )}
       </StatItemColumn>
-      {poolData?.tvlUSD && (
+      {poolData.tvlUSD && (
         <StatItem
           title={<Trans i18nKey="common.totalValueLocked" />}
           value={poolData.tvlUSD}
           delta={poolData.tvlUSDChange}
         />
       )}
-      {poolData?.volumeUSD24H !== undefined && (
+      {poolData.volumeUSD24H !== undefined && (
         <StatItem
           title={<Trans i18nKey="stats.24volume" />}
           value={poolData.volumeUSD24H}
           delta={poolData.volumeUSD24HChange}
         />
       )}
-      {poolData?.volumeUSD24H !== undefined && poolData?.feeTier !== undefined && (
+      {poolData.volumeUSD24H !== undefined && poolData.feeTier !== undefined && (
         <StatItem
           title={<Trans i18nKey="stats.24fees" />}
-          value={poolData.volumeUSD24H * (poolData.feeTier / 1000000)}
+          value={poolData.volumeUSD24H * (poolData.feeTier.feeAmount / 1000000)}
         />
       )}
     </StatsWrapper>
@@ -268,7 +285,7 @@ const StatsTextContainer = styled(Row)`
   }
 `
 
-const StatItemText = styled(Text)`
+const StatItemText = styled(RebassText)`
   color: ${({ theme }) => theme.neutral1};
   font-size: 36px;
   font-weight: 485;
@@ -281,22 +298,22 @@ const StatItemText = styled(Text)`
 `
 
 function StatItem({ title, value, delta }: { title: ReactNode; value: number; delta?: number }) {
-  const { formatNumber, formatDelta } = useFormatter()
+  const { formatPercent, formatNumberOrString } = useLocalizationContext()
 
   return (
     <StatItemColumn>
       <ThemedText.BodySecondary>{title}</ThemedText.BodySecondary>
       <StatsTextContainer>
         <StatItemText>
-          {formatNumber({
-            input: value,
+          {formatNumberOrString({
+            value,
             type: NumberType.FiatTokenStats,
           })}
         </StatItemText>
         {!!delta && (
           <Flex row width="max-content" py="$spacing4" $lg={{ py: 0 }}>
-            <DeltaArrow delta={delta} />
-            <ThemedText.BodySecondary>{formatDelta(delta)}</ThemedText.BodySecondary>
+            <DeltaArrow delta={delta} formattedDelta={formatPercent(Math.abs(delta))} />
+            <ThemedText.BodySecondary>{formatPercent(Math.abs(delta))}</ThemedText.BodySecondary>
           </Flex>
         )}
       </StatsTextContainer>

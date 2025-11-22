@@ -4,9 +4,9 @@ import { useUserSlippageTolerance } from 'state/user/hooks'
 import { SlippageTolerance } from 'state/user/types'
 import { mocked } from 'test-utils/mocked'
 import { render, screen } from 'test-utils/render'
-import noop from 'utilities/src/react/noop'
+import { noop } from 'utilities/src/react/noop'
 
-jest.mock('state/user/hooks')
+vi.mock('state/user/hooks')
 
 const renderButton = (compact = false) => {
   render(<MenuButton compact={compact} disabled={false} onClick={noop} isActive={false} />)
@@ -32,6 +32,6 @@ describe('MenuButton', () => {
   it('should render an icon with a custom slippage and a warning when value is out of bounds', () => {
     mocked(useUserSlippageTolerance).mockReturnValue([new Percent(1, 10_000), noop])
     renderButton()
-    expect(screen.getByTestId('settings-icon-with-slippage')).toHaveStyle({ backgroundColor: 'accentWarningSoft' })
+    expect(screen.getByTestId('settings-icon-with-slippage')).toHaveStyle({ backgroundColor: 'warning2' })
   })
 })

@@ -3,10 +3,10 @@ import { CrosshairHighlightPrimitive } from 'components/Charts/VolumeChart/Cross
 import { CustomHistogramSeries } from 'components/Charts/VolumeChart/custom-histogram-series'
 import { CustomHistogramData, CustomHistogramSeriesOptions } from 'components/Charts/VolumeChart/renderer'
 import { BarPrice, DeepPartial, ISeriesApi } from 'lightweight-charts'
-import { NumberType } from 'utils/formatNumbers'
+import { NumberType } from 'utilities/src/format/types'
 
 export type CustomVolumeChartModelParams = {
-  colors: string[]
+  chartColors: string[] // renamed from 'colors' to avoid conflict with ChartModelParams.colors
   headerHeight: number
   useThinCrosshair?: boolean
   background?: string
@@ -24,7 +24,7 @@ export class CustomVolumeChartModel<TDataType extends CustomHistogramData> exten
 
     this.series = this.api.addCustomSeries(
       new CustomHistogramSeries({
-        colors: params.colors,
+        colors: params.chartColors, // use chartColors instead of colors
         background: params.background,
       }),
     )
@@ -33,7 +33,7 @@ export class CustomVolumeChartModel<TDataType extends CustomHistogramData> exten
 
     // Add crosshair highlight bar
     this.highlightBarPrimitive = new CrosshairHighlightPrimitive({
-      color: params.theme.surface3,
+      color: params.colors.surface3.val, // use colors from ChartModelParams (UseSporeColorsReturn)
       crosshairYPosition: params.headerHeight,
       useThinCrosshair: params.useThinCrosshair,
     })
@@ -43,8 +43,8 @@ export class CustomVolumeChartModel<TDataType extends CustomHistogramData> exten
     this.fitContent()
 
     this.api.subscribeCrosshairMove((param) => {
-      if (param?.point?.x !== this.hoveredXPos) {
-        this.hoveredXPos = param?.point?.x
+      if (param.point?.x !== this.hoveredXPos) {
+        this.hoveredXPos = param.point?.x
         this.series.applyOptions({
           hoveredXPos: this.hoveredXPos ?? -1, // -1 is used because series will use prev value if undefined is passed
         } as DeepPartial<CustomHistogramSeriesOptions>)
@@ -57,8 +57,7 @@ export class CustomVolumeChartModel<TDataType extends CustomHistogramData> exten
     const stackedVolumeChartOptions = {
       localization: {
         locale: params.locale,
-        priceFormatter: (price: BarPrice) =>
-          params.format.formatFiatPrice({ price, type: NumberType.ChartVolumePriceScale }),
+        priceFormatter: (price: BarPrice) => params.format.convertFiatAmountFormatted(price, NumberType.FiatTokenPrice),
       },
       rightPriceScale: {
         visible: false,

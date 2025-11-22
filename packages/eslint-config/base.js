@@ -21,7 +21,7 @@ module.exports = {
     'no-unsanitized',
     '@typescript-eslint',
   ],
-  extends: ['eslint:recommended'],
+  extends: ['eslint:recommended', 'plugin:react/recommended', 'plugin:react-hooks/recommended'],
   parserOptions: {
     ecmaVersion: 2020,
     sourceType: 'module',
@@ -40,8 +40,10 @@ module.exports = {
     'no-extra-boolean-cast': 'error',
     'object-shorthand': ['error', 'always'],
     'consistent-return': ['error', { treatUndefinedAsUnspecified: false }],
+    'max-lines': ['error', 500], // cap file length
     // Disallow unnecessary curly braces in JSX props and children
     'react/jsx-curly-brace-presence': ['error', { props: 'never', children: 'never' }],
+    'max-params': ['error', { max: 2 }],
 
     // Rules within the standard React plugin
     'react/no-danger': 'error',
@@ -62,11 +64,32 @@ module.exports = {
     'security/detect-pseudoRandomBytes': 'error',
     'security/detect-new-buffer': 'error',
 
-    // Globals
-    'no-restricted-globals': ['error'].concat(restrictedGlobals),
+    // Globals.
+    // The Extension config overrides this rule, so make sure to verify if we need to
+    // update `apps/extension/.eslintrc.js` if you make any changes here.
+    'no-restricted-globals': ['error'].concat(restrictedGlobals, [
+      {
+        name: 'chrome',
+        message:
+          'Direct `chrome` access is restricted to prevent accidental usage in the wrong context. Use `getChrome()` or `getChromeWithThrow()` instead.',
+      },
+    ]),
 
     // Custom Rules
     'local-rules/no-unwrapped-t': ['error', { blockedElements: ['Flex', 'AnimatedFlex', 'TouchableArea', 'Trace'] }],
+
+    '@typescript-eslint/no-unused-vars': [
+      'error',
+      {
+        args: 'all',
+        argsIgnorePattern: '^_',
+        caughtErrors: 'all',
+        caughtErrorsIgnorePattern: 'e',
+        destructuredArrayIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        ignoreRestSiblings: true,
+      },
+    ],
   },
   overrides: [
     // All Typescript Files
@@ -86,6 +109,13 @@ module.exports = {
         },
       },
       rules: {
+        'local-rules/prevent-this-method-destructure': 'error',
+        'local-rules/enforce-query-options-result': [
+          'error',
+          {
+            importPath: 'utilities/src/reactQuery/queryOptions',
+          },
+        ],
         curly: 'error',
         '@typescript-eslint/prefer-enum-initializers': 'error',
         '@typescript-eslint/no-explicit-any': 'off',
@@ -93,6 +123,12 @@ module.exports = {
         '@typescript-eslint/ban-ts-ignore': 'off',
         '@typescript-eslint/explicit-module-boundary-types': 'off',
         '@typescript-eslint/explicit-function-return-type': 'off',
+        '@typescript-eslint/no-unnecessary-condition': [
+          'error',
+          {
+            allowConstantLoopConditions: true,
+          },
+        ],
       },
     },
     // Non-Test Typescript Files
@@ -101,6 +137,7 @@ module.exports = {
       excludedFiles: ['*.test.ts', '*.test.tsx'],
       rules: {
         'no-console': 'error',
+        'local-rules/no-hex-string-casting': 'error',
         'react/forbid-elements': [
           'error',
           {
@@ -117,7 +154,6 @@ module.exports = {
     // Test Files
     {
       files: ['**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[tj]s?(x)', '*.e2e.js'],
-      excludedFiles: '**/cypress/**',
       env: {
         jest: true,
         'jest/globals': true,
@@ -125,14 +161,12 @@ module.exports = {
       extends: ['plugin:jest/recommended'],
       plugins: ['jest'],
     },
-    // Cypress Files
     {
-      files: ['**/cypress/**/*.[jt]s?(x)'],
-      env: {
-        'cypress/globals': true,
+      // Allow test files to exceed max-lines limit
+      files: ['**/*.test.ts', '**/*.test.tsx', '**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[tj]s?(x)'],
+      rules: {
+        'max-lines': 'off',
       },
-      extends: ['plugin:cypress/recommended'],
-      plugins: ['cypress'],
     },
   ],
 }

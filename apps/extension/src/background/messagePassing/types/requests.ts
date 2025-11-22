@@ -1,11 +1,12 @@
 import { DappRequestSchema } from 'src/app/features/dappRequests/types/DappRequestTypes'
-import { MessageSchema } from 'src/background/messagePassing/messageTypes'
+import { MessageSchema } from 'uniswap/src/extension/messagePassing/messageTypes'
 import { z } from 'zod'
 
 // ENUMS
 
 // Requests from content scripts to the extension (non-dapp requests)
 export enum ContentScriptUtilityMessageType {
+  ArcBrowserCheck = 'ArcBrowserCheck',
   FocusOnboardingTab = 'FocusOnboardingTab',
   ErrorLog = 'Error',
   AnalyticsLog = 'AnalyticsLog',
@@ -17,8 +18,16 @@ export const ErrorLogSchema = MessageSchema.extend({
   fileName: z.string(),
   functionName: z.string(),
   tags: z.record(z.string()).optional(),
+  extra: z.record(z.unknown()).optional(),
 })
 export type ErrorLog = z.infer<typeof ErrorLogSchema>
+
+export const ArcBrowserCheckMessageSchema = MessageSchema.extend({
+  type: z.literal(ContentScriptUtilityMessageType.ArcBrowserCheck),
+  isArcBrowser: z.boolean(),
+})
+
+export type ArcBrowserCheckMessage = z.infer<typeof ArcBrowserCheckMessageSchema>
 
 export const AnalyticsLogSchema = MessageSchema.extend({
   type: z.literal(ContentScriptUtilityMessageType.AnalyticsLog),

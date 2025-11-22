@@ -1,21 +1,21 @@
-/* eslint-disable max-lines */
-import { expectSaga } from 'redux-saga-test-plan'
-import { call } from 'redux-saga/effects'
+import { call, delay } from 'redux-saga/effects'
+import { expectSaga, RunResult } from 'redux-saga-test-plan'
 import { navigationRef } from 'src/app/navigation/navigationRef'
+import { navigate } from 'src/app/navigation/rootNavigation'
 import { DeepLinkAction } from 'src/features/deepLinking/deepLinkUtils'
 import {
   handleDeepLink,
-  handleGoToFiatOnRampDeepLink,
   handleGoToTokenDetailsDeepLink,
-  handleUniswapAppDeepLink,
   handleWalletConnectDeepLink,
-  LinkSource,
+  ONRAMP_DEEPLINK_DELAY,
   parseAndValidateUserAddress,
 } from 'src/features/deepLinking/handleDeepLinkSaga'
 import { handleOnRampReturnLink } from 'src/features/deepLinking/handleOnRampReturnLinkSaga'
 import { handleTransactionLink } from 'src/features/deepLinking/handleTransactionLinkSaga'
-import { openModal, OpenModalParams } from 'src/features/modals/modalSlice'
-import { waitForWcWeb3WalletIsReady } from 'src/features/walletConnect/saga'
+import { handleUniswapAppDeepLink } from 'src/features/deepLinking/handleUniswapAppDeepLink'
+import { LinkSource } from 'src/features/deepLinking/types'
+import { openModal } from 'src/features/modals/modalSlice'
+import { waitForWcWeb3WalletIsReady } from 'src/features/walletConnect/walletConnectClient'
 import { UNISWAP_WEB_URL } from 'uniswap/src/constants/urls'
 import { MobileEventName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
@@ -36,6 +36,17 @@ jest.mock('@walletconnect/utils', () => ({
 }))
 jest.mock('expo-web-browser', () => ({
   dismissBrowser: jest.fn(),
+  openBrowserAsync: jest.fn(),
+  WebBrowserPresentationStyle: {
+    FULL_SCREEN: 'fullScreen',
+  },
+}))
+jest.mock('@universe/gating', () => ({
+  ...jest.requireActual('@universe/gating'),
+  getStatsigClient: jest.fn(() => ({
+    checkGate: jest.fn(() => false), // Always return false to avoid Korea gate redirects
+  })),
+  getFeatureFlag: jest.fn(() => false), // Default to false for feature flags
 }))
 
 const account = signerMnemonicAccount()
@@ -63,12 +74,30 @@ const stateWithActiveAccountAddress = {
     },
     activeAccountAddress: account.address,
   },
+  userSettings: {
+    isTestnetModeEnabled: false,
+    currentLanguage: 'en-US',
+    currentCurrency: 'USD',
+    hideSmallBalances: false,
+    hideSpamTokens: true,
+    hapticsEnabled: true,
+  },
 }
 
 describe(handleDeepLink, () => {
   beforeAll(() => {
     jest.spyOn(navigationRef, 'isReady').mockReturnValue(true)
     jest.spyOn(navigationRef, 'navigate').mockReturnValue(undefined)
+    jest.spyOn(navigationRef, 'getState').mockReturnValue({
+      key: 'root',
+      index: 0,
+      routes: [{ name: MobileScreens.Home, key: 'home' }],
+      routeNames: [MobileScreens.Home],
+      history: [],
+      type: 'stack',
+      stale: false,
+    })
+    jest.spyOn(navigationRef, 'canGoBack').mockReturnValue(false)
   })
 
   it('Routes to the swap deep link handler if screen=swap and userAddress is valid', () => {
@@ -223,16 +252,10 @@ describe(handleDeepLink, () => {
     const path = `nfts/asset/${SAMPLE_SEED_ADDRESS_1}/123`
     const pathUrl = `${UNISWAP_WEB_URL}/${path}`
     const hashedUrl = `${UNISWAP_WEB_URL}/#/${path}`
-    const expectedModal: OpenModalParams = {
-      name: ModalName.Explore,
-      initialState: {
-        screen: MobileScreens.NFTItem,
-        params: {
-          address: SAMPLE_SEED_ADDRESS_1,
-          tokenId: '123',
-          isSpam: false,
-        },
-      },
+    const expectedModalState = {
+      address: SAMPLE_SEED_ADDRESS_1,
+      tokenId: '123',
+      isSpam: false,
     }
 
     await expectSaga(handleDeepLink, {
@@ -243,8 +266,12 @@ describe(handleDeepLink, () => {
       type: '',
     })
       .withState(stateWithActiveAccountAddress)
-      .call(handleUniswapAppDeepLink, `#/${path}`, hashedUrl, LinkSource.Share)
-      .put(openModal(expectedModal))
+      .call(handleUniswapAppDeepLink, {
+        path: `#/${path}`,
+        url: hashedUrl,
+        linkSource: LinkSource.Share,
+      })
+      .call(navigate, MobileScreens.NFTItem, expectedModalState)
       .returns(undefined)
       .silentRun()
 
@@ -256,8 +283,12 @@ describe(handleDeepLink, () => {
       type: '',
     })
       .withState(stateWithActiveAccountAddress)
-      .call(handleUniswapAppDeepLink, path, pathUrl, LinkSource.Share)
-      .put(openModal(expectedModal))
+      .call(handleUniswapAppDeepLink, {
+        path,
+        url: pathUrl,
+        linkSource: LinkSource.Share,
+      })
+      .call(navigate, MobileScreens.NFTItem, expectedModalState)
       .returns(undefined)
       .silentRun()
   })
@@ -266,14 +297,8 @@ describe(handleDeepLink, () => {
     const path = `nfts/collection/${SAMPLE_SEED_ADDRESS_1}`
     const pathUrl = `${UNISWAP_WEB_URL}/${path}`
     const hashedUrl = `${UNISWAP_WEB_URL}/#/${path}`
-    const expectedModal: OpenModalParams = {
-      name: ModalName.Explore,
-      initialState: {
-        screen: MobileScreens.NFTCollection,
-        params: {
-          collectionAddress: SAMPLE_SEED_ADDRESS_1,
-        },
-      },
+    const expectedModalState = {
+      collectionAddress: SAMPLE_SEED_ADDRESS_1,
     }
 
     await expectSaga(handleDeepLink, {
@@ -284,8 +309,12 @@ describe(handleDeepLink, () => {
       type: '',
     })
       .withState(stateWithActiveAccountAddress)
-      .call(handleUniswapAppDeepLink, `#/${path}`, hashedUrl, LinkSource.Share)
-      .put(openModal(expectedModal))
+      .call(handleUniswapAppDeepLink, {
+        path: `#/${path}`,
+        url: hashedUrl,
+        linkSource: LinkSource.Share,
+      })
+      .call(navigate, MobileScreens.NFTCollection, expectedModalState)
       .returns(undefined)
       .silentRun()
 
@@ -297,8 +326,12 @@ describe(handleDeepLink, () => {
       type: '',
     })
       .withState(stateWithActiveAccountAddress)
-      .call(handleUniswapAppDeepLink, path, pathUrl, LinkSource.Share)
-      .put(openModal(expectedModal))
+      .call(handleUniswapAppDeepLink, {
+        path,
+        url: pathUrl,
+        linkSource: LinkSource.Share,
+      })
+      .call(navigate, MobileScreens.NFTCollection, expectedModalState)
       .returns(undefined)
       .silentRun()
   })
@@ -307,14 +340,8 @@ describe(handleDeepLink, () => {
     const path = `tokens/ethereum/${SAMPLE_SEED_ADDRESS_1}`
     const pathUrl = `${UNISWAP_WEB_URL}/${path}`
     const hashedUrl = `${UNISWAP_WEB_URL}/#/${path}`
-    const expectedModal: OpenModalParams = {
-      name: ModalName.Explore,
-      initialState: {
-        screen: MobileScreens.TokenDetails,
-        params: {
-          currencyId: `1-${SAMPLE_SEED_ADDRESS_1}`,
-        },
-      },
+    const expectedModalState = {
+      currencyId: `1-${SAMPLE_SEED_ADDRESS_1}`,
     }
 
     await expectSaga(handleDeepLink, {
@@ -325,8 +352,12 @@ describe(handleDeepLink, () => {
       type: '',
     })
       .withState(stateWithActiveAccountAddress)
-      .call(handleUniswapAppDeepLink, `#/${path}`, hashedUrl, LinkSource.Share)
-      .put(openModal(expectedModal))
+      .call(handleUniswapAppDeepLink, {
+        path: `#/${path}`,
+        url: hashedUrl,
+        linkSource: LinkSource.Share,
+      })
+      .call(navigate, MobileScreens.TokenDetails, expectedModalState)
       .returns(undefined)
       .silentRun()
 
@@ -338,8 +369,12 @@ describe(handleDeepLink, () => {
       type: '',
     })
       .withState(stateWithActiveAccountAddress)
-      .call(handleUniswapAppDeepLink, path, pathUrl, LinkSource.Share)
-      .put(openModal(expectedModal))
+      .call(handleUniswapAppDeepLink, {
+        path,
+        url: pathUrl,
+        linkSource: LinkSource.Share,
+      })
+      .call(navigate, MobileScreens.TokenDetails, expectedModalState)
       .returns(undefined)
       .silentRun()
   })
@@ -355,7 +390,11 @@ describe(handleDeepLink, () => {
       type: '',
     })
       .withState(stateWithActiveAccountAddress)
-      .call(handleUniswapAppDeepLink, hash, url, LinkSource.Share)
+      .call(handleUniswapAppDeepLink, {
+        path: hash,
+        url,
+        linkSource: LinkSource.Share,
+      })
       .returns(undefined)
       .silentRun()
   })
@@ -379,7 +418,11 @@ describe(handleDeepLink, () => {
           activeAccountAddress: account.address,
         },
       })
-      .call(handleUniswapAppDeepLink, hash, url, LinkSource.Share)
+      .call(handleUniswapAppDeepLink, {
+        path: hash,
+        url,
+        linkSource: LinkSource.Share,
+      })
       .put(setAccountAsActive(SAMPLE_SEED_ADDRESS_2))
       .returns(undefined)
       .silentRun()
@@ -389,14 +432,8 @@ describe(handleDeepLink, () => {
     const path = `address/${SAMPLE_SEED_ADDRESS_2}`
     const pathUrl = `${UNISWAP_WEB_URL}/${path}`
     const hashedUrl = `${UNISWAP_WEB_URL}/#/${path}`
-    const expectedModal: OpenModalParams = {
-      name: ModalName.Explore,
-      initialState: {
-        screen: MobileScreens.ExternalProfile,
-        params: {
-          address: SAMPLE_SEED_ADDRESS_2,
-        },
-      },
+    const expectedModalState = {
+      address: SAMPLE_SEED_ADDRESS_2,
     }
 
     await expectSaga(handleDeepLink, {
@@ -407,8 +444,12 @@ describe(handleDeepLink, () => {
       type: '',
     })
       .withState(stateWithActiveAccountAddress)
-      .call(handleUniswapAppDeepLink, `#/${path}`, hashedUrl, LinkSource.Share)
-      .put(openModal(expectedModal))
+      .call(handleUniswapAppDeepLink, {
+        path: `#/${path}`,
+        url: hashedUrl,
+        linkSource: LinkSource.Share,
+      })
+      .call(navigate, MobileScreens.ExternalProfile, expectedModalState)
       .returns(undefined)
       .silentRun()
 
@@ -420,8 +461,12 @@ describe(handleDeepLink, () => {
       type: '',
     })
       .withState(stateWithActiveAccountAddress)
-      .call(handleUniswapAppDeepLink, path, pathUrl, LinkSource.Share)
-      .put(openModal(expectedModal))
+      .call(handleUniswapAppDeepLink, {
+        path,
+        url: pathUrl,
+        linkSource: LinkSource.Share,
+      })
+      .call(navigate, MobileScreens.ExternalProfile, expectedModalState)
       .returns(undefined)
       .silentRun()
   })
@@ -525,13 +570,79 @@ describe(handleDeepLink, () => {
       type: '',
     })
       .withState(stateWithActiveAccountAddress)
-      .call(handleGoToFiatOnRampDeepLink)
+      .provide([[delay(ONRAMP_DEEPLINK_DELAY), undefined]])
+      .call(parseAndValidateUserAddress, account.address)
+      .put(setAccountAsActive(account.address))
       .call(sendAnalyticsEvent, MobileEventName.DeepLinkOpened, {
         action: DeepLinkAction.FiatOnRampScreen,
         url: payload.url,
         screen: 'other',
         is_cold_start: payload.coldStart,
         source: 'push',
+      })
+      .returns(undefined)
+      .silentRun()
+  })
+
+  it('Handles MoonPay exclusive fiat onramp deeplink', () => {
+    const payload = {
+      url: `uniswap://app/fiatonramp?moonpayOnly=true&source=moonpay-ad`,
+      coldStart: false,
+    }
+    return expectSaga(handleDeepLink, {
+      payload,
+      type: '',
+    })
+      .withState(stateWithActiveAccountAddress)
+      .provide([[delay(ONRAMP_DEEPLINK_DELAY), undefined]])
+      .put(
+        openModal({
+          name: ModalName.FiatOnRampAggregator,
+          initialState: {
+            providers: ['MOONPAY'],
+            prefilledAmount: undefined,
+            currencyCode: undefined,
+          },
+        }),
+      )
+      .call(sendAnalyticsEvent, MobileEventName.DeepLinkOpened, {
+        action: DeepLinkAction.FiatOnRampScreen,
+        url: payload.url,
+        screen: 'other',
+        is_cold_start: payload.coldStart,
+        source: 'moonpay-ad',
+      })
+      .returns(undefined)
+      .silentRun()
+  })
+
+  it('Handles MoonPay exclusive fiat onramp deeplink with token and amount', () => {
+    const payload = {
+      url: `uniswap://app/fiatonramp?moonpayOnly=true&moonpayCurrencyCode=eth&amount=100&source=moonpay-ad`,
+      coldStart: false,
+    }
+    return expectSaga(handleDeepLink, {
+      payload,
+      type: '',
+    })
+      .withState(stateWithActiveAccountAddress)
+      .provide([[delay(ONRAMP_DEEPLINK_DELAY), undefined]])
+      .put(
+        openModal({
+          name: ModalName.FiatOnRampAggregator,
+          initialState: {
+            providers: ['MOONPAY'],
+            prefilledAmount: '100',
+            currencyCode: 'eth',
+          },
+        }),
+      )
+      .call(sendAnalyticsEvent, MobileEventName.DeepLinkOpened, {
+        action: DeepLinkAction.FiatOnRampScreen,
+        url: payload.url,
+        screen: 'other',
+        is_cold_start: payload.coldStart,
+        source: 'moonpay-ad',
       })
       .returns(undefined)
       .silentRun()

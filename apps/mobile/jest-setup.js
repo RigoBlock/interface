@@ -5,7 +5,7 @@ import 'core-js' // necessary so setImmediate works in tests
 import 'utilities/jest-package-mocks'
 import 'uniswap/jest-package-mocks'
 import 'wallet/jest-package-mocks'
-import 'ui/jest-package-mocks'
+import 'config/jest-presets/ui/ui-package-mocks'
 
 import 'uniswap/src/i18n' // Uses real translations for tests
 
@@ -14,8 +14,6 @@ import mockRNCNetInfo from '@react-native-community/netinfo/jest/netinfo-mock.js
 jest.mock('@uniswap/client-explore/dist/uniswap/explore/v1/service-ExploreStatsService_connectquery', () => {})
 
 jest.mock('@walletconnect/react-native-compat', () => ({}))
-
-jest.mock('src/lib/RNEthersRs')
 
 // Mock OneSignal package
 jest.mock('react-native-onesignal', () => {
@@ -92,10 +90,6 @@ jest.mock('react-native/Libraries/Linking/Linking', () => ({
   getInitialURL: jest.fn(),
 }))
 
-
-jest.mock('openai')
-
-
 jest.mock("react-native-bootsplash", () => {
   return {
     hide: jest.fn().mockResolvedValue(),
@@ -107,3 +101,7 @@ jest.mock("react-native-bootsplash", () => {
     }),
   };
 });
+
+jest.mock("react-native-keyboard-controller", () =>
+  require("react-native-keyboard-controller/jest"),
+);

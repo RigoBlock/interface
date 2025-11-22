@@ -11,8 +11,8 @@ import { UNITAG_SUFFIX } from 'uniswap/src/features/unitags/constants'
 import { useAppInsets } from 'uniswap/src/hooks/useAppInsets'
 import { MobileScreens, UnitagScreens } from 'uniswap/src/types/screens/mobile'
 import {
-  ENSElement,
   EmojiElement,
+  ENSElement,
   FroggyElement,
   HeartElement,
   OpenseaElement,
@@ -106,7 +106,7 @@ export function UnitagConfirmationScreen({
                 key={index}
                 index={index + 3}
                 position="absolute"
-                {...getInsetPropsForCoordinates(boxWidth, coordinates.x, coordinates.y)}
+                {...getInsetPropsForCoordinates({ boxWidth, x: coordinates.x, y: coordinates.y })}
               >
                 {element}
               </AnimateInOrder>
@@ -145,11 +145,12 @@ export function UnitagConfirmationScreen({
 
 // Calculates top and left insets for absolute positioned element based
 // on a 10x10 coordinate system where top left is 0,0.
-const getInsetPropsForCoordinates = (
-  boxWidth: number,
-  x: number,
-  y: number,
-): { top?: number; right?: number; bottom?: number; left?: number } => {
+function getInsetPropsForCoordinates({ boxWidth, x, y }: { boxWidth: number; x: number; y: number }): {
+  top?: number
+  right?: number
+  bottom?: number
+  left?: number
+} {
   const unitSize = 10
   const unit = boxWidth / unitSize
 

@@ -12,10 +12,35 @@ export interface BehaviorHistoryState {
   hasUsedExplore: boolean
   backupReminderLastSeenTs?: number
   hasViewedOffRampTooltip: boolean
+  hasViewedBridgedAssetsCard?: boolean
+  hasViewedBridgedAssetsV2Card?: boolean
   hasDismissedBridgingWarning?: boolean
   hasViewedDappRequestBridgingBanner?: {
     [dappUrl: string]: boolean
   }
+  smartWalletNudge?: {
+    [walletAddress: string]: {
+      hasDismissedHomeScreenNudge?: boolean
+      /**
+       * Should show once per dapp per wallet.
+       *
+       * If not connected when `wallet_getCapabilities` is called, wait for connection then nudge
+       */
+      dappUrlToHasShownNudge?: Record<string, boolean>
+      lastPostSwapNudge?: number
+      numPostSwapNudges?: number
+      isAllSmartWalletNudgesDisabled?: boolean
+      lastHomeScreenNudgeShown?: number
+    }
+  }
+  hasSeenSmartWalletCreatedWalletModal?: boolean
+  /**
+   * Whether the user has copied their private keys via the view private keys screen during
+   * a restoration flow.
+   */
+  hasCopiedPrivateKeys?: boolean
+  isAllSmartWalletNudgesDisabled?: boolean
+  hasDismissedMonadAnnouncement?: boolean
 }
 
 export const initialBehaviorHistoryState: BehaviorHistoryState = {
@@ -25,8 +50,12 @@ export const initialBehaviorHistoryState: BehaviorHistoryState = {
   hasViewedNotificationsCard: false,
   hasUsedExplore: false,
   backupReminderLastSeenTs: undefined,
+  hasViewedBridgedAssetsCard: false,
   hasViewedOffRampTooltip: false,
   hasViewedDappRequestBridgingBanner: {},
+  smartWalletNudge: {},
+  hasCopiedPrivateKeys: false,
+  hasDismissedMonadAnnouncement: false,
 }
 
 const slice = createSlice({
@@ -48,6 +77,12 @@ const slice = createSlice({
     setBackupReminderLastSeenTs: (state, action: PayloadAction<number | undefined>) => {
       state.backupReminderLastSeenTs = action.payload
     },
+    setHasViewedBridgedAssetsCard: (state, action: PayloadAction<boolean>) => {
+      state.hasViewedBridgedAssetsCard = action.payload
+    },
+    setHasViewedBridgedAssetsV2Card: (state, action: PayloadAction<boolean>) => {
+      state.hasViewedBridgedAssetsV2Card = action.payload
+    },
     setHasViewedOffRampTooltip: (state, action: PayloadAction<boolean>) => {
       state.hasViewedOffRampTooltip = action.payload
     },
@@ -58,11 +93,77 @@ const slice = createSlice({
       state.hasViewedDappRequestBridgingBanner ??= {}
       state.hasViewedDappRequestBridgingBanner[action.payload.dappUrl] = action.payload.hasViewed
     },
+    setHasDismissedSmartWalletHomeScreenNudge: (
+      state,
+      action: PayloadAction<{ walletAddress: string; hasDismissed: boolean }>,
+    ) => {
+      state.smartWalletNudge ??= {}
+      state.smartWalletNudge[action.payload.walletAddress] = {
+        ...state.smartWalletNudge[action.payload.walletAddress],
+        hasDismissedHomeScreenNudge: action.payload.hasDismissed,
+      }
+    },
+    setHasShown5792Nudge: (
+      state,
+      action: PayloadAction<{
+        walletAddress: string
+        dappUrl: string
+      }>,
+    ) => {
+      state.smartWalletNudge ??= {}
+      state.smartWalletNudge[action.payload.walletAddress] = {
+        ...state.smartWalletNudge[action.payload.walletAddress],
+        dappUrlToHasShownNudge: {
+          ...state.smartWalletNudge[action.payload.walletAddress]?.dappUrlToHasShownNudge,
+          [action.payload.dappUrl]: true,
+        },
+      }
+    },
+    setIncrementNumPostSwapNudge: (
+      state,
+      action: PayloadAction<{
+        walletAddress: string
+      }>,
+    ) => {
+      state.smartWalletNudge ??= {}
+      state.smartWalletNudge[action.payload.walletAddress] = {
+        ...state.smartWalletNudge[action.payload.walletAddress],
+        numPostSwapNudges: (state.smartWalletNudge[action.payload.walletAddress]?.numPostSwapNudges ?? 0) + 1,
+        lastPostSwapNudge: Date.now(),
+      }
+    },
+    setHasSeenSmartWalletCreatedWalletModal: (state) => {
+      state.hasSeenSmartWalletCreatedWalletModal = true
+    },
+    setHasShownSmartWalletHomeScreenNudge: (state, action: PayloadAction<{ walletAddress: string }>) => {
+      state.smartWalletNudge ??= {}
+      state.smartWalletNudge[action.payload.walletAddress] = {
+        ...state.smartWalletNudge[action.payload.walletAddress],
+        lastHomeScreenNudgeShown: Date.now(),
+      }
+    },
+
     // Should only be used for testing
     resetWalletBehaviorHistory: (_state, _action: PayloadAction) => {
       return {
         ...initialBehaviorHistoryState,
       }
+    },
+    setHasCopiedPrivateKeys: (state, action: PayloadAction<boolean>) => {
+      state.hasCopiedPrivateKeys = action.payload
+    },
+    setIsAllSmartWalletNudgesDisabled: (
+      state,
+      action: PayloadAction<{ walletAddress: string; isDisabled: boolean }>,
+    ) => {
+      state.smartWalletNudge ??= {}
+      state.smartWalletNudge[action.payload.walletAddress] = {
+        ...state.smartWalletNudge[action.payload.walletAddress],
+        isAllSmartWalletNudgesDisabled: action.payload.isDisabled,
+      }
+    },
+    setHasDismissedMonadAnnouncement: (state, action: PayloadAction<boolean>) => {
+      state.hasDismissedMonadAnnouncement = action.payload
     },
   },
 })
@@ -77,6 +178,16 @@ export const {
   setHasViewedDappRequestBridgingBanner,
   resetWalletBehaviorHistory,
   setHasViewedNotificationsCard,
+  setHasViewedBridgedAssetsCard,
+  setHasViewedBridgedAssetsV2Card,
+  setHasDismissedSmartWalletHomeScreenNudge,
+  setHasCopiedPrivateKeys,
+  setHasShown5792Nudge,
+  setIncrementNumPostSwapNudge,
+  setHasSeenSmartWalletCreatedWalletModal,
+  setIsAllSmartWalletNudgesDisabled,
+  setHasShownSmartWalletHomeScreenNudge,
+  setHasDismissedMonadAnnouncement,
 } = slice.actions
 
 export const behaviorHistoryReducer = slice.reducer

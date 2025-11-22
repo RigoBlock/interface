@@ -1,14 +1,14 @@
 import { useApolloClient } from '@apollo/client'
+import { useQuery } from '@tanstack/react-query'
+import { GraphQLApi } from '@universe/api'
 import { useCallback, useMemo, useState } from 'react'
-import {
-  SelectWalletScreenDocument,
-  SelectWalletScreenQuery,
-} from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
+import { UnitagsApiClient } from 'uniswap/src/data/apiClients/unitagsApi/UnitagsApiClient'
+
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { useENSName } from 'uniswap/src/features/ens/api'
-import { useAsyncData } from 'utilities/src/react/hooks'
+import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
+import { queryWithoutCache } from 'utilities/src/reactQuery/queryOptions'
 import { NUMBER_OF_WALLETS_TO_GENERATE } from 'wallet/src/features/onboarding/OnboardingContext'
-import { fetchUnitagByAddresses } from 'wallet/src/features/unitags/api'
 
 export interface AddressWithBalanceAndName {
   address: string
@@ -33,7 +33,10 @@ export function useImportableAccounts(importedAddresses?: Address[]): {
     isLoadingAddresses ? undefined : importedAddresses,
   )
 
-  const accountsWithBalanceOrName = Object.values(addressInfoMap ?? {}).filter(hasBalanceOrName)
+  const accountsWithBalanceOrName = useMemo(
+    () => Object.values(addressInfoMap ?? {}).filter(hasBalanceOrName),
+    [addressInfoMap],
+  )
 
   const importableAccounts: AddressWithBalanceAndName[] | undefined = useMemo(() => {
     if (accountsWithBalanceOrName.length > 0) {
@@ -80,6 +83,7 @@ export function useAddressesBalanceAndNames(addresses?: Address[]): {
 
   const { gqlChains } = useEnabledChains()
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: -refetchCount
   const fetchBalanceAndUnitags = useCallback(async (): Promise<AddressTo<AddressWithBalanceAndName> | undefined> => {
     if (addressesArray.length === 0) {
       return undefined
@@ -91,18 +95,18 @@ export function useAddressesBalanceAndNames(addresses?: Address[]): {
       includeSpamTokens: false,
     }))
 
-    const fetchBalances = apolloClient.query<SelectWalletScreenQuery>({
-      query: SelectWalletScreenDocument,
+    const fetchBalances = apolloClient.query<GraphQLApi.SelectWalletScreenQuery>({
+      query: GraphQLApi.SelectWalletScreenDocument,
       variables: { ownerAddresses: addressesArray, chains: gqlChains, valueModifiers },
     })
 
-    const fetchUnitags = fetchUnitagByAddresses(addressesArray)
+    const fetchUnitags = UnitagsApiClient.fetchUnitagsByAddresses({ addresses: addressesArray })
 
     const [balancesResponse, unitagsResponse] = await Promise.all([fetchBalances, fetchUnitags])
 
-    const unitagsByAddress = unitagsResponse?.data ?? {}
+    const unitagsByAddress = unitagsResponse.usernames
 
-    const balancesByAddress = (balancesResponse?.data?.portfolios ?? []).reduce(
+    const balancesByAddress = (balancesResponse.data.portfolios ?? []).reduce(
       (balances: AddressTo<number | undefined>, portfolios): AddressTo<number | undefined> => {
         if (portfolios?.ownerAddress) {
           balances[portfolios.ownerAddress] = portfolios.tokensTotalDenominatedValue?.value
@@ -112,27 +116,34 @@ export function useAddressesBalanceAndNames(addresses?: Address[]): {
       {},
     )
 
-    const dataMap: AddressTo<AddressWithBalanceAndName> = addressesArray.reduce((map, address) => {
-      const entry = {
-        address,
-        balance: balancesByAddress[address],
-        unitag: unitagsByAddress[address]?.username,
-      }
-      map[entry.address] = entry
-      return map
-    }, {} as AddressTo<AddressWithBalanceAndName>)
+    const dataMap: AddressTo<AddressWithBalanceAndName> = addressesArray.reduce(
+      (map, address) => {
+        const entry = {
+          address,
+          balance: balancesByAddress[address],
+          unitag: unitagsByAddress[address]?.username,
+        }
+        map[entry.address] = entry
+        return map
+      },
+      {} as AddressTo<AddressWithBalanceAndName>,
+    )
 
     return dataMap
 
     // We use `refetchCount` as a dependency to manually trigger a refetch when calling the `refetch` function.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addressesArray, apolloClient, refetchCount, gqlChains])
 
   const {
     data: balanceAndUnitags,
     isLoading: balanceAndUnitagsLoading,
     error: fetchingError,
-  } = useAsyncData(fetchBalanceAndUnitags)
+  } = useQuery(
+    queryWithoutCache({
+      queryKey: [ReactQueryCacheKey.BalanceAndUnitags, addressesArray],
+      queryFn: fetchBalanceAndUnitags,
+    }),
+  )
 
   const addressInfoMap = useMemo(() => {
     if (balanceAndUnitags === undefined) {
@@ -200,6 +211,7 @@ export function useAddressesEnsNames(addresses: Address[]): {
       return {}
     }
 
+    // eslint-disable-next-line max-params
     return addresses.reduce((map: AddressTo<string>, address: string, index: number) => {
       const nameData = ensNameStates[index]?.data
       if (nameData) {

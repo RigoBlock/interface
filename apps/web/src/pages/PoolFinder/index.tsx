@@ -1,8 +1,9 @@
-import { InterfacePageName } from '@uniswap/analytics-events'
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { useAccountDrawer } from 'components/AccountDrawer/MiniPortfolio/hooks'
 import { BreadcrumbNavContainer, BreadcrumbNavLink } from 'components/BreadcrumbNav'
+import { CurrencySelector } from 'components/Liquidity/Create/SelectTokenStep'
 import { DoubleCurrencyLogo } from 'components/Logo/DoubleLogo'
+import { SwitchNetworkAction } from 'components/Popups/types'
 import CurrencySearchModal from 'components/SearchModal/CurrencySearchModal'
 import { V2Unsupported } from 'components/V2Unsupported'
 import { useAccount } from 'hooks/useAccount'
@@ -11,7 +12,6 @@ import { useTotalSupply } from 'hooks/useTotalSupply'
 import { useV2Pair } from 'hooks/useV2Pairs'
 import JSBI from 'jsbi'
 import ms from 'ms'
-import { CurrencySelector } from 'pages/Pool/Positions/create/SelectTokenStep'
 import { useEffect, useState } from 'react'
 import { ArrowLeft } from 'react-feather'
 import { Trans, useTranslation } from 'react-i18next'
@@ -20,17 +20,19 @@ import { usePairAdder } from 'state/user/hooks'
 import { PositionField } from 'types/position'
 import { Button, Flex, Text } from 'ui/src'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { InterfacePageName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
-import { useUSDCValue } from 'uniswap/src/features/transactions/swap/hooks/useUSDCPrice'
+import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'
 import { currencyId } from 'uniswap/src/utils/currencyId'
-import { NumberType, useFormatter } from 'utils/formatNumbers'
+import { NumberType } from 'utilities/src/format/types'
 
 export default function PoolFinder() {
   const account = useAccount()
   const { t } = useTranslation()
   const accountDrawer = useAccountDrawer()
-  const { formatCurrencyAmount } = useFormatter()
+  const { convertFiatAmountFormatted } = useLocalizationContext()
   const [success, setSuccess] = useState(false)
 
   const [currency0, setCurrency0] = useState<Currency | undefined>(() =>
@@ -77,7 +79,7 @@ export default function PoolFinder() {
   }
 
   return (
-    <Trace logImpression page={InterfacePageName.POOL_PAGE}>
+    <Trace logImpression page={InterfacePageName.PoolPage}>
       <Flex width="100%" py="$spacing48" px="$spacing40" maxWidth={650}>
         <BreadcrumbNavContainer aria-label="breadcrumb-nav">
           <BreadcrumbNavLink style={{ gap: '8px' }} to="/positions">
@@ -143,10 +145,10 @@ export default function PoolFinder() {
                 }}
               >
                 <Text variant="body2" textAlign="right">
-                  {formatCurrencyAmount({
-                    amount: token0UsdValue.add(token1UsdValue),
-                    type: NumberType.FiatTokenQuantity,
-                  })}
+                  {convertFiatAmountFormatted(
+                    token0UsdValue.add(token1UsdValue).toExact(),
+                    NumberType.FiatTokenQuantity,
+                  )}
                 </Text>
                 <Text variant="body3" color="$neutral2">
                   {t('position.value')}
@@ -184,6 +186,7 @@ export default function PoolFinder() {
         <CurrencySearchModal
           isOpen={currencySearchInputState !== undefined}
           onDismiss={() => setCurrencySearchInputState(undefined)}
+          switchNetworkAction={SwitchNetworkAction.PoolFinder}
           onCurrencySelect={(currency) => {
             if (currencySearchInputState === PositionField.TOKEN0) {
               setCurrency0(currency)

@@ -1,6 +1,6 @@
 import { ErrorBoundary as DatadogErrorBoundary } from '@datadog/browser-rum-react'
 import { useIsMobile } from 'hooks/screenSize/useIsMobile'
-import styled from 'lib/styled-components'
+import { styled } from 'lib/styled-components'
 import { PropsWithChildren, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ThemedText } from 'theme/components'
@@ -117,9 +117,17 @@ function ErrorDetailsSection({ errorDetails, eventId }: { errorDetails: string; 
   )
 }
 
-export default function ErrorBoundary({ children }: PropsWithChildren): JSX.Element {
+export default function ErrorBoundary({
+  children,
+  fallback,
+}: PropsWithChildren & {
+  fallback?: React.ComponentType<{
+    error: Error
+    resetError: () => void
+  }>
+}): JSX.Element {
   return (
-    <DatadogErrorBoundary fallback={({ error }) => <Fallback error={error} eventId={null} />}>
+    <DatadogErrorBoundary fallback={fallback ?? (({ error }) => <Fallback error={error} eventId={null} />)}>
       {children}
     </DatadogErrorBoundary>
   )

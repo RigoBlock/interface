@@ -1,18 +1,25 @@
+import { datadogRum } from '@datadog/browser-rum'
 import { useEffect } from 'react'
-import { useColorScheme } from 'react-native'
+import { useIsDarkMode } from 'ui/src'
+import { DisplayNameType } from 'uniswap/src/features/accounts/types'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { useAppFiatCurrencyInfo } from 'uniswap/src/features/fiatCurrency/hooks'
 import { useCurrentLanguage } from 'uniswap/src/features/language/hooks'
 import { useHideSmallBalancesSetting, useHideSpamTokensSetting } from 'uniswap/src/features/settings/hooks'
 import { ExtensionUserPropertyName, setUserProperty } from 'uniswap/src/features/telemetry/user'
-// eslint-disable-next-line @typescript-eslint/no-restricted-imports
+// biome-ignore lint/style/noRestrictedImports: Direct analytics import required for user property tracking
 import { analytics } from 'utilities/src/telemetry/analytics/analytics'
 import { useGatingUserPropertyUsernames } from 'wallet/src/features/gating/userPropertyHooks'
-import { useActiveAccount, useSignerAccounts, useViewOnlyAccounts } from 'wallet/src/features/wallet/hooks'
+import {
+  useActiveAccount,
+  useDisplayName,
+  useSignerAccounts,
+  useViewOnlyAccounts,
+} from 'wallet/src/features/wallet/hooks'
 
 /** Component that tracks UserProperties during the lifetime of the app */
 export function TraceUserProperties(): null {
-  const colorScheme = useColorScheme()
+  const isDarkMode = useIsDarkMode()
   const viewOnlyAccounts = useViewOnlyAccounts()
   const activeAccount = useActiveAccount()
   const signerAccounts = useSignerAccounts()
@@ -21,8 +28,17 @@ export function TraceUserProperties(): null {
   const currentLanguage = useCurrentLanguage()
   const appFiatCurrencyInfo = useAppFiatCurrencyInfo()
   const { isTestnetModeEnabled } = useEnabledChains()
+  const displayName = useDisplayName(activeAccount?.address)
 
   useGatingUserPropertyUsernames()
+
+  // Set user properties for datadog
+
+  useEffect(() => {
+    datadogRum.setUserProperty(ExtensionUserPropertyName.ActiveWalletAddress, activeAccount?.address)
+  }, [activeAccount?.address])
+
+  // Set user properties for amplitude
 
   useEffect(() => {
     setUserProperty(ExtensionUserPropertyName.AppVersion, chrome.runtime.getManifest().version)
@@ -32,8 +48,8 @@ export function TraceUserProperties(): null {
   }, [])
 
   useEffect(() => {
-    setUserProperty(ExtensionUserPropertyName.DarkMode, colorScheme === 'dark')
-  }, [colorScheme])
+    setUserProperty(ExtensionUserPropertyName.DarkMode, isDarkMode)
+  }, [isDarkMode])
 
   useEffect(() => {
     setUserProperty(ExtensionUserPropertyName.WalletSignerCount, signerAccounts.length)
@@ -50,6 +66,9 @@ export function TraceUserProperties(): null {
   useEffect(() => {
     if (!activeAccount) {
       return
+    }
+    if (activeAccount.backups) {
+      setUserProperty(ExtensionUserPropertyName.BackupTypes, activeAccount.backups)
     }
     setUserProperty(ExtensionUserPropertyName.ActiveWalletAddress, activeAccount.address)
     setUserProperty(ExtensionUserPropertyName.ActiveWalletType, activeAccount.type)
@@ -68,6 +87,20 @@ export function TraceUserProperties(): null {
   useEffect(() => {
     setUserProperty(ExtensionUserPropertyName.TestnetModeEnabled, isTestnetModeEnabled)
   }, [isTestnetModeEnabled])
+
+  // Log ENS and Unitag ownership for user usage stats
+  useEffect(() => {
+    switch (displayName?.type) {
+      case DisplayNameType.ENS:
+        setUserProperty(ExtensionUserPropertyName.HasLoadedENS, true)
+        return
+      case DisplayNameType.Unitag:
+        setUserProperty(ExtensionUserPropertyName.HasLoadedUnitag, true)
+        return
+      default:
+        return
+    }
+  }, [displayName?.type])
 
   return null
 }

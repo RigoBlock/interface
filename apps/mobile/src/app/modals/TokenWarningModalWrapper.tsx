@@ -1,21 +1,20 @@
-import { useCallback } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { closeModal } from 'src/features/modals/modalSlice'
-import { selectModalState } from 'src/features/modals/selectModalState'
+import { AppStackScreenProp } from 'src/app/navigation/types'
+import { useReactNavigationModal } from 'src/components/modals/useReactNavigationModal'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { TokenList } from 'uniswap/src/features/dataApi/types'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import TokenWarningModal from 'uniswap/src/features/tokens/TokenWarningModal'
 import { useDismissedTokenWarnings } from 'uniswap/src/features/tokens/slice/hooks'
+import TokenWarningModal from 'uniswap/src/features/tokens/TokenWarningModal'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { currencyIdToAddress, currencyIdToChain, isNativeCurrencyAddress } from 'uniswap/src/utils/currencyId'
 
-export function TokenWarningModalWrapper(): JSX.Element | null {
-  const dispatch = useDispatch()
+export function TokenWarningModalWrapper({
+  route,
+}: AppStackScreenProp<typeof ModalName.TokenWarning>): JSX.Element | null {
   const { defaultChainId } = useEnabledChains()
-  const modalState = useSelector(selectModalState(ModalName.TokenWarning))
+  const { onClose } = useReactNavigationModal()
 
-  const { currencyId, onAcknowledge } = modalState.initialState ?? {}
+  const { currencyId, onAcknowledge } = route.params.initialState ?? {}
   const currencyChainId = (currencyId && currencyIdToChain(currencyId)) || defaultChainId
   const currencyAddress = currencyId ? currencyIdToAddress(currencyId) : undefined
   const currencyInfo = useCurrencyInfo(currencyId)
@@ -26,39 +25,34 @@ export function TokenWarningModalWrapper(): JSX.Element | null {
     isNativeCurrency || !currencyAddress ? undefined : { chainId: currencyChainId, address: currencyAddress },
   )
 
-  const onClose = useCallback(() => {
-    dispatch(closeModal({ name: ModalName.TokenWarning }))
-  }, [dispatch])
-
   // Return null if modal state is malformed
-  if (!modalState.isOpen || !modalState.initialState) {
+  if (!route.params.initialState) {
     return null
   }
 
   // If no currency info found, skip warning and proceed to SwapFlow
   if (!currencyInfo) {
-    onAcknowledge?.()
     onClose()
+    onAcknowledge?.()
     return null
   }
 
   const tokenList = currencyInfo.safetyInfo?.tokenList
   const isBlocked = tokenList === TokenList.Blocked
 
-  // If token is verified or warning was dismissed and not blocked, skip warning and proceed to SwapFlow
+  // If token is verified or warning was dismissed and not blocked, skip warning and proceed to next step.
   if (!isBlocked && (tokenList === TokenList.Default || tokenWarningDismissed)) {
     onAcknowledge?.()
-    onClose()
     return null
   }
 
   return (
     <TokenWarningModal
-      isVisible={modalState.isOpen}
+      isVisible
       currencyInfo0={currencyInfo}
       isInfoOnlyWarning={isBlocked}
       closeModalOnly={onClose}
-      onAcknowledge={isBlocked ? onClose : onAcknowledge || onClose}
+      onAcknowledge={isBlocked ? onClose : (): void => onAcknowledge?.()}
     />
   )
 }

@@ -1,16 +1,17 @@
 import { Percent } from '@uniswap/sdk-core'
+import Row, { RowBetween } from 'components/deprecated/Row'
 import Expand from 'components/Expand'
 import QuestionHelper from 'components/QuestionHelper'
-import Row, { RowBetween } from 'components/deprecated/Row'
-import styled from 'lib/styled-components'
+import { styled } from 'lib/styled-components'
 import { Input, InputContainer } from 'pages/MigrateV2/Settings/Input'
 import { useState } from 'react'
 import { Trans } from 'react-i18next'
 import { useUserSlippageTolerance } from 'state/user/hooks'
 import { SlippageTolerance } from 'state/user/types'
-import { CautionTriangle, ThemedText } from 'theme/components'
+import { ThemedText } from 'theme/components'
+import { CautionTriangle } from 'theme/components/icons/CautionTriangle'
 import { Text } from 'ui/src'
-import { useFormatter } from 'utils/formatNumbers'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 
 enum SlippageError {
   InvalidInput = 'InvalidInput',
@@ -39,14 +40,14 @@ const MINIMUM_RECOMMENDED_SLIPPAGE = new Percent(5, 10_000)
 const MAXIMUM_RECOMMENDED_SLIPPAGE = new Percent(1, 100)
 
 function useFormatPercentInput() {
-  const { formatPercent } = useFormatter()
+  const { formatPercent } = useLocalizationContext()
 
-  return (slippage: Percent) => formatPercent(slippage).slice(0, -1) // remove % sign
+  return (slippage: Percent) => formatPercent(slippage.toSignificant()).slice(0, -1) // remove % sign
 }
 
 export default function MaxSlippageSettings({ autoSlippage }: { autoSlippage: Percent }) {
   const [userSlippageTolerance, setUserSlippageTolerance] = useUserSlippageTolerance()
-  const { formatPercent } = useFormatter()
+  const { formatPercent } = useLocalizationContext()
   const formatPercentInput = useFormatPercentInput()
 
   // In order to trigger `custom` mode, we need to set `userSlippageTolerance` to a value that is not `auto`.
@@ -93,7 +94,7 @@ export default function MaxSlippageSettings({ autoSlippage }: { autoSlippage: Pe
       } else {
         setUserSlippageTolerance(new Percent(parsed, 10_000))
       }
-    } catch (e) {
+    } catch {
       setSlippageError(SlippageError.InvalidInput)
     }
   }
@@ -122,7 +123,7 @@ export default function MaxSlippageSettings({ autoSlippage }: { autoSlippage: Pe
           {userSlippageTolerance === SlippageTolerance.Auto ? (
             <Trans i18nKey="common.automatic" />
           ) : (
-            formatPercent(userSlippageTolerance)
+            formatPercent(userSlippageTolerance.toSignificant())
           )}
         </ThemedText.BodyPrimary>
       }
@@ -177,7 +178,7 @@ export default function MaxSlippageSettings({ autoSlippage }: { autoSlippage: Pe
             {tooLow ? (
               <Trans
                 i18nKey="swap.slippageBelow.warning"
-                values={{ amt: formatPercent(MINIMUM_RECOMMENDED_SLIPPAGE) }}
+                values={{ amt: formatPercent(MINIMUM_RECOMMENDED_SLIPPAGE.toSignificant()) }}
               />
             ) : (
               <Trans i18nKey="swap.frontrun.warning" />

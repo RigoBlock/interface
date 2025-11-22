@@ -1,9 +1,9 @@
 import { cloneElement, useState } from 'react'
-import { AnimatePresence, ColorTokens, SpaceTokens, TabLayout, Tabs, TabsTabProps, styled } from 'tamagui'
+import { AnimatePresence, ColorTokens, SpaceTokens, styled, TabLayout, Tabs, TabsTabProps } from 'tamagui'
 import { Flex } from 'ui/src/components/layout/Flex'
 import { Text } from 'ui/src/components/text/Text'
 import { assert } from 'utilities/src/errors'
-import { isMobileApp } from 'utilities/src/platform'
+import { isMobileApp, isWebPlatform } from 'utilities/src/platform'
 
 const TOGGLE_PADDING = 4
 
@@ -33,6 +33,11 @@ const OptionsSelector = styled(Tabs.List, {
       },
     },
     size: {
+      xsmall: {
+        height: 30,
+        gap: '$spacing4',
+        borderRadius: '$roundedFull',
+      },
       small: {
         height: 30,
         gap: '$spacing6',
@@ -62,6 +67,8 @@ const OptionsSelector = styled(Tabs.List, {
   } as const,
 })
 
+OptionsSelector.displayName = 'OptionsSelector'
+
 const TabsRovingIndicator = styled(Flex, {
   animation: 'fast',
   backgroundColor: '$surface3',
@@ -90,6 +97,8 @@ const TabsRovingIndicator = styled(Flex, {
   } as const,
 })
 
+TabsRovingIndicator.displayName = 'TabsRovingIndicator'
+
 const OptionButton = styled(Tabs.Tab, {
   unstyled: true,
   role: 'button',
@@ -111,6 +120,11 @@ const OptionButton = styled(Tabs.Tab, {
       },
     },
     size: {
+      xsmall: {
+        height: '$spacing20',
+        py: '$spacing2',
+        px: 8,
+      },
       small: {
         height: '$spacing20',
         py: '$spacing2',
@@ -148,6 +162,8 @@ const OptionButton = styled(Tabs.Tab, {
   } as const,
 })
 
+OptionButton.displayName = 'OptionButton'
+
 export interface SegmentedControlOption<T extends string = string> {
   // String value to be selected/stored, used as default display value
   value: T
@@ -157,7 +173,7 @@ export interface SegmentedControlOption<T extends string = string> {
   wrapper?: JSX.Element
 }
 
-type SegmentedControlSize = 'small' | 'smallThumbnail' | 'default' | 'large' | 'largeThumbnail'
+type SegmentedControlSize = 'xsmall' | 'small' | 'smallThumbnail' | 'default' | 'large' | 'largeThumbnail'
 
 interface SegmentedControlProps<T extends string = string> {
   options: readonly SegmentedControlOption<T>[]
@@ -266,7 +282,11 @@ export function SegmentedControl<T extends string = string>({
             >
               {display ?? (
                 <Text
-                  color={getOptionTextColor(selectedOption === value, hoveredIndex === index, disabled)}
+                  color={getOptionTextColor({
+                    active: selectedOption === value,
+                    hovered: hoveredIndex === index,
+                    disabled,
+                  })}
                   userSelect="none"
                   variant={size === 'large' ? 'buttonLabel3' : 'buttonLabel4'}
                 >
@@ -292,7 +312,7 @@ export function SegmentedControl<T extends string = string>({
               height={activeAt.height}
               width={activeAt.width}
               x={activeAt.x - TOGGLE_PADDING + activeIndicatorXAdjustment}
-              y={activeAt.y - TOGGLE_PADDING + activeIndicatorYAdjustment - (!outlined ? 1 : 0)}
+              y={activeAt.y - TOGGLE_PADDING + activeIndicatorYAdjustment - (isWebPlatform && !outlined ? 1 : 0)}
             />
           )}
         </AnimatePresence>
@@ -301,7 +321,15 @@ export function SegmentedControl<T extends string = string>({
   )
 }
 
-function getOptionTextColor(active: boolean, hovered: boolean, disabled = false): ColorTokens {
+function getOptionTextColor({
+  active,
+  hovered,
+  disabled = false,
+}: {
+  active: boolean
+  hovered: boolean
+  disabled?: boolean
+}): ColorTokens {
   if (disabled) {
     return active ? '$neutral2' : '$neutral3'
   }

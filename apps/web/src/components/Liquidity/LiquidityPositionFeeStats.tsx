@@ -1,25 +1,33 @@
-import { ProtocolVersion } from '@uniswap/client-pools/dist/pools/v1/types_pb'
+import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
 import { CHART_WIDTH } from 'components/Charts/LiquidityPositionRangeChart/LiquidityPositionRangeChart'
-import { useGetRangeDisplay } from 'components/Liquidity/hooks'
+import { useGetRangeDisplay } from 'components/Liquidity/hooks/useGetRangeDisplay'
+import { TextLoader } from 'components/Liquidity/Loader'
+import LPIncentiveFeeStatTooltip from 'components/Liquidity/LPIncentives/LPIncentiveFeeStatTooltip'
+import { LPIncentiveRewardsBadge } from 'components/Liquidity/LPIncentives/LPIncentiveRewardsBadge'
 import { PriceOrdering } from 'components/Liquidity/types'
-import { MouseoverTooltip } from 'components/Tooltip'
-import { TextLoader } from 'pages/Pool/Positions/shared'
+import { MouseoverTooltip, TooltipSize } from 'components/Tooltip'
 import { Dispatch, SetStateAction } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { ClickableTamaguiStyle, EllipsisTamaguiStyle } from 'theme/components/styles'
-import { Flex, Text, styled, useMedia } from 'ui/src'
-import { ArrowUpDown } from 'ui/src/components/icons/ArrowUpDown'
+import { ClickableTamaguiStyle } from 'theme/components/styles'
+import { Flex, styled, Text, useMedia } from 'ui/src'
+import { ArrowDownArrowUp } from 'ui/src/components/icons/ArrowDownArrowUp'
 import { InfoCircleFilled } from 'ui/src/components/icons/InfoCircleFilled'
+import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 
 interface LiquidityPositionFeeStatsProps extends LiquidityPositionMinMaxRangeProps {
+  version: ProtocolVersion
+  cardHovered: boolean
+  currency0Info: Maybe<CurrencyInfo>
+  currency1Info: Maybe<CurrencyInfo>
   formattedUsdValue?: string
   formattedUsdFees?: string
-  totalApr?: string
+  formattedLpIncentiveEarnings?: string
+  totalApr?: number
   feeApr?: string
-  version: ProtocolVersion
   apr?: number
-  cardHovered: boolean
+  lpIncentiveRewardApr?: number
+  hasRewards?: boolean
 }
 
 const PrimaryText = styled(Text, {
@@ -52,7 +60,7 @@ function WrapChildrenForMediaSize({ children }: { children: React.ReactNode }) {
 
 function FeeStat({ children }: { children: React.ReactNode }) {
   return (
-    <Flex gap="$gap4" flex={1} flexBasis={0} $sm={{ flexBasis: 'auto' }}>
+    <Flex flex={1} flexBasis={0} $sm={{ flexBasis: 'auto' }}>
       {children}
     </Flex>
   )
@@ -80,18 +88,24 @@ export function LiquidityPositionFeeStatsLoader() {
 export function LiquidityPositionFeeStats({
   formattedUsdValue,
   formattedUsdFees,
+  formattedLpIncentiveEarnings,
   priceOrdering,
   tickLower,
   tickUpper,
   tickSpacing,
   version,
   apr,
+  currency0Info,
+  currency1Info,
   cardHovered,
   pricesInverted,
   setPricesInverted,
+  lpIncentiveRewardApr,
+  totalApr,
+  hasRewards,
 }: LiquidityPositionFeeStatsProps) {
   const { t } = useTranslation()
-  const { formatPercent } = useLocalizationContext()
+  const earningsOrFees = hasRewards ? formattedLpIncentiveEarnings : (formattedUsdFees ?? '-')
 
   return (
     <Flex
@@ -129,19 +143,24 @@ export function LiquidityPositionFeeStats({
                 </MouseoverTooltip>
               </Flex>
             ) : (
-              <PrimaryText>{formattedUsdFees ?? '-'}</PrimaryText>
+              <PrimaryText>{earningsOrFees}</PrimaryText>
             )}
             <SecondaryText variant="body3" color="$neutral2">
-              {t('common.fees')}
+              {hasRewards ? t('pool.earnings') : t('common.fees')}
             </SecondaryText>
           </FeeStat>
         </WrapChildrenForMediaSize>
-        <FeeStat>
-          <PrimaryText>{apr ? formatPercent(apr) : '-'}</PrimaryText>
-          <SecondaryText variant="body3" color="$neutral2">
-            {t('pool.apr')}
-          </SecondaryText>
-        </FeeStat>
+        {lpIncentiveRewardApr ? (
+          <LPIncentiveFeeStat
+            currency0Info={currency0Info}
+            currency1Info={currency1Info}
+            poolApr={apr}
+            lpIncentiveRewardApr={lpIncentiveRewardApr}
+            totalApr={totalApr}
+          />
+        ) : (
+          <APRFeeStat apr={apr} />
+        )}
       </Flex>
       <Flex $md={{ display: 'none' }}>
         <MinMaxRange
@@ -160,8 +179,8 @@ export function LiquidityPositionFeeStats({
 interface LiquidityPositionMinMaxRangeProps {
   priceOrdering: PriceOrdering
   tickSpacing?: number
-  tickLower?: string
-  tickUpper?: string
+  tickLower?: number
+  tickUpper?: number
   pricesInverted: boolean
   setPricesInverted: Dispatch<SetStateAction<boolean>>
 }
@@ -209,7 +228,9 @@ export function MinMaxRange({
             <SecondaryText color="$neutral1" display="flex" alignItems="center" gap="$gap4">
               <span
                 style={{
-                  ...EllipsisTamaguiStyle,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
                 }}
               >
                 {maxPrice}
@@ -230,7 +251,7 @@ export function MinMaxRange({
               display="none"
               $group-item-hover={{ display: 'flex' }}
             >
-              <ArrowUpDown color="$neutral2" size="$icon.16" rotate="90deg" />
+              <ArrowDownArrowUp color="$neutral2" size="$icon.16" rotate="90deg" />
             </Flex>
           </Flex>
         </Flex>
@@ -239,6 +260,68 @@ export function MinMaxRange({
           <SecondaryText>{t('common.fullRange')}</SecondaryText>
         </Flex>
       )}
+    </Flex>
+  )
+}
+
+function APRFeeStat({ apr }: { apr?: number }) {
+  const { formatPercent } = useLocalizationContext()
+  const { t } = useTranslation()
+
+  return (
+    <FeeStat>
+      <PrimaryText>{apr ? formatPercent(apr) : '-'}</PrimaryText>
+      <SecondaryText variant="body3" color="$neutral2">
+        {t('pool.apr')}
+      </SecondaryText>
+    </FeeStat>
+  )
+}
+
+function LPIncentiveFeeStat({
+  currency0Info,
+  currency1Info,
+  lpIncentiveRewardApr,
+  poolApr,
+  totalApr,
+}: {
+  currency0Info: Maybe<CurrencyInfo>
+  currency1Info: Maybe<CurrencyInfo>
+  lpIncentiveRewardApr: number
+  poolApr?: number
+  totalApr?: number
+}) {
+  const { formatPercent } = useLocalizationContext()
+  const { t } = useTranslation()
+
+  return (
+    <Flex flex={1.3} flexBasis={0} $sm={{ flexBasis: 'auto' }}>
+      <MouseoverTooltip
+        padding={0}
+        text={
+          <LPIncentiveFeeStatTooltip
+            currency0Info={currency0Info}
+            currency1Info={currency1Info}
+            poolApr={poolApr}
+            lpIncentiveRewardApr={lpIncentiveRewardApr}
+            totalApr={totalApr}
+          />
+        }
+        size={TooltipSize.Small}
+        placement="top"
+      >
+        <>
+          <Flex row gap="$spacing6" alignItems="center">
+            <Text variant="body2" color="$neutral1">
+              {poolApr ? formatPercent(poolApr) : '-'}
+            </Text>
+            <LPIncentiveRewardsBadge formattedRewardApr={formatPercent(lpIncentiveRewardApr)} />
+          </Flex>
+          <SecondaryText variant="body3" color="$neutral2">
+            {t('pool.totalAPR')}
+          </SecondaryText>
+        </>
+      </MouseoverTooltip>
     </Flex>
   )
 }

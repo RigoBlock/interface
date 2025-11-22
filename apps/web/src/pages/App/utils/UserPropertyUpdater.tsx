@@ -1,12 +1,30 @@
-import { CustomUserProperties, SharedEventName, getBrowser } from '@uniswap/analytics-events'
+import { queryOptions, useQuery } from '@tanstack/react-query'
+import { getBrowser, SharedEventName } from '@uniswap/analytics-events'
+import { provideUniswapIdentifierService } from '@universe/api'
+import { UniswapIdentifierService } from '@universe/sessions'
 import { useEffect } from 'react'
 import { useAppSelector } from 'state/hooks'
 import { useRouterPreference } from 'state/user/hooks'
 import { useIsDarkMode } from 'theme/components/ThemeToggle'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
-import { setUserProperty } from 'uniswap/src/features/telemetry/user'
-import { Metric, getCLS, getFCP, getFID, getLCP } from 'web-vitals'
+import { InterfaceUserPropertyName, setUserProperty } from 'uniswap/src/features/telemetry/user'
+import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
+import { getCLS, getFCP, getFID, getLCP, Metric } from 'web-vitals'
+
+/**
+ * Query options for fetching the Uniswap identifier
+ */
+function getUniswapIdentifierQueryOptions(getService: () => UniswapIdentifierService) {
+  return queryOptions({
+    queryKey: [ReactQueryCacheKey.UniqueId],
+    queryFn: async () => {
+      return getService().getUniswapIdentifier()
+    },
+    staleTime: Infinity,
+    gcTime: Infinity,
+  })
+}
 
 export function UserPropertyUpdater() {
   const isDarkMode = useIsDarkMode()
@@ -15,16 +33,25 @@ export function UserPropertyUpdater() {
   const [routerPreference] = useRouterPreference()
   const rehydrated = useAppSelector((state) => state._persist.rehydrated)
 
+  const { data: uniswapIdentifier } = useQuery(getUniswapIdentifierQueryOptions(provideUniswapIdentifierService))
+  useEffect(() => {
+    if (uniswapIdentifier) {
+      setUserProperty(InterfaceUserPropertyName.UniswapIdentifier, uniswapIdentifier)
+    }
+  }, [uniswapIdentifier])
+
   useEffect(() => {
     // User properties *must* be set before sending corresponding event properties,
     // so that the event contains the correct and up-to-date user properties.
-    setUserProperty(CustomUserProperties.USER_AGENT, navigator.userAgent)
-    setUserProperty(CustomUserProperties.BROWSER, getBrowser())
-    setUserProperty(CustomUserProperties.SCREEN_RESOLUTION_HEIGHT, window.screen.height)
-    setUserProperty(CustomUserProperties.SCREEN_RESOLUTION_WIDTH, window.screen.width)
-    setUserProperty(CustomUserProperties.GIT_COMMIT_HASH, process.env.REACT_APP_GIT_COMMIT_HASH ?? 'unknown')
+    setUserProperty(InterfaceUserPropertyName.UserAgent, navigator.userAgent)
+    setUserProperty(InterfaceUserPropertyName.Browser, getBrowser())
+    setUserProperty(InterfaceUserPropertyName.ScreenResolutionHeight, window.screen.height)
+    setUserProperty(InterfaceUserPropertyName.ScreenResolutionWidth, window.screen.width)
+    setUserProperty(InterfaceUserPropertyName.GitCommitHash, process.env.REACT_APP_GIT_COMMIT_HASH ?? 'unknown')
 
     // Service Worker analytics
+    // This null check is necessary to avoid a crash on mobile browsers like Safari.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     const isServiceWorkerInstalled = Boolean(window.navigator.serviceWorker?.controller)
     const serviceWorkerProperty = isServiceWorkerInstalled ? 'installed' : 'uninstalled'
 
@@ -55,18 +82,18 @@ export function UserPropertyUpdater() {
   }, [])
 
   useEffect(() => {
-    setUserProperty(CustomUserProperties.DARK_MODE, isDarkMode)
+    setUserProperty(InterfaceUserPropertyName.DarkMode, isDarkMode)
   }, [isDarkMode])
 
   useEffect(() => {
     if (!rehydrated) {
       return
     }
-    setUserProperty(CustomUserProperties.ROUTER_PREFERENCE, routerPreference)
+    setUserProperty(InterfaceUserPropertyName.RouterPreference, routerPreference)
   }, [routerPreference, rehydrated])
 
   useEffect(() => {
-    setUserProperty(CustomUserProperties.TESTNET_MODE_ENABLED, isTestnetModeEnabled)
+    setUserProperty(InterfaceUserPropertyName.TestnetModeEnabled, isTestnetModeEnabled)
   }, [isTestnetModeEnabled])
 
   return null

@@ -40,14 +40,14 @@ export function isPermit2(data: unknown): data is Permit2 {
   return Permit2Schema.safeParse(data).success
 }
 
-function isValidUniswapXSpender(data: { 
-  message: { spender: string }, 
-  domain: { chainId: string | number | bigint } 
+function isValidUniswapXSpender(data: {
+  message: { spender: string }
+  domain: { chainId: string | number | bigint }
 }): boolean {
   try {
     const { message, domain } = data
-    const spender = message.spender?.toLowerCase()
-    const uniswapXAddress = REACTOR_ADDRESS_MAPPING?.[Number(domain.chainId)]?.Dutch_V2?.toLowerCase()
+    const spender = message.spender.toLowerCase()
+    const uniswapXAddress = REACTOR_ADDRESS_MAPPING[Number(domain.chainId)]?.Dutch_V2?.toLowerCase()
     return Boolean(uniswapXAddress && spender === uniswapXAddress)
   } catch {
     return false
@@ -97,10 +97,9 @@ const DutchOrderSchema = z.object({
   primaryType: z.string(),
 })
 
-const UniswapXSwapRequestSchema = DutchOrderSchema.refine(
-  isValidUniswapXSpender,
-  { message: 'Invalid UniswapX request' }
-)
+const UniswapXSwapRequestSchema = DutchOrderSchema.refine(isValidUniswapXSpender, {
+  message: 'Invalid UniswapX request',
+})
 
 export type UniswapXSwapRequest = z.infer<typeof UniswapXSwapRequestSchema>
 

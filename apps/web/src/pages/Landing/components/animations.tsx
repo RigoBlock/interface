@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import styled, { css, keyframes } from 'lib/styled-components'
+import { css, keyframes, styled } from 'lib/styled-components'
 
 type RiseInProps = {
   delay?: number
@@ -58,12 +58,4 @@ export const Hover = (props: RiseInProps) => {
       {props.children}
     </motion.div>
   )
-}
-
-export function Wiggle({ ...props }) {
-  const variants = {
-    initial: { rotate: 0, scale: 1 },
-    animate: { rotate: [20, 0], scale: 1.2, transition: { type: 'spring', stiffness: 200 } },
-  }
-  return <motion.div {...props} whileHover="animate" initial="initial" variants={variants} />
 }

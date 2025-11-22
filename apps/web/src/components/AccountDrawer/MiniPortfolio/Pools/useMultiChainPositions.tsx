@@ -1,6 +1,7 @@
+import { BigNumber } from '@ethersproject/bignumber'
 import { CurrencyAmount, Token, V3_CORE_FACTORY_ADDRESSES } from '@uniswap/sdk-core'
 import IUniswapV3PoolStateJSON from '@uniswap/v3-core/artifacts/contracts/interfaces/pool/IUniswapV3PoolState.sol/IUniswapV3PoolState.json'
-import { Pool, Position, computePoolAddress } from '@uniswap/v3-sdk'
+import { computePoolAddress, Pool, Position } from '@uniswap/v3-sdk'
 import {
   PositionInfo,
   useCachedPositions,
@@ -13,27 +14,32 @@ import {
   usePoolPriceMap,
   useV3ManagerContracts,
 } from 'components/AccountDrawer/MiniPortfolio/Pools/hooks'
-import { BigNumber } from 'ethers/lib/ethers'
 import { Interface } from 'ethers/lib/utils'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PositionDetails } from 'types/position'
 import { NonfungiblePositionManager, UniswapInterfaceMulticall } from 'uniswap/src/abis/types/v3'
 import { UniswapV3PoolInterface } from 'uniswap/src/abis/types/v3/UniswapV3Pool'
-import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { logger } from 'utilities/src/logger/logger'
 import { DEFAULT_ERC20_DECIMALS } from 'utilities/src/tokens/constants'
 import { currencyKey } from 'utils/currencyKey'
 
-function createPositionInfo(
-  owner: string,
-  chainId: UniverseChainId,
-  details: PositionDetails,
-  slot0: any,
-  tokenA: Token,
-  tokenB: Token,
-): PositionInfo {
+function createPositionInfo({
+  owner,
+  chainId,
+  details,
+  slot0,
+  tokenA,
+  tokenB,
+}: {
+  owner: string
+  chainId: UniverseChainId
+  details: PositionDetails
+  slot0: any
+  tokenA: Token
+  tokenB: Token
+}): PositionInfo {
   /* Instantiates a Pool with a hardcoded 0 liqudity value since the sdk only uses this value for swap state and this avoids an RPC fetch */
   const pool = new Pool(tokenA, tokenB, details.fee, slot0.sqrtPriceX96.toString(), 0, slot0.tick)
   const position = new Position({
@@ -81,6 +87,7 @@ export default function useMultiChainPositions(account: string): UseMultiChainPo
   const { priceMap, pricesLoading } = usePoolPriceMap(positions)
 
   const fetchPositionFees = useCallback(
+    // eslint-disable-next-line max-params
     async (pm: NonfungiblePositionManager, positionIds: BigNumber[], chainId: number) => {
       const callData = positionIds.map((id) =>
         pm.interface.encodeFunctionData('collect', [
@@ -88,6 +95,7 @@ export default function useMultiChainPositions(account: string): UseMultiChainPo
         ]),
       )
       const fees = (await pm.callStatic.multicall(callData)).reduce(
+        // eslint-disable-next-line max-params
         (acc, feeBytes, index) => {
           const key = chainId.toString() + positionIds[index]
           acc[key] = pm.interface.decodeFunctionResult('collect', feeBytes) as FeeAmounts
@@ -124,6 +132,7 @@ export default function useMultiChainPositions(account: string): UseMultiChainPo
 
   // Combines PositionDetails with Pool data to build our return type
   const fetchPositionInfo = useCallback(
+    // eslint-disable-next-line max-params
     async (positionDetails: PositionDetails[], chainId: UniverseChainId, multicall: UniswapInterfaceMulticall) => {
       const poolInterface = new Interface(IUniswapV3PoolStateJSON.abi) as UniswapV3PoolInterface
       const tokens = await getTokens(
@@ -145,7 +154,7 @@ export default function useMultiChainPositions(account: string): UseMultiChainPo
             tokenA,
             tokenB,
             fee: details.fee,
-            chainId: getChainInfo(chainId).sdkId,
+            chainId: chainId as number,
           })
           poolAddressCache.set(details, chainId, poolAddress)
         }
@@ -157,10 +166,20 @@ export default function useMultiChainPositions(account: string): UseMultiChainPo
         })
       }, [])
 
+      // eslint-disable-next-line max-params
       return (await multicall.callStatic.multicall(calls)).returnData.reduce((acc: PositionInfo[], result, i) => {
         if (result.success) {
           const slot0 = poolInterface.decodeFunctionResult('slot0', result.returnData)
-          acc.push(createPositionInfo(account, chainId, positionDetails[i], slot0, ...poolPairs[i]))
+          acc.push(
+            createPositionInfo({
+              owner: account,
+              chainId,
+              details: positionDetails[i],
+              slot0,
+              tokenA: poolPairs[i][0],
+              tokenB: poolPairs[i][1],
+            }),
+          )
         } else {
           logger.debug('useMultiChainPositions', 'fetchPositionInfo', 'slot0 fetch errored', result)
         }
@@ -178,7 +197,9 @@ export default function useMultiChainPositions(account: string): UseMultiChainPo
       try {
         const pm = pms[chainId]
         const multicall = multicalls[chainId]
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         const balance = await pm?.balanceOf(account)
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (!pm || !multicall || balance.lt(1)) {
           return []
         }
@@ -209,6 +230,7 @@ export default function useMultiChainPositions(account: string): UseMultiChainPo
   }, [chains, fetchPositionsForChain, setPositions])
 
   // Fetches positions when existing positions are stale and the document has focus
+  // biome-ignore lint/correctness/useExhaustiveDependencies: +positionsFetching
   useEffect(() => {
     if (positionsFetching.current || cachedPositions?.stale === false) {
       return undefined
@@ -232,10 +254,13 @@ export default function useMultiChainPositions(account: string): UseMultiChainPo
     () =>
       positions?.map((position) => {
         const key = position.chainId.toString() + position.details.tokenId
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         const fees = feeMap[key]
           ? [
               // We parse away from SDK/ethers types so fees can be multiplied by primitive number prices
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
               parseFloat(CurrencyAmount.fromRawAmount(position.pool.token0, feeMap[key]?.[0].toString()).toExact()),
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
               parseFloat(CurrencyAmount.fromRawAmount(position.pool.token1, feeMap[key]?.[1].toString()).toExact()),
             ]
           : undefined

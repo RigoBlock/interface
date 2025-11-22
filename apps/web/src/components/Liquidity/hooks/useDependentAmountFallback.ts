@@ -1,15 +1,15 @@
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
+import { TradingApi } from '@universe/api'
 import { DepositInfo } from 'components/Liquidity/types'
 import { useEffect, useMemo, useState } from 'react'
 import { PositionField } from 'types/position'
 import { useCreateLpPositionCalldataQuery } from 'uniswap/src/data/apiClients/tradingApi/useCreateLpPositionCalldataQuery'
 import { useIncreaseLpPositionCalldataQuery } from 'uniswap/src/data/apiClients/tradingApi/useIncreaseLpPositionCalldataQuery'
-import { CreateLPPositionRequest, IncreaseLPPositionRequest } from 'uniswap/src/data/tradingApi/__generated__'
-import { useUSDCValue } from 'uniswap/src/features/transactions/swap/hooks/useUSDCPrice'
+import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'
 import { ONE_SECOND_MS } from 'utilities/src/time/time'
 
 export function useIncreasePositionDependentAmountFallback(
-  queryParams: IncreaseLPPositionRequest | undefined,
+  queryParams: TradingApi.IncreaseLPPositionRequest | undefined,
   isQueryEnabled: boolean,
 ) {
   const [hasErrorResponse, setHasErrorResponse] = useState(false)
@@ -24,6 +24,7 @@ export function useIncreasePositionDependentAmountFallback(
     enabled: isQueryEnabled && queryParams?.simulateTransaction,
   })
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: +queryParams
   useEffect(() => {
     setHasErrorResponse(!!error)
   }, [error, queryParams])
@@ -32,7 +33,7 @@ export function useIncreasePositionDependentAmountFallback(
 }
 
 export function useCreatePositionDependentAmountFallback(
-  queryParams: CreateLPPositionRequest | undefined,
+  queryParams: TradingApi.CreateLPPositionRequest | undefined,
   isQueryEnabled: boolean,
 ) {
   const [hasErrorResponse, setHasErrorResponse] = useState(false)
@@ -47,6 +48,7 @@ export function useCreatePositionDependentAmountFallback(
     enabled: isQueryEnabled && queryParams?.simulateTransaction,
   })
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: +queryParams
   useEffect(() => {
     setHasErrorResponse(!!error)
   }, [error, queryParams])
@@ -65,37 +67,37 @@ export function useUpdatedAmountsFromDependentAmount({
   deposit0Disabled,
   deposit1Disabled,
 }: {
-  token0?: Currency
-  token1?: Currency
+  token0: Maybe<Currency>
+  token1: Maybe<Currency>
   dependentAmount?: string
   exactField: PositionField
-  deposit0Disabled: boolean
-  deposit1Disabled: boolean
+  deposit0Disabled?: boolean
+  deposit1Disabled?: boolean
 } & Pick<DepositInfo, 'currencyAmounts' | 'currencyAmountsUSDValue' | 'formattedAmounts'>): {
   updatedFormattedAmounts?: { [field in PositionField]?: string }
-  updatedUSDAmounts?: { [field in PositionField]?: CurrencyAmount<Currency> }
-  updatedCurrencyAmounts?: { [field in PositionField]?: CurrencyAmount<Currency> }
-  updatedDeposit0Disabled: boolean
-  updatedDeposit1Disabled: boolean
+  updatedUSDAmounts?: { [field in PositionField]?: Maybe<CurrencyAmount<Currency>> }
+  updatedCurrencyAmounts?: { [field in PositionField]?: Maybe<CurrencyAmount<Currency>> }
+  updatedDeposit0Disabled?: boolean
+  updatedDeposit1Disabled?: boolean
 } {
   const dependentAmount0 =
     dependentAmount && exactField === PositionField.TOKEN1 && token0
       ? CurrencyAmount.fromRawAmount(token0, dependentAmount)
       : undefined
-  const dependentAmount0USDValue = useUSDCValue(dependentAmount0) ?? undefined
+  const dependentAmount0USDValue = useUSDCValue(dependentAmount0)
 
   const dependentAmount1 =
     dependentAmount && exactField === PositionField.TOKEN0 && token1
       ? CurrencyAmount.fromRawAmount(token1, dependentAmount)
       : undefined
-  const dependentAmount1USDValue = useUSDCValue(dependentAmount1) ?? undefined
+  const dependentAmount1USDValue = useUSDCValue(dependentAmount1)
 
   return useMemo(() => {
     if (dependentAmount0) {
       return {
         updatedFormattedAmounts: {
           ...formattedAmounts,
-          TOKEN0: dependentAmount0?.toExact() ?? formattedAmounts?.TOKEN0,
+          TOKEN0: dependentAmount0.toExact(),
         },
         updatedUSDAmounts: {
           ...currencyAmountsUSDValue,
@@ -103,7 +105,7 @@ export function useUpdatedAmountsFromDependentAmount({
         },
         updatedCurrencyAmounts: {
           ...currencyAmounts,
-          TOKEN0: dependentAmount0 ?? currencyAmounts?.TOKEN0,
+          TOKEN0: dependentAmount0,
         },
         updatedDeposit0Disabled: !dependentAmount0.greaterThan(0),
         updatedDeposit1Disabled: deposit1Disabled,
@@ -112,7 +114,7 @@ export function useUpdatedAmountsFromDependentAmount({
       return {
         updatedFormattedAmounts: {
           ...formattedAmounts,
-          TOKEN1: dependentAmount1?.toExact() ?? formattedAmounts?.TOKEN1,
+          TOKEN1: dependentAmount1.toExact(),
         },
         updatedUSDAmounts: {
           ...currencyAmountsUSDValue,
@@ -120,7 +122,7 @@ export function useUpdatedAmountsFromDependentAmount({
         },
         updatedCurrencyAmounts: {
           ...currencyAmounts,
-          TOKEN1: dependentAmount1 ?? currencyAmounts?.TOKEN1,
+          TOKEN1: dependentAmount1,
         },
         updatedDeposit0Disabled: deposit0Disabled,
         updatedDeposit1Disabled: !dependentAmount1.greaterThan(0),

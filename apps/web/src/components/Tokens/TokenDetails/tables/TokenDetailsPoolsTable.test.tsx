@@ -1,29 +1,38 @@
 import 'test-utils/tokens/mocks'
 
+import { usePoolsFromTokenAddress } from 'appGraphql/data/pools/usePoolsFromTokenAddress'
 import { ApolloError } from '@apollo/client'
-import { Percent, Token } from '@uniswap/sdk-core'
+import { type Currency, Percent, Token } from '@uniswap/sdk-core'
+import { GraphQLApi } from '@universe/api'
 import { TokenDetailsPoolsTable } from 'components/Tokens/TokenDetails/tables/TokenDetailsPoolsTable'
-import { usePoolsFromTokenAddress } from 'graphql/data/pools/usePoolsFromTokenAddress'
-import Router from 'react-router-dom'
 import { mocked } from 'test-utils/mocked'
-import { validBEPoolToken0, validBEPoolToken1, validParams } from 'test-utils/pools/fixtures'
+import { validBEPoolToken0, validBEPoolToken1 } from 'test-utils/pools/fixtures'
 import { render, screen } from 'test-utils/render'
-import { ProtocolVersion } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
+import { DEFAULT_TICK_SPACING } from 'uniswap/src/constants/pools'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 
-jest.mock('graphql/data/pools/usePoolsFromTokenAddress')
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useParams: jest.fn(),
-}))
+vi.mock('appGraphql/data/pools/usePoolsFromTokenAddress')
+vi.mock('react-router', async () => {
+  const actual = await vi.importActual('react-router')
+  return {
+    ...actual,
+    default: actual,
+    useParams: vi
+      .fn()
+      .mockReturnValue({ poolAddress: '0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640', chainName: 'ethereum' }),
+  }
+})
 
 const mockToken = new Token(UniverseChainId.Mainnet, validBEPoolToken0.id, 18)
+const mockCurrency = {
+  isToken: false,
+  isNative: true,
+  chainId: UniverseChainId.Mainnet,
+  decimals: 18,
+  wrapped: mockToken,
+} as Currency
 
 describe('TDPPoolTable', () => {
-  beforeEach(() => {
-    jest.spyOn(Router, 'useParams').mockReturnValue(validParams)
-  })
-
   it('renders loading state', () => {
     mocked(usePoolsFromTokenAddress).mockReturnValue({
       loading: true,
@@ -31,12 +40,10 @@ describe('TDPPoolTable', () => {
       errorV3: undefined,
       errorV2: undefined,
       pools: [],
-      loadMore: jest.fn(),
+      loadMore: vi.fn(),
     })
 
-    const { asFragment } = render(
-      <TokenDetailsPoolsTable chainId={UniverseChainId.Mainnet} referenceToken={mockToken} />,
-    )
+    const { asFragment } = render(<TokenDetailsPoolsTable referenceCurrency={mockCurrency} />)
     expect(screen.getAllByTestId('cell-loading-bubble')).not.toBeNull()
     expect(asFragment()).toMatchSnapshot()
   })
@@ -48,12 +55,10 @@ describe('TDPPoolTable', () => {
       errorV3: new ApolloError({ errorMessage: 'error fetching data' }),
       errorV2: new ApolloError({ errorMessage: 'error fetching data' }),
       pools: [],
-      loadMore: jest.fn(),
+      loadMore: vi.fn(),
     })
 
-    const { asFragment } = render(
-      <TokenDetailsPoolsTable chainId={UniverseChainId.Mainnet} referenceToken={mockToken} />,
-    )
+    const { asFragment } = render(<TokenDetailsPoolsTable referenceCurrency={mockCurrency} />)
     expect(screen.getByTestId('table-error-modal')).not.toBeNull()
     expect(asFragment()).toMatchSnapshot()
   })
@@ -63,7 +68,11 @@ describe('TDPPoolTable', () => {
       {
         token0: validBEPoolToken0,
         token1: validBEPoolToken1,
-        feeTier: 10000,
+        feeTier: {
+          feeAmount: 10000,
+          tickSpacing: DEFAULT_TICK_SPACING,
+          isDynamic: false,
+        },
         hash: '0x123',
         txCount: 200,
         tvl: 300,
@@ -71,7 +80,7 @@ describe('TDPPoolTable', () => {
         volume30d: 500,
         volOverTvl: 1.84,
         apr: new Percent(6, 100),
-        protocolVersion: ProtocolVersion.V3,
+        protocolVersion: GraphQLApi.ProtocolVersion.V3,
       },
     ]
     mocked(usePoolsFromTokenAddress).mockReturnValue({
@@ -80,12 +89,10 @@ describe('TDPPoolTable', () => {
       errorV4: undefined,
       errorV3: undefined,
       errorV2: undefined,
-      loadMore: jest.fn(),
+      loadMore: vi.fn(),
     })
 
-    const { asFragment } = render(
-      <TokenDetailsPoolsTable chainId={UniverseChainId.Mainnet} referenceToken={mockToken} />,
-    )
+    const { asFragment } = render(<TokenDetailsPoolsTable referenceCurrency={mockCurrency} />)
     expect(screen.getByTestId(`tdp-pools-table-${validBEPoolToken0.id}`)).not.toBeNull()
     expect(asFragment()).toMatchSnapshot()
   })

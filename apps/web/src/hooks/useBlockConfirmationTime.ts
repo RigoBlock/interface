@@ -23,13 +23,13 @@ export function useBlockConfirmationTime() {
           provider.getBlock(currentBlockNumber - 1),
         ])
 
-        if (currentBlock?.timestamp && previousBlock?.timestamp) {
+        if (currentBlock.timestamp && previousBlock.timestamp) {
           setBlockConfirmationTime(currentBlock.timestamp - previousBlock.timestamp)
         } else {
           setError(true)
           setBlockConfirmationTime(null)
         }
-      } catch (e) {
+      } catch {
         setError(true)
         setBlockConfirmationTime(null)
       }

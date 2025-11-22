@@ -1,17 +1,18 @@
+import { PollingInterval } from 'appGraphql/data/util'
 import { NetworkStatus } from '@apollo/client'
 import { Currency, CurrencyAmount, Price, Token, TradeType } from '@uniswap/sdk-core'
-import { PollingInterval } from 'graphql/data/util'
+import { GraphQLApi } from '@universe/api'
 import useIsWindowVisible from 'hooks/useIsWindowVisible'
 import { useMemo, useRef } from 'react'
 import { ClassicTrade, INTERNAL_ROUTER_PREFERENCE_PRICE, TradeState } from 'state/routing/types'
 import { useRoutingAPITrade } from 'state/routing/useRoutingAPITrade'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
-import { Chain, useTokenSpotPriceQuery } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { useIsSupportedChainId, useSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { toGraphQLChain } from 'uniswap/src/features/chains/utils'
+import { getPrimaryStablecoin, toGraphQLChain } from 'uniswap/src/features/chains/utils'
+import { isEVMChain } from 'uniswap/src/features/platforms/utils/chains'
 import { getNativeTokenDBAddress } from 'utils/nativeTokens'
 
 // ETH amounts used when calculating spot price for a given currency.
@@ -25,7 +26,7 @@ function useETHPrice(currency?: Currency): {
   isLoading: boolean
 } {
   const chainId = currency?.chainId
-  const isSupportedChain = useIsSupportedChainId(chainId)
+  const isSupportedChain = useIsSupportedChainId(chainId) && isEVMChain(chainId)
   const isSupported = isSupportedChain && currency
 
   const amountOut = isSupported ? getEthAmountOut(chainId) : undefined
@@ -42,7 +43,7 @@ function useETHPrice(currency?: Currency): {
       return { data: undefined, isLoading: false }
     }
 
-    if (currency?.wrapped.equals(nativeOnChain(chainId).wrapped)) {
+    if (currency.wrapped.equals(nativeOnChain(chainId).wrapped)) {
       return {
         data: new Price(currency, currency, '1', '1'),
         isLoading: false,
@@ -54,7 +55,7 @@ function useETHPrice(currency?: Currency): {
     }
 
     // if initial quoting fails, we may end up with a DutchOrderTrade
-    if (trade && trade instanceof ClassicTrade) {
+    if (trade instanceof ClassicTrade) {
       const { numerator, denominator } = trade.routes[0].midPrice
       const price = new Price(currency, nativeOnChain(chainId), denominator, numerator)
       return { data: price, isLoading: false }
@@ -62,6 +63,16 @@ function useETHPrice(currency?: Currency): {
 
     return { data: undefined, isLoading: false }
   }, [chainId, currency, isSupported, state, trade])
+}
+
+const DEFAULT_SPOT_PRICE_AMOUNT = 10_000
+function getSpotPriceAmount(chainId: UniverseChainId): CurrencyAmount<Token> {
+  const chainInfo = getChainInfo(chainId)
+  if (chainInfo.spotPriceStablecoinAmountOverride) {
+    return chainInfo.spotPriceStablecoinAmountOverride
+  }
+  const amount = DEFAULT_SPOT_PRICE_AMOUNT * Math.pow(10, getPrimaryStablecoin(chainId).decimals)
+  return CurrencyAmount.fromRawAmount(getPrimaryStablecoin(chainId), amount)
 }
 
 /**
@@ -73,7 +84,8 @@ function useStablecoinPrice(currency?: Currency): {
   state: TradeState
 } {
   const chainId = useSupportedChainId(currency?.chainId)
-  const amountOut = chainId ? getChainInfo(chainId).spotPriceStablecoinAmount : undefined
+  const amountOut = useMemo(() => (chainId ? getSpotPriceAmount(chainId) : undefined), [chainId])
+
   const stablecoin = amountOut?.currency
   const { trade, state } = useRoutingAPITrade(
     false /* skip */,
@@ -87,7 +99,7 @@ function useStablecoinPrice(currency?: Currency): {
       return undefined
     }
     // handle usdc
-    if (currency?.wrapped.equals(stablecoin)) {
+    if (currency.wrapped.equals(stablecoin)) {
       return new Price(stablecoin, stablecoin, '1', '1')
     }
     // if initial quoting fails, we may end up with a DutchOrderTrade
@@ -128,8 +140,8 @@ export function useUSDPrice(
   // Use ETH-based pricing if available.
   const { data: tokenEthPrice, isLoading: isTokenEthPriceLoading } = useETHPrice(currency)
   const isTokenEthPriced = Boolean(tokenEthPrice || isTokenEthPriceLoading)
-  const { data, networkStatus } = useTokenSpotPriceQuery({
-    variables: { chain: chain ?? Chain.Ethereum, address: getNativeTokenDBAddress(chain ?? Chain.Ethereum) },
+  const { data, networkStatus } = GraphQLApi.useTokenSpotPriceQuery({
+    variables: { chain, address: getNativeTokenDBAddress(chain) },
     skip: !isTokenEthPriced || !isWindowVisible,
     pollInterval: PollingInterval.Normal,
     notifyOnNetworkStatusChange: true,

@@ -1,5 +1,5 @@
-import { OffScreenHandle, brushHandleAccentPath, brushHandlePath } from 'components/Charts/LiquidityRangeInput/svg'
-import { BrushBehavior, D3BrushEvent, ScaleLinear, brushY, select } from 'd3'
+import { brushHandleAccentPath, brushHandlePath, OffScreenHandle } from 'components/Charts/LiquidityRangeInput/svg'
+import { BrushBehavior, brushY, D3BrushEvent, ScaleLinear, select } from 'd3'
 import usePrevious from 'hooks/usePrevious'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -15,6 +15,7 @@ const BRUSH_EXTENT_MARGIN_PX = 2
  * Returns true if every element in `a` maps to the
  * same pixel coordinate as elements in `b`
  */
+// eslint-disable-next-line max-params
 const compare = (a: [number, number], b: [number, number], yScale: ScaleLinear<number, number>): boolean => {
   // normalize pixels to 1 decimals
   const aNorm = a.map((y) => yScale(y).toFixed(1))
@@ -68,17 +69,18 @@ export const Brush = ({
 
   // keep local and external brush extent in sync
   // i.e. snap to ticks on brush end
-  const [brushInProgress, setBrushInProgress] = useState(false)
+  const brushInProgressRef = useRef(false)
+
   useEffect(() => {
-    if (brushInProgress) {
+    if (brushInProgressRef.current) {
       return
     }
     setLocalBrushExtent(brushExtent)
-  }, [brushExtent, brushInProgress])
+  }, [brushExtent])
 
   // initialize the brush
   useEffect(() => {
-    if (!brushRef.current || brushInProgress) {
+    if (!brushRef.current) {
       return
     }
 
@@ -101,7 +103,7 @@ export const Brush = ({
       })
       .on('brush', (event: D3BrushEvent<unknown>) => {
         const { selection } = event
-        setBrushInProgress(true)
+        brushInProgressRef.current = true
 
         if (!selection) {
           setLocalBrushExtent(null)
@@ -126,12 +128,16 @@ export const Brush = ({
           setBrushExtent(priceExtent, mode)
         }
         setLocalBrushExtent(priceExtent)
-        setBrushInProgress(false)
+        brushInProgressRef.current = false
       })
 
     brushBehavior.current(select(brushRef.current))
 
-    if (previousBrushExtent && compare(normalizedExtent, normalizeExtent(previousBrushExtent), yScale)) {
+    if (
+      !brushInProgressRef.current &&
+      previousBrushExtent &&
+      compare(normalizedExtent, normalizeExtent(previousBrushExtent), yScale)
+    ) {
       select(brushRef.current)
         .transition()
         .call(brushBehavior.current.move as any, scaledExtent)
@@ -146,7 +152,7 @@ export const Brush = ({
       .attr('fill-opacity', '0.1')
       .attr('fill', `url(#${id}-gradient-selection)`)
       .attr('cursor', 'grab')
-  }, [brushExtent, id, height, interactive, previousBrushExtent, yScale, width, setBrushExtent, brushInProgress])
+  }, [brushExtent, id, height, interactive, previousBrushExtent, yScale, width, setBrushExtent])
 
   // respond to yScale changes only
   useEffect(() => {
@@ -164,15 +170,11 @@ export const Brush = ({
   const flipNorthHandle = yScale(normalizedBrushExtent[1]) < FLIP_HANDLE_THRESHOLD_PX
   const flipSouthHandle = yScale(normalizedBrushExtent[0]) > height - FLIP_HANDLE_THRESHOLD_PX
 
-  const showNorthArrow =
-    normalizedBrushExtent && (yScale(normalizedBrushExtent[0]) < 0 || yScale(normalizedBrushExtent[1]) < 0)
-  const showSouthArrow =
-    normalizedBrushExtent && (yScale(normalizedBrushExtent[0]) > height || yScale(normalizedBrushExtent[1]) > height)
+  const showNorthArrow = yScale(normalizedBrushExtent[0]) < 0 || yScale(normalizedBrushExtent[1]) < 0
+  const showSouthArrow = yScale(normalizedBrushExtent[0]) > height || yScale(normalizedBrushExtent[1]) > height
 
-  const southHandleInView =
-    normalizedBrushExtent && yScale(normalizedBrushExtent[0]) >= 0 && yScale(normalizedBrushExtent[0]) <= height
-  const northHandleInView =
-    normalizedBrushExtent && yScale(normalizedBrushExtent[1]) >= 0 && yScale(normalizedBrushExtent[1]) <= height
+  const southHandleInView = yScale(normalizedBrushExtent[0]) >= 0 && yScale(normalizedBrushExtent[0]) <= height
+  const northHandleInView = yScale(normalizedBrushExtent[1]) >= 0 && yScale(normalizedBrushExtent[1]) <= height
 
   return useMemo(
     () => (
@@ -193,7 +195,7 @@ export const Brush = ({
         <g ref={brushRef} clipPath={`url(#${id}-brush-clip)`} />
 
         {/* custom brush handles */}
-        {normalizedBrushExtent && !hideHandles && (
+        {!hideHandles && (
           <>
             {northHandleInView ? (
               <g

@@ -1,18 +1,22 @@
-import { POPUP_MAX_WIDTH } from 'components/Popups/PopupContent'
-import { Flex, Text, TouchableArea, useShadowPropsMedium } from 'ui/src'
+import { POPUP_MAX_WIDTH } from 'components/Popups/constants'
+import { Flex, FlexProps, Text, TouchableArea, useShadowPropsMedium } from 'ui/src'
 import { X } from 'ui/src/components/icons/X'
+import { spacing } from 'ui/src/theme'
 
 // Temporary Spore-ish implementation for mweb until Spore project makes toasts consistent across all platforms
 export function ToastRegularSimple({
   icon,
   text,
   onDismiss,
+  width,
 }: {
-  icon: JSX.Element
-  text?: string
+  icon?: JSX.Element
+  text?: string | JSX.Element
   onDismiss?: () => void
+  width?: FlexProps['width']
 }): JSX.Element {
   const shadowProps = useShadowPropsMedium()
+  const isToastOneLine = typeof text === 'string'
 
   return (
     <Flex
@@ -21,25 +25,28 @@ export function ToastRegularSimple({
       animation="300ms"
       backgroundColor="$surface1"
       borderColor="$surface3"
-      borderRadius="$rounded16"
+      borderRadius="$rounded12"
       borderWidth="$spacing1"
       justifyContent="space-between"
-      left={0}
-      mx={0}
+      right={0}
+      ml="auto"
       {...shadowProps}
-      p="$spacing16"
+      p="$spacing12"
       position="relative"
-      width={POPUP_MAX_WIDTH}
+      width={width ?? POPUP_MAX_WIDTH}
       opacity={1}
-      $sm={{ width: 'max-content', mx: 'auto' }}
+      $sm={{
+        maxWidth: '100%',
+        mx: 'auto',
+      }}
     >
-      <Flex row alignItems="center" gap={12}>
-        {icon}
-        {text ? <Text variant="body2">{text}</Text> : null}
+      <Flex row alignItems={isToastOneLine ? 'center' : 'flex-start'} gap={spacing.spacing6} flex={1}>
+        {icon && <Flex>{icon}</Flex>}
+        {text ? isToastOneLine ? <Text variant="body3">{text}</Text> : text : null}
       </Flex>
       {onDismiss ? (
-        <TouchableArea onPress={onDismiss}>
-          <X color="$neutral2" size={16} ml="$spacing8" />
+        <TouchableArea onPress={onDismiss} ml="$spacing8">
+          <X color="$neutral2" size="$icon.16" />
         </TouchableArea>
       ) : null}
     </Flex>

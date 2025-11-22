@@ -1,5 +1,6 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { ReactNavigationPerformanceView } from '@shopify/react-native-performance-navigation'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import React, { useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated'
@@ -13,12 +14,11 @@ import { Button, Flex, Text, TouchableArea } from 'ui/src'
 import { AnimatedFlex } from 'ui/src/components/layout/AnimatedFlex'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { setIsTestnetModeEnabled } from 'uniswap/src/features/settings/slice'
-import Trace from 'uniswap/src/features/telemetry/Trace'
 import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
+import Trace from 'uniswap/src/features/telemetry/Trace'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { ImportType, OnboardingEntryPoint } from 'uniswap/src/types/onboarding'
 import { OnboardingScreens, UnitagScreens } from 'uniswap/src/types/screens/mobile'
-import { isE2EMode } from 'utilities/src/environment/constants'
 import { isDevEnv } from 'utilities/src/environment/env'
 import { logger } from 'utilities/src/logger/logger'
 import { ONE_SECOND_MS } from 'utilities/src/time/time'
@@ -38,10 +38,8 @@ export function LandingScreen({ navigation }: Props): JSX.Element {
 
   useEffect(() => {
     // disables looping animation during e2e tests which was preventing js thread from idle
-    if (!isE2EMode) {
-      actionButtonsOpacity.value = withDelay(LANDING_ANIMATION_DURATION, withTiming(1, { duration: ONE_SECOND_MS }))
-    }
-  }, [actionButtonsOpacity])
+    actionButtonsOpacity.value = withDelay(LANDING_ANIMATION_DURATION, withTiming(1, { duration: ONE_SECOND_MS }))
+  }, [])
 
   // Disables testnet mode on mount if enabled (eg upon removing a wallet)
   useEffect(() => {
@@ -84,6 +82,8 @@ export function LandingScreen({ navigation }: Props): JSX.Element {
     })
   }
 
+  const isEmbeddedWalletEnabled = useFeatureFlag(FeatureFlags.EmbeddedWallet)
+
   return (
     <ReactNavigationPerformanceView interactive screenName={OnboardingScreens.Landing}>
       <Screen backgroundColor="$surface1" edges={['bottom']} onLayout={hideSplashScreen}>
@@ -107,7 +107,9 @@ export function LandingScreen({ navigation }: Props): JSX.Element {
                     testID={TestID.CreateAccount}
                     onPress={onPressCreateWallet}
                   >
-                    {t('onboarding.landing.button.create')}
+                    {isEmbeddedWalletEnabled
+                      ? t('onboarding.landing.button.createAccount')
+                      : t('onboarding.landing.button.create')}
                   </Button>
                 </Flex>
               </Trace>
@@ -128,7 +130,9 @@ export function LandingScreen({ navigation }: Props): JSX.Element {
                     color="$accent1"
                     variant="buttonLabel1"
                   >
-                    {t('onboarding.landing.button.add')}
+                    {isEmbeddedWalletEnabled
+                      ? t('onboarding.intro.button.logInOrImport')
+                      : t('onboarding.landing.button.add')}
                   </Text>
                 </TouchableArea>
               </Trace>
