@@ -1,4 +1,3 @@
-import { InterfaceEventName } from '@uniswap/analytics-events'
 import { Currency } from '@uniswap/sdk-core'
 import { usePoolContract, useWETHContract } from 'hooks/useContract'
 import useNativeCurrency from 'lib/hooks/useNativeCurrency'
@@ -10,10 +9,10 @@ import { useActiveSmartPool } from 'state/application/hooks'
 import { useCurrencyBalance } from 'state/connection/hooks'
 import { useMultichainContext } from 'state/multichain/useMultichainContext'
 import { useTransactionAdder } from 'state/transactions/hooks'
-import { TransactionType } from 'state/transactions/types'
-import { trace } from 'tracing/trace'
 import { WRAPPED_NATIVE_CURRENCY } from 'uniswap/src/constants/tokens'
+import { InterfaceEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
+import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { WrapType } from 'uniswap/src/features/transactions/types/wrap'
 import { logger } from 'utilities/src/logger/logger'
 
@@ -33,11 +32,16 @@ enum WrapInputError {
  * @param outputCurrency the selected output currency
  * @param typedValue the user input value
  */
-export default function useWrapCallback(
-  inputCurrency: Currency | undefined | null,
-  outputCurrency: Currency | undefined | null,
-  typedValue: string | undefined,
-): { wrapType: WrapType; execute?: () => Promise<string | undefined>; inputError?: WrapInputError } {
+export default function useWrapCallback({
+  inputCurrency,
+  outputCurrency,
+  typedValue,
+}: {
+  inputCurrency?: Currency | null
+  outputCurrency?: Currency | null
+  typedValue?: string
+}): { wrapType: WrapType; execute?: () => Promise<string | undefined>; inputError?: WrapInputError } {
+  const account = useAccount()
   const { chainId } = useMultichainContext()
 
   const wethContract = useWETHContract(true, chainId)
@@ -80,54 +84,48 @@ export default function useWrapCallback(
       token_in_symbol: inputCurrency.symbol,
       token_out_symbol: outputCurrency.symbol,
       chain_id: inputCurrency.chainId,
-      amount: inputAmount ? formatToDecimal(inputAmount, inputAmount?.currency.decimals) : undefined,
+      amount: inputAmount ? formatToDecimal(inputAmount, inputAmount.currency.decimals) : undefined,
     }
 
     if (inputCurrency.isNative && weth.equals(outputCurrency)) {
       return {
         wrapType: WrapType.Wrap,
-        execute:
-          sufficientBalance && inputAmount
-            ? () =>
-                trace({ name: 'Wrap', op: 'swap.wrap' }, async (trace) => {
-                  const wethContract = wethContractRef.current
-                  if (!wethContract) {
-                    throw new Error('wethContract is null')
-                  }
-                  const network = await wethContract.provider.getNetwork()
-                  if (
-                    network.chainId !== chainId ||
-                    wethContract.address !== WRAPPED_NATIVE_CURRENCY[network.chainId]?.address
-                  ) {
-                    sendAnalyticsEvent(InterfaceEventName.WRAP_TOKEN_TXN_INVALIDATED, {
-                      ...eventProperties,
-                      contract_address: wethContract.address,
-                      contract_chain_id: network.chainId,
-                      type: WrapType.Wrap,
-                    })
-                    const error = new Error(`Invalid WETH contract
-Please file a bug detailing how this happened - https://github.com/Uniswap/interface/issues/new?labels=bug&template=bug-report.md&title=Invalid%20WETH%20contract`)
-                    setError(error)
-                    trace.setError(error, 'out_of_range')
-                    throw error
-                  }
-                  const txReceipt = await trace.child({ name: 'Deposit', op: 'wallet.send_transaction' }, () =>
-                    poolContract.wrapETH(`0x${inputAmount.quotient.toString(16)}`),
-                  )
-                  addTransaction(txReceipt, {
-                    type: TransactionType.WRAP,
-                    unwrapped: false,
-                    currencyAmountRaw: inputAmount?.quotient.toString(),
-                    chainId,
-                  })
-                  sendAnalyticsEvent(InterfaceEventName.WRAP_TOKEN_TXN_SUBMITTED, {
-                    ...eventProperties,
-                    transaction_hash: txReceipt.hash,
-                    type: WrapType.Wrap,
-                  })
-                  return txReceipt.hash
+        execute: sufficientBalance
+          ? async () => {
+              const wethContract = wethContractRef.current
+              if (!wethContract) {
+                throw new Error('wethContract is null')
+              }
+              const network = await wethContract.provider.getNetwork()
+              if (
+                network.chainId !== chainId ||
+                wethContract.address !== WRAPPED_NATIVE_CURRENCY[network.chainId]?.address
+              ) {
+                sendAnalyticsEvent(InterfaceEventName.WrapTokenTxnInvalidated, {
+                  ...eventProperties,
+                  contract_address: wethContract.address,
+                  contract_chain_id: network.chainId,
+                  type: WrapType.Wrap,
                 })
-            : undefined,
+                const error = new Error(`Invalid WETH contract
+Please file a bug detailing how this happened - https://github.com/Uniswap/interface/issues/new?labels=bug&template=bug-report.md&title=Invalid%20WETH%20contract`)
+                setError(error)
+                throw error
+              }
+              const txReceipt = await poolContract.wrapETH(`0x${inputAmount.quotient.toString(16)}`)
+              addTransaction(txReceipt, {
+                type: TransactionType.Wrap,
+                unwrapped: false,
+                currencyAmountRaw: inputAmount.quotient.toString(),
+              })
+              sendAnalyticsEvent(InterfaceEventName.WrapTokenTxnSubmitted, {
+                ...eventProperties,
+                transaction_hash: txReceipt.hash,
+                type: WrapType.Wrap,
+              })
+              return txReceipt.hash
+            }
+          : undefined,
         inputError: sufficientBalance
           ? undefined
           : hasInputAmount
@@ -137,36 +135,31 @@ Please file a bug detailing how this happened - https://github.com/Uniswap/inter
     } else if (weth.equals(inputCurrency) && outputCurrency.isNative) {
       return {
         wrapType: WrapType.Unwrap,
-        execute:
-          sufficientBalance && inputAmount
-            ? () =>
-                trace({ name: 'Wrap', op: 'swap.wrap' }, async (trace) => {
-                  try {
-                    const wethContract = wethContractRef.current
-                    if (!wethContract) {
-                      throw new Error('wethContract is null')
-                    }
-                    const txReceipt = await trace.child({ name: 'Withdraw', op: 'wallet.send_transaction' }, () =>
-                      poolContract.unwrapWETH9(`0x${inputAmount.quotient.toString(16)}`),
-                    )
-                    addTransaction(txReceipt, {
-                      type: TransactionType.WRAP,
-                      unwrapped: true,
-                      currencyAmountRaw: inputAmount?.quotient.toString(),
-                      chainId,
-                    })
-                    sendAnalyticsEvent(InterfaceEventName.WRAP_TOKEN_TXN_SUBMITTED, {
-                      ...eventProperties,
-                      transaction_hash: txReceipt.hash,
-                      type: WrapType.Unwrap,
-                    })
-                    return txReceipt.hash
-                  } catch (error) {
-                    logger.warn('useWrapCallback', 'useWrapCallback', 'Failed to wrap', error)
-                    throw error
-                  }
+        execute: sufficientBalance
+          ? async () => {
+              try {
+                const wethContract = wethContractRef.current
+                if (!wethContract) {
+                  throw new Error('wethContract is null')
+                }
+                const txReceipt = await poolContract.unwrapWETH9(`0x${inputAmount.quotient.toString(16)}`)
+                addTransaction(txReceipt, {
+                  type: TransactionType.Wrap,
+                  unwrapped: true,
+                  currencyAmountRaw: inputAmount.quotient.toString(),
                 })
-            : undefined,
+                sendAnalyticsEvent(InterfaceEventName.WrapTokenTxnSubmitted, {
+                  ...eventProperties,
+                  transaction_hash: txReceipt.hash,
+                  type: WrapType.Unwrap,
+                })
+                return txReceipt.hash
+              } catch (error) {
+                logger.warn('useWrapCallback', 'useWrapCallback', 'Failed to wrap', error)
+                throw error
+              }
+            }
+          : undefined,
         inputError: sufficientBalance
           ? undefined
           : hasInputAmount

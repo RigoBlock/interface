@@ -1,31 +1,29 @@
+import { POPUP_MAX_WIDTH } from 'components/Popups/constants'
 import useCurrentBlockTimestamp from 'hooks/useCurrentBlockTimestamp'
 import { PageType, useIsPage } from 'hooks/useIsPage'
 import useMachineTimeMs from 'hooks/useMachineTime'
-import styled from 'lib/styled-components'
+import { styled } from 'lib/styled-components'
 import ms from 'ms'
 import { useMemo, useState } from 'react'
-import { AlertTriangle, X } from 'react-feather'
+import { X } from 'react-feather'
 import { Trans } from 'react-i18next'
+import { CautionTriangle } from 'theme/components/icons/CautionTriangle'
 import { ExternalLink } from 'theme/components/Links'
 import { ClickableTamaguiStyle } from 'theme/components/styles'
 import { Flex, styled as tamaguiStyled } from 'ui/src'
 import { iconSizes } from 'ui/src/theme'
 import { useUniswapContext } from 'uniswap/src/contexts/UniswapContext'
-import { DEFAULT_MS_BEFORE_WARNING, getChainInfo } from 'uniswap/src/features/chains/chainInfo'
+import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
+import { DEFAULT_MS_BEFORE_WARNING } from 'uniswap/src/features/chains/evm/rpc'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { FeatureFlags } from 'uniswap/src/features/gating/flags'
-import { useFeatureFlag } from 'uniswap/src/features/gating/hooks'
-import { AVERAGE_L1_BLOCK_TIME_MS } from 'uniswap/src/features/transactions/swap/hooks/usePollingIntervalByChain'
+import { AVERAGE_L1_BLOCK_TIME_MS } from 'uniswap/src/features/transactions/hooks/usePollingIntervalByChain'
 
 const BodyRow = styled.div`
   color: ${({ theme }) => theme.neutral1};
   font-weight: 485;
   font-size: 14px;
   line-height: 20px;
-`
-const CautionTriangle = styled(AlertTriangle)`
-  color: ${({ theme }) => theme.deprecated_accentWarning};
 `
 const Link = styled(ExternalLink)`
   color: ${({ theme }) => theme.black};
@@ -49,7 +47,7 @@ const Wrapper = styled.div`
   border: 1px solid ${({ theme }) => theme.surface3};
   z-index: 2;
   display: block;
-  max-width: 348px;
+  max-width: ${POPUP_MAX_WIDTH}px;
   padding: 16px 20px;
   position: fixed;
   bottom: 16px;
@@ -63,25 +61,22 @@ const CloseButton = tamaguiStyled(X, {
 export function ChainConnectivityWarning() {
   const { defaultChainId } = useEnabledChains()
   const [hide, setHide] = useState(false)
-  const isMonadDownFlag = useFeatureFlag(FeatureFlags.MonadTestnetDown)
   const { swapInputChainId: chainId } = useUniswapContext()
   const info = getChainInfo(chainId ?? defaultChainId)
   const label = info.label
 
-  const isNFTPage = useIsPage(PageType.NFTS)
   const isLandingPage = useIsPage(PageType.LANDING)
 
   const waitMsBeforeWarning = useMemo(
-    () => (chainId ? getChainInfo(chainId)?.blockWaitMsBeforeWarning : undefined) ?? DEFAULT_MS_BEFORE_WARNING,
+    () => (chainId ? getChainInfo(chainId).blockWaitMsBeforeWarning : undefined) ?? DEFAULT_MS_BEFORE_WARNING,
     [chainId],
   )
   const machineTime = useMachineTimeMs(AVERAGE_L1_BLOCK_TIME_MS)
   const blockTime = useCurrentBlockTimestamp({ refetchInterval: ms('5min') })
 
   const warning = Boolean(!!blockTime && machineTime - Number(blockTime) * 1000 > waitMsBeforeWarning)
-  const isMonadDown = chainId === UniverseChainId.MonadTestnet && isMonadDownFlag
 
-  if (hide || (!isMonadDown && (!warning || isNFTPage || isLandingPage))) {
+  if (hide || !warning || isLandingPage) {
     return null
   }
 

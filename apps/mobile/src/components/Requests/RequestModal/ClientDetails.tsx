@@ -1,12 +1,12 @@
 import React from 'react'
-import { DappHeaderIcon } from 'src/components/Requests/DappHeaderIcon'
 import { HeaderText } from 'src/components/Requests/RequestModal/HeaderText'
-import { LinkButton } from 'src/components/buttons/LinkButton'
-import { WalletConnectRequest } from 'src/features/walletConnect/walletConnectSlice'
+import { WalletConnectSigningRequest } from 'src/features/walletConnect/walletConnectSlice'
 import { Flex, useSporeColors } from 'ui/src'
 import { iconSizes } from 'ui/src/theme'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { formatDappURL } from 'utilities/src/format/urls'
+import { LinkButton } from 'wallet/src/components/buttons/LinkButton'
+import { DappHeaderIcon } from 'wallet/src/components/dappRequests/DappHeaderIcon'
 
 export interface PermitInfo {
   currencyId: string
@@ -17,29 +17,29 @@ export function ClientDetails({
   request,
   permitInfo,
 }: {
-  request: WalletConnectRequest
+  request: WalletConnectSigningRequest
   permitInfo?: PermitInfo
 }): JSX.Element {
-  const { dapp } = request
+  const { dappRequestInfo } = request
   const colors = useSporeColors()
 
   const permitCurrencyInfo = useCurrencyInfo(permitInfo?.currencyId)
 
   return (
     <Flex centered gap="$spacing12">
-      <DappHeaderIcon dapp={dapp} permitCurrencyInfo={permitCurrencyInfo} />
+      <DappHeaderIcon dappInfo={dappRequestInfo} permitCurrencyInfo={permitCurrencyInfo} />
       <HeaderText permitAmount={permitInfo?.amount} permitCurrency={permitCurrencyInfo?.currency} request={request} />
       <LinkButton
         color={colors.accent1.val}
-        iconColor={colors.accent1.val}
-        label={formatDappURL(dapp.url)}
+        iconColor="$accent1"
+        label={formatDappURL(dappRequestInfo.url)}
         mb="$spacing12"
         px="$spacing8"
         py="$spacing4"
         showIcon={false}
         size={iconSizes.icon12}
         textVariant="buttonLabel2"
-        url={dapp.url}
+        url={dappRequestInfo.url}
       />
     </Flex>
   )

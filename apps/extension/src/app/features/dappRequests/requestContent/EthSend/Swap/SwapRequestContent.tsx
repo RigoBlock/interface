@@ -1,11 +1,10 @@
 import { useDappLastChainId } from 'src/app/features/dapp/hooks'
 import { useDappRequestQueueContext } from 'src/app/features/dappRequests/DappRequestQueueContext'
 import { SwapDisplay } from 'src/app/features/dappRequests/requestContent/EthSend/Swap/SwapDisplay'
-import { ETH_ADDRESS } from 'src/app/features/dappRequests/requestContent/EthSend/Swap/constants'
 import { formatUnits, useSwapDetails } from 'src/app/features/dappRequests/requestContent/EthSend/Swap/utils'
-import { SwapSendTransactionRequest } from 'src/app/features/dappRequests/types/DappRequestTypes'
 import { UniswapXSwapRequest } from 'src/app/features/dappRequests/types/Permit2Types'
-import { DEFAULT_NATIVE_ADDRESS } from 'uniswap/src/features/chains/chainInfo'
+import { UniversalRouterCall } from 'src/app/features/dappRequests/types/UniversalRouterTypes'
+import { DEFAULT_NATIVE_ADDRESS, DEFAULT_NATIVE_ADDRESS_LEGACY } from 'uniswap/src/features/chains/evm/defaults'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { toSupportedChainId } from 'uniswap/src/features/chains/utils'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
@@ -30,8 +29,8 @@ function getTransactionTypeInfo({
     ? {
         type: TransactionType.Swap,
         tradeType: 0, // TradeType.EXACT_INPUT, but TradeType doesn't matter for the UI
-        inputCurrencyId: inputCurrencyInfo?.currencyId,
-        outputCurrencyId: outputCurrencyInfo?.currencyId,
+        inputCurrencyId: inputCurrencyInfo.currencyId,
+        outputCurrencyId: outputCurrencyInfo.currencyId,
         inputCurrencyAmountRaw: inputAmountRaw,
         expectedOutputCurrencyAmountRaw: outputAmountRaw,
         minimumOutputCurrencyAmountRaw: outputAmountRaw,
@@ -41,14 +40,16 @@ function getTransactionTypeInfo({
 
 interface SwapRequestContentProps {
   transactionGasFeeResult: GasFeeResult
-  dappRequest: SwapSendTransactionRequest
+  parsedCalldata: UniversalRouterCall
+  showSmartWalletActivation?: boolean
   onCancel: () => Promise<void>
   onConfirm: (transactionTypeInfo?: TransactionTypeInfo) => Promise<void>
 }
 
 export function SwapRequestContent({
   transactionGasFeeResult,
-  dappRequest,
+  parsedCalldata,
+  showSmartWalletActivation,
   onCancel,
   onConfirm,
 }: SwapRequestContentProps): JSX.Element {
@@ -56,14 +57,14 @@ export function SwapRequestContent({
   const { defaultChainId } = useEnabledChains()
   const activeChain = useDappLastChainId(dappUrl) || defaultChainId
 
-  const { inputIdentifier, outputIdentifier, inputValue, outputValue } = useSwapDetails(dappRequest, dappUrl)
+  const { inputIdentifier, outputIdentifier, inputValue, outputValue } = useSwapDetails(parsedCalldata, dappUrl)
 
   const inputCurrencyInfo = useCurrencyInfo(inputIdentifier)
   const outputCurrencyInfo = useCurrencyInfo(outputIdentifier)
 
-  const isFirstCommandWrappingEth = dappRequest.parsedCalldata.commands[0]?.commandName === 'WRAP_ETH'
+  const isFirstCommandWrappingEth = parsedCalldata.commands[0]?.commandName === 'WRAP_ETH'
   const isLastCommandUnwrappingEth =
-    dappRequest.parsedCalldata.commands[dappRequest.parsedCalldata.commands.length - 1]?.commandName === 'UNWRAP_WETH'
+    parsedCalldata.commands[parsedCalldata.commands.length - 1]?.commandName === 'UNWRAP_WETH'
 
   const nativeCurrencyInfo = useNativeCurrencyInfo(activeChain)
   const nativeCurrency = nativeCurrencyInfo?.currency
@@ -98,6 +99,7 @@ export function SwapRequestContent({
       outputAmount={outputAmount}
       outputCurrencyInfo={currencyInfo1}
       transactionGasFeeResult={transactionGasFeeResult}
+      showSmartWalletActivation={showSmartWalletActivation}
       isWrap={false}
       isUnwrap={false}
       onCancel={onCancel}
@@ -116,7 +118,7 @@ export function UniswapXSwapRequestContent({ typedData }: { typedData: UniswapXS
   const { token: outputToken, startAmount: lastAmountOutParam } = typedData.message.witness.baseOutputs[0]
 
   const inputCurrencyInfo = useCurrencyInfo(buildCurrencyId(activeChain, inputToken))
-  const nativeEthOrOutputToken = outputToken === ETH_ADDRESS ? DEFAULT_NATIVE_ADDRESS : outputToken
+  const nativeEthOrOutputToken = outputToken === DEFAULT_NATIVE_ADDRESS ? DEFAULT_NATIVE_ADDRESS_LEGACY : outputToken
   const outputCurrencyInfo = useCurrencyInfo(buildCurrencyId(activeChain, nativeEthOrOutputToken))
 
   assert(

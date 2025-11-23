@@ -1,33 +1,35 @@
+import { gqlToCurrency } from 'appGraphql/data/util'
+import { GraphQLApi } from '@universe/api'
 import { PositionInfo } from 'components/AccountDrawer/MiniPortfolio/Pools/cache'
 import useMultiChainPositions from 'components/AccountDrawer/MiniPortfolio/Pools/useMultiChainPositions'
 import { Scrim } from 'components/AccountDrawer/Scrim'
-import { CurrencySelect } from 'components/CurrencyInputPanel/SwapCurrencyInputPanel'
-import { MobileBottomBar } from 'components/NavBar/MobileBottomBar'
-import { LoadingBubble } from 'components/Tokens/loading'
 import Column from 'components/deprecated/Column'
 import Row from 'components/deprecated/Row'
+import { MobileBottomBar } from 'components/NavBar/MobileBottomBar'
+import { LoadingBubble } from 'components/Tokens/loading'
 import { NATIVE_CHAIN_ID } from 'constants/tokens'
-import { gqlToCurrency } from 'graphql/data/util'
 import { useAccount } from 'hooks/useAccount'
 import { ScrollDirection, useScroll } from 'hooks/useScroll'
-import styled from 'lib/styled-components'
+import { styled } from 'lib/styled-components'
 import { Swap } from 'pages/Swap'
 import { ReactNode, useCallback, useReducer, useState } from 'react'
 import { Plus, X } from 'react-feather'
 import { useTranslation } from 'react-i18next'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router'
 import { Z_INDEX } from 'theme/zIndex'
-import { Button, Flex, useIsTouchDevice, useMedia } from 'ui/src'
-import { ArrowUpDown } from 'ui/src/components/icons/ArrowUpDown'
+import { Button, Flex, Spacer, useIsTouchDevice, useMedia } from 'ui/src'
+import { CoinConvert } from 'ui/src/components/icons/CoinConvert'
 import { breakpoints } from 'ui/src/theme'
-import { ProtocolVersion, Token } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
-import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
+import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { TokenWarningCard } from 'uniswap/src/features/tokens/TokenWarningCard'
 import TokenWarningModal from 'uniswap/src/features/tokens/TokenWarningModal'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
+import { TestID } from 'uniswap/src/test/fixtures/testIDs'
+import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 import { currencyId } from 'uniswap/src/utils/currencyId'
+import { getChainUrlParam } from 'utils/chainParams'
 
 const PoolDetailsStatsButtonsRow = styled(Row)`
   gap: 12px;
@@ -38,24 +40,12 @@ const PoolDetailsStatsButtonsRow = styled(Row)`
     position: fixed;
     bottom: 0px;
     left: 0;
-    margin: 8px;
-    width: calc(100% - 16px);
-    background: ${({ theme }) => theme.surface1};
-    padding: 12px 32px;
-    border: 1px solid ${({ theme }) => theme.surface3};
-    border-radius: 20px;
-    backdrop-filter: blur(10px);
+    padding: 16px;
     & > :first-child {
       margin-right: auto;
     }
     z-index: ${Z_INDEX.sticky};
   }
-`
-
-const ButtonBubble = styled(LoadingBubble)`
-  height: 44px;
-  width: 50%;
-  border-radius: 900px;
 `
 
 const SwapModalWrapper = styled(Column)<{ open?: boolean }>`
@@ -66,11 +56,6 @@ const SwapModalWrapper = styled(Column)<{ open?: boolean }>`
   max-height: ${({ open }) => (open ? '100vh' : '0')};
   transition: ${({ theme }) => `max-height ${theme.transition.duration.medium} ${theme.transition.timing.ease}`};
   padding-bottom: ${({ open }) => (open ? '24px' : '0')};
-
-  // Need to override the default visibility to properly hide
-  ${CurrencySelect} {
-    visibility: ${({ open }) => (open ? 'visible' : 'hidden')};
-  }
 
   @media (max-width: ${breakpoints.xl}px) {
     position: fixed;
@@ -89,10 +74,13 @@ const SwapModalWrapper = styled(Column)<{ open?: boolean }>`
 
 interface PoolDetailsStatsButtonsProps {
   chainId?: UniverseChainId
-  token0?: Token
-  token1?: Token
+  token0?: GraphQLApi.Token
+  token1?: GraphQLApi.Token
   feeTier?: number
-  protocolVersion?: ProtocolVersion
+  tickSpacing?: number
+  hookAddress?: string
+  isDynamic?: boolean
+  protocolVersion?: GraphQLApi.ProtocolVersion
   loading?: boolean
 }
 
@@ -105,12 +93,14 @@ interface PoolButtonProps {
 }
 
 const PoolButton = ({ isOpen, icon, onPress, children, 'data-testid': dataTestId }: PoolButtonProps) => {
+  const media = useMedia()
+
   return (
     <Button
       onPress={onPress}
       icon={icon}
       variant={isOpen ? 'default' : 'branded'}
-      emphasis="secondary"
+      emphasis={media.xl ? 'primary' : 'secondary'}
       data-testid={dataTestId}
     >
       {children}
@@ -118,14 +108,36 @@ const PoolButton = ({ isOpen, icon, onPress, children, 'data-testid': dataTestId
   )
 }
 
-function findMatchingPosition(positions: PositionInfo[], token0?: Token, token1?: Token, feeTier?: number) {
-  return positions?.find(
+function findMatchingPosition({
+  positions,
+  token0,
+  token1,
+  feeTier,
+}: {
+  positions: PositionInfo[]
+  token0?: GraphQLApi.Token
+  token1?: GraphQLApi.Token
+  feeTier?: number
+}) {
+  return positions.find(
     (position) =>
-      (position?.details.token0.toLowerCase() === token0?.address ||
-        position?.details.token0.toLowerCase() === token1?.address) &&
-      (position?.details.token1.toLowerCase() === token0?.address ||
-        position?.details.token1.toLowerCase() === token1?.address) &&
-      position?.details.fee == feeTier &&
+      (areAddressesEqual({
+        addressInput1: { address: position.details.token0, platform: Platform.EVM },
+        addressInput2: { address: token0?.address, platform: Platform.EVM },
+      }) ||
+        areAddressesEqual({
+          addressInput1: { address: position.details.token0, platform: Platform.EVM },
+          addressInput2: { address: token1?.address, platform: Platform.EVM },
+        })) &&
+      (areAddressesEqual({
+        addressInput1: { address: position.details.token1, platform: Platform.EVM },
+        addressInput2: { address: token0?.address, platform: Platform.EVM },
+      }) ||
+        areAddressesEqual({
+          addressInput1: { address: position.details.token1, platform: Platform.EVM },
+          addressInput2: { address: token1?.address, platform: Platform.EVM },
+        })) &&
+      position.details.fee === feeTier &&
       !position.closed,
   )
 }
@@ -135,13 +147,17 @@ export function PoolDetailsStatsButtons({
   token0,
   token1,
   feeTier,
+  tickSpacing,
+  hookAddress,
+  isDynamic,
   protocolVersion,
   loading,
 }: PoolDetailsStatsButtonsProps) {
   const account = useAccount()
   const { t } = useTranslation()
   const { positions: userOwnedPositions } = useMultiChainPositions(account.address ?? '')
-  const position = userOwnedPositions && findMatchingPosition(userOwnedPositions, token0, token1, feeTier)
+  const position =
+    userOwnedPositions && findMatchingPosition({ positions: userOwnedPositions, token0, token1, feeTier })
   const tokenId = position?.details.tokenId
 
   const navigate = useNavigate()
@@ -155,14 +171,22 @@ export function PoolDetailsStatsButtons({
     if (currency0 && currency1) {
       const currency0Address = currency0.isNative ? NATIVE_CHAIN_ID : currency0.address
       const currency1Address = currency1.isNative ? NATIVE_CHAIN_ID : currency1.address
-      const chainName = getChainInfo(chainId ?? currency0.chainId)?.urlParam
+      const chainUrlParam = getChainUrlParam(chainId ?? currency0.chainId)
 
       if (tokenId) {
-        navigate(`/positions/${protocolVersion?.toLowerCase()}/${chainName}/${tokenId}`, {
+        navigate(`/positions/${protocolVersion?.toLowerCase()}/${chainUrlParam}/${tokenId}`, {
           state: { from: location.pathname },
         })
       } else {
-        const url = `/positions/create/${protocolVersion?.toLowerCase()}?currencyA=${currency0Address}&currencyB=${currency1Address}&chain=${chainName}`
+        const queryParams = new URLSearchParams()
+        queryParams.set('currencyA', currency0Address)
+        queryParams.set('currencyB', currency1Address)
+        queryParams.set('chain', chainUrlParam)
+        queryParams.set('fee', JSON.stringify({ feeAmount: feeTier, tickSpacing, isDynamic }))
+        if (hookAddress) {
+          queryParams.set('hook', hookAddress)
+        }
+        const url = `/positions/create/${protocolVersion?.toLowerCase()}?${queryParams.toString()}`
         navigate(url, {
           state: { from: location.pathname },
         })
@@ -185,19 +209,25 @@ export function PoolDetailsStatsButtons({
 
   if (loading || !currency0 || !currency1) {
     return (
-      <PoolDetailsStatsButtonsRow data-testid="pdp-buttons-loading-skeleton">
-        <ButtonBubble />
-        <ButtonBubble />
-      </PoolDetailsStatsButtonsRow>
+      <Flex row justifyContent="space-between" data-testid="pdp-buttons-loading-skeleton" mb="$spacing12">
+        <LoadingBubble containerWidth="50%" width="95%" />
+        <Spacer size="$spacing6" />
+        <LoadingBubble containerWidth="50%" width="95%" />
+      </Flex>
     )
   }
 
   return (
     <Flex flexDirection="column" gap="$gap24">
       <PoolButtonsWrapper isMobile={isMobile}>
-        <Flex row justifyContent="center" gap={screenSizeLargerThanTablet ? '$spacing12' : '$spacing8'} width="100%">
+        <Flex
+          row
+          justifyContent="center"
+          gap={isMobile || screenSizeLargerThanTablet ? '$spacing12' : '$spacing16'}
+          width="100%"
+        >
           <PoolButton
-            icon={swapModalOpen ? <X size="$icon.20" /> : <ArrowUpDown size="$icon.20" />}
+            icon={swapModalOpen ? <X size="$icon.20" /> : <CoinConvert size="$icon.20" />}
             onPress={toggleSwapModalOpen}
             isOpen={swapModalOpen}
             data-testid={`pool-details-${swapModalOpen ? 'close' : 'swap'}-button`}
@@ -207,7 +237,7 @@ export function PoolDetailsStatsButtons({
           <PoolButton
             icon={<Plus size="$icon.20" />}
             onPress={handleAddLiquidity}
-            data-testid="pool-details-add-liquidity-button"
+            data-testid={TestID.PoolDetailsAddLiquidityButton}
           >
             {t('common.addLiquidity')}
           </PoolButton>
@@ -216,7 +246,7 @@ export function PoolDetailsStatsButtons({
       <SwapModalWrapper open={swapModalOpen} data-testid="pool-details-swap-modal">
         <Swap
           syncTabToUrl={false}
-          chainId={chainId}
+          initialInputChainId={chainId}
           initialInputCurrency={currency0}
           initialOutputCurrency={currency1}
         />

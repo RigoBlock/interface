@@ -1,22 +1,13 @@
-import { useAccount } from 'hooks/useAccount'
-import { useAtom } from 'jotai'
-import { atomWithStorage } from 'jotai/utils'
-import { useEffect } from 'react'
+import { useUnitagsAddressQuery } from 'uniswap/src/data/apiClients/unitagsApi/useUnitagsAddressQuery'
+import { useActiveAddresses } from 'uniswap/src/features/accounts/store/hooks'
 import { useLocation } from 'react-router-dom'
 import { useActiveSmartPool } from 'state/application/hooks'
-import { useUnitagByAddress } from 'uniswap/src/features/unitags/hooks'
 import { shortenAddress } from 'utilities/src/addresses'
-import { useAccountEffect, useEnsName } from 'wagmi'
-
-const recentAccountIdentifierMapAtom = atomWithStorage<{
-  [account in string]?: { unitag?: string; ensName?: string }
-}>('recentAccountIdentifierMap', { recent: {} })
+import { useEnsName } from 'wagmi'
 
 // Returns an identifier for the current or recently connected account, prioritizing unitag -> ENS name -> address
 export function useAccountIdentifier() {
-  const [recentAccountIdentifierMap, updateRecentAccountIdentifierMap] = useAtom(recentAccountIdentifierMapAtom)
-  // TODO: check if we can dynamically return correct target (smart vault or user wallet) in useAccount hook
-  const account = useAccount()
+  const { evmAddress, svmAddress } = useActiveAddresses()
   const activeSmartPool = useActiveSmartPool()
   const { pathname: page } = useLocation()
 
@@ -25,43 +16,16 @@ export function useAccountIdentifier() {
     activeSmartPool.address && activeSmartPool.address !== '' && page !== '/send'
       ? activeSmartPool.address
       : account.address
-
-  const { unitag: unitagResponse } = useUnitagByAddress(address)
-  const { data: ensNameResponse } = useEnsName({ address: address as `0x${string}` })
-
-  // Clear the `recent` account identifier when the user disconnects
-  useAccountEffect({
-    onDisconnect() {
-      updateRecentAccountIdentifierMap((prev) => ({ ...prev, recent: undefined }))
-    },
+  const { data: unitagResponse } = useUnitagsAddressQuery({
+    params: evmAddress ? { address: address ?? evmAddress } : undefined,
   })
+  const unitag = unitagResponse?.username
+  const { data: ensName } = useEnsName({ address: evmAddress })
 
-  // Keep the stored account identifiers synced with the latest unitag and ENS name
-  useEffect(() => {
-    if (!address) {
-      return
-    }
-    updateRecentAccountIdentifierMap((prev) => {
-      const updatedIdentifiers = prev[address as string] ?? {}
-      if (unitagResponse) {
-        updatedIdentifiers.unitag = unitagResponse.username
-      }
-      if (ensNameResponse) {
-        updatedIdentifiers.ensName = ensNameResponse
-      }
+  const accountIdentifier = unitag ?? ensName ?? shortenAddress({ address: address ?? evmAddress ?? svmAddress })
 
-      return { ...prev, [address as string]: updatedIdentifiers, recent: updatedIdentifiers }
-    })
-  }, [address, unitagResponse, ensNameResponse, updateRecentAccountIdentifierMap])
-
-  // If there is no account yet, optimistically use the stored `recent` account identifier
-  const { unitag, ensName } =
-    (address ? recentAccountIdentifierMap[address] : recentAccountIdentifierMap['recent']) ?? {}
-
-  const accountIdentifier = unitag ?? ensName ?? shortenAddress(address)
   return {
     accountIdentifier,
     hasUnitag: Boolean(unitag),
-    hasRecent: Boolean(Object.keys(recentAccountIdentifierMap['recent'] || {}).length),
   }
 }

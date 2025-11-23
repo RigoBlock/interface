@@ -1,18 +1,19 @@
 import { CHART_TYPE_LABELS, ChartType, PriceChartType } from 'components/Charts/utils'
-import { DropdownSelector, InternalMenuItem } from 'components/DropdownSelector'
+import { Dropdown, InternalMenuItem } from 'components/Dropdowns/Dropdown'
 import { MouseoverTooltip } from 'components/Tooltip'
-import { useTheme } from 'lib/styled-components'
 import { useState } from 'react'
 import { Check, Info } from 'react-feather'
 import { Trans } from 'react-i18next'
-import { FlexProps } from 'ui/src'
+import { TextProps, useSporeColors } from 'ui/src'
 import { isMobileWeb } from 'utilities/src/platform'
 
 const StyledDropdownButton = {
   borderRadius: 20,
   width: '100%',
-  height: 36,
-} satisfies FlexProps
+  height: 34,
+  marginTop: 1,
+  fontSize: '$small',
+} satisfies TextProps
 
 interface ChartTypeSelectorOption<T extends ChartType | PriceChartType> {
   value: T // Value to be selected/stored, used as default display value
@@ -43,11 +44,11 @@ export function ChartTypeDropdown<T extends ChartType | PriceChartType>({
   onSelectOption: (option: T) => void
   tooltipText?: string
 }) {
-  const theme = useTheme()
+  const colors = useSporeColors()
   const [isMenuOpen, toggleMenu] = useState(false)
 
   return (
-    <DropdownSelector
+    <Dropdown
       isOpen={isMenuOpen}
       toggleOpen={toggleMenu}
       menuLabel={menuLabel ?? CHART_TYPE_LABELS[currentChartType]}
@@ -78,12 +79,12 @@ export function ChartTypeDropdown<T extends ChartType | PriceChartType>({
               disabled={disabled}
             >
               {display ?? CHART_TYPE_LABELS[chartType]}
-              {chartType === currentChartType && <Check size={20} color={theme.accent1} />}
+              {chartType === currentChartType && <Check size={20} color={colors.accent1.val} />}
               {disabled && <Info size={20} color="$neutral2" />}
             </InternalMenuItem>
           </MouseoverTooltip>
         )
       })}
-    </DropdownSelector>
+    </Dropdown>
   )
 }

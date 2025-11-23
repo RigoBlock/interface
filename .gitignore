@@ -10,6 +10,7 @@ coverage
 
 # utility script output
 scripts/dist
+tools/uniswap-nx/dist
 
 # next.js
 .next/
@@ -28,10 +29,14 @@ yarn-error.log*
 
 # local env files
 .env
+.env.local
 .env.defaults.local
 
 # turbo
 .turbo
+
+# nx
+.nx/
 
 # .yarn files
 .yarn/cache
@@ -46,6 +51,9 @@ packages/uniswap/src/i18n/locales/source/*_old.json
 # ci
 .ci-cache/
 
+# cli gh analysis artifacts
+.analysis/
+
 # JetBrains
 .idea/
 
@@ -54,3 +62,28 @@ packages/uniswap/src/i18n/locales/source/*_old.json
 
 # CodeTours Extension
 .tours/*
+
+# RNEF
+.rnef/
+
+# claude
+claude.local.md
+CLAUDE.local.md
+.claude/settings.local.json
+.claude/local/
+**/*/.claude/user/*
+
+# cursor
+.cursor/mcp.json
+.cursor/rules/local-workflow.mdc
+
+# lefthook
+.lefthook/
+
+# Nx
+.nx/cache
+.nx/workspace-data
+.github/instructions/nx.instructions.md
+
+# Spec Workflow MCP
+.spec-workflow/

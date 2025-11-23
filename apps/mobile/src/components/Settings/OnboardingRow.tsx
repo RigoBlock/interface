@@ -1,16 +1,16 @@
-import { SvgProps } from 'react-native-svg'
 import { useDispatch } from 'react-redux'
 import { useSettingsStackNavigation } from 'src/app/navigation/types'
-import { Flex, Text, TouchableArea } from 'ui/src'
-import UniswapIcon from 'ui/src/assets/icons/uniswap-logo.svg'
-import { RotatableChevron } from 'ui/src/components/icons'
+import { Flex, IconProps, Text, TouchableArea } from 'ui/src'
+import { RotatableChevron, UniswapLogo } from 'ui/src/components/icons'
 import { iconSizes } from 'ui/src/theme'
+import { resetUniswapBehaviorHistory } from 'uniswap/src/features/behaviorHistory/slice'
 import { logger } from 'utilities/src/logger/logger'
-import { Keyring } from 'wallet/src/features/wallet/Keyring/Keyring'
+import { resetWalletBehaviorHistory } from 'wallet/src/features/behaviorHistory/slice'
 import { useSignerAccounts } from 'wallet/src/features/wallet/hooks'
+import { Keyring } from 'wallet/src/features/wallet/Keyring/Keyring'
 import { resetWallet, setFinishedOnboarding } from 'wallet/src/features/wallet/slice'
 
-export function OnboardingRow({ iconProps }: { iconProps: SvgProps }): JSX.Element {
+export function OnboardingRow({ iconProps }: { iconProps: IconProps }): JSX.Element {
   const dispatch = useDispatch()
   const navigation = useSettingsStackNavigation()
   const associatedAccounts = useSignerAccounts()
@@ -22,6 +22,8 @@ export function OnboardingRow({ iconProps }: { iconProps: SvgProps }): JSX.Eleme
       .then(() => {
         navigation.goBack()
         dispatch(resetWallet())
+        dispatch(resetWalletBehaviorHistory())
+        dispatch(resetUniswapBehaviorHistory())
         dispatch(setFinishedOnboarding({ finishedOnboarding: false }))
       })
       .catch((error) => {
@@ -36,7 +38,7 @@ export function OnboardingRow({ iconProps }: { iconProps: SvgProps }): JSX.Eleme
       <Flex row alignItems="center" justifyContent="space-between" py="$spacing4">
         <Flex row alignItems="center">
           <Flex centered height={32} width={32}>
-            <UniswapIcon {...iconProps} />
+            <UniswapLogo {...iconProps} />
           </Flex>
           <Text ml="$spacing12" variant="body1">
             Onboarding

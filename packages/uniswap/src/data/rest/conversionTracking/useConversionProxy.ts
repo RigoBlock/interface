@@ -1,16 +1,23 @@
 import type { PartialMessage } from '@bufbuild/protobuf'
-import { ConnectError } from '@connectrpc/connect'
+import { type ConnectError, type Transport } from '@connectrpc/connect'
 import { useMutation } from '@connectrpc/connect-query'
-import { UseMutationResult } from '@tanstack/react-query'
-import { createConnectTransportWithDefaults } from 'uniswap/src/data/rest/base'
-import { proxy } from 'uniswap/src/data/rest/conversionTracking/api/api-ConversionProxyService_connectquery'
-import { ProxyRequest, ProxyResponse } from 'uniswap/src/data/rest/conversionTracking/api/api_pb'
+import { type UseMutationResult } from '@tanstack/react-query'
+import { ConversionTrackingApi, createConnectTransportWithDefaults } from '@universe/api'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { getConversionProxyApiBaseUrl } from 'uniswap/src/data/rest/conversionTracking/utils'
 
-const conversionProxyTransport = createConnectTransportWithDefaults({
-  baseUrl: getConversionProxyApiBaseUrl(),
-})
+const createConversionProxyTransport = (isConversionApiMigrationEnabled: boolean): Transport =>
+  createConnectTransportWithDefaults({
+    baseUrl: getConversionProxyApiBaseUrl(isConversionApiMigrationEnabled),
+  })
 
-export function useConversionProxy(): UseMutationResult<ProxyResponse, ConnectError, PartialMessage<ProxyRequest>> {
-  return useMutation(proxy, { transport: conversionProxyTransport })
+export function useConversionProxy(): UseMutationResult<
+  ConversionTrackingApi.ProxyResponse,
+  ConnectError,
+  PartialMessage<ConversionTrackingApi.ProxyRequest>
+> {
+  const isConversionApiMigrationEnabled = useFeatureFlag(FeatureFlags.ConversionApiMigration)
+  return useMutation(ConversionTrackingApi.proxy, {
+    transport: createConversionProxyTransport(isConversionApiMigrationEnabled),
+  })
 }

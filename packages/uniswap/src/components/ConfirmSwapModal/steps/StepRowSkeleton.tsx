@@ -8,7 +8,7 @@ import { StepStatus } from 'uniswap/src/components/ConfirmSwapModal/types'
 import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
 import { SplitLogo } from 'uniswap/src/components/CurrencyLogo/SplitLogo'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
-import { TransactionStep } from 'uniswap/src/features/transactions/swap/types/steps'
+import { TransactionStep } from 'uniswap/src/features/transactions/steps/types'
 import { currencyId } from 'uniswap/src/utils/currencyId'
 
 export interface StepRowProps<TStepType extends TransactionStep> {
@@ -45,12 +45,12 @@ export function StepRowSkeleton(props: StepRowSkeletonProps): JSX.Element {
   const currency0Info = useCurrencyInfo(currency0Id)
   const currency1Info = useCurrencyInfo(currency1Id)
 
-  const { tokenColor } = useExtractedTokenColor(
-    currency0Info ? currency0Info.logoUrl : currencyInfo?.logoUrl,
-    currency0Info ? currency0Info.currency.symbol : currency?.symbol,
-    /*background=*/ colors.surface1.val,
-    /*default=*/ colors.neutral3.val,
-  )
+  const { tokenColor } = useExtractedTokenColor({
+    imageUrl: currency0Info ? currency0Info.logoUrl : currencyInfo?.logoUrl,
+    tokenName: currency0Info ? currency0Info.currency.symbol : currency?.symbol,
+    backgroundColor: colors.surface1.val,
+    defaultColor: colors.neutral3.val,
+  })
 
   const titleColor = status === StepStatus.Active || status === StepStatus.InProgress ? '$neutral1' : '$neutral2'
 
@@ -66,7 +66,7 @@ export function StepRowSkeleton(props: StepRowSkeletonProps): JSX.Element {
               outputCurrencyInfo={currency1Info}
             />
           ) : (
-            icon ?? <CurrencyLogo currencyInfo={currencyInfo} size={iconSizes.icon24} />
+            (icon ?? <CurrencyLogo currencyInfo={currencyInfo} size={iconSizes.icon24} />)
           )}
         </StepIconWrapper>
         <Flex>
@@ -88,7 +88,7 @@ export function StepRowSkeleton(props: StepRowSkeletonProps): JSX.Element {
         </Flex>
       </Flex>
       {!!secondsRemaining && <Timer secondsRemaining={secondsRemaining} />}
-      {status === StepStatus.Complete && <Check color="$statusSuccess" size={iconSizes.icon16} />}
+      {status === StepStatus.Complete && <Check color="$statusSuccess" size="$icon.16" />}
     </Flex>
   )
 }

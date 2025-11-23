@@ -1,5 +1,7 @@
+import { useMutation } from '@tanstack/react-query'
+import { isNonPollingRequestInFlight } from '@universe/api'
 import { LinearGradient } from 'expo-linear-gradient'
-import { ComponentProps, default as React, useCallback, useMemo } from 'react'
+import { ComponentProps, default as React, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { StyleSheet } from 'react-native'
 import { FlatList } from 'react-native-gesture-handler'
@@ -8,14 +10,15 @@ import { Flex, Text, useSporeColors } from 'ui/src'
 import { opacify, spacing } from 'ui/src/theme'
 import { PollingInterval } from 'uniswap/src/constants/misc'
 import { AccountType } from 'uniswap/src/features/accounts/types'
-import { useAsyncData } from 'utilities/src/react/hooks'
-import { isNonPollingRequestInFlight } from 'wallet/src/data/utils'
+import { logger } from 'utilities/src/logger/logger'
+import { useEvent } from 'utilities/src/react/hooks'
 import { useAccountListData } from 'wallet/src/features/accounts/useAccountListData'
 import { Account } from 'wallet/src/features/wallet/accounts/types'
 
 type AccountListProps = Pick<ComponentProps<typeof AccountCardItem>, 'onPress'> & {
   accounts: Account[]
   isVisible?: boolean
+  onClose: () => void
 }
 
 type AccountWithPortfolioValue = {
@@ -46,9 +49,10 @@ type AccountListItem =
   | { type: AccountListItemType.ViewOnlyHeader }
   | { type: AccountListItemType.ViewOnlyAccount; account: AccountWithPortfolioValue }
 
-export function AccountList({ accounts, onPress, isVisible }: AccountListProps): JSX.Element {
+export function AccountList({ accounts, onPress, isVisible, onClose }: AccountListProps): JSX.Element {
   const colors = useSporeColors()
   const addresses = useMemo(() => accounts.map((a) => a.address), [accounts])
+  const hasPollingRun = useRef(false)
 
   const { data, networkStatus, refetch, startPolling, stopPolling } = useAccountListData({
     addresses,
@@ -57,15 +61,35 @@ export function AccountList({ accounts, onPress, isVisible }: AccountListProps):
 
   // Only poll account total values when the account list is visible
   const controlPolling = useCallback(async () => {
+    if (hasPollingRun.current) {
+      return
+    }
+
     if (isVisible) {
-      await refetch()
+      refetch()
       startPolling(PollingInterval.Fast)
     } else {
       stopPolling()
     }
   }, [isVisible, refetch, startPolling, stopPolling])
 
-  useAsyncData(controlPolling)
+  const controlPollingMutation = useMutation({
+    mutationFn: controlPolling,
+    onSettled: () => {
+      hasPollingRun.current = true
+    },
+    onError: (error) => {
+      logger.error(error, {
+        tags: { file: 'AccountList', function: 'controlPolling' },
+      })
+    },
+  })
+
+  const controlPollingEvent = useEvent(controlPollingMutation.mutate)
+
+  useEffect(() => {
+    controlPollingEvent()
+  }, [controlPollingEvent])
 
   const isPortfolioValueLoading = isNonPollingRequestInFlight(networkStatus)
 
@@ -100,9 +124,10 @@ export function AccountList({ accounts, onPress, isVisible }: AccountListProps):
         isViewOnly={item.account.type === AccountType.Readonly}
         portfolioValue={item.portfolioValue}
         onPress={onPress}
+        onClose={onClose}
       />
     ),
-    [onPress],
+    [onPress, onClose],
   )
 
   const accountsToRender = useMemo(() => {

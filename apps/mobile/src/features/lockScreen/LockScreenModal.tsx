@@ -1,3 +1,4 @@
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { BlurView } from 'expo-blur'
 import React, { memo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -7,15 +8,14 @@ import { useBiometricsIcon } from 'src/components/icons/useBiometricsIcon'
 import { SPLASH_SCREEN_IMAGE_SIZE, SplashScreen } from 'src/features/appLoading/SplashScreen'
 import { useBiometricsAlert } from 'src/features/biometrics/useBiometricsAlert'
 import { useDeviceSupportsBiometricAuth } from 'src/features/biometrics/useDeviceSupportsBiometricAuth'
+import { useOsBiometricAuthEnabled } from 'src/features/biometrics/useOsBiometricAuthEnabled'
 import { useBiometricName, useBiometricPrompt } from 'src/features/biometricsSettings/hooks'
 import { useLockScreenState } from 'src/features/lockScreen/hooks/useLockScreenState'
-import { Button, Flex, TouchableArea, flexStyles, useIsDarkMode } from 'ui/src'
+import { Button, Flex, flexStyles, TouchableArea, useIsDarkMode } from 'ui/src'
 import { UNISWAP_MONO_LOGO_LARGE } from 'ui/src/assets'
 import { AnimatedFlex } from 'ui/src/components/layout/AnimatedFlex'
 import { useDeviceDimensions } from 'ui/src/hooks/useDeviceDimensions'
 import { spacing, zIndexes } from 'ui/src/theme'
-import { FeatureFlags } from 'uniswap/src/features/gating/flags'
-import { useFeatureFlag } from 'uniswap/src/features/gating/hooks'
 import { useAppInsets } from 'uniswap/src/hooks/useAppInsets'
 import { isAndroid } from 'utilities/src/platform'
 import { useEvent } from 'utilities/src/react/hooks'
@@ -26,14 +26,17 @@ const fadeOut = FadeOut.duration(250)
 const useBiometricAuth = (): (() => Promise<void>) => {
   const { t } = useTranslation()
   const { trigger } = useBiometricPrompt()
-  const { touchId: isTouchIdDevice } = useDeviceSupportsBiometricAuth()
-  const biometricsMethod = useBiometricName(isTouchIdDevice)
+  const { touchId } = useDeviceSupportsBiometricAuth()
+  const biometricsMethod = useBiometricName(touchId)
   const { showBiometricsAlert } = useBiometricsAlert({ t })
+  const isBiometricsEnabled = useOsBiometricAuthEnabled()
 
   const onPress = useEvent(async (): Promise<void> => {
     await trigger({
       failureCallback: () => {
-        showBiometricsAlert(biometricsMethod)
+        if (!isBiometricsEnabled) {
+          showBiometricsAlert(biometricsMethod)
+        }
       },
     })
   })
@@ -118,19 +121,10 @@ const UnlockButton = memo(function UnlockButton(): JSX.Element {
   const { t } = useTranslation()
   const renderBiometricsIcon = useBiometricsIcon()
   const onPress = useBiometricAuth()
-  const isDarkMode = useIsDarkMode()
 
   return (
     <AnimatedFlex centered row px="$spacing24" entering={fadeIn} exiting={fadeOut}>
-      <Button
-        icon={
-          renderBiometricsIcon ? renderBiometricsIcon({ color: isDarkMode ? '$neutral1' : '$surface1' }) : undefined
-        }
-        size="large"
-        emphasis="primary"
-        variant="branded"
-        onPress={onPress}
-      >
+      <Button icon={renderBiometricsIcon?.({})} size="large" emphasis="primary" variant="branded" onPress={onPress}>
         {t('common.button.unlock')}
       </Button>
     </AnimatedFlex>

@@ -1,5 +1,8 @@
-import { FlagWarning, getFlagWarning, getFlagsFromContractAddress } from 'components/Liquidity/utils'
-import { GetHelpHeader } from 'components/Modal/GetHelpHeader'
+import {
+  type FlagWarning,
+  getFlagsFromContractAddress,
+  getFlagWarning,
+} from 'components/Liquidity/utils/getFlagWarnings'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CopyHelper } from 'theme/components/CopyHelper'
@@ -9,11 +12,13 @@ import { ContractInteraction } from 'ui/src/components/icons/ContractInteraction
 import { DocumentList } from 'ui/src/components/icons/DocumentList'
 import { Page } from 'ui/src/components/icons/Page'
 import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
+import { GetHelpHeader } from 'uniswap/src/components/dialog/GetHelpHeader'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { LearnMoreLink } from 'uniswap/src/components/text/LearnMoreLink'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
-import Trace from 'uniswap/src/features/telemetry/Trace'
 import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
+import Trace from 'uniswap/src/features/telemetry/Trace'
+import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { shortenAddress } from 'utilities/src/addresses'
 
 function HookWarnings({ flags, hasDangerous }: { flags: FlagWarning[]; hasDangerous: boolean }) {
@@ -119,7 +124,7 @@ export function HookModal({
     }
   }, [address, t])
 
-  const canContinue = !hasDangerous || (hasDangerous && disclaimerChecked)
+  const canContinue = !hasDangerous || disclaimerChecked
   const handleContinue = () => {
     if (canContinue) {
       onContinue()
@@ -139,7 +144,7 @@ export function HookModal({
       isModalOpen={isOpen}
       analyticsProperties={{ hook_address: address, hasDangerous }}
     >
-      <HeightAnimator animation="fast">
+      <HeightAnimator>
         <Flex gap="$spacing24">
           <GetHelpHeader closeModal={onClose} />
           <Flex>
@@ -175,7 +180,7 @@ export function HookModal({
               </Flex>
               <CopyHelper toCopy={address} iconSize={16} iconPosition="right" color="$neutral2">
                 <Text variant="body3" color="$neutral2">
-                  {shortenAddress(address)}
+                  {shortenAddress({ address })}
                 </Text>
               </CopyHelper>
             </Flex>
@@ -198,7 +203,13 @@ export function HookModal({
               </Button>
             </Trace>
             <Trace logPress element={ElementName.Continue}>
-              <Button isDisabled={!canContinue} size="small" variant="branded" onPress={handleContinue}>
+              <Button
+                isDisabled={!canContinue}
+                size="small"
+                variant="branded"
+                onPress={handleContinue}
+                data-testid={TestID.HookModalContinueButton}
+              >
                 {t('common.button.continue')}
               </Button>
             </Trace>

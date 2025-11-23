@@ -1,20 +1,45 @@
 #import "AppDelegate.h"
 
 #import <Firebase.h>
+#import <UserNotifications/UserNotifications.h>
 
 #import "Uniswap-Swift.h"
 
 #import <React/RCTBundleURLProvider.h>
+#import <ReactAppDependencyProvider/RCTAppDependencyProvider.h>
 #import <ReactNativePerformance/ReactNativePerformance.h>
 #import <RCTAppSetupUtils.h>
 #import <RNBootSplash.h>
 
 @implementation AppDelegate
 
+static NSString *const hasLaunchedOnceKey = @"HasLaunchedOnce";
+
+/**
+ * Handles keychain cleanup on first run of the app. 
+ * A migration flag is persisted in the keychain to avoid clearing the keychain for existing users, while the first run flag is saved in NSUserDefaults, which is cleared every install. 
+ */
+- (void)handleKeychainCleanup {
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    BOOL isFirstRun = ![defaults boolForKey:hasLaunchedOnceKey];
+    BOOL canClearKeychainOnReinstall = [KeychainUtils getCanClearKeychainOnReinstall];
+    
+    if (canClearKeychainOnReinstall && isFirstRun) {
+        [KeychainUtils clearKeychain];
+    }
+    
+    if (!canClearKeychainOnReinstall || isFirstRun) {
+        [defaults setBool:YES forKey:hasLaunchedOnceKey];
+        [KeychainUtils setCanClearKeychainOnReinstall];
+    }
+}
+
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
   // Must be first line in startup routine
   [ReactNativePerformance onAppStarted];
+
+  [self handleKeychainCleanup];
 
   [FIRApp configure];
 
@@ -33,6 +58,7 @@
   }
   
   self.moduleName = @"Uniswap";
+  self.dependencyProvider = [RCTAppDependencyProvider new];
   self.initialProps = @{};
   
   [self.window makeKeyAndVisible];
@@ -101,6 +127,18 @@
   }
 
   return YES;
+}
+
+- (void)application:(UIApplication *)application
+    didReceiveRemoteNotification:(NSDictionary *)userInfo
+          fetchCompletionHandler:(void (^)(UIBackgroundFetchResult result))completionHandler
+{
+  NSDictionary *aps = userInfo[@"aps"];
+  NSNumber *contentAvailable = aps[@"content-available"] ?: aps[@"content_available"];
+  if (contentAvailable != nil && contentAvailable.integerValue == 1) {
+    [SilentPushEventEmitter emitEventWithPayload:userInfo ?: @{}];
+  }
+  completionHandler(UIBackgroundFetchResultNoData);
 }
 
 @end

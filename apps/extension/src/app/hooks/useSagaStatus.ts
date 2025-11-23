@@ -5,7 +5,15 @@ import { ExtensionState } from 'src/store/extensionReducer'
 import { SagaState, SagaStatus } from 'wallet/src/utils/saga'
 
 // Convenience hook to get the status + error of an active saga
-export function useSagaStatus(sagaName: string, onSuccess?: () => void, resetSagaOnSuccess = true): SagaState {
+export function useSagaStatus({
+  sagaName,
+  onSuccess,
+  resetSagaOnSuccess = true,
+}: {
+  sagaName: string
+  onSuccess?: () => void
+  resetSagaOnSuccess?: boolean
+}): SagaState {
   const dispatch = useDispatch()
   const sagaState = useSelector((s: ExtensionState): SagaState | undefined => s.saga[sagaName])
   if (!sagaState) {
@@ -19,6 +27,7 @@ export function useSagaStatus(sagaName: string, onSuccess?: () => void, resetSag
 
   const { status, error } = sagaState
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: error is tracked for saga state changes even if not directly used in effect body
   useEffect(() => {
     if (status === SagaStatus.Success) {
       if (resetSagaOnSuccess) {

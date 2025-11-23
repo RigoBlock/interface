@@ -1,5 +1,5 @@
 // until the web app needs all of tamagui, avoid heavy imports there
-// eslint-disable-next-line @typescript-eslint/no-restricted-imports
+// biome-ignore lint/style/noRestrictedImports: until the web app needs all of tamagui, avoid heavy imports there
 import { ColorTokens, ThemeKeys, ThemeProps, useTheme } from '@tamagui/core'
 import { useMemo } from 'react'
 
@@ -8,7 +8,7 @@ type OpaqueColorValue = symbol & { __TYPE__: 'Color' }
 
 export type DynamicColor = ColorTokens | string | OpaqueColorValue
 
-type UseSporeColorsReturn = {
+export type UseSporeColorsReturn = {
   [key in ThemeKeys]: {
     val: ColorTokens
     get: () => DynamicColor

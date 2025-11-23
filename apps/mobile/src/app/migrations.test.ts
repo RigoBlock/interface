@@ -1,11 +1,19 @@
-/* eslint-disable max-lines */
-import { BigNumber } from 'ethers'
+import { BigNumber } from '@ethersproject/bignumber'
 import { toIncludeSameMembers } from 'jest-extended'
 import mockdate from 'mockdate'
 import { migrations, OLD_DEMO_ACCOUNT_ADDRESS } from 'src/app/migrations'
 import {
   getSchema,
   initialSchema,
+  v1Schema,
+  v2Schema,
+  v3Schema,
+  v4Schema,
+  v5Schema,
+  v6Schema,
+  v7Schema,
+  v8Schema,
+  v9Schema,
   v10Schema,
   v11Schema,
   v12Schema,
@@ -16,7 +24,6 @@ import {
   v17Schema,
   v18Schema,
   v19Schema,
-  v1Schema,
   v20Schema,
   v21Schema,
   v22Schema,
@@ -27,7 +34,6 @@ import {
   v27Schema,
   v28Schema,
   v29Schema,
-  v2Schema,
   v31Schema,
   v32Schema,
   v33Schema,
@@ -37,7 +43,6 @@ import {
   v37Schema,
   v38Schema,
   v39Schema,
-  v3Schema,
   v40Schema,
   v41Schema,
   v42Schema,
@@ -48,7 +53,6 @@ import {
   v47Schema,
   v48Schema,
   v49Schema,
-  v4Schema,
   v50Schema,
   v51Schema,
   v52Schema,
@@ -59,7 +63,6 @@ import {
   v57Schema,
   v58Schema,
   v59Schema,
-  v5Schema,
   v60Schema,
   v61Schema,
   v62Schema,
@@ -70,7 +73,6 @@ import {
   v67Schema,
   v68Schema,
   v69Schema,
-  v6Schema,
   v70Schema,
   v71Schema,
   v72Schema,
@@ -81,28 +83,35 @@ import {
   v77Schema,
   v78Schema,
   v79Schema,
-  v7Schema,
   v80Schema,
   v81Schema,
+  v82Schema,
   v83Schema,
   v84Schema,
-  v8Schema,
-  v9Schema,
+  v85Schema,
+  v86Schema,
+  v87Schema,
+  v88Schema,
+  v89Schema,
+  v90Schema,
+  v91Schema,
+  v92Schema,
+  v93Schema,
 } from 'src/app/schema'
 import { persistConfig } from 'src/app/store'
 import { initialBiometricsSettingsState } from 'src/features/biometricsSettings/slice'
-import { initialCloudBackupState } from 'src/features/CloudBackup/cloudBackupSlice'
 import { initialPasswordLockoutState } from 'src/features/CloudBackup/passwordLockoutSlice'
 import { initialModalsState } from 'src/features/modals/modalSlice'
 import { initialPushNotificationsState } from 'src/features/notifications/slice'
 import { initialTweaksState } from 'src/features/tweaks/slice'
 import { initialWalletConnectState } from 'src/features/walletConnect/walletConnectSlice'
+import { ScannerModalState } from 'uniswap/src/components/ReceiveQRCode/constants'
 import { AccountType } from 'uniswap/src/features/accounts/types'
 import { initialUniswapBehaviorHistoryState } from 'uniswap/src/features/behaviorHistory/slice'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { initialFavoritesState } from 'uniswap/src/features/favorites/slice'
 import { FiatCurrency } from 'uniswap/src/features/fiatCurrency/constants'
-import { initialNotificationsState } from 'uniswap/src/features/notifications/slice'
+import { initialNotificationsState } from 'uniswap/src/features/notifications/slice/slice'
 import { initialSearchHistoryState } from 'uniswap/src/features/search/searchHistorySlice'
 import { initialUserSettingsState } from 'uniswap/src/features/settings/slice'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
@@ -110,10 +119,16 @@ import { initialTokensState } from 'uniswap/src/features/tokens/slice/slice'
 import { initialTransactionsState } from 'uniswap/src/features/transactions/slice'
 import { TransactionStatus, TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { initialVisibilityState } from 'uniswap/src/features/visibility/slice'
+import {
+  testAddActivityVisibility,
+  testMigrateSearchHistory,
+  testRemoveTHBFromCurrency,
+} from 'uniswap/src/state/uniswapMigrationTests'
 import { transactionDetails } from 'uniswap/src/test/fixtures'
+import { DappRequestType } from 'uniswap/src/types/walletConnect'
 import { getAllKeysOfNestedObject } from 'utilities/src/primitives/objects'
-import { ScannerModalState } from 'wallet/src/components/QRCodeScanner/constants'
 import { initialAppearanceSettingsState } from 'wallet/src/features/appearance/slice'
+import { initialBatchedTransactionsState } from 'wallet/src/features/batchedTransactions/slice'
 import { initialBehaviorHistoryState } from 'wallet/src/features/behaviorHistory/slice'
 import { initialTelemetryState } from 'wallet/src/features/telemetry/slice'
 import { Account, SignerMnemonicAccount } from 'wallet/src/features/wallet/accounts/types'
@@ -122,16 +137,20 @@ import { createMigrate } from 'wallet/src/state/createMigrate'
 import { HAYDEN_ETH_ADDRESS } from 'wallet/src/state/walletMigrations'
 import {
   testActivatePendingAccounts,
+  testAddBatchedTransactions,
   testAddCreatedOnboardingRedesignAccount,
   testAddedHapticSetting,
   testDeleteWelcomeWalletCard,
+  testMigrateLiquidityTransactionInfoRename,
   testMovedCurrencySetting,
   testMovedLanguageSetting,
   testMovedTokenWarnings,
   testMovedUserSettings,
+  testMoveHapticsToUserSettings,
   testMoveTokenAndNFTVisibility,
   testRemoveCreatedOnboardingRedesignAccount,
   testRemoveHoldToSwap,
+  testRemovePriceAlertsEnabledFromPushNotifications,
   testUnchecksumDismissedTokenWarningKeys,
   testUpdateExploreOrderByType,
 } from 'wallet/src/state/walletMigrationsTests'
@@ -181,6 +200,7 @@ describe('Redux state migrations', () => {
     // Add new slices here!
     const initialState = {
       appearanceSettings: initialAppearanceSettingsState,
+      batchedTransactions: initialBatchedTransactionsState,
       biometricSettings: initialBiometricsSettingsState,
       blocks: { byChainId: {} },
       chains: {
@@ -191,7 +211,6 @@ describe('Redux state migrations', () => {
           '42161': { isActive: true },
         },
       },
-      cloudBackup: initialCloudBackupState,
       ens: { ensForAddress: {} },
       favorites: initialFavoritesState,
       fiatCurrencySettings: { currentCurrency: FiatCurrency.UnitedStatesDollar },
@@ -642,6 +661,7 @@ describe('Redux state migrations', () => {
 
     const v15 = migrations[15](v14Stub)
     const accounts = Object.values(v15.wallet.accounts)
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     expect((accounts[0] as Account)?.type).toEqual(AccountType.SignerMnemonic)
   })
 
@@ -867,7 +887,7 @@ describe('Redux state migrations', () => {
       ...v19Schema,
       notifications: {
         ...v19Schema.notifications,
-        lastTxNotificationUpdate: { [1]: 122342134 },
+        lastTxNotificationUpdate: { 1: 122342134 },
       },
     }
 
@@ -1013,7 +1033,7 @@ describe('Redux state migrations', () => {
           '0': { ...oldFiatOnRampTxDetails, status: TransactionStatus.Failed },
         },
       },
-      ['0xshadowySuperCoder']: {
+      '0xshadowySuperCoder': {
         [UniverseChainId.ArbitrumOne]: {
           '0': oldFiatOnRampTxDetails,
           '1': txDetailsConfirmed,
@@ -1024,7 +1044,7 @@ describe('Redux state migrations', () => {
           '2': txDetailsConfirmed,
         },
       },
-      ['0xdeleteMe']: {
+      '0xdeleteMe': {
         [UniverseChainId.Mainnet]: {
           '0': { ...oldFiatOnRampTxDetails, status: TransactionStatus.Failed },
         },
@@ -1355,9 +1375,9 @@ describe('Redux state migrations', () => {
     const nftKey3 = '0xNFTKey3'
     const nftKey4 = '0xNFTKey4'
 
-    const currency1ToVisibility = { ['0xCurrency1']: { isVisible: true } }
-    const currency2ToVisibility = { ['0xCurrency2']: { isVisible: false } }
-    const currency3ToVisibility = { ['0xCurrency3']: { isVisible: false } }
+    const currency1ToVisibility = { '0xCurrency1': { isVisible: true } }
+    const currency2ToVisibility = { '0xCurrency2': { isVisible: false } }
+    const currency3ToVisibility = { '0xCurrency3': { isVisible: false } }
     const nft1ToVisibility = { [nftKey1]: { isSpamIgnored: true } }
     const nft2ToVisibility = { [nftKey2]: { isHidden: true } }
     const nft3ToVisibility = { [nftKey3]: { isSpamIgnored: false, isHidden: false } }
@@ -1609,8 +1629,8 @@ describe('Redux state migrations', () => {
 
   it('migrates from v82 to v83', () => {
     // v82 didn't have a new schema
-    const v81Stub = { ...v81Schema }
-    const v83 = migrations[83](v81Stub)
+    const v82Stub = { ...v82Schema }
+    const v83 = migrations[83](v82Stub)
 
     expect(v83.pushNotifications.generalUpdatesEnabled).toBe(false)
     expect(v83.pushNotifications.priceAlertsEnabled).toBe(false)
@@ -1622,5 +1642,155 @@ describe('Redux state migrations', () => {
 
   it('migrates from v84 to v85', () => {
     testMoveTokenAndNFTVisibility(migrations[85], v84Schema)
+  })
+
+  it('migrates from v85 to v86', () => {
+    testAddBatchedTransactions(migrations[86], v85Schema)
+  })
+
+  it('migrates from v86 to v87', () => {
+    /** test migration on uwulink transaction */
+    const stateWithUwulinkTransaction = {
+      transactions: {
+        testAddress: {
+          testChainId: {
+            testTxnId: {
+              typeInfo: {
+                dappRequestInfo: {
+                  name: 'testDapp',
+                },
+                externalDappInfo: {
+                  source: 'uwulink',
+                },
+              },
+            },
+          },
+        },
+      },
+    }
+
+    const v86Stub = { ...v86Schema, ...stateWithUwulinkTransaction }
+    const v87 = migrations[87](v86Stub)
+
+    expect(v87.transactions).toBeDefined()
+    expect(v87.transactions.testAddress.testChainId.testTxnId.typeInfo).toEqual({
+      dappRequestInfo: {
+        name: 'testDapp',
+      },
+      externalDappInfo: {
+        requestType: DappRequestType.UwULink,
+      },
+    })
+
+    /** test migration on walletconnect transaction */
+    const stateWithWalletConnectTransaction = {
+      transactions: {
+        testAddress: {
+          testChainId: {
+            testTxnId: {
+              typeInfo: {
+                type: TransactionType.WCConfirm,
+                dapp: {
+                  name: 'testDapp',
+                },
+                externalDappInfo: {
+                  source: 'walletconnect',
+                },
+              },
+            },
+          },
+        },
+      },
+    }
+
+    const v86StubWalletConnect = { ...v86Schema, ...stateWithWalletConnectTransaction }
+    const v87WalletConnect = migrations[87](v86StubWalletConnect)
+
+    expect(v87WalletConnect.transactions).toBeDefined()
+    expect(v87WalletConnect.transactions.testAddress.testChainId.testTxnId.typeInfo).toEqual({
+      type: TransactionType.WCConfirm,
+      dappRequestInfo: {
+        name: 'testDapp',
+      },
+      externalDappInfo: {
+        requestType: DappRequestType.WalletConnectSessionRequest,
+      },
+    })
+  })
+
+  it('migrates from v87 to v88', () => {
+    testMoveHapticsToUserSettings(migrations[88], v87Schema)
+  })
+
+  it('migrates from v88 to v89', () => {
+    const v88Stub = { ...v88Schema, userSettings: { ...v88Schema.userSettings, currentCurrency: 'THB' } }
+    testRemoveTHBFromCurrency(migrations[89], v88Stub)
+
+    const v88Stub2 = { ...v88Schema, userSettings: { ...v88Schema.userSettings, currentCurrency: 'JPY' } }
+    testRemoveTHBFromCurrency(migrations[89], v88Stub2)
+  })
+
+  it('migrates from v89 to v90', () => {
+    testMigrateLiquidityTransactionInfoRename(migrations[90], v89Schema)
+  })
+
+  it('migrates from v90 to v91', () => {
+    testRemovePriceAlertsEnabledFromPushNotifications(migrations[91], v90Schema)
+  })
+
+  it('migrates from v91 to v92', () => {
+    const androidCloudBackupEmail = 'test@test.com'
+
+    const { cloudBackup: _oldCloudBackup, ...v91WithoutCloudBackup } = v91Schema
+
+    const v91WithoutCloudBackupSlice = {
+      ...v91WithoutCloudBackup,
+      wallet: {
+        ...v91Schema.wallet,
+        activeAccountAddress: '0xabc',
+      },
+    }
+
+    const v91WithCloudBackup = {
+      ...v91WithoutCloudBackupSlice,
+      cloudBackup: {
+        backupsFound: [{ mnemonicId: '0xabc', email: androidCloudBackupEmail }],
+      },
+      wallet: {
+        ...v91Schema.wallet,
+        activeAccountAddress: '0xabc',
+      },
+    }
+
+    const v91WithDifferentActiveAccountAddress = {
+      ...v91WithoutCloudBackupSlice,
+      cloudBackup: {
+        backupsFound: [{ mnemonicId: '0xdef', email: androidCloudBackupEmail }],
+      },
+      wallet: {
+        ...v91Schema.wallet,
+        activeAccountAddress: '0xabc',
+      },
+    }
+
+    const v92 = migrations[92](v91WithCloudBackup)
+    expect(v92.cloudBackup).toBeUndefined()
+    expect(v92.wallet.androidCloudBackupEmail).toBe(androidCloudBackupEmail)
+
+    const v92WithoutCloudBackup = migrations[92](v91WithoutCloudBackupSlice)
+    expect(v92WithoutCloudBackup.cloudBackup).toBeUndefined()
+    expect(v92WithoutCloudBackup.wallet.androidCloudBackupEmail).toBe(undefined)
+
+    const v92WithDifferentActiveAccountAddress = migrations[92](v91WithDifferentActiveAccountAddress)
+    expect(v92WithDifferentActiveAccountAddress.cloudBackup).toBeUndefined()
+    expect(v92WithDifferentActiveAccountAddress.wallet.androidCloudBackupEmail).toBe(androidCloudBackupEmail)
+  })
+
+  it('migrates from v92 to v93', () => {
+    testMigrateSearchHistory(migrations[93], v92Schema)
+  })
+
+  it('migrates from v93 to v95', () => {
+    testAddActivityVisibility(migrations[95], v93Schema)
   })
 })

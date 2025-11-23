@@ -9,7 +9,7 @@ import { max as getMax, scaleLinear } from 'd3'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Flex, Text, useSporeColors } from 'ui/src'
 import { opacify } from 'ui/src/theme'
-import { useFormatter } from 'utils/formatNumbers'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 
 const xAccessor = (d: ChartEntry) => d.activeLiquidity
 const yAccessor = (d: ChartEntry) => d.price0
@@ -49,9 +49,7 @@ function findClosestElementBinarySearch(data: ChartEntry[], target?: number) {
   const closestElement =
     Math.abs(closest.price0 - target) <= Math.abs(nextClosest.price0 - target) ? closest : nextClosest
 
-  if (closestElement) {
-    priceDataCache.set(target.toString(), closestElement)
-  }
+  priceDataCache.set(target.toString(), closestElement)
   return closestElement
 }
 
@@ -69,8 +67,8 @@ function scaleToInteger(a: number, precision = 18) {
  */
 export function ActiveLiquidityChart({
   id = 'ActiveLiquidityChart2',
-  currency0,
-  currency1,
+  quoteCurrency,
+  baseCurrency,
   data: { series, current, min, max },
   dimensions: { width, height, contentWidth, axisLabelPaneWidth },
   brushDomain,
@@ -83,8 +81,8 @@ export function ActiveLiquidityChart({
   barColor,
 }: {
   id?: string
-  currency0: Currency
-  currency1: Currency
+  quoteCurrency: Currency
+  baseCurrency: Currency
   data: {
     series: ChartEntry[]
     current: number
@@ -101,7 +99,7 @@ export function ActiveLiquidityChart({
   isMobile?: boolean
   barColor?: string
 }) {
-  const { formatPercent } = useFormatter()
+  const { formatPercent } = useLocalizationContext()
   const colors = useSporeColors()
   const svgRef = useRef<SVGSVGElement | null>(null)
   const [hoverY, setHoverY] = useState<number>()
@@ -122,7 +120,7 @@ export function ActiveLiquidityChart({
   }, [min, max, series, height, width, axisLabelPaneWidth, contentWidth])
 
   const hoveredTick = useMemo(() => {
-    if (!hoverY || !yScale) {
+    if (!hoverY) {
       return undefined
     }
     const price = yScale.invert(hoverY)
@@ -147,18 +145,19 @@ export function ActiveLiquidityChart({
 
   return (
     <>
-      {hoverY && hoveredTick && (
+      {hoverY && hoveredTick ? (
         <TickTooltip
+          containerHeight={height}
           hoverY={hoverY}
-          hoveredTick={hoveredTick ?? undefined}
+          hoveredTick={hoveredTick}
           currentTick={currentTick}
           currentPrice={current}
           contentWidth={contentWidth}
           axisLabelPaneWidth={axisLabelPaneWidth}
-          currency0={currency0}
-          currency1={currency1}
+          quoteCurrency={quoteCurrency}
+          baseCurrency={baseCurrency}
         />
-      )}
+      ) : null}
       {showDiffIndicators && (
         <>
           {southHandleInView && (
@@ -173,7 +172,9 @@ export function ActiveLiquidityChart({
               top={yScale(brushDomain[0]) - 16}
             >
               <Text variant="body4">
-                {formatPercent(new Percent(scaleToInteger(brushDomain[0] - current), scaleToInteger(current)))}
+                {formatPercent(
+                  new Percent(scaleToInteger(brushDomain[0] - current), scaleToInteger(current)).toSignificant(),
+                )}
               </Text>
             </Flex>
           )}
@@ -189,7 +190,9 @@ export function ActiveLiquidityChart({
               top={yScale(brushDomain[1]) - 16}
             >
               <Text variant="body4">
-                {formatPercent(new Percent(scaleToInteger(brushDomain[1] - current), scaleToInteger(current)))}
+                {formatPercent(
+                  new Percent(scaleToInteger(brushDomain[1] - current), scaleToInteger(current)).toSignificant(),
+                )}
               </Text>
             </Flex>
           )}
@@ -204,7 +207,7 @@ export function ActiveLiquidityChart({
           if (!svgRef.current) {
             return
           }
-          const rect = svgRef.current?.getBoundingClientRect()
+          const rect = svgRef.current.getBoundingClientRect()
           const y = event.clientY - rect.top
           const x = event.clientX - rect.left
           if (x > width - axisLabelPaneWidth - contentWidth) {
@@ -232,6 +235,13 @@ export function ActiveLiquidityChart({
               />
             </mask>
           )}
+
+          <style>
+            {`
+              .axis-right line { display: none; }
+              .axis-right text { fill: ${colors.neutral2.val}; }
+            `}
+          </style>
         </defs>
 
         <g>
@@ -243,9 +253,9 @@ export function ActiveLiquidityChart({
               xValue={xAccessor}
               yValue={yAccessor}
               brushDomain={brushDomain}
-              fill={opacify(10, brushDomain ? colors.neutral1.val : barColor ?? colors.accent1.val)}
-              selectedFill={opacify(10, barColor ?? colors.accent1.val)}
               containerHeight={height}
+              fill={opacify(10, brushDomain ? colors.neutral1.val : (barColor ?? colors.accent1.val))}
+              selectedFill={opacify(10, barColor ?? colors.accent1.val)}
               containerWidth={width - axisLabelPaneWidth}
             />
 
@@ -258,7 +268,7 @@ export function ActiveLiquidityChart({
               />
             )}
 
-            {hoverY && (
+            {hoverY && hoveredTick && Number(hoveredTick.amount0Locked) + Number(hoveredTick.amount1Locked) > 0 && (
               <HorizontalLine
                 value={yScale.invert(hoverY)}
                 yScale={yScale}

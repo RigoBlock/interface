@@ -4,13 +4,14 @@ import { useInterfaceMulticall } from 'hooks/useContract'
 import { useTokenBalances } from 'hooks/useTokenBalances'
 import JSBI from 'jsbi'
 import { useMemo } from 'react'
-import { ValueType, getCurrencyAmount } from 'uniswap/src/features/tokens/getCurrencyAmount'
+import { getCurrencyAmount, ValueType } from 'uniswap/src/features/tokens/getCurrencyAmount'
+import { isEVMAddress } from 'utilities/src/addresses/evm/evm'
 import { isAddress } from 'utilities/src/addresses'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
 import { currencyKey } from 'utils/currencyKey'
 import { assume0xAddress } from 'utils/wagmi'
-import { useBalance, useReadContracts } from 'wagmi'
 import { Abi, erc20Abi } from 'viem'
+import { useBalance, useReadContracts } from 'wagmi'
 
 /**
  * Returns a currency address to its eventually consistent currency balances for multiple account.
@@ -90,17 +91,22 @@ export function useCurrencyBalancesMultipleAccounts(
 /**
  * Returns a map of token addresses to their eventually consistent token balances for a single account.
  */
-export function useRpcTokenBalancesWithLoadingIndicator(
-  address?: string,
-  tokens?: (Token | undefined)[],
-  skip?: boolean,
-): [{ [tokenAddress: string]: CurrencyAmount<Token> | undefined }, boolean] {
+export function useRpcTokenBalancesWithLoadingIndicator({
+  address,
+  tokens,
+  skip,
+}: {
+  address?: string
+  tokens?: (Token | undefined)[]
+  skip?: boolean
+}): [{ [tokenAddress: string]: CurrencyAmount<Token> | undefined }, boolean] {
   const { chainId } = useAccount()
   const validatedTokens: Token[] = useMemo(
     () =>
       skip
         ? []
-        : tokens?.filter((t?: Token): t is Token => isAddress(t?.address) !== false && t?.chainId === chainId) ?? [],
+        : (tokens?.filter((t?: Token): t is Token => isEVMAddress(t?.address) !== false && t.chainId === chainId) ??
+          []),
     [chainId, tokens, skip],
   )
 
@@ -127,7 +133,7 @@ export function useRpcTokenBalancesWithLoadingIndicator(
       address && validatedTokens.length > 0
         ? // eslint-disable-next-line max-params
           validatedTokens.reduce<{ [tokenAddress: string]: CurrencyAmount<Token> | undefined }>((memo, token, i) => {
-            const value = data?.[i]?.result
+            const value = data?.[i].result
             if (!value) {
               return memo
             }
@@ -149,7 +155,7 @@ function useRpcTokenBalances(
   address?: string,
   tokens?: (Token | undefined)[],
 ): { [tokenAddress: string]: CurrencyAmount<Token> | undefined } {
-  return useRpcTokenBalancesWithLoadingIndicator(address, tokens)[0]
+  return useRpcTokenBalancesWithLoadingIndicator({ address, tokens })[0]
 }
 
 function useRpcCurrencyBalances(
@@ -176,12 +182,14 @@ function useRpcCurrencyBalances(
         if (!account || !currency || currency.chainId !== chainId) {
           return undefined
         }
+
         if (currency.isToken) {
           return tokenBalances[currency.address]
         } else if (nativeBalance?.value) {
           return CurrencyAmount.fromRawAmount(currency, nativeBalance.value.toString())
+        } else {
+          return undefined
         }
-        return undefined
       }) ?? [],
     [account, chainId, currencies, nativeBalance?.value, tokenBalances],
   )
@@ -211,6 +219,7 @@ function useGqlCurrencyBalances(
       const key = currencyKey(currency)
       const balance = balanceMap[key]
 
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (balance) {
         const currencyAmount = getCurrencyAmount({
           value: balance.balance.toString(),
@@ -229,6 +238,8 @@ function useGqlCurrencyBalances(
 }
 
 /**
+ * @deprecated use usePortfolioBalances & getOnChainBalancesFetch from packages/uniswap instead
+ *
  * Returns balances for tokens on currently-connected chainId via RPC.
  * Falls back to graphql TokenBalances if user is not connected to chain, a.k.a !isSynced.
  */

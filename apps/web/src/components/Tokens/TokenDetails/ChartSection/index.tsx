@@ -1,10 +1,12 @@
+import { TimePeriod, toHistoryDuration } from 'appGraphql/data/util'
+import { GraphQLApi } from '@universe/api'
 import { refitChartContentAtom } from 'components/Charts/ChartModel'
 import { ChartSkeleton } from 'components/Charts/LoadingState'
 import { PriceChart, PriceChartData } from 'components/Charts/PriceChart'
 import { LineChart, StackedLineData } from 'components/Charts/StackedLineChart'
+import { ChartType, PriceChartType } from 'components/Charts/utils'
 import { VolumeChart } from 'components/Charts/VolumeChart'
 import { SingleHistogramData } from 'components/Charts/VolumeChart/renderer'
-import { ChartType, PriceChartType } from 'components/Charts/utils'
 import { AdvancedPriceChartToggle } from 'components/Tokens/TokenDetails/ChartSection/AdvancedPriceChartToggle'
 import { ChartTypeDropdown } from 'components/Tokens/TokenDetails/ChartSection/ChartTypeSelector'
 import {
@@ -15,17 +17,17 @@ import {
 import { ChartQueryResult, DataQuality } from 'components/Tokens/TokenDetails/ChartSection/util'
 import {
   DISPLAYS,
+  getTimePeriodFromDisplay,
   ORDERED_TIMES,
   TimePeriodDisplay,
-  getTimePeriodFromDisplay,
 } from 'components/Tokens/TokenTable/VolumeTimeFrameSelector'
-import { TimePeriod, toHistoryDuration } from 'graphql/data/util'
 import { useAtomValue } from 'jotai/utils'
 import { useTDPContext } from 'pages/TokenDetails/TDPContext'
 import { useMemo, useState } from 'react'
 import { Trans } from 'react-i18next'
 import { Flex, SegmentedControl, SegmentedControlOption, styled, useMedia } from 'ui/src'
-import { Chain } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
+import { useTokenPriceChange } from 'uniswap/src/features/dataApi/tokenDetails/useTokenDetailsData'
+import { currencyId } from 'uniswap/src/utils/currencyId'
 
 export const TDP_CHART_HEIGHT_PX = 356
 const TDP_CHART_SELECTOR_OPTIONS = [ChartType.PRICE, ChartType.VOLUME, ChartType.TVL] as const
@@ -69,7 +71,10 @@ export type TDPChartState = {
 const InvalidChartMessage = () => <Trans i18nKey="chart.error.tokens" />
 
 /** Exported to `TDPContext` to fire queries on pageload. `TDPChartState` should be accessed through `useTDPContext` rather than this hook. */
-export function useCreateTDPChartState(tokenDBAddress: string | undefined, currencyChainName: Chain): TDPChartState {
+export function useCreateTDPChartState(
+  tokenDBAddress: string | undefined,
+  currencyChainName: GraphQLApi.Chain,
+): TDPChartState {
   const [timePeriod, setTimePeriod] = useState<TimePeriod>(TimePeriod.DAY)
 
   const [chartType, setChartType] = useState<TokenDetailsChartType>(ChartType.PRICE)
@@ -77,7 +82,7 @@ export function useCreateTDPChartState(tokenDBAddress: string | undefined, curre
 
   const variables = { address: tokenDBAddress, chain: currencyChainName, duration: toHistoryDuration(timePeriod) }
 
-  const priceQuery = useTDPPriceChartData(variables, chartType !== ChartType.PRICE, priceChartType)
+  const priceQuery = useTDPPriceChartData({ variables, skip: chartType !== ChartType.PRICE, priceChartType })
   const volumeQuery = useTDPVolumeChartData(variables, chartType !== ChartType.VOLUME)
   const tvlQuery = useTDPTVLChartData(variables, chartType !== ChartType.TVL)
 
@@ -109,6 +114,12 @@ export function useCreateTDPChartState(tokenDBAddress: string | undefined, curre
 
 export default function ChartSection() {
   const { activeQuery, timePeriod, priceChartType } = useTDPContext().chartState
+  const { tokenColor, currency } = useTDPContext()
+
+  // Get the 24hr price change from API to ensure consistency with mobile
+  // Both platforms now show the same 24hr change regardless of selected chart period
+  const currencyIdValue = useMemo(() => currencyId(currency), [currency])
+  const priceChange24h = useTokenPriceChange(currencyIdValue)
 
   // eslint-disable-next-line consistent-return
   const getSection = () => {
@@ -126,19 +137,38 @@ export default function ChartSection() {
     switch (activeQuery.chartType) {
       case ChartType.PRICE:
         return (
-          <PriceChart data={activeQuery.entries} height={TDP_CHART_HEIGHT_PX} type={priceChartType} stale={stale} />
+          <PriceChart
+            data={activeQuery.entries}
+            height={TDP_CHART_HEIGHT_PX}
+            type={priceChartType}
+            stale={stale}
+            timePeriod={toHistoryDuration(timePeriod)}
+            pricePercentChange24h={priceChange24h}
+            overrideColor={tokenColor}
+          />
         )
       case ChartType.VOLUME:
         return (
-          <VolumeChart data={activeQuery.entries} height={TDP_CHART_HEIGHT_PX} timePeriod={timePeriod} stale={stale} />
+          <VolumeChart
+            data={activeQuery.entries}
+            height={TDP_CHART_HEIGHT_PX}
+            timePeriod={timePeriod}
+            stale={stale}
+            overrideColor={tokenColor}
+          />
         )
       case ChartType.TVL:
-        return <LineChart data={activeQuery.entries} height={TDP_CHART_HEIGHT_PX} stale={stale} />
+        return (
+          <LineChart data={activeQuery.entries} height={TDP_CHART_HEIGHT_PX} stale={stale} overrideColor={tokenColor} />
+        )
     }
   }
 
   return (
-    <Flex data-cy={`tdp-${activeQuery.chartType}-chart-container`}>
+    <Flex
+      data-cy={`tdp-${activeQuery.chartType}-chart-container`}
+      testID={`tdp-${activeQuery.chartType}-chart-container`}
+    >
       {getSection()}
       <ChartControls />
     </Flex>

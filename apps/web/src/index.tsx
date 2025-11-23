@@ -1,53 +1,57 @@
 // Ordering is intentional and must be preserved: sideEffects followed by functionality.
 import 'sideEffects'
 
+import { AssetActivityProvider } from 'appGraphql/data/apollo/AssetActivityProvider'
+import { apolloClient } from 'appGraphql/data/apollo/client'
+import { TokenBalancesProvider } from 'appGraphql/data/apollo/TokenBalancesProvider'
 import { getDeviceId } from '@amplitude/analytics-browser'
 import { ApolloProvider } from '@apollo/client'
 import { datadogRum } from '@datadog/browser-rum'
-import { PortalProvider } from '@tamagui/portal'
-import { QueryClientProvider } from '@tanstack/react-query'
-import Web3Provider, { Web3ProviderUpdater } from 'components/Web3Provider'
+import { ApiInit, getEntryGatewayUrl, provideSessionService } from '@universe/api'
+import type { StatsigUser } from '@universe/gating'
+import { getIsSessionServiceEnabled, getIsSessionUpgradeAutoEnabled } from '@universe/gating'
+import { createChallengeSolverService, createSessionInitializationService } from '@universe/sessions'
+import { QueryClientPersistProvider } from 'components/PersistQueryClient'
+import { createWeb3Provider, WalletCapabilitiesEffects } from 'components/Web3Provider/createWeb3Provider'
 import { WebUniswapProvider } from 'components/Web3Provider/WebUniswapContext'
-import { AssetActivityProvider } from 'graphql/data/apollo/AssetActivityProvider'
-import { TokenBalancesProvider } from 'graphql/data/apollo/TokenBalancesProvider'
-import { apolloClient } from 'graphql/data/apollo/client'
-import { useAccount } from 'hooks/useAccount'
+import { wagmiConfig } from 'components/Web3Provider/wagmiConfig'
+import { AccountsStoreDevTool } from 'features/accounts/store/devtools'
+import { WebAccountsStoreProvider } from 'features/accounts/store/provider'
+import { ConnectWalletMutationProvider } from 'features/wallet/connection/hooks/useConnectWalletMutation'
+import { ExternalWalletProvider } from 'features/wallet/providers/ExternalWalletProvider'
+import { useDeferredComponent } from 'hooks/useDeferredComponent'
 import { LanguageProvider } from 'i18n/LanguageProvider'
 import { BlockNumberProvider } from 'lib/hooks/useBlockNumber'
-import { MulticallUpdater } from 'lib/state/multicall'
+import { WebNotificationSystemManager } from 'notification-system/WebNotificationSystem'
+import { NuqsAdapter } from 'nuqs/adapters/react-router/v7'
 import App from 'pages/App'
-import { PropsWithChildren, StrictMode, useEffect, useMemo } from 'react'
+import type { PropsWithChildren } from 'react'
+import { StrictMode, useEffect, useMemo } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Helmet, HelmetProvider } from 'react-helmet-async/lib/index'
 import { I18nextProvider } from 'react-i18next'
 import { configureReanimatedLogger } from 'react-native-reanimated'
 import { Provider } from 'react-redux'
-import { BrowserRouter, HashRouter, useLocation } from 'react-router-dom'
+import { BrowserRouter, HashRouter, useLocation } from 'react-router'
 import store from 'state'
-import { ActivityStateUpdater } from 'state/activity/updater'
-import ApplicationUpdater from 'state/application/updater'
-import FiatOnRampTransactionsUpdater from 'state/fiatOnRampTransactions/updater'
-import PoolListUpdater from 'state/lists/poolsList/updater'
-import ListsUpdater from 'state/lists/updater'
 import LogsUpdater from 'state/logs/updater'
-// eslint-disable-next-line @typescript-eslint/no-restricted-imports
-import { StatsigProvider as BaseStatsigProvider, StatsigUser } from 'statsig-react'
-import { ThemeProvider, ThemedGlobalStyle } from 'theme'
-import { SystemThemeUpdater, ThemeColorMetaUpdater } from 'theme/components/ThemeToggle'
+import { ThemedGlobalStyle, ThemeProvider } from 'theme'
 import { TamaguiProvider } from 'theme/tamaguiProvider'
-import { getEnvName } from 'tracing/env'
-import { config } from 'uniswap/src/config'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { PortalProvider } from 'ui/src'
 import { ReactRouterUrlProvider } from 'uniswap/src/contexts/UrlContext'
-import { SharedQueryClient } from 'uniswap/src/data/apiClients/SharedQueryClient'
+import { initializePortfolioQueryOverrides } from 'uniswap/src/data/rest/portfolioBalanceOverrides'
+import { StatsigProviderWrapper } from 'uniswap/src/features/gating/StatsigProviderWrapper'
 import { LocalizationContextProvider } from 'uniswap/src/features/language/LocalizationContext'
-import { UnitagUpdaterContextProvider } from 'uniswap/src/features/unitags/context'
 import i18n from 'uniswap/src/i18n'
 import { initializeDatadog } from 'uniswap/src/utils/datadog'
+import { localDevDatadogEnabled } from 'utilities/src/environment/constants'
 import { isDevEnv, isTestEnv } from 'utilities/src/environment/env'
+import { getLogger } from 'utilities/src/logger/logger'
 import { isBrowserRouterEnabled } from 'utils/env'
 import { unregister as unregisterServiceWorker } from 'utils/serviceWorker'
 import { getCanonicalUrl } from 'utils/urlRoutes'
+// biome-ignore lint/style/noRestrictedImports: custom useAccount hook requires statsig
+import { useAccount } from 'wagmi'
 
 if (window.ethereum) {
   window.ethereum.autoRefreshOnNetworkChange = false
@@ -59,27 +63,70 @@ if (__DEV__ && !isTestEnv()) {
   })
 }
 
+initializePortfolioQueryOverrides({ store })
+
+const loadListsUpdater = () => import('state/lists/updater')
+const loadSystemThemeUpdater = () =>
+  import('theme/components/ThemeToggle').then((m) => ({ default: m.SystemThemeUpdater }))
+const loadThemeColorMetaUpdater = () =>
+  import('theme/components/ThemeToggle').then((m) => ({ default: m.ThemeColorMetaUpdater }))
+const loadApplicationUpdater = () => import('state/application/updater')
+const loadActivityStateUpdater = () =>
+  import('state/activity/updater').then((m) => ({ default: m.ActivityStateUpdater }))
+const loadLogsUpdater = () => import('state/logs/updater')
+const loadFiatOnRampTransactionsUpdater = () => import('state/fiatOnRampTransactions/updater')
+const loadWebAccountsStoreUpdater = () =>
+  import('features/accounts/store/updater').then((m) => ({ default: m.WebAccountsStoreUpdater }))
+
+const provideSessionInitService = () =>
+  createSessionInitializationService({
+    getSessionService: () =>
+      provideSessionService({
+        getBaseUrl: getEntryGatewayUrl,
+        getIsSessionServiceEnabled,
+        getLogger,
+      }),
+    challengeSolverService: createChallengeSolverService(),
+    getIsSessionUpgradeAutoEnabled,
+    getLogger,
+  })
+
 function Updaters() {
   const location = useLocation()
+
+  const ListsUpdater = useDeferredComponent(loadListsUpdater)
+  const SystemThemeUpdater = useDeferredComponent(loadSystemThemeUpdater)
+  const ThemeColorMetaUpdater = useDeferredComponent(loadThemeColorMetaUpdater)
+  const ApplicationUpdater = useDeferredComponent(loadApplicationUpdater)
+  const ActivityStateUpdater = useDeferredComponent(loadActivityStateUpdater)
+  const LogsUpdater = useDeferredComponent(loadLogsUpdater)
+  const FiatOnRampTransactionsUpdater = useDeferredComponent(loadFiatOnRampTransactionsUpdater)
+  const WebAccountsStoreUpdater = useDeferredComponent(loadWebAccountsStoreUpdater)
 
   return (
     <>
       <Helmet>
         <link rel="canonical" href={getCanonicalUrl(location.pathname)} />
       </Helmet>
-      <ListsUpdater />
-      <PoolListUpdater />
-      <SystemThemeUpdater />
-      <ThemeColorMetaUpdater />
-      <ApplicationUpdater />
-      <ActivityStateUpdater />
-      <MulticallUpdater />
-      <LogsUpdater />
-      <FiatOnRampTransactionsUpdater />
-      <Web3ProviderUpdater />
+      {ListsUpdater && <ListsUpdater />}
+      {SystemThemeUpdater && <SystemThemeUpdater />}
+      {ThemeColorMetaUpdater && <ThemeColorMetaUpdater />}
+      {ApplicationUpdater && <ApplicationUpdater />}
+      {ActivityStateUpdater && <ActivityStateUpdater />}
+      {LogsUpdater && <LogsUpdater />}
+      {FiatOnRampTransactionsUpdater && <FiatOnRampTransactionsUpdater />}
+      {WebAccountsStoreUpdater && <WebAccountsStoreUpdater />}
+      <AccountsStoreDevTool />
+      <ApiInit
+        getSessionInitService={provideSessionInitService}
+        getIsSessionServiceEnabled={getIsSessionServiceEnabled}
+      />
     </>
   )
 }
+
+// Production Web3Provider – always reconnects on mount and runs capability effects.
+const Web3Provider = createWeb3Provider({ wagmiConfig })
 
 function GraphqlProviders({ children }: { children: React.ReactNode }) {
   return (
@@ -92,6 +139,7 @@ function GraphqlProviders({ children }: { children: React.ReactNode }) {
 }
 function StatsigProvider({ children }: PropsWithChildren) {
   const account = useAccount()
+
   const statsigUser: StatsigUser = useMemo(
     () => ({
       userID: getDeviceId(),
@@ -110,29 +158,17 @@ function StatsigProvider({ children }: PropsWithChildren) {
     })
   }, [account])
 
-  if (!config.statsigApiKey) {
-    throw new Error('REACT_APP_STATSIG_API_KEY is not set')
+  const onStatsigInit = () => {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (!isDevEnv() || localDevDatadogEnabled) {
+      initializeDatadog('web').catch(() => undefined)
+    }
   }
 
   return (
-    <BaseStatsigProvider
-      user={statsigUser}
-      sdkKey={config.statsigApiKey}
-      waitForInitialization={false}
-      options={{
-        environment: { tier: getEnvName() },
-        api: uniswapUrls.statsigProxyUrl,
-        disableAutoMetricsLogging: true,
-        disableErrorLogging: true,
-        initCompletionCallback: () => {
-          if (!isDevEnv()) {
-            initializeDatadog('web').catch(() => undefined)
-          }
-        },
-      }}
-    >
+    <StatsigProviderWrapper user={statsigUser} onInit={onStatsigInit}>
       {children}
-    </BaseStatsigProvider>
+    </StatsigProviderWrapper>
   )
 }
 
@@ -140,47 +176,59 @@ const container = document.getElementById('root') as HTMLElement
 
 const Router = isBrowserRouterEnabled() ? BrowserRouter : HashRouter
 
-createRoot(container).render(
-  <StrictMode>
-    <HelmetProvider>
-      <ReactRouterUrlProvider>
-        <Provider store={store}>
-          <QueryClientProvider client={SharedQueryClient}>
-            <Router>
-              <I18nextProvider i18n={i18n}>
-                <LanguageProvider>
-                  <Web3Provider>
-                    <StatsigProvider>
-                      <WebUniswapProvider>
-                        <GraphqlProviders>
-                          <LocalizationContextProvider>
-                            <BlockNumberProvider>
-                              <UnitagUpdaterContextProvider>
-                                <Updaters />
-                                <ThemeProvider>
-                                  <TamaguiProvider>
-                                    <PortalProvider>
-                                      <ThemedGlobalStyle />
-                                      <App />
-                                    </PortalProvider>
-                                  </TamaguiProvider>
-                                </ThemeProvider>
-                              </UnitagUpdaterContextProvider>
-                            </BlockNumberProvider>
-                          </LocalizationContextProvider>
-                        </GraphqlProviders>
-                      </WebUniswapProvider>
-                    </StatsigProvider>
-                  </Web3Provider>
-                </LanguageProvider>
-              </I18nextProvider>
-            </Router>
-          </QueryClientProvider>
-        </Provider>
-      </ReactRouterUrlProvider>
-    </HelmetProvider>
-  </StrictMode>,
-)
+const RootApp = (): JSX.Element => {
+  return (
+    <StrictMode>
+      <HelmetProvider>
+        <ReactRouterUrlProvider>
+          <Provider store={store}>
+            <QueryClientPersistProvider>
+              <NuqsAdapter>
+                <Router>
+                  <I18nextProvider i18n={i18n}>
+                    <LanguageProvider>
+                      <Web3Provider>
+                        <StatsigProvider>
+                          <WalletCapabilitiesEffects />
+                          <ExternalWalletProvider>
+                            <ConnectWalletMutationProvider>
+                              <WebAccountsStoreProvider>
+                                <WebUniswapProvider>
+                                  <GraphqlProviders>
+                                    <LocalizationContextProvider>
+                                      <BlockNumberProvider>
+                                        <Updaters />
+                                        <ThemeProvider>
+                                          <TamaguiProvider>
+                                            <PortalProvider>
+                                              <WebNotificationSystemManager />
+                                              <ThemedGlobalStyle />
+                                              <App />
+                                            </PortalProvider>
+                                          </TamaguiProvider>
+                                        </ThemeProvider>
+                                      </BlockNumberProvider>
+                                    </LocalizationContextProvider>
+                                  </GraphqlProviders>
+                                </WebUniswapProvider>
+                              </WebAccountsStoreProvider>
+                            </ConnectWalletMutationProvider>
+                          </ExternalWalletProvider>
+                        </StatsigProvider>
+                      </Web3Provider>
+                    </LanguageProvider>
+                  </I18nextProvider>
+                </Router>
+              </NuqsAdapter>
+            </QueryClientPersistProvider>
+          </Provider>
+        </ReactRouterUrlProvider>
+      </HelmetProvider>
+    </StrictMode>
+  )
+}
+
+createRoot(container).render(<RootApp />)
 
 // We once had a ServiceWorker, and users who have not visited since then may still have it registered.
 // This ensures it is truly gone.

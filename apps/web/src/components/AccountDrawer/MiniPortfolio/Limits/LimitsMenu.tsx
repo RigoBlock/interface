@@ -1,53 +1,42 @@
 import {
-  CancelOrdersDialog,
   CancellationState,
+  CancelOrdersDialog,
 } from 'components/AccountDrawer/MiniPortfolio/Activity/CancelOrdersDialog'
 import { useOpenLimitOrders } from 'components/AccountDrawer/MiniPortfolio/Activity/hooks'
-import { Activity } from 'components/AccountDrawer/MiniPortfolio/Activity/types'
-import {
-  isLimitCancellable,
-  useCancelMultipleOrdersCallback,
-} from 'components/AccountDrawer/MiniPortfolio/Activity/utils'
+import { useCancelMultipleOrdersCallback } from 'components/AccountDrawer/MiniPortfolio/Activity/utils/cancel'
 import { LimitDetailActivityRow } from 'components/AccountDrawer/MiniPortfolio/Limits/LimitDetailActivityRow'
 import { SlideOutMenu } from 'components/AccountDrawer/SlideOutMenu'
-import Column from 'components/deprecated/Column'
 import { LimitDisclaimer } from 'components/swap/LimitDisclaimer'
-import styled from 'lib/styled-components'
 import { useCallback, useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { UniswapXOrderDetails } from 'state/signatures/types'
 import { Button, Flex } from 'ui/src'
-
-const Container = styled(Column)`
-  height: 100%;
-  position: relative;
-`
-
-const StyledLimitsDisclaimer = styled(LimitDisclaimer)`
-  margin-bottom: 24px;
-`
+import { UniswapXOrderDetails } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { isLimitCancellable } from 'uniswap/src/features/transactions/utils/uniswapX.utils'
 
 export function LimitsMenu({ onClose, account }: { account: string; onClose: () => void }) {
   const { t } = useTranslation()
   const { openLimitOrders } = useOpenLimitOrders(account)
-  const [selectedOrdersByHash, setSelectedOrdersByHash] = useState<Record<string, UniswapXOrderDetails>>({})
+  const [selectedOrdersById, setSelectedOrdersById] = useState<Record<string, UniswapXOrderDetails>>({})
   const [cancelState, setCancelState] = useState(CancellationState.NOT_STARTED)
   const [cancelTxHash, setCancelTxHash] = useState<string | undefined>()
 
   const selectedOrders = useMemo(() => {
-    return Object.values(selectedOrdersByHash)
-  }, [selectedOrdersByHash])
+    return Object.values(selectedOrdersById)
+  }, [selectedOrdersById])
 
   const cancelOrders = useCancelMultipleOrdersCallback(selectedOrders)
 
-  const toggleOrderSelection = (order: Activity) => {
-    const newSelectedOrders = { ...selectedOrdersByHash }
-    if (order.hash in selectedOrdersByHash) {
-      delete newSelectedOrders[order.hash]
-    } else if (order.offchainOrderDetails) {
-      newSelectedOrders[order.hash] = order.offchainOrderDetails
-    }
-    setSelectedOrdersByHash(newSelectedOrders)
+  const toggleOrderSelection = (order: UniswapXOrderDetails) => {
+    setSelectedOrdersById((prevSelectedOrders) => {
+      const newSelectedOrders = { ...prevSelectedOrders }
+      const orderKey = order.id
+      if (orderKey in prevSelectedOrders) {
+        delete newSelectedOrders[orderKey]
+      } else {
+        newSelectedOrders[orderKey] = order
+      }
+      return newSelectedOrders
+    })
   }
 
   const handleConfirm = useCallback(async () => {
@@ -65,13 +54,13 @@ export function LimitsMenu({ onClose, account }: { account: string; onClose: () 
 
   return (
     <SlideOutMenu title={<Trans i18nKey="common.limits.open" />} onClose={onClose}>
-      <StyledLimitsDisclaimer />
-      <Container data-testid="LimitsMenuContainer">
+      <LimitDisclaimer mb={24} />
+      <Flex height="100%" data-testid="LimitsMenuContainer" gap="$gap16">
         {openLimitOrders.map((order) => (
           <LimitDetailActivityRow
-            key={order.hash}
+            key={order.id}
             order={order}
-            selected={order.hash in selectedOrdersByHash}
+            selected={order.id in selectedOrdersById}
             onToggleSelect={toggleOrderSelection}
           />
         ))}
@@ -88,14 +77,14 @@ export function LimitsMenu({ onClose, account }: { account: string; onClose: () 
             </Button>
           </Flex>
         )}
-      </Container>
+      </Flex>
       <CancelOrdersDialog
         isVisible={cancelState !== CancellationState.NOT_STARTED}
         orders={selectedOrders}
         onCancel={() => {
           // if the cancel was successful clear the selected orders
           if (cancelTxHash) {
-            setSelectedOrdersByHash({})
+            setSelectedOrdersById({})
           }
           setCancelState(CancellationState.NOT_STARTED)
         }}

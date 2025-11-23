@@ -1,100 +1,70 @@
-import { memo, useCallback, useMemo } from 'react'
+import { ContentStyle } from '@shopify/flash-list'
+import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useDispatch } from 'react-redux'
-import { Text, TouchableArea } from 'ui/src'
-import { MAX_DEFAULT_POPULAR_TOKEN_RESULTS_AMOUNT } from 'uniswap/src/components/TokenSelector/constants'
-import { useCurrencyInfosToTokenOptions } from 'uniswap/src/components/TokenSelector/hooks/useCurrencyInfosToTokenOptions'
-import { useRecentlySearchedTokens } from 'uniswap/src/components/TokenSelector/hooks/useRecentlySearchedTokens'
-import { useTrendingTokensCurrencyInfos } from 'uniswap/src/components/TokenSelector/hooks/useTrendingTokensCurrencyInfos'
-import {
-  OnSelectCurrency,
-  TokenOptionSection,
-  TokenSection,
-  TokenSectionsHookProps,
-} from 'uniswap/src/components/TokenSelector/types'
-import { useTokenOptionsSection } from 'uniswap/src/components/TokenSelector/utils'
-import { SearchModalItemTypes } from 'uniswap/src/components/lists/types'
-import { GqlResult } from 'uniswap/src/data/types'
+import { Flex, GeneratedIcon, Text } from 'ui/src'
+import { Gallery, Person } from 'ui/src/components/icons'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { SearchModalList } from 'uniswap/src/features/search/SearchModal/SearchModalList'
-import { clearSearchHistory } from 'uniswap/src/features/search/searchHistorySlice'
+import { useSectionsForNoQuerySearch } from 'uniswap/src/features/search/SearchModal/hooks/useSectionsForNoQuerySearch'
+import { SearchModalList, SearchModalListProps } from 'uniswap/src/features/search/SearchModal/SearchModalList'
+import { SearchTab } from 'uniswap/src/features/search/SearchModal/types'
 
-function ClearAll({ onPress }: { onPress: () => void }): JSX.Element {
-  const { t } = useTranslation()
+function EmptyPretypeSection({ title, icon: Icon }: { title: string; icon: GeneratedIcon }): JSX.Element {
   return (
-    <TouchableArea onPress={onPress}>
-      <Text color="$neutral1" variant="buttonLabel3">
-        {t('tokens.selector.button.clear')}
+    <Flex centered gap="$spacing16" mt="$spacing60">
+      <Icon size="$icon.36" color="$neutral3" />
+      <Text variant="body2" color="$neutral2">
+        {title}
       </Text>
-    </TouchableArea>
+    </Flex>
   )
 }
 
-function useSectionsForNoQuerySearch({
-  chainFilter,
-}: Omit<TokenSectionsHookProps, 'input' | 'isKeyboardOpen'>): GqlResult<TokenSection<SearchModalItemTypes>[]> {
-  const dispatch = useDispatch()
-
-  const recentlySearchedTokenOptions = useRecentlySearchedTokens(chainFilter)
-  // it's a dependency of useMemo => useCallback
-  const onPressClearSearchHistory = useCallback((): void => {
-    dispatch(clearSearchHistory())
-  }, [dispatch])
-  const recentSection = useTokenOptionsSection({
-    sectionKey: TokenOptionSection.RecentTokens,
-    tokenOptions: recentlySearchedTokenOptions,
-    endElement: <ClearAll onPress={onPressClearSearchHistory} />,
-  })
-
-  const {
-    data: tokens,
-    error: tokensError,
-    refetch: refetchTokens,
-    loading: loadingTokens,
-  } = useTrendingTokensCurrencyInfos(chainFilter)
-  const popularTokenOptions = useCurrencyInfosToTokenOptions({ currencyInfos: tokens })
-  const popularSection = useTokenOptionsSection({
-    // TODO(WEB-5917): Rename to trendingTokens once feature flag is fully on
-    sectionKey: TokenOptionSection.PopularTokens,
-    tokenOptions: popularTokenOptions?.slice(0, MAX_DEFAULT_POPULAR_TOKEN_RESULTS_AMOUNT),
-  })
-
-  // add NFTs section on mobile only
-
-  const sections = useMemo(() => [...(recentSection ?? []), ...(popularSection ?? [])], [popularSection, recentSection])
-
-  return useMemo(
-    () => ({
-      data: sections,
-      loading: loadingTokens,
-      error: tokensError,
-      refetch: refetchTokens,
-    }),
-    [loadingTokens, refetchTokens, sections, tokensError],
-  )
+interface SearchModalNoQueryListProps {
+  chainFilter: UniverseChainId | null
+  activeTab: SearchTab
+  onSelect?: SearchModalListProps['onSelect']
+  renderedInModal: boolean
+  contentContainerStyle?: ContentStyle
 }
 
 export const SearchModalNoQueryList = memo(function _SearchModalNoQueryList({
   chainFilter,
-  onSelectCurrency,
-}: {
-  chainFilter: UniverseChainId | null
-  onSelectCurrency: OnSelectCurrency
-}): JSX.Element {
+  activeTab,
+  onSelect,
+  renderedInModal,
+  contentContainerStyle,
+}: SearchModalNoQueryListProps): JSX.Element {
   const { t } = useTranslation()
 
-  const { data: sections, loading, error, refetch } = useSectionsForNoQuerySearch({ chainFilter })
+  const { data: sections, loading, error, refetch } = useSectionsForNoQuerySearch({ chainFilter, activeTab })
+
+  // Handle empty pretype cases for assets without default results
+  const getEmptyElementComponent = (): JSX.Element | undefined => {
+    switch (activeTab) {
+      case SearchTab.NFTCollections:
+        return <EmptyPretypeSection title={t('search.results.pretype.nfts')} icon={Gallery} />
+      case SearchTab.Wallets:
+        return <EmptyPretypeSection title={t('search.results.pretype.wallets')} icon={Person} />
+      default:
+        return undefined
+    }
+  }
 
   return (
     <SearchModalList
-      showTokenAddress
       errorText={t('token.selector.search.error')}
       hasError={Boolean(error)}
       loading={loading}
       refetch={refetch}
       sections={sections}
-      showTokenWarnings={true}
-      onSelectCurrency={onSelectCurrency}
+      searchFilters={{
+        searchChainFilter: chainFilter,
+        searchTabFilter: activeTab,
+      }}
+      renderedInModal={renderedInModal}
+      contentContainerStyle={contentContainerStyle}
+      emptyElement={getEmptyElementComponent()}
+      onSelect={onSelect}
     />
   )
 })

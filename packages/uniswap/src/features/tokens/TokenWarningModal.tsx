@@ -1,22 +1,21 @@
 import { TFunction } from 'i18next'
 import { useState } from 'react'
-import { Trans, useTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
 import { AnimateTransition, Flex, LabeledCheckbox, Text, useSporeColors } from 'ui/src'
-import { BlockaidLogo } from 'ui/src/components/logos/BlockaidLogo'
+import { PoweredByBlockaid } from 'uniswap/src/components/logos/PoweredByBlockaid'
 import { Modal } from 'uniswap/src/components/modals/Modal'
-import { WarningModalContent } from 'uniswap/src/components/modals/WarningModal/WarningModal'
 import { getAlertColor } from 'uniswap/src/components/modals/WarningModal/getAlertColor'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
+import { WarningModalContent } from 'uniswap/src/components/modals/WarningModal/WarningModal'
 import { LearnMoreLink } from 'uniswap/src/components/text/LearnMoreLink'
 import WarningIcon from 'uniswap/src/components/warnings/WarningIcon'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
-import Trace from 'uniswap/src/features/telemetry/Trace'
+import { submitTokenWarningDataReport } from 'uniswap/src/features/reporting/reports'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { TokenWarningFlagsTable } from 'uniswap/src/features/tokens/TokenWarningFlagsTable'
+import Trace from 'uniswap/src/features/telemetry/Trace'
 import { useBlockaidFeeComparisonAnalytics } from 'uniswap/src/features/tokens/hooks/useBlockaidFeeComparisonAnalytics'
 import {
-  TokenProtectionWarning,
   getCurrencyFeeOnTransfer,
   getFeeWarning,
   getIsFeeRelatedWarning,
@@ -25,11 +24,14 @@ import {
   getTokenProtectionFeeOnTransfer,
   getTokenProtectionWarning,
   getTokenWarningSeverity,
+  TokenProtectionWarning,
   useModalHeaderText,
   useModalSubtitleText,
 } from 'uniswap/src/features/tokens/safetyUtils'
 import { useDismissedTokenWarnings } from 'uniswap/src/features/tokens/slice/hooks'
+import { TokenWarningFlagsTable } from 'uniswap/src/features/tokens/TokenWarningFlagsTable'
 import { currencyIdToAddress } from 'uniswap/src/utils/currencyId'
+import { useEvent } from 'utilities/src/react/hooks'
 
 export interface FoTPercent {
   buyFeePercent?: number
@@ -50,6 +52,7 @@ interface TokenWarningModalContentProps extends TokenWarningProps {
   onAcknowledgeButton: () => void
   onDismissTokenWarning0: () => void
   onDismissTokenWarning1?: () => void
+  onReportSuccess?: () => void
 }
 export interface TokenWarningModalProps extends TokenWarningProps {
   isVisible: boolean
@@ -58,6 +61,7 @@ export interface TokenWarningModalProps extends TokenWarningProps {
   onToken1BlockAcknowledged?: () => void
   closeModalOnly: () => void // callback that purely just closes the modal
   onAcknowledge: () => void
+  onReportSuccess?: () => void // callback to send a report of an incorrect warning, which enables the report UI when applied
 }
 
 // eslint-disable-next-line complexity
@@ -72,6 +76,7 @@ function TokenWarningModalContent({
   feeOnTransferOverride,
   onDismissTokenWarning0,
   onDismissTokenWarning1,
+  onReportSuccess,
 }: TokenWarningModalContentProps): JSX.Element | null {
   const { t } = useTranslation()
 
@@ -134,16 +139,34 @@ function TokenWarningModalContent({
     onAcknowledgeButton()
   }
 
+  const showReportUI = tokenProtectionWarning > TokenProtectionWarning.NonDefault
+
+  const sendReport = useEvent((reportText: string) => {
+    // send report to amplitude
+    submitTokenWarningDataReport({
+      chainId: currencyInfo0.currency.chainId,
+      tokenAddress: currencyIdToAddress(currencyInfo0.currencyId),
+      tokenName: currencyInfo0.currency.name,
+      reportText,
+    })
+
+    // report success for the given case
+    onReportSuccess?.()
+
+    // close the modal
+    onAcknowledgeButton()
+  })
+
   if (severity === WarningSeverity.None) {
     return null
   }
 
-  const { rejectText, acknowledgeText } = getWarningModalButtonTexts(
+  const { rejectText, acknowledgeText } = getWarningModalButtonTexts({
     t,
-    !!isInfoOnlyWarning,
+    isInfoOnlyWarning: !!isInfoOnlyWarning,
     severity,
-    !!hasSecondWarning,
-  )
+    hasSecondWarning: !!hasSecondWarning,
+  })
 
   const analyticsProperties = {
     tokenSymbol,
@@ -186,6 +209,7 @@ function TokenWarningModalContent({
               {titleText}
             </Text>
           }
+          sendReport={showReportUI ? sendReport : undefined}
           onReject={onRejectButton}
           onClose={onRejectButton}
           onAcknowledge={onAcknowledge}
@@ -194,16 +218,7 @@ function TokenWarningModalContent({
             <TokenWarningFlagsTable currencyInfo={currencyInfo0} tokenProtectionWarning={tokenProtectionWarning} />
           )}
 
-          {showBlockaidLogo && (
-            <Flex row centered>
-              <Text variant="body3" color="$neutral3">
-                <Trans
-                  i18nKey="common.poweredBy"
-                  components={{ name: <BlockaidLogo minHeight={10} minWidth={50} color="$neutral3" /> }}
-                />
-              </Text>
-            </Flex>
-          )}
+          {showBlockaidLogo && <PoweredByBlockaid />}
 
           {showCheckbox && (
             // only show "Don't show this warning again" checkbox if this is an actionable modal & the token is low-severity
@@ -227,11 +242,15 @@ function TokenWarningModalContent({
 }
 
 // Handle if user has previously dismissed a warning for either token
-function useWarningModalCurrenciesDismissed(
-  t0: CurrencyInfo,
-  t1: CurrencyInfo | undefined,
-  isInfoOnlyWarning?: boolean,
-): {
+function useWarningModalCurrenciesDismissed({
+  t0,
+  t1,
+  isInfoOnlyWarning,
+}: {
+  t0: CurrencyInfo
+  t1?: CurrencyInfo
+  isInfoOnlyWarning?: boolean
+}): {
   currencyInfo0: CurrencyInfo
   onDismissTokenWarning0: () => void
   currencyInfo1: CurrencyInfo | undefined
@@ -240,10 +259,10 @@ function useWarningModalCurrenciesDismissed(
   const address0 = currencyIdToAddress(t0.currencyId)
   const address1 = t1 && currencyIdToAddress(t1.currencyId)
   const { tokenWarningDismissed: tokenWarningDismissed0, onDismissTokenWarning: onDismissTokenWarning0 } =
-    useDismissedTokenWarnings(t0?.currency.isNative ? undefined : { chainId: t0.currency.chainId, address: address0 })
+    useDismissedTokenWarnings(t0.currency.isNative ? undefined : { chainId: t0.currency.chainId, address: address0 })
   const { tokenWarningDismissed: tokenWarningDismissed1, onDismissTokenWarning: onDismissTokenWarning1 } =
     useDismissedTokenWarnings(
-      !t1 || !address1 || t1?.currency.isNative ? undefined : { chainId: t1.currency.chainId, address: address1 },
+      !t1 || !address1 || t1.currency.isNative ? undefined : { chainId: t1.currency.chainId, address: address1 },
     )
   let currencyInfo0: CurrencyInfo | undefined = t0
   let currencyInfo1: CurrencyInfo | undefined = t1
@@ -256,7 +275,7 @@ function useWarningModalCurrenciesDismissed(
       if (!t1) {
         return null
       }
-      currencyInfo0 = t1 ?? undefined
+      currencyInfo0 = t1
     } else if (tokenWarningDismissed1) {
       // If only the second token is dismissed, we use currencyInfo0 as primary token to show warning
       currencyInfo0 = t0
@@ -280,12 +299,13 @@ export default function TokenWarningModal({
   onToken1BlockAcknowledged,
   onAcknowledge,
   closeModalOnly,
+  onReportSuccess,
 }: TokenWarningModalProps): JSX.Element | null {
   const colors = useSporeColors()
   const [warningIndex, setWarningIndex] = useState<0 | 1>(0)
 
   // Check for dismissed warnings
-  const warningModalCurrencies = useWarningModalCurrenciesDismissed(t0, t1, isInfoOnlyWarning)
+  const warningModalCurrencies = useWarningModalCurrenciesDismissed({ t0, t1, isInfoOnlyWarning })
   if (!warningModalCurrencies) {
     return null
   }
@@ -321,11 +341,12 @@ export default function TokenWarningModal({
       <AnimateTransition currentIndex={warningIndex} animationType={warningIndex === 0 ? 'forward' : 'backward'}>
         <TokenWarningModalContent
           currencyInfo0={currencyInfo0}
-          currencyInfo1={currencyInfo1}
+          currencyInfo1={combinedPlural ? currencyInfo1 : undefined}
           isInfoOnlyWarning={!hasSecondWarning && isInfoOnlyWarning} // modal should be actionable if it is a 2-token warning (go to next token)
           hasSecondWarning={hasSecondWarning}
           shouldBeCombinedPlural={combinedPlural}
           feeOnTransferOverride={feeOnTransferOverride}
+          onReportSuccess={onReportSuccess}
           onRejectButton={onReject ?? closeModalOnly}
           onAcknowledgeButton={() => {
             if (hasSecondWarning) {
@@ -348,6 +369,7 @@ export default function TokenWarningModal({
           <TokenWarningModalContent
             hasSecondWarning
             currencyInfo0={currencyInfo1}
+            onReportSuccess={onReportSuccess}
             onDismissTokenWarning0={onDismissTokenWarning1}
             onRejectButton={() => {
               setWarningIndex(0)
@@ -380,12 +402,17 @@ Acknowledge button text
 - if a token is blocked & is not part of a 2-token warning, the Acknowledge button should say "Close"
 - otherwise, Acknowledge button should say "Continue"
 */
-export function getWarningModalButtonTexts(
-  t: TFunction,
-  isInfoOnlyWarning: boolean,
-  severity: WarningSeverity,
-  hasSecondWarning: boolean,
-): {
+function getWarningModalButtonTexts({
+  t,
+  isInfoOnlyWarning,
+  severity,
+  hasSecondWarning,
+}: {
+  t: TFunction
+  isInfoOnlyWarning: boolean
+  severity: WarningSeverity
+  hasSecondWarning: boolean
+}): {
   rejectText: string | undefined
   acknowledgeText: string | undefined
 } {

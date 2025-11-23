@@ -2,16 +2,16 @@ import { useTranslation } from 'react-i18next'
 import { Flex, Text } from 'ui/src'
 import { iconSizes } from 'ui/src/theme'
 import { BridgeIcon, SplitLogo } from 'uniswap/src/components/CurrencyLogo/SplitLogo'
+import { NotificationToast } from 'uniswap/src/components/notifications/NotificationToast'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { BridgeTxNotification } from 'uniswap/src/features/notifications/types'
+import { BridgeTxNotification } from 'uniswap/src/features/notifications/slice/types'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
+import { BridgingCurrencyRow } from 'uniswap/src/features/transactions/swap/components/BridgingCurrencyRow'
 import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { getFormattedCurrencyAmount } from 'uniswap/src/utils/currency'
 import { useWalletNavigation } from 'wallet/src/contexts/WalletNavigationContext'
-import { NotificationToast } from 'wallet/src/features/notifications/components/NotificationToast'
 import { formBridgeNotificationTitle } from 'wallet/src/features/notifications/utils'
-import { useCreateSwapFormState } from 'wallet/src/features/transactions/hooks'
-import { BridgingCurrencyRow } from 'wallet/src/features/transactions/swap/BridgingCurrencyRow'
+import { useCreateSwapFormState } from 'wallet/src/features/transactions/hooks/useCreateSwapFormState'
 
 export function BridgeNotification({ notification }: { notification: BridgeTxNotification }): JSX.Element {
   const { t } = useTranslation()
@@ -34,7 +34,7 @@ export function BridgeNotification({ notification }: { notification: BridgeTxNot
   const outputCurrencyInfo = useCurrencyInfo(outputCurrencyId)
 
   const title = formBridgeNotificationTitle(txStatus)
-  const swapFormState = useCreateSwapFormState(address, chainId, txId)
+  const swapFormState = useCreateSwapFormState({ address, chainId, txId })
 
   const onRetry = (): void => {
     navigateToSwapFlow(swapFormState ? { initialState: swapFormState } : undefined)
@@ -48,17 +48,17 @@ export function BridgeNotification({ notification }: { notification: BridgeTxNot
         }
       : undefined
 
-  const formattedInputTokenAmount = getFormattedCurrencyAmount(
-    inputCurrencyInfo?.currency,
-    inputCurrencyAmountRaw,
+  const formattedInputTokenAmount = getFormattedCurrencyAmount({
+    currency: inputCurrencyInfo?.currency,
+    amount: inputCurrencyAmountRaw,
     formatter,
-  )
+  })
 
-  const formattedOutputTokenAmount = getFormattedCurrencyAmount(
-    outputCurrencyInfo?.currency,
-    outputCurrencyAmountRaw,
+  const formattedOutputTokenAmount = getFormattedCurrencyAmount({
+    currency: outputCurrencyInfo?.currency,
+    amount: outputCurrencyAmountRaw,
     formatter,
-  )
+  })
 
   const contentOverride = (
     <Flex grow row gap="$spacing12" alignItems="center" width="100%">

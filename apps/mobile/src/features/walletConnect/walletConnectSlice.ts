@@ -1,32 +1,46 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { ProposalTypes, SessionTypes } from '@walletconnect/types'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { DappInfo, EthMethod, EthSignMethod, EthTransaction, UwULinkMethod } from 'uniswap/src/types/walletConnect'
+import { EthMethod, EthSignMethod } from 'uniswap/src/features/dappRequests/types'
+import { DappRequestInfo, EthTransaction, UwULinkMethod } from 'uniswap/src/types/walletConnect'
+import { logger } from 'utilities/src/logger/logger'
+import { Call, Capability, DappVerificationStatus } from 'wallet/src/features/dappRequests/types'
 
 export type WalletConnectPendingSession = {
   id: string
   chains: UniverseChainId[]
-  dapp: DappInfo
-  proposalNamespaces: ProposalTypes.RequiredNamespaces
+  dappRequestInfo: DappRequestInfo
+  proposalNamespaces: ProposalTypes.OptionalNamespaces
+  verifyStatus: DappVerificationStatus
 }
 
 export type WalletConnectSession = {
   id: string
   chains: UniverseChainId[]
-  dapp: DappInfo
+  dappRequestInfo: DappRequestInfo
   namespaces: SessionTypes.Namespaces
-}
 
-interface SessionMapping {
-  [sessionId: string]: WalletConnectSession
+  /**
+   * WC session namespaces can contain approvals for multiple accounts. The active account represents the account that the dapp
+   * is tracking as the active account based on session events (approve session, change account, etc).
+   */
+  activeAccount: string
+
+  /**
+   * EIP-5792 capabilities for this session, stored in hex chainId format.
+   * Contains atomic batch support status per chain.
+   * Only populated if EIP-5792 feature flag was enabled during session approval.
+   */
+  capabilities?: Record<string, Capability>
 }
 
 interface BaseRequest {
   sessionId: string
   internalId: string
   account: string
-  dapp: DappInfo
+  dappRequestInfo: DappRequestInfo
   chainId: UniverseChainId
+  isLinkModeSupported?: boolean
 }
 
 export interface SignRequest extends BaseRequest {
@@ -38,6 +52,30 @@ export interface SignRequest extends BaseRequest {
 export interface TransactionRequest extends BaseRequest {
   type: EthMethod.EthSendTransaction
   transaction: EthTransaction
+}
+
+export interface WalletGetCapabilitiesRequest extends Omit<BaseRequest, 'chainId'> {
+  type: EthMethod.WalletGetCapabilities
+  account: Address // Wallet address
+  chainIds?: UniverseChainId[] // Optional array of chain IDs
+}
+
+export interface WalletSendCallsRequest extends BaseRequest {
+  calls: Call[]
+  capabilities: Record<string, Capability>
+  id: string
+  type: EthMethod.WalletSendCalls
+  version: string
+}
+
+export interface WalletSendCallsEncodedRequest extends WalletSendCallsRequest {
+  encodedTransaction: EthTransaction
+  encodedRequestId: string
+}
+
+export interface WalletGetCallsStatusRequest extends BaseRequest {
+  id: string
+  type: EthMethod.WalletGetCallsStatus
 }
 
 export interface UwuLinkErc20Request extends BaseRequest {
@@ -56,25 +94,31 @@ export interface UwuLinkErc20Request extends BaseRequest {
   transaction: EthTransaction // the formatted transaction, prepared by the wallet
 }
 
-export type WalletConnectRequest = SignRequest | TransactionRequest | UwuLinkErc20Request
+export type WalletConnectSigningRequest =
+  | SignRequest
+  | TransactionRequest
+  | UwuLinkErc20Request
+  | WalletSendCallsEncodedRequest
 
-export const isTransactionRequest = (request: WalletConnectRequest): request is TransactionRequest =>
+export const isTransactionRequest = (request: WalletConnectSigningRequest): request is TransactionRequest =>
   request.type === EthMethod.EthSendTransaction || request.type === UwULinkMethod.Erc20Send
 
+export const isBatchedTransactionRequest = (
+  request: WalletConnectSigningRequest,
+): request is WalletSendCallsEncodedRequest => request.type === EthMethod.WalletSendCalls
+
 export interface WalletConnectState {
-  byAccount: {
-    [accountId: string]: {
-      sessions: SessionMapping
-    }
+  sessions: {
+    [sessionId: string]: WalletConnectSession
   }
   pendingSession: WalletConnectPendingSession | null
-  pendingRequests: WalletConnectRequest[]
+  pendingRequests: WalletConnectSigningRequest[]
   didOpenFromDeepLink?: boolean
   hasPendingSessionError?: boolean
 }
 
 export const initialWalletConnectState: Readonly<WalletConnectState> = {
-  byAccount: {},
+  sessions: {},
   pendingSession: null,
   pendingRequests: [],
 }
@@ -83,34 +127,25 @@ const slice = createSlice({
   name: 'walletConnect',
   initialState: initialWalletConnectState,
   reducers: {
-    addSession: (state, action: PayloadAction<{ account: string; wcSession: WalletConnectSession }>) => {
-      const { wcSession, account } = action.payload
-      state.byAccount[account] ??= { sessions: {} }
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      state.byAccount[account]!.sessions[wcSession.id] = wcSession
+    addSession: (state, action: PayloadAction<{ wcSession: WalletConnectSession }>) => {
+      const { wcSession } = action.payload
+      state.sessions[wcSession.id] = wcSession
       state.pendingSession = null
     },
 
-    removeSession: (state, action: PayloadAction<{ sessionId: string; account?: string }>) => {
-      const { sessionId, account } = action.payload
+    replaceSession: (state, action: PayloadAction<{ wcSession: WalletConnectSession }>) => {
+      const { wcSession } = action.payload
+      state.sessions[wcSession.id] = wcSession
+    },
 
-      // If account address is known, delete directly
-      if (account) {
-        const wcAccount = state.byAccount[account]
-        if (wcAccount) {
-          delete wcAccount.sessions[sessionId]
-        }
-        return
+    removeSession: (state, action: PayloadAction<{ sessionId: string }>) => {
+      const { sessionId } = action.payload
+
+      if (!state.sessions[sessionId]) {
+        logger.warn('walletConnect/walletConnectSlice.ts', 'removeSession', `Session ${sessionId} doesnt exist`)
       }
 
-      // If account address is not known (handling `session_delete` events),
-      // iterate over each account and delete the sessionId
-      Object.keys(state.byAccount).forEach((accountAddress) => {
-        const wcAccount = state.byAccount[accountAddress]
-        if (wcAccount && wcAccount.sessions[sessionId]) {
-          delete wcAccount.sessions[sessionId]
-        }
-      })
+      delete state.sessions[sessionId]
     },
 
     addPendingSession: (state, action: PayloadAction<{ wcSession: WalletConnectPendingSession }>) => {
@@ -122,9 +157,8 @@ const slice = createSlice({
       state.pendingSession = null
     },
 
-    addRequest: (state, action: PayloadAction<{ request: WalletConnectRequest; account: string }>) => {
-      const { request } = action.payload
-      state.pendingRequests.push(request)
+    addRequest: (state, action: PayloadAction<WalletConnectSigningRequest>) => {
+      state.pendingRequests.push(action.payload)
     },
 
     removeRequest: (state, action: PayloadAction<{ requestInternalId: string; account: string }>) => {
@@ -144,6 +178,7 @@ const slice = createSlice({
 
 export const {
   addSession,
+  replaceSession,
   removeSession,
   addPendingSession,
   removePendingSession,

@@ -5,10 +5,13 @@ import { useDispatch } from 'react-redux'
 import { Dispatch } from 'redux'
 import { Button, Flex, Text } from 'ui/src'
 import { DEAD_LUNI } from 'ui/src/assets'
-import { pushNotification, resetNotifications } from 'uniswap/src/features/notifications/slice'
-import { AppNotificationType } from 'uniswap/src/features/notifications/types'
+import { pushNotification, resetNotifications } from 'uniswap/src/features/notifications/slice/slice'
+import { AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
+import { ElementName } from 'uniswap/src/features/telemetry/constants'
+import { Trace } from 'uniswap/src/features/telemetry/Trace'
+import { isProdEnv } from 'utilities/src/environment/env'
 import { logger } from 'utilities/src/logger/logger'
-import { restartApp } from 'wallet/src/components/ErrorBoundary/restart'
+import { restartApp } from 'wallet/src/components/ErrorBoundary/restartApp'
 import { useAccounts } from 'wallet/src/features/wallet/hooks'
 import { setFinishedOnboarding } from 'wallet/src/features/wallet/slice'
 
@@ -52,7 +55,7 @@ class InternalErrorBoundary extends React.Component<
     error.cause = errorBoundaryError
 
     logger.error(error, {
-      level: 'fatal',
+      level: 'error',
       tags: {
         file: 'ErrorBoundary',
         function: 'componentDidCatch',
@@ -62,7 +65,7 @@ class InternalErrorBoundary extends React.Component<
 
     this.props.onError?.(error)
 
-    const isNotificationError = !!errorBoundaryError.stack?.includes?.(NOTIFICATION_ROUTER_COMPONENT_NAME)
+    const isNotificationError = !!errorBoundaryError.stack?.includes(NOTIFICATION_ROUTER_COMPONENT_NAME)
     if (isNotificationError) {
       this.props.dispatch(resetNotifications())
     }
@@ -100,6 +103,7 @@ export function ErrorBoundary({
   // We want to temporary disable non global error boundaries until https://linear.app/uniswap/issue/WALL-4461 is done
   const disableLocalErrorBoundaries = true
   // we do not pass `name` to global error boundary
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (disableLocalErrorBoundaries && props.name) {
     return <>{props.children}</>
   }
@@ -107,7 +111,7 @@ export function ErrorBoundary({
   return (
     <InternalErrorBoundary
       dispatch={dispatch}
-      notificationText={showNotification ? notificationText ?? t('common.error.somethingWrong') : undefined}
+      notificationText={showNotification ? (notificationText ?? t('common.error.somethingWrong')) : undefined}
       {...props}
     />
   )
@@ -126,20 +130,22 @@ function ErrorScreen({ error }: { error: Error }): JSX.Element {
   }
 
   return (
-    <Flex centered fill backgroundColor="$surface1" gap="$spacing16" px="$spacing16" py="$spacing48">
-      <Flex centered grow gap="$spacing36">
-        <Image resizeMode="contain" source={DEAD_LUNI} height={LUNI_SIZE} width={LUNI_SIZE} />
-        <Flex centered gap="$spacing8">
-          <Text variant="subheading1">{t('errors.crash.title')}</Text>
-          <Text variant="body2">{t('errors.crash.message')}</Text>
+    <Trace logImpression element={ElementName.AppCrashScreen}>
+      <Flex centered fill backgroundColor="$surface1" gap="$spacing16" px="$spacing16" py="$spacing48">
+        <Flex centered grow gap="$spacing36">
+          <Image resizeMode="contain" source={DEAD_LUNI} height={LUNI_SIZE} width={LUNI_SIZE} />
+          <Flex centered gap="$spacing8">
+            <Text variant="subheading1">{t('errors.crash.title')}</Text>
+            <Text variant="body2">{t('errors.crash.message')}</Text>
+          </Flex>
+          {error.message && !isProdEnv() && <Text variant="body2">{error.message}</Text>}
         </Flex>
-        {error.message && __DEV__ && <Text variant="body2">{error.message}</Text>}
+        <Flex row alignSelf="stretch">
+          <Button emphasis="primary" variant="branded" onPress={restartApp}>
+            {t('errors.crash.restart')}
+          </Button>
+        </Flex>
       </Flex>
-      <Flex row alignSelf="stretch">
-        <Button emphasis="primary" variant="branded" onPress={restartApp}>
-          {t('errors.crash.restart')}
-        </Button>
-      </Flex>
-    </Flex>
+    </Trace>
   )
 }

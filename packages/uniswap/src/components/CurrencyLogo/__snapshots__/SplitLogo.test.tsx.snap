@@ -48,7 +48,7 @@ exports[`SplitLogo renders without error 1`] = `
             "flexDirection": "column",
             "height": "96%",
             "left": "2%",
-            "opacity": 0,
+            "opacity": 1,
             "position": "absolute",
             "top": "2%",
             "width": "96%",
@@ -120,7 +120,7 @@ exports[`SplitLogo renders without error 1`] = `
             "flexDirection": "column",
             "height": "96%",
             "left": "2%",
-            "opacity": 0,
+            "opacity": 1,
             "position": "absolute",
             "top": "2%",
             "width": "96%",
@@ -169,13 +169,13 @@ exports[`SplitLogo renders without error 1`] = `
       style={
         {
           "borderColor": "#131313",
-          "borderRadius": 2.25,
+          "borderRadius": 2.16,
           "borderStyle": "solid",
-          "borderWidth": 1.5,
+          "borderWidth": 1.6,
           "flexDirection": "column",
-          "height": 7.5,
+          "height": 7.2,
           "overflow": "hidden",
-          "width": 7.5,
+          "width": 7.2,
           "zIndex": 10,
         }
       }
@@ -186,8 +186,8 @@ exports[`SplitLogo renders without error 1`] = `
         source="mock-asset-ARBITRUM_LOGO.png"
         style={
           {
-            "height": 4.5,
-            "width": 4.5,
+            "height": 4,
+            "width": 4,
           }
         }
       />

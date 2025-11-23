@@ -1,9 +1,6 @@
-import { useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useUnitagsClaimEligibilityQuery } from 'uniswap/src/data/apiClients/unitagsApi/useUnitagsClaimEligibilityQuery'
-import { useUnitagUpdater } from 'uniswap/src/features/unitags/context'
-import { getUniqueId } from 'utilities/src/device/getUniqueId'
-import { logger } from 'utilities/src/logger/logger'
-import { useAsyncData } from 'utilities/src/react/hooks'
+import { uniqueIdQuery } from 'utilities/src/device/uniqueIdQuery'
 import { useActiveAccountAddressWithThrow } from 'wallet/src/features/wallet/hooks'
 
 export const useCanActiveAddressClaimUnitag = (
@@ -14,11 +11,10 @@ export const useCanActiveAddressClaimUnitag = (
   const activeAddress = useActiveAccountAddressWithThrow()
   const targetAddress = address ?? activeAddress
 
-  const { data: deviceId } = useAsyncData(getUniqueId)
-  const { refetchUnitagsCounter } = useUnitagUpdater()
+  const { data: deviceId } = useQuery(uniqueIdQuery())
   const skip = !deviceId
 
-  const { isLoading, data, refetch } = useUnitagsClaimEligibilityQuery({
+  const { isLoading, data } = useUnitagsClaimEligibilityQuery({
     params: skip
       ? undefined
       : {
@@ -26,18 +22,6 @@ export const useCanActiveAddressClaimUnitag = (
           deviceId,
         },
   })
-
-  // Force refetch of canClaimUnitag if refetchUnitagsCounter changes
-  useEffect(() => {
-    if (skip || isLoading) {
-      return
-    }
-
-    refetch().catch((error) =>
-      logger.error(error, { tags: { file: 'unitags/hooks.ts', function: 'useCanActiveAddressClaimUnitag' } }),
-    )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refetchUnitagsCounter])
 
   return {
     canClaimUnitag: !isLoading && !!data?.canClaim,

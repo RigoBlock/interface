@@ -1,6 +1,6 @@
 import { AutoColumn } from 'components/deprecated/Column'
 import { RowBetween } from 'components/deprecated/Row'
-import styled from 'lib/styled-components'
+import { styled } from 'lib/styled-components'
 
 export const PaddedColumn = styled(AutoColumn)`
   position: relative;

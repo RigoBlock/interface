@@ -1,31 +1,32 @@
+import { useFocusEffect } from '@react-navigation/core'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { TouchableWithoutFeedback } from 'react-native'
 import Animated from 'react-native-reanimated'
 import { RecipientSelect } from 'src/components/RecipientSelect/RecipientSelect'
+import { SEND_CONTENT_RENDER_DELAY_MS } from 'src/features/send/constants'
 import { SendFormButton } from 'src/features/send/SendFormButton'
 import { SendHeader } from 'src/features/send/SendHeader'
 import { SendTokenForm } from 'src/features/send/SendTokenForm'
-import { SEND_CONTENT_RENDER_DELAY_MS } from 'src/features/send/constants'
 import { Flex, useSporeColors } from 'ui/src'
-import EyeIcon from 'ui/src/assets/icons/eye.svg'
-import { iconSizes } from 'ui/src/theme'
+import { Eye } from 'ui/src/components/icons'
+import { Modal } from 'uniswap/src/components/modals/Modal'
+import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
+import { WarningModal } from 'uniswap/src/components/modals/WarningModal/WarningModal'
 import { TokenSelectorModal, TokenSelectorVariation } from 'uniswap/src/components/TokenSelector/TokenSelector'
 import { TokenSelectorFlow } from 'uniswap/src/components/TokenSelector/types'
-import { Modal } from 'uniswap/src/components/modals/Modal'
-import { WarningModal } from 'uniswap/src/components/modals/WarningModal/WarningModal'
-import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import {
   TransactionModalFooterContainer,
   TransactionModalInnerContainer,
-} from 'uniswap/src/features/transactions/TransactionModal/TransactionModal'
+} from 'uniswap/src/features/transactions/components/TransactionModal/TransactionModal'
 import {
   TransactionScreen,
   useTransactionModalContext,
-} from 'uniswap/src/features/transactions/TransactionModal/TransactionModalContext'
-import { LowNativeBalanceModal } from 'uniswap/src/features/transactions/swap/modals/LowNativeBalanceModal'
+} from 'uniswap/src/features/transactions/components/TransactionModal/TransactionModalContext'
+import { CompatibleAddressModal } from 'uniswap/src/features/transactions/modals/CompatibleAddressModal'
+import { LowNativeBalanceModal } from 'uniswap/src/features/transactions/modals/LowNativeBalanceModal'
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { createTransactionId } from 'uniswap/src/utils/createTransactionId'
 import { useSendContext } from 'wallet/src/features/transactions/contexts/SendContext'
@@ -57,6 +58,7 @@ function SendFormScreenContent({ hideContent }: { hideContent: boolean }): JSX.E
   const { showRecipientSelector, recipient, derivedSendInfo, updateSendForm } = useSendContext()
   const [showViewOnlyModal, setShowViewOnlyModal] = useState(false)
   const [showMaxTransferModal, setShowMaxTransferModal] = useState(false)
+  const [showCompatibleAddressModal, setShowCompatibleAddressModal] = useState(false)
 
   const onSelectRecipient = useCallback(
     (newRecipient: string) => {
@@ -71,11 +73,15 @@ function SendFormScreenContent({ hideContent }: { hideContent: boolean }): JSX.E
 
   const hideLowNetworkTokenWarning = useCallback(() => {
     setShowMaxTransferModal(false)
-  }, [setShowMaxTransferModal])
+  }, [])
 
   const hideViewOnlyModal = useCallback(() => {
     setShowViewOnlyModal(false)
-  }, [setShowViewOnlyModal])
+  }, [])
+
+  const hideCompatibleAddressModal = useCallback(() => {
+    setShowCompatibleAddressModal(false)
+  }, [])
 
   const goToReviewScreen = useGoToReviewScreen()
 
@@ -88,6 +94,7 @@ function SendFormScreenContent({ hideContent }: { hideContent: boolean }): JSX.E
       <TransactionModalInnerContainer fullscreen bottomSheetViewStyles={[bottomSheetViewStyles]}>
         {showRecipientSelectBottomSheet && (
           <Modal
+            extendOnKeyboardVisible
             fullScreen
             backgroundColor={colors.surface1.val}
             name={ModalName.TokenSelector}
@@ -113,8 +120,10 @@ function SendFormScreenContent({ hideContent }: { hideContent: boolean }): JSX.E
             <SendFormContent
               showLowNetworkTokenWarning={showMaxTransferModal}
               showViewOnlyModal={showViewOnlyModal}
+              showCompatibleAddressModal={showCompatibleAddressModal}
               hideLowNetworkTokenWarning={hideLowNetworkTokenWarning}
               hideViewOnlyModal={hideViewOnlyModal}
+              hideCompatibleAddressModal={hideCompatibleAddressModal}
             />
           </>
         )}
@@ -124,6 +133,7 @@ function SendFormScreenContent({ hideContent }: { hideContent: boolean }): JSX.E
           goToReviewScreen={goToReviewScreen}
           setShowViewOnlyModal={setShowViewOnlyModal}
           setShowMaxTransferModal={setShowMaxTransferModal}
+          setShowCompatibleAddressModal={setShowCompatibleAddressModal}
         />
       </TransactionModalFooterContainer>
     </>
@@ -135,14 +145,20 @@ function SendFormContent({
   hideViewOnlyModal,
   showLowNetworkTokenWarning,
   hideLowNetworkTokenWarning,
+  showCompatibleAddressModal,
+  hideCompatibleAddressModal,
 }: {
   showViewOnlyModal: boolean
   hideViewOnlyModal: () => void
   showLowNetworkTokenWarning: boolean
   hideLowNetworkTokenWarning: () => void
+  showCompatibleAddressModal: boolean
+  hideCompatibleAddressModal: () => void
 }): JSX.Element {
-  const colors = useSporeColors()
   const { t } = useTranslation()
+  const {
+    derivedSendInfo: { currencyInInfo },
+  } = useSendContext()
 
   const goToReviewScreen = useGoToReviewScreen()
 
@@ -164,12 +180,21 @@ function SendFormContent({
     goToReviewScreen()
   }, [hideLowNetworkTokenWarning, goToReviewScreen])
 
+  const onCloseCompatibleAddressWarning = useCallback(() => {
+    hideCompatibleAddressModal()
+  }, [hideCompatibleAddressModal])
+
+  const onAcknowledgeCompatibleAddressWarning = useCallback(() => {
+    hideCompatibleAddressModal()
+    goToReviewScreen()
+  }, [hideCompatibleAddressModal, goToReviewScreen])
+
   return (
     <>
       <WarningModal
         caption={t('send.warning.viewOnly.message')}
         acknowledgeText={t('common.button.dismiss')}
-        icon={<EyeIcon color={colors.neutral1.get()} height={iconSizes.icon24} width={iconSizes.icon24} />}
+        icon={<Eye color="$neutral1" size="$icon.24" />}
         isOpen={showViewOnlyModal}
         modalName={ModalName.SwapWarning}
         severity={WarningSeverity.Low}
@@ -184,6 +209,15 @@ function SendFormContent({
         onAcknowledge={onAcknowledgeLowNativeBalanceWarning}
       />
 
+      {currencyInInfo && (
+        <CompatibleAddressModal
+          currencyInfo={currencyInInfo}
+          isOpen={showCompatibleAddressModal}
+          onClose={onCloseCompatibleAddressWarning}
+          onAcknowledge={onAcknowledgeCompatibleAddressWarning}
+        />
+      )}
+
       <TouchableWithoutFeedback>
         <Flex fill>
           <Animated.View style={{ position: 'absolute', height: '100%', width: '100%' }}>
@@ -194,10 +228,11 @@ function SendFormContent({
       {!!selectingCurrencyField && (
         <TokenSelectorModal
           isModalOpen
-          activeAccountAddress={activeAccountAddress}
+          evmAddress={activeAccountAddress}
           currencyField={CurrencyField.INPUT}
           flow={TokenSelectorFlow.Send}
           variation={TokenSelectorVariation.BalancesOnly}
+          focusHook={useFocusEffect}
           onClose={onHideTokenSelector}
           onSelectCurrency={onSelectCurrency}
         />

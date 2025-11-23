@@ -1,5 +1,6 @@
 import { Currency, Token } from '@uniswap/sdk-core'
-import { Bag } from 'components/NavBar/Bag'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import Row from 'components/deprecated/Row'
 import { ChainSelector } from 'components/NavBar/ChainSelector'
 import { CompanyMenu } from 'components/NavBar/CompanyMenu'
 import { NewUserCTAButton } from 'components/NavBar/DownloadApp/NewUserCTAButton'
@@ -7,23 +8,18 @@ import PoolSelect from 'components/NavBar/PoolSelect'
 import { PreferenceMenu } from 'components/NavBar/PreferencesMenu'
 import { useTabsVisible } from 'components/NavBar/ScreenSizes'
 import { SearchBar } from 'components/NavBar/SearchBar'
+import { useIsSearchBarVisible } from 'components/NavBar/SearchBar/useIsSearchBarVisible'
 import { Tabs } from 'components/NavBar/Tabs/Tabs'
 import TestnetModeTooltip from 'components/NavBar/TestnetMode/TestnetModeTooltip'
-import { useIsAccountCTAExperimentControl } from 'components/NavBar/accountCTAsExperimentUtils'
 import Web3Status from 'components/Web3Status'
-import Row from 'components/deprecated/Row'
-import { useAccount } from 'hooks/useAccount'
 import { PageType, useIsPage } from 'hooks/useIsPage'
-import deprecatedStyled, { css } from 'lib/styled-components'
-import { useProfilePageState } from 'nft/hooks'
-import { ProfilePageStateType } from 'nft/types'
 import { useEffect, useMemo /*, useRef*/ } from 'react'
 import { useAllPoolsData } from 'state/pool/hooks'
-import { Flex, Nav as TamaguiNav, styled, useMedia } from 'ui/src'
-import { INTERFACE_NAV_HEIGHT, breakpoints, zIndexes } from 'ui/src/theme'
+import { Flex, styled, Nav as TamaguiNav, useMedia } from 'ui/src'
+import { breakpoints, INTERFACE_NAV_HEIGHT, zIndexes } from 'ui/src/theme'
+import { useConnectionStatus } from 'uniswap/src/features/accounts/store/hooks'
+import { css, styled as deprecatedStyled } from 'lib/styled-components'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { FeatureFlags } from 'uniswap/src/features/gating/flags'
-import { useFeatureFlag } from 'uniswap/src/features/gating/hooks'
 import usePrevious from 'hooks/usePrevious'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { assume0xAddress } from 'utils/wagmi'
@@ -99,41 +95,14 @@ const SelectedPoolContainer = styled(UnpositionedFlex, {
   },
 })
 
-function useShouldHideChainSelector() {
-  const isNFTPage = useIsPage(PageType.NFTS)
-  const isLandingPage = useIsPage(PageType.LANDING)
-  const isSendPage = useIsPage(PageType.SEND)
-  const isSwapPage = useIsPage(PageType.SWAP)
-  const isLimitPage = useIsPage(PageType.LIMIT)
-  const isExplorePage = useIsPage(PageType.EXPLORE)
-  const isPositionsPage = useIsPage(PageType.POSITIONS)
-  const isMigrateV3Page = useIsPage(PageType.MIGRATE_V3)
-  const isBuyPage = useIsPage(PageType.BUY)
-
-  const baseHiddenPages = isNFTPage
-  const multichainHiddenPages =
-    isLandingPage ||
-    isSendPage ||
-    isSwapPage ||
-    isLimitPage ||
-    baseHiddenPages ||
-    isExplorePage ||
-    isPositionsPage ||
-    isMigrateV3Page ||
-    isBuyPage
-
-  return multichainHiddenPages
-}
-
 export default function Navbar() {
-  const isNFTPage = useIsPage(PageType.NFTS)
   const isLandingPage = useIsPage(PageType.LANDING)
 
-  const sellPageState = useProfilePageState((state) => state.state)
   const media = useMedia()
   const isSmallScreen = media.md
-  const isMediumScreen = media.lg
   const areTabsVisible = useTabsVisible()
+  const isSearchBarVisible = useIsSearchBarVisible()
+  const { isConnected } = useConnectionStatus()
   const collapseSearchBar = media.xl
   const NAV_SEARCH_MAX_HEIGHT = 'calc(100vh - 30px)'
 
@@ -147,10 +116,6 @@ export default function Navbar() {
   const { isTestnetModeEnabled } = useEnabledChains()
   const isEmbeddedWalletEnabled = useFeatureFlag(FeatureFlags.EmbeddedWallet)
 
-  const { isControl, isLoading: isSignInExperimentControlLoading } = useIsAccountCTAExperimentControl()
-
-  const isSignInExperimentControl = !isEmbeddedWalletEnabled && isControl
-  const shouldDisplayCreateAccountButton = false
   const { data: allPools } = useAllPoolsData()
   const poolAddresses = useMemo(() => allPools?.map((p) => p.pool), [allPools])
 
@@ -277,12 +242,12 @@ export default function Navbar() {
         </Left>
 
         <SearchContainer>
-          {!collapseSearchBar && userIsOperator && (
+            isSearchBarVisible && userIsOperator && (
             <SelectedPoolContainer>
               <PoolSelect operatedPools={operatedPools} />
             </SelectedPoolContainer>
           )}
-          {!collapseSearchBar && (
+          {isSearchBarVisible && (
             <UnpositionedFlex flex={1} flexShrink={1} ml="$spacing16">
               <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} allPools={allPools} />
             </UnpositionedFlex>
@@ -290,28 +255,18 @@ export default function Navbar() {
         </SearchContainer>
 
         <Right>
-          {collapseSearchBar && (
-            <Flex row gap={-12} alignItems="center" mr={-15} ml={-12}>
-              <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} />
-              {userIsOperator && (
-                <Flex mt={8}>
-                  <PoolSelect operatedPools={operatedPools} />
-                </Flex>
-              )}
-              {!hideChainSelector && <ChainSelector />}
-            </Flex>
-          )}
-          {!collapseSearchBar && !hideChainSelector && <ChainSelector />}
           {isNFTPage && sellPageState !== ProfilePageStateType.LISTING && <Bag />}
-          {shouldDisplayCreateAccountButton && isSignInExperimentControl && !isSignInExperimentControlLoading && isLandingPage && !isSmallScreen && (
+          {isSignInExperimentControl && !isSignInExperimentControlLoading && isLandingPage && !isSmallScreen && (
             <NewUserCTAButton />
           )}
-          {!isConnected && !isConnecting && <PreferenceMenu />}
+          {!account.isConnected && !account.isConnecting && <PreferenceMenu />}
+          {!hideChainSelector && <ChainSelector />}
+          {!isSearchBarVisible && <SearchBar />}
+          {!isEmbeddedWalletEnabled && isLandingPage && !isSmallScreen && <NewUserCTAButton />}
+          {!isConnected && <PreferenceMenu />}
           {isTestnetModeEnabled && <TestnetModeTooltip />}
+          {isEmbeddedWalletEnabled && !isConnected && <NewUserCTAButton />}
           <Web3Status />
-          {shouldDisplayCreateAccountButton && !isSignInExperimentControl && !isSignInExperimentControlLoading && !address && !isMediumScreen && (
-            <NewUserCTAButton />
-          )}
         </Right>
       </Flex>
     </Nav>

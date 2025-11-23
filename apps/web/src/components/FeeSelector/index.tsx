@@ -1,42 +1,23 @@
-import { FeePoolSelectAction, LiquidityEventName } from '@uniswap/analytics-events'
 import { Currency } from '@uniswap/sdk-core'
 import { FeeAmount } from '@uniswap/v3-sdk'
-import Card from 'components/Card/cards'
+import { OutlineCard } from 'components/Card/cards'
+import { AutoColumn } from 'components/deprecated/Column'
 import { FeeOption } from 'components/FeeSelector/FeeOption'
 import { FeeTierPercentageBadge } from 'components/FeeSelector/FeeTierPercentageBadge'
 import { FEE_AMOUNT_DETAIL } from 'components/FeeSelector/shared'
-import { AutoColumn } from 'components/deprecated/Column'
 import { useAccount } from 'hooks/useAccount'
 import { useFeeTierDistribution } from 'hooks/useFeeTierDistribution'
 import { PoolState, usePools } from 'hooks/usePools'
-import usePrevious from 'hooks/usePrevious'
-import styled, { keyframes } from 'lib/styled-components'
+import { styled } from 'lib/styled-components'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Trans } from 'react-i18next'
 import { Button, Flex, RadioButtonGroup, Text } from 'ui/src'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { LiquidityEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
+import { FeePoolSelectAction } from 'uniswap/src/features/telemetry/types'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
-import { useFormatter } from 'utils/formatNumbers'
-
-const pulse = (color: string) => keyframes`
-  0% {
-    box-shadow: 0 0 0 0 ${color};
-  }
-
-  70% {
-    box-shadow: 0 0 0 2px ${color};
-  }
-
-  100% {
-    box-shadow: 0 0 0 0 ${color};
-  }
-`
-const FocusedOutlineCard = styled(Card)<{ pulsing: boolean }>`
-  border: 1px solid ${({ theme }) => theme.surface3};
-  animation: ${({ pulsing, theme }) => pulsing && pulse(theme.accent1)} 0.6s linear;
-  align-self: center;
-`
 
 const Select = styled.div`
   align-items: flex-start;
@@ -66,7 +47,7 @@ export default function FeeSelector({
 }) {
   const { chainId } = useAccount()
   const trace = useTrace()
-  const { formatDelta } = useFormatter()
+  const { formatPercent } = useLocalizationContext()
 
   const { isLoading, isError, largestUsageFeeTier, distributions } = useFeeTierDistribution(currencyA, currencyB)
 
@@ -109,16 +90,13 @@ export default function FeeSelector({
   )
 
   const [showOptions, setShowOptions] = useState(false)
-  const [pulsing, setPulsing] = useState(false)
-
-  const previousFeeAmount = usePrevious(feeAmount)
 
   const recommended = useRef(false)
 
   const handleFeePoolSelectWithEvent = useCallback(
     (fee: FeeAmount) => {
-      sendAnalyticsEvent(LiquidityEventName.SELECT_LIQUIDITY_POOL_FEE_TIER, {
-        action: FeePoolSelectAction.MANUAL,
+      sendAnalyticsEvent(LiquidityEventName.SelectLiquidityPoolFeeTier, {
+        action: FeePoolSelectAction.Manual,
         fee_tier: fee,
         ...trace,
       })
@@ -139,8 +117,8 @@ export default function FeeSelector({
       setShowOptions(false)
 
       recommended.current = true
-      sendAnalyticsEvent(LiquidityEventName.SELECT_LIQUIDITY_POOL_FEE_TIER, {
-        action: FeePoolSelectAction.RECOMMENDED,
+      sendAnalyticsEvent(LiquidityEventName.SelectLiquidityPoolFeeTier, {
+        action: FeePoolSelectAction.Recommended,
         fee_tier: largestUsageFeeTier,
         ...trace,
       })
@@ -153,16 +131,14 @@ export default function FeeSelector({
     setShowOptions(isError)
   }, [isError])
 
-  useEffect(() => {
-    if (feeAmount && previousFeeAmount !== feeAmount) {
-      setPulsing(true)
-    }
-  }, [previousFeeAmount, feeAmount])
-
   return (
     <Flex gap="$gap16">
       <DynamicSection gap="md" disabled={disabled}>
-        <FocusedOutlineCard pulsing={pulsing} onAnimationEnd={() => setPulsing(false)}>
+        <OutlineCard
+          $platform-web={{
+            alignSelf: 'center',
+          }}
+        >
           <Flex row justifyContent="space-between" alignItems="center">
             <Flex id="add-liquidity-selected-fee">
               {!feeAmount ? (
@@ -179,7 +155,7 @@ export default function FeeSelector({
                   <Text className="selected-fee-label">
                     <Trans
                       i18nKey="fee.tierExact"
-                      values={{ fee: formatDelta(parseFloat(FEE_AMOUNT_DETAIL[feeAmount].label)) }}
+                      values={{ fee: formatPercent(parseFloat(FEE_AMOUNT_DETAIL[feeAmount].label)) }}
                     />
                   </Text>
                   {distributions && (
@@ -205,7 +181,7 @@ export default function FeeSelector({
               {showOptions ? <Trans i18nKey="common.hide.button" /> : <Trans i18nKey="common.edit.button" />}
             </Button>
           </Flex>
-        </FocusedOutlineCard>
+        </OutlineCard>
 
         {chainId && showOptions && (
           <RadioButtonGroup

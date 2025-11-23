@@ -1,19 +1,18 @@
-import { InterfaceElementName, SwapEventName } from '@uniswap/analytics-events'
+import Row, { RowFixed } from 'components/deprecated/Row'
 import { Gas } from 'components/Icons/Gas'
 import { LoadingOpacityContainer } from 'components/Loader/styled'
 import { UniswapXGradient, UniswapXRouterIcon } from 'components/RouterLabel/UniswapXRouterLabel'
-import { MouseoverTooltip, TooltipSize } from 'components/Tooltip'
-import Row, { RowFixed } from 'components/deprecated/Row'
 import { GasBreakdownTooltip } from 'components/swap/GasBreakdownTooltip'
-import styled from 'lib/styled-components'
+import { MouseoverTooltip, TooltipSize } from 'components/Tooltip'
+import { styled } from 'lib/styled-components'
 import { useMultichainContext } from 'state/multichain/useMultichainContext'
 import { SubmittableTrade } from 'state/routing/types'
 import { isUniswapXTrade } from 'state/routing/utils'
 import { ThemedText } from 'theme/components'
-import { Flex } from 'ui/src'
-import { chainSupportsGasEstimates } from 'uniswap/src/features/chains/utils'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { ElementName, SwapEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
-import { NumberType, useFormatter } from 'utils/formatNumbers'
+import { NumberType } from 'utilities/src/format/types'
 
 const StyledGasIcon = styled(Gas)`
   height: 16px;
@@ -26,9 +25,9 @@ const StyledGasIcon = styled(Gas)`
 
 export default function GasEstimateTooltip({ trade, loading }: { trade?: SubmittableTrade; loading: boolean }) {
   const { chainId } = useMultichainContext()
-  const { formatNumber } = useFormatter()
+  const { convertFiatAmountFormatted } = useLocalizationContext()
 
-  if (!trade || !chainId || !chainSupportsGasEstimates(chainId)) {
+  if (!trade || !chainId) {
     return null
   }
 
@@ -37,8 +36,8 @@ export default function GasEstimateTooltip({ trade, loading }: { trade?: Submitt
       size={TooltipSize.Small}
       text={<GasBreakdownTooltip trade={trade} />}
       onOpen={() => {
-        sendAnalyticsEvent(SwapEventName.SWAP_AUTOROUTER_VISUALIZATION_EXPANDED, {
-          element: InterfaceElementName.AUTOROUTER_VISUALIZATION_ROW,
+        sendAnalyticsEvent(SwapEventName.SwapAutorouterVisualizationExpanded, {
+          element: ElementName.AutorouterVisualizationRow,
         })
       }}
       placement="right"
@@ -50,30 +49,15 @@ export default function GasEstimateTooltip({ trade, loading }: { trade?: Submitt
             <Row gap="sm">
               {isUniswapXTrade(trade) ? (
                 <UniswapXGradient>
-                  <Flex style={{ fontWeight: 535 }}>
-                    {formatNumber({
-                      input: trade.totalGasUseEstimateUSD,
-                      type: NumberType.FiatGasPrice,
-                    })}
-                  </Flex>
+                  {convertFiatAmountFormatted(trade.totalGasUseEstimateUSD, NumberType.FiatGasPrice)}
                 </UniswapXGradient>
               ) : (
-                <>
-                  {formatNumber({
-                    input: trade.totalGasUseEstimateUSD,
-                    type: NumberType.FiatGasPrice,
-                  })}
-                </>
+                <>{convertFiatAmountFormatted(trade.totalGasUseEstimateUSD, NumberType.FiatGasPrice)}</>
               )}
 
               {isUniswapXTrade(trade) && (trade.classicGasUseEstimateUSD ?? 0) > 0 && (
                 <>
-                  <s>
-                    {formatNumber({
-                      input: trade.classicGasUseEstimateUSD,
-                      type: NumberType.FiatGasPrice,
-                    })}
-                  </s>
+                  <s>{convertFiatAmountFormatted(trade.classicGasUseEstimateUSD, NumberType.FiatGasPrice)}</s>
                 </>
               )}
             </Row>

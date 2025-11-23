@@ -1,31 +1,22 @@
-import { StreamResponse, Transport, UnaryResponse } from '@connectrpc/connect'
-import { ConnectTransportOptions, createConnectTransport } from '@connectrpc/connect-web'
+import { Transport } from '@connectrpc/connect'
+import { ConnectTransportOptions } from '@connectrpc/connect-web'
+import { getTransport } from '@universe/api'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
-import { BASE_UNISWAP_HEADERS } from 'uniswap/src/data/apiClients/createApiClient'
+import { BASE_UNISWAP_HEADERS } from 'uniswap/src/data/apiClients/createUniswapFetchClient'
 import { isMobileApp } from 'utilities/src/platform'
 
 export const createConnectTransportWithDefaults = (options: Partial<ConnectTransportOptions> = {}): Transport =>
-  createConnectTransport({
-    baseUrl: uniswapUrls.apiBaseUrlV2,
-    // Mobile app needs to manually set headers
-    interceptors: isMobileApp
-      ? [
-          (next) =>
-            (request): Promise<UnaryResponse | StreamResponse> => {
-              Object.entries(BASE_UNISWAP_HEADERS).forEach(([key, value]) => {
-                request.header.set(key, value)
-              })
-              return next(request)
-            },
-        ]
-      : [],
-    ...options,
+  getTransport({
+    getBaseUrl: () => uniswapUrls.apiBaseUrlV2,
+    getHeaders: () => (isMobileApp ? BASE_UNISWAP_HEADERS : {}),
+    options,
   })
 
 /**
  * Connectrpc transports for Uniswap REST BE service
  */
 export const uniswapGetTransport = createConnectTransportWithDefaults({ useHttpGet: true })
+export const uniswapPostTransport = createConnectTransportWithDefaults()
 
 // The string arg to pass to the BE for chainId to get data for all networks
 export const ALL_NETWORKS_ARG = 'ALL_NETWORKS'

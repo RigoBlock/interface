@@ -1,19 +1,20 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
+import { AppStackScreenProp } from 'src/app/navigation/types'
+import { useReactNavigationModal } from 'src/components/modals/useReactNavigationModal'
 import { useBiometricAppSettings } from 'src/features/biometrics/useBiometricAppSettings'
 import { useBiometricPrompt } from 'src/features/biometricsSettings/hooks'
 import { closeAllModals } from 'src/features/modals/modalSlice'
-import { selectModalState } from 'src/features/modals/selectModalState'
 import { getEncryptedMnemonic } from 'src/features/scantastic/ScantasticEncryption'
 import { Button, Flex, Text, TouchableArea, useSporeColors } from 'ui/src'
 import { AlertTriangleFilled, Faceid, Laptop, LinkBrokenHorizontal, Wifi } from 'ui/src/components/icons'
-import { iconSizes } from 'ui/src/theme'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
-import { pushNotification } from 'uniswap/src/features/notifications/slice'
-import { AppNotificationType } from 'uniswap/src/features/notifications/types'
+import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
+import { AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { logger } from 'utilities/src/logger/logger'
 import { ONE_MINUTE_MS, ONE_SECOND_MS } from 'utilities/src/time/time'
 import { useInterval } from 'utilities/src/time/timing'
@@ -32,10 +33,11 @@ interface OtpStateApiResponse {
   expiresAtInSeconds?: number
 }
 
-export function ScantasticModal(): JSX.Element | null {
+export function ScantasticModal({ route }: AppStackScreenProp<typeof ModalName.Scantastic>): JSX.Element | null {
   const { t } = useTranslation()
   const colors = useSporeColors()
   const dispatch = useDispatch()
+  const { onClose } = useReactNavigationModal()
 
   // Use the first mnemonic account because zero-balance mnemonic accounts will fail to retrieve the mnemonic from rnEthers
   const account = useSignerAccounts().sort(
@@ -46,16 +48,15 @@ export function ScantasticModal(): JSX.Element | null {
     throw new Error('This should not be accessed with no mnemonic accounts')
   }
 
-  const { initialState } = useSelector(selectModalState(ModalName.Scantastic))
-  const params = initialState?.params
+  const params = route.params.params
 
   const [OTP, setOTP] = useState('')
   // Once a user has scanned a QR they have 6 minutes to correctly input the OTP
   const [expirationTimestamp, setExpirationTimestamp] = useState<number>(Date.now() + 6 * ONE_MINUTE_MS)
-  const pubKey = params?.publicKey
-  const uuid = params?.uuid
-  const device = `${params?.vendor || ''} ${params?.model || ''}`.trim()
-  const browser = params?.browser || ''
+  const pubKey = params.publicKey
+  const uuid = params.uuid
+  const device = `${params.vendor || ''} ${params.model || ''}`.trim()
+  const browser = params.browser || ''
 
   const [expired, setExpired] = useState(false)
   const [redeemed, setRedeemed] = useState(false)
@@ -71,15 +72,18 @@ export function ScantasticModal(): JSX.Element | null {
   }, [expirationTimestamp])
   useInterval(setExpirationText, ONE_SECOND_MS)
 
-  if (redeemed) {
-    dispatch(
-      pushNotification({
-        type: AppNotificationType.ScantasticComplete,
-        hideDelay: 6 * ONE_SECOND_MS,
-      }),
-    )
-    dispatch(closeAllModals())
-  }
+  useEffect(() => {
+    if (redeemed) {
+      dispatch(
+        pushNotification({
+          type: AppNotificationType.ScantasticComplete,
+          hideDelay: 6 * ONE_SECOND_MS,
+        }),
+      )
+      onClose()
+      dispatch(closeAllModals())
+    }
+  }, [redeemed, onClose, dispatch])
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -88,22 +92,18 @@ export function ScantasticModal(): JSX.Element | null {
     }, ONE_SECOND_MS)
 
     return () => clearInterval(interval)
-  }, [expirationTimestamp, t])
-
-  const onClose = useCallback((): void => {
-    dispatch(closeAllModals())
-  }, [dispatch])
+  }, [expirationTimestamp])
 
   const onEncryptSeedphrase = async (): Promise<void> => {
-    if (!pubKey) {
-      return
-    }
-
     setError('')
     let encryptedSeedphrase = ''
     const { n, e } = pubKey
     try {
-      encryptedSeedphrase = await getEncryptedMnemonic(account?.address || '', n, e)
+      encryptedSeedphrase = await getEncryptedMnemonic({
+        mnemonicId: account.address,
+        modulus: n,
+        exponent: e,
+      })
     } catch (err) {
       setError(t('scantastic.error.encryption'))
       logger.error(err, {
@@ -112,7 +112,7 @@ export function ScantasticModal(): JSX.Element | null {
           function: 'onEncryptSeedphrase->getEncryptedMnemonic',
         },
         extra: {
-          address: account?.address,
+          address: account.address,
           n,
           e,
         },
@@ -223,7 +223,7 @@ export function ScantasticModal(): JSX.Element | null {
       <Modal backgroundColor={colors.surface1.val} name={ModalName.OtpInputExpired} onClose={onClose}>
         <Flex centered gap="$spacing16" px="$spacing16" py="$spacing12">
           <Flex centered backgroundColor="$surface2" borderRadius="$rounded12" p="$spacing12">
-            <Wifi color="$neutral2" size={iconSizes.icon24} />
+            <Wifi color="$neutral2" size="$icon.24" />
           </Flex>
           <Flex centered gap="$spacing12">
             <Text variant="subheading1">{t('scantastic.modal.ipMismatch.title')}</Text>
@@ -246,7 +246,7 @@ export function ScantasticModal(): JSX.Element | null {
       <Modal backgroundColor={colors.surface1.val} name={ModalName.OtpInputExpired} onClose={onClose}>
         <Flex centered gap="$spacing16" px="$spacing16" py="$spacing12">
           <Flex centered backgroundColor="$surface2" borderRadius="$rounded12" p="$spacing12">
-            <LinkBrokenHorizontal color="$neutral2" size={iconSizes.icon24} />
+            <LinkBrokenHorizontal color="$neutral2" size="$icon.24" />
           </Flex>
           <Text variant="subheading1">{t('scantastic.error.timeout.title')}</Text>
           <Text color="$neutral2" mb="$spacing12" textAlign="center" variant="body3">
@@ -267,7 +267,7 @@ export function ScantasticModal(): JSX.Element | null {
       <Modal backgroundColor={colors.surface1.val} name={ModalName.OtpScanInput} onClose={onClose}>
         <Flex centered gap="$spacing16" px="$spacing16" py="$spacing12">
           <Flex centered backgroundColor="$accent2" borderRadius="$rounded12" p="$spacing12">
-            <Laptop color="$accent1" size={iconSizes.icon24} />
+            <Laptop color="$accent1" size="$icon.24" />
           </Flex>
           <Text variant="subheading1">{t('scantastic.code.title')}</Text>
           <Text color="$neutral2" textAlign="center" variant="body3">
@@ -290,7 +290,7 @@ export function ScantasticModal(): JSX.Element | null {
       <Modal backgroundColor={colors.surface1.val} name={ModalName.OtpScanInput} onClose={onClose}>
         <Flex centered gap="$spacing16" px="$spacing16" py="$spacing12">
           <Flex centered backgroundColor="$accent2" borderRadius="$rounded12" p="$spacing12">
-            <AlertTriangleFilled color="$statusCritical" size={iconSizes.icon24} />
+            <AlertTriangleFilled color="$statusCritical" size="$icon.24" />
           </Flex>
           <Text variant="subheading1">{t('common.text.error')}</Text>
           <Text color="$neutral2" textAlign="center" variant="body3">
@@ -312,9 +312,11 @@ export function ScantasticModal(): JSX.Element | null {
     <Modal backgroundColor={colors.surface1.val} name={ModalName.Scantastic} onClose={onClose}>
       <Flex centered gap="$spacing16" px="$spacing16" py="$spacing12">
         <Flex centered backgroundColor="$accent2" borderRadius="$rounded12" p="$spacing12">
-          <Laptop color="$accent1" size={iconSizes.icon24} />
+          <Laptop color="$accent1" size="$icon.24" />
         </Flex>
-        <Text variant="subheading1">{t('scantastic.confirmation.title')}</Text>
+        <Text testID={TestID.ScantasticConfirmationTitle} variant="subheading1">
+          {t('scantastic.confirmation.title')}
+        </Text>
         <Text color="$neutral2" textAlign="center" variant="body3">
           {t('scantastic.confirmation.subtitle')}
         </Text>
@@ -332,7 +334,9 @@ export function ScantasticModal(): JSX.Element | null {
                 <Text color="$neutral2" flex={1} variant="body3">
                   {t('scantastic.confirmation.label.device')}
                 </Text>
-                <Text variant="body3">{device}</Text>
+                <Text testID={TestID.ScantasticDevice} variant="body3">
+                  {device}
+                </Text>
               </Flex>
             )}
             {browser && (
@@ -340,7 +344,9 @@ export function ScantasticModal(): JSX.Element | null {
                 <Text color="$neutral2" flex={1} variant="body3">
                   {t('scantastic.confirmation.label.browser')}
                 </Text>
-                <Text variant="body3">{browser}</Text>
+                <Text testID={TestID.ScantasticBrowser} variant="body3">
+                  {browser}
+                </Text>
               </Flex>
             )}
           </Flex>
@@ -362,7 +368,7 @@ export function ScantasticModal(): JSX.Element | null {
         <Flex gap="$spacing4" width="100%">
           <Flex row>
             <Button
-              icon={requiresBiometricAuth ? <Faceid size={iconSizes.icon16} /> : undefined}
+              icon={requiresBiometricAuth ? <Faceid size="$icon.16" /> : undefined}
               mb="$spacing4"
               size="large"
               variant="branded"

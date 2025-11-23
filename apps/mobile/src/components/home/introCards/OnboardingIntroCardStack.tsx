@@ -1,22 +1,29 @@
 import { SharedEventName } from '@uniswap/analytics-events'
-import React, { useCallback, useMemo } from 'react'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import React, { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { navigate } from 'src/app/navigation/rootNavigation'
-import { openModal } from 'src/features/modals/modalSlice'
+import { useAppStackNavigation } from 'src/app/navigation/types'
 import {
   NotificationPermission,
   useNotificationOSPermissionsEnabled,
 } from 'src/features/notifications/hooks/useNotificationOSPermissionsEnabled'
-import { Flex } from 'ui/src'
-import { PUSH_NOTIFICATIONS_CARD_BANNER } from 'ui/src/assets'
-import { Buy, ShieldCheck } from 'ui/src/components/icons'
+import { Flex, useIsDarkMode } from 'ui/src'
+import {
+  BRIDGED_ASSETS_CARD_BANNER,
+  BRIDGED_ASSETS_V2_CARD_BANNER_DARK,
+  BRIDGED_ASSETS_V2_CARD_BANNER_LIGHT,
+  PUSH_NOTIFICATIONS_CARD_BANNER,
+} from 'ui/src/assets'
+import { Buy } from 'ui/src/components/icons'
+import { MonadAnnouncementModal } from 'uniswap/src/components/notifications/MonadAnnouncementModal'
 import { AccountType } from 'uniswap/src/features/accounts/types'
-import { FeatureFlags } from 'uniswap/src/features/gating/flags'
-import { useFeatureFlag } from 'uniswap/src/features/gating/hooks'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { ElementName, ModalName, WalletEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { OnboardingCardLoggingName } from 'uniswap/src/features/telemetry/types'
+import { CurrencyField } from 'uniswap/src/types/currency'
 import { ImportType, OnboardingEntryPoint } from 'uniswap/src/types/onboarding'
 import { MobileScreens, OnboardingScreens, UnitagScreens } from 'uniswap/src/types/screens/mobile'
 import {
@@ -27,8 +34,17 @@ import {
 } from 'wallet/src/components/introCards/IntroCard'
 import { INTRO_CARD_MIN_HEIGHT, IntroCardStack } from 'wallet/src/components/introCards/IntroCardStack'
 import { useSharedIntroCards } from 'wallet/src/components/introCards/useSharedIntroCards'
-import { selectHasViewedNotificationsCard } from 'wallet/src/features/behaviorHistory/selectors'
-import { setHasViewedNotificationsCard } from 'wallet/src/features/behaviorHistory/slice'
+import { useWalletNavigation } from 'wallet/src/contexts/WalletNavigationContext'
+import {
+  selectHasViewedBridgedAssetsCard,
+  selectHasViewedBridgedAssetsV2Card,
+  selectHasViewedNotificationsCard,
+} from 'wallet/src/features/behaviorHistory/selectors'
+import {
+  setHasViewedBridgedAssetsCard,
+  setHasViewedBridgedAssetsV2Card,
+  setHasViewedNotificationsCard,
+} from 'wallet/src/features/behaviorHistory/slice'
 import { useActiveAccountWithThrow } from 'wallet/src/features/wallet/hooks'
 
 type OnboardingIntroCardStackProps = {
@@ -40,11 +56,12 @@ export function OnboardingIntroCardStack({
   isLoading = false,
 }: OnboardingIntroCardStackProps): JSX.Element | null {
   const { t } = useTranslation()
+  const isDarkMode = useIsDarkMode()
   const dispatch = useDispatch()
   const activeAccount = useActiveAccountWithThrow()
   const address = activeAccount.address
   const isSignerAccount = activeAccount.type === AccountType.SignerMnemonic
-  const hasBackups = activeAccount.backups && activeAccount.backups.length > 0
+  const [isMonadModalOpen, setIsMonadModalOpen] = useState(false)
 
   const { notificationPermissionsEnabled } = useNotificationOSPermissionsEnabled()
   const notificationOnboardingCardEnabled = useFeatureFlag(FeatureFlags.NotificationOnboardingCard)
@@ -53,6 +70,16 @@ export function OnboardingIntroCardStack({
     notificationOnboardingCardEnabled &&
     notificationPermissionsEnabled === NotificationPermission.Disabled &&
     !hasViewedNotificationsCard
+
+  const hasViewedBridgedAssetCard = useSelector(selectHasViewedBridgedAssetsCard)
+  const shouldShowBridgedAssetCard = useFeatureFlag(FeatureFlags.BridgedAssetsBanner) && !hasViewedBridgedAssetCard
+
+  const hasViewedBridgedAssetsV2Card = useSelector(selectHasViewedBridgedAssetsV2Card)
+  const shouldShowBridgedAssetsV2Card =
+    useFeatureFlag(FeatureFlags.BridgedAssetsBannerV2) && !hasViewedBridgedAssetsV2Card
+
+  const { navigateToSwapFlow } = useWalletNavigation()
+  const navigation = useAppStackNavigation()
 
   const navigateToUnitagClaim = useCallback(() => {
     navigate(MobileScreens.UnitagStack, {
@@ -65,17 +92,41 @@ export function OnboardingIntroCardStack({
   }, [address])
 
   const navigateToUnitagIntro = useCallback(() => {
-    dispatch(
-      openModal({
-        name: ModalName.UnitagsIntro,
-        initialState: { address, entryPoint: MobileScreens.Home },
-      }),
-    )
-  }, [dispatch, address])
+    navigate(ModalName.UnitagsIntro, {
+      address,
+      entryPoint: MobileScreens.Home,
+    })
+  }, [address])
+
+  const navigateToBackupFlow = useCallback((): void => {
+    navigate(MobileScreens.OnboardingStack, {
+      screen: OnboardingScreens.Backup,
+      params: {
+        importType: ImportType.BackupOnly,
+        entryPoint: OnboardingEntryPoint.BackupCard,
+      },
+    })
+  }, [])
+
+  const navigateToBridgedAssetSwap = useCallback((): void => {
+    navigateToSwapFlow({ openTokenSelector: CurrencyField.OUTPUT, inputChainId: UniverseChainId.Unichain })
+  }, [navigateToSwapFlow])
+
+  const handleMonadExplorePress = useCallback(() => {
+    navigation.navigate(ModalName.Explore, {
+      screen: MobileScreens.Explore,
+      params: {
+        chainId: UniverseChainId.Monad,
+      },
+    })
+    setIsMonadModalOpen(false)
+  }, [navigation])
 
   const { cards: sharedCards } = useSharedIntroCards({
     navigateToUnitagClaim,
     navigateToUnitagIntro,
+    navigateToBackupFlow,
+    onMonadAnnouncementPress: () => setIsMonadModalOpen(true),
   })
 
   const cards = useMemo((): IntroCardProps[] => {
@@ -105,28 +156,6 @@ export function OnboardingIntroCardStack({
       })
     }
 
-    if (!hasBackups) {
-      output.push({
-        loggingName: OnboardingCardLoggingName.RecoveryBackup,
-        graphic: {
-          type: IntroCardGraphicType.Icon,
-          Icon: ShieldCheck,
-        },
-        title: t('onboarding.home.intro.backup.title'),
-        description: t('onboarding.home.intro.backup.description'),
-        cardType: CardType.Required,
-        onPress: (): void => {
-          navigate(MobileScreens.OnboardingStack, {
-            screen: OnboardingScreens.Backup,
-            params: {
-              importType: ImportType.BackupOnly,
-              entryPoint: OnboardingEntryPoint.BackupCard,
-            },
-          })
-        },
-      })
-    }
-
     output.push(...sharedCards)
 
     if (showEnableNotificationsCard) {
@@ -151,8 +180,60 @@ export function OnboardingIntroCardStack({
         },
       })
     }
+
+    if (shouldShowBridgedAssetsV2Card) {
+      output.push({
+        loggingName: OnboardingCardLoggingName.BridgedAsset,
+        graphic: {
+          type: IntroCardGraphicType.Image,
+          image: isDarkMode ? BRIDGED_ASSETS_V2_CARD_BANNER_DARK : BRIDGED_ASSETS_V2_CARD_BANNER_LIGHT,
+        },
+        title: t('onboarding.home.intro.bridgedAssets.title'),
+        description: t('onboarding.home.intro.bridgedAssets.description.v2'),
+        cardType: CardType.Dismissible,
+        onPress: () => {
+          navigateToBridgedAssetSwap()
+          dispatch(setHasViewedBridgedAssetsV2Card(true))
+        },
+        onClose: () => {
+          dispatch(setHasViewedBridgedAssetsV2Card(true))
+        },
+      })
+    }
+
+    if (shouldShowBridgedAssetCard) {
+      output.push({
+        loggingName: OnboardingCardLoggingName.BridgedAsset,
+        graphic: {
+          type: IntroCardGraphicType.Image,
+          image: BRIDGED_ASSETS_CARD_BANNER,
+        },
+        title: t('onboarding.home.intro.bridgedAssets.title'),
+        description: t('onboarding.home.intro.bridgedAssets.description'),
+        cardType: CardType.Dismissible,
+        onPress: () => {
+          navigateToBridgedAssetSwap()
+          dispatch(setHasViewedBridgedAssetsCard(true))
+        },
+        onClose: () => {
+          dispatch(setHasViewedBridgedAssetsCard(true))
+        },
+      })
+    }
+
     return output
-  }, [hasBackups, showEmptyWalletState, isSignerAccount, sharedCards, t, showEnableNotificationsCard, dispatch])
+  }, [
+    showEmptyWalletState,
+    isSignerAccount,
+    sharedCards,
+    t,
+    isDarkMode,
+    dispatch,
+    navigateToBridgedAssetSwap,
+    shouldShowBridgedAssetCard,
+    shouldShowBridgedAssetsV2Card,
+    showEnableNotificationsCard,
+  ])
 
   const handleSwiped = useCallback(
     (_card: IntroCardProps, index: number) => {
@@ -166,13 +247,24 @@ export function OnboardingIntroCardStack({
     [cards],
   )
 
-  if (cards.length) {
-    return (
-      <Flex pt="$spacing12">
-        {isLoading ? <Flex height={INTRO_CARD_MIN_HEIGHT} /> : <IntroCardStack cards={cards} onSwiped={handleSwiped} />}
-      </Flex>
-    )
-  }
-
-  return null
+  return (
+    <>
+      {!!cards.length && (
+        <Flex pt="$spacing12" px="$spacing12">
+          {isLoading ? (
+            <Flex height={INTRO_CARD_MIN_HEIGHT} />
+          ) : (
+            <IntroCardStack cards={cards} onSwiped={handleSwiped} />
+          )}
+        </Flex>
+      )}
+      {isMonadModalOpen && (
+        <MonadAnnouncementModal
+          isOpen={isMonadModalOpen}
+          onClose={() => setIsMonadModalOpen(false)}
+          onExplorePress={handleMonadExplorePress}
+        />
+      )}
+    </>
+  )
 }

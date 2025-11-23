@@ -1,20 +1,18 @@
-import { InterfaceElementName } from '@uniswap/analytics-events'
 import { PRIVACY_SHARING_OPT_OUT_STORAGE_KEY } from 'components/PrivacyChoices/constants'
+import { useModalState } from 'hooks/useModalState'
 import { useAtom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'
 import { useCallback, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { useCloseModal, useModalIsOpen } from 'state/application/hooks'
 import { Anchor, Button, Checkbox, Flex, ModalCloseIcon, Text } from 'ui/src'
 import { Lock } from 'ui/src/components/icons/Lock'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { ModalName } from 'uniswap/src/features/telemetry/constants'
 
 export function PrivacyChoicesModal() {
-  const open = useModalIsOpen(ModalName.PrivacyChoices)
-  const closeModal = useCloseModal(ModalName.PrivacyChoices)
+  const { isOpen, closeModal } = useModalState(ModalName.PrivacyChoices)
   const { t } = useTranslation()
   const privacySharingOptOutAtom = atomWithStorage<boolean>(PRIVACY_SHARING_OPT_OUT_STORAGE_KEY, false)
   const [privacySharingOptOut, setPrivacySharingOptOut] = useAtom(privacySharingOptOutAtom)
@@ -24,7 +22,7 @@ export function PrivacyChoicesModal() {
     // Reset the checkbox if a user doesn't save
     setIsOptOutChecked(privacySharingOptOut)
     closeModal()
-  }, [privacySharingOptOut, closeModal, setIsOptOutChecked])
+  }, [privacySharingOptOut, closeModal])
 
   const handleSave = useCallback(() => {
     setPrivacySharingOptOut(isOptOutChecked)
@@ -32,11 +30,11 @@ export function PrivacyChoicesModal() {
   }, [isOptOutChecked, closeModal, setPrivacySharingOptOut])
 
   return (
-    <Modal name={ModalName.PrivacyChoices} isModalOpen={open} onClose={closeAndResetModal}>
+    <Modal name={ModalName.PrivacyChoices} isModalOpen={isOpen} onClose={closeAndResetModal}>
       <Flex fill>
         <Flex py="$spacing20" px="$spacing24" gap="$spacing24">
           <Flex row justifyContent="flex-end">
-            <Trace logPress element={InterfaceElementName.CLOSE_BUTTON}>
+            <Trace logPress element={ElementName.CloseButton}>
               <ModalCloseIcon onClose={closeAndResetModal} />
             </Trace>
           </Flex>

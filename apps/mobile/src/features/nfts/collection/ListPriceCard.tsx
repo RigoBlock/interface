@@ -1,16 +1,16 @@
+import { GraphQLApi } from '@universe/api'
 import { BlurView } from 'expo-blur'
 import React from 'react'
 import { StyleSheet } from 'react-native'
 import { ColorTokens, Flex, FlexProps, SpaceTokens, Text, useSporeColors } from 'ui/src'
 import { Ethereum } from 'ui/src/components/logos/Ethereum'
-import { TextVariantTokens, borderRadii, iconSizes, spacing } from 'ui/src/theme'
-import { IAmount } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
+import { borderRadii, iconSizes, spacing, TextVariantTokens } from 'ui/src/theme'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { NumberType } from 'utilities/src/format/types'
 import { isIOS } from 'utilities/src/platform'
 
 type ListPriceProps = FlexProps & {
-  price: IAmount
+  price: GraphQLApi.IAmount
   gap?: SpaceTokens
   iconSize?: number
   textVariant?: TextVariantTokens
@@ -64,7 +64,7 @@ export function PriceAmount({
     <Flex centered row gap={gap} overflow="hidden">
       {!isUSD && (
         // @ts-expect-error TODO(MOB-1566) convert to specific icon size token, avoiding doing too big of a change in this PR
-        <Ethereum color={iconColor || '$neutral1'} height={iconSize} width={iconSize} />
+        <Ethereum color={iconColor} height={iconSize} width={iconSize} />
       )}
       <Text color={textColor} variant={textVariant}>
         {formattedAmount}

@@ -1,3 +1,4 @@
+import { normalizeCurrencyIdForMapLookup, normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
 import { TransactionDetails, TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { CurrencyId } from 'uniswap/src/types/currency'
 import { buildCurrencyId, buildNativeCurrencyId, buildWrappedNativeCurrencyId } from 'uniswap/src/utils/currencyId'
@@ -11,14 +12,17 @@ export function getCurrenciesWithExpectedUpdates(transaction: TransactionDetails
   // All txs besides FOR at least use gas so check for update of gas token
   currenciesWithBalToUpdate.add(buildNativeCurrencyId(txChainId))
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   switch (transaction.typeInfo?.type) {
     case TransactionType.Swap:
     case TransactionType.Bridge:
-      currenciesWithBalToUpdate.add(transaction.typeInfo.inputCurrencyId.toLowerCase())
-      currenciesWithBalToUpdate.add(transaction.typeInfo.outputCurrencyId.toLowerCase())
+      currenciesWithBalToUpdate.add(normalizeCurrencyIdForMapLookup(transaction.typeInfo.inputCurrencyId))
+      currenciesWithBalToUpdate.add(normalizeCurrencyIdForMapLookup(transaction.typeInfo.outputCurrencyId))
       break
     case TransactionType.Send:
-      currenciesWithBalToUpdate.add(buildCurrencyId(txChainId, transaction.typeInfo.tokenAddress).toLowerCase())
+      currenciesWithBalToUpdate.add(
+        buildCurrencyId(txChainId, normalizeTokenAddressForCache(transaction.typeInfo.tokenAddress)),
+      )
       break
     case TransactionType.Wrap:
       currenciesWithBalToUpdate.add(buildWrappedNativeCurrencyId(txChainId))
@@ -27,7 +31,7 @@ export function getCurrenciesWithExpectedUpdates(transaction: TransactionDetails
     case TransactionType.OnRampTransfer:
     case TransactionType.OffRampSale:
       currenciesWithBalToUpdate.add(
-        buildCurrencyId(txChainId, transaction.typeInfo.destinationTokenAddress).toLowerCase(),
+        buildCurrencyId(txChainId, normalizeTokenAddressForCache(transaction.typeInfo.destinationTokenAddress)),
       )
       break
     default:
@@ -36,6 +40,7 @@ export function getCurrenciesWithExpectedUpdates(transaction: TransactionDetails
         'getCurrenciesWithExpectedUpdates',
         'Unhandled transaction type',
         {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           type: transaction.typeInfo?.type,
           info: JSON.stringify(transaction.typeInfo),
         },

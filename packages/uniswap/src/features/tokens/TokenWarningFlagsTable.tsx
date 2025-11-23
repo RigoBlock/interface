@@ -5,8 +5,8 @@ import { Flex, Text } from 'ui/src'
 import { Flag } from 'ui/src/components/icons/Flag'
 import { CurrencyInfo, TokenList } from 'uniswap/src/features/dataApi/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { getFeeColor, TokenProtectionWarning } from 'uniswap/src/features/tokens/safetyUtils'
 import { WarningModalInfoContainer } from 'uniswap/src/features/tokens/WarningInfoModalContainer'
-import { TokenProtectionWarning, getFeeColor } from 'uniswap/src/features/tokens/safetyUtils'
 
 function getWarningFlags({
   currencyInfo,
@@ -26,10 +26,10 @@ function getWarningFlags({
   if (isToken) {
     // If Blockaid marks the token as having high fees, but we don't have data on token fees, show Blockaid's fees data
     const buyFeePercent = currencyInfo.currency.buyFeeBps
-      ? currencyInfo.currency.buyFeeBps?.toNumber() / 100
+      ? currencyInfo.currency.buyFeeBps.toNumber() / 100
       : currencyInfo.safetyInfo?.blockaidFees?.buyFeePercent
     const sellFeePercent = currencyInfo.currency.sellFeeBps
-      ? currencyInfo.currency.sellFeeBps?.toNumber() / 100
+      ? currencyInfo.currency.sellFeeBps.toNumber() / 100
       : currencyInfo.safetyInfo?.blockaidFees?.sellFeePercent
 
     if (buyFeePercent) {
@@ -88,6 +88,12 @@ function getWarningFlags({
   if (tokenProtectionWarning === TokenProtectionWarning.MaliciousGeneral) {
     flags.push(
       <WarningFlag key="malicious-general-warning">{t('token.safety.warning.flaggedAsMalicious')}</WarningFlag>,
+    )
+  }
+
+  if (tokenProtectionWarning === TokenProtectionWarning.PotentialHoneypot) {
+    flags.push(
+      <WarningFlag key="potential-honeypot-warning">{t('token.safety.warning.flaggedAsSuspicious')}</WarningFlag>,
     )
   }
 

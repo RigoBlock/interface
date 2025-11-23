@@ -1,6 +1,24 @@
-import deprecatedStyled from 'lib/styled-components'
-import { TamaguiClickableStyle } from 'theme/components/styles'
+import { styled as deprecatedStyled } from 'lib/styled-components'
+import { colors } from 'theme/colors'
+import { ClickableTamaguiStyle } from 'theme/components/styles'
 import { TextProps } from 'ui/src'
+import { opacify } from 'ui/src/theme'
+
+export const DropdownAction = deprecatedStyled.div`
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 485;
+  gap: 12px;
+  height: 40px;
+  color: ${({ theme }) => theme.neutral1};
+  cursor: pointer;
+  :hover {
+    background-color: ${({ theme }) => opacify(10, theme.darkMode ? colors.gray200 : colors.gray300)};
+  }
+`
 
 export const ActionButtonStyle = {
   display: 'flex',
@@ -11,7 +29,7 @@ export const ActionButtonStyle = {
   borderRadius: 20,
   borderWidth: 0,
   width: 'maxContent',
-  ...TamaguiClickableStyle,
+  ...ClickableTamaguiStyle,
 
   hoverStyle: {
     backgroundColor: '$surface2Hovered',

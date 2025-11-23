@@ -11,15 +11,15 @@ import { useNavigationHeader } from 'src/utils/useNavigationHeader'
 import { Button, Flex, Text, TouchableArea } from 'ui/src'
 import { QuestionInCircleFilled } from 'ui/src/components/icons'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
-import Trace from 'uniswap/src/features/telemetry/Trace'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
+import Trace from 'uniswap/src/features/telemetry/Trace'
 import { ImportType } from 'uniswap/src/types/onboarding'
 import { OnboardingScreens } from 'uniswap/src/types/screens/mobile'
 import { openUri } from 'uniswap/src/utils/linking'
 import { useOnboardingContext } from 'wallet/src/features/onboarding/OnboardingContext'
-import { Keyring } from 'wallet/src/features/wallet/Keyring/Keyring'
 import { BackupType } from 'wallet/src/features/wallet/accounts/types'
 import { useSignerAccounts } from 'wallet/src/features/wallet/hooks'
+import { Keyring } from 'wallet/src/features/wallet/Keyring/Keyring'
 import {
   MnemonicValidationError,
   translateMnemonicErrorMessage,
@@ -62,7 +62,7 @@ export function SeedPhraseInputScreen({ navigation, route: { params } }: Props):
     const { validMnemonic, error, invalidWord } = validateMnemonic(value)
 
     if (error) {
-      setErrorMessage(translateMnemonicErrorMessage(error, invalidWord, t))
+      setErrorMessage(translateMnemonicErrorMessage({ error, invalidWord, t }))
       return
     }
 
@@ -80,13 +80,19 @@ export function SeedPhraseInputScreen({ navigation, route: { params } }: Props):
       await generateImportedAccounts({ mnemonicId, backupType: BackupType.Manual })
     }
 
-    onRestoreComplete({ isRestoringMnemonic, dispatch, params, navigation })
+    onRestoreComplete({
+      isRestoringMnemonic,
+      dispatch,
+      params,
+      navigation,
+      screen: OnboardingScreens.SeedPhraseInput,
+    })
   }, [value, mnemonicId, isRestoringMnemonic, t, generateImportedAccounts, dispatch, navigation, params])
 
   const onBlur = useCallback(() => {
     const { error, invalidWord } = validateMnemonic(value)
     if (error) {
-      setErrorMessage(translateMnemonicErrorMessage(error, invalidWord, t))
+      setErrorMessage(translateMnemonicErrorMessage({ error, invalidWord, t }))
     }
   }, [t, value])
 
@@ -101,13 +107,14 @@ export function SeedPhraseInputScreen({ navigation, route: { params } }: Props):
     if (!error || suppressError) {
       setErrorMessage(undefined)
     } else {
-      setErrorMessage(translateMnemonicErrorMessage(error, invalidWord, t))
+      setErrorMessage(translateMnemonicErrorMessage({ error, invalidWord, t }))
     }
 
     setValue(text)
   }
 
-  const onPressRecoveryHelpButton = (): Promise<void> => openUri(uniswapUrls.helpArticleUrls.recoveryPhraseHowToImport)
+  const onPressRecoveryHelpButton = (): Promise<void> =>
+    openUri({ uri: uniswapUrls.helpArticleUrls.recoveryPhraseHowToImport })
 
   const onPressTryAgainButton = (): void => {
     navigation.replace(OnboardingScreens.RestoreCloudBackupLoading, params)

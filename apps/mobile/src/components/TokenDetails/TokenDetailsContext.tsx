@@ -7,8 +7,8 @@ import { setHasViewedContractAddressExplainer } from 'uniswap/src/features/behav
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
-import { pushNotification } from 'uniswap/src/features/notifications/slice'
-import { AppNotificationType, CopyNotificationType } from 'uniswap/src/features/notifications/types'
+import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
+import { AppNotificationType, CopyNotificationType } from 'uniswap/src/features/notifications/slice/types'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { MobileScreens } from 'uniswap/src/types/screens/mobile'
@@ -29,15 +29,9 @@ type TokenDetailsContextState = {
   isTokenWarningModalOpen: boolean
   openTokenWarningModal: () => void
   closeTokenWarningModal: () => void
-  isTestnetWarningModalOpen: boolean
-  openTestnetWarningModal: () => void
-  closeTestnetWarningModal: () => void
-  isBuyNativeTokenModalOpen: boolean
-  openBuyNativeTokenModal: () => void
-  closeBuyNativeTokenModal: () => void
   isContractAddressExplainerModalOpen: boolean
   openContractAddressExplainerModal: () => void
-  closeContractAddressExplainerModal: () => void
+  closeContractAddressExplainerModal: (markViewed: boolean) => void
   copyAddressToClipboard: (address: string) => Promise<void>
   error: unknown | undefined
   setError: (error: unknown | undefined) => void
@@ -58,20 +52,17 @@ export function TokenDetailsContextProvider({
   const openTokenWarningModal = useCallback(() => setIsTokenWarningModalOpen(true), [])
   const closeTokenWarningModal = useCallback(() => setIsTokenWarningModalOpen(false), [])
 
-  const [isTestnetWarningModalOpen, setIsTestnetWarningModalOpen] = useState(false)
-  const openTestnetWarningModal = useCallback(() => setIsTestnetWarningModalOpen(true), [])
-  const closeTestnetWarningModal = useCallback(() => setIsTestnetWarningModalOpen(false), [])
-
-  const [isBuyNativeTokenModalOpen, setIsBuyNativeTokenModalOpen] = useState(false)
-  const openBuyNativeTokenModal = useCallback(() => setIsBuyNativeTokenModalOpen(true), [])
-  const closeBuyNativeTokenModal = useCallback(() => setIsBuyNativeTokenModalOpen(false), [])
-
   const [isContractAddressExplainerModalOpen, setIsContractAddressExplainerModalOpen] = useState(false)
   const openContractAddressExplainerModal = useCallback(() => setIsContractAddressExplainerModalOpen(true), [])
-  const closeContractAddressExplainerModal = useCallback(() => {
-    dispatch(setHasViewedContractAddressExplainer(true))
-    setIsContractAddressExplainerModalOpen(false)
-  }, [dispatch])
+  const closeContractAddressExplainerModal = useCallback(
+    (markViewed: boolean) => {
+      if (markViewed) {
+        dispatch(setHasViewedContractAddressExplainer(true))
+      }
+      setIsContractAddressExplainerModalOpen(false)
+    },
+    [dispatch],
+  )
 
   const copyAddressToClipboard = useCallback(
     async (address: string): Promise<void> => {
@@ -119,12 +110,6 @@ export function TokenDetailsContextProvider({
       isTokenWarningModalOpen,
       openTokenWarningModal,
       closeTokenWarningModal,
-      isTestnetWarningModalOpen,
-      openTestnetWarningModal,
-      closeTestnetWarningModal,
-      isBuyNativeTokenModalOpen,
-      openBuyNativeTokenModal,
-      closeBuyNativeTokenModal,
       isContractAddressExplainerModalOpen,
       openContractAddressExplainerModal,
       closeContractAddressExplainerModal,
@@ -134,22 +119,16 @@ export function TokenDetailsContextProvider({
     }
   }, [
     activeTransactionType,
-    closeBuyNativeTokenModal,
-    closeTestnetWarningModal,
     closeTokenWarningModal,
     closeContractAddressExplainerModal,
     currencyId,
     currencyInfo,
     enabledChains,
     error,
-    isBuyNativeTokenModalOpen,
     isContractAddressExplainerModalOpen,
-    isTestnetWarningModalOpen,
     isTokenWarningModalOpen,
     navigation,
-    openBuyNativeTokenModal,
     openContractAddressExplainerModal,
-    openTestnetWarningModal,
     openTokenWarningModal,
     tokenColor,
     tokenColorLoading,

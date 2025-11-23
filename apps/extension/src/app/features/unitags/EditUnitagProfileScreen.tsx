@@ -8,9 +8,8 @@ import { backgroundToSidePanelMessageChannel } from 'src/background/messagePassi
 import { BackgroundToSidePanelRequestType } from 'src/background/messagePassing/types/requests'
 import { AnimatePresence, Flex } from 'ui/src'
 import { Edit, Ellipsis, Trash } from 'ui/src/components/icons'
-import { iconSizes } from 'ui/src/theme'
+import { useUnitagsAddressQuery } from 'uniswap/src/data/apiClients/unitagsApi/useUnitagsAddressQuery'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { useUnitagByAddress } from 'uniswap/src/features/unitags/hooks'
 import { UnitagScreens } from 'uniswap/src/types/screens/mobile'
 import { ContextMenu } from 'wallet/src/components/menu/ContextMenu'
 import { MenuContentItem } from 'wallet/src/components/menu/types'
@@ -22,14 +21,20 @@ import { useAccountAddressFromUrlWithThrow } from 'wallet/src/features/wallet/ho
 export function EditUnitagProfileScreen({ enableBack = false }: { enableBack?: boolean }): JSX.Element {
   const { t } = useTranslation()
   const address = useAccountAddressFromUrlWithThrow()
-  const { unitag: retrievedUnitag, pending, fetching } = useUnitagByAddress(address)
+  const {
+    data: retrievedUnitag,
+    isPending,
+    isFetching,
+  } = useUnitagsAddressQuery({
+    params: address ? { address } : undefined,
+  })
   const unitag = retrievedUnitag?.username
 
   useEffect(() => {
-    if (!pending && !fetching && !unitag) {
-      navigate(UnitagClaimRoutes.ClaimIntro)
+    if (!isPending && !isFetching && !unitag) {
+      navigate(`/${UnitagClaimRoutes.ClaimIntro}`)
     }
-  }, [unitag, pending, fetching])
+  }, [unitag, isPending, isFetching])
 
   const { goToPreviousStep } = useOnboardingSteps()
 
@@ -50,7 +55,7 @@ export function EditUnitagProfileScreen({ enableBack = false }: { enableBack?: b
         destructive: true,
       },
     ]
-  }, [t, setShowChangeUnitagModal, setShowDeleteUnitagModal])
+  }, [t])
 
   const refreshUnitags = async (): Promise<void> => {
     await backgroundToSidePanelMessageChannel.sendMessage({
@@ -66,7 +71,7 @@ export function EditUnitagProfileScreen({ enableBack = false }: { enableBack?: b
         endAdornment={
           <ContextMenu closeOnClick itemId={address} menuOptions={menuOptions} onLeftClick>
             <Flex>
-              <Ellipsis color="$neutral2" size={iconSizes.icon24} />
+              <Ellipsis color="$neutral2" size="$icon.24" />
             </Flex>
           </ContextMenu>
         }

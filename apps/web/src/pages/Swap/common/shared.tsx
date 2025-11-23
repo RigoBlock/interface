@@ -1,6 +1,6 @@
-import { Input, InputProps } from 'components/NumericalInput'
 import Row from 'components/deprecated/Row'
-import styled, { css } from 'lib/styled-components'
+import { Input, InputProps } from 'components/NumericalInput'
+import { css, styled } from 'lib/styled-components'
 import { useLayoutEffect, useState } from 'react'
 
 export const NumericalInputFontStyle = css<{ $fontSize?: number }>`
@@ -16,10 +16,13 @@ export const NumericalInputWrapper = styled(Row)`
   width: max-content;
 `
 
-export const StyledNumericalInput = styled(Input)<{ $width?: number; $hasPrefix?: boolean } & InputProps>`
+export const StyledNumericalInput = styled(Input)<
+  { $width?: number; $hasPrefix?: boolean; $fontSize?: number } & InputProps
+>`
   max-height: 84px;
   max-width: ${({ $hasPrefix }) => ($hasPrefix ? 'calc(100% - 43px)' : '100%')};
   width: ${({ $width }) => `${$width ?? 43}px`}; // this value is from the size of a 0 which is the default value
+  font-size: ${({ $fontSize }) => `${$fontSize ?? 70}px`};
   ${NumericalInputFontStyle}
 
   ::placeholder {
@@ -37,6 +40,7 @@ export const NumericalInputMimic = styled.span`
 
 export const NumericalInputSymbolContainer = styled.span<{ showPlaceholder: boolean; $fontSize?: number }>`
   user-select: none;
+  color: ${({ theme }) => theme.neutral1};
   ${NumericalInputFontStyle}
   ${({ showPlaceholder }) =>
     showPlaceholder &&

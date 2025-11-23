@@ -1,33 +1,33 @@
-import { InterfaceEventName } from '@uniswap/analytics-events'
 import DefaultMenu from 'components/AccountDrawer/DefaultMenu'
 import { useAccountDrawer } from 'components/AccountDrawer/MiniPortfolio/hooks'
-import { SignInModal } from 'components/AccountDrawer/SignInModal'
+import { useRenderUkBanner } from 'components/TopLevelBanners/UkBanner'
 import { Web3StatusRef } from 'components/Web3Status'
-import { useAccount } from 'hooks/useAccount'
+import { WebNotificationToastWrapper } from 'features/notifications/WebNotificationToastWrapper'
 import useDisableScrolling from 'hooks/useDisableScrolling'
+import { useIsUniswapExtensionConnected } from 'hooks/useIsUniswapExtensionConnected'
 import { useOnClickOutside } from 'hooks/useOnClickOutside'
 import usePrevious from 'hooks/usePrevious'
-import { useIsUniExtensionAvailable } from 'hooks/useUniswapWalletOptions'
-import { atom, useAtom } from 'jotai'
+import { useAtom } from 'jotai'
 import { useEffect, useRef } from 'react'
 import { ChevronsRight } from 'react-feather'
-import { transitions } from 'theme/styles'
 import {
   AnimatePresence,
   Flex,
   FlexProps,
-  TouchableArea,
-  WebBottomSheet,
   styled,
+  TouchableArea,
   useMedia,
   useScrollbarStyles,
   useShadowPropsMedium,
   useSporeColors,
+  WebBottomSheet,
 } from 'ui/src'
-import { INTERFACE_NAV_HEIGHT, iconSizes, zIndexes } from 'ui/src/theme'
-import { FeatureFlags } from 'uniswap/src/features/gating/flags'
-import { useFeatureFlag } from 'uniswap/src/features/gating/hooks'
+import { INTERFACE_NAV_HEIGHT, zIndexes } from 'ui/src/theme'
+import { useConnectionStatus } from 'uniswap/src/features/accounts/store/hooks'
+import { Platform } from 'uniswap/src/features/platforms/types/Platform'
+import { InterfaceEventName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
+import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 
 const DRAWER_SPECS = {
   WIDTH_XL: '390px',
@@ -37,17 +37,6 @@ const DRAWER_SPECS = {
 }
 
 export const MODAL_WIDTH = '368px'
-
-export enum MenuState {
-  DEFAULT = 'default',
-  SETTINGS = 'settings',
-  LANGUAGE_SETTINGS = 'language_settings',
-  LOCAL_CURRENCY_SETTINGS = 'local_currency_settings',
-  LIMITS = 'limits',
-  POOLS = 'pools',
-}
-
-export const miniPortfolioMenuStateAtom = atom(MenuState.DEFAULT)
 
 const AccountDrawerScrollWrapper = styled(Flex, {
   '$platform-web': {
@@ -70,12 +59,12 @@ const Container = styled(Flex, {
   '$platform-web': { position: 'fixed' },
   top: DRAWER_SPECS.MARGIN,
   right: '0',
-  zIndex: zIndexes.fixed,
+  zIndex: zIndexes.sidebar,
   variants: {
     open: {
       true: { right: DRAWER_SPECS.MARGIN },
     },
-    isUniExtensionAvailable: {
+    isUniExtensionConnected: {
       true: ExtensionContainerStyles,
       false: {
         width: DRAWER_SPECS.WIDTH_XL,
@@ -102,24 +91,20 @@ const DropdownContainer = styled(Flex, {
   exitStyle: { opacity: 0, scale: 0.98 },
 })
 
+const SideDrawerWrapper = styled(Flex, {
+  row: true,
+  animation: 'fastHeavy',
+  enterStyle: { x: '100%' },
+  exitStyle: { x: '100%' },
+})
+
 const SideDrawerContainer = styled(Flex, {
   ...sharedContainerStyles,
-  mr: `-${DRAWER_SPECS.WIDTH_XL}`,
-  transition: `margin-right ${transitions.duration.medium}`,
   width: DRAWER_SPECS.WIDTH_XL,
   maxWidth: DRAWER_SPECS.WIDTH_XL,
   $xl: {
-    mr: `-${DRAWER_SPECS.WIDTH}`,
     width: DRAWER_SPECS.WIDTH,
     maxWidth: DRAWER_SPECS.WIDTH,
-  },
-  variants: {
-    open: {
-      true: {
-        mr: 8,
-        $xl: { mr: 8 },
-      },
-    },
   },
 })
 
@@ -134,9 +119,26 @@ const CloseDrawer = styled(Flex, {
   borderBottomLeftRadius: '$rounded20',
   borderTopRightRadius: '$none',
   borderBottomRightRadius: '$none',
-  '$group-hover': {
+  hoverStyle: {
     x: '$spacing8',
     backgroundColor: 'rgba(153,161,189,0.08)',
+  },
+})
+
+const ChevronBackground = styled(Flex, {
+  centered: true,
+  width: 'max-content',
+  animation: 'fastHeavy',
+  enterStyle: { opacity: 0 },
+  exitStyle: { opacity: 0 },
+  variants: {
+    backgroundFilled: {
+      true: {
+        backgroundColor: 'rgba(128,128,128,0.2)',
+        borderRadius: '$roundedFull',
+        padding: '$spacing4',
+      },
+    },
   },
 })
 
@@ -150,20 +152,15 @@ function AccountDropdown({ isOpen, onClose, children }: AccountDrawerProps) {
   const shadowProps = useShadowPropsMedium()
   const scrollbarStyles = useScrollbarStyles()
   const modalRef = useRef<HTMLDivElement>(null)
-  const isUniExtensionAvailable = useIsUniExtensionAvailable()
   const [web3StatusRef] = useAtom(Web3StatusRef)
 
-  useOnClickOutside(
-    modalRef,
-    () => {
-      if (isUniExtensionAvailable) {
-        onClose()
-      }
-    },
+  useOnClickOutside({
+    node: modalRef,
+    handler: onClose,
     // Prevents quick close & re-open when tapping the Web3Status
     // stopPropagation does not work here
-    web3StatusRef ? [web3StatusRef] : [],
-  )
+    ignoredNodes: web3StatusRef ? [web3StatusRef] : [],
+  })
   return (
     <AnimatePresence>
       {isOpen && (
@@ -182,11 +179,13 @@ function AccountDropdown({ isOpen, onClose, children }: AccountDrawerProps) {
 }
 
 function AccountSideDrawer({ isOpen, onClose, children }: AccountDrawerProps) {
-  const scrollbarStyles = useScrollbarStyles()
   const colors = useSporeColors()
+  const scrollbarStyles = useScrollbarStyles()
   const accountDrawer = useAccountDrawer()
+  const shadowProps = useShadowPropsMedium()
   const wasAccountDrawerOpen = usePrevious(accountDrawer.isOpen)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const isUkBannerOpen = useRenderUkBanner()
 
   useEffect(() => {
     if (wasAccountDrawerOpen && !accountDrawer.isOpen) {
@@ -196,44 +195,52 @@ function AccountSideDrawer({ isOpen, onClose, children }: AccountDrawerProps) {
 
   return (
     <Flex row height={`calc(100% - 2 * ${DRAWER_SPECS.MARGIN})`}>
-      {isOpen && (
-        <Trace logPress eventOnTrigger={InterfaceEventName.MINI_PORTFOLIO_TOGGLED} properties={{ type: 'close' }}>
-          <TouchableArea group zIndex={zIndexes.background} width={60}>
-            <CloseDrawer onPress={onClose} data-testid="close-account-drawer">
-              <ChevronsRight color={colors.neutral2.val} size={iconSizes.icon24} />
-            </CloseDrawer>
-          </TouchableArea>
-        </Trace>
-      )}
-      <SideDrawerContainer open={isOpen}>
-        {/* id used for child InfiniteScrolls to reference when it has reached the bottom of the component */}
-        <AccountDrawerScrollWrapper
-          ref={scrollRef}
-          style={scrollbarStyles}
-          id="wallet-dropdown-scroll-wrapper"
-          height="100%"
-        >
-          {children}
-        </AccountDrawerScrollWrapper>
-      </SideDrawerContainer>
+      <AnimatePresence>
+        {isOpen && (
+          <SideDrawerWrapper>
+            <Trace logPress eventOnTrigger={InterfaceEventName.MiniPortfolioToggled} properties={{ type: 'close' }}>
+              <TouchableArea group zIndex={zIndexes.background} width={60}>
+                <CloseDrawer onPress={onClose} data-testid="close-account-drawer">
+                  <ChevronBackground backgroundFilled={isUkBannerOpen}>
+                    <ChevronsRight size={24} color={colors.neutral2.val} />
+                  </ChevronBackground>
+                </CloseDrawer>
+              </TouchableArea>
+            </Trace>
+            <SideDrawerContainer {...shadowProps}>
+              {/* id used for child InfiniteScrolls to reference when it has reached the bottom of the component */}
+              <AccountDrawerScrollWrapper
+                ref={scrollRef}
+                style={scrollbarStyles}
+                id="wallet-dropdown-scroll-wrapper"
+                height="100%"
+              >
+                {children}
+              </AccountDrawerScrollWrapper>
+            </SideDrawerContainer>
+          </SideDrawerWrapper>
+        )}
+      </AnimatePresence>
     </Flex>
   )
 }
 
 function Drawer({ children }: { children: JSX.Element | JSX.Element[] }) {
   const accountDrawer = useAccountDrawer()
-  const isUniExtensionAvailable = useIsUniExtensionAvailable()
+  const isUniExtensionConnected = useIsUniswapExtensionConnected()
   const media = useMedia()
+  const { isConnected } = useConnectionStatus()
+  const isSolanaConnected = useConnectionStatus(Platform.SVM).isConnected
 
   if (media.md) {
     return (
-      <WebBottomSheet data-testid="account-drawer" isOpen={accountDrawer.isOpen} onClose={accountDrawer.close}>
+      <WebBottomSheet data-testid={TestID.AccountDrawer} isOpen={accountDrawer.isOpen} onClose={accountDrawer.close}>
         {children}
       </WebBottomSheet>
     )
-  } else if (!isUniExtensionAvailable) {
+  } else if ((!isUniExtensionConnected && isConnected) || (isUniExtensionConnected && isSolanaConnected)) {
     return (
-      <Container data-testid="account-drawer">
+      <Container data-testid={TestID.AccountDrawer}>
         <AccountSideDrawer isOpen={accountDrawer.isOpen} onClose={accountDrawer.close}>
           {children}
         </AccountSideDrawer>
@@ -241,7 +248,7 @@ function Drawer({ children }: { children: JSX.Element | JSX.Element[] }) {
     )
   } else {
     return (
-      <Container data-testid="account-drawer" isUniExtensionAvailable>
+      <Container data-testid={TestID.AccountDrawer} isUniExtensionConnected>
         <AccountDropdown isOpen={accountDrawer.isOpen} onClose={accountDrawer.close}>
           {children}
         </AccountDropdown>
@@ -252,8 +259,6 @@ function Drawer({ children }: { children: JSX.Element | JSX.Element[] }) {
 
 function AccountDrawer() {
   const accountDrawer = useAccountDrawer()
-  const account = useAccount()
-  const isEmbeddedWalletEnabled = useFeatureFlag(FeatureFlags.EmbeddedWallet)
 
   // close on escape keypress
   useEffect(() => {
@@ -273,12 +278,11 @@ function AccountDrawer() {
 
   useDisableScrolling(accountDrawer.isOpen)
 
-  return account?.address || !isEmbeddedWalletEnabled ? (
+  return (
     <Drawer>
+      <WebNotificationToastWrapper />
       <DefaultMenu />
     </Drawer>
-  ) : (
-    <SignInModal isOpen={accountDrawer.isOpen} close={accountDrawer.close} />
   )
 }
 

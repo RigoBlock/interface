@@ -1,12 +1,10 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { rpcErrors, serializeError } from '@metamask/rpc-errors'
-import { logger } from 'ethers'
 import { removeDappConnection } from 'src/app/features/dapp/actions'
 import { DappInfo } from 'src/app/features/dapp/store'
 import { saveAccount } from 'src/app/features/dappRequests/accounts'
-import { SenderTabInfo } from 'src/app/features/dappRequests/slice'
+import type { SenderTabInfo } from 'src/app/features/dappRequests/shared'
 import {
-  DappResponseType,
   ErrorResponse,
   GetPermissionsRequest,
   GetPermissionsResponse,
@@ -17,12 +15,13 @@ import {
 } from 'src/app/features/dappRequests/types/DappRequestTypes'
 import { dappResponseMessageChannel } from 'src/background/messagePassing/messageChannels'
 import { Permission } from 'src/contentScript/WindowEthereumRequestTypes'
-import { ExtensionEthMethods } from 'src/contentScript/methodHandlers/requestMethods'
 import { call, put } from 'typed-redux-saga'
 import { chainIdToHexadecimalString } from 'uniswap/src/features/chains/utils'
-import { pushNotification } from 'uniswap/src/features/notifications/slice'
-import { AppNotificationType } from 'uniswap/src/features/notifications/types'
+import { DappResponseType, EthMethod } from 'uniswap/src/features/dappRequests/types'
+import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
+import { AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
 import { extractBaseUrl } from 'utilities/src/format/urls'
+import { logger } from 'utilities/src/logger/logger'
 
 export function getPermissions(dappUrl: string | undefined, connectedAddresses: Address[] | undefined): Permission[] {
   const permissions: Permission[] = []
@@ -32,7 +31,7 @@ export function getPermissions(dappUrl: string | undefined, connectedAddresses: 
     // since dappInfo will only exist if it as been approved already
     permissions.push({
       invoker: dappUrl,
-      parentCapability: ExtensionEthMethods.eth_accounts,
+      parentCapability: EthMethod.EthAccounts,
       caveats: [],
     })
   }
@@ -40,16 +39,20 @@ export function getPermissions(dappUrl: string | undefined, connectedAddresses: 
   return permissions
 }
 
-export function* handleGetPermissionsRequest(
-  request: GetPermissionsRequest,
-  { id, url }: SenderTabInfo,
-  dappInfo?: DappInfo,
-) {
+export function* handleGetPermissionsRequest({
+  request,
+  senderTabInfo: { id, url },
+  dappInfo,
+}: {
+  request: GetPermissionsRequest
+  senderTabInfo: SenderTabInfo
+  dappInfo?: DappInfo
+}) {
   const permissions: Permission[] = []
   if (dappInfo) {
     permissions.push({
       invoker: url,
-      parentCapability: ExtensionEthMethods.eth_accounts,
+      parentCapability: EthMethod.EthAccounts,
       caveats: [],
     })
   }
@@ -65,7 +68,7 @@ export function* handleGetPermissionsRequest(
 export function* handleRequestPermissions(request: RequestPermissionsRequest, senderTabInfo: SenderTabInfo) {
   const requestedPermissions = Object.keys(request.permissions)
 
-  if (requestedPermissions.includes(ExtensionEthMethods.eth_accounts)) {
+  if (requestedPermissions.includes(EthMethod.EthAccounts)) {
     // Pre-emptively save the dapp connection, to avoid double-approval when dapp calls eth_requestAccounts
     const accountInfo = yield* call(saveAccount, senderTabInfo)
     const accounts = accountInfo && {
@@ -77,7 +80,7 @@ export function* handleRequestPermissions(request: RequestPermissionsRequest, se
     const permissions: Permission[] = [
       {
         invoker: senderTabInfo.url,
-        parentCapability: ExtensionEthMethods.eth_accounts,
+        parentCapability: EthMethod.EthAccounts,
         caveats: [],
       },
     ]
@@ -101,7 +104,7 @@ export function* handleRequestPermissions(request: RequestPermissionsRequest, se
 export function* handleRevokePermissions(request: RevokePermissionsRequest, senderTabInfo: SenderTabInfo) {
   const revokedPermissions = Object.keys(request.permissions)
 
-  if (revokedPermissions.includes(ExtensionEthMethods.eth_accounts)) {
+  if (revokedPermissions.includes(EthMethod.EthAccounts)) {
     const dappUrl = extractBaseUrl(senderTabInfo.url)
 
     if (!dappUrl) {

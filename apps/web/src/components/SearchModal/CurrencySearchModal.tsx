@@ -1,10 +1,13 @@
 import { Currency } from '@uniswap/sdk-core'
+import { SwitchNetworkAction } from 'components/Popups/types'
 import { CurrencyRow } from 'components/SearchModal//CurrencyList'
 import { CurrencySearch } from 'components/SearchModal/CurrencySearch'
 import { memo } from 'react'
-import styled from 'lib/styled-components'
-import { TOKEN_SELECTOR_WEB_MAX_WIDTH } from 'uniswap/src/components/TokenSelector/TokenSelector'
 import { Modal } from 'uniswap/src/components/modals/Modal'
+import {
+  TOKEN_SELECTOR_WEB_MAX_WIDTH,
+  TokenSelectorVariation,
+} from 'uniswap/src/components/TokenSelector/TokenSelector'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { CurrencyField } from 'uniswap/src/types/currency'
@@ -31,10 +34,12 @@ interface CurrencySearchModalProps {
   onDismiss: () => void
   selectedCurrency?: Currency | null
   onCurrencySelect: (currency: Currency) => void
+  switchNetworkAction: SwitchNetworkAction
   otherSelectedCurrency?: Currency | null
   showCurrencyAmount?: boolean
   currencyField?: CurrencyField
   chainIds?: UniverseChainId[]
+  variation?: TokenSelectorVariation
   operatedPools?: CurrencyInfo[]
   shouldDisplayPoolsOnly?: boolean
 }
@@ -44,7 +49,9 @@ export default memo(function CurrencySearchModal({
   onDismiss,
   onCurrencySelect,
   currencyField = CurrencyField.INPUT,
+  switchNetworkAction,
   chainIds,
+  variation,
   operatedPools,
   shouldDisplayPoolsOnly,
 }: CurrencySearchModalProps) {
@@ -63,8 +70,10 @@ export default memo(function CurrencySearchModal({
         <CurrencySearch
           currencyField={currencyField}
           onCurrencySelect={onCurrencySelect}
+        switchNetworkAction={switchNetworkAction}
           onDismiss={onDismiss}
           chainIds={chainIds}
+        variation={variation}
         />
       ) : (
         <PoolListWrapper>

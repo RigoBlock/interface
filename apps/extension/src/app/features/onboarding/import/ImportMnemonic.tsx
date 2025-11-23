@@ -1,4 +1,4 @@
-import { wordlists } from 'ethers'
+import { wordlists } from '@ethersproject/wordlists'
 import { forwardRef, useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -13,7 +13,7 @@ import { useOnboardingSteps } from 'src/app/features/onboarding/OnboardingSteps'
 import { SyncFromPhoneButton } from 'src/app/features/onboarding/SyncFromPhoneButton'
 import { TopLevelRoutes } from 'src/app/navigation/constants'
 import { navigate } from 'src/app/navigation/state'
-import { Button, Flex, Input, Square, Text, inputStyles } from 'ui/src'
+import { Button, Flex, Input, inputStyles, Square, Text } from 'ui/src'
 import { FileListLock, RotatableChevron } from 'ui/src/components/icons'
 import { fonts, iconSizes } from 'ui/src/theme'
 import Trace from 'uniswap/src/features/telemetry/Trace'
@@ -76,7 +76,7 @@ export function ImportMnemonic(): JSX.Element {
     return () => {
       window.document.removeEventListener('paste', handlePaste)
     }
-  }, [setMnemonic])
+  }, [])
 
   const handleChange = useCallback(
     (index: number) =>
@@ -92,7 +92,7 @@ export function ImportMnemonic(): JSX.Element {
         newMnemonic[index] = word.trim()
         setMnemonic(newMnemonic)
       },
-    [mnemonic, setMnemonic],
+    [mnemonic],
   )
 
   const handleKeyPress = useCallback(
@@ -187,7 +187,7 @@ export function ImportMnemonic(): JSX.Element {
               height={iconSizes.icon48}
               width={iconSizes.icon48}
             >
-              <FileListLock color="$neutral1" size={iconSizes.icon24} />
+              <FileListLock color="$neutral1" size="$icon.24" />
             </Square>
           }
           belowFrameContent={
@@ -230,7 +230,7 @@ export function ImportMnemonic(): JSX.Element {
             <Flex row flexWrap="wrap" gap="$spacing16">
               {mnemonic.map(
                 (word, index) =>
-                  Boolean(expanded || (!expanded && index < 12)) && (
+                  Boolean(expanded || index < 12) && (
                     <Flex key={index} style={styles.recoveryPhraseWord}>
                       <RecoveryPhraseWord
                         key={index + 'input'}
@@ -324,7 +324,7 @@ const RecoveryPhraseWord = forwardRef<
         onKeyPress={handleKeyPress(index)}
         onSubmitEditing={onSubmitEditing}
         {...(showError && {
-          backgroundColor: '$DEP_accentCriticalSoft',
+          backgroundColor: '$statusCritical2',
           color: '$statusCritical',
         })}
       />

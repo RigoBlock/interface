@@ -1,37 +1,34 @@
+import { GqlResult } from '@universe/api'
 import { memo, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Flex } from 'ui/src'
 import { BaseCard } from 'uniswap/src/components/BaseCard/BaseCard'
-import { TokenSelectorList } from 'uniswap/src/components/TokenSelector/TokenSelectorList'
+import { TokenOption } from 'uniswap/src/components/lists/items/types'
+import { type OnchainItemSection, OnchainItemSectionName } from 'uniswap/src/components/lists/OnchainItemList/types'
+import { SectionHeader } from 'uniswap/src/components/lists/SectionHeader'
+import { useOnchainItemListSection } from 'uniswap/src/components/lists/utils'
 import { usePortfolioTokenOptions } from 'uniswap/src/components/TokenSelector/hooks/usePortfolioTokenOptions'
-import {
-  OnSelectCurrency,
-  TokenOptionSection,
-  TokenSection,
-  TokenSectionsHookProps,
-} from 'uniswap/src/components/TokenSelector/types'
-import { useTokenOptionsSection } from 'uniswap/src/components/TokenSelector/utils'
-import { SectionHeader } from 'uniswap/src/components/lists/TokenSectionHeader'
-import { TokenOption } from 'uniswap/src/components/lists/types'
-import { GqlResult } from 'uniswap/src/data/types'
+import { TokenSelectorList } from 'uniswap/src/components/TokenSelector/TokenSelectorList'
+import { OnSelectCurrency, TokenSectionsHookProps } from 'uniswap/src/components/TokenSelector/types'
 
 function useTokenSectionsForSend({
-  activeAccountAddress,
+  evmAddress,
+  svmAddress,
   chainFilter,
-}: TokenSectionsHookProps): GqlResult<TokenSection<TokenOption>[]> {
+}: TokenSectionsHookProps): GqlResult<OnchainItemSection<TokenOption>[]> {
   const {
     data: portfolioTokenOptions,
     error: portfolioTokenOptionsError,
     refetch: refetchPortfolioTokenOptions,
     loading: portfolioTokenOptionsLoading,
-  } = usePortfolioTokenOptions(activeAccountAddress, chainFilter)
+  } = usePortfolioTokenOptions({ evmAddress, svmAddress, chainFilter })
 
   const loading = portfolioTokenOptionsLoading
   const error = !portfolioTokenOptions && portfolioTokenOptionsError
 
-  const sections = useTokenOptionsSection({
-    sectionKey: TokenOptionSection.YourTokens,
-    tokenOptions: portfolioTokenOptions,
+  const sections = useOnchainItemListSection({
+    sectionKey: OnchainItemSectionName.YourTokens,
+    options: portfolioTokenOptions,
   })
 
   return useMemo(
@@ -50,7 +47,7 @@ function EmptyList({ onEmptyActionPress }: { onEmptyActionPress?: () => void }):
 
   return (
     <Flex>
-      <SectionHeader sectionKey={TokenOptionSection.YourTokens} />
+      <SectionHeader sectionKey={OnchainItemSectionName.YourTokens} />
       <Flex pt="$spacing16" px="$spacing16">
         <BaseCard.EmptyState
           buttonLabel={
@@ -66,14 +63,16 @@ function EmptyList({ onEmptyActionPress }: { onEmptyActionPress?: () => void }):
 }
 
 function _TokenSelectorSendList({
-  activeAccountAddress,
+  evmAddress,
+  svmAddress,
   chainFilter,
-  isKeyboardOpen,
   onSelectCurrency,
   onEmptyActionPress,
+  renderedInModal,
 }: TokenSectionsHookProps & {
   onSelectCurrency: OnSelectCurrency
   onEmptyActionPress: () => void
+  renderedInModal: boolean
 }): JSX.Element {
   const {
     data: sections,
@@ -81,7 +80,8 @@ function _TokenSelectorSendList({
     error,
     refetch,
   } = useTokenSectionsForSend({
-    activeAccountAddress,
+    evmAddress,
+    svmAddress,
     chainFilter,
   })
   const emptyElement = useMemo(() => <EmptyList onEmptyActionPress={onEmptyActionPress} />, [onEmptyActionPress])
@@ -92,11 +92,11 @@ function _TokenSelectorSendList({
       chainFilter={chainFilter}
       emptyElement={emptyElement}
       hasError={Boolean(error)}
-      isKeyboardOpen={isKeyboardOpen}
       loading={loading}
       refetch={refetch}
       sections={sections}
       showTokenWarnings={false}
+      renderedInModal={renderedInModal}
       onSelectCurrency={onSelectCurrency}
     />
   )

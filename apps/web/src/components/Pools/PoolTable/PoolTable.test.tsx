@@ -1,30 +1,33 @@
 import 'test-utils/tokens/mocks'
 
 import { Percent } from '@uniswap/sdk-core'
+import { GraphQLApi } from '@universe/api'
 import { ExploreTopPoolTable } from 'components/Pools/PoolTable/PoolTable'
-import Router from 'react-router-dom'
 import { useExploreContextTopPools } from 'state/explore/topPools'
 import { mocked } from 'test-utils/mocked'
-import { validParams, validRestPoolToken0, validRestPoolToken1 } from 'test-utils/pools/fixtures'
+import { validRestPoolToken0, validRestPoolToken1 } from 'test-utils/pools/fixtures'
 import { render, screen } from 'test-utils/render'
-import { ProtocolVersion } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
+import { DEFAULT_TICK_SPACING } from 'uniswap/src/constants/pools'
 
-jest.mock('state/explore/topPools')
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useParams: jest.fn(),
-}))
+vi.mock('state/explore/topPools')
+vi.mock('react-router', async () => {
+  const actual = await vi.importActual('react-router')
+  return {
+    ...actual,
+    default: actual,
+    useParams: vi
+      .fn()
+      .mockReturnValue({ poolAddress: '0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640', chainName: 'ethereum' }),
+  }
+})
 
 describe('PoolTable', () => {
-  beforeEach(() => {
-    jest.spyOn(Router, 'useParams').mockReturnValue(validParams)
-  })
-
   it('renders loading state', () => {
     mocked(useExploreContextTopPools).mockReturnValue({
       isLoading: true,
       isError: false,
       topPools: [],
+      topBoostedPools: [],
     })
 
     const { asFragment } = render(<ExploreTopPoolTable />)
@@ -37,6 +40,7 @@ describe('PoolTable', () => {
       isLoading: false,
       isError: true,
       topPools: [],
+      topBoostedPools: [],
     })
 
     const { asFragment } = render(<ExploreTopPoolTable />)
@@ -51,7 +55,11 @@ describe('PoolTable', () => {
         chain: 'mainnet',
         token0: validRestPoolToken0,
         token1: validRestPoolToken1,
-        feeTier: 10000,
+        feeTier: {
+          feeAmount: 10000,
+          tickSpacing: DEFAULT_TICK_SPACING,
+          isDynamic: false,
+        },
         hash: '0x123',
         txCount: 200,
         tvl: 300,
@@ -59,11 +67,12 @@ describe('PoolTable', () => {
         volumeWeek: 500,
         apr: new Percent(6, 100),
         volOverTvl: 1.84,
-        protocolVersion: ProtocolVersion.V3,
+        protocolVersion: GraphQLApi.ProtocolVersion.V3,
       },
     ]
     mocked(useExploreContextTopPools).mockReturnValue({
       topPools: mockData,
+      topBoostedPools: mockData,
       isLoading: false,
       isError: false,
     })

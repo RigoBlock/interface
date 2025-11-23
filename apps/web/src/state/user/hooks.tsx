@@ -1,8 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
+
+import { gqlToCurrency } from 'appGraphql/data/util'
 import { Percent, Token, V2_FACTORY_ADDRESSES } from '@uniswap/sdk-core'
-import { Pair, computePairAddress } from '@uniswap/v2-sdk'
+import { computePairAddress, Pair } from '@uniswap/v2-sdk'
+import { GraphQLApi } from '@universe/api'
 import { L2_DEADLINE_FROM_NOW } from 'constants/misc'
 import { BASES_TO_TRACK_LIQUIDITY_FOR, PINNED_PAIRS } from 'constants/routing'
-import { gqlToCurrency } from 'graphql/data/util'
 import { useAccount } from 'hooks/useAccount'
 import JSBI from 'jsbi'
 import { useCallback, useMemo } from 'react'
@@ -15,10 +18,6 @@ import {
   updateUserSlippageTolerance,
 } from 'state/user/reducer'
 import { SerializedPair, SlippageTolerance } from 'state/user/types'
-import {
-  TokenSortableField,
-  useTopTokensQuery,
-} from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
 import { useGetPositionsForPairs } from 'uniswap/src/data/rest/getPositions'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { useSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
@@ -68,7 +67,7 @@ export function useUserSlippageTolerance(): [
           userSlippageTolerance === SlippageTolerance.Auto
             ? SlippageTolerance.Auto
             : JSBI.toNumber(userSlippageTolerance.multiply(10_000).quotient)
-      } catch (error) {
+      } catch {
         value = SlippageTolerance.Auto
       }
       dispatch(
@@ -161,17 +160,17 @@ export function useTrackedTokenPairs(): [Token, Token][] {
   const supportedChainId = useSupportedChainId(chainId)
 
   // TODO(WEB-4001): use an "all tokens" query for better LP detection
-  const { data: popularTokens } = useTopTokensQuery({
+  const { data: popularTokens } = GraphQLApi.useTopTokensQuery({
     variables: {
       chain: toGraphQLChain(supportedChainId ?? defaultChainId),
-      orderBy: TokenSortableField.Popularity,
+      orderBy: GraphQLApi.TokenSortableField.Popularity,
       page: 1,
       pageSize: 100,
     },
   })
 
   // pinned pairs
-  const pinnedPairs = useMemo(() => (chainId ? PINNED_PAIRS[chainId] ?? [] : []), [chainId])
+  const pinnedPairs = useMemo(() => (chainId ? (PINNED_PAIRS[chainId] ?? []) : []), [chainId])
 
   // pairs for every token against every base
   const generatedPairs: [Token, Token][] = useMemo(

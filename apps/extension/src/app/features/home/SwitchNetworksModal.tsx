@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import { useDappContext } from 'src/app/features/dapp/DappContext'
 import { saveDappChain } from 'src/app/features/dapp/actions'
+import { useDappContext } from 'src/app/features/dapp/DappContext'
 import { useDappLastChainId } from 'src/app/features/dapp/hooks'
 import { Flex, Popover, Text, TouchableArea } from 'ui/src'
 import { CheckCircleFilled, RotatableChevron } from 'ui/src/components/icons'
@@ -72,10 +72,9 @@ export function SwitchNetworksModal({ onPress }: SwitchNetworksModalProps): JSX.
       <Flex shrink $platform-web={{ overflow: 'auto' }}>
         {enabledChains.map((chain: UniverseChainId) => {
           return (
-            <Popover.Close asChild>
+            <Popover.Close asChild key={chain}>
               {/* TODO(WALL-5883): Use new component */}
               <TouchableArea
-                key={chain}
                 borderRadius="$rounded12"
                 hoverStyle={{ backgroundColor: '$surface2' }}
                 justifyContent="space-between"

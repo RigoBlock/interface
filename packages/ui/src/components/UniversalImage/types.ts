@@ -6,6 +6,7 @@ export interface UniversalImageStyle {
   borderRadius?: number
   verticalAlign?: FlexProps['verticalAlign']
   zIndex?: number
+  transition?: string
 }
 
 export enum UniversalImageResizeMode {
@@ -41,6 +42,7 @@ export interface UniversalImageProps {
   fastImage?: boolean
   testID?: string
   allowLocalUri?: boolean
+  autoplay?: boolean
   onLoad?: () => void
 }
 

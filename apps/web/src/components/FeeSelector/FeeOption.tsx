@@ -1,12 +1,12 @@
 import { FeeAmount } from '@uniswap/v3-sdk'
+import { AutoColumn } from 'components/deprecated/Column'
 import { FEE_AMOUNT_DETAIL } from 'components/FeeSelector/shared'
 import { MouseoverTooltip, TooltipSize } from 'components/Tooltip'
-import { AutoColumn } from 'components/deprecated/Column'
 import { useFeeTierDistribution } from 'hooks/useFeeTierDistribution'
 import { PoolState } from 'hooks/usePools'
 import { Trans } from 'react-i18next'
 import { Flex, RadioButton, Text } from 'ui/src'
-import { useFormatter } from 'utils/formatNumbers'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 
 interface FeeOptionProps {
   feeAmount: FeeAmount
@@ -17,7 +17,7 @@ interface FeeOptionProps {
 }
 
 export function FeeOption({ feeAmount, selected, poolState, distributions, onClick }: FeeOptionProps) {
-  const { formatDelta } = useFormatter()
+  const { formatPercent } = useLocalizationContext()
   const pct = distributions?.[feeAmount]?.toFixed(0)
   const tooltipText = FEE_AMOUNT_DETAIL[feeAmount].description
 
@@ -56,11 +56,11 @@ export function FeeOption({ feeAmount, selected, poolState, distributions, onCli
           variant="branded"
         />
         <AutoColumn gap="sm" justify="flex-start">
-          <Text variant="buttonLabel3">{formatDelta(parseFloat(FEE_AMOUNT_DETAIL[feeAmount].label))}</Text>
+          <Text variant="buttonLabel3">{formatPercent(parseFloat(FEE_AMOUNT_DETAIL[feeAmount].label))}</Text>
 
           {distributions && (
             <Text variant="body4" color="$neutral2">
-              {!distributions || poolState === PoolState.NOT_EXISTS || poolState === PoolState.INVALID ? (
+              {poolState === PoolState.NOT_EXISTS || poolState === PoolState.INVALID ? (
                 <Trans i18nKey="common.notCreated.label" />
               ) : distributions[feeAmount] !== undefined ? (
                 <Trans i18nKey="fee.selectPercent" values={{ pct }} />

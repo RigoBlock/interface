@@ -1,35 +1,31 @@
-import { ApolloError } from '@apollo/client'
-import { Token } from '@uniswap/sdk-core'
-import { PoolsTable, sortAscendingAtom, sortMethodAtom } from 'components/Pools/PoolTable/PoolTable'
+import { usePoolsFromTokenAddress } from 'appGraphql/data/pools/usePoolsFromTokenAddress'
+import { PoolSortFields } from 'appGraphql/data/pools/useTopPools'
+import { OrderDirection } from 'appGraphql/data/util'
 import { useUpdateManualOutage } from 'featureFlags/flags/outageBanner'
-import { usePoolsFromTokenAddress } from 'graphql/data/pools/usePoolsFromTokenAddress'
-import { PoolSortFields } from 'graphql/data/pools/useTopPools'
-import { OrderDirection } from 'graphql/data/util'
+import { ApolloError } from '@apollo/client'
+import { type Currency } from '@uniswap/sdk-core'
+import { PoolsTable, sortAscendingAtom, sortMethodAtom } from 'components/Pools/PoolTable/PoolTable'
 import { useAtomValue, useResetAtom } from 'jotai/utils'
 import { useEffect, useMemo } from 'react'
 import { Flex } from 'ui/src'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { AddressStringFormat, normalizeAddress } from 'uniswap/src/utils/addresses'
 
-const HIDDEN_COLUMNS = [PoolSortFields.VolOverTvl]
+const HIDDEN_COLUMNS = [PoolSortFields.VolOverTvl, PoolSortFields.RewardApr]
 
-export function TokenDetailsPoolsTable({
-  chainId,
-  referenceToken,
-}: {
-  chainId: UniverseChainId
-  referenceToken: Token
-}) {
+export function TokenDetailsPoolsTable({ referenceCurrency }: { referenceCurrency: Currency }) {
+  const { chainId, wrapped: referenceToken, isNative } = referenceCurrency
   const sortMethod = useAtomValue(sortMethodAtom)
   const sortAscending = useAtomValue(sortAscendingAtom)
   const sortState = useMemo(
     () => ({ sortBy: sortMethod, sortDirection: sortAscending ? OrderDirection.Asc : OrderDirection.Desc }),
     [sortAscending, sortMethod],
   )
-  const { pools, loading, errorV2, errorV3, loadMore } = usePoolsFromTokenAddress(
-    referenceToken.address,
+  const { pools, loading, errorV2, errorV3, loadMore } = usePoolsFromTokenAddress({
+    tokenAddress: referenceToken.address,
     sortState,
-    chainId,
-  )
+    chainId: referenceCurrency.chainId,
+    isNative,
+  })
   const combinedError =
     errorV2 && errorV3
       ? new ApolloError({
@@ -47,7 +43,7 @@ export function TokenDetailsPoolsTable({
   }, [resetSortAscending, resetSortMethod])
 
   return (
-    <Flex data-testid={`tdp-pools-table-${referenceToken.address.toLowerCase()}`}>
+    <Flex data-testid={`tdp-pools-table-${normalizeAddress(referenceToken.address, AddressStringFormat.Lowercase)}`}>
       <PoolsTable
         pools={pools}
         loading={allDataStillLoading}
@@ -55,6 +51,7 @@ export function TokenDetailsPoolsTable({
         maxHeight={600}
         hiddenColumns={HIDDEN_COLUMNS}
         loadMore={loadMore}
+        forcePinning
       />
     </Flex>
   )

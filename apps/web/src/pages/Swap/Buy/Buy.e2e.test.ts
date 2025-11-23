@@ -1,14 +1,19 @@
-import { expect, test } from 'playwright/fixtures'
+import { expect, getTest } from 'playwright/fixtures'
+import { stubTradingApiEndpoint } from 'playwright/fixtures/tradingApi'
 import { Mocks } from 'playwright/mocks/mocks'
+import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { TestID } from 'uniswap/src/test/fixtures/testIDs'
+
+const test = getTest()
 
 test.describe('Buy Crypto Form', () => {
   test.beforeEach(async ({ page }) => {
     const mockRoutes = [
-      { pattern: '**/fiat-on-ramp/get-country', file: Mocks.FiatOnRamp.get_country },
-      { pattern: '**/fiat-on-ramp/supported-fiat-currencies*', file: Mocks.FiatOnRamp.supported_fiat_currencies },
-      { pattern: '**/fiat-on-ramp/supported-countries*', file: Mocks.FiatOnRamp.supported_countries },
-      { pattern: '**/fiat-on-ramp/supported-tokens*', file: Mocks.FiatOnRamp.supported_tokens },
-      { pattern: '**/fiat-on-ramp/quote*', file: Mocks.FiatOnRamp.quotes },
+      { pattern: '**/GetCountry', file: Mocks.FiatOnRamp.get_country },
+      { pattern: '**/SupportedFiatCurrencies', file: Mocks.FiatOnRamp.supported_fiat_currencies },
+      { pattern: '**/SupportedCountries', file: Mocks.FiatOnRamp.supported_countries },
+      { pattern: '**/SupportedTokens', file: Mocks.FiatOnRamp.supported_tokens },
+      { pattern: '**/Quote', file: Mocks.FiatOnRamp.quotes },
     ]
 
     for (const { pattern, file } of mockRoutes) {
@@ -17,37 +22,44 @@ test.describe('Buy Crypto Form', () => {
       })
     }
 
+    await stubTradingApiEndpoint({ page, endpoint: uniswapUrls.tradingApiPaths.quote })
     await page.goto('/buy')
 
-    await page.act({ action: 'Open the "Select a token" modal' })
-    await page.act({ action: 'Click token "ETH"' })
+    // Wait for wallet to be connected
+    await page.getByTestId(TestID.Web3StatusConnected).waitFor()
+
+    await page.getByTestId(TestID.ChooseInputToken).click()
+    // eslint-disable-next-line
+    await page.getByTestId('for-currency-list-wrapper').getByText('Ethereum').click()
   })
 
   test('quick amount select', async ({ page }) => {
-    await page.act({ action: 'Click preset amount "$100"' })
-    await page.act({ action: 'Click Continue' })
-    await expect(page.getByText('Checkout with')).toBeVisible()
+    await page.getByText('$100', { exact: true }).click()
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await expect(page.getByTestId(TestID.BuyFormChooseProvider)).toBeVisible()
   })
 
   test('user input amount', async ({ page }) => {
-    await page.act({ action: 'Fill amount input with "123"' })
-    await page.act({ action: 'Click Continue' })
-    await expect(page.getByText('Checkout with')).toBeVisible()
+    await page.getByTestId(TestID.BuyFormAmountInput).click()
+    await page.getByTestId(TestID.BuyFormAmountInput).fill('123')
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await expect(page.getByTestId(TestID.BuyFormChooseProvider)).toBeVisible()
   })
 
   test('change input token', async ({ page }) => {
-    await page.act({ action: 'Click token "ETH"' })
-    await page.act({ action: 'Click token "DAI"' })
-    await page.act({ action: 'Fill amount input with "123"' })
-    await page.act({ action: 'Click "Continue"' })
-    await expect(page.getByText('Checkout with')).toBeVisible()
+    await page.getByTestId(TestID.ChooseInputToken).click()
+    // eslint-disable-next-line
+    await page.getByTestId('for-currency-list-wrapper').getByText('DAI').nth(1).click()
+    await page.getByTestId(TestID.BuyFormAmountInput).fill('123')
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await expect(page.getByTestId(TestID.BuyFormChooseProvider)).toBeVisible()
   })
 
   test('change country', async ({ page }) => {
-    await page.getByTestId('FiatOnRampCountryPicker').click()
-    await page.act({ action: 'Select country "Argentina"' })
-    await page.act({ action: 'Fill amount input with "123"' })
-    await page.act({ action: 'Click "Continue"' })
-    await expect(page.getByText('Checkout with')).toBeVisible()
+    await page.getByTestId(TestID.FiatOnRampCountryPicker).click()
+    await page.getByText('Argentina').click()
+    await page.getByTestId(TestID.BuyFormAmountInput).fill('123')
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await expect(page.getByTestId(TestID.BuyFormChooseProvider)).toBeVisible()
   })
 })

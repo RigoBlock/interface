@@ -1,105 +1,82 @@
+import { getTokenDetailsURL } from 'appGraphql/data/util'
 import { Currency } from '@uniswap/sdk-core'
 import { PortfolioLogo } from 'components/AccountDrawer/MiniPortfolio/PortfolioLogo'
-import { PortfolioBalance } from 'graphql/data/portfolios'
-import { getTokenDetailsURL, gqlToCurrency, supportedChainIdFromGQLChain } from 'graphql/data/util'
-import { useAccount } from 'hooks/useAccount'
-import styled from 'lib/styled-components'
+import { useModalState } from 'hooks/useModalState'
+import { useAtom } from 'jotai'
 import { useTDPContext } from 'pages/TokenDetails/TDPContext'
 import { useMemo } from 'react'
-import { Trans } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
-import { ThemedText } from 'theme/components'
-import { breakpoints } from 'ui/src/theme'
-import { Chain } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
+import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router'
+import { ClickableTamaguiStyle } from 'theme/components/styles'
+import { Flex, Text, TouchableArea } from 'ui/src'
+import { ExternalLink } from 'ui/src/components/icons/ExternalLink'
+import { WormholeModalAtom } from 'uniswap/src/components/BridgedAsset/WormholeModal'
+import { useConnectionStatus } from 'uniswap/src/features/accounts/store/hooks'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { NumberType, useFormatter } from 'utils/formatNumbers'
-
-const BalancesCard = styled.div`
-  color: ${({ theme }) => theme.neutral1};
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  height: fit-content;
-  width: 100%;
-
-  @media screen and (min-width: ${breakpoints.lg}px) {
-    display: flex;
-  }
-`
-const BalanceSection = styled.div`
-  height: fit-content;
-  width: 100%;
-`
-const BalanceRow = styled.div`
-  align-items: center;
-  display: flex;
-  flex-direction: row;
-  margin-top: 12px;
-`
-const BalanceItem = styled.div`
-  display: flex;
-  align-items: center;
-`
-
-const BalanceAmountsContainer = styled.div<{ $alignLeft: boolean }>`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  margin-left: 12px;
-  ${({ $alignLeft }) =>
-    $alignLeft &&
-    `
-    justify-content: start;
-    gap: 8px;
-  `}
-`
+import { toGraphQLChain } from 'uniswap/src/features/chains/utils'
+import { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
+import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
+import { NumberType } from 'utilities/src/format/types'
+import { useEvent } from 'utilities/src/react/hooks'
 
 interface BalanceProps {
   currency?: Currency
   chainId?: UniverseChainId
-  gqlBalance?: PortfolioBalance
+  fetchedBalance?: PortfolioBalance
   alignLeft?: boolean
   onClick?: () => void
 }
 const Balance = ({
   currency,
   chainId = UniverseChainId.Mainnet,
-  gqlBalance,
+  fetchedBalance,
   alignLeft = false,
   onClick,
 }: BalanceProps) => {
-  const { formatNumber } = useFormatter()
-  const currencies = useMemo(() => [currency], [currency])
+  const { convertFiatAmountFormatted, formatNumberOrString } = useLocalizationContext()
+  const currencies = useMemo(() => (currency ? [currency] : []), [currency])
 
-  const formattedGqlBalance = formatNumber({
-    input: gqlBalance?.quantity,
+  const formattedBalance = formatNumberOrString({
+    value: fetchedBalance?.quantity,
     type: NumberType.TokenNonTx,
   })
-  const formattedUsdGqlValue = formatNumber({
-    input: gqlBalance?.denominatedValue?.value,
-    type: NumberType.PortfolioBalance,
-  })
+  const formattedUsdValue = convertFiatAmountFormatted(fetchedBalance?.balanceUSD, NumberType.PortfolioBalance)
 
   return (
-    <BalanceRow onClick={onClick}>
-      <PortfolioLogo
-        currencies={currencies}
-        chainId={chainId}
-        images={[gqlBalance?.token?.project?.logoUrl]}
-        size={32}
-      />
-      <BalanceAmountsContainer $alignLeft={alignLeft}>
-        <BalanceItem>
-          <ThemedText.BodyPrimary>{formattedUsdGqlValue}</ThemedText.BodyPrimary>
-        </BalanceItem>
-        <BalanceItem>
-          <ThemedText.BodySecondary>{formattedGqlBalance}</ThemedText.BodySecondary>
-        </BalanceItem>
-      </BalanceAmountsContainer>
-    </BalanceRow>
+    <TouchableArea onPress={onClick} {...(onClick ? ClickableTamaguiStyle : {})}>
+      <Flex mt="$spacing12" row alignItems="center">
+        <PortfolioLogo
+          currencies={currencies}
+          chainId={chainId}
+          images={fetchedBalance?.currencyInfo.logoUrl ? [fetchedBalance.currencyInfo.logoUrl] : undefined}
+          size={32}
+        />
+        <Flex
+          shrink
+          row
+          width="100%"
+          justifyContent={alignLeft ? 'flex-start' : 'space-between'}
+          gap={alignLeft ? '$spacing8' : 'unset'}
+          alignItems="center"
+          ml="$spacing12"
+        >
+          <Flex>
+            <Text variant="body2" color="$neutral1">
+              {formattedUsdValue}
+            </Text>
+          </Flex>
+          <Flex>
+            <Text variant="body2" color="$neutral2">
+              {formattedBalance}
+            </Text>
+          </Flex>
+        </Flex>
+      </Flex>
+    </TouchableArea>
   )
 }
 
@@ -110,17 +87,18 @@ export const PageChainBalanceSummary = ({
   pageChainBalance?: PortfolioBalance
   alignLeft?: boolean
 }) => {
-  if (!pageChainBalance || !pageChainBalance.token) {
+  const { t } = useTranslation()
+  if (!pageChainBalance) {
     return null
   }
-  const currency = gqlToCurrency(pageChainBalance.token)
+  const currency = pageChainBalance.currencyInfo.currency
   return (
-    <BalanceSection>
-      <ThemedText.HeadlineSmall color="neutral1">
-        <Trans i18nKey="tdp.balanceSummary.title" />
-      </ThemedText.HeadlineSmall>
-      <Balance currency={currency} chainId={currency?.chainId} gqlBalance={pageChainBalance} alignLeft={alignLeft} />
-    </BalanceSection>
+    <Flex height="fit-content" width="100%">
+      <Text variant="subheading1" color="$neutral1">
+        {t('tdp.balanceSummary.title')}
+      </Text>
+      <Balance currency={currency} chainId={currency.chainId} fetchedBalance={pageChainBalance} alignLeft={alignLeft} />
+    </Flex>
   )
 }
 
@@ -131,6 +109,7 @@ const OtherChainsBalanceSummary = ({
   otherChainBalances: readonly PortfolioBalance[]
   hasPageChainBalance: boolean
 }) => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { defaultChainId } = useEnabledChains()
 
@@ -138,60 +117,95 @@ const OtherChainsBalanceSummary = ({
     return null
   }
   return (
-    <BalanceSection>
+    <Flex>
       {hasPageChainBalance ? (
-        <ThemedText.SubHeaderSmall>
-          <Trans i18nKey="tdp.balanceSummary.otherNetworks">On other networks</Trans>
-        </ThemedText.SubHeaderSmall>
+        <Text variant="body3" color="$neutral2">
+          {t('tdp.balanceSummary.otherNetworks')}
+        </Text>
       ) : (
-        <ThemedText.HeadlineSmall>
-          <Trans i18nKey="tdp.balanceSummary.otherNetworksBalance">Balance on other networks</Trans>
-        </ThemedText.HeadlineSmall>
+        <Text variant="subheading1" color="$neutral1">
+          {t('tdp.balanceSummary.otherNetworksBalance')}
+        </Text>
       )}
       {otherChainBalances.map((balance) => {
-        const currency = balance.token && gqlToCurrency(balance.token)
-        const chainId = (balance.token && supportedChainIdFromGQLChain(balance.token.chain)) ?? defaultChainId
+        const currency = balance.currencyInfo.currency
+        const chainId = currency.chainId || defaultChainId
         return (
           <Balance
             key={balance.id}
             currency={currency}
             chainId={chainId}
-            gqlBalance={balance}
+            fetchedBalance={balance}
             onClick={() =>
               navigate(
                 getTokenDetailsURL({
-                  address: balance.token?.address,
-                  chain: balance.token?.chain ?? Chain.Ethereum,
+                  address: currency.isToken ? currency.address : undefined,
+                  chain: toGraphQLChain(chainId),
                 }),
               )
             }
           />
         )
       })}
-    </BalanceSection>
+    </Flex>
+  )
+}
+
+function BridgedAssetWithdrawButton(): JSX.Element | null {
+  const { t } = useTranslation()
+  const { currencyChainId, address } = useTDPContext()
+  const currencyInfo = useCurrencyInfo(buildCurrencyId(currencyChainId, address))
+  const { openModal } = useModalState(ModalName.Wormhole)
+  const [, setWormholeModalCurrencyInfo] = useAtom(WormholeModalAtom)
+  const handlePress = useEvent(() => {
+    if (currencyInfo) {
+      setWormholeModalCurrencyInfo({ currencyInfo })
+      openModal()
+    }
+  })
+
+  const bridgedWithdrawalInfo = currencyInfo?.bridgedWithdrawalInfo
+  if (!bridgedWithdrawalInfo) {
+    return null
+  }
+  return (
+    <TouchableArea onPress={handlePress} hoverStyle={{ opacity: 0.8 }}>
+      <Flex row gap="$spacing8">
+        <Text variant="buttonLabel3" color="$neutral2">
+          {t('bridgedAsset.wormhole.withdrawToNativeChain', { nativeChainName: bridgedWithdrawalInfo.chain })}
+        </Text>
+        <ExternalLink color="$neutral3" size="$icon.16" />
+      </Flex>
+    </TouchableArea>
   )
 }
 
 export default function BalanceSummary() {
-  const account = useAccount()
+  const { isDisconnected } = useConnectionStatus()
   const { currencyChain, multiChainMap } = useTDPContext()
 
   const pageChainBalance = multiChainMap[currencyChain]?.balance
   const otherChainBalances: PortfolioBalance[] = []
   for (const [key, value] of Object.entries(multiChainMap)) {
-    if (key !== currencyChain && value?.balance !== undefined) {
+    if (key !== currencyChain && value.balance !== undefined) {
       otherChainBalances.push(value.balance)
     }
   }
+  otherChainBalances.sort((a, b) => {
+    const aQty = Number(a.quantity)
+    const bQty = Number(b.quantity)
+    return bQty - aQty
+  })
   const hasBalances = pageChainBalance || Boolean(otherChainBalances.length)
 
-  if (!account.isConnected || !hasBalances) {
+  if (isDisconnected || !hasBalances) {
     return null
   }
   return (
-    <BalancesCard>
+    <Flex flexDirection="column" gap="$gap24" height="fit-content" width="100%">
       <PageChainBalanceSummary pageChainBalance={pageChainBalance} />
       <OtherChainsBalanceSummary otherChainBalances={otherChainBalances} hasPageChainBalance={!!pageChainBalance} />
-    </BalancesCard>
+      <BridgedAssetWithdrawButton />
+    </Flex>
   )
 }

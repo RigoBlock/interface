@@ -1,16 +1,6 @@
-import { ButtonEmphasis, ThemeButton } from 'components/Button/DeprecatedWebButtons'
-import Column from 'components/deprecated/Column'
-import Row from 'components/deprecated/Row'
-import { MouseoverTooltip } from 'components/Tooltip'
-import styled from 'lib/styled-components'
-import { ReactNode, useReducer } from 'react'
-import { Info } from 'react-feather'
-import { Text } from 'rebass'
-import { ExternalLink } from 'theme/components/Links'
-import { ThemedText } from 'theme/components/text'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
-
-import { SpinnerSVG } from 'theme/components'
+import { ReactNode } from 'react'
+import { SpinnerSVG } from 'theme/components/icons/spinner'
+import { Flex, FlexProps, styled, Text, useSporeColors } from 'ui/src'
 
 const LoadingButtonSpinner = (props: React.ComponentPropsWithoutRef<'svg'>) => (
   <SpinnerSVG width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" {...props}>
@@ -22,63 +12,43 @@ const LoadingButtonSpinner = (props: React.ComponentPropsWithoutRef<'svg'>) => (
   </SpinnerSVG>
 )
 
-const Container = styled(Column)`
-  position: relative;
-  height: 100%;
-  width: 100%;
-`
-const Tile = styled(ThemeButton)`
-  height: 100%;
-  width: 100%;
+const Tile = styled(Flex, {
+  gap: '$gap12',
+  userSelect: 'none',
+  height: '100%',
+  flex: 1,
+  display: 'flex',
+  justifyContent: 'flex-start',
+  p: '$padding12',
+  backgroundColor: '$accent2',
+  overflow: 'hidden',
 
-  display: flex;
-  justify-content: flex-start;
-  padding: 12px;
+  borderColor: 'transparent',
+  borderRadius: '$rounded16',
+  borderStyle: 'solid',
+  borderWidth: '1px',
+  animation: 'fast',
 
-  border-color: transparent;
-  border-radius: 16px;
-  border-style: solid;
-  border-width: 1px;
-`
-const StyledLoadingButtonSpinner = styled(LoadingButtonSpinner)`
-  height: 28px;
-  width: 28px;
-  fill: ${({ theme }) => theme.accent1};
-`
-const ActionName = styled(Text)`
-  font-size: 16px;
-  font-style: normal;
-  font-weight: 535;
-  line-height: 24px;
-`
-const ErrorContainer = styled(Row)`
-  width: 100%;
-  position: absolute;
-  bottom: -24px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-`
-const ErrorText = styled(ThemedText.LabelMicro)`
-  color: ${({ theme }) => theme.neutral2};
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-`
-const ErrorLink = styled(ExternalLink)`
-  align-items: center;
-  display: flex;
-  height: 14px;
-  justify-content: center;
-  margin-left: 6px;
-  width: 14px;
-`
-const StyledInfoIcon = styled(Info)`
-  height: 12px;
-  width: 12px;
-  flex: 1 1 auto;
-  stroke: ${({ theme }) => theme.neutral2};
-`
+  hoverStyle: {
+    backgroundColor: '$accent2Hovered',
+    cursor: 'pointer',
+  },
+  disabledStyle: {
+    cursor: 'default',
+    opacity: 0.6,
+  },
+})
+
+export type ActionTileProps = {
+  dataTestId: string
+  Icon: ReactNode
+  name: string
+  onClick: () => void
+  loading?: boolean
+  disabled?: boolean
+  padding?: FlexProps['p']
+}
+
 export function ActionTile({
   dataTestId,
   Icon,
@@ -86,45 +56,16 @@ export function ActionTile({
   onClick,
   loading,
   disabled,
-  error,
-  errorMessage,
-  errorTooltip,
-}: {
-  dataTestId: string
-  Icon: ReactNode
-  name: string
-  onClick: () => void
-  loading?: boolean
-  disabled?: boolean
-  error?: boolean
-  errorMessage?: string
-  errorTooltip?: string
-}) {
-  const [showTooltip, toggleTooltip] = useReducer((isOpen) => !isOpen, false)
+  padding = '$spacing12',
+}: ActionTileProps) {
+  const { accent1 } = useSporeColors()
 
   return (
-    <Container>
-      <Tile data-testid={dataTestId} emphasis={ButtonEmphasis.highSoft} onClick={onClick} disabled={disabled}>
-        <Column gap="12px">
-          {loading ? <StyledLoadingButtonSpinner /> : Icon}
-          <ActionName>{name}</ActionName>
-        </Column>
-      </Tile>
-      {error && (
-        <ErrorContainer>
-          <ErrorText>{errorMessage}</ErrorText>
-          <MouseoverTooltip forceShow={showTooltip} text={errorTooltip} disabled>
-            <ErrorLink
-              onMouseEnter={toggleTooltip}
-              onMouseLeave={toggleTooltip}
-              style={{ color: 'inherit' }}
-              href={uniswapUrls.helpArticleUrls.moonpayRegionalAvailability}
-            >
-              <StyledInfoIcon />
-            </ErrorLink>
-          </MouseoverTooltip>
-        </ErrorContainer>
-      )}
-    </Container>
+    <Tile data-testid={dataTestId} onPress={onClick} disabled={disabled} p={padding}>
+      {loading ? <LoadingButtonSpinner height={28} width={28} fill={accent1.val} /> : Icon}
+      <Text variant="buttonLabel2" color="$accent1">
+        {name}
+      </Text>
+    </Tile>
   )
 }

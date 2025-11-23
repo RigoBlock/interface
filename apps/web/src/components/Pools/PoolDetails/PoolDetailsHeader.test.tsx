@@ -7,6 +7,7 @@ import { PoolDetailsBreadcrumb, PoolDetailsHeader } from 'components/Pools/PoolD
 import store from 'state'
 import { usdcWethPoolAddress, validBEPoolToken0, validBEPoolToken1 } from 'test-utils/pools/fixtures'
 import { render, screen } from 'test-utils/render'
+import { DEFAULT_TICK_SPACING } from 'uniswap/src/constants/pools'
 import { dismissTokenWarning } from 'uniswap/src/features/tokens/slice/slice'
 
 describe('PoolDetailsHeader', () => {
@@ -48,11 +49,11 @@ describe('PoolDetailsHeader', () => {
     token0: validBEPoolToken0,
     token1: validBEPoolToken1,
     chartType: ChartType.PRICE as PoolsDetailsChartType,
-    onChartTypeChange: jest.fn(),
+    onChartTypeChange: vi.fn(),
     priceChartType: PriceChartType.LINE,
-    onPriceChartTypeChange: jest.fn(),
-    feeTier: 500,
-    toggleReversed: jest.fn(),
+    onPriceChartTypeChange: vi.fn(),
+    feeTier: { feeAmount: 500, tickSpacing: DEFAULT_TICK_SPACING, isDynamic: false },
+    toggleReversed: vi.fn(),
   }
 
   it('loading skeleton is shown', () => {
@@ -73,8 +74,9 @@ describe('PoolDetailsHeader', () => {
   })
 
   it('renders header text correctly', () => {
-    const { asFragment } = render(<PoolDetailsHeader {...mockHeaderProps} />)
-    expect(asFragment()).toMatchSnapshot()
+    const result = render(<PoolDetailsHeader {...mockHeaderProps} />)
+
+    expect(result.asFragment()).toMatchSnapshot()
 
     const usdcLink = document.querySelector(
       'a[href="/explore/tokens/ethereum/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"]',
@@ -82,7 +84,7 @@ describe('PoolDetailsHeader', () => {
     const wethLink = document.querySelector(
       'a[href="/explore/tokens/ethereum/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"]',
     )
-    expect(usdcLink?.textContent).toBe('USDC')
+    expect(usdcLink?.textContent).toBe('USDC / ')
     expect(wethLink?.textContent).toBe('WETH')
     expect(screen.getByText('0.05%')).toBeInTheDocument()
   })

@@ -1,3 +1,4 @@
+import { EmptyWalletCards } from 'components/emptyWallet/EmptyWalletCards'
 import { PageType, useIsPage } from 'hooks/useIsPage'
 import { useMemo } from 'react'
 import { ArrowUpRight } from 'react-feather'
@@ -6,7 +7,15 @@ import { useMultichainContext } from 'state/multichain/useMultichainContext'
 import { ExternalLink } from 'theme/components/Links'
 import { ClickableTamaguiStyle } from 'theme/components/styles'
 import { useIsDarkMode } from 'theme/components/ThemeToggle'
-import { ElementAfterText, Flex, Text, TouchableArea, TouchableAreaEvent, useSporeColors } from 'ui/src'
+import {
+  AnimatePresence,
+  ElementAfterText,
+  Flex,
+  Text,
+  TouchableArea,
+  TouchableAreaEvent,
+  useSporeColors,
+} from 'ui/src'
 import { X } from 'ui/src/components/icons/X'
 import { opacify } from 'ui/src/theme'
 import { CardImage } from 'uniswap/src/components/cards/image'
@@ -16,6 +25,8 @@ import { useIsBridgingChain } from 'uniswap/src/features/bridging/hooks/chains'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { useIsSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { useIsShowingWebFORNudge } from 'uniswap/src/features/providers/webForNudgeProvider'
+import { ElementName } from 'uniswap/src/features/telemetry/constants'
 
 export function SwapBottomCard() {
   const { chainId: oldFlowChainId } = useMultichainContext()
@@ -28,12 +39,26 @@ export function SwapBottomCard() {
 
   const isSwapPage = useIsPage(PageType.SWAP)
   const isSendPage = useIsPage(PageType.SEND)
+  const shouldShowWebFORNudge = useIsShowingWebFORNudge() && isSwapPage
 
-  const hideCard = !isSupportedChain || !(isSwapPage || isSendPage)
+  const hideCard = !isSupportedChain || !(isSwapPage || isSendPage || shouldShowWebFORNudge)
 
   const card = useMemo(() => {
     if (hideCard) {
       return null
+    }
+
+    if (shouldShowWebFORNudge) {
+      return (
+        <AnimatePresence>
+          <EmptyWalletCards
+            horizontalLayout
+            buyElementName={ElementName.ForEmptyStateBuy}
+            receiveElementName={ElementName.ForEmptyStateReceive}
+            cexTransferElementName={ElementName.ForEmptyStateCEXTransfer}
+          />
+        </AnimatePresence>
+      )
     }
 
     if (!isBridgingSupportedChain) {
@@ -41,7 +66,7 @@ export function SwapBottomCard() {
     } else {
       return null
     }
-  }, [chainId, hideCard, isBridgingSupportedChain])
+  }, [chainId, hideCard, isBridgingSupportedChain, shouldShowWebFORNudge])
 
   return <>{card}</>
 }
@@ -95,9 +120,11 @@ const CHAIN_THEME_LIGHT: Record<UniverseChainId, ChainTheme> = {
   [UniverseChainId.Bnb]: { bgColor: '#EAB20033', textColor: '#EAB200' },
   [UniverseChainId.Celo]: { bgColor: '#FCFF5233', textColor: '#FCFF52' },
   [UniverseChainId.MonadTestnet]: { bgColor: '#200052', textColor: '#836EF9' },
+  [UniverseChainId.Monad]: { bgColor: 'rgba(115, 91, 248, 0.08)', textColor: '#735BF8' },
   [UniverseChainId.Optimism]: { bgColor: '#FF042033', textColor: '#FF0420' },
   [UniverseChainId.Polygon]: { bgColor: '#9558FF33', textColor: '#9558FF' },
   [UniverseChainId.Sepolia]: { bgColor: '#6B8AFF33', textColor: '#6B8AFF' },
+  [UniverseChainId.Solana]: { bgColor: '#9945FF33', textColor: '#000000' },
   [UniverseChainId.Soneium]: { bgColor: '#FFFFFF', textColor: '#000000' },
   [UniverseChainId.Unichain]: { bgColor: '#F50DB433', textColor: '#F50DB4' },
   [UniverseChainId.UnichainSepolia]: { bgColor: '#F50DB433', textColor: '#F50DB4' },
@@ -110,6 +137,7 @@ const CHAIN_THEME_DARK: Record<UniverseChainId, ChainTheme> = {
   ...CHAIN_THEME_LIGHT,
   [UniverseChainId.Blast]: { bgColor: 'rgba(252, 252, 3, 0.12)', textColor: 'rgba(252, 252, 3, 1) ' },
   [UniverseChainId.Celo]: { bgColor: '#FCFF5299', textColor: '#655947' },
+  [UniverseChainId.Monad]: { bgColor: 'rgba(131, 110, 249, 0.14)', textColor: '#836EF9' },
   [UniverseChainId.Soneium]: { bgColor: '#000000', textColor: '#FFFFFF' },
   [UniverseChainId.WorldChain]: { bgColor: 'rgba(255, 255, 255, 0.12)', textColor: '#FFFFFF' },
   [UniverseChainId.Zksync]: { bgColor: 'rgba(97, 137, 255, 0.12)', textColor: '#6189FF' },

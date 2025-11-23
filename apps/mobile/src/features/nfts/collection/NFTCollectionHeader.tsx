@@ -7,14 +7,14 @@ import { LongMarkdownText } from 'src/components/text/LongMarkdownText'
 import { NFTCollectionContextMenu } from 'src/features/nfts/collection/NFTCollectionContextMenu'
 import { NFTCollectionData } from 'src/features/nfts/collection/types'
 import { Flex, FlexProps, Text, useExtractedColors, useSporeColors } from 'ui/src'
-import VerifiedIcon from 'ui/src/assets/icons/verified.svg'
+import { Verified } from 'ui/src/components/icons'
 import { Ethereum } from 'ui/src/components/logos/Ethereum'
 import { iconSizes, spacing } from 'ui/src/theme'
+import { ImageUri } from 'uniswap/src/components/nfts/images/ImageUri'
+import { NFTViewer } from 'uniswap/src/components/nfts/images/NFTViewer'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { useAppInsets } from 'uniswap/src/hooks/useAppInsets'
 import { NumberType } from 'utilities/src/format/types'
-import { ImageUri } from 'wallet/src/features/images/ImageUri'
-import { NFTViewer } from 'wallet/src/features/images/NFTViewer'
 
 const PROFILE_IMAGE_SIZE = 72
 const PROFILE_IMAGE_WRAPPER_SIZE = PROFILE_IMAGE_SIZE + spacing.spacing4
@@ -23,11 +23,9 @@ export const NFT_BANNER_HEIGHT = 102
 export function NFTCollectionHeader({
   loading = false,
   data,
-  collectionAddress,
 }: {
   loading: boolean
   data: Maybe<NFTCollectionData>
-  collectionAddress?: Maybe<string>
 }): ReactElement {
   const colors = useSporeColors()
   const { t } = useTranslation()
@@ -92,12 +90,7 @@ export function NFTCollectionHeader({
           <Flex backgroundColor="$scrim" borderRadius="$roundedFull" p="$spacing4">
             <BackButton color="$white" mr="$spacing1" size={iconSizes.icon24} />
           </Flex>
-          <NFTCollectionContextMenu
-            collectionAddress={collectionAddress}
-            data={data}
-            iconColor="$white"
-            showButtonOutline={true}
-          />
+          <NFTCollectionContextMenu data={data} iconColor="$white" showButtonOutline={true} />
         </Flex>
 
         {/* Profile image */}
@@ -136,9 +129,7 @@ export function NFTCollectionHeader({
             <Text loading={loading} loadingPlaceholderText="Collection Name" variant="subheading1">
               {data?.name ?? '-'}
             </Text>
-            {data?.isVerified ? (
-              <VerifiedIcon color={colors.accent1.get()} height={iconSizes.icon16} width={iconSizes.icon16} />
-            ) : null}
+            {data?.isVerified ? <Verified color="$accent1" size="$icon.16" /> : null}
           </Flex>
 
           <Flex row gap="$spacing8" justifyContent="space-between">
@@ -200,7 +191,7 @@ export function NFTCollectionHeader({
 
           {/* Collection description */}
           {data?.description ? (
-            <LongMarkdownText initialDisplayedLines={3} text={data?.description} />
+            <LongMarkdownText initialDisplayedLines={3} text={data.description} />
           ) : loading ? (
             <Flex gap="$spacing8">
               <Loader.Box height={spacing.spacing16} width="100%" />

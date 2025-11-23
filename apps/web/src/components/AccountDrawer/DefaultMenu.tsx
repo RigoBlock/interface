@@ -1,79 +1,86 @@
-import { MenuState, miniPortfolioMenuStateAtom } from 'components/AccountDrawer'
-import AuthenticatedHeader from 'components/AccountDrawer/AuthenticatedHeader'
 import LanguageMenu from 'components/AccountDrawer/LanguageMenu'
 import LocalCurrencyMenu from 'components/AccountDrawer/LocalCurrencyMenu'
+import { MainMenu } from 'components/AccountDrawer/MainMenu/MainMenu'
+import { useAccountDrawer } from 'components/AccountDrawer/MiniPortfolio/hooks'
 import { LimitsMenu } from 'components/AccountDrawer/MiniPortfolio/Limits/LimitsMenu'
 import { UniExtensionPoolsMenu } from 'components/AccountDrawer/MiniPortfolio/Pools/UniExtensionPoolsMenu'
-import { useAccountDrawer } from 'components/AccountDrawer/MiniPortfolio/hooks'
+import { MenuStateVariant, useMenuState, useSetMenuCallback } from 'components/AccountDrawer/menuState'
+import PasskeyMenu from 'components/AccountDrawer/PasskeyMenu/PasskeyMenu'
+import PortfolioBalanceMenu from 'components/AccountDrawer/PortfolioBalanceMenu'
 import SettingsMenu from 'components/AccountDrawer/SettingsMenu'
-import WalletModal from 'components/WalletModal'
-import Column from 'components/deprecated/Column'
-import { useAccount } from 'hooks/useAccount'
+import { OtherWalletsModal } from 'components/WalletModal/OtherWalletsModal'
+import { SwitchWalletModal } from 'components/WalletModal/SwitchWalletModal'
 import usePrevious from 'hooks/usePrevious'
-import { useAtom } from 'jotai'
-import styled from 'lib/styled-components'
-import { useCallback, useEffect, useMemo } from 'react'
-import { useLocation } from 'react-router-dom'
-import { useActiveSmartPool } from 'state/application/hooks'
+import { Flex } from 'ui/src'
 import { TransitionItem } from 'ui/src/animations'
-import { InterfaceEventNameLocal } from 'uniswap/src/features/telemetry/constants'
+import { useActiveAddresses } from 'uniswap/src/features/accounts/store/hooks'
+import { InterfaceEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 
-const DefaultMenuWrap = styled(Column)`
-  width: 100%;
-  height: 100%;
-`
-
 function DefaultMenu() {
-  const account = useAccount()
+  const activeAccount = useActiveAddresses()
 
-  const [menu, setMenu] = useAtom(miniPortfolioMenuStateAtom)
-  const openSettings = useCallback(() => setMenu(MenuState.SETTINGS), [setMenu])
-  const closeSettings = useCallback(() => setMenu(MenuState.DEFAULT), [setMenu])
-  const openLanguageSettings = useCallback(() => setMenu(MenuState.LANGUAGE_SETTINGS), [setMenu])
-  const openLocalCurrencySettings = useCallback(() => setMenu(MenuState.LOCAL_CURRENCY_SETTINGS), [setMenu])
-  const closeLimitsMenu = useCallback(() => setMenu(MenuState.DEFAULT), [setMenu])
+  const { menuState } = useMenuState()
+  const openSettings = useSetMenuCallback(MenuStateVariant.SETTINGS)
+  const returnToMain = useSetMenuCallback(MenuStateVariant.MAIN)
+  const openLanguageSettings = useSetMenuCallback(MenuStateVariant.LANGUAGE_SETTINGS)
+  const openLocalCurrencySettings = useSetMenuCallback(MenuStateVariant.LOCAL_CURRENCY_SETTINGS)
+  const openPortfolioBalanceSettings = useSetMenuCallback(MenuStateVariant.PORTFOLIO_BALANCE_SETTINGS)
+  const openPasskeySettings = useSetMenuCallback(MenuStateVariant.PASSKEYS)
+
   const { isOpen: drawerOpen } = useAccountDrawer()
 
-  const prevMenu = usePrevious(menu)
+  const prevMenuVariant = usePrevious(menuState.variant)
 
   const animationDirection = useMemo(() => {
     const menuIndices = {
-      [MenuState.DEFAULT]: 0,
-      [MenuState.SETTINGS]: 1,
-      [MenuState.POOLS]: 1,
-      [MenuState.LANGUAGE_SETTINGS]: 2,
-      [MenuState.LOCAL_CURRENCY_SETTINGS]: 2,
-      [MenuState.LIMITS]: 2,
+      [MenuStateVariant.MAIN]: 0,
+      [MenuStateVariant.SWITCH]: 1,
+      [MenuStateVariant.CONNECT_PLATFORM]: 1,
+      [MenuStateVariant.SETTINGS]: 2,
+      [MenuStateVariant.POOLS]: 1,
+      [MenuStateVariant.OTHER_WALLETS]: 1,
+      [MenuStateVariant.LANGUAGE_SETTINGS]: 2,
+      [MenuStateVariant.LOCAL_CURRENCY_SETTINGS]: 2,
+      [MenuStateVariant.PORTFOLIO_BALANCE_SETTINGS]: 2,
+      [MenuStateVariant.LIMITS]: 2,
+      [MenuStateVariant.PASSKEYS]: 2,
     } as const
 
-    if (!prevMenu || prevMenu === menu) {
+    if (!prevMenuVariant || prevMenuVariant === menuState.variant) {
       return 'forward'
     }
 
-    const newIndex = menuIndices[menu] ?? 2
-    const oldIndex = menuIndices[prevMenu] ?? 2
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const newIndex = menuIndices[menuState.variant] ?? 2
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const oldIndex = menuIndices[prevMenuVariant] ?? 2
     return newIndex > oldIndex ? 'forward' : 'backward'
-  }, [menu, prevMenu])
+  }, [menuState.variant, prevMenuVariant])
 
   useEffect(() => {
-    if (!drawerOpen && menu !== MenuState.DEFAULT) {
+    if (!drawerOpen && menuState.variant !== MenuStateVariant.MAIN) {
       // wait for the drawer to close before resetting the menu
       const timer = setTimeout(() => {
-        closeSettings()
+        returnToMain()
       }, 250)
       return () => clearTimeout(timer)
     }
     return undefined
-  }, [drawerOpen, menu, closeSettings])
+  }, [drawerOpen, menuState.variant, returnToMain])
 
   useEffect(() => {
-    if (menu === MenuState.DEFAULT) {
+    if (menuState.variant === MenuStateVariant.MAIN) {
       return
     } // menu is closed, don't log
 
-    sendAnalyticsEvent(InterfaceEventNameLocal.PortfolioMenuOpened, { name: menu })
-  }, [menu])
+    sendAnalyticsEvent(
+      InterfaceEventName.PortfolioMenuOpened,
+      menuState.variant === MenuStateVariant.CONNECT_PLATFORM
+        ? { name: menuState.variant, platform: menuState.platform }
+        : { name: menuState.variant },
+    )
+  }, [menuState])
 
   const { address: smartPoolAddress } = useActiveSmartPool()
   const { pathname: page } = useLocation()
@@ -83,51 +90,62 @@ function DefaultMenu() {
 
   // eslint-disable-next-line consistent-return
   const SubMenu = useMemo(() => {
-    switch (menu) {
-      case MenuState.DEFAULT:
-        return account.address ? (
-          <AuthenticatedHeader
-            account={shouldQueryPoolBalances ? smartPoolAddress ?? account.address : account.address}
-            openSettings={openSettings}
-          />
-        ) : (
-          <WalletModal />
-        )
-      case MenuState.SETTINGS:
+    switch (menuState.variant) {
+      case MenuStateVariant.MAIN:
+        return <MainMenu />
+      case MenuStateVariant.SWITCH:
+        return <SwitchWalletModal connectOnPlatform="any" onClose={returnToMain} />
+      case MenuStateVariant.CONNECT_PLATFORM:
+        return <SwitchWalletModal connectOnPlatform={menuState.platform} onClose={returnToMain} />
+      case MenuStateVariant.OTHER_WALLETS:
+        return <OtherWalletsModal />
+      case MenuStateVariant.SETTINGS:
         return (
           <SettingsMenu
-            onClose={closeSettings}
+            onClose={returnToMain}
             openLanguageSettings={openLanguageSettings}
             openLocalCurrencySettings={openLocalCurrencySettings}
+            openPasskeySettings={openPasskeySettings}
+            openPortfolioBalanceSettings={openPortfolioBalanceSettings}
           />
         )
-      case MenuState.LANGUAGE_SETTINGS:
+
+      case MenuStateVariant.LANGUAGE_SETTINGS:
         return <LanguageMenu onClose={openSettings} />
-      case MenuState.LOCAL_CURRENCY_SETTINGS:
+      case MenuStateVariant.PORTFOLIO_BALANCE_SETTINGS:
+        return <PortfolioBalanceMenu onClose={openSettings} />
+      case MenuStateVariant.LOCAL_CURRENCY_SETTINGS:
         return <LocalCurrencyMenu onClose={openSettings} />
-      case MenuState.LIMITS:
-        return account.address ? <LimitsMenu onClose={closeLimitsMenu} account={account.address} /> : null
-      case MenuState.POOLS:
-        return account.address ? <UniExtensionPoolsMenu account={account.address} onClose={closeLimitsMenu} /> : null
+      case MenuStateVariant.LIMITS:
+        return activeAccount.evmAddress ? (
+          <LimitsMenu onClose={returnToMain} account={activeAccount.evmAddress} />
+        ) : null
+      case MenuStateVariant.POOLS:
+        return activeAccount.evmAddress ? (
+          <UniExtensionPoolsMenu account={activeAccount.evmAddress} onClose={returnToMain} />
+        ) : null
+      case MenuStateVariant.PASSKEYS:
+        return <PasskeyMenu onClose={openSettings} />
     }
   }, [
-    account.address,
-    closeLimitsMenu,
-    closeSettings,
-    menu,
+    activeAccount.evmAddress,
+    menuState,
     openLanguageSettings,
     openLocalCurrencySettings,
+    openPortfolioBalanceSettings,
+    openPasskeySettings,
     openSettings,
+    returnToMain,
     smartPoolAddress,
     shouldQueryPoolBalances,
   ])
 
   return (
-    <DefaultMenuWrap>
-      <TransitionItem animationType={animationDirection} animation="100ms" childKey={menu}>
+    <Flex width="100%" height="100%">
+      <TransitionItem animationType={animationDirection} animation="100ms" childKey={menuState.variant}>
         {SubMenu}
       </TransitionItem>
-    </DefaultMenuWrap>
+    </Flex>
   )
 }
 

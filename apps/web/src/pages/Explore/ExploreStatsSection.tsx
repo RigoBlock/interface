@@ -1,12 +1,12 @@
-import { DeltaArrow, DeltaText } from 'components/Tokens/TokenDetails/Delta'
 import { LoadingBubble } from 'components/Tokens/loading'
+import { DeltaArrow } from 'components/Tokens/TokenDetails/Delta'
 import { Fragment, memo, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { use24hProtocolVolume, useDailyTVLWithChange } from 'state/explore/protocolStats'
-import { Flex, Popover, Text, isTouchable, useMedia, useShadowPropsMedium } from 'ui/src'
-import { FeatureFlags } from 'uniswap/src/features/gating/flags'
-import { useFeatureFlagWithLoading } from 'uniswap/src/features/gating/hooks'
-import { NumberType, useFormatter } from 'utils/formatNumbers'
+import { AnimatePresence, Flex, isTouchable, Popover, Text, useMedia, useShadowPropsMedium } from 'ui/src'
+import { zIndexes } from 'ui/src/theme'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { NumberType } from 'utilities/src/format/types'
 
 interface ExploreStatSectionData {
   label: string
@@ -18,11 +18,10 @@ interface ExploreStatSectionData {
   }[]
 }
 
-const ExploreStatsSection = () => {
+const ExploreStatsSection = ({ shouldHideStats = false }: { shouldHideStats?: boolean }) => {
   const media = useMedia()
   const { t } = useTranslation()
-  const { formatFiatPrice } = useFormatter()
-  const isV4DataEnabled = true //useFeatureFlagWithLoading(FeatureFlags.V4Data)
+  const { convertFiatAmountFormatted } = useLocalizationContext()
 
   const {
     protocolVolumes,
@@ -41,7 +40,7 @@ const ExploreStatsSection = () => {
   const isStatDataLoading = isVolumeLoading || isTVLLoading
 
   const exploreStatsSectionData = useMemo(() => {
-    const formatPrice = (price: number) => formatFiatPrice({ price, type: NumberType.ChartFiatValue })
+    const formatPrice = (price: number) => convertFiatAmountFormatted(price, NumberType.FiatTokenPrice)
 
     const stats = [
       {
@@ -57,19 +56,14 @@ const ExploreStatsSection = () => {
       { label: t('common.totalUniswapTVL'), value: formatPrice(totalTVL), change: totalTVL24hrChangePercent },
       { label: t('explore.v2TVL'), value: formatPrice(protocolTVL.v2), change: protocolChangePercent.v2 },
       { label: t('explore.v3TVL'), value: formatPrice(protocolTVL.v3), change: protocolChangePercent.v3 },
-      isV4DataEnabled
-        ? {
-            label: t('explore.v4TVL'),
-            value: formatPrice(protocolTVL.v4),
-            change: protocolChangePercent.v4,
-          }
-        : null,
+      { label: t('explore.v4TVL'), value: formatPrice(protocolTVL.v4), change: protocolChangePercent.v4 },
     ]
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     return stats.filter((state): state is Exclude<typeof state, null> => state !== null)
   }, [
     t,
-    formatFiatPrice,
+    convertFiatAmountFormatted,
     totalVolume,
     volume24hChangePercent,
     protocolVolumes.v4,
@@ -83,30 +77,41 @@ const ExploreStatsSection = () => {
     protocolChangePercent.v2,
     protocolChangePercent.v3,
     protocolChangePercent.v4,
-    isV4DataEnabled,
   ])
 
   return (
-    <Flex row width="100%">
-      {exploreStatsSectionData.map((data, index) => (
+    <AnimatePresence>
+      {!shouldHideStats && (
         <Flex
-          key={data.label}
-          borderLeftWidth={index === 0 ? 0 : '$spacing1'}
-          borderColor="$surface3"
-          pl={index == 0 ? 0 : '$spacing24'}
-          flex={1}
-          cursor={data.protocolPopoverFormattedData ? 'pointer' : 'default'}
+          row
+          width="100%"
+          key="explore-stats"
+          animation="300ms"
+          enterStyle={{ opacity: 0, y: -10 }}
+          exitStyle={{ opacity: 0, y: -10 }}
           transition="opacity 0.3s ease, transform 0.3s ease"
-          display={media.md && index > 1 ? 'none' : 'flex'}
         >
-          {isTouchable || !data.protocolPopoverFormattedData ? (
-            <StatDisplay data={data} isLoading={isStatDataLoading} />
-          ) : (
-            <StatDisplayWithPopover data={data} isLoading={isStatDataLoading} />
-          )}
+          {exploreStatsSectionData.map((data, index) => (
+            <Flex
+              key={data.label}
+              borderLeftWidth={index === 0 ? 0 : '$spacing1'}
+              borderColor="$surface3"
+              pl={index === 0 ? 0 : '$spacing24'}
+              flex={1}
+              cursor={data.protocolPopoverFormattedData ? 'pointer' : 'default'}
+              transition="opacity 0.3s ease, transform 0.3s ease"
+              display={media.md && index > 1 ? 'none' : 'flex'}
+            >
+              {isTouchable || !data.protocolPopoverFormattedData ? (
+                <StatDisplay data={data} isLoading={isStatDataLoading} />
+              ) : (
+                <StatDisplayWithPopover data={data} isLoading={isStatDataLoading} />
+              )}
+            </Flex>
+          ))}
         </Flex>
-      ))}
-    </Flex>
+      )}
+    </AnimatePresence>
   )
 }
 
@@ -119,27 +124,30 @@ interface StatDisplayProps {
 }
 
 const StatDisplay = memo(({ data, isLoading, isHoverable }: StatDisplayProps) => {
-  const { formatDelta } = useFormatter()
+  const { formatPercent } = useLocalizationContext()
+  const { t } = useTranslation()
 
   return (
-    <Flex group gap="$spacing4" animation="simple">
-      <Text variant="body4" color="$neutral2" $group-hover={{ opacity: isHoverable ? 0.8 : 1 }}>
+    <Flex group gap="$spacing4" animation="simple" minHeight="$spacing60">
+      <Text variant="body4" color="$neutral2" $group-hover={{ color: isHoverable ? '$neutral2Hovered' : '$neutral2' }}>
         {data.label}
       </Text>
       {isLoading ? (
-        <LoadingBubble height="20px" width="52px" />
+        <LoadingBubble height="24px" width="80px" />
       ) : (
-        <Text variant="subheading1" color="$neutral1" $group-hover={{ opacity: isHoverable ? 0.8 : 1 }}>
+        <Text variant="subheading1" color="$neutral1">
           {data.value}
         </Text>
       )}
-      <Flex row alignItems="center" gap="$spacing2" style={{ fontSize: 12 }}>
+      <Flex row alignItems="center" gap="$spacing2" style={{ fontSize: 12 }} minHeight="$spacing16">
         {isLoading ? (
-          <LoadingBubble height="12px" width="30px" />
+          <LoadingBubble height="12px" width="60px" />
         ) : (
           <Fragment>
-            <DeltaArrow delta={data.change} size={12} />
-            <DeltaText delta={data.change}>{formatDelta(data.change)}</DeltaText>
+            <DeltaArrow delta={data.change} formattedDelta={formatPercent(Math.abs(data.change))} size={12} />
+            <Text variant="body4" color="$neutral1">
+              {formatPercent(Math.abs(data.change))} {t('common.today').toLocaleLowerCase()}
+            </Text>
           </Fragment>
         )}
       </Flex>
@@ -151,8 +159,7 @@ StatDisplay.displayName = 'StatDisplay'
 
 const StatDisplayWithPopover = memo(({ data, isLoading }: StatDisplayProps) => {
   const shadowProps = useShadowPropsMedium()
-  const { formatFiatPrice } = useFormatter()
-  const isV4DataEnabled = useFeatureFlagWithLoading(FeatureFlags.V4Data)
+  const { convertFiatAmountFormatted } = useLocalizationContext()
 
   return (
     <Popover hoverable placement="bottom-start" offset={{ mainAxis: 10 }}>
@@ -160,6 +167,7 @@ const StatDisplayWithPopover = memo(({ data, isLoading }: StatDisplayProps) => {
         <StatDisplay data={data} isLoading={isLoading} isHoverable />
       </Popover.Trigger>
       <Popover.Content
+        zIndex={zIndexes.dropdown}
         borderColor="$surface2"
         borderRadius="$rounded16"
         borderWidth="$spacing1"
@@ -170,21 +178,12 @@ const StatDisplayWithPopover = memo(({ data, isLoading }: StatDisplayProps) => {
       >
         <Flex gap="$spacing8" px="$spacing4" py="$spacing6" width={180}>
           {data.protocolPopoverFormattedData?.map((item) => {
-            if (item.label === 'Uniswap v4' && !isV4DataEnabled) {
-              return null
-            }
-
             return (
               <Flex key={item.label} row justifyContent="space-between">
                 <Text variant="body4" color="neutral2">
                   {item.label}
                 </Text>
-                <Text variant="body4">
-                  {formatFiatPrice({
-                    price: item.value ?? 0,
-                    type: NumberType.ChartFiatValue,
-                  })}
-                </Text>
+                <Text variant="body4">{convertFiatAmountFormatted(item.value ?? 0, NumberType.FiatTokenPrice)}</Text>
               </Flex>
             )
           })}

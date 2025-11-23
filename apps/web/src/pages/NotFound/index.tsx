@@ -1,14 +1,13 @@
-import { InterfacePageName } from '@uniswap/analytics-events'
 import darkImage from 'assets/images/404-page-dark.png'
 import lightImage from 'assets/images/404-page-light.png'
 import { useIsMobile } from 'hooks/screenSize/useIsMobile'
-import styled from 'lib/styled-components'
+import { styled } from 'lib/styled-components'
 import { ReactNode } from 'react'
 import { Trans } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
 import { ThemedText } from 'theme/components'
 import { useIsDarkMode } from 'theme/components/ThemeToggle'
-import { Button } from 'ui/src'
+import { Button, Flex } from 'ui/src'
+import { InterfacePageName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 
 const Image = styled.img`
@@ -47,14 +46,13 @@ interface NotFoundProps {
 export default function NotFound({ title, subtitle, actionButton }: NotFoundProps) {
   const isDarkMode = useIsDarkMode()
   const isMobile = useIsMobile()
-  const navigate = useNavigate()
 
   const Title = isMobile ? ThemedText.LargeHeader : ThemedText.Hero
   const Paragraph = isMobile ? ThemedText.HeadlineMedium : ThemedText.HeadlineLarge
 
   return (
     <PageWrapper>
-      <Trace logImpression page={InterfacePageName.NOT_FOUND}>
+      <Trace logImpression page={InterfacePageName.NotFound}>
         <Header>
           <Container>
             {title ?? <Title>404</Title>}
@@ -67,9 +65,11 @@ export default function NotFound({ title, subtitle, actionButton }: NotFoundProp
           <Image src={isDarkMode ? darkImage : lightImage} alt="Liluni" />
         </Header>
         {actionButton ?? (
-          <Button size="small" onPress={() => navigate('/')} variant="branded">
-            <Trans i18nKey="notFound.oops" />
-          </Button>
+          <Flex row alignSelf="stretch">
+            <Button href="/" tag="a" variant="branded" $platform-web={{ textDecoration: 'none' }}>
+              <Trans i18nKey="notFound.oops" />
+            </Button>
+          </Flex>
         )}
       </Trace>
     </PageWrapper>

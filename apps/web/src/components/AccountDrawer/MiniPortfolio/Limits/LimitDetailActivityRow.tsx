@@ -3,66 +3,49 @@ import {
   useOpenOffchainActivityModal,
   useOrderAmounts,
 } from 'components/AccountDrawer/MiniPortfolio/Activity/OffchainActivityModal'
-import { Activity } from 'components/AccountDrawer/MiniPortfolio/Activity/types'
-import PortfolioRow from 'components/AccountDrawer/MiniPortfolio/PortfolioRow'
 import { FormatType, formatTimestamp } from 'components/AccountDrawer/MiniPortfolio/formatTimestamp'
-import Column from 'components/deprecated/Column'
-import Row from 'components/deprecated/Row'
+import PortfolioRow from 'components/AccountDrawer/MiniPortfolio/PortfolioRow'
 import { parseUnits } from 'ethers/lib/utils'
-import { useCurrencyInfo } from 'hooks/Tokens'
-import styled, { useTheme } from 'lib/styled-components'
 import { useMemo, useState } from 'react'
 import { ArrowRight } from 'react-feather'
 import { Trans } from 'react-i18next'
-import { ThemedText } from 'theme/components'
-import { EllipsisStyle } from 'theme/components/styles'
-import { UniswapXOrderStatus } from 'types/uniswapx'
-import { Checkbox, useMedia } from 'ui/src'
-import { useFormatter } from 'utils/formatNumbers'
-
-const StyledPortfolioRow = styled(PortfolioRow)`
-  padding: 8px 0;
-  height: unset;
-  ${EllipsisStyle}
-`
+import { EllipsisTamaguiStyle } from 'theme/components/styles'
+import { Checkbox, Flex, Image, Text, useMedia, useSporeColors } from 'ui/src'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
+import { TransactionStatus, UniswapXOrderDetails } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { currencyId } from 'uniswap/src/utils/currencyId'
+import { NumberType } from 'utilities/src/format/types'
 
 interface LimitDetailActivityRowProps {
-  order: Activity
-  onToggleSelect: (order: Activity) => void
+  order: UniswapXOrderDetails
+  onToggleSelect: (order: UniswapXOrderDetails) => void
   selected: boolean
 }
 
-const TradeSummaryContainer = styled(Row)`
-  * {
-    max-width: 40%;
-    ${EllipsisStyle}
-  }
-`
-
-const CircleLogoImage = styled.img<{ size: string }>`
-  width: ${({ size }) => size};
-  height: ${({ size }) => size};
-  border-radius: 50%;
-`
-
 export function LimitDetailActivityRow({ order, onToggleSelect, selected }: LimitDetailActivityRowProps) {
-  const theme = useTheme()
+  const colors = useSporeColors()
   const media = useMedia()
-  const { logos, currencies, offchainOrderDetails } = order
-  const inputCurrencyInfo = useCurrencyInfo(currencies?.[0])
-  const outputCurrencyInfo = useCurrencyInfo(currencies?.[1])
   const openOffchainActivityModal = useOpenOffchainActivityModal()
-  const { formatReviewSwapCurrencyAmount } = useFormatter()
+  const { formatCurrencyAmount } = useLocalizationContext()
   const [hovered, setHovered] = useState(false)
 
-  const amounts = useOrderAmounts(order.offchainOrderDetails)
-  const amountsDefined = !!amounts?.inputAmount?.currency && !!amounts?.outputAmount?.currency
+  const amounts = useOrderAmounts(order)
+  const amountsDefined = !!amounts?.inputAmount.currency && !!amounts.outputAmount.currency
+
+  // Get currency info for logo URLs
+  const inputCurrencyInfo = useCurrencyInfo(
+    amounts?.inputAmount.currency ? currencyId(amounts.inputAmount.currency) : undefined,
+  )
+  const outputCurrencyInfo = useCurrencyInfo(
+    amounts?.outputAmount.currency ? currencyId(amounts.outputAmount.currency) : undefined,
+  )
 
   const displayPrice = useMemo(() => {
     if (!amountsDefined) {
       return undefined
     }
-    const tradePrice = new Price({ baseAmount: amounts?.inputAmount, quoteAmount: amounts?.outputAmount })
+    const tradePrice = new Price({ baseAmount: amounts.inputAmount, quoteAmount: amounts.outputAmount })
     return tradePrice.quote(
       CurrencyAmount.fromRawAmount(
         amounts.inputAmount.currency,
@@ -71,66 +54,85 @@ export function LimitDetailActivityRow({ order, onToggleSelect, selected }: Limi
     )
   }, [amounts?.inputAmount, amounts?.outputAmount, amountsDefined])
 
-  if (!offchainOrderDetails || !amountsDefined) {
+  if (!amountsDefined) {
     return null
   }
 
-  const inputLogo = logos?.[0] ?? inputCurrencyInfo?.logoUrl
-  const outputLogo = logos?.[1] ?? outputCurrencyInfo?.logoUrl
+  const inputLogo = inputCurrencyInfo?.logoUrl
+  const outputLogo = outputCurrencyInfo?.logoUrl
 
-  const cancelling = offchainOrderDetails.status === UniswapXOrderStatus.PENDING_CANCELLATION
+  const cancelling = order.status === TransactionStatus.Cancelling
+  const expiry = order.expiry
 
   return (
-    <Row onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
-      <StyledPortfolioRow
+    <Flex row alignItems="center" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+      <PortfolioRow
+        height="unset"
+        justifyContent="space-between"
+        {...EllipsisTamaguiStyle}
+        px={0}
         left={undefined}
         title={
           cancelling ? (
-            <ThemedText.LabelMicro fontWeight={500}>
+            <Text variant="body4" color="$neutral2">
               <Trans i18nKey="common.pending.cancellation" />
-            </ThemedText.LabelMicro>
-          ) : offchainOrderDetails?.expiry ? (
-            <ThemedText.LabelMicro fontWeight={500}>
+            </Text>
+          ) : expiry ? (
+            <Text variant="body4" color="$neutral2">
               <Trans
                 i18nKey="common.limits.expires"
-                values={{ timestamp: formatTimestamp(offchainOrderDetails.expiry * 1000, true, FormatType.Short) }}
+                values={{
+                  timestamp: formatTimestamp({
+                    timestamp: expiry * 1000,
+                    includeYear: true,
+                    type: FormatType.Short,
+                  }),
+                }}
               />
-            </ThemedText.LabelMicro>
+            </Text>
           ) : undefined
         }
         descriptor={
-          <Column>
-            <TradeSummaryContainer gap="xs" align="center">
-              {inputLogo && <CircleLogoImage src={inputLogo} size="16px" />}
-              <ThemedText.SubHeader color="neutral1">
-                {formatReviewSwapCurrencyAmount(amounts.inputAmount)} {amounts.inputAmount.currency.symbol}
-              </ThemedText.SubHeader>
-              <ArrowRight color={theme.neutral1} size="12px" />
-              {outputLogo && <CircleLogoImage src={outputLogo} size="16px" />}
-              <ThemedText.SubHeader color="neutral1">
-                {formatReviewSwapCurrencyAmount(amounts.outputAmount)} {amounts.outputAmount.currency.symbol}
-              </ThemedText.SubHeader>
-            </TradeSummaryContainer>
+          <Flex>
+            <Flex row gap="$gap4" alignItems="center">
+              {inputLogo && <Image src={inputLogo} height={16} width={16} borderRadius="$roundedFull" />}
+              <Text variant="subheading2" color="neutral1">
+                {formatCurrencyAmount({
+                  value: amounts.inputAmount,
+                  type: NumberType.TokenTx,
+                })}{' '}
+                {amounts.inputAmount.currency.symbol}
+              </Text>
+              <ArrowRight color={colors.neutral1.val} size="12px" />
+              {outputLogo && <Image src={outputLogo} height={16} width={16} borderRadius="$roundedFull" />}
+              <Text variant="subheading2" color="neutral1">
+                {formatCurrencyAmount({
+                  value: amounts.outputAmount,
+                  type: NumberType.TokenTx,
+                })}{' '}
+                {amounts.outputAmount.currency.symbol}
+              </Text>
+            </Flex>
             {displayPrice && (
-              <ThemedText.SubHeaderSmall color={theme.neutral1}>
+              <Text variant="body3" color="$neutral1">
                 <Trans
                   i18nKey="common.limits.when"
                   values={{
-                    price: formatReviewSwapCurrencyAmount(displayPrice),
+                    price: formatCurrencyAmount({
+                      value: displayPrice,
+                      type: NumberType.TokenTx,
+                    }),
                     outSymbol: amounts.outputAmount.currency.symbol,
                     inSymbol: amounts.inputAmount.currency.symbol,
                   }}
                 />
-              </ThemedText.SubHeaderSmall>
+              </Text>
             )}
-          </Column>
+          </Flex>
         }
         right={undefined}
         onClick={() => {
-          openOffchainActivityModal(offchainOrderDetails, {
-            inputLogo: inputLogo ?? undefined,
-            outputLogo: outputLogo ?? undefined,
-          })
+          openOffchainActivityModal(order)
         }}
       />
       {!cancelling && (
@@ -142,6 +144,6 @@ export function LimitDetailActivityRow({ order, onToggleSelect, selected }: Limi
           onPress={() => onToggleSelect(order)}
         />
       )}
-    </Row>
+    </Flex>
   )
 }

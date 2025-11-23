@@ -2,7 +2,8 @@ import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import { ApprovalState, useApproval } from 'lib/hooks/useApproval'
 import { useCallback } from 'react'
 import { useHasPendingApproval, useTransactionAdder } from 'state/transactions/hooks'
-import { TransactionType } from 'state/transactions/types'
+import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
+
 export { ApprovalState } from 'lib/hooks/useApproval'
 
 function useGetAndTrackApproval(getApproval: ReturnType<typeof useApproval>[1]) {
@@ -13,10 +14,10 @@ function useGetAndTrackApproval(getApproval: ReturnType<typeof useApproval>[1]) 
       if (pending) {
         const { response, tokenAddress, spenderAddress: spender, amount } = pending
         addTransaction(response, {
-          type: TransactionType.APPROVAL,
+          type: TransactionType.Approve,
           tokenAddress,
           spender,
-          amount: amount.quotient.toString(),
+          approvalAmount: amount.quotient.toString(),
         })
       }
     })
@@ -29,6 +30,11 @@ export function useApproveCallback(
   spender?: string,
   isRbPool?: boolean,
 ): [ApprovalState, () => Promise<void>] {
-  const [approval, getApproval] = useApproval(amountToApprove, spender, useHasPendingApproval, isRbPool)
+  const [approval, getApproval] = useApproval({
+    amountToApprove,
+    spender,
+    useIsPendingApproval: useHasPendingApproval,
+    isRbPool,
+  })
   return [approval, useGetAndTrackApproval(getApproval)]
 }

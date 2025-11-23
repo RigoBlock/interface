@@ -1,8 +1,7 @@
-import { ReactNode } from 'react'
 import { Flex, Switch, Text } from 'ui/src'
 
 interface SettingsToggleProps {
-  title: ReactNode
+  title: string
   description?: string
   dataid?: string
   disabled?: boolean
@@ -12,7 +11,7 @@ interface SettingsToggleProps {
 
 export function SettingsToggle({ title, description, dataid, isActive, toggle, disabled }: SettingsToggleProps) {
   return (
-    <Flex row alignItems="center" justifyContent="space-between">
+    <Flex row alignItems="center" justifyContent="space-between" py="$padding12">
       <Flex maxWidth="80%" $xl={{ maxWidth: '70%' }}>
         <Text variant="body3" color="neutral1">
           {title}

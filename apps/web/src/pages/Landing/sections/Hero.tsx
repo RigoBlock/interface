@@ -1,18 +1,18 @@
 import { ColumnCenter } from 'components/deprecated/Column'
 import { useCurrency } from 'hooks/Tokens'
 import { useScroll } from 'hooks/useScroll'
-import { TokenCloud } from 'pages/Landing/components/TokenCloud'
 import { Hover, RiseIn, RiseInText } from 'pages/Landing/components/animations'
+import { TokenCloud } from 'pages/Landing/components/TokenCloud'
 import { Swap } from 'pages/Swap'
 import { Fragment, useCallback, useMemo } from 'react'
 import { ChevronDown } from 'react-feather'
 import { Trans, useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import { serializeSwapStateToURLParameters } from 'state/swap/hooks'
 import { Flex, Text, useMedia } from 'ui/src'
 import { INTERFACE_NAV_HEIGHT } from 'ui/src/theme'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { SwapRedirectFn } from 'uniswap/src/features/transactions/TransactionModal/TransactionModalContext'
+import { SwapRedirectFn } from 'uniswap/src/features/transactions/components/TransactionModal/TransactionModalContext'
 
 interface HeroProps {
   scrollToRef: () => void
@@ -22,8 +22,11 @@ interface HeroProps {
 export function Hero({ scrollToRef, transition }: HeroProps) {
   const media = useMedia()
   const { height: scrollPosition } = useScroll({ enabled: !media.sm })
-  const { defaultChainId } = useEnabledChains()
-  const initialInputCurrency = useCurrency('ETH', defaultChainId)
+  const { defaultChainId, chains } = useEnabledChains()
+  const initialInputCurrency = useCurrency({
+    address: 'ETH',
+    chainId: defaultChainId,
+  })
   const navigate = useNavigate()
   const { t } = useTranslation()
   const { translateY, opacityY } = useMemo(
@@ -73,12 +76,12 @@ export function Hero({ scrollToRef, transition }: HeroProps) {
       y={translateY}
       opacity={opacityY}
       minWidth="100%"
-      minHeight="100vh"
+      minHeight="90vh"
       height="min-content"
       pt={INTERFACE_NAV_HEIGHT}
       pointerEvents="none"
     >
-      {!media.sm && <TokenCloud transition={transition} />}
+      {!media.sm && <TokenCloud />}
 
       <Flex
         alignSelf="center"
@@ -117,21 +120,23 @@ export function Hero({ scrollToRef, transition }: HeroProps) {
             borderRadius="$rounded24"
             backgroundColor="$surface1"
             maxWidth="100%"
+            enterStyle={{ opacity: 0 }}
           >
             <Swap
               hideHeader
               hideFooter
               syncTabToUrl={false}
-              chainId={defaultChainId}
+              initialInputChainId={defaultChainId}
               initialInputCurrency={initialInputCurrency}
               swapRedirectCallback={swapRedirectCallback}
+              usePersistedFilteredChainIds
             />
           </Flex>
         </RiseIn>
 
         <RiseIn delay={0.3}>
           <Text variant="body1" textAlign="center" maxWidth={430} color="$neutral2" $short={{ variant: 'body2' }}>
-            <Trans i18nKey="hero.subtitle" />
+            <Trans i18nKey="hero.subtitle" values={{ amount: chains.length }} />
           </Text>
         </RiseIn>
       </Flex>
@@ -145,7 +150,7 @@ export function Hero({ scrollToRef, transition }: HeroProps) {
         pointerEvents="none"
         bottom={48}
         style={{ transform: `translate(0px, ${translateY}px)`, opacity: opacityY }}
-        $midHeight={{ display: 'none' }}
+        $lgHeight={{ display: 'none' }}
       >
         <RiseIn delay={0.3}>
           <Flex

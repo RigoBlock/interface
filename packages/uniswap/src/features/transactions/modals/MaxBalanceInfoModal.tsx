@@ -1,10 +1,11 @@
 import { PropsWithChildren } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Text, isWeb } from 'ui/src'
-import { WarningModal } from 'uniswap/src/components/modals/WarningModal/WarningModal'
+import { Text } from 'ui/src'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
+import { WarningModal } from 'uniswap/src/components/modals/WarningModal/WarningModal'
 import { InfoTooltip } from 'uniswap/src/components/tooltip/InfoTooltip'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { isWebPlatform } from 'utilities/src/platform'
 
 interface MaxBalanceInfoModalProps {
   isMax: boolean
@@ -25,7 +26,7 @@ export function MaxBalanceInfoModal({
 }: PropsWithChildren<MaxBalanceInfoModalProps>): JSX.Element {
   const { t } = useTranslation()
 
-  if (isWeb) {
+  if (isWebPlatform) {
     if (!isTooltipEnabled) {
       return <>{children}</>
     }
@@ -36,9 +37,7 @@ export function MaxBalanceInfoModal({
           <Text variant="body4" textAlign="left" color="$neutral2">
             {isMax
               ? t('transaction.networkCost.maxNativeBalance.description')
-              : t('swap.warning.insufficientGas.button', {
-                  currencySymbol: currencySymbol || '',
-                })}
+              : t('transaction.networkCost.presetNativeBalance.description')}
           </Text>
         }
         placement="top"
@@ -51,11 +50,19 @@ export function MaxBalanceInfoModal({
     <>
       {children}
       <WarningModal
-        caption={t('transaction.networkCost.maxNativeBalance.description')}
+        caption={
+          isMax
+            ? t('transaction.networkCost.maxNativeBalance.description')
+            : t('transaction.networkCost.presetNativeBalance.description')
+        }
         isOpen={isModalOpen}
         modalName={ModalName.NativeBalanceInfo}
         severity={WarningSeverity.Low}
-        title={t('transaction.networkCost.maxNativeBalance.title')}
+        title={
+          isMax
+            ? t('transaction.networkCost.maxNativeBalance.title')
+            : t('transaction.networkCost.presetNativeBalance.title')
+        }
         rejectText={t('common.button.close')}
         onClose={onClose}
         onReject={onClose}

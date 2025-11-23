@@ -1,38 +1,40 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
+
+import {
+  getTokenTransactionTypeTranslation,
+  TokenTransactionType,
+  useTokenTransactions,
+} from 'appGraphql/data/useTokenTransactions'
+import { unwrapToken } from 'appGraphql/data/util'
+import { useUpdateManualOutage } from 'featureFlags/flags/outageBanner'
 import { ApolloError } from '@apollo/client'
 import { createColumnHelper } from '@tanstack/react-table'
 import { Token } from '@uniswap/sdk-core'
+import { GraphQLApi } from '@universe/api'
 import { Table } from 'components/Table'
 import { Cell } from 'components/Table/Cell'
 import { Filter } from 'components/Table/Filter'
 import {
+  EllipsisText,
   FilterHeaderRow,
-  HeaderArrow,
+  HeaderCell,
   HeaderSortText,
   StyledExternalLink,
+  TableText,
   TimestampCell,
   TokenLinkCell,
 } from 'components/Table/styled'
-import { useUpdateManualOutage } from 'featureFlags/flags/outageBanner'
-import { TokenTransactionType, useTokenTransactions } from 'graphql/data/useTokenTransactions'
-import { OrderDirection, unwrapToken } from 'graphql/data/util'
 import { useMemo, useReducer, useRef, useState } from 'react'
 import { Trans } from 'react-i18next'
-import { EllipsisTamaguiStyle } from 'theme/components/styles'
-import { Flex, Text, styled } from 'ui/src'
-import { Token as GQLToken } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
+import { Flex, styled, Text, useMedia } from 'ui/src'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useAppFiatCurrency } from 'uniswap/src/features/fiatCurrency/hooks'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { Platform } from 'uniswap/src/features/platforms/types/Platform'
+import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
 import { shortenAddress } from 'utilities/src/addresses'
-import { useFormatter } from 'utils/formatNumbers'
-
-const StyledSwapAmount = styled(Text, {
-  display: 'inline-block' as any,
-  maxWidth: 75,
-  variant: 'body2',
-  color: '$neutral1',
-  ...EllipsisTamaguiStyle,
-})
+import { NumberType } from 'utilities/src/format/types'
 
 const TableWrapper = styled(Flex, {
   position: 'relative',
@@ -52,20 +54,20 @@ interface SwapLeg {
   address?: string
   symbol?: string
   amount: number
-  token: GQLToken
+  token: GraphQLApi.Token
 }
 
 export function TransactionsTable({ chainId, referenceToken }: { chainId: UniverseChainId; referenceToken: Token }) {
   const activeLocalCurrency = useAppFiatCurrency()
-  const { formatNumber, formatFiatPrice } = useFormatter()
+  const { convertFiatAmountFormatted, formatNumberOrString } = useLocalizationContext()
   const [filterModalIsOpen, toggleFilterModal] = useReducer((s) => !s, false)
   const filterAnchorRef = useRef<HTMLDivElement>(null)
   const [filter, setFilters] = useState<TokenTransactionType[]>([TokenTransactionType.BUY, TokenTransactionType.SELL])
-  const { transactions, loading, loadMore, errorV2, errorV3 } = useTokenTransactions(
-    referenceToken.address,
+  const { transactions, loading, loadMore, errorV2, errorV3 } = useTokenTransactions({
+    address: referenceToken.address,
     chainId,
     filter,
-  )
+  })
   const combinedError =
     errorV2 && errorV3
       ? new ApolloError({
@@ -104,6 +106,8 @@ export function TransactionsTable({ chainId, referenceToken }: { chainId: Univer
     [transactions],
   )
 
+  const media = useMedia()
+
   const showLoadingSkeleton = allDataStillLoading || !!combinedError
   // TODO(WEB-3236): once GQL BE Transaction query is supported add usd, token0 amount, and token1 amount sort support
   const columns = useMemo(() => {
@@ -111,29 +115,34 @@ export function TransactionsTable({ chainId, referenceToken }: { chainId: Univer
     return [
       columnHelper.accessor((row) => row, {
         id: 'timestamp',
+        maxSize: 80,
         header: () => (
-          <Cell minWidth={120} justifyContent="flex-start" grow>
+          <HeaderCell justifyContent="flex-start" grow>
             <Flex row gap="$gap4" alignItems="center">
-              <HeaderArrow direction={OrderDirection.Desc} />
-              <HeaderSortText active>
+              <Text variant="body3" color="$neutral2">
                 <Trans i18nKey="common.time" />
-              </HeaderSortText>
+              </Text>
             </Flex>
-          </Cell>
+          </HeaderCell>
         ),
         cell: (row) => (
-          <Cell loading={showLoadingSkeleton} minWidth={120} justifyContent="flex-start" grow>
+          <Cell loading={showLoadingSkeleton} justifyContent="flex-start" grow>
             <TimestampCell
               timestamp={Number(row.getValue?.().timestamp)}
-              link={getExplorerLink(chainId, row.getValue?.().hash, ExplorerDataType.TRANSACTION)}
+              link={getExplorerLink({
+                chainId,
+                data: row.getValue?.().hash,
+                type: ExplorerDataType.TRANSACTION,
+              })}
             />
           </Cell>
         ),
       }),
       columnHelper.accessor((row) => row.output.address, {
         id: 'swap-type',
+        maxSize: 80,
         header: () => (
-          <Cell minWidth={75} justifyContent="flex-start" grow>
+          <HeaderCell justifyContent="flex-start" grow>
             <FilterHeaderRow
               clickable={filterModalIsOpen}
               onPress={filterModalIsOpen ? undefined : toggleFilterModal}
@@ -141,116 +150,139 @@ export function TransactionsTable({ chainId, referenceToken }: { chainId: Univer
               ref={filterAnchorRef}
             >
               <Filter
-                allFilters={Object.values(TokenTransactionType)}
+                allFilters={Object.values(TokenTransactionType).map((type) => ({
+                  value: type,
+                  label: getTokenTransactionTypeTranslation(type),
+                }))}
                 activeFilter={filter}
                 setFilters={setFilters}
                 isOpen={filterModalIsOpen}
                 toggleFilterModal={toggleFilterModal}
                 anchorRef={filterAnchorRef}
               />
-              <Text variant="body2" color="$neutral2">
+              <Text variant="body3" color="$neutral2">
                 <Trans i18nKey="common.type.label" />
               </Text>
             </FilterHeaderRow>
-          </Cell>
+          </HeaderCell>
         ),
         cell: (outputTokenAddress) => {
-          const isBuy = String(outputTokenAddress.getValue?.()).toLowerCase() === referenceToken.address.toLowerCase()
+          const isBuy = areAddressesEqual({
+            addressInput1: { address: String(outputTokenAddress.getValue?.()), platform: Platform.EVM },
+            addressInput2: { address: referenceToken.address, platform: Platform.EVM },
+          })
           return (
-            <Cell loading={showLoadingSkeleton} minWidth={75} justifyContent="flex-start" grow>
-              <Text variant="body2" color={isBuy ? '$statusSuccess' : '$statusCritical'}>
+            <Cell loading={showLoadingSkeleton} justifyContent="flex-start" grow>
+              <TableText color={isBuy ? '$statusSuccess' : '$statusCritical'}>
                 {isBuy ? <Trans i18nKey="common.buy.label" /> : <Trans i18nKey="common.sell.label" />}
-              </Text>
+              </TableText>
             </Cell>
           )
         },
       }),
       columnHelper.accessor(
         (row) =>
-          row.input.address?.toLowerCase() === referenceToken.address.toLowerCase()
+          areAddressesEqual({
+            addressInput1: { address: row.input.address, platform: Platform.EVM },
+            addressInput2: { address: referenceToken.address, platform: Platform.EVM },
+          })
             ? row.input.amount
             : row.output.amount,
         {
           id: 'reference-amount',
+          maxSize: 80,
           header: () => (
-            <Cell minWidth={100} justifyContent="flex-end">
-              <Text variant="body2" color="$neutral2">
+            <HeaderCell justifyContent="flex-end">
+              <Text variant="body3" color="$neutral2">
                 ${unwrappedReferenceToken.symbol}
               </Text>
-            </Cell>
+            </HeaderCell>
           ),
           cell: (inputTokenAmount) => (
-            <Cell loading={showLoadingSkeleton} minWidth={100} justifyContent="flex-end">
-              <Text variant="body2" color="$neutral1">
-                {formatNumber({
-                  input: Math.abs(inputTokenAmount.getValue?.()) || 0,
+            <Cell loading={showLoadingSkeleton} justifyContent="flex-end">
+              <TableText>
+                {formatNumberOrString({
+                  value: Math.abs(inputTokenAmount.getValue?.()) || 0,
+                  type: NumberType.TokenNonTx,
                 })}
-              </Text>
+              </TableText>
             </Cell>
           ),
         },
       ),
       columnHelper.accessor(
         (row) => {
-          const nonReferenceSwapLeg =
-            row.input.address?.toLowerCase() === referenceToken.address.toLowerCase() ? row.output : row.input
+          const nonReferenceSwapLeg = areAddressesEqual({
+            addressInput1: { address: row.input.address, platform: Platform.EVM },
+            addressInput2: { address: referenceToken.address, platform: Platform.EVM },
+          })
+            ? row.output
+            : row.input
           return (
-            <Flex row gap="$gap8" justifyContent="flex-end">
-              <StyledSwapAmount>
-                {formatNumber({
-                  input: Math.abs(nonReferenceSwapLeg.amount) || 0,
+            <Flex row gap="$gap8" justifyContent="flex-end" alignItems="center">
+              <EllipsisText maxWidth={75}>
+                {formatNumberOrString({
+                  value: Math.abs(nonReferenceSwapLeg.amount) || 0,
+                  type: NumberType.TokenQuantityStats,
                 })}
-              </StyledSwapAmount>
+              </EllipsisText>
               <TokenLinkCell token={nonReferenceSwapLeg.token} />
             </Flex>
           )
         },
         {
           id: 'non-reference-amount',
+          maxSize: 160,
           header: () => (
-            <Cell minWidth={160} justifyContent="flex-end">
-              <Text variant="body2" color="$neutral2">
+            <HeaderCell justifyContent="flex-end">
+              <Text variant="body3" color="$neutral2">
                 <Trans i18nKey="common.for" />
               </Text>
-            </Cell>
+            </HeaderCell>
           ),
           cell: (swapOutput) => (
-            <Cell loading={showLoadingSkeleton} minWidth={160} justifyContent="flex-end">
-              {swapOutput.getValue?.()}
+            <Cell loading={showLoadingSkeleton} justifyContent="flex-end">
+              <TableText>{swapOutput.getValue?.()}</TableText>
             </Cell>
           ),
         },
       ),
       columnHelper.accessor((row) => row.usdValue, {
         id: 'fiat-value',
+        maxSize: 100,
         header: () => (
-          <Cell minWidth={125} justifyContent="flex-end">
+          <HeaderCell justifyContent="flex-end">
             <Flex row gap="$gap4" justifyContent="flex-end">
               <HeaderSortText>{activeLocalCurrency}</HeaderSortText>
             </Flex>
-          </Cell>
+          </HeaderCell>
         ),
         cell: (fiat) => (
-          <Cell loading={showLoadingSkeleton} minWidth={125} justifyContent="flex-end">
-            <Text variant="body2" color="$neutral1">
-              {formatFiatPrice({ price: fiat.getValue?.() })}
-            </Text>
+          <Cell loading={showLoadingSkeleton} justifyContent="flex-end">
+            <TableText>{convertFiatAmountFormatted(fiat.getValue?.(), NumberType.FiatTokenPrice)}</TableText>
           </Cell>
         ),
       }),
       columnHelper.accessor((row) => row.makerAddress, {
         id: 'maker-address',
+        maxSize: 130,
         header: () => (
-          <Cell minWidth={150} justifyContent="flex-end">
-            <Text variant="body2" color="$neutral2">
+          <HeaderCell justifyContent="flex-end">
+            <Text variant="body3" color="$neutral2">
               <Trans i18nKey="common.wallet.label" />
             </Text>
-          </Cell>
+          </HeaderCell>
         ),
         cell: (makerAddress) => (
-          <Cell loading={showLoadingSkeleton} minWidth={150} justifyContent="flex-end">
-            <StyledExternalLink href={getExplorerLink(chainId, makerAddress.getValue?.(), ExplorerDataType.ADDRESS)}>
-              {shortenAddress(makerAddress.getValue?.())}
+          <Cell loading={showLoadingSkeleton} justifyContent="flex-end">
+            <StyledExternalLink
+              href={getExplorerLink({
+                chainId,
+                data: makerAddress.getValue?.(),
+                type: ExplorerDataType.ADDRESS,
+              })}
+            >
+              <TableText>{shortenAddress({ address: makerAddress.getValue?.() })}</TableText>
             </StyledExternalLink>
           </Cell>
         ),
@@ -263,9 +295,9 @@ export function TransactionsTable({ chainId, referenceToken }: { chainId: Univer
     filter,
     referenceToken.address,
     unwrappedReferenceToken.symbol,
-    formatNumber,
+    formatNumberOrString,
     activeLocalCurrency,
-    formatFiatPrice,
+    convertFiatAmountFormatted,
   ])
 
   return (
@@ -275,8 +307,11 @@ export function TransactionsTable({ chainId, referenceToken }: { chainId: Univer
         data={data}
         loading={allDataStillLoading}
         error={combinedError}
+        v2={false}
         loadMore={loadMore}
         maxHeight={600}
+        defaultPinnedColumns={['timestamp', 'swap-type']}
+        forcePinning={media.xxl}
       />
     </TableWrapper>
   )

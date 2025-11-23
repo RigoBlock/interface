@@ -67,6 +67,7 @@ export const SeedPhraseEducationContent = (params: OnboardingStackBaseParams): J
   const highlightComponent = <CustomHeadingText color="$accent1" />
 
   const pageContentList = [
+    // biome-ignore-start lint/correctness/useJsxKeyInIterable: Static array items don't need keys
     <Trans components={{ highlight: highlightComponent }} i18nKey="account.recoveryPhrase.education.part1" />,
     <Trans components={{ highlight: highlightComponent }} i18nKey="account.recoveryPhrase.education.part2" />,
     <Trans components={{ highlight: highlightComponent }} i18nKey="account.recoveryPhrase.education.part3" />,
@@ -77,10 +78,11 @@ export const SeedPhraseEducationContent = (params: OnboardingStackBaseParams): J
     />,
     <Trans components={{ highlight: highlightComponent }} i18nKey="account.recoveryPhrase.education.part5" />,
     <Trans components={{ highlight: highlightComponent }} i18nKey="account.recoveryPhrase.education.part6" />,
+    // biome-ignore-end lint/correctness/useJsxKeyInIterable: Static array items don't need keys
   ]
 
-  return pageContentList.map((content) => (
-    <Page params={params} text={<CustomHeadingText>{content}</CustomHeadingText>} />
+  return pageContentList.map((content, i) => (
+    <Page key={i} params={params} text={<CustomHeadingText>{content}</CustomHeadingText>} />
   ))
 }
 

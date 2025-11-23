@@ -1,7 +1,6 @@
 import type { StorybookConfig } from '@storybook/react-webpack5'
-import { DefinePlugin } from 'webpack'
-
 import { dirname, join, resolve } from 'path'
+import { DefinePlugin } from 'webpack'
 
 const isDev = process.env.NODE_ENV === 'development'
 
@@ -42,6 +41,7 @@ const config: StorybookConfig = {
     config.plugins.push(
       new DefinePlugin({
         __DEV__: isDev,
+        'process.env.IS_UNISWAP_EXTENSION': JSON.stringify(process.env.STORYBOOK_EXTENSION || 'false'),
       }),
     )
 
@@ -71,16 +71,24 @@ const config: StorybookConfig = {
       config.module.rules.push({
         test: /\.tsx?$/,
         use: 'ts-loader',
-        exclude: /node_modules/,
+        // Exclude node_modules except for expo packages and related modules
+        exclude: /node_modules\/(?!(expo-.*|@expo|@react-native|@uniswap\/.*)\/).*/,
       })
 
     config.resolve ??= {}
+
+    // Add fallback for Node.js 'os' module
+    config.resolve.fallback = {
+      ...(config.resolve.fallback || {}),
+      os: false,
+    }
 
     config.resolve = {
       ...config.resolve,
       alias: {
         ...config?.resolve?.alias,
         'react-native$': 'react-native-web',
+        'expo-blur': require.resolve('./__mocks__/expo-blur.jsx'),
       },
     }
 

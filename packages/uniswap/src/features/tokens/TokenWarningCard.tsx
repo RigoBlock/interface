@@ -3,15 +3,15 @@ import { TouchableArea } from 'ui/src'
 import { InlineWarningCard } from 'uniswap/src/components/InlineWarningCard/InlineWarningCard'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
-import Trace from 'uniswap/src/features/telemetry/Trace'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
+import Trace from 'uniswap/src/features/telemetry/Trace'
 import { useBlockaidFeeComparisonAnalytics } from 'uniswap/src/features/tokens/hooks/useBlockaidFeeComparisonAnalytics'
 import {
-  TokenProtectionWarning,
   getSeverityFromTokenProtectionWarning,
   getTokenProtectionFeeOnTransfer,
   getTokenProtectionWarning,
   getTokenWarningSeverity,
+  TokenProtectionWarning,
   useCardHeaderText,
   useCardSubtitleText,
   useTokenWarningCardText,
@@ -33,14 +33,18 @@ type TokenWarningCardProps = {
   setChecked?: (checked: boolean) => void
 }
 
-function useTokenWarningOverrides(
-  currencyInfo: Maybe<CurrencyInfo>,
-  tokenProtectionWarningOverride?: TokenProtectionWarning,
+function useTokenWarningOverrides({
+  currencyInfo,
+  tokenProtectionWarningOverride,
+  feeOnTransferOverride,
+}: {
+  currencyInfo: Maybe<CurrencyInfo>
+  tokenProtectionWarningOverride?: TokenProtectionWarning
   feeOnTransferOverride?: {
     buyFeePercent?: number
     sellFeePercent?: number
-  },
-): { severity: WarningSeverity; heading: string | null; description: string | null } {
+  }
+}): { severity: WarningSeverity; heading: string | null; description: string | null } {
   const { heading: headingDefault, description: descriptionDefault } = useTokenWarningCardText(currencyInfo)
   const { buyFeePercent, sellFeePercent } = getTokenProtectionFeeOnTransfer(currencyInfo)
 
@@ -79,11 +83,11 @@ export function TokenWarningCard({
   onPress,
 }: TokenWarningCardProps): JSX.Element | null {
   const { t } = useTranslation()
-  const { severity, heading, description } = useTokenWarningOverrides(
+  const { severity, heading, description } = useTokenWarningOverrides({
     currencyInfo,
     tokenProtectionWarningOverride,
     feeOnTransferOverride,
-  )
+  })
   useBlockaidFeeComparisonAnalytics(currencyInfo)
 
   if (!currencyInfo || !severity || !description) {

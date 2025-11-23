@@ -1,8 +1,25 @@
-import { Currency } from '@uniswap/sdk-core'
-import { ProtectionResult } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
-import { SpamCode } from 'uniswap/src/data/types'
-import { FoTPercent } from 'uniswap/src/features/tokens/TokenWarningModal'
-import { CurrencyId } from 'uniswap/src/types/currency'
+import { type NetworkStatus } from '@apollo/client'
+import { type Contract } from '@uniswap/client-data-api/dist/data/v1/types_pb'
+import { type Currency } from '@uniswap/sdk-core'
+import { type GraphQLApi, type SpamCode } from '@universe/api'
+import { type FoTPercent } from 'uniswap/src/features/tokens/TokenWarningModal'
+import { type CurrencyId } from 'uniswap/src/types/currency'
+
+export type RestContract = Pick<Contract, 'chainId' | 'address'>
+
+export interface BaseResult<T> {
+  data?: T
+  loading: boolean
+  networkStatus: NetworkStatus
+  refetch: () => void
+  error?: Error
+}
+
+export interface PaginationControls {
+  fetchNextPage: () => void
+  hasNextPage: boolean
+  isFetchingNextPage: boolean
+}
 
 export enum TokenList {
   Default = 'default',
@@ -11,6 +28,7 @@ export enum TokenList {
 }
 
 export enum AttackType {
+  Honeypot = 'honeypot',
   Airdrop = 'airdrop',
   Impersonator = 'impersonator',
   HighFees = 'high-fees',
@@ -20,7 +38,7 @@ export enum AttackType {
 export type SafetyInfo = {
   tokenList: TokenList
   attackType?: AttackType
-  protectionResult: ProtectionResult
+  protectionResult: GraphQLApi.ProtectionResult
   blockaidFees?: FoTPercent
 }
 
@@ -31,6 +49,12 @@ export type CurrencyInfo = {
   spamCode?: Maybe<SpamCode>
   logoUrl: Maybe<string>
   isSpam?: Maybe<boolean>
+  // Indicates if this currency is from another chain than user searched
+  isFromOtherNetwork?: boolean
+  // Indicates if this token is a bridged asset
+  isBridged?: Maybe<boolean>
+  // Information about how to withdraw a bridged asset to its native chain
+  bridgedWithdrawalInfo?: Maybe<GraphQLApi.BridgedWithdrawalInfo>
 }
 
 // Portfolio balance as exposed to the app

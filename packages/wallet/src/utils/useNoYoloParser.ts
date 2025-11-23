@@ -24,15 +24,15 @@ export function useNoYoloParser(
 
     const explorerAbiFetcher = new ExplorerAbiFetcher(apiURL)
 
-    const rpcUrl =
-      rpcUrls?.default?.http[0] || rpcUrls?.[RPCType.Public]?.http[0] || rpcUrls?.[RPCType.PublicAlt]?.http[0]
-    const provider = new JsonRpcProvider(rpcUrl)
+    const rpcUrl = rpcUrls.default.http[0] || rpcUrls[RPCType.Public]?.http[0] || rpcUrls[RPCType.PublicAlt]?.http[0]
+    const provider = new JsonRpcProvider(rpcUrl, chainId)
 
     const proxyAbiFetcher = new ProxyAbiFetcher(provider, [explorerAbiFetcher])
 
     return new Parser({ abiFetchers: [proxyAbiFetcher, explorerAbiFetcher] })
   }, [chainId])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: +value
   useEffect(() => {
     const parseResult = async (): Promise<TransactionDescription | undefined> => {
       // no-yolo-parser library expects these fields to be defined
