@@ -11,6 +11,7 @@ import { SearchBar } from 'components/NavBar/SearchBar'
 import { useIsSearchBarVisible } from 'components/NavBar/SearchBar/useIsSearchBarVisible'
 import { Tabs } from 'components/NavBar/Tabs/Tabs'
 import TestnetModeTooltip from 'components/NavBar/TestnetMode/TestnetModeTooltip'
+import { UniswapWrappedEntry } from 'components/NavBar/UniswapWrappedEntry'
 import Web3Status from 'components/Web3Status'
 import { useAccount } from 'hooks/useAccount'
 import { PageType, useIsPage } from 'hooks/useIsPage'
@@ -279,7 +280,7 @@ export default function Navbar() {
         </SearchContainer>
 
         <Right>
-          {!hideChainSelector && <ChainSelector />}
+          <UniswapWrappedEntry />
           {!isSearchBarVisible && <SearchBar allPools={allPools} />}
           {!isEmbeddedWalletEnabled && isLandingPage && !isSmallScreen && <NewUserCTAButton />}
           {!isConnected && <PreferenceMenu />}

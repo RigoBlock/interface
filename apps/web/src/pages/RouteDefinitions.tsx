@@ -8,6 +8,7 @@ import Stake from 'pages/Stake'
 import Swap from 'pages/Swap'
 import { lazy, ReactNode, Suspense, useMemo } from 'react'
 import { matchPath, Navigate, Route, Routes, useLocation } from 'react-router'
+import { WRAPPED_PATH } from 'uniswap/src/components/banners/shared/utils'
 import { CHROME_EXTENSION_UNINSTALL_URL_PATH } from 'uniswap/src/constants/urls'
 import { WRAPPED_SOL_ADDRESS_SOLANA } from 'uniswap/src/features/chains/svm/defaults'
 import { EXTENSION_PASSKEY_AUTH_PATH } from 'uniswap/src/features/passkey/constants'
@@ -46,6 +47,7 @@ const PasskeyManagement = lazy(() => import('pages/PasskeyManagement'))
 const ExtensionUninstall = lazy(() => import('pages/ExtensionUninstall/ExtensionUninstall'))
 const Portfolio = lazy(() => import('pages/Portfolio/Portfolio'))
 const ToucanToken = lazy(() => import('pages/Explore/ToucanToken'))
+const Wrapped = lazy(() => import('pages/Wrapped'))
 
 interface RouterConfig {
   browserRouterEnabled?: boolean
@@ -53,6 +55,7 @@ interface RouterConfig {
   isEmbeddedWalletEnabled?: boolean
   isPortfolioPageEnabled?: boolean
   isToucanEnabled?: boolean
+  isWrappedEnabled?: boolean
   shouldDisableNFTRoutes?: boolean
   shouldDisableExploreRoutes?: boolean
 }
@@ -66,6 +69,7 @@ export function useRouterConfig(): RouterConfig {
   const isEmbeddedWalletEnabled = useFeatureFlag(FeatureFlags.EmbeddedWallet)
   const isPortfolioPageEnabled = useFeatureFlag(FeatureFlags.PortfolioPage)
   const isToucanEnabled = useFeatureFlag(FeatureFlags.Toucan)
+  const isWrappedEnabled = useFeatureFlag(FeatureFlags.UniswapWrapped2025)
   const [shouldDisableNFTRoutes] = useAtom(shouldDisableNFTRoutesAtom)
   const [shouldDisableExploreRoutes] = useAtom(shouldDisableExploreRoutesAtom)
 
@@ -76,10 +80,11 @@ export function useRouterConfig(): RouterConfig {
       isEmbeddedWalletEnabled,
       isPortfolioPageEnabled,
       isToucanEnabled,
+      isWrappedEnabled,
       shouldDisableNFTRoutes: Boolean(shouldDisableNFTRoutes),
       shouldDisableExploreRoutes: Boolean(shouldDisableExploreRoutes),
     }),
-    [browserRouterEnabled, hash, shouldDisableExploreRoutes, shouldDisableNFTRoutes, isEmbeddedWalletEnabled, isPortfolioPageEnabled, isToucanEnabled],
+    [browserRouterEnabled, hash, shouldDisableExploreRoutes, shouldDisableNFTRoutes, isEmbeddedWalletEnabled, isWrapperEnabled, isPortfolioPageEnabled, isToucanEnabled],
   )
 }
 
@@ -196,7 +201,7 @@ export const routes: RouteDefinition[] = [
     ),
   }),
   createRouteDefinition({
-    path: '/explore/toucan/:id',
+    path: '/explore/auctions/:chainName/:id',
     getTitle: () => StaticTitlesAndDescriptions.DetailsPageBaseTitle,
     getDescription: () => StaticTitlesAndDescriptions.ToucanPlaceholderDescription,
     enabled: (args) => args.isToucanEnabled ?? false,
@@ -412,6 +417,13 @@ export const routes: RouteDefinition[] = [
     path: CHROME_EXTENSION_UNINSTALL_URL_PATH,
     getElement: () => <ExtensionUninstall />,
     getTitle: () => i18n.t('title.extension.uninstall'),
+  }),
+  // Uniswap Wrapped
+  createRouteDefinition({
+    path: WRAPPED_PATH,
+    getElement: () => <Wrapped />,
+    getTitle: () => 'Uniswap Wrapped',
+    enabled: (args) => args.isWrappedEnabled ?? false,
   }),
   createRouteDefinition({
     path: '/mint',
