@@ -12,6 +12,7 @@ import { useIsSearchBarVisible } from 'components/NavBar/SearchBar/useIsSearchBa
 import { Tabs } from 'components/NavBar/Tabs/Tabs'
 import TestnetModeTooltip from 'components/NavBar/TestnetMode/TestnetModeTooltip'
 import Web3Status from 'components/Web3Status'
+import { useAccount } from 'hooks/useAccount'
 import { PageType, useIsPage } from 'hooks/useIsPage'
 import { useEffect, useMemo /*, useRef*/ } from 'react'
 import { useAllPoolsData } from 'state/pool/hooks'
@@ -95,6 +96,29 @@ const SelectedPoolContainer = styled(UnpositionedFlex, {
   },
 })
 
+function useShouldHideChainSelector() {
+  const isLandingPage = useIsPage(PageType.LANDING)
+  const isSendPage = useIsPage(PageType.SEND)
+  const isSwapPage = useIsPage(PageType.SWAP)
+  const isLimitPage = useIsPage(PageType.LIMIT)
+  const isExplorePage = useIsPage(PageType.EXPLORE)
+  const isPositionsPage = useIsPage(PageType.POSITIONS)
+  const isMigrateV3Page = useIsPage(PageType.MIGRATE_V3)
+  const isBuyPage = useIsPage(PageType.BUY)
+
+  const multichainHiddenPages =
+    isLandingPage ||
+    isSendPage ||
+    isSwapPage ||
+    isLimitPage ||
+    isExplorePage ||
+    isPositionsPage ||
+    isMigrateV3Page ||
+    isBuyPage
+
+  return multichainHiddenPages
+}
+
 export default function Navbar() {
   const isLandingPage = useIsPage(PageType.LANDING)
 
@@ -103,11 +127,11 @@ export default function Navbar() {
   const areTabsVisible = useTabsVisible()
   const isSearchBarVisible = useIsSearchBarVisible()
   const { isConnected } = useConnectionStatus()
-  const collapseSearchBar = media.xl
-  const NAV_SEARCH_MAX_HEIGHT = 'calc(100vh - 30px)'
+  //const collapseSearchBar = media.xl
+  //const NAV_SEARCH_MAX_HEIGHT = 'calc(100vh - 30px)'
 
   const account = useAccount()
-  const { address, chainId, isConnected, isConnecting } = account
+  const { address, chainId } = account
   const prevAccount = usePrevious(address)
   const accountChanged = prevAccount && prevAccount !== address
 
@@ -216,7 +240,7 @@ export default function Navbar() {
     return { operatedPools: rawOperatedPools, newDefaultVaultLoaded }
   }, [rawOperatedPools, activeSmartVault.address])
 
-  const defaultPool = useMemo(() => operatedPools?.[0], [operatedPools])
+  const defaultPool = useMemo(() => operatedPools?.[0] ?? undefined, [operatedPools])
   const onPoolSelect = useSelectActiveSmartPool()
 
   const prevChainId = usePrevious(chainId)
@@ -231,44 +255,39 @@ export default function Navbar() {
     }
   }, [accountChanged, chainChanged, defaultPool, onPoolSelect, newDefaultVaultLoaded])
 
-  const userIsOperator = Boolean(operatedPools && operatedPools.length > 0)
+  const userIsOperator = operatedPools.length > 0
 
   return (
     <Nav>
-      <Flex row centered width="100%" style={{ position: 'relative' }}>
+      <UnpositionedFlex row centered width="100%" >
         <Left style={{ flexShrink: 0 }}>
           <CompanyMenu />
           {areTabsVisible && <Tabs userIsOperator={userIsOperator} />}
         </Left>
 
         <SearchContainer>
-            isSearchBarVisible && userIsOperator && (
+          {isSearchBarVisible && userIsOperator && (
             <SelectedPoolContainer>
               <PoolSelect operatedPools={operatedPools} />
             </SelectedPoolContainer>
           )}
           {isSearchBarVisible && (
             <UnpositionedFlex flex={1} flexShrink={1} ml="$spacing16">
-              <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} allPools={allPools} />
+              <SearchBar allPools={allPools} />
             </UnpositionedFlex>
           )}
         </SearchContainer>
 
         <Right>
-          {isNFTPage && sellPageState !== ProfilePageStateType.LISTING && <Bag />}
-          {isSignInExperimentControl && !isSignInExperimentControlLoading && isLandingPage && !isSmallScreen && (
-            <NewUserCTAButton />
-          )}
-          {!account.isConnected && !account.isConnecting && <PreferenceMenu />}
           {!hideChainSelector && <ChainSelector />}
-          {!isSearchBarVisible && <SearchBar />}
+          {!isSearchBarVisible && <SearchBar allPools={allPools} />}
           {!isEmbeddedWalletEnabled && isLandingPage && !isSmallScreen && <NewUserCTAButton />}
           {!isConnected && <PreferenceMenu />}
           {isTestnetModeEnabled && <TestnetModeTooltip />}
           {isEmbeddedWalletEnabled && !isConnected && <NewUserCTAButton />}
           <Web3Status />
         </Right>
-      </Flex>
+      </UnpositionedFlex>
     </Nav>
   )
 }

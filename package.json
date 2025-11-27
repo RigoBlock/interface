@@ -213,5 +213,10 @@
     "@tamagui/web@1.125.17": "patches/@tamagui%2Fweb@1.125.17.patch",
     "@tamagui/z-index-stack@1.125.17": "patches/@tamagui%2Fz-index-stack@1.125.17.patch",
     "@vercel/og@0.5.8": "patches/@vercel%2Fog@0.5.8.patch"
+  },
+  "dependencies": {
+    "react-router-dom": "^7.9.6",
+    "viem": "2.x",
+    "wagmi": "^3.0.1"
   }
 }

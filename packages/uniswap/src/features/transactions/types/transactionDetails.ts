@@ -300,6 +300,21 @@ export enum TransactionType {
 
   // Smart Wallet
   RemoveDelegation = 'remove-delegation',
+
+  // Rigoblock Vaults (temporary, will be replaced with more generic types later)
+  SetSpread = 'set-spread',
+  SetLockup = 'set-lockup',
+  SetValue = 'set-value',
+  Buy = 'buy',
+  Sell = 'sell',
+  Deploy = 'deploy',
+
+  // Governance
+  Vote = 'vote',
+  Queue = 'queue',
+  Execute = 'execute',
+  Delegate = 'delegate',
+  SubmitProposal = 'submit-proposal',
 }
 
 export interface BaseTransactionInfo {

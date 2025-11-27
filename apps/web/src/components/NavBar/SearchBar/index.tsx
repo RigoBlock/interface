@@ -48,12 +48,7 @@ const SearchIcon = styled.div`
   height: 20px;
 `
 
-export const SearchBar = ({
-    allPools,
-} : {
-    allPools?: PoolRegisteredLog[]
-}) => {
-export const SearchBar = ({ allPools } : { allPools?: PoolRegisteredLog }) => {
+export const SearchBar = ({ allPools } : { allPools?: PoolRegisteredLog[] }) => {
   const poolSearchEnabled = useFeatureFlag(FeatureFlags.PoolSearch)
   const isNavSearchInputVisible = useIsSearchBarVisible()
 

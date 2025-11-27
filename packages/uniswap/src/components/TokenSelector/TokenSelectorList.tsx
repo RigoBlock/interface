@@ -211,19 +211,7 @@ function _TokenSelectorList({
   })
 
   const renderItem = useEvent(({ item, section, index }: ItemRowInfo<TokenSelectorOption>): JSX.Element => {
-    // TODO: should not render smart vaults here
     if (isHorizontalListTokenItem(item)) {
-      return (
-        <HorizontalTokenList
-          tokens={item}
-          section={section as TokenSection<TokenOption[]>}
-          index={index}
-          expanded={isExpandedItem(item)}
-          onSelectCurrency={onSelectCurrency}
-          onExpand={() => handleExpand(item)}
-        />
-      )
-    }
       return (
         <HorizontalTokenList
           tokens={item}
