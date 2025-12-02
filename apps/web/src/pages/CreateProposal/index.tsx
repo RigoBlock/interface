@@ -1,6 +1,6 @@
+/* eslint-disable max-lines */
 import { Interface } from '@ethersproject/abi'
 import { getAddress, isAddress } from '@ethersproject/address'
-import { InterfacePageName } from '@uniswap/analytics-events'
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { ButtonError } from 'components/Button/buttons'
 import { BlueCard } from 'components/Card/cards'
@@ -41,6 +41,7 @@ import RB_POOL_FACTORY_ABI from 'uniswap/src/abis/rb-pool-factory.json'
 import STAKING_PROXY_ABI from 'uniswap/src/abis/staking-proxy.json'
 import { GRG } from 'uniswap/src/constants/tokens'
 import Trace from 'uniswap/src/features/telemetry/Trace'
+import { InterfacePageName } from 'uniswap/src/features/telemetry/constants'
 import { Trans } from 'react-i18next'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 
@@ -297,9 +298,8 @@ export default function CreateProposal() {
         actions.length === 0 ||
         actions.some(
           (action) =>
-            !action.proposalAction ||
             !isAddress(action.toAddress) ||
-            !action.currency?.isToken ||
+            !action.currency.isToken ||
             (action.proposalAction === ProposalAction.TRANSFER_TOKEN && action.amount === '') ||
             (action.proposalAction === ProposalAction.APPROVE_TOKEN && action.amount === ''),
         ) ||
@@ -320,7 +320,7 @@ export default function CreateProposal() {
 
     const createProposalData: CreateProposalData = {} as CreateProposalData
 
-    if (!createProposalCallback) {
+    if (typeof createProposalCallback !== 'function') {
       setAttempting(false)
       return
     }
@@ -330,11 +330,10 @@ export default function CreateProposal() {
 
     for (const action of actions) {
       // TODO: verify action.currency.isToken
-      if (!action.proposalAction || !action.currency.isToken) {
+      if (!action.currency.isToken) {
         setAttempting(false)
         return
       }
-
       const tokenAmount = tryParseCurrencyAmount(action.amount, action.currency)
 
       let values: (string | boolean)[][]
@@ -434,7 +433,7 @@ export default function CreateProposal() {
   }
 
   return (
-    <Trace logImpression page={InterfacePageName.VOTE_PAGE}>
+    <Trace logImpression page={InterfacePageName.VotePage}>
       <PageWrapper>
         <BodyWrapper $maxWidth="800px">
           <Nav to="/vote">

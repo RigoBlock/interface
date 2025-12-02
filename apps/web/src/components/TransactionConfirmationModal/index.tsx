@@ -20,7 +20,7 @@ import { CustomLightSpinner, ThemedText } from 'theme/components'
 import { ExternalLink } from 'theme/components/Links'
 import { Flex, ModalCloseIcon } from 'ui/src'
 import { Modal } from 'uniswap/src/components/modals/Modal'
-import { TransactionStatus } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { useIsSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
@@ -230,7 +230,7 @@ function L2Content({
 
   const transaction = useTransaction(hash)
   const confirmed = transaction && isConfirmedTx(transaction)
-  const transactionSuccess = transaction?.status === TransactionStatus.Confirmed
+  const transactionSuccess = transaction?.status === TransactionStatus.Success
 
   // convert unix time difference to seconds
   const secondsToConfirm =

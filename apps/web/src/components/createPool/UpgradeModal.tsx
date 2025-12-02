@@ -3,7 +3,7 @@ import { ReactNode, useState } from 'react'
 import { X } from 'react-feather'
 import styled from 'lib/styled-components'
 import { ThemedText } from 'theme/components/text'
-import { TransactionStatus } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { ModalName} from 'uniswap/src/features/telemetry/constants'
 import { logger } from 'utilities/src/logger/logger'
 
@@ -45,7 +45,7 @@ export default function UpgradeModal({ isOpen, implementation, onDismiss, title 
 
   const transaction = useTransaction(hash)
   const confirmed = useIsTransactionConfirmed(hash)
-  const transactionSuccess = transaction?.status === TransactionStatus.Confirmed
+  const transactionSuccess = transaction?.status === TransactionStatus.Success
 
   // wrapper to reset state on modal close
   function wrappedOnDismiss() {
@@ -58,7 +58,7 @@ export default function UpgradeModal({ isOpen, implementation, onDismiss, title 
     setAttempting(true)
 
     // if callback not returned properly ignore
-    if (!account.address || !account.chainId || !upgradeCallback) {
+    if (!account.address || !account.chainId) {
       return
     }
 

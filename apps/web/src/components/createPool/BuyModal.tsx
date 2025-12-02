@@ -15,14 +15,14 @@ import { useCallback, useMemo, useState, useEffect } from 'react'
 import { PoolInfo, useDerivedPoolInfo } from 'state/buy/hooks'
 import { usePoolExtendedContract } from 'state/pool/hooks'
 import { useIsTransactionConfirmed, useTransaction, useTransactionAdder } from 'state/transactions/hooks'
-import { TransactionType } from 'state/transactions/types'
+import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import styled from 'lib/styled-components'
 import { ThemedText } from 'theme/components'
 import { ModalCloseIcon } from 'ui/src'
-import { TransactionStatus } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { ModalName} from 'uniswap/src/features/telemetry/constants'
 import { calculateGasMargin } from 'utils/calculateGasMargin'
-import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { maxAmountSpend } from 'utils/maxAmountSpend'
 import { parseEther } from 'viem'
 
@@ -58,15 +58,16 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
 
   const transaction = useTransaction(hash)
   const confirmed = useIsTransactionConfirmed(hash)
-  const transactionSuccess = transaction?.status === TransactionStatus.Confirmed
+  const { formatCurrencyAmount } = useLocalizationContext()
+  const transactionSuccess = transaction?.status === TransactionStatus.Success
 
   const { parsedAmount, error } = useDerivedPoolInfo(typedValue, userBaseTokenBalance?.currency, userBaseTokenBalance)
 
   // approval data for buy with tokens
   //const deadline = useTransactionDeadline()
-  const [approval, approveCallback] = useApproveCallback(parsedAmount, poolInfo?.pool?.address)
+  const [approval, approveCallback] = useApproveCallback(parsedAmount, poolInfo?.pool.address)
 
-  const poolContract = usePoolExtendedContract(poolInfo?.pool?.address)
+  const poolContract = usePoolExtendedContract(poolInfo?.pool.address)
   const [expectedMintAmount, setExpectedMintAmount] = useState<any>(undefined)
   
   useEffect(() => {
@@ -132,7 +133,9 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
             })
               .then((response: TransactionResponse) => {
                 addTransaction(response, {
-                  type: TransactionType.BUY,
+                  type: TransactionType.Buy,
+                  vaultAddress: poolInfo.pool.address,
+                  purchaseCurrencyAmountRaw: parsedAmount.quotient.toString(),
                 })
                 setAttempting(false)
                 setHash(response.hash)
@@ -185,7 +188,7 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
               <RowBetween>
                 <ThemedText.DeprecatedMediumHeader>
                   <Trans>
-                    Buy {poolInfo.pool?.symbol ?? null} using {userBaseTokenBalance.currency?.symbol}
+                    Buy {poolInfo.pool.symbol} using {userBaseTokenBalance.currency.symbol}
                   </Trans>
                 </ThemedText.DeprecatedMediumHeader>
                 <ModalCloseIcon onClose={wrappedOnDismiss} />
@@ -198,7 +201,7 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
                 currency={userBaseTokenBalance.currency}
                 isAccount={true}
                 label=""
-                renderBalance={(amount) => <Trans>Available to deposit: {formatCurrencyAmount(amount, 4)}</Trans>}
+                renderBalance={(amount) => <Trans>Available to deposit: {formatCurrencyAmount({ value: amount })}</Trans>}
                 id="buy-pool-tokens"
               />
             </>
@@ -232,7 +235,7 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
             </ThemedText.DeprecatedLargeHeader>
             <ThemedText.DeprecatedBody fontSize={20}>
               <Trans>
-                {parsedAmount?.toSignificant(4)} {userBaseTokenBalance?.currency?.symbol}
+                {parsedAmount?.toSignificant(4)} {userBaseTokenBalance?.currency.symbol}
               </Trans>
             </ThemedText.DeprecatedBody>
             <ThemedText.DeprecatedBody fontSize={20}>
@@ -253,7 +256,7 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
                 </ThemedText.DeprecatedLargeHeader>
                 <ThemedText.DeprecatedBody fontSize={20}>
                   <Trans>
-                    Depositing {parsedAmount?.toSignificant(4)} {userBaseTokenBalance?.currency?.symbol}
+                    Depositing {parsedAmount?.toSignificant(4)} {userBaseTokenBalance?.currency.symbol}
                   </Trans>
                 </ThemedText.DeprecatedBody>
               </>
@@ -264,7 +267,7 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
                 </ThemedText.DeprecatedLargeHeader>
                 <ThemedText.DeprecatedBody fontSize={20}>
                   <Trans>
-                    Deposited {parsedAmount?.toSignificant(4)} {userBaseTokenBalance?.currency?.symbol}
+                    Deposited {parsedAmount?.toSignificant(4)} {userBaseTokenBalance?.currency.symbol}
                   </Trans>
                 </ThemedText.DeprecatedBody>
               </>

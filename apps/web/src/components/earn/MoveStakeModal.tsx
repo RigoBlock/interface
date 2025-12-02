@@ -1,6 +1,6 @@
 import { isAddress } from '@ethersproject/address'
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
-import { ZERO_ADDRESS } from 'constants/misc'
+import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
 import { Trans, useTranslation } from 'react-i18next'
 import JSBI from 'jsbi'
 import { ReactNode, useCallback, useMemo, useState } from 'react'
@@ -11,15 +11,15 @@ import { ClickablePill } from 'pages/Swap/Buy/PredefinedAmount'
 import { ThemedText } from 'theme/components/text'
 import { Flex, useSporeColors } from 'ui/src'
 import { GRG } from 'uniswap/src/constants/tokens'
-import { TransactionStatus } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { logger } from 'utilities/src/logger/logger'
-import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 
-import { useRemoveLiquidityModalContext } from 'components/RemoveLiquidity/RemoveLiquidityModalContext'
 import { ResponsiveHeaderText } from 'components/vote/DelegateModal'
 import { TextButton } from 'components/vote/DelegateModal'
 import useDebouncedChangeHandler from 'hooks/useDebouncedChangeHandler'
+import { useRemoveLiquidityModalContext } from 'pages/RemoveLiquidity/RemoveLiquidityModalContext'
 import { useENS } from 'uniswap/src/features/ens/useENS'
 import {
   StakeData,
@@ -83,19 +83,20 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
     },
     [setPercent],
   )
+  const { formatCurrencyAmount } = useLocalizationContext()
 
-  const fromPoolAddress = typed ?? ZERO_ADDRESS
+  const fromPoolAddress = typed === '' ? ZERO_ADDRESS : typed
   const { address: parsedAddress } = useENS({ nameOrAddress: fromPoolAddress })
 
   // TODO: we can save 1 rpc call here by using multicall
   const fromPoolId = usePoolIdByAddress(parsedAddress ?? undefined).poolId
-  const { poolId, stakingPoolExists } = usePoolIdByAddress(poolInfo.pool?.address)
+  const { poolId, stakingPoolExists } = usePoolIdByAddress(poolInfo.pool.address)
   const fromPoolStakeBalance = useStakeBalance(
     isDeactivate ? poolId : fromPoolId,
-    isPoolMoving ? poolInfo?.pool?.address : undefined
+    isPoolMoving ? poolInfo.pool.address : undefined
   )
   const freeStakeBalance = useFreeStakeBalance(true)
-  const poolContract = usePoolExtendedContract(poolInfo?.pool?.address)
+  const poolContract = usePoolExtendedContract(poolInfo.pool.address)
 
   // boilerplate for the slider
   const [percentForSlider, onPercentSelectForSlider] = useDebouncedChangeHandler(Number(percent), onPercentSelect)
@@ -115,18 +116,18 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
     )
   )
   const newApr = useMemo(() => {
-    if (poolInfo?.apr?.toString() !== 'NaN') {
+    if (poolInfo.apr?.toString() !== 'NaN') {
       const aprImpact =
-        Number(poolInfo?.poolStake) / (Number(poolInfo?.poolStake) + Number(parsedAmount?.quotient.toString()) / 1e18)
-      return (Number(poolInfo?.apr) * aprImpact).toFixed(2)
+        Number(poolInfo.poolStake) / (Number(poolInfo.poolStake) + Number(parsedAmount.quotient.toString()) / 1e18)
+      return (Number(poolInfo.apr) * aprImpact).toFixed(2)
     } else {
       return undefined
     }
   }, [poolInfo, parsedAmount])
 
   const moveStakeData: StakeData = {
-    amount: parsedAmount?.quotient.toString(),
-    pool: poolInfo.pool?.address,
+    amount: parsedAmount.quotient.toString(),
+    pool: poolInfo.pool.address,
     fromPoolId: fromPoolId ?? poolId,
     poolId: poolId ?? '',
     poolContract: isPoolMoving ? poolContract : null,
@@ -144,7 +145,7 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
 
   const transaction = useTransaction(hash)
   const confirmed = useIsTransactionConfirmed(hash)
-  const transactionSuccess = transaction?.status === TransactionStatus.Confirmed
+  const transactionSuccess = transaction?.status === TransactionStatus.Success
 
   // wrapper to reset state on modal close
   function wrappedOnDismiss() {
@@ -162,12 +163,7 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
     setStakeAmount(parsedAmount)
 
     // if callback not returned properly ignore
-    if (
-      !moveStakeCallback ||
-      !deactivateStakeCallback ||
-      (!fromPoolStakeBalance && !freeStakeBalance) ||
-      !currencyValue.isToken
-    ) {
+    if ((!fromPoolStakeBalance && !freeStakeBalance) || !currencyValue.isToken || JSBI.equal(parsedAmount.quotient, JSBI.BigInt(0))) {
       return
     }
 
@@ -221,7 +217,7 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
                       $disabled={disabled}
                       $active={active}
                       customBorderColor={colors.surface3.val}
-                      foregroundColor={colors[disabled ? 'neutral3' : active ? 'neutral1' : 'neutral2'].val}
+                      foregroundColor={colors[active ? 'neutral1' : 'neutral2'].val}
                       label={option < 100 ? option + '%' : t('swap.button.max')}
                       px="$spacing16"
                       textVariant="buttonLabel2"
@@ -236,7 +232,7 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
                 <RowBetween>
                   <ThemedText.DeprecatedBody fontSize={16} fontWeight={500}>
                     {!isDeactivate ? <Trans>Moving</Trans> : <Trans>Deactivating</Trans>}{' '}
-                    <Trans>{formatCurrencyAmount(parsedAmount, 4)} GRG Stake</Trans>
+                    <Trans>{formatCurrencyAmount({ value: parsedAmount })} GRG Stake</Trans>
                   </ThemedText.DeprecatedBody>
                   {newApr && !isDeactivate && (
                     <ThemedText.DeprecatedBody fontSize={16} fontWeight={500}>
@@ -248,7 +244,7 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
             </LightCard>
             <ButtonPrimary
               disabled={
-                formatCurrencyAmount(parsedAmount, 4) === '0' || (typed !== '' && !isAddress(parsedAddress ?? ''))
+                formatCurrencyAmount({ value: parsedAmount }) === '0' || (typed !== '' && !isAddress(parsedAddress ?? ''))
               }
               onClick={onMoveStake}
             >
@@ -262,7 +258,7 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
                 )}{' '}
               </ThemedText.DeprecatedMediumHeader>
             </ButtonPrimary>
-            {isDeactivate && poolInfo?.owner === account.address && (
+            {isDeactivate && poolInfo.owner === account.address && (
               <TextButton onClick={() => setIsPoolMoving(!isPoolMoving)}>
                 <ThemedText.DeprecatedMediumHeader>
                   {isPoolMoving ? <Trans>Deactivate Stake</Trans> : <Trans>Deactivate Pool Stake</Trans>}
@@ -285,7 +281,7 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
               )}{' '}
             </ThemedText.DeprecatedLargeHeader>
             <ThemedText.DeprecatedMain fontSize={36}>
-              {formatCurrencyAmount(parsedAmount, 4)} GRG
+              {formatCurrencyAmount({ value: parsedAmount })} GRG
             </ThemedText.DeprecatedMain>
           </AutoColumn>
         </LoadingView>
@@ -299,7 +295,7 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
                   <Trans>Transaction Submitted</Trans>
                 </ThemedText.DeprecatedLargeHeader>
                 <ThemedText.DeprecatedMain fontSize={36}>
-                  Moving {formatCurrencyAmount(stakeAmount, 4)} GRG
+                  Moving {formatCurrencyAmount({ value: stakeAmount })} GRG
                 </ThemedText.DeprecatedMain>
               </>
             ) : transactionSuccess ? (
@@ -308,7 +304,7 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
                   <Trans>Transaction Success</Trans>
                 </ThemedText.DeprecatedLargeHeader>
                 <ThemedText.DeprecatedMain fontSize={36}>
-                  Moved {formatCurrencyAmount(stakeAmount, 4)} GRG
+                  Moved {formatCurrencyAmount({ value: stakeAmount })} GRG
                 </ThemedText.DeprecatedMain>
               </>
             ) : (

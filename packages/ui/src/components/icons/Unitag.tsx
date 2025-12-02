@@ -29,7 +29,7 @@ function _Unitag({ size = '$icon.24' }: { size: IconSizeTokens | number }): JSX.
   if (isWebApp) {
     return <img src={uri} width={universalImageSize.width} height={universalImageSize.height} style={style.image} />
   } else {
-    return <UniversalImage style={style} size={universalImageSize} uri={uri} allowLocalUri />
+    return <UniversalImage allowLocalUri style={style} size={universalImageSize} uri={uri} />
   }
 }
 

@@ -1,10 +1,12 @@
-import { InterfaceElementName, InterfaceEventName, InterfaceSectionName } from '@uniswap/analytics-events'
+import { useTheme } from '@tamagui/core'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { Token } from '@uniswap/sdk-core'
 import { NavIcon } from 'components/NavBar/NavIcon'
 import { SearchModal } from 'components/NavBar/SearchBar/SearchModal'
 import Row from 'components/deprecated/Row'
 import { useIsSearchBarVisible } from 'components/NavBar/SearchBar/useIsSearchBarVisible'
+import { GqlSearchToken } from 'graphql/data/SearchTokens'
+import useDebounce from 'hooks/useDebounce'
 import { useModalState } from 'hooks/useModalState'
 import { styled } from 'lib/styled-components'
 import { getTokenFilter } from 'lib/hooks/useTokenList/filtering'
@@ -18,6 +20,8 @@ import { PoolRegisteredLog } from 'state/pool/hooks'
 import { Z_INDEX } from 'theme/zIndex'
 import { Input, useMedia } from 'ui/src'
 import { CloseIconWithHover } from 'ui/src/components/icons/CloseIconWithHover'
+import { GqlChainId, UniverseChainId } from 'uniswap/src/features/chains/types'
+import { toGraphQLChain } from 'uniswap/src/features/chains/utils'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { KeyAction } from 'utilities/src/device/keyboard/types'
 import { useKeyDown } from 'utilities/src/device/keyboard/useKeyDown'
@@ -60,7 +64,6 @@ export const SearchBar = ({ allPools } : { allPools?: PoolRegisteredLog[] }) => 
   const inputRef = useRef<any>(null)
   const { pathname } = useLocation()
   const media = useMedia()
-  const isNavSearchInputVisible = !media.xl
   const theme = useTheme()
   const { t } = useTranslation() // subscribe to locale changes
 
@@ -88,6 +91,7 @@ export const SearchBar = ({ allPools } : { allPools?: PoolRegisteredLog[] }) => 
   })
 
   const trace = useTrace({ section: SectionName.NavbarSearch })
+  const account = useAccount()
 
   const smartPools = useMemo(() => {
     //const mockToken = new Token(1, ZERO_ADDRESS, 0, '', '')
@@ -98,7 +102,7 @@ export const SearchBar = ({ allPools } : { allPools?: PoolRegisteredLog[] }) => 
     return allPools?.map((p) => {
       const { name, symbol, pool: address } = p
       //if (!name || !symbol || !address) return
-      return new Token(account.chainId ?? UniverseChainId.Mainnet, address ?? undefined, 18, symbol ?? 'NAN', name ?? '')
+      return new Token(account.chainId ?? UniverseChainId.Mainnet, address, 18, symbol, name)
     })
   }, [account.chainId, allPools])
 
@@ -150,8 +154,6 @@ export const SearchBar = ({ allPools } : { allPools?: PoolRegisteredLog[] }) => 
       inputRef.current?.focus()
     }
   }, [isOpen])
-
-  const trace = useTrace({ section: InterfaceSectionName.NAVBAR_SEARCH })
 
   const navbarSearchEventProperties = {
     navbar_search_input_text: debouncedSearchValue,

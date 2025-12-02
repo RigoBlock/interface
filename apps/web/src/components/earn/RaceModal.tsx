@@ -5,7 +5,7 @@ import { X } from 'react-feather'
 import styled from 'lib/styled-components'
 import { ThemedText } from 'theme/components/text'
 import { GRG } from 'uniswap/src/constants/tokens'
-import { TransactionStatus } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { ModalName} from 'uniswap/src/features/telemetry/constants'
 import { logger } from 'utilities/src/logger/logger'
 
@@ -56,7 +56,6 @@ const MODAL_TRANSITION_DURATION = 200
 export default function RaceModal({ isOpen, poolAddress, poolName, onDismiss, title }: RaceModalProps) {
   const { chainId } = useAccount()
 
-  const [currencyValue] = useState<Token | undefined>(GRG[chainId ?? UniverseChainId.Mainnet])
   const raceCallback = useRaceCallback()
 
   // monitor call to help UI loading state
@@ -66,7 +65,7 @@ export default function RaceModal({ isOpen, poolAddress, poolName, onDismiss, ti
 
   const transaction = useTransaction(hash)
   const confirmed = useIsTransactionConfirmed(hash)
-  const transactionSuccess = transaction?.status === TransactionStatus.Confirmed
+  const transactionSuccess = transaction?.status === TransactionStatus.Success
 
   // wrapper to reset state on modal close
   function wrappedOnDismiss() {
@@ -81,10 +80,9 @@ export default function RaceModal({ isOpen, poolAddress, poolName, onDismiss, ti
 
   async function onRace() {
     // if callback not returned properly ignore
-    if (!raceCallback || !poolAddress || !poolName || !currencyValue?.isToken) {
+    if (!poolAddress || !poolName) {
       return
     }
-    setAttempting(true)
 
     // try credit reward and store hash
     const hash = await raceCallback(poolAddress)?.catch((error) => {

@@ -1,3 +1,4 @@
+/* eslint-disable max-params */
 import { Interface } from '@ethersproject/abi'
 import { isAddress } from '@ethersproject/address'
 import { BigNumber } from '@ethersproject/bignumber'
@@ -7,23 +8,24 @@ import { parseBytes32String } from '@ethersproject/strings'
 import { Currency } from '@uniswap/sdk-core'
 import { useWeb3React } from '@web3-react/core'
 import { RB_FACTORY_ADDRESSES, RB_REGISTRY_ADDRESSES } from 'constants/addresses'
-import { ZERO_ADDRESS } from 'constants/misc'
+import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
 import { useAccount } from 'hooks/useAccount'
 import { useContract } from 'hooks/useContract'
 import { useTotalSupply } from 'hooks/useTotalSupply'
-import { CallStateResult, useSingleContractMultipleData } from 'lib/hooks/multicall'
 import { useCallback, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { useStakingContract } from 'state/governance/hooks'
 import { useLogs } from 'state/logs/hooks'
 import { useTransactionAdder } from 'state/transactions/hooks'
-import { TransactionType } from 'state/transactions/types'
 import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
 import RB_POOL_FACTORY_ABI from 'uniswap/src/abis/rb-pool-factory.json'
 import RB_REGISTRY_ABI from 'uniswap/src/abis/rb-registry.json'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { isValidHexString } from 'utilities/src/addresses/hex'
 import { calculateGasMargin } from 'utils/calculateGasMargin'
+import { assume0xAddress } from 'utils/wagmi'
 import { useReadContracts } from 'wagmi'
 import type { Abi } from 'viem'
 
@@ -32,24 +34,24 @@ const RegistryInterface = new Interface(RB_REGISTRY_ABI)
 
 export function useRegistryContract(): Contract | null {
   const account = useAccount()
-  return useContract(
-    account.chainId ? RB_REGISTRY_ADDRESSES[account.chainId] : undefined,
-    RB_REGISTRY_ABI,
-    true,
-  )
+  return useContract({
+    address: account.chainId ? RB_REGISTRY_ADDRESSES[account.chainId] : undefined,
+    ABI: RB_REGISTRY_ABI,
+    withSignerIfPossible: true,
+  })
 }
 
 export function usePoolFactoryContract(): Contract | null {
   const account = useAccount()
-  return useContract(
-    account.chainId ? RB_FACTORY_ADDRESSES[account.chainId] : undefined,
-    RB_POOL_FACTORY_ABI,
-    true,
-  )
+  return useContract({
+    address: account.chainId ? RB_FACTORY_ADDRESSES[account.chainId] : undefined,
+    ABI: RB_POOL_FACTORY_ABI,
+    withSignerIfPossible: true,
+  })
 }
 
 export function usePoolExtendedContract(poolAddress: string | undefined): Contract | null {
-  return useContract(poolAddress, POOL_EXTENDED_ABI, true)
+  return useContract({ address: poolAddress, ABI: POOL_EXTENDED_ABI, withSignerIfPossible: true })
 }
 
 // TODO: id should be optional as not returned in pools from url
@@ -112,29 +114,29 @@ export function useAllPoolsData(): { data?: PoolRegisteredLog[] } {
 
   return useMemo(() => {
     const uniquePools = pools?.filter((obj, index) => {
-      return index === pools?.findIndex((o) => obj?.pool === o?.pool)
+      return index === pools.findIndex((o) => obj.pool === o.pool)
     })
 
     return { data: uniquePools }
   }, [pools])
 }
 
-export function useCreateCallback(): (
-  name: string | undefined,
-  symbol: string | undefined,
+export function useCreateCallback(): (options: {
+  name: string | undefined
+  symbol: string | undefined
   currencyValue: Currency | undefined
-) => undefined | Promise<string> {
+}) => undefined | Promise<string> {
   const account = useAccount()
   const { provider } = useWeb3React()
   const addTransaction = useTransactionAdder()
   const factoryContract = usePoolFactoryContract()
 
   return useCallback(
-    (name: string | undefined, symbol: string | undefined, currencyValue: Currency | undefined) => {
+    ({ name, symbol, currencyValue }: { name: string | undefined; symbol: string | undefined; currencyValue: Currency | undefined }) => {
       const parsedAddress = currencyValue?.isNative ? ZERO_ADDRESS : currencyValue?.address
       // TODO: check name and symbol assertions
       //if (!provider || !chainId || !account || name === '' || symbol === '' || !isAddress(parsedAddress ?? ''))
-      if (!provider || !account.chainId || !account.address || !name || !symbol || !parsedAddress || !isAddress(parsedAddress ?? '')) {
+      if (!provider || !account.chainId || !account.address || !name || !symbol || !parsedAddress || !isAddress(parsedAddress)) {
         return undefined
       }
       if (currencyValue?.chainId !== account.chainId) {
@@ -148,7 +150,10 @@ export function useCreateCallback(): (
           .createPool(name, symbol, parsedAddress, { value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
-              type: TransactionType.CREATE_V3_POOL,
+              type: TransactionType.Deploy,
+              name: `${name} (${symbol})`,
+              symbol,
+              baseTokenAddress: parsedAddress
             })
             return response.hash
           })
@@ -165,7 +170,7 @@ function useRegisteredPools(): PoolRegisteredLog[] | undefined {
 
   // create filters for Registered events
   const filter = useMemo(() => {
-    const filter = registry?.filters?.Registered()
+    const filter = registry?.filters.Registered()
     if (!filter) {
       return undefined
     }
@@ -178,12 +183,12 @@ function useRegisteredPools(): PoolRegisteredLog[] | undefined {
 
   const logsResult = useLogs(filter)
 
-  return logsResult?.logs
+  return logsResult.logs
     ?.map((log) => {
       const parsed = RegistryInterface.parseLog(log).args
       return parsed
     })
-    ?.map((parsed) => {
+    .map((parsed) => {
       const group = parsed.group
       const pool = parsed.pool
       const name = parseBytes32String(parsed.name)
@@ -217,7 +222,9 @@ export function useSetLockupCallback(): (lockup: string | undefined) => undefine
           .changeMinPeriod(lockup, { value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
-              type: TransactionType.SET_LOCKUP,
+              type: TransactionType.SetLockup,
+              vaultAddress: poolContract.address,
+              lockupPeriodSeconds: Number(lockup),
             })
             return response.hash
           })
@@ -248,7 +255,9 @@ export function useSetSpreadCallback(): (spread: string | undefined) => undefine
           .changeSpread(spread, { value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
-              type: TransactionType.SET_SPREAD,
+              type: TransactionType.SetSpread,
+              vaultAddress: poolContract.address,
+              spreadBasisPoints: Number(spread),
             })
             return response.hash
           })
@@ -279,7 +288,8 @@ export function useSetValueCallback(): () => undefined | Promise<string> {
           .updateUnitaryValue({ value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
-              type: TransactionType.SET_VALUE,
+              type: TransactionType.SetValue,
+              vaultAddress: poolContract.address,
             })
             return response.hash
           })
@@ -310,7 +320,8 @@ export function useUpgradeCallback(): () => undefined | Promise<string> {
           .upgradeImplementation({ value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
-              type: TransactionType.UPGRADE_IMPLEMENTATION,
+              type: TransactionType.Upgrade,
+              vaultAddress: poolContract.address,
             })
             return response.hash
           })
@@ -338,47 +349,63 @@ export function useStakingPoolsRewards(poolIds: string[] | undefined) {
   const stakingContract = useStakingContract()
 
   const inputs = useMemo(() => (poolIds ? poolIds.map((poolId) => [poolId]) : []), [poolIds])
-  const results = useSingleContractMultipleData(stakingContract, 'getStakingPoolStatsThisEpoch', inputs)
+  const { data } = useReadContracts({
+    contracts: stakingContract
+      ? inputs.map((input) => ({
+          address: assume0xAddress(stakingContract.address),
+          abi: stakingContract.interface.fragments as Abi,
+          functionName: 'getStakingPoolStatsThisEpoch',
+          args: input,
+        }))
+      : [],
+    query: {
+      enabled: !!stakingContract?.address && inputs.length > 0,
+      staleTime: 30_000, // Cache data for 30 seconds
+      gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    },
+  })
+
   return useMemo(() => {
-    return results.map((call) => {
-      const result = call.result as CallStateResult
-      return result?.[0].feesCollected
+    return data?.map((result) => {
+      return (result as any).feesCollected
     })
-  }, [results])
+  }, [data])
 }
 
 export function useStakingPools(addresses: string[], poolIds: string[]): UseStakingPools {
   const stakingContract = useStakingContract()
   const { chainId } = useAccount()
-
   const calls = useMemo(() => {
-    if (addresses.length === 0 || addresses.length !== poolIds.length) { return undefined }
+    if (addresses.length === 0 || addresses.length !== poolIds.length || !stakingContract?.address || !isValidHexString(stakingContract.address)) { 
+      return undefined 
+    }
+    const contractAddress = assume0xAddress(stakingContract.address)
     return poolIds.flatMap((poolId, index) => [
       {
-        address: stakingContract?.address as `0x${string}`,
-        abi: stakingContract?.interface.fragments as Abi,
+        address: contractAddress,
+        abi: stakingContract.interface.fragments as Abi,
         functionName: 'getStakingPool',
         args: [poolId],
         chainId,
       },
       {
-        address: stakingContract?.address as `0x${string}`,
-        abi: stakingContract?.interface.fragments as Abi,
+        address: contractAddress,
+        abi: stakingContract.interface.fragments as Abi,
         functionName: 'getTotalStakeDelegatedToPool',
         args: [poolId],
         chainId,
       },
       {
-        address: stakingContract?.address as `0x${string}`,
-        abi: stakingContract?.interface.fragments as Abi,
+        address: contractAddress,
+        abi: stakingContract.interface.fragments as Abi,
         functionName: 'getOwnerStakeByStatus',
-        args: (addresses && addresses[index]) ? [addresses[index], 1] : undefined,
+        args: (addresses[index]) ? [addresses[index], 1] : undefined,
         chainId,
       },
     ])
   }, [poolIds, addresses, stakingContract?.address, stakingContract?.interface.fragments, chainId])
 
-  const { data: combinedData, isLoading } = useReadContracts({
+  const { data: combinedData, isFetching: isLoading } = useReadContracts({
     contracts: calls,
     query: {
       enabled: !!stakingContract?.address && addresses.length > 0 && poolIds.length > 0,
@@ -390,7 +417,7 @@ export function useStakingPools(addresses: string[], poolIds: string[]): UseStak
   const supplyAmount = useTotalSupply(GRG[chainId ?? UniverseChainId.Mainnet])
 
   const stakingPoolsData = useMemo(() => {
-    if (!combinedData || !poolIds || isLoading) {
+    if (!combinedData || isLoading) {
       return undefined
     }
 
@@ -428,18 +455,8 @@ export function useStakingPools(addresses: string[], poolIds: string[]): UseStak
     const { pools, totalDelegatedStake, totalPoolsOwnStake } = stakingPoolsData
     const totalRewardPool = Number(supplyAmount.quotient.toString()) * 0.02
 
-    const stakingPools = poolIds?.map((poolId) => {
+    const stakingPools = poolIds.map((poolId) => {
       const pool = pools[poolId]
-      if (!pool) {
-        return {
-          id: poolId,
-          operatorShare: 0,
-          apr: 0,
-          irr: 0,
-          delegatedStake: BigNumber.from(0),
-          poolOwnStake: BigNumber.from(0),
-        }
-      }
 
       const totalDelegatedStakeNum = parseFloat(totalDelegatedStake.toString())
       const totalPoolsOwnStakeNum = parseFloat(totalPoolsOwnStake.toString())

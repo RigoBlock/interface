@@ -1,4 +1,3 @@
-import { InterfaceElementName, InterfaceEventName, InterfacePageName } from '@uniswap/analytics-events'
 import { useAccountDrawer } from 'components/AccountDrawer/MiniPortfolio/hooks'
 import { ButtonPrimary } from 'components/Button/buttons'
 import { AutoColumn } from 'components/deprecated/Column'
@@ -13,6 +12,7 @@ import { useCloseModal, useModalIsOpen, useToggleCreateModal } from 'state/appli
 import { ApplicationModal } from 'state/application/reducer'
 import { useAllPoolsData } from 'state/pool/hooks'
 import { ThemedText } from 'theme/components/text'
+import { ElementName, InterfaceEventName, InterfacePageName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 
 const PageWrapper = styled(AutoColumn)`
@@ -77,7 +77,7 @@ export default function CreatePool() {
   const { data: allPools } = useAllPoolsData()
 
   return (
-    <Trace logImpression page={InterfacePageName.POOL_PAGE}>
+    <Trace logImpression page={InterfacePageName.PoolPage}>
       <PageWrapper gap="lg" justify="center">
         <TopSection gap="md">
           <DataCard>
@@ -122,9 +122,9 @@ export default function CreatePool() {
                 ) : (
                   <Trace
                     logPress
-                    eventOnTrigger={InterfaceEventName.CONNECT_WALLET_BUTTON_CLICKED}
+                    eventOnTrigger={InterfaceEventName.ConnectWalletButtonClicked}
                     properties={{ received_swap_quote: false }}
-                    element={InterfaceElementName.CONNECT_WALLET_BUTTON}
+                    element={ElementName.ConnectWalletButton}
                   >
                     <ButtonPrimary
                       style={{ marginTop: '2em', marginBottom: '2em', padding: '8px 16px' }}

@@ -1,8 +1,9 @@
 import { BigNumber } from '@ethersproject/bignumber'
-import { useSingleCallResult } from 'lib/hooks/multicall'
 import { useMemo } from 'react'
 // TODO: remove duplicate method definition and reorg code
 import { usePoolExtendedContract, usePoolFactoryContract } from 'state/pool/hooks'
+import { assume0xAddress } from 'utils/wagmi'
+import { useReadContract, useReadContracts } from 'wagmi'
 
 interface PoolInitParams {
   name: string
@@ -38,9 +39,31 @@ export interface UserAccount {
 
 export function useImplementation(poolAddress: string | undefined, implementationSlot: string): [string, string] | undefined {
   const poolExtendedContract = usePoolExtendedContract(poolAddress)
-  const currentImplementation = useSingleCallResult(poolExtendedContract ?? undefined, 'getStorageAt', [implementationSlot, 1]).result?.[0]
+  const queryEnabled = !!poolAddress && !!implementationSlot
   const poolFactory = usePoolFactoryContract()
-  const beaconImplementation = useSingleCallResult(poolFactory ?? undefined, 'implementation').result?.[0]
+  // TODO: return isLoading state
+  const { data, isLoading: isLoadingImplementations } = useReadContracts({
+    contracts: [
+      {
+        address: assume0xAddress(poolAddress),
+        abi: poolExtendedContract?.interface.fragments,
+        functionName: 'getStorageAt',
+        args: [implementationSlot, 1],
+        chainId: poolExtendedContract?.chainId,
+      },
+      {
+        address: assume0xAddress(poolFactory?.address),
+        abi: poolFactory?.interface.fragments,
+        functionName: 'implementation',
+        args: [],
+        chainId: poolFactory?.chainId,
+      },
+    ],
+    query: { enabled: queryEnabled },
+  })
+
+  const currentImplementation = data?.[0] as `0x${string}` | undefined
+  const beaconImplementation = data?.[1] as `0x${string}` | undefined
 
   // TODO: verify if memoization is needed here
   return useMemo(() => {
@@ -54,18 +77,28 @@ export function useImplementation(poolAddress: string | undefined, implementatio
 export function useSmartPoolFromAddress(poolAddress: string | undefined): PoolDetails | undefined {
   const poolExtendedContract = usePoolExtendedContract(poolAddress)
   // we return entire "poolStorage", i.e. poolInitParams, poolVariables, poolTokensInfo
-  //const result: PoolDetails[] | undefined = useSingleCallResult(poolExtendedContract, 'getPoolStorage')
-  const { result } = useSingleCallResult(poolExtendedContract ?? undefined, 'getPoolStorage')
+  const { data: poolStorageData } = useReadContract({
+    address: assume0xAddress(poolExtendedContract?.address),
+    abi: poolExtendedContract?.interface.fragments,
+    functionName: 'getPoolStorage',
+    args: [],
+    chainId: poolExtendedContract?.chainId,
+    query: { enabled: !!poolExtendedContract },
+  })
 
   return useMemo(() => {
-    const poolStorage: PoolDetails | undefined = {
-      poolInitParams: result?.[0],
-      poolVariables: result?.[1],
-      poolTokensInfo: result?.[2],
+    if (!poolStorageData) {
+      return undefined
     }
 
-    return poolStorage ?? undefined
-  }, [result])
+    const typedData = poolStorageData as PoolDetails
+
+    return {
+      poolInitParams: typedData.poolInitParams,
+      poolVariables: typedData.poolVariables,
+      poolTokensInfo: typedData.poolTokensInfo,
+    }
+  }, [poolStorageData])
 }
 
 export function useUserPoolBalance(
@@ -75,14 +108,21 @@ export function useUserPoolBalance(
   const poolExtendedContract = usePoolExtendedContract(poolAddress)
   // we return entire "poolStorage", i.e. poolInitParams, poolVariables, poolTokensInfo
   //const result: PoolDetails[] | undefined = useSingleCallResult(poolExtendedContract, 'getPoolStorage')
-  const target = useMemo(() => [account ?? undefined], [account])
-  const { result } = useSingleCallResult(poolExtendedContract ?? undefined, 'getUserAccount', target)
+  const target = useMemo(() => account ?? undefined, [account])
+  const { data: result } = useReadContract({
+    address: assume0xAddress(poolExtendedContract?.address),
+    abi: poolExtendedContract?.interface.fragments,
+    functionName: 'getUserAccount',
+    args: [target],
+    chainId: poolExtendedContract?.chainId,
+    query: { enabled: !!poolExtendedContract && !!account },
+  })
 
   return useMemo(() => {
-    if (!poolExtendedContract) {
+    if (!poolExtendedContract || !result) {
       return undefined
     }
 
-    return result?.[0]
+    return result as UserAccount
   }, [poolExtendedContract, result])
 }

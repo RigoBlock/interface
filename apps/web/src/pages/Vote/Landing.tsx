@@ -1,4 +1,4 @@
-import { InterfacePageName } from '@uniswap/analytics-events'
+import { useTheme } from '@tamagui/core'
 import { ButtonPrimary } from 'components/Button/buttons'
 import { AutoColumn } from 'components/deprecated/Column'
 import { AutoRow, RowBetween } from 'components/deprecated/Row'
@@ -10,7 +10,7 @@ import DelegateModal from 'components/vote/DelegateModal'
 import ProposalEmptyState from 'components/vote/ProposalEmptyState'
 import { useAccount } from 'hooks/useAccount'
 import JSBI from 'jsbi'
-import styled, { useTheme } from 'lib/styled-components'
+import styled from 'lib/styled-components'
 import { ProposalStatus } from 'pages/Vote/styled'
 import { darken } from 'polished'
 import { useState } from 'react'
@@ -21,8 +21,9 @@ import { ApplicationModal } from 'state/application/reducer'
 import { ProposalData, ProposalState, useAllProposalData } from 'state/governance/hooks'
 import { ThemedText } from 'theme/components'
 import { ExternalLink } from 'theme/components/Links'
+import { InterfacePageName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { Trans } from 'react-i18next'
 
 const PageWrapper = styled(AutoColumn)`
@@ -107,6 +108,7 @@ export default function Landing() {
   const showDelegateModal = useModalIsOpen(ApplicationModal.DELEGATE)
   const closeModal = useCloseModal()
   const toggleDelegateModal = useToggleDelegateModal()
+  const { formatCurrencyAmount } = useLocalizationContext()
 
   // get data to list all proposals
   const {
@@ -127,7 +129,7 @@ export default function Landing() {
 
   return (
     <>
-      <Trace logImpression page={InterfacePageName.VOTE_PAGE}>
+      <Trace logImpression page={InterfacePageName.VotePage}>
         <PageWrapper gap="lg" justify="center">
           <DelegateModal
             isOpen={showDelegateModal}
@@ -158,7 +160,7 @@ export default function Landing() {
                   </RowBetween>
                   <ExternalLink
                     style={{
-                      color: theme.white,
+                      color: theme.white.get(),
                       textDecoration: 'underline',
                     }}
                     href="https://docs.rigoblock.com/governance/rigoblock-governance"
@@ -194,7 +196,7 @@ export default function Landing() {
                     ) : availableVotes ? (
                       <Trans
                         i18nKey="vote.landing.voteAmount"
-                        values={{ amount: availableVotes && formatCurrencyAmount(availableVotes, 4) }}
+                        values={{ amount: formatCurrencyAmount({ value: availableVotes }) }}
                       />
                     ) : (
                       ''
@@ -214,9 +216,9 @@ export default function Landing() {
               </AutoRow>
             </WrapSmall>
 
-            {allProposals?.length === 0 && <ProposalEmptyState />}
+            {allProposals.length === 0 && <ProposalEmptyState />}
 
-            {allProposals?.length > 0 && (
+            {allProposals.length > 0 && (
               <AutoColumn gap="md">
                 <RowBetween></RowBetween>
                 <RowBetween>
@@ -232,10 +234,10 @@ export default function Landing() {
             )}
 
             {allProposals
-              ?.slice(0)
-              ?.reverse()
-              ?.filter((p: ProposalData) => (hideCancelled ? p.status !== ProposalState.CANCELED : true))
-              ?.map((p: ProposalData) => {
+              .slice(0)
+              .reverse()
+              .filter((p: ProposalData) => (hideCancelled ? p.status !== ProposalState.CANCELED : true))
+              .map((p: ProposalData) => {
                 return (
                   <Proposal as={Link} to={`/vote/${p.governorIndex}/${p.id}`} key={`${p.governorIndex}${p.id}`}>
                     <ProposalNumber>

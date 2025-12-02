@@ -102,7 +102,7 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
       contracts: useMemo(() => {
         return poolAddresses?.map(
           (vaultAddress) => ({
-            address: assume0xAddress(vaultAddress) ?? '0x',
+            address: assume0xAddress(vaultAddress),
             abi: [
               {
                 "inputs": [
@@ -193,18 +193,18 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
           userIsOwner,
           userBalance,
           id: poolIds?.[i],
-          currentEpochReward: poolsRewards[i] ?? '0',
+          currentEpochReward: poolsRewards?.[i] ?? '0',
           decimals: decimals ?? 18,
-          symbol: p?.symbol,
-          name: p?.name,
-          apr: p?.apr,
-          irr: p?.irr,
-          poolOwnStake: p?.poolOwnStake,
-          poolDelegatedStake: p?.poolDelegatedStake,
-          userHasStake: p?.userHasStake
+          symbol: p.symbol,
+          name: p.name,
+          apr: p.apr,
+          irr: p.irr,
+          poolOwnStake: p.poolOwnStake,
+          poolDelegatedStake: p.poolDelegatedStake,
+          userHasStake: p.userHasStake
         }
       })
-      .filter((p) => p && p.shouldDisplay)
+      .filter((p) => p.shouldDisplay)
   }, [account.address, account.chainId, poolAddresses, positions, poolIds, poolsRewards, shouldFilterByUserPools, data, isLoading])
 
   const displayPools = poolsWithStats ?? cachedPoolsWithStats
@@ -221,7 +221,7 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
         <Flex>
           <Text>
             {shouldFilterByUserPools ? <Trans>Your vaults</Trans> : <Trans>Top Vaults</Trans>}
-            {displayPools && ` (${displayPools?.length})`}
+            {displayPools && ` (${displayPools.length})`}
           </Text>
         </Flex>
         {shouldFilterByUserPools && (

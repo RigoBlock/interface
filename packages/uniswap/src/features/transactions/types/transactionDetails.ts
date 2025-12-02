@@ -308,6 +308,7 @@ export enum TransactionType {
   Buy = 'buy',
   Sell = 'sell',
   Deploy = 'deploy',
+  Upgrade = 'upgrade-implementation',
 
   // Governance
   Vote = 'vote',
@@ -621,6 +622,84 @@ export type TransactionTypeInfo =
   | MigrateV2LiquidityToV3TransactionInfo
   | MigrateV3LiquidityToV4TransactionInfo
   | LpIncentivesClaimTransactionInfo
+  | DeployVaultTransactionInfo
+  | SetSpreadTransactionInfo
+  | SetLockupTransactionInfo
+  | SetValueTransactionInfo
+  | BuyTransactionInfo
+  | SellTransactionInfo
+  | VoteTransactionInfo
+  | QueueTransactionInfo
+  | ExecuteTransactionInfo
+  | DelegateTransactionInfo
+  | SubmitProposalTransactionInfo
+  | UpgradeVaultTransactionInfo
+
+export interface UpgradeVaultTransactionInfo extends BaseTransactionInfo {
+  type: TransactionType.Upgrade
+  vaultAddress: string
+}
+
+export interface VoteTransactionInfo extends BaseTransactionInfo {
+  type: TransactionType.Vote
+  proposalId?: string
+}
+export interface QueueTransactionInfo extends BaseTransactionInfo {
+  type: TransactionType.Queue
+  proposalId?: string
+}
+export interface ExecuteTransactionInfo extends BaseTransactionInfo {
+  type: TransactionType.Execute
+  proposalId?: string
+}
+export interface DelegateTransactionInfo extends BaseTransactionInfo {
+  type: TransactionType.Delegate
+  delegateeAddress: string
+}
+export interface SubmitProposalTransactionInfo extends BaseTransactionInfo {
+  type: TransactionType.SubmitProposal
+  proposalId?: string
+}
+
+export interface SetSpreadTransactionInfo extends BaseTransactionInfo {
+  type: TransactionType.SetSpread
+  vaultAddress: string
+  spreadBasisPoints: number
+}
+
+export interface SetLockupTransactionInfo extends BaseTransactionInfo {
+  type: TransactionType.SetLockup
+  vaultAddress: string
+  lockupPeriodSeconds: number
+}
+
+export interface SetValueTransactionInfo extends BaseTransactionInfo {
+  type: TransactionType.SetValue
+  vaultAddress: string
+}
+
+export interface BuyTransactionInfo extends BaseTransactionInfo {
+  type: TransactionType.Buy
+  vaultAddress: string
+  purchaseCurrencyAmountRaw: string
+}
+
+export interface SellTransactionInfo extends BaseTransactionInfo {
+  type: TransactionType.Sell
+  vaultAddress: string
+  saleCurrencyAmountRaw: string
+}
+
+export interface DeployVaultTransactionInfo extends BaseTransactionInfo {
+  type: TransactionType.Deploy
+  name: string
+  symbol?: string
+  baseTokenAddress?: string
+}
+
+type AllKeysOf<T> = T extends T ? keyof T : never
+
+type ExtractPropertyType<T, K extends AllKeysOf<T>> = T extends T ? (K extends keyof T ? T[K] : never) : never
 
 /**
  * Typeguard to check if a `TransactionTypeInfo` has a specific attribute.

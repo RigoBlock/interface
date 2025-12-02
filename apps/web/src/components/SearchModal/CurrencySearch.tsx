@@ -37,7 +37,6 @@ export function CurrencySearch({
   variation,
 }: CurrencySearchProps) {
   const wallet = useWallet()
-  const account = useAccount()
   const { chainId, setSelectedChainId, isUserSelectedToken, setIsUserSelectedToken, isMultichainContext } =
     useMultichainContext()
   const { currentTab } = useSwapAndLimitContext()
@@ -79,13 +78,12 @@ export function CurrencySearch({
       <Flex width="100%" flexGrow={1} flexShrink={1} flexBasis="auto">
         <TokenSelectorContent
           renderedInModal={false}
-          evmAddress={wallet.evmAccount?.address}
-          svmAddress={wallet.svmAccount?.address}
-          activeAccountAddress={
+          evmAddress={
             currentTab === SwapTab.Swap && pathname !== '/mint'
-              ? smartPoolAddress ?? undefined
-              : account.address!
+              ? smartPoolAddress ?? wallet.evmAccount?.address
+              : wallet.evmAccount?.address
           }
+          svmAddress={wallet.svmAccount?.address}
           isLimits={currentTab === SwapTab.Limit}
           chainId={!isMultichainContext || isUserSelectedToken ? chainId : undefined}
           chainIds={chainIds ?? chains}

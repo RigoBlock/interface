@@ -1,3 +1,5 @@
+/* eslint-disable max-params */
+
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import { ApprovalState, useApproval } from 'lib/hooks/useApproval'
 import { useCallback } from 'react'

@@ -6,11 +6,10 @@ import JSBI from 'jsbi'
 import { useMemo } from 'react'
 import { getCurrencyAmount, ValueType } from 'uniswap/src/features/tokens/getCurrencyAmount'
 import { isEVMAddress } from 'utilities/src/addresses/evm/evm'
-import { isAddress } from 'utilities/src/addresses'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
 import { currencyKey } from 'utils/currencyKey'
 import { assume0xAddress } from 'utils/wagmi'
-import { Abi, erc20Abi } from 'viem'
+import { Abi, erc20Abi, isAddress } from 'viem'
 import { useBalance, useReadContracts } from 'wagmi'
 
 /**
@@ -27,7 +26,7 @@ export function useCurrencyBalancesMultipleAccounts(
     () =>
       uncheckedAddresses
         ? uncheckedAddresses
-            .map(isAddress)
+            .map(address => address && isAddress(address) ? `0x${address}` : false)
             .filter((a): a is `0x${string}` => a !== false)
             .sort()
             .map((addr) => [addr])
@@ -36,7 +35,7 @@ export function useCurrencyBalancesMultipleAccounts(
   )
 
   const validatedToken: Token | undefined = useMemo(
-    () => (!currency?.isNative && isAddress(currency?.address) && currency?.chainId === chainId ? currency : undefined),
+    () => (currency && !currency.isNative && isAddress(currency.address) && currency.chainId === chainId ? currency : undefined),
     [chainId, currency]
   )
 
@@ -57,14 +56,14 @@ export function useCurrencyBalancesMultipleAccounts(
           : validAddressInputs.map(
               ([address]) =>
                 ({
-                  address: assume0xAddress(multicallContract?.address),
+                  address: assume0xAddress(multicallContract.address),
                   chainId,
-                  abi: multicallContract?.interface.fragments as Abi,
+                  abi: multicallContract.interface.fragments as Abi,
                   functionName: 'getEthBalance',
                   args: [address],
                 }) as const,
             )) as any,
-      [validAddressInputs, validatedToken, chainId, multicallContract?.address, multicallContract?.interface.fragments],
+      [validAddressInputs, validatedToken, chainId, multicallContract.address, multicallContract.interface.fragments],
     ),
     query: { enabled: validAddressInputs.length > 0 && (!!validatedToken || !!multicallContract) },
   })
@@ -72,16 +71,19 @@ export function useCurrencyBalancesMultipleAccounts(
   // if a type is returned instead of a mapping, must assert no sort() op is performed.
   return useMemo(
     () => [
-      validAddressInputs.reduce<{ [address: string]: CurrencyAmount<Currency> }>((memo, [address], i) => {
-        const value = data?.[i]?.result
-        if (value && chainId) {
-          memo[address] = CurrencyAmount.fromRawAmount(
-            validatedToken ?? nativeOnChain(chainId),
-            JSBI.BigInt(value.toString())
-          )
-        }
-        return memo
-      }, {}),
+      validAddressInputs.reduce<{ memo: { [address: string]: CurrencyAmount<Currency> }; index: number }>(
+        (acc, [address]) => {
+          const value = data?.[acc.index]?.result
+          if (value && chainId) {
+            acc.memo[address] = CurrencyAmount.fromRawAmount(
+              validatedToken ?? nativeOnChain(chainId),
+              JSBI.BigInt(value.toString())
+            )
+          }
+          return { memo: acc.memo, index: acc.index + 1 }
+        },
+        { memo: {}, index: 0 }
+      ).memo,
       balancesLoading,
     ],
     [validAddressInputs, chainId, balancesLoading, validatedToken, data]

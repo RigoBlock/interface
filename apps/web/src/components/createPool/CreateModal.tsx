@@ -6,7 +6,7 @@ import { X } from 'react-feather'
 import styled from 'lib/styled-components'
 import { ThemedText } from 'theme/components/text'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
-import { TransactionStatus } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { useIsSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
 import { ModalName} from 'uniswap/src/features/telemetry/constants'
 import { logger } from 'utilities/src/logger/logger'
@@ -18,6 +18,7 @@ import { ButtonGray, ButtonPrimary } from 'components/Button/buttons'
 import { AutoColumn } from 'components/deprecated/Column'
 import { RowBetween, RowFixed } from 'components/deprecated/Row'
 import CurrencyLogo from 'components/Logo/CurrencyLogo'
+import { SwitchNetworkAction } from 'components/Popups/types'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { LoadingView, SubmittedView } from 'components/ModalViews'
 import NameInputPanel from 'components/NameInputPanel'
@@ -110,12 +111,12 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
 
   // by memoizing native, new chain native currency is stored on switch chain
   const account = useAccount()
-  const native = useMemo(() => nativeOnChain(account?.chainId ?? 1), [account?.chainId])
+  const native = useMemo(() => nativeOnChain(account.chainId ?? 1), [account.chainId])
 
   // TODO: as native is memoized now, we can simply set currency value, probably not needed to
   // update currency at initialization or on chain switch
   useEffect(() => {
-    if (!currencyValue?.chainId || currencyValue?.chainId !== account?.chainId) {
+    if (!currencyValue?.chainId || currencyValue.chainId !== account.chainId) {
       setCurrencyValue(native)
     }
   }, [account.chainId, currencyValue?.chainId, native])
@@ -141,7 +142,7 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
 
   const transaction = useTransaction(hash)
   const confirmed = useIsTransactionConfirmed(hash)
-  const transactionSuccess = transaction?.status === TransactionStatus.Confirmed
+  const transactionSuccess = transaction?.status === TransactionStatus.Success
 
   function wrappedOnDismiss() {
     onDismiss()
@@ -158,12 +159,12 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
     setAttempting(true)
 
     // if callback not returned properly ignore
-    if (!account.address || !account.chainId || !createCallback) {
+    if (!account.address || !account.chainId) {
       return
     }
 
     // try deploy pool and store hash
-    const hash = await createCallback(typedName, typedSymbol, currencyValue)?.catch((error) => {
+    const hash = await createCallback({ name: typedName, symbol: typedSymbol, currencyValue })?.catch((error) => {
       setAttempting(false)
       logger.info('CreateModal', 'onCreate', error)
     })
@@ -181,6 +182,7 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
         <CurrencySearchModal
           isOpen={true}
           onDismiss={() => setIsSearchingCurrency(false)}
+          switchNetworkAction={SwitchNetworkAction.PoolFinder}
           onCurrencySelect={handleCurrencySelect}
           selectedCurrency={currencyValue ?? null}
           showCurrencyAmount={false}
