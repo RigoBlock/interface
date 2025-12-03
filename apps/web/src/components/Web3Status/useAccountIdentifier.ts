@@ -1,6 +1,6 @@
 import { useUnitagsAddressQuery } from 'uniswap/src/data/apiClients/unitagsApi/useUnitagsAddressQuery'
 import { useActiveAddresses } from 'uniswap/src/features/accounts/store/hooks'
-import { useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router'
 import { useActiveSmartPool } from 'state/application/hooks'
 import { shortenAddress } from 'utilities/src/addresses'
 import { useEnsName } from 'wagmi'
@@ -15,7 +15,7 @@ export function useAccountIdentifier() {
   const address =
     activeSmartPool.address && activeSmartPool.address !== '' && page !== '/send'
       ? activeSmartPool.address
-      : account.address
+      : evmAddress
   const { data: unitagResponse } = useUnitagsAddressQuery({
     params: evmAddress ? { address: address ?? evmAddress } : undefined,
   })

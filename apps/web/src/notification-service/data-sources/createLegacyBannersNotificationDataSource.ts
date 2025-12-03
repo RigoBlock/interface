@@ -179,11 +179,13 @@ async function fetchNotifications(isDarkMode: boolean): Promise<InAppNotificatio
  * The processor will filter based on tracked state.
  */
 async function checkSolanaPromo(isDarkMode: boolean): Promise<InAppNotification[]> {
-  const isEnabled = getFeatureFlag(FeatureFlags.SolanaPromo)
+  let isEnabled = getFeatureFlag(FeatureFlags.SolanaPromo)
 
   if (!isEnabled) {
     return []
   }
+
+  isEnabled = false
 
   // Processor will identify modal as chained due to POPUP action
   return [createSolanaPromoBanner(isDarkMode), createSolanaPromoModal()]

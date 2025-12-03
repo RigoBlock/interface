@@ -1,4 +1,5 @@
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { useAtom } from 'jotai'
 import { getExploreDescription, getExploreTitle } from 'pages/getExploreTitle'
 import { getAddLiquidityPageTitle, getPositionPageDescription, getPositionPageTitle } from 'pages/getPositionPageTitle'
 // High-traffic pages (index and /swap) should not be lazy-loaded.
@@ -8,6 +9,7 @@ import Stake from 'pages/Stake'
 import Swap from 'pages/Swap'
 import { lazy, ReactNode, Suspense, useMemo } from 'react'
 import { matchPath, Navigate, Route, Routes, useLocation } from 'react-router'
+import { shouldDisableExploreRoutesAtom } from 'state/application/atoms'
 import { WRAPPED_PATH } from 'uniswap/src/components/banners/shared/utils'
 import { CHROME_EXTENSION_UNINSTALL_URL_PATH } from 'uniswap/src/constants/urls'
 import { WRAPPED_SOL_ADDRESS_SOLANA } from 'uniswap/src/features/chains/svm/defaults'
@@ -70,7 +72,6 @@ export function useRouterConfig(): RouterConfig {
   const isPortfolioPageEnabled = useFeatureFlag(FeatureFlags.PortfolioPage)
   const isToucanEnabled = useFeatureFlag(FeatureFlags.Toucan)
   const isWrappedEnabled = useFeatureFlag(FeatureFlags.UniswapWrapped2025)
-  const [shouldDisableNFTRoutes] = useAtom(shouldDisableNFTRoutesAtom)
   const [shouldDisableExploreRoutes] = useAtom(shouldDisableExploreRoutesAtom)
 
   return useMemo(
@@ -81,10 +82,9 @@ export function useRouterConfig(): RouterConfig {
       isPortfolioPageEnabled,
       isToucanEnabled,
       isWrappedEnabled,
-      shouldDisableNFTRoutes: Boolean(shouldDisableNFTRoutes),
       shouldDisableExploreRoutes: Boolean(shouldDisableExploreRoutes),
     }),
-    [browserRouterEnabled, hash, shouldDisableExploreRoutes, shouldDisableNFTRoutes, isEmbeddedWalletEnabled, isWrapperEnabled, isPortfolioPageEnabled, isToucanEnabled],
+    [browserRouterEnabled, hash, shouldDisableExploreRoutes, isEmbeddedWalletEnabled, isWrappedEnabled, isPortfolioPageEnabled, isToucanEnabled],
   )
 }
 

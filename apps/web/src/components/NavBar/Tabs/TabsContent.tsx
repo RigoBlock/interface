@@ -2,6 +2,7 @@ import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 //import { Limit } from 'components/Icons/Limit'
 import { SwapV2 } from 'components/Icons/SwapV2'
 import { MenuItem } from 'components/NavBar/CompanyMenu/Content'
+import { useTabsVisible } from 'components/NavBar/ScreenSizes'
 import { usePortfolioRoutes } from 'pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { PortfolioTab } from 'pages/Portfolio/types'
 import { buildPortfolioUrl } from 'pages/Portfolio/utils/portfolioUrls'
@@ -35,6 +36,7 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
   const { pathname } = useLocation()
   const { chainId: portfolioChainId } = usePortfolioRoutes()
   const colors = useSporeColors()
+  const areTabsVisible = useTabsVisible()
   const isFiatOffRampEnabled = useFeatureFlag(FeatureFlags.FiatOffRamp)
   const isPortfolioPageEnabled = useFeatureFlag(FeatureFlags.PortfolioPage)
   const isToucanEnabled = useFeatureFlag(FeatureFlags.Toucan)
@@ -46,8 +48,8 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
       href: '/mint',
       isActive: pathname.startsWith('/mint') || pathname.startsWith('/stake'),
       items: [
-        { label: t('common.mint'), quickKey: 'T', href: '/mint', internal: true },
-        { label: t('common.earn'), quickKey: 'P', href: '/stake', internal: true },
+        { label: t('common.mint'), href: '/mint', internal: true },
+        { label: t('common.earn'), href: '/stake', internal: true },
         //{ label: t('common.nfts'), quickKey: 'N', href: '/nfts', internal: true },
       ],
     },
@@ -70,13 +72,6 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
         //  href: '/limit',
         //  internal: true,
         //},
-        {
-          label: t('common.send.button'),
-          icon: <Send fill={theme.neutral2} />,
-          quickKey: 'E',
-          href: '/send',
-          internal: true,
-        },
         {
           label: t('common.buy.label'),
           icon: <CreditCard size="$icon.24" color="$neutral2" />,

@@ -5,7 +5,7 @@ import { GraphQLApi } from '@universe/api'
 import { usePendingActivity } from 'components/AccountDrawer/MiniPortfolio/Activity/hooks'
 import { useAccount } from 'hooks/useAccount'
 import { PropsWithChildren, useCallback, useEffect, useMemo, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router'
 import { useActiveSmartPool } from 'state/application/hooks'
 import { useWatchTransactionsCallback } from 'state/sagas/transactions/watcherSaga'
 import { usePendingTransactions } from 'state/transactions/hooks'
@@ -25,7 +25,6 @@ function useHasAccountUpdate(page: string) {
 
   const { address: smartPool } = useActiveSmartPool()
   const prevSmartPool = usePrevious(smartPool)
-
   const prevPage = usePrevious(page)
 
   const { isTestnetModeEnabled } = useEnabledChains()
@@ -121,15 +120,5 @@ function TokenBalancesProviderInternal({ children }: PropsWithChildren) {
 }
 
 export function TokenBalancesProvider({ children }: PropsWithChildren) {
-  const [initialized, setInitialized] = useState(false)
-
-  useEffect(() => {
-    setInitialized(true)
-  }, [])
-
-  if (!initialized) {
-    return null
-  }
-
   return <TokenBalancesProviderInternal>{children}</TokenBalancesProviderInternal>
 }

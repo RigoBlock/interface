@@ -26,7 +26,7 @@ import { ProposalEditor } from 'pages/CreateProposal/ProposalEditor'
 import { ProposalSubmissionModal } from 'pages/CreateProposal/ProposalSubmissionModal'
 import { useCallback, useMemo, useState } from 'react'
 import { ArrowLeft, X } from 'react-feather'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import {
   CreateProposalData,
   useCreateProposalCallback,
