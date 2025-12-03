@@ -18,13 +18,13 @@ const companyMenu = [
     items: [
       { label: 'Governance', href: 'https://uniswap.org/governance' },
       { label: 'Developers', href: 'https://uniswap.org/developers' },
-      { label: 'Vote', href: 'https://vote.uniswapfoundation.org' },
+      { label: 'Vote', href: '/vote' },
     ],
   },
   {
     label: 'Company',
     items: [
-      { label: 'Careers', href: 'https://careers.uniswap.org/' },
+      { label: 'Careers', href: 'https://careers.rigoblock.com/' },
       { label: 'Blog', href: 'https://blog.uniswap.org/' },
     ],
   },

@@ -258,6 +258,21 @@ export function getEnabledChains({
       return false
     }
 
+    // Filter by allowed chains
+    const allowedChains = [
+      UniverseChainId.Mainnet,
+      UniverseChainId.ArbitrumOne,
+      UniverseChainId.Base,
+      UniverseChainId.Optimism,
+      UniverseChainId.Bnb,
+      UniverseChainId.Polygon,
+      UniverseChainId.Sepolia,
+      UniverseChainId.Unichain,
+    ]
+    if (!allowedChains.includes(chainInfo.id)) {
+      return false
+    }
+
     return true
   })
 

@@ -26,7 +26,7 @@ export function useCurrencyBalancesMultipleAccounts(
     () =>
       uncheckedAddresses
         ? uncheckedAddresses
-            .map(address => address && isAddress(address) ? `0x${address}` : false)
+            .map(address => address && isAddress(address) ? address : false)
             .filter((a): a is `0x${string}` => a !== false)
             .sort()
             .map((addr) => [addr])
@@ -65,7 +65,7 @@ export function useCurrencyBalancesMultipleAccounts(
             )) as any,
       [validAddressInputs, validatedToken, chainId, multicallContract.address, multicallContract.interface.fragments],
     ),
-    query: { enabled: validAddressInputs.length > 0 && (!!validatedToken || !!multicallContract) },
+    query: { enabled: validAddressInputs.length > 0 && !!multicallContract },
   })
 
   // if a type is returned instead of a mapping, must assert no sort() op is performed.

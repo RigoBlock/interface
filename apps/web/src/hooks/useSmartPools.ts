@@ -1,7 +1,10 @@
+/* eslint-disable max-params */
+
 import { BigNumber } from '@ethersproject/bignumber'
 import { useMemo } from 'react'
 // TODO: remove duplicate method definition and reorg code
 import { usePoolExtendedContract, usePoolFactoryContract } from 'state/pool/hooks'
+import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
 import { assume0xAddress } from 'utils/wagmi'
 import { useReadContract, useReadContracts } from 'wagmi'
 
@@ -62,8 +65,8 @@ export function useImplementation(poolAddress: string | undefined, implementatio
     query: { enabled: queryEnabled },
   })
 
-  const currentImplementation = data?.[0] as `0x${string}` | undefined
-  const beaconImplementation = data?.[1] as `0x${string}` | undefined
+  const currentImplementation = (typeof data?.[0]?.result === 'string' ? data[0].result.slice(-40) : undefined) as `0x${string}` | undefined
+  const beaconImplementation = data?.[1]?.result as `0x${string}` | undefined
 
   // TODO: verify if memoization is needed here
   return useMemo(() => {
@@ -74,16 +77,15 @@ export function useImplementation(poolAddress: string | undefined, implementatio
   }, [currentImplementation, beaconImplementation])
 }
 
-export function useSmartPoolFromAddress(poolAddress: string | undefined): PoolDetails | undefined {
-  const poolExtendedContract = usePoolExtendedContract(poolAddress)
+export function useSmartPoolFromAddress(poolAddress?: string, chainId?: number): PoolDetails | undefined {
+  const isQueryEnabled = !!poolAddress && !!chainId
   // we return entire "poolStorage", i.e. poolInitParams, poolVariables, poolTokensInfo
   const { data: poolStorageData } = useReadContract({
-    address: assume0xAddress(poolExtendedContract?.address),
-    abi: poolExtendedContract?.interface.fragments,
+    address: assume0xAddress(poolAddress),
+    abi: POOL_EXTENDED_ABI,
     functionName: 'getPoolStorage',
-    args: [],
-    chainId: poolExtendedContract?.chainId,
-    query: { enabled: !!poolExtendedContract },
+    chainId,
+    query: { enabled: isQueryEnabled },
   })
 
   return useMemo(() => {
@@ -91,36 +93,34 @@ export function useSmartPoolFromAddress(poolAddress: string | undefined): PoolDe
       return undefined
     }
 
-    const typedData = poolStorageData as PoolDetails
-
     return {
-      poolInitParams: typedData.poolInitParams,
-      poolVariables: typedData.poolVariables,
-      poolTokensInfo: typedData.poolTokensInfo,
+      poolInitParams: (poolStorageData as any)?.[0] as PoolInitParams,
+      poolVariables: (poolStorageData as any)?.[1] as PoolVariables,
+      poolTokensInfo: (poolStorageData as any)?.[2] as PoolTokensInfo,
     }
   }, [poolStorageData])
 }
 
 export function useUserPoolBalance(
-  poolAddress: string | undefined,
-  account: string | undefined
+  poolAddress?: string,
+  account?: string,
+  chainId?: number
 ): UserAccount | undefined {
-  const poolExtendedContract = usePoolExtendedContract(poolAddress)
   const target = useMemo(() => account ?? undefined, [account])
   const { data: result } = useReadContract({
-    address: assume0xAddress(poolExtendedContract?.address),
-    abi: poolExtendedContract?.interface.fragments,
+    address: assume0xAddress(poolAddress),
+    abi: POOL_EXTENDED_ABI,
     functionName: 'getUserAccount',
     args: [target],
-    chainId: poolExtendedContract?.chainId,
-    query: { enabled: !!poolExtendedContract && !!account },
+    chainId,
+    query: { enabled: !!poolAddress && !!account },
   })
 
   return useMemo(() => {
-    if (!poolExtendedContract || !result) {
+    if (!poolAddress || !result) {
       return undefined
     }
 
     return result as UserAccount
-  }, [poolExtendedContract, result])
+  }, [poolAddress, result])
 }

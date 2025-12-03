@@ -162,23 +162,27 @@ export default function PoolPositionPage() {
   const [deactivate, setDeactivate] = useState(false)
   const [showHarvestYieldModal, setShowHarvestYieldModal] = useState(false)
 
+  const chainId = account.chainId
+
   // TODO: check how can reduce number of calls by limit update of poolStorage
   //  id is stored in registry so we could save rpc call by using storing in state?
-  const poolStorage = useSmartPoolFromAddress(poolAddressFromUrl ?? undefined)
+  const poolStorage = useSmartPoolFromAddress(poolAddressFromUrl, chainId)
   // TODO: user account also stores activation
-  const userAccount: UserAccount | undefined = useUserPoolBalance(poolAddressFromUrl, account.address)
+  const userAccount: UserAccount | undefined = useUserPoolBalance(poolAddressFromUrl, account.address, chainId)
 
   const { name, symbol, decimals, owner, baseToken } = poolStorage?.poolInitParams || {}
   const { minPeriod, spread, transactionFee } = poolStorage?.poolVariables || {}
   const { unitaryValue: storedUnitaryValue, totalSupply } = poolStorage?.poolTokensInfo || {}
 
   // Custom hook to simulate updateUnitaryValue
-  function useSimulatedUnitaryValue(poolAddress?: string, fallback?: string) {
+  function useSimulatedUnitaryValue(poolAddress?: string, fallbackValue?: string) {
     const { provider } = useWeb3React()
     const [simulatedValue, setSimulatedValue] = useState<string>()
     
     useEffect(() => {
-      if (!poolAddress || !provider) { return }
+      if (!poolAddress || !provider) {
+        return
+      }
       
       // @Notice: simulate function to deploy ephemeral contract that returns the real-time updateUnitaryValue
       async function simulate(address: string) {
@@ -195,49 +199,60 @@ export default function PoolPositionPage() {
           // eth_call simulates the deployment without actually deploying
           const result = await provider?.call(tx)
           
-          if (result && result !== '0x') {
+          if (result && result !== '0x' && result.length <= 150) {
             // Extract first 32 bytes (uint256) from the 64-byte return value
             const unitaryValue = result.slice(0, 66) // '0x' + 64 hex chars = 66 chars
             setSimulatedValue(unitaryValue)
             return
+          } else {
+            setSimulatedValue(fallbackValue)
+            return
           }
         } catch {
-          setSimulatedValue(fallback)
+          setSimulatedValue(fallbackValue)
         }
       }
       
       simulate(poolAddress)
-    }, [poolAddress, provider, fallback])
+    }, [poolAddress, provider, fallbackValue])
     
     return simulatedValue
   }
 
   const unitaryValue = useSimulatedUnitaryValue(poolAddressFromUrl, storedUnitaryValue?.toString()) ?? storedUnitaryValue
 
-  const chainId = account.chainId
   let base = useCurrency({address: baseToken !== ZERO_ADDRESS ? baseToken : undefined, chainId })
   if (baseToken === ZERO_ADDRESS) {
     base = nativeOnChain(account.chainId ?? UniverseChainId.Mainnet)
   }
 
   const pool = useCurrency({ address: poolAddressFromUrl ?? undefined, chainId })
-  const amount = JSBI.BigInt(unitaryValue ?? 0)
+  const amount = JSBI.BigInt(String(unitaryValue ?? 0))
   const poolPrice = pool ? CurrencyAmount.fromRawAmount(pool, amount) : undefined
-  const userPoolBalance = pool
-    ? CurrencyAmount.fromRawAmount(pool, JSBI.BigInt(userAccount?.userBalance ?? 0))
-    : undefined
+  const userPoolBalance = useMemo(() => {
+    if (!pool || userAccount?.userBalance === undefined) {
+      return undefined
+    }
+    return CurrencyAmount.fromRawAmount(pool, JSBI.BigInt(String(userAccount.userBalance)))
+  }, [pool, userAccount?.userBalance])
   const hasBalance = useMemo(
-    () => JSBI.greaterThan(JSBI.BigInt(userAccount?.userBalance ?? 0), JSBI.BigInt(0)),
+    () => {
+      if (!userAccount?.userBalance) {
+        return false
+      }
+      const balanceJSBI = JSBI.BigInt(String(userAccount.userBalance))
+      return JSBI.greaterThan(balanceJSBI, JSBI.BigInt(0))
+    },
     [userAccount]
   )
-  const baseTokenSymbol = base?.symbol
+  const baseTokenSymbol = base?.symbol ?? ''
 
   const poolValue = JSBI.divide(
-    JSBI.multiply(JSBI.BigInt(unitaryValue ?? 0), JSBI.BigInt(totalSupply ?? 0)),
-    JSBI.exponentiate(JSBI.BigInt(10), JSBI.BigInt(decimals ?? 18))
+    JSBI.multiply(JSBI.BigInt(String(unitaryValue ?? 0)), JSBI.BigInt(String(totalSupply ?? 0))),
+    JSBI.exponentiate(JSBI.BigInt(10), JSBI.BigInt(String(decimals ?? 18)))
   )
 
-  const lockup = (Number(minPeriod) / 86400).toLocaleString()
+  const lockup = (Number(String(minPeriod)) / 86400).toLocaleString()
 
   // TODO: check if should move definitions in custom hook
   //const poolInfo= usePoolInfo(poolAddressFromUrl)
@@ -293,16 +308,6 @@ export default function PoolPositionPage() {
   const handleUpgradeClick = useCallback(() => {
     setShowUpgradeModal(true)
   }, [])
-
-  function modalHeader() {
-    return (
-      <AutoColumn gap="md" style={{ marginTop: '20px' }}>
-        <ThemedText.DeprecatedMain>
-          <Trans>Let&apos;s check where this component goes.</Trans>
-        </ThemedText.DeprecatedMain>
-      </AutoColumn>
-    )
-  }
 
   return (
     <>
@@ -492,7 +497,7 @@ export default function PoolPositionPage() {
                           <RowFixed>
                             <ThemedText.DeprecatedMain>
                               <Trans>
-                                {formatCurrencyAmount({value: CurrencyAmount.fromRawAmount(base, poolValue), type: NumberType.TokenNonTx})}&nbsp;
+                                {formatCurrencyAmount({ value: CurrencyAmount.fromRawAmount(base, poolValue) })}&nbsp;
                                 {baseTokenSymbol}
                               </Trans>
                             </ThemedText.DeprecatedMain>
@@ -554,7 +559,7 @@ export default function PoolPositionPage() {
                                   <ThemedText.DeprecatedMain>
                                     <Trans>
                                       {formatCurrencyAmount({
-                                        value: CurrencyAmount.fromRawAmount(base, JSBI.BigInt(totalSupply)),
+                                        value: CurrencyAmount.fromRawAmount(base, JSBI.BigInt(String(totalSupply))),
                                         type: NumberType.TokenNonTx
                                       })}
                                     </Trans>
@@ -597,11 +602,11 @@ export default function PoolPositionPage() {
                                   padding="6px 8px"
                                   $borderRadius="12px"
                                 >
-                                  <Trans>{new Percent(spread, 10_000).toSignificant()}%</Trans>
+                                  <Trans>{new Percent(String(spread), 10_000).toSignificant()}%</Trans>
                                 </ResponsiveButtonPrimary>
                               ) : (
                                 <ThemedText.DeprecatedMain>
-                                  <Trans>{new Percent(spread, 10_000).toSignificant()}%</Trans>
+                                  <Trans>{new Percent(String(spread), 10_000).toSignificant()}%</Trans>
                                 </ThemedText.DeprecatedMain>
                               )}
                             </RowFixed>
@@ -616,7 +621,7 @@ export default function PoolPositionPage() {
                             </RowFixed>
                             <RowFixed>
                               <ThemedText.DeprecatedMain>
-                                <Trans>{new Percent(transactionFee, 10_000).toSignificant()}%</Trans>
+                                <Trans>{new Percent(String(transactionFee), 10_000).toSignificant()}%</Trans>
                               </ThemedText.DeprecatedMain>
                             </RowFixed>
                           </RowBetween>

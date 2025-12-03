@@ -76,7 +76,7 @@ const SearchContainer = styled(UnpositionedFlex, {
 const SelectedPoolContainer = styled(UnpositionedFlex, {
   width: 'max-content',
   maxWidth: '40%',
-  minWidth: 100,
+  minWidth: 200,
   height: 42,
   flexShrink: 0,
   flexDirection: 'row',
@@ -270,17 +270,22 @@ export default function Navbar() {
               <PoolSelect operatedPools={operatedPools} />
             </SelectedPoolContainer>
           )}
-          {isSearchBarVisible && (
+          {/*isSearchBarVisible && (
             <UnpositionedFlex flex={1} flexShrink={1} ml="$spacing16">
-              <SearchBar allPools={allPools} />
+              <SearchBar />
             </UnpositionedFlex>
-          )}
+          )*/}
         </SearchContainer>
 
         <Right>
           <UniswapWrappedEntry />
           {!hideChainSelector && <ChainSelector />}
-          {!isSearchBarVisible && <SearchBar allPools={allPools} />}
+          {!isSearchBarVisible && userIsOperator && (
+            <Flex mt={8}>
+              <PoolSelect operatedPools={operatedPools} />
+            </Flex>
+          )}
+          {/*!isSearchBarVisible && <SearchBar />*/}
           {!isEmbeddedWalletEnabled && isLandingPage && !isSmallScreen && <NewUserCTAButton />}
           {!isConnected && <PreferenceMenu />}
           {isTestnetModeEnabled && <TestnetModeTooltip />}

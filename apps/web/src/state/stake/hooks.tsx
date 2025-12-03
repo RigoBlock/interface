@@ -7,7 +7,7 @@ import { useEthersWeb3Provider } from 'hooks/useEthersProvider'
 import { useContract } from 'hooks/useContract'
 import JSBI from 'jsbi'
 import { useCallback, useMemo } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams } from 'react-router'
 import { StakeStatus, useStakingContract, useStakingProxyContract } from 'state/governance/hooks'
 import { usePoolExtendedContract } from 'state/pool/hooks'
 import { useTransactionAdder } from 'state/transactions/hooks'
@@ -42,9 +42,12 @@ export function useFreeStakeBalance(isDelegateFreeStake?: boolean): CurrencyAmou
   return freeStake && grg
     ? CurrencyAmount.fromRawAmount(
         grg,
-        Number((freeStake as any).currentEpochBalance) > Number((freeStake as any).nextEpochBalance)
-          ? (freeStake as any).nextEpochBalance
-          : (freeStake as any).currentEpochBalance
+        JSBI.greaterThan(
+          JSBI.BigInt(String((freeStake as any).currentEpochBalance)),
+          JSBI.BigInt(String((freeStake as any).nextEpochBalance))
+        )
+          ? String((freeStake as any).nextEpochBalance)
+          : String((freeStake as any).currentEpochBalance)
       )
     : undefined
 }

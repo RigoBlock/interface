@@ -115,7 +115,7 @@ function PrivacyPolicy() {
                 <AutoRow gap="4px">
                   <Info size={20} />
                   <ThemedText.DeprecatedMain fontSize={14} color="accent1">
-                    {t("privacy.rigoblocktos")}
+                    {t("privacy.uniswaptos")}
                   </ThemedText.DeprecatedMain>
                 </AutoRow>
                 <StyledLinkOut size={20} />
@@ -152,11 +152,11 @@ function PrivacyPolicy() {
             </DarkGrayCard>
           ))}
           <ThemedText.DeprecatedBody fontSize={12}>
-            <Row justify="center" marginBottom="1rem">
+            {/*<Row justify="center" marginBottom="1rem">
               <ExternalLink href="https://help.uniswap.org/en/articles/5675203-terms-of-service-faq">
                 {t('common.button.learn')}
               </ExternalLink>
-            </Row>
+            </Row>*/}
           </ThemedText.DeprecatedBody>
         </AutoColumn>
       </AutoColumn>

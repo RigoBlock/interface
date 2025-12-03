@@ -681,7 +681,7 @@ export function useStakeBalance(
     chainId: stakingContract?.chainId,
   })
 
-  return stake && grg ? CurrencyAmount.fromRawAmount(grg, (stake as any).nextEpochBalance) : undefined
+  return stake && grg ? CurrencyAmount.fromRawAmount(grg, (String((stake as any).nextEpochBalance))) : undefined
 }
 
 export function useDelegateCallback(): (stakeData: StakeData | undefined) => undefined | Promise<string> {

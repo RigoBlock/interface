@@ -53,11 +53,11 @@ export function HelpContent({ onClose }: HelpContentProps) {
           <X size="$icon.20" color="$neutral2" />
         </TouchableArea>
       </Flex>
-      <HelpItem
+      {/*<HelpItem
         icon={<GraduationCap size="$icon.20" color="$neutral2" />}
         title={t('settings.action.help')}
         href={uniswapUrls.helpUrl}
-      />
+      />*/}
       <HelpItem
         icon={<BookOpen size="$icon.20" color="$neutral2" />}
         title={t('common.docs')}
@@ -66,7 +66,7 @@ export function HelpContent({ onClose }: HelpContentProps) {
       <HelpItem
         icon={<SpeechBubbles size="$icon.20" color="$neutral2" />}
         title={t('common.contactUs.button')}
-        href={uniswapUrls.helpRequestUrl}
+        href={uniswapUrls.rigoblockDiscordUrl}
       />
     </Flex>
   )

@@ -94,7 +94,7 @@ export function useTokenContract({
 }
 
 export function usePoolContract(poolAddress?: string) {
-  return useContract<AUniswap>(poolAddress, AUNISWAP_ABI, true)
+  return useContract<AUniswap>({ address: poolAddress, ABI: AUNISWAP_ABI, withSignerIfPossible: true })
 }
 
 export function useWETHContract(withSignerIfPossible?: boolean, chainId?: UniverseChainId) {

@@ -86,20 +86,6 @@ export function useDerivedSwapInfo({
     })
   }, [exactAmountToken, exactCurrency])
 
-  const otherAmountForWrap = useMemo(() => {
-    //  we only use otherAmountForWrap when it's a wrap action,
-    //  otherwise parsing exactAmountToken using otherCurrency can lead to errors,
-    //  e.g. otherCurrency.decimals !== exactCurrency.decimals
-    if (isWrap) {
-      return getCurrencyAmount({
-        value: exactAmountToken,
-        valueType: ValueType.Exact,
-        currency: otherCurrency,
-      })
-    }
-    return undefined
-  }, [exactAmountToken, isWrap, otherCurrency])
-
   // TODO: we disable fee logic here, otherwise protocol will revert
   const sendPortionEnabled = false //useFeatureFlag(FeatureFlags.PortionFields)
 

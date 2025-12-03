@@ -161,14 +161,14 @@ async function fetchNotifications(isDarkMode: boolean): Promise<InAppNotificatio
   const notifications: InAppNotification[] = []
 
   // Priority 1: SolanaPromoBanner + Modal (chained)
-  const solanaNotifications = await checkSolanaPromo(isDarkMode)
-  notifications.push(...solanaNotifications)
+  //const solanaNotifications = await checkSolanaPromo(isDarkMode)
+  //notifications.push(...solanaNotifications)
 
   // Priority 2: BridgingPopularTokensBanner
-  const bridgingNotification = await checkBridgingBanner()
-  if (bridgingNotification) {
-    notifications.push(bridgingNotification)
-  }
+  //const bridgingNotification = await checkBridgingBanner()
+  //if (bridgingNotification) {
+  //  notifications.push(bridgingNotification)
+  //}
 
   return notifications
 }
@@ -179,13 +179,11 @@ async function fetchNotifications(isDarkMode: boolean): Promise<InAppNotificatio
  * The processor will filter based on tracked state.
  */
 async function checkSolanaPromo(isDarkMode: boolean): Promise<InAppNotification[]> {
-  let isEnabled = getFeatureFlag(FeatureFlags.SolanaPromo)
+  const isEnabled = getFeatureFlag(FeatureFlags.SolanaPromo)
 
   if (!isEnabled) {
     return []
   }
-
-  isEnabled = false
 
   // Processor will identify modal as chained due to POPUP action
   return [createSolanaPromoBanner(isDarkMode), createSolanaPromoModal()]

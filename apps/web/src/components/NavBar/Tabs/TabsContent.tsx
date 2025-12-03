@@ -90,22 +90,22 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
           : []),
       ],
     },
-    {
-      title: t('common.explore'),
-      href: '/explore',
-      isActive: pathname.startsWith('/explore') || pathname.startsWith('/nfts'),
-      icon: <Compass color="$accent1" size="$icon.20" />,
-      items: [
-        { label: t('common.tokens'), href: '/explore/tokens', internal: true },
-        { label: t('common.pools'), href: '/explore/pools', internal: true },
-        {
-          label: t('common.transactions'),
-          href: '/explore/transactions',
-          internal: true,
-        },
-        ...(isToucanEnabled ? [{ label: 'Toucan', href: '/explore/auctions', internal: true }] : []),
-      ],
-    },
+    //{
+    //  title: t('common.explore'),
+    //  href: '/explore',
+    //  isActive: pathname.startsWith('/explore') || pathname.startsWith('/nfts'),
+    //  icon: <Compass color="$accent1" size="$icon.20" />,
+    //  items: [
+    //    { label: t('common.tokens'), href: '/explore/tokens', internal: true },
+    //    { label: t('common.pools'), href: '/explore/pools', internal: true },
+    //    {
+    //      label: t('common.transactions'),
+    //      href: '/explore/transactions',
+    //      internal: true,
+    //    },
+    //    ...(isToucanEnabled ? [{ label: 'Toucan', href: '/explore/auctions', internal: true }] : []),
+    //  ],
+    //},
     {
       title: t('common.pool'),
       href: '/positions',

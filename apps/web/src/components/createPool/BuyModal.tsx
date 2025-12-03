@@ -41,6 +41,7 @@ interface PoolModalProps {
 }
 
 export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBalance }: PoolModalProps) {
+  //console.log('Rendering BuyModal with poolInfo:', poolInfo, 'and userBaseTokenBalance:', userBaseTokenBalance)
   const { provider } = useWeb3React()
 
   // track and parse user input

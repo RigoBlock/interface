@@ -108,18 +108,22 @@ export default function RaceModal({ isOpen, poolAddress, poolName, onDismiss, ti
             {!errorReason ? (
               <>
                 <RowBetween>
-                  <p>
-                    <Trans>
-                      Enroll <NameText>{poolName}</NameText> to compete for the network rewards. To race,{' '}
-                      <EmphasisText>the pool requires actively staked GRG</EmphasisText>. This action only needs to be
-                      run once per each epoch.
-                    </Trans>
+                  <AutoColumn gap="md">
+                    <p>
+                      <Trans>
+                        Enroll <NameText>{poolName}</NameText> to compete for the network rewards. To race,{' '}
+                        <EmphasisText>the pool requires actively staked GRG</EmphasisText>. This action only needs to be
+                        run once per each epoch.
+                      </Trans>
+                    </p>
                     <p></p>
-                    <Trans>
-                      The smart vault must have a positive <BoldText>own</BoldText> stake, and a minimum 100 GRG{' '}
-                      <BoldText>delegated</BoldText> stake, otherwise won&apos;t be able to participate in rewards.
-                    </Trans>
-                  </p>
+                    <p>
+                      <Trans>
+                        The smart vault must have a positive <BoldText>own</BoldText> stake, and a minimum 100 GRG{' '}
+                        <BoldText>delegated</BoldText> stake, otherwise won&apos;t be able to participate in rewards.
+                      </Trans>
+                    </p>
+                  </AutoColumn>
                 </RowBetween>
                 <ButtonPrimary disabled={false} onClick={onRace}>
                   <ThemedText.DeprecatedMediumHeader color="white">
