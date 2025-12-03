@@ -1,5 +1,6 @@
+import { useTheme } from '@tamagui/core'
 import { ChangeEvent, ReactNode, useCallback } from 'react'
-import styled, { useTheme } from 'lib/styled-components'
+import styled from 'lib/styled-components'
 import { Trans } from 'react-i18next'
 import { flexColumnNoWrap } from 'theme/styles'
 import i18n from 'uniswap/src/i18n'
@@ -104,7 +105,7 @@ export default function NameInputPanel({
         <InputContainer>
           <AutoColumn gap="md">
             <RowBetween>
-              <ThemedText.DeprecatedBlack color={theme.neutral2} fontWeight={500} fontSize={14}>
+              <ThemedText.DeprecatedBlack color={theme.neutral2.get()} fontWeight={500} fontSize={14}>
                 {label ?? <Trans>Pool Name</Trans>}
               </ThemedText.DeprecatedBlack>
             </RowBetween>

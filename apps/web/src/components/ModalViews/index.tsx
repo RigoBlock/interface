@@ -1,10 +1,12 @@
+import { useTheme } from '@tamagui/core'
 import Circle from 'assets/images/blue-loader.svg'
 import { AutoColumn, ColumnCenter } from 'components/deprecated/Column'
 import { RowBetween } from 'components/deprecated/Row'
 import { useAccount } from 'hooks/useAccount'
-import styled, { useTheme } from 'lib/styled-components'
+import styled from 'lib/styled-components'
 import { ArrowUpCircle, CheckCircle } from 'react-feather'
-import { CustomLightSpinner, ThemedText } from 'theme/components'
+import { ThemedText } from 'theme/components'
+import { CustomLightSpinner } from 'theme/components/icons/spinner'
 import { ExternalLink } from 'theme/components/Links'
 import { Trans } from 'react-i18next'
 import { Flex, ModalCloseIcon}  from 'ui/src'
@@ -61,16 +63,16 @@ export function SubmittedView({
       </RowBetween>
       <ConfirmedIcon>
         {!transactionSuccess ? (
-          <ArrowUpCircle strokeWidth={0.5} size={90} color={theme.accent1} />
+          <ArrowUpCircle strokeWidth={0.5} size={90} color={theme.accent1.get()} />
         ) : (
-          <CheckCircle strokeWidth={0.5} size={90} color={theme.success} />
+          <CheckCircle strokeWidth={0.5} size={90} color={theme.success?.get()} />
         )}
       </ConfirmedIcon>
       <AutoColumn gap="100px" justify="center">
         {children}
         {chainId && hash && (
           <ExternalLink
-            href={getExplorerLink(chainId, hash, ExplorerDataType.TRANSACTION)}
+            href={getExplorerLink({ chainId, data: hash, type: ExplorerDataType.TRANSACTION })}
             style={{ marginLeft: '4px' }}
           >
             <ThemedText.DeprecatedSubHeader>

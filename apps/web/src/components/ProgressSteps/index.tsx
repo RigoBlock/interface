@@ -1,4 +1,5 @@
-import styled, { useTheme } from 'lib/styled-components'
+import { useTheme } from '@tamagui/core'
+import styled from 'lib/styled-components'
 
 import { ThemedText } from 'theme/components/text'
 import { AutoColumn } from 'components/deprecated/Column'
@@ -63,7 +64,7 @@ export default function ProgressCircles({ steps, disabled = false, ...rest }: Pr
               <Circle confirmed={step} disabled={disabled || (!steps[i - 1] && i !== 0)}>
                 {step ? '✓' : i + 1 + '.'}
               </Circle>
-              <ThemedText.DeprecatedMain color={theme.neutral3}>|</ThemedText.DeprecatedMain>
+              <ThemedText.DeprecatedMain color={theme.neutral3.get()}>|</ThemedText.DeprecatedMain>
             </CircleRow>
           )
         })}

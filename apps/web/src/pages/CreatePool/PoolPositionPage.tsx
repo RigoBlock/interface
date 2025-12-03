@@ -1,4 +1,5 @@
 /* eslint-disable max-lines */
+
 import { CurrencyAmount, Percent } from '@uniswap/sdk-core'
 import { useWeb3React } from '@web3-react/core'
 // TODO: check if should refactor AddressCard
@@ -6,8 +7,6 @@ import { AddressCard } from 'components/AddressCard'
 import {  ButtonPrimary } from 'components/Button/buttons'
 import { DarkCard, LightCard } from 'components/Card/cards'
 import { SwitchLocaleLink } from 'components/SwitchLocaleLink'
-import TransactionConfirmationModal, { ConfirmationModalContent } from 'components/TransactionConfirmationModal'
-//import { PoolModals } from 'components/PoolModals'
 import { AutoColumn } from 'components/deprecated/Column'
 import BuyModal from 'components/createPool/BuyModal'
 import SellModal from 'components/createPool/SellModal'
@@ -308,20 +307,6 @@ export default function PoolPositionPage() {
   return (
     <>
       <PageWrapper>
-        <TransactionConfirmationModal
-          isOpen={showConfirm}
-          onDismiss={() => setShowConfirm(false)}
-          attemptingTxn={showConfirm}
-          hash=""
-          reviewContent={() => (
-            <ConfirmationModalContent
-              title={<Trans>Claim fees</Trans>}
-              onDismiss={() => setShowConfirm(false)}
-              topContent={modalHeader}
-            />
-          )}
-          pendingText={<Trans>Collecting fees</Trans>}
-        />
         {poolInfo && (
           <>
             {account.address && (

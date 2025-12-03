@@ -9,6 +9,7 @@ import { CardBGImage, CardNoise, CardSection, DataCard } from 'components/earn/s
 import DelegateModal from 'components/vote/DelegateModal'
 import ProposalEmptyState from 'components/vote/ProposalEmptyState'
 import { useAccount } from 'hooks/useAccount'
+import { useModalState } from 'hooks/useModalState'
 import JSBI from 'jsbi'
 import styled from 'lib/styled-components'
 import { ProposalStatus } from 'pages/Vote/styled'
@@ -16,12 +17,10 @@ import { darken } from 'polished'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from 'rebass/styled-components'
-import { useCloseModal, useModalIsOpen, useToggleDelegateModal } from 'state/application/hooks'
-import { ApplicationModal } from 'state/application/reducer'
 import { ProposalData, ProposalState, useAllProposalData } from 'state/governance/hooks'
 import { ThemedText } from 'theme/components'
 import { ExternalLink } from 'theme/components/Links'
-import { InterfacePageName } from 'uniswap/src/features/telemetry/constants'
+import { InterfacePageName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { Trans } from 'react-i18next'
@@ -99,15 +98,11 @@ const Header = styled(ThemedText.H1Small)`
 `
 
 export default function Landing() {
+  const { isOpen, closeModal, toggleModal: toggleDelegateModal } = useModalState(ModalName.Delegate)
   const theme = useTheme()
   const account = useAccount()
 
   const [hideCancelled, setHideCancelled] = useState(true)
-
-  // toggle for showing delegation modal
-  const showDelegateModal = useModalIsOpen(ApplicationModal.DELEGATE)
-  const closeModal = useCloseModal()
-  const toggleDelegateModal = useToggleDelegateModal()
   const { formatCurrencyAmount } = useLocalizationContext()
 
   // get data to list all proposals
@@ -132,7 +127,7 @@ export default function Landing() {
       <Trace logImpression page={InterfacePageName.VotePage}>
         <PageWrapper gap="lg" justify="center">
           <DelegateModal
-            isOpen={showDelegateModal}
+            isOpen={isOpen}
             onDismiss={closeModal}
             title={
               showUnlockVoting ? (
@@ -189,7 +184,7 @@ export default function Landing() {
                     style={{ width: 'fit-content', height: '40px' }}
                     padding="8px"
                     $borderRadius="8px"
-                    onClick={toggleDelegateModal}
+                    onClick={() => toggleDelegateModal()}
                   >
                     {showUnlockVoting ? (
                       <Trans i18nKey="vote.landing.unlockVoting" />

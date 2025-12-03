@@ -14,7 +14,7 @@ import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledCh
 import { usePortfolioValueModifiers } from 'uniswap/src/features/dataApi/balances/balances'
 import { usePrevious } from 'utilities/src/react/hooks'
 
-function useHasAccountUpdate() {
+function useHasAccountUpdate(page: string) {
   // Used to detect account updates without relying on subscription data.
   const { pendingActivityCount } = usePendingActivity()
   const prevPendingActivityCount = usePrevious(pendingActivityCount)
@@ -26,7 +26,6 @@ function useHasAccountUpdate() {
   const { address: smartPool } = useActiveSmartPool()
   const prevSmartPool = usePrevious(smartPool)
 
-  const { pathname: page } = useLocation()
   const prevPage = usePrevious(page)
 
   const { isTestnetModeEnabled } = useEnabledChains()
@@ -56,9 +55,9 @@ function useHasAccountUpdate() {
 function TokenBalancesProviderInternal({ children }: PropsWithChildren) {
   const [lazyFetch, query] = GraphQLApi.usePortfolioBalancesLazyQuery({ errorPolicy: 'all' })
   const account = useAccount()
-  const hasAccountUpdate = useHasAccountUpdate()
+  const { pathname: page } = useLocation()
+  const hasAccountUpdate = useHasAccountUpdate(page)
   const queryClient = useQueryClient()
-
   const valueModifiers = usePortfolioValueModifiers(account.address)
   const prevValueModifiers = usePrevious(valueModifiers)
 
@@ -75,7 +74,6 @@ function TokenBalancesProviderInternal({ children }: PropsWithChildren) {
 
   // TODO: define shouldQueryPoolBalances as useMemo to check if we can set correct state without further updating
   // on send we only allow user token transfer, as smart vault cannot execute arbitrary transfers
-  const { pathname: page } = useLocation()
   const isSendPage = page === '/send'
   const shouldQueryPoolBalances = smartPoolAddress && !isSendPage
 

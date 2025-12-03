@@ -1,6 +1,7 @@
-import { InterfaceElementName, SwapEventName } from '@uniswap/analytics-events'
+import { useTheme } from '@tamagui/core'
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import { Pair } from '@uniswap/v2-sdk'
+import { PrefetchBalancesWrapper } from 'appGraphql/data/apollo/AdaptiveTokenBalancesProvider'
 import { ReactComponent as DropDown } from 'assets/images/dropdown.svg'
 import { ButtonGray } from 'components/Button/buttons'
 import { FiatValue } from 'components/CurrencyInputPanel/FiatValue'
@@ -8,11 +9,11 @@ import { LoadingOpacityContainer, loadingOpacityMixin } from 'components/Loader/
 import CurrencyLogo from 'components/Logo/CurrencyLogo'
 import { DoubleCurrencyLogo } from 'components/Logo/DoubleLogo'
 import { Input as NumericalInput } from 'components/NumericalInput'
+import { SwitchNetworkAction } from 'components/Popups/types'
 import CurrencySearchModal from 'components/SearchModal/CurrencySearchModal'
 import { RowBetween, RowFixed } from 'components/deprecated/Row'
-import { PrefetchBalancesWrapper } from 'graphql/data/apollo/AdaptiveTokenBalancesProvider'
 import { useAccount } from 'hooks/useAccount'
-import styled, { useTheme } from 'lib/styled-components'
+import styled from 'lib/styled-components'
 import { darken } from 'polished'
 import { ReactNode, useCallback, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
@@ -22,9 +23,11 @@ import { ThemedText } from 'theme/components'
 import { flexColumnNoWrap, flexRowNoWrap } from 'theme/styles'
 import { breakpoints } from 'ui/src/theme'
 import { useIsSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { ElementName, SwapEventName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { CurrencyField } from 'uniswap/src/types/currency'
-import { NumberType, useFormatter } from 'utils/formatNumbers'
+import { NumberType } from 'utilities/src/format/types'
 
 const InputPanel = styled.div<{ hideInput?: boolean }>`
   ${flexColumnNoWrap};
@@ -226,7 +229,7 @@ export default function CurrencyInputPanel({
     currency ?? undefined
   )
   const theme = useTheme()
-  const { formatCurrencyAmount } = useFormatter()
+  const { formatCurrencyAmount } = useLocalizationContext()
 
   const handleDismissSearch = useCallback(() => {
     setModalOpen(false)
@@ -274,7 +277,7 @@ export default function CurrencyInputPanel({
                       )}
                       {pair ? (
                         <StyledTokenName className="pair-name-container">
-                          {pair?.token0.symbol}:{pair?.token1.symbol}
+                          {pair.token0.symbol}:{pair.token1.symbol}
                         </StyledTokenName>
                       ) : (
                         <StyledTokenName
@@ -300,39 +303,38 @@ export default function CurrencyInputPanel({
                   <LoadingOpacityContainer $loading={loading}>
                     {fiatValue && <FiatValue fiatValue={fiatValue} />}
                   </LoadingOpacityContainer>
-                  {account && (
-                    <RowFixed style={{ height: '17px' }}>
-                      <ThemedText.DeprecatedBody
-                        onClick={onMax}
-                        color={theme.neutral3}
-                        fontWeight={535}
-                        fontSize={14}
-                        style={{ display: 'inline', cursor: 'pointer' }}
+                  <RowFixed style={{ height: '17px' }}>
+                    <ThemedText.DeprecatedBody
+                      onClick={onMax}
+                      color={theme.neutral3.get()}
+                      fontWeight={535}
+                      fontSize={14}
+                      style={{ display: 'inline', cursor: 'pointer' }}
+                    >
+                      {Boolean(!hideBalance && currency && selectedCurrencyBalance) &&
+                        (renderBalance?.(selectedCurrencyBalance as CurrencyAmount<Currency>) || (
+                          <Trans
+                            i18nKey="swap.balance.amount"
+                            values={{
+                              amount: formatCurrencyAmount({
+                                value: selectedCurrencyBalance,
+                                type: NumberType.TokenNonTx,
+                                placeholder: '',
+                              }),
+                            }}
+                          />
+                        ))}
+                    </ThemedText.DeprecatedBody>
+                    {Boolean(showMaxButton && selectedCurrencyBalance) && (
+                      <Trace
+                        logPress
+                        eventOnTrigger={SwapEventName.SwapPresetTokenAmountSelected}
+                        element={ElementName.MaxTokenAmountButton}
                       >
-                        {Boolean(!hideBalance && currency && selectedCurrencyBalance) &&
-                          (renderBalance?.(selectedCurrencyBalance as CurrencyAmount<Currency>) || (
-                            <Trans
-                              i18nKey="swap.balance.amount"
-                              values={{
-                                amount: formatCurrencyAmount({
-                                  amount: selectedCurrencyBalance,
-                                  type: NumberType.TokenNonTx,
-                                }),
-                              }}
-                            />
-                          ))}
-                      </ThemedText.DeprecatedBody>
-                      {Boolean(showMaxButton && selectedCurrencyBalance) && (
-                        <Trace
-                          logPress
-                          eventOnTrigger={SwapEventName.SWAP_MAX_TOKEN_AMOUNT_SELECTED}
-                          element={InterfaceElementName.MAX_TOKEN_AMOUNT_BUTTON}
-                        >
-                          <StyledBalanceMax onClick={onMax}>{t('common.max').toUpperCase()}</StyledBalanceMax>
-                        </Trace>
-                      )}
-                    </RowFixed>
-                  )}
+                        <StyledBalanceMax onClick={onMax}>{t('common.max').toUpperCase()}</StyledBalanceMax>
+                      </Trace>
+                    )}
+                  </RowFixed>
                 </RowBetween>
               </FiatRow>
             )}
@@ -343,6 +345,7 @@ export default function CurrencyInputPanel({
         <CurrencySearchModal
           isOpen={modalOpen}
           onDismiss={handleDismissSearch}
+          switchNetworkAction={SwitchNetworkAction.PoolFinder}
           onCurrencySelect={onCurrencySelect}
           selectedCurrency={currency}
           otherSelectedCurrency={otherCurrency}

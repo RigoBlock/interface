@@ -2,6 +2,7 @@ import { Currency } from '@uniswap/sdk-core'
 import { SwitchNetworkAction } from 'components/Popups/types'
 import { CurrencyRow } from 'components/SearchModal//CurrencyList'
 import { CurrencySearch } from 'components/SearchModal/CurrencySearch'
+import styled from 'lib/styled-components'
 import { memo } from 'react'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import {

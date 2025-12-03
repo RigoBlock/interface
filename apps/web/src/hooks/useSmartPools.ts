@@ -106,8 +106,6 @@ export function useUserPoolBalance(
   account: string | undefined
 ): UserAccount | undefined {
   const poolExtendedContract = usePoolExtendedContract(poolAddress)
-  // we return entire "poolStorage", i.e. poolInitParams, poolVariables, poolTokensInfo
-  //const result: PoolDetails[] | undefined = useSingleCallResult(poolExtendedContract, 'getPoolStorage')
   const target = useMemo(() => account ?? undefined, [account])
   const { data: result } = useReadContract({
     address: assume0xAddress(poolExtendedContract?.address),

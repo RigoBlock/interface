@@ -27,6 +27,7 @@ export {
   createHelpArticleUrl,
   DEV_ENTRY_GATEWAY_API_BASE_URL,
   getCloudflareApiBaseUrl,
+  getRbCloudflareApiBaseUrl,
   getCloudflarePrefix,
   getServicePrefix,
   helpUrl,

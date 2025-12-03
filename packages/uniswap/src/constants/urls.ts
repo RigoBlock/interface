@@ -1,4 +1,4 @@
-import { createHelpArticleUrl, getCloudflareApiBaseUrl, helpUrl, TrafficFlows } from '@universe/api'
+import { createHelpArticleUrl, getCloudflareApiBaseUrl, getRbCloudflareApiBaseUrl, helpUrl, TrafficFlows } from '@universe/api'
 import { config } from 'uniswap/src/config'
 import { isDevEnv, isPlaywrightEnv } from 'utilities/src/environment/env'
 
@@ -196,14 +196,5 @@ export const uniswapUrls = {
   walletFeedbackForm:
     'https://docs.google.com/forms/d/e/1FAIpQLSepzL5aMuSfRhSgw0zDw_gVmc2aeVevfrb1UbOwn6WGJ--46w/viewform',
 
-  dataApiServiceUrl: `${getCloudflareApiBaseUrl()}/v2/data.v1.DataApiService`,
-}
-
-function getCloudflareApiBaseUrl(flow?: TrafficFlows): string {
-  return `https://${getServicePrefix(flow)}${getCloudflarePrefix(flow)}.gateway.uniswap.org`
-}
-
-// For now, this method should only route to beta.gateway.*
-function getRbCloudflareApiBaseUrl(flow?: TrafficFlows): string {
-  return `https://${getServicePrefix(flow)}${getCloudflarePrefix(flow)}.gateway.rigoblock.com`
+  dataApiServiceUrl: `${getRbCloudflareApiBaseUrl()}/v2/data.v1.DataApiService`,
 }

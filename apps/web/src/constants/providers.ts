@@ -17,13 +17,9 @@ export const RPC_PROVIDERS = Object.fromEntries(
   ALL_EVM_CHAIN_IDS.map((chain) => [chain, getAppProvider(chain)]),
 ) as Record<EVMUniverseChainId, AppJsonRpcProvider>
 
-export const TESTNET_RPC_PROVIDERS = Object.fromEntries(
-  SUPPORTED_TESTNET_CHAIN_IDS.map((chain) => [chain as UniverseChainId, getAppProvider(chain)]),
-) as Record<UniverseChainId, AppJsonRpcProvider>
-
 export function getBackupRpcProvider(chainId: UniverseChainId) {
   const info = getChainInfo(chainId)
   const urlParam = info.urlParam
   const url = `https://api.rigoblock.com/logs?network=${urlParam}`;
-  return new AppJsonRpcProvider([new ConfiguredJsonRpcProvider(url, { chainId, name: info.interfaceName })]);
+  return new AppJsonRpcProvider([new ConfiguredJsonRpcProvider({ url, networkish: { chainId, name: info.interfaceName } })]);
 }

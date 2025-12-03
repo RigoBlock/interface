@@ -1,6 +1,10 @@
+/* eslint-disable max-lines */
+
 import { useTotalBalancesUsdForAnalytics } from 'appGraphql/data/apollo/useTotalBalancesUsdForAnalytics'
+import { Currency } from '@uniswap/sdk-core'
 import { TradingApi } from '@universe/api'
 import { Experiments } from '@universe/gating'
+import { PendingModalError } from 'components/ConfirmSwapModal/Error'
 import { popupRegistry } from 'components/Popups/registry'
 import { PopupType } from 'components/Popups/types'
 import { DEFAULT_TXN_DISMISS_MS, L2_TXN_DISMISS_MS, ZERO_PERCENT } from 'constants/misc'
@@ -20,11 +24,10 @@ import {
   handleApprovalTransactionStep,
   handleOnChainStep,
   //handlePermitTransactionStep,
-  //handleSignatureStep,
+  handleSignatureStep,
 } from 'state/sagas/transactions/utils'
-import { handleWrapStep } from 'state/sagas/transactions/wrapSaga'
 import { VitalTxFields } from 'state/transactions/types'
-import { call, SagaGenerator } from 'typed-redux-saga'
+import { call, put, SagaGenerator } from 'typed-redux-saga'
 import { isL2ChainId } from 'uniswap/src/features/chains/utils'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { isSVMChain } from 'uniswap/src/features/platforms/utils/chains'
@@ -34,7 +37,7 @@ import { SwapTradeBaseProperties } from 'uniswap/src/features/telemetry/types'
 import { logExperimentQualifyingEvent } from 'uniswap/src/features/telemetry/utils/logExperimentQualifyingEvent'
 import { selectSwapStartTimestamp } from 'uniswap/src/features/timing/selectors'
 import { updateSwapStartTimestamp } from 'uniswap/src/features/timing/slice'
-import { UnexpectedTransactionStateError } from 'uniswap/src/features/transactions/errors'
+import { TokenPriceFeedError, UnexpectedTransactionStateError } from 'uniswap/src/features/transactions/errors'
 import {
   HandleOnChainStepParams,
   HandleSwapStepParams,
@@ -72,11 +75,11 @@ import {
   isSignerMnemonicAccountDetails,
   SignerMnemonicAccountDetails,
 } from 'uniswap/src/features/wallet/types/AccountDetails'
+import { logger } from 'utilities/src/logger/logger'
 import { createSaga } from 'uniswap/src/utils/saga'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
 import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
 import { getContract } from 'utilities/src/contracts/getContract'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { RPC_PROVIDERS } from 'constants/providers'
 
 function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator<string> {
@@ -214,69 +217,6 @@ type SwapParams = SwapExecutionCallbacks & {
 }
 
 function* swap(params: SwapParams) {
-function getPoolExtendedContract(poolAddress: string, chainId: number): any | undefined {
-  const provider = RPC_PROVIDERS[chainId as UniverseChainId]
-  if (!provider) {
-    return undefined
-  }
-
-  try {
-    return getContract(
-      poolAddress,
-      POOL_EXTENDED_ABI,
-      provider,
-    )
-  } catch (error) {
-    const wrappedError = new Error('failed to get contract', { cause: error })
-      logger.warn('useContract', 'useContract', wrappedError.message, {
-        error: wrappedError,
-        contractAddress: poolAddress,
-      })
-    return undefined
-  }
-}
-
-export function* getIsTokenOwnable(poolAddress?: string, token?: Currency): Generator<any, boolean | undefined, any> {
-  if (!poolAddress || !token) {
-    return undefined
-  }
-
-  // If token is not a token, treat it as ownable.
-  if (!token.isToken) {
-    return true
-  }
-
-  const extendedPool = getPoolExtendedContract(poolAddress, token?.chainId)
-  if (!extendedPool) {
-    return undefined
-  }
-
-  try {
-    // Call the hasPriceFeed method on the contract with the token address.
-    const isTokenOwnable: boolean = yield call([extendedPool, extendedPool.hasPriceFeed], token.address)
-    return isTokenOwnable
-  } catch (error) {
-    logger.error('Error calling hasPriceFeed on pool contract', { tags: { file: 'swapSaga', function: 'getPoolExtendedContract' } })
-    // Handle error appropriately. Here we return false on failure.
-    return false
-  }
-}
-
-function* validateTokenPriceFeed(selectedPool: string | undefined, outputCurrency: Currency) {
-  const isTokenOwnable: boolean | undefined = yield call(getIsTokenOwnable, selectedPool, outputCurrency)
-
-  if (isTokenOwnable === undefined) {
-    return true
-  }
-  if (!isTokenOwnable) {
-    yield put({
-      type: 'SWAP_ERROR',
-      error: PendingModalError.TOKEN_PRICE_FEED_ERROR,
-    })
-    return false
-  }
-  return true
-}
   const {
     account,
     disableOneClickSwap,
@@ -290,11 +230,6 @@ function* validateTokenPriceFeed(selectedPool: string | undefined, outputCurrenc
   } = params
   const { trade } = swapTxContext
 
-  const validTokenFeed = yield call(validateTokenPriceFeed, account.address, trade.outputAmount.currency)
-  if (!validTokenFeed) {
-    throw new TokenPriceFeedError({ step: steps[0] })
-  }
-
   const { chainSwitchFailed } = yield* call(handleSwitchChains, {
     selectChain: params.selectChain,
     startChainId: params.startChainId,
@@ -307,6 +242,11 @@ function* validateTokenPriceFeed(selectedPool: string | undefined, outputCurrenc
 
   const steps = yield* call(generateSwapTransactionSteps, swapTxContext, v4Enabled)
   setSteps(steps)
+
+  const validTokenFeed = yield* call(validateTokenPriceFeed, account.address, trade.outputAmount.currency)
+  if (!validTokenFeed) {
+    throw new TokenPriceFeedError({ step: steps[0] })
+  }
 
   let signature: string | undefined
   let step: TransactionStep | undefined
@@ -331,7 +271,7 @@ function* validateTokenPriceFeed(selectedPool: string | undefined, outputCurrenc
           break
         }
         case TransactionStepType.Permit2Transaction: {
-          yield* call(handlePermitTransactionStep, { address: account.address, step, setCurrentStep })
+          //yield* call(handlePermitTransactionStep, { address: account.address, step, setCurrentStep })
           break
         }
         case TransactionStepType.SwapTransaction:
@@ -381,6 +321,70 @@ function* validateTokenPriceFeed(selectedPool: string | undefined, outputCurrenc
   }
 
   yield* call(onSuccess)
+}
+
+function getPoolExtendedContract(poolAddress: string, chainId: number): any | undefined {
+  const provider = chainId in RPC_PROVIDERS ? RPC_PROVIDERS[chainId as keyof typeof RPC_PROVIDERS] : undefined
+  if (!provider) {
+    return undefined
+  }
+
+  try {
+    return getContract({
+      address: poolAddress,
+      ABI: POOL_EXTENDED_ABI,
+      provider,
+    })
+  } catch (error) {
+    const wrappedError = new Error('failed to get contract', { cause: error })
+      logger.warn('useContract', 'useContract', wrappedError.message, {
+        error: wrappedError,
+        contractAddress: poolAddress,
+      })
+    return undefined
+  }
+}
+
+function* getIsTokenOwnable(poolAddress?: string, token?: Currency): Generator<any, boolean | undefined, any> {
+  if (!poolAddress || !token) {
+    return undefined
+  }
+
+  // If token is not a token, treat it as ownable.
+  if (!token.isToken) {
+    return true
+  }
+
+  const extendedPool = getPoolExtendedContract(poolAddress, token.chainId)
+  if (!extendedPool) {
+    return undefined
+  }
+
+  try {
+    // Call the hasPriceFeed method on the contract with the token address.
+    const isTokenOwnable: boolean = yield call([extendedPool, extendedPool.hasPriceFeed], token.address)
+    return isTokenOwnable
+  } catch (error) {
+    logger.error('Error calling hasPriceFeed on pool contract', { tags: { file: 'swapSaga', function: 'getPoolExtendedContract' } })
+    // Handle error appropriately. Here we return false on failure.
+    return false
+  }
+}
+
+function* validateTokenPriceFeed(selectedPool: string | undefined, outputCurrency: Currency): SagaGenerator<boolean> {
+  const isTokenOwnable: boolean | undefined = yield* call(getIsTokenOwnable, selectedPool, outputCurrency)
+
+  if (isTokenOwnable === undefined) {
+    return true
+  }
+  if (!isTokenOwnable) {
+    yield* put({
+      type: 'SWAP_ERROR',
+      error: PendingModalError.TOKEN_PRICE_FEED_ERROR,
+    })
+    return false
+  }
+  return true
 }
 
 export const swapSaga = createSaga(swap, 'swapSaga')

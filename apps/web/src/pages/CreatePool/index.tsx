@@ -6,13 +6,12 @@ import CreateModal from 'components/createPool/CreateModal'
 import { CardBGImage, CardNoise, CardSection, DataCard } from 'components/earn/styled'
 import PoolPositionList from 'components/PoolPositionList'
 import { useAccount } from 'hooks/useAccount'
+import { useModalState } from 'hooks/useModalState'
 import styled from 'lib/styled-components'
 import { Trans } from 'react-i18next'
-import { useCloseModal, useModalIsOpen, useToggleCreateModal } from 'state/application/hooks'
-import { ApplicationModal } from 'state/application/reducer'
 import { useAllPoolsData } from 'state/pool/hooks'
 import { ThemedText } from 'theme/components/text'
-import { ElementName, InterfaceEventName, InterfacePageName } from 'uniswap/src/features/telemetry/constants'
+import { ElementName, InterfaceEventName, InterfacePageName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 
 const PageWrapper = styled(AutoColumn)`
@@ -68,12 +67,9 @@ const WrapSmall = styled(RowBetween)`
 `
 
 export default function CreatePool() {
+  const { isOpen: open, closeModal, toggleModal: toggleCreateModal } = useModalState(ModalName.CreateVault)
   const account = useAccount()
   const accountDrawer = useAccountDrawer()
-
-  const open = useModalIsOpen(ApplicationModal.CREATE)
-  const closeModal = useCloseModal(ApplicationModal.CREATE)
-  const toggleCreateModal = useToggleCreateModal()
   const { data: allPools } = useAllPoolsData()
 
   return (

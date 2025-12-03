@@ -1,7 +1,6 @@
 import { Currency } from '@uniswap/sdk-core'
 import { NATIVE_CHAIN_ID } from 'constants/tokens'
 import { useCurrency } from 'hooks/Tokens'
-import { useSingleCallResult } from 'lib/hooks/multicall'
 import { ParsedQs } from 'qs'
 import { useCallback, useEffect, useMemo } from 'react'
 import { useSelector } from 'react-redux'
@@ -21,6 +20,8 @@ import { selectFilteredChainIds } from 'uniswap/src/features/transactions/swap/s
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { getValidAddress } from 'uniswap/src/utils/addresses'
 import { getParsedChainId } from 'utils/chainParams'
+import { assume0xAddress } from 'utils/wagmi'
+import { useReadContract } from 'wagmi'
 
 export function useOnSwitchTokens(): () => void {
   const { setCurrencyState } = useSwapAndLimitContext()
@@ -189,11 +190,15 @@ export function queryParametersToCurrencyState(parsedQs: ParsedQs): SerializedCu
 
 export function useIsTokenOwnable(poolAddress?: string, token?: Currency): boolean | undefined {
   const extendedPool = usePoolExtendedContract(poolAddress)
-  const isTokenOwnable: boolean | undefined = useSingleCallResult(extendedPool, 'hasPriceFeed', [
-    token?.isToken ? token.address : undefined,
-  ])?.result?.[0]
+  const { data: isTokenOwnable } = useReadContract({
+    address: assume0xAddress(extendedPool?.address),
+    abi: extendedPool?.abi,
+    functionName: 'hasPriceFeed',
+    args: token?.isToken ? [token.address] : undefined,
+    query: { enabled: Boolean(extendedPool && token?.isToken) },
+  })
 
-  return useMemo(() => (token?.isToken ? isTokenOwnable : true), [token, isTokenOwnable])
+  return useMemo(() => (token?.isToken ? (isTokenOwnable as boolean) : true), [token, isTokenOwnable])
 }
 
 // Despite a lighter QuickTokenBalances query we've received feedback that the initial load time is too slow.

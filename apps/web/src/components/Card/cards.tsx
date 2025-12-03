@@ -1,3 +1,4 @@
+import styled from 'lib/styled-components'
 import { PropsWithChildren } from 'react'
 import { Flex, FlexProps, useSporeColors } from 'ui/src'
 

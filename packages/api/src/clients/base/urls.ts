@@ -53,6 +53,10 @@ export function getCloudflareApiBaseUrl(flow?: TrafficFlows): string {
   return `https://${getServicePrefix(flow)}${getCloudflarePrefix(flow)}.gateway.uniswap.org`
 }
 
+export function getRbCloudflareApiBaseUrl(flow?: TrafficFlows): string {
+  return `https://${getServicePrefix(flow)}${getCloudflarePrefix(flow)}.gateway.rigoblock.com`
+}
+
 export function createHelpArticleUrl(resourceId: string, path: string = 'articles'): string {
   const product = isMobileApp ? 'mobileApp' : isExtensionApp ? 'extension' : 'web'
   return `${helpUrl}/${path}/${resourceId}?product_link=${product}`

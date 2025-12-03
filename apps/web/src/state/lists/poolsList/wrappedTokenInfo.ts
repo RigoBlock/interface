@@ -1,7 +1,7 @@
 import { Currency, Token } from '@uniswap/sdk-core'
 import { Tags, TokenInfo, TokenList } from '@uniswap/token-lists'
 
-import { isAddress } from 'utilities/src/addresses'
+import { isAddress } from 'viem'
 
 type TagDetails = Tags[keyof Tags]
 interface TagInfo extends TagDetails {
@@ -21,7 +21,7 @@ export class WrappedTokenInfo implements Token {
   constructor(tokenInfo: TokenInfo, list?: TokenList) {
     this.tokenInfo = tokenInfo
     this.list = list
-    const checksummedAddress = isAddress(this.tokenInfo.address)
+    const checksummedAddress = isAddress(this.tokenInfo.address) ? this.tokenInfo.address : null
     if (!checksummedAddress) {
       throw new Error(`Invalid token address: ${this.tokenInfo.address}`)
     }
