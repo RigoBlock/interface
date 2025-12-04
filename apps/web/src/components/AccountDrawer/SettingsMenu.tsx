@@ -80,13 +80,7 @@ export default function SettingsMenu({
     <SlideOutMenu title={<Trans i18nKey="common.settings" />} onClose={onClose} versionComponent={<AppVersionRow />}>
       <Container>
         <Flex gap="$gap12">
-          <ToggleWrapper>
-            <ThemeToggle />
-            <SmallBalanceToggle />
-            <SpamToggle />
-            {shouldAllowAnalytics && <AnalyticsToggle />}
-            <TestnetsToggle />
-          </ToggleWrapper>
+          <ThemeToggle />
 
           <SettingsButton
             title={t('settings.setting.currency.title')}

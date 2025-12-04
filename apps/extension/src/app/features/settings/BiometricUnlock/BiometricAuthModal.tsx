@@ -21,7 +21,7 @@ export function BiometricAuthModal({
   const colors = useSporeColors()
 
   const onPressGetHelp = useEvent((): void => {
-    window.open(uniswapUrls.helpArticleUrls.extensionBiometricsEnrollment, '_blank')
+    window.open(uniswapUrls.rigoblockDiscordUrl, '_blank')
   })
 
   return (

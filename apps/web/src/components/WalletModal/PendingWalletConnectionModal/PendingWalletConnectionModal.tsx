@@ -130,7 +130,8 @@ export default function PendingWalletConnectionModal() {
 }
 
 function useModalContent(params: { showSolanaPrompt: boolean }) {
-  const { showSolanaPrompt } = params
+  //const { showSolanaPrompt } = params
+  const showSolanaPrompt = false
 
   const { t } = useTranslation()
   const { pendingWallet } = useConnectWallet()

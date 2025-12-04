@@ -67,6 +67,7 @@ export function UniswapWalletOptions() {
   })
 
   const { connectWallet } = useConnectWallet()
+  const showHideDownloadWalletOption = true
 
   return (
     <Flex gap={16}>
@@ -87,7 +88,7 @@ export function UniswapWalletOptions() {
               <DetectedBadge />
             </Flex>
           </OptionContainer>
-        ) : !isMobileWeb && showDownloadWalletOption ? (
+        ) : !isMobileWeb && !showHideDownloadWalletOption ? (
           <DownloadWalletOption />
         ) : null}
         <OptionContainer
@@ -117,7 +118,7 @@ export function UniswapWalletOptions() {
           </Flex>
         </OptionContainer>
 
-        {isMobileWeb && (
+        {isMobileWeb && !showHideDownloadWalletOption && (
           // If on a mobile web browser show the relevant app store download link
           <OptionContainer
             onPress={() => {

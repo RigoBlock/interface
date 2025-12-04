@@ -225,14 +225,14 @@ function getStepSpecificErrorContent(
       return {
         title: t('common.swap.failed'),
         message: t('swap.fail.message'),
-        supportArticleURL: uniswapUrls.helpArticleUrls.transactionFailure,
+        supportArticleURL: uniswapUrls.rigoblockDiscordUrl,
       }
     case TransactionStepType.SwapTransactionBatched:
       return {
         title: t('swap.fail.batched.title'),
         buttonText: t('swap.fail.batched.retry'),
         message: t('swap.fail.batched'),
-        supportArticleURL: uniswapUrls.helpArticleUrls.transactionFailure,
+        supportArticleURL: uniswapUrls.rigoblockDiscordUrl,
       }
     case TransactionStepType.UniswapXSignature:
     case TransactionStepType.UniswapXPlanSignature:

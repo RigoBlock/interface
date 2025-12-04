@@ -82,7 +82,7 @@ export function ReceiveCryptoModal() {
               ? goBack
               : undefined
           }
-          link={uniswapUrls.helpArticleUrls.transferCryptoHelp}
+          link={uniswapUrls.rigoblockDiscordUrl}
           closeModal={onClose}
         />
         <AnimateTransition currentIndex={currentIndex} animationType="forward">

@@ -64,7 +64,7 @@ function getErrorContent({ errorType, trade }: { errorType: PendingModalError; t
           message: <Trans i18nKey="swap.fail.message" />,
           supportArticleURL: isUniswapXTrade(trade)
             ? uniswapUrls.helpArticleUrls.uniswapXFailure
-            : uniswapUrls.helpArticleUrls.transactionFailure,
+            : uniswapUrls.rigoblockDiscordUrl,
         }
       }
     case PendingModalError.WRAP_ERROR:
