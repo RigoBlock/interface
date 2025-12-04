@@ -41,7 +41,6 @@ export default function useWrapCallback({
   outputCurrency?: Currency | null
   typedValue?: string
 }): { wrapType: WrapType; execute?: () => Promise<string | undefined>; inputError?: WrapInputError } {
-  const account = useAccount()
   const { chainId } = useMultichainContext()
 
   const wethContract = useWETHContract(true, chainId)

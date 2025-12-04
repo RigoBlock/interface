@@ -113,7 +113,6 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
         const functionSelector = calldata.slice(0, 10) // '0x' + 8 hex chars
         const updatedCalldata = functionSelector + updatedParams.slice(2)
         txRequest.data = updatedCalldata
-        console.log('Modified Universal Router commands (SWEEP/PAY_PORTION/V4_SWAP) and V4 actions (TAKE/TAKE_PORTION) in calldata')
       }
     } catch (error) {
       // Fallback to simple string replacement if decoding fails
@@ -124,14 +123,11 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
       
       const updatedCalldata = calldata.replaceAll(targetAddressPadded, smartPoolAddressPadded)
       txRequest.data = updatedCalldata
-      console.log('Replaced fee recipient in calldata (fallback):', targetAddressPadded, '->', smartPoolAddressPadded)
     }
     
     txRequest.from = address
     txRequest.to = smartPoolAddress
   }
-
-  console.log('Prepared txRequest for swap step:', txRequest)
 
   const onModification = ({ hash, data }: VitalTxFields) => {
     sendAnalyticsEvent(SwapEventName.SwapModifiedInWallet, {
@@ -144,8 +140,6 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
 
   // Now that we have the txRequest, we can create a definitive SwapTransactionStep, incase we started with an async step.
   const onChainStep = { ...step, txRequest }
-  console.log('Submitting swap on-chain step:', onChainStep)
-  // TODO: must add 100k extra gas for smart pool execution - improve estimation later
   const hash = yield* call(handleOnChainStep, {
     ...params,
     info,
@@ -305,7 +299,6 @@ function* swap(params: SwapParams) {
     }
 
     for (step of steps) {
-      console.log('Processing step:', step.type, step)
       switch (step.type) {
         case TransactionStepType.TokenRevocationTransaction:
         case TransactionStepType.TokenApprovalTransaction: {

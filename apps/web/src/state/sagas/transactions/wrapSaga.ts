@@ -1,4 +1,5 @@
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
+import { BigNumber } from '@ethersproject/bignumber'
 import { popupRegistry } from 'components/Popups/registry'
 import { PopupType } from 'components/Popups/types'
 import { INTERNAL_JSON_RPC_ERROR_CODE } from 'constants/misc'
@@ -17,6 +18,13 @@ import { createSaga } from 'uniswap/src/utils/saga'
 import { logger } from 'utilities/src/logger/logger'
 import { noop } from 'utilities/src/react/noop'
 import { didUserReject } from 'utils/swapErrorToUserReadableMessage'
+import {
+  encodeSmartPoolWrapEth,
+  encodeSmartPoolUnwrapWETH9,
+  isWETHDepositCalldata,
+  isWETHWithdrawCalldata,
+  extractWETHWithdrawAmount,
+} from 'state/sagas/transactions/smartPoolWrapUtils'
 
 interface HandleWrapStepParams extends Omit<HandleOnChainStepParams<WrapTransactionStep>, 'info'> {}
 function* handleWrapStep(params: HandleWrapStepParams) {
@@ -41,7 +49,35 @@ function* wrap(params: WrapParams) {
 
     const step = { type: TransactionStepType.WrapTransaction, txRequest, amount: inputCurrencyAmount } as const
     smartPoolAddress && (step.txRequest.to = smartPoolAddress)
-    step.txRequest.value = String(0n)
+    step.txRequest.from = account.address
+    step.txRequest.gasLimit = BigNumber.from(step.txRequest.gasLimit).add(100000) // Add buffer to gas limit
+
+    // Override wrap transaction calldata for smart pool
+    if (smartPoolAddress && step.txRequest.data) {
+      const calldata = typeof step.txRequest.data === 'string' ? step.txRequest.data : step.txRequest.data.toString()
+      const originalValue = step.txRequest.value || '0'
+
+      if (isWETHDepositCalldata(calldata)) {
+        // ETH -> WETH (wrap): use pool.wrapEth(amount) instead of weth.deposit()
+        // Use the transaction value as the amount parameter
+        const wrapAmount = BigNumber.from(originalValue).toString()
+        step.txRequest.data = encodeSmartPoolWrapEth(wrapAmount)
+        step.txRequest.value = String(0) // Set value to 0 since smart pool handles the ETH
+        console.log(`Modified WETH deposit to smart pool wrapEth(${wrapAmount})`)
+      } else if (isWETHWithdrawCalldata(calldata)) {
+        // WETH -> ETH (unwrap): use pool.unwrapWETH9(amount) instead of weth.withdraw(amount)
+        // Extract amount from original calldata
+        const unwrapAmount = extractWETHWithdrawAmount(calldata)
+        step.txRequest.data = encodeSmartPoolUnwrapWETH9(unwrapAmount)
+        step.txRequest.value = String(0) // Ensure value is zero for unwrap
+        console.log(`Modified WETH withdraw to smart pool unwrapWETH9(${unwrapAmount})`)
+      }
+    } else {
+      // For non-smart pool transactions, ensure value is 0 if not wrap
+      step.txRequest.value = String(0)
+    }
+
+    console.log('Wrap txRequest:', step.txRequest)
 
     const hash = yield* call(handleWrapStep, {
       step,

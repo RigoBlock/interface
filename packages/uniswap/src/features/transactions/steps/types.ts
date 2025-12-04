@@ -73,7 +73,7 @@ export interface HandleOnChainStepParams<
   TExtra extends object = object,
 > {
   address: Address
-  smartPoolAddress: Address
+  smartPoolAddress?: Address
   info: TransactionTypeInfo
   step: T & TExtra
   setCurrentStep: SetCurrentStepFn
