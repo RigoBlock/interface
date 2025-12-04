@@ -1,5 +1,7 @@
 /* eslint-disable max-lines */
 
+import { AbiCoder } from '@ethersproject/abi'
+import { getAddress } from '@ethersproject/address'
 import { useTotalBalancesUsdForAnalytics } from 'appGraphql/data/apollo/useTotalBalancesUsdForAnalytics'
 import { Currency } from '@uniswap/sdk-core'
 import { TradingApi } from '@universe/api'
@@ -81,6 +83,7 @@ import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
 import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
 import { getContract } from 'utilities/src/contracts/getContract'
 import { RPC_PROVIDERS } from 'constants/providers'
+import { modifyV4ExecuteCalldata } from './universalRouterCalldata'
 
 function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator<string> {
   const { address, smartPoolAddress, trade, step, signature, analytics, onTransactionHash } = params
@@ -99,18 +102,33 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
     // Convert BytesLike to string for manipulation
     const calldata = typeof txRequest.data === 'string' ? txRequest.data : txRequest.data.toString()
     
-    // The target address in the calldata is padded to 32 bytes (64 hex chars)
-    const targetAddressPadded = '00000000000000000000000027213e28d7fda5c57fe9e5dd923818dbccf71c47'
-    const smartPoolAddressWithout0x = smartPoolAddress.replace('0x', '').toLowerCase()
-    const smartPoolAddressPadded = '000000000000000000000000' + smartPoolAddressWithout0x
+    try {
+      // Decode V4 execute(bytes commands, bytes[] inputs) calldata
+      // Remove function selector (first 4 bytes) and decode the parameters
+      const parametersOnly = calldata.slice(10) // Remove '0x' + 8 hex chars (4 bytes)
+      const updatedParams = modifyV4ExecuteCalldata('0x' + parametersOnly, smartPoolAddress)
+      
+      if (updatedParams !== '0x' + parametersOnly) {
+        // Reconstruct the full calldata with the original function selector
+        const functionSelector = calldata.slice(0, 10) // '0x' + 8 hex chars
+        const updatedCalldata = functionSelector + updatedParams.slice(2)
+        txRequest.data = updatedCalldata
+        console.log('Modified Universal Router commands (SWEEP/PAY_PORTION/V4_SWAP) and V4 actions (TAKE/TAKE_PORTION) in calldata')
+      }
+    } catch (error) {
+      // Fallback to simple string replacement if decoding fails
+      console.warn('Failed to decode Universal Router calldata, using fallback replacement:', error)
+      const targetAddressPadded = '00000000000000000000000027213e28d7fda5c57fe9e5dd923818dbccf71c47'
+      const smartPoolAddressWithout0x = smartPoolAddress.replace('0x', '').toLowerCase()
+      const smartPoolAddressPadded = '000000000000000000000000' + smartPoolAddressWithout0x
+      
+      const updatedCalldata = calldata.replaceAll(targetAddressPadded, smartPoolAddressPadded)
+      txRequest.data = updatedCalldata
+      console.log('Replaced fee recipient in calldata (fallback):', targetAddressPadded, '->', smartPoolAddressPadded)
+    }
     
-    // Use simple string replacement since we're replacing a specific known pattern
-    const updatedCalldata = calldata.replaceAll(targetAddressPadded, smartPoolAddressPadded)
-    txRequest.data = updatedCalldata
     txRequest.from = address
     txRequest.to = smartPoolAddress
-    
-    console.log('Replaced fee recipient in calldata:', targetAddressPadded, '->', smartPoolAddressPadded)
   }
 
   console.log('Prepared txRequest for swap step:', txRequest)
@@ -127,6 +145,7 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
   // Now that we have the txRequest, we can create a definitive SwapTransactionStep, incase we started with an async step.
   const onChainStep = { ...step, txRequest }
   console.log('Submitting swap on-chain step:', onChainStep)
+  // TODO: must add 100k extra gas for smart pool execution - improve estimation later
   const hash = yield* call(handleOnChainStep, {
     ...params,
     info,
