@@ -103,7 +103,6 @@ export function WebBottomSheet({
         disableDrag={isTouchDevice && !isHandlePressed}
         open={isOpen}
         snapPointsMode="fit"
-        zIndex={zIndexes.modal}
         onOpenChange={handleClose}
       >
         <Sheet.Frame
@@ -113,7 +112,6 @@ export function WebBottomSheet({
           borderTopRightRadius="$rounded16"
           borderWidth="$spacing1"
           px="$spacing8"
-          zIndex={zIndexes.modal}
           {...sheetOverrideStyles}
           {...sheetHeightStyles}
         >
@@ -140,7 +138,6 @@ export function WebBottomSheet({
           backgroundColor="$scrim"
           enterStyle={{ opacity: 0 }}
           exitStyle={{ opacity: 0 }}
-          zIndex={zIndexes.modalBackdrop}
         />
       </Sheet>
     </RemoveScroll>
