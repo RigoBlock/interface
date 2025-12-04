@@ -1,7 +1,6 @@
 /* eslint-disable max-lines */
 
-import { AbiCoder } from '@ethersproject/abi'
-import { getAddress } from '@ethersproject/address'
+import { BigNumber } from '@ethersproject/bignumber'
 import { useTotalBalancesUsdForAnalytics } from 'appGraphql/data/apollo/useTotalBalancesUsdForAnalytics'
 import { Currency } from '@uniswap/sdk-core'
 import { TradingApi } from '@universe/api'
@@ -83,7 +82,7 @@ import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
 import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
 import { getContract } from 'utilities/src/contracts/getContract'
 import { RPC_PROVIDERS } from 'constants/providers'
-import { modifyV4ExecuteCalldata } from './universalRouterCalldata'
+import { modifyV4ExecuteCalldata } from 'state/sagas/transactions/universalRouterCalldata'
 
 function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator<string> {
   const { address, smartPoolAddress, trade, step, signature, analytics, onTransactionHash } = params
@@ -96,6 +95,7 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
   const txRequest = yield* call(getSwapTxRequest, step, signature)
   smartPoolAddress && txRequest.to !== smartPoolAddress && (txRequest.to = smartPoolAddress)
   txRequest.value !== String(0) && (txRequest.value = String(0)) // Ensure value is zero for smart pool swaps
+  txRequest.gasLimit && (txRequest.gasLimit = BigNumber.from(txRequest.gasLimit).add(100000).toString()) // Add buffer to gas limit
 
   // Override fee recipient in calldata with smart pool address
   if (smartPoolAddress && txRequest.data) {
