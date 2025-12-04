@@ -1,6 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import { Protocol } from '@uniswap/router-sdk'
 import ms from 'ms'
+import { useActiveSmartPool } from 'state/application/hooks'
 import {
   ClassicAPIConfig,
   GetQuoteArgs,
@@ -35,21 +36,26 @@ const protocols: Protocol[] = [Protocol.V2, Protocol.V3, Protocol.MIXED]
 // routing API quote query params: https://github.com/Uniswap/routing-api/blob/main/lib/handlers/quote/schema/quote-schema.ts
 const DEFAULT_QUERY_PARAMS = {
   // this should be removed once BE fixes issue where enableUniversalRouter is required for fees to work
-  enableUniversalRouter: false,
+  enableUniversalRouter: true,
 }
 
 function getRoutingAPIConfig(args: GetQuoteArgs): RoutingConfig {
   const { account, uniswapXForceSyntheticQuotes, routerPreference, protocolPreferences, routingType } = args
+  const activeSmartPoolAddress = useActiveSmartPool().address
+
+  if (!activeSmartPoolAddress) {
+    throw new Error('No active smart pool selected')
+  }
 
   const uniswapX: UniswapXConfig = {
     useSyntheticQuotes: uniswapXForceSyntheticQuotes,
-    swapper: account,
+    swapper: activeSmartPoolAddress,
     routingType: URAQuoteType.DUTCH_V1,
   }
 
   const uniswapXPriorityOrders: UniswapXPriorityOrdersConfig = {
     routingType: URAQuoteType.PRIORITY,
-    swapper: account,
+    swapper: activeSmartPoolAddress,
   }
 
   const uniswapXv2: UniswapXv2Config = {
@@ -60,7 +66,7 @@ function getRoutingAPIConfig(args: GetQuoteArgs): RoutingConfig {
 
   const uniswapXv3: UniswapXv3Config = {
     useSyntheticQuotes: uniswapXForceSyntheticQuotes,
-    swapper: account,
+    swapper: activeSmartPoolAddress,
     routingType: URAQuoteType.DUTCH_V3,
   }
 

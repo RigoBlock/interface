@@ -6,6 +6,7 @@ import { AccountDetails } from 'uniswap/src/features/wallet/types/AccountDetails
 
 export type WrapCallbackParams = {
   account: AccountDetails
+  smartPoolAddress?: string
   inputCurrencyAmount: CurrencyAmount<Currency>
   wrapType: WrapType.Wrap | WrapType.Unwrap
   onSuccess: () => void

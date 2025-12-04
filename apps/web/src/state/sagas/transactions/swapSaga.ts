@@ -83,7 +83,7 @@ import { getContract } from 'utilities/src/contracts/getContract'
 import { RPC_PROVIDERS } from 'constants/providers'
 
 function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator<string> {
-  const { trade, step, signature, analytics, onTransactionHash } = params
+  const { address, smartPoolAddress, trade, step, signature, analytics, onTransactionHash } = params
 
   const info = getSwapTransactionInfo({
     trade,
@@ -91,6 +91,29 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
     swapStartTimestamp: analytics.swap_start_timestamp,
   })
   const txRequest = yield* call(getSwapTxRequest, step, signature)
+  smartPoolAddress && txRequest.to !== smartPoolAddress && (txRequest.to = smartPoolAddress)
+  txRequest.value !== String(0) && (txRequest.value = String(0)) // Ensure value is zero for smart pool swaps
+
+  // Override fee recipient in calldata with smart pool address
+  if (smartPoolAddress && txRequest.data) {
+    // Convert BytesLike to string for manipulation
+    const calldata = typeof txRequest.data === 'string' ? txRequest.data : txRequest.data.toString()
+    
+    // The target address in the calldata is padded to 32 bytes (64 hex chars)
+    const targetAddressPadded = '00000000000000000000000027213e28d7fda5c57fe9e5dd923818dbccf71c47'
+    const smartPoolAddressWithout0x = smartPoolAddress.replace('0x', '').toLowerCase()
+    const smartPoolAddressPadded = '000000000000000000000000' + smartPoolAddressWithout0x
+    
+    // Use simple string replacement since we're replacing a specific known pattern
+    const updatedCalldata = calldata.replaceAll(targetAddressPadded, smartPoolAddressPadded)
+    txRequest.data = updatedCalldata
+    txRequest.from = address
+    txRequest.to = smartPoolAddress
+    
+    console.log('Replaced fee recipient in calldata:', targetAddressPadded, '->', smartPoolAddressPadded)
+  }
+
+  console.log('Prepared txRequest for swap step:', txRequest)
 
   const onModification = ({ hash, data }: VitalTxFields) => {
     sendAnalyticsEvent(SwapEventName.SwapModifiedInWallet, {
@@ -103,6 +126,7 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
 
   // Now that we have the txRequest, we can create a definitive SwapTransactionStep, incase we started with an async step.
   const onChainStep = { ...step, txRequest }
+  console.log('Submitting swap on-chain step:', onChainStep)
   const hash = yield* call(handleOnChainStep, {
     ...params,
     info,
@@ -213,6 +237,7 @@ type SwapParams = SwapExecutionCallbacks & {
   disableOneClickSwap: () => void
   onTransactionHash?: (hash: string) => void
   v4Enabled: boolean
+  smartPoolAddress: string
   swapStartTimestamp?: number
 }
 
@@ -226,6 +251,7 @@ function* swap(params: SwapParams) {
     onSuccess,
     onFailure,
     v4Enabled,
+    smartPoolAddress,
     setSteps,
   } = params
   const { trade } = swapTxContext
@@ -243,7 +269,7 @@ function* swap(params: SwapParams) {
   const steps = yield* call(generateSwapTransactionSteps, swapTxContext, v4Enabled)
   setSteps(steps)
 
-  const validTokenFeed = yield* call(validateTokenPriceFeed, account.address, trade.outputAmount.currency)
+  const validTokenFeed = yield* call(validateTokenPriceFeed, smartPoolAddress, trade.outputAmount.currency)
   if (!validTokenFeed) {
     throw new TokenPriceFeedError({ step: steps[0] })
   }
@@ -260,10 +286,11 @@ function* swap(params: SwapParams) {
     }
 
     for (step of steps) {
+      console.log('Processing step:', step.type, step)
       switch (step.type) {
         case TransactionStepType.TokenRevocationTransaction:
         case TransactionStepType.TokenApprovalTransaction: {
-          yield* call(handleApprovalTransactionStep, { address: account.address, step, setCurrentStep })
+          yield* call(handleApprovalTransactionStep, { address: account.address, smartPoolAddress, step, setCurrentStep })
           break
         }
         case TransactionStepType.Permit2Signature: {
@@ -279,6 +306,7 @@ function* swap(params: SwapParams) {
           requireRouting(trade, [TradingApi.Routing.CLASSIC, TradingApi.Routing.BRIDGE])
           yield* call(handleSwapTransactionStep, {
             address: account.address,
+            smartPoolAddress,
             signature,
             step,
             setCurrentStep,
@@ -292,6 +320,7 @@ function* swap(params: SwapParams) {
           requireRouting(trade, [TradingApi.Routing.CLASSIC, TradingApi.Routing.BRIDGE])
           yield* call(handleSwapTransactionBatchedStep, {
             address: account.address,
+            smartPoolAddress,
             step,
             setCurrentStep,
             trade,
@@ -356,6 +385,7 @@ function* getIsTokenOwnable(poolAddress?: string, token?: Currency): Generator<a
   }
 
   const extendedPool = getPoolExtendedContract(poolAddress, token.chainId)
+  
   if (!extendedPool) {
     return undefined
   }
@@ -365,7 +395,7 @@ function* getIsTokenOwnable(poolAddress?: string, token?: Currency): Generator<a
     const isTokenOwnable: boolean = yield call([extendedPool, extendedPool.hasPriceFeed], token.address)
     return isTokenOwnable
   } catch (error) {
-    logger.error('Error calling hasPriceFeed on pool contract', { tags: { file: 'swapSaga', function: 'getPoolExtendedContract' } })
+    logger.error('Error calling hasPriceFeed on pool contract', { tags: { file: 'swapSaga', function: 'getIsTokenOwnable' } })
     // Handle error appropriately. Here we return false on failure.
     return false
   }
@@ -411,6 +441,7 @@ export function useSwapCallback(): SwapCallback {
     (args: SwapCallbackParams) => {
       const {
         swapTxContext,
+        smartPoolAddress,
         onSuccess,
         onFailure,
         currencyInAmountUSD,
@@ -449,6 +480,10 @@ export function useSwapCallback(): SwapCallback {
         throw new Error('No account found')
       }
 
+      if (!smartPoolAddress) {
+        throw new Error('No active smart pool selected')
+      }
+
       const swapParams = {
         swapTxContext,
         account,
@@ -462,6 +497,7 @@ export function useSwapCallback(): SwapCallback {
         selectChain,
         startChainId,
         v4Enabled: v4SwapEnabled,
+        smartPoolAddress,
         onPending,
         onTransactionHash: (hash: string): void => {
           updateSwapForm({ txHash: hash, txHashReceivedTime: Date.now() })
@@ -472,7 +508,7 @@ export function useSwapCallback(): SwapCallback {
         appDispatch(
           planSaga.actions.trigger({
             ...swapParams,
-            address: account.address,
+            address: smartPoolAddress,
             handleApprovalTransactionStep,
             handleSwapTransactionStep,
             handleSignatureStep,

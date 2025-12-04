@@ -442,6 +442,7 @@ export interface TradeWithStatus<T extends Trade = Trade> {
 
 export interface UseTradeArgs {
   account?: AccountDetails
+  smartPoolAddress?: string
   amountSpecified: Maybe<CurrencyAmount<Currency>>
   otherCurrency: Maybe<Currency>
   tradeType: TradeType

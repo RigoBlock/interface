@@ -17,6 +17,7 @@ export type SwapExecutionCallbacks = {
 
 export interface SwapCallbackParams extends SwapExecutionCallbacks {
   account: SignerMnemonicAccountDetails
+  smartPoolAddress?: string
   swapTxContext: ValidatedSwapTxContext
   currencyInAmountUSD: Maybe<CurrencyAmount<Currency>>
   currencyOutAmountUSD: Maybe<CurrencyAmount<Currency>>

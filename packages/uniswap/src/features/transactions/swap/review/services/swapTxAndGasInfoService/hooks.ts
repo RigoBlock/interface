@@ -306,6 +306,9 @@ export function useSwapTxAndGasInfo(): SwapTxAndGasInfo {
   const params = useSwapParams()
   const { data } = useSwapTxAndGasInfoQuery(params)
 
+  console.log('useSwapTxAndGasInfo data:', data);
+  console.log('useSwapTxAndGasInfo params:', params);
+
   const prevData = usePrevious(data)
   const prevParams = usePrevious(params)
 

@@ -43,6 +43,7 @@ export interface ValidatedTradeInput {
   amount: CurrencyAmount<Currency>
   requestTradeType: TradingApi.TradeType
   activeAccountAddress: string | undefined
+  activeSmartPoolAddress?: string
   tokenInChainId: number
   tokenOutChainId: number
   tokenInAddress: string
@@ -77,7 +78,7 @@ export function createBuildQuoteRequest(
       generatePermitAsTransaction: validatedInput.generatePermitAsTransaction,
       gasStrategies: [getActiveGasStrategy({ chainId: validatedInput.tokenInChainId, type: 'swap' })],
       isUSDQuote: validatedInput.isUSDQuote,
-      swapper: validatedInput.activeAccountAddress ?? UNCONNECTED_ADDRESS,
+      swapper: validatedInput.activeSmartPoolAddress ?? UNCONNECTED_ADDRESS,
       tokenIn: validatedInput.tokenInAddress,
       tokenInChainId: validatedInput.tokenInChainId,
       tokenOut: validatedInput.tokenOutAddress,
@@ -108,9 +109,10 @@ export function flattenQuoteRequestResult(result: QuoteRequestResult): Flattened
 export interface ParsedTradeInput {
   currencyIn: Maybe<Currency>
   currencyOut: Maybe<Currency>
-  amount: Maybe<CurrencyAmount<Currency>>
+  amount: CurrencyAmount<Currency> | undefined | null
   requestTradeType: TradingApi.TradeType
   activeAccountAddress: string | undefined
+  activeSmartPoolAddress?: string
   tokenInChainId?: number
   tokenOutChainId?: number
   tokenInAddress?: string
@@ -127,6 +129,7 @@ export function parseTradeInputForTradingApiQuote(input: UseTradeArgs): ParsedTr
     amount: input.amountSpecified,
     requestTradeType,
     activeAccountAddress: input.account?.address,
+    activeSmartPoolAddress: input.smartPoolAddress,
     tokenInChainId: toTradingApiSupportedChainId(currencyIn?.chainId),
     tokenOutChainId: toTradingApiSupportedChainId(currencyOut?.chainId),
     tokenInAddress: getTokenAddressForApi(currencyIn),
@@ -162,6 +165,7 @@ export function validateParsedInput(input: ParsedTradeInput): ValidatedTradeInpu
     amount: input.amount,
     requestTradeType: input.requestTradeType,
     activeAccountAddress: input.activeAccountAddress,
+    activeSmartPoolAddress: input.activeSmartPoolAddress,
     tokenInChainId: input.tokenInChainId,
     tokenOutChainId: input.tokenOutChainId,
     tokenInAddress: input.tokenInAddress,

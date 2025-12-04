@@ -6,6 +6,7 @@ import { SwapBottomCard } from 'components/SwapBottomCard'
 import { SwitchLocaleLink } from 'components/SwitchLocaleLink'
 import { PageWrapper } from 'components/swap/styled'
 import { useAccount } from 'hooks/useAccount'
+import { useActiveSmartPool } from 'state/application/hooks'
 import { useDeferredComponent } from 'hooks/useDeferredComponent'
 import { PageType, useIsPage } from 'hooks/useIsPage'
 import { useModalState } from 'hooks/useModalState'
@@ -57,6 +58,7 @@ import { isIFramed } from 'utils/isIFramed'
 export default function SwapPage() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { address: smartPoolAddress } = useActiveSmartPool()
   // (WEB-4737): Remove this line after completing A/A Test on Web
   useFeatureFlag(FeatureFlags.AATestWeb)
 
@@ -155,6 +157,8 @@ export function Swap({
   passkeyAuthStatus?: PasskeyAuthStatus
 }) {
   const { isSwapTokenSelectorOpen, swapOutputChainId } = useUniswapContext()
+  const { address } = useActiveSmartPool()
+  const smartPoolAddress = address || undefined
 
   const isExplorePage = useIsPage(PageType.EXPLORE)
   const isModeMismatch = useIsModeMismatch(initialInputChainId)
@@ -190,6 +194,7 @@ export function Swap({
         >
           <PrefetchBalancesWrapper>
             <SwapFormStoreContextProvider
+              smartPoolAddress={smartPoolAddress}
               prefilledState={prefilledState}
               hideSettings={hideHeader}
               hideFooter={hideFooter}

@@ -28,7 +28,7 @@ type WrapParams = WrapCallbackParams & { selectChain: (chainId: number) => Promi
 
 function* wrap(params: WrapParams) {
   try {
-    const { account, inputCurrencyAmount, selectChain, txRequest, startChainId, onFailure } = params
+    const { account, smartPoolAddress, inputCurrencyAmount, selectChain, txRequest, startChainId, onFailure } = params
 
     // Switch chains if needed
     if (txRequest.chainId !== startChainId) {
@@ -40,10 +40,13 @@ function* wrap(params: WrapParams) {
     }
 
     const step = { type: TransactionStepType.WrapTransaction, txRequest, amount: inputCurrencyAmount } as const
+    smartPoolAddress && (step.txRequest.to = smartPoolAddress)
+    step.txRequest.value = String(0n)
 
     const hash = yield* call(handleWrapStep, {
       step,
       address: account.address,
+      smartPoolAddress,
       setCurrentStep: noop,
       shouldWaitForConfirmation: false,
       allowDuplicativeTx: true, // Compared to UniswapX wraps, the user should not be stopped from wrapping in quick succession

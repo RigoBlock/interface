@@ -68,7 +68,7 @@ export function useConfirmModalState({
   const { chainId } = useMultichainContext()
 
   const isTokenOwnable: boolean | undefined = useIsTokenOwnable(
-    selectedPool?.isToken ? selectedPool?.address : undefined,
+    selectedPool?.isToken ? selectedPool.address : undefined,
     trade.outputAmount.currency
   )
 
@@ -94,9 +94,9 @@ export function useConfirmModalState({
     }
     if (
       allowance?.state === AllowanceState.REQUIRED &&
-      allowance?.needsSetupApproval &&
-      RESET_APPROVAL_TOKENS.some((token) => token.equals(allowance?.token)) &&
-      allowance?.allowedAmount?.greaterThan(0)
+      allowance.needsSetupApproval &&
+      RESET_APPROVAL_TOKENS.some((token) => token.equals(allowance.token)) &&
+      allowance.allowedAmount?.greaterThan(0)
     ) {
       steps.push(ConfirmModalState.RESETTING_TOKEN_ALLOWANCE)
     }
@@ -154,7 +154,7 @@ export function useConfirmModalState({
         case ConfirmModalState.RESETTING_TOKEN_ALLOWANCE:
           setConfirmModalState(ConfirmModalState.RESETTING_TOKEN_ALLOWANCE)
           invariant(allowance?.state === AllowanceState.REQUIRED, 'Allowance should be required')
-          allowance?.revoke().catch((e) => catchUserReject(e, PendingModalError.TOKEN_APPROVAL_ERROR))
+          allowance.revoke().catch((e) => catchUserReject(e, PendingModalError.TOKEN_APPROVAL_ERROR))
           break
         case ConfirmModalState.APPROVING_TOKEN:
           setConfirmModalState(ConfirmModalState.APPROVING_TOKEN)
@@ -164,7 +164,7 @@ export function useConfirmModalState({
         case ConfirmModalState.PERMITTING:
           setConfirmModalState(ConfirmModalState.PERMITTING)
           invariant(allowance?.state === AllowanceState.REQUIRED, 'Allowance should be required')
-          allowance?.permit().catch((e) => catchUserReject(e, PendingModalError.TOKEN_APPROVAL_ERROR))
+          allowance.permit().catch((e) => catchUserReject(e, PendingModalError.TOKEN_APPROVAL_ERROR))
           break
         case ConfirmModalState.PENDING_CONFIRMATION:
           setConfirmModalState(ConfirmModalState.PENDING_CONFIRMATION)
@@ -215,9 +215,9 @@ export function useConfirmModalState({
   useEffect(() => {
     if (
       allowance?.state === AllowanceState.REQUIRED &&
-      allowance?.needsPermitSignature &&
+      allowance.needsPermitSignature &&
       // If the token approval switched from missing to fulfilled, trigger the next step (permit2 signature).
-      !allowance?.needsSetupApproval &&
+      !allowance.needsSetupApproval &&
       previousSetupApprovalNeeded
     ) {
       performStep(ConfirmModalState.PERMITTING)
@@ -225,10 +225,10 @@ export function useConfirmModalState({
   }, [allowance, performStep, previousSetupApprovalNeeded])
 
   const previousRevocationPending = usePrevious(
-    allowance?.state === AllowanceState.REQUIRED && allowance?.isRevocationPending,
+    allowance?.state === AllowanceState.REQUIRED && allowance.isRevocationPending,
   )
   useEffect(() => {
-    if (allowance?.state === AllowanceState.REQUIRED && previousRevocationPending && !allowance?.isRevocationPending) {
+    if (allowance?.state === AllowanceState.REQUIRED && previousRevocationPending && !allowance.isRevocationPending) {
       performStep(ConfirmModalState.APPROVING_TOKEN)
     }
   }, [allowance, performStep, previousRevocationPending])

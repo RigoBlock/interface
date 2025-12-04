@@ -21,8 +21,9 @@ import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
 /** Returns information derived from the current swap state */
 export function useDerivedSwapInfo({
   isDebouncing,
+  smartPoolAddress,
   ...state
-}: TransactionState & { isDebouncing?: boolean }): DerivedSwapInfo {
+}: TransactionState & { isDebouncing?: boolean; smartPoolAddress?: string }): DerivedSwapInfo {
   const {
     [CurrencyField.INPUT]: currencyAssetIn,
     [CurrencyField.OUTPUT]: currencyAssetOut,
@@ -98,6 +99,7 @@ export function useDerivedSwapInfo({
 
   const trade = useTrade({
     account,
+    smartPoolAddress,
     amountSpecified,
     otherCurrency,
     tradeType: isExactIn ? TradeType.EXACT_INPUT : TradeType.EXACT_OUTPUT,

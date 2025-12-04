@@ -1,5 +1,6 @@
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import { useCallback, useMemo } from 'react'
+import { useActiveSmartPool } from 'state/application/hooks'
 import { useSwapCallback } from 'state/sagas/transactions/swapSaga'
 import { useWrapCallback } from 'state/sagas/transactions/wrapSaga'
 import {
@@ -36,6 +37,7 @@ export function validateWrapParams(params: ExecuteSwapParams): {
 export function useSwapHandlers(): SwapHandlers {
   const swapCallback = useSwapCallback()
   const wrapCallback = useWrapCallback()
+  const smartPoolAddress = useActiveSmartPool().address
 
   // Web doesn't pre-sign transactions, so this is a no-op
   const prepareAndSign: PrepareSwapCallback = useCallback(async () => {}, [])
@@ -60,6 +62,10 @@ export function useSwapHandlers(): SwapHandlers {
         isFiatInputMode,
       } = params
 
+      if (!smartPoolAddress) {
+        throw new Error('No active smart pool selected')
+      }
+
       // Route to appropriate callback based on transaction type
       if (isWrap(swapTxContext)) {
         // Handle wrap transactions
@@ -69,6 +75,7 @@ export function useSwapHandlers(): SwapHandlers {
 
           wrapCallback({
             account,
+            smartPoolAddress,
             inputCurrencyAmount,
             txRequest,
             txId,
@@ -85,6 +92,7 @@ export function useSwapHandlers(): SwapHandlers {
         // Handle regular swap transactions
         swapCallback({
           account,
+          smartPoolAddress,
           swapTxContext,
           currencyInAmountUSD,
           currencyOutAmountUSD,
@@ -102,7 +110,7 @@ export function useSwapHandlers(): SwapHandlers {
         })
       }
     },
-    [swapCallback, wrapCallback],
+    [swapCallback, wrapCallback, smartPoolAddress],
   )
 
   return useMemo(

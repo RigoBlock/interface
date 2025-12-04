@@ -22,6 +22,7 @@ export type PrepareSwapCallback = (params: PrepareSwapParams) => Promise<void>
  */
 export interface ExecuteSwapParams extends SwapExecutionCallbacks {
   account: SignerMnemonicAccountDetails
+  smartPoolAddress?: string
   swapTxContext: ValidatedSwapTxContext
   currencyInAmountUSD?: CurrencyAmount<Currency>
   currencyOutAmountUSD?: CurrencyAmount<Currency>

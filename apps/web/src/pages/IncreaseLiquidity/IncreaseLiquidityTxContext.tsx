@@ -70,19 +70,19 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
   const { currencyAmounts, error } = derivedIncreaseLiquidityInfo
   const { exactField } = increaseLiquidityState
 
-  const accountAddress = useActiveSmartPool()
   const accountAddress = useActiveAddress(Platform.EVM)
+  const smartPoolAddress = useActiveSmartPool().address
   const canBatchTransactions =
     useUniswapContextSelector((ctx) => ctx.getCanBatchTransactions?.(positionInfo?.chainId)) &&
     positionInfo?.chainId !== UniverseChainId.Monad
 
   const increaseLiquidityApprovalParams: TradingApi.CheckApprovalLPRequest | undefined = useMemo(() => {
-    if (!positionInfo || !accountAddress || !currencyAmounts?.TOKEN0 || !currencyAmounts.TOKEN1) {
+    if (!positionInfo || !smartPoolAddress || !currencyAmounts?.TOKEN0 || !currencyAmounts.TOKEN1) {
       return undefined
     }
     return {
-      simulateTransaction: true,
-      walletAddress: accountAddress,
+      simulateTransaction: false,
+      walletAddress: smartPoolAddress,
       chainId: positionInfo.currency0Amount.currency.chainId,
       protocol: getProtocolItems(positionInfo.version),
       token0: getTokenOrZeroAddress(positionInfo.currency0Amount.currency),
@@ -91,7 +91,7 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
       amount1: currencyAmounts.TOKEN1.quotient.toString(),
       generatePermitAsTransaction: positionInfo.version === ProtocolVersion.V4 ? canBatchTransactions : undefined,
     }
-  }, [positionInfo, accountAddress, currencyAmounts, canBatchTransactions])
+  }, [positionInfo, smartPoolAddress, currencyAmounts, canBatchTransactions])
 
   const {
     data: increaseLiquidityTokenApprovals,
@@ -185,7 +185,7 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
       simulateTransaction: false, //!approvalsNeeded,
       protocol: apiProtocolItems,
       tokenId: positionInfo.tokenId ? Number(positionInfo.tokenId) : undefined,
-      walletAddress: accountAddress,
+      walletAddress: smartPoolAddress ?? accountAddress,
       chainId: positionInfo.currency0Amount.currency.chainId,
       independentAmount,
       independentToken,
@@ -205,6 +205,7 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
     }
   }, [
     accountAddress,
+    smartPoolAddress,
     positionInfo,
     token0,
     token1,
@@ -249,14 +250,12 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
 
   const { increase, gasFee: actualGasFee, dependentAmount, sqrtRatioX96 } = increaseCalldata || {}
 
-  increaseCalldata?.increase?.from && signer.address && (increaseCalldata.increase.from = signer.address)
-  increaseCalldata?.increase?.to && account.address && (increaseCalldata.increase.to = account.address)
+  increaseCalldata?.increase?.from && accountAddress && (increaseCalldata.increase.from = accountAddress)
+  increaseCalldata?.increase?.to && !!smartPoolAddress && (increaseCalldata.increase.to = smartPoolAddress)
   increaseCalldata?.increase?.value && (increaseCalldata.increase.value = '0x0')
 
   // TODO: we hardcode the gas limit because the estimate is slightly underpriced, resulting in failed transactions
   increaseCalldata?.increase && (increaseCalldata.increase.gasLimit = Number(250000).toString())
-
-  const { increase, gasFee: actualGasFee, dependentAmount } = increaseCalldata || {}
 
   if (calldataError) {
     const message = parseErrorMessageTitle(calldataError, { defaultTitle: 'unknown IncreaseLpPositionCalldataQuery' })

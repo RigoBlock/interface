@@ -39,6 +39,7 @@ const useCalculatedInitialDerivedSwapInfo = (
     | 'selectingCurrencyField'
     | 'txId'
   >,
+  smartPoolAddress?: string,
 ): DerivedSwapInfo => {
   const {
     debouncedExactAmountToken,
@@ -53,6 +54,7 @@ const useCalculatedInitialDerivedSwapInfo = (
 
   return useDerivedSwapInfo({
     txId: partialSwapFormState.txId,
+    smartPoolAddress,
     [CurrencyField.INPUT]: partialSwapFormState.input ?? null,
     [CurrencyField.OUTPUT]: partialSwapFormState.output ?? null,
     exactCurrencyField: partialSwapFormState.exactCurrencyField,
@@ -68,9 +70,11 @@ const useCalculatedInitialDerivedSwapInfo = (
 // then passes it to the base provider and unmounts
 function SwapFormStoreContextProviderInitializer({
   initialState,
+  smartPoolAddress,
   onReady,
 }: {
   initialState: SwapFormState
+  smartPoolAddress?: string
   onReady: (d: DerivedSwapInfo) => void
 }): JSX.Element | null {
   const initialDerived = useCalculatedInitialDerivedSwapInfo({
@@ -82,7 +86,7 @@ function SwapFormStoreContextProviderInitializer({
     output: initialState.output ?? INITIAL_SWAP_FORM_STATE.output,
     selectingCurrencyField: initialState.selectingCurrencyField ?? INITIAL_SWAP_FORM_STATE.selectingCurrencyField,
     txId: initialState.txId ?? INITIAL_SWAP_FORM_STATE.txId,
-  })
+  }, smartPoolAddress)
 
   useEffect(() => {
     onReady(initialDerived)
@@ -99,12 +103,14 @@ function SwapFormStoreContextProviderBase({
   prefilledState,
   initialStateToUse,
   initialDerivedSwapInfo,
+  smartPoolAddress,
 }: PropsWithChildren<{
   hideFooter?: boolean
   hideSettings?: boolean
   prefilledState?: SwapFormState
   initialStateToUse: SwapFormState
   initialDerivedSwapInfo: DerivedSwapInfo
+  smartPoolAddress?: string
 }>): JSX.Element {
   const dispatch = useDispatch()
 
@@ -190,7 +196,7 @@ function SwapFormStoreContextProviderBase({
     output,
     selectingCurrencyField,
     txId,
-  })
+  }, smartPoolAddress)
 
   // This prevents the swap form from displaying a new trade while an old one is still being submitted.
   const derivedSwapInfo = useFreezeWhileSubmitting(latestDerivedSwapInfo, isSubmitting)
@@ -307,10 +313,12 @@ export const SwapFormStoreContextProvider = ({
   hideFooter,
   hideSettings,
   prefilledState,
+  smartPoolAddress,
 }: PropsWithChildren<{
   hideFooter?: boolean
   hideSettings?: boolean
   prefilledState?: SwapFormState
+  smartPoolAddress?: string
 }>): JSX.Element => {
   // Get default state for store initialization
   const defaultState = useDefaultSwapFormState()
@@ -323,7 +331,11 @@ export const SwapFormStoreContextProvider = ({
 
   if (!initialDerivedSwapInfo) {
     return (
-      <SwapFormStoreContextProviderInitializer initialState={initialStateToUse} onReady={setInitialDerivedSwapInfo} />
+      <SwapFormStoreContextProviderInitializer 
+        initialState={initialStateToUse} 
+        smartPoolAddress={smartPoolAddress}
+        onReady={setInitialDerivedSwapInfo} 
+      />
     )
   }
 
@@ -334,6 +346,7 @@ export const SwapFormStoreContextProvider = ({
       prefilledState={prefilledState}
       initialStateToUse={initialStateToUse}
       initialDerivedSwapInfo={initialDerivedSwapInfo}
+      smartPoolAddress={smartPoolAddress}
     >
       {children}
     </SwapFormStoreContextProviderBase>
