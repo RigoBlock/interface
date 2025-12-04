@@ -132,6 +132,7 @@ export default defineConfig(({ mode }) => {
       'process.env.REACT_APP_GIT_COMMIT_HASH': JSON.stringify(commitHash),
       'process.env.REACT_APP_STAGING': JSON.stringify(mode === 'staging'),
       'process.env.REACT_APP_WEB_BUILD_TYPE': JSON.stringify('vite'),
+      'process.env.TAMAGUI_STACK_Z_INDEX_GLOBAL': JSON.stringify('true'),
       ...envDefines,
     },
 
