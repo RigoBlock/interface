@@ -1,13 +1,13 @@
 import { useTheme } from '@tamagui/core'
-import { ChangeEvent, ReactNode, useCallback } from 'react'
-import styled from 'lib/styled-components'
-import { Trans } from 'react-i18next'
-import { flexColumnNoWrap } from 'theme/styles'
-import i18n from 'uniswap/src/i18n'
-
-import { ThemedText } from 'theme/components/text'
 import { AutoColumn } from 'components/deprecated/Column'
 import { RowBetween } from 'components/deprecated/Row'
+import styled from 'lib/styled-components'
+import { ChangeEvent, ReactNode, useCallback } from 'react'
+import { Trans } from 'react-i18next'
+
+import { ThemedText } from 'theme/components/text'
+import { flexColumnNoWrap } from 'theme/styles'
+import i18n from 'uniswap/src/i18n'
 
 const InputPanel = styled.div`
   ${flexColumnNoWrap};
@@ -93,7 +93,7 @@ export default function NameInputPanel({
       const withoutSpaces = label === 'Pool Symbol' ? input.replace(/\s+/g, '') : input
       onChange(withoutSpaces)
     },
-    [label, onChange]
+    [label, onChange],
   )
 
   // max name length is 31, max symbol length is 5

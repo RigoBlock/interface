@@ -248,8 +248,8 @@ const TokenDetailsActionButtonsWrapper = memo(function _TokenDetailsActionButton
 
   let isBlocked = currencyInfo?.safetyInfo?.tokenList === TokenList.Blocked
 
-  if (project?.tokens?.[0]?.symbol === 'GRG') {
-    isBlocked === false
+  if (currencyInfo?.currency.symbol === 'GRG') {
+    isBlocked = false
   }
 
   const isNativeCurrency = isNativeCurrencyAddress(chainId, address)

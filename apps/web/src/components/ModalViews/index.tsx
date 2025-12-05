@@ -5,11 +5,11 @@ import { RowBetween } from 'components/deprecated/Row'
 import { useAccount } from 'hooks/useAccount'
 import styled from 'lib/styled-components'
 import { ArrowUpCircle, CheckCircle } from 'react-feather'
+import { Trans } from 'react-i18next'
 import { ThemedText } from 'theme/components'
 import { CustomLightSpinner } from 'theme/components/icons/spinner'
 import { ExternalLink } from 'theme/components/Links'
-import { Trans } from 'react-i18next'
-import { Flex, ModalCloseIcon}  from 'ui/src'
+import { Flex, ModalCloseIcon } from 'ui/src'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
 
 const ConfirmOrLoadingWrapper = styled.div`

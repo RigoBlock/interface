@@ -77,16 +77,19 @@ function SwapFormStoreContextProviderInitializer({
   smartPoolAddress?: string
   onReady: (d: DerivedSwapInfo) => void
 }): JSX.Element | null {
-  const initialDerived = useCalculatedInitialDerivedSwapInfo({
-    exactAmountFiat: initialState.exactAmountFiat ?? INITIAL_SWAP_FORM_STATE.exactAmountFiat,
-    exactAmountToken: initialState.exactAmountToken ?? INITIAL_SWAP_FORM_STATE.exactAmountToken,
-    exactCurrencyField: initialState.exactCurrencyField,
-    focusOnCurrencyField: initialState.focusOnCurrencyField ?? INITIAL_SWAP_FORM_STATE.focusOnCurrencyField,
-    input: initialState.input ?? INITIAL_SWAP_FORM_STATE.input,
-    output: initialState.output ?? INITIAL_SWAP_FORM_STATE.output,
-    selectingCurrencyField: initialState.selectingCurrencyField ?? INITIAL_SWAP_FORM_STATE.selectingCurrencyField,
-    txId: initialState.txId ?? INITIAL_SWAP_FORM_STATE.txId,
-  }, smartPoolAddress)
+  const initialDerived = useCalculatedInitialDerivedSwapInfo(
+    {
+      exactAmountFiat: initialState.exactAmountFiat ?? INITIAL_SWAP_FORM_STATE.exactAmountFiat,
+      exactAmountToken: initialState.exactAmountToken ?? INITIAL_SWAP_FORM_STATE.exactAmountToken,
+      exactCurrencyField: initialState.exactCurrencyField,
+      focusOnCurrencyField: initialState.focusOnCurrencyField ?? INITIAL_SWAP_FORM_STATE.focusOnCurrencyField,
+      input: initialState.input ?? INITIAL_SWAP_FORM_STATE.input,
+      output: initialState.output ?? INITIAL_SWAP_FORM_STATE.output,
+      selectingCurrencyField: initialState.selectingCurrencyField ?? INITIAL_SWAP_FORM_STATE.selectingCurrencyField,
+      txId: initialState.txId ?? INITIAL_SWAP_FORM_STATE.txId,
+    },
+    smartPoolAddress,
+  )
 
   useEffect(() => {
     onReady(initialDerived)
@@ -121,6 +124,7 @@ function SwapFormStoreContextProviderBase({
       hideSettings,
       initialState: initialStateToUse,
       derivedSwapInfo: initialDerivedSwapInfo,
+      smartPoolAddress,
       dependenciesForSideEffect: {
         dispatch,
       },
@@ -187,16 +191,19 @@ function SwapFormStoreContextProviderBase({
     setSwapForm: setSwapFormState,
   })
 
-  const latestDerivedSwapInfo = useCalculatedInitialDerivedSwapInfo({
-    exactAmountFiat,
-    exactAmountToken,
-    exactCurrencyField,
-    focusOnCurrencyField,
-    input,
-    output,
-    selectingCurrencyField,
-    txId,
-  }, smartPoolAddress)
+  const latestDerivedSwapInfo = useCalculatedInitialDerivedSwapInfo(
+    {
+      exactAmountFiat,
+      exactAmountToken,
+      exactCurrencyField,
+      focusOnCurrencyField,
+      input,
+      output,
+      selectingCurrencyField,
+      txId,
+    },
+    smartPoolAddress,
+  )
 
   // This prevents the swap form from displaying a new trade while an old one is still being submitted.
   const derivedSwapInfo = useFreezeWhileSubmitting(latestDerivedSwapInfo, isSubmitting)
@@ -274,6 +281,11 @@ function SwapFormStoreContextProviderBase({
     // These are fine as they're both referentially stable
   }, [setUpdateSwapForm, updateSwapForm])
 
+  // Update smartPoolAddress in store when it changes
+  useEffect(() => {
+    setSwapFormState({ smartPoolAddress })
+  }, [smartPoolAddress, setSwapFormState])
+
   const prefilledCurrencies = useMemo(
     () => [prefilledState?.input, prefilledState?.output].filter((asset): asset is TradeableAsset => Boolean(asset)),
     [prefilledState?.input, prefilledState?.output],
@@ -331,10 +343,10 @@ export const SwapFormStoreContextProvider = ({
 
   if (!initialDerivedSwapInfo) {
     return (
-      <SwapFormStoreContextProviderInitializer 
-        initialState={initialStateToUse} 
+      <SwapFormStoreContextProviderInitializer
+        initialState={initialStateToUse}
         smartPoolAddress={smartPoolAddress}
-        onReady={setInitialDerivedSwapInfo} 
+        onReady={setInitialDerivedSwapInfo}
       />
     )
   }

@@ -63,13 +63,13 @@ export function useConfirmModalState({
   const [pendingModalSteps, setPendingModalSteps] = useState<PendingConfirmModalState[]>([])
   const { formatCurrencyAmount } = useLocalizationContext()
 
-    // TODO: check where this hook is using account and for what
+  // TODO: check where this hook is using account and for what
   const account = useAccount()
   const { chainId } = useMultichainContext()
 
   const isTokenOwnable: boolean | undefined = useIsTokenOwnable(
     selectedPool?.isToken ? selectedPool.address : undefined,
-    trade.outputAmount.currency
+    trade.outputAmount.currency,
   )
 
   useEffect(() => {

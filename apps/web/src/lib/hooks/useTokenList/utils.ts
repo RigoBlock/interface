@@ -21,7 +21,7 @@ export function tokensToChainTokenMap(tokens: TokenList | TokenInfo[]): TokenAdd
   const map = infos.reduce<Mutable<TokenAddressMap>>((map, info) => {
     try {
       const token = new TokenFromList(info, list)
-      if (map[token.chainId]?.[token.address] !== undefined) {
+      if (map[token.chainId][token.address] !== undefined) {
         return map
       }
       if (!map[token.chainId]) {

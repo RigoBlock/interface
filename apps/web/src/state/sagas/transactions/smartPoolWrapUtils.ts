@@ -1,6 +1,4 @@
 import { AbiCoder } from '@ethersproject/abi'
-import { Contract } from '@ethersproject/contracts'
-import { BigNumber } from '@ethersproject/bignumber'
 
 /**
  * Encodes a smart pool wrapEth call with the given amount
@@ -14,12 +12,12 @@ export function encodeSmartPoolWrapEth(amount: string): string {
 }
 
 /**
- * Encodes a smart pool unwrapWETH9 call with the given amount  
+ * Encodes a smart pool unwrapWETH9 call with the given amount
  */
 export function encodeSmartPoolUnwrapWETH9(amount: string): string {
   // Smart pool unwrapWETH9 function signature: unwrapWETH9(uint256)
   const abiCoder = new AbiCoder()
-  const functionSelector = '0x49616997' // unwrapWETH9(uint256) function selector  
+  const functionSelector = '0x49616997' // unwrapWETH9(uint256) function selector
   const encodedAmount = abiCoder.encode(['uint256'], [amount])
   return functionSelector + encodedAmount.slice(2) // Remove '0x' from encoded amount
 }
@@ -36,7 +34,7 @@ export function isWETHDepositCalldata(calldata: string): boolean {
  * Checks if calldata is for WETH withdrawal (unwrapping WETH to ETH)
  */
 export function isWETHWithdrawCalldata(calldata: string): boolean {
-  // WETH withdraw function selector: withdraw(uint256)  
+  // WETH withdraw function selector: withdraw(uint256)
   return calldata.startsWith('0x2e1a7d4d')
 }
 
@@ -47,7 +45,7 @@ export function extractWETHWithdrawAmount(calldata: string): string {
   if (!isWETHWithdrawCalldata(calldata)) {
     throw new Error('Calldata is not WETH withdraw')
   }
-  
+
   // Remove function selector (first 4 bytes) and decode amount
   const abiCoder = new AbiCoder()
   const parametersOnly = '0x' + calldata.slice(10)

@@ -3,18 +3,18 @@ import Circle from 'assets/images/blue-loader.svg'
 import { ButtonPrimary } from 'components/Button/buttons'
 import { AutoColumn, ColumnCenter } from 'components/deprecated/Column'
 import { RowBetween } from 'components/deprecated/Row'
-import { Modal } from 'uniswap/src/components/modals/Modal'
 import { useAccount } from 'hooks/useAccount'
 import styled from 'lib/styled-components'
 import { useState } from 'react'
 import { ArrowUpCircle, X } from 'react-feather'
-import { useQueueCallback } from 'state/governance/hooks'
-import { CustomLightSpinner } from 'theme/components/icons/spinner'
-import { ThemedText } from 'theme/components'
-import { ExternalLink } from 'theme/components/Links'
 import { Trans } from 'react-i18next'
+import { useQueueCallback } from 'state/governance/hooks'
+import { ThemedText } from 'theme/components'
+import { CustomLightSpinner } from 'theme/components/icons/spinner'
+import { ExternalLink } from 'theme/components/Links'
 import { Flex } from 'ui/src'
-import { ModalName} from 'uniswap/src/features/telemetry/constants'
+import { Modal } from 'uniswap/src/components/modals/Modal'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
 import { logger } from 'utilities/src/logger/logger'
 
@@ -138,7 +138,7 @@ export default function QueueModal({ isOpen, onDismiss, proposalId }: QueueModal
             </AutoColumn>
             {chainId && (
               <ExternalLink
-                href={getExplorerLink({chainId, data: hash, type: ExplorerDataType.TRANSACTION})}
+                href={getExplorerLink({ chainId, data: hash, type: ExplorerDataType.TRANSACTION })}
                 style={{ marginLeft: '4px' }}
               >
                 <ThemedText.DeprecatedSubHeader>

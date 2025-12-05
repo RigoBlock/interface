@@ -10,5 +10,5 @@ if (isRemoteReportingEnabled() && shouldAllowAnalytics) {
 }
 
 if (shouldAllowAnalytics) {
-    setupAmplitude()
+  setupAmplitude()
 }

@@ -4,9 +4,9 @@ import { useInterfaceMulticall } from 'hooks/useContract'
 import { useTokenBalances } from 'hooks/useTokenBalances'
 import JSBI from 'jsbi'
 import { useMemo } from 'react'
+import { nativeOnChain } from 'uniswap/src/constants/tokens'
 import { getCurrencyAmount, ValueType } from 'uniswap/src/features/tokens/getCurrencyAmount'
 import { isEVMAddress } from 'utilities/src/addresses/evm/evm'
-import { nativeOnChain } from 'uniswap/src/constants/tokens'
 import { currencyKey } from 'utils/currencyKey'
 import { assume0xAddress } from 'utils/wagmi'
 import { Abi, erc20Abi, isAddress } from 'viem'
@@ -17,7 +17,7 @@ import { useBalance, useReadContracts } from 'wagmi'
  */
 export function useCurrencyBalancesMultipleAccounts(
   uncheckedAddresses?: (string | undefined)[],
-  currency?: Currency | undefined
+  currency?: Currency | undefined,
 ): [{ [address: string]: CurrencyAmount<Currency> | undefined }, boolean] {
   const { chainId } = useAccount()
   const multicallContract = useInterfaceMulticall()
@@ -26,17 +26,20 @@ export function useCurrencyBalancesMultipleAccounts(
     () =>
       uncheckedAddresses
         ? uncheckedAddresses
-            .map(address => address && isAddress(address) ? address : false)
+            .map((address) => (address && isAddress(address) ? address : false))
             .filter((a): a is `0x${string}` => a !== false)
             .sort()
             .map((addr) => [addr])
         : [],
-    [uncheckedAddresses]
+    [uncheckedAddresses],
   )
 
   const validatedToken: Token | undefined = useMemo(
-    () => (currency && !currency.isNative && isAddress(currency.address) && currency.chainId === chainId ? currency : undefined),
-    [chainId, currency]
+    () =>
+      currency && !currency.isNative && isAddress(currency.address) && currency.chainId === chainId
+        ? currency
+        : undefined,
+    [chainId, currency],
   )
 
   const { data, isLoading: balancesLoading } = useReadContracts({
@@ -77,16 +80,16 @@ export function useCurrencyBalancesMultipleAccounts(
           if (value && chainId) {
             acc.memo[address] = CurrencyAmount.fromRawAmount(
               validatedToken ?? nativeOnChain(chainId),
-              JSBI.BigInt(value.toString())
+              JSBI.BigInt(value.toString()),
             )
           }
           return { memo: acc.memo, index: acc.index + 1 }
         },
-        { memo: {}, index: 0 }
+        { memo: {}, index: 0 },
       ).memo,
       balancesLoading,
     ],
-    [validAddressInputs, chainId, balancesLoading, validatedToken, data]
+    [validAddressInputs, chainId, balancesLoading, validatedToken, data],
   )
 }
 

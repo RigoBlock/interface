@@ -9,13 +9,13 @@ import UnstakeModal from 'components/earn/UnstakeModal'
 import Loader from 'components/Icons/LoadingSpinner'
 import PoolPositionList from 'components/PoolPositionList'
 import { useAccount } from 'hooks/useAccount'
-import { Trans } from 'react-i18next'
 import JSBI from 'jsbi'
+import styled from 'lib/styled-components'
 import { useMemo, useState } from 'react'
+import { Trans } from 'react-i18next'
 import InfiniteScroll from 'react-infinite-scroll-component'
 import { PoolRegisteredLog, useAllPoolsData, useStakingPools } from 'state/pool/hooks'
 import { useFreeStakeBalance, useUnclaimedRewards, useUserStakeBalances } from 'state/stake/hooks'
-import styled from 'lib/styled-components'
 import { ThemedText } from 'theme/components/text'
 import { Flex } from 'ui/src'
 import { GRG } from 'uniswap/src/constants/tokens'
@@ -136,7 +136,7 @@ export default function Stake() {
           userHasStake,
         }
       })
-      .filter(p => JSBI.greaterThan(JSBI.BigInt(p.poolOwnStake.toString()), JSBI.BigInt(0)))
+      .filter((p) => JSBI.greaterThan(JSBI.BigInt(p.poolOwnStake.toString()), JSBI.BigInt(0)))
       .sort(biggestOwnStakeFirst)
   }, [allPools, stakingPools, userStakeBalances])
 
@@ -146,7 +146,7 @@ export default function Stake() {
       acc[p.userHasStake ? 1 : 0].push(p)
       return acc
     },
-    [[], []]
+    [[], []],
   ) ?? [[], []]
 
   // we first display the pools where user has an active stake of.

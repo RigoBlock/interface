@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 
-import { BigNumber } from '@ethersproject/bignumber'
 import { useTotalBalancesUsdForAnalytics } from 'appGraphql/data/apollo/useTotalBalancesUsdForAnalytics'
+import { BigNumber } from '@ethersproject/bignumber'
 import { Currency } from '@uniswap/sdk-core'
 import { TradingApi } from '@universe/api'
 import { Experiments } from '@universe/gating'
@@ -9,6 +9,7 @@ import { PendingModalError } from 'components/ConfirmSwapModal/Error'
 import { popupRegistry } from 'components/Popups/registry'
 import { PopupType } from 'components/Popups/types'
 import { DEFAULT_TXN_DISMISS_MS, L2_TXN_DISMISS_MS, ZERO_PERCENT } from 'constants/misc'
+import { RPC_PROVIDERS } from 'constants/providers'
 import { useAccount } from 'hooks/useAccount'
 import useSelectChain from 'hooks/useSelectChain'
 import { formatSwapSignedAnalyticsEventProperties } from 'lib/utils/analytics'
@@ -19,6 +20,7 @@ import { handleAtomicSendCalls } from 'state/sagas/transactions/5792'
 import { useGetOnPressRetry } from 'state/sagas/transactions/retry'
 import { jupiterSwap } from 'state/sagas/transactions/solana'
 import { handleUniswapXPlanSignatureStep, handleUniswapXSignatureStep } from 'state/sagas/transactions/uniswapx'
+import { modifyV4ExecuteCalldata } from 'state/sagas/transactions/universalRouterCalldata'
 import {
   getDisplayableError,
   getSwapTransactionInfo,
@@ -29,6 +31,7 @@ import {
 } from 'state/sagas/transactions/utils'
 import { VitalTxFields } from 'state/transactions/types'
 import { call, put, SagaGenerator } from 'typed-redux-saga'
+import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
 import { isL2ChainId } from 'uniswap/src/features/chains/utils'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { isSVMChain } from 'uniswap/src/features/platforms/utils/chains'
@@ -76,13 +79,10 @@ import {
   isSignerMnemonicAccountDetails,
   SignerMnemonicAccountDetails,
 } from 'uniswap/src/features/wallet/types/AccountDetails'
-import { logger } from 'utilities/src/logger/logger'
 import { createSaga } from 'uniswap/src/utils/saga'
-import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
-import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
 import { getContract } from 'utilities/src/contracts/getContract'
-import { RPC_PROVIDERS } from 'constants/providers'
-import { modifyV4ExecuteCalldata } from 'state/sagas/transactions/universalRouterCalldata'
+import { logger } from 'utilities/src/logger/logger'
+import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
 
 function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator<string> {
   const { address, smartPoolAddress, trade, step, signature, analytics, onTransactionHash } = params
@@ -92,7 +92,7 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
     isFinalStep: analytics.is_final_step,
     swapStartTimestamp: analytics.swap_start_timestamp,
   })
-  const txRequest = yield* call(getSwapTxRequest, step, signature)
+  const txRequest = yield* call(getSwapTxRequest, step, signature, smartPoolAddress)
   smartPoolAddress && txRequest.to !== smartPoolAddress && (txRequest.to = smartPoolAddress)
   txRequest.value !== String(0) && (txRequest.value = String(0)) // Ensure value is zero for smart pool swaps
   txRequest.gasLimit && (txRequest.gasLimit = BigNumber.from(txRequest.gasLimit).add(100000).toString()) // Add buffer to gas limit
@@ -101,13 +101,13 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
   if (smartPoolAddress && txRequest.data) {
     // Convert BytesLike to string for manipulation
     const calldata = typeof txRequest.data === 'string' ? txRequest.data : txRequest.data.toString()
-    
+
     try {
       // Decode V4 execute(bytes commands, bytes[] inputs) calldata
       // Remove function selector (first 4 bytes) and decode the parameters
       const parametersOnly = calldata.slice(10) // Remove '0x' + 8 hex chars (4 bytes)
       const updatedParams = modifyV4ExecuteCalldata('0x' + parametersOnly, smartPoolAddress)
-      
+
       if (updatedParams !== '0x' + parametersOnly) {
         // Reconstruct the full calldata with the original function selector
         const functionSelector = calldata.slice(0, 10) // '0x' + 8 hex chars
@@ -120,11 +120,11 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
       const targetAddressPadded = '00000000000000000000000027213e28d7fda5c57fe9e5dd923818dbccf71c47'
       const smartPoolAddressWithout0x = smartPoolAddress.replace('0x', '').toLowerCase()
       const smartPoolAddressPadded = '000000000000000000000000' + smartPoolAddressWithout0x
-      
+
       const updatedCalldata = calldata.replaceAll(targetAddressPadded, smartPoolAddressPadded)
       txRequest.data = updatedCalldata
     }
-    
+
     txRequest.from = address
     txRequest.to = smartPoolAddress
   }
@@ -279,7 +279,7 @@ function* swap(params: SwapParams) {
     return
   }
 
-  const steps = yield* call(generateSwapTransactionSteps, swapTxContext, v4Enabled)
+  const steps = yield* call(generateSwapTransactionSteps, swapTxContext)
   setSteps(steps)
 
   const validTokenFeed = yield* call(validateTokenPriceFeed, smartPoolAddress, trade.outputAmount.currency)
@@ -302,7 +302,12 @@ function* swap(params: SwapParams) {
       switch (step.type) {
         case TransactionStepType.TokenRevocationTransaction:
         case TransactionStepType.TokenApprovalTransaction: {
-          yield* call(handleApprovalTransactionStep, { address: account.address, smartPoolAddress, step, setCurrentStep })
+          yield* call(handleApprovalTransactionStep, {
+            address: account.address,
+            smartPoolAddress,
+            step,
+            setCurrentStep,
+          })
           break
         }
         case TransactionStepType.Permit2Signature: {
@@ -378,10 +383,10 @@ function getPoolExtendedContract(poolAddress: string, chainId: number): any | un
     })
   } catch (error) {
     const wrappedError = new Error('failed to get contract', { cause: error })
-      logger.warn('useContract', 'useContract', wrappedError.message, {
-        error: wrappedError,
-        contractAddress: poolAddress,
-      })
+    logger.warn('useContract', 'useContract', wrappedError.message, {
+      error: wrappedError,
+      contractAddress: poolAddress,
+    })
     return undefined
   }
 }
@@ -397,7 +402,7 @@ function* getIsTokenOwnable(poolAddress?: string, token?: Currency): Generator<a
   }
 
   const extendedPool = getPoolExtendedContract(poolAddress, token.chainId)
-  
+
   if (!extendedPool) {
     return undefined
   }
@@ -407,7 +412,9 @@ function* getIsTokenOwnable(poolAddress?: string, token?: Currency): Generator<a
     const isTokenOwnable: boolean = yield call([extendedPool, extendedPool.hasPriceFeed], token.address)
     return isTokenOwnable
   } catch (error) {
-    logger.error('Error calling hasPriceFeed on pool contract', { tags: { file: 'swapSaga', function: 'getIsTokenOwnable' } })
+    logger.error('Error calling hasPriceFeed on pool contract', {
+      tags: { file: 'swapSaga', function: 'getIsTokenOwnable' },
+    })
     // Handle error appropriately. Here we return false on failure.
     return false
   }

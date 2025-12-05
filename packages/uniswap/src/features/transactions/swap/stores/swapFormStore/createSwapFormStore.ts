@@ -38,6 +38,7 @@ export const INITIAL_SWAP_FORM_STATE: SwapFormState = {
   showPendingUI: false,
   instantReceiptFetchTime: undefined,
   instantOutputAmountRaw: undefined,
+  smartPoolAddress: undefined,
 }
 
 export type SwapFormStore = UseBoundStore<StoreApi<SwapFormStoreState>>
@@ -48,11 +49,13 @@ export const createSwapFormStore = ({
   initialState,
   derivedSwapInfo,
   dependenciesForSideEffect: { dispatch },
+  smartPoolAddress,
 }: {
   hideFooter?: boolean
   hideSettings?: boolean
   initialState?: SwapFormState
   derivedSwapInfo: DerivedSwapInfo
+  smartPoolAddress?: string
   dependenciesForSideEffect: {
     dispatch: Dispatch
   }
@@ -93,6 +96,7 @@ export const createSwapFormStore = ({
           showPendingUI: false,
           isConfirmed: false,
           instantOutputAmountRaw: undefined,
+          smartPoolAddress,
           hideFooter,
           hideSettings,
           prefilledCurrencies: undefined,

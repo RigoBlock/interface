@@ -1,24 +1,25 @@
-import { useTheme } from '@tamagui/core'
 import { isAddress } from '@ethersproject/address'
+import { useTheme } from '@tamagui/core'
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
-import { Trans, useTranslation } from 'react-i18next'
 import AddressInputPanel from 'components/AddressInputPanel'
 import { ButtonConfirmed, ButtonPrimary } from 'components/Button/buttons'
 import { LightCard } from 'components/Card/cards'
 import { AutoColumn } from 'components/deprecated/Column'
 import { RowBetween } from 'components/deprecated/Row'
-import { Modal } from 'uniswap/src/components/modals/Modal'
 import { LoadingView, SubmittedView } from 'components/ModalViews'
 import Slider from 'components/Slider'
 import { GRG_TRANSFER_PROXY_ADDRESSES } from 'constants/addresses'
 import { useAccount } from 'hooks/useAccount'
-import { useRemoveLiquidityModalContext } from 'pages/RemoveLiquidity/RemoveLiquidityModalContext'
-import { useENS } from 'uniswap/src/features/ens/useENS'
+import { ApprovalState, useApproveCallback } from 'hooks/useApproveCallback'
+import useDebouncedChangeHandler from 'hooks/useDebouncedChangeHandler'
 import JSBI from 'jsbi'
+import { useTokenBalance } from 'lib/hooks/useCurrencyBalance'
 import styled from 'lib/styled-components'
+import { useRemoveLiquidityModalContext } from 'pages/RemoveLiquidity/RemoveLiquidityModalContext'
 import { ClickablePill } from 'pages/Swap/Buy/PredefinedAmount'
 import { ReactNode, useCallback, useMemo, useState } from 'react'
 import { X } from 'react-feather'
+import { Trans, useTranslation } from 'react-i18next'
 import { PoolInfo /*,useDerivedPoolInfo*/ } from 'state/buy/hooks'
 import {
   useDelegateCallback,
@@ -26,19 +27,17 @@ import {
   usePoolExtendedContract,
   usePoolIdByAddress,
 } from 'state/governance/hooks'
+import { useIsTransactionConfirmed, useTransaction } from 'state/transactions/hooks'
 import { ThemedText } from 'theme/components'
 import { Button, ButtonProps, Flex, Text, useSporeColors } from 'ui/src'
+import { Modal } from 'uniswap/src/components/modals/Modal'
 import { GRG } from 'uniswap/src/constants/tokens'
-import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-
-import { useTokenBalance } from 'lib/hooks/useCurrencyBalance'
-import { logger } from 'utilities/src/logger/logger'
-import { ApprovalState, useApproveCallback } from 'hooks/useApproveCallback'
-import useDebouncedChangeHandler from 'hooks/useDebouncedChangeHandler'
-import { useIsTransactionConfirmed, useTransaction } from 'state/transactions/hooks'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { useENS } from 'uniswap/src/features/ens/useENS'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { logger } from 'utilities/src/logger/logger'
 
 const ContentWrapper = styled(AutoColumn)`
   width: 100%;
@@ -57,7 +56,7 @@ export const TextButton = styled.div`
   }
 `
 
-const MaxButton = ({ onPress, children }: { onPress: ButtonProps['onPress'], children?: ReactNode }) => {
+const MaxButton = ({ onPress, children }: { onPress: ButtonProps['onPress']; children?: ReactNode }) => {
   return (
     <Button variant="branded" emphasis="secondary" size="xxsmall" onPress={onPress}>
       {children || <Trans i18nKey="common.max" />}
@@ -115,7 +114,10 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
 
   // TODO: in the context of pool grg balance is balance of pool
   // get the number of votes available to delegate
-  const grgUserBalance = useTokenBalance(account.address ?? undefined, account.chainId ? GRG[account.chainId] : undefined)
+  const grgUserBalance = useTokenBalance(
+    account.address ?? undefined,
+    account.chainId ? GRG[account.chainId] : undefined,
+  )
   const grgPoolBalance = useTokenBalance(parsedAddress ?? undefined, account.chainId ? GRG[account.chainId] : undefined)
   const { poolId, stakingPoolExists } = usePoolIdByAddress(parsedAddress ?? undefined)
   // we only pass the pool extended instance if we have to call the pool directly
@@ -129,8 +131,8 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
     currencyValue,
     JSBI.divide(
       JSBI.multiply(grgBalance ? grgBalance.quotient : JSBI.BigInt(0), JSBI.BigInt(percentForSlider)),
-      JSBI.BigInt(100)
-    )
+      JSBI.BigInt(100),
+    ),
   )
   const newApr = useMemo(() => {
     if (poolInfo?.apr?.toString() !== 'NaN') {
@@ -214,7 +216,7 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
   const [approval, approveCallback] = useApproveCallback(
     parsedAmount,
     GRG_TRANSFER_PROXY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet],
-    usingDelegate
+    usingDelegate,
   )
 
   async function onAttemptToApprove() {
@@ -256,7 +258,7 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
             {!poolInfo && <AddressInputPanel value={typed} onChange={handleRecipientType} />}
             <RowBetween>
               <ResponsiveHeaderText>
-                <Trans>{{percentForSlider}}%</Trans>
+                <Trans>{{ percentForSlider }}%</Trans>
               </ResponsiveHeaderText>
               <Flex row gap="$gap8" width="100%" justifyContent="center">
                 {[25, 50, 75, 100].map((option) => {

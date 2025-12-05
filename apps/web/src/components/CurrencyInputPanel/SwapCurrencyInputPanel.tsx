@@ -259,8 +259,8 @@ const SwapCurrencyInputPanel = forwardRef<HTMLInputElement, SwapCurrencyInputPan
     const { address: smartPoolAddress } = useActiveSmartPool()
     // TODO: check if should invert definition and modify swap currency input panel
     const selectedCurrencyBalance = useCurrencyBalance(
-      !isAccount ? smartPoolAddress ?? undefined : account.address,
-      currency ?? undefined
+      !isAccount ? (smartPoolAddress ?? undefined) : account.address,
+      currency ?? undefined,
     )
     const colors = useSporeColors()
     const { formatCurrencyAmount } = useLocalizationContext()

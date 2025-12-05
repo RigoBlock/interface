@@ -1,26 +1,26 @@
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
-import { Trans } from 'react-i18next'
-//import JSBI from 'jsbi'
-import { ReactNode, useState } from 'react'
-import { X } from 'react-feather'
-import styled from 'lib/styled-components'
-import { ThemedText } from 'theme/components/text'
-import { GRG } from 'uniswap/src/constants/tokens'
-import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { ModalName} from 'uniswap/src/features/telemetry/constants'
-import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { logger } from 'utilities/src/logger/logger'
-
-import { useHarvestCallback } from 'state/stake/hooks'
-import { useIsTransactionConfirmed, useTransaction } from 'state/transactions/hooks'
 import { ButtonPrimary } from 'components/Button/buttons'
 import { LightCard } from 'components/Card/cards'
 import { AutoColumn } from 'components/deprecated/Column'
 import { RowBetween } from 'components/deprecated/Row'
-import { Modal } from 'uniswap/src/components/modals/Modal'
 import { LoadingView, SubmittedView } from 'components/ModalViews'
 import { useAccount } from 'hooks/useAccount'
+import styled from 'lib/styled-components'
+//import JSBI from 'jsbi'
+import { ReactNode, useState } from 'react'
+import { X } from 'react-feather'
+import { Trans } from 'react-i18next'
+
+import { useHarvestCallback } from 'state/stake/hooks'
+import { useIsTransactionConfirmed, useTransaction } from 'state/transactions/hooks'
+import { ThemedText } from 'theme/components/text'
+import { Modal } from 'uniswap/src/components/modals/Modal'
+import { GRG } from 'uniswap/src/constants/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { logger } from 'utilities/src/logger/logger'
 
 const ContentWrapper = styled(AutoColumn)`
   width: 100%;
@@ -132,7 +132,9 @@ export default function HarvestYieldModal({
             <ThemedText.DeprecatedLargeHeader>
               <Trans>Harvesting Yield</Trans>
             </ThemedText.DeprecatedLargeHeader>
-            <ThemedText.DeprecatedMain fontSize={36}>{formatCurrencyAmount({ value: yieldAmount })}</ThemedText.DeprecatedMain>
+            <ThemedText.DeprecatedMain fontSize={36}>
+              {formatCurrencyAmount({ value: yieldAmount })}
+            </ThemedText.DeprecatedMain>
           </AutoColumn>
         </LoadingView>
       )}

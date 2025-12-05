@@ -99,8 +99,8 @@ export const useMenuContent = (args?: {
     }
 
     if (keys) {
-      const filteredEntries = Object.entries(menuContent).filter(([key]) => 
-        keys.includes(key as MenuSectionTitle) && key !== MenuSectionTitle.Products
+      const filteredEntries = Object.entries(menuContent).filter(
+        ([key]) => keys.includes(key as MenuSectionTitle) && key !== MenuSectionTitle.Products,
       )
       return Object.fromEntries(filteredEntries) as Partial<{ [key in MenuSectionTitle]: MenuSection }>
     }

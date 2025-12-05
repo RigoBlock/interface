@@ -5,9 +5,8 @@ import {
   TIMELOCK_ADDRESSES,
   UNI_ADDRESSES,
 } from '@uniswap/sdk-core'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-
 import { GOVERNANCE_PROXY_ADDRESSES } from 'constants/addresses'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
 // TODO: remove deprecated governances
 
 export const COMMON_CONTRACT_NAMES: Record<number, { [address: string]: string }> = {

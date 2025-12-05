@@ -161,9 +161,7 @@ export function CurrencyRow({
           <Flex style={{ opacity: isBlockedToken ? blockedTokenOpacity : '1' }} gap="$spacing2">
             <Flex row alignItems="center" gap="$spacing4">
               <CurrencyName variant="body2">{currency.name}</CurrencyName>
-              {!isSmartPool && (
-                <WarningIcon severity={warningSeverity} size="$icon.16" ml="$spacing4" />
-              )}
+              {!isSmartPool && <WarningIcon severity={warningSeverity} size="$icon.16" ml="$spacing4" />}
             </Flex>
             <Flex row alignItems="center" gap="$spacing8">
               <Text variant="body4" ml="0px" color="$neutral2">

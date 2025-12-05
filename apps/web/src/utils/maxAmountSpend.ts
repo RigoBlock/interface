@@ -6,7 +6,10 @@ const MIN_NATIVE_CURRENCY_FOR_GAS: JSBI = JSBI.exponentiate(JSBI.BigInt(10), JSB
  * Given some token amount, return the max that can be spent of it
  * @param currencyAmount to return max of
  */
-export function maxAmountSpend(currencyAmount?: CurrencyAmount<Currency>, isSmartPool?: boolean): CurrencyAmount<Currency> | undefined {
+export function maxAmountSpend(
+  currencyAmount?: CurrencyAmount<Currency>,
+  isSmartPool?: boolean,
+): CurrencyAmount<Currency> | undefined {
   if (!currencyAmount) {
     return undefined
   }

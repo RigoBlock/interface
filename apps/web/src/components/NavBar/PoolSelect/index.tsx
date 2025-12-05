@@ -1,17 +1,17 @@
-import { Currency, Token } from '@uniswap/sdk-core';
+import { Currency, Token } from '@uniswap/sdk-core'
 import { ButtonGray } from 'components/Button/buttons'
 import CurrencySearchModal from 'components/SearchModal/CurrencySearchModal'
 import styled from 'lib/styled-components'
-import React, { useCallback, useEffect, useState } from 'react';
-import { useActiveSmartPool, useSelectActiveSmartPool } from 'state/application/hooks';
-import { CurrencyInfo } from 'uniswap/src/features/dataApi/types';
+import React, { useCallback, useEffect, useState } from 'react'
+import { useActiveSmartPool, useSelectActiveSmartPool } from 'state/application/hooks'
+import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 
 const PoolSelectButton = styled(ButtonGray)<{
-    visible: boolean
-    selected: boolean
-    hideInput?: boolean
-    disabled?: boolean
-  }>`
+  visible: boolean
+  selected: boolean
+  hideInput?: boolean
+  disabled?: boolean
+}>`
     align-items: center;
     background-color: ${({ selected, theme }) => (selected ? theme.surface1 : theme.accent1)};
     opacity: ${({ disabled }) => (!disabled ? 1 : 0.4)};
@@ -48,7 +48,7 @@ const PoolSelectButton = styled(ButtonGray)<{
     :hover {
       background-color: ${({ selected, theme }) => (selected ? theme.surface2 : theme.accent1)};
     }
-`;
+`
 
 const StyledTokenName = styled.span<{ active?: boolean }>`
   ${({ active }) => (active ? '  margin: 0 0.25rem 0 0.25rem;' : '  margin: 0 0.25rem 0 0.25rem;')}
@@ -62,48 +62,53 @@ const StyledTokenName = styled.span<{ active?: boolean }>`
     white-space: normal;
     word-wrap: break-word;
   }
-`;
+`
 
 interface PoolSelectProps {
-  operatedPools: Token[];
+  operatedPools: Token[]
 }
 
 const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
-  const [showModal, setShowModal] = useState(false);
-  const activeSmartPool = useActiveSmartPool();
-  const onPoolSelect = useSelectActiveSmartPool();
+  const [showModal, setShowModal] = useState(false)
+  const activeSmartPool = useActiveSmartPool()
+  const onPoolSelect = useSelectActiveSmartPool()
 
   // on chain switch revert to default pool if selected does not exist on new chain
-  const activePoolExistsOnChain = operatedPools?.some(pool => pool.address === activeSmartPool?.address);
+  const activePoolExistsOnChain = operatedPools.some((pool) => pool.address === activeSmartPool.address)
 
   // initialize selected pool - use ref to prevent re-initialization
-  const hasInitialized = React.useRef(false);
-  
+  const hasInitialized = React.useRef(false)
+
   useEffect(() => {
-    if (!hasInitialized.current && (!activeSmartPool?.name || !activePoolExistsOnChain)) {
-      onPoolSelect(operatedPools[0]);
-      hasInitialized.current = true;
+    if (!hasInitialized.current && (!activeSmartPool.name || !activePoolExistsOnChain)) {
+      onPoolSelect(operatedPools[0])
+      hasInitialized.current = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePoolExistsOnChain, activeSmartPool?.name])
+  }, [activePoolExistsOnChain, activeSmartPool.name])
 
   // Memoize poolsAsCurrrencies to prevent recreation on every render
-  const poolsAsCurrrencies = React.useMemo(() => 
-    operatedPools.map((pool: Token) => ({
-      currency: pool,
-      currencyId: pool.address,
-      safetyLevel: null,
-      safetyInfo: null,
-      spamCode: null,
-      logoUrl: null,
-      isSpam: null
-    })) as CurrencyInfo[]
-  , [operatedPools]);
+  const poolsAsCurrrencies = React.useMemo(
+    () =>
+      operatedPools.map((pool: Token) => ({
+        currency: pool,
+        currencyId: pool.address,
+        safetyLevel: null,
+        safetyInfo: null,
+        spamCode: null,
+        logoUrl: null,
+        isSpam: null,
+      })) as CurrencyInfo[],
+    [operatedPools],
+  )
 
-  const handleSelectPool = useCallback((pool: Currency) => {
-    onPoolSelect(pool);
-    setShowModal(false);
-  }, [onPoolSelect]);
+  const handleSelectPool = useCallback(
+    (pool: Currency) => {
+      onPoolSelect(pool)
+      setShowModal(false)
+    },
+    [onPoolSelect],
+  )
 
   return (
     <>
@@ -130,7 +135,7 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
         shouldDisplayPoolsOnly={true}
       />
     </>
-  );
-};
+  )
+}
 
-export default PoolSelect;
+export default PoolSelect

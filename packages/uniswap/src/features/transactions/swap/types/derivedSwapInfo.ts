@@ -30,4 +30,5 @@ export type DerivedSwapInfo<
   wrapType: WrapType
   selectingCurrencyField?: CurrencyField
   txId?: string
+  smartPoolAddress?: string
 }

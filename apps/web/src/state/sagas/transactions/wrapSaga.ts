@@ -1,5 +1,5 @@
-import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import { BigNumber } from '@ethersproject/bignumber'
+import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import { popupRegistry } from 'components/Popups/registry'
 import { PopupType } from 'components/Popups/types'
 import { INTERNAL_JSON_RPC_ERROR_CODE } from 'constants/misc'
@@ -7,6 +7,13 @@ import { useAccount } from 'hooks/useAccount'
 import useSelectChain from 'hooks/useSelectChain'
 import { useCallback } from 'react'
 import { useDispatch } from 'react-redux'
+import {
+  encodeSmartPoolUnwrapWETH9,
+  encodeSmartPoolWrapEth,
+  extractWETHWithdrawAmount,
+  isWETHDepositCalldata,
+  isWETHWithdrawCalldata,
+} from 'state/sagas/transactions/smartPoolWrapUtils'
 import { handleOnChainStep } from 'state/sagas/transactions/utils'
 import { call } from 'typed-redux-saga'
 import { isTestnetChain } from 'uniswap/src/features/chains/utils'
@@ -18,13 +25,6 @@ import { createSaga } from 'uniswap/src/utils/saga'
 import { logger } from 'utilities/src/logger/logger'
 import { noop } from 'utilities/src/react/noop'
 import { didUserReject } from 'utils/swapErrorToUserReadableMessage'
-import {
-  encodeSmartPoolWrapEth,
-  encodeSmartPoolUnwrapWETH9,
-  isWETHDepositCalldata,
-  isWETHWithdrawCalldata,
-  extractWETHWithdrawAmount,
-} from 'state/sagas/transactions/smartPoolWrapUtils'
 
 interface HandleWrapStepParams extends Omit<HandleOnChainStepParams<WrapTransactionStep>, 'info'> {}
 function* handleWrapStep(params: HandleWrapStepParams) {

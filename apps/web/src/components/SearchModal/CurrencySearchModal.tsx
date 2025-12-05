@@ -10,9 +10,9 @@ import {
   TokenSelectorVariation,
 } from 'uniswap/src/components/TokenSelector/TokenSelector'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { CurrencyField } from 'uniswap/src/types/currency'
-import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 
 const PoolListWrapper = styled.div`
   width: 100%;
@@ -71,10 +71,10 @@ export default memo(function CurrencySearchModal({
         <CurrencySearch
           currencyField={currencyField}
           onCurrencySelect={onCurrencySelect}
-        switchNetworkAction={switchNetworkAction}
+          switchNetworkAction={switchNetworkAction}
           onDismiss={onDismiss}
           chainIds={chainIds}
-        variation={variation}
+          variation={variation}
         />
       ) : (
         <PoolListWrapper>

@@ -53,7 +53,7 @@ export default function usePermit2Allowance({
   amount?: CurrencyAmount<Token>
   spender?: string
   tradeFillType?: TradeFillType
-  isPool?: boolean,
+  isPool?: boolean
 }): Allowance {
   const account = useAccount()
   const token = amount?.currency

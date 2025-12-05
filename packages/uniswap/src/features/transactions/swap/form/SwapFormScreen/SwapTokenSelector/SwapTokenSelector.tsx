@@ -23,7 +23,8 @@ export function SwapTokenSelector({
   }))
 
   const wallet = useWallet()
-  const activeEVMAccountAddress = wallet.evmAccount?.address
+  const activeSmartPoolAddress = useSwapFormStore((s) => s.smartPoolAddress)
+  //const activeEVMAccountAddress = wallet.evmAccount?.address
   const activeSVMAccountAddress = wallet.svmAccount?.address
   const chainId = useChainId()
 
@@ -43,7 +44,7 @@ export function SwapTokenSelector({
   return (
     <TokenSelectorModal
       isModalOpen={isModalOpen}
-      evmAddress={activeEVMAccountAddress}
+      evmAddress={activeSmartPoolAddress}
       svmAddress={activeSVMAccountAddress}
       chainId={chainId}
       input={input}

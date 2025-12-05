@@ -40,7 +40,10 @@ export interface UserAccount {
   activation: BigNumber
 }
 
-export function useImplementation(poolAddress: string | undefined, implementationSlot: string): [string, string] | undefined {
+export function useImplementation(
+  poolAddress: string | undefined,
+  implementationSlot: string,
+): [string, string] | undefined {
   const poolExtendedContract = usePoolExtendedContract(poolAddress)
   const queryEnabled = !!poolAddress && !!implementationSlot
   const poolFactory = usePoolFactoryContract()
@@ -65,7 +68,9 @@ export function useImplementation(poolAddress: string | undefined, implementatio
     query: { enabled: queryEnabled },
   })
 
-  const currentImplementation = (typeof data?.[0]?.result === 'string' ? data[0].result.slice(-40) : undefined) as `0x${string}` | undefined
+  const currentImplementation = (typeof data?.[0]?.result === 'string' ? data[0].result.slice(-40) : undefined) as
+    | `0x${string}`
+    | undefined
   const beaconImplementation = data?.[1]?.result as `0x${string}` | undefined
 
   // TODO: verify if memoization is needed here
@@ -73,7 +78,7 @@ export function useImplementation(poolAddress: string | undefined, implementatio
     if (!currentImplementation || !beaconImplementation) {
       return undefined
     }
-    return ["0x" + currentImplementation.slice(-40), beaconImplementation]
+    return ['0x' + currentImplementation.slice(-40), beaconImplementation]
   }, [currentImplementation, beaconImplementation])
 }
 
@@ -101,11 +106,7 @@ export function useSmartPoolFromAddress(poolAddress?: string, chainId?: number):
   }, [poolStorageData])
 }
 
-export function useUserPoolBalance(
-  poolAddress?: string,
-  account?: string,
-  chainId?: number
-): UserAccount | undefined {
+export function useUserPoolBalance(poolAddress?: string, account?: string, chainId?: number): UserAccount | undefined {
   const target = useMemo(() => account ?? undefined, [account])
   const { data: result } = useReadContract({
     address: assume0xAddress(poolAddress),

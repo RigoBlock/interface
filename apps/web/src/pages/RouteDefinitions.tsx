@@ -1,14 +1,14 @@
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useAtom } from 'jotai'
-import { getExploreDescription, getExploreTitle } from 'pages/getExploreTitle'
-import { getAddLiquidityPageTitle, getPositionPageDescription, getPositionPageTitle } from 'pages/getPositionPageTitle'
 // High-traffic pages (index and /swap) should not be lazy-loaded.
 import CreatePool from 'pages/CreatePool'
+import { getExploreDescription, getExploreTitle } from 'pages/getExploreTitle'
+import { getAddLiquidityPageTitle, getPositionPageDescription, getPositionPageTitle } from 'pages/getPositionPageTitle'
 //import Landing from 'pages/Landing'
 import Stake from 'pages/Stake'
 import Swap from 'pages/Swap'
 import { lazy, ReactNode, Suspense, useMemo } from 'react'
-import { matchPath, Navigate, Route, Routes, useLocation } from 'react-router'
+import { matchPath, Navigate, useLocation } from 'react-router'
 import { shouldDisableExploreRoutesAtom } from 'state/application/atoms'
 import { WRAPPED_PATH } from 'uniswap/src/components/banners/shared/utils'
 import { CHROME_EXTENSION_UNINSTALL_URL_PATH } from 'uniswap/src/constants/urls'
@@ -84,7 +84,15 @@ export function useRouterConfig(): RouterConfig {
       isWrappedEnabled,
       shouldDisableExploreRoutes: Boolean(shouldDisableExploreRoutes),
     }),
-    [browserRouterEnabled, hash, shouldDisableExploreRoutes, isEmbeddedWalletEnabled, isWrappedEnabled, isPortfolioPageEnabled, isToucanEnabled],
+    [
+      browserRouterEnabled,
+      hash,
+      shouldDisableExploreRoutes,
+      isEmbeddedWalletEnabled,
+      isWrappedEnabled,
+      isPortfolioPageEnabled,
+      isToucanEnabled,
+    ],
   )
 }
 

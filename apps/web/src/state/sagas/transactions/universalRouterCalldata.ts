@@ -23,18 +23,20 @@ const ACTION_CONSTANTS = {
 function shouldReplaceRecipient(recipient: string, smartPoolAddress: string): boolean {
   const normalizedRecipient = getAddress(recipient).toLowerCase()
   const normalizedSmartPool = getAddress(smartPoolAddress).toLowerCase()
-  
+
   // Don't replace if already the smart pool
   if (normalizedRecipient === normalizedSmartPool) {
     return false
   }
-  
+
   // Don't replace ActionConstants (MSG_SENDER, ADDRESS_THIS)
-  if (normalizedRecipient === ACTION_CONSTANTS.MSG_SENDER.toLowerCase() ||
-      normalizedRecipient === ACTION_CONSTANTS.ADDRESS_THIS.toLowerCase()) {
+  if (
+    normalizedRecipient === ACTION_CONSTANTS.MSG_SENDER.toLowerCase() ||
+    normalizedRecipient === ACTION_CONSTANTS.ADDRESS_THIS.toLowerCase()
+  ) {
     return false
   }
-  
+
   // Replace all other recipients (including Trading API fee recipients)
   return true
 }
@@ -44,29 +46,32 @@ export function modifyV4ExecuteCalldata(calldata: string, smartPoolAddress: stri
     // Decode the execute(bytes commands, bytes[] inputs, uint256 deadline) calldata first
     const abiCoder = new AbiCoder()
     const decoded = abiCoder.decode(['bytes', 'bytes[]', 'uint256'], calldata)
-    
+
     const [commands, inputs, deadline] = decoded
-    
+
     // Process commands to identify which inputs need modification
-    const commandsBytes = commands.startsWith('0x') ? 
-      new Uint8Array(Buffer.from(commands.slice(2), 'hex')) : 
-      new Uint8Array(Buffer.from(commands, 'hex'))
-    
+    const commandsBytes = commands.startsWith('0x')
+      ? new Uint8Array(Buffer.from(commands.slice(2), 'hex'))
+      : new Uint8Array(Buffer.from(commands, 'hex'))
+
     const modifiedInputs = [...inputs]
     let wasModified = false
-    
+
     // Process each command and its corresponding input
     for (let i = 0; i < commandsBytes.length && i < inputs.length; i++) {
       const command = commandsBytes[i]
       const input = inputs[i]
-            
+
       if (command === UNIVERSAL_ROUTER_COMMANDS.SWEEP) {
         // SWEEP command: abi.encode(token, recipient, amountMinimum)
         try {
           const [token, recipient, amountMinimum] = abiCoder.decode(['address', 'address', 'uint256'], input)
-          
+
           if (shouldReplaceRecipient(recipient, smartPoolAddress)) {
-            const newInput = abiCoder.encode(['address', 'address', 'uint256'], [token, smartPoolAddress, amountMinimum])
+            const newInput = abiCoder.encode(
+              ['address', 'address', 'uint256'],
+              [token, smartPoolAddress, amountMinimum],
+            )
             modifiedInputs[i] = newInput
             wasModified = true
           }
@@ -77,7 +82,7 @@ export function modifyV4ExecuteCalldata(calldata: string, smartPoolAddress: stri
         // PAY_PORTION command: abi.encode(token, recipient, bips)
         try {
           const [token, recipient, bips] = abiCoder.decode(['address', 'address', 'uint256'], input)
-          
+
           if (shouldReplaceRecipient(recipient, smartPoolAddress)) {
             const newInput = abiCoder.encode(['address', 'address', 'uint256'], [token, smartPoolAddress, bips])
             modifiedInputs[i] = newInput
@@ -91,32 +96,38 @@ export function modifyV4ExecuteCalldata(calldata: string, smartPoolAddress: stri
         try {
           // Each input should be encoded as (bytes actions, bytes[] params)
           const [actions, params] = abiCoder.decode(['bytes', 'bytes[]'], input)
-          
+
           // The actions bytes should be the actual action sequence, not encoded
           // Convert the decoded bytes to a Uint8Array for processing
-          const actionsBytes = actions.startsWith('0x') ? 
-            new Uint8Array(Buffer.from(actions.slice(2), 'hex')) : 
-            new Uint8Array(Buffer.from(actions, 'hex'))
-          
+          const actionsBytes = actions.startsWith('0x')
+            ? new Uint8Array(Buffer.from(actions.slice(2), 'hex'))
+            : new Uint8Array(Buffer.from(actions, 'hex'))
+
           const modifiedParams = [...params]
           let v4InputWasModified = false
-          
+
           // Process each V4 action
           for (let j = 0; j < actionsBytes.length; j++) {
             const actionType = actionsBytes[j]
-            
+
             if (actionType === V4_ACTIONS.TAKE || actionType === V4_ACTIONS.TAKE_PORTION) {
               // Decode the corresponding parameter
               const paramCalldata = params[j]
-              
+
               if (actionType === V4_ACTIONS.TAKE) {
                 // TAKE action: abi.encode(currency, recipient, amount)
                 try {
-                  const [currency, recipient, amount] = abiCoder.decode(['address', 'address', 'uint256'], paramCalldata)
-                  
+                  const [currency, recipient, amount] = abiCoder.decode(
+                    ['address', 'address', 'uint256'],
+                    paramCalldata,
+                  )
+
                   // Check if recipient should be replaced
                   if (shouldReplaceRecipient(recipient, smartPoolAddress)) {
-                    const newParams = abiCoder.encode(['address', 'address', 'uint256'], [currency, smartPoolAddress, amount])
+                    const newParams = abiCoder.encode(
+                      ['address', 'address', 'uint256'],
+                      [currency, smartPoolAddress, amount],
+                    )
                     modifiedParams[j] = newParams
                     v4InputWasModified = true
                   }
@@ -127,10 +138,13 @@ export function modifyV4ExecuteCalldata(calldata: string, smartPoolAddress: stri
                 // TAKE_PORTION action: abi.encode(currency, recipient, bips)
                 try {
                   const [currency, recipient, bips] = abiCoder.decode(['address', 'address', 'uint256'], paramCalldata)
-                  
+
                   // Check if recipient should be replaced
                   if (shouldReplaceRecipient(recipient, smartPoolAddress)) {
-                    const newParams = abiCoder.encode(['address', 'address', 'uint256'], [currency, smartPoolAddress, bips])
+                    const newParams = abiCoder.encode(
+                      ['address', 'address', 'uint256'],
+                      [currency, smartPoolAddress, bips],
+                    )
                     modifiedParams[j] = newParams
                     v4InputWasModified = true
                   }
@@ -140,7 +154,7 @@ export function modifyV4ExecuteCalldata(calldata: string, smartPoolAddress: stri
               }
             }
           }
-          
+
           if (v4InputWasModified) {
             // Re-encode this V4_SWAP input with modified params
             const modifiedInput = abiCoder.encode(['bytes', 'bytes[]'], [actions, modifiedParams])
@@ -152,11 +166,11 @@ export function modifyV4ExecuteCalldata(calldata: string, smartPoolAddress: stri
         }
       }
     }
-    
+
     if (!wasModified) {
       return calldata
     }
-    
+
     // Re-encode the entire calldata with modified inputs
     return abiCoder.encode(['bytes', 'bytes[]', 'uint256'], [commands, modifiedInputs, deadline])
   } catch (error) {

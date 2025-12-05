@@ -1,29 +1,28 @@
 import { Currency } from '@uniswap/sdk-core'
-import { Trans } from 'react-i18next'
-import { darken } from 'polished'
-import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
-import { X } from 'react-feather'
-import styled from 'lib/styled-components'
-import { ThemedText } from 'theme/components/text'
-import { nativeOnChain } from 'uniswap/src/constants/tokens'
-import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { useIsSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
-import { ModalName} from 'uniswap/src/features/telemetry/constants'
-import { logger } from 'utilities/src/logger/logger'
-
 import { ReactComponent as DropDown } from 'assets/images/dropdown.svg'
-import { useCreateCallback } from 'state/pool/hooks'
-import { useIsTransactionConfirmed, useTransaction } from 'state/transactions/hooks'
 import { ButtonGray, ButtonPrimary } from 'components/Button/buttons'
 import { AutoColumn } from 'components/deprecated/Column'
 import { RowBetween, RowFixed } from 'components/deprecated/Row'
 import CurrencyLogo from 'components/Logo/CurrencyLogo'
-import { SwitchNetworkAction } from 'components/Popups/types'
-import { Modal } from 'uniswap/src/components/modals/Modal'
 import { LoadingView, SubmittedView } from 'components/ModalViews'
 import NameInputPanel from 'components/NameInputPanel'
+import { SwitchNetworkAction } from 'components/Popups/types'
 import CurrencySearchModal from 'components/SearchModal/CurrencySearchModal'
 import { useAccount } from 'hooks/useAccount'
+import styled from 'lib/styled-components'
+import { darken } from 'polished'
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
+import { X } from 'react-feather'
+import { Trans } from 'react-i18next'
+import { useCreateCallback } from 'state/pool/hooks'
+import { useIsTransactionConfirmed, useTransaction } from 'state/transactions/hooks'
+import { ThemedText } from 'theme/components/text'
+import { Modal } from 'uniswap/src/components/modals/Modal'
+import { nativeOnChain } from 'uniswap/src/constants/tokens'
+import { useIsSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { logger } from 'utilities/src/logger/logger'
 
 const Aligner = styled.span`
   display: flex;
@@ -36,7 +35,6 @@ const ContentWrapper = styled(AutoColumn)`
   width: 100%;
   padding: 24px;
 `
-
 
 const CurrencySelect = styled(ButtonGray)<{
   visible: boolean
@@ -121,13 +119,10 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
     }
   }, [account.chainId, currencyValue?.chainId, native])
 
-  const handleCurrencySelect = useCallback(
-    (currency: Currency) => {
-      setCurrencyValue(currency)
-      setIsSearchingCurrency(false)
-    },
-    []
-  )
+  const handleCurrencySelect = useCallback((currency: Currency) => {
+    setCurrencyValue(currency)
+    setIsSearchingCurrency(false)
+  }, [])
 
   // wrapped onUserInput to clear signatures
   const onNameInput = useCallback((typedName: string) => {
@@ -189,7 +184,13 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
           shouldDisplayPoolsOnly={false}
         />
       ) : (
-        <Modal name={ModalName.DappRequest} isModalOpen={isOpen} isDismissible onClose={wrappedOnDismiss} maxHeight={600}>
+        <Modal
+          name={ModalName.DappRequest}
+          isModalOpen={isOpen}
+          isDismissible
+          onClose={wrappedOnDismiss}
+          maxHeight={600}
+        >
           {!attempting && !hash && (
             <ContentWrapper gap="lg">
               <AutoColumn gap="lg" justify="center">
@@ -213,7 +214,7 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
                   selected={true}
                   hideInput={false}
                   className="open-currency-select-button"
-                  onClick={() => setIsSearchingCurrency(true) }
+                  onClick={() => setIsSearchingCurrency(true)}
                 >
                   <Aligner>
                     <RowFixed>
@@ -241,7 +242,7 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
                       typedName.length > 31 ||
                       typedSymbol === '' ||
                       typedSymbol.length < 3 ||
-                      typedSymbol.length > 5
+                      typedSymbol.length > 5,
                   )}
                   onClick={onCreate}
                 >

@@ -3,20 +3,20 @@ import type { TransactionResponse } from '@ethersproject/providers'
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { POP_ADDRESSES } from 'constants/addresses'
 import { useAccount } from 'hooks/useAccount'
-import { useEthersWeb3Provider } from 'hooks/useEthersProvider'
 import { useContract } from 'hooks/useContract'
+import { useEthersWeb3Provider } from 'hooks/useEthersProvider'
 import JSBI from 'jsbi'
 import { useCallback, useMemo } from 'react'
 import { useParams } from 'react-router'
 import { StakeStatus, useStakingContract, useStakingProxyContract } from 'state/governance/hooks'
 import { usePoolExtendedContract } from 'state/pool/hooks'
 import { useTransactionAdder } from 'state/transactions/hooks'
-import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { GRG } from 'uniswap/src/constants/tokens'
 import POP_ABI from 'uniswap/src/abis/pop.json'
+import { GRG } from 'uniswap/src/constants/tokens'
+import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { calculateGasMargin } from 'utils/calculateGasMargin'
-import { useReadContract } from 'wagmi'
 import { assume0xAddress } from 'utils/wagmi'
+import { useReadContract } from 'wagmi'
 
 export function useFreeStakeBalance(isDelegateFreeStake?: boolean): CurrencyAmount<Token> | undefined {
   const account = useAccount()
@@ -30,10 +30,7 @@ export function useFreeStakeBalance(isDelegateFreeStake?: boolean): CurrencyAmou
     chainId: account.chainId,
     abi: stakingContract?.interface.fragments,
     functionName: 'getOwnerStakeByStatus',
-    args: [
-      isDelegateFreeStake ? account.address : poolAddressFromUrl ?? account.address,
-      StakeStatus.UNDELEGATED,
-    ],
+    args: [isDelegateFreeStake ? account.address : (poolAddressFromUrl ?? account.address), StakeStatus.UNDELEGATED],
     query: { enabled: queryEnabled },
   })
 
@@ -44,10 +41,10 @@ export function useFreeStakeBalance(isDelegateFreeStake?: boolean): CurrencyAmou
         grg,
         JSBI.greaterThan(
           JSBI.BigInt(String((freeStake as any).currentEpochBalance)),
-          JSBI.BigInt(String((freeStake as any).nextEpochBalance))
+          JSBI.BigInt(String((freeStake as any).nextEpochBalance)),
         )
           ? String((freeStake as any).nextEpochBalance)
-          : String((freeStake as any).currentEpochBalance)
+          : String((freeStake as any).currentEpochBalance),
       )
     : undefined
 }
@@ -194,7 +191,7 @@ export function useUnstakeCallback(): (amount: CurrencyAmount<Token>, isPool?: b
         })
       }
     },
-    [account.address, account.chainId, provider, poolContract, stakingContract, addTransaction]
+    [account.address, account.chainId, provider, poolContract, stakingContract, addTransaction],
   )
 }
 
@@ -264,14 +261,14 @@ export function useHarvestCallback(): (poolIds: string[], isPool?: boolean) => u
         })
       }
     },
-    [account.address, account.chainId, provider, poolContract, stakingContract, stakingProxy, addTransaction]
+    [account.address, account.chainId, provider, poolContract, stakingContract, stakingProxy, addTransaction],
   )
 }
 
 export function usePopContract(): Contract | null {
   const account = useAccount()
   return useContract({
-    address:account.chainId ? POP_ADDRESSES[account.chainId] : undefined,
+    address: account.chainId ? POP_ADDRESSES[account.chainId] : undefined,
     ABI: POP_ABI,
     withSignerIfPossible: true,
   })
@@ -308,6 +305,6 @@ export function useRaceCallback(): (poolAddress: string | undefined) => undefine
           })
       })
     },
-    [account.address, account.chainId, provider, popContract, addTransaction]
+    [account.address, account.chainId, provider, popContract, addTransaction],
   )
 }

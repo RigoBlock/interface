@@ -1,19 +1,19 @@
-import { Trans } from 'react-i18next'
-import { ReactNode, /*useCallback,*/ useState } from 'react'
-import { X } from 'react-feather'
-import styled from 'lib/styled-components'
-import { ThemedText } from 'theme/components/text'
-import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { ModalName} from 'uniswap/src/features/telemetry/constants'
-import { logger } from 'utilities/src/logger/logger'
-import { useSetValueCallback } from 'state/pool/hooks'
-import { useIsTransactionConfirmed, useTransaction } from 'state/transactions/hooks'
 import { ButtonError } from 'components/Button/buttons'
 import { AutoColumn } from 'components/deprecated/Column'
 import { RowBetween } from 'components/deprecated/Row'
-import { Modal } from 'uniswap/src/components/modals/Modal'
 import { LoadingView, SubmittedView } from 'components/ModalViews'
 import { useAccount } from 'hooks/useAccount'
+import styled from 'lib/styled-components'
+import { ReactNode, /*useCallback,*/ useState } from 'react'
+import { X } from 'react-feather'
+import { Trans } from 'react-i18next'
+import { useSetValueCallback } from 'state/pool/hooks'
+import { useIsTransactionConfirmed, useTransaction } from 'state/transactions/hooks'
+import { ThemedText } from 'theme/components/text'
+import { Modal } from 'uniswap/src/components/modals/Modal'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { logger } from 'utilities/src/logger/logger'
 
 const ContentWrapper = styled(AutoColumn)`
   width: 100%;
@@ -93,11 +93,7 @@ export default function SetValueModal({ isOpen, onDismiss, baseTokenSymbol, titl
               <StyledClosed stroke="black" onClick={wrappedOnDismiss} />
             </RowBetween>
             {/* TODO: display return error from hook */}
-            <ButtonError
-              disabled={false}
-              error={false}
-              onClick={onSetValue}
-            >
+            <ButtonError disabled={false} error={false} onClick={onSetValue}>
               <ThemedText.DeprecatedMediumHeader color="white">
                 <Trans>Update Value</Trans>
               </ThemedText.DeprecatedMediumHeader>
@@ -123,9 +119,7 @@ export default function SetValueModal({ isOpen, onDismiss, baseTokenSymbol, titl
                   <Trans>Transaction Submitted</Trans>
                 </ThemedText.DeprecatedLargeHeader>
                 <ThemedText.DeprecatedBody fontSize={20}>
-                  <Trans>
-                    Updating Nav {baseTokenSymbol}
-                  </Trans>
+                  <Trans>Updating Nav {baseTokenSymbol}</Trans>
                 </ThemedText.DeprecatedBody>
               </>
             ) : transactionSuccess ? (
@@ -134,9 +128,7 @@ export default function SetValueModal({ isOpen, onDismiss, baseTokenSymbol, titl
                   <Trans>Transaction Success</Trans>
                 </ThemedText.DeprecatedLargeHeader>
                 <ThemedText.DeprecatedBody fontSize={20}>
-                  <Trans>
-                    Updated Nav {baseTokenSymbol}
-                  </Trans>
+                  <Trans>Updated Nav {baseTokenSymbol}</Trans>
                 </ThemedText.DeprecatedBody>
               </>
             ) : (

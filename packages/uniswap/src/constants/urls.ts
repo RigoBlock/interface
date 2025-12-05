@@ -1,4 +1,10 @@
-import { createHelpArticleUrl, getCloudflareApiBaseUrl, getRbCloudflareApiBaseUrl, helpUrl, TrafficFlows } from '@universe/api'
+import {
+  createHelpArticleUrl,
+  getCloudflareApiBaseUrl,
+  getRbCloudflareApiBaseUrl,
+  helpUrl,
+  TrafficFlows,
+} from '@universe/api'
 import { config } from 'uniswap/src/config'
 import { isDevEnv, isPlaywrightEnv } from 'utilities/src/environment/env'
 

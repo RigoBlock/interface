@@ -59,7 +59,8 @@ export function IncreaseLiquidityReview({ onClose }: { onClose: () => void }) {
   txInfo?.txRequest?.from && account?.address && (txInfo.txRequest.to = account.address)
   txInfo?.txRequest && (txInfo.txRequest.from = signer.address)
   // TODO: verify add 100k to gas limit
-  txInfo?.txRequest?.gasLimit && (txInfo.txRequest.gasLimit = BigNumber.from(txInfo.txRequest.gasLimit).add(100000).toString())
+  txInfo?.txRequest?.gasLimit &&
+    (txInfo.txRequest.gasLimit = BigNumber.from(txInfo.txRequest.gasLimit).add(100000).toString())
 
   const { exactField } = increaseLiquidityState
   const { currencyAmounts, currencyAmountsUSDValue } = derivedIncreaseLiquidityInfo

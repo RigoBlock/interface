@@ -27,7 +27,7 @@ function useApprovalStateForSpender({
   amountToApprove?: CurrencyAmount<Currency>
   spender?: string
   useIsPendingApproval: (token?: Token, spender?: string) => boolean
-  isRbPool?: boolean,
+  isRbPool?: boolean
 }): ApprovalState {
   // TODO: check how we can skip RPC call if Rigoblock pool
   const account = useAccount()
@@ -70,7 +70,7 @@ export function useApproval({
   amountToApprove?: CurrencyAmount<Currency>
   spender?: string
   useIsPendingApproval: (token?: Token, spender?: string) => boolean
-  isRbPool?: boolean,
+  isRbPool?: boolean
 }): [
   ApprovalState,
   () => Promise<

@@ -21,9 +21,9 @@ function _Unitag({ size = '$icon.24' }: { size: IconSizeTokens | number }): JSX.
 
   const uri = useMemo(() => {
     if (isDarkMode) {
-      return isMobileApp ? UNITAG_DARK as string : UNITAG_DARK_SMALL as string
+      return isMobileApp ? (UNITAG_DARK as string) : (UNITAG_DARK_SMALL as string)
     }
-    return isMobileApp ? UNITAG_LIGHT as string : UNITAG_LIGHT_SMALL as string
+    return isMobileApp ? (UNITAG_LIGHT as string) : (UNITAG_LIGHT_SMALL as string)
   }, [isDarkMode])
 
   if (isWebApp) {

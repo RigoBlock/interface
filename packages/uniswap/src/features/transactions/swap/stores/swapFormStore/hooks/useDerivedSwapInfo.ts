@@ -1,5 +1,4 @@
 import { TradeType } from '@uniswap/sdk-core'
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useMemo } from 'react'
 import { useUniswapContextSelector } from 'uniswap/src/contexts/UniswapContext'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
@@ -69,8 +68,10 @@ export function useDerivedSwapInfo({
     }
   }, [currencyInInfo, currencyOutInfo])
 
-  const { balance: tokenInBalance } = useOnChainCurrencyBalance(currencyIn, account?.address)
-  const { balance: tokenOutBalance } = useOnChainCurrencyBalance(currencyOut, account?.address)
+  // Use smart pool address for balances if available, otherwise fall back to user account
+  const balanceAddress = smartPoolAddress || account?.address
+  const { balance: tokenInBalance } = useOnChainCurrencyBalance(currencyIn, balanceAddress)
+  const { balance: tokenOutBalance } = useOnChainCurrencyBalance(currencyOut, balanceAddress)
 
   const isExactIn = exactCurrencyField === CurrencyField.INPUT
   const wrapType = getWrapType(currencyIn, currencyOut)
@@ -161,6 +162,7 @@ export function useDerivedSwapInfo({
       selectingCurrencyField,
       txId,
       outputAmountUserWillReceive: displayableTrade?.quoteOutputAmountUserWillReceive,
+      smartPoolAddress,
     }
   }, [
     chainId,
@@ -176,6 +178,7 @@ export function useDerivedSwapInfo({
     trade,
     txId,
     wrapType,
+    smartPoolAddress,
     displayableTrade,
   ])
 }

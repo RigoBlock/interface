@@ -1,6 +1,5 @@
 import { PropsWithChildren, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ThemedText } from 'theme/components'
 import { ExternalLink } from 'theme/components/Links'
 import { Flex, FlexProps, Image, ModalCloseIcon, Text, TouchableArea } from 'ui/src'
 import { RIGOBLOCK_LOGO } from 'ui/src/assets'

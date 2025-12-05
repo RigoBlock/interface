@@ -78,8 +78,8 @@ function getErrorContent({ errorType, trade }: { errorType: PendingModalError; t
         title: <Trans>Token price not found</Trans>,
         message: (
           <Trans>
-            Rigoblock allows any token to be swapped, but some tokens may not have a price feed available. You
-            can create a price feed for the token you want to swap, or ask us to do it for you.
+            Rigoblock allows any token to be swapped, but some tokens may not have a price feed available. You can
+            create a price feed for the token you want to swap, or ask us to do it for you.
           </Trans>
         ),
         supportArticleURL: RigoblockUrls.TOKEN_PRICE_FEED_FORM,

@@ -98,7 +98,7 @@ export const createUniverseTransaction = ({
     case TransactionType.QUEUE:
     case TransactionType.EXECUTE:
     case TransactionType.BUY:
-    case TransactionType.SELL:  
+    case TransactionType.SELL:
     case TransactionType.SET_SPREAD:
     case TransactionType.SET_LOCKUP:
     case TransactionType.SET_VALUE:

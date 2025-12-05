@@ -45,12 +45,7 @@ export const HorizontalTokenList = memo(function _HorizontalTokenList({
     >
       {visibleTokens.map((token) => (
         <Flex key={token.currencyInfo.currencyId} style={styles.fiveTokenRowCard}>
-          <TokenCard
-            index={index}
-            section={section}
-            token={token}
-            onSelectCurrency={onSelectCurrency}
-          />
+          <TokenCard index={index} section={section} token={token} onSelectCurrency={onSelectCurrency} />
         </Flex>
       ))}
       {!expanded && remainingCount > 0 && (

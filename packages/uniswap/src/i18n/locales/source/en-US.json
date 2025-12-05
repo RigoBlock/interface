@@ -454,7 +454,7 @@
   "common.migrated.liquidity": "Migrated liquidity",
   "common.migrating.liquidity": "Migrating liquidity",
   "common.min": "Min",
-  "common.mint" : "Mint",
+  "common.mint": "Mint",
   "common.mint.cancelled": "Mint cancelled",
   "common.mint.failed": "Mint failed",
   "common.minted": "Minted",

@@ -22,7 +22,12 @@ export function createClassicSwapTxAndGasInfoService(ctx: {
       const swapTxInfo = await getEVMSwapTransactionRequestInfo(params)
       const permitTxInfo = getPermitTxInfo(params.trade)
 
-      return getClassicSwapTxAndGasInfo({ ...params, swapTxInfo, permitTxInfo })
+      return getClassicSwapTxAndGasInfo({
+        ...params,
+        swapTxInfo,
+        permitTxInfo,
+        derivedSwapInfo: params.derivedSwapInfo,
+      })
     },
   }
 

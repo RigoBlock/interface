@@ -20,6 +20,8 @@ export const RPC_PROVIDERS = Object.fromEntries(
 export function getBackupRpcProvider(chainId: UniverseChainId) {
   const info = getChainInfo(chainId)
   const urlParam = info.urlParam
-  const url = `https://api.rigoblock.com/logs?network=${urlParam}`;
-  return new AppJsonRpcProvider([new ConfiguredJsonRpcProvider({ url, networkish: { chainId, name: info.interfaceName } })]);
+  const url = `https://api.rigoblock.com/logs?network=${urlParam}`
+  return new AppJsonRpcProvider([
+    new ConfiguredJsonRpcProvider({ url, networkish: { chainId, name: info.interfaceName } }),
+  ])
 }

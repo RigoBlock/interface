@@ -8,7 +8,6 @@ import { parseBytes32String } from '@ethersproject/strings'
 import { Currency } from '@uniswap/sdk-core'
 import { useWeb3React } from '@web3-react/core'
 import { RB_FACTORY_ADDRESSES, RB_REGISTRY_ADDRESSES } from 'constants/addresses'
-import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
 import { useAccount } from 'hooks/useAccount'
 import { useContract } from 'hooks/useContract'
 import { useTotalSupply } from 'hooks/useTotalSupply'
@@ -20,14 +19,15 @@ import { useTransactionAdder } from 'state/transactions/hooks'
 import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
 import RB_POOL_FACTORY_ABI from 'uniswap/src/abis/rb-pool-factory.json'
 import RB_REGISTRY_ABI from 'uniswap/src/abis/rb-registry.json'
+import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { isValidHexString } from 'utilities/src/addresses/hex'
 import { calculateGasMargin } from 'utils/calculateGasMargin'
 import { assume0xAddress } from 'utils/wagmi'
-import { useReadContracts } from 'wagmi'
 import type { Abi } from 'viem'
+import { useReadContracts } from 'wagmi'
 
 export const PoolInterface = new Interface(POOL_EXTENDED_ABI)
 const RegistryInterface = new Interface(RB_REGISTRY_ABI)
@@ -64,7 +64,7 @@ export interface PoolRegisteredLog {
   userHasStake?: boolean
 }
 
-function useStartBlock(chainId?: number): {fromBlock: number, toBlock?: number } {
+function useStartBlock(chainId?: number): { fromBlock: number; toBlock?: number } {
   let registryStartBlock: number
   //const blockNumber = useBlockNumber()
 
@@ -132,11 +132,27 @@ export function useCreateCallback(): (options: {
   const factoryContract = usePoolFactoryContract()
 
   return useCallback(
-    ({ name, symbol, currencyValue }: { name: string | undefined; symbol: string | undefined; currencyValue: Currency | undefined }) => {
+    ({
+      name,
+      symbol,
+      currencyValue,
+    }: {
+      name: string | undefined
+      symbol: string | undefined
+      currencyValue: Currency | undefined
+    }) => {
       const parsedAddress = currencyValue?.isNative ? ZERO_ADDRESS : currencyValue?.address
       // TODO: check name and symbol assertions
       //if (!provider || !chainId || !account || name === '' || symbol === '' || !isAddress(parsedAddress ?? ''))
-      if (!provider || !account.chainId || !account.address || !name || !symbol || !parsedAddress || !isAddress(parsedAddress)) {
+      if (
+        !provider ||
+        !account.chainId ||
+        !account.address ||
+        !name ||
+        !symbol ||
+        !parsedAddress ||
+        !isAddress(parsedAddress)
+      ) {
         return undefined
       }
       if (currencyValue?.chainId !== account.chainId) {
@@ -153,13 +169,13 @@ export function useCreateCallback(): (options: {
               type: TransactionType.Deploy,
               name: `${name} (${symbol})`,
               symbol,
-              baseTokenAddress: parsedAddress
+              baseTokenAddress: parsedAddress,
             })
             return response.hash
           })
       })
     },
-    [account.address, addTransaction, account.chainId, provider, factoryContract]
+    [account.address, addTransaction, account.chainId, provider, factoryContract],
   )
 }
 
@@ -177,7 +193,7 @@ function useRegisteredPools(): PoolRegisteredLog[] | undefined {
     return {
       ...filter,
       fromBlock,
-      toBlock
+      toBlock,
     }
   }, [registry, fromBlock, toBlock])
 
@@ -230,7 +246,7 @@ export function useSetLockupCallback(): (lockup: string | undefined) => undefine
           })
       })
     },
-    [account.address, account.chainId, provider, poolContract, addTransaction]
+    [account.address, account.chainId, provider, poolContract, addTransaction],
   )
 }
 
@@ -263,7 +279,7 @@ export function useSetSpreadCallback(): (spread: string | undefined) => undefine
           })
       })
     },
-    [account.address, account.chainId, provider, poolContract, addTransaction]
+    [account.address, account.chainId, provider, poolContract, addTransaction],
   )
 }
 
@@ -275,28 +291,25 @@ export function useSetValueCallback(): () => undefined | Promise<string> {
   const { poolAddress: poolAddressFromUrl } = useParams<{ poolAddress?: string }>()
   const poolContract = usePoolExtendedContract(poolAddressFromUrl ?? undefined)
 
-  return useCallback(
-    () => {
-      if (!provider || !account.chainId || !account.address) {
-        return undefined
-      }
-      if (!poolContract) {
-        throw new Error('No Pool Contract!')
-      }
-      return poolContract.estimateGas.updateUnitaryValue().then((estimatedGasLimit) => {
-        return poolContract
-          .updateUnitaryValue({ value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
-          .then((response: TransactionResponse) => {
-            addTransaction(response, {
-              type: TransactionType.SetValue,
-              vaultAddress: poolContract.address,
-            })
-            return response.hash
+  return useCallback(() => {
+    if (!provider || !account.chainId || !account.address) {
+      return undefined
+    }
+    if (!poolContract) {
+      throw new Error('No Pool Contract!')
+    }
+    return poolContract.estimateGas.updateUnitaryValue().then((estimatedGasLimit) => {
+      return poolContract
+        .updateUnitaryValue({ value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
+        .then((response: TransactionResponse) => {
+          addTransaction(response, {
+            type: TransactionType.SetValue,
+            vaultAddress: poolContract.address,
           })
-      })
-    },
-    [account.address, account.chainId, provider, poolContract, addTransaction]
-  )
+          return response.hash
+        })
+    })
+  }, [account.address, account.chainId, provider, poolContract, addTransaction])
 }
 
 export function useUpgradeCallback(): () => undefined | Promise<string> {
@@ -307,28 +320,25 @@ export function useUpgradeCallback(): () => undefined | Promise<string> {
   const { poolAddress: poolAddressFromUrl } = useParams<{ poolAddress?: string }>()
   const poolContract = usePoolExtendedContract(poolAddressFromUrl ?? undefined)
 
-  return useCallback(
-    () => {
-      if (!provider || !account.chainId || !account.address) {
-        return undefined
-      }
-      if (!poolContract) {
-        throw new Error('No Pool Contract!')
-      }
-      return poolContract.estimateGas.upgradeImplementation().then((estimatedGasLimit) => {
-        return poolContract
-          .upgradeImplementation({ value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
-          .then((response: TransactionResponse) => {
-            addTransaction(response, {
-              type: TransactionType.Upgrade,
-              vaultAddress: poolContract.address,
-            })
-            return response.hash
+  return useCallback(() => {
+    if (!provider || !account.chainId || !account.address) {
+      return undefined
+    }
+    if (!poolContract) {
+      throw new Error('No Pool Contract!')
+    }
+    return poolContract.estimateGas.upgradeImplementation().then((estimatedGasLimit) => {
+      return poolContract
+        .upgradeImplementation({ value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
+        .then((response: TransactionResponse) => {
+          addTransaction(response, {
+            type: TransactionType.Upgrade,
+            vaultAddress: poolContract.address,
           })
-      })
-    },
-    [account.address, account.chainId, provider, poolContract, addTransaction]
-  )
+          return response.hash
+        })
+    })
+  }, [account.address, account.chainId, provider, poolContract, addTransaction])
 }
 
 interface StakingPools {
@@ -376,8 +386,13 @@ export function useStakingPools(addresses: string[], poolIds: string[]): UseStak
   const stakingContract = useStakingContract()
   const { chainId } = useAccount()
   const calls = useMemo(() => {
-    if (addresses.length === 0 || addresses.length !== poolIds.length || !stakingContract?.address || !isValidHexString(stakingContract.address)) { 
-      return undefined 
+    if (
+      addresses.length === 0 ||
+      addresses.length !== poolIds.length ||
+      !stakingContract?.address ||
+      !isValidHexString(stakingContract.address)
+    ) {
+      return undefined
     }
     const contractAddress = assume0xAddress(stakingContract.address)
     return poolIds.flatMap((poolId, index) => [
@@ -399,7 +414,7 @@ export function useStakingPools(addresses: string[], poolIds: string[]): UseStak
         address: contractAddress,
         abi: stakingContract.interface.fragments as Abi,
         functionName: 'getOwnerStakeByStatus',
-        args: (addresses[index]) ? [addresses[index], 1] : undefined,
+        args: addresses[index] ? [addresses[index], 1] : undefined,
         chainId,
       },
     ])
@@ -424,25 +439,28 @@ export function useStakingPools(addresses: string[], poolIds: string[]): UseStak
     let totalDelegatedStake = BigNumber.from(0)
     let totalPoolsOwnStake = BigNumber.from(0)
 
-    const pools = poolIds.reduce((acc, _, i) => {
-      const baseIndex = i * 3
-      const operatorShare = (combinedData[baseIndex]?.result as any)?.operatorShare as any[] | undefined
-      const delegatedStake = (combinedData[baseIndex + 1]?.result as any)?.nextEpochBalance as any[] | undefined
-      const poolOwnStake = (combinedData[baseIndex + 2]?.result as any)?.nextEpochBalance as any[] | undefined
+    const pools = poolIds.reduce(
+      (acc, _, i) => {
+        const baseIndex = i * 3
+        const operatorShare = (combinedData[baseIndex]?.result as any)?.operatorShare as any[] | undefined
+        const delegatedStake = (combinedData[baseIndex + 1]?.result as any)?.nextEpochBalance as any[] | undefined
+        const poolOwnStake = (combinedData[baseIndex + 2]?.result as any)?.nextEpochBalance as any[] | undefined
 
-      const delegatedStakeBN = delegatedStake ? BigNumber.from(delegatedStake) : BigNumber.from(0)
-      const poolOwnStakeBN = poolOwnStake ? BigNumber.from(poolOwnStake) : BigNumber.from(0)
+        const delegatedStakeBN = delegatedStake ? BigNumber.from(delegatedStake) : BigNumber.from(0)
+        const poolOwnStakeBN = poolOwnStake ? BigNumber.from(poolOwnStake) : BigNumber.from(0)
 
-      totalDelegatedStake = totalDelegatedStake.add(delegatedStakeBN)
-      totalPoolsOwnStake = totalPoolsOwnStake.add(poolOwnStakeBN)
+        totalDelegatedStake = totalDelegatedStake.add(delegatedStakeBN)
+        totalPoolsOwnStake = totalPoolsOwnStake.add(poolOwnStakeBN)
 
-      acc[poolIds[i]] = { 
-        operatorShare: Number(operatorShare ?? 0), 
-        delegatedStake: delegatedStakeBN, 
-        poolOwnStake: poolOwnStakeBN, 
-      }
-      return acc
-    }, {} as Record<string, { operatorShare: number; delegatedStake: BigNumber; poolOwnStake: BigNumber }>)
+        acc[poolIds[i]] = {
+          operatorShare: Number(operatorShare ?? 0),
+          delegatedStake: delegatedStakeBN,
+          poolOwnStake: poolOwnStakeBN,
+        }
+        return acc
+      },
+      {} as Record<string, { operatorShare: number; delegatedStake: BigNumber; poolOwnStake: BigNumber }>,
+    )
 
     return { pools, totalDelegatedStake, totalPoolsOwnStake }
   }, [combinedData, isLoading, poolIds])
@@ -474,10 +492,7 @@ export function useStakingPools(addresses: string[], poolIds: string[]): UseStak
         poolDelegatedStakeNum !== 0
           ? (totalReward * ((1_000_000 - pool.operatorShare) / 1_000_000)) / poolDelegatedStakeNum
           : 0
-      const irr =
-        poolOwnStakeNum !== 0
-          ? (totalReward * (pool.operatorShare / 1_000_000)) / poolOwnStakeNum
-          : 0
+      const irr = poolOwnStakeNum !== 0 ? (totalReward * (pool.operatorShare / 1_000_000)) / poolOwnStakeNum : 0
 
       return {
         id: poolId,

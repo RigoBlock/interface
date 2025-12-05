@@ -387,7 +387,7 @@ function _TokenSelectorModal(props: TokenSelectorProps): JSX.Element {
       hideKeyboardOnDismiss
       hideKeyboardOnSwipeDown
       renderBehindBottomInset
-      backgroundColor={colors?.surface1?.val}
+      backgroundColor={colors.surface1.val}
       isModalOpen={isModalOpen}
       maxWidth={isWebPlatform ? TOKEN_SELECTOR_WEB_MAX_WIDTH : undefined}
       maxHeight={isWebApp ? TOKEN_SELECTOR_WEB_MAX_HEIGHT : undefined}

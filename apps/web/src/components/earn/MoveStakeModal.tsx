@@ -1,26 +1,24 @@
 import { isAddress } from '@ethersproject/address'
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
-import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
-import { Trans, useTranslation } from 'react-i18next'
+import AddressInputPanel from 'components/AddressInputPanel'
+import { /*ButtonConfirmed,*/ ButtonPrimary } from 'components/Button/buttons'
+//import { ButtonError } from '../Button'
+import { LightCard } from 'components/Card/cards'
+import { AutoColumn } from 'components/deprecated/Column'
+import { RowBetween } from 'components/deprecated/Row'
+import { LoadingView, SubmittedView } from 'components/ModalViews'
+import Slider from 'components/Slider'
+import { ResponsiveHeaderText, TextButton } from 'components/vote/DelegateModal'
+import { useAccount } from 'hooks/useAccount'
+import useDebouncedChangeHandler from 'hooks/useDebouncedChangeHandler'
 import JSBI from 'jsbi'
+import styled from 'lib/styled-components'
+import { useRemoveLiquidityModalContext } from 'pages/RemoveLiquidity/RemoveLiquidityModalContext'
+import { ClickablePill } from 'pages/Swap/Buy/PredefinedAmount'
 import { ReactNode, useCallback, useMemo, useState } from 'react'
 import { X } from 'react-feather'
+import { Trans, useTranslation } from 'react-i18next'
 import { PoolInfo /*,useDerivedPoolInfo*/ } from 'state/buy/hooks'
-import styled from 'lib/styled-components'
-import { ClickablePill } from 'pages/Swap/Buy/PredefinedAmount'
-import { ThemedText } from 'theme/components/text'
-import { Flex, useSporeColors } from 'ui/src'
-import { GRG } from 'uniswap/src/constants/tokens'
-import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { logger } from 'utilities/src/logger/logger'
-import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-
-import { ResponsiveHeaderText } from 'components/vote/DelegateModal'
-import { TextButton } from 'components/vote/DelegateModal'
-import useDebouncedChangeHandler from 'hooks/useDebouncedChangeHandler'
-import { useRemoveLiquidityModalContext } from 'pages/RemoveLiquidity/RemoveLiquidityModalContext'
-import { useENS } from 'uniswap/src/features/ens/useENS'
 import {
   StakeData,
   useDeactivateStakeCallback,
@@ -31,17 +29,17 @@ import {
 } from 'state/governance/hooks'
 import { useFreeStakeBalance } from 'state/stake/hooks'
 import { useIsTransactionConfirmed, useTransaction } from 'state/transactions/hooks'
-import AddressInputPanel from 'components/AddressInputPanel'
-import { /*ButtonConfirmed,*/ ButtonPrimary } from 'components/Button/buttons'
-//import { ButtonError } from '../Button'
-import { LightCard } from 'components/Card/cards'
-import { AutoColumn } from 'components/deprecated/Column'
-import { RowBetween } from 'components/deprecated/Row'
+import { ThemedText } from 'theme/components/text'
+import { Flex, useSporeColors } from 'ui/src'
 import { Modal } from 'uniswap/src/components/modals/Modal'
-import { LoadingView, SubmittedView } from 'components/ModalViews'
-import Slider from 'components/Slider'
-import { useAccount } from 'hooks/useAccount'
+import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
+import { GRG } from 'uniswap/src/constants/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { useENS } from 'uniswap/src/features/ens/useENS'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { logger } from 'utilities/src/logger/logger'
 
 const ContentWrapper = styled(AutoColumn)`
   width: 100%;
@@ -93,7 +91,7 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
   const { poolId, stakingPoolExists } = usePoolIdByAddress(poolInfo.pool.address)
   const fromPoolStakeBalance = useStakeBalance(
     isDeactivate ? poolId : fromPoolId,
-    isPoolMoving ? poolInfo.pool.address : undefined
+    isPoolMoving ? poolInfo.pool.address : undefined,
   )
   const freeStakeBalance = useFreeStakeBalance(true)
   const poolContract = usePoolExtendedContract(poolInfo.pool.address)
@@ -108,12 +106,12 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
         fromPoolStakeBalance
           ? fromPoolStakeBalance.quotient
           : freeStakeBalance
-          ? freeStakeBalance.quotient
-          : JSBI.BigInt(0),
-        JSBI.BigInt(percentForSlider)
+            ? freeStakeBalance.quotient
+            : JSBI.BigInt(0),
+        JSBI.BigInt(percentForSlider),
       ),
-      JSBI.BigInt(100)
-    )
+      JSBI.BigInt(100),
+    ),
   )
   const newApr = useMemo(() => {
     if (poolInfo.apr?.toString() !== 'NaN') {
@@ -163,7 +161,11 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
     setStakeAmount(parsedAmount)
 
     // if callback not returned properly ignore
-    if ((!fromPoolStakeBalance && !freeStakeBalance) || !currencyValue.isToken || JSBI.equal(parsedAmount.quotient, JSBI.BigInt(0))) {
+    if (
+      (!fromPoolStakeBalance && !freeStakeBalance) ||
+      !currencyValue.isToken ||
+      JSBI.equal(parsedAmount.quotient, JSBI.BigInt(0))
+    ) {
       return
     }
 
@@ -202,7 +204,7 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
             )}
             <RowBetween>
               <ResponsiveHeaderText>
-                <Trans>{{percentForSlider}}%</Trans>
+                <Trans>{{ percentForSlider }}%</Trans>
               </ResponsiveHeaderText>
               <Flex row gap="$gap8" width="100%" justifyContent="center">
                 {[25, 50, 75, 100].map((option) => {
@@ -244,7 +246,8 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
             </LightCard>
             <ButtonPrimary
               disabled={
-                formatCurrencyAmount({ value: parsedAmount }) === '0' || (typed !== '' && !isAddress(parsedAddress ?? ''))
+                formatCurrencyAmount({ value: parsedAmount }) === '0' ||
+                (typed !== '' && !isAddress(parsedAddress ?? ''))
               }
               onClick={onMoveStake}
             >

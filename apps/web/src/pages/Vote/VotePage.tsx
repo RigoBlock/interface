@@ -6,8 +6,8 @@ import { ButtonPrimary } from 'components/Button/buttons'
 import { DarkGrayCard } from 'components/Card/cards'
 import { AutoColumn } from 'components/deprecated/Column'
 import { RowBetween, RowFixed } from 'components/deprecated/Row'
-import { SwitchLocaleLink } from 'components/SwitchLocaleLink'
 import { CardSection, DataCard } from 'components/earn/styled'
+import { SwitchLocaleLink } from 'components/SwitchLocaleLink'
 import DelegateModal from 'components/vote/DelegateModal'
 import ExecuteModal from 'components/vote/ExecuteModal'
 import QueueModal from 'components/vote/QueueModal'
@@ -18,8 +18,8 @@ import {
   DEFAULT_AVERAGE_BLOCK_TIME_IN_SECS,
 } from 'constants/governance'
 import { useAccount } from 'hooks/useAccount'
-import { useModalState } from 'hooks/useModalState'
 import useCurrentBlockTimestamp from 'hooks/useCurrentBlockTimestamp'
+import { useModalState } from 'hooks/useModalState'
 import JSBI from 'jsbi'
 import useBlockNumber from 'lib/hooks/useBlockNumber'
 import styled from 'lib/styled-components'
@@ -27,9 +27,9 @@ import ms from 'ms'
 import { ProposalStatus } from 'pages/Vote/styled'
 import { useState } from 'react'
 import { ArrowLeft } from 'react-feather'
+import { Trans, useTranslation } from 'react-i18next'
 import ReactMarkdown from 'react-markdown'
 import { useParams } from 'react-router'
-import { Trans, useTranslation } from 'react-i18next'
 import { useTokenBalance } from 'state/connection/hooks'
 import { ProposalState, useProposalData, useUserVotes } from 'state/governance/hooks'
 import { VoteOption } from 'state/governance/types'
@@ -161,10 +161,26 @@ function getDateFromBlockOrTime({
 }
 
 export default function VotePage() {
-  const { isOpen: showVoteModal, closeModal: closeVoteModal, toggleModal: toggleVoteModal } = useModalState(ModalName.Vote)
-  const { isOpen: showDelegateModal, closeModal: closeDelegateModal, toggleModal: toggleDelegateModal } = useModalState(ModalName.Delegate)
-  const { isOpen: showQueueModal, closeModal: closeQueueModal, toggleModal: toggleQueueModal } = useModalState(ModalName.Queue)
-  const { isOpen: showExecuteModal, closeModal: closeExecuteModal, toggleModal: toggleExecuteModal } = useModalState(ModalName.Execute)
+  const {
+    isOpen: showVoteModal,
+    closeModal: closeVoteModal,
+    toggleModal: toggleVoteModal,
+  } = useModalState(ModalName.Vote)
+  const {
+    isOpen: showDelegateModal,
+    closeModal: closeDelegateModal,
+    toggleModal: toggleDelegateModal,
+  } = useModalState(ModalName.Delegate)
+  const {
+    isOpen: showQueueModal,
+    closeModal: closeQueueModal,
+    toggleModal: toggleQueueModal,
+  } = useModalState(ModalName.Queue)
+  const {
+    isOpen: showExecuteModal,
+    closeModal: closeExecuteModal,
+    toggleModal: toggleExecuteModal,
+  } = useModalState(ModalName.Execute)
 
   // update vote option based on button interactions
   const [voteOption, setVoteOption] = useState<VoteOption | undefined>(undefined)
@@ -182,20 +198,26 @@ export default function VotePage() {
   const currentBlock = useBlockNumber()
 
   // update vote option based on button interactions
-  const startDate = !!proposalData?.startBlock && getDateFromBlockOrTime({
-    targetBlockOrTime: proposalData.startBlock,
-    currentBlock,
-    averageBlockTimeInSeconds: (account.chainId && AVERAGE_BLOCK_TIME_IN_SECS[account.chainId]) ?? DEFAULT_AVERAGE_BLOCK_TIME_IN_SECS,
-    currentTimestamp: BigNumber.from(currentTimestamp),
-    isTimestamp: true,
-  })
-  const endDate = !!proposalData?.endBlock && getDateFromBlockOrTime({
-    targetBlockOrTime: proposalData.endBlock,
-    currentBlock,
-    averageBlockTimeInSeconds: (account.chainId && AVERAGE_BLOCK_TIME_IN_SECS[account.chainId]) ?? DEFAULT_AVERAGE_BLOCK_TIME_IN_SECS,
-    currentTimestamp: BigNumber.from(currentTimestamp),
-    isTimestamp: true,
-  })
+  const startDate =
+    !!proposalData?.startBlock &&
+    getDateFromBlockOrTime({
+      targetBlockOrTime: proposalData.startBlock,
+      currentBlock,
+      averageBlockTimeInSeconds:
+        (account.chainId && AVERAGE_BLOCK_TIME_IN_SECS[account.chainId]) ?? DEFAULT_AVERAGE_BLOCK_TIME_IN_SECS,
+      currentTimestamp: BigNumber.from(currentTimestamp),
+      isTimestamp: true,
+    })
+  const endDate =
+    !!proposalData?.endBlock &&
+    getDateFromBlockOrTime({
+      targetBlockOrTime: proposalData.endBlock,
+      currentBlock,
+      averageBlockTimeInSeconds:
+        (account.chainId && AVERAGE_BLOCK_TIME_IN_SECS[account.chainId]) ?? DEFAULT_AVERAGE_BLOCK_TIME_IN_SECS,
+      currentTimestamp: BigNumber.from(currentTimestamp),
+      isTimestamp: true,
+    })
   const now = new Date()
   const locale = useCurrentLocale()
   const dateFormat: Intl.DateTimeFormatOptions = {
@@ -238,9 +260,7 @@ export default function VotePage() {
   )
 
   // in blurb link to home page if they are able to unlock
-  const showLinkForUnlock = Boolean(
-    grgBalance && JSBI.notEqual(grgBalance.quotient, JSBI.BigInt(0)),
-  )
+  const showLinkForUnlock = Boolean(grgBalance && JSBI.notEqual(grgBalance.quotient, JSBI.BigInt(0)))
 
   // show links in propsoal details if content is an address
   // if content is contract with common name, replace address with common name
@@ -248,7 +268,9 @@ export default function VotePage() {
     if (isAddress(content) && account.chainId) {
       const commonName = COMMON_CONTRACT_NAMES[account.chainId][content] || content
       return (
-        <ExternalLink href={getExplorerLink({ chainId: account.chainId, data: content, type: ExplorerDataType.ADDRESS})}>
+        <ExternalLink
+          href={getExplorerLink({ chainId: account.chainId, data: content, type: ExplorerDataType.ADDRESS })}
+        >
           {commonName}
         </ExternalLink>
       )
@@ -282,9 +304,7 @@ export default function VotePage() {
               <ArrowWrapper to="/vote">
                 <Flex gap="$spacing4">
                   <ArrowLeft size={20} />
-                  <ThemedText.DeprecatedMain>
-                    {t('vote.votePage.allProposals')}
-                  </ThemedText.DeprecatedMain>
+                  <ThemedText.DeprecatedMain>{t('vote.votePage.allProposals')}</ThemedText.DeprecatedMain>
                 </Flex>
               </ArrowWrapper>
               {proposalData && <ProposalStatus status={proposalData.status} />}
@@ -464,9 +484,7 @@ export default function VotePage() {
                         <Trans i18nKey="vote.votePage.against" />
                       </Text>
                       {proposalData && (
-                        <Text fontWeight={500}>
-                          {proposalData.againstCount.toFixed(0, { groupSeparator: ',' })}
-                        </Text>
+                        <Text fontWeight={500}>{proposalData.againstCount.toFixed(0, { groupSeparator: ',' })}</Text>
                       )}
                     </WrapSmall>
                   </AutoColumn>
@@ -523,7 +541,11 @@ export default function VotePage() {
               <ProposerAddressLink
                 href={
                   proposalData?.proposer && account.chainId
-                    ? getExplorerLink({ chainId: account.chainId, data: proposalData.proposer, type: ExplorerDataType.ADDRESS})
+                    ? getExplorerLink({
+                        chainId: account.chainId,
+                        data: proposalData.proposer,
+                        type: ExplorerDataType.ADDRESS,
+                      })
                     : ''
                 }
               >

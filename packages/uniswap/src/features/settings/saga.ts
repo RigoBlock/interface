@@ -10,7 +10,6 @@ export function* getEnabledChainIdsSaga(platform?: Platform) {
 
   const featureFlaggedChainIds = yield* call(getFeatureFlaggedChainIds)
 
-
   return yield* call(getEnabledChains, {
     platform,
     isTestnetModeEnabled,

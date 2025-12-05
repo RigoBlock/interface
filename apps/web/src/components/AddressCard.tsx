@@ -1,9 +1,8 @@
-
-import { Trans } from 'react-i18next'
 import { LightCard } from 'components/Card/cards'
 import { AutoColumn } from 'components/deprecated/Column'
 import Row from 'components/deprecated/Row'
 import styled from 'lib/styled-components'
+import { Trans } from 'react-i18next'
 import { CopyHelper } from 'theme/components/CopyHelper'
 import { ExternalLink } from 'theme/components/Links'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
@@ -75,7 +74,7 @@ function AddressCard({
             <IconContainer>
               <CopyHelper iconSize={20} iconPosition="right" toCopy={address}>
                 <Row width="100px" padding="8px 4px">
-                  <ExternalLink href={getExplorerLink({chainId, data: address, type: ExplorerDataType.ADDRESS})}>
+                  <ExternalLink href={getExplorerLink({ chainId, data: address, type: ExplorerDataType.ADDRESS })}>
                     <Trans>{shortenAddress({ address })}</Trans>
                   </ExternalLink>
                 </Row>

@@ -15,10 +15,10 @@ export function useSelectActiveSmartPool(): (smartPoolValue?: Currency) => void 
             address: smartPoolValue?.isToken ? smartPoolValue.address : undefined,
             name: smartPoolValue?.isToken && smartPoolValue.name ? smartPoolValue.name : undefined,
           },
-        })
+        }),
       )
     },
-    [dispatch]
+    [dispatch],
   )
 }
 

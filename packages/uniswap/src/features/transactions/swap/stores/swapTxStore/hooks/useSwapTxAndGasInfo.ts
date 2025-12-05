@@ -58,7 +58,7 @@ export function useSwapTxAndGasInfo({
       case TradingApi.Routing.BRIDGE:
         return getBridgeSwapTxAndGasInfo({ trade, swapTxInfo, approvalTxInfo })
       case TradingApi.Routing.CLASSIC:
-        return getClassicSwapTxAndGasInfo({ trade, swapTxInfo, approvalTxInfo, permitTxInfo })
+        return getClassicSwapTxAndGasInfo({ trade, swapTxInfo, approvalTxInfo, permitTxInfo, derivedSwapInfo })
       case TradingApi.Routing.WRAP:
       case TradingApi.Routing.UNWRAP:
         return getWrapTxAndGasInfo({ trade, swapTxInfo })

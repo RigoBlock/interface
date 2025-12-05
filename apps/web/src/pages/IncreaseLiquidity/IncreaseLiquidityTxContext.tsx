@@ -154,15 +154,15 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
   )
 
   const approvalsNeeded = false
-    //!approvalLoading &&
-    //Boolean(
-    //  permitData ||
-    //    token0Approval ||
-    //    token1Approval ||
-    //    positionTokenApproval ||
-    //    token0PermitTransaction ||
-    //    token1PermitTransaction,
-    //)
+  //!approvalLoading &&
+  //Boolean(
+  //  permitData ||
+  //    token0Approval ||
+  //    token1Approval ||
+  //    positionTokenApproval ||
+  //    token0PermitTransaction ||
+  //    token1PermitTransaction,
+  //)
 
   const token0 = currencyAmounts?.TOKEN0?.currency
   const token1 = currencyAmounts?.TOKEN1?.currency

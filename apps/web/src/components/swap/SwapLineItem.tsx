@@ -47,11 +47,7 @@ export function FOTTooltipContent() {
 
 function SwapFeeTooltipContent({ hasFee }: { hasFee: boolean }) {
   const message = hasFee ? <Trans i18nKey="swap.fees.experience" /> : <Trans i18nKey="swap.fees.noFee" />
-  return (
-    <BaseTooltipContent url="https://docs.rigoblock.com/introduction-to-rigoblock">
-      {message}
-    </BaseTooltipContent>
-  )
+  return <BaseTooltipContent url="https://docs.rigoblock.com/introduction-to-rigoblock">{message}</BaseTooltipContent>
 }
 
 export function SlippageTooltipContent() {

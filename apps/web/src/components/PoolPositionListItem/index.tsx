@@ -3,13 +3,13 @@ import { useTheme } from '@tamagui/core'
 import { ButtonPrimary } from 'components/Button/buttons'
 import Row, { RowBetween, RowFixed } from 'components/deprecated/Row'
 import RaceModal from 'components/earn/RaceModal'
+import styled from 'lib/styled-components'
+import { useCallback, useState } from 'react'
 //import RangeBadge from 'components/Badge/RangeBadge'
 //import Loader from 'components/Loader'
 //import { useToken } from 'hooks/Tokens'
 import { Trans } from 'react-i18next'
-import { useCallback, useState } from 'react'
 import { Link } from 'react-router'
-import styled from 'lib/styled-components'
 import { MEDIA_WIDTHS } from 'theme'
 import { PoolPositionDetails } from 'types/position'
 
@@ -161,7 +161,7 @@ export default function PoolPositionListItem({ positionDetails, returnPage }: Po
       e.preventDefault()
       setShowRaceModal(true)
     },
-    [setShowRaceModal]
+    [setShowRaceModal],
   )
 
   return (

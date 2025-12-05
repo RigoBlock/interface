@@ -1,17 +1,17 @@
 import { useTheme } from '@tamagui/core'
 import { ButtonPrimary } from 'components/Button/buttons'
 import { AutoColumn } from 'components/deprecated/Column'
-import { Modal } from 'uniswap/src/components/modals/Modal'
 import { LoadingView, SubmittedView } from 'components/ModalViews'
 import { useAccount } from 'hooks/useAccount'
+import { Trans } from 'react-i18next'
 import { Link } from 'react-router'
 import { Text } from 'rebass'
 import { useIsTransactionConfirmed, useTransaction } from 'state/transactions/hooks'
 import { ThemedText } from 'theme/components'
 import { ExternalLink } from 'theme/components/Links'
+import { Modal } from 'uniswap/src/components/modals/Modal'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { Trans } from 'react-i18next'
-import { ModalName} from 'uniswap/src/features/telemetry/constants'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
 
 export const ProposalSubmissionModal = ({
@@ -61,7 +61,9 @@ export const ProposalSubmissionModal = ({
               </Text>
             )}
             {hash && account.chainId && (
-              <ExternalLink href={getExplorerLink({chainId: account.chainId, data: hash, type: ExplorerDataType.TRANSACTION })}>
+              <ExternalLink
+                href={getExplorerLink({ chainId: account.chainId, data: hash, type: ExplorerDataType.TRANSACTION })}
+              >
                 <Text fontWeight={535} fontSize={14} color={theme.accent1.get()}>
                   <Trans i18nKey="common.etherscan.link" />
                 </Text>

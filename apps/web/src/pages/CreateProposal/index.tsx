@@ -26,12 +26,9 @@ import { ProposalEditor } from 'pages/CreateProposal/ProposalEditor'
 import { ProposalSubmissionModal } from 'pages/CreateProposal/ProposalSubmissionModal'
 import { useCallback, useMemo, useState } from 'react'
 import { ArrowLeft, X } from 'react-feather'
+import { Trans } from 'react-i18next'
 import { Link } from 'react-router'
-import {
-  CreateProposalData,
-  useCreateProposalCallback,
-  useVotingParams,
-} from 'state/governance/hooks'
+import { CreateProposalData, useCreateProposalCallback, useVotingParams } from 'state/governance/hooks'
 import { ThemedText } from 'theme/components'
 import { ExternalLink, StyledInternalLink } from 'theme/components/Links'
 import AUTHORITY_ABI from 'uniswap/src/abis/authority.json'
@@ -40,10 +37,9 @@ import GOVERNANCE_RB_ABI from 'uniswap/src/abis/governance.json'
 import RB_POOL_FACTORY_ABI from 'uniswap/src/abis/rb-pool-factory.json'
 import STAKING_PROXY_ABI from 'uniswap/src/abis/staking-proxy.json'
 import { GRG } from 'uniswap/src/constants/tokens'
-import Trace from 'uniswap/src/features/telemetry/Trace'
-import { InterfacePageName } from 'uniswap/src/features/telemetry/constants'
-import { Trans } from 'react-i18next'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { InterfacePageName } from 'uniswap/src/features/telemetry/constants'
+import Trace from 'uniswap/src/features/telemetry/Trace'
 
 const PageWrapper = styled(AutoColumn)`
   padding: 68px 8px 0px;
@@ -207,17 +203,10 @@ export default function CreateProposal() {
     setModalOpen({ open: true, actionId })
   }, [])
 
-  const handleActionChange = useCallback(
-    (proposalAction: ProposalAction, actionId: number) => {
-      setActions((prev) =>
-        prev.map((action) =>
-          action.id === actionId ? { ...action, proposalAction } : action,
-        ),
-      )
-      setModalOpen({ open: false })
-    },
-    [],
-  )
+  const handleActionChange = useCallback((proposalAction: ProposalAction, actionId: number) => {
+    setActions((prev) => prev.map((action) => (action.id === actionId ? { ...action, proposalAction } : action)))
+    setModalOpen({ open: false })
+  }, [])
 
   const handleDismissActionSelector = useCallback(() => {
     setModalOpen({ open: false })
@@ -228,52 +217,25 @@ export default function CreateProposal() {
     setAttempting(false)
   }, [])
 
-  const handleToAddressInput = useCallback(
-    (toAddress: string, actionId: number) => {
-      setActions((prev) =>
-        prev.map((action) =>
-          action.id === actionId ? { ...action, toAddress } : action,
-        ),
-      )
-    },
-    [],
-  )
+  const handleToAddressInput = useCallback((toAddress: string, actionId: number) => {
+    setActions((prev) => prev.map((action) => (action.id === actionId ? { ...action, toAddress } : action)))
+  }, [])
 
-  const handleCurrencySelect = useCallback(
-    (currency: Currency, actionId: number) => {
-      setActions((prev) =>
-        prev.map((action) =>
-          action.id === actionId ? { ...action, currency } : action,
-        ),
-      )
-    },
-    [],
-  )
+  const handleCurrencySelect = useCallback((currency: Currency, actionId: number) => {
+    setActions((prev) => prev.map((action) => (action.id === actionId ? { ...action, currency } : action)))
+  }, [])
 
-  const handleAmountInput = useCallback(
-    (amount: string, actionId: number) => {
-      setActions((prev) =>
-        prev.map((action) =>
-          action.id === actionId ? { ...action, amount } : action,
-        ),
-      )
-    },
-    [],
-  )
+  const handleAmountInput = useCallback((amount: string, actionId: number) => {
+    setActions((prev) => prev.map((action) => (action.id === actionId ? { ...action, amount } : action)))
+  }, [])
 
-  const handleTitleInput = useCallback(
-    (title: string) => {
-      setTitleValue(title)
-    },
-    [],
-  )
+  const handleTitleInput = useCallback((title: string) => {
+    setTitleValue(title)
+  }, [])
 
-  const handleBodyInput = useCallback(
-    (body: string) => {
-      setBodyValue(body)
-    },
-    [],
-  )
+  const handleBodyInput = useCallback((body: string) => {
+    setBodyValue(body)
+  }, [])
 
   const handleAddAction = useCallback(() => {
     setActions((prev) => [
@@ -296,15 +258,15 @@ export default function CreateProposal() {
     () =>
       Boolean(
         actions.length === 0 ||
-        actions.some(
-          (action) =>
-            !isAddress(action.toAddress) ||
-            !action.currency.isToken ||
-            (action.proposalAction === ProposalAction.TRANSFER_TOKEN && action.amount === '') ||
-            (action.proposalAction === ProposalAction.APPROVE_TOKEN && action.amount === ''),
-        ) ||
-        titleValue === '' ||
-        bodyValue === '',
+          actions.some(
+            (action) =>
+              !isAddress(action.toAddress) ||
+              !action.currency.isToken ||
+              (action.proposalAction === ProposalAction.TRANSFER_TOKEN && action.amount === '') ||
+              (action.proposalAction === ProposalAction.APPROVE_TOKEN && action.amount === ''),
+          ) ||
+          titleValue === '' ||
+          bodyValue === '',
       ),
     [actions, titleValue, bodyValue],
   )
@@ -391,7 +353,12 @@ export default function CreateProposal() {
           ]
           interfaces = [new Interface(STAKING_PROXY_ABI)]
           target = STAKING_PROXY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet]
-          methods = ['addAuthorizedAddress', 'detachStakingContract', 'attachStakingContract', 'removeAuthorizedAddress']
+          methods = [
+            'addAuthorizedAddress',
+            'detachStakingContract',
+            'attachStakingContract',
+            'removeAuthorizedAddress',
+          ]
           break
         }
 
@@ -463,9 +430,7 @@ export default function CreateProposal() {
 
             {actions.map((action) => (
               <ActionContainer key={action.id}>
-                {actions.length > 1 && (
-                  <RemoveActionButton onClick={() => handleRemoveAction(action.id)} />
-                )}
+                {actions.length > 1 && <RemoveActionButton onClick={() => handleRemoveAction(action.id)} />}
                 <ProposalActionSelector
                   onClick={() => handleActionSelectorClick(action.id)}
                   proposalAction={action.proposalAction}

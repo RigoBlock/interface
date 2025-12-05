@@ -58,8 +58,8 @@ export function CompanyMenu() {
             <Flex row alignItems="center" gap="$gap4" data-testid={TestID.NavUniswapLogo}>
               <NavIcon />
               {isLargeScreen && (
-              <Text variant="subheading1" color={theme.accent1} userSelect="none">
-                Rigoblock
+                <Text variant="subheading1" color={theme.accent1} userSelect="none">
+                  Rigoblock
                 </Text>
               )}
             </Flex>

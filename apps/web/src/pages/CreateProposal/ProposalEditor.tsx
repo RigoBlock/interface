@@ -2,8 +2,8 @@
 import { ResizingTextArea } from 'components/ResizingTextArea'
 import styled from 'lib/styled-components'
 import { memo } from 'react'
-import { Text } from 'rebass'
 import { Trans } from 'react-i18next'
+import { Text } from 'rebass'
 import { TextInput } from 'uniswap/src/components/input/TextInput'
 import i18n from 'uniswap/src/i18n'
 
@@ -58,7 +58,12 @@ Insert your conclusion here
       <ProposalEditorHeader>
         <Trans i18nKey="vote.proposal.title" />
       </ProposalEditorHeader>
-      <ProposalTitle value={title} onChangeText={onTitleInput} placeholder={i18n.t('proposal.title')} fontSize="1.25rem" />
+      <ProposalTitle
+        value={title}
+        onChangeText={onTitleInput}
+        placeholder={i18n.t('proposal.title')}
+        fontSize="1.25rem"
+      />
       <hr />
       <ResizingTextArea value={body} onUserInput={onBodyInput} placeholder={bodyPlaceholder} fontSize="1rem" />
     </ProposalEditorContainer>

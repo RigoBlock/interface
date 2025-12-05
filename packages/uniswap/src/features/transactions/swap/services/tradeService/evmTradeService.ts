@@ -211,7 +211,7 @@ function validatedIndicativeQuoteRequest(validatedInput: ValidatedTradeInput): I
     tokenOutChainId: validatedInput.tokenOutChainId,
     tokenIn: validatedInput.tokenInAddress,
     tokenOut: validatedInput.tokenOutAddress,
-    swapper: validatedInput.activeAccountAddress || UNCONNECTED_ADDRESS,
+    swapper: validatedInput.activeSmartPoolAddress || validatedInput.activeAccountAddress || UNCONNECTED_ADDRESS,
   }
 
   return indicativeRequest

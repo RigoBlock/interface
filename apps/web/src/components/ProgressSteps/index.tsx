@@ -1,8 +1,7 @@
 import { useTheme } from '@tamagui/core'
-import styled from 'lib/styled-components'
-
-import { ThemedText } from 'theme/components/text'
 import { AutoColumn } from 'components/deprecated/Column'
+import styled from 'lib/styled-components'
+import { ThemedText } from 'theme/components/text'
 
 const Wrapper = styled(AutoColumn)`
   margin-right: 8px;

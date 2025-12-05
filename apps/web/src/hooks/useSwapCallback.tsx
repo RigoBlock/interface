@@ -34,7 +34,10 @@ export type SwapResult = Awaited<ReturnType<ReturnType<typeof useSwapCallback>>>
 
 type UniversalRouterFeeField = { feeOptions: FeeOptions } | { flatFeeOptions: FlatFeeOptions }
 
-function getUniversalRouterFeeFields(trade?: InterfaceTrade, smartPoolAddress?: string): UniversalRouterFeeField | undefined {
+function getUniversalRouterFeeFields(
+  trade?: InterfaceTrade,
+  smartPoolAddress?: string,
+): UniversalRouterFeeField | undefined {
   if (!isClassicTrade(trade)) {
     return undefined
   }
@@ -62,8 +65,8 @@ export function useSwapCallback({
   trade?: InterfaceTrade // trade to execute
   fiatValues: { amountIn?: number; amountOut?: number; feeUsd?: number } // usd values for amount in and out, and the fee value, logged for analytics
   allowedSlippage: Percent // in bips
-  permitSignature?: PermitSignature,
-  smartPoolAddress?: string,
+  permitSignature?: PermitSignature
+  smartPoolAddress?: string
 }) {
   const dispatch = useDispatch()
   const addClassicTransaction = useTransactionAdder()

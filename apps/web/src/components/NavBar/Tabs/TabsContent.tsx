@@ -10,7 +10,6 @@ import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router'
 import { useSporeColors } from 'ui/src'
 import { CoinConvert } from 'ui/src/components/icons/CoinConvert'
-import { Compass } from 'ui/src/components/icons/Compass'
 import { CreditCard } from 'ui/src/components/icons/CreditCard'
 import { Pools } from 'ui/src/components/icons/Pools'
 import { ReceiveAlt } from 'ui/src/components/icons/ReceiveAlt'
@@ -59,12 +58,16 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
       isActive: pathname.startsWith('/swap') /*|| pathname.startsWith('/limit')*/ || pathname.startsWith('/send'),
       icon: <CoinConvert color="$accent1" size="$icon.20" />,
       items: [
-        ...(props?.userIsOperator ? [{
-          label: t('common.swap'),
-          icon: <SwapV2 fill={colors.neutral2.val} />,
-          href: '/swap',
-          internal: true,
-        }] : []),
+        ...(props?.userIsOperator
+          ? [
+              {
+                label: t('common.swap'),
+                icon: <SwapV2 fill={colors.neutral2.val} />,
+                href: '/swap',
+                internal: true,
+              },
+            ]
+          : []),
         //{
         //  label: t('swap.limit'),
         //  icon: <Limit fill={theme.neutral2} />,
