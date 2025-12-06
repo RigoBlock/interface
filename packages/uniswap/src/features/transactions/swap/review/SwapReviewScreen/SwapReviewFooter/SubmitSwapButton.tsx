@@ -49,6 +49,7 @@ export function SubmitSwapButton({ disabled, onSubmit, showPendingUI, warning }:
   const isChainedTrade = trade?.routing && isChained({ routing: trade.routing })
 
   const swapTxContext = useSwapTxStore((s) => s)
+  console.log('SubmitSwapButton render debug:', swapTxContext)
   const actionText = getActionText({
     t,
     wrapType,
@@ -69,6 +70,11 @@ export function SubmitSwapButton({ disabled, onSubmit, showPendingUI, warning }:
     return undefined
   }, [renderBiometricsIcon, passkeyAuthStatus?.isSignedInWithPasskey, passkeyAuthStatus?.isSessionAuthenticated])
 
+  // Add debug wrapper to onSubmit
+  const handleSubmit = () => {
+    onSubmit()
+  }
+
   switch (true) {
     case indicative: {
       return (
@@ -79,7 +85,7 @@ export function SubmitSwapButton({ disabled, onSubmit, showPendingUI, warning }:
     }
     case showPendingUI: {
       if (isChainedTrade && !isWebApp) {
-        return <PendingSwapButton disabled={disabled} onSubmit={onSubmit} />
+        return <PendingSwapButton disabled={disabled} onSubmit={handleSubmit} />
       }
       return (
         <Button loading variant="branded" emphasis="primary" size={size}>
@@ -107,7 +113,7 @@ export function SubmitSwapButton({ disabled, onSubmit, showPendingUI, warning }:
           icon={icon}
           size={size}
           testID={TestID.Swap}
-          onPress={onSubmit}
+          onPress={handleSubmit}
         >
           {actionText}
         </Button>
@@ -122,7 +128,7 @@ export function SubmitSwapButton({ disabled, onSubmit, showPendingUI, warning }:
           icon={icon}
           size={size}
           testID={TestID.Swap}
-          onPress={onSubmit}
+          onPress={handleSubmit}
         >
           {actionText}
         </Button>

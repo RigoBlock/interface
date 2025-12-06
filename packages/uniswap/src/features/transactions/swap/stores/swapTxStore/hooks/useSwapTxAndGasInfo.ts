@@ -47,7 +47,7 @@ export function useSwapTxAndGasInfo({
     tokenApprovalInfo,
   })
 
-  const permitTxInfo = usePermitTxInfo({ quote: trade?.quote })
+  const permitTxInfo = usePermitTxInfo({ quote: trade?.quote, derivedSwapInfo })
 
   return useMemo(() => {
     switch (trade?.routing) {

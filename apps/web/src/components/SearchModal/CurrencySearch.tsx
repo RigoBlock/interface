@@ -80,7 +80,7 @@ export function CurrencySearch({
           renderedInModal={false}
           evmAddress={
             currentTab === SwapTab.Swap && pathname !== '/mint'
-              ? smartPoolAddress ?? wallet.evmAccount?.address
+              ? (smartPoolAddress ?? undefined)
               : wallet.evmAccount?.address
           }
           svmAddress={wallet.svmAccount?.address}

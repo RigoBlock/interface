@@ -92,6 +92,10 @@ export function useDerivedSwapInfo({
   const sendPortionEnabled = false //useFeatureFlag(FeatureFlags.PortionFields)
 
   const generatePermitAsTransaction = useUniswapContextSelector((ctx) => {
+    // For RigoBlock smart pools, don't generate permits as transactions and don't include permitData
+    if (smartPoolAddress) {
+      return false
+    }
     // If the account cannot sign typedData, permits should be completed as a transaction step,
     // unless the swap is going through the 7702 smart wallet flow, in which case the
     // swap_7702 endpoint consumes typedData in the process encoding the swap.

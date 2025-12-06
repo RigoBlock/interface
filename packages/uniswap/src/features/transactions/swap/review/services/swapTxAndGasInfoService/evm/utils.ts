@@ -49,10 +49,27 @@ export function createGetEVMSwapTransactionRequestInfo(ctx: {
     const { data, error } = await tryCatch(
       skip
         ? Promise.resolve(undefined)
-        : instructionService.getSwapInstructions({ swapQuoteResponse, transactionSettings, approvalAction }),
+        : instructionService.getSwapInstructions({ swapQuoteResponse, transactionSettings, approvalAction, derivedSwapInfo }),
     )
 
+    // For RigoBlock pools, log more details when txRequests would be missing
+    if (derivedSwapInfo.smartPoolAddress && (!data?.response?.transactions || data.response.transactions.length === 0)) {
+      console.error('🚨 RigoBlock Trading API issue:', {
+        hasData: !!data,
+        hasError: !!error,
+        errorMessage: error?.message,
+        response: data?.response,
+        swapRequestParams: data?.swapRequestParams,
+        unsignedPermit: data?.unsignedPermit,
+        skip,
+        approvalAction,
+        approvalUnknown
+      })
+    }
+
     const isRevokeNeeded = tokenApprovalInfo.action === ApprovalAction.RevokeAndPermit2Approve
+    // RigoBlock pools handle permits/approvals internally and don't need permit signatures
+    const permitsDontNeedSignature = !!derivedSwapInfo.smartPoolAddress
     const swapTxInfo = processSwapResponse({
       response: data?.response ?? undefined,
       error,
@@ -61,6 +78,7 @@ export function createGetEVMSwapTransactionRequestInfo(ctx: {
       isSwapLoading: false,
       isRevokeNeeded,
       swapRequestParams: data?.swapRequestParams ?? undefined,
+      permitsDontNeedSignature,
     })
 
     return swapTxInfo

@@ -26,6 +26,7 @@ export function gqlTokenToCurrencyInfo(token?: GraphQLApi.Token): CurrencyInfo |
     return undefined
   }
 
+  // GRG token override implemented in searchTokenToCurrencyInfo by modifying safetyLevel
   const currencyInfo: CurrencyInfo = buildCurrencyInfo({
     currency,
     currencyId: currencyId(currency),

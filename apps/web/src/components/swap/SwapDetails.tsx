@@ -11,6 +11,7 @@ import { SwapResult } from 'hooks/useSwapCallback'
 import { styled } from 'lib/styled-components'
 import { PropsWithChildren, ReactNode, useMemo } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
+import { useActiveSmartPool } from 'state/application/hooks'
 import { InterfaceTrade, LimitOrderTrade, RouterPreference } from 'state/routing/types'
 import { isLimitTrade } from 'state/routing/utils'
 import { useRouterPreference, useUserSlippageTolerance } from 'state/user/hooks'
@@ -129,6 +130,8 @@ export function SwapDetails({
   const { t } = useTranslation()
   const isAutoSlippage = useUserSlippageTolerance()[0] === 'auto'
   const [routerPreference] = useRouterPreference()
+  const { address: smartPoolAddress } = useActiveSmartPool()
+  console.log('smartPoolAddress in SwapDetails:', smartPoolAddress, disabledConfirm)
 
   const analyticsContext = useTrace()
 
@@ -138,15 +141,22 @@ export function SwapDetails({
         buttonText: isLimitTrade(trade) ? t('swap.approveAndSubmit') : t('swap.approveAndSwap'),
       }
     } else if (allowance && allowance.state === AllowanceState.REQUIRED && allowance.needsPermitSignature) {
-      return {
-        buttonText: t('swap.signAndSwap'),
+      // For smart pools, skip signature step and go directly to swap since pool handles approvals automatically
+      if (smartPoolAddress) {
+        return {
+          buttonText: isLimitTrade(trade) ? t('swap.placeOrder') : t('swap.confirmSwap'),
+        }
+      } else {
+        return {
+          buttonText: t('swap.signAndSwap'),
+        }
       }
     } else {
       return {
         buttonText: isLimitTrade(trade) ? t('swap.placeOrder') : t('swap.confirmSwap'),
       }
     }
-  }, [allowance, t, trade])
+  }, [allowance, t, trade, smartPoolAddress])
 
   return (
     <>

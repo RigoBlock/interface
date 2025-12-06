@@ -20,12 +20,14 @@ import {
 } from 'uniswap/src/features/transactions/swap/review/services/swapTxAndGasInfoService/evm/evmSwapRepository'
 import type { PresignPermitFn } from 'uniswap/src/features/transactions/swap/review/services/swapTxAndGasInfoService/evm/hooks'
 import { createPrepareSwapRequestParams } from 'uniswap/src/features/transactions/swap/review/services/swapTxAndGasInfoService/utils'
+import type { DerivedSwapInfo } from 'uniswap/src/features/transactions/swap/types/derivedSwapInfo'
 import { ApprovalAction } from 'uniswap/src/features/transactions/swap/types/trade'
 import { tradingApiToUniverseChainId } from 'uniswap/src/features/transactions/swap/utils/tradingApi'
 
 type SwapInstructions =
-  | { response: SwapData; unsignedPermit: null; swapRequestParams: null }
+  | { response: SwapData; unsignedPermit: null; swapRequestParams: TradingApi.CreateSwapRequest | null }
   | { response: null; unsignedPermit: TradingApi.Permit; swapRequestParams: TradingApi.CreateSwapRequest }
+  | { response: null; unsignedPermit: null; swapRequestParams: TradingApi.CreateSwapRequest }
 
 /** A service utility capable of fetching swap instructions or returning unsigned permit data when instructions cannot yet be fetched. */
 export interface EVMSwapInstructionsService {
@@ -33,6 +35,7 @@ export interface EVMSwapInstructionsService {
     swapQuoteResponse: ClassicQuoteResponse | BridgeQuoteResponse | WrapQuoteResponse | UnwrapQuoteResponse
     transactionSettings: TransactionSettings
     approvalAction: ApprovalAction
+    derivedSwapInfo: DerivedSwapInfo
   }) => Promise<SwapInstructions>
 }
 
@@ -55,18 +58,26 @@ function createLegacyEVMSwapInstructionsService(
   })
 
   const service: EVMSwapInstructionsService = {
-    getSwapInstructions: async ({ swapQuoteResponse, transactionSettings, approvalAction }) => {
+    getSwapInstructions: async ({ swapQuoteResponse, transactionSettings, approvalAction, derivedSwapInfo }) => {
       const { permitData, permitTransaction } = swapQuoteResponse
       const signature = permitData ? await ctx.presignPermit?.(permitData) : undefined
-      const signatureMissing = permitData && !signature
+      
+      // For RigoBlock pools, permits are handled internally - skip permit requirement
+      const isRigoBlockPool = !!derivedSwapInfo.smartPoolAddress
+      const signatureMissing = permitData && !signature && !isRigoBlockPool
 
-      const alreadyApproved = approvalAction === ApprovalAction.None && !permitTransaction
+      // For RigoBlock pools, force alreadyApproved=true to skip approval steps
+      // This makes Token→ETH swaps behave like ETH→Token swaps (no approval steps)
+      const alreadyApproved = isRigoBlockPool 
+        ? true  // RigoBlock pools handle approvals internally
+        : (approvalAction === ApprovalAction.None && !permitTransaction)
 
       const swapRequestParams = prepareSwapRequestParams({
         swapQuoteResponse,
         signature,
         transactionSettings,
         alreadyApproved,
+        derivedSwapInfo,
       })
 
       if (signatureMissing) {
@@ -91,13 +102,20 @@ function createBatchedEVMSwapInstructionsService(
   })
 
   const service: EVMSwapInstructionsService = {
-    getSwapInstructions: async ({ swapQuoteResponse, transactionSettings, approvalAction }) => {
+    getSwapInstructions: async ({ swapQuoteResponse, transactionSettings, approvalAction, derivedSwapInfo }) => {
+      // For RigoBlock pools, force alreadyApproved=true (no approval steps needed)
+      const isRigoBlockPool = !!derivedSwapInfo.smartPoolAddress
+      const effectiveAlreadyApproved = isRigoBlockPool 
+        ? true  // RigoBlock pools handle approvals internally
+        : (approvalAction === ApprovalAction.None)
+        
       const swapRequestParams = prepareSwapRequestParams({
         swapQuoteResponse,
         signature: undefined,
         transactionSettings,
-        alreadyApproved: approvalAction === ApprovalAction.None,
+        alreadyApproved: effectiveAlreadyApproved,
         overrideSimulation: true, // always simulate for batched transactions
+        derivedSwapInfo,
       })
 
       const response = await swapRepository.fetchSwapData(swapRequestParams)

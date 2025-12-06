@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { ColorTokens } from 'ui/src'
 import { getAlertColor } from 'uniswap/src/components/modals/WarningModal/getAlertColor'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
+import { GRG } from 'uniswap/src/constants/tokens'
 import { AttackType, CurrencyInfo, TokenList } from 'uniswap/src/features/dataApi/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { logger } from 'utilities/src/logger/logger'
@@ -125,6 +126,17 @@ export function getTokenProtectionWarning(currencyInfo?: Maybe<CurrencyInfo>): T
   } else if (feeOnTransfer && feeOnTransfer > 0 && feeOnTransfer < TOKEN_PROTECTION_FOT_FEE_BREAKPOINT) {
     return TokenProtectionWarning.FotLow
   } else if (safetyInfo.tokenList === TokenList.NonDefault) {
+    // Override for GRG tokens - treat them as default tokens instead of non-default
+    const isGrgToken = Object.values(GRG).some(grgToken => 
+      currency.isToken && 
+      grgToken.chainId === currency.chainId && 
+      grgToken.address.toLowerCase() === currency.address.toLowerCase()
+    )
+    
+    if (isGrgToken) {
+      return TokenProtectionWarning.None
+    }
+    
     return TokenProtectionWarning.NonDefault
   }
 

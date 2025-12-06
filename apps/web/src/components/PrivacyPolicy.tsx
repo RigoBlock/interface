@@ -1,7 +1,7 @@
 import { SharedEventName } from '@uniswap/analytics-events'
 import Card, { DarkGrayCard } from 'components/Card/cards'
 import { AutoColumn } from 'components/deprecated/Column'
-import Row, { AutoRow, RowBetween } from 'components/deprecated/Row'
+import { AutoRow, RowBetween } from 'components/deprecated/Row'
 import { useModalState } from 'hooks/useModalState'
 import { styled } from 'lib/styled-components'
 import { useEffect, useMemo, useRef } from 'react'
@@ -115,7 +115,7 @@ function PrivacyPolicy() {
                 <AutoRow gap="4px">
                   <Info size={20} />
                   <ThemedText.DeprecatedMain fontSize={14} color="accent1">
-                    {t("privacy.uniswaptos")}
+                    {t('privacy.uniswaptos')}
                   </ThemedText.DeprecatedMain>
                 </AutoRow>
                 <StyledLinkOut size={20} />

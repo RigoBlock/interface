@@ -38,12 +38,18 @@ export function createSwapTransactionAsyncStep(
         return undefined
       }
 
-      const { swap } = await TradingApiClient.fetchSwap({
+      const requestParams: TradingApi.CreateSwapRequest = {
         ...swapRequestArgs,
-        signature,
         /* simulating transaction provides a more accurate gas limit, and the simulation will succeed because async swap step will only occur after approval has been confirmed. */
         simulateTransaction: true,
-      })
+      }
+
+      // Only add signature if provided (smart pools don't need signatures)
+      if (signature) {
+        requestParams.signature = signature
+      }
+
+      const { swap } = await TradingApiClient.fetchSwap(requestParams)
 
       return validateTransactionRequest(swap)
     },
@@ -59,15 +65,17 @@ export function createSwapTransactionStepBatched(
 export async function getSwapTxRequest(
   step: SwapTransactionStep | SwapTransactionStepAsync,
   signature: string | undefined,
+  smartPoolAddress?: string,
 ): Promise<ValidatedTransactionRequest> {
   if (step.type === TransactionStepType.SwapTransaction) {
     return step.txRequest
   }
-  if (!signature) {
+  if (!signature && !smartPoolAddress) {
     throw new UnexpectedTransactionStateError('Signature required for async swap transaction step')
   }
 
-  const txRequest = await step.getTxRequest(signature)
+  // For smart pools, we can proceed without a signature since the pool handles approvals automatically
+  const txRequest = await step.getTxRequest(signature || '')
   invariant(txRequest !== undefined)
 
   return txRequest

@@ -26,6 +26,7 @@ function useTokenSectionsForSwap({
 }: TokenSectionsHookProps): GqlResult<OnchainItemSection<TokenSelectorOption>[]> {
   const { defaultChainId, isTestnetModeEnabled } = useEnabledChains()
 
+  // TODO: use smart pool portfolio tokens when selecting for smart pool swap
   const {
     data: portfolioTokenOptions,
     error: portfolioTokenOptionsError,

@@ -2,6 +2,7 @@ import { Token as SDKToken } from '@uniswap/sdk-core'
 import { GraphQLApi } from '@universe/api'
 import {
   DAI,
+  GRG,
   USDC,
   USDC_ARBITRUM,
   USDC_BASE,
@@ -192,3 +193,22 @@ export const usdcBaseToken = createFixture<GraphQLApi.Token>()(() =>
 export const usdcArbitrumToken = createFixture<GraphQLApi.Token>()(() =>
   token({ sdkToken: USDC_ARBITRUM, project: usdcProject }),
 )
+
+export const grgTokenProject = createFixture<GraphQLApi.TokenProject, TokenProjectOptions>(() => ({
+  priceHistory: priceHistory({ duration: GraphQLApi.HistoryDuration.Week, size: 7 }),
+  safetyLevel: GraphQLApi.SafetyLevel.Verified,
+}))(({ priceHistory: history, safetyLevel }) =>
+  tokenProject({
+    priceHistory: history,
+    name: 'Grg Token',
+    tokens: Object.values(GRG).map((grgToken) => token({ sdkToken: grgToken, market: tokenMarket() })),
+    safetyLevel,
+    isSpam: false,
+  }),
+)
+
+export const grgToken = createFixture<GraphQLApi.Token>()(() => {
+  const grgMainnet = GRG[UniverseChainId.Mainnet]
+  const grgProj = grgTokenProject()
+  return token({ sdkToken: grgMainnet, project: grgProj })
+})

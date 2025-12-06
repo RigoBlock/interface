@@ -47,7 +47,7 @@ export function YouReceiveDetailsTooltip({
     <Tooltip.Outer>
       <Tooltip.Header
         title={{
-          title: t('swap.bestPrice.through', { provider: isUniswapXContext ? 'UniswapX' : 'Uniswap API' }),
+          title: t('swap.bestPrice.through', { provider: isUniswapXContext ? 'UniswapX' : 'Rigoblock API' }),
         }}
         Icon={isUniswapXContext ? UniswapX : UniswapLogo}
         iconColor="$accent1"

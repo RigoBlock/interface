@@ -66,6 +66,7 @@ function useSwapTransactionRequestInfo({
       transactionSettings,
       alreadyApproved,
       overrideSimulation,
+      derivedSwapInfo,
     })
   }, [
     swapQuoteResponse,
@@ -74,13 +75,15 @@ function useSwapTransactionRequestInfo({
     signature,
     transactionSettings,
     overrideSimulation,
+    derivedSwapInfo,
   ])
 
   const canBatchTransactions = useUniswapContextSelector((ctx) =>
     ctx.getCanBatchTransactions?.(derivedSwapInfo.chainId),
   )
 
-  const permitsDontNeedSignature = !!canBatchTransactions
+  // RigoBlock pools handle permits/approvals internally and don't need permit signatures
+  const permitsDontNeedSignature = !!canBatchTransactions || !!derivedSwapInfo.smartPoolAddress
   const shouldSkipSwapRequest = getShouldSkipSwapRequest({
     derivedSwapInfo,
     tokenApprovalInfo,

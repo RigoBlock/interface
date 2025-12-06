@@ -1,4 +1,4 @@
-import { Currency, Token } from '@uniswap/sdk-core'
+import { Token } from '@uniswap/sdk-core'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import Row from 'components/deprecated/Row'
 import { ChainSelector } from 'components/NavBar/ChainSelector'
@@ -7,7 +7,6 @@ import { NewUserCTAButton } from 'components/NavBar/DownloadApp/NewUserCTAButton
 import PoolSelect from 'components/NavBar/PoolSelect'
 import { PreferenceMenu } from 'components/NavBar/PreferencesMenu'
 import { useTabsVisible } from 'components/NavBar/ScreenSizes'
-import { SearchBar } from 'components/NavBar/SearchBar'
 import { useIsSearchBarVisible } from 'components/NavBar/SearchBar/useIsSearchBarVisible'
 import { Tabs } from 'components/NavBar/Tabs/Tabs'
 import TestnetModeTooltip from 'components/NavBar/TestnetMode/TestnetModeTooltip'
@@ -15,19 +14,18 @@ import { UniswapWrappedEntry } from 'components/NavBar/UniswapWrappedEntry'
 import Web3Status from 'components/Web3Status'
 import { useAccount } from 'hooks/useAccount'
 import { PageType, useIsPage } from 'hooks/useIsPage'
-import { useEffect, useMemo /*, useRef*/ } from 'react'
+import usePrevious from 'hooks/usePrevious'
+import { css, styled as deprecatedStyled } from 'lib/styled-components'
+import { useEffect, useMemo /*, useRef*/, useRef } from 'react'
+import { useActiveSmartPool, useSelectActiveSmartPool } from 'state/application/hooks'
 import { useAllPoolsData } from 'state/pool/hooks'
 import { Flex, styled, Nav as TamaguiNav, useMedia } from 'ui/src'
 import { breakpoints, INTERFACE_NAV_HEIGHT, zIndexes } from 'ui/src/theme'
 import { useConnectionStatus } from 'uniswap/src/features/accounts/store/hooks'
-import { css, styled as deprecatedStyled } from 'lib/styled-components'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import usePrevious from 'hooks/usePrevious'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { assume0xAddress } from 'utils/wagmi'
 import { useReadContracts } from 'wagmi'
-import { useActiveSmartPool, useSelectActiveSmartPool } from 'state/application/hooks'
-import { useRef } from 'react'
 
 // Flex is position relative by default, we must unset the position on every Flex
 // between the body and search component
@@ -147,53 +145,54 @@ export default function Navbar() {
   const { data, isLoading } = useReadContracts({
     contracts: useMemo(() => {
       return poolAddresses?.map(
-        (vaultAddress) => ({
-          address: assume0xAddress(vaultAddress),
-          abi: [
-            {
-              "inputs": [],
-              "name": "getPool",
-              "outputs": [
-                {
-                  "components": [
-                    {
-                      "internalType": "string",
-                      "name": "name",
-                      "type": "string"
-                    },
-                    {
-                      "internalType": "string",
-                      "name": "symbol",
-                      "type": "string"
-                    },
-                    {
-                      "internalType": "uint8",
-                      "name": "decimals",
-                      "type": "uint8"
-                    },
-                    {
-                      "internalType": "address",
-                      "name": "owner",
-                      "type": "address"
-                    },
-                    {
-                      "internalType": "address",
-                      "name": "baseToken",
-                      "type": "address"
-                    }
-                  ],
-                  "internalType": "struct ISmartPoolState.ReturnedPool",
-                  "name": "",
-                  "type": "tuple"
-                }
-              ],
-              "stateMutability": "view",
-              "type": "function"
-            }
-          ],
-          functionName: 'getPool',
-          chainId,
-        }) as const,
+        (vaultAddress) =>
+          ({
+            address: assume0xAddress(vaultAddress),
+            abi: [
+              {
+                inputs: [],
+                name: 'getPool',
+                outputs: [
+                  {
+                    components: [
+                      {
+                        internalType: 'string',
+                        name: 'name',
+                        type: 'string',
+                      },
+                      {
+                        internalType: 'string',
+                        name: 'symbol',
+                        type: 'string',
+                      },
+                      {
+                        internalType: 'uint8',
+                        name: 'decimals',
+                        type: 'uint8',
+                      },
+                      {
+                        internalType: 'address',
+                        name: 'owner',
+                        type: 'address',
+                      },
+                      {
+                        internalType: 'address',
+                        name: 'baseToken',
+                        type: 'address',
+                      },
+                    ],
+                    internalType: 'struct ISmartPoolState.ReturnedPool',
+                    name: '',
+                    type: 'tuple',
+                  },
+                ],
+                stateMutability: 'view',
+                type: 'function',
+              },
+            ],
+            functionName: 'getPool',
+            chainId,
+          }) as const,
       )
     }, [poolAddresses, chainId]),
   })
@@ -203,17 +202,19 @@ export default function Navbar() {
       return undefined
     }
 
-    return data
-      ?.map(({ result }, i) => {
-        if (!result) { return undefined }
-        return { ...result, pool: poolAddresses[i] }
-      })
+    return data?.map(({ result }, i) => {
+      if (!result) {
+        return undefined
+      }
+      return { ...result, pool: poolAddresses[i] }
+    })
   }, [address, chainId, poolAddresses, data, isLoading])
 
   // Cache operatedPools and userIsOperator until new data is loaded
-  const rawOperatedPools = useMemo(() => poolsWithOwners
-    ?.filter((pool) => pool?.owner.toLowerCase() === address?.toLowerCase()) || [], [poolsWithOwners, address])
-    .map((pool) => new Token(chainId ?? UniverseChainId.Mainnet, pool!.pool, pool!.decimals, pool!.symbol, pool!.name))
+  const rawOperatedPools = useMemo(
+    () => poolsWithOwners?.filter((pool) => pool?.owner.toLowerCase() === address?.toLowerCase()) || [],
+    [poolsWithOwners, address],
+  ).map((pool) => new Token(chainId ?? UniverseChainId.Mainnet, pool!.pool, pool!.decimals, pool!.symbol, pool!.name))
 
   const cachedPoolsRef = useRef<{ pools: typeof rawOperatedPools } | undefined>(undefined)
 
@@ -228,7 +229,7 @@ export default function Navbar() {
   // Use cached pools while loading new data
   const { operatedPools, newDefaultVaultLoaded } = useMemo(() => {
     let newDefaultVaultLoaded = false
-    
+
     if (rawOperatedPools.length === 0) {
       return { operatedPools: cachedPoolsRef.current?.pools || [], newDefaultVaultLoaded }
     }
@@ -258,7 +259,7 @@ export default function Navbar() {
 
   return (
     <Nav>
-      <UnpositionedFlex row centered width="100%" >
+      <UnpositionedFlex row centered width="100%">
         <Left style={{ flexShrink: 0 }}>
           <CompanyMenu />
           {areTabsVisible && <Tabs userIsOperator={userIsOperator} />}

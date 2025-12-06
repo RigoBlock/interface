@@ -1,17 +1,17 @@
+import { PrefetchBalancesWrapper } from 'appGraphql/data/apollo/AdaptiveTokenBalancesProvider'
 import { useTheme } from '@tamagui/core'
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import { Pair } from '@uniswap/v2-sdk'
-import { PrefetchBalancesWrapper } from 'appGraphql/data/apollo/AdaptiveTokenBalancesProvider'
 import { ReactComponent as DropDown } from 'assets/images/dropdown.svg'
 import { ButtonGray } from 'components/Button/buttons'
 import { FiatValue } from 'components/CurrencyInputPanel/FiatValue'
+import { RowBetween, RowFixed } from 'components/deprecated/Row'
 import { LoadingOpacityContainer, loadingOpacityMixin } from 'components/Loader/styled'
 import CurrencyLogo from 'components/Logo/CurrencyLogo'
 import { DoubleCurrencyLogo } from 'components/Logo/DoubleLogo'
 import { Input as NumericalInput } from 'components/NumericalInput'
 import { SwitchNetworkAction } from 'components/Popups/types'
 import CurrencySearchModal from 'components/SearchModal/CurrencySearchModal'
-import { RowBetween, RowFixed } from 'components/deprecated/Row'
 import { useAccount } from 'hooks/useAccount'
 import styled from 'lib/styled-components'
 import { darken } from 'polished'
@@ -225,8 +225,8 @@ export default function CurrencyInputPanel({
   const { address: smartPoolAddress } = useActiveSmartPool()
   // TODO: check if should invert definition and modify swap currency input panel
   const selectedCurrencyBalance = useCurrencyBalance(
-    !isAccount ? smartPoolAddress ?? undefined : account.address,
-    currency ?? undefined
+    !isAccount ? (smartPoolAddress ?? undefined) : account.address,
+    currency ?? undefined,
   )
   const theme = useTheme()
   const { formatCurrencyAmount } = useLocalizationContext()

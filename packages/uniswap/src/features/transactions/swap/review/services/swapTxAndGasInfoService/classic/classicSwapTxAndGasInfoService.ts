@@ -20,7 +20,7 @@ export function createClassicSwapTxAndGasInfoService(ctx: {
   const service: SwapTxAndGasInfoService<ClassicTrade> = {
     async getSwapTxAndGasInfo(params) {
       const swapTxInfo = await getEVMSwapTransactionRequestInfo(params)
-      const permitTxInfo = getPermitTxInfo(params.trade)
+      const permitTxInfo = getPermitTxInfo(params.trade, params.derivedSwapInfo)
 
       return getClassicSwapTxAndGasInfo({
         ...params,
