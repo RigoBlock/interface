@@ -33,6 +33,7 @@ import { ArrowLeft } from 'react-feather'
 import { Helmet } from 'react-helmet-async/lib/index'
 import { Trans, useTranslation } from 'react-i18next'
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router'
+import { useActiveSmartPool } from 'state/application/hooks'
 import { MultichainContextProvider } from 'state/multichain/MultichainContext'
 import { usePendingLPTransactionsChangeListener } from 'state/transactions/hooks'
 import { ClickableTamaguiStyle } from 'theme/components/styles'
@@ -120,6 +121,7 @@ function PositionPage({ chainId }: { chainId: EVMUniverseChainId | undefined }) 
   const tokenId = parseTokenId(tokenIdFromUrl)
   const chainInfo = chainId ? getChainInfo(chainId) : undefined
   const account = useAccount()
+  const activeSmartPool = useActiveSmartPool()
   const supportedAccountChainId = useSupportedChainId(account.chainId)
   const { pathname } = useLocation()
   const {
@@ -127,7 +129,7 @@ function PositionPage({ chainId }: { chainId: EVMUniverseChainId | undefined }) 
     isLoading: positionLoading,
     refetch,
   } = useGetPositionQuery({
-    owner: account.address ?? ZERO_ADDRESS,
+    owner: activeSmartPool.address ?? ZERO_ADDRESS,
     protocolVersion: pathname.includes('v3')
       ? ProtocolVersion.V3
       : pathname.includes('v4')
@@ -317,7 +319,7 @@ function PositionPage({ chainId }: { chainId: EVMUniverseChainId | undefined }) 
 
   const isOwner = areAddressesEqual({
     addressInput1: { address: positionInfo.owner, chainId: positionInfo.chainId },
-    addressInput2: { address: account.address, chainId: supportedAccountChainId ?? positionInfo.chainId },
+    addressInput2: { address: activeSmartPool.address, chainId: supportedAccountChainId ?? positionInfo.chainId },
   })
 
   return (

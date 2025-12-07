@@ -231,6 +231,7 @@ function useDropdownOptions({
   ])
 }
 
+// TODO: see why "Position" field is empty when other token is GRG
 export function LiquidityPositionCard({
   liquidityPosition,
   isMiniVersion,

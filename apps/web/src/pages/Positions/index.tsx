@@ -23,6 +23,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { FixedSizeList } from 'react-window'
+import { useActiveSmartPool } from 'state/application/hooks'
 import { usePendingLPTransactionsChangeListener } from 'state/transactions/hooks'
 import { useRequestPositionsForSavedPairs } from 'state/user/hooks'
 import { ClickableTamaguiStyle } from 'theme/components/styles'
@@ -289,9 +290,14 @@ function VirtualizedPositionsList({
 export default function Pool() {
   const account = useAccount()
   const { t } = useTranslation()
-  const { address, isConnected } = account
+  const { isConnected } = account
+  const activeSmartPool = useActiveSmartPool()
 
-  const isLPIncentivesEnabled = useFeatureFlag(FeatureFlags.LpIncentives) && isConnected
+  // Use smart pool address instead of user address for LP positions
+  const address = activeSmartPool.address ?? undefined
+
+  // TODO: check if could modify to display GRG unclaimed rewards, and move to another page
+  const isLPIncentivesEnabled = false //useFeatureFlag(FeatureFlags.LpIncentives) && isConnected
 
   const [chainFilter, setChainFilter] = useAtom(chainFilterAtom)
   const { chains: currentModeChains } = useEnabledChains()
