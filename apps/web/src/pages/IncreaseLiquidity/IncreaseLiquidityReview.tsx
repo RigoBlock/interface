@@ -56,9 +56,7 @@ export function IncreaseLiquidityReview({ onClose }: { onClose: () => void }) {
 
   // we override permit as rigoblock automatically sets permit2 approval
   txInfo && (txInfo.permit = undefined)
-  txInfo?.txRequest?.from && account?.address && (txInfo.txRequest.to = account.address)
-  txInfo?.txRequest && (txInfo.txRequest.from = signer.address)
-  // TODO: verify add 100k to gas limit
+  // Notice:we add 100k extra gas for Rigoblock gas overhead safety margin
   txInfo?.txRequest?.gasLimit &&
     (txInfo.txRequest.gasLimit = BigNumber.from(txInfo.txRequest.gasLimit).add(100000).toString())
 

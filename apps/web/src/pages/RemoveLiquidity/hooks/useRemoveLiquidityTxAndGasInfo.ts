@@ -6,6 +6,8 @@ import JSBI from 'jsbi'
 import { useRemoveLiquidityModalContext } from 'pages/RemoveLiquidity/RemoveLiquidityModalContext'
 import type { RemoveLiquidityTxInfo } from 'pages/RemoveLiquidity/RemoveLiquidityTxContext'
 import { useEffect, useMemo, useState } from 'react'
+import { useActiveSmartPool } from 'state/application/hooks'
+import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
 import { useCheckLpApprovalQuery } from 'uniswap/src/data/apiClients/tradingApi/useCheckLpApprovalQuery'
 import { useDecreaseLpPositionCalldataQuery } from 'uniswap/src/data/apiClients/tradingApi/useDecreaseLpPositionCalldataQuery'
 import { toSupportedChainId } from 'uniswap/src/features/chains/utils'
@@ -24,6 +26,7 @@ export function useRemoveLiquidityTxAndGasInfo({ account }: { account?: string }
     customDeadline: s.customDeadline,
     customSlippageTolerance: s.customSlippageTolerance,
   }))
+  const activeSmartPool = useActiveSmartPool()
 
   const [transactionError, setTransactionError] = useState<string | boolean>(false)
 
@@ -85,11 +88,11 @@ export function useRemoveLiquidityTxAndGasInfo({ account }: { account?: string }
     }
 
     return {
-      simulateTransaction: !approvalsNeeded,
+      simulateTransaction: false, //!approvalsNeeded,
       protocol: apiProtocolItems,
       tokenId: positionInfo.tokenId ? Number(positionInfo.tokenId) : undefined,
       chainId: positionInfo.currency0Amount.currency.chainId,
-      walletAddress: account,
+      walletAddress: activeSmartPool.address ?? undefined,
       liquidityPercentageToDecrease: Number(percent),
       liquidity0:
         positionInfo.version === ProtocolVersion.V2 ? positionInfo.currency0Amount.quotient.toString() : undefined,
@@ -164,6 +167,13 @@ export function useRemoveLiquidityTxAndGasInfo({ account }: { account?: string }
       message,
     })
   }
+
+  decreaseCalldata && decreaseCalldata.decrease && (
+    decreaseCalldata.decrease.from = account ?? ZERO_ADDRESS
+  )
+  decreaseCalldata && decreaseCalldata.decrease && (
+    decreaseCalldata.decrease.to = activeSmartPool.address ?? ZERO_ADDRESS
+  )
 
   const { value: estimatedGasFee } = useTransactionGasFee({
     tx: decreaseCalldata?.decrease,

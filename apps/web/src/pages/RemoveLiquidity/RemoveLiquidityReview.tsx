@@ -125,10 +125,7 @@ export function RemoveLiquidityReview({ onClose }: { onClose: () => void }) {
   const currency0CurrencyInfo = useCurrencyInfo(currency0Amount.currency)
   const currency1CurrencyInfo = useCurrencyInfo(currency1Amount.currency)
 
-  // we override the from and to addresses, as we want to route from the signer to the wallet
-  txContext?.txRequest.from && signer?.address && (txContext.txRequest.from = signer.address)
-  txContext?.txRequest.to && account?.address && (txContext.txRequest.to = account.address)
-  // TODO: verify add 100k to gas limit
+  // Notice: we add 100k extra gas for Rigoblock gas overhead safety margin
   txContext?.txRequest.gasLimit &&
     (txContext.txRequest.gasLimit = BigNumber.from(txContext.txRequest.gasLimit).add(100000).toString())
 

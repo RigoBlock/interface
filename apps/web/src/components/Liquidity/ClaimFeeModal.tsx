@@ -11,6 +11,7 @@ import { useModalState } from 'hooks/useModalState'
 import useSelectChain from 'hooks/useSelectChain'
 import { Dispatch, SetStateAction, useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
+import { useActiveSmartPool } from 'state/application/hooks'
 import { useAppDispatch } from 'state/hooks'
 import { liquiditySaga } from 'state/sagas/liquidity/liquiditySaga'
 import { Button, Flex, Switch, Text } from 'ui/src'
@@ -122,6 +123,7 @@ export function ClaimFeeModal() {
   const { isSignedInWithPasskey, isSessionAuthenticated, needsPasskeySignin } = useGetPasskeyAuthStatus(
     connectedAccount.connector?.id,
   )
+  const activeSmartPool = useActiveSmartPool()
 
   const claimLpFeesParams = useMemo(() => {
     if (!positionInfo || !currency0 || !currency1) {
@@ -129,10 +131,10 @@ export function ClaimFeeModal() {
     }
 
     return {
-      simulateTransaction: true,
+      simulateTransaction: false,
       protocol: getProtocolItems(positionInfo.version),
       tokenId: positionInfo.tokenId ? Number(positionInfo.tokenId) : undefined,
-      walletAddress: account?.address,
+      walletAddress: activeSmartPool.address ?? undefined,
       chainId: positionInfo.currency0Amount.currency.chainId,
       position: {
         pool: {
@@ -168,6 +170,8 @@ export function ClaimFeeModal() {
     params: claimLpFeesParams,
     enabled: Boolean(claimLpFeesParams),
   })
+  data && data.claim && (data.claim.from = account?.address ?? ZERO_ADDRESS)
+  data && data.claim && (data.claim.to = activeSmartPool.address ?? ZERO_ADDRESS)
 
   // prevent logging of the empty error object for now since those are burying signals
   if (error && Object.keys(error).length > 0) {
