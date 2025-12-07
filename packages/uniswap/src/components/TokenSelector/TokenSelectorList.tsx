@@ -20,6 +20,8 @@ import { useLocalizationContext } from 'uniswap/src/features/language/Localizati
 import { getTokenWarningSeverity } from 'uniswap/src/features/tokens/safetyUtils'
 import { useDismissedBridgedAssetWarnings, useDismissedTokenWarnings } from 'uniswap/src/features/tokens/slice/hooks'
 import TokenWarningModal from 'uniswap/src/features/tokens/TokenWarningModal'
+import { GRG } from 'uniswap/src/constants/tokens'
+import { getTokenLogoURI } from 'uniswap/src/constants/routing'
 import { CurrencyId } from 'uniswap/src/types/currency'
 import { NumberType } from 'utilities/src/format/types'
 import { DDRumManualTiming } from 'utilities/src/logger/datadog/datadogEvents'
@@ -46,6 +48,24 @@ const TokenOptionItem = memo(function _TokenOptionItem({
   onSelectCurrency: OnSelectCurrency
 }): JSX.Element {
   const { currencyInfo } = tokenOption
+
+  // Override GRG token display on Unichain to show correct name
+  const isGrgOnUnichain = 
+    currencyInfo.currency.chainId === UniverseChainId.Unichain &&
+    GRG[UniverseChainId.Unichain] &&
+    currencyInfo.currency.isToken &&
+    currencyInfo.currency.address?.toLowerCase() === GRG[UniverseChainId.Unichain].address.toLowerCase()
+
+  if (isGrgOnUnichain && GRG[UniverseChainId.Unichain] && GRG[UniverseChainId.Mainnet]) {
+    // Get the proper logo URL using the exported getTokenLogoURI function
+    // Use mainnet GRG address for the logo since that's the canonical source
+    const mainnetGrgAddress = GRG[UniverseChainId.Mainnet].address
+    const logoResult = getTokenLogoURI(UniverseChainId.Mainnet, mainnetGrgAddress)
+    // Only use string URLs, not ImageSourcePropType (numbers)
+    const logoUrl = typeof logoResult === 'string' ? logoResult : undefined
+    
+    tokenOption.currencyInfo.logoUrl = logoUrl
+  }
 
   const onPress = useCallback(
     () => onSelectCurrency(currencyInfo, section, index),

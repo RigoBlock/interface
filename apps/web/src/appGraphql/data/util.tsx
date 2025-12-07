@@ -137,13 +137,13 @@ export function getTokenDetailsURL({
   return `/explore/tokens/${chainName}/${tokenAddress}${inputAddressSuffix}${outputAddressSuffix}`
 }
 
-export function getPoolDetailsURL(address: string, chain: Chain) {
+export function getPoolDetailsURL(address: string, chain: GqlChainId) {
   const chainName = chain.toLowerCase()
   return `/explore/pools/${chainName}/${address}`
 }
 
 // TODO: define smart vault url by chain
-export function getSmartPoolDetailsURL(address: string, chain: Chain) {
+export function getSmartPoolDetailsURL(address: string, chain: GqlChainId) {
   const chainName = chain.toLowerCase()
   return chainName ? `/smart-pool/${address}` : `/smart-pool/${address}`
 }

@@ -45,10 +45,14 @@ const CURRENCY_CACHE = new Map<string, Token | NativeCurrency | undefined>()
  */
 // eslint-disable-next-line complexity
 export function buildCurrency(args: BuildCurrencyParams): Token | NativeCurrency | undefined {
-  const { chainId, address, decimals, symbol, name, bypassChecksum = true, buyFeeBps, sellFeeBps } = args
+  let { chainId, address, decimals, symbol, name, bypassChecksum = true, buyFeeBps, sellFeeBps } = args
 
   if (!chainId || decimals === undefined || decimals === null) {
     return undefined
+  }
+
+  if (chainId === UniverseChainId.Unichain && name && name === 'Rigo Token') {
+    name = 'RigoBlock'
   }
 
   const cacheKey = JSON.stringify(
@@ -88,6 +92,7 @@ export function buildCurrency(args: BuildCurrencyParams): Token | NativeCurrency
       })
     }
   } else {
+    // TODO: can we remove buyFeeBps/sellFeeBps from here and just set them on the Token after building it?
     const buyFee = buyFeeBps && BigNumber.from(buyFeeBps).gt(0) ? BigNumber.from(buyFeeBps) : undefined
     const sellFee = sellFeeBps && BigNumber.from(sellFeeBps).gt(0) ? BigNumber.from(sellFeeBps) : undefined
 
