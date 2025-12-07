@@ -136,10 +136,10 @@ export function LiquidityPositionInfoBadges({
             {icon}
             {copyable ? (
               <CopyHelper toCopy={label} iconSize={12} iconPosition="right">
-                {displayLabel}
+                <Text>{displayLabel}</Text>
               </CopyHelper>
             ) : (
-              displayLabel
+              <Text>{displayLabel}</Text>
             )}
             {iconAfter}
           </PositionInfoBadge>

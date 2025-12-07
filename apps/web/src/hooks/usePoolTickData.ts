@@ -38,6 +38,11 @@ function getActiveTick({
 }
 
 const MAX_TICK_FETCH_VALUE = 1000
+
+// Simple cache to prevent rapid repeated calls
+const queryCache = new Map<string, { data: any; timestamp: number }>()
+const CACHE_DURATION = 2000 // 2 seconds
+
 function usePaginatedTickQuery({
   poolId,
   version,
@@ -52,6 +57,21 @@ function usePaginatedTickQuery({
   const { defaultChainId } = useEnabledChains()
   const supportedChainId = useSupportedChainId(chainId)
 
+  // Create cache key
+  const cacheKey = useMemo(() => 
+    `${version}-${poolId}-${supportedChainId || defaultChainId}-${skip}`,
+    [version, poolId, supportedChainId, defaultChainId, skip]
+  )
+
+  // Check if we have a recent cached result
+  const shouldSkipDueToCache = useMemo(() => {
+    const cached = queryCache.get(cacheKey)
+    if (!cached) return false
+    
+    const isRecent = (Date.now() - cached.timestamp) < CACHE_DURATION
+    return isRecent
+  }, [cacheKey])
+
   const v3Result = GraphQLApi.useAllV3TicksQuery({
     variables: {
       address: normalizeAddress(poolId ?? '', AddressStringFormat.Lowercase),
@@ -59,8 +79,12 @@ function usePaginatedTickQuery({
       skip,
       first: MAX_TICK_FETCH_VALUE,
     },
-    skip: !poolId || version !== ProtocolVersion.V3,
+    skip: !poolId || version !== ProtocolVersion.V3 || shouldSkipDueToCache,
     pollInterval: ms(`30s`),
+    onCompleted: (data) => {
+      // Cache successful results
+      queryCache.set(cacheKey, { data, timestamp: Date.now() })
+    }
   })
 
   const v4Result = GraphQLApi.useAllV4TicksQuery({
@@ -70,11 +94,21 @@ function usePaginatedTickQuery({
       skip,
       first: MAX_TICK_FETCH_VALUE,
     },
-    skip: !poolId || version !== ProtocolVersion.V4,
+    skip: !poolId || version !== ProtocolVersion.V4 || shouldSkipDueToCache,
     pollInterval: ms(`30s`),
+    onCompleted: (data) => {
+      // Cache successful results
+      queryCache.set(cacheKey, { data, timestamp: Date.now() })
+    }
   })
 
   return useMemo(() => {
+    // Check cache first
+    const cached = queryCache.get(cacheKey)
+    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+      return { data: cached.data, loading: false, error: null }
+    }
+
     if (version === ProtocolVersion.V3) {
       return v3Result
     } else if (version === ProtocolVersion.V4) {
@@ -85,7 +119,7 @@ function usePaginatedTickQuery({
       error: new Error('Invalid version'),
       loading: false,
     }
-  }, [v3Result, v4Result, version])
+  }, [v3Result, v4Result, version, cacheKey])
 }
 
 // Fetches all ticks for a given pool

@@ -93,6 +93,7 @@ export function useFilterPossiblyMaliciousPositions(positions: PositionDetails[]
           return undefined
         }
 
+        // check if GRG position passes the following block
         const { currency0Info, currency1Info, position } = result.data
         let tokensInListCount = 0
         if (!currency0Info?.isSpam && currency0Info?.safetyInfo?.tokenList === TokenList.Default) {
