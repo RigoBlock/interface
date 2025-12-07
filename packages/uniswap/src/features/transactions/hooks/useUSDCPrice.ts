@@ -10,8 +10,16 @@ import { areCurrencyIdsEqual, currencyId } from 'uniswap/src/utils/currencyId'
 
 const SONEIUM_AMOUNT_OVERRIDE = 30
 const DEFAULT_STABLECOIN_AMOUNT_OUT = 1000
-function getStablecoinAmountOut(chainId: UniverseChainId): CurrencyAmount<Token> {
+const GRG_AMOUNT_OVERRIDE = 10 // Use smaller amount for GRG tokens due to liquidity constraints
+
+function getStablecoinAmountOut(chainId: UniverseChainId, currency?: Currency): CurrencyAmount<Token> {
   const primaryStablecoin = getPrimaryStablecoin(chainId)
+
+  // Special override for GRG tokens - use smaller amount due to liquidity constraints
+  if (currency?.symbol === 'GRG') {
+    const amount = GRG_AMOUNT_OVERRIDE * Math.pow(10, primaryStablecoin.decimals)
+    return CurrencyAmount.fromRawAmount(primaryStablecoin, amount)
+  }
 
   if (chainId === UniverseChainId.Soneium) {
     const amount = SONEIUM_AMOUNT_OVERRIDE * Math.pow(10, primaryStablecoin.decimals)
@@ -36,8 +44,8 @@ export function useUSDCPrice(
   const chainId = currency?.chainId
 
   const quoteAmount = useMemo(
-    () => (isUniverseChainId(chainId) ? getStablecoinAmountOut(chainId) : undefined),
-    [chainId],
+    () => (isUniverseChainId(chainId) ? getStablecoinAmountOut(chainId, currency) : undefined),
+    [chainId, currency],
   )
   const stablecoin = quoteAmount?.currency
 

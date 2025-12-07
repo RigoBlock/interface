@@ -1,17 +1,29 @@
+/* eslint-disable max-params */
+
 import { PortfolioTab } from 'pages/Portfolio/types'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { getChainUrlParam } from 'utils/chainParams'
 
 /**
- * Builds a portfolio URL with optional chain parameter
+ * Builds a portfolio URL with optional chain and pool parameters
  * @param tab - The portfolio tab to navigate to
  * @param chainId - Optional chain ID to include in the URL
- * @returns The complete portfolio URL with chain parameter if provided
+ * @param poolAddress - Optional pool address to view portfolio for specific pool
+ * @returns The complete portfolio URL with parameters if provided
  */
-export function buildPortfolioUrl(tab: PortfolioTab | undefined, chainId: UniverseChainId | undefined): string {
+export function buildPortfolioUrl(
+  tab: PortfolioTab | undefined, 
+  chainId: UniverseChainId | undefined,
+  poolAddress?: string
+): string {
   const chainUrlParam = chainId ? getChainUrlParam(chainId) : ''
   const currentPath = tab === PortfolioTab.Overview ? '/portfolio' : `/portfolio/${tab}`
-  return `${currentPath}${chainId ? `?chain=${chainUrlParam}` : ''}`
+  
+  const params: string[] = []
+  if (chainId) params.push(`chain=${chainUrlParam}`)
+  if (poolAddress) params.push(`pool=${poolAddress}`)
+  
+  return `${currentPath}${params.length > 0 ? `?${params.join('&')}` : ''}`
 }
 
 /**

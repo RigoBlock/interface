@@ -33,7 +33,6 @@ import { useCurrencyBalancesMultipleAccounts } from 'state/connection/hooks'
 import { usePoolIdByAddress } from 'state/governance/hooks'
 import { useFreeStakeBalance, useUnclaimedRewards } from 'state/stake/hooks'
 import { ThemedText } from 'theme/components'
-import { ExternalLink } from 'theme/components/Links'
 import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
@@ -125,9 +124,6 @@ const ResponsiveButtonPrimary = styled(ButtonPrimary)`
     width: 49%;
   `};
 `
-function getZapperLink(data: string): string {
-  return `https://zapper.xyz/account/${data}`
-}
 
 export default function PoolPositionPage() {
   const {
@@ -452,11 +448,11 @@ export default function PoolPositionPage() {
                 </ThemedText.DeprecatedLabel>
               </RowFixed>
               {poolAddressFromUrl && (
-                <ExternalLink href={getZapperLink(poolAddressFromUrl)}>
+                <Link to={`/portfolio?pool=${poolAddressFromUrl}`}>
                   <RowFixed>
-                    <ThemedText.DeprecatedMain>Pool Data ↗</ThemedText.DeprecatedMain>
+                    <ThemedText.DeprecatedMain>Vault Portfolio →</ThemedText.DeprecatedMain>
                   </RowFixed>
-                </ExternalLink>
+                </Link>
               )}
               <RowFixed>
                 <ResponsiveButtonPrimary

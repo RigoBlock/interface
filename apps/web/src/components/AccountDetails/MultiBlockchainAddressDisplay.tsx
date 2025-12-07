@@ -2,6 +2,8 @@ import StatusIcon from 'components/StatusIcon'
 import { useAccountsStore, useActiveAddresses } from 'features/accounts/store/hooks'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router'
+import { useActiveSmartPool } from 'state/application/hooks'
 import { CopyHelper } from 'theme/components/CopyHelper'
 import { EllipsisTamaguiStyle } from 'theme/components/styles'
 import { Flex, Text } from 'ui/src'
@@ -143,7 +145,10 @@ function TooltipAccountRow({ account }: { account: AccountItem }) {
 
 export function MultiBlockchainAddressDisplay({ hideAddressInSubtitle }: { hideAddressInSubtitle?: boolean }) {
   const activeAddresses = useActiveAddresses()
-  const evmAddress = activeAddresses.evmAddress
+  const activeSmartPool = useActiveSmartPool()
+  const [searchParams] = useSearchParams()
+  const pooladdressParam = searchParams.get('pool')
+  const evmAddress = pooladdressParam ?? activeSmartPool.address ?? activeAddresses.evmAddress
   const { data: ensName } = useENSName(evmAddress)
   const { data: unitagData } = useUnitagsAddressQuery({
     params: evmAddress ? { address: evmAddress } : undefined,

@@ -55,6 +55,7 @@ export const MiniPoolsTable = memo(function MiniPoolsTable({ account, maxPools =
     skipQuery,
   )
 
+  // TODO: order by USD value if possible at this layer
   // Parse and limit the number of positions displayed
   const limitedPositions = useMemo(() => {
     if (!data?.positions) {

@@ -112,6 +112,7 @@ export default function AuthenticatedHeader({
     accountDrawer.close()
   }, [uniswapExtensionRequest, accountDrawer])
 
+  // TODO: check if it intended that MultiBlockchainAddressDisplay displays the smart pool address when passed as url search param or active smart pool
   return (
     <>
       <Flex flex={1} px="$padding16" py={shouldShowExtensionDeeplinks ? '$spacing16' : '$spacing20'}>
