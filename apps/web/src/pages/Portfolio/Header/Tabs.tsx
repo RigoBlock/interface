@@ -26,7 +26,7 @@ function getTabElementName(pageName: InterfacePageName): ElementName {
 
 export function PortfolioTabs() {
   const { pathname } = useLocation()
-  const { chainId } = usePortfolioRoutes()
+  const { chainId, address } = usePortfolioRoutes()
   const portfolioTabs = usePortfolioTabs()
 
   return (
@@ -34,7 +34,7 @@ export function PortfolioTabs() {
       <Flex row gap="$spacing24" $sm={{ gap: '$spacing12', justifyContent: 'space-around' }}>
         {portfolioTabs.map((tab: PortfolioTabInfo) => {
           const portfolioTab = pathToPortfolioTab(tab.path)
-          const tabPath = buildPortfolioUrl(portfolioTab, chainId)
+          const tabPath = buildPortfolioUrl(portfolioTab, chainId, address)
           const currentPage = getCurrentPageFromLocation(pathname)
           const isActive = currentPage === tab.pageName
           const elementName = getTabElementName(tab.pageName)

@@ -10,6 +10,7 @@ export function usePortfolioRoutes(): {
   tab?: PortfolioTab
   chainName?: string
   chainId?: UniverseChainId
+  address?: string
 } {
   const { pathname } = useLocation()
   const [searchParams] = useSearchParams()
@@ -31,5 +32,8 @@ export function usePortfolioRoutes(): {
   const chainName = chainNameParam && isChainUrlParam(chainNameParam) ? chainNameParam : undefined
   const chainId = chainName ? getChainIdFromChainUrlParam(chainName) : undefined
 
-  return { tab, chainName, chainId }
+  // Get address from query parameters (for viewing specific address portfolios)
+  const address = searchParams.get('address') || undefined
+
+  return { tab, chainName, chainId, address }
 }

@@ -80,6 +80,7 @@ export function MoreActionTile({ padding = '$spacing12' }: { padding?: FlexProps
         </InternalMenuItem>
       </Trace>
 
+      {/* Temporarily hidden - Limit orders don't work properly with smart pools
       <Trace logPress element={ElementName.PortfolioActionLimit}>
         <InternalMenuItem onPress={onPressLimit}>
           <Flex row alignItems="center" gap="$gap8">
@@ -88,6 +89,7 @@ export function MoreActionTile({ padding = '$spacing12' }: { padding?: FlexProps
           </Flex>
         </InternalMenuItem>
       </Trace>
+      */}
 
       <Trace logPress element={ElementName.PortfolioActionPosition}>
         <InternalMenuItem onPress={onPressCreatePool}>

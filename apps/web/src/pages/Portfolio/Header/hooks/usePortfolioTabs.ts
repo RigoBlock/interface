@@ -19,10 +19,11 @@ export function usePortfolioTabs(): PortfolioTabInfo[] {
       ? [{ path: '/portfolio/defi', pageName: InterfacePageName.PortfolioDefiPage, label: t('portfolio.defi.title') }]
       : []),
     { path: '/portfolio/nfts', pageName: InterfacePageName.PortfolioNftsPage, label: t('portfolio.nfts.title') },
-    {
-      path: '/portfolio/activity',
-      pageName: InterfacePageName.PortfolioActivityPage,
-      label: t('portfolio.activity.title'),
-    },
+    // Temporarily hidden - Activity API doesn't support smart pools properly
+    // {
+    //   path: '/portfolio/activity',
+    //   pageName: InterfacePageName.PortfolioActivityPage,
+    //   label: t('portfolio.activity.title'),
+    // },
   ]
 }

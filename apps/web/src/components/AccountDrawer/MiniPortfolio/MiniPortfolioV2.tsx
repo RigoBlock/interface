@@ -74,11 +74,13 @@ export default function MiniPortfolioV2({ evmAddress, svmAddress }: { evmAddress
         <Flex gap="$spacing0">{recentActivityItems}</Flex>
       </Flex>
 
+      {/* Temporarily hidden - Activity API doesn't support smart pools properly
       <ViewAllButton
         label={t('portfolio.overview.activity.table.viewAllActivity')}
         elementName={ElementName.PortfolioViewAllActivity}
         onPress={handleViewActivity}
       />
+      */}
     </Flex>
   )
 }
