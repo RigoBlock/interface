@@ -4,26 +4,26 @@ import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { EditLabelModal } from 'src/app/features/accounts/EditLabelModal'
 import { removeAllDappConnectionsForAccount } from 'src/app/features/dapp/actions'
-import { AppRoutes, SettingsRoutes } from 'src/app/navigation/constants'
-import { useExtensionNavigation } from 'src/app/navigation/utils'
+import { AppRoutes, SettingsRoutes, UnitagClaimRoutes } from 'src/app/navigation/constants'
+import { focusOrCreateUnitagTab, useExtensionNavigation } from 'src/app/navigation/utils'
 import { Flex, Text, TouchableArea } from 'ui/src'
 import { CopySheets, Edit, Ellipsis, Globe, TrashFilled } from 'ui/src/components/icons'
 import { iconSizes } from 'ui/src/theme'
-import { WarningModal } from 'uniswap/src/components/modals/WarningModal/WarningModal'
+import { AddressDisplay } from 'uniswap/src/components/accounts/AddressDisplay'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
+import { WarningModal } from 'uniswap/src/components/modals/WarningModal/WarningModal'
+import { DisplayNameType } from 'uniswap/src/features/accounts/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { pushNotification } from 'uniswap/src/features/notifications/slice'
-import { AppNotificationType, CopyNotificationType } from 'uniswap/src/features/notifications/types'
+import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
+import { AppNotificationType, CopyNotificationType } from 'uniswap/src/features/notifications/slice/types'
 import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { setClipboard } from 'uniswap/src/utils/clipboard'
 import { NumberType } from 'utilities/src/format/types'
-import { AddressDisplay } from 'wallet/src/components/accounts/AddressDisplay'
 import { ContextMenu } from 'wallet/src/components/menu/ContextMenu'
 import { MenuContentItem } from 'wallet/src/components/menu/types'
 import { EditAccountAction, editAccountActions } from 'wallet/src/features/wallet/accounts/editAccountSaga'
-import { useActiveAccountWithThrow, useDisplayName, useSignerAccounts } from 'wallet/src/features/wallet/hooks'
-import { DisplayNameType } from 'wallet/src/features/wallet/types'
+import { useDisplayName, useSignerAccounts } from 'wallet/src/features/wallet/hooks'
 
 type AccountItemProps = {
   address: Address
@@ -42,13 +42,9 @@ export function AccountItem({ address, onAccountSelect, balanceUSD }: AccountIte
 
   const [showEditLabelModal, setShowEditLabelModal] = useState(false)
 
-  const displayName = useDisplayName(address)
-
   const accounts = useSignerAccounts()
-  const activeAccount = useActiveAccountWithThrow()
-  const activeAccountDisplayName = useDisplayName(activeAccount.address)
-  const accountAddress = useDisplayName(address)
-  const activeAccountHasUnitag = accountAddress?.type === DisplayNameType.Unitag
+  const displayName = useDisplayName(address)
+  const accountHasUnitag = displayName?.type === DisplayNameType.Unitag
 
   const [showRemoveWalletModal, setShowRemoveWalletModal] = useState(false)
 
@@ -98,16 +94,20 @@ export function AccountItem({ address, onAccountSelect, balanceUSD }: AccountIte
         Icon: CopySheets,
       },
       {
-        label: !activeAccountHasUnitag
+        label: !accountHasUnitag
           ? t('account.wallet.menu.edit.title')
           : t('settings.setting.wallet.action.editProfile'),
-        onPress: (e: BaseSyntheticEvent): void => {
+        onPress: async (e: BaseSyntheticEvent): Promise<void> => {
           // We have to manually prevent click-through because the way the context menu is inside of a TouchableArea in this component it
           // means that without it the TouchableArea handler will get called
           e.preventDefault()
           e.stopPropagation()
 
-          setShowEditLabelModal(true)
+          if (accountHasUnitag) {
+            await focusOrCreateUnitagTab(address, UnitagClaimRoutes.EditProfile)
+          } else {
+            setShowEditLabelModal(true)
+          }
         },
         Icon: Edit,
       },
@@ -119,7 +119,7 @@ export function AccountItem({ address, onAccountSelect, balanceUSD }: AccountIte
           e.preventDefault()
           e.stopPropagation()
 
-          navigateTo(`${AppRoutes.Settings}/${SettingsRoutes.ManageConnections}`)
+          navigateTo(`/${AppRoutes.Settings}/${SettingsRoutes.ManageConnections}`)
         },
         Icon: Globe,
       },
@@ -138,14 +138,12 @@ export function AccountItem({ address, onAccountSelect, balanceUSD }: AccountIte
         iconProps: { color: '$statusCritical' },
       },
     ]
-  }, [activeAccountHasUnitag, onPressCopyAddress, navigateTo, t])
+  }, [accountHasUnitag, onPressCopyAddress, navigateTo, t, address])
 
   return (
     <>
       <WarningModal
-        caption={t('account.recoveryPhrase.remove.mnemonic.description', {
-          walletNames: [activeAccountDisplayName?.name ?? ''],
-        })}
+        caption={t('account.recoveryPhrase.remove.mnemonic.description')}
         rejectText={t('common.button.cancel')}
         acknowledgeText={t('common.button.continue')}
         icon={<TrashFilled color="$statusCritical" size="$icon.24" strokeWidth="$spacing1" />}
@@ -162,9 +160,7 @@ export function AccountItem({ address, onAccountSelect, balanceUSD }: AccountIte
         backgroundColor="$surface1"
         borderRadius="$rounded16"
         cursor="pointer"
-        pt="$padding20"
-        pb="$spacing12"
-        px="$spacing12"
+        p="$padding12"
         onPress={onAccountSelect}
       >
         <Flex centered fill group row gap="$spacing8" justifyContent="space-between">
@@ -186,9 +182,8 @@ export function AccountItem({ address, onAccountSelect, balanceUSD }: AccountIte
                 hoverStyle={{ backgroundColor: '$surface2Hovered' }}
                 opacity={0}
                 position="absolute"
-                p="$spacing4"
+                p="$spacing8"
                 right={0}
-                top={0}
               >
                 <Ellipsis color="$neutral2" size="$icon.16" />
               </Flex>

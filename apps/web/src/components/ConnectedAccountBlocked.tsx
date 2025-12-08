@@ -1,11 +1,13 @@
 import Column from 'components/deprecated/Column'
-import styled, { useTheme } from 'lib/styled-components'
+import { useModalInitialState } from 'hooks/useModalInitialState'
+import { ModalState } from 'hooks/useModalState'
+import { styled } from 'lib/styled-components'
 import { Slash } from 'react-feather'
 import { Trans } from 'react-i18next'
 import { ThemedText } from 'theme/components'
 import { CopyHelper } from 'theme/components/CopyHelper'
 import { ExternalLink } from 'theme/components/Links'
-import { Flex, Text } from 'ui/src'
+import { Flex, Text, useSporeColors } from 'ui/src'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 
@@ -15,22 +17,21 @@ const ContentWrapper = styled(Column)`
   text-align: center;
   font-size: 12px;
 `
-interface ConnectedAccountBlockedProps {
-  account?: string | null
-  isOpen: boolean
-}
 
-export default function ConnectedAccountBlocked(props: ConnectedAccountBlockedProps) {
-  const theme = useTheme()
+export default function ConnectedAccountBlocked({ isOpen, closeModal }: ModalState) {
+  const colors = useSporeColors()
+
+  const blockedAddress = useModalInitialState(ModalName.BlockedAccount)?.blockedAddress
+
   return (
-    <Modal name={ModalName.AccountBlocked} isModalOpen={props.isOpen} onClose={Function.prototype()} padding={0}>
+    <Modal name={ModalName.AccountBlocked} isModalOpen={isOpen} onClose={closeModal} padding={0}>
       <ContentWrapper>
-        <Slash size="22px" color={theme.neutral2} />
+        <Slash size="22px" color={colors.neutral2.val} />
         <ThemedText.DeprecatedLargeHeader lineHeight={2} marginBottom={1} marginTop={1}>
           <Trans i18nKey="common.blockedAddress" />
         </ThemedText.DeprecatedLargeHeader>
         <Text color="$neutral2" fontSize={14} mb={12}>
-          {props.account}
+          {blockedAddress}
         </Text>
         <ThemedText.DeprecatedMain fontSize={12} marginBottom={12}>
           <Trans
@@ -44,13 +45,7 @@ export default function ConnectedAccountBlocked(props: ConnectedAccountBlockedPr
             components={{
               emailAddress: (
                 <Flex mt={12} alignItems="center">
-                  <CopyHelper
-                    toCopy="compliance@uniswap.org"
-                    fontSize={14}
-                    iconSize={16}
-                    color={theme.accent1}
-                    iconPosition="right"
-                  >
+                  <CopyHelper toCopy="compliance@uniswap.org" iconSize={16} color="$accent1" iconPosition="right">
                     compliance@uniswap.org
                   </CopyHelper>
                 </Flex>

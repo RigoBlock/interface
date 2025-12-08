@@ -1,9 +1,8 @@
+/* eslint-disable max-lines */
 import type { TransactionResponse } from '@ethersproject/providers'
-import { LiquidityEventName, LiquiditySource } from '@uniswap/analytics-events'
-import { ProtocolVersion } from '@uniswap/client-pools/dist/pools/v1/types_pb'
-import { CurrencyAmount, Fraction, Percent, Price, Token, V2_FACTORY_ADDRESSES, type Currency } from '@uniswap/sdk-core'
-import { FeeAmount, Pool, Position, TickMath, priceToClosestTick } from '@uniswap/v3-sdk'
-import Badge from 'components/Badge/Badge'
+import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
+import { type Currency, CurrencyAmount, Fraction, Percent, Price, Token, V2_FACTORY_ADDRESSES } from '@uniswap/sdk-core'
+import { FeeAmount, Pool, Position, priceToClosestTick, TickMath } from '@uniswap/v3-sdk'
 import { BlueCard, DarkGrayCard, LightCard, YellowCard } from 'components/Card/cards'
 import FeeSelector from 'components/FeeSelector'
 import FormattedCurrencyAmount from 'components/FormattedCurrencyAmount'
@@ -12,10 +11,8 @@ import CurrencyLogo from 'components/Logo/CurrencyLogo'
 import { DoubleCurrencyLogo } from 'components/Logo/DoubleLogo'
 import RangeSelector from 'components/RangeSelector'
 import RateToggle from 'components/RateToggle'
-import { V2Unsupported } from 'components/V2Unsupported'
-import { AutoColumn } from 'components/deprecated/Column'
-import { RowBetween } from 'components/deprecated/Row'
 import { Dots } from 'components/swap/styled'
+import { V2Unsupported } from 'components/V2Unsupported'
 import { useToken } from 'hooks/Tokens'
 import { useAccount } from 'hooks/useAccount'
 import { ApprovalState, useApproveCallback } from 'hooks/useApproveCallback'
@@ -28,42 +25,44 @@ import { useTotalSupply } from 'hooks/useTotalSupply'
 import { useGetTransactionDeadline } from 'hooks/useTransactionDeadline'
 import { useV2LiquidityTokenPermit } from 'hooks/useV2LiquidityTokenPermit'
 import JSBI from 'jsbi'
-import { useTheme } from 'lib/styled-components'
 import { BodyWrapper } from 'pages/App/AppBody'
 import MigrateV2SettingsTab from 'pages/MigrateV2/Settings'
 import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertCircle, AlertTriangle } from 'react-feather'
 import { Trans, useTranslation } from 'react-i18next'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useParams } from 'react-router'
 import { useTokenBalance } from 'state/connection/hooks'
 import { useAppDispatch } from 'state/hooks'
 import { Bound, resetMintState } from 'state/mint/v3/actions'
 import { useRangeHopCallbacks, useV3DerivedMintInfo, useV3MintActionHandlers } from 'state/mint/v3/hooks'
 import { useIsTransactionPending, useTransactionAdder } from 'state/transactions/hooks'
-import { TransactionType } from 'state/transactions/types'
 import { useUserSlippageToleranceWithDefault } from 'state/user/hooks'
-import { ThemedText } from 'theme/components'
 import { ExternalLink } from 'theme/components/Links'
-import { Button, Flex, Text, TouchableArea } from 'ui/src'
+import { Button, Flex, Text, TouchableArea, useSporeColors } from 'ui/src'
 import { Arrow } from 'ui/src/components/arrow/Arrow'
 import { iconSizes } from 'ui/src/theme'
+import Badge from 'uniswap/src/components/badge/Badge'
 import { WRAPPED_NATIVE_CURRENCY } from 'uniswap/src/constants/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import Trace from 'uniswap/src/features/telemetry/Trace'
-import { InterfacePageNameLocal } from 'uniswap/src/features/telemetry/constants'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { Platform } from 'uniswap/src/features/platforms/types/Platform'
+import { InterfacePageName, LiquidityEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
-import { useUSDCValue } from 'uniswap/src/features/transactions/swap/hooks/useUSDCPrice'
+import Trace from 'uniswap/src/features/telemetry/Trace'
+import { LiquiditySource } from 'uniswap/src/features/telemetry/types'
+import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'
+import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { getValidAddress } from 'uniswap/src/utils/addresses'
+import { currencyId } from 'uniswap/src/utils/currencyId'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
-import { isAddress } from 'utilities/src/addresses'
+import { HexString } from 'utilities/src/addresses/hex'
+import { NumberType } from 'utilities/src/format/types'
 import { logger } from 'utilities/src/logger/logger'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
 import { calculateGasMargin } from 'utils/calculateGasMargin'
-import { currencyId } from 'utils/currencyId'
-import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
 import { unwrappedToken } from 'utils/unwrappedToken'
 import { assume0xAddress } from 'utils/wagmi'
 import { useReadContract, useReadContracts } from 'wagmi'
-import { MigrateHeader } from '.'
 
 const ZERO = JSBI.BigInt(0)
 
@@ -144,9 +143,9 @@ const MIGRATE_V2_ABI = [
 
 function EmptyState({ message }: { message: ReactNode }) {
   return (
-    <AutoColumn style={{ minHeight: 200, justifyContent: 'center', alignItems: 'center' }}>
-      <ThemedText.DeprecatedBody>{message}</ThemedText.DeprecatedBody>
-    </AutoColumn>
+    <Flex alignItems="center" justifyContent="center" minHeight={200}>
+      <Text variant="body2">{message}</Text>
+    </Flex>
   )
 }
 
@@ -169,7 +168,7 @@ const TokenPairHeader = ({
           {children}
         </Text>
       </Flex>
-      <Badge>{badgeText}</Badge>
+      <Badge placement="only">{badgeText}</Badge>
     </Flex>
   )
 }
@@ -233,9 +232,10 @@ function V2PairMigration({
 }) {
   const { t } = useTranslation()
   const account = useAccount()
-  const theme = useTheme()
+  const colors = useSporeColors()
   const v2FactoryAddress = account.chainId ? V2_FACTORY_ADDRESSES[account.chainId] : undefined
   const trace = useTrace()
+  const { formatCurrencyAmount } = useLocalizationContext()
 
   const { data: pairFactory } = useReadContract({
     address: assume0xAddress(pairAddress),
@@ -275,7 +275,7 @@ function V2PairMigration({
 
   // set up v3 pool
   const [feeAmount, setFeeAmount] = useState(FeeAmount.MEDIUM)
-  const [poolState, pool] = usePool(token0, token1, feeAmount)
+  const [poolState, pool] = usePool({ currencyA: token0, currencyB: token1, feeAmount })
   const noLiquidity = poolState === PoolState.NOT_EXISTS
 
   // get spot prices + price difference
@@ -285,22 +285,23 @@ function V2PairMigration({
   )
   const v3SpotPrice = poolState === PoolState.EXISTS ? pool?.token0Price : undefined
 
-  let priceDifferenceFraction: Fraction | undefined =
-    v2SpotPrice && v3SpotPrice ? v3SpotPrice.divide(v2SpotPrice).subtract(1).multiply(100) : undefined
+  let priceDifferenceFraction: Fraction | undefined = v3SpotPrice
+    ? v3SpotPrice.divide(v2SpotPrice).subtract(1).multiply(100)
+    : undefined
   if (priceDifferenceFraction?.lessThan(ZERO)) {
     priceDifferenceFraction = priceDifferenceFraction.multiply(-1)
   }
 
-  const largePriceDifference = priceDifferenceFraction && !priceDifferenceFraction?.lessThan(JSBI.BigInt(2))
+  const largePriceDifference = priceDifferenceFraction && !priceDifferenceFraction.lessThan(JSBI.BigInt(2))
 
   // the following is a small hack to get access to price range data/input handlers
   const [baseToken, setBaseToken] = useState(token0)
-  const { ticks, pricesAtTicks, invertPrice, invalidRange, outOfRange, ticksAtLimit } = useV3DerivedMintInfo(
-    token0,
-    token1,
+  const { ticks, pricesAtTicks, invertPrice, invalidRange, outOfRange, ticksAtLimit } = useV3DerivedMintInfo({
+    currencyA: token0,
+    currencyB: token1,
     feeAmount,
-    baseToken,
-  )
+    baseCurrency: baseToken,
+  })
 
   // get value and prices at ticks
   const { [Bound.LOWER]: tickLower, [Bound.UPPER]: tickUpper } = ticks
@@ -390,7 +391,6 @@ function V2PairMigration({
       typeof tickLower !== 'number' ||
       typeof tickUpper !== 'number' ||
       !v3Amount0Min ||
-      !v3Amount1Min ||
       !account.chainId ||
       !networkSupportsV2
     ) {
@@ -459,10 +459,14 @@ function V2PairMigration({
         return migrator
           .multicall(data, { gasLimit: calculateGasMargin(gasEstimate) })
           .then((response: TransactionResponse) => {
-            sendAnalyticsEvent(LiquidityEventName.MIGRATE_LIQUIDITY_SUBMITTED, {
+            sendAnalyticsEvent(LiquidityEventName.MigrateLiquiditySubmitted, {
               ...getLPBaseAnalyticsProperties({
                 trace,
                 fee: feeAmount,
+                tickSpacing: undefined,
+                tickLower: undefined,
+                tickUpper: undefined,
+                hook: undefined,
                 currency0: token0,
                 currency1: token1,
                 poolId: pairAddress,
@@ -470,12 +474,12 @@ function V2PairMigration({
                 currency0AmountUsd: token0USD,
                 currency1AmountUsd: token1USD,
               }),
-              action: `${isNotUniswap ? LiquiditySource.SUSHISWAP : LiquiditySource.V2}->${LiquiditySource.V3}`,
+              action: `${isNotUniswap ? LiquiditySource.Sushiswap : LiquiditySource.V2}->${LiquiditySource.V3}`,
               transaction_hash: response.hash,
             })
 
             addTransaction(response, {
-              type: TransactionType.MIGRATE_LIQUIDITY_V2_TO_V3,
+              type: TransactionType.MigrateLiquidityV2ToV3,
               baseCurrencyId: currencyId(currency0),
               quoteCurrencyId: currencyId(currency1),
               isFork: isNotUniswap,
@@ -530,11 +534,11 @@ function V2PairMigration({
         >
           <ExternalLink
             key="migration-contract"
-            href={getExplorerLink(
-              account.chainId ?? UniverseChainId.Mainnet,
-              migrator?.address ?? '',
-              ExplorerDataType.ADDRESS,
-            )}
+            href={getExplorerLink({
+              chainId: account.chainId ?? UniverseChainId.Mainnet,
+              data: migrator?.address ?? '',
+              type: ExplorerDataType.ADDRESS,
+            })}
           >
             <Text color="$accent1" display="inline">
               <Trans i18nKey="migrate.contract" /> ↗
@@ -565,7 +569,7 @@ function V2PairMigration({
 
       <LightCard>
         <Flex gap="$spacing16">
-          <TokenPairHeader currency0={currency0} currency1={currency1} badgeText="v3">
+          <TokenPairHeader currency0={currency0} currency1={currency1} badgeText="V3">
             <Trans
               i18nKey="migrate.lpNFT"
               values={{
@@ -574,58 +578,52 @@ function V2PairMigration({
               }}
             />
           </TokenPairHeader>
-          <FeeSelector feeAmount={feeAmount} handleFeePoolSelect={setFeeAmount} />
+          <FeeSelector
+            feeAmount={feeAmount}
+            handleFeePoolSelect={setFeeAmount}
+            currencyA={currency0}
+            currencyB={currency1}
+          />
           {noLiquidity && (
             <BlueCard style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <AlertCircle color={theme.neutral1} style={{ marginBottom: '12px', opacity: 0.8 }} />
-              <ThemedText.DeprecatedBody
-                fontSize={14}
-                style={{ marginBottom: 8, fontWeight: 535, opacity: 0.8 }}
-                textAlign="center"
-              >
+              <AlertCircle color={colors.neutral1.val} style={{ marginBottom: '12px', opacity: 0.8 }} />
+              <Text variant="body3" opacity={0.8} mb="$spacing8" textAlign="center">
                 <Trans
                   i18nKey="migrate.firstLP"
                   values={{
                     source: isNotUniswap ? 'SushiSwap' : 'V2',
                   }}
                 />
-              </ThemedText.DeprecatedBody>
+              </Text>
 
-              <ThemedText.DeprecatedBody
-                fontWeight="$medium"
-                textAlign="center"
-                fontSize={14}
-                style={{ marginTop: '8px', opacity: 0.8 }}
-              >
+              <Text variant="body3" opacity={0.8} mt="$spacing8" textAlign="center">
                 <Trans i18nKey="migrate.highGasCost" />
-              </ThemedText.DeprecatedBody>
+              </Text>
 
-              {v2SpotPrice && (
-                <AutoColumn gap="sm" style={{ marginTop: '12px' }}>
-                  <RowBetween>
-                    <ThemedText.DeprecatedBody fontWeight={535} fontSize={14}>
-                      <Trans
-                        i18nKey="migrate.symbolPrice"
-                        values={{
-                          protocolName: isNotUniswap ? 'SushiSwap' : 'V2',
-                          tokenSymbol: invertPrice ? currency1.symbol : currency0.symbol,
-                        }}
-                      />{' '}
-                      {invertPrice
-                        ? `${v2SpotPrice?.invert()?.toSignificant(6)} ${currency0.symbol}`
-                        : `${v2SpotPrice?.toSignificant(6)} ${currency1.symbol}`}
-                    </ThemedText.DeprecatedBody>
-                  </RowBetween>
-                </AutoColumn>
-              )}
+              <Flex gap="$gap8" mt="$spacing12">
+                <Flex row justifyContent="space-between" alignItems="center">
+                  <Text variant="body2">
+                    <Trans
+                      i18nKey="migrate.symbolPrice"
+                      values={{
+                        protocolName: isNotUniswap ? 'SushiSwap' : 'V2',
+                        tokenSymbol: invertPrice ? currency1.symbol : currency0.symbol,
+                      }}
+                    />{' '}
+                    {invertPrice
+                      ? `${v2SpotPrice.invert().toSignificant(6)} ${currency0.symbol}`
+                      : `${v2SpotPrice.toSignificant(6)} ${currency1.symbol}`}
+                  </Text>
+                </Flex>
+              </Flex>
             </BlueCard>
           )}
 
           {largePriceDifference ? (
-            <YellowCard>
-              <AutoColumn gap="sm">
-                <RowBetween>
-                  <ThemedText.DeprecatedBody fontSize={14}>
+            <YellowCard overflow="hidden">
+              <Flex gap="$gap8">
+                <Flex row justifyContent="space-between" alignItems="center">
+                  <Text variant="body3">
                     <Trans
                       i18nKey="migrate.symbolPrice"
                       values={{
@@ -633,55 +631,62 @@ function V2PairMigration({
                         tokenSymbol: invertPrice ? currency1.symbol : currency0.symbol,
                       }}
                     />
-                  </ThemedText.DeprecatedBody>
-                  <ThemedText.DeprecatedBlack fontSize={14}>
+                  </Text>
+                  <Text variant="body3">
                     {invertPrice
-                      ? `${v2SpotPrice?.invert()?.toSignificant(6)} ${currency0.symbol}`
-                      : `${v2SpotPrice?.toSignificant(6)} ${currency1.symbol}`}
-                  </ThemedText.DeprecatedBlack>
-                </RowBetween>
+                      ? `${v2SpotPrice.invert().toSignificant(6)} ${currency0.symbol}`
+                      : `${v2SpotPrice.toSignificant(6)} ${currency1.symbol}`}
+                  </Text>
+                </Flex>
 
-                <RowBetween>
-                  <ThemedText.DeprecatedBody fontSize={14}>
+                <Flex row justifyContent="space-between" alignItems="center" overflow="hidden">
+                  <Text variant="body3">
                     V3 {invertPrice ? currency1.symbol : currency0.symbol} {t('common.price')}:
-                  </ThemedText.DeprecatedBody>
-                  <ThemedText.DeprecatedBlack fontSize={14}>
+                  </Text>
+                  <Text variant="body3">
                     {invertPrice
-                      ? `${v3SpotPrice?.invert()?.toSignificant(6)} ${currency0.symbol}`
+                      ? `${v3SpotPrice?.invert().toSignificant(6)} ${currency0.symbol}`
                       : `${v3SpotPrice?.toSignificant(6)} ${currency1.symbol}`}
-                  </ThemedText.DeprecatedBlack>
-                </RowBetween>
+                  </Text>
+                </Flex>
 
-                <RowBetween>
-                  <ThemedText.DeprecatedBody fontSize={14} color="inherit">
+                <Flex
+                  row
+                  justifyContent="space-between"
+                  alignItems="center"
+                  $platform-web={{
+                    color: colors.statusWarning.val,
+                  }}
+                >
+                  <Text variant="body3" color="inherit">
                     <Trans i18nKey="migrate.priceDifference" />
-                  </ThemedText.DeprecatedBody>
-                  <ThemedText.DeprecatedBlack fontSize={14} color="inherit">
+                  </Text>
+                  <Text variant="body3" color="inherit">
                     {priceDifferenceFraction?.toSignificant(4)}%
-                  </ThemedText.DeprecatedBlack>
-                </RowBetween>
-              </AutoColumn>
-              <ThemedText.DeprecatedBody fontSize={14} style={{ marginTop: 8, fontWeight: 485 }}>
+                  </Text>
+                </Flex>
+              </Flex>
+              <Text variant="body3" mt="$spacing8">
                 <Trans i18nKey="migrate.priceWarning" />
-              </ThemedText.DeprecatedBody>
+              </Text>
             </YellowCard>
           ) : !noLiquidity && v3SpotPrice ? (
-            <RowBetween>
-              <ThemedText.DeprecatedBody fontSize={14}>
+            <Flex row justifyContent="space-between" alignItems="center">
+              <Text variant="body3">
                 <Trans i18nKey="migrate.v3Price" values={{ sym: invertPrice ? currency1.symbol : currency0.symbol }} />
-              </ThemedText.DeprecatedBody>
-              <ThemedText.DeprecatedBlack fontSize={14}>
+              </Text>
+              <Text variant="body3">
                 {invertPrice
-                  ? `${v3SpotPrice?.invert()?.toSignificant(6)} ${currency0.symbol}`
-                  : `${v3SpotPrice?.toSignificant(6)} ${currency1.symbol}`}
-              </ThemedText.DeprecatedBlack>
-            </RowBetween>
+                  ? `${v3SpotPrice.invert().toSignificant(6)} ${currency0.symbol}`
+                  : `${v3SpotPrice.toSignificant(6)} ${currency1.symbol}`}
+              </Text>
+            </Flex>
           ) : null}
 
-          <RowBetween>
-            <ThemedText.DeprecatedLabel>
+          <Flex row justifyContent="space-between" alignItems="center">
+            <Text variant="body1">
               <Trans i18nKey="migrate.setRange" />
-            </ThemedText.DeprecatedLabel>
+            </Text>
             <RateToggle
               currencyA={invertPrice ? currency1 : currency0}
               currencyB={invertPrice ? currency0 : currency1}
@@ -691,7 +696,7 @@ function V2PairMigration({
                 setBaseToken((base) => (base.equals(token0) ? token1 : token0))
               }}
             />
-          </RowBetween>
+          </Flex>
 
           <RangeSelector
             priceLower={priceLower}
@@ -709,63 +714,56 @@ function V2PairMigration({
           />
 
           {outOfRange ? (
-            <YellowCard padding="8px 12px" $borderRadius="12px">
-              <RowBetween>
-                <AlertTriangle stroke={theme.deprecated_yellow3} size="16px" />
+            <YellowCard px="$spacing8" py="$spacing12">
+              <Flex row justifyContent="space-between" alignItems="center">
+                <AlertTriangle stroke={colors.statusWarning.val} size="24px" />
                 <Text color="$yellow600" ml={12} fontSize={12}>
                   <Trans i18nKey="migrate.positionNoFees" />
                 </Text>
-              </RowBetween>
+              </Flex>
             </YellowCard>
           ) : null}
 
           {invalidRange ? (
-            <YellowCard padding="8px 12px" $borderRadius="12px">
-              <RowBetween>
-                <AlertTriangle stroke={theme.deprecated_yellow3} size="16px" />
-                <Text color="$" ml={12} fontSize={12}>
+            <YellowCard px="$spacing8" py="$spacing12">
+              <Flex row justifyContent="space-between" alignItems="center">
+                <AlertTriangle stroke={colors.statusWarning.val} size="16px" />
+                <Text ml={12} fontSize={12}>
                   <Trans i18nKey="migrate.invalidRange" />
                 </Text>
-              </RowBetween>
+              </Flex>
             </YellowCard>
           ) : null}
 
           {position ? (
             <DarkGrayCard>
-              <AutoColumn gap="md">
+              <Flex gap="$gap8">
                 <LiquidityInfo token0Amount={position.amount0} token1Amount={position.amount1} />
                 {account.chainId && refund0 && refund1 ? (
-                  <ThemedText.DeprecatedBlack fontSize={12}>
+                  <Text variant="body4">
                     <Trans
                       i18nKey="migrate.refund"
                       values={{
-                        amtA: formatCurrencyAmount(refund0, 4),
-                        symA:
-                          account.chainId && WRAPPED_NATIVE_CURRENCY[account.chainId]?.equals(token0)
-                            ? 'ETH'
-                            : token0.symbol,
-                        amtB: formatCurrencyAmount(refund1, 4),
-                        symB:
-                          account.chainId && WRAPPED_NATIVE_CURRENCY[account.chainId]?.equals(token1)
-                            ? 'ETH'
-                            : token1.symbol,
+                        amtA: formatCurrencyAmount({ value: refund0, type: NumberType.TokenTx }),
+                        symA: WRAPPED_NATIVE_CURRENCY[account.chainId]?.equals(token0) ? 'ETH' : token0.symbol,
+                        amtB: formatCurrencyAmount({ value: refund1, type: NumberType.TokenTx }),
+                        symB: WRAPPED_NATIVE_CURRENCY[account.chainId]?.equals(token1) ? 'ETH' : token1.symbol,
                       }}
                     />
-                  </ThemedText.DeprecatedBlack>
+                  </Text>
                 ) : null}
-              </AutoColumn>
+              </Flex>
             </DarkGrayCard>
           ) : null}
 
-          <AutoColumn gap="md">
+          <Flex gap="$gap8">
             {!isSuccessfullyMigrated && !isMigrationPending ? (
-              <AutoColumn gap="md" style={{ flex: '1' }}>
+              <Flex gap="$gap12" style={{ flex: '1' }}>
                 <Button
                   isDisabled={
                     approval !== ApprovalState.NOT_APPROVED ||
                     signatureData !== null ||
                     !v3Amount0Min ||
-                    !v3Amount1Min ||
                     invalidRange ||
                     confirmingMigration
                   }
@@ -781,13 +779,12 @@ function V2PairMigration({
                     <Trans i18nKey="migrate.allowLpMigration" />
                   )}
                 </Button>
-              </AutoColumn>
+              </Flex>
             ) : null}
-            <AutoColumn gap="md" style={{ flex: '1' }}>
+            <Flex gap="$gap12" style={{ flex: '1' }}>
               <Button
                 isDisabled={
                   !v3Amount0Min ||
-                  !v3Amount1Min ||
                   invalidRange ||
                   (approval !== ApprovalState.APPROVED && signatureData === null) ||
                   confirmingMigration ||
@@ -806,8 +803,8 @@ function V2PairMigration({
                   <Trans i18nKey="common.migrate" />
                 )}
               </Button>
-            </AutoColumn>
-          </AutoColumn>
+            </Flex>
+          </Flex>
         </Flex>
       </LightCard>
     </Flex>
@@ -818,7 +815,6 @@ export default function MigrateV2Pair() {
   const { address } = useParams<{ address: string }>()
   // reset mint state on component mount, and as a cleanup (on unmount)
   const dispatch = useAppDispatch()
-  const navigate = useNavigate()
   useEffect(() => {
     dispatch(resetMintState())
     return () => {
@@ -829,13 +825,17 @@ export default function MigrateV2Pair() {
   const account = useAccount()
 
   // get pair contract
-  const validatedAddress = isAddress(address)
+  const validatedAddress = getValidAddress({
+    address,
+    platform: Platform.EVM,
+    withEVMChecksum: true,
+  }) as Nullable<HexString>
   const pair = usePairContract(validatedAddress ? validatedAddress : undefined)
 
   const { data: pairAddresses, isLoading: pairAddressesLoading } = useReadContracts({
     contracts: [
-      { address: validatedAddress || undefined, functionName: 'token0', abi: MIGRATE_V2_ABI },
-      { address: validatedAddress || undefined, functionName: 'token1', abi: MIGRATE_V2_ABI },
+      { address: validatedAddress ?? undefined, functionName: 'token0', abi: MIGRATE_V2_ABI },
+      { address: validatedAddress ?? undefined, functionName: 'token1', abi: MIGRATE_V2_ABI },
     ],
   })
 
@@ -854,7 +854,11 @@ export default function MigrateV2Pair() {
 
   // get data required for V2 pair migration
   const pairBalance = useTokenBalance(account.address, liquidityToken)
-  const isOwner = usePositionOwnerV2(account?.address, liquidityToken?.address, token0?.chainId)
+  const isOwner = usePositionOwnerV2({
+    account: account.address,
+    address: liquidityToken?.address,
+    chainId: token0?.chainId,
+  })
   const totalSupply = useTotalSupply(liquidityToken)
 
   const [reserve0Raw, reserve1Raw] =
@@ -872,12 +876,8 @@ export default function MigrateV2Pair() {
 
   const MIGRATE_PAGE_URL = '/migrate/v2'
 
-  const handleNavigateBackToMigrate = useCallback(() => {
-    navigate(MIGRATE_PAGE_URL)
-  }, [navigate])
-
   // redirect for invalid url params
-  if (!validatedAddress || !pair || (pair && !pairAddressesLoading && !token0Address && !account.isConnecting)) {
+  if (!validatedAddress || !pair || (!pairAddressesLoading && !token0Address && !account.isConnecting)) {
     logger.warn('MigrateV2Pair', 'MigrateV2Pair', 'Invalid pair address', {
       token0Address,
       token1Address,
@@ -889,7 +889,7 @@ export default function MigrateV2Pair() {
   return (
     <Trace
       logImpression
-      page={InterfacePageNameLocal.MigrateV2Pair}
+      page={InterfacePageName.MigrateV2Pair}
       properties={{
         pool_address: validatedAddress,
         chain_id: account.chainId,
@@ -904,7 +904,11 @@ export default function MigrateV2Pair() {
             <TouchableArea
               p="$spacing6"
               borderRadius="$rounded8"
-              onPress={handleNavigateBackToMigrate}
+              tag="a"
+              href={MIGRATE_PAGE_URL}
+              $platform-web={{
+                textDecoration: 'none',
+              }}
               hoverable
               hoverStyle={{
                 backgroundColor: '$backgroundHover',
@@ -912,16 +916,16 @@ export default function MigrateV2Pair() {
             >
               <Arrow direction="w" color="$neutral1" size={iconSizes.icon24} />
             </TouchableArea>
-            <MigrateHeader>
+            <Text variant="heading3" tag="h1" fontWeight="$medium">
               <Trans i18nKey="migrate.v2Title" />
-            </MigrateHeader>
+            </Text>
             <MigrateV2SettingsTab autoSlippage={DEFAULT_MIGRATE_SLIPPAGE_TOLERANCE} chainId={account.chainId} />
           </Flex>
 
           {!account.isConnected || !isOwner ? (
-            <ThemedText.DeprecatedLargeHeader>
+            <Text variant="heading3">
               <Trans i18nKey="migrate.connectAccount" />
-            </ThemedText.DeprecatedLargeHeader>
+            </Text>
           ) : pairBalance && totalSupply && reserve0 && reserve1 && token0 && token1 ? (
             <V2PairMigration
               pairAddress={validatedAddress}

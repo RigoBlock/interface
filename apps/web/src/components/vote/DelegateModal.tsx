@@ -1,23 +1,25 @@
 import { isAddress } from '@ethersproject/address'
+import { useTheme } from '@tamagui/core'
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
-import { Trans, useTranslation } from 'react-i18next'
 import AddressInputPanel from 'components/AddressInputPanel'
 import { ButtonConfirmed, ButtonPrimary } from 'components/Button/buttons'
 import { LightCard } from 'components/Card/cards'
 import { AutoColumn } from 'components/deprecated/Column'
 import { RowBetween } from 'components/deprecated/Row'
-import { Modal } from 'uniswap/src/components/modals/Modal'
 import { LoadingView, SubmittedView } from 'components/ModalViews'
-import { useRemoveLiquidityModalContext } from 'components/RemoveLiquidity/RemoveLiquidityModalContext'
 import Slider from 'components/Slider'
 import { GRG_TRANSFER_PROXY_ADDRESSES } from 'constants/addresses'
 import { useAccount } from 'hooks/useAccount'
-import { useENS } from 'uniswap/src/features/ens/useENS'
+import { ApprovalState, useApproveCallback } from 'hooks/useApproveCallback'
+import useDebouncedChangeHandler from 'hooks/useDebouncedChangeHandler'
 import JSBI from 'jsbi'
-import styled, { useTheme } from 'lib/styled-components'
+import { useTokenBalance } from 'lib/hooks/useCurrencyBalance'
+import styled from 'lib/styled-components'
+import { useRemoveLiquidityModalContext } from 'pages/RemoveLiquidity/RemoveLiquidityModalContext'
 import { ClickablePill } from 'pages/Swap/Buy/PredefinedAmount'
 import { ReactNode, useCallback, useMemo, useState } from 'react'
 import { X } from 'react-feather'
+import { Trans, useTranslation } from 'react-i18next'
 import { PoolInfo /*,useDerivedPoolInfo*/ } from 'state/buy/hooks'
 import {
   useDelegateCallback,
@@ -25,19 +27,17 @@ import {
   usePoolExtendedContract,
   usePoolIdByAddress,
 } from 'state/governance/hooks'
+import { useIsTransactionConfirmed, useTransaction } from 'state/transactions/hooks'
 import { ThemedText } from 'theme/components'
 import { Button, ButtonProps, Flex, Text, useSporeColors } from 'ui/src'
+import { Modal } from 'uniswap/src/components/modals/Modal'
 import { GRG } from 'uniswap/src/constants/tokens'
-import { TransactionStatus } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
-import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
-
-import { useTokenBalance } from 'lib/hooks/useCurrencyBalance'
-import { logger } from 'utilities/src/logger/logger'
-import { ApprovalState, useApproveCallback } from 'hooks/useApproveCallback'
-import useDebouncedChangeHandler from 'hooks/useDebouncedChangeHandler'
-import { useIsTransactionConfirmed, useTransaction } from 'state/transactions/hooks'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { useENS } from 'uniswap/src/features/ens/useENS'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { logger } from 'utilities/src/logger/logger'
 
 const ContentWrapper = styled(AutoColumn)`
   width: 100%;
@@ -56,7 +56,7 @@ export const TextButton = styled.div`
   }
 `
 
-const MaxButton = ({ onPress, children }: { onPress: ButtonProps['onPress'], children?: ReactNode }) => {
+const MaxButton = ({ onPress, children }: { onPress: ButtonProps['onPress']; children?: ReactNode }) => {
   return (
     <Button variant="branded" emphasis="secondary" size="xxsmall" onPress={onPress}>
       {children || <Trans i18nKey="common.max" />}
@@ -98,6 +98,7 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
     setTyped(val)
   }
 
+  const { formatCurrencyAmount } = useLocalizationContext()
   const { percent, setPercent } = useRemoveLiquidityModalContext()
   const onPercentSelect = useCallback(
     (percent: number) => {
@@ -108,12 +109,15 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
 
   // monitor for self delegation or input for third part delegate
   // default is self delegation
-  const activeDelegate = poolInfo?.pool?.address ?? typed ?? account.address
+  const activeDelegate = poolInfo?.pool.address ?? typed
   const { address: parsedAddress } = useENS({ nameOrAddress: activeDelegate })
 
   // TODO: in the context of pool grg balance is balance of pool
   // get the number of votes available to delegate
-  const grgUserBalance = useTokenBalance(account.address ?? undefined, account.chainId ? GRG[account.chainId] : undefined)
+  const grgUserBalance = useTokenBalance(
+    account.address ?? undefined,
+    account.chainId ? GRG[account.chainId] : undefined,
+  )
   const grgPoolBalance = useTokenBalance(parsedAddress ?? undefined, account.chainId ? GRG[account.chainId] : undefined)
   const { poolId, stakingPoolExists } = usePoolIdByAddress(parsedAddress ?? undefined)
   // we only pass the pool extended instance if we have to call the pool directly
@@ -127,13 +131,13 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
     currencyValue,
     JSBI.divide(
       JSBI.multiply(grgBalance ? grgBalance.quotient : JSBI.BigInt(0), JSBI.BigInt(percentForSlider)),
-      JSBI.BigInt(100)
-    )
+      JSBI.BigInt(100),
+    ),
   )
   const newApr = useMemo(() => {
     if (poolInfo?.apr?.toString() !== 'NaN') {
       const aprImpact =
-        Number(poolInfo?.poolStake) / (Number(poolInfo?.poolStake) + Number(parsedAmount?.quotient.toString()) / 1e18)
+        Number(poolInfo?.poolStake) / (Number(poolInfo?.poolStake) + Number(parsedAmount.quotient.toString()) / 1e18)
       return (Number(poolInfo?.apr) * aprImpact).toFixed(2)
     } else {
       return undefined
@@ -144,7 +148,7 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
     if (poolInfo?.irr?.toString() !== 'NaN') {
       const irrImpact =
         Number(poolInfo?.poolOwnStake) /
-        (Number(poolInfo?.poolOwnStake) + Number(parsedAmount?.quotient.toString()) / 1e18)
+        (Number(poolInfo?.poolOwnStake) + Number(parsedAmount.quotient.toString()) / 1e18)
       return (Number(poolInfo?.irr) * irrImpact).toFixed(2)
     } else {
       return undefined
@@ -156,7 +160,7 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
       return undefined
     }
     return {
-      amount: parsedAmount?.quotient.toString(),
+      amount: parsedAmount.quotient.toString(),
       pool: parsedAddress ?? null,
       poolId,
       poolContract: usingDelegate ? poolContract : null,
@@ -175,7 +179,7 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
 
   const transaction = useTransaction(hash)
   const confirmed = useIsTransactionConfirmed(hash)
-  const transactionSuccess = transaction?.status === TransactionStatus.Confirmed
+  const transactionSuccess = transaction?.status === TransactionStatus.Success
 
   // wrapper to reset state on modal close
   function wrappedOnDismiss() {
@@ -193,7 +197,7 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
     setStakeAmount(parsedAmount)
 
     // if callback not returned properly ignore
-    if (!delegateCallback || !grgBalance || !stakeData || !currencyValue.isToken) {
+    if (!grgBalance || !stakeData || !currencyValue.isToken) {
       return
     }
 
@@ -210,16 +214,12 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
 
   // usingDelegate equals isRbPool
   const [approval, approveCallback] = useApproveCallback(
-    parsedAmount ?? undefined,
-    GRG_TRANSFER_PROXY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet] ?? undefined,
-    usingDelegate
+    parsedAmount,
+    GRG_TRANSFER_PROXY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet],
+    usingDelegate,
   )
 
   async function onAttemptToApprove() {
-    // TODO: check dep requirements
-    if (!approval || !approveCallback) {
-      return
-    }
     //if (!provider) throw new Error('missing dependencies')
     if (!grgBalance) {
       throw new Error('missing GRG amount')
@@ -258,7 +258,7 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
             {!poolInfo && <AddressInputPanel value={typed} onChange={handleRecipientType} />}
             <RowBetween>
               <ResponsiveHeaderText>
-                <Trans>{{percentForSlider}}%</Trans>
+                <Trans>{{ percentForSlider }}%</Trans>
               </ResponsiveHeaderText>
               <Flex row gap="$gap8" width="100%" justifyContent="center">
                 {[25, 50, 75, 100].map((option) => {
@@ -273,7 +273,7 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
                       $disabled={disabled}
                       $active={active}
                       customBorderColor={colors.surface3.val}
-                      foregroundColor={colors[disabled ? 'neutral3' : active ? 'neutral1' : 'neutral2'].val}
+                      foregroundColor={colors[active ? 'neutral1' : 'neutral2'].val}
                       label={option < 100 ? option + '%' : t('swap.button.max')}
                       px="$spacing16"
                       textVariant="buttonLabel2"
@@ -287,14 +287,14 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
               <AutoColumn gap="md">
                 <RowBetween>
                   <ThemedText.DeprecatedBody fontSize={16} fontWeight={500}>
-                    <Trans>Staking {formatCurrencyAmount(parsedAmount, 4)} GRG</Trans>
+                    <Trans>Staking {formatCurrencyAmount({ value: parsedAmount })} GRG</Trans>
                   </ThemedText.DeprecatedBody>
-                  {Boolean(newApr && newApr?.toString() !== 'NaN' && !usingDelegate) && (
+                  {Boolean(newApr && newApr.toString() !== 'NaN' && !usingDelegate) && (
                     <ThemedText.DeprecatedBody fontSize={16} fontWeight={500}>
                       <Trans>APR {newApr}%</Trans>
                     </ThemedText.DeprecatedBody>
                   )}
-                  {Boolean(newIrr && newIrr?.toString() !== 'NaN' && usingDelegate) && (
+                  {Boolean(newIrr && newIrr.toString() !== 'NaN' && usingDelegate) && (
                     <ThemedText.DeprecatedBody fontSize={16} fontWeight={500}>
                       <Trans>IRR {newIrr}%</Trans>
                     </ThemedText.DeprecatedBody>
@@ -306,7 +306,7 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
               disabled={
                 !isAddress(parsedAddress ?? '') ||
                 approval !== ApprovalState.APPROVED ||
-                formatCurrencyAmount(parsedAmount, 4) === '0'
+                formatCurrencyAmount({ value: parsedAmount }) === '0'
               }
               onClick={onDelegate}
             >
@@ -331,7 +331,7 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
               {usingDelegate ? <Trans i18nKey="grg.stakingFromPool" /> : <Trans i18nKey="grg.stakingFromWallet" />}
             </ThemedText.DeprecatedLargeHeader>
             <ThemedText.DeprecatedMain fontSize={36}>
-              {formatCurrencyAmount(parsedAmount, 4)} GRG
+              {formatCurrencyAmount({ value: parsedAmount })} GRG
             </ThemedText.DeprecatedMain>
           </AutoColumn>
         </LoadingView>
@@ -345,7 +345,7 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
                   <Trans i18nKey="common.transactionSubmitted" />
                 </ThemedText.DeprecatedLargeHeader>
                 <ThemedText.DeprecatedMain fontSize={36}>
-                  Staking {formatCurrencyAmount(stakeAmount, 4)} GRG
+                  Staking {formatCurrencyAmount({ value: stakeAmount })} GRG
                 </ThemedText.DeprecatedMain>
               </>
             ) : transactionSuccess ? (
@@ -354,7 +354,7 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
                   <Trans>Transaction Success</Trans>
                 </ThemedText.DeprecatedLargeHeader>
                 <ThemedText.DeprecatedMain fontSize={36}>
-                  Staked {formatCurrencyAmount(stakeAmount, 4)} GRG
+                  Staked {formatCurrencyAmount({ value: stakeAmount })} GRG
                 </ThemedText.DeprecatedMain>
               </>
             ) : (

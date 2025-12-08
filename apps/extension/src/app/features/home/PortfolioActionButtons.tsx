@@ -1,10 +1,11 @@
 import { SharedEventName } from '@uniswap/analytics-events'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { cloneElement, memo, useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useInterfaceBuyNavigator } from 'src/app/features/for/utils'
 import { AppRoutes } from 'src/app/navigation/constants'
 import { navigate } from 'src/app/navigation/state'
-import { Flex, Text, getTokenValue, useMedia } from 'ui/src'
+import { Flex, getTokenValue, Text, TouchableArea, useMedia } from 'ui/src'
 import { ArrowDownCircle, Bank, CoinConvert, SendAction } from 'ui/src/components/icons'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
@@ -41,30 +42,23 @@ function ActionButton({ label, Icon, onClick, url }: ActionButtonProps): JSX.Ele
       onClick
 
   return (
-    // TODO(EXT-248): Change to TouchableArea
-    // https://linear.app/uniswap/issue/EXT-248/need-web-equivalent-of-touchablearea
-    <Flex
-      fill
-      alignItems="flex-start"
-      backgroundColor="$accent2"
-      borderRadius="$rounded16"
+    <TouchableArea
+      flexGrow={1}
       flexBasis={1}
+      minWidth={100}
+      backgroundColor="$accent2"
       gap="$spacing12"
       hoverStyle={{ cursor: 'pointer', opacity: 0.8 }}
       justifyContent="space-between"
-      // Reduced button label line height to 11 as suggested by design to eliminate extra bottom space.
-      pb={11}
-      pressStyle={{ opacity: 0.5 }}
-      pt="$spacing12"
-      px="$spacing12"
+      p="$spacing12"
       userSelect="none"
       onPress={actionHandler}
     >
       {cloneElement(Icon, { color: ICON_COLOR, size: getTokenValue('$icon.24') })}
-      <Text color="$accent1" fontWeight="600" variant="buttonLabel2">
+      <Text numberOfLines={2} color="$accent1" fontWeight="600" variant="buttonLabel2">
         {label}
       </Text>
-    </Flex>
+    </TouchableArea>
   )
 }
 
@@ -72,13 +66,14 @@ export const PortfolioActionButtons = memo(function _PortfolioActionButtons(): J
   const { t } = useTranslation()
   const media = useMedia()
   const { isTestnetModeEnabled } = useEnabledChains()
+  const isFiatOffRampEnabled = useFeatureFlag(FeatureFlags.FiatOffRamp)
 
   const onSendClick = (): void => {
     sendAnalyticsEvent(SharedEventName.ELEMENT_CLICKED, {
       screen: ExtensionScreens.Home,
       element: ElementName.Send,
     })
-    navigate(AppRoutes.Send)
+    navigate(`/${AppRoutes.Send}`)
   }
 
   const onSwapClick = (): void => {
@@ -86,7 +81,7 @@ export const PortfolioActionButtons = memo(function _PortfolioActionButtons(): J
       screen: ExtensionScreens.Home,
       element: ElementName.Swap,
     })
-    navigate(AppRoutes.Swap)
+    navigate(`/${AppRoutes.Swap}`)
   }
 
   const onReceiveClick = (): void => {
@@ -94,7 +89,7 @@ export const PortfolioActionButtons = memo(function _PortfolioActionButtons(): J
       screen: ExtensionScreens.Home,
       element: ElementName.Receive,
     })
-    navigate(AppRoutes.Receive)
+    navigate(`/${AppRoutes.Receive}`)
   }
 
   const [isTestnetWarningModalOpen, setIsTestnetWarningModalOpen] = useState(false)
@@ -123,7 +118,11 @@ export const PortfolioActionButtons = memo(function _PortfolioActionButtons(): J
       />
       <Flex row shrink gap="$spacing8" width={isGrid ? '100%' : '50%'}>
         <ActionButton Icon={<CoinConvert />} label={t('home.label.swap')} onClick={onSwapClick} />
-        <ActionButton Icon={<Bank />} label={t('home.label.buy')} onClick={onBuyClick} />
+        <ActionButton
+          Icon={<Bank />}
+          label={isFiatOffRampEnabled ? t('home.label.for') : t('home.label.buy')}
+          onClick={onBuyClick}
+        />
       </Flex>
       <Flex row shrink gap="$spacing8" width={isGrid ? '100%' : '50%'}>
         <ActionButton Icon={<SendAction />} label={t('home.label.send')} onClick={onSendClick} />

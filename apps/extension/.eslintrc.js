@@ -1,9 +1,10 @@
+const restrictedGlobals = require('confusing-browser-globals')
 const rulesDirPlugin = require('eslint-plugin-rulesdir')
 rulesDirPlugin.RULES_DIR = '../../packages/uniswap/eslint_rules'
 
 module.exports = {
   root: true,
-  extends: ['@uniswap/eslint-config/native-app'],
+  extends: ['@uniswap/eslint-config/extension'],
   plugins: ['rulesdir'],
   ignorePatterns: [
     'node_modules',
@@ -14,6 +15,8 @@ module.exports = {
     'webpack.config.js',
     'webpack.dev.config.js',
     'manifest.json',
+    '.nx',
+    'wxt.config.ts',
   ],
   parserOptions: {
     project: 'tsconfig.eslint.json',
@@ -24,7 +27,9 @@ module.exports = {
     ecmaVersion: 2018,
     sourceType: 'module',
   },
-  rules: {},
+  rules: {
+    'rulesdir/i18n': 'error',
+  },
   overrides: [
     {
       files: ['src/assets/index.ts', 'src/contentScript/index.tsx'],
@@ -44,20 +49,26 @@ module.exports = {
       },
     },
     {
-      files: ['**/contentScript/injected.ts'],
+      files: ['**/contentScript/**'],
       rules: {
         'no-restricted-syntax': [
           'error',
           {
             selector: 'CallExpression[callee.object.name="logger"][callee.property.name!=/^(debug)$/]',
             message:
-              'Only logger.debug is allowed in this file. Please handle errors and info logs explicitly using ErrorLog and InfoLog message passing.',
+              'Only `logger.debug` is allowed in the content scripts. Please handle errors logs explicitly using `ErrorLog` message passing via `logContentScriptError`.',
           },
         ],
       },
     },
+    {
+      // We override this rule from the base config to allow access to `chrome`
+      // in all Extension files except those in the `contentScript` folder.
+      files: ['*.ts', '*.tsx'],
+      excludedFiles: ['**/contentScript/**'],
+      rules: {
+        'no-restricted-globals': ['error'].concat(restrictedGlobals),
+      },
+    },
   ],
-  rules: {
-    'rulesdir/i18n': 'error',
-  },
 }

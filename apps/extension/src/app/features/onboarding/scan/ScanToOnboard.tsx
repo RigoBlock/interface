@@ -42,6 +42,7 @@ function useDocumentVisibility(): boolean {
     setIsDocumentVisible(!document.hidden)
   }
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: handleVisibilityChange is created fresh each render but behavior stays the same
   useEffect(() => {
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
@@ -119,7 +120,7 @@ export function ScanToOnboard(): JSX.Element {
         throw new Error(`Scantastic OTP check response did not include the requested OTP state`)
       }
 
-      setExpirationTimestamp((current) => data?.expiresAtInSeconds * ONE_SECOND_MS ?? current)
+      setExpirationTimestamp(data.expiresAtInSeconds * ONE_SECOND_MS)
 
       // mobile app has received the OTP and the user should input it into this UI
       if (otpState === 'ready') {
@@ -173,7 +174,7 @@ export function ScanToOnboard(): JSX.Element {
     )
 
     return () => cancelAnimation(qrScale)
-  }, [isLoadingUUID, qrScale])
+  }, [isLoadingUUID])
   // Using useAnimatedStyle and AnimatedFlex because tamagui scale animation not working
   const qrAnimatedStyle = useAnimatedStyle(() => {
     return {
@@ -181,12 +182,14 @@ export function ScanToOnboard(): JSX.Element {
     }
   }, [qrScale])
 
-  return (
-    <Trace
-      logImpression
-      properties={{ flow: ExtensionOnboardingFlow.Scantastic }}
-      screen={ExtensionOnboardingScreens.OnboardingQRCode}
-    >
+  /*
+   * This needs to be memoized in order to avoid a rerender loop when navigating back to
+   * this screen automatically on expiration or on HTTP error from within the Scantastic context.
+   * This happens because of the way we animate these screens (see `OnboardingSteps.tsx`).
+   * See WALL-6908 for original issue.
+   */
+  const onboardingScreen = useMemo(() => {
+    return (
       <OnboardingScreen
         belowFrameContent={
           errorDerivingQR ? (
@@ -242,7 +245,7 @@ export function ScanToOnboard(): JSX.Element {
             height={iconSizes.icon48}
             width={iconSizes.icon48}
           >
-            <Mobile color="$neutral1" size={iconSizes.icon24} />
+            <Mobile color="$neutral1" size="$icon.24" />
           </Square>
         }
         subtitle={t('onboarding.scan.subtitle')}
@@ -273,8 +276,9 @@ export function ScanToOnboard(): JSX.Element {
             ) : (
               <>
                 {/*
-                NOTE: if you modify the style or colors of the QR code, make sure to thoroughly test how they perform when scanning them both on light and dark modes.
-               */}
+                NOTE: if you modify the style or colors of the QR code, make sure to thoroughly test
+                how they perform when scanning them both on light and dark modes.
+                */}
                 <AnimatedFlex
                   alignItems="center"
                   backgroundColor={isLoadingUUID ? '$transparent' : '$surface1'}
@@ -320,13 +324,23 @@ export function ScanToOnboard(): JSX.Element {
             p="$spacing12"
             width="100%"
           >
-            <Wifi size={iconSizes.icon20} />
+            <Wifi size="$icon.20" />
             <Text color="$neutral2" variant="body4">
               {t('onboarding.scan.wifi')}
             </Text>
           </Flex>
         </Flex>
       </OnboardingScreen>
+    )
+  }, [colors.black.val, colors.white.val, errorDerivingQR, isLoadingUUID, qrAnimatedStyle, scantasticValue, t])
+
+  return (
+    <Trace
+      logImpression
+      properties={{ flow: ExtensionOnboardingFlow.Scantastic }}
+      screen={ExtensionOnboardingScreens.OnboardingQRCode}
+    >
+      {onboardingScreen}
     </Trace>
   )
 }

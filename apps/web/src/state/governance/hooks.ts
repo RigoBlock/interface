@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { defaultAbiCoder, Interface } from '@ethersproject/abi'
 import { isAddress } from '@ethersproject/address'
 import { BigNumber } from '@ethersproject/bignumber'
@@ -6,67 +7,66 @@ import type { TransactionResponse } from '@ethersproject/providers'
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { useWeb3React } from '@web3-react/core'
 import { GOVERNANCE_PROXY_ADDRESSES, RB_REGISTRY_ADDRESSES, STAKING_PROXY_ADDRESSES } from 'constants/addresses'
-import { ZERO_ADDRESS } from 'constants/misc'
 import { useAccount } from 'hooks/useAccount'
-import { useEthersWeb3Provider } from 'hooks/useEthersProvider'
 import { useContract } from 'hooks/useContract'
-import { useSingleCallResult } from 'lib/hooks/multicall'
+import { useEthersWeb3Provider } from 'hooks/useEthersProvider'
+import JSBI from 'jsbi'
 import { useCallback, useMemo } from 'react'
 import { VoteOption } from 'state/governance/types'
 import { useLogs } from 'state/logs/hooks'
 import { useTransactionAdder } from 'state/transactions/hooks'
-import { TransactionType } from 'state/transactions/types'
 import GOVERNANCE_RB_ABI from 'uniswap/src/abis/governance.json'
-import type { Abi } from 'viem'
 import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
 import RB_REGISTRY_ABI from 'uniswap/src/abis/rb-registry.json'
 import STAKING_ABI from 'uniswap/src/abis/staking-impl.json'
 import STAKING_PROXY_ABI from 'uniswap/src/abis/staking-proxy.json'
+import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
 import { GRG } from 'uniswap/src/constants/tokens'
-import i18n from 'uniswap/src/i18n'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { calculateGasMargin } from 'utils/calculateGasMargin'
-import { useReadContracts } from 'wagmi'
-import JSBI from 'jsbi'
+import { assume0xAddress } from 'utils/wagmi'
+import type { Abi } from 'viem'
+import { useReadContract, useReadContracts } from 'wagmi'
 
 function useGovernanceProxyContract(): Contract | null {
   const { chainId } = useAccount()
-  return useContract(
-    chainId ? GOVERNANCE_PROXY_ADDRESSES[chainId] : undefined,
-    GOVERNANCE_RB_ABI,
-    true,
-  )
+  return useContract({
+    address: chainId ? GOVERNANCE_PROXY_ADDRESSES[chainId] : undefined,
+    ABI: GOVERNANCE_RB_ABI,
+    withSignerIfPossible: true,
+  })
 }
 
 function useRegistryContract(): Contract | null {
   const { chainId } = useAccount()
-  return useContract(
-    chainId ? RB_REGISTRY_ADDRESSES[chainId] : undefined,
-    RB_REGISTRY_ABI,
-    true,
-  )
+  return useContract({
+    address: chainId ? RB_REGISTRY_ADDRESSES[chainId] : undefined,
+    ABI: RB_REGISTRY_ABI,
+    withSignerIfPossible: true,
+  })
 }
 
 export function useStakingContract(): Contract | null {
   const { chainId } = useAccount()
-  return useContract(
-    chainId ? STAKING_PROXY_ADDRESSES[chainId] : undefined,
-    STAKING_ABI,
-    true,
-  )
+  return useContract({
+    address: chainId ? STAKING_PROXY_ADDRESSES[chainId] : undefined,
+    ABI: STAKING_ABI,
+    withSignerIfPossible: true,
+  })
 }
 
 export function useStakingProxyContract(): Contract | null {
   const { chainId } = useAccount()
-  return useContract(
-    chainId ? STAKING_PROXY_ADDRESSES[chainId] : undefined,
-    STAKING_PROXY_ABI,
-    true,
-  )
+  return useContract({
+    address: chainId ? STAKING_PROXY_ADDRESSES[chainId] : undefined,
+    ABI: STAKING_PROXY_ABI,
+    withSignerIfPossible: true,
+  })
 }
 
 export function usePoolExtendedContract(poolAddress: string | undefined): Contract | null {
-  return useContract(poolAddress, POOL_EXTENDED_ABI, true)
+  return useContract({ address: poolAddress, ABI: POOL_EXTENDED_ABI, withSignerIfPossible: true })
 }
 
 // TODO: update structs interfaces
@@ -139,9 +139,14 @@ const GovernanceInterface = new Interface(GOVERNANCE_RB_ABI)
 
 // get count of all proposals made in the latest governor contract
 function useProposalCount(contract: Contract | null): number | undefined {
-  const { result } = useSingleCallResult(contract, 'proposalCount')
+  const { data } = useReadContract({
+    address: contract ? assume0xAddress(contract.address) : undefined,
+    abi: GOVERNANCE_RB_ABI as Abi,
+    functionName: 'proposalCount',
+    chainId: contract?.chainId,
+  })
 
-  return result?.[0]?.toNumber()
+  return data ? Number(data) : undefined
 }
 
 interface FormattedProposalLog {
@@ -184,15 +189,20 @@ const FOUR_BYTES_DIR: { [sig: string]: string } = {
  * Need proposal events to get description data emitted from
  * new proposal event.
  */
-function useFormattedProposalCreatedLogs(
-  contract: Contract | null,
-  indices: number[][],
-  fromBlock?: number,
-  toBlock?: number,
-): FormattedProposalLog[] | undefined {
+function useFormattedProposalCreatedLogs({
+  contract,
+  indices,
+  fromBlock,
+  toBlock,
+}: {
+  contract: Contract | null
+  indices: number[][]
+  fromBlock?: number
+  toBlock?: number
+}): FormattedProposalLog[] | undefined {
   // create filters for ProposalCreated events
   const filter = useMemo(() => {
-    const filter = contract?.filters?.ProposalCreated()
+    const filter = contract?.filters.ProposalCreated()
     if (!filter) {
       return undefined
     }
@@ -206,44 +216,46 @@ function useFormattedProposalCreatedLogs(
   const useLogsResult = useLogs(filter)
 
   return useMemo(() => {
-    return useLogsResult?.logs
-      ?.map((log: { topics: string[], data: string }) => {
-        const parsed = GovernanceInterface.parseLog(log).args
-        return parsed
-      })
-      //?.filter((parsed: any) => indices.flat().some((i) => i === parsed.proposalId))
-      ?.map((parsed: any) => {
-        const description: string = parsed.description
-        const proposer = parsed.proposer.toString()
-        const proposalId = parsed.proposalId
+    return (
+      useLogsResult.logs
+        ?.map((log: { topics: string[]; data: string }) => {
+          const parsed = GovernanceInterface.parseLog(log).args
+          return parsed
+        })
+        //.filter((parsed: any) => indices.flat().some((i) => i === parsed.proposalId))
+        .map((parsed: any) => {
+          const description: string = parsed.description
+          const proposer = parsed.proposer.toString()
+          const proposalId = parsed.proposalId
 
-        return {
-          proposer,
-          description,
-          proposalId,
-          startBlockOrTime: parseInt(parsed.startBlockOrTime?.toString()),
-          endBlockOrTime: parseInt(parsed.startBlockOrTime?.toString()),
-          actions: parsed.actions,
-          details: parsed.actions.map((action: ProposedAction) => {
-            let calldata = action.data
+          return {
+            proposer,
+            description,
+            proposalId,
+            startBlockOrTime: parseInt(parsed.startBlockOrTime?.toString()),
+            endBlockOrTime: parseInt(parsed.startBlockOrTime?.toString()),
+            actions: parsed.actions,
+            details: parsed.actions.map((action: ProposedAction) => {
+              let calldata = action.data
 
-            const fourbyte = calldata.slice(0, 10)
-            const sig = FOUR_BYTES_DIR[fourbyte] ?? 'UNKNOWN()'
-            if (!sig) {
-              throw new Error('Missing four byte sig')
-            }
-            const [name, types] = sig.substring(0, sig.length - 1).split('(')
-            calldata = `0x${calldata.slice(10)}`
+              const fourbyte = calldata.slice(0, 10)
+              const sig = FOUR_BYTES_DIR[fourbyte]
+              if (!sig) {
+                throw new Error('Missing four byte sig')
+              }
+              const [name, types] = sig.substring(0, sig.length - 1).split('(')
+              calldata = `0x${calldata.slice(10)}`
 
-            const decoded = defaultAbiCoder.decode(types.split(','), calldata)
-            return {
-              target: action.target,
-              functionSig: name,
-              callData: decoded.join(', '),
-            }
-          }),
-        }
-      })
+              const decoded = defaultAbiCoder.decode(types.split(','), calldata)
+              return {
+                target: action.target,
+                functionSig: name,
+                callData: decoded.join(', '),
+              }
+            }),
+          }
+        })
+    )
   }, [useLogsResult])
 }
 
@@ -253,10 +265,10 @@ function countToIndices(count: number | undefined, skip = 0) {
 
 // get data for all past and active proposals
 export function useAllProposalData(): {
-  data: ProposalData[];
-  userVotingPower?: CurrencyAmount<Token>;
-  proposalThreshold?: CurrencyAmount<Token>;
-  loading: boolean;
+  data: ProposalData[]
+  userVotingPower?: CurrencyAmount<Token>
+  proposalThreshold?: CurrencyAmount<Token>
+  loading: boolean
 } {
   const account = useAccount()
   const { address, chainId } = account
@@ -270,16 +282,16 @@ export function useAllProposalData(): {
 
   // TODO: we can query all proposals by calling proposals()
   const proposalCalls = useMemo(() => {
-    return govProposalIndexes?.flatMap((index) => [
+    return govProposalIndexes.flatMap((index) => [
       {
-        address: gov?.address as `0x${string}`,
+        address: assume0xAddress(gov?.address),
         abi: GOVERNANCE_RB_ABI as Abi,
         functionName: 'getProposalById' as const,
         args: index as readonly unknown[],
         chainId,
       },
       {
-        address: gov?.address as `0x${string}`,
+        address: assume0xAddress(gov?.address),
         abi: GOVERNANCE_RB_ABI as Abi,
         functionName: 'getProposalState' as const,
         args: index as readonly unknown[],
@@ -288,22 +300,26 @@ export function useAllProposalData(): {
     ])
   }, [gov?.address, govProposalIndexes, chainId])
 
-  const votingPowerCall = [{
-    address: gov?.address as `0x${string}`,
-    abi: GOVERNANCE_RB_ABI as Abi,
-    functionName: 'getVotingPower' as const,
-    args: [address as `0x${string}`],
-    chainId,
-  }]
+  const votingPowerCall = [
+    {
+      address: assume0xAddress(gov?.address),
+      abi: GOVERNANCE_RB_ABI as Abi,
+      functionName: 'getVotingPower' as const,
+      args: [assume0xAddress(address)],
+      chainId,
+    },
+  ]
 
-  const govParamsCall = [{
-    address: gov?.address as `0x${string}`,
-    abi: GOVERNANCE_RB_ABI as Abi,
-    functionName: 'governanceParameters' as const,
-    chainId,
-  }]
+  const govParamsCall = [
+    {
+      address: assume0xAddress(gov?.address),
+      abi: GOVERNANCE_RB_ABI as Abi,
+      functionName: 'governanceParameters' as const,
+      chainId,
+    },
+  ]
 
-  const { data: combinedData, isLoading } = useReadContracts({
+  const { data: combinedData, isFetching } = useReadContracts({
     contracts: [...votingPowerCall, ...govParamsCall, ...proposalCalls],
     query: {
       enabled: !!gov?.address && !!govProposalIndexes,
@@ -311,7 +327,9 @@ export function useAllProposalData(): {
   })
 
   const { mergedData, votingPower, govParams } = useMemo(() => {
-    if (!combinedData || isLoading) { return { mergedData: undefined, votingPower: undefined } }
+    if (!combinedData || isFetching) {
+      return { mergedData: undefined, votingPower: undefined }
+    }
     const result: any[] = []
     const votingPowerNumber = combinedData[0]?.result
 
@@ -330,7 +348,7 @@ export function useAllProposalData(): {
       votingPower: JSBI.BigInt(votingPowerNumber?.toString() ?? 0),
       govParams: combinedData[1]?.result as any,
     }
-  }, [combinedData, isLoading])
+  }, [combinedData, isFetching])
 
   // get metadata from past events
   let govStartBlock
@@ -355,26 +373,28 @@ export function useAllProposalData(): {
   }
 
   // Notice: logs are proxied through our rpc endpoint
-  const formattedLogsV1 = useFormattedProposalCreatedLogs(gov, govProposalIndexes, govStartBlock)
+  const formattedLogsV1 = useFormattedProposalCreatedLogs({
+    contract: gov,
+    indices: govProposalIndexes,
+    fromBlock: govStartBlock,
+  })
   const grg = useMemo(() => (chainId ? GRG[chainId] : undefined), [chainId])
   const userVotingPower = grg && votingPower ? CurrencyAmount.fromRawAmount(grg, votingPower) : undefined
-  const proposalThreshold = grg && govParams?.params?.proposalThreshold !== undefined 
-    ? CurrencyAmount.fromRawAmount(
-        grg,
-        JSBI.BigInt(govParams.params.proposalThreshold.toString()),
-      )
-    : undefined
+  const proposalThreshold =
+    grg && govParams?.params?.proposalThreshold !== undefined
+      ? CurrencyAmount.fromRawAmount(grg, JSBI.BigInt(govParams.params.proposalThreshold.toString()))
+      : undefined
 
   // early return until events are fetched
   return useMemo(() => {
     // early return if no proposals (i.e. fresh governance contract)
-    if (govProposalIndexes && govProposalIndexes.length === 0) {
+    if (govProposalIndexes.length === 0) {
       return { data: [], userVotingPower, proposalThreshold, loading: false }
     }
 
     const formattedLogs = [...(formattedLogsV1 ?? [])]
 
-    if (!grg || isLoading || (gov && !formattedLogs) || !mergedData || mergedData.length === 0) {
+    if (!grg || isFetching || formattedLogs.length === 0 || !mergedData || mergedData.length === 0) {
       return { data: [], userVotingPower, proposalThreshold, loading: true }
     }
 
@@ -382,14 +402,14 @@ export function useAllProposalData(): {
       data: mergedData.map(({ proposal, proposedAction, state }, i) => {
         const startBlock = parseInt(proposal.startBlockOrTime?.toString())
 
-        const description = formattedLogs[i]?.description ?? ''
-        const title = description?.split(/#+\s|\n/g)[1]
+        const description = formattedLogs[i]?.description
+        const title = description.split(/#+\s|\n/g)[1]
 
         const details = proposedAction.map((action: ProposedAction) => {
           let calldata = action.data
 
           const fourbyte = calldata.slice(0, 10)
-          const sig = FOUR_BYTES_DIR[fourbyte] ?? 'UNKNOWN()'
+          const sig = FOUR_BYTES_DIR[fourbyte]
           if (!sig) {
             throw new Error('Missing four byte sig')
           }
@@ -407,8 +427,8 @@ export function useAllProposalData(): {
         // TODO: amend block to time
         return {
           id: (i + 1).toString(), //formattedLogs[i]?.proposalId?.toString(),
-          title: title ?? i18n.t('common.untitled'),
-          description: description ?? i18n.t('common.noDescription'),
+          title,
+          description,
           proposer: formattedLogs[i]?.proposer, //proposal?.result?.proposer,
           status: state ?? ProposalState.UNDETERMINED,
           forCount: CurrencyAmount.fromRawAmount(grg, BigNumber.from(proposal.votesFor).toString()),
@@ -424,32 +444,36 @@ export function useAllProposalData(): {
       proposalThreshold,
       loading: false,
     }
-  }, [formattedLogsV1, gov, mergedData, grg, isLoading, govProposalIndexes, userVotingPower, proposalThreshold])
+  }, [formattedLogsV1, gov, mergedData, grg, isFetching, govProposalIndexes, userVotingPower, proposalThreshold])
 }
 
 export function useVotingParams(address?: string): {
-  userVotingPower?: CurrencyAmount<Token>;
-  proposalThreshold?: CurrencyAmount<Token>;
+  userVotingPower?: CurrencyAmount<Token>
+  proposalThreshold?: CurrencyAmount<Token>
 } {
   const { chainId } = useAccount()
   const gov = useGovernanceProxyContract()
 
-  const votingPowerCall = [{
-    address: gov?.address as `0x${string}`,
-    abi: GOVERNANCE_RB_ABI as Abi,
-    functionName: 'getVotingPower' as const,
-    args: [address as `0x${string}`],
-    chainId,
-  }]
+  const votingPowerCall = [
+    {
+      address: assume0xAddress(gov?.address),
+      abi: GOVERNANCE_RB_ABI as Abi,
+      functionName: 'getVotingPower' as const,
+      args: [assume0xAddress(address)],
+      chainId,
+    },
+  ]
 
-  const govParamsCall = [{
-    address: gov?.address as `0x${string}`,
-    abi: GOVERNANCE_RB_ABI as Abi,
-    functionName: 'governanceParameters' as const,
-    chainId,
-  }]
+  const govParamsCall = [
+    {
+      address: assume0xAddress(gov?.address),
+      abi: GOVERNANCE_RB_ABI as Abi,
+      functionName: 'governanceParameters' as const,
+      chainId,
+    },
+  ]
 
-  const { data: combinedData, isLoading } = useReadContracts({
+  const { data: combinedData, isFetching: isLoading } = useReadContracts({
     contracts: [...votingPowerCall, ...govParamsCall],
     query: {
       enabled: !!gov?.address && !!address,
@@ -465,48 +489,49 @@ export function useVotingParams(address?: string): {
     const votingPower = JSBI.BigInt(votingPowerNumber?.toString() ?? 0)
     const govParams = combinedData[1]?.result as any
     const grg = chainId ? GRG[chainId] : undefined
-    
-    const userVotingPower = grg && votingPower ? CurrencyAmount.fromRawAmount(grg, votingPower) : undefined
-    const proposalThreshold = grg && CurrencyAmount.fromRawAmount(
-      grg,
-      JSBI.BigInt(govParams?.params?.proposalThreshold.toString() ?? 0),
-    )
+
+    const userVotingPower = grg && CurrencyAmount.fromRawAmount(grg, votingPower)
+    const proposalThreshold =
+      grg && CurrencyAmount.fromRawAmount(grg, JSBI.BigInt(govParams?.params?.proposalThreshold.toString() ?? 0))
 
     return { userVotingPower, proposalThreshold }
   }, [combinedData, isLoading, chainId])
 }
 
-export function useProposalData(governorIndex: number, id: string): {
-  data?: ProposalData;
-  quorumAmount?: CurrencyAmount<Token>;
-  isLoading?: boolean;
+export function useProposalData(
+  governorIndex: number,
+  id: string,
+): {
+  data?: ProposalData
+  quorumAmount?: CurrencyAmount<Token>
+  isLoading?: boolean
 } {
   const { chainId } = useAccount()
   const gov = useGovernanceProxyContract()
   const proposalCalls = [
     {
-      address: gov?.address as `0x${string}`,
+      address: assume0xAddress(gov?.address),
       abi: GOVERNANCE_RB_ABI as Abi,
       functionName: 'getProposalById' as const,
       args: [id],
       chainId,
     },
     {
-      address: gov?.address as `0x${string}`,
+      address: assume0xAddress(gov?.address),
       abi: GOVERNANCE_RB_ABI as Abi,
       functionName: 'getProposalState' as const,
       args: [id],
       chainId,
     },
     {
-      address: gov?.address as `0x${string}`,
+      address: assume0xAddress(gov?.address),
       abi: GOVERNANCE_RB_ABI as Abi,
       functionName: 'governanceParameters' as const,
       chainId,
     },
   ]
 
-  const { data, isLoading } = useReadContracts({
+  const { data, isFetching: isLoading } = useReadContracts({
     contracts: proposalCalls,
     query: {
       enabled: !!gov?.address && !!id,
@@ -526,15 +551,14 @@ export function useProposalData(governorIndex: number, id: string): {
     govStartBlock = 74115128
   } else if (chainId === UniverseChainId.Polygon) {
     govStartBlock = 39249858
-  } else if (chainId === UniverseChainId.Base) {
-    govStartBlock = 2570523
-  } else if (chainId === UniverseChainId.Bnb) {
-    govStartBlock = 29095808
-  } else if (chainId === UniverseChainId.Unichain) {
     govStartBlock = 16121684
   }
 
-  const formattedLogs = useFormattedProposalCreatedLogs(gov, [[parseInt(id)]], govStartBlock)
+  const formattedLogs = useFormattedProposalCreatedLogs({
+    contract: gov,
+    indices: [[parseInt(id)]],
+    fromBlock: govStartBlock,
+  })
 
   const proposalData = useMemo(() => {
     if (!data || isLoading) {
@@ -566,14 +590,14 @@ export function useProposalData(governorIndex: number, id: string): {
     }
 
     const formattedLog = formattedLogs[0]
-    const description = formattedLog?.description ?? ''
-    const title = description?.split(/#+\s|\n/g)[1]
+    const description = formattedLog.description
+    const title = description.split(/#+\s|\n/g)[1]
 
     const details = proposedAction.map((action: ProposedAction) => {
       let calldata = action.data
 
       const fourbyte = calldata.slice(0, 10)
-      const sig = FOUR_BYTES_DIR[fourbyte] ?? 'UNKNOWN()'
+      const sig = FOUR_BYTES_DIR[fourbyte]
       if (!sig) {
         throw new Error('Missing four byte sig')
       }
@@ -591,9 +615,9 @@ export function useProposalData(governorIndex: number, id: string): {
     return {
       data: {
         id,
-        title: title ?? i18n.t('common.untitled'),
-        description: description ?? i18n.t('common.noDescription'),
-        proposer: formattedLog?.proposer,
+        title,
+        description,
+        proposer: formattedLog.proposer,
         status: state ?? ProposalState.UNDETERMINED,
         forCount: CurrencyAmount.fromRawAmount(grg, BigNumber.from(proposal.votesFor ?? 0).toString()),
         againstCount: CurrencyAmount.fromRawAmount(grg, BigNumber.from(proposal.votesAgainst ?? 0).toString()),
@@ -615,11 +639,19 @@ export function useUserVotes(): { loading: boolean; votes?: CurrencyAmount<Token
   const governance = useGovernanceProxyContract()
 
   // check for available votes
-  const { result, loading } = useSingleCallResult(governance, 'getVotingPower', [account.address])
+  const { data, isFetching: loading } = useReadContract({
+    address: governance ? assume0xAddress(governance.address) : undefined,
+    abi: GOVERNANCE_RB_ABI as Abi,
+    functionName: 'getVotingPower' as const,
+    args: [account.address],
+    chainId: governance?.chainId,
+    query: { enabled: !!account.address && !!governance },
+  })
+
   return useMemo(() => {
     const grg = account.chainId ? GRG[account.chainId] : undefined
-    return { loading, votes: grg && result ? CurrencyAmount.fromRawAmount(grg, result?.[0]) : undefined }
-  }, [account.chainId, loading, result])
+    return { loading, votes: grg && data ? CurrencyAmount.fromRawAmount(grg, JSBI.BigInt(data.toString())) : undefined }
+  }, [account.chainId, loading, data])
 }
 
 export function usePoolIdByAddress(pool: string | undefined): {
@@ -627,31 +659,47 @@ export function usePoolIdByAddress(pool: string | undefined): {
   stakingPoolExists: boolean
 } {
   const registryContract = useRegistryContract()
-  const poolId = useSingleCallResult(registryContract ?? undefined, 'getPoolIdFromAddress', [pool ?? undefined])
-    ?.result?.[0]
+  const { data: poolId } = useReadContract({
+    address: registryContract ? assume0xAddress(registryContract.address) : undefined,
+    abi: RB_REGISTRY_ABI as Abi,
+    functionName: 'getPoolIdFromAddress' as const,
+    args: [pool ?? undefined],
+    chainId: registryContract?.chainId,
+    query: { enabled: !!pool },
+  })
   const stakingContract = useStakingContract()
-  const stakingPool = useSingleCallResult(stakingContract ?? undefined, 'getStakingPool', [poolId])?.result?.[0]
-  const stakingPoolExists = stakingPool !== undefined ? stakingPool?.operator !== ZERO_ADDRESS : false
+  const { data: stakingPool } = useReadContract({
+    address: stakingContract ? assume0xAddress(stakingContract.address) : undefined,
+    abi: STAKING_ABI as Abi,
+    functionName: 'getStakingPool' as const,
+    args: [poolId ?? undefined],
+    chainId: stakingContract?.chainId,
+    query: { enabled: !!poolId },
+  })
+  const stakingPoolExists = stakingPool !== undefined ? (stakingPool as any)?.operator !== ZERO_ADDRESS : false
   if (!poolId) {
-    return { stakingPoolExists }
+    return { poolId: undefined, stakingPoolExists }
   } else {
-    return { poolId, stakingPoolExists }
+    return { poolId: poolId as string, stakingPoolExists }
   }
 }
 
 export function useStakeBalance(
   poolId: string | null | undefined,
-  owner?: string
+  owner?: string,
 ): CurrencyAmount<Currency> | undefined {
   const account = useAccount()
   const grg = account.chainId ? GRG[account.chainId] : undefined
   const stakingContract = useStakingContract()
-  const stake = useSingleCallResult(stakingContract ?? undefined, 'getStakeDelegatedToPoolByOwner', [
-    owner ?? account.address,
-    poolId ?? undefined,
-  ])?.result?.[0]
+  const { data: stake } = useReadContract({
+    address: stakingContract ? assume0xAddress(stakingContract.address) : undefined,
+    abi: STAKING_ABI as Abi,
+    functionName: 'getStakeDelegatedToPoolByOwner' as const,
+    args: [owner ?? assume0xAddress(account.address), poolId ?? undefined],
+    chainId: stakingContract?.chainId,
+  })
 
-  return stake && grg ? CurrencyAmount.fromRawAmount(grg, stake.nextEpochBalance) : undefined
+  return stake && grg ? CurrencyAmount.fromRawAmount(grg, String((stake as any).nextEpochBalance)) : undefined
 }
 
 export function useDelegateCallback(): (stakeData: StakeData | undefined) => undefined | Promise<string> {
@@ -693,14 +741,14 @@ export function useDelegateCallback(): (stakeData: StakeData | undefined) => und
           .batchExecute(...args, { value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
-              type: TransactionType.DELEGATE,
-              delegatee,
+              type: TransactionType.Delegate,
+              delegateeAddress: delegatee,
             })
             return response.hash
           })
       })
     },
-    [account.address, addTransaction, account.chainId, provider, stakingContract, stakingProxy]
+    [account.address, addTransaction, account.chainId, provider, stakingContract, stakingProxy],
   )
 }
 
@@ -711,7 +759,7 @@ export function useDelegatePoolCallback(): (stakeData: StakeData | undefined) =>
 
   return useCallback(
     (stakeData: StakeData | undefined) => {
-      if (!provider || !account?.chainId || !account.address || !stakeData || !isAddress(stakeData.pool ?? '')) {
+      if (!provider || !account.chainId || !account.address || !stakeData || !isAddress(stakeData.pool ?? '')) {
         return undefined
       }
       //if (!stakeData.amount) return
@@ -731,8 +779,8 @@ export function useDelegatePoolCallback(): (stakeData: StakeData | undefined) =>
           .stake(...args, { value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
-              type: TransactionType.DELEGATE,
-              delegatee,
+              type: TransactionType.Delegate,
+              delegateeAddress: delegatee,
             })
             return response.hash
           })
@@ -790,8 +838,8 @@ export function useMoveStakeCallback(): (stakeData: StakeData | undefined) => un
           ? [[createPoolCall, deactivateCall, activateCall]]
           : [[createPoolCall, activateCall]]
         : stakeData.fromPoolId !== stakeData.poolId
-        ? [[deactivateCall, activateCall]]
-        : [[activateCall]]
+          ? [[deactivateCall, activateCall]]
+          : [[activateCall]]
       if (!stakingProxy) {
         throw new Error('No Staking Contract!')
       }
@@ -800,14 +848,14 @@ export function useMoveStakeCallback(): (stakeData: StakeData | undefined) => un
           .batchExecute(...args, { value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
-              type: TransactionType.DELEGATE,
-              delegatee,
+              type: TransactionType.Delegate,
+              delegateeAddress: delegatee,
             })
             return response.hash
           })
       })
     },
-    [account.address, addTransaction, account.chainId, provider, stakingContract, stakingProxy]
+    [account.address, addTransaction, account.chainId, provider, stakingContract, stakingProxy],
   )
 }
 
@@ -853,8 +901,8 @@ export function useDeactivateStakeCallback(): (stakeData: StakeData | undefined)
             .then((response: TransactionResponse) => {
               // TODO: add more transaction types in store
               addTransaction(response, {
-                type: TransactionType.DELEGATE,
-                delegatee,
+                type: TransactionType.Delegate,
+                delegateeAddress: delegatee,
               })
               return response.hash
             })
@@ -865,14 +913,14 @@ export function useDeactivateStakeCallback(): (stakeData: StakeData | undefined)
           .batchExecute(...args, { value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
-              type: TransactionType.DELEGATE,
-              delegatee,
+              type: TransactionType.Delegate,
+              delegateeAddress: delegatee,
             })
             return response.hash
           })
       })
     },
-    [account.address, addTransaction, account.chainId, provider, stakingContract, stakingProxy]
+    [account.address, addTransaction, account.chainId, provider, stakingContract, stakingProxy],
   )
 }
 
@@ -895,11 +943,8 @@ export function useVoteCallback(): (
           .castVote(...args, { value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
-              type: TransactionType.VOTE,
-              decision: voteOption,
-              governorAddress: latestGovernanceContract.address,
-              proposalId: parseInt(proposalId),
-              reason: '',
+              type: TransactionType.Vote,
+              proposalId,
             })
             return response.hash
           })
@@ -925,9 +970,8 @@ export function useQueueCallback(): (proposalId: string | undefined) => undefine
           .queue(...args, { value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
-              type: TransactionType.QUEUE,
-              governorAddress: latestGovernanceContract.address,
-              proposalId: parseInt(proposalId),
+              type: TransactionType.Queue,
+              proposalId,
             })
             return response.hash
           })
@@ -953,9 +997,8 @@ export function useExecuteCallback(): (proposalId: string | undefined) => undefi
           .execute(...args, { value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
-              type: TransactionType.EXECUTE,
-              governorAddress: latestGovernanceContract.address,
-              proposalId: parseInt(proposalId),
+              type: TransactionType.Execute,
+              proposalId,
             })
             return response.hash
           })
@@ -991,7 +1034,7 @@ export function useCreateProposalCallback(): (
           .propose(...args, { gasLimit: calculateGasMargin(estimatedGasLimit) })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
-              type: TransactionType.SUBMIT_PROPOSAL,
+              type: TransactionType.SubmitProposal,
             })
             return response.hash
           })

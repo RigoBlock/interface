@@ -37,10 +37,9 @@ module.exports = {
     // Complexity Rules
     'max-depth': ['error', 4], // prevent deeply nested code paths which are hard to read
     'max-nested-callbacks': ['error', 3],
-    'max-lines': ['error', 500], // cap file length
     complexity: ['error', 20], // restrict cyclomatic complexity (number of linearly independent paths)
 
-    // disable prettier linting and linting that we leave to prettier:
+    // disable prettier linting, as we format with biome:
     'prettier/prettier': 0,
     semi: 0,
     quotes: 0,
@@ -151,6 +150,7 @@ module.exports = {
     // use throughout the app when importing devtools, or in test files
     '@typescript-eslint/no-var-requires': 'off',
     '@typescript-eslint/no-require-imports': 'off',
+    'max-params': ['error', { max: 2 }],
   },
   overrides: [
     {
@@ -200,6 +200,8 @@ module.exports = {
         '@jambit/typed-redux-saga/use-typed-effects': 'error',
         '@jambit/typed-redux-saga/delegate-effects': 'error',
         'no-console': 'error',
+        // React Native specific: Percentage transforms crash on Android
+        'local-rules/no-transform-percentage-strings': 'error',
         'react/forbid-elements': [
           'error',
           {

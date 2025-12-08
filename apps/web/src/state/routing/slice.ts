@@ -1,6 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import { Protocol } from '@uniswap/router-sdk'
 import ms from 'ms'
+import { useActiveSmartPool } from 'state/application/hooks'
 import {
   ClassicAPIConfig,
   GetQuoteArgs,
@@ -11,19 +12,19 @@ import {
   RouterPreference,
   RoutingConfig,
   TradeResult,
-  URAQuoteResponse,
-  URAQuoteType,
   UniswapXConfig,
   UniswapXPriorityOrdersConfig,
   UniswapXv2Config,
   UniswapXv3Config,
+  URAQuoteResponse,
+  URAQuoteType,
 } from 'state/routing/types'
 import { isExactInput, transformQuoteToTrade } from 'state/routing/utils'
-import { trace } from 'tracing/trace'
-import { InterfaceEventNameLocal } from 'uniswap/src/features/telemetry/constants'
+import { InterfaceEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { logSwapQuoteFetch } from 'uniswap/src/features/transactions/swap/analytics'
 import { logger } from 'utilities/src/logger/logger'
+import { REQUEST_SOURCE } from 'utilities/src/platform/requestSource'
 
 const UNISWAP_GATEWAY_DNS_URL = process.env.REACT_APP_UNISWAP_GATEWAY_DNS
 if (UNISWAP_GATEWAY_DNS_URL === undefined) {
@@ -35,21 +36,26 @@ const protocols: Protocol[] = [Protocol.V2, Protocol.V3, Protocol.MIXED]
 // routing API quote query params: https://github.com/Uniswap/routing-api/blob/main/lib/handlers/quote/schema/quote-schema.ts
 const DEFAULT_QUERY_PARAMS = {
   // this should be removed once BE fixes issue where enableUniversalRouter is required for fees to work
-  enableUniversalRouter: false,
+  enableUniversalRouter: true,
 }
 
 function getRoutingAPIConfig(args: GetQuoteArgs): RoutingConfig {
   const { account, uniswapXForceSyntheticQuotes, routerPreference, protocolPreferences, routingType } = args
+  const activeSmartPoolAddress = useActiveSmartPool().address
+
+  if (!activeSmartPoolAddress) {
+    throw new Error('No active smart pool selected')
+  }
 
   const uniswapX: UniswapXConfig = {
     useSyntheticQuotes: uniswapXForceSyntheticQuotes,
-    swapper: account,
+    swapper: activeSmartPoolAddress,
     routingType: URAQuoteType.DUTCH_V1,
   }
 
   const uniswapXPriorityOrders: UniswapXPriorityOrdersConfig = {
     routingType: URAQuoteType.PRIORITY,
-    swapper: account,
+    swapper: activeSmartPoolAddress,
   }
 
   const uniswapXv2: UniswapXv2Config = {
@@ -60,7 +66,7 @@ function getRoutingAPIConfig(args: GetQuoteArgs): RoutingConfig {
 
   const uniswapXv3: UniswapXv3Config = {
     useSyntheticQuotes: uniswapXForceSyntheticQuotes,
-    swapper: account,
+    swapper: activeSmartPoolAddress,
     routingType: URAQuoteType.DUTCH_V3,
   }
 
@@ -104,89 +110,86 @@ export const routingApi = createApi({
   baseQuery: fetchBaseQuery(),
   endpoints: (build) => ({
     getQuote: build.query<TradeResult, GetQuoteArgs>({
-      queryFn(args, _api, _extraOptions, fetch) {
-        return trace({ name: 'Quote', op: 'quote', data: { ...args } }, async (trace) => {
-          logSwapQuoteFetch({
-            chainId: args.tokenInChainId,
-            isUSDQuote: args.routerPreference === INTERNAL_ROUTER_PREFERENCE_PRICE,
+      // eslint-disable-next-line max-params
+      async queryFn(args, _api, _extraOptions, fetch) {
+        logSwapQuoteFetch({
+          chainId: args.tokenInChainId,
+          isUSDQuote: args.routerPreference === INTERNAL_ROUTER_PREFERENCE_PRICE,
+        })
+        const {
+          tokenInAddress: tokenIn,
+          tokenInChainId,
+          tokenOutAddress: tokenOut,
+          tokenOutChainId,
+          amount,
+          tradeType,
+          sendPortionEnabled,
+        } = args
+        const requestBody = {
+          tokenInChainId,
+          tokenIn,
+          tokenOutChainId,
+          tokenOut,
+          amount,
+          sendPortionEnabled,
+          type: isExactInput(tradeType) ? 'EXACT_INPUT' : 'EXACT_OUTPUT',
+          intent: args.routerPreference === INTERNAL_ROUTER_PREFERENCE_PRICE ? QuoteIntent.Pricing : QuoteIntent.Quote,
+          configs: getRoutingAPIConfig(args),
+          useUniswapX: args.routerPreference === RouterPreference.X,
+          swapper: args.account,
+        }
+        try {
+          const response = await fetch({
+            method: 'POST',
+            url: `${UNISWAP_GATEWAY_DNS_URL}/quote`,
+            body: JSON.stringify(requestBody),
+            headers: {
+              'x-request-source': REQUEST_SOURCE,
+            },
           })
-          const {
-            tokenInAddress: tokenIn,
-            tokenInChainId,
-            tokenOutAddress: tokenOut,
-            tokenOutChainId,
-            amount,
-            tradeType,
-            sendPortionEnabled,
-          } = args
-
-          const requestBody = {
-            tokenInChainId,
-            tokenIn,
-            tokenOutChainId,
-            tokenOut,
-            amount,
-            sendPortionEnabled,
-            type: isExactInput(tradeType) ? 'EXACT_INPUT' : 'EXACT_OUTPUT',
-            intent:
-              args.routerPreference === INTERNAL_ROUTER_PREFERENCE_PRICE ? QuoteIntent.Pricing : QuoteIntent.Quote,
-            configs: getRoutingAPIConfig(args),
-            useUniswapX: args.routerPreference === RouterPreference.X,
-            swapper: args.account,
-          }
-
-          try {
-            return trace.child({ name: 'Quote on server', op: 'quote.server' }, async () => {
-              const response = await fetch({
-                method: 'POST',
-                url: `${UNISWAP_GATEWAY_DNS_URL}/quote`,
-                body: JSON.stringify(requestBody),
-                headers: {
-                  'x-request-source': 'uniswap-web',
-                },
-              })
-
-              if (response.error) {
-                try {
-                  // cast as any here because we do a runtime check on it being an object before indexing into .errorCode
-                  const errorData = response.error.data as { errorCode?: string; detail?: string }
-                  // NO_ROUTE should be treated as a valid response to prevent retries.
-                  if (
-                    typeof errorData === 'object' &&
-                    (errorData?.errorCode === 'NO_ROUTE' || errorData?.detail === 'No quotes available')
-                  ) {
-                    sendAnalyticsEvent(InterfaceEventNameLocal.NoQuoteReceivedFromRoutingAPI, {
-                      requestBody,
-                      response,
-                      routerPreference: args.routerPreference,
-                    })
-                    return {
-                      data: { state: QuoteState.NOT_FOUND, latencyMs: trace.now() },
-                    }
-                  }
-                } catch {
-                  throw response.error
+          if (response.error) {
+            try {
+              // cast as any here because we do a runtime check on it being an object before indexing into .errorCode
+              const errorData = response.error.data as { errorCode?: string; detail?: string }
+              // NO_ROUTE should be treated as a valid response to prevent retries.
+              if (
+                typeof errorData === 'object' &&
+                (errorData.errorCode === 'NO_ROUTE' || errorData.detail === 'No quotes available')
+              ) {
+                sendAnalyticsEvent(InterfaceEventName.NoQuoteReceivedFromRoutingAPI, {
+                  requestBody,
+                  response,
+                  routerPreference: args.routerPreference,
+                })
+                return {
+                  data: { state: QuoteState.NOT_FOUND },
                 }
               }
-
-              const uraQuoteResponse = response.data as URAQuoteResponse
-              const tradeResult = await transformQuoteToTrade(args, uraQuoteResponse, QuoteMethod.ROUTING_API)
-              return { data: { ...tradeResult, latencyMs: trace.now() } }
-            })
-          } catch (error: any) {
-            logger.warn(
-              'routing/slice',
-              'queryFn',
-              `GetQuote failed on Unified Routing API, falling back to client: ${
-                error?.message ?? error?.detail ?? error
-              }`,
-            )
+            } catch {
+              throw response.error
+            }
           }
 
-          return {
-            data: { state: QuoteState.NOT_FOUND, latencyMs: trace.now() },
-          }
-        })
+          const uraQuoteResponse = response.data as URAQuoteResponse
+          const tradeResult = await transformQuoteToTrade({
+            args,
+            data: uraQuoteResponse,
+            quoteMethod: QuoteMethod.ROUTING_API,
+          })
+          return { data: { ...tradeResult } }
+        } catch (error: any) {
+          logger.warn(
+            'routing/slice',
+            'queryFn',
+            `GetQuote failed on Unified Routing API, falling back to client: ${
+              error?.message ?? error?.detail ?? error
+            }`,
+          )
+        }
+
+        return {
+          data: { state: QuoteState.NOT_FOUND },
+        }
       },
       keepUnusedDataFor: ms(`10s`),
       extraOptions: {

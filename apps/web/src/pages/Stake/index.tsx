@@ -1,4 +1,3 @@
-import { InterfaceElementName, InterfaceEventName, InterfacePageName } from '@uniswap/analytics-events'
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { useAccountDrawer } from 'components/AccountDrawer/MiniPortfolio/hooks'
 import { ButtonPrimary } from 'components/Button/buttons'
@@ -10,16 +9,17 @@ import UnstakeModal from 'components/earn/UnstakeModal'
 import Loader from 'components/Icons/LoadingSpinner'
 import PoolPositionList from 'components/PoolPositionList'
 import { useAccount } from 'hooks/useAccount'
-import { Trans } from 'react-i18next'
 import JSBI from 'jsbi'
+import styled from 'lib/styled-components'
 import { useMemo, useState } from 'react'
+import { Trans } from 'react-i18next'
 import InfiniteScroll from 'react-infinite-scroll-component'
 import { PoolRegisteredLog, useAllPoolsData, useStakingPools } from 'state/pool/hooks'
 import { useFreeStakeBalance, useUnclaimedRewards, useUserStakeBalances } from 'state/stake/hooks'
-import styled from 'lib/styled-components'
 import { ThemedText } from 'theme/components/text'
 import { Flex } from 'ui/src'
 import { GRG } from 'uniswap/src/constants/tokens'
+import { ElementName, InterfaceEventName, InterfacePageName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 
 const PageWrapper = styled(AutoColumn)`
@@ -100,17 +100,17 @@ export default function Stake() {
   const unclaimedRewards = useUnclaimedRewards(poolIds ?? [])
   // TODO: check if want to return null, but returning undefined will simplify displaying only if positive reward
   const yieldAmount: CurrencyAmount<Token> | undefined = useMemo(() => {
-    if (!grg || !unclaimedRewards || unclaimedRewards?.length === 0) {
+    if (!grg || !unclaimedRewards || unclaimedRewards.length === 0) {
       return undefined
     }
     const yieldBigint = unclaimedRewards
       .map((reward) => reward.yieldAmount.quotient)
       .reduce((acc, value) => JSBI.add(acc, value))
-    return CurrencyAmount.fromRawAmount(grg, yieldBigint ?? undefined)
+    return CurrencyAmount.fromRawAmount(grg, yieldBigint)
   }, [grg, unclaimedRewards])
   const farmingPoolIds = useMemo(() => {
-    const ids = unclaimedRewards?.map((reward) => reward?.yieldPoolId)
-    return ids && ids?.length > 0 ? ids : undefined
+    const ids = unclaimedRewards?.map((reward) => reward.yieldPoolId)
+    return ids && ids.length > 0 ? ids : undefined
   }, [unclaimedRewards])
   const userStakeBalances = useUserStakeBalances(poolIds ?? [])
 
@@ -122,10 +122,10 @@ export default function Stake() {
     }
     return allPools
       .map((p, i) => {
-        const apr = stakingPools?.[i]?.apr
-        const irr = stakingPools?.[i]?.irr
-        const poolOwnStake = stakingPools?.[i]?.poolOwnStake
-        const poolDelegatedStake = stakingPools?.[i]?.delegatedStake
+        const apr = stakingPools[i]?.apr
+        const irr = stakingPools[i]?.irr
+        const poolOwnStake = stakingPools[i]?.poolOwnStake
+        const poolDelegatedStake = stakingPools[i]?.delegatedStake
         const userHasStake = userStakeBalances?.[i]?.hasStake
         return {
           ...p,
@@ -136,7 +136,7 @@ export default function Stake() {
           userHasStake,
         }
       })
-      .filter(p => JSBI.greaterThan(JSBI.BigInt(p.poolOwnStake.toString()), JSBI.BigInt(0)))
+      .filter((p) => JSBI.greaterThan(JSBI.BigInt(p.poolOwnStake.toString()), JSBI.BigInt(0)))
       .sort(biggestOwnStakeFirst)
   }, [allPools, stakingPools, userStakeBalances])
 
@@ -146,7 +146,7 @@ export default function Stake() {
       acc[p.userHasStake ? 1 : 0].push(p)
       return acc
     },
-    [[], []]
+    [[], []],
   ) ?? [[], []]
 
   // we first display the pools where user has an active stake of.
@@ -156,7 +156,7 @@ export default function Stake() {
   //const [activeFilters, filtersDispatch] = useReducer(reduceFilters, initialFilterState)
 
   const fetchMoreData = () => {
-    if (orderedPools && records === orderedPools.length) {
+    if (records === orderedPools.length) {
       setHasMore(false)
     } else {
       setTimeout(() => {
@@ -168,10 +168,8 @@ export default function Stake() {
   const showItems = (records: number, orderedPools: PoolRegisteredLog[]) => {
     const items: PoolRegisteredLog[] = []
 
-    for (let i = 0; i < records; i++) {
-      if (orderedPools[i] !== undefined) {
-        items.push(orderedPools[i])
-      }
+    for (let i = 0; i < records && i < orderedPools.length; i++) {
+      items.push(orderedPools[i])
     }
 
     return items
@@ -182,7 +180,7 @@ export default function Stake() {
   }, [records, orderedPools])
 
   return (
-    <Trace logImpression page={InterfacePageName.VOTE_PAGE}>
+    <Trace logImpression page={InterfacePageName.VotePage}>
       <PageWrapper gap="lg" justify="center">
         <TopSection gap="md">
           <DataCard>
@@ -250,9 +248,9 @@ export default function Stake() {
                 {!account.isConnected && (
                   <Trace
                     logPress
-                    eventOnTrigger={InterfaceEventName.CONNECT_WALLET_BUTTON_CLICKED}
+                    eventOnTrigger={InterfaceEventName.ConnectWalletButtonClicked}
                     properties={{ received_swap_quote: false }}
-                    element={InterfaceElementName.CONNECT_WALLET_BUTTON}
+                    element={ElementName.ConnectWalletButton}
                   >
                     <ButtonPrimary
                       style={{ marginTop: '2em', marginBottom: '2em', padding: '8px 16px' }}
@@ -271,13 +269,13 @@ export default function Stake() {
               next={fetchMoreData}
               hasMore={!!hasMore}
               loader={
-                orderedPools && orderedPools.length !== items?.length ? (
+                orderedPools.length !== items.length ? (
                   <Flex width="fit-content" alignItems="center" justifyContent="center">
                     <Loader style={{ margin: 'auto' }} />
                   </Flex>
                 ) : null
               }
-              dataLength={orderedPools?.length}
+              dataLength={orderedPools.length}
               style={{ overflow: 'unset', display: 'flex', flexDirection: 'column' }}
             >
               <PoolPositionList positions={items.length > 0 ? items : undefined} />

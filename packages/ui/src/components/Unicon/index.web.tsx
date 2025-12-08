@@ -1,9 +1,10 @@
-import React, { Suspense, lazy } from 'react'
+import React, { lazy, Suspense } from 'react'
+import { Flex } from 'ui/src/components/layout/Flex'
 import { UniconProps } from 'ui/src/components/Unicon/types'
 import { getUniconColors, getUniconsDeterministicHash } from 'ui/src/components/Unicon/utils'
-import { Flex } from 'ui/src/components/layout/Flex'
 import { useIsDarkMode } from 'ui/src/hooks/useIsDarkMode'
-import { isAddress } from 'utilities/src/addresses'
+import { isEVMAddressWithChecksum } from 'utilities/src/addresses/evm/evm'
+import { isSVMAddress } from 'utilities/src/addresses/svm/svm'
 
 // In test environments, import Icons synchronously
 const isTestEnv = process.env.NODE_ENV === 'test'
@@ -15,7 +16,7 @@ function UniconSVGInner({
   icons,
 }: UniconProps & { icons: typeof Icons }): React.ReactElement | null {
   const isDarkMode = useIsDarkMode()
-  if (!address || !isAddress(address)) {
+  if (!address || (!isEVMAddressWithChecksum(address) && !isSVMAddress(address))) {
     return null
   }
 

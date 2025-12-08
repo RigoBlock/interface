@@ -1,7 +1,7 @@
 import CreateProposal from 'pages/CreateProposal'
 import Landing from 'pages/Vote/Landing'
 import VotePage from 'pages/Vote/VotePage'
-import { Route, Routes } from 'react-router-dom'
+import { Route, Routes } from 'react-router'
 
 export default function Vote() {
   return (

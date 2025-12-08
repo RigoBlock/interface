@@ -1,170 +1,71 @@
-import { InterfaceElementName } from '@uniswap/analytics-events'
-import { ExpandoRow } from 'components/AccountDrawer/MiniPortfolio/ExpandoRow'
-import { PortfolioLogo } from 'components/AccountDrawer/MiniPortfolio/PortfolioLogo'
-import PortfolioRow, {
-  PortfolioSkeleton,
-  PortfolioTabWrapper,
-} from 'components/AccountDrawer/MiniPortfolio/PortfolioRow'
+import { Currency } from '@uniswap/sdk-core'
 import { useAccountDrawer } from 'components/AccountDrawer/MiniPortfolio/hooks'
-import { DeltaArrow } from 'components/Tokens/TokenDetails/Delta'
-import Row from 'components/deprecated/Row'
-import { useAccount } from 'hooks/useAccount'
-import { useTokenContextMenu } from 'hooks/useTokenContextMenu'
-import styled from 'lib/styled-components'
-import { EmptyWalletModule } from 'nft/components/profile/view/EmptyWalletContent'
-import { useCallback, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
-import { useActiveSmartPool } from 'state/application/hooks'
-import { ThemedText } from 'theme/components'
-import { EllipsisStyle } from 'theme/components/styles'
-import { Text, Tooltip } from 'ui/src'
-import { ContextMenu } from 'uniswap/src/components/menus/ContextMenuV2'
-import { NATIVE_TOKEN_PLACEHOLDER } from 'uniswap/src/constants/addresses'
+import { useModalState } from 'hooks/useModalState'
+import { useAtom } from 'jotai'
+import { useCallback } from 'react'
+import { useNavigate } from 'react-router'
+import { Flex } from 'ui/src'
+import { TokenBalanceListWeb } from 'uniswap/src/components/portfolio/TokenBalanceListWeb'
+import { ReportTokenIssueModalPropsAtom } from 'uniswap/src/components/reporting/ReportTokenIssueModal'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { useSortedPortfolioBalances } from 'uniswap/src/features/dataApi/balances'
-import { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
-import Trace from 'uniswap/src/features/telemetry/Trace'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { CurrencyId } from 'uniswap/src/types/currency'
+import { currencyIdToAddress, currencyIdToChain } from 'uniswap/src/utils/currencyId'
 import { getTokenDetailsURL } from 'uniswap/src/utils/linking'
-import { NumberType, useFormatter } from 'utils/formatNumbers'
+import { useEvent } from 'utilities/src/react/hooks'
+import { noop } from 'utilities/src/react/noop'
+import { getChainUrlParam } from 'utils/chainParams'
 
-export default function Tokens() {
+export default function TokensTab({
+  evmOwner,
+  svmOwner,
+}: {
+  evmOwner: Address | undefined
+  svmOwner: Address | undefined
+}): JSX.Element {
   const accountDrawer = useAccountDrawer()
-  const signer = useAccount()
-  const account = useActiveSmartPool()
-
-  const [showHiddenTokens, setShowHiddenTokens] = useState(false)
-
-  const { data: sortedPortfolioBalances, loading } = useSortedPortfolioBalances({
-    address: account?.address ?? signer?.address,
-  })
-
-  const isLoading = loading && !sortedPortfolioBalances
-
-  const hiddenBalances = sortedPortfolioBalances?.hiddenBalances ?? []
-  const visibleBalances = sortedPortfolioBalances?.balances ?? []
-
-  if (isLoading) {
-    return <PortfolioSkeleton />
-  }
-
-  if (hiddenBalances.length === 0 && visibleBalances.length === 0) {
-    // TODO: consider launching moonpay here instead of just closing the drawer
-    return <EmptyWalletModule type="token" onNavigateClick={accountDrawer.close} />
-  }
-
-  const toggleHiddenTokens = () => setShowHiddenTokens((showHiddenTokens) => !showHiddenTokens)
-
-  return (
-    <PortfolioTabWrapper>
-      {visibleBalances.map((tokenBalance) => (
-        <TokenRow key={tokenBalance.id} tokenBalance={tokenBalance} />
-      ))}
-      <ExpandoRow isExpanded={showHiddenTokens} toggle={toggleHiddenTokens} numItems={hiddenBalances.length}>
-        {hiddenBalances.map((tokenBalance) => (
-          <TokenRow key={tokenBalance.id} tokenBalance={tokenBalance} />
-        ))}
-      </ExpandoRow>
-    </PortfolioTabWrapper>
-  )
-}
-
-const TokenBalanceText = styled(ThemedText.BodySecondary)`
-  ${EllipsisStyle}
-`
-const TokenNameText = styled(ThemedText.SubHeader)`
-  ${EllipsisStyle}
-`
-
-function TokenRow({ tokenBalance }: { tokenBalance: PortfolioBalance }) {
-  const { t } = useTranslation()
-  const { formatDelta, formatNumber } = useFormatter()
   const { isTestnetModeEnabled } = useEnabledChains()
   const navigate = useNavigate()
-  const accountDrawer = useAccountDrawer()
 
-  const menuItems = useTokenContextMenu({
-    tokenBalance,
+  const { openModal } = useModalState(ModalName.ReportTokenIssue)
+  const [, setModalProps] = useAtom(ReportTokenIssueModalPropsAtom)
+  const openReportTokenModal = useEvent((currency: Currency, isMarkedSpam: Maybe<boolean>) => {
+    setModalProps({ source: 'portfolio', currency, isMarkedSpam })
+    openModal()
   })
 
-  const currency = tokenBalance.currencyInfo.currency
-  const { chainId, name, symbol, isNative } = currency
-  const percentChange24 = tokenBalance.relativeChange24 ?? 0
-  const tokenAddress = isNative ? NATIVE_TOKEN_PLACEHOLDER : currency.address
+  const navigateToTokenDetails = useCallback(
+    async (currencyId: CurrencyId) => {
+      const address = currencyIdToAddress(currencyId)
+      const chain = currencyIdToChain(currencyId)
 
-  // TODO: remove when exposing '/explore' route.
-  const isExploreRouteActive = false
-
-  const navigateToTokenDetails = useCallback(async () => {
-    if (isTestnetModeEnabled || !isExploreRouteActive) {
-      return
-    }
-
-    navigate(
-      getTokenDetailsURL({
-        address: tokenAddress,
-        chain: chainId,
-      }),
-    )
-    accountDrawer.close()
-  }, [accountDrawer, isTestnetModeEnabled, navigate, tokenAddress, chainId, isExploreRouteActive])
-
-  const portfolioRow = (
-    <PortfolioRow
-      left={<PortfolioLogo chainId={chainId} currencies={[currency]} size={40} />}
-      title={<TokenNameText>{name}</TokenNameText>}
-      descriptor={
-        <TokenBalanceText>
-          {formatNumber({
-            input: tokenBalance.quantity,
-            type: NumberType.TokenNonTx,
-          })}{' '}
-          {symbol}
-        </TokenBalanceText>
+      if (isTestnetModeEnabled || !chain) {
+        return
       }
-      onClick={navigateToTokenDetails}
-      right={
-        tokenBalance.balanceUSD && (
-          <>
-            <ThemedText.SubHeader>
-              {formatNumber({
-                input: tokenBalance.balanceUSD,
-                type: NumberType.PortfolioBalance,
-              })}
-            </ThemedText.SubHeader>
-            <Row justify="flex-end">
-              <DeltaArrow delta={percentChange24} />
-              <ThemedText.BodySecondary>{formatDelta(percentChange24)}</ThemedText.BodySecondary>
-            </Row>
-          </>
-        )
-      }
-    />
+
+      navigate(
+        getTokenDetailsURL({
+          address,
+          chain,
+          chainUrlParam: getChainUrlParam(chain),
+          inputAddress: address,
+        }),
+      )
+      accountDrawer.close()
+    },
+    [accountDrawer, isTestnetModeEnabled, navigate],
   )
 
   return (
-    <Trace
-      logPress
-      element={InterfaceElementName.MINI_PORTFOLIO_TOKEN_ROW}
-      properties={{
-        chain_id: chainId,
-        token_name: name,
-        address: tokenAddress,
-      }}
-    >
-      {isTestnetModeEnabled ? (
-        <Tooltip placement="right" delay={{ open: 2000 }}>
-          <Tooltip.Content>
-            <Text variant="body4">{t('token.details.testnet.unsupported')}</Text>
-            <Tooltip.Arrow />
-          </Tooltip.Content>
-          <Tooltip.Trigger>{portfolioRow}</Tooltip.Trigger>
-        </Tooltip>
-      ) : (
-        <ContextMenu menuStyleProps={{ minWidth: '200px' }} menuItems={menuItems} alignContentLeft>
-          {portfolioRow}
-        </ContextMenu>
-      )}
-    </Trace>
+    <Flex mx="$spacing8">
+      <TokenBalanceListWeb
+        evmOwner={evmOwner}
+        svmOwner={svmOwner}
+        onPressReceive={noop}
+        onPressBuy={noop}
+        onPressToken={navigateToTokenDetails}
+        openReportTokenModal={openReportTokenModal}
+      />
+    </Flex>
   )
 }

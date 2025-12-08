@@ -1,21 +1,21 @@
-/* eslint-disable max-lines */
 import { Currency, NativeCurrency, Token } from '@uniswap/sdk-core'
+import { GraphQLApi } from '@universe/api'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
-import { ProtectionResult } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
 import { AttackType, CurrencyInfo, SafetyInfo, TokenList } from 'uniswap/src/features/dataApi/types'
 import {
-  TokenProtectionWarning,
   getFeeColor,
   getFeeWarning,
   getShouldHaveCombinedPluralTreatment,
   getTokenProtectionWarning,
   getTokenWarningSeverity,
+  TokenProtectionWarning,
   useCardHeaderText,
   useCardSubtitleText,
   useModalHeaderText,
   useModalSubtitleText,
   useTokenWarningCardText,
 } from 'uniswap/src/features/tokens/safetyUtils'
+import { logger } from 'utilities/src/logger/logger'
 
 jest.mock('react-i18next', () => ({
   useTranslation: (): { t: (str: string) => string } => {
@@ -34,7 +34,7 @@ const mockCurrency = {
 const mockNativeCurrency = { isNative: true } as NativeCurrency
 const mockSafetyInfo: SafetyInfo = {
   tokenList: TokenList.Default,
-  protectionResult: ProtectionResult.Benign,
+  protectionResult: GraphQLApi.ProtectionResult.Benign,
   attackType: AttackType.Other,
 }
 const mockCurrencyInfo = {
@@ -68,11 +68,27 @@ describe('getTokenWarningSeverity', () => {
       ...mockCurrencyInfo,
       safetyInfo: {
         ...mockSafetyInfo,
-        protectionResult: ProtectionResult.Spam,
+        protectionResult: GraphQLApi.ProtectionResult.Spam,
         attackType: AttackType.Airdrop,
       },
     }
     expect(getTokenWarningSeverity(airdropCurrencyInfo)).toBe(WarningSeverity.Medium)
+  })
+
+  it('should return Medium for potential honeypot', () => {
+    const potentialHoneypotCurrencyInfo = {
+      ...mockCurrencyInfo,
+      safetyInfo: {
+        ...mockSafetyInfo,
+        attackType: AttackType.Honeypot,
+      },
+      currency: {
+        ...mockCurrency,
+        sellFeeBps: { toNumber: () => 300 },
+        buyFeeBps: { toNumber: () => 300 },
+      } as Currency,
+    }
+    expect(getTokenWarningSeverity(potentialHoneypotCurrencyInfo)).toBe(WarningSeverity.Medium)
   })
 
   it('should return Medium for low fee on transfer', () => {
@@ -92,7 +108,7 @@ describe('getTokenWarningSeverity', () => {
       ...mockCurrencyInfo,
       safetyInfo: {
         ...mockSafetyInfo,
-        protectionResult: ProtectionResult.Malicious,
+        protectionResult: GraphQLApi.ProtectionResult.Malicious,
         attackType: AttackType.Impersonator,
       },
     }
@@ -111,7 +127,7 @@ describe('getTokenWarningSeverity', () => {
     expect(getTokenWarningSeverity(highFeeCurrencyInfo)).toBe(WarningSeverity.High)
   })
 
-  it('should return High for very high fee on transfer even if our fees DB doesnt have fees data & if Blockaid hasnt properly updated their ProtectionResult to malicious lol', () => {
+  it('should return High for very high fee on transfer even if our fees DB doesnt have fees data & if Blockaid hasnt properly updated their GraphQLApi.ProtectionResult to malicious lol', () => {
     const highFeeCurrencyInfo = {
       ...mockCurrencyInfo,
       safetyInfo: {
@@ -120,7 +136,7 @@ describe('getTokenWarningSeverity', () => {
           sellFeePercent: 100,
         },
         tokenList: TokenList.NonDefault,
-        protectionResult: ProtectionResult.Benign,
+        protectionResult: GraphQLApi.ProtectionResult.Benign,
       },
       currency: {
         ...mockCurrency,
@@ -169,7 +185,7 @@ describe('getShouldHaveCombinedPluralTreatment', () => {
     }
     const highCurrencyInfo = {
       ...mockCurrencyInfo,
-      safetyInfo: { ...mockSafetyInfo, protectionResult: ProtectionResult.Malicious },
+      safetyInfo: { ...mockSafetyInfo, protectionResult: GraphQLApi.ProtectionResult.Malicious },
     }
     expect(getShouldHaveCombinedPluralTreatment(lowCurrencyInfo, highCurrencyInfo)).toBe(false)
   })
@@ -182,6 +198,7 @@ describe('getFeeColor', () => {
     [18, '$statusCritical', 'high fee'],
     [85, '$statusCritical', 'very high fee'],
     [100, '$statusCritical', 'honeypot fee'],
+    // eslint-disable-next-line max-params
   ])('should return %s for %s', (fee, expectedColor, _) => {
     expect(getFeeColor(fee)).toBe(expectedColor)
   })
@@ -285,7 +302,7 @@ describe('getTokenProtectionWarning', () => {
         ...mockCurrencyInfo,
         safetyInfo: {
           ...mockSafetyInfo,
-          protectionResult: ProtectionResult.Malicious,
+          protectionResult: GraphQLApi.ProtectionResult.Malicious,
           attackType: AttackType.Impersonator,
         },
       },
@@ -297,7 +314,7 @@ describe('getTokenProtectionWarning', () => {
         ...mockCurrencyInfo,
         safetyInfo: {
           ...mockSafetyInfo,
-          protectionResult: ProtectionResult.Spam,
+          protectionResult: GraphQLApi.ProtectionResult.Spam,
           attackType: AttackType.Airdrop,
         },
       },
@@ -309,12 +326,28 @@ describe('getTokenProtectionWarning', () => {
         ...mockCurrencyInfo,
         safetyInfo: {
           ...mockSafetyInfo,
-          protectionResult: ProtectionResult.Malicious,
+          protectionResult: GraphQLApi.ProtectionResult.Malicious,
           attackType: AttackType.Other,
         },
       },
       TokenProtectionWarning.MaliciousGeneral,
       'other malicious attack -> MaliciousGeneral',
+    ],
+    [
+      {
+        ...mockCurrencyInfo,
+        safetyInfo: {
+          ...mockSafetyInfo,
+          attackType: AttackType.Honeypot,
+        },
+        currency: {
+          ...mockCurrency,
+          sellFeeBps: { toNumber: () => 300 },
+          buyFeeBps: { toNumber: () => 300 },
+        } as Currency,
+      },
+      TokenProtectionWarning.PotentialHoneypot,
+      'honeypot attack without 100% fee -> PotentialHoneypot',
     ],
 
     // Edge cases
@@ -335,7 +368,7 @@ describe('getTokenProtectionWarning', () => {
         ...mockCurrencyInfo,
         safetyInfo: {
           ...mockSafetyInfo,
-          protectionResult: ProtectionResult.Unknown,
+          protectionResult: GraphQLApi.ProtectionResult.Unknown,
           attackType: undefined,
         },
       } satisfies CurrencyInfo,
@@ -347,7 +380,7 @@ describe('getTokenProtectionWarning', () => {
         ...mockCurrencyInfo,
         safetyInfo: {
           ...mockSafetyInfo,
-          protectionResult: ProtectionResult.Spam,
+          protectionResult: GraphQLApi.ProtectionResult.Spam,
           attackType: AttackType.HighFees,
         },
       },
@@ -359,13 +392,14 @@ describe('getTokenProtectionWarning', () => {
         ...mockCurrencyInfo,
         safetyInfo: {
           ...mockSafetyInfo,
-          protectionResult: ProtectionResult.Malicious,
+          protectionResult: GraphQLApi.ProtectionResult.Malicious,
           attackType: AttackType.HighFees,
         },
       },
       TokenProtectionWarning.FotVeryHigh,
       'malicious high fees attack -> FotVeryHigh',
     ],
+    // eslint-disable-next-line max-params
   ])('%s', (currencyInfo, expectedWarning, _) => {
     expect(getTokenProtectionWarning(currencyInfo)).toBe(expectedWarning)
   })
@@ -392,6 +426,7 @@ describe('getFeeWarning', () => {
     // Honeypot (100%)
     [100, TokenProtectionWarning.MaliciousHoneypot, '100% -> MaliciousHoneypot'],
     [100, TokenProtectionWarning.MaliciousHoneypot, '100% -> MaliciousHoneypot'],
+    // eslint-disable-next-line max-params
   ])('%s', (fee, expectedWarning, _) => {
     expect(getFeeWarning(fee)).toBe(expectedWarning)
   })
@@ -402,15 +437,20 @@ describe('useModalHeaderText', () => {
     expect(useModalHeaderText({ tokenProtectionWarning: undefined })).toBeNull()
   })
 
-  it('throws error when tokenSymbol1 provided without plural treatment', () => {
-    expect(() =>
-      useModalHeaderText({
-        tokenProtectionWarning: TokenProtectionWarning.FotLow,
-        tokenSymbol0: 'ABC',
-        tokenSymbol1: 'XYZ',
-        shouldHavePluralTreatment: false,
-      }),
-    ).toThrow('Should only combine into one plural-languaged modal if BOTH are low or BOTH are blocked')
+  it('logs error when tokenSymbol1 provided without plural treatment', () => {
+    const mockLogger = jest.spyOn(logger, 'error')
+    useModalHeaderText({
+      tokenProtectionWarning: TokenProtectionWarning.FotLow,
+      tokenSymbol0: 'ABC',
+      tokenSymbol1: 'XYZ',
+      shouldHavePluralTreatment: false,
+    })
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Should only combine into one plural-languaged modal if BOTH are low or BOTH are blocked',
+      {
+        tags: { file: 'safetyUtils.ts', function: 'useModalHeaderText' },
+      },
+    )
   })
 
   it('returns correct text for blocked tokens with plural treatment', () => {
@@ -432,6 +472,14 @@ describe('useModalHeaderText', () => {
       }),
     ).toBe('token.safety.blocked.title.tokenNotAvailable')
   })
+
+  it('returns correct text for potential honeypot', () => {
+    expect(
+      useModalHeaderText({
+        tokenProtectionWarning: TokenProtectionWarning.PotentialHoneypot,
+      }),
+    ).toBe('token.safety.warning.potentialHoneypot.title')
+  })
 })
 
 describe('useModalSubtitleText', () => {
@@ -445,6 +493,15 @@ describe('useModalSubtitleText', () => {
         tokenProtectionWarning: TokenProtectionWarning.MaliciousHoneypot,
       }),
     ).toBe('token.safety.warning.honeypot.message')
+  })
+
+  it('returns correct text for potential honeypot warning', () => {
+    expect(
+      useModalSubtitleText({
+        tokenProtectionWarning: TokenProtectionWarning.PotentialHoneypot,
+        tokenSymbol: 'ABC',
+      }),
+    ).toBe('token.safety.warning.potentialHoneypot.modal.message')
   })
 
   it('returns correct text for non-default warning', () => {
@@ -469,7 +526,11 @@ describe('useTokenWarningCardText', () => {
     expect(
       useTokenWarningCardText({
         ...mockCurrencyInfo,
-        safetyInfo: { ...mockSafetyInfo, protectionResult: ProtectionResult.Spam, attackType: AttackType.Airdrop },
+        safetyInfo: {
+          ...mockSafetyInfo,
+          protectionResult: GraphQLApi.ProtectionResult.Spam,
+          attackType: AttackType.Airdrop,
+        },
       }),
     ).toEqual({ heading: 'token.safety.warning.spam.title', description: 'token.safety.warning.spam.message' })
   })
@@ -484,7 +545,7 @@ describe('useTokenWarningCardText', () => {
       } as Token,
       safetyInfo: {
         ...mockSafetyInfo,
-        protectionResult: ProtectionResult.Malicious,
+        protectionResult: GraphQLApi.ProtectionResult.Malicious,
         attackType: AttackType.HighFees,
         blockaidFees: {
           sellFeePercent: 15,
@@ -510,6 +571,14 @@ describe('useCardHeaderText', () => {
       }),
     ).toBe('token.safety.warning.fotHigh.title')
   })
+
+  it('returns correct text for potential honeypot warning', () => {
+    expect(
+      useCardHeaderText({
+        tokenProtectionWarning: TokenProtectionWarning.PotentialHoneypot,
+      }),
+    ).toBe('token.safety.warning.potentialHoneypot.title')
+  })
 })
 
 describe('useCardSubtitleText', () => {
@@ -523,5 +592,14 @@ describe('useCardSubtitleText', () => {
         tokenProtectionWarning: TokenProtectionWarning.MaliciousImpersonator,
       }),
     ).toBe('token.safety.warning.malicious.impersonator.message.short')
+  })
+
+  it('returns correct text for potential honeypot warning', () => {
+    expect(
+      useCardSubtitleText({
+        tokenProtectionWarning: TokenProtectionWarning.PotentialHoneypot,
+        tokenSymbol: 'ABC',
+      }),
+    ).toBe('token.safety.warning.potentialHoneypot.card.message')
   })
 })

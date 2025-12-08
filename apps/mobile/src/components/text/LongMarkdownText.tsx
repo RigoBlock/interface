@@ -35,7 +35,7 @@ export function LongMarkdownText(props: LongMarkdownTextProps): JSX.Element {
   const [expanded, toggleExpanded] = useReducer((isExpanded) => !isExpanded, true)
   const [textLengthExceedsLimit, setTextLengthExceedsLimit] = useState(false)
   const [textLineHeight, setTextLineHeight] = useState<number>(fonts[variant].lineHeight)
-  const initialContentHeightRef = useRef<number>()
+  const initialContentHeightRef = useRef<number>(undefined)
   const maxVisibleHeight = textLineHeight * initialDisplayedLines
 
   const onMarkdownLayout = useCallback(
@@ -100,9 +100,9 @@ export function LongMarkdownText(props: LongMarkdownTextProps): JSX.Element {
         </Flex>
         <Markdown
           style={markdownStyle}
-          onLinkPress={(url): false => {
+          onLinkPress={(uri): false => {
             // add our own custom link handler since it has security checks that only open http/https links
-            openUri(url).catch(() => undefined)
+            openUri({ uri }).catch(() => undefined)
             return false
           }}
           // HACK: children prop no in TS definition

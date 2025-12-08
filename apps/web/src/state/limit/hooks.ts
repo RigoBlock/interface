@@ -1,4 +1,5 @@
 import { Currency, CurrencyAmount, Price, TradeType } from '@uniswap/sdk-core'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useAccount } from 'hooks/useAccount'
 import JSBI from 'jsbi'
 import { useCurrencyBalances } from 'lib/hooks/useCurrencyBalance'
@@ -12,10 +13,8 @@ import { useRoutingAPITrade } from 'state/routing/useRoutingAPITrade'
 import { getUSDCostPerGas, isClassicTrade } from 'state/routing/utils'
 import { useSwapAndLimitContext } from 'state/swap/useSwapContext'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
-import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { isUniverseChainId } from 'uniswap/src/features/chains/types'
-import { FeatureFlags } from 'uniswap/src/features/gating/flags'
-import { useFeatureFlag } from 'uniswap/src/features/gating/hooks'
+import { getStablecoinsForChain, isUniverseChainId } from 'uniswap/src/features/chains/utils'
+import { isEVMChain, isSVMChain } from 'uniswap/src/features/platforms/utils/chains'
 import { CurrencyField } from 'uniswap/src/types/currency'
 
 export type LimitInfo = {
@@ -31,7 +30,7 @@ function isStablecoin(currency?: Currency): boolean {
   return (
     currency !== undefined &&
     isUniverseChainId(currency.chainId) &&
-    getChainInfo(currency.chainId).stablecoins.some((stablecoin) => stablecoin.equals(currency))
+    getStablecoinsForChain(currency.chainId).some((stablecoin) => stablecoin.equals(currency))
   )
 }
 
@@ -118,12 +117,13 @@ export function useDerivedLimitInfo(state: LimitState): LimitInfo {
 
   const { marketPrice, fee: swapFee } = useMarketPriceAndFee(inputCurrency, outputCurrency)
 
-  const skip = !(inputCurrency && outputCurrency)
+  const skip =
+    !(inputCurrency && outputCurrency) || isSVMChain(inputCurrency.chainId) || isSVMChain(outputCurrency.chainId)
 
   const { trade } = useRoutingAPITrade(
     skip,
     TradeType.EXACT_INPUT,
-    parsedAmounts?.[CurrencyField.INPUT],
+    parsedAmounts[CurrencyField.INPUT],
     outputCurrency,
     RouterPreference.API,
   )
@@ -166,7 +166,7 @@ function useLimitOrderTrade({
 
   useEffect(() => {
     async function calculateWrapInfo() {
-      if (!inputCurrency) {
+      if (!inputCurrency || !isEVMChain(inputCurrency.chainId)) {
         setWrapInfo(undefined)
         return
       }
@@ -178,7 +178,13 @@ function useLimitOrderTrade({
       const usdCostPerGas = getUSDCostPerGas(gasUseEstimateUSD, gasUseEstimate)
 
       if (needsWrap) {
-        const wrapInfo = await getWrapInfo(needsWrap, account.address, currencyIn.chainId, '1', usdCostPerGas)
+        const wrapInfo = await getWrapInfo({
+          needsWrap,
+          account: account.address,
+          chainId: currencyIn.chainId,
+          amount: '1',
+          usdCostPerGas,
+        })
         setWrapInfo(wrapInfo)
       } else {
         setWrapInfo({ needsWrap: false })
@@ -188,10 +194,10 @@ function useLimitOrderTrade({
   }, [account.address, inputCurrency, trade])
 
   const limitOrderTrade = useMemo(() => {
-    if (!inputCurrency || !parsedAmounts?.[CurrencyField.INPUT] || !account.address || !outputAmount || !wrapInfo) {
+    if (!inputCurrency || !parsedAmounts[CurrencyField.INPUT] || !account.address || !outputAmount || !wrapInfo) {
       return undefined
     }
-    const amountIn = CurrencyAmount.fromRawAmount(inputCurrency.wrapped, parsedAmounts?.[CurrencyField.INPUT].quotient)
+    const amountIn = CurrencyAmount.fromRawAmount(inputCurrency.wrapped, parsedAmounts[CurrencyField.INPUT].quotient)
     return new LimitOrderTrade({
       amountIn,
       amountOut: outputAmount,
@@ -215,7 +221,9 @@ function useMarketPriceAndFee(
   inputCurrency: Currency | undefined,
   outputCurrency: Currency | undefined,
 ): { marketPrice?: Price<Currency, Currency>; fee?: SwapFeeInfo } {
-  const skip = !(inputCurrency && outputCurrency)
+  const skip =
+    !(inputCurrency && outputCurrency) || isSVMChain(inputCurrency.chainId) || isSVMChain(outputCurrency.chainId)
+
   // TODO(limits): update amount for MATIC and CELO once Limits are supported on those chains
   const baseCurrencyAmount =
     inputCurrency && CurrencyAmount.fromRawAmount(nativeOnChain(inputCurrency.chainId), 10 ** 18)
@@ -266,12 +274,13 @@ function useMarketPriceAndFee(
       return undefined
     }
 
-    if (!tradeA || !tradeB || !isClassicTrade(tradeA) || !isClassicTrade(tradeB)) {
+    if (!isClassicTrade(tradeA) || !isClassicTrade(tradeB)) {
       return undefined
     }
 
     const priceA = tradeA.routes[0]?.midPrice
     const priceB = tradeB.routes[0]?.midPrice
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!priceA || !priceB) {
       return undefined
     }

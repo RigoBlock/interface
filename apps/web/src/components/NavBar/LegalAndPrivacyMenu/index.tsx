@@ -1,8 +1,8 @@
 import Expand from 'components/Expand'
 import { PrivacyOptions } from 'components/Icons/PrivacyOptions'
+import { useModalState } from 'hooks/useModalState'
 import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useOpenModal, useTogglePrivacyPolicy } from 'state/application/hooks'
 import { Anchor, AnchorProps, Flex, Text } from 'ui/src'
 import { spacing } from 'ui/src/theme'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
@@ -14,7 +14,7 @@ const MenuLink = ({ children, ...rest }: AnchorProps) => (
     <Text
       color="$neutral2"
       $group-hover={{ color: '$accent1' }}
-      animation="fastHeavy"
+      transition="all 0.1s ease-in-out"
       variant="body4"
       display="flex"
       alignItems="center"
@@ -28,8 +28,8 @@ const MenuLink = ({ children, ...rest }: AnchorProps) => (
 export function LegalAndPrivacyMenu({ closeMenu }: { closeMenu?: () => void }) {
   const { toggle: toggleIsOpen, value: isOpen } = useBooleanState(false)
   const { t } = useTranslation()
-  const togglePrivacyPolicy = useTogglePrivacyPolicy()
-  const openPrivacyChoices = useOpenModal({ name: ModalName.PrivacyChoices })
+  const { toggleModal: togglePrivacyPolicy } = useModalState(ModalName.PrivacyPolicy)
+  const { openModal: openPrivacyChoices } = useModalState(ModalName.PrivacyChoices)
   const handleOnMenuPress = useCallback(
     (handler: () => void) => () => {
       handler()
@@ -48,8 +48,10 @@ export function LegalAndPrivacyMenu({ closeMenu }: { closeMenu?: () => void }) {
           {t('common.legalAndPrivacy')}
         </Text>
       }
+      paddingTop="4px"
+      width="100%"
     >
-      <Flex gap="$gap8">
+      <Flex gap="$gap4">
         <MenuLink onPress={handleOnMenuPress(openPrivacyChoices)}>
           <PrivacyOptions /> {t('common.privacyChoices')}
         </MenuLink>

@@ -1,8 +1,8 @@
-import { InterfaceEventName } from '@uniswap/analytics-events'
-import styled, { css } from 'lib/styled-components'
+import { css, styled } from 'lib/styled-components'
 import React, { HTMLProps, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { ClickableStyle } from 'theme/components/styles'
+import { InterfaceEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { anonymizeLink } from 'utils/anonymizeLink'
 
@@ -12,14 +12,14 @@ const LinkStyle = css`
   font-weight: 500;
 `
 
-// An internal link from the react-router-dom library that is correctly styled
+// An internal link from the react-router library that is correctly styled
 export const StyledInternalLink = styled(Link)`
   ${ClickableStyle}
   ${LinkStyle}
 `
 
 function outboundLink({ label }: { label: string }) {
-  sendAnalyticsEvent(InterfaceEventName.EXTERNAL_LINK_CLICK, {
+  sendAnalyticsEvent(InterfaceEventName.ExternalLinkClicked, {
     label,
   })
 }
@@ -60,7 +60,7 @@ export function ExternalLink({
         rest.onClick(event)
       }
     },
-    [rest],
+    [rest.onClick],
   )
   return <StyledLink target={target} rel={rel} href={href} onClick={handleClick} {...rest} />
 }

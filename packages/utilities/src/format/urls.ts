@@ -17,6 +17,10 @@ export function uriToHttpUrls(uri: string, options?: { allowLocalUri?: boolean }
     case 'https':
       return [uri]
     case 'http':
+      // In extensions, prioritize HTTP for localhost since HTTPS localhost doesn't work
+      if (typeof process !== 'undefined' && process.env.IS_UNISWAP_EXTENSION === 'true' && uri.includes('localhost')) {
+        return [uri, 'https' + uri.slice(4)]
+      }
       return ['https' + uri.slice(4), uri]
     case 'ipfs': {
       const hash = uri.match(/^ipfs:(\/\/)?(ipfs\/)?(.*)$/i)?.[3]
@@ -107,7 +111,7 @@ function parseUrl(url?: string): URL | undefined {
  * See tests for examples.
  */
 export function formatDappURL(url: string): string {
-  return parseUrl(url)?.origin?.replace('https://', '') ?? url?.slice(0, 20)
+  return parseUrl(url)?.origin.replace('https://', '') ?? url.slice(0, 20)
 }
 
 /** Returns the url host (doesn't include http or https) */

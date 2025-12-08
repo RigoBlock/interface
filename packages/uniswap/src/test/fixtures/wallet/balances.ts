@@ -1,7 +1,8 @@
-import { Portfolio, Token, TokenBalance } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
+import { GraphQLApi } from '@universe/api'
 import { fromGraphQLChain } from 'uniswap/src/features/chains/utils'
 import { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
-import { buildCurrency, getCurrencySafetyInfo } from 'uniswap/src/features/dataApi/utils'
+import { buildCurrency } from 'uniswap/src/features/dataApi/utils/buildCurrency'
+import { getCurrencySafetyInfo } from 'uniswap/src/features/dataApi/utils/getCurrencySafetyInfo'
 import { currencyInfo, portfolio, tokenBalance } from 'uniswap/src/test/fixtures'
 import { faker } from 'uniswap/src/test/shared'
 import { createFixture } from 'uniswap/src/test/utils'
@@ -18,8 +19,8 @@ const portfolioBalanceBase = createFixture<PortfolioBalance>()(() => ({
 }))
 
 type PortfolioBalanceOptions = {
-  fromBalance: RequireNonNullable<TokenBalance, 'quantity' | 'token'> | null
-  fromToken: Token | null
+  fromBalance: RequireNonNullable<GraphQLApi.TokenBalance, 'quantity' | 'token'> | null
+  fromToken: GraphQLApi.Token | null
 }
 
 export const portfolioBalance = createFixture<PortfolioBalance, PortfolioBalanceOptions>({
@@ -67,21 +68,21 @@ export const portfolioBalance = createFixture<PortfolioBalance, PortfolioBalance
 })
 
 type PortfolioBalancesOptions = {
-  portfolio: Portfolio
+  portfolio: GraphQLApi.Portfolio
 }
 
 export const portfolioBalances = createFixture<PortfolioBalance[], PortfolioBalancesOptions>(() => ({
   portfolio: portfolio(),
 }))(
   ({ portfolio: { tokenBalances } }) =>
-    (tokenBalances
+    tokenBalances
       ?.map((balance) => {
-        if (balance?.quantity && balance?.token) {
+        if (balance?.quantity && balance.token) {
           return portfolioBalance({
-            fromBalance: balance as RequireNonNullable<TokenBalance, 'quantity' | 'token'>,
+            fromBalance: balance as RequireNonNullable<GraphQLApi.TokenBalance, 'quantity' | 'token'>,
           })
         }
         return undefined
       })
-      .filter(Boolean) as PortfolioBalance[]) ?? [],
+      .filter(Boolean) as PortfolioBalance[],
 )

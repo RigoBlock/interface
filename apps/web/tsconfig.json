@@ -27,20 +27,44 @@
     "strict": true,
     "strictNullChecks": true,
     "target": "ESNext",
-    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo/build", // avoid clobbering the cypress tsbuildinfo
-    "types": ["jest", "chrome"],
+    "types": ["chrome", "vitest/globals"],
     "useUnknownInCatchVariables": false,
+    "paths": {
+      "ui/src/*": ["../../packages/ui/src/*"],
+      "utilities/src/*": ["../../packages/utilities/src/*"],
+      "uniswap/src/*": ["../../packages/uniswap/src/*"]
+    }
   },
-  "include": ["src/**/*", "src/**/*.json", ".storybook/preview.tsx", ".storybook/main.ts"],
+  "include": [
+    "src/**/*",
+    "src/**/*.json",
+    ".storybook/preview.tsx",
+    ".storybook/main.ts",
+    "vite.config.mts",
+    "scripts/*",
+    "vite/*"
+  ],
   "references": [
-    {
-      "path": "../../packages/ui"
-    },
     {
       "path": "../../packages/utilities"
     },
     {
       "path": "../../packages/uniswap"
+    },
+    {
+      "path": "../../packages/ui"
+    },
+    {
+      "path": "../../packages/sessions"
+    },
+    {
+      "path": "../../packages/gating"
+    },
+    {
+      "path": "../../packages/notifications"
+    },
+    {
+      "path": "../../packages/api"
     }
   ]
 }

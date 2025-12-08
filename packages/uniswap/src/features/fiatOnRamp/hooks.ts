@@ -1,13 +1,12 @@
 import { SerializedError } from '@reduxjs/toolkit'
 import { FetchBaseQueryError, skipToken } from '@reduxjs/toolkit/query/react'
 import { Currency } from '@uniswap/sdk-core'
+import { TradingApi } from '@universe/api'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getCountry } from 'react-native-localize'
 import { useDispatch } from 'react-redux'
 import { useCurrencies } from 'uniswap/src/components/TokenSelector/hooks/useCurrencies'
-import { useAccountMeta } from 'uniswap/src/contexts/UniswapContext'
-import { Routing } from 'uniswap/src/data/tradingApi/__generated__/index'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { toSupportedChainId } from 'uniswap/src/features/chains/utils'
 import { FiatCurrency } from 'uniswap/src/features/fiatCurrency/constants'
@@ -19,11 +18,11 @@ import {
   useFiatOnRampAggregatorSupportedTokensQuery,
 } from 'uniswap/src/features/fiatOnRamp/api'
 import {
+  FiatCurrencyInfo,
+  FiatOnRampCurrency,
   FORQuote,
   FORSupportedFiatCurrency,
   FORSupportedToken,
-  FiatCurrencyInfo,
-  FiatOnRampCurrency,
   RampDirection,
 } from 'uniswap/src/features/fiatOnRamp/types'
 import {
@@ -41,8 +40,9 @@ import {
   TransactionStatus,
   TransactionType,
 } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { useWallet } from 'uniswap/src/features/wallet/hooks/useWallet'
 import { getFormattedCurrencyAmount } from 'uniswap/src/utils/currency'
-import { buildCurrencyId, buildNativeCurrencyId } from 'uniswap/src/utils/currencyId'
+import { areCurrencyIdsEqual, buildCurrencyId, buildNativeCurrencyId } from 'uniswap/src/utils/currencyId'
 import { NumberType } from 'utilities/src/format/types'
 import { useDebounce } from 'utilities/src/time/timing'
 
@@ -55,19 +55,29 @@ export function useFormatExactCurrencyAmount(currencyAmount: string, currency: M
     return undefined
   }
 
-  const formattedAmount = getFormattedCurrencyAmount(currency, currencyAmount, formatter, false, ValueType.Exact)
+  const formattedAmount = getFormattedCurrencyAmount({
+    currency,
+    amount: currencyAmount,
+    formatter,
+    valueType: ValueType.Exact,
+  })
 
   // when formattedAmount is not empty it has an empty space in the end
   return formattedAmount === '' ? '0 ' : formattedAmount
 }
 
 /** Returns a new externalTransactionId and a callback to store the transaction. */
-export function useFiatOnRampTransactionCreator(
-  ownerAddress: string,
-  chainId: UniverseChainId,
-  serviceProvider?: string,
-  idSuffix?: string,
-): {
+export function useFiatOnRampTransactionCreator({
+  ownerAddress,
+  chainId,
+  serviceProvider,
+  idSuffix,
+}: {
+  ownerAddress: string
+  chainId: UniverseChainId
+  serviceProvider?: string
+  idSuffix?: string
+}): {
   externalTransactionId: string
   dispatchAddTransaction: ({ isOffRamp }: { isOffRamp: boolean }) => void
 } {
@@ -80,7 +90,7 @@ export function useFiatOnRampTransactionCreator(
       // Adds a local FOR transaction to track the transaction
       // Later we will query the transaction details for that id
       const transactionDetail: TransactionDetails = {
-        routing: Routing.CLASSIC,
+        routing: TradingApi.Routing.CLASSIC,
         chainId,
         id: externalTransactionId.current,
         from: ownerAddress,
@@ -102,11 +112,15 @@ export function useFiatOnRampTransactionCreator(
   return { externalTransactionId: externalTransactionId.current, dispatchAddTransaction }
 }
 
-export function useMeldFiatCurrencySupportInfo(
-  countryCode: string,
-  skip: boolean = false,
-  rampDirection?: RampDirection,
-): {
+export function useMeldFiatCurrencySupportInfo({
+  countryCode,
+  skip = false,
+  rampDirection,
+}: {
+  countryCode: string
+  skip?: boolean
+  rampDirection?: RampDirection
+}): {
   appFiatCurrencySupportedInMeld: boolean
   meldSupportedFiatCurrency: FiatCurrencyInfo
   supportedFiatCurrencies: FORSupportedFiatCurrency[] | undefined
@@ -193,7 +207,7 @@ export function useFiatOnRampSupportedTokens({
     () =>
       Object.entries(supportedTokensById)
         .map(([currencyId, fiatOnRampToken]) => ({
-          currencyInfo: currencies?.find((currency) => currency.currencyId.toLowerCase() === currencyId.toLowerCase()),
+          currencyInfo: currencies?.find((currency) => areCurrencyIdsEqual(currency.currencyId, currencyId)),
           meldCurrencyCode: fiatOnRampToken.cryptoCurrencyCode,
         }))
         .filter((item) => !!item.currencyInfo),
@@ -204,7 +218,7 @@ export function useFiatOnRampSupportedTokens({
   const error = Boolean(supportedTokensError || currenciesError)
   const refetch = async (): Promise<void> => {
     if (supportedTokensError) {
-      await refetchSupportedTokens?.()
+      await refetchSupportedTokens()
     }
     if (currenciesError) {
       refetchCurrencies?.()
@@ -239,7 +253,7 @@ export function useFiatOnRampQuotes({
   quotes: FORQuote[] | undefined
 } {
   const debouncedBaseCurrencyAmount = useDebounce(baseCurrencyAmount, SHORT_DELAY)
-  const walletAddress = useAccountMeta()?.address
+  const walletAddress = useWallet().evmAccount?.address
 
   const {
     currentData: quotesResponse,
@@ -339,10 +353,10 @@ export function useIsSupportedFiatOnRampCurrency(
     undefined,
     { skip },
   )
-  const { meldSupportedFiatCurrency } = useMeldFiatCurrencySupportInfo(
-    ipCountryData?.countryCode ?? fallbackCountryCode,
+  const { meldSupportedFiatCurrency } = useMeldFiatCurrencySupportInfo({
+    countryCode: ipCountryData?.countryCode ?? fallbackCountryCode,
     skip,
-  )
+  })
   const {
     list: supportedTokensList,
     loading: supportedTokensLoading,
@@ -359,7 +373,7 @@ export function useIsSupportedFiatOnRampCurrency(
     return { currency: undefined, isLoading }
   }
   const currency = supportedTokensList?.find(
-    (token) => token.currencyInfo?.currencyId.toLowerCase() === currencyId.toLowerCase(),
+    (token) => token.currencyInfo?.currencyId && areCurrencyIdsEqual(token.currencyInfo.currencyId, currencyId),
   )
 
   return { currency, isLoading }

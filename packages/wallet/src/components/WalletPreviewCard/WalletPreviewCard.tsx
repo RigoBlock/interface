@@ -1,17 +1,17 @@
 import { Flex, Text, TouchableArea } from 'ui/src'
 import { Check } from 'ui/src/components/icons'
 import { iconSizes } from 'ui/src/theme'
+import { AddressDisplay } from 'uniswap/src/components/accounts/AddressDisplay'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { ElementNameType } from 'uniswap/src/features/telemetry/constants'
+import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { NumberType } from 'utilities/src/format/types'
-import { AddressDisplay } from 'wallet/src/components/accounts/AddressDisplay'
 
 interface Props {
   address: string
   selected: boolean
   balance?: number | null
   onSelect: (address: string) => void
-  name?: ElementNameType
+  name?: ElementName
   testID?: string
   hideSelectionCircle?: boolean
 }
@@ -53,7 +53,7 @@ export default function WalletPreviewCard({
               {balanceFormatted}
             </Text>
           )}
-          {!hideSelectionCircle && selected && <Check strokeWidth={6} color="$accent1" size={iconSizes.icon20} />}
+          {!hideSelectionCircle && selected && <Check strokeWidth={6} color="$accent1" size="$icon.20" />}
         </Flex>
       </Flex>
     </TouchableArea>

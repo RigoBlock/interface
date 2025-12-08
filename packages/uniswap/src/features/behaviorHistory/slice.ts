@@ -9,6 +9,7 @@ export interface UniswapBehaviorHistoryState {
   hasDismissedBridgingWarning?: boolean
   hasDismissedLowNetworkTokenWarning?: boolean
   hasViewedContractAddressExplainer?: boolean
+  hasDismissedBridgedAssetsBannerV2?: boolean
   unichainPromotion?: {
     coldBannerDismissed?: boolean
     warmBannerDismissed?: boolean
@@ -18,6 +19,15 @@ export interface UniswapBehaviorHistoryState {
     bridgingAnimationSeen?: boolean
     isFirstUnichainBridgeSelection?: boolean
   }
+  // whether we have shown the mismatch toast (related to wallet capabilities & wallet bytecode)
+  hasShownMismatchToast?: boolean
+  /** Wallet addresses with timestamps that have dismissed the graduate wallet card for 30 days. The same property in the application reducer is a list of wallet addresses that have dismissed the graduated wallet card for this session. */
+  embeddedWalletGraduateCardDismissed?: {
+    [walletAddress: string]: number
+  }
+  hasShownSmartWalletNudge?: boolean
+  hasSeenToucanIntroModal?: boolean
+  hasDismissedUniswapWrapped2025Banner?: boolean
 }
 
 export const initialUniswapBehaviorHistoryState: UniswapBehaviorHistoryState = {
@@ -25,6 +35,7 @@ export const initialUniswapBehaviorHistoryState: UniswapBehaviorHistoryState = {
   hasDismissedBridgingWarning: false,
   hasDismissedLowNetworkTokenWarning: false,
   hasViewedContractAddressExplainer: false,
+  hasDismissedBridgedAssetsBannerV2: false,
   unichainPromotion: {
     coldBannerDismissed: false,
     warmBannerDismissed: false,
@@ -34,6 +45,10 @@ export const initialUniswapBehaviorHistoryState: UniswapBehaviorHistoryState = {
     bridgingAnimationSeen: false,
     isFirstUnichainBridgeSelection: true,
   },
+  hasShownMismatchToast: false,
+  hasShownSmartWalletNudge: false,
+  hasSeenToucanIntroModal: false,
+  hasDismissedUniswapWrapped2025Banner: false,
 }
 
 const slice = createSlice({
@@ -84,6 +99,25 @@ const slice = createSlice({
     resetUniswapBehaviorHistory: (_state, _action: PayloadAction) => {
       return initialUniswapBehaviorHistoryState
     },
+    setHasShownMismatchToast: (state, action: PayloadAction<boolean>) => {
+      state.hasShownMismatchToast = action.payload
+    },
+    setEmbeddedWalletGraduateCardDismissed: (state, action: PayloadAction<{ walletAddress: string }>) => {
+      state.embeddedWalletGraduateCardDismissed ??= {}
+      state.embeddedWalletGraduateCardDismissed[action.payload.walletAddress] = new Date().getTime()
+    },
+    setHasShownSmartWalletNudge: (state, action: PayloadAction<boolean>) => {
+      state.hasShownSmartWalletNudge = action.payload
+    },
+    setHasSeenToucanIntroModal: (state, action: PayloadAction<boolean>) => {
+      state.hasSeenToucanIntroModal = action.payload
+    },
+    setHasDismissedBridgedAssetsBannerV2: (state, action: PayloadAction<boolean>) => {
+      state.hasDismissedBridgedAssetsBannerV2 = action.payload
+    },
+    setHasDismissedUniswapWrapped2025Banner: (state, action: PayloadAction<boolean>) => {
+      state.hasDismissedUniswapWrapped2025Banner = action.payload
+    },
   },
 })
 
@@ -100,6 +134,12 @@ export const {
   setHasSeenBridgingAnimation,
   resetUniswapBehaviorHistory,
   setHasViewedContractAddressExplainer,
+  setHasShownMismatchToast,
+  setEmbeddedWalletGraduateCardDismissed,
+  setHasShownSmartWalletNudge,
+  setHasSeenToucanIntroModal,
+  setHasDismissedBridgedAssetsBannerV2,
+  setHasDismissedUniswapWrapped2025Banner,
 } = slice.actions
 
 export const uniswapBehaviorHistoryReducer = slice.reducer

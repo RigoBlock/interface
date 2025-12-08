@@ -2,7 +2,7 @@ import type { TypedDataDomain, TypedDataField } from '@ethersproject/abstract-si
 import { _TypedDataEncoder } from '@ethersproject/hash'
 import type { JsonRpcProvider, JsonRpcSigner } from '@ethersproject/providers'
 import { logger } from 'utilities/src/logger/logger'
-import { WalletType, getWalletMeta } from 'utils/walletMeta'
+import { getWalletMeta, WalletType } from 'utils/walletMeta'
 
 // These are WalletConnect peers which do not implement eth_signTypedData_v4, but *do* implement eth_signTypedData.
 // They are special-cased so that signing will still use EIP-712 (which is safer for the user).
@@ -29,14 +29,18 @@ function supportsV4(provider: JsonRpcProvider): boolean {
  *
  * @see https://github.com/ethers-io/ethers.js/blob/c80fcddf50a9023486e9f9acb1848aba4c19f7b6/packages/providers/src.ts/json-rpc-provider.ts#L334
  */
-export async function signTypedData(
-  signer: JsonRpcSigner,
-  domain: TypedDataDomain,
-  types: Record<string, TypedDataField[]>,
+export async function signTypedData({
+  signer,
+  domain,
+  types,
+  value,
+}: {
+  signer: JsonRpcSigner
+  domain: TypedDataDomain
+  types: Record<string, TypedDataField[]>
   // Use Record<string, any> for the value to match the JsonRpcSigner._signTypedData signature.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  value: Record<string, any>,
-) {
+  value: Record<string, any>
+}) {
   // Populate any ENS names (in-place)
   const populated = await _TypedDataEncoder.resolveNames(domain, types, value, (name: string) => {
     return signer.provider.resolveName(name) as Promise<string>

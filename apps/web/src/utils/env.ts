@@ -13,7 +13,7 @@ export function isBrowserRouterEnabled(): boolean {
     if (
       isAppRigoblockCom(window.location) ||
       isAppRigoblockStagingCom(window.location) ||
-      isLocalhost(window.location) // cypress tests
+      isLocalhost(window.location) // playwright tests
     ) {
       return true
     }
@@ -34,5 +34,5 @@ export function isRemoteReportingEnabled(): boolean {
   if (isProdEnv()) {
     return false
   }
-  return process.env.REACT_APP_SENTRY_ENABLED === 'false'
+  return process.env.REACT_APP_ANALYTICS_ENABLED === 'false'
 }

@@ -2,32 +2,74 @@
 
 exports[`SplitLogo inline renders inline button 1`] = `
 <View
-  cancelable={true}
-  disabled={false}
-  focusable={true}
-  hitSlop={[Function]}
-  minPressDuration={0}
-  onBlur={[Function]}
-  onFocus={[Function]}
-  onMouseEnter={[Function]}
-  onMouseLeave={[Function]}
-  onPress={[Function]}
-  onPressIn={[Function]}
-  onPressOut={[Function]}
-  style={
+  collapsable={false}
+  focusVisibleStyle={{}}
+  forwardedRef={[Function]}
+  jestAnimatedProps={
     {
-      "flexDirection": "column",
-      "opacity": 1,
-      "paddingBottom": 8,
-      "paddingLeft": 8,
-      "paddingRight": 8,
-      "paddingTop": 8,
-      "transform": [
-        {
-          "scale": 1,
-        },
-      ],
+      "value": {},
     }
+  }
+  jestAnimatedStyle={
+    {
+      "value": {},
+    }
+  }
+  jestInlineStyle={
+    [
+      {
+        "backgroundColor": "transparent",
+        "borderBottomLeftRadius": 12,
+        "borderBottomRightRadius": 12,
+        "borderTopLeftRadius": 12,
+        "borderTopRightRadius": 12,
+        "flexDirection": "column",
+        "opacity": 1,
+        "paddingBottom": 8,
+        "paddingLeft": 8,
+        "paddingRight": 8,
+        "paddingTop": 8,
+        "transform": [
+          {
+            "scale": 1,
+          },
+        ],
+      },
+    ]
+  }
+  onBlur={[Function]}
+  onClick={[Function]}
+  onFocus={[Function]}
+  onLayout={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  role="button"
+  style={
+    [
+      {
+        "backgroundColor": "transparent",
+        "borderBottomLeftRadius": 12,
+        "borderBottomRightRadius": 12,
+        "borderTopLeftRadius": 12,
+        "borderTopRightRadius": 12,
+        "flexDirection": "column",
+        "opacity": 1,
+        "paddingBottom": 8,
+        "paddingLeft": 8,
+        "paddingRight": 8,
+        "paddingTop": 8,
+        "transform": [
+          {
+            "scale": 1,
+          },
+        ],
+      },
+      {},
+    ]
   }
 >
   <View
@@ -57,7 +99,7 @@ exports[`SplitLogo inline renders inline button 1`] = `
             "borderWidth": 0,
           },
           {
-            "color": "#9B9B9B",
+            "color": "rgba(255, 255, 255, 0.65)",
             "height": 16,
             "width": 16,
           },
@@ -72,7 +114,7 @@ exports[`SplitLogo inline renders inline button 1`] = `
       vbWidth={16}
     >
       <RNSVGGroup
-        color="#9B9B9B"
+        color="rgba(255, 255, 255, 0.65)"
         fill={null}
         propList={
           [
@@ -102,7 +144,7 @@ exports[`SplitLogo inline renders inline button 1`] = `
       maxFontSizeMultiplier={1.2}
       style={
         {
-          "color": "#9B9B9B",
+          "color": "rgba(255, 255, 255, 0.65)",
           "fontFamily": "Basel Grotesk",
           "fontSize": 17,
           "fontWeight": "500",
@@ -119,37 +161,74 @@ exports[`SplitLogo inline renders inline button 1`] = `
 
 exports[`SplitLogo renders without error 1`] = `
 <View
-  cancelable={true}
-  disabled={false}
-  focusable={true}
-  hitSlop={[Function]}
-  minPressDuration={0}
-  onBlur={[Function]}
-  onFocus={[Function]}
-  onMouseEnter={[Function]}
-  onMouseLeave={[Function]}
-  onPress={[Function]}
-  onPressIn={[Function]}
-  onPressOut={[Function]}
-  style={
+  collapsable={false}
+  focusVisibleStyle={{}}
+  forwardedRef={[Function]}
+  jestAnimatedProps={
     {
-      "backgroundColor": "#361A37",
-      "borderBottomLeftRadius": 12,
-      "borderBottomRightRadius": 12,
-      "borderTopLeftRadius": 12,
-      "borderTopRightRadius": 12,
-      "flexDirection": "column",
-      "opacity": 1,
-      "paddingBottom": 8,
-      "paddingLeft": 8,
-      "paddingRight": 8,
-      "paddingTop": 8,
-      "transform": [
-        {
-          "scale": 1,
-        },
-      ],
+      "value": {},
     }
+  }
+  jestAnimatedStyle={
+    {
+      "value": {},
+    }
+  }
+  jestInlineStyle={
+    [
+      {
+        "backgroundColor": "rgba(255, 55, 199, 0.08)",
+        "borderBottomLeftRadius": 12,
+        "borderBottomRightRadius": 12,
+        "borderTopLeftRadius": 12,
+        "borderTopRightRadius": 12,
+        "flexDirection": "column",
+        "opacity": 1,
+        "paddingBottom": 8,
+        "paddingLeft": 8,
+        "paddingRight": 8,
+        "paddingTop": 8,
+        "transform": [
+          {
+            "scale": 1,
+          },
+        ],
+      },
+    ]
+  }
+  onBlur={[Function]}
+  onClick={[Function]}
+  onFocus={[Function]}
+  onLayout={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  role="button"
+  style={
+    [
+      {
+        "backgroundColor": "rgba(255, 55, 199, 0.08)",
+        "borderBottomLeftRadius": 12,
+        "borderBottomRightRadius": 12,
+        "borderTopLeftRadius": 12,
+        "borderTopRightRadius": 12,
+        "flexDirection": "column",
+        "opacity": 1,
+        "paddingBottom": 8,
+        "paddingLeft": 8,
+        "paddingRight": 8,
+        "paddingTop": 8,
+        "transform": [
+          {
+            "scale": 1,
+          },
+        ],
+      },
+      {},
+    ]
   }
 >
   <View
@@ -167,7 +246,7 @@ exports[`SplitLogo renders without error 1`] = `
       maxFontSizeMultiplier={1.2}
       style={
         {
-          "color": "#FC72FF",
+          "color": "#FF37C7",
           "fontFamily": "Basel Grotesk",
           "fontSize": 15,
           "fontWeight": "500",
@@ -195,7 +274,7 @@ exports[`SplitLogo renders without error 1`] = `
             "borderWidth": 0,
           },
           {
-            "color": "#FC72FF",
+            "color": "#FF37C7",
             "height": 16,
             "width": 16,
           },
@@ -210,7 +289,7 @@ exports[`SplitLogo renders without error 1`] = `
       vbWidth={16}
     >
       <RNSVGGroup
-        color="#FC72FF"
+        color="#FF37C7"
         fill={
           {
             "type": 2,

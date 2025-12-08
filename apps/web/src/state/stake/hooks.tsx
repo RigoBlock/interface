@@ -3,22 +3,20 @@ import type { TransactionResponse } from '@ethersproject/providers'
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { POP_ADDRESSES } from 'constants/addresses'
 import { useAccount } from 'hooks/useAccount'
-import { useEthersWeb3Provider } from 'hooks/useEthersProvider'
 import { useContract } from 'hooks/useContract'
+import { useEthersWeb3Provider } from 'hooks/useEthersProvider'
 import JSBI from 'jsbi'
-import {
-  useSingleCallResult,
-  useSingleContractMultipleData,
-} from 'lib/hooks/multicall'
 import { useCallback, useMemo } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams } from 'react-router'
 import { StakeStatus, useStakingContract, useStakingProxyContract } from 'state/governance/hooks'
 import { usePoolExtendedContract } from 'state/pool/hooks'
 import { useTransactionAdder } from 'state/transactions/hooks'
-import { TransactionType } from 'state/transactions/types'
-import { GRG } from 'uniswap/src/constants/tokens'
 import POP_ABI from 'uniswap/src/abis/pop.json'
+import { GRG } from 'uniswap/src/constants/tokens'
+import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { calculateGasMargin } from 'utils/calculateGasMargin'
+import { assume0xAddress } from 'utils/wagmi'
+import { useReadContract } from 'wagmi'
 
 export function useFreeStakeBalance(isDelegateFreeStake?: boolean): CurrencyAmount<Token> | undefined {
   const account = useAccount()
@@ -26,19 +24,27 @@ export function useFreeStakeBalance(isDelegateFreeStake?: boolean): CurrencyAmou
   const stakingContract = useStakingContract()
   const { poolAddress: poolAddressFromUrl } = useParams<{ poolAddress?: string }>()
   // TODO: check if can improve as whenever there is an address in the url the pool's balance will be checked
-  const freeStake = useSingleCallResult(stakingContract ?? undefined, 'getOwnerStakeByStatus', [
-    isDelegateFreeStake ? account.address : poolAddressFromUrl ?? account.address,
-    StakeStatus.UNDELEGATED,
-  ])?.result?.[0]
+  const queryEnabled = !!account.address && !!stakingContract
+  const { data: freeStake } = useReadContract({
+    address: assume0xAddress(stakingContract?.address),
+    chainId: account.chainId,
+    abi: stakingContract?.interface.fragments,
+    functionName: 'getOwnerStakeByStatus',
+    args: [isDelegateFreeStake ? account.address : (poolAddressFromUrl ?? account.address), StakeStatus.UNDELEGATED],
+    query: { enabled: queryEnabled },
+  })
 
   // when all stake has been delegated, the current epoch stake is positive but withdrawing it will revert
   //  unless deactivated first. We use the lower of the current and next epoch undelegated stake.
   return freeStake && grg
     ? CurrencyAmount.fromRawAmount(
         grg,
-        Number(freeStake.currentEpochBalance) > Number(freeStake.nextEpochBalance)
-          ? freeStake.nextEpochBalance
-          : freeStake.currentEpochBalance
+        JSBI.greaterThan(
+          JSBI.BigInt(String((freeStake as any).currentEpochBalance)),
+          JSBI.BigInt(String((freeStake as any).nextEpochBalance)),
+        )
+          ? String((freeStake as any).nextEpochBalance)
+          : String((freeStake as any).currentEpochBalance),
       )
     : undefined
 }
@@ -66,17 +72,20 @@ export function useUnclaimedRewards(poolIds: string[]): UnclaimedRewardsData[] |
     })
   }, [farmer, poolIds])
 
-  const unclaimedRewards = useSingleContractMultipleData(
-    stakingContract ?? undefined,
-    'computeRewardBalanceOfDelegator',
-    inputs
-  )
+  const { data: unclaimedRewards } = useReadContract({
+    address: assume0xAddress(stakingContract?.address),
+    chainId: account.chainId,
+    abi: stakingContract?.interface.fragments,
+    functionName: 'computeRewardBalanceOfDelegator',
+    args: inputs,
+    query: { enabled: !!stakingContract && inputs.length > 0 },
+  })
 
   return useMemo(() => {
     if (!unclaimedRewards || !grg) {
       return undefined
     }
-    return unclaimedRewards
+    return (unclaimedRewards as any[])
       .map((reward, i) => {
         const value = reward?.result?.[0]
         return {
@@ -104,17 +113,21 @@ export function useUserStakeBalances(poolIds: string[]): UserStakeData[] | undef
     })
   }, [account, poolIds])
 
-  const userStakeBalances = useSingleContractMultipleData(
-    stakingContract ?? undefined,
-    'getStakeDelegatedToPoolByOwner',
-    inputs
-  )
+  // TODO: verify we are correctly reading multiple poolIds in a single call
+  const { data: userStakeBalances } = useReadContract({
+    address: assume0xAddress(stakingContract?.address),
+    chainId: account.chainId,
+    abi: stakingContract?.interface.fragments,
+    functionName: 'getStakeDelegatedToPoolByOwner',
+    args: inputs,
+    query: { enabled: !!stakingContract && inputs.length > 0 },
+  })
 
   return useMemo(() => {
     if (!userStakeBalances || !grg) {
       return undefined
     }
-    return userStakeBalances.map((balance) => {
+    return (userStakeBalances as any[]).map((balance) => {
       const stake = balance?.result?.[0].nextEpochBalance
       const stakeAmount = CurrencyAmount.fromRawAmount(grg, stake ?? JSBI.BigInt(0))
       return {
@@ -155,7 +168,7 @@ export function useUnstakeCallback(): (amount: CurrencyAmount<Token>, isPool?: b
             })
             .then((response: TransactionResponse) => {
               addTransaction(response, {
-                type: TransactionType.CLAIM,
+                type: TransactionType.ClaimUni,
                 recipient: account.address ?? '',
               })
               return response.hash
@@ -164,13 +177,13 @@ export function useUnstakeCallback(): (amount: CurrencyAmount<Token>, isPool?: b
       } else {
         return poolContract?.estimateGas.unstake(amount.quotient.toString(), {}).then((estimatedGasLimit) => {
           return poolContract
-            ?.unstake(amount.quotient.toString(), {
+            .unstake(amount.quotient.toString(), {
               value: null,
               gasLimit: calculateGasMargin(estimatedGasLimit),
             })
             .then((response: TransactionResponse) => {
               addTransaction(response, {
-                type: TransactionType.CLAIM,
+                type: TransactionType.ClaimUni,
                 recipient: poolContract.address,
               })
               return response.hash
@@ -178,7 +191,7 @@ export function useUnstakeCallback(): (amount: CurrencyAmount<Token>, isPool?: b
         })
       }
     },
-    [account.address, account.chainId, provider, poolContract, stakingContract, addTransaction]
+    [account.address, account.chainId, provider, poolContract, stakingContract, addTransaction],
   )
 }
 
@@ -225,7 +238,7 @@ export function useHarvestCallback(): (poolIds: string[], isPool?: boolean) => u
             })
             .then((response: TransactionResponse) => {
               addTransaction(response, {
-                type: TransactionType.CLAIM,
+                type: TransactionType.ClaimUni,
                 recipient: account.address ?? '',
               })
               return response.hash
@@ -234,13 +247,13 @@ export function useHarvestCallback(): (poolIds: string[], isPool?: boolean) => u
       } else {
         return poolContract?.estimateGas.withdrawDelegatorRewards({}).then((estimatedGasLimit) => {
           return poolContract
-            ?.withdrawDelegatorRewards({
+            .withdrawDelegatorRewards({
               value: null,
               gasLimit: calculateGasMargin(estimatedGasLimit),
             })
             .then((response: TransactionResponse) => {
               addTransaction(response, {
-                type: TransactionType.CLAIM,
+                type: TransactionType.ClaimUni,
                 recipient: poolContract.address,
               })
               return response.hash
@@ -248,17 +261,17 @@ export function useHarvestCallback(): (poolIds: string[], isPool?: boolean) => u
         })
       }
     },
-    [account.address, account.chainId, provider, poolContract, stakingContract, stakingProxy, addTransaction]
+    [account.address, account.chainId, provider, poolContract, stakingContract, stakingProxy, addTransaction],
   )
 }
 
 export function usePopContract(): Contract | null {
   const account = useAccount()
-  return useContract(
-    account.chainId ? POP_ADDRESSES[account.chainId] : undefined,
-    POP_ABI,
-    true,
-  )
+  return useContract({
+    address: account.chainId ? POP_ADDRESSES[account.chainId] : undefined,
+    ABI: POP_ABI,
+    withSignerIfPossible: true,
+  })
 }
 
 export function useRaceCallback(): (poolAddress: string | undefined) => undefined | Promise<string> {
@@ -285,13 +298,13 @@ export function useRaceCallback(): (poolAddress: string | undefined) => undefine
           })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
-              type: TransactionType.CLAIM,
+              type: TransactionType.ClaimUni,
               recipient: account.address ?? '',
             })
             return response.hash
           })
       })
     },
-    [account.address, account.chainId, provider, popContract, addTransaction]
+    [account.address, account.chainId, provider, popContract, addTransaction],
   )
 }

@@ -4,7 +4,7 @@ import useBlockNumber from 'lib/hooks/useBlockNumber'
 import { useEffect, useMemo } from 'react'
 import { useAppDispatch, useAppSelector } from 'state/hooks'
 import { addListener, removeListener } from 'state/logs/slice'
-import { Log, filterToKey, isHistoricalLog } from 'state/logs/utils'
+import { filterToKey, isHistoricalLog, Log } from 'state/logs/utils'
 
 // TODO: try deprecate logs if we still have issues retrieving them on altchains
 enum LogsState {
@@ -58,7 +58,6 @@ export function useLogs(filter: Filter | undefined): UseLogsResult {
 
     const state = logs[chainId]?.[filterToKey(filter)]
     const result = state?.results
-
 
     if (!result) {
       return {

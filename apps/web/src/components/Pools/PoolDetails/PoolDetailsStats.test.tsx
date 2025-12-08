@@ -8,16 +8,21 @@ import { validPoolDataResponse } from 'test-utils/pools/fixtures'
 import { act, render, screen } from 'test-utils/render'
 import { dismissTokenWarning } from 'uniswap/src/features/tokens/slice/slice'
 
-jest.mock('tamagui', () => ({
-  ...jest.requireActual('tamagui'),
-  useMedia: jest.fn(),
-}))
+vi.mock('tamagui', async () => {
+  const actual = await vi.importActual('tamagui')
+  return {
+    ...actual,
+    useMedia: vi.fn(),
+  }
+})
 
 describe('PoolDetailsStats', () => {
   const mockProps = {
     poolData: validPoolDataResponse.data,
     isReversed: false,
     chainId: 1,
+    tokenAColor: '#FF37C7',
+    tokenBColor: '#222222',
   }
 
   beforeEach(() => {

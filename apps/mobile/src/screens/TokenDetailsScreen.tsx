@@ -1,66 +1,67 @@
 import { useApolloClient } from '@apollo/client'
 import { ReactNavigationPerformanceView } from '@shopify/react-native-performance-navigation'
-import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react'
+import { GQLQueries, GraphQLApi } from '@universe/api'
+import React, { memo, useCallback, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FadeInDown, FadeOutDown } from 'react-native-reanimated'
-import { useDispatch, useSelector } from 'react-redux'
-import { AppStackScreenProp } from 'src/app/navigation/types'
-import { StyledContextMenuAction } from 'src/components/ContextMenu/StyledContextMenu'
+import { useDispatch } from 'react-redux'
+import { MODAL_OPEN_WAIT_TIME } from 'src/app/navigation/constants'
+import { navigate } from 'src/app/navigation/rootNavigation'
+import type { AppStackScreenProp } from 'src/app/navigation/types'
+import { HeaderScrollScreen } from 'src/components/layout/screens/HeaderScrollScreen'
+import { useIsInModal } from 'src/components/modals/useIsInModal'
 import { PriceExplorer } from 'src/components/PriceExplorer/PriceExplorer'
-import { BuyNativeTokenModal } from 'src/components/TokenDetails/BuyNativeTokenModal'
 import { ContractAddressExplainerModal } from 'src/components/TokenDetails/ContractAddressExplainerModal'
 import { TokenBalances } from 'src/components/TokenDetails/TokenBalances'
 import { TokenDetailsActionButtons } from 'src/components/TokenDetails/TokenDetailsActionButtons'
+import { TokenDetailsBridgedAssetSection } from 'src/components/TokenDetails/TokenDetailsBridgedAssetSection'
 import { TokenDetailsContextProvider, useTokenDetailsContext } from 'src/components/TokenDetails/TokenDetailsContext'
 import { TokenDetailsHeader } from 'src/components/TokenDetails/TokenDetailsHeader'
 import { TokenDetailsLinks } from 'src/components/TokenDetails/TokenDetailsLinks'
 import { TokenDetailsStats } from 'src/components/TokenDetails/TokenDetailsStats'
 import { useTokenDetailsCTAVariant } from 'src/components/TokenDetails/useTokenDetailsCTAVariant'
 import { useTokenDetailsCurrentChainBalance } from 'src/components/TokenDetails/useTokenDetailsCurrentChainBalance'
-import { HeaderScrollScreen } from 'src/components/layout/screens/HeaderScrollScreen'
-import { closeModal } from 'src/features/modals/modalSlice'
-import { selectModalState } from 'src/features/modals/selectModalState'
 import { HeaderRightElement, HeaderTitleElement } from 'src/screens/TokenDetailsHeaders'
 import { useIsScreenNavigationReady } from 'src/utils/useIsScreenNavigationReady'
 import { Flex, Separator } from 'ui/src'
 import { ArrowDownCircle, ArrowUpCircle, Bank, SendRoundedAirplane } from 'ui/src/components/icons'
 import { AnimatedFlex } from 'ui/src/components/layout/AnimatedFlex'
 import { BaseCard } from 'uniswap/src/components/BaseCard/BaseCard'
+import type { MenuOptionItem } from 'uniswap/src/components/menus/ContextMenuV2'
 import { PollingInterval } from 'uniswap/src/constants/misc'
 import { useCrossChainBalances } from 'uniswap/src/data/balances/hooks/useCrossChainBalances'
-import {
-  Chain,
-  useTokenDetailsScreenQuery,
-} from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
 import {
   useTokenBasicInfoPartsFragment,
   useTokenBasicProjectPartsFragment,
 } from 'uniswap/src/data/graphql/uniswap-data-api/fragments'
-import { GQLQueries } from 'uniswap/src/data/graphql/uniswap-data-api/queries'
 import { useBridgingTokenWithHighestBalance } from 'uniswap/src/features/bridging/hooks/tokens'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { TokenList } from 'uniswap/src/features/dataApi/types'
-import { currencyIdToContractInput } from 'uniswap/src/features/dataApi/utils'
+import { currencyIdToContractInput } from 'uniswap/src/features/dataApi/utils/currencyIdToContractInput'
 import { useIsSupportedFiatOnRampCurrency } from 'uniswap/src/features/fiatOnRamp/hooks'
+import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
+import { AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
 import { useOnChainNativeCurrencyBalance } from 'uniswap/src/features/portfolio/api'
-import Trace from 'uniswap/src/features/telemetry/Trace'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { TestnetModeModal } from 'uniswap/src/features/testnets/TestnetModeModal'
+import Trace from 'uniswap/src/features/telemetry/Trace'
 import { TokenWarningCard } from 'uniswap/src/features/tokens/TokenWarningCard'
 import TokenWarningModal from 'uniswap/src/features/tokens/TokenWarningModal'
 import { useAppInsets } from 'uniswap/src/hooks/useAppInsets'
-import { CurrencyField } from 'uniswap/src/types/currency'
+import type { CurrencyField } from 'uniswap/src/types/currency'
 import { MobileScreens } from 'uniswap/src/types/screens/mobile'
+import { AddressStringFormat, normalizeAddress } from 'uniswap/src/utils/addresses'
 import { buildCurrencyId, isNativeCurrencyAddress } from 'uniswap/src/utils/currencyId'
+import { useEvent } from 'utilities/src/react/hooks'
 import { useWalletNavigation } from 'wallet/src/contexts/WalletNavigationContext'
 import { useActiveAccountAddressWithThrow } from 'wallet/src/features/wallet/hooks'
 
 export function TokenDetailsScreen({ route, navigation }: AppStackScreenProp<MobileScreens.TokenDetails>): JSX.Element {
   const { currencyId } = route.params
+  const normalizedCurrencyId = normalizeAddress(currencyId, AddressStringFormat.Lowercase)
 
   return (
-    <TokenDetailsContextProvider currencyId={currencyId} navigation={navigation}>
+    <TokenDetailsContextProvider currencyId={normalizedCurrencyId} navigation={navigation}>
       <TokenDetailsWrapper />
     </TokenDetailsContextProvider>
   )
@@ -74,9 +75,9 @@ function TokenDetailsWrapper(): JSX.Element {
     () => ({
       chain: chainId,
       address,
-      currencyName: token?.name,
+      currencyName: token.name,
     }),
-    [address, chainId, token?.name],
+    [address, chainId, token.name],
   )
 
   return (
@@ -91,8 +92,8 @@ function TokenDetailsWrapper(): JSX.Element {
 const TokenDetailsQuery = memo(function _TokenDetailsQuery(): JSX.Element {
   const { currencyId, setError } = useTokenDetailsContext()
 
-  const { error } = useTokenDetailsScreenQuery({
-    variables: { ...currencyIdToContractInput(currencyId) },
+  const { error } = GraphQLApi.useTokenDetailsScreenQuery({
+    variables: currencyIdToContractInput(currencyId),
     pollInterval: PollingInterval.Normal,
     notifyOnNetworkStatusChange: true,
     returnPartialData: true,
@@ -104,33 +105,16 @@ const TokenDetailsQuery = memo(function _TokenDetailsQuery(): JSX.Element {
 })
 
 const TokenDetails = memo(function _TokenDetails(): JSX.Element {
-  const inModal = useSelector(selectModalState(ModalName.Explore)).isOpen
-  const dispatch = useDispatch()
-
-  // #region Handle modal race condition
-  // This is a workaround to prevent a crash. The TDP can open as a full screen
-  // or in the Explore BSM. When this happens the TDP switches to components
-  // that can only be used in a modal causing a crash.
-  // This code closes the Explore modal when the TDP is opened as a full screen
-  // screen and disallows dynamically changing the TDP components based on the
-  // Explore modal state.
-  // This behavior should not be needed when we make the TDP full screen only.
-  const initialModalState = useRef<boolean | null>(null)
-  if (initialModalState.current === null) {
-    initialModalState.current = inModal
-  } else if (initialModalState.current !== null && initialModalState.current !== inModal && inModal) {
-    dispatch(closeModal({ name: ModalName.Explore }))
-  }
-  // #endregion
-
   const centerElement = useMemo(() => <HeaderTitleElement />, [])
   const rightElement = useMemo(() => <HeaderRightElement />, [])
+
+  const inModal = useIsInModal(MobileScreens.Explore, true)
 
   return (
     <>
       <HeaderScrollScreen
-        showHandleBar={initialModalState.current}
-        renderedInModal={initialModalState.current}
+        showHandleBar={inModal}
+        renderedInModal={inModal}
         centerElement={centerElement}
         rightElement={rightElement}
       >
@@ -146,6 +130,8 @@ const TokenDetails = memo(function _TokenDetails(): JSX.Element {
             <TokenWarningCardWrapper />
 
             <TokenBalancesWrapper />
+
+            <TokenDetailsBridgedAssetSection />
 
             <Separator />
           </Flex>
@@ -173,7 +159,7 @@ const TokenDetailsErrorCard = memo(function _TokenDetailsErrorCard(): JSX.Elemen
     setError(undefined)
     apolloClient
       .refetchQueries({ include: [GQLQueries.TokenDetailsScreen, GQLQueries.TokenPriceHistory] })
-      .catch((_error) => setError(_error))
+      .catch((e) => setError(e))
   }, [apolloClient, setError])
 
   return error ? (
@@ -185,35 +171,47 @@ const TokenDetailsErrorCard = memo(function _TokenDetailsErrorCard(): JSX.Elemen
 
 const TokenDetailsModals = memo(function _TokenDetailsModals(): JSX.Element {
   const { t } = useTranslation()
+  const dispatch = useDispatch()
   const { navigateToSwapFlow } = useWalletNavigation()
 
   const {
-    currencyId,
     chainId,
     address,
     activeTransactionType,
     currencyInfo,
-    isBuyNativeTokenModalOpen,
     isTokenWarningModalOpen,
-    isTestnetWarningModalOpen,
     isContractAddressExplainerModalOpen,
     closeTokenWarningModal,
-    closeBuyNativeTokenModal,
-    closeTestnetWarningModal,
     closeContractAddressExplainerModal,
     copyAddressToClipboard,
   } = useTokenDetailsContext()
 
-  const onCloseTokenWarning = useCallback(() => {
+  const onCloseTokenWarning = useEvent(() => {
     closeTokenWarningModal()
-  }, [closeTokenWarningModal])
+  })
 
-  const onAcknowledgeTokenWarning = useCallback(() => {
+  const onAcknowledgeTokenWarning = useEvent(() => {
     closeTokenWarningModal()
     if (activeTransactionType !== undefined) {
       navigateToSwapFlow({ currencyField: activeTransactionType, currencyAddress: address, currencyChainId: chainId })
     }
-  }, [activeTransactionType, address, chainId, closeTokenWarningModal, navigateToSwapFlow])
+  })
+
+  const onAcknowledgeContractAddressExplainer = useEvent(async (markViewed: boolean) => {
+    closeContractAddressExplainerModal(markViewed)
+    if (markViewed) {
+      await copyAddressToClipboard(address)
+    }
+  })
+
+  const onTokenWarningReportSuccess = useEvent(() => {
+    dispatch(
+      pushNotification({
+        type: AppNotificationType.Success,
+        title: t('common.reported'),
+      }),
+    )
+  })
 
   return (
     <>
@@ -223,29 +221,13 @@ const TokenDetailsModals = memo(function _TokenDetailsModals(): JSX.Element {
           currencyInfo0={currencyInfo}
           isVisible={isTokenWarningModalOpen}
           closeModalOnly={onCloseTokenWarning}
+          onReportSuccess={onTokenWarningReportSuccess}
           onAcknowledge={onAcknowledgeTokenWarning}
         />
       )}
 
-      {isTestnetWarningModalOpen && (
-        <TestnetModeModal
-          unsupported
-          isOpen={isTestnetWarningModalOpen}
-          descriptionCopy={t('tdp.noTestnetSupportDescription')}
-          onClose={closeTestnetWarningModal}
-        />
-      )}
-
-      {isBuyNativeTokenModalOpen && (
-        <BuyNativeTokenModal chainId={chainId} currencyId={currencyId} onClose={closeBuyNativeTokenModal} />
-      )}
       {isContractAddressExplainerModalOpen && (
-        <ContractAddressExplainerModal
-          onAcknowledge={async () => {
-            closeContractAddressExplainerModal()
-            await copyAddressToClipboard(address)
-          }}
-        />
+        <ContractAddressExplainerModal onAcknowledge={onAcknowledgeContractAddressExplainer} />
       )}
     </>
   )
@@ -257,17 +239,8 @@ const TokenDetailsActionButtonsWrapper = memo(function _TokenDetailsActionButton
   const activeAddress = useActiveAccountAddressWithThrow()
   const { isTestnetModeEnabled } = useEnabledChains()
 
-  const {
-    currencyId,
-    chainId,
-    address,
-    currencyInfo,
-    openTestnetWarningModal,
-    openTokenWarningModal,
-    openBuyNativeTokenModal,
-    tokenColorLoading,
-    navigation,
-  } = useTokenDetailsContext()
+  const { currencyId, chainId, address, currencyInfo, openTokenWarningModal, tokenColorLoading, navigation } =
+    useTokenDetailsContext()
 
   const { navigateToFiatOnRamp, navigateToSwapFlow, navigateToSend, navigateToReceive } = useWalletNavigation()
 
@@ -275,8 +248,8 @@ const TokenDetailsActionButtonsWrapper = memo(function _TokenDetailsActionButton
 
   let isBlocked = currencyInfo?.safetyInfo?.tokenList === TokenList.Blocked
 
-  if (project?.tokens?.[0]?.symbol === 'GRG') {
-    isBlocked === false
+  if (currencyInfo?.currency.symbol === 'GRG') {
+    isBlocked = false
   }
 
   const isNativeCurrency = isNativeCurrencyAddress(chainId, address)
@@ -300,7 +273,7 @@ const TokenDetailsActionButtonsWrapper = memo(function _TokenDetailsActionButton
 
   const { data: bridgingTokenWithHighestBalance, isLoading: isBridgingTokenLoading } =
     useBridgingTokenWithHighestBalance({
-      address: activeAddress,
+      evmAddress: activeAddress,
       currencyAddress: address,
       currencyChainId: chainId,
     })
@@ -324,12 +297,25 @@ const TokenDetailsActionButtonsWrapper = memo(function _TokenDetailsActionButton
   )
 
   const onPressGet = useCallback(() => {
-    openBuyNativeTokenModal()
-  }, [openBuyNativeTokenModal])
+    navigate(ModalName.BuyNativeToken, {
+      chainId,
+      currencyId,
+    })
+  }, [chainId, currencyId])
 
   const onPressSend = useCallback(() => {
     navigateToSend({ currencyAddress: address, chainId })
   }, [address, chainId, navigateToSend])
+
+  const onPressWithdraw = useCallback(() => {
+    setTimeout(() => {
+      navigate(ModalName.Wormhole, {
+        currencyInfo,
+      })
+    }, MODAL_OPEN_WAIT_TIME)
+  }, [currencyInfo])
+
+  const bridgedWithdrawalInfo = currencyInfo?.bridgedWithdrawalInfo
 
   const isScreenNavigationReady = useIsScreenNavigationReady({ navigation })
 
@@ -340,36 +326,76 @@ const TokenDetailsActionButtonsWrapper = memo(function _TokenDetailsActionButton
     fiatOnRampCurrency,
     bridgingTokenWithHighestBalance,
     hasZeroNativeBalance,
-    tokenSymbol: token?.symbol,
+    tokenSymbol: token.symbol,
     onPressBuyFiatOnRamp,
     onPressGet,
     onPressSwap,
   })
 
-  const actionMenuOptions: StyledContextMenuAction[] = useMemo(
-    () => [
-      ...(fiatOnRampCurrency ? [{ title: t('common.button.buy'), icon: Bank, onPress: onPressBuyFiatOnRamp }] : []),
-      ...(hasTokenBalance && fiatOnRampCurrency
-        ? [{ title: t('common.button.sell'), icon: ArrowUpCircle, onPress: () => onPressBuyFiatOnRamp(true) }]
-        : []),
-      ...(hasTokenBalance ? [{ title: t('common.button.send'), icon: SendRoundedAirplane, onPress: onPressSend }] : []),
-      { title: t('common.button.receive'), icon: ArrowDownCircle, onPress: navigateToReceive },
-    ],
-    [fiatOnRampCurrency, hasTokenBalance, onPressBuyFiatOnRamp, t, onPressSend, navigateToReceive],
-  )
+  const actionMenuOptions: MenuOptionItem[] = useMemo(() => {
+    const actions: MenuOptionItem[] = []
 
-  return !isScreenNavigationReady ||
+    if (fiatOnRampCurrency) {
+      actions.push({ label: t('common.button.buy'), Icon: Bank, onPress: () => onPressBuyFiatOnRamp() })
+    }
+
+    if (bridgedWithdrawalInfo && hasTokenBalance) {
+      actions.push({
+        label: t('common.withdraw'),
+        Icon: ArrowUpCircle,
+        onPress: () => onPressWithdraw(),
+        subheader: t('bridgedAsset.wormhole.toNativeChain', { nativeChainName: bridgedWithdrawalInfo.chain }),
+        actionType: 'external-link',
+        height: 56,
+      })
+    }
+
+    if (hasTokenBalance && fiatOnRampCurrency) {
+      actions.push({ label: t('common.button.sell'), Icon: ArrowUpCircle, onPress: () => onPressBuyFiatOnRamp(true) })
+    }
+
+    if (hasTokenBalance) {
+      actions.push({ label: t('common.button.send'), Icon: SendRoundedAirplane, onPress: onPressSend })
+    }
+
+    // All cases have a receive action
+    actions.push({ label: t('common.button.receive'), Icon: ArrowDownCircle, onPress: navigateToReceive })
+
+    return actions
+  }, [
+    fiatOnRampCurrency,
+    t,
+    bridgedWithdrawalInfo,
+    hasTokenBalance,
+    onPressWithdraw,
+    onPressSend,
+    navigateToReceive,
+    onPressBuyFiatOnRamp,
+  ])
+
+  const hideActionButtons =
+    !isScreenNavigationReady ||
     tokenColorLoading ||
     isNativeCurrencyBalanceLoading ||
     isNativeFiatOnRampCurrencyLoading ||
     isFiatOnRampCurrencyLoading ||
-    isBridgingTokenLoading ? null : (
-    <AnimatedFlex backgroundColor="$surface1" entering={FadeInDown} style={{ marginBottom: insets.bottom }}>
+    isBridgingTokenLoading
+
+  return hideActionButtons ? null : (
+    <AnimatedFlex mb={insets.bottom} backgroundColor="$surface1" entering={FadeInDown}>
       <TokenDetailsActionButtons
         ctaButton={getCTAVariant}
         actionMenuOptions={actionMenuOptions}
         userHasBalance={hasTokenBalance}
-        onPressDisabled={isTestnetModeEnabled ? openTestnetWarningModal : openTokenWarningModal}
+        onPressDisabled={
+          isTestnetModeEnabled
+            ? (): void =>
+                navigate(ModalName.TestnetMode, {
+                  unsupported: true,
+                  descriptionCopy: t('tdp.noTestnetSupportDescription'),
+                })
+            : openTokenWarningModal
+        }
       />
     </AnimatedFlex>
   )
@@ -379,11 +405,11 @@ const TokenBalancesWrapper = memo(function _TokenBalancesWrapper(): JSX.Element 
   const activeAddress = useActiveAccountAddressWithThrow()
   const { currencyId, isChainEnabled } = useTokenDetailsContext()
 
-  const projectTokens = useTokenBasicProjectPartsFragment({ currencyId }).data?.project?.tokens
+  const projectTokens = useTokenBasicProjectPartsFragment({ currencyId }).data.project?.tokens
 
   const crossChainTokens: Array<{
     address: string | null
-    chain: Chain
+    chain: GraphQLApi.Chain
   }> = []
 
   for (const token of projectTokens ?? []) {
@@ -398,7 +424,7 @@ const TokenBalancesWrapper = memo(function _TokenBalancesWrapper(): JSX.Element 
   }
 
   const { currentChainBalance, otherChainBalances } = useCrossChainBalances({
-    address: activeAddress,
+    evmAddress: activeAddress,
     currencyId,
     crossChainTokens,
   })

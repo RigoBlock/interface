@@ -1,12 +1,13 @@
-import { ChangeEvent, ReactNode, useCallback } from 'react'
-import styled, { useTheme } from 'lib/styled-components'
-import { Trans } from 'react-i18next'
-import { flexColumnNoWrap } from 'theme/styles'
-import i18n from 'uniswap/src/i18n'
-
-import { ThemedText } from 'theme/components/text'
+import { useTheme } from '@tamagui/core'
 import { AutoColumn } from 'components/deprecated/Column'
 import { RowBetween } from 'components/deprecated/Row'
+import styled from 'lib/styled-components'
+import { ChangeEvent, ReactNode, useCallback } from 'react'
+import { Trans } from 'react-i18next'
+
+import { ThemedText } from 'theme/components/text'
+import { flexColumnNoWrap } from 'theme/styles'
+import i18n from 'uniswap/src/i18n'
 
 const InputPanel = styled.div`
   ${flexColumnNoWrap};
@@ -92,7 +93,7 @@ export default function NameInputPanel({
       const withoutSpaces = label === 'Pool Symbol' ? input.replace(/\s+/g, '') : input
       onChange(withoutSpaces)
     },
-    [label, onChange]
+    [label, onChange],
   )
 
   // max name length is 31, max symbol length is 5
@@ -104,7 +105,7 @@ export default function NameInputPanel({
         <InputContainer>
           <AutoColumn gap="md">
             <RowBetween>
-              <ThemedText.DeprecatedBlack color={theme.neutral2} fontWeight={500} fontSize={14}>
+              <ThemedText.DeprecatedBlack color={theme.neutral2.get()} fontWeight={500} fontSize={14}>
                 {label ?? <Trans>Pool Name</Trans>}
               </ThemedText.DeprecatedBlack>
             </RowBetween>

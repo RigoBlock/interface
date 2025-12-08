@@ -4,8 +4,9 @@ import { LayoutChangeEvent } from 'react-native'
 import { useDispatch } from 'react-redux'
 import { AnimatePresence, Flex, Text, TouchableArea } from 'ui/src'
 import { CopyAlt, Unitag } from 'ui/src/components/icons'
-import { pushNotification } from 'uniswap/src/features/notifications/slice'
-import { AppNotificationType, CopyNotificationType } from 'uniswap/src/features/notifications/types'
+import { DisplayNameType } from 'uniswap/src/features/accounts/types'
+import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
+import { AppNotificationType, CopyNotificationType } from 'uniswap/src/features/notifications/slice/types'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { UNITAG_SUFFIX } from 'uniswap/src/features/unitags/constants'
@@ -15,9 +16,8 @@ import { MobileScreens } from 'uniswap/src/types/screens/mobile'
 import { sanitizeAddressText } from 'uniswap/src/utils/addresses'
 import { setClipboard } from 'uniswap/src/utils/clipboard'
 import { shortenAddress } from 'utilities/src/addresses'
-import { isExtension, isMobileApp } from 'utilities/src/platform'
+import { isExtensionApp, isMobileApp } from 'utilities/src/platform'
 import { AnimatedUnitagDisplayNameProps } from 'wallet/src/components/accounts/AnimatedUnitagDisplayName'
-import { DisplayNameType } from 'wallet/src/features/wallet/types'
 
 export function AnimatedUnitagDisplayName({
   displayName,
@@ -27,7 +27,7 @@ export function AnimatedUnitagDisplayName({
   const dispatch = useDispatch()
   const [showUnitagSuffix, setShowUnitagSuffix] = useState(false)
   const [textWidth, setTextWidth] = useState(0)
-  const isUnitag = displayName?.type === DisplayNameType.Unitag
+  const isUnitag = displayName.type === DisplayNameType.Unitag
 
   const onTextLayout = (event: LayoutChangeEvent): void => {
     setTextWidth(event.nativeEvent.layout.width)
@@ -52,7 +52,7 @@ export function AnimatedUnitagDisplayName({
     )
     sendAnalyticsEvent(SharedEventName.ELEMENT_CLICKED, {
       element: ElementName.CopyAddress,
-      screen: isExtension ? ExtensionScreens.Home : isMobileApp ? MobileScreens.Home : undefined,
+      screen: isExtensionApp ? ExtensionScreens.Home : isMobileApp ? MobileScreens.Home : undefined,
     })
   }
 
@@ -90,7 +90,7 @@ export function AnimatedUnitagDisplayName({
           <TouchableArea hitSlop={20} testID={TestID.AccountHeaderCopyAddress} onPress={onPressCopyAddress}>
             <Flex row alignItems="center" gap="$spacing4">
               <Text color="$neutral3" numberOfLines={1} variant="body2">
-                {sanitizeAddressText(shortenAddress(address))}
+                {sanitizeAddressText(shortenAddress({ address }))}
               </Text>
               <CopyAlt color="$neutral3" size="$icon.16" />
             </Flex>

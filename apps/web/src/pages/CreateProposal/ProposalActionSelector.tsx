@@ -1,14 +1,14 @@
 import { ButtonDropdownLight } from 'components/Button/buttons'
 import Column from 'components/deprecated/Column'
-import { Modal } from 'uniswap/src/components/modals/Modal'
 import { RowBetween } from 'components/deprecated/Row'
 import { MenuItem, PaddedColumn, Separator } from 'components/SearchModal/styled'
 import styled from 'lib/styled-components'
 import { useCallback } from 'react'
+import { Trans } from 'react-i18next'
 import { Text } from 'rebass'
 import { ModalCloseIcon } from 'ui/src'
-import { Trans } from 'react-i18next'
-import { ModalName} from 'uniswap/src/features/telemetry/constants'
+import { Modal } from 'uniswap/src/components/modals/Modal'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
 
 export enum ProposalAction {
   TRANSFER_TOKEN = 'Transfer Token',

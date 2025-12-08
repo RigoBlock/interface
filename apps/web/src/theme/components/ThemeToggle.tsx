@@ -4,9 +4,10 @@ import ms from 'ms'
 import { useCallback, useEffect, useMemo } from 'react'
 import { Moon, Sun } from 'react-feather'
 import { Trans, useTranslation } from 'react-i18next'
-import { Flex, SegmentedControl, Text, styled, useSporeColors } from 'ui/src'
+import { Flex, SegmentedControl, styled, Text, useSporeColors } from 'ui/src'
 import { Moon as MoonFilled } from 'ui/src/components/icons/Moon'
 import { Sun as SunFilled } from 'ui/src/components/icons/Sun'
+import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { addMediaQueryListener, removeMediaQueryListener } from 'utils/matchMedia'
 
 const THEME_UPDATE_DELAY = ms(`0.1s`)
@@ -54,7 +55,7 @@ export function SystemThemeUpdater() {
   useEffect(() => {
     addMediaQueryListener(DARKMODE_MEDIA_QUERY, listener)
     return () => removeMediaQueryListener(DARKMODE_MEDIA_QUERY, listener)
-  }, [setSystemTheme, listener])
+  }, [listener])
 
   return null
 }
@@ -128,7 +129,7 @@ export function ThemeSelector({
       value: ThemeMode.LIGHT,
       display: (
         <CompactOptionPill data-testid="theme-light">
-          <SunFilled size="$icon.20" color={colors.neutral1.get()} />
+          <SunFilled size="$icon.20" color="$neutral1" />
         </CompactOptionPill>
       ),
     },
@@ -136,7 +137,7 @@ export function ThemeSelector({
       value: ThemeMode.DARK,
       display: (
         <CompactOptionPill data-testid="theme-dark">
-          <MoonFilled size="$icon.20" color={colors.neutral1.get()} />
+          <MoonFilled size="$icon.20" color="$neutral1" />
         </CompactOptionPill>
       ),
     },
@@ -154,7 +155,7 @@ export function ThemeSelector({
     {
       value: ThemeMode.LIGHT,
       display: (
-        <OptionPill data-testid="theme-light">
+        <OptionPill data-testid={TestID.ThemeLight}>
           <Sun size="20" color={colors.neutral1.val} />
         </OptionPill>
       ),
@@ -162,7 +163,7 @@ export function ThemeSelector({
     {
       value: ThemeMode.DARK,
       display: (
-        <OptionPill data-testid="theme-dark">
+        <OptionPill data-testid={TestID.ThemeDark}>
           <Moon size="20" color={colors.neutral1.val} />
         </OptionPill>
       ),
@@ -184,8 +185,8 @@ export function ThemeSelector({
 
 export default function ThemeToggle({ disabled }: { disabled?: boolean }) {
   return (
-    <Flex row alignItems="center" justifyContent="space-between">
-      <Flex row width="40%">
+    <Flex row gap="$gap4" alignItems="center" justifyContent="space-between">
+      <Flex row>
         <Text variant="body3" color="$neutral1">
           <Trans i18nKey="themeToggle.theme" />
         </Text>

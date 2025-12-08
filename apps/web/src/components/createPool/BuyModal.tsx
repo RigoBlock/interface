@@ -2,27 +2,26 @@ import type { TransactionResponse } from '@ethersproject/providers'
 import { Currency, CurrencyAmount /*, Token*/ } from '@uniswap/sdk-core'
 import { useWeb3React } from '@web3-react/core'
 import { ButtonConfirmed, ButtonError } from 'components/Button/buttons'
-import { AutoColumn } from 'components/deprecated/Column'
 import CurrencyInputPanel from 'components/CurrencyInputPanel'
+import { AutoColumn } from 'components/deprecated/Column'
 import { RowBetween } from 'components/deprecated/Row'
-import { Modal } from 'uniswap/src/components/modals/Modal'
 import { LoadingView, SubmittedView } from 'components/ModalViews'
 import ProgressCircles from 'components/ProgressSteps'
 import { ApprovalState, useApproveCallback } from 'hooks/useApproveCallback'
-import { Trans } from 'react-i18next'
 import JSBI from 'jsbi'
-import { useCallback, useMemo, useState, useEffect } from 'react'
+import styled from 'lib/styled-components'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Trans } from 'react-i18next'
 import { PoolInfo, useDerivedPoolInfo } from 'state/buy/hooks'
 import { usePoolExtendedContract } from 'state/pool/hooks'
 import { useIsTransactionConfirmed, useTransaction, useTransactionAdder } from 'state/transactions/hooks'
-import { TransactionType } from 'state/transactions/types'
-import styled from 'lib/styled-components'
 import { ThemedText } from 'theme/components'
 import { ModalCloseIcon } from 'ui/src'
-import { TransactionStatus } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
-import { ModalName} from 'uniswap/src/features/telemetry/constants'
+import { Modal } from 'uniswap/src/components/modals/Modal'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { TransactionStatus, TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { calculateGasMargin } from 'utils/calculateGasMargin'
-import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
 import { maxAmountSpend } from 'utils/maxAmountSpend'
 import { parseEther } from 'viem'
 
@@ -41,6 +40,7 @@ interface PoolModalProps {
 }
 
 export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBalance }: PoolModalProps) {
+  //console.log('Rendering BuyModal with poolInfo:', poolInfo, 'and userBaseTokenBalance:', userBaseTokenBalance)
   const { provider } = useWeb3React()
 
   // track and parse user input
@@ -58,20 +58,26 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
 
   const transaction = useTransaction(hash)
   const confirmed = useIsTransactionConfirmed(hash)
-  const transactionSuccess = transaction?.status === TransactionStatus.Confirmed
+  const { formatCurrencyAmount } = useLocalizationContext()
+  const transactionSuccess = transaction?.status === TransactionStatus.Success
 
   const { parsedAmount, error } = useDerivedPoolInfo(typedValue, userBaseTokenBalance?.currency, userBaseTokenBalance)
 
   // approval data for buy with tokens
   //const deadline = useTransactionDeadline()
-  const [approval, approveCallback] = useApproveCallback(parsedAmount, poolInfo?.pool?.address)
+  const [approval, approveCallback] = useApproveCallback(parsedAmount, poolInfo?.pool.address)
 
-  const poolContract = usePoolExtendedContract(poolInfo?.pool?.address)
+  const poolContract = usePoolExtendedContract(poolInfo?.pool.address)
   const [expectedMintAmount, setExpectedMintAmount] = useState<any>(undefined)
-  
+
   useEffect(() => {
     async function retrieveRealTimeMintAmount() {
-      if (!poolContract || !poolInfo?.recipient || !parsedAmount?.quotient || !JSBI.greaterThan(parsedAmount.quotient, JSBI.BigInt(parseEther('0.0001').toString()))) {
+      if (
+        !poolContract ||
+        !poolInfo?.recipient ||
+        !parsedAmount?.quotient ||
+        !JSBI.greaterThan(parsedAmount.quotient, JSBI.BigInt(parseEther('0.0001').toString()))
+      ) {
         return
       }
 
@@ -80,14 +86,11 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
       const args = [poolInfo.recipient, parsedAmount.quotient.toString(), 1]
       let mintAmount
       try {
-        const cacheKey =
-          JSON.stringify(args) + (value ? value.toString() : '')
+        const cacheKey = JSON.stringify(args) + (value ? value.toString() : '')
         if (mintAmountCache.has(cacheKey)) {
           mintAmount = mintAmountCache.get(cacheKey)
         } else {
-          mintAmount = await poolContract.callStatic[
-            'mint(address,uint256,uint256)'
-          ](...args, value ? { value } : {})
+          mintAmount = await poolContract.callStatic['mint(address,uint256,uint256)'](...args, value ? { value } : {})
           mintAmountCache.set(cacheKey, mintAmount)
         }
       } catch (error) {
@@ -132,7 +135,9 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
             })
               .then((response: TransactionResponse) => {
                 addTransaction(response, {
-                  type: TransactionType.BUY,
+                  type: TransactionType.Buy,
+                  vaultAddress: poolInfo.pool.address,
+                  purchaseCurrencyAmountRaw: parsedAmount.quotient.toString(),
                 })
                 setAttempting(false)
                 setHash(response.hash)
@@ -141,7 +146,7 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
               .catch(() => {
                 setAttempting(false)
               })
-          }
+          },
         )
       } else {
         setAttempting(false)
@@ -185,7 +190,7 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
               <RowBetween>
                 <ThemedText.DeprecatedMediumHeader>
                   <Trans>
-                    Buy {poolInfo.pool?.symbol ?? null} using {userBaseTokenBalance.currency?.symbol}
+                    Buy {poolInfo.pool.symbol} using {userBaseTokenBalance.currency.symbol}
                   </Trans>
                 </ThemedText.DeprecatedMediumHeader>
                 <ModalCloseIcon onClose={wrappedOnDismiss} />
@@ -198,7 +203,9 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
                 currency={userBaseTokenBalance.currency}
                 isAccount={true}
                 label=""
-                renderBalance={(amount) => <Trans>Available to deposit: {formatCurrencyAmount(amount, 4)}</Trans>}
+                renderBalance={(amount) => (
+                  <Trans>Available to deposit: {formatCurrencyAmount({ value: amount })}</Trans>
+                )}
                 id="buy-pool-tokens"
               />
             </>
@@ -232,7 +239,7 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
             </ThemedText.DeprecatedLargeHeader>
             <ThemedText.DeprecatedBody fontSize={20}>
               <Trans>
-                {parsedAmount?.toSignificant(4)} {userBaseTokenBalance?.currency?.symbol}
+                {parsedAmount?.toSignificant(4)} {userBaseTokenBalance?.currency.symbol}
               </Trans>
             </ThemedText.DeprecatedBody>
             <ThemedText.DeprecatedBody fontSize={20}>
@@ -253,7 +260,7 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
                 </ThemedText.DeprecatedLargeHeader>
                 <ThemedText.DeprecatedBody fontSize={20}>
                   <Trans>
-                    Depositing {parsedAmount?.toSignificant(4)} {userBaseTokenBalance?.currency?.symbol}
+                    Depositing {parsedAmount?.toSignificant(4)} {userBaseTokenBalance?.currency.symbol}
                   </Trans>
                 </ThemedText.DeprecatedBody>
               </>
@@ -264,7 +271,7 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
                 </ThemedText.DeprecatedLargeHeader>
                 <ThemedText.DeprecatedBody fontSize={20}>
                   <Trans>
-                    Deposited {parsedAmount?.toSignificant(4)} {userBaseTokenBalance?.currency?.symbol}
+                    Deposited {parsedAmount?.toSignificant(4)} {userBaseTokenBalance?.currency.symbol}
                   </Trans>
                 </ThemedText.DeprecatedBody>
               </>

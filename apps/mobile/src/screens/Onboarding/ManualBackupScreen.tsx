@@ -1,7 +1,8 @@
+import { useFocusEffect } from '@react-navigation/core'
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { SharedEventName } from '@uniswap/analytics-events'
 import { addScreenshotListener } from 'expo-screen-capture'
-import React, { useEffect, useReducer, useState } from 'react'
+import React, { useCallback, useEffect, useReducer, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { navigate } from 'src/app/navigation/rootNavigation'
@@ -12,20 +13,19 @@ import { useLockScreenOnBlur } from 'src/features/lockScreen/hooks/useLockScreen
 import { BackupSpeedBumpModal } from 'src/features/onboarding/BackupSpeedBumpModal'
 import { OnboardingScreen } from 'src/features/onboarding/OnboardingScreen'
 import { Button, Flex, Text, useMedia, useSporeColors } from 'ui/src'
-import LockIcon from 'ui/src/assets/icons/lock.svg'
-import { EyeSlash, FileListLock, GraduationCap, Key, PapersText, Pen } from 'ui/src/components/icons'
+import { EyeSlash, FileListLock, GraduationCap, Key, Lock, PapersText, Pen } from 'ui/src/components/icons'
 import { iconSizes } from 'ui/src/theme'
 import { Modal } from 'uniswap/src/components/modals/Modal'
-import { WarningModal } from 'uniswap/src/components/modals/WarningModal/WarningModal'
-import Trace from 'uniswap/src/features/telemetry/Trace'
 import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
+import Trace from 'uniswap/src/features/telemetry/Trace'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { OnboardingEntryPoint } from 'uniswap/src/types/onboarding'
 import { ManualPageViewScreen, MobileScreens, OnboardingScreens } from 'uniswap/src/types/screens/mobile'
 import { useOnboardingContext } from 'wallet/src/features/onboarding/OnboardingContext'
 import { EditAccountAction, editAccountActions } from 'wallet/src/features/wallet/accounts/editAccountSaga'
 import { BackupType } from 'wallet/src/features/wallet/accounts/types'
+import { hasBackup } from 'wallet/src/features/wallet/accounts/utils'
 import { useSignerAccount } from 'wallet/src/features/wallet/hooks'
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, OnboardingScreens.BackupManual>
@@ -57,7 +57,6 @@ export function ManualBackupScreen({ navigation, route: { params } }: Props): JS
 
   const mnemonicId = account.mnemonicId
 
-  const [showScreenShotWarningModal, setShowScreenShotWarningModal] = useState(false)
   const [showSpeedBumpModal, setShowSpeedBumpModal] = useState(false)
 
   const [view, nextView] = useReducer((curView: View) => curView + 1, View.SeedPhrase)
@@ -88,24 +87,28 @@ export function ManualBackupScreen({ navigation, route: { params } }: Props): JS
     navigate(MobileScreens.Home)
   }
 
-  useEffect(() => {
-    if (view !== View.SeedPhrase) {
-      return undefined
-    }
+  useFocusEffect(
+    useCallback(() => {
+      if (view !== View.SeedPhrase) {
+        return undefined
+      }
 
-    const listener = addScreenshotListener(() => setShowScreenShotWarningModal(true))
-    return () => listener?.remove()
-  }, [view])
+      const listener = addScreenshotListener(() => {
+        navigate(ModalName.ScreenshotWarning, { acknowledgeText: t('common.button.ok') })
+      })
+      return () => listener.remove()
+    }, [view, t]),
+  )
 
   useEffect(() => {
-    if (confirmContinueButtonPressed && account?.backups?.includes(BackupType.Manual)) {
+    if (confirmContinueButtonPressed && hasBackup(BackupType.Manual, account)) {
       if (params.entryPoint === OnboardingEntryPoint.BackupCard) {
         navigate(MobileScreens.Home)
       } else {
         navigation.replace(OnboardingScreens.Notifications, params)
       }
     }
-  }, [confirmContinueButtonPressed, navigation, params, account?.backups])
+  }, [confirmContinueButtonPressed, navigation, params, account])
 
   // Manually log as page views as these screens are not captured in navigation events
   useEffect(() => {
@@ -135,14 +138,6 @@ export function ManualBackupScreen({ navigation, route: { params } }: Props): JS
               : t('onboarding.recoveryPhrase.view.title')
           }
         >
-          <WarningModal
-            caption={t('onboarding.recoveryPhrase.warning.screenshot.message')}
-            acknowledgeText={t('common.button.ok')}
-            isOpen={showScreenShotWarningModal}
-            modalName={ModalName.ScreenshotWarning}
-            title={t('onboarding.recoveryPhrase.warning.screenshot.title')}
-            onAcknowledge={(): void => setShowScreenShotWarningModal(false)}
-          />
           <Flex grow justifyContent="space-between">
             <Flex grow>
               <MnemonicDisplay
@@ -235,7 +230,7 @@ const SeedWarningModal = ({ onPress }: { onPress: () => void }): JSX.Element => 
     >
       <Flex centered gap="$spacing16" pb="$spacing24" pt="$spacing24" px="$spacing24">
         <Flex centered backgroundColor="$surface2" borderRadius="$rounded12" p="$spacing12">
-          <LockIcon color={colors.neutral1.val} height={iconSizes.icon24} width={iconSizes.icon24} />
+          <Lock color="$neutral1" size="$icon.24" />
         </Flex>
         <Text color="$neutral1" variant="body1">
           {t('onboarding.recoveryPhrase.warning.final.title')}

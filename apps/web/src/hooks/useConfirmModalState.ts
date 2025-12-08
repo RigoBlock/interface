@@ -16,9 +16,10 @@ import { isUniswapXTrade } from 'state/routing/utils'
 import { useIsTokenOwnable } from 'state/swap/hooks'
 import { useIsTransactionConfirmed } from 'state/transactions/hooks'
 import invariant from 'tiny-invariant'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { CurrencyField } from 'uniswap/src/types/currency'
+import { NumberType } from 'utilities/src/format/types'
 import { logger } from 'utilities/src/logger/logger'
-import { NumberType, useFormatter } from 'utils/formatNumbers'
 import { didUserReject } from 'utils/swapErrorToUserReadableMessage'
 import { tradeMeaningfullyDiffers } from 'utils/tradeMeaningFullyDiffer'
 
@@ -30,6 +31,14 @@ type PendingConfirmModalState = Extract<
   | ConfirmModalState.WRAPPING
   | ConfirmModalState.RESETTING_TOKEN_ALLOWANCE
 >
+
+function isInApprovalPhase(confirmModalState: ConfirmModalState) {
+  return (
+    confirmModalState === ConfirmModalState.RESETTING_TOKEN_ALLOWANCE ||
+    confirmModalState === ConfirmModalState.APPROVING_TOKEN ||
+    confirmModalState === ConfirmModalState.PERMITTING
+  )
+}
 
 export function useConfirmModalState({
   trade,
@@ -52,15 +61,15 @@ export function useConfirmModalState({
   const [approvalError, setApprovalError] = useState<PendingModalError>()
   const [tokenError, setTokenError] = useState<PendingModalError>()
   const [pendingModalSteps, setPendingModalSteps] = useState<PendingConfirmModalState[]>([])
-  const { formatCurrencyAmount } = useFormatter()
+  const { formatCurrencyAmount } = useLocalizationContext()
 
-    // TODO: check where this hook is using account and for what
+  // TODO: check where this hook is using account and for what
   const account = useAccount()
   const { chainId } = useMultichainContext()
 
   const isTokenOwnable: boolean | undefined = useIsTokenOwnable(
-    selectedPool?.isToken ? selectedPool?.address : undefined,
-    trade.outputAmount.currency
+    selectedPool?.isToken ? selectedPool.address : undefined,
+    trade.outputAmount.currency,
   )
 
   useEffect(() => {
@@ -85,9 +94,9 @@ export function useConfirmModalState({
     }
     if (
       allowance?.state === AllowanceState.REQUIRED &&
-      allowance?.needsSetupApproval &&
-      RESET_APPROVAL_TOKENS.some((token) => token.equals(allowance?.token)) &&
-      allowance?.allowedAmount?.greaterThan(0)
+      allowance.needsSetupApproval &&
+      RESET_APPROVAL_TOKENS.some((token) => token.equals(allowance.token)) &&
+      allowance.allowedAmount?.greaterThan(0)
     ) {
       steps.push(ConfirmModalState.RESETTING_TOKEN_ALLOWANCE)
     }
@@ -105,14 +114,14 @@ export function useConfirmModalState({
   const nativeCurrency = useNativeCurrency(chainId)
 
   const [wrapTxHash, setWrapTxHash] = useState<string>()
-  const { execute: onWrap } = useWrapCallback(
-    nativeCurrency,
-    trade.inputAmount.currency,
-    formatCurrencyAmount({
-      amount: trade.inputAmount,
+  const { execute: onWrap } = useWrapCallback({
+    inputCurrency: nativeCurrency,
+    outputCurrency: trade.inputAmount.currency,
+    typedValue: formatCurrencyAmount({
+      value: trade.inputAmount,
       type: NumberType.SwapTradeAmount,
     }),
-  )
+  })
   const wrapConfirmed = useIsTransactionConfirmed(wrapTxHash)
   const prevWrapConfirmed = usePrevious(wrapConfirmed)
   const catchUserReject = useCallback(
@@ -145,7 +154,7 @@ export function useConfirmModalState({
         case ConfirmModalState.RESETTING_TOKEN_ALLOWANCE:
           setConfirmModalState(ConfirmModalState.RESETTING_TOKEN_ALLOWANCE)
           invariant(allowance?.state === AllowanceState.REQUIRED, 'Allowance should be required')
-          allowance?.revoke().catch((e) => catchUserReject(e, PendingModalError.TOKEN_APPROVAL_ERROR))
+          allowance.revoke().catch((e) => catchUserReject(e, PendingModalError.TOKEN_APPROVAL_ERROR))
           break
         case ConfirmModalState.APPROVING_TOKEN:
           setConfirmModalState(ConfirmModalState.APPROVING_TOKEN)
@@ -155,7 +164,7 @@ export function useConfirmModalState({
         case ConfirmModalState.PERMITTING:
           setConfirmModalState(ConfirmModalState.PERMITTING)
           invariant(allowance?.state === AllowanceState.REQUIRED, 'Allowance should be required')
-          allowance?.permit().catch((e) => catchUserReject(e, PendingModalError.TOKEN_APPROVAL_ERROR))
+          allowance.permit().catch((e) => catchUserReject(e, PendingModalError.TOKEN_APPROVAL_ERROR))
           break
         case ConfirmModalState.PENDING_CONFIRMATION:
           setConfirmModalState(ConfirmModalState.PENDING_CONFIRMATION)
@@ -174,20 +183,26 @@ export function useConfirmModalState({
   )
 
   const startSwapFlow = useCallback(async () => {
-    if (chainId && chainId !== account.chainId) {
-      const switchChainResult = await selectChain(chainId)
-      if (!switchChainResult) {
-        return
-      }
-    }
     const steps = generateRequiredSteps()
     setPendingModalSteps(steps)
     performStep(steps[0])
-  }, [account.chainId, chainId, generateRequiredSteps, performStep, selectChain])
+  }, [generateRequiredSteps, performStep])
 
   const previousSetupApprovalNeeded = usePrevious(
     allowance?.state === AllowanceState.REQUIRED ? allowance.needsSetupApproval : undefined,
   )
+
+  useEffect(() => {
+    const switchChain = async () => {
+      if (chainId && chainId !== account.chainId) {
+        const switchChainResult = await selectChain(chainId)
+        if (!switchChainResult) {
+          return
+        }
+      }
+    }
+    switchChain()
+  }, [chainId, account.chainId, selectChain])
 
   useEffect(() => {
     // If the wrapping step finished, trigger the next step (allowance or swap).
@@ -200,9 +215,9 @@ export function useConfirmModalState({
   useEffect(() => {
     if (
       allowance?.state === AllowanceState.REQUIRED &&
-      allowance?.needsPermitSignature &&
+      allowance.needsPermitSignature &&
       // If the token approval switched from missing to fulfilled, trigger the next step (permit2 signature).
-      !allowance?.needsSetupApproval &&
+      !allowance.needsSetupApproval &&
       previousSetupApprovalNeeded
     ) {
       performStep(ConfirmModalState.PERMITTING)
@@ -210,23 +225,21 @@ export function useConfirmModalState({
   }, [allowance, performStep, previousSetupApprovalNeeded])
 
   const previousRevocationPending = usePrevious(
-    allowance?.state === AllowanceState.REQUIRED && allowance?.isRevocationPending,
+    allowance?.state === AllowanceState.REQUIRED && allowance.isRevocationPending,
   )
   useEffect(() => {
-    if (allowance?.state === AllowanceState.REQUIRED && previousRevocationPending && !allowance?.isRevocationPending) {
+    if (allowance?.state === AllowanceState.REQUIRED && previousRevocationPending && !allowance.isRevocationPending) {
       performStep(ConfirmModalState.APPROVING_TOKEN)
     }
   }, [allowance, performStep, previousRevocationPending])
 
-  function isInApprovalPhase(confirmModalState: ConfirmModalState) {
-    return (
-      confirmModalState === ConfirmModalState.RESETTING_TOKEN_ALLOWANCE ||
-      confirmModalState === ConfirmModalState.APPROVING_TOKEN ||
-      confirmModalState === ConfirmModalState.PERMITTING
-    )
-  }
-
-  const doesTradeDiffer = originalTrade && tradeMeaningfullyDiffers(trade, originalTrade, allowedSlippage)
+  const doesTradeDiffer =
+    originalTrade &&
+    tradeMeaningfullyDiffers({
+      currentTrade: trade,
+      newTrade: originalTrade,
+      slippage: allowedSlippage,
+    })
   useEffect(() => {
     // Automatically triggers the next phase if the local modal state still thinks we're in the approval phase,
     // but the allowance has been set. This will automaticaly trigger the swap.
@@ -249,14 +262,14 @@ export function useConfirmModalState({
     setApprovalError(undefined)
   }
 
-  const [lastExecutionPrice, setLastExecutionPrice] = useState(trade?.executionPrice)
+  const [lastExecutionPrice, setLastExecutionPrice] = useState(trade.executionPrice)
   const [priceUpdate, setPriceUpdate] = useState<number>()
   useEffect(() => {
-    if (lastExecutionPrice && !trade.executionPrice.equalTo(lastExecutionPrice)) {
+    if (!trade.executionPrice.equalTo(lastExecutionPrice)) {
       setPriceUpdate(getPriceUpdateBasisPoints(lastExecutionPrice, trade.executionPrice))
       setLastExecutionPrice(trade.executionPrice)
     }
-  }, [lastExecutionPrice, setLastExecutionPrice, trade])
+  }, [lastExecutionPrice, trade])
 
   return {
     startSwapFlow,

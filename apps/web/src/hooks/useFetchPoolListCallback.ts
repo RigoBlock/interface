@@ -19,18 +19,21 @@ export function useFetchPoolListCallback(): (listUrl: string, skipValidation?: b
       return getTokenList(
         listUrl,
         (ensName: string) => resolveENSContentHash(ensName, RPC_PROVIDERS[UniverseChainId.Mainnet]),
-        skipValidation
+        skipValidation,
       )
         .then((tokenList) => {
           dispatch(fetchTokenList.fulfilled({ url: listUrl, tokenList, requestId }))
           return tokenList
         })
         .catch((error) => {
-          logger.debug('useFetchPoolListCallback', 'useFetchPoolListCallback', 'Failed to fetch pool list', { error, listUrl })
+          logger.debug('useFetchPoolListCallback', 'useFetchPoolListCallback', 'Failed to fetch pool list', {
+            error,
+            listUrl,
+          })
           dispatch(fetchTokenList.rejected({ url: listUrl, requestId, errorMessage: error.message }))
           throw error
         })
     },
-    [dispatch]
+    [dispatch],
   )
 }

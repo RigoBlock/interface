@@ -1,6 +1,5 @@
 import 'test-utils/tokens/mocks'
 
-import { Percent } from '@uniswap/sdk-core'
 import SwapLineItem, { SwapLineItemType } from 'components/swap/SwapLineItem'
 import { InterfaceTrade } from 'state/routing/types'
 import {
@@ -18,8 +17,8 @@ import {
 import { render, screen } from 'test-utils/render'
 
 // Forces tooltips to render in snapshots
-jest.mock('react-dom', () => {
-  const original = jest.requireActual('react-dom')
+vi.mock('react-dom', () => {
+  const original = vi.importActual('react-dom')
   return {
     ...original,
     createPortal: (node: any) => node,
@@ -27,7 +26,7 @@ jest.mock('react-dom', () => {
 })
 
 // Prevents uuid from generating unpredictable values in snapshots
-jest.mock('uuid', () => ({
+vi.mock('uuid', () => ({
   v4: () => 'fixed-uuid-value',
 }))
 
@@ -84,7 +83,6 @@ describe('SwapLineItem.tsx', () => {
         trade={LIMIT_ORDER_TRADE}
         type={SwapLineItemType.EXPIRY}
         syncing={false}
-        allowedSlippage={new Percent(0)}
       />,
     )
     // TODO: mock Date Time so we can use a snapshot test here

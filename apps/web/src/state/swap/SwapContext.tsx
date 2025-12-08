@@ -1,5 +1,5 @@
+import { useReportTotalBalancesUsdForAnalytics } from 'appGraphql/data/apollo/useReportTotalBalancesUsdForAnalytics'
 import { Currency } from '@uniswap/sdk-core'
-import { useReportTotalBalancesUsdForAnalytics } from 'graphql/data/apollo/useReportTotalBalancesUsdForAnalytics'
 import usePrevious from 'hooks/usePrevious'
 import { PropsWithChildren, useEffect, useMemo, useState } from 'react'
 import { useMultichainContext } from 'state/multichain/useMultichainContext'
@@ -67,6 +67,7 @@ export function SwapAndLimitContextProvider({
     }
   }, [initialInputCurrency, isUserSelectedToken, prefilledState, previousInitialInputCurrency])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: +prefilledState
   useEffect(() => {
     if (!isUserSelectedToken && initialChainId && previousInitialChainId !== initialChainId) {
       setSelectedChainId(initialChainId)

@@ -1,22 +1,24 @@
+import { useTheme } from '@tamagui/core'
 import Circle from 'assets/images/blue-loader.svg'
 import { ButtonPrimary } from 'components/Button/buttons'
 import { AutoColumn, ColumnCenter } from 'components/deprecated/Column'
 import { RowBetween } from 'components/deprecated/Row'
-import { Modal } from 'uniswap/src/components/modals/Modal'
 import { useAccount } from 'hooks/useAccount'
-import styled, { useTheme } from 'lib/styled-components'
+import styled from 'lib/styled-components'
 import { useState } from 'react'
 import { ArrowUpCircle, X } from 'react-feather'
+import { Trans } from 'react-i18next'
 import { useUserVotes, useVoteCallback } from 'state/governance/hooks'
 import { VoteOption } from 'state/governance/types'
-import { CustomLightSpinner, ThemedText } from 'theme/components'
+import { ThemedText } from 'theme/components'
+import { CustomLightSpinner } from 'theme/components/icons/spinner'
 import { ExternalLink } from 'theme/components/Links'
-import { Trans } from 'react-i18next'
 import { Flex } from 'ui/src'
-import { ModalName} from 'uniswap/src/features/telemetry/constants'
-import { logger } from 'utilities/src/logger/logger'
-import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
+import { Modal } from 'uniswap/src/components/modals/Modal'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
+import { logger } from 'utilities/src/logger/logger'
 
 const ContentWrapper = styled(AutoColumn)`
   width: 100%;
@@ -49,6 +51,7 @@ export default function VoteModal({ isOpen, onDismiss, proposalId, voteOption }:
   const { chainId } = useAccount()
   const voteCallback = useVoteCallback()
   const { votes: availableVotes } = useUserVotes()
+  const { formatCurrencyAmount } = useLocalizationContext()
 
   // monitor call to help UI loading state
   const [hash, setHash] = useState<string | undefined>()
@@ -68,7 +71,7 @@ export default function VoteModal({ isOpen, onDismiss, proposalId, voteOption }:
     setAttempting(true)
 
     // if callback not returned properly ignore
-    if (!voteCallback || voteOption === undefined) {
+    if (voteOption === undefined) {
       return
     }
 
@@ -83,7 +86,7 @@ export default function VoteModal({ isOpen, onDismiss, proposalId, voteOption }:
     }
   }
 
-  const formattedVoteAmount = availableVotes ? formatCurrencyAmount(availableVotes, 4) : '0'
+  const formattedVoteAmount = availableVotes ? formatCurrencyAmount({ value: availableVotes }) : '0'
 
   return (
     <Modal name={ModalName.DappRequest} isModalOpen={isOpen} isDismissible onClose={wrappedOnDismiss} maxHeight="90vh">
@@ -147,7 +150,7 @@ export default function VoteModal({ isOpen, onDismiss, proposalId, voteOption }:
             <StyledClosed onClick={wrappedOnDismiss} />
           </RowBetween>
           <ConfirmedIcon>
-            <ArrowUpCircle strokeWidth={0.5} size={90} color={theme.accent1} />
+            <ArrowUpCircle strokeWidth={0.5} size={90} color={theme.accent1.get()} />
           </ConfirmedIcon>
           <AutoColumn gap="100px" justify="center">
             <AutoColumn gap="md" justify="center">
@@ -157,7 +160,7 @@ export default function VoteModal({ isOpen, onDismiss, proposalId, voteOption }:
             </AutoColumn>
             {chainId && (
               <ExternalLink
-                href={getExplorerLink(chainId, hash, ExplorerDataType.TRANSACTION)}
+                href={getExplorerLink({ chainId, data: hash, type: ExplorerDataType.TRANSACTION })}
                 style={{ marginLeft: '4px' }}
               >
                 <ThemedText.DeprecatedSubHeader>

@@ -1,28 +1,26 @@
 import { ConfirmModalState } from 'components/ConfirmSwapModal'
-import { Step, StepDetails } from 'components/ConfirmSwapModal/Step'
+import { ICON_SIZE, Step, StepDetails } from 'components/ConfirmSwapModal/Step'
+import Column from 'components/deprecated/Column'
 import { Sign } from 'components/Icons/Sign'
 import { Swap } from 'components/Icons/Swap'
 import CurrencyLogo from 'components/Logo/CurrencyLogo'
-import Column from 'components/deprecated/Column'
 import { useAccount } from 'hooks/useAccount'
 import { useBlockConfirmationTime } from 'hooks/useBlockConfirmationTime'
 import { useColor } from 'hooks/useColor'
 import { SwapResult, useSwapTransactionStatus } from 'hooks/useSwapCallback'
 import useNativeCurrency from 'lib/hooks/useNativeCurrency'
-import styled, { useTheme } from 'lib/styled-components'
+import { styled } from 'lib/styled-components'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { InterfaceTrade } from 'state/routing/types'
 import { isLimitTrade, isUniswapXSwapTrade, isUniswapXTradeType } from 'state/routing/utils'
-import { useOrder } from 'state/signatures/hooks'
-import { useIsTransactionConfirmed } from 'state/transactions/hooks'
-import { colors } from 'theme/colors'
-import { Divider } from 'theme/components'
-import { UniswapXOrderStatus } from 'types/uniswapx'
-import { Flex } from 'ui/src'
+import { useIsTransactionConfirmed, useUniswapXOrderByOrderHash } from 'state/transactions/hooks'
+import { Divider } from 'theme/components/Dividers'
+import { Flex, useSporeColors } from 'ui/src'
+import { DEP_accentColors } from 'ui/src/theme'
 import { StepStatus } from 'uniswap/src/components/ConfirmSwapModal/types'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
-import { TransactionStatus } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { SignatureExpiredError } from 'utils/errors'
 
 const DividerContainer = styled(Column)`
@@ -30,12 +28,7 @@ const DividerContainer = styled(Column)`
   padding: 0px 16px;
   justify-content: center;
 `
-const Edge = styled.div`
-  width: 2px;
-  height: 10px;
-  background-color: ${({ theme }) => theme.neutral3};
-  margin: 0px 27px;
-`
+
 type ProgressIndicatorStep = Extract<
   ConfirmModalState,
   | ConfirmModalState.APPROVING_TOKEN
@@ -69,7 +62,7 @@ export default function ProgressIndicator({
   const { chainId } = useAccount()
   const nativeCurrency = useNativeCurrency(chainId)
   const inputTokenColor = useColor(trade?.inputAmount.currency.wrapped)
-  const theme = useTheme()
+  const colors = useSporeColors()
 
   // Dynamic estimation of transaction wait time based on confirmation of previous block
   const { blockConfirmationTime } = useBlockConfirmationTime()
@@ -84,14 +77,15 @@ export default function ProgressIndicator({
   }, [blockConfirmationTime, estimatedTransactionTime])
 
   const swapStatus = useSwapTransactionStatus(swapResult)
-  const uniswapXOrder = useOrder(isUniswapXTradeType(swapResult?.type) ? swapResult.response.orderHash : '')
+  const uniswapXOrder = useUniswapXOrderByOrderHash(
+    isUniswapXTradeType(swapResult?.type) ? swapResult.response.orderHash : '',
+  )
 
-  const swapConfirmed =
-    swapStatus === TransactionStatus.Confirmed || uniswapXOrder?.status === UniswapXOrderStatus.FILLED
+  const swapConfirmed = swapStatus === TransactionStatus.Success || uniswapXOrder?.status === TransactionStatus.Success
   const wrapConfirmed = useIsTransactionConfirmed(wrapTxHash)
 
   const swapPending = swapResult !== undefined && !swapConfirmed
-  const wrapPending = wrapTxHash != undefined && !wrapConfirmed
+  const wrapPending = wrapTxHash !== undefined && !wrapConfirmed
   const transactionPending = revocationPending || tokenApprovalPending || wrapPending || swapPending
 
   // Retry logic for UniswapX orders when a signature expires
@@ -118,7 +112,7 @@ export default function ProgressIndicator({
   const stepDetails: Record<ProgressIndicatorStep, StepDetails> = useMemo(
     () => ({
       [ConfirmModalState.WRAPPING]: {
-        icon: <CurrencyLogo currency={trade?.inputAmount.currency} size={24} />,
+        icon: <CurrencyLogo currency={trade?.inputAmount.currency} size={ICON_SIZE} />,
         rippleColor: inputTokenColor,
         previewTitle: t('common.wrap', { symbol: nativeCurrency.symbol }),
         actionRequiredTitle: t('common.wrapIn', { symbol: nativeCurrency.symbol }),
@@ -127,14 +121,14 @@ export default function ProgressIndicator({
         learnMoreLinkHref: uniswapUrls.helpArticleUrls.wethExplainer,
       },
       [ConfirmModalState.RESETTING_TOKEN_ALLOWANCE]: {
-        icon: <CurrencyLogo currency={trade?.inputAmount.currency} size={24} />,
+        icon: <CurrencyLogo currency={trade?.inputAmount.currency} size={ICON_SIZE} />,
         rippleColor: inputTokenColor,
         previewTitle: t('common.resetLimit', { symbol: trade?.inputAmount.currency.symbol }),
         actionRequiredTitle: t('common.resetLimitWallet', { symbol: trade?.inputAmount.currency.symbol }),
         inProgressTitle: t('common.resettingLimit', { symbol: trade?.inputAmount.currency.symbol }),
       },
       [ConfirmModalState.APPROVING_TOKEN]: {
-        icon: <CurrencyLogo currency={trade?.inputAmount.currency} size={24} />,
+        icon: <CurrencyLogo currency={trade?.inputAmount.currency} size={ICON_SIZE} />,
         rippleColor: inputTokenColor,
         previewTitle: t('common.approveSpend', { symbol: trade?.inputAmount.currency.symbol }),
         actionRequiredTitle: t('common.wallet.approve'),
@@ -144,7 +138,7 @@ export default function ProgressIndicator({
       },
       [ConfirmModalState.PERMITTING]: {
         icon: <Sign />,
-        rippleColor: theme.accent1,
+        rippleColor: colors.accent1.val,
         previewTitle: t('common.signMessage'),
         actionRequiredTitle: t('common.signMessageWallet'),
         learnMoreLinkText: t('common.whySign'),
@@ -152,7 +146,7 @@ export default function ProgressIndicator({
       },
       [ConfirmModalState.PENDING_CONFIRMATION]: {
         icon: <Swap />,
-        rippleColor: colors.blue400,
+        rippleColor: DEP_accentColors.blue400,
         previewTitle: isLimitTrade(trade) ? t('common.confirm') : t('swap.confirmSwap'),
         actionRequiredTitle: isLimitTrade(trade) ? t('common.confirmWallet') : t('common.confirmSwap'),
         inProgressTitle: isLimitTrade(trade) ? t('common.pendingEllipsis') : t('common.swapPending'),
@@ -166,7 +160,7 @@ export default function ProgressIndicator({
           : uniswapUrls.helpArticleUrls.howToSwapTokens,
       },
     }),
-    [trade, inputTokenColor, t, nativeCurrency.symbol, theme.accent1],
+    [trade, inputTokenColor, t, nativeCurrency.symbol, colors],
   )
 
   if (steps.length === 0) {
@@ -174,7 +168,7 @@ export default function ProgressIndicator({
   }
 
   return (
-    <Column>
+    <Flex>
       <DividerContainer>
         <Divider />
       </DividerContainer>
@@ -182,10 +176,10 @@ export default function ProgressIndicator({
         return (
           <Flex key={`progress-indicator-step-${i}`}>
             <Step stepStatus={getStatus(step)} stepDetails={stepDetails[step]} />
-            {i !== steps.length - 1 && <Edge />}
+            {i !== steps.length - 1 && <Flex width={2} height={10} backgroundColor="$neutral3" ml={18} />}
           </Flex>
         )
       })}
-    </Column>
+    </Flex>
   )
 }

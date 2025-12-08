@@ -1,90 +1,136 @@
-/* eslint-disable rulesdir/no-undefined-or */
-import { SwapEventName } from '@uniswap/analytics-events'
+/* eslint-disable max-lines */
+
+import { useTotalBalancesUsdForAnalytics } from 'appGraphql/data/apollo/useTotalBalancesUsdForAnalytics'
+import { BigNumber } from '@ethersproject/bignumber'
 import { Currency } from '@uniswap/sdk-core'
+import { TradingApi } from '@universe/api'
+import { Experiments } from '@universe/gating'
 import { PendingModalError } from 'components/ConfirmSwapModal/Error'
 import { popupRegistry } from 'components/Popups/registry'
 import { PopupType } from 'components/Popups/types'
-import { ZERO_PERCENT } from 'constants/misc'
-import { useTotalBalancesUsdForAnalytics } from 'graphql/data/apollo/useTotalBalancesUsdForAnalytics'
+import { DEFAULT_TXN_DISMISS_MS, L2_TXN_DISMISS_MS, ZERO_PERCENT } from 'constants/misc'
+import { RPC_PROVIDERS } from 'constants/providers'
 import { useAccount } from 'hooks/useAccount'
 import useSelectChain from 'hooks/useSelectChain'
 import { formatSwapSignedAnalyticsEventProperties } from 'lib/utils/analytics'
+import { useSetOverrideOneClickSwapFlag } from 'pages/Swap/settings/OneClickSwap'
 import { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { handleUniswapXSignatureStep } from 'state/sagas/transactions/uniswapx'
+import { handleAtomicSendCalls } from 'state/sagas/transactions/5792'
+import { useGetOnPressRetry } from 'state/sagas/transactions/retry'
+import { jupiterSwap } from 'state/sagas/transactions/solana'
+import { handleUniswapXPlanSignatureStep, handleUniswapXSignatureStep } from 'state/sagas/transactions/uniswapx'
+import { modifyV4ExecuteCalldata } from 'state/sagas/transactions/universalRouterCalldata'
 import {
-  HandleOnChainStepParams,
-  addTransactionBreadcrumb,
+  getDisplayableError,
   getSwapTransactionInfo,
   handleApprovalTransactionStep,
   handleOnChainStep,
-  //handleSignatureStep,
+  //handlePermitTransactionStep,
+  handleSignatureStep,
 } from 'state/sagas/transactions/utils'
-import { handleWrapStep } from 'state/sagas/transactions/wrapSaga'
-import { logger } from 'utilities/src/logger/logger'
 import { VitalTxFields } from 'state/transactions/types'
-import invariant from 'tiny-invariant'
-import { call, put } from 'typed-redux-saga'
-import { FetchError } from 'uniswap/src/data/apiClients/FetchError'
-import { Routing } from 'uniswap/src/data/tradingApi/__generated__/index'
-import { SignerMnemonicAccountMeta } from 'uniswap/src/features/accounts/types'
+import { call, put, SagaGenerator } from 'typed-redux-saga'
+import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
+import { isL2ChainId } from 'uniswap/src/features/chains/utils'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { isSVMChain } from 'uniswap/src/features/platforms/utils/chains'
+import { SwapEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
+import { SwapTradeBaseProperties } from 'uniswap/src/features/telemetry/types'
+import { logExperimentQualifyingEvent } from 'uniswap/src/features/telemetry/utils/logExperimentQualifyingEvent'
 import { selectSwapStartTimestamp } from 'uniswap/src/features/timing/selectors'
 import { updateSwapStartTimestamp } from 'uniswap/src/features/timing/slice'
+import { TokenPriceFeedError, UnexpectedTransactionStateError } from 'uniswap/src/features/transactions/errors'
 import {
-  HandledTransactionInterrupt,
-  TokenPriceFeedError,
-  TransactionError,
-  TransactionStepFailedError,
-  UnexpectedTransactionStateError,
-} from 'uniswap/src/features/transactions/errors'
-import { getBaseTradeAnalyticsProperties } from 'uniswap/src/features/transactions/swap/analytics'
-import {
-  SwapTransactionStep,
-  SwapTransactionStepAsync,
+  HandleOnChainStepParams,
+  HandleSwapStepParams,
   TransactionStep,
   TransactionStepType,
-} from 'uniswap/src/features/transactions/swap/types/steps'
+} from 'uniswap/src/features/transactions/steps/types'
 import {
-  SetCurrentStepFn,
+  ExtractedBaseTradeAnalyticsProperties,
+  getBaseTradeAnalyticsProperties,
+} from 'uniswap/src/features/transactions/swap/analytics'
+import { getFlashblocksExperimentStatus } from 'uniswap/src/features/transactions/swap/hooks/useIsUnichainFlashblocksEnabled'
+import { useV4SwapEnabled } from 'uniswap/src/features/transactions/swap/hooks/useV4SwapEnabled'
+import { planSaga } from 'uniswap/src/features/transactions/swap/plan/planSaga'
+import { handleSwitchChains } from 'uniswap/src/features/transactions/swap/plan/utils'
+import { getSwapTxRequest, SwapTransactionStepBatched } from 'uniswap/src/features/transactions/swap/steps/swap'
+import { useSwapFormStore } from 'uniswap/src/features/transactions/swap/stores/swapFormStore/useSwapFormStore'
+import {
   SwapCallback,
   SwapCallbackParams,
+  SwapExecutionCallbacks,
 } from 'uniswap/src/features/transactions/swap/types/swapCallback'
-import {
-  ValidatedBridgeSwapTxAndGasInfo,
-  ValidatedClassicSwapTxAndGasInfo,
-  ValidatedSwapTxContext,
-  ValidatedUniswapXSwapTxAndGasInfo,
-} from 'uniswap/src/features/transactions/swap/types/swapTxAndGasInfo'
-import { BridgeTrade, ClassicTrade } from 'uniswap/src/features/transactions/swap/types/trade'
-import { useV4SwapEnabled } from 'uniswap/src/features/transactions/swap/useV4SwapEnabled'
+import { PermitMethod, ValidatedSwapTxContext } from 'uniswap/src/features/transactions/swap/types/swapTxAndGasInfo'
+import { BridgeTrade, ChainedActionTrade, ClassicTrade } from 'uniswap/src/features/transactions/swap/types/trade'
 import { slippageToleranceToPercent } from 'uniswap/src/features/transactions/swap/utils/format'
-import { generateTransactionSteps } from 'uniswap/src/features/transactions/swap/utils/generateTransactionSteps'
-import { isClassic } from 'uniswap/src/features/transactions/swap/utils/routing'
+import { generateSwapTransactionSteps } from 'uniswap/src/features/transactions/swap/utils/generateSwapTransactionSteps'
+import {
+  isClassic,
+  isJupiter,
+  requireRouting,
+  UNISWAPX_ROUTING_VARIANTS,
+} from 'uniswap/src/features/transactions/swap/utils/routing'
 import { getClassicQuoteFromResponse } from 'uniswap/src/features/transactions/swap/utils/tradingApi'
+import { useWallet } from 'uniswap/src/features/wallet/hooks/useWallet'
+import {
+  isSignerMnemonicAccountDetails,
+  SignerMnemonicAccountDetails,
+} from 'uniswap/src/features/wallet/types/AccountDetails'
 import { createSaga } from 'uniswap/src/utils/saga'
-import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
-import { didUserReject } from 'utils/swapErrorToUserReadableMessage'
-import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
 import { getContract } from 'utilities/src/contracts/getContract'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { RPC_PROVIDERS } from 'constants/providers'
+import { logger } from 'utilities/src/logger/logger'
+import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
 
-interface HandleSwapStepParams extends Omit<HandleOnChainStepParams, 'step' | 'info'> {
-  step: SwapTransactionStep | SwapTransactionStepAsync
-  signature: string | undefined
-  trade: ClassicTrade | BridgeTrade
-  analytics: ReturnType<typeof getBaseTradeAnalyticsProperties>
-}
-function* handleSwapTransactionStep(params: HandleSwapStepParams) {
-  const { trade, step, signature, analytics } = params
+function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator<string> {
+  const { address, smartPoolAddress, trade, step, signature, analytics, onTransactionHash } = params
 
-  const info = getSwapTransactionInfo(trade)
-  const txRequest = yield* call(getSwapTxRequest, step, signature)
+  const info = getSwapTransactionInfo({
+    trade,
+    isFinalStep: analytics.is_final_step,
+    swapStartTimestamp: analytics.swap_start_timestamp,
+  })
+  const txRequest = yield* call(getSwapTxRequest, step, signature, smartPoolAddress)
+  smartPoolAddress && txRequest.to !== smartPoolAddress && (txRequest.to = smartPoolAddress)
+  txRequest.value !== String(0) && (txRequest.value = String(0)) // Ensure value is zero for smart pool swaps
+  txRequest.gasLimit && (txRequest.gasLimit = BigNumber.from(txRequest.gasLimit).add(100000).toString()) // Add buffer to gas limit
+
+  // Override fee recipient in calldata with smart pool address
+  if (smartPoolAddress && txRequest.data) {
+    // Convert BytesLike to string for manipulation
+    const calldata = typeof txRequest.data === 'string' ? txRequest.data : txRequest.data.toString()
+
+    try {
+      // Decode V4 execute(bytes commands, bytes[] inputs) calldata
+      // Remove function selector (first 4 bytes) and decode the parameters
+      const parametersOnly = calldata.slice(10) // Remove '0x' + 8 hex chars (4 bytes)
+      const updatedParams = modifyV4ExecuteCalldata('0x' + parametersOnly, smartPoolAddress)
+
+      if (updatedParams !== '0x' + parametersOnly) {
+        // Reconstruct the full calldata with the original function selector
+        const functionSelector = calldata.slice(0, 10) // '0x' + 8 hex chars
+        const updatedCalldata = functionSelector + updatedParams.slice(2)
+        txRequest.data = updatedCalldata
+      }
+    } catch (error) {
+      // Fallback to simple string replacement if decoding fails
+      console.warn('Failed to decode Universal Router calldata, using fallback replacement:', error)
+      const targetAddressPadded = '00000000000000000000000027213e28d7fda5c57fe9e5dd923818dbccf71c47'
+      const smartPoolAddressWithout0x = smartPoolAddress.replace('0x', '').toLowerCase()
+      const smartPoolAddressPadded = '000000000000000000000000' + smartPoolAddressWithout0x
+
+      const updatedCalldata = calldata.replaceAll(targetAddressPadded, smartPoolAddressPadded)
+      txRequest.data = updatedCalldata
+    }
+
+    txRequest.from = address
+    txRequest.to = smartPoolAddress
+  }
 
   const onModification = ({ hash, data }: VitalTxFields) => {
-    sendAnalyticsEvent(SwapEventName.SWAP_MODIFIED_IN_WALLET, {
+    sendAnalyticsEvent(SwapEventName.SwapModifiedInWallet, {
       ...analytics,
       txHash: hash,
       expected: txRequest.data?.toString() ?? '',
@@ -103,8 +149,76 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams) {
     onModification,
   })
 
+  handleSwapTransactionAnalytics({ ...params, hash })
+
+  const chainId = trade.inputAmount.currency.chainId
+  const { shouldLogQualifyingEvent, shouldShowModal } = getFlashblocksExperimentStatus({
+    chainId,
+    routing: trade.routing,
+  })
+
+  if (shouldLogQualifyingEvent) {
+    logExperimentQualifyingEvent({
+      experiment: Experiments.UnichainFlashblocksModal,
+    })
+  }
+
+  // Show regular popup for control variant or ineligible swaps
+  if (!shouldShowModal) {
+    popupRegistry.addPopup(
+      { type: PopupType.Transaction, hash },
+      hash,
+      isL2ChainId(chainId) ? L2_TXN_DISMISS_MS : DEFAULT_TXN_DISMISS_MS,
+    )
+  }
+
+  // Update swap form store with actual transaction hash
+  if (onTransactionHash) {
+    onTransactionHash(hash)
+  }
+
+  return hash
+}
+
+interface HandleSwapBatchedStepParams extends Omit<HandleOnChainStepParams, 'step' | 'info'> {
+  step: SwapTransactionStepBatched
+  trade: ClassicTrade | BridgeTrade
+  analytics: SwapTradeBaseProperties
+  disableOneClickSwap: () => void
+}
+function* handleSwapTransactionBatchedStep(params: HandleSwapBatchedStepParams) {
+  const { trade, step, disableOneClickSwap, analytics } = params
+
+  const info = getSwapTransactionInfo({
+    trade,
+    swapStartTimestamp: analytics.swap_start_timestamp,
+  })
+
+  const batchId = yield* handleAtomicSendCalls({
+    ...params,
+    info,
+    step,
+    ignoreInterrupt: true, // We avoid interruption during the swap step, since it is too late to give user a new trade once the swap is submitted.
+    shouldWaitForConfirmation: false,
+    disableOneClickSwap,
+  })
+  handleSwapTransactionAnalytics({ ...params, batchId })
+
+  popupRegistry.addPopup({ type: PopupType.Transaction, hash: batchId }, batchId)
+
+  return
+}
+
+function handleSwapTransactionAnalytics(params: {
+  trade: ClassicTrade | BridgeTrade | ChainedActionTrade
+  analytics: SwapTradeBaseProperties
+  hash?: string
+  batchId?: string
+}) {
+  const { trade, analytics, hash, batchId } = params
+
   sendAnalyticsEvent(
-    SwapEventName.SWAP_SIGNED,
+    SwapEventName.SwapSigned,
     formatSwapSignedAnalyticsEventProperties({
       trade,
       allowedSlippage: trade.slippageTolerance ? slippageToleranceToPercent(trade.slippageTolerance) : ZERO_PERCENT,
@@ -116,98 +230,168 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams) {
       txHash: hash,
       portfolioBalanceUsd: analytics.total_balances_usd,
       trace: analytics,
+      isBatched: Boolean(batchId),
+      includedPermitTransactionStep: analytics.included_permit_transaction_step,
+      batchId,
+      planId: analytics.plan_id,
+      stepIndex: analytics.step_index,
     }),
   )
-
-  popupRegistry.addPopup({ type: PopupType.Transaction, hash }, hash)
-
-  return
 }
 
-function* getSwapTxRequest(step: SwapTransactionStep | SwapTransactionStepAsync, signature: string | undefined) {
-  if (step.type === TransactionStepType.SwapTransaction) {
-    return step.txRequest
-  }
-
-  if (!signature) {
-    throw new UnexpectedTransactionStateError('Signature required for async swap transaction step')
-  }
-
-  const txRequest = yield* call(step.getTxRequest, signature)
-  invariant(txRequest !== undefined)
-
-  return txRequest
-}
-
-type SwapParams = {
+type SwapParams = SwapExecutionCallbacks & {
   selectChain: (chainId: number) => Promise<boolean>
   startChainId?: number
-  account: SignerMnemonicAccountMeta
-  analytics: ReturnType<typeof getBaseTradeAnalyticsProperties>
+  account: SignerMnemonicAccountDetails
+  analytics: ExtractedBaseTradeAnalyticsProperties
   swapTxContext: ValidatedSwapTxContext
-  setCurrentStep: SetCurrentStepFn
-  setSteps: (steps: TransactionStep[]) => void
-  onSuccess: () => void
-  onFailure: (error?: Error) => void
+  getOnPressRetry: (error: Error | undefined) => (() => void) | undefined
+  // TODO(WEB-7763): Upgrade jotai to v2 to avoid need for prop drilling `disableOneClickSwap`
+  disableOneClickSwap: () => void
+  onTransactionHash?: (hash: string) => void
   v4Enabled: boolean
+  smartPoolAddress: string
+  swapStartTimestamp?: number
 }
 
-// eslint-disable-next-line consistent-return
 function* swap(params: SwapParams) {
-  const { swapTxContext, setSteps, selectChain, startChainId, v4Enabled, onFailure } = params
+  const {
+    account,
+    disableOneClickSwap,
+    setCurrentStep,
+    swapTxContext,
+    analytics,
+    onSuccess,
+    onFailure,
+    v4Enabled,
+    smartPoolAddress,
+    setSteps,
+  } = params
+  const { trade } = swapTxContext
+
+  const { chainSwitchFailed } = yield* call(handleSwitchChains, {
+    selectChain: params.selectChain,
+    startChainId: params.startChainId,
+    swapTxContext,
+  })
+  if (chainSwitchFailed) {
+    onFailure()
+    return
+  }
+
+  const steps = yield* call(generateSwapTransactionSteps, swapTxContext)
+  setSteps(steps)
+
+  const validTokenFeed = yield* call(validateTokenPriceFeed, smartPoolAddress, trade.outputAmount.currency)
+  if (!validTokenFeed) {
+    throw new TokenPriceFeedError({ step: steps[0] })
+  }
+
+  let signature: string | undefined
+  let step: TransactionStep | undefined
 
   try {
-    const steps = yield* call(generateTransactionSteps, swapTxContext, v4Enabled)
-    setSteps(steps)
+    // TODO(SWAP-287): Integrate jupiter swap into TransactionStep, rather than special-casing.
+    if (isJupiter(swapTxContext)) {
+      yield* call(jupiterSwap, { ...params, swapTxContext })
+      yield* call(onSuccess)
+      return
+    }
 
-    // Switch chains if needed
-    const swapChainId = swapTxContext.trade.inputAmount.currency.chainId
-    if (swapChainId !== startChainId) {
-      const chainSwitched = yield* call(selectChain, swapChainId)
-      if (!chainSwitched) {
-        onFailure()
-        return undefined
+    for (step of steps) {
+      switch (step.type) {
+        case TransactionStepType.TokenRevocationTransaction:
+        case TransactionStepType.TokenApprovalTransaction: {
+          yield* call(handleApprovalTransactionStep, {
+            address: account.address,
+            smartPoolAddress,
+            step,
+            setCurrentStep,
+          })
+          break
+        }
+        case TransactionStepType.Permit2Signature: {
+          signature = undefined //yield* call(handleSignatureStep, { address: account.address, step, setCurrentStep })
+          break
+        }
+        case TransactionStepType.Permit2Transaction: {
+          //yield* call(handlePermitTransactionStep, { address: account.address, step, setCurrentStep })
+          break
+        }
+        case TransactionStepType.SwapTransaction:
+        case TransactionStepType.SwapTransactionAsync: {
+          requireRouting(trade, [TradingApi.Routing.CLASSIC, TradingApi.Routing.BRIDGE])
+          yield* call(handleSwapTransactionStep, {
+            address: account.address,
+            smartPoolAddress,
+            signature,
+            step,
+            setCurrentStep,
+            trade,
+            analytics,
+            onTransactionHash: params.onTransactionHash,
+          })
+          break
+        }
+        case TransactionStepType.SwapTransactionBatched: {
+          requireRouting(trade, [TradingApi.Routing.CLASSIC, TradingApi.Routing.BRIDGE])
+          yield* call(handleSwapTransactionBatchedStep, {
+            address: account.address,
+            smartPoolAddress,
+            step,
+            setCurrentStep,
+            trade,
+            analytics,
+            disableOneClickSwap,
+          })
+          break
+        }
+        case TransactionStepType.UniswapXSignature: {
+          requireRouting(trade, UNISWAPX_ROUTING_VARIANTS)
+          yield* call(handleUniswapXSignatureStep, { address: account.address, step, setCurrentStep, trade, analytics })
+          break
+        }
+        default: {
+          throw new UnexpectedTransactionStateError(`Unexpected step type: ${step.type}`)
+        }
       }
     }
-
-    switch (swapTxContext.routing) {
-      case Routing.CLASSIC:
-      case Routing.BRIDGE:
-        return yield* classicSwap({ ...params, swapTxContext, steps })
-      case Routing.DUTCH_V2:
-      case Routing.DUTCH_V3:
-      case Routing.PRIORITY:
-        return yield* uniswapXSwap({ ...params, swapTxContext, steps })
-    }
   } catch (error) {
-    logger.error(error, { tags: { file: 'swapSaga', function: 'swap' } })
-    onFailure(error)
+    const displayableError = getDisplayableError({ error, step })
+    if (displayableError) {
+      logger.error(displayableError, { tags: { file: 'swapSaga', function: 'swap' } })
+    }
+    const onPressRetry = params.getOnPressRetry(displayableError)
+    onFailure(displayableError, onPressRetry)
+    return
   }
+
+  yield* call(onSuccess)
 }
 
 function getPoolExtendedContract(poolAddress: string, chainId: number): any | undefined {
-  const provider = RPC_PROVIDERS[chainId as UniverseChainId]
+  const provider = chainId in RPC_PROVIDERS ? RPC_PROVIDERS[chainId as keyof typeof RPC_PROVIDERS] : undefined
   if (!provider) {
     return undefined
   }
 
   try {
-    return getContract(
-      poolAddress,
-      POOL_EXTENDED_ABI,
+    return getContract({
+      address: poolAddress,
+      ABI: POOL_EXTENDED_ABI,
       provider,
-    )
+    })
   } catch (error) {
     const wrappedError = new Error('failed to get contract', { cause: error })
-      logger.warn('useContract', 'useContract', wrappedError.message, {
-        error: wrappedError,
-        contractAddress: poolAddress,
-      })
+    logger.warn('useContract', 'useContract', wrappedError.message, {
+      error: wrappedError,
+      contractAddress: poolAddress,
+    })
     return undefined
   }
 }
 
-export function* getIsTokenOwnable(poolAddress?: string, token?: Currency): Generator<any, boolean | undefined, any> {
+function* getIsTokenOwnable(poolAddress?: string, token?: Currency): Generator<any, boolean | undefined, any> {
   if (!poolAddress || !token) {
     return undefined
   }
@@ -217,7 +401,8 @@ export function* getIsTokenOwnable(poolAddress?: string, token?: Currency): Gene
     return true
   }
 
-  const extendedPool = getPoolExtendedContract(poolAddress, token?.chainId)
+  const extendedPool = getPoolExtendedContract(poolAddress, token.chainId)
+
   if (!extendedPool) {
     return undefined
   }
@@ -227,153 +412,28 @@ export function* getIsTokenOwnable(poolAddress?: string, token?: Currency): Gene
     const isTokenOwnable: boolean = yield call([extendedPool, extendedPool.hasPriceFeed], token.address)
     return isTokenOwnable
   } catch (error) {
-    logger.error('Error calling hasPriceFeed on pool contract', { tags: { file: 'swapSaga', function: 'getPoolExtendedContract' } })
+    logger.error('Error calling hasPriceFeed on pool contract', {
+      tags: { file: 'swapSaga', function: 'getIsTokenOwnable' },
+    })
     // Handle error appropriately. Here we return false on failure.
     return false
   }
 }
 
-function* validateTokenPriceFeed(selectedPool: string | undefined, outputCurrency: Currency) {
-  const isTokenOwnable: boolean | undefined = yield call(getIsTokenOwnable, selectedPool, outputCurrency)
+function* validateTokenPriceFeed(selectedPool: string | undefined, outputCurrency: Currency): SagaGenerator<boolean> {
+  const isTokenOwnable: boolean | undefined = yield* call(getIsTokenOwnable, selectedPool, outputCurrency)
 
   if (isTokenOwnable === undefined) {
     return true
   }
   if (!isTokenOwnable) {
-    yield put({
+    yield* put({
       type: 'SWAP_ERROR',
       error: PendingModalError.TOKEN_PRICE_FEED_ERROR,
     })
     return false
   }
   return true
-}
-
-function* classicSwap(
-  params: SwapParams & {
-    swapTxContext: ValidatedClassicSwapTxAndGasInfo | ValidatedBridgeSwapTxAndGasInfo
-    steps: TransactionStep[]
-  },
-): Generator<any, void, unknown> {
-  const {
-    account,
-    setCurrentStep,
-    steps,
-    swapTxContext: { trade },
-    analytics,
-    onSuccess,
-    onFailure,
-  } = params
-
-  const validTokenFeed = yield call(validateTokenPriceFeed, account.address, trade.outputAmount.currency)
-  if (!validTokenFeed) {
-    throw new TokenPriceFeedError({ step: steps[0] })
-  }
-
-  let signature: string | undefined
-
-  for (const step of steps) {
-    try {
-      switch (step.type) {
-        case TransactionStepType.TokenRevocationTransaction:
-        case TransactionStepType.TokenApprovalTransaction: {
-          yield* call(handleApprovalTransactionStep, { account, step, setCurrentStep })
-          break
-        }
-        case TransactionStepType.Permit2Signature: {
-          signature = undefined //yield* call(handleSignatureStep, { account, step, setCurrentStep })
-          break
-        }
-        case TransactionStepType.SwapTransaction:
-        case TransactionStepType.SwapTransactionAsync: {
-          yield* call(handleSwapTransactionStep, { account, signature, step, setCurrentStep, trade, analytics })
-          break
-        }
-        default: {
-          throw new UnexpectedTransactionStateError(`Unexpected step type: ${step.type}`)
-        }
-      }
-    } catch (error) {
-      const displayableError = getDisplayableError(error, step)
-      if (displayableError && displayableError.logToSentry) {
-        logger.error(displayableError, { tags: { file: 'swapSaga', function: 'classicSwap' } })
-      }
-      onFailure(displayableError)
-      return
-    }
-  }
-
-  yield* call(onSuccess)
-}
-
-function* uniswapXSwap(
-  params: SwapParams & {
-    swapTxContext: ValidatedUniswapXSwapTxAndGasInfo
-    steps: TransactionStep[]
-    analytics: ReturnType<typeof getBaseTradeAnalyticsProperties>
-  },
-) {
-  const {
-    account,
-    setCurrentStep,
-    steps,
-    swapTxContext: { trade },
-    analytics,
-    onFailure,
-    onSuccess,
-  } = params
-
-  for (const step of steps) {
-    try {
-      switch (step.type) {
-        case TransactionStepType.WrapTransaction: {
-          yield* call(handleWrapStep, { account, step, setCurrentStep })
-          break
-        }
-        case TransactionStepType.TokenRevocationTransaction:
-        case TransactionStepType.TokenApprovalTransaction: {
-          yield* call(handleApprovalTransactionStep, { account, step, setCurrentStep })
-          break
-        }
-        case TransactionStepType.UniswapXSignature: {
-          yield* call(handleUniswapXSignatureStep, { account, step, setCurrentStep, trade, analytics })
-          break
-        }
-        default: {
-          throw new UnexpectedTransactionStateError(`Unexpected step type: ${step.type}`)
-        }
-      }
-    } catch (error) {
-      const displayableError = getDisplayableError(error, step)
-      if (displayableError && displayableError.logToSentry) {
-        logger.error(displayableError, { tags: { file: 'swapSaga', function: 'uniswapXSwap' } })
-      }
-      onFailure(displayableError)
-      return
-    }
-  }
-
-  yield* call(onSuccess)
-}
-
-function getDisplayableError(error: Error, step: TransactionStep): TransactionError | undefined {
-  const userRejected = didUserReject(error)
-  // If the user rejects a request, or it's a known interruption e.g. trade update, we handle gracefully / do not show error UI
-  if (userRejected || error instanceof HandledTransactionInterrupt) {
-    const loggableMessage = userRejected ? 'user rejected request' : error.message // for user rejections, avoid logging redundant/long message
-    addTransactionBreadcrumb({ step, status: 'interrupted', data: { message: loggableMessage } })
-    return undefined
-  } else if (error instanceof TransactionError) {
-    return error // If the error was already formatted as a TransactionError, we just propagate
-  } else {
-    const isBackendRejection = error instanceof FetchError
-    return new TransactionStepFailedError({
-      message: `${step.type} failed during swap`,
-      step,
-      isBackendRejection,
-      originalError: error,
-    })
-  }
 }
 
 export const swapSaga = createSaga(swap, 'swapSaga')
@@ -384,40 +444,71 @@ export function useSwapCallback(): SwapCallback {
   const formatter = useLocalizationContext()
   const swapStartTimestamp = useSelector(selectSwapStartTimestamp)
   const selectChain = useSelectChain()
-  const startChainId = useAccount().chainId
+  const connectedAccount = useAccount()
+  const startChainId = connectedAccount.chainId
   const v4SwapEnabled = useV4SwapEnabled(startChainId)
   const trace = useTrace()
+  const updateSwapForm = useSwapFormStore((s) => s.updateSwapForm)
 
   const portfolioBalanceUsd = useTotalBalancesUsdForAnalytics()
+
+  const disableOneClickSwap = useSetOverrideOneClickSwapFlag()
+  const getOnPressRetry = useGetOnPressRetry()
+  const wallet = useWallet()
 
   return useCallback(
     (args: SwapCallbackParams) => {
       const {
-        account,
         swapTxContext,
+        smartPoolAddress,
         onSuccess,
         onFailure,
         currencyInAmountUSD,
         currencyOutAmountUSD,
+        presetPercentage,
+        preselectAsset,
         isAutoSlippage,
         isFiatInputMode,
         setCurrentStep,
         setSteps,
+        onPending,
       } = args
       const { trade, gasFee } = swapTxContext
+
+      const isClassicSwap = isClassic(swapTxContext)
+      const isBatched = isClassicSwap && swapTxContext.txRequests && swapTxContext.txRequests.length > 1
+      const includedPermitTransactionStep = isClassicSwap && swapTxContext.permit?.method === PermitMethod.Transaction
 
       const analytics = getBaseTradeAnalyticsProperties({
         formatter,
         trade,
         currencyInAmountUSD,
         currencyOutAmountUSD,
+        presetPercentage,
+        preselectAsset,
         portfolioBalanceUsd,
         trace,
+        isBatched,
+        includedPermitTransactionStep,
+        swapStartTimestamp,
       })
+
+      const account = isSVMChain(trade.inputAmount.currency.chainId) ? wallet.svmAccount : wallet.evmAccount
+
+      if (!account || !isSignerMnemonicAccountDetails(account)) {
+        throw new Error('No account found')
+      }
+
+      if (!smartPoolAddress) {
+        throw new Error('No active smart pool selected')
+      }
+
       const swapParams = {
         swapTxContext,
         account,
         analytics,
+        getOnPressRetry,
+        disableOneClickSwap,
         onSuccess,
         onFailure,
         setCurrentStep,
@@ -425,15 +516,35 @@ export function useSwapCallback(): SwapCallback {
         selectChain,
         startChainId,
         v4Enabled: v4SwapEnabled,
+        smartPoolAddress,
+        onPending,
+        onTransactionHash: (hash: string): void => {
+          updateSwapForm({ txHash: hash, txHashReceivedTime: Date.now() })
+        },
+        swapStartTimestamp,
       }
-      appDispatch(swapSaga.actions.trigger(swapParams))
+      if (swapTxContext.trade.routing === TradingApi.Routing.CHAINED) {
+        appDispatch(
+          planSaga.actions.trigger({
+            ...swapParams,
+            address: smartPoolAddress,
+            handleApprovalTransactionStep,
+            handleSwapTransactionStep,
+            handleSignatureStep,
+            getDisplayableError,
+            handleUniswapXPlanSignatureStep,
+          }),
+        )
+      } else {
+        appDispatch(swapSaga.actions.trigger(swapParams))
+      }
 
-      const blockNumber = getClassicQuoteFromResponse(trade?.quote)?.blockNumber?.toString()
+      const blockNumber = getClassicQuoteFromResponse(trade.quote)?.blockNumber?.toString()
 
-      sendAnalyticsEvent(SwapEventName.SWAP_SUBMITTED_BUTTON_CLICKED, {
+      sendAnalyticsEvent(SwapEventName.SwapSubmittedButtonClicked, {
         ...analytics,
         estimated_network_fee_wei: gasFee.value,
-        gas_limit: isClassic(swapTxContext) ? swapTxContext.txRequest?.gasLimit?.toString() : undefined,
+        gas_limit: isClassicSwap ? swapTxContext.txRequests?.[0]?.gasLimit?.toString() : undefined,
         transaction_deadline_seconds: trade.deadline,
         swap_quote_block_number: blockNumber,
         is_auto_slippage: isAutoSlippage,
@@ -444,6 +555,20 @@ export function useSwapCallback(): SwapCallback {
       // Reset swap start timestamp now that the swap has been submitted
       appDispatch(updateSwapStartTimestamp({ timestamp: undefined }))
     },
-    [formatter, portfolioBalanceUsd, trace, selectChain, startChainId, v4SwapEnabled, appDispatch, swapStartTimestamp],
+    [
+      formatter,
+      portfolioBalanceUsd,
+      trace,
+      selectChain,
+      startChainId,
+      v4SwapEnabled,
+      appDispatch,
+      swapStartTimestamp,
+      getOnPressRetry,
+      disableOneClickSwap,
+      wallet.evmAccount,
+      wallet.svmAccount,
+      updateSwapForm,
+    ],
   )
 }

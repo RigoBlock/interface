@@ -1,16 +1,15 @@
 import { SharedEventName } from '@uniswap/analytics-events'
 import Card, { DarkGrayCard } from 'components/Card/cards'
 import { AutoColumn } from 'components/deprecated/Column'
-import Row, { AutoRow, RowBetween } from 'components/deprecated/Row'
-import styled from 'lib/styled-components'
+import { AutoRow, RowBetween } from 'components/deprecated/Row'
+import { useModalState } from 'hooks/useModalState'
+import { styled } from 'lib/styled-components'
 import { useEffect, useMemo, useRef } from 'react'
 import { ArrowDown, Info } from 'react-feather'
 import { useTranslation } from 'react-i18next'
-import { useCloseModal, useModalIsOpen } from 'state/application/hooks'
-import { ApplicationModal } from 'state/application/reducer'
 import { ThemedText } from 'theme/components'
 import { ExternalLink } from 'theme/components/Links'
-import { ModalCloseIcon } from 'ui/src'
+import { ModalCloseIcon, Text, useSporeColors } from 'ui/src'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
@@ -39,26 +38,25 @@ const StyledLinkOut = styled(ArrowDown)`
 `
 
 export function PrivacyPolicyModal() {
-  const node = useRef<HTMLDivElement>()
-  const open = useModalIsOpen(ApplicationModal.PRIVACY_POLICY)
-  const closeModal = useCloseModal(ApplicationModal.PRIVACY_POLICY)
+  const node = useRef<HTMLDivElement>(undefined)
+  const { isOpen, closeModal } = useModalState(ModalName.PrivacyPolicy)
   const { t } = useTranslation()
 
   useEffect(() => {
-    if (!open) {
+    if (!isOpen) {
       return
     }
 
     sendAnalyticsEvent(SharedEventName.PAGE_VIEWED, {
       modal: ModalName.Legal,
     })
-  }, [open])
+  }, [isOpen])
 
   return (
-    <Modal name={ModalName.Legal} isModalOpen={open} onClose={() => closeModal()} padding={0}>
+    <Modal name={ModalName.Legal} isModalOpen={isOpen} onClose={() => closeModal()} padding={0}>
       <AutoColumn gap="md" ref={node as any}>
         <RowBetween padding="1rem 1rem 0.5rem 1rem">
-          <ThemedText.DeprecatedMediumHeader>{t('common.legalAndPrivacy')}</ThemedText.DeprecatedMediumHeader>
+          <Text variant="subheading1">{t('common.legalAndPrivacy')}</Text>
           <ModalCloseIcon onClose={closeModal} />
         </RowBetween>
         <PrivacyPolicy />
@@ -69,6 +67,7 @@ export function PrivacyPolicyModal() {
 
 function PrivacyPolicy() {
   const { t } = useTranslation()
+  const colors = useSporeColors()
   const EXTERNAL_APIS = useMemo(
     () => [
       {
@@ -116,7 +115,7 @@ function PrivacyPolicy() {
                 <AutoRow gap="4px">
                   <Info size={20} />
                   <ThemedText.DeprecatedMain fontSize={14} color="accent1">
-                    {t("privacy.rigoblocktos")}
+                    {t('privacy.uniswaptos')}
                   </ThemedText.DeprecatedMain>
                 </AutoRow>
                 <StyledLinkOut size={20} />
@@ -143,7 +142,7 @@ function PrivacyPolicy() {
             <DarkGrayCard key={i}>
               <AutoColumn gap="sm">
                 <AutoRow gap="4px">
-                  <Info size={18} />
+                  <Info size={18} color={colors.neutral1.val} />
                   <ThemedText.DeprecatedMain fontSize={14} color="neutral1">
                     {name}
                   </ThemedText.DeprecatedMain>
@@ -153,11 +152,11 @@ function PrivacyPolicy() {
             </DarkGrayCard>
           ))}
           <ThemedText.DeprecatedBody fontSize={12}>
-            <Row justify="center" marginBottom="1rem">
+            {/*<Row justify="center" marginBottom="1rem">
               <ExternalLink href="https://help.uniswap.org/en/articles/5675203-terms-of-service-faq">
                 {t('common.button.learn')}
               </ExternalLink>
-            </Row>
+            </Row>*/}
           </ThemedText.DeprecatedBody>
         </AutoColumn>
       </AutoColumn>

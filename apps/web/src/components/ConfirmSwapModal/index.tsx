@@ -1,30 +1,30 @@
-import { SwapEventName, SwapPriceUpdateUserResponse } from '@uniswap/analytics-events'
 import { Currency, Percent } from '@uniswap/sdk-core'
 import SwapError, { PendingModalError } from 'components/ConfirmSwapModal/Error'
 import { SwapHead } from 'components/ConfirmSwapModal/Head'
 import { SwapModal } from 'components/ConfirmSwapModal/Modal'
 import { Pending } from 'components/ConfirmSwapModal/Pending'
 import SwapProgressIndicator from 'components/ConfirmSwapModal/ProgressIndicator'
-import { PopupType } from 'components/Popups/types'
 import { AutoColumn } from 'components/deprecated/Column'
+import { PopupType } from 'components/Popups/types'
 import { SwapDetails } from 'components/swap/SwapDetails'
 import { SwapPreview } from 'components/swap/SwapPreview'
 import { useConfirmModalState } from 'hooks/useConfirmModalState'
 import { Allowance, AllowanceState } from 'hooks/usePermit2Allowance'
 import { SwapResult, useSwapTransactionStatus } from 'hooks/useSwapCallback'
-import styled from 'lib/styled-components'
+import { styled } from 'lib/styled-components'
 import { useCallback, useEffect, useMemo } from 'react'
 import { useSuppressPopups } from 'state/application/hooks'
 import { InterfaceTrade } from 'state/routing/types'
 import { isLimitTrade, isPreviewTrade, isUniswapXTradeType } from 'state/routing/utils'
-import { useOrder } from 'state/signatures/hooks'
+import { useUniswapXOrderByOrderHash } from 'state/transactions/hooks'
 import { ThemeProvider } from 'theme'
 import { FadePresence } from 'theme/components/FadePresence'
-import { UniswapXOrderStatus } from 'types/uniswapx'
-// eslint-disable-next-line @typescript-eslint/no-restricted-imports
+// biome-ignore lint/style/noRestrictedImports: ui constant needed for modal animation timing
 import { ADAPTIVE_MODAL_ANIMATION_DURATION } from 'ui/src/components/modal/AdaptiveWebModal'
-import { TransactionStatus } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
+import { SwapEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
+import { SwapPriceUpdateUserResponse } from 'uniswap/src/features/telemetry/types'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { SignatureExpiredError, UniswapXv2HardQuoteError } from 'utils/errors'
 import { formatSwapPriceUpdatedEventProperties } from 'utils/loggingFormatters'
@@ -55,7 +55,6 @@ export function ConfirmSwapModal({
   fiatValueOutput,
   swapResult,
   swapError,
-  priceImpact,
   clearSwapState,
   onAcceptChanges,
   onConfirm,
@@ -73,7 +72,6 @@ export function ConfirmSwapModal({
   fiatValueOutput: { data?: number; isLoading: boolean }
   swapResult?: SwapResult
   swapError?: Error
-  priceImpact?: Percent
   clearSwapState: () => void
   onAcceptChanges?: () => void
   onConfirm: () => void
@@ -107,14 +105,15 @@ export function ConfirmSwapModal({
 
   // Get status depending on swap type
   const swapStatus = useSwapTransactionStatus(swapResult)
-  const uniswapXOrder = useOrder(isUniswapXTradeType(swapResult?.type) ? swapResult.response.orderHash : '')
+  const uniswapXOrder = useUniswapXOrderByOrderHash(
+    isUniswapXTradeType(swapResult?.type) ? swapResult.response.orderHash : '',
+  )
 
   // Has the transaction been confirmed onchain?
-  const swapConfirmed =
-    swapStatus === TransactionStatus.Confirmed || uniswapXOrder?.status === UniswapXOrderStatus.FILLED
+  const swapConfirmed = swapStatus === TransactionStatus.Success || uniswapXOrder?.status === TransactionStatus.Success
 
   // Has a limit order been submitted?
-  const limitPlaced = isLimitTrade(trade) && uniswapXOrder?.status === UniswapXOrderStatus.OPEN
+  const limitPlaced = isLimitTrade(trade) && uniswapXOrder?.status === TransactionStatus.Pending
 
   // Has the transaction failed locally (i.e. before network or submission), or has it been reverted onchain?
   const localSwapFailure = Boolean(swapError) && !didUserReject(swapError)
@@ -182,11 +181,15 @@ export function ConfirmSwapModal({
   const { suppressPopups, unsuppressPopups } = useSuppressPopups([PopupType.Transaction, PopupType.Order])
 
   const onModalDismiss = useCallback(() => {
-    if (trade && doesTradeDiffer && confirmModalState !== ConfirmModalState.PENDING_CONFIRMATION) {
+    if (doesTradeDiffer && confirmModalState !== ConfirmModalState.PENDING_CONFIRMATION) {
       // If the user dismissed the modal while showing the price update, log the event as rejected.
       sendAnalyticsEvent(
-        SwapEventName.SWAP_PRICE_UPDATE_ACKNOWLEDGED,
-        formatSwapPriceUpdatedEventProperties(trade, priceUpdate, SwapPriceUpdateUserResponse.REJECTED),
+        SwapEventName.SwapPriceUpdateAcknowledged,
+        formatSwapPriceUpdatedEventProperties({
+          trade,
+          priceUpdate,
+          response: SwapPriceUpdateUserResponse.REJECTED,
+        }),
       )
     }
     onDismiss()
@@ -240,7 +243,6 @@ export function ConfirmSwapModal({
                   showAcceptChanges={Boolean(showAcceptChanges)}
                   onAcceptChanges={onAcceptChanges}
                   swapErrorMessage={swapFailed ? swapError?.message : undefined}
-                  priceImpact={priceImpact}
                 />
               </AutoColumn>
             </FadePresence>

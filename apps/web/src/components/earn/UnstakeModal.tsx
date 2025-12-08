@@ -1,33 +1,32 @@
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
-import { Trans, useTranslation } from 'react-i18next'
-import JSBI from 'jsbi'
-import { ReactNode, useCallback, useState } from 'react'
-import { X } from 'react-feather'
-import styled from 'lib/styled-components'
-import { ClickablePill } from 'pages/Swap/Buy/PredefinedAmount'
-import { ThemedText } from 'theme/components/text'
-import { Flex, useSporeColors } from 'ui/src'
-import { GRG } from 'uniswap/src/constants/tokens'
-import { TransactionStatus } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
-import { ModalName} from 'uniswap/src/features/telemetry/constants'
-import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
-
-import { ResponsiveHeaderText } from 'components/vote/DelegateModal'
-import { useRemoveLiquidityModalContext } from 'components/RemoveLiquidity/RemoveLiquidityModalContext'
-import useDebouncedChangeHandler from 'hooks/useDebouncedChangeHandler'
-import { useUnstakeCallback } from 'state/stake/hooks'
-import { useIsTransactionConfirmed, useTransaction } from 'state/transactions/hooks'
 import { /*ButtonConfirmed,*/ ButtonPrimary } from 'components/Button/buttons'
 //import { ButtonError } from '../Button'
 import { LightCard } from 'components/Card/cards'
 import { AutoColumn } from 'components/deprecated/Column'
 import { RowBetween } from 'components/deprecated/Row'
-import { Modal } from 'uniswap/src/components/modals/Modal'
 import { LoadingView, SubmittedView } from 'components/ModalViews'
 import Slider from 'components/Slider'
+import { ResponsiveHeaderText } from 'components/vote/DelegateModal'
 import { useAccount } from 'hooks/useAccount'
-import { logger } from 'utilities/src/logger/logger'
+import useDebouncedChangeHandler from 'hooks/useDebouncedChangeHandler'
+import JSBI from 'jsbi'
+import styled from 'lib/styled-components'
+import { useRemoveLiquidityModalContext } from 'pages/RemoveLiquidity/RemoveLiquidityModalContext'
+import { ClickablePill } from 'pages/Swap/Buy/PredefinedAmount'
+import { ReactNode, useCallback, useState } from 'react'
+import { X } from 'react-feather'
+import { Trans, useTranslation } from 'react-i18next'
+import { useUnstakeCallback } from 'state/stake/hooks'
+import { useIsTransactionConfirmed, useTransaction } from 'state/transactions/hooks'
+import { ThemedText } from 'theme/components/text'
+import { Flex, useSporeColors } from 'ui/src'
+import { Modal } from 'uniswap/src/components/modals/Modal'
+import { GRG } from 'uniswap/src/constants/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { logger } from 'utilities/src/logger/logger'
 
 const ContentWrapper = styled(AutoColumn)`
   width: 100%;
@@ -57,10 +56,11 @@ export default function UnstakeModal({ isOpen, isPool, freeStakeBalance, onDismi
   // state for unstake input
   const [currencyValue] = useState<Token | undefined>(GRG[account.chainId ?? UniverseChainId.Mainnet])
   if (!currencyValue) {
-    throw new Error ('No GRG token found to unstake')
+    throw new Error('No GRG token found to unstake')
   }
 
   const { percent, setPercent } = useRemoveLiquidityModalContext()
+  const { formatCurrencyAmount } = useLocalizationContext()
   const onPercentSelect = useCallback(
     (percent: number) => {
       setPercent(percent.toString())
@@ -74,8 +74,8 @@ export default function UnstakeModal({ isOpen, isPool, freeStakeBalance, onDismi
     currencyValue,
     JSBI.divide(
       JSBI.multiply(freeStakeBalance ? freeStakeBalance.quotient : JSBI.BigInt(0), JSBI.BigInt(percentForSlider)),
-      JSBI.BigInt(100)
-    )
+      JSBI.BigInt(100),
+    ),
   )
 
   const unstakeCallback = useUnstakeCallback()
@@ -87,7 +87,7 @@ export default function UnstakeModal({ isOpen, isPool, freeStakeBalance, onDismi
 
   const transaction = useTransaction(hash)
   const confirmed = useIsTransactionConfirmed(hash)
-  const transactionSuccess = transaction?.status === TransactionStatus.Confirmed
+  const transactionSuccess = transaction?.status === TransactionStatus.Success
 
   // wrapper to reset state on modal close
   function wrappedOnDismiss() {
@@ -105,7 +105,7 @@ export default function UnstakeModal({ isOpen, isPool, freeStakeBalance, onDismi
     setStakeAmount(parsedAmount)
 
     // if callback not returned properly ignore
-    if (!unstakeCallback || !freeStakeBalance || !parsedAmount || !currencyValue?.isToken) {
+    if (!freeStakeBalance || !currencyValue?.isToken) {
       return
     }
 
@@ -134,7 +134,7 @@ export default function UnstakeModal({ isOpen, isPool, freeStakeBalance, onDismi
             </RowBetween>
             <RowBetween>
               <ResponsiveHeaderText>
-                <Trans>{{percentForSlider}}%</Trans>
+                <Trans>{{ percentForSlider }}%</Trans>
               </ResponsiveHeaderText>
               <Flex row gap="$gap8" width="100%" justifyContent="center">
                 {[25, 50, 75, 100].map((option) => {
@@ -149,7 +149,7 @@ export default function UnstakeModal({ isOpen, isPool, freeStakeBalance, onDismi
                       $disabled={disabled}
                       $active={active}
                       customBorderColor={colors.surface3.val}
-                      foregroundColor={colors[disabled ? 'neutral3' : active ? 'neutral1' : 'neutral2'].val}
+                      foregroundColor={colors[active ? 'neutral1' : 'neutral2'].val}
                       label={option < 100 ? option + '%' : t('swap.button.max')}
                       px="$spacing16"
                       textVariant="buttonLabel2"
@@ -163,12 +163,12 @@ export default function UnstakeModal({ isOpen, isPool, freeStakeBalance, onDismi
               <AutoColumn gap="md">
                 <RowBetween>
                   <ThemedText.DeprecatedBody fontSize={16} fontWeight={500}>
-                    <Trans>Withdrawing {formatCurrencyAmount(parsedAmount, 4)} GRG</Trans>
+                    <Trans>Withdrawing {formatCurrencyAmount({ value: parsedAmount })} GRG</Trans>
                   </ThemedText.DeprecatedBody>
                 </RowBetween>
               </AutoColumn>
             </LightCard>
-            <ButtonPrimary disabled={formatCurrencyAmount(parsedAmount, 4) === '0'} onClick={onUnstake}>
+            <ButtonPrimary disabled={formatCurrencyAmount({ value: parsedAmount }) === '0'} onClick={onUnstake}>
               <ThemedText.DeprecatedMediumHeader color="white">
                 <Trans>Unstake</Trans>{' '}
               </ThemedText.DeprecatedMediumHeader>
@@ -183,7 +183,7 @@ export default function UnstakeModal({ isOpen, isPool, freeStakeBalance, onDismi
               <Trans>Withdrawing Stake</Trans>
             </ThemedText.DeprecatedLargeHeader>
             <ThemedText.DeprecatedMain fontSize={36}>
-              {formatCurrencyAmount(parsedAmount, 4)} GRG
+              {formatCurrencyAmount({ value: parsedAmount })} GRG
             </ThemedText.DeprecatedMain>
           </AutoColumn>
         </LoadingView>
@@ -197,7 +197,7 @@ export default function UnstakeModal({ isOpen, isPool, freeStakeBalance, onDismi
                   <Trans>Transaction Submitted</Trans>
                 </ThemedText.DeprecatedLargeHeader>
                 <ThemedText.DeprecatedMain fontSize={36}>
-                  Unstaking {formatCurrencyAmount(stakeAmount, 4)} GRG
+                  Unstaking {formatCurrencyAmount({ value: stakeAmount })} GRG
                 </ThemedText.DeprecatedMain>
               </>
             ) : transactionSuccess ? (
@@ -206,7 +206,7 @@ export default function UnstakeModal({ isOpen, isPool, freeStakeBalance, onDismi
                   <Trans>Transaction Success</Trans>
                 </ThemedText.DeprecatedLargeHeader>
                 <ThemedText.DeprecatedMain fontSize={36}>
-                  Unstaked {formatCurrencyAmount(stakeAmount, 4)} GRG
+                  Unstaked {formatCurrencyAmount({ value: stakeAmount })} GRG
                 </ThemedText.DeprecatedMain>
               </>
             ) : (

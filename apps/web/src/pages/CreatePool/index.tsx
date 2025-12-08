@@ -1,18 +1,17 @@
-import { InterfaceElementName, InterfaceEventName, InterfacePageName } from '@uniswap/analytics-events'
 import { useAccountDrawer } from 'components/AccountDrawer/MiniPortfolio/hooks'
 import { ButtonPrimary } from 'components/Button/buttons'
+import CreateModal from 'components/createPool/CreateModal'
 import { AutoColumn } from 'components/deprecated/Column'
 import { RowBetween, RowFixed } from 'components/deprecated/Row'
-import CreateModal from 'components/createPool/CreateModal'
 import { CardBGImage, CardNoise, CardSection, DataCard } from 'components/earn/styled'
 import PoolPositionList from 'components/PoolPositionList'
 import { useAccount } from 'hooks/useAccount'
+import { useModalState } from 'hooks/useModalState'
 import styled from 'lib/styled-components'
 import { Trans } from 'react-i18next'
-import { useCloseModal, useModalIsOpen, useToggleCreateModal } from 'state/application/hooks'
-import { ApplicationModal } from 'state/application/reducer'
 import { useAllPoolsData } from 'state/pool/hooks'
 import { ThemedText } from 'theme/components/text'
+import { ElementName, InterfaceEventName, InterfacePageName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 
 const PageWrapper = styled(AutoColumn)`
@@ -68,16 +67,13 @@ const WrapSmall = styled(RowBetween)`
 `
 
 export default function CreatePool() {
+  const { isOpen: open, closeModal, toggleModal: toggleCreateModal } = useModalState(ModalName.CreateVault)
   const account = useAccount()
   const accountDrawer = useAccountDrawer()
-
-  const open = useModalIsOpen(ApplicationModal.CREATE)
-  const closeModal = useCloseModal(ApplicationModal.CREATE)
-  const toggleCreateModal = useToggleCreateModal()
   const { data: allPools } = useAllPoolsData()
 
   return (
-    <Trace logImpression page={InterfacePageName.POOL_PAGE}>
+    <Trace logImpression page={InterfacePageName.PoolPage}>
       <PageWrapper gap="lg" justify="center">
         <TopSection gap="md">
           <DataCard>
@@ -122,9 +118,9 @@ export default function CreatePool() {
                 ) : (
                   <Trace
                     logPress
-                    eventOnTrigger={InterfaceEventName.CONNECT_WALLET_BUTTON_CLICKED}
+                    eventOnTrigger={InterfaceEventName.ConnectWalletButtonClicked}
                     properties={{ received_swap_quote: false }}
-                    element={InterfaceElementName.CONNECT_WALLET_BUTTON}
+                    element={ElementName.ConnectWalletButton}
                   >
                     <ButtonPrimary
                       style={{ marginTop: '2em', marginBottom: '2em', padding: '8px 16px' }}

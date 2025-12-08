@@ -9,15 +9,15 @@ import { NoDappConnections } from 'src/app/features/settings/SettingsManageConne
 import { Flex, Text, TouchableArea, UniversalImage, useSporeColors } from 'ui/src'
 import { MinusCircle } from 'ui/src/components/icons'
 import { borderRadii, breakpoints, fonts, gap, iconSizes } from 'ui/src/theme'
-import { pushNotification } from 'uniswap/src/features/notifications/slice'
-import { AppNotificationType } from 'uniswap/src/features/notifications/types'
-import Trace from 'uniswap/src/features/telemetry/Trace'
+import { DappIconPlaceholder } from 'uniswap/src/components/dapps/DappIconPlaceholder'
+import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
+import { AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
 import { ExtensionEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
+import Trace from 'uniswap/src/features/telemetry/Trace'
 import { ExtensionScreens } from 'uniswap/src/types/screens/extension'
 import { extractNameFromUrl } from 'utilities/src/format/extractNameFromUrl'
 import { extractUrlHost } from 'utilities/src/format/urls'
-import { DappIconPlaceholder } from 'wallet/src/components/WalletConnect/DappIconPlaceholder'
 import { DappEllipsisDropdown } from 'wallet/src/components/settings/DappEllipsisDropdown/DappEllipsisDropdown'
 import { useActiveAccountWithThrow } from 'wallet/src/features/wallet/hooks'
 
@@ -53,7 +53,7 @@ export function SettingsManageConnectionsScreen(): JSX.Element {
         dappUrl,
         chainId: dappInfo?.lastChainId,
         activeConnectedAddress: dappInfo?.activeConnectedAddress,
-        connectedAddresses: dappInfo?.connectedAccounts?.map((account) => account.address) ?? [],
+        connectedAddresses: dappInfo?.connectedAccounts.map((account) => account.address) ?? [],
       })
       await removeDappConnection(dappUrl, activeAccount)
     },
@@ -71,6 +71,7 @@ export function SettingsManageConnectionsScreen(): JSX.Element {
 
         const DeleteDappButton = (
           <TouchableArea
+            animation={null}
             $group-hover={{ display: 'flex' }}
             display="none"
             p="$spacing2"
@@ -144,7 +145,7 @@ export function SettingsManageConnectionsScreen(): JSX.Element {
     [dappUrls, getHandleRemoveConnection, colors.neutral3],
   )
 
-  const hasConnections = Boolean(DappTiles?.length)
+  const hasConnections = Boolean(DappTiles.length)
 
   return (
     <Trace logImpression screen={ExtensionScreens.ManageDappConnectionsScreen}>

@@ -1,38 +1,42 @@
-import { InterfacePageName } from '@uniswap/analytics-events'
+import { getTokenDetailsURL } from 'appGraphql/data/util'
 import { Currency } from '@uniswap/sdk-core'
 import { BreadcrumbNavContainer, BreadcrumbNavLink, CurrentPageBreadcrumb } from 'components/BreadcrumbNav'
 import { MobileBottomBar, TDPActionTabs } from 'components/NavBar/MobileBottomBar'
+import { POPUP_MEDIUM_DISMISS_MS } from 'components/Popups/constants'
+import { popupRegistry } from 'components/Popups/registry'
+import { PopupType } from 'components/Popups/types'
 import { ActivitySection } from 'components/Tokens/TokenDetails/ActivitySection'
 import BalanceSummary, { PageChainBalanceSummary } from 'components/Tokens/TokenDetails/BalanceSummary'
+import { BridgedAssetSection } from 'components/Tokens/TokenDetails/BridgedAssetSection'
 import ChartSection from 'components/Tokens/TokenDetails/ChartSection'
 import { LeftPanel, RightPanel, TokenDetailsLayout } from 'components/Tokens/TokenDetails/Skeleton'
 import StatsSection from 'components/Tokens/TokenDetails/StatsSection'
+import { Hr } from 'components/Tokens/TokenDetails/shared'
 import { TokenDescription } from 'components/Tokens/TokenDetails/TokenDescription'
 import { TokenDetailsHeader } from 'components/Tokens/TokenDetails/TokenDetailsHeader'
-import { Hr } from 'components/Tokens/TokenDetails/shared'
 import { NATIVE_CHAIN_ID } from 'constants/tokens'
-import { getTokenDetailsURL } from 'graphql/data/util'
 import { useCurrency } from 'hooks/Tokens'
 import { ScrollDirection, useScroll } from 'hooks/useScroll'
-import deprecatedStyled from 'lib/styled-components'
+import { styled as deprecatedStyled } from 'lib/styled-components'
 import { Swap } from 'pages/Swap'
 import { useTDPContext } from 'pages/TokenDetails/TDPContext'
 import { PropsWithChildren, useCallback, useMemo, useState } from 'react'
 import { ChevronRight } from 'react-feather'
-import { Trans } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { Trans, useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router'
 import { CurrencyState } from 'state/swap/types'
 import { Flex, useIsTouchDevice, useMedia } from 'ui/src'
 import { getNativeAddress } from 'uniswap/src/constants/addresses'
 import { useUrlContext } from 'uniswap/src/contexts/UrlContext'
-import { isUniverseChainId } from 'uniswap/src/features/chains/types'
-import { toGraphQLChain } from 'uniswap/src/features/chains/utils'
+import { isUniverseChainId, toGraphQLChain } from 'uniswap/src/features/chains/utils'
+import { InterfacePageName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { TokenWarningCard } from 'uniswap/src/features/tokens/TokenWarningCard'
 import TokenWarningModal from 'uniswap/src/features/tokens/TokenWarningModal'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
-import { currencyId } from 'uniswap/src/utils/currencyId'
-import { addressesAreEquivalent } from 'utils/addressesAreEquivalent'
+import { areAddressesEqual } from 'uniswap/src/utils/addresses'
+import { areCurrenciesEqual, currencyId } from 'uniswap/src/utils/currencyId'
+import { useEvent } from 'utilities/src/react/hooks'
 import { getInitialLogoUrl } from 'utils/getInitialLogoURL'
 
 const DividerLine = deprecatedStyled(Hr)`
@@ -73,7 +77,7 @@ function getCurrencyURLAddress(currency?: Currency): string {
 
 // Defaults the input currency to the output currency's native currency or undefined if the output currency is already the chain's native currency
 // Note: Query string input currency takes precedence if it's set
-function useSwapInitialInputCurrency() {
+function useSwapInitialCurrencies() {
   const { currency } = useTDPContext()
   const { useParsedQueryString } = useUrlContext()
   const parsedQs = useParsedQueryString()
@@ -86,14 +90,66 @@ function useSwapInitialInputCurrency() {
         : getNativeAddress(currency.chainId)
   }, [currency.chainId, currency.isNative, parsedQs.inputCurrency])
 
-  return useCurrency(inputTokenAddress, currency.chainId)
+  const outputTokenAddress = useMemo(() => {
+    return typeof parsedQs.outputCurrency === 'string'
+      ? parsedQs.outputCurrency
+      : currency.isNative
+        ? undefined
+        : getNativeAddress(currency.chainId)
+  }, [currency.chainId, currency.isNative, parsedQs.outputCurrency])
+
+  return {
+    inputCurrency: useCurrency({
+      address: inputTokenAddress,
+      chainId: currency.chainId,
+    }),
+    outputCurrency: useCurrency({
+      address: outputTokenAddress,
+      chainId: currency.chainId,
+    }),
+  }
+}
+
+function includesToken(tokens: CurrencyState | undefined, token: Currency | undefined): boolean {
+  if (!tokens || !token) {
+    return false
+  }
+  return areCurrenciesEqual(tokens.inputCurrency, token) || areCurrenciesEqual(tokens.outputCurrency, token)
 }
 
 function TDPSwapComponent() {
+  const { t } = useTranslation()
   const { address, currency, currencyChainId, tokenColor } = useTDPContext()
   const navigate = useNavigate()
 
   const currencyInfo = useCurrencyInfo(currencyId(currency))
+
+  const { inputCurrency, outputCurrency } = useSwapInitialCurrencies()
+
+  // Other token to prefill the swap form with
+  const initialInputCurrency = inputCurrency
+  // If the initial input currency is the same as the TDP currency, then we are selling the TDP currency
+  const initialOutputCurrency = useMemo((): Currency | undefined => {
+    if (
+      areCurrenciesEqual(initialInputCurrency, currency) &&
+      // ensure the output is not equal to the input before setting
+      !areCurrenciesEqual(outputCurrency, initialInputCurrency)
+    ) {
+      return outputCurrency
+    }
+
+    // ensure the context currency is not equal to the input before setting
+    if (areCurrenciesEqual(currency, initialInputCurrency)) {
+      return undefined
+    }
+
+    return currency
+  }, [currency, initialInputCurrency, outputCurrency])
+
+  const [prevTokens, setPrevTokens] = useState<CurrencyState>({
+    inputCurrency: initialInputCurrency,
+    outputCurrency: initialOutputCurrency,
+  })
 
   const handleCurrencyChange = useCallback(
     (tokens: CurrencyState, isBridgePair?: boolean) => {
@@ -101,52 +157,72 @@ function TDPSwapComponent() {
       const outputCurrencyURLAddress = getCurrencyURLAddress(tokens.outputCurrency)
 
       const inputEquivalent =
-        addressesAreEquivalent(inputCurrencyURLAddress, address) && tokens.inputCurrency?.chainId === currencyChainId
+        tokens.inputCurrency &&
+        areAddressesEqual({
+          addressInput1: { address: inputCurrencyURLAddress, chainId: tokens.inputCurrency.chainId },
+          addressInput2: { address, chainId: currencyChainId },
+        }) &&
+        tokens.inputCurrency.chainId === currencyChainId
       const outputEquivalent =
-        addressesAreEquivalent(outputCurrencyURLAddress, address) && tokens.outputCurrency?.chainId === currencyChainId
+        tokens.outputCurrency &&
+        areAddressesEqual({
+          addressInput1: { address: outputCurrencyURLAddress, chainId: tokens.outputCurrency.chainId },
+          addressInput2: { address, chainId: currencyChainId },
+        }) &&
+        tokens.outputCurrency.chainId === currencyChainId
 
       if (inputEquivalent || outputEquivalent || isBridgePair) {
+        setPrevTokens(tokens)
         return
       }
 
-      const newDefaultToken = tokens.outputCurrency ?? tokens.inputCurrency
+      // If the user replaced the default token, we will hit this path.
+      // In this case, we want to navigate to the token that replaced it,
+      // which is the token that was not in the previous state.
+      const newDefaultToken = includesToken(prevTokens, tokens.inputCurrency)
+        ? tokens.outputCurrency
+        : tokens.inputCurrency
+
+      setPrevTokens(tokens)
 
       if (!newDefaultToken) {
         return
       }
 
-      const preloadedLogoSrc = getInitialLogoUrl(
-        newDefaultToken.wrapped.address,
-        newDefaultToken.chainId,
-        newDefaultToken.isNative,
-      )
+      const preloadedLogoSrc = getInitialLogoUrl({
+        address: newDefaultToken.wrapped.address,
+        chainId: newDefaultToken.chainId,
+      })
       const url = getTokenDetailsURL({
         // The function falls back to "NATIVE" if the address is null
         address: newDefaultToken.isNative ? null : newDefaultToken.address,
         chain: toGraphQLChain(isUniverseChainId(newDefaultToken.chainId) ? newDefaultToken.chainId : currencyChainId),
-        inputAddress:
-          // If only one token was selected before we navigate, then it was the default token and it's being replaced.
-          // On the new page, the *new* default token becomes the output, and we don't have another option to set as the input token.
-          tokens.inputCurrency && tokens.inputCurrency !== newDefaultToken ? inputCurrencyURLAddress : null,
+        inputAddress: inputCurrencyURLAddress,
+        outputAddress: outputCurrencyURLAddress,
       })
       navigate(url, { state: { preloadedLogoSrc } })
     },
-    [address, currencyChainId, navigate],
+    [address, currencyChainId, navigate, prevTokens],
   )
-
-  // Other token to prefill the swap form with
-  const initialInputCurrency = useSwapInitialInputCurrency()
 
   const [showWarningModal, setShowWarningModal] = useState(false)
   const closeWarningModal = useCallback(() => setShowWarningModal(false), [])
+
+  const onTokenWarningReportSuccess = useEvent(() => {
+    popupRegistry.addPopup(
+      { type: PopupType.Success, message: t('common.reported') },
+      'report-token-warning-success',
+      POPUP_MEDIUM_DISMISS_MS,
+    )
+  })
 
   return (
     <Flex gap="$gap12">
       <Swap
         syncTabToUrl={false}
-        chainId={currency.chainId}
+        initialInputChainId={currency.chainId}
         initialInputCurrency={initialInputCurrency}
-        initialOutputCurrency={currency}
+        initialOutputCurrency={initialOutputCurrency}
         onCurrencyChange={handleCurrencyChange}
         tokenColor={tokenColor}
       />
@@ -158,6 +234,7 @@ function TDPSwapComponent() {
           isInfoOnlyWarning
           isVisible={showWarningModal}
           closeModalOnly={closeWarningModal}
+          onReportSuccess={onTokenWarningReportSuccess}
           onAcknowledge={closeWarningModal}
         />
       )}
@@ -170,7 +247,7 @@ function TDPAnalytics({ children }: PropsWithChildren) {
   return (
     <Trace
       logImpression
-      page={InterfacePageName.TOKEN_DETAILS_PAGE}
+      page={InterfacePageName.TokenDetailsPage}
       properties={{
         tokenAddress: address,
         tokenSymbol: currency.symbol,
@@ -184,7 +261,7 @@ function TDPAnalytics({ children }: PropsWithChildren) {
 }
 
 export default function TokenDetails() {
-  const { address, currency, tokenQuery, currencyChain, multiChainMap } = useTDPContext()
+  const { tokenQuery, currencyChain, multiChainMap } = useTDPContext()
   const tokenQueryData = tokenQuery.data?.token
   const pageChainBalance = multiChainMap[currencyChain]?.balance
   const media = useMedia()
@@ -200,21 +277,22 @@ export default function TokenDetails() {
           <TokenDetailsHeader />
           <ChartSection />
           {!showRightPanel && !!pageChainBalance && (
-            <Flex mt="$spacing40">
+            <Flex mt="$spacing40" gap="$gap24">
               <PageChainBalanceSummary pageChainBalance={pageChainBalance} alignLeft />
+              <BridgedAssetSection />
             </Flex>
           )}
-          <StatsSection chainId={currency.chainId} address={address} tokenQueryData={tokenQueryData} />
+          <StatsSection tokenQueryData={tokenQueryData} />
           <DividerLine />
           <ActivitySection />
         </LeftPanel>
         <RightPanel>
-          {showRightPanel && (
-            <>
-              <TDPSwapComponent />
-              <BalanceSummary />
-            </>
-          )}
+          {/* Uses display to preserve component state */}
+          <Flex display={showRightPanel ? 'flex' : 'none'} gap="$gap24">
+            <TDPSwapComponent />
+            <BalanceSummary />
+            <BridgedAssetSection />
+          </Flex>
           <TokenDescription />
         </RightPanel>
         <MobileBottomBar hide={isTouchDevice && scrollDirection === ScrollDirection.DOWN}>

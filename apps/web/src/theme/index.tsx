@@ -1,13 +1,10 @@
-import { useConnectorWithId } from 'components/WalletModal/useOrderedConnections'
-import { ThemeProvider as StyledComponentsThemeProvider, createGlobalStyle, css } from 'lib/styled-components'
-import { PropsWithChildren, useEffect, useMemo } from 'react'
-import { ThemeColors, darkTheme, lightTheme } from 'theme/colors'
+import { createGlobalStyle, css, ThemeProvider as StyledComponentsThemeProvider } from 'lib/styled-components'
+import { PropsWithChildren, useMemo } from 'react'
+import { darkTheme, lightTheme, ThemeColors } from 'theme/colors'
 import { useIsDarkMode } from 'theme/components/ThemeToggle'
 import { darkDeprecatedTheme, lightDeprecatedTheme } from 'theme/deprecatedColors'
 import { getAccent2, getNeutralContrast } from 'theme/utils'
 import { breakpoints } from 'ui/src/theme'
-import { CONNECTION_PROVIDER_IDS } from 'uniswap/src/constants/web3'
-import { WalletConnectConnector } from 'uniswap/src/features/web3/walletConnect'
 
 export const MEDIA_WIDTHS = {
   deprecated_upToExtraSmall: 500,
@@ -21,6 +18,7 @@ const MAX_CONTENT_WIDTH_PX = 1200
 const deprecated_mediaWidthTemplates: { [width in keyof typeof MEDIA_WIDTHS]: typeof css } = Object.keys(
   MEDIA_WIDTHS,
 ).reduce((acc, size) => {
+  // eslint-disable-next-line max-params
   acc[size] = (a: any, b: any, c: any) => css`
     @media (max-width: ${(MEDIA_WIDTHS as any)[size]}px) {
       ${css(a, b, c)}
@@ -75,7 +73,7 @@ function getSettings(darkMode: boolean) {
     fonts,
 
     // shadows
-    shadow1: darkMode ? '#000' : '#2F80ED',
+    shadow1: '#000',
 
     // media queries
     deprecated_mediaWidth: deprecated_mediaWidthTemplates,
@@ -112,13 +110,16 @@ function applyOverriddenColors(defaultColors: ThemeColors, overriddenColors?: Pa
   }
 
   // Remove any undefined values from the object such that no theme values are overridden by undefined
-  const definedOverriddenColors = Object.keys(overriddenColors).reduce((acc, curr) => {
-    const key = curr as keyof ThemeColors
-    if (overriddenColors[key] !== undefined) {
-      acc[key] = overriddenColors[key]
-    }
-    return acc
-  }, {} as Partial<ThemeColors>)
+  const definedOverriddenColors = Object.keys(overriddenColors).reduce(
+    (acc, curr) => {
+      const key = curr as keyof ThemeColors
+      if (overriddenColors[key] !== undefined) {
+        acc[key] = overriddenColors[key]
+      }
+      return acc
+    },
+    {} as Partial<ThemeColors>,
+  )
 
   const mergedColors = { ...defaultColors, ...definedOverriddenColors }
 
@@ -136,15 +137,10 @@ function applyOverriddenColors(defaultColors: ThemeColors, overriddenColors?: Pa
 
 export function ThemeProvider({ children, ...overriddenColors }: PropsWithChildren<Partial<ThemeColors>>) {
   const darkMode = useIsDarkMode()
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- only update when darkMode or overriddenColors' entries change
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Only update when darkMode or overriddenColors' entries change
   const themeObject = useMemo(() => getTheme(darkMode, overriddenColors), [darkMode, JSON.stringify(overriddenColors)])
 
-  const walletConnectConnector = useConnectorWithId(CONNECTION_PROVIDER_IDS.WALLET_CONNECT_CONNECTOR_ID, {
-    shouldThrow: true,
-  }) as WalletConnectConnector
-  useEffect(() => {
-    walletConnectConnector.getProvider().then((p) => p.modal.setTheme({ themeMode: darkMode ? 'dark' : 'light' }))
-  }, [darkMode, walletConnectConnector])
+  // TODO(WEB-7508): set theme for wallet connect modal
 
   return <StyledComponentsThemeProvider theme={themeObject}>{children}</StyledComponentsThemeProvider>
 }
@@ -160,6 +156,6 @@ export const ThemedGlobalStyle = createGlobalStyle`
   }
 
   a {
-    color: ${({ theme }) => theme.accent1}; 
+    color: ${({ theme }) => theme.accent1};
   }
 `

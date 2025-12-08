@@ -1,47 +1,34 @@
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import React, { PropsWithChildren, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FlatList, ImageBackground } from 'react-native'
+import { FlatList } from 'react-native'
 import { useDispatch } from 'react-redux'
 import { navigate } from 'src/app/navigation/rootNavigation'
 import { useReactNavigationModal } from 'src/components/modals/useReactNavigationModal'
+import { useOpenReceiveModal } from 'src/features/modals/hooks/useOpenReceiveModal'
 import { openModal } from 'src/features/modals/modalSlice'
-import { Flex, useIsDarkMode, useShadowPropsShort } from 'ui/src'
-import { CRYPTO_PURCHASE_BACKGROUND_DARK, CRYPTO_PURCHASE_BACKGROUND_LIGHT } from 'ui/src/assets'
+import { Flex, useShadowPropsShort } from 'ui/src'
 import { ArrowDownCircle, Buy } from 'ui/src/components/icons'
 import { borderRadii, iconSizes, spacing } from 'ui/src/theme'
 import { ActionCard, ActionCardItem } from 'uniswap/src/components/misc/ActionCard'
 import { Modal } from 'uniswap/src/components/modals/Modal'
+import { ImageUri } from 'uniswap/src/components/nfts/images/ImageUri'
 import { useCexTransferProviders } from 'uniswap/src/features/fiatOnRamp/useCexTransferProviders'
-import { FeatureFlags } from 'uniswap/src/features/gating/flags'
-import { useFeatureFlag } from 'uniswap/src/features/gating/hooks'
 import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
-import { ScannerModalState } from 'wallet/src/components/QRCodeScanner/constants'
-import { ImageUri } from 'wallet/src/features/images/ImageUri'
+import { usePortfolioEmptyStateBackground } from 'wallet/src/components/portfolio/empty'
 
 export function FundWalletModal(): JSX.Element {
-  const isDarkMode = useIsDarkMode()
   const shadowProps = useShadowPropsShort()
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const cexTransferProviders = useCexTransferProviders()
+  const openReceiveModal = useOpenReceiveModal()
 
   const { onClose } = useReactNavigationModal()
 
   const disableForKorea = useFeatureFlag(FeatureFlags.DisableFiatOnRampKorea)
 
-  const BackgroundImageWrapperCallback = useCallback(
-    ({ children }: { children: React.ReactNode }) => {
-      return (
-        <ImageBackground
-          borderRadius={borderRadii.rounded24}
-          source={isDarkMode ? CRYPTO_PURCHASE_BACKGROUND_DARK : CRYPTO_PURCHASE_BACKGROUND_LIGHT}
-        >
-          {children}
-        </ImageBackground>
-      )
-    },
-    [isDarkMode],
-  )
+  const backgroundImageWrapperCallback = usePortfolioEmptyStateBackground()
 
   const onPressBuy = useCallback(() => {
     onClose()
@@ -56,20 +43,8 @@ export function FundWalletModal(): JSX.Element {
 
   const onPressReceive = useCallback(() => {
     onClose()
-    dispatch(
-      openModal(
-        cexTransferProviders.length > 0
-          ? {
-              name: ModalName.ReceiveCryptoModal,
-              initialState: cexTransferProviders,
-            }
-          : {
-              name: ModalName.WalletConnectScan,
-              initialState: ScannerModalState.WalletQr,
-            },
-      ),
-    )
-  }, [cexTransferProviders, dispatch, onClose])
+    openReceiveModal()
+  }, [onClose, openReceiveModal])
 
   const cards = useMemo(
     () =>
@@ -85,7 +60,7 @@ export function FundWalletModal(): JSX.Element {
             </Flex>
           ),
           onPress: onPressBuy,
-          BackgroundImageWrapperCallback,
+          backgroundImageWrapperCallback,
         },
         {
           title: t('home.tokens.empty.action.receive.title'),
@@ -94,6 +69,7 @@ export function FundWalletModal(): JSX.Element {
           icon:
             cexTransferProviders.length > 0 ? (
               <OverlappingLogos
+                // biome-ignore lint/correctness/useJsxKeyInIterable: Array items are static and don't require keys
                 logos={[<ReceiveCryptoIcon />, ...cexTransferProviders.map((provider) => provider.logos.lightLogo)]}
               />
             ) : (
@@ -102,7 +78,7 @@ export function FundWalletModal(): JSX.Element {
           onPress: onPressReceive,
         },
       ] satisfies ActionCardItem[],
-    [BackgroundImageWrapperCallback, cexTransferProviders, onPressBuy, onPressReceive, t],
+    [backgroundImageWrapperCallback, cexTransferProviders, onPressBuy, onPressReceive, t],
   )
   return (
     <Modal name={ModalName.FundWallet} onClose={onClose}>

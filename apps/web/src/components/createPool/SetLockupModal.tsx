@@ -1,23 +1,22 @@
 import { parseUnits } from '@ethersproject/units'
-import { Trans } from 'react-i18next'
-import JSBI from 'jsbi'
-import { ReactNode, useCallback, useState } from 'react'
-import { X } from 'react-feather'
-import styled from 'lib/styled-components'
-import { ThemedText } from 'theme/components/text'
-import { TransactionStatus } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
-import { ModalName} from 'uniswap/src/features/telemetry/constants'
-import { logger } from 'utilities/src/logger/logger'
-
-import { useSetLockupCallback } from 'state/pool/hooks'
-import { useIsTransactionConfirmed, useTransaction } from 'state/transactions/hooks'
 import { ButtonError } from 'components/Button/buttons'
 import { AutoColumn } from 'components/deprecated/Column'
 import { RowBetween } from 'components/deprecated/Row'
-import { Modal } from 'uniswap/src/components/modals/Modal'
 import { LoadingView, SubmittedView } from 'components/ModalViews'
 import NameInputPanel from 'components/NameInputPanel'
 import { useAccount } from 'hooks/useAccount'
+import JSBI from 'jsbi'
+import styled from 'lib/styled-components'
+import { ReactNode, useCallback, useState } from 'react'
+import { X } from 'react-feather'
+import { Trans } from 'react-i18next'
+import { useSetLockupCallback } from 'state/pool/hooks'
+import { useIsTransactionConfirmed, useTransaction } from 'state/transactions/hooks'
+import { ThemedText } from 'theme/components/text'
+import { Modal } from 'uniswap/src/components/modals/Modal'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { logger } from 'utilities/src/logger/logger'
 
 const ContentWrapper = styled(AutoColumn)`
   width: 100%;
@@ -58,7 +57,7 @@ export default function SetLockupModal({ isOpen, currentLockup, onDismiss, title
 
   const transaction = useTransaction(hash)
   const confirmed = useIsTransactionConfirmed(hash)
-  const transactionSuccess = transaction?.status === TransactionStatus.Confirmed
+  const transactionSuccess = transaction?.status === TransactionStatus.Success
 
   // wrapper to reset state on modal close
   function wrappedOnDismiss() {
@@ -79,7 +78,7 @@ export default function SetLockupModal({ isOpen, currentLockup, onDismiss, title
     setAttempting(true)
 
     // if callback not returned properly ignore
-    if (!account.address || !account.chainId || !setLockupCallback || !parsedLockup) {
+    if (!account.address || !account.chainId || !parsedLockup) {
       return
     }
 

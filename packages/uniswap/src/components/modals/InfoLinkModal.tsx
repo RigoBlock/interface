@@ -1,12 +1,13 @@
 import { ReactNode } from 'react'
-import { Button, Flex, Text, TouchableArea, isWeb, useSporeColors } from 'ui/src'
+import { Button, Flex, Text, TouchableArea, useSporeColors } from 'ui/src'
 import { X } from 'ui/src/components/icons/X'
 import { zIndexes } from 'ui/src/theme'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalProps } from 'uniswap/src/components/modals/ModalProps'
 import { ModalNameType } from 'uniswap/src/features/telemetry/constants'
-import { openURL } from 'uniswap/src/utils/link'
+import { openUri } from 'uniswap/src/utils/linking'
 import { logger } from 'utilities/src/logger/logger'
+import { isMobileWeb, isWebPlatform } from 'utilities/src/platform'
 
 interface InfoModalProps {
   name: ModalNameType
@@ -47,7 +48,7 @@ export function InfoLinkModal({
     }
 
     try {
-      await openURL(linkUrl)
+      await openUri({ uri: linkUrl })
       onAnalyticsEvent?.()
     } catch (error) {
       logger.error(error, { tags: { file: 'InfoLinkModal.tsx', function: 'openUniswapURL' } })
@@ -65,13 +66,13 @@ export function InfoLinkModal({
           zIndex={zIndexes.default}
           onPress={onDismiss}
         >
-          {isWeb && <X color="$neutral2" size="$icon.16" />}
+          {isWebPlatform && !isMobileWeb && <X color="$neutral2" size="$icon.16" />}
         </TouchableArea>
       )}
-      <Flex alignItems="center" gap="$spacing8" mx={isWeb ? '$none' : '$spacing36'} pt="$spacing16">
+      <Flex alignItems="center" gap="$spacing8" mx={isWebPlatform ? '$none' : '$spacing36'} pt="$spacing16">
         {icon}
         <Flex centered gap="$spacing8" p="$spacing16">
-          <Text color="$neutral1" variant={isWeb ? 'subheading2' : 'subheading1'}>
+          <Text color="$neutral1" variant={isWebPlatform ? 'subheading2' : 'subheading1'}>
             {title}
           </Text>
           <Text color="$neutral2" textAlign="center" variant="body3">
@@ -79,13 +80,13 @@ export function InfoLinkModal({
           </Text>
         </Flex>
         <Flex row width="100%">
-          <Button fill emphasis="secondary" size="large" onPress={onButtonPress}>
+          <Button fill emphasis="secondary" size="medium" onPress={onButtonPress}>
             {buttonText}
           </Button>
         </Flex>
         {linkText && linkUrl && (
           <Flex row width="100%">
-            <Button fill emphasis="text-only" size="large" onPress={openUniswapURL}>
+            <Button fill emphasis="text-only" size="medium" onPress={openUniswapURL}>
               {linkText}
             </Button>
           </Flex>

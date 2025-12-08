@@ -1,34 +1,32 @@
-import Column, { AutoColumn } from 'components/deprecated/Column'
-import Row from 'components/deprecated/Row'
-import { LoadingBubble } from 'components/Tokens/loading'
-import styled, { css, keyframes } from 'lib/styled-components'
+import { TextLoader } from 'components/Liquidity/Loader'
+import { Circle, Flex, FlexProps, Shine } from 'ui/src'
 
-export const PortfolioRowWrapper = styled(Row)<{ onClick?: any }>`
-  gap: 12px;
-  height: 68px;
-  padding: 0 16px;
-
-  transition: ${({ theme }) => `${theme.transition.duration.medium} ${theme.transition.timing.ease} background-color`};
-
-  ${({ onClick }) => onClick && 'cursor: pointer'};
-
-  &:hover {
-    cursor: pointer;
-  }
-`
-
-const EndColumn = styled(Column)`
-  align-items: flex-end;
-`
+const PortfolioRowWrapper = ({ children, className, ...rest }: FlexProps) => (
+  <Flex
+    row
+    gap="$gap12"
+    height={68}
+    flexGrow={1}
+    px="$spacing16"
+    animation="fast"
+    cursor="pointer"
+    alignItems="center"
+    className={`portfolio-row-wrapper ${className}`}
+    {...rest}
+  >
+    {children}
+  </Flex>
+)
 
 export default function PortfolioRow({
-  ['data-testid']: testId,
+  'data-testid': testId,
   left,
   title,
   descriptor,
   right,
   onClick,
   className,
+  ...props
 }: {
   'data-testid'?: string
   left: React.ReactNode
@@ -38,59 +36,61 @@ export default function PortfolioRow({
   setIsHover?: (b: boolean) => void
   onClick?: () => void
   className?: string
-}) {
+} & Omit<FlexProps, 'left' | 'right'>) {
   return (
-    <PortfolioRowWrapper data-testid={testId} onClick={onClick} className={className}>
+    <PortfolioRowWrapper data-testid={testId} onPress={onClick} className={className} {...props}>
       {left}
-      <AutoColumn grow>
+      <Flex alignItems="flex-start" flex={1} overflow="hidden">
         {title}
         {descriptor}
-      </AutoColumn>
-      {right && <EndColumn>{right}</EndColumn>}
+      </Flex>
+      {right && <Flex alignItems="flex-end">{right}</Flex>}
     </PortfolioRowWrapper>
   )
 }
 
-function PortfolioSkeletonRow({ shrinkRight }: { shrinkRight?: boolean }) {
+function PortfolioSkeletonRow() {
   return (
-    <PortfolioRowWrapper>
-      <LoadingBubble height="40px" width="40px" round />
-      <AutoColumn grow gap="4px">
-        <LoadingBubble height="16px" width="60px" delay="300ms" />
-        <LoadingBubble height="10px" width="90px" delay="300ms" />
-      </AutoColumn>
-      <EndColumn gap="xs">
-        {shrinkRight ? (
-          <LoadingBubble height="12px" width="20px" delay="600ms" />
-        ) : (
-          <>
-            <LoadingBubble height="14px" width="70px" delay="600ms" />
-            <LoadingBubble height="14px" width="50px" delay="600ms" />
-          </>
-        )}
-      </EndColumn>
-    </PortfolioRowWrapper>
+    <Shine>
+      <Flex
+        p="$spacing16"
+        gap="$spacing20"
+        borderWidth="$spacing1"
+        borderRadius="$rounded20"
+        borderColor="$surface3"
+        width="100%"
+        overflow="hidden"
+      >
+        <Flex row alignItems="center" justifyContent="space-between" gap="$gap12">
+          <Circle size={36} backgroundColor="$surface3" />
+          <Flex grow $md={{ row: true, justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <TextLoader variant="subheading1" width={100} />
+            <TextLoader variant="body3" width={70} />
+          </Flex>
+        </Flex>
+        <Flex row alignItems="center" gap="$gap12">
+          <Flex gap="$gap2">
+            <TextLoader variant="body2" width={40} />
+            <TextLoader variant="body4" width={35} />
+          </Flex>
+          <Flex gap="$gap2">
+            <TextLoader variant="body2" width={40} />
+            <TextLoader variant="body4" width={35} />
+          </Flex>
+        </Flex>
+
+        <TextLoader variant="body4" width={220} />
+      </Flex>
+    </Shine>
   )
 }
 
-export function PortfolioSkeleton({ shrinkRight = false }: { shrinkRight?: boolean }) {
+export function PortfolioSkeleton() {
   return (
-    <>
+    <Flex gap="$gap12" px="$spacing16">
       {Array.from({ length: 5 }).map((_, i) => (
-        <PortfolioSkeletonRow shrinkRight={shrinkRight} key={`portfolio loading row${i}`} />
+        <PortfolioSkeletonRow key={`portfolio loading row${i}`} />
       ))}
-    </>
+    </Flex>
   )
 }
-
-const fadeIn = keyframes`
-  from { opacity: .25 }
-  to { opacity: 1 }
-`
-const portfolioFadeInAnimation = css`
-  animation: ${fadeIn} ${({ theme }) => `${theme.transition.duration.medium} ${theme.transition.timing.in}`};
-`
-
-export const PortfolioTabWrapper = styled.div`
-  ${portfolioFadeInAnimation}
-`

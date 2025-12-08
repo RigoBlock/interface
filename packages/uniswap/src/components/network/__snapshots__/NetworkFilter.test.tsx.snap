@@ -3,28 +3,66 @@
 exports[`NetworkFilter renders a NetworkFilter 1`] = `
 [
   <View
-    cancelable={true}
-    disabled={false}
-    focusable={true}
-    hitSlop={[Function]}
-    minPressDuration={0}
-    onBlur={[Function]}
-    onFocus={[Function]}
-    onMouseEnter={[Function]}
-    onMouseLeave={[Function]}
-    onPress={[Function]}
-    onPressIn={[Function]}
-    onPressOut={[Function]}
-    style={
+    collapsable={false}
+    focusVisibleStyle={{}}
+    forwardedRef={[Function]}
+    jestAnimatedProps={
       {
-        "flexDirection": "column",
-        "opacity": 1,
-        "transform": [
-          {
-            "scale": 1,
-          },
-        ],
+        "value": {},
       }
+    }
+    jestAnimatedStyle={
+      {
+        "value": {},
+      }
+    }
+    jestInlineStyle={
+      [
+        {
+          "backgroundColor": "transparent",
+          "borderBottomLeftRadius": 12,
+          "borderBottomRightRadius": 12,
+          "borderTopLeftRadius": 12,
+          "borderTopRightRadius": 12,
+          "flexDirection": "column",
+          "opacity": 1,
+          "transform": [
+            {
+              "scale": 1,
+            },
+          ],
+        },
+      ]
+    }
+    onBlur={[Function]}
+    onClick={[Function]}
+    onFocus={[Function]}
+    onLayout={[Function]}
+    onResponderGrant={[Function]}
+    onResponderMove={[Function]}
+    onResponderRelease={[Function]}
+    onResponderTerminate={[Function]}
+    onResponderTerminationRequest={[Function]}
+    onStartShouldSetResponder={[Function]}
+    role="button"
+    style={
+      [
+        {
+          "backgroundColor": "transparent",
+          "borderBottomLeftRadius": 12,
+          "borderBottomRightRadius": 12,
+          "borderTopLeftRadius": 12,
+          "borderTopRightRadius": 12,
+          "flexDirection": "column",
+          "opacity": 1,
+          "transform": [
+            {
+              "scale": 1,
+            },
+          ],
+        },
+        {},
+      ]
     }
   >
     <View
@@ -71,6 +109,11 @@ exports[`NetworkFilter renders a NetworkFilter 1`] = `
       <View
         collapsable={false}
         forwardedRef={[Function]}
+        jestAnimatedProps={
+          {
+            "value": {},
+          }
+        }
         jestAnimatedStyle={
           {
             "value": {
@@ -86,21 +129,34 @@ exports[`NetworkFilter renders a NetworkFilter 1`] = `
             },
           }
         }
+        jestInlineStyle={
+          [
+            {
+              "alignItems": "center",
+              "flexDirection": "column",
+              "justifyContent": "center",
+            },
+          ]
+        }
         style={
-          {
-            "alignItems": "center",
-            "borderBottomLeftRadius": 999999,
-            "borderBottomRightRadius": 999999,
-            "borderTopLeftRadius": 999999,
-            "borderTopRightRadius": 999999,
-            "flexDirection": "column",
-            "justifyContent": "center",
-            "transform": [
-              {
-                "rotate": "270deg",
-              },
-            ],
-          }
+          [
+            {
+              "alignItems": "center",
+              "flexDirection": "column",
+              "justifyContent": "center",
+            },
+            {
+              "borderBottomLeftRadius": 999999,
+              "borderBottomRightRadius": 999999,
+              "borderTopLeftRadius": 999999,
+              "borderTopRightRadius": 999999,
+              "transform": [
+                {
+                  "rotate": "270deg",
+                },
+              ],
+            },
+          ]
         }
       >
         <RNSVGSvgView
@@ -120,7 +176,7 @@ exports[`NetworkFilter renders a NetworkFilter 1`] = `
                 "borderWidth": 0,
               },
               {
-                "color": "#9B9B9B",
+                "color": "rgba(255, 255, 255, 0.65)",
                 "height": 20,
                 "width": 20,
               },
@@ -135,7 +191,7 @@ exports[`NetworkFilter renders a NetworkFilter 1`] = `
           vbWidth={24}
         >
           <RNSVGGroup
-            color="#9B9B9B"
+            color="rgba(255, 255, 255, 0.65)"
             fill={null}
             propList={
               [
@@ -171,7 +227,6 @@ exports[`NetworkFilter renders a NetworkFilter 1`] = `
     style={
       {
         "bottom": 0,
-        "flexDirection": "column",
         "left": 0,
         "maxWidth": "100%",
         "position": "absolute",

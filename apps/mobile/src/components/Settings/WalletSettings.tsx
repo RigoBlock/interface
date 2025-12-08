@@ -1,13 +1,13 @@
 import React, { useState } from 'react'
-import { useDispatch } from 'react-redux'
-import { HiddenWalletsDivider } from 'src/components/Settings/HiddenWalletsDivider'
-import { openModal } from 'src/features/modals/modalSlice'
+import { useTranslation } from 'react-i18next'
+import { navigate } from 'src/app/navigation/rootNavigation'
 import { Flex, TouchableArea } from 'ui/src'
 import { RotatableChevron } from 'ui/src/components/icons'
 import { iconSizes } from 'ui/src/theme'
+import { AddressDisplay } from 'uniswap/src/components/accounts/AddressDisplay'
+import { ExpandoRow } from 'uniswap/src/components/ExpandoRow/ExpandoRow'
 import { AccountType } from 'uniswap/src/features/accounts/types'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { AddressDisplay } from 'wallet/src/components/accounts/AddressDisplay'
 import { useAccountsList, useActiveAccountWithThrow } from 'wallet/src/features/wallet/hooks'
 
 const DEFAULT_ACCOUNTS_TO_DISPLAY = 3
@@ -17,7 +17,7 @@ interface Account {
 }
 
 export function WalletSettings(): JSX.Element {
-  const dispatch = useDispatch()
+  const { t } = useTranslation()
   const allAccounts = useAccountsList()
   const [showAll, setShowAll] = useState(false)
 
@@ -31,12 +31,9 @@ export function WalletSettings(): JSX.Element {
   }
 
   const handleNavigation = (address: string): void => {
-    dispatch(
-      openModal({
-        name: ModalName.ManageWalletsModal,
-        initialState: { address },
-      }),
-    )
+    navigate(ModalName.ManageWalletsModal, {
+      address,
+    })
   }
 
   const renderAccountRow = (account: Account): JSX.Element => {
@@ -69,18 +66,18 @@ export function WalletSettings(): JSX.Element {
         <>
           {renderAccountRow(activeAccount)}
 
-          <HiddenWalletsDivider
+          <ExpandoRow
             isExpanded={showAll}
-            numHidden={allAccounts.length - 1}
+            label={t('settings.section.wallet.hidden.row.title', { numHidden: allAccounts.length - 1 })}
             onPress={(): void => toggleViewAll()}
           />
 
-          {showAll && accountsWithoutActiveAccount?.map(renderAccountRow)}
+          {showAll && accountsWithoutActiveAccount.map(renderAccountRow)}
         </>
       ) : (
         <>
           {renderAccountRow(activeAccount)}
-          {accountsWithoutActiveAccount?.map(renderAccountRow)}
+          {accountsWithoutActiveAccount.map(renderAccountRow)}
         </>
       )}
     </Flex>

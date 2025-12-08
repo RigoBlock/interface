@@ -7,12 +7,32 @@
  * tag, or we can add on any one-off CSS by either inlining a style tag in the
  * component itself, or importing it via CSS modules.
  */
-
-// eslint-disable-next-line @typescript-eslint/no-restricted-imports
-import styledFn from 'styled-components'
+import styledFn, {
+  createGlobalStyle as createGlobalStyleSC,
+  css as cssSC,
+  type DefaultTheme as DefaultThemeSC,
+  keyframes as keyframesFnSC,
+  ThemeProvider as ThemeProviderSC,
+  // biome-ignore lint/style/noRestrictedImports: This is a legacy compatibility file that re-exports styled-components for migration purposes
+} from 'styled-components'
 
 /** @deprecated use `styled` from `ui/src` instead */
 export default styledFn
 
-// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-restricted-imports
-export * from 'styled-components'
+/** @deprecated use `styled` from `ui/src` instead */
+export const styled = styledFn
+
+/** @deprecated use alternatives from `ui/src` instead */
+export const css = cssSC
+
+/** @deprecated use alternatives from `ui/src` instead */
+export const keyframes = keyframesFnSC
+
+/** @deprecated use alternatives from `ui/src` instead */
+export const createGlobalStyle = createGlobalStyleSC
+
+/** @deprecated use alternatives from `ui/src` instead */
+export const ThemeProvider = ThemeProviderSC
+
+/** @deprecated use alternatives from `ui/src` instead */
+export type DefaultTheme = DefaultThemeSC

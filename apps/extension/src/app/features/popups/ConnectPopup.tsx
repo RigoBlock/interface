@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
+import { removeDappConnection, saveDappConnection } from 'src/app/features/dapp/actions'
 import { useDappContext } from 'src/app/features/dapp/DappContext'
-import { removeDappConnection } from 'src/app/features/dapp/actions'
 import { SwitchNetworksModal } from 'src/app/features/home/SwitchNetworksModal'
-import { PopupName, closePopup } from 'src/app/features/popups/slice'
+import { closePopup, PopupName } from 'src/app/features/popups/slice'
 import { AppRoutes, SettingsRoutes } from 'src/app/navigation/constants'
 import { useExtensionNavigation } from 'src/app/navigation/utils'
 import {
@@ -22,15 +22,15 @@ import {
 import { Power, RotatableChevron, X } from 'ui/src/components/icons'
 import { borderRadii, iconSizes } from 'ui/src/theme'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
+import { DappIconPlaceholder } from 'uniswap/src/components/dapps/DappIconPlaceholder'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
 import { getChainLabel } from 'uniswap/src/features/chains/utils'
-import { pushNotification } from 'uniswap/src/features/notifications/slice'
-import { AppNotificationType } from 'uniswap/src/features/notifications/types'
+import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
+import { AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
 import { ExtensionEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { extractNameFromUrl } from 'utilities/src/format/extractNameFromUrl'
 import { extractUrlHost } from 'utilities/src/format/urls'
-import { DappIconPlaceholder } from 'wallet/src/components/WalletConnect/DappIconPlaceholder'
 import { useActiveAccountWithThrow } from 'wallet/src/features/wallet/hooks'
 
 export function ConnectPopupContent({
@@ -52,6 +52,13 @@ export function ConnectPopupContent({
 
   const [isSwitchNetworksModalOpen, setSwitchNetworksModalOpen] = useState(false)
 
+  const onConnect = async (): Promise<void> => {
+    await saveDappConnection({ dappUrl, account: activeAccount, iconUrl: dappIconUrl })
+    dispatch(pushNotification({ type: AppNotificationType.DappConnected, dappIconUrl }))
+    dispatch(closePopup(PopupName.Connect))
+    sendAnalyticsEvent(ExtensionEventName.SidebarConnect, { dappUrl })
+  }
+
   const onDisconnect = async (): Promise<void> => {
     await removeDappConnection(dappUrl, activeAccount)
     dispatch(pushNotification({ type: AppNotificationType.DappDisconnected, dappIconUrl }))
@@ -68,7 +75,7 @@ export function ConnectPopupContent({
   }
 
   const openManageConnections = (): void => {
-    navigateTo(`${AppRoutes.Settings}/${SettingsRoutes.ManageConnections}`)
+    navigateTo(`/${AppRoutes.Settings}/${SettingsRoutes.ManageConnections}`)
   }
 
   const fallbackIcon = <DappIconPlaceholder iconSize={iconSizes.icon40} name={dappUrl} />
@@ -189,11 +196,19 @@ export function ConnectPopupContent({
               </Flex>
             </Popover.Close>
 
-            {isConnected && (
+            {isConnected ? (
               <Popover.Close asChild>
                 <Flex row>
                   <Button icon={<Power />} size="small" emphasis="secondary" onPress={onDisconnect}>
                     {t('common.button.disconnect')}
+                  </Button>
+                </Flex>
+              </Popover.Close>
+            ) : (
+              <Popover.Close asChild>
+                <Flex row>
+                  <Button size="small" emphasis="primary" onPress={onConnect}>
+                    {t('common.button.connect')}
                   </Button>
                 </Flex>
               </Popover.Close>

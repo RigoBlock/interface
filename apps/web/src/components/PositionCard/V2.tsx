@@ -1,46 +1,33 @@
 import { CurrencyAmount, Percent, Token } from '@uniswap/sdk-core'
 import { Pair } from '@uniswap/v2-sdk'
-import { ButtonEmpty } from 'components/Button/DeprecatedWebButtons'
-import { LightCard } from 'components/Card/cards'
+import { CardNoise } from 'components/earn/styled'
 import CurrencyLogo from 'components/Logo/CurrencyLogo'
 import { DoubleCurrencyLogo } from 'components/Logo/DoubleLogo'
-import { CardNoise } from 'components/earn/styled'
-import { Dots } from 'components/swap/styled'
 import { BIG_INT_ZERO } from 'constants/misc'
 import { useAccount } from 'hooks/useAccount'
 import { useColor } from 'hooks/useColor'
 import { useTotalSupply } from 'hooks/useTotalSupply'
 import JSBI from 'jsbi'
-import styled from 'lib/styled-components'
 import { transparentize } from 'polished'
 import { useState } from 'react'
 import { ChevronDown, ChevronUp } from 'react-feather'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { useTokenBalance } from 'state/connection/hooks'
-import { Button, Flex, Text } from 'ui/src'
-import { currencyId } from 'utils/currencyId'
+import { Button, Flex, Text, useSporeColors } from 'ui/src'
+import { currencyId } from 'uniswap/src/utils/currencyId'
 import { unwrappedToken } from 'utils/unwrappedToken'
-import { FixedHeightRow } from '.'
-
-const StyledPositionCard = styled(LightCard)<{ bgColor: any }>`
-  border: none;
-  background: ${({ theme, bgColor }) =>
-    `radial-gradient(91.85% 100% at 1.84% 0%, ${transparentize(0.8, bgColor)} 0%, ${theme.surface2} 100%) `};
-  position: relative;
-  overflow: hidden;
-`
 
 interface PositionCardProps {
   pair: Pair
   showUnwrapped?: boolean
-  border?: string
   stakedBalance?: CurrencyAmount<Token> // optional balance to indicate that liquidity is deposited in mining pool
 }
 
-export default function MigrateV2PositionCard({ pair, border, stakedBalance }: PositionCardProps) {
+export default function MigrateV2PositionCard({ pair, stakedBalance }: PositionCardProps) {
   const account = useAccount()
   const { t } = useTranslation()
+  const colors = useSporeColors()
 
   const currency0 = unwrappedToken(pair.token0)
   const currency1 = unwrappedToken(pair.token1)
@@ -61,7 +48,6 @@ export default function MigrateV2PositionCard({ pair, border, stakedBalance }: P
       : undefined
 
   const [token0Deposited, token1Deposited] =
-    !!pair &&
     !!totalPoolTokens &&
     !!userPoolBalance &&
     // this condition is a short-circuit in the case where useTokenBalance updates sooner than useTotalSupply
@@ -72,42 +58,34 @@ export default function MigrateV2PositionCard({ pair, border, stakedBalance }: P
         ]
       : [undefined, undefined]
 
-  const backgroundColor = useColor(pair?.token0)
+  const backgroundColor = useColor(pair.token0)
 
   return (
-    <StyledPositionCard border={border} bgColor={backgroundColor}>
+    <Flex
+      p="$spacing16"
+      borderRadius="$rounded16"
+      $platform-web={{
+        background: `radial-gradient(91.85% 100% at 1.84% 0%, ${transparentize(0.8, backgroundColor)} 0%, ${colors.surface2.val} 100%) `,
+      }}
+    >
       <CardNoise />
       <Flex gap="$spacing6">
         <Flex row alignItems="center" justifyContent="space-between">
           <Flex row gap="$spacing8">
             <DoubleCurrencyLogo currencies={[currency0, currency1]} size={20} />
-            <Text variant="body1">
-              {!currency0 || !currency1 ? (
-                <Dots>{t('common.loading')}</Dots>
-              ) : (
-                `${currency0.symbol}/${currency1.symbol}`
-              )}
-            </Text>
+            <Text variant="body1">{`${currency0.symbol}/${currency1.symbol}`}</Text>
           </Flex>
           <Flex row gap="$spacing8">
-            <ButtonEmpty
-              padding="6px 8px"
-              $borderRadius="12px"
-              width="fit-content"
-              onClick={() => setShowMore(!showMore)}
+            <Button
+              emphasis="tertiary"
+              variant="branded"
+              size="small"
+              icon={showMore ? <ChevronUp /> : <ChevronDown />}
+              iconPosition="after"
+              onPress={() => setShowMore(!showMore)}
             >
-              {showMore ? (
-                <>
-                  {t('common.manage')}
-                  <ChevronUp size="20" style={{ marginLeft: '10px' }} />
-                </>
-              ) : (
-                <>
-                  {t('common.manage')}
-                  <ChevronDown size="20" style={{ marginLeft: '10px' }} />
-                </>
-              )}
-            </ButtonEmpty>
+              {t('common.manage')}
+            </Button>
           </Flex>
         </Flex>
 
@@ -128,7 +106,7 @@ export default function MigrateV2PositionCard({ pair, border, stakedBalance }: P
               {token0Deposited ? (
                 <Flex row centered>
                   <Text variant="body2" mr="$spacing4">
-                    {token0Deposited?.toSignificant(6)}
+                    {token0Deposited.toSignificant(6)}
                   </Text>
                   <CurrencyLogo size={20} currency={currency0} />
                 </Flex>
@@ -142,7 +120,7 @@ export default function MigrateV2PositionCard({ pair, border, stakedBalance }: P
               {token1Deposited ? (
                 <Flex row centered>
                   <Text variant="body2" mr="$spacing4">
-                    {token1Deposited?.toSignificant(6)}
+                    {token1Deposited.toSignificant(6)}
                   </Text>
                   <CurrencyLogo size={20} currency={currency1} />
                 </Flex>
@@ -151,14 +129,14 @@ export default function MigrateV2PositionCard({ pair, border, stakedBalance }: P
               )}
             </Flex>
 
-            <FixedHeightRow>
+            <Flex row justifyContent="space-between">
               <Text variant="body2">{t('pool.share.label')}</Text>
               <Text variant="body2">
                 {poolTokenPercentage
                   ? (poolTokenPercentage.toFixed(2) === '0.00' ? '<0.01' : poolTokenPercentage.toFixed(2)) + '%'
                   : '-'}
               </Text>
-            </FixedHeightRow>
+            </Flex>
 
             {userDefaultPoolBalance && JSBI.greaterThan(userDefaultPoolBalance.quotient, BIG_INT_ZERO) && (
               <Flex row justifyContent="space-between" mt="$spacing16" width="100%">
@@ -166,7 +144,7 @@ export default function MigrateV2PositionCard({ pair, border, stakedBalance }: P
                   to={`/migrate/v2/${pair.liquidityToken.address}`}
                   style={{ textDecoration: 'none', width: '64%' }}
                 >
-                  <Button size="large" variant="branded" width="100%">
+                  <Button size="medium" variant="branded" width="100%">
                     {t('common.migrate')}
                   </Button>
                 </Link>
@@ -183,6 +161,6 @@ export default function MigrateV2PositionCard({ pair, border, stakedBalance }: P
           </Flex>
         )}
       </Flex>
-    </StyledPositionCard>
+    </Flex>
   )
 }

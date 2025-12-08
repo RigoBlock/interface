@@ -8,6 +8,8 @@
 
 # generated files
 /src/**/__generated__
+!/src/**/__generated__/.gitkeep
+/src/playwright/slack-reporter/generateCustomLayout.js
 
 # dependencies
 /node_modules
@@ -19,13 +21,17 @@
 /.swc
 /test-results
 /src/playwright-report
+bundlemeta.json
 
 # builds
 /build
 /dts
+/dist
 
 # misc
 .DS_Store
+
+tsconfig.tsbuildinfo
 
 !.env
 
@@ -49,10 +55,6 @@ notes.txt
 
 package-lock.json
 
-cypress/downloads
-cypress/videos
-cypress/screenshots
-
 .vercel
 
 .wrangler
@@ -60,3 +62,5 @@ cypress/screenshots
 # Storybook
 *storybook.log
 storybook-static/
+
+coverage/

@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* biome-ignore-all lint/suspicious/noExplicitAny: Migration types require dynamic typing */
 
-import { RankingType } from 'uniswap/src/data/types'
+import { RankingType } from '@universe/api'
 import { AccountType } from 'uniswap/src/features/accounts/types'
 import { FiatCurrency } from 'uniswap/src/features/fiatCurrency/constants'
 import { Language } from 'uniswap/src/features/language/constants'
+import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { BasicTokenInfo, SerializedTokenMap } from 'uniswap/src/features/tokens/slice/types'
+import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { CurrencyId } from 'uniswap/src/types/currency'
 import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 import { currencyIdToAddress, currencyIdToChain } from 'uniswap/src/utils/currencyId'
@@ -64,10 +66,10 @@ export function addRoutingFieldToTransactions(state: any): any {
 // Mobile: 66
 // Extension: 3
 // Activates redux pending accounts as a result of migration to OnbardingContext.tsx. Migration rulses:
-// 1. if there’s a view only pending account, always activate it
-// 2. if there’s a signer pending account and it
+// 1. if there's a view only pending account, always activate it
+// 2. if there's a signer pending account and it
 //     a. has the same mnemonic id as the active account, always activate it unless:
-//         1. if there’s more than 6, only activate the oldest/newest 3. delete the rest
+//         1. if there's more than 6, only activate the oldest/newest 3. delete the rest
 //     b. has a different mnemonic id as the active account, always delete it
 export function activatePendingAccounts(state: any): any {
   if (!state.wallet) {
@@ -172,7 +174,14 @@ export function deleteDefaultFavoritesFromFavoritesState(state: any): any {
 
   const filteredWatchedAddresses = newState.favorites?.watchedAddresses?.filter(
     (address: string) =>
-      !areAddressesEqual(address, VITALIK_ETH_ADDRESS) && !areAddressesEqual(address, HAYDEN_ETH_ADDRESS),
+      !areAddressesEqual({
+        addressInput1: { address, platform: Platform.EVM },
+        addressInput2: { address: VITALIK_ETH_ADDRESS, platform: Platform.EVM },
+      }) &&
+      !areAddressesEqual({
+        addressInput1: { address, platform: Platform.EVM },
+        addressInput2: { address: HAYDEN_ETH_ADDRESS, platform: Platform.EVM },
+      }),
   )
 
   return {
@@ -265,7 +274,7 @@ export function moveDismissedTokenWarnings(state: any): any {
         address,
       }
       newWarnings[chainId] = newWarnings[chainId] || {}
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      // biome-ignore lint/style/noNonNullAssertion: Safe assertion in migration context - we just created this key
       newWarnings[chainId]![address] = serializedToken
     }
   })
@@ -368,5 +377,100 @@ export function moveTokenAndNFTVisibility(state: any): any {
   }
   delete newState.favorites.tokensVisibility
   delete newState.favorites.nftsVisibility
+  return newState
+}
+
+// Mobile: 86
+// Extension: 22
+export function addBatchedTransactions(state: any): any {
+  const newState = {
+    ...state,
+    batchedTransactions: {},
+  }
+  return newState
+}
+
+// Mobile: 88
+// Extension: 24
+export function moveHapticsToUserSettings(state: any): any {
+  const newState = {
+    ...state,
+    appearanceSettings: {
+      ...state.appearanceSettings,
+      hapticsEnabled: undefined,
+    },
+    userSettings: {
+      ...state.userSettings,
+      hapticsEnabled: state.appearanceSettings.hapticsEnabled ?? true,
+    },
+  }
+  delete newState.appearanceSettings.hapticsEnabled
+  return newState
+}
+
+// Mobile: 90
+// Extension: 26
+export function migrateLiquidityTransactionInfo(state: any): any {
+  const oldTransactionState = state?.transactions
+  const newTransactionState: any = {}
+
+  const addresses = Object.keys(oldTransactionState ?? {})
+  for (const address of addresses) {
+    const chainIds = Object.keys(oldTransactionState[address] ?? {})
+    for (const chainId of chainIds) {
+      const transactions = oldTransactionState[address][chainId]
+      const txIds = Object.keys(transactions ?? {})
+
+      for (const txId of txIds) {
+        const txDetails = transactions[txId]
+
+        newTransactionState[address] ??= {}
+        newTransactionState[address][chainId] ??= {}
+
+        const isLiquidityTransactionBeingRenamed = [
+          TransactionType.LiquidityIncrease,
+          TransactionType.LiquidityDecrease,
+          TransactionType.CollectFees,
+          TransactionType.CreatePool,
+          TransactionType.CreatePair,
+        ].includes(txDetails?.typeInfo?.type)
+        // ignore if it's not a liquidity transaction
+        if (!isLiquidityTransactionBeingRenamed) {
+          newTransactionState[address][chainId][txId] = txDetails
+        } else {
+          // eslint-disable-next-line max-depth
+          try {
+            const { typeInfo, ...txRest } = txDetails
+            const {
+              inputCurrencyId,
+              inputCurrencyAmountRaw,
+              outputCurrencyId,
+              outputCurrencyAmountRaw,
+              ...typeInfoRest
+            } = typeInfo
+            newTransactionState[address][chainId][txId] = {
+              ...txRest,
+              typeInfo: {
+                currency0Id: inputCurrencyId,
+                currency0AmountRaw: inputCurrencyAmountRaw,
+                currency1Id: outputCurrencyId,
+                currency1AmountRaw: outputCurrencyAmountRaw,
+                ...typeInfoRest,
+              },
+            }
+          } catch (_e) {
+            // if any error occurs, ignore but remove the transaction
+          }
+        }
+      }
+    }
+  }
+  return { ...state, transactions: newTransactionState }
+}
+
+// Mobile: 91
+export function removePriceAlertsEnabledFromPushNotifications(state: any): any {
+  const newState = { ...state }
+  delete newState.pushNotifications.priceAlertsEnabled
   return newState
 }

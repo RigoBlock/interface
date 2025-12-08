@@ -1,3 +1,4 @@
+import { BigNumber } from '@ethersproject/bignumber'
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import { popupRegistry } from 'components/Popups/registry'
 import { PopupType } from 'components/Popups/types'
@@ -6,19 +7,27 @@ import { useAccount } from 'hooks/useAccount'
 import useSelectChain from 'hooks/useSelectChain'
 import { useCallback } from 'react'
 import { useDispatch } from 'react-redux'
-import { HandleOnChainStepParams, handleOnChainStep } from 'state/sagas/transactions/utils'
-import { TransactionType, WrapTransactionInfo } from 'state/transactions/types'
+import {
+  encodeSmartPoolUnwrapWETH9,
+  encodeSmartPoolWrapEth,
+  extractWETHWithdrawAmount,
+  isWETHDepositCalldata,
+  isWETHWithdrawCalldata,
+} from 'state/sagas/transactions/smartPoolWrapUtils'
+import { handleOnChainStep } from 'state/sagas/transactions/utils'
 import { call } from 'typed-redux-saga'
 import { isTestnetChain } from 'uniswap/src/features/chains/utils'
-import { TransactionStepType, WrapTransactionStep } from 'uniswap/src/features/transactions/swap/types/steps'
+import { HandleOnChainStepParams, TransactionStepType } from 'uniswap/src/features/transactions/steps/types'
+import { WrapTransactionStep } from 'uniswap/src/features/transactions/steps/wrap'
 import { WrapCallback, WrapCallbackParams } from 'uniswap/src/features/transactions/swap/types/wrapCallback'
+import { TransactionType, WrapTransactionInfo } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { createSaga } from 'uniswap/src/utils/saga'
 import { logger } from 'utilities/src/logger/logger'
-import noop from 'utilities/src/react/noop'
+import { noop } from 'utilities/src/react/noop'
 import { didUserReject } from 'utils/swapErrorToUserReadableMessage'
 
 interface HandleWrapStepParams extends Omit<HandleOnChainStepParams<WrapTransactionStep>, 'info'> {}
-export function* handleWrapStep(params: HandleWrapStepParams) {
+function* handleWrapStep(params: HandleWrapStepParams) {
   const info = getWrapTransactionInfo(params.step.amount)
   return yield* call(handleOnChainStep, { ...params, info })
 }
@@ -27,7 +36,7 @@ type WrapParams = WrapCallbackParams & { selectChain: (chainId: number) => Promi
 
 function* wrap(params: WrapParams) {
   try {
-    const { account, inputCurrencyAmount, selectChain, txRequest, startChainId, onFailure } = params
+    const { account, smartPoolAddress, inputCurrencyAmount, selectChain, txRequest, startChainId, onFailure } = params
 
     // Switch chains if needed
     if (txRequest.chainId !== startChainId) {
@@ -39,10 +48,41 @@ function* wrap(params: WrapParams) {
     }
 
     const step = { type: TransactionStepType.WrapTransaction, txRequest, amount: inputCurrencyAmount } as const
+    smartPoolAddress && (step.txRequest.to = smartPoolAddress)
+    step.txRequest.from = account.address
+    step.txRequest.gasLimit = BigNumber.from(step.txRequest.gasLimit).add(100000) // Add buffer to gas limit
+
+    // Override wrap transaction calldata for smart pool
+    if (smartPoolAddress && step.txRequest.data) {
+      const calldata = typeof step.txRequest.data === 'string' ? step.txRequest.data : step.txRequest.data.toString()
+      const originalValue = step.txRequest.value || '0'
+
+      if (isWETHDepositCalldata(calldata)) {
+        // ETH -> WETH (wrap): use pool.wrapEth(amount) instead of weth.deposit()
+        // Use the transaction value as the amount parameter
+        const wrapAmount = BigNumber.from(originalValue).toString()
+        step.txRequest.data = encodeSmartPoolWrapEth(wrapAmount)
+        step.txRequest.value = String(0) // Set value to 0 since smart pool handles the ETH
+        console.log(`Modified WETH deposit to smart pool wrapEth(${wrapAmount})`)
+      } else if (isWETHWithdrawCalldata(calldata)) {
+        // WETH -> ETH (unwrap): use pool.unwrapWETH9(amount) instead of weth.withdraw(amount)
+        // Extract amount from original calldata
+        const unwrapAmount = extractWETHWithdrawAmount(calldata)
+        step.txRequest.data = encodeSmartPoolUnwrapWETH9(unwrapAmount)
+        step.txRequest.value = String(0) // Ensure value is zero for unwrap
+        console.log(`Modified WETH withdraw to smart pool unwrapWETH9(${unwrapAmount})`)
+      }
+    } else {
+      // For non-smart pool transactions, ensure value is 0 if not wrap
+      step.txRequest.value = String(0)
+    }
+
+    console.log('Wrap txRequest:', step.txRequest)
 
     const hash = yield* call(handleWrapStep, {
       step,
-      account,
+      address: account.address,
+      smartPoolAddress,
       setCurrentStep: noop,
       shouldWaitForConfirmation: false,
       allowDuplicativeTx: true, // Compared to UniswapX wraps, the user should not be stopped from wrapping in quick succession
@@ -73,12 +113,12 @@ function* wrap(params: WrapParams) {
 function getWrapTransactionInfo(amount: CurrencyAmount<Currency>): WrapTransactionInfo {
   return amount.currency.isNative
     ? {
-        type: TransactionType.WRAP,
+        type: TransactionType.Wrap,
         unwrapped: false,
         currencyAmountRaw: amount.quotient.toString(),
       }
     : {
-        type: TransactionType.WRAP,
+        type: TransactionType.Wrap,
         unwrapped: true,
         currencyAmountRaw: amount.quotient.toString(),
       }

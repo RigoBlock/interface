@@ -3,34 +3,28 @@ import { keccak256, pack } from '@ethersproject/solidity'
 import { Token, V2_FACTORY_ADDRESSES } from '@uniswap/sdk-core'
 import { Pair } from '@uniswap/v2-sdk'
 import { LightCard } from 'components/Card/cards'
+import { AutoColumn } from 'components/deprecated/Column'
 import MigrateSushiPositionCard from 'components/PositionCard/Sushi'
 import MigrateV2PositionCard from 'components/PositionCard/V2'
 import { SwitchLocaleLink } from 'components/SwitchLocaleLink'
-import { V2Unsupported } from 'components/V2Unsupported'
-import { AutoColumn } from 'components/deprecated/Column'
 import { Dots } from 'components/swap/styled'
+import { V2Unsupported } from 'components/V2Unsupported'
 import { useAccount } from 'hooks/useAccount'
 import { useNetworkSupportsV2 } from 'hooks/useNetworkSupportsV2'
 import { PairState, useV2Pairs } from 'hooks/useV2Pairs'
 import { useRpcTokenBalancesWithLoadingIndicator } from 'lib/hooks/useCurrencyBalance'
-import styled, { useTheme } from 'lib/styled-components'
 import { BodyWrapper } from 'pages/App/AppBody'
 import { ReactNode, useCallback, useMemo } from 'react'
 import { Trans } from 'react-i18next'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { Text } from 'rebass'
+import { useLocation, useNavigate } from 'react-router'
 import { toV2LiquidityToken, useTrackedTokenPairs } from 'state/user/hooks'
 import { ThemedText } from 'theme/components'
 import { StyledInternalLink } from 'theme/components/Links'
-import { Flex, TouchableArea } from 'ui/src'
+import { Flex, Text, TouchableArea } from 'ui/src'
 import { Arrow } from 'ui/src/components/arrow/Arrow'
 import { iconSizes } from 'ui/src/theme'
+import { InterfacePageName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { InterfacePageNameLocal } from 'uniswap/src/features/telemetry/constants'
-
-export const MigrateHeader = styled(ThemedText.H1Small)`
-  font-weight: 535;
-`
 
 function EmptyState({ message }: { message: ReactNode }) {
   return (
@@ -60,7 +54,6 @@ function toSushiLiquidityToken([tokenA, tokenB]: [Token, Token]): Token {
 }
 
 export default function MigrateV2() {
-  const theme = useTheme()
   const account = useAccount()
   const navigate = useNavigate()
   const { state } = useLocation()
@@ -96,10 +89,10 @@ export default function MigrateV2() {
   }, [tokenPairsWithLiquidityTokens])
 
   // fetch pair balances
-  const [pairBalances, fetchingPairBalances] = useRpcTokenBalancesWithLoadingIndicator(
-    account.address,
-    allLiquidityTokens,
-  )
+  const [pairBalances, fetchingPairBalances] = useRpcTokenBalancesWithLoadingIndicator({
+    address: account.address,
+    tokens: allLiquidityTokens,
+  })
 
   // filter for v2 liquidity tokens that the user has a balance in
   const tokenPairsWithV2Balance = useMemo(() => {
@@ -140,7 +133,7 @@ export default function MigrateV2() {
   }
 
   return (
-    <Trace logImpression page={InterfacePageNameLocal.MigrateV2}>
+    <Trace logImpression page={InterfacePageName.MigrateV2}>
       <BodyWrapper style={{ padding: 24 }}>
         <Flex gap="$gap16">
           <Flex row alignItems="center" justifyContent="space-between" gap="$gap8">
@@ -155,9 +148,9 @@ export default function MigrateV2() {
             >
               <Arrow direction="w" color="$neutral1" size={iconSizes.icon24} />
             </TouchableArea>
-            <MigrateHeader>
+            <Text variant="heading3" tag="h1" fontWeight="$medium">
               <Trans i18nKey="migrate.v2Title" />
-            </MigrateHeader>
+            </Text>
             <Flex width={iconSizes.icon48} height={iconSizes.icon36} />
           </Flex>
 
@@ -167,17 +160,17 @@ export default function MigrateV2() {
 
           {!account.isConnected ? (
             <LightCard padding="40px">
-              <ThemedText.DeprecatedBody color={theme.neutral3} textAlign="center">
+              <Text variant="body2" color="$neutral3" textAlign="center">
                 <Trans i18nKey="migrate.connectWallet" />
-              </ThemedText.DeprecatedBody>
+              </Text>
             </LightCard>
           ) : v2IsLoading ? (
             <LightCard padding="40px">
-              <ThemedText.DeprecatedBody color={theme.neutral3} textAlign="center">
+              <Text variant="body2" color="$neutral3" textAlign="center">
                 <Dots>
                   <Trans i18nKey="common.loading" />
                 </Dots>
-              </ThemedText.DeprecatedBody>
+              </Text>
             </LightCard>
           ) : v2Pairs.filter(([, pair]) => !!pair).length > 0 ? (
             <>

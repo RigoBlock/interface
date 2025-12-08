@@ -1,12 +1,9 @@
 import { Currency, Token } from '@uniswap/sdk-core'
 import { FeeAmount } from '@uniswap/v3-sdk'
+import { GraphQLApi } from '@universe/api'
 import { PoolState, usePool } from 'hooks/usePools'
 import ms from 'ms'
 import { useMemo } from 'react'
-import {
-  useFeeTierDistributionQuery,
-  useIsV3SubgraphStaleQuery,
-} from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { toGraphQLChain } from 'uniswap/src/features/chains/utils'
 import { logger } from 'utilities/src/logger/logger'
@@ -27,13 +24,13 @@ export function useFeeTierDistribution(
   const { isLoading, error, distributions } = usePoolTVL(currencyA?.wrapped, currencyB?.wrapped)
 
   // fetch all pool states to determine pool state
-  const [poolStateVeryLow] = usePool(currencyA, currencyB, FeeAmount.LOWEST)
-  const [poolStateLow200] = usePool(currencyA, currencyB, FeeAmount.LOW_200)
-  const [poolStateLow300] = usePool(currencyA, currencyB, FeeAmount.LOW_300)
-  const [poolStateLow400] = usePool(currencyA, currencyB, FeeAmount.LOW_400)
-  const [poolStateLow] = usePool(currencyA, currencyB, FeeAmount.LOW)
-  const [poolStateMedium] = usePool(currencyA, currencyB, FeeAmount.MEDIUM)
-  const [poolStateHigh] = usePool(currencyA, currencyB, FeeAmount.HIGH)
+  const [poolStateVeryLow] = usePool({ currencyA, currencyB, feeAmount: FeeAmount.LOWEST })
+  const [poolStateLow200] = usePool({ currencyA, currencyB, feeAmount: FeeAmount.LOW_200 })
+  const [poolStateLow300] = usePool({ currencyA, currencyB, feeAmount: FeeAmount.LOW_300 })
+  const [poolStateLow400] = usePool({ currencyA, currencyB, feeAmount: FeeAmount.LOW_400 })
+  const [poolStateLow] = usePool({ currencyA, currencyB, feeAmount: FeeAmount.LOW })
+  const [poolStateMedium] = usePool({ currencyA, currencyB, feeAmount: FeeAmount.MEDIUM })
+  const [poolStateHigh] = usePool({ currencyA, currencyB, feeAmount: FeeAmount.HIGH })
 
   return useMemo(() => {
     if (isLoading || error || !distributions) {
@@ -50,9 +47,6 @@ export function useFeeTierDistribution(
       .reduce((a: FeeAmount, b: FeeAmount) => ((distributions[a] ?? 0) > (distributions[b] ?? 0) ? a : b), -1)
 
     const percentages =
-      !isLoading &&
-      !error &&
-      distributions &&
       poolStateVeryLow !== PoolState.LOADING &&
       poolStateLow200 !== PoolState.LOADING &&
       poolStateLow300 !== PoolState.LOADING &&
@@ -100,7 +94,7 @@ export function useFeeTierDistribution(
 function usePoolTVL(token0: Token | undefined, token1: Token | undefined) {
   const { defaultChainId } = useEnabledChains()
   const chain = toGraphQLChain(token0?.chainId ?? defaultChainId)
-  const { loading, error, data } = useFeeTierDistributionQuery({
+  const { loading, error, data } = GraphQLApi.useFeeTierDistributionQuery({
     variables: {
       chain,
       token0: token0?.address ?? '',
@@ -109,7 +103,7 @@ function usePoolTVL(token0: Token | undefined, token1: Token | undefined) {
     pollInterval: ms(`30s`),
   })
 
-  const { data: isSubgraphStaleData, error: isSubgraphStaleError } = useIsV3SubgraphStaleQuery({
+  const { data: isSubgraphStaleData, error: isSubgraphStaleError } = GraphQLApi.useIsV3SubgraphStaleQuery({
     variables: { chain },
     pollInterval: ms(`30s`),
   })
@@ -139,6 +133,7 @@ function usePoolTVL(token0: Token | undefined, token1: Token | undefined) {
           return acc
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         acc[value.feeTier] ??= [0, 0]
 
         acc[value.feeTier][0] = (acc[value.feeTier][0] ?? 0) + Number(value.token0Supply)
@@ -167,47 +162,62 @@ function usePoolTVL(token0: Token | undefined, token1: Token | undefined) {
     )
 
     // returns undefined if both tvl0 and tvl1 are undefined (pool not created)
-    const mean = (tvl0: number | undefined, sumTvl0: number, tvl1: number | undefined, sumTvl1: number) =>
+    const mean = ({
+      tvl0,
+      sumTvl0,
+      tvl1,
+      sumTvl1,
+    }: {
+      tvl0?: number
+      sumTvl0: number
+      tvl1?: number
+      sumTvl1: number
+    }) =>
       tvl0 === undefined && tvl1 === undefined ? undefined : ((tvl0 ?? 0) + (tvl1 ?? 0)) / (sumTvl0 + sumTvl1) || 0
 
     const distributions: Record<FeeAmount, number | undefined> = {
-      [FeeAmount.LOWEST]: mean(
-        tvlByFeeTier[FeeAmount.LOWEST][0],
-        sumToken0Tvl,
-        tvlByFeeTier[FeeAmount.LOWEST][1],
-        sumToken1Tvl,
-      ),
-      [FeeAmount.LOW]: mean(tvlByFeeTier[FeeAmount.LOW][0], sumToken0Tvl, tvlByFeeTier[FeeAmount.LOW][1], sumToken1Tvl),
-      [FeeAmount.MEDIUM]: mean(
-        tvlByFeeTier[FeeAmount.MEDIUM][0],
-        sumToken0Tvl,
-        tvlByFeeTier[FeeAmount.MEDIUM][1],
-        sumToken1Tvl,
-      ),
-      [FeeAmount.HIGH]: mean(
-        tvlByFeeTier[FeeAmount.HIGH][0],
-        sumToken0Tvl,
-        tvlByFeeTier[FeeAmount.HIGH][1],
-        sumToken1Tvl,
-      ),
-      [FeeAmount.LOW_200]: mean(
-        tvlByFeeTier[FeeAmount.LOW_200][0],
-        sumToken0Tvl,
-        tvlByFeeTier[FeeAmount.LOW_200][1],
-        sumToken1Tvl,
-      ),
-      [FeeAmount.LOW_300]: mean(
-        tvlByFeeTier[FeeAmount.LOW_300][0],
-        sumToken0Tvl,
-        tvlByFeeTier[FeeAmount.LOW_300][1],
-        sumToken1Tvl,
-      ),
-      [FeeAmount.LOW_400]: mean(
-        tvlByFeeTier[FeeAmount.LOW_400][0],
-        sumToken0Tvl,
-        tvlByFeeTier[FeeAmount.LOW_400][1],
-        sumToken1Tvl,
-      ),
+      [FeeAmount.LOWEST]: mean({
+        tvl0: tvlByFeeTier[FeeAmount.LOWEST][0],
+        sumTvl0: sumToken0Tvl,
+        tvl1: tvlByFeeTier[FeeAmount.LOWEST][1],
+        sumTvl1: sumToken1Tvl,
+      }),
+      [FeeAmount.LOW]: mean({
+        tvl0: tvlByFeeTier[FeeAmount.LOW][0],
+        sumTvl0: sumToken0Tvl,
+        tvl1: tvlByFeeTier[FeeAmount.LOW][1],
+        sumTvl1: sumToken1Tvl,
+      }),
+      [FeeAmount.MEDIUM]: mean({
+        tvl0: tvlByFeeTier[FeeAmount.MEDIUM][0],
+        sumTvl0: sumToken0Tvl,
+        tvl1: tvlByFeeTier[FeeAmount.MEDIUM][1],
+        sumTvl1: sumToken1Tvl,
+      }),
+      [FeeAmount.HIGH]: mean({
+        tvl0: tvlByFeeTier[FeeAmount.HIGH][0],
+        sumTvl0: sumToken0Tvl,
+        tvl1: tvlByFeeTier[FeeAmount.HIGH][1],
+        sumTvl1: sumToken1Tvl,
+      }),
+      [FeeAmount.LOW_200]: mean({
+        tvl0: tvlByFeeTier[FeeAmount.LOW_200][0],
+        sumTvl0: sumToken0Tvl,
+        tvl1: tvlByFeeTier[FeeAmount.LOW_200][1],
+        sumTvl1: sumToken1Tvl,
+      }),
+      [FeeAmount.LOW_300]: mean({
+        tvl0: tvlByFeeTier[FeeAmount.LOW_300][0],
+        sumTvl0: sumToken0Tvl,
+        tvl1: tvlByFeeTier[FeeAmount.LOW_300][1],
+        sumTvl1: sumToken1Tvl,
+      }),
+      [FeeAmount.LOW_400]: mean({
+        tvl0: tvlByFeeTier[FeeAmount.LOW_400][0],
+        sumTvl0: sumToken0Tvl,
+        tvl1: tvlByFeeTier[FeeAmount.LOW_400][1],
+        sumTvl1: sumToken1Tvl,
+      }),
     }
 
     return {

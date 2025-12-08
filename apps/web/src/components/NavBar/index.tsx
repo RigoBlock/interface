@@ -1,35 +1,31 @@
-import { Currency, Token } from '@uniswap/sdk-core'
-import { Bag } from 'components/NavBar/Bag'
+import { Token } from '@uniswap/sdk-core'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import Row from 'components/deprecated/Row'
 import { ChainSelector } from 'components/NavBar/ChainSelector'
 import { CompanyMenu } from 'components/NavBar/CompanyMenu'
 import { NewUserCTAButton } from 'components/NavBar/DownloadApp/NewUserCTAButton'
 import PoolSelect from 'components/NavBar/PoolSelect'
 import { PreferenceMenu } from 'components/NavBar/PreferencesMenu'
 import { useTabsVisible } from 'components/NavBar/ScreenSizes'
-import { SearchBar } from 'components/NavBar/SearchBar'
+import { useIsSearchBarVisible } from 'components/NavBar/SearchBar/useIsSearchBarVisible'
 import { Tabs } from 'components/NavBar/Tabs/Tabs'
 import TestnetModeTooltip from 'components/NavBar/TestnetMode/TestnetModeTooltip'
-import { useIsAccountCTAExperimentControl } from 'components/NavBar/accountCTAsExperimentUtils'
+import { UniswapWrappedEntry } from 'components/NavBar/UniswapWrappedEntry'
 import Web3Status from 'components/Web3Status'
-import Row from 'components/deprecated/Row'
 import { useAccount } from 'hooks/useAccount'
 import { PageType, useIsPage } from 'hooks/useIsPage'
-import deprecatedStyled, { css } from 'lib/styled-components'
-import { useProfilePageState } from 'nft/hooks'
-import { ProfilePageStateType } from 'nft/types'
-import { useEffect, useMemo /*, useRef*/ } from 'react'
-import { useAllPoolsData } from 'state/pool/hooks'
-import { Flex, Nav as TamaguiNav, styled, useMedia } from 'ui/src'
-import { INTERFACE_NAV_HEIGHT, breakpoints, zIndexes } from 'ui/src/theme'
-import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { FeatureFlags } from 'uniswap/src/features/gating/flags'
-import { useFeatureFlag } from 'uniswap/src/features/gating/hooks'
 import usePrevious from 'hooks/usePrevious'
+import { css, styled as deprecatedStyled } from 'lib/styled-components'
+import { useEffect, useMemo /*, useRef*/, useRef } from 'react'
+import { useActiveSmartPool, useSelectActiveSmartPool } from 'state/application/hooks'
+import { useAllPoolsData } from 'state/pool/hooks'
+import { Flex, styled, Nav as TamaguiNav, useMedia } from 'ui/src'
+import { breakpoints, INTERFACE_NAV_HEIGHT, zIndexes } from 'ui/src/theme'
+import { useConnectionStatus } from 'uniswap/src/features/accounts/store/hooks'
+import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { assume0xAddress } from 'utils/wagmi'
 import { useReadContracts } from 'wagmi'
-import { useActiveSmartPool, useSelectActiveSmartPool } from 'state/application/hooks'
-import { useRef } from 'react'
 
 // Flex is position relative by default, we must unset the position on every Flex
 // between the body and search component
@@ -78,7 +74,7 @@ const SearchContainer = styled(UnpositionedFlex, {
 const SelectedPoolContainer = styled(UnpositionedFlex, {
   width: 'max-content',
   maxWidth: '40%',
-  minWidth: 100,
+  minWidth: 200,
   height: 42,
   flexShrink: 0,
   flexDirection: 'row',
@@ -100,7 +96,6 @@ const SelectedPoolContainer = styled(UnpositionedFlex, {
 })
 
 function useShouldHideChainSelector() {
-  const isNFTPage = useIsPage(PageType.NFTS)
   const isLandingPage = useIsPage(PageType.LANDING)
   const isSendPage = useIsPage(PageType.SEND)
   const isSwapPage = useIsPage(PageType.SWAP)
@@ -110,13 +105,11 @@ function useShouldHideChainSelector() {
   const isMigrateV3Page = useIsPage(PageType.MIGRATE_V3)
   const isBuyPage = useIsPage(PageType.BUY)
 
-  const baseHiddenPages = isNFTPage
   const multichainHiddenPages =
     isLandingPage ||
     isSendPage ||
     isSwapPage ||
     isLimitPage ||
-    baseHiddenPages ||
     isExplorePage ||
     isPositionsPage ||
     isMigrateV3Page ||
@@ -126,19 +119,18 @@ function useShouldHideChainSelector() {
 }
 
 export default function Navbar() {
-  const isNFTPage = useIsPage(PageType.NFTS)
   const isLandingPage = useIsPage(PageType.LANDING)
 
-  const sellPageState = useProfilePageState((state) => state.state)
   const media = useMedia()
   const isSmallScreen = media.md
-  const isMediumScreen = media.lg
   const areTabsVisible = useTabsVisible()
-  const collapseSearchBar = media.xl
-  const NAV_SEARCH_MAX_HEIGHT = 'calc(100vh - 30px)'
+  const isSearchBarVisible = useIsSearchBarVisible()
+  const { isConnected } = useConnectionStatus()
+  //const collapseSearchBar = media.xl
+  //const NAV_SEARCH_MAX_HEIGHT = 'calc(100vh - 30px)'
 
   const account = useAccount()
-  const { address, chainId, isConnected, isConnecting } = account
+  const { address, chainId } = account
   const prevAccount = usePrevious(address)
   const accountChanged = prevAccount && prevAccount !== address
 
@@ -147,63 +139,60 @@ export default function Navbar() {
   const { isTestnetModeEnabled } = useEnabledChains()
   const isEmbeddedWalletEnabled = useFeatureFlag(FeatureFlags.EmbeddedWallet)
 
-  const { isControl, isLoading: isSignInExperimentControlLoading } = useIsAccountCTAExperimentControl()
-
-  const isSignInExperimentControl = !isEmbeddedWalletEnabled && isControl
-  const shouldDisplayCreateAccountButton = false
   const { data: allPools } = useAllPoolsData()
   const poolAddresses = useMemo(() => allPools?.map((p) => p.pool), [allPools])
 
   const { data, isLoading } = useReadContracts({
     contracts: useMemo(() => {
       return poolAddresses?.map(
-        (vaultAddress) => ({
-          address: assume0xAddress(vaultAddress) ?? '0x',
-          abi: [
-            {
-              "inputs": [],
-              "name": "getPool",
-              "outputs": [
-                {
-                  "components": [
-                    {
-                      "internalType": "string",
-                      "name": "name",
-                      "type": "string"
-                    },
-                    {
-                      "internalType": "string",
-                      "name": "symbol",
-                      "type": "string"
-                    },
-                    {
-                      "internalType": "uint8",
-                      "name": "decimals",
-                      "type": "uint8"
-                    },
-                    {
-                      "internalType": "address",
-                      "name": "owner",
-                      "type": "address"
-                    },
-                    {
-                      "internalType": "address",
-                      "name": "baseToken",
-                      "type": "address"
-                    }
-                  ],
-                  "internalType": "struct ISmartPoolState.ReturnedPool",
-                  "name": "",
-                  "type": "tuple"
-                }
-              ],
-              "stateMutability": "view",
-              "type": "function"
-            }
-          ],
-          functionName: 'getPool',
-          chainId,
-        }) as const,
+        (vaultAddress) =>
+          ({
+            address: assume0xAddress(vaultAddress),
+            abi: [
+              {
+                inputs: [],
+                name: 'getPool',
+                outputs: [
+                  {
+                    components: [
+                      {
+                        internalType: 'string',
+                        name: 'name',
+                        type: 'string',
+                      },
+                      {
+                        internalType: 'string',
+                        name: 'symbol',
+                        type: 'string',
+                      },
+                      {
+                        internalType: 'uint8',
+                        name: 'decimals',
+                        type: 'uint8',
+                      },
+                      {
+                        internalType: 'address',
+                        name: 'owner',
+                        type: 'address',
+                      },
+                      {
+                        internalType: 'address',
+                        name: 'baseToken',
+                        type: 'address',
+                      },
+                    ],
+                    internalType: 'struct ISmartPoolState.ReturnedPool',
+                    name: '',
+                    type: 'tuple',
+                  },
+                ],
+                stateMutability: 'view',
+                type: 'function',
+              },
+            ],
+            functionName: 'getPool',
+            chainId,
+          }) as const,
       )
     }, [poolAddresses, chainId]),
   })
@@ -213,22 +202,24 @@ export default function Navbar() {
       return undefined
     }
 
-    return data
-      ?.map(({ result }, i) => {
-        if (!result) { return undefined }
-        return result && { ...result, pool: poolAddresses[i] }
-      })
+    return data?.map(({ result }, i) => {
+      if (!result) {
+        return undefined
+      }
+      return { ...result, pool: poolAddresses[i] }
+    })
   }, [address, chainId, poolAddresses, data, isLoading])
 
   // Cache operatedPools and userIsOperator until new data is loaded
-  const rawOperatedPools = useMemo(() => poolsWithOwners
-    ?.filter((pool) => pool?.owner?.toLowerCase() === address?.toLowerCase()) || [], [poolsWithOwners, address])
-    .map((pool) => new Token(chainId ?? UniverseChainId.Mainnet, pool!.pool, pool!.decimals, pool!.symbol, pool!.name))
+  const rawOperatedPools = useMemo(
+    () => poolsWithOwners?.filter((pool) => pool?.owner.toLowerCase() === address?.toLowerCase()) || [],
+    [poolsWithOwners, address],
+  ).map((pool) => new Token(chainId ?? UniverseChainId.Mainnet, pool!.pool, pool!.decimals, pool!.symbol, pool!.name))
 
   const cachedPoolsRef = useRef<{ pools: typeof rawOperatedPools } | undefined>(undefined)
 
   useEffect(() => {
-    if (rawOperatedPools && rawOperatedPools.length > 0) {
+    if (rawOperatedPools.length > 0) {
       cachedPoolsRef.current = { pools: rawOperatedPools }
     }
   }, [chainId, rawOperatedPools])
@@ -238,8 +229,8 @@ export default function Navbar() {
   // Use cached pools while loading new data
   const { operatedPools, newDefaultVaultLoaded } = useMemo(() => {
     let newDefaultVaultLoaded = false
-    
-    if (!rawOperatedPools || rawOperatedPools.length === 0) {
+
+    if (rawOperatedPools.length === 0) {
       return { operatedPools: cachedPoolsRef.current?.pools || [], newDefaultVaultLoaded }
     }
 
@@ -251,69 +242,58 @@ export default function Navbar() {
     return { operatedPools: rawOperatedPools, newDefaultVaultLoaded }
   }, [rawOperatedPools, activeSmartVault.address])
 
-  const defaultPool = useMemo(() => operatedPools?.[0], [operatedPools])
+  const defaultPool = useMemo(() => operatedPools[0] ?? undefined, [operatedPools])
   const onPoolSelect = useSelectActiveSmartPool()
 
   const prevChainId = usePrevious(chainId)
   const chainChanged = prevChainId && prevChainId !== chainId
 
   useEffect(() => {
-    const emptyPool = { isToken: false } as Currency
-
     // Notice: this is necessary to reset the selected pool when the user changes account or chain
     if (accountChanged || newDefaultVaultLoaded) {
-      onPoolSelect(defaultPool ?? emptyPool)
+      onPoolSelect(defaultPool)
     }
   }, [accountChanged, chainChanged, defaultPool, onPoolSelect, newDefaultVaultLoaded])
 
-  const userIsOperator = Boolean(operatedPools && operatedPools.length > 0)
+  const userIsOperator = operatedPools.length > 0
 
   return (
     <Nav>
-      <Flex row centered width="100%" style={{ position: 'relative' }}>
+      <UnpositionedFlex row centered width="100%">
         <Left style={{ flexShrink: 0 }}>
           <CompanyMenu />
           {areTabsVisible && <Tabs userIsOperator={userIsOperator} />}
         </Left>
 
         <SearchContainer>
-          {!collapseSearchBar && userIsOperator && (
+          {isSearchBarVisible && userIsOperator && (
             <SelectedPoolContainer>
               <PoolSelect operatedPools={operatedPools} />
             </SelectedPoolContainer>
           )}
-          {!collapseSearchBar && (
+          {/*isSearchBarVisible && (
             <UnpositionedFlex flex={1} flexShrink={1} ml="$spacing16">
-              <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} allPools={allPools} />
+              <SearchBar />
             </UnpositionedFlex>
-          )}
+          )*/}
         </SearchContainer>
 
         <Right>
-          {collapseSearchBar && (
-            <Flex row gap={-12} alignItems="center" mr={-15} ml={-12}>
-              <SearchBar maxHeight={NAV_SEARCH_MAX_HEIGHT} fullScreen={isSmallScreen} />
-              {userIsOperator && (
-                <Flex mt={8}>
-                  <PoolSelect operatedPools={operatedPools} />
-                </Flex>
-              )}
-              {!hideChainSelector && <ChainSelector />}
+          <UniswapWrappedEntry />
+          {!hideChainSelector && <ChainSelector />}
+          {!isSearchBarVisible && userIsOperator && (
+            <Flex mt={8}>
+              <PoolSelect operatedPools={operatedPools} />
             </Flex>
           )}
-          {!collapseSearchBar && !hideChainSelector && <ChainSelector />}
-          {isNFTPage && sellPageState !== ProfilePageStateType.LISTING && <Bag />}
-          {shouldDisplayCreateAccountButton && isSignInExperimentControl && !isSignInExperimentControlLoading && isLandingPage && !isSmallScreen && (
-            <NewUserCTAButton />
-          )}
-          {!isConnected && !isConnecting && <PreferenceMenu />}
+          {/*!isSearchBarVisible && <SearchBar />*/}
+          {!isEmbeddedWalletEnabled && isLandingPage && !isSmallScreen && <NewUserCTAButton />}
+          {!isConnected && <PreferenceMenu />}
           {isTestnetModeEnabled && <TestnetModeTooltip />}
+          {isEmbeddedWalletEnabled && !isConnected && <NewUserCTAButton />}
           <Web3Status />
-          {shouldDisplayCreateAccountButton && !isSignInExperimentControl && !isSignInExperimentControlLoading && !address && !isMediumScreen && (
-            <NewUserCTAButton />
-          )}
         </Right>
-      </Flex>
+      </UnpositionedFlex>
     </Nav>
   )
 }

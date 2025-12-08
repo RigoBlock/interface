@@ -3,16 +3,15 @@ import { useTranslation } from 'react-i18next'
 import { TextInput } from 'react-native'
 import { FadeIn, FadeOut } from 'react-native-reanimated'
 import { RecipientScanModal } from 'src/components/RecipientSelect/RecipientScanModal'
-import { Flex, Loader, Text, TouchableArea, useSporeColors } from 'ui/src'
-import ScanQRIcon from 'ui/src/assets/icons/scan.svg'
+import { Flex, Loader, Text, TouchableArea } from 'ui/src'
+import { Scan } from 'ui/src/components/icons'
 import { AnimatedFlex } from 'ui/src/components/layout/AnimatedFlex'
-import { iconSizes } from 'ui/src/theme'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
-import { dismissNativeKeyboard } from 'utilities/src/device/keyboard'
+import { dismissNativeKeyboard } from 'utilities/src/device/keyboard/dismissNativeKeyboard'
+import { useFilteredRecipientSections } from 'wallet/src/components/RecipientSearch/hooks'
 import { RecipientList } from 'wallet/src/components/RecipientSearch/RecipientList'
 import { RecipientSelectSpeedBumps } from 'wallet/src/components/RecipientSearch/RecipientSelectSpeedBumps'
-import { useFilteredRecipientSections } from 'wallet/src/components/RecipientSearch/hooks'
 import { SearchBar } from 'wallet/src/features/search/SearchBar'
 
 interface RecipientSelectProps {
@@ -26,11 +25,9 @@ interface RecipientSelectProps {
 }
 
 function QRScannerIconButton({ onPress }: { onPress: () => void }): JSX.Element {
-  const colors = useSporeColors()
-
   return (
     <TouchableArea testID={TestID.SelectRecipient} onPress={onPress}>
-      <ScanQRIcon color={colors.neutral2.get()} height={iconSizes.icon20} width={iconSizes.icon20} />
+      <Scan color="$neutral2" size="$icon.20" />
     </TouchableArea>
   )
 }
@@ -64,19 +61,16 @@ function _RecipientSelect({
   const onPressQRScanner = useCallback(() => {
     dismissNativeKeyboard()
     setShowQRScanner(true)
-  }, [setShowQRScanner])
+  }, [])
 
   const onCloseQRScanner = useCallback(() => {
     setShowQRScanner(false)
-  }, [setShowQRScanner])
+  }, [])
 
-  const onSelect = useCallback(
-    (newRecipient: string) => {
-      setSelectedRecipient(newRecipient)
-      setCheckSpeedBumps(true)
-    },
-    [setSelectedRecipient],
-  )
+  const onSelect = useCallback((newRecipient: string) => {
+    setSelectedRecipient(newRecipient)
+    setCheckSpeedBumps(true)
+  }, [])
 
   const onSpeedBumpConfirm = useCallback(() => {
     if (selectedRecipient) {
@@ -100,7 +94,7 @@ function _RecipientSelect({
           endAdornment={<QRScannerIconButton onPress={onPressQRScanner} />}
           hideBackButton={hideBackButton}
           placeholder={t('send.recipient.input.placeholder')}
-          value={pattern ?? ''}
+          value={pattern}
           onBack={recipient ? onHideRecipientSelector : undefined}
           onChangeText={setPattern}
         />

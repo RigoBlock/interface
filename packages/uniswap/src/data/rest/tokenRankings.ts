@@ -2,25 +2,22 @@ import { PartialMessage } from '@bufbuild/protobuf'
 import { ConnectError } from '@connectrpc/connect'
 import { useQuery } from '@connectrpc/connect-query'
 import { UseQueryResult } from '@tanstack/react-query'
-import { tokenRankings } from '@uniswap/client-explore/dist/uniswap/explore/v1/service-ExploreStatsService_connectquery'
 import {
-  ProtectionInfo as ProtectionInfoProtobuf,
   TokenRankingsRequest,
   TokenRankingsResponse,
   TokenRankingsStat,
 } from '@uniswap/client-explore/dist/uniswap/explore/v1/service_pb'
-import {
-  ProtectionAttackType,
-  ProtectionInfo,
-  ProtectionResult,
-  SafetyLevel,
-} from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
+import { tokenRankings } from '@uniswap/client-explore/dist/uniswap/explore/v1/service-ExploreStatsService_connectquery'
+import { parseProtectionInfo, parseSafetyLevel } from '@universe/api'
+import { GRG } from 'uniswap/src/constants/tokens'
 import { uniswapGetTransport } from 'uniswap/src/data/rest/base'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { RIGOBLOCK_LOGO } from 'ui/src/assets'
 import { fromGraphQLChain } from 'uniswap/src/features/chains/utils'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
-import { buildCurrency, buildCurrencyInfo, getCurrencySafetyInfo } from 'uniswap/src/features/dataApi/utils'
+import { buildCurrency, buildCurrencyInfo } from 'uniswap/src/features/dataApi/utils/buildCurrency'
+import { getCurrencySafetyInfo } from 'uniswap/src/features/dataApi/utils/getCurrencySafetyInfo'
 import { currencyId } from 'uniswap/src/utils/currencyId'
-import { logger } from 'utilities/src/logger/logger'
 
 /**
  * Wrapper around Tanstack useQuery for the Uniswap REST BE service TokenRankings
@@ -33,66 +30,6 @@ export function useTokenRankingsQuery(
   enabled = true,
 ): UseQueryResult<TokenRankingsResponse, ConnectError> {
   return useQuery(tokenRankings, input, { transport: uniswapGetTransport, enabled })
-}
-
-/**
- * Helper functions to parse string enum fields from REST API responses.
- *
- * Note: The Protobuf types use string enums instead of strictly typed enums because
- * Protobuf does not allow defining two of the same enum name in the same proto file. (i.e. both ProtectionAttackType and
- * ProtectionResult contain 'UNKNOWN')
- *
- * Since the Explore service just calls GraphQL, we have confidence the string values will match the GraphQL enums.
- * Just validating here!
- */
-function parseSafetyLevel(safetyLevel?: string): SafetyLevel | undefined {
-  if (!safetyLevel) {
-    return undefined
-  }
-  const validSafetyLevels: SafetyLevel[] = Object.values(SafetyLevel)
-  if (validSafetyLevels.includes(safetyLevel as SafetyLevel)) {
-    return safetyLevel as SafetyLevel
-  } else {
-    logger.warn(
-      'uniswap/data/rest/tokenRankings.ts',
-      'parseSafetyLevel',
-      `Invalid safetyLevel from REST TokenRankings query: ${safetyLevel}`,
-    )
-    return undefined
-  }
-}
-
-function parseProtectionInfo(protectionInfo?: ProtectionInfoProtobuf): ProtectionInfo | undefined {
-  if (!protectionInfo) {
-    return undefined
-  }
-
-  let protectionResult: ProtectionResult | undefined
-  const validProtectionResults: ProtectionResult[] = Object.values(ProtectionResult)
-  if (validProtectionResults.includes(protectionInfo.result as ProtectionResult)) {
-    protectionResult = protectionInfo.result as ProtectionResult
-  } else {
-    logger.warn(
-      'uniswap/data/rest/tokenRankings.ts',
-      'parseProtectionInfo',
-      `Invalid protectionResult from REST TokenRankings query: ${protectionInfo.result}`,
-    )
-    return undefined
-  }
-
-  const validAttackTypes: ProtectionAttackType[] = Object.values(ProtectionAttackType)
-  const attackTypes = protectionInfo.attackTypes
-    .filter((at) => validAttackTypes.includes(at as ProtectionAttackType))
-    .map((at) => at as ProtectionAttackType)
-  if (attackTypes.length !== protectionInfo.attackTypes.length) {
-    logger.warn(
-      'uniswap/data/rest/tokenRankings.ts',
-      'parseProtectionInfo',
-      `Invalid attackTypes in REST TokenRankings query: ${protectionInfo.attackTypes}`,
-    )
-  }
-
-  return { attackTypes, result: protectionResult }
 }
 
 export function tokenRankingsStatToCurrencyInfo(tokenRankingsStat: TokenRankingsStat): CurrencyInfo | null {
@@ -119,10 +56,23 @@ export function tokenRankingsStatToCurrencyInfo(tokenRankingsStat: TokenRankings
     return null
   }
 
+  // Override logoUrl for GRG tokens on Unichain only
+  let finalLogoUrl = logo
+  if (!currency.isNative && currency.address && currency.chainId === UniverseChainId.Unichain) {
+    const isGrgToken = Object.values(GRG).some(grgToken => 
+      grgToken.chainId === currency.chainId && 
+      grgToken.address.toLowerCase() === currency.address.toLowerCase()
+    )
+    
+    if (isGrgToken) {
+      finalLogoUrl = RIGOBLOCK_LOGO
+    }
+  }
+
   return buildCurrencyInfo({
     currency,
     currencyId: currencyId(currency),
-    logoUrl: logo,
+    logoUrl: finalLogoUrl,
     safetyInfo: getCurrencySafetyInfo(safetyLevel, protectionInfo),
   })
 }

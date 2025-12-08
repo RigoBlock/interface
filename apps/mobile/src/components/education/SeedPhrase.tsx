@@ -62,25 +62,62 @@ function Page({ text, params }: { text: ReactNode; params: OnboardingStackBasePa
   )
 }
 
+const highlightComponent = <CustomHeadingText color="$accent1" />
+
+const cloudProviderName = getCloudProviderName()
+
+const pageContentList = [
+  <Trans
+    key="account.recoveryPhrase.education.part1"
+    components={{ highlight: highlightComponent }}
+    i18nKey="account.recoveryPhrase.education.part1"
+  />,
+  <Trans
+    key="account.recoveryPhrase.education.part2"
+    components={{ highlight: highlightComponent }}
+    i18nKey="account.recoveryPhrase.education.part2"
+  />,
+  <Trans
+    key="account.recoveryPhrase.education.part3"
+    components={{ highlight: highlightComponent }}
+    i18nKey="account.recoveryPhrase.education.part3"
+  />,
+  <Trans
+    key="account.recoveryPhrase.education.part1"
+    components={{ highlight: highlightComponent }}
+    i18nKey="account.recoveryPhrase.education.part1"
+  />,
+  <Trans
+    key="account.recoveryPhrase.education.part2"
+    components={{ highlight: highlightComponent }}
+    i18nKey="account.recoveryPhrase.education.part2"
+  />,
+  <Trans
+    key="account.recoveryPhrase.education.part3"
+    components={{ highlight: highlightComponent }}
+    i18nKey="account.recoveryPhrase.education.part3"
+  />,
+  <Trans
+    key="account.recoveryPhrase.education.part4"
+    components={{ highlight: highlightComponent }}
+    i18nKey="account.recoveryPhrase.education.part4"
+    values={{ cloudProviderName }}
+  />,
+  <Trans
+    key="account.recoveryPhrase.education.part5"
+    components={{ highlight: highlightComponent }}
+    i18nKey="account.recoveryPhrase.education.part5"
+  />,
+  <Trans
+    key="account.recoveryPhrase.education.part6"
+    components={{ highlight: highlightComponent }}
+    i18nKey="account.recoveryPhrase.education.part6"
+  />,
+]
+
 export const SeedPhraseEducationContent = (params: OnboardingStackBaseParams): JSX.Element[] => {
-  const cloudProviderName = getCloudProviderName()
-  const highlightComponent = <CustomHeadingText color="$accent1" />
-
-  const pageContentList = [
-    <Trans components={{ highlight: highlightComponent }} i18nKey="account.recoveryPhrase.education.part1" />,
-    <Trans components={{ highlight: highlightComponent }} i18nKey="account.recoveryPhrase.education.part2" />,
-    <Trans components={{ highlight: highlightComponent }} i18nKey="account.recoveryPhrase.education.part3" />,
-    <Trans
-      components={{ highlight: highlightComponent }}
-      i18nKey="account.recoveryPhrase.education.part4"
-      values={{ cloudProviderName }}
-    />,
-    <Trans components={{ highlight: highlightComponent }} i18nKey="account.recoveryPhrase.education.part5" />,
-    <Trans components={{ highlight: highlightComponent }} i18nKey="account.recoveryPhrase.education.part6" />,
-  ]
-
-  return pageContentList.map((content) => (
-    <Page params={params} text={<CustomHeadingText>{content}</CustomHeadingText>} />
+  return pageContentList.map((content, i) => (
+    <Page key={i} params={params} text={<CustomHeadingText>{content}</CustomHeadingText>} />
   ))
 }
 

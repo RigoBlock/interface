@@ -1,14 +1,15 @@
+import { useTheme } from '@tamagui/core'
 //import Badge from 'components/Badge'
 import { ButtonPrimary } from 'components/Button/buttons'
 import Row, { RowBetween, RowFixed } from 'components/deprecated/Row'
 import RaceModal from 'components/earn/RaceModal'
+import styled from 'lib/styled-components'
+import { useCallback, useState } from 'react'
 //import RangeBadge from 'components/Badge/RangeBadge'
 //import Loader from 'components/Loader'
 //import { useToken } from 'hooks/Tokens'
 import { Trans } from 'react-i18next'
-import { useCallback, useState } from 'react'
-import { Link } from 'react-router-dom'
-import styled, { useTheme } from 'lib/styled-components'
+import { Link } from 'react-router'
 import { MEDIA_WIDTHS } from 'theme'
 import { PoolPositionDetails } from 'types/position'
 
@@ -160,7 +161,7 @@ export default function PoolPositionListItem({ positionDetails, returnPage }: Po
       e.preventDefault()
       setShowRaceModal(true)
     },
-    [setShowRaceModal]
+    [setShowRaceModal],
   )
 
   return (
@@ -178,7 +179,7 @@ export default function PoolPositionListItem({ positionDetails, returnPage }: Po
             <Row gap="sm" justify="flex-end">
               <DataText>{name}</DataText>
               {userHasStake && (
-                <LabelText color={theme.success}>
+                <LabelText color={theme.success?.get()}>
                   <BadgeText>
                     <Trans>active</Trans>
                   </BadgeText>
@@ -186,7 +187,7 @@ export default function PoolPositionListItem({ positionDetails, returnPage }: Po
                 </LabelText>
               )}
               {returnPage === 'mint' && Number(userBalance) > 0 && (
-                <LabelText color={theme.success}>
+                <LabelText color={theme.success?.get()}>
                   <BadgeText>
                     <Trans>held</Trans>
                   </BadgeText>
@@ -194,7 +195,7 @@ export default function PoolPositionListItem({ positionDetails, returnPage }: Po
                 </LabelText>
               )}
               {returnPage === 'mint' && userIsOwner && (
-                <LabelText color={theme.success}>
+                <LabelText color={theme.success?.get()}>
                   <BadgeText>
                     <Trans>owned</Trans>
                   </BadgeText>

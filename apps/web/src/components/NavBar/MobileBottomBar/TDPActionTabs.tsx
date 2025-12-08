@@ -1,17 +1,18 @@
-import { CreditCardIcon } from 'components/Icons/CreditCard'
-import { Sell } from 'components/Icons/Sell'
 import { Send } from 'components/Icons/Send'
 import { NATIVE_CHAIN_ID } from 'constants/tokens'
-import { useAccount } from 'hooks/useAccount'
-import { useSwitchChain } from 'hooks/useSwitchChain'
+import { useActiveAccount, useConnectionStatus } from 'features/accounts/store/hooks'
+import useSelectChain from 'hooks/useSelectChain'
 import { useTDPContext } from 'pages/TokenDetails/TDPContext'
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
-import { Button, Flex, useMedia } from 'ui/src'
+import { useNavigate } from 'react-router'
+import { Button, ButtonProps, Flex, IconButton, useMedia } from 'ui/src'
+import { ArrowDownCircle } from 'ui/src/components/icons/ArrowDownCircle'
+import { ArrowUpCircle } from 'ui/src/components/icons/ArrowUpCircle'
+import { isEVMChain } from 'uniswap/src/features/platforms/utils/chains'
 
 type TabItem = {
-  label: string
+  label?: string
   href: string
   icon: JSX.Element
 }
@@ -19,9 +20,12 @@ type TabItem = {
 export function TDPActionTabs() {
   const { t } = useTranslation()
   const { currencyChain, currencyChainId, address, tokenColor } = useTDPContext()
-  const switchChain = useSwitchChain()
+  const selectChain = useSelectChain()
   const navigate = useNavigate()
-  const account = useAccount()
+
+  const currentConnectedChainId = useActiveAccount(currencyChainId)?.chainId
+  const isConnected = useConnectionStatus(currencyChainId).isConnected
+
   const chainUrlParam = currencyChain.toLowerCase()
   const addressUrlParam = address === NATIVE_CHAIN_ID ? 'ETH' : address
   const media = useMedia()
@@ -29,44 +33,57 @@ export function TDPActionTabs() {
 
   const toActionLink = useCallback(
     async (href: string) => {
-      if (account.chainId && account.chainId !== currencyChainId) {
-        await switchChain(currencyChainId)
+      if (currentConnectedChainId && currentConnectedChainId !== currencyChainId && isEVMChain(currencyChainId)) {
+        await selectChain(currencyChainId)
       }
       navigate(href)
     },
-    [account, currencyChainId, switchChain, navigate],
+    [currentConnectedChainId, currencyChainId, selectChain, navigate],
   )
 
-  const tabs: TabItem[] = [
-    {
-      label: t('common.buy.label'),
-      href: `/swap/?chain=${chainUrlParam}&outputCurrency=${addressUrlParam}`,
-      icon: <CreditCardIcon fill="currentColor" />,
-    },
-    {
-      label: t('common.sell.label'),
-      href: `/swap?chain=${chainUrlParam}&inputCurrency=${addressUrlParam}`,
-      icon: <Sell fill="currentColor" />,
-    },
-    {
-      label: t('common.send.button'),
-      href: `/send?chain=${chainUrlParam}&inputCurrency=${addressUrlParam}`,
-      icon: <Send fill="currentColor" />,
-    },
-  ]
+  const tabs: TabItem[] = useMemo(
+    () => [
+      {
+        label: t('common.buy.label'),
+        href: `/swap/?chain=${chainUrlParam}&outputCurrency=${addressUrlParam}`,
+        icon: <ArrowDownCircle />,
+      },
+      {
+        label: t('common.sell.label'),
+        href: `/swap?chain=${chainUrlParam}&inputCurrency=${addressUrlParam}`,
+        icon: <ArrowUpCircle />,
+      },
+      ...(isConnected
+        ? [
+            {
+              href: `/send?sendChain=${chainUrlParam}&sendCurrency=${addressUrlParam}`,
+              icon: <Send fill="currentColor" />,
+            },
+          ]
+        : []),
+    ],
+    [t, chainUrlParam, addressUrlParam, isConnected],
+  )
   return (
     <Flex row justifyContent="center" gap="$spacing8" width="100%">
-      {tabs.map((tab) => (
-        <Button
-          key={tab.label}
-          onPress={() => toActionLink(tab.href)}
-          backgroundColor={tokenColor}
-          icon={showIcons ? tab.icon : undefined}
-          size="medium"
-        >
-          {tab.label}
-        </Button>
-      ))}
+      {tabs.map((tab, index) => {
+        const commonProps = {
+          key: tab.label || `icon-${index}`,
+          onPress: () => toActionLink(tab.href),
+          backgroundColor: tokenColor,
+          size: 'medium',
+        } as ButtonProps
+
+        return tab.label ? (
+          // biome-ignore lint/correctness/useJsxKeyInIterable: key is inside commeontProps
+          <Button {...commonProps} icon={showIcons ? tab.icon : undefined}>
+            {tab.label}
+          </Button>
+        ) : (
+          // biome-ignore lint/correctness/useJsxKeyInIterable: key is inside commeontProps
+          <IconButton {...commonProps} icon={tab.icon} />
+        )
+      })}
     </Flex>
   )
 }

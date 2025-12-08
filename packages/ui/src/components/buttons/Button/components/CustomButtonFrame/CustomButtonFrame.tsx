@@ -1,4 +1,4 @@
-import { GetProps, XStack, styled } from 'tamagui'
+import { GetProps, styled, XStack } from 'tamagui'
 import { FOCUS_SCALE } from 'ui/src/components/buttons/Button/components/CustomButtonFrame/constants'
 import { withCommonPressStyle } from 'ui/src/components/buttons/Button/components/CustomButtonFrame/utils'
 import { variantEmphasisHash } from 'ui/src/components/buttons/Button/components/CustomButtonFrame/variantEmphasisHash'
@@ -80,9 +80,17 @@ const CustomButtonFrameWithoutCustomProps = styled(XStack, {
 
         // TODO(WEB-6347): change name back to `disabled`
         // @ts-expect-error we know isDisabled will be ButtonVariantProps['isDisabled']
-        if (props.isDisabled) {
+        if (props.isDisabled && !props.onDisabledPress) {
           return {
             backgroundColor: '$surface2',
+          }
+        }
+
+        // @ts-expect-error we know this will potentially be on `props`
+        if (props.onDisabledPress) {
+          return {
+            backgroundColor: '$surface2',
+            pressStyle: withCommonPressStyle({}),
           }
         }
 
@@ -144,8 +152,7 @@ const CustomButtonFrameWithoutCustomProps = styled(XStack, {
     },
     size: {
       xxsmall: {
-        px: '$spacing6',
-        py: '$spacing4',
+        p: '$spacing6',
         borderRadius: '$rounded12',
         gap: '$spacing4',
       },
@@ -182,11 +189,27 @@ const CustomButtonFrameWithoutCustomProps = styled(XStack, {
       },
     },
     // TODO(WEB-6347): change variant name back to `disabled`
-    isDisabled: {
-      true: {
-        pointerEvents: 'none',
-        userSelect: 'none',
-      },
+    isDisabled: (untypedIsDisabled, { props }) => {
+      // @ts-expect-error we know this will potentially be on `props`
+      if (props.onDisabledPress) {
+        // `onDisabledPress` takes priority over `isDisabled` here; we still want to show the button as being interactive on hover, click, focus, etc.
+        return {}
+      }
+
+      if (untypedIsDisabled) {
+        return {
+          pointerEvents: 'box-none',
+          'aria-disabled': true,
+          userSelect: 'none',
+          tabIndex: -1,
+          cursor: 'default',
+          '$platform-web': {
+            pointerEvents: 'none',
+          },
+        }
+      }
+
+      return {}
     },
     emphasis: {
       primary: {},
@@ -204,8 +227,11 @@ const CustomButtonFrameWithoutCustomProps = styled(XStack, {
   },
 })
 
+CustomButtonFrameWithoutCustomProps.displayName = 'CustomButtonFrameWithoutCustomProps'
+
 type CustomProps = {
   'primary-color'?: string
+  onDisabledPress?: () => void
 }
 
 type CustomButtonWithExtraProps = typeof CustomButtonFrameWithoutCustomProps & {

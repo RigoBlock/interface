@@ -1,13 +1,13 @@
 import type { Filter } from '@ethersproject/providers'
 //import { useWeb3React } from '@web3-react/core'
-import { getBackupRpcProvider, RPC_PROVIDERS, TESTNET_RPC_PROVIDERS } from 'constants/providers'
+import { getBackupRpcProvider, RPC_PROVIDERS } from 'constants/providers'
 import { useAccount } from 'hooks/useAccount'
 import useBlockNumber from 'lib/hooks/useBlockNumber'
 import { useEffect, useMemo } from 'react'
 import { useAppDispatch, useAppSelector } from 'state/hooks'
 import { fetchedLogs, fetchedLogsError, fetchingLogs } from 'state/logs/slice'
 import { isHistoricalLog, keyToFilter } from 'state/logs/utils'
-import { SUPPORTED_TESTNET_CHAIN_IDS, UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { logger } from 'utilities/src/logger/logger'
 
 export default function Updater(): null {
@@ -21,22 +21,18 @@ export default function Updater(): null {
       return undefined
     }
 
-    if (SUPPORTED_TESTNET_CHAIN_IDS.includes(chainId) && chainId !== UniverseChainId.Sepolia) {
-      return TESTNET_RPC_PROVIDERS[chainId]
-    } else {
-      switch (chainId) {
-        case UniverseChainId.Mainnet:
-        case UniverseChainId.Unichain:
-        case UniverseChainId.Bnb:
-        case UniverseChainId.Polygon:
-        case UniverseChainId.ArbitrumOne:
-        case UniverseChainId.Optimism:
-        case UniverseChainId.Base:
-        case UniverseChainId.Sepolia:
-          return getBackupRpcProvider(chainId)
-        default:
-          return RPC_PROVIDERS[chainId]
-      }
+    switch (chainId) {
+      case UniverseChainId.Mainnet:
+      case UniverseChainId.Unichain:
+      case UniverseChainId.Bnb:
+      case UniverseChainId.Polygon:
+      case UniverseChainId.ArbitrumOne:
+      case UniverseChainId.Optimism:
+      case UniverseChainId.Base:
+      case UniverseChainId.Sepolia:
+        return getBackupRpcProvider(chainId)
+      default:
+        return RPC_PROVIDERS[chainId as keyof typeof RPC_PROVIDERS]
     }
   }, [chainId])
 
@@ -48,6 +44,7 @@ export default function Updater(): null {
     }
 
     const active = state[chainId]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!active) {
       return []
     }

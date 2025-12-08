@@ -1,13 +1,5 @@
 import { createMigrate } from 'redux-persist'
 import { migration1 } from 'state/migrations/1'
-import { migration10 } from 'state/migrations/10'
-import { migration11 } from 'state/migrations/11'
-import { migration12 } from 'state/migrations/12'
-import { migration13 } from 'state/migrations/13'
-import { migration14 } from 'state/migrations/14'
-import { migration15 } from 'state/migrations/15'
-import { migration16 } from 'state/migrations/16'
-import { PersistAppStateV17, migration17 } from 'state/migrations/17'
 import { migration2 } from 'state/migrations/2'
 import { migration3 } from 'state/migrations/3'
 import { migration4 } from 'state/migrations/4'
@@ -16,7 +8,15 @@ import { migration6 } from 'state/migrations/6'
 import { migration7 } from 'state/migrations/7'
 import { migration8 } from 'state/migrations/8'
 import { migration9 } from 'state/migrations/9'
-import { SearchResultType } from 'uniswap/src/features/search/SearchResult'
+import { migration10 } from 'state/migrations/10'
+import { migration11 } from 'state/migrations/11'
+import { migration12 } from 'state/migrations/12'
+import { migration13 } from 'state/migrations/13'
+import { migration14 } from 'state/migrations/14'
+import { migration15 } from 'state/migrations/15'
+import { migration16 } from 'state/migrations/16'
+import { migration17, PersistAppStateV17 } from 'state/migrations/17'
+import { PreV55SearchResultType } from 'uniswap/src/state/oldTypes'
 
 const previousState: PersistAppStateV17 = {
   _persist: {
@@ -27,7 +27,7 @@ const previousState: PersistAppStateV17 = {
     results: [
       // token selector saved native asset
       {
-        type: SearchResultType.Token,
+        type: PreV55SearchResultType.Token,
         chainId: 1,
         address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
         name: 'Ethereum',
@@ -37,7 +37,7 @@ const previousState: PersistAppStateV17 = {
       },
       // navbar saved native asset
       {
-        type: SearchResultType.Token,
+        type: PreV55SearchResultType.Token,
         chainId: 1,
         symbol: 'ETH',
         address: null,
@@ -47,7 +47,7 @@ const previousState: PersistAppStateV17 = {
       },
       // token selector saved token
       {
-        type: SearchResultType.Token,
+        type: PreV55SearchResultType.Token,
         chainId: 42161,
         symbol: 'USDC',
         address: '0xaf88d065e77c8cc2239327c5edb3a432268e5831',
@@ -57,7 +57,7 @@ const previousState: PersistAppStateV17 = {
       },
       // navbar saved nft collection
       {
-        type: SearchResultType.NFTCollection,
+        type: PreV55SearchResultType.NFTCollection,
         chainId: 1,
         address: '0xbd3531da5cf5857e7cfaa92426877b022e612cf8',
         name: 'Pudgy Penguins',
@@ -98,7 +98,7 @@ describe('migration to v17', () => {
     const result: any = await migrator(previousState, 17)
     expect(result.searchHistory.results).toEqual([
       {
-        type: SearchResultType.Token,
+        type: PreV55SearchResultType.Token,
         chainId: 1,
         symbol: 'ETH',
         address: null,
@@ -107,7 +107,7 @@ describe('migration to v17', () => {
         searchId: 'token-1-null',
       },
       {
-        type: SearchResultType.Token,
+        type: PreV55SearchResultType.Token,
         chainId: 42161,
         symbol: 'USDC',
         address: '0xaf88d065e77c8cc2239327c5edb3a432268e5831',
@@ -116,7 +116,7 @@ describe('migration to v17', () => {
         searchId: 'token-42161-0xaf88d065e77c8cc2239327c5edb3a432268e5831',
       },
       {
-        type: SearchResultType.NFTCollection,
+        type: PreV55SearchResultType.NFTCollection,
         chainId: 1,
         address: '0xbd3531da5cf5857e7cfaa92426877b022e612cf8',
         name: 'Pudgy Penguins',

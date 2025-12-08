@@ -1,28 +1,39 @@
 import { CurrencyAmount } from '@uniswap/sdk-core'
-import { ConfirmedIcon, LogoContainer, SubmittedIcon } from 'components/AccountDrawer/MiniPortfolio/Activity/Logos'
+import { TradingApi } from '@universe/api'
 import { useCancelOrdersGasEstimate } from 'components/AccountDrawer/MiniPortfolio/Activity/hooks'
-import { Container, Dialog, DialogButtonType, DialogProps } from 'components/Dialog/Dialog'
-import { LoaderV3 } from 'components/Icons/LoadingSpinner'
-import { GetHelpHeader } from 'components/Modal/GetHelpHeader'
+import { ConfirmedIcon, LogoContainer, SubmittedIcon } from 'components/AccountDrawer/MiniPortfolio/Activity/Logos'
+import { ColumnCenter } from 'components/deprecated/Column'
 import Row from 'components/deprecated/Row'
+import { LoaderV3 } from 'components/Icons/LoadingSpinner'
 import { DetailLineItem } from 'components/swap/DetailLineItem'
-import styled, { useTheme } from 'lib/styled-components'
+import { styled } from 'lib/styled-components'
+import { useMemo } from 'react'
 import { Slash } from 'react-feather'
 import { Trans, useTranslation } from 'react-i18next'
-import { SignatureType, UniswapXOrderDetails } from 'state/signatures/types'
 import { ThemedText } from 'theme/components'
 import { ExternalLink } from 'theme/components/Links'
-import { Flex, Text } from 'ui/src'
+import { Flex, Text, useSporeColors } from 'ui/src'
+import { Dialog } from 'uniswap/src/components/dialog/Dialog'
+import { GetHelpHeader } from 'uniswap/src/components/dialog/GetHelpHeader'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { useUSDCValue } from 'uniswap/src/features/transactions/swap/hooks/useUSDCPrice'
+import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'
+import { UniswapXOrderDetails } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
-import { NumberType, useFormatter } from 'utils/formatNumbers'
+import { NumberType } from 'utilities/src/format/types'
 
 const ModalHeader = styled(GetHelpHeader)`
   padding: 4px 0px;
+`
+
+const Container = styled(ColumnCenter)`
+  background-color: ${({ theme }) => theme.surface1};
+  border-radius: 16px;
+  padding: 16px 24px 24px 24px;
+  width: 100%;
 `
 
 export enum CancellationState {
@@ -33,29 +44,35 @@ export enum CancellationState {
   CANCELLED = 'cancelled',
 }
 
-type CancelOrdersDialogProps = Partial<Omit<DialogProps, 'isVisible' | 'onCancel'>> &
-  Pick<DialogProps, 'isVisible' | 'onCancel'>
+interface CancelOrdersDialogProps {
+  orders: UniswapXOrderDetails[]
+  cancelState: CancellationState
+  cancelTxHash?: string
+  onConfirm: () => void
+  onCancel: () => void
+  isVisible: boolean
+}
 
 function useCancelOrdersDialogContent(
   state: CancellationState,
   orders: UniswapXOrderDetails[],
 ): { title?: JSX.Element; icon: JSX.Element } {
-  const theme = useTheme()
+  const colors = useSporeColors()
   switch (state) {
     case CancellationState.REVIEWING_CANCELLATION:
       return {
         title:
-          orders.length === 1 && orders[0].type === SignatureType.SIGN_LIMIT ? (
-            <Trans i18nKey="common.limit.cancel" count={orders.length} />
+          orders.length === 1 && orders[0].routing === TradingApi.Routing.DUTCH_LIMIT ? (
+            <Trans i18nKey="common.limit.cancel_one" />
           ) : (
             <Trans i18nKey="common.cancelOrder" />
           ),
-        icon: <Slash />,
+        icon: <Slash color={colors.neutral1.val} />,
       }
     case CancellationState.PENDING_SIGNATURE:
       return {
         title: <Trans i18nKey="common.confirmCancellation" />,
-        icon: <LoaderV3 size="64px" color={theme.accent1} />,
+        icon: <LoaderV3 size="64px" color={colors.accent1.val} />,
       }
     case CancellationState.PENDING_CONFIRMATION:
       return {
@@ -75,20 +92,29 @@ function useCancelOrdersDialogContent(
   }
 }
 
-export function CancelOrdersDialog(
-  props: CancelOrdersDialogProps & {
-    orders: UniswapXOrderDetails[]
-    cancelState: CancellationState
-    cancelTxHash?: string
-    onConfirm: () => void
-  },
-) {
+export function CancelOrdersDialog(props: CancelOrdersDialogProps) {
   const { t } = useTranslation()
   const { orders, cancelState, cancelTxHash, onConfirm, onCancel } = props
 
   const { title, icon } = useCancelOrdersDialogContent(cancelState, orders)
 
-  const gasEstimate = useCancelOrdersGasEstimate(orders)
+  const cancellationGasFeeInfo = useCancelOrdersGasEstimate(orders)
+
+  const primaryButton = useMemo(
+    () => ({
+      text: t('common.neverMind'),
+      onPress: onCancel,
+      variant: 'default' as const,
+      emphasis: 'secondary' as const,
+    }),
+    [t, onCancel],
+  )
+
+  const secondaryButton = useMemo(
+    () => ({ text: t('common.proceed'), onPress: onConfirm, variant: 'critical' as const }),
+    [t, onConfirm],
+  )
+
   if (
     [CancellationState.PENDING_SIGNATURE, CancellationState.PENDING_CONFIRMATION, CancellationState.CANCELLED].includes(
       cancelState,
@@ -109,7 +135,16 @@ export function CancelOrdersDialog(
           <Row justify="center" marginTop="32px" minHeight="24px">
             {cancelSubmitted ? (
               <ExternalLink
-                href={firstOrder ? getExplorerLink(firstOrder.chainId, cancelTxHash, ExplorerDataType.TRANSACTION) : ''}
+                href={
+                  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                  firstOrder
+                    ? getExplorerLink({
+                        chainId: firstOrder.chainId,
+                        data: cancelTxHash,
+                        type: ExplorerDataType.TRANSACTION,
+                      })
+                    : ''
+                }
                 disabled={!firstOrder}
                 color="neutral2"
               >
@@ -127,28 +162,24 @@ export function CancelOrdersDialog(
   } else if (cancelState === CancellationState.REVIEWING_CANCELLATION) {
     return (
       <Dialog
-        {...props}
+        isOpen={props.isVisible}
+        onClose={onCancel}
         icon={icon}
         title={title}
-        description={
-          <Flex width="100%">
-            <Text>{t('swap.cancel.cannotExecute', { count: orders.length })}</Text>
-            <GasEstimateDisplay chainId={orders[0].chainId} gasEstimateValue={gasEstimate?.value} />
-          </Flex>
+        subtext={
+          <Text variant="body3" color="$neutral2">
+            {t('swap.cancel.cannotExecute', { count: orders.length })}
+          </Text>
         }
-        buttonsConfig={{
-          left: {
-            title: <Trans i18nKey="common.neverMind" />,
-            onClick: onCancel,
-          },
-          right: {
-            title: <Trans i18nKey="common.proceed" />,
-            onClick: onConfirm,
-            type: DialogButtonType.Error,
-            disabled: cancelState !== CancellationState.REVIEWING_CANCELLATION,
-          },
-        }}
-      />
+        modalName={ModalName.CancelOrders}
+        primaryButton={primaryButton}
+        secondaryButton={secondaryButton}
+        displayHelpCTA
+        iconBackgroundColor="$surface3"
+      >
+        {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
+        <GasEstimateDisplay chainId={orders[0].chainId} gasEstimateValue={cancellationGasFeeInfo?.gasFeeDisplayValue} />
+      </Dialog>
     )
   } else {
     // CancellationState.NOT_STARTED
@@ -159,22 +190,11 @@ export function CancelOrdersDialog(
 function GasEstimateDisplay({ gasEstimateValue, chainId }: { gasEstimateValue?: string; chainId: UniverseChainId }) {
   const gasFeeCurrencyAmount = CurrencyAmount.fromRawAmount(nativeOnChain(chainId), gasEstimateValue ?? '0')
   const gasFeeUSD = useUSDCValue(gasFeeCurrencyAmount)
-  const { formatCurrencyAmount } = useFormatter()
-  const gasFeeFormatted = formatCurrencyAmount({
-    amount: gasFeeUSD,
-    type: NumberType.PortfolioBalance,
-  })
+  const { convertFiatAmountFormatted } = useLocalizationContext()
+  const gasFeeFormatted = convertFiatAmountFormatted(gasFeeUSD?.toExact(), NumberType.PortfolioBalance)
 
   return (
-    <Flex
-      row
-      mt="$spacing16"
-      pt="$spacing16"
-      borderColor="$transparent"
-      borderTopColor="$surface3"
-      borderWidth="$spacing1"
-      width="100%"
-    >
+    <Flex row width="100%">
       <DetailLineItem
         LineItem={{
           Label: () => <Trans i18nKey="common.networkCost" />,

@@ -9,6 +9,7 @@ export enum StringKey {
   ErrorPhraseLength = 'errorPhraseLength',
   ErrorWrongPhrase = 'errorWrongPhrase',
   ErrorInvalidPhrase = 'errorInvalidPhrase',
+  ErrorWordIsAddress = 'errorWordIsAddress',
 }
 
 type MnemonicStoredEvent = {
@@ -33,6 +34,7 @@ export type NativeSeedPhraseInputProps = {
   // And we need to prevent splash screen from appearing
   onPasteStart: () => void
   onPasteEnd: () => void
+  onSubmitError: () => void
 }
 
 export type NativeSeedPhraseInputInternalProps = NativeSeedPhraseInputProps & {

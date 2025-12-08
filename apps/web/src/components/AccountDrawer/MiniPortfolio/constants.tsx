@@ -1,332 +1,399 @@
-import { TransactionType } from 'state/transactions/types'
-import { UniswapXOrderStatus } from 'types/uniswapx'
-import { TransactionStatus } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
+import { TransactionStatus, TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import i18n from 'uniswap/src/i18n'
+import { logger } from 'utilities/src/logger/logger'
 
-// use even number because rows are in groups of 2
-export const DEFAULT_NFT_QUERY_AMOUNT = 26
+type TransactionStatusWeb = TransactionStatus.Success | TransactionStatus.Failed | TransactionStatus.Pending
 
-const TransactionTitleTable: { [key in TransactionType]: { [state in TransactionStatus]: string } } = {
-  [TransactionType.SWAP]: {
-    [TransactionStatus.Pending]: i18n.t('common.swapping'),
-    [TransactionStatus.Confirmed]: i18n.t('common.swapped'),
+// TODO(PORT-179): move to uniswap package and combine with wallet's `getTransactionSummaryTitle`
+const getTransactionTitleTable = (): {
+  [key in TransactionType]: {
+    [state in TransactionStatusWeb]: string
+  }
+} => ({
+  [TransactionType.Approve]: {
+    [TransactionStatus.Pending]: i18n.t('common.approving'),
+    [TransactionStatus.Success]: i18n.t('common.approved'),
+    [TransactionStatus.Failed]: i18n.t('transaction.status.approval.failed'),
+  },
+  [TransactionType.Permit2Approve]: {
+    [TransactionStatus.Pending]: i18n.t('common.approving'),
+    [TransactionStatus.Success]: i18n.t('transaction.status.permit.approved'),
+    [TransactionStatus.Failed]: i18n.t('transaction.status.permit.failed'),
+  },
+  [TransactionType.Bridge]: {
+    [TransactionStatus.Pending]: i18n.t('transaction.status.swap.pending'),
+    [TransactionStatus.Success]: i18n.t('transaction.status.swap.success'),
     [TransactionStatus.Failed]: i18n.t('common.swap.failed'),
   },
-  [TransactionType.WRAP]: {
+  [TransactionType.Swap]: {
+    [TransactionStatus.Pending]: i18n.t('transaction.status.swap.pending'),
+    [TransactionStatus.Success]: i18n.t('transaction.status.swap.success'),
+    [TransactionStatus.Failed]: i18n.t('common.swap.failed'),
+  },
+  [TransactionType.Wrap]: {
     [TransactionStatus.Pending]: i18n.t('common.wrapping'),
-    [TransactionStatus.Confirmed]: i18n.t('common.wrapped'),
+    [TransactionStatus.Success]: i18n.t('common.wrapped'),
     [TransactionStatus.Failed]: i18n.t('common.wrap.failed'),
   },
-  [TransactionType.ADD_LIQUIDITY_V3_POOL]: {
-    [TransactionStatus.Pending]: i18n.t('common.adding.liquidity'),
-    [TransactionStatus.Confirmed]: i18n.t('common.added.liquidity'),
-    [TransactionStatus.Failed]: i18n.t('common.add.liquidity.failed'),
-  },
-  [TransactionType.REMOVE_LIQUIDITY_V3]: {
-    [TransactionStatus.Pending]: i18n.t('common.removing.liquidity'),
-    [TransactionStatus.Confirmed]: i18n.t('common.removedLiquidity'),
-    [TransactionStatus.Failed]: i18n.t('common.remove.liquidity.failed'),
-  },
-  [TransactionType.CREATE_V3_POOL]: {
-    [TransactionStatus.Pending]: i18n.t('common.creating.pool'),
-    [TransactionStatus.Confirmed]: i18n.t('common.created.pool'),
-    [TransactionStatus.Failed]: i18n.t('common.create.pool.failed'),
-  },
-  [TransactionType.COLLECT_FEES]: {
-    [TransactionStatus.Pending]: i18n.t('common.collecting.fees'),
-    [TransactionStatus.Confirmed]: i18n.t('common.collected.fees'),
-    [TransactionStatus.Failed]: i18n.t('common.collect.fees.failed'),
-  },
-  [TransactionType.APPROVAL]: {
+  [TransactionType.NFTApprove]: {
     [TransactionStatus.Pending]: i18n.t('common.approving'),
-    [TransactionStatus.Confirmed]: i18n.t('common.approved'),
-    [TransactionStatus.Failed]: i18n.t('common.approval.failed'),
+    [TransactionStatus.Success]: i18n.t('common.approved'),
+    [TransactionStatus.Failed]: i18n.t('transaction.status.approval.failed'),
   },
-  [TransactionType.CLAIM]: {
-    [TransactionStatus.Pending]: i18n.t('common.claiming'),
-    [TransactionStatus.Confirmed]: i18n.t('common.claimed'),
-    [TransactionStatus.Failed]: i18n.t('common.claim.failed'),
-  },
-  [TransactionType.BUY]: {
-    [TransactionStatus.Pending]: i18n.t('common.buying'),
-    [TransactionStatus.Confirmed]: i18n.t('common.bought'),
-    [TransactionStatus.Failed]: i18n.t('common.buy.failed'),
-  },
-  [TransactionType.SEND]: {
-    [TransactionStatus.Pending]: i18n.t('common.sending'),
-    [TransactionStatus.Confirmed]: i18n.t('common.sent'),
-    [TransactionStatus.Failed]: i18n.t('common.send.failed'),
-  },
-  [TransactionType.RECEIVE]: {
-    [TransactionStatus.Pending]: i18n.t('common.receiving'),
-    [TransactionStatus.Confirmed]: i18n.t('common.received'),
-    [TransactionStatus.Failed]: i18n.t('common.receive.failed'),
-  },
-  [TransactionType.MINT]: {
-    [TransactionStatus.Pending]: i18n.t('common.minting'),
-    [TransactionStatus.Confirmed]: i18n.t('common.minted'),
-    [TransactionStatus.Failed]: i18n.t('common.mint.failed'),
-  },
-  [TransactionType.BURN]: {
-    [TransactionStatus.Pending]: i18n.t('common.burning'),
-    [TransactionStatus.Confirmed]: i18n.t('common.burned'),
-    [TransactionStatus.Failed]: i18n.t('common.burn.failed'),
-  },
-  [TransactionType.VOTE]: {
-    [TransactionStatus.Pending]: i18n.t('common.voting'),
-    [TransactionStatus.Confirmed]: i18n.t('common.voted'),
-    [TransactionStatus.Failed]: i18n.t('common.vote.failed'),
-  },
-  [TransactionType.QUEUE]: {
-    [TransactionStatus.Pending]: i18n.t('common.queuing'),
-    [TransactionStatus.Confirmed]: i18n.t('common.queued'),
-    [TransactionStatus.Failed]: i18n.t('common.queue.failed'),
-  },
-  [TransactionType.EXECUTE]: {
-    [TransactionStatus.Pending]: i18n.t('common.executing'),
-    [TransactionStatus.Confirmed]: i18n.t('common.executed'),
-    [TransactionStatus.Failed]: i18n.t('common.execute.failed'),
-  },
-  [TransactionType.BORROW]: {
-    [TransactionStatus.Pending]: i18n.t('common.borrowing'),
-    [TransactionStatus.Confirmed]: i18n.t('common.borrowed'),
-    [TransactionStatus.Failed]: i18n.t('common.borrow.failed'),
-  },
-  [TransactionType.REPAY]: {
-    [TransactionStatus.Pending]: i18n.t('common.repaying'),
-    [TransactionStatus.Confirmed]: i18n.t('common.repaid'),
-    [TransactionStatus.Failed]: i18n.t('common.repay.failed'),
-  },
-  [TransactionType.DEPLOY]: {
-    [TransactionStatus.Pending]: i18n.t('common.deploying'),
-    [TransactionStatus.Confirmed]: i18n.t('common.deployed'),
-    [TransactionStatus.Failed]: i18n.t('common.deploy.failed'),
-  },
-  [TransactionType.CANCEL]: {
-    [TransactionStatus.Pending]: i18n.t('common.cancelling'),
-    [TransactionStatus.Confirmed]: i18n.t('common.cancelled'),
-    [TransactionStatus.Failed]: i18n.t('common.cancel.failed'),
-  },
-  [TransactionType.DELEGATE]: {
-    [TransactionStatus.Pending]: i18n.t('common.delegating'),
-    [TransactionStatus.Confirmed]: i18n.t('common.delegated'),
-    [TransactionStatus.Failed]: i18n.t('common.delegate.failed'),
-  },
-  [TransactionType.DEPOSIT_LIQUIDITY_STAKING]: {
-    [TransactionStatus.Pending]: i18n.t('common.depositing'),
-    [TransactionStatus.Confirmed]: i18n.t('common.deposited'),
-    [TransactionStatus.Failed]: i18n.t('common.deposit.failed'),
-  },
-  [TransactionType.WITHDRAW_LIQUIDITY_STAKING]: {
-    [TransactionStatus.Pending]: i18n.t('common.withdrawing'),
-    [TransactionStatus.Confirmed]: i18n.t('common.withdrew'),
-    [TransactionStatus.Failed]: i18n.t('common.withdraw.failed'),
-  },
-  [TransactionType.ADD_LIQUIDITY_V2_POOL]: {
-    [TransactionStatus.Pending]: i18n.t('common.adding.v2.liquidity'),
-    [TransactionStatus.Confirmed]: i18n.t('common.added.v2.liquidity'),
-    [TransactionStatus.Failed]: i18n.t('common.add.v2.liquidity.failed'),
-  },
-  [TransactionType.MIGRATE_LIQUIDITY_V2_TO_V3]: {
-    [TransactionStatus.Pending]: i18n.t('common.migrating.liquidity'),
-    [TransactionStatus.Confirmed]: i18n.t('common.migrated.liquidity'),
-    [TransactionStatus.Failed]: i18n.t('common.migrate.liquidity.failed'),
-  },
-  [TransactionType.SUBMIT_PROPOSAL]: {
-    [TransactionStatus.Pending]: i18n.t('common.submitting.proposal'),
-    [TransactionStatus.Confirmed]: i18n.t('common.submitted.proposal'),
-    [TransactionStatus.Failed]: i18n.t('common.submit.proposal.failed'),
-  },
-  [TransactionType.LIMIT]: {
-    [TransactionStatus.Pending]: i18n.t('common.limit.opened'),
-    [TransactionStatus.Confirmed]: i18n.t('common.limit.executed'),
-    [TransactionStatus.Failed]: i18n.t('common.limit.failed'),
-  },
-  [TransactionType.INCREASE_LIQUIDITY]: {
-    [TransactionStatus.Pending]: i18n.t('common.adding.liquidity'),
-    [TransactionStatus.Confirmed]: i18n.t('common.added.liquidity'),
-    [TransactionStatus.Failed]: i18n.t('common.add.liquidity.failed'),
-  },
-  [TransactionType.DECREASE_LIQUIDITY]: {
-    [TransactionStatus.Pending]: i18n.t('common.removing.liquidity'),
-    [TransactionStatus.Confirmed]: i18n.t('common.liquidity.removed'),
-    [TransactionStatus.Failed]: i18n.t('common.remove.liquidity.failed'),
-  },
-  [TransactionType.CREATE_POSITION]: {
-    [TransactionStatus.Pending]: i18n.t('position.create.modal.header'),
-    [TransactionStatus.Confirmed]: i18n.t('pool.createdPosition'),
-    [TransactionStatus.Failed]: i18n.t('pool.createdPosition.failed'),
-  },
-  [TransactionType.MIGRATE_LIQUIDITY_V3_TO_V4]: {
-    [TransactionStatus.Pending]: i18n.t('common.migrating.liquidity'),
-    [TransactionStatus.Confirmed]: i18n.t('common.migrated.liquidity'),
-    [TransactionStatus.Failed]: i18n.t('common.migrate.liquidity.failed'),
-  },
-  [TransactionType.SELL]: {
-    [TransactionStatus.Pending]: i18n.t(`Selling`),
-    [TransactionStatus.Confirmed]: i18n.t(`Sold`),
-    [TransactionStatus.Failed]: i18n.t(`Sell failed`),
-  },
-  [TransactionType.SET_SPREAD]: {
-    [TransactionStatus.Pending]: i18n.t(`Setting spread`),
-    [TransactionStatus.Confirmed]: i18n.t(`Spread set`),
-    [TransactionStatus.Failed]: i18n.t(`Set spread failed`),
-  },
-  [TransactionType.SET_LOCKUP]: {
-    [TransactionStatus.Pending]: i18n.t(`Setting lockup`),
-    [TransactionStatus.Confirmed]: i18n.t(`Lockup set`),
-    [TransactionStatus.Failed]: i18n.t(`Set lockup failed`),
-  },
-  [TransactionType.SET_VALUE]: {
-    [TransactionStatus.Pending]: i18n.t(`Setting value`),
-    [TransactionStatus.Confirmed]: i18n.t(`Value set`),
-    [TransactionStatus.Failed]: i18n.t(`Set value failed`),
-  },
-  [TransactionType.BRIDGE]: {
-    [TransactionStatus.Pending]: i18n.t('common.swapping'),
-    [TransactionStatus.Confirmed]: i18n.t('common.swapped'),
+  [TransactionType.NFTTrade]: {
+    [TransactionStatus.Pending]: i18n.t('transaction.status.swap.pending'),
+    [TransactionStatus.Success]: i18n.t('transaction.status.swap.success'),
     [TransactionStatus.Failed]: i18n.t('common.swap.failed'),
   },
+  [TransactionType.NFTMint]: {
+    [TransactionStatus.Pending]: i18n.t('transaction.status.mint.pending'),
+    [TransactionStatus.Success]: i18n.t('transaction.status.mint.success'),
+    [TransactionStatus.Failed]: i18n.t('transaction.status.mint.failed'),
+  },
+  [TransactionType.Send]: {
+    [TransactionStatus.Pending]: i18n.t('common.sending'),
+    [TransactionStatus.Success]: i18n.t('common.sent'),
+    [TransactionStatus.Failed]: i18n.t('common.send.failed'),
+  },
+  [TransactionType.Receive]: {
+    [TransactionStatus.Pending]: i18n.t('transaction.status.receive.pending'),
+    [TransactionStatus.Success]: i18n.t('common.received'),
+    [TransactionStatus.Failed]: i18n.t('transaction.status.receive.failed'),
+  },
+  [TransactionType.FiatPurchaseDeprecated]: {
+    [TransactionStatus.Pending]: i18n.t('transaction.status.purchase.pending'),
+    [TransactionStatus.Success]: i18n.t('common.purchased'),
+    [TransactionStatus.Failed]: i18n.t('transaction.status.purchase.failed'),
+  },
+  [TransactionType.LocalOnRamp]: {
+    [TransactionStatus.Pending]: i18n.t('transaction.status.onramp.pending'),
+    [TransactionStatus.Success]: i18n.t('transaction.status.onramp.success'),
+    [TransactionStatus.Failed]: i18n.t('transaction.status.onramp.failed'),
+  },
+  [TransactionType.LocalOffRamp]: {
+    [TransactionStatus.Pending]: i18n.t('transaction.status.offramp.pending'),
+    [TransactionStatus.Success]: i18n.t('transaction.status.offramp.success'),
+    [TransactionStatus.Failed]: i18n.t('transaction.status.offramp.failed'),
+  },
+  [TransactionType.OnRampPurchase]: {
+    [TransactionStatus.Pending]: i18n.t('transaction.status.purchase.pending'),
+    [TransactionStatus.Success]: i18n.t('common.purchased'),
+    [TransactionStatus.Failed]: i18n.t('transaction.status.purchase.failed'),
+  },
+  [TransactionType.OnRampTransfer]: {
+    [TransactionStatus.Pending]: i18n.t('common.sending'),
+    [TransactionStatus.Success]: i18n.t('common.sent'),
+    [TransactionStatus.Failed]: i18n.t('common.send.failed'),
+  },
+  [TransactionType.OffRampSale]: {
+    [TransactionStatus.Pending]: i18n.t('transaction.status.sell.pending'),
+    [TransactionStatus.Success]: i18n.t('common.sold'),
+    [TransactionStatus.Failed]: i18n.t('transaction.status.sell.failed'),
+  },
+  [TransactionType.WCConfirm]: {
+    [TransactionStatus.Pending]: i18n.t('transaction.status.confirm.pending'),
+    [TransactionStatus.Success]: i18n.t('transaction.status.confirm.success'),
+    [TransactionStatus.Failed]: i18n.t('transaction.status.confirm.failed'),
+  },
+  [TransactionType.Unknown]: {
+    [TransactionStatus.Pending]: i18n.t('common.unknown'),
+    [TransactionStatus.Success]: i18n.t('common.unknown'),
+    [TransactionStatus.Failed]: i18n.t('common.unknown'),
+  },
+  [TransactionType.SendCalls]: {
+    [TransactionStatus.Pending]: i18n.t('common.sending'),
+    [TransactionStatus.Success]: i18n.t('common.sent'),
+    [TransactionStatus.Failed]: i18n.t('common.send.failed'),
+  },
+  [TransactionType.CollectFees]: {
+    [TransactionStatus.Pending]: i18n.t('transaction.status.collecting.fees'),
+    [TransactionStatus.Success]: i18n.t('transaction.status.collected.fees'),
+    [TransactionStatus.Failed]: i18n.t('transaction.status.collect.fees.failed'),
+  },
+  [TransactionType.CreatePair]: {
+    [TransactionStatus.Pending]: i18n.t('position.create.modal.header'),
+    [TransactionStatus.Success]: i18n.t('pool.createdPosition'),
+    [TransactionStatus.Failed]: i18n.t('pool.createdPosition.failed'),
+  },
+  [TransactionType.CreatePool]: {
+    [TransactionStatus.Pending]: i18n.t('position.create.modal.header'),
+    [TransactionStatus.Success]: i18n.t('pool.createdPosition'),
+    [TransactionStatus.Failed]: i18n.t('pool.createdPosition.failed'),
+  },
+  [TransactionType.LiquidityIncrease]: {
+    [TransactionStatus.Pending]: i18n.t('transaction.status.liquidityIncrease.pending'),
+    [TransactionStatus.Success]: i18n.t('transaction.status.liquidityIncrease.success'),
+    [TransactionStatus.Failed]: i18n.t('transaction.status.liquidityIncrease.failed'),
+  },
+  [TransactionType.LiquidityDecrease]: {
+    [TransactionStatus.Pending]: i18n.t('common.removing.liquidity'),
+    [TransactionStatus.Success]: i18n.t('common.liquidity.removed'),
+    [TransactionStatus.Failed]: i18n.t('common.remove.liquidity.failed'),
+  },
+  [TransactionType.MigrateLiquidityV2ToV3]: {
+    [TransactionStatus.Pending]: i18n.t('common.migrating.liquidity'),
+    [TransactionStatus.Success]: i18n.t('common.migrated.liquidity'),
+    [TransactionStatus.Failed]: i18n.t('common.migrate.liquidity.failed'),
+  },
+  [TransactionType.MigrateLiquidityV3ToV4]: {
+    [TransactionStatus.Pending]: i18n.t('common.migrating.liquidity'),
+    [TransactionStatus.Success]: i18n.t('common.migrated.liquidity'),
+    [TransactionStatus.Failed]: i18n.t('common.migrate.liquidity.failed'),
+  },
+  [TransactionType.ClaimUni]: {
+    [TransactionStatus.Pending]: i18n.t('common.claiming'),
+    [TransactionStatus.Success]: i18n.t('common.claimed'),
+    [TransactionStatus.Failed]: i18n.t('common.claim.failed'),
+  },
+  [TransactionType.CreatePosition]: {
+    [TransactionStatus.Pending]: i18n.t('position.create.modal.header'),
+    [TransactionStatus.Success]: i18n.t('pool.createdPosition'),
+    [TransactionStatus.Failed]: i18n.t('pool.createdPosition.failed'),
+  },
+  [TransactionType.LPIncentivesClaimRewards]: {
+    [TransactionStatus.Pending]: i18n.t('pool.incentives.collectingRewards'),
+    [TransactionStatus.Success]: i18n.t('pool.incentives.collectedRewards'),
+    [TransactionStatus.Failed]: i18n.t('pool.incentives.collectFailedNoRetry'),
+  },
+  [TransactionType.Deploy]: {
+    [TransactionStatus.Pending]: i18n.t(`Deploying`),
+    [TransactionStatus.Success]: i18n.t(`Deployed`),
+    [TransactionStatus.Failed]: i18n.t(`Deploy failed`),
+  },
+  [TransactionType.Buy]: {
+    [TransactionStatus.Pending]: i18n.t(`Buying`),
+    [TransactionStatus.Success]: i18n.t(`Bought`),
+    [TransactionStatus.Failed]: i18n.t(`Buy failed`),
+  },
+  [TransactionType.Sell]: {
+    [TransactionStatus.Pending]: i18n.t(`Selling`),
+    [TransactionStatus.Success]: i18n.t(`Sold`),
+    [TransactionStatus.Failed]: i18n.t(`Sell failed`),
+  },
+  [TransactionType.SetSpread]: {
+    [TransactionStatus.Pending]: i18n.t(`Setting spread`),
+    [TransactionStatus.Success]: i18n.t(`Spread set`),
+    [TransactionStatus.Failed]: i18n.t(`Set spread failed`),
+  },
+  [TransactionType.SetLockup]: {
+    [TransactionStatus.Pending]: i18n.t(`Setting lockup`),
+    [TransactionStatus.Success]: i18n.t(`Lockup set`),
+    [TransactionStatus.Failed]: i18n.t(`Set lockup failed`),
+  },
+  [TransactionType.SetValue]: {
+    [TransactionStatus.Pending]: i18n.t(`Setting value`),
+    [TransactionStatus.Success]: i18n.t(`Value set`),
+    [TransactionStatus.Failed]: i18n.t(`Set value failed`),
+  },
+  [TransactionType.UniswapXOrder]: {
+    [TransactionStatus.Pending]: i18n.t('transaction.status.swap.pending'),
+    [TransactionStatus.Success]: i18n.t('transaction.status.swap.success'),
+    [TransactionStatus.Failed]: i18n.t('common.swap.failed'),
+  },
+  [TransactionType.RemoveDelegation]: {
+    [TransactionStatus.Pending]: i18n.t('transaction.status.removeDelegation.pending'),
+    [TransactionStatus.Success]: i18n.t('transaction.status.removeDelegation.success'),
+    [TransactionStatus.Failed]: i18n.t('transaction.status.removeDelegation.failed'),
+  },
+  [TransactionType.Vote]: {
+    [TransactionStatus.Pending]: i18n.t('transaction.status.vote.pending'),
+    [TransactionStatus.Success]: i18n.t('transaction.status.vote.success'),
+    [TransactionStatus.Failed]: i18n.t('transaction.status.vote.failed'),
+  },
+  [TransactionType.Queue]: {
+    [TransactionStatus.Pending]: i18n.t('transaction.status.queue.pending'),
+    [TransactionStatus.Success]: i18n.t('transaction.status.queue.success'),
+    [TransactionStatus.Failed]: i18n.t('transaction.status.queue.failed'),
+  },
+  [TransactionType.Execute]: {
+    [TransactionStatus.Pending]: i18n.t('transaction.status.execute.pending'),
+    [TransactionStatus.Success]: i18n.t('transaction.status.execute.success'),
+    [TransactionStatus.Failed]: i18n.t('transaction.status.execute.failed'),
+  },
+  [TransactionType.Delegate]: {
+    [TransactionStatus.Pending]: i18n.t('transaction.status.delegate.pending'),
+    [TransactionStatus.Success]: i18n.t('transaction.status.delegate.success'),
+    [TransactionStatus.Failed]: i18n.t('transaction.status.delegate.failed'),
+  },
+  [TransactionType.SubmitProposal]: {
+    [TransactionStatus.Pending]: i18n.t('transaction.status.submitProposal.pending'),
+    [TransactionStatus.Success]: i18n.t('transaction.status.submitProposal.success'),
+    [TransactionStatus.Failed]: i18n.t('transaction.status.submitProposal.failed'),
+  },
+})
+
+export const getOrderTextTable = (): {
+  [status in TransactionStatus]?: OrderTextTableEntry
+} => {
+  const TransactionTitleTable = getTransactionTitleTable()
+  const SwapTitleTable = TransactionTitleTable[TransactionType.Swap]
+  return {
+    [TransactionStatus.Pending]: {
+      getTitle: () => SwapTitleTable[TransactionStatus.Pending],
+      status: TransactionStatus.Pending,
+    },
+    [TransactionStatus.Success]: {
+      getTitle: () => SwapTitleTable[TransactionStatus.Success],
+      status: TransactionStatus.Success,
+    },
+    [TransactionStatus.Expired]: {
+      getTitle: () => i18n.t('common.swap.expired'),
+      getStatusMessage: () => i18n.t('common.your.swap.could.not.be.fulfilled'),
+      status: TransactionStatus.Failed,
+    },
+    [TransactionStatus.Failed]: {
+      getTitle: () => SwapTitleTable[TransactionStatus.Failed],
+      status: TransactionStatus.Failed,
+    },
+    [TransactionStatus.InsufficientFunds]: {
+      getTitle: () => i18n.t('common.insufficient.funds'),
+      getStatusMessage: () => i18n.t('common.your.account.had.insufficient.funds'),
+      status: TransactionStatus.Failed,
+    },
+    [TransactionStatus.Cancelling]: {
+      getTitle: () => i18n.t('common.pending.cancellation'),
+      status: TransactionStatus.Pending,
+    },
+    [TransactionStatus.Canceled]: {
+      getTitle: () => i18n.t('transaction.status.swap.canceled'),
+      status: TransactionStatus.Failed,
+    },
+  }
 }
 
-export const CancelledTransactionTitleTable: { [key in TransactionType]: string } = {
-  [TransactionType.SWAP]: i18n.t('common.swap.cancelled'),
-  [TransactionType.WRAP]: i18n.t('common.wrap.cancelled'),
-  [TransactionType.ADD_LIQUIDITY_V3_POOL]: i18n.t('common.add.liquidity.cancelled'),
-  [TransactionType.REMOVE_LIQUIDITY_V3]: i18n.t('common.remove.liquidity.cancelled'),
-  [TransactionType.CREATE_V3_POOL]: i18n.t('common.create.pool.cancelled'),
-  [TransactionType.COLLECT_FEES]: i18n.t('common.collect.fees.cancelled'),
-  [TransactionType.APPROVAL]: i18n.t('common.approval.cancelled'),
-  [TransactionType.CLAIM]: i18n.t('common.claim.cancelled'),
-  [TransactionType.BUY]: i18n.t('common.buy.cancelled'),
-  [TransactionType.SEND]: i18n.t('common.send.cancelled'),
-  [TransactionType.RECEIVE]: i18n.t('common.receive.cancelled'),
-  [TransactionType.MINT]: i18n.t('common.mint.cancelled'),
-  [TransactionType.BURN]: i18n.t('common.burn.cancelled'),
-  [TransactionType.VOTE]: i18n.t('common.vote.cancelled'),
-  [TransactionType.QUEUE]: i18n.t('common.queue.cancelled'),
-  [TransactionType.EXECUTE]: i18n.t('common.execute.cancelled'),
-  [TransactionType.BORROW]: i18n.t('common.borrow.cancelled'),
-  [TransactionType.REPAY]: i18n.t('common.repay.cancelled'),
-  [TransactionType.DEPLOY]: i18n.t('common.deploy.cancelled'),
-  [TransactionType.CANCEL]: i18n.t('common.cancellation.cancelled'),
-  [TransactionType.DELEGATE]: i18n.t('common.delegate.cancelled'),
-  [TransactionType.DEPOSIT_LIQUIDITY_STAKING]: i18n.t('common.deposit.cancelled'),
-  [TransactionType.WITHDRAW_LIQUIDITY_STAKING]: i18n.t('common.withdrawal.cancelled'),
-  [TransactionType.ADD_LIQUIDITY_V2_POOL]: i18n.t('common.add.v2.liquidity.cancelled'),
-  [TransactionType.MIGRATE_LIQUIDITY_V2_TO_V3]: i18n.t('common.migrate.liquidity.cancelled'),
-  [TransactionType.SUBMIT_PROPOSAL]: i18n.t('common.submit.proposal.cancelled'),
-  [TransactionType.LIMIT]: i18n.t('common.limit.cancelled'),
-  [TransactionType.INCREASE_LIQUIDITY]: i18n.t('common.add.liquidity.cancelled'),
-  [TransactionType.DECREASE_LIQUIDITY]: i18n.t('common.remove.liquidity.cancelled'),
-  [TransactionType.CREATE_POSITION]: i18n.t('pool.createdPosition.cancelled'),
-  [TransactionType.MIGRATE_LIQUIDITY_V3_TO_V4]: i18n.t('common.migrate.liquidity.cancelled'),
-  [TransactionType.BRIDGE]: i18n.t('common.swap.cancelled'),
-  [TransactionType.SELL]: i18n.t('common.sell.cancelled'),
-  [TransactionType.SET_SPREAD]: i18n.t('common.set.spread.cancelled'),
-  [TransactionType.SET_LOCKUP]: i18n.t('common.set.lockup.cancelled'),
-  [TransactionType.SET_VALUE]: i18n.t('common.set.value.cancelled'),
-}
+export const getCancelledTransactionTitleTable = (): { [key in TransactionType]: string } => ({
+  [TransactionType.Swap]: i18n.t('transaction.status.swap.canceled'),
+  [TransactionType.Wrap]: i18n.t('transaction.status.wrap.canceled'),
+  [TransactionType.CollectFees]: i18n.t('transaction.status.collect.fees.canceled'),
+  [TransactionType.Approve]: i18n.t('transaction.status.approval.canceled'),
+  [TransactionType.ClaimUni]: i18n.t('transaction.status.claim.canceled'),
+  [TransactionType.LPIncentivesClaimRewards]: i18n.t('pool.incentives.collectRewardsCanceled'),
+  [TransactionType.Send]: i18n.t('transaction.status.send.canceled'),
+  [TransactionType.MigrateLiquidityV2ToV3]: i18n.t('transaction.status.migrateLiquidity.canceled'),
+  [TransactionType.LiquidityIncrease]: i18n.t('common.add.liquidity.canceled'),
+  [TransactionType.LiquidityDecrease]: i18n.t('common.remove.liquidity.canceled'),
+  [TransactionType.CreatePool]: i18n.t('pool.createdPosition.canceled'),
+  [TransactionType.CreatePair]: i18n.t('pool.createdPosition.canceled'),
+  [TransactionType.MigrateLiquidityV3ToV4]: i18n.t('transaction.status.migrateLiquidity.canceled'),
+  [TransactionType.Bridge]: i18n.t('transaction.status.swap.canceled'),
+  [TransactionType.Permit2Approve]: i18n.t('transaction.status.permit.canceled'),
+  [TransactionType.NFTApprove]: i18n.t('transaction.status.approval.canceled'),
+  [TransactionType.NFTTrade]: i18n.t('transaction.status.swap.canceled'),
+  [TransactionType.NFTMint]: i18n.t('transaction.status.mint.canceled'),
+  [TransactionType.Receive]: i18n.t('transaction.status.receive.canceled'),
+  [TransactionType.FiatPurchaseDeprecated]: i18n.t('transaction.status.purchase.canceled'),
+  [TransactionType.LocalOnRamp]: i18n.t('transaction.status.onramp.canceled'),
+  [TransactionType.LocalOffRamp]: i18n.t('transaction.status.offramp.canceled'),
+  [TransactionType.OnRampPurchase]: i18n.t('transaction.status.purchase.canceled'),
+  [TransactionType.OnRampTransfer]: i18n.t('transaction.status.send.canceled'),
+  [TransactionType.OffRampSale]: i18n.t('transaction.status.sell.canceled'),
+  [TransactionType.WCConfirm]: i18n.t('transaction.status.confirm.canceled'),
+  [TransactionType.Unknown]: i18n.t('common.unknown'),
+  [TransactionType.SendCalls]: i18n.t('transaction.status.send.canceled'),
+  [TransactionType.CreatePosition]: i18n.t('pool.createdPosition.canceled'),
+  [TransactionType.UniswapXOrder]: i18n.t('transaction.status.swap.canceled'),
+  [TransactionType.RemoveDelegation]: i18n.t('transaction.status.removeDelegation.canceled'),
+  [TransactionType.Vote]: i18n.t('common.vote.cancelled'),
+  [TransactionType.Queue]: i18n.t('common.queue.cancelled'),
+  [TransactionType.Execute]: i18n.t('common.execute.cancelled'),
+  [TransactionType.Deploy]: i18n.t('common.deploy.cancelled'),
+  [TransactionType.Delegate]: i18n.t('common.delegate.cancelled'),
+  [TransactionType.SubmitProposal]: i18n.t('common.submit.proposal.cancelled'),
+  [TransactionType.Buy]: i18n.t('common.buy.cancelled'),
+  [TransactionType.Sell]: i18n.t('common.sell.cancelled'),
+  [TransactionType.SetSpread]: i18n.t('common.set.spread.cancelled'),
+  [TransactionType.SetLockup]: i18n.t('common.set.lockup.cancelled'),
+  [TransactionType.SetValue]: i18n.t('common.set.value.cancelled'),
+})
 
-const AlternateTransactionTitleTable: { [key in TransactionType]?: { [state in TransactionStatus]: string } } = {
-  [TransactionType.WRAP]: {
+const getAlternateTransactionTitleTable = (): {
+  [key in TransactionType]?: { [state in TransactionStatusWeb]: string }
+} => ({
+  [TransactionType.Wrap]: {
     [TransactionStatus.Pending]: i18n.t('common.unwrapping'),
-    [TransactionStatus.Confirmed]: i18n.t('common.unwrapped'),
+    [TransactionStatus.Success]: i18n.t('common.unwrapped'),
     [TransactionStatus.Failed]: i18n.t('common.unwrap.failed'),
   },
-  [TransactionType.APPROVAL]: {
+  [TransactionType.Approve]: {
     [TransactionStatus.Pending]: i18n.t('common.revoking.approval'),
-    [TransactionStatus.Confirmed]: i18n.t('common.revoked.approval'),
+    [TransactionStatus.Success]: i18n.t('common.revoked.approval'),
     [TransactionStatus.Failed]: i18n.t('common.revoke.approval.failed'),
   },
-}
+})
 
-export function getActivityTitle(type: TransactionType, status: TransactionStatus, alternate?: boolean) {
+export function getActivityTitle({
+  type,
+  status,
+  alternate,
+}: {
+  type: TransactionType
+  status: TransactionStatus
+  alternate?: boolean
+}): string {
+  if (
+    status !== TransactionStatus.Pending &&
+    status !== TransactionStatus.Failed &&
+    status !== TransactionStatus.Success
+  ) {
+    logger.error(new Error(`Unhandled web transaction status`), {
+      tags: {
+        file: 'constants.tsx',
+        function: 'getActivityTitle',
+      },
+      extra: { status },
+    })
+    return ''
+  }
+
   if (alternate) {
+    const AlternateTransactionTitleTable = getAlternateTransactionTitleTable()
     const alternateTitle = AlternateTransactionTitleTable[type]
     if (alternateTitle !== undefined) {
       return alternateTitle[status]
     }
   }
+
+  const TransactionTitleTable = getTransactionTitleTable()
   return TransactionTitleTable[type][status]
 }
 
-const SwapTitleTable = TransactionTitleTable[TransactionType.SWAP]
-export const OrderTextTable: {
-  [status in UniswapXOrderStatus]: { title: string; status: TransactionStatus; statusMessage?: string }
-} = {
-  [UniswapXOrderStatus.OPEN]: {
-    title: SwapTitleTable.PENDING,
-    status: TransactionStatus.Pending,
-  },
-  [UniswapXOrderStatus.FILLED]: {
-    title: SwapTitleTable.CONFIRMED,
-    status: TransactionStatus.Confirmed,
-  },
-  [UniswapXOrderStatus.EXPIRED]: {
-    title: i18n.t('common.swap.expired'),
-    statusMessage: i18n.t('common.your.swap.could.not.be.fulfilled'),
-    status: TransactionStatus.Failed,
-  },
-  [UniswapXOrderStatus.ERROR]: {
-    title: SwapTitleTable.FAILED,
-    status: TransactionStatus.Failed,
-  },
-  [UniswapXOrderStatus.INSUFFICIENT_FUNDS]: {
-    title: i18n.t('common.insufficient.funds'),
-    statusMessage: i18n.t('common.your.account.had.insufficient.funds'),
-    status: TransactionStatus.Failed,
-  },
-  [UniswapXOrderStatus.PENDING_CANCELLATION]: {
-    title: i18n.t('common.pending.cancellation'),
-    status: TransactionStatus.Pending,
-  },
-  [UniswapXOrderStatus.CANCELLED]: {
-    title: i18n.t('common.swap.cancelled'),
-    status: TransactionStatus.Failed,
-  },
+interface OrderTextTableEntry {
+  status: TransactionStatus
+  getTitle: () => string
+  getStatusMessage?: () => string
 }
 
-const LimitTitleTable = TransactionTitleTable[TransactionType.LIMIT]
-export const LimitOrderTextTable: {
-  [status in UniswapXOrderStatus]: { title: string; status: TransactionStatus; statusMessage?: string }
-} = {
-  [UniswapXOrderStatus.OPEN]: {
-    title: LimitTitleTable.PENDING,
+export const getLimitOrderTextTable = (): {
+  [status in TransactionStatus]?: OrderTextTableEntry
+} => ({
+  [TransactionStatus.Pending]: {
+    getTitle: () => i18n.t('common.limit.opened'),
     status: TransactionStatus.Pending,
   },
-  [UniswapXOrderStatus.FILLED]: {
-    title: LimitTitleTable.CONFIRMED,
-    status: TransactionStatus.Confirmed,
+  [TransactionStatus.Success]: {
+    getTitle: () => i18n.t('common.limit.executed'),
+    status: TransactionStatus.Success,
   },
-  [UniswapXOrderStatus.EXPIRED]: {
-    title: i18n.t('common.limit.expired'),
-    statusMessage: i18n.t('common.your.limit.could.not.be.fulfilled'),
+  [TransactionStatus.Expired]: {
+    getTitle: () => i18n.t('common.limit.expired'),
+    getStatusMessage: () => i18n.t('common.your.limit.could.not.be.fulfilled'),
     status: TransactionStatus.Failed,
   },
-  [UniswapXOrderStatus.ERROR]: {
-    title: LimitTitleTable.FAILED,
+  [TransactionStatus.Failed]: {
+    getTitle: () => i18n.t('common.limit.failed'),
     status: TransactionStatus.Failed,
   },
-  [UniswapXOrderStatus.INSUFFICIENT_FUNDS]: {
-    title: LimitTitleTable.PENDING,
-    statusMessage: i18n.t('common.your.account.has.insufficient.funds'),
+  [TransactionStatus.InsufficientFunds]: {
+    getTitle: () => i18n.t('common.limit.opened'),
+    getStatusMessage: () => i18n.t('common.your.account.has.insufficient.funds'),
     status: TransactionStatus.Pending,
   },
-  [UniswapXOrderStatus.PENDING_CANCELLATION]: {
-    title: i18n.t('common.pending.cancellation'),
+  [TransactionStatus.Cancelling]: {
+    getTitle: () => i18n.t('common.pending.cancellation'),
     status: TransactionStatus.Pending,
   },
-  [UniswapXOrderStatus.CANCELLED]: {
-    title: i18n.t('common.limit.cancelled'),
+  [TransactionStatus.Canceled]: {
+    getTitle: () => i18n.t('common.limit.canceled'),
     status: TransactionStatus.Failed,
   },
-}
-
-// Non-exhaustive list of addresses Moonpay uses when sending purchased tokens
-export const MOONPAY_SENDER_ADDRESSES = [
-  '0x8216874887415e2650d12d53ff53516f04a74fd7',
-  '0x151b381058f91cf871e7ea1ee83c45326f61e96d',
-  '0xb287eac48ab21c5fb1d3723830d60b4c797555b0',
-  '0xd108fd0e8c8e71552a167e7a44ff1d345d233ba6',
-]
+})

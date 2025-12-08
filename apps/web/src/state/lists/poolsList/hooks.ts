@@ -24,7 +24,7 @@ function combineMaps(map1: TokenAddressMap, map2: TokenAddressMap): TokenAddress
       .reduce<{ [chainId: string]: true }>((memo, value) => {
         memo[value] = true
         return memo
-      }, {})
+      }, {}),
   ).map((id) => parseInt(id))
 
   return chainIds.reduce<Mutable<TokenAddressMap>>((memo, chainId) => {
@@ -44,7 +44,7 @@ export function usePoolMapFromUrl(urls: string[] | undefined): TokenAddressMap {
       return {}
     }
     return urls.slice().reduce((allTokens, currentUrl) => {
-      const current = lists?.[currentUrl]?.current
+      const current = lists[currentUrl].current
       if (!current) {
         return allTokens
       }
@@ -65,6 +65,6 @@ export function usePoolsFromUrl(urls?: string[]) {
     if (!urls) {
       return []
     }
-    return lists[urls[0]]?.current?.tokens
+    return lists[urls[0]].current?.tokens
   }, [lists, urls])
 }

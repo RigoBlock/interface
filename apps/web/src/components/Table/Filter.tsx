@@ -1,9 +1,9 @@
+import { Portal } from 'components/Popups/Portal'
 import { DropdownIcon } from 'components/Table/icons'
 import { useOnClickOutside } from 'hooks/useOnClickOutside'
-import deprecatedStyled from 'lib/styled-components'
-import { Portal } from 'nft/components/common/Portal'
+import { styled as deprecatedStyled } from 'lib/styled-components'
 import { RefObject, useCallback, useRef } from 'react'
-import { Checkbox, Flex, Text, styled, useMedia } from 'ui/src'
+import { Checkbox, Flex, styled, Text, useMedia } from 'ui/src'
 
 const StyledDropdownIcon = deprecatedStyled(DropdownIcon)`
   position: relative;
@@ -42,12 +42,15 @@ const FilterRow = styled(Flex, {
 })
 
 interface FilterProps<T extends string> {
-  allFilters: T[]
+  allFilters: {
+    value: T
+    label: string
+  }[]
   activeFilter: T[]
   setFilters: (filter: T[]) => void
   isOpen: boolean
   toggleFilterModal: () => void
-  anchorRef: RefObject<HTMLElement>
+  anchorRef: RefObject<HTMLElement | null>
 }
 
 export function Filter<T extends string>({
@@ -61,7 +64,7 @@ export function Filter<T extends string>({
   const media = useMedia()
   const isMobile = media.md
   const filterModalRef = useRef<HTMLDivElement>(null)
-  useOnClickOutside(filterModalRef, isOpen ? toggleFilterModal : undefined)
+  useOnClickOutside({ node: filterModalRef, handler: isOpen ? toggleFilterModal : undefined })
 
   const handleFilterOptionClick = useCallback(
     (filter: T) => {
@@ -85,11 +88,11 @@ export function Filter<T extends string>({
             left={anchorRef.current.getBoundingClientRect().x}
           >
             {allFilters.map((filter) => (
-              <FilterRow key={filter} onPress={() => handleFilterOptionClick(filter)} cursor="pointer">
+              <FilterRow key={filter.value} onPress={() => handleFilterOptionClick(filter.value)} cursor="pointer">
                 <Text $short={{ variant: 'buttonLabel4' }} variant="subheading2">
-                  {filter}
+                  {filter.label}
                 </Text>
-                <Checkbox checked={activeFilter.includes(filter)} variant="branded" />
+                <Checkbox checked={activeFilter.includes(filter.value)} variant="branded" />
               </FilterRow>
             ))}
           </FilterDropdown>

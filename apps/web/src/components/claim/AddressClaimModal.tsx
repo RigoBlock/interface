@@ -6,10 +6,12 @@ import AddressInputPanel from 'components/AddressInputPanel'
 import { AutoColumn } from 'components/deprecated/Column'
 import { Break, CardBGImage, CardBGImageSmaller, CardNoise, CardSection } from 'components/earn/styled'
 import { useAccount } from 'hooks/useAccount'
+import { ModalState } from 'hooks/useModalState'
 import { useState } from 'react'
 import { useClaimCallback, useUserHasAvailableClaim, useUserUnclaimedAmount } from 'state/claim/hooks'
 import { useIsTransactionPending } from 'state/transactions/hooks'
-import { CustomLightSpinner, UniTokenAnimated } from 'theme/components'
+import { CustomLightSpinner } from 'theme/components/icons/spinner'
+import { UniTokenAnimated } from 'theme/components/icons/uniTokenAnimated'
 import { ExternalLink } from 'theme/components/Links'
 import { Button, Flex, Text, View } from 'ui/src'
 import { CloseIconWithHover } from 'ui/src/components/icons/CloseIconWithHover'
@@ -20,18 +22,11 @@ import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
 import { shortenAddress } from 'utilities/src/addresses'
 import { logger } from 'utilities/src/logger/logger'
 
-export default function AddressClaimModal({
-  isOpen,
-  connectedAddress,
-  onDismiss,
-}: {
-  isOpen: boolean
-  connectedAddress?: string | `0x${string}`
-  onDismiss: () => void
-}) {
-  const { chainId } = useAccount()
+export default function AddressClaimModal({ isOpen, closeModal }: ModalState) {
+  const account = useAccount()
+  const { chainId } = account
   // state for smart contract input
-  const [typed, setTyped] = useState(connectedAddress ?? '')
+  const [typed, setTyped] = useState(account.address ?? '')
   function handleRecipientType(val: string) {
     setTyped(val)
   }
@@ -74,11 +69,11 @@ export default function AddressClaimModal({
     setAttempting(false)
     setHash(undefined)
     setTyped('')
-    onDismiss()
+    closeModal()
   }
 
-  const amount = unclaimedAmount?.toFixed(0, { groupSeparator: ',' } ?? '-')
-  const unclaimedUni = unclaimedAmount?.toFixed(0, { groupSeparator: ',' } ?? '-')
+  const amount = unclaimedAmount?.toFixed(0, { groupSeparator: ',' })
+  const unclaimedUni = unclaimedAmount?.toFixed(0, { groupSeparator: ',' })
 
   // Avoiding translating because the structure for "Claiming UNI for address" is wrong but this modal is rarely used
   // and ran into difficulties with testing it
@@ -166,7 +161,7 @@ export default function AddressClaimModal({
               )}
               {parsedAddress && (
                 <Text variant="subheading1" color="$black">
-                  for {shortenAddress(parsedAddress)}
+                  for {shortenAddress({ address: parsedAddress })}
                 </Text>
               )}
             </Flex>
@@ -189,7 +184,10 @@ export default function AddressClaimModal({
               </Text>
             )}
             {attempting && hash && !claimConfirmed && chainId && hash && (
-              <ExternalLink href={getExplorerLink(chainId, hash, ExplorerDataType.TRANSACTION)} style={{ zIndex: 99 }}>
+              <ExternalLink
+                href={getExplorerLink({ chainId, data: hash, type: ExplorerDataType.TRANSACTION })}
+                style={{ zIndex: 99 }}
+              >
                 View transaction on Explorer
               </ExternalLink>
             )}

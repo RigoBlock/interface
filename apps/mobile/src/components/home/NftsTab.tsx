@@ -5,16 +5,14 @@ import { useAppStackNavigation } from 'src/app/navigation/types'
 import { useAdaptiveFooter } from 'src/components/home/hooks'
 import { TAB_BAR_HEIGHT, TabProps } from 'src/components/layout/TabHelpers'
 import { Flex, useSporeColors } from 'ui/src'
-import { GQLQueries } from 'uniswap/src/data/graphql/uniswap-data-api/queries'
+import { NftsList } from 'uniswap/src/components/nfts/NftsList'
+import { NftViewWithContextMenu } from 'uniswap/src/components/nfts/NftViewWithContextMenu'
+import { NFTItem } from 'uniswap/src/features/nfts/types'
 import { useAppInsets } from 'uniswap/src/hooks/useAppInsets'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { MobileScreens } from 'uniswap/src/types/screens/mobile'
 import { isAndroid } from 'utilities/src/platform'
-import { NftViewWithContextMenu } from 'wallet/src/components/nfts/NftViewWithContextMenu'
-import { NftsList } from 'wallet/src/components/nfts/NftsList'
-import { NFTItem } from 'wallet/src/features/nfts/types'
-
-export const NFTS_TAB_DATA_DEPENDENCIES = [GQLQueries.NftsTab]
+import { useAccounts } from 'wallet/src/features/wallet/hooks'
 
 export const NftsTab = memo(
   forwardRef<FlashList<unknown>, TabProps>(function _NftsTab(
@@ -33,6 +31,7 @@ export const NftsTab = memo(
     const colors = useSporeColors()
     const insets = useAppInsets()
     const navigation = useAppStackNavigation()
+    const accounts = useAccounts()
 
     const { onContentSizeChange, footerHeight, adaptiveFooter } = useAdaptiveFooter(
       containerProps?.contentContainerStyle,
@@ -51,12 +50,18 @@ export const NftsTab = memo(
         }
 
         return (
-          <Flex fill m="$spacing4">
-            <NftViewWithContextMenu index={index} item={item} owner={owner} onPress={onPressNft} />
+          <Flex m="$spacing4">
+            <NftViewWithContextMenu
+              index={index}
+              item={item}
+              owner={owner}
+              walletAddresses={Object.keys(accounts)}
+              onPress={onPressNft}
+            />
           </Flex>
         )
       },
-      [owner, navigation],
+      [owner, navigation, accounts],
     )
 
     const refreshControl = useMemo(() => {

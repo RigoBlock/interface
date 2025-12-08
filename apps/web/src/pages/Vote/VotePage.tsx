@@ -1,12 +1,13 @@
+/* eslint-disable max-lines */
+
 import { BigNumber } from '@ethersproject/bignumber'
-import { InterfacePageName } from '@uniswap/analytics-events'
 import { CurrencyAmount, Fraction, Token } from '@uniswap/sdk-core'
 import { ButtonPrimary } from 'components/Button/buttons'
 import { DarkGrayCard } from 'components/Card/cards'
 import { AutoColumn } from 'components/deprecated/Column'
 import { RowBetween, RowFixed } from 'components/deprecated/Row'
-import { SwitchLocaleLink } from 'components/SwitchLocaleLink'
 import { CardSection, DataCard } from 'components/earn/styled'
+import { SwitchLocaleLink } from 'components/SwitchLocaleLink'
 import DelegateModal from 'components/vote/DelegateModal'
 import ExecuteModal from 'components/vote/ExecuteModal'
 import QueueModal from 'components/vote/QueueModal'
@@ -18,6 +19,7 @@ import {
 } from 'constants/governance'
 import { useAccount } from 'hooks/useAccount'
 import useCurrentBlockTimestamp from 'hooks/useCurrentBlockTimestamp'
+import { useModalState } from 'hooks/useModalState'
 import JSBI from 'jsbi'
 import useBlockNumber from 'lib/hooks/useBlockNumber'
 import styled from 'lib/styled-components'
@@ -25,17 +27,9 @@ import ms from 'ms'
 import { ProposalStatus } from 'pages/Vote/styled'
 import { useState } from 'react'
 import { ArrowLeft } from 'react-feather'
-import ReactMarkdown from 'react-markdown'
-import { useParams } from 'react-router-dom'
 import { Trans, useTranslation } from 'react-i18next'
-import {
-  useModalIsOpen,
-  useToggleDelegateModal,
-  useToggleExecuteModal,
-  useToggleQueueModal,
-  useToggleVoteModal,
-} from 'state/application/hooks'
-import { ApplicationModal } from 'state/application/reducer'
+import ReactMarkdown from 'react-markdown'
+import { useParams } from 'react-router'
 import { useTokenBalance } from 'state/connection/hooks'
 import { ProposalState, useProposalData, useUserVotes } from 'state/governance/hooks'
 import { VoteOption } from 'state/governance/types'
@@ -44,9 +38,10 @@ import { ExternalLink, StyledInternalLink } from 'theme/components/Links'
 import { Flex, Text } from 'ui/src'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { useCurrentLocale } from 'uniswap/src/features/language/hooks'
+import { InterfacePageName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
-import { isAddress } from 'utilities/src/addresses'
+import { isAddress } from 'viem'
 
 const PageWrapper = styled(AutoColumn)`
   padding-top: 68px;
@@ -136,13 +131,19 @@ const ProposerAddressLink = styled(ExternalLink)`
   word-break: break-all;
 `
 
-function getDateFromBlockOrTime(
-  targetBlockOrTime: number | undefined,
-  currentBlock: number | undefined,
-  averageBlockTimeInSeconds: number | undefined,
-  currentTimestamp: BigNumber | undefined,
-  isTimestamp?: boolean,
-): Date | undefined {
+function getDateFromBlockOrTime({
+  targetBlockOrTime,
+  currentBlock,
+  averageBlockTimeInSeconds,
+  currentTimestamp,
+  isTimestamp,
+}: {
+  targetBlockOrTime: number | undefined
+  currentBlock: number | undefined
+  averageBlockTimeInSeconds: number | undefined
+  currentTimestamp: BigNumber | undefined
+  isTimestamp?: boolean
+}): Date | undefined {
   if (targetBlockOrTime && currentBlock && averageBlockTimeInSeconds && currentTimestamp) {
     const date = new Date()
     if (isTimestamp) {
@@ -160,6 +161,30 @@ function getDateFromBlockOrTime(
 }
 
 export default function VotePage() {
+  const {
+    isOpen: showVoteModal,
+    closeModal: closeVoteModal,
+    toggleModal: toggleVoteModal,
+  } = useModalState(ModalName.Vote)
+  const {
+    isOpen: showDelegateModal,
+    closeModal: closeDelegateModal,
+    toggleModal: toggleDelegateModal,
+  } = useModalState(ModalName.Delegate)
+  const {
+    isOpen: showQueueModal,
+    closeModal: closeQueueModal,
+    toggleModal: toggleQueueModal,
+  } = useModalState(ModalName.Queue)
+  const {
+    isOpen: showExecuteModal,
+    closeModal: closeExecuteModal,
+    toggleModal: toggleExecuteModal,
+  } = useModalState(ModalName.Execute)
+
+  // update vote option based on button interactions
+  const [voteOption, setVoteOption] = useState<VoteOption | undefined>(undefined)
+
   const { t } = useTranslation()
   // see https://github.com/remix-run/react-router/issues/8200#issuecomment-962520661
   const { governorIndex, id } = useParams() as { governorIndex: string; id: string }
@@ -169,43 +194,30 @@ export default function VotePage() {
 
   // get data for this specific proposal
   const { data: proposalData, quorumAmount } = useProposalData(parsedGovernorIndex, id)
-
-  // update vote option based on button interactions
-  const [voteOption, setVoteOption] = useState<VoteOption | undefined>(undefined)
-
-  // modal for casting votes
-  const showVoteModal = useModalIsOpen(ApplicationModal.VOTE)
-  const toggleVoteModal = useToggleVoteModal()
-
-  // toggle for showing delegation modal
-  const showDelegateModal = useModalIsOpen(ApplicationModal.DELEGATE)
-  const toggleDelegateModal = useToggleDelegateModal()
-
-  // toggle for showing queue modal
-  const showQueueModal = useModalIsOpen(ApplicationModal.QUEUE)
-  const toggleQueueModal = useToggleQueueModal()
-
-  // toggle for showing execute modal
-  const showExecuteModal = useModalIsOpen(ApplicationModal.EXECUTE)
-  const toggleExecuteModal = useToggleExecuteModal()
-
-  // get and format date from data
   const currentTimestamp = useCurrentBlockTimestamp({ refetchInterval: false })
   const currentBlock = useBlockNumber()
-  const startDate = !!proposalData?.startBlock && getDateFromBlockOrTime(
-    proposalData.startBlock,
-    currentBlock,
-    (account.chainId && AVERAGE_BLOCK_TIME_IN_SECS[account.chainId]) ?? DEFAULT_AVERAGE_BLOCK_TIME_IN_SECS,
-    BigNumber.from(currentTimestamp),
-    true,
-  )
-  const endDate = !!proposalData?.endBlock && getDateFromBlockOrTime(
-    proposalData.endBlock,
-    currentBlock,
-    (account.chainId && AVERAGE_BLOCK_TIME_IN_SECS[account.chainId]) ?? DEFAULT_AVERAGE_BLOCK_TIME_IN_SECS,
-    BigNumber.from(currentTimestamp),
-    true,
-  )
+
+  // update vote option based on button interactions
+  const startDate =
+    !!proposalData?.startBlock &&
+    getDateFromBlockOrTime({
+      targetBlockOrTime: proposalData.startBlock,
+      currentBlock,
+      averageBlockTimeInSeconds:
+        (account.chainId && AVERAGE_BLOCK_TIME_IN_SECS[account.chainId]) ?? DEFAULT_AVERAGE_BLOCK_TIME_IN_SECS,
+      currentTimestamp: BigNumber.from(currentTimestamp),
+      isTimestamp: true,
+    })
+  const endDate =
+    !!proposalData?.endBlock &&
+    getDateFromBlockOrTime({
+      targetBlockOrTime: proposalData.endBlock,
+      currentBlock,
+      averageBlockTimeInSeconds:
+        (account.chainId && AVERAGE_BLOCK_TIME_IN_SECS[account.chainId]) ?? DEFAULT_AVERAGE_BLOCK_TIME_IN_SECS,
+      currentTimestamp: BigNumber.from(currentTimestamp),
+      isTimestamp: true,
+    })
   const now = new Date()
   const locale = useCurrentLocale()
   const dateFormat: Intl.DateTimeFormatOptions = {
@@ -220,9 +232,9 @@ export default function VotePage() {
   //const eta = proposalData?.eta ? new Date(proposalData.eta.mul(ms`1 second`).toNumber()) : undefined
 
   // get total votes and format percentages for UI
-  const totalVotes = proposalData?.forCount?.add(proposalData?.againstCount)
+  const totalVotes = proposalData?.forCount.add(proposalData.againstCount)
   const forPercentage = totalVotes
-    ? proposalData?.forCount?.asFraction?.divide(totalVotes?.asFraction)?.multiply(100)
+    ? proposalData?.forCount.asFraction.divide(totalVotes.asFraction).multiply(100)
     : undefined
   const againstPercentage = forPercentage ? new Fraction(100).subtract(forPercentage) : undefined
   const { votes: availableVotes } = useUserVotes()
@@ -248,17 +260,17 @@ export default function VotePage() {
   )
 
   // in blurb link to home page if they are able to unlock
-  const showLinkForUnlock = Boolean(
-    grgBalance && JSBI.notEqual(grgBalance.quotient, JSBI.BigInt(0)),
-  )
+  const showLinkForUnlock = Boolean(grgBalance && JSBI.notEqual(grgBalance.quotient, JSBI.BigInt(0)))
 
   // show links in propsoal details if content is an address
   // if content is contract with common name, replace address with common name
   const linkIfAddress = (content: string) => {
     if (isAddress(content) && account.chainId) {
-      const commonName = COMMON_CONTRACT_NAMES[account.chainId]?.[content] ?? content
+      const commonName = COMMON_CONTRACT_NAMES[account.chainId][content] || content
       return (
-        <ExternalLink href={getExplorerLink(account.chainId, content, ExplorerDataType.ADDRESS)}>
+        <ExternalLink
+          href={getExplorerLink({ chainId: account.chainId, data: content, type: ExplorerDataType.ADDRESS })}
+        >
           {commonName}
         </ExternalLink>
       )
@@ -271,7 +283,7 @@ export default function VotePage() {
   }
 
   return (
-    <Trace logImpression page={InterfacePageName.VOTE_PAGE}>
+    <Trace logImpression page={InterfacePageName.VotePage}>
       <>
         <PageWrapper gap="lg" justify="center">
           <VoteModal
@@ -292,9 +304,7 @@ export default function VotePage() {
               <ArrowWrapper to="/vote">
                 <Flex gap="$spacing4">
                   <ArrowLeft size={20} />
-                  <ThemedText.DeprecatedMain>
-                    {t('vote.votePage.allProposals')}
-                  </ThemedText.DeprecatedMain>
+                  <ThemedText.DeprecatedMain>{t('vote.votePage.allProposals')}</ThemedText.DeprecatedMain>
                 </Flex>
               </ArrowWrapper>
               {proposalData && <ProposalStatus status={proposalData.status} />}
@@ -474,9 +484,7 @@ export default function VotePage() {
                         <Trans i18nKey="vote.votePage.against" />
                       </Text>
                       {proposalData && (
-                        <Text fontWeight={500}>
-                          {proposalData.againstCount.toFixed(0, { groupSeparator: ',' })}
-                        </Text>
+                        <Text fontWeight={500}>{proposalData.againstCount.toFixed(0, { groupSeparator: ',' })}</Text>
                       )}
                     </WrapSmall>
                   </AutoColumn>
@@ -484,7 +492,7 @@ export default function VotePage() {
                     <Progress
                       status="against"
                       percentageString={
-                        proposalData?.againstCount?.greaterThan(0) ? `${againstPercentage?.toFixed(0) ?? 0}%` : '0%'
+                        proposalData?.againstCount.greaterThan(0) ? `${againstPercentage?.toFixed(0) ?? 0}%` : '0%'
                       }
                     />
                   </ProgressWrapper>
@@ -495,7 +503,7 @@ export default function VotePage() {
               <Text fontWeight={500}>
                 <Trans i18nKey="vote.votePage.details" />
               </Text>
-              {proposalData?.details?.map((d, i) => {
+              {proposalData?.details.map((d, i) => {
                 return (
                   <DetailText key={i}>
                     {i + 1}: {linkIfAddress(d.target)}.{d.functionSig}(
@@ -518,11 +526,12 @@ export default function VotePage() {
               </Text>
               <MarkDownWrapper>
                 <ReactMarkdown
-                  source={proposalData?.description}
-                  renderers={{
-                    image: MarkdownImage,
+                  components={{
+                    img: MarkdownImage,
                   }}
-                />
+                >
+                  {proposalData?.description}
+                </ReactMarkdown>
               </MarkDownWrapper>
             </AutoColumn>
             <AutoColumn gap="md">
@@ -532,11 +541,15 @@ export default function VotePage() {
               <ProposerAddressLink
                 href={
                   proposalData?.proposer && account.chainId
-                    ? getExplorerLink(account.chainId, proposalData?.proposer, ExplorerDataType.ADDRESS)
+                    ? getExplorerLink({
+                        chainId: account.chainId,
+                        data: proposalData.proposer,
+                        type: ExplorerDataType.ADDRESS,
+                      })
                     : ''
                 }
               >
-                <ReactMarkdown source={proposalData?.proposer} />
+                <ReactMarkdown>{proposalData?.proposer}</ReactMarkdown>
               </ProposerAddressLink>
             </AutoColumn>
           </ProposalInfo>

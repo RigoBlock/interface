@@ -23,7 +23,7 @@ export function PreferenceMenu() {
 
   const [settingsView, setSettingsView] = useState<PreferencesView>(PreferencesView.SETTINGS)
   const [isOpen, setIsOpen] = useState(false)
-  const handleExitMenu = useCallback(() => setSettingsView(PreferencesView.SETTINGS), [setSettingsView])
+  const handleExitMenu = useCallback(() => setSettingsView(PreferencesView.SETTINGS), [])
   const onOpenChange = useCallback(
     (open: boolean) => {
       setIsOpen(open)
@@ -31,7 +31,7 @@ export function PreferenceMenu() {
         handleExitMenu()
       }
     },
-    [handleExitMenu, setIsOpen],
+    [handleExitMenu],
   )
 
   return (
@@ -41,7 +41,7 @@ export function PreferenceMenu() {
           <MoreHorizontal size={20} color="$neutral2" cursor="pointer" />
         </NavIcon>
       </Popover.Trigger>
-      <NavDropdown width={325} isOpen={isOpen} padded mr={12}>
+      <NavDropdown isOpen={isOpen} minWidth={325} padded mr={12}>
         <NavDropdownDefaultWrapper>
           <AnimateTransition
             currentIndex={getSettingsViewIndex(settingsView)}

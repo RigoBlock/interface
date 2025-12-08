@@ -15,7 +15,8 @@ import {
   SubmittableTrade,
   TradeState,
 } from 'state/routing/types'
-import { AVERAGE_L1_BLOCK_TIME_MS } from 'uniswap/src/features/transactions/swap/hooks/usePollingIntervalByChain'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { AVERAGE_L1_BLOCK_TIME_MS } from 'uniswap/src/features/transactions/hooks/usePollingIntervalByChain'
 
 const TRADE_NOT_FOUND = { state: TradeState.NO_ROUTE_FOUND, trade: undefined, currentData: undefined } as const
 const TRADE_LOADING = { state: TradeState.LOADING, trade: undefined, currentData: undefined } as const
@@ -60,6 +61,7 @@ export function useRoutingAPITrade<TTradeType extends TradeType>(
  * @param amountSpecified the exact amount to swap in/out
  * @param otherCurrency the desired output/payment currency
  */
+// eslint-disable-next-line max-params
 export function useRoutingAPITrade<TTradeType extends TradeType>(
   skipFetch = false,
   tradeType: TTradeType,
@@ -106,12 +108,18 @@ export function useRoutingAPITrade<TTradeType extends TradeType>(
   const isFetching = currentData !== tradeResult || !currentData
 
   return useMemo(() => {
-    if (amountSpecified && otherCurrency && queryArgs === skipToken) {
+    if (currencyIn?.chainId === UniverseChainId.Solana || currencyOut?.chainId === UniverseChainId.Solana) {
+      // Routing API does not support Solana; we should not show any trade (nor a stale EVM trade, because we skip the query if Solana)
+      return {
+        state: TradeState.INVALID,
+        trade: undefined,
+        currentTrade: undefined,
+      }
+    } else if (amountSpecified && otherCurrency && queryArgs === skipToken) {
       return {
         state: TradeState.STALE,
         trade: tradeResult?.trade,
         currentTrade: currentData?.trade,
-        swapQuoteLatency: tradeResult?.latencyMs,
       }
     } else if (!amountSpecified || isError || queryArgs === skipToken) {
       return {
@@ -127,21 +135,20 @@ export function useRoutingAPITrade<TTradeType extends TradeType>(
     } else {
       return {
         state: isFetching ? TradeState.LOADING : TradeState.VALID,
-        trade: tradeResult?.trade,
+        trade: tradeResult.trade,
         currentTrade: currentData?.trade,
-        swapQuoteLatency: tradeResult?.latencyMs,
       }
     }
   }, [
+    currencyIn,
+    currencyOut,
     amountSpecified,
+    otherCurrency,
     error,
     isError,
     isFetching,
     queryArgs,
-    tradeResult?.latencyMs,
-    tradeResult?.state,
-    tradeResult?.trade,
-    currentData?.trade,
-    otherCurrency,
+    tradeResult,
+    currentData,
   ])
 }

@@ -1,13 +1,15 @@
 /* eslint-disable consistent-return */
 import { Currency, NativeCurrency } from '@uniswap/sdk-core'
+import { GraphQLApi } from '@universe/api'
 import { useTranslation } from 'react-i18next'
 import { ColorTokens } from 'ui/src'
 import { getAlertColor } from 'uniswap/src/components/modals/WarningModal/getAlertColor'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
-import { ProtectionResult } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
+import { GRG } from 'uniswap/src/constants/tokens'
 import { AttackType, CurrencyInfo, TokenList } from 'uniswap/src/features/dataApi/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { isInterface } from 'utilities/src/platform'
+import { logger } from 'utilities/src/logger/logger'
+import { isWebApp } from 'utilities/src/platform'
 
 export enum TokenProtectionWarning {
   // THESE NUMERIC VALUES MATTER -- they are used for severity comparison
@@ -17,6 +19,7 @@ export enum TokenProtectionWarning {
   MaliciousImpersonator = 7,
   FotHigh = 6, // [5, 80)% fot
   MaliciousGeneral = 5,
+  PotentialHoneypot = 4.5, // Between SpamAirdrop (4) and MaliciousGeneral (5)
   SpamAirdrop = 4,
   FotLow = 3, // (0, 5)% fot
   NonDefault = 2,
@@ -82,7 +85,7 @@ export function getTokenProtectionFeeOnTransfer(currencyInfo: Maybe<CurrencyInfo
 
 // eslint-disable-next-line complexity
 export function getTokenProtectionWarning(currencyInfo?: Maybe<CurrencyInfo>): TokenProtectionWarning {
-  if (!currencyInfo?.currency || !currencyInfo?.safetyInfo) {
+  if (!currencyInfo?.currency || !currencyInfo.safetyInfo) {
     return TokenProtectionWarning.NonDefault
   }
   const { currency, safetyInfo } = currencyInfo
@@ -101,24 +104,39 @@ export function getTokenProtectionWarning(currencyInfo?: Maybe<CurrencyInfo>): T
     return TokenProtectionWarning.MaliciousHoneypot
   } else if (
     (feeOnTransfer && feeOnTransfer >= TOKEN_PROTECTION_FOT_HIGH_FEE_BREAKPOINT) ||
-    ((protectionResult === ProtectionResult.Malicious || protectionResult === ProtectionResult.Spam) &&
+    ((protectionResult === GraphQLApi.ProtectionResult.Malicious ||
+      protectionResult === GraphQLApi.ProtectionResult.Spam) &&
       attackType === AttackType.HighFees)
   ) {
     return TokenProtectionWarning.FotVeryHigh
   } else if (
-    (protectionResult === ProtectionResult.Malicious || protectionResult === ProtectionResult.Spam) &&
+    (protectionResult === GraphQLApi.ProtectionResult.Malicious ||
+      protectionResult === GraphQLApi.ProtectionResult.Spam) &&
     attackType === AttackType.Impersonator
   ) {
     return TokenProtectionWarning.MaliciousImpersonator
   } else if (feeOnTransfer && feeOnTransfer >= TOKEN_PROTECTION_FOT_FEE_BREAKPOINT) {
     return TokenProtectionWarning.FotHigh
-  } else if (protectionResult === ProtectionResult.Malicious && attackType === AttackType.Other) {
+  } else if (protectionResult === GraphQLApi.ProtectionResult.Malicious) {
     return TokenProtectionWarning.MaliciousGeneral
-  } else if (protectionResult === ProtectionResult.Spam && attackType === AttackType.Airdrop) {
+  } else if (attackType === AttackType.Honeypot) {
+    return TokenProtectionWarning.PotentialHoneypot
+  } else if (protectionResult === GraphQLApi.ProtectionResult.Spam && attackType === AttackType.Airdrop) {
     return TokenProtectionWarning.SpamAirdrop
   } else if (feeOnTransfer && feeOnTransfer > 0 && feeOnTransfer < TOKEN_PROTECTION_FOT_FEE_BREAKPOINT) {
     return TokenProtectionWarning.FotLow
   } else if (safetyInfo.tokenList === TokenList.NonDefault) {
+    // Override for GRG tokens - treat them as default tokens instead of non-default
+    const isGrgToken = Object.values(GRG).some(grgToken => 
+      currency.isToken && 
+      grgToken.chainId === currency.chainId && 
+      grgToken.address.toLowerCase() === currency.address.toLowerCase()
+    )
+    
+    if (isGrgToken) {
+      return TokenProtectionWarning.None
+    }
+    
     return TokenProtectionWarning.NonDefault
   }
 
@@ -168,6 +186,7 @@ export function getSeverityFromTokenProtectionWarning(tokenProtectionWarning: To
     case TokenProtectionWarning.FotVeryHigh:
     case TokenProtectionWarning.FotHigh:
       return WarningSeverity.High
+    case TokenProtectionWarning.PotentialHoneypot:
     case TokenProtectionWarning.SpamAirdrop:
     case TokenProtectionWarning.FotLow:
       return WarningSeverity.Medium
@@ -211,7 +230,9 @@ export function useModalHeaderText({
     return null
   }
   if (!shouldHavePluralTreatment && tokenSymbol1) {
-    throw new Error('Should only combine into one plural-languaged modal if BOTH are low or BOTH are blocked')
+    logger.error('Should only combine into one plural-languaged modal if BOTH are low or BOTH are blocked', {
+      tags: { file: 'safetyUtils.ts', function: 'useModalHeaderText' },
+    })
   }
   switch (tokenProtectionWarning) {
     case TokenProtectionWarning.Blocked:
@@ -231,6 +252,8 @@ export function useModalHeaderText({
       return t('token.safety.warning.fotHigh.title')
     case TokenProtectionWarning.MaliciousGeneral:
       return t('token.safety.warning.malicious.title')
+    case TokenProtectionWarning.PotentialHoneypot:
+      return t('token.safety.warning.potentialHoneypot.title')
     case TokenProtectionWarning.SpamAirdrop:
       return t('token.safety.warning.spam.title')
     case TokenProtectionWarning.FotLow:
@@ -269,7 +292,7 @@ export function useModalSubtitleText({
 
   switch (tokenProtectionWarning) {
     case TokenProtectionWarning.Blocked:
-      return isInterface
+      return isWebApp
         ? shouldHavePluralTreatment
           ? t('token.safety.warning.blocked.description.default_other')
           : t('token.safety.warning.blocked.description.default_one')
@@ -284,6 +307,8 @@ export function useModalSubtitleText({
       )
     case TokenProtectionWarning.MaliciousImpersonator:
       return t('token.safety.warning.malicious.impersonator.message', { tokenSymbol: tokenSymbolWithFallback })
+    case TokenProtectionWarning.PotentialHoneypot:
+      return t('token.safety.warning.potentialHoneypot.modal.message', { tokenSymbol: tokenSymbolWithFallback })
     case TokenProtectionWarning.SpamAirdrop:
       return (
         t('token.safety.warning.spam.message', { tokenSymbol: tokenSymbolWithFallback }) +
@@ -344,7 +369,7 @@ export function useTokenWarningCardText(currencyInfo: Maybe<CurrencyInfo>): {
     buyFeePercent,
     sellFeePercent,
   })
-  if (!currencyInfo || !currencyInfo?.safetyInfo) {
+  if (!currencyInfo || !currencyInfo.safetyInfo) {
     return {
       heading: null,
       description: null,
@@ -373,6 +398,8 @@ export function useCardHeaderText({
       return t('token.safety.warning.fotHigh.title')
     case TokenProtectionWarning.MaliciousGeneral:
       return t('token.safety.warning.malicious.title')
+    case TokenProtectionWarning.PotentialHoneypot:
+      return t('token.safety.warning.potentialHoneypot.title')
     case TokenProtectionWarning.SpamAirdrop:
       return t('token.safety.warning.spam.title')
     case TokenProtectionWarning.FotLow:
@@ -404,7 +431,7 @@ export function useCardSubtitleText({
   const formattedSellFeePercent = sellFeePercent && sellFeePercent > 0 ? formatPercent(sellFeePercent) : undefined
   switch (tokenProtectionWarning) {
     case TokenProtectionWarning.Blocked:
-      return isInterface
+      return isWebApp
         ? t('token.safety.warning.blocked.description.default_one')
         : t('token.safetyLevel.blocked.message')
     case TokenProtectionWarning.MaliciousHoneypot:
@@ -413,6 +440,8 @@ export function useCardSubtitleText({
       return t('token.safety.warning.malicious.general.message', { tokenSymbol: tokenSymbolWithFallback })
     case TokenProtectionWarning.MaliciousImpersonator:
       return t('token.safety.warning.malicious.impersonator.message.short', { tokenSymbol: tokenSymbolWithFallback })
+    case TokenProtectionWarning.PotentialHoneypot:
+      return t('token.safety.warning.potentialHoneypot.card.message', { tokenSymbol: tokenSymbolWithFallback })
     case TokenProtectionWarning.SpamAirdrop:
       return t('token.safety.warning.spam.message', { tokenSymbol: tokenSymbolWithFallback })
     case TokenProtectionWarning.FotVeryHigh:

@@ -74,6 +74,12 @@ interface AllowedSignatureData extends BaseSignatureData {
 
 type SignatureData = StandardSignatureData | AllowedSignatureData
 
+export type ERC20PermitReturnType = {
+  signatureData: SignatureData | null
+  state: UseERC20PermitState
+  gatherPermitSignature: null | (() => Promise<void>)
+}
+
 const EIP712_DOMAIN_TYPE = [
   { name: 'name', type: 'string' },
   { name: 'version', type: 'string' },
@@ -103,19 +109,20 @@ const PERMIT_ALLOWED_TYPE = [
   { name: 'allowed', type: 'bool' },
 ]
 
-export function useERC20Permit(
-  currencyAmount: CurrencyAmount<Currency> | null | undefined,
-  spender: string | null | undefined,
-  transactionDeadline: BigNumber | undefined,
-  overridePermitInfo: PermitInfo | undefined | null,
-): {
-  signatureData: SignatureData | null
-  state: UseERC20PermitState
-  gatherPermitSignature: null | (() => Promise<void>)
-} {
+export function useERC20Permit({
+  currencyAmount,
+  spender,
+  transactionDeadline,
+  overridePermitInfo,
+}: {
+  currencyAmount?: CurrencyAmount<Currency> | null
+  spender?: string | null
+  transactionDeadline?: BigNumber
+  overridePermitInfo?: PermitInfo | null
+}): ERC20PermitReturnType {
   const account = useAccount()
   const provider = useEthersWeb3Provider()
-  const tokenAddress = currencyAmount?.currency?.isToken ? currencyAmount.currency.address : undefined
+  const tokenAddress = currencyAmount?.currency.isToken ? currencyAmount.currency.address : undefined
   const isArgentWallet = useIsArgentWallet()
 
   const { data: nonce, isLoading: nonceLoading } = useReadContract({
@@ -130,7 +137,8 @@ export function useERC20Permit(
   const permitInfo =
     overridePermitInfo ??
     (account.isConnected && account.chainId && tokenAddress
-      ? PERMITTABLE_TOKENS[account.chainId]?.[tokenAddress]
+      ? // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        PERMITTABLE_TOKENS[account.chainId]?.[tokenAddress]
       : undefined)
 
   const [signatureData, setSignatureData] = useState<SignatureData | null>(null)
@@ -156,6 +164,7 @@ export function useERC20Permit(
     }
 
     const nonceNumber = Number(nonce)
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (nonceLoading || typeof nonceNumber !== 'number') {
       return {
         state: UseERC20PermitState.LOADING,

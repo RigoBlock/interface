@@ -1,17 +1,17 @@
-import Loader from 'components/Icons/LoadingSpinner'
+import { AbiCoder } from '@ethersproject/abi'
+import { getAddress } from '@ethersproject/address'
+import { BigNumber } from '@ethersproject/bignumber'
+import { keccak256 } from '@ethersproject/keccak256'
 import { RowFixed } from 'components/deprecated/Row'
+import Loader from 'components/Icons/LoadingSpinner'
 import PoolPositionListItem from 'components/PoolPositionListItem'
 import { MouseoverTooltip } from 'components/Tooltip'
 import { useAccount } from 'hooks/useAccount'
-import { Trans } from 'react-i18next'
-import React, { useMemo, useEffect } from 'react'
-import { AbiCoder } from '@ethersproject/abi'
-import { BigNumber } from '@ethersproject/bignumber'
-import { getAddress } from '@ethersproject/address'
-import { keccak256 } from '@ethersproject/keccak256'
-import { Info } from 'react-feather'
-import { useStakingPoolsRewards } from 'state/pool/hooks'
 import styled from 'lib/styled-components'
+import React, { useEffect, useMemo } from 'react'
+import { Info } from 'react-feather'
+import { Trans } from 'react-i18next'
+import { useStakingPoolsRewards } from 'state/pool/hooks'
 import { MEDIA_WIDTHS } from 'theme'
 import { PoolPositionDetails } from 'types/position'
 import { Flex, Text } from 'ui/src'
@@ -81,11 +81,8 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
 
   // TODO: we should merge this part with same part in swap page and move to a custom hook
   const [poolAddresses, poolIds] = useMemo(
-    () => [
-      positions?.map((p) => p.pool),
-      positions?.map((p) => p.id)
-    ],
-    [positions]
+    () => [positions?.map((p) => p.pool), positions?.map((p) => p.id)],
+    [positions],
   )
 
   const poolsRewards = useStakingPoolsRewards(poolIds)
@@ -99,38 +96,39 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
 
   const userAccountSlot = address ? getUserAccountSlot(address) : undefined
   const { data, isLoading } = useReadContracts({
-      contracts: useMemo(() => {
-        return poolAddresses?.map(
-          (vaultAddress) => ({
-            address: assume0xAddress(vaultAddress) ?? '0x',
+    contracts: useMemo(() => {
+      return poolAddresses?.map(
+        (vaultAddress) =>
+          ({
+            address: assume0xAddress(vaultAddress),
             abi: [
               {
-                "inputs": [
+                inputs: [
                   {
-                    "internalType": "uint256[]",
-                    "name": "slots",
-                    "type": "uint256[]"
-                  }
+                    internalType: 'uint256[]',
+                    name: 'slots',
+                    type: 'uint256[]',
+                  },
                 ],
-                "name": "getStorageSlotsAt",
-                "outputs": [
+                name: 'getStorageSlotsAt',
+                outputs: [
                   {
-                    "internalType": "bytes",
-                    "name": "",
-                    "type": "bytes"
-                  }
+                    internalType: 'bytes',
+                    name: '',
+                    type: 'bytes',
+                  },
                 ],
-                "stateMutability": "view",
-                "type": "function"
-              }
+                stateMutability: 'view',
+                type: 'function',
+              },
             ],
             functionName: 'getStorageSlotsAt',
             chainId,
             args: [[POOL_OWNER_SLOT, userAccountSlot].filter((slot) => slot !== undefined) as BigNumber[]],
           }) as const,
-        )
-      }, [poolAddresses, chainId, userAccountSlot]),
-    })
+      )
+    }, [poolAddresses, chainId, userAccountSlot]),
+  })
 
   // Extract owner address from the first storage slot (POOLS_SLOT + 1)
   // The storage slot contains: [unlocked (bool, 1 byte)][owner (address, 20 bytes)][decimals (bytes8, 8 bytes)][symbol (bytes8, 8 bytes)]
@@ -139,23 +137,25 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
   // Extract user balance from second storage slot
   // The storage slot contains both activation timestamp and balance packed together in 32 bytes
   const extractValues = (storageValue?: string) => {
-    if (!storageValue || storageValue === '0x') { return {} }
+    if (!storageValue || storageValue === '0x') {
+      return {}
+    }
     let shouldOnlyReturnPoolData = false
 
     // Remove '0x' prefix
     const hexRaw = storageValue.slice(2)
-    
+
     if (hexRaw.length === 64) {
       shouldOnlyReturnPoolData = true
     }
-    
+
     const hex = hexRaw.padStart(128, '0') // 128 hex chars = 64 bytes (2 slots)
 
     // - First 6 hex chars = unlocked (bool)
     // - Next 40 hex chars = owner (address)
     const ownerHex = hex.slice(6, 46)
     const decimalsHex = hex.slice(46, 48)
-    let decimals: number | undefined = undefined
+    let decimals: number | undefined
     if (decimalsHex && decimalsHex !== '00') {
       decimals = BigNumber.from('0x' + decimalsHex).toNumber()
     }
@@ -175,7 +175,9 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
   const [cachedPoolsWithStats, setCachedPoolsWithStats] = React.useState<any[] | undefined>(undefined)
 
   const poolsWithStats = useMemo(() => {
-    if (!positions || isLoading) { return undefined }
+    if (!positions || isLoading) {
+      return undefined
+    }
 
     return positions
       .map((p, i) => {
@@ -193,19 +195,29 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
           userIsOwner,
           userBalance,
           id: poolIds?.[i],
-          currentEpochReward: poolsRewards[i] ?? '0',
+          currentEpochReward: poolsRewards?.[i] ?? '0',
           decimals: decimals ?? 18,
-          symbol: p?.symbol,
-          name: p?.name,
-          apr: p?.apr,
-          irr: p?.irr,
-          poolOwnStake: p?.poolOwnStake,
-          poolDelegatedStake: p?.poolDelegatedStake,
-          userHasStake: p?.userHasStake
+          symbol: p.symbol,
+          name: p.name,
+          apr: p.apr,
+          irr: p.irr,
+          poolOwnStake: p.poolOwnStake,
+          poolDelegatedStake: p.poolDelegatedStake,
+          userHasStake: p.userHasStake,
         }
       })
-      .filter((p) => p && p.shouldDisplay)
-  }, [account.address, account.chainId, poolAddresses, positions, poolIds, poolsRewards, shouldFilterByUserPools, data, isLoading])
+      .filter((p) => p.shouldDisplay)
+  }, [
+    account.address,
+    account.chainId,
+    poolAddresses,
+    positions,
+    poolIds,
+    poolsRewards,
+    shouldFilterByUserPools,
+    data,
+    isLoading,
+  ])
 
   const displayPools = poolsWithStats ?? cachedPoolsWithStats
 
@@ -221,7 +233,7 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
         <Flex>
           <Text>
             {shouldFilterByUserPools ? <Trans>Your vaults</Trans> : <Trans>Top Vaults</Trans>}
-            {displayPools && ` (${displayPools?.length})`}
+            {displayPools && ` (${displayPools.length})`}
           </Text>
         </Flex>
         {shouldFilterByUserPools && (
@@ -283,9 +295,7 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools }:
       </DesktopHeader>
       <MobileHeader>
         <Flex>
-          <Text>
-            {shouldFilterByUserPools ? <Trans>Your vaults</Trans> : <Trans>Vaults</Trans>}
-          </Text>
+          <Text>{shouldFilterByUserPools ? <Trans>Your vaults</Trans> : <Trans>Vaults</Trans>}</Text>
         </Flex>
         {!shouldFilterByUserPools ? (
           <Flex row gap={40} style={{ marginRight: '8px' }}>

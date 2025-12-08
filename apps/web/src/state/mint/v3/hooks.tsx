@@ -1,27 +1,27 @@
+/* eslint-disable max-lines */
 import { Currency, CurrencyAmount, Price, Rounding, Token } from '@uniswap/sdk-core'
 import {
+  encodeSqrtRatioX96,
   FeeAmount,
+  nearestUsableTick,
   Position,
+  priceToClosestTick,
   TICK_SPACINGS,
   TickMath,
-  Pool as V3Pool,
-  encodeSqrtRatioX96,
-  nearestUsableTick,
-  priceToClosestTick,
   tickToPrice as tickToPriceV3,
+  Pool as V3Pool,
 } from '@uniswap/v3-sdk'
-import { Pool as V4Pool, tickToPrice as tickToPriceV4 } from '@uniswap/v4-sdk'
-import { ConnectWalletButtonText } from 'components/NavBar/accountCTAsExperimentUtils'
+import { tickToPrice as tickToPriceV4, Pool as V4Pool } from '@uniswap/v4-sdk'
+import { FeeData } from 'components/Liquidity/Create/types'
 import { BIG_INT_ZERO } from 'constants/misc'
 import { useAccount } from 'hooks/useAccount'
 import { PoolState, usePool } from 'hooks/usePools'
 import { useSwapTaxes } from 'hooks/useSwapTaxes'
 import JSBI from 'jsbi'
 import tryParseCurrencyAmount from 'lib/utils/tryParseCurrencyAmount'
-import { FeeData } from 'pages/Pool/Positions/create/types'
 import { ReactNode, useCallback, useMemo } from 'react'
-import { Trans } from 'react-i18next'
-import { useSearchParams } from 'react-router-dom'
+import { Trans, useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router'
 import { useActiveSmartPool } from 'state/application/hooks'
 import { useCurrencyBalances } from 'state/connection/hooks'
 import { useAppDispatch, useAppSelector } from 'state/hooks'
@@ -107,14 +107,20 @@ export function useV3MintActionHandlers(noLiquidity: boolean | undefined): {
   }
 }
 
-export function useV3DerivedMintInfo(
-  currencyA?: Currency,
-  currencyB?: Currency,
-  feeAmount?: FeeAmount,
-  baseCurrency?: Currency,
+export function useV3DerivedMintInfo({
+  currencyA,
+  currencyB,
+  feeAmount,
+  baseCurrency,
+  existingPosition,
+}: {
+  currencyA?: Currency
+  currencyB?: Currency
+  feeAmount?: FeeAmount
+  baseCurrency?: Currency
   // override for existing position
-  existingPosition?: Position,
-): {
+  existingPosition?: Position
+}): {
   pool?: V3Pool | null
   poolState: PoolState
   ticks: { [bound in Bound]?: number | undefined }
@@ -141,6 +147,7 @@ export function useV3DerivedMintInfo(
   ticksAtLimit: { [bound in Bound]?: boolean | undefined }
   isTaxed: boolean
 } {
+  const { t } = useTranslation()
   const account = useAccount()
 
   const { independentField, typedValue, leftRangeTypedValue, rightRangeTypedValue, startPriceTypedValue } =
@@ -163,7 +170,7 @@ export function useV3DerivedMintInfo(
     [currencyA, currencyB, baseCurrency],
   )
 
-  const [token0, token1] = useMemo(
+  const [token0, token1]: [Token | undefined, Token | undefined] = useMemo(
     () =>
       tokenA && tokenB ? (tokenA.sortsBefore(tokenB) ? [tokenA, tokenB] : [tokenB, tokenA]) : [undefined, undefined],
     [tokenA, tokenB],
@@ -183,7 +190,11 @@ export function useV3DerivedMintInfo(
   }
 
   // pool
-  const [poolState, pool] = usePool(currencies[Field.CURRENCY_A], currencies[Field.CURRENCY_B], feeAmount)
+  const [poolState, pool] = usePool({
+    currencyA: currencies[Field.CURRENCY_A],
+    currencyB: currencies[Field.CURRENCY_B],
+    feeAmount,
+  })
   const noLiquidity = poolState === PoolState.NOT_EXISTS
 
   // note to parse inputs in reverse
@@ -196,15 +207,9 @@ export function useV3DerivedMintInfo(
       const parsedQuoteAmount = tryParseCurrencyAmount(startPriceTypedValue, invertPrice ? token0 : token1)
       if (parsedQuoteAmount && token0 && token1) {
         const baseAmount = tryParseCurrencyAmount('1', invertPrice ? token1 : token0)
-        const price =
-          baseAmount && parsedQuoteAmount
-            ? new Price(
-                baseAmount.currency,
-                parsedQuoteAmount.currency,
-                baseAmount.quotient,
-                parsedQuoteAmount.quotient,
-              )
-            : undefined
+        const price = baseAmount
+          ? new Price(baseAmount.currency, parsedQuoteAmount.currency, baseAmount.quotient, parsedQuoteAmount.quotient)
+          : undefined
         return (invertPrice ? price?.invert() : price) ?? undefined
       }
       return undefined
@@ -261,8 +266,18 @@ export function useV3DerivedMintInfo(
               (!invertPrice && typeof leftRangeTypedValue === 'boolean')
             ? tickSpaceLimits[Bound.LOWER]
             : invertPrice
-              ? tryParseTick(token1, token0, feeAmount, rightRangeTypedValue.toString())
-              : tryParseTick(token0, token1, feeAmount, leftRangeTypedValue.toString()),
+              ? tryParseTick({
+                  baseToken: token1,
+                  quoteToken: token0,
+                  feeAmount,
+                  value: rightRangeTypedValue.toString(),
+                })
+              : tryParseTick({
+                  baseToken: token0,
+                  quoteToken: token1,
+                  feeAmount,
+                  value: leftRangeTypedValue.toString(),
+                }),
       [Bound.UPPER]:
         typeof existingPosition?.tickUpper === 'number'
           ? existingPosition.tickUpper
@@ -270,8 +285,18 @@ export function useV3DerivedMintInfo(
               (invertPrice && typeof leftRangeTypedValue === 'boolean')
             ? tickSpaceLimits[Bound.UPPER]
             : invertPrice
-              ? tryParseTick(token1, token0, feeAmount, leftRangeTypedValue.toString())
-              : tryParseTick(token0, token1, feeAmount, rightRangeTypedValue.toString()),
+              ? tryParseTick({
+                  baseToken: token1,
+                  quoteToken: token0,
+                  feeAmount,
+                  value: leftRangeTypedValue.toString(),
+                })
+              : tryParseTick({
+                  baseToken: token0,
+                  quoteToken: token1,
+                  feeAmount,
+                  value: rightRangeTypedValue.toString(),
+                }),
     }
   }, [
     existingPosition,
@@ -284,7 +309,7 @@ export function useV3DerivedMintInfo(
     tickSpaceLimits,
   ])
 
-  const { [Bound.LOWER]: tickLower, [Bound.UPPER]: tickUpper } = ticks || {}
+  const { [Bound.LOWER]: tickLower, [Bound.UPPER]: tickUpper } = ticks
 
   // specifies whether the lower and upper ticks is at the exteme bounds
   const ticksAtLimit = useMemo(
@@ -300,16 +325,16 @@ export function useV3DerivedMintInfo(
 
   const pricesAtLimit = useMemo(() => {
     return {
-      [Bound.LOWER]: getTickToPrice(token0, token1, tickSpaceLimits.LOWER),
-      [Bound.UPPER]: getTickToPrice(token0, token1, tickSpaceLimits.UPPER),
+      [Bound.LOWER]: getTickToPrice({ baseToken: token0, quoteToken: token1, tick: tickSpaceLimits.LOWER }),
+      [Bound.UPPER]: getTickToPrice({ baseToken: token0, quoteToken: token1, tick: tickSpaceLimits.UPPER }),
     }
   }, [token0, token1, tickSpaceLimits.LOWER, tickSpaceLimits.UPPER])
 
   // always returns the price with 0 as base token
   const pricesAtTicks = useMemo(() => {
     return {
-      [Bound.LOWER]: getTickToPrice(token0, token1, ticks[Bound.LOWER]),
-      [Bound.UPPER]: getTickToPrice(token0, token1, ticks[Bound.UPPER]),
+      [Bound.LOWER]: getTickToPrice({ baseToken: token0, quoteToken: token1, tick: ticks[Bound.LOWER] }),
+      [Bound.UPPER]: getTickToPrice({ baseToken: token0, quoteToken: token1, tick: ticks[Bound.UPPER] }),
     }
   }, [token0, token1, ticks])
   const { [Bound.LOWER]: lowerPrice, [Bound.UPPER]: upperPrice } = pricesAtTicks
@@ -404,11 +429,11 @@ export function useV3DerivedMintInfo(
         (deposit1Disabled && poolForPosition && tokenB && poolForPosition.token1.equals(tokenB)),
     )
 
-  const { inputTax: currencyATax, outputTax: currencyBTax } = useSwapTaxes(
-    currencyA?.isToken ? currencyA.address : undefined,
-    currencyB?.isToken ? currencyB.address : undefined,
-    account.chainId,
-  )
+  const { inputTax: currencyATax, outputTax: currencyBTax } = useSwapTaxes({
+    inputTokenAddress: currencyA?.isToken ? currencyA.address : undefined,
+    outputTokenAddress: currencyB?.isToken ? currencyB.address : undefined,
+    tokenChainId: account.chainId,
+  })
 
   // create position entity based on users selection
   const position: Position | undefined = useMemo(() => {
@@ -425,10 +450,10 @@ export function useV3DerivedMintInfo(
 
     // mark as 0 if disabled because out of range
     const amount0 = !deposit0Disabled
-      ? parsedAmounts?.[tokenA.equals(poolForPosition.token0) ? Field.CURRENCY_A : Field.CURRENCY_B]?.quotient
+      ? parsedAmounts[tokenA.equals(poolForPosition.token0) ? Field.CURRENCY_A : Field.CURRENCY_B]?.quotient
       : BIG_INT_ZERO
     const amount1 = !deposit1Disabled
-      ? parsedAmounts?.[tokenA.equals(poolForPosition.token0) ? Field.CURRENCY_B : Field.CURRENCY_A]?.quotient
+      ? parsedAmounts[tokenA.equals(poolForPosition.token0) ? Field.CURRENCY_B : Field.CURRENCY_A]?.quotient
       : BIG_INT_ZERO
 
     if (amount0 !== undefined && amount1 !== undefined) {
@@ -457,7 +482,7 @@ export function useV3DerivedMintInfo(
 
   let errorMessage: ReactNode | undefined
   if (!account.isConnected) {
-    errorMessage = <ConnectWalletButtonText />
+    errorMessage = t('common.connectWallet.button')
   }
 
   if (poolState === PoolState.INVALID) {
@@ -477,7 +502,7 @@ export function useV3DerivedMintInfo(
 
   const { [Field.CURRENCY_A]: currencyAAmount, [Field.CURRENCY_B]: currencyBAmount } = parsedAmounts
 
-  if (currencyAAmount && currencyBalances?.[Field.CURRENCY_A]?.lessThan(currencyAAmount)) {
+  if (currencyAAmount && currencyBalances[Field.CURRENCY_A]?.lessThan(currencyAAmount)) {
     errorMessage = (
       <Trans
         i18nKey="common.insufficientTokenBalance.error"
@@ -488,7 +513,7 @@ export function useV3DerivedMintInfo(
     )
   }
 
-  if (currencyBAmount && currencyBalances?.[Field.CURRENCY_B]?.lessThan(currencyBAmount)) {
+  if (currencyBAmount && currencyBalances[Field.CURRENCY_B]?.lessThan(currencyBAmount)) {
     errorMessage = (
       <Trans
         i18nKey="common.insufficientTokenBalance.error"
@@ -528,10 +553,10 @@ export function useV3DerivedMintInfo(
 }
 
 type BaseUseRangeHopCallbacksProps = {
-  baseCurrency?: Currency
-  quoteCurrency?: Currency
-  tickLower?: number
-  tickUpper?: number
+  baseCurrency: Maybe<Currency>
+  quoteCurrency: Maybe<Currency>
+  tickLower?: Maybe<number>
+  tickUpper?: Maybe<number>
 }
 
 type V3UseRangeHopCallbacksProps = BaseUseRangeHopCallbacksProps & {

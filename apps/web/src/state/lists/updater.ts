@@ -38,7 +38,7 @@ export default function Updater(): null {
   useInterval(fetchAllListsCallback, provider ? ms(`10m`) : null)
 
   useEffect(() => {
-    if (!rehydrated || !lists) {
+    if (!rehydrated) {
       return
     } // loaded lists will not be available until state is rehydrated
 
@@ -53,17 +53,17 @@ export default function Updater(): null {
     })
     DEFAULT_INACTIVE_LIST_URLS.forEach((listUrl) => {
       const list = lists[listUrl]
-      if (!list || (!list.current && !list.loadingRequestId && !list.error)) {
+      if (!list.current && !list.loadingRequestId && !list.error) {
         fetchList(listUrl, /* isUnsupportedList= */ true).catch((error) =>
           logger.debug('lists/updater', 'Updater', 'list added fetching error', error),
         )
       }
     })
-  }, [dispatch, fetchList, lists, rehydrated])
+  }, [fetchList, lists, rehydrated])
 
   // automatically update lists for every version update
   useEffect(() => {
-    if (!rehydrated || !lists) {
+    if (!rehydrated) {
       return
     } // loaded lists will not be available until state is rehydrated
 

@@ -1,10 +1,10 @@
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { useAccount } from 'hooks/useAccount'
 import useCurrentBlockTimestamp from 'hooks/useCurrentBlockTimestamp'
-import { Trans } from 'react-i18next'
 import JSBI from 'jsbi'
 import tryParseCurrencyAmount from 'lib/utils/tryParseCurrencyAmount'
 import { ReactNode } from 'react'
+import { Trans } from 'react-i18next'
 import { parseEther } from 'viem'
 
 // TODO: check if should batch userPoolBalance and activation in UserAccount, transform user tokens after
@@ -32,7 +32,7 @@ export function useDerivedPoolInfo(
   typedValue: string,
   token: Currency | undefined,
   tokenBalance: CurrencyAmount<Currency> | undefined,
-  activation?: number
+  activation?: number,
 ): {
   parsedAmount?: CurrencyAmount<Currency>
   error?: ReactNode
@@ -45,7 +45,7 @@ export function useDerivedPoolInfo(
   // when a value is not typed, we do not return an error
   const userHasEnough: boolean = JSBI.lessThanOrEqual(
     parsedAmount?.quotient ?? JSBI.BigInt(0),
-    tokenBalance?.quotient ?? JSBI.BigInt(0)
+    tokenBalance?.quotient ?? JSBI.BigInt(0),
   )
 
   // activation param is flag for sell, so we can use it to return an error if the user transaction involves less than minimum amount

@@ -1,5 +1,7 @@
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useTranslation } from 'react-i18next'
 import { DappRequestContent } from 'src/app/features/dappRequests/DappRequestContent'
+import { ActionCanNotBeCompletedContent } from 'src/app/features/dappRequests/requestContent/ActionCanNotBeCompleted/ActionCanNotBeCompletedContent'
 import { UniswapXSwapRequestContent } from 'src/app/features/dappRequests/requestContent/EthSend/Swap/SwapRequestContent'
 import { DomainContent } from 'src/app/features/dappRequests/requestContent/SignTypeData/DomainContent'
 import { MaybeExplorerLinkedAddress } from 'src/app/features/dappRequests/requestContent/SignTypeData/MaybeExplorerLinkedAddress'
@@ -10,8 +12,9 @@ import { EIP712Message, isEIP712TypedData } from 'src/app/features/dappRequests/
 import { isPermit2, isUniswapXSwapRequest } from 'src/app/features/dappRequests/types/Permit2Types'
 import { Flex, Text } from 'ui/src'
 import { toSupportedChainId } from 'uniswap/src/features/chains/utils'
+import { useHasAccountMismatchCallback } from 'uniswap/src/features/smartWallet/mismatch/hooks'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
-import { isAddress } from 'utilities/src/addresses'
+import { isEVMAddressWithChecksum } from 'utilities/src/addresses/evm/evm'
 import { logger } from 'utilities/src/logger/logger'
 import { ErrorBoundary } from 'wallet/src/components/ErrorBoundary/ErrorBoundary'
 
@@ -42,6 +45,8 @@ export function SignTypedDataRequestContent({ dappRequest }: SignTypedDataReques
 
 function SignTypedDataRequestContentInner({ dappRequest }: SignTypedDataRequestProps): JSX.Element | null {
   const { t } = useTranslation()
+  const enablePermitMismatchUx = useFeatureFlag(FeatureFlags.EnablePermitMismatchUX)
+  const getHasMismatch = useHasAccountMismatchCallback()
 
   const parsedTypedData = JSON.parse(dappRequest.typedData)
 
@@ -49,8 +54,13 @@ function SignTypedDataRequestContentInner({ dappRequest }: SignTypedDataRequestP
     return <NonStandardTypedDataRequestContent dappRequest={dappRequest} />
   }
 
-  const { name, version, chainId: domainChainId, verifyingContract, salt } = parsedTypedData?.domain || {}
+  const { name, version, chainId: domainChainId, verifyingContract, salt } = parsedTypedData.domain || {}
   const chainId = toSupportedChainId(domainChainId)
+
+  const hasMismatch = chainId ? getHasMismatch(chainId) : false
+  if (enablePermitMismatchUx && hasMismatch) {
+    return <ActionCanNotBeCompletedContent />
+  }
 
   if (isUniswapXSwapRequest(parsedTypedData)) {
     return <UniswapXSwapRequestContent typedData={parsedTypedData} />
@@ -72,8 +82,8 @@ function SignTypedDataRequestContentInner({ dappRequest }: SignTypedDataRequestP
         </Text>
       )
     }
-    if (typeof message === 'string' && isAddress(message) && chainId) {
-      const href = getExplorerLink(chainId, message, ExplorerDataType.ADDRESS)
+    if (typeof message === 'string' && isEVMAddressWithChecksum(message) && chainId) {
+      const href = getExplorerLink({ chainId, data: message, type: ExplorerDataType.ADDRESS })
       return <MaybeExplorerLinkedAddress address={message} link={href} />
     }
     if (typeof message === 'string' || typeof message === 'number' || typeof message === 'boolean') {

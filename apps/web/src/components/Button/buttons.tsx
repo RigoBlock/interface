@@ -1,7 +1,6 @@
 import { RowBetween } from 'components/deprecated/Row'
-import styled, { DefaultTheme } from 'lib/styled-components'
+import styled from 'lib/styled-components'
 import { darken } from 'polished'
-import { forwardRef } from 'react'
 import { ChevronDown } from 'react-feather'
 import { ButtonProps as ButtonPropsOriginal, Button as RebassButton } from 'rebass/styled-components'
 import { Flex } from 'ui/src'
@@ -9,19 +8,6 @@ import { Flex } from 'ui/src'
 export { default as LoadingButtonSpinner } from './LoadingButtonSpinner'
 
 type ButtonProps = Omit<ButtonPropsOriginal, 'css'>
-
-const ButtonOverlay = styled.div`
-  background-color: transparent;
-  bottom: 0;
-  border-radius: inherit;
-  height: 100%;
-  left: 0;
-  position: absolute;
-  right: 0;
-  top: 0;
-  transition: 150ms ease background-color;
-  width: 100%;
-`
 
 type BaseButtonProps = {
   padding?: string
@@ -102,48 +88,6 @@ export const SmallButtonPrimary = styled(ButtonPrimary)`
   padding: ${({ padding }) => padding ?? '8px 12px'};
 
   border-radius: 12px;
-`
-
-const BaseButtonLight = styled(BaseButton)`
-  background-color: ${({ theme }) => theme.accent2};
-  color: ${({ theme }) => theme.accent1};
-  font-size: 20px;
-  font-weight: 535;
-
-  &:focus {
-    box-shadow: 0 0 0 1pt ${({ theme, disabled }) => !disabled && theme.accent2};
-    background-color: ${({ theme, disabled }) => !disabled && theme.accent2};
-  }
-  &:hover {
-    background-color: ${({ theme, disabled }) => !disabled && theme.accent2};
-  }
-  &:active {
-    box-shadow: 0 0 0 1pt ${({ theme, disabled }) => !disabled && theme.accent2};
-    background-color: ${({ theme, disabled }) => !disabled && theme.accent2};
-  }
-
-  :hover {
-    ${ButtonOverlay} {
-      background-color: ${({ theme }) => theme.deprecated_stateOverlayHover};
-    }
-  }
-
-  :active {
-    ${ButtonOverlay} {
-      background-color: ${({ theme }) => theme.deprecated_stateOverlayPressed};
-    }
-  }
-
-  :disabled {
-    opacity: 0.4;
-    :hover {
-      cursor: auto;
-      background-color: transparent;
-      box-shadow: none;
-      border: 1px solid transparent;
-      outline: none;
-    }
-  }
 `
 
 export const ButtonGray = styled(BaseButton)`
@@ -332,157 +276,4 @@ export enum ButtonEmphasis {
   warning = 5,
   destructive = 6,
   failure = 7,
-}
-interface BaseThemeButtonProps {
-  size: ButtonSize
-  emphasis: ButtonEmphasis
-}
-
-function pickThemeButtonBackgroundColor({ theme, emphasis }: { theme: DefaultTheme; emphasis: ButtonEmphasis }) {
-  switch (emphasis) {
-    case ButtonEmphasis.high:
-      return theme.accent1
-    case ButtonEmphasis.promotional:
-    case ButtonEmphasis.highSoft:
-      return theme.accent2
-    case ButtonEmphasis.low:
-      return 'transparent'
-    case ButtonEmphasis.warning:
-      return theme.deprecated_accentWarningSoft
-    case ButtonEmphasis.destructive:
-      return theme.critical
-    case ButtonEmphasis.failure:
-      return theme.deprecated_accentFailureSoft
-    case ButtonEmphasis.medium:
-    default:
-      return theme.surface3
-  }
-}
-function pickThemeButtonFontSize({ size }: { size: ButtonSize }) {
-  switch (size) {
-    case ButtonSize.large:
-      return '20px'
-    case ButtonSize.medium:
-      return '16px'
-    case ButtonSize.small:
-      return '14px'
-    default:
-      return '16px'
-  }
-}
-function pickThemeButtonLineHeight({ size }: { size: ButtonSize }) {
-  switch (size) {
-    case ButtonSize.large:
-      return '24px'
-    case ButtonSize.medium:
-      return '20px'
-    case ButtonSize.small:
-      return '16px'
-    default:
-      return '20px'
-  }
-}
-function pickThemeButtonPadding({ size }: { size: ButtonSize }) {
-  switch (size) {
-    case ButtonSize.large:
-      return '16px'
-    case ButtonSize.medium:
-      return '10px 12px'
-    case ButtonSize.small:
-      return '8px'
-    default:
-      return '10px 12px'
-  }
-}
-function pickThemeButtonTextColor({ theme, emphasis }: { theme: DefaultTheme; emphasis: ButtonEmphasis }) {
-  switch (emphasis) {
-    case ButtonEmphasis.high:
-      return theme.white
-    case ButtonEmphasis.promotional:
-      return theme.accent1
-    case ButtonEmphasis.highSoft:
-      return theme.accent1
-    case ButtonEmphasis.low:
-      return theme.neutral2
-    case ButtonEmphasis.warning:
-      return theme.deprecated_accentWarning
-    case ButtonEmphasis.destructive:
-      return theme.neutral1
-    case ButtonEmphasis.failure:
-      return theme.critical
-    case ButtonEmphasis.medium:
-    default:
-      return theme.neutral1
-  }
-}
-
-const BaseThemeButton = styled.button<BaseThemeButtonProps>`
-  align-items: center;
-  background-color: ${pickThemeButtonBackgroundColor};
-  border-radius: 16px;
-  border: 0;
-  color: ${pickThemeButtonTextColor};
-  cursor: pointer;
-  display: flex;
-  flex-direction: row;
-  font-size: ${pickThemeButtonFontSize};
-  font-weight: 535;
-  gap: 12px;
-  justify-content: center;
-  line-height: ${pickThemeButtonLineHeight};
-  padding: ${pickThemeButtonPadding};
-  position: relative;
-  transition: 150ms ease opacity;
-  user-select: none;
-
-  :active {
-    ${ButtonOverlay} {
-      background-color: ${({ theme }) => theme.deprecated_stateOverlayPressed};
-    }
-  }
-  :focus {
-    ${ButtonOverlay} {
-      background-color: ${({ theme }) => theme.deprecated_stateOverlayPressed};
-    }
-  }
-  :hover {
-    ${ButtonOverlay} {
-      background-color: ${({ theme }) => theme.deprecated_stateOverlayHover};
-    }
-  }
-  :disabled {
-    cursor: default;
-    opacity: 0.6;
-  }
-  :disabled:active,
-  :disabled:focus,
-  :disabled:hover {
-    ${ButtonOverlay} {
-      background-color: transparent;
-    }
-  }
-`
-
-interface ThemeButtonProps extends React.ComponentPropsWithoutRef<'button'>, BaseThemeButtonProps {}
-type ThemeButtonRef = HTMLButtonElement
-
-export const ThemeButton = forwardRef<ThemeButtonRef, ThemeButtonProps>(function ThemeButton(
-  { children, ...rest },
-  ref,
-) {
-  return (
-    <BaseThemeButton {...rest} ref={ref}>
-      <ButtonOverlay />
-      {children}
-    </BaseThemeButton>
-  )
-})
-
-export const ButtonLight = ({ children, ...rest }: BaseButtonProps) => {
-  return (
-    <BaseButtonLight {...rest}>
-      <ButtonOverlay />
-      {children}
-    </BaseButtonLight>
-  )
 }

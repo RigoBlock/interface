@@ -1,6 +1,6 @@
 import styled, { DefaultTheme } from 'lib/styled-components'
-import { ProposalState } from 'state/governance/hooks'
 import { Trans } from 'react-i18next'
+import { ProposalState } from 'state/governance/hooks'
 
 const handleColorType = (status: ProposalState, theme: DefaultTheme) => {
   switch (status) {

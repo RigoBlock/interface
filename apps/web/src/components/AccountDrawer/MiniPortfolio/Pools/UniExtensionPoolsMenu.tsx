@@ -1,20 +1,18 @@
-import Pools from 'components/AccountDrawer/MiniPortfolio/Pools/PoolsTab'
 import { SlideOutMenu } from 'components/AccountDrawer/SlideOutMenu'
-import Column from 'components/deprecated/Column'
-import styled from 'lib/styled-components'
+import { lazy, Suspense } from 'react'
 import { Trans } from 'react-i18next'
+import { Flex, Loader } from 'ui/src'
 
-const Container = styled(Column)`
-  height: 100%;
-  position: relative;
-`
+const Pools = lazy(() => import('components/AccountDrawer/MiniPortfolio/Pools/PoolsTab'))
 
 export function UniExtensionPoolsMenu({ onClose, account }: { account: string; onClose: () => void }) {
   return (
     <SlideOutMenu title={<Trans i18nKey="common.pools" />} onClose={onClose}>
-      <Container>
-        <Pools account={account} />
-      </Container>
+      <Flex height="100%">
+        <Suspense fallback={<Loader.Box />}>
+          <Pools account={account} />
+        </Suspense>
+      </Flex>
     </SlideOutMenu>
   )
 }

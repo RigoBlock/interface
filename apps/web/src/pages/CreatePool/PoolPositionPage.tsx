@@ -1,74 +1,46 @@
-//import { BigNumber } from '@ethersproject/bignumber'
-//import type { TransactionResponse } from '@ethersproject/providers'
-//import { Trace } from '@uniswap/analytics'
-//import { PageName } from '@uniswap/analytics-events'
-import { /*Currency,*/ CurrencyAmount /*, Fraction*/, Percent /*, Price, Token*/ } from '@uniswap/sdk-core'
-//import { NonfungiblePositionManager, Pool, Position } from '@uniswap/v3-sdk'
-import { IconHoverText } from 'components/AccountDrawer/IconButton'
-//import { sendEvent } from 'components/analytics'
-//import Badge from 'components/Badge'
-import { /*ButtonConfirmed, ButtonGray,*/ ButtonPrimary } from 'components/Button/buttons'
+/* eslint-disable max-lines */
+
+import { CurrencyAmount, Percent } from '@uniswap/sdk-core'
+import { useWeb3React } from '@web3-react/core'
+// TODO: check if should refactor AddressCard
+import { AddressCard } from 'components/AddressCard'
+import { ButtonPrimary } from 'components/Button/buttons'
 import { DarkCard, LightCard } from 'components/Card/cards'
-import { AutoColumn } from 'components/deprecated/Column'
 import BuyModal from 'components/createPool/BuyModal'
 import SellModal from 'components/createPool/SellModal'
 import SetLockupModal from 'components/createPool/SetLockupModal'
 import SetSpreadModal from 'components/createPool/SetSpreadModal'
 import SetValueModal from 'components/createPool/SetValueModal'
 import UpgradeModal from 'components/createPool/UpgradeModal'
-import Row, { RowBetween, RowFixed } from 'components/deprecated/Row'
+import { AutoColumn } from 'components/deprecated/Column'
+import { RowBetween, RowFixed } from 'components/deprecated/Row'
 import HarvestYieldModal from 'components/earn/HarvestYieldModal'
 import MoveStakeModal from 'components/earn/MoveStakeModal'
 import UnstakeModal from 'components/earn/UnstakeModal'
-//import Loader from 'components/Loader'
-//import { Dots } from 'components/swap/styleds'
 import { SwitchLocaleLink } from 'components/SwitchLocaleLink'
-//import Toggle from 'components/Toggle'
-import TransactionConfirmationModal, { ConfirmationModalContent } from 'components/TransactionConfirmationModal'
 import DelegateModal from 'components/vote/DelegateModal'
-import { /*BIG_INT_ZERO,*/ ZERO_ADDRESS } from 'constants/misc'
 import { useCurrency } from 'hooks/Tokens'
 import { useAccount } from 'hooks/useAccount'
 import { UserAccount, useImplementation, useSmartPoolFromAddress, useUserPoolBalance } from 'hooks/useSmartPools'
 // TODO: this import is from node modules
 import JSBI from 'jsbi'
-//import { PoolState, usePool } from 'hooks/usePools'
-//import useStablecoinPrice from 'hooks/useStablecoinPrice'
-//import { useSingleCallResult } from 'lib/hooks/multicall'
-//import useNativeCurrency from 'lib/hooks/useNativeCurrency'
-import styled /*, { useTheme }*/ from 'lib/styled-components'
-import { nativeOnChain } from 'uniswap/src/constants/tokens'
+import styled from 'lib/styled-components'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Trans } from 'react-i18next'
-import { useCallback, useEffect, useMemo, /*useRef,*/ useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-//import { Bound } from 'state/mint/v3/actions'
+import { Link, useParams } from 'react-router'
 import { PoolInfo } from 'state/buy/hooks'
-//import { useTokenBalance } from 'state/connection/hooks'
 import { useCurrencyBalancesMultipleAccounts } from 'state/connection/hooks'
 import { usePoolIdByAddress } from 'state/governance/hooks'
 import { useFreeStakeBalance, useUnclaimedRewards } from 'state/stake/hooks'
-//import { useIsTransactionPending, useTransactionAdder } from 'state/transactions/hooks'
-import { /*HideExtraSmall,*/ ThemedText } from 'theme/components'
-import { CopyHelper } from 'theme/components/CopyHelper'
-import { ExternalLink } from 'theme/components/Links'
-import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
-import { shortenAddress } from 'utilities/src/addresses'
-//import { currencyId } from 'utils/currencyId'
-import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
+import { ThemedText } from 'theme/components'
+import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
+import { nativeOnChain } from 'uniswap/src/constants/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { useWeb3React } from '@web3-react/core'
-//import { formatTickPrice } from 'utils/formatTickPrice'
-//import { unwrappedToken } from 'utils/unwrappedToken'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { NumberType } from 'utilities/src/format/types'
 
-//import RangeBadge from '../../components/Badge/RangeBadge'
-//import RateToggle from '../../components/RateToggle'
-//import { SwitchLocaleLink } from '../../components/SwitchLocaleLink'
-//import { useSwapState } from '../../state/swap/hooks'
-//import { TransactionType } from '../../state/transactions/types'
-//import { calculateGasMargin } from '../../utils/calculateGasMargin'
-//import { LoadingRows } from '../Pool/styleds'
-
-const NAV_SIMULATE_DEPLOYMENT_BYTECODE = '0x608060405234801561000f575f5ffd5b5060405161017738038061017783398101604081905261002e916100ef565b806001600160a01b031663e7d8724e6040518163ffffffff1660e01b81526004015f604051808303815f87803b158015610066575f5ffd5b505af1158015610078573d5f5f3e3d5ffd5b505050505f816001600160a01b03166389c065686040518163ffffffff1660e01b81526004016040805180830381865afa1580156100b8573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906100dc919061011c565b80515f8181524260205291925090604090f35b5f602082840312156100ff575f5ffd5b81516001600160a01b0381168114610115575f5ffd5b9392505050565b5f604082840312801561012d575f5ffd5b50604080519081016001600160401b038111828210171561015c57634e487b7160e01b5f52604160045260245ffd5b60405282518152602092830151928101929092525091905056fe'
+const NAV_SIMULATE_DEPLOYMENT_BYTECODE =
+  '0x608060405234801561000f575f5ffd5b5060405161017738038061017783398101604081905261002e916100ef565b806001600160a01b031663e7d8724e6040518163ffffffff1660e01b81526004015f604051808303815f87803b158015610066575f5ffd5b505af1158015610078573d5f5f3e3d5ffd5b505050505f816001600160a01b03166389c065686040518163ffffffff1660e01b81526004016040805180830381865afa1580156100b8573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906100dc919061011c565b80515f8181524260205291925090604090f35b5f602082840312156100ff575f5ffd5b81516001600160a01b0381168114610115575f5ffd5b9392505050565b5f604082840312801561012d575f5ffd5b50604080519081016001600160401b038111828210171561015c57634e487b7160e01b5f52604160045260245ffd5b60405282518152602092830151928101929092525091905056fe'
 
 const PageWrapper = styled.div`
   padding: 68px 8px 0px;
@@ -120,14 +92,6 @@ const Label = styled(({ end, ...props }) => <ThemedText.DeprecatedLabel {...prop
   align-items: center;
 `
 
-const ExtentsText = styled.span`
-  color: ${({ theme }) => theme.neutral2};
-  font-size: 14px;
-  text-align: center;
-  margin-right: 4px;
-  font-weight: 500;
-`
-
 const HoverText = styled(ThemedText.DeprecatedMain)`
   text-decoration: none;
   color: ${({ theme }) => theme.neutral3};
@@ -135,24 +99,6 @@ const HoverText = styled(ThemedText.DeprecatedMain)`
     color: ${({ theme }) => theme.neutral1};
     text-decoration: none;
   }
-`
-
-const IconContainer = styled.div`
-  display: flex;
-  align-items: center;
-  & > a,
-  & > button {
-    margin-right: 0px;
-    margin-left: 40px;
-  }
-
-  & > button:last-child {
-    margin-left: 8px;
-    ${IconHoverText}:last-child {
-      right: 0px;
-    }
-  }
-  justify-content: center;
 `
 
 //const DoubleArrow = styled.span`
@@ -178,55 +124,6 @@ const ResponsiveButtonPrimary = styled(ButtonPrimary)`
     width: 49%;
   `};
 `
-
-function getZapperLink(data: string): string {
-  return `https://zapper.xyz/account/${data}`
-}
-
-function AddressCard({
-  address,
-  chainId,
-  label,
-}: {
-  address?: string | null
-  chainId?: number | null
-  label?: string | null
-}) {
-  if (!address || !chainId || !label) {
-    return null
-  }
-
-  return (
-    <LightCard padding="12px ">
-      <AutoColumn gap="md">
-        <ExtentsText>
-          <Trans>{label}</Trans>
-        </ExtentsText>
-      </AutoColumn>
-      {/*<AutoColumn gap="8px" justify="center">#*/}
-      <AutoColumn gap="md">
-        <ExtentsText>
-          {typeof chainId === 'number' && address ? (
-            <IconContainer>
-              <CopyHelper iconSize={20} iconPosition="right" toCopy={address}>
-                <Row width="100px" padding="8px 4px">
-                  <ExternalLink href={getExplorerLink(chainId, address, ExplorerDataType.ADDRESS)}>
-                    <Trans>{shortenAddress(address)}</Trans>
-                  </ExternalLink>
-                </Row>
-              </CopyHelper>
-            </IconContainer>
-          ) : null}
-        </ExtentsText>
-        {/*</AutoColumn>
-          <ExtentsText>
-            <Trans>{poolAddress}</Trans>
-          </ExtentsText>
-        */}
-      </AutoColumn>
-    </LightCard>
-  )
-}
 
 export default function PoolPositionPage() {
   const {
@@ -262,24 +159,28 @@ export default function PoolPositionPage() {
   const [deactivate, setDeactivate] = useState(false)
   const [showHarvestYieldModal, setShowHarvestYieldModal] = useState(false)
 
+  const chainId = account.chainId
+
   // TODO: check how can reduce number of calls by limit update of poolStorage
   //  id is stored in registry so we could save rpc call by using storing in state?
-  const poolStorage = useSmartPoolFromAddress(poolAddressFromUrl ?? undefined)
+  const poolStorage = useSmartPoolFromAddress(poolAddressFromUrl, chainId)
   // TODO: user account also stores activation
-  const userAccount: UserAccount | undefined = useUserPoolBalance(poolAddressFromUrl, account.address)
+  const userAccount: UserAccount | undefined = useUserPoolBalance(poolAddressFromUrl, account.address, chainId)
 
   const { name, symbol, decimals, owner, baseToken } = poolStorage?.poolInitParams || {}
   const { minPeriod, spread, transactionFee } = poolStorage?.poolVariables || {}
   const { unitaryValue: storedUnitaryValue, totalSupply } = poolStorage?.poolTokensInfo || {}
 
   // Custom hook to simulate updateUnitaryValue
-  function useSimulatedUnitaryValue(poolAddress?: string, fallback?: string) {
+  function useSimulatedUnitaryValue(poolAddress?: string, fallbackValue?: string) {
     const { provider } = useWeb3React()
     const [simulatedValue, setSimulatedValue] = useState<string>()
-    
+
     useEffect(() => {
-      if (!poolAddress || !provider) { return }
-      
+      if (!poolAddress || !provider) {
+        return
+      }
+
       // @Notice: simulate function to deploy ephemeral contract that returns the real-time updateUnitaryValue
       async function simulate(address: string) {
         try {
@@ -287,79 +188,94 @@ export default function PoolPositionPage() {
           // Deploy ephemeral contract that calls updateUnitaryValue and returns the result
           const encodedPoolAddress = address.slice(2).padStart(64, '0') // Remove 0x and pad to 32 bytes
           const deploymentBytecode = NAV_SIMULATE_DEPLOYMENT_BYTECODE + encodedPoolAddress
-          
+
           const tx = {
-            data: deploymentBytecode
+            data: deploymentBytecode,
           }
-          
+
           // eth_call simulates the deployment without actually deploying
           const result = await provider?.call(tx)
-          
-          if (result && result !== '0x') {
+
+          if (result && result !== '0x' && result.length <= 150) {
             // Extract first 32 bytes (uint256) from the 64-byte return value
             const unitaryValue = result.slice(0, 66) // '0x' + 64 hex chars = 66 chars
             setSimulatedValue(unitaryValue)
             return
+          } else {
+            setSimulatedValue(fallbackValue)
+            return
           }
         } catch {
-          setSimulatedValue(fallback)
+          setSimulatedValue(fallbackValue)
         }
       }
-      
+
       simulate(poolAddress)
-    }, [poolAddress, provider, fallback])
-    
+    }, [poolAddress, provider, fallbackValue])
+
     return simulatedValue
   }
 
-  const unitaryValue = useSimulatedUnitaryValue(poolAddressFromUrl, storedUnitaryValue?.toString()) ?? storedUnitaryValue
+  const unitaryValue =
+    useSimulatedUnitaryValue(poolAddressFromUrl, storedUnitaryValue?.toString()) ?? storedUnitaryValue
 
-  let base = useCurrency(baseToken !== ZERO_ADDRESS ? baseToken : undefined)
+  let base = useCurrency({ address: baseToken !== ZERO_ADDRESS ? baseToken : undefined, chainId })
   if (baseToken === ZERO_ADDRESS) {
     base = nativeOnChain(account.chainId ?? UniverseChainId.Mainnet)
   }
 
-  const pool = useCurrency(poolAddressFromUrl ?? undefined)
-  const amount = JSBI.BigInt(unitaryValue ?? 0)
+  const pool = useCurrency({ address: poolAddressFromUrl ?? undefined, chainId })
+  const amount = JSBI.BigInt(String(unitaryValue ?? 0))
   const poolPrice = pool ? CurrencyAmount.fromRawAmount(pool, amount) : undefined
-  const userPoolBalance = pool
-    ? CurrencyAmount.fromRawAmount(pool, JSBI.BigInt(userAccount?.userBalance ?? 0))
-    : undefined
-  const hasBalance = useMemo(
-    () => JSBI.greaterThan(JSBI.BigInt(userAccount?.userBalance ?? 0), JSBI.BigInt(0)),
-    [userAccount]
-  )
-  const baseTokenSymbol = base?.symbol
+  const userPoolBalance = useMemo(() => {
+    if (!pool || userAccount?.userBalance === undefined) {
+      return undefined
+    }
+    return CurrencyAmount.fromRawAmount(pool, JSBI.BigInt(String(userAccount.userBalance)))
+  }, [pool, userAccount?.userBalance])
+  const hasBalance = useMemo(() => {
+    if (!userAccount?.userBalance) {
+      return false
+    }
+    const balanceJSBI = JSBI.BigInt(String(userAccount.userBalance))
+    return JSBI.greaterThan(balanceJSBI, JSBI.BigInt(0))
+  }, [userAccount])
+  const baseTokenSymbol = base?.symbol ?? ''
 
   const poolValue = JSBI.divide(
-    JSBI.multiply(JSBI.BigInt(unitaryValue ?? 0), JSBI.BigInt(totalSupply ?? 0)),
-    JSBI.exponentiate(JSBI.BigInt(10), JSBI.BigInt(decimals ?? 18))
+    JSBI.multiply(JSBI.BigInt(String(unitaryValue ?? 0)), JSBI.BigInt(String(totalSupply ?? 0))),
+    JSBI.exponentiate(JSBI.BigInt(10), JSBI.BigInt(String(decimals ?? 18))),
   )
 
-  const lockup = (Number(minPeriod) / 86400).toLocaleString()
+  const lockup = (Number(String(minPeriod)) / 86400).toLocaleString()
 
   // TODO: check if should move definitions in custom hook
   //const poolInfo= usePoolInfo(poolAddressFromUrl)
   // TODO: pass recipient as optional parameter to check currency balance hook
-  const poolInfo = {
-    pool,
-    recipient: account.address,
-    owner,
-    userPoolBalance,
-    activation: Number(userAccount?.activation),
-    poolPriceAmount: poolPrice,
-    spread,
-    poolStake: Number(poolStakeFromUrl),
-    apr: Number(aprFromUrl),
-    poolOwnStake: Number(poolOwnStakeFromUrl),
-    irr: Number(irrFromUrl),
-  } as PoolInfo
+  const poolInfo =
+    pool && account.address
+      ? ({
+          pool,
+          recipient: account.address,
+          owner,
+          userPoolBalance,
+          activation: Number(userAccount?.activation),
+          poolPriceAmount: poolPrice,
+          spread,
+          poolStake: Number(poolStakeFromUrl),
+          apr: Number(aprFromUrl),
+          poolOwnStake: Number(poolOwnStakeFromUrl),
+          irr: Number(irrFromUrl),
+        } as PoolInfo)
+      : undefined
 
   // TODO: can use loadingBalances returned from the hook to show loading state
-  const [baseTokenBalances, ] = useCurrencyBalancesMultipleAccounts(
+  const [baseTokenBalances] = useCurrencyBalancesMultipleAccounts(
     [account.address ?? undefined, poolAddressFromUrl ?? undefined],
-    base ?? undefined
+    base ?? undefined,
   )
+
+  const { formatCurrencyAmount } = useLocalizationContext()
 
   // TODO: check how improve efficiency as this method is called each time a pool is loaded
   const { poolId } = usePoolIdByAddress(poolAddressFromUrl ?? undefined)
@@ -369,10 +285,17 @@ export default function PoolPositionPage() {
   const hasFreeStake = JSBI.greaterThan(freeStakeBalance ? freeStakeBalance.quotient : JSBI.BigInt(0), JSBI.BigInt(0))
 
   // Check if the pool needs an upgrade
-  const [currentImplementation, beaconImplementation] = useImplementation(poolAddressFromUrl ?? undefined, IMPLEMENTATION_SLOT) ?? [undefined, undefined]
+  const [currentImplementation, beaconImplementation] = useImplementation(
+    poolAddressFromUrl ?? undefined,
+    IMPLEMENTATION_SLOT,
+  ) ?? [undefined, undefined]
 
   const needsUpgrade = useMemo(() => {
-    return currentImplementation && beaconImplementation && currentImplementation.toLowerCase() !== beaconImplementation.toLowerCase()
+    return (
+      currentImplementation &&
+      beaconImplementation &&
+      currentImplementation.toLowerCase() !== beaconImplementation.toLowerCase()
+    )
   }, [currentImplementation, beaconImplementation])
 
   const handleMoveStakeClick = useCallback(() => {
@@ -391,33 +314,9 @@ export default function PoolPositionPage() {
     setShowUpgradeModal(true)
   }, [])
 
-  function modalHeader() {
-    return (
-      <AutoColumn gap="md" style={{ marginTop: '20px' }}>
-        <ThemedText.DeprecatedMain>
-          <Trans>Let&apos;s check where this component goes.</Trans>
-        </ThemedText.DeprecatedMain>
-      </AutoColumn>
-    )
-  }
-
   return (
     <>
       <PageWrapper>
-        <TransactionConfirmationModal
-          isOpen={showConfirm}
-          onDismiss={() => setShowConfirm(false)}
-          attemptingTxn={showConfirm}
-          hash=""
-          reviewContent={() => (
-            <ConfirmationModalContent
-              title={<Trans>Claim fees</Trans>}
-              onDismiss={() => setShowConfirm(false)}
-              topContent={modalHeader}
-            />
-          )}
-          pendingText={<Trans>Collecting fees</Trans>}
-        />
         {poolInfo && (
           <>
             {account.address && (
@@ -460,7 +359,7 @@ export default function PoolPositionPage() {
               />
             )}
             {needsUpgrade && beaconImplementation && (
-              <UpgradeModal 
+              <UpgradeModal
                 isOpen={showUpgradeModal}
                 onDismiss={() => setShowUpgradeModal(false)}
                 implementation={beaconImplementation}
@@ -525,7 +424,7 @@ export default function PoolPositionPage() {
                     <Trans>Upgrade</Trans>
                   </ResponsiveButtonPrimary>
                 )}
-                {unclaimedRewards && unclaimedRewards[0]?.yieldAmount && (
+                {unclaimedRewards?.[0]?.yieldAmount && (
                   <ResponsiveButtonPrimary
                     style={{ marginRight: '8px' }}
                     width="fit-content"
@@ -533,7 +432,11 @@ export default function PoolPositionPage() {
                     $borderRadius="12px"
                     onClick={() => setShowHarvestYieldModal(true)}
                   >
-                    <Trans>Harvest {formatCurrencyAmount(unclaimedRewards[0].yieldAmount, 4)} GRG</Trans>
+                    <Trans>
+                      Harvest{' '}
+                      {formatCurrencyAmount({ value: unclaimedRewards[0].yieldAmount, type: NumberType.TokenNonTx })}{' '}
+                      GRG
+                    </Trans>
                   </ResponsiveButtonPrimary>
                 )}
               </RowFixed>
@@ -545,11 +448,11 @@ export default function PoolPositionPage() {
                 </ThemedText.DeprecatedLabel>
               </RowFixed>
               {poolAddressFromUrl && (
-                <ExternalLink href={getZapperLink(poolAddressFromUrl)}>
+                <Link to={`/portfolio?address=${poolAddressFromUrl}`}>
                   <RowFixed>
-                    <ThemedText.DeprecatedMain>Pool Data ↗</ThemedText.DeprecatedMain>
+                    <ThemedText.DeprecatedMain>Vault Portfolio →</ThemedText.DeprecatedMain>
                   </RowFixed>
-                </ExternalLink>
+                </Link>
               )}
               <RowFixed>
                 <ResponsiveButtonPrimary
@@ -593,7 +496,7 @@ export default function PoolPositionPage() {
                   </AutoColumn>
                   <LightCard padding="12px 16px">
                     <AutoColumn gap="md">
-                      {poolValue && base && (
+                      {base && (
                         <RowBetween>
                           <RowFixed>
                             <ThemedText.DeprecatedMain>
@@ -603,7 +506,7 @@ export default function PoolPositionPage() {
                           <RowFixed>
                             <ThemedText.DeprecatedMain>
                               <Trans>
-                                {formatCurrencyAmount(CurrencyAmount.fromRawAmount(base, poolValue), 4)}&nbsp;
+                                {formatCurrencyAmount({ value: CurrencyAmount.fromRawAmount(base, poolValue) })}&nbsp;
                                 {baseTokenSymbol}
                               </Trans>
                             </ThemedText.DeprecatedMain>
@@ -627,13 +530,15 @@ export default function PoolPositionPage() {
                                 $borderRadius="12px"
                               >
                                 <Trans>
-                                  {formatCurrencyAmount(poolPrice, 4)}&nbsp;{baseTokenSymbol}
+                                  {formatCurrencyAmount({ value: poolPrice, type: NumberType.TokenNonTx })}&nbsp;
+                                  {baseTokenSymbol}
                                 </Trans>
                               </ResponsiveButtonPrimary>
                             ) : (
                               <ThemedText.DeprecatedMain>
                                 <Trans>
-                                  {formatCurrencyAmount(poolPrice, 4)}&nbsp;{baseTokenSymbol}
+                                  {formatCurrencyAmount({ value: poolPrice, type: NumberType.TokenNonTx })}&nbsp;
+                                  {baseTokenSymbol}
                                 </Trans>
                               </ThemedText.DeprecatedMain>
                             )}
@@ -664,10 +569,10 @@ export default function PoolPositionPage() {
                                 <RowFixed>
                                   <ThemedText.DeprecatedMain>
                                     <Trans>
-                                      {formatCurrencyAmount(
-                                        CurrencyAmount.fromRawAmount(base, JSBI.BigInt(totalSupply)),
-                                        4
-                                      )}
+                                      {formatCurrencyAmount({
+                                        value: CurrencyAmount.fromRawAmount(base, JSBI.BigInt(String(totalSupply))),
+                                        type: NumberType.TokenNonTx,
+                                      })}
                                     </Trans>
                                     &nbsp;{symbol}
                                   </ThemedText.DeprecatedMain>
@@ -708,11 +613,11 @@ export default function PoolPositionPage() {
                                   padding="6px 8px"
                                   $borderRadius="12px"
                                 >
-                                  <Trans>{new Percent(spread, 10_000).toSignificant()}%</Trans>
+                                  <Trans>{new Percent(String(spread), 10_000).toSignificant()}%</Trans>
                                 </ResponsiveButtonPrimary>
                               ) : (
                                 <ThemedText.DeprecatedMain>
-                                  <Trans>{new Percent(spread, 10_000).toSignificant()}%</Trans>
+                                  <Trans>{new Percent(String(spread), 10_000).toSignificant()}%</Trans>
                                 </ThemedText.DeprecatedMain>
                               )}
                             </RowFixed>
@@ -727,7 +632,7 @@ export default function PoolPositionPage() {
                             </RowFixed>
                             <RowFixed>
                               <ThemedText.DeprecatedMain>
-                                <Trans>{new Percent(transactionFee, 10_000).toSignificant()}%</Trans>
+                                <Trans>{new Percent(String(transactionFee), 10_000).toSignificant()}%</Trans>
                               </ThemedText.DeprecatedMain>
                             </RowFixed>
                           </RowBetween>

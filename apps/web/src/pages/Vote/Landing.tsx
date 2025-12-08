@@ -1,29 +1,29 @@
-import { InterfacePageName } from '@uniswap/analytics-events'
+import { useTheme } from '@tamagui/core'
 import { ButtonPrimary } from 'components/Button/buttons'
 import { AutoColumn } from 'components/deprecated/Column'
 import { AutoRow, RowBetween } from 'components/deprecated/Row'
+import { CardBGImage, CardNoise, CardSection, DataCard } from 'components/earn/styled'
 import Loader from 'components/Icons/LoadingSpinner'
 import { SwitchLocaleLink } from 'components/SwitchLocaleLink'
 import Toggle from 'components/Toggle'
-import { CardBGImage, CardNoise, CardSection, DataCard } from 'components/earn/styled'
 import DelegateModal from 'components/vote/DelegateModal'
 import ProposalEmptyState from 'components/vote/ProposalEmptyState'
 import { useAccount } from 'hooks/useAccount'
+import { useModalState } from 'hooks/useModalState'
 import JSBI from 'jsbi'
-import styled, { useTheme } from 'lib/styled-components'
+import styled from 'lib/styled-components'
 import { ProposalStatus } from 'pages/Vote/styled'
 import { darken } from 'polished'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Trans } from 'react-i18next'
+import { Link } from 'react-router'
 import { Button } from 'rebass/styled-components'
-import { useCloseModal, useModalIsOpen, useToggleDelegateModal } from 'state/application/hooks'
-import { ApplicationModal } from 'state/application/reducer'
 import { ProposalData, ProposalState, useAllProposalData } from 'state/governance/hooks'
 import { ThemedText } from 'theme/components'
 import { ExternalLink } from 'theme/components/Links'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { InterfacePageName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
-import { Trans } from 'react-i18next'
 
 const PageWrapper = styled(AutoColumn)`
   padding-top: 68px;
@@ -98,15 +98,12 @@ const Header = styled(ThemedText.H1Small)`
 `
 
 export default function Landing() {
+  const { isOpen, closeModal, toggleModal: toggleDelegateModal } = useModalState(ModalName.Delegate)
   const theme = useTheme()
   const account = useAccount()
 
   const [hideCancelled, setHideCancelled] = useState(true)
-
-  // toggle for showing delegation modal
-  const showDelegateModal = useModalIsOpen(ApplicationModal.DELEGATE)
-  const closeModal = useCloseModal()
-  const toggleDelegateModal = useToggleDelegateModal()
+  const { formatCurrencyAmount } = useLocalizationContext()
 
   // get data to list all proposals
   const {
@@ -127,10 +124,10 @@ export default function Landing() {
 
   return (
     <>
-      <Trace logImpression page={InterfacePageName.VOTE_PAGE}>
+      <Trace logImpression page={InterfacePageName.VotePage}>
         <PageWrapper gap="lg" justify="center">
           <DelegateModal
-            isOpen={showDelegateModal}
+            isOpen={isOpen}
             onDismiss={closeModal}
             title={
               showUnlockVoting ? (
@@ -158,7 +155,7 @@ export default function Landing() {
                   </RowBetween>
                   <ExternalLink
                     style={{
-                      color: theme.white,
+                      color: theme.white.get(),
                       textDecoration: 'underline',
                     }}
                     href="https://docs.rigoblock.com/governance/rigoblock-governance"
@@ -187,14 +184,14 @@ export default function Landing() {
                     style={{ width: 'fit-content', height: '40px' }}
                     padding="8px"
                     $borderRadius="8px"
-                    onClick={toggleDelegateModal}
+                    onClick={() => toggleDelegateModal()}
                   >
                     {showUnlockVoting ? (
                       <Trans i18nKey="vote.landing.unlockVoting" />
                     ) : availableVotes ? (
                       <Trans
                         i18nKey="vote.landing.voteAmount"
-                        values={{ amount: availableVotes && formatCurrencyAmount(availableVotes, 4) }}
+                        values={{ amount: formatCurrencyAmount({ value: availableVotes }) }}
                       />
                     ) : (
                       ''
@@ -214,9 +211,9 @@ export default function Landing() {
               </AutoRow>
             </WrapSmall>
 
-            {allProposals?.length === 0 && <ProposalEmptyState />}
+            {allProposals.length === 0 && <ProposalEmptyState />}
 
-            {allProposals?.length > 0 && (
+            {allProposals.length > 0 && (
               <AutoColumn gap="md">
                 <RowBetween></RowBetween>
                 <RowBetween>
@@ -232,10 +229,10 @@ export default function Landing() {
             )}
 
             {allProposals
-              ?.slice(0)
-              ?.reverse()
-              ?.filter((p: ProposalData) => (hideCancelled ? p.status !== ProposalState.CANCELED : true))
-              ?.map((p: ProposalData) => {
+              .slice(0)
+              .reverse()
+              .filter((p: ProposalData) => (hideCancelled ? p.status !== ProposalState.CANCELED : true))
+              .map((p: ProposalData) => {
                 return (
                   <Proposal as={Link} to={`/vote/${p.governorIndex}/${p.id}`} key={`${p.governorIndex}${p.id}`}>
                     <ProposalNumber>

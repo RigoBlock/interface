@@ -1,31 +1,16 @@
-import { ProtocolVersion } from '@uniswap/client-pools/dist/pools/v1/types_pb'
-import { Token } from '@uniswap/sdk-core'
-import { PriceChartData } from 'components/Charts/PriceChart'
-import { SingleHistogramData } from 'components/Charts/VolumeChart/renderer'
+import { GraphQLApi } from '@universe/api'
 import { ChartType } from 'components/Charts/utils'
+import { SingleHistogramData } from 'components/Charts/VolumeChart/renderer'
 import { ChartQueryResult, checkDataQuality, withUTCTimestamp } from 'components/Tokens/TokenDetails/ChartSection/util'
-import { PoolData } from 'graphql/data/pools/usePoolData'
-import { PDPChartQueryVars, usePoolPriceChartData } from 'hooks/usePoolPriceChartData'
+import { PDPChartQueryVars } from 'hooks/usePoolPriceChartData'
 import { useMemo } from 'react'
-import {
-  TimestampedAmount,
-  usePoolVolumeHistoryQuery,
-} from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
 
-export function usePDPPriceChartData(
-  variables: PDPChartQueryVars,
-  poolData: PoolData | undefined,
-  tokenA: Token | undefined,
-  tokenB: Token | undefined,
-  protocolVersion: ProtocolVersion,
-): ChartQueryResult<PriceChartData, ChartType.PRICE> {
-  return usePoolPriceChartData(variables, tokenA, tokenB, protocolVersion, poolData?.token0?.address ?? '')
-}
-
-export function usePDPVolumeChartData(
-  variables: PDPChartQueryVars,
-): ChartQueryResult<SingleHistogramData, ChartType.VOLUME> {
-  const { data, loading } = usePoolVolumeHistoryQuery({
+export function usePDPVolumeChartData({
+  variables,
+}: {
+  variables: PDPChartQueryVars & { addressOrId: string }
+}): ChartQueryResult<SingleHistogramData, ChartType.VOLUME> {
+  const { data, loading } = GraphQLApi.usePoolVolumeHistoryQuery({
     variables,
     skip: !variables.addressOrId || variables.addressOrId === '',
   })
@@ -33,9 +18,10 @@ export function usePDPVolumeChartData(
   return useMemo(() => {
     const { historicalVolume } = data?.v2Pair ?? data?.v3Pool ?? data?.v4Pool ?? {}
     const entries =
-      historicalVolume?.filter((amt): amt is TimestampedAmount => amt !== null).map(withUTCTimestamp) ?? []
+      historicalVolume?.filter((amt): amt is GraphQLApi.TimestampedAmount => amt !== undefined).map(withUTCTimestamp) ??
+      []
 
-    const dataQuality = checkDataQuality(entries, ChartType.VOLUME, variables.duration)
+    const dataQuality = checkDataQuality({ data: entries, chartType: ChartType.VOLUME, duration: variables.duration })
 
     return { chartType: ChartType.VOLUME, entries, loading, dataQuality }
   }, [data?.v2Pair, data?.v3Pool, data?.v4Pool, loading, variables.duration])

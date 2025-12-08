@@ -1,4 +1,5 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
+import { DynamicConfigs, OnDeviceRecoveryConfigKey, useDynamicConfigValue } from '@universe/gating'
 import dayjs from 'dayjs'
 import { isEnrolledAsync } from 'expo-local-authentication'
 import { useCallback, useEffect, useState } from 'react'
@@ -15,17 +16,15 @@ import {
 import { useHideSplashScreen } from 'src/features/splashScreen/useHideSplashScreen'
 import { RecoveryWalletInfo, useOnDeviceRecoveryData } from 'src/screens/Import/useOnDeviceRecoveryData'
 import { AccountType } from 'uniswap/src/features/accounts/types'
-import { DynamicConfigs, OnDeviceRecoveryConfigKey } from 'uniswap/src/features/gating/configs'
-import { useDynamicConfigValue } from 'uniswap/src/features/gating/hooks'
-import Trace from 'uniswap/src/features/telemetry/Trace'
 import { MobileEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
+import Trace from 'uniswap/src/features/telemetry/Trace'
 import { ImportType, OnboardingEntryPoint } from 'uniswap/src/types/onboarding'
 import { OnboardingScreens } from 'uniswap/src/types/screens/mobile'
 import { logger } from 'utilities/src/logger/logger'
 import { useOnboardingContext } from 'wallet/src/features/onboarding/OnboardingContext'
-import { Keyring } from 'wallet/src/features/wallet/Keyring/Keyring'
 import { SignerMnemonicAccount } from 'wallet/src/features/wallet/accounts/types'
+import { Keyring } from 'wallet/src/features/wallet/Keyring/Keyring'
 import { selectAnyAddressHasNotificationsEnabled } from 'wallet/src/features/wallet/selectors'
 import { setFinishedOnboarding } from 'wallet/src/features/wallet/slice'
 
@@ -123,18 +122,16 @@ function useFinishAutomatedRecovery(navigation: Props['navigation']): {
 const FALLBACK_APP_LOADING_TIMEOUT_MS = 15000
 
 export function AppLoadingScreen({ navigation }: Props): JSX.Element | null {
-  const dispatch = useDispatch()
-
-  const appLoadingTimeoutMs = useDynamicConfigValue(
-    DynamicConfigs.OnDeviceRecovery,
-    OnDeviceRecoveryConfigKey.AppLoadingTimeoutMs,
-    FALLBACK_APP_LOADING_TIMEOUT_MS,
-  )
-  const maxMnemonicsToLoad = useDynamicConfigValue(
-    DynamicConfigs.OnDeviceRecovery,
-    OnDeviceRecoveryConfigKey.MaxMnemonicsToLoad,
-    20,
-  )
+  const appLoadingTimeoutMs = useDynamicConfigValue({
+    config: DynamicConfigs.OnDeviceRecovery,
+    key: OnDeviceRecoveryConfigKey.AppLoadingTimeoutMs,
+    defaultValue: FALLBACK_APP_LOADING_TIMEOUT_MS,
+  })
+  const maxMnemonicsToLoad = useDynamicConfigValue({
+    config: DynamicConfigs.OnDeviceRecovery,
+    key: OnDeviceRecoveryConfigKey.MaxMnemonicsToLoad,
+    defaultValue: 20,
+  })
 
   // Used to stop this running multiple times during navigation
   const [finished, setFinished] = useState(false)
@@ -215,7 +212,6 @@ export function AppLoadingScreen({ navigation }: Props): JSX.Element | null {
       navigateToLanding()
     }
   }, [
-    dispatch,
     finishRecovery,
     finished,
     loading,

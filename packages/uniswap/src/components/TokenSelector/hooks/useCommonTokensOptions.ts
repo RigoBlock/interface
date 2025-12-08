@@ -1,23 +1,28 @@
+import { GqlResult } from '@universe/api'
 import { useCallback, useMemo } from 'react'
+import { TokenOption } from 'uniswap/src/components/lists/items/types'
 import { filter } from 'uniswap/src/components/TokenSelector/filter'
 import { useAllCommonBaseCurrencies } from 'uniswap/src/components/TokenSelector/hooks/useAllCommonBaseCurrencies'
 import { useCurrencyInfosToTokenOptions } from 'uniswap/src/components/TokenSelector/hooks/useCurrencyInfosToTokenOptions'
 import { usePortfolioBalancesForAddressById } from 'uniswap/src/components/TokenSelector/hooks/usePortfolioBalancesForAddressById'
-import { TokenOption } from 'uniswap/src/components/lists/types'
-import { GqlResult } from 'uniswap/src/data/types'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 
-export function useCommonTokensOptions(
-  address: Address | undefined,
-  chainFilter: UniverseChainId | null,
-): GqlResult<TokenOption[] | undefined> {
+export function useCommonTokensOptions({
+  evmAddress,
+  svmAddress,
+  chainFilter,
+}: {
+  evmAddress: Address | undefined
+  svmAddress: Address | undefined
+  chainFilter: UniverseChainId | null
+}): GqlResult<TokenOption[] | undefined> {
   const {
     data: portfolioBalancesById,
     error: portfolioBalancesByIdError,
     refetch: portfolioBalancesByIdRefetch,
     loading: loadingPorfolioBalancesById,
-  } = usePortfolioBalancesForAddressById(address)
+  } = usePortfolioBalancesForAddressById({ evmAddress, svmAddress })
 
   const {
     data: commonBaseCurrencies,
@@ -34,7 +39,10 @@ export function useCommonTokensOptions(
       (currency) =>
         currency.currency.isNative ||
         currency.currency.chainId !== UniverseChainId.Unichain ||
-        !areAddressesEqual(USDT_UNICHAIN_ADDRESS, currency.currency.address),
+        !areAddressesEqual({
+          addressInput1: { address: USDT_UNICHAIN_ADDRESS, chainId: UniverseChainId.Unichain },
+          addressInput2: { address: currency.currency.address, chainId: currency.currency.chainId },
+        }),
     )
   }, [commonBaseCurrencies])
 
@@ -52,14 +60,17 @@ export function useCommonTokensOptions(
     (!portfolioBalancesById && portfolioBalancesByIdError) || (!commonBaseCurrencies && commonBaseCurrenciesError)
 
   const filteredCommonBaseTokenOptions = useMemo(
-    () => commonBaseTokenOptions && filter(commonBaseTokenOptions, chainFilter),
+    () => commonBaseTokenOptions && filter({ tokenOptions: commonBaseTokenOptions, chainFilter }),
     [chainFilter, commonBaseTokenOptions],
   )
 
-  return {
-    data: filteredCommonBaseTokenOptions,
-    refetch,
-    error: error || undefined,
-    loading: loadingPorfolioBalancesById || loadingCommonBaseCurrencies,
-  }
+  return useMemo(
+    () => ({
+      data: filteredCommonBaseTokenOptions,
+      refetch,
+      error: error || undefined,
+      loading: loadingPorfolioBalancesById || loadingCommonBaseCurrencies,
+    }),
+    [error, loadingCommonBaseCurrencies, loadingPorfolioBalancesById, filteredCommonBaseTokenOptions, refetch],
+  )
 }

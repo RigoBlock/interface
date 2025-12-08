@@ -1,19 +1,18 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FlatList } from 'react-native-gesture-handler'
-import { LinkButton, LinkButtonType, type LinkButtonProps } from 'src/components/TokenDetails/LinkButton'
-import { useTokenDetailsContext } from 'src/components/TokenDetails/TokenDetailsContext'
 import { getBlockExplorerIcon } from 'src/components/icons/BlockExplorerIcon'
+import { LinkButton, type LinkButtonProps, LinkButtonType } from 'src/components/TokenDetails/LinkButton'
+import { useTokenDetailsContext } from 'src/components/TokenDetails/TokenDetailsContext'
 import { Flex, Text } from 'ui/src'
-import GlobeIcon from 'ui/src/assets/icons/globe-filled.svg'
-import TwitterIcon from 'ui/src/assets/icons/x-twitter.svg'
+import { GlobeFilled, XTwitter } from 'ui/src/components/icons'
 import { useTokenProjectUrlsPartsFragment } from 'uniswap/src/data/graphql/uniswap-data-api/fragments'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
+import { chainIdToPlatform } from 'uniswap/src/features/platforms/utils/chains'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
-import { isDefaultNativeAddress } from 'uniswap/src/utils/currencyId'
-import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
-import { getTwitterLink } from 'wallet/src/utils/linking'
+import { isDefaultNativeAddress, isNativeCurrencyAddress } from 'uniswap/src/utils/currencyId'
+import { ExplorerDataType, getExplorerLink, getTwitterLink } from 'uniswap/src/utils/linking'
 
 const ItemSeparatorComponent = (): JSX.Element => <Flex width="$spacing8" />
 
@@ -28,22 +27,26 @@ export function TokenDetailsLinks(): JSX.Element {
 
   const { homepageUrl, twitterName } = useTokenProjectUrlsPartsFragment({ currencyId }).data.project ?? {}
 
-  const explorerLink = getExplorerLink(chainId, address, ExplorerDataType.TOKEN)
+  const explorerLink = getExplorerLink({ chainId, data: address, type: ExplorerDataType.TOKEN })
   const explorerName = getChainInfo(chainId).explorer.name
+
+  const isNativeCurrency = isNativeCurrencyAddress(chainId, address)
 
   const links = useMemo((): LinkButtonProps[] => {
     return [
-      {
-        Icon: getBlockExplorerIcon(chainId),
-        buttonType: LinkButtonType.Link,
-        element: ElementName.TokenLinkEtherscan,
-        label: explorerName,
-        testID: TestID.TokenLinkEtherscan,
-        value: explorerLink,
-      },
+      !isNativeCurrency
+        ? {
+            Icon: getBlockExplorerIcon(chainId),
+            buttonType: LinkButtonType.Link,
+            element: ElementName.TokenLinkEtherscan,
+            label: explorerName,
+            testID: TestID.TokenLinkEtherscan,
+            value: explorerLink,
+          }
+        : null,
       homepageUrl
         ? {
-            Icon: GlobeIcon,
+            Icon: GlobeFilled,
             buttonType: LinkButtonType.Link,
             element: ElementName.TokenLinkWebsite,
             label: t('token.links.website'),
@@ -53,7 +56,7 @@ export function TokenDetailsLinks(): JSX.Element {
         : null,
       twitterName
         ? {
-            Icon: TwitterIcon,
+            Icon: XTwitter,
             buttonType: LinkButtonType.Link,
             element: ElementName.TokenLinkTwitter,
             label: t('token.links.twitter'),
@@ -61,7 +64,7 @@ export function TokenDetailsLinks(): JSX.Element {
             value: getTwitterLink(twitterName),
           }
         : null,
-      !isDefaultNativeAddress(address)
+      !isDefaultNativeAddress({ address, platform: chainIdToPlatform(chainId) })
         ? {
             buttonType: LinkButtonType.Copy,
             element: ElementName.Copy,
@@ -71,7 +74,7 @@ export function TokenDetailsLinks(): JSX.Element {
           }
         : null,
     ].filter((item): item is NonNullable<typeof item> => Boolean(item))
-  }, [chainId, address, homepageUrl, twitterName, explorerName, explorerLink, t])
+  }, [chainId, address, isNativeCurrency, homepageUrl, twitterName, explorerName, explorerLink, t])
 
   return (
     <Flex gap="$spacing8">

@@ -1,26 +1,26 @@
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
-import { Trans } from 'react-i18next'
-//import JSBI from 'jsbi'
-import { ReactNode, useState } from 'react'
-import { X } from 'react-feather'
-import styled from 'lib/styled-components'
-import { ThemedText } from 'theme/components/text'
-import { GRG } from 'uniswap/src/constants/tokens'
-import { TransactionStatus } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
-import { ModalName} from 'uniswap/src/features/telemetry/constants'
-import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
-import { logger } from 'utilities/src/logger/logger'
-
-import { useHarvestCallback } from 'state/stake/hooks'
-import { useIsTransactionConfirmed, useTransaction } from 'state/transactions/hooks'
 import { ButtonPrimary } from 'components/Button/buttons'
 import { LightCard } from 'components/Card/cards'
 import { AutoColumn } from 'components/deprecated/Column'
 import { RowBetween } from 'components/deprecated/Row'
-import { Modal } from 'uniswap/src/components/modals/Modal'
 import { LoadingView, SubmittedView } from 'components/ModalViews'
 import { useAccount } from 'hooks/useAccount'
+import styled from 'lib/styled-components'
+//import JSBI from 'jsbi'
+import { ReactNode, useState } from 'react'
+import { X } from 'react-feather'
+import { Trans } from 'react-i18next'
+
+import { useHarvestCallback } from 'state/stake/hooks'
+import { useIsTransactionConfirmed, useTransaction } from 'state/transactions/hooks'
+import { ThemedText } from 'theme/components/text'
+import { Modal } from 'uniswap/src/components/modals/Modal'
+import { GRG } from 'uniswap/src/constants/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { logger } from 'utilities/src/logger/logger'
 
 const ContentWrapper = styled(AutoColumn)`
   width: 100%;
@@ -62,7 +62,8 @@ export default function HarvestYieldModal({
 
   const transaction = useTransaction(hash)
   const confirmed = useIsTransactionConfirmed(hash)
-  const transactionSuccess = transaction?.status === TransactionStatus.Confirmed
+  const { formatCurrencyAmount } = useLocalizationContext()
+  const transactionSuccess = transaction?.status === TransactionStatus.Success
 
   const [farmAmount, setFarmAmount] = useState<CurrencyAmount<Token>>()
 
@@ -75,7 +76,7 @@ export default function HarvestYieldModal({
 
   async function onHarvest() {
     // if callback not returned properly ignore
-    if (!harvestCallback || !poolIds || poolIds?.length === 0 || !currencyValue?.isToken) {
+    if (!poolIds || poolIds.length === 0 || !currencyValue?.isToken) {
       return
     }
     setAttempting(true)
@@ -112,12 +113,12 @@ export default function HarvestYieldModal({
               <AutoColumn gap="md">
                 <RowBetween>
                   <ThemedText.DeprecatedBody fontSize={16} fontWeight={500}>
-                    <Trans>Harvesting {formatCurrencyAmount(yieldAmount, 4)} GRG</Trans>
+                    <Trans>Harvesting {formatCurrencyAmount({ value: yieldAmount })} GRG</Trans>
                   </ThemedText.DeprecatedBody>
                 </RowBetween>
               </AutoColumn>
             </LightCard>
-            <ButtonPrimary disabled={formatCurrencyAmount(yieldAmount, 4) === '0'} onClick={onHarvest}>
+            <ButtonPrimary disabled={formatCurrencyAmount({ value: yieldAmount }) === '0'} onClick={onHarvest}>
               <ThemedText.DeprecatedMediumHeader color="white">
                 <Trans>Harvest</Trans>{' '}
               </ThemedText.DeprecatedMediumHeader>
@@ -131,7 +132,9 @@ export default function HarvestYieldModal({
             <ThemedText.DeprecatedLargeHeader>
               <Trans>Harvesting Yield</Trans>
             </ThemedText.DeprecatedLargeHeader>
-            <ThemedText.DeprecatedMain fontSize={36}>{formatCurrencyAmount(yieldAmount, 4)}</ThemedText.DeprecatedMain>
+            <ThemedText.DeprecatedMain fontSize={36}>
+              {formatCurrencyAmount({ value: yieldAmount })}
+            </ThemedText.DeprecatedMain>
           </AutoColumn>
         </LoadingView>
       )}
@@ -144,7 +147,7 @@ export default function HarvestYieldModal({
                   <Trans>Transaction Submitted</Trans>
                 </ThemedText.DeprecatedLargeHeader>
                 <ThemedText.DeprecatedMain fontSize={36}>
-                  Claiming {formatCurrencyAmount(farmAmount, 4)} GRG
+                  Claiming {formatCurrencyAmount({ value: farmAmount })} GRG
                 </ThemedText.DeprecatedMain>
               </>
             ) : transactionSuccess ? (
@@ -153,7 +156,7 @@ export default function HarvestYieldModal({
                   <Trans>Transaction Success</Trans>
                 </ThemedText.DeprecatedLargeHeader>
                 <ThemedText.DeprecatedMain fontSize={36}>
-                  Claimed {formatCurrencyAmount(farmAmount, 4)} GRG
+                  Claimed {formatCurrencyAmount({ value: farmAmount })} GRG
                 </ThemedText.DeprecatedMain>
               </>
             ) : (

@@ -1,16 +1,17 @@
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
-import CurrencyLogo from 'components/Logo/CurrencyLogo'
-import { MouseoverTooltip } from 'components/Tooltip'
 import Column from 'components/deprecated/Column'
 import Row from 'components/deprecated/Row'
-import styled from 'lib/styled-components'
+import CurrencyLogo from 'components/Logo/CurrencyLogo'
+import { MouseoverTooltip } from 'components/Tooltip'
+import { styled } from 'lib/styled-components'
 import { PropsWithChildren, ReactNode } from 'react'
 import { TextProps } from 'rebass'
 import { ThemedText } from 'theme/components'
 import { useDeviceDimensions } from 'ui/src/hooks/useDeviceDimensions'
 import { breakpoints } from 'ui/src/theme'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { CurrencyField } from 'uniswap/src/types/currency'
-import { NumberType, useFormatter } from 'utils/formatNumbers'
+import { NumberType } from 'utilities/src/format/types'
 
 const Label = styled(ThemedText.BodySmall)<{ cursor?: string }>`
   cursor: ${({ cursor }) => cursor};
@@ -52,7 +53,7 @@ export function SwapModalHeaderAmount({
   isLoading,
   headerTextProps,
 }: AmountProps) {
-  const { formatNumber, formatReviewSwapCurrencyAmount } = useFormatter()
+  const { formatCurrencyAmount, convertFiatAmountFormatted } = useLocalizationContext()
 
   return (
     <Row align="center" justify="space-between" gap="md">
@@ -70,13 +71,14 @@ export function SwapModalHeaderAmount({
             color={isLoading ? 'neutral2' : 'neutral1'}
             {...headerTextProps}
           >
-            {formatReviewSwapCurrencyAmount(amount)} {currency?.symbol}
+            {formatCurrencyAmount({
+              value: amount,
+              type: NumberType.TokenTx,
+            })}{' '}
+            {currency.symbol}
           </ResponsiveHeadline>
           <ThemedText.BodySmall color="neutral2">
-            {formatNumber({
-              input: usdAmount,
-              type: NumberType.FiatTokenQuantity,
-            })}
+            {convertFiatAmountFormatted(usdAmount, NumberType.FiatTokenQuantity)}
           </ThemedText.BodySmall>
         </Column>
       </Column>

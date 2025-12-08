@@ -1,3 +1,4 @@
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { BaseSyntheticEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
@@ -6,28 +7,34 @@ import { AccountItem } from 'src/app/features/accounts/AccountItem'
 import { CreateWalletModal } from 'src/app/features/accounts/CreateWalletModal'
 import { EditLabelModal } from 'src/app/features/accounts/EditLabelModal'
 import { useSortedAccountList } from 'src/app/features/accounts/useSortedAccountList'
-import { useDappContext } from 'src/app/features/dapp/DappContext'
 import { updateDappConnectedAddressFromExtension } from 'src/app/features/dapp/actions'
+import { useDappContext } from 'src/app/features/dapp/DappContext'
 import { useDappConnectedAccounts } from 'src/app/features/dapp/hooks'
 import { isConnectedAccount } from 'src/app/features/dapp/utils'
-import { PopupName, openPopup } from 'src/app/features/popups/slice'
+import { openPopup, PopupName } from 'src/app/features/popups/slice'
 import { AppRoutes, RemoveRecoveryPhraseRoutes, SettingsRoutes, UnitagClaimRoutes } from 'src/app/navigation/constants'
 import { navigate } from 'src/app/navigation/state'
 import { focusOrCreateUnitagTab, useExtensionNavigation } from 'src/app/navigation/utils'
 import { Button, Flex, Popover, ScrollView, Text, TouchableArea, useSporeColors } from 'ui/src'
 import { Ellipsis, Globe, Person, TrashFilled, WalletFilled, X } from 'ui/src/components/icons'
 import { spacing } from 'ui/src/theme'
-import { WarningModal } from 'uniswap/src/components/modals/WarningModal/WarningModal'
+import { AddressDisplay } from 'uniswap/src/components/accounts/AddressDisplay'
+import { buildWrappedUrl } from 'uniswap/src/components/banners/shared/utils'
+import { UniswapWrapped2025Card } from 'uniswap/src/components/banners/UniswapWrapped2025Card/UniswapWrapped2025Card'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
-import { AccountType } from 'uniswap/src/features/accounts/types'
-import Trace from 'uniswap/src/features/telemetry/Trace'
+import { WarningModal } from 'uniswap/src/components/modals/WarningModal/WarningModal'
+import { UNISWAP_WEB_URL } from 'uniswap/src/constants/urls'
+import { AccountType, DisplayNameType } from 'uniswap/src/features/accounts/types'
+import { setHasDismissedUniswapWrapped2025Banner } from 'uniswap/src/features/behaviorHistory/slice'
+import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { ModalName, WalletEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
+import Trace from 'uniswap/src/features/telemetry/Trace'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { ImportType } from 'uniswap/src/types/onboarding'
+import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 import { logger } from 'utilities/src/logger/logger'
 import { sleep } from 'utilities/src/time/timing'
-import { AddressDisplay } from 'wallet/src/components/accounts/AddressDisplay'
 import { PlusCircle } from 'wallet/src/components/icons/PlusCircle'
 import { ContextMenu } from 'wallet/src/components/menu/ContextMenu'
 import { MenuContent } from 'wallet/src/components/menu/MenuContent'
@@ -35,6 +42,7 @@ import { MenuContentItem } from 'wallet/src/components/menu/types'
 import { createOnboardingAccount } from 'wallet/src/features/onboarding/createOnboardingAccount'
 import { useCanActiveAddressClaimUnitag } from 'wallet/src/features/unitags/hooks/useCanActiveAddressClaimUnitag'
 import { BackupType, SignerMnemonicAccount } from 'wallet/src/features/wallet/accounts/types'
+import { hasBackup } from 'wallet/src/features/wallet/accounts/utils'
 import { createAccountsActions } from 'wallet/src/features/wallet/create/createAccountsSaga'
 import {
   useActiveAccountAddressWithThrow,
@@ -44,7 +52,6 @@ import {
 } from 'wallet/src/features/wallet/hooks'
 import { selectSortedSignerMnemonicAccounts } from 'wallet/src/features/wallet/selectors'
 import { setAccountAsActive } from 'wallet/src/features/wallet/slice'
-import { DisplayNameType } from 'wallet/src/features/wallet/types'
 
 const MIN_MENU_WIDTH = 200
 
@@ -58,9 +65,20 @@ export function AccountSwitcherScreen(): JSX.Element {
   const activeAddress = activeAccount.address
   const isViewOnly = activeAccount.type === AccountType.Readonly
 
+  const isWrappedBannerEnabled = useFeatureFlag(FeatureFlags.UniswapWrapped2025)
+
   const accounts = useSignerAccounts()
   const accountAddresses = useMemo(
-    () => accounts.map((account) => account.address).filter((address) => address !== activeAddress),
+    () =>
+      accounts
+        .map((account) => account.address)
+        .filter(
+          (address) =>
+            !areAddressesEqual({
+              addressInput1: { address, platform: Platform.EVM },
+              addressInput2: { address: activeAddress, platform: Platform.EVM },
+            }),
+        ),
     [accounts, activeAddress],
   )
   const { dappUrl } = useDappContext()
@@ -70,6 +88,7 @@ export function AccountSwitcherScreen(): JSX.Element {
   // TODO: EXT-899 https://linear.app/uniswap/issue/EXT-899/enable-unitag-edit-button-is-account-header
   const activeAccountDisplayName = useDisplayName(activeAddress)
   const activeAccountHasUnitag = activeAccountDisplayName?.type === DisplayNameType.Unitag
+  const activeAccountHasENS = activeAccountDisplayName?.type === DisplayNameType.ENS
 
   const [showEditLabelModal, setShowEditLabelModal] = useState(false)
 
@@ -128,7 +147,7 @@ export function AccountSwitcherScreen(): JSX.Element {
         wallet_type: ImportType.CreateAdditional,
         accounts_imported_count: 1,
         wallets_imported: [pendingWallet.address],
-        cloud_backup_used: pendingWallet.backups?.includes(BackupType.Cloud) ?? false,
+        cloud_backup_used: hasBackup(BackupType.Cloud, pendingWallet),
         modal: ModalName.AccountSwitcher,
       })
 
@@ -141,6 +160,17 @@ export function AccountSwitcherScreen(): JSX.Element {
     },
     [connectedAccounts.length, dispatch, pendingWallet],
   )
+
+  const onPressWrappedCard = useCallback(() => {
+    try {
+      const url = buildWrappedUrl(UNISWAP_WEB_URL, activeAddress)
+      window.open(url, '_blank')
+      dispatch(setHasDismissedUniswapWrapped2025Banner(true))
+      navigate(-1)
+    } catch (error) {
+      logger.error(error, { tags: { file: 'AccountSwitcherScreen', function: 'onPressWrappedCard' } })
+    }
+  }, [activeAddress, dispatch])
 
   const addWalletMenuOptions: MenuContentItem[] = [
     {
@@ -178,7 +208,7 @@ export function AccountSwitcherScreen(): JSX.Element {
 
       {
         label: t('account.wallet.menu.manageConnections'),
-        onPress: () => navigateTo(`${AppRoutes.Settings}/${SettingsRoutes.ManageConnections}`),
+        onPress: () => navigateTo(`/${AppRoutes.Settings}/${SettingsRoutes.ManageConnections}`),
         Icon: Globe,
       },
       {
@@ -236,7 +266,27 @@ export function AccountSwitcherScreen(): JSX.Element {
         onConfirm={onConfirmCreateWallet}
       />
       <Flex backgroundColor="$surface1" px="$spacing12" py="$spacing8">
-        <ScreenHeader Icon={X} />
+        <ScreenHeader
+          Icon={X}
+          rightColumn={
+            <ContextMenu
+              closeOnClick
+              itemId="account-switcher-ellipsis-dropdown"
+              menuOptions={menuOptions}
+              placement="bottom"
+              onLeftClick
+              menuContainerStyleProps={{ mr: '$spacing12' }}
+            >
+              <TouchableArea
+                borderRadius="$roundedFull"
+                hoverStyle={{ backgroundColor: '$surface2Hovered' }}
+                p="$spacing8"
+              >
+                <Ellipsis color="$neutral2" size="$icon.20" />
+              </TouchableArea>
+            </ContextMenu>
+          }
+        />
         <Flex pb="$spacing4" pt="$spacing8" px="$spacing12">
           <Flex row alignSelf="stretch" width="100%" justifyContent="center">
             <Flex flex={1} justifyContent="center" alignItems="center">
@@ -253,46 +303,35 @@ export function AccountSwitcherScreen(): JSX.Element {
                 variant="subheading1"
               />
             </Flex>
-
-            <Flex alignItems="flex-start" justifyContent="flex-start">
-              <ContextMenu
-                closeOnClick
-                itemId="account-switcher-ellipsis-dropdown"
-                menuOptions={menuOptions}
-                placement="bottom"
-                onLeftClick
-              >
-                <TouchableArea
-                  hoverable
-                  borderRadius="$roundedFull"
-                  p="$spacing4"
-                  style={{ position: 'absolute', right: 0 }}
-                >
-                  <Ellipsis color="$neutral2" size="$icon.20" />
-                </TouchableArea>
-              </ContextMenu>
-            </Flex>
           </Flex>
 
-          <Flex pt="$padding16">
+          {isWrappedBannerEnabled && (
+            <Flex pt="$spacing16">
+              <UniswapWrapped2025Card onPress={onPressWrappedCard} />
+            </Flex>
+          )}
+
+          <Flex pt={activeAccountHasENS ? undefined : '$padding16'}>
             {activeAccountHasUnitag ? (
               <UnitagActionButton />
             ) : (
-              <Flex row>
-                <Button
-                  size="small"
-                  testID={TestID.AccountCard}
-                  emphasis="secondary"
-                  onPress={() => setShowEditLabelModal(true)}
-                >
-                  {t('account.wallet.header.button.title')}
-                </Button>
-              </Flex>
+              !activeAccountHasENS && (
+                <Flex row>
+                  <Button
+                    size="small"
+                    testID={TestID.AccountCard}
+                    emphasis="secondary"
+                    onPress={() => setShowEditLabelModal(true)}
+                  >
+                    {t('account.wallet.header.button.title')}
+                  </Button>
+                </Flex>
+              )
             )}
           </Flex>
         </Flex>
         <ScrollView backgroundColor="$surface1" height="auto">
-          <Flex>
+          <Flex pt="$padding20">
             {sortedAddressesByBalance.map(({ address, balance }) => {
               return (
                 <AccountItem
@@ -340,7 +379,7 @@ export function AccountSwitcherScreen(): JSX.Element {
               borderColor="$surface3"
               borderRadius="$rounded16"
               borderWidth="$spacing1"
-              disableRemoveScroll={false}
+              enableRemoveScroll={true}
               enterStyle={{ y: -10, opacity: 0 }}
               exitStyle={{ y: -10, opacity: 0 }}
               p="$none"

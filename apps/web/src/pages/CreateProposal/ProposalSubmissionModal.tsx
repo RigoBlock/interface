@@ -1,17 +1,17 @@
+import { useTheme } from '@tamagui/core'
 import { ButtonPrimary } from 'components/Button/buttons'
 import { AutoColumn } from 'components/deprecated/Column'
-import { Modal } from 'uniswap/src/components/modals/Modal'
 import { LoadingView, SubmittedView } from 'components/ModalViews'
 import { useAccount } from 'hooks/useAccount'
-import { useTheme } from 'lib/styled-components'
-import { Link } from 'react-router-dom'
+import { Trans } from 'react-i18next'
+import { Link } from 'react-router'
 import { Text } from 'rebass'
 import { useIsTransactionConfirmed, useTransaction } from 'state/transactions/hooks'
 import { ThemedText } from 'theme/components'
 import { ExternalLink } from 'theme/components/Links'
-import { TransactionStatus } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
-import { Trans } from 'react-i18next'
-import { ModalName} from 'uniswap/src/features/telemetry/constants'
+import { Modal } from 'uniswap/src/components/modals/Modal'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
 
 export const ProposalSubmissionModal = ({
@@ -28,7 +28,7 @@ export const ProposalSubmissionModal = ({
 
   const transaction = useTransaction(hash)
   const confirmed = useIsTransactionConfirmed(hash)
-  const transactionSuccess = transaction?.status === TransactionStatus.Confirmed
+  const transactionSuccess = transaction?.status === TransactionStatus.Success
 
   return (
     <Modal name={ModalName.DappRequest} isModalOpen={isOpen} isDismissible onClose={onDismiss}>
@@ -61,8 +61,10 @@ export const ProposalSubmissionModal = ({
               </Text>
             )}
             {hash && account.chainId && (
-              <ExternalLink href={getExplorerLink(account.chainId, hash, ExplorerDataType.TRANSACTION)}>
-                <Text fontWeight={535} fontSize={14} color={theme.accent1}>
+              <ExternalLink
+                href={getExplorerLink({ chainId: account.chainId, data: hash, type: ExplorerDataType.TRANSACTION })}
+              >
+                <Text fontWeight={535} fontSize={14} color={theme.accent1.get()}>
                   <Trans i18nKey="common.etherscan.link" />
                 </Text>
               </ExternalLink>

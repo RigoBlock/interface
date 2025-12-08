@@ -1,29 +1,27 @@
 import type { TransactionResponse } from '@ethersproject/providers'
 import { Currency, CurrencyAmount /*, Token*/ } from '@uniswap/sdk-core'
-//import { useWeb3React } from '@web3-react/core'
-import { Trans } from 'react-i18next'
-import JSBI from 'jsbi'
-import { useCallback, useMemo, useState, useEffect } from 'react'
-import styled from 'lib/styled-components'
-import { ThemedText } from 'theme/components'
-import { ModalCloseIcon } from 'ui/src'
-import { TransactionStatus } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
-
-import { PoolInfo, useDerivedPoolInfo } from 'state/buy/hooks'
-import { usePoolExtendedContract } from 'state/pool/hooks'
-import { useIsTransactionConfirmed, useTransaction, useTransactionAdder } from 'state/transactions/hooks'
-import { TransactionType } from 'state/transactions/types'
-import { calculateGasMargin } from 'utils/calculateGasMargin'
-import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
-import { maxAmountSpend } from 'utils/maxAmountSpend'
 import { /*ButtonConfirmed,*/ ButtonError } from 'components/Button/buttons'
 import CurrencyInputPanel from 'components/CurrencyInputPanel'
 import { AutoColumn } from 'components/deprecated/Column'
 import { RowBetween } from 'components/deprecated/Row'
-import { Modal } from 'uniswap/src/components/modals/Modal'
-import { ModalName} from 'uniswap/src/features/telemetry/constants'
 import { LoadingView, SubmittedView } from 'components/ModalViews'
 import ProgressCircles from 'components/ProgressSteps'
+import JSBI from 'jsbi'
+import styled from 'lib/styled-components'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+//import { useWeb3React } from '@web3-react/core'
+import { Trans } from 'react-i18next'
+import { PoolInfo, useDerivedPoolInfo } from 'state/buy/hooks'
+import { usePoolExtendedContract } from 'state/pool/hooks'
+import { useIsTransactionConfirmed, useTransaction, useTransactionAdder } from 'state/transactions/hooks'
+import { ThemedText } from 'theme/components'
+import { ModalCloseIcon } from 'ui/src'
+import { Modal } from 'uniswap/src/components/modals/Modal'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { TransactionStatus, TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { calculateGasMargin } from 'utils/calculateGasMargin'
+import { maxAmountSpend } from 'utils/maxAmountSpend'
 
 const burnAmountCache = new Map()
 
@@ -59,7 +57,8 @@ export default function SellModal({
 
   const transaction = useTransaction(hash)
   const confirmed = useIsTransactionConfirmed(hash)
-  const transactionSuccess = transaction?.status === TransactionStatus.Confirmed
+  const { formatCurrencyAmount } = useLocalizationContext()
+  const transactionSuccess = transaction?.status === TransactionStatus.Success
 
   const wrappedOnDismiss = useCallback(() => {
     setHash(undefined)
@@ -71,12 +70,12 @@ export default function SellModal({
     typedValue,
     poolInfo?.userPoolBalance?.currency,
     poolInfo?.userPoolBalance,
-    poolInfo?.activation
+    poolInfo?.activation,
   )
 
-  const poolContract = usePoolExtendedContract(poolInfo?.pool?.address)
+  const poolContract = usePoolExtendedContract(poolInfo?.pool.address)
   const [expectedBurnOutputAmount, setExpectedBurnOutputAmount] = useState<any>(undefined)
-    
+
   useEffect(() => {
     async function retrieveBurnOutputAmount() {
       if (!poolContract || !poolInfo?.recipient || !parsedAmount?.quotient) {
@@ -91,9 +90,7 @@ export default function SellModal({
         if (burnAmountCache.has(cacheKey)) {
           burnOutputAmount = burnAmountCache.get(cacheKey)
         } else {
-          burnOutputAmount = await poolContract.callStatic[
-            'burn(uint256,uint256)'
-          ](...args)
+          burnOutputAmount = await poolContract.callStatic['burn(uint256,uint256)'](...args)
           burnAmountCache.set(cacheKey, burnOutputAmount)
         }
       } catch (error) {
@@ -112,7 +109,7 @@ export default function SellModal({
         minimumAmount: undefined,
       }
     }
-    const burnValue = expectedBurnOutputAmount !== undefined ? expectedBurnOutputAmount : "0"
+    const burnValue = expectedBurnOutputAmount !== undefined ? expectedBurnOutputAmount : '0'
     const burnJSBI = JSBI.BigInt(burnValue.toString())
     const minJSBI = JSBI.subtract(burnJSBI, JSBI.divide(burnJSBI, JSBI.BigInt(10)))
     // extra 10% margin applied; if burn output is 0, corresponding amounts will also be 0
@@ -127,8 +124,10 @@ export default function SellModal({
     if (!poolBaseTokenBalance || !expectedBaseTokens || !poolInfo) {
       return true
     }
-    return !JSBI.equal(expectedBaseTokens.quotient, JSBI.BigInt(0)) &&
+    return (
+      !JSBI.equal(expectedBaseTokens.quotient, JSBI.BigInt(0)) &&
       JSBI.greaterThanOrEqual(poolBaseTokenBalance.quotient, expectedBaseTokens.quotient)
+    )
   }, [poolBaseTokenBalance, expectedBaseTokens, poolInfo])
 
   async function onSell(): Promise<void | undefined> {
@@ -144,7 +143,9 @@ export default function SellModal({
         })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
-              type: TransactionType.SELL,
+              type: TransactionType.Sell,
+              vaultAddress: poolInfo.pool.address,
+              saleCurrencyAmountRaw: parsedAmount.quotient.toString(),
             })
             setAttempting(false)
             setHash(response.hash)
@@ -180,7 +181,7 @@ export default function SellModal({
               <RowBetween>
                 <ThemedText.DeprecatedMediumHeader>
                   <Trans>
-                    Sell {poolInfo.pool?.symbol ?? null} Receive {userBaseTokenBalance.currency?.symbol}
+                    Sell {poolInfo.pool.symbol ?? null} Receive {userBaseTokenBalance.currency.symbol}
                   </Trans>
                 </ThemedText.DeprecatedMediumHeader>
                 <ModalCloseIcon onClose={wrappedOnDismiss} />
@@ -190,10 +191,12 @@ export default function SellModal({
                 onUserInput={onUserInput}
                 onMax={handleMax}
                 showMaxButton={!atMaxAmount}
-                currency={poolInfo.poolPriceAmount?.currency ?? null}
+                currency={poolInfo.poolPriceAmount.currency}
                 isAccount={true}
                 label=""
-                renderBalance={(amount) => <Trans>Available to withdraw: {formatCurrencyAmount(amount, 4)}</Trans>}
+                renderBalance={(amount) => (
+                  <Trans>Available to withdraw: {formatCurrencyAmount({ value: amount })}</Trans>
+                )}
                 id="buy-pool-tokens"
               />
             </>
@@ -207,14 +210,14 @@ export default function SellModal({
             >
               {error ??
                 (!poolHoldsEnough ? (
-                  <Trans>Pool does not hold enough {userBaseTokenBalance?.currency?.symbol}</Trans>
+                  <Trans>Pool does not hold enough {userBaseTokenBalance?.currency.symbol}</Trans>
                 ) : (
                   <Trans>Sell</Trans>
                 ))}
             </ButtonError>
           </RowBetween>
           {/* TODO: check these circles */}
-          <ProgressCircles steps={[typedValue !== undefined]} disabled={true} />
+          <ProgressCircles steps={[typedValue !== '']} disabled={true} />
         </ContentWrapper>
       )}
       {attempting && !hash && (
@@ -230,7 +233,7 @@ export default function SellModal({
             </ThemedText.DeprecatedBody>
             <ThemedText.DeprecatedBody fontSize={20}>
               <Trans>
-                Expected {expectedBaseTokens?.toSignificant(4)} {userBaseTokenBalance?.currency?.symbol}
+                Expected {expectedBaseTokens?.toSignificant(4)} {userBaseTokenBalance?.currency.symbol}
               </Trans>
             </ThemedText.DeprecatedBody>
           </AutoColumn>
