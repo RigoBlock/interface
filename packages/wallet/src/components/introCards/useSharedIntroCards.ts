@@ -58,7 +58,7 @@ export function useSharedIntroCards({
   const shouldPromptUnitag = isSignerAccount && !hasSkippedUnitagPrompt && canClaimUnitag && !hasAnyUnitags
 
   // Monad announcement state
-  const isMonadAnnouncementEnabled = useFeatureFlag(FeatureFlags.MonadAnnouncement)
+  const isMonadAnnouncementEnabled = false // Disabled: useFeatureFlag(FeatureFlags.MonadAnnouncement)
   const isMonadCardDismissed = useSelector(selectHasDismissedMonadAnnouncement)
 
   const handleMonadCardDismiss = useCallback(() => {

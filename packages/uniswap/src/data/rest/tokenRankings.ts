@@ -9,7 +9,10 @@ import {
 } from '@uniswap/client-explore/dist/uniswap/explore/v1/service_pb'
 import { tokenRankings } from '@uniswap/client-explore/dist/uniswap/explore/v1/service-ExploreStatsService_connectquery'
 import { parseProtectionInfo, parseSafetyLevel } from '@universe/api'
+import { GRG } from 'uniswap/src/constants/tokens'
 import { uniswapGetTransport } from 'uniswap/src/data/rest/base'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { RIGOBLOCK_LOGO } from 'ui/src/assets'
 import { fromGraphQLChain } from 'uniswap/src/features/chains/utils'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { buildCurrency, buildCurrencyInfo } from 'uniswap/src/features/dataApi/utils/buildCurrency'
@@ -53,10 +56,23 @@ export function tokenRankingsStatToCurrencyInfo(tokenRankingsStat: TokenRankings
     return null
   }
 
+  // Override logoUrl for GRG tokens on Unichain only
+  let finalLogoUrl = logo
+  if (!currency.isNative && currency.address && currency.chainId === UniverseChainId.Unichain) {
+    const isGrgToken = Object.values(GRG).some(grgToken => 
+      grgToken.chainId === currency.chainId && 
+      grgToken.address.toLowerCase() === currency.address.toLowerCase()
+    )
+    
+    if (isGrgToken) {
+      finalLogoUrl = RIGOBLOCK_LOGO
+    }
+  }
+
   return buildCurrencyInfo({
     currency,
     currencyId: currencyId(currency),
-    logoUrl: logo,
+    logoUrl: finalLogoUrl,
     safetyInfo: getCurrencySafetyInfo(safetyLevel, protectionInfo),
   })
 }

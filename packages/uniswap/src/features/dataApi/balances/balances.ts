@@ -4,7 +4,7 @@ import { GqlResult, GraphQLApi, SpamCode } from '@universe/api'
 import isEqual from 'lodash/isEqual'
 import { useMemo } from 'react'
 import { PollingInterval } from 'uniswap/src/constants/misc'
-import { nativeOnChain } from 'uniswap/src/constants/tokens'
+import { nativeOnChain, GRG } from 'uniswap/src/constants/tokens'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { usePortfolioData } from 'uniswap/src/features/dataApi/balances/balancesRest'
@@ -189,6 +189,19 @@ function shouldHideBalance({
   isTestnetModeEnabled: boolean
   currencyIdToTokenVisibility: ReturnType<typeof useCurrencyIdToVisibility>
 }): boolean {
+  // Override for GRG tokens - never hide them even if marked as hidden by API
+  const currency = balance.currencyInfo.currency
+  if (!currency.isNative && currency.address) {
+    const isGrgToken = Object.values(GRG).some(grgToken => 
+      grgToken.chainId === currency.chainId && 
+      grgToken.address.toLowerCase() === currency.address.toLowerCase()
+    )
+    
+    if (isGrgToken) {
+      return false
+    }
+  }
+
   if (isTestnetModeEnabled) {
     if ((balance.currencyInfo.spamCode || SpamCode.LOW) >= SpamCode.HIGH) {
       return true

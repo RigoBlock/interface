@@ -7,7 +7,9 @@ import { PortfolioValueModifier as RestPortfolioValueModifier } from '@uniswap/c
 import { Currency } from '@uniswap/sdk-core'
 import { useMemo } from 'react'
 import { PollingInterval } from 'uniswap/src/constants/misc'
+import { GRG } from 'uniswap/src/constants/tokens'
 import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
+import { RIGOBLOCK_LOGO } from 'ui/src/assets'
 import { GetPortfolioInput, getPortfolioQuery, useGetPortfolioQuery } from 'uniswap/src/data/rest/getPortfolio'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
@@ -183,10 +185,23 @@ export function convertRestBalanceToPortfolioBalance(
   const tokenBalanceId = `${chainId}-${tokenAddress}-${address}`
   const { isSpam, spamCodeValue, mappedSafetyLevel } = getRestTokenSafetyInfo(metadata)
 
+  // Override logoUrl for GRG tokens on Unichain only
+  let finalLogoUrl = logoUrl
+  if (!currency.isNative && currency.address && currency.chainId === UniverseChainId.Unichain) {
+    const isGrgToken = Object.values(GRG).some(grgToken => 
+      grgToken.chainId === currency.chainId && 
+      grgToken.address.toLowerCase() === currency.address.toLowerCase()
+    )
+    
+    if (isGrgToken) {
+      finalLogoUrl = RIGOBLOCK_LOGO
+    }
+  }
+
   const currencyInfo = buildCurrencyInfo({
     currency,
     currencyId: id,
-    logoUrl,
+    logoUrl: finalLogoUrl,
     isSpam,
     safetyInfo: getRestCurrencySafetyInfo(mappedSafetyLevel, protectionInfo),
     spamCode: spamCodeValue,

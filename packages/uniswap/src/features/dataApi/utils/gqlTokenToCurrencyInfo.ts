@@ -1,5 +1,8 @@
 import { GraphQLApi } from '@universe/api'
+import { GRG } from 'uniswap/src/constants/tokens'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { fromGraphQLChain } from 'uniswap/src/features/chains/utils'
+import { RIGOBLOCK_LOGO } from 'ui/src/assets'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { buildCurrency, buildCurrencyInfo } from 'uniswap/src/features/dataApi/utils/buildCurrency'
 import { getCurrencySafetyInfo } from 'uniswap/src/features/dataApi/utils/getCurrencySafetyInfo'
@@ -29,10 +32,23 @@ export function gqlTokenToCurrencyInfo(token: GqlTokenToCurrencyInfoToken): Curr
     return null
   }
 
+  // Override logoUrl for GRG tokens on Unichain only
+  let finalLogoUrl = project?.logoUrl
+  if (!currency.isNative && currency.address && currency.chainId === UniverseChainId.Unichain) {
+    const isGrgToken = Object.values(GRG).some(grgToken => 
+      grgToken.chainId === currency.chainId && 
+      grgToken.address.toLowerCase() === currency.address.toLowerCase()
+    )
+    
+    if (isGrgToken) {
+      finalLogoUrl = RIGOBLOCK_LOGO
+    }
+  }
+
   return buildCurrencyInfo({
     currency,
     currencyId: currencyId(currency),
-    logoUrl: project?.logoUrl,
+    logoUrl: finalLogoUrl,
     safetyInfo: getCurrencySafetyInfo(project?.safetyLevel, protectionInfo),
     // defaulting to not spam. currently this flow triggers when a user is searching
     // for a token, in which case the user probably doesn't expect the token to be spam

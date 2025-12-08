@@ -42,6 +42,7 @@ import { useWallet } from 'uniswap/src/features/wallet/hooks/useWallet'
 import { AccountDetails } from 'uniswap/src/features/wallet/types/AccountDetails'
 import { logger } from 'utilities/src/logger/logger'
 import { ONE_SECOND_MS } from 'utilities/src/time/time'
+import { useActiveSmartPool } from 'state/application/hooks'
 
 /**
  * @internal - exported for testing
@@ -99,6 +100,7 @@ export function generateCreateCalldataQueryParams({
   currencyAmounts,
   independentField,
   slippageTolerance,
+  smartPoolAddress,
 }: {
   protocolVersion: ProtocolVersion
   creatingPoolOrPair: boolean | undefined
@@ -111,6 +113,7 @@ export function generateCreateCalldataQueryParams({
   currencyAmounts?: { [field in PositionField]?: Maybe<CurrencyAmount<Currency>> }
   independentField: PositionField
   slippageTolerance?: number
+  smartPoolAddress?: string
 }): TradingApi.CreateLPPositionRequest | undefined {
   const apiProtocolItems = getProtocolItems(protocolVersion)
 
@@ -211,10 +214,11 @@ export function generateCreateCalldataQueryParams({
       token1PermitTransaction ||
       token0Approval ||
       token1Approval ||
-      positionTokenApproval
+      positionTokenApproval ||
+      smartPoolAddress // Disable simulation for smart pools
     ),
     protocol: apiProtocolItems,
-    walletAddress: account.address,
+    walletAddress: smartPoolAddress || account.address, // Use smart pool address when available
     chainId: currencyAmounts.TOKEN0.currency.chainId,
     independentAmount: independentAmount?.quotient.toString(),
     independentToken,
@@ -246,6 +250,8 @@ export function generateCreatePositionTxRequest({
   currencyAmounts,
   poolOrPair,
   canBatchTransactions,
+  smartPoolAddress,
+  account,
 }: {
   protocolVersion: ProtocolVersion
   approvalCalldata?: TradingApi.CheckApprovalLPResponse
@@ -254,6 +260,8 @@ export function generateCreatePositionTxRequest({
   currencyAmounts?: { [field in PositionField]?: Maybe<CurrencyAmount<Currency>> }
   poolOrPair: Pair | undefined
   canBatchTransactions: boolean
+  smartPoolAddress?: string
+  account?: AccountDetails
 }): CreatePositionTxAndGasInfo | undefined {
   if (!createCalldata || !currencyAmounts?.TOKEN0 || !currencyAmounts.TOKEN1) {
     return undefined
@@ -293,6 +301,14 @@ export function generateCreatePositionTxRequest({
     return undefined
   }
 
+  // Override transaction fields for smart pools
+  const finalTxRequest = txRequest && smartPoolAddress && account ? {
+    ...txRequest,
+    to: smartPoolAddress, // Target smart pool instead of position manager
+    from: account.address, // Keep user as transaction sender
+    value: String(0), // Smart pools handle ETH internally
+  } : txRequest
+
   const queryParams: TradingApi.CreateLPPositionRequest | undefined =
     protocolVersion === ProtocolVersion.V4
       ? { ...createCalldataQueryParams, batchPermitData: validatedPermitRequest }
@@ -301,7 +317,7 @@ export function generateCreatePositionTxRequest({
   return {
     type: LiquidityTransactionType.Create,
     canBatchTransactions,
-    unsigned: Boolean(validatedPermitRequest),
+    unsigned: Boolean(validatedPermitRequest) && !smartPoolAddress, // Never use async/unsigned flow for smart pools
     createPositionRequestArgs: queryParams,
     action: {
       type: LiquidityTransactionType.Create,
@@ -311,7 +327,7 @@ export function generateCreatePositionTxRequest({
     },
     approveToken0Request: validatedApprove0Request,
     approveToken1Request: validatedApprove1Request,
-    txRequest,
+    txRequest: finalTxRequest,
     approvePositionTokenRequest: undefined,
     revokeToken0Request: validatedRevoke0Request,
     revokeToken1Request: validatedRevoke1Request,
@@ -351,6 +367,7 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
     setRefetch,
   } = useCreateLiquidityContext()
   const account = useWallet().evmAccount
+  const { address: smartPoolAddress } = useActiveSmartPool()
   const { TOKEN0, TOKEN1 } = currencies.display
   const { exactField } = depositState
 
@@ -366,7 +383,7 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
     return {
       protocolVersion,
       poolOrPair,
-      address: account?.address,
+      address: smartPoolAddress || account?.address,
       token0: TOKEN0,
       token1: TOKEN1,
       tickLower: protocolVersion !== ProtocolVersion.V2 ? (tickLower ?? undefined) : undefined,
@@ -375,7 +392,7 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
       exactAmounts: depositState.exactAmounts,
       skipDependentAmount: protocolVersion === ProtocolVersion.V2 ? false : outOfRange || invalidRange,
     }
-  }, [TOKEN0, TOKEN1, exactField, ticks, poolOrPair, depositState, account?.address, protocolVersion, invalidRange])
+  }, [TOKEN0, TOKEN1, exactField, ticks, poolOrPair, depositState, smartPoolAddress, account?.address, protocolVersion, invalidRange])
 
   const {
     currencyAmounts,
@@ -442,6 +459,7 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
       currencyAmounts,
       independentField: depositState.exactField,
       slippageTolerance: customSlippageTolerance,
+      smartPoolAddress: smartPoolAddress ?? undefined,
     })
   }, [
     account,
@@ -455,6 +473,7 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
     customSlippageTolerance,
     currencies.display,
     protocolVersion,
+    smartPoolAddress,
   ])
 
   const isUserCommittedToCreate =
@@ -557,6 +576,8 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
       currencyAmounts,
       poolOrPair: protocolVersion === ProtocolVersion.V2 ? poolOrPair : undefined,
       canBatchTransactions,
+      smartPoolAddress: smartPoolAddress ?? undefined,
+      account,
     })
   }, [
     approvalCalldata,
@@ -566,6 +587,8 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
     poolOrPair,
     protocolVersion,
     canBatchTransactions,
+    smartPoolAddress,
+    account,
   ])
 
   const value = useMemo(
