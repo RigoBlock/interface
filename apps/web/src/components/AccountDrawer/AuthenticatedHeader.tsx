@@ -152,7 +152,7 @@ export default function AuthenticatedHeader({
           </Flex>
         </Flex>
         <Flex gap="$spacing4">
-          <MultiBlockchainAddressDisplay />
+          <MultiBlockchainAddressDisplay shouldDisplayUserAccount={true} />
         </Flex>
         <Flex flex={1} mt="$spacing16">
           <Flex gap="$spacing4" mb="$spacing16" data-testid="portfolio-total-balance">

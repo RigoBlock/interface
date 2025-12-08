@@ -11,8 +11,8 @@ export function usePortfolioAddresses(): { evmAddress: Address | undefined; svmA
   const activeSmartPool = useActiveSmartPool()
   const [searchParams] = useSearchParams()
   
-  // Get pool address from URL parameters (for viewing specific pool portfolios)
-  const poolAddressParam = searchParams.get('pool')
+  // Get address from URL parameters (for viewing specific address portfolios)
+  const addressParam = searchParams.get('address')
 
   return useMemo(() => {
     // if there are no connected addresses, return the demo address
@@ -24,8 +24,8 @@ export function usePortfolioAddresses(): { evmAddress: Address | undefined; svmA
     }
 
     return {
-      evmAddress: poolAddressParam || activeSmartPool.address || evmAddress,
-      svmAddress: poolAddressParam || activeSmartPool.address ? undefined : svmAddress, // Disable SVM for pool views
+      evmAddress: addressParam || activeSmartPool.address || evmAddress,
+      svmAddress: addressParam || activeSmartPool.address ? undefined : svmAddress, // Disable SVM for address views
     }
-  }, [evmAddress, svmAddress, activeSmartPool.address, poolAddressParam])
+  }, [evmAddress, svmAddress, activeSmartPool.address, addressParam])
 }

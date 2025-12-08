@@ -448,7 +448,7 @@ export default function PoolPositionPage() {
                 </ThemedText.DeprecatedLabel>
               </RowFixed>
               {poolAddressFromUrl && (
-                <Link to={`/portfolio?pool=${poolAddressFromUrl}`}>
+                <Link to={`/portfolio?address=${poolAddressFromUrl}`}>
                   <RowFixed>
                     <ThemedText.DeprecatedMain>Vault Portfolio →</ThemedText.DeprecatedMain>
                   </RowFixed>

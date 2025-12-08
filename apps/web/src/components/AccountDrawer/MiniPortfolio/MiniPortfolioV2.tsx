@@ -20,9 +20,9 @@ export default function MiniPortfolioV2({ evmAddress, svmAddress }: { evmAddress
   const accountDrawer = useAccountDrawer()
 
   const handleViewPortfolio = useCallback(() => {
-    navigate('/portfolio')
+    navigate(evmAddress ? `/portfolio?address=${evmAddress}` : '/portfolio')
     accountDrawer.close()
-  }, [navigate, accountDrawer])
+  }, [navigate, accountDrawer, evmAddress])
 
   const handleViewActivity = useCallback(() => {
     navigate('/portfolio/activity')

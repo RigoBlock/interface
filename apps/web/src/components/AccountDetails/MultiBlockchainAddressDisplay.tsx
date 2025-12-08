@@ -143,20 +143,26 @@ function TooltipAccountRow({ account }: { account: AccountItem }) {
   )
 }
 
-export function MultiBlockchainAddressDisplay({ hideAddressInSubtitle }: { hideAddressInSubtitle?: boolean }) {
+export function MultiBlockchainAddressDisplay({
+  hideAddressInSubtitle,
+  shouldDisplayUserAccount
+}: {
+  hideAddressInSubtitle?: boolean,
+  shouldDisplayUserAccount?: boolean
+}) {
   const activeAddresses = useActiveAddresses()
   const activeSmartPool = useActiveSmartPool()
   const [searchParams] = useSearchParams()
-  const pooladdressParam = searchParams.get('pool')
-  const evmAddress = pooladdressParam ?? activeSmartPool.address ?? activeAddresses.evmAddress
+  // TODO: contionally render activeAddresses.evmAddress if we are not on portfolio page
+  const isPortfolioPage = window.location.pathname.startsWith('/portfolio')
+  const pooladdressParam = searchParams.get('address')
+  const evmAddress = !shouldDisplayUserAccount ? (pooladdressParam ?? activeSmartPool.address ?? undefined) : activeAddresses.evmAddress
   const { data: ensName } = useENSName(evmAddress)
   const { data: unitagData } = useUnitagsAddressQuery({
     params: evmAddress ? { address: evmAddress } : undefined,
   })
   const unitag = unitagData?.username
-
   const svmAddress = activeAddresses.svmAddress
-
   const primaryAddress = evmAddress ?? svmAddress
 
   const accounts: AccountItem[] = useMemo(() => {
