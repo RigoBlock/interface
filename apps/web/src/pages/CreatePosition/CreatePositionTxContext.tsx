@@ -408,7 +408,8 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
   }))
   const canBatchTransactions =
     (useUniswapContextSelector((ctx) => ctx.getCanBatchTransactions?.(poolOrPair?.chainId)) ?? false) &&
-    poolOrPair?.chainId !== UniverseChainId.Monad
+    poolOrPair?.chainId !== UniverseChainId.Monad &&
+    !smartPoolAddress // Disable batching for RigoBlock smart pools
 
   const [transactionError, setTransactionError] = useState<string | boolean>(false)
 
