@@ -32,7 +32,7 @@ function getStablecoinAmountOut(chainId: UniverseChainId, currency?: Currency): 
 }
 
 function getGrgFallbackAmount(currency?: Currency): CurrencyAmount<Currency> | undefined {
-  if (!currency || currency?.symbol !== 'GRG') return undefined
+  if (!currency || currency.symbol !== 'GRG') return undefined
   const amount = GRG_FALLBACK_INPUT_AMOUNT * Math.pow(10, currency.decimals)
   return CurrencyAmount.fromRawAmount(currency, amount)
 }
@@ -74,7 +74,7 @@ export function useUSDCPrice(
   // Fallback for GRG tokens: EXACT_INPUT (sell specific GRG amount for unknown USDC amount)
   const grgFallbackAmount = useMemo(() => getGrgFallbackAmount(currency), [currency])
   const shouldUseFallback = !trade && !isLoading && currency?.symbol === 'GRG' && grgFallbackAmount && stablecoin
-  
+
   const { trade: fallbackTrade, isLoading: fallbackLoading } = useTrade({
     amountSpecified: shouldUseFallback ? grgFallbackAmount : undefined,
     otherCurrency: shouldUseFallback ? stablecoin : undefined,

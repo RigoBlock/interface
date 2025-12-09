@@ -10,7 +10,7 @@ export function usePortfolioAddresses(): { evmAddress: Address | undefined; svmA
   const { evmAddress, svmAddress } = useActiveAddresses()
   const activeSmartPool = useActiveSmartPool()
   const [searchParams] = useSearchParams()
-  
+
   // Get address from URL parameters (for viewing specific address portfolios)
   const addressParam = searchParams.get('address')
 

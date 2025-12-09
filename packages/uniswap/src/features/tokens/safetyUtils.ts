@@ -127,16 +127,17 @@ export function getTokenProtectionWarning(currencyInfo?: Maybe<CurrencyInfo>): T
     return TokenProtectionWarning.FotLow
   } else if (safetyInfo.tokenList === TokenList.NonDefault) {
     // Override for GRG tokens - treat them as default tokens instead of non-default
-    const isGrgToken = Object.values(GRG).some(grgToken => 
-      currency.isToken && 
-      grgToken.chainId === currency.chainId && 
-      grgToken.address.toLowerCase() === currency.address.toLowerCase()
+    const isGrgToken = Object.values(GRG).some(
+      (grgToken) =>
+        currency.isToken &&
+        grgToken.chainId === currency.chainId &&
+        grgToken.address.toLowerCase() === currency.address.toLowerCase(),
     )
-    
+
     if (isGrgToken) {
       return TokenProtectionWarning.None
     }
-    
+
     return TokenProtectionWarning.NonDefault
   }
 

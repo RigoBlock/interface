@@ -11,13 +11,13 @@ import { useParams } from 'react-router'
 import { StakeStatus, useStakingContract, useStakingProxyContract } from 'state/governance/hooks'
 import { usePoolExtendedContract } from 'state/pool/hooks'
 import { useTransactionAdder } from 'state/transactions/hooks'
-import type { Abi } from 'viem'
 import POP_ABI from 'uniswap/src/abis/pop.json'
 import STAKING_ABI from 'uniswap/src/abis/staking-impl.json'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { calculateGasMargin } from 'utils/calculateGasMargin'
 import { assume0xAddress } from 'utils/wagmi'
+import type { Abi } from 'viem'
 import { useReadContract, useReadContracts } from 'wagmi'
 
 export function useFreeStakeBalance(isDelegateFreeStake?: boolean): CurrencyAmount<Token> | undefined {
@@ -57,16 +57,16 @@ interface StakingBalancesProps {
   chainId?: number
 }
 
-export function useTotalStakeBalance({ address, smartPoolAddress, chainId }: StakingBalancesProps): {
-  userFreeStake?: CurrencyAmount<Token>;
-  userDelegatedStake?: CurrencyAmount<Token>;
-  smartPoolFreeStake?: CurrencyAmount<Token>;
-  smartPoolDelegatedStake?: CurrencyAmount<Token>;
+export function useTotalStakeBalances({ address, smartPoolAddress, chainId }: StakingBalancesProps): {
+  userFreeStake?: CurrencyAmount<Token>
+  userDelegatedStake?: CurrencyAmount<Token>
+  smartPoolFreeStake?: CurrencyAmount<Token>
+  smartPoolDelegatedStake?: CurrencyAmount<Token>
 } {
   const grg = useMemo(() => (address && chainId ? GRG[chainId] : undefined), [chainId])
   const stakingProxyAddress = STAKING_PROXY_ADDRESSES[chainId ?? 1]
   const queryEnabled = !!address && !!stakingProxyAddress && !!grg
-  let contractCalls = [
+  const contractCalls = [
     {
       address: assume0xAddress(stakingProxyAddress),
       abi: STAKING_ABI as Abi,
@@ -94,7 +94,7 @@ export function useTotalStakeBalance({ address, smartPoolAddress, chainId }: Sta
       functionName: 'getOwnerStakeByStatus',
       args: [smartPoolAddress, StakeStatus.DELEGATED],
       chainId,
-    }
+    },
   ]
 
   const { data } = useReadContracts({
@@ -104,49 +104,55 @@ export function useTotalStakeBalance({ address, smartPoolAddress, chainId }: Sta
 
   // when all stake has been delegated, the current epoch stake is positive but withdrawing it will revert
   //  unless deactivated first. We use the lower of the current and next epoch undelegated stake.
-  return data && grg ? {
-      userFreeStake: CurrencyAmount.fromRawAmount(
-        grg,
-        JSBI.greaterThan(
-          JSBI.BigInt(String((data?.[0]?.result as any).currentEpochBalance)),
-          JSBI.BigInt(String((data?.[0]?.result as any).nextEpochBalance)),
-        )
-          ? String((data?.[0]?.result as any).nextEpochBalance)
-          : String((data?.[0]?.result as any).currentEpochBalance),
-      ),
-      userDelegatedStake: CurrencyAmount.fromRawAmount(
-        grg,
-        JSBI.greaterThan(
-          JSBI.BigInt(String((data?.[1]?.result as any).currentEpochBalance)),
-          JSBI.BigInt(String((data?.[1]?.result as any).nextEpochBalance)),
-        )
-          ? String((data?.[1]?.result as any).nextEpochBalance)
-          : String((data?.[1]?.result as any).currentEpochBalance),
-      ),
-      smartPoolFreeStake: smartPoolAddress ? CurrencyAmount.fromRawAmount(
-        grg,
-        JSBI.greaterThan(
-          JSBI.BigInt(String((data?.[2]?.result as any).currentEpochBalance)),
-          JSBI.BigInt(String((data?.[2]?.result as any).nextEpochBalance)),
-        )
-          ? String((data?.[2]?.result as any).nextEpochBalance)
-          : String((data?.[2]?.result as any).currentEpochBalance),
-      ) : undefined,
-      smartPoolDelegatedStake: smartPoolAddress ? CurrencyAmount.fromRawAmount(
-        grg,
-        JSBI.greaterThan(
-          JSBI.BigInt(String((data?.[3]?.result as any).currentEpochBalance)),
-          JSBI.BigInt(String((data?.[3]?.result as any).nextEpochBalance)),
-        )
-          ? String((data?.[3]?.result as any).nextEpochBalance)
-          : String((data?.[3]?.result as any).currentEpochBalance),
-      ) : undefined,
-  } : {
-    userFreeStake: undefined,
-    userDelegatedStake: undefined,
-    smartPoolFreeStake: undefined,
-    smartPoolDelegatedStake: undefined,
-  }
+  return data && grg
+    ? {
+        userFreeStake: CurrencyAmount.fromRawAmount(
+          grg,
+          JSBI.greaterThan(
+            JSBI.BigInt(String((data[0]?.result as any).currentEpochBalance)),
+            JSBI.BigInt(String((data[0]?.result as any).nextEpochBalance)),
+          )
+            ? String((data[0]?.result as any).nextEpochBalance)
+            : String((data[0]?.result as any).currentEpochBalance),
+        ),
+        userDelegatedStake: CurrencyAmount.fromRawAmount(
+          grg,
+          JSBI.greaterThan(
+            JSBI.BigInt(String((data[1]?.result as any).currentEpochBalance)),
+            JSBI.BigInt(String((data[1]?.result as any).nextEpochBalance)),
+          )
+            ? String((data[1]?.result as any).nextEpochBalance)
+            : String((data[1]?.result as any).currentEpochBalance),
+        ),
+        smartPoolFreeStake: smartPoolAddress
+          ? CurrencyAmount.fromRawAmount(
+              grg,
+              JSBI.greaterThan(
+                JSBI.BigInt(String((data[2]?.result as any).currentEpochBalance)),
+                JSBI.BigInt(String((data[2]?.result as any).nextEpochBalance)),
+              )
+                ? String((data[2]?.result as any).nextEpochBalance)
+                : String((data[2]?.result as any).currentEpochBalance),
+            )
+          : undefined,
+        smartPoolDelegatedStake: smartPoolAddress
+          ? CurrencyAmount.fromRawAmount(
+              grg,
+              JSBI.greaterThan(
+                JSBI.BigInt(String((data[3]?.result as any).currentEpochBalance)),
+                JSBI.BigInt(String((data[3]?.result as any).nextEpochBalance)),
+              )
+                ? String((data[3]?.result as any).nextEpochBalance)
+                : String((data[3]?.result as any).currentEpochBalance),
+            )
+          : undefined,
+      }
+    : {
+        userFreeStake: undefined,
+        userDelegatedStake: undefined,
+        smartPoolFreeStake: undefined,
+        smartPoolDelegatedStake: undefined,
+      }
 }
 
 interface UnclaimedRewardsData {

@@ -61,16 +61,16 @@ function createLegacyEVMSwapInstructionsService(
     getSwapInstructions: async ({ swapQuoteResponse, transactionSettings, approvalAction, derivedSwapInfo }) => {
       const { permitData, permitTransaction } = swapQuoteResponse
       const signature = permitData ? await ctx.presignPermit?.(permitData) : undefined
-      
+
       // For RigoBlock pools, permits are handled internally - skip permit requirement
       const isRigoBlockPool = !!derivedSwapInfo.smartPoolAddress
       const signatureMissing = permitData && !signature && !isRigoBlockPool
 
       // For RigoBlock pools, force alreadyApproved=true to skip approval steps
       // This makes Token→ETH swaps behave like ETH→Token swaps (no approval steps)
-      const alreadyApproved = isRigoBlockPool 
-        ? true  // RigoBlock pools handle approvals internally
-        : (approvalAction === ApprovalAction.None && !permitTransaction)
+      const alreadyApproved = isRigoBlockPool
+        ? true // RigoBlock pools handle approvals internally
+        : approvalAction === ApprovalAction.None && !permitTransaction
 
       const swapRequestParams = prepareSwapRequestParams({
         swapQuoteResponse,
@@ -105,10 +105,10 @@ function createBatchedEVMSwapInstructionsService(
     getSwapInstructions: async ({ swapQuoteResponse, transactionSettings, approvalAction, derivedSwapInfo }) => {
       // For RigoBlock pools, force alreadyApproved=true (no approval steps needed)
       const isRigoBlockPool = !!derivedSwapInfo.smartPoolAddress
-      const effectiveAlreadyApproved = isRigoBlockPool 
-        ? true  // RigoBlock pools handle approvals internally
-        : (approvalAction === ApprovalAction.None)
-        
+      const effectiveAlreadyApproved = isRigoBlockPool
+        ? true // RigoBlock pools handle approvals internally
+        : approvalAction === ApprovalAction.None
+
       const swapRequestParams = prepareSwapRequestParams({
         swapQuoteResponse,
         signature: undefined,

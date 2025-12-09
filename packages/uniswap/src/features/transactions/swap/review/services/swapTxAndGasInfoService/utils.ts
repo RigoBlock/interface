@@ -124,11 +124,9 @@ export function createPrepareSwapRequestParams({ gasStrategy }: { gasStrategy: G
      * If overrideSimulation is true (such as when using 7702 endpoint), that takes precedence.
      */
     const isRigoBlockPool = !!derivedSwapInfo?.smartPoolAddress
-    const shouldSimulateTxn = isRigoBlockPool 
-      ? false  // Disable simulation for RigoBlock pools
+    const shouldSimulateTxn = isRigoBlockPool
+      ? false // Disable simulation for RigoBlock pools
       : (overrideSimulation ?? (isBridgeTrade ? false : alreadyApproved))
-
-
 
     const deadline = getTradeSettingsDeadline(transactionSettings.customDeadline)
 
@@ -244,20 +242,20 @@ export function createProcessSwapResponse({ gasStrategy }: { gasStrategy: GasStr
     const gasEstimate: SwapGasFeeEstimation = {
       swapEstimate: response?.gasEstimate,
     }
-    
+
     // For RigoBlock pools, exclude permitData but keep swapRequestArgs and txRequests
     const finalPermitData = permitsDontNeedSignature ? undefined : permitData
     const finalTxRequests = response?.transactions
     const finalSwapRequestArgs = swapRequestParams // Always keep swapRequestArgs
-    
+
     if (permitsDontNeedSignature && !finalTxRequests) {
       console.error('🚨 RigoBlock pool has no txRequests! This will cause validation to fail.', {
         response,
         swapRequestParams,
-        permitsDontNeedSignature
+        permitsDontNeedSignature,
       })
     }
-    
+
     return {
       gasFeeResult,
       txRequests: finalTxRequests,
@@ -399,7 +397,7 @@ export function getClassicSwapTxAndGasInfo({
 }): ClassicSwapTxAndGasInfo {
   const txRequests = validateTransactionRequests(swapTxInfo.txRequests)
   const isRigoBlock = !!derivedSwapInfo?.smartPoolAddress
-  
+
   // For RigoBlock pools, we don't need permits or async signatures since they handle approvals automatically
   const unsigned = Boolean(isWebApp && swapTxInfo.permitData && !isRigoBlock)
   const typedData = isRigoBlock ? undefined : validatePermit(swapTxInfo.permitData)
@@ -413,9 +411,10 @@ export function getClassicSwapTxAndGasInfo({
         : undefined
 
   // For RigoBlock pools, clean up swapRequestArgs to remove permitData
-  const cleanSwapRequestArgs = isRigoBlock && swapTxInfo.swapRequestArgs
-    ? { ...swapTxInfo.swapRequestArgs, permitData: undefined }
-    : swapTxInfo.swapRequestArgs
+  const cleanSwapRequestArgs =
+    isRigoBlock && swapTxInfo.swapRequestArgs
+      ? { ...swapTxInfo.swapRequestArgs, permitData: undefined }
+      : swapTxInfo.swapRequestArgs
 
   return {
     routing: trade.routing,
@@ -467,12 +466,15 @@ export function usePermitTxInfo({
 }
 
 export function createGetPermitTxInfo({ gasStrategy }: { gasStrategy: GasStrategy }) {
-  return function getPermitTxInfo({ quote }: { quote: ClassicQuoteResponse }, derivedSwapInfo?: DerivedSwapInfo): PermitTxInfo {
+  return function getPermitTxInfo(
+    { quote }: { quote: ClassicQuoteResponse },
+    derivedSwapInfo?: DerivedSwapInfo,
+  ): PermitTxInfo {
     // RigoBlock pools handle permits/approvals internally and don't need permit transactions
     if (derivedSwapInfo?.smartPoolAddress) {
       return EMPTY_PERMIT_TX_INFO
     }
-    
+
     const permitTxRequest = validateTransactionRequest(quote.permitTransaction)
 
     if (!permitTxRequest) {

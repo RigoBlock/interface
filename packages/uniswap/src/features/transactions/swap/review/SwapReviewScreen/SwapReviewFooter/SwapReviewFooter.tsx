@@ -94,18 +94,17 @@ function useSwapSubmitButton(): {
 
     const reasons = []
     if (!validSwap && !isWrap) reasons.push('invalid_swap_context')
-    if (!!blockingWarning) reasons.push('blocking_warning')
+    if (blockingWarning) reasons.push('blocking_warning')
     if (newTradeRequiresAcceptance) reasons.push('new_trade_requires_acceptance')
     if (isSubmitting) reasons.push('is_submitting')
     if (isTokenWarningBlocking) reasons.push('token_warning_blocking')
 
-    const disabled = (
+    const disabled =
       (!validSwap && !isWrap) ||
       !!blockingWarning ||
       newTradeRequiresAcceptance ||
       isSubmitting ||
       isTokenWarningBlocking
-    )
 
     return disabled
   }, [

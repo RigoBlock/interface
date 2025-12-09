@@ -1,6 +1,5 @@
 import { useAccountDrawer } from 'components/AccountDrawer/MiniPortfolio/hooks'
 import { filterTransactionDetailsFromActivityItems } from 'pages/Portfolio/Activity/Filters/utils'
-import { ViewAllButton } from 'pages/Portfolio/Overview/ViewAllButton'
 import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
@@ -9,7 +8,6 @@ import { RightArrow } from 'ui/src/components/icons/RightArrow'
 import { iconSizes } from 'ui/src/theme'
 import { ActivityItem } from 'uniswap/src/components/activity/generateActivityItemRenderer'
 import { useActivityData } from 'uniswap/src/features/activity/hooks/useActivityData'
-import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { filterDefinedWalletAddresses } from 'utils/filterDefinedWalletAddresses'
 
 const MAX_RECENT_ACTIVITY_ITEMS = 3

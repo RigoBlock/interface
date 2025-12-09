@@ -2,14 +2,19 @@ import { ChartPeriod } from '@uniswap/client-data-api/dist/data/v1/api_pb'
 import { EmptyWalletCards } from 'components/emptyWallet/EmptyWalletCards'
 import { usePortfolioRoutes } from 'pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { usePortfolioAddresses } from 'pages/Portfolio/hooks/usePortfolioAddresses'
+import { usePortfolioStaking } from 'pages/Portfolio/hooks/usePortfolioStaking'
 import { OverviewActionTiles } from 'pages/Portfolio/Overview/ActionTiles'
 import { OVERVIEW_RIGHT_COLUMN_WIDTH } from 'pages/Portfolio/Overview/constants'
 import { useIsPortfolioZero } from 'pages/Portfolio/Overview/hooks/useIsPortfolioZero'
+import { OverviewStakingSection } from 'pages/Portfolio/Overview/OverviewStakingSection'
 import { PortfolioOverviewTables } from 'pages/Portfolio/Overview/OverviewTables'
 import { PortfolioChart } from 'pages/Portfolio/Overview/PortfolioChart'
 import { OverviewStatsTiles } from 'pages/Portfolio/Overview/StatsTiles'
 import { checkBalanceDiffWithinRange } from 'pages/Portfolio/Overview/utils/checkBalanceDiffWithinRange'
+import { PortfolioTab } from 'pages/Portfolio/types'
+import { buildPortfolioUrl } from 'pages/Portfolio/utils/portfolioUrls'
 import { memo, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router'
 import { Flex, Separator, styled, useMedia } from 'ui/src'
 import { useGetPortfolioHistoricalValueChartQuery } from 'uniswap/src/data/rest/getPortfolioChart'
 import { useActivityData } from 'uniswap/src/features/activity/hooks/useActivityData'
@@ -38,9 +43,14 @@ const ActionsAndStatsContainer = styled(Flex, {
 
 export const PortfolioOverview = memo(function PortfolioOverview() {
   const media = useMedia()
+  const navigate = useNavigate()
   const isFullWidth = media.xl
-  const { chainId } = usePortfolioRoutes()
+  const { chainId, address } = usePortfolioRoutes()
   const portfolioAddresses = usePortfolioAddresses()
+  
+  // Initialize staking data for the primary portfolio address
+  usePortfolioStaking(portfolioAddresses.evmAddress)
+  
   const { chains: allChainIds } = useEnabledChains()
 
   const isPortfolioZero = useIsPortfolioZero()
@@ -49,11 +59,25 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
 
   const filterChainIds = useMemo(() => (chainId ? [chainId] : allChainIds), [chainId, allChainIds])
 
+  const handleNavigateToStaking = () => {
+    navigate(buildPortfolioUrl(PortfolioTab.Staking, chainId, address))
+  }
+
   const { data: portfolioData } = usePortfolioTotalValue({
     evmAddress: portfolioAddresses.evmAddress,
     svmAddress: portfolioAddresses.svmAddress,
     chainIds: filterChainIds,
   })
+  
+  // Get staking value to add to portfolio total
+  const { totalStakeUSD } = usePortfolioStaking(portfolioAddresses.evmAddress)
+  
+  // Calculate total portfolio value including staking
+  const portfolioTotalWithStaking = useMemo(() => {
+    const baseValue = portfolioData?.balanceUSD || 0
+    const stakingValue = totalStakeUSD ? parseFloat(totalStakeUSD.toExact()) : 0
+    return baseValue + stakingValue
+  }, [portfolioData?.balanceUSD, totalStakeUSD])
 
   // Fetch portfolio historical value chart data
   const {
@@ -82,7 +106,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   // Compare portfolio balance (EVM + Solana) with chart endpoint balance (for debugging/validation)
   const isTotalValueMatch = checkBalanceDiffWithinRange({
     chartTotalBalanceUSD,
-    portfolioTotalBalanceUSD: portfolioData?.balanceUSD,
+    portfolioTotalBalanceUSD: portfolioTotalWithStaking,
     percentDifferenceThreshold: BALANCE_PERCENT_DIFFERENCE_THRESHOLD,
   })
 
@@ -102,7 +126,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
         <Flex row gap="$spacing40" $xl={{ flexDirection: 'column' }}>
           <Trace section={SectionName.PortfolioOverviewTab} element={ElementName.PortfolioChart}>
             <PortfolioChart
-              portfolioTotalBalanceUSD={portfolioData?.balanceUSD}
+              portfolioTotalBalanceUSD={portfolioTotalWithStaking}
               isPortfolioZero={isPortfolioZero}
               chartData={portfolioChartData}
               isPending={isChartPending}
@@ -126,6 +150,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
             <Trace section={SectionName.PortfolioOverviewTab} element={ElementName.PortfolioActionTiles}>
               <ActionsAndStatsContainer fullWidth={isFullWidth}>
                 <OverviewActionTiles />
+                <OverviewStakingSection address={portfolioAddresses.evmAddress} onViewStaking={handleNavigateToStaking} />
                 <OverviewStatsTiles activityData={activityData} />
               </ActionsAndStatsContainer>
             </Trace>
