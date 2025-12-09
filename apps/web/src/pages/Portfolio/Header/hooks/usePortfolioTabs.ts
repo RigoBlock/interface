@@ -15,6 +15,7 @@ export function usePortfolioTabs(): PortfolioTabInfo[] {
   return [
     { path: '/portfolio', pageName: InterfacePageName.PortfolioPage, label: t('portfolio.overview.title') },
     { path: '/portfolio/tokens', pageName: InterfacePageName.PortfolioTokensPage, label: t('portfolio.tokens.title') },
+    { path: '/portfolio/staking', pageName: InterfacePageName.PortfolioStakingPage, label: t('portfolio.staking.title') },
     ...(isPortfolioDefiTabEnabled
       ? [{ path: '/portfolio/defi', pageName: InterfacePageName.PortfolioDefiPage, label: t('portfolio.defi.title') }]
       : []),

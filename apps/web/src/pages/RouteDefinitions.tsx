@@ -418,7 +418,7 @@ export const routes: RouteDefinition[] = [
     getTitle: () => StaticTitlesAndDescriptions.PortfolioTitle,
     getDescription: () => StaticTitlesAndDescriptions.PortfolioDescription,
     enabled: (args) => args.isPortfolioPageEnabled ?? false,
-    nestedPaths: ['tokens', 'defi', 'nfts', 'activity'],
+    nestedPaths: ['tokens', 'staking', 'defi', 'nfts', 'activity'],
   }),
   // Uniswap Extension Uninstall Page
   createRouteDefinition({

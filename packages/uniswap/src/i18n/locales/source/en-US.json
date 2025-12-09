@@ -1566,6 +1566,7 @@
   "portfolio.overview.stats.swappedThisWeek": "Swapped this week",
   "portfolio.overview.stats.swapsThisWeek": "Swaps this week",
   "portfolio.overview.title": "Overview",
+  "portfolio.staking.title": "Staking",
   "portfolio.title": "Portfolio",
   "portfolio.tokens.balance.totalTokens_one": "{{count}} token",
   "portfolio.tokens.balance.totalTokens_other": "{{count}} tokens",
