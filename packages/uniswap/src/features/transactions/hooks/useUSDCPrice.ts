@@ -11,6 +11,7 @@ import { areCurrencyIdsEqual, currencyId } from 'uniswap/src/utils/currencyId'
 const SONEIUM_AMOUNT_OVERRIDE = 30
 const DEFAULT_STABLECOIN_AMOUNT_OUT = 1000
 const GRG_AMOUNT_OVERRIDE = 10 // Use smaller amount for GRG tokens due to liquidity constraints
+const GRG_FALLBACK_INPUT_AMOUNT = 30 // Fallback amount of GRG tokens for EXACT_INPUT pricing
 
 function getStablecoinAmountOut(chainId: UniverseChainId, currency?: Currency): CurrencyAmount<Token> {
   const primaryStablecoin = getPrimaryStablecoin(chainId)
@@ -28,6 +29,12 @@ function getStablecoinAmountOut(chainId: UniverseChainId, currency?: Currency): 
 
   const amount = DEFAULT_STABLECOIN_AMOUNT_OUT * Math.pow(10, primaryStablecoin.decimals)
   return CurrencyAmount.fromRawAmount(primaryStablecoin, amount)
+}
+
+function getGrgFallbackAmount(currency?: Currency): CurrencyAmount<Currency> | undefined {
+  if (!currency || currency?.symbol !== 'GRG') return undefined
+  const amount = GRG_FALLBACK_INPUT_AMOUNT * Math.pow(10, currency.decimals)
+  return CurrencyAmount.fromRawAmount(currency, amount)
 }
 
 /**
@@ -55,10 +62,23 @@ export function useUSDCPrice(
   )
   const amountSpecified = currencyIsStablecoin ? undefined : quoteAmount
 
+  // Primary trade: EXACT_OUTPUT (get specific USDC amount for unknown GRG amount)
   const { trade, isLoading } = useTrade({
     amountSpecified,
     otherCurrency: currency,
     tradeType: TradeType.EXACT_OUTPUT,
+    pollInterval,
+    isUSDQuote: true,
+  })
+
+  // Fallback for GRG tokens: EXACT_INPUT (sell specific GRG amount for unknown USDC amount)
+  const grgFallbackAmount = useMemo(() => getGrgFallbackAmount(currency), [currency])
+  const shouldUseFallback = !trade && !isLoading && currency?.symbol === 'GRG' && grgFallbackAmount && stablecoin
+  
+  const { trade: fallbackTrade, isLoading: fallbackLoading } = useTrade({
+    amountSpecified: shouldUseFallback ? grgFallbackAmount : undefined,
+    otherCurrency: shouldUseFallback ? stablecoin : undefined,
+    tradeType: TradeType.EXACT_INPUT,
     pollInterval,
     isUSDQuote: true,
   })
@@ -73,6 +93,7 @@ export function useUSDCPrice(
       return { price: new Price(stablecoin, stablecoin, '1', '1'), isLoading: false }
     }
 
+    // Try primary trade first
     if (trade && isJupiter(trade) && currency) {
       // Convert the string amounts to JSBI.BigInt values
       const inputAmount = JSBI.BigInt(trade.quote.quote.inAmount)
@@ -80,13 +101,29 @@ export function useUSDCPrice(
       return { price: new Price(currency, stablecoin, inputAmount, outputAmount), isLoading }
     }
 
-    if (!trade || !isClassic(trade) || !trade.routes[0] || !currency) {
-      return { price: undefined, isLoading }
+    if (trade && isClassic(trade) && trade.routes[0] && currency) {
+      const { numerator, denominator } = trade.routes[0].midPrice
+      return { price: new Price(currency, stablecoin, denominator, numerator), isLoading }
     }
 
-    const { numerator, denominator } = trade.routes[0].midPrice
-    return { price: new Price(currency, stablecoin, denominator, numerator), isLoading }
-  }, [currency, stablecoin, currencyIsStablecoin, trade, isLoading])
+    // Fallback to EXACT_INPUT trade for GRG tokens
+    if (fallbackTrade && currency?.symbol === 'GRG') {
+      if (isJupiter(fallbackTrade)) {
+        // For Jupiter trades, calculate price from the quote amounts
+        const inputAmount = JSBI.BigInt(fallbackTrade.quote.quote.inAmount)
+        const outputAmount = JSBI.BigInt(fallbackTrade.quote.quote.outAmount)
+        return { price: new Price(currency, stablecoin, inputAmount, outputAmount), isLoading: fallbackLoading }
+      }
+
+      if (isClassic(fallbackTrade) && fallbackTrade.routes[0]) {
+        // For classic trades, use the midPrice from the route
+        const { numerator, denominator } = fallbackTrade.routes[0].midPrice
+        return { price: new Price(currency, stablecoin, denominator, numerator), isLoading: fallbackLoading }
+      }
+    }
+
+    return { price: undefined, isLoading: isLoading || fallbackLoading }
+  }, [currency, stablecoin, currencyIsStablecoin, trade, isLoading, fallbackTrade, fallbackLoading])
 }
 
 export function useUSDCValue(
