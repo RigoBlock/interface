@@ -10,7 +10,7 @@ import {
   getDisplayableError,
   handleApprovalTransactionStep,
   handleOnChainStep,
-  //handlePermitTransactionStep,
+  handlePermitTransactionStep,
   //handleSignatureStep,
 } from 'state/sagas/transactions/utils'
 import invariant from 'tiny-invariant'
@@ -253,6 +253,9 @@ function* modifyLiquidity(params: LiquidityParams & { steps: TransactionStep[] }
   } = params
 
   let signature: string | undefined
+
+  // Note: Smart pool batching prevention is handled upstream in transaction contexts
+  // by setting canBatchTransactions to false when smartPoolAddress exists
 
   for (const step of steps) {
     try {

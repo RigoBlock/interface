@@ -49,7 +49,6 @@ export function SubmitSwapButton({ disabled, onSubmit, showPendingUI, warning }:
   const isChainedTrade = trade?.routing && isChained({ routing: trade.routing })
 
   const swapTxContext = useSwapTxStore((s) => s)
-  console.log('SubmitSwapButton render debug:', swapTxContext)
   const actionText = getActionText({
     t,
     wrapType,
