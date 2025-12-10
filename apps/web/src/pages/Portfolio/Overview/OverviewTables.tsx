@@ -21,14 +21,16 @@ interface PortfolioOverviewTablesProps {
   activityData: ActivityRenderData
   chainId: UniverseChainId | undefined
   portfolioAddresses: { evmAddress: Address | undefined; svmAddress: Address | undefined }
+  stakingAddress?: string // Address for staking context (smart pool or user)
 }
 
 export const PortfolioOverviewTables = memo(function PortfolioOverviewTables({
   activityData,
   chainId,
   portfolioAddresses,
+  stakingAddress,
 }: PortfolioOverviewTablesProps) {
-  const { totalStakeAmount, totalStakeUSD, hasAnyStake, isLoading } = usePortfolioStaking({ address: portfolioAddresses.evmAddress })
+  const { totalStakeAmount, totalStakeUSD, hasAnyStake, isLoading } = usePortfolioStaking({ address: stakingAddress || portfolioAddresses.evmAddress })
   const { convertFiatAmountFormatted, formatCurrencyAmount } = useLocalizationContext()
   
   return (

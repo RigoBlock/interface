@@ -68,12 +68,12 @@ export default function SellModal({
 
   const { parsedAmount, error } = useDerivedPoolInfo(
     typedValue,
-    poolInfo?.userPoolBalance.currency,
+    poolInfo?.userPoolBalance?.currency,
     poolInfo?.userPoolBalance,
     poolInfo?.activation,
   )
 
-  const poolContract = usePoolExtendedContract(poolInfo?.pool.address)
+  const poolContract = usePoolExtendedContract(poolInfo?.pool?.address)
   const [expectedBurnOutputAmount, setExpectedBurnOutputAmount] = useState<any>(undefined)
 
   useEffect(() => {

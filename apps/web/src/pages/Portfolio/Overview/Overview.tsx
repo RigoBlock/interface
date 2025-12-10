@@ -48,7 +48,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   const { chainId, address } = usePortfolioRoutes()
   const portfolioAddresses = usePortfolioAddresses()
   
-  // Initialize staking data for the primary portfolio address
+  // Use portfolioAddresses.evmAddress which already handles URL params, active smart pool, and user address priority
   const { totalStakeUSD } = usePortfolioStaking({ address: portfolioAddresses.evmAddress })
   
   const { chains: allChainIds } = useEnabledChains()
@@ -69,12 +69,20 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
     chainIds: filterChainIds,
   })
   
-  // Calculate total portfolio value including staking
+  // Calculate total portfolio value including staking - memoize with stable dependencies
+  const stakingValueStable = useMemo(() => {
+    return totalStakeUSD ? parseFloat(totalStakeUSD.toExact()) : 0
+  }, [totalStakeUSD?.quotient.toString()])
+
   const portfolioTotalWithStaking = useMemo(() => {
     const baseValue = portfolioData?.balanceUSD || 0
-    const stakingValue = totalStakeUSD ? parseFloat(totalStakeUSD.toExact()) : 0
-    return baseValue + stakingValue
-  }, [portfolioData?.balanceUSD, totalStakeUSD])
+    
+    // Ensure both values are valid numbers to prevent BigNumber errors
+    const safeBaseValue = isNaN(baseValue) ? 0 : baseValue
+    const safeStakingValue = isNaN(stakingValueStable) ? 0 : stakingValueStable
+    
+    return safeBaseValue + safeStakingValue
+  }, [portfolioData?.balanceUSD, stakingValueStable])
 
   // Fetch portfolio historical value chart data
   const {
@@ -101,9 +109,10 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   }, [portfolioChartData])
 
   // Compare portfolio balance (EVM + Solana) with chart endpoint balance (for debugging/validation)
+  // Note: Use base portfolio data (without staking) for comparison since chart data doesn't include staking
   const isTotalValueMatch = checkBalanceDiffWithinRange({
     chartTotalBalanceUSD,
-    portfolioTotalBalanceUSD: portfolioTotalWithStaking,
+    portfolioTotalBalanceUSD: portfolioData?.balanceUSD || 0, // Use base portfolio value, not the one with staking
     percentDifferenceThreshold: BALANCE_PERCENT_DIFFERENCE_THRESHOLD,
   })
 
@@ -123,14 +132,14 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
         <Flex row gap="$spacing40" $xl={{ flexDirection: 'column' }}>
           <Trace section={SectionName.PortfolioOverviewTab} element={ElementName.PortfolioChart}>
             <PortfolioChart
-              portfolioTotalBalanceUSD={portfolioTotalWithStaking}
+              portfolioTotalBalanceUSD={portfolioTotalWithStaking} // Shows current total with staking in header
               isPortfolioZero={isPortfolioZero}
-              chartData={portfolioChartData}
+              chartData={portfolioChartData} // Historical data (portfolio only, no staking history available)
               isPending={isChartPending}
               error={chartError}
               selectedPeriod={selectedPeriod}
               setSelectedPeriod={setSelectedPeriod}
-              isTotalValueMatch={isTotalValueMatch}
+              isTotalValueMatch={isTotalValueMatch} // Uses base portfolio for validation to enable pointer events
             />
           </Trace>
           {isPortfolioZero ? (
@@ -163,6 +172,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
               activityData={activityData}
               chainId={chainId}
               portfolioAddresses={portfolioAddresses}
+              stakingAddress={portfolioAddresses.evmAddress}
             />
           </Trace>
         )}

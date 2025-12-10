@@ -66,7 +66,9 @@ function ChainStakingRow({
   const usdFormatted = convertFiatAmountFormatted(usdValue?.toExact(), NumberType.PortfolioBalance)
 
   const hasAnyStake =
-    userFreeStake?.greaterThan(0) || userDelegatedStake?.greaterThan(0) || smartPoolTotalStake?.greaterThan(0)
+    (userFreeStake && userFreeStake.greaterThan(0)) || 
+    (userDelegatedStake && userDelegatedStake.greaterThan(0)) || 
+    (smartPoolTotalStake && smartPoolTotalStake.greaterThan(0))
 
   if (!hasAnyStake) return null
 
@@ -187,11 +189,14 @@ function ChainStakingRowWithData({
       : smartPoolFreeStake || smartPoolDelegatedStake
     : userDelegatedStake
 
+  // When viewing smart pool context, don't show user's free stake (since it's not relevant to the smart pool)
+  const displayedFreeStake = smartPoolAddress ? undefined : userFreeStake
+
   return (
     <ChainStakingRow
       chainId={chainId}
       chainName={chainName}
-      userFreeStake={userFreeStake}
+      userFreeStake={displayedFreeStake}
       userDelegatedStake={displayedDelegatedStake}
       smartPoolTotalStake={undefined}
     />
@@ -328,15 +333,14 @@ function useMultiChainStakingData(address?: string, smartPoolAddress?: string) {
 }
 
 function MultiChainStakingInfo({ address, smartPoolAddress }: { address?: string; smartPoolAddress?: string }) {
-  const { stakingData, stakingChains, hasAnyStake, isLoading, totalStakeUSD } = usePortfolioStaking({ address }) 
-  console.log('MultiChainStakingInfo stakingData:', stakingData)
+  const { stakingData, stakingChains, hasAnyStake, isLoading, totalStakeUSD, isViewingOwnStakes } = usePortfolioStaking({ address })
   const { convertFiatAmountFormatted } = useLocalizationContext()
 
   if (!address || stakingChains.length === 0) {
     return (
       <Flex gap="$spacing16">
         <Text variant="heading2" color="$neutral1">
-          {smartPoolAddress ? 'Smart Pool Stake' : 'Your Staking'}
+          {isViewingOwnStakes ? 'Your Stake' : 'Smart Pool Stake'}
         </Text>
         <Flex p="$spacing16" borderRadius="$rounded16" backgroundColor="$surface2">
           <Text variant="body2" color="$neutral2" textAlign="center">
@@ -351,7 +355,7 @@ function MultiChainStakingInfo({ address, smartPoolAddress }: { address?: string
     return (
       <Flex gap="$spacing16">
         <Text variant="heading2" color="$neutral1">
-          {smartPoolAddress ? 'Smart Pool Stake' : 'Your Staking'}
+          {isViewingOwnStakes ? 'Your Stake' : 'Smart Pool Stake'}
         </Text>
         <Flex p="$spacing16" borderRadius="$rounded16" backgroundColor="$surface2">
           <Text variant="body2" color="$neutral2" textAlign="center">
@@ -379,7 +383,7 @@ function MultiChainStakingInfo({ address, smartPoolAddress }: { address?: string
           </Text>
         )}
         <Text variant="subheading1" color="$neutral2" mt="$spacing8">
-          {smartPoolAddress ? 'Smart Pool Stake' : 'Your Staking'}
+          {isViewingOwnStakes ? 'Your Stake' : 'Smart Pool Stake'}
         </Text>
       </Flex>
 

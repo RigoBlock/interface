@@ -1,3 +1,4 @@
+import { useActiveAddresses } from 'features/accounts/store/hooks'
 import { useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { STAKING_PROXY_ADDRESSES } from 'constants/addresses'
@@ -156,14 +157,25 @@ export function usePortfolioStaking({ address }: { address?: string } = {}): {
   const { chains: enabledChains, isTestnetModeEnabled } = useEnabledChains()
   const smartPoolAddress = useActiveSmartPool().address
   const [paramAddress] = new URLSearchParams(window.location.search).getAll('address')
+  const { evmAddress } = useActiveAddresses()
   
   // Determine target address and context based on priority rules
   const { targetAddress, isViewingOwnStakes } = useMemo(() => {
+    // If address is explicitly passed (from usePortfolioAddresses), always use it
+    if (address) {
+      const isViewingOwnAddress = Boolean(evmAddress && address.toLowerCase() === evmAddress.toLowerCase())
+      return {
+        targetAddress: address,
+        isViewingOwnStakes: isViewingOwnAddress
+      }
+    }
+    
+    // Only use internal resolution if no address is passed
     // Priority 1: URL address parameter
     if (paramAddress) {
-      const isViewingOwnAddress = Boolean(address && paramAddress.toLowerCase() === address.toLowerCase())
+      const isViewingOwnAddress = Boolean(evmAddress && paramAddress.toLowerCase() === evmAddress.toLowerCase())
       return {
-        targetAddress: isViewingOwnAddress ? undefined : paramAddress, // undefined = user context, string = smart pool context
+        targetAddress: paramAddress,
         isViewingOwnStakes: isViewingOwnAddress
       }
     }
@@ -176,12 +188,12 @@ export function usePortfolioStaking({ address }: { address?: string } = {}): {
       }
     }
     
-    // Priority 3: Default to user's own stakes
+    // Priority 3: Default to user's own address
     return {
-      targetAddress: undefined,
+      targetAddress: evmAddress,
       isViewingOwnStakes: true
     }
-  }, [paramAddress, smartPoolAddress, address])
+  }, [address, paramAddress, smartPoolAddress, evmAddress])
 
   // Filter to only chains that have staking contracts
   const stakingChains = useMemo(() => {
@@ -194,10 +206,8 @@ export function usePortfolioStaking({ address }: { address?: string } = {}): {
 
   // Get cached staking data from Redux store
   const allUserStakingData = useSelector((state: InterfaceState) =>
-    address ? selectUserStakingData(state, address) : {},
+    targetAddress ? selectUserStakingData(state, targetAddress) : {},
   )
-  
-  console.log('usePortfolioStaking - address:', address, 'allUserStakingData:', allUserStakingData, 'targetAddress:', targetAddress, 'isViewingOwnStakes:', isViewingOwnStakes)
 
   // Trigger data fetching for each chain using individual hooks (fixed number to avoid infinite loops)
   const maxChains = 10 // Reasonable limit for hook calls
@@ -215,9 +225,9 @@ export function usePortfolioStaking({ address }: { address?: string } = {}): {
     const isActiveChain = i < chainsToProcess.length
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useChainStakingData({ 
-      userAddress: (isActiveChain && address) ? address : '',
+      userAddress: (isActiveChain && targetAddress) ? targetAddress : '',
       chainId, 
-      targetAddress: (isActiveChain && address) ? targetAddress : undefined
+      targetAddress: (isActiveChain && targetAddress) ? (isViewingOwnStakes ? undefined : targetAddress) : undefined
     })
   }
 
@@ -244,7 +254,7 @@ export function usePortfolioStaking({ address }: { address?: string } = {}): {
 
   // Calculate totals based on viewing context
   const { totalStakeAmount, hasAnyStake } = useMemo(() => {
-    if (!address || stakingChains.length === 0) {
+    if (!targetAddress || stakingChains.length === 0) {
       return { totalStakeAmount: undefined, hasAnyStake: false }
     }
 
@@ -291,7 +301,7 @@ export function usePortfolioStaking({ address }: { address?: string } = {}): {
         : undefined,
       hasAnyStake: effectiveHasStake,
     }
-  }, [address, stakingChains, stakingData, isViewingOwnStakes])
+  }, [targetAddress, stakingChains, stakingData, isViewingOwnStakes])
 
   // Get USD value for primary stake amount
   const totalStakeUSDValue = useUSDCValue(totalStakeAmount)
