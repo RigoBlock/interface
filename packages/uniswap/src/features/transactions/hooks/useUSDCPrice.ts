@@ -32,7 +32,7 @@ function getStablecoinAmountOut(chainId: UniverseChainId, currency?: Currency): 
 }
 
 function getGrgFallbackAmount(currency?: Currency): CurrencyAmount<Currency> | undefined {
-  if (!currency || currency.symbol !== 'GRG') return undefined
+  if (!currency || currency?.symbol !== 'GRG') return undefined
   const amount = GRG_FALLBACK_INPUT_AMOUNT * Math.pow(10, currency.decimals)
   return CurrencyAmount.fromRawAmount(currency, amount)
 }
