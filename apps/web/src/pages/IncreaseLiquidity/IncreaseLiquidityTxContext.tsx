@@ -74,7 +74,8 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
   const smartPoolAddress = useActiveSmartPool().address
   const canBatchTransactions =
     useUniswapContextSelector((ctx) => ctx.getCanBatchTransactions?.(positionInfo?.chainId)) &&
-    positionInfo?.chainId !== UniverseChainId.Monad
+    positionInfo?.chainId !== UniverseChainId.Monad &&
+    !smartPoolAddress // Disable batching for smart pools as they handle approvals internally
 
   const increaseLiquidityApprovalParams: TradingApi.CheckApprovalLPRequest | undefined = useMemo(() => {
     if (!positionInfo || !smartPoolAddress || !currencyAmounts?.TOKEN0 || !currencyAmounts.TOKEN1) {

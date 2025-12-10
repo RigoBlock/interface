@@ -147,6 +147,12 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
                 internal: true,
                 elementName: ElementName.NavbarPortfolioDropdownTokens,
               },
+              {
+                label: t('portfolio.staking.title'),
+                href: buildPortfolioUrl(PortfolioTab.Staking, portfolioChainId),
+                internal: true,
+                elementName: ElementName.NavbarPortfolioDropdownStaking,
+              },
               ...(isPortfolioDefiTabEnabled
                 ? [
                     {
