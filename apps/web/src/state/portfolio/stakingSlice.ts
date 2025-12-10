@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { Address } from 'viem'
 
 // Serializable interface for Redux store (no CurrencyAmount objects)
 export interface ChainStakingData {
@@ -179,12 +180,12 @@ export const selectUserStakingData = (state: { portfolioStaking: PortfolioStakin
 export const selectChainStakingData = (
   state: { portfolioStaking: PortfolioStakingState },
   params: { userAddress: Address; chainId: UniverseChainId },
-) => state.portfolioStaking.stakingDataByAddress[params.userAddress][params.chainId]
+) => state.portfolioStaking.stakingDataByAddress[params.userAddress]?.[params.chainId]
 
 export const selectSmartPoolStakingData = (
   state: { portfolioStaking: PortfolioStakingState },
   params: { poolAddress: Address; userAddress: Address },
-) => state.portfolioStaking.smartPoolStakingByAddress[params.poolAddress][params.userAddress]
+) => state.portfolioStaking.smartPoolStakingByAddress[params.poolAddress]?.[params.userAddress]
 
 export const selectStakingDataNeedsFetch = (
   state: { portfolioStaking: PortfolioStakingState },
