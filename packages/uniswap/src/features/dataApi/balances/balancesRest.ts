@@ -6,10 +6,10 @@ import { Balance } from '@uniswap/client-data-api/dist/data/v1/types_pb'
 import { PortfolioValueModifier as RestPortfolioValueModifier } from '@uniswap/client-data-api/dist/data/v1/types_pb.d'
 import { Currency } from '@uniswap/sdk-core'
 import { useMemo } from 'react'
+import { RIGOBLOCK_LOGO } from 'ui/src/assets'
 import { PollingInterval } from 'uniswap/src/constants/misc'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
-import { RIGOBLOCK_LOGO } from 'ui/src/assets'
 import { GetPortfolioInput, getPortfolioQuery, useGetPortfolioQuery } from 'uniswap/src/data/rest/getPortfolio'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
@@ -188,11 +188,11 @@ export function convertRestBalanceToPortfolioBalance(
   // Override logoUrl for GRG tokens on Unichain only
   let finalLogoUrl = logoUrl
   if (!currency.isNative && currency.address && currency.chainId === UniverseChainId.Unichain) {
-    const isGrgToken = Object.values(GRG).some(grgToken => 
-      grgToken.chainId === currency.chainId && 
-      grgToken.address.toLowerCase() === currency.address.toLowerCase()
+    const isGrgToken = Object.values(GRG).some(
+      (grgToken) =>
+        grgToken.chainId === currency.chainId && grgToken.address.toLowerCase() === currency.address.toLowerCase(),
     )
-    
+
     if (isGrgToken) {
       finalLogoUrl = RIGOBLOCK_LOGO
     }

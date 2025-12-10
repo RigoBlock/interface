@@ -1,7 +1,7 @@
 import { Contract } from '@ethersproject/contracts'
 import type { TransactionResponse } from '@ethersproject/providers'
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
-import { POP_ADDRESSES } from 'constants/addresses'
+import { POP_ADDRESSES, STAKING_PROXY_ADDRESSES } from 'constants/addresses'
 import { useAccount } from 'hooks/useAccount'
 import { useContract } from 'hooks/useContract'
 import { useEthersWeb3Provider } from 'hooks/useEthersProvider'
@@ -12,11 +12,13 @@ import { StakeStatus, useStakingContract, useStakingProxyContract } from 'state/
 import { usePoolExtendedContract } from 'state/pool/hooks'
 import { useTransactionAdder } from 'state/transactions/hooks'
 import POP_ABI from 'uniswap/src/abis/pop.json'
+import STAKING_ABI from 'uniswap/src/abis/staking-impl.json'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { calculateGasMargin } from 'utils/calculateGasMargin'
 import { assume0xAddress } from 'utils/wagmi'
-import { useReadContract } from 'wagmi'
+import type { Abi } from 'viem'
+import { useReadContract, useReadContracts } from 'wagmi'
 
 export function useFreeStakeBalance(isDelegateFreeStake?: boolean): CurrencyAmount<Token> | undefined {
   const account = useAccount()
@@ -47,6 +49,110 @@ export function useFreeStakeBalance(isDelegateFreeStake?: boolean): CurrencyAmou
           : String((freeStake as any).currentEpochBalance),
       )
     : undefined
+}
+
+interface StakingBalancesProps {
+  address?: string
+  smartPoolAddress?: string
+  chainId?: number
+}
+
+export function useTotalStakeBalances({ address, smartPoolAddress, chainId }: StakingBalancesProps): {
+  userFreeStake?: CurrencyAmount<Token>
+  userDelegatedStake?: CurrencyAmount<Token>
+  smartPoolFreeStake?: CurrencyAmount<Token>
+  smartPoolDelegatedStake?: CurrencyAmount<Token>
+} {
+  const grg = useMemo(() => (address && chainId ? GRG[chainId] : undefined), [chainId])
+  const stakingProxyAddress = STAKING_PROXY_ADDRESSES[chainId ?? 1]
+  const queryEnabled = !!address && !!stakingProxyAddress && !!grg
+  const contractCalls = [
+    {
+      address: assume0xAddress(stakingProxyAddress),
+      abi: STAKING_ABI as Abi,
+      functionName: 'getOwnerStakeByStatus',
+      args: [address, StakeStatus.UNDELEGATED],
+      chainId,
+    },
+    {
+      address: assume0xAddress(stakingProxyAddress),
+      abi: STAKING_ABI as Abi,
+      functionName: 'getOwnerStakeByStatus',
+      args: [address, StakeStatus.DELEGATED],
+      chainId,
+    },
+    {
+      address: assume0xAddress(stakingProxyAddress),
+      abi: STAKING_ABI as Abi,
+      functionName: 'getOwnerStakeByStatus',
+      args: [smartPoolAddress, StakeStatus.UNDELEGATED],
+      chainId,
+    },
+    {
+      address: assume0xAddress(stakingProxyAddress),
+      abi: STAKING_ABI as Abi,
+      functionName: 'getOwnerStakeByStatus',
+      args: [smartPoolAddress, StakeStatus.DELEGATED],
+      chainId,
+    },
+  ]
+
+  const { data } = useReadContracts({
+    contracts: [...contractCalls],
+    query: { enabled: queryEnabled },
+  })
+
+  // when all stake has been delegated, the current epoch stake is positive but withdrawing it will revert
+  //  unless deactivated first. We use the lower of the current and next epoch undelegated stake.
+  return data && grg
+    ? {
+        userFreeStake: CurrencyAmount.fromRawAmount(
+          grg,
+          JSBI.greaterThan(
+            JSBI.BigInt(String((data[0]?.result as any).currentEpochBalance)),
+            JSBI.BigInt(String((data[0]?.result as any).nextEpochBalance)),
+          )
+            ? String((data[0]?.result as any).nextEpochBalance)
+            : String((data[0]?.result as any).currentEpochBalance),
+        ),
+        userDelegatedStake: CurrencyAmount.fromRawAmount(
+          grg,
+          JSBI.greaterThan(
+            JSBI.BigInt(String((data[1]?.result as any).currentEpochBalance)),
+            JSBI.BigInt(String((data[1]?.result as any).nextEpochBalance)),
+          )
+            ? String((data[1]?.result as any).nextEpochBalance)
+            : String((data[1]?.result as any).currentEpochBalance),
+        ),
+        smartPoolFreeStake: smartPoolAddress
+          ? CurrencyAmount.fromRawAmount(
+              grg,
+              JSBI.greaterThan(
+                JSBI.BigInt(String((data[2]?.result as any).currentEpochBalance)),
+                JSBI.BigInt(String((data[2]?.result as any).nextEpochBalance)),
+              )
+                ? String((data[2]?.result as any).nextEpochBalance)
+                : String((data[2]?.result as any).currentEpochBalance),
+            )
+          : undefined,
+        smartPoolDelegatedStake: smartPoolAddress
+          ? CurrencyAmount.fromRawAmount(
+              grg,
+              JSBI.greaterThan(
+                JSBI.BigInt(String((data[3]?.result as any).currentEpochBalance)),
+                JSBI.BigInt(String((data[3]?.result as any).nextEpochBalance)),
+              )
+                ? String((data[3]?.result as any).nextEpochBalance)
+                : String((data[3]?.result as any).currentEpochBalance),
+            )
+          : undefined,
+      }
+    : {
+        userFreeStake: undefined,
+        userDelegatedStake: undefined,
+        smartPoolFreeStake: undefined,
+        smartPoolDelegatedStake: undefined,
+      }
 }
 
 interface UnclaimedRewardsData {

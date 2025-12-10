@@ -12,17 +12,17 @@ import { getChainUrlParam } from 'utils/chainParams'
  * @returns The complete portfolio URL with parameters if provided
  */
 export function buildPortfolioUrl(
-  tab: PortfolioTab | undefined, 
+  tab: PortfolioTab | undefined,
   chainId: UniverseChainId | undefined,
-  address?: string
+  address?: string,
 ): string {
   const chainUrlParam = chainId ? getChainUrlParam(chainId) : ''
   const currentPath = tab === PortfolioTab.Overview ? '/portfolio' : `/portfolio/${tab}`
-  
+
   const params: string[] = []
   if (chainId) params.push(`chain=${chainUrlParam}`)
   if (address) params.push(`address=${address}`)
-  
+
   return `${currentPath}${params.length > 0 ? `?${params.join('&')}` : ''}`
 }
 
@@ -35,6 +35,7 @@ export function pathToPortfolioTab(path: string): PortfolioTab | undefined {
   const PATHNAME_TO_TAB: Partial<Record<string, PortfolioTab>> = {
     '/portfolio': PortfolioTab.Overview,
     '/portfolio/tokens': PortfolioTab.Tokens,
+    '/portfolio/staking': PortfolioTab.Staking,
     '/portfolio/defi': PortfolioTab.Defi,
     '/portfolio/nfts': PortfolioTab.Nfts,
     '/portfolio/activity': PortfolioTab.Activity,

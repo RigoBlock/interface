@@ -5,6 +5,7 @@ import { usePortfolioRoutes } from 'pages/Portfolio/Header/hooks/usePortfolioRou
 import { usePortfolioTabsAnimation } from 'pages/Portfolio/Header/hooks/usePortfolioTabsAnimation'
 import { PortfolioNfts } from 'pages/Portfolio/NFTs/Nfts'
 import { PortfolioOverview } from 'pages/Portfolio/Overview/Overview'
+import { PortfolioStaking } from 'pages/Portfolio/Staking/Staking'
 import { PortfolioTokens } from 'pages/Portfolio/Tokens/Tokens'
 import { PortfolioTab } from 'pages/Portfolio/types'
 import { useLocation } from 'react-router'
@@ -17,6 +18,8 @@ const renderPortfolioContent = (tab: PortfolioTab | undefined, isPortfolioDefiTa
       return <PortfolioOverview />
     case PortfolioTab.Tokens:
       return <PortfolioTokens />
+    case PortfolioTab.Staking:
+      return <PortfolioStaking />
     case PortfolioTab.Defi:
       // If defi tab is disabled, usePortfolioRoutes will redirect to overview tab
       return isPortfolioDefiTabEnabled ? <PortfolioDefi /> : <></>

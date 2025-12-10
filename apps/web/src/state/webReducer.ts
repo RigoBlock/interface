@@ -6,6 +6,7 @@ import lists from 'state/lists/reducer'
 import logs from 'state/logs/slice'
 import mint from 'state/mint/reducer'
 import mintV3 from 'state/mint/v3/reducer'
+import { portfolioStakingReducer } from 'state/portfolio/stakingSlice'
 import { routingApi } from 'state/routing/slice'
 import user from 'state/user/reducer'
 import walletCapabilities from 'state/walletCapabilities/reducer'
@@ -22,6 +23,7 @@ const interfaceReducers = {
   mint,
   mintV3,
   logs,
+  portfolioStaking: portfolioStakingReducer,
   [routingApi.reducerPath]: routingApi.reducer,
 } as const
 

@@ -13,6 +13,8 @@ function getTabElementName(pageName: InterfacePageName): ElementName {
       return ElementName.PortfolioOverviewTab
     case InterfacePageName.PortfolioTokensPage:
       return ElementName.PortfolioTokensTab
+    case InterfacePageName.PortfolioStakingPage:
+      return ElementName.PortfolioStakingTab
     case InterfacePageName.PortfolioDefiPage:
       return ElementName.PortfolioDefiTab
     case InterfacePageName.PortfolioNftsPage:

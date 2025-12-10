@@ -168,12 +168,10 @@ export function useRemoveLiquidityTxAndGasInfo({ account }: { account?: string }
     })
   }
 
-  decreaseCalldata && decreaseCalldata.decrease && (
-    decreaseCalldata.decrease.from = account ?? ZERO_ADDRESS
-  )
-  decreaseCalldata && decreaseCalldata.decrease && (
-    decreaseCalldata.decrease.to = activeSmartPool.address ?? ZERO_ADDRESS
-  )
+  decreaseCalldata && decreaseCalldata.decrease && (decreaseCalldata.decrease.from = account ?? ZERO_ADDRESS)
+  decreaseCalldata &&
+    decreaseCalldata.decrease &&
+    (decreaseCalldata.decrease.to = activeSmartPool.address ?? ZERO_ADDRESS)
 
   const { value: estimatedGasFee } = useTransactionGasFee({
     tx: decreaseCalldata?.decrease,

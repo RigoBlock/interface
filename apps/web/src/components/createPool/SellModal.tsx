@@ -73,7 +73,7 @@ export default function SellModal({
     poolInfo?.activation,
   )
 
-  const poolContract = usePoolExtendedContract(poolInfo?.pool.address)
+  const poolContract = usePoolExtendedContract(poolInfo?.pool?.address)
   const [expectedBurnOutputAmount, setExpectedBurnOutputAmount] = useState<any>(undefined)
 
   useEffect(() => {

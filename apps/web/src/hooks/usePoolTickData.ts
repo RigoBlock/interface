@@ -58,17 +58,17 @@ function usePaginatedTickQuery({
   const supportedChainId = useSupportedChainId(chainId)
 
   // Create cache key
-  const cacheKey = useMemo(() => 
-    `${version}-${poolId}-${supportedChainId || defaultChainId}-${skip}`,
-    [version, poolId, supportedChainId, defaultChainId, skip]
+  const cacheKey = useMemo(
+    () => `${version}-${poolId}-${supportedChainId || defaultChainId}-${skip}`,
+    [version, poolId, supportedChainId, defaultChainId, skip],
   )
 
   // Check if we have a recent cached result
   const shouldSkipDueToCache = useMemo(() => {
     const cached = queryCache.get(cacheKey)
     if (!cached) return false
-    
-    const isRecent = (Date.now() - cached.timestamp) < CACHE_DURATION
+
+    const isRecent = Date.now() - cached.timestamp < CACHE_DURATION
     return isRecent
   }, [cacheKey])
 
@@ -84,7 +84,7 @@ function usePaginatedTickQuery({
     onCompleted: (data) => {
       // Cache successful results
       queryCache.set(cacheKey, { data, timestamp: Date.now() })
-    }
+    },
   })
 
   const v4Result = GraphQLApi.useAllV4TicksQuery({
@@ -99,13 +99,13 @@ function usePaginatedTickQuery({
     onCompleted: (data) => {
       // Cache successful results
       queryCache.set(cacheKey, { data, timestamp: Date.now() })
-    }
+    },
   })
 
   return useMemo(() => {
     // Check cache first
     const cached = queryCache.get(cacheKey)
-    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       return { data: cached.data, loading: false, error: null }
     }
 

@@ -158,6 +158,7 @@ export enum ElementName {
   PortfolioNftsTab = 'portfolio-nfts-tab',
   PortfolioNetworkFilter = 'portfolio-network-filter',
   PortfolioOverviewTab = 'portfolio-overview-tab',
+  PortfolioStakingTab = 'portfolio-staking-tab',
   PortfolioActionBuy = 'portfolio-action-buy',
   PortfolioActionLimit = 'portfolio-action-limit',
   PortfolioActionPosition = 'portfolio-action-position',

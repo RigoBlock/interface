@@ -1,7 +1,6 @@
 import { Currency, Token, WETH9 } from '@uniswap/sdk-core'
 import { GraphQLApi } from '@universe/api'
 import type { ImageSourcePropType } from 'react-native'
-import { GRG } from 'uniswap/src/constants/tokens'
 import { CELO_LOGO, ETH_LOGO, RIGOBLOCK_LOGO } from 'ui/src/assets'
 import {
   ARB,
@@ -14,6 +13,7 @@ import {
   DAI_OPTIMISM,
   DAI_POLYGON,
   ETH_BSC,
+  GRG,
   nativeOnChain,
   OP,
   PORTAL_ETH_CELO,
@@ -243,7 +243,7 @@ export function getTokenLogoURI(chainId: UniverseChainId, address: string): Imag
     areAddressesEqual({
       addressInput1: { address, platform: Platform.EVM },
       addressInput2: { address: (GRG[UniverseChainId.Unichain] as Token).address, platform: Platform.EVM },
-    })  
+    })
   ) {
     return RIGOBLOCK_LOGO as ImageSourcePropType
   }

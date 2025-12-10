@@ -13,6 +13,8 @@ import { SelectorBaseList } from 'uniswap/src/components/lists/SelectorBaseList'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import { HorizontalTokenList } from 'uniswap/src/components/TokenSelector/lists/HorizontalTokenList/HorizontalTokenList'
 import { OnSelectCurrency } from 'uniswap/src/components/TokenSelector/types'
+import { getTokenLogoURI } from 'uniswap/src/constants/routing'
+import { GRG } from 'uniswap/src/constants/tokens'
 import { setHasSeenBridgingTooltip } from 'uniswap/src/features/behaviorHistory/slice'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
@@ -20,8 +22,6 @@ import { useLocalizationContext } from 'uniswap/src/features/language/Localizati
 import { getTokenWarningSeverity } from 'uniswap/src/features/tokens/safetyUtils'
 import { useDismissedBridgedAssetWarnings, useDismissedTokenWarnings } from 'uniswap/src/features/tokens/slice/hooks'
 import TokenWarningModal from 'uniswap/src/features/tokens/TokenWarningModal'
-import { GRG } from 'uniswap/src/constants/tokens'
-import { getTokenLogoURI } from 'uniswap/src/constants/routing'
 import { CurrencyId } from 'uniswap/src/types/currency'
 import { NumberType } from 'utilities/src/format/types'
 import { DDRumManualTiming } from 'utilities/src/logger/datadog/datadogEvents'
@@ -50,11 +50,11 @@ const TokenOptionItem = memo(function _TokenOptionItem({
   const { currencyInfo } = tokenOption
 
   // Override GRG token display on Unichain to show correct name
-  const isGrgOnUnichain = 
+  const isGrgOnUnichain =
     currencyInfo.currency.chainId === UniverseChainId.Unichain &&
     GRG[UniverseChainId.Unichain] &&
     currencyInfo.currency.isToken &&
-    currencyInfo.currency.address?.toLowerCase() === GRG[UniverseChainId.Unichain].address.toLowerCase()
+    currencyInfo.currency.address.toLowerCase() === GRG[UniverseChainId.Unichain].address.toLowerCase()
 
   if (isGrgOnUnichain && GRG[UniverseChainId.Unichain] && GRG[UniverseChainId.Mainnet]) {
     // Get the proper logo URL using the exported getTokenLogoURI function
@@ -63,7 +63,7 @@ const TokenOptionItem = memo(function _TokenOptionItem({
     const logoResult = getTokenLogoURI(UniverseChainId.Mainnet, mainnetGrgAddress)
     // Only use string URLs, not ImageSourcePropType (numbers)
     const logoUrl = typeof logoResult === 'string' ? logoResult : undefined
-    
+
     tokenOption.currencyInfo.logoUrl = logoUrl
   }
 

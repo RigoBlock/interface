@@ -11,10 +11,10 @@ import {
 } from '@uniswap/client-search/dist/search/v1/api_pb'
 import { searchTokens } from '@uniswap/client-search/dist/search/v1/api-searchService_connectquery'
 import { parseProtectionInfo, parseRestProtocolVersion, parseSafetyLevel, SharedQueryClient } from '@universe/api'
+import { RIGOBLOCK_LOGO } from 'ui/src/assets'
 import { getNativeAddress } from 'uniswap/src/constants/addresses'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { uniswapPostTransport } from 'uniswap/src/data/rest/base'
-import { RIGOBLOCK_LOGO } from 'ui/src/assets'
 import { createLogger } from 'utilities/src/logger/logger'
 
 const FILE_NAME = 'searchTokensAndPools.ts'
@@ -124,11 +124,11 @@ export function searchTokenToCurrencyInfo(token: SearchToken): CurrencyInfo | nu
   // Override logoUrl for GRG tokens on Unichain only
   let finalLogoUrl = logoUrl
   if (!currency.isNative && currency.address && currency.chainId === UniverseChainId.Unichain) {
-    const isGrgToken = Object.values(GRG).some(grgToken => 
-      grgToken.chainId === currency.chainId && 
-      grgToken.address.toLowerCase() === currency.address.toLowerCase()
+    const isGrgToken = Object.values(GRG).some(
+      (grgToken) =>
+        grgToken.chainId === currency.chainId && grgToken.address.toLowerCase() === currency.address.toLowerCase(),
     )
-    
+
     if (isGrgToken) {
       finalLogoUrl = RIGOBLOCK_LOGO
     }

@@ -23,6 +23,7 @@ import {
   useMemo,
   useState,
 } from 'react'
+import { useActiveSmartPool } from 'state/application/hooks'
 import { PositionField } from 'types/position'
 import { useUniswapContextSelector } from 'uniswap/src/contexts/UniswapContext'
 import { useCheckLpApprovalQuery } from 'uniswap/src/data/apiClients/tradingApi/useCheckLpApprovalQuery'
@@ -42,7 +43,6 @@ import { useWallet } from 'uniswap/src/features/wallet/hooks/useWallet'
 import { AccountDetails } from 'uniswap/src/features/wallet/types/AccountDetails'
 import { logger } from 'utilities/src/logger/logger'
 import { ONE_SECOND_MS } from 'utilities/src/time/time'
-import { useActiveSmartPool } from 'state/application/hooks'
 
 /**
  * @internal - exported for testing
@@ -209,13 +209,15 @@ export function generateCreateCalldataQueryParams({
 
   return {
     simulateTransaction: !(
-      permitData ||
-      token0PermitTransaction ||
-      token1PermitTransaction ||
-      token0Approval ||
-      token1Approval ||
-      positionTokenApproval ||
-      smartPoolAddress // Disable simulation for smart pools
+      (
+        permitData ||
+        token0PermitTransaction ||
+        token1PermitTransaction ||
+        token0Approval ||
+        token1Approval ||
+        positionTokenApproval ||
+        smartPoolAddress
+      ) // Disable simulation for smart pools
     ),
     protocol: apiProtocolItems,
     walletAddress: smartPoolAddress || account.address, // Use smart pool address when available
@@ -302,12 +304,15 @@ export function generateCreatePositionTxRequest({
   }
 
   // Override transaction fields for smart pools
-  const finalTxRequest = txRequest && smartPoolAddress && account ? {
-    ...txRequest,
-    to: smartPoolAddress, // Target smart pool instead of position manager
-    from: account.address, // Keep user as transaction sender
-    value: String(0), // Smart pools handle ETH internally
-  } : txRequest
+  const finalTxRequest =
+    txRequest && smartPoolAddress && account
+      ? {
+          ...txRequest,
+          to: smartPoolAddress, // Target smart pool instead of position manager
+          from: account.address, // Keep user as transaction sender
+          value: String(0), // Smart pools handle ETH internally
+        }
+      : txRequest
 
   const queryParams: TradingApi.CreateLPPositionRequest | undefined =
     protocolVersion === ProtocolVersion.V4
@@ -392,7 +397,18 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
       exactAmounts: depositState.exactAmounts,
       skipDependentAmount: protocolVersion === ProtocolVersion.V2 ? false : outOfRange || invalidRange,
     }
-  }, [TOKEN0, TOKEN1, exactField, ticks, poolOrPair, depositState, smartPoolAddress, account?.address, protocolVersion, invalidRange])
+  }, [
+    TOKEN0,
+    TOKEN1,
+    exactField,
+    ticks,
+    poolOrPair,
+    depositState,
+    smartPoolAddress,
+    account?.address,
+    protocolVersion,
+    invalidRange,
+  ])
 
   const {
     currencyAmounts,

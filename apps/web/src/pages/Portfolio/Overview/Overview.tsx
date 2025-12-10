@@ -2,14 +2,19 @@ import { ChartPeriod } from '@uniswap/client-data-api/dist/data/v1/api_pb'
 import { EmptyWalletCards } from 'components/emptyWallet/EmptyWalletCards'
 import { usePortfolioRoutes } from 'pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { usePortfolioAddresses } from 'pages/Portfolio/hooks/usePortfolioAddresses'
+import { usePortfolioStaking } from 'pages/Portfolio/hooks/usePortfolioStaking'
 import { OverviewActionTiles } from 'pages/Portfolio/Overview/ActionTiles'
 import { OVERVIEW_RIGHT_COLUMN_WIDTH } from 'pages/Portfolio/Overview/constants'
 import { useIsPortfolioZero } from 'pages/Portfolio/Overview/hooks/useIsPortfolioZero'
+import { OverviewStakingSection } from 'pages/Portfolio/Overview/OverviewStakingSection'
 import { PortfolioOverviewTables } from 'pages/Portfolio/Overview/OverviewTables'
 import { PortfolioChart } from 'pages/Portfolio/Overview/PortfolioChart'
 import { OverviewStatsTiles } from 'pages/Portfolio/Overview/StatsTiles'
 import { checkBalanceDiffWithinRange } from 'pages/Portfolio/Overview/utils/checkBalanceDiffWithinRange'
+import { PortfolioTab } from 'pages/Portfolio/types'
+import { buildPortfolioUrl } from 'pages/Portfolio/utils/portfolioUrls'
 import { memo, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router'
 import { Flex, Separator, styled, useMedia } from 'ui/src'
 import { useGetPortfolioHistoricalValueChartQuery } from 'uniswap/src/data/rest/getPortfolioChart'
 import { useActivityData } from 'uniswap/src/features/activity/hooks/useActivityData'
@@ -38,9 +43,14 @@ const ActionsAndStatsContainer = styled(Flex, {
 
 export const PortfolioOverview = memo(function PortfolioOverview() {
   const media = useMedia()
+  const navigate = useNavigate()
   const isFullWidth = media.xl
-  const { chainId } = usePortfolioRoutes()
+  const { chainId, address } = usePortfolioRoutes()
   const portfolioAddresses = usePortfolioAddresses()
+  
+  // Use portfolioAddresses.evmAddress which already handles URL params, active smart pool, and user address priority
+  const { totalStakeUSD } = usePortfolioStaking({ address: portfolioAddresses.evmAddress })
+  
   const { chains: allChainIds } = useEnabledChains()
 
   const isPortfolioZero = useIsPortfolioZero()
@@ -49,11 +59,30 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
 
   const filterChainIds = useMemo(() => (chainId ? [chainId] : allChainIds), [chainId, allChainIds])
 
+  const handleNavigateToStaking = () => {
+    navigate(buildPortfolioUrl(PortfolioTab.Staking, chainId, address))
+  }
+
   const { data: portfolioData } = usePortfolioTotalValue({
     evmAddress: portfolioAddresses.evmAddress,
     svmAddress: portfolioAddresses.svmAddress,
     chainIds: filterChainIds,
   })
+  
+  // Calculate total portfolio value including staking - memoize with stable dependencies
+  const stakingValueStable = useMemo(() => {
+    return totalStakeUSD ? parseFloat(totalStakeUSD.toExact()) : 0
+  }, [totalStakeUSD?.quotient.toString()])
+
+  const portfolioTotalWithStaking = useMemo(() => {
+    const baseValue = portfolioData?.balanceUSD || 0
+    
+    // Ensure both values are valid numbers to prevent BigNumber errors
+    const safeBaseValue = isNaN(baseValue) ? 0 : baseValue
+    const safeStakingValue = isNaN(stakingValueStable) ? 0 : stakingValueStable
+    
+    return safeBaseValue + safeStakingValue
+  }, [portfolioData?.balanceUSD, stakingValueStable])
 
   // Fetch portfolio historical value chart data
   const {
@@ -80,9 +109,10 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   }, [portfolioChartData])
 
   // Compare portfolio balance (EVM + Solana) with chart endpoint balance (for debugging/validation)
+  // Note: Use base portfolio data (without staking) for comparison since chart data doesn't include staking
   const isTotalValueMatch = checkBalanceDiffWithinRange({
     chartTotalBalanceUSD,
-    portfolioTotalBalanceUSD: portfolioData?.balanceUSD,
+    portfolioTotalBalanceUSD: portfolioData?.balanceUSD || 0, // Use base portfolio value, not the one with staking
     percentDifferenceThreshold: BALANCE_PERCENT_DIFFERENCE_THRESHOLD,
   })
 
@@ -102,14 +132,14 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
         <Flex row gap="$spacing40" $xl={{ flexDirection: 'column' }}>
           <Trace section={SectionName.PortfolioOverviewTab} element={ElementName.PortfolioChart}>
             <PortfolioChart
-              portfolioTotalBalanceUSD={portfolioData?.balanceUSD}
+              portfolioTotalBalanceUSD={portfolioTotalWithStaking} // Shows current total with staking in header
               isPortfolioZero={isPortfolioZero}
-              chartData={portfolioChartData}
+              chartData={portfolioChartData} // Historical data (portfolio only, no staking history available)
               isPending={isChartPending}
               error={chartError}
               selectedPeriod={selectedPeriod}
               setSelectedPeriod={setSelectedPeriod}
-              isTotalValueMatch={isTotalValueMatch}
+              isTotalValueMatch={isTotalValueMatch} // Uses base portfolio for validation to enable pointer events
             />
           </Trace>
           {isPortfolioZero ? (
@@ -126,6 +156,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
             <Trace section={SectionName.PortfolioOverviewTab} element={ElementName.PortfolioActionTiles}>
               <ActionsAndStatsContainer fullWidth={isFullWidth}>
                 <OverviewActionTiles />
+                <OverviewStakingSection address={portfolioAddresses.evmAddress} onViewStaking={handleNavigateToStaking} />
                 <OverviewStatsTiles activityData={activityData} />
               </ActionsAndStatsContainer>
             </Trace>
@@ -141,6 +172,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
               activityData={activityData}
               chainId={chainId}
               portfolioAddresses={portfolioAddresses}
+              stakingAddress={portfolioAddresses.evmAddress}
             />
           </Trace>
         )}

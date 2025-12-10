@@ -9,22 +9,30 @@ import { MiniActivityTable } from 'pages/Portfolio/Overview/MiniActivityTable'
 import { MiniPoolsTable } from 'pages/Portfolio/Overview/MiniPoolsTable/MiniPoolsTable'
 import { MiniTokensTable } from 'pages/Portfolio/Overview/MiniTokensTable'
 import { OpenLimitsTable } from 'pages/Portfolio/Overview/OpenLimitsTable'
+import { usePortfolioStaking } from 'pages/Portfolio/hooks/usePortfolioStaking'
 import { memo } from 'react'
-import { Flex } from 'ui/src'
+import { Flex, Text } from 'ui/src'
 import { ActivityRenderData } from 'uniswap/src/features/activity/hooks/useActivityData'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { NumberType } from 'utilities/src/format/types'
 
 interface PortfolioOverviewTablesProps {
   activityData: ActivityRenderData
   chainId: UniverseChainId | undefined
   portfolioAddresses: { evmAddress: Address | undefined; svmAddress: Address | undefined }
+  stakingAddress?: string // Address for staking context (smart pool or user)
 }
 
 export const PortfolioOverviewTables = memo(function PortfolioOverviewTables({
   activityData,
   chainId,
   portfolioAddresses,
+  stakingAddress,
 }: PortfolioOverviewTablesProps) {
+  const { totalStakeAmount, totalStakeUSD, hasAnyStake, isLoading } = usePortfolioStaking({ address: stakingAddress || portfolioAddresses.evmAddress })
+  const { convertFiatAmountFormatted, formatCurrencyAmount } = useLocalizationContext()
+  
   return (
     <Flex
       row
@@ -47,6 +55,39 @@ export const PortfolioOverviewTables = memo(function PortfolioOverviewTables({
           <OpenLimitsTable account={portfolioAddresses.evmAddress} maxLimits={MAX_LIMITS_ROWS} />
         )}
         <MiniActivityTable maxActivities={MAX_ACTIVITY_ROWS} activityData={activityData} />
+        {hasAnyStake && (
+          <Flex gap="$spacing16" p="$spacing16" borderRadius="$rounded16" backgroundColor="$surface2">
+            <Text variant="heading3" color="$neutral1">
+              Staking
+            </Text>
+            <Flex gap="$spacing8">
+              {totalStakeUSD && (
+                <Flex>
+                  <Text variant="body3" color="$neutral3">
+                    Total Value
+                  </Text>
+                  <Text variant="heading3" color="$neutral1">
+                    {convertFiatAmountFormatted(parseFloat(totalStakeUSD ? totalStakeUSD.toExact() : '0'), NumberType.FiatTokenPrice)}
+                  </Text>
+                </Flex>
+              )}
+              {totalStakeAmount && (
+                <Flex>
+                  <Text variant="body3" color="$neutral3">
+                    Total GRG Staked
+                  </Text>
+                  <Text variant="body2" color="$neutral2">
+                    {formatCurrencyAmount({
+                      value: totalStakeAmount,
+                      type: NumberType.TokenNonTx,
+                      placeholder: '–',
+                    })}
+                  </Text>
+                </Flex>
+              )}
+            </Flex>
+          </Flex>
+        )}
       </Flex>
     </Flex>
   )
