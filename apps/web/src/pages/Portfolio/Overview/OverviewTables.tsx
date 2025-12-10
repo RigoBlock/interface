@@ -28,7 +28,7 @@ export const PortfolioOverviewTables = memo(function PortfolioOverviewTables({
   chainId,
   portfolioAddresses,
 }: PortfolioOverviewTablesProps) {
-  const { totalStakeAmount, totalStakeUSD, hasAnyStake } = usePortfolioStaking(portfolioAddresses.evmAddress)
+  const { totalStakeAmount, totalStakeUSD, hasAnyStake, isLoading } = usePortfolioStaking({ address: portfolioAddresses.evmAddress })
   const { convertFiatAmountFormatted, formatCurrencyAmount } = useLocalizationContext()
   
   return (
@@ -65,7 +65,7 @@ export const PortfolioOverviewTables = memo(function PortfolioOverviewTables({
                     Total Value
                   </Text>
                   <Text variant="heading3" color="$neutral1">
-                    {convertFiatAmountFormatted(parseFloat(totalStakeUSD.toExact()), NumberType.FiatTokenPrice)}
+                    {convertFiatAmountFormatted(parseFloat(totalStakeUSD ? totalStakeUSD.toExact() : '0'), NumberType.FiatTokenPrice)}
                   </Text>
                 </Flex>
               )}

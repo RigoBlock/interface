@@ -1,17 +1,13 @@
-// TODO: check use type
-/* eslint-disable max-params */
-
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { BigNumber } from '@ethersproject/bignumber'
-import { CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 
+// Serializable interface for Redux store (no CurrencyAmount objects)
 export interface ChainStakingData {
   chainId: UniverseChainId
-  userFreeStake?: CurrencyAmount<Token>
-  userDelegatedStake?: CurrencyAmount<Token>
-  smartPoolFreeStake?: CurrencyAmount<Token>
-  smartPoolDelegatedStake?: CurrencyAmount<Token>
+  userFreeStake?: string // Raw amount as string
+  userDelegatedStake?: string
+  smartPoolFreeStake?: string
+  smartPoolDelegatedStake?: string
   isLoading: boolean
   lastUpdated?: number
   error?: string
@@ -182,22 +178,19 @@ export const selectUserStakingData = (state: { portfolioStaking: PortfolioStakin
 
 export const selectChainStakingData = (
   state: { portfolioStaking: PortfolioStakingState },
-  userAddress: Address,
-  chainId: UniverseChainId,
-) => state.portfolioStaking.stakingDataByAddress[userAddress]?.[chainId]
+  params: { userAddress: Address; chainId: UniverseChainId },
+) => state.portfolioStaking.stakingDataByAddress[params.userAddress]?.[params.chainId]
 
 export const selectSmartPoolStakingData = (
   state: { portfolioStaking: PortfolioStakingState },
-  poolAddress: Address,
-  userAddress: Address,
-) => state.portfolioStaking.smartPoolStakingByAddress[poolAddress]?.[userAddress]
+  params: { poolAddress: Address; userAddress: Address },
+) => state.portfolioStaking.smartPoolStakingByAddress[params.poolAddress]?.[params.userAddress]
 
 export const selectStakingDataNeedsFetch = (
   state: { portfolioStaking: PortfolioStakingState },
-  userAddress: Address,
-  chainId: UniverseChainId,
+  params: { userAddress: Address; chainId: UniverseChainId },
 ) => {
-  const data = selectChainStakingData(state, userAddress, chainId)
+  const data = selectChainStakingData(state, params)
   if (!data) return true
   if (data.isLoading) return false
   if (data.error) return true

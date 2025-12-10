@@ -49,7 +49,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   const portfolioAddresses = usePortfolioAddresses()
   
   // Initialize staking data for the primary portfolio address
-  usePortfolioStaking(portfolioAddresses.evmAddress)
+  const { totalStakeUSD } = usePortfolioStaking({ address: portfolioAddresses.evmAddress })
   
   const { chains: allChainIds } = useEnabledChains()
 
@@ -68,9 +68,6 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
     svmAddress: portfolioAddresses.svmAddress,
     chainIds: filterChainIds,
   })
-  
-  // Get staking value to add to portfolio total
-  const { totalStakeUSD } = usePortfolioStaking(portfolioAddresses.evmAddress)
   
   // Calculate total portfolio value including staking
   const portfolioTotalWithStaking = useMemo(() => {

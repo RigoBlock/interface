@@ -2,7 +2,7 @@ import { CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { STAKING_PROXY_ADDRESSES } from 'constants/addresses'
 import JSBI from 'jsbi'
 import { usePortfolioAddresses } from 'pages/Portfolio/hooks/usePortfolioAddresses'
-import { usePortfolioStaking, useSmartPoolStaking } from 'pages/Portfolio/hooks/usePortfolioStaking'
+import { usePortfolioStaking } from 'pages/Portfolio/hooks/usePortfolioStaking'
 import { useMemo } from 'react'
 import { useActiveSmartPool } from 'state/application/hooks'
 import { useMultichainContext } from 'state/multichain/useMultichainContext'
@@ -56,7 +56,13 @@ function ChainStakingRow({
   }, [chainId, userFreeStake, userDelegatedStake, smartPoolTotalStake])
 
   // Get USD value for the total
-  const usdValue = useUSDCValue(totalStake)
+  // Get USD value using mainnet GRG for consistent pricing across chains
+  const mainnetGRG = GRG[UniverseChainId.Mainnet]
+  const usdValue = useUSDCValue(
+    totalStake
+      ? CurrencyAmount.fromRawAmount(mainnetGRG, totalStake.quotient) 
+      : totalStake
+  )
   const usdFormatted = convertFiatAmountFormatted(usdValue?.toExact(), NumberType.PortfolioBalance)
 
   const hasAnyStake =
@@ -142,10 +148,16 @@ function ChainStakingRowWithData({
   chainName: string
   address?: string
   smartPoolAddress?: string
-  cachedData?: any // ChainStakingData from Redux store
+  cachedData?: any // StakingData from new hook
 }) {
-  // Use cached data if available, otherwise fall back to hooks
-  const shouldUseCachedData = cachedData && !cachedData.isLoading && !cachedData.error
+  // Check if we have valid cached data from the new hook structure
+  const shouldUseCachedData = cachedData && 
+    !cachedData.isLoading && 
+    !cachedData.error &&
+    (cachedData.userFreeStake !== undefined || 
+     cachedData.userDelegatedStake !== undefined ||
+     cachedData.smartPoolFreeStake !== undefined ||
+     cachedData.smartPoolDelegatedStake !== undefined)
   
   // Get staking data for this specific chain (only if no cached data)
   const hookData = useTotalStakeBalances({
@@ -157,14 +169,11 @@ function ChainStakingRowWithData({
   // Use cached data or hook data
   const { userFreeStake, userDelegatedStake, smartPoolFreeStake, smartPoolDelegatedStake } = shouldUseCachedData
     ? {
-        userFreeStake: cachedData.userStakeBalances?.undelegated 
-          ? CurrencyAmount.fromRawAmount(GRG[chainId], cachedData.userStakeBalances.undelegated.toString())
-          : undefined,
-        userDelegatedStake: cachedData.userStakeBalances?.delegated
-          ? CurrencyAmount.fromRawAmount(GRG[chainId], cachedData.userStakeBalances.delegated.toString())
-          : undefined,
-        smartPoolFreeStake: undefined,
-        smartPoolDelegatedStake: undefined,
+        // Use data directly from StakingData interface (already deserialized CurrencyAmount objects)
+        userFreeStake: cachedData.userFreeStake,
+        userDelegatedStake: cachedData.userDelegatedStake,
+        smartPoolFreeStake: cachedData.smartPoolFreeStake,
+        smartPoolDelegatedStake: cachedData.smartPoolDelegatedStake,
       }
     : hookData
 
@@ -196,8 +205,6 @@ interface PoolStakingInfoProps {
 }
 
 function PoolStakingInfo({ poolAddress, poolId, stakingPoolExists }: PoolStakingInfoProps) {
-  const activeSmartPool = useActiveSmartPool()
-
   // TODO: we should modify the hook to accept chainId as param, and run loop for the supported chains
   // Get unclaimed rewards for this specific pool
   const unclaimedRewards = useUnclaimedRewards([poolId])
@@ -321,9 +328,8 @@ function useMultiChainStakingData(address?: string, smartPoolAddress?: string) {
 }
 
 function MultiChainStakingInfo({ address, smartPoolAddress }: { address?: string; smartPoolAddress?: string }) {
-  const { stakingData, stakingChains, hasAnyStake, isLoading, totalStakeUSD } = smartPoolAddress 
-    ? useSmartPoolStaking(smartPoolAddress, address)
-    : usePortfolioStaking(address)
+  const { stakingData, stakingChains, hasAnyStake, isLoading, totalStakeUSD } = usePortfolioStaking({ address }) 
+  console.log('MultiChainStakingInfo stakingData:', stakingData)
   const { convertFiatAmountFormatted } = useLocalizationContext()
 
   if (!address || stakingChains.length === 0) {

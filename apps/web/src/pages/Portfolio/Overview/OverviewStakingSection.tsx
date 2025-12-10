@@ -1,5 +1,5 @@
 import { LoadingBubble } from 'components/Tokens/loading'
-import { useStakingValue } from 'pages/Portfolio/hooks/useStakingValue'
+import { usePortfolioStaking } from 'pages/Portfolio/hooks/usePortfolioStaking'
 import { Trans } from 'react-i18next'
 import { Box, ChevronRight } from 'react-feather'
 import { Flex } from 'ui/src/components/layout'
@@ -13,7 +13,7 @@ interface OverviewStakingSectionProps {
 }
 
 export function OverviewStakingSection({ address, onViewStaking }: OverviewStakingSectionProps) {
-  const { totalStakeAmount, totalStakeUSD, hasAnyStake } = useStakingValue(address)
+  const { totalStakeAmount, totalStakeUSD, hasAnyStake } = usePortfolioStaking({ address })
   const { formatCurrencyAmount } = useLocalizationContext()
 
   if (!hasAnyStake) {
