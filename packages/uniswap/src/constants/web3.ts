@@ -1,3 +1,4 @@
+// TODO: this is where the connector is defined. We could potentially defined a RIGOBLOC_CONNECTOR_ID here and use the exact same uniswap flow.
 export const CONNECTION_PROVIDER_IDS = {
   WALLET_CONNECT_CONNECTOR_ID: 'walletConnect',
   UNISWAP_WALLET_CONNECT_CONNECTOR_ID: 'uniswapWalletConnect',

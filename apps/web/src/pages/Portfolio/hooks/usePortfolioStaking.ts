@@ -1,7 +1,10 @@
+import { CurrencyAmount, Token } from '@uniswap/sdk-core'
+import { STAKING_PROXY_ADDRESSES } from 'constants/addresses'
 import { useActiveAddresses } from 'features/accounts/store/hooks'
+import JSBI from 'jsbi'
 import { useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { STAKING_PROXY_ADDRESSES } from 'constants/addresses'
+import { useActiveSmartPool } from 'state/application/hooks'
 import {
   selectChainStakingData,
   selectStakingDataNeedsFetch,
@@ -10,21 +13,18 @@ import {
   setStakingError,
 } from 'state/portfolio/stakingSlice'
 import { useTotalStakeBalances } from 'state/stake/hooks'
+import { InterfaceState } from 'state/webReducer'
+import { GRG } from 'uniswap/src/constants/tokens'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { isTestnetChain } from 'uniswap/src/features/chains/utils'
-import { InterfaceState } from 'state/webReducer'
-import { CurrencyAmount, Token } from '@uniswap/sdk-core'
-import { GRG } from 'uniswap/src/constants/tokens'
 import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'
-import { useActiveSmartPool } from 'state/application/hooks'
-import JSBI from 'jsbi'
 
 // Serializable interface for Redux store
 export interface SerializableStakingData {
   userFreeStake?: string // Raw amount as string
   userDelegatedStake?: string
-  smartPoolFreeStake?: string  
+  smartPoolFreeStake?: string
   smartPoolDelegatedStake?: string
   chainId: UniverseChainId
   isLoading: boolean
@@ -60,29 +60,31 @@ function deserializeStakingAmount(amountStr?: string, chainId?: UniverseChainId)
 }
 
 // Hook to fetch and manage staking data for a single chain with Redux caching
-function useChainStakingData({ userAddress, chainId, targetAddress }: {
+function useChainStakingData({
+  userAddress,
+  chainId,
+  targetAddress,
+}: {
   userAddress: string
-  chainId: UniverseChainId  
+  chainId: UniverseChainId
   targetAddress?: string // The address we're actually displaying stakes for (could be smart pool)
 }) {
   const dispatch = useDispatch()
   const needsFetch = useSelector((state: InterfaceState) =>
     selectStakingDataNeedsFetch(state, { userAddress, chainId }),
   )
-  const cachedData = useSelector((state: InterfaceState) =>
-    selectChainStakingData(state, { userAddress, chainId }),
-  )
+  const cachedData = useSelector((state: InterfaceState) => selectChainStakingData(state, { userAddress, chainId }))
 
   // Call the hooks to get fresh data when needed
-  const { userFreeStake, userDelegatedStake, smartPoolFreeStake, smartPoolDelegatedStake } = useTotalStakeBalances({ 
-    address: userAddress, 
+  const { userFreeStake, userDelegatedStake, smartPoolFreeStake, smartPoolDelegatedStake } = useTotalStakeBalances({
+    address: userAddress,
     smartPoolAddress: targetAddress,
-    chainId
+    chainId,
   })
 
   useEffect(() => {
     if (!userAddress) return
-    
+
     // Only set loading state if we need to fetch and aren't already loading
     if (needsFetch && !cachedData?.isLoading) {
       dispatch(
@@ -101,10 +103,14 @@ function useChainStakingData({ userAddress, chainId, targetAddress }: {
   useEffect(() => {
     // Process data when we have valid stake information
     if (!userAddress) return
-    
+
     // If we have data from useTotalStakeBalances, serialize and save it to store
-    if (userFreeStake !== undefined || userDelegatedStake !== undefined || 
-        smartPoolFreeStake !== undefined || smartPoolDelegatedStake !== undefined) {
+    if (
+      userFreeStake !== undefined ||
+      userDelegatedStake !== undefined ||
+      smartPoolFreeStake !== undefined ||
+      smartPoolDelegatedStake !== undefined
+    ) {
       try {
         dispatch(
           setChainStakingData({
@@ -132,14 +138,14 @@ function useChainStakingData({ userAddress, chainId, targetAddress }: {
       }
     }
   }, [
-    dispatch, 
-    userAddress, 
-    chainId, 
+    dispatch,
+    userAddress,
+    chainId,
     // Use serialized values to avoid infinite re-renders from CurrencyAmount object references
     userFreeStake?.quotient.toString(),
     userDelegatedStake?.quotient.toString(),
     smartPoolFreeStake?.quotient.toString(),
-    smartPoolDelegatedStake?.quotient.toString()
+    smartPoolDelegatedStake?.quotient.toString(),
   ])
 }
 
@@ -158,7 +164,7 @@ export function usePortfolioStaking({ address }: { address?: string } = {}): {
   const smartPoolAddress = useActiveSmartPool().address
   const [paramAddress] = new URLSearchParams(window.location.search).getAll('address')
   const { evmAddress } = useActiveAddresses()
-  
+
   // Determine target address and context based on priority rules
   const { targetAddress, isViewingOwnStakes } = useMemo(() => {
     // If address is explicitly passed (from usePortfolioAddresses), always use it
@@ -166,32 +172,32 @@ export function usePortfolioStaking({ address }: { address?: string } = {}): {
       const isViewingOwnAddress = Boolean(evmAddress && address.toLowerCase() === evmAddress.toLowerCase())
       return {
         targetAddress: address,
-        isViewingOwnStakes: isViewingOwnAddress
+        isViewingOwnStakes: isViewingOwnAddress,
       }
     }
-    
+
     // Only use internal resolution if no address is passed
     // Priority 1: URL address parameter
     if (paramAddress) {
       const isViewingOwnAddress = Boolean(evmAddress && paramAddress.toLowerCase() === evmAddress.toLowerCase())
       return {
         targetAddress: paramAddress,
-        isViewingOwnStakes: isViewingOwnAddress
+        isViewingOwnStakes: isViewingOwnAddress,
       }
     }
-    
+
     // Priority 2: Active smart pool (if no URL param)
     if (smartPoolAddress) {
       return {
         targetAddress: smartPoolAddress,
-        isViewingOwnStakes: false
+        isViewingOwnStakes: false,
       }
     }
-    
+
     // Priority 3: Default to user's own address
     return {
       targetAddress: evmAddress,
-      isViewingOwnStakes: true
+      isViewingOwnStakes: true,
     }
   }, [address, paramAddress, smartPoolAddress, evmAddress])
 
@@ -212,9 +218,9 @@ export function usePortfolioStaking({ address }: { address?: string } = {}): {
   // Trigger data fetching for each chain using individual hooks (fixed number to avoid infinite loops)
   const maxChains = 10 // Reasonable limit for hook calls
   const chainsToProcess = stakingChains.slice(0, maxChains)
-  
+
   // Pad the array to ensure we always call the same number of hooks
-  const paddedChains: (UniverseChainId)[] = [...chainsToProcess]
+  const paddedChains: UniverseChainId[] = [...chainsToProcess]
   while (paddedChains.length < maxChains) {
     paddedChains.push(UniverseChainId.Mainnet) // Use mainnet as placeholder
   }
@@ -224,10 +230,10 @@ export function usePortfolioStaking({ address }: { address?: string } = {}): {
     const chainId = paddedChains[i]
     const isActiveChain = i < chainsToProcess.length
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    useChainStakingData({ 
-      userAddress: (isActiveChain && targetAddress) ? targetAddress : '',
-      chainId, 
-      targetAddress: (isActiveChain && targetAddress) ? (isViewingOwnStakes ? undefined : targetAddress) : undefined
+    useChainStakingData({
+      userAddress: isActiveChain && targetAddress ? targetAddress : '',
+      chainId,
+      targetAddress: isActiveChain && targetAddress ? (isViewingOwnStakes ? undefined : targetAddress) : undefined,
     })
   }
 
@@ -266,22 +272,22 @@ export function usePortfolioStaking({ address }: { address?: string } = {}): {
     // Aggregate stakes across all chains
     for (const chainId of stakingChains) {
       const data = stakingData[chainId]
-      
+
       // Set primary token (use mainnet GRG for USD calculations)
       if (!primaryToken) {
         primaryToken = GRG[UniverseChainId.Mainnet]
       }
-      
+
       // If data is still loading for any chain, don't conclude "no stake" yet
       if (!data || data.isLoading) {
         hasLoadingChains = true
         continue
       }
-      
+
       // Choose which stakes to display based on context
       const freeStake = isViewingOwnStakes ? data.userFreeStake : data.smartPoolFreeStake
       const delegatedStake = isViewingOwnStakes ? data.userDelegatedStake : data.smartPoolDelegatedStake
-      
+
       if (freeStake && !freeStake.equalTo(0)) {
         hasStake = true
         totalRawAmount = JSBI.add(totalRawAmount, freeStake.quotient)
@@ -296,9 +302,10 @@ export function usePortfolioStaking({ address }: { address?: string } = {}): {
     const effectiveHasStake = hasStake || (hasLoadingChains && !hasStake)
 
     return {
-      totalStakeAmount: primaryToken && JSBI.greaterThan(totalRawAmount, JSBI.BigInt(0)) 
-        ? CurrencyAmount.fromRawAmount(primaryToken, totalRawAmount) 
-        : undefined,
+      totalStakeAmount:
+        primaryToken && JSBI.greaterThan(totalRawAmount, JSBI.BigInt(0))
+          ? CurrencyAmount.fromRawAmount(primaryToken, totalRawAmount)
+          : undefined,
       hasAnyStake: effectiveHasStake,
     }
   }, [targetAddress, stakingChains, stakingData, isViewingOwnStakes])

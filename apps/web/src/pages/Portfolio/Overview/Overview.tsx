@@ -47,10 +47,10 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   const isFullWidth = media.xl
   const { chainId, address } = usePortfolioRoutes()
   const portfolioAddresses = usePortfolioAddresses()
-  
+
   // Use portfolioAddresses.evmAddress which already handles URL params, active smart pool, and user address priority
   const { totalStakeUSD } = usePortfolioStaking({ address: portfolioAddresses.evmAddress })
-  
+
   const { chains: allChainIds } = useEnabledChains()
 
   const isPortfolioZero = useIsPortfolioZero()
@@ -68,7 +68,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
     svmAddress: portfolioAddresses.svmAddress,
     chainIds: filterChainIds,
   })
-  
+
   // Calculate total portfolio value including staking - memoize with stable dependencies
   const stakingValueStable = useMemo(() => {
     return totalStakeUSD ? parseFloat(totalStakeUSD.toExact()) : 0
@@ -76,11 +76,11 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
 
   const portfolioTotalWithStaking = useMemo(() => {
     const baseValue = portfolioData?.balanceUSD || 0
-    
+
     // Ensure both values are valid numbers to prevent BigNumber errors
     const safeBaseValue = isNaN(baseValue) ? 0 : baseValue
     const safeStakingValue = isNaN(stakingValueStable) ? 0 : stakingValueStable
-    
+
     return safeBaseValue + safeStakingValue
   }, [portfolioData?.balanceUSD, stakingValueStable])
 
@@ -156,7 +156,10 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
             <Trace section={SectionName.PortfolioOverviewTab} element={ElementName.PortfolioActionTiles}>
               <ActionsAndStatsContainer fullWidth={isFullWidth}>
                 <OverviewActionTiles />
-                <OverviewStakingSection address={portfolioAddresses.evmAddress} onViewStaking={handleNavigateToStaking} />
+                <OverviewStakingSection
+                  address={portfolioAddresses.evmAddress}
+                  onViewStaking={handleNavigateToStaking}
+                />
                 <OverviewStatsTiles activityData={activityData} />
               </ActionsAndStatsContainer>
             </Trace>

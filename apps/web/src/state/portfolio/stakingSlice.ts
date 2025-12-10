@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { Address } from 'viem'
 
 // Serializable interface for Redux store (no CurrencyAmount objects)
 export interface ChainStakingData {
@@ -16,10 +17,10 @@ export interface ChainStakingData {
 export interface PortfolioStakingState {
   // Multi-chain staking data by address
   stakingDataByAddress: Record<Address, Partial<Record<UniverseChainId, ChainStakingData>>>
-  
+
   // Smart pool specific staking data by pool address
   smartPoolStakingByAddress: Record<Address, Record<Address, ChainStakingData>> // pool address -> user address -> data
-  
+
   // Global loading state
   isInitializing: boolean
 }
@@ -49,11 +50,11 @@ const slice = createSlice({
       }>,
     ) => {
       const { userAddress, chainId, data } = action.payload
-      
+
       if (!state.stakingDataByAddress[userAddress]) {
         state.stakingDataByAddress[userAddress] = {}
       }
-      
+
       state.stakingDataByAddress[userAddress][chainId] = {
         ...data,
         chainId,
@@ -71,15 +72,15 @@ const slice = createSlice({
       }>,
     ) => {
       const { poolAddress, userAddress, chainId, data } = action.payload
-      
+
       if (!state.smartPoolStakingByAddress[poolAddress]) {
         state.smartPoolStakingByAddress[poolAddress] = {}
       }
-      
+
       if (!state.smartPoolStakingByAddress[poolAddress][userAddress]) {
         state.smartPoolStakingByAddress[poolAddress][userAddress] = {} as ChainStakingData
       }
-      
+
       state.smartPoolStakingByAddress[poolAddress][userAddress] = {
         ...data,
         chainId,
@@ -96,11 +97,11 @@ const slice = createSlice({
       }>,
     ) => {
       const { userAddress, chainId, error } = action.payload
-      
+
       if (!state.stakingDataByAddress[userAddress]) {
         state.stakingDataByAddress[userAddress] = {}
       }
-      
+
       if (!state.stakingDataByAddress[userAddress][chainId]) {
         state.stakingDataByAddress[userAddress][chainId] = {
           chainId,
@@ -122,7 +123,7 @@ const slice = createSlice({
       }>,
     ) => {
       const { userAddress, chainId } = action.payload
-      
+
       if (userAddress && chainId) {
         // Clear specific chain for specific user
         if (state.stakingDataByAddress[userAddress]) {
@@ -141,7 +142,7 @@ const slice = createSlice({
     // Clean up old data
     cleanupExpiredStakingData: (state) => {
       const now = Date.now()
-      
+
       Object.keys(state.stakingDataByAddress).forEach((userAddress) => {
         Object.keys(state.stakingDataByAddress[userAddress]).forEach((chainId) => {
           const data = state.stakingDataByAddress[userAddress][Number(chainId) as UniverseChainId]
@@ -149,7 +150,7 @@ const slice = createSlice({
             delete state.stakingDataByAddress[userAddress][Number(chainId) as UniverseChainId]
           }
         })
-        
+
         // Remove empty user objects
         if (Object.keys(state.stakingDataByAddress[userAddress]).length === 0) {
           delete state.stakingDataByAddress[userAddress]

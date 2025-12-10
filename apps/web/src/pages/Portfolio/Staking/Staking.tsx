@@ -5,8 +5,8 @@ import { usePortfolioAddresses } from 'pages/Portfolio/hooks/usePortfolioAddress
 import { usePortfolioStaking } from 'pages/Portfolio/hooks/usePortfolioStaking'
 import { useMemo } from 'react'
 import { useActiveSmartPool } from 'state/application/hooks'
-import { useMultichainContext } from 'state/multichain/useMultichainContext'
 import { usePoolIdByAddress } from 'state/governance/hooks'
+import { useMultichainContext } from 'state/multichain/useMultichainContext'
 import { useTotalStakeBalances, useUnclaimedRewards, useUserStakeBalances } from 'state/stake/hooks'
 import { Flex, Shine, Text, useMedia } from 'ui/src'
 import { TokenLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
@@ -58,16 +58,12 @@ function ChainStakingRow({
   // Get USD value for the total
   // Get USD value using mainnet GRG for consistent pricing across chains
   const mainnetGRG = GRG[UniverseChainId.Mainnet]
-  const usdValue = useUSDCValue(
-    totalStake
-      ? CurrencyAmount.fromRawAmount(mainnetGRG, totalStake.quotient) 
-      : totalStake
-  )
+  const usdValue = useUSDCValue(totalStake ? CurrencyAmount.fromRawAmount(mainnetGRG, totalStake.quotient) : totalStake)
   const usdFormatted = convertFiatAmountFormatted(usdValue?.toExact(), NumberType.PortfolioBalance)
 
   const hasAnyStake =
-    (userFreeStake && userFreeStake.greaterThan(0)) || 
-    (userDelegatedStake && userDelegatedStake.greaterThan(0)) || 
+    (userFreeStake && userFreeStake.greaterThan(0)) ||
+    (userDelegatedStake && userDelegatedStake.greaterThan(0)) ||
     (smartPoolTotalStake && smartPoolTotalStake.greaterThan(0))
 
   if (!hasAnyStake) return null
@@ -153,21 +149,22 @@ function ChainStakingRowWithData({
   cachedData?: any // StakingData from new hook
 }) {
   // Check if we have valid cached data from the new hook structure
-  const shouldUseCachedData = cachedData && 
-    !cachedData.isLoading && 
+  const shouldUseCachedData =
+    cachedData &&
+    !cachedData.isLoading &&
     !cachedData.error &&
-    (cachedData.userFreeStake !== undefined || 
-     cachedData.userDelegatedStake !== undefined ||
-     cachedData.smartPoolFreeStake !== undefined ||
-     cachedData.smartPoolDelegatedStake !== undefined)
-  
+    (cachedData.userFreeStake !== undefined ||
+      cachedData.userDelegatedStake !== undefined ||
+      cachedData.smartPoolFreeStake !== undefined ||
+      cachedData.smartPoolDelegatedStake !== undefined)
+
   // Get staking data for this specific chain (only if no cached data)
   const hookData = useTotalStakeBalances({
     address: shouldUseCachedData ? undefined : address,
-    smartPoolAddress: shouldUseCachedData ? undefined : smartPoolAddress, 
+    smartPoolAddress: shouldUseCachedData ? undefined : smartPoolAddress,
     chainId,
   })
-  
+
   // Use cached data or hook data
   const { userFreeStake, userDelegatedStake, smartPoolFreeStake, smartPoolDelegatedStake } = shouldUseCachedData
     ? {
@@ -333,7 +330,9 @@ function useMultiChainStakingData(address?: string, smartPoolAddress?: string) {
 }
 
 function MultiChainStakingInfo({ address, smartPoolAddress }: { address?: string; smartPoolAddress?: string }) {
-  const { stakingData, stakingChains, hasAnyStake, isLoading, totalStakeUSD, isViewingOwnStakes } = usePortfolioStaking({ address })
+  const { stakingData, stakingChains, hasAnyStake, isLoading, totalStakeUSD, isViewingOwnStakes } = usePortfolioStaking(
+    { address },
+  )
   const { convertFiatAmountFormatted } = useLocalizationContext()
 
   if (!address || stakingChains.length === 0) {
@@ -378,7 +377,7 @@ function MultiChainStakingInfo({ address, smartPoolAddress }: { address?: string
           <Text variant="heading1" color="$neutral1">
             {convertFiatAmountFormatted(
               totalStakeUSD ? parseFloat(totalStakeUSD.toExact()) : 0,
-              NumberType.PortfolioBalance
+              NumberType.PortfolioBalance,
             )}
           </Text>
         )}
@@ -418,7 +417,7 @@ function MultiChainStakingInfo({ address, smartPoolAddress }: { address?: string
         {stakingChains.map((chainId) => {
           const chainInfo = getChainInfo(chainId)
           const data = stakingData[chainId]
-          
+
           return (
             <ChainStakingRowWithData
               key={chainId}

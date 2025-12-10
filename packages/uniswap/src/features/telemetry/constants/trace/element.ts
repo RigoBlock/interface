@@ -186,6 +186,7 @@ export enum ElementName {
   NavbarPortfolioDropdownDefi = 'navbar-portfolio-dropdown-defi',
   NavbarPortfolioDropdownNfts = 'navbar-portfolio-dropdown-nfts',
   NavbarPortfolioDropdownOverview = 'navbar-portfolio-dropdown-overview',
+  NavbarPortfolioDropdownStaking = 'navbar-portfolio-dropdown-staking',
   NavbarPortfolioDropdownTokens = 'navbar-portfolio-dropdown-tokens',
   NavbarPortfolioTab = 'navbar-portfolio-tab',
   PreselectAsset = 'preselect-asset',

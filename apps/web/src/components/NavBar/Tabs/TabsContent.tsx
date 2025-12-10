@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router'
 import { useSporeColors } from 'ui/src'
 import { CoinConvert } from 'ui/src/components/icons/CoinConvert'
+import { Compass } from 'ui/src/components/icons/Compass'
 import { CreditCard } from 'ui/src/components/icons/CreditCard'
 import { Pools } from 'ui/src/components/icons/Pools'
 import { ReceiveAlt } from 'ui/src/components/icons/ReceiveAlt'
@@ -46,6 +47,7 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
       title: areTabsVisible ? t('common.explore') : t('common.mint'),
       href: '/mint',
       isActive: pathname.startsWith('/mint') || pathname.startsWith('/stake'),
+      icon: <Compass color="$accent1" size="$icon.20" />,
       items: [
         { label: t('common.mint'), href: '/mint', internal: true },
         { label: t('common.earn'), href: '/stake', internal: true },
@@ -146,6 +148,12 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
                 href: buildPortfolioUrl(PortfolioTab.Tokens, portfolioChainId),
                 internal: true,
                 elementName: ElementName.NavbarPortfolioDropdownTokens,
+              },
+              {
+                label: t('portfolio.staking.title'),
+                href: buildPortfolioUrl(PortfolioTab.Staking, portfolioChainId),
+                internal: true,
+                elementName: ElementName.NavbarPortfolioDropdownStaking,
               },
               ...(isPortfolioDefiTabEnabled
                 ? [

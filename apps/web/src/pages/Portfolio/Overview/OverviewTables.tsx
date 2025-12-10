@@ -1,3 +1,4 @@
+import { usePortfolioStaking } from 'pages/Portfolio/hooks/usePortfolioStaking'
 import {
   MAX_ACTIVITY_ROWS,
   MAX_LIMITS_ROWS,
@@ -9,7 +10,6 @@ import { MiniActivityTable } from 'pages/Portfolio/Overview/MiniActivityTable'
 import { MiniPoolsTable } from 'pages/Portfolio/Overview/MiniPoolsTable/MiniPoolsTable'
 import { MiniTokensTable } from 'pages/Portfolio/Overview/MiniTokensTable'
 import { OpenLimitsTable } from 'pages/Portfolio/Overview/OpenLimitsTable'
-import { usePortfolioStaking } from 'pages/Portfolio/hooks/usePortfolioStaking'
 import { memo } from 'react'
 import { Flex, Text } from 'ui/src'
 import { ActivityRenderData } from 'uniswap/src/features/activity/hooks/useActivityData'
@@ -30,9 +30,11 @@ export const PortfolioOverviewTables = memo(function PortfolioOverviewTables({
   portfolioAddresses,
   stakingAddress,
 }: PortfolioOverviewTablesProps) {
-  const { totalStakeAmount, totalStakeUSD, hasAnyStake, isLoading } = usePortfolioStaking({ address: stakingAddress || portfolioAddresses.evmAddress })
+  const { totalStakeAmount, totalStakeUSD, hasAnyStake, isLoading } = usePortfolioStaking({
+    address: stakingAddress || portfolioAddresses.evmAddress,
+  })
   const { convertFiatAmountFormatted, formatCurrencyAmount } = useLocalizationContext()
-  
+
   return (
     <Flex
       row
@@ -67,7 +69,10 @@ export const PortfolioOverviewTables = memo(function PortfolioOverviewTables({
                     Total Value
                   </Text>
                   <Text variant="heading3" color="$neutral1">
-                    {convertFiatAmountFormatted(parseFloat(totalStakeUSD ? totalStakeUSD.toExact() : '0'), NumberType.FiatTokenPrice)}
+                    {convertFiatAmountFormatted(
+                      parseFloat(totalStakeUSD ? totalStakeUSD.toExact() : '0'),
+                      NumberType.FiatTokenPrice,
+                    )}
                   </Text>
                 </Flex>
               )}
