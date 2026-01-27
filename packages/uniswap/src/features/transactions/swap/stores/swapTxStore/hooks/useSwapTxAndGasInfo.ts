@@ -29,6 +29,7 @@ export function useSwapTxAndGasInfo({
     wrapType,
     currencyAmounts,
     trade: { trade },
+    smartPoolAddress,
   } = derivedSwapInfo
 
   const approvalTxInfo = useTokenApprovalInfo({
@@ -38,6 +39,7 @@ export function useSwapTxAndGasInfo({
     currencyInAmount: currencyAmounts[CurrencyField.INPUT],
     currencyOutAmount: currencyAmounts[CurrencyField.OUTPUT],
     routing: trade?.routing,
+    smartPoolAddress,
   })
   const { tokenApprovalInfo } = approvalTxInfo
 

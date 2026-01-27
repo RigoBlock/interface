@@ -266,7 +266,7 @@ export default function VotePage() {
   // if content is contract with common name, replace address with common name
   const linkIfAddress = (content: string) => {
     if (isAddress(content) && account.chainId) {
-      const commonName = COMMON_CONTRACT_NAMES[account.chainId][content] || content
+      const commonName = COMMON_CONTRACT_NAMES[account.chainId]?.[content] || content
       return (
         <ExternalLink
           href={getExplorerLink({ chainId: account.chainId, data: content, type: ExplorerDataType.ADDRESS })}
@@ -358,9 +358,9 @@ export default function VotePage() {
                       <span>
                         <Trans
                           i18nKey="vote.votePage.unlockVotingLink"
-                          values={{
-                            link: <StyledInternalLink to="/vote">Unlock voting</StyledInternalLink>,
-                          }}
+                          components={[
+                            <StyledInternalLink to="/vote" key="link" />,
+                          ]}
                         />
                       </span>
                     )}

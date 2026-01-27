@@ -4,6 +4,7 @@ import { getAddress } from '@ethersproject/address'
 // Universal Router Command Constants
 const UNIVERSAL_ROUTER_COMMANDS = {
   SWEEP: 0x04,
+  TRANSFER: 0x05,
   PAY_PORTION: 0x06,
   V4_SWAP: 0x10,
 }
@@ -90,6 +91,21 @@ export function modifyV4ExecuteCalldata(calldata: string, smartPoolAddress: stri
           }
         } catch (error) {
           console.warn(`Failed to decode PAY_PORTION command ${i}:`, error)
+        }
+      } else if (command === UNIVERSAL_ROUTER_COMMANDS.TRANSFER) {
+        // TRANSFER command: abi.encode(token, recipient, amount)
+        // This command transfers tokens to an arbitrary address (often the Uniswap fee collector)
+        // We need to redirect this to the smart pool address to prevent funds from leaving the pool
+        try {
+          const [token, recipient, amount] = abiCoder.decode(['address', 'address', 'uint256'], input)
+
+          if (shouldReplaceRecipient(recipient, smartPoolAddress)) {
+            const newInput = abiCoder.encode(['address', 'address', 'uint256'], [token, smartPoolAddress, amount])
+            modifiedInputs[i] = newInput
+            wasModified = true
+          }
+        } catch (error) {
+          console.warn(`Failed to decode TRANSFER command ${i}:`, error)
         }
       } else if (command === UNIVERSAL_ROUTER_COMMANDS.V4_SWAP) {
         // V4_SWAP command: process V4 actions within this input

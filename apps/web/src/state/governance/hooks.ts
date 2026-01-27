@@ -222,7 +222,7 @@ function useFormattedProposalCreatedLogs({
           const parsed = GovernanceInterface.parseLog(log).args
           return parsed
         })
-        //.filter((parsed: any) => indices.flat().some((i) => i === parsed.proposalId))
+        .filter((parsed: any) => indices.flat().some((i) => i.toString() === parsed.proposalId?.toString()))
         .map((parsed: any) => {
           const description: string = parsed.description
           const proposer = parsed.proposer.toString()
@@ -241,7 +241,12 @@ function useFormattedProposalCreatedLogs({
               const fourbyte = calldata.slice(0, 10)
               const sig = FOUR_BYTES_DIR[fourbyte]
               if (!sig) {
-                throw new Error('Missing four byte sig')
+                // Handle unknown function signatures gracefully
+                return {
+                  target: action.target,
+                  functionSig: fourbyte,
+                  callData: calldata.slice(10) || '(no data)',
+                }
               }
               const [name, types] = sig.substring(0, sig.length - 1).split('(')
               calldata = `0x${calldata.slice(10)}`
@@ -398,12 +403,23 @@ export function useAllProposalData(): {
       return { data: [], userVotingPower, proposalThreshold, loading: true }
     }
 
+    // Create a map of proposalId to log data for proper matching
+    const logsMap = new Map<string, FormattedProposalLog>()
+    formattedLogs.forEach((log) => {
+      if (log.proposalId) {
+        logsMap.set(log.proposalId.toString(), log)
+      }
+    })
+
     return {
       data: mergedData.map(({ proposal, proposedAction, state }, i) => {
         const startBlock = parseInt(proposal.startBlockOrTime?.toString())
 
-        const description = formattedLogs[i]?.description
-        const title = description.split(/#+\s|\n/g)[1]
+        // Match by proposal ID (i + 1 since proposals are 1-indexed)
+        const proposalId = (i + 1).toString()
+        const matchedLog = logsMap.get(proposalId)
+        const description = matchedLog?.description ?? ''
+        const title = description.split(/#+\s|\n/g)[1] ?? `Proposal ${proposalId}`
 
         const details = proposedAction.map((action: ProposedAction) => {
           let calldata = action.data
@@ -411,7 +427,12 @@ export function useAllProposalData(): {
           const fourbyte = calldata.slice(0, 10)
           const sig = FOUR_BYTES_DIR[fourbyte]
           if (!sig) {
-            throw new Error('Missing four byte sig')
+            // Handle unknown function signatures gracefully
+            return {
+              target: action.target,
+              functionSig: fourbyte,
+              callData: calldata.slice(10) || '(no data)',
+            }
           }
           const [name, types] = sig.substring(0, sig.length - 1).split('(')
           calldata = `0x${calldata.slice(10)}`
@@ -426,17 +447,17 @@ export function useAllProposalData(): {
 
         // TODO: amend block to time
         return {
-          id: (i + 1).toString(), //formattedLogs[i]?.proposalId?.toString(),
+          id: proposalId,
           title,
           description,
-          proposer: formattedLogs[i]?.proposer, //proposal?.result?.proposer,
+          proposer: matchedLog?.proposer ?? '', //proposal?.result?.proposer,
           status: state ?? ProposalState.UNDETERMINED,
           forCount: CurrencyAmount.fromRawAmount(grg, BigNumber.from(proposal.votesFor).toString()),
           againstCount: CurrencyAmount.fromRawAmount(grg, BigNumber.from(proposal.votesAgainst).toString()),
           startBlock,
           endBlock: parseInt(proposal.endBlockOrTime?.toString()),
           eta: BigNumber.from(0), //proposal?.result?.eta,
-          details, //: formattedLogs[i]?.details,
+          details, //: matchedLog?.details,
           governorIndex: 1,
         }
       }),
@@ -599,7 +620,12 @@ export function useProposalData(
       const fourbyte = calldata.slice(0, 10)
       const sig = FOUR_BYTES_DIR[fourbyte]
       if (!sig) {
-        throw new Error('Missing four byte sig')
+        // Handle unknown function signatures gracefully
+        return {
+          target: action.target,
+          functionSig: fourbyte,
+          callData: calldata.slice(10) || '(no data)',
+        }
       }
       const [name, types] = sig.substring(0, sig.length - 1).split('(')
       calldata = `0x${calldata.slice(10)}`

@@ -17,7 +17,8 @@ export const DEFAULT_PROTOCOL_OPTIONS = [
 ]
 export type FrontendSupportedProtocol = (typeof DEFAULT_PROTOCOL_OPTIONS)[number]
 
-const LAUNCHED_UNISWAPX_CHAINS = [UniverseChainId.Mainnet]
+// UniswapX is disabled for Rigoblock pools - do not add chains here
+const LAUNCHED_UNISWAPX_CHAINS: UniverseChainId[] = []
 
 /** Given a list of `userSelectedProtocols`, returns protocol items that are allowed for the given chain. */
 export function useProtocolsForChain(
