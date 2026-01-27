@@ -57,7 +57,8 @@ export function TradeRoutingPreferenceScreen(): JSX.Element {
 
   const chainId = useSwapFormStoreDerivedSwapInfo((s) => s.chainId)
   const isUniswapXSupported = getIsUniswapXSupported?.(chainId)
-  const uniswapXEnabled = uniswapXEnabledFlag && chainId !== UniverseChainId.MonadTestnet
+  // UniswapX is disabled for Rigoblock pools - always return false
+  const uniswapXEnabled = false // uniswapXEnabledFlag && chainId !== UniverseChainId.MonadTestnet
   const v4SwapEnabled = useV4SwapEnabled(chainId)
   const chainName = getChainInfo(chainId).name
   const restrictionDescription = t('swap.settings.protection.subtitle.unavailable', { chainName })
@@ -113,7 +114,8 @@ export function TradeRoutingPreferenceScreen(): JSX.Element {
         onSelect={toggleDefault}
       />
       <HeightAnimator open={!isDefault} animationDisabled={isMobileApp || isMobileWeb}>
-        {uniswapXEnabledFlag && (
+        {/* UniswapX is disabled for Rigoblock pools */}
+        {false && uniswapXEnabledFlag && (
           <OptionRow
             active={
               isUniswapXSupported === false

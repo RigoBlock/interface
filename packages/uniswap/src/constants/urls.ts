@@ -98,7 +98,7 @@ export const uniswapUrls = {
   helpCenterUrl: 'https://help.uniswap.org/',
   blogUrl: 'https://paragraph.com/@rigoblock',
   docsUrl: 'https://docs.rigoblock.com/',
-  voteUrl: 'https://vote.uniswapfoundation.org',
+  voteUrl: '/vote',
   governanceUrl: 'https://docs.rigoblock.com/governance',
   developersUrl: 'https://docs.rigoblock.com/introduction-to-rigoblock',
   aboutUrl: 'https://about.rigoblock.com/',

@@ -258,6 +258,7 @@ export function useSwapParams(): {
     wrapType,
     currencyAmounts,
     trade: { trade },
+    smartPoolAddress,
   } = derivedSwapInfo
 
   const approvalTxInfo = useTokenApprovalInfo({
@@ -267,6 +268,7 @@ export function useSwapParams(): {
     currencyInAmount: currencyAmounts[CurrencyField.INPUT],
     currencyOutAmount: currencyAmounts[CurrencyField.OUTPUT],
     routing: trade?.routing,
+    smartPoolAddress,
   })
 
   return {

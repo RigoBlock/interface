@@ -24,6 +24,7 @@ export interface TokenApprovalInfoParams {
   currencyOutAmount?: Maybe<CurrencyAmount<Currency>>
   routing: TradingApi.Routing | undefined
   account?: AccountDetails
+  smartPoolAddress?: string
 }
 
 export type ApprovalTxInfo = {
@@ -42,11 +43,13 @@ function useApprovalWillBeBatchedWithSwap(chainId: UniverseChainId, routing: Tra
 }
 
 export function useTokenApprovalInfo(params: TokenApprovalInfoParams): ApprovalTxInfo {
-  const { account, chainId, wrapType, currencyInAmount, currencyOutAmount, routing } = params
+  const { account, chainId, wrapType, currencyInAmount, currencyOutAmount, routing, smartPoolAddress } = params
 
   const isWrap = wrapType !== WrapType.NotApplicable
   /** Approval is included elsewhere for Chained Actions so it can be skipped */
   const isChained = routing === TradingApi.Routing.CHAINED
+  /** Smart pools handle approvals automatically, no permit needed */
+  const isSmartPool = Boolean(smartPoolAddress)
 
   const address = account?.address
   const inputWillBeWrapped = routing && isUniswapX({ routing })
@@ -97,7 +100,7 @@ export function useTokenApprovalInfo(params: TokenApprovalInfoParams): ApprovalT
   ])
 
   const approvalWillBeBatchedWithSwap = useApprovalWillBeBatchedWithSwap(chainId, routing)
-  const shouldSkip = !approvalRequestArgs || isWrap || !address || approvalWillBeBatchedWithSwap || isChained
+  const shouldSkip = !approvalRequestArgs || isWrap || !address || approvalWillBeBatchedWithSwap || isChained || isSmartPool
 
   const { data, isLoading, error } = useCheckApprovalQuery({
     params: shouldSkip ? undefined : approvalRequestArgs,
@@ -115,8 +118,8 @@ export function useTokenApprovalInfo(params: TokenApprovalInfoParams): ApprovalT
       })
     }
 
-    // Approval is N/A for wrap transactions or unconnected state.
-    if (isWrap || !address || approvalWillBeBatchedWithSwap || isChained) {
+    // Approval is N/A for wrap transactions, unconnected state, or smart pools (which handle approvals automatically).
+    if (isWrap || !address || approvalWillBeBatchedWithSwap || isChained || isSmartPool) {
       return {
         action: ApprovalAction.None,
         txRequest: null,
@@ -161,7 +164,7 @@ export function useTokenApprovalInfo(params: TokenApprovalInfoParams): ApprovalT
       txRequest: null,
       cancelTxRequest: null,
     }
-  }, [address, approvalRequestArgs, approvalWillBeBatchedWithSwap, data, error, isWrap, isChained])
+  }, [address, approvalRequestArgs, approvalWillBeBatchedWithSwap, data, error, isWrap, isChained, isSmartPool])
 
   return useMemo(() => {
     const gasEstimate = data?.gasEstimates?.[0]
