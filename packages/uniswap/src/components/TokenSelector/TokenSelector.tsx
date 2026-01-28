@@ -67,6 +67,8 @@ export interface TokenSelectorProps {
   svmAddress?: string
   chainId?: UniverseChainId
   chainIds?: UniverseChainId[]
+  /** Optional list of chains to restrict bridging tokens to (e.g., for RigoBlock smart pools) */
+  supportedBridgingChains?: UniverseChainId[]
   input?: TradeableAsset
   output?: TradeableAsset
   isSurfaceReady?: boolean
@@ -97,6 +99,7 @@ export function TokenSelectorContent({
   svmAddress,
   chainId,
   chainIds,
+  supportedBridgingChains,
   isSurfaceReady = true,
   isLimits,
   onClose,
@@ -233,6 +236,7 @@ export function TokenSelectorContent({
           evmAddress={evmAddress}
           svmAddress={svmAddress}
           chainFilter={chainFilter}
+          supportedBridgingChains={supportedBridgingChains}
           debouncedParsedSearchFilter={debouncedParsedSearchFilter}
           debouncedSearchFilter={debouncedSearchFilter}
           isBalancesOnlySearch={variation === TokenSelectorVariation.BalancesOnly}
@@ -264,6 +268,7 @@ export function TokenSelectorContent({
             evmAddress={evmAddress}
             svmAddress={svmAddress}
             chainFilter={chainFilter}
+            supportedBridgingChains={supportedBridgingChains}
             renderedInModal={renderedInModal}
             onSelectCurrency={onSelectCurrencyCallback}
           />
@@ -275,6 +280,7 @@ export function TokenSelectorContent({
             evmAddress={evmAddress}
             svmAddress={svmAddress}
             chainFilter={chainFilter}
+            supportedBridgingChains={supportedBridgingChains}
             renderedInModal={renderedInModal}
             onSelectCurrency={onSelectCurrencyCallback}
           />
@@ -290,6 +296,7 @@ export function TokenSelectorContent({
     evmAddress,
     svmAddress,
     chainFilter,
+    supportedBridgingChains,
     onSelectCurrencyCallback,
     debouncedParsedSearchFilter,
     debouncedSearchFilter,

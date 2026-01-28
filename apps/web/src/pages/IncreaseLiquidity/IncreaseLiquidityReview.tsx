@@ -58,7 +58,7 @@ export function IncreaseLiquidityReview({ onClose }: { onClose: () => void }) {
   txInfo && (txInfo.permit = undefined)
   // Notice:we add 100k extra gas for Rigoblock gas overhead safety margin
   txInfo?.txRequest?.gasLimit &&
-    (txInfo.txRequest.gasLimit = BigNumber.from(txInfo.txRequest.gasLimit).add(100000).toString())
+    (txInfo.txRequest.gasLimit = BigNumber.from(txInfo.txRequest.gasLimit).add(200000).toString())
 
   const { exactField } = increaseLiquidityState
   const { currencyAmounts, currencyAmountsUSDValue } = derivedIncreaseLiquidityInfo

@@ -127,7 +127,7 @@ export function RemoveLiquidityReview({ onClose }: { onClose: () => void }) {
 
   // Notice: we add 100k extra gas for Rigoblock gas overhead safety margin
   txContext?.txRequest.gasLimit &&
-    (txContext.txRequest.gasLimit = BigNumber.from(txContext.txRequest.gasLimit).add(100000).toString())
+    (txContext.txRequest.gasLimit = BigNumber.from(txContext.txRequest.gasLimit).add(200000).toString())
 
   const onDecreaseLiquidity = () => {
     const isValidTx = isValidLiquidityTxContext(txContext)

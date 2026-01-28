@@ -607,17 +607,8 @@ function PositionPage({ chainId }: { chainId: EVMUniverseChainId | undefined }) 
                   totalApr={positionInfo.totalApr}
                 />
               )}
-            <Flex row justifyContent="space-between">
-              <Text variant="body3" color="$neutral3">
-                {t('reporting.pool.details.title')}
-              </Text>
-              <TouchableArea row gap="$gap4" alignItems="center" onPress={reportPositionHandler}>
-                <Flag size="$icon.16" color="$statusCritical" />
-                <Text variant="body3" color="$statusCritical">
-                  {t('nft.reportSpam')}
-                </Text>
-              </TouchableArea>
-            </Flex>
+            {/* Note: Report spam functionality hidden for Rigoblock fork
+                as it sends reports to Uniswap servers */}
           </Flex>
         </Flex>
       </BodyWrapper>

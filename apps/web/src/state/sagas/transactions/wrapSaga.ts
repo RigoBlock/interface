@@ -50,7 +50,7 @@ function* wrap(params: WrapParams) {
     const step = { type: TransactionStepType.WrapTransaction, txRequest, amount: inputCurrencyAmount } as const
     smartPoolAddress && (step.txRequest.to = smartPoolAddress)
     step.txRequest.from = account.address
-    step.txRequest.gasLimit = BigNumber.from(step.txRequest.gasLimit).add(100000) // Add buffer to gas limit
+    step.txRequest.gasLimit = BigNumber.from(step.txRequest.gasLimit).add(200000) // Add buffer to gas limit
 
     // Override wrap transaction calldata for smart pool
     if (smartPoolAddress && step.txRequest.data) {

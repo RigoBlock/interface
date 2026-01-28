@@ -58,7 +58,10 @@ function useSwapTransactionRequestInfo({
       return undefined
     }
 
-    const alreadyApproved = tokenApprovalInfo?.action === ApprovalAction.None && !swapQuoteResponse.permitTransaction
+    // RigoBlock pools handle approvals internally, so always consider them approved
+    const isRigoBlockPool = !!derivedSwapInfo.smartPoolAddress
+    const alreadyApproved =
+      isRigoBlockPool || (tokenApprovalInfo?.action === ApprovalAction.None && !swapQuoteResponse.permitTransaction)
 
     return prepareSwapRequestParams({
       swapQuoteResponse,

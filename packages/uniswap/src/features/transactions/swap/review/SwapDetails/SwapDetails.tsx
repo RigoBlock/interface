@@ -43,6 +43,8 @@ interface SwapDetailsProps {
   setTokenWarningChecked?: (checked: boolean) => void
   txSimulationErrors?: TradingApi.TransactionFailureReason[]
   includesDelegation?: boolean
+  /** Optional additional content to render in the expandable details section (e.g., bridge sync toggle) */
+  additionalDetailsContent?: React.ReactNode
 }
 
 export function SwapDetails({
@@ -62,6 +64,7 @@ export function SwapDetails({
   setTokenWarningChecked,
   txSimulationErrors,
   includesDelegation,
+  additionalDetailsContent,
 }: SwapDetailsProps): JSX.Element {
   const priceUxEnabled = usePriceUXEnabled()
   const { t } = useTranslation()
@@ -154,6 +157,7 @@ export function SwapDetails({
           <RoutingInfo trade={acceptedTrade} gasFee={gasFee} chainId={acceptedTrade.inputAmount.currency.chainId} />
         )}
         {!priceUxEnabled && <PriceImpactRow derivedSwapInfo={acceptedDerivedSwapInfo} />}
+        {additionalDetailsContent}
       </TransactionDetails>
     </HeightAnimator>
   )

@@ -196,7 +196,10 @@ export function generateCreateCalldataQueryParams({
     return undefined
   }
 
-  const initialPrice = creatingPoolOrPair ? pool.sqrtRatioX96.toString() : undefined
+  // For smart pools, assume the pool already exists (don't send initialPrice)
+  // This prevents errors when the API doesn't know about pools with hooks
+  const shouldCreatePool = creatingPoolOrPair && !smartPoolAddress
+  const initialPrice = shouldCreatePool ? pool.sqrtRatioX96.toString() : undefined
   const tickSpacing = pool.tickSpacing
 
   const independentToken =

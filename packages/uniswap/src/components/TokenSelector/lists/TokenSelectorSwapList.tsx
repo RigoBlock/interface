@@ -23,6 +23,7 @@ function useTokenSectionsForSwap({
   svmAddress,
   chainFilter,
   oppositeSelectedToken,
+  supportedBridgingChains,
 }: TokenSectionsHookProps): GqlResult<OnchainItemSection<TokenSelectorOption>[]> {
   const { defaultChainId, isTestnetModeEnabled } = useEnabledChains()
 
@@ -66,7 +67,7 @@ function useTokenSectionsForSwap({
     refetch: refetchBridgingTokenOptions,
     loading: bridgingTokenOptionsLoading,
     shouldNest: shouldNestBridgingTokens,
-  } = useBridgingTokensOptions({ oppositeSelectedToken, evmAddress, svmAddress, chainFilter })
+  } = useBridgingTokensOptions({ oppositeSelectedToken, evmAddress, svmAddress, chainFilter, supportedBridgingChains })
 
   const recentlySearchedTokenOptions = useRecentlySearchedTokens(chainFilter)
 
@@ -182,6 +183,7 @@ function _TokenSelectorSwapList({
   svmAddress,
   chainFilter,
   oppositeSelectedToken,
+  supportedBridgingChains,
   renderedInModal,
 }: TokenSectionsHookProps & {
   onSelectCurrency: OnSelectCurrency
@@ -198,6 +200,7 @@ function _TokenSelectorSwapList({
     svmAddress,
     chainFilter,
     oppositeSelectedToken,
+    supportedBridgingChains,
   })
   return (
     <TokenSelectorList

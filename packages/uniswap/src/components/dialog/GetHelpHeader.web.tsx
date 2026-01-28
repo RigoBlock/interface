@@ -6,7 +6,7 @@ import { uniswapUrls } from 'uniswap/src/constants/urls'
 
 function WebGetHelpButton({ url }: GetHelpButtonProps): JSX.Element {
   return (
-    <Link to={url ?? uniswapUrls.helpUrl} style={{ textDecoration: 'none' }} target="_blank">
+    <Link to={url ?? uniswapUrls.rigoblockDiscordUrl} style={{ textDecoration: 'none' }} target="_blank">
       <GetHelpButtonUI
         width="max-content"
         animation="fast"

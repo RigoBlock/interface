@@ -164,6 +164,13 @@ export function getShouldSkipSwapRequest({
 }): boolean {
   const { trade } = derivedSwapInfo.trade
 
+  // RigoBlock pools handle approvals and permits internally
+  const isRigoBlockPool = !!derivedSwapInfo.smartPoolAddress
+  if (isRigoBlockPool) {
+    // For RigoBlock pools, only skip if balance check fails
+    return getSwapInputExceedsBalance({ derivedSwapInfo })
+  }
+
   const requiresPermit2Sig = !!trade?.quote.permitData
   const missingSig = requiresPermit2Sig && !signature && !permitsDontNeedSignature
   const approvalInfoMissing = !tokenApprovalInfo?.action || tokenApprovalInfo.action === ApprovalAction.Unknown
@@ -416,11 +423,16 @@ export function getClassicSwapTxAndGasInfo({
       ? { ...swapTxInfo.swapRequestArgs, permitData: undefined }
       : swapTxInfo.swapRequestArgs
 
+  // For RigoBlock pools, skip approval fields entirely since they handle approvals internally
+  const approvalFields = isRigoBlock
+    ? { approveTxRequest: undefined, revocationTxRequest: undefined }
+    : createApprovalFields({ approvalTxInfo })
+
   return {
     routing: trade.routing,
     trade,
     ...createGasFields({ swapTxInfo, approvalTxInfo, permitTxInfo }),
-    ...createApprovalFields({ approvalTxInfo }),
+    ...approvalFields,
     swapRequestArgs: cleanSwapRequestArgs,
     unsigned,
     txRequests,

@@ -57,7 +57,7 @@ export function PortfolioTabs() {
                   borderBottomColor={isActive ? '$neutral1' : '$transparent'}
                   hoverStyle={{
                     color: '$neutral1',
-                    borderBottomColor: '$neutral2',
+                    borderBottomColor: isActive ? '$neutral1' : '$neutral2',
                   }}
                 >
                   {tab.label}

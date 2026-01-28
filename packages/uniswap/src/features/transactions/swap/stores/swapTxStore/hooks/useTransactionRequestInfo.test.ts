@@ -11,6 +11,7 @@ import { useV4SwapEnabled } from 'uniswap/src/features/transactions/swap/hooks/u
 import type { SwapData } from 'uniswap/src/features/transactions/swap/review/services/swapTxAndGasInfoService/evm/evmSwapRepository'
 import { usePermit2SignatureWithData } from 'uniswap/src/features/transactions/swap/stores/swapTxStore/hooks/usePermit2Signature'
 import { useTransactionRequestInfo } from 'uniswap/src/features/transactions/swap/stores/swapTxStore/hooks/useTransactionRequestInfo'
+import { ApprovalAction } from 'uniswap/src/features/transactions/swap/types/trade'
 import { WrapType } from 'uniswap/src/features/transactions/types/wrap'
 import { ETH, WETH } from 'uniswap/src/test/fixtures'
 import { createMockDerivedSwapInfo, createMockTokenApprovalInfo } from 'uniswap/src/test/fixtures/transactions/swap'
@@ -163,6 +164,42 @@ describe('useTransactionRequestInfo', () => {
       gasLimit: '500000',
       maxFeePerGas: '600000',
       maxPriorityFeePerGas: '700000',
+    })
+  })
+
+  it('should set alreadyApproved to true for RigoBlock pools with smartPoolAddress', () => {
+    // RigoBlock pools handle approvals internally via the smart pool contract
+    const mockDerivedSwapInfo = createMockDerivedSwapInfo({
+      inputCurrency: ETH,
+      outputCurrency: WETH,
+      inputAmount: '1000000000000000000',
+      outputAmount: '1000000000',
+      overrides: {
+        smartPoolAddress: '0xRigoBlockPool123', // This marks it as a RigoBlock pool
+      },
+    })
+
+    // Even with Unknown approval action, RigoBlock pools should bypass approval checks
+    const mockTokenApprovalInfo = createMockTokenApprovalInfo({
+      action: ApprovalAction.Unknown,
+    })
+
+    mockUsePermit2SignatureWithData.mockReturnValue({ signature: undefined, isLoading: false })
+    mockUseTradingApiSwapQuery.mockReturnValue(swapQueryResult)
+    mockUseTransactionGasFee.mockReturnValue({ error: null, isLoading: false })
+    mockUseV4SwapEnabled.mockReturnValue(true)
+
+    const { result } = renderHook(() =>
+      useTransactionRequestInfo({
+        derivedSwapInfo: mockDerivedSwapInfo,
+        tokenApprovalInfo: mockTokenApprovalInfo,
+      }),
+    )
+
+    // Should still return swap request - RigoBlock pools bypass approval validation
+    expect(result.current.txRequests?.[0]).toMatchObject<providers.TransactionRequest>({
+      to: '0xSwap',
+      chainId: UniverseChainId.Mainnet,
     })
   })
 })

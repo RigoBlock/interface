@@ -16,6 +16,8 @@ export type TokenSectionsHookProps = {
   svmAddress?: Address
   chainFilter: UniverseChainId | null
   oppositeSelectedToken?: TradeableAsset
+  /** Optional list of chains to restrict bridging tokens to (e.g., for RigoBlock smart pools) */
+  supportedBridgingChains?: UniverseChainId[]
 }
 
 export type ConvertFiatAmountFormattedCallback = (

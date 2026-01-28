@@ -1,4 +1,10 @@
-import { memo, useEffect, useState } from 'react'
+import { memo, useEffect, useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Flex, Switch, Text } from 'ui/src'
+import { InfoCircleFilled } from 'ui/src/components/icons/InfoCircleFilled'
+import { zIndexes } from 'ui/src/theme'
+import { WarningInfo } from 'uniswap/src/components/modals/WarningModal/WarningInfo'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import {
   useTransactionSettingsAutoSlippageToleranceStore,
   useTransactionSettingsStore,
@@ -10,8 +16,12 @@ import {
   useSwapReviewWarningStateActions,
   useSwapReviewWarningStore,
 } from 'uniswap/src/features/transactions/swap/review/stores/swapReviewWarningStore/useSwapReviewWarningStore'
+import { setBridgeSyncMode } from 'uniswap/src/features/transactions/swap/utils/bridgeSyncMode'
+import { isBridge } from 'uniswap/src/features/transactions/swap/utils/routing'
+import { isWebApp } from 'utilities/src/platform'
 
 export const SwapReviewSwapDetails = memo(function SwapReviewSwapDetails(): JSX.Element | null {
+  const { t } = useTranslation()
   const {
     acceptedDerivedSwapInfo,
     derivedSwapInfo,
@@ -54,9 +64,58 @@ export const SwapReviewSwapDetails = memo(function SwapReviewSwapDetails(): JSX.
     }
   }, [swapTxContext.includesDelegation])
 
+  // Bridge sync mode toggle state (web-only, for RigoBlock smart pools)
+  const [bridgeSyncEnabled, setBridgeSyncEnabled] = useState(false)
+
+  // Check if this is a bridge transaction for a smart pool (RigoBlock)
+  const isBridgeTrade = derivedSwapInfo.trade.trade && isBridge(derivedSwapInfo.trade.trade)
+  const smartPoolAddress = derivedSwapInfo.smartPoolAddress
+  const showBridgeSyncToggle = isWebApp && isBridgeTrade && smartPoolAddress
+
+  // Update module-level state when toggle changes
+  const handleBridgeSyncToggle = useCallback(
+    (enabled: boolean) => {
+      setBridgeSyncEnabled(enabled)
+      setBridgeSyncMode(enabled)
+    },
+    [],
+  )
+
+  // Reset sync mode when component unmounts or trade changes
+  useEffect(() => {
+    return () => {
+      setBridgeSyncMode(false)
+    }
+  }, [])
+
   if (!acceptedDerivedSwapInfo) {
     return null
   }
+
+  // Bridge sync toggle component for RigoBlock smart pools
+  const bridgeSyncToggle = showBridgeSyncToggle ? (
+    <Flex row alignItems="center" justifyContent="space-between">
+      <Flex row alignItems="center" gap="$spacing4">
+        <Text color="$neutral2" variant="body3">
+          {t('swap.bridge.syncMode')}
+        </Text>
+        <WarningInfo
+          tooltipProps={{
+            text: t('swap.bridge.syncMode.tooltip'),
+            placement: 'top',
+            maxWidth: 280,
+          }}
+          trigger={<InfoCircleFilled color="$neutral3" size="$icon.16" />}
+          modalProps={{
+            modalName: ModalName.SwapReview,
+            zIndex: zIndexes.popover,
+          }}
+          analyticsTitle="Bridge Sync Mode"
+        />
+      </Flex>
+      <Switch checked={bridgeSyncEnabled} onCheckedChange={handleBridgeSyncToggle} variant="branded" />
+    </Flex>
+  ) : null
 
   return (
     <SwapDetails
@@ -74,6 +133,7 @@ export const SwapReviewSwapDetails = memo(function SwapReviewSwapDetails(): JSX.
       warning={reviewScreenWarning?.warning}
       txSimulationErrors={txSimulationErrors}
       includesDelegation={stableIncludesDelegation}
+      additionalDetailsContent={bridgeSyncToggle}
       onAcceptTrade={onAcceptTrade}
       onShowWarning={onShowWarning}
     />

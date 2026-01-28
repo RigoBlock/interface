@@ -49,7 +49,8 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   const portfolioAddresses = usePortfolioAddresses()
 
   // Use portfolioAddresses.evmAddress which already handles URL params, active smart pool, and user address priority
-  const { totalStakeUSD } = usePortfolioStaking({ address: portfolioAddresses.evmAddress })
+  // Pass chainId to filter staking data by selected chain
+  const { totalStakeUSD } = usePortfolioStaking({ address: portfolioAddresses.evmAddress, chainId })
 
   const { chains: allChainIds } = useEnabledChains()
 
@@ -158,6 +159,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
                 <OverviewActionTiles />
                 <OverviewStakingSection
                   address={portfolioAddresses.evmAddress}
+                  chainId={chainId}
                   onViewStaking={handleNavigateToStaking}
                 />
                 <OverviewStatsTiles activityData={activityData} />

@@ -13,7 +13,7 @@ export function getCurrentPageFromLocation(locationPathname: string): InterfaceP
     case locationPathname.startsWith('/portfolio/defi'):
       return InterfacePageName.PortfolioDefiPage
     case locationPathname.startsWith('/portfolio/staking'):
-      return InterfacePageName.PortfolioDefiPage
+      return InterfacePageName.PortfolioStakingPage
     case locationPathname.startsWith('/portfolio/nfts'):
       return InterfacePageName.PortfolioNftsPage
     case locationPathname.startsWith('/portfolio/activity'):
