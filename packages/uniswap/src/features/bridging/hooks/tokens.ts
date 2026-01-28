@@ -125,11 +125,14 @@ export function useBridgingTokensOptions({
   evmAddress,
   svmAddress,
   chainFilter,
+  supportedBridgingChains,
 }: {
   oppositeSelectedToken: TradeableAsset | undefined
   evmAddress: Address | undefined
   svmAddress: Address | undefined
   chainFilter: UniverseChainId | null
+  /** Optional list of chains to restrict bridging tokens to (e.g., for smart pools) */
+  supportedBridgingChains?: UniverseChainId[]
 }): GqlResult<TokenOption[] | undefined> & { shouldNest?: boolean } {
   const tokenIn = oppositeSelectedToken?.address
     ? getTokenAddressFromChainForTradingApi(oppositeSelectedToken.address, oppositeSelectedToken.chainId)
@@ -158,7 +161,7 @@ export function useBridgingTokensOptions({
     loading: loadingPorfolioBalancesById,
   } = usePortfolioBalancesForAddressById({ evmAddress, svmAddress })
 
-  const tokenOptions = useBridgingTokensToTokenOptions(bridgingTokens?.tokens, portfolioBalancesById)
+  const tokenOptions = useBridgingTokensToTokenOptions(bridgingTokens?.tokens, portfolioBalancesById, supportedBridgingChains)
   // Filter out tokens that are not on the current chain, unless the input token is the same as the current chain
   const isSameChain = oppositeSelectedToken?.chainId === chainFilter
   const shouldFilterByChain = chainFilter !== null && !isSameChain
@@ -186,22 +189,47 @@ export function useBridgingTokensOptions({
 function useBridgingTokensToTokenOptions(
   bridgingTokens: TradingApi.GetSwappableTokensResponse['tokens'] | undefined,
   portfolioBalancesById?: Record<string, PortfolioBalance>,
+  supportedBridgingChains?: UniverseChainId[],
 ): TokenOption[] | undefined {
   const { chains: enabledChainIds } = useEnabledChains()
+
+  // Use provided supported chains if available, otherwise use enabled chains from context
+  const effectiveChainIds = supportedBridgingChains ?? enabledChainIds
 
   return useMemo(() => {
     if (!bridgingTokens) {
       return undefined
     }
 
+    // Always filter tokens to only include those on enabled chains
+    // This ensures we only show tokens for RigoBlock-supported chains when in smart pool context
+    const filteredBridgingTokens = bridgingTokens.filter((token) => {
+      const chainId = toSupportedChainId(token.chainId)
+      if (!chainId || !effectiveChainIds.includes(chainId)) {
+        return false
+      }
+
+      // Unichain only supports ETH bridging via Across - filter out non-ETH tokens on Unichain
+      if (chainId === UniverseChainId.Unichain) {
+        const symbol = token.symbol?.toUpperCase()
+        const isEthOrWeth =
+          token.address === NATIVE_ADDRESS_FOR_TRADING_API || symbol === 'ETH' || symbol === 'WETH'
+        if (!isEthOrWeth) {
+          return false
+        }
+      }
+
+      return true
+    })
+
     // We sort the tokens by chain in the same order as in the network selector
-    const sortedBridgingTokens = [...bridgingTokens].sort((a, b) => {
+    const sortedBridgingTokens = [...filteredBridgingTokens].sort((a, b) => {
       const chainIdA = toSupportedChainId(a.chainId)
       const chainIdB = toSupportedChainId(b.chainId)
       if (!chainIdA || !chainIdB) {
         return 0
       }
-      return enabledChainIds.indexOf(chainIdA) - enabledChainIds.indexOf(chainIdB)
+      return effectiveChainIds.indexOf(chainIdA) - effectiveChainIds.indexOf(chainIdB)
     })
 
     return sortedBridgingTokens
@@ -221,5 +249,5 @@ function useBridgingTokensToTokenOptions(
         }
       })
       .filter((tokenOption): tokenOption is TokenOption => tokenOption !== undefined)
-  }, [bridgingTokens, portfolioBalancesById, enabledChainIds])
+  }, [bridgingTokens, portfolioBalancesById, effectiveChainIds, supportedBridgingChains])
 }

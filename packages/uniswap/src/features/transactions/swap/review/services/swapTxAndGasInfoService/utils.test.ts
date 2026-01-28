@@ -287,6 +287,53 @@ describe('getShouldSkipSwapRequest', () => {
     // Then
     expect(result).toBe(true)
   })
+
+  it('should skip approval/permit checks for RigoBlock pools (smartPoolAddress set)', () => {
+    // Given - RigoBlock pools handle approvals internally
+    const derivedSwapInfoWithSmartPool = {
+      ...baseDerivedSwapInfo,
+      smartPoolAddress: '0xRigoBlockPool123',
+      trade: mockTradeNeedingPermit, // Would normally require permit
+    } as unknown as DerivedSwapInfo
+
+    const tokenApprovalInfoUnknown = {
+      action: ApprovalAction.Unknown, // Would normally skip
+      txRequest: null,
+      cancelTxRequest: null,
+    } as const
+
+    // When
+    const result = getShouldSkipSwapRequest({
+      derivedSwapInfo: derivedSwapInfoWithSmartPool,
+      tokenApprovalInfo: tokenApprovalInfoUnknown,
+      signature: undefined, // No signature provided
+    })
+
+    // Then - should not skip because RigoBlock pool handles approvals internally
+    expect(result).toBe(false)
+  })
+
+  it('should still check balance for RigoBlock pools', () => {
+    // Given - RigoBlock pools should still validate balance
+    const derivedSwapInfoWithSmartPool = {
+      ...baseDerivedSwapInfo,
+      smartPoolAddress: '0xRigoBlockPool123',
+      currencyAmounts: {
+        [CurrencyField.INPUT]: CurrencyAmount.fromRawAmount(USDC, '1000'), // More than balance
+        [CurrencyField.OUTPUT]: CurrencyAmount.fromRawAmount(DAI, '1000'),
+      },
+    } as unknown as DerivedSwapInfo
+
+    // When
+    const result = getShouldSkipSwapRequest({
+      derivedSwapInfo: derivedSwapInfoWithSmartPool,
+      tokenApprovalInfo: baseTokenApprovalInfo,
+      signature: undefined,
+    })
+
+    // Then - should skip because balance is insufficient
+    expect(result).toBe(true)
+  })
 })
 
 describe('createProcessSwapResponse', () => {

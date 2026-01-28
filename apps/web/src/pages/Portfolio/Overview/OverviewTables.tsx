@@ -32,6 +32,7 @@ export const PortfolioOverviewTables = memo(function PortfolioOverviewTables({
 }: PortfolioOverviewTablesProps) {
   const { totalStakeAmount, totalStakeUSD, hasAnyStake, isLoading } = usePortfolioStaking({
     address: stakingAddress || portfolioAddresses.evmAddress,
+    chainId, // Filter staking data by selected chain
   })
   const { convertFiatAmountFormatted, formatCurrencyAmount } = useLocalizationContext()
 

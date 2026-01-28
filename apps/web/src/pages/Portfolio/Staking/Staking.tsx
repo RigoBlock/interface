@@ -3,6 +3,7 @@ import { STAKING_PROXY_ADDRESSES } from 'constants/addresses'
 import JSBI from 'jsbi'
 import { usePortfolioAddresses } from 'pages/Portfolio/hooks/usePortfolioAddresses'
 import { usePortfolioStaking } from 'pages/Portfolio/hooks/usePortfolioStaking'
+import { usePortfolioRoutes } from 'pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { useMemo } from 'react'
 import { useActiveSmartPool } from 'state/application/hooks'
 import { usePoolIdByAddress } from 'state/governance/hooks'
@@ -329,9 +330,9 @@ function useMultiChainStakingData(address?: string, smartPoolAddress?: string) {
   return chainStakingData
 }
 
-function MultiChainStakingInfo({ address, smartPoolAddress }: { address?: string; smartPoolAddress?: string }) {
+function MultiChainStakingInfo({ address, smartPoolAddress, filterChainId }: { address?: string; smartPoolAddress?: string; filterChainId?: UniverseChainId }) {
   const { stakingData, stakingChains, hasAnyStake, isLoading, totalStakeUSD, isViewingOwnStakes } = usePortfolioStaking(
-    { address },
+    { address, chainId: filterChainId },
   )
   const { convertFiatAmountFormatted } = useLocalizationContext()
 
@@ -436,6 +437,7 @@ function MultiChainStakingInfo({ address, smartPoolAddress }: { address?: string
 
 export function PortfolioStaking() {
   const { evmAddress } = usePortfolioAddresses()
+  const { chainId: urlChainId } = usePortfolioRoutes()
   const [paramAddress] = new URLSearchParams(window.location.search).getAll('address')
   const activeSmartPool = useActiveSmartPool()
   // TODO: the paramAddress could be the user address when coming from the account drawer, check if it's a smart pool address
@@ -454,7 +456,7 @@ export function PortfolioStaking() {
         </Flex>
       ) : (
         <>
-          <MultiChainStakingInfo address={evmAddress} smartPoolAddress={smartPoolAddress} />
+          <MultiChainStakingInfo address={evmAddress} smartPoolAddress={smartPoolAddress} filterChainId={urlChainId} />
 
           {smartPoolAddress && poolId && (
             <PoolStakingInfo poolAddress={smartPoolAddress} poolId={poolId} stakingPoolExists={stakingPoolExists} />

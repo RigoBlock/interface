@@ -99,3 +99,17 @@ export const POP_ADDRESSES: AddressMap = {
   [UniverseChainId.Base]: '0x979Af6DDC1562b4B6D8B2Ab60A1B7221a0d6C8DB',
   [UniverseChainId.Unichain]: '0xa094BEB834b439bA77763c5889DaBf434Bc26662',
 }
+
+/**
+ * RigoBlock-supported chains for Across bridging
+ * Only chains where both RigoBlock pools and Across bridge are deployed and tested
+ */
+export const RIGOBLOCK_BRIDGE_SUPPORTED_CHAINS: UniverseChainId[] = [
+  UniverseChainId.Mainnet,
+  UniverseChainId.ArbitrumOne,
+  UniverseChainId.Optimism,
+  UniverseChainId.Polygon,
+  UniverseChainId.Base,
+  UniverseChainId.Bnb,
+  UniverseChainId.Unichain // Unichain currently only supports sending and receiving ETH (not USDC)
+]

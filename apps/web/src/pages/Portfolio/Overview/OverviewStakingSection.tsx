@@ -4,16 +4,18 @@ import { Box, ChevronRight } from 'react-feather'
 import { Trans } from 'react-i18next'
 import { Flex } from 'ui/src/components/layout'
 import { Text } from 'ui/src/components/text'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { NumberType } from 'utilities/src/format/types'
 
 interface OverviewStakingSectionProps {
   address?: string
+  chainId?: UniverseChainId
   onViewStaking: () => void
 }
 
-export function OverviewStakingSection({ address, onViewStaking }: OverviewStakingSectionProps) {
-  const { totalStakeAmount, totalStakeUSD, hasAnyStake } = usePortfolioStaking({ address })
+export function OverviewStakingSection({ address, chainId, onViewStaking }: OverviewStakingSectionProps) {
+  const { totalStakeAmount, totalStakeUSD, hasAnyStake } = usePortfolioStaking({ address, chainId })
   const { formatCurrencyAmount } = useLocalizationContext()
 
   if (!hasAnyStake) {

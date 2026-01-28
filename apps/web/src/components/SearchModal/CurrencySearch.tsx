@@ -1,5 +1,6 @@
 import { Currency } from '@uniswap/sdk-core'
 import { SwitchNetworkAction } from 'components/Popups/types'
+import { RIGOBLOCK_BRIDGE_SUPPORTED_CHAINS } from 'constants/addresses'
 import useSelectChain from 'hooks/useSelectChain'
 import { useCallback, useEffect } from 'react'
 import { useLocation } from 'react-router'
@@ -87,6 +88,7 @@ export function CurrencySearch({
           isLimits={currentTab === SwapTab.Limit}
           chainId={!isMultichainContext || isUserSelectedToken ? chainId : undefined}
           chainIds={chainIds ?? chains}
+          supportedBridgingChains={smartPoolAddress ? RIGOBLOCK_BRIDGE_SUPPORTED_CHAINS : undefined}
           currencyField={currencyField}
           flow={TokenSelectorFlow.Swap}
           isSurfaceReady={true}

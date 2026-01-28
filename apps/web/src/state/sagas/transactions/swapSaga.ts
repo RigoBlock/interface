@@ -17,6 +17,12 @@ import { useSetOverrideOneClickSwapFlag } from 'pages/Swap/settings/OneClickSwap
 import { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { handleAtomicSendCalls } from 'state/sagas/transactions/5792'
+import {
+  isAcrossDepositV3,
+  modifyAcrossDepositV3ForSmartPool,
+  OpType,
+} from 'state/sagas/transactions/bridgeCalldata'
+import { getBridgeSyncMode } from 'uniswap/src/features/transactions/swap/utils/bridgeSyncMode'
 import { useGetOnPressRetry } from 'state/sagas/transactions/retry'
 import { jupiterSwap } from 'state/sagas/transactions/solana'
 import { handleUniswapXPlanSignatureStep, handleUniswapXSignatureStep } from 'state/sagas/transactions/uniswapx'
@@ -93,36 +99,77 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
     swapStartTimestamp: analytics.swap_start_timestamp,
   })
   const txRequest = yield* call(getSwapTxRequest, step, signature, smartPoolAddress)
+
+  // Store the original value before zeroing it for smart pool swaps
+  const originalValue = txRequest.value
+
   smartPoolAddress && txRequest.to !== smartPoolAddress && (txRequest.to = smartPoolAddress)
   txRequest.value !== String(0) && (txRequest.value = String(0)) // Ensure value is zero for smart pool swaps
-  txRequest.gasLimit && (txRequest.gasLimit = BigNumber.from(txRequest.gasLimit).add(100000).toString()) // Add buffer to gas limit
+
+  // Add gas buffer for RigoBlock smart pool routing
+  // Smart pool routing adds ~150k gas overhead for the pool contract execution
+  if (txRequest.gasLimit && smartPoolAddress) {
+    const RIGOBLOCK_GAS_OVERHEAD = 150000
+    txRequest.gasLimit = BigNumber.from(txRequest.gasLimit).add(RIGOBLOCK_GAS_OVERHEAD).toString()
+  }
 
   // Override fee recipient in calldata with smart pool address
   if (smartPoolAddress && txRequest.data) {
     // Convert BytesLike to string for manipulation
     const calldata = typeof txRequest.data === 'string' ? txRequest.data : txRequest.data.toString()
 
-    try {
-      // Decode V4 execute(bytes commands, bytes[] inputs) calldata
-      // Remove function selector (first 4 bytes) and decode the parameters
-      const parametersOnly = calldata.slice(10) // Remove '0x' + 8 hex chars (4 bytes)
-      const updatedParams = modifyV4ExecuteCalldata('0x' + parametersOnly, smartPoolAddress)
+    // Check if this is a bridge transaction with Across depositV3
+    if (trade.routing === TradingApi.Routing.BRIDGE && isAcrossDepositV3(calldata)) {
+      try {
+        // Calculate output token price from analytics for solver gas compensation
+        // The solver needs to be compensated for gas costs on the destination chain
+        // We reduce the output amount to create spread for the solver
+        const tokenOutAmountUSD = analytics.token_out_amount_usd
+        const tokenOutAmount = parseFloat(trade.outputAmount.toExact())
+        const outputTokenPriceUSD =
+          tokenOutAmountUSD && tokenOutAmount > 0 ? tokenOutAmountUSD / tokenOutAmount : undefined
+        const outputTokenDecimals = trade.outputAmount.currency.decimals
 
-      if (updatedParams !== '0x' + parametersOnly) {
-        // Reconstruct the full calldata with the original function selector
-        const functionSelector = calldata.slice(0, 10) // '0x' + 8 hex chars
-        const updatedCalldata = functionSelector + updatedParams.slice(2)
+        // Modify Across depositV3 calldata for RigoBlock smart pools
+        // The originalValue contains the ETH amount to be bridged (sourceNativeAmount)
+        // Get OpType from user preference (Transfer by default, Sync if enabled)
+        const bridgeOpType = getBridgeSyncMode() ? OpType.Sync : OpType.Transfer
+        const modifiedCalldata = modifyAcrossDepositV3ForSmartPool({
+          calldata,
+          smartPoolAddress,
+          value: String(originalValue || '0'),
+          opType: bridgeOpType,
+          outputTokenPriceUSD,
+          outputTokenDecimals,
+        })
+        txRequest.data = modifiedCalldata
+      } catch (error) {
+        console.error('Failed to modify Across depositV3 calldata for smart pool:', error)
+        throw error
+      }
+    } else {
+      try {
+        // Decode V4 execute(bytes commands, bytes[] inputs) calldata
+        // Remove function selector (first 4 bytes) and decode the parameters
+        const parametersOnly = calldata.slice(10) // Remove '0x' + 8 hex chars (4 bytes)
+        const updatedParams = modifyV4ExecuteCalldata('0x' + parametersOnly, smartPoolAddress)
+
+        if (updatedParams !== '0x' + parametersOnly) {
+          // Reconstruct the full calldata with the original function selector
+          const functionSelector = calldata.slice(0, 10) // '0x' + 8 hex chars
+          const updatedCalldata = functionSelector + updatedParams.slice(2)
+          txRequest.data = updatedCalldata
+        }
+      } catch (error) {
+        // Fallback to simple string replacement if decoding fails
+        console.warn('Failed to decode Universal Router calldata, using fallback replacement:', error)
+        const targetAddressPadded = '00000000000000000000000027213e28d7fda5c57fe9e5dd923818dbccf71c47'
+        const smartPoolAddressWithout0x = smartPoolAddress.replace('0x', '').toLowerCase()
+        const smartPoolAddressPadded = '000000000000000000000000' + smartPoolAddressWithout0x
+
+        const updatedCalldata = calldata.replaceAll(targetAddressPadded, smartPoolAddressPadded)
         txRequest.data = updatedCalldata
       }
-    } catch (error) {
-      // Fallback to simple string replacement if decoding fails
-      console.warn('Failed to decode Universal Router calldata, using fallback replacement:', error)
-      const targetAddressPadded = '00000000000000000000000027213e28d7fda5c57fe9e5dd923818dbccf71c47'
-      const smartPoolAddressWithout0x = smartPoolAddress.replace('0x', '').toLowerCase()
-      const smartPoolAddressPadded = '000000000000000000000000' + smartPoolAddressWithout0x
-
-      const updatedCalldata = calldata.replaceAll(targetAddressPadded, smartPoolAddressPadded)
-      txRequest.data = updatedCalldata
     }
 
     txRequest.from = address

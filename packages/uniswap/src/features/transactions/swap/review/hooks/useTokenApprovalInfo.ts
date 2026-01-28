@@ -100,7 +100,8 @@ export function useTokenApprovalInfo(params: TokenApprovalInfoParams): ApprovalT
   ])
 
   const approvalWillBeBatchedWithSwap = useApprovalWillBeBatchedWithSwap(chainId, routing)
-  const shouldSkip = !approvalRequestArgs || isWrap || !address || approvalWillBeBatchedWithSwap || isChained || isSmartPool
+  const shouldSkip =
+    !approvalRequestArgs || isWrap || !address || approvalWillBeBatchedWithSwap || isChained || isSmartPool
 
   const { data, isLoading, error } = useCheckApprovalQuery({
     params: shouldSkip ? undefined : approvalRequestArgs,

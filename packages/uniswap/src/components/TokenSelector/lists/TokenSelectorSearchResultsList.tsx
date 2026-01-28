@@ -19,6 +19,7 @@ function _TokenSelectorSearchResultsList({
   debouncedParsedSearchFilter,
   isBalancesOnlySearch,
   input,
+  supportedBridgingChains,
   renderedInModal,
 }: {
   onSelectCurrency: OnSelectCurrency
@@ -31,6 +32,8 @@ function _TokenSelectorSearchResultsList({
   debouncedParsedSearchFilter: string | null
   isBalancesOnlySearch: boolean
   input: TradeableAsset | undefined
+  /** Optional list of chains to restrict bridging tokens to (e.g., for RigoBlock smart pools) */
+  supportedBridgingChains?: UniverseChainId[]
   renderedInModal: boolean
 }): JSX.Element {
   const { t } = useTranslation()
@@ -47,6 +50,7 @@ function _TokenSelectorSearchResultsList({
     searchFilter: debouncedParsedSearchFilter ?? debouncedSearchFilter,
     isBalancesOnlySearch,
     input,
+    supportedBridgingChains,
   })
 
   // eslint-disable-next-line max-params

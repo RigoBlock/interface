@@ -206,14 +206,8 @@ function useDropdownOptions({
         showDivider: true,
       })
 
-      if (!liquidityPosition.isHidden) {
-        options.push({
-          onPress: reportPositionHandler,
-          label: t('nft.reportSpam'),
-          Icon: Flag,
-          destructive: true,
-        })
-      }
+      // Note: Report spam functionality removed for Rigoblock fork
+      // as it sends reports to Uniswap servers
     }
 
     return options
@@ -221,7 +215,6 @@ function useDropdownOptions({
     account.chainId,
     dispatch,
     isOpenLiquidityPosition,
-    reportPositionHandler,
     isVisible,
     liquidityPosition,
     navigate,

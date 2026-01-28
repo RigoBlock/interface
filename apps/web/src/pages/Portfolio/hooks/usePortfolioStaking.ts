@@ -150,7 +150,10 @@ function useChainStakingData({
 }
 
 // Main hook for portfolio-level multi-chain staking data with proper target detection
-export function usePortfolioStaking({ address }: { address?: string } = {}): {
+export function usePortfolioStaking({
+  address,
+  chainId: filterChainId,
+}: { address?: string; chainId?: UniverseChainId } = {}): {
   stakingChains: UniverseChainId[]
   stakingData: Partial<Record<UniverseChainId, StakingData>>
   totalStakeAmount?: CurrencyAmount<any>
@@ -206,9 +209,10 @@ export function usePortfolioStaking({ address }: { address?: string } = {}): {
     return enabledChains.filter((chainId) => {
       const hasStakingContract = STAKING_PROXY_ADDRESSES[chainId]
       const isTestnet = isTestnetChain(chainId)
-      return hasStakingContract && isTestnet === isTestnetModeEnabled
+      const matchesFilter = filterChainId === undefined || chainId === filterChainId
+      return hasStakingContract && isTestnet === isTestnetModeEnabled && matchesFilter
     })
-  }, [enabledChains, isTestnetModeEnabled])
+  }, [enabledChains, isTestnetModeEnabled, filterChainId])
 
   // Get cached staking data from Redux store
   const allUserStakingData = useSelector((state: InterfaceState) =>

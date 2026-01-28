@@ -22,6 +22,7 @@ export function useTokenSectionsForSearchResults({
   searchFilter,
   isBalancesOnlySearch,
   input,
+  supportedBridgingChains,
 }: {
   evmAddress?: string
   svmAddress?: string
@@ -29,6 +30,8 @@ export function useTokenSectionsForSearchResults({
   searchFilter: string | null
   isBalancesOnlySearch: boolean
   input?: TradeableAsset
+  /** Optional list of chains to restrict bridging tokens to (e.g., for RigoBlock smart pools) */
+  supportedBridgingChains?: UniverseChainId[]
 }): GqlResult<OnchainItemSection<TokenOption>[]> {
   const { t } = useTranslation()
 
@@ -52,7 +55,7 @@ export function useTokenSectionsForSearchResults({
     error: bridgingTokenOptionsError,
     refetch: refetchBridgingTokenOptions,
     loading: bridgingTokenOptionsLoading,
-  } = useBridgingTokensOptions({ oppositeSelectedToken: input, evmAddress, svmAddress, chainFilter })
+  } = useBridgingTokensOptions({ oppositeSelectedToken: input, evmAddress, svmAddress, chainFilter, supportedBridgingChains })
 
   // Only call search endpoint if isBalancesOnlySearch is false
   const {
