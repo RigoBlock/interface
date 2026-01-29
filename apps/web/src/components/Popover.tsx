@@ -6,11 +6,11 @@ import React, { CSSProperties, memo, useCallback, useMemo, useState } from 'reac
 import { usePopper } from 'react-popper'
 import { Z_INDEX } from 'theme/zIndex'
 
-const PopoverContainer = styled.div<{ show: boolean }>`
+const PopoverContainer = styled.div<{ $show: boolean }>`
   z-index: ${Z_INDEX.popover};
   pointer-events: none;
-  visibility: ${(props) => (props.show ? 'visible' : 'hidden')};
-  opacity: ${(props) => (props.show ? 1 : 0)};
+  visibility: ${(props) => (props.$show ? 'visible' : 'hidden')};
+  opacity: ${(props) => (props.$show ? 1 : 0)};
   transition:
     visibility 150ms linear,
     opacity 150ms linear;
@@ -122,14 +122,14 @@ const Popover = memo(function Popover({
   useInterval(updateCallback, show ? 100 : null)
 
   return showInline ? (
-    <PopoverContainer show={show}>{content}</PopoverContainer>
+    <PopoverContainer $show={show}>{content}</PopoverContainer>
   ) : (
     <>
       <ReferenceElement style={style} ref={setReferenceElement as any}>
         {children}
       </ReferenceElement>
       <Portal>
-        <PopoverContainer show={show} ref={setPopperElement as any} style={styles.popper} {...attributes.popper}>
+        <PopoverContainer $show={show} ref={setPopperElement as any} style={styles.popper} {...attributes.popper}>
           {content}
           {!hideArrow && (
             <Arrow
