@@ -238,8 +238,12 @@ export default function PoolPositionPage() {
     return simulatedValue
   }
 
-  const unitaryValue =
+  // Default unitary value is 1e18 (1 with 18 decimals) for uninitialized pools
+  const DEFAULT_UNITARY_VALUE = '1000000000000000000'
+  const simulatedOrStoredValue =
     useSimulatedUnitaryValue(poolAddressFromUrl, storedUnitaryValue?.toString()) ?? storedUnitaryValue
+  // Use default value of 1e18 when pool is uninitialized (null/undefined unitary value)
+  const unitaryValue = simulatedOrStoredValue ?? DEFAULT_UNITARY_VALUE
 
   let base = useCurrency({ address: baseToken !== ZERO_ADDRESS ? baseToken : undefined, chainId })
   if (baseToken === ZERO_ADDRESS) {
@@ -247,7 +251,7 @@ export default function PoolPositionPage() {
   }
 
   const pool = useCurrency({ address: poolAddressFromUrl ?? undefined, chainId })
-  const amount = JSBI.BigInt(String(unitaryValue ?? 0))
+  const amount = JSBI.BigInt(String(unitaryValue))
   const poolPrice = pool ? CurrencyAmount.fromRawAmount(pool, amount) : undefined
   const userPoolBalance = useMemo(() => {
     if (!pool || userAccount?.userBalance === undefined) {
@@ -266,7 +270,7 @@ export default function PoolPositionPage() {
 
   const poolValue = useMemo(() => {
     try {
-      const unitaryBigInt = JSBI.BigInt(String(unitaryValue ?? 0))
+      const unitaryBigInt = JSBI.BigInt(String(unitaryValue))
       const supplyBigInt = JSBI.BigInt(String(totalSupply ?? 0))
       const decimalsBigInt = JSBI.BigInt(String(decimals ?? 18))
       const divisor = JSBI.exponentiate(JSBI.BigInt(10), decimalsBigInt)
