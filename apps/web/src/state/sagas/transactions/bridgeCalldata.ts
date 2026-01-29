@@ -25,19 +25,25 @@ const ACROSS_DEPOSIT_V3_SELECTOR = '0x7b939232'
 // depositV3((address,address,address,address,uint256,uint256,uint256,address,uint32,uint32,uint32,bytes))
 const RIGOBLOCK_DEPOSIT_V3_SELECTOR = '0x770d096f'
 
-// Ethereum mainnet chain ID
+// Chain IDs for gas cost calculation
 const ETHEREUM_MAINNET_CHAIN_ID = 1
+const POLYGON_CHAIN_ID = 137
 
 /**
- * Solver gas compensation in USD equivalent (in basis points of output amount)
- * - L2 chains: ~$0.02 gas cost
- * - Ethereum mainnet: ~$0.20 gas cost (10x higher)
+ * Solver gas compensation in USD equivalent
+ * The solver pays gas on the destination chain to fill cross-chain orders (~1MM gas).
+ * These margins account for variable gas costs across different chains:
  * 
- * These values are approximations and should be adjusted based on actual gas costs.
+ * - L2s (Arbitrum, Base, Optimism, Bsc, etc.): ~$0.50 (increased for safety as gas may rise)
+ * - Polygon: ~$0.80 (highly variable gas costs, currently ~$0.07 but can spike)
+ * - Ethereum mainnet: ~$2.00 (high gas costs, currently ~$0.20 for 1MM gas)
+ * 
+ * These values provide sufficient margin to ensure intents are filled reliably.
  * The solver is compensated via the spread between inputAmount and outputAmount.
  */
-const SOLVER_GAS_COMPENSATION_USD_L2 = 0.02
-const SOLVER_GAS_COMPENSATION_USD_MAINNET = 0.20
+const SOLVER_GAS_COMPENSATION_USD_L2 = 0.5
+const SOLVER_GAS_COMPENSATION_USD_POLYGON = 0.8
+const SOLVER_GAS_COMPENSATION_USD_MAINNET = 2.0
 
 interface AcrossParams {
   depositor: string
@@ -131,9 +137,7 @@ function encodeRigoblockDepositV3(params: AcrossParams): string {
   const abiCoder = new AbiCoder()
 
   const encodedParams = abiCoder.encode(
-    [
-      'tuple(address,address,address,address,uint256,uint256,uint256,address,uint32,uint32,uint32,bytes)',
-    ],
+    ['tuple(address,address,address,address,uint256,uint256,uint256,address,uint32,uint32,uint32,bytes)'],
     [
       [
         params.depositor,
@@ -201,7 +205,7 @@ interface SolverGasCompensationParams {
  * Calculates the solver gas compensation in output token units
  * The solver pays gas on the destination chain to fill the order,
  * and is compensated via the spread between input and output amounts.
- * 
+ *
  * @param params - Object containing destinationChainId, outputTokenPriceUSD, and outputTokenDecimals
  * @returns The compensation amount in output token base units
  */
@@ -214,8 +218,17 @@ function calculateSolverGasCompensation(params: SolverGasCompensationParams): Bi
   }
 
   // Determine gas cost in USD based on destination chain
-  const isMainnet = destinationChainId.eq(ETHEREUM_MAINNET_CHAIN_ID)
-  const gasCostUSD = isMainnet ? SOLVER_GAS_COMPENSATION_USD_MAINNET : SOLVER_GAS_COMPENSATION_USD_L2
+  const chainIdNum = destinationChainId.toNumber()
+  let gasCostUSD: number
+  
+  if (chainIdNum === ETHEREUM_MAINNET_CHAIN_ID) {
+    gasCostUSD = SOLVER_GAS_COMPENSATION_USD_MAINNET
+  } else if (chainIdNum === POLYGON_CHAIN_ID) {
+    gasCostUSD = SOLVER_GAS_COMPENSATION_USD_POLYGON
+  } else {
+    // All other chains (L2s) get the standard L2 compensation
+    gasCostUSD = SOLVER_GAS_COMPENSATION_USD_L2
+  }
 
   // Convert USD gas cost to output token amount
   // gasCostInToken = gasCostUSD / outputTokenPriceUSD
@@ -227,8 +240,14 @@ function calculateSolverGasCompensation(params: SolverGasCompensationParams): Bi
 }
 
 export function modifyAcrossDepositV3ForSmartPool(fnParams: ModifyAcrossParams): string {
-  const { calldata, smartPoolAddress, value, opType = OpType.Transfer, outputTokenPriceUSD, outputTokenDecimals } =
-    fnParams
+  const {
+    calldata,
+    smartPoolAddress,
+    value,
+    opType = OpType.Transfer,
+    outputTokenPriceUSD,
+    outputTokenDecimals,
+  } = fnParams
   try {
     // Decode the Across depositV3 calldata
     const { params: decodedParams } = decodeAcrossDepositV3(calldata)

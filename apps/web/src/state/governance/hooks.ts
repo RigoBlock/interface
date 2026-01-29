@@ -216,51 +216,49 @@ function useFormattedProposalCreatedLogs({
   const useLogsResult = useLogs(filter)
 
   return useMemo(() => {
-    return (
-      useLogsResult.logs
-        ?.map((log: { topics: string[]; data: string }) => {
-          const parsed = GovernanceInterface.parseLog(log).args
-          return parsed
-        })
-        .filter((parsed: any) => indices.flat().some((i) => i.toString() === parsed.proposalId?.toString()))
-        .map((parsed: any) => {
-          const description: string = parsed.description
-          const proposer = parsed.proposer.toString()
-          const proposalId = parsed.proposalId
+    return useLogsResult.logs
+      ?.map((log: { topics: string[]; data: string }) => {
+        const parsed = GovernanceInterface.parseLog(log).args
+        return parsed
+      })
+      .filter((parsed: any) => indices.flat().some((i) => i.toString() === parsed.proposalId?.toString()))
+      .map((parsed: any) => {
+        const description: string = parsed.description
+        const proposer = parsed.proposer.toString()
+        const proposalId = parsed.proposalId
 
-          return {
-            proposer,
-            description,
-            proposalId,
-            startBlockOrTime: parseInt(parsed.startBlockOrTime?.toString()),
-            endBlockOrTime: parseInt(parsed.startBlockOrTime?.toString()),
-            actions: parsed.actions,
-            details: parsed.actions.map((action: ProposedAction) => {
-              let calldata = action.data
+        return {
+          proposer,
+          description,
+          proposalId,
+          startBlockOrTime: parseInt(parsed.startBlockOrTime?.toString()),
+          endBlockOrTime: parseInt(parsed.startBlockOrTime?.toString()),
+          actions: parsed.actions,
+          details: parsed.actions.map((action: ProposedAction) => {
+            let calldata = action.data
 
-              const fourbyte = calldata.slice(0, 10)
-              const sig = FOUR_BYTES_DIR[fourbyte]
-              if (!sig) {
-                // Handle unknown function signatures gracefully
-                return {
-                  target: action.target,
-                  functionSig: fourbyte,
-                  callData: calldata.slice(10) || '(no data)',
-                }
-              }
-              const [name, types] = sig.substring(0, sig.length - 1).split('(')
-              calldata = `0x${calldata.slice(10)}`
-
-              const decoded = defaultAbiCoder.decode(types.split(','), calldata)
+            const fourbyte = calldata.slice(0, 10)
+            const sig = FOUR_BYTES_DIR[fourbyte]
+            if (!sig) {
+              // Handle unknown function signatures gracefully
               return {
                 target: action.target,
-                functionSig: name,
-                callData: decoded.join(', '),
+                functionSig: fourbyte,
+                callData: calldata.slice(10) || '(no data)',
               }
-            }),
-          }
-        })
-    )
+            }
+            const [name, types] = sig.substring(0, sig.length - 1).split('(')
+            calldata = `0x${calldata.slice(10)}`
+
+            const decoded = defaultAbiCoder.decode(types.split(','), calldata)
+            return {
+              target: action.target,
+              functionSig: name,
+              callData: decoded.join(', '),
+            }
+          }),
+        }
+      })
   }, [useLogsResult])
 }
 

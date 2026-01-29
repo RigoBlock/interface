@@ -161,7 +161,11 @@ export function useBridgingTokensOptions({
     loading: loadingPorfolioBalancesById,
   } = usePortfolioBalancesForAddressById({ evmAddress, svmAddress })
 
-  const tokenOptions = useBridgingTokensToTokenOptions(bridgingTokens?.tokens, portfolioBalancesById, supportedBridgingChains)
+  const tokenOptions = useBridgingTokensToTokenOptions(
+    bridgingTokens?.tokens,
+    portfolioBalancesById,
+    supportedBridgingChains,
+  )
   // Filter out tokens that are not on the current chain, unless the input token is the same as the current chain
   const isSameChain = oppositeSelectedToken?.chainId === chainFilter
   const shouldFilterByChain = chainFilter !== null && !isSameChain
@@ -212,8 +216,7 @@ function useBridgingTokensToTokenOptions(
       // Unichain only supports ETH bridging via Across - filter out non-ETH tokens on Unichain
       if (chainId === UniverseChainId.Unichain) {
         const symbol = token.symbol?.toUpperCase()
-        const isEthOrWeth =
-          token.address === NATIVE_ADDRESS_FOR_TRADING_API || symbol === 'ETH' || symbol === 'WETH'
+        const isEthOrWeth = token.address === NATIVE_ADDRESS_FOR_TRADING_API || symbol === 'ETH' || symbol === 'WETH'
         if (!isEthOrWeth) {
           return false
         }

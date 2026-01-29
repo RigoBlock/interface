@@ -358,9 +358,7 @@ export default function VotePage() {
                       <span>
                         <Trans
                           i18nKey="vote.votePage.unlockVotingLink"
-                          components={[
-                            <StyledInternalLink to="/vote" key="link" />,
-                          ]}
+                          components={[<StyledInternalLink to="/vote" key="link" />]}
                         />
                       </span>
                     )}

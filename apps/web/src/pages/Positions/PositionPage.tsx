@@ -49,7 +49,6 @@ import {
   useSporeColors,
 } from 'ui/src'
 import { ExchangeHorizontal } from 'ui/src/components/icons/ExchangeHorizontal'
-import { Flag } from 'ui/src/components/icons/Flag'
 import { InfoCircleFilled } from 'ui/src/components/icons/InfoCircleFilled'
 import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
 import { useDeviceDimensions } from 'ui/src/hooks/useDeviceDimensions'

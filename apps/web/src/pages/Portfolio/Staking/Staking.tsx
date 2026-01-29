@@ -1,9 +1,9 @@
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { STAKING_PROXY_ADDRESSES } from 'constants/addresses'
 import JSBI from 'jsbi'
+import { usePortfolioRoutes } from 'pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { usePortfolioAddresses } from 'pages/Portfolio/hooks/usePortfolioAddresses'
 import { usePortfolioStaking } from 'pages/Portfolio/hooks/usePortfolioStaking'
-import { usePortfolioRoutes } from 'pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { useMemo } from 'react'
 import { useActiveSmartPool } from 'state/application/hooks'
 import { usePoolIdByAddress } from 'state/governance/hooks'
@@ -330,7 +330,15 @@ function useMultiChainStakingData(address?: string, smartPoolAddress?: string) {
   return chainStakingData
 }
 
-function MultiChainStakingInfo({ address, smartPoolAddress, filterChainId }: { address?: string; smartPoolAddress?: string; filterChainId?: UniverseChainId }) {
+function MultiChainStakingInfo({
+  address,
+  smartPoolAddress,
+  filterChainId,
+}: {
+  address?: string
+  smartPoolAddress?: string
+  filterChainId?: UniverseChainId
+}) {
   const { stakingData, stakingChains, hasAnyStake, isLoading, totalStakeUSD, isViewingOwnStakes } = usePortfolioStaking(
     { address, chainId: filterChainId },
   )

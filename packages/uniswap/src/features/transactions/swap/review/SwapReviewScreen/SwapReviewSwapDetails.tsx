@@ -1,4 +1,4 @@
-import { memo, useEffect, useState, useCallback } from 'react'
+import { memo, useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Flex, Switch, Text } from 'ui/src'
 import { InfoCircleFilled } from 'ui/src/components/icons/InfoCircleFilled'
@@ -73,13 +73,10 @@ export const SwapReviewSwapDetails = memo(function SwapReviewSwapDetails(): JSX.
   const showBridgeSyncToggle = isWebApp && isBridgeTrade && smartPoolAddress
 
   // Update module-level state when toggle changes
-  const handleBridgeSyncToggle = useCallback(
-    (enabled: boolean) => {
-      setBridgeSyncEnabled(enabled)
-      setBridgeSyncMode(enabled)
-    },
-    [],
-  )
+  const handleBridgeSyncToggle = useCallback((enabled: boolean) => {
+    setBridgeSyncEnabled(enabled)
+    setBridgeSyncMode(enabled)
+  }, [])
 
   // Reset sync mode when component unmounts or trade changes
   useEffect(() => {
@@ -113,7 +110,7 @@ export const SwapReviewSwapDetails = memo(function SwapReviewSwapDetails(): JSX.
           analyticsTitle="Bridge Sync Mode"
         />
       </Flex>
-      <Switch checked={bridgeSyncEnabled} onCheckedChange={handleBridgeSyncToggle} variant="branded" />
+      <Switch checked={bridgeSyncEnabled} variant="branded" onCheckedChange={handleBridgeSyncToggle} />
     </Flex>
   ) : null
 

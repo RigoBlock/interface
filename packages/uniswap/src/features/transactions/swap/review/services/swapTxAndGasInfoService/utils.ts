@@ -252,14 +252,29 @@ export function createProcessSwapResponse({ gasStrategy }: { gasStrategy: GasStr
 
     // For RigoBlock pools, exclude permitData but keep swapRequestArgs and txRequests
     const finalPermitData = permitsDontNeedSignature ? undefined : permitData
-    const finalTxRequests = response?.transactions
+
+    // Filter out approval transactions for smart pools (RigoBlock)
+    // The Trading API may still return approval transactions in batched responses even when alreadyApproved=true
+    // We need to filter them out since smart pools handle approvals internally
+    const ERC20_APPROVE_SELECTOR = '0x095ea7b3'
+    let finalTxRequests = response?.transactions
+    if (permitsDontNeedSignature && finalTxRequests && finalTxRequests.length > 1) {
+      // Filter out any transactions that start with ERC20 approve selector
+      finalTxRequests = finalTxRequests.filter((tx) => {
+        const data = tx.data?.toString()
+        return !data || !data.startsWith(ERC20_APPROVE_SELECTOR)
+      })
+    }
+
     const finalSwapRequestArgs = swapRequestParams // Always keep swapRequestArgs
 
-    if (permitsDontNeedSignature && !finalTxRequests) {
-      console.error('🚨 RigoBlock pool has no txRequests! This will cause validation to fail.', {
+    if (permitsDontNeedSignature && (!finalTxRequests || finalTxRequests.length === 0)) {
+      console.error('🚨 RigoBlock pool has no txRequests after filtering! This will cause validation to fail.', {
         response,
         swapRequestParams,
         permitsDontNeedSignature,
+        originalTxCount: response?.transactions.length,
+        filteredTxCount: finalTxRequests?.length,
       })
     }
 

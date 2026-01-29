@@ -55,7 +55,13 @@ export function useTokenSectionsForSearchResults({
     error: bridgingTokenOptionsError,
     refetch: refetchBridgingTokenOptions,
     loading: bridgingTokenOptionsLoading,
-  } = useBridgingTokensOptions({ oppositeSelectedToken: input, evmAddress, svmAddress, chainFilter, supportedBridgingChains })
+  } = useBridgingTokensOptions({
+    oppositeSelectedToken: input,
+    evmAddress,
+    svmAddress,
+    chainFilter,
+    supportedBridgingChains,
+  })
 
   // Only call search endpoint if isBalancesOnlySearch is false
   const {
