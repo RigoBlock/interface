@@ -153,7 +153,10 @@ function useChainStakingData({
 export function usePortfolioStaking({
   address,
   chainId: filterChainId,
-}: { address?: string; chainId?: UniverseChainId } = {}): {
+}: {
+  address?: string
+  chainId?: UniverseChainId
+} = {}): {
   stakingChains: UniverseChainId[]
   stakingData: Partial<Record<UniverseChainId, StakingData>>
   totalStakeAmount?: CurrencyAmount<any>

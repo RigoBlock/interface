@@ -434,13 +434,13 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
 
   const addLiquidityApprovalParams = useMemo(() => {
     return generateAddLiquidityApprovalParams({
-      address: account?.address,
+      address: smartPoolAddress ?? account?.address, // Use smart pool address for RigoBlock pools
       protocolVersion,
       displayCurrencies: currencies.display,
       currencyAmounts,
       canBatchTransactions,
     })
-  }, [account?.address, protocolVersion, currencies.display, currencyAmounts, canBatchTransactions])
+  }, [smartPoolAddress, account?.address, protocolVersion, currencies.display, currencyAmounts, canBatchTransactions])
 
   const {
     data: approvalCalldata,

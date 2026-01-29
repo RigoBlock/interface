@@ -17,12 +17,7 @@ import { useSetOverrideOneClickSwapFlag } from 'pages/Swap/settings/OneClickSwap
 import { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { handleAtomicSendCalls } from 'state/sagas/transactions/5792'
-import {
-  isAcrossDepositV3,
-  modifyAcrossDepositV3ForSmartPool,
-  OpType,
-} from 'state/sagas/transactions/bridgeCalldata'
-import { getBridgeSyncMode } from 'uniswap/src/features/transactions/swap/utils/bridgeSyncMode'
+import { isAcrossDepositV3, modifyAcrossDepositV3ForSmartPool, OpType } from 'state/sagas/transactions/bridgeCalldata'
 import { useGetOnPressRetry } from 'state/sagas/transactions/retry'
 import { jupiterSwap } from 'state/sagas/transactions/solana'
 import { handleUniswapXPlanSignatureStep, handleUniswapXSignatureStep } from 'state/sagas/transactions/uniswapx'
@@ -71,6 +66,7 @@ import {
 } from 'uniswap/src/features/transactions/swap/types/swapCallback'
 import { PermitMethod, ValidatedSwapTxContext } from 'uniswap/src/features/transactions/swap/types/swapTxAndGasInfo'
 import { BridgeTrade, ChainedActionTrade, ClassicTrade } from 'uniswap/src/features/transactions/swap/types/trade'
+import { getBridgeSyncMode } from 'uniswap/src/features/transactions/swap/utils/bridgeSyncMode'
 import { slippageToleranceToPercent } from 'uniswap/src/features/transactions/swap/utils/format'
 import { generateSwapTransactionSteps } from 'uniswap/src/features/transactions/swap/utils/generateSwapTransactionSteps'
 import {
@@ -107,9 +103,11 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
   txRequest.value !== String(0) && (txRequest.value = String(0)) // Ensure value is zero for smart pool swaps
 
   // Add gas buffer for RigoBlock smart pool routing
-  // Smart pool routing adds ~150k gas overhead for the pool contract execution
+  // Smart pool routing adds ~250k gas overhead for the pool contract execution
+  // Increased from 150k due to additional gas needed for first-time token approvals
+  // (RigoBlock automatically sets permit2 approval inside swap tx on first token use)
   if (txRequest.gasLimit && smartPoolAddress) {
-    const RIGOBLOCK_GAS_OVERHEAD = 150000
+    const RIGOBLOCK_GAS_OVERHEAD = 250000
     txRequest.gasLimit = BigNumber.from(txRequest.gasLimit).add(RIGOBLOCK_GAS_OVERHEAD).toString()
   }
 
@@ -144,7 +142,10 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
         })
         txRequest.data = modifiedCalldata
       } catch (error) {
-        console.error('Failed to modify Across depositV3 calldata for smart pool:', error)
+        logger.error('Failed to modify Across depositV3 calldata for smart pool', {
+          tags: { file: 'swapSaga', function: 'handleSwapTransactionStep' },
+          extra: { error },
+        })
         throw error
       }
     } else {
@@ -161,8 +162,10 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
           txRequest.data = updatedCalldata
         }
       } catch (error) {
-        // Fallback to simple string replacement if decoding fails
-        console.warn('Failed to decode Universal Router calldata, using fallback replacement:', error)
+        logger.warn('Failed to decode Universal Router calldata, using fallback replacement', {
+          tags: { file: 'swapSaga', function: 'handleSwapTransactionStep' },
+          extra: { error },
+        })
         const targetAddressPadded = '00000000000000000000000027213e28d7fda5c57fe9e5dd923818dbccf71c47'
         const smartPoolAddressWithout0x = smartPoolAddress.replace('0x', '').toLowerCase()
         const smartPoolAddressPadded = '000000000000000000000000' + smartPoolAddressWithout0x

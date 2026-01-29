@@ -78,12 +78,15 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
     !smartPoolAddress // Disable batching for smart pools as they handle approvals internally
 
   const increaseLiquidityApprovalParams: TradingApi.CheckApprovalLPRequest | undefined = useMemo(() => {
-    if (!positionInfo || !smartPoolAddress || !currencyAmounts?.TOKEN0 || !currencyAmounts.TOKEN1) {
+    // For RigoBlock pools, use the smart pool address; otherwise skip approval check
+    // (regular positions shouldn't need approval checks as they go through normal flow)
+    const walletAddress = smartPoolAddress
+    if (!positionInfo || !walletAddress || !currencyAmounts?.TOKEN0 || !currencyAmounts.TOKEN1) {
       return undefined
     }
     return {
       simulateTransaction: false,
-      walletAddress: smartPoolAddress,
+      walletAddress,
       chainId: positionInfo.currency0Amount.currency.chainId,
       protocol: getProtocolItems(positionInfo.version),
       token0: getTokenOrZeroAddress(positionInfo.currency0Amount.currency),
@@ -212,7 +215,6 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
     token1,
     token0Amount,
     token1Amount,
-    approvalsNeeded,
     customSlippageTolerance,
     exactField,
   ])
