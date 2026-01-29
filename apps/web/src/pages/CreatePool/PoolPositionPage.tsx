@@ -198,7 +198,29 @@ export default function PoolPositionPage() {
 
           if (result && result !== '0x' && result.length <= 150) {
             // Extract first 32 bytes (uint256) from the 64-byte return value
-            const unitaryValue = result.slice(0, 66) // '0x' + 64 hex chars = 66 chars
+            const unitaryValueHex = result.slice(0, 66) // '0x' + 64 hex chars = 66 chars
+            // Convert hex to decimal string for JSBI compatibility
+            const unitaryValue = BigInt(unitaryValueHex).toString()
+
+            // Sanity check: if the simulated value is unreasonably large (> 10^30) or zero when we have a fallback,
+            // the NAV calculation likely failed (e.g., missing price feed, token not in active array).
+            // In this case, fall back to the stored value which is more reliable.
+            const MAX_REASONABLE_VALUE = BigInt('1000000000000000000000000000000') // 10^30 (1 trillion with 18 decimals)
+            const parsedValue = BigInt(unitaryValue)
+
+            if (parsedValue > MAX_REASONABLE_VALUE) {
+              // Value is unreasonably large - NAV simulation likely returned garbage
+              setSimulatedValue(fallbackValue)
+              return
+            }
+
+            // If simulated value is 0 but we have a non-zero fallback, prefer fallback
+            // (NAV simulation may have failed silently)
+            if (parsedValue === BigInt(0) && fallbackValue && BigInt(fallbackValue) > BigInt(0)) {
+              setSimulatedValue(fallbackValue)
+              return
+            }
+
             setSimulatedValue(unitaryValue)
             return
           } else {
@@ -242,10 +264,29 @@ export default function PoolPositionPage() {
   }, [userAccount])
   const baseTokenSymbol = base?.symbol ?? ''
 
-  const poolValue = JSBI.divide(
-    JSBI.multiply(JSBI.BigInt(String(unitaryValue ?? 0)), JSBI.BigInt(String(totalSupply ?? 0))),
-    JSBI.exponentiate(JSBI.BigInt(10), JSBI.BigInt(String(decimals ?? 18))),
-  )
+  const poolValue = useMemo(() => {
+    try {
+      const unitaryBigInt = JSBI.BigInt(String(unitaryValue ?? 0))
+      const supplyBigInt = JSBI.BigInt(String(totalSupply ?? 0))
+      const decimalsBigInt = JSBI.BigInt(String(decimals ?? 18))
+      const divisor = JSBI.exponentiate(JSBI.BigInt(10), decimalsBigInt)
+      return JSBI.divide(JSBI.multiply(unitaryBigInt, supplyBigInt), divisor)
+    } catch {
+      return undefined
+    }
+  }, [unitaryValue, totalSupply, decimals])
+
+  // Create CurrencyAmount safely - handles edge cases where base.decimals might be invalid
+  const poolValueAmount = useMemo(() => {
+    if (!base || !poolValue || typeof base.decimals !== 'number') {
+      return undefined
+    }
+    try {
+      return CurrencyAmount.fromRawAmount(base, poolValue)
+    } catch {
+      return undefined
+    }
+  }, [base, poolValue])
 
   const lockup = (Number(String(minPeriod)) / 86400).toLocaleString()
 
@@ -496,7 +537,7 @@ export default function PoolPositionPage() {
                   </AutoColumn>
                   <LightCard padding="12px 16px">
                     <AutoColumn gap="md">
-                      {base && (
+                      {poolValueAmount && (
                         <RowBetween>
                           <RowFixed>
                             <ThemedText.DeprecatedMain>
@@ -506,7 +547,7 @@ export default function PoolPositionPage() {
                           <RowFixed>
                             <ThemedText.DeprecatedMain>
                               <Trans>
-                                {formatCurrencyAmount({ value: CurrencyAmount.fromRawAmount(base, poolValue) })}&nbsp;
+                                {formatCurrencyAmount({ value: poolValueAmount })}&nbsp;
                                 {baseTokenSymbol}
                               </Trans>
                             </ThemedText.DeprecatedMain>
@@ -521,7 +562,7 @@ export default function PoolPositionPage() {
                             </ThemedText.DeprecatedMain>
                           </RowFixed>
                           <RowFixed>
-                            {owner === account.address && JSBI.greaterThan(poolValue, JSBI.BigInt(0)) ? (
+                            {owner === account.address && poolValueAmount ? (
                               <ResponsiveButtonPrimary
                                 onClick={() => setShowSetValueModal(true)}
                                 height="1.1em"

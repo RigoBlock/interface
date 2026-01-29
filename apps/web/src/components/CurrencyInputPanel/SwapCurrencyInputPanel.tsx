@@ -33,12 +33,12 @@ import Trace from 'uniswap/src/features/telemetry/Trace'
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { NumberType } from 'utilities/src/format/types'
 
-export const InputPanel = styled.div<{ hideInput?: boolean }>`
+export const InputPanel = styled.div<{ $hideInput?: boolean }>`
   ${flexColumnNoWrap};
   position: relative;
-  border-radius: ${({ hideInput }) => (hideInput ? '16px' : '20px')};
+  border-radius: ${({ $hideInput }) => ($hideInput ? '16px' : '20px')};
   z-index: 1;
-  width: ${({ hideInput }) => (hideInput ? '100%' : 'initial')};
+  width: ${({ $hideInput }) => ($hideInput ? '100%' : 'initial')};
   transition: height 1s ease;
   will-change: height;
 `
@@ -54,43 +54,43 @@ const FixedContainer = styled.div`
   z-index: 2;
 `
 
-const Container = styled.div<{ hideInput: boolean }>`
+const Container = styled.div<{ $hideInput: boolean }>`
   min-height: 44px;
-  border-radius: ${({ hideInput }) => (hideInput ? '16px' : '20px')};
-  width: ${({ hideInput }) => (hideInput ? '100%' : 'initial')};
+  border-radius: ${({ $hideInput }) => ($hideInput ? '16px' : '20px')};
+  width: ${({ $hideInput }) => ($hideInput ? '100%' : 'initial')};
 `
 
 interface CurrencySelectProps {
-  visible: boolean
-  selected: boolean
-  hideInput?: boolean
+  $visible: boolean
+  $selected: boolean
+  $hideInput?: boolean
   disabled?: boolean
   animateShake?: boolean
 }
 
 const CurrencySelect = styled.button<CurrencySelectProps>`
   align-items: center;
-  background-color: ${({ selected, theme }) => (selected ? theme.surface1 : theme.accent1)};
+  background-color: ${({ $selected, theme }) => ($selected ? theme.surface1 : theme.accent1)};
   opacity: ${({ disabled }) => (!disabled ? 1 : 0.4)};
-  color: ${({ selected, theme }) => (selected ? theme.neutral1 : theme.neutralContrast)};
+  color: ${({ $selected, theme }) => ($selected ? theme.neutral1 : theme.neutralContrast)};
   cursor: pointer;
   height: 36px;
   border-radius: 18px;
   outline: none;
   user-select: none;
-  border: 1px solid ${({ selected, theme }) => (selected ? theme.surface3 : theme.accent1)};
+  border: 1px solid ${({ $selected, theme }) => ($selected ? theme.surface3 : theme.accent1)};
   font-size: 16px;
   font-weight: 485;
-  width: ${({ hideInput }) => (hideInput ? '100%' : 'initial')};
-  padding: ${({ selected }) => (selected ? '4px 8px 4px 4px' : '6px 6px 6px 8px')};
+  width: ${({ $hideInput }) => ($hideInput ? '100%' : 'initial')};
+  padding: ${({ $selected }) => ($selected ? '4px 8px 4px 4px' : '6px 6px 6px 8px')};
   gap: 8px;
   justify-content: space-between;
-  margin-left: ${({ hideInput }) => (hideInput ? '0' : '12px')};
+  margin-left: ${({ $hideInput }) => ($hideInput ? '0' : '12px')};
   box-shadow: ${({ theme }) => theme.deprecated_shallowShadow};
 
   &:hover,
   &:active {
-    background-color: ${({ theme, selected }) => (selected ? theme.surface1Hovered : theme.accent1Hovered)};
+    background-color: ${({ theme, $selected }) => ($selected ? theme.surface1Hovered : theme.accent1Hovered)};
   }
 
   &:before {
@@ -177,19 +177,19 @@ const Aligner = styled.span`
   width: 100%;
 `
 
-const StyledDropDown = styled(DropDown)<{ selected: boolean }>`
+const StyledDropDown = styled(DropDown)<{ $selected: boolean }>`
   margin: 0 0.25rem 0 0.35rem;
   height: 35%;
   margin-left: 8px;
 
   path {
-    stroke: ${({ selected, theme }) => (selected ? theme.neutral1 : theme.neutralContrast)};
+    stroke: ${({ $selected, theme }) => ($selected ? theme.neutral1 : theme.neutralContrast)};
     stroke-width: 2px;
   }
 `
 
-const StyledTokenName = styled.span<{ active?: boolean }>`
-  ${({ active }) => (active ? '  margin: 0 0.25rem 0 0.25rem;' : '  margin: 0 0.25rem 0 0.25rem;')}
+const StyledTokenName = styled.span<{ $active?: boolean }>`
+  ${({ $active }) => ($active ? '  margin: 0 0.25rem 0 0.25rem;' : '  margin: 0 0.25rem 0 0.25rem;')}
   font-size: 16px;
   font-weight: 535;
 `
@@ -290,7 +290,7 @@ const SwapCurrencyInputPanel = forwardRef<HTMLInputElement, SwapCurrencyInputPan
     const isInputDisabled = Boolean(!chainAllowed || disabled || numericalInputSettings?.disabled)
 
     return (
-      <InputPanel id={id} hideInput={hideInput} {...rest}>
+      <InputPanel id={id} $hideInput={hideInput} {...rest}>
         {locked && (
           <FixedContainer>
             <AutoColumn gap="sm" justify="center">
@@ -302,7 +302,7 @@ const SwapCurrencyInputPanel = forwardRef<HTMLInputElement, SwapCurrencyInputPan
           </FixedContainer>
         )}
 
-        <Container hideInput={hideInput}>
+        <Container $hideInput={hideInput}>
           <Text variant="body3" userSelect="none" color="$neutral2">
             {label}
           </Text>
@@ -332,9 +332,9 @@ const SwapCurrencyInputPanel = forwardRef<HTMLInputElement, SwapCurrencyInputPan
               >
                 <CurrencySelect
                   disabled={!chainAllowed || disabled || showCurrencyLoadingSpinner}
-                  visible={currency !== undefined}
-                  selected={!!currency}
-                  hideInput={hideInput}
+                  $visible={currency !== undefined}
+                  $selected={!!currency}
+                  $hideInput={hideInput}
                   data-testid={`currency-${currency?.chainId}-${currency?.symbol}`}
                   className="open-currency-select-button"
                   onClick={() => {
@@ -373,7 +373,7 @@ const SwapCurrencyInputPanel = forwardRef<HTMLInputElement, SwapCurrencyInputPan
                           ) : (
                             <StyledTokenName
                               className="token-symbol-container"
-                              active={Boolean(currency && currency.symbol)}
+                              $active={Boolean(currency && currency.symbol)}
                             >
                               {currency ? (
                                 formatCurrencySymbol(currency)
@@ -385,7 +385,7 @@ const SwapCurrencyInputPanel = forwardRef<HTMLInputElement, SwapCurrencyInputPan
                         </Flex>
                       </AnimatePresence>
                     </RowFixed>
-                    {onCurrencySelect && <StyledDropDown selected={!!currency} />}
+                    {onCurrencySelect && <StyledDropDown $selected={!!currency} />}
                   </Aligner>
                 </CurrencySelect>
               </MouseoverTooltip>
