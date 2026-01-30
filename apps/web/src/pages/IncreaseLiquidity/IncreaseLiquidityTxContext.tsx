@@ -314,16 +314,19 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
       return undefined
     }
 
-    const approveToken0Request = validateTransactionRequest(token0Approval)
-    const approveToken1Request = validateTransactionRequest(token1Approval)
-    const approvePositionTokenRequest = validateTransactionRequest(positionTokenApproval)
-    const revokeToken0Request = validateTransactionRequest(token0Cancel)
-    const revokeToken1Request = validateTransactionRequest(token1Cancel)
-    const permit = validatePermit(permitData)
-    const unsigned = Boolean(permitData)
+    // RigoBlock smart pools handle approvals internally, so skip all approval/permit steps
+    const isRigoBlockPool = !!smartPoolAddress
+
+    const approveToken0Request = isRigoBlockPool ? undefined : validateTransactionRequest(token0Approval)
+    const approveToken1Request = isRigoBlockPool ? undefined : validateTransactionRequest(token1Approval)
+    const approvePositionTokenRequest = isRigoBlockPool ? undefined : validateTransactionRequest(positionTokenApproval)
+    const revokeToken0Request = isRigoBlockPool ? undefined : validateTransactionRequest(token0Cancel)
+    const revokeToken1Request = isRigoBlockPool ? undefined : validateTransactionRequest(token1Cancel)
+    const permit = isRigoBlockPool ? undefined : validatePermit(permitData)
+    const unsigned = Boolean(permitData) && !isRigoBlockPool // Never use async/unsigned flow for smart pools
     const txRequest = validateTransactionRequest(increase)
-    const validatedToken0PermitTx = validateTransactionRequest(token0PermitTransaction)
-    const validatedToken1PermitTx = validateTransactionRequest(token1PermitTransaction)
+    const validatedToken0PermitTx = isRigoBlockPool ? undefined : validateTransactionRequest(token0PermitTransaction)
+    const validatedToken1PermitTx = isRigoBlockPool ? undefined : validateTransactionRequest(token1PermitTransaction)
 
     return {
       type: LiquidityTransactionType.Increase,
@@ -355,6 +358,7 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
     increaseCalldata,
     currencyAmounts?.TOKEN0,
     currencyAmounts?.TOKEN1,
+    smartPoolAddress,
     token0Approval,
     token1Approval,
     positionTokenApproval,

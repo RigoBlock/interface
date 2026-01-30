@@ -21,7 +21,7 @@ import { isAcrossDepositV3, modifyAcrossDepositV3ForSmartPool, OpType } from 'st
 import { useGetOnPressRetry } from 'state/sagas/transactions/retry'
 import { jupiterSwap } from 'state/sagas/transactions/solana'
 import { handleUniswapXPlanSignatureStep, handleUniswapXSignatureStep } from 'state/sagas/transactions/uniswapx'
-import { modifyV4ExecuteCalldata } from 'state/sagas/transactions/universalRouterCalldata'
+import { modifyV4ExecuteCalldata, stripBalanceCheckERC20 } from 'state/sagas/transactions/universalRouterCalldata'
 import {
   getDisplayableError,
   getSwapTransactionInfo,
@@ -102,11 +102,13 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
   smartPoolAddress && txRequest.to !== smartPoolAddress && (txRequest.to = smartPoolAddress)
   txRequest.value !== String(0) && (txRequest.value = String(0)) // Ensure value is zero for smart pool swaps
 
-  // Add gas buffer for RigoBlock smart pool routing
-  // Smart pool routing adds ~250k gas overhead for the pool contract execution
+  // For non-bridge transactions, add gas buffer for RigoBlock smart pool routing
+  // Smart pool routing adds gas overhead for the pool contract execution
   // Increased from 150k due to additional gas needed for first-time token approvals
   // (RigoBlock automatically sets permit2 approval inside swap tx on first token use)
-  if (txRequest.gasLimit && smartPoolAddress) {
+  // Bridge transactions will get gas estimated after calldata modification for accuracy
+  const isBridgeTransaction = trade.routing === TradingApi.Routing.BRIDGE
+  if (txRequest.gasLimit && smartPoolAddress && !isBridgeTransaction) {
     const RIGOBLOCK_GAS_OVERHEAD = 250000
     txRequest.gasLimit = BigNumber.from(txRequest.gasLimit).add(RIGOBLOCK_GAS_OVERHEAD).toString()
   }
@@ -141,6 +143,38 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
           outputTokenDecimals,
         })
         txRequest.data = modifiedCalldata
+
+        // Estimate gas for the modified bridge transaction
+        // This gives us accurate gas since we're estimating the actual RigoBlock calldata
+        // including NAV calculations, escrow deployment, and Across deposit
+        const chainId = trade.inputAmount.currency.chainId
+        const provider = chainId in RPC_PROVIDERS ? RPC_PROVIDERS[chainId as keyof typeof RPC_PROVIDERS] : undefined
+        if (provider) {
+          try {
+            const gasEstimate = yield* call([provider, provider.estimateGas], {
+              from: address,
+              to: smartPoolAddress,
+              data: modifiedCalldata,
+              value: '0', // Smart pool swaps always use value=0
+            })
+            // Add 20% margin to the estimate for safety
+            txRequest.gasLimit = gasEstimate.mul(120).div(100).toString()
+            logger.debug('swapSaga', 'handleSwapTransactionStep', 'Bridge gas estimated', {
+              estimated: gasEstimate.toString(),
+              withMargin: txRequest.gasLimit,
+            })
+          } catch (gasError) {
+            // If gas estimation fails, fall back to a high fixed overhead
+            // This can happen if simulation fails (insufficient balance, etc.)
+            logger.warn('swapSaga', 'handleSwapTransactionStep', 'Bridge gas estimation failed, using fallback', {
+              error: gasError,
+            })
+            const RIGOBLOCK_BRIDGE_GAS_FALLBACK = 2750000
+            txRequest.gasLimit = BigNumber.from(txRequest.gasLimit || '500000')
+              .add(RIGOBLOCK_BRIDGE_GAS_FALLBACK)
+              .toString()
+          }
+        }
       } catch (error) {
         logger.error('Failed to modify Across depositV3 calldata for smart pool', {
           tags: { file: 'swapSaga', function: 'handleSwapTransactionStep' },
@@ -162,9 +196,8 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
           txRequest.data = updatedCalldata
         }
       } catch (error) {
-        logger.warn('Failed to decode Universal Router calldata, using fallback replacement', {
-          tags: { file: 'swapSaga', function: 'handleSwapTransactionStep' },
-          extra: { error },
+        logger.warn('swapSaga', 'handleSwapTransactionStep', 'Failed to decode Universal Router calldata, using fallback replacement', {
+          error,
         })
         const targetAddressPadded = '00000000000000000000000027213e28d7fda5c57fe9e5dd923818dbccf71c47'
         const smartPoolAddressWithout0x = smartPoolAddress.replace('0x', '').toLowerCase()
@@ -172,6 +205,17 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
 
         const updatedCalldata = calldata.replaceAll(targetAddressPadded, smartPoolAddressPadded)
         txRequest.data = updatedCalldata
+      }
+
+      // Strip BALANCE_CHECK_ERC20 commands for RigoBlock smart pools
+      // RigoBlock pools handle balance checks internally, and some chain-specific
+      // Universal Router deployments may not support this command
+      if (txRequest.data) {
+        const currentCalldata = typeof txRequest.data === 'string' ? txRequest.data : txRequest.data.toString()
+        const strippedCalldata = stripBalanceCheckERC20(currentCalldata)
+        if (strippedCalldata !== currentCalldata) {
+          txRequest.data = strippedCalldata
+        }
       }
     }
 
