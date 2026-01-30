@@ -6,6 +6,7 @@ const UNIVERSAL_ROUTER_COMMANDS = {
   SWEEP: 0x04,
   TRANSFER: 0x05,
   PAY_PORTION: 0x06,
+  BALANCE_CHECK_ERC20: 0x0e, // 14 in decimal - not supported on some chains/routers
   V4_SWAP: 0x10,
 }
 
@@ -192,5 +193,69 @@ export function modifyV4ExecuteCalldata(calldata: string, smartPoolAddress: stri
   } catch (error) {
     console.error('Error modifying V4 calldata:', error)
     throw error
+  }
+}
+
+/**
+ * Strips BALANCE_CHECK_ERC20 commands from Universal Router calldata
+ * 
+ * RigoBlock smart pools handle balance checks internally, and some chain-specific
+ * Universal Router deployments may not support this command.
+ * This function removes any BALANCE_CHECK_ERC20 commands from the calldata.
+ * 
+ * @param calldata - The Universal Router execute calldata (with or without function selector)
+ * @returns The modified calldata without BALANCE_CHECK_ERC20 commands
+ */
+export function stripBalanceCheckERC20(calldata: string): string {
+  try {
+    const abiCoder = new AbiCoder()
+    
+    // Check if this has a function selector (starts with 0x and has selector)
+    // execute(bytes,bytes[],uint256) selector is 0x3593564c
+    const hasSelector = calldata.toLowerCase().startsWith('0x3593564c')
+    const dataWithoutSelector = hasSelector ? '0x' + calldata.slice(10) : calldata
+    const functionSelector = hasSelector ? calldata.slice(0, 10) : ''
+    
+    const decoded = abiCoder.decode(['bytes', 'bytes[]', 'uint256'], dataWithoutSelector)
+    const [commands, inputs, deadline] = decoded
+
+    // Process commands to identify BALANCE_CHECK_ERC20 and filter them out
+    const commandsBytes = commands.startsWith('0x')
+      ? new Uint8Array(Buffer.from(commands.slice(2), 'hex'))
+      : new Uint8Array(Buffer.from(commands, 'hex'))
+
+    const filteredCommands: number[] = []
+    const filteredInputs: string[] = []
+
+    // Process each command and filter out BALANCE_CHECK_ERC20
+    for (let i = 0; i < commandsBytes.length && i < inputs.length; i++) {
+      const command = commandsBytes[i]
+      
+      if (command !== UNIVERSAL_ROUTER_COMMANDS.BALANCE_CHECK_ERC20) {
+        filteredCommands.push(command)
+        filteredInputs.push(inputs[i])
+      } else {
+        console.info(`Stripped BALANCE_CHECK_ERC20 command at index ${i} for RigoBlock smart pool`)
+      }
+    }
+
+    // If nothing was filtered, return original calldata
+    if (filteredCommands.length === commandsBytes.length) {
+      return calldata
+    }
+
+    // Re-encode the commands bytes
+    const newCommandsBytes = new Uint8Array(filteredCommands)
+    const newCommandsHex = '0x' + Buffer.from(newCommandsBytes).toString('hex')
+
+    // Re-encode the entire calldata
+    const newCalldata = abiCoder.encode(['bytes', 'bytes[]', 'uint256'], [newCommandsHex, filteredInputs, deadline])
+
+    // Add function selector back if it was present
+    return functionSelector ? functionSelector + newCalldata.slice(2) : newCalldata
+  } catch (error) {
+    console.warn('Failed to strip BALANCE_CHECK_ERC20 from calldata:', error)
+    // Return original calldata if we can't process it
+    return calldata
   }
 }

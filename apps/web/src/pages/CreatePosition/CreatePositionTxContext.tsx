@@ -322,6 +322,9 @@ export function generateCreatePositionTxRequest({
       ? { ...createCalldataQueryParams, batchPermitData: validatedPermitRequest }
       : createCalldataQueryParams
 
+  // RigoBlock smart pools handle approvals internally, so skip all approval/permit steps
+  const isRigoBlockPool = !!smartPoolAddress
+
   return {
     type: LiquidityTransactionType.Create,
     canBatchTransactions,
@@ -333,15 +336,16 @@ export function generateCreatePositionTxRequest({
       currency1Amount: currencyAmounts.TOKEN1,
       liquidityToken: protocolVersion === ProtocolVersion.V2 ? poolOrPair?.liquidityToken : undefined,
     },
-    approveToken0Request: validatedApprove0Request,
-    approveToken1Request: validatedApprove1Request,
+    // RigoBlock pools handle approvals internally, so don't include approval steps
+    approveToken0Request: isRigoBlockPool ? undefined : validatedApprove0Request,
+    approveToken1Request: isRigoBlockPool ? undefined : validatedApprove1Request,
     txRequest: finalTxRequest,
     approvePositionTokenRequest: undefined,
-    revokeToken0Request: validatedRevoke0Request,
-    revokeToken1Request: validatedRevoke1Request,
-    permit: validatedPermitRequest ? { method: PermitMethod.TypedData, typedData: validatedPermitRequest } : undefined,
-    token0PermitTransaction: validatedToken0PermitTransaction,
-    token1PermitTransaction: validatedToken1PermitTransaction,
+    revokeToken0Request: isRigoBlockPool ? undefined : validatedRevoke0Request,
+    revokeToken1Request: isRigoBlockPool ? undefined : validatedRevoke1Request,
+    permit: isRigoBlockPool ? undefined : (validatedPermitRequest ? { method: PermitMethod.TypedData, typedData: validatedPermitRequest } : undefined),
+    token0PermitTransaction: isRigoBlockPool ? undefined : validatedToken0PermitTransaction,
+    token1PermitTransaction: isRigoBlockPool ? undefined : validatedToken1PermitTransaction,
     positionTokenPermitTransaction: undefined,
     sqrtRatioX96: createCalldata.sqrtRatioX96,
   } satisfies CreatePositionTxAndGasInfo
