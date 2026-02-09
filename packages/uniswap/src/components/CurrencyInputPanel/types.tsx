@@ -45,4 +45,6 @@ export type CurrencyInputPanelProps = {
   customPanelStyle?: FlexProps
   maxValuationPresets?: number[]
   onSetMaxValuation?: (value: number) => void
+  /** When true, native token gas reserve is skipped (smart pool operations use pool's ETH, not user's). */
+  isSmartPool?: boolean
 }

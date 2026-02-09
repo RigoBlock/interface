@@ -259,7 +259,7 @@ function useFormattedProposalCreatedLogs({
           }),
         }
       })
-  }, [useLogsResult])
+  }, [useLogsResult, indices])
 }
 
 function countToIndices(count: number | undefined, skip = 0) {
@@ -529,6 +529,7 @@ export function useProposalData(
 } {
   const { chainId } = useAccount()
   const gov = useGovernanceProxyContract()
+
   const proposalCalls = [
     {
       address: assume0xAddress(gov?.address),
@@ -556,6 +557,8 @@ export function useProposalData(
     contracts: proposalCalls,
     query: {
       enabled: !!gov?.address && !!id,
+      staleTime: 30_000,
+      gcTime: 5 * 60 * 1000,
     },
   })
 

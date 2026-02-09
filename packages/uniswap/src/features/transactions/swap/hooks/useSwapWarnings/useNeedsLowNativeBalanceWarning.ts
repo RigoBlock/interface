@@ -12,7 +12,11 @@ export function useNeedsLowNativeBalanceWarning({
   derivedSwapInfo: DerivedSwapInfo
   isMax: boolean
 }): boolean {
-  const needsLowNativeBalanceWarning = isMax && derivedSwapInfo.currencyAmounts[CurrencyField.INPUT]?.currency.isNative
+  // For smart pool operations, native tokens come from the pool, not the user's wallet.
+  // The user's wallet only pays gas, so no low balance warning is needed.
+  const isSmartPool = !!derivedSwapInfo.smartPoolAddress
+  const needsLowNativeBalanceWarning =
+    !isSmartPool && isMax && derivedSwapInfo.currencyAmounts[CurrencyField.INPUT]?.currency.isNative
   const hasDismissedLowNetworkTokenWarning = useSelector(selectHasDismissedLowNetworkTokenWarning)
   return !!needsLowNativeBalanceWarning && !hasDismissedLowNetworkTokenWarning
 }

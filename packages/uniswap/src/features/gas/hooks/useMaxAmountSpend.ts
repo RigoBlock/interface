@@ -17,16 +17,24 @@ export function useMaxAmountSpend({
   currencyAmount,
   txType,
   isExtraTx = false,
+  isSmartPool = false,
 }: {
   currencyAmount: Maybe<CurrencyAmount<Currency>>
   txType?: TransactionType
   isExtraTx?: boolean
+  isSmartPool?: boolean
 }): Maybe<CurrencyAmount<Currency>> {
   const minAmountPerTx = useMinGasAmount(currencyAmount?.currency.chainId, txType)
   const multiplierAsPercent = useLowBalanceWarningGasPercentage()
 
   if (!currencyAmount || !minAmountPerTx) {
     return undefined
+  }
+
+  // For smart pool operations, the native token being spent comes from the pool,
+  // not the user's wallet. Gas is paid separately by the user. No reserve needed.
+  if (isSmartPool) {
+    return currencyAmount
   }
 
   // if isExtraTx: minAmountPerTx * multiplierAsPercent / 100%

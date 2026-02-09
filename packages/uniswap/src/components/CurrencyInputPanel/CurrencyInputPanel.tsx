@@ -51,6 +51,7 @@ export const CurrencyInputPanel = memo(
         customPanelStyle,
         maxValuationPresets,
         onSetMaxValuation,
+        isSmartPool,
       } = props
       const account = useWallet().evmAccount
       const isShortMobileDevice = useIsShortMobileDevice()
@@ -98,9 +99,10 @@ export const CurrencyInputPanel = memo(
             elementName={ElementName.PresetPercentage}
             buttonProps={PRESET_BUTTON_PROPS}
             onSetPresetValue={handleSetPresetValue}
+            isSmartPool={isSmartPool}
           />
         ),
-        [currencyAmount, currencyBalance, currencyField, handleSetPresetValue, transactionType],
+        [currencyAmount, currencyBalance, currencyField, handleSetPresetValue, transactionType, isSmartPool],
       )
 
       return (
@@ -197,6 +199,7 @@ export const CurrencyInputPanel = memo(
                       currencyBalance={currencyBalance}
                       currencyField={currencyField}
                       transactionType={transactionType}
+                      isSmartPool={isSmartPool}
                       buttonProps={{
                         borderWidth: 0,
                       }}

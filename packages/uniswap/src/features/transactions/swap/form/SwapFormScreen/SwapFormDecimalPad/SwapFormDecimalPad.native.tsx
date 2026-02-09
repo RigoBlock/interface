@@ -67,10 +67,11 @@ function SwapFormDecimalPadContent({
   decimalPadValueRef,
   onDecimalPadTriggerInputShake,
 }: SwapFormDecimalPadProps): JSX.Element {
-  const { isFiatMode, exactCurrencyField, updateSwapForm } = useSwapFormStore((s) => ({
+  const { isFiatMode, exactCurrencyField, updateSwapForm, smartPoolAddress } = useSwapFormStore((s) => ({
     isFiatMode: s.isFiatMode,
     exactCurrencyField: s.exactCurrencyField,
     updateSwapForm: s.updateSwapForm,
+    smartPoolAddress: s.smartPoolAddress,
   }))
 
   const { currencyAmounts, currencyBalances, currencies } = useSwapFormStoreDerivedSwapInfo((s) => ({
@@ -138,9 +139,10 @@ function SwapFormDecimalPadContent({
         elementName={ElementName.PresetPercentage}
         buttonProps={{ ...PRESET_BUTTON_PROPS, ...AMOUNT_INPUT_PRESET_BUTTON_PROPS }}
         onSetPresetValue={onSetPresetValue}
+        isSmartPool={!!smartPoolAddress}
       />
     ),
-    [currencyAmounts[CurrencyField.INPUT], currencyBalances[CurrencyField.INPUT], onSetPresetValue],
+    [currencyAmounts[CurrencyField.INPUT], currencyBalances[CurrencyField.INPUT], onSetPresetValue, smartPoolAddress],
   )
 
   return (
