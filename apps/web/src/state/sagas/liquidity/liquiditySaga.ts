@@ -2,6 +2,7 @@ import {
   GetLPPriceDiscrepancyRequest,
   GetLPPriceDiscrepancyResponse,
 } from '@uniswap/client-trading/dist/trading/v1/api_pb'
+import { BigNumber } from '@ethersproject/bignumber'
 import { getLiquidityEventName } from 'components/Liquidity/analytics'
 import { popupRegistry } from 'components/Popups/registry'
 import { PopupType } from 'components/Popups/types'
@@ -137,6 +138,13 @@ function* handlePositionTransactionStep(params: HandlePositionStepParams) {
   }
 
   // Now that we have the txRequest, we can create a definitive LiquidityTransactionStep, incase we started with an async step.
+  // Add gas overhead for RigoBlock smart pool transactions (remove liquidity, collect fees)
+  // Smart pool routing adds gas overhead for the pool contract execution
+  const isSmartPoolTx = txRequest.to && params.address && txRequest.to.toLowerCase() !== params.address.toLowerCase()
+  if (isSmartPoolTx && txRequest.gasLimit) {
+    const RIGOBLOCK_LIQUIDITY_GAS_OVERHEAD = 250000
+    txRequest.gasLimit = BigNumber.from(txRequest.gasLimit).add(RIGOBLOCK_LIQUIDITY_GAS_OVERHEAD).toString()
+  }
   const onChainStep = { ...step, txRequest }
   let hash: string | undefined
   try {

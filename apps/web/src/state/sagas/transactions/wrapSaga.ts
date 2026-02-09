@@ -50,7 +50,7 @@ function* wrap(params: WrapParams) {
     const step = { type: TransactionStepType.WrapTransaction, txRequest, amount: inputCurrencyAmount } as const
     smartPoolAddress && (step.txRequest.to = smartPoolAddress)
     step.txRequest.from = account.address
-    step.txRequest.gasLimit = BigNumber.from(step.txRequest.gasLimit).add(200000) // Add buffer to gas limit
+    step.txRequest.gasLimit = BigNumber.from(step.txRequest.gasLimit || '200000').add(200000) // Add buffer to gas limit
 
     // Override wrap transaction calldata for smart pool
     if (smartPoolAddress && step.txRequest.data) {
@@ -72,8 +72,11 @@ function* wrap(params: WrapParams) {
         step.txRequest.value = String(0) // Ensure value is zero for unwrap
         console.log(`Modified WETH withdraw to smart pool unwrapWETH9(${unwrapAmount})`)
       }
-    } else {
-      // For non-smart pool transactions, ensure value is 0 if not wrap
+    }
+
+    // For smart pool transactions, ALWAYS ensure value is 0.
+    // The funds (ETH) are taken from the smart pool, not the user's wallet.
+    if (smartPoolAddress) {
       step.txRequest.value = String(0)
     }
 

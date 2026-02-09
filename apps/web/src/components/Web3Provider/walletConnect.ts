@@ -76,7 +76,7 @@ export function uniswapWalletConnect() {
       id: 'uniswapWalletConnect',
       type: 'uniswapWalletConnect',
       name: 'Uniswap Wallet',
-      icon: 'https://app.rigoblock.com/favicon.png',
+      icon: 'https://app.uniswap.org/favicon.png',
     }
   })
 }

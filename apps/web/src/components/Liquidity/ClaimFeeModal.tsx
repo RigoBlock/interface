@@ -253,7 +253,7 @@ export function ClaimFeeModal() {
     <Modal name={ModalName.ClaimFee} onClose={closeModal} isDismissible>
       <Flex gap="$gap16">
         <GetHelpHeader
-          link={uniswapUrls.helpRequestUrl}
+          link={uniswapUrls.rigoblockDiscordUrl}
           title={t('pool.collectFees')}
           closeModal={closeModal}
           closeDataTestId="ClaimFeeModal-close-icon"

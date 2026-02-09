@@ -196,10 +196,15 @@ export function useTransactionGasWarning({
   const currencyAmountIn = currencyAmounts[CurrencyField.INPUT]
   const currencyBalanceIn = currencyBalances[CurrencyField.INPUT]
 
+  // For RigoBlock smart pools, the native token being swapped comes from the pool,
+  // not the user. The user only needs to cover gas fees from their own balance.
+  const isSmartPoolSwap = 'smartPoolAddress' in derivedInfo && Boolean(derivedInfo.smartPoolAddress)
+
   // insufficient funds for gas
-  const nativeAmountIn = currencyAmountIn?.currency.isNative
-    ? (currencyAmountIn as CurrencyAmount<Currency>)
-    : undefined
+  const nativeAmountIn =
+    !isSmartPoolSwap && currencyAmountIn?.currency.isNative
+      ? (currencyAmountIn as CurrencyAmount<Currency>)
+      : undefined
   const hasGasFunds = hasSufficientFundsIncludingGas({
     transactionAmount: nativeAmountIn,
     gasFee,
