@@ -1720,7 +1720,7 @@ interface Resources {
     'settings.setting.wallet.preferences.title': 'Wallet preferences'
     'settings.setting.wallet.testnetMode.description': 'This turns on testnets for developers to try out features and transactions without using real assets. Tokens on testnets do not hold any real value.'
     'settings.setting.wallet.testnetMode.title': 'Testnet mode'
-    'settings.switchNetwork.warning': 'To use Uniswap on {{label}}, switch the network in your wallet’s settings.'
+    'settings.switchNetwork.warning': 'To use Rigoblock on {{label}}, switch the network in your wallet’s settings.'
     'settings.title': 'Settings'
     'settings.version': 'Version {{appVersion}}'
     'smartPool.decimals': '{{decimals}}'

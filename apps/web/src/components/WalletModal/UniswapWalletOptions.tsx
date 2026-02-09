@@ -10,7 +10,7 @@ import { PropsWithChildren } from 'react'
 import { Trans } from 'react-i18next'
 import { persistHideMobileAppPromoBannerAtom } from 'state/application/atoms'
 import { Flex, Image, Text } from 'ui/src'
-import { RIGOBLOCK_LOGO, UNISWAP_LOGO } from 'ui/src/assets'
+import { UNISWAP_LOGO } from 'ui/src/assets'
 import { AppStoreLogo } from 'ui/src/components/icons/AppStoreLogo'
 import { PhoneDownload } from 'ui/src/components/icons/PhoneDownload'
 import { ScanQr } from 'ui/src/components/icons/ScanQr'
@@ -95,7 +95,7 @@ export function UniswapWalletOptions() {
           onPress={() => (uniswapMobileWallet ? connectWallet({ wallet: uniswapMobileWallet, onSuccess }) : undefined)}
         >
           {isMobileWeb ? (
-            <Image height={iconSizes.icon40} source={RIGOBLOCK_LOGO} width={iconSizes.icon40} />
+            <Image height={iconSizes.icon40} source={UNISWAP_LOGO} width={iconSizes.icon40} />
           ) : (
             <ScanQr
               size={iconSizes.icon40}

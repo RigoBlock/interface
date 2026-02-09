@@ -157,7 +157,7 @@ export default function ProgressIndicator({
         learnMoreLinkText: isLimitTrade(trade) ? t('limits.learnMore') : t('common.learnMoreSwap'),
         learnMoreLinkHref: isLimitTrade(trade)
           ? uniswapUrls.helpArticleUrls.limitsInfo
-          : uniswapUrls.helpArticleUrls.howToSwapTokens,
+          : uniswapUrls.rigoblockDiscordUrl,
       },
     }),
     [trade, inputTokenColor, t, nativeCurrency.symbol, colors],

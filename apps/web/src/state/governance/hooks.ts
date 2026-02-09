@@ -326,6 +326,8 @@ export function useAllProposalData(): {
     contracts: [...votingPowerCall, ...govParamsCall, ...proposalCalls],
     query: {
       enabled: !!gov?.address && !!govProposalIndexes,
+      staleTime: 30_000, // Cache data for 30 seconds to avoid re-fetching on every re-render
+      gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
     },
   })
 

@@ -71,6 +71,27 @@ const slice = createSlice({
       if (!fetchState || (fetchState.results && fetchState.results.blockNumber > results.blockNumber)) {
         return
       }
+      // If the logs data is identical, only update the blockNumber to avoid
+      // creating new object references that cascade re-renders downstream.
+      const existingLogs = fetchState.results?.logs
+      if (existingLogs && results.logs.length === existingLogs.length) {
+        let logsEqual = true
+        for (let i = 0; i < results.logs.length; i++) {
+          if (
+            results.logs[i].blockNumber !== existingLogs[i].blockNumber ||
+            results.logs[i].logIndex !== existingLogs[i].logIndex ||
+            results.logs[i].data !== existingLogs[i].data
+          ) {
+            logsEqual = false
+            break
+          }
+        }
+        if (logsEqual) {
+          // Same logs — just bump the blockNumber, keep the same logs reference
+          fetchState.results = { logs: existingLogs, blockNumber: results.blockNumber }
+          return
+        }
+      }
       fetchState.results = results
     },
     fetchedLogsError(
