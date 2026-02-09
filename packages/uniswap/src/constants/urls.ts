@@ -102,7 +102,7 @@ export const uniswapUrls = {
   governanceUrl: 'https://docs.rigoblock.com/governance',
   developersUrl: 'https://docs.rigoblock.com/introduction-to-rigoblock',
   aboutUrl: 'https://about.rigoblock.com/',
-  careersUrl: 'https://careers.rigoblock.com/',
+  careersUrl: 'https://www.linkedin.com/company/rigoblock/jobs/',
   social: {
     x: 'https://x.com/Uniswap',
     farcaster: 'https://farcaster.xyz/Uniswap',

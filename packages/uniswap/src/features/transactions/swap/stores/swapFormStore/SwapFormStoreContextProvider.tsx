@@ -215,11 +215,13 @@ function SwapFormStoreContextProviderBase({
 
   // for native transfers, this is the balance - (estimated gas fee for one transaction * multiplier from flag);
   // for ERC20 transfers, this is the balance
+  // for smart pool operations, the full balance is available (gas is paid by user's wallet, not the pool)
   const maxInputAmountAsRef = useValueAsRef(
     useMaxAmountSpend({
       currencyAmount: inputBalanceAmount,
       txType: TransactionType.Swap,
       isExtraTx: true,
+      isSmartPool: !!smartPoolAddress,
     })?.toExact(),
   )
 

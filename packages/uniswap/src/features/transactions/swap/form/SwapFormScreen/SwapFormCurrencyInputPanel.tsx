@@ -13,6 +13,7 @@ import { isWebPlatform } from 'utilities/src/platform'
 export function SwapFormCurrencyInputPanel(): JSX.Element {
   const { t } = useTranslation()
   const derivedSwapInfo = useSwapFormStore((s) => s.derivedSwapInfo)
+  const smartPoolAddress = useSwapFormStore((s) => s.smartPoolAddress)
   const { priceDifferencePercentage } = usePriceDifference(derivedSwapInfo)
 
   const {
@@ -96,6 +97,7 @@ export function SwapFormCurrencyInputPanel(): JSX.Element {
           onSetPresetValue={onSetPresetValue}
           onShowTokenSelector={onShowTokenSelectorInput}
           onToggleIsFiatMode={onToggleIsFiatMode}
+          isSmartPool={!!smartPoolAddress}
         />
       </Flex>
     </Trace>

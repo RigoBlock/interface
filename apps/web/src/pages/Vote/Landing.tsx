@@ -245,14 +245,16 @@ export default function Landing() {
               })}
           </TopSection>
 
-          <ThemedText.DeprecatedSubHeader color="text3">
-            <Trans
-              i18nKey="vote.landing.minThresholdRequired.error"
-              values={{
-                formattedProposalThreshold,
-              }}
-            />
-          </ThemedText.DeprecatedSubHeader>
+          {formattedProposalThreshold && (
+            <ThemedText.DeprecatedSubHeader color="text3">
+              <Trans
+                i18nKey="vote.landing.minThresholdRequired.error"
+                values={{
+                  formattedProposalThreshold,
+                }}
+              />
+            </ThemedText.DeprecatedSubHeader>
+          )}
         </PageWrapper>
       </Trace>
       <SwitchLocaleLink />

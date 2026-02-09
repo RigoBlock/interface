@@ -26,7 +26,7 @@ import { WebNotificationServiceManager } from 'notification-service/WebNotificat
 import { NuqsAdapter } from 'nuqs/adapters/react-router/v7'
 import App from 'pages/App'
 import type { PropsWithChildren } from 'react'
-import { StrictMode, useEffect, useMemo } from 'react'
+import React, { StrictMode, useEffect, useMemo } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Helmet, HelmetProvider } from 'react-helmet-async/lib/index'
 import { I18nextProvider } from 'react-i18next'
