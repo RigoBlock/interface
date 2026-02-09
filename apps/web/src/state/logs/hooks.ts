@@ -1,7 +1,7 @@
 import type { Filter } from '@ethersproject/providers'
 import { useAccount } from 'hooks/useAccount'
 import useBlockNumber from 'lib/hooks/useBlockNumber'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useAppDispatch, useAppSelector } from 'state/hooks'
 import { addListener, removeListener } from 'state/logs/slice'
 import { filterToKey, isHistoricalLog, Log } from 'state/logs/utils'
@@ -48,7 +48,7 @@ export function useLogs(filter: Filter | undefined): UseLogsResult {
     }
   }, [chainId, dispatch, filter])
 
-  return useMemo(() => {
+  const rawResult = useMemo(() => {
     if (!chainId || !filter || !blockNumber) {
       return {
         logs: undefined,
@@ -83,4 +83,32 @@ export function useLogs(filter: Filter | undefined): UseLogsResult {
       logs: result.logs,
     }
   }, [blockNumber, chainId, filter, logs])
+
+  // Return a stable reference when the logs data hasn't actually changed.
+  // This prevents downstream useMemo/useEffect from re-running and
+  // re-triggering expensive wagmi RPC calls on every block.
+  const prevLogsRef = useRef<Log[] | undefined>(undefined)
+  const stableResult = useMemo(() => {
+    const prevLogs = prevLogsRef.current
+    if (rawResult.logs && prevLogs && rawResult.logs.length === prevLogs.length) {
+      let same = true
+      for (let i = 0; i < rawResult.logs.length; i++) {
+        if (
+          rawResult.logs[i].blockNumber !== prevLogs[i].blockNumber ||
+          rawResult.logs[i].logIndex !== prevLogs[i].logIndex ||
+          rawResult.logs[i].data !== prevLogs[i].data
+        ) {
+          same = false
+          break
+        }
+      }
+      if (same) {
+        return { ...rawResult, logs: prevLogs }
+      }
+    }
+    prevLogsRef.current = rawResult.logs
+    return rawResult
+  }, [rawResult])
+
+  return stableResult
 }

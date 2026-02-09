@@ -86,6 +86,7 @@ export default function Updater(): null {
       if (typeof toBlock === 'string') {
         toBlock = Number.parseInt(toBlock)
       }
+
       provider
         .getLogs({
           ...filter,
