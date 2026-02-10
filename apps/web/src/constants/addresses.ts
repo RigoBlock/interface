@@ -100,6 +100,20 @@ export const POP_ADDRESSES: AddressMap = {
   [UniverseChainId.Unichain]: '0xa094BEB834b439bA77763c5889DaBf434Bc26662',
 }
 
+/** All production chains where RigoBlock smart pool contracts are deployed */
+export const RIGOBLOCK_SUPPORTED_CHAINS: UniverseChainId[] = [
+  UniverseChainId.Mainnet,
+  UniverseChainId.ArbitrumOne,
+  UniverseChainId.Optimism,
+  UniverseChainId.Polygon,
+  UniverseChainId.Base,
+  UniverseChainId.Bnb,
+  UniverseChainId.Unichain,
+]
+
+/** Testnet chains where RigoBlock smart pool contracts are deployed */
+export const RIGOBLOCK_TESTNET_CHAINS: UniverseChainId[] = [UniverseChainId.Sepolia]
+
 /**
  * RigoBlock-supported chains for Across bridging
  * Only chains where both RigoBlock pools and Across bridge are deployed and tested

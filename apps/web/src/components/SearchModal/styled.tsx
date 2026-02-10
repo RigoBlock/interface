@@ -7,7 +7,7 @@ export const PaddedColumn = styled(AutoColumn)`
   padding: 20px;
 `
 
-export const MenuItem = styled(RowBetween)<{ dim?: boolean }>`
+export const MenuItem = styled(RowBetween)<{ $dim?: boolean }>`
   padding: 4px 20px;
   height: 60px;
   display: grid;
@@ -18,7 +18,7 @@ export const MenuItem = styled(RowBetween)<{ dim?: boolean }>`
   &:hover {
     background-color: ${({ theme }) => theme.deprecated_hoverDefault};
   }
-  opacity: ${({ disabled, selected, dim }) => (dim || disabled || selected ? 0.4 : 1)};
+  opacity: ${({ disabled, selected, $dim }) => ($dim || disabled || selected ? 0.4 : 1)};
 `
 
 export const SearchInput = styled.input`

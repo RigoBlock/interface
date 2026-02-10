@@ -153,7 +153,7 @@ export function CurrencyRow({
           onKeyDown={(e) => (e.key === 'Enter' ? onSelect(warningSeverity === WarningSeverity.None) : null)}
           onClick={() => onSelect(warningSeverity === WarningSeverity.None)}
           selected={otherSelected || isSelected}
-          dim={isBlockedToken}
+          $dim={isBlockedToken}
           disabled={disabled}
           style={{ outline: 'none' }}
         >

@@ -1,5 +1,6 @@
 import { GraphQLApi } from '@universe/api'
 import { ETH_LOGO, ETHEREUM_LOGO, UNICHAIN_LOGO, UNICHAIN_SEPOLIA_LOGO } from 'ui/src/assets'
+import { config } from 'uniswap/src/config'
 import { DEFAULT_NATIVE_ADDRESS_LEGACY, getQuicknodeEndpointUrl } from 'uniswap/src/features/chains/evm/rpc'
 import { buildChainTokens } from 'uniswap/src/features/chains/evm/tokens'
 import { GENERIC_L2_GAS_CONFIG } from 'uniswap/src/features/chains/gasDefaults'
@@ -57,7 +58,9 @@ export const UNICHAIN_CHAIN_INFO = {
   rpcUrls: {
     [RPCType.Public]: { http: [getQuicknodeEndpointUrl(UniverseChainId.Unichain)] },
     [RPCType.Default]: { http: ['https://mainnet.unichain.org'] },
-    [RPCType.Interface]: { http: [getQuicknodeEndpointUrl(UniverseChainId.Unichain)] },
+    [RPCType.Interface]: {
+      http: [`https://unichain-mainnet.infura.io/v3/${config.infuraKey}`, getQuicknodeEndpointUrl(UniverseChainId.Unichain)]
+    },
   },
   tokens,
   statusPage: undefined,

@@ -20,6 +20,7 @@ import { ThemedText } from 'theme/components/text'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
 import { useIsSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
+import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { logger } from 'utilities/src/logger/logger'
@@ -110,6 +111,7 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
   // by memoizing native, new chain native currency is stored on switch chain
   const account = useAccount()
   const native = useMemo(() => nativeOnChain(account.chainId ?? 1), [account.chainId])
+  const chainLabel = account.chainId ? getChainInfo(account.chainId).label : undefined
 
   // TODO: as native is memoized now, we can simply set currency value, probably not needed to
   // update currency at initialization or on chain switch
@@ -201,6 +203,11 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
                 <ThemedText.DeprecatedBody>
                   <Trans>Choose a cool name, a symbol and the base token.</Trans>
                 </ThemedText.DeprecatedBody>
+                {chainLabel && (
+                  <ThemedText.DeprecatedSubHeader>
+                    <Trans>Will be created on {chainLabel}</Trans>
+                  </ThemedText.DeprecatedSubHeader>
+                )}
                 <NameInputPanel value={typedName} onChange={onNameInput} />
                 <NameInputPanel
                   value={typedSymbol}
@@ -247,7 +254,7 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
                   onClick={onCreate}
                 >
                   <ThemedText.DeprecatedMediumHeader color="white">
-                    <Trans>Create New Pool</Trans>
+                    <Trans>Create Smart Pool</Trans>
                   </ThemedText.DeprecatedMediumHeader>
                 </ButtonPrimary>
               </AutoColumn>
@@ -257,7 +264,7 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
             <LoadingView onDismiss={wrappedOnDismiss}>
               <AutoColumn gap="12px" justify="center">
                 <ThemedText.DeprecatedLargeHeader>
-                  <Trans>Creating new Pool</Trans>
+                  <Trans>Creating Smart Pool</Trans>
                 </ThemedText.DeprecatedLargeHeader>
               </AutoColumn>
             </LoadingView>

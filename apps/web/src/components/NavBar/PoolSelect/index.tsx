@@ -1,5 +1,6 @@
 import { Currency, Token } from '@uniswap/sdk-core'
 import { ButtonGray } from 'components/Button/buttons'
+import { SwitchNetworkAction } from 'components/Popups/types'
 import CurrencySearchModal from 'components/SearchModal/CurrencySearchModal'
 import styled from 'lib/styled-components'
 import React, { useCallback, useEffect, useState } from 'react'
@@ -133,6 +134,7 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
         onCurrencySelect={handleSelectPool}
         operatedPools={poolsAsCurrrencies}
         shouldDisplayPoolsOnly={true}
+        switchNetworkAction={SwitchNetworkAction.Swap}
       />
     </>
   )

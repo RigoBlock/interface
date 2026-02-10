@@ -104,6 +104,8 @@ function useShouldHideChainSelector() {
   const isPositionsPage = useIsPage(PageType.POSITIONS)
   const isMigrateV3Page = useIsPage(PageType.MIGRATE_V3)
   const isBuyPage = useIsPage(PageType.BUY)
+  const isEarnPage = useIsPage(PageType.EARN)
+  const isPortfolioPage = useIsPage(PageType.PORTFOLIO)
 
   const multichainHiddenPages =
     isLandingPage ||
@@ -113,7 +115,9 @@ function useShouldHideChainSelector() {
     isExplorePage ||
     isPositionsPage ||
     isMigrateV3Page ||
-    isBuyPage
+    isBuyPage ||
+    isEarnPage ||
+    isPortfolioPage
 
   return multichainHiddenPages
 }

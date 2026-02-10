@@ -61,6 +61,7 @@ export interface PoolRegisteredLog {
   name: string
   symbol: string
   id: string
+  chainId?: number
   userHasStake?: boolean
 }
 
@@ -210,7 +211,7 @@ function useRegisteredPools(): PoolRegisteredLog[] | undefined {
       const name = parseBytes32String(parsed.name)
       const symbol = parseBytes32String(parsed.symbol)
       const id = parsed.id //.toString()
-      const poolData: PoolRegisteredLog = { group, pool, name, symbol, id }
+      const poolData: PoolRegisteredLog = { group, pool, name, symbol, id, chainId }
 
       return poolData
     })

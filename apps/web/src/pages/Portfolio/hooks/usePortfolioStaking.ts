@@ -65,15 +65,18 @@ function useChainStakingData({
   chainId,
   targetAddress,
 }: {
-  userAddress: string
+  userAddress: `0x${string}` | ''
   chainId: UniverseChainId
   targetAddress?: string // The address we're actually displaying stakes for (could be smart pool)
 }) {
   const dispatch = useDispatch()
+  const hexAddress = userAddress as `0x${string}` | undefined
   const needsFetch = useSelector((state: InterfaceState) =>
-    selectStakingDataNeedsFetch(state, { userAddress, chainId }),
+    hexAddress ? selectStakingDataNeedsFetch(state, { userAddress: hexAddress, chainId }) : true,
   )
-  const cachedData = useSelector((state: InterfaceState) => selectChainStakingData(state, { userAddress, chainId }))
+  const cachedData = useSelector((state: InterfaceState) =>
+    hexAddress ? selectChainStakingData(state, { userAddress: hexAddress, chainId }) : undefined,
+  )
 
   // Call the hooks to get fresh data when needed
   const { userFreeStake, userDelegatedStake, smartPoolFreeStake, smartPoolDelegatedStake } = useTotalStakeBalances({
@@ -219,7 +222,7 @@ export function usePortfolioStaking({
 
   // Get cached staking data from Redux store
   const allUserStakingData = useSelector((state: InterfaceState) =>
-    targetAddress ? selectUserStakingData(state, targetAddress) : {},
+    targetAddress ? selectUserStakingData(state, targetAddress as `0x${string}`) : {},
   )
 
   // Trigger data fetching for each chain using individual hooks (fixed number to avoid infinite loops)
@@ -238,7 +241,7 @@ export function usePortfolioStaking({
     const isActiveChain = i < chainsToProcess.length
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useChainStakingData({
-      userAddress: isActiveChain && targetAddress ? targetAddress : '',
+      userAddress: isActiveChain && targetAddress ? (targetAddress as `0x${string}`) : '',
       chainId,
       targetAddress: isActiveChain && targetAddress ? (isViewingOwnStakes ? undefined : targetAddress) : undefined,
     })

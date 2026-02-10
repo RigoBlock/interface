@@ -144,16 +144,17 @@ const slice = createSlice({
       const now = Date.now()
 
       Object.keys(state.stakingDataByAddress).forEach((userAddress) => {
-        Object.keys(state.stakingDataByAddress[userAddress]).forEach((chainId) => {
-          const data = state.stakingDataByAddress[userAddress][Number(chainId) as UniverseChainId]
+        const userKey = userAddress as `0x${string}`
+        Object.keys(state.stakingDataByAddress[userKey]).forEach((chainId) => {
+          const data = state.stakingDataByAddress[userKey][Number(chainId) as UniverseChainId]
           if (data?.lastUpdated && now - data.lastUpdated > STAKING_DATA_MAX_AGE) {
-            delete state.stakingDataByAddress[userAddress][Number(chainId) as UniverseChainId]
+            delete state.stakingDataByAddress[userKey][Number(chainId) as UniverseChainId]
           }
         })
 
         // Remove empty user objects
-        if (Object.keys(state.stakingDataByAddress[userAddress]).length === 0) {
-          delete state.stakingDataByAddress[userAddress]
+        if (Object.keys(state.stakingDataByAddress[userKey]).length === 0) {
+          delete state.stakingDataByAddress[userKey]
         }
       })
     },

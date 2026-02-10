@@ -23,14 +23,15 @@ export interface PoolPositionDetails {
   symbol: string
   id: string
   address?: string
-  apr?: string
-  irr?: string
+  chainId?: number
+  apr?: number
+  irr?: number
   poolOwnStake?: BigNumber
   poolDelegatedStake?: BigNumber
   userBalance?: BigNumber
   userHasStake?: boolean
   userIsOwner?: boolean
-  currentEpochReward?: BigNumber
+  currentEpochReward?: string
 }
 
 export enum PositionField {

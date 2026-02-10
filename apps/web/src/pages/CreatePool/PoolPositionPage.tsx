@@ -127,6 +127,7 @@ const ResponsiveButtonPrimary = styled(ButtonPrimary)`
 
 export default function PoolPositionPage() {
   const {
+    chainId: chainIdFromUrl,
     poolAddress: poolAddressFromUrl,
     returnPage: originFromUrl,
     poolStake: poolStakeFromUrl,
@@ -134,6 +135,7 @@ export default function PoolPositionPage() {
     poolOwnStake: poolOwnStakeFromUrl,
     irr: irrFromUrl,
   } = useParams<{
+    chainId: string
     poolAddress: string
     returnPage: string
     poolStake: string
@@ -451,10 +453,10 @@ export default function PoolPositionPage() {
                   <Link
                     data-cy="visit-pool"
                     style={{ textDecoration: 'none', width: 'fit-content', marginBottom: '0.5rem' }}
-                    to={originFromUrl === 'mint' ? '/mint' : '/stake'}
+                    to="/earn"
                   >
                     <HoverText>
-                      <Trans>← Back to Pools</Trans>
+                      <Trans>← Back to Smart Pools</Trans>
                     </HoverText>
                   </Link>
                 )}

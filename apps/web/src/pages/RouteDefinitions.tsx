@@ -1,11 +1,12 @@
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useAtom } from 'jotai'
 // High-traffic pages (index and /swap) should not be lazy-loaded.
-import CreatePool from 'pages/CreatePool'
+//import CreatePool from 'pages/CreatePool'
+import Earn from 'pages/Earn'
 import { getExploreDescription, getExploreTitle } from 'pages/getExploreTitle'
 import { getAddLiquidityPageTitle, getPositionPageDescription, getPositionPageTitle } from 'pages/getPositionPageTitle'
 //import Landing from 'pages/Landing'
-import Stake from 'pages/Stake'
+//import Stake from 'pages/Stake'
 import Swap from 'pages/Swap'
 import { lazy, ReactNode, Suspense, useMemo } from 'react'
 import { matchPath, Navigate, useLocation } from 'react-router'
@@ -149,7 +150,7 @@ export const routes: RouteDefinition[] = [
       return args.browserRouterEnabled && args.hash ? (
         <Navigate to={args.hash.replace('#', '')} replace />
       ) : (
-        <Navigate to="/mint" replace />
+        <Navigate to="/earn" replace />
       )
     },
   }),
@@ -434,18 +435,36 @@ export const routes: RouteDefinition[] = [
     enabled: (args) => args.isWrappedEnabled ?? false,
   }),
   createRouteDefinition({
+    path: '/earn',
+    getElement: () => <Earn />,
+    getTitle: () => i18n.t(`Earn on Rigoblock Smart Pools`),
+  }),
+  createRouteDefinition({
+    path: '/earn/manage',
+    getElement: () => <Earn />,
+    getTitle: () => i18n.t(`Manage Rigoblock Smart Pools`),
+  }),
+  // Legacy routes - redirect to unified Earn page
+  createRouteDefinition({
     path: '/mint',
-    getElement: () => <CreatePool />,
+    getElement: () => <Navigate to="/earn" replace />,
     getTitle: () => i18n.t(`Buy smart vaults on Rigoblock`),
   }),
   createRouteDefinition({
     path: '/stake',
-    getElement: () => <Stake />,
+    getElement: () => <Navigate to="/earn" replace />,
     getTitle: () => i18n.t(`Find the best vaults on Rigoblock`),
   }),
   createRouteDefinition({
     path: '/smart-pool',
     nestedPaths: [
+      ':chainId/:poolAddress',
+      ':chainId/:poolAddress/:returnPage',
+      ':chainId/:poolAddress/:returnPage/:poolStake',
+      ':chainId/:poolAddress/:returnPage/:poolStake/:apr',
+      ':chainId/:poolAddress/:returnPage/:poolStake/:apr/:poolOwnStake',
+      ':chainId/:poolAddress/:returnPage/:poolStake/:apr/:poolOwnStake/:irr',
+      // Legacy routes without chainId
       ':poolAddress',
       ':poolAddress/:returnPage',
       ':poolAddress/:returnPage/:poolStake',
