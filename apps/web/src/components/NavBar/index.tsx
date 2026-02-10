@@ -19,7 +19,10 @@ import usePrevious from 'hooks/usePrevious'
 import { css, styled as deprecatedStyled } from 'lib/styled-components'
 import { useEffect, useMemo, useRef } from 'react'
 import { useActiveSmartPool, useSelectActiveSmartPool } from 'state/application/hooks'
-import { useMultiChainOperatedPools } from 'state/pool/multichain'
+import {
+  useMultiChainAllPoolsData,
+  useMultiChainStakingPools,
+} from 'state/pool/multichain'
 import { Flex, styled, Nav as TamaguiNav, useMedia } from 'ui/src'
 import { breakpoints, INTERFACE_NAV_HEIGHT, zIndexes } from 'ui/src/theme'
 import { useConnectionStatus } from 'uniswap/src/features/accounts/store/hooks'
@@ -141,13 +144,38 @@ export default function Navbar() {
   const { isTestnetModeEnabled } = useEnabledChains()
   const isEmbeddedWalletEnabled = useFeatureFlag(FeatureFlags.EmbeddedWallet)
 
-  // ── Operated pools (deduplicated by address, owner-verified via shared hook) ──
+  // ── Operated pools derived from the staking batch (shared TanStack query with Earn page) ──
   const chains = useMemo(
     () => (isTestnetModeEnabled ? RIGOBLOCK_TESTNET_CHAINS : RIGOBLOCK_SUPPORTED_CHAINS),
     [isTestnetModeEnabled],
   )
 
-  const { operatedPools: rawOperatedPools } = useMultiChainOperatedPools(chains)
+  const { data: allPools } = useMultiChainAllPoolsData(chains)
+  const { stakingPools } = useMultiChainStakingPools(allPools ?? [])
+
+  // Derive operated Token[] from staking results — all RigoBlock pools use 18 decimals.
+  // Deduplicated by address so pools deployed on multiple chains appear once.
+  const rawOperatedPools = useMemo(() => {
+    if (!address || !allPools || !stakingPools) {
+      return []
+    }
+    const seen = new Set<string>()
+    const result: Token[] = []
+    for (let i = 0; i < allPools.length; i++) {
+      const s = stakingPools[i]
+      if (!s?.userIsOwner) {
+        continue
+      }
+      const p = allPools[i]
+      const key = p.pool.toLowerCase()
+      if (seen.has(key)) {
+        continue
+      }
+      seen.add(key)
+      result.push(new Token(p.chainId ?? 1, p.pool, 18, p.symbol, p.name))
+    }
+    return result
+  }, [address, allPools, stakingPools])
 
   // Cache operated pools to avoid UI flicker during data reloads
   const cachedPoolsRef = useRef<Token[]>([])

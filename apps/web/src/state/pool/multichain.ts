@@ -173,116 +173,6 @@ export function useMultiChainAllPoolsData(chains: number[]): { data?: PoolRegist
   }, [pools])
 }
 
-// ─── Operated Pools (shared hook for NavBar + children) ────────────────────
-
-const GET_POOL_ABI = [
-  {
-    inputs: [],
-    name: 'getPool',
-    outputs: [
-      {
-        components: [
-          { internalType: 'string', name: 'name', type: 'string' },
-          { internalType: 'string', name: 'symbol', type: 'string' },
-          { internalType: 'uint8', name: 'decimals', type: 'uint8' },
-          { internalType: 'address', name: 'owner', type: 'address' },
-          { internalType: 'address', name: 'baseToken', type: 'address' },
-        ],
-        internalType: 'struct ISmartPoolState.ReturnedPool',
-        name: '',
-        type: 'tuple',
-      },
-    ],
-    stateMutability: 'view' as const,
-    type: 'function' as const,
-  },
-] as const
-
-/**
- * Returns the connected user's operated pools across all chains, deduplicated by
- * pool address.  A pool deployed at the same address on multiple chains appears
- * once — downstream features (swap, positions) handle chain selection themselves.
- *
- * Owner is verified via a single `getPool()` RPC call per unique address (on the
- * connected chain when available, otherwise on the first discovered chain).
- *
- * Designed to be the single source of truth for "which pools does this user
- * operate?" — consumed by the NavBar PoolSelect and any child that needs it.
- */
-export function useMultiChainOperatedPools(chains: number[]): {
-  operatedPools: Token[]
-  isLoading: boolean
-} {
-  const account = useAccount()
-  const { address, chainId: connectedChainId } = account
-
-  const { data: allPools } = useMultiChainAllPoolsData(chains)
-
-  // Deduplicate by pool address — prefer connected chain for the RPC call
-  const dedupedPools = useMemo(() => {
-    if (!allPools?.length) {
-      return []
-    }
-    const byAddress = new Map<string, PoolRegisteredLog>()
-    for (const p of allPools) {
-      const key = p.pool.toLowerCase()
-      const existing = byAddress.get(key)
-      if (!existing) {
-        byAddress.set(key, p)
-      } else if (p.chainId === connectedChainId && existing.chainId !== connectedChainId) {
-        byAddress.set(key, p)
-      }
-    }
-    return Array.from(byAddress.values())
-  }, [allPools, connectedChainId])
-
-  // One getPool() call per unique pool address
-  const contracts = useMemo(() => {
-    if (!address || dedupedPools.length === 0) {
-      return []
-    }
-    return dedupedPools.map((p) => ({
-      address: assume0xAddress(p.pool),
-      abi: GET_POOL_ABI,
-      functionName: 'getPool' as const,
-      chainId: p.chainId ?? UniverseChainId.Mainnet,
-    }))
-  }, [address, dedupedPools])
-
-  const { data, isLoading } = useReadContracts({
-    contracts,
-    query: {
-      enabled: contracts.length > 0,
-      staleTime: 5 * 60_000,
-      gcTime: 10 * 60_000,
-      retry: 3,
-      retryDelay: (attempt: number) => Math.min(attempt > 1 ? 2 ** attempt * 1000 : 1000, 30_000),
-      refetchOnWindowFocus: false,
-    },
-  })
-
-  const operatedPools = useMemo(() => {
-    if (!address || !data || dedupedPools.length === 0) {
-      return []
-    }
-    return data
-      .map(({ result }, i) => {
-        if (!result) {
-          return null
-        }
-        const pool = result as { name: string; symbol: string; decimals: number; owner: string; baseToken: string }
-        if (pool.owner.toLowerCase() !== address.toLowerCase()) {
-          return null
-        }
-        const p = dedupedPools[i]
-        return new Token(p.chainId ?? UniverseChainId.Mainnet, p.pool, pool.decimals, pool.symbol, pool.name)
-      })
-      .filter((t): t is Token => t !== null)
-  }, [address, data, dedupedPools])
-
-  return { operatedPools, isLoading }
-}
-
 // ─── Multi-chain Staking Data ──────────────────────────────────────────────
 
 export interface StakingPoolData {
@@ -483,12 +373,12 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
 
   const { data: rawData, isLoading } = useReadContracts({
     contracts,
-    batchSize: 0,
+    batchSize: 1024, // large batch size to get all data in one go; wagmi will split by chainId as needed
     query: {
       enabled: contracts.length > 0,
       staleTime: 5 * 60_000,
       gcTime: 5 * 60_000,
-      retry: 3,
+      retry: 5,
       retryDelay: (attempt: number) => Math.min(attempt > 1 ? 2 ** attempt * 1000 : 1000, 30_000),
       refetchOnWindowFocus: false,
     },
