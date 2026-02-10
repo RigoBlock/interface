@@ -24,7 +24,6 @@ import {
   useMultiChainAllPoolsData,
   useMultiChainStakingPools,
 } from 'state/pool/multichain'
-import { useFreeStakeBalance, useUnclaimedRewards } from 'state/stake/hooks'
 import { ThemedText } from 'theme/components/text'
 import { Flex, SegmentedControl, SegmentedControlOption } from 'ui/src'
 import { NetworkFilter } from 'uniswap/src/components/network/NetworkFilter'
@@ -113,38 +112,34 @@ export default function Earn() {
   // Shared data: pool discovery from supported chains
   const { data: allPools } = useMultiChainAllPoolsData(supportedChains)
 
-  // Staking data across all chains (APR/IRR/rewards/userStake — all in one batch)
-  const { stakingPools } = useMultiChainStakingPools(allPools ?? [])
+  // Single-batch staking data: one useReadContracts, wagmi splits into per-chain multicalls.
+  // Includes freeStakeBalance + unclaimedRewards for the connected chain.
+  const {
+    stakingPools,
+    freeStakeBalance,
+    unclaimedRewards,
+  } = useMultiChainStakingPools(allPools ?? [])
 
-  // Connected chain data for Harvest/Unstake actions
   const grg = useMemo(() => (account.chainId ? GRG[account.chainId] : undefined), [account.chainId])
-  const connectedChainPoolIds = useMemo(() => {
-    if (!allPools || !account.chainId) {
-      return []
-    }
-    return allPools.filter((p) => p.chainId === account.chainId).map((p) => p.id)
-  }, [allPools, account.chainId])
-  const unclaimedRewards = useUnclaimedRewards(connectedChainPoolIds)
-  const freeStakeBalance = useFreeStakeBalance()
   const hasFreeStake = JSBI.greaterThan(freeStakeBalance ? freeStakeBalance.quotient : JSBI.BigInt(0), JSBI.BigInt(0))
 
   // Yield amount for Harvest button
   const yieldAmount: CurrencyAmount<Token> | undefined = useMemo(() => {
-    if (!grg || !unclaimedRewards || unclaimedRewards.length === 0) {
+    if (!grg || unclaimedRewards.length === 0) {
       return undefined
     }
     const yieldBigint = unclaimedRewards
-      .map((reward) => reward.yieldAmount.quotient)
+      .map((r) => r.amount.quotient)
       .reduce((acc, value) => JSBI.add(acc, value))
     return CurrencyAmount.fromRawAmount(grg, yieldBigint)
   }, [grg, unclaimedRewards])
 
   const farmingPoolIds = useMemo(() => {
-    const ids = unclaimedRewards?.map((reward) => reward.yieldPoolId)
-    return ids && ids.length > 0 ? ids : undefined
+    const ids = unclaimedRewards.map((r) => r.poolId)
+    return ids.length > 0 ? ids : undefined
   }, [unclaimedRewards])
 
-  // Pools with staking stats (sorted by biggest own stake)
+  // Pools enriched with staking stats
   const poolsWithStats = useMemo(() => {
     if (!allPools || !stakingPools) {
       return undefined
@@ -162,12 +157,20 @@ export default function Earn() {
           currentEpochReward: s.currentEpochReward,
         }
       })
-      .filter((p) => JSBI.greaterThan(JSBI.BigInt(p.poolOwnStake.toString()), JSBI.BigInt(0)))
-      .sort(biggestOwnStakeFirst)
   }, [allPools, stakingPools])
 
+  // "Top Smart Pools": only pools with positive own stake, sorted biggest first
+  const topPools = useMemo(() => {
+    if (!poolsWithStats) {
+      return undefined
+    }
+    return poolsWithStats
+      .filter((p) => JSBI.greaterThan(JSBI.BigInt(p.poolOwnStake.toString()), JSBI.BigInt(0)))
+      .sort(biggestOwnStakeFirst)
+  }, [poolsWithStats])
+
   // Separate staked / non-staked pools, put user-staked first
-  const [stakedPools, nonStakedPools] = poolsWithStats?.reduce<[PoolRegisteredLog[], PoolRegisteredLog[]]>(
+  const [stakedPools, nonStakedPools] = topPools?.reduce<[PoolRegisteredLog[], PoolRegisteredLog[]]>(
     (acc, p) => {
       acc[p.userHasStake ? 1 : 0].push(p)
       return acc
@@ -185,7 +188,7 @@ export default function Earn() {
     return orderedAllPools.filter((p) => p.chainId === selectedChain)
   }, [orderedAllPools, selectedChain])
 
-  // Filtered pools for My Smart Pools tab (use enriched data with apr/irr)
+  // "My Smart Pools": ALL pools (no own-stake filter — owner/holder needs access)
   const filteredMyPools = useMemo(() => {
     if (!poolsWithStats) {
       return undefined

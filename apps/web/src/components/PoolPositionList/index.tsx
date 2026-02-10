@@ -296,7 +296,7 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools, o
             <PoolPositionGroupedListItem
               key={`group-${group[0]?.name}`}
               positions={group}
-              returnPage="earn"
+              returnPage={shouldFilterByUserPools ? 'manage' : 'earn'}
               isMyPools={!!shouldFilterByUserPools}
               onRaceClick={onRaceClick}
             />

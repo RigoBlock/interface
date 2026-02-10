@@ -4,6 +4,7 @@ import { BigNumber } from '@ethersproject/bignumber'
 import { parseBytes32String } from '@ethersproject/strings'
 import { RB_REGISTRY_ADDRESSES, STAKING_PROXY_ADDRESSES } from 'constants/addresses'
 import { getBackupRpcProvider } from 'constants/providers'
+import { CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { useAccount } from 'hooks/useAccount'
 import JSBI from 'jsbi'
 import { useEffect, useMemo, useState } from 'react'
@@ -172,7 +173,7 @@ export function useMultiChainAllPoolsData(chains: number[]): { data?: PoolRegist
 
 // ─── Multi-chain Staking Data ──────────────────────────────────────────────
 
-interface StakingPoolData {
+export interface StakingPoolData {
   id: string
   operatorShare: number
   apr: number
@@ -183,9 +184,13 @@ interface StakingPoolData {
   userHasStake: boolean
 }
 
-interface UseStakingPools {
+export interface MultiChainStakingResult {
   loading: boolean
   stakingPools?: StakingPoolData[]
+  /** Free (undelegated) stake on the connected chain */
+  freeStakeBalance?: CurrencyAmount<Token>
+  /** Unclaimed rewards for pools on the connected chain */
+  unclaimedRewards: { poolId: string; amount: CurrencyAmount<Token> }[]
 }
 
 const ERC20_TOTAL_SUPPLY_ABI_VIEM = [
@@ -199,24 +204,29 @@ const ERC20_TOTAL_SUPPLY_ABI_VIEM = [
 ]
 
 /**
- * Fetches staking data for pools across multiple chains using wagmi's useReadContracts.
+ * Fetches ALL staking data for ALL pools across ALL chains in a SINGLE useReadContracts call.
  *
- * This hook builds ALL contract calls (across ALL chains) upfront and lets wagmi group them
- * by chainId into separate multicalls — one per chain. TanStack Query (under the hood)
- * handles caching, deduplication, and StrictMode double-mount robustness automatically.
+ * One TanStack Query — wagmi automatically groups the contracts by chainId and sends one
+ * multicall RPC per chain. This avoids duplicate query subscriptions and extra blockNumber
+ * polling that would occur with per-chain hooks.
  *
- * Results include APR, IRR, delegated stake, pool own stake, the current epoch's collected
- * fees, and whether the connected user has an active stake, for each pool.
+ * Includes per-pool staking stats (APR/IRR/delegatedStake/ownStake/userStake/epochFees),
+ * plus connected-chain user data (freeStakeBalance, unclaimedRewards) — all in one batch.
  */
-export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): UseStakingPools {
+export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChainStakingResult {
   const account = useAccount()
 
-  const CALLS_PER_POOL = account.address ? 5 : 4
+  const STAKING_CALLS_PER_POOL = account.address ? 5 : 4
 
-  // Build the flat array of contract calls, plus metadata to reconstruct per-pool results.
-  const { contracts, chainMeta } = useMemo(() => {
+  // Build all contract calls plus metadata to decode results.
+  const { contracts, chainMeta, rewardsMeta, freeStakeMeta } = useMemo(() => {
     if (pools.length === 0) {
-      return { contracts: [] as any[], chainMeta: [] as { chainId: number; poolIndices: number[]; baseOffset: number; supplyOffset: number }[] }
+      return {
+        contracts: [] as any[],
+        chainMeta: [] as { chainId: number; poolIndices: number[]; baseOffset: number; supplyOffset: number }[],
+        rewardsMeta: { connectedChainBase: -1, poolIds: [] as string[] },
+        freeStakeMeta: { idx: -1, chainId: 0 },
+      }
     }
 
     // Group pools by chain, preserving original index
@@ -231,12 +241,17 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): UseStakin
 
     const allContracts: any[] = []
     const meta: { chainId: number; poolIndices: number[]; baseOffset: number; supplyOffset: number }[] = []
+    let connectedChainRewardsBase = -1
+    const connectedChainPoolIds: string[] = []
+    let freeStakeIdx = -1
+    let freeStakeChainId = 0
 
     for (const [chainId, entries] of poolsByChain) {
       const stakingAddr = assume0xAddress(STAKING_PROXY_ADDRESSES[chainId])
       const grg = GRG[chainId]
       const baseOffset = allContracts.length
 
+      // ── Per-pool staking calls ──
       for (const entry of entries) {
         const pool = entry.pool
         allContracts.push(
@@ -253,6 +268,7 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): UseStakin
         }
       }
 
+      // ── GRG totalSupply ──
       const supplyOffset = allContracts.length
       allContracts.push({
         address: assume0xAddress(grg.address),
@@ -260,6 +276,25 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): UseStakin
         functionName: 'totalSupply',
         chainId,
       })
+
+      // ── Connected-chain-only: unclaimed rewards + free stake ──
+      if (account.address && chainId === account.chainId) {
+        connectedChainRewardsBase = allContracts.length
+        for (const entry of entries) {
+          connectedChainPoolIds.push(entry.pool.id)
+          allContracts.push({
+            address: stakingAddr, abi: STAKING_ABI as Abi, functionName: 'computeRewardBalanceOfDelegator',
+            args: [entry.pool.id, account.address], chainId,
+          })
+        }
+
+        freeStakeIdx = allContracts.length
+        freeStakeChainId = chainId
+        allContracts.push({
+          address: stakingAddr, abi: STAKING_ABI as Abi, functionName: 'getOwnerStakeByStatus',
+          args: [account.address, 0], chainId, // 0 = UNDELEGATED
+        })
+      }
 
       meta.push({
         chainId,
@@ -269,8 +304,13 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): UseStakin
       })
     }
 
-    return { contracts: allContracts, chainMeta: meta }
-  }, [pools, account.address, CALLS_PER_POOL])
+    return {
+      contracts: allContracts,
+      chainMeta: meta,
+      rewardsMeta: { connectedChainBase: connectedChainRewardsBase, poolIds: connectedChainPoolIds },
+      freeStakeMeta: { idx: freeStakeIdx, chainId: freeStakeChainId },
+    }
+  }, [pools, account.address, account.chainId, STAKING_CALLS_PER_POOL])
 
   const { data: rawData, isLoading } = useReadContracts({
     contracts,
@@ -281,16 +321,18 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): UseStakin
     },
   })
 
-  // Process raw multicall results into per-pool staking data with APR/IRR calculation.
-  const stakingPools = useMemo(() => {
+  // Process raw multicall results.
+  const result: MultiChainStakingResult = useMemo(() => {
+    const emptyRewards: { poolId: string; amount: CurrencyAmount<Token> }[] = []
+
     if (!rawData || rawData.length === 0 || contracts.length === 0) {
-      return undefined
+      return { loading: isLoading, stakingPools: undefined, freeStakeBalance: undefined, unclaimedRewards: emptyRewards }
     }
 
     const results = new Array<StakingPoolData>(pools.length)
 
     for (const cm of chainMeta) {
-      // Parse GRG totalSupply for this chain
+      // GRG totalSupply for this chain
       const supplyResult = rawData[cm.supplyOffset]
       const totalSupply = supplyResult?.result
         ? parseFloat(BigNumber.from(supplyResult.result.toString()).toString())
@@ -301,7 +343,7 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): UseStakin
       let totalPoolsOwnStake = BigNumber.from(0)
 
       cm.poolIndices.forEach((_, i) => {
-        const baseIndex = cm.baseOffset + i * CALLS_PER_POOL
+        const baseIndex = cm.baseOffset + i * STAKING_CALLS_PER_POOL
         const delegated = (rawData[baseIndex + 1]?.result as any)?.nextEpochBalance
         const ownStake = (rawData[baseIndex + 2]?.result as any)?.nextEpochBalance
         totalDelegatedStake = totalDelegatedStake.add(delegated ? BigNumber.from(delegated) : BigNumber.from(0))
@@ -313,7 +355,7 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): UseStakin
       const tps = parseFloat(totalPoolsOwnStake.toString())
 
       cm.poolIndices.forEach((originalIndex, i) => {
-        const baseIndex = cm.baseOffset + i * CALLS_PER_POOL
+        const baseIndex = cm.baseOffset + i * STAKING_CALLS_PER_POOL
         const operatorShare = Number((rawData[baseIndex]?.result as any)?.operatorShare ?? 0)
         const delegated = (rawData[baseIndex + 1]?.result as any)?.nextEpochBalance
         const ownStake = (rawData[baseIndex + 2]?.result as any)?.nextEpochBalance
@@ -324,7 +366,7 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): UseStakin
         const currentEpochReward = epochStats?.feesCollected?.toString() ?? '0'
 
         let userHasStake = false
-        if (account.address && CALLS_PER_POOL === 5) {
+        if (account.address && STAKING_CALLS_PER_POOL === 5) {
           const userStake = (rawData[baseIndex + 4]?.result as any)?.nextEpochBalance
           if (userStake) {
             userHasStake = JSBI.greaterThan(JSBI.BigInt(String(userStake)), JSBI.BigInt(0))
@@ -356,8 +398,34 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): UseStakin
       })
     }
 
-    return results
-  }, [rawData, chainMeta, contracts.length, pools, account.address, CALLS_PER_POOL])
+    // ── Free stake balance (connected chain only) ──
+    let freeStakeBalance: CurrencyAmount<Token> | undefined
+    if (freeStakeMeta.idx >= 0 && rawData[freeStakeMeta.idx]?.result) {
+      const grg = GRG[freeStakeMeta.chainId]
+      const res = rawData[freeStakeMeta.idx].result as any
+      const currentEpoch = BigNumber.from(res.currentEpochBalance?.toString() ?? '0')
+      const nextEpoch = BigNumber.from(res.nextEpochBalance?.toString() ?? '0')
+      const lower = currentEpoch.gt(nextEpoch) ? nextEpoch : currentEpoch
+      freeStakeBalance = CurrencyAmount.fromRawAmount(grg, JSBI.BigInt(lower.toString()))
+    }
 
-  return { loading: isLoading, stakingPools }
+    // ── Unclaimed rewards (connected chain only) ──
+    const unclaimedRewards: { poolId: string; amount: CurrencyAmount<Token> }[] = []
+    if (rewardsMeta.connectedChainBase >= 0 && account.chainId) {
+      const grg = GRG[account.chainId]
+      for (let i = 0; i < rewardsMeta.poolIds.length; i++) {
+        const rewardResult = rawData[rewardsMeta.connectedChainBase + i]?.result
+        if (rewardResult) {
+          const amount = CurrencyAmount.fromRawAmount(grg, JSBI.BigInt(String(rewardResult)))
+          if (JSBI.greaterThan(amount.quotient, JSBI.BigInt(0))) {
+            unclaimedRewards.push({ poolId: rewardsMeta.poolIds[i], amount })
+          }
+        }
+      }
+    }
+
+    return { loading: isLoading, stakingPools: results, freeStakeBalance, unclaimedRewards }
+  }, [rawData, chainMeta, contracts.length, pools, account.address, account.chainId, STAKING_CALLS_PER_POOL, isLoading, rewardsMeta, freeStakeMeta])
+
+  return result
 }

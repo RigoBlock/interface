@@ -451,14 +451,14 @@ export default function PoolPositionPage() {
               <RowFixed gap="lg">
                 {originFromUrl && (
                   <Link
-                    data-cy="visit-pool"
-                    style={{ textDecoration: 'none', width: 'fit-content', marginBottom: '0.5rem' }}
-                    to="/earn"
-                  >
-                    <HoverText>
-                      <Trans>← Back to Smart Pools</Trans>
-                    </HoverText>
-                  </Link>
+                  data-cy="visit-pool"
+                  style={{ textDecoration: 'none', width: 'fit-content', marginBottom: '0.5rem' }}
+                  to={originFromUrl === 'manage' ? '/earn/manage' : '/earn'}
+                >
+                  <HoverText>
+                    <Trans>← Back to Smart Pools</Trans>
+                  </HoverText>
+                </Link>
                 )}
                 {needsUpgrade && owner === account.address && (
                   <ResponsiveButtonPrimary
