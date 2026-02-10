@@ -12,20 +12,18 @@ import { Tabs } from 'components/NavBar/Tabs/Tabs'
 import TestnetModeTooltip from 'components/NavBar/TestnetMode/TestnetModeTooltip'
 import { UniswapWrappedEntry } from 'components/NavBar/UniswapWrappedEntry'
 import Web3Status from 'components/Web3Status'
+import { RIGOBLOCK_SUPPORTED_CHAINS, RIGOBLOCK_TESTNET_CHAINS } from 'constants/addresses'
 import { useAccount } from 'hooks/useAccount'
 import { PageType, useIsPage } from 'hooks/useIsPage'
 import usePrevious from 'hooks/usePrevious'
 import { css, styled as deprecatedStyled } from 'lib/styled-components'
-import { useEffect, useMemo /*, useRef*/, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useActiveSmartPool, useSelectActiveSmartPool } from 'state/application/hooks'
-import { useAllPoolsData } from 'state/pool/hooks'
+import { useMultiChainOperatedPools } from 'state/pool/multichain'
 import { Flex, styled, Nav as TamaguiNav, useMedia } from 'ui/src'
 import { breakpoints, INTERFACE_NAV_HEIGHT, zIndexes } from 'ui/src/theme'
 import { useConnectionStatus } from 'uniswap/src/features/accounts/store/hooks'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { assume0xAddress } from 'utils/wagmi'
-import { useReadContracts } from 'wagmi'
 
 // Flex is position relative by default, we must unset the position on every Flex
 // between the body and search component
@@ -134,7 +132,7 @@ export default function Navbar() {
   //const NAV_SEARCH_MAX_HEIGHT = 'calc(100vh - 30px)'
 
   const account = useAccount()
-  const { address, chainId } = account
+  const { address } = account
   const prevAccount = usePrevious(address)
   const accountChanged = prevAccount && prevAccount !== address
 
@@ -143,94 +141,21 @@ export default function Navbar() {
   const { isTestnetModeEnabled } = useEnabledChains()
   const isEmbeddedWalletEnabled = useFeatureFlag(FeatureFlags.EmbeddedWallet)
 
-  const { data: allPools } = useAllPoolsData()
-  const poolAddresses = useMemo(() => allPools?.map((p) => p.pool), [allPools])
-
-  const { data, isLoading } = useReadContracts({
-    contracts: useMemo(() => {
-      return poolAddresses?.map(
-        (vaultAddress) =>
-          ({
-            address: assume0xAddress(vaultAddress),
-            abi: [
-              {
-                inputs: [],
-                name: 'getPool',
-                outputs: [
-                  {
-                    components: [
-                      {
-                        internalType: 'string',
-                        name: 'name',
-                        type: 'string',
-                      },
-                      {
-                        internalType: 'string',
-                        name: 'symbol',
-                        type: 'string',
-                      },
-                      {
-                        internalType: 'uint8',
-                        name: 'decimals',
-                        type: 'uint8',
-                      },
-                      {
-                        internalType: 'address',
-                        name: 'owner',
-                        type: 'address',
-                      },
-                      {
-                        internalType: 'address',
-                        name: 'baseToken',
-                        type: 'address',
-                      },
-                    ],
-                    internalType: 'struct ISmartPoolState.ReturnedPool',
-                    name: '',
-                    type: 'tuple',
-                  },
-                ],
-                stateMutability: 'view',
-                type: 'function',
-              },
-            ],
-            functionName: 'getPool',
-            chainId,
-          }) as const,
-      )
-    }, [poolAddresses, chainId]),
-  })
-
-  const poolsWithOwners = useMemo(() => {
-    if (!address || !chainId || !poolAddresses || isLoading) {
-      return undefined
-    }
-
-    return data?.map(({ result }, i) => {
-      if (!result) {
-        return undefined
-      }
-      return { ...result, pool: poolAddresses[i] }
-    })
-  }, [address, chainId, poolAddresses, data, isLoading])
-
-  // Cache operatedPools and userIsOperator until new data is loaded
-  const rawOperatedPools = useMemo(
-    () =>
-      (poolsWithOwners?.filter((pool) => pool?.owner.toLowerCase() === address?.toLowerCase()) || []).map(
-        (pool) =>
-          new Token(chainId ?? UniverseChainId.Mainnet, pool!.pool, pool!.decimals, pool!.symbol, pool!.name),
-      ),
-    [poolsWithOwners, address, chainId],
+  // ── Operated pools (deduplicated by address, owner-verified via shared hook) ──
+  const chains = useMemo(
+    () => (isTestnetModeEnabled ? RIGOBLOCK_TESTNET_CHAINS : RIGOBLOCK_SUPPORTED_CHAINS),
+    [isTestnetModeEnabled],
   )
 
-  const cachedPoolsRef = useRef<{ pools: typeof rawOperatedPools } | undefined>(undefined)
+  const { operatedPools: rawOperatedPools } = useMultiChainOperatedPools(chains)
 
+  // Cache operated pools to avoid UI flicker during data reloads
+  const cachedPoolsRef = useRef<Token[]>([])
   useEffect(() => {
     if (rawOperatedPools.length > 0) {
-      cachedPoolsRef.current = { pools: rawOperatedPools }
+      cachedPoolsRef.current = rawOperatedPools
     }
-  }, [chainId, rawOperatedPools])
+  }, [rawOperatedPools])
 
   const activeSmartVault = useActiveSmartPool()
 
@@ -239,15 +164,12 @@ export default function Navbar() {
     let newDefaultVaultLoaded = false
 
     if (rawOperatedPools.length === 0) {
-      return { operatedPools: cachedPoolsRef.current?.pools || [], newDefaultVaultLoaded }
+      return { operatedPools: cachedPoolsRef.current, newDefaultVaultLoaded }
     }
 
     const operatedAddresses = rawOperatedPools.map((pool) => pool.address.toLowerCase())
-    // Only signal newDefaultVaultLoaded if the current pool is not in the new list
-    // AND it's also not in the cached list (to prevent false triggers during data reloads)
     if (activeSmartVault.address && !operatedAddresses.includes(activeSmartVault.address.toLowerCase())) {
-      const cachedAddresses = cachedPoolsRef.current?.pools?.map((p) => p.address.toLowerCase()) || []
-      // Only consider it a "new default" situation if the pool isn't in either list
+      const cachedAddresses = cachedPoolsRef.current.map((p) => p.address.toLowerCase())
       if (!cachedAddresses.includes(activeSmartVault.address.toLowerCase())) {
         newDefaultVaultLoaded = true
       }
@@ -256,21 +178,17 @@ export default function Navbar() {
     return { operatedPools: rawOperatedPools, newDefaultVaultLoaded }
   }, [rawOperatedPools, activeSmartVault.address])
 
-  const defaultPool = useMemo(() => operatedPools[0] ?? undefined, [operatedPools])
+  const defaultPool = operatedPools[0] as Token | undefined
   const onPoolSelect = useSelectActiveSmartPool()
 
-  const prevChainId = usePrevious(chainId)
-  const chainChanged = prevChainId && prevChainId !== chainId
-
   useEffect(() => {
-    // Auto-select on initial load when no pool is selected yet, or reset on account/chain change
-    const noPoolSelectedYet = !activeSmartVault.address && defaultPool
-    // Only auto-select if there's actually a pool to select.
-    // Prevent resetting to undefined when data is loading or pool list temporarily changes.
-    if ((accountChanged || newDefaultVaultLoaded || noPoolSelectedYet) && defaultPool) {
+    // Auto-select on initial load when no pool is selected yet, or reset on account change
+    const noPoolSelectedYet = !activeSmartVault.address
+    const shouldSelect = !!(accountChanged || newDefaultVaultLoaded || noPoolSelectedYet)
+    if (shouldSelect && defaultPool) {
       onPoolSelect(defaultPool)
     }
-  }, [accountChanged, chainChanged, defaultPool, onPoolSelect, newDefaultVaultLoaded, activeSmartVault.address])
+  }, [accountChanged, defaultPool, onPoolSelect, newDefaultVaultLoaded, activeSmartVault.address])
 
   const userIsOperator = operatedPools.length > 0
 

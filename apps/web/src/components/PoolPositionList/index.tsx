@@ -1,7 +1,3 @@
-import { AbiCoder } from '@ethersproject/abi'
-import { getAddress } from '@ethersproject/address'
-import { BigNumber } from '@ethersproject/bignumber'
-import { keccak256 } from '@ethersproject/keccak256'
 import Loader from 'components/Icons/LoadingSpinner'
 import PoolPositionGroupedListItem from 'components/PoolPositionGroupedListItem'
 import { useAccount } from 'hooks/useAccount'
@@ -12,8 +8,6 @@ import { Trans } from 'react-i18next'
 import { MEDIA_WIDTHS } from 'theme'
 import { PoolPositionDetails } from 'types/position'
 import { Flex, Text } from 'ui/src'
-import { assume0xAddress } from 'utils/wagmi'
-import { useReadContracts } from 'wagmi'
 
 const DesktopHeader = styled.div`
   display: none;
@@ -61,66 +55,10 @@ type PoolPositionListProps = React.PropsWithChildren<{
   onRaceClick?: (poolAddress: string, poolName: string) => void
 }>
 
-const ACCOUNTS_SLOT = '0xfd7547127f88410746fb7969b9adb4f9e9d8d2436aa2d2277b1103542deb7b8e'
-const POOLS_SLOT = '0xe48b9bb119adfc3bccddcc581484cc6725fe8d292ebfcec7d67b1f93138d8bd8'
-const POOL_OWNER_SLOT = BigNumber.from(POOLS_SLOT).add(1)
 const GROUPS_PER_PAGE = 10
-
-function getUserAccountSlot(userAddress: string): string {
-  const abiCoder = new AbiCoder()
-  const encoded = abiCoder.encode(['address', 'bytes32'], [userAddress, ACCOUNTS_SLOT])
-  return keccak256(encoded)
-}
-
-// Extract owner address from the first storage slot (POOLS_SLOT + 1)
-// The storage slot contains: [unlocked (bool, 1 byte)][owner (address, 20 bytes)][decimals (bytes8, 8 bytes)][symbol (bytes8, 8 bytes)]
-// Packing from right to left: [symbol (16 hex)][decimals (16 hex)][owner (40 hex)][unlocked (2 hex)]
-// Extract user balance from second storage slot (activation timestamp + balance packed in 32 bytes)
-interface StorageResult {
-  owner?: string
-  userBalance?: string
-  decimals?: number
-}
-
-function extractValues(storageValue?: string): StorageResult {
-  if (!storageValue || storageValue === '0x') {
-    return {}
-  }
-  let shouldOnlyReturnPoolData = false
-  const hexRaw = storageValue.slice(2)
-  if (hexRaw.length === 64) {
-    shouldOnlyReturnPoolData = true
-  }
-  const hex = hexRaw.padStart(128, '0') // 128 hex chars = 64 bytes (2 slots)
-  const ownerHex = hex.slice(6, 46)
-  const decimalsHex = hex.slice(46, 48)
-  let decimals: number | undefined
-  if (decimalsHex && decimalsHex !== '00') {
-    decimals = BigNumber.from('0x' + decimalsHex).toNumber()
-  }
-  if (shouldOnlyReturnPoolData) {
-    return { userBalance: undefined, owner: getAddress('0x' + ownerHex), decimals }
-  }
-  const secondSlot = hex.slice(64, 128)
-  const userBalanceHex = secondSlot.slice(12, 64)
-  const userBalance = BigNumber.from('0x' + userBalanceHex)
-  const checksummedOwner = getAddress('0x' + ownerHex)
-  return { userBalance: userBalance.toString(), owner: checksummedOwner, decimals }
-}
-
-const STORAGE_SLOTS_ABI = [
-  {
-    inputs: [{ internalType: 'uint256[]', name: 'slots', type: 'uint256[]' }],
-    name: 'getStorageSlotsAt',
-    outputs: [{ internalType: 'bytes', name: '', type: 'bytes' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-] as const
 
 export default function PoolPositionList({ positions, shouldFilterByUserPools, onRaceClick }: PoolPositionListProps) {
   const account = useAccount()
-  const { address, chainId } = account
 
   // --- Grouping & Pagination ---
 
@@ -152,93 +90,27 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools, o
   )
   const hasMore = !shouldFilterByUserPools && visibleGroupCount < allGroups.length
 
-  // Flatten visible groups - only these pools get RPC calls
+  // Flatten visible groups
   const visiblePositions = useMemo(() => visibleGroups.flat(), [visibleGroups])
 
-  // --- RPC: batched storage slot reads via useReadContracts (only for "My Pools" tab) ---
-  // "All Pools" tab doesn't need RPC calls - all positions are displayed as-is.
-  // "My Pools" tab needs getStorageSlotsAt to check pool ownership + token balance.
-  // useReadContracts groups calls by chainId and batches each chain into a single multicall.
-  // TanStack Query handles caching, dedup, and StrictMode robustness automatically.
-
-  const needsRpc = !!shouldFilterByUserPools
-  const userAccountSlot = address ? getUserAccountSlot(address) : undefined
-
-  const storageContracts = useMemo(() => {
-    if (!needsRpc || !userAccountSlot || !address || visiblePositions.length === 0) {
-      return []
-    }
-    return visiblePositions.map((pos) => ({
-      address: assume0xAddress(pos.pool),
-      abi: STORAGE_SLOTS_ABI,
-      functionName: 'getStorageSlotsAt' as const,
-      chainId: pos.chainId ?? chainId,
-      args: [[POOL_OWNER_SLOT, userAccountSlot] as BigNumber[]],
-    }))
-  }, [needsRpc, userAccountSlot, address, visiblePositions, chainId])
-
-  const { data: rpcData, isLoading: rpcLoading } = useReadContracts({
-    contracts: storageContracts as any,
-    query: {
-      enabled: storageContracts.length > 0,
-      staleTime: 30_000,
-      gcTime: 5 * 60_000,
-    },
-  })
-
-  // --- Build Display Data ---
+  // --- Build Display Data (pure passthrough — no RPC calls) ---
+  // All filtering (ownership, staking) is done by the parent (Earn page).
+  // PoolPositionList is a pure display component.
 
   const displayPools = useMemo(() => {
     if (!visiblePositions.length) {
       return undefined
     }
 
-    // "All Pools" tab: no RPC filtering needed
-    if (!needsRpc) {
-      return visiblePositions.map((p) => ({
-        ...p,
-        address: p.pool,
-        chainId: p.chainId ?? account.chainId,
-        shouldDisplay: true,
-        currentEpochReward: p.currentEpochReward ?? '0',
-        decimals: 18,
-      }))
-    }
-
-    // "My Pools" tab: need RPC data to filter
-    if (!address) {
-      return [] // not connected -> empty
-    }
-    if (rpcLoading && !rpcData) {
-      return undefined // first load - show spinner
-    }
-    if (!rpcData) {
-      return undefined
-    }
-
-    return visiblePositions
-      .map((p, i) => {
-        const result = rpcData?.[i]
-        if (!result) {
-          return null
-        }
-        const { userBalance, owner, decimals } = extractValues(result.result as string | undefined)
-        const userIsOwner = Boolean(owner && owner === address)
-        const shouldDisplay = Boolean(userIsOwner || (userBalance && BigNumber.from(userBalance).gt(0)))
-
-        return {
-          ...p,
-          address: p.pool,
-          chainId: p.chainId ?? account.chainId,
-          shouldDisplay,
-          userIsOwner,
-          userBalance,
-          currentEpochReward: p.currentEpochReward ?? '0',
-          decimals: decimals ?? 18,
-        }
-      })
-      .filter((p): p is NonNullable<typeof p> => p !== null && p.shouldDisplay)
-  }, [visiblePositions, needsRpc, address, account.chainId, rpcLoading, rpcData])
+    return visiblePositions.map((p) => ({
+      ...p,
+      address: p.pool,
+      chainId: p.chainId ?? account.chainId,
+      shouldDisplay: true,
+      currentEpochReward: p.currentEpochReward ?? '0',
+      decimals: 18,
+    }))
+  }, [visiblePositions, account.chainId])
 
   // --- Group for Display ---
 

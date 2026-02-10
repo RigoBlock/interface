@@ -1,7 +1,6 @@
-import { ErrorBoundary as DatadogErrorBoundary } from '@datadog/browser-rum-react'
 import { useIsMobile } from 'hooks/screenSize/useIsMobile'
 import { styled } from 'lib/styled-components'
-import { PropsWithChildren, useState } from 'react'
+import { Component, type ErrorInfo, PropsWithChildren, type ReactNode, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ThemedText } from 'theme/components'
 import { CopyToClipboard } from 'theme/components/CopyHelper'
@@ -117,6 +116,39 @@ function ErrorDetailsSection({ errorDetails, eventId }: { errorDetails: string; 
   )
 }
 
+/** Simple React error boundary — no Datadog, no user data collection */
+class ReactErrorBoundary extends Component<
+  PropsWithChildren<{
+    fallback: (props: { error: Error; resetError: () => void }) => ReactNode
+  }>,
+  { error: Error | null }
+> {
+  constructor(props: PropsWithChildren<{ fallback: (props: { error: Error; resetError: () => void }) => ReactNode }>) {
+    super(props)
+    this.state = { error: null }
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { error }
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    // eslint-disable-next-line no-console
+    console.error('[ErrorBoundary]', error, info)
+  }
+
+  resetError = () => {
+    this.setState({ error: null })
+  }
+
+  render() {
+    if (this.state.error) {
+      return this.props.fallback({ error: this.state.error, resetError: this.resetError })
+    }
+    return this.props.children
+  }
+}
+
 export default function ErrorBoundary({
   children,
   fallback,
@@ -127,8 +159,17 @@ export default function ErrorBoundary({
   }>
 }): JSX.Element {
   return (
-    <DatadogErrorBoundary fallback={fallback ?? (({ error }) => <Fallback error={error} eventId={null} />)}>
+    <ReactErrorBoundary
+      fallback={
+        fallback
+          ? ({ error, resetError }) => {
+              const F = fallback
+              return <F error={error} resetError={resetError} />
+            }
+          : ({ error }) => <Fallback error={error} eventId={null} />
+      }
+    >
       {children}
-    </DatadogErrorBoundary>
+    </ReactErrorBoundary>
   )
 }

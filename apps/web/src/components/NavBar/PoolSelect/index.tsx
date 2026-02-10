@@ -74,19 +74,21 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
   const activeSmartPool = useActiveSmartPool()
   const onPoolSelect = useSelectActiveSmartPool()
 
-  // on chain switch revert to default pool if selected does not exist on new chain
-  const activePoolExistsOnChain = operatedPools.some((pool) => pool.address === activeSmartPool.address)
+  // Check if currently-selected pool exists in the deduplicated list
+  const activePoolExists = operatedPools.some(
+    (pool) => pool.address.toLowerCase() === activeSmartPool?.address?.toLowerCase(),
+  )
 
   // initialize selected pool - use ref to prevent re-initialization
   const hasInitialized = React.useRef(false)
 
   useEffect(() => {
-    if (!hasInitialized.current && (!activeSmartPool.name || !activePoolExistsOnChain)) {
+    if (!hasInitialized.current && (!activeSmartPool.name || !activePoolExists)) {
       onPoolSelect(operatedPools[0])
       hasInitialized.current = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePoolExistsOnChain, activeSmartPool.name])
+  }, [activePoolExists, activeSmartPool.name])
 
   // Memoize poolsAsCurrrencies to prevent recreation on every render
   const poolsAsCurrrencies = React.useMemo(

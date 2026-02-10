@@ -166,18 +166,18 @@ export default function PoolPositionListItem({ positionDetails, returnPage, show
                   <ActiveDot />
                 </LabelText>
               )}
-              {showOperatorView && Number(userBalance) > 0 && (
-                <LabelText color={theme.success?.get()}>
-                  <BadgeText>
-                    <Trans>held</Trans>
-                  </BadgeText>
-                  <ActiveDot />
-                </LabelText>
-              )}
               {showOperatorView && userIsOwner && (
                 <LabelText color={theme.success?.get()}>
                   <BadgeText>
                     <Trans>owned</Trans>
+                  </BadgeText>
+                  <ActiveDot />
+                </LabelText>
+              )}
+              {showOperatorView && userBalance && (() => { try { return BigInt(userBalance) > 0n } catch { return false } })() && (
+                <LabelText color={theme.success?.get()}>
+                  <BadgeText>
+                    <Trans>held</Trans>
                   </BadgeText>
                   <ActiveDot />
                 </LabelText>
