@@ -22,13 +22,13 @@ export const ColumnCenter = styled(Column)`
 export const AutoColumn = styled.div<{
   gap?: Gap | string
   justify?: 'stretch' | 'center' | 'start' | 'end' | 'flex-start' | 'flex-end' | 'space-between'
-  grow?: true
+  $grow?: true
 }>`
   display: grid;
   grid-auto-rows: auto;
   grid-row-gap: ${({ gap, theme }) => (gap && theme.grids[gap as Gap]) || gap};
   justify-items: ${({ justify }) => justify && justify};
-  flex-grow: ${({ grow }) => grow && 1};
+  flex-grow: ${({ $grow }) => $grow && 1};
 `
 
 export default Column

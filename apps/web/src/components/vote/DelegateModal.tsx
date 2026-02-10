@@ -258,7 +258,7 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
             {!poolInfo && <AddressInputPanel value={typed} onChange={handleRecipientType} />}
             <RowBetween>
               <ResponsiveHeaderText>
-                <Trans>{{ percentForSlider }}%</Trans>
+                {percentForSlider}%
               </ResponsiveHeaderText>
               <Flex row gap="$gap8" width="100%" justifyContent="center">
                 {[25, 50, 75, 100].map((option) => {

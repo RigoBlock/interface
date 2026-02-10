@@ -36,6 +36,7 @@ import {
   TransactionDetails,
 } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { VisibilityState } from 'uniswap/src/features/visibility/slice'
+import { PortfolioStakingState } from 'state/portfolio/stakingSlice'
 
 /**
  * WARNING:
@@ -66,6 +67,7 @@ type ExpectedAppState = CombinedState<{
   readonly mint: MintState
   readonly mintV3: MintV3State
   readonly logs: LogsState
+  readonly portfolioStaking: PortfolioStakingState
   readonly [routingApi.reducerPath]: ReturnType<typeof routingApi.reducer>
 
   // Uniswap State

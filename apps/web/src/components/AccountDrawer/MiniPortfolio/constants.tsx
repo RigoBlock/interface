@@ -220,6 +220,11 @@ const getTransactionTitleTable = (): {
     [TransactionStatus.Success]: i18n.t('transaction.status.submitProposal.success'),
     [TransactionStatus.Failed]: i18n.t('transaction.status.submitProposal.failed'),
   },
+  [TransactionType.Upgrade]: {
+    [TransactionStatus.Pending]: i18n.t(`Upgrading`),
+    [TransactionStatus.Success]: i18n.t(`Upgraded`),
+    [TransactionStatus.Failed]: i18n.t(`Upgrade failed`),
+  },
 })
 
 export const getOrderTextTable = (): {
@@ -304,6 +309,7 @@ export const getCancelledTransactionTitleTable = (): { [key in TransactionType]:
   [TransactionType.SetSpread]: i18n.t('common.set.spread.cancelled'),
   [TransactionType.SetLockup]: i18n.t('common.set.lockup.cancelled'),
   [TransactionType.SetValue]: i18n.t('common.set.value.cancelled'),
+  [TransactionType.Upgrade]: i18n.t('common.upgrade.cancelled'),
 })
 
 const getAlternateTransactionTitleTable = (): {

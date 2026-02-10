@@ -1,5 +1,5 @@
 import { createStore, Store } from 'redux'
-import reducer, { ApplicationState, setCloseModal, setOpenModal, updateChainId } from 'state/application/reducer'
+import reducer, { ApplicationState, setCloseModal, setOpenModal, setSmartPoolValue, updateChainId } from 'state/application/reducer'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 
 describe('application reducer', () => {

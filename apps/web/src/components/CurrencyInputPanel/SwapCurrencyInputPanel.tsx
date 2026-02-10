@@ -106,8 +106,8 @@ const CurrencySelect = styled.button<CurrencySelectProps>`
     content: '';
   }
 
-  ${({ hideInput, theme }) =>
-    hideInput &&
+  ${({ $hideInput, theme }) =>
+    $hideInput &&
     `
       &:hover:before {
         background-color: ${theme.deprecated_stateOverlayHover};
@@ -118,7 +118,7 @@ const CurrencySelect = styled.button<CurrencySelectProps>`
       }
     `}
 
-  visibility: ${({ visible }) => (visible ? 'visible' : 'hidden')};
+  visibility: ${({ $visible }) => ($visible ? 'visible' : 'hidden')};
 
   @keyframes horizontal-shaking {
     0% {

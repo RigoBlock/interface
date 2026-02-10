@@ -16,11 +16,11 @@ export function useFetchPoolListCallback(): (listUrl: string, skipValidation?: b
     async (listUrl: string, skipValidation?: boolean) => {
       const requestId = nanoid()
       dispatch(fetchTokenList.pending({ requestId, url: listUrl }))
-      return getTokenList(
+      return getTokenList({
         listUrl,
-        (ensName: string) => resolveENSContentHash(ensName, RPC_PROVIDERS[UniverseChainId.Mainnet]),
+        resolveENSContentHash: (ensName: string) => resolveENSContentHash(ensName, RPC_PROVIDERS[UniverseChainId.Mainnet]),
         skipValidation,
-      )
+      })
         .then((tokenList) => {
           dispatch(fetchTokenList.fulfilled({ url: listUrl, tokenList, requestId }))
           return tokenList

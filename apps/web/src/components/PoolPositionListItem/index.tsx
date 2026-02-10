@@ -3,6 +3,7 @@ import { useTheme } from '@tamagui/core'
 import { ButtonPrimary } from 'components/Button/buttons'
 import Row, { RowBetween, RowFixed } from 'components/deprecated/Row'
 import RaceModal from 'components/earn/RaceModal'
+import { ChainLogo } from 'components/Logo/ChainLogo'
 import styled from 'lib/styled-components'
 import { useCallback, useState } from 'react'
 //import RangeBadge from 'components/Badge/RangeBadge'
@@ -12,6 +13,7 @@ import { Trans } from 'react-i18next'
 import { Link } from 'react-router'
 import { MEDIA_WIDTHS } from 'theme'
 import { PoolPositionDetails } from 'types/position'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
 
 const LinkRow = styled(Link)`
   align-items: center;
@@ -61,32 +63,6 @@ const DataText = styled.div`
   `};
 `
 
-const DataLineItem = styled.div`
-  font-size: 14px;
-`
-
-const RangeLineItem = styled(DataLineItem)`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  margin-top: 4px;
-  width: 100%;
-`
-
-const RangeText = styled.span`
-  padding: 0.25rem 0.25rem;
-  border-radius: 8px;
-`
-
-const ExtentsText = styled.span`
-  color: ${({ theme }) => theme.neutral2};
-  font-size: 14px;
-  margin-right: 4px;
-  ${({ theme }) => theme.deprecated_mediaWidth.deprecated_upToSmall`
-    display: none;
-  `};
-`
-
 const LabelText = styled.div<{ color: string }>`
   align-items: center;
   color: ${({ color }) => color};
@@ -122,9 +98,11 @@ const ResponsiveRowFixed = styled(RowFixed)`
 interface PoolPositionListItemProps {
   positionDetails: PoolPositionDetails
   returnPage: string
+  showOperatorView?: boolean
+  isSubRow?: boolean
 }
 
-export default function PoolPositionListItem({ positionDetails, returnPage }: PoolPositionListItemProps) {
+export default function PoolPositionListItem({ positionDetails, returnPage, showOperatorView, isSubRow }: PoolPositionListItemProps) {
   const theme = useTheme()
   const {
     name,
@@ -136,9 +114,10 @@ export default function PoolPositionListItem({ positionDetails, returnPage }: Po
     userBalance,
     userIsOwner,
     currentEpochReward,
+    chainId,
   } = positionDetails
 
-  const shouldDisplayRaceButton = Number(currentEpochReward) === 0
+  const shouldDisplayRaceButton = showOperatorView && Number(currentEpochReward) === 0
   //const position = useMemo(() => {
   //  return new PoolPosition({ name, symbol, pool, id })
   //}, [name, symbol, pool, id])
@@ -150,8 +129,8 @@ export default function PoolPositionListItem({ positionDetails, returnPage }: Po
   const irrToString = irr ? (Number(irr) * 100).toFixed(2) : 'NaN'
   const positionSummaryLink =
     poolStake !== 'NaN'
-      ? `/smart-pool/${positionDetails.address}/${returnPage}/${poolStake}/${aprToString}/${poolOwnStakeString}/${irrToString}`
-      : `/smart-pool/${positionDetails.address}/${returnPage}` ///${positionDetails.id}
+      ? `/smart-pool/${chainId ?? '1'}/${positionDetails.address}/${returnPage}/${poolStake}/${aprToString}/${poolOwnStakeString}/${irrToString}`
+      : `/smart-pool/${chainId ?? '1'}/${positionDetails.address}/${returnPage}` ///${positionDetails.id}
 
   const [showRaceModal, setShowRaceModal] = useState<boolean>(false)
 
@@ -177,7 +156,8 @@ export default function PoolPositionListItem({ positionDetails, returnPage }: Po
         <RowBetween>
           <PrimaryPositionIdData>
             <Row gap="sm" justify="flex-end">
-              <DataText>{name}</DataText>
+              {chainId && <ChainLogo chainId={chainId as UniverseChainId} size={16} />}
+              {!isSubRow && <DataText>{name}</DataText>}
               {userHasStake && (
                 <LabelText color={theme.success?.get()}>
                   <BadgeText>
@@ -186,7 +166,7 @@ export default function PoolPositionListItem({ positionDetails, returnPage }: Po
                   <ActiveDot />
                 </LabelText>
               )}
-              {returnPage === 'mint' && Number(userBalance) > 0 && (
+              {showOperatorView && Number(userBalance) > 0 && (
                 <LabelText color={theme.success?.get()}>
                   <BadgeText>
                     <Trans>held</Trans>
@@ -194,7 +174,7 @@ export default function PoolPositionListItem({ positionDetails, returnPage }: Po
                   <ActiveDot />
                 </LabelText>
               )}
-              {returnPage === 'mint' && userIsOwner && (
+              {showOperatorView && userIsOwner && (
                 <LabelText color={theme.success?.get()}>
                   <BadgeText>
                     <Trans>owned</Trans>
@@ -204,7 +184,7 @@ export default function PoolPositionListItem({ positionDetails, returnPage }: Po
               )}
             </Row>
           </PrimaryPositionIdData>
-          {returnPage === 'mint' && shouldDisplayRaceButton ? (
+          {showOperatorView && shouldDisplayRaceButton ? (
             <ResponsiveRowFixed gap="24px">
               <ButtonPrimary
                 style={{ width: 'fit-content', height: '40px' }}
@@ -215,26 +195,17 @@ export default function PoolPositionListItem({ positionDetails, returnPage }: Po
                 <Trans>Race</Trans>
               </ButtonPrimary>
             </ResponsiveRowFixed>
-          ) : returnPage === 'mint' ? (
+          ) : showOperatorView ? (
             <RowFixed style={{ gap: '24px', marginRight: '8px' }}>
+              <DataText>{(Number(irr) * 100).toFixed(1)}%</DataText>
               <DataText>{(Number(currentEpochReward) / 1e18).toFixed(0)} GRG</DataText>
             </RowFixed>
           ) : (
-            returnPage === 'stake' && (
-              <RowFixed style={{ gap: '24px', marginRight: '8px' }}>
-                <DataText>{(Number(irr) * 100).toFixed(1)}%</DataText>
-                <DataText style={{ minWidth: '50px' }}>{(Number(apr) * 100).toFixed(1)}%</DataText>
-              </RowFixed>
-            )
+            <RowFixed style={{ gap: '24px', marginRight: '8px' }}>
+              <DataText>{(Number(apr) * 100).toFixed(1)}%</DataText>
+            </RowFixed>
           )}
         </RowBetween>
-        <RangeLineItem>
-          <RangeText>
-            <ExtentsText>
-              <Trans>{positionDetails.address}</Trans>
-            </ExtentsText>
-          </RangeText>
-        </RangeLineItem>
       </LinkRow>
     </>
   )

@@ -44,14 +44,13 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
 
   return [
     {
-      title: areTabsVisible ? t('common.explore') : t('common.mint'),
-      href: '/mint',
-      isActive: pathname.startsWith('/mint') || pathname.startsWith('/stake'),
+      title: t('common.earn'),
+      href: '/earn',
+      isActive: pathname.startsWith('/earn') || pathname.startsWith('/mint') || pathname.startsWith('/stake'),
       icon: <Compass color="$accent1" size="$icon.20" />,
       items: [
-        { label: t('common.mint'), href: '/mint', internal: true },
-        { label: t('common.earn'), href: '/stake', internal: true },
-        //{ label: t('common.nfts'), quickKey: 'N', href: '/nfts', internal: true },
+        { label: t('common.earn'), href: '/earn', internal: true },
+        { label: 'Manage', href: '/earn/manage', internal: true },
       ],
     },
     {

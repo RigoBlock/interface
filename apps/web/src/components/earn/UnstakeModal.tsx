@@ -134,7 +134,7 @@ export default function UnstakeModal({ isOpen, isPool, freeStakeBalance, onDismi
             </RowBetween>
             <RowBetween>
               <ResponsiveHeaderText>
-                <Trans>{{ percentForSlider }}%</Trans>
+                {percentForSlider}%
               </ResponsiveHeaderText>
               <Flex row gap="$gap8" width="100%" justifyContent="center">
                 {[25, 50, 75, 100].map((option) => {

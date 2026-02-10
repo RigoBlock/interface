@@ -42,6 +42,7 @@ export enum PageType {
   SWAP = '/swap',
   SELL = '/sell',
   PORTFOLIO = '/portfolio',
+  EARN = '/earn',
 }
 
 // eslint-disable-next-line import/no-unused-modules -- currently used in a test file
@@ -66,6 +67,7 @@ const pageMatchDefaults: Record<PageType, MatchType> = {
   [PageType.SWAP]: MatchType.ENDS_WITH,
   [PageType.SELL]: MatchType.ENDS_WITH,
   [PageType.PORTFOLIO]: MatchType.INCLUDES,
+  [PageType.EARN]: MatchType.STARTS_WITH,
 }
 
 /**

@@ -63,7 +63,7 @@ export function useOpenOffchainActivityModal() {
   )
 }
 
-const Wrapper = styled(AutoColumn).attrs({ gap: 'md', grow: true })`
+const Wrapper = styled(AutoColumn).attrs({ gap: 'md', $grow: true })`
     padding: 12px 20px 20px 20px;
     width: 100%;
     background-color: ${({ theme }) => theme.surface1};

@@ -19,7 +19,7 @@ const lastPageAtom = atom(0)
 interface Page {
   title: string
   key: string
-  component: ({ evmAddress, svmAddress }: { evmAddress?: string; svmAddress?: string }) => JSX.Element
+  component: React.ComponentType<{ evmAddress?: string; svmAddress?: string }>
   loggingElementName: ElementName
 }
 
@@ -28,32 +28,6 @@ export default function MiniPortfolio({ evmAddress, svmAddress }: { evmAddress?:
   const colors = useSporeColors()
 
   // TODO: fix returned tokens loading and display values
-  const Pages: Array<Page> = [
-    {
-      title: <Trans i18nKey="common.tokens" />,
-      key: 'tokens',
-      component: Tokens,
-      loggingElementName: InterfaceElementName.MINI_PORTFOLIO_TOKENS_TAB,
-    },
-    {
-      title: <Trans i18nKey="common.nfts" />,
-      key: 'nfts',
-      component: NFTs,
-      loggingElementName: InterfaceElementName.MINI_PORTFOLIO_NFT_TAB,
-    },
-    {
-      title: <Trans i18nKey="common.pools" />,
-      key: 'pools',
-      component: Pools,
-      loggingElementName: InterfaceElementName.MINI_PORTFOLIO_POOLS_TAB,
-    },
-    {
-      title: <Trans i18nKey="common.activity" />,
-      key: 'activity',
-      component: ActivityTab,
-      loggingElementName: InterfaceElementName.MINI_PORTFOLIO_ACTIVITY_TAB,
-    },
-  ]
 
   // Resumes at the last viewed page
   const [lastPage, setLastPage] = useAtom(lastPageAtom)

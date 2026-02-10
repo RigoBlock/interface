@@ -94,14 +94,15 @@ export const createUniverseTransaction = ({
     case TransactionType.ClaimUni:
     case TransactionType.LPIncentivesClaimRewards:
     case TransactionType.Permit2Approve:
-    case TransactionType.SUBMIT_PROPOSAL:
-    case TransactionType.QUEUE:
-    case TransactionType.EXECUTE:
-    case TransactionType.BUY:
-    case TransactionType.SELL:
-    case TransactionType.SET_SPREAD:
-    case TransactionType.SET_LOCKUP:
-    case TransactionType.SET_VALUE:
+    case TransactionType.SubmitProposal:
+    case TransactionType.Queue:
+    case TransactionType.Execute:
+    case TransactionType.Buy:
+    case TransactionType.Sell:
+    case TransactionType.SetSpread:
+    case TransactionType.SetLockup:
+    case TransactionType.SetValue:
+    case TransactionType.Upgrade:
       return { ...baseTransaction, ...info } as UniswapTransactionDetails
     // NFT and other transaction types that don't need special mapping
     case TransactionType.Receive:
@@ -117,6 +118,9 @@ export const createUniverseTransaction = ({
     case TransactionType.LocalOffRamp:
     case TransactionType.SendCalls:
     case TransactionType.RemoveDelegation:
+    case TransactionType.Deploy:
+    case TransactionType.Vote:
+    case TransactionType.Delegate:
       return { ...baseTransaction, ...info } as UniswapTransactionDetails
     default:
       assertUnreachable(info)

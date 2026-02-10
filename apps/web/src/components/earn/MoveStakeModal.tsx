@@ -204,7 +204,7 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
             )}
             <RowBetween>
               <ResponsiveHeaderText>
-                <Trans>{{ percentForSlider }}%</Trans>
+                {percentForSlider}%
               </ResponsiveHeaderText>
               <Flex row gap="$gap8" width="100%" justifyContent="center">
                 {[25, 50, 75, 100].map((option) => {

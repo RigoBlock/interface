@@ -5,10 +5,10 @@ import { Percent } from '@uniswap/sdk-core'
 import {
   FlatFeeOptions,
   SwapRouter,
-  //UNIVERSAL_ROUTER_ADDRESS,
-  //UniversalRouterVersion,
+  UNIVERSAL_ROUTER_ADDRESS,
+  UniversalRouterVersion,
 } from '@uniswap/universal-router-sdk'
-import { FeeOptions /*, toHex*/ } from '@uniswap/v3-sdk'
+import { FeeOptions, toHex } from '@uniswap/v3-sdk'
 import { useAccount } from 'hooks/useAccount'
 import { useEthersWeb3Provider } from 'hooks/useEthersProvider'
 import { PermitSignature } from 'hooks/usePermitAllowance'
@@ -27,7 +27,7 @@ import { logger } from 'utilities/src/logger/logger'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
 import { calculateGasMargin } from 'utils/calculateGasMargin'
 import { UserRejectedRequestError, WrongChainError } from 'utils/errors'
-//import isZero from 'utils/isZero'
+import isZero from 'utils/isZero'
 import { didUserReject, swapErrorToUserReadableMessage } from 'utils/swapErrorToUserReadableMessage'
 
 /** Thrown when gas estimation fails. This class of error usually requires an emulator to determine the root cause. */

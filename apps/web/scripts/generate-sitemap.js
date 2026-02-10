@@ -108,6 +108,10 @@ fs.readFile('./public/tokens-sitemap.xml', 'utf8', async (_err, data) => {
       }
       console.log('Tokens sitemap updated')
     })
+  } catch (e) {
+    console.error(e)
+  }
+})
 
 fs.readFile('./public/nfts-sitemap.xml', 'utf8', async (err, data) => {
   const collectionURLs = {}
