@@ -24,7 +24,8 @@ export function useMaxAmountSpend({
   isExtraTx?: boolean
   isSmartPool?: boolean
 }): Maybe<CurrencyAmount<Currency>> {
-  const minAmountPerTx = useMinGasAmount(currencyAmount?.currency.chainId, txType)
+  // Skip gas calculation entirely for smart pools - they don't need gas reserve
+  const minAmountPerTx = useMinGasAmount(currencyAmount?.currency.chainId, txType, isSmartPool)
   const multiplierAsPercent = useLowBalanceWarningGasPercentage()
 
   if (!currencyAmount || !minAmountPerTx) {
@@ -60,7 +61,7 @@ export function useMaxAmountSpend({
   })
 }
 
-export function useMinGasAmount(chainId?: UniverseChainId, txType?: TransactionType): JSBI | undefined {
+export function useMinGasAmount(chainId?: UniverseChainId, txType?: TransactionType, isSmartPool?: boolean): JSBI | undefined {
   // Always determine config at the top level to avoid conditional hook calls
   const gasConfig = chainId ? getChainInfo(chainId).gasConfig : GENERIC_L2_GAS_CONFIG
 
@@ -70,6 +71,11 @@ export function useMinGasAmount(chainId?: UniverseChainId, txType?: TransactionT
 
   // Always call the hook, but return undefined for unsupported cases
   const result = useCalculateMinForGas({ key, defaultAmount, chainId })
+
+  // For smart pools, return 0 - they don't need a gas reserve since gas is paid by user's wallet, not the pool
+  if (isSmartPool) {
+    return JSBI.BigInt(0)
+  }
 
   return chainId ? result : undefined
 }

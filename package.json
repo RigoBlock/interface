@@ -208,7 +208,8 @@
     "@vercel/og@0.5.8": "patches/@vercel%2Fog@0.5.8.patch",
     "@tamagui/portal@1.136.1": "patches/@tamagui%2Fportal@1.136.1.patch",
     "@tamagui/static@1.136.1": "patches/@tamagui%2Fstatic@1.136.1.patch",
-    "@expo/config-plugins@10.1.1": "patches/@expo%2Fconfig-plugins@10.1.1.patch"
+    "@expo/config-plugins@10.1.1": "patches/@expo%2Fconfig-plugins@10.1.1.patch",
+    "@binance/w3w-core@1.1.7": "patches/@binance%2Fw3w-core@1.1.7.patch"
   },
   "dependencies": {
     "react-router-dom": "^7.9.6"

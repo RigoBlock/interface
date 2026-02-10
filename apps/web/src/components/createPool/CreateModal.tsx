@@ -37,17 +37,17 @@ const ContentWrapper = styled(AutoColumn)`
 `
 
 const CurrencySelect = styled(ButtonGray)<{
-  visible: boolean
-  selected: boolean
-  hideInput?: boolean
+  $visible: boolean
+  $selected: boolean
+  $hideInput?: boolean
   disabled?: boolean
 }>`
   align-items: center;
-  background-color: ${({ selected, theme }) => (selected ? theme.surface1 : theme.accent1)};
+  background-color: ${({ $selected, theme }) => ($selected ? theme.surface1 : theme.accent1)};
   opacity: ${({ disabled }) => (!disabled ? 1 : 0.4)};
-  box-shadow: ${({ selected }) => (selected ? 'none' : '0px 6px 10px rgba(0, 0, 0, 0.075)')};
+  box-shadow: ${({ $selected }) => ($selected ? 'none' : '0px 6px 10px rgba(0, 0, 0, 0.075)')};
   box-shadow: 0px 6px 10px rgba(0, 0, 0, 0.075);
-  color: ${({ selected, theme }) => (selected ? theme.neutral1 : theme.white)};
+  color: ${({ $selected, theme }) => ($selected ? theme.neutral1 : theme.white)};
   cursor: pointer;
   border-radius: 16px;
   outline: none;
@@ -55,16 +55,16 @@ const CurrencySelect = styled(ButtonGray)<{
   border: none;
   font-size: 24px;
   font-weight: 500;
-  height: ${({ hideInput }) => (hideInput ? '2.8rem' : '2.4rem')};
-  width: ${({ hideInput }) => (hideInput ? '100%' : 'initial')};
+  height: ${({ $hideInput }) => ($hideInput ? '2.8rem' : '2.4rem')};
+  width: ${({ $hideInput }) => ($hideInput ? '100%' : 'initial')};
   padding: 0 8px;
   justify-content: space-between;
-  margin-left: ${({ hideInput }) => (hideInput ? '0' : '12px')};
+  margin-left: ${({ $hideInput }) => ($hideInput ? '0' : '12px')};
   :focus,
   :hover {
-    background-color: ${({ selected, theme }) => (selected ? theme.surface2 : darken(0.05, theme.accent1))};
+    background-color: ${({ $selected, theme }) => ($selected ? theme.surface2 : darken(0.05, theme.accent1))};
   }
-  visibility: ${({ visible }) => (visible ? 'visible' : 'hidden')};
+  visibility: ${({ $visible }) => ($visible ? 'visible' : 'hidden')};
 `
 
 const StyledClosed = styled(X)`
@@ -73,18 +73,18 @@ const StyledClosed = styled(X)`
   }
 `
 
-const StyledDropDown = styled(DropDown)<{ selected: boolean }>`
+const StyledDropDown = styled(DropDown)<{ $selected: boolean }>`
   margin: 0 0.25rem 0 0.35rem;
   height: 35%;
 
   path {
-    stroke: ${({ selected, theme }) => (selected ? theme.neutral1 : theme.white)};
+    stroke: ${({ $selected, theme }) => ($selected ? theme.neutral1 : theme.white)};
     stroke-width: 1.5px;
   }
 `
 
-const StyledTokenName = styled.span<{ active?: boolean }>`
-  ${({ active }) => (active ? '  margin: 0 0.25rem 0 0.25rem;' : '  margin: 0 0.25rem 0 0.25rem;')}
+const StyledTokenName = styled.span<{ $active?: boolean }>`
+  ${({ $active }) => ($active ? '  margin: 0 0.25rem 0 0.25rem;' : '  margin: 0 0.25rem 0 0.25rem;')}
   font-size: 20px;
 `
 
@@ -210,9 +210,9 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
                 />
                 <CurrencySelect
                   disabled={!chainAllowed}
-                  visible={true}
-                  selected={true}
-                  hideInput={false}
+                  $visible={true}
+                  $selected={true}
+                  $hideInput={false}
                   className="open-currency-select-button"
                   onClick={() => setIsSearchingCurrency(true)}
                 >
@@ -223,7 +223,7 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
                       ) : null}
                       <StyledTokenName
                         className="token-symbol-container"
-                        active={Boolean(currencyValue && currencyValue.symbol)}
+                        $active={Boolean(currencyValue && currencyValue.symbol)}
                       >
                         {(currencyValue && currencyValue.symbol && currencyValue.symbol.length > 20
                           ? currencyValue.symbol.slice(0, 4) +
@@ -232,7 +232,7 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
                           : currencyValue?.symbol) || <Trans>Select a token</Trans>}
                       </StyledTokenName>
                     </RowFixed>
-                    <StyledDropDown selected={!!currencyValue} />
+                    <StyledDropDown $selected={!!currencyValue} />
                   </Aligner>
                 </CurrencySelect>
                 <ButtonPrimary

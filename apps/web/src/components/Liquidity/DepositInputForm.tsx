@@ -50,6 +50,7 @@ type InputFormProps = {
   amount0Loading: boolean
   amount1Loading: boolean
   autofocus?: boolean
+  isSmartPool?: boolean
 } & DepositInfo
 
 export function DepositInputForm({
@@ -68,6 +69,7 @@ export function DepositInputForm({
   amount0Loading,
   amount1Loading,
   autofocus = true,
+  isSmartPool,
 }: InputFormProps) {
   // refs must be used to control input focus rather than the focus prop because if the focus prop is used and the amounts are updated,
   // the focus will be stolen and brought back to the deposit form
@@ -75,8 +77,10 @@ export function DepositInputForm({
   const token1InputRef = useRef<CurrencyInputPanelRef>(null)
   const bufferPercentage = useNativeTokenPercentageBufferExperiment()
 
-  const token0BalanceWithBuffer = useTokenBalanceWithBuffer(currencyBalances?.[PositionField.TOKEN0], bufferPercentage)
-  const token1BalanceWithBuffer = useTokenBalanceWithBuffer(currencyBalances?.[PositionField.TOKEN1], bufferPercentage)
+  // For smart pool operations, the pool's ETH is spent, not the user's — no gas buffer needed
+  const effectiveBuffer = isSmartPool ? 0 : bufferPercentage
+  const token0BalanceWithBuffer = useTokenBalanceWithBuffer(currencyBalances?.[PositionField.TOKEN0], effectiveBuffer)
+  const token1BalanceWithBuffer = useTokenBalanceWithBuffer(currencyBalances?.[PositionField.TOKEN1], effectiveBuffer)
 
   // TODO(WEB-4920): when the backend returns the logo info make sure that there is no call being made
   // to graphql to retrieve it
@@ -127,6 +131,7 @@ export function DepositInputForm({
             value={formattedAmounts?.[PositionField.TOKEN0]}
             onPressIn={() => token0InputRef.current?.textInputRef.current?.focus()}
             isLoading={amount0Loading}
+            isSmartPool={isSmartPool}
           />
           {token0UnderCardComponent && <UnderCardComponent>{token0UnderCardComponent}</UnderCardComponent>}
         </Flex>
@@ -151,6 +156,7 @@ export function DepositInputForm({
             value={formattedAmounts?.[PositionField.TOKEN1]}
             onPressIn={() => token1InputRef.current?.textInputRef.current?.focus()}
             isLoading={amount1Loading}
+            isSmartPool={isSmartPool}
           />
           {token1UnderCardComponent && <UnderCardComponent>{token1UnderCardComponent}</UnderCardComponent>}
         </Flex>

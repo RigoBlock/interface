@@ -39,6 +39,7 @@ export function useDerivedIncreaseLiquidityInfo(
     exactAmounts: {
       [exactField]: exactAmount,
     },
+    isSmartPool: !!activeSmartPool.address,
   })
 
   return {

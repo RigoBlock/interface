@@ -127,6 +127,7 @@ export const CurrencyInputPanel = memo(
               currencyInfo={currencyInfo}
               showDefaultTokenOptions={showDefaultTokenOptions}
               onSetPresetValue={handleSetPresetValue}
+              isSmartPool={isSmartPool}
             />
             <CurrencyInputPanelInput
               ref={forwardedRef}

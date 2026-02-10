@@ -29,45 +29,45 @@ import Trace from 'uniswap/src/features/telemetry/Trace'
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { NumberType } from 'utilities/src/format/types'
 
-const InputPanel = styled.div<{ hideInput?: boolean }>`
+const InputPanel = styled.div<{ $hideInput?: boolean }>`
   ${flexColumnNoWrap};
   position: relative;
-  border-radius: ${({ hideInput }) => (hideInput ? '16px' : '20px')};
-  background-color: ${({ theme, hideInput }) => (hideInput ? 'transparent' : theme.surface2)};
+  border-radius: ${({ $hideInput }) => ($hideInput ? '16px' : '20px')};
+  background-color: ${({ theme, $hideInput }) => ($hideInput ? 'transparent' : theme.surface2)};
 
   z-index: 1;
-  width: ${({ hideInput }) => (hideInput ? '100%' : 'initial')};
+  width: ${({ $hideInput }) => ($hideInput ? '100%' : 'initial')};
   transition: height 1s ease;
   will-change: height;
 `
 
-const Container = styled.div<{ hideInput: boolean; disabled: boolean }>`
-  border-radius: ${({ hideInput }) => (hideInput ? '16px' : '20px')};
+const Container = styled.div<{ $hideInput: boolean; $disabled: boolean }>`
+  border-radius: ${({ $hideInput }) => ($hideInput ? '16px' : '20px')};
   border: 1px solid ${({ theme }) => theme.surface3};
   background-color: ${({ theme }) => theme.surface2};
-  width: ${({ hideInput }) => (hideInput ? '100%' : 'initial')};
-  ${({ theme, hideInput, disabled }) =>
-    !disabled &&
+  width: ${({ $hideInput }) => ($hideInput ? '100%' : 'initial')};
+  ${({ theme, $hideInput, $disabled }) =>
+    !$disabled &&
     `
     :focus,
     :hover {
-      border: 1px solid ${hideInput ? ' transparent' : theme.surface2};
+      border: 1px solid ${$hideInput ? ' transparent' : theme.surface2};
     }
   `}
 `
 
 const CurrencySelect = styled(ButtonGray)<{
-  visible: boolean
-  selected: boolean
-  hideInput?: boolean
+  $visible: boolean
+  $selected: boolean
+  $hideInput?: boolean
   disabled?: boolean
-  pointerEvents?: string
+  $pointerEvents?: string
 }>`
   align-items: center;
-  background-color: ${({ selected, theme }) => (selected ? theme.surface1 : theme.accent1)};
+  background-color: ${({ $selected, theme }) => ($selected ? theme.surface1 : theme.accent1)};
   opacity: ${({ disabled }) => (!disabled ? 1 : 0.4)};
   box-shadow: ${({ theme }) => theme.deprecated_shallowShadow};
-  color: ${({ selected, theme }) => (selected ? theme.neutral1 : theme.white)};
+  color: ${({ $selected, theme }) => ($selected ? theme.neutral1 : theme.white)};
   cursor: pointer;
   border-radius: 16px;
   outline: none;
@@ -75,24 +75,24 @@ const CurrencySelect = styled(ButtonGray)<{
   border: none;
   font-size: 24px;
   font-weight: 535;
-  height: ${({ hideInput }) => (hideInput ? '2.8rem' : '2.4rem')};
-  width: ${({ hideInput }) => (hideInput ? '100%' : 'initial')};
+  height: ${({ $hideInput }) => ($hideInput ? '2.8rem' : '2.4rem')};
+  width: ${({ $hideInput }) => ($hideInput ? '100%' : 'initial')};
   padding: 0 8px;
   justify-content: space-between;
-  margin-left: ${({ hideInput }) => (hideInput ? '0' : '12px')};
+  margin-left: ${({ $hideInput }) => ($hideInput ? '0' : '12px')};
   :focus,
   :hover {
-    background-color: ${({ selected, theme }) => (selected ? theme.surface2 : darken(0.05, theme.accent1))};
+    background-color: ${({ $selected, theme }) => ($selected ? theme.surface2 : darken(0.05, theme.accent1))};
   }
-  visibility: ${({ visible }) => (visible ? 'visible' : 'hidden')};
-  ${({ pointerEvents }) => pointerEvents && `pointer-events: none`}
+  visibility: ${({ $visible }) => ($visible ? 'visible' : 'hidden')};
+  ${({ $pointerEvents }) => $pointerEvents && `pointer-events: none`}
 `
 
-const InputRow = styled.div<{ selected: boolean }>`
+const InputRow = styled.div<{ $selected: boolean }>`
   ${flexRowNoWrap};
   align-items: center;
   justify-content: space-between;
-  padding: ${({ selected }) => (selected ? ' 1rem 1rem 0.75rem 1rem' : '1rem 1rem 1rem 1rem')};
+  padding: ${({ $selected }) => ($selected ? ' 1rem 1rem 0.75rem 1rem' : '1rem 1rem 1rem 1rem')};
 `
 
 const LabelRow = styled.div`
@@ -123,18 +123,18 @@ const Aligner = styled.span`
   line-height: 0px;
 `
 
-const StyledDropDown = styled(DropDown)<{ selected: boolean }>`
+const StyledDropDown = styled(DropDown)<{ $selected: boolean }>`
   margin: 0 0.25rem 0 0.35rem;
   height: 35%;
 
   path {
-    stroke: ${({ selected, theme }) => (selected ? theme.neutral1 : theme.white)};
+    stroke: ${({ $selected, theme }) => ($selected ? theme.neutral1 : theme.white)};
     stroke-width: 1.5px;
   }
 `
 
-const StyledTokenName = styled.span<{ active?: boolean }>`
-  ${({ active }) => (active ? '  margin: 0 0.25rem 0 0.25rem;' : '  margin: 0 0.25rem 0 0.25rem;')}
+const StyledTokenName = styled.span<{ $active?: boolean }>`
+  ${({ $active }) => ($active ? '  margin: 0 0.25rem 0 0.25rem;' : '  margin: 0 0.25rem 0 0.25rem;')}
   font-size: 20px;
   white-space: nowrap;
 
@@ -236,11 +236,11 @@ export default function CurrencyInputPanel({
   }, [setModalOpen])
 
   return (
-    <InputPanel id={id} hideInput={hideInput} {...rest}>
+    <InputPanel id={id} $hideInput={hideInput} {...rest}>
       {!locked && (
         <>
-          <Container hideInput={hideInput} disabled={!chainAllowed}>
-            <InputRow style={hideInput ? { padding: '0', borderRadius: '8px' } : {}} selected={!onCurrencySelect}>
+          <Container $hideInput={hideInput} $disabled={!chainAllowed}>
+            <InputRow style={hideInput ? { padding: '0', borderRadius: '8px' } : {}} $selected={!onCurrencySelect}>
               {!hideInput && (
                 <StyledNumericalInput
                   className="token-amount-input"
@@ -255,16 +255,16 @@ export default function CurrencyInputPanel({
               <StyledPrefetchBalancesWrapper $fullWidth={hideInput}>
                 <CurrencySelect
                   disabled={!chainAllowed}
-                  visible={currency !== undefined}
-                  selected={!!currency}
-                  hideInput={hideInput}
+                  $visible={currency !== undefined}
+                  $selected={!!currency}
+                  $hideInput={hideInput}
                   className="open-currency-select-button"
                   onClick={() => {
                     if (onCurrencySelect) {
                       setModalOpen(true)
                     }
                   }}
-                  pointerEvents={!onCurrencySelect ? 'none' : undefined}
+                  $pointerEvents={!onCurrencySelect ? 'none' : undefined}
                 >
                   <Aligner>
                     <RowFixed>
@@ -282,7 +282,7 @@ export default function CurrencyInputPanel({
                       ) : (
                         <StyledTokenName
                           className="token-symbol-container"
-                          active={Boolean(currency && currency.symbol)}
+                          $active={Boolean(currency && currency.symbol)}
                         >
                           {(currency && currency.symbol && currency.symbol.length > 20
                             ? currency.symbol.slice(0, 4) +
@@ -292,7 +292,7 @@ export default function CurrencyInputPanel({
                         </StyledTokenName>
                       )}
                     </RowFixed>
-                    {onCurrencySelect && <StyledDropDown selected={!!currency} />}
+                    {onCurrencySelect && <StyledDropDown $selected={!!currency} />}
                   </Aligner>
                 </CurrencySelect>
               </StyledPrefetchBalancesWrapper>

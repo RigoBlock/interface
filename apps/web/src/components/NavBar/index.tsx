@@ -212,9 +212,13 @@ export default function Navbar() {
 
   // Cache operatedPools and userIsOperator until new data is loaded
   const rawOperatedPools = useMemo(
-    () => poolsWithOwners?.filter((pool) => pool?.owner.toLowerCase() === address?.toLowerCase()) || [],
-    [poolsWithOwners, address],
-  ).map((pool) => new Token(chainId ?? UniverseChainId.Mainnet, pool!.pool, pool!.decimals, pool!.symbol, pool!.name))
+    () =>
+      (poolsWithOwners?.filter((pool) => pool?.owner.toLowerCase() === address?.toLowerCase()) || []).map(
+        (pool) =>
+          new Token(chainId ?? UniverseChainId.Mainnet, pool!.pool, pool!.decimals, pool!.symbol, pool!.name),
+      ),
+    [poolsWithOwners, address, chainId],
+  )
 
   const cachedPoolsRef = useRef<{ pools: typeof rawOperatedPools } | undefined>(undefined)
 
@@ -235,8 +239,14 @@ export default function Navbar() {
     }
 
     const operatedAddresses = rawOperatedPools.map((pool) => pool.address.toLowerCase())
+    // Only signal newDefaultVaultLoaded if the current pool is not in the new list
+    // AND it's also not in the cached list (to prevent false triggers during data reloads)
     if (activeSmartVault.address && !operatedAddresses.includes(activeSmartVault.address.toLowerCase())) {
-      newDefaultVaultLoaded = true
+      const cachedAddresses = cachedPoolsRef.current?.pools?.map((p) => p.address.toLowerCase()) || []
+      // Only consider it a "new default" situation if the pool isn't in either list
+      if (!cachedAddresses.includes(activeSmartVault.address.toLowerCase())) {
+        newDefaultVaultLoaded = true
+      }
     }
 
     return { operatedPools: rawOperatedPools, newDefaultVaultLoaded }
@@ -249,11 +259,14 @@ export default function Navbar() {
   const chainChanged = prevChainId && prevChainId !== chainId
 
   useEffect(() => {
-    // Notice: this is necessary to reset the selected pool when the user changes account or chain
-    if (accountChanged || newDefaultVaultLoaded) {
+    // Auto-select on initial load when no pool is selected yet, or reset on account/chain change
+    const noPoolSelectedYet = !activeSmartVault.address && defaultPool
+    // Only auto-select if there's actually a pool to select.
+    // Prevent resetting to undefined when data is loading or pool list temporarily changes.
+    if ((accountChanged || newDefaultVaultLoaded || noPoolSelectedYet) && defaultPool) {
       onPoolSelect(defaultPool)
     }
-  }, [accountChanged, chainChanged, defaultPool, onPoolSelect, newDefaultVaultLoaded])
+  }, [accountChanged, chainChanged, defaultPool, onPoolSelect, newDefaultVaultLoaded, activeSmartVault.address])
 
   const userIsOperator = operatedPools.length > 0
 

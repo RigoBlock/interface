@@ -22,7 +22,6 @@ import { ExternalWalletProvider } from 'features/wallet/providers/ExternalWallet
 import { useDeferredComponent } from 'hooks/useDeferredComponent'
 import { LanguageProvider } from 'i18n/LanguageProvider'
 import { BlockNumberProvider } from 'lib/hooks/useBlockNumber'
-import { WebNotificationServiceManager } from 'notification-service/WebNotificationService'
 import { NuqsAdapter } from 'nuqs/adapters/react-router/v7'
 import App from 'pages/App'
 import type { PropsWithChildren } from 'react'
@@ -200,7 +199,6 @@ const RootApp = (): JSX.Element => {
                                         <ThemeProvider>
                                           <TamaguiProvider>
                                             <PortalProvider>
-                                              <WebNotificationServiceManager />
                                               <ThemedGlobalStyle />
                                               <App />
                                             </PortalProvider>

@@ -403,6 +403,7 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
       exactField,
       exactAmounts: depositState.exactAmounts,
       skipDependentAmount: protocolVersion === ProtocolVersion.V2 ? false : outOfRange || invalidRange,
+      isSmartPool: !!smartPoolAddress,
     }
   }, [
     TOKEN0,
