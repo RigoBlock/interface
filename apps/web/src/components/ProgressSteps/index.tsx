@@ -15,13 +15,13 @@ const Grouping = styled(AutoColumn)`
   border-radius: 16px;
 `
 
-const Circle = styled.div<{ confirmed?: boolean; disabled?: boolean }>`
+const Circle = styled.div<{ $confirmed?: boolean; $disabled?: boolean }>`
   width: 48px;
   height: 48px;
-  background-color: ${({ theme, confirmed, disabled }) =>
-    disabled ? theme.surface1 : confirmed ? theme.success : theme.accent1};
+  background-color: ${({ theme, $confirmed, $disabled }) =>
+    $disabled ? theme.surface1 : $confirmed ? theme.success : theme.accent1};
   border-radius: 50%;
-  color: ${({ theme, disabled }) => (disabled ? theme.neutral3 : theme.neutral1)};
+  color: ${({ theme, $disabled }) => ($disabled ? theme.neutral3 : theme.neutral1)};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -60,14 +60,14 @@ export default function ProgressCircles({ steps, disabled = false, ...rest }: Pr
         {steps.map((step, i) => {
           return (
             <CircleRow key={i}>
-              <Circle confirmed={step} disabled={disabled || (!steps[i - 1] && i !== 0)}>
+              <Circle $confirmed={step} $disabled={disabled || (!steps[i - 1] && i !== 0)}>
                 {step ? '✓' : i + 1 + '.'}
               </Circle>
               <ThemedText.DeprecatedMain color={theme.neutral3.get()}>|</ThemedText.DeprecatedMain>
             </CircleRow>
           )
         })}
-        <Circle disabled={disabled || !steps[steps.length - 1]}>{steps.length + 1 + '.'}</Circle>
+        <Circle $disabled={disabled || !steps[steps.length - 1]}>{steps.length + 1 + '.'}</Circle>
       </Grouping>
     </Wrapper>
   )

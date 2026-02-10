@@ -32,6 +32,7 @@ type UseDepositInfoProps = {
     [field in PositionField]?: string
   }
   skipDependentAmount?: boolean
+  isSmartPool?: boolean
 }
 
 export function useTokenBalanceWithBuffer(currencyBalance: Maybe<CurrencyAmount<Currency>>, bufferPercentage: number) {
@@ -51,11 +52,13 @@ export function useDepositInfo(state: UseDepositInfoProps): DepositInfo {
   const { balance: token0Balance } = useOnChainCurrencyBalance(token0, address)
   const { balance: token1Balance } = useOnChainCurrencyBalance(token1, address)
 
-  const token0BalanceWithBuffer = useTokenBalanceWithBuffer(token0Balance, bufferPercentage)
-  const token1BalanceWithBuffer = useTokenBalanceWithBuffer(token1Balance, bufferPercentage)
+  // For smart pool operations, the pool's ETH is spent, not the user's — no gas buffer needed
+  const effectiveBuffer = state.isSmartPool ? 0 : bufferPercentage
+  const token0BalanceWithBuffer = useTokenBalanceWithBuffer(token0Balance, effectiveBuffer)
+  const token1BalanceWithBuffer = useTokenBalanceWithBuffer(token1Balance, effectiveBuffer)
 
-  const token0MaxAmount = useMaxAmountSpend({ currencyAmount: token0BalanceWithBuffer })
-  const token1MaxAmount = useMaxAmountSpend({ currencyAmount: token1BalanceWithBuffer })
+  const token0MaxAmount = useMaxAmountSpend({ currencyAmount: token0BalanceWithBuffer, isSmartPool: state.isSmartPool })
+  const token1MaxAmount = useMaxAmountSpend({ currencyAmount: token1BalanceWithBuffer, isSmartPool: state.isSmartPool })
 
   const [independentToken, dependentToken] = exactField === PositionField.TOKEN0 ? [token0, token1] : [token1, token0]
   const independentAmount = tryParseCurrencyAmount(exactAmounts[exactField], independentToken)

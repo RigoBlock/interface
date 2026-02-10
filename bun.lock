@@ -1149,6 +1149,7 @@
     "react-native-fast-image@8.6.3": "patches/react-native-fast-image@8.6.3.patch",
     "@react-native/gradle-plugin@0.79.5": "patches/@react-native%2Fgradle-plugin@0.79.5.patch",
     "multiformats@9.9.0": "patches/multiformats@9.9.0.patch",
+    "@binance/w3w-core@1.1.7": "patches/@binance%2Fw3w-core@1.1.7.patch",
     "@tamagui/static@1.136.1": "patches/@tamagui%2Fstatic@1.136.1.patch",
     "react-native-tab-view@3.5.2": "patches/react-native-tab-view@3.5.2.patch",
     "react-native-context-menu-view@1.15.0": "patches/react-native-context-menu-view@1.15.0.patch",

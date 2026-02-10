@@ -30,6 +30,7 @@ import { Trans, useTranslation } from 'react-i18next'
 import { getDefaultPriceInverted } from 'state/limit/hooks'
 import { LimitContextProvider, useLimitContext } from 'state/limit/LimitContext'
 import { useMultichainContext } from 'state/multichain/useMultichainContext'
+import { useActiveSmartPool } from 'state/application/hooks'
 import { LimitOrderTrade, TradeFillType } from 'state/routing/types'
 import { useOnSwitchTokens } from 'state/swap/hooks'
 import { CurrencyState } from 'state/swap/types'
@@ -80,6 +81,7 @@ type LimitFormProps = {
 function LimitForm({ onCurrencyChange }: LimitFormProps) {
   const account = useAccount()
   const { chainId } = useMultichainContext()
+  const { address: smartPoolAddress } = useActiveSmartPool()
   const {
     currencyState: { inputCurrency, outputCurrency },
     setCurrencyState,
@@ -243,8 +245,8 @@ function LimitForm({ onCurrencyChange }: LimitFormProps) {
   }, [])
 
   const maxInputAmount: CurrencyAmount<Currency> | undefined = useMemo(
-    () => maxAmountSpend(currencyBalances[CurrencyField.INPUT]),
-    [currencyBalances],
+    () => maxAmountSpend(currencyBalances[CurrencyField.INPUT], !!smartPoolAddress),
+    [currencyBalances, smartPoolAddress],
   )
   const showMaxButton = Boolean(
     maxInputAmount?.greaterThan(0) && !parsedAmounts[CurrencyField.INPUT]?.equalTo(maxInputAmount),

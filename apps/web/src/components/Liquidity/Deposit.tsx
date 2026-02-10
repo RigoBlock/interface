@@ -12,6 +12,7 @@ import { CreatePositionModal } from 'pages/CreatePosition/CreatePositionModal'
 import { useCreatePositionTxContext } from 'pages/CreatePosition/CreatePositionTxContext'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
+import { useActiveSmartPool } from 'state/application/hooks'
 import { PositionField } from 'types/position'
 import { Button, Flex, Text } from 'ui/src'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
@@ -34,6 +35,7 @@ export const DepositStep = () => {
   const { t } = useTranslation()
   const { onConnectWallet } = useUniswapContext()
   const account = useAccount()
+  const { address: smartPoolAddress } = useActiveSmartPool()
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
   const { TOKEN0, TOKEN1 } = currencies.display
@@ -177,6 +179,7 @@ export const DepositStep = () => {
         deposit1Disabled={updatedDeposit1Disabled}
         amount0Loading={requestLoading && exactField === PositionField.TOKEN1}
         amount1Loading={requestLoading && exactField === PositionField.TOKEN0}
+        isSmartPool={!!smartPoolAddress}
       />
       <Flex row>
         {account.isConnected ? (

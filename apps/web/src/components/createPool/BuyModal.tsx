@@ -163,7 +163,8 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
   }, [])
 
   // used for max input button
-  //const maxAmountInput = maxAmountSpend(userLiquidityUnstaked)
+  // When buying pool tokens with native ETH, the gas reserve is appropriate
+  // because the user pays gas from the same wallet balance.
   const maxAmountInput = maxAmountSpend(userBaseTokenBalance)
   const atMaxAmount = Boolean(maxAmountInput && parsedAmount?.equalTo(maxAmountInput))
   const handleMax = useCallback(() => {

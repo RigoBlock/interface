@@ -25,6 +25,7 @@ interface CurrencyInputPanelHeaderProps {
   currencyInfo: Maybe<CurrencyInfo>
   onSetPresetValue: (amount: string, percentage: PresetPercentage) => void
   showDefaultTokenOptions: boolean
+  isSmartPool?: boolean
 }
 
 export function CurrencyInputPanelHeader({
@@ -35,6 +36,7 @@ export function CurrencyInputPanelHeader({
   currencyInfo,
   onSetPresetValue,
   showDefaultTokenOptions,
+  isSmartPool,
 }: CurrencyInputPanelHeaderProps): JSX.Element | null {
   const priceUXEnabled = usePriceUXEnabled()
 
@@ -51,9 +53,10 @@ export function CurrencyInputPanelHeader({
         elementName={ElementName.PresetPercentage}
         buttonProps={PRESET_BUTTON_PROPS}
         onSetPresetValue={onSetPresetValue}
+        isSmartPool={isSmartPool}
       />
     ),
-    [currencyAmount, currencyBalance, currencyField, onSetPresetValue],
+    [currencyAmount, currencyBalance, currencyField, onSetPresetValue, isSmartPool],
   )
 
   if (!headerLabel && !showDefaultTokenOptions) {

@@ -96,9 +96,6 @@ export const createSwapFormStore = ({
           showPendingUI: false,
           isConfirmed: false,
           instantOutputAmountRaw: undefined,
-          smartPoolAddress,
-          hideFooter,
-          hideSettings,
           prefilledCurrencies: undefined,
           isPrefilled: undefined,
           derivedSwapInfo,
@@ -109,6 +106,10 @@ export const createSwapFormStore = ({
             set((state) => ({ ...state, ...newState }))
           },
           ...initialState,
+          // These must come AFTER ...initialState to prevent being overridden
+          smartPoolAddress,
+          hideFooter,
+          hideSettings,
           actions: {
             // This is the same as `setSwapForm` in the locally-managed state (via `useState) from the previous Context-driven version of this state management solution
             setSwapFormState: (newState: Partial<SwapFormStateForConsumers>): void => {

@@ -10,12 +10,14 @@ import { IncreaseLiquidityStep, useIncreaseLiquidityContext } from 'pages/Increa
 import { useIncreaseLiquidityTxContext } from 'pages/IncreaseLiquidity/IncreaseLiquidityTxContext'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useActiveSmartPool } from 'state/application/hooks'
 import { PositionField } from 'types/position'
 import { Button, Flex, Switch, Text } from 'ui/src'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
 
 export function IncreaseLiquidityForm() {
   const { t } = useTranslation()
+  const { address: smartPoolAddress } = useActiveSmartPool()
 
   const {
     setStep,
@@ -133,6 +135,7 @@ export function IncreaseLiquidityForm() {
           amount1Loading={requestLoading && exactField === PositionField.TOKEN0}
           token0UnderCardComponent={canUnwrap0 ? UnwrapNativeCurrencyToggle : undefined}
           token1UnderCardComponent={canUnwrap1 ? UnwrapNativeCurrencyToggle : undefined}
+          isSmartPool={!!smartPoolAddress}
         />
       </Flex>
       <LiquidityModalDetailRows
