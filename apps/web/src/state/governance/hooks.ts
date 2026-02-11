@@ -65,10 +65,6 @@ export function useStakingProxyContract(): Contract | null {
   })
 }
 
-export function usePoolExtendedContract(poolAddress: string | undefined): Contract | null {
-  return useContract({ address: poolAddress, ABI: POOL_EXTENDED_ABI, withSignerIfPossible: true })
-}
-
 // TODO: update structs interfaces
 interface ProposalDetail {
   target: string

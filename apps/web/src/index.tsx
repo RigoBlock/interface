@@ -6,11 +6,7 @@ import { apolloClient } from 'appGraphql/data/apollo/client'
 import { TokenBalancesProvider } from 'appGraphql/data/apollo/TokenBalancesProvider'
 import { getDeviceId } from '@amplitude/analytics-browser'
 import { ApolloProvider } from '@apollo/client'
-import { datadogRum } from '@datadog/browser-rum'
-import { ApiInit, getEntryGatewayUrl, provideSessionService } from '@universe/api'
 import type { StatsigUser } from '@universe/gating'
-import { getIsSessionServiceEnabled, getIsSessionUpgradeAutoEnabled } from '@universe/gating'
-import { createChallengeSolverService, createSessionInitializationService } from '@universe/sessions'
 import { QueryClientPersistProvider } from 'components/PersistQueryClient'
 import { createWeb3Provider, WalletCapabilitiesEffects } from 'components/Web3Provider/createWeb3Provider'
 import { WebUniswapProvider } from 'components/Web3Provider/WebUniswapContext'
@@ -25,7 +21,7 @@ import { BlockNumberProvider } from 'lib/hooks/useBlockNumber'
 import { NuqsAdapter } from 'nuqs/adapters/react-router/v7'
 import App from 'pages/App'
 import type { PropsWithChildren } from 'react'
-import React, { StrictMode, useEffect, useMemo } from 'react'
+import React, { StrictMode, useMemo } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Helmet, HelmetProvider } from 'react-helmet-async/lib/index'
 import { I18nextProvider } from 'react-i18next'
@@ -41,10 +37,7 @@ import { initializePortfolioQueryOverrides } from 'uniswap/src/data/rest/portfol
 import { StatsigProviderWrapper } from 'uniswap/src/features/gating/StatsigProviderWrapper'
 import { LocalizationContextProvider } from 'uniswap/src/features/language/LocalizationContext'
 import i18n from 'uniswap/src/i18n'
-import { initializeDatadog } from 'uniswap/src/utils/datadog'
-import { localDevDatadogEnabled } from 'utilities/src/environment/constants'
-import { isDevEnv, isTestEnv } from 'utilities/src/environment/env'
-import { getLogger } from 'utilities/src/logger/logger'
+import { isTestEnv } from 'utilities/src/environment/env'
 import { isBrowserRouterEnabled } from 'utils/env'
 import { unregister as unregisterServiceWorker } from 'utils/serviceWorker'
 import { getCanonicalUrl } from 'utils/urlRoutes'
@@ -76,18 +69,7 @@ const loadFiatOnRampTransactionsUpdater = () => import('state/fiatOnRampTransact
 const loadWebAccountsStoreUpdater = () =>
   import('features/accounts/store/updater').then((m) => ({ default: m.WebAccountsStoreUpdater }))
 
-const provideSessionInitService = () =>
-  createSessionInitializationService({
-    getSessionService: () =>
-      provideSessionService({
-        getBaseUrl: getEntryGatewayUrl,
-        getIsSessionServiceEnabled,
-        getLogger,
-      }),
-    challengeSolverService: createChallengeSolverService(),
-    getIsSessionUpgradeAutoEnabled,
-    getLogger,
-  })
+
 
 function Updaters() {
   const location = useLocation()
@@ -115,10 +97,6 @@ function Updaters() {
       {FiatOnRampTransactionsUpdater && <FiatOnRampTransactionsUpdater />}
       {WebAccountsStoreUpdater && <WebAccountsStoreUpdater />}
       <AccountsStoreDevTool />
-      <ApiInit
-        getSessionInitService={provideSessionInitService}
-        getIsSessionServiceEnabled={getIsSessionServiceEnabled}
-      />
     </>
   )
 }
@@ -146,21 +124,8 @@ function StatsigProvider({ children }: PropsWithChildren) {
     [account.address],
   )
 
-  useEffect(() => {
-    datadogRum.setUserProperty('connection', {
-      type: account.connector?.type,
-      name: account.connector?.name,
-      rdns: account.connector?.id,
-      address: account.address,
-      status: account.status,
-    })
-  }, [account])
-
   const onStatsigInit = () => {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (!isDevEnv() || localDevDatadogEnabled) {
-      initializeDatadog('web').catch(() => undefined)
-    }
+    // Datadog RUM disabled – RigoBlock does not collect user data
   }
 
   return (

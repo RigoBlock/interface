@@ -28,9 +28,9 @@ export interface PoolPositionDetails {
   irr?: number
   poolOwnStake?: BigNumber
   poolDelegatedStake?: BigNumber
-  userBalance?: BigNumber
   userHasStake?: boolean
   userIsOwner?: boolean
+  userBalance?: string
   currentEpochReward?: string
 }
 

@@ -1,6 +1,8 @@
 /* eslint-disable max-lines */
-import { Interface } from '@ethersproject/abi'
+import { AbiCoder, Interface } from '@ethersproject/abi'
+import { getAddress } from '@ethersproject/address'
 import { BigNumber } from '@ethersproject/bignumber'
+import { keccak256 } from '@ethersproject/keccak256'
 import { parseBytes32String } from '@ethersproject/strings'
 import { RB_REGISTRY_ADDRESSES, STAKING_PROXY_ADDRESSES } from 'constants/addresses'
 import { getBackupRpcProvider } from 'constants/providers'
@@ -182,6 +184,8 @@ export interface StakingPoolData {
   poolOwnStake: BigNumber
   currentEpochReward: string
   userHasStake: boolean
+  userIsOwner: boolean
+  userBalance?: string
 }
 
 export interface MultiChainStakingResult {
@@ -203,6 +207,53 @@ const ERC20_TOTAL_SUPPLY_ABI_VIEM = [
   },
 ]
 
+// ─── Storage Slot Helpers (owner + user balance in one call per pool) ──────
+
+const ACCOUNTS_SLOT = '0xfd7547127f88410746fb7969b9adb4f9e9d8d2436aa2d2277b1103542deb7b8e'
+const POOLS_SLOT = '0xe48b9bb119adfc3bccddcc581484cc6725fe8d292ebfcec7d67b1f93138d8bd8'
+const POOL_OWNER_SLOT = BigInt(POOLS_SLOT) + 1n
+
+const STORAGE_SLOTS_ABI_VIEM = [
+  {
+    type: 'function' as const,
+    name: 'getStorageSlotsAt',
+    stateMutability: 'view' as const,
+    inputs: [{ type: 'uint256[]', name: 'slots' }],
+    outputs: [{ type: 'bytes', name: '' }],
+  },
+]
+
+function getUserAccountSlot(userAddress: string): bigint {
+  const coder = new AbiCoder()
+  const encoded = coder.encode(['address', 'bytes32'], [userAddress, ACCOUNTS_SLOT])
+  return BigInt(keccak256(encoded))
+}
+
+function extractStorageValues(storageValue?: string): { owner?: string; userBalance?: string } {
+  if (!storageValue || storageValue === '0x') {
+    return {}
+  }
+  const hexRaw = storageValue.slice(2)
+  const isSingleSlot = hexRaw.length <= 64
+  const hex = hexRaw.padStart(128, '0')
+  // First slot: [3 bytes pad][20 bytes owner][1 byte decimals][8 bytes symbol]
+  const ownerHex = hex.slice(6, 46)
+  let owner: string | undefined
+  try {
+    owner = getAddress('0x' + ownerHex)
+  } catch {
+    // invalid address
+  }
+  if (isSingleSlot) {
+    return { owner }
+  }
+  // Second slot: [6 bytes epoch][26 bytes balance]
+  const secondSlot = hex.slice(64, 128)
+  const userBalanceHex = secondSlot.slice(12, 64)
+  const userBalance = BigNumber.from('0x' + userBalanceHex).toString()
+  return { owner, userBalance }
+}
+
 /**
  * Fetches ALL staking data for ALL pools across ALL chains in a SINGLE useReadContracts call.
  *
@@ -216,7 +267,7 @@ const ERC20_TOTAL_SUPPLY_ABI_VIEM = [
 export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChainStakingResult {
   const account = useAccount()
 
-  const STAKING_CALLS_PER_POOL = account.address ? 5 : 4
+  const STAKING_CALLS_PER_POOL = account.address ? 6 : 4
 
   // Build all contract calls plus metadata to decode results.
   const { contracts, chainMeta, rewardsMeta, freeStakeMeta } = useMemo(() => {
@@ -245,6 +296,7 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
     const connectedChainPoolIds: string[] = []
     let freeStakeIdx = -1
     let freeStakeChainId = 0
+    const userAccountSlot = account.address ? getUserAccountSlot(account.address) : 0n
 
     for (const [chainId, entries] of poolsByChain) {
       const stakingAddr = assume0xAddress(STAKING_PROXY_ADDRESSES[chainId])
@@ -264,6 +316,13 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
           allContracts.push({
             address: stakingAddr, abi: STAKING_ABI as Abi, functionName: 'getStakeDelegatedToPoolByOwner',
             args: [account.address, pool.id], chainId,
+          })
+          allContracts.push({
+            address: assume0xAddress(pool.pool),
+            abi: STORAGE_SLOTS_ABI_VIEM as Abi,
+            functionName: 'getStorageSlotsAt',
+            args: [[POOL_OWNER_SLOT, userAccountSlot]],
+            chainId,
           })
         }
       }
@@ -314,10 +373,14 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
 
   const { data: rawData, isLoading } = useReadContracts({
     contracts,
+    batchSize: 1024, // large batch size to get all data in one go; wagmi will split by chainId as needed
     query: {
       enabled: contracts.length > 0,
-      staleTime: 30_000,
+      staleTime: 5 * 60_000,
       gcTime: 5 * 60_000,
+      retry: 5,
+      retryDelay: (attempt: number) => Math.min(attempt > 1 ? 2 ** attempt * 1000 : 1000, 30_000),
+      refetchOnWindowFocus: false,
     },
   })
 
@@ -366,10 +429,21 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
         const currentEpochReward = epochStats?.feesCollected?.toString() ?? '0'
 
         let userHasStake = false
-        if (account.address && STAKING_CALLS_PER_POOL === 5) {
+        let userIsOwner = false
+        let userBalance: string | undefined
+        if (account.address && STAKING_CALLS_PER_POOL === 6) {
           const userStake = (rawData[baseIndex + 4]?.result as any)?.nextEpochBalance
           if (userStake) {
             userHasStake = JSBI.greaterThan(JSBI.BigInt(String(userStake)), JSBI.BigInt(0))
+          }
+          // Storage slot data: owner + user token balance (baseIndex + 5)
+          const storageResult = rawData[baseIndex + 5]?.result
+          if (storageResult) {
+            const { owner, userBalance: bal } = extractStorageValues(storageResult as string)
+            if (owner && account.address && owner.toLowerCase() === account.address.toLowerCase()) {
+              userIsOwner = true
+            }
+            userBalance = bal
           }
         }
 
@@ -394,6 +468,8 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
           poolOwnStake: ownStakeBN,
           currentEpochReward,
           userHasStake,
+          userIsOwner,
+          userBalance,
         }
       })
     }

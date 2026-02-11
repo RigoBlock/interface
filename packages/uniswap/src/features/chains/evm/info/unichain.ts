@@ -59,7 +59,10 @@ export const UNICHAIN_CHAIN_INFO = {
     [RPCType.Public]: { http: [getQuicknodeEndpointUrl(UniverseChainId.Unichain)] },
     [RPCType.Default]: { http: ['https://mainnet.unichain.org'] },
     [RPCType.Interface]: {
-      http: [`https://unichain-mainnet.infura.io/v3/${config.infuraKey}`, getQuicknodeEndpointUrl(UniverseChainId.Unichain)]
+      http: [
+        `https://unichain-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`,
+        getQuicknodeEndpointUrl(UniverseChainId.Unichain),
+      ],
     },
   },
   tokens,

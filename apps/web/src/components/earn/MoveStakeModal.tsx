@@ -23,10 +23,10 @@ import {
   StakeData,
   useDeactivateStakeCallback,
   useMoveStakeCallback,
-  usePoolExtendedContract,
   usePoolIdByAddress,
   useStakeBalance,
 } from 'state/governance/hooks'
+import { usePoolExtendedContract } from 'state/pool/hooks'
 import { useFreeStakeBalance } from 'state/stake/hooks'
 import { useIsTransactionConfirmed, useTransaction } from 'state/transactions/hooks'
 import { ThemedText } from 'theme/components/text'

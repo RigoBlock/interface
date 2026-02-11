@@ -33,7 +33,13 @@ export function useFreeStakeBalance(isDelegateFreeStake?: boolean): CurrencyAmou
     abi: stakingContract?.interface.fragments,
     functionName: 'getOwnerStakeByStatus',
     args: [isDelegateFreeStake ? account.address : (poolAddressFromUrl ?? account.address), StakeStatus.UNDELEGATED],
-    query: { enabled: queryEnabled },
+    query: {
+      enabled: queryEnabled,
+      staleTime: 5 * 60_000,
+      gcTime: 5 * 60_000,
+      retry: 3,
+      retryDelay: (attempt: number) => Math.min(attempt > 1 ? 2 ** attempt * 1000 : 1000, 30_000),
+    },
   })
 
   // when all stake has been delegated, the current epoch stake is positive but withdrawing it will revert
@@ -99,7 +105,14 @@ export function useTotalStakeBalances({ address, smartPoolAddress, chainId }: St
 
   const { data } = useReadContracts({
     contracts: [...contractCalls],
-    query: { enabled: queryEnabled },
+    query: {
+      enabled: queryEnabled,
+      staleTime: 5 * 60_000,
+      gcTime: 5 * 60_000,
+      retry: 3,
+      retryDelay: (attempt: number) => Math.min(attempt > 1 ? 2 ** attempt * 1000 : 1000, 30_000),
+      refetchOnWindowFocus: false,
+    },
   })
 
   // when all stake has been delegated, the current epoch stake is positive but withdrawing it will revert
@@ -184,7 +197,11 @@ export function useUnclaimedRewards(poolIds: string[]): UnclaimedRewardsData[] |
     abi: stakingContract?.interface.fragments,
     functionName: 'computeRewardBalanceOfDelegator',
     args: inputs,
-    query: { enabled: !!stakingContract && inputs.length > 0 },
+    query: {
+      enabled: !!stakingContract && inputs.length > 0,
+      retry: 3,
+      retryDelay: (attempt: number) => Math.min(attempt > 1 ? 2 ** attempt * 1000 : 1000, 30_000),
+    },
   })
 
   return useMemo(() => {
@@ -226,7 +243,11 @@ export function useUserStakeBalances(poolIds: string[]): UserStakeData[] | undef
     abi: stakingContract?.interface.fragments,
     functionName: 'getStakeDelegatedToPoolByOwner',
     args: inputs,
-    query: { enabled: !!stakingContract && inputs.length > 0 },
+    query: {
+      enabled: !!stakingContract && inputs.length > 0,
+      retry: 3,
+      retryDelay: (attempt: number) => Math.min(attempt > 1 ? 2 ** attempt * 1000 : 1000, 30_000),
+    },
   })
 
   return useMemo(() => {

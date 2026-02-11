@@ -146,11 +146,8 @@ export default function PoolPositionGroupedListItem({
   const anyStaked = positions.some((p) => p.userHasStake)
   const anyOwned = positions.some((p) => p.userIsOwner)
   const anyHeld = positions.some((p) => {
-    if (!p.userBalance) {
-      return false
-    }
-    const bal = typeof p.userBalance === 'string' ? BigInt(p.userBalance) : BigInt(p.userBalance.toString())
-    return bal > 0n
+    if (!p.userBalance) return false
+    try { return BigInt(p.userBalance) > 0n } catch { return false }
   })
 
   return (
@@ -215,11 +212,8 @@ export default function PoolPositionGroupedListItem({
             const isStaked = !isMyPools && p.userHasStake
             const isOwned = isMyPools && p.userIsOwner
             const isHeld = isMyPools && (() => {
-              if (!p.userBalance) {
-                return false
-              }
-              const bal = typeof p.userBalance === 'string' ? BigInt(p.userBalance) : BigInt(p.userBalance.toString())
-              return bal > 0n
+              if (!p.userBalance) return false
+              try { return BigInt(p.userBalance) > 0n } catch { return false }
             })()
 
             return (

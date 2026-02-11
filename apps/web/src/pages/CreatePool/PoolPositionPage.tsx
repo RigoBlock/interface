@@ -161,7 +161,11 @@ export default function PoolPositionPage() {
   const [deactivate, setDeactivate] = useState(false)
   const [showHarvestYieldModal, setShowHarvestYieldModal] = useState(false)
 
-  const chainId = account.chainId
+  // Use chainId from URL if available, otherwise fall back to account.chainId
+  const chainId = useMemo(
+    () => (chainIdFromUrl ? parseInt(chainIdFromUrl, 10) : account.chainId),
+    [chainIdFromUrl, account.chainId],
+  )
 
   // TODO: check how can reduce number of calls by limit update of poolStorage
   //  id is stored in registry so we could save rpc call by using storing in state?
@@ -249,7 +253,7 @@ export default function PoolPositionPage() {
 
   let base = useCurrency({ address: baseToken !== ZERO_ADDRESS ? baseToken : undefined, chainId })
   if (baseToken === ZERO_ADDRESS) {
-    base = nativeOnChain(account.chainId ?? UniverseChainId.Mainnet)
+    base = nativeOnChain(chainId ?? UniverseChainId.Mainnet)
   }
 
   const pool = useCurrency({ address: poolAddressFromUrl ?? undefined, chainId })
@@ -332,18 +336,21 @@ export default function PoolPositionPage() {
   const hasFreeStake = JSBI.greaterThan(freeStakeBalance ? freeStakeBalance.quotient : JSBI.BigInt(0), JSBI.BigInt(0))
 
   // Check if the pool needs an upgrade
-  const [currentImplementation, beaconImplementation] = useImplementation(
+  const { implementations, isLoading: isLoadingImplementations } = useImplementation(
     poolAddressFromUrl ?? undefined,
     IMPLEMENTATION_SLOT,
-  ) ?? [undefined, undefined]
+    chainId,
+  )
+  const [currentImplementation, beaconImplementation] = implementations ?? [undefined, undefined]
 
   const needsUpgrade = useMemo(() => {
-    return (
+    const needs =
       currentImplementation &&
       beaconImplementation &&
       currentImplementation.toLowerCase() !== beaconImplementation.toLowerCase()
-    )
-  }, [currentImplementation, beaconImplementation])
+
+    return needs
+  }, [currentImplementation, beaconImplementation, poolAddressFromUrl, chainId, chainIdFromUrl, isLoadingImplementations, owner, account.address])
 
   const handleMoveStakeClick = useCallback(() => {
     setShowMoveStakeModal(true)
@@ -751,12 +758,12 @@ export default function PoolPositionPage() {
           </ResponsiveRow>
           <AutoColumn>
             <DarkCard>
-              <AddressCard address={poolAddressFromUrl} chainId={account.chainId} label="Smart Pool" />
+              <AddressCard address={poolAddressFromUrl} chainId={chainId} label="Smart Pool" />
             </DarkCard>
           </AutoColumn>
           <AutoColumn>
             <DarkCard>
-              <AddressCard address={owner} chainId={account.chainId} label="Pool Operator" />
+              <AddressCard address={owner} chainId={chainId} label="Pool Operator" />
             </DarkCard>
           </AutoColumn>
           <AutoColumn gap="sm" style={{ width: '100%', height: '100%', justifyContent: 'center' }}>

@@ -113,7 +113,8 @@ export default function Earn() {
   const { data: allPools } = useMultiChainAllPoolsData(supportedChains)
 
   // Single-batch staking data: one useReadContracts, wagmi splits into per-chain multicalls.
-  // Includes freeStakeBalance + unclaimedRewards for the connected chain.
+  // Includes freeStakeBalance + unclaimedRewards for the connected chain,
+  // plus owner + userBalance via storage slot reads (folded into the same batch).
   const {
     stakingPools,
     freeStakeBalance,
@@ -139,7 +140,7 @@ export default function Earn() {
     return ids.length > 0 ? ids : undefined
   }, [unclaimedRewards])
 
-  // Pools enriched with staking stats
+  // Pools enriched with staking stats + ownership + balance (all from the single staking batch)
   const poolsWithStats = useMemo(() => {
     if (!allPools || !stakingPools) {
       return undefined
@@ -154,6 +155,8 @@ export default function Earn() {
           poolOwnStake: s.poolOwnStake,
           poolDelegatedStake: s.delegatedStake,
           userHasStake: s.userHasStake,
+          userIsOwner: s.userIsOwner,
+          userBalance: s.userBalance,
           currentEpochReward: s.currentEpochReward,
         }
       })
@@ -188,16 +191,24 @@ export default function Earn() {
     return orderedAllPools.filter((p) => p.chainId === selectedChain)
   }, [orderedAllPools, selectedChain])
 
-  // "My Smart Pools": ALL pools (no own-stake filter — owner/holder needs access)
+  // "My Smart Pools": pools the user operates, has staked to, or holds tokens of.
+  // All data comes from the staking batch — zero additional RPC calls.
   const filteredMyPools = useMemo(() => {
-    if (!poolsWithStats) {
+    if (!poolsWithStats || !account.address) {
       return undefined
     }
+    const myPools = poolsWithStats.filter((p) => {
+      if (p.userIsOwner || p.userHasStake) return true
+      if (p.userBalance) {
+        try { return BigInt(p.userBalance) > 0n } catch { return false }
+      }
+      return false
+    })
     if (selectedChain === null) {
-      return poolsWithStats
+      return myPools
     }
-    return poolsWithStats.filter((p) => p.chainId === selectedChain)
-  }, [poolsWithStats, selectedChain])
+    return myPools.filter((p) => p.chainId === selectedChain)
+  }, [poolsWithStats, account.address, selectedChain])
 
   // Tab options
   const tabOptions: SegmentedControlOption<EarnTab>[] = useMemo(

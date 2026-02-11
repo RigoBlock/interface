@@ -43,11 +43,12 @@ export interface UserAccount {
 export function useImplementation(
   poolAddress: string | undefined,
   implementationSlot: string,
-): [string, string] | undefined {
-  const poolExtendedContract = usePoolExtendedContract(poolAddress)
-  const queryEnabled = !!poolAddress && !!implementationSlot
-  const poolFactory = usePoolFactoryContract()
-  // TODO: return isLoading state
+  chainId?: number,
+): { implementations: [string, string] | undefined; isLoading: boolean } {
+  const poolExtendedContract = usePoolExtendedContract(poolAddress, chainId)
+  const queryEnabled = !!poolAddress && !!implementationSlot && !!chainId
+  const poolFactory = usePoolFactoryContract(chainId)
+
   const { data, isLoading: isLoadingImplementations } = useReadContracts({
     contracts: [
       {
@@ -55,14 +56,14 @@ export function useImplementation(
         abi: poolExtendedContract?.interface.fragments,
         functionName: 'getStorageAt',
         args: [implementationSlot, 1],
-        chainId: poolExtendedContract?.chainId,
+        chainId,
       },
       {
         address: assume0xAddress(poolFactory?.address),
         abi: poolFactory?.interface.fragments,
         functionName: 'implementation',
         args: [],
-        chainId: poolFactory?.chainId,
+        chainId,
       },
     ],
     query: { enabled: queryEnabled },
@@ -73,13 +74,15 @@ export function useImplementation(
     | undefined
   const beaconImplementation = data?.[1]?.result as `0x${string}` | undefined
 
-  // TODO: verify if memoization is needed here
   return useMemo(() => {
     if (!currentImplementation || !beaconImplementation) {
-      return undefined
+      return { implementations: undefined, isLoading: isLoadingImplementations }
     }
-    return ['0x' + currentImplementation.slice(-40), beaconImplementation]
-  }, [currentImplementation, beaconImplementation])
+    return {
+      implementations: ['0x' + currentImplementation.slice(-40), beaconImplementation],
+      isLoading: isLoadingImplementations,
+    }
+  }, [currentImplementation, beaconImplementation, isLoadingImplementations])
 }
 
 export function useSmartPoolFromAddress(poolAddress?: string, chainId?: number): PoolDetails | undefined {
