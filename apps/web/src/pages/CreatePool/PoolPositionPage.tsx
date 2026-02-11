@@ -349,21 +349,6 @@ export default function PoolPositionPage() {
       beaconImplementation &&
       currentImplementation.toLowerCase() !== beaconImplementation.toLowerCase()
 
-    // Debug logging
-    if (poolAddressFromUrl && chainId) {
-      console.log('[PoolPosition] Implementation check:', {
-        poolAddress: poolAddressFromUrl,
-        chainId,
-        chainIdFromUrl,
-        currentImplementation,
-        beaconImplementation,
-        needsUpgrade: needs,
-        isLoading: isLoadingImplementations,
-        owner,
-        isOwner: owner === account.address,
-      })
-    }
-
     return needs
   }, [currentImplementation, beaconImplementation, poolAddressFromUrl, chainId, chainIdFromUrl, isLoadingImplementations, owner, account.address])
 
