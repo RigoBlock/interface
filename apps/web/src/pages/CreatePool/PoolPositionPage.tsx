@@ -36,6 +36,7 @@ import { useFreeStakeBalance, useUnclaimedRewards } from 'state/stake/hooks'
 import { ThemedText } from 'theme/components'
 import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
+import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { NumberType } from 'utilities/src/format/types'
@@ -507,10 +508,11 @@ export default function PoolPositionPage() {
               </RowFixed>
             </ResponsiveRow>
             <ResponsiveRow>
-              <RowFixed>
+              <RowFixed style={{ alignItems: 'center', gap: '8px' }}>
                 <ThemedText.DeprecatedLabel fontSize="24px" mr="10px">
-                  &nbsp;{name}&nbsp;|&nbsp;{symbol}&nbsp;
+                  {name}&nbsp;|&nbsp;{symbol}
                 </ThemedText.DeprecatedLabel>
+                <NetworkLogo chainId={chainId as UniverseChainId} size={24} />
               </RowFixed>
               {poolAddressFromUrl && (
                 <Link to={`/portfolio?address=${poolAddressFromUrl}`}>
