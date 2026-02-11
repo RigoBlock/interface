@@ -21,6 +21,7 @@ import { SwitchLocaleLink } from 'components/SwitchLocaleLink'
 import DelegateModal from 'components/vote/DelegateModal'
 import { useCurrency } from 'hooks/Tokens'
 import { useAccount } from 'hooks/useAccount'
+import useSelectChain from 'hooks/useSelectChain'
 import { UserAccount, useImplementation, useSmartPoolFromAddress, useUserPoolBalance } from 'hooks/useSmartPools'
 // TODO: this import is from node modules
 import JSBI from 'jsbi'
@@ -317,6 +318,7 @@ export default function PoolPositionPage() {
           apr: Number(aprFromUrl),
           poolOwnStake: Number(poolOwnStakeFromUrl),
           irr: Number(irrFromUrl),
+          chainId,
         } as PoolInfo)
       : undefined
 
@@ -367,6 +369,15 @@ export default function PoolPositionPage() {
   const handleUpgradeClick = useCallback(() => {
     setShowUpgradeModal(true)
   }, [])
+
+  // Automatically switch to the pool's chain when viewing it
+  const selectChain = useSelectChain()
+  useEffect(() => {
+    if (chainId && account.chainId && account.chainId !== chainId && account.isConnected) {
+      // Auto-switch to the correct chain
+      selectChain(chainId)
+    }
+  }, [chainId, account.chainId, account.isConnected, selectChain])
 
   return (
     <>

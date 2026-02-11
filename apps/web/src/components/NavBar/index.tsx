@@ -2,6 +2,7 @@ import { Token } from '@uniswap/sdk-core'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import Row from 'components/deprecated/Row'
 import { ChainSelector } from 'components/NavBar/ChainSelector'
+import { useLocation } from 'react-router'
 import { CompanyMenu } from 'components/NavBar/CompanyMenu'
 import { NewUserCTAButton } from 'components/NavBar/DownloadApp/NewUserCTAButton'
 import PoolSelect from 'components/NavBar/PoolSelect'
@@ -108,6 +109,10 @@ function useShouldHideChainSelector() {
   const isEarnPage = useIsPage(PageType.EARN)
   const isPortfolioPage = useIsPage(PageType.PORTFOLIO)
 
+  // Hide chain selector on pool position page (chain-specific page)
+  const { pathname } = useLocation()
+  const isPoolPositionPage = pathname.includes('/smart-pool')
+
   const multichainHiddenPages =
     isLandingPage ||
     isSendPage ||
@@ -118,7 +123,8 @@ function useShouldHideChainSelector() {
     isMigrateV3Page ||
     isBuyPage ||
     isEarnPage ||
-    isPortfolioPage
+    isPortfolioPage ||
+    isPoolPositionPage
 
   return multichainHiddenPages
 }
