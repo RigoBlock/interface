@@ -61,8 +61,11 @@ export const BNB_CHAIN_INFO = {
   rpcUrls: {
     [RPCType.Public]: { http: [getQuicknodeEndpointUrl(UniverseChainId.Bnb)] },
     [RPCType.Default]: { http: ['https://bsc-dataseed1.bnbchain.org'] },
-    [RPCType.Interface]: { http: [
-      `https://bsc-mainnet.infura.io/v3/${config.infuraKey}`, getQuicknodeEndpointUrl(UniverseChainId.Bnb)]
+    [RPCType.Interface]: {
+      http: [
+        `https://bnb-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`,
+        getQuicknodeEndpointUrl(UniverseChainId.Bnb),
+      ],
     },
   },
   spotPriceStablecoinAmountOverride: CurrencyAmount.fromRawAmount(tokens.USDC, 100e18),

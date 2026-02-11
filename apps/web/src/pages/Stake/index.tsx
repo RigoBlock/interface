@@ -14,8 +14,9 @@ import styled from 'lib/styled-components'
 import { useMemo, useState } from 'react'
 import { Trans } from 'react-i18next'
 import InfiniteScroll from 'react-infinite-scroll-component'
-import { PoolRegisteredLog, useAllPoolsData, useStakingPools } from 'state/pool/hooks'
-import { useFreeStakeBalance, useUnclaimedRewards, useUserStakeBalances } from 'state/stake/hooks'
+import { PoolRegisteredLog, useAllPoolsData } from 'state/pool/hooks'
+import { useMultiChainStakingPools } from 'state/pool/multichain'
+import { useUserStakeBalances } from 'state/stake/hooks'
 import { ThemedText } from 'theme/components/text'
 import { Flex } from 'ui/src'
 import { GRG } from 'uniswap/src/constants/tokens'
@@ -91,14 +92,26 @@ export default function Stake() {
 
   const account = useAccount()
   const accountDrawer = useAccountDrawer()
-  const freeStakeBalance = useFreeStakeBalance()
+
+  // Use consolidated multichain hook - makes ONE batched RPC call instead of 3 separate calls
+  const { stakingPools, freeStakeBalance, unclaimedRewards: unclaimedRewardsData } = useMultiChainStakingPools(allPools ?? [])
+
   const hasFreeStake = JSBI.greaterThan(freeStakeBalance ? freeStakeBalance.quotient : JSBI.BigInt(0), JSBI.BigInt(0))
-  const poolAddresses = allPools?.map((p) => p.pool)
   const poolIds = allPools?.map((p) => p.id)
-  const { stakingPools } = useStakingPools(poolAddresses ?? [], poolIds ?? [])
+
   const grg = useMemo(() => (account.chainId ? GRG[account.chainId] : undefined), [account.chainId])
-  const unclaimedRewards = useUnclaimedRewards(poolIds ?? [])
-  // TODO: check if want to return null, but returning undefined will simplify displaying only if positive reward
+
+  // Convert from new format to old format for backward compatibility
+  const unclaimedRewards = useMemo(() => {
+    if (!unclaimedRewardsData || unclaimedRewardsData.length === 0) {
+      return undefined
+    }
+    return unclaimedRewardsData.map((reward) => ({
+      yieldPoolId: reward.poolId,
+      yieldAmount: reward.amount,
+    }))
+  }, [unclaimedRewardsData])
+
   const yieldAmount: CurrencyAmount<Token> | undefined = useMemo(() => {
     if (!grg || !unclaimedRewards || unclaimedRewards.length === 0) {
       return undefined

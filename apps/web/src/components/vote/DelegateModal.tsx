@@ -24,9 +24,9 @@ import { PoolInfo /*,useDerivedPoolInfo*/ } from 'state/buy/hooks'
 import {
   useDelegateCallback,
   useDelegatePoolCallback,
-  usePoolExtendedContract,
   usePoolIdByAddress,
 } from 'state/governance/hooks'
+import { usePoolExtendedContract } from 'state/pool/hooks'
 import { useIsTransactionConfirmed, useTransaction } from 'state/transactions/hooks'
 import { ThemedText } from 'theme/components'
 import { Button, ButtonProps, Flex, Text, useSporeColors } from 'ui/src'

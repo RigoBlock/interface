@@ -41,17 +41,26 @@ export function useRegistryContract(): Contract | null {
   })
 }
 
-export function usePoolFactoryContract(): Contract | null {
+export function usePoolFactoryContract(chainId?: number): Contract | null {
   const account = useAccount()
+  const resolvedChainId = chainId ?? account.chainId
   return useContract({
-    address: account.chainId ? RB_FACTORY_ADDRESSES[account.chainId] : undefined,
+    address: resolvedChainId ? RB_FACTORY_ADDRESSES[resolvedChainId] : undefined,
     ABI: RB_POOL_FACTORY_ABI,
     withSignerIfPossible: true,
+    chainId: resolvedChainId,
   })
 }
 
-export function usePoolExtendedContract(poolAddress: string | undefined): Contract | null {
-  return useContract({ address: poolAddress, ABI: POOL_EXTENDED_ABI, withSignerIfPossible: true })
+export function usePoolExtendedContract(poolAddress: string | undefined, chainId?: number): Contract | null {
+  const account = useAccount()
+  const resolvedChainId = chainId ?? account.chainId
+  return useContract({
+    address: poolAddress,
+    ABI: POOL_EXTENDED_ABI,
+    withSignerIfPossible: true,
+    chainId: resolvedChainId,
+  })
 }
 
 // TODO: id should be optional as not returned in pools from url
