@@ -25,6 +25,7 @@ export interface PoolInfo {
   apr?: number
   poolOwnStake?: number
   irr?: number
+  chainId?: number
 }
 
 // based on typed value

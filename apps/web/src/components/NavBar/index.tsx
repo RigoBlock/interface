@@ -2,6 +2,7 @@ import { Token } from '@uniswap/sdk-core'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import Row from 'components/deprecated/Row'
 import { ChainSelector } from 'components/NavBar/ChainSelector'
+import { useLocation } from 'react-router'
 import { CompanyMenu } from 'components/NavBar/CompanyMenu'
 import { NewUserCTAButton } from 'components/NavBar/DownloadApp/NewUserCTAButton'
 import PoolSelect from 'components/NavBar/PoolSelect'
@@ -108,6 +109,10 @@ function useShouldHideChainSelector() {
   const isEarnPage = useIsPage(PageType.EARN)
   const isPortfolioPage = useIsPage(PageType.PORTFOLIO)
 
+  // Hide chain selector on pool position page (chain-specific page)
+  const { pathname } = useLocation()
+  const isPoolPositionPage = pathname.includes('/smart-pool')
+
   const multichainHiddenPages =
     isLandingPage ||
     isSendPage ||
@@ -118,9 +123,18 @@ function useShouldHideChainSelector() {
     isMigrateV3Page ||
     isBuyPage ||
     isEarnPage ||
-    isPortfolioPage
+    isPortfolioPage ||
+    isPoolPositionPage
 
   return multichainHiddenPages
+}
+
+function useShouldHidePoolSelector() {
+  const { pathname } = useLocation()
+  const isEarnPage = pathname === '/earn' || pathname === '/earn/manage'
+  const isPoolPositionPage = pathname.includes('/smart-pool')
+
+  return isEarnPage || isPoolPositionPage
 }
 
 export default function Navbar() {
@@ -140,6 +154,7 @@ export default function Navbar() {
   const accountChanged = prevAccount && prevAccount !== address
 
   const hideChainSelector = useShouldHideChainSelector()
+  const hidePoolSelector = useShouldHidePoolSelector()
 
   const { isTestnetModeEnabled } = useEnabledChains()
   const isEmbeddedWalletEnabled = useFeatureFlag(FeatureFlags.EmbeddedWallet)
@@ -229,7 +244,7 @@ export default function Navbar() {
         </Left>
 
         <SearchContainer>
-          {isSearchBarVisible && userIsOperator && (
+          {isSearchBarVisible && userIsOperator && !hidePoolSelector && (
             <SelectedPoolContainer>
               <PoolSelect operatedPools={operatedPools} />
             </SelectedPoolContainer>
@@ -244,7 +259,7 @@ export default function Navbar() {
         <Right>
           <UniswapWrappedEntry />
           {!hideChainSelector && <ChainSelector />}
-          {!isSearchBarVisible && userIsOperator && (
+          {!isSearchBarVisible && userIsOperator && !hidePoolSelector && (
             <Flex mt={8}>
               <PoolSelect operatedPools={operatedPools} />
             </Flex>
