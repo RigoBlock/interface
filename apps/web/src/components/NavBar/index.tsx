@@ -129,6 +129,14 @@ function useShouldHideChainSelector() {
   return multichainHiddenPages
 }
 
+function useShouldHidePoolSelector() {
+  const { pathname } = useLocation()
+  const isEarnPage = pathname === '/earn' || pathname === '/earn/manage'
+  const isPoolPositionPage = pathname.includes('/smart-pool')
+
+  return isEarnPage || isPoolPositionPage
+}
+
 export default function Navbar() {
   const isLandingPage = useIsPage(PageType.LANDING)
 
@@ -146,6 +154,7 @@ export default function Navbar() {
   const accountChanged = prevAccount && prevAccount !== address
 
   const hideChainSelector = useShouldHideChainSelector()
+  const hidePoolSelector = useShouldHidePoolSelector()
 
   const { isTestnetModeEnabled } = useEnabledChains()
   const isEmbeddedWalletEnabled = useFeatureFlag(FeatureFlags.EmbeddedWallet)
@@ -235,7 +244,7 @@ export default function Navbar() {
         </Left>
 
         <SearchContainer>
-          {isSearchBarVisible && userIsOperator && (
+          {isSearchBarVisible && userIsOperator && !hidePoolSelector && (
             <SelectedPoolContainer>
               <PoolSelect operatedPools={operatedPools} />
             </SelectedPoolContainer>
@@ -250,7 +259,7 @@ export default function Navbar() {
         <Right>
           <UniswapWrappedEntry />
           {!hideChainSelector && <ChainSelector />}
-          {!isSearchBarVisible && userIsOperator && (
+          {!isSearchBarVisible && userIsOperator && !hidePoolSelector && (
             <Flex mt={8}>
               <PoolSelect operatedPools={operatedPools} />
             </Flex>
