@@ -12,19 +12,19 @@ import {
   Pool as V3Pool,
 } from '@uniswap/v3-sdk'
 import { tickToPrice as tickToPriceV4, Pool as V4Pool } from '@uniswap/v4-sdk'
-import { FeeData } from 'components/Liquidity/Create/types'
-import { BIG_INT_ZERO } from 'constants/misc'
-import { useAccount } from 'hooks/useAccount'
-import { PoolState, usePool } from 'hooks/usePools'
-import { useSwapTaxes } from 'hooks/useSwapTaxes'
+import { FeeData } from '~/components/Liquidity/Create/types'
+import { BIG_INT_ZERO } from '~/constants/misc'
+import { useAccount } from '~/hooks/useAccount'
+import { PoolState, usePool } from '~/hooks/usePools'
+import { useSwapTaxes } from '~/hooks/useSwapTaxes'
 import JSBI from 'jsbi'
-import tryParseCurrencyAmount from 'lib/utils/tryParseCurrencyAmount'
+import tryParseCurrencyAmount from '~/lib/utils/tryParseCurrencyAmount'
 import { ReactNode, useCallback, useMemo } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
-import { useActiveSmartPool } from 'state/application/hooks'
-import { useCurrencyBalances } from 'state/connection/hooks'
-import { useAppDispatch, useAppSelector } from 'state/hooks'
+import { useActiveSmartPool } from '~/state/application/hooks'
+import { useCurrencyBalances } from '~/state/connection/hooks'
+import { useAppDispatch, useAppSelector } from '~/state/hooks'
 import {
   Bound,
   Field,
@@ -33,10 +33,10 @@ import {
   typeLeftRangeInput,
   typeRightRangeInput,
   typeStartPriceInput,
-} from 'state/mint/v3/actions'
-import { tryParseTick } from 'state/mint/v3/utils'
-import { InterfaceState } from 'state/webReducer'
-import { getTickToPrice } from 'utils/getTickToPrice'
+} from '~/state/mint/v3/actions'
+import { tryParseTick } from '~/state/mint/v3/utils'
+import { InterfaceState } from '~/state/webReducer'
+import { getTickToPrice } from '~/utils/getTickToPrice'
 
 function useV3MintState(): InterfaceState['mintV3'] {
   return useAppSelector((state) => state.mintV3)

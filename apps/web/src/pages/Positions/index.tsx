@@ -1,32 +1,32 @@
 /* eslint-disable max-lines */
 import { PositionStatus, ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
-import PROVIDE_LIQUIDITY from 'assets/images/provideLiquidity.png'
-import tokenLogo from 'assets/images/token-logo.png'
-import V4_HOOK from 'assets/images/v4Hooks.png'
-import { ExpandoRow } from 'components/AccountDrawer/MiniPortfolio/ExpandoRow'
-import { useAccountDrawer } from 'components/AccountDrawer/MiniPortfolio/hooks'
-import { MenuStateVariant, useSetMenu } from 'components/AccountDrawer/menuState'
-import { ExternalArrowLink } from 'components/Liquidity/ExternalArrowLink'
-import { LiquidityPositionCard, LiquidityPositionCardLoader } from 'components/Liquidity/LiquidityPositionCard'
-import { LpIncentiveClaimModal } from 'components/Liquidity/LPIncentives/LpIncentiveClaimModal'
-import LpIncentiveRewardsCard from 'components/Liquidity/LPIncentives/LpIncentiveRewardsCard'
-import { PositionsHeader } from 'components/Liquidity/PositionsHeader'
-import { PositionInfo } from 'components/Liquidity/types'
-import { getPositionUrl } from 'components/Liquidity/utils/getPositionUrl'
-import { parseRestPosition } from 'components/Liquidity/utils/parseFromRest'
-import { useAccount } from 'hooks/useAccount'
-import { useLpIncentives } from 'hooks/useLpIncentives'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import tokenLogo from '~/assets/images/token-logo.png'
+import { getPositionUrl } from '~/components/Liquidity/utils/getPositionUrl'
+import { useAccountDrawer } from '~/components/AccountDrawer/MiniPortfolio/hooks'
+import { useLpIncentives } from '~/hooks/useLpIncentives'
+import { PositionInfo } from '~/components/Liquidity/types'
+import { MenuStateVariant, useSetMenu } from '~/components/AccountDrawer/menuState'
+import { ExternalArrowLink } from '~/components/Liquidity/ExternalArrowLink'
+import { PositionsHeader } from '~/components/Liquidity/PositionsHeader'
+import { parseRestPosition } from '~/components/Liquidity/utils/parseFromRest'
+import PROVIDE_LIQUIDITY from '~/assets/images/provideLiquidity.png'
+import { useAccount } from '~/hooks/useAccount'
+import { LiquidityPositionCard, LiquidityPositionCardLoader } from '~/components/Liquidity/LiquidityPositionCard'
+import LpIncentiveRewardsCard from '~/components/Liquidity/LPIncentives/LpIncentiveRewardsCard'
+import V4_HOOK from '~/assets/images/v4Hooks.png'
+import { LpIncentiveClaimModal } from '~/components/Liquidity/LPIncentives/LpIncentiveClaimModal'
 import { atom, useAtom } from 'jotai'
-import { TopPools } from 'pages/Positions/TopPools'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { FixedSizeList } from 'react-window'
-import { useActiveSmartPool } from 'state/application/hooks'
-import { usePendingLPTransactionsChangeListener } from 'state/transactions/hooks'
-import { useRequestPositionsForSavedPairs } from 'state/user/hooks'
-import { ClickableTamaguiStyle } from 'theme/components/styles'
+import { useActiveSmartPool } from '~/state/application/hooks'
+import { usePendingLPTransactionsChangeListener } from '~/state/transactions/hooks'
+import { useRequestPositionsForSavedPairs } from '~/state/user/hooks'
+import { ClickableTamaguiStyle } from '~/theme/components/styles'
 import { Anchor, Button, Flex, Text, useMedia } from 'ui/src'
+import { AlertTriangleFilled } from 'ui/src/components/icons/AlertTriangleFilled'
 import { CloseIconWithHover } from 'ui/src/components/icons/CloseIconWithHover'
 import { InfoCircleFilled } from 'ui/src/components/icons/InfoCircleFilled'
 import { Pools } from 'ui/src/components/icons/Pools'
@@ -42,11 +42,16 @@ import Trace from 'uniswap/src/features/telemetry/Trace'
 import { useIsMissingPlatformWallet } from 'uniswap/src/features/transactions/swap/components/SwapFormButton/hooks/useIsMissingPlatformWallet'
 import { usePositionVisibilityCheck } from 'uniswap/src/features/visibility/hooks/usePositionVisibilityCheck'
 import { useInfiniteScroll } from 'utilities/src/react/useInfiniteScroll'
+import ALLOWLISTED_HOOKS from '~/assets/images/allowlistedHooks.jpg'
+import { ExpandoRow } from '~/pages/Positions/ExpandoRow'
+import { TopPools } from '~/pages/Positions/TopPools'
 
 // The BE limits the number of positions by chain and protocol version.
 // PAGE_SIZE=25 means the limit is at most 25 positions * x chains * y protocol versions.
 // TODO: LP-4: Improve performance by loading pageSize limit positions at a time.
 const PAGE_SIZE = 25
+// Reserve about 160px for each button
+const BUTTON_AREA_WIDTH = 160 * 2
 
 function DisconnectedWalletView() {
   const { t } = useTranslation()
@@ -83,9 +88,12 @@ function DisconnectedWalletView() {
             {connectedWithoutEVM ? t('pool.connectEthereumToView') : t('positions.welcome.connect.description')}
           </Text>
         </Flex>
-        <Flex row gap="$gap8" $md={{ width: '100%' }} width={connectedWithoutEVM ? '100%' : '45%'}>
+        <Flex row gap="$gap8" $md={{ flexDirection: 'column', width: '100%' }} width={BUTTON_AREA_WIDTH}>
           {!connectedWithoutEVM && (
             <Button
+              $md={{
+                py: '$spacing16',
+              }}
               variant="default"
               size="small"
               emphasis="secondary"
@@ -98,7 +106,15 @@ function DisconnectedWalletView() {
               {t('position.new')}
             </Button>
           )}
-          <Button variant="default" size="small" borderRadius="$rounded12" onPress={handleConnectWallet}>
+          <Button
+            $md={{
+              py: '$spacing16',
+            }}
+            variant="default"
+            size="small"
+            borderRadius="$rounded12"
+            onPress={handleConnectWallet}
+          >
             {connectedWithoutEVM ? t('common.connectAWallet.button.evm') : t('common.connectWallet.button')}
           </Button>
         </Flex>
@@ -116,6 +132,12 @@ function DisconnectedWalletView() {
             img={V4_HOOK}
             text={t('liquidity.hooks')}
             link={uniswapUrls.helpArticleUrls.v4HooksInfo}
+          />
+          <LearnMoreTile
+            width="100%"
+            img={ALLOWLISTED_HOOKS}
+            text={t('liquidity.hooks.allowlisted')}
+            link={uniswapUrls.helpArticleUrls.allowlistedHooks}
           />
         </Flex>
       </Flex>
@@ -146,8 +168,11 @@ function EmptyPositionsView() {
         <Text variant="body2" color="$neutral2" maxWidth={420}>
           {t('positions.noPositions.description')}
         </Text>
-        <Flex row gap="$gap8" $md={{ width: '100%' }} width="45%">
+        <Flex row gap="$gap8" $md={{ flexDirection: 'column', width: '100%' }} width={BUTTON_AREA_WIDTH}>
           <Button
+            $md={{
+              py: '$spacing16',
+            }}
             variant="default"
             size="small"
             emphasis="secondary"
@@ -160,6 +185,9 @@ function EmptyPositionsView() {
             {t('pools.explore')}
           </Button>
           <Button
+            $md={{
+              py: '$spacing16',
+            }}
             variant="default"
             size="small"
             tag="a"
@@ -171,6 +199,37 @@ function EmptyPositionsView() {
             {t('position.new')}
           </Button>
         </Flex>
+      </Flex>
+    </Flex>
+  )
+}
+
+function ErrorPositionsView({ onRetry }: { onRetry: () => void }) {
+  const { t } = useTranslation()
+  return (
+    <Flex gap="$spacing12">
+      <Flex
+        padding="$spacing24"
+        centered
+        gap="$gap16"
+        borderRadius="$rounded12"
+        borderColor="$surface3"
+        borderWidth="$spacing1"
+        borderStyle="solid"
+        $platform-web={{
+          textAlign: 'center',
+        }}
+      >
+        <Flex padding="$padding12" borderRadius="$rounded12" backgroundColor="$statusCritical2">
+          <AlertTriangleFilled size="$icon.24" color="$statusCritical" />
+        </Flex>
+        <Text variant="subheading1">{t('common.error.general')}</Text>
+        <Text variant="body2" color="$neutral2" maxWidth={420}>
+          {t('positions.error.loading')}
+        </Text>
+        <Button variant="default" size="small" onPress={onRetry}>
+          {t('common.button.retry')}
+        </Button>
       </Flex>
     </Flex>
   )
@@ -299,7 +358,7 @@ export default function Pool() {
   const isLPIncentivesEnabled = false //useFeatureFlag(FeatureFlags.LpIncentives) && isConnected
 
   const [chainFilter, setChainFilter] = useAtom(chainFilterAtom)
-  const { chains: currentModeChains } = useEnabledChains()
+  const { chains: currentModeChains } = useEnabledChains({ platform: Platform.EVM })
   const [versionFilter, setVersionFilter] = useAtom(versionFilterAtom)
   const [statusFilter, setStatusFilter] = useAtom(statusFilterAtom)
   const [closedCTADismissed, setClosedCTADismissed] = useState(false)
@@ -318,7 +377,7 @@ export default function Pool() {
     hasCollectedRewards,
   } = useLpIncentives()
 
-  const { data, isPlaceholderData, refetch, isLoading, fetchNextPage, hasNextPage, isFetching } =
+  const { data, isPlaceholderData, refetch, isLoading, fetchNextPage, hasNextPage, isFetching, error } =
     useGetPositionsInfiniteQuery(
       {
         address,
@@ -338,7 +397,8 @@ export default function Pool() {
 
   const savedPositions = useRequestPositionsForSavedPairs()
 
-  const isLoadingPositions = !!account.address && (isLoading || !data)
+  const isLoadingPositions = !!account.address && (isLoading || !data) && !error
+  const hasErrorWithoutData = !!error && !data
   const combinedPositions = useMemo(() => {
     return [
       ...loadedPositions,
@@ -447,7 +507,9 @@ export default function Pool() {
               }}
             />
           </Flex>
-          {!isLoadingPositions ? (
+          {hasErrorWithoutData && isConnected ? (
+            <ErrorPositionsView onRetry={refetch} />
+          ) : !isLoadingPositions ? (
             combinedPositions.length > 0 ? (
               <Flex gap="$gap16" mb="$spacing16" opacity={isPlaceholderData ? 0.6 : 1}>
                 <VirtualizedPositionsList
@@ -527,6 +589,11 @@ export default function Pool() {
                   img={V4_HOOK}
                   text={t('liquidity.hooks')}
                   link={uniswapUrls.helpArticleUrls.v4HooksInfo}
+                />
+                <LearnMoreTile
+                  img={ALLOWLISTED_HOOKS}
+                  text={t('liquidity.hooks.allowlisted')}
+                  link={uniswapUrls.helpArticleUrls.allowlistedHooks}
                 />
               </Flex>
               <ExternalArrowLink href={uniswapUrls.helpArticleUrls.positionsLearnMore}>

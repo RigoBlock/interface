@@ -1,19 +1,19 @@
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
-import { STAKING_PROXY_ADDRESSES } from 'constants/addresses'
-import { useActiveAddresses } from 'features/accounts/store/hooks'
+import { STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
+import { useActiveAddresses } from '~/features/accounts/store/hooks'
 import JSBI from 'jsbi'
 import { useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { useActiveSmartPool } from 'state/application/hooks'
+import { useActiveSmartPool } from '~/state/application/hooks'
 import {
   selectChainStakingData,
   selectStakingDataNeedsFetch,
   selectUserStakingData,
   setChainStakingData,
   setStakingError,
-} from 'state/portfolio/stakingSlice'
-import { useTotalStakeBalances } from 'state/stake/hooks'
-import { InterfaceState } from 'state/webReducer'
+} from '~/state/portfolio/stakingSlice'
+import { useTotalStakeBalances } from '~/state/stake/hooks'
+import { InterfaceState } from '~/state/webReducer'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'

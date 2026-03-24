@@ -2,19 +2,22 @@ import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes
 import { Currency } from '@uniswap/sdk-core'
 import { FeeAmount, TICK_SPACINGS, tickToPrice } from '@uniswap/v3-sdk'
 import { tickToPrice as tickToPriceV4 } from '@uniswap/v4-sdk'
-import { ChartHoverData, ChartModel, ChartModelParams } from 'components/Charts/ChartModel'
-import { LiquidityBarSeries } from 'components/Charts/LiquidityChart/liquidity-bar-series'
-import { LiquidityBarData, LiquidityBarProps, LiquidityBarSeriesOptions } from 'components/Charts/LiquidityChart/types'
-import { calculateAnchoredLiquidityByTick } from 'components/Charts/LiquidityChart/utils/calculateAnchoredLiquidityByTick'
-import { calculateTokensLocked } from 'components/Charts/LiquidityChart/utils/calculateTokensLocked'
-import { usePoolActiveLiquidity } from 'hooks/usePoolTickData'
 import JSBI from 'jsbi'
 import { ISeriesApi, UTCTimestamp } from 'lightweight-charts'
 import { useEffect, useState } from 'react'
-import { PositionField } from 'types/position'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { NumberType } from 'utilities/src/format/types'
+import { ChartHoverData, ChartModel, ChartModelParams } from '~/components/Charts/ChartModel'
+import { LiquidityBarSeries } from '~/components/Charts/LiquidityChart/liquidity-bar-series'
+import {
+  LiquidityBarData,
+  LiquidityBarProps,
+  LiquidityBarSeriesOptions,
+} from '~/components/Charts/LiquidityChart/types'
+import { calculateTokensLocked } from '~/components/Charts/LiquidityChart/utils/calculateTokensLocked'
+import { usePoolActiveLiquidity } from '~/hooks/usePoolTickData'
+import { PositionField } from '~/types/position'
 
 interface LiquidityBarChartModelParams extends ChartModelParams<LiquidityBarData>, LiquidityBarProps {}
 
@@ -161,15 +164,13 @@ export function useLiquidityBarData({
 
   useEffect(() => {
     async function formatData() {
-      if (!ticksProcessed || !activeTick || !liquidity) {
+      if (!ticksProcessed || activeTick === undefined || !liquidity) {
         return
       }
 
       let activeRangePercentage: number | undefined
       let activeRangeIndex: number | undefined
 
-      // Calculate anchored active liquidity per tick
-      const activeLiquidityByTick = calculateAnchoredLiquidityByTick({ ticksProcessed, activeTick, liquidity })
       const poolTickSpacing = tickSpacing ?? TICK_SPACINGS[feeTier]
 
       const barData: LiquidityBarData[] = []
@@ -183,7 +184,7 @@ export function useLiquidityBarData({
         let price0 = t.sdkPrice
         let price1 = t.sdkPrice.invert()
 
-        if (isActive && activeTick && currentTick) {
+        if (isActive && currentTick !== undefined) {
           activeRangeIndex = index
           activeRangePercentage = 1 - (currentTick - t.tick) / poolTickSpacing
 
@@ -194,12 +195,15 @@ export function useLiquidityBarData({
           price1 = price0.invert()
         }
 
+        const nextTick = ticksProcessed[index + 1]?.tick
+
         const { amount0Locked, amount1Locked } = calculateTokensLocked({
           token0: sdkCurrencies.TOKEN0,
           token1: sdkCurrencies.TOKEN1,
           tickSpacing: poolTickSpacing,
           currentTick: currentTick ?? 0,
-          amount: activeLiquidityByTick.get(t.tick) ?? JSBI.BigInt(0),
+          amount: JSBI.BigInt(t.liquidityActive.toString()),
+          nextTick,
           tick: t,
         })
 

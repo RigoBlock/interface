@@ -1,10 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber'
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
-import { popupRegistry } from 'components/Popups/registry'
-import { PopupType } from 'components/Popups/types'
-import { INTERNAL_JSON_RPC_ERROR_CODE } from 'constants/misc'
-import { useAccount } from 'hooks/useAccount'
-import useSelectChain from 'hooks/useSelectChain'
 import { useCallback } from 'react'
 import { useDispatch } from 'react-redux'
 import {
@@ -13,8 +8,7 @@ import {
   extractWETHWithdrawAmount,
   isWETHDepositCalldata,
   isWETHWithdrawCalldata,
-} from 'state/sagas/transactions/smartPoolWrapUtils'
-import { handleOnChainStep } from 'state/sagas/transactions/utils'
+} from '~/state/sagas/transactions/smartPoolWrapUtils'
 import { call } from 'typed-redux-saga'
 import { isTestnetChain } from 'uniswap/src/features/chains/utils'
 import { HandleOnChainStepParams, TransactionStepType } from 'uniswap/src/features/transactions/steps/types'
@@ -24,7 +18,13 @@ import { TransactionType, WrapTransactionInfo } from 'uniswap/src/features/trans
 import { createSaga } from 'uniswap/src/utils/saga'
 import { logger } from 'utilities/src/logger/logger'
 import { noop } from 'utilities/src/react/noop'
-import { didUserReject } from 'utils/swapErrorToUserReadableMessage'
+import { popupRegistry } from '~/components/Popups/registry'
+import { PopupType } from '~/components/Popups/types'
+import { INTERNAL_JSON_RPC_ERROR_CODE } from '~/constants/misc'
+import { useAccount } from '~/hooks/useAccount'
+import useSelectChain from '~/hooks/useSelectChain'
+import { handleOnChainStep } from '~/state/sagas/transactions/utils'
+import { didUserReject } from '~/utils/swapErrorToUserReadableMessage'
 
 interface HandleWrapStepParams extends Omit<HandleOnChainStepParams<WrapTransactionStep>, 'info'> {}
 function* handleWrapStep(params: HandleWrapStepParams) {
@@ -36,7 +36,7 @@ type WrapParams = WrapCallbackParams & { selectChain: (chainId: number) => Promi
 
 function* wrap(params: WrapParams) {
   try {
-    const { account, smartPoolAddress, inputCurrencyAmount, selectChain, txRequest, startChainId, onFailure } = params
+    const { address, smartPoolAddress, inputCurrencyAmount, selectChain, txRequest, startChainId, onFailure } = params
 
     // Switch chains if needed
     if (txRequest.chainId !== startChainId) {
@@ -49,7 +49,7 @@ function* wrap(params: WrapParams) {
 
     const step = { type: TransactionStepType.WrapTransaction, txRequest, amount: inputCurrencyAmount } as const
     smartPoolAddress && (step.txRequest.to = smartPoolAddress)
-    step.txRequest.from = account.address
+    step.txRequest.from = address
     step.txRequest.gasLimit = BigNumber.from(step.txRequest.gasLimit || '200000').add(200000) // Add buffer to gas limit
 
     // Override wrap transaction calldata for smart pool
@@ -84,7 +84,7 @@ function* wrap(params: WrapParams) {
 
     const hash = yield* call(handleWrapStep, {
       step,
-      address: account.address,
+      address,
       smartPoolAddress,
       setCurrentStep: noop,
       shouldWaitForConfirmation: false,

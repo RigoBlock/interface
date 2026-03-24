@@ -45,6 +45,7 @@ export const ZORA_CHAIN_INFO = {
   label: 'Zora Network',
   logo: ZORA_LOGO,
   networkLayer: NetworkLayer.L2,
+  blockTimeMs: 2000,
   nativeCurrency: {
     name: 'Zora ETH',
     symbol: 'ETH',
@@ -71,4 +72,5 @@ export const ZORA_CHAIN_INFO = {
   },
   gasConfig: GENERIC_L2_GAS_CONFIG,
   tradingApiPollingIntervalMs: 250,
+  acrossProtocolAddress: '0x13fDac9F9b4777705db45291bbFF3c972c6d1d97',
 } as const satisfies UniverseChainInfo

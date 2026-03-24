@@ -3,11 +3,10 @@ import type { ImageSourcePropType } from 'react-native'
 import { Flex, FlexProps, Image, Loader, useSporeColors } from 'ui/src'
 import { ALL_NETWORKS_LOGO } from 'ui/src/assets'
 import { iconSizes, zIndexes } from 'ui/src/theme'
+import { getBadgeBorderRadius, getBadgeOuterSize } from 'uniswap/src/components/CurrencyLogo/badgeSizeUtils'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { isMobileWeb } from 'utilities/src/platform'
-
-export const SQUIRCLE_BORDER_RADIUS_RATIO = 0.3
 
 type NetworkLogoProps = FlexProps & {
   chainId: UniverseChainId | null // null signifies this is the AllNetworks logo
@@ -34,8 +33,8 @@ function _NetworkLogo({
   loading,
   transition,
 }: NetworkLogoProps): JSX.Element | null {
-  const size = sizeWithoutBorder + 2 * borderWidth
-  const shapeBorderRadius = shape === 'circle' ? size / 2 : size * SQUIRCLE_BORDER_RADIUS_RATIO
+  const size = getBadgeOuterSize(sizeWithoutBorder, borderWidth)
+  const shapeBorderRadius = getBadgeBorderRadius(size, shape ?? 'square')
   const colors = useSporeColors()
 
   const imageStyle = {

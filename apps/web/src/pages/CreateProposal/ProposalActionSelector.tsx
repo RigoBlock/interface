@@ -1,8 +1,8 @@
-import { ButtonDropdownLight } from 'components/Button/buttons'
-import Column from 'components/deprecated/Column'
-import { RowBetween } from 'components/deprecated/Row'
-import { MenuItem, PaddedColumn, Separator } from 'components/SearchModal/styled'
-import styled from 'lib/styled-components'
+import { ButtonDropdownLight } from '~/components/Button/buttons'
+import Column from '~/components/deprecated/Column'
+import { RowBetween } from '~/components/deprecated/Row'
+import { MenuItem, PaddedColumn, Separator } from '~/components/SearchModal/styled'
+import styled from '~/lib/deprecated-styled'
 import { useCallback } from 'react'
 import { Trans } from 'react-i18next'
 import { Text } from 'rebass'
@@ -118,35 +118,35 @@ export function ProposalActionSelectorModal({
           </RowBetween>
         </PaddedColumn>
         <Separator />
-        <MenuItem onClick={() => handleProposalActionSelect(ProposalAction.UPGRADE_IMPLEMENTATION)}>
+        <MenuItem onPress={() => handleProposalActionSelect(ProposalAction.UPGRADE_IMPLEMENTATION)}>
           <Column>
             <Text fontWeight={500}>
               <Trans i18nKey="proposal.action.upgradeImplementation" />
             </Text>
           </Column>
         </MenuItem>
-        <MenuItem onClick={() => handleProposalActionSelect(ProposalAction.ADD_ADAPTER)}>
+        <MenuItem onPress={() => handleProposalActionSelect(ProposalAction.ADD_ADAPTER)}>
           <Column>
             <Text fontWeight={500}>
               <Trans i18nKey="proposal.action.addAdapter" />
             </Text>
           </Column>
         </MenuItem>
-        <MenuItem onClick={() => handleProposalActionSelect(ProposalAction.REMOVE_ADAPTER)}>
+        <MenuItem onPress={() => handleProposalActionSelect(ProposalAction.REMOVE_ADAPTER)}>
           <Column>
             <Text fontWeight={500}>
               <Trans i18nKey="proposal.action.removeAdapter" />
             </Text>
           </Column>
         </MenuItem>
-        <MenuItem onClick={() => handleProposalActionSelect(ProposalAction.UPGRADE_STAKING)}>
+        <MenuItem onPress={() => handleProposalActionSelect(ProposalAction.UPGRADE_STAKING)}>
           <Column>
             <Text fontWeight={500}>
               <Trans i18nKey="proposal.action.upgradeStaking" />
             </Text>
           </Column>
         </MenuItem>
-        <MenuItem onClick={() => handleProposalActionSelect(ProposalAction.UPGRADE_GOVERNANCE)}>
+        <MenuItem onPress={() => handleProposalActionSelect(ProposalAction.UPGRADE_GOVERNANCE)}>
           <Column>
             <Text fontWeight={500}>
               <Trans i18nKey="proposal.action.upgradeGovernance" />

@@ -1,5 +1,5 @@
-import { setupAmplitude } from 'tracing/amplitude'
-import { isRemoteReportingEnabled } from 'utils/env'
+import { setupAmplitude } from '~/tracing/amplitude'
+import { isRemoteReportingEnabled } from '~/utils/env'
 
 // we do not collect analytics atm
 const shouldAllowAnalytics = false

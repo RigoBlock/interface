@@ -15,10 +15,18 @@ import {
   type NotificationDataSource,
   type NotificationTracker,
 } from '@universe/notifications'
-import store from 'state/index'
-import { BRIDGED_ASSETS_V2_WEB_BANNER, SOLANA_BANNER_DARK, SOLANA_BANNER_LIGHT, SOLANA_LOGO } from 'ui/src/assets'
+import {
+  NO_FEES_ICON,
+  NO_UNISWAP_INTERFACE_FEES_BANNER_DARK,
+  NO_UNISWAP_INTERFACE_FEES_BANNER_LIGHT,
+  SOLANA_BANNER_DARK,
+  SOLANA_BANNER_LIGHT,
+  SOLANA_LOGO,
+} from 'ui/src/assets'
+import { uniswapUrls } from 'uniswap/src/constants/urls'
 import i18n from 'uniswap/src/i18n'
 import { logger } from 'utilities/src/logger/logger'
+import store from '~/state/index'
 
 // Legacy storage keys from the old banner implementation
 const LEGACY_SOLANA_PROMO_STORAGE_KEY = 'solanaPromoHidden'
@@ -27,6 +35,7 @@ const LEGACY_SOLANA_PROMO_STORAGE_KEY = 'solanaPromoHidden'
 const SOLANA_BANNER_ID = 'local:solana_promo_banner'
 const SOLANA_MODAL_ID = 'local:solana_promo_modal'
 const BRIDGING_BANNER_ID = 'local:bridging_popular_tokens_banner'
+const NO_UNISWAP_INTERFACE_FEES_BANNER_ID = 'local:no_uniswap_interface_fees_banner'
 
 interface CreateLegacyBannersNotificationDataSourceContext {
   tracker: NotificationTracker
@@ -160,17 +169,31 @@ export function createLegacyBannersNotificationDataSource(
 async function fetchNotifications(isDarkMode: boolean): Promise<InAppNotification[]> {
   const notifications: InAppNotification[] = []
 
-  // Priority 1: SolanaPromoBanner + Modal (chained)
-  //const solanaNotifications = await checkSolanaPromo(isDarkMode)
-  //notifications.push(...solanaNotifications)
+  // Priority 1: No Uniswap interface fees banner
+  const noUniswapInterfaceFeesBanner = await checkNoUniswapInterfaceFeesBanner(isDarkMode)
+  if (noUniswapInterfaceFeesBanner) {
+    notifications.push(noUniswapInterfaceFeesBanner)
+  }
 
-  // Priority 2: BridgingPopularTokensBanner
-  //const bridgingNotification = await checkBridgingBanner()
-  //if (bridgingNotification) {
-  //  notifications.push(bridgingNotification)
-  //}
+  // Priority 2: SolanaPromoBanner + Modal (chained)
+  const solanaNotifications = await checkSolanaPromo(isDarkMode)
+  notifications.push(...solanaNotifications)
 
   return notifications
+}
+
+/**
+ * Check if No Uniswap interface fees banner should be shown based on feature flag.
+ * The processor will filter based on tracked state.
+ */
+async function checkNoUniswapInterfaceFeesBanner(isDarkMode: boolean): Promise<InAppNotification | null> {
+  const isEnabled = getFeatureFlag(FeatureFlags.NoUniswapInterfaceFeesNotification)
+
+  if (!isEnabled) {
+    return null
+  }
+
+  return createNoUniswapInterfaceFeesBanner(isDarkMode)
 }
 
 /**
@@ -187,20 +210,6 @@ async function checkSolanaPromo(isDarkMode: boolean): Promise<InAppNotification[
 
   // Processor will identify modal as chained due to POPUP action
   return [createSolanaPromoBanner(isDarkMode), createSolanaPromoModal()]
-}
-
-/**
- * Check if BridgingPopularTokens banner should be shown based on feature flag.
- * The processor will filter based on tracked state.
- */
-async function checkBridgingBanner(): Promise<InAppNotification | null> {
-  const isEnabled = getFeatureFlag(FeatureFlags.BridgedAssetsBannerV2)
-
-  if (!isEnabled) {
-    return null
-  }
-
-  return createBridgingBanner()
 }
 
 /**
@@ -283,22 +292,23 @@ function createSolanaPromoModal(): InAppNotification {
 }
 
 /**
- * Create BridgingPopularTokensBanner notification
+ * Create No Uniswap interface fees banner notification
  */
-function createBridgingBanner(): InAppNotification {
+function createNoUniswapInterfaceFeesBanner(isDarkMode: boolean): InAppNotification {
   return new Notification({
-    id: BRIDGING_BANNER_ID,
+    id: NO_UNISWAP_INTERFACE_FEES_BANNER_ID,
     content: new Content({
       version: NotificationVersion.V0,
       style: ContentStyle.LOWER_LEFT_BANNER,
-      title: i18n.t('onboarding.home.intro.bridgedAssets.title'),
-      subtitle: i18n.t('bridgingPopularTokens.banner.description'),
+      title: i18n.t('notification.noAppFees.title'),
+      subtitle: i18n.t('notification.noAppFees.subtitle'),
+      iconLink: NO_FEES_ICON,
       background: new Background({
         backgroundType: BackgroundType.IMAGE,
-        link: BRIDGED_ASSETS_V2_WEB_BANNER,
+        link: isDarkMode ? NO_UNISWAP_INTERFACE_FEES_BANNER_DARK : NO_UNISWAP_INTERFACE_FEES_BANNER_LIGHT,
         backgroundOnClick: new OnClick({
           onClick: [OnClickAction.EXTERNAL_LINK, OnClickAction.DISMISS, OnClickAction.ACK],
-          onClickLink: '/swap?outputChain=unichain',
+          onClickLink: uniswapUrls.helpArticleUrls.swapFeeInfo,
         }),
       }),
       onDismissClick: new OnClick({

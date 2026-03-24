@@ -1,6 +1,6 @@
 // eslint-disable-next-line no-restricted-imports
-import { ResizingTextArea } from 'components/ResizingTextArea'
-import styled from 'lib/styled-components'
+import { ResizingTextArea } from '~/components/ResizingTextArea'
+import styled from '~/lib/deprecated-styled'
 import { memo } from 'react'
 import { Trans } from 'react-i18next'
 import { Text } from 'rebass'

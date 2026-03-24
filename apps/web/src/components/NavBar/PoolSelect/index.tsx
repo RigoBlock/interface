@@ -1,10 +1,10 @@
 import { Currency, Token } from '@uniswap/sdk-core'
-import { ButtonGray } from 'components/Button/buttons'
-import { SwitchNetworkAction } from 'components/Popups/types'
-import CurrencySearchModal from 'components/SearchModal/CurrencySearchModal'
-import styled from 'lib/styled-components'
+import { ButtonGray } from '~/components/Button/buttons'
+import { SwitchNetworkAction } from '~/components/Popups/types'
+import CurrencySearchModal from '~/components/SearchModal/CurrencySearchModal'
+import styled from '~/lib/deprecated-styled'
 import React, { useCallback, useEffect, useState } from 'react'
-import { useActiveSmartPool, useSelectActiveSmartPool } from 'state/application/hooks'
+import { useActiveSmartPool, useSelectActiveSmartPool } from '~/state/application/hooks'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 
 const PoolSelectButton = styled(ButtonGray)<{

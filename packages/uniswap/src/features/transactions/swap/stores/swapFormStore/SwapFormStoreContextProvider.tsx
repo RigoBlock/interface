@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux'
 import type { TradeableAsset } from 'uniswap/src/entities/assets'
 import { useMaxAmountSpend } from 'uniswap/src/features/gas/hooks/useMaxAmountSpend'
 import { useSwapAnalytics } from 'uniswap/src/features/transactions/swap/analytics'
+import { useEthAsErc20UniswapXQualifyingEvent } from 'uniswap/src/features/transactions/swap/hooks/useEthAsErc20UniswapXQualifyingEvent'
 import {
   createSwapFormStore,
   INITIAL_SWAP_FORM_STATE,
@@ -191,27 +192,25 @@ function SwapFormStoreContextProviderBase({
     setSwapForm: setSwapFormState,
   })
 
-  const latestDerivedSwapInfo = useCalculatedInitialDerivedSwapInfo(
-    {
-      exactAmountFiat,
-      exactAmountToken,
-      exactCurrencyField,
-      focusOnCurrencyField,
-      input,
-      output,
-      selectingCurrencyField,
-      txId,
-    },
-    smartPoolAddress,
-  )
+  const dangerouslyGetLatestDerivedSwapInfo = useCalculatedInitialDerivedSwapInfo({
+    exactAmountFiat,
+    exactAmountToken,
+    exactCurrencyField,
+    focusOnCurrencyField,
+    input,
+    output,
+    selectingCurrencyField,
+    txId,
+  })
 
   // This prevents the swap form from displaying a new trade while an old one is still being submitted.
-  const derivedSwapInfo = useFreezeWhileSubmitting(latestDerivedSwapInfo, isSubmitting)
+  const derivedSwapInfo = useFreezeWhileSubmitting(dangerouslyGetLatestDerivedSwapInfo, isSubmitting)
 
   const inputAmount = derivedSwapInfo.currencyAmounts[CurrencyField.INPUT]
   const inputBalanceAmount = derivedSwapInfo.currencyBalances[CurrencyField.INPUT]
 
   useSwapAnalytics(derivedSwapInfo)
+  useEthAsErc20UniswapXQualifyingEvent(derivedSwapInfo)
 
   // for native transfers, this is the balance - (estimated gas fee for one transaction * multiplier from flag);
   // for ERC20 transfers, this is the balance
@@ -263,7 +262,12 @@ function SwapFormStoreContextProviderBase({
       exactAmountTokenRef.current = updatedState.exactAmountToken
     }
 
-    if (isAmountUpdated || updatedState.exactCurrencyField !== CurrencyField.OUTPUT) {
+    const shouldRecomputeIsMax =
+      updatedState.exactAmountToken !== undefined ||
+      updatedState.isMax !== undefined ||
+      updatedState.exactCurrencyField !== undefined
+
+    if (shouldRecomputeIsMax) {
       const isMaxTokenAmount =
         !!maxInputAmountAsRef.current &&
         !!updatedState.exactAmountToken &&
@@ -296,6 +300,7 @@ function SwapFormStoreContextProviderBase({
   const derivedState: Partial<SwapFormStateForConsumers> = useMemo(
     () => ({
       derivedSwapInfo,
+      dangerouslyGetLatestDerivedSwapInfo,
       hideFooter,
       hideSettings,
       prefilledCurrencies,
@@ -304,6 +309,7 @@ function SwapFormStoreContextProviderBase({
     }),
     [
       derivedSwapInfo,
+      dangerouslyGetLatestDerivedSwapInfo,
       hideFooter,
       hideSettings,
       prefilledCurrencies,

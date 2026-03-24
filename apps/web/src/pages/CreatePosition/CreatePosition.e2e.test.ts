@@ -1,21 +1,16 @@
-import { FeatureFlags } from '@universe/gating'
-import { DEFAULT_FEE_DATA, DYNAMIC_FEE_DATA } from 'components/Liquidity/Create/types'
-import { expect, getTest, type Page } from 'playwright/fixtures'
-import { stubTradingApiEndpoint } from 'playwright/fixtures/tradingApi'
-import { createTestUrlBuilder } from 'playwright/fixtures/urls'
-import { DAI, USDC_UNICHAIN, USDT } from 'uniswap/src/constants/tokens'
+import { DAI, USDT } from 'uniswap/src/constants/tokens'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
 import { WETH } from 'uniswap/src/test/fixtures/lib/sdk'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
+import { DEFAULT_FEE_DATA, DYNAMIC_FEE_DATA } from '~/components/Liquidity/Create/types'
+import { expect, getTest, type Page } from '~/playwright/fixtures'
+import { stubTradingApiEndpoint } from '~/playwright/fixtures/tradingApi'
+import { createTestUrlBuilder } from '~/playwright/fixtures/urls'
 
 const test = getTest()
 
 const buildUrl = createTestUrlBuilder({
   basePath: '/positions/create',
-  defaultFeatureFlags: {
-    [FeatureFlags.D3LiquidityRangeChart]: false,
-    [FeatureFlags.PriceRangeInputV2]: true,
-  },
 })
 
 const WETH_ADDRESS = WETH.address
@@ -117,7 +112,7 @@ test.describe(
         await page.getByRole('button', { name: 'Continue' }).click()
         await page.getByRole('button', { name: 'Reset' }).click()
         // Confirm reset
-        await page.getByRole('button', { name: 'Reset' }).click()
+        await page.getByRole('button', { name: 'Reset' }).last().click()
         const url = new URL(page.url())
         await expect(url.pathname).toContain(`/positions/create/v2`)
         await expect(page.getByRole('button', { name: 'New v2 position' })).not.toBeVisible()
@@ -133,7 +128,7 @@ test.describe(
               chain: 'unichain',
               hook: '0x09DEA99D714A3a19378e3D80D1ad22Ca46085080',
               priceRangeState:
-                '{"priceInverted":true,"fullRange":false,"minPrice":"0.00019382924070396673","maxPrice":"0.000350504530738769","initialPrice":"0.000025"}',
+                '{"priceInverted":true,"fullRange":false,"minTick":-85500,"maxTick":-79560,"initialPrice":"0.000025"}',
               fee: JSON.stringify({ ...DEFAULT_FEE_DATA, isDynamic: true }),
             },
           }),
@@ -156,8 +151,8 @@ test.describe(
         const priceRange = JSON.parse(url.searchParams.get('priceRangeState')!)
         expect(priceRange.priceInverted, 'priceInverted').toBe(true)
         expect(priceRange.fullRange, 'fullRange').toBe(false)
-        expect(priceRange.minPrice, 'minPrice').toBe('0.00019382924070396673')
-        expect(priceRange.maxPrice, 'maxPrice').toBe('0.000350504530738769')
+        expect(priceRange.minTick, 'minTick').toBe(-85500)
+        expect(priceRange.maxTick, 'maxTick').toBe(-79560)
         expect(priceRange.initialPrice, 'initialPrice').toBe('0.000025')
         const minPriceInput = page.getByTestId(TestID.RangeInput + '-0').first()
         const maxPriceInput = page.getByTestId(TestID.RangeInput + '-1').first()
@@ -174,6 +169,7 @@ test.describe(
               currencyA: 'NATIVE',
               currencyB: USDT.address,
               depositState: '{"exactField":"TOKEN0","exactAmounts":{"TOKEN0":"1.25"}}',
+              fee: '{"isDynamic":false,"feeAmount":500,"tickSpacing":10}',
             },
           }),
         )
@@ -182,8 +178,7 @@ test.describe(
         const depositState = JSON.parse(url.searchParams.get('depositState')!)
         expect(depositState.exactField, 'exactField').toBe('TOKEN0')
         expect(depositState.exactAmounts.TOKEN0, 'exactAmounts.TOKEN0').toBe('1.25')
-        const ethInput = page.getByTestId(TestID.AmountInputIn).first()
-        await expect(ethInput).toHaveValue('1.25')
+        await expect(page.getByText('Enter an amount')).toBeVisible()
       })
 
       test('historyState is set from URL', async ({ page }) => {

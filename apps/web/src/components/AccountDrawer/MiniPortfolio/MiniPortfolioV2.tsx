@@ -1,14 +1,14 @@
-import { useAccountDrawer } from 'components/AccountDrawer/MiniPortfolio/hooks'
-import { filterTransactionDetailsFromActivityItems } from 'pages/Portfolio/Activity/Filters/utils'
+import { useAccountDrawer } from '~/components/AccountDrawer/MiniPortfolio/hooks'
+import { filterTransactionDetailsFromActivityItems } from '~/pages/Portfolio/Activity/Filters/utils'
 import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { Button, Flex, Text } from 'ui/src'
-import { RightArrow } from 'ui/src/components/icons/RightArrow'
+import { ArrowRight } from 'ui/src/components/icons/ArrowRight'
 import { iconSizes } from 'ui/src/theme'
 import { ActivityItem } from 'uniswap/src/components/activity/generateActivityItemRenderer'
 import { useActivityData } from 'uniswap/src/features/activity/hooks/useActivityData'
-import { filterDefinedWalletAddresses } from 'utils/filterDefinedWalletAddresses'
+import { filterDefinedWalletAddresses } from '~/utils/filterDefinedWalletAddresses'
 
 const MAX_RECENT_ACTIVITY_ITEMS = 3
 
@@ -59,7 +59,7 @@ export default function MiniPortfolioV2({ evmAddress, svmAddress }: { evmAddress
         borderRadius="$rounded12"
         iconPosition="after"
       >
-        <RightArrow size={iconSizes.icon16} color="$neutral1" />
+        <ArrowRight size={iconSizes.icon16} color="$neutral1" />
         <Text variant="buttonLabel3" color="$neutral1">
           {t('portfolio.view')}
         </Text>

@@ -1,4 +1,4 @@
-import { PlanStep } from '@universe/api/src'
+import { TradingApi } from '@universe/api'
 import { TFunction } from 'i18next'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -29,7 +29,7 @@ export type SwapSteps = (
   | UniswapXSignatureStep
   | SwapTransactionStepBatched
 ) &
-  PlanStep
+  TradingApi.PlanStep
 
 /**
  * Component used in the review screen for step by step swap execution. This particular
@@ -102,7 +102,6 @@ export function SwapTransactionPlanStepRow({
             : uniswapUrls.helpArticleUrls.howToSwapTokens,
         text: t('common.learnMoreSwap'),
       }}
-      rippleColor={colors.DEP_blue400.val}
       status={status}
       secondsRemaining={secondsRemaining}
       currentStepIndex={currentStepIndex}
@@ -142,6 +141,8 @@ function getStatusText(params: {
     switch (status) {
       case StepStatus.Preview:
       case StepStatus.Active:
+      case StepStatus.Failed:
+      case StepStatus.Replaced:
         return t('swap.review.bridge.idle', commonParams)
       case StepStatus.InProgress:
         return t('swap.review.bridge.pending', commonParams)
@@ -159,6 +160,8 @@ function getStatusText(params: {
     switch (status) {
       case StepStatus.Preview:
       case StepStatus.Active:
+      case StepStatus.Failed:
+      case StepStatus.Replaced:
         return t('swap.review.swap.idle', commonParams)
       case StepStatus.InProgress:
         return t('swap.review.swap.pending', commonParams)

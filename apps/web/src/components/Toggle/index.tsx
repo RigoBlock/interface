@@ -1,4 +1,4 @@
-import styled, { keyframes } from 'lib/styled-components'
+import styled, { keyframes } from '~/lib/deprecated-styled'
 import { darken } from 'polished'
 import { useState } from 'react'
 

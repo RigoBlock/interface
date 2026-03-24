@@ -1,14 +1,12 @@
 import { Currency } from '@uniswap/sdk-core'
-import { SwitchNetworkAction } from 'components/Popups/types'
-import { CurrencyRow } from 'components/SearchModal//CurrencyList'
-import { CurrencySearch } from 'components/SearchModal/CurrencySearch'
-import styled from 'lib/styled-components'
+import { CurrencySearch } from '~/components/SearchModal/CurrencySearch'
+import { CurrencyRow } from '~/components/SearchModal//CurrencyList'
+import { SwitchNetworkAction } from '~/components/Popups/types'
+import styled from '~/lib/deprecated-styled'
 import { memo } from 'react'
 import { Modal } from 'uniswap/src/components/modals/Modal'
-import {
-  TOKEN_SELECTOR_WEB_MAX_WIDTH,
-  TokenSelectorVariation,
-} from 'uniswap/src/components/TokenSelector/TokenSelector'
+import { TOKEN_SELECTOR_WEB_MAX_WIDTH } from 'uniswap/src/components/TokenSelector/TokenSelector'
+import { TokenSelectorVariation } from 'uniswap/src/components/TokenSelector/types'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'

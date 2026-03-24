@@ -1,16 +1,18 @@
 /* eslint-disable import/no-unused-modules */
 
 import type { InAppNotification } from '@universe/api'
-import type { NotificationClickTarget } from '@universe/notifications'
+import { InlineBannerNotification, type NotificationClickTarget } from '@universe/notifications'
 import { AnimatePresence, motion } from 'framer-motion'
-import { LowerLeftBannerNotification } from 'notification-service/notification-renderer/LowerLeftBannerNotification'
-import { calculateStackingProps, MAX_STACKED_BANNERS } from 'notification-service/notification-renderer/stackingUtils'
-import { memo } from 'react'
+import { memo, useEffect } from 'react'
 import { Portal, useMedia } from 'ui/src'
+import { zIndexes } from 'ui/src/theme'
+import { useEvent } from 'utilities/src/react/hooks'
+import { calculateStackingProps, MAX_STACKED_BANNERS } from '~/notification-service/notification-renderer/stackingUtils'
 
 interface StackedLowerLeftBannersProps {
   notifications: InAppNotification[]
   onNotificationClick?: (notificationId: string, target: NotificationClickTarget) => void
+  onNotificationShown?: (notificationId: string) => void
 }
 
 /**
@@ -29,6 +31,7 @@ interface StackedLowerLeftBannersProps {
 export const StackedLowerLeftBanners = memo(function StackedLowerLeftBanners({
   notifications,
   onNotificationClick,
+  onNotificationShown,
 }: StackedLowerLeftBannersProps) {
   const media = useMedia()
   const leftPosition = media.xl ? 20 : 40
@@ -36,8 +39,21 @@ export const StackedLowerLeftBanners = memo(function StackedLowerLeftBanners({
   // Reverse the notifications so the first notification renders last (on top)
   const stackedNotifications = notifications.slice(0, MAX_STACKED_BANNERS).reverse()
 
+  // The top notification is the last one in the reversed array (highest index)
+  const topNotificationId = stackedNotifications[stackedNotifications.length - 1]?.id
+
+  const handleNotificationShown = useEvent((id: string) => {
+    onNotificationShown?.(id)
+  })
+
+  useEffect(() => {
+    if (topNotificationId) {
+      handleNotificationShown(topNotificationId)
+    }
+  }, [topNotificationId, handleNotificationShown])
+
   return (
-    <Portal>
+    <Portal zIndex={zIndexes.fixed + 10}>
       <AnimatePresence initial={false} mode="sync">
         {stackedNotifications.map((notification, index) => {
           const { scale, offsetY, zIndex } = calculateStackingProps(index, stackedNotifications.length)
@@ -64,7 +80,11 @@ export const StackedLowerLeftBanners = memo(function StackedLowerLeftBanners({
                 willChange: 'transform, opacity',
               }}
             >
-              <LowerLeftBannerNotification notification={notification} onNotificationClick={onNotificationClick} />
+              <InlineBannerNotification
+                notification={notification}
+                onNotificationClick={onNotificationClick}
+                renderButton
+              />
             </motion.div>
           )
         })}

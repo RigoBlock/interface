@@ -1,8 +1,7 @@
-import type { BlockaidScanTransactionRequest } from '@universe/api'
+import type { BlockaidScanTransactionRequest, GasFeeResult } from '@universe/api'
 import { useEffect, useMemo } from 'react'
 import { Flex } from 'ui/src'
 import type { UniverseChainId } from 'uniswap/src/features/chains/types'
-import type { GasFeeResult } from 'uniswap/src/features/gas/types'
 import type { EthTransaction } from 'uniswap/src/types/walletConnect'
 import { DappRequestFooter } from 'wallet/src/components/dappRequests/DappRequestFooter'
 import { TransactionErrorType } from 'wallet/src/components/dappRequests/TransactionErrorSection'
@@ -69,7 +68,10 @@ export function DappTransactionScanningContent({
   const contractName = useMemo(() => extractContractName(scanResult, toAddress), [scanResult, toAddress])
 
   // Parse the Blockaid scan result into displayable sections
-  const { sections, riskLevel } = useMemo(() => parseTransactionSections(scanResult ?? null), [scanResult])
+  const { sections, riskLevel } = useMemo(
+    () => parseTransactionSections(scanResult ?? null, chainId),
+    [scanResult, chainId],
+  )
 
   // Determine the appropriate error type (if any) to display
   const errorType = determineTransactionErrorType({ sections, providedErrorType, rawData: data ?? '' })

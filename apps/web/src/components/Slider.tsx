@@ -1,4 +1,4 @@
-import styled from 'lib/styled-components'
+import styled from '~/lib/deprecated-styled'
 import { ChangeEvent, useCallback } from 'react'
 
 const StyledRangeInput = styled.input<{ size: number }>`

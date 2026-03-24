@@ -1,5 +1,5 @@
-import { LoadingBubble } from 'components/Tokens/loading'
-import { usePortfolioStaking } from 'pages/Portfolio/hooks/usePortfolioStaking'
+import { LoadingBubble } from '~/components/Tokens/loading'
+import { usePortfolioStaking } from '~/pages/Portfolio/hooks/usePortfolioStaking'
 import { Box, ChevronRight } from 'react-feather'
 import { Trans } from 'react-i18next'
 import { Flex } from 'ui/src/components/layout'

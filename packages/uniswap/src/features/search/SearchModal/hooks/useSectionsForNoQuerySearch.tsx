@@ -18,7 +18,7 @@ import {
 } from 'uniswap/src/features/search/SearchModal/constants'
 import { useRecentlySearchedOptions } from 'uniswap/src/features/search/SearchModal/hooks/useRecentlySearchedOptions'
 import { SearchTab } from 'uniswap/src/features/search/SearchModal/types'
-import { isMobileApp, isWebPlatform } from 'utilities/src/platform'
+import { isMobileApp, isWebApp, isWebPlatform } from 'utilities/src/platform'
 
 export function useSectionsForNoQuerySearch({
   chainFilter,
@@ -83,7 +83,8 @@ export function useSectionsForNoQuerySearch({
     options: trendingPoolOptions,
   })
 
-  const favoriteWalletsOptions = useFavoriteWalletOptions({ skip: activeTab !== SearchTab.Wallets })
+  const skipFavoriteWallets = activeTab !== SearchTab.Wallets && !(isWebApp && activeTab === SearchTab.All)
+  const favoriteWalletsOptions = useFavoriteWalletOptions({ skip: skipFavoriteWallets })
   const favoriteWalletsSection = useOnchainItemListSection({
     sectionKey: OnchainItemSectionName.FavoriteWallets,
     options: favoriteWalletsOptions,
@@ -115,15 +116,15 @@ export function useSectionsForNoQuerySearch({
           data: [...(recentSearchSection ?? []), ...(favoriteWalletsSection ?? [])],
           loading: false,
         }
-      case SearchTab.NFTCollections:
-        return {
-          data: [...(recentSearchSection ?? [])],
-          loading: false,
-        }
       default:
       case SearchTab.All:
         if (isWebPlatform) {
-          sections = [...(recentSearchSection ?? []), ...(trendingTokenSection ?? []), ...(trendingPoolSection ?? [])]
+          sections = [
+            ...(recentSearchSection ?? []),
+            ...(trendingTokenSection ?? []),
+            ...(trendingPoolSection ?? []),
+            ...(favoriteWalletsSection ?? []),
+          ]
         } else {
           sections = [...(recentSearchSection ?? []), ...(trendingTokenSection ?? [])]
         }

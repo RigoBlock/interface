@@ -1,7 +1,9 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
+import { isUniverseChainId } from 'uniswap/src/features/chains/utils'
 import {
   isPoolSearchHistoryResult,
+  isTokenSearchHistoryResult,
   SearchHistoryResult,
   SearchHistoryResultType,
 } from 'uniswap/src/features/search/SearchHistoryResult'
@@ -21,8 +23,6 @@ export function searchResultId(searchResult: SearchHistoryResult): string {
       return `wallet-${normalizedAddress}`
     case SearchHistoryResultType.Etherscan:
       return `etherscan-${normalizedAddress}`
-    case SearchHistoryResultType.NFTCollection:
-      return `nftCollection-${searchResult.chainId}-${normalizedAddress}`
     case SearchHistoryResultType.Pool:
       return `pool-${searchResult.chainId}-${normalizedAddress}-${searchResult.feeTier}`
   }
@@ -42,6 +42,12 @@ const slice = createSlice({
   reducers: {
     addToSearchHistory: (state, action: PayloadAction<{ searchResult: SearchHistoryResult }>) => {
       const { searchResult } = action.payload
+
+      // Validate chainId for token results to prevent storing invalid data
+      if (isTokenSearchHistoryResult(searchResult) && !isUniverseChainId(searchResult.chainId)) {
+        return
+      }
+
       // Store search results with a standard searchId to prevent duplicates
       const searchId = searchResultId(searchResult)
       // Optimistically push search result to array

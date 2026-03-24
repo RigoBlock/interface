@@ -1,11 +1,9 @@
-import StatusIcon from 'components/StatusIcon'
-import { useAccountsStore, useActiveAddresses } from 'features/accounts/store/hooks'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useActiveSmartPool } from '~/state/application/hooks'
+import { CopyHelper } from '~/theme/components/CopyHelper'
+import { EllipsisTamaguiStyle } from '~/theme/components/styles'
 import { useSearchParams } from 'react-router'
-import { useActiveSmartPool } from 'state/application/hooks'
-import { CopyHelper } from 'theme/components/CopyHelper'
-import { EllipsisTamaguiStyle } from 'theme/components/styles'
 import { Flex, Text } from 'ui/src'
 import { Unitag } from 'ui/src/components/icons/Unitag'
 import { iconSizes } from 'ui/src/theme'
@@ -18,8 +16,11 @@ import { SOLANA_CHAIN_INFO } from 'uniswap/src/features/chains/svm/info/solana'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useENSName } from 'uniswap/src/features/ens/api'
 import { Platform } from 'uniswap/src/features/platforms/types/Platform'
+import { PlatformAddress } from 'uniswap/src/features/platforms/types/PlatformSpecificAddress'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { shortenAddress } from 'utilities/src/addresses'
+import StatusIcon from '~/components/StatusIcon'
+import { useAccountsStore, useActiveAddresses } from '~/features/accounts/store/hooks'
 
 function AddressDisplay({
   unitag,
@@ -32,16 +33,14 @@ function AddressDisplay({
 }) {
   return (
     <Flex row gap="$spacing2" alignItems="center" data-testid={TestID.AddressDisplay}>
-      <Text
-        variant="subheading1"
-        color="$neutral1"
-        maxWidth="120px"
-        $xxl={{ maxWidth: '180px' }}
-        {...EllipsisTamaguiStyle}
-      >
+      <Text variant="subheading1" color="$neutral1" {...EllipsisTamaguiStyle}>
         {unitag ?? ensName ?? shortenedAddress}
       </Text>
-      {unitag && <Unitag size={18} />}
+      {unitag && (
+        <Flex pt="$spacing2">
+          <Unitag size={18} />
+        </Flex>
+      )}
     </Flex>
   )
 }
@@ -143,28 +142,34 @@ function TooltipAccountRow({ account }: { account: AccountItem }) {
   )
 }
 
+interface MultiBlockchainAddressDisplayProps {
+  hideAddressInSubtitle?: boolean
+  externalAddress?: PlatformAddress
+}
+
 export function MultiBlockchainAddressDisplay({
   hideAddressInSubtitle,
-  shouldDisplayUserAccount,
-}: {
-  hideAddressInSubtitle?: boolean
-  shouldDisplayUserAccount?: boolean
-}) {
+  externalAddress,
+}: MultiBlockchainAddressDisplayProps) {
   const activeAddresses = useActiveAddresses()
-  const activeSmartPool = useActiveSmartPool()
-  const [searchParams] = useSearchParams()
-  // TODO: contionally render activeAddresses.evmAddress if we are not on portfolio page
-  const isPortfolioPage = window.location.pathname.startsWith('/portfolio')
-  const pooladdressParam = searchParams.get('address')
-  const evmAddress = !shouldDisplayUserAccount
-    ? (pooladdressParam ?? activeSmartPool.address ?? undefined)
-    : activeAddresses.evmAddress
+
+  const { evmAddress, svmAddress } = useMemo(() => {
+    // If external address is provided, use that instead of the connected wallet addresses
+    if (externalAddress) {
+      return {
+        evmAddress: externalAddress.platform === Platform.EVM ? externalAddress.address : undefined,
+        svmAddress: externalAddress.platform === Platform.SVM ? externalAddress.address : undefined,
+      }
+    }
+    return activeAddresses
+  }, [externalAddress, activeAddresses])
+
   const { data: ensName } = useENSName(evmAddress)
   const { data: unitagData } = useUnitagsAddressQuery({
     params: evmAddress ? { address: evmAddress } : undefined,
   })
   const unitag = unitagData?.username
-  const svmAddress = activeAddresses.svmAddress
+
   const primaryAddress = evmAddress ?? svmAddress
 
   const accounts: AccountItem[] = useMemo(() => {

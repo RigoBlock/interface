@@ -1,22 +1,21 @@
-import { TradingApi } from '@universe/api'
+import type { GasFeeResult } from '@universe/api'
+import { type TradingApi } from '@universe/api'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Flex, HeightAnimator, Text } from 'ui/src'
-import type { Warning } from 'uniswap/src/components/modals/WarningModal/types'
+import { type Warning, WarningLabel } from 'uniswap/src/components/modals/WarningModal/types'
 import type { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
-import type { GasFeeResult } from 'uniswap/src/features/gas/types'
 import { EstimatedSwapTime } from 'uniswap/src/features/transactions/swap/components/EstimatedBridgeTime'
 import { MaxSlippageRow } from 'uniswap/src/features/transactions/swap/components/MaxSlippageRow/MaxSlippageRow'
 import { PriceImpactRow } from 'uniswap/src/features/transactions/swap/components/PriceImpactRow/PriceImpactRow'
-import { RoutingInfo } from 'uniswap/src/features/transactions/swap/components/RoutingInfo'
+import { RoutingInfo } from 'uniswap/src/features/transactions/swap/components/RoutingInfo/RoutingInfo'
 import { SwapRateRatio } from 'uniswap/src/features/transactions/swap/components/SwapRateRatio'
 import { useIsUnichainFlashblocksEnabled } from 'uniswap/src/features/transactions/swap/hooks/useIsUnichainFlashblocksEnabled'
-import { usePriceUXEnabled } from 'uniswap/src/features/transactions/swap/hooks/usePriceUXEnabled'
 import { AcceptNewQuoteRow } from 'uniswap/src/features/transactions/swap/review/SwapDetails/AcceptNewQuoteRow'
 import type { DerivedSwapInfo } from 'uniswap/src/features/transactions/swap/types/derivedSwapInfo'
 import type { UniswapXGasBreakdown } from 'uniswap/src/features/transactions/swap/types/swapTxAndGasInfo'
 import { getSwapFeeUsdFromDerivedSwapInfo } from 'uniswap/src/features/transactions/swap/utils/getSwapFeeUsd'
-import { isBridge, isChained } from 'uniswap/src/features/transactions/swap/utils/routing'
+import { isBridge, isChained, isMultiChainGasQuote } from 'uniswap/src/features/transactions/swap/utils/routing'
 import { TransactionDetails } from 'uniswap/src/features/transactions/TransactionDetails/TransactionDetails'
 import type {
   FeeOnTransferFeeGroupProps,
@@ -66,7 +65,6 @@ export function SwapDetails({
   includesDelegation,
   additionalDetailsContent,
 }: SwapDetailsProps): JSX.Element {
-  const priceUxEnabled = usePriceUXEnabled()
   const { t } = useTranslation()
 
   const isBridgeTrade = derivedSwapInfo.trade.trade && isBridge(derivedSwapInfo.trade.trade)
@@ -87,22 +85,26 @@ export function SwapDetails({
     throw new Error('Invalid render of `SwapDetails` with no `acceptedTrade`')
   }
 
+  const tradeQuote = derivedSwapInfo.trade.trade?.quote
+
   const estimatedSwapTime: number | undefined = useMemo(() => {
-    const tradeQuote = derivedSwapInfo.trade.trade?.quote
     if (!tradeQuote) {
       return undefined
     }
 
     if (isChained(tradeQuote)) {
-      // TODO: SWAP-458 - Add proper typings when available.
-      return 'timeEstimateMs' in tradeQuote.quote ? (tradeQuote.quote.timeEstimateMs as number) : undefined
+      return tradeQuote.quote.timeEstimateMs
     }
     if (isBridge(tradeQuote)) {
       return tradeQuote.quote.estimatedFillTimeMs
     }
 
     return undefined
-  }, [derivedSwapInfo.trade.trade?.quote])
+  }, [tradeQuote])
+
+  const showNetworkLogo = !showUnichainPoweredMessage && !isMultiChainGasQuote(tradeQuote)
+  const showCollapsedPriceImpactRow =
+    warning?.type === WarningLabel.PriceImpactHigh || warning?.type === WarningLabel.PriceImpactMedium
 
   return (
     <HeightAnimator animationDisabled={isMobileApp || isMobileWeb}>
@@ -127,7 +129,7 @@ export function SwapDetails({
         indicative={acceptedTrade.indicative}
         outputCurrency={acceptedTrade.outputAmount.currency}
         showExpandedChildren={!!customSlippageTolerance}
-        showNetworkLogo={!showUnichainPoweredMessage}
+        showNetworkLogo={showNetworkLogo}
         showWarning={warning && !newTradeRequiresAcceptance}
         transactionUSDValue={derivedSwapInfo.currencyAmountsUSDValue[CurrencyField.OUTPUT]}
         uniswapXGasBreakdown={uniswapXGasBreakdown}
@@ -135,16 +137,20 @@ export function SwapDetails({
         estimatedSwapTime={estimatedSwapTime}
         routingType={routing}
         txSimulationErrors={txSimulationErrors}
-        amountUserWillReceive={derivedSwapInfo.outputAmountUserWillReceive ?? undefined}
         includesDelegation={includesDelegation}
+        CollapsedInfoRow={
+          showCollapsedPriceImpactRow ? <PriceImpactRow derivedSwapInfo={acceptedDerivedSwapInfo} /> : undefined
+        }
+        RateInfo={
+          <Flex row alignItems="center" justifyContent="space-between">
+            <Text color="$neutral2" variant="body3">
+              {t('swap.details.rate')}
+            </Text>
+            <SwapRateRatio trade={trade} derivedSwapInfo={acceptedDerivedSwapInfo} justifyContent="flex-end" />
+          </Flex>
+        }
         onShowWarning={onShowWarning}
       >
-        <Flex row alignItems="center" justifyContent="space-between">
-          <Text color="$neutral2" variant="body3">
-            {t('swap.details.rate')}
-          </Text>
-          <SwapRateRatio trade={trade} derivedSwapInfo={acceptedDerivedSwapInfo} justifyContent="flex-end" />
-        </Flex>
         <EstimatedSwapTime showIfLongerThanCutoff={false} timeMs={estimatedSwapTime} />
         {isBridgeTrade === false && (
           <MaxSlippageRow
@@ -156,8 +162,7 @@ export function SwapDetails({
         {!acceptedTrade.indicative && (
           <RoutingInfo trade={acceptedTrade} gasFee={gasFee} chainId={acceptedTrade.inputAmount.currency.chainId} />
         )}
-        {!priceUxEnabled && <PriceImpactRow derivedSwapInfo={acceptedDerivedSwapInfo} />}
-        {additionalDetailsContent}
+        <PriceImpactRow derivedSwapInfo={acceptedDerivedSwapInfo} />
       </TransactionDetails>
     </HeightAnimator>
   )

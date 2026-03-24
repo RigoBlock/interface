@@ -1,16 +1,16 @@
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core'
-import { useAccount } from 'hooks/useAccount'
-import { useInterfaceMulticall } from 'hooks/useContract'
-import { useTokenBalances } from 'hooks/useTokenBalances'
+import { useInterfaceMulticall } from '~/hooks/useContract'
 import JSBI from 'jsbi'
 import { useMemo } from 'react'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
 import { getCurrencyAmount, ValueType } from 'uniswap/src/features/tokens/getCurrencyAmount'
 import { isEVMAddress } from 'utilities/src/addresses/evm/evm'
-import { currencyKey } from 'utils/currencyKey'
-import { assume0xAddress } from 'utils/wagmi'
 import { Abi, erc20Abi, isAddress } from 'viem'
 import { useBalance, useReadContracts } from 'wagmi'
+import { useAccount } from '~/hooks/useAccount'
+import { useTokenBalances } from '~/hooks/useTokenBalances'
+import { currencyKey } from '~/utils/currencyKey'
+import { assume0xAddress } from '~/utils/wagmi'
 
 /**
  * Returns a currency address to its eventually consistent currency balances for multiple account.
@@ -96,7 +96,7 @@ export function useCurrencyBalancesMultipleAccounts(
 /**
  * Returns a map of token addresses to their eventually consistent token balances for a single account.
  */
-export function useRpcTokenBalancesWithLoadingIndicator({
+function useRpcTokenBalancesWithLoadingIndicator({
   address,
   tokens,
   skip,
@@ -209,7 +209,7 @@ function useGqlCurrencyBalances(
   account?: string,
   currencies?: (Currency | undefined)[],
 ): (CurrencyAmount<Currency> | undefined)[] {
-  const { balanceMap } = useTokenBalances({ cacheOnly: true })
+  const { balanceMap } = useTokenBalances({ cacheFirst: true })
 
   return useMemo(() => {
     if (!account || !currencies) {

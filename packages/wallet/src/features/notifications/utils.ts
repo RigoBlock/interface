@@ -72,6 +72,8 @@ export const formBridgeNotificationTitle = (txStatus: TransactionStatus): string
       return i18n.t('transaction.status.swap.success')
     case TransactionStatus.Canceled:
       return i18n.t('transaction.status.swap.canceled')
+    case TransactionStatus.AwaitingAction:
+      return i18n.t('transaction.status.plan.interrupted')
     default:
       return i18n.t('transaction.status.swap.failed')
   }
@@ -130,8 +132,8 @@ export const formSwapNotificationTitle = ({
       })
     case TransactionStatus.Expired:
       return i18n.t('notification.transaction.swap.expired', {
-        inputCurrencySymbol,
-        outputCurrencySymbol,
+        inputCurrencyAmountWithSymbol,
+        outputCurrencyAmountWithSymbol,
       })
     default:
       return i18n.t('notification.transaction.swap.fail', {

@@ -1,23 +1,30 @@
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
-import { ErrorCallout } from 'components/ErrorCallout'
-import { useDefaultInitialPrice } from 'components/Liquidity/Create/hooks/useDefaultInitialPrice'
-import { DepositInputForm } from 'components/Liquidity/DepositInputForm'
-import { useUpdatedAmountsFromDependentAmount } from 'components/Liquidity/hooks/useDependentAmountFallback'
-import { getPriceDifference } from 'components/Liquidity/utils/getPriceDifference'
-import { getFieldsDisabled, isInvalidRange } from 'components/Liquidity/utils/priceRangeInfo'
-import { useAccount } from 'hooks/useAccount'
-import ConfirmCreatePositionModal from 'pages/CreatePosition/ConfirmCreatePositionModal'
-import { useCreateLiquidityContext } from 'pages/CreatePosition/CreateLiquidityContextProvider'
-import { CreatePositionModal } from 'pages/CreatePosition/CreatePositionModal'
-import { useCreatePositionTxContext } from 'pages/CreatePosition/CreatePositionTxContext'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { useActiveSmartPool } from 'state/application/hooks'
-import { PositionField } from 'types/position'
+import { useActiveSmartPool } from '~/state/application/hooks'
+import { PositionField } from '~/types/position'
 import { Button, Flex, Text } from 'ui/src'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
+import { SLIPPAGE_CRITICAL_TOLERANCE } from 'uniswap/src/constants/transactions'
 import { useUniswapContext } from 'uniswap/src/contexts/UniswapContext'
 import { Platform } from 'uniswap/src/features/platforms/types/Platform'
+import {
+  useTransactionSettingsActions,
+  useTransactionSettingsStore,
+} from 'uniswap/src/features/transactions/components/settings/stores/transactionSettingsStore/useTransactionSettingsStore'
+import SlippageWarningModal from 'uniswap/src/features/transactions/swap/components/SwapFormSettings/SlippageWarningModal'
+import { ErrorCallout } from '~/components/ErrorCallout'
+import { useDefaultInitialPrice } from '~/components/Liquidity/Create/hooks/useDefaultInitialPrice'
+import { DepositInputForm } from '~/components/Liquidity/DepositInputForm'
+import { useUpdatedAmountsFromDependentAmount } from '~/components/Liquidity/hooks/useDependentAmountFallback'
+import { LowLPSlippageWarning } from '~/components/Liquidity/LowLPSlippageWarning'
+import { getPriceDifference } from '~/components/Liquidity/utils/getPriceDifference'
+import { getFieldsDisabled, isInvalidRange } from '~/components/Liquidity/utils/priceRangeInfo'
+import { useAccount } from '~/hooks/useAccount'
+import ConfirmCreatePositionModal from '~/pages/CreatePosition/ConfirmCreatePositionModal'
+import { useCreateLiquidityContext } from '~/pages/CreatePosition/CreateLiquidityContextProvider'
+import { CreatePositionModal } from '~/pages/CreatePosition/CreatePositionModal'
+import { useCreatePositionTxContext } from '~/pages/CreatePosition/CreatePositionTxContext'
 
 export const DepositStep = () => {
   const {
@@ -38,6 +45,12 @@ export const DepositStep = () => {
   const { address: smartPoolAddress } = useActiveSmartPool()
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
+  const [isSlippageWarningModalOpen, setIsSlippageWarningModalOpen] = useState(false)
+  const { customSlippageTolerance, slippageWarningModalSeen } = useTransactionSettingsStore((s) => ({
+    customSlippageTolerance: s.customSlippageTolerance,
+    slippageWarningModalSeen: s.slippageWarningModalSeen,
+  }))
+  const { setSlippageWarningModalSeen } = useTransactionSettingsActions()
   const { TOKEN0, TOKEN1 } = currencies.display
   const { exactField } = depositState
 
@@ -96,14 +109,27 @@ export const DepositStep = () => {
     }))
   }
 
+  const openReviewModal = useCallback(() => {
+    if (
+      customSlippageTolerance !== undefined &&
+      customSlippageTolerance >= SLIPPAGE_CRITICAL_TOLERANCE &&
+      !slippageWarningModalSeen
+    ) {
+      setIsSlippageWarningModalOpen(true)
+      return
+    }
+
+    setIsReviewModalOpen(true)
+  }, [customSlippageTolerance, slippageWarningModalSeen])
+
   const handleReview = useCallback(() => {
     if (priceDifference?.warning === WarningSeverity.High) {
       setIsConfirmModalOpen(true)
       return
     }
 
-    setIsReviewModalOpen(true)
-  }, [priceDifference?.warning])
+    openReviewModal()
+  }, [priceDifference?.warning, openReviewModal])
 
   const { TOKEN0: deposit0Disabled, TOKEN1: deposit1Disabled } = getFieldsDisabled({
     ticks,
@@ -181,6 +207,9 @@ export const DepositStep = () => {
         amount1Loading={requestLoading && exactField === PositionField.TOKEN0}
         isSmartPool={!!smartPoolAddress}
       />
+      <LowLPSlippageWarning
+        isNativePool={Boolean(currencies.display.TOKEN0?.isNative || currencies.display.TOKEN1?.isNative)}
+      />
       <Flex row>
         {account.isConnected ? (
           <Button
@@ -217,11 +246,22 @@ export const DepositStep = () => {
           onClose={() => setIsConfirmModalOpen(false)}
           onContinue={() => {
             setIsConfirmModalOpen(false)
-            setIsReviewModalOpen(true)
+            openReviewModal()
           }}
           priceDifference={priceDifference}
         />
       )}
+      <SlippageWarningModal
+        isOpen={isSlippageWarningModalOpen}
+        onClose={() => {
+          setIsSlippageWarningModalOpen(false)
+        }}
+        onContinue={() => {
+          setIsSlippageWarningModalOpen(false)
+          setSlippageWarningModalSeen(true)
+          setIsReviewModalOpen(true)
+        }}
+      />
     </>
   )
 }

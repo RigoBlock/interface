@@ -150,6 +150,10 @@ export const networkColors = {
     light: '#000000',
     dark: '#FFFFFF',
   },
+  xlayer: {
+    light: '#A7A7A747',
+    dark: '#A7A7A724',
+  },
   worldchain: {
     light: '#222222',
     dark: '#FFFFFF',
@@ -240,9 +244,6 @@ const sporeDark = {
   surface4: 'rgba(255,255,255,0.20)',
   surface5: 'rgba(0,0,0,0.04)',
   surface5Hovered: 'rgba(0,0,0,0.06)',
-  accent1: '#FF37C7',
-  accent1Hovered: '#E500A5',
-
   accent1: '#feb239',
   accent1Hovered: '#ffa81f',
   accent2: '#361A37',
@@ -343,6 +344,7 @@ export const colorsLight = {
   chain_324: networkColors.zksync.light,
   chain_480: networkColors.worldchain.light,
   chain_1868: networkColors.soneium.light,
+  chain_196: networkColors.xlayer.light,
   chain_501000101: networkColors.solana.light,
   chain_143: networkColors.monad.light,
 
@@ -433,6 +435,7 @@ export const colorsDark = {
   chain_324: networkColors.zksync.dark,
   chain_480: networkColors.worldchain.dark,
   chain_1868: networkColors.soneium.dark,
+  chain_196: networkColors.xlayer.dark,
   chain_501000101: networkColors.solana.dark,
   chain_143: networkColors.monad.dark,
 

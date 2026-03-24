@@ -18,7 +18,7 @@ export function OptionCard({
       shadowColor="$shadowColor"
       shadowOpacity={0.05}
       shadowRadius={8}
-      borderWidth={1}
+      borderWidth="$spacing1"
       borderColor="$surface3"
       borderRadius="$rounded20"
       onPress={onPress}

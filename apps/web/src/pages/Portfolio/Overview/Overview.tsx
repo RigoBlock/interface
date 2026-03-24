@@ -1,18 +1,18 @@
 import { ChartPeriod } from '@uniswap/client-data-api/dist/data/v1/api_pb'
-import { EmptyWalletCards } from 'components/emptyWallet/EmptyWalletCards'
-import { usePortfolioRoutes } from 'pages/Portfolio/Header/hooks/usePortfolioRoutes'
-import { usePortfolioAddresses } from 'pages/Portfolio/hooks/usePortfolioAddresses'
-import { usePortfolioStaking } from 'pages/Portfolio/hooks/usePortfolioStaking'
-import { OverviewActionTiles } from 'pages/Portfolio/Overview/ActionTiles'
-import { OVERVIEW_RIGHT_COLUMN_WIDTH } from 'pages/Portfolio/Overview/constants'
-import { useIsPortfolioZero } from 'pages/Portfolio/Overview/hooks/useIsPortfolioZero'
-import { OverviewStakingSection } from 'pages/Portfolio/Overview/OverviewStakingSection'
-import { PortfolioOverviewTables } from 'pages/Portfolio/Overview/OverviewTables'
-import { PortfolioChart } from 'pages/Portfolio/Overview/PortfolioChart'
-import { OverviewStatsTiles } from 'pages/Portfolio/Overview/StatsTiles'
-import { checkBalanceDiffWithinRange } from 'pages/Portfolio/Overview/utils/checkBalanceDiffWithinRange'
-import { PortfolioTab } from 'pages/Portfolio/types'
-import { buildPortfolioUrl } from 'pages/Portfolio/utils/portfolioUrls'
+import { buildPortfolioUrl } from '~/pages/Portfolio/utils/portfolioUrls'
+import { OverviewStakingSection } from '~/pages/Portfolio/Overview/OverviewStakingSection'
+import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
+import { OverviewStatsTiles } from '~/pages/Portfolio/Overview/StatsTiles'
+import { OVERVIEW_RIGHT_COLUMN_WIDTH } from '~/pages/Portfolio/Overview/constants'
+import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
+import { checkBalanceDiffWithinRange } from '~/pages/Portfolio/Overview/utils/checkBalanceDiffWithinRange'
+import { PortfolioTab } from '~/pages/Portfolio/types'
+import { PortfolioOverviewTables } from '~/pages/Portfolio/Overview/OverviewTables'
+import { useIsPortfolioZero } from '~/pages/Portfolio/Overview/hooks/useIsPortfolioZero'
+import { OverviewActionTiles } from '~/pages/Portfolio/Overview/ActionTiles'
+import { usePortfolioStaking } from '~/pages/Portfolio/hooks/usePortfolioStaking'
+import { EmptyWalletCards } from '~/components/emptyWallet/EmptyWalletCards'
+import { PortfolioChart } from '~/pages/Portfolio/Overview/PortfolioChart'
 import { memo, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Flex, Separator, styled, useMedia } from 'ui/src'
@@ -22,7 +22,7 @@ import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledCh
 import { usePortfolioTotalValue } from 'uniswap/src/features/dataApi/balances/balancesRest'
 import { ElementName, InterfacePageName, SectionName } from 'uniswap/src/features/telemetry/constants'
 import { Trace } from 'uniswap/src/features/telemetry/Trace'
-import { filterDefinedWalletAddresses } from 'utils/filterDefinedWalletAddresses'
+import { filterDefinedWalletAddresses } from '~/utils/filterDefinedWalletAddresses'
 
 const BALANCE_PERCENT_DIFFERENCE_THRESHOLD = 2
 
@@ -45,7 +45,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   const media = useMedia()
   const navigate = useNavigate()
   const isFullWidth = media.xl
-  const { chainId, address } = usePortfolioRoutes()
+  const { chainId, externalAddress, isExternalWallet } = usePortfolioRoutes()
   const portfolioAddresses = usePortfolioAddresses()
 
   // Use portfolioAddresses.evmAddress which already handles URL params, active smart pool, and user address priority
@@ -61,7 +61,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   const filterChainIds = useMemo(() => (chainId ? [chainId] : allChainIds), [chainId, allChainIds])
 
   const handleNavigateToStaking = () => {
-    navigate(buildPortfolioUrl(PortfolioTab.Staking, chainId, address))
+    navigate(buildPortfolioUrl({ tab: PortfolioTab.Staking, chainId, externalAddress: externalAddress?.address }))
   }
 
   const { data: portfolioData } = usePortfolioTotalValue({
@@ -128,7 +128,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   })
 
   return (
-    <Trace logImpression page={InterfacePageName.PortfolioOverviewPage}>
+    <Trace logImpression page={InterfacePageName.PortfolioOverviewPage} properties={{ isExternal: isExternalWallet }}>
       <Flex gap="$spacing40" mb="$spacing40">
         <Flex row gap="$spacing40" $xl={{ flexDirection: 'column' }}>
           <Trace section={SectionName.PortfolioOverviewTab} element={ElementName.PortfolioChart}>

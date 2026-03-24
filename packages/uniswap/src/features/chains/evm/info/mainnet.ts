@@ -68,6 +68,7 @@ export const MAINNET_CHAIN_INFO = {
     logo: ETH_LOGO,
   },
   networkLayer: NetworkLayer.L1,
+  blockTimeMs: 12000,
   pendingTransactionsRetryOptions: undefined,
   rpcUrls: isPlaywrightEnv()
     ? getPlaywrightRpcUrls(LOCAL_MAINNET_PLAYWRIGHT_RPC_URL)
@@ -111,6 +112,7 @@ export const MAINNET_CHAIN_INFO = {
     },
   },
   tradingApiPollingIntervalMs: 500,
+  acrossProtocolAddress: '0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5',
 } as const satisfies UniverseChainInfo
 
 const testnetTokens = buildChainTokens({
@@ -151,25 +153,29 @@ export const SEPOLIA_CHAIN_INFO = {
     logo: ETH_LOGO,
   },
   networkLayer: NetworkLayer.L1,
+  blockTimeMs: 12000,
   pendingTransactionsRetryOptions: undefined,
   rpcUrls: {
     [RPCType.Public]: {
       http: [getQuicknodeEndpointUrl(UniverseChainId.Sepolia)],
     },
     [RPCType.Default]: {
-      http: ['https://rpc.sepolia.org/'],
+      http: ['https://sepolia.gateway.tenderly.co'],
     },
     [RPCType.Fallback]: {
       http: [
+        'https://sepolia.drpc.org',
+        'https://ethereum-sepolia-rpc.publicnode.com',
         'https://rpc.sepolia.org/',
-        'https://rpc2.sepolia.org/',
         'https://rpc.sepolia.online/',
         'https://www.sepoliarpc.space/',
         'https://rpc-sepolia.rockx.com/',
         'https://rpc.bordel.wtf/sepolia',
       ],
     },
-    [RPCType.Interface]: { http: [`https://sepolia.infura.io/v3/${config.infuraKey}`] },
+    [RPCType.Interface]: {
+      http: [`https://sepolia.infura.io/v3/${config.infuraKey}`],
+    },
   },
   spotPriceStablecoinAmountOverride: CurrencyAmount.fromRawAmount(testnetTokens.USDC, 100e6),
   tokens: testnetTokens,

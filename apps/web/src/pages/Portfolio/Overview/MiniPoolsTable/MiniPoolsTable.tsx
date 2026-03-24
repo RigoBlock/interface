@@ -1,20 +1,6 @@
 import { createColumnHelper, Row } from '@tanstack/react-table'
 import { SharedEventName } from '@uniswap/analytics-events'
 import { PositionStatus, ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
-import { PositionInfo } from 'components/Liquidity/types'
-import { getPositionUrl } from 'components/Liquidity/utils/getPositionUrl'
-import { parseRestPosition } from 'components/Liquidity/utils/parseFromRest'
-import { Table } from 'components/Table'
-import { Cell } from 'components/Table/Cell'
-import { HeaderCell } from 'components/Table/styled'
-import { hasRow } from 'components/Table/utils/hasRow'
-import { POOLS_TABLE_ROW_HEIGHT } from 'pages/Portfolio/constants'
-import { PoolBalanceCell } from 'pages/Portfolio/Overview/MiniPoolsTable/columns/Balance'
-import { PoolFeesCell } from 'pages/Portfolio/Overview/MiniPoolsTable/columns/Fees'
-import { PoolInfoCell } from 'pages/Portfolio/Overview/MiniPoolsTable/columns/Info'
-import { PoolStatusCell } from 'pages/Portfolio/Overview/MiniPoolsTable/columns/Status'
-import { TableSectionHeader } from 'pages/Portfolio/Overview/TableSectionHeader'
-import { ViewAllButton } from 'pages/Portfolio/Overview/ViewAllButton'
 import { memo, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
@@ -25,6 +11,20 @@ import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { ElementName, SectionName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
+import { PositionInfo } from '~/components/Liquidity/types'
+import { getPositionUrl } from '~/components/Liquidity/utils/getPositionUrl'
+import { parseRestPosition } from '~/components/Liquidity/utils/parseFromRest'
+import { Table } from '~/components/Table'
+import { Cell } from '~/components/Table/Cell'
+import { HeaderCell } from '~/components/Table/styled'
+import { hasRow } from '~/components/Table/utils/hasRow'
+import { PORTFOLIO_TABLE_ROW_HEIGHT } from '~/pages/Portfolio/constants'
+import { PoolBalanceCell } from '~/pages/Portfolio/Overview/MiniPoolsTable/columns/Balance'
+import { PoolFeesCell } from '~/pages/Portfolio/Overview/MiniPoolsTable/columns/Fees'
+import { PoolInfoCell } from '~/pages/Portfolio/Overview/MiniPoolsTable/columns/Info'
+import { PoolStatusCell } from '~/pages/Portfolio/Overview/MiniPoolsTable/columns/Status'
+import { TableSectionHeader } from '~/pages/Portfolio/Overview/TableSectionHeader'
+import { ViewAllButton } from '~/pages/Portfolio/Overview/ViewAllButton'
 
 const POOLS_TABLE_MAX_HEIGHT = 800
 const POOLS_TABLE_MAX_WIDTH = 1200
@@ -197,8 +197,8 @@ export const MiniPoolsTable = memo(function MiniPoolsTable({ account, maxPools =
           error={false}
           v2={true}
           rowWrapper={rowWrapper}
-          rowHeight={POOLS_TABLE_ROW_HEIGHT}
-          compactRowHeight={POOLS_TABLE_ROW_HEIGHT}
+          rowHeight={PORTFOLIO_TABLE_ROW_HEIGHT}
+          compactRowHeight={PORTFOLIO_TABLE_ROW_HEIGHT}
           defaultPinnedColumns={['poolInfo']}
           maxWidth={POOLS_TABLE_MAX_WIDTH}
           centerArrows

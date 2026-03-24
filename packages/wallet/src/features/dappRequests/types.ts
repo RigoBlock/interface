@@ -1,4 +1,5 @@
 import { DappVerificationStatus } from '@universe/api'
+import { type UniverseChainId } from 'uniswap/src/features/chains/types'
 import { z } from 'zod'
 
 export const CapabilitySchema = z.record(z.string(), z.unknown())
@@ -33,10 +34,9 @@ export const SendCallsParamsSchema = z.object({
 export const SendCallsResultSchema = z.object({
   id: z.string(),
   capabilities: z
-    .object({
+    .looseObject({
       caip345: Caip345Schema.optional(),
-    })
-    .passthrough() // Allow other capability fields for future extensibility
+    }) // Allow other capability fields for future extensibility
     .optional(),
 })
 
@@ -83,6 +83,7 @@ export interface DappConnectionInfo {
   name: string
   url: string
   icon: string | null
+  frameUrl?: string
 }
 
 /**
@@ -103,6 +104,10 @@ export enum TransactionRiskLevel {
 export interface TransactionAsset {
   /** Asset type (ERC20, NATIVE, NFT, etc.) */
   type: string
+  /** Contract address */
+  address: string
+  /** Chain ID */
+  chainId: UniverseChainId
   /** Token/NFT symbol or name */
   symbol?: string
   /** Token/NFT name */
@@ -113,8 +118,8 @@ export interface TransactionAsset {
   usdValue?: string
   /** Logo/image URL */
   logoUrl?: string
-  /** Contract address */
-  address: string
+  /** Spender address (for approvals) */
+  spenderAddress?: string
 }
 
 /**

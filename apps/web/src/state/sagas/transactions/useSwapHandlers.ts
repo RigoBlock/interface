@@ -1,8 +1,6 @@
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import { useCallback, useMemo } from 'react'
-import { useActiveSmartPool } from 'state/application/hooks'
-import { useSwapCallback } from 'state/sagas/transactions/swapSaga'
-import { useWrapCallback } from 'state/sagas/transactions/wrapSaga'
+import { useActiveSmartPool } from '~/state/application/hooks'
 import {
   ExecuteSwapCallback,
   ExecuteSwapParams,
@@ -11,6 +9,8 @@ import {
 } from 'uniswap/src/features/transactions/swap/types/swapHandlers'
 import { isWrap } from 'uniswap/src/features/transactions/swap/utils/routing'
 import { WrapType } from 'uniswap/src/features/transactions/types/wrap'
+import { useSwapCallback } from '~/state/sagas/transactions/swapSaga'
+import { useWrapCallback } from '~/state/sagas/transactions/wrapSaga'
 
 /**
  * Validates that all required parameters for a wrap transaction are present.
@@ -46,7 +46,7 @@ export function useSwapHandlers(): SwapHandlers {
   const execute: ExecuteSwapCallback = useCallback(
     async (params) => {
       const {
-        account,
+        address,
         swapTxContext,
         currencyInAmountUSD,
         currencyOutAmountUSD,
@@ -60,6 +60,7 @@ export function useSwapHandlers(): SwapHandlers {
         setCurrentStep,
         setSteps,
         isFiatInputMode,
+        onClearForm,
       } = params
 
       if (!smartPoolAddress) {
@@ -74,7 +75,7 @@ export function useSwapHandlers(): SwapHandlers {
           const txRequest = swapTxContext.txRequests[0]
 
           wrapCallback({
-            account,
+            address,
             smartPoolAddress,
             inputCurrencyAmount,
             txRequest,
@@ -91,8 +92,9 @@ export function useSwapHandlers(): SwapHandlers {
       } else {
         // Handle regular swap transactions
         swapCallback({
-          account,
+          address,
           smartPoolAddress,
+          onClearForm,
           swapTxContext,
           currencyInAmountUSD,
           currencyOutAmountUSD,

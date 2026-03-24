@@ -1,21 +1,20 @@
-import { usePortfolioStaking } from 'pages/Portfolio/hooks/usePortfolioStaking'
-import {
-  MAX_ACTIVITY_ROWS,
-  MAX_LIMITS_ROWS,
-  MAX_POOLS_ROWS,
-  MAX_TOKENS_ROWS,
-  OVERVIEW_RIGHT_COLUMN_WIDTH,
-} from 'pages/Portfolio/Overview/constants'
-import { MiniActivityTable } from 'pages/Portfolio/Overview/MiniActivityTable'
-import { MiniPoolsTable } from 'pages/Portfolio/Overview/MiniPoolsTable/MiniPoolsTable'
-import { MiniTokensTable } from 'pages/Portfolio/Overview/MiniTokensTable'
-import { OpenLimitsTable } from 'pages/Portfolio/Overview/OpenLimitsTable'
+import { usePortfolioStaking } from '~/pages/Portfolio/hooks/usePortfolioStaking'
 import { memo } from 'react'
 import { Flex, Text } from 'ui/src'
 import { ActivityRenderData } from 'uniswap/src/features/activity/hooks/useActivityData'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { NumberType } from 'utilities/src/format/types'
+import {
+  MAX_ACTIVITY_ROWS,
+  MAX_POOLS_ROWS,
+  MAX_TOKENS_ROWS,
+  OVERVIEW_RIGHT_COLUMN_WIDTH,
+} from '~/pages/Portfolio/Overview/constants'
+import { MiniActivityTable } from '~/pages/Portfolio/Overview/MiniActivityTable'
+import { MiniPoolsTable } from '~/pages/Portfolio/Overview/MiniPoolsTable/MiniPoolsTable'
+import { MiniTokensTable } from '~/pages/Portfolio/Overview/MiniTokensTable'
+import { OpenLimitsTable } from '~/pages/Portfolio/Overview/OpenLimitsTable'
 
 interface PortfolioOverviewTablesProps {
   activityData: ActivityRenderData
@@ -47,7 +46,7 @@ export const PortfolioOverviewTables = memo(function PortfolioOverviewTables({
       grow
       $xl={{ flexDirection: 'column-reverse' }}
     >
-      <Flex gap="$spacing16" grow shrink $xl={{ width: '100%' }}>
+      <Flex gap="$spacing40" grow shrink $xl={{ width: '100%' }}>
         <MiniTokensTable maxTokens={MAX_TOKENS_ROWS} chainId={chainId} />
         {portfolioAddresses.evmAddress && (
           <MiniPoolsTable account={portfolioAddresses.evmAddress} maxPools={MAX_POOLS_ROWS} chainId={chainId} />
@@ -55,7 +54,7 @@ export const PortfolioOverviewTables = memo(function PortfolioOverviewTables({
       </Flex>
       <Flex width={OVERVIEW_RIGHT_COLUMN_WIDTH} gap="$spacing40" $xl={{ width: '100%' }}>
         {portfolioAddresses.evmAddress && (!chainId || chainId === UniverseChainId.Mainnet) && (
-          <OpenLimitsTable account={portfolioAddresses.evmAddress} maxLimits={MAX_LIMITS_ROWS} />
+          <OpenLimitsTable account={portfolioAddresses.evmAddress} />
         )}
         <MiniActivityTable maxActivities={MAX_ACTIVITY_ROWS} activityData={activityData} />
         {hasAnyStake && (
