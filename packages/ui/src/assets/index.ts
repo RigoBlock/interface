@@ -14,6 +14,8 @@ export const ZORA_LOGO = require('./logos/png/zora-logo.png')
 export const ZKSYNC_LOGO = require('./logos/png/zksync-logo.png')
 export const SOLANA_LOGO = require('./logos/png/solana-logo.png')
 export const SONEIUM_LOGO = require('./logos/png/soneium-logo.png')
+export const XLAYER_LOGO = require('./logos/png/xlayer-logo.png')
+export const OKB_LOGO = require('./logos/png/okb-logo.png')
 export const UNICHAIN_LOGO = require('./logos/png/unichain-logo.png')
 export const UNICHAIN_SEPOLIA_LOGO = require('./logos/png/unichain-sepolia-logo.png')
 export const UNISWAP_LOGO = require('./logos/png/uniswap-logo.png')
@@ -54,10 +56,6 @@ export const UNITAG_DARK_SMALL = require('./graphics/unitag-dark-small.png')
 export const UNITAG_LIGHT_SMALL = require('./graphics/unitag-light-small.png')
 
 export const PUSH_NOTIFICATIONS_CARD_BANNER = require('./graphics/push-notifications-card-banner.png')
-export const BRIDGED_ASSETS_CARD_BANNER = require('./graphics/bridged-assets-card-banner.png')
-export const BRIDGED_ASSETS_V2_CARD_BANNER_DARK = require('./graphics/bridged-assets-v2-card-banner-dark.png')
-export const BRIDGED_ASSETS_V2_CARD_BANNER_LIGHT = require('./graphics/bridged-assets-v2-card-banner-light.png')
-export const BRIDGED_ASSETS_V2_WEB_BANNER = require('./graphics/bridged-assets-v2-web-banner.png')
 
 export const ONBOARDING_NOTIFICATIONS_DARK = {
   ios: require(`./backgrounds/ios/notifications-dark.png`),
@@ -75,7 +73,6 @@ export const CRYPTO_PURCHASE_BACKGROUND_DARK = require('./backgrounds/coins-back
 
 export const SOLANA_BANNER_LIGHT = require('./backgrounds/solana-banner-light.png')
 export const SOLANA_BANNER_DARK = require('./backgrounds/solana-banner-dark.png')
-export const MONAD_TEST_BANNER_LIGHT = require('./backgrounds/monad-test-banner-light.png')
 
 export const SECURITY_SCREEN_BACKGROUND_DARK = {
   ios: require(`./backgrounds/ios/security-background-dark.png`),
@@ -107,3 +104,7 @@ export const UNITAGS_SPENCER_DARK = require('./graphics/unitags/spencer-dark.png
 
 export const SMART_WALLET_UPGRADE_VIDEO = require('./videos/smart-wallet-upgrade.mp4')
 export const SMART_WALLET_UPGRADE_FALLBACK = require('./graphics/smart-wallet-image.png')
+
+export const NO_UNISWAP_INTERFACE_FEES_BANNER_LIGHT = require('./backgrounds/dots-banner-light.png')
+export const NO_UNISWAP_INTERFACE_FEES_BANNER_DARK = require('./backgrounds/dots-banner-dark.png')
+export const NO_FEES_ICON = require('./graphics/zero-percent.png')

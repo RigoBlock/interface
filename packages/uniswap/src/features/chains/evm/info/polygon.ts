@@ -57,11 +57,13 @@ export const POLYGON_CHAIN_INFO = {
     logo: POLYGON_LOGO,
   },
   networkLayer: NetworkLayer.L1,
+  blockTimeMs: 2000,
   pendingTransactionsRetryOptions: undefined,
   rpcUrls: {
     [RPCType.Public]: { http: [getQuicknodeEndpointUrl(UniverseChainId.Polygon)] },
     [RPCType.PublicAlt]: { http: ['https://polygon-rpc.com/'] },
-    [RPCType.Default]: { http: ['https://polygon-rpc.com/'] },
+    [RPCType.Default]: { http: [getQuicknodeEndpointUrl(UniverseChainId.Polygon)] },
+    [RPCType.Fallback]: { http: ['https://polygon-rpc.com/'] },
     [RPCType.Interface]: { http: [`https://polygon-mainnet.infura.io/v3/${config.infuraKey}`] },
   },
   tokens,
@@ -86,4 +88,5 @@ export const POLYGON_CHAIN_INFO = {
     },
   },
   tradingApiPollingIntervalMs: 250,
+  acrossProtocolAddress: '0x9295ee1d8C5b022Be115A2AD3c30C72E34e7F096',
 } as const satisfies UniverseChainInfo

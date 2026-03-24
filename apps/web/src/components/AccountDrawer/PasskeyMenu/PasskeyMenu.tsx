@@ -1,19 +1,8 @@
-import { AddPasskeyMenu } from 'components/AccountDrawer/PasskeyMenu/AddPasskeyMenu'
-import { DeletePasskeyMenu } from 'components/AccountDrawer/PasskeyMenu/DeletePasskeyMenu'
-import { DeletePasskeySpeedbumpMenu } from 'components/AccountDrawer/PasskeyMenu/DeletePasskeySpeedbumpMenu'
-import { PasskeyMenuModalState } from 'components/AccountDrawer/PasskeyMenu/PasskeyMenuModal'
-import { VerifyPasskeyMenu } from 'components/AccountDrawer/PasskeyMenu/VerifyPasskeyMenu'
-import { SlideOutMenu } from 'components/AccountDrawer/SlideOutMenu'
-import { MenuColumn } from 'components/AccountDrawer/shared'
-import { AndroidLogo } from 'components/Icons/AndroidLogo'
-import { AppleLogo } from 'components/Icons/AppleLogo'
-import { useAccount } from 'hooks/useAccount'
-import { usePasskeyAuthWithHelpModal } from 'hooks/usePasskeyAuthWithHelpModal'
+import { useMutation } from '@tanstack/react-query'
 import { useCallback, useEffect, useState } from 'react'
-import { LifeBuoy } from 'react-feather'
 import { useTranslation } from 'react-i18next'
-import { ClickableTamaguiStyle } from 'theme/components/styles'
 import { Anchor, Button, Flex, Loader, Text, TouchableArea, useSporeColors } from 'ui/src'
+import { Buoy } from 'ui/src/components/icons/Buoy'
 import { Passkey } from 'ui/src/components/icons/Passkey'
 import { Trash } from 'ui/src/components/icons/Trash'
 import { Windows } from 'ui/src/components/icons/Windows'
@@ -22,17 +11,32 @@ import { UseSporeColorsReturn } from 'ui/src/hooks/useSporeColors'
 import { iconSizes } from 'ui/src/theme'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
 import {
-  Action,
   Authenticator,
   AuthenticatorNameType,
   authenticateWithPasskey,
+  getPrivyEnums,
   listAuthenticators,
 } from 'uniswap/src/features/passkey/embeddedWallet'
 import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import i18n from 'uniswap/src/i18n'
+import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { isMobileWeb } from 'utilities/src/platform'
 import { useEvent } from 'utilities/src/react/hooks'
+import { AddPasskeyMenu } from '~/components/AccountDrawer/PasskeyMenu/AddPasskeyMenu'
+import { DeletePasskeyMenu } from '~/components/AccountDrawer/PasskeyMenu/DeletePasskeyMenu'
+import { DeletePasskeySpeedbumpMenu } from '~/components/AccountDrawer/PasskeyMenu/DeletePasskeySpeedbumpMenu'
+import { PasskeyMenuModalState } from '~/components/AccountDrawer/PasskeyMenu/PasskeyMenuModal'
+import { VerifyPasskeyMenu } from '~/components/AccountDrawer/PasskeyMenu/VerifyPasskeyMenu'
+import { SlideOutMenu } from '~/components/AccountDrawer/SlideOutMenu'
+import { MenuColumn } from '~/components/AccountDrawer/shared'
+import { AndroidLogo } from '~/components/Icons/AndroidLogo'
+import { AppleLogo } from '~/components/Icons/AppleLogo'
+import { usePasskeyAuthWithHelpModal } from '~/hooks/usePasskeyAuthWithHelpModal'
+import { useEmbeddedWalletState } from '~/state/embeddedWallet/store'
+import { ClickableTamaguiStyle } from '~/theme/components/styles'
+
+type AuthenticatorNameTypeValues = Awaited<ReturnType<typeof getPrivyEnums>>['AuthenticatorNameType']
 
 enum AuthenticatorProvider {
   Google = 'Chrome',
@@ -76,26 +80,32 @@ function getProviderLabel(provider: AuthenticatorProvider, count?: number) {
   }
 }
 
-function getProvider(providerName: AuthenticatorNameType): AuthenticatorProvider {
+function getProvider(
+  providerName: AuthenticatorNameType,
+  nameType: AuthenticatorNameTypeValues,
+): AuthenticatorProvider {
   switch (providerName) {
-    case AuthenticatorNameType.GOOGLE_PASSWORD_MANAGER:
+    case nameType.GOOGLE_PASSWORD_MANAGER:
       return AuthenticatorProvider.Android
-    case AuthenticatorNameType.CHROME_MAC:
+    case nameType.CHROME_MAC:
       return AuthenticatorProvider.Google
-    case AuthenticatorNameType.ICLOUD_KEYCHAIN:
-    case AuthenticatorNameType.ICLOUD_KEYCHAIN_MANAGED:
+    case nameType.ICLOUD_KEYCHAIN:
+    case nameType.ICLOUD_KEYCHAIN_MANAGED:
       return AuthenticatorProvider.Apple
-    case AuthenticatorNameType.WINDOWS_HELLO:
+    case nameType.WINDOWS_HELLO:
       return AuthenticatorProvider.Microsoft
     default:
       return AuthenticatorProvider.Other
   }
 }
 
-function convertAuthenticatorsToDisplay(authenticators: Authenticator[]): AuthenticatorDisplay[] {
+function convertAuthenticatorsToDisplay(
+  authenticators: Authenticator[],
+  nameType: AuthenticatorNameTypeValues,
+): AuthenticatorDisplay[] {
   let otherPasskeyCount = 1
   return authenticators.map((authenticator) => {
-    const provider = getProvider(authenticator.providerName)
+    const provider = getProvider(authenticator.providerName, nameType)
     const isOtherPasskey = provider === AuthenticatorProvider.Other
     const label = getProviderLabel(provider, otherPasskeyCount)
     isOtherPasskey && otherPasskeyCount++
@@ -117,7 +127,8 @@ const AuthenticatorRow = ({
   const { t } = useTranslation()
   const colors = useSporeColors()
   const [showDeleteIcon, setShowDeleteIcon] = useState(false)
-  const createdAtDate = authenticator.creationTime?.toDate()
+  const isDeleteIconVisible = showDeleteIcon || isMobileWeb
+  const createdAtDate = authenticator.createdAt ? new Date(Number(authenticator.createdAt)) : undefined
   const isValidDate = createdAtDate instanceof Date && !isNaN(createdAtDate.getTime())
   const formattedDate = createdAtDate?.toLocaleDateString('en-US', {
     month: 'short',
@@ -130,9 +141,9 @@ const AuthenticatorRow = ({
       row
       gap="$gap12"
       alignItems="center"
-      onHoverIn={() => setShowDeleteIcon(true)}
-      onHoverOut={() => setShowDeleteIcon(false)}
       pb="$padding16"
+      onMouseEnter={() => setShowDeleteIcon(true)}
+      onMouseLeave={() => setShowDeleteIcon(false)}
     >
       <Flex
         height={40}
@@ -152,18 +163,19 @@ const AuthenticatorRow = ({
           </Text>
         )}
       </Flex>
-      {(showDeleteIcon || isMobileWeb) && (
-        <Trace logPress element={ElementName.DeletePasskey}>
-          <TouchableArea
-            ml="auto"
-            onPress={() => {
-              handleDeletePasskey(authenticator)
-            }}
-          >
-            <Trash color="$statusCritical" size={24} />
-          </TouchableArea>
-        </Trace>
-      )}
+      <Trace logPress element={ElementName.DeletePasskey}>
+        <TouchableArea
+          testID={TestID.DeletePasskey}
+          ml="auto"
+          opacity={isDeleteIconVisible ? 1 : 0}
+          pointerEvents={isDeleteIconVisible ? 'auto' : 'none'}
+          tabIndex={isDeleteIconVisible ? 0 : -1}
+          aria-hidden={!isDeleteIconVisible}
+          onPress={isDeleteIconVisible ? () => handleDeletePasskey(authenticator) : undefined}
+        >
+          <Trash color="$statusCritical" size={24} />
+        </TouchableArea>
+      </Trace>
     </Flex>
   )
 }
@@ -182,9 +194,9 @@ function LoadingPasskeyRow() {
 
 export default function PasskeyMenu({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation()
-  const colors = useSporeColors()
-  const account = useAccount()
+  const { walletId } = useEmbeddedWalletState()
   const [authenticators, setAuthenticators] = useState<AuthenticatorDisplay[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [passkeyMenuModalState, setPasskeyMenuModalState] = useState<PasskeyMenuModalState | undefined>(undefined)
   const [selectedAuthenticator, setSelectedAuthenticator] = useState<AuthenticatorDisplay | undefined>(undefined)
   const [credential, setCredential] = useState<string | undefined>(undefined)
@@ -192,40 +204,59 @@ export default function PasskeyMenu({ onClose }: { onClose: () => void }) {
   const [actionAfterVerify, setActionAfterVerify] = useState<
     PasskeyMenuModalState.ADD_PASSKEY | PasskeyMenuModalState.DELETE_PASSKEY_SPEEDBUMP | undefined
   >(undefined)
-
-  const { mutate: refreshAuthenticators, isPending: areAuthenticatorsLoading } = usePasskeyAuthWithHelpModal(
-    async () => {
-      const authenticators = await listAuthenticators(account.address)
-      const authenticatorsDisplay = convertAuthenticatorsToDisplay(authenticators)
+  const { mutate: refreshAuthenticatorsMutation } = useMutation({
+    mutationKey: ['listAuthenticators', walletId],
+    mutationFn: async () => {
+      const [authenticators, { AuthenticatorNameType: authenticatorNameType }] = await Promise.all([
+        listAuthenticators(walletId ?? undefined),
+        getPrivyEnums(),
+      ])
+      const authenticatorsDisplay = convertAuthenticatorsToDisplay(authenticators, authenticatorNameType)
       // Sort by creation time, oldest to newest
       authenticatorsDisplay.sort((a, b) => {
-        const aDate = a.creationTime?.toDate()
-        const bDate = b.creationTime?.toDate()
-        if (!aDate || !bDate) {
+        try {
+          const aTime = a.createdAt ? Number(a.createdAt) : 0
+          const bTime = b.createdAt ? Number(b.createdAt) : 0
+          if (!aTime || !bTime || isNaN(aTime) || isNaN(bTime)) {
+            return 0
+          }
+          return aTime - bTime
+        } catch {
           return 0
         }
-        return aDate.getTime() - bDate.getTime()
       })
       return authenticatorsDisplay
     },
-    {
-      onSuccess: (authenticatorsDisplay) => {
-        setAuthenticators(authenticatorsDisplay)
-      },
+    onSuccess: (authenticatorsDisplay) => {
+      setAuthenticators(authenticatorsDisplay)
+      setIsLoading(false)
     },
-  )
+    onError: () => {
+      setIsLoading(false)
+    },
+  })
+
+  const refreshAuthenticators = useEvent(() => {
+    setIsLoading(true)
+    refreshAuthenticatorsMutation(undefined)
+  })
 
   const { mutate: verifyPasskey } = usePasskeyAuthWithHelpModal(
     async () => {
+      const { Action } = await getPrivyEnums()
       return await authenticateWithPasskey(
         actionAfterVerify === PasskeyMenuModalState.ADD_PASSKEY
           ? Action.REGISTER_NEW_AUTHENTICATION_TYPES
-          : Action.DELETE_RECORD,
+          : Action.DELETE_AUTHENTICATOR,
+        {
+          walletId: walletId ?? undefined,
+          authenticatorId: selectedAuthenticator?.credentialId,
+        },
       )
     },
     {
-      onSuccess: (credential) => {
-        setCredential(credential)
+      onSuccess: (existingCredential) => {
+        setCredential(existingCredential)
         setPasskeyMenuModalState(actionAfterVerify)
         setActionAfterVerify(undefined)
       },
@@ -233,8 +264,12 @@ export default function PasskeyMenu({ onClose }: { onClose: () => void }) {
   )
 
   useEffect(() => {
+    if (!walletId) {
+      setIsLoading(false)
+      return
+    }
     refreshAuthenticators()
-  }, [refreshAuthenticators])
+  }, [walletId, refreshAuthenticators])
 
   const handleCloseDrawer = useCallback(() => {
     if (passkeyMenuModalState !== undefined && isMobileWeb) {
@@ -291,7 +326,7 @@ export default function PasskeyMenu({ onClose }: { onClose: () => void }) {
               href={uniswapUrls.helpArticleUrls.passkeysInfo}
               {...ClickableTamaguiStyle}
             >
-              <LifeBuoy size={20} color={colors.neutral2.val} />
+              <Buoy size="$icon.20" color="$neutral2" />
             </Anchor>
           </Trace>
         }
@@ -324,11 +359,13 @@ export default function PasskeyMenu({ onClose }: { onClose: () => void }) {
         )}
         {passkeyMenuModalState === undefined || !isMobileWeb ? (
           <MenuColumn gap="12px">
-            {!areAuthenticatorsLoading && authenticators.length ? (
+            {isLoading ? (
+              Array.from({ length: 3 }).map((_, index) => <LoadingPasskeyRow key={index} />)
+            ) : authenticators.length ? (
               <>
                 {authenticators.map((authenticator) => (
                   <AuthenticatorRow
-                    key={authenticator.id}
+                    key={authenticator.credentialId}
                     authenticator={authenticator}
                     handleDeletePasskey={handleDeletePasskey}
                   />
@@ -343,9 +380,7 @@ export default function PasskeyMenu({ onClose }: { onClose: () => void }) {
                   </Trace>
                 </Flex>
               </>
-            ) : (
-              Array.from({ length: 3 }).map((_, index) => <LoadingPasskeyRow key={index} />)
-            )}
+            ) : null}
           </MenuColumn>
         ) : null}
       </SlideOutMenu>

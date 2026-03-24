@@ -23,6 +23,74 @@ interface UseTokenDetailsCTAVariantParams {
   onPressSwap: (currencyField: CurrencyField) => void
 }
 
+interface MultichainBuyVariant {
+  title?: string
+  icon?: GeneratedIcon
+  onPress: () => void
+}
+
+interface UseMultichainBuyVariantParams {
+  hasTokenBalance: boolean
+  isNativeCurrency: boolean
+  nativeFiatOnRampCurrency: unknown | undefined
+  fiatOnRampCurrency: unknown | undefined
+  bridgingTokenWithHighestBalance: unknown | undefined
+  hasZeroNativeBalance: boolean | undefined
+  tokenSymbol: string | undefined
+  onPressBuyWithCash: () => void
+  onPressGet: () => void
+  onPressBuy: () => void
+}
+
+/** Determines the Buy button title and handler for the multichain TDP variant. */
+export function useMultichainBuyVariant({
+  hasTokenBalance,
+  isNativeCurrency,
+  nativeFiatOnRampCurrency,
+  fiatOnRampCurrency,
+  bridgingTokenWithHighestBalance,
+  hasZeroNativeBalance,
+  tokenSymbol,
+  onPressBuyWithCash,
+  onPressGet,
+  onPressBuy,
+}: UseMultichainBuyVariantParams): MultichainBuyVariant {
+  const { t } = useTranslation()
+
+  return useMemo(() => {
+    if (hasTokenBalance) {
+      return { onPress: onPressBuy }
+    }
+
+    const isOnrampCurrency = (isNativeCurrency && nativeFiatOnRampCurrency) || fiatOnRampCurrency
+
+    if (isOnrampCurrency && !bridgingTokenWithHighestBalance) {
+      return { title: t('fiatOnRamp.action.buyWithCash'), icon: Bank, onPress: onPressBuyWithCash }
+    }
+
+    if (hasZeroNativeBalance) {
+      return {
+        title: tokenSymbol ? t('tdp.button.getToken', { tokenSymbol }) : t('tdp.button.getTokenFallback'),
+        onPress: onPressGet,
+      }
+    }
+
+    return { onPress: onPressBuy }
+  }, [
+    hasTokenBalance,
+    isNativeCurrency,
+    fiatOnRampCurrency,
+    nativeFiatOnRampCurrency,
+    bridgingTokenWithHighestBalance,
+    hasZeroNativeBalance,
+    tokenSymbol,
+    t,
+    onPressBuyWithCash,
+    onPressGet,
+    onPressBuy,
+  ])
+}
+
 export function useTokenDetailsCTAVariant({
   hasTokenBalance,
   isNativeCurrency,

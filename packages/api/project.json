@@ -3,7 +3,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "packages/api/src",
   "projectType": "library",
-  "tags": [],
+  "tags": ["scope:api", "type:lib"],
   "targets": {
     "lint:biome": {},
     "lint:biome:fix": {},
@@ -12,20 +12,18 @@
     "lint": {},
     "lint:fix": {},
     "typecheck": {},
+    "typecheck:tsgo": {},
     "prepare": {
-      "executor": "nx:noop",
-      "dependsOn": ["graphql:generate", "tradingapi:generate"],
-      "parallel": false,
-      "cache": false
-    },
-    "check:deps:usage": {
-      "command": "depcheck",
+      "executor": "nx:run-commands",
       "options": {
-        "cwd": "{projectRoot}"
+        "commands": ["nx graphql:generate api", "nx tradingapi:generate api"],
+        "parallel": false
       },
-      "inputs": ["{projectRoot}/package.json", "{projectRoot}/.depcheckrc"],
-      "cache": true
+      "cache": true,
+      "inputs": [],
+      "outputs": []
     },
+    "check:deps:usage": {},
     "test": {
       "command": "vitest run",
       "options": {
@@ -39,7 +37,7 @@
       }
     },
     "tradingapi:schema": {
-      "command": "curl https://api.uniswap.org/v2/trade/api.json -o ./src/clients/trading/api.json",
+      "command": "curl https://trading-api-labs.interface.gateway.uniswap.org/v1/api.json -o ./src/clients/trading/api.json",
       "options": {
         "cwd": "{projectRoot}"
       }
@@ -60,18 +58,20 @@
       },
       "cache": true,
       "inputs": [
-        "{projectRoot}/src/clients/trading/__generated__",
         "{projectRoot}/scripts/modifyTradingApiTypes.mts",
         "{projectRoot}/src/clients/trading/types.ts",
         {
           "runtime": "node -v"
+        },
+        {
+          "dependentTasksOutputFiles": "**/*.ts"
         }
       ],
       "outputs": ["{projectRoot}/src/clients/trading/__generated__/models"],
       "dependsOn": ["tradingapi:generate:openapi"]
     },
     "graphql:schema": {
-      "command": "get-graphql-schema https://api.uniswap.org/v1/graphql -h Origin=https://app.uniswap.org > ./src/clients/graphql/schema.graphql",
+      "command": "gh auth status >/dev/null 2>&1 || { echo 'Error: gh CLI is not installed or not authenticated. Run `gh auth login` first.' >&2; exit 1; } && SCHEMA=$(gh api repos/Uniswap/data-api-graphql/contents/graphql/schema.graphql --jq '.content') || { echo 'Error: Failed to fetch schema. Ensure you have access to Uniswap/data-api-graphql.' >&2; exit 1; } && echo '# To update this file, run `bun api graphql:schema`' > ./src/clients/graphql/schema.graphql && echo \"$SCHEMA\" | base64 -d | grep -v '^#' >> ./src/clients/graphql/schema.graphql",
       "options": {
         "cwd": "{projectRoot}"
       }

@@ -5,18 +5,13 @@ import type { JsonRpcSigner, Web3Provider } from '@ethersproject/providers'
 import { TradeType } from '@uniswap/sdk-core'
 import { FetchError, TradingApi } from '@universe/api'
 import { BlockedAsyncSubmissionChainIdsConfigKey, DynamicConfigs, getDynamicConfigValue } from '@universe/gating'
-import { wagmiConfig } from 'components/Web3Provider/wagmiConfig'
-import { clientToProvider } from 'hooks/useEthersProvider'
 import ms from 'ms'
 import type { Action } from 'redux'
-import { getRoutingForTransaction } from 'state/activity/utils'
-import type { TransactionDetails, TransactionInfo, VitalTxFields } from 'state/transactions/types'
-import { isPendingTx } from 'state/transactions/utils'
-import type { InterfaceState } from 'state/webReducer'
 import type { SagaGenerator } from 'typed-redux-saga'
 import { call, cancel, delay, fork, put, race, select, spawn, take } from 'typed-redux-saga'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { isL2ChainId, isUniverseChainId } from 'uniswap/src/features/chains/utils'
+import { AppNotification, AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
 import {
   ApprovalEditedInWalletError,
   HandledTransactionInterrupt,
@@ -27,11 +22,13 @@ import {
 import {
   addTransaction,
   finalizeTransaction,
+  interfaceApplyTransactionHashToBatch,
   interfaceUpdateTransactionInfo,
+  type TransactionsState,
 } from 'uniswap/src/features/transactions/slice'
-import type { TokenApprovalTransactionStep } from 'uniswap/src/features/transactions/steps/approve'
+import { TokenApprovalTransactionStep } from 'uniswap/src/features/transactions/steps/approve'
 import type { Permit2TransactionStep } from 'uniswap/src/features/transactions/steps/permit2Transaction'
-import type { TokenRevocationTransactionStep } from 'uniswap/src/features/transactions/steps/revoke'
+import { TokenRevocationTransactionStep } from 'uniswap/src/features/transactions/steps/revoke'
 import type {
   HandleApprovalStepParams,
   HandleOnChainPermit2TransactionStep,
@@ -56,6 +53,7 @@ import type {
   ExactOutputSwapTransactionInfo,
   InterfaceTransactionDetails,
   Permit2ApproveTransactionInfo,
+  PlanSwapTransactionInfoFields,
 } from 'uniswap/src/features/transactions/types/transactionDetails'
 import {
   TransactionOriginType,
@@ -68,11 +66,21 @@ import { parseERC20ApproveCalldata } from 'uniswap/src/utils/approvals'
 import { currencyId } from 'uniswap/src/utils/currencyId'
 import { interruptTransactionFlow } from 'uniswap/src/utils/saga'
 import { HexString, isValidHexString } from 'utilities/src/addresses/hex'
+import { logger } from 'utilities/src/logger/logger'
 import { noop } from 'utilities/src/react/noop'
-import { signTypedData } from 'utils/signing'
-import { didUserReject } from 'utils/swapErrorToUserReadableMessage'
+import { hexlifyTransaction } from 'utilities/src/transactions/hexlifyTransaction'
 import type { Transaction } from 'viem'
 import { getConnectorClient, getTransaction } from 'wagmi/actions'
+import { popupRegistry } from '~/components/Popups/registry'
+import { PopupType } from '~/components/Popups/types'
+import { wagmiConfig } from '~/components/Web3Provider/wagmiConfig'
+import { DEFAULT_TXN_DISMISS_MS } from '~/constants/misc'
+import { clientToProvider } from '~/hooks/useEthersProvider'
+import { getRoutingForTransaction } from '~/state/activity/utils'
+import type { TransactionDetails, TransactionInfo, VitalTxFields } from '~/state/transactions/types'
+import { isPendingTx } from '~/state/transactions/utils'
+import { signTypedData } from '~/utils/signing'
+import { didUserReject } from '~/utils/swapErrorToUserReadableMessage'
 
 export enum TransactionBreadcrumbStatus {
   Initiated = 'initiated',
@@ -117,6 +125,7 @@ export function* handleOnChainStep<T extends OnChainTransactionStep>(params: Han
     ignoreInterrupt,
     onModification,
     shouldWaitForConfirmation,
+    planId,
   } = params
   const { chainId } = step.txRequest
 
@@ -190,21 +199,23 @@ export function* handleOnChainStep<T extends OnChainTransactionStep>(params: Han
     const { hash, data, nonce } = yield* call(submitTransaction, params)
     transaction = createTransaction(hash)
 
-    // Add transaction to local state to start polling for status
-    yield* put(addTransaction(transaction))
-
-    if (step.txRequest.data !== data && onModification) {
-      yield* call(onModification, { hash, data, nonce })
+    // For plans, individual tx state and validation is handled by the backend
+    if (!planId) {
+      yield* put(addTransaction(transaction))
+      if (step.txRequest.data !== data && onModification) {
+        yield* call(onModification, { hash, data, nonce })
+      }
     }
   } else {
     const hash = yield* call(submitTransactionAsync, params)
     transaction = createTransaction(hash)
 
-    // Add transaction to local state to start polling for status
-    yield* put(addTransaction(transaction))
-
-    if (onModification) {
-      yield* spawn(handleOnModificationAsync, { onModification, hash, step })
+    // For plans, individual tx state and validation is handled by the backend
+    if (!planId) {
+      yield* put(addTransaction(transaction))
+      if (onModification) {
+        yield* spawn(handleOnModificationAsync, { onModification, hash, step })
+      }
     }
   }
 
@@ -285,8 +296,10 @@ function* submitTransactionAsync(params: HandleOnChainStepParams): SagaGenerator
   const signer = yield* call(getSigner, address)
 
   try {
+    const hexlifiedTransactionRequest = hexlifyTransaction(step.txRequest)
+
     const response = yield* call([signer.provider, 'send'], 'eth_sendTransaction', [
-      { from: address, ...step.txRequest },
+      { from: address, ...hexlifiedTransactionRequest },
     ])
 
     if (!isValidHexString(response)) {
@@ -376,7 +389,7 @@ function getApprovalTransactionInfo(
 ): ApproveTransactionInfo {
   return {
     type: TransactionType.Approve,
-    tokenAddress: approvalStep.token.address,
+    tokenAddress: approvalStep.tokenAddress,
     spender: approvalStep.spender,
     approvalAmount: approvalStep.amount,
   }
@@ -429,7 +442,9 @@ function* findDuplicativeTx({
     throw new Error(`Invalid chainId: ${chainId} is not a valid UniverseChainId`)
   }
 
-  const transactionMap = yield* select((state: InterfaceState) => state.transactions[address]?.[chainId] ?? {})
+  const transactionMap = yield* select(
+    (state: { transactions: TransactionsState }) => state.transactions[address]?.[chainId] ?? {},
+  )
 
   const transactionsForAccount = Object.values(transactionMap)
     .filter((tx) =>
@@ -476,7 +491,7 @@ export function* watchForInterruption(ignoreInterrupt = false) {
 function* waitForTransaction(hash: string | undefined, step: TransactionStep) {
   // If no hash is provided, there's nothing to wait for (e.g., cancelled/expired orders)
   if (!hash) {
-    return
+    return undefined
   }
 
   while (true) {
@@ -485,12 +500,28 @@ function* waitForTransaction(hash: string | undefined, step: TransactionStep) {
     // UniswapX orders use a different flow (handleUniswapXSignatureStep) and don't call this function.
     if (payload.id === hash) {
       if (payload.status === TransactionStatus.Success) {
-        return
+        return payload
       } else {
         throw new TransactionStepFailedError({ message: `${step.type} failed on-chain`, step })
       }
     }
   }
+}
+
+/** Returns the hash of a batched transaction once confirmed by the wallet, else returns undefined if the batch fails. */
+export function* waitForBatch(batchId: string, step: TransactionStep): SagaGenerator<string | undefined> {
+  const { appliedTransactionHash, finalized } = yield* race({
+    appliedTransactionHash: take<ReturnType<typeof interfaceApplyTransactionHashToBatch>>(
+      interfaceApplyTransactionHashToBatch.type,
+    ),
+    finalized: waitForTransaction(batchId, step),
+  })
+
+  if (appliedTransactionHash) {
+    return appliedTransactionHash.payload.hash
+  }
+
+  return finalized?.hash
 }
 
 async function getProvider(): Promise<Web3Provider> {
@@ -511,28 +542,28 @@ export async function getSigner(account: string): Promise<JsonRpcSigner> {
 type SwapInfo = ExactInputSwapTransactionInfo | ExactOutputSwapTransactionInfo
 export function getSwapTransactionInfo(params: {
   trade: ClassicTrade | BridgeTrade | SolanaTrade | ChainedActionTrade
-  isFinalStep?: boolean
   swapStartTimestamp?: number
+  planAnalytics?: PlanSwapTransactionInfoFields
 }): SwapInfo | BridgeTransactionInfo
 export function getSwapTransactionInfo(params: {
   trade: UniswapXTrade
-  isFinalStep?: boolean
   swapStartTimestamp?: number
+  planAnalytics?: PlanSwapTransactionInfoFields
 }): SwapInfo & { isUniswapXOrder: true }
 export function getSwapTransactionInfo({
   trade,
-  isFinalStep,
   swapStartTimestamp,
+  planAnalytics,
 }: {
   trade: ClassicTrade | BridgeTrade | UniswapXTrade | SolanaTrade | ChainedActionTrade
-  isFinalStep?: boolean
   swapStartTimestamp?: number
+  planAnalytics?: PlanSwapTransactionInfoFields
 }): SwapInfo | BridgeTransactionInfo {
   const commonAttributes = {
     inputCurrencyId: currencyId(trade.inputAmount.currency),
     outputCurrencyId: currencyId(trade.outputAmount.currency),
-    isFinalStep: isFinalStep ?? true, // If no `isFinalStep` is provided, we assume it's not a multi-step transaction and default to `true`
     swapStartTimestamp,
+    ...planAnalytics,
   }
 
   if (trade.routing === TradingApi.Routing.BRIDGE) {
@@ -589,10 +620,12 @@ export function getDisplayableError({
   error,
   step,
   flow = 'swap',
+  isPlanStep = false,
 }: {
   error: Error
   step?: TransactionStep
   flow?: string
+  isPlanStep?: boolean
 }): Error | undefined {
   const userRejected = didUserReject(error)
   // If the user rejects a request, or it's a known interruption e.g. trade update, we handle gracefully / do not show error UI
@@ -615,8 +648,42 @@ export function getDisplayableError({
       step,
       isBackendRejection,
       originalError: error,
+      isPlanStep,
     })
   } else {
     return error
   }
+}
+
+export function* sendToast(appNotification: AppNotification, planId: string): SagaGenerator<void> {
+  yield* call(() => {
+    switch (appNotification.type) {
+      case AppNotificationType.SwapPending: {
+        popupRegistry.addPopup(
+          {
+            type: PopupType.Plan,
+            planId,
+          },
+          planId,
+          DEFAULT_TXN_DISMISS_MS,
+        )
+        break
+      }
+      case AppNotificationType.Transaction: {
+        popupRegistry.addPopup(
+          {
+            type: PopupType.Plan,
+            planId,
+          },
+          planId,
+          DEFAULT_TXN_DISMISS_MS,
+        )
+        break
+      }
+      default: {
+        logger.warn('swapSaga', 'sendToast', 'Unknown app notification type', appNotification)
+        break
+      }
+    }
+  })
 }

@@ -1,10 +1,10 @@
-import { GenericPasskeyMenuModal, PasskeyMenuModalState } from 'components/AccountDrawer/PasskeyMenu/PasskeyMenuModal'
 import { Dispatch, SetStateAction } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Flex, Text } from 'ui/src'
 import WarningIcon from 'uniswap/src/components/warnings/WarningIcon'
 import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
+import { GenericPasskeyMenuModal, PasskeyMenuModalState } from '~/components/AccountDrawer/PasskeyMenu/PasskeyMenuModal'
 
 export function DeletePasskeySpeedbumpMenu({
   show,
@@ -34,7 +34,7 @@ export function DeletePasskeySpeedbumpMenu({
           borderRadius="$rounded20"
           p="$spacing12"
           borderColor="$surface3"
-          borderWidth={1}
+          borderWidth="$spacing1"
           gap="$gap4"
         >
           <Flex row gap="$gap12">

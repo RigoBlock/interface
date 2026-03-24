@@ -1,6 +1,7 @@
 import { NetworkStatus, QueryHookOptions } from '@apollo/client'
 import { PartialMessage } from '@bufbuild/protobuf'
 import { FiatOnRampParams } from '@uniswap/client-data-api/dist/data/v1/api_pb'
+import { TransactionTypeFilter } from '@uniswap/client-data-api/dist/data/v1/types_pb'
 import { GraphQLApi } from '@universe/api'
 import isEqual from 'lodash/isEqual'
 import { useCallback, useMemo, useRef } from 'react'
@@ -10,6 +11,7 @@ import { ActivityItem } from 'uniswap/src/components/activity/generateActivityIt
 import { isLoadingItem, isSectionHeader, LoadingItem } from 'uniswap/src/components/activity/utils'
 import { formatTransactionsByDate } from 'uniswap/src/features/activity/formatTransactionsByDate'
 import { useMergeLocalAndRemoteTransactions } from 'uniswap/src/features/activity/hooks/useMergeLocalAndRemoteTransactions'
+import { useSyncRemotePlans } from 'uniswap/src/features/activity/hooks/useSyncRemotePlans'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useListTransactions } from 'uniswap/src/features/dataApi/listTransactions/listTransactions'
 import { PaginationControls } from 'uniswap/src/features/dataApi/types'
@@ -45,6 +47,7 @@ interface UseFormattedTransactionDataOptions {
   pageSize?: number
   skip?: boolean
   chainIds?: UniverseChainId[]
+  filterTransactionTypes?: TransactionTypeFilter[]
 }
 
 type FormattedTransactionInputs = UseFormattedTransactionDataOptions &
@@ -55,6 +58,7 @@ type FormattedTransactionInputs = UseFormattedTransactionDataOptions &
 export interface FormattedTransactionDataResult extends PaginationControls {
   hasData: boolean
   isLoading: boolean
+  isFetching: boolean
   isError: Error | undefined
   sectionData: ActivityItem[] | undefined
   keyExtractor: (item: ActivityItem) => string
@@ -73,6 +77,7 @@ export function useFormattedTransactionDataForActivity({
   pageSize,
   skip,
   chainIds,
+  filterTransactionTypes,
   showLoadingOnRefetch = false,
   ...queryOptions
 }: FormattedTransactionInputs): FormattedTransactionDataResult {
@@ -100,6 +105,7 @@ export function useFormattedTransactionDataForActivity({
     nftVisibility,
     skip,
     chainIds,
+    filterTransactionTypes,
     ...queryOptions,
   })
 
@@ -108,13 +114,15 @@ export function useFormattedTransactionDataForActivity({
     [evmAddress, svmAddress],
   )
 
+  useSyncRemotePlans(formattedTransactions)
+
   const transactions = useMergeLocalAndRemoteTransactions({
     evmAddress,
     svmAddress,
     remoteTransactions: formattedTransactions,
   })
 
-  // TODO(PORT-429): update to only TradingApi.Routing.DUTCH_V2 once limit orders can be excluded from REST query
+  // TODO(CONS-722): update to only TradingApi.Routing.DUTCH_V2 once limit orders can be excluded from REST query
   const transactionsWithOutLimitOrders = useMemo(() => {
     // Filter out limit orders
     const withoutLimitOrders = transactions?.filter((tx) => !isLimitOrder(tx))
@@ -178,6 +186,7 @@ export function useFormattedTransactionDataForActivity({
     hasData,
     isError: error ?? undefined,
     isLoading: showLoading,
+    isFetching,
     keyExtractor,
     fetchNextPage,
     hasNextPage: hasNextPage && !hasReachedLimit(transactions),

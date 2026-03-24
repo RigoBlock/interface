@@ -62,6 +62,7 @@ export const OPTIMISM_CHAIN_INFO = {
     logo: ETH_LOGO,
   },
   networkLayer: NetworkLayer.L2,
+  blockTimeMs: 2000,
   pendingTransactionsRetryOptions: DEFAULT_RETRY_OPTIONS,
   rpcUrls: {
     [RPCType.Public]: { http: [getQuicknodeEndpointUrl(UniverseChainId.Optimism)] },
@@ -83,4 +84,5 @@ export const OPTIMISM_CHAIN_INFO = {
   },
   gasConfig: GENERIC_L2_GAS_CONFIG,
   tradingApiPollingIntervalMs: 200,
+  acrossProtocolAddress: '0x6f26Bf09B1C792e3228e5467807a900A503c0281',
 } as const satisfies UniverseChainInfo

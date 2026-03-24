@@ -1,17 +1,17 @@
-import { expect, getTest } from 'playwright/fixtures'
-import { stubTradingApiEndpoint } from 'playwright/fixtures/tradingApi'
-import { Mocks } from 'playwright/mocks/mocks'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
+import { expect, getTest } from '~/playwright/fixtures'
+import { stubTradingApiEndpoint } from '~/playwright/fixtures/tradingApi'
+import { Mocks } from '~/playwright/mocks/mocks'
 
 const test = getTest()
 
 test.describe(
   'Buy Crypto Form',
   {
-    tag: '@team:apps-growth',
+    tag: '@team:apps-swap',
     annotation: [
-      { type: 'DD_TAGS[team]', description: 'apps-growth' },
+      { type: 'DD_TAGS[team]', description: 'apps-swap' },
       { type: 'DD_TAGS[test.type]', description: 'web-e2e' },
     ],
   },

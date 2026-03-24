@@ -1,60 +1,43 @@
 import type { BottomSheetView } from '@gorhom/bottom-sheet'
 import { Currency } from '@uniswap/sdk-core'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-import { hasStringAsync } from 'expo-clipboard'
 import { ComponentProps, memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Flex, ModalCloseIcon, Text, useMedia, useScrollbarStyles, useSporeColors } from 'ui/src'
 import { InfoCircleFilled } from 'ui/src/components/icons/InfoCircleFilled'
 import { spacing, zIndexes } from 'ui/src/theme'
 import PasteButton from 'uniswap/src/components/buttons/PasteButton'
-import { TokenSelectorOption } from 'uniswap/src/components/lists/items/types'
-import { type OnchainItemSection, OnchainItemSectionName } from 'uniswap/src/components/lists/OnchainItemList/types'
 import { useBottomSheetContext } from 'uniswap/src/components/modals/BottomSheetContext'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { NetworkFilter } from 'uniswap/src/components/network/NetworkFilter'
-import { TokenSelectorEmptySearchList } from 'uniswap/src/components/TokenSelector/lists/TokenSelectorEmptySearchList'
-import { TokenSelectorSearchResultsList } from 'uniswap/src/components/TokenSelector/lists/TokenSelectorSearchResultsList'
-import { TokenSelectorSendList } from 'uniswap/src/components/TokenSelector/lists/TokenSelectorSendList'
-import { TokenSelectorSwapList } from 'uniswap/src/components/TokenSelector/lists/TokenSelectorSwapList'
-import { TokenSelectorFlow } from 'uniswap/src/components/TokenSelector/types'
+import { NetworkFilterV2 } from 'uniswap/src/components/network/NetworkFilterV2/NetworkFilterV2'
+import type { TieredNetworkOptions } from 'uniswap/src/components/network/NetworkFilterV2/types'
+import { useNetworkSelectorOptions } from 'uniswap/src/components/network/NetworkFilterV2/useNetworkSelectorOptions'
+import { CrosschainSwapsPromoBanner } from 'uniswap/src/components/TokenSelector/CrosschainSwapsPromoBanner'
+import { useClipboardCheck } from 'uniswap/src/components/TokenSelector/hooks/useClipboardCheck'
+import { useTokenSelectionHandler } from 'uniswap/src/components/TokenSelector/hooks/useTokenSelectionHandler'
+import { useTokenSelectorList } from 'uniswap/src/components/TokenSelector/hooks/useTokenSelectorList'
+import { TokenSelectorFlow, TokenSelectorVariation } from 'uniswap/src/components/TokenSelector/types'
+import { UnsupportedChainedActionsBanner } from 'uniswap/src/components/TokenSelector/UnsupportedChainedActionsBanner'
 import { flowToModalName } from 'uniswap/src/components/TokenSelector/utils'
 import { useUniswapContext } from 'uniswap/src/contexts/UniswapContext'
 import { TradeableAsset } from 'uniswap/src/entities/assets'
+import type { AddressGroup } from 'uniswap/src/features/accounts/store/types/AccountsState'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
-import { SearchContext } from 'uniswap/src/features/search/SearchModal/analytics/SearchContext'
 import { useFilterCallbacks } from 'uniswap/src/features/search/SearchModal/hooks/useFilterCallbacks'
 import { SearchTextInput } from 'uniswap/src/features/search/SearchTextInput'
-import {
-  ElementName,
-  InterfaceEventName,
-  ModalName,
-  SectionName,
-  UniswapEventName,
-} from 'uniswap/src/features/telemetry/constants'
-import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
+import { InterfaceEventName, ModalName, SectionName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
+import { isChainSupportedForChainedActions } from 'uniswap/src/features/transactions/swap/utils/chainedActions'
 import { CurrencyField } from 'uniswap/src/types/currency'
-import { getClipboard } from 'uniswap/src/utils/clipboard'
-import { currencyAddress } from 'uniswap/src/utils/currencyId'
+import { getClipboard } from 'utilities/src/clipboard/clipboard'
 import { dismissNativeKeyboard } from 'utilities/src/device/keyboard/dismissNativeKeyboard'
 import { isExtensionApp, isMobileApp, isMobileWeb, isWebApp, isWebPlatform } from 'utilities/src/platform'
-import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
 import { useDebounce } from 'utilities/src/time/timing'
 
 export const TOKEN_SELECTOR_WEB_MAX_WIDTH = 400
 export const TOKEN_SELECTOR_WEB_MAX_HEIGHT = 700
-
-export enum TokenSelectorVariation {
-  // used for Send flow, only show currencies with a balance
-  BalancesOnly = 'balances-only',
-
-  // Swap input and output sections specced in 'Multichain UX: Token Selector and Swap' doc on Notion
-  SwapInput = 'swap-input', // balances, recent searches, favorites, popular
-  SwapOutput = 'swap-output', // suggested bases, balances, recent searches, favorites, popular
-}
 
 export const SNAP_POINTS = ['65%', '100%']
 
@@ -63,8 +46,7 @@ export interface TokenSelectorProps {
   isModalOpen: boolean
   currencyField: CurrencyField
   flow: TokenSelectorFlow
-  evmAddress?: string
-  svmAddress?: string
+  addresses: AddressGroup
   chainId?: UniverseChainId
   chainIds?: UniverseChainId[]
   input?: TradeableAsset
@@ -87,14 +69,29 @@ export interface TokenSelectorProps {
   }) => void
 }
 
+function TokenSelectorNetworkFilter({
+  tieredOptions,
+  networkFilterV2Enabled,
+  styles,
+  ...props
+}: {
+  tieredOptions: TieredNetworkOptions | undefined
+  networkFilterV2Enabled: boolean
+} & ComponentProps<typeof NetworkFilter>): JSX.Element {
+  if (networkFilterV2Enabled) {
+    return <NetworkFilterV2 {...props} tieredOptions={tieredOptions} />
+  }
+
+  return <NetworkFilter {...props} styles={styles} />
+}
+
 export function TokenSelectorContent({
   currencyField,
   flow,
   variation,
   input,
   output,
-  evmAddress,
-  svmAddress,
+  addresses,
   chainId,
   chainIds,
   isSurfaceReady = true,
@@ -103,91 +100,47 @@ export function TokenSelectorContent({
   onSelectChain,
   onSelectCurrency,
   renderedInModal,
-}: Omit<TokenSelectorProps, 'isModalOpen'> & { renderedInModal: boolean }): JSX.Element {
+}: Omit<TokenSelectorProps, 'isModalOpen'> & {
+  renderedInModal: boolean
+}): JSX.Element {
   const { onChangeChainFilter, onChangeText, searchFilter, chainFilter, parsedChainFilter, parsedSearchFilter } =
     useFilterCallbacks(chainId ?? null, flowToModalName(flow))
   const debouncedSearchFilter = useDebounce(searchFilter)
   const debouncedParsedSearchFilter = useDebounce(parsedSearchFilter)
   const scrollbarStyles = useScrollbarStyles()
   const { navigateToBuyOrReceiveWithEmptyWallet } = useUniswapContext()
-  const isChainedActionsEnabled = useFeatureFlag(FeatureFlags.ChainedActions)
+
+  const oppositeToken = currencyField === CurrencyField.INPUT ? output : input
 
   const media = useMedia()
   const isSmallScreen = (media.sm && isWebApp) || isMobileApp || isMobileWeb
 
-  const [hasClipboardString, setHasClipboardString] = useState(false)
+  const hasClipboardString = useClipboardCheck()
 
   const { chains: enabledChains, isTestnetModeEnabled } = useEnabledChains()
 
-  // Check if user clipboard has any text to show paste button
-  useEffect(() => {
-    async function checkClipboard(): Promise<void> {
-      const result = await hasStringAsync()
-      setHasClipboardString(result)
-    }
+  const isNetworkFilterV2FlagEnabled = useFeatureFlag(FeatureFlags.NetworkFilterV2)
+  const networkFilterV2Enabled =
+    isNetworkFilterV2FlagEnabled &&
+    [TokenSelectorVariation.SwapInput, TokenSelectorVariation.SwapOutput].includes(variation)
+  const effectiveChainIds = chainIds ?? enabledChains
 
-    // Browser doesn't have permissions to access clipboard by default
-    // so it will prompt the user to allow clipboard access which is
-    // quite jarring and unnecessary.
-    if (isWebApp) {
-      return
-    }
-    checkClipboard().catch(() => undefined)
-  }, [])
+  const tieredNetworkOptions = useNetworkSelectorOptions({
+    addresses,
+    chainIds: effectiveChainIds,
+    enabled: networkFilterV2Enabled,
+  })
 
   const { t } = useTranslation()
-  const { page } = useTrace()
 
-  // Log currency field only for swap as for send it's always input
-  const currencyFieldName =
-    flow === TokenSelectorFlow.Swap
-      ? currencyField === CurrencyField.INPUT
-        ? ElementName.TokenInputSelector
-        : ElementName.TokenOutputSelector
-      : undefined
-
-  const onSelectCurrencyCallback = useCallback(
-    // eslint-disable-next-line max-params
-    (currencyInfo: CurrencyInfo, section: OnchainItemSection<TokenSelectorOption>, index: number): void => {
-      const searchContext: SearchContext = {
-        category: section.sectionKey,
-        query: debouncedSearchFilter ?? undefined,
-        position: index + 1,
-        suggestionCount: section.data.length,
-        searchChainFilter: chainFilter,
-      }
-
-      // log event that a currency was selected
-      const tokenOption = section.data[index]
-      const balanceUSD = Array.isArray(tokenOption) ? undefined : (tokenOption?.balanceUSD ?? undefined)
-      sendAnalyticsEvent(UniswapEventName.TokenSelected, {
-        name: currencyInfo.currency.name,
-        address: currencyAddress(currencyInfo.currency),
-        chain: currencyInfo.currency.chainId,
-        modal: flowToModalName(flow),
-        page,
-        field: currencyField,
-        token_balance_usd: balanceUSD,
-        category: searchContext.category,
-        position: searchContext.position,
-        suggestion_count: searchContext.suggestionCount,
-        query: searchContext.query,
-        tokenSection: section.sectionKey,
-        preselect_asset: false,
-      })
-
-      const allowCrossChainPair =
-        isChainedActionsEnabled || section.sectionKey === OnchainItemSectionName.BridgingTokens
-
-      onSelectCurrency({
-        currency: currencyInfo.currency,
-        field: currencyField,
-        allowCrossChainPair,
-        isPreselectedAsset: false,
-      })
-    },
-    [debouncedSearchFilter, chainFilter, flow, page, currencyField, onSelectCurrency, isChainedActionsEnabled],
-  )
+  const { currencyFieldName, onSelectCurrencyCallback } = useTokenSelectionHandler({
+    flow,
+    currencyField,
+    chainFilter,
+    oppositeToken,
+    debouncedSearchFilter,
+    onSelectCurrency,
+  })
 
   const handlePaste = async (): Promise<void> => {
     const clipboardContent = await getClipboard()
@@ -214,91 +167,27 @@ export function TokenSelectorContent({
 
   const shouldAutoFocusSearch = isWebPlatform && !media.sm
 
-  const tokenSelector = useMemo(() => {
-    if (searchInFocus && !searchFilter && !isTestnetModeEnabled) {
-      return (
-        <TokenSelectorEmptySearchList
-          evmAddress={evmAddress}
-          svmAddress={svmAddress}
-          chainFilter={chainFilter}
-          renderedInModal={renderedInModal}
-          onSelectCurrency={onSelectCurrencyCallback}
-        />
-      )
-    }
+  const shouldShowCrosschainPromoBanner = useMemo(
+    () => !isLimits && (!chainFilter || isChainSupportedForChainedActions(chainFilter)),
+    [isLimits, chainFilter],
+  )
 
-    if (searchFilter) {
-      return (
-        <TokenSelectorSearchResultsList
-          evmAddress={evmAddress}
-          svmAddress={svmAddress}
-          chainFilter={chainFilter}
-          debouncedParsedSearchFilter={debouncedParsedSearchFilter}
-          debouncedSearchFilter={debouncedSearchFilter}
-          isBalancesOnlySearch={variation === TokenSelectorVariation.BalancesOnly}
-          parsedChainFilter={parsedChainFilter}
-          searchFilter={searchFilter}
-          input={input}
-          renderedInModal={renderedInModal}
-          onSelectCurrency={onSelectCurrencyCallback}
-        />
-      )
-    }
-
-    switch (variation) {
-      case TokenSelectorVariation.BalancesOnly:
-        return (
-          <TokenSelectorSendList
-            evmAddress={evmAddress}
-            svmAddress={svmAddress}
-            chainFilter={chainFilter}
-            renderedInModal={renderedInModal}
-            onEmptyActionPress={onSendEmptyActionPress}
-            onSelectCurrency={onSelectCurrencyCallback}
-          />
-        )
-      case TokenSelectorVariation.SwapInput:
-        return (
-          <TokenSelectorSwapList
-            oppositeSelectedToken={output}
-            evmAddress={evmAddress}
-            svmAddress={svmAddress}
-            chainFilter={chainFilter}
-            renderedInModal={renderedInModal}
-            onSelectCurrency={onSelectCurrencyCallback}
-          />
-        )
-      case TokenSelectorVariation.SwapOutput:
-        return (
-          <TokenSelectorSwapList
-            oppositeSelectedToken={input}
-            evmAddress={evmAddress}
-            svmAddress={svmAddress}
-            chainFilter={chainFilter}
-            renderedInModal={renderedInModal}
-            onSelectCurrency={onSelectCurrencyCallback}
-          />
-        )
-      default:
-        return undefined
-    }
-  }, [
+  const tokenSelector = useTokenSelectorList({
     searchInFocus,
     searchFilter,
     isTestnetModeEnabled,
     variation,
-    evmAddress,
-    svmAddress,
+    addresses,
     chainFilter,
-    onSelectCurrencyCallback,
+    input,
+    output,
+    renderedInModal,
+    onSelectCurrency: onSelectCurrencyCallback,
+    onSendEmptyActionPress,
     debouncedParsedSearchFilter,
     debouncedSearchFilter,
     parsedChainFilter,
-    input,
-    onSendEmptyActionPress,
-    output,
-    renderedInModal,
-  ])
+  })
 
   return (
     <Trace
@@ -320,11 +209,13 @@ export function TokenSelectorContent({
             endAdornment={
               <Flex row alignItems="center">
                 {hasClipboardString && <PasteButton inline textVariant="buttonLabel3" onPress={handlePaste} />}
-                <NetworkFilter
+                <TokenSelectorNetworkFilter
+                  tieredOptions={tieredNetworkOptions}
+                  networkFilterV2Enabled={networkFilterV2Enabled}
                   includeAllNetworks={!isTestnetModeEnabled}
-                  chainIds={chainIds || enabledChains}
+                  chainIds={effectiveChainIds}
                   selectedChain={chainFilter}
-                  styles={isExtensionApp || isMobileWeb ? { dropdownZIndex: zIndexes.overlay } : undefined}
+                  styles={isExtensionApp || media.md ? { dropdownZIndex: zIndexes.overlay } : undefined}
                   onPressChain={(newChainId) => {
                     onChangeChainFilter(newChainId)
                     onSelectChain?.(newChainId)
@@ -355,7 +246,14 @@ export function TokenSelectorContent({
               <Text variant="body3">{t('limits.form.disclaimer.mainnet.short')}</Text>
             </Flex>
           )}
-          {isSurfaceReady && <Flex grow>{tokenSelector}</Flex>}
+
+          {isSurfaceReady && (
+            <Flex grow>
+              {shouldShowCrosschainPromoBanner && <CrosschainSwapsPromoBanner />}
+              <UnsupportedChainedActionsBanner oppositeToken={oppositeToken} chainFilter={chainFilter ?? undefined} />
+              {tokenSelector}
+            </Flex>
+          )}
         </Flex>
       </Trace>
     </Trace>
@@ -398,7 +296,9 @@ function _TokenSelectorModal(props: TokenSelectorProps): JSX.Element {
       focusHook={focusHook}
       onClose={onClose}
     >
-      <TokenSelectorModalContent {...props} />
+      <Flex grow maxHeight="100%" overflow="hidden">
+        <TokenSelectorModalContent {...props} />
+      </Flex>
     </Modal>
   )
 }

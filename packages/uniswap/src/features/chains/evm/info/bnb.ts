@@ -56,6 +56,7 @@ export const BNB_CHAIN_INFO = {
     logo: BNB_LOGO,
   },
   networkLayer: NetworkLayer.L1,
+  blockTimeMs: 3000,
   pendingTransactionsRetryOptions: undefined,
   rpcUrls: {
     [RPCType.Public]: { http: [getQuicknodeEndpointUrl(UniverseChainId.Bnb)] },
@@ -76,4 +77,5 @@ export const BNB_CHAIN_INFO = {
   },
   gasConfig: GENERIC_L2_GAS_CONFIG,
   tradingApiPollingIntervalMs: 200,
+  acrossProtocolAddress: '0x4e8E101924eDE233C13e2D8622DC8aED2872d505',
 } as const satisfies UniverseChainInfo

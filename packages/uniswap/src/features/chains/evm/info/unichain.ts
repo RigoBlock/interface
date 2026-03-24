@@ -38,7 +38,7 @@ export const UNICHAIN_CHAIN_INFO = {
   docs: 'https://docs.unichain.org',
   elementName: ElementName.ChainUnichain,
   explorer: {
-    name: 'Unichain Explorer',
+    name: 'Uniscan',
     url: 'https://uniscan.xyz/',
   },
   openseaName: 'unichain',
@@ -53,6 +53,7 @@ export const UNICHAIN_CHAIN_INFO = {
     logo: ETHEREUM_LOGO,
   },
   networkLayer: NetworkLayer.L2,
+  blockTimeMs: 1000,
   pendingTransactionsRetryOptions: undefined,
   rpcUrls: {
     [RPCType.Public]: { http: [getQuicknodeEndpointUrl(UniverseChainId.Unichain)] },
@@ -74,6 +75,7 @@ export const UNICHAIN_CHAIN_INFO = {
   testnet: false,
   gasConfig: GENERIC_L2_GAS_CONFIG,
   tradingApiPollingIntervalMs: 150,
+  acrossProtocolAddress: '0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64',
 } as const satisfies UniverseChainInfo
 
 const testnetTokens = buildChainTokens({
@@ -100,10 +102,10 @@ export const UNICHAIN_SEPOLIA_CHAIN_INFO = {
   docs: 'https://docs.unichain.org/',
   elementName: ElementName.ChainUnichainSepolia,
   explorer: {
-    name: 'Unichain Sepolia Explorer',
-    url: 'https://unichain-sepolia.blockscout.com/',
+    name: 'Uniscan Sepolia',
+    url: 'https://sepolia.uniscan.xyz/',
   },
-  interfaceName: 'astrochain',
+  interfaceName: 'unichain_sepolia',
   label: 'Unichain Sepolia',
   logo: UNICHAIN_SEPOLIA_LOGO,
   nativeCurrency: {
@@ -114,6 +116,7 @@ export const UNICHAIN_SEPOLIA_CHAIN_INFO = {
     logo: ETH_LOGO,
   },
   networkLayer: NetworkLayer.L2,
+  blockTimeMs: 1000,
   pendingTransactionsRetryOptions: undefined,
   rpcUrls: {
     [RPCType.Public]: {

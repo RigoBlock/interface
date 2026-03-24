@@ -1,6 +1,18 @@
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { memo, useState } from 'react'
-import { Flex, Loader, Text, TextProps, UniversalImage, useColorSchemeFromSeed, useSporeColors } from 'ui/src'
+import {
+  Flex,
+  FlexProps,
+  Loader,
+  styled,
+  Text,
+  TextProps,
+  UniversalImage,
+  useColorSchemeFromSeed,
+  useSporeColors,
+} from 'ui/src'
 import { iconSizes, validColor, zIndexes } from 'ui/src/theme'
+import { getBadgeBorderRadius, getBadgeOuterSize } from 'uniswap/src/components/CurrencyLogo/badgeSizeUtils'
 import { STATUS_RATIO } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
@@ -14,14 +26,101 @@ interface TokenLogoProps {
   chainId?: UniverseChainId | null
   size?: number
   hideNetworkLogo?: boolean
+  alwaysShowNetworkLogo?: boolean
+  /** When > 1, show a gray badge with this number instead of the network logo (for multichain tokens). */
+  networkCount?: number
   networkLogoBorderWidth?: number
   loading?: boolean
   webFontSize?: number
   lineHeight?: TextProps['lineHeight']
+  transition?: FlexProps['transition']
 }
+
+const Badge = styled(Flex, {
+  bottom: -2,
+  position: 'absolute',
+  right: -3,
+  zIndex: zIndexes.mask,
+})
 
 const TESTNET_BORDER_DIVISOR = 15
 const BORDER_OFFSET = 4
+
+/** Gray circular badge showing network count; same size and shape as NetworkLogo for consistency. */
+function MultichainCountBadge({
+  count,
+  sizeWithoutBorder,
+  borderWidth,
+}: {
+  count: number
+  sizeWithoutBorder: number
+  borderWidth: number
+}): JSX.Element {
+  const colors = useSporeColors()
+  const outerSize = getBadgeOuterSize(sizeWithoutBorder, borderWidth)
+  const borderRadius = getBadgeBorderRadius(outerSize, 'square')
+
+  return (
+    <Badge>
+      <Flex
+        centered
+        width={outerSize}
+        height={outerSize}
+        borderRadius={borderRadius}
+        backgroundColor="$surface3Solid"
+        borderWidth={borderWidth}
+        borderColor={colors.surface1.val}
+        testID="multichain-count-badge"
+      >
+        <Text
+          allowFontScaling={false}
+          color="$neutral1"
+          fontFamily="$button"
+          fontSize={10}
+          fontWeight="$book"
+          numberOfLines={1}
+          lineHeight={8}
+        >
+          {count > 99 ? '99+' : String(count)}
+        </Text>
+      </Flex>
+    </Badge>
+  )
+}
+
+function NetworkLogoBadge({
+  chainId,
+  size,
+  borderWidth,
+}: {
+  chainId: UniverseChainId | null
+  size: number
+  borderWidth: number
+}): JSX.Element {
+  return (
+    <Badge>
+      <NetworkLogo borderWidth={borderWidth} chainId={chainId} size={size} />
+    </Badge>
+  )
+}
+
+function shouldShowNetworkLogo({
+  alwaysShowNetworkLogo,
+  hideNetworkLogo,
+  chainId,
+}: {
+  alwaysShowNetworkLogo: boolean | undefined
+  hideNetworkLogo: boolean | undefined
+  chainId: UniverseChainId | null | undefined
+}): boolean {
+  if (alwaysShowNetworkLogo && chainId) {
+    return true
+  }
+  if (!hideNetworkLogo && !!chainId && chainId !== UniverseChainId.Mainnet) {
+    return true
+  }
+  return false
+}
 
 export const TokenLogo = memo(function _TokenLogo({
   url,
@@ -30,11 +129,15 @@ export const TokenLogo = memo(function _TokenLogo({
   chainId,
   size = iconSizes.icon40,
   hideNetworkLogo,
+  alwaysShowNetworkLogo,
+  networkCount,
   networkLogoBorderWidth = isMobileApp ? 2 : 1.5,
   loading,
   webFontSize = 10,
   lineHeight = 14,
+  transition,
 }: TokenLogoProps): JSX.Element {
+  const isMultichainUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
   const isTestnetToken = !!chainId && isTestnetChain(chainId)
 
   // We want to avoid the extra render on mobile when updating the state, so we set this to `true` from the start.
@@ -45,7 +148,12 @@ export const TokenLogo = memo(function _TokenLogo({
 
   const borderWidth = isTestnetToken ? size / TESTNET_BORDER_DIVISOR : 0
 
-  const showNetworkLogo = !hideNetworkLogo && chainId && chainId !== UniverseChainId.Mainnet
+  const showMultichainCountBadge = isMultichainUxEnabled && networkCount !== undefined && networkCount > 1
+  const showNetworkLogo = shouldShowNetworkLogo({
+    alwaysShowNetworkLogo,
+    hideNetworkLogo,
+    chainId,
+  })
   const networkLogoSize = Math.round(size * STATUS_RATIO)
 
   const borderOffset = isTestnetToken ? BORDER_OFFSET : 0
@@ -98,6 +206,7 @@ export const TokenLogo = memo(function _TokenLogo({
       pointerEvents="auto"
       width={size}
       position="relative"
+      transition={transition}
     >
       {!isTestnetToken && (
         <Flex
@@ -121,6 +230,7 @@ export const TokenLogo = memo(function _TokenLogo({
           image: {
             borderRadius: size / 2,
             zIndex: zIndexes.default,
+            ...(transition && { transition }),
           },
         }}
         testID="token-image"
@@ -141,10 +251,16 @@ export const TokenLogo = memo(function _TokenLogo({
         />
       )}
 
-      {showNetworkLogo && (
-        <Flex bottom={-2} position="absolute" right={-3} zIndex={zIndexes.mask}>
-          <NetworkLogo borderWidth={networkLogoBorderWidth} chainId={chainId} size={networkLogoSize} />
-        </Flex>
+      {showMultichainCountBadge ? (
+        <MultichainCountBadge
+          count={networkCount}
+          sizeWithoutBorder={networkLogoSize}
+          borderWidth={networkLogoBorderWidth}
+        />
+      ) : (
+        showNetworkLogo && (
+          <NetworkLogoBadge borderWidth={networkLogoBorderWidth} chainId={chainId ?? null} size={networkLogoSize} />
+        )
       )}
     </Flex>
   )

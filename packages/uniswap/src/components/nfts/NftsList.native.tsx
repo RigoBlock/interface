@@ -45,6 +45,8 @@ export const NftsList = forwardRef<FlashList<unknown>, NftsListProps>(function _
     onRefresh,
     skip,
     filteredNumHidden,
+    nextFetchPolicy,
+    pollInterval,
     ...rest
   },
   ref,
@@ -62,7 +64,7 @@ export const NftsList = forwardRef<FlashList<unknown>, NftsListProps>(function _
     hiddenNftsExpanded,
     setHiddenNftsExpanded,
     isErrorState,
-  } = useNftListRenderData({ owner, skip })
+  } = useNftListRenderData({ owner, skip, nextFetchPolicy, pollInterval })
 
   // Use filtered count if provided, otherwise use internal count
   const numHidden = filteredNumHidden ?? internalNumHidden
@@ -91,8 +93,9 @@ export const NftsList = forwardRef<FlashList<unknown>, NftsListProps>(function _
   }, [hiddenNftsExpanded, numHidden, setHiddenNftsExpanded])
 
   const renderItem = useCallback(
-    ({ item, index }: ListRenderItemInfo<string | NFTItem>) => {
+    ({ item, index }: ListRenderItemInfo<string | NFTItem>): JSX.Element | null => {
       if (typeof item !== 'string') {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- renderNFTItem is typed as (item: NFTItem, index: number) => JSX.Element
         return renderNFTItem(item, index)
       }
 

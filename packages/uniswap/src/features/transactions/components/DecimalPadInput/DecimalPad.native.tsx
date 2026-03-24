@@ -3,7 +3,7 @@ import { I18nManager, LayoutChangeEvent } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated'
 import { Flex, Text } from 'ui/src'
-import { LeftArrow, RightArrow } from 'ui/src/components/icons'
+import { ArrowLeft, ArrowRight } from 'ui/src/components/icons'
 import { AnimatedFlex } from 'ui/src/components/layout/AnimatedFlex'
 import { fonts, iconSizes, spacing } from 'ui/src/theme'
 import { useAppFiatCurrencyInfo } from 'uniswap/src/features/fiatCurrency/hooks'
@@ -132,6 +132,11 @@ export const DecimalPad = memo(function DecimalPad({
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: +sizeMultiplier, onReady
   useEffect(() => {
+    // skip resize if the layout is still the same height as before
+    if (currentHeightRef.current === currentHeight) {
+      return
+    }
+
     currentHeightRef.current = currentHeight
     maxHeightRef.current = maxHeight
 
@@ -140,8 +145,8 @@ export const DecimalPad = memo(function DecimalPad({
     }
 
     if (currentHeight < maxHeight) {
-      // We call `onReady` on the next tick in case the layout is still changing and `maxHeight` is now different.
-      setTimeout(() => {
+      // We call `onReady` on the next frame to ensure layout has stabilized and `maxHeight` is accurate.
+      requestAnimationFrame(() => {
         if (
           currentHeightRef.current !== null &&
           maxHeightRef.current !== null &&
@@ -149,7 +154,7 @@ export const DecimalPad = memo(function DecimalPad({
         ) {
           onReady()
         }
-      }, 0)
+      })
       return
     }
 
@@ -274,9 +279,9 @@ const KeyButton = memo(function KeyButton({
         <AnimatedFlex grow alignItems="center" style={animatedStyle}>
           {label === 'backspace' ? (
             I18nManager.isRTL ? (
-              <RightArrow color={color} size={iconSizes.icon24 * sizeMultiplier.icon} />
+              <ArrowRight color={color} size={iconSizes.icon24 * sizeMultiplier.icon} />
             ) : (
-              <LeftArrow color={color} size={iconSizes.icon24 * sizeMultiplier.icon} />
+              <ArrowLeft color={color} size={iconSizes.icon24 * sizeMultiplier.icon} />
             )
           ) : (
             <Text

@@ -2,6 +2,8 @@ import { ComponentProps, CSSProperties } from 'react'
 import type { StyleProp, ViewStyle } from 'react-native'
 import { SharedValue } from 'react-native-reanimated'
 import { AnimatedFlashList } from 'ui/src/components/AnimatedFlashList/AnimatedFlashList'
+import { NftsNextFetchPolicy, SearchInputProps } from 'uniswap/src/components/nfts/types'
+import { PollingInterval } from 'uniswap/src/constants/misc'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { NFTItem } from 'uniswap/src/features/nfts/types'
 import { PlatformSplitStubError } from 'utilities/src/errors'
@@ -27,12 +29,28 @@ export type NftsListProps = Omit<
     customLoadingState?: JSX.Element
     /** Optional: override the numHidden count (e.g., for filtered results) */
     filteredNumHidden?: number
-    /** Optional: search string to filter NFTs by name, collection, token ID, or contract address */
-    searchString?: string
     /** Optional: callback to receive filtered counts (shown and hidden) */
     onFilteredCountsChange?: (params: { shown: number; hidden: number }) => void
     /** Optional: custom render function for the ExpandoRow component */
     renderExpandoRow?: (props: { isExpanded: boolean; label: string; onPress: () => void }) => JSX.Element
+    /** Optional: nextFetchPolicy to pass to the useNftListRenderData hook */
+    nextFetchPolicy?: NftsNextFetchPolicy
+    /** Optional: callback to receive the refetch function */
+    onRefetchReady?: (refetch: () => void) => void
+    /** Optional: callback to receive the loading state */
+    onLoadingStateChange?: (isLoading: boolean) => void
+    /** Optional: show header with count and refresh button */
+    showHeader?: boolean
+    SearchInputComponent?: React.ComponentType<SearchInputProps>
+    /** Optional: test ID for the search input (e.g. PortfolioNftsSearchInput) */
+    searchInputTestId?: string
+    /** Optional: test ID for the header (e.g. PortfolioNftsHeader) */
+    headerTestId?: string
+    /** Optional: test ID for the no-results message (e.g. PortfolioNftsNoResults) */
+    noResultsTestId?: string
+    /** Optional: test ID for the default empty state when customEmptyState is not provided (e.g. PortfolioNftsEmptyState) */
+    emptyStateTestId?: string
+    pollInterval?: PollingInterval
   },
   'renderItem' | 'data'
 > & {

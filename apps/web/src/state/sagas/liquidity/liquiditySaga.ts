@@ -1,22 +1,11 @@
 import {
   GetLPPriceDiscrepancyRequest,
   GetLPPriceDiscrepancyResponse,
-} from '@uniswap/client-trading/dist/trading/v1/api_pb'
-import { getLiquidityEventName } from 'components/Liquidity/analytics'
-import { popupRegistry } from 'components/Popups/registry'
-import { PopupType } from 'components/Popups/types'
-import { handleAtomicSendCalls } from 'state/sagas/transactions/5792'
-import {
-  getDisplayableError,
-  handleApprovalTransactionStep,
-  handleOnChainStep,
-  handlePermitTransactionStep,
-  handleSignatureStep,
-} from 'state/sagas/transactions/utils'
+} from '@uniswap/client-liquidity/dist/uniswap/liquidity/v1/api_pb'
 import invariant from 'tiny-invariant'
 import { call, delay, spawn } from 'typed-redux-saga'
 import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
-import { TradingApiClient } from 'uniswap/src/data/apiClients/tradingApi/TradingApiClient'
+import { LiquidityServiceClient } from 'uniswap/src/data/apiClients/liquidityService/LiquidityServiceClient'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { InterfaceEventName, LiquidityEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
@@ -50,6 +39,18 @@ import { SignerMnemonicAccountDetails } from 'uniswap/src/features/wallet/types/
 import { currencyId, isNativeCurrencyAddress } from 'uniswap/src/utils/currencyId'
 import { createSaga } from 'uniswap/src/utils/saga'
 import { logger } from 'utilities/src/logger/logger'
+import { getLiquidityEventName } from '~/components/Liquidity/analytics'
+import { getProtocols } from '~/components/Liquidity/utils/protocolVersion'
+import { popupRegistry } from '~/components/Popups/registry'
+import { PopupType } from '~/components/Popups/types'
+import { handleAtomicSendCalls } from '~/state/sagas/transactions/5792'
+import {
+  getDisplayableError,
+  handleApprovalTransactionStep,
+  handleOnChainStep,
+  handlePermitTransactionStep,
+  handleSignatureStep,
+} from '~/state/sagas/transactions/utils'
 
 type LiquidityParams = {
   selectChain: (chainId: number) => Promise<boolean>
@@ -303,7 +304,13 @@ function* modifyLiquidity(params: LiquidityParams & { steps: TransactionStep[] }
       const displayableError = getDisplayableError({ error: e, step, flow: 'liquidity' })
 
       if (displayableError) {
-        logger.error(displayableError, { tags: { file: 'liquiditySaga', function: 'modifyLiquidity' } })
+        logger.error(displayableError, {
+          tags: { file: 'liquiditySaga', function: 'modifyLiquidity' },
+          extra: {
+            canBatchTransactions: params.liquidityTxContext.canBatchTransactions,
+            delegatedAddress: params.liquidityTxContext.delegatedAddress,
+          },
+        })
         onFailure(e)
       } else {
         onFailure()
@@ -409,7 +416,7 @@ function* pollForLPPriceDiscrepancy(params: {
   while (attempt < maxAttempts) {
     try {
       const priceDiscrepancyResponse: GetLPPriceDiscrepancyResponse = yield* call(
-        TradingApiClient.getLPPriceDiscrepancy,
+        LiquidityServiceClient.getLPPriceDiscrepancy,
         new GetLPPriceDiscrepancyRequest({
           txnHash: hash,
           chainId,
@@ -421,8 +428,7 @@ function* pollForLPPriceDiscrepancy(params: {
           fee: analytics.fee_tier,
           hooks: analytics.hook,
           sqrtRatioX96,
-          // @ts-expect-error endpoint excepts a string
-          protocol: analytics.type,
+          protocol: getProtocols(analytics.protocol_version),
         }),
       )
 
