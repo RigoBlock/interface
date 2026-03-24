@@ -90,3 +90,5 @@ CLAUDE.local.md
 
 # Spec Workflow MCP
 .spec-workflow/
+
+.claude/worktrees
