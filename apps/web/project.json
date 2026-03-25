@@ -110,7 +110,7 @@
       }
     },
     "build:production": {
-      "command": "NODE_OPTIONS=\"--max-old-space-size=$([ -n \\\"$GITHUB_ACTIONS\\\" ] && echo 32768 || echo 16384)\" CLOUDFLARE_ENV=production vite build",
+      "command": "NODE_OPTIONS=\"--max-old-space-size=$([ -n \\\"$GITHUB_ACTIONS\\\" ] && echo 32768 || ([ -n \\\"$CF_PAGES\\\" ] && echo 8192 || echo 16384))\" CLOUDFLARE_ENV=production VITE_DISABLE_SOURCEMAP=true vite build",
       "options": {
         "cwd": "{projectRoot}"
       },
