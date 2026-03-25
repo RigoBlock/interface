@@ -21,6 +21,7 @@ import { useLpIncentiveClaimButtonConfig } from '~/components/Liquidity/LPIncent
 import { LP_INCENTIVES_REWARD_TOKEN } from '~/components/LpIncentives/constants'
 import { useAccount } from '~/hooks/useAccount'
 import useSelectChain from '~/hooks/useSelectChain'
+import { useActiveSmartPool } from '~/state/application/hooks'
 import { lpIncentivesClaimSaga } from '~/state/sagas/lp_incentives/lpIncentivesSaga'
 import { didUserReject } from '~/utils/swapErrorToUserReadableMessage'
 
@@ -52,6 +53,8 @@ export function LpIncentiveClaimModal({
   const selectChain = useSelectChain()
 
   const account = useAccount()
+  const activeSmartPool = useActiveSmartPool()
+  const isSmartPool = !!activeSmartPool?.address
   const formattedTokenRewards = useFormattedTokenRewards({ tokenRewards, token })
 
   const {
@@ -61,13 +64,13 @@ export function LpIncentiveClaimModal({
   } = useQuery(
     liquidityQueries.claimRewards({
       params: new ClaimLPRewardsRequest({
-        walletAddress: account.address,
+        walletAddress: activeSmartPool?.address ?? account.address,
         chainId: token.chainId,
         tokens: [token.address],
         distributor: Distributor.MERKLE,
-        simulateTransaction: true,
+        simulateTransaction: !isSmartPool,
       }),
-      enabled: !!account.address,
+      enabled: !!(activeSmartPool?.address ?? account.address),
     }),
   )
 

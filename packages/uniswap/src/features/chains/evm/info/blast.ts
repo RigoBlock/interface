@@ -68,7 +68,7 @@ export const BLAST_CHAIN_INFO = {
   rpcUrls: {
     [RPCType.Public]: { http: [getQuicknodeEndpointUrl(UniverseChainId.Blast)] },
     [RPCType.Default]: { http: ['https://rpc.blast.io/'] },
-    [RPCType.Interface]: { http: [`https://blast-mainnet.infura.io/v3/${config.infuraKey}`] },
+    [RPCType.Interface]: { http: [`https://blast-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`, `https://blast-mainnet.infura.io/v3/${config.infuraKey}`] },
   },
   wrappedNativeCurrency: {
     name: 'Wrapped Ether',

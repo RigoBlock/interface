@@ -86,7 +86,11 @@ export const MAINNET_CHAIN_INFO = {
           http: ['https://rpc.ankr.com/eth', 'https://eth-mainnet.public.blastapi.io'],
         },
         [RPCType.Interface]: {
-          http: [`https://mainnet.infura.io/v3/${config.infuraKey}`, getQuicknodeEndpointUrl(UniverseChainId.Mainnet)],
+          http: [
+            `https://eth-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`,
+            `https://mainnet.infura.io/v3/${config.infuraKey}`,
+            getQuicknodeEndpointUrl(UniverseChainId.Mainnet),
+          ],
         },
       },
   urlParam: 'ethereum',

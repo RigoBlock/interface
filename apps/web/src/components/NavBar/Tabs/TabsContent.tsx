@@ -1,6 +1,5 @@
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { buildPortfolioUrl } from '~/pages/Portfolio/utils/portfolioUrls'
-import { useTabsVisible } from '~/components/NavBar/ScreenSizes'
 //import { Limit } from '~/components/Icons/Limit'
 import { SwapV2 } from '~/components/Icons/SwapV2'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
@@ -16,7 +15,6 @@ import { Pools } from 'ui/src/components/icons/Pools'
 import { ReceiveAlt } from 'ui/src/components/icons/ReceiveAlt'
 import { Wallet } from 'ui/src/components/icons/Wallet'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
-import { Limit } from '~/components/Icons/Limit'
 
 export type TabsSection = {
   title: string
@@ -39,7 +37,6 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
   const colors = useSporeColors()
 
   const isPortfolioDefiTabEnabled = useFeatureFlag(FeatureFlags.PortfolioDefiTab)
-  const isToucanLaunchAuctionEnabled = useFeatureFlag(FeatureFlags.ToucanLaunchAuction)
 
   return [
     {
@@ -60,20 +57,24 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
       icon: <CoinConvert color="$accent1" size="$icon.20" />,
       elementName: ElementName.NavbarTradeTab,
       items: [
-        {
-          label: t('common.swap'),
-          icon: <SwapV2 fill={colors.neutral2.val} />,
-          href: '/swap',
-          internal: true,
-          elementName: ElementName.NavbarTradeDropdownSwap,
-        },
-        {
-          label: t('swap.limit'),
-          icon: <Limit fill={colors.neutral2.val} />,
-          href: '/limit',
-          internal: true,
-          elementName: ElementName.NavbarTradeDropdownLimit,
-        },
+        ...(props?.userIsOperator
+          ? [
+              {
+                label: t('common.swap'),
+                icon: <SwapV2 fill={colors.neutral2.val} />,
+                href: '/swap',
+                internal: true,
+                elementName: ElementName.NavbarTradeDropdownSwap,
+              },
+            ]
+          : []),
+        //{
+        //  label: t('swap.limit'),
+        //  icon: <Limit fill={colors.neutral2.val} />,
+        //  href: '/limit',
+        //  internal: true,
+        //  elementName: ElementName.NavbarTradeDropdownLimit,
+        //},
         {
           label: t('common.buy.label'),
           icon: <CreditCard size="$icon.24" color="$neutral2" />,
@@ -90,39 +91,33 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
         },
       ],
     },
-    {
-      title: t('common.explore'),
-      href: '/explore',
-      isActive: pathname.startsWith('/explore') || pathname.startsWith('/nfts'),
-      icon: <Compass color="$accent1" size="$icon.20" />,
-      elementName: ElementName.NavbarExploreTab,
-      items: [
-        {
-          label: t('common.tokens'),
-          href: '/explore/tokens',
-          internal: true,
-          elementName: ElementName.NavbarExploreDropdownTokens,
-        },
-        {
-          label: t('toucan.auctions'),
-          href: '/explore/auctions',
-          internal: true,
-          elementName: ElementName.NavbarExploreDropdownToucan,
-        },
-        {
-          label: t('common.pools'),
-          href: '/explore/pools',
-          internal: true,
-          elementName: ElementName.NavbarExploreDropdownPools,
-        },
-        {
-          label: t('common.transactions'),
-          href: '/explore/transactions',
-          internal: true,
-          elementName: ElementName.NavbarExploreDropdownTransactions,
-        },
-      ],
-    },
+    //{
+    //  title: t('common.explore'),
+    //  href: '/explore',
+    //  isActive: pathname.startsWith('/explore') || pathname.startsWith('/nfts'),
+    //  icon: <Compass color="$accent1" size="$icon.20" />,
+    //  elementName: ElementName.NavbarExploreTab,
+    //  items: [
+    //    {
+    //      label: t('common.tokens'),
+    //      href: '/explore/tokens',
+    //      internal: true,
+    //      elementName: ElementName.NavbarExploreDropdownTokens,
+    //    },
+    //    {
+    //      label: t('common.pools'),
+    //      href: '/explore/pools',
+    //      internal: true,
+    //      elementName: ElementName.NavbarExploreDropdownPools,
+    //    },
+    //    {
+    //      label: t('common.transactions'),
+    //      href: '/explore/transactions',
+    //      internal: true,
+    //      elementName: ElementName.NavbarExploreDropdownTransactions,
+    //    },
+    //  ],
+    //},
     {
       title: t('common.pool'),
       href: '/positions',
@@ -142,16 +137,6 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
           internal: true,
           elementName: ElementName.NavbarPoolDropdownCreatePosition,
         },
-        ...(isToucanLaunchAuctionEnabled
-          ? [
-              {
-                label: t('toucan.createAuction.launchAuction'),
-                href: '/liquidity/launch-auction',
-                internal: true,
-                elementName: ElementName.NavbarPoolDropdownLaunchAuction,
-              },
-            ]
-          : []),
       ],
     },
     {
@@ -181,6 +166,15 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
           }),
           internal: true,
           elementName: ElementName.NavbarPortfolioDropdownTokens,
+        },
+        {
+          label: t('portfolio.staking.title'),
+          href: buildPortfolioUrl({
+            tab: PortfolioTab.Staking,
+            chainId: portfolioChainId,
+          }),
+          internal: true,
+          elementName: ElementName.NavbarPortfolioDropdownStaking,
         },
         ...(isPortfolioDefiTabEnabled
           ? [
@@ -215,6 +209,5 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
         },
       ],
     },
-
   ]
 }

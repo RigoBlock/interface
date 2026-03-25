@@ -14,8 +14,8 @@ export default function PrivacyPolicyNotice() {
       <Trans
         i18nKey="wallet.connectingAgreement"
         components={{
-          termsLink: <StyledLink href="https://rigoblock.com/legal" />,
-          privacyLink: <StyledLink href="https://rigoblock.com/legal" />,
+          termsLink: <StyledLink key="terms" href="https://rigoblock.com/legal" />,
+          privacyLink: <StyledLink key="privacy" href="https://rigoblock.com/legal" />,
         }}
       />
     </Text>

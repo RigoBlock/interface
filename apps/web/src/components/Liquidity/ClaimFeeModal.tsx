@@ -78,12 +78,14 @@ function getClaimLpFeesRequest({
   positionInfo,
   unwrapNativeCurrency,
   address,
+  isSmartPool,
 }: {
   currency0: Currency
   currency1: Currency
   positionInfo: PositionInfo
   unwrapNativeCurrency: boolean
   address: string | undefined
+  isSmartPool: boolean
 }): ClaimLPFeesRequest | undefined {
   const protocolCase = getProtocolCase(positionInfo.version)
 
@@ -96,7 +98,7 @@ function getClaimLpFeesRequest({
       claimLPFeesRequest: {
         case: protocolCase,
         value: {
-          simulateTransaction: true,
+          simulateTransaction: !isSmartPool,
           protocol: getProtocols(positionInfo.version),
           position: new V2Position({
             pool: new V2Pool({
@@ -121,7 +123,7 @@ function getClaimLpFeesRequest({
       claimLPFeesRequest: {
         case: protocolCase,
         value: {
-          simulateTransaction: true,
+          simulateTransaction: !isSmartPool,
           protocol: getProtocols(positionInfo.version),
           tokenId: Number(positionInfo.tokenId),
           position: new V3Position({
@@ -148,7 +150,7 @@ function getClaimLpFeesRequest({
     claimLPFeesRequest: {
       case: protocolCase,
       value: {
-        simulateTransaction: true,
+        simulateTransaction: !isSmartPool,
         protocol: getProtocols(positionInfo.version),
         tokenId: Number(positionInfo.tokenId),
         position: new V4Position({
@@ -257,9 +259,10 @@ export function ClaimFeeModal() {
       currency1,
       positionInfo,
       unwrapNativeCurrency,
-      address: account?.address,
+      address: activeSmartPool.address ?? account?.address,
+      isSmartPool: !!activeSmartPool.address,
     })
-  }, [account?.address, currency0, currency1, positionInfo, unwrapNativeCurrency])
+  }, [activeSmartPool.address, account?.address, currency0, currency1, positionInfo, unwrapNativeCurrency])
 
   const {
     data,
@@ -295,6 +298,14 @@ export function ClaimFeeModal() {
       return undefined
     }
 
+    // For RigoBlock pools, override from/to/value so the tx is sent from EOA to vault.
+    if (activeSmartPool.address) {
+      validatedTxRequest.from = account?.address
+      validatedTxRequest.to = activeSmartPool.address
+      validatedTxRequest.value = '0x0'
+      validatedTxRequest.gasLimit = Number(250000).toString()
+    }
+
     return {
       type: LiquidityTransactionType.Collect,
       protocolVersion: positionInfo.version,
@@ -305,7 +316,7 @@ export function ClaimFeeModal() {
       },
       txRequest: validatedTxRequest,
     }
-  }, [data?.claim, fee0Amount, fee1Amount, positionInfo])
+  }, [data?.claim, fee0Amount, fee1Amount, positionInfo, activeSmartPool.address, account?.address])
 
   const onPressConfirm = async () => {
     const isValidTx = isValidLiquidityTxContext(txInfo)

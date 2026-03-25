@@ -99,6 +99,7 @@ function getDecreaseLPPositionQueryParams({
   unwrapNativeCurrency,
   approvalsNeeded,
   customSlippageTolerance,
+  isSmartPool,
 }: {
   positionInfo: PositionInfo
   address: string
@@ -109,6 +110,7 @@ function getDecreaseLPPositionQueryParams({
   unwrapNativeCurrency: boolean
   approvalsNeeded: boolean
   customSlippageTolerance?: number
+  isSmartPool?: boolean
 }): DecreaseLPPositionRequest | undefined {
   const protocolCase = getProtocolCase(positionInfo.version)
   if (!protocolCase) {
@@ -136,7 +138,7 @@ function getDecreaseLPPositionQueryParams({
           liquidity0: positionInfo.currency0Amount.quotient.toString(),
           liquidity1: positionInfo.currency1Amount.quotient.toString(),
           collectAsWETH: !unwrapNativeCurrency,
-          simulateTransaction: !approvalsNeeded,
+          simulateTransaction: isSmartPool ? false : !approvalsNeeded,
           slippageTolerance: customSlippageTolerance,
           deadline,
         },
@@ -172,7 +174,7 @@ function getDecreaseLPPositionQueryParams({
           expectedTokenOwed0RawAmount: positionInfo.token0UncollectedFees,
           expectedTokenOwed1RawAmount: positionInfo.token1UncollectedFees,
           collectAsWETH: !unwrapNativeCurrency,
-          simulateTransaction: !approvalsNeeded,
+          simulateTransaction: isSmartPool ? false : !approvalsNeeded,
           slippageTolerance: customSlippageTolerance,
           deadline,
         },
@@ -202,7 +204,7 @@ function getDecreaseLPPositionQueryParams({
         liquidityPercentageToDecrease: percent,
         positionLiquidity: positionInfo.liquidity,
 
-        simulateTransaction: !approvalsNeeded,
+        simulateTransaction: isSmartPool ? false : !approvalsNeeded,
         slippageTolerance: customSlippageTolerance,
         deadline,
       },
@@ -276,7 +278,7 @@ export function useRemoveLiquidityTxAndGasInfo({ account }: { account?: string }
 
     return getDecreaseLPPositionQueryParams({
       positionInfo,
-      address: account,
+      address: activeSmartPool?.address ?? account,
       percent,
       currency0,
       currency1,
@@ -284,10 +286,12 @@ export function useRemoveLiquidityTxAndGasInfo({ account }: { account?: string }
       unwrapNativeCurrency,
       approvalsNeeded,
       customSlippageTolerance,
+      isSmartPool: !!activeSmartPool?.address,
     })
   }, [
     positionInfo,
     account,
+    activeSmartPool,
     percent,
     customDeadline,
     unwrapNativeCurrency,
@@ -312,7 +316,6 @@ export function useRemoveLiquidityTxAndGasInfo({ account }: { account?: string }
   } = useQuery(
     liquidityQueries.decreasePosition({
       params: decreaseCalldataQueryParams,
-      refetchInterval: transactionError ? false : 5 * ONE_SECOND_MS,
       retry: false,
       enabled: isQueryEnabled && Boolean(decreaseCalldataQueryParams),
     }),
@@ -340,6 +343,8 @@ export function useRemoveLiquidityTxAndGasInfo({ account }: { account?: string }
   decreaseCalldata &&
     decreaseCalldata.decrease &&
     (decreaseCalldata.decrease.to = activeSmartPool.address ?? ZERO_ADDRESS)
+  decreaseCalldata && decreaseCalldata.decrease && activeSmartPool.address && (decreaseCalldata.decrease.value = '0x0')
+  decreaseCalldata && decreaseCalldata.decrease && (decreaseCalldata.decrease.gasLimit = Number(250000).toString())
 
   const { value: estimatedGasFee } = useTransactionGasFee({
     tx: decreaseCalldata?.decrease,

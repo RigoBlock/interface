@@ -75,6 +75,7 @@ export const ARBITRUM_CHAIN_INFO = {
     [RPCType.Fallback]: { http: ['https://arbitrum.public-rpc.com'] },
     [RPCType.Interface]: {
       http: [
+        `https://arb-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`,
         `https://arbitrum-mainnet.infura.io/v3/${config.infuraKey}`,
         getQuicknodeEndpointUrl(UniverseChainId.ArbitrumOne),
       ],

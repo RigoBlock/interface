@@ -23,7 +23,7 @@ export function ValueWithFadedDecimals({ value, textProps }: ValueWithFadedDecim
       {decimalNumber && (
         <>
           {/* $neutral2 needs to be last so it overrides the textProps color */}
-          <Text variant={textVariant} {...textProps} color="$neutral2">
+          <Text tag="span" variant={textVariant} {...textProps} color="$neutral2">
             {decimalSeparator}
             {decimalNumber}
           </Text>

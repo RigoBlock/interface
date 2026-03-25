@@ -38,7 +38,6 @@
     "useUnknownInCatchVariables": true,
     "paths": {
       "@universe/api/*": ["./packages/api/*"],
-      "@universe/cli/*": ["./apps/cli/*"],
       "@universe/config/*": ["./packages/config/*"],
       "@universe/gating/*": ["./packages/gating/*"],
       "@universe/notifications/*": ["./packages/notifications/*"],
@@ -49,7 +48,6 @@
       "uniswap/*": ["./packages/uniswap/*"],
       "utilities/*": ["./packages/utilities/*"],
       "wallet/*": ["./packages/wallet/*"],
-      "@universe/transactional/*": ["./packages/transactional/*"],
       "@universe/mycelium/*": ["./packages/mycelium/*"],
       "@universe/websocket/*": ["./packages/websocket/*"],
       "@universe/prices/*": ["./packages/prices/*"],

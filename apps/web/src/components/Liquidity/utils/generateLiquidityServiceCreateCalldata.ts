@@ -67,6 +67,7 @@ interface RawCreatePositionInput {
   slippageTolerance?: number
   customDeadline?: number
   nativeTokenBalance?: string
+  isSmartPool?: boolean
 }
 
 function validatePoolInput({
@@ -172,14 +173,16 @@ function validateCreatePositionInput(input: RawCreatePositionInput): ValidatedCr
   const independentAmount = currencyAmounts[independentField]
   const dependentAmount = currencyAmounts[dependentField]
 
-  const simulateTransaction = !(
-    permitData?.value ||
-    token0PermitTransaction ||
-    token1PermitTransaction ||
-    token0Approval ||
-    token1Approval ||
-    positionTokenApproval
-  )
+  const simulateTransaction = input.isSmartPool
+    ? false
+    : !(
+        permitData?.value ||
+        token0PermitTransaction ||
+        token1PermitTransaction ||
+        token0Approval ||
+        token1Approval ||
+        positionTokenApproval
+      )
 
   const baseInput: BaseValidatedInput = {
     address,

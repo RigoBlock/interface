@@ -69,7 +69,7 @@ export const OPTIMISM_CHAIN_INFO = {
     [RPCType.PublicAlt]: { http: ['https://mainnet.optimism.io'] },
     [RPCType.Default]: { http: ['https://mainnet.optimism.io/'] },
     [RPCType.Fallback]: { http: ['https://rpc.ankr.com/optimism'] },
-    [RPCType.Interface]: { http: [`https://optimism-mainnet.infura.io/v3/${config.infuraKey}`] },
+    [RPCType.Interface]: { http: [`https://opt-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`, `https://optimism-mainnet.infura.io/v3/${config.infuraKey}`] },
   },
   tokens,
   statusPage: 'https://optimism.io/status',

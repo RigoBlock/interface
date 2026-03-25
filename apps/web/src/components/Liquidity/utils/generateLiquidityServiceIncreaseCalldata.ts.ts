@@ -26,6 +26,7 @@ export function generateLiquidityServiceIncreaseCalldataParams({
   approvalsNeeded,
   positionInfo,
   accountAddress,
+  isSmartPool,
   customSlippageTolerance,
   customDeadline,
 }: {
@@ -37,6 +38,7 @@ export function generateLiquidityServiceIncreaseCalldataParams({
   approvalsNeeded: boolean
   positionInfo: PositionInfo
   accountAddress: string
+  isSmartPool?: boolean
   customSlippageTolerance?: number
   customDeadline?: number
 }): IncreaseLPPositionRequest | undefined {
@@ -52,7 +54,7 @@ export function generateLiquidityServiceIncreaseCalldataParams({
       increaseLpPosition: {
         case: 'v2IncreaseLpPosition',
         value: new V2IncreaseLPPosition({
-          simulateTransaction: !approvalsNeeded,
+          simulateTransaction: isSmartPool ? false : !approvalsNeeded,
           protocols: Protocols.V2,
           walletAddress: accountAddress,
           chainId,
@@ -95,7 +97,7 @@ export function generateLiquidityServiceIncreaseCalldataParams({
           independentToken,
           slippageTolerance: customSlippageTolerance,
           deadline,
-          simulateTransaction: !approvalsNeeded,
+          simulateTransaction: isSmartPool ? false : !approvalsNeeded,
         }),
       },
     })
@@ -114,7 +116,7 @@ export function generateLiquidityServiceIncreaseCalldataParams({
         independentToken,
         slippageTolerance: customSlippageTolerance,
         deadline,
-        simulateTransaction: !approvalsNeeded,
+        simulateTransaction: isSmartPool ? false : !approvalsNeeded,
         position: new V4Position({
           tickLower: positionInfo.tickLower,
           tickUpper: positionInfo.tickUpper,

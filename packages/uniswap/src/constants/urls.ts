@@ -137,12 +137,12 @@ export const uniswapUrls = {
   voteUrl: '/vote',
   governanceUrl: 'https://docs.rigoblock.com/governance',
   developersUrl: 'https://docs.rigoblock.com/introduction-to-rigoblock',
-  aboutUrl: 'https://about.rigoblock.com/',
+  aboutUrl: 'https://rigoblock.com/',
   careersUrl: 'https://www.linkedin.com/company/rigoblock/jobs/',
   social: {
-    x: 'https://x.com/Uniswap',
+    x: 'https://x.com/RigoBlock',
     farcaster: 'https://farcaster.xyz/Uniswap',
-    linkedin: 'https://www.linkedin.com/company/uniswaporg',
+    linkedin: 'https://www.linkedin.com/company/rigoblock',
     tiktok: 'https://www.tiktok.com/@uniswap',
   },
   termsOfServiceUrl: 'https://rigoblock.com/legal',
@@ -181,7 +181,7 @@ export const uniswapUrls = {
   tradingApiUrl: config.tradingApiUrlOverride || getRbCloudflareApiBaseUrl(TrafficFlows.TradingApi),
   liquidityServiceUrl:
     config.liquidityServiceUrlOverride ||
-    'https://liquidity.backend-prod.api.uniswap.org/uniswap.liquidity.v1.LiquidityService',
+    `${getRbCloudflareApiBaseUrl()}/v2/liquidity`,
 
   // Merkl Docs for LP Incentives
   merklDocsUrl: 'https://docs.merkl.xyz/earn-with-merkl/faq-earn#how-are-aprs-calculated',

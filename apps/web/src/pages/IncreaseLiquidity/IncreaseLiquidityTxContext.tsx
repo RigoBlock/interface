@@ -88,7 +88,8 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
   )
 
   const increaseLiquidityApprovalParams: CheckApprovalLPRequest | undefined = useMemo(() => {
-    if (!positionInfo || !accountAddress || !currencyAmounts?.TOKEN0 || !currencyAmounts.TOKEN1) {
+    // Smart pools handle approvals internally — skip the approval query entirely.
+    if (smartPoolAddress || !positionInfo || !accountAddress || !currencyAmounts?.TOKEN0 || !currencyAmounts.TOKEN1) {
       return undefined
     }
 
@@ -98,7 +99,7 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
       currencyAmounts,
       canBatchTransactions,
     })
-  }, [positionInfo, accountAddress, currencyAmounts, canBatchTransactions])
+  }, [smartPoolAddress, positionInfo, accountAddress, currencyAmounts, canBatchTransactions])
 
   const {
     data: increaseLiquidityTokenApprovals,
@@ -114,7 +115,9 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
   )
 
   // we override permitData as rigoblock automatically approves the tokens
-  increaseLiquidityTokenApprovals && (increaseLiquidityTokenApprovals.permitData = { case: undefined })
+  if (increaseLiquidityTokenApprovals && !smartPoolAddress) {
+    increaseLiquidityTokenApprovals.permitData = { case: undefined }
+  }
 
   if (approvalError) {
     const message = parseErrorMessageTitle(approvalError, { defaultTitle: 'unknown CheckLpApprovalQuery' })
@@ -196,7 +199,8 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
       token1Amount,
       approvalsNeeded,
       positionInfo,
-      accountAddress,
+      accountAddress: smartPoolAddress ?? accountAddress,
+      isSmartPool: !!smartPoolAddress,
       customSlippageTolerance,
       customDeadline,
     })

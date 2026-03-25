@@ -33,21 +33,21 @@ export function Socials({ iconSize, gap }: { iconSize?: string; gap?: FlexProps[
     <Flex row gap={gap ?? '$spacing24'} maxHeight={iconSize} alignItems="flex-start">
       <MobileTouchableArea>
         <SocialIcon iconColor="#00C32B">
-          <Anchor href="https://github.com/Uniswap" target="_blank">
+          <Anchor href="https://github.com/RigoBlock" target="_blank">
             <Github size={iconSize} fill="inherit" />
           </Anchor>
         </SocialIcon>
       </MobileTouchableArea>
       <MobileTouchableArea>
         <SocialIcon iconColor="#20BAFF">
-          <Anchor href="https://x.com/Uniswap" target="_blank">
+          <Anchor href="https://x.com/Rigoblock" target="_blank">
             <Twitter size={iconSize} fill="inherit" />
           </Anchor>
         </SocialIcon>
       </MobileTouchableArea>
       <MobileTouchableArea>
         <SocialIcon iconColor="#5F51FF">
-          <Anchor href="https://discord.com/invite/uniswap" target="_blank">
+          <Anchor href="https://discord.gg/invite/FXd8EU8" target="_blank">
             <Discord size={iconSize} fill="inherit" />
           </Anchor>
         </SocialIcon>
@@ -87,7 +87,7 @@ export function Footer() {
   const needHelpSection = sectionContent[MenuSectionTitle.NeedHelp]
   const brandAssets: MenuItem = {
     label: t('common.brandAssets'),
-    href: 'https://github.com/Uniswap/brand-assets/raw/main/Uniswap%20Brand%20Assets.zip',
+    href: 'https://github.com/RigoBlock/interface',
     internal: false,
     elementName: ElementName.NavbarCompanyMenuBrandAssets,
   }
@@ -125,7 +125,7 @@ export function Footer() {
         width="100%"
         justifyContent="space-between"
       >
-        <Text variant="body3">© {currentYear} - Uniswap Labs</Text>
+        <Text variant="body3">© {currentYear} - RigoBlock</Text>
         <Flex row alignItems="center" gap="$spacing16">
           <PolicyLink onPress={togglePrivacyPolicy}>{t('common.privacyPolicy')}</PolicyLink>
           <Anchor textDecorationLine="none" href="https://rigoblock.com/legal" target="_blank">

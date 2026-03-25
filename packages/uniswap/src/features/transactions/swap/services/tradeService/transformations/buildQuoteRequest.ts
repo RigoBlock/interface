@@ -78,7 +78,10 @@ export function createBuildQuoteRequest(
       generatePermitAsTransaction: validatedInput.generatePermitAsTransaction,
       gasStrategies: [getActiveGasStrategy({ chainId: validatedInput.tokenInChainId, type: 'swap' })],
       isUSDQuote: validatedInput.isUSDQuote,
-      swapper: validatedInput.activeSmartPoolAddress ?? UNCONNECTED_ADDRESS,
+      // Use the connected account address for gas estimation — the RPC node checks ETH balance before estimating.
+      // For RigoBlock pools, the vault is MSG_SENDER at execution time, so tokens are pulled from the vault.
+      // Recipients in the calldata are overwritten to the vault in universalRouterCalldata.ts.
+      swapper: validatedInput.activeAccountAddress ?? UNCONNECTED_ADDRESS,
       tokenIn: validatedInput.tokenInAddress,
       tokenInChainId: validatedInput.tokenInChainId,
       tokenOut: validatedInput.tokenOutAddress,

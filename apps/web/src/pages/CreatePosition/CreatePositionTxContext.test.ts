@@ -10,7 +10,7 @@ import { USDT } from 'uniswap/src/constants/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { LiquidityTransactionType } from 'uniswap/src/features/transactions/liquidity/types'
 import { PermitMethod } from 'uniswap/src/features/transactions/swap/types/swapTxAndGasInfo'
-import { generateCreatePositionTxRequest } from '~/pages/CreatePosition/CreatePositionTxContext'
+import { generateCreatePositionTxRequest } from '~/pages/CreatePosition/generateCreatePositionTxRequest'
 import { ETH_MAINNET } from '~/test-utils/constants'
 
 describe('generateCreatePositionTxRequest', () => {

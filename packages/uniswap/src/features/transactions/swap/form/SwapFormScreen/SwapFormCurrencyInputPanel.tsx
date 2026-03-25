@@ -5,11 +5,13 @@ import { SectionName } from 'uniswap/src/features/telemetry/constants'
 import { Trace } from 'uniswap/src/features/telemetry/Trace'
 import { useCurrencyInputFocusedStyle } from 'uniswap/src/features/transactions/swap/form/SwapFormScreen/hooks/useCurrencyInputFocusedStyle'
 import { useSwapFormScreenStore } from 'uniswap/src/features/transactions/swap/form/stores/swapFormScreenStore/useSwapFormScreenStore'
+import { useSwapFormStore } from 'uniswap/src/features/transactions/swap/stores/swapFormStore/useSwapFormStore'
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { isWebPlatform } from 'utilities/src/platform'
 
 export function SwapFormCurrencyInputPanel(): JSX.Element {
   const { t } = useTranslation()
+  const smartPoolAddress = useSwapFormStore((s) => s.smartPoolAddress)
   const {
     inputRef,
     focusOnCurrencyField,

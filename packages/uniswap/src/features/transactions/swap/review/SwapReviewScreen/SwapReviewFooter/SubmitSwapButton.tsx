@@ -92,7 +92,7 @@ export function SubmitSwapButton({ disabled, onSubmit, showPendingUI, warning }:
     }
     case showPendingUI: {
       if (isChainedTrade && !isWebApp) {
-        return <PendingSwapButton disabled={disabled} onSubmit={handleSubmit} />
+        return <PendingSwapButton disabled={disabled} onSubmit={onSubmit} />
       }
       return (
         <Button loading variant="branded" emphasis="primary" size={size}>
@@ -120,7 +120,7 @@ export function SubmitSwapButton({ disabled, onSubmit, showPendingUI, warning }:
           icon={icon}
           size={size}
           testID={TestID.Swap}
-          onPress={handleSubmit}
+          onPress={onSubmit}
         >
           {actionText}
         </Button>
@@ -135,7 +135,7 @@ export function SubmitSwapButton({ disabled, onSubmit, showPendingUI, warning }:
           icon={icon}
           size={size}
           testID={TestID.Swap}
-          onPress={handleSubmit}
+          onPress={onSubmit}
         >
           {actionText}
         </Button>
