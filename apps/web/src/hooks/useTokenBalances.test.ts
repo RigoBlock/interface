@@ -16,6 +16,10 @@ vi.mock('~/features/accounts/store/hooks', () => ({
   useConnectionStatus: vi.fn(() => ({ isConnected: false, isConnecting: false, isDisconnected: true })),
 }))
 
+vi.mock('~/state/application/hooks', () => ({
+  useActiveSmartPool: vi.fn(() => ({ address: null, name: '' })),
+}))
+
 // Mock the balances module with all exports
 vi.mock('uniswap/src/features/dataApi/balances/balances', async () => {
   const actual = await vi.importActual('uniswap/src/features/dataApi/balances/balances')

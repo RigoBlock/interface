@@ -1,6 +1,6 @@
 import { Currency } from '@uniswap/sdk-core'
 import { useActiveSmartPool } from '~/state/application/hooks'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { useMultichainContext } from '~/state/multichain/useMultichainContext'
 import { useLocation } from 'react-router'
 import { SwitchNetworkAction } from '~/components/Popups/types'
@@ -37,7 +37,7 @@ export function CurrencySearch({
   chainIds,
   variation,
 }: CurrencySearchProps) {
-  const addresses = useActiveAddresses()
+  const activeAddresses = useActiveAddresses()
 
   const { chainId, setSelectedChainId, isUserSelectedToken, setIsUserSelectedToken, isMultichainContext } =
     useMultichainContext()
@@ -48,6 +48,13 @@ export function CurrencySearch({
   const selectChain = useSelectChain()
   const { chains } = useEnabledChains()
   const { address: smartPoolAddress } = useActiveSmartPool()
+
+  // When a smart pool is active, use vault address for token selector balance queries
+  const addresses = useMemo(
+    () =>
+      smartPoolAddress ? { evmAddress: smartPoolAddress, svmAddress: undefined } : activeAddresses,
+    [smartPoolAddress, activeAddresses],
+  )
 
   const handleCurrencySelectTokenSelectorCallback = useCallback(
     async ({ currency }: { currency: Currency }) => {
