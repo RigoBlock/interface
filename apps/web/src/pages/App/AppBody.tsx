@@ -1,5 +1,9 @@
-import { styled } from 'lib/styled-components'
-import { Z_INDEX } from 'theme/zIndex'
+import styled from '~/lib/deprecated-styled'
+
+interface BodyWrapperProps {
+  $margin?: string
+  $maxWidth?: string
+}
 
 export const BodyWrapper = styled.main<BodyWrapperProps>`
   position: relative;
@@ -12,10 +16,5 @@ export const BodyWrapper = styled.main<BodyWrapperProps>`
   margin-top: 1rem;
   margin-left: auto;
   margin-right: auto;
-  z-index: ${Z_INDEX.default};
+  z-index: 1;
 `
-
-interface BodyWrapperProps {
-  $margin?: string
-  $maxWidth?: string
-}

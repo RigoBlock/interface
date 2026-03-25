@@ -4,7 +4,7 @@ import JSBI from 'jsbi'
 import { useMemo } from 'react'
 import { EVMUniverseChainId } from 'uniswap/src/features/chains/types'
 import { logger } from 'utilities/src/logger/logger'
-import { assume0xAddress } from 'utils/wagmi'
+import { assume0xAddress } from '~/utils/wagmi'
 import { useReadContracts } from 'wagmi'
 
 // Classes are expensive to instantiate, so this caches the recently instantiated pools.

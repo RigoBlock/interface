@@ -62,13 +62,14 @@ export const OPTIMISM_CHAIN_INFO = {
     logo: ETH_LOGO,
   },
   networkLayer: NetworkLayer.L2,
+  blockTimeMs: 2000,
   pendingTransactionsRetryOptions: DEFAULT_RETRY_OPTIONS,
   rpcUrls: {
     [RPCType.Public]: { http: [getQuicknodeEndpointUrl(UniverseChainId.Optimism)] },
     [RPCType.PublicAlt]: { http: ['https://mainnet.optimism.io'] },
     [RPCType.Default]: { http: ['https://mainnet.optimism.io/'] },
     [RPCType.Fallback]: { http: ['https://rpc.ankr.com/optimism'] },
-    [RPCType.Interface]: { http: [`https://optimism-mainnet.infura.io/v3/${config.infuraKey}`] },
+    [RPCType.Interface]: { http: [`https://opt-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`, `https://optimism-mainnet.infura.io/v3/${config.infuraKey}`] },
   },
   tokens,
   statusPage: 'https://optimism.io/status',
@@ -83,4 +84,5 @@ export const OPTIMISM_CHAIN_INFO = {
   },
   gasConfig: GENERIC_L2_GAS_CONFIG,
   tradingApiPollingIntervalMs: 200,
+  acrossProtocolAddress: '0x6f26Bf09B1C792e3228e5467807a900A503c0281',
 } as const satisfies UniverseChainInfo

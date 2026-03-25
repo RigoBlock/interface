@@ -1,10 +1,9 @@
 // biome-ignore lint/style/noRestrictedImports: Trading API fixtures need direct Playwright imports
-import { test as base } from '@playwright/test'
-import { Mocks } from 'playwright/mocks/mocks'
-import { type Page } from 'playwright/test'
+import { test as base, type Page, type Route } from '@playwright/test'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { Mocks } from '~/playwright/mocks/mocks'
 
-export const DEFAULT_TEST_GAS_LIMIT = '20000000'
+const DEFAULT_TEST_GAS_LIMIT = '20000000'
 
 const shouldIgnorePageError = (error: Error): { ignored: boolean } => {
   if (
@@ -33,7 +32,7 @@ export async function stubTradingApiEndpoint({
   modifyRequestData?: (data: any) => any
   modifyResponseData?: (data: any) => any
 }) {
-  await page.route(`${uniswapUrls.tradingApiUrl}${endpoint}*`, async (route) => {
+  const handler = async (route: Route) => {
     try {
       const request = route.request()
       const postData = request.postDataJSON()
@@ -59,9 +58,12 @@ export async function stubTradingApiEndpoint({
       try {
         responseJson = JSON.parse(responseText)
       } catch (parseError) {
-        throw new Error(`Failed to parse trading API response for ${endpoint}. Response: ${responseText}`, {
-          cause: parseError,
-        })
+        throw new Error(
+          `Failed to parse trading API response for ${endpoint}. Request: ${JSON.stringify(modifiedData)}. Response: ${responseText}`,
+          {
+            cause: parseError,
+          },
+        )
       }
 
       // Set a high gas limit to avoid OutOfGas
@@ -84,7 +86,13 @@ export async function stubTradingApiEndpoint({
 
       throw error
     }
-  })
+  }
+
+  // Match the exact endpoint path, optionally followed by query params
+  // Avoids matching longer paths (e.g., /v1/swap should not match /v1/swappable_tokens or /v1/swaps)
+  const escapedUrl = `${uniswapUrls.tradingApiUrl}${endpoint}`.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  // eslint-disable-next-line security/detect-non-literal-regexp -- escapedUrl is sanitized above via regex escaping
+  await page.route(new RegExp(`^${escapedUrl}(\\?.*)?$`), handler)
 }
 
 /**

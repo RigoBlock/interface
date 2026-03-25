@@ -2,18 +2,18 @@
 import { test as base } from '@playwright/test'
 import { MaxUint160, MaxUint256, permit2Address } from '@uniswap/permit2-sdk'
 import { WETH_ADDRESS } from '@uniswap/universal-router-sdk'
-import type { AnvilClient as BaseAnvilClient } from 'playwright/anvil/anvil-manager'
-import { getAnvilManager } from 'playwright/anvil/anvil-manager'
-import { setErc20BalanceWithMultipleSlots } from 'playwright/anvil/utils'
-import { TEST_WALLET_ADDRESS } from 'playwright/fixtures/wallets'
 import PERMIT2_ABI from 'uniswap/src/abis/permit2'
 import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
 import { DAI, USDT } from 'uniswap/src/constants/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { sleep } from 'utilities/src/time/timing'
-import { assume0xAddress } from 'utils/wagmi'
 import { type Address, erc20Abi } from 'viem'
 import { mainnet } from 'viem/chains'
+import type { AnvilClient as BaseAnvilClient } from '~/playwright/anvil/anvil-manager'
+import { getAnvilManager } from '~/playwright/anvil/anvil-manager'
+import { setErc20BalanceWithMultipleSlots } from '~/playwright/anvil/utils'
+import { TEST_WALLET_ADDRESS } from '~/playwright/fixtures/wallets'
+import { assume0xAddress } from '~/utils/wagmi'
 
 const SNAPSHOTS_ENABLED = process.env.ENABLE_ANVIL_SNAPSHOTS === 'true'
 
@@ -21,7 +21,18 @@ class WalletError extends Error {
   code?: number
 }
 
-const allowedErc20BalanceAddresses = [USDT.address, DAI.address, WETH_ADDRESS(UniverseChainId.Mainnet)]
+// Known balance mapping slots for tokens with non-standard storage layouts
+const KNOWN_BALANCE_SLOTS: Record<string, number> = {
+  // WEETH (ether.fi weETH) — balance mapping at slot 101
+  '0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee': 101,
+}
+
+const allowedErc20BalanceAddresses = [
+  USDT.address,
+  DAI.address,
+  WETH_ADDRESS(UniverseChainId.Mainnet),
+  ...Object.keys(KNOWN_BALANCE_SLOTS),
+]
 
 // Helper to check if error is a timeout
 const isTimeoutError = (error: any): boolean => {
@@ -56,6 +67,7 @@ const createAnvilClient = () => {
         erc20Address: address,
         user: walletAddress,
         newBalance: balance,
+        knownSlot: KNOWN_BALANCE_SLOTS[address],
       })
     },
     async getErc20Balance(address: Address, owner?: Address) {

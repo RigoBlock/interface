@@ -1,5 +1,5 @@
 import { isNonPollingRequestInFlight } from '@universe/api'
-import { useCallback, useEffect, useMemo } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import InfiniteScroll from 'react-infinite-scroll-component'
 import { Flex, Loader, styled, Text, View } from 'ui/src'
@@ -8,6 +8,7 @@ import { ExpandoRow } from 'uniswap/src/components/ExpandoRow/ExpandoRow'
 import { useNftListRenderData } from 'uniswap/src/components/nfts/hooks/useNftListRenderData'
 import { NftsListProps } from 'uniswap/src/components/nfts/NftsList'
 import { NftsListEmptyState } from 'uniswap/src/components/nfts/NftsListEmptyState'
+import { NftListHeader } from 'uniswap/src/components/nfts/NftsListHeader'
 import { ShowNFTModal } from 'uniswap/src/components/nfts/ShowNFTModal'
 import { EMPTY_NFT_ITEM, HIDDEN_NFTS_ROW } from 'uniswap/src/features/nfts/constants'
 import { NFTItem } from 'uniswap/src/features/nfts/types'
@@ -57,11 +58,22 @@ export function NftsList({
   customLoadingState,
   filteredNumHidden,
   chainsFilter,
-  searchString,
   onFilteredCountsChange,
   renderExpandoRow,
+  nextFetchPolicy,
+  onRefetchReady,
+  onLoadingStateChange,
+  showHeader = false,
+  SearchInputComponent,
+  searchInputTestId,
+  headerTestId,
+  noResultsTestId,
+  emptyStateTestId,
+  pollInterval,
 }: NftsListProps): JSX.Element {
   const { t } = useTranslation()
+
+  const [search, setSearch] = useState('')
 
   const {
     nfts: allNfts,
@@ -77,20 +89,41 @@ export function NftsList({
     refetch,
     shownNfts,
     hiddenNfts,
-  } = useNftListRenderData({ owner, skip, chainsFilter })
+  } = useNftListRenderData({ owner, skip, chainsFilter, nextFetchPolicy, pollInterval })
+
+  // Expose refetch function to parent component
+  useEffect(() => {
+    if (onRefetchReady) {
+      onRefetchReady(refetch)
+    }
+  }, [onRefetchReady, refetch])
+
+  // Expose loading state to parent component
+  const isLoadingState = isNonPollingRequestInFlight(networkStatus)
+  useEffect(() => {
+    if (onLoadingStateChange) {
+      onLoadingStateChange(isLoadingState)
+    }
+  }, [onLoadingStateChange, isLoadingState])
 
   // Filter NFTs based on search string
   const filteredShownNfts = useMemo(() => {
-    return shownNfts.filter((item) => filterNft(item, searchString))
-  }, [shownNfts, searchString])
+    if (!search) {
+      return shownNfts
+    }
+    return shownNfts.filter((item) => filterNft(item, search))
+  }, [shownNfts, search])
 
   const filteredHiddenNfts = useMemo(() => {
-    return hiddenNfts.filter((item) => filterNft(item, searchString))
-  }, [hiddenNfts, searchString])
+    if (!search) {
+      return hiddenNfts
+    }
+    return hiddenNfts.filter((item) => filterNft(item, search))
+  }, [hiddenNfts, search])
 
   // Rebuild the nfts array from filtered arrays using the shared logic
   const nfts = useMemo<Array<NFTItem | string>>(() => {
-    if (!searchString) {
+    if (!search) {
       return allNfts
     }
 
@@ -101,17 +134,16 @@ export function NftsList({
       allPagesFetched: !hasNextPage,
     })
     return result
-  }, [allNfts, filteredShownNfts, filteredHiddenNfts, searchString, hasNextPage, hiddenNftsExpanded])
+  }, [allNfts, filteredShownNfts, filteredHiddenNfts, search, hasNextPage, hiddenNftsExpanded])
 
   // Calculate filtered counts
   const filteredShownCount = filteredShownNfts.length
   const filteredHiddenCount = filteredHiddenNfts.length
 
   // Use filtered count if provided, otherwise use internal count
-  // If searchString is provided, use filtered count
-  const numHidden = filteredNumHidden ?? (searchString ? filteredHiddenCount : internalNumHidden)
+  const numHidden = filteredNumHidden ?? (search ? filteredHiddenCount : internalNumHidden)
 
-  // Notify parent of filtered counts (or unfiltered counts if no search string)
+  // Notify parent of filtered counts (or unfiltered counts if no search)
   useEffect(() => {
     if (onFilteredCountsChange) {
       onFilteredCountsChange({ shown: filteredShownCount, hidden: filteredHiddenCount })
@@ -137,9 +169,9 @@ export function NftsList({
   }, [hiddenNftsExpanded, numHidden, setHiddenNftsExpanded])
 
   const renderItem = useCallback(
-    (item: string | NFTItem, index: number) => {
+    (item: string | NFTItem, index: number): JSX.Element | null => {
       if (typeof item !== 'string') {
-        return renderNFTItem(item, index)
+        return <Fragment key={keyExtractor(item)}>{renderNFTItem(item, index)}</Fragment>
       }
 
       switch (item) {
@@ -185,7 +217,8 @@ export function NftsList({
   )
 
   // Skeleton content without container (used for initial load inside main AssetsContainer)
-  const skeletonContent = useMemo<JSX.Element>(() => {
+  const skeletonContent = useMemo<JSX.Element>((): JSX.Element => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- customLoadingState is typed as JSX.Element | undefined
     return (
       customLoadingState ?? (
         <>
@@ -206,10 +239,10 @@ export function NftsList({
     )
   }, [skeletonContent, autoColumns])
 
-  const emptyState = useMemo(
-    () => customEmptyState ?? <NftsListEmptyState containerStyle={emptyStateStyle} />,
-    [customEmptyState, emptyStateStyle],
-  )
+  const emptyState = useMemo<JSX.Element>((): JSX.Element => {
+    const defaultEmptyState = <NftsListEmptyState containerStyle={emptyStateStyle} dataTestId={emptyStateTestId} />
+    return (customEmptyState ?? defaultEmptyState) as JSX.Element
+  }, [customEmptyState, emptyStateStyle, emptyStateTestId])
 
   const errorState = useMemo(
     () => (
@@ -225,10 +258,9 @@ export function NftsList({
     [errorStateStyle, onRetry, t],
   )
 
-  const isLoadingState = isNonPollingRequestInFlight(networkStatus)
   const isEmptyState = (nfts.length === 0 && !isLoadingState) || isErrorState
 
-  const listContent = useMemo<JSX.Element | JSX.Element[]>(() => {
+  const listContent = useMemo<JSX.Element | JSX.Element[]>((): JSX.Element | JSX.Element[] => {
     if (isLoadingState) {
       return skeletonContent
     }
@@ -237,36 +269,49 @@ export function NftsList({
       return errorState
     }
 
+    // Show no-results when user has searched and the filtered list is empty (explicit check so we always hit this when filtering yields nothing)
+    if (search && filteredShownCount === 0) {
+      return (
+        <Flex centered p="$spacing12" width="100%" data-testid={noResultsTestId}>
+          <Text variant="body3" color="$neutral2">
+            {t('common.noResults')}
+          </Text>
+        </Flex>
+      )
+    }
+
+    // Use nfts.length so we show empty state when there are no NFTs; itemsToRender can have length 1 when shouldAddInLoadingItem is true
     if (nfts.length === 0) {
-      if (searchString) {
-        return (
-          <Flex centered p="$spacing12" width="100%">
-            <Text variant="body3" color="$neutral2">
-              {t('common.noResults')}
-            </Text>
-          </Flex>
-        )
-      } else {
-        return emptyState
-      }
+      return emptyState
     }
 
     return itemsToRender.map(renderItem).filter((item): item is JSX.Element => item !== null)
   }, [
     isLoadingState,
     nfts.length,
+    filteredShownCount,
     itemsToRender,
     renderItem,
     errorState,
     emptyState,
     skeletonContent,
     isErrorState,
-    searchString,
+    noResultsTestId,
+    search,
     t,
   ])
 
   return (
-    <>
+    <Flex gap="$spacing24">
+      {showHeader && (
+        <NftListHeader
+          count={filteredShownCount}
+          SearchInputComponent={SearchInputComponent}
+          searchInputTestId={searchInputTestId}
+          headerTestId={headerTestId}
+          onSearchValueChange={setSearch}
+        />
+      )}
       <InfiniteScroll
         next={onListEndReached}
         hasMore={hasNextPage}
@@ -280,6 +325,6 @@ export function NftsList({
           {listContent}
         </AssetsContainer>
       </InfiniteScroll>
-    </>
+    </Flex>
   )
 }

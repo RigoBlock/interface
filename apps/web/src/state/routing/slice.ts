@@ -1,7 +1,12 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import { Protocol } from '@uniswap/router-sdk'
 import ms from 'ms'
-import { useActiveSmartPool } from 'state/application/hooks'
+import { useActiveSmartPool } from '~/state/application/hooks'
+import { InterfaceEventName } from 'uniswap/src/features/telemetry/constants'
+import { logger } from 'utilities/src/logger/logger'
+import { logSwapQuoteFetch } from 'uniswap/src/features/transactions/swap/analytics'
+import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
+import { REQUEST_SOURCE } from 'utilities/src/platform/requestSource'
 import {
   ClassicAPIConfig,
   GetQuoteArgs,
@@ -18,13 +23,8 @@ import {
   UniswapXv3Config,
   URAQuoteResponse,
   URAQuoteType,
-} from 'state/routing/types'
-import { isExactInput, transformQuoteToTrade } from 'state/routing/utils'
-import { InterfaceEventName } from 'uniswap/src/features/telemetry/constants'
-import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
-import { logSwapQuoteFetch } from 'uniswap/src/features/transactions/swap/analytics'
-import { logger } from 'utilities/src/logger/logger'
-import { REQUEST_SOURCE } from 'utilities/src/platform/requestSource'
+} from '~/state/routing/types'
+import { isExactInput, transformQuoteToTrade } from '~/state/routing/utils'
 
 const UNISWAP_GATEWAY_DNS_URL = process.env.REACT_APP_UNISWAP_GATEWAY_DNS
 if (UNISWAP_GATEWAY_DNS_URL === undefined) {
@@ -115,6 +115,7 @@ export const routingApi = createApi({
         logSwapQuoteFetch({
           chainId: args.tokenInChainId,
           isUSDQuote: args.routerPreference === INTERNAL_ROUTER_PREFERENCE_PRICE,
+          quoteSource: 'routing_api',
         })
         const {
           tokenInAddress: tokenIn,
@@ -147,6 +148,7 @@ export const routingApi = createApi({
               'x-request-source': REQUEST_SOURCE,
             },
           })
+
           if (response.error) {
             try {
               // cast as any here because we do a runtime check on it being an object before indexing into .errorCode
@@ -199,5 +201,8 @@ export const routingApi = createApi({
   }),
 })
 
-export const { useGetQuoteQuery } = routingApi
+export const {
+  useGetQuoteQuery,
+  util: { resetApiState: resetRoutingApi },
+} = routingApi
 export const useGetQuoteQueryState = routingApi.endpoints.getQuote.useQueryState

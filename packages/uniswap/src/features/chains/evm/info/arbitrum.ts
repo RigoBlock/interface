@@ -62,6 +62,7 @@ export const ARBITRUM_CHAIN_INFO = {
     logo: ETH_LOGO,
   },
   networkLayer: NetworkLayer.L2,
+  blockTimeMs: 250,
   pendingTransactionsRetryOptions: DEFAULT_RETRY_OPTIONS,
   tokens,
   statusPage: undefined,
@@ -74,6 +75,7 @@ export const ARBITRUM_CHAIN_INFO = {
     [RPCType.Fallback]: { http: ['https://arbitrum.public-rpc.com'] },
     [RPCType.Interface]: {
       http: [
+        `https://arb-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`,
         `https://arbitrum-mainnet.infura.io/v3/${config.infuraKey}`,
         getQuicknodeEndpointUrl(UniverseChainId.ArbitrumOne),
       ],
@@ -88,4 +90,5 @@ export const ARBITRUM_CHAIN_INFO = {
   },
   gasConfig: GENERIC_L2_GAS_CONFIG,
   tradingApiPollingIntervalMs: 150,
+  acrossProtocolAddress: '0xe35e9842fceaca96570b734083f4a58e8f7c5f2a',
 } as const satisfies UniverseChainInfo

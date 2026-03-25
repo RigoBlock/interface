@@ -1,12 +1,12 @@
-import Loader from 'components/Icons/LoadingSpinner'
-import PoolPositionGroupedListItem from 'components/PoolPositionGroupedListItem'
-import { useAccount } from 'hooks/useAccount'
-import styled from 'lib/styled-components'
+import Loader from '~/components/Icons/LoadingSpinner'
+import PoolPositionGroupedListItem from '~/components/PoolPositionGroupedListItem'
+import { useAccount } from '~/hooks/useAccount'
+import styled from '~/lib/deprecated-styled'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import InfiniteScroll from 'react-infinite-scroll-component'
 import { Trans } from 'react-i18next'
-import { MEDIA_WIDTHS } from 'theme'
-import { PoolPositionDetails } from 'types/position'
+import { MEDIA_WIDTHS } from '~/theme'
+import { PoolPositionDetails } from '~/types/position'
 import { Flex, Text } from 'ui/src'
 
 const DesktopHeader = styled.div`

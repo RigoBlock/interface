@@ -1,19 +1,18 @@
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
 import { CurrencyAmount } from '@uniswap/sdk-core'
-import { getLPBaseAnalyticsProperties } from 'components/Liquidity/analytics'
-import { useGetPoolTokenPercentage } from 'components/Liquidity/hooks/useGetPoolTokenPercentage'
-import { TokenInfo } from 'components/Liquidity/TokenInfo'
-import { DetailLineItem } from 'components/swap/DetailLineItem'
+import useSelectChain from '~/hooks/useSelectChain'
+import { useRemoveLiquidityTxContext } from '~/pages/RemoveLiquidity/RemoveLiquidityTxContext'
+import { getLPBaseAnalyticsProperties } from '~/components/Liquidity/analytics'
+import { useRemoveLiquidityModalContext } from '~/pages/RemoveLiquidity/RemoveLiquidityModalContext'
 import { BigNumber } from 'ethers/lib/ethers'
-import { useCurrencyInfo } from 'hooks/Tokens'
-import { useAccount } from 'hooks/useAccount'
-import useSelectChain from 'hooks/useSelectChain'
-import { useRemoveLiquidityModalContext } from 'pages/RemoveLiquidity/RemoveLiquidityModalContext'
-import { useRemoveLiquidityTxContext } from 'pages/RemoveLiquidity/RemoveLiquidityTxContext'
+import { DetailLineItem } from '~/components/swap/DetailLineItem'
+import { useGetPoolTokenPercentage } from '~/components/Liquidity/hooks/useGetPoolTokenPercentage'
+import { TokenInfo } from '~/components/Liquidity/TokenInfo'
+import { useAccount } from '~/hooks/useAccount'
+import { useCurrencyInfo } from '~/hooks/Tokens'
 import { useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
-import { liquiditySaga } from 'state/sagas/liquidity/liquiditySaga'
 import { Button, Flex, Separator, Text } from 'ui/src'
 import { Passkey } from 'ui/src/components/icons/Passkey'
 import { iconSizes } from 'ui/src/theme'
@@ -23,7 +22,7 @@ import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
 import { PollingInterval } from 'uniswap/src/constants/misc'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { useGetPasskeyAuthStatus } from 'uniswap/src/features/passkey/hooks/useGetPasskeyAuthStatus'
-import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'
+import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPriceWrapper'
 import { isValidLiquidityTxContext } from 'uniswap/src/features/transactions/liquidity/types'
 import { TransactionStep } from 'uniswap/src/features/transactions/steps/types'
 import { useWallet } from 'uniswap/src/features/wallet/hooks/useWallet'
@@ -31,6 +30,7 @@ import { isSignerMnemonicAccountDetails } from 'uniswap/src/features/wallet/type
 import { getSymbolDisplayText } from 'uniswap/src/utils/currency'
 import { NumberType } from 'utilities/src/format/types'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
+import { liquiditySaga } from '~/state/sagas/liquidity/liquiditySaga'
 
 export function RemoveLiquidityReview({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation()
@@ -184,7 +184,7 @@ export function RemoveLiquidityReview({ onClose }: { onClose: () => void }) {
           currencyUSDAmount={currency1FiatAmount?.multiply(percent).divide(100)}
         />
         {positionInfo.version !== ProtocolVersion.V2 && (
-          <Flex p="$spacing16" gap="$gap12" background="$surface2" borderRadius="$rounded12">
+          <Flex p="$spacing12" gap="$gap12" background="$surface2" borderRadius="$rounded12">
             <Text variant="body4" color="$neutral2">
               {t('fee.uncollected')}
             </Text>

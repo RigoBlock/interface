@@ -2,35 +2,35 @@
 import { Interface } from '@ethersproject/abi'
 import { getAddress, isAddress } from '@ethersproject/address'
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core'
-import { ButtonError } from 'components/Button/buttons'
-import { BlueCard } from 'components/Card/cards'
-import { AutoColumn } from 'components/deprecated/Column'
+import { ButtonError } from '~/components/Button/buttons'
+import { BlueCard } from '~/components/Card/cards'
+import { AutoColumn } from '~/components/deprecated/Column'
 import {
   AUTHORITY_ADDRESSES,
   GOVERNANCE_PROXY_ADDRESSES,
   RB_FACTORY_ADDRESSES,
   STAKING_PROXY_ADDRESSES,
-} from 'constants/addresses'
-import { useAccount } from 'hooks/useAccount'
+} from '~/constants/addresses'
+import { useAccount } from '~/hooks/useAccount'
 import JSBI from 'jsbi'
-import styled from 'lib/styled-components'
-import tryParseCurrencyAmount from 'lib/utils/tryParseCurrencyAmount'
-import { BodyWrapper } from 'pages/App/AppBody'
-import { ProposalActionDetail } from 'pages/CreateProposal/ProposalActionDetail'
+import styled from '~/lib/deprecated-styled'
+import tryParseCurrencyAmount from '~/lib/utils/tryParseCurrencyAmount'
+import { BodyWrapper } from '~/pages/App/AppBody'
+import { ProposalActionDetail } from '~/pages/CreateProposal/ProposalActionDetail'
 import {
   ProposalAction,
   ProposalActionSelector,
   ProposalActionSelectorModal,
-} from 'pages/CreateProposal/ProposalActionSelector'
-import { ProposalEditor } from 'pages/CreateProposal/ProposalEditor'
-import { ProposalSubmissionModal } from 'pages/CreateProposal/ProposalSubmissionModal'
+} from '~/pages/CreateProposal/ProposalActionSelector'
+import { ProposalEditor } from '~/pages/CreateProposal/ProposalEditor'
+import { ProposalSubmissionModal } from '~/pages/CreateProposal/ProposalSubmissionModal'
 import { useCallback, useMemo, useState } from 'react'
 import { ArrowLeft, X } from 'react-feather'
 import { Trans } from 'react-i18next'
 import { Link } from 'react-router'
-import { CreateProposalData, useCreateProposalCallback, useVotingParams } from 'state/governance/hooks'
-import { ThemedText } from 'theme/components'
-import { ExternalLink, StyledInternalLink } from 'theme/components/Links'
+import { CreateProposalData, useCreateProposalCallback, useVotingParams } from '~/state/governance/hooks'
+import { ThemedText } from '~/theme/components'
+import { ExternalLink, StyledInternalLink } from '~/theme/components/Links'
 import AUTHORITY_ABI from 'uniswap/src/abis/authority.json'
 import TOKEN_ABI from 'uniswap/src/abis/erc20.json'
 import GOVERNANCE_RB_ABI from 'uniswap/src/abis/governance.json'

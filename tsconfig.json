@@ -44,7 +44,16 @@
       "path": "./packages/notifications"
     },
     {
-      "path": "./apps/cli"
+      "path": "./packages/hashcash-native"
+    },
+    {
+      "path": "./packages/mycelium"
+    },
+    {
+      "path": "./packages/websocket"
+    },
+    {
+      "path": "./packages/prices"
     }
   ]
 }

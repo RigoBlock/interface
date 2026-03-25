@@ -3,9 +3,9 @@
 import { BigNumber } from '@ethersproject/bignumber'
 import { useMemo } from 'react'
 // TODO: remove duplicate method definition and reorg code
-import { usePoolExtendedContract, usePoolFactoryContract } from 'state/pool/hooks'
+import { usePoolExtendedContract, usePoolFactoryContract } from '~/state/pool/hooks'
 import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
-import { assume0xAddress } from 'utils/wagmi'
+import { assume0xAddress } from '~/utils/wagmi'
 import { useReadContract, useReadContracts } from 'wagmi'
 
 interface PoolInitParams {

@@ -1,13 +1,12 @@
-import Column from 'components/deprecated/Column'
-import { RowBetween, RowFixed } from 'components/deprecated/Row'
-import UniswapXBrandMark from 'components/Logo/UniswapXBrandMark'
-import { styled } from 'lib/styled-components'
+import Column from '~/components/deprecated/Column'
+import { RowBetween, RowFixed } from '~/components/deprecated/Row'
+import { deprecatedStyled as styled } from '~/lib/deprecated-styled'
 import { Trans } from 'react-i18next'
-import { RouterPreference } from 'state/routing/types'
-import { useRouterPreference } from 'state/user/hooks'
-import { ThemedText } from 'theme/components'
-import { ExternalLink } from 'theme/components/Links'
-import { Switch } from 'ui/src'
+import { RouterPreference } from '~/state/routing/types'
+import { useRouterPreference } from '~/state/user/hooks'
+import { ThemedText } from '~/theme/components'
+import { ExternalLink } from '~/theme/components/Links'
+import { Text, Switch } from 'ui/src'
 
 const InlineLink = styled(ThemedText.BodySmall)`
   color: ${({ theme }) => theme.accent1};
@@ -26,7 +25,7 @@ export default function RouterPreferenceSettings() {
       <RowFixed>
         <Column gap="xs">
           <ThemedText.BodySecondary>
-            <UniswapXBrandMark />
+            <Text variant="body2">UniswapX</Text>
           </ThemedText.BodySecondary>
           <ThemedText.BodySmall color="neutral2">
             <Trans i18nKey="routing.aggregateLiquidity" />{' '}

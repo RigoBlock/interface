@@ -1,13 +1,15 @@
+import { NavIcon } from '~/components/Logo/NavIcon'
+import { MobileMenuDrawer } from '~/components/NavBar/CompanyMenu/MobileMenuDrawer'
 import { useTheme } from '@tamagui/core'
-import { ArrowChangeDown } from 'components/Icons/ArrowChangeDown'
-import { NavIcon } from 'components/Logo/NavIcon'
-import { MenuDropdown } from 'components/NavBar/CompanyMenu/MenuDropdown'
-import { MobileMenuDrawer } from 'components/NavBar/CompanyMenu/MobileMenuDrawer'
-import { useIsMobileDrawer } from 'components/NavBar/ScreenSizes'
+import { useIsMobileDrawer } from '~/components/NavBar/ScreenSizes'
+import { ArrowChangeDown } from '~/components/Icons/ArrowChangeDown'
+import { MenuDropdown } from '~/components/NavBar/CompanyMenu/MenuDropdown'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { Flex, Popover, styled, Text, useIsTouchDevice, useMedia } from 'ui/src'
 import { Hamburger } from 'ui/src/components/icons/Hamburger'
+import { ElementName } from 'uniswap/src/features/telemetry/constants'
+import Trace from 'uniswap/src/features/telemetry/Trace'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 
 const ArrowDownWrapper = styled(Text, {
@@ -54,16 +56,18 @@ export function CompanyMenu() {
           group
           $platform-web={{ containerType: 'normal' }}
         >
-          <Link to="/?intro=true" style={{ textDecoration: 'none' }}>
-            <Flex row alignItems="center" gap="$gap4" data-testid={TestID.NavUniswapLogo}>
-              <NavIcon />
-              {isLargeScreen && (
-                <Text variant="subheading1" color={theme.accent1} userSelect="none">
-                  Rigoblock
-                </Text>
-              )}
-            </Flex>
-          </Link>
+          <Trace logPress element={ElementName.NavbarCompanyMenuLogo}>
+            <Link to="/?intro=true" style={{ textDecoration: 'none' }}>
+              <Flex row alignItems="center" gap="$gap4" data-testid={TestID.NavUniswapLogo}>
+                <NavIcon />
+                {isLargeScreen && (
+                  <Text variant="subheading1" color="$accent1" userSelect="none">
+                    RigoBlock
+                  </Text>
+                )}
+              </Flex>
+            </Link>
+          </Trace>
           {(media.md || isTouchDevice) && <Hamburger size={22} color="$neutral2" cursor="pointer" ml="16px" />}
           {!media.md && !isTouchDevice && (
             <ArrowDownWrapper open={isOpen}>

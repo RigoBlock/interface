@@ -14,6 +14,7 @@ export {
   AllowedV4WethHookAddressesConfigKey,
   BlockedAsyncSubmissionChainIdsConfigKey,
   ChainsConfigKey,
+  CreateAuctionConfigKey,
   DatadogIgnoredErrorsConfigKey,
   DatadogSessionSampleRateKey,
   DynamicConfigs,
@@ -29,20 +30,19 @@ export {
   SwapConfigKey,
   SyncTransactionSubmissionChainIdsConfigKey,
   UwuLinkConfigKey,
+  VerifiedAuctionsConfigKey,
 } from '@universe/gating/src/configs'
 export { StatsigCustomAppValue } from '@universe/gating/src/constants'
 export type { ExperimentProperties } from '@universe/gating/src/experiments'
 export {
+  EthAsErc20UniswapXProperties,
   Experiments,
-  ForFiltersProperties,
+  ExploreBackendSortingProperties,
   LayerProperties,
   Layers,
   NativeTokenPercentageBufferProperties,
-  PortfolioDisconnectedDemoViewProperties,
-  PriceUxUpdateProperties,
   PrivateRpcProperties,
   UnichainFlashblocksProperties,
-  WebFORNudgesProperties,
 } from '@universe/gating/src/experiments'
 export {
   FeatureFlagClient,
@@ -51,8 +51,17 @@ export {
   WALLET_FEATURE_FLAG_NAMES,
   WEB_FEATURE_FLAG_NAMES,
 } from '@universe/gating/src/flags'
-export { getIsSessionServiceEnabled } from '@universe/gating/src/getIsSessionServiceEnabled'
+export { getIsHashcashSolverEnabled, useIsHashcashSolverEnabled } from '@universe/gating/src/getIsHashcashSolverEnabled'
+export {
+  getIsSessionsPerformanceTrackingEnabled,
+  useIsSessionsPerformanceTrackingEnabled,
+} from '@universe/gating/src/getIsPerformanceTrackingEnabled'
+export { getIsSessionServiceEnabled, useIsSessionServiceEnabled } from '@universe/gating/src/getIsSessionServiceEnabled'
 export { getIsSessionUpgradeAutoEnabled } from '@universe/gating/src/getIsSessionUpgradeAutoEnabled'
+export {
+  getIsTurnstileSolverEnabled,
+  useIsTurnstileSolverEnabled,
+} from '@universe/gating/src/getIsTurnstileSolverEnabled'
 export { getStatsigEnvName } from '@universe/gating/src/getStatsigEnvName'
 export {
   getDynamicConfigValue,
@@ -62,6 +71,7 @@ export {
   useDynamicConfigValue,
   useExperimentValue,
   useExperimentValueFromLayer,
+  useExperimentValueWithExposureLoggingDisabled,
   useFeatureFlag,
   useFeatureFlagWithExposureLoggingDisabled,
   useFeatureFlagWithLoading,
@@ -82,6 +92,7 @@ export {
   Storage,
   useClientAsyncInit,
   useExperiment,
+  useGateValue,
   useLayer,
 } from '@universe/gating/src/sdk/statsig'
 export { getOverrides } from '@universe/gating/src/utils'

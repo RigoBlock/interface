@@ -42,7 +42,7 @@ export const BLAST_CHAIN_INFO = {
   docs: 'https://docs.blast.io',
   elementName: ElementName.ChainBlast,
   explorer: {
-    name: 'BlastScan',
+    name: 'Blastscan',
     url: 'https://blastscan.io/',
     apiURL: 'https://api.blastscan.io',
   },
@@ -51,6 +51,7 @@ export const BLAST_CHAIN_INFO = {
   label: 'Blast',
   logo: BLAST_LOGO,
   networkLayer: NetworkLayer.L2,
+  blockTimeMs: 2000,
   pendingTransactionsRetryOptions: DEFAULT_RETRY_OPTIONS,
   tokens,
   statusPage: undefined,
@@ -67,7 +68,7 @@ export const BLAST_CHAIN_INFO = {
   rpcUrls: {
     [RPCType.Public]: { http: [getQuicknodeEndpointUrl(UniverseChainId.Blast)] },
     [RPCType.Default]: { http: ['https://rpc.blast.io/'] },
-    [RPCType.Interface]: { http: [`https://blast-mainnet.infura.io/v3/${config.infuraKey}`] },
+    [RPCType.Interface]: { http: [`https://blast-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`, `https://blast-mainnet.infura.io/v3/${config.infuraKey}`] },
   },
   wrappedNativeCurrency: {
     name: 'Wrapped Ether',
@@ -77,4 +78,5 @@ export const BLAST_CHAIN_INFO = {
   },
   gasConfig: GENERIC_L2_GAS_CONFIG,
   tradingApiPollingIntervalMs: 200,
+  acrossProtocolAddress: '0x2D509190Ed0172ba588407D4c2df918F955Cc6E1',
 } as const satisfies UniverseChainInfo

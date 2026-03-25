@@ -1,33 +1,31 @@
 import { Token } from '@uniswap/sdk-core'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-import Row from 'components/deprecated/Row'
-import { ChainSelector } from 'components/NavBar/ChainSelector'
-import { useLocation } from 'react-router'
-import { CompanyMenu } from 'components/NavBar/CompanyMenu'
-import { NewUserCTAButton } from 'components/NavBar/DownloadApp/NewUserCTAButton'
-import PoolSelect from 'components/NavBar/PoolSelect'
-import { PreferenceMenu } from 'components/NavBar/PreferencesMenu'
-import { useTabsVisible } from 'components/NavBar/ScreenSizes'
-import { useIsSearchBarVisible } from 'components/NavBar/SearchBar/useIsSearchBarVisible'
-import { Tabs } from 'components/NavBar/Tabs/Tabs'
-import TestnetModeTooltip from 'components/NavBar/TestnetMode/TestnetModeTooltip'
-import { UniswapWrappedEntry } from 'components/NavBar/UniswapWrappedEntry'
-import Web3Status from 'components/Web3Status'
-import { RIGOBLOCK_SUPPORTED_CHAINS, RIGOBLOCK_TESTNET_CHAINS } from 'constants/addresses'
-import { useAccount } from 'hooks/useAccount'
-import { PageType, useIsPage } from 'hooks/useIsPage'
-import usePrevious from 'hooks/usePrevious'
-import { css, styled as deprecatedStyled } from 'lib/styled-components'
 import { useEffect, useMemo, useRef } from 'react'
-import { useActiveSmartPool, useSelectActiveSmartPool } from 'state/application/hooks'
-import {
-  useMultiChainAllPoolsData,
-  useMultiChainStakingPools,
-} from 'state/pool/multichain'
+import { useLocation } from 'react-router'
 import { Flex, styled, Nav as TamaguiNav, useMedia } from 'ui/src'
 import { breakpoints, INTERFACE_NAV_HEIGHT, zIndexes } from 'ui/src/theme'
 import { useConnectionStatus } from 'uniswap/src/features/accounts/store/hooks'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
+import Row from '~/components/deprecated/Row'
+import { CompanyMenu } from '~/components/NavBar/CompanyMenu'
+import { NewUserCTAButton } from '~/components/NavBar/DownloadApp/NewUserCTAButton'
+import { PreferenceMenu } from '~/components/NavBar/PreferencesMenu'
+import { useTabsVisible } from '~/components/NavBar/ScreenSizes'
+import { SearchBar } from '~/components/NavBar/SearchBar'
+import { useIsSearchBarVisible } from '~/components/NavBar/SearchBar/useIsSearchBarVisible'
+import { Tabs } from '~/components/NavBar/Tabs/Tabs'
+import TestnetModeTooltip from '~/components/NavBar/TestnetMode/TestnetModeTooltip'
+import { UniswapWrappedEntry } from '~/components/NavBar/UniswapWrappedEntry'
+import { ChainSelector } from '~/components/NavBar/ChainSelector'
+import PoolSelect from '~/components/NavBar/PoolSelect'
+import Web3Status from '~/components/Web3Status'
+import { RIGOBLOCK_SUPPORTED_CHAINS, RIGOBLOCK_TESTNET_CHAINS } from '~/constants/addresses'
+import { useAccount } from '~/hooks/useAccount'
+import { PageType, useIsPage } from '~/hooks/useIsPage'
+import usePrevious from '~/hooks/usePrevious'
+import { css, deprecatedStyled } from '~/lib/deprecated-styled'
+import { useActiveSmartPool, useSelectActiveSmartPool } from '~/state/application/hooks'
+import { useMultiChainAllPoolsData, useMultiChainStakingPools } from '~/state/pool/multichain'
 
 // Flex is position relative by default, we must unset the position on every Flex
 // between the body and search component
@@ -268,7 +266,6 @@ export default function Navbar() {
           {!isEmbeddedWalletEnabled && isLandingPage && !isSmallScreen && <NewUserCTAButton />}
           {!isConnected && <PreferenceMenu />}
           {isTestnetModeEnabled && <TestnetModeTooltip />}
-          {isEmbeddedWalletEnabled && !isConnected && <NewUserCTAButton />}
           <Web3Status />
         </Right>
       </UnpositionedFlex>

@@ -1,17 +1,10 @@
-/* eslint-disable max-lines */
+import { useQuery } from '@tanstack/react-query'
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
+import {
+  CreateLPPositionRequest,
+} from '@uniswap/client-liquidity/dist/uniswap/liquidity/v1/api_pb'
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
-import { Pair } from '@uniswap/v2-sdk'
-import { Pool as V3Pool } from '@uniswap/v3-sdk'
-import { Pool as V4Pool } from '@uniswap/v4-sdk'
-import { TradingApi } from '@universe/api'
-import { useDepositInfo } from 'components/Liquidity/Create/hooks/useDepositInfo'
-import { DYNAMIC_FEE_DATA, PositionState } from 'components/Liquidity/Create/types'
-import { useCreatePositionDependentAmountFallback } from 'components/Liquidity/hooks/useDependentAmountFallback'
-import { getTokenOrZeroAddress, validateCurrencyInput } from 'components/Liquidity/utils/currency'
-import { isInvalidRange, isOutOfRange } from 'components/Liquidity/utils/priceRangeInfo'
-import { getProtocolItems } from 'components/Liquidity/utils/protocolVersion'
-import { useCreateLiquidityContext } from 'pages/CreatePosition/CreateLiquidityContextProvider'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import {
   createContext,
   type Dispatch,
@@ -21,335 +14,36 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react'
-import { useActiveSmartPool } from 'state/application/hooks'
-import { PositionField } from 'types/position'
+import { useActiveSmartPool } from '~/state/application/hooks'
+import { useSelector } from 'react-redux'
+import { PositionField } from '~/types/position'
 import { useUniswapContextSelector } from 'uniswap/src/contexts/UniswapContext'
-import { useCheckLpApprovalQuery } from 'uniswap/src/data/apiClients/tradingApi/useCheckLpApprovalQuery'
-import { useCreateLpPositionCalldataQuery } from 'uniswap/src/data/apiClients/tradingApi/useCreateLpPositionCalldataQuery'
+import { liquidityQueries } from 'uniswap/src/data/apiClients/liquidityService/liquidityQueries'
+import { useActiveAddress } from 'uniswap/src/features/accounts/store/hooks'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { toSupportedChainId } from 'uniswap/src/features/chains/utils'
 import { useTransactionGasFee, useUSDCurrencyAmountOfGasFee } from 'uniswap/src/features/gas/hooks'
+import { Platform } from 'uniswap/src/features/platforms/types/Platform'
+import { DelegatedState } from 'uniswap/src/features/smartWallet/delegation/types'
 import { InterfaceEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { useTransactionSettingsStore } from 'uniswap/src/features/transactions/components/settings/stores/transactionSettingsStore/useTransactionSettingsStore'
-import { CreatePositionTxAndGasInfo, LiquidityTransactionType } from 'uniswap/src/features/transactions/liquidity/types'
+import { CreatePositionTxAndGasInfo } from 'uniswap/src/features/transactions/liquidity/types'
 import { getErrorMessageToDisplay, parseErrorMessageTitle } from 'uniswap/src/features/transactions/liquidity/utils'
 import { TransactionStepType } from 'uniswap/src/features/transactions/steps/types'
-import { PermitMethod } from 'uniswap/src/features/transactions/swap/types/swapTxAndGasInfo'
-import { validatePermit, validateTransactionRequest } from 'uniswap/src/features/transactions/swap/utils/trade'
-import { useWallet } from 'uniswap/src/features/wallet/hooks/useWallet'
-import { AccountDetails } from 'uniswap/src/features/wallet/types/AccountDetails'
 import { logger } from 'utilities/src/logger/logger'
 import { ONE_SECOND_MS } from 'utilities/src/time/time'
-
-/**
- * @internal - exported for testing
- */
-export function generateAddLiquidityApprovalParams({
-  address,
-  protocolVersion,
-  displayCurrencies,
-  currencyAmounts,
-  canBatchTransactions,
-}: {
-  address?: string
-  protocolVersion: ProtocolVersion
-  displayCurrencies: { [field in PositionField]: Maybe<Currency> }
-  currencyAmounts?: { [field in PositionField]?: Maybe<CurrencyAmount<Currency>> }
-  canBatchTransactions?: boolean
-}): TradingApi.CheckApprovalLPRequest | undefined {
-  const apiProtocolItems = getProtocolItems(protocolVersion)
-
-  if (
-    !address ||
-    !apiProtocolItems ||
-    !currencyAmounts?.TOKEN0 ||
-    !currencyAmounts.TOKEN1 ||
-    !validateCurrencyInput(displayCurrencies)
-  ) {
-    return undefined
-  }
-
-  return {
-    simulateTransaction: true,
-    walletAddress: address,
-    chainId: currencyAmounts.TOKEN0.currency.chainId,
-    protocol: apiProtocolItems,
-    token0: getTokenOrZeroAddress(displayCurrencies.TOKEN0),
-    token1: getTokenOrZeroAddress(displayCurrencies.TOKEN1),
-    amount0: currencyAmounts.TOKEN0.quotient.toString(),
-    amount1: currencyAmounts.TOKEN1.quotient.toString(),
-    generatePermitAsTransaction: protocolVersion === ProtocolVersion.V4 ? canBatchTransactions : undefined,
-  } satisfies TradingApi.CheckApprovalLPRequest
-}
-
-/**
- * @internal - exported for testing
- */
-export function generateCreateCalldataQueryParams({
-  protocolVersion,
-  creatingPoolOrPair,
-  account,
-  approvalCalldata,
-  positionState,
-  ticks,
-  poolOrPair,
-  displayCurrencies,
-  currencyAmounts,
-  independentField,
-  slippageTolerance,
-  smartPoolAddress,
-}: {
-  protocolVersion: ProtocolVersion
-  creatingPoolOrPair: boolean | undefined
-  account?: AccountDetails
-  approvalCalldata?: TradingApi.CheckApprovalLPResponse
-  positionState: PositionState
-  ticks: [Maybe<number>, Maybe<number>]
-  poolOrPair: V3Pool | V4Pool | Pair | undefined
-  displayCurrencies: { [field in PositionField]: Maybe<Currency> }
-  currencyAmounts?: { [field in PositionField]?: Maybe<CurrencyAmount<Currency>> }
-  independentField: PositionField
-  slippageTolerance?: number
-  smartPoolAddress?: string
-}): TradingApi.CreateLPPositionRequest | undefined {
-  const apiProtocolItems = getProtocolItems(protocolVersion)
-
-  if (
-    !account?.address ||
-    !apiProtocolItems ||
-    !currencyAmounts?.TOKEN0 ||
-    !currencyAmounts.TOKEN1 ||
-    !validateCurrencyInput(displayCurrencies)
-  ) {
-    return undefined
-  }
-
-  const {
-    token0Approval,
-    token1Approval,
-    positionTokenApproval,
-    permitData,
-    token0PermitTransaction,
-    token1PermitTransaction,
-  } = approvalCalldata ?? {}
-
-  if (protocolVersion === ProtocolVersion.V2) {
-    if (protocolVersion !== positionState.protocolVersion) {
-      return undefined
-    }
-
-    const pair = poolOrPair
-
-    if (!pair || !displayCurrencies.TOKEN0 || !displayCurrencies.TOKEN1) {
-      return undefined
-    }
-
-    const independentToken =
-      independentField === PositionField.TOKEN0
-        ? TradingApi.IndependentToken.TOKEN_0
-        : TradingApi.IndependentToken.TOKEN_1
-    const dependentField = independentField === PositionField.TOKEN0 ? PositionField.TOKEN1 : PositionField.TOKEN0
-    const independentAmount = currencyAmounts[independentField]
-    const dependentAmount = currencyAmounts[dependentField]
-
-    return {
-      simulateTransaction: !(
-        permitData ||
-        token0PermitTransaction ||
-        token1PermitTransaction ||
-        token0Approval ||
-        token1Approval ||
-        positionTokenApproval
-      ),
-      protocol: apiProtocolItems,
-      walletAddress: account.address,
-      chainId: currencyAmounts.TOKEN0.currency.chainId,
-      independentAmount: independentAmount?.quotient.toString(),
-      independentToken,
-      defaultDependentAmount: dependentAmount?.quotient.toString(),
-      slippageTolerance,
-      position: {
-        pool: {
-          token0: getTokenOrZeroAddress(displayCurrencies.TOKEN0),
-          token1: getTokenOrZeroAddress(displayCurrencies.TOKEN1),
-        },
-      },
-    } satisfies TradingApi.CreateLPPositionRequest
-  }
-
-  if (protocolVersion !== positionState.protocolVersion) {
-    return undefined
-  }
-
-  const pool = poolOrPair as V4Pool | V3Pool | undefined
-  if (!pool || !displayCurrencies.TOKEN0 || !displayCurrencies.TOKEN1) {
-    return undefined
-  }
-
-  const tickLower = ticks[0]
-  const tickUpper = ticks[1]
-
-  if (tickLower === undefined || tickUpper === undefined) {
-    return undefined
-  }
-
-  // For smart pools, assume the pool already exists (don't send initialPrice)
-  // This prevents errors when the API doesn't know about pools with hooks
-  const shouldCreatePool = creatingPoolOrPair && !smartPoolAddress
-  const initialPrice = shouldCreatePool ? pool.sqrtRatioX96.toString() : undefined
-  const tickSpacing = pool.tickSpacing
-
-  const independentToken =
-    independentField === PositionField.TOKEN0
-      ? TradingApi.IndependentToken.TOKEN_0
-      : TradingApi.IndependentToken.TOKEN_1
-  const dependentField = independentField === PositionField.TOKEN0 ? PositionField.TOKEN1 : PositionField.TOKEN0
-  const independentAmount = currencyAmounts[independentField]
-  const dependentAmount = currencyAmounts[dependentField]
-
-  return {
-    simulateTransaction: !(
-      (
-        permitData ||
-        token0PermitTransaction ||
-        token1PermitTransaction ||
-        token0Approval ||
-        token1Approval ||
-        positionTokenApproval ||
-        smartPoolAddress
-      ) // Disable simulation for smart pools
-    ),
-    protocol: apiProtocolItems,
-    walletAddress: smartPoolAddress || account.address, // Use smart pool address when available
-    chainId: currencyAmounts.TOKEN0.currency.chainId,
-    independentAmount: independentAmount?.quotient.toString(),
-    independentToken,
-    initialDependentAmount: initialPrice && dependentAmount?.quotient.toString(), // only set this if there is an initialPrice
-    initialPrice,
-    slippageTolerance,
-    position: {
-      tickLower: tickLower ?? undefined,
-      tickUpper: tickUpper ?? undefined,
-      pool: {
-        tickSpacing,
-        token0: getTokenOrZeroAddress(displayCurrencies.TOKEN0),
-        token1: getTokenOrZeroAddress(displayCurrencies.TOKEN1),
-        fee: positionState.fee?.isDynamic ? DYNAMIC_FEE_DATA.feeAmount : positionState.fee?.feeAmount,
-        hooks: positionState.hook,
-      },
-    },
-  } satisfies TradingApi.CreateLPPositionRequest
-}
-
-/**
- * @internal - exported for testing
- */
-export function generateCreatePositionTxRequest({
-  protocolVersion,
-  approvalCalldata,
-  createCalldata,
-  createCalldataQueryParams,
-  currencyAmounts,
-  poolOrPair,
-  canBatchTransactions,
-  smartPoolAddress,
-  account,
-}: {
-  protocolVersion: ProtocolVersion
-  approvalCalldata?: TradingApi.CheckApprovalLPResponse
-  createCalldata?: TradingApi.CreateLPPositionResponse
-  createCalldataQueryParams?: TradingApi.CreateLPPositionRequest
-  currencyAmounts?: { [field in PositionField]?: Maybe<CurrencyAmount<Currency>> }
-  poolOrPair: Pair | undefined
-  canBatchTransactions: boolean
-  smartPoolAddress?: string
-  account?: AccountDetails
-}): CreatePositionTxAndGasInfo | undefined {
-  if (!createCalldata || !currencyAmounts?.TOKEN0 || !currencyAmounts.TOKEN1) {
-    return undefined
-  }
-
-  const validatedApprove0Request = validateTransactionRequest(approvalCalldata?.token0Approval)
-  if (approvalCalldata?.token0Approval && !validatedApprove0Request) {
-    return undefined
-  }
-
-  const validatedApprove1Request = validateTransactionRequest(approvalCalldata?.token1Approval)
-  if (approvalCalldata?.token1Approval && !validatedApprove1Request) {
-    return undefined
-  }
-
-  const validatedRevoke0Request = validateTransactionRequest(approvalCalldata?.token0Cancel)
-  if (approvalCalldata?.token0Cancel && !validatedRevoke0Request) {
-    return undefined
-  }
-
-  const validatedRevoke1Request = validateTransactionRequest(approvalCalldata?.token1Cancel)
-  if (approvalCalldata?.token1Cancel && !validatedRevoke1Request) {
-    return undefined
-  }
-
-  const validatedPermitRequest = validatePermit(approvalCalldata?.permitData)
-  if (approvalCalldata?.permitData && !validatedPermitRequest) {
-    return undefined
-  }
-
-  const validatedToken0PermitTransaction = validateTransactionRequest(approvalCalldata?.token0PermitTransaction)
-  const validatedToken1PermitTransaction = validateTransactionRequest(approvalCalldata?.token1PermitTransaction)
-
-  const txRequest = validateTransactionRequest(createCalldata.create)
-  if (!txRequest && !(validatedToken0PermitTransaction || validatedToken1PermitTransaction)) {
-    // Allow missing txRequest if mismatched (unsigned flow using token0PermitTransaction/2)
-    return undefined
-  }
-
-  // Override transaction fields for smart pools
-  const finalTxRequest =
-    txRequest && smartPoolAddress && account
-      ? {
-          ...txRequest,
-          to: smartPoolAddress, // Target smart pool instead of position manager
-          from: account.address, // Keep user as transaction sender
-          value: String(0), // Smart pools handle ETH internally
-        }
-      : txRequest
-
-  const queryParams: TradingApi.CreateLPPositionRequest | undefined =
-    protocolVersion === ProtocolVersion.V4
-      ? { ...createCalldataQueryParams, batchPermitData: validatedPermitRequest }
-      : createCalldataQueryParams
-
-  // RigoBlock smart pools handle approvals internally, so skip all approval/permit steps
-  const isRigoBlockPool = !!smartPoolAddress
-
-  return {
-    type: LiquidityTransactionType.Create,
-    canBatchTransactions,
-    unsigned: Boolean(validatedPermitRequest) && !smartPoolAddress, // Never use async/unsigned flow for smart pools
-    createPositionRequestArgs: queryParams,
-    action: {
-      type: LiquidityTransactionType.Create,
-      currency0Amount: currencyAmounts.TOKEN0,
-      currency1Amount: currencyAmounts.TOKEN1,
-      liquidityToken: protocolVersion === ProtocolVersion.V2 ? poolOrPair?.liquidityToken : undefined,
-    },
-    // RigoBlock pools handle approvals internally, so don't include approval steps
-    approveToken0Request: isRigoBlockPool ? undefined : validatedApprove0Request,
-    approveToken1Request: isRigoBlockPool ? undefined : validatedApprove1Request,
-    txRequest: finalTxRequest,
-    approvePositionTokenRequest: undefined,
-    revokeToken0Request: isRigoBlockPool ? undefined : validatedRevoke0Request,
-    revokeToken1Request: isRigoBlockPool ? undefined : validatedRevoke1Request,
-    permit: isRigoBlockPool ? undefined : (validatedPermitRequest ? { method: PermitMethod.TypedData, typedData: validatedPermitRequest } : undefined),
-    token0PermitTransaction: isRigoBlockPool ? undefined : validatedToken0PermitTransaction,
-    token1PermitTransaction: isRigoBlockPool ? undefined : validatedToken1PermitTransaction,
-    positionTokenPermitTransaction: undefined,
-    sqrtRatioX96: createCalldata.sqrtRatioX96,
-  } satisfies CreatePositionTxAndGasInfo
-}
+import { useDepositInfo } from '~/components/Liquidity/Create/hooks/useDepositInfo'
+import { useDynamicNativeSlippage } from '~/components/Liquidity/Create/hooks/useLPSlippageValues'
+import { useCreatePositionDependentAmountFallback } from '~/components/Liquidity/hooks/useDependentAmountFallback'
+import { generateLiquidityServiceCreateCalldataQueryParams } from '~/components/Liquidity/utils/generateLiquidityServiceCreateCalldata'
+import { getCheckLPApprovalRequestParams } from '~/components/Liquidity/utils/getCheckLPApprovalRequestParams'
+import { isInvalidRange, isOutOfRange } from '~/components/Liquidity/utils/priceRangeInfo'
+import { useCreateLiquidityContext } from '~/pages/CreatePosition/CreateLiquidityContextProvider'
+import { generateCreatePositionTxRequest } from '~/pages/CreatePosition/generateCreatePositionTxRequest'
 
 interface CreatePositionTxContextType {
   txInfo?: CreatePositionTxAndGasInfo
@@ -378,8 +72,9 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
     positionState,
     setRefetch,
   } = useCreateLiquidityContext()
-  const account = useWallet().evmAccount
-  const { address: smartPoolAddress } = useActiveSmartPool()
+  const evmAddress = useActiveAddress(Platform.EVM)
+  const smartPoolAddress = useActiveSmartPool().address
+  const account = evmAddress ? { address: evmAddress } : undefined
   const { TOKEN0, TOKEN1 } = currencies.display
   const { exactField } = depositState
 
@@ -395,7 +90,7 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
     return {
       protocolVersion,
       poolOrPair,
-      address: smartPoolAddress || account?.address,
+      address: evmAddress,
       token0: TOKEN0,
       token1: TOKEN1,
       tickLower: protocolVersion !== ProtocolVersion.V2 ? (tickLower ?? undefined) : undefined,
@@ -405,20 +100,10 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
       skipDependentAmount: protocolVersion === ProtocolVersion.V2 ? false : outOfRange || invalidRange,
       isSmartPool: !!smartPoolAddress,
     }
-  }, [
-    TOKEN0,
-    TOKEN1,
-    exactField,
-    ticks,
-    poolOrPair,
-    depositState,
-    smartPoolAddress,
-    account?.address,
-    protocolVersion,
-    invalidRange,
-  ])
+  }, [TOKEN0, TOKEN1, exactField, ticks, poolOrPair, depositState, evmAddress, protocolVersion, invalidRange])
 
   const {
+    currencyMaxAmounts,
     currencyAmounts,
     error: inputError,
     formattedAmounts,
@@ -426,43 +111,55 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
     currencyBalances,
   } = useDepositInfo(depositInfoProps)
 
-  const { customDeadline, customSlippageTolerance } = useTransactionSettingsStore((s) => ({
+  const { customDeadline, customSlippageTolerance, isSlippageDirty } = useTransactionSettingsStore((s) => ({
     customDeadline: s.customDeadline,
     customSlippageTolerance: s.customSlippageTolerance,
+    isSlippageDirty: s.isSlippageDirty,
   }))
+  const isLiquidityBatchedTransactionsEnabled = useFeatureFlag(FeatureFlags.LiquidityBatchedTransactions)
+  const isLpDynamicNativeSlippageEnabled = useFeatureFlag(FeatureFlags.LpDynamicNativeSlippage)
   const canBatchTransactions =
     (useUniswapContextSelector((ctx) => ctx.getCanBatchTransactions?.(poolOrPair?.chainId)) ?? false) &&
     poolOrPair?.chainId !== UniverseChainId.Monad &&
-    !smartPoolAddress // Disable batching for RigoBlock smart pools
+    isLiquidityBatchedTransactionsEnabled
+
+  const delegatedAddress = useSelector((state: { delegation: DelegatedState }) =>
+    poolOrPair?.chainId ? state.delegation.delegations[String(poolOrPair.chainId)] : null,
+  )
 
   const [transactionError, setTransactionError] = useState<string | boolean>(false)
 
   const addLiquidityApprovalParams = useMemo(() => {
-    return generateAddLiquidityApprovalParams({
-      address: smartPoolAddress ?? account?.address, // Use smart pool address for RigoBlock pools
+    return getCheckLPApprovalRequestParams({
+      walletAddress: smartPoolAddress ?? evmAddress,
       protocolVersion,
-      displayCurrencies: currencies.display,
       currencyAmounts,
       canBatchTransactions,
     })
-  }, [smartPoolAddress, account?.address, protocolVersion, currencies.display, currencyAmounts, canBatchTransactions])
+  }, [evmAddress, smartPoolAddress, protocolVersion, currencyAmounts, canBatchTransactions])
 
   const {
     data: approvalCalldata,
     error: approvalError,
     isLoading: approvalLoading,
     refetch: approvalRefetch,
-  } = useCheckLpApprovalQuery({
-    params: addLiquidityApprovalParams,
-    staleTime: 5 * ONE_SECOND_MS,
-    retry: false,
-    enabled: !!addLiquidityApprovalParams && !inputError && !transactionError && !invalidRange,
-  })
+  } = useQuery(
+    liquidityQueries.checkApproval({
+      params: addLiquidityApprovalParams,
+      staleTime: 5 * ONE_SECOND_MS,
+      retry: false,
+      enabled: !!addLiquidityApprovalParams && !inputError && !transactionError && !invalidRange,
+    }),
+  )
 
   if (approvalError) {
     const message = parseErrorMessageTitle(approvalError, { defaultTitle: 'unknown CheckLpApprovalQuery' })
     logger.error(message, {
       tags: { file: 'CreatePositionTxContext', function: 'useEffect' },
+      extra: {
+        canBatchTransactions,
+        delegatedAddress,
+      },
     })
   }
 
@@ -471,9 +168,21 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
   const gasFeeToken0PermitUSD = useUSDCurrencyAmountOfGasFee(poolOrPair?.chainId, approvalCalldata?.gasFeeToken0Permit)
   const gasFeeToken1PermitUSD = useUSDCurrencyAmountOfGasFee(poolOrPair?.chainId, approvalCalldata?.gasFeeToken1Permit)
 
+  const nativeTokenBalance = useMemo(() => {
+    if (!isLpDynamicNativeSlippageEnabled || protocolVersion !== ProtocolVersion.V4) {
+      return undefined
+    }
+    // Only set native token balance if the token0 is the native token
+    // other tokens (CELO) are not treated as native tokens
+    if (currencyMaxAmounts?.TOKEN0?.currency.isNative) {
+      return currencyMaxAmounts.TOKEN0.quotient.toString()
+    }
+    return undefined
+  }, [isLpDynamicNativeSlippageEnabled, protocolVersion, currencyMaxAmounts])
+
   const createCalldataQueryParams = useMemo(() => {
-    return generateCreateCalldataQueryParams({
-      account,
+    return generateLiquidityServiceCreateCalldataQueryParams({
+      address: smartPoolAddress ?? evmAddress,
       approvalCalldata,
       positionState,
       protocolVersion,
@@ -483,11 +192,14 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
       poolOrPair,
       currencyAmounts,
       independentField: depositState.exactField,
-      slippageTolerance: customSlippageTolerance,
-      smartPoolAddress: smartPoolAddress ?? undefined,
+      slippageTolerance: nativeTokenBalance && !isSlippageDirty ? undefined : customSlippageTolerance,
+      customDeadline,
+      nativeTokenBalance,
+      isSmartPool: !!smartPoolAddress,
     })
   }, [
-    account,
+    evmAddress,
+    smartPoolAddress,
     approvalCalldata,
     currencyAmounts,
     creatingPoolOrPair,
@@ -496,9 +208,11 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
     positionState,
     depositState.exactField,
     customSlippageTolerance,
+    isSlippageDirty,
     currencies.display,
     protocolVersion,
-    smartPoolAddress,
+    customDeadline,
+    nativeTokenBalance,
   ])
 
   const isUserCommittedToCreate =
@@ -519,13 +233,14 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
     data: createCalldata,
     error: createError,
     refetch: createRefetch,
-  } = useCreateLpPositionCalldataQuery({
-    params: createCalldataQueryParams,
-    deadlineInMinutes: customDeadline,
-    refetchInterval: transactionError ? false : 5 * ONE_SECOND_MS,
-    retry: false,
-    enabled: isQueryEnabled,
-  })
+  } = useQuery(
+    liquidityQueries.createPosition({
+      params: createCalldataQueryParams,
+      refetchInterval: transactionError ? false : 5 * ONE_SECOND_MS,
+      retry: false,
+      enabled: isQueryEnabled,
+    }),
+  )
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: +createCalldataQueryParams, +addLiquidityApprovalParams
   useEffect(() => {
@@ -549,6 +264,10 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
     const message = parseErrorMessageTitle(createError, { defaultTitle: 'unknown CreateLpPositionCalldataQuery' })
     logger.error(message, {
       tags: { file: 'CreatePositionTxContext', function: 'useEffect' },
+      extra: {
+        canBatchTransactions,
+        delegatedAddress,
+      },
     })
 
     if (createCalldataQueryParams) {
@@ -582,14 +301,23 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
     actualGasFee || calculatedGasFee,
   )
 
+  const lastKnownGasFeeRef = useRef<CurrencyAmount<Currency> | undefined>(undefined)
+
   const totalGasFee = useMemo(() => {
     const fees = [gasFeeToken0USD, gasFeeToken1USD, increaseGasFeeUsd, gasFeeToken0PermitUSD, gasFeeToken1PermitUSD]
-    return fees.reduce((total, fee) => {
+    const currentFee = fees.reduce((total, fee) => {
       if (fee && total) {
         return total.add(fee)
       }
       return total || fee
     })
+
+    // Keep the last known value if current is undefined
+    if (currentFee) {
+      lastKnownGasFeeRef.current = currentFee
+    }
+
+    return currentFee || lastKnownGasFeeRef.current
   }, [gasFeeToken0USD, gasFeeToken1USD, increaseGasFeeUsd, gasFeeToken0PermitUSD, gasFeeToken1PermitUSD])
 
   const txInfo = useMemo(() => {
@@ -601,6 +329,7 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
       currencyAmounts,
       poolOrPair: protocolVersion === ProtocolVersion.V2 ? poolOrPair : undefined,
       canBatchTransactions,
+      delegatedAddress,
       smartPoolAddress: smartPoolAddress ?? undefined,
       account,
     })
@@ -612,9 +341,17 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
     poolOrPair,
     protocolVersion,
     canBatchTransactions,
+    delegatedAddress,
     smartPoolAddress,
     account,
   ])
+
+  useDynamicNativeSlippage({
+    isEnabled: isLpDynamicNativeSlippageEnabled,
+    nativeTokenBalance,
+    createCalldata,
+    isSlippageDirty,
+  })
 
   const value = useMemo(
     (): CreatePositionTxContextType => ({

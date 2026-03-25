@@ -1,5 +1,5 @@
-import { RowBetween } from 'components/deprecated/Row'
-import styled from 'lib/styled-components'
+import { RowBetween } from '~/components/deprecated/Row'
+import styled from '~/lib/deprecated-styled'
 import { darken } from 'polished'
 import { ChevronDown } from 'react-feather'
 import { ButtonProps as ButtonPropsOriginal, Button as RebassButton } from 'rebass/styled-components'

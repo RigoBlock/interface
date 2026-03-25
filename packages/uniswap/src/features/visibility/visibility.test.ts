@@ -15,12 +15,13 @@ import {
   visibilityReducer,
 } from 'uniswap/src/features/visibility/slice'
 import { getUniquePositionId } from 'uniswap/src/features/visibility/utils'
+import type { Mock } from 'vitest'
 
-jest.mock('uniswap/src/features/visibility/utils', () => ({
-  getUniquePositionId: jest.fn(),
+vi.mock('uniswap/src/features/visibility/utils', () => ({
+  getUniquePositionId: vi.fn(),
 }))
 
-const mockedGetUniquePositionId = getUniquePositionId as jest.Mock
+const mockedGetUniquePositionId = getUniquePositionId as Mock
 
 const makeEmptyVisibilityState = (): VisibilityState => ({
   positions: {},
@@ -31,7 +32,7 @@ const makeEmptyVisibilityState = (): VisibilityState => ({
 
 describe('visibility slice', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('should return the initial state', () => {

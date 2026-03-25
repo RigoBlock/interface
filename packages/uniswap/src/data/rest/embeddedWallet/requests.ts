@@ -1,28 +1,86 @@
-import { createPromiseClient } from '@connectrpc/connect'
-import { EmbeddedWalletService } from '@uniswap/client-embeddedwallet/dist/uniswap/embeddedwallet/v1/service_connect'
-
-import { createConnectTransportWithDefaults, createEmbeddedWalletApiClient } from '@universe/api'
+import { createPromiseClient, type Transport } from '@connectrpc/connect'
+import { EmbeddedWalletService as OldEmbeddedWalletService } from '@uniswap/client-embeddedwallet/dist/uniswap/embeddedwallet/v1/service_connect'
+import type { EmbeddedWalletApiClient as EmbeddedWalletApiClientType, EmbeddedWalletClientContext } from '@universe/api'
+import { createEmbeddedWalletApiClient, getTransport } from '@universe/api'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
-import { getVersionHeader } from 'uniswap/src/data/constants'
-import { isBetaEnv, isProdEnv } from 'utilities/src/environment/env'
-import { isExtensionApp, isMobileApp } from 'utilities/src/platform'
+import { getVersionHeader } from 'uniswap/src/data/getVersionHeader'
+import { isMobileApp } from 'utilities/src/platform'
 import { REQUEST_SOURCE } from 'utilities/src/platform/requestSource'
 
-const isWalletBeta = (isExtensionApp || isMobileApp) && isBetaEnv()
+const PRIVY_EW_DEV_PROXY_PATH = '/privy-ew'
 
-const EmbeddedWalletTransport = createConnectTransportWithDefaults(
-  {
-    baseUrl: isProdEnv() || isWalletBeta ? uniswapUrls.evervaultProductionUrl : uniswapUrls.evervaultStagingUrl,
-    additionalHeaders: {
+function getPrivyEmbeddedWalletBaseUrl(): string {
+  // In local browser dev, route through the Vite proxy (/privy-ew) so the
+  // SameSite=strict session cookie set by StartAuthenticatedSession is sent
+  // back on AddAuthenticator (cross-site cookies are blocked from localhost).
+  if (typeof window !== 'undefined') {
+    const { hostname } = window.location
+    if (hostname === 'localhost' || hostname.endsWith('-uniswap.vercel.app') || hostname === 'app.corn-staging.com') {
+      return `${window.location.origin}${PRIVY_EW_DEV_PROXY_PATH}`
+    }
+  }
+  return uniswapUrls.privyEmbeddedWalletUrl
+}
+
+function createEmbeddedWalletTransport(): Transport {
+  return getTransport({
+    getBaseUrl: getPrivyEmbeddedWalletBaseUrl,
+    getHeaders: () => ({
       ...(isMobileApp && { Origin: uniswapUrls.requestOriginUrl }),
       'x-request-source': REQUEST_SOURCE,
       'x-app-version': getVersionHeader(),
-    },
-  },
-  {
-    credentials: 'include',
-  },
-)
-const EmbeddedWalletRpcClient = createPromiseClient(EmbeddedWalletService, EmbeddedWalletTransport)
+    }),
+    options: { credentials: 'include' },
+  })
+}
 
-export const EmbeddedWalletApiClient = createEmbeddedWalletApiClient({ rpcClient: EmbeddedWalletRpcClient })
+const embeddedWalletTransport = createEmbeddedWalletTransport()
+
+const oldEmbeddedWalletRpcClient = createPromiseClient(OldEmbeddedWalletService, embeddedWalletTransport)
+
+let _apiClientPromise: Promise<EmbeddedWalletApiClientType> | undefined
+
+async function getApiClient(): Promise<EmbeddedWalletApiClientType> {
+  if (!_apiClientPromise) {
+    _apiClientPromise = (async (): Promise<EmbeddedWalletApiClientType> => {
+      try {
+        const { EmbeddedWalletService: NewEmbeddedWalletService } = await import(
+          /* @vite-ignore */
+          '@uniswap/client-privy-embedded-wallet/dist/uniswap/privy-embedded-wallet/v1/service_connect'
+        )
+        const newRpcClient = createPromiseClient(
+          NewEmbeddedWalletService,
+          embeddedWalletTransport,
+        ) as unknown as EmbeddedWalletClientContext['rpcClient']
+        return createEmbeddedWalletApiClient({
+          rpcClient: newRpcClient,
+          legacyRpcClient: oldEmbeddedWalletRpcClient,
+        })
+      } catch {
+        throw new Error('Embedded Wallet requires @uniswap/client-privy-embedded-wallet (private Uniswap package). ')
+      }
+    })()
+  }
+  return _apiClientPromise
+}
+
+getApiClient().catch(() => {
+  // Expected to fail without NPM_READ_ONLY_TOKEN
+})
+
+export const EmbeddedWalletApiClient: EmbeddedWalletApiClientType = {
+  fetchChallengeRequest: (...args) => getApiClient().then((c) => c.fetchChallengeRequest(...args)),
+  fetchCreateWalletRequest: (...args) => getApiClient().then((c) => c.fetchCreateWalletRequest(...args)),
+  fetchWalletSigninRequest: (...args) => getApiClient().then((c) => c.fetchWalletSigninRequest(...args)),
+  fetchSignMessagesRequest: (...args) => getApiClient().then((c) => c.fetchSignMessagesRequest(...args)),
+  fetchSignTransactionsRequest: (...args) => getApiClient().then((c) => c.fetchSignTransactionsRequest(...args)),
+  fetchSignTypedDataRequest: (...args) => getApiClient().then((c) => c.fetchSignTypedDataRequest(...args)),
+  fetchDisconnectRequest: (...args) => getApiClient().then((c) => c.fetchDisconnectRequest(...args)),
+  fetchSecuredChallengeRequest: (...args) => getApiClient().then((c) => c.fetchSecuredChallengeRequest(...args)),
+  fetchExportSeedPhraseRequest: (...args) => getApiClient().then((c) => c.fetchExportSeedPhraseRequest(...args)),
+  fetchListAuthenticatorsRequest: (...args) => getApiClient().then((c) => c.fetchListAuthenticatorsRequest(...args)),
+  fetchStartAuthenticatedSessionRequest: (...args) =>
+    getApiClient().then((c) => c.fetchStartAuthenticatedSessionRequest(...args)),
+  fetchAddAuthenticatorRequest: (...args) => getApiClient().then((c) => c.fetchAddAuthenticatorRequest(...args)),
+  fetchDeleteAuthenticatorRequest: (...args) => getApiClient().then((c) => c.fetchDeleteAuthenticatorRequest(...args)),
+}

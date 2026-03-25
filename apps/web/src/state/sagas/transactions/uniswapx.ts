@@ -1,12 +1,3 @@
-import { popupRegistry } from 'components/Popups/registry'
-import { PopupType } from 'components/Popups/types'
-import { formatSwapSignedAnalyticsEventProperties } from 'lib/utils/analytics'
-import {
-  addTransactionBreadcrumb,
-  getSwapTransactionInfo,
-  handleSignatureStep,
-  TransactionBreadcrumbStatus,
-} from 'state/sagas/transactions/utils'
 import { call, put, SagaGenerator } from 'typed-redux-saga'
 import { TradingApiClient } from 'uniswap/src/data/apiClients/tradingApi/TradingApiClient'
 import { InterfaceEventName, SwapEventName } from 'uniswap/src/features/telemetry/constants'
@@ -27,6 +18,15 @@ import {
   TransactionStatus,
   UniswapXOrderDetails,
 } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { popupRegistry } from '~/components/Popups/registry'
+import { PopupType } from '~/components/Popups/types'
+import { formatSwapSignedAnalyticsEventProperties } from '~/lib/utils/analytics'
+import {
+  addTransactionBreadcrumb,
+  getSwapTransactionInfo,
+  handleSignatureStep,
+  TransactionBreadcrumbStatus,
+} from '~/state/sagas/transactions/utils'
 
 interface HandleUniswapXSignatureStepParams extends HandleSignatureStepParams<UniswapXSignatureStep> {
   trade: UniswapXTrade
@@ -117,19 +117,20 @@ export function* handleUniswapXSignatureStep(params: HandleUniswapXSignatureStep
 }
 
 export function* handleUniswapXPlanSignatureStep(params: HandleUniswapXPlanSignatureStepParams): SagaGenerator<string> {
-  const { step } = params
+  const { step, analytics } = params
 
   // Check before requiring user to sign an expired deadline
   checkDeadline(step.deadline)
 
-  // TODO: SWAP-446 address analytics InterfaceEventName.UniswapXSignatureRequested
+  sendAnalyticsEvent(InterfaceEventName.UniswapXSignatureRequested, { ...analytics })
 
   const signature = yield* call(handleSignatureStep, params)
 
   // Check again after user has signed to ensure they didn't sign after the deadline
   checkDeadline(step.deadline)
 
-  // TODO: SWAP-446 address analytics SwapEventName.SwapSigned
+  sendAnalyticsEvent(SwapEventName.SwapSigned, { ...analytics })
+
   return signature
 }
 

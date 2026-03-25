@@ -14,6 +14,8 @@ jest.mock('uniswap/src/features/chains/chainInfo', () => ({
 }))
 
 import { type BlockaidScanTransactionResponse } from '@universe/api/src'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { TransactionRiskLevel, TransactionSectionType } from 'wallet/src/features/dappRequests/types'
 import {
   extractContractName,
   extractFunctionName,
@@ -22,12 +24,40 @@ import {
   parseReceivingAssets,
   parseSendingAssets,
   parseTransactionSections,
-  TransactionRiskLevel,
-  TransactionSectionType,
+  roundToDecimals,
   UNLIMITED_APPROVAL_AMOUNT,
 } from 'wallet/src/features/dappRequests/utils/blockaidUtils'
 
+const TEST_CHAIN_ID = UniverseChainId.Mainnet
+
 describe('blockaidUtils', () => {
+  describe('roundToDecimals', () => {
+    it('should round to 6 decimal places', () => {
+      expect(roundToDecimals('123.123456789')).toBe('123.123457')
+    })
+
+    it('should handle exact zero', () => {
+      expect(roundToDecimals(0)).toBe('0')
+      expect(roundToDecimals('0')).toBe('0')
+    })
+
+    it('should preserve non-zero values that would round to zero in decimal notation', () => {
+      expect(roundToDecimals('0.0000001')).toBe('0.0000001')
+      expect(roundToDecimals(0.0000001)).toBe('0.0000001')
+      expect(roundToDecimals('0.00000001')).toBe('0.00000001')
+      expect(roundToDecimals(1e-10)).toBe('0.0000000001')
+    })
+
+    it('should pass through NaN values as original string', () => {
+      expect(roundToDecimals('not a number')).toBe('not a number')
+    })
+
+    it('should remove trailing zeros', () => {
+      expect(roundToDecimals('1.500000')).toBe('1.5')
+      expect(roundToDecimals('2.000000')).toBe('2')
+    })
+  })
+
   describe('getRiskLevelFromClassification', () => {
     it('should return None for undefined classification', () => {
       expect(getRiskLevelFromClassification(undefined)).toBe(TransactionRiskLevel.None)
@@ -74,7 +104,7 @@ describe('blockaidUtils', () => {
         },
       ] as any
 
-      const result = parseSendingAssets(assetsDiffs)
+      const result = parseSendingAssets(assetsDiffs, TEST_CHAIN_ID)
 
       expect(result).toBeNull()
     })
@@ -100,7 +130,7 @@ describe('blockaidUtils', () => {
         },
       ] as any
 
-      const result = parseSendingAssets(assetsDiffs)
+      const result = parseSendingAssets(assetsDiffs, TEST_CHAIN_ID)
 
       expect(result).not.toBeNull()
       expect(result?.type).toBe(TransactionSectionType.Sending)
@@ -113,6 +143,7 @@ describe('blockaidUtils', () => {
         usdValue: '100.50',
         logoUrl: 'https://example.com/usdc.png',
         address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+        chainId: TEST_CHAIN_ID,
       })
     })
 
@@ -135,7 +166,7 @@ describe('blockaidUtils', () => {
         },
       ] as any
 
-      const result = parseSendingAssets(assetsDiffs)
+      const result = parseSendingAssets(assetsDiffs, TEST_CHAIN_ID)
 
       expect(result?.assets[0]?.address).toBe('0xNATIVE1')
       expect(result?.assets[0]?.symbol).toBe('ETH')
@@ -156,9 +187,32 @@ describe('blockaidUtils', () => {
         },
       ] as any
 
-      const result = parseSendingAssets(assetsDiffs)
+      const result = parseSendingAssets(assetsDiffs, TEST_CHAIN_ID)
 
       expect(result).toBeNull()
+    })
+
+    it('should preserve very small native token amounts instead of rounding to zero', () => {
+      const assetsDiffs = [
+        {
+          asset: {
+            type: 'NATIVE',
+            symbol: 'ETH',
+            name: 'Ethereum',
+            chain_id: 1,
+          },
+          out: [
+            {
+              value: '0.0000001',
+              usd_price: '0.0000289',
+            },
+          ],
+          in: [],
+        },
+      ] as any
+
+      const result = parseSendingAssets(assetsDiffs, TEST_CHAIN_ID)
+      expect(result?.assets[0]?.amount).not.toBe('0')
     })
 
     it('should round amounts to 6 decimal places', () => {
@@ -175,7 +229,7 @@ describe('blockaidUtils', () => {
         },
       ] as any
 
-      const result = parseSendingAssets(assetsDiffs)
+      const result = parseSendingAssets(assetsDiffs, TEST_CHAIN_ID)
 
       expect(result?.assets[0]?.amount).toBe('123.123457')
     })
@@ -196,7 +250,7 @@ describe('blockaidUtils', () => {
         },
       ] as any
 
-      const result = parseReceivingAssets(assetsDiffs)
+      const result = parseReceivingAssets(assetsDiffs, TEST_CHAIN_ID)
 
       expect(result).toBeNull()
     })
@@ -222,7 +276,7 @@ describe('blockaidUtils', () => {
         },
       ] as any
 
-      const result = parseReceivingAssets(assetsDiffs)
+      const result = parseReceivingAssets(assetsDiffs, TEST_CHAIN_ID)
 
       expect(result).not.toBeNull()
       expect(result?.type).toBe(TransactionSectionType.Receiving)
@@ -235,6 +289,7 @@ describe('blockaidUtils', () => {
         usdValue: '50.25',
         logoUrl: 'https://example.com/dai.png',
         address: '0x6b175474e89094c44da98b954eedeac495271d0f',
+        chainId: TEST_CHAIN_ID,
       })
     })
 
@@ -257,7 +312,7 @@ describe('blockaidUtils', () => {
         },
       ] as any
 
-      const result = parseReceivingAssets(assetsDiffs)
+      const result = parseReceivingAssets(assetsDiffs, TEST_CHAIN_ID)
 
       expect(result?.assets[0]?.address).toBe('0xNATIVE1')
       expect(result?.assets[0]?.symbol).toBe('ETH')
@@ -278,7 +333,7 @@ describe('blockaidUtils', () => {
         },
       ] as any
 
-      const result = parseReceivingAssets(assetsDiffs)
+      const result = parseReceivingAssets(assetsDiffs, TEST_CHAIN_ID)
 
       expect(result).toBeNull()
     })
@@ -288,7 +343,7 @@ describe('blockaidUtils', () => {
     it('should return null when no exposures exist', () => {
       const exposures = [] as any
 
-      const result = parseApprovals(exposures)
+      const result = parseApprovals(exposures, TEST_CHAIN_ID)
 
       expect(result).toBeNull()
     })
@@ -319,7 +374,7 @@ describe('blockaidUtils', () => {
         },
       ] as any
 
-      const result = parseApprovals(exposures)
+      const result = parseApprovals(exposures, TEST_CHAIN_ID)
 
       expect(result).not.toBeNull()
       expect(result?.type).toBe(TransactionSectionType.Approving)
@@ -354,7 +409,7 @@ describe('blockaidUtils', () => {
         },
       ] as any
 
-      const result = parseApprovals(exposures)
+      const result = parseApprovals(exposures, TEST_CHAIN_ID)
 
       expect(result?.assets[0]?.amount).toBe(UNLIMITED_APPROVAL_AMOUNT)
     })
@@ -385,7 +440,7 @@ describe('blockaidUtils', () => {
         },
       ] as any
 
-      const result = parseApprovals(exposures)
+      const result = parseApprovals(exposures, TEST_CHAIN_ID)
 
       expect(result?.assets[0]?.amount).toBe(UNLIMITED_APPROVAL_AMOUNT)
     })
@@ -417,7 +472,7 @@ describe('blockaidUtils', () => {
         },
       ] as any
 
-      const result = parseApprovals(exposures)
+      const result = parseApprovals(exposures, TEST_CHAIN_ID)
 
       expect(result).not.toBeNull()
       expect(result?.assets[0]?.amount).toBe(UNLIMITED_APPROVAL_AMOUNT)
@@ -450,7 +505,7 @@ describe('blockaidUtils', () => {
         },
       ] as any
 
-      const result = parseApprovals(exposures)
+      const result = parseApprovals(exposures, TEST_CHAIN_ID)
 
       // Should show approval amount (500), not exposure amount (250.5)
       expect(result?.assets[0]?.amount).toBe('500')
@@ -483,9 +538,11 @@ describe('blockaidUtils', () => {
         },
       ] as any
 
-      const result = parseApprovals(exposures)
+      const result = parseApprovals(exposures, TEST_CHAIN_ID)
 
       expect(result?.assets).toHaveLength(2)
+      expect(result?.assets[0]?.spenderAddress).toBe('0xspender1')
+      expect(result?.assets[1]?.spenderAddress).toBe('0xspender2')
     })
 
     it('should parse approvals even without exposure values', () => {
@@ -508,7 +565,7 @@ describe('blockaidUtils', () => {
         },
       ] as any
 
-      const result = parseApprovals(exposures)
+      const result = parseApprovals(exposures, TEST_CHAIN_ID)
 
       // Should still show approval even without exposure
       expect(result).not.toBeNull()
@@ -535,7 +592,7 @@ describe('blockaidUtils', () => {
         },
       ] as any
 
-      const result = parseApprovals(exposures)
+      const result = parseApprovals(exposures, TEST_CHAIN_ID)
 
       expect(result).toBeNull()
     })
@@ -557,7 +614,7 @@ describe('blockaidUtils', () => {
         // No simulation data (typical for signature requests)
       }
 
-      const result = parseTransactionSections(maliciousSignature)
+      const result = parseTransactionSections(maliciousSignature, TEST_CHAIN_ID)
 
       expect(result.riskLevel).toBe(TransactionRiskLevel.Critical)
       expect(result.sections).toEqual([])
@@ -577,7 +634,7 @@ describe('blockaidUtils', () => {
         },
       }
 
-      const result = parseTransactionSections(suspiciousSignature)
+      const result = parseTransactionSections(suspiciousSignature, TEST_CHAIN_ID)
 
       expect(result.riskLevel).toBe(TransactionRiskLevel.Warning)
       expect(result.sections).toEqual([])
@@ -597,7 +654,7 @@ describe('blockaidUtils', () => {
         },
       }
 
-      const result = parseTransactionSections(benignSignature)
+      const result = parseTransactionSections(benignSignature, TEST_CHAIN_ID)
 
       expect(result.riskLevel).toBe(TransactionRiskLevel.None)
       expect(result.sections).toEqual([])
@@ -620,14 +677,14 @@ describe('blockaidUtils', () => {
         } as any,
       }
 
-      const result = parseTransactionSections(failedMaliciousTransaction)
+      const result = parseTransactionSections(failedMaliciousTransaction, TEST_CHAIN_ID)
 
       expect(result.riskLevel).toBe(TransactionRiskLevel.Critical)
       expect(result.sections).toEqual([])
     })
 
     it('should return None risk level when both simulation and validation are missing', () => {
-      const result = parseTransactionSections(null)
+      const result = parseTransactionSections(null, TEST_CHAIN_ID)
 
       expect(result.riskLevel).toBe(TransactionRiskLevel.None)
       expect(result.sections).toEqual([])
@@ -656,7 +713,7 @@ describe('blockaidUtils', () => {
         } as any,
       }
 
-      const result = parseTransactionSections(maliciousWithSimulation)
+      const result = parseTransactionSections(maliciousWithSimulation, TEST_CHAIN_ID)
 
       expect(result.riskLevel).toBe(TransactionRiskLevel.Critical)
       expect(result.sections).toEqual([])
@@ -705,7 +762,7 @@ describe('blockaidUtils', () => {
         } as any,
       }
 
-      const result = parseTransactionSections(scanResult)
+      const result = parseTransactionSections(scanResult, TEST_CHAIN_ID)
 
       expect(result.riskLevel).toBe(TransactionRiskLevel.None)
       expect(result.sections).toHaveLength(1)
@@ -719,6 +776,7 @@ describe('blockaidUtils', () => {
         usdValue: '100.50',
         logoUrl: 'https://example.com/usdc.png',
         address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+        chainId: TEST_CHAIN_ID,
       })
     })
 
@@ -761,7 +819,7 @@ describe('blockaidUtils', () => {
         } as any,
       }
 
-      const result = parseTransactionSections(scanResult)
+      const result = parseTransactionSections(scanResult, TEST_CHAIN_ID)
 
       expect(result.sections).toHaveLength(1)
       expect(result.sections[0]?.type).toBe(TransactionSectionType.Receiving)
@@ -814,7 +872,7 @@ describe('blockaidUtils', () => {
         } as any,
       }
 
-      const result = parseTransactionSections(scanResult)
+      const result = parseTransactionSections(scanResult, TEST_CHAIN_ID)
 
       expect(result.sections).toHaveLength(1)
       expect(result.sections[0]?.type).toBe(TransactionSectionType.Approving)
@@ -867,7 +925,7 @@ describe('blockaidUtils', () => {
         } as any,
       }
 
-      const result = parseTransactionSections(scanResult)
+      const result = parseTransactionSections(scanResult, TEST_CHAIN_ID)
 
       // Should show approval amount (500), not exposure amount (250.5)
       expect(result.sections[0]?.assets[0]?.amount).toBe('500')
@@ -935,7 +993,7 @@ describe('blockaidUtils', () => {
         } as any,
       }
 
-      const result = parseTransactionSections(scanResult)
+      const result = parseTransactionSections(scanResult, TEST_CHAIN_ID)
 
       expect(result.sections).toHaveLength(3)
       expect(result.sections.map((s) => s.type)).toEqual([

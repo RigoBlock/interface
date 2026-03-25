@@ -1,13 +1,4 @@
 import { GraphQLApi } from '@universe/api'
-import { ChartHeader } from 'components/Charts/ChartHeader'
-import { Chart, ChartHoverData, ChartModel, ChartModelParams } from 'components/Charts/ChartModel'
-import {
-  RoundedCandleSeries,
-  RoundedCandleSeriesOptions,
-} from 'components/Charts/PriceChart/RoundedCandlestickSeries/rounded-candles-series'
-import { getCandlestickPriceBounds } from 'components/Charts/PriceChart/utils'
-import { PriceChartType } from 'components/Charts/utils'
-import { calculateDelta, DeltaArrow, DeltaText } from 'components/Tokens/TokenDetails/Delta'
 import {
   AreaData,
   AreaSeriesPartialOptions,
@@ -28,6 +19,22 @@ import { isLowVarianceRange } from 'uniswap/src/components/charts/utils'
 import { useFormatChartFiatDelta } from 'uniswap/src/features/fiatCurrency/hooks/useFormatChartFiatDelta'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { NumberType } from 'utilities/src/format/types'
+import { ChartHeader } from '~/components/Charts/ChartHeader'
+import {
+  Chart,
+  ChartHoverData,
+  ChartModel,
+  ChartModelParams,
+  DEFAULT_BOTTOM_PRICE_SCALE_MARGIN,
+  DEFAULT_TOP_PRICE_SCALE_MARGIN,
+} from '~/components/Charts/ChartModel'
+import {
+  RoundedCandleSeries,
+  RoundedCandleSeriesOptions,
+} from '~/components/Charts/PriceChart/RoundedCandlestickSeries/rounded-candles-series'
+import { getCandlestickPriceBounds } from '~/components/Charts/PriceChart/utils'
+import { PriceChartType } from '~/components/Charts/utils'
+import { calculateDelta, DeltaArrow } from '~/components/DeltaArrow/DeltaArrow'
 
 export type PriceChartData = CandlestickData<UTCTimestamp> & AreaData<UTCTimestamp>
 
@@ -35,6 +42,7 @@ interface PriceChartModelParams extends ChartModelParams<PriceChartData> {
   type: PriceChartType
   timePeriod?: GraphQLApi.HistoryDuration
   hideYAxis?: boolean
+  yAxisFormatter?: (price: number) => string
 }
 
 const LOW_PRICE_RANGE_THRESHOLD = 0.2
@@ -158,7 +166,7 @@ export class PriceChartModel extends ChartModel<PriceChartData> {
   }
 
   updateOptions(params: PriceChartModelParams) {
-    const { data, colors, type, locale, format, tokenFormatType, hideYAxis } = params
+    const { data, colors, type, locale, format, tokenFormatType, hideYAxis, yAxisFormatter } = params
     const { min, max } = getCandlestickPriceBounds(data)
 
     // Handles changes in time period
@@ -174,31 +182,36 @@ export class PriceChartModel extends ChartModel<PriceChartData> {
           top: 0.49,
           bottom: 0.49,
         }
-      : undefined
+      : {
+          top: DEFAULT_TOP_PRICE_SCALE_MARGIN,
+          bottom: DEFAULT_BOTTOM_PRICE_SCALE_MARGIN,
+        }
 
     super.updateOptions(params, {
       localization: {
         locale,
         priceFormatter: (price: BarPrice) => {
+          // Transform price back to original value if it was scaled
+          const originalPrice = Number(price) / this.lowPriceRangeScaleFactor
+
+          // Use custom y-axis formatter if provided
+          if (yAxisFormatter) {
+            return yAxisFormatter(originalPrice)
+          }
+
           if (tokenFormatType) {
             return format.formatNumberOrString({
-              value: Number(price) / this.lowPriceRangeScaleFactor,
+              value: originalPrice,
               type: tokenFormatType,
             })
           }
-          return format.convertFiatAmountFormatted(
-            // Transform price back to original value if it was scaled
-            Number(price) / this.lowPriceRangeScaleFactor,
-            NumberType.FiatTokenPrice,
-          )
+          return format.convertFiatAmountFormatted(originalPrice, NumberType.FiatTokenPrice)
         },
       },
       rightPriceScale: {
         borderVisible: false,
         ...(hideYAxis && { visible: false, minimumWidth: 0 }),
-        ...(scaleMargins && {
-          scaleMargins,
-        }),
+        scaleMargins,
       },
     })
 
@@ -292,8 +305,8 @@ interface PriceChartDeltaProps {
   noColor?: boolean
   shouldIncludeFiatDelta?: boolean
   shouldTreatAsStablecoin?: boolean
-  /** Optional 24hr price change % from API (used when not hovering to match mobile) */
-  pricePercentChange24h?: number
+  /** Optional price change % for the selected duration (used when not hovering) */
+  pricePercentChange?: number
   /** Whether the user is currently hovering over the chart */
   isHovering?: boolean
 }
@@ -304,16 +317,16 @@ export function PriceChartDelta({
   noColor,
   shouldIncludeFiatDelta = false,
   shouldTreatAsStablecoin = false,
-  pricePercentChange24h,
+  pricePercentChange,
   isHovering = false,
 }: PriceChartDeltaProps) {
   const { formatPercent, convertFiatAmount } = useLocalizationContext()
   const { formatChartFiatDelta } = useFormatChartFiatDelta()
 
-  // When not hovering and we have API's 24hr change, use it for consistency with mobile
+  // When not hovering and we have a percent change, use it
   // When hovering, calculate change from starting price to current hover point
   const calculatedDelta = calculateDelta(startingPrice, endingPrice)
-  const delta = !isHovering && pricePercentChange24h !== undefined ? pricePercentChange24h : calculatedDelta
+  const delta = !isHovering && pricePercentChange !== undefined ? pricePercentChange : calculatedDelta
 
   const formattedDelta = useMemo(() => {
     return delta !== undefined ? formatPercent(Math.abs(delta)) : '-'
@@ -324,11 +337,11 @@ export function PriceChartDelta({
       return null
     }
 
-    // When using API's 24hr percentage (not hovering), calculate fiat delta from that percentage
+    // When using percent change (not hovering), calculate fiat delta from that percentage
     // This avoids mixing aggregated chart prices with per-chain current prices
-    if (!isHovering && pricePercentChange24h !== undefined) {
+    if (!isHovering && pricePercentChange !== undefined) {
       const convertedEnd = convertFiatAmount(endingPrice)
-      const percentAsDecimal = pricePercentChange24h / 100
+      const percentAsDecimal = pricePercentChange / 100
       const historicalPrice = convertedEnd.amount / (1 + percentAsDecimal)
       const fiatChange = convertedEnd.amount - historicalPrice
 
@@ -355,14 +368,14 @@ export function PriceChartDelta({
     endingPrice,
     convertFiatAmount,
     shouldTreatAsStablecoin,
-    pricePercentChange24h,
+    pricePercentChange,
     isHovering,
   ])
 
   return (
-    <Text variant="body2" display="flex" alignItems="center" gap="$gap4">
+    <Text variant="body2" color="$neutral2" display="flex" alignItems="center" gap="$gap4">
       {delta !== undefined && <DeltaArrow delta={delta} formattedDelta={formattedDelta} noColor={noColor} />}
-      <DeltaText delta={delta}>{fiatDelta ? `${fiatDelta.formatted} (${formattedDelta})` : formattedDelta}</DeltaText>
+      {fiatDelta ? `${fiatDelta.formatted} (${formattedDelta})` : formattedDelta}
     </Text>
   )
 }
@@ -373,10 +386,11 @@ interface PriceChartProps {
   data: PriceChartData[]
   stale: boolean
   timePeriod?: GraphQLApi.HistoryDuration
-  pricePercentChange24h?: number
+  pricePercentChange?: number
   overrideColor?: string
   headerTotalValueOverride?: number
   hideYAxis?: boolean
+  yAxisFormatter?: (price: number) => string
 }
 
 const CandlestickTooltipRow = styled(Flex, {
@@ -417,10 +431,11 @@ export function PriceChart({
   type,
   stale,
   timePeriod,
-  pricePercentChange24h,
+  pricePercentChange,
   overrideColor,
   headerTotalValueOverride,
   hideYAxis,
+  yAxisFormatter,
 }: PriceChartProps) {
   const startingPrice = data[0]
   const lastPrice = data[data.length - 1]
@@ -434,7 +449,10 @@ export function PriceChart({
   return (
     <Chart
       Model={PriceChartModel}
-      params={useMemo(() => ({ data, type, stale, timePeriod, hideYAxis }), [data, stale, type, timePeriod, hideYAxis])}
+      params={useMemo(
+        () => ({ data, type, stale, timePeriod, hideYAxis, yAxisFormatter }),
+        [data, stale, type, timePeriod, hideYAxis, yAxisFormatter],
+      )}
       height={height}
       overrideColor={overrideColor}
       TooltipBody={type === PriceChartType.CANDLESTICK ? CandlestickTooltip : undefined}
@@ -455,7 +473,7 @@ export function PriceChart({
                 endingPrice={(crosshairData ?? lastPrice).close}
                 shouldIncludeFiatDelta
                 shouldTreatAsStablecoin={shouldTreatAsStablecoin}
-                pricePercentChange24h={pricePercentChange24h}
+                pricePercentChange={pricePercentChange}
                 isHovering={!!crosshairData}
               />
             }

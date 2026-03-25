@@ -1,9 +1,5 @@
-import { GenericPasskeyMenuModal, PasskeyMenuModalState } from 'components/AccountDrawer/PasskeyMenu/PasskeyMenuModal'
-import { useAccount } from 'hooks/useAccount'
-import { usePasskeyAuthWithHelpModal } from 'hooks/usePasskeyAuthWithHelpModal'
 import { Dispatch, SetStateAction } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ClickableTamaguiStyle } from 'theme/components/styles'
 import { Flex, Loader, Text, TouchableArea } from 'ui/src'
 import { Chevron } from 'ui/src/components/icons/Chevron'
 import { Cloud } from 'ui/src/components/icons/Cloud'
@@ -11,9 +7,16 @@ import { Mobile } from 'ui/src/components/icons/Mobile'
 import { Passkey } from 'ui/src/components/icons/Passkey'
 import { colors } from 'ui/src/theme'
 import { useUnitagsAddressQuery } from 'uniswap/src/data/apiClients/unitagsApi/useUnitagsAddressQuery'
-import { AuthenticatorAttachment, registerNewAuthenticator } from 'uniswap/src/features/passkey/embeddedWallet'
+import type { AuthenticatorAttachment } from 'uniswap/src/features/passkey/embeddedWallet'
+import { getPrivyEnums, registerNewAuthenticator } from 'uniswap/src/features/passkey/embeddedWallet'
 import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
+import { shortenAddress } from 'utilities/src/addresses'
+import { GenericPasskeyMenuModal, PasskeyMenuModalState } from '~/components/AccountDrawer/PasskeyMenu/PasskeyMenuModal'
+import { useAccount } from '~/hooks/useAccount'
+import { usePasskeyAuthWithHelpModal } from '~/hooks/usePasskeyAuthWithHelpModal'
+import { useEmbeddedWalletState } from '~/state/embeddedWallet/store'
+import { ClickableTamaguiStyle } from '~/theme/components/styles'
 
 export function AddPasskeyMenu({
   show,
@@ -25,27 +28,36 @@ export function AddPasskeyMenu({
   show: boolean
   setPasskeyMenuModalState: Dispatch<SetStateAction<PasskeyMenuModalState | undefined>>
   refreshAuthenticators: () => void
-  credential?: string
+  credential: string | undefined
   numAuthenticators: number
 }) {
   const { t } = useTranslation()
   const account = useAccount()
+  const { walletId } = useEmbeddedWalletState()
   const { data: unitag, isLoading: unitagLoading } = useUnitagsAddressQuery({
     params: account.address ? { address: account.address } : undefined,
   })
-  const newPasskeyUsername = unitag?.username ? `${unitag.username} (${numAuthenticators + 1})` : undefined
+  const newPasskeyUsername = unitag?.username
+    ? `${unitag.username} (${numAuthenticators + 1})`
+    : account.address
+      ? shortenAddress({ address: account.address })
+      : undefined
 
   const { mutate: registerAuthenticator } = usePasskeyAuthWithHelpModal(
     async (authenticatorAttachment: AuthenticatorAttachment) => {
-      await registerNewAuthenticator({
+      if (!credential) {
+        throw new Error('Credential required to add authenticator')
+      }
+      return await registerNewAuthenticator({
         authenticatorAttachment,
         existingCredential: credential,
         username: newPasskeyUsername,
+        walletId: walletId ?? undefined,
       })
     },
     {
-      onSettled: async () => {
-        await refreshAuthenticators()
+      onSettled: () => {
+        refreshAuthenticators()
         setPasskeyMenuModalState(undefined)
       },
     },
@@ -74,7 +86,10 @@ export function AddPasskeyMenu({
         </Flex>
         <Trace logPress element={ElementName.AddPasskeyPlatform}>
           <TouchableArea
-            onPress={() => registerAuthenticator(AuthenticatorAttachment.PLATFORM)}
+            onPress={async () => {
+              const { AuthenticatorAttachment } = await getPrivyEnums()
+              registerAuthenticator(AuthenticatorAttachment.PLATFORM)
+            }}
             width="100%"
             disabled={unitagLoading}
           >
@@ -105,7 +120,10 @@ export function AddPasskeyMenu({
         </Trace>
         <Trace logPress element={ElementName.AddPasskeyCrossPlatform}>
           <TouchableArea
-            onPress={() => registerAuthenticator(AuthenticatorAttachment.CROSS_PLATFORM)}
+            onPress={async () => {
+              const { AuthenticatorAttachment } = await getPrivyEnums()
+              registerAuthenticator(AuthenticatorAttachment.CROSS_PLATFORM)
+            }}
             width="100%"
             disabled={unitagLoading}
           >

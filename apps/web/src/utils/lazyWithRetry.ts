@@ -6,7 +6,7 @@
  *
  * Quick Start:
  * ```tsx
- * import { createLazy } from 'utils/lazyWithRetry'
+ * import { createLazy } from '~/utils/lazyWithRetry'
  *
  * // Replace React.lazy with createLazy
  * const MyComponent = createLazy(() => import('./MyComponent'))
@@ -182,13 +182,13 @@ function createRetryableImport<T extends ComponentType<any>>(
  * @example
  * ```tsx
  * // === BASIC USAGE (recommended) ===
- * import { createLazy } from 'utils/lazyWithRetry'
+ * import { createLazy } from '~/utils/lazyWithRetry'
  *
  * // Drop-in replacement for React.lazy with sensible defaults
  * const MyComponent = createLazy(() => import('./MyComponent'))
  *
  * // === ADVANCED USAGE ===
- * import { lazyWithRetry } from 'utils/lazyWithRetry'
+ * import { lazyWithRetry } from '~/utils/lazyWithRetry'
  *
  * // Custom retry configuration
  * const CriticalComponent = lazyWithRetry(

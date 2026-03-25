@@ -1,11 +1,10 @@
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-//import { Limit } from 'components/Icons/Limit'
-import { SwapV2 } from 'components/Icons/SwapV2'
-import { MenuItem } from 'components/NavBar/CompanyMenu/Content'
-import { useTabsVisible } from 'components/NavBar/ScreenSizes'
-import { usePortfolioRoutes } from 'pages/Portfolio/Header/hooks/usePortfolioRoutes'
-import { PortfolioTab } from 'pages/Portfolio/types'
-import { buildPortfolioUrl } from 'pages/Portfolio/utils/portfolioUrls'
+import { buildPortfolioUrl } from '~/pages/Portfolio/utils/portfolioUrls'
+//import { Limit } from '~/components/Icons/Limit'
+import { SwapV2 } from '~/components/Icons/SwapV2'
+import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
+import { PortfolioTab } from '~/pages/Portfolio/types'
+import { MenuItem } from '~/components/NavBar/CompanyMenu/Content'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router'
 import { useSporeColors } from 'ui/src'
@@ -24,22 +23,19 @@ export type TabsSection = {
   items?: TabsItem[]
   closeMenu?: () => void
   icon?: JSX.Element
+  elementName: ElementName
 }
 
 export type TabsItem = MenuItem & {
   icon?: JSX.Element
-  elementName?: ElementName
 }
 
 export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSection[] => {
   const { t } = useTranslation()
   const { pathname } = useLocation()
-  const { chainId: portfolioChainId } = usePortfolioRoutes()
+  const { chainId: portfolioChainId, isExternalWallet } = usePortfolioRoutes()
   const colors = useSporeColors()
-  const areTabsVisible = useTabsVisible()
-  const isFiatOffRampEnabled = useFeatureFlag(FeatureFlags.FiatOffRamp)
-  const isPortfolioPageEnabled = useFeatureFlag(FeatureFlags.PortfolioPage)
-  const isToucanEnabled = useFeatureFlag(FeatureFlags.Toucan)
+
   const isPortfolioDefiTabEnabled = useFeatureFlag(FeatureFlags.PortfolioDefiTab)
 
   return [
@@ -48,9 +44,10 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
       href: '/earn',
       isActive: pathname.startsWith('/earn') || pathname.startsWith('/mint') || pathname.startsWith('/stake'),
       icon: <Compass color="$accent1" size="$icon.20" />,
+      elementName: ElementName.NavbarExploreTab,
       items: [
-        { label: t('common.earn'), href: '/earn', internal: true },
-        { label: 'Manage', href: '/earn/manage', internal: true },
+        { label: t('common.earn'), href: '/earn', internal: true, elementName: ElementName.NavbarExploreTab },
+        { label: 'Manage', href: '/earn/manage', internal: true, elementName: ElementName.NavbarExploreTab },
       ],
     },
     {
@@ -58,6 +55,7 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
       href: '/swap',
       isActive: pathname.startsWith('/swap') /*|| pathname.startsWith('/limit')*/ || pathname.startsWith('/send'),
       icon: <CoinConvert color="$accent1" size="$icon.20" />,
+      elementName: ElementName.NavbarTradeTab,
       items: [
         ...(props?.userIsOperator
           ? [
@@ -66,32 +64,31 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
                 icon: <SwapV2 fill={colors.neutral2.val} />,
                 href: '/swap',
                 internal: true,
+                elementName: ElementName.NavbarTradeDropdownSwap,
               },
             ]
           : []),
         //{
         //  label: t('swap.limit'),
-        //  icon: <Limit fill={theme.neutral2} />,
-        //  quickKey: 'L',
+        //  icon: <Limit fill={colors.neutral2.val} />,
         //  href: '/limit',
         //  internal: true,
+        //  elementName: ElementName.NavbarTradeDropdownLimit,
         //},
         {
           label: t('common.buy.label'),
           icon: <CreditCard size="$icon.24" color="$neutral2" />,
           href: '/buy',
           internal: true,
+          elementName: ElementName.NavbarTradeDropdownBuy,
         },
-        ...(isFiatOffRampEnabled
-          ? [
-              {
-                label: t('common.sell.label'),
-                icon: <ReceiveAlt fill={colors.neutral2.val} size={24} transform="rotate(180deg)" />,
-                href: '/sell',
-                internal: true,
-              },
-            ]
-          : []),
+        {
+          label: t('common.sell.label'),
+          icon: <ReceiveAlt fill={colors.neutral2.val} size={24} transform="rotate(180deg)" />,
+          href: '/sell',
+          internal: true,
+          elementName: ElementName.NavbarTradeDropdownSell,
+        },
       ],
     },
     //{
@@ -99,86 +96,118 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
     //  href: '/explore',
     //  isActive: pathname.startsWith('/explore') || pathname.startsWith('/nfts'),
     //  icon: <Compass color="$accent1" size="$icon.20" />,
+    //  elementName: ElementName.NavbarExploreTab,
     //  items: [
-    //    { label: t('common.tokens'), href: '/explore/tokens', internal: true },
-    //    { label: t('common.pools'), href: '/explore/pools', internal: true },
+    //    {
+    //      label: t('common.tokens'),
+    //      href: '/explore/tokens',
+    //      internal: true,
+    //      elementName: ElementName.NavbarExploreDropdownTokens,
+    //    },
+    //    {
+    //      label: t('common.pools'),
+    //      href: '/explore/pools',
+    //      internal: true,
+    //      elementName: ElementName.NavbarExploreDropdownPools,
+    //    },
     //    {
     //      label: t('common.transactions'),
     //      href: '/explore/transactions',
     //      internal: true,
+    //      elementName: ElementName.NavbarExploreDropdownTransactions,
     //    },
-    //    ...(isToucanEnabled ? [{ label: 'Toucan', href: '/explore/auctions', internal: true }] : []),
     //  ],
     //},
     {
       title: t('common.pool'),
       href: '/positions',
-      isActive: pathname.startsWith('/positions'),
+      isActive: pathname.startsWith('/positions') || pathname.startsWith('/liquidity'),
       icon: <Pools color="$accent1" size="$icon.20" />,
+      elementName: ElementName.NavbarPoolTab,
       items: [
         {
           label: t('nav.tabs.viewPositions'),
           href: '/positions',
           internal: true,
+          elementName: ElementName.NavbarPoolDropdownViewPositions,
         },
         {
           label: t('nav.tabs.createPosition'),
           href: '/positions/create',
           internal: true,
+          elementName: ElementName.NavbarPoolDropdownCreatePosition,
         },
       ],
     },
-    ...(isPortfolioPageEnabled
-      ? [
-          {
-            title: t('common.portfolio'),
-            href: buildPortfolioUrl(PortfolioTab.Overview, portfolioChainId),
-            isActive: pathname.startsWith('/portfolio'),
-            icon: <Wallet color="$accent1" size="$icon.20" />,
-            items: [
+    {
+      title: t('common.portfolio'),
+      href: buildPortfolioUrl({
+        tab: PortfolioTab.Overview,
+        chainId: portfolioChainId,
+      }),
+      isActive: pathname.startsWith('/portfolio') && !isExternalWallet,
+      icon: <Wallet color="$accent1" size="$icon.20" />,
+      elementName: ElementName.NavbarPortfolioTab,
+      items: [
+        {
+          label: t('portfolio.overview.title'),
+          href: buildPortfolioUrl({
+            tab: PortfolioTab.Overview,
+            chainId: portfolioChainId,
+          }),
+          internal: true,
+          elementName: ElementName.NavbarPortfolioDropdownOverview,
+        },
+        {
+          label: t('portfolio.tokens.title'),
+          href: buildPortfolioUrl({
+            tab: PortfolioTab.Tokens,
+            chainId: portfolioChainId,
+          }),
+          internal: true,
+          elementName: ElementName.NavbarPortfolioDropdownTokens,
+        },
+        {
+          label: t('portfolio.staking.title'),
+          href: buildPortfolioUrl({
+            tab: PortfolioTab.Staking,
+            chainId: portfolioChainId,
+          }),
+          internal: true,
+          elementName: ElementName.NavbarPortfolioDropdownStaking,
+        },
+        ...(isPortfolioDefiTabEnabled
+          ? [
               {
-                label: t('portfolio.overview.title'),
-                href: buildPortfolioUrl(PortfolioTab.Overview, portfolioChainId),
+                label: t('portfolio.defi.title'),
+                href: buildPortfolioUrl({
+                  tab: PortfolioTab.Defi,
+                  chainId: portfolioChainId,
+                }),
                 internal: true,
-                elementName: ElementName.NavbarPortfolioDropdownOverview,
+                elementName: ElementName.NavbarPortfolioDropdownDefi,
               },
-              {
-                label: t('portfolio.tokens.title'),
-                href: buildPortfolioUrl(PortfolioTab.Tokens, portfolioChainId),
-                internal: true,
-                elementName: ElementName.NavbarPortfolioDropdownTokens,
-              },
-              {
-                label: t('portfolio.staking.title'),
-                href: buildPortfolioUrl(PortfolioTab.Staking, portfolioChainId),
-                internal: true,
-                elementName: ElementName.NavbarPortfolioDropdownStaking,
-              },
-              ...(isPortfolioDefiTabEnabled
-                ? [
-                    {
-                      label: t('portfolio.defi.title'),
-                      href: buildPortfolioUrl(PortfolioTab.Defi, portfolioChainId),
-                      internal: true,
-                      elementName: ElementName.NavbarPortfolioDropdownDefi,
-                    },
-                  ]
-                : []),
-              {
-                label: t('portfolio.nfts.title'),
-                href: buildPortfolioUrl(PortfolioTab.Nfts, portfolioChainId),
-                internal: true,
-                elementName: ElementName.NavbarPortfolioDropdownNfts,
-              },
-              {
-                label: t('portfolio.activity.title'),
-                href: buildPortfolioUrl(PortfolioTab.Activity, portfolioChainId),
-                internal: true,
-                elementName: ElementName.NavbarPortfolioDropdownActivity,
-              },
-            ],
-          },
-        ]
-      : []),
+            ]
+          : []),
+        {
+          label: t('portfolio.nfts.title'),
+          href: buildPortfolioUrl({
+            tab: PortfolioTab.Nfts,
+            chainId: portfolioChainId,
+          }),
+          internal: true,
+          elementName: ElementName.NavbarPortfolioDropdownNfts,
+        },
+        {
+          label: t('portfolio.activity.title'),
+          href: buildPortfolioUrl({
+            tab: PortfolioTab.Activity,
+            chainId: portfolioChainId,
+          }),
+          internal: true,
+          elementName: ElementName.NavbarPortfolioDropdownActivity,
+        },
+      ],
+    },
   ]
 }

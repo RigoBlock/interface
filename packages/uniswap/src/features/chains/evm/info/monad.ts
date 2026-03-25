@@ -17,80 +17,7 @@ import {
 } from 'uniswap/src/features/chains/types'
 import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
-import { buildUSDC, buildUSDT } from 'uniswap/src/features/tokens/stablecoin'
-
-const tokens = buildChainTokens({
-  stables: {
-    USDT: buildUSDT('0xfBC2D240A5eD44231AcA3A9e9066bc4b33f01149', UniverseChainId.MonadTestnet),
-  },
-})
-
-export const MONAD_TESTNET_CHAIN_INFO = {
-  id: UniverseChainId.MonadTestnet,
-  platform: Platform.EVM,
-  testnet: true,
-  assetRepoNetworkName: undefined,
-  backendChain: {
-    chain: GraphQLApi.Chain.MonadTestnet as GqlChainId,
-    backendSupported: true,
-    nativeTokenBackendAddress: undefined,
-  },
-  bridge: undefined,
-  docs: 'https://docs.monad.xyz/',
-  label: 'Monad Testnet',
-  logo: MONAD_LOGO_FILLED,
-  name: 'Monad Testnet',
-  nativeCurrency: {
-    name: 'Monad',
-    symbol: 'MON',
-    decimals: 18,
-    address: DEFAULT_NATIVE_ADDRESS_LEGACY,
-    logo: MONAD_LOGO_FILLED,
-  },
-  networkLayer: NetworkLayer.L1,
-  pendingTransactionsRetryOptions: undefined,
-  statusPage: undefined,
-  supportsV4: false,
-  supportsNFTs: false,
-  urlParam: 'monad_testnet',
-  rpcUrls: {
-    [RPCType.Public]: {
-      http: [getQuicknodeEndpointUrl(UniverseChainId.MonadTestnet)],
-    },
-    [RPCType.Default]: {
-      http: [getQuicknodeEndpointUrl(UniverseChainId.MonadTestnet)],
-    },
-    [RPCType.Interface]: {
-      http: [getQuicknodeEndpointUrl(UniverseChainId.MonadTestnet)],
-    },
-  },
-  wrappedNativeCurrency: {
-    name: 'Wrapped Monad',
-    symbol: 'WMON',
-    decimals: 18,
-    address: '0x760AfE86e5de5fa0Ee542fc7B7B713e1c5425701',
-  },
-  blockPerMainnetEpochForChainId: 1,
-  blockWaitMsBeforeWarning: undefined,
-  elementName: ElementName.ChainMonadTestnet,
-  explorer: {
-    name: 'Monad Explorer',
-    url: 'https://testnet.monvision.io/',
-  },
-  interfaceName: 'monad-testnet',
-  tokens,
-  gasConfig: {
-    send: {
-      configKey: SwapConfigKey.MonSendMinGasAmount,
-      default: 20, // .002 ETH equivalent
-    },
-    swap: {
-      configKey: SwapConfigKey.MonSwapMinGasAmount,
-      default: 150, // .015 ETH equivalent
-    },
-  },
-  tradingApiPollingIntervalMs: 200,
-} as const satisfies UniverseChainInfo
+import { buildUSDC } from 'uniswap/src/features/tokens/stablecoin'
 
 const mainnetTokens = buildChainTokens({
   stables: {
@@ -122,6 +49,7 @@ export const MONAD_CHAIN_INFO = {
     logo: MONAD_LOGO_FILLED,
   },
   networkLayer: NetworkLayer.L1,
+  blockTimeMs: 500,
   pendingTransactionsRetryOptions: undefined,
   statusPage: undefined, // TODO: Add status page URL when available
   supportsV4: true,
@@ -142,7 +70,7 @@ export const MONAD_CHAIN_INFO = {
   blockWaitMsBeforeWarning: DEFAULT_MS_BEFORE_WARNING,
   elementName: ElementName.ChainMonad,
   explorer: {
-    name: 'Monad Explorer',
+    name: 'MonadVision',
     url: 'https://monadvision.com/',
   },
   interfaceName: 'monad',
@@ -158,4 +86,5 @@ export const MONAD_CHAIN_INFO = {
       default: 150, // .015 ETH equivalent
     },
   },
+  acrossProtocolAddress: '0xd2ecb3afe598b746F8123CaE365a598DA831A449',
 } as const satisfies UniverseChainInfo

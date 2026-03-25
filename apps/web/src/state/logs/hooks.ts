@@ -1,10 +1,10 @@
 import type { Filter } from '@ethersproject/providers'
-import { useAccount } from 'hooks/useAccount'
-import useBlockNumber from 'lib/hooks/useBlockNumber'
+import { useAccount } from '~/hooks/useAccount'
+import useBlockNumber from '~/lib/hooks/useBlockNumber'
 import { useEffect, useMemo, useRef } from 'react'
-import { useAppDispatch, useAppSelector } from 'state/hooks'
-import { addListener, removeListener } from 'state/logs/slice'
-import { filterToKey, isHistoricalLog, Log } from 'state/logs/utils'
+import { useAppDispatch, useAppSelector } from '~/state/hooks'
+import { addListener, removeListener } from '~/state/logs/slice'
+import { filterToKey, isHistoricalLog, Log } from '~/state/logs/utils'
 
 // TODO: try deprecate logs if we still have issues retrieving them on altchains
 enum LogsState {

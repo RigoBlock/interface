@@ -25,7 +25,6 @@ import { ReportTokenDataModalProps } from 'uniswap/src/components/reporting/Repo
 import { ReportTokenModalProps } from 'uniswap/src/components/reporting/ReportTokenIssueModal'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { FORServiceProvider } from 'uniswap/src/features/fiatOnRamp/types'
-import { NFTItem } from 'uniswap/src/features/nfts/types'
 import { PasskeyManagementModalState } from 'uniswap/src/features/passkey/PasskeyManagementModal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TestnetModeModalState } from 'uniswap/src/features/testnets/TestnetModeModal'
@@ -42,14 +41,6 @@ import { SmartWalletAdvancedSettingsModalState } from 'wallet/src/components/sma
 import { SmartWalletEnabledModalState } from 'wallet/src/components/smartWallet/modals/SmartWalletEnabledModal'
 import { SmartWalletNudgeState } from 'wallet/src/components/smartWallet/modals/SmartWalletNudge'
 import { ExploreOrderBy } from 'wallet/src/features/wallet/types'
-
-type NFTItemScreenParams = {
-  owner?: Address
-  address: string
-  tokenId: string
-  isSpam?: boolean
-  fallbackData?: NFTItem
-}
 
 export type ExploreScreenParams = {
   showFavorites?: boolean
@@ -75,8 +66,6 @@ export type ExploreStackParamList = {
   [MobileScreens.ExternalProfile]: {
     address: string
   }
-  [MobileScreens.NFTItem]: NFTItemScreenParams
-  [MobileScreens.NFTCollection]: { collectionAddress: string }
   [MobileScreens.TokenDetails]: {
     currencyId: string
   }
@@ -95,6 +84,7 @@ export type FiatOnRampStackParamList = {
 }
 
 export type SettingsStackParamList = {
+  [MobileScreens.DebugScreens]: undefined
   [MobileScreens.Dev]: undefined
   [MobileScreens.Settings]: undefined
   [MobileScreens.SettingsCloudBackupPasswordConfirm]: CloudBackupFormParams
@@ -106,7 +96,8 @@ export type SettingsStackParamList = {
   [MobileScreens.SettingsNotifications]: undefined
   [MobileScreens.SettingsPrivacy]: undefined
   [MobileScreens.SettingsSmartWallet]: undefined
-  [MobileScreens.SettingsViewSeedPhrase]: { address: Address; walletNeedsRestore?: boolean }
+  [MobileScreens.SettingsStorage]: undefined
+  [MobileScreens.SettingsViewSeedPhrase]: { address?: Address; walletNeedsRestore?: boolean } | undefined
   [MobileScreens.SettingsWallet]: { address: Address }
   [MobileScreens.SettingsWalletEdit]: { address: Address }
   [MobileScreens.SettingsWalletManageConnection]: { address: Address }
@@ -162,6 +153,8 @@ export type OnboardingStackParamList = {
 
 export type AppStackParamList = {
   [MobileScreens.Activity]: undefined
+  [MobileScreens.HashcashBenchmark]: undefined
+  [MobileScreens.SessionsDebug]: undefined
   [MobileScreens.Education]: {
     type: EducationContentType
   } & OnboardingStackBaseParams
@@ -172,8 +165,6 @@ export type AppStackParamList = {
   [MobileScreens.TokenDetails]: {
     currencyId: string
   }
-  [MobileScreens.NFTItem]: NFTItemScreenParams
-  [MobileScreens.NFTCollection]: { collectionAddress: string }
   [MobileScreens.ExternalProfile]: {
     address: string
   }
@@ -183,6 +174,7 @@ export type AppStackParamList = {
   [ModalName.Swap]: TransactionState | undefined
   [ModalName.Explore]: ExploreModalState | undefined
   [ModalName.NotificationsOSSettings]: undefined
+  [ModalName.FiatOnRampAction]: { entry: 'onramp' | 'offramp' }
   [ModalName.FundWallet]: undefined
   [ModalName.KoreaCexTransferInfoModal]: undefined
   [ModalName.ExchangeTransferModal]: { initialState: { serviceProvider: FORServiceProvider } }

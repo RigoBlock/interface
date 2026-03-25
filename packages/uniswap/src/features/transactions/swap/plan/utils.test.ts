@@ -1,105 +1,97 @@
-jest.mock('uniswap/src/config', () => ({
-  config: {
-    tradingApiKey: 'test-api-key',
-  },
-}))
+import { TradingApi } from '@universe/api'
+import { findFirstActiveStep } from 'uniswap/src/features/transactions/swap/plan/utils'
 
-jest.mock('uniswap/src/data/apiClients/tradingApi/TradingApiClient', () => ({
-  TradingApiClient: {
-    updateExistingPlan: jest.fn(),
-  },
-}))
+describe('findFirstActiveStep', () => {
+  const createMockStep = (overrides: Partial<TradingApi.PlanStep> = {}): TradingApi.PlanStep =>
+    ({
+      stepIndex: 0,
+      status: TradingApi.PlanStepStatus.AWAITING_ACTION,
+      method: TradingApi.PlanStepMethod.SEND_TX,
+      payload: {},
+      ...overrides,
+    }) as TradingApi.PlanStep
 
-jest.mock('utilities/src/time/timing', () => ({
-  sleep: jest.fn().mockResolvedValue(true),
-}))
+  it('should return the correct first step with AWAITING_ACTION status', () => {
+    const steps = [
+      createMockStep({ stepIndex: 0, status: TradingApi.PlanStepStatus.COMPLETE }),
+      createMockStep({ stepIndex: 1, status: TradingApi.PlanStepStatus.AWAITING_ACTION }),
+      createMockStep({ stepIndex: 2, status: TradingApi.PlanStepStatus.NOT_READY }),
+    ]
 
-jest.mock('utilities/src/logger/logger', () => ({
-  logger: {
-    warn: jest.fn(),
-  },
-}))
+    const result = findFirstActiveStep(steps)
 
-import { Method, PlanResponse, PlanStepStatus, UpdateExistingPlanRequest } from '@universe/api'
-import { TradingApiClient } from 'uniswap/src/data/apiClients/tradingApi/TradingApiClient'
-import { updateExistingPlanWithRetry } from 'uniswap/src/features/transactions/swap/plan/utils'
-import { logger } from 'utilities/src/logger/logger'
-import { ONE_SECOND_MS } from 'utilities/src/time/time'
-import { sleep } from 'utilities/src/time/timing'
-
-describe('updateExistingPlanWithRetry', () => {
-  const mockUpdateExistingPlan = TradingApiClient.updateExistingPlan as jest.Mock
-  const mockSleep = sleep as jest.Mock
-  const mockLoggerWarn = logger.warn as jest.Mock
-
-  const mockParams: UpdateExistingPlanRequest = {
-    planId: 'test-plan-id',
-    steps: [
-      {
-        stepIndex: 0,
-        proof: {
-          txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-        },
-      },
-    ],
-  }
-
-  const mockPlanResponse: PlanResponse = {
-    requestId: 'test-request-id',
-    planId: 'test-plan-id',
-    swapper: '0x0000000000000000000000000000000000000000',
-    recipient: '0x0000000000000000000000000000000000000000',
-    quoteId: 'test-quote-id',
-    status: 'IN_PROGRESS',
-    steps: [
-      {
-        stepIndex: 0,
-        method: Method.SEND_TX,
-        payloadType: 'TX' as any,
-        payload: {},
-        status: PlanStepStatus.AWAITING_ACTION,
-      },
-    ],
-    currentStepIndex: 0,
-    expectedOutput: '1000000000000000000',
-  }
-
-  beforeEach(() => {
-    jest.clearAllMocks()
+    expect(result.index).toBe(1)
+    expect(result.step).toEqual(steps[1])
   })
 
-  it('should return plan response on first successful attempt', async () => {
-    mockUpdateExistingPlan.mockResolvedValueOnce(mockPlanResponse)
-    const result = await updateExistingPlanWithRetry(mockParams)
-    expect(result).toEqual(mockPlanResponse)
-    expect(mockUpdateExistingPlan).toHaveBeenCalledTimes(1)
-    expect(mockUpdateExistingPlan).toHaveBeenCalledWith(mockParams)
-    expect(mockSleep).not.toHaveBeenCalled()
-    expect(mockLoggerWarn).not.toHaveBeenCalled()
+  it('should return the first step when it has AWAITING_ACTION status', () => {
+    const steps = [
+      createMockStep({ stepIndex: 0, status: TradingApi.PlanStepStatus.AWAITING_ACTION }),
+      createMockStep({ stepIndex: 1, status: TradingApi.PlanStepStatus.NOT_READY }),
+    ]
+    const result = findFirstActiveStep(steps)
+
+    expect(result.index).toBe(0)
+    expect(result.step).toEqual(steps[0])
   })
 
-  it('should retry multiple times and succeed', async () => {
-    const error = new Error('Network error')
-    mockUpdateExistingPlan
-      .mockRejectedValueOnce(error)
-      .mockRejectedValueOnce(error)
-      .mockResolvedValueOnce(mockPlanResponse)
-    const result = await updateExistingPlanWithRetry(mockParams)
-    expect(result).toEqual(mockPlanResponse)
-    expect(mockUpdateExistingPlan).toHaveBeenCalledTimes(3)
-    expect(mockSleep).toHaveBeenCalledTimes(2)
-    expect(mockSleep).toHaveBeenNthCalledWith(1, ONE_SECOND_MS * 1)
-    expect(mockSleep).toHaveBeenNthCalledWith(2, ONE_SECOND_MS * 2)
-    expect(mockLoggerWarn).toHaveBeenCalledTimes(2)
+  it('should return the first step with IN_PROGRESS status', () => {
+    const steps = [
+      createMockStep({ stepIndex: 0, status: TradingApi.PlanStepStatus.COMPLETE }),
+      createMockStep({ stepIndex: 1, status: TradingApi.PlanStepStatus.IN_PROGRESS }),
+      createMockStep({ stepIndex: 2, status: TradingApi.PlanStepStatus.AWAITING_ACTION }),
+    ]
+
+    const result = findFirstActiveStep(steps)
+
+    expect(result.index).toBe(1)
+    expect(result.step).toEqual(steps[1])
   })
 
-  it('should throw error after max retries exceeded', async () => {
-    const error = new Error('Network error')
-    const maxRetries = 3
-    mockUpdateExistingPlan.mockRejectedValue(error)
-    await expect(updateExistingPlanWithRetry(mockParams, maxRetries)).rejects.toThrow()
-    expect(mockUpdateExistingPlan).toHaveBeenCalledTimes(maxRetries)
-    expect(mockSleep).toHaveBeenCalledTimes(maxRetries - 1)
-    expect(mockLoggerWarn).toHaveBeenCalledTimes(maxRetries - 1)
+  it('should return the last step when all steps are complete', () => {
+    const steps = [
+      createMockStep({ stepIndex: 0, status: TradingApi.PlanStepStatus.COMPLETE }),
+      createMockStep({ stepIndex: 1, status: TradingApi.PlanStepStatus.COMPLETE }),
+      createMockStep({ stepIndex: 2, status: TradingApi.PlanStepStatus.COMPLETE }),
+    ]
+
+    const result = findFirstActiveStep(steps)
+
+    expect(result.index).toBe(2)
+    expect(result.step).toEqual(steps[2])
+  })
+
+  it('should return index -1 and undefined step when no active step exists', () => {
+    const steps = [
+      createMockStep({ stepIndex: 0, status: TradingApi.PlanStepStatus.STEP_ERROR }),
+      createMockStep({ stepIndex: 1, status: TradingApi.PlanStepStatus.STEP_ERROR }),
+    ]
+
+    const result = findFirstActiveStep(steps)
+
+    expect(result.index).toBe(-1)
+    expect(result.step).toBeUndefined()
+  })
+
+  it('should return index -1 and undefined step for empty array', () => {
+    const steps: TradingApi.PlanStep[] = []
+
+    const result = findFirstActiveStep(steps)
+
+    expect(result.index).toBe(-1)
+    expect(result.step).toBeUndefined()
+  })
+  it('should handle mixed statuses correctly', () => {
+    const steps = [
+      createMockStep({ stepIndex: 0, status: TradingApi.PlanStepStatus.COMPLETE }),
+      createMockStep({ stepIndex: 1, status: TradingApi.PlanStepStatus.STEP_ERROR }),
+      createMockStep({ stepIndex: 2, status: TradingApi.PlanStepStatus.AWAITING_ACTION }),
+      createMockStep({ stepIndex: 3, status: TradingApi.PlanStepStatus.NOT_READY }),
+    ]
+
+    const result = findFirstActiveStep(steps)
+
+    expect(result.index).toBe(2)
+    expect(result.step).toEqual(steps[2])
   })
 })

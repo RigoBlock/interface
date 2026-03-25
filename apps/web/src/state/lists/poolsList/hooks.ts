@@ -1,7 +1,7 @@
-import { TokenAddressMap, tokensToChainTokenMap } from 'lib/hooks/useTokenList/utils'
+import { TokenAddressMap, tokensToChainTokenMap } from '~/lib/hooks/useTokenList/utils'
 import { useMemo } from 'react'
-import { useAppSelector } from 'state/hooks'
-import { InterfaceState } from 'state/webReducer'
+import { useAppSelector } from '~/state/hooks'
+import { InterfaceState } from '~/state/webReducer'
 import { logger } from 'utilities/src/logger/logger'
 
 type Mutable<T> = {

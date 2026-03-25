@@ -91,7 +91,7 @@ export function useHomeScreenState(): {
   }
 
   return {
-    showEmptyWalletState: !hasUsedWallet,
+    showEmptyWalletState: !hasUsedWallet && isTabsDataLoaded,
     isTabsDataLoaded: dataLoadedRef.current || isTabsDataLoaded,
   }
 }

@@ -1,4 +1,4 @@
-import styled, { css } from 'lib/styled-components'
+import styled, { css } from '~/lib/deprecated-styled'
 import { useSporeColors } from 'ui/src'
 import { Pill, PillProps } from 'uniswap/src/components/pill/Pill'
 

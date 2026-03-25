@@ -1,6 +1,13 @@
-import { createTradingApiClient, TradingApi } from '@universe/api'
+import { createTradingApiClient, TradingApi, type TradingApiClient as TradingApiClientType } from '@universe/api'
 import { TRADING_API_PATHS } from '@universe/api/src/clients/trading/createTradingApiClient'
-import { FeatureFlags, getFeatureFlag } from '@universe/gating'
+import {
+  EthAsErc20UniswapXProperties,
+  Experiments,
+  FeatureFlags,
+  getExperimentValueFromLayer,
+  getFeatureFlag,
+  Layers,
+} from '@universe/gating'
 import { config } from 'uniswap/src/config'
 import { tradingApiVersionPrefix, uniswapUrls } from 'uniswap/src/constants/urls'
 import { createUniswapFetchClient } from 'uniswap/src/data/apiClients/createUniswapFetchClient'
@@ -31,6 +38,8 @@ export enum TradingApiHeaders {
   Erc20EthEnabled = 'x-erc20eth-enabled',
   ChainedActionsEnabled = 'x-chained-actions-enabled',
   UnirouteEnabled = 'x-uniroute-enabled',
+  UniroutePulumiEnabled = 'x-uniroute-pulumi-enabled',
+  DisableUniswapInterfaceFees = 'x-disable-uniswap-interface-fees',
 }
 
 /**
@@ -52,21 +61,40 @@ export const getFeatureFlaggedHeaders = (
 
   const chainedActionsEnabled = getFeatureFlag(FeatureFlags.ChainedActions)
   const unirouteEnabled = getFeatureFlag(FeatureFlags.UnirouteEnabled)
-  const ethAsErc20UniswapXEnabled = getFeatureFlag(FeatureFlags.EthAsErc20UniswapX)
+  const uniroutePulumiEnabled = getFeatureFlag(FeatureFlags.UniroutePulumiEnabled)
+  const ethAsErc20UniswapXEnabled = getExperimentValueFromLayer<
+    typeof Layers.SwapPage,
+    Experiments.EthAsErc20UniswapX,
+    boolean
+  >({
+    layerName: Layers.SwapPage,
+    param: EthAsErc20UniswapXProperties.EthAsErc20UniswapXEnabled,
+    defaultValue: false,
+  })
+  const disableUniswapInterfaceFees = getFeatureFlag(FeatureFlags.NoUniswapInterfaceFees)
   switch (tradingApiPath) {
     case TRADING_API_PATHS.quote:
       addHeaderIfEnabled({ headers, key: TradingApiHeaders.UnirouteEnabled, enabled: unirouteEnabled })
+      addHeaderIfEnabled({ headers, key: TradingApiHeaders.UniroutePulumiEnabled, enabled: uniroutePulumiEnabled })
       addHeaderIfEnabled({ headers, key: TradingApiHeaders.Erc20EthEnabled, enabled: ethAsErc20UniswapXEnabled })
       addHeaderIfEnabled({ headers, key: TradingApiHeaders.ChainedActionsEnabled, enabled: chainedActionsEnabled })
+      addHeaderIfEnabled({
+        headers,
+        key: TradingApiHeaders.DisableUniswapInterfaceFees,
+        enabled: disableUniswapInterfaceFees,
+      })
       break
     case TRADING_API_PATHS.plan:
       addHeaderIfEnabled({ headers, key: TradingApiHeaders.ChainedActionsEnabled, enabled: chainedActionsEnabled })
+      addHeaderIfEnabled({ headers, key: TradingApiHeaders.Erc20EthEnabled, enabled: ethAsErc20UniswapXEnabled })
       break
     case TRADING_API_PATHS.order:
       addHeaderIfEnabled({ headers, key: TradingApiHeaders.Erc20EthEnabled, enabled: ethAsErc20UniswapXEnabled })
       break
     case TRADING_API_PATHS.swap7702:
       addHeaderIfEnabled({ headers, key: TradingApiHeaders.UnirouteEnabled, enabled: unirouteEnabled })
+      addHeaderIfEnabled({ headers, key: TradingApiHeaders.UniroutePulumiEnabled, enabled: uniroutePulumiEnabled })
+      addHeaderIfEnabled({ headers, key: TradingApiHeaders.Erc20EthEnabled, enabled: ethAsErc20UniswapXEnabled })
       break
   }
   return headers
@@ -79,11 +107,14 @@ export const getFeatureFlaggedHeaders = (
 export const getQuoteHeaders = (): Record<string, string> => {
   const headers: Record<string, string> = {}
   const unirouteEnabled = getFeatureFlag(FeatureFlags.UnirouteEnabled)
+  const uniroutePulumiEnabled = getFeatureFlag(FeatureFlags.UniroutePulumiEnabled)
   addHeaderIfEnabled({ headers, key: 'x-uniroute-enabled', enabled: unirouteEnabled })
+  addHeaderIfEnabled({ headers, key: 'x-uniroute-pulumi-enabled', enabled: uniroutePulumiEnabled })
   return headers
 }
 
-export const TradingApiClient = createTradingApiClient({
+// Narrowed to `TradingApiClientType` type safety to ensure we are only using the plan endpoints with sessions, until full migration
+export const TradingApiClient: TradingApiClientType = createTradingApiClient({
   fetchClient: TradingFetchClient,
   getFeatureFlagHeaders: getFeatureFlaggedHeaders,
   getApiPathPrefix: () => tradingApiVersionPrefix,

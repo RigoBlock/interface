@@ -1,4 +1,4 @@
-import styled from 'lib/styled-components'
+import styled from '~/lib/deprecated-styled'
 import { ChangeEvent, memo, useCallback, useRef } from 'react'
 
 const TextAreaInput = styled.textarea<{ error?: boolean; fontSize?: string }>`

@@ -63,6 +63,7 @@ export const BASE_CHAIN_INFO = {
     logo: ETH_LOGO,
   },
   networkLayer: NetworkLayer.L2,
+  blockTimeMs: 2000,
   pendingTransactionsRetryOptions: DEFAULT_RETRY_OPTIONS,
   statusPage: 'https://status.base.org/',
   supportsV4: true,
@@ -74,7 +75,7 @@ export const BASE_CHAIN_INFO = {
         [RPCType.Public]: { http: [getQuicknodeEndpointUrl(UniverseChainId.Base)] },
         [RPCType.Default]: { http: ['https://mainnet.base.org/'] },
         [RPCType.Fallback]: { http: ['https://1rpc.io/base', 'https://base.meowrpc.com'] },
-        [RPCType.Interface]: { http: [`https://base-mainnet.infura.io/v3/${config.infuraKey}`] },
+        [RPCType.Interface]: { http: [`https://base-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`, `https://base-mainnet.infura.io/v3/${config.infuraKey}`] },
       },
   assetRepoNetworkName: 'base',
   tokens,
@@ -86,4 +87,5 @@ export const BASE_CHAIN_INFO = {
   },
   gasConfig: GENERIC_L2_GAS_CONFIG,
   tradingApiPollingIntervalMs: 150,
+  acrossProtocolAddress: '0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64',
 } as const satisfies UniverseChainInfo

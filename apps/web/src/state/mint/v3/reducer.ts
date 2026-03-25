@@ -7,7 +7,7 @@ import {
   typeLeftRangeInput,
   typeRightRangeInput,
   typeStartPriceInput,
-} from 'state/mint/v3/actions'
+} from '~/state/mint/v3/actions'
 
 export type FullRange = true
 

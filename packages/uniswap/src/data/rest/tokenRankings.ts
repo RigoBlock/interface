@@ -2,6 +2,7 @@ import { PartialMessage } from '@bufbuild/protobuf'
 import { ConnectError } from '@connectrpc/connect'
 import { useQuery } from '@connectrpc/connect-query'
 import { UseQueryResult } from '@tanstack/react-query'
+import { ONE_MINUTE_MS } from 'utilities/src/time/time'
 import {
   TokenRankingsRequest,
   TokenRankingsResponse,
@@ -29,7 +30,7 @@ export function useTokenRankingsQuery(
   input?: PartialMessage<TokenRankingsRequest>,
   enabled = true,
 ): UseQueryResult<TokenRankingsResponse, ConnectError> {
-  return useQuery(tokenRankings, input, { transport: uniswapGetTransport, enabled })
+  return useQuery(tokenRankings, input, { transport: uniswapGetTransport, enabled, retry: false, staleTime: 5 * ONE_MINUTE_MS })
 }
 
 export function tokenRankingsStatToCurrencyInfo(tokenRankingsStat: TokenRankingsStat): CurrencyInfo | null {

@@ -1,11 +1,4 @@
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-import { SearchInput } from 'pages/Portfolio/components/SearchInput'
-import { usePortfolioRoutes } from 'pages/Portfolio/Header/hooks/usePortfolioRoutes'
-import { usePortfolioAddresses } from 'pages/Portfolio/hooks/usePortfolioAddresses'
-import { useTransformTokenTableData } from 'pages/Portfolio/Tokens/hooks/useTransformTokenTableData'
-import { TokensAllocationChart } from 'pages/Portfolio/Tokens/Table/TokensAllocationChart'
-import { TokensTable } from 'pages/Portfolio/Tokens/Table/TokensTable'
-import { filterTokensBySearch } from 'pages/Portfolio/Tokens/utils/filterTokensBySearch'
 import { memo, useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
@@ -16,7 +9,15 @@ import { getChainLabel } from 'uniswap/src/features/chains/utils'
 import { PortfolioBalance } from 'uniswap/src/features/portfolio/PortfolioBalance/PortfolioBalance'
 import { ElementName, InterfacePageName, SectionName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
+import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { parseChainFromTokenSearchQuery } from 'uniswap/src/utils/search/parseChainFromTokenSearchQuery'
+import { SearchInput } from '~/pages/Portfolio/components/SearchInput'
+import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
+import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
+import { useTransformTokenTableData } from '~/pages/Portfolio/Tokens/hooks/useTransformTokenTableData'
+import { TokensAllocationChart } from '~/pages/Portfolio/Tokens/Table/TokensAllocationChart'
+import { TokensTable } from '~/pages/Portfolio/Tokens/Table/TokensTable'
+import { filterTokensBySearch } from '~/pages/Portfolio/Tokens/utils/filterTokensBySearch'
 
 const TokenCountIndicator = memo(({ count }: { count: number }) => {
   const { t } = useTranslation()
@@ -46,8 +47,8 @@ export const PortfolioTokens = memo(function PortfolioTokens() {
   const { t } = useTranslation()
   const [search, setSearch] = useState('')
   const { chains: enabledChains } = useEnabledChains()
-  const { chainId: urlChainId } = usePortfolioRoutes()
-  const isPortfolioTokensAllocationChartEnabled = useFeatureFlag(FeatureFlags.PortfolioTokensAllocationChart)
+  const { chainId: urlChainId, isExternalWallet } = usePortfolioRoutes()
+  const isMultichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
 
   // Parse search query to extract chain filter and search term
   const { chainFilter, searchTerm } = useMemo(() => {
@@ -94,15 +95,20 @@ export const PortfolioTokens = memo(function PortfolioTokens() {
       <TokensListEmptyState
         description={null}
         buttonLabel={t('portfolio.networkFilter.seeAllNetworks')}
+        buttonDataTestId={TestID.PortfolioTokensSeeAllNetworksButton}
+        dataTestId={TestID.PortfolioTokensEmptyState}
         onPress={handleShowAllNetworks}
         title={t('tokens.list.noneOnChain.title', { chainName })}
       />
     )
   }, [handleShowAllNetworks, urlChainId, t])
 
+  const hasTokens = (tokenData && tokenData.length > 0) || (hiddenTokenData && hiddenTokenData.length > 0)
+  const hasFilteredTokens = (filteredTokenData?.length ?? 0) > 0 || filteredHiddenTokenData.length > 0
+
   return (
     <RemoveScroll enabled={loading}>
-      <Trace logImpression page={InterfacePageName.PortfolioTokensPage}>
+      <Trace logImpression page={InterfacePageName.PortfolioTokensPage} properties={{ isExternal: isExternalWallet }}>
         <Flex flexDirection="column" gap="$spacing16">
           <Flex
             row
@@ -123,20 +129,21 @@ export const PortfolioTokens = memo(function PortfolioTokens() {
               <SearchInput
                 value={search}
                 onChangeText={setSearch}
+                dataTestId={TestID.PortfolioTokensSearchInput}
                 placeholder={t('tokens.table.search.placeholder.tokens')}
                 width={media.md ? '100%' : undefined}
               />
             </Trace>
           </Flex>
 
-          {(tokenData && tokenData.length > 0) || loading ? (
+          {hasTokens || loading ? (
             <>
-              {isPortfolioTokensAllocationChartEnabled && (
+              {isMultichainTokenUxEnabled && (
                 <Trace section={SectionName.PortfolioTokensTab} element={ElementName.TokensAllocationChart}>
                   <TokensAllocationChart tokenData={tokenData || []} />
                 </Trace>
               )}
-              {(filteredTokenData?.length ?? 0) > 0 || loading ? (
+              {hasFilteredTokens || loading ? (
                 <Trace section={SectionName.PortfolioTokensTab} element={ElementName.PortfolioTokensTable}>
                   <TokensTable
                     visible={filteredTokenData || []}
@@ -148,7 +155,7 @@ export const PortfolioTokens = memo(function PortfolioTokens() {
                   />
                 </Trace>
               ) : (
-                <Flex flexDirection="column" alignItems="center" justifyContent="center" py="$spacing48">
+                <Flex centered py="$spacing48" data-testid={TestID.PortfolioTokensNoResults}>
                   <Text variant="body1" color="$neutral2">
                     {t('common.noResults')}
                   </Text>
@@ -158,7 +165,10 @@ export const PortfolioTokens = memo(function PortfolioTokens() {
           ) : urlChainId ? (
             chainFilterEmptyState
           ) : (
-            <TokensListEmptyState />
+            <TokensListEmptyState
+              dataTestId={TestID.PortfolioTokensEmptyState}
+              description={isExternalWallet ? t('home.tokens.empty.description') : undefined}
+            />
           )}
         </Flex>
       </Trace>

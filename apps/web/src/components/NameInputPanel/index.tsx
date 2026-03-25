@@ -1,12 +1,12 @@
 import { useTheme } from '@tamagui/core'
-import { AutoColumn } from 'components/deprecated/Column'
-import { RowBetween } from 'components/deprecated/Row'
-import styled from 'lib/styled-components'
+import { AutoColumn } from '~/components/deprecated/Column'
+import { RowBetween } from '~/components/deprecated/Row'
+import styled from '~/lib/deprecated-styled'
 import { ChangeEvent, ReactNode, useCallback } from 'react'
 import { Trans } from 'react-i18next'
 
-import { ThemedText } from 'theme/components/text'
-import { flexColumnNoWrap } from 'theme/styles'
+import { ThemedText } from '~/theme/components/text'
+import { flexColumnNoWrap } from '~/theme/styles'
 import i18n from 'uniswap/src/i18n'
 
 const InputPanel = styled.div`

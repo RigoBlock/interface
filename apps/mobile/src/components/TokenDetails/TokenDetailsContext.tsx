@@ -12,8 +12,8 @@ import { AppNotificationType, CopyNotificationType } from 'uniswap/src/features/
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { MobileScreens } from 'uniswap/src/types/screens/mobile'
-import { setClipboard } from 'uniswap/src/utils/clipboard'
 import { currencyIdToAddress, currencyIdToChain } from 'uniswap/src/utils/currencyId'
+import { setClipboard } from 'utilities/src/clipboard/clipboard'
 
 type TokenDetailsContextState = {
   currencyId: string

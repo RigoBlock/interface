@@ -27,7 +27,7 @@ export const NetworkLogoWarning = memo(function _NetworkLogoWarning({
           <Flex bottom={-5} position="absolute" right={-5} zIndex={zIndexes.mask}>
             <Flex
               borderRadius="$roundedFull"
-              borderWidth={1}
+              borderWidth="$spacing1"
               borderColor="$surface1"
               alignItems="center"
               justifyContent="center"

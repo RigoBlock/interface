@@ -117,7 +117,15 @@ export function getExplorerLink({
   data?: string
   type: ExplorerDataType
 }): string {
-  const { explorer, nativeCurrency } = getChainInfo(chainId)
+  const chainInfo = getChainInfo(chainId)
+
+  // Handle unsupported chain IDs gracefully
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- chainInfo can be undefined in edge cases (SDK mismatch)
+  if (!chainInfo) {
+    return ''
+  }
+
+  const { explorer, nativeCurrency } = chainInfo
   const prefix = explorer.url
 
   if (!data) {
@@ -161,18 +169,15 @@ export function getExplorerLink({
 
 export function getNftExplorerLink({
   chainId,
-  fallbackChainId,
   contractAddress,
   tokenId,
 }: {
-  chainId?: UniverseChainId
-  fallbackChainId: UniverseChainId
+  chainId: UniverseChainId
   contractAddress: string
   tokenId: string
 }): string {
-  const targetChainId = chainId ?? fallbackChainId
   return getExplorerLink({
-    chainId: targetChainId,
+    chainId,
     data: `${contractAddress}/${tokenId}`,
     type: ExplorerDataType.NFT,
   })
@@ -227,6 +232,11 @@ export function getTokenDetailsURL({
   return `/explore/tokens/${chainName}/${adjustedAddress}${inputAddressSuffix}`
 }
 
+export function getFiatOnRampURL(chainId?: UniverseChainId): string {
+  const chainParam = chainId ? `?chain=${getChainInfo(chainId).urlParam}` : ''
+  return `/buy${chainParam}`
+}
+
 export function getPoolDetailsURL(address: string, chain: UniverseChainId): string {
   const chainName = getChainInfo(chain).urlParam
   return `/explore/pools/${chainName}/${address}`
@@ -252,8 +262,8 @@ export async function openOfframpPendingSupportLink(): Promise<void> {
   return openUri({ uri: uniswapUrls.helpArticleUrls.fiatOffRampHelp })
 }
 
-export function getProfileUrl(walletAddress: string): string {
-  return `${uniswapUrls.webInterfaceAddressUrl}/${walletAddress}`
+export function getPortfolioUrl(walletAddress: string): string {
+  return `${uniswapUrls.webInterfacePortfolioUrl}/${walletAddress}`
 }
 
 const UTM_TAGS_MOBILE = 'utm_medium=mobile&utm_source=share-tdp'

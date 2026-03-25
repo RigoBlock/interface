@@ -98,11 +98,6 @@ export function getNavigateToSendFlowArgsInitialState(args: NavigateToSendFlowAr
       : undefined
 }
 
-export type NavigateToNftCollectionArgs = {
-  collectionAddress: Address
-  chainId: UniverseChainId
-}
-
 export type NavigateToFiatOnRampArgs = {
   prefilledCurrency?: FiatOnRampCurrency
   isOfframp?: boolean
@@ -129,13 +124,13 @@ export type WalletNavigationContextState = {
   navigateToExternalProfile: (args: NavigateToExternalProfileArgs) => void
   navigateToFiatOnRamp: (args: NavigateToFiatOnRampArgs) => void
   navigateToNftDetails: (args: NavigateToNftItemArgs) => void
-  navigateToNftCollection: (args: NavigateToNftCollectionArgs) => void
   navigateToPoolDetails: (args: NavigateToPoolDetailsArgs) => void
   navigateToSwapFlow: (args: NavigateToSwapFlowArgs) => void
   navigateToTokenDetails: (currencyId: string) => void
   navigateToReceive: () => void
   navigateToSend: (args: NavigateToSendFlowArgs) => void
   handleShareToken: (args: ShareTokenArgs) => void
+  navigateToAdvancedSettings: () => void
 }
 
 export const WalletNavigationContext = createContext<WalletNavigationContextState | undefined>(undefined)

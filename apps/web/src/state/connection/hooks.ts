@@ -3,4 +3,4 @@ export {
   useCurrencyBalances,
   useCurrencyBalancesMultipleAccounts,
   useTokenBalance,
-} from 'lib/hooks/useCurrencyBalance'
+} from '~/lib/hooks/useCurrencyBalance'
