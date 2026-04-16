@@ -15,6 +15,9 @@ export default function MiniPortfolio({ evmAddress, svmAddress }: { evmAddress?:
   const { t } = useTranslation()
   const accountDrawer = useAccountDrawer()
 
+  // The wallet drawer shows the USER's own wallet. Always navigate to their EOA address — never the smart pool.
+  const portfolioAddress = evmAddress
+
   const { renderActivityItem, sectionData } = useActivityData({
     evmOwner: evmAddress,
     svmOwner: svmAddress,
@@ -42,7 +45,7 @@ export default function MiniPortfolio({ evmAddress, svmAddress }: { evmAddress?:
       <ViewAllButton
         label={t('portfolio.view')}
         elementName={ElementName.MiniPortfolioViewPortfolioButton}
-        href="/portfolio"
+        href={portfolioAddress ? `/portfolio/${portfolioAddress}` : '/portfolio'}
         onPress={accountDrawer.close}
         fullWidth
       />
@@ -57,7 +60,7 @@ export default function MiniPortfolio({ evmAddress, svmAddress }: { evmAddress?:
       <ViewAllButton
         label={t('portfolio.overview.activity.table.viewAllActivity')}
         elementName={ElementName.PortfolioViewAllActivity}
-        href="/portfolio/activity"
+        href={portfolioAddress ? `/portfolio/${portfolioAddress}/activity` : '/portfolio/activity'}
         onPress={accountDrawer.close}
       />
     </Flex>

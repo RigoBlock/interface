@@ -515,7 +515,7 @@ export default function PoolPositionPage() {
                 <NetworkLogo chainId={chainId as UniverseChainId} size={24} />
               </RowFixed>
               {poolAddressFromUrl && (
-                <Link to={`/portfolio?address=${poolAddressFromUrl}`}>
+                <Link to={`/portfolio/${poolAddressFromUrl}`}>
                   <RowFixed>
                     <ThemedText.DeprecatedMain>Vault Portfolio →</ThemedText.DeprecatedMain>
                   </RowFixed>

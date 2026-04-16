@@ -11,6 +11,7 @@ import type {
   WrapQuoteResponse,
 } from '@universe/api'
 import { TradingApi } from '@universe/api'
+import { BigNumber } from '@ethersproject/bignumber'
 import type { providers } from 'ethers/lib/ethers'
 import { useMemo } from 'react'
 import { getTradeSettingsDeadline } from 'uniswap/src/data/apiClients/tradingApi/utils/getTradeSettingsDeadline'
@@ -443,10 +444,31 @@ export function getClassicSwapTxAndGasInfo({
     ? { approveTxRequest: undefined, revocationTxRequest: undefined }
     : createApprovalFields({ approvalTxInfo })
 
+  const gasFields = createGasFields({ swapTxInfo, approvalTxInfo, permitTxInfo })
+
+  // For RigoBlock pools, inflate the displayed gas fee to account for smart pool routing overhead.
+  // The API gas estimate doesn't include the extra gas consumed by the pool contract execution.
+  // This overhead (250k gas) is also applied to gasLimit at tx submission time in swapSaga.ts.
+  if (isRigoBlock && gasFields.gasFee.value) {
+    const RIGOBLOCK_GAS_OVERHEAD = 250000
+    const quote = trade.quote.quote as TradingApi.ClassicQuote
+    const gasPrice = quote.maxFeePerGas ?? quote.gasPrice
+    if (gasPrice) {
+      const overheadFee = BigNumber.from(gasPrice).mul(RIGOBLOCK_GAS_OVERHEAD).toString()
+      gasFields.gasFee = {
+        ...gasFields.gasFee,
+        value: BigNumber.from(gasFields.gasFee.value).add(overheadFee).toString(),
+        displayValue: gasFields.gasFee.displayValue
+          ? BigNumber.from(gasFields.gasFee.displayValue).add(overheadFee).toString()
+          : gasFields.gasFee.displayValue,
+      }
+    }
+  }
+
   return {
     routing: trade.routing,
     trade,
-    ...createGasFields({ swapTxInfo, approvalTxInfo, permitTxInfo }),
+    ...gasFields,
     ...approvalFields,
     swapRequestArgs: cleanSwapRequestArgs,
     unsigned,

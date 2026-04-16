@@ -180,7 +180,7 @@ export default function PoolPositionGroupedListItem({
             </Flex>
           </Flex>
           <PortfolioLink
-            to={`/portfolio?address=${poolAddress}`}
+            to={`/portfolio/${poolAddress}`}
             onClick={(e: React.MouseEvent) => e.stopPropagation()}
           >
             Portfolio

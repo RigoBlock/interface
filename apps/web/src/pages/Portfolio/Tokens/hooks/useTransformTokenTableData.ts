@@ -120,7 +120,7 @@ export function useTransformTokenTableData({ chainIds, limit }: { chainIds?: Uni
         testId: `${TestID.TokenTableRowPrefix}${balance.id}`,
         chainId: first.chainId,
         currencyInfo: first.currencyInfo,
-        quantity: first.quantity,
+        quantity: balance.totalAmount,
         symbol: first.symbol,
         price,
         tokens,

@@ -1,14 +1,16 @@
 import { useMemo } from 'react'
 import { useActiveSmartPool } from '~/state/application/hooks'
 import { useResolvedAddresses } from '~/pages/Portfolio/hooks/useResolvedAddresses'
+import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 
 // This is the address used for the disconnected demo view. It is only used in the disconnected state for the portfolio page.
 const DEMO_WALLET_ADDRESS = '0x8796207d877194d97a2c360c041f13887896FC79'
 
 /**
- * Returns portfolio addresses with demo wallet fallback for disconnected state.
- * When a smart pool (vault) is active, returns vault address instead of EOA.
- * Use useResolvedAddresses if you don't want the demo wallet fallback.
+ * Returns portfolio addresses with priority: URL address > active smart pool > user wallet > demo wallet.
+ * When a URL specifies an external address, that takes precedence.
+ * When no URL address is set but a smart pool is active, the smart pool address is used.
+ * Falls back to the connected user wallet, then demo wallet for disconnected state.
  */
 export function usePortfolioAddresses(): {
   evmAddress: Address | undefined
@@ -17,32 +19,34 @@ export function usePortfolioAddresses(): {
 } {
   const resolved = useResolvedAddresses()
   const { address: smartPoolAddress } = useActiveSmartPool()
+  const { hasExplicitUrlAddress } = usePortfolioRoutes()
 
   return useMemo(() => {
-    // If viewing an external wallet, always show that wallet's data
-    if (resolved.isExternalWallet) {
+    // 1. URL address (external wallet from earn page, or any address in path — even user's own)
+    //    When any address is explicitly in the URL, honour it. Do NOT apply smart pool fallback.
+    if (resolved.isExternalWallet || hasExplicitUrlAddress) {
       return resolved
     }
 
-    // If a smart pool is active, show vault balances
+    // 2. Active smart pool as fallback only when NO address is in the URL
     if (smartPoolAddress) {
       return {
-        evmAddress: smartPoolAddress,
+        evmAddress: smartPoolAddress as Address,
         svmAddress: undefined,
-        isExternalWallet: false,
+        isExternalWallet: true,
       }
     }
 
-    // If we have resolved addresses (connected), return them
+    // 3. Connected user wallet
     if (resolved.evmAddress || resolved.svmAddress) {
       return resolved
     }
 
-    // If not connected and not viewing external wallet, return demo address
+    // 4. Demo wallet for disconnected state
     return {
       evmAddress: DEMO_WALLET_ADDRESS,
       svmAddress: undefined,
       isExternalWallet: false,
     }
-  }, [resolved, smartPoolAddress])
+  }, [resolved, smartPoolAddress, hasExplicitUrlAddress])
 }

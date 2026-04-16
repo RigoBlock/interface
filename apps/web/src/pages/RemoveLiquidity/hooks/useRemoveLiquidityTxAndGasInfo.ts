@@ -344,7 +344,7 @@ export function useRemoveLiquidityTxAndGasInfo({ account }: { account?: string }
     decreaseCalldata.decrease &&
     (decreaseCalldata.decrease.to = activeSmartPool.address ?? ZERO_ADDRESS)
   decreaseCalldata && decreaseCalldata.decrease && activeSmartPool.address && (decreaseCalldata.decrease.value = '0x0')
-  decreaseCalldata && decreaseCalldata.decrease && (decreaseCalldata.decrease.gasLimit = Number(250000).toString())
+  // Note: gasLimit overhead for smart pool routing is applied once in liquiditySaga.ts (RIGOBLOCK_LIQUIDITY_GAS_OVERHEAD)
 
   const { value: estimatedGasFee } = useTransactionGasFee({
     tx: decreaseCalldata?.decrease,

@@ -103,3 +103,5 @@ CLAUDE.local.md
 
 # temporary files
 /tmp/
+
+.claude/worktrees

@@ -17,15 +17,18 @@ export default function MiniPortfolioV2({ evmAddress, svmAddress }: { evmAddress
   const navigate = useNavigate()
   const accountDrawer = useAccountDrawer()
 
+  // The wallet drawer shows the USER's own wallet. Always navigate to their EOA address — never the smart pool.
+  const portfolioAddress = evmAddress
+
   const handleViewPortfolio = useCallback(() => {
-    navigate(evmAddress ? `/portfolio?address=${evmAddress}` : '/portfolio')
+    navigate(portfolioAddress ? `/portfolio/${portfolioAddress}` : '/portfolio')
     accountDrawer.close()
-  }, [navigate, accountDrawer, evmAddress])
+  }, [navigate, accountDrawer, portfolioAddress])
 
   const handleViewActivity = useCallback(() => {
-    navigate('/portfolio/activity')
+    navigate(portfolioAddress ? `/portfolio/${portfolioAddress}/activity` : '/portfolio/activity')
     accountDrawer.close()
-  }, [navigate, accountDrawer])
+  }, [navigate, accountDrawer, portfolioAddress])
 
   const { renderActivityItem, sectionData } = useActivityData({
     evmOwner: evmAddress,

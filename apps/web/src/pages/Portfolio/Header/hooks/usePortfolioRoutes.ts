@@ -56,7 +56,12 @@ export function usePortfolioRoutes(): {
   const navigate = useNavigate()
   const isPortfolioDefiTabEnabled = useFeatureFlag(FeatureFlags.PortfolioDefiTab)
 
-  const { potentialAddress, tabSegment } = useMemo(() => parsePortfolioPath(pathname), [pathname])
+  const { potentialAddress: pathAddress, tabSegment } = useMemo(() => parsePortfolioPath(pathname), [pathname])
+
+  // Support both /portfolio/0xAddr (path segment) and /portfolio?address=0xAddr (query param)
+  const queryAddress = searchParams.get('address') ?? undefined
+  const potentialAddress = pathAddress ?? queryAddress
+
   const { evmAddress, svmAddress } = useActiveAddresses()
 
   const externalAddress = getPlatformAddress(potentialAddress)
@@ -81,10 +86,11 @@ export function usePortfolioRoutes(): {
   const chainId = chainName ? getChainIdFromChainUrlParam(chainName) : undefined
 
   useEffect(() => {
-    // Redirect to /portfolio if URL contains an invalid address
-    if (potentialAddress && (!externalAddress || isOwnEvmAddress || isOwnSvmAddress)) {
-      navigate('/portfolio', { replace: true })
-      return // Stop processing other redirects
+    // Redirect query param format to path segment format for consistency
+    if (queryAddress && !pathAddress) {
+      const targetUrl = buildPortfolioUrl({ tab, chainId, externalAddress: queryAddress })
+      navigate(targetUrl, { replace: true })
+      return
     }
 
     // Redirect to overview if trying to access DeFi tab when feature flag is disabled
@@ -98,9 +104,11 @@ export function usePortfolioRoutes(): {
     isPortfolioDefiTabEnabled,
     navigate,
     chainId,
+    queryAddress,
+    pathAddress,
     isOwnEvmAddress,
     isOwnSvmAddress,
   ])
 
-  return { tab, chainName, chainId, externalAddress, isExternalWallet }
+  return { tab, chainName, chainId, externalAddress, isExternalWallet, hasExplicitUrlAddress: !!potentialAddress }
 }

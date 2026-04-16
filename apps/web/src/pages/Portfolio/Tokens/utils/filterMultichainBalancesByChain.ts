@@ -21,7 +21,7 @@ export function createChainFilter(chainIds: UniverseChainId[] | undefined): {
   const sumTokenValueUsd = (tokens: PortfolioChainBalance[]): number =>
     tokens.reduce((sum, t) => sum + (t.valueUsd ?? 0), 0)
 
-  const getFallbackValueUsd = (b: PortfolioMultichainBalance): number => b.totalValueUsd ?? b.tokens[0]?.valueUsd ?? 0
+  const getFallbackValueUsd = (b: PortfolioMultichainBalance): number => b.totalValueUsd ?? sumTokenValueUsd(b.tokens)
 
   const filterBalances = (balances: PortfolioMultichainBalance[]): PortfolioMultichainBalance[] =>
     balances.filter((b) => b.tokens.length > 0 && (!chainIdSet || b.tokens.some((t) => chainIdSet.has(t.chainId))))

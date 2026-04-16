@@ -125,11 +125,7 @@ export function RemoveLiquidityReview({ onClose }: { onClose: () => void }) {
   const currency0CurrencyInfo = useCurrencyInfo(currency0Amount.currency)
   const currency1CurrencyInfo = useCurrencyInfo(currency1Amount.currency)
 
-  // Notice: we add 250k extra gas for Rigoblock gas overhead safety margin
-  // Increased from 200k to handle first-time token approval overhead
-  // (RigoBlock automatically sets permit2 approval inside liquidity tx on first token use)
-  txContext?.txRequest.gasLimit &&
-    (txContext.txRequest.gasLimit = BigNumber.from(txContext.txRequest.gasLimit).add(250000).toString())
+  // Note: Rigoblock gas overhead is applied once in liquiditySaga.ts (RIGOBLOCK_LIQUIDITY_GAS_OVERHEAD)
 
   const onDecreaseLiquidity = () => {
     const isValidTx = isValidLiquidityTxContext(txContext)
