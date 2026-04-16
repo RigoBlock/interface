@@ -60,11 +60,7 @@ export function IncreaseLiquidityReview({ onClose }: { onClose: () => void }) {
 
   // we override permit as rigoblock automatically sets permit2 approval
   txInfo && (txInfo.permit = undefined)
-  // Notice: we add 250k extra gas for Rigoblock gas overhead safety margin
-  // Increased from 200k to handle first-time token approval overhead
-  // (RigoBlock automatically sets permit2 approval inside liquidity tx on first token use)
-  txInfo?.txRequest?.gasLimit &&
-    (txInfo.txRequest.gasLimit = BigNumber.from(txInfo.txRequest.gasLimit).add(250000).toString())
+  // Note: Rigoblock gas overhead is applied once in liquiditySaga.ts (RIGOBLOCK_LIQUIDITY_GAS_OVERHEAD)
 
   const { exactField } = increaseLiquidityState
   const { currencyAmounts, currencyAmountsUSDValue } = derivedIncreaseLiquidityInfo

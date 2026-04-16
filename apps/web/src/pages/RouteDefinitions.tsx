@@ -420,11 +420,13 @@ export const routes: RouteDefinition[] = [
     getDescription: getPortfolioDescription,
     nestedPaths: [
       'tokens',
+      'staking',
       'defi',
       'nfts',
       'activity',
       ':walletAddress',
       ':walletAddress/tokens',
+      ':walletAddress/staking',
       ':walletAddress/defi',
       ':walletAddress/nfts',
       ':walletAddress/activity',

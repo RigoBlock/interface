@@ -201,7 +201,7 @@ function SwapFormStoreContextProviderBase({
     output,
     selectingCurrencyField,
     txId,
-  })
+  }, smartPoolAddress)
 
   // This prevents the swap form from displaying a new trade while an old one is still being submitted.
   const derivedSwapInfo = useFreezeWhileSubmitting(dangerouslyGetLatestDerivedSwapInfo, isSubmitting)

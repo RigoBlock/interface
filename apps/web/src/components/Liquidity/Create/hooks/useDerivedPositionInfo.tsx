@@ -3,6 +3,7 @@ import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes
 import { PoolInfoRequest } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v1/api_pb'
 import { PoolParameters } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v1/types_pb'
 import { Currency } from '@uniswap/sdk-core'
+import { FeeAmount } from '@uniswap/v3-sdk'
 import { useMemo } from 'react'
 import { liquidityQueries } from 'uniswap/src/data/apiClients/liquidityService/liquidityQueries'
 import {
@@ -23,6 +24,8 @@ import { isUnsupportedLPChain } from '~/components/Liquidity/utils/isUnsupported
 import { getSDKPoolFromPoolInformation } from '~/components/Liquidity/utils/parseFromRest'
 import { getProtocols } from '~/components/Liquidity/utils/protocolVersion'
 import { PositionField } from '~/types/position'
+import { PoolState, usePools } from '~/hooks/usePools'
+import { EVMUniverseChainId } from 'uniswap/src/features/chains/types'
 
 function getSortedCurrencies(a: Maybe<Currency>, b: Maybe<Currency>): { [field in PositionField]: Maybe<Currency> } {
   if (!a || !b) {
@@ -114,8 +117,26 @@ export function useDerivedPositionInfo(
     }),
   )
 
+  // On-chain V3 pool existence fallback: if the API returns no pools, check on-chain directly.
+  // The Liquidity Service API may not index all pools (e.g. when using a custom gateway),
+  // so we verify on-chain before deciding to initialize a new pool.
+  const v3FallbackPoolKeys: [Maybe<Currency>, Maybe<Currency>, FeeAmount | undefined][] = useMemo(() => {
+    const needsFallback =
+      protocolVersion === ProtocolVersion.V3 && poolDataIsFetched && !poolData?.pools?.length && state.fee?.feeAmount
+    if (!needsFallback) {
+      return []
+    }
+    return [[sortedCurrencies.TOKEN0?.wrapped, sortedCurrencies.TOKEN1?.wrapped, state.fee?.feeAmount as FeeAmount]]
+  }, [protocolVersion, poolDataIsFetched, poolData?.pools?.length, sortedCurrencies, state.fee?.feeAmount])
+
+  const v3OnChainPools = usePools(v3FallbackPoolKeys, token0?.chainId as EVMUniverseChainId | undefined)
+  const v3OnChainPool = v3FallbackPoolKeys.length > 0 ? v3OnChainPools[0] : undefined
+  const v3PoolExistsOnChain = v3OnChainPool?.[0] === PoolState.EXISTS
+
   const poolOrPair = poolData?.pools && poolData.pools.length > 0 ? poolData.pools[0] : undefined
-  const creatingPoolOrPair = poolDataIsFetched && !poolOrPair && !isChainUnsupported
+  // Pool is only "creating" if the API says it doesn't exist AND on-chain fallback confirms it
+  const creatingPoolOrPair =
+    poolDataIsFetched && !poolOrPair && !isChainUnsupported && !v3PoolExistsOnChain
 
   return useMemo(() => {
     if (protocolVersion === ProtocolVersion.UNSPECIFIED) {
@@ -154,12 +175,17 @@ export function useDerivedPositionInfo(
     }
 
     if (protocolVersion === ProtocolVersion.V3) {
-      const v3Pool = getSDKPoolFromPoolInformation({
-        poolOrPair,
-        token0: sortedCurrencies.TOKEN0?.wrapped,
-        token1: sortedCurrencies.TOKEN1?.wrapped,
-        protocolVersion,
-      })
+      // Use API pool data if available; fall back to on-chain pool data if API didn't find the pool
+      const v3Pool = poolOrPair
+        ? getSDKPoolFromPoolInformation({
+            poolOrPair,
+            token0: sortedCurrencies.TOKEN0?.wrapped,
+            token1: sortedCurrencies.TOKEN1?.wrapped,
+            protocolVersion,
+          })
+        : v3PoolExistsOnChain
+          ? v3OnChainPool?.[1]
+          : undefined
 
       return {
         currencies: {
@@ -198,5 +224,5 @@ export function useDerivedPositionInfo(
       poolId: poolOrPair?.poolReferenceIdentifier,
       refetchPoolData,
     } satisfies CreateV4PositionInfo
-  }, [protocolVersion, poolOrPair, creatingPoolOrPair, poolIsLoading, refetchPoolData, sortedCurrencies])
+  }, [protocolVersion, poolOrPair, creatingPoolOrPair, poolIsLoading, refetchPoolData, sortedCurrencies, v3PoolExistsOnChain, v3OnChainPool])
 }

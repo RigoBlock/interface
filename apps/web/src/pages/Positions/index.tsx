@@ -17,7 +17,7 @@ import LpIncentiveRewardsCard from '~/components/Liquidity/LPIncentives/LpIncent
 import V4_HOOK from '~/assets/images/v4Hooks.png'
 import { LpIncentiveClaimModal } from '~/components/Liquidity/LPIncentives/LpIncentiveClaimModal'
 import { atom, useAtom } from 'jotai'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { FixedSizeList } from 'react-window'
@@ -446,7 +446,15 @@ export default function Pool() {
     return { visiblePositions, hiddenPositions }
   }, [combinedPositions, isPositionVisible])
 
-  usePendingLPTransactionsChangeListener(refetch)
+  // Delayed refetch to catch indexer lag after LP transactions
+  const refetchTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
+  const refetchWithDelay = useCallback(() => {
+    refetch()
+    // Clear any pending timers
+    refetchTimersRef.current.forEach(clearTimeout)
+    refetchTimersRef.current = [5000, 10000, 20000].map((delay) => setTimeout(() => refetch(), delay))
+  }, [refetch])
+  usePendingLPTransactionsChangeListener(refetchWithDelay)
 
   const loadMorePositions = () => {
     if (hasNextPage && !isFetching) {

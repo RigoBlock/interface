@@ -3,6 +3,7 @@ import type { ComponentProps } from 'react'
 import { TokenSelectorModal } from 'uniswap/src/components/TokenSelector/TokenSelector'
 import { TokenSelectorFlow, TokenSelectorVariation } from 'uniswap/src/components/TokenSelector/types'
 import { useActiveAddresses } from 'uniswap/src/features/accounts/store/hooks'
+import type { AddressGroup } from 'uniswap/src/features/accounts/store/types/AccountsState'
 import { useOnSelectCurrency } from 'uniswap/src/features/transactions/swap/form/hooks/useOnSelectCurrency'
 import { useChainId } from 'uniswap/src/features/transactions/swap/form/SwapFormScreen/SwapTokenSelector/hooks/useChainId'
 import { useHideTokenSelector } from 'uniswap/src/features/transactions/swap/form/SwapFormScreen/SwapTokenSelector/hooks/useHideTokenSelector'
@@ -16,13 +17,18 @@ export function SwapTokenSelector({
   isModalOpen: boolean
   focusHook?: ComponentProps<typeof BottomSheetView>['focusHook']
 }): JSX.Element | null {
-  const { selectingCurrencyField, input, output } = useSwapFormStore((s) => ({
+  const { selectingCurrencyField, input, output, smartPoolAddress } = useSwapFormStore((s) => ({
     selectingCurrencyField: s.selectingCurrencyField,
     input: s.input,
     output: s.output,
+    smartPoolAddress: s.smartPoolAddress,
   }))
 
-  const addresses = useActiveAddresses()
+  const eoaAddresses = useActiveAddresses()
+  // When a smart pool is active, show vault token balances in the token selector
+  const addresses: AddressGroup = smartPoolAddress
+    ? { evmAddress: smartPoolAddress as `0x${string}` }
+    : eoaAddresses
   const chainId = useChainId()
 
   const handleHideTokenSelector = useHideTokenSelector()
