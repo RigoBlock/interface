@@ -1,49 +1,38 @@
 import { AbiCoder } from '@ethersproject/abi'
 import { BigNumber } from '@ethersproject/bignumber'
+import { parseUnits } from '@ethersproject/units'
+import { logger } from 'utilities/src/logger/logger'
 
-/**
- * OpType enum for SourceMessageParams
- * - Transfer (0): Standard bridging operation - does not affect pool NAV
- * - Sync (1): Synchronization operation - rebalances NAV performance across chains
- */
+// Re-export helpers so existing callers don't need to update imports
+export {
+  computeDestinationSimulationCompensation,
+  estimateDestinationMessageGas,
+  fetchNativeTokenPriceUSD,
+  fetchTokenPriceUSD,
+  queryAcrossRelayerGasFee,
+} from '~/state/sagas/transactions/bridgeCalldataHelpers'
+export type { AcrossRelayFeeResult } from '~/state/sagas/transactions/bridgeCalldataHelpers'
+
 export enum OpType {
   Transfer = 0,
   Sync = 1,
 }
 
-/**
- * Default NAV tolerance in basis points (100 = 1%)
- * Used as a safety buffer for price fluctuations during cross-chain transfers
- */
-const DEFAULT_NAV_TOLERANCE = 100
+/** Maximum solver compensation: 800 bps (8%) of outputAmount. On-chain max is 10%. */
+const MAX_COMPENSATION_BPS = 800
 
-// Across SpokePool depositV3 function selector
-// depositV3(address,address,address,address,uint256,uint256,uint256,address,uint32,uint32,uint32,bytes)
+/** NAV tolerance in basis points (800 = 8%) for destination-chain validation. */
+const NAV_TOLERANCE_BPS = 800
+
 const ACROSS_DEPOSIT_V3_SELECTOR = '0x7b939232'
-
-// RigoBlock depositV3 function selector (tuple-based)
-// depositV3((address,address,address,address,uint256,uint256,uint256,address,uint32,uint32,uint32,bytes))
 const RIGOBLOCK_DEPOSIT_V3_SELECTOR = '0x770d096f'
 
-// Chain IDs for gas cost calculation
 const ETHEREUM_MAINNET_CHAIN_ID = 1
 const POLYGON_CHAIN_ID = 137
 
-/**
- * Solver gas compensation in USD equivalent
- * The solver pays gas on the destination chain to fill cross-chain orders (~1MM gas).
- * These margins account for variable gas costs across different chains:
- * 
- * - L2s (Arbitrum, Base, Optimism, Bsc, etc.): ~$0.50 (increased for safety as gas may rise)
- * - Polygon: ~$0.80 (highly variable gas costs, currently ~$0.07 but can spike)
- * - Ethereum mainnet: ~$2.00 (high gas costs, currently ~$0.20 for 1MM gas)
- * 
- * These values provide sufficient margin to ensure intents are filled reliably.
- * The solver is compensated via the spread between inputAmount and outputAmount.
- */
-const SOLVER_GAS_COMPENSATION_USD_L2 = 0.5
-const SOLVER_GAS_COMPENSATION_USD_POLYGON = 0.8
-const SOLVER_GAS_COMPENSATION_USD_MAINNET = 2.0
+const FALLBACK_MESSAGE_OVERHEAD_USD_L2 = 0.50
+const FALLBACK_MESSAGE_OVERHEAD_USD_POLYGON = 1.0
+const FALLBACK_MESSAGE_OVERHEAD_USD_MAINNET = 5.0
 
 interface AcrossParams {
   depositor: string
@@ -167,34 +156,118 @@ export function isAcrossDepositV3(calldata: string): boolean {
   return calldata.toLowerCase().startsWith(ACROSS_DEPOSIT_V3_SELECTOR.toLowerCase())
 }
 
+/**
+ * Extracts destination chain ID and recipient (Across Multicall Handler) from
+ * Across depositV3 calldata.
+ *
+ * NOTE: The recipient is the Across Multicall Handler contract on the destination chain,
+ * NOT the RigoBlock pool itself. On fill, the solver calls the SpokePool which invokes
+ * handleV3AcrossMessage() on the handler, which then routes the multicall actions
+ * to the RigoBlock pool (approve, transfer, updateUnitaryValue, etc.).
+ *
+ * The RigoBlock pool address is deterministic (same on every chain), so the destination
+ * pool address is always equal to the source smartPoolAddress.
+ */
+export function getAcrossDepositInfo(calldata: string): {
+  destinationChainId: number
+  recipient: string
+  outputToken: string
+} {
+  const { params } = decodeAcrossDepositV3(calldata)
+  return {
+    destinationChainId: params.destinationChainId.toNumber(),
+    recipient: params.recipient,
+    outputToken: params.outputToken,
+  }
+}
+
+/**
+ * Shape of a callTracer trace node from debug_traceCall.
+ */
+interface CallTrace {
+  type?: string
+  input?: string
+  calls?: CallTrace[]
+}
+
+/**
+ * Recursively walks a callTracer trace tree to find the Across SpokePool's
+ * depositV3 internal call and extracts the expanded message parameter.
+ */
+export function findExpandedMessageInTrace(trace: CallTrace): string | undefined {
+  const input = trace.input?.toLowerCase()
+  if (input?.startsWith(ACROSS_DEPOSIT_V3_SELECTOR.toLowerCase())) {
+    try {
+      const { params } = decodeAcrossDepositV3(trace.input!)
+      if (params.message && params.message !== '0x' && params.message.length > 2) {
+        return params.message
+      }
+    } catch {
+      // Decode failed — not the call we're looking for
+    }
+  }
+  if (Array.isArray(trace.calls)) {
+    for (const child of trace.calls) {
+      const result = findExpandedMessageInTrace(child)
+      if (result) return result
+    }
+  }
+  return undefined
+}
+
+/**
+ * Extracts the expanded message from a source chain transaction simulation.
+ *
+ * The RigoBlock pool expands our compact SourceMessageParams into a full multicall
+ * before calling the Across SpokePool's depositV3. This function uses debug_traceCall
+ * (supported by Alchemy and other premium RPC providers) to trace the source simulation
+ * and extract the expanded message from the internal SpokePool.depositV3 call.
+ *
+ * The expanded message is a multicall targeting the Across Multicall Handler on
+ * the destination chain. It contains actions that the handler routes to the RigoBlock
+ * pool (token approvals, transfers, NAV updates, etc.).
+ *
+ * Returns the expanded message bytes, or undefined if:
+ * - debug_traceCall is not supported by the RPC provider
+ * - The trace format is unexpected
+ * - No depositV3 internal call is found
+ */
+export async function extractExpandedMessageFromTrace(params: {
+  provider: { send(method: string, params: unknown[]): Promise<unknown> }
+  from: string
+  to: string
+  data: string
+}): Promise<string | undefined> {
+  try {
+    const trace = await params.provider.send('debug_traceCall', [
+      { from: params.from, to: params.to, data: params.data, value: '0x0' },
+      'latest',
+      { tracer: 'callTracer', tracerConfig: { onlyTopCall: false } },
+    ]) as CallTrace
+
+    const message = findExpandedMessageInTrace(trace)
+    if (message) {
+      logger.debug('bridgeCalldata', 'extractExpandedMessageFromTrace',
+        'Extracted expanded message from source trace', { messageLength: message.length })
+    }
+    return message
+  } catch {
+    // debug_traceCall not supported by this RPC provider — fall back gracefully
+    return undefined
+  }
+}
+
 export interface ModifyAcrossParams {
   calldata: string
   smartPoolAddress: string
   value: string
   opType?: OpType
-  /**
-   * Price of the output token in USD (e.g., 3000 for ETH at $3000)
-   * Used to calculate the solver gas compensation in output token terms
-   */
   outputTokenPriceUSD?: number
-  /**
-   * Number of decimals for the output token (e.g., 18 for ETH, 6 for USDC)
-   */
   outputTokenDecimals?: number
+  /** Pre-computed message overhead compensation in output token base units (from destination simulation) */
+  messageOverheadCompensation?: BigNumber
 }
 
-/**
- * Modifies Across SpokePool depositV3 calldata for RigoBlock smart pools
- *
- * This function:
- * 1. Decodes the Across depositV3 calldata
- * 2. Encodes SourceMessageParams in the message field
- * 3. Changes the depositor to the smart pool address
- * 4. Re-encodes using RigoBlock's tuple-based depositV3 format
- *
- * @param params - Object containing calldata, smartPoolAddress, value, and opType
- * @returns The modified calldata for RigoBlock depositV3
- */
 interface SolverGasCompensationParams {
   destinationChainId: BigNumber
   outputTokenPriceUSD?: number
@@ -202,41 +275,31 @@ interface SolverGasCompensationParams {
 }
 
 /**
- * Calculates the solver gas compensation in output token units
- * The solver pays gas on the destination chain to fill the order,
- * and is compensated via the spread between input and output amounts.
- *
- * @param params - Object containing destinationChainId, outputTokenPriceUSD, and outputTokenDecimals
- * @returns The compensation amount in output token base units
+ * USD-based fallback when destination simulation is not available.
+ * Throws if outputTokenPriceUSD is unknown.
  */
 function calculateSolverGasCompensation(params: SolverGasCompensationParams): BigNumber {
   const { destinationChainId, outputTokenPriceUSD, outputTokenDecimals } = params
 
-  // If we don't have price info, skip compensation (use 0)
-  if (!outputTokenPriceUSD || !outputTokenDecimals) {
-    return BigNumber.from(0)
+  if (!outputTokenDecimals || !outputTokenPriceUSD) {
+    throw new Error(
+      'Cannot estimate solver gas compensation: output token price is unknown. ' +
+      'Bridge transactions require a known token price to ensure correct solver compensation.',
+    )
   }
 
-  // Determine gas cost in USD based on destination chain
+  // Estimate vault message execution overhead in USD based on destination chain
   const chainIdNum = destinationChainId.toNumber()
-  let gasCostUSD: number
-  
+  let messageOverheadUSD: number
   if (chainIdNum === ETHEREUM_MAINNET_CHAIN_ID) {
-    gasCostUSD = SOLVER_GAS_COMPENSATION_USD_MAINNET
+    messageOverheadUSD = FALLBACK_MESSAGE_OVERHEAD_USD_MAINNET
   } else if (chainIdNum === POLYGON_CHAIN_ID) {
-    gasCostUSD = SOLVER_GAS_COMPENSATION_USD_POLYGON
+    messageOverheadUSD = FALLBACK_MESSAGE_OVERHEAD_USD_POLYGON
   } else {
-    // All other chains (L2s) get the standard L2 compensation
-    gasCostUSD = SOLVER_GAS_COMPENSATION_USD_L2
+    messageOverheadUSD = FALLBACK_MESSAGE_OVERHEAD_USD_L2
   }
 
-  // Convert USD gas cost to output token amount
-  // gasCostInToken = gasCostUSD / outputTokenPriceUSD
-  // Then scale by token decimals
-  const gasCostInToken = gasCostUSD / outputTokenPriceUSD
-  const compensation = BigNumber.from(Math.floor(gasCostInToken * Math.pow(10, outputTokenDecimals)))
-
-  return compensation
+  return parseUnits((messageOverheadUSD / outputTokenPriceUSD).toFixed(outputTokenDecimals), outputTokenDecimals)
 }
 
 export function modifyAcrossDepositV3ForSmartPool(fnParams: ModifyAcrossParams): string {
@@ -247,51 +310,49 @@ export function modifyAcrossDepositV3ForSmartPool(fnParams: ModifyAcrossParams):
     opType = OpType.Transfer,
     outputTokenPriceUSD,
     outputTokenDecimals,
+    messageOverheadCompensation,
   } = fnParams
   try {
-    // Decode the Across depositV3 calldata
     const { params: decodedParams } = decodeAcrossDepositV3(calldata)
-
-    // Get the source native amount from the transaction value
     const sourceNativeAmount = BigNumber.from(value || '0')
 
-    // Calculate solver gas compensation for destination chain
-    const solverCompensation = calculateSolverGasCompensation({
+    // Use pre-computed compensation or fall back to USD estimates
+    let solverCompensation = messageOverheadCompensation ?? calculateSolverGasCompensation({
       destinationChainId: decodedParams.destinationChainId,
       outputTokenPriceUSD,
       outputTokenDecimals,
     })
 
+    // Cap at MAX_COMPENSATION_BPS (8% of output). On-chain max is 10%.
+    const maxBpsCompensation = decodedParams.outputAmount.mul(MAX_COMPENSATION_BPS).div(10000)
+    if (solverCompensation.gt(maxBpsCompensation)) {
+      solverCompensation = maxBpsCompensation
+    }
+
     // Reduce output amount by solver compensation
-    // This creates spread for the solver to cover destination chain gas costs
     let adjustedOutputAmount = decodedParams.outputAmount
     if (solverCompensation.gt(0) && adjustedOutputAmount.gt(solverCompensation)) {
       adjustedOutputAmount = adjustedOutputAmount.sub(solverCompensation)
     }
 
-    // Create SourceMessageParams
     const sourceMessageParams: SourceMessageParams = {
       opType,
-      navTolerance: BigNumber.from(DEFAULT_NAV_TOLERANCE),
+      navTolerance: BigNumber.from(NAV_TOLERANCE_BPS),
       sourceNativeAmount,
       shouldUnwrapOnDestination: sourceNativeAmount.gt(0),
     }
 
-    // Encode the SourceMessageParams as the message
     const encodedMessage = encodeSourceMessageParams(sourceMessageParams)
 
-    // Update params for RigoBlock:
-    // - depositor becomes the smart pool (it's the one calling Across)
-    // - recipient stays the same (destination address on the other chain)
-    // - exclusiveRelayer must be address(0) - RigoBlock pool asserts this
-    // - message contains the SourceMessageParams
-    // - outputAmount reduced to compensate solver for destination gas
+    // recipient = pool itself (used in destination multicall for token transfer + drain).
+    // The AIntents contract internally resolves the Across handler via CrosschainLib.getAcrossHandler().
     const modifiedParams: AcrossParams = {
       ...decodedParams,
       depositor: smartPoolAddress,
-      exclusiveRelayer: '0x0000000000000000000000000000000000000000', // Must be null address for RigoBlock
+      recipient: smartPoolAddress,
+      exclusiveRelayer: '0x0000000000000000000000000000000000000000',
       outputAmount: adjustedOutputAmount,
-      exclusivityDeadline: 0, // Not used by RigoBlock, can set to 0
+      exclusivityDeadline: 0,
       message: encodedMessage,
     }
 
