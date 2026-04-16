@@ -4098,6 +4098,8 @@
 
     "@uniswap/client-platform-service": ["@uniswap/client-platform-service@0.0.14", "", {}, "sha512-dhAR+dpQNTHvDMofmSPTf72a1/5MDVjnVCJPTVEl8JkWEeGQ2BVUE9JiPtdsPP2GWSSF94mLQAyAYWxOi2CzVw=="],
 
+    "@uniswap/client-privy-embedded-wallet": ["@uniswap/client-privy-embedded-wallet@0.0.3", "", {}, "sha512-fJ5VPK2Rf9g8aEJX/UN3nuxW1FjKtRkl6uksT1Hu72NxuIagZXTAm6mBzJ/CPJhuAUG4L3KQO7ejcEoA4GsSGg=="],
+
     "@uniswap/client-search": ["@uniswap/client-search@0.0.11", "", {}, "sha512-2g15zk+mF7AYxmQk9AVrIIFrr+9Ho5jeYbI1rfTVo3EgzFsC4AiQQzJwMMv6cZiVDMBmBsX4N4+z7eTE3ABloA=="],
 
     "@uniswap/client-trading": ["@uniswap/client-trading@0.1.3", "", {}, "sha512-ZQ4Hjz8/KU5ZpOAmB2shcuFRgBTc09U4pG8Lew2fvFV3XIhgU6MQXpzII340IDjMsoG9729arasLT+rI1uKNdA=="],
