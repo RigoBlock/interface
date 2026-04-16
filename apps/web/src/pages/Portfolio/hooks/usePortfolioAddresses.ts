@@ -19,7 +19,8 @@ export function usePortfolioAddresses(): {
 } {
   const resolved = useResolvedAddresses()
   const { address: smartPoolAddress } = useActiveSmartPool()
-  const { hasExplicitUrlAddress } = usePortfolioRoutes()
+  const portfolioRoutes = usePortfolioRoutes()
+  const hasExplicitUrlAddress = !!portfolioRoutes.externalAddress
 
   return useMemo(() => {
     // 1. URL address (external wallet from earn page, or any address in path — even user's own)
