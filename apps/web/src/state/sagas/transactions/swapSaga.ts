@@ -78,7 +78,16 @@ import useSelectChain from '~/hooks/useSelectChain'
 import { formatSwapSignedAnalyticsEventProperties } from '~/lib/utils/analytics'
 import { useSetOverrideOneClickSwapFlag } from '~/pages/Swap/settings/OneClickSwap'
 import { handleAtomicSendCalls } from '~/state/sagas/transactions/5792'
-import { isAcrossDepositV3, modifyAcrossDepositV3ForSmartPool, OpType } from '~/state/sagas/transactions/bridgeCalldata'
+import {
+  computeDestinationSimulationCompensation,
+  extractExpandedMessageFromTrace,
+  fetchTokenPriceUSD,
+  getAcrossDepositInfo,
+  isAcrossDepositV3,
+  modifyAcrossDepositV3ForSmartPool,
+  OpType,
+  queryAcrossRelayerGasFee,
+} from '~/state/sagas/transactions/bridgeCalldata'
 import { useGetOnPressRetry } from '~/state/sagas/transactions/retry'
 import { jupiterSwap } from '~/state/sagas/transactions/solana'
 import { handleUniswapXPlanSignatureStep, handleUniswapXSignatureStep } from '~/state/sagas/transactions/uniswapx'
@@ -140,25 +149,199 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
         const outputTokenPriceUSD =
           tokenOutAmountUSD && tokenOutAmount > 0 ? tokenOutAmountUSD / tokenOutAmount : undefined
         const outputTokenDecimals = trade.outputAmount.currency.decimals
+        const inputTokenDecimals = trade.inputAmount.currency.decimals
+        const chainId = trade.inputAmount.currency.chainId
 
-        // Modify Across depositV3 calldata for RigoBlock smart pools
-        // The originalValue contains the ETH amount to be bridged (sourceNativeAmount)
-        // Get OpType from user preference (Transfer by default, Sync if enabled)
+        // Query Across API WITHOUT message to validate the route and get base relay fee.
+        // Throws on 4xx (route rejected) — propagates to block the source TX.
+        // Returns undefined on network/server errors — falls back to simulation.
+        const acrossFeeResult = yield* call(queryAcrossRelayerGasFee, { originChainId: chainId, calldata })
+
+        // Block the transaction if Across says the amount is too low for this route.
+        // Submitting would lock funds until deposit expiry with no solver willing to fill.
+        if (acrossFeeResult?.isAmountTooLow) {
+          throw new Error(
+            'Bridge amount is below the Across minimum for this route. Increase the amount or try a different route.',
+          )
+        }
+
+        // Block the transaction if the deposit exceeds available solver liquidity.
+        // maxDeposit = 0 means the route has no solver liquidity at all.
+        // This prevents submitting intents that will never be filled, locking funds until expiry.
+        if (acrossFeeResult?.limits) {
+          const maxDeposit = BigNumber.from(acrossFeeResult.limits.maxDeposit || '0')
+          const depositInputAmount = BigNumber.from(trade.inputAmount.quotient.toString())
+          if (maxDeposit.gt(0) && depositInputAmount.gt(maxDeposit)) {
+            throw new Error(
+              'Bridge amount exceeds available solver liquidity on the destination chain. ' +
+              'Try a smaller amount or wait for more liquidity.',
+            )
+          }
+          if (acrossFeeResult.estimatedFillTimeSec && acrossFeeResult.estimatedFillTimeSec > 3600) {
+            logger.warn('swapSaga', 'handleSwapTransactionStep', 'Bridge fill may be slow', {
+              estimatedFillTimeSec: acrossFeeResult.estimatedFillTimeSec,
+              maxDepositInstant: acrossFeeResult.limits.maxDepositInstant,
+            })
+          }
+        }
+
+        const { destinationChainId, recipient, outputToken } = getAcrossDepositInfo(calldata)
         const bridgeOpType = getBridgeSyncMode() ? OpType.Sync : OpType.Transfer
+        let messageOverheadCompensation: BigNumber | undefined
+
+        // If analytics didn't provide the output token price, fetch it from CoinGecko
+        // using the destination chain + output token contract address.
+        // The bridgeable tokens (USDC, USDT, WETH, WBTC) are all well-known on CoinGecko.
+        let resolvedOutputTokenPriceUSD = outputTokenPriceUSD
+        if (!resolvedOutputTokenPriceUSD) {
+          try {
+            resolvedOutputTokenPriceUSD = yield* call(fetchTokenPriceUSD, destinationChainId, outputToken)
+            if (resolvedOutputTokenPriceUSD) {
+              logger.debug('swapSaga', 'handleSwapTransactionStep', 'Output token price fetched from CoinGecko', {
+                price: resolvedOutputTokenPriceUSD,
+                outputToken,
+                destinationChainId,
+              })
+            }
+          } catch (priceError) {
+            logger.debug('swapSaga', 'handleSwapTransactionStep', 'CoinGecko token price fetch failed', {
+              error: priceError,
+            })
+          }
+        }
+
+        // === PRIMARY: Extract expanded message via source chain trace + query Across ===
+        // The pool expands our compact SourceMessageParams into a full multicall on-chain.
+        // The recipient in the deposit is the Across Multicall Handler on destination.
+        // By tracing the source TX with debug_traceCall (Alchemy supports this), we capture
+        // the expanded message and pass it to the Across API. Across simulates calling
+        // handleV3AcrossMessage(expandedMessage) on the handler, which routes calls to
+        // the RigoBlock pool. The gas difference gives us the exact message overhead.
+        const sourceProvider = chainId in RPC_PROVIDERS
+          ? RPC_PROVIDERS[chainId as keyof typeof RPC_PROVIDERS]
+          : undefined
+
+        if (sourceProvider) {
+          try {
+            // Build initial calldata with 0 compensation (just to get the trace).
+            // Gas cost doesn't depend on the output amount, so the trace is valid
+            // regardless of the compensation value — single-iteration convergence.
+            const initialCalldata = modifyAcrossDepositV3ForSmartPool({
+              calldata,
+              smartPoolAddress,
+              value: String(originalValue || '0'),
+              opType: bridgeOpType,
+              outputTokenPriceUSD,
+              outputTokenDecimals,
+              messageOverheadCompensation: BigNumber.from(0),
+            })
+
+            // Trace the source TX to extract the pool-expanded message
+            const expandedMessage = yield* call(extractExpandedMessageFromTrace, {
+              provider: sourceProvider,
+              from: address,
+              to: smartPoolAddress,
+              data: initialCalldata,
+            })
+
+            if (expandedMessage && acrossFeeResult) {
+              // Query Across WITH the expanded message for accurate destination gas simulation.
+              // The recipient (Across Multicall Handler) + expanded message let Across simulate
+              // the full fill flow: handler → pool (approve, transfer, updateUnitaryValue, etc.)
+              const acrossWithMessage = yield* call(queryAcrossRelayerGasFee, {
+                originChainId: chainId,
+                calldata,
+                message: expandedMessage,
+                recipient,
+              })
+
+              if (acrossWithMessage) {
+                // Message overhead = fee WITH message - fee WITHOUT message (in input token units).
+                // The base fee is already accounted for in the Uniswap bridge quote.
+                const baseGasFee = BigNumber.from(acrossFeeResult.relayerGasFeeTotal || '0')
+                const fullGasFee = BigNumber.from(acrossWithMessage.relayerGasFeeTotal || '0')
+
+                if (fullGasFee.gt(baseGasFee)) {
+                  const messageOverheadInputUnits = fullGasFee.sub(baseGasFee)
+                  // Convert from input token decimals to output token decimals
+                  messageOverheadCompensation = messageOverheadInputUnits
+                    .mul(BigNumber.from(10).pow(outputTokenDecimals))
+                    .div(BigNumber.from(10).pow(inputTokenDecimals))
+
+                  logger.debug('swapSaga', 'handleSwapTransactionStep', 'Across message overhead computed', {
+                    baseGasFee: baseGasFee.toString(),
+                    fullGasFee: fullGasFee.toString(),
+                    messageOverheadInputUnits: messageOverheadInputUnits.toString(),
+                    compensationOutputUnits: messageOverheadCompensation.toString(),
+                  })
+                }
+              }
+            }
+          } catch (traceError) {
+            logger.debug('swapSaga', 'handleSwapTransactionStep', 'Trace-based message extraction unavailable', {
+              error: traceError,
+            })
+          }
+        }
+
+        // === SECONDARY FALLBACK: Destination chain simulation ===
+        // If trace+Across didn't produce compensation, simulate updateUnitaryValue()
+        // directly on the destination pool. RigoBlock pools are deterministic — same
+        // address on every chain — so smartPoolAddress IS the destination pool address.
+        if (!messageOverheadCompensation && resolvedOutputTokenPriceUSD) {
+          const destProvider = destinationChainId in RPC_PROVIDERS
+            ? RPC_PROVIDERS[destinationChainId as keyof typeof RPC_PROVIDERS]
+            : undefined
+
+          if (destProvider) {
+            try {
+              const destCompensation = yield* call(computeDestinationSimulationCompensation, {
+                provider: destProvider,
+                poolAddress: smartPoolAddress,
+                destinationChainId,
+                outputTokenPriceUSD: resolvedOutputTokenPriceUSD,
+                outputTokenDecimals,
+              })
+              if (destCompensation) {
+                messageOverheadCompensation = destCompensation
+                logger.debug('swapSaga', 'handleSwapTransactionStep', 'Destination simulation compensation computed', {
+                  compensation: destCompensation.toString(),
+                  destinationChainId,
+                })
+              }
+            } catch (destError) {
+              logger.debug('swapSaga', 'handleSwapTransactionStep', 'Destination simulation unavailable', {
+                error: destError,
+              })
+            }
+          }
+        }
+
+        // Block TX if we can't compute any compensation AND have no token price for USD fallback.
+        // Without compensation, the solver has no incentive to fill → funds locked until expiry.
+        // The USD fallback in modifyAcrossDepositV3ForSmartPool requires a resolved token price.
+        if (!resolvedOutputTokenPriceUSD && !messageOverheadCompensation) {
+          throw new Error(
+            'Cannot estimate solver gas compensation: output token price is unknown and destination simulation unavailable. ' +
+            'This would result in zero solver spread and the bridge intent would never be filled.',
+          )
+        }
+
+        // Build FINAL calldata with real compensation
         const modifiedCalldata = modifyAcrossDepositV3ForSmartPool({
           calldata,
           smartPoolAddress,
           value: String(originalValue || '0'),
           opType: bridgeOpType,
-          outputTokenPriceUSD,
+          outputTokenPriceUSD: resolvedOutputTokenPriceUSD,
           outputTokenDecimals,
+          messageOverheadCompensation,
         })
         txRequest.data = modifiedCalldata
 
         // Estimate gas for the modified bridge transaction
         // This gives us accurate gas since we're estimating the actual RigoBlock calldata
         // including NAV calculations, escrow deployment, and Across deposit
-        const chainId = trade.inputAmount.currency.chainId
         const provider = chainId in RPC_PROVIDERS ? RPC_PROVIDERS[chainId as keyof typeof RPC_PROVIDERS] : undefined
         if (provider) {
           try {
