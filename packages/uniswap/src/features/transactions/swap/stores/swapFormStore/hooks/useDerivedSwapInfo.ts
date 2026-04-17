@@ -155,7 +155,7 @@ export function useDerivedSwapInfo({
     if (!smartPoolAddress || !displayableTrade || !displayableTradeOutputAmount) {
       return displayableTradeOutputAmount
     }
-    if (displayableTrade.routing !== TradingApi.Routing.BRIDGE) {
+    if (!('routing' in displayableTrade) || displayableTrade.routing !== TradingApi.Routing.BRIDGE) {
       return displayableTradeOutputAmount
     }
 
@@ -194,20 +194,19 @@ export function useDerivedSwapInfo({
       return displayableTradeOutputAmount
     }
 
-    // Compute deduction in output token raw units using BigInt to avoid float precision loss.
-    // tokenPriceUSD is USD per 1 whole token (decimal-agnostic from .toExact()), so
-    // deductionTokens = overheadUSD / tokenPriceUSD gives whole tokens to deduct.
-    // We scale by 1e12 first, then multiply by 10^decimals and divide by 1e12 in BigInt
-    // to preserve precision for 18-decimal tokens (where 10^18 > Number.MAX_SAFE_INTEGER).
-    const PRECISION = 1_000_000_000_000n // 1e12
-    const overheadScaled = BigInt(Math.round((overheadUSD / tokenPriceUSD) * 1e12))
-    const deductionRaw = (overheadScaled * 10n ** BigInt(outputCurrency.decimals)) / PRECISION
-    if (deductionRaw <= 0n) {
+    // Compute deduction in output token raw units.
+    // tokenPriceUSD is USD per 1 whole token (decimal-agnostic via .toExact()), so
+    // deductionTokens = overheadUSD / tokenPriceUSD is in human-readable token units.
+    // Multiply by 10^decimals to get raw units. This is display-only (not on-chain),
+    // so standard float precision is sufficient for sub-dollar deductions.
+    const deductionTokens = overheadUSD / tokenPriceUSD
+    const deductionRawStr = Math.floor(deductionTokens * 10 ** outputCurrency.decimals).toFixed(0)
+    if (deductionRawStr === '0') {
       return displayableTradeOutputAmount
     }
 
     try {
-      const deduction = CurrencyAmount.fromRawAmount(outputCurrency, deductionRaw.toString())
+      const deduction = CurrencyAmount.fromRawAmount(outputCurrency, deductionRawStr)
       if (displayableTradeOutputAmount.greaterThan(deduction)) {
         return displayableTradeOutputAmount.subtract(deduction)
       }
