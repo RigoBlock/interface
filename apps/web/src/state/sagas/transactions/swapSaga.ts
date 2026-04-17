@@ -19,7 +19,7 @@ import { type SwapTradeBaseProperties } from 'uniswap/src/features/telemetry/typ
 import { logExperimentQualifyingEvent } from 'uniswap/src/features/telemetry/utils/logExperimentQualifyingEvent'
 import { selectSwapStartTimestamp } from 'uniswap/src/features/timing/selectors'
 import { updateSwapStartTimestamp } from 'uniswap/src/features/timing/slice'
-import { TokenPriceFeedError, UnexpectedTransactionStateError } from 'uniswap/src/features/transactions/errors'
+import { SmartPoolBridgeError, TokenPriceFeedError, UnexpectedTransactionStateError } from 'uniswap/src/features/transactions/errors'
 import {
   HandleSwapBatchedStepParams,
   type HandleSwapStepParams,
@@ -79,6 +79,8 @@ import { formatSwapSignedAnalyticsEventProperties } from '~/lib/utils/analytics'
 import { useSetOverrideOneClickSwapFlag } from '~/pages/Swap/settings/OneClickSwap'
 import { handleAtomicSendCalls } from '~/state/sagas/transactions/5792'
 import {
+  checkDestinationPoolHealth,
+  checkSmartPoolBridgeFeasibility,
   computeDestinationSimulationCompensation,
   extractExpandedMessageFromTrace,
   fetchTokenPriceUSD,
@@ -160,7 +162,7 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
         // Block the transaction if Across says the amount is too low for this route.
         // Submitting would lock funds until deposit expiry with no solver willing to fill.
         if (acrossFeeResult?.isAmountTooLow) {
-          throw new Error(
+          throw new SmartPoolBridgeError(
             'Bridge amount is below the Across minimum for this route. Increase the amount or try a different route.',
           )
         }
@@ -172,7 +174,7 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
           const maxDeposit = BigNumber.from(acrossFeeResult.limits.maxDeposit || '0')
           const depositInputAmount = BigNumber.from(trade.inputAmount.quotient.toString())
           if (maxDeposit.gt(0) && depositInputAmount.gt(maxDeposit)) {
-            throw new Error(
+            throw new SmartPoolBridgeError(
               'Bridge amount exceeds available solver liquidity on the destination chain. ' +
               'Try a smaller amount or wait for more liquidity.',
             )
@@ -233,6 +235,7 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
               opType: bridgeOpType,
               outputTokenPriceUSD,
               outputTokenDecimals,
+              inputTokenDecimals,
               messageOverheadCompensation: BigNumber.from(0),
             })
 
@@ -288,32 +291,50 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
         // If trace+Across didn't produce compensation, simulate updateUnitaryValue()
         // directly on the destination pool. RigoBlock pools are deterministic — same
         // address on every chain — so smartPoolAddress IS the destination pool address.
-        if (!messageOverheadCompensation && resolvedOutputTokenPriceUSD) {
-          const destProvider = destinationChainId in RPC_PROVIDERS
-            ? RPC_PROVIDERS[destinationChainId as keyof typeof RPC_PROVIDERS]
-            : undefined
+        const destProvider = destinationChainId in RPC_PROVIDERS
+          ? RPC_PROVIDERS[destinationChainId as keyof typeof RPC_PROVIDERS]
+          : undefined
 
-          if (destProvider) {
-            try {
-              const destCompensation = yield* call(computeDestinationSimulationCompensation, {
-                provider: destProvider,
-                poolAddress: smartPoolAddress,
+        if (!messageOverheadCompensation && resolvedOutputTokenPriceUSD && destProvider) {
+          try {
+            const destCompensation = yield* call(computeDestinationSimulationCompensation, {
+              provider: destProvider,
+              poolAddress: smartPoolAddress,
+              destinationChainId,
+              outputTokenPriceUSD: resolvedOutputTokenPriceUSD,
+              outputTokenDecimals,
+            })
+            if (destCompensation) {
+              messageOverheadCompensation = destCompensation
+              logger.debug('swapSaga', 'handleSwapTransactionStep', 'Destination simulation compensation computed', {
+                compensation: destCompensation.toString(),
                 destinationChainId,
-                outputTokenPriceUSD: resolvedOutputTokenPriceUSD,
-                outputTokenDecimals,
-              })
-              if (destCompensation) {
-                messageOverheadCompensation = destCompensation
-                logger.debug('swapSaga', 'handleSwapTransactionStep', 'Destination simulation compensation computed', {
-                  compensation: destCompensation.toString(),
-                  destinationChainId,
-                })
-              }
-            } catch (destError) {
-              logger.debug('swapSaga', 'handleSwapTransactionStep', 'Destination simulation unavailable', {
-                error: destError,
               })
             }
+          } catch (destError) {
+            logger.debug('swapSaga', 'handleSwapTransactionStep', 'Destination simulation unavailable', {
+              error: destError,
+            })
+          }
+        }
+
+        // TODO: this fails silently, but ai (oddly enough) is unable to have have this properly displayed.
+        // === DESTINATION POOL HEALTH CHECK ===
+        // If updateUnitaryValue() reverts on the destination pool, NO solver can fill
+        // any intent to this pool. This catches pool state issues like EffectiveSupplyTooLow
+        // caused by a prior crosschain transfer leaving virtual supply in an invalid state.
+        // We check this unconditionally — even if compensation was computed, an unhealthy
+        // pool means the intent will never be filled.
+        // NOTE: checkDestinationPoolHealth handles all internal errors and always returns
+        // a result — no try/catch needed here. Throwing directly ensures the error
+        // propagates without risk of being swallowed by an instanceof mismatch.
+        if (destProvider) {
+          const poolHealth = yield* call(checkDestinationPoolHealth, {
+            provider: destProvider,
+            poolAddress: smartPoolAddress,
+          })
+          if (!poolHealth.healthy) {
+            throw new SmartPoolBridgeError(poolHealth.error || 'Bridge fill would fail on the destination chain.')
           }
         }
 
@@ -321,10 +342,30 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
         // Without compensation, the solver has no incentive to fill → funds locked until expiry.
         // The USD fallback in modifyAcrossDepositV3ForSmartPool requires a resolved token price.
         if (!resolvedOutputTokenPriceUSD && !messageOverheadCompensation) {
-          throw new Error(
+          throw new SmartPoolBridgeError(
             'Cannot estimate solver gas compensation: output token price is unknown and destination simulation unavailable. ' +
             'This would result in zero solver spread and the bridge intent would never be filled.',
           )
+        }
+
+        // Check if the bridge intent is fillable under the on-chain 2% cap.
+        // If the needed solver compensation exceeds what the cap allows, no solver will fill
+        // and funds would be locked until deposit expiry.
+        {
+          const feasibility = checkSmartPoolBridgeFeasibility({
+            calldata,
+            inputTokenDecimals,
+            outputTokenDecimals,
+            outputTokenPriceUSD: resolvedOutputTokenPriceUSD,
+            destinationChainId,
+            messageOverheadCompensation,
+          })
+          if (!feasibility.isFeasible) {
+            throw new SmartPoolBridgeError(
+              'Bridge amount is too small for this route. The estimated solver gas fee exceeds the ' +
+              "protocol's maximum 2% bridge fee limit. Please increase the transfer amount or try a different route.",
+            )
+          }
         }
 
         // Build FINAL calldata with real compensation
@@ -335,6 +376,7 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
           opType: bridgeOpType,
           outputTokenPriceUSD: resolvedOutputTokenPriceUSD,
           outputTokenDecimals,
+          inputTokenDecimals,
           messageOverheadCompensation,
         })
         txRequest.data = modifiedCalldata
@@ -358,8 +400,33 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
               withMargin: txRequest.gasLimit,
             })
           } catch (gasError) {
-            // If gas estimation fails, fall back to a high fixed overhead
-            // This can happen if simulation fails (insufficient balance, etc.)
+            // Check if gas estimation failed due to an on-chain revert.
+            // If the source TX itself would revert, we must block — not submit with fallback gas.
+            const gasErrorMsg = gasError instanceof Error ? gasError.message : String(gasError)
+            if (
+              gasErrorMsg.includes('execution reverted') ||
+              gasErrorMsg.includes('UNPREDICTABLE_GAS_LIMIT') ||
+              gasErrorMsg.includes('cannot estimate gas')
+            ) {
+              // Try to identify the specific revert reason
+              let userMessage = 'Bridge transaction would revert on the source chain. '
+              if (gasErrorMsg.includes('0xd99e07af')) {
+                userMessage =
+                  'Bridge amount is too small: the output amount after fees is below the protocol\'s ' +
+                  'minimum threshold (OutputAmountTooLow). Please increase the transfer amount.'
+              } else if (gasErrorMsg.includes('0x0f6e887f')) {
+                userMessage =
+                  'The pool is temporarily unable to process bridge transfers (EffectiveSupplyTooLow). ' +
+                  'Please try again later.'
+              } else {
+                userMessage +=
+                  'The pool may be in a temporary invalid state or the amount is not supported. ' +
+                  'Please try again later or use a different route.'
+              }
+              throw new SmartPoolBridgeError(userMessage)
+            }
+
+            // Non-revert failures (network issues, etc.) — use fallback gas
             logger.warn('swapSaga', 'handleSwapTransactionStep', 'Bridge gas estimation failed, using fallback', {
               error: gasError,
             })

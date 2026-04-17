@@ -95,6 +95,18 @@ export class TransactionStepFailedError extends TransactionError {
   }
 }
 
+/**
+ * Thrown by bridge-specific pre-submission checks in swapSaga.
+ * Carries a user-facing message that should be displayed directly on the UI
+ * instead of the generic "Try adjusting slippage" fallback.
+ */
+export class SmartPoolBridgeError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'SmartPoolBridgeError'
+  }
+}
+
 export class JupiterExecuteError extends TransactionError {
   code: number
 
@@ -248,6 +260,14 @@ function getStepSpecificErrorContent(
           title: t('error.tokenPriceFeed'),
           message: t('error.tokenPriceFeed.message'),
           supportArticleURL: 'https://docs.rigoblock.com/oracles-and-price-feeds',
+        }
+      }
+      // Bridge-specific errors carry a user-facing message that should be shown directly
+      if (error.originalError instanceof SmartPoolBridgeError) {
+        return {
+          title: t('common.swap.failed'),
+          message: error.originalError.message,
+          supportArticleURL: uniswapUrls.rigoblockDiscordUrl,
         }
       }
       return {

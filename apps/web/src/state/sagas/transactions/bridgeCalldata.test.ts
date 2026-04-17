@@ -2,6 +2,8 @@ import { AbiCoder } from '@ethersproject/abi'
 import { BigNumber } from '@ethersproject/bignumber'
 import { parseUnits } from '@ethersproject/units'
 import {
+  checkDestinationPoolHealth,
+  checkSmartPoolBridgeFeasibility,
   computeDestinationSimulationCompensation,
   estimateDestinationMessageGas,
   extractExpandedMessageFromTrace,
@@ -529,8 +531,8 @@ describe('modifyAcrossDepositV3ForSmartPool', () => {
   })
 
   it('uses pre-computed messageOverheadCompensation when provided (within cap)', () => {
-    const outputAmount = parseUnits('10', 18)
-    const compensation = parseUnits('0.5', 18) // 0.5 USDT = 5% of 10 (within 8% cap)
+    const outputAmount = parseUnits('100', 18) // 100 USDT — large enough that 0.5 fits within 2%
+    const compensation = parseUnits('0.5', 18) // 0.5 USDT = 0.5% of 100 (well within 2% cap)
     const calldata = buildTestDepositV3Calldata({ outputAmount })
     const result = modifyAcrossDepositV3ForSmartPool({
       calldata,
@@ -548,10 +550,10 @@ describe('modifyAcrossDepositV3ForSmartPool', () => {
     expect(adjustedOutput.eq(outputAmount.sub(compensation))).toBe(true)
   })
 
-  it('caps compensation at MAX_COMPENSATION_BPS (8%) of outputAmount', () => {
+  it('caps compensation at on-chain MAX_BRIDGE_FEE_BPS (2%) via fallback', () => {
     const outputAmount = parseUnits('10', 18) // 10 USDT
-    // Use Ethereum mainnet destination (chainId=1) for $5.00 fallback → 50% on 10 USDT → capped to 8%
-    // NOTE: no inputTokenDecimals → only BPS cap applies
+    // Use Ethereum mainnet destination (chainId=1) for $5.00 fallback → 50% on 10 USDT
+    // Without inputTokenDecimals, falls back to 2% of outputAmount cap
     const calldata = buildTestDepositV3Calldata({ outputAmount, destinationChainId: 1 })
     const result = modifyAcrossDepositV3ForSmartPool({
       calldata,
@@ -559,6 +561,7 @@ describe('modifyAcrossDepositV3ForSmartPool', () => {
       value: '0',
       outputTokenPriceUSD: 1.0,
       outputTokenDecimals: 18,
+      // No inputTokenDecimals → fallback cap applies
     })
 
     const abiCoder = new AbiCoder()
@@ -567,22 +570,23 @@ describe('modifyAcrossDepositV3ForSmartPool', () => {
       '0x' + result.slice(10),
     )
     const adjustedOutput = BigNumber.from(decoded[0][5])
-    // Max compensation = 10 * 8% = 0.8 USDT
-    const maxCap = outputAmount.mul(800).div(10000)
-    expect(adjustedOutput.eq(outputAmount.sub(maxCap))).toBe(true)
-    // Verify it's exactly 9.2 USDT
-    expect(adjustedOutput.eq(parseUnits('9.2', 18))).toBe(true)
+    // Fallback cap = 2% of outputAmount = 0.2 USDT
+    const fallbackCap = outputAmount.mul(200).div(10000)
+    expect(adjustedOutput.eq(outputAmount.sub(fallbackCap))).toBe(true)
+    // Verify it's exactly 9.8 USDT
+    expect(adjustedOutput.eq(parseUnits('9.8', 18))).toBe(true)
   })
 
-  it('caps pre-computed compensation that exceeds MAX_COMPENSATION_BPS', () => {
+  it('caps pre-computed compensation that exceeds 2% fallback cap', () => {
     const outputAmount = parseUnits('10', 18)
-    const compensation = parseUnits('1.0', 18) // 1.0 USDT = 10% of 10, exceeds 8% cap
+    const compensation = parseUnits('1.0', 18) // 1.0 USDT = 10% of 10, exceeds 2% cap
     const calldata = buildTestDepositV3Calldata({ outputAmount })
     const result = modifyAcrossDepositV3ForSmartPool({
       calldata,
       smartPoolAddress,
       value: '0',
       messageOverheadCompensation: compensation,
+      // No inputTokenDecimals → fallback cap
     })
 
     const abiCoder = new AbiCoder()
@@ -591,14 +595,14 @@ describe('modifyAcrossDepositV3ForSmartPool', () => {
       '0x' + result.slice(10),
     )
     const adjustedOutput = BigNumber.from(decoded[0][5])
-    // Capped at 8% of 10 = 0.8, not the full 1.0
-    const maxCap = outputAmount.mul(800).div(10000)
-    expect(adjustedOutput.eq(outputAmount.sub(maxCap))).toBe(true)
+    // Capped at 2% of 10 = 0.2, not the full 1.0
+    const fallbackCap = outputAmount.mul(200).div(10000)
+    expect(adjustedOutput.eq(outputAmount.sub(fallbackCap))).toBe(true)
   })
 
   it('uses fixed navTolerance of 800 bps', () => {
-    const outputAmount = parseUnits('10', 18)
-    const compensation = parseUnits('0.1', 18) // 1% of output
+    const outputAmount = parseUnits('100', 18)
+    const compensation = parseUnits('0.1', 18) // small comp
     const calldata = buildTestDepositV3Calldata({ outputAmount })
     const result = modifyAcrossDepositV3ForSmartPool({
       calldata,
@@ -620,7 +624,7 @@ describe('modifyAcrossDepositV3ForSmartPool', () => {
     expect(navTolerance).toBe(800)
   })
 
-  it('handles cross-decimal bridge (6-dec input → 18-dec output) correctly', () => {
+  it('handles cross-decimal bridge (6-dec input → 18-dec output) with 2% on-chain cap', () => {
     // Arb USDT (6 dec) → BSC USDT (18 dec) - realistic cross-decimal scenario
     const inputAmount = BigNumber.from('10000000') // 10 USDT in 6 dec
     const outputAmount = BigNumber.from('9992066561272572390') // ~9.99 USDT in 18 dec (from Across API)
@@ -632,6 +636,7 @@ describe('modifyAcrossDepositV3ForSmartPool', () => {
       value: '0',
       outputTokenPriceUSD: 1.0,
       outputTokenDecimals: 18, // BSC USDT = 18 decimals
+      inputTokenDecimals: 6,   // Arb USDT = 6 decimals
     })
 
     const abiCoder = new AbiCoder()
@@ -641,24 +646,31 @@ describe('modifyAcrossDepositV3ForSmartPool', () => {
     )
     const adjustedOutput = BigNumber.from(decoded[0][5])
 
-    // $0.50 fallback / $1.0 = 0.5 USDT (18 dec) = ~5% of ~9.99 USDT
-    // 5% < 8% cap, so compensation is NOT capped — full $0.50 deducted
-    const expectedCompensation = parseUnits('0.5', 18)
-    expect(adjustedOutput.eq(outputAmount.sub(expectedCompensation))).toBe(true)
-    // Output should be ~9.49 USDT
-    expect(adjustedOutput.gt(parseUnits('9.4', 18))).toBe(true)
-    expect(adjustedOutput.lt(parseUnits('9.6', 18))).toBe(true)
+    // On-chain check: scaledOutput = adjustedOutput / 1e12; require scaledOutput * 10000 >= input * 9800
+    // minRequired = 10e6 * 1e12 * 9800 / 10000 = 9.8e18
+    // remainingRoom = 9.992e18 - 9.8e18 = 0.192e18 (~$0.19)
+    // safeComp = 0.192e18 * 0.9 = ~0.173e18
+    // USD fallback = $0.50 = 0.5e18 > 0.173e18 → capped
+    const normalizedInput = BigNumber.from('10000000').mul(BigNumber.from(10).pow(12))
+    const minRequired = normalizedInput.mul(9800).div(10000)
+    const remainingRoom = outputAmount.sub(minRequired)
+    const safeComp = remainingRoom.mul(90).div(100)
+    expect(adjustedOutput.eq(outputAmount.sub(safeComp))).toBe(true)
+    // Must stay above the on-chain minimum
+    const scaledOutput = adjustedOutput.div(BigNumber.from(10).pow(12))
+    expect(scaledOutput.mul(10000).gte(BigNumber.from('10000000').mul(9800))).toBe(true)
   })
 
   it('does not reduce outputAmount below compensation (cap protects)', () => {
     const outputAmount = BigNumber.from(100) // tiny amount
-    const compensation = BigNumber.from(1000) // larger compensation — gets capped to 8% = 8
+    const compensation = BigNumber.from(1000) // larger than output — gets capped
     const calldata = buildTestDepositV3Calldata({ outputAmount })
     const result = modifyAcrossDepositV3ForSmartPool({
       calldata,
       smartPoolAddress,
       value: '0',
       messageOverheadCompensation: compensation,
+      // No inputTokenDecimals → fallback cap: 2% of 100 = 2
     })
 
     const abiCoder = new AbiCoder()
@@ -667,8 +679,8 @@ describe('modifyAcrossDepositV3ForSmartPool', () => {
       '0x' + result.slice(10),
     )
     const adjustedOutput = BigNumber.from(decoded[0][5])
-    // Compensation (1000) is capped to 8% of 100 = 8, so output = 100 - 8 = 92
-    expect(adjustedOutput.eq(BigNumber.from(92))).toBe(true)
+    // Compensation (1000) is capped to 2% of 100 = 2, so output = 100 - 2 = 98
+    expect(adjustedOutput.eq(BigNumber.from(98))).toBe(true)
   })
 
   it('throws when no price and no pre-computed compensation', () => {
@@ -755,10 +767,11 @@ describe('modifyAcrossDepositV3ForSmartPool', () => {
     expect(msgDecoded[3]).toBe(true)
   })
 
-  it('compensation capped at 8% on cross-decimal bridge', () => {
-    // With 8% max on-chain tolerance, compensation is within limits.
-    const inputAmount = BigNumber.from('10000000') // 10 USDT (6 dec, Arbitrum)
-    const outputAmount = BigNumber.from('9992066561272572390') // ~9.99 USDT (18 dec, BSC)
+  it('caps compensation at 2% on-chain limit for cross-decimal bridge', () => {
+    // Arb USDT (6 dec) → BSC USDT (18 dec)
+    // 10 USDT: max fee = 2% = $0.20. With Across fee ~$0.01, room for comp ~$0.19.
+    const inputAmount = BigNumber.from('10000000') // 10 USDT (6 dec)
+    const outputAmount = BigNumber.from('9992066561272572390') // ~9.99 USDT (18 dec)
     const calldata = buildTestDepositV3Calldata({ inputAmount, outputAmount })
 
     const result = modifyAcrossDepositV3ForSmartPool({
@@ -767,6 +780,7 @@ describe('modifyAcrossDepositV3ForSmartPool', () => {
       value: '0',
       outputTokenPriceUSD: 1.0,
       outputTokenDecimals: 18,
+      inputTokenDecimals: 6,
     })
 
     const abiCoder = new AbiCoder()
@@ -776,12 +790,44 @@ describe('modifyAcrossDepositV3ForSmartPool', () => {
     )
     const adjustedOutput = BigNumber.from(decoded[0][5])
 
-    // $0.50 fallback / $1.0 = 0.5 USDT = ~5% of ~9.99 USDT, within 8% cap
-    const expectedCompensation = parseUnits('0.5', 18)
-    expect(adjustedOutput.eq(outputAmount.sub(expectedCompensation))).toBe(true)
+    // Verify the on-chain check passes: scaledOutput * 10000 >= inputAmount * 9800
+    const scaledOutput = adjustedOutput.div(BigNumber.from(10).pow(12))
+    expect(scaledOutput.mul(10000).gte(BigNumber.from('10000000').mul(9800))).toBe(true)
+    // Output must be less than original (some compensation was applied)
+    expect(adjustedOutput.lt(outputAmount)).toBe(true)
   })
 
-  it('caps compensation at 8% on mainnet destination', () => {
+  it('allows full $0.50 comp for 40 USDT (within 2% limit)', () => {
+    // 40 USDT: max fee = 2% = $0.80. $0.50 comp fits easily.
+    const inputAmount = BigNumber.from('40000000') // 40 USDT (6 dec)
+    const outputAmount = BigNumber.from('39977000000000000000') // ~39.977 USDT (18 dec)
+    const calldata = buildTestDepositV3Calldata({ inputAmount, outputAmount })
+
+    const result = modifyAcrossDepositV3ForSmartPool({
+      calldata,
+      smartPoolAddress,
+      value: '0',
+      outputTokenPriceUSD: 1.0,
+      outputTokenDecimals: 18,
+      inputTokenDecimals: 6,
+    })
+
+    const abiCoder = new AbiCoder()
+    const decoded = abiCoder.decode(
+      ['tuple(address,address,address,address,uint256,uint256,uint256,address,uint32,uint32,uint32,bytes)'],
+      '0x' + result.slice(10),
+    )
+    const adjustedOutput = BigNumber.from(decoded[0][5])
+
+    // $0.50 fallback fits within 2% of 40 USDT ($0.80 max)
+    const expectedComp = parseUnits('0.5', 18)
+    expect(adjustedOutput.eq(outputAmount.sub(expectedComp))).toBe(true)
+    // Verify on-chain check passes
+    const scaledOutput = adjustedOutput.div(BigNumber.from(10).pow(12))
+    expect(scaledOutput.mul(10000).gte(BigNumber.from('40000000').mul(9800))).toBe(true)
+  })
+
+  it('caps compensation at 2% fallback on mainnet destination', () => {
     const outputAmount = parseUnits('10', 18)
     const calldata = buildTestDepositV3Calldata({
       outputAmount,
@@ -794,6 +840,7 @@ describe('modifyAcrossDepositV3ForSmartPool', () => {
       value: '0',
       outputTokenPriceUSD: 1.0,
       outputTokenDecimals: 18,
+      // No inputTokenDecimals → fallback cap = 2% of outputAmount
     })
 
     const abiCoder = new AbiCoder()
@@ -803,10 +850,10 @@ describe('modifyAcrossDepositV3ForSmartPool', () => {
     )
     const adjustedOutput = BigNumber.from(decoded[0][5])
 
-    // $5 fallback → 50% of 10 USDT → capped to 8% = $0.80. Output = 9.2.
-    const maxCap = outputAmount.mul(800).div(10000)
-    expect(adjustedOutput.eq(outputAmount.sub(maxCap))).toBe(true)
-    expect(adjustedOutput.eq(parseUnits('9.2', 18))).toBe(true)
+    // $5 fallback → 50% of 10 USDT → capped to 2% = $0.20. Output = 9.8.
+    const fallbackCap = outputAmount.mul(200).div(10000)
+    expect(adjustedOutput.eq(outputAmount.sub(fallbackCap))).toBe(true)
+    expect(adjustedOutput.eq(parseUnits('9.8', 18))).toBe(true)
   })
 })
 
@@ -1160,5 +1207,164 @@ describe('computeDestinationSimulationCompensation', () => {
       outputTokenDecimals: 6,
     })
     expect(result).toBeUndefined()
+  })
+})
+
+describe('checkSmartPoolBridgeFeasibility', () => {
+  it('returns feasible for large amounts (40 USDT) where overhead fits within 2% cap', () => {
+    // 40 USDT: 2% cap = $0.80, overhead = $0.50 → fits
+    const calldata = buildTestDepositV3Calldata({
+      inputAmount: BigNumber.from('40000000'), // 40 USDT (6 dec)
+      outputAmount: parseUnits('39.977', 18),  // ~39.977 USDT (18 dec)
+    })
+
+    const result = checkSmartPoolBridgeFeasibility({
+      calldata,
+      inputTokenDecimals: 6,
+      outputTokenDecimals: 18,
+      outputTokenPriceUSD: 1.0,
+      destinationChainId: 56, // BSC → $0.50 overhead
+    })
+
+    expect(result.isFeasible).toBe(true)
+    expect(result.neededCompensation.gt(0)).toBe(true)
+  })
+
+  it('returns infeasible for small amounts (10 USDT) where overhead exceeds 2% cap', () => {
+    // 10 USDT: 2% cap = $0.20, overhead = $0.50 → does NOT fit
+    const calldata = buildTestDepositV3Calldata({
+      inputAmount: BigNumber.from('10000000'), // 10 USDT (6 dec)
+      outputAmount: parseUnits('9.992', 18),   // ~9.992 USDT (18 dec)
+    })
+
+    const result = checkSmartPoolBridgeFeasibility({
+      calldata,
+      inputTokenDecimals: 6,
+      outputTokenDecimals: 18,
+      outputTokenPriceUSD: 1.0,
+      destinationChainId: 56, // BSC → $0.50 overhead
+    })
+
+    expect(result.isFeasible).toBe(false)
+  })
+
+  it('returns infeasible for mainnet destination with small amount', () => {
+    // 100 USDT to mainnet: 2% cap = $2.00, overhead = $5.00 → does NOT fit
+    const calldata = buildTestDepositV3Calldata({
+      inputAmount: BigNumber.from('100000000'), // 100 USDT (6 dec)
+      outputAmount: parseUnits('99.92', 18),
+      destinationChainId: 1, // Ethereum mainnet
+    })
+
+    const result = checkSmartPoolBridgeFeasibility({
+      calldata,
+      inputTokenDecimals: 6,
+      outputTokenDecimals: 18,
+      outputTokenPriceUSD: 1.0,
+      destinationChainId: 1, // Mainnet → $5.00 overhead
+    })
+
+    expect(result.isFeasible).toBe(false)
+  })
+
+  it('uses pre-computed messageOverheadCompensation when provided', () => {
+    const calldata = buildTestDepositV3Calldata({
+      inputAmount: BigNumber.from('40000000'),
+      outputAmount: parseUnits('39.977', 18),
+    })
+
+    // Pre-computed overhead of $0.10 → feasible
+    const result = checkSmartPoolBridgeFeasibility({
+      calldata,
+      inputTokenDecimals: 6,
+      outputTokenDecimals: 18,
+      destinationChainId: 56,
+      messageOverheadCompensation: parseUnits('0.1', 18),
+    })
+
+    expect(result.isFeasible).toBe(true)
+  })
+
+  it('returns feasible when output token price is unknown', () => {
+    const calldata = buildTestDepositV3Calldata()
+
+    const result = checkSmartPoolBridgeFeasibility({
+      calldata,
+      inputTokenDecimals: 6,
+      outputTokenDecimals: 18,
+      destinationChainId: 56,
+      // No outputTokenPriceUSD and no messageOverheadCompensation
+    })
+
+    expect(result.isFeasible).toBe(true) // assumes feasible when can't compute
+  })
+})
+
+describe('checkDestinationPoolHealth', () => {
+  it('returns healthy when estimateGas succeeds', async () => {
+    const mockProvider = {
+      estimateGas: vi.fn().mockResolvedValue(BigNumber.from(50000)),
+    }
+
+    const result = await checkDestinationPoolHealth({
+      provider: mockProvider,
+      poolAddress: '0xPool',
+    })
+
+    expect(result.healthy).toBe(true)
+    expect(result.error).toBeUndefined()
+  })
+
+  it('returns unhealthy when estimateGas reverts (execution reverted)', async () => {
+    const mockProvider = {
+      estimateGas: vi.fn().mockRejectedValue(new Error('execution reverted')),
+    }
+
+    const result = await checkDestinationPoolHealth({
+      provider: mockProvider,
+      poolAddress: '0xPool',
+    })
+
+    expect(result.healthy).toBe(false)
+    expect(result.error).toContain('destination pool')
+  })
+
+  it('returns unhealthy when estimateGas fails with UNPREDICTABLE_GAS_LIMIT', async () => {
+    const mockProvider = {
+      estimateGas: vi.fn().mockRejectedValue(new Error('UNPREDICTABLE_GAS_LIMIT')),
+    }
+
+    const result = await checkDestinationPoolHealth({
+      provider: mockProvider,
+      poolAddress: '0xPool',
+    })
+
+    expect(result.healthy).toBe(false)
+  })
+
+  it('returns unhealthy when error contains EffectiveSupplyTooLow selector', async () => {
+    const mockProvider = {
+      estimateGas: vi.fn().mockRejectedValue(new Error('call reverted with data 0x0f6e887f')),
+    }
+
+    const result = await checkDestinationPoolHealth({
+      provider: mockProvider,
+      poolAddress: '0xPool',
+    })
+
+    expect(result.healthy).toBe(false)
+  })
+
+  it('returns healthy (inconclusive) on network errors', async () => {
+    const mockProvider = {
+      estimateGas: vi.fn().mockRejectedValue(new Error('ECONNREFUSED')),
+    }
+
+    const result = await checkDestinationPoolHealth({
+      provider: mockProvider,
+      poolAddress: '0xPool',
+    })
+
+    expect(result.healthy).toBe(true)
   })
 })
