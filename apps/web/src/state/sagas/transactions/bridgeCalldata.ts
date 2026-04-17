@@ -5,6 +5,7 @@ import { logger } from 'utilities/src/logger/logger'
 
 // Re-export helpers so existing callers don't need to update imports
 export {
+  checkDestinationPoolHealth,
   computeDestinationSimulationCompensation,
   estimateDestinationMessageGas,
   fetchNativeTokenPriceUSD,
@@ -18,8 +19,14 @@ export enum OpType {
   Sync = 1,
 }
 
-/** Maximum solver compensation: 800 bps (8%) of outputAmount. On-chain max is 10%. */
-const MAX_COMPENSATION_BPS = 800
+/**
+ * On-chain maximum bridge fee enforced by AIntents.depositV3 (200 bps = 2%).
+ * The contract checks: scaledOutputAmount * 10000 >= inputAmount * (10000 - MAX_BRIDGE_FEE_BPS)
+ * where scaledOutputAmount = CrosschainLib.applyBscDecimalConversion(outputToken, inputToken, outputAmount).
+ * This normalizes for BSC's 18-decimal USDT/USDC vs 6-decimal on other chains.
+ * Exceeding this limit causes OutputAmountTooLow() revert on the source chain.
+ */
+export const ON_CHAIN_MAX_BRIDGE_FEE_BPS = 200
 
 /** NAV tolerance in basis points (800 = 8%) for destination-chain validation. */
 const NAV_TOLERANCE_BPS = 800
@@ -257,6 +264,62 @@ export async function extractExpandedMessageFromTrace(params: {
   }
 }
 
+/**
+ * Checks if a smart pool bridge intent is fillable under the on-chain 2% cap.
+ * Returns isFeasible=false when the needed solver compensation exceeds the available
+ * room, meaning no solver will fill the intent (funds locked until expiry).
+ */
+export function checkSmartPoolBridgeFeasibility(params: {
+  calldata: string
+  inputTokenDecimals: number
+  outputTokenDecimals: number
+  outputTokenPriceUSD?: number
+  destinationChainId: number
+  messageOverheadCompensation?: BigNumber
+}): { isFeasible: boolean; maxAllowedCompensation: BigNumber; neededCompensation: BigNumber } {
+  const { calldata, inputTokenDecimals, outputTokenDecimals, destinationChainId, messageOverheadCompensation } = params
+  const { params: decoded } = decodeAcrossDepositV3(calldata)
+
+  // Compute needed compensation (from simulation or USD fallback)
+  let neededCompensation = messageOverheadCompensation
+  if (!neededCompensation) {
+    if (!params.outputTokenPriceUSD) {
+      // Can't compute — assume feasible (will be caught later during TX build)
+      return { isFeasible: true, maxAllowedCompensation: BigNumber.from(0), neededCompensation: BigNumber.from(0) }
+    }
+    let overheadUSD = FALLBACK_MESSAGE_OVERHEAD_USD_L2
+    if (destinationChainId === ETHEREUM_MAINNET_CHAIN_ID) {
+      overheadUSD = FALLBACK_MESSAGE_OVERHEAD_USD_MAINNET
+    } else if (destinationChainId === POLYGON_CHAIN_ID) {
+      overheadUSD = FALLBACK_MESSAGE_OVERHEAD_USD_POLYGON
+    }
+    neededCompensation = parseUnits(
+      (overheadUSD / params.outputTokenPriceUSD).toFixed(outputTokenDecimals),
+      outputTokenDecimals,
+    )
+  }
+
+  // Compute max allowed under 2% cap
+  const decimalDiff = outputTokenDecimals - inputTokenDecimals
+  const normalizedInput = decimalDiff >= 0
+    ? decoded.inputAmount.mul(BigNumber.from(10).pow(decimalDiff))
+    : decoded.inputAmount.div(BigNumber.from(10).pow(-decimalDiff))
+
+  const minRequired = normalizedInput.mul(10000 - ON_CHAIN_MAX_BRIDGE_FEE_BPS).div(10000)
+  const room = decoded.outputAmount.sub(minRequired)
+
+  if (room.lte(0)) {
+    return { isFeasible: false, maxAllowedCompensation: BigNumber.from(0), neededCompensation }
+  }
+
+  const maxAllowed = room.mul(90).div(100)
+  return {
+    isFeasible: neededCompensation.lte(maxAllowed),
+    maxAllowedCompensation: maxAllowed,
+    neededCompensation,
+  }
+}
+
 export interface ModifyAcrossParams {
   calldata: string
   smartPoolAddress: string
@@ -264,6 +327,7 @@ export interface ModifyAcrossParams {
   opType?: OpType
   outputTokenPriceUSD?: number
   outputTokenDecimals?: number
+  inputTokenDecimals?: number
   /** Pre-computed message overhead compensation in output token base units (from destination simulation) */
   messageOverheadCompensation?: BigNumber
 }
@@ -310,6 +374,7 @@ export function modifyAcrossDepositV3ForSmartPool(fnParams: ModifyAcrossParams):
     opType = OpType.Transfer,
     outputTokenPriceUSD,
     outputTokenDecimals,
+    inputTokenDecimals,
     messageOverheadCompensation,
   } = fnParams
   try {
@@ -323,10 +388,36 @@ export function modifyAcrossDepositV3ForSmartPool(fnParams: ModifyAcrossParams):
       outputTokenDecimals,
     })
 
-    // Cap at MAX_COMPENSATION_BPS (8% of output). On-chain max is 10%.
-    const maxBpsCompensation = decodedParams.outputAmount.mul(MAX_COMPENSATION_BPS).div(10000)
-    if (solverCompensation.gt(maxBpsCompensation)) {
-      solverCompensation = maxBpsCompensation
+    // Cap solver compensation based on the on-chain MAX_BRIDGE_FEE_BPS (2%) limit.
+    // AIntents.depositV3 enforces: scaledOutputAmount * 10000 >= inputAmount * (10000 - 200)
+    // where scaledOutputAmount normalizes for BSC decimal differences.
+    // The Across relay fee is already deducted from outputAmount, so the remaining room
+    // for solver compensation is: outputAmount - (inputAmount * 0.98 * decimalScaling).
+    // For 10 USDT, this leaves ~$0.19; for 30 USDT ~$0.57; for 40 USDT ~$0.78.
+    if (inputTokenDecimals !== undefined && outputTokenDecimals !== undefined) {
+      const decimalDiff = outputTokenDecimals - inputTokenDecimals
+      const normalizedInputAmount = decimalDiff >= 0
+        ? decodedParams.inputAmount.mul(BigNumber.from(10).pow(decimalDiff))
+        : decodedParams.inputAmount.div(BigNumber.from(10).pow(-decimalDiff))
+      // Minimum output the AIntents contract will accept (MAX_BRIDGE_FEE_BPS = 2% max fee)
+      const minRequiredOutput = normalizedInputAmount.mul(10000 - ON_CHAIN_MAX_BRIDGE_FEE_BPS).div(10000)
+      const remainingRoom = decodedParams.outputAmount.sub(minRequiredOutput)
+      if (remainingRoom.lte(0)) {
+        // Across fee alone reaches the limit — no room for solver compensation
+        solverCompensation = BigNumber.from(0)
+      } else {
+        // Use 90% of remaining room to avoid boundary rounding issues
+        const maxAllowedComp = remainingRoom.mul(90).div(100)
+        if (solverCompensation.gt(maxAllowedComp)) {
+          solverCompensation = maxAllowedComp
+        }
+      }
+    } else {
+      // Fallback: cap at 2% of outputAmount when decimal info is unavailable
+      const fallbackCap = decodedParams.outputAmount.mul(ON_CHAIN_MAX_BRIDGE_FEE_BPS).div(10000)
+      if (solverCompensation.gt(fallbackCap)) {
+        solverCompensation = fallbackCap
+      }
     }
 
     // Reduce output amount by solver compensation

@@ -1,4 +1,5 @@
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
+import { TradingApi } from '@universe/api'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { DerivedSwapInfo } from 'uniswap/src/features/transactions/swap/types/derivedSwapInfo'
 import { WrapType } from 'uniswap/src/features/transactions/types/wrap'
@@ -33,8 +34,14 @@ export function getTradeAmounts(acceptedDerivedSwapInfo?: DerivedSwapInfo<Curren
   // Token amounts
   // On review screen, always show values directly from trade object, to match exactly what is submitted on chain
   // For wraps, we have no trade object so use values from form state
+  // For smart pool bridge trades, use currencyAmounts (adjusted for solver compensation)
+  // which matches what's actually submitted on-chain after modification
   const inputCurrencyAmount = isWrap ? wrapInputCurrencyAmount : displayTrade?.inputAmount
-  const outputCurrencyAmount = isWrap ? wrapOutputCurrencyAmount : displayTrade?.outputAmount
+  const outputCurrencyAmount = isWrap
+    ? wrapOutputCurrencyAmount
+    : acceptedDerivedSwapInfo.smartPoolAddress && displayTrade?.routing === TradingApi.Routing.BRIDGE
+      ? currencyAmounts[CurrencyField.OUTPUT]
+      : displayTrade?.outputAmount
 
   return {
     inputCurrencyAmount,

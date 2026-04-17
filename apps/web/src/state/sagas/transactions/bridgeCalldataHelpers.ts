@@ -257,3 +257,44 @@ export async function computeDestinationSimulationCompensation(params: {
 
   return compensation.gt(0) ? compensation : undefined
 }
+
+/**
+ * Checks if the destination pool can process bridge fills.
+ * Simulates updateUnitaryValue() — if this reverts, no solver can fill ANY intent to this pool.
+ * Returns { healthy: true } if the call succeeds or the check is inconclusive (RPC issues).
+ * Returns { healthy: false, error } if the call explicitly reverts.
+ */
+export async function checkDestinationPoolHealth(params: {
+  provider: { estimateGas(tx: { to: string; data: string; from?: string }): Promise<BigNumber> }
+  poolAddress: string
+}): Promise<{ healthy: boolean; error?: string }> {
+  try {
+    await params.provider.estimateGas({
+      to: params.poolAddress,
+      data: UPDATE_UNITARY_VALUE_SELECTOR,
+    })
+    return { healthy: true }
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    // estimateGas failures that indicate an on-chain revert (not network issues)
+    if (
+      msg.includes('execution reverted') ||
+      msg.includes('UNPREDICTABLE_GAS_LIMIT') ||
+      msg.includes('cannot estimate gas') ||
+      msg.includes('0x0f6e887f')
+    ) {
+      logger.warn('bridgeCalldata', 'checkDestinationPoolHealth', 'Destination pool unhealthy', {
+        poolAddress: params.poolAddress, error: msg,
+      })
+      return {
+        healthy: false,
+        error:
+          'Bridge transfer cannot be completed: the destination pool is temporarily unable to process fills ' +
+          '(updateUnitaryValue reverts). No solver can execute this intent and funds would be locked. ' +
+          'Please try again later or use a different route.',
+      }
+    }
+    // Network errors, RPC not supporting estimateGas, etc. — inconclusive, don't block
+    return { healthy: true }
+  }
+}

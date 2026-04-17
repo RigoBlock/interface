@@ -1,4 +1,5 @@
-import { TradeType } from '@uniswap/sdk-core'
+import { CurrencyAmount, TradeType } from '@uniswap/sdk-core'
+import { TradingApi } from '@universe/api'
 import { useMemo } from 'react'
 import { useUniswapContextSelector } from 'uniswap/src/contexts/UniswapContext'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
@@ -136,17 +137,96 @@ export function useDerivedSwapInfo({
 
   const displayableTradeOutputAmount = displayableTrade?.outputAmount
 
+  // Extract input amount for independent use in USD value hooks
+  const inputCurrencyAmount =
+    exactCurrencyField === CurrencyField.INPUT ? amountSpecified : displayableTrade?.inputAmount
+
+  // inputCurrencyUSDValue is on the current (source) chain so useUSDCValue resolves.
+  const inputCurrencyUSDValue = useUSDCValue(inputCurrencyAmount)
+
+  // For smart pool bridge trades, adjust the displayed output to reflect the solver gas
+  // compensation that will be deducted on-chain. Without this the UI shows the Across API
+  // output (relay fee deducted only) which is higher than what the user actually receives.
+  //
+  // We derive the token price from inputCurrencyUSDValue (source chain) rather than the
+  // output token's USD value, because useUSDCValue returns undefined for cross-chain tokens.
+  // For bridge trades the input and output are the same asset so the price is equivalent.
+  const adjustedOutputAmount = useMemo(() => {
+    if (!smartPoolAddress || !displayableTrade || !displayableTradeOutputAmount) {
+      return displayableTradeOutputAmount
+    }
+    if (displayableTrade.routing !== TradingApi.Routing.BRIDGE) {
+      return displayableTradeOutputAmount
+    }
+
+    // Derive token price from input amount (same asset, source chain → USD works)
+    const inputTokens = displayableTrade.inputAmount
+      ? parseFloat(displayableTrade.inputAmount.toExact())
+      : 0
+    const inputUSD = inputCurrencyUSDValue
+      ? parseFloat(inputCurrencyUSDValue.toExact())
+      : 0
+    if (inputTokens <= 0 || inputUSD <= 0) {
+      return displayableTradeOutputAmount
+    }
+
+    const tokenPriceUSD = inputUSD / inputTokens
+    const outputCurrency = displayableTradeOutputAmount.currency
+    const destChainId = outputCurrency.chainId
+
+    // Estimated solver overhead in USD (matches bridgeCalldata.ts fallbacks)
+    let overheadUSD = 0.5 // L2 default
+    if (destChainId === 1) {
+      overheadUSD = 5.0 // Ethereum mainnet
+    } else if (destChainId === 137) {
+      overheadUSD = 1.0 // Polygon
+    }
+
+    // Cap at on-chain 2% limit (MAX_BRIDGE_FEE_BPS = 200)
+    const outputTokens = parseFloat(displayableTradeOutputAmount.toExact())
+    const outputUSD = outputTokens * tokenPriceUSD
+    const acrossRelayFeeUSD = Math.max(inputUSD - outputUSD, 0)
+    const maxFeeUSD = inputUSD * 0.02
+    const roomUSD = maxFeeUSD - acrossRelayFeeUSD
+    overheadUSD = roomUSD > 0 ? Math.min(overheadUSD, roomUSD * 0.9) : 0
+
+    if (overheadUSD <= 0) {
+      return displayableTradeOutputAmount
+    }
+
+    // Compute deduction in output token raw units using BigInt to avoid float precision loss.
+    // tokenPriceUSD is USD per 1 whole token (decimal-agnostic from .toExact()), so
+    // deductionTokens = overheadUSD / tokenPriceUSD gives whole tokens to deduct.
+    // We scale by 1e12 first, then multiply by 10^decimals and divide by 1e12 in BigInt
+    // to preserve precision for 18-decimal tokens (where 10^18 > Number.MAX_SAFE_INTEGER).
+    const PRECISION = 1_000_000_000_000n // 1e12
+    const overheadScaled = BigInt(Math.round((overheadUSD / tokenPriceUSD) * 1e12))
+    const deductionRaw = (overheadScaled * 10n ** BigInt(outputCurrency.decimals)) / PRECISION
+    if (deductionRaw <= 0n) {
+      return displayableTradeOutputAmount
+    }
+
+    try {
+      const deduction = CurrencyAmount.fromRawAmount(outputCurrency, deductionRaw.toString())
+      if (displayableTradeOutputAmount.greaterThan(deduction)) {
+        return displayableTradeOutputAmount.subtract(deduction)
+      }
+    } catch {
+      // Safety: return original if subtraction fails
+    }
+
+    return displayableTradeOutputAmount
+  }, [smartPoolAddress, displayableTrade, displayableTradeOutputAmount, inputCurrencyUSDValue])
+
   const currencyAmounts = useMemo(
     () => ({
-      [CurrencyField.INPUT]:
-        exactCurrencyField === CurrencyField.INPUT ? amountSpecified : displayableTrade?.inputAmount,
+      [CurrencyField.INPUT]: inputCurrencyAmount,
       [CurrencyField.OUTPUT]:
-        exactCurrencyField === CurrencyField.OUTPUT ? amountSpecified : displayableTradeOutputAmount,
+        exactCurrencyField === CurrencyField.OUTPUT ? amountSpecified : adjustedOutputAmount,
     }),
-    [exactCurrencyField, amountSpecified, displayableTrade?.inputAmount, displayableTradeOutputAmount],
+    [exactCurrencyField, amountSpecified, inputCurrencyAmount, adjustedOutputAmount],
   )
 
-  const inputCurrencyUSDValue = useUSDCValue(currencyAmounts[CurrencyField.INPUT])
   const outputCurrencyUSDValue = useUSDCValue(currencyAmounts[CurrencyField.OUTPUT])
 
   const currencyAmountsUSDValue = useMemo(() => {
