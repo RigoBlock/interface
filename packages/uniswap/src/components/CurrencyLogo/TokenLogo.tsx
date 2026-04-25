@@ -27,7 +27,6 @@ interface TokenLogoProps {
   size?: number
   hideNetworkLogo?: boolean
   alwaysShowNetworkLogo?: boolean
-  /** When > 1, show a gray badge with this number instead of the network logo (for multichain tokens). */
   networkCount?: number
   networkLogoBorderWidth?: number
   loading?: boolean
@@ -75,11 +74,9 @@ function MultichainCountBadge({
         <Text
           allowFontScaling={false}
           color="$neutral1"
-          fontFamily="$button"
-          fontSize={10}
-          fontWeight="$book"
+          variant="buttonLabel4"
+          $platform-web={{ fontSize: 10, lineHeight: 12 }}
           numberOfLines={1}
-          lineHeight={8}
         >
           {count > 99 ? '99+' : String(count)}
         </Text>
@@ -104,25 +101,29 @@ function NetworkLogoBadge({
   )
 }
 
-function shouldShowNetworkLogo({
+/** Exported for unit tests. */
+export function shouldShowNetworkLogo({
+  chainId,
   alwaysShowNetworkLogo,
   hideNetworkLogo,
-  chainId,
+  showMainnetNetworkLogo,
 }: {
+  chainId: UniverseChainId | null | undefined
   alwaysShowNetworkLogo: boolean | undefined
   hideNetworkLogo: boolean | undefined
-  chainId: UniverseChainId | null | undefined
+  showMainnetNetworkLogo: boolean
 }): boolean {
   if (alwaysShowNetworkLogo && chainId) {
     return true
   }
-  if (!hideNetworkLogo && !!chainId && chainId !== UniverseChainId.Mainnet) {
-    return true
+  if (!hideNetworkLogo && !!chainId) {
+    // Historically we hid the Ethereum badge on mainnet; with multichain UX we show it for clarity.
+    return chainId !== UniverseChainId.Mainnet || showMainnetNetworkLogo
   }
   return false
 }
 
-export const TokenLogo = memo(function _TokenLogo({
+export const TokenLogo = memo(function TokenLogoInner({
   url,
   symbol,
   name,
@@ -137,7 +138,7 @@ export const TokenLogo = memo(function _TokenLogo({
   lineHeight = 14,
   transition,
 }: TokenLogoProps): JSX.Element {
-  const isMultichainUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
+  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
   const isTestnetToken = !!chainId && isTestnetChain(chainId)
 
   // We want to avoid the extra render on mobile when updating the state, so we set this to `true` from the start.
@@ -148,11 +149,12 @@ export const TokenLogo = memo(function _TokenLogo({
 
   const borderWidth = isTestnetToken ? size / TESTNET_BORDER_DIVISOR : 0
 
-  const showMultichainCountBadge = isMultichainUxEnabled && networkCount !== undefined && networkCount > 1
+  const showMultichainCountBadge = multichainTokenUxEnabled && networkCount !== undefined && networkCount > 1
   const showNetworkLogo = shouldShowNetworkLogo({
     alwaysShowNetworkLogo,
     hideNetworkLogo,
     chainId,
+    showMainnetNetworkLogo: multichainTokenUxEnabled,
   })
   const networkLogoSize = Math.round(size * STATUS_RATIO)
 

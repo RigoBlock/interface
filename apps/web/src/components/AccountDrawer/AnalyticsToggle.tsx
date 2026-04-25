@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { InfoCircle } from 'ui/src/components/icons/InfoCircle'
 import { LineChartDots } from 'ui/src/components/icons/LineChartDots'
 import { Flex, Text, Tooltip } from 'ui/src/index'
-// biome-ignore lint/style/noRestrictedImports: Direct analytics import needed for toggling analytics settings
+// oxlint-disable-next-line no-restricted-imports -- Direct analytics import needed for toggling analytics settings
 import { analytics, getAnalyticsAtomDirect } from 'utilities/src/telemetry/analytics/analytics'
 import { SettingsToggle } from '~/components/AccountDrawer/SettingsToggle'
 

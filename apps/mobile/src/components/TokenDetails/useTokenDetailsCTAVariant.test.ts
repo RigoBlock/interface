@@ -14,7 +14,7 @@ const defaultParams = {
   nativeFiatOnRampCurrency: undefined,
   fiatOnRampCurrency: undefined,
   bridgingTokenWithHighestBalance: undefined,
-  hasZeroNativeBalance: undefined,
+  hasZeroGasBalance: undefined,
   tokenSymbol: 'UNI',
   ...defaultHandlers,
 }
@@ -66,7 +66,7 @@ describe(useMultichainBuyVariant, () => {
       useMultichainBuyVariant({
         ...defaultParams,
         isNativeCurrency: false,
-        hasZeroNativeBalance: true,
+        hasZeroGasBalance: true,
         tokenSymbol: 'UNI',
       }),
     )
@@ -80,7 +80,7 @@ describe(useMultichainBuyVariant, () => {
       useMultichainBuyVariant({
         ...defaultParams,
         isNativeCurrency: false,
-        hasZeroNativeBalance: true,
+        hasZeroGasBalance: true,
         tokenSymbol: undefined,
       }),
     )
@@ -95,7 +95,7 @@ describe(useMultichainBuyVariant, () => {
         ...defaultParams,
         fiatOnRampCurrency: { symbol: 'UNI' },
         isNativeCurrency: false,
-        hasZeroNativeBalance: true,
+        hasZeroGasBalance: true,
       }),
     )
 
@@ -108,7 +108,7 @@ describe(useMultichainBuyVariant, () => {
       useMultichainBuyVariant({
         ...defaultParams,
         isNativeCurrency: true,
-        hasZeroNativeBalance: true,
+        hasZeroGasBalance: true,
         tokenSymbol: 'MON',
       }),
     )
@@ -122,7 +122,7 @@ describe(useMultichainBuyVariant, () => {
       useMultichainBuyVariant({
         ...defaultParams,
         isNativeCurrency: true,
-        hasZeroNativeBalance: false,
+        hasZeroGasBalance: false,
       }),
     )
 

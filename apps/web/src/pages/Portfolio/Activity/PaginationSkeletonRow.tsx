@@ -6,7 +6,7 @@ import { getColumnSizingStyles } from '~/components/Table/utils/getColumnSizingS
 import { useActivityTableColumns } from '~/pages/Portfolio/Activity/ActivityTable/ActivityTable'
 import { PORTFOLIO_TABLE_ROW_HEIGHT } from '~/pages/Portfolio/constants'
 
-function _PaginationSkeletonRow(): JSX.Element {
+function PaginationSkeletonRowInner(): JSX.Element {
   // Memoize columns - they only depend on loading state which is always true here
   const skeletonColumns = useActivityTableColumns(true)
 
@@ -28,4 +28,4 @@ function _PaginationSkeletonRow(): JSX.Element {
   )
 }
 
-export const PaginationSkeletonRow = memo(_PaginationSkeletonRow)
+export const PaginationSkeletonRow = memo(PaginationSkeletonRowInner)

@@ -1,3 +1,4 @@
+import { TokenRankingsResponse } from '@uniswap/client-explore/dist/uniswap/explore/v1/service_pb'
 import type { ScrollView } from 'react-native'
 import type { FlatList } from 'react-native-gesture-handler'
 import type { AnimatedRef } from 'react-native-reanimated'
@@ -10,9 +11,10 @@ import { selectHasFavoriteTokens, selectHasWatchedWallets } from 'uniswap/src/fe
 type FavoritesSectionProps = {
   showLoading: boolean
   listRef: AnimatedRef<FlatList> | AnimatedRef<ScrollView>
+  tokenRankingsData: TokenRankingsResponse | undefined
 }
 
-export function FavoritesSection(props: FavoritesSectionProps): JSX.Element | null {
+export function FavoritesSection({ tokenRankingsData, ...props }: FavoritesSectionProps): JSX.Element | null {
   const hasFavoritedTokens = useSelector(selectHasFavoriteTokens)
   const hasFavoritedWallets = useSelector(selectHasWatchedWallets)
 
@@ -22,7 +24,7 @@ export function FavoritesSection(props: FavoritesSectionProps): JSX.Element | nu
 
   return (
     <Flex gap="$spacing12" pb="$spacing12" px="$spacing12" zIndex={1}>
-      {hasFavoritedTokens && <FavoriteTokensGrid {...props} />}
+      {hasFavoritedTokens && <FavoriteTokensGrid {...props} tokenRankingsData={tokenRankingsData} />}
       {hasFavoritedWallets && <FavoriteWalletsGrid {...props} />}
     </Flex>
   )

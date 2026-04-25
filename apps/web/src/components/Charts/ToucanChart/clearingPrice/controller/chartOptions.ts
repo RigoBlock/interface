@@ -1,11 +1,7 @@
 import { type ChartOptions, CrosshairMode, type DeepPartial, LineStyle, LineType } from 'lightweight-charts'
 import { opacify } from 'ui/src/theme'
 import type { ClearingPriceChartControllerCreateParams } from '~/components/Charts/ToucanChart/clearingPrice/types'
-import {
-  CHART_DIMENSIONS,
-  CHART_FONT_FAMILY,
-  LABEL_CONFIG,
-} from '~/components/Toucan/Auction/BidDistributionChart/constants'
+import { CHART_FONT_FAMILY, LABEL_CONFIG } from '~/components/Toucan/Auction/BidDistributionChart/constants'
 
 export function createClearingPriceChartOptions({
   width,
@@ -26,14 +22,11 @@ export function createClearingPriceChartOptions({
       fontSize: LABEL_CONFIG.FONT_SIZE,
     },
     leftPriceScale: {
-      visible: true,
+      visible: false,
       borderVisible: false,
-      minimumWidth: CHART_DIMENSIONS.Y_AXIS_MIN_WIDTH,
       autoScale: true,
-      entireTextOnly: true,
       scaleMargins: {
-        top: 0.15,
-        // No bottom margin - the autoscaleInfoProvider on the series constrains yMin to scaledYMin
+        top: 0,
         bottom: 0,
       },
     },
@@ -117,11 +110,13 @@ export function createAreaSeriesOptions({
 }): Record<string, unknown> {
   const lineColor = tokenColor || colors.accent1.val
 
-  // Custom autoscale provider that enforces calculated scaled yMin/yMax range
-  // Uses scaledYMin to ensure line stays within visible Y-axis area
+  // Custom autoscale provider that enforces calculated scaled yMin/yMax range.
+  // Adds bottom margin so the lowest data point doesn't overlap with x-axis labels.
+  const range = scaledYMax - scaledYMin
+  const bottomPad = range * 0.05
   const autoscaleInfoProvider = () => ({
     priceRange: {
-      minValue: scaledYMin,
+      minValue: scaledYMin - bottomPad,
       maxValue: scaledYMax,
     },
   })

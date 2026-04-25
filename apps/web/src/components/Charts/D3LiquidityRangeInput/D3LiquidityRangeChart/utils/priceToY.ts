@@ -1,4 +1,4 @@
-import type { LinearTickScale } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/store/types'
+import type { LinearTickScale } from '~/components/Charts/D3LiquidityChartShared/types'
 import { ChartEntry } from '~/components/Charts/LiquidityRangeInput/types'
 
 export type TickAlignment = 'center' | 'top' | 'bottom'
@@ -29,5 +29,5 @@ export function priceToY({
     Math.abs(curr.price0 - price) < Math.abs(prev.price0 - price) ? curr : prev,
   )
 
-  return tickScale.tickToY(closest.tick)
+  return tickScale.tickToAxis(closest.tick)
 }

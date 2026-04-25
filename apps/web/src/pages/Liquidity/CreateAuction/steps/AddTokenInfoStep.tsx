@@ -1,20 +1,18 @@
 import { useTranslation } from 'react-i18next'
 import { Flex } from 'ui/src'
+import { CreateNewTokenForm } from '~/pages/Liquidity/CreateAuction/components/CreateNewTokenForm'
+import { ExistingTokenForm } from '~/pages/Liquidity/CreateAuction/components/ExistingTokenForm'
+import { HookTile } from '~/pages/Liquidity/CreateAuction/components/HookTile'
 import {
   useCreateAuctionStore,
   useCreateAuctionStoreActions,
 } from '~/pages/Liquidity/CreateAuction/CreateAuctionContext'
-import { CreateNewTokenForm } from '~/pages/Liquidity/CreateAuction/components/CreateNewTokenForm'
-import { ExistingTokenForm } from '~/pages/Liquidity/CreateAuction/components/ExistingTokenForm'
-import { HookTile } from '~/pages/Liquidity/CreateAuction/components/HookTile'
 import { TokenMode } from '~/pages/Liquidity/CreateAuction/types'
 
 export function AddTokenInfoStep() {
   const { t } = useTranslation()
   const tokenForm = useCreateAuctionStore((state) => state.tokenForm)
   const { setTokenMode } = useCreateAuctionStoreActions()
-
-  const isCreateNew = tokenForm.mode === TokenMode.CREATE_NEW
 
   const switchToCreateNew = () => setTokenMode(TokenMode.CREATE_NEW)
   const switchToExisting = () => setTokenMode(TokenMode.EXISTING)
@@ -23,13 +21,13 @@ export function AddTokenInfoStep() {
     <Flex gap="$spacing16">
       <Flex row gap="$spacing12">
         <HookTile
-          selected={isCreateNew}
+          selected={tokenForm.mode === TokenMode.CREATE_NEW}
           title={t('toucan.createAuction.step.tokenInfo.createNew')}
           description={t('toucan.createAuction.step.tokenInfo.createNew.description')}
           onPress={switchToCreateNew}
         />
         <HookTile
-          selected={!isCreateNew}
+          selected={tokenForm.mode === TokenMode.EXISTING}
           title={t('toucan.createAuction.step.tokenInfo.existing')}
           description={t('toucan.createAuction.step.tokenInfo.existing.description')}
           onPress={switchToExisting}
@@ -43,10 +41,10 @@ export function AddTokenInfoStep() {
         p="$spacing24"
         gap="$spacing24"
       >
-        {isCreateNew ? (
-          <CreateNewTokenForm createNew={tokenForm.createNew} />
+        {tokenForm.mode === TokenMode.CREATE_NEW ? (
+          <CreateNewTokenForm createNew={tokenForm} />
         ) : (
-          <ExistingTokenForm existing={tokenForm.existing} />
+          <ExistingTokenForm existing={tokenForm} />
         )}
       </Flex>
     </Flex>

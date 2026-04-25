@@ -21,7 +21,7 @@ export type SectionHeaderProps = {
   sectionHeader?: JSX.Element
 }
 
-export const SectionHeader = memo(function _SectionHeader({
+export const SectionHeader = memo(function SectionHeaderInner({
   sectionKey,
   rightElement,
   endElement,

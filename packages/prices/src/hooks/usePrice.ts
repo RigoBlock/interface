@@ -25,16 +25,20 @@ export function usePrice(options: UsePriceOptions): number | undefined {
 
   const enabled = chainId !== undefined && !!address
 
+  const getIsWsConnected = wsClient ? wsClient.isConnected.bind(wsClient) : () => false
+
   // Data is populated externally via queryClient.setQueryData from WS messages.
-  // When restBatcher is provided, queryFn fires as a fallback when WS data goes stale.
+  // When restBatcher is provided and WS is disconnected, queryFn fires as a
+  // fallback. When WS is connected, refetchInterval is disabled to avoid
+  // redundant REST calls.
   const { data } = useQuery(
     enabled
-      ? tokenPriceQueryOptions({ chainId, address, restBatcher, queryClient })
+      ? tokenPriceQueryOptions({ chainId, address, restBatcher, queryClient, getIsWsConnected })
       : queryOptions<TokenPriceData | null>({ queryKey: priceKeys.all, queryFn: skipToken, enabled: false }),
   )
 
   useEffect(() => {
-    if (!enabled || !live) {
+    if (!enabled || !live || !wsClient) {
       return undefined
     }
     return wsClient.subscribe({

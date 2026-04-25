@@ -18,6 +18,11 @@ const OffchainActivityModal = createLazy(() =>
     default: module.OffchainActivityModal,
   })),
 )
+const TransactionDetailsModalDispatcher = createLazy(() =>
+  import('~/components/TopLevelModals/TransactionDetailsModalDispatcher').then((module) => ({
+    default: module.TransactionDetailsModalDispatcher,
+  })),
+)
 const UkDisclaimerModal = createLazy(() =>
   import('~/components/TopLevelModals/UkDisclaimerModal').then((module) => ({ default: module.UkDisclaimerModal })),
 )
@@ -86,6 +91,37 @@ const ReportTokenModal = createLazy(() =>
     default: module.ReportTokenIssueModal,
   })),
 )
+
+const ReportTokenDataModal = createLazy(() =>
+  import('uniswap/src/components/reporting/ReportTokenDataModal').then((module) => ({
+    default: module.ReportTokenDataModal,
+  })),
+)
+
+const DataApiOutageModal = createLazy(() =>
+  import('~/components/DataApiOutageModal').then((module) => ({ default: module.DataApiOutageModal })),
+)
+
+const AddBackupLoginModal = createLazy(() =>
+  import('~/components/Passkey/AddBackupLoginModal').then((module) => ({ default: module.AddBackupLoginModal })),
+)
+
+const AddPasskeyModal = createLazy(() =>
+  import('~/components/Passkey/AddPasskeyModal').then((module) => ({ default: module.AddPasskeyModal })),
+)
+const RecoverWalletModal = createLazy(() =>
+  import('~/components/Passkey/RecoverWalletModal').then((module) => ({ default: module.RecoverWalletModal })),
+)
+
+const RemovePasskeyModal = createLazy(() =>
+  import('~/components/Passkey/RemovePasskeyModal').then((module) => ({ default: module.RemovePasskeyModal })),
+)
+
+const RemoveBackupLoginModal = createLazy(() =>
+  import('~/components/Passkey/RemoveBackupLoginModal').then((module) => ({
+    default: module.RemoveBackupLoginModal,
+  })),
+)
 function ModalLoadingFallback(): null {
   return null
 }
@@ -128,6 +164,10 @@ export const modalRegistry: ModalRegistry = {
   },
   [ModalName.OffchainActivity]: {
     component: OffchainActivityModal,
+    shouldMount: () => true,
+  },
+  [ModalName.TransactionDetails]: {
+    component: TransactionDetailsModalDispatcher,
     shouldMount: () => true,
   },
   [ModalName.UkDisclaimer]: {
@@ -214,6 +254,34 @@ export const modalRegistry: ModalRegistry = {
     component: ReportTokenModal,
     shouldMount: (state) => state.application.openModal?.name === ModalName.ReportTokenIssue,
   },
+  [ModalName.ReportTokenData]: {
+    component: ReportTokenDataModal,
+    shouldMount: (state) => state.application.openModal?.name === ModalName.ReportTokenData,
+  },
+  [ModalName.DataApiOutage]: {
+    component: DataApiOutageModal,
+    shouldMount: (state) => state.application.openModal?.name === ModalName.DataApiOutage,
+  },
+  [ModalName.AddBackupLogin]: {
+    component: AddBackupLoginModal,
+    shouldMount: (state) => state.application.openModal?.name === ModalName.AddBackupLogin,
+  },
+  [ModalName.AddPasskey]: {
+    component: AddPasskeyModal,
+    shouldMount: (state) => state.application.openModal?.name === ModalName.AddPasskey,
+  },
+  [ModalName.RecoverWallet]: {
+    component: RecoverWalletModal,
+    shouldMount: (state) => state.application.openModal?.name === ModalName.RecoverWallet,
+  },
+  [ModalName.DeletePasskey]: {
+    component: RemovePasskeyModal,
+    shouldMount: (state) => state.application.openModal?.name === ModalName.DeletePasskey,
+  },
+  [ModalName.RemoveBackupLogin]: {
+    component: RemoveBackupLoginModal,
+    shouldMount: (state) => state.application.openModal?.name === ModalName.RemoveBackupLogin,
+  },
 } as const
 
 export const ModalRenderer = ({
@@ -223,6 +291,7 @@ export const ModalRenderer = ({
   modalName: ModalNameType
   componentProps?: Record<string, any>
 }) => {
+  // oxlint-disable-next-line no-shadow
   const state = useAppSelector((state) => state)
   const modalState = useModalState(modalName)
 

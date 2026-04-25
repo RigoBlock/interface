@@ -195,6 +195,7 @@ test.describe(
         const bottomBar = page.getByTestId(TestID.TokenDetailsMobileBottomBar)
         await expect(bottomBar).toBeVisible()
         await expect(bottomBar.getByText('Buy')).toBeVisible()
+        await expect(bottomBar.getByText('Sell')).toBeVisible()
       })
     })
   },

@@ -1,4 +1,3 @@
-/* biome-ignore-all lint/suspicious/noExplicitAny: Test utilities need flexible typing for generic render functions */
 import { InMemoryCache } from '@apollo/client'
 import type { EnhancedStore, PreloadedState } from '@reduxjs/toolkit'
 import { configureStore } from '@reduxjs/toolkit'
@@ -155,7 +154,7 @@ export function renderHookWithProviders<P extends any[], R>(
     ...(renderOptions as RenderHookOptions<P>),
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
   const { rerender, ...rest } = RNRenderHook<R, P>((args: P) => hook(...(args ?? [])), options)
 
   // Return an object with the store and all of RTL's query functions

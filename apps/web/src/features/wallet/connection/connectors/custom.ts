@@ -28,15 +28,18 @@ const APPLY_CUSTOM_CONNECTOR_META_MAP = {
  *
  */
 export function applyCustomConnectorMeta(walletConnectors: WalletConnectorMeta[]): WalletConnectorMeta[] {
-  return Object.values(APPLY_CUSTOM_CONNECTOR_META_MAP)
-    .reduce((acc, applyCustomConnectorMeta) => applyCustomConnectorMeta(acc), walletConnectors)
-    .map((connector) => {
-      const iconOverride = CONNECTOR_ICON_OVERRIDE_MAP[connector.name]
-      if (iconOverride) {
-        return { ...connector, icon: iconOverride }
-      }
-      return connector
-    })
+  return (
+    Object.values(APPLY_CUSTOM_CONNECTOR_META_MAP)
+      // oxlint-disable-next-line no-shadow
+      .reduce((acc, applyCustomConnectorMeta) => applyCustomConnectorMeta(acc), walletConnectors)
+      .map((connector) => {
+        const iconOverride = CONNECTOR_ICON_OVERRIDE_MAP[connector.name]
+        if (iconOverride) {
+          return { ...connector, icon: iconOverride }
+        }
+        return connector
+      })
+  )
 }
 
 // CUSTOM CONNECTOR FUNCTIONS

@@ -7,6 +7,7 @@ import { ViemClientManager } from 'wallet/src/features/providers/ViemClientManag
 import { getProviderManager, getViemClientManager } from 'wallet/src/features/wallet/context'
 
 // Initialize Ethers providers for the chains the wallet interacts with
+// oxlint-disable-next-line typescript/explicit-function-return-type
 export function* initProviders() {
   logger.debug('providerSaga', 'initProviders', 'Initializing providers')
   const providerManager = yield* call(getProviderManager)
@@ -24,6 +25,7 @@ export function* initProviders() {
   logger.debug('providerSaga', 'initProviders', 'Providers ready')
 }
 
+// oxlint-disable-next-line typescript/explicit-function-return-type
 function* initProvider({
   chainId,
   providerManager,

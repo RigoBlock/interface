@@ -78,6 +78,7 @@ interface CopyHelperProps {
   disabled?: boolean
   children: ReactNode
   externalHover?: boolean
+  onCopy?: () => void
 }
 
 type CopyHelperRefType = { forceCopy: () => void }
@@ -97,14 +98,20 @@ export const CopyHelper = forwardRef<CopyHelperRefType, CopyHelperProps>(
       disabled = false,
       children,
       externalHover = false,
+      onCopy,
     }: CopyHelperProps,
     ref,
   ) => {
     const [isCopied, setCopied] = useCopyClipboard(1000)
 
-    const copy = useCallback(() => {
-      setCopied(toCopy)
-    }, [toCopy, setCopied])
+    const copy = useCallback(
+      (e?: { preventDefault: () => void }) => {
+        e?.preventDefault()
+        setCopied(toCopy)
+        onCopy?.()
+      },
+      [onCopy, toCopy, setCopied],
+    )
 
     useImperativeHandle(ref, () => ({
       forceCopy() {
@@ -126,6 +133,7 @@ export const CopyHelper = forwardRef<CopyHelperRefType, CopyHelperProps>(
     const showIcon =
       alwaysShowIcon || Boolean(iconPosition === 'left' || isHover || externalHover || isTouchable || isCopied)
     const offset = showIcon ? gap + iconSize : 0
+
     return (
       <Flex
         row

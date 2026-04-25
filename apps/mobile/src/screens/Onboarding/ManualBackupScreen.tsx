@@ -102,6 +102,7 @@ export function ManualBackupScreen({ navigation, route: { params } }: Props): JS
 
   useEffect(() => {
     if (confirmContinueButtonPressed && hasBackup(BackupType.Manual, account)) {
+      setShowSpeedBumpModal(false)
       if (params.entryPoint === OnboardingEntryPoint.BackupCard) {
         navigate(MobileScreens.Home)
       } else {

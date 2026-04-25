@@ -49,7 +49,7 @@ export function UserPropertyUpdater() {
 
     // Service Worker analytics
     // This null check is necessary to avoid a crash on mobile browsers like Safari.
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     const isServiceWorkerInstalled = Boolean(window.navigator.serviceWorker?.controller)
     const serviceWorkerProperty = isServiceWorkerInstalled ? 'installed' : 'uninstalled'
 
@@ -57,6 +57,7 @@ export function UserPropertyUpdater() {
     try {
       const timing = performance
         .getEntriesByType('resource')
+        // oxlint-disable-next-line no-shadow
         .find((timing) => timing.name.match(/\/static\/js\/main\.\w{8}\.js$/)) as PerformanceResourceTiming
       if (timing.transferSize === 0) {
         cache = 'hit'

@@ -2,6 +2,7 @@ import { PartialMessage } from '@bufbuild/protobuf'
 import { ConnectError } from '@connectrpc/connect'
 import { createQueryOptions, useQuery } from '@connectrpc/connect-query'
 import { UseQueryResult } from '@tanstack/react-query'
+import { searchTokens } from '@uniswap/client-search/dist/search/v1/api-searchService_connectquery'
 import {
   type ChainToken,
   type MultichainToken,
@@ -11,7 +12,6 @@ import {
   SearchTokensResponse,
   SearchType,
 } from '@uniswap/client-search/dist/search/v1/api_pb'
-import { searchTokens } from '@uniswap/client-search/dist/search/v1/api-searchService_connectquery'
 import { parseProtectionInfo, parseRestProtocolVersion, parseSafetyLevel, SharedQueryClient } from '@universe/api'
 import { getNativeAddress } from 'uniswap/src/constants/addresses'
 import { uniswapPostTransport } from 'uniswap/src/data/rest/base'

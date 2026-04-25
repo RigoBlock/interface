@@ -12,7 +12,7 @@ export enum TooltipSize {
   Max = 'max-content',
 }
 
-// eslint-disable-next-line consistent-return
+// oxlint-disable-next-line typescript/consistent-return
 const getPaddingForSize = (size: TooltipSize) => {
   switch (size) {
     case TooltipSize.ExtraSmall:
@@ -101,7 +101,7 @@ export const MouseoverTooltip = memo(function MouseoverTooltip(props: MouseoverT
       show={forceShow || show}
       {...rest}
     >
-      <Flex onMouseEnter={open} onMouseLeave={timeout ? noop : close}>
+      <Flex cursor="default" onMouseEnter={open} onMouseLeave={timeout ? noop : close}>
         {typeof children === 'string' || typeof children === 'number' ? (
           <Text variant="body3">{children}</Text>
         ) : (

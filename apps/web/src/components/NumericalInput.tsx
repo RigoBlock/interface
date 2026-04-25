@@ -85,6 +85,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       }
     }
 
+    // oxlint-disable-next-line no-shadow
     const formatValueWithLocale = (value: string | number) => {
       const [searchValue, replaceValue] = localeUsesComma(locale) ? [/\./g, ','] : [/,/g, '.']
       return value.toString().replace(searchValue, replaceValue)
@@ -100,6 +101,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         data-testid={testId}
         onChange={(event) => {
           if (prependSymbol) {
+            // oxlint-disable-next-line no-shadow
             const value = event.target.value
 
             // cut off prepended symbol

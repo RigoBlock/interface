@@ -11,11 +11,10 @@ export function TokenLaunchedBannerWrapper({ bannerGradient, children }: TokenLa
     <Flex
       position="relative"
       overflow="hidden"
-      borderRadius="$rounded24"
+      borderRadius="$rounded12"
       width="100%"
-      p="$spacing20"
-      mb="$spacing28"
-      $md={{ mb: '$spacing20' }}
+      px="$spacing24"
+      py="$spacing16"
       style={bannerGradient}
     >
       {children}

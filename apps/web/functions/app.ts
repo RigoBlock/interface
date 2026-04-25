@@ -1,4 +1,5 @@
 import { poolImageHandler } from 'functions/api/image/pools'
+import { positionImageHandler } from 'functions/api/image/positions'
 import { tokenImageHandler } from 'functions/api/image/tokens'
 import { metaTagInjectionMiddleware } from 'functions/components/metaTagInjector'
 import { rewriteProxiedCookies } from 'functions/cookie-utils'
@@ -13,9 +14,19 @@ type Bindings = {
 interface AppConfig {
   fetchSpaHtml: (c: Context) => Promise<Response>
   getEntryGatewayUrl: (c: Context) => string
-  getPrivyEwUrl: (c: Context) => string
   getWebSocketUrl: (c: Context) => string
   getTrustedClientIp: (c: Context) => string | undefined
+}
+
+// ── Frame protection ─────────────────────────────────────────────────
+// frame-ancestors cannot be enforced via <meta> CSP tags (W3C spec) — it
+// must be an HTTP response header. Cloudflare Workers returns responses
+// with immutable headers, so we clone into a mutable Response.
+function withFrameProtection(res: Response): Response {
+  const headers = new Headers(res.headers)
+  headers.set('Content-Security-Policy', "frame-ancestors 'self' https://app.safe.global")
+  headers.set('X-Frame-Options', 'SAMEORIGIN')
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers })
 }
 
 // ── Shared constants ─────────────────────────────────────────────────
@@ -28,11 +39,6 @@ export const ENTRY_GATEWAY_URLS = {
 // Statsig proxy via Cloudflare gateway — the URL is constant for the web app
 // (platform prefix "interface", service prefix "gating")
 const STATSIG_PROXY_TARGET = 'https://gating.interface.gateway.uniswap.org'
-export const PRIVY_EW_URLS = {
-  development: 'https://privy-embedded-wallet.backend-dev.api.uniswap.org',
-  staging: 'https://privy-embedded-wallet.backend-dev.api.uniswap.org',
-  production: 'https://privy-embedded-wallet.backend-prod.api.uniswap.org',
-} as const
 
 export const WEBSOCKET_URLS = {
   development: 'https://websockets.backend-staging.api.uniswap.org',
@@ -50,13 +56,15 @@ function cacheControl(maxAge: number) {
   }
 }
 
-export function createApp({ fetchSpaHtml, getEntryGatewayUrl, getPrivyEwUrl, getWebSocketUrl, getTrustedClientIp }: AppConfig) {
+export function createApp({ fetchSpaHtml, getEntryGatewayUrl, getWebSocketUrl, getTrustedClientIp }: AppConfig) {
   const app = new Hono<{ Bindings: Bindings }>()
 
   // ── OG image routes ────────────────────────────────────────────────────
   app.get('/api/image/tokens/:networkName/:tokenAddress', cacheControl(604800), tokenImageHandler)
 
   app.get('/api/image/pools/:networkName/:poolAddress', cacheControl(604800), poolImageHandler)
+
+  app.get('/api/image/positions/:version/:chainName/:identifier', cacheControl(604800), positionImageHandler)
 
   // ── BFF proxy: entry-gateway ─────────────────────────────────────────
   app.all('/entry-gateway/*', async (c) => {
@@ -90,24 +98,6 @@ export function createApp({ fetchSpaHtml, getEntryGatewayUrl, getPrivyEwUrl, get
     return rewriteProxiedCookies(response)
   })
 
-  // ── BFF proxy: privy-ew ────────────────────────────────────────────
-  app.all('/privy-ew/*', async (c) => {
-    const privyEwUrl = getPrivyEwUrl(c)
-    const path = c.req.path.slice('/privy-ew'.length) || '/'
-    const query = new URL(c.req.url).search
-
-    const response = await proxy(`${privyEwUrl}${path}${query}`, {
-      ...c.req,
-      headers: {
-        ...c.req.header(),
-        host: undefined,
-      },
-      redirect: 'manual',
-    })
-
-    return rewriteProxiedCookies(response)
-  })
-
   // ── BFF proxy: config ──────────────────────────────────────────────
   app.all('/config/*', async (c) => {
     const path = c.req.path.replace(/^\/config/, '/v1/statsig-proxy')
@@ -122,7 +112,7 @@ export function createApp({ fetchSpaHtml, getEntryGatewayUrl, getPrivyEwUrl, get
       redirect: 'manual',
     })
   })
-  
+
   // ── BFF proxy: WebSocket ────────────────────────────────────────────
   // In production, clients connect directly to the backend WebSocket
   // service — see getWebSocketUrl() in packages/api/src/getWebSocketUrl.ts.
@@ -155,11 +145,11 @@ export function createApp({ fetchSpaHtml, getEntryGatewayUrl, getPrivyEwUrl, get
     // API routes should not be processed by meta tag injection
     if (url.pathname.startsWith('/api/')) {
       await next()
-      return c.res
+      return withFrameProtection(c.res)
     }
 
     // For non-API routes, use meta tag injection middleware
-    return metaTagInjectionMiddleware(c, next)
+    return withFrameProtection(await metaTagInjectionMiddleware(c, next))
   })
 
   return app

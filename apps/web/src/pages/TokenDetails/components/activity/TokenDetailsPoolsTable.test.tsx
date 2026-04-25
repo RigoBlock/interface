@@ -1,5 +1,4 @@
 import '~/test-utils/tokens/mocks'
-
 import { ApolloError } from '@apollo/client'
 import { type Currency, Percent, Token } from '@uniswap/sdk-core'
 import { GraphQLApi } from '@universe/api'
@@ -48,7 +47,9 @@ describe('TDPPoolTable', () => {
       loadMore: vi.fn(),
     })
 
-    const { asFragment } = renderWithProvider(<TokenDetailsPoolsTable referenceCurrency={mockCurrency} />)
+    const { asFragment } = renderWithProvider(
+      <TokenDetailsPoolsTable referenceCurrency={mockCurrency} isMultichainView={false} />,
+    )
     expect(screen.getAllByTestId('cell-loading-bubble')).not.toBeNull()
     expect(asFragment()).toMatchSnapshot()
   })
@@ -63,7 +64,9 @@ describe('TDPPoolTable', () => {
       loadMore: vi.fn(),
     })
 
-    const { asFragment } = renderWithProvider(<TokenDetailsPoolsTable referenceCurrency={mockCurrency} />)
+    const { asFragment } = renderWithProvider(
+      <TokenDetailsPoolsTable referenceCurrency={mockCurrency} isMultichainView={false} />,
+    )
     expect(screen.getByTestId('table-error-modal')).not.toBeNull()
     expect(asFragment()).toMatchSnapshot()
   })
@@ -97,7 +100,9 @@ describe('TDPPoolTable', () => {
       loadMore: vi.fn(),
     })
 
-    const { asFragment } = renderWithProvider(<TokenDetailsPoolsTable referenceCurrency={mockCurrency} />)
+    const { asFragment } = renderWithProvider(
+      <TokenDetailsPoolsTable referenceCurrency={mockCurrency} isMultichainView={false} />,
+    )
     expect(screen.getByTestId(`tdp-pools-table-${validBEPoolToken0.id}`)).not.toBeNull()
     expect(asFragment()).toMatchSnapshot()
   })

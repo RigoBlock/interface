@@ -48,6 +48,7 @@ const Portfolio = lazy(() => import('~/pages/Portfolio/Portfolio'))
 const ToucanToken = lazy(() => import('~/pages/Explore/ToucanToken'))
 const CreateAuction = lazy(() => import('~/pages/Liquidity/CreateAuction/CreateAuction'))
 const XOAuthCallbackPage = lazy(() => import('~/pages/Liquidity/CreateAuction/XOAuthCallbackPage'))
+const BetaPage = lazy(() => import('~/pages/Beta'))
 const Wrapped = lazy(() => import('~/pages/Wrapped'))
 
 interface RouterConfig {
@@ -227,6 +228,7 @@ export const routes: RouteDefinition[] = [
               window.location.href = 'https://vote.uniswapfoundation.org'
               return null
             }}
+            // oxlint-disable-next-line react/self-closing-comp -- biome-parity: oxlint is stricter here
           ></Route>
         </Routes>
       )
@@ -433,6 +435,15 @@ export const routes: RouteDefinition[] = [
     getTitle: () => 'Uniswap Wrapped',
     enabled: (args) => args.isWrappedEnabled ?? false,
   }),
+  createRouteDefinition({
+    path: '/preview',
+    getTitle: () => 'Uniswap Preview',
+    getElement: () => (
+      <Suspense fallback={null}>
+        <BetaPage />
+      </Suspense>
+    ),
+  }),
   createRouteDefinition({ path: '*', getElement: () => <Navigate to="/not-found" replace /> }),
   createRouteDefinition({ path: '/not-found', getElement: () => <NotFound /> }),
 ]
@@ -445,6 +456,7 @@ export const findRouteByPath = (pathname: string) => {
     }
     const subPaths = route.nestedPaths.map((nestedPath) => `${route.path}/${nestedPath}`)
     for (const subPath of subPaths) {
+      // oxlint-disable-next-line no-shadow
       const match = matchPath(subPath, pathname)
       if (match) {
         return route

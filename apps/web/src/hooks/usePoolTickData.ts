@@ -147,8 +147,10 @@ export function useAllPoolTicks({
 
   useEffect(() => {
     if (ticks?.length) {
+      // oxlint-disable-next-line no-shadow
       setTickData((tickData) => [...tickData, ...ticks])
       if (ticks.length === MAX_TICK_FETCH_VALUE) {
+        // oxlint-disable-next-line no-shadow
         setSkipNumber((skipNumber) => skipNumber + MAX_TICK_FETCH_VALUE)
       }
     }

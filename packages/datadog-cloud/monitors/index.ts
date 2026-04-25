@@ -5,4 +5,4 @@ export {
   devPortalAuthMonitors,
   devPortalGatewayMonitors,
   devPortalLogMonitors,
-} from './dev-portal';
+} from './dev-portal'

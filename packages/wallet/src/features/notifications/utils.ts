@@ -12,7 +12,7 @@ import { getCurrencyDisplayText, getFormattedCurrencyAmount, getSymbolDisplayTex
 import { currencyIdToAddress } from 'uniswap/src/utils/currencyId'
 import { shortenAddress } from 'utilities/src/addresses'
 
-// eslint-disable-next-line consistent-return
+// oxlint-disable-next-line typescript/consistent-return
 export const formWCNotificationTitle = (appNotification: WalletConnectNotification): string => {
   const { event, dappName, chainId } = appNotification
 

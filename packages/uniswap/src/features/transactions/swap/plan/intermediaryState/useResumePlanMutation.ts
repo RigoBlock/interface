@@ -102,8 +102,6 @@ function createSwapFormStateFromPlanResponse(
     exactAmountFiat: undefined,
     showPendingUI: false,
     isConfirmed: false,
-    instantReceiptFetchTime: undefined,
-    instantOutputAmountRaw: undefined,
     txHash: undefined,
     txHashReceivedTime: undefined,
     isSubmitting: false,

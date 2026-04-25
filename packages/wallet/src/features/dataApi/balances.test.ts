@@ -1,16 +1,18 @@
 import { NetworkStatus } from '@apollo/client'
-import { Token } from '@uniswap/sdk-core'
+import type { Token } from '@uniswap/sdk-core'
+import { usePortfolioTotalValue } from 'uniswap/src/features/dataApi/balances/balancesRest'
+import type { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
 import {
-  sortPortfolioBalances,
   usePortfolioBalances,
   usePortfolioValueModifiers,
   useSortedPortfolioBalances,
   useTokenBalancesGroupedByVisibility,
-} from 'uniswap/src/features/dataApi/balances/balances'
-import { usePortfolioTotalValue } from 'uniswap/src/features/dataApi/balances/balancesRest'
-import { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
-import { initialUserSettingsState, UserSettingsState } from 'uniswap/src/features/settings/slice'
-import { CurrencyIdToVisibility, initialVisibilityState, VisibilityState } from 'uniswap/src/features/visibility/slice'
+} from 'uniswap/src/features/portfolio/balances/hooks'
+import { sortPortfolioBalances } from 'uniswap/src/features/portfolio/balances/sortPortfolioBalances'
+import { initialUserSettingsState } from 'uniswap/src/features/settings/slice'
+import type { UserSettingsState } from 'uniswap/src/features/settings/slice'
+import { initialVisibilityState } from 'uniswap/src/features/visibility/slice'
+import type { CurrencyIdToVisibility, VisibilityState } from 'uniswap/src/features/visibility/slice'
 import {
   ARBITRUM_CURRENCY,
   BASE_CURRENCY,
@@ -151,6 +153,7 @@ describe(usePortfolioBalances, () => {
       networkStatus: NetworkStatus.loading, // TanStack Query initial state
       refetch: expect.any(Function),
       error: undefined,
+      dataUpdatedAt: undefined,
     })
   })
 })
@@ -165,6 +168,7 @@ describe(usePortfolioTotalValue, () => {
       networkStatus: NetworkStatus.loading, // TanStack Query initial state
       refetch: expect.any(Function),
       error: undefined,
+      dataUpdatedAt: undefined,
     })
   })
 })
@@ -308,7 +312,7 @@ describe(sortPortfolioBalances, () => {
   it('[prod mode] sorts balances with USD value by USD value in descending order', () => {
     const result = sortPortfolioBalances({ balances: balancesWithUSD, isTestnetModeEnabled: false })
 
-    expect(result).toEqual(balancesWithUSD.sort((a, b) => b.balanceUSD! - a.balanceUSD!))
+    expect(result).toEqual(balancesWithUSD.sort((a, b) => (b.balanceUSD ?? 0) - (a.balanceUSD ?? 0)))
   })
 
   it('[prod mode] sorts balances without USD value by name', () => {
@@ -338,7 +342,7 @@ describe(sortPortfolioBalances, () => {
   it('[testnet mode] sorts native balances by balance in descending order', () => {
     const result = sortPortfolioBalances({ balances: nativeBalances, isTestnetModeEnabled: true })
 
-    expect(result).toEqual(nativeBalances.sort((a, b) => b.quantity! - a.quantity!))
+    expect(result).toEqual(nativeBalances.sort((a, b) => b.quantity - a.quantity))
   })
 
   it('[testnet mode] sorts token balances by name', () => {

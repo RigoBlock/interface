@@ -1,7 +1,7 @@
 import { LiquidityService } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v1/api_connect'
+import { PERMIT2_ADDRESS } from '@uniswap/permit2-sdk'
 import { V2_FACTORY_ADDRESSES } from '@uniswap/sdk-core'
 import { computePairAddress } from '@uniswap/v2-sdk'
-import { FeatureFlags, getFeatureFlagName } from '@universe/gating'
 import { USDT } from 'uniswap/src/constants/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { WETH } from 'uniswap/src/test/fixtures/lib/sdk'
@@ -43,7 +43,6 @@ test.describe(
       await page.goto('/positions/create')
       await page.getByRole('button', { name: 'Choose token' }).click()
       await page.getByTestId(TestID.ExploreSearchInput).fill(USDT.address)
-      // eslint-disable-next-line
       await page.getByTestId('token-option-1-USDT').first().click()
       await page.getByRole('button', { name: 'Continue' }).click()
       await graphql.waitForResponse('PoolPriceHistory')
@@ -63,7 +62,6 @@ test.describe(
       await page.goto('/positions/create')
       await page.getByRole('button', { name: 'Choose token' }).click()
       await page.getByTestId(TestID.ExploreSearchInput).fill(USDT.address)
-      // eslint-disable-next-line
       await page.getByTestId('token-option-1-USDT').first().click()
       await page.getByRole('button', { name: 'Continue' }).click()
       await graphql.waitForResponse('PoolPriceHistory')
@@ -113,6 +111,102 @@ test.describe(
         await expect(page.getByText('Creating new pool').first()).toBeVisible()
         await page.getByRole('button', { name: 'Continue' }).click()
         await expect(page.url()).toContain('step=1')
+      })
+    })
+
+    test.describe('approval flow', () => {
+      test('should approve tokens and create a V4 position', async ({ page, anvil, graphql }) => {
+        await stubLiquidityServiceEndpoint({
+          page,
+          endpoint: LiquidityService.methods.createLPPosition,
+          modifyRequestData,
+        })
+        await graphql.intercept('SearchTokens', Mocks.Token.search_token_tether)
+        await anvil.setErc20Balance({ address: assume0xAddress(USDT.address), balance: ONE_MILLION_USDT })
+
+        await page.goto('/positions/create')
+        await page.getByRole('button', { name: 'Choose token' }).click()
+        await page.getByTestId(TestID.ExploreSearchInput).fill(USDT.address)
+        await page.getByTestId('token-option-1-USDT').first().click()
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await graphql.waitForResponse('PoolPriceHistory')
+        await graphql.waitForResponse('AllV4Ticks')
+        await page.getByText('Full range').click()
+
+        await page.getByTestId(TestID.AmountInputIn).first().click()
+        await page.getByTestId(TestID.AmountInputIn).first().fill('1')
+
+        await page.getByRole('button', { name: 'Review' }).click()
+        await page.getByRole('button', { name: 'Create' }).click()
+        await expect(page.getByText('Approval pending')).toBeVisible()
+        await expect(page.getByText('Sign message')).toBeVisible()
+        await expect(page.getByText('Created position')).toBeVisible()
+      })
+
+      test('should handle approval when permit2 allowance is already set', async ({ page, anvil, graphql }) => {
+        await stubLiquidityServiceEndpoint({
+          page,
+          endpoint: LiquidityService.methods.createLPPosition,
+          modifyRequestData,
+        })
+        await stubLiquidityServiceEndpoint({
+          page,
+          endpoint: LiquidityService.methods.checkLPApproval,
+          modifyResponseData: (data) => {
+            return { ...data, token1Approval: null, permitBatchData: null }
+          },
+        })
+        await graphql.intercept('SearchTokens', Mocks.Token.search_token_tether)
+        await anvil.setErc20Balance({ address: assume0xAddress(USDT.address), balance: ONE_MILLION_USDT })
+        await anvil.setErc20Allowance({ address: assume0xAddress(USDT.address), spender: PERMIT2_ADDRESS })
+
+        await page.goto('/positions/create')
+        await page.getByRole('button', { name: 'Choose token' }).click()
+        await page.getByTestId(TestID.ExploreSearchInput).fill(USDT.address)
+        await page.getByTestId('token-option-1-USDT').first().click()
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await graphql.waitForResponse('PoolPriceHistory')
+        await graphql.waitForResponse('AllV4Ticks')
+        await page.getByText('Full range').click()
+
+        await page.getByTestId(TestID.AmountInputIn).first().click()
+        await page.getByTestId(TestID.AmountInputIn).first().fill('1')
+
+        await page.getByRole('button', { name: 'Review' }).click()
+        await page.getByRole('button', { name: 'Create' }).click()
+        await expect(page.getByText('Approval required')).not.toBeVisible()
+        await expect(page.getByText('Signature required')).not.toBeVisible()
+        await expect(page.getByText('Created position')).toBeVisible()
+      })
+    })
+
+    test.describe('error handling', () => {
+      test('should gracefully handle errors during review', async ({ page, anvil }) => {
+        await stubLiquidityServiceEndpoint({
+          page,
+          endpoint: LiquidityService.methods.createLPPosition,
+          modifyRequestData: (data) => {
+            data.v4CreateLpPosition.simulateTransaction = true
+            return data
+          },
+        })
+        await anvil.setErc20Balance({ address: assume0xAddress(USDT.address), balance: ONE_MILLION_USDT })
+        await page.goto(`/positions/create?currencyA=NATIVE&currencyB=${USDT.address}`)
+
+        await page.getByRole('button', { name: 'Continue' }).click()
+
+        await page.getByTestId(TestID.AmountInputIn).first().click()
+        await page.getByTestId(TestID.AmountInputIn).first().fill('1')
+
+        await expect(page.getByText('Something went wrong')).toBeVisible()
+        await expect(page.getByText('Request failed')).toBeVisible()
+
+        await page.getByTestId(TestID.AmountInputIn).first().click()
+        await page.getByTestId(TestID.AmountInputIn).first().fill('2')
+
+        await expect(page.getByText('Something went wrong')).not.toBeVisible()
+        await expect(page.getByText('Request failed')).not.toBeVisible()
+        await expect(page.getByRole('button', { name: 'Review' })).toBeVisible()
       })
     })
 
@@ -170,13 +264,13 @@ test.describe(
         })
         await graphql.intercept('PoolPriceHistory', Mocks.PoolPriceHistory.eth_weeth)
         await graphql.intercept('AllV4Ticks', Mocks.AllV4Ticks.eth_weeth)
-        await anvil.setBalance({ address: assume0xAddress(TEST_WALLET_ADDRESS), value: parseEther('0.03733') })
-        await anvil.setErc20Balance({ address: assume0xAddress(WEETH_ADDRESS), balance: parseEther('0.0654') })
+        await anvil.setBalance({ address: assume0xAddress(TEST_WALLET_ADDRESS), value: parseEther('10') })
+        await anvil.setErc20Balance({ address: assume0xAddress(WEETH_ADDRESS), balance: parseEther('100') })
 
         await page.goto(ETH_WEETH_CREATE_URL)
 
         await page.getByTestId(TestID.AmountInputIn).last().click()
-        await page.getByTestId(TestID.AmountInputIn).last().fill('0.065')
+        await page.getByTestId(TestID.AmountInputIn).last().fill('3')
         await expect(page.getByText('Slippage automatically reduced')).toBeVisible()
       })
 
@@ -195,13 +289,13 @@ test.describe(
         })
         await graphql.intercept('PoolPriceHistory', Mocks.PoolPriceHistory.eth_weeth)
         await graphql.intercept('AllV4Ticks', Mocks.AllV4Ticks.eth_weeth)
-        await anvil.setBalance({ address: assume0xAddress(TEST_WALLET_ADDRESS), value: parseEther('0.03733') })
-        await anvil.setErc20Balance({ address: assume0xAddress(WEETH_ADDRESS), balance: parseEther('0.0654') })
+        await anvil.setBalance({ address: assume0xAddress(TEST_WALLET_ADDRESS), value: parseEther('10000') })
+        await anvil.setErc20Balance({ address: assume0xAddress(WEETH_ADDRESS), balance: parseEther('10') })
 
         await page.goto(ETH_WEETH_CREATE_URL)
 
         await page.getByTestId(TestID.AmountInputIn).last().click()
-        await page.getByTestId(TestID.AmountInputIn).last().fill('0.065')
+        await page.getByTestId(TestID.AmountInputIn).last().fill('5')
         await page.getByRole('button', { name: 'Review' }).click()
         await expect(page.getByText('Very high slippage')).toBeVisible()
         await page.getByRole('button', { name: 'Cancel' }).click()

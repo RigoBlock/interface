@@ -1,4 +1,3 @@
-import { CHART_BEHAVIOR } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/constants'
 import { createCurrentTickRenderer } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/store/renderers/CurrentTickRenderer'
 import { createLiquidityBarsOverlayRenderer } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/store/renderers/LiquidityBarsOverlayRenderer'
 import { createLiquidityBarsRenderer } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/store/renderers/LiquidityBarsRenderer'
@@ -9,11 +8,9 @@ import { createPriceLineRenderer } from '~/components/Charts/D3LiquidityRangeInp
 import { createScrollbarContainerRenderer } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/store/renderers/ScrollbarContainerRenderer'
 import { createTimescaleRenderer } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/store/renderers/TimescaleRenderer'
 import type {
-  AnimationParams,
   ChartStoreState,
   RenderingContext,
 } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/store/types'
-import { snapTickToSpacing } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/utils/tickUtils'
 
 export const createRenderActions = (
   set: (fn: (state: ChartStoreState) => ChartStoreState) => void,
@@ -121,56 +118,5 @@ export const createRenderActions = (
     if (renderers.timescaleRenderer) {
       renderers.timescaleRenderer.draw()
     }
-  },
-
-  animateToState: ({
-    targetZoom,
-    targetPan,
-    targetMinTick,
-    targetMaxTick,
-    duration = CHART_BEHAVIOR.ANIMATION_DURATION,
-  }: AnimationParams) => {
-    const { zoomLevel, panY, minTick, maxTick, renderingContext } = get()
-
-    if (!renderingContext) {
-      return
-    }
-
-    const startZoom = zoomLevel
-    const startPan = panY
-    const startMinTick = minTick ?? 0
-    const startMaxTick = maxTick ?? 0
-    const startTime = Date.now()
-    const animate = () => {
-      const elapsed = Date.now() - startTime
-      const progress = Math.min(elapsed / duration, 1)
-      // Modern easeOutQuart for snappy, smooth feel
-      const easeProgress = 1 - Math.pow(1 - progress, 4)
-      // Interpolate zoom and pan values
-      const currentZoom = startZoom + (targetZoom - startZoom) * easeProgress
-      const currentPan = startPan + (targetPan - startPan) * easeProgress
-      // Interpolate price range if targets provided
-      let currentMinTick = startMinTick
-      let currentMaxTick = startMaxTick
-      if (targetMinTick !== undefined && targetMaxTick !== undefined) {
-        currentMinTick = startMinTick + (targetMinTick - startMinTick) * easeProgress
-        currentMaxTick = startMaxTick + (targetMaxTick - startMaxTick) * easeProgress
-      }
-
-      // Snap interpolated ticks to valid tick boundaries
-      const snappedMinTick = snapTickToSpacing(currentMinTick, renderingContext.tickSpacing)
-      const snappedMaxTick = snapTickToSpacing(currentMaxTick, renderingContext.tickSpacing)
-      set((state) => ({
-        ...state,
-        zoomLevel: currentZoom,
-        panY: currentPan,
-        minTick: snappedMinTick,
-        maxTick: snappedMaxTick,
-      }))
-      if (progress < 1) {
-        requestAnimationFrame(animate)
-      }
-    }
-    animate()
   },
 })

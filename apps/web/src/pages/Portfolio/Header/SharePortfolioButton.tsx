@@ -13,7 +13,6 @@ import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { useEvent } from 'utilities/src/react/hooks'
 import { ONE_SECOND_MS } from 'utilities/src/time/time'
 import { Dropdown, InternalMenuItem } from '~/components/Dropdowns/Dropdown'
-import { baseActionButtonStyles } from '~/components/Dropdowns/FilterButton'
 import { useActiveAddresses } from '~/features/accounts/store/hooks'
 import useCopyClipboard from '~/hooks/useCopyClipboard'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
@@ -113,7 +112,6 @@ export function SharePortfolioButton({
         }
         hideChevron
         buttonStyle={{
-          ...baseActionButtonStyles,
           height: size === 'small' ? 32 : 40,
           gap: size === 'small' ? '$gap6' : '$gap8',
           px: '$spacing12',

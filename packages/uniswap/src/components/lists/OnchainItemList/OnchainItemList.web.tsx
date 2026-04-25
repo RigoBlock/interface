@@ -1,13 +1,12 @@
 import isArray from 'lodash/isArray'
 import isEqual from 'lodash/isEqual'
 import React, { CSSProperties, Fragment, Key, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-// eslint-disable-next-line @typescript-eslint/no-restricted-imports
-import { LayoutChangeEvent } from 'react-native'
 import AutoSizer from 'react-virtualized-auto-sizer'
 import { VariableSizeList as List } from 'react-window'
 import { Flex, useWindowDimensions } from 'ui/src'
 import { zIndexes } from 'ui/src/theme'
 import { OnchainItemListOption } from 'uniswap/src/components/lists/items/types'
+import { useRowHeightObserver } from 'uniswap/src/components/lists/OnchainItemList/hooks/useRowHeightObserver'
 import {
   ItemRowInfo,
   OnchainItemListProps,
@@ -117,7 +116,7 @@ export function OnchainItemList<T extends OnchainItemListOption>({
 
   // Used for rendering the sticky header
   const activeSessionIndex = useMemo(() => {
-    // eslint-disable-next-line max-params
+    // oxlint-disable-next-line max-params
     return items.slice(0, firstVisibleIndex + 1).reduceRight((acc, item, index) => {
       return acc === -1 && isSectionHeader(item) ? index : acc
     }, -1)
@@ -315,18 +314,21 @@ type RowProps<T extends OnchainItemListOption> = {
   windowWidth: number
   updateRowHeight?: (index: number, height: number) => void
 }
-function _Row<T extends OnchainItemListOption>({ index, itemData, style, updateRowHeight }: RowProps<T>): JSX.Element {
+function RowInner<T extends OnchainItemListOption>({
+  index,
+  itemData,
+  style,
+  updateRowHeight,
+}: RowProps<T>): JSX.Element {
   const rowRef = useRef<HTMLElement>(null)
 
-  const handleLayout = useCallback(
-    (e: LayoutChangeEvent) => {
-      const height = e.nativeEvent.layout.height
-      if (height && updateRowHeight) {
-        updateRowHeight(index, height)
-      }
-    },
-    [updateRowHeight, index],
-  )
+  useRowHeightObserver({
+    ref: rowRef,
+    index,
+    updateRowHeight,
+    itemKey: itemData.key,
+    needsDynamicHeight: isHorizontalTokenRowInfo(itemData),
+  })
 
   const item = useMemo((): JSX.Element | null => {
     if (isSectionHeader(itemData)) {
@@ -338,11 +340,11 @@ function _Row<T extends OnchainItemListOption>({ index, itemData, style, updateR
 
   return (
     <Flex key={itemData.key ?? index} grow alignItems="center" justifyContent="center" style={style}>
-      <Flex ref={rowRef} width="100%" onLayout={handleLayout}>
+      <Flex ref={rowRef} width="100%">
         {item}
       </Flex>
     </Flex>
   )
 }
 
-const Row = React.memo(_Row, isEqual)
+const Row = React.memo(RowInner, isEqual)

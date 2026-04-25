@@ -1,6 +1,5 @@
 import { Fragment, PropsWithChildren, useRef, useState } from 'react'
 import { AdaptiveWebPopoverContent, Popover, RemoveScroll, useMedia } from 'ui/src'
-import { zIndexes } from 'ui/src/theme'
 import { ContextMenuProps } from 'uniswap/src/components/menus/ContextMenu'
 import { MenuContent } from 'uniswap/src/components/menus/ContextMenuContent'
 import { useContextMenuTracking } from 'uniswap/src/components/menus/hooks/useContextMenuTracking'
@@ -10,6 +9,7 @@ import { useEvent, useOnClickOutside } from 'utilities/src/react/hooks'
 
 export function ContextMenu({
   menuItems,
+  contentOverride,
   isPlacementAbove = false,
   isPlacementRight = false,
   offsetX = 0,
@@ -24,7 +24,6 @@ export function ContextMenu({
   sectionName,
   trackItemClicks,
   adaptToSheet = true,
-  zIndex,
 }: PropsWithChildren<ContextMenuProps>): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const triggerContainerRef = useRef<HTMLDivElement>(null)
@@ -113,11 +112,11 @@ export function ContextMenu({
       placement={
         isPlacementAbove
           ? isPlacementRight
-            ? 'top-start' // above & to the right
-            : 'top-end' // above & to the left
+            ? 'top-start'
+            : 'top-end'
           : isPlacementRight
-            ? 'bottom-start' // below & to the right
-            : 'bottom-end' // below & to the left
+            ? 'bottom-start'
+            : 'bottom-end'
       }
       offset={{
         mainAxis: y + (isPlacementAbove ? -offsetY : offsetY),
@@ -132,7 +131,7 @@ export function ContextMenu({
         keeping normal click behavior intact.
       */}
       <Popover.Trigger onMouseDown={isLeftClick ? onContextMenu : undefined}>
-        {/* biome-ignore  lint/correctness/noRestrictedElements: needed here */}
+        {/* oxlint-disable-next-line react/forbid-elements -- needed here */}
         <div
           ref={triggerContainerRef}
           onContextMenu={isLeftClick ? onPreventContextMenu : onContextMenu}
@@ -142,7 +141,7 @@ export function ContextMenu({
         </div>
       </Popover.Trigger>
 
-      <RemoveScroll enabled={isOpen && !isSheet && isWebApp} />
+      <RemoveScroll blockScrollEvents enabled={isOpen && !isSheet && isWebApp} shards={[containerRef]} />
 
       <AdaptiveWebPopoverContent
         ref={containerRef}
@@ -150,34 +149,35 @@ export function ContextMenu({
         backgroundColor="transparent"
         p="$none"
         py="$spacing8"
-        zIndex={zIndex ?? zIndexes.popover}
         isOpen={isOpen}
         isSheet={isSheet}
         webBottomSheetProps={{ onClose: handleCloseMenu }}
       >
-        <MenuContent
-          containerStyles={
-            isSheet
-              ? {
-                  p: '$none',
-                  pb: '$spacing16',
-                  backgroundColor: 'transparent',
-                  borderWidth: '$none',
-                  gap: '$spacing8',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  width: '100%',
-                  minWidth: undefined,
-                  maxWidth: undefined,
-                }
-              : undefined
-          }
-          items={menuItems}
-          handleCloseMenu={handleCloseMenu}
-          elementName={elementName}
-          sectionName={sectionName}
-          trackItemClicks={trackItemClicks}
-        />
+        {contentOverride ?? (
+          <MenuContent
+            containerStyles={
+              isSheet
+                ? {
+                    p: '$none',
+                    pb: '$spacing16',
+                    backgroundColor: 'transparent',
+                    borderWidth: '$none',
+                    gap: '$spacing8',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    width: '100%',
+                    minWidth: undefined,
+                    maxWidth: undefined,
+                  }
+                : undefined
+            }
+            items={menuItems}
+            handleCloseMenu={handleCloseMenu}
+            elementName={elementName}
+            sectionName={sectionName}
+            trackItemClicks={trackItemClicks}
+          />
+        )}
       </AdaptiveWebPopoverContent>
     </Popover>
   )

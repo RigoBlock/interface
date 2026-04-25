@@ -22,7 +22,7 @@ import {
   PasskeySignInFlowOpenedSchema,
 } from 'uniswap/src/extension/messagePassing/types/requests'
 import { EXTENSION_PASSKEY_AUTH_PATH } from 'uniswap/src/features/passkey/constants'
-import { getPrivyEnums } from 'uniswap/src/features/passkey/embeddedWallet'
+import { Action, AuthenticationTypes } from 'uniswap/src/features/passkey/embeddedWallet'
 import { useEmbeddedWalletBaseUrl } from 'uniswap/src/features/passkey/hooks/useEmbeddedWalletBaseUrl'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { ExtensionOnboardingFlow, ExtensionOnboardingScreens } from 'uniswap/src/types/screens/extension'
@@ -114,7 +114,6 @@ function InitiatePasskeyAuthContent(): JSX.Element {
 
   const popupWindow = useRef<chrome.windows.Window | undefined>(undefined)
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Only run once on mount to initiate auth flow, all handlers are created fresh each render
   useEffect(() => {
     let handleMessagePasskeySignInFlowOpened: Parameters<typeof chrome.runtime.onMessageExternal.addListener>[0]
     let handleMessagePasskeyCredentialRetrieved: Parameters<typeof chrome.runtime.onMessageExternal.addListener>[0]
@@ -129,7 +128,6 @@ function InitiatePasskeyAuthContent(): JSX.Element {
       try {
         const requestId = uuid()
 
-        const { Action, AuthenticationTypes } = await getPrivyEnums()
         const challengeResponse = await EmbeddedWalletApiClient.fetchChallengeRequest({
           type: AuthenticationTypes.PASSKEY_AUTHENTICATION,
           action: Action.EXPORT_SEED_PHRASE,
@@ -153,17 +151,18 @@ function InitiatePasskeyAuthContent(): JSX.Element {
           }
 
           closeWindow(popupWindow.current)
+          // oxlint-disable-next-line typescript/no-floating-promises -- biome-parity: oxlint is stricter here
           importWithCredential(parsedMessage.credential)
           goToNextStep()
         }
 
         chrome.runtime.onMessageExternal.addListener(handleMessagePasskeyCredentialRetrieved)
 
+        // oxlint-disable-next-line max-params
         handleMessagePasskeySignInFlowOpened = async (
           message: unknown,
           _sender: unknown,
           sendResponse: (response: unknown) => void,
-          // eslint-disable-next-line max-params
         ) => {
           try {
             logger.debug('InitiatePasskeyAuth.tsx', 'handleMessagePasskeySignInFlowOpened', 'Message received', {
@@ -212,6 +211,7 @@ function InitiatePasskeyAuthContent(): JSX.Element {
       }
     }
 
+    // oxlint-disable-next-line typescript/no-floating-promises -- biome-parity: oxlint is stricter here
     initiatePasskeyAuth()
 
     return () => {
@@ -219,6 +219,7 @@ function InitiatePasskeyAuthContent(): JSX.Element {
       chrome.runtime.onMessageExternal.removeListener(handleMessagePasskeySignInFlowOpened)
       chrome.runtime.onMessageExternal.removeListener(handleMessagePasskeyCredentialRetrieved)
     }
+    // oxlint-disable-next-line react/exhaustive-deps -- biome-parity: oxlint is stricter here
   }, [])
 
   const [showBringWindowToFrontButton, setShowBringWindowToFrontButton] = useState(false)

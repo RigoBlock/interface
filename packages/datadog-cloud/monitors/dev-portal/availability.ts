@@ -1,8 +1,8 @@
-import {MonitorDefinition} from '../../types';
-import {settings} from '../../config';
+import { settings } from '../../config'
+import { MonitorDefinition } from '../../types'
 
 // ALB metrics use name:dev-portal-lb tag, scoped by environment from Pulumi config
-const albTagFilter = `name:dev-portal-lb,unienv:${settings.environment}`;
+const albTagFilter = `name:dev-portal-lb,unienv:${settings.environment}`
 
 export const devPortalAvailabilityMonitors: MonitorDefinition[] = [
   {
@@ -14,13 +14,12 @@ export const devPortalAvailabilityMonitors: MonitorDefinition[] = [
     recoveryBody: 'dev-portal is receiving traffic again.',
     team: 'dev-portal',
     priority: 1,
-    thresholds: {critical: 0},
+    thresholds: { critical: 0 },
     noDataTimeframe: 15,
     notifyNoData: true,
     logQuery: 'service:dev-portal',
     runbookUrl: 'https://www.notion.so/uniswap/dev-portal-runbook',
-    readmeUrl:
-      'https://github.com/Uniswap/universe/tree/main/apps/dev-portal',
+    readmeUrl: 'https://github.com/Uniswap/universe/tree/main/apps/dev-portal',
     dashboards: [],
   },
   {
@@ -32,13 +31,12 @@ export const devPortalAvailabilityMonitors: MonitorDefinition[] = [
     recoveryBody: 'Success rate for dev-portal has recovered above 99%.',
     team: 'dev-portal',
     priority: 2,
-    thresholds: {critical: 99, warning: 99.5},
+    thresholds: { critical: 99, warning: 99.5 },
     logQuery: 'service:dev-portal status:error',
     runbookUrl: 'https://www.notion.so/uniswap/dev-portal-runbook',
-    readmeUrl:
-      'https://github.com/Uniswap/universe/tree/main/apps/dev-portal',
+    readmeUrl: 'https://github.com/Uniswap/universe/tree/main/apps/dev-portal',
     dashboards: [],
     notifyNoData: true,
     noDataTimeframe: 15,
   },
-];
+]

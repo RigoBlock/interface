@@ -39,6 +39,7 @@ export function PositionPageActionButtons({
   const hasFees = fee0Amount?.greaterThan(0) || fee1Amount?.greaterThan(0)
 
   const { migrateOption, removeLiquidityOption, addLiquidityOption, collectFeesOption } = useMemo(() => {
+    // oxlint-disable-next-line no-shadow
     const migrateOption: MenuOptionItem | undefined =
       positionInfo?.version !== ProtocolVersion.V4 && status !== PositionStatus.CLOSED
         ? {
@@ -48,6 +49,7 @@ export function PositionPageActionButtons({
         : undefined
 
     // Add remove liquidity option if position is not closed
+    // oxlint-disable-next-line no-shadow
     const removeLiquidityOption: MenuOptionItem | undefined =
       status !== PositionStatus.CLOSED
         ? {
@@ -63,6 +65,7 @@ export function PositionPageActionButtons({
           }
         : undefined
 
+    // oxlint-disable-next-line no-shadow
     const addLiquidityOption: MenuOptionItem = {
       label: t('common.addLiquidity'),
       onPress: () => {
@@ -76,6 +79,7 @@ export function PositionPageActionButtons({
     }
 
     // Add collect fees option if there are fees
+    // oxlint-disable-next-line no-shadow
     const collectFeesOption: MenuOptionItem | undefined =
       positionInfo?.version !== ProtocolVersion.V2 && hasFees
         ? {

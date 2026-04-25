@@ -1,3 +1,4 @@
+/* oxlint-disable typescript/explicit-function-return-type */
 import { ApolloClient, NormalizedCacheObject } from '@apollo/client'
 import { BigNumber, BigNumberish, providers } from 'ethers'
 import { call, cancel, delay, fork, put, race, spawn, take } from 'typed-redux-saga'
@@ -169,13 +170,13 @@ export function* checkIfTransactionInvalidated(
   }
 
   const tx = yield* call([provider, provider.getTransaction], transaction.hash)
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
   if (tx) {
     // Transaction is known to the provider, so it's still valid
     return false
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
   if (!tx && !transaction.options.submitViaPrivateRpc) {
     // If submitted via public RPC and not found, we can consider it lost/invalidated
     return true
@@ -228,7 +229,7 @@ function* handleTimeout({
   }
 
   const isInvalidated = yield* call(checkIfTransactionInvalidated, transaction, provider)
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
   if (isInvalidated) {
     const failedTransaction = { ...transaction, status: TransactionStatus.Failed } as FinalizedTransactionDetails
     yield* call(finalizeTransaction, {
@@ -241,7 +242,7 @@ function* handleTimeout({
 function* waitForCancellation(chainId: UniverseChainId, id: string) {
   while (true) {
     const { payload } = yield* take<ReturnType<typeof cancelTransaction>>(cancelTransaction.type)
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     if (payload.cancelRequest && payload.chainId === chainId && payload.id === id) {
       return payload.cancelRequest
     }

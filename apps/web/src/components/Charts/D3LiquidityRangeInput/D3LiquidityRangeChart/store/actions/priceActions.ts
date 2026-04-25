@@ -1,16 +1,18 @@
-import { CHART_BEHAVIOR } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/constants'
+import { CHART_BEHAVIOR } from '~/components/Charts/D3LiquidityChartShared/constants'
+import { calculateRangeViewport } from '~/components/Charts/D3LiquidityChartShared/utils/viewportUtils'
 import type {
   ChartStoreState,
   TickNavigationParams,
 } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/store/types'
-
 import { DefaultPriceStrategy } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/store/types'
 import {
   calculateStrategyTicks,
   detectTickStrategy,
 } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/utils/priceStrategies'
-import { calculateRangeViewport } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/utils/rangeViewportUtils'
-import { navigateTick } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/utils/tickUtils'
+import {
+  navigateTick,
+  snapTickToSpacing,
+} from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/utils/tickUtils'
 
 interface PriceActionCallbacks {
   onMinTickChange: (tick?: number) => void
@@ -89,8 +91,19 @@ export const createPriceActions = ({
       actions.animateToState({
         targetZoom,
         targetPan: targetPanY,
-        targetMinTick,
-        targetMaxTick,
+        ticks:
+          defaultMinTick !== undefined && defaultMaxTick !== undefined
+            ? {
+                startMinTick: defaultMinTick,
+                startMaxTick: defaultMaxTick,
+                targetMinTick,
+                targetMaxTick,
+                snapTicks: (minTick, maxTick) => ({
+                  minTick: snapTickToSpacing(minTick, tickSpacing),
+                  maxTick: snapTickToSpacing(maxTick, tickSpacing),
+                }),
+              }
+            : undefined,
       })
     } else {
       actions.setChartState({
@@ -102,6 +115,7 @@ export const createPriceActions = ({
     }
 
     setTimeout(() => {
+      // oxlint-disable-next-line no-shadow
       const { renderingContext } = get()
       if (renderingContext) {
         actions.handleTickChange({ changeType: 'min', tick: targetMinTick })

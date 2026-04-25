@@ -29,7 +29,7 @@ const hoverStyle: FlexProps['hoverStyle'] = { backgroundColor: '$surface2' }
 
 const displayNameTextProps: TextProps = { color: '$accent1', variant: 'body1' }
 
-export const TransactionSummaryLayout = memo(function _TransactionSummaryLayout({
+export const TransactionSummaryLayout = memo(function TransactionSummaryLayoutInner({
   caption,
   isExternalProfile,
   transaction,
@@ -63,7 +63,7 @@ export const TransactionSummaryLayout = memo(function _TransactionSummaryLayout(
  * IMPORTANT: If you add any new hooks to this component, make sure to profile the app using `react-devtools` to verify
  *            that the component is not re-rendering unnecessarily.
  */
-const TransactionSummaryLayoutContent = memo(function _TransactionSummaryLayoutContent({
+const TransactionSummaryLayoutContent = memo(function TransactionSummaryLayoutContentInner({
   authTrigger,
   transaction,
   title,

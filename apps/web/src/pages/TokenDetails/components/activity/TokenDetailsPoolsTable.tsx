@@ -13,7 +13,13 @@ import { PoolTableStoreContextProvider, usePoolTableStore } from '~/pages/Explor
 
 const HIDDEN_COLUMNS = [PoolSortFields.VolOverTvl, PoolSortFields.RewardApr]
 
-function TokenDetailsPoolsTableContent({ referenceCurrency }: { referenceCurrency: Currency }): JSX.Element {
+function TokenDetailsPoolsTableContent({
+  referenceCurrency,
+  isMultichainView,
+}: {
+  referenceCurrency: Currency
+  isMultichainView: boolean
+}): JSX.Element {
   const { chainId, wrapped: referenceToken, isNative } = referenceCurrency
   const { sortMethod, sortAscending } = usePoolTableStore((s) => ({
     sortMethod: s.sortMethod,
@@ -28,6 +34,7 @@ function TokenDetailsPoolsTableContent({ referenceCurrency }: { referenceCurrenc
     sortState,
     chainId: referenceCurrency.chainId,
     isNative,
+    multichain: isMultichainView,
   })
   const combinedError =
     errorV2 && errorV3
@@ -53,11 +60,17 @@ function TokenDetailsPoolsTableContent({ referenceCurrency }: { referenceCurrenc
   )
 }
 
-export function TokenDetailsPoolsTable({ referenceCurrency }: { referenceCurrency: Currency }): JSX.Element {
+export function TokenDetailsPoolsTable({
+  referenceCurrency,
+  isMultichainView,
+}: {
+  referenceCurrency: Currency
+  isMultichainView: boolean
+}): JSX.Element {
   return (
     <ExploreTablesFilterStoreContextProvider>
       <PoolTableStoreContextProvider>
-        <TokenDetailsPoolsTableContent referenceCurrency={referenceCurrency} />
+        <TokenDetailsPoolsTableContent referenceCurrency={referenceCurrency} isMultichainView={isMultichainView} />
       </PoolTableStoreContextProvider>
     </ExploreTablesFilterStoreContextProvider>
   )

@@ -1,11 +1,11 @@
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import React from 'react'
 import { Trans } from 'react-i18next'
-import { Flex, Separator, Text } from 'ui/src'
+import { Flex, Separator, Text, TouchableArea } from 'ui/src'
 import { BackArrow } from 'ui/src/components/icons/BackArrow'
 import { CONNECTION_PROVIDER_IDS } from 'uniswap/src/constants/web3'
-import { useShowMoonpayText } from '~/components/AccountDrawer/MiniPortfolio/hooks'
 import { MenuStateVariant, useSetMenu } from '~/components/AccountDrawer/menuState'
+import { useShowMoonpayText } from '~/components/AccountDrawer/MiniPortfolio/hooks'
 import ConnectionErrorView from '~/components/WalletModal/ConnectionErrorView'
 import PrivacyPolicyNotice from '~/components/WalletModal/PrivacyPolicyNotice'
 import { UniswapMobileWalletConnectorOption } from '~/components/WalletModal/UniswapMobileWalletConnectorOption'
@@ -33,14 +33,9 @@ export function OtherWalletsModal() {
     >
       <ConnectionErrorView />
       <Flex row justifyContent="center" width="100%">
-        <BackArrow
-          color="$neutral2"
-          size={20}
-          onPress={() => setMenu({ variant: MenuStateVariant.MAIN })}
-          mr="auto"
-          hoverStyle={{ opacity: 0.8 }}
-          cursor="pointer"
-        />
+        <TouchableArea onPress={() => setMenu({ variant: MenuStateVariant.MAIN })} mr="auto">
+          <BackArrow color="$neutral2" size={20} />
+        </TouchableArea>
         <Text variant="subheading2" mr="auto" ml={-20}>
           <Trans i18nKey="common.connectAWallet.button" />
         </Text>

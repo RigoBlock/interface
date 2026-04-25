@@ -16,6 +16,7 @@ function* auth(params: UnlockParams | LockParams) {
   }
 }
 
+// oxlint-disable-next-line typescript/explicit-function-return-type
 function* unlock({ password }: UnlockParams) {
   logger.debug('authSaga', 'unlock', `Unlocking wallet`)
   const success = yield* call(Keyring.unlock, password)
@@ -28,6 +29,7 @@ function* unlock({ password }: UnlockParams) {
   })
 }
 
+// oxlint-disable-next-line typescript/explicit-function-return-type
 function* lock() {
   logger.debug('authSaga', 'lock', `Locking wallet`)
   yield* call(Keyring.lock)

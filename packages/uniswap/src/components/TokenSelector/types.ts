@@ -6,6 +6,7 @@ import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { FiatNumberType } from 'utilities/src/format/types'
 
+// oxlint-disable-next-line max-params -- biome-parity: oxlint is stricter here
 export type OnSelectCurrency = (
   currency: CurrencyInfo,
   section: OnchainItemSection<TokenSelectorOption>,
@@ -18,15 +19,19 @@ export type TokenSectionsHookProps = {
   oppositeSelectedToken?: TradeableAsset
 }
 
+// oxlint-disable-next-line max-params -- biome-parity: oxlint is stricter here
 export type ConvertFiatAmountFormattedCallback = (
   fromAmount: Maybe<string | number>,
   numberType: FiatNumberType,
+  // oxlint-disable-next-line typescript/no-duplicate-type-constituents -- biome-parity: oxlint is stricter here
   placeholder?: string | undefined,
 ) => string
 
 export enum TokenSelectorFlow {
   Swap = 0,
   Send = 1,
+  Liquidity = 2,
+  Limit = 3,
 }
 
 export enum TokenSelectorVariation {

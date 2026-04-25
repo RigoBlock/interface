@@ -97,6 +97,7 @@ export function LpIncentiveClaimModal({
         selectChain,
         walletChainId: account.chainId,
         onSuccess,
+        // oxlint-disable-next-line no-shadow
         onFailure: (error) => {
           setCurrentTransactionStep(undefined)
           // For wallet rejections, we don't need to show an error

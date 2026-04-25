@@ -7,6 +7,7 @@ import { MoreHorizontal } from 'ui/src/components/icons/MoreHorizontal'
 import { zIndexes } from 'ui/src/theme'
 import { iconSizes } from 'ui/src/theme/iconSizes'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
+import { GroupHoverTransition } from 'uniswap/src/components/GroupHoverTransition'
 import { ContextMenu } from 'uniswap/src/components/menus/ContextMenu'
 import { ContextMenuTriggerMode } from 'uniswap/src/components/menus/types'
 import { NftView, NftViewProps } from 'uniswap/src/components/nfts/NftView'
@@ -20,7 +21,6 @@ import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { getNftExplorerLink, getOpenseaLink, openUri } from 'uniswap/src/utils/linking'
 import { isMobileWeb } from 'utilities/src/platform'
 import { useBooleanState } from 'utilities/src/react/useBooleanState'
-import { GroupHoverTransition } from '~/components/GroupHoverTransition'
 import { POPUP_MEDIUM_DISMISS_MS } from '~/components/Popups/constants'
 import { popupRegistry } from '~/components/Popups/registry'
 import { PopupType } from '~/components/Popups/types'
@@ -47,7 +47,7 @@ type NftCardProps = Omit<NftViewProps, 'onPress'> & {
   onPress?: () => void
 }
 
-function _NFTCard(props: NftCardProps): JSX.Element {
+function NFTCardInner(props: NftCardProps): JSX.Element {
   const { value: isHovered, setTrue: setIsHovered, setFalse: setIsHoveredFalse } = useBooleanState(false)
   const colors = useSporeColors()
   const { t } = useTranslation()
@@ -160,6 +160,7 @@ function _NFTCard(props: NftCardProps): JSX.Element {
   )
 
   const handlePress = useCallback(
+    // oxlint-disable-next-line no-unused-vars -- biome-parity: oxlint is stricter here
     async (event?: any) => {
       // Prefer OpenSea URL, fall back to block explorer if no OpenSea URL available
       const url = openseaUrl || explorerUrl
@@ -179,6 +180,7 @@ function _NFTCard(props: NftCardProps): JSX.Element {
       })
       props.onPress?.()
     },
+    // oxlint-disable-next-line react/exhaustive-deps -- biome-parity: oxlint is stricter here
     [openseaUrl, explorerUrl, props.item.collectionName, props.item.contractAddress, props.item.tokenId, props.onPress],
   )
 
@@ -192,7 +194,6 @@ function _NFTCard(props: NftCardProps): JSX.Element {
         borderWidth="$spacing1"
         borderColor="$surface3"
         gap="$spacing4"
-        transition="all 80ms ease-in-out"
         {...(isActive && !isMobileWeb ? activeCardStyles : {})}
         onMouseEnter={setIsHovered}
         onMouseLeave={setIsHoveredFalse}
@@ -241,7 +242,6 @@ function _NFTCard(props: NftCardProps): JSX.Element {
           </Text>
           <GroupHoverTransition
             height={SUBTITLE_HEIGHT}
-            transition="all 80ms ease-in-out"
             useGroupItemHover
             defaultContent={
               <Flex row alignItems="center" gap="$spacing4" justifyContent="space-between" height={SUBTITLE_HEIGHT}>
@@ -277,6 +277,6 @@ function _NFTCard(props: NftCardProps): JSX.Element {
   )
 }
 
-export const NFTCard = memo(_NFTCard)
+export const NFTCard = memo(NFTCardInner)
 
 NFTCard.displayName = 'NFTCard'

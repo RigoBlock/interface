@@ -132,10 +132,12 @@ export function AuctionStatsBanner() {
       mt="$spacing24"
       mb="$spacing12"
       $lg={{
+        py: '$none',
+        gap: 0,
         '$platform-web': {
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
-          gap: 0,
+          alignItems: 'stretch',
         },
       }}
     >
@@ -144,11 +146,11 @@ export function AuctionStatsBanner() {
         label={isAuctionEnded ? t('toucan.statsBanner.finalClearingPrice') : t('toucan.statsBanner.clearingPrice')}
         hasData={hasData}
         $lg={{
-          borderBottomWidth: 1,
           borderRightWidth: 1,
+          borderBottomWidth: 1,
           borderColor: '$surface3',
-          pb: '$spacing16',
-          pr: '$spacing16',
+          pb: '$spacing12',
+          pr: '$spacing12',
         }}
       >
         <Flex row alignItems="center" gap="$spacing4">
@@ -196,8 +198,8 @@ export function AuctionStatsBanner() {
         $lg={{
           borderBottomWidth: 1,
           borderColor: '$surface3',
-          pb: '$spacing16',
-          pl: '$spacing16',
+          pb: '$spacing12',
+          pl: '$spacing12',
         }}
       >
         <StatPrimaryText>{currentValuationFormatted}</StatPrimaryText>
@@ -206,16 +208,63 @@ export function AuctionStatsBanner() {
 
       <Divider />
 
-      {/* Cell 3: Bids concentrated at */}
+      {/* Cell 3: Committed Volume */}
       <StatCell
-        label={t('toucan.statsBanner.bidsConcentratedAt')}
+        label={t('toucan.auction.committedVolume')}
         hasData={hasData}
         $lg={{
           borderRightWidth: 1,
           borderColor: '$surface3',
-          pr: '$spacing16',
-          pt: '$spacing16',
+          pt: '$spacing12',
+          pr: '$spacing12',
         }}
+      >
+        <Tooltip placement="top" delay={75} offset={{ mainAxis: 8 }}>
+          <Tooltip.Trigger>
+            <Flex cursor="pointer">
+              <StatPrimaryText>{totalBidVolumeFiatFormatted ?? totalBidVolumeFormatted ?? '--'}</StatPrimaryText>
+              {!isAuctionNotStarted && totalBidVolumeFiatFormatted && (
+                <StatSecondaryText>{totalBidVolumeFormatted}</StatSecondaryText>
+              )}
+            </Flex>
+          </Tooltip.Trigger>
+          <Tooltip.Content
+            backgroundColor="$surface1"
+            borderRadius="$rounded12"
+            borderWidth="$spacing1"
+            borderColor="$surface3"
+            py="$spacing8"
+            px="$spacing12"
+            zIndex="$tooltip"
+          >
+            <Flex gap="$spacing4">
+              <Flex row justifyContent="space-between" gap="$spacing12">
+                <Text variant="body4" color="$neutral2">
+                  {t('toucan.statsBanner.totalCurrencyRaised')}
+                </Text>
+                <Text variant="body4" color="$neutral1">
+                  {currencyRaisedFormatted ?? '--'}
+                </Text>
+              </Flex>
+              {requiredCurrencyFormatted && (
+                <Text variant="body4" color="$neutral2">
+                  {t('toucan.statsBanner.requiredCurrency', {
+                    amount: requiredCurrencyFormatted,
+                  })}
+                </Text>
+              )}
+            </Flex>
+          </Tooltip.Content>
+        </Tooltip>
+      </StatCell>
+
+      <Divider />
+
+      {/* Cell 4: Bids concentrated at */}
+      <StatCell
+        label={t('toucan.statsBanner.bidsConcentratedAt')}
+        hasData={hasData}
+        $lg={{ pt: '$spacing12', pl: '$spacing12' }}
       >
         {concentrationStartDecimal !== null && concentrationEndDecimal !== null ? (
           <>
@@ -267,53 +316,6 @@ export function AuctionStatsBanner() {
         ) : (
           <StatPrimaryText>--</StatPrimaryText>
         )}
-      </StatCell>
-
-      <Divider />
-
-      {/* Cell 4: Committed Volume */}
-      <StatCell
-        label={t('toucan.auction.committedVolume')}
-        hasData={hasData}
-        $lg={{ pl: '$spacing16', pt: '$spacing16' }}
-      >
-        <Tooltip placement="top" delay={75} offset={{ mainAxis: 8 }}>
-          <Tooltip.Trigger>
-            <Flex cursor="pointer">
-              <StatPrimaryText>{totalBidVolumeFiatFormatted ?? totalBidVolumeFormatted ?? '--'}</StatPrimaryText>
-              {!isAuctionNotStarted && totalBidVolumeFiatFormatted && (
-                <StatSecondaryText>{totalBidVolumeFormatted}</StatSecondaryText>
-              )}
-            </Flex>
-          </Tooltip.Trigger>
-          <Tooltip.Content
-            backgroundColor="$surface1"
-            borderRadius="$rounded12"
-            borderWidth="$spacing1"
-            borderColor="$surface3"
-            py="$spacing8"
-            px="$spacing12"
-            zIndex="$tooltip"
-          >
-            <Flex gap="$spacing4">
-              <Flex row justifyContent="space-between" gap="$spacing12">
-                <Text variant="body4" color="$neutral2">
-                  {t('toucan.statsBanner.totalCurrencyRaised')}
-                </Text>
-                <Text variant="body4" color="$neutral1">
-                  {currencyRaisedFormatted ?? '--'}
-                </Text>
-              </Flex>
-              {requiredCurrencyFormatted && (
-                <Text variant="body4" color="$neutral2">
-                  {t('toucan.statsBanner.requiredCurrency', {
-                    amount: requiredCurrencyFormatted,
-                  })}
-                </Text>
-              )}
-            </Flex>
-          </Tooltip.Content>
-        </Tooltip>
       </StatCell>
     </Flex>
   )

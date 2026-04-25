@@ -1,6 +1,5 @@
 import React, { memo, PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { LayoutChangeEvent, View } from 'react-native'
-// eslint-disable-next-line @typescript-eslint/no-restricted-imports
 import { GestureResponderEvent } from 'react-native'
 import Animated, { useSharedValue } from 'react-native-reanimated'
 import {
@@ -119,7 +118,7 @@ export function ActionSheetDropdown({
       const containerNode = containerRef.current
 
       if (containerNode) {
-        // eslint-disable-next-line max-params
+        // oxlint-disable-next-line max-params
         containerNode.measureInWindow((x, y, width, height) => {
           setToggleMeasurements({
             x,
@@ -134,14 +133,13 @@ export function ActionSheetDropdown({
     })
   }
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: +toggleMeasurements?.sticky, insets.top
   useEffect(() => {
     if (!isWebPlatform) {
       return undefined
     }
 
     function resizeListener(): void {
-      // eslint-disable-next-line max-params
+      // oxlint-disable-next-line max-params
       containerRef.current?.measureInWindow((x, y, width, height) => {
         setToggleMeasurements((prev) => ({
           ...prev,
@@ -160,7 +158,6 @@ export function ActionSheetDropdown({
     }
   }, [toggleMeasurements?.sticky, insets.top])
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: +setOpen, setToggleMeasurements
   const closeDropdown = useCallback(
     (event: GestureResponderEvent): void => {
       setOpen(false)
@@ -183,7 +180,7 @@ export function ActionSheetDropdown({
           collapsable={false}
           gap="$spacing8"
           px={styles?.buttonPaddingX}
-          py={styles?.buttonPaddingY || '$spacing8'}
+          py={styles?.buttonPaddingY ?? '$spacing8'}
           // TODO(INFRA-1126) -- testIDs inside TouchableArea are not recognized by Maestro
           testID={testID || 'dropdown-toggle'}
         >
@@ -243,7 +240,7 @@ const ActionSheetBackdropWithContent = memo(function ActionSheetBackdropWithCont
         : zIndexes.popover
 
   return (
-    <Portal zIndex={zIndex}>
+    <Portal stackZIndex={zIndex}>
       <AnimatePresence custom={isSheetOpenMemo}>
         {toggleMeasurements && (
           <>
@@ -352,7 +349,6 @@ function DropdownContent({
     }
   }, [initialScrollY, toggleMeasurements.sticky])
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: +toggleMeasurements
   useEffect(() => {
     setWindowScrollY(0)
   }, [toggleMeasurements])

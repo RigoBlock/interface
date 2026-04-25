@@ -21,7 +21,6 @@ export function TransactionDetailsContent({
 }): JSX.Element | null {
   const { typeInfo } = transactionDetails
 
-  // eslint-disable-next-line complexity
   const getContentComponent = (): JSX.Element | null => {
     switch (typeInfo.type) {
       case TransactionType.Approve:

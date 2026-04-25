@@ -3,7 +3,8 @@ import { useAtom } from 'jotai'
 import { PropsWithChildren, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ContextMenuTriggerMode } from 'uniswap/src/components/menus/types'
-import { TokenBalanceItemContextMenu } from 'uniswap/src/components/portfolio/TokenBalanceItemContextMenu'
+import { TokenBalanceItemContextMenu } from 'uniswap/src/components/portfolio/TokenBalanceItem/TokenBalanceItemContextMenu'
+import { ReportTokenDataModalPropsAtom } from 'uniswap/src/components/reporting/ReportTokenDataModal'
 import { ReportTokenIssueModalPropsAtom } from 'uniswap/src/components/reporting/ReportTokenIssueModal'
 import { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
 import { TokenMenuActionType } from 'uniswap/src/features/portfolio/balances/hooks/useTokenContextMenuOptions'
@@ -23,15 +24,22 @@ export function TokensContextMenuWrapper({
   tokenData,
   triggerMode,
   children,
-}: PropsWithChildren<{ tokenData: TokenData; triggerMode?: ContextMenuTriggerMode }>): React.ReactNode {
+}: PropsWithChildren<{
+  tokenData: TokenData
+  triggerMode?: ContextMenuTriggerMode
+}>): React.ReactNode {
   const { t } = useTranslation()
   const showDemoView = useShowDemoView()
-  const { isExternalWallet, externalAddress } = usePortfolioRoutes()
+  const { isExternalWallet, externalAddress, chainId } = usePortfolioRoutes()
 
   const { openModal } = useModalState(ModalName.ReportTokenIssue)
   const [, setModalProps] = useAtom(ReportTokenIssueModalPropsAtom)
 
+  const { openModal: openDataIssueModal } = useModalState(ModalName.ReportTokenData)
+  const [, setDataIssueModalProps] = useAtom(ReportTokenDataModalPropsAtom)
+
   const portfolioBalance: PortfolioBalance = useMemo(() => {
+    const chainToken = tokenData.tokens[0]
     return {
       id: tokenData.id,
       cacheId: tokenData.id,
@@ -39,20 +47,19 @@ export function TokensContextMenuWrapper({
       balanceUSD: tokenData.totalValue,
       currencyInfo: tokenData.currencyInfo,
       relativeChange24: tokenData.change1d,
-      isHidden: tokenData.isHidden ?? false,
+      // oxlint-disable-next-line no-unnecessary-condition -- for safety
+      isHidden: chainToken?.isHidden ?? false,
     }
-  }, [
-    tokenData.currencyInfo,
-    tokenData.id,
-    tokenData.quantity,
-    tokenData.change1d,
-    tokenData.totalValue,
-    tokenData.isHidden,
-  ])
+  }, [tokenData])
 
   const openReportTokenModal = useEvent((currency: Currency) => {
     setModalProps({ source: 'portfolio', currency, isMarkedSpam: portfolioBalance.currencyInfo.isSpam })
     openModal()
+  })
+
+  const openReportDataIssueModalWithCurrency = useEvent((currency: Currency) => {
+    setDataIssueModalProps({ currency, isMarkedSpam: portfolioBalance.currencyInfo.isSpam })
+    openDataIssueModal()
   })
 
   const copyAddressToClipboard = useCallback(
@@ -73,6 +80,10 @@ export function TokensContextMenuWrapper({
     openReportTokenModal(portfolioBalance.currencyInfo.currency)
   }, [portfolioBalance, openReportTokenModal])
 
+  const openReportDataIssueModalForCurrency = useCallback(() => {
+    openReportDataIssueModalWithCurrency(portfolioBalance.currencyInfo.currency)
+  }, [portfolioBalance, openReportDataIssueModalWithCurrency])
+
   // When viewing external wallet, exclude hide and report options from context menu
   const excludedActions = useMemo(() => {
     if (isExternalWallet) {
@@ -92,8 +103,9 @@ export function TokensContextMenuWrapper({
       triggerMode={triggerMode}
       excludedActions={excludedActions}
       openReportTokenModal={openReportTokenModalForCurrency}
+      openReportDataIssueModal={openReportDataIssueModalForCurrency}
       copyAddressToClipboard={copyAddressToClipboard}
-      onPressToken={() => navigateToTokenDetails(tokenData.currencyInfo.currency)}
+      onPressToken={() => navigateToTokenDetails(tokenData.currencyInfo.currency, chainId)}
       disableNotifications={true}
       recipient={isExternalWallet ? externalAddress?.address : undefined}
     >

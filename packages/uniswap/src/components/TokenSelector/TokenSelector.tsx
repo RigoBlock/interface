@@ -7,6 +7,7 @@ import { Flex, ModalCloseIcon, Text, useMedia, useScrollbarStyles, useSporeColor
 import { InfoCircleFilled } from 'ui/src/components/icons/InfoCircleFilled'
 import { spacing, zIndexes } from 'ui/src/theme'
 import PasteButton from 'uniswap/src/components/buttons/PasteButton'
+import { SelectorBaseListSkeleton } from 'uniswap/src/components/lists/SelectorBaseList'
 import { useBottomSheetContext } from 'uniswap/src/components/modals/BottomSheetContext'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { NetworkFilter } from 'uniswap/src/components/network/NetworkFilter'
@@ -16,7 +17,7 @@ import { useNetworkSelectorOptions } from 'uniswap/src/components/network/Networ
 import { CrosschainSwapsPromoBanner } from 'uniswap/src/components/TokenSelector/CrosschainSwapsPromoBanner'
 import { useClipboardCheck } from 'uniswap/src/components/TokenSelector/hooks/useClipboardCheck'
 import { useTokenSelectionHandler } from 'uniswap/src/components/TokenSelector/hooks/useTokenSelectionHandler'
-import { useTokenSelectorList } from 'uniswap/src/components/TokenSelector/hooks/useTokenSelectorList'
+import { TokenSelectorListSwitch } from 'uniswap/src/components/TokenSelector/TokenSelectorListSwitch'
 import { TokenSelectorFlow, TokenSelectorVariation } from 'uniswap/src/components/TokenSelector/types'
 import { UnsupportedChainedActionsBanner } from 'uniswap/src/components/TokenSelector/UnsupportedChainedActionsBanner'
 import { flowToModalName } from 'uniswap/src/components/TokenSelector/utils'
@@ -52,7 +53,6 @@ export interface TokenSelectorProps {
   input?: TradeableAsset
   output?: TradeableAsset
   isSurfaceReady?: boolean
-  isLimits?: boolean
   onClose: () => void
   focusHook?: ComponentProps<typeof BottomSheetView>['focusHook']
   onSelectChain?: (chainId: UniverseChainId | null) => void
@@ -95,7 +95,6 @@ export function TokenSelectorContent({
   chainId,
   chainIds,
   isSurfaceReady = true,
-  isLimits,
   onClose,
   onSelectChain,
   onSelectCurrency,
@@ -122,7 +121,9 @@ export function TokenSelectorContent({
   const isNetworkFilterV2FlagEnabled = useFeatureFlag(FeatureFlags.NetworkFilterV2)
   const networkFilterV2Enabled =
     isNetworkFilterV2FlagEnabled &&
-    [TokenSelectorVariation.SwapInput, TokenSelectorVariation.SwapOutput].includes(variation)
+    [TokenSelectorVariation.SwapInput, TokenSelectorVariation.SwapOutput, TokenSelectorVariation.BalancesOnly].includes(
+      variation,
+    )
   const effectiveChainIds = chainIds ?? enabledChains
 
   const tieredNetworkOptions = useNetworkSelectorOptions({
@@ -168,26 +169,9 @@ export function TokenSelectorContent({
   const shouldAutoFocusSearch = isWebPlatform && !media.sm
 
   const shouldShowCrosschainPromoBanner = useMemo(
-    () => !isLimits && (!chainFilter || isChainSupportedForChainedActions(chainFilter)),
-    [isLimits, chainFilter],
+    () => flow === TokenSelectorFlow.Swap && (!chainFilter || isChainSupportedForChainedActions(chainFilter)),
+    [flow, chainFilter],
   )
-
-  const tokenSelector = useTokenSelectorList({
-    searchInFocus,
-    searchFilter,
-    isTestnetModeEnabled,
-    variation,
-    addresses,
-    chainFilter,
-    input,
-    output,
-    renderedInModal,
-    onSelectCurrency: onSelectCurrencyCallback,
-    onSendEmptyActionPress,
-    debouncedParsedSearchFilter,
-    debouncedSearchFilter,
-    parsedChainFilter,
-  })
 
   return (
     <Trace
@@ -212,7 +196,7 @@ export function TokenSelectorContent({
                 <TokenSelectorNetworkFilter
                   tieredOptions={tieredNetworkOptions}
                   networkFilterV2Enabled={networkFilterV2Enabled}
-                  includeAllNetworks={!isTestnetModeEnabled}
+                  includeAllNetworks={!isTestnetModeEnabled && effectiveChainIds.length > 1}
                   chainIds={effectiveChainIds}
                   selectedChain={chainFilter}
                   styles={isExtensionApp || media.md ? { dropdownZIndex: zIndexes.overlay } : undefined}
@@ -233,7 +217,7 @@ export function TokenSelectorContent({
             onChangeText={onChangeText}
             onFocus={onFocus}
           />
-          {isLimits && (
+          {flow === TokenSelectorFlow.Limit && (
             <Flex
               row
               backgroundColor="$surface2"
@@ -247,13 +231,32 @@ export function TokenSelectorContent({
             </Flex>
           )}
 
-          {isSurfaceReady && (
-            <Flex grow>
-              {shouldShowCrosschainPromoBanner && <CrosschainSwapsPromoBanner />}
-              <UnsupportedChainedActionsBanner oppositeToken={oppositeToken} chainFilter={chainFilter ?? undefined} />
-              {tokenSelector}
-            </Flex>
-          )}
+          <Flex grow>
+            {isSurfaceReady ? (
+              <>
+                {shouldShowCrosschainPromoBanner && <CrosschainSwapsPromoBanner />}
+                <UnsupportedChainedActionsBanner oppositeToken={oppositeToken} chainFilter={chainFilter ?? undefined} />
+                <TokenSelectorListSwitch
+                  searchInFocus={searchInFocus}
+                  searchFilter={searchFilter}
+                  isTestnetModeEnabled={isTestnetModeEnabled}
+                  variation={variation}
+                  addresses={addresses}
+                  chainFilter={chainFilter}
+                  input={input}
+                  output={output}
+                  renderedInModal={renderedInModal}
+                  debouncedParsedSearchFilter={debouncedParsedSearchFilter}
+                  debouncedSearchFilter={debouncedSearchFilter}
+                  parsedChainFilter={parsedChainFilter}
+                  onSelectCurrency={onSelectCurrencyCallback}
+                  onSendEmptyActionPress={onSendEmptyActionPress}
+                />
+              </>
+            ) : (
+              <SelectorBaseListSkeleton />
+            )}
+          </Flex>
         </Flex>
       </Trace>
     </Trace>
@@ -274,7 +277,7 @@ function TokenSelectorModalContent(props: TokenSelectorProps): JSX.Element {
   return <TokenSelectorContent {...props} isSurfaceReady={isSheetReady} renderedInModal={true} />
 }
 
-function _TokenSelectorModal(props: TokenSelectorProps): JSX.Element {
+function TokenSelectorModalInner(props: TokenSelectorProps): JSX.Element {
   const colors = useSporeColors()
   const { isModalOpen, onClose, focusHook } = props
 
@@ -303,4 +306,4 @@ function _TokenSelectorModal(props: TokenSelectorProps): JSX.Element {
   )
 }
 
-export const TokenSelectorModal = memo(_TokenSelectorModal)
+export const TokenSelectorModal = memo(TokenSelectorModalInner)

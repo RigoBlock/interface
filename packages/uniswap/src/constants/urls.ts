@@ -1,17 +1,42 @@
 import {
   createHelpArticleUrl,
+  DEV_ENTRY_GATEWAY_API_BASE_URL,
   getCloudflareApiBaseUrl,
   getMigratedForApiUrl,
   helpUrl,
+  PROD_ENTRY_GATEWAY_API_BASE_URL,
+  STAGING_ENTRY_GATEWAY_API_BASE_URL,
   TrafficFlows,
 } from '@universe/api'
 import { FeatureFlags, getFeatureFlag } from '@universe/gating'
 import { config } from 'uniswap/src/config'
-import { isDevEnv, isPlaywrightEnv } from 'utilities/src/environment/env'
+import { isBetaEnv, isDevEnv, isPlaywrightEnv } from 'utilities/src/environment/env'
 import { isWebApp } from 'utilities/src/platform'
+
+function getComplianceApiBaseUrl(): string {
+  if (isPlaywrightEnv()) {
+    return PROD_ENTRY_GATEWAY_API_BASE_URL
+  }
+  // Dev and staging both use the staging compliance backend
+  if (isDevEnv() || isBetaEnv()) {
+    return STAGING_ENTRY_GATEWAY_API_BASE_URL
+  }
+  return PROD_ENTRY_GATEWAY_API_BASE_URL
+}
 
 export const UNISWAP_WEB_HOSTNAME = 'app.uniswap.org'
 const EMBEDDED_WALLET_HOSTNAME = isPlaywrightEnv() || isDevEnv() ? 'staging.ew.unihq.org' : UNISWAP_WEB_HOSTNAME
+
+function getPrivyEmbeddedWalletUrl(): string {
+  if (isPlaywrightEnv()) {
+    return PROD_ENTRY_GATEWAY_API_BASE_URL
+  } else if (isBetaEnv()) {
+    return STAGING_ENTRY_GATEWAY_API_BASE_URL
+  } else if (isDevEnv()) {
+    return DEV_ENTRY_GATEWAY_API_BASE_URL
+  }
+  return PROD_ENTRY_GATEWAY_API_BASE_URL
+}
 
 /**
  * Returns the FOR API URL based on the ForUrlMigration feature flag.
@@ -31,6 +56,7 @@ export function getForApiUrl(): string {
 }
 
 export const UNISWAP_WEB_URL = `https://${UNISWAP_WEB_HOSTNAME}`
+
 export const UNISWAP_APP_URL = 'https://uniswap.org/app'
 export const UNISWAP_MOBILE_REDIRECT_URL = 'https://uniswap.org/mobile-redirect'
 
@@ -120,7 +146,6 @@ export const uniswapUrls = {
     routingSettings: createHelpArticleUrl('27362707722637'),
     uniswapVersionsInfo: createHelpArticleUrl('7425482965517-Uniswap-v2-v3-and-v4'),
     v4HooksInfo: createHelpArticleUrl('30998263256717'),
-    allowlistedHooks: createHelpArticleUrl('41305283155597'),
     subgraphDowntime: createHelpArticleUrl('23952001935373-Subgraph-downtime'),
     walletSecurityMeasures: createHelpArticleUrl('28278904584077-Uniswap-Wallet-Security-Measures'),
     whatIsPrivateKey: createHelpArticleUrl('11306371824653-What-is-a-private-key'),
@@ -144,6 +169,7 @@ export const uniswapUrls = {
     linkedin: 'https://www.linkedin.com/company/uniswaporg',
     tiktok: 'https://www.tiktok.com/@uniswap',
   },
+  bugBountyUrl: 'https://cantina.xyz/bounties/f9df94db-c7b1-434b-bb06-d1360abdd1be',
   termsOfServiceUrl: 'https://uniswap.org/terms-of-service',
   privacyPolicyUrl: 'https://uniswap.org/privacy-policy',
   chromeExtension: 'http://uniswap.org/ext',
@@ -156,6 +182,7 @@ export const uniswapUrls = {
   // Core API Urls
   apiOrigin: 'https://api.uniswap.org',
   apiBaseUrl: config.apiBaseUrlOverride || getCloudflareApiBaseUrl(),
+  complianceApiBaseUrl: getComplianceApiBaseUrl(),
   apiBaseUrlV2: config.apiBaseUrlV2Override || getCloudflareApiBaseUrl({ postfix: 'v2' }),
   dataApiBaseUrlV2:
     config.apiBaseUrlV2Override || getCloudflareApiBaseUrl({ flow: TrafficFlows.DataApi, postfix: 'v2' }),
@@ -185,6 +212,8 @@ export const uniswapUrls = {
   // Merkl Docs for LP Incentives
   merklDocsUrl: 'https://docs.merkl.xyz/earn-with-merkl/faq-earn#how-are-aprs-calculated',
 
+  uniswapAssetsBlockchainsBaseUrl: 'https://raw.githubusercontent.com/Uniswap/assets/master/blockchains',
+
   // Embedded Wallet URL's
   // Totally fine that these are public
   evervaultDevUrl: 'https://embedded-wallet-dev.app-907329d19a06.enclave.evervault.com',
@@ -192,10 +221,9 @@ export const uniswapUrls = {
   evervaultProductionUrl: 'https://embedded-wallet.app-907329d19a06.enclave.evervault.com',
   embeddedWalletUrl: `https://${EMBEDDED_WALLET_HOSTNAME}`,
   passkeysManagementUrl: `https://${EMBEDDED_WALLET_HOSTNAME}/manage/passkey`,
-  privyEmbeddedWalletUrl: 'https://privy-embedded-wallet.backend-dev.api.uniswap.org',
+  privyEmbeddedWalletUrl: getPrivyEmbeddedWalletUrl(),
 
   // API Paths
-  trmPath: '/v1/screen',
   gasServicePath: '/v1/gas-fee',
   tradingApiPaths: {
     approval: `${tradingApiVersionPrefix}/check_approval`,

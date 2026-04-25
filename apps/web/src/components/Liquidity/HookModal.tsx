@@ -104,6 +104,7 @@ export function HookModal({
       }
     }
 
+    // oxlint-disable-next-line no-shadow
     let hasDangerous = false
     const flagInfos: Record<string, FlagWarning> = {}
     getFlagsFromContractAddress(address).forEach((flag) => {
@@ -167,7 +168,12 @@ export function HookModal({
             <Text variant="body2" color="$neutral2" textAlign="center" my="$padding8">
               {hasDangerous ? t('position.hook.warningInfo') : t('position.addingHook.disclaimer')}
             </Text>
-            <LearnMoreLink centered url={uniswapUrls.helpArticleUrls.addingV4Hooks} textVariant="buttonLabel3" />
+            <LearnMoreLink
+              centered
+              display="flex"
+              url={uniswapUrls.helpArticleUrls.addingV4Hooks}
+              textVariant="buttonLabel3"
+            />
           </Flex>
 
           <Flex borderRadius="$rounded16" backgroundColor="$surface2" py="$gap12" px="$gap16">

@@ -1,5 +1,5 @@
 import { NetworkStatus } from '@apollo/client'
-import { CurrencyAmount, Token } from '@uniswap/sdk-core'
+import type { CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -14,6 +14,8 @@ import { TestnetModeBanner } from 'uniswap/src/components/banners/TestnetModeBan
 import { RelativeChange } from 'uniswap/src/components/RelativeChange/RelativeChange'
 import { useConnectionStatus } from 'uniswap/src/features/accounts/store/hooks'
 import { usePortfolioTotalValue } from 'uniswap/src/features/dataApi/balances/balancesRest'
+import { DataApiOutageBanner } from 'uniswap/src/features/dataApi/outage/DataApiOutageBanner'
+import type { DataApiOutageState } from 'uniswap/src/features/dataApi/types'
 import { FiatCurrency } from 'uniswap/src/features/fiatCurrency/constants'
 import { useAppFiatCurrency, useAppFiatCurrencyInfo } from 'uniswap/src/features/fiatCurrency/hooks'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
@@ -38,6 +40,7 @@ import { Settings } from '~/components/Icons/Settings'
 import StatusIcon from '~/components/StatusIcon'
 import { ExtensionRequestMethods, useUniswapExtensionRequest } from '~/components/WalletModal/useWagmiConnectorWithId'
 import { useAccountsStore } from '~/features/accounts/store/hooks'
+import { useDataApiOutageModal } from '~/hooks/useDataApiOutageModal'
 import { useIsUniswapExtensionConnected } from '~/hooks/useIsUniswapExtensionConnected'
 import { useModalState } from '~/hooks/useModalState'
 import { useIsPortfolioZero } from '~/pages/Portfolio/Overview/hooks/useIsPortfolioZero'
@@ -56,7 +59,9 @@ export default function AuthenticatedHeader({
 
   const isSolanaConnected = useConnectionStatus(Platform.SVM).isConnected
   const multipleWalletsConnected = useAccountsStore((state) => {
+    // oxlint-disable-next-line typescript/no-unnecessary-condition -- biome-parity: oxlint is stricter here
     const evmWalletId = state.activeConnectors.evm?.session?.walletId
+    // oxlint-disable-next-line typescript/no-unnecessary-condition -- biome-parity: oxlint is stricter here
     const svmWalletId = state.activeConnectors.svm?.session?.walletId
     return Boolean(evmWalletId && svmWalletId && evmWalletId !== svmWalletId)
   }) // if different wallets are connected, do not show mini wallet icon
@@ -72,15 +77,36 @@ export default function AuthenticatedHeader({
 
   const accountDrawer = useAccountDrawer()
 
-  const { data, networkStatus, loading } = usePortfolioTotalValue({
+  const {
+    data: portfolioData,
+    error: portfolioError,
+    networkStatus: portfolioNetworkStatus,
+    loading: portfolioLoading,
+    dataUpdatedAt: portfolioDataUpdatedAt,
+  } = usePortfolioTotalValue({
     evmAddress,
     svmAddress,
   })
 
-  const { percentChange, absoluteChangeUSD, balanceUSD } = data || {}
+  const { percentChange, absoluteChangeUSD, balanceUSD } = portfolioData || {}
 
-  const isLoading = loading && !data
-  const isWarmLoading = !!data && networkStatus === NetworkStatus.loading
+  // Treat error-before-first-data as loading so the skeleton stays visible
+  const isLoading = !portfolioData && (portfolioLoading || !!portfolioError)
+  const isWarmLoading = !!portfolioData && portfolioNetworkStatus === NetworkStatus.loading
+
+  const [activityOutage, setActivityOutage] = useState<DataApiOutageState>({
+    error: undefined,
+    dataUpdatedAt: undefined,
+  })
+
+  // Prioritize the token error message in the case both tokens and activity data have outages
+  const outageError = portfolioError ?? activityOutage.error
+  const outageDataUpdatedAt = portfolioError ? portfolioDataUpdatedAt : activityOutage.dataUpdatedAt
+
+  const isOutage = !!outageError
+  const { openOutageModal } = useDataApiOutageModal({
+    dataUpdatedAt: outageDataUpdatedAt,
+  })
 
   const currency = useAppFiatCurrency()
   const currencyComponents = useAppFiatCurrencyInfo()
@@ -108,6 +134,12 @@ export default function AuthenticatedHeader({
     <>
       <Flex flex={1} px="$padding16" py="$spacing20">
         <TestnetModeBanner mt={-20} mx={-24} mb="$spacing16" />
+        {isOutage ? (
+          <DataApiOutageBanner
+            title={portfolioError ? undefined : t('dataApi.outage.banner.activity.title')}
+            onPress={openOutageModal}
+          />
+        ) : null}
         <Flex row justifyContent="space-between" alignItems="flex-start" mb="$spacing8">
           <StatusIcon
             showMiniIcons={!multipleWalletsConnected}
@@ -191,7 +223,11 @@ export default function AuthenticatedHeader({
                 </Flex>
               </Flex>
               <DownloadGraduatedWalletCard />
-              <MiniPortfolio evmAddress={evmAddress} svmAddress={svmAddress} />
+              <MiniPortfolio
+                evmAddress={evmAddress}
+                svmAddress={svmAddress}
+                onActivityOutageChange={setActivityOutage}
+              />
             </>
           )}
           {isUnclaimed && (
@@ -200,7 +236,9 @@ export default function AuthenticatedHeader({
                 my="$spacing8"
                 fill={false}
                 onPress={toggleClaimModal}
-                style={{ background: 'linear-gradient(to right, #9139b0 0%, #4261d6 100%)' }}
+                style={{
+                  background: 'linear-gradient(to right, #9139b0 0%, #4261d6 100%)',
+                }}
               >
                 {t('account.authHeader.claimReward', { amount })}
               </Button>

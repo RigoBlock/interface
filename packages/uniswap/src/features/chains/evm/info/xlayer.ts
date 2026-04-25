@@ -1,6 +1,7 @@
 import { Token } from '@uniswap/sdk-core'
-import { GraphQLApi } from '@universe/api'
+import { GraphQLApi, TradingApi } from '@universe/api'
 import { OKB_LOGO, XLAYER_LOGO } from 'ui/src/assets'
+import { CHAIN_ID_TO_URL_PARAM } from 'uniswap/src/features/chains/chainUrlParam'
 import {
   DEFAULT_MS_BEFORE_WARNING,
   DEFAULT_NATIVE_ADDRESS_LEGACY,
@@ -48,6 +49,7 @@ export const XLAYER_CHAIN_INFO = {
     url: 'https://web3.okx.com/explorer/x-layer/',
   },
   interfaceName: 'xlayer',
+  searchAliases: ['x layer', 'x-layer', 'xchain'],
   label: 'X Layer',
   logo: XLAYER_LOGO,
   nativeCurrency: {
@@ -67,9 +69,10 @@ export const XLAYER_CHAIN_INFO = {
   },
   tokens,
   statusPage: undefined,
+  supportedURVersions: [TradingApi.UniversalRouterVersion._2_0, TradingApi.UniversalRouterVersion._2_1_1],
   supportsV4: true,
   supportsNFTs: true,
-  urlParam: 'xlayer',
+  urlParam: CHAIN_ID_TO_URL_PARAM[UniverseChainId.XLayer],
   wrappedNativeCurrency: {
     name: 'Wrapped OKB',
     symbol: 'WOKB',

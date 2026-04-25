@@ -1,23 +1,20 @@
 import { useCallback, useState } from 'react'
-import { AdaptiveWebPopoverContent, Flex, Popover, TouchableArea, useMedia, useScrollbarStyles } from 'ui/src'
-import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
-import { iconSizes, zIndexes } from 'ui/src/theme'
-import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
-import {
-  NetworkFilterContent,
-  NetworkSearchBar,
-} from 'uniswap/src/components/network/NetworkFilterV2/NetworkFilterContent'
+import { useTranslation } from 'react-i18next'
+import type { LayoutChangeEvent } from 'react-native'
+import { AdaptiveWebPopoverContent, Flex, Popover, useMedia, useScrollbarStyles, useShadowPropsMedium } from 'ui/src'
+import { NetworkFilterContent } from 'uniswap/src/components/network/NetworkFilterV2/NetworkFilterContent'
+import { NetworkFilterTrigger } from 'uniswap/src/components/network/NetworkFilterV2/NetworkFilterTrigger'
 import type { NetworkFilterV2Props } from 'uniswap/src/components/network/NetworkFilterV2/NetworkFilterV2'
+import { NetworkSearchBar } from 'uniswap/src/components/network/NetworkFilterV2/NetworkSearchBar'
+import { useNetworkFilterSearch } from 'uniswap/src/components/network/NetworkFilterV2/useNetworkFilterSearch'
+import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
-import { isWebApp } from 'utilities/src/platform'
+import { isTouchable, isWebApp } from 'utilities/src/platform'
 import { useEvent } from 'utilities/src/react/hooks'
 
-const NETWORK_ICON_SIZE = iconSizes.icon20
 const DESKTOP_DROPDOWN_MAX_HEIGHT = 320
-const MOBILE_DROPDOWN_MAX_HEIGHT = '50vh'
-const DROPDOWN_MIN_WIDTH = 240
+const DROPDOWN_WIDTH = 240
 
 export function NetworkFilterV2({
   chainIds,
@@ -26,71 +23,112 @@ export function NetworkFilterV2({
   includeAllNetworks,
   tieredOptions,
 }: NetworkFilterV2Props): JSX.Element {
+  const { t } = useTranslation()
   const { defaultChainId } = useEnabledChains()
   const [isOpen, setIsOpen] = useState(false)
+  const { searchQuery, setSearchQuery, filteredChainIds, filteredTieredOptions, showAllNetworks } =
+    useNetworkFilterSearch({
+      chainIds,
+      includeAllNetworks,
+      tieredOptions,
+    })
   const media = useMedia()
   const scrollbarStyles = useScrollbarStyles()
+  const shadowProps = useShadowPropsMedium()
   const isMobileSheet = isWebApp && media.sm
-  const dropdownMaxHeight = isMobileSheet ? MOBILE_DROPDOWN_MAX_HEIGHT : DESKTOP_DROPDOWN_MAX_HEIGHT
+  const [desktopContentHeight, setDesktopContentHeight] = useState<number | null>(null)
+  const dropdownWidth = isMobileSheet ? '100%' : DROPDOWN_WIDTH
+  const desktopListHeight =
+    desktopContentHeight === null
+      ? DESKTOP_DROPDOWN_MAX_HEIGHT
+      : Math.min(desktopContentHeight, DESKTOP_DROPDOWN_MAX_HEIGHT)
+  const hasDesktopScrollbar = desktopContentHeight !== null && desktopContentHeight > DESKTOP_DROPDOWN_MAX_HEIGHT
+  const displayedChainId = selectedChain ?? (includeAllNetworks ? null : defaultChainId)
+  const selectedChainTooltipLabel = displayedChainId
+    ? getChainInfo(displayedChainId).label
+    : t('transaction.network.all')
 
-  const handlePressChain = useCallback(
-    (chainId: UniverseChainId | null) => {
-      onPressChain(chainId)
-      setIsOpen(false)
-    },
-    [onPressChain],
-  )
-
-  const handleToggleOpen = useEvent(() => {
-    setIsOpen((prev) => !prev)
+  const handleOpenChange = useEvent((nextIsOpen: boolean) => {
+    if (!nextIsOpen) {
+      setSearchQuery('')
+    }
+    setIsOpen(nextIsOpen)
   })
 
+  const handleClose = useEvent(() => {
+    handleOpenChange(false)
+  })
+
+  const handlePressChain = useEvent((chainId: UniverseChainId | null) => {
+    onPressChain(chainId)
+    handleClose()
+  })
+
+  const handleToggleOpen = useEvent(() => {
+    handleOpenChange(!isOpen)
+  })
+
+  const handleDesktopContentLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      if (isMobileSheet) {
+        return
+      }
+
+      setDesktopContentHeight(event.nativeEvent.layout.height)
+    },
+    [isMobileSheet],
+  )
+
   return (
-    <Popover open={isOpen} placement="bottom-end" onOpenChange={setIsOpen}>
+    <Popover open={isOpen} placement="bottom-end" offset={{ mainAxis: 8 }} onOpenChange={handleOpenChange}>
       <Popover.Trigger>
-        <TouchableArea testID={TestID.TokensNetworkFilterTrigger} onPress={handleToggleOpen}>
-          <Flex row alignItems="center" gap="$spacing4">
-            <NetworkLogo
-              chainId={selectedChain ?? (includeAllNetworks ? null : defaultChainId)}
-              size={NETWORK_ICON_SIZE}
-            />
-            <RotatableChevron
-              animation="100ms"
-              animateOnly={['transform', 'opacity']}
-              color="$neutral2"
-              direction={isOpen ? 'up' : 'down'}
-              size="$icon.20"
-            />
-          </Flex>
-        </TouchableArea>
+        <NetworkFilterTrigger
+          defaultChainId={defaultChainId}
+          includeAllNetworks={includeAllNetworks}
+          isOpen={isOpen}
+          selectedChain={selectedChain}
+          tooltipLabel={isTouchable ? undefined : selectedChainTooltipLabel}
+          onPress={handleToggleOpen}
+        />
       </Popover.Trigger>
 
       <AdaptiveWebPopoverContent
         backgroundColor="$surface1"
         borderColor="$surface3"
-        borderRadius="$rounded12"
-        borderWidth={0.5}
-        zIndex={zIndexes.popover}
+        borderRadius="$rounded24"
+        borderWidth={1}
+        {...shadowProps}
         isOpen={isOpen}
         placement="bottom-end"
         px="$spacing4"
-        pb="$spacing2"
-        webBottomSheetProps={{ onClose: () => setIsOpen(false) }}
+        pb="$none"
+        overflow="hidden"
+        webBottomSheetProps={{ onClose: handleClose, snapPoints: ['60%'] }}
       >
-        <Flex minWidth={DROPDOWN_MIN_WIDTH}>
-          <NetworkSearchBar />
+        <Flex width={dropdownWidth} flex={isMobileSheet ? 1 : undefined} height={isMobileSheet ? '100%' : undefined}>
+          <NetworkSearchBar autoFocus={!isMobileSheet} value={searchQuery} onChangeText={setSearchQuery} />
           <Flex
-            maxHeight={dropdownMaxHeight}
-            pr="$none"
-            style={{ ...scrollbarStyles, scrollbarWidth: 'auto', overflow: 'auto' }}
+            flex={isMobileSheet ? 1 : undefined}
+            height={isMobileSheet ? undefined : desktopListHeight}
+            minHeight={0}
+            pr={isMobileSheet || hasDesktopScrollbar ? '$none' : '$spacing2'}
+            style={{
+              ...scrollbarStyles,
+              scrollbarWidth: 'auto',
+              overflow: 'auto',
+              transition: isMobileSheet ? undefined : 'height 160ms ease',
+            }}
           >
-            <NetworkFilterContent
-              chainIds={chainIds}
-              includeAllNetworks={includeAllNetworks}
-              selectedChain={selectedChain}
-              tieredOptions={tieredOptions}
-              onPressChain={handlePressChain}
-            />
+            <Flex onLayout={handleDesktopContentLayout}>
+              <NetworkFilterContent
+                searchQuery={searchQuery}
+                chainIds={filteredChainIds}
+                selectedChain={selectedChain}
+                showAllNetworks={showAllNetworks}
+                tieredOptions={filteredTieredOptions}
+                onPressChain={handlePressChain}
+              />
+            </Flex>
           </Flex>
         </Flex>
       </AdaptiveWebPopoverContent>

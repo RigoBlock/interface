@@ -4,6 +4,7 @@ ignores: [
     "@typechain/ethers-v5",
     "jest-presets",
     "depcheck",
+    "oxlint",
     "typescript",
     "@typescript/native-preview",
     "typechain",
@@ -20,6 +21,9 @@ ignores: [
     "@graphql-codegen/*",
     # i18n
     "i18next-resources-for-ts",
+    # Crypto deps used via deep imports (@noble/hashes/sha2.js, etc.)
+    "@noble/*",
+    "@cloudflare/*",
     # zustand store dev tooling
     "@redux-devtools/extension",
   ]

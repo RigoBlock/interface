@@ -130,6 +130,7 @@ const dbInstance = localForage.createInstance({
 // previous persisted state from redux-localstorage-simple.
 // This function also checks for the existence of the state in indexedDB so we can move
 // it back to localStorage.
+// oxlint-disable-next-line no-shadow
 export function customCreateMigrate(migrations: MigrationManifest, options: MigrationConfig): PersistMigrate {
   const defaultMigrate = createMigrate(migrations, options)
 

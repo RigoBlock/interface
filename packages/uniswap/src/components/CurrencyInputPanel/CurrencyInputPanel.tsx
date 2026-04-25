@@ -1,6 +1,6 @@
 //! tamagui-ignore
 // tamagui-ignore
-/* eslint-disable complexity */
+/* oxlint-disable complexity */
 import { forwardRef, memo, useCallback } from 'react'
 import { Flex, TouchableArea, useIsShortMobileDevice, useShakeAnimation } from 'ui/src'
 import {
@@ -16,13 +16,14 @@ import { CurrencyInputPanelInput } from 'uniswap/src/components/CurrencyInputPan
 import { CurrencyInputPanelValue } from 'uniswap/src/components/CurrencyInputPanel/CurrencyInputPanelValue'
 import { useIndicativeQuoteTextDisplay } from 'uniswap/src/components/CurrencyInputPanel/hooks/useIndicativeQuoteTextDisplay'
 import type { CurrencyInputPanelProps, CurrencyInputPanelRef } from 'uniswap/src/components/CurrencyInputPanel/types'
+import { useMaxAmountSpend } from 'uniswap/src/features/gas/hooks/useMaxAmountSpend'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { isExtensionApp, isMobileWeb, isWebAppDesktop } from 'utilities/src/platform'
 
 export const CurrencyInputPanel = memo(
   forwardRef<CurrencyInputPanelRef, CurrencyInputPanelProps>(
-    function _CurrencyInputPanel(props, forwardedRef): JSX.Element {
+    function CurrencyInputPanelInner(props, forwardedRef): JSX.Element {
       const {
         autoFocus,
         currencyAmount,
@@ -96,6 +97,25 @@ export const CurrencyInputPanel = memo(
         },
         [onSetPresetValue],
       )
+
+      const maxInputAmount = useMaxAmountSpend({
+        currencyAmount: currencyBalance,
+        txType: transactionType,
+      })
+
+      const handlePressBalance = useCallback(() => {
+        if (isOutput) {
+          // For the output (Buy) panel, set the exact output amount to the balance
+          if (currencyBalance && currencyBalance.greaterThan(0)) {
+            onSetExactAmount(currencyBalance.toExact())
+          }
+        } else {
+          // For the input (Sell) panel, use max amount which accounts for gas reserves
+          if (maxInputAmount && maxInputAmount.greaterThan(0)) {
+            handleSetPresetValue(maxInputAmount.toExact(), 'max')
+          }
+        }
+      }, [isOutput, currencyBalance, maxInputAmount, onSetExactAmount, handleSetPresetValue])
 
       const renderPreset = useCallback(
         (preset: PresetPercentage) => (
@@ -207,6 +227,9 @@ export const CurrencyInputPanel = memo(
                     showInsufficientBalanceWarning={showInsufficientBalanceWarning}
                     hideBalance={!!hidePresets}
                     variant={balanceVariant}
+                    onPressBalance={
+                      (isOutput || onSetPresetValue) && currencyBalance?.greaterThan(0) ? handlePressBalance : undefined
+                    }
                   />
                   {/* Max button */}
                   {showMaxButton && onSetPresetValue && (

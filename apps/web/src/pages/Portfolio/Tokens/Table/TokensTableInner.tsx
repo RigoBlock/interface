@@ -13,16 +13,17 @@ import { useBooleanState } from 'utilities/src/react/useBooleanState'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
 import { Table } from '~/components/Table'
 import { PORTFOLIO_TABLE_ROW_HEIGHT } from '~/pages/Portfolio/constants'
+import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { useNavigateToTokenDetails } from '~/pages/Portfolio/Tokens/hooks/useNavigateToTokenDetails'
 import { TokenData } from '~/pages/Portfolio/Tokens/hooks/useTransformTokenTableData'
 import { TokenColumns, useTokenColumns } from '~/pages/Portfolio/Tokens/Table/columns/useTokenColumns'
-import type { TokenTableRow } from '~/pages/Portfolio/Tokens/Table/tokenTableRowUtils'
 import {
   buildTokenTableRows,
   getSubRows,
   getTokenDataForRow,
   getTokenTableRowId,
 } from '~/pages/Portfolio/Tokens/Table/tokenTableRowUtils'
+import type { TokenTableRow } from '~/pages/Portfolio/Tokens/Table/tokenTableRowUtils'
 
 export function TokensTableInner({
   tokenData,
@@ -37,6 +38,8 @@ export function TokensTableInner({
   externalScrollSync = true,
   scrollGroup = 'portfolio-tokens',
   analyticsContext,
+  showUnrealizedPnlPercent = false,
+  columnSortEnabled = true,
 }: {
   tokenData: TokenData[]
   hideHeader?: boolean
@@ -50,15 +53,28 @@ export function TokensTableInner({
   externalScrollSync?: boolean
   scrollGroup?: string
   analyticsContext?: { element: ElementName; section: SectionName }
+  showUnrealizedPnlPercent?: boolean
+  columnSortEnabled?: boolean
 }) {
   const { t } = useTranslation()
   const { value: isModalVisible, setTrue: openModal, setFalse: closeModal } = useBooleanState(false)
-  const showLoadingSkeleton = loading || !!error
+  const hasData = tokenData.length > 0
+  const showLoadingSkeleton = loading || (!!error && !hasData)
   const trace = useTrace()
-  const multichainExpandable = useFeatureFlag(FeatureFlags.MultichainTokenUx)
-  const rows = useMemo(() => buildTokenTableRows(tokenData, multichainExpandable), [tokenData, multichainExpandable])
+  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
+  const allowMultichainExpandRows = multichainTokenUxEnabled && !showHiddenTokensBanner
+  const rows = useMemo(
+    () => buildTokenTableRows(tokenData, allowMultichainExpandRows),
+    [tokenData, allowMultichainExpandRows],
+  )
 
-  const columns = useTokenColumns({ hiddenColumns, showLoadingSkeleton })
+  const columns = useTokenColumns({
+    hiddenColumns,
+    showLoadingSkeleton,
+    showUnrealizedPnlPercent,
+    columnSortEnabled,
+  })
+  const { chainId } = usePortfolioRoutes()
 
   const navigateToTokenDetails = useNavigateToTokenDetails()
 
@@ -69,9 +85,9 @@ export function TokensTableInner({
         section: analyticsContext?.section ?? SectionName.PortfolioTokensTab,
         ...trace,
       })
-      navigateToTokenDetails(data.currencyInfo.currency)
+      navigateToTokenDetails(data.currencyInfo.currency, chainId)
     },
-    [navigateToTokenDetails, trace, analyticsContext],
+    [navigateToTokenDetails, trace, analyticsContext, chainId],
   )
 
   const rowWrapper = useCallback(
@@ -79,7 +95,7 @@ export function TokensTableInner({
       if (loading) {
         return content
       }
-      const canExpand = multichainExpandable && row.getCanExpand()
+      const canExpand = allowMultichainExpandRows && row.getCanExpand()
       const onPress = canExpand
         ? () => row.toggleExpanded()
         : () => handleTokenRowClick(getTokenDataForRow(row.original))
@@ -89,7 +105,7 @@ export function TokensTableInner({
         </TouchableArea>
       )
     },
-    [loading, multichainExpandable, handleTokenRowClick],
+    [loading, allowMultichainExpandRows, handleTokenRowClick],
   )
 
   return (
@@ -106,7 +122,7 @@ export function TokensTableInner({
         columns={columns as ColumnDef<TokenTableRow, unknown>[]}
         data={rows}
         loading={loading}
-        error={!!error}
+        error={!!error && !hasData}
         v2={true}
         hideHeader={hideHeader}
         externalScrollSync={externalScrollSync}

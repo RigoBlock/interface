@@ -166,7 +166,7 @@ export function createWebSocketClient<TParams, TMessage>(
       }
       stopSessionRefreshTimer()
       // Ignore close events after intentional disconnect (socket already nulled)
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       if (!socket) {
         return
       }

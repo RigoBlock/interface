@@ -1,17 +1,17 @@
 import { useEffect, useMemo } from 'react'
-import { ColorTokens, useSporeColors } from 'ui/src'
+import { type ColorTokens, useSporeColors } from 'ui/src'
 import { useActiveAddress } from 'uniswap/src/features/accounts/store/hooks'
-import { EVMUniverseChainId, UniverseChainId } from 'uniswap/src/features/chains/types'
+import type { EVMUniverseChainId, UniverseChainId } from 'uniswap/src/features/chains/types'
 import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { useOnChainCurrencyBalance } from 'uniswap/src/features/portfolio/api'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { buildCurrencyId, buildNativeCurrencyId } from 'uniswap/src/utils/currencyId'
 import { zeroAddress } from 'viem'
 import { fromQ96ToDecimalWithTokenDecimals } from '~/components/Toucan/Auction/BidDistributionChart/utils/q96'
-import { BudgetFieldState, useBidBudgetField } from '~/components/Toucan/Auction/hooks/useBidBudgetField'
-import { SubmitState, useBidFormSubmit } from '~/components/Toucan/Auction/hooks/useBidFormSubmit'
+import { type BudgetFieldState, useBidBudgetField } from '~/components/Toucan/Auction/hooks/useBidBudgetField'
+import { type SubmitState, useBidFormSubmit } from '~/components/Toucan/Auction/hooks/useBidFormSubmit'
 import {
-  MaxValuationFieldState,
+  type MaxValuationFieldState,
   useBidMaxValuationField,
 } from '~/components/Toucan/Auction/hooks/useBidMaxValuationField'
 import { useDurationRemaining } from '~/components/Toucan/Auction/hooks/useDurationRemaining'
@@ -34,6 +34,8 @@ interface UseBidFormControllerResult {
   expectedReceiveAmount?: number
   minExpectedReceiveAmount?: number
   maxReceivableAmount?: number
+  maxPriceQ96: bigint | undefined
+  bidTokenDecimals?: number
   hasBidToken: boolean
   bidCurrencyAddress?: string
   bidTokenSymbol: string
@@ -298,6 +300,7 @@ export function useBidFormController({
     if (
       maxPriceQ96 &&
       !maxPriceAmountIsZero &&
+      !budgetAmountIsZero &&
       !isMaxPriceBelowMinimum &&
       bidTokenDecimals !== undefined &&
       clearingPriceQ96 &&
@@ -334,6 +337,7 @@ export function useBidFormController({
     floorPriceQ96,
     tickSizeQ96,
     setUserBidPrice,
+    budgetAmountIsZero,
   ])
 
   return {
@@ -349,6 +353,8 @@ export function useBidFormController({
     expectedReceiveAmount,
     minExpectedReceiveAmount,
     maxReceivableAmount,
+    maxPriceQ96,
+    bidTokenDecimals,
     hasBidToken,
     bidCurrencyAddress: currency,
     bidTokenSymbol,

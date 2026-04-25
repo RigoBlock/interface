@@ -14,7 +14,7 @@ type ScrollHeaderProps = {
   showHeaderScrollYDistance: number
   fullScreen?: boolean
   // hard to type
-  // biome-ignore lint/suspicious/noExplicitAny: Ref type varies based on list component used
+  // oxlint-disable-next-line typescript/no-explicit-any -- Ref type varies based on list component used
   listRef: React.MutableRefObject<any>
   centerElement?: JSX.Element
   rightElement?: JSX.Element

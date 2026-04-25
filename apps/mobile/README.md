@@ -57,15 +57,15 @@ Note: If you are indeed using an Apple Silicon Mac, we recommend setting up your
     Look at the `.nvmrc` file in your workspace to determine which version to install. Then run the following command in your terminal with that version:
 
     ```bash
-    nvm install 22.13.1
-    nvm use 22.13.1
+    nvm install 22.22.2
+    nvm use 22.22.2
     ```
 
     Quit and re-open the terminal, and then run to confirm that v22 is running
 
     ```bash
     > node -v
-    v22.13.1
+    v22.22.2
     ```
 
     Alternatively, to automatically try to find and use an `.nvmrc` file in your workspace, per the [official nvm docs for zsh](https://github.com/nvm-sh/nvm?tab=readme-ov-file#zsh), add the following script to your shell (typically `~/.zshrc` on mac):
@@ -103,14 +103,14 @@ Note: If you are indeed using an Apple Silicon Mac, we recommend setting up your
     Look at the `.bun-version` file in your workspace to determine which version to install. Run the following command to install it, being mindful of the version string here (npm comes with node, so it should work if the above step has been completed correctly)
 
     ```bash
-    curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.1"
+    curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.11"
     ```
 
     Check version to verify installation
 
     ```bash
     > bun -v
-    1.3.1
+    1.3.11
     ```
 
 5. Install `ruby`

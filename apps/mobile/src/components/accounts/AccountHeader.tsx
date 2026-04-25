@@ -1,5 +1,4 @@
 import { SharedEventName } from '@uniswap/analytics-events'
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import React, { useCallback, useEffect } from 'react'
 import { Gesture, GestureDetector, State } from 'react-native-gesture-handler'
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated'
@@ -38,6 +37,7 @@ const RotatingSettingsIcon = ({ onPressSettings }: { onPressSettings(): void }):
     if (isScreenFocused) {
       pressProgress.value = withDelay(50, withTiming(0))
     }
+    // oxlint-disable-next-line react/exhaustive-deps -- biome-parity: oxlint is stricter here
   }, [isScreenFocused])
 
   const tap = Gesture.Tap()
@@ -125,17 +125,8 @@ export function AccountHeader(): JSX.Element {
   const walletHasName = displayName && displayName.type !== DisplayNameType.Address
   const iconSize = 52
 
-  const isBottomTabsEnabled = useFeatureFlag(FeatureFlags.BottomTabs)
-
   return (
-    <Flex
-      gap="$spacing12"
-      overflow="scroll"
-      pt="$spacing8"
-      px={isBottomTabsEnabled ? '$spacing24' : '$spacing12'}
-      testID="account-header"
-      width="100%"
-    >
+    <Flex gap="$spacing12" overflow="scroll" pt="$spacing8" px="$spacing24" testID="account-header" width="100%">
       {activeAddress && (
         <Flex alignItems="flex-start" gap="$spacing12" width="100%">
           <Flex row justifyContent="space-between" width="100%">

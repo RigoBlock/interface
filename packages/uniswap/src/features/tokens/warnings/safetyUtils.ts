@@ -1,4 +1,4 @@
-/* eslint-disable consistent-return */
+/* oxlint-disable typescript/consistent-return */
 import { Currency, NativeCurrency } from '@uniswap/sdk-core'
 import { GraphQLApi } from '@universe/api'
 import { useTranslation } from 'react-i18next'
@@ -68,7 +68,6 @@ export function getTokenProtectionFeeOnTransfer(currencyInfo: Maybe<CurrencyInfo
   }
 }
 
-// eslint-disable-next-line complexity
 export function getTokenProtectionWarning(currencyInfo?: Maybe<CurrencyInfo>): TokenProtectionWarning {
   if (!currencyInfo?.currency || !currencyInfo.safetyInfo) {
     return TokenProtectionWarning.NonDefault
@@ -239,7 +238,6 @@ export function useModalHeaderText({
   }
 }
 
-// eslint-disable-next-line complexity
 export function useModalSubtitleText({
   tokenProtectionWarning,
   tokenSymbol,
@@ -385,7 +383,6 @@ export function useCardHeaderText({
   }
 }
 
-// eslint-disable-next-line complexity
 export function useCardSubtitleText({
   tokenProtectionWarning,
   tokenSymbol,

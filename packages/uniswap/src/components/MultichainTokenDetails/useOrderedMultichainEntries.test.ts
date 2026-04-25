@@ -10,9 +10,9 @@ vi.mock('uniswap/src/features/chains/hooks/useOrderedChainIds', () => ({
 
 describe(useOrderedMultichainEntries, () => {
   const ENTRIES: MultichainTokenEntry[] = [
-    { chainId: UniverseChainId.Base, address: '0xBase' },
-    { chainId: UniverseChainId.Mainnet, address: '0xMainnet' },
-    { chainId: UniverseChainId.ArbitrumOne, address: '0xArbitrum' },
+    { chainId: UniverseChainId.Base, address: '0xBase', isNative: false },
+    { chainId: UniverseChainId.Mainnet, address: '0xMainnet', isNative: false },
+    { chainId: UniverseChainId.ArbitrumOne, address: '0xArbitrum', isNative: false },
   ]
 
   beforeEach(() => {
@@ -49,5 +49,24 @@ describe(useOrderedMultichainEntries, () => {
     rerender()
 
     expect(result.current).toBe(firstResult)
+  })
+
+  it('returns stable reference when entries is a new array with the same deployments', () => {
+    const entriesA = [...ENTRIES]
+    const entriesB = ENTRIES.map((e) => ({ ...e }))
+
+    const { result, rerender } = renderHook((entries: MultichainTokenEntry[]) => useOrderedMultichainEntries(entries), {
+      initialProps: [entriesA],
+    })
+
+    const firstResult = result.current
+    rerender([entriesB])
+
+    expect(result.current).toBe(firstResult)
+    expect(result.current.map((e) => e.chainId)).toEqual([
+      UniverseChainId.Mainnet,
+      UniverseChainId.ArbitrumOne,
+      UniverseChainId.Base,
+    ])
   })
 })

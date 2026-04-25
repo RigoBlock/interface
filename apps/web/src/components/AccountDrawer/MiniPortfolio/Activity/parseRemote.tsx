@@ -1,5 +1,3 @@
-/* eslint-disable max-params */
-
 import type { Currency } from '@uniswap/sdk-core'
 import { GraphQLApi } from '@universe/api'
 import { Flex, styled, Text } from 'ui/src'

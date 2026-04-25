@@ -1,8 +1,8 @@
-import {MonitorDefinition} from '../../types';
-import {settings} from '../../config';
+import { settings } from '../../config'
+import { MonitorDefinition } from '../../types'
 
 // ALB metrics use name:dev-portal-lb tag, scoped by environment from Pulumi config
-const albTagFilter = `name:dev-portal-lb,unienv:${settings.environment}`;
+const albTagFilter = `name:dev-portal-lb,unienv:${settings.environment}`
 
 export const devPortalLatencyMonitors: MonitorDefinition[] = [
   {
@@ -14,11 +14,10 @@ export const devPortalLatencyMonitors: MonitorDefinition[] = [
     recoveryBody: 'P95 latency for dev-portal has recovered.',
     team: 'dev-portal',
     priority: 3,
-    thresholds: {critical: 2, warning: 1.5},
+    thresholds: { critical: 2, warning: 1.5 },
     logQuery: 'service:dev-portal',
     runbookUrl: 'https://www.notion.so/uniswap/dev-portal-runbook',
-    readmeUrl:
-      'https://github.com/Uniswap/universe/tree/main/apps/dev-portal',
+    readmeUrl: 'https://github.com/Uniswap/universe/tree/main/apps/dev-portal',
     dashboards: [],
     notifyNoData: true,
     noDataTimeframe: 15,
@@ -32,13 +31,12 @@ export const devPortalLatencyMonitors: MonitorDefinition[] = [
     recoveryBody: 'P99 latency for dev-portal has recovered.',
     team: 'dev-portal',
     priority: 2,
-    thresholds: {critical: 5, warning: 3},
+    thresholds: { critical: 5, warning: 3 },
     logQuery: 'service:dev-portal',
     runbookUrl: 'https://www.notion.so/uniswap/dev-portal-runbook',
-    readmeUrl:
-      'https://github.com/Uniswap/universe/tree/main/apps/dev-portal',
+    readmeUrl: 'https://github.com/Uniswap/universe/tree/main/apps/dev-portal',
     dashboards: [],
     notifyNoData: true,
     noDataTimeframe: 15,
   },
-];
+]

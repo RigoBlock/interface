@@ -4,36 +4,46 @@ import { Button, Flex, Shine, Text, TouchableArea } from 'ui/src'
 import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
 import { iconSizes } from 'ui/src/theme'
 import { TokenLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
+import { TokenSelectorFlow } from 'uniswap/src/components/TokenSelector/types'
 import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { useCurrencyInfoWithLoading } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
+import { logger } from 'utilities/src/logger/logger'
 import { SwitchNetworkAction } from '~/components/Popups/types'
 import CurrencySearchModal from '~/components/SearchModal/CurrencySearchModal'
 import { useActiveAddress } from '~/features/accounts/store/hooks'
-import { useCreateAuctionStoreActions } from '~/pages/Liquidity/CreateAuction/CreateAuctionContext'
+import { useTotalSupply } from '~/hooks/useTotalSupply'
 import { NoWalletSection } from '~/pages/Liquidity/CreateAuction/components/NoWalletSection'
 import { TokenAdditionalInfoSection } from '~/pages/Liquidity/CreateAuction/components/TokenAdditionalInfoSection'
+import { useCreateAuctionStoreActions } from '~/pages/Liquidity/CreateAuction/CreateAuctionContext'
 import { useCreateAuctionAllowedNetworks } from '~/pages/Liquidity/CreateAuction/hooks/useCreateAuctionAllowedNetworks'
-import { type ExistingTokenFields } from '~/pages/Liquidity/CreateAuction/types'
+import { useCreateAuctionTokenColor } from '~/pages/Liquidity/CreateAuction/hooks/useCreateAuctionTokenColor'
+import { useIsStepValid } from '~/pages/Liquidity/CreateAuction/hooks/useIsStepValid'
+import { CreateAuctionStep, type ExistingTokenFormState } from '~/pages/Liquidity/CreateAuction/types'
 
-export function ExistingTokenForm({ existing }: { existing: ExistingTokenFields }) {
+export function ExistingTokenForm({ existing }: { existing: ExistingTokenFormState }) {
   const { t } = useTranslation()
+  const tokenColor = useCreateAuctionTokenColor()
   const { updateExistingTokenField, commitTokenFormAndAdvance } = useCreateAuctionStoreActions()
   const address = useActiveAddress(Platform.EVM)
 
-  const canContinue = existing.existingTokenCurrencyInfo !== undefined && existing.description.trim().length > 0
   const [showCurrencySearch, setShowCurrencySearch] = useState(false)
   const [lookupCurrencyId, setLookupCurrencyId] = useState<string | undefined>()
+  const [invalidTokenSelected, setInvalidTokenSelected] = useState(false)
   const allowedNetworks = useCreateAuctionAllowedNetworks()
 
-  const { currencyInfo: resolvedCurrencyInfo, loading: currencyLoading } = useCurrencyInfoWithLoading(
-    lookupCurrencyId,
-    {
-      skip: !lookupCurrencyId,
-    },
-  )
+  const {
+    currencyInfo: resolvedCurrencyInfo,
+    loading: currencyLoading,
+    error: currencyError,
+  } = useCurrencyInfoWithLoading(lookupCurrencyId, { skip: !lookupCurrencyId })
 
   const selectedCurrencyInfo = existing.existingTokenCurrencyInfo
+  const selectedCurrency = selectedCurrencyInfo?.currency
+  const { totalSupply, isLoading: totalSupplyLoading, isError: totalSupplyError } = useTotalSupply(selectedCurrency)
+
+  const hasFetchError = (!!currencyError && !!lookupCurrencyId) || (totalSupplyError && !!selectedCurrencyInfo)
+  const canContinue = useIsStepValid(CreateAuctionStep.ADD_TOKEN_INFO) && !totalSupplyLoading && !hasFetchError
 
   // Auto-populate currencyInfo when address resolves
   useEffect(() => {
@@ -42,6 +52,38 @@ export function ExistingTokenForm({ existing }: { existing: ExistingTokenFields 
       setLookupCurrencyId(undefined)
     }
   }, [resolvedCurrencyInfo, existing.existingTokenCurrencyInfo, updateExistingTokenField])
+
+  useEffect(() => {
+    const resolved = totalSupply ?? undefined
+    // We need both checks: `===` covers the undefined===undefined case (the setter always
+    // spreads a new tokenForm object, so even a no-op call would trigger a re-render loop),
+    // and `.equalTo()` covers value-equal but reference-distinct CurrencyAmount objects.
+    const isSame =
+      resolved === existing.totalSupply ||
+      (resolved !== undefined && existing.totalSupply !== undefined && resolved.equalTo(existing.totalSupply))
+    if (!isSame) {
+      updateExistingTokenField('totalSupply', resolved)
+    }
+  }, [totalSupply, existing.totalSupply, updateExistingTokenField])
+
+  const [loggedErrorKey, setLoggedErrorKey] = useState<string | undefined>(undefined)
+  useEffect(() => {
+    if (totalSupplyError && selectedCurrencyInfo) {
+      const tokenAddress = selectedCurrencyInfo.currency.isToken ? selectedCurrencyInfo.currency.address : undefined
+      const key = `${tokenAddress}-${selectedCurrencyInfo.currency.chainId}`
+      if (loggedErrorKey === key) {
+        return
+      }
+      setLoggedErrorKey(key)
+      logger.error(new Error('ExistingTokenForm: failed to fetch total supply for selected token'), {
+        tags: { file: 'ExistingTokenForm.tsx', function: 'ExistingTokenForm' },
+        extra: {
+          tokenAddress,
+          chainId: selectedCurrencyInfo.currency.chainId,
+        },
+      })
+    }
+  }, [totalSupplyError, selectedCurrencyInfo, loggedErrorKey])
 
   if (!address) {
     return (
@@ -104,6 +146,18 @@ export function ExistingTokenForm({ existing }: { existing: ExistingTokenFields 
         </TouchableArea>
       )}
 
+      {invalidTokenSelected && (
+        <Text variant="body3" color="$statusCritical" textAlign="center">
+          {t('toucan.createAuction.step.tokenInfo.invalidTokenSelected')}
+        </Text>
+      )}
+
+      {hasFetchError && (
+        <Text variant="body3" color="$statusCritical" textAlign="center">
+          {t('toucan.createAuction.step.tokenInfo.fetchError')}
+        </Text>
+      )}
+
       {selectedCurrencyInfo && (
         <TokenAdditionalInfoSection
           description={existing.description}
@@ -112,7 +166,14 @@ export function ExistingTokenForm({ existing }: { existing: ExistingTokenFields 
       )}
 
       <Flex row>
-        <Button size="large" emphasis="primary" onPress={commitTokenFormAndAdvance} isDisabled={!canContinue} fill>
+        <Button
+          size="large"
+          emphasis="primary"
+          onPress={commitTokenFormAndAdvance}
+          isDisabled={!canContinue}
+          fill
+          backgroundColor={tokenColor}
+        >
           {t('common.button.continue')}
         </Button>
       </Flex>
@@ -122,14 +183,18 @@ export function ExistingTokenForm({ existing }: { existing: ExistingTokenFields 
         onDismiss={() => setShowCurrencySearch(false)}
         switchNetworkAction={SwitchNetworkAction.LP}
         onCurrencySelect={(currency) => {
-          const address = currency.isToken ? currency.address : ''
-          updateExistingTokenField('existingTokenCurrencyInfo', undefined)
-          if (currency.isToken) {
-            setLookupCurrencyId(buildCurrencyId(currency.chainId, address))
-          }
           setShowCurrencySearch(false)
+          if (!currency.isToken) {
+            setInvalidTokenSelected(true)
+            return
+          }
+          setInvalidTokenSelected(false)
+          updateExistingTokenField('existingTokenCurrencyInfo', undefined)
+          updateExistingTokenField('totalSupply', undefined)
+          setLookupCurrencyId(buildCurrencyId(currency.chainId, currency.address))
         }}
         chainIds={allowedNetworks}
+        flow={TokenSelectorFlow.Liquidity}
       />
     </Flex>
   )

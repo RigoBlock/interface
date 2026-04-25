@@ -123,6 +123,7 @@ function BidDetailsModalContent({
   bidTokenInfo,
   auctionDetails,
   clearingPrice,
+  // oxlint-disable-next-line no-unused-vars -- biome-parity: oxlint is stricter here
   onchainClearingPrice,
   isGraduated,
   isInPreClaimWindow,
@@ -235,6 +236,7 @@ function BidDetailsModalContent({
                 maxFdvDisplay={maxFdvDisplay}
                 fdvFraction={fdvFraction}
                 displayState={displayState}
+                isAuctionEnded={auctionProgressState === AuctionProgressState.ENDED && isGraduated}
               />
             </Flex>
           )}

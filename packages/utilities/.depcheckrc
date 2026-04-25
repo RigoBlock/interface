@@ -3,6 +3,7 @@ ignores: [
     '@vitest/coverage-v8',
     'typescript',
     '@typescript/native-preview',
+    'oxlint',
     # Dependencies that depcheck thinks are missing but are actually present
     ## Internal packages / workspaces
     "tsconfig",

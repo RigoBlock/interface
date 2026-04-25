@@ -30,7 +30,7 @@ export function useTokenLaunchedBannerColorData({
 
     let backgroundImage = `radial-gradient(circle at 1px 1px, ${dots} 1px, transparent 0)`
     if (gradientLtr) {
-      backgroundImage += `, linear-gradient(90deg, ${surface2} 0%, ${surface2} 75%, ${accentSoft} 100%)`
+      backgroundImage += `, linear-gradient(270deg, ${surface2} 0%, ${surface2} 75%, ${accentSoft} 100%)`
     }
 
     return {
@@ -39,17 +39,8 @@ export function useTokenLaunchedBannerColorData({
     }
   }, [accentColor, colors.surface2.val, gradientLtr])
 
-  const scrimStyle = useMemo(() => {
-    const scrimColor = opacifyRaw(65, colors.surface2.val)
-    const transparent = opacifyRaw(0, colors.surface2.val)
-    return {
-      backgroundImage: `linear-gradient(90deg, ${scrimColor} 0%, ${transparent} 60%)`,
-    }
-  }, [colors.surface2.val])
-
   return {
     bannerGradient,
-    scrimStyle,
     accentColor,
   }
 }

@@ -176,6 +176,7 @@ const HeaderRow = styled(TableRowBase, {
   } as const,
 })
 
+// oxlint-disable-next-line complexity
 export function Table<T extends RowData>({
   columns,
   data,
@@ -203,6 +204,7 @@ export function Table<T extends RowData>({
   hiddenRows,
   showHiddenRowsLabel,
   hideHiddenRowsLabel,
+  showScrollbar,
 }: TableProps<T>) {
   const colors = useSporeColors()
   const { t } = useTranslation()
@@ -318,6 +320,7 @@ export function Table<T extends RowData>({
           maxHeight={computedBodyMaxHeight}
           v2={v2}
           hasHiddenRows={hasHiddenRows && !loading && !error}
+          {...(showScrollbar && { scrollbarWidth: 'thin' as const })}
         >
           <TableBody
             loading={loading}

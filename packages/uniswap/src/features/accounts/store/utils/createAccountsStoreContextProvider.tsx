@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { createContext, PropsWithChildren, ReactNode, useContext, useEffect, useState } from 'react'
 import type {
   AccountsData,
@@ -44,6 +43,7 @@ export function createAccountsStoreContextProvider<TData extends AccountsData, T
     return <AccountsStoreContext.Provider value={store}>{children}</AccountsStoreContext.Provider>
   }
 
+  // oxlint-disable-next-line typescript/explicit-function-return-type
   function useAccountsStoreContext() {
     const context = useContext(AccountsStoreContext)
     if (!context) {

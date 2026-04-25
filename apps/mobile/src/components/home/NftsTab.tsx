@@ -17,7 +17,7 @@ import { isAndroid } from 'utilities/src/platform'
 import { useAccounts } from 'wallet/src/features/wallet/hooks'
 
 export const NftsTab = memo(
-  forwardRef<FlashList<unknown>, TabProps>(function _NftsTab(
+  forwardRef<FlashList<unknown>, TabProps>(function NftsTabInner(
     {
       owner,
       containerProps,

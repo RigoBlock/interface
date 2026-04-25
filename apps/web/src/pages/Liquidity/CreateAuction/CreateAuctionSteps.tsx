@@ -1,5 +1,6 @@
 import { AnimatePresence, Flex, HeightAnimator } from 'ui/src'
 import { useCreateAuctionStore } from '~/pages/Liquidity/CreateAuction/CreateAuctionContext'
+import { useUpdateCreateAuctionTokenColor } from '~/pages/Liquidity/CreateAuction/hooks/useUpdateCreateAuctionTokenColor'
 import { AddTokenInfoStep } from '~/pages/Liquidity/CreateAuction/steps/AddTokenInfoStep'
 import { ConfigureAuctionStep } from '~/pages/Liquidity/CreateAuction/steps/ConfigureAuctionStep'
 import { CustomizePoolStep } from '~/pages/Liquidity/CreateAuction/steps/CustomizePoolStep'
@@ -8,6 +9,7 @@ import { CreateAuctionStep } from '~/pages/Liquidity/CreateAuction/types'
 
 export function CreateAuctionSteps() {
   const step = useCreateAuctionStore((state) => state.step)
+  useUpdateCreateAuctionTokenColor()
 
   return (
     <Flex width="100%" overflow="hidden">

@@ -68,6 +68,7 @@ function* submitToucanBid(params: SubmitToucanBidParams) {
           // Run post-permit2 simulation if we had pre-bid steps and callback is provided
           if (!didRunPostPermitSimulation && preBidSteps && preBidSteps.length > 0 && onPreBidStepsComplete) {
             const shouldContinue = yield* call(onPreBidStepsComplete)
+            // oxlint-disable-next-line max-depth
             if (!shouldContinue) {
               onFailure(new Error('Bid simulation failed after permit steps'))
               return

@@ -1,4 +1,4 @@
-/* eslint-disable max-lines */
+/* oxlint-disable max-lines */
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import { useEffect, useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
@@ -51,6 +51,7 @@ interface BidReviewModalProps {
 
 const PLACEHOLDER = '—'
 
+// oxlint-disable-next-line complexity
 export function BidReviewModal({
   isOpen,
   onClose,

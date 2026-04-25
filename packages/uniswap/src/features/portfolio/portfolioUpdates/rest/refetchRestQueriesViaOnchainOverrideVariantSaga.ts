@@ -18,6 +18,7 @@ import { TransactionDetails } from 'uniswap/src/features/transactions/types/tran
 import { CurrencyId } from 'uniswap/src/types/currency'
 import { buildCurrencyId, isNativeCurrencyAddress } from 'uniswap/src/utils/currencyId'
 import { createLogger } from 'utilities/src/logger/logger'
+import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
 import { ONE_SECOND_MS } from 'utilities/src/time/time'
 
 // This delay is arbitrary but enough time for our endpoints to reflect updated balances
@@ -269,8 +270,15 @@ export function* refetchRestQueriesViaOnchainOverrideVariant({
     predicate: (query: { queryKey: readonly unknown[] }) =>
       doesGetPortfolioQueryMatchAddress({ queryKey: query.queryKey, address: activeAddress, platform }),
   })
+
+  // Invalidate token profit/loss queries for this address so the TDP Performance section updates after swaps
+  yield* call([SharedQueryClient, SharedQueryClient.invalidateQueries], {
+    predicate: (query: { queryKey: readonly unknown[] }) =>
+      query.queryKey[0] === ReactQueryCacheKey.GetWalletTokenProfitLoss && query.queryKey[1] === activeAddress,
+  })
 }
 
+// oxlint-disable-next-line typescript/explicit-function-return-type
 function* updatePortfolioCache({
   ownerAddress,
   currencyIds,

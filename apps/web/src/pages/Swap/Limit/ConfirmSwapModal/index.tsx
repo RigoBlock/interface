@@ -1,7 +1,7 @@
 import { Currency, Percent } from '@uniswap/sdk-core'
 import { useCallback, useEffect, useMemo } from 'react'
 import { Flex } from 'ui/src'
-// biome-ignore lint/style/noRestrictedImports: ui constant needed for modal animation timing
+// oxlint-disable-next-line no-restricted-imports -- ui constant needed for modal animation timing
 import { ADAPTIVE_MODAL_ANIMATION_DURATION } from 'ui/src/components/modal/AdaptiveWebModal'
 import { SwapEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
@@ -59,6 +59,7 @@ export function ConfirmSwapModal({
   clearSwapState: () => void
   onAcceptChanges?: () => void
   onConfirm: () => void
+  // oxlint-disable-next-line max-params -- biome-parity: oxlint is stricter here
   onCurrencySelection: (field: CurrencyField, currency: Currency, isResettingWETHAfterWrap?: boolean) => void
   onDismiss: () => void
   onXV2RetryWithClassic?: () => void
@@ -120,7 +121,9 @@ export function ConfirmSwapModal({
   // Determine which view to show based on confirm modal state and other conditions
   const { showPreview, showDetails, showProgressIndicator, showAcceptChanges, showConfirming, showSuccess, showError } =
     useMemo(() => {
+      // oxlint-disable-next-line no-shadow
       const showAcceptChanges = confirmModalState !== ConfirmModalState.PENDING_CONFIRMATION && doesTradeDiffer
+      // oxlint-disable-next-line no-shadow
       let showPreview, showDetails, showProgressIndicator, showConfirming, showSuccess, showError
       if (errorType) {
         // When any type of error is encountered (except for SignatureExpiredError, which has special retry logic)

@@ -1,5 +1,5 @@
-import { call, delay } from 'redux-saga/effects'
 import { expectSaga, RunResult } from 'redux-saga-test-plan'
+import { call, delay } from 'redux-saga/effects'
 import { navigationRef } from 'src/app/navigation/navigationRef'
 import { navigate } from 'src/app/navigation/rootNavigation'
 import { DeepLinkAction } from 'src/features/deepLinking/deepLinkUtils'
@@ -62,8 +62,11 @@ const unsupportedScreenDeepLinkPayload = {
 
 // WalletConnect URI has its own query parameters that should not be dropped
 const wcUri = 'wc:af098@2?relay-protocol=irn&symKey=51e'
+// oxlint-disable-next-line jest/no-export -- suppressed
 export const wcUniversalLinkUrl = `https://uniswap.org/app/wc?uri=${wcUri}`
+// oxlint-disable-next-line jest/no-export -- suppressed
 export const wcAsParamInUniwapScheme = `uniswap://wc?uri=${wcUri}`
+// oxlint-disable-next-line jest/no-export -- suppressed
 export const wcInUniwapScheme = `uniswap://${wcUri}`
 const invalidUrlSchemeUrl = `uniswap://invalid?param=pepe`
 

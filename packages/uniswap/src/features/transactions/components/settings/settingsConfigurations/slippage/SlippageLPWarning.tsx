@@ -21,10 +21,10 @@ export function isLowSlippage({
 }: {
   isNativePool: boolean
   isSlippageDirty: boolean
-  effectiveSlippage: number
+  effectiveSlippage?: number
   isLpDynamicNativeSlippageEnabled: boolean
 }): boolean {
-  if (!isLpDynamicNativeSlippageEnabled) {
+  if (!isLpDynamicNativeSlippageEnabled || effectiveSlippage === undefined) {
     return false
   }
 

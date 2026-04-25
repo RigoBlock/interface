@@ -60,22 +60,18 @@
         "cwd": "{projectRoot}"
       }
     },
+    "format": {},
+    "format:check": {},
+    "lint:oxlint": {},
+    "lint:oxlint:fix": {},
+    "lint:oxlint:fast": {},
+    "lint:typeaware-custom": {
+      "command": "bun config/oxlint-plugins/typeaware-custom.ts apps/extension"
+    },
     "lint": {},
     "lint:fix": {},
-    "lint:biome": {},
-    "lint:biome:fix": {},
-    "lint:eslint": {
-      "command": "NODE_OPTIONS=--max_old_space_size=8192 eslint . --ext ts,tsx --max-warnings=0",
-      "options": {
-        "cwd": "{projectRoot}"
-      }
-    },
-    "lint:eslint:fix": {
-      "command": "NODE_OPTIONS=--max-old-space-size=8192 eslint . --ext ts,tsx --fix",
-      "options": {
-        "cwd": "{projectRoot}"
-      }
-    },
+    "check": {},
+    "check:fast": {},
     "postinstall": {
       "command": "wxt prepare",
       "options": {
@@ -145,6 +141,7 @@
       }
     },
     "typecheck": {},
+    "typecheck:tsc": {},
     "typecheck:tsgo": {},
     "zip": {
       "command": "wxt zip",
@@ -199,20 +196,20 @@
       "dependsOn": ["build:e2e"]
     },
     "validate:build": {
-      "command": "bunx tsx scripts/validateBuildOutput.ts",
+      "command": "bun run scripts/validateBuildOutput.ts",
       "options": {
         "cwd": "{projectRoot}"
       },
       "dependsOn": ["build:wxt"]
     },
     "validate:build:dev": {
-      "command": "bunx tsx scripts/validateBuildOutput.ts --dev",
+      "command": "bun run scripts/validateBuildOutput.ts --dev",
       "options": {
         "cwd": "{projectRoot}"
       }
     },
     "validate:build:prod": {
-      "command": "bunx tsx scripts/validateBuildOutput.ts --prod",
+      "command": "bun run scripts/validateBuildOutput.ts --prod",
       "options": {
         "cwd": "{projectRoot}"
       },

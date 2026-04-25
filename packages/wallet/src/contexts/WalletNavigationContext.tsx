@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition */
+/* oxlint-disable typescript/no-unnecessary-condition */
 import { createContext, PropsWithChildren, useContext } from 'react'
 import { getNativeAddress } from 'uniswap/src/constants/addresses'
 import { NavigateToNftItemArgs } from 'uniswap/src/contexts/UniswapContext'

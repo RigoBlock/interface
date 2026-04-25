@@ -32,8 +32,8 @@ test.describe(
       await page.goto('/swap')
 
       await page.getByTestId(TestID.ChooseOutputToken).click()
+      await page.getByTestId(TestID.ExploreSearchInput).fill('USDT') // necessary to guarantee token option shows up in DOM bc of virtualized token selector list
       // Select USDT token
-      // eslint-disable-next-line
       await page.getByTestId('token-option-1-USDT').first().click()
       // Confirm wallet balance is shown
       await expect(page.getByText('100 USDT')).toBeVisible()
@@ -103,6 +103,7 @@ test.describe(
       await stubTradingApiEndpoint({ page, endpoint: uniswapUrls.tradingApiPaths.quote })
       await page.goto(`/swap?inputCurrency=ETH`)
       await page.getByTestId(TestID.ChooseOutputToken).click()
+      await page.getByTestId(TestID.ExploreSearchInput).fill('Base ETH') // necessary to guarantee token option shows up in DOM bc of virtualized token selector list
       await page.getByTestId(`token-option-${UniverseChainId.Base}-ETH`).first().click()
       expect(
         await page

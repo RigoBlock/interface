@@ -8,17 +8,19 @@ import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { useSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { getChainGasToken } from 'uniswap/src/features/gas/hooks/useChainGasToken'
 import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { chainIdToPlatform } from 'uniswap/src/features/platforms/utils/chains'
 import { selectFilteredChainIds } from 'uniswap/src/features/transactions/swap/state/selectors'
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { getValidAddress } from 'uniswap/src/utils/addresses'
+import { currencyAddress } from 'uniswap/src/utils/currencyId'
 import { NATIVE_CHAIN_ID } from '~/constants/tokens'
+import { getParsedChainId } from '~/features/params/chainParams'
 import { useCurrency } from '~/hooks/Tokens'
 import { useMultichainContext } from '~/state/multichain/useMultichainContext'
 import { CurrencyState, SerializedCurrencyState, SwapState } from '~/state/swap/types'
 import { useSwapAndLimitContext } from '~/state/swap/useSwapContext'
-import { getParsedChainId } from '~/utils/chainParams'
 
 export function useOnSwitchTokens(): () => void {
   const { setCurrencyState } = useSwapAndLimitContext()
@@ -163,12 +165,10 @@ export function serializeSwapAddressesToURLParameters({
 export function queryParametersToCurrencyState(parsedQs: ParsedQs): SerializedCurrencyState {
   const chainId = getParsedChainId(parsedQs)
   const outputChainId = getParsedChainId(parsedQs, CurrencyField.OUTPUT)
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const parsedInputCurrencyAddress = parseCurrencyFromURLParameter(
     parsedQs.inputCurrency || parsedQs.inputcurrency,
     chainIdToPlatform(chainId ?? UniverseChainId.Mainnet),
   )
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const parsedOutputCurrencyAddress = parseCurrencyFromURLParameter(
     parsedQs.outputCurrency || parsedQs.outputcurrency,
     chainIdToPlatform(outputChainId ?? UniverseChainId.Mainnet),
@@ -232,13 +232,13 @@ export function useInitialCurrencyState(): {
     }
   }, [parsedCurrencyState.inputCurrencyAddress, parsedCurrencyState.outputCurrencyAddress, setIsUserSelectedToken])
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: We do not want to rerender on a change to persistedFilteredChainIds
   const { initialInputCurrencyAddress, initialChainId } = useMemo(() => {
     // Default to native if no query params or chain is not compatible with testnet or mainnet mode
     if (!hasCurrencyQueryParams || !isSupportedChainCompatible) {
+      // oxlint-disable-next-line no-shadow
       const initialChainId = persistedFilteredChainIds?.input ?? defaultChainId
       return {
-        initialInputCurrencyAddress: getNativeAddress(initialChainId),
+        initialInputCurrencyAddress: currencyAddress(getChainGasToken(initialChainId)),
         initialChainId,
       }
     }
@@ -254,6 +254,7 @@ export function useInitialCurrencyState(): {
       initialInputCurrencyAddress: parsedCurrencyState.outputCurrencyAddress ? undefined : 'ETH',
       initialChainId: parsedCurrencyState.chainId ? supportedChainId : undefined,
     }
+    // oxlint-disable-next-line react/exhaustive-deps -- biome-parity: oxlint is stricter here
   }, [
     hasCurrencyQueryParams,
     isSupportedChainCompatible,

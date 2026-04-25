@@ -334,7 +334,7 @@ function createTurnstileSolver(ctx: CreateTurnstileSolverContext): ChallengeSolv
       // widgetId only exists if turnstile was successfully loaded and rendered
       if (cleanupState.widgetId) {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          // oxlint-disable-next-line typescript/no-unnecessary-condition
           if (window.turnstile) {
             window.turnstile.remove(cleanupState.widgetId)
           }

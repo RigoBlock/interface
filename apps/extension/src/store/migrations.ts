@@ -1,6 +1,3 @@
-/* biome-ignore-all lint/suspicious/noExplicitAny: Migration functions handle arbitrary state shapes from different versions */
-/* eslint-disable @typescript-eslint/explicit-function-return-type */
-
 import {
   migratePendingDappRequestsToRecord,
   migrateUnknownBackupAccountsToMaybeManualBackup,

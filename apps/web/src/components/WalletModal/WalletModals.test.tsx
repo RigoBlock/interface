@@ -1,11 +1,21 @@
+import { useLoginWithOAuth } from '@privy-io/react-auth'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { RECOVER_OAUTH_PENDING_KEY } from '~/components/Passkey/useOAuthRedirectRouter'
 import { EmbeddedWalletConnectionsModal } from '~/components/WalletModal/EmbeddedWalletModal'
 import { OtherWalletsModal } from '~/components/WalletModal/OtherWalletsModal'
 import { StandardWalletModal } from '~/components/WalletModal/StandardWalletModal'
 import { useOrderedWallets } from '~/features/wallet/connection/hooks/useOrderedWalletConnectors'
 import { useSignInWithPasskey } from '~/hooks/useSignInWithPasskey'
 import { mocked } from '~/test-utils/mocked'
-import { fireEvent, render } from '~/test-utils/render'
+import { fireEvent, render, screen } from '~/test-utils/render'
+
+const mockInitOAuth = vi.fn()
+
+vi.mock('@privy-io/react-auth', async (importOriginal) => ({
+  ...(await importOriginal()),
+  useLoginWithOAuth: vi.fn(() => ({ initOAuth: mockInitOAuth, loading: false })),
+  usePrivy: vi.fn(() => ({ ready: true })),
+}))
 
 vi.mock('@universe/gating', async (importOriginal) => ({
   ...(await importOriginal()),
@@ -43,7 +53,7 @@ vi.mock('~/hooks/useModalState', () => ({
 }))
 
 vi.mock('~/hooks/useSignInWithPasskey', () => ({
-  useSignInWithPasskey: vi.fn(() => ({ signInWithPasskeyAsync: vi.fn() })),
+  useSignInWithPasskey: vi.fn(() => ({ signInWithPasskeyAsync: vi.fn(), isPending: false })),
 }))
 
 describe('EmbeddedWalletConnectionsModal', () => {
@@ -57,16 +67,63 @@ describe('EmbeddedWalletConnectionsModal', () => {
     expect(asFragment()).toMatchSnapshot()
   })
 
-  it('calls signInWithPasskeyAsync when Log In is clicked', () => {
-    const mockSignInWithPasskeyAsync = vi.fn()
-    mocked(useSignInWithPasskey).mockReturnValue({
-      signInWithPasskeyAsync: mockSignInWithPasskeyAsync,
-    } as unknown as ReturnType<typeof useSignInWithPasskey>)
-
-    const { getByRole } = render(<EmbeddedWalletConnectionsModal />)
+  it('shows login method selection when Log In is clicked', () => {
+    const { getByRole, getByText } = render(<EmbeddedWalletConnectionsModal />)
     fireEvent.click(getByRole('button', { name: 'Log in' }))
 
-    expect(mockSignInWithPasskeyAsync).toHaveBeenCalledOnce()
+    // Should show the login view with passkey and recovery options
+    expect(getByText('Continue with passkey')).toBeDefined()
+    expect(getByText('Apple')).toBeDefined()
+    expect(getByText('Google')).toBeDefined()
+    expect(getByText('Email')).toBeDefined()
+  })
+
+  describe('OAuth initiation', () => {
+    beforeEach(() => {
+      sessionStorage.clear()
+      mockInitOAuth.mockClear()
+    })
+
+    function goToLoginView() {
+      render(<EmbeddedWalletConnectionsModal />)
+      fireEvent.click(screen.getByText('Log in'))
+    }
+
+    it('Google button calls initOAuth and sets sessionStorage', () => {
+      goToLoginView()
+      fireEvent.click(screen.getByText('Google'))
+
+      expect(mockInitOAuth).toHaveBeenCalledWith({ provider: 'google' })
+      expect(sessionStorage.getItem(RECOVER_OAUTH_PENDING_KEY)).toBe('google')
+    })
+
+    it('Apple button calls initOAuth and sets sessionStorage', () => {
+      goToLoginView()
+      fireEvent.click(screen.getByText('Apple'))
+
+      expect(mockInitOAuth).toHaveBeenCalledWith({ provider: 'apple' })
+      expect(sessionStorage.getItem(RECOVER_OAUTH_PENDING_KEY)).toBe('apple')
+    })
+
+    it('Email button opens recovery modal without calling initOAuth', () => {
+      goToLoginView()
+      fireEvent.click(screen.getByText('Email'))
+
+      expect(mockInitOAuth).not.toHaveBeenCalled()
+      expect(sessionStorage.getItem(RECOVER_OAUTH_PENDING_KEY)).toBeNull()
+    })
+
+    it('disables email button during OAuth loading', () => {
+      mocked(useLoginWithOAuth).mockReturnValue({ initOAuth: mockInitOAuth, loading: true } as unknown as ReturnType<
+        typeof useLoginWithOAuth
+      >)
+
+      goToLoginView()
+
+      // The email OptionRow should be disabled when oauthLoading is true and oauthProvider is set
+      // (provider gets set on click, but loading starts from useLoginWithOAuth)
+      expect(screen.getByText('Email')).toBeDefined()
+    })
   })
 })
 

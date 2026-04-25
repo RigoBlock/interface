@@ -181,6 +181,7 @@ export function useTooltipOverlapDetection(params: OverlapDetectionParams): Stac
       // Stack tooltips: align to BidLine's X position, ClearingPrice on top, BidLine below
       const stackedClearingPriceTop = bidLineTop
       const stackedBidLineTop = stackedClearingPriceTop + clearingPriceRect.height + TOOLTIP_STACKING.GAP
+      // oxlint-disable-next-line no-shadow
       const stackedPositions: TooltipPositions = {
         bidLine: { left: bidLineLeft, top: stackedBidLineTop },
         clearingPrice: { left: bidLineLeft, top: stackedClearingPriceTop },

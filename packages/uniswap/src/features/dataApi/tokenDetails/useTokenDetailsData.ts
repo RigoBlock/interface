@@ -37,6 +37,7 @@ export function useTokenSpotPrice(currencyId: CurrencyId | undefined): number | 
 
   return useMemo(() => {
     return tokenMarket?.price?.value ?? projectMarkets?.[0]?.price?.value
+    // oxlint-disable-next-line react/exhaustive-deps -- biome-parity: oxlint is stricter here
   }, [tokenMarket?.price?.value, projectMarkets?.[0]?.price?.value])
 }
 
@@ -48,6 +49,7 @@ export function useTokenPriceChange(currencyId: CurrencyId): number | undefined 
 
   return useMemo(() => {
     return projectMarkets?.[0]?.pricePercentChange24h?.value
+    // oxlint-disable-next-line react/exhaustive-deps -- biome-parity: oxlint is stricter here
   }, [projectMarkets?.[0]?.pricePercentChange24h?.value])
 }
 

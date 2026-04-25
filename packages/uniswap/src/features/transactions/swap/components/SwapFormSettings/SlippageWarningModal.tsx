@@ -53,7 +53,7 @@ export default function SlippageWarningModal({ isOpen, onClose, onContinue }: Sl
               </TouchableArea>
             </>
           ) : (
-            <Button emphasis="secondary" onPress={onClose}>
+            <Button flex={1} emphasis="secondary" onPress={onClose}>
               {t('common.close')}
             </Button>
           )}

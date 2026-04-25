@@ -1,4 +1,3 @@
-/* eslint-disable import/no-unused-modules */
 import { ContentStyle, type InAppNotification } from '@universe/api'
 import { createNotificationRenderer, type NotificationRenderer } from '@universe/notifications'
 import { type StoreApi, type UseBoundStore } from 'zustand'

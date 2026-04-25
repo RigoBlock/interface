@@ -1,8 +1,13 @@
-import { useQuery } from '@tanstack/react-query'
-import { GetAuctionActivityRequest } from '@uniswap/client-data-api/dist/data/v1/auction_pb'
-import { useMemo } from 'react'
-import { auctionQueries } from 'uniswap/src/data/rest/auctions/auctionQueries'
+import { type InfiniteData, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  AuctionActivityEntry,
+  GetAuctionActivityRequest,
+  GetAuctionActivityResponse,
+} from '@uniswap/client-data-api/dist/data/v1/auction_pb'
+import { useCallback, useEffect, useMemo } from 'react'
+import { AuctionServiceClient } from 'uniswap/src/data/rest/auctions/AuctionServiceClient'
 import { EVMUniverseChainId } from 'uniswap/src/features/chains/types'
+import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
 import { ONE_SECOND_MS } from 'utilities/src/time/time'
 import { AuctionProgressState } from '~/components/Toucan/Auction/store/types'
 import { useAuctionStore } from '~/components/Toucan/Auction/store/useAuctionStore'
@@ -14,41 +19,65 @@ interface UseLoadBidActivitiesParams {
 
 const POLLING_INTERVAL = 12 * ONE_SECOND_MS
 
-/**
- * Custom hook to load all bid activities for an auction
- * Handles polling, sorting, and deduplication
- */
 export function useLoadBidActivities({ auctionAddress, chainId }: UseLoadBidActivitiesParams) {
-  // Only poll when auction is actively running - activity data is static before start and after end
+  const queryClient = useQueryClient()
   const isAuctionActive = useAuctionStore((state) => state.progress.state === AuctionProgressState.IN_PROGRESS)
+  const enabled = Boolean(auctionAddress && chainId)
 
-  // Only poll during active auction - activity data is static before/after
-  const pollingInterval = useMemo(() => {
-    if (!isAuctionActive) {
-      return false
-    }
-    return POLLING_INTERVAL
-  }, [isAuctionActive])
-
-  // Fetch all bids with polling (only during active auction)
-  const { data, error, isLoading } = useQuery(
-    auctionQueries.getAuctionActivity({
-      params: new GetAuctionActivityRequest({
-        address: auctionAddress?.toLowerCase(),
-        chainId,
-      }),
-      enabled: Boolean(auctionAddress && chainId),
-      refetchInterval: pollingInterval,
-    }),
+  const queryKey = useMemo(
+    () => [ReactQueryCacheKey.AuctionApi, 'getAuctionActivity', auctionAddress, chainId] as const,
+    [auctionAddress, chainId],
   )
 
-  // Deduplicate and sort API bids
-  const sortedActivities = useMemo(() => {
-    const bids = data?.activity ?? []
+  const { data, error, isLoading, fetchNextPage, hasNextPage } = useInfiniteQuery({
+    queryKey,
+    queryFn: ({ pageParam }: { pageParam?: string }) =>
+      AuctionServiceClient.getAuctionActivity(
+        new GetAuctionActivityRequest({
+          address: auctionAddress?.toLowerCase(),
+          chainId,
+          pageToken: pageParam,
+        }),
+      ),
+    initialPageParam: undefined,
+    getNextPageParam: (lastPage: GetAuctionActivityResponse) => lastPage.nextPageToken || undefined,
+    enabled,
+  })
 
-    // Deduplicate by bidId
+  // Poll for new bids by refetching only the first page (only during active auction)
+  useEffect(() => {
+    if (!enabled || !isAuctionActive) {
+      return undefined
+    }
+    const interval = setInterval(async () => {
+      try {
+        const firstPage = await AuctionServiceClient.getAuctionActivity(
+          new GetAuctionActivityRequest({
+            address: auctionAddress?.toLowerCase(),
+            chainId,
+          }),
+        )
+        queryClient.setQueryData(queryKey, (old: InfiniteData<GetAuctionActivityResponse> | undefined) => {
+          if (!old) {
+            return old
+          }
+          return {
+            ...old,
+            pages: [firstPage, ...old.pages.slice(1)],
+          }
+        })
+      } catch {
+        // Silently skip failed polls — next interval will retry
+      }
+    }, POLLING_INTERVAL)
+    return () => clearInterval(interval)
+  }, [enabled, isAuctionActive, auctionAddress, chainId, queryClient, queryKey])
+
+  const activities = useMemo(() => {
+    const allBids: AuctionActivityEntry[] = data?.pages.flatMap((page) => page.activity) ?? []
+
     const seenBidIds = new Set<string>()
-    const uniqueBids = bids.filter((bid) => {
+    const deduped = allBids.filter((bid) => {
       if (seenBidIds.has(bid.bidId)) {
         return false
       }
@@ -56,15 +85,24 @@ export function useLoadBidActivities({ auctionAddress, chainId }: UseLoadBidActi
       return true
     })
 
-    // Sort by timestamp (newest first)
-    return uniqueBids.sort((a, b) => {
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    })
+    // API returns activities in newest-first order — no client-side sort needed
+    return deduped
   }, [data])
 
+  const loadMore = useCallback(
+    ({ onComplete }: { onComplete?: () => void }) => {
+      fetchNextPage().then(
+        () => setTimeout(() => onComplete?.(), 0),
+        () => setTimeout(() => onComplete?.(), 0),
+      )
+    },
+    [fetchNextPage],
+  )
+
   return {
-    activities: sortedActivities,
+    activities,
     loading: isLoading,
+    loadMore: hasNextPage ? loadMore : undefined,
     error,
   }
 }

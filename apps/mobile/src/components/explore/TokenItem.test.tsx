@@ -1,12 +1,21 @@
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import * as exploreHooks from 'src/components/explore/hooks'
 import { TokenItem } from 'src/components/explore/TokenItem'
 import * as tokenDetailsHooks from 'src/components/TokenDetails/hooks'
 import { TOKEN_ITEM_DATA, tokenItemData } from 'src/test/fixtures'
 import { fireEvent, render, within } from 'src/test/test-utils'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { MobileEventName } from 'uniswap/src/features/telemetry/constants'
 import { ON_PRESS_EVENT_PAYLOAD } from 'uniswap/src/test/fixtures'
 import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
 import { TokenMetadataDisplayType } from 'wallet/src/features/wallet/types'
+
+jest.mock('@universe/gating', () => ({
+  ...jest.requireActual('@universe/gating'),
+  useFeatureFlag: jest.fn().mockReturnValue(false),
+  useFeatureFlagWithLoading: jest.fn().mockReturnValue({ value: false, isLoading: false }),
+  useFeatureFlagWithExposureLoggingDisabled: jest.fn().mockReturnValue(false),
+}))
 
 describe('TokenItem', () => {
   const mockedTokenDetailsNavigation = {
@@ -106,6 +115,76 @@ describe('TokenItem', () => {
       const relativeChange = getByTestId('relative-change')
 
       expect(within(relativeChange).queryByText('-')).toBeTruthy()
+    })
+  })
+
+  describe('multichain network logo', () => {
+    const mockedUseFeatureFlag = useFeatureFlag as jest.Mock
+
+    function enableMultichainFlag(): void {
+      mockedUseFeatureFlag.mockImplementation((flag: FeatureFlags) => flag === FeatureFlags.MultichainTokenUx)
+    }
+
+    afterEach(() => {
+      mockedUseFeatureFlag.mockReturnValue(false)
+    })
+
+    it('should hide network logo when flag is on and networkCount > 1', () => {
+      enableMultichainFlag()
+      const data = tokenItemData({ chainId: UniverseChainId.ArbitrumOne, networkCount: 5 })
+      const { queryByTestId } = render(
+        <TokenItem eventName={MobileEventName.ExploreTokenItemSelected} index={0} tokenItemData={data} />,
+      )
+
+      expect(queryByTestId('network-logo')).toBeFalsy()
+    })
+
+    it('should show network logo when flag is off even with networkCount > 1', () => {
+      const data = tokenItemData({ chainId: UniverseChainId.ArbitrumOne, networkCount: 5 })
+      const { queryByTestId } = render(
+        <TokenItem eventName={MobileEventName.ExploreTokenItemSelected} index={0} tokenItemData={data} />,
+      )
+
+      expect(queryByTestId('network-logo')).toBeTruthy()
+    })
+
+    it('should show network logo when flag is on but no networkCount', () => {
+      enableMultichainFlag()
+      const data = tokenItemData({ chainId: UniverseChainId.ArbitrumOne })
+      const { queryByTestId } = render(
+        <TokenItem eventName={MobileEventName.ExploreTokenItemSelected} index={0} tokenItemData={data} />,
+      )
+
+      expect(queryByTestId('network-logo')).toBeTruthy()
+    })
+
+    it('should show network logo when flag is on but networkCount is 1', () => {
+      enableMultichainFlag()
+      const data = tokenItemData({ chainId: UniverseChainId.ArbitrumOne, networkCount: 1 })
+      const { queryByTestId } = render(
+        <TokenItem eventName={MobileEventName.ExploreTokenItemSelected} index={0} tokenItemData={data} />,
+      )
+
+      expect(queryByTestId('network-logo')).toBeTruthy()
+    })
+
+    it('should show mainnet network logo when flag is on for single-chain mainnet asset', () => {
+      enableMultichainFlag()
+      const data = tokenItemData({ chainId: UniverseChainId.Mainnet, networkCount: 1 })
+      const { queryByTestId } = render(
+        <TokenItem eventName={MobileEventName.ExploreTokenItemSelected} index={0} tokenItemData={data} />,
+      )
+
+      expect(queryByTestId('network-logo')).toBeTruthy()
+    })
+
+    it('should hide mainnet network logo when flag is off for mainnet asset', () => {
+      const data = tokenItemData({ chainId: UniverseChainId.Mainnet, networkCount: 1 })
+      const { queryByTestId } = render(
+        <TokenItem eventName={MobileEventName.ExploreTokenItemSelected} index={0} tokenItemData={data} />,
+      )
+
+      expect(queryByTestId('network-logo')).toBeFalsy()
     })
   })
 

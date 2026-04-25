@@ -1,3 +1,4 @@
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import React, { memo } from 'react'
 import { useSelector } from 'react-redux'
 import { useTokenDetailsContext } from 'src/components/TokenDetails/TokenDetailsContext'
@@ -11,14 +12,18 @@ import {
 } from 'uniswap/src/data/graphql/uniswap-data-api/fragments'
 import { selectHasViewedContractAddressExplainer } from 'uniswap/src/features/behaviorHistory/selectors'
 import { fromGraphQLChain } from 'uniswap/src/features/chains/utils'
+import { isMultichainProjectTokens } from 'uniswap/src/features/dataApi/tokenProjects/utils/isMultichainProjectTokens'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 
-export const TokenDetailsHeader = memo(function _TokenDetailsHeader(): JSX.Element {
-  const { currencyId, openContractAddressExplainerModal, copyAddressToClipboard } = useTokenDetailsContext()
+export const TokenDetailsHeader = memo(function TokenDetailsHeaderInner(): JSX.Element {
+  const { currencyId, openContractAddressExplainerModal, openMultichainAddressSheet, copyAddressToClipboard } =
+    useTokenDetailsContext()
   const hasViewedContractAddressExplainer = useSelector(selectHasViewedContractAddressExplainer)
 
+  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
   const token = useTokenBasicInfoPartsFragment({ currencyId }).data
   const project = useTokenBasicProjectPartsFragment({ currencyId }).data.project
+  const isMultichainToken = multichainTokenUxEnabled && isMultichainProjectTokens(project?.tokens)
 
   const handleCopyAddress = async (): Promise<void> => {
     if (!token.address) {
@@ -30,6 +35,11 @@ export const TokenDetailsHeader = memo(function _TokenDetailsHeader(): JSX.Eleme
       return
     }
 
+    if (isMultichainToken) {
+      openMultichainAddressSheet()
+      return
+    }
+
     await copyAddressToClipboard(token.address)
   }
 
@@ -37,6 +47,7 @@ export const TokenDetailsHeader = memo(function _TokenDetailsHeader(): JSX.Eleme
     <Flex row gap="$spacing12" mx="$spacing16">
       <TokenLogo
         chainId={fromGraphQLChain(token.chain) ?? undefined}
+        hideNetworkLogo={isMultichainToken}
         name={token.name ?? undefined}
         symbol={token.symbol ?? undefined}
         url={project?.logoUrl ?? undefined}

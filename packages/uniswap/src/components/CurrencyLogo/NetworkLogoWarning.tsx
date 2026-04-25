@@ -11,7 +11,7 @@ interface NetworkLogoWarningProps {
   hasSufficientFunds: boolean
 }
 
-export const NetworkLogoWarning = memo(function _NetworkLogoWarning({
+export const NetworkLogoWarning = memo(function NetworkLogoWarningInner({
   hasSufficientFunds,
   chainId,
 }: NetworkLogoWarningProps): JSX.Element {

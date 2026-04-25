@@ -52,7 +52,10 @@ export const TRADING_API_PATHS = {
 
 export interface TradingClientContext {
   fetchClient: FetchClient
-  getFeatureFlagHeaders: (tradingApiPath: (typeof TRADING_API_PATHS)[keyof typeof TRADING_API_PATHS]) => HeadersInit
+  getFeatureFlagHeaders: (
+    tradingApiPath: (typeof TRADING_API_PATHS)[keyof typeof TRADING_API_PATHS],
+    chainId?: ChainId,
+  ) => HeadersInit | Promise<HeadersInit>
   getApiPathPrefix: () => string
 }
 
@@ -86,10 +89,14 @@ export interface PlanEndpoints {
   refreshExistingPlan: (params: ExistingPlanRequest) => Promise<PlanResponse>
 }
 
-type IndicativeQuoteRequest = Pick<
+type IndicativeQuoteBase = Pick<
   QuoteRequest,
   'type' | 'amount' | 'tokenInChainId' | 'tokenOutChainId' | 'tokenIn' | 'tokenOut' | 'swapper'
 >
+
+type IndicativeQuoteRequest =
+  | (IndicativeQuoteBase & Pick<QuoteRequest, 'autoSlippage'> & { slippageTolerance?: never })
+  | (IndicativeQuoteBase & Pick<QuoteRequest, 'slippageTolerance'> & { autoSlippage?: never })
 
 export function createTradingApiClient(ctx: TradingClientContext): TradingApiClient & PlanEndpoints {
   const { fetchClient: client, getFeatureFlagHeaders, getApiPathPrefix } = ctx
@@ -99,8 +106,8 @@ export function createTradingApiClient(ctx: TradingClientContext): TradingApiCli
     client,
     url: getApiPath(TRADING_API_PATHS.quote),
     method: 'post',
-    transformRequest: async () => ({
-      headers: getFeatureFlagHeaders(TRADING_API_PATHS.quote),
+    transformRequest: async ({ params }) => ({
+      headers: await getFeatureFlagHeaders(TRADING_API_PATHS.quote, params.tokenInChainId),
     }),
     on404: (params: QuoteRequest & { isUSDQuote?: boolean }) => {
       logger.warn('TradingApiClient', 'fetchQuote', 'Quote 404', {
@@ -127,8 +134,8 @@ export function createTradingApiClient(ctx: TradingClientContext): TradingApiCli
     client,
     url: getApiPath(TRADING_API_PATHS.swap),
     method: 'post',
-    transformRequest: async () => ({
-      headers: getFeatureFlagHeaders(TRADING_API_PATHS.swap),
+    transformRequest: async ({ params }) => ({
+      headers: await getFeatureFlagHeaders(TRADING_API_PATHS.swap, params.quote.chainId),
     }),
   })
 
@@ -136,8 +143,8 @@ export function createTradingApiClient(ctx: TradingClientContext): TradingApiCli
     client,
     url: getApiPath(TRADING_API_PATHS.swap5792),
     method: 'post',
-    transformRequest: async () => ({
-      headers: getFeatureFlagHeaders(TRADING_API_PATHS.swap5792),
+    transformRequest: async ({ params }) => ({
+      headers: await getFeatureFlagHeaders(TRADING_API_PATHS.swap5792, params.quote.chainId),
     }),
   })
 
@@ -145,8 +152,8 @@ export function createTradingApiClient(ctx: TradingClientContext): TradingApiCli
     client,
     url: getApiPath(TRADING_API_PATHS.swap7702),
     method: 'post',
-    transformRequest: async () => ({
-      headers: getFeatureFlagHeaders(TRADING_API_PATHS.swap7702),
+    transformRequest: async ({ params }) => ({
+      headers: await getFeatureFlagHeaders(TRADING_API_PATHS.swap7702, params.quote.chainId),
     }),
   })
 
@@ -154,8 +161,8 @@ export function createTradingApiClient(ctx: TradingClientContext): TradingApiCli
     client,
     url: getApiPath(TRADING_API_PATHS.approval),
     method: 'post',
-    transformRequest: async () => ({
-      headers: getFeatureFlagHeaders(TRADING_API_PATHS.approval),
+    transformRequest: async ({ params }) => ({
+      headers: await getFeatureFlagHeaders(TRADING_API_PATHS.approval, params.chainId),
     }),
   })
 
@@ -164,7 +171,7 @@ export function createTradingApiClient(ctx: TradingClientContext): TradingApiCli
     url: getApiPath(TRADING_API_PATHS.order),
     method: 'post',
     transformRequest: async () => ({
-      headers: getFeatureFlagHeaders(TRADING_API_PATHS.order),
+      headers: await getFeatureFlagHeaders(TRADING_API_PATHS.order),
     }),
   })
 
@@ -173,7 +180,7 @@ export function createTradingApiClient(ctx: TradingClientContext): TradingApiCli
     url: getApiPath(TRADING_API_PATHS.orders),
     method: 'get',
     transformRequest: async ({ params }) => ({
-      headers: getFeatureFlagHeaders(TRADING_API_PATHS.orders),
+      headers: await getFeatureFlagHeaders(TRADING_API_PATHS.orders),
       params: {
         orderIds: params.orderIds.join(','),
       },
@@ -192,7 +199,7 @@ export function createTradingApiClient(ctx: TradingClientContext): TradingApiCli
     url: getApiPath(TRADING_API_PATHS.orders),
     method: 'get',
     transformRequest: async ({ params }) => ({
-      headers: getFeatureFlagHeaders(TRADING_API_PATHS.orders),
+      headers: await getFeatureFlagHeaders(TRADING_API_PATHS.orders),
       params: {
         swapper: params.swapper,
         orderStatus: params.orderStatus,
@@ -206,7 +213,7 @@ export function createTradingApiClient(ctx: TradingClientContext): TradingApiCli
     url: getApiPath(TRADING_API_PATHS.swappableTokens),
     method: 'get',
     transformRequest: async () => ({
-      headers: getFeatureFlagHeaders(TRADING_API_PATHS.swappableTokens),
+      headers: await getFeatureFlagHeaders(TRADING_API_PATHS.swappableTokens),
     }),
   })
 
@@ -221,7 +228,7 @@ export function createTradingApiClient(ctx: TradingClientContext): TradingApiCli
     url: getApiPath(TRADING_API_PATHS.swaps),
     method: 'get',
     transformRequest: async ({ params }) => ({
-      headers: getFeatureFlagHeaders(TRADING_API_PATHS.swaps),
+      headers: await getFeatureFlagHeaders(TRADING_API_PATHS.swaps, params.chainId),
       params: {
         txHashes: params.txHashes.join(','),
         chainId: params.chainId,
@@ -234,7 +241,7 @@ export function createTradingApiClient(ctx: TradingClientContext): TradingApiCli
     url: getApiPath(TRADING_API_PATHS.wallet.encode7702),
     method: 'post',
     transformRequest: async () => ({
-      headers: getFeatureFlagHeaders(TRADING_API_PATHS.wallet.encode7702),
+      headers: await getFeatureFlagHeaders(TRADING_API_PATHS.wallet.encode7702),
     }),
   })
 
@@ -246,7 +253,7 @@ export function createTradingApiClient(ctx: TradingClientContext): TradingApiCli
     url: getApiPath(TRADING_API_PATHS.wallet.checkDelegation),
     method: 'post',
     transformRequest: async () => ({
-      headers: getFeatureFlagHeaders(TRADING_API_PATHS.wallet.checkDelegation),
+      headers: await getFeatureFlagHeaders(TRADING_API_PATHS.wallet.checkDelegation),
     }),
   })
 
@@ -255,7 +262,7 @@ export function createTradingApiClient(ctx: TradingClientContext): TradingApiCli
     url: getApiPath(TRADING_API_PATHS.plan),
     method: 'post',
     transformRequest: async () => ({
-      headers: getFeatureFlagHeaders(TRADING_API_PATHS.plan),
+      headers: await getFeatureFlagHeaders(TRADING_API_PATHS.plan),
     }),
   })
 
@@ -264,7 +271,7 @@ export function createTradingApiClient(ctx: TradingClientContext): TradingApiCli
     url: getApiPath(TRADING_API_PATHS.plan),
     method: 'post',
     transformRequest: async () => ({
-      headers: getFeatureFlagHeaders(TRADING_API_PATHS.plan),
+      headers: await getFeatureFlagHeaders(TRADING_API_PATHS.plan),
     }),
   })
 
@@ -273,7 +280,7 @@ export function createTradingApiClient(ctx: TradingClientContext): TradingApiCli
     url: getApiPath(TRADING_API_PATHS.plan),
     method: 'patch',
     transformRequest: async ({ params, url }) => ({
-      headers: getFeatureFlagHeaders(TRADING_API_PATHS.plan),
+      headers: await getFeatureFlagHeaders(TRADING_API_PATHS.plan),
       params: {
         steps: params.steps,
       },
@@ -286,7 +293,7 @@ export function createTradingApiClient(ctx: TradingClientContext): TradingApiCli
     url: getApiPath(TRADING_API_PATHS.plan),
     method: 'get',
     transformRequest: async ({ params, url }) => ({
-      headers: getFeatureFlagHeaders(TRADING_API_PATHS.plan),
+      headers: await getFeatureFlagHeaders(TRADING_API_PATHS.plan),
       url: `${url}/${params.planId}`,
       params: {},
     }),
@@ -297,7 +304,7 @@ export function createTradingApiClient(ctx: TradingClientContext): TradingApiCli
     url: getApiPath(TRADING_API_PATHS.plan),
     method: 'get',
     transformRequest: async ({ params, url }) => ({
-      headers: getFeatureFlagHeaders(TRADING_API_PATHS.plan),
+      headers: await getFeatureFlagHeaders(TRADING_API_PATHS.plan),
       url: `${url}/${params.planId}`,
       params: {
         forceRefresh: true,

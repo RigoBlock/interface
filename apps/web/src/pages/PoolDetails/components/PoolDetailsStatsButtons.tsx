@@ -1,5 +1,5 @@
 import { GraphQLApi } from '@universe/api'
-import { ReactNode, useCallback, useReducer, useState } from 'react'
+import { ReactNode, useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router'
 import { Button, Flex, Spacer, styled, useIsTouchDevice, useMedia } from 'ui/src'
@@ -22,12 +22,12 @@ import { gqlToCurrency } from '~/appGraphql/data/util'
 import { MobileBottomBar } from '~/components/NavBar/MobileBottomBar'
 import { LoadingBubble } from '~/components/Tokens/loading'
 import { NATIVE_CHAIN_ID } from '~/constants/tokens'
+import { getChainUrlParam } from '~/features/params/chainParams'
 import { useAccount } from '~/hooks/useAccount'
 import { ScrollDirection, useScroll } from '~/hooks/useScroll'
 import { PositionInfo } from '~/pages/PoolDetails/Pools/cache'
 import useMultiChainPositions from '~/pages/PoolDetails/Pools/hooks/useMultiChainPositions'
 import { Swap } from '~/pages/Swap'
-import { getChainUrlParam } from '~/utils/chainParams'
 
 const PoolDetailsStatsButtonsRow = styled(Flex, {
   row: true,
@@ -167,7 +167,7 @@ export function PoolDetailsStatsButtons({
       }
     }
   }
-  const [swapModalOpen, toggleSwapModalOpen] = useReducer((state) => !state, false)
+  const [swapModalOpen, setSwapModalOpen] = useState(false)
 
   const media = useMedia()
   const screenSizeLargerThanTablet = !media.xl
@@ -202,7 +202,7 @@ export function PoolDetailsStatsButtons({
         >
           <PoolButton
             icon={swapModalOpen ? <X size="$icon.20" /> : <CoinConvert size="$icon.20" />}
-            onPress={toggleSwapModalOpen}
+            onPress={() => setSwapModalOpen((prev) => !prev)}
             isOpen={swapModalOpen}
             data-testid={`pool-details-${swapModalOpen ? 'close' : 'swap'}-button`}
           >
@@ -220,7 +220,7 @@ export function PoolDetailsStatsButtons({
       <Modal
         name={ModalName.Swap}
         isModalOpen={swapModalOpen}
-        onClose={toggleSwapModalOpen}
+        onClose={() => setSwapModalOpen(false)}
         maxWidth={480}
         gap="$gap24"
       >

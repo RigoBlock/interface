@@ -1,4 +1,4 @@
-/* eslint-disable max-lines */
+/* oxlint-disable max-lines */
 import { getEntryGatewayUrl, provideSessionService } from '@universe/api'
 import {
   ChallengeType,
@@ -244,6 +244,7 @@ export function SessionsDebugScreen(): JSX.Element {
         uniswapIdentifier: uniswapIdentifier || null,
       })
     }
+    // oxlint-disable-next-line typescript/no-floating-promises -- biome-parity: oxlint is stricter here
     loadInitialState()
   }, [setSession])
 

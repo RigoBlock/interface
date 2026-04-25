@@ -20,21 +20,19 @@
       "inputs": ["{workspaceRoot}/scripts/check-promise-version.sh", "dependencies"]
     },
     "typecheck": {},
+    "typecheck:tsc": {},
     "typecheck:tsgo": {},
-    "lint:biome": {},
-    "lint:biome:fix": {},
-    "lint:eslint": {},
-    "lint:eslint:fix": {},
+    "format": {},
+    "format:check": {},
+    "lint:oxlint": {},
+    "lint:oxlint:fix": {},
+    "lint:oxlint:fast": {},
     "lint": {},
     "lint:fix": {},
+    "check": {},
+    "check:fast": {},
     "test": {
       "command": "vitest run",
-      "options": {
-        "cwd": "{projectRoot}"
-      }
-    },
-    "test:coverage": {
-      "command": "vitest run --coverage",
       "options": {
         "cwd": "{projectRoot}"
       }

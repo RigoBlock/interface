@@ -1,5 +1,5 @@
 import { GraphQLApi } from '@universe/api'
-import { useContext, useEffect, useRef } from 'react'
+import { useContext, useEffect } from 'react'
 import { useParams } from 'react-router'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import type { createTDPStore } from '~/pages/TokenDetails/context/createTDPStore'
@@ -13,20 +13,11 @@ import { validTokenProjectResponse } from '~/test-utils/tokens/fixtures'
 const TOKEN_A = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
 const TOKEN_B = '0x6B175474E89094C44Da98b954EedeAC495271d0F'
 
-const mockChartState = {
-  timePeriod: '1D' as const,
-  setTimePeriod: vi.fn(),
-  setChartType: vi.fn(),
-  priceChartType: 'LINE' as const,
-  setPriceChartType: vi.fn(),
-  activeQuery: { chartType: 'PRICE' as const, entries: [], loading: false },
-  disableCandlestickUI: false,
-}
-
 function createDerivedState(overrides: {
   address: string
   tokenQuery?: { loading: boolean; data?: unknown }
   tokenColor?: string
+  balanceError?: Error
 }) {
   return {
     currencyChain: GraphQLApi.Chain.Ethereum,
@@ -36,8 +27,9 @@ function createDerivedState(overrides: {
       loading: false,
       data: validTokenProjectResponse.data,
     },
-    chartState: mockChartState,
     multiChainMap: {},
+    balanceError: overrides.balanceError,
+    selectedMultichainChainId: undefined,
     tokenColor: overrides.tokenColor,
     currency: undefined,
   }
@@ -127,8 +119,7 @@ describe('TDPStoreContextProvider', () => {
     await waitFor(() => {
       expect(storeRef.current).not.toBeNull()
     })
-    const addressBefore = storeRef.current?.getState().address
-    expect(addressBefore).toBe(TOKEN_A)
+    expect(storeRef.current?.getState().address).toBe(TOKEN_A)
 
     // Same identity (params unchanged), but derived state has new tokenQuery reference
     mocked(useCreateTDPContext).mockReturnValue(
@@ -182,6 +173,43 @@ describe('TDPStoreContextProvider', () => {
     await waitFor(() => {
       expect(storeRef.current?.getState().address).toBe(TOKEN_A)
       expect(storeRef.current?.getState().tokenColor).toBe('#FF0000')
+    })
+  })
+
+  it('updates the raw balance query error when identity is unchanged', async () => {
+    mocked(useCreateTDPContext).mockReturnValue(
+      createDerivedState({
+        address: TOKEN_A,
+        balanceError: undefined,
+      }) as unknown as ReturnType<typeof useCreateTDPContext>,
+    )
+
+    const storeRef = { current: null as ReturnType<typeof createTDPStore> | null }
+    const { rerender } = render(
+      <TDPStoreContextProvider>
+        <StoreCapture storeRef={storeRef} />
+      </TDPStoreContextProvider>,
+    )
+
+    await waitFor(() => {
+      expect(storeRef.current).not.toBeNull()
+    })
+    expect(storeRef.current?.getState().balanceError).toBeUndefined()
+
+    mocked(useCreateTDPContext).mockReturnValue(
+      createDerivedState({
+        address: TOKEN_A,
+        balanceError: new Error('Network error'),
+      }) as unknown as ReturnType<typeof useCreateTDPContext>,
+    )
+    rerender(
+      <TDPStoreContextProvider>
+        <StoreCapture storeRef={storeRef} />
+      </TDPStoreContextProvider>,
+    )
+
+    await waitFor(() => {
+      expect(storeRef.current?.getState().balanceError).toEqual(expect.any(Error))
     })
   })
 })

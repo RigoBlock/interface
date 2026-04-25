@@ -4,9 +4,9 @@ ignores: [
     "typescript",
     "@typescript/native-preview",
     "depcheck",
+    "oxlint",
     "@vitest/coverage-v8",
     "@types/react",
-    "ts-morph",
 
     # Used but depcheck doesn't detect correctly
     "@tanstack/react-query",

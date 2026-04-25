@@ -70,6 +70,7 @@ function CopyButtonWrapper({ children, onPress }: PropsWithChildren<CopyButtonWr
 
 /** Helper component to display AccountIcon and formatted address */
 
+// oxlint-disable-next-line complexity
 export function AddressDisplay({
   allowFontScaling = true,
   overrideDisplayName,
