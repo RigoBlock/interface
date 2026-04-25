@@ -49,7 +49,7 @@ export function useDerivedPoolInfo(
     tokenBalance?.quotient ?? JSBI.BigInt(0),
   )
 
-  // activation param is flag for sell, so we can use it to return an error if the user transaction involves less than minimum amount.
+  // activation param is flag for sell, so we can use it to return an error if the user transaction involves less than minimum amount
   const minimumRaw = token ? parseUnits('0.001', token.decimals) : parseUnits('0.001', 18)
   const isMintBelowMinimum: boolean | undefined =
     parsedAmount?.quotient &&
