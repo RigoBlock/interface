@@ -23,7 +23,7 @@ import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TransactionStatus, TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { calculateGasMargin } from '~/utils/calculateGasMargin'
 import { maxAmountSpend } from '~/utils/maxAmountSpend'
-import { parseEther } from 'viem'
+import { parseUnits } from 'viem'
 
 const mintAmountCache = new Map()
 
@@ -76,7 +76,7 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
         !poolContract ||
         !poolInfo?.recipient ||
         !parsedAmount?.quotient ||
-        !JSBI.greaterThan(parsedAmount.quotient, JSBI.BigInt(parseEther('0.0001').toString()))
+        !JSBI.greaterThan(parsedAmount.quotient, JSBI.BigInt(parseUnits('0.0001', parsedAmount.currency.decimals).toString()))
       ) {
         return
       }
