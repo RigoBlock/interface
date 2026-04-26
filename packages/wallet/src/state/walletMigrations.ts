@@ -1,7 +1,5 @@
-/* eslint-disable max-depth */
-/* eslint-disable max-lines */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* biome-ignore-all lint/suspicious/noExplicitAny: Migration types require dynamic typing */
+/* oxlint-disable max-depth */
+/* oxlint-disable max-lines */
 
 import { RankingType } from '@universe/api'
 import { AccountType } from 'uniswap/src/features/accounts/types'
@@ -301,7 +299,6 @@ export const moveDismissedTokenWarnings = createSafeMigration({
           address,
         }
         newWarnings[chainId] = newWarnings[chainId] || {}
-        // biome-ignore lint/style/noNonNullAssertion: Safe assertion in migration context - we just created this key
         newWarnings[chainId]![address] = serializedToken
       }
     })

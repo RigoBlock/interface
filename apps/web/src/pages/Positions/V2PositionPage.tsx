@@ -23,12 +23,13 @@ import { TextLoader } from '~/components/Liquidity/Loader'
 import { PositionPageActionButtons } from '~/components/Liquidity/PositionPageActionButtons'
 import { parseRestPosition } from '~/components/Liquidity/utils/parseFromRest'
 import { DoubleCurrencyLogo } from '~/components/Logo/DoubleLogo'
+import { useChainIdFromUrlParam } from '~/features/params/chainParams'
 import { useAccount } from '~/hooks/useAccount'
 import { usePositionOwnerV2 } from '~/hooks/usePositionOwnerV2'
+import { useDynamicMetatags } from '~/pages/metatags'
 import NotFound from '~/pages/NotFound'
 import { MultichainContextProvider } from '~/state/multichain/MultichainContext'
 import { usePendingLPTransactionsChangeListener } from '~/state/transactions/hooks'
-import { useChainIdFromUrlParam } from '~/utils/chainParams'
 
 const BodyWrapper = styled(Main, {
   backgroundColor: '$surface1',
@@ -104,9 +105,25 @@ function V2PositionPage() {
 
   const { currency0Amount, currency1Amount, liquidityAmount } = positionInfo ?? {}
 
+  const metatagProperties = useMemo(() => {
+    const token0Symbol = currency0Amount?.currency.symbol
+    const token1Symbol = currency1Amount?.currency.symbol
+    if (!token0Symbol || !token1Symbol || !pairAddress) {
+      return { title: 'Position on Uniswap', url: window.location.href }
+    }
+    const poolName = `${token0Symbol}/${token1Symbol}`
+    return {
+      title: `${poolName} on Uniswap`,
+      url: window.location.href,
+      image: `${window.location.origin}/api/image/positions/v2/${chainInfo.urlParam}/${pairAddress}`,
+    }
+  }, [currency0Amount?.currency.symbol, currency1Amount?.currency.symbol, chainInfo.urlParam, pairAddress])
+  const metatags = useDynamicMetatags(metatagProperties)
+
   const token0USDValue = useUSDCValue(currency0Amount)
   const token1USDValue = useUSDCValue(currency1Amount)
   const poolTokenPercentage = useGetPoolTokenPercentage(positionInfo)
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- biome-parity: oxlint is stricter here
   const liquidityTokenAddress = positionInfo?.liquidityToken?.isToken ? positionInfo.liquidityToken.address : undefined
   const isOwner = usePositionOwnerV2({
     account: account.address,
@@ -153,6 +170,9 @@ function V2PositionPage() {
             baseSymbol: currency0Amount?.currency.symbol,
           })}
         </title>
+        {metatags.map((tag, index) => (
+          <meta key={index} {...tag} />
+        ))}
       </Helmet>
       <BodyWrapper>
         <Flex gap="$gap20" width="100%">

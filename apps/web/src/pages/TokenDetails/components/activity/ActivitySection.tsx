@@ -1,10 +1,13 @@
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Flex, styled, Text } from 'ui/src'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { isSVMChain } from 'uniswap/src/features/platforms/utils/chains'
 import { TokenDetailsPoolsTable } from '~/pages/TokenDetails/components/activity/TokenDetailsPoolsTable'
 import { TransactionsTable } from '~/pages/TokenDetails/components/activity/TransactionsTable'
 import { useTDPStore } from '~/pages/TokenDetails/context/useTDPStore'
+import { useTDPEffectiveCurrency } from '~/pages/TokenDetails/hooks/useTDPEffectiveCurrency'
 import { ClickableTamaguiStyle } from '~/theme/components/styles'
 
 const Tab = styled(Text, {
@@ -29,14 +32,18 @@ enum ActivityTab {
 
 export function ActivitySection() {
   const { t } = useTranslation()
-  const { currency: referenceCurrency, currencyChainId } = useTDPStore((s) => ({
-    currency: s.currency!,
+  const referenceCurrency = useTDPEffectiveCurrency()
+  const { currencyChainId, selectedMultichainChainId } = useTDPStore((s) => ({
     currencyChainId: s.currencyChainId,
+    selectedMultichainChainId: s.selectedMultichainChainId,
   }))
+  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
+  const isMultichainView = multichainTokenUxEnabled && selectedMultichainChainId === undefined
 
   const [activityInView, setActivityInView] = useState(ActivityTab.Txs)
 
   const isSolanaToken = isSVMChain(currencyChainId)
+  const hasLimitedTransactionData = currencyChainId === UniverseChainId.Tempo
 
   useEffect(() => {
     if (isSolanaToken && activityInView === ActivityTab.Pools) {
@@ -46,7 +53,7 @@ export function ActivitySection() {
 
   return (
     <Flex data-testid="token-details-activity-section" width="100%">
-      <Flex row gap="$spacing24" mb="$spacing24" id="activity-header">
+      <Flex row gap="$spacing24" mb="$spacing12" id="activity-header">
         <Tab
           clickable={!isSolanaToken}
           color={activityInView === ActivityTab.Txs ? '$neutral1' : '$neutral2'}
@@ -63,11 +70,20 @@ export function ActivitySection() {
           </Tab>
         )}
       </Flex>
+      {hasLimitedTransactionData && (
+        <Text variant="body2" color="$neutral2" mb="$spacing24">
+          {t('tdp.transactions.limitedMarketData')}
+        </Text>
+      )}
       {activityInView === ActivityTab.Txs && (
-        <TransactionsTable chainId={referenceCurrency.chainId} referenceToken={referenceCurrency.wrapped} />
+        <TransactionsTable
+          chainId={referenceCurrency.chainId}
+          referenceToken={referenceCurrency.wrapped}
+          isMultichainView={isMultichainView}
+        />
       )}
       {activityInView === ActivityTab.Pools && !isSolanaToken && (
-        <TokenDetailsPoolsTable referenceCurrency={referenceCurrency} />
+        <TokenDetailsPoolsTable referenceCurrency={referenceCurrency} isMultichainView={isMultichainView} />
       )}
     </Flex>
   )

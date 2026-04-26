@@ -2,6 +2,7 @@ import { Fragment, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Flex, getTokenValue, Text, VerticalDottedLineSeparator } from 'ui/src'
 import { ArrowRight, ArrowRightDashed } from 'ui/src/components/icons'
+import { getVisiblePlanSteps } from 'uniswap/src/components/activity/details/plan/getVisiblePlanSteps'
 import { PLAN_STEP_ITEM_WIDTH, PlanStepItem } from 'uniswap/src/components/activity/details/plan/PlanStepItem'
 import { ResumePlanButton } from 'uniswap/src/components/activity/details/plan/ResumePlanButton'
 import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
@@ -151,10 +152,7 @@ function PlanDetailsStatus({ typeInfo, status }: Pick<PlanDetailsViewProps, 'typ
 }
 
 function PlanDetailsSteps({ typeInfo }: { typeInfo: PlanTransactionInfo }): JSX.Element {
-  const visibleSteps = useMemo(
-    () => typeInfo.stepDetails.filter((step) => step.typeInfo.type !== TransactionType.Permit2Approve),
-    [typeInfo.stepDetails],
-  )
+  const visibleSteps = useMemo(() => getVisiblePlanSteps(typeInfo.stepDetails), [typeInfo.stepDetails])
   const stepItemWidth = getTokenValue(PLAN_STEP_ITEM_WIDTH)
   const strokeWidth = 2
   const dividerMargin = stepItemWidth / 2 - strokeWidth / 2
@@ -162,6 +160,7 @@ function PlanDetailsSteps({ typeInfo }: { typeInfo: PlanTransactionInfo }): JSX.
   return (
     <Flex
       width="100%"
+      overflow="hidden"
       gap="$spacing2"
       p="$spacing12"
       backgroundColor="$surface2"
@@ -192,12 +191,17 @@ function extractSwapCurrencyId(transactionDetails: TransactionDetails, mode: 'in
       return undefined
     case TransactionType.Swap:
       return mode === 'input' ? typeInfo.inputCurrencyId : typeInfo.outputCurrencyId
-    case TransactionType.Wrap:
-      if (typeInfo.unwrapped) {
-        return mode === 'input' ? buildWrappedNativeCurrencyId(chainId) : buildNativeCurrencyId(chainId)
-      } else {
-        return mode === 'input' ? buildNativeCurrencyId(chainId) : buildWrappedNativeCurrencyId(chainId)
+    case TransactionType.Wrap: {
+      const wrappedId = buildWrappedNativeCurrencyId(chainId)
+      if (!wrappedId) {
+        return undefined
       }
+      if (typeInfo.unwrapped) {
+        return mode === 'input' ? wrappedId : buildNativeCurrencyId(chainId)
+      } else {
+        return mode === 'input' ? buildNativeCurrencyId(chainId) : wrappedId
+      }
+    }
     default:
       return undefined
   }

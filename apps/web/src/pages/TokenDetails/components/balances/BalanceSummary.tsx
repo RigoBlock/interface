@@ -1,50 +1,35 @@
+import { SharedEventName } from '@uniswap/analytics-events'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-import { useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
-import { Flex, HeightAnimator, Separator, Text } from 'ui/src'
+import { Flex, Text } from 'ui/src'
+import { AlertTriangleFilled } from 'ui/src/components/icons/AlertTriangleFilled'
+import { NetworkBalanceBreakdown } from 'uniswap/src/components/tokenDetails/NetworkBalanceBreakdown'
+import { computeAggregateBalance } from 'uniswap/src/components/tokenDetails/utils'
 import { useConnectionStatus } from 'uniswap/src/features/accounts/store/hooks'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { toGraphQLChain } from 'uniswap/src/features/chains/utils'
-import { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
+import type { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { getChainLabel, toGraphQLChain } from 'uniswap/src/features/chains/utils'
+import type { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
+import { ElementName } from 'uniswap/src/features/telemetry/constants'
+import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
+import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
 import { getTokenDetailsURL } from '~/appGraphql/data/util'
-import { PortfolioExpandoRow } from '~/pages/Portfolio/components/PortfolioExpandoRow'
+import { ChainLogo } from '~/components/Logo/ChainLogo'
+import { MouseoverTooltip, TooltipSize } from '~/components/Tooltip'
 import { Balance } from '~/pages/TokenDetails/components/balances/Balance'
 import { BridgedAssetWithdrawButton } from '~/pages/TokenDetails/components/balances/BridgedAssetWithdrawButton'
+import { useTDPSelectedMultichainChain } from '~/pages/TokenDetails/context/useTDPSelectedMultichainChain'
 import { useTDPStore } from '~/pages/TokenDetails/context/useTDPStore'
-
-function getDisplayBalance({
-  isMultichainUxEnabled,
-  isMultichainBalance,
-  allBalances,
-  pageChainBalance,
-}: {
-  isMultichainUxEnabled: boolean
-  isMultichainBalance: boolean
-  allBalances: readonly PortfolioBalance[]
-  pageChainBalance: PortfolioBalance | undefined
-}): PortfolioBalance | undefined {
-  if (isMultichainUxEnabled && isMultichainBalance && allBalances.length > 0) {
-    return {
-      id: 'total',
-      cacheId: 'total',
-      quantity: allBalances.reduce((sum, b) => sum + Number(b.quantity), 0),
-      balanceUSD:
-        allBalances.reduce((sum, b) => sum + (typeof b.balanceUSD === 'number' ? b.balanceUSD : 0), 0) || undefined,
-      currencyInfo: pageChainBalance?.currencyInfo ?? allBalances[0].currencyInfo,
-      relativeChange24: undefined,
-      isHidden: undefined,
-    }
-  }
-  return pageChainBalance
-}
 
 export function BalanceSummary(): JSX.Element | null {
   const { isDisconnected } = useConnectionStatus()
-  const isMultichainUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
-  const { currencyChain, multiChainMap } = useTDPStore((s) => ({
+  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
+  const { currencyChain, multiChainMap, balanceError } = useTDPStore((s) => ({
     currencyChain: s.currencyChain,
     multiChainMap: s.multiChainMap,
+    balanceError: s.balanceError,
   }))
 
   const pageChainBalance = multiChainMap[currencyChain]?.balance
@@ -58,20 +43,16 @@ export function BalanceSummary(): JSX.Element | null {
       }
     }
   }
-  otherChainBalances.sort((a, b) => {
-    const aQty = Number(a.quantity)
-    const bQty = Number(b.quantity)
-    return bQty - aQty
-  })
 
   const isMultichainBalance = otherChainBalances.length > 0
-  const displayBalance = getDisplayBalance({
-    isMultichainUxEnabled,
-    isMultichainBalance,
-    allBalances,
-    pageChainBalance,
-  })
+
+  const displayBalance =
+    multichainTokenUxEnabled && isMultichainBalance
+      ? computeAggregateBalance(allBalances, pageChainBalance?.currencyInfo)
+      : pageChainBalance
+
   const hasBalances = Boolean(displayBalance || isMultichainBalance)
+  const isOutage = !!balanceError
 
   if (isDisconnected || !hasBalances) {
     return null
@@ -81,10 +62,11 @@ export function BalanceSummary(): JSX.Element | null {
       <Flex gap="$gap16">
         <PageChainBalanceSummary
           pageChainBalance={displayBalance}
-          isMultichainBalance={isMultichainUxEnabled && isMultichainBalance}
+          isMultichainBalance={multichainTokenUxEnabled && isMultichainBalance}
+          isOutage={isOutage}
         />
         {isMultichainBalance && (
-          <OtherChainsBalanceSummary
+          <BreakdownSection
             otherChainBalances={otherChainBalances}
             pageChainBalance={pageChainBalance}
             hasPageChainBalance={!!pageChainBalance}
@@ -96,26 +78,35 @@ export function BalanceSummary(): JSX.Element | null {
   )
 }
 
-export function PageChainBalanceSummary({
+function PageChainBalanceSummary({
   pageChainBalance,
   isMultichainBalance = false,
+  isOutage = false,
 }: {
   pageChainBalance?: PortfolioBalance
   isMultichainBalance?: boolean
+  isOutage?: boolean
 }): JSX.Element | null {
   const { t } = useTranslation()
   if (!pageChainBalance) {
+    // During an outage with no cached data, the page-level outage banner handles the messaging
     return null
   }
   const currency = pageChainBalance.currencyInfo.currency
   return (
     <Flex height="fit-content" width="100%" gap="$gap16">
-      <Text variant="subheading2" color="$neutral2">
-        {t('tdp.balanceSummary.title')}
-      </Text>
+      <Flex row alignItems="center" gap="$spacing8">
+        <Text variant="subheading2" color="$neutral2">
+          {t('tdp.balanceSummary.title')}
+        </Text>
+        {isOutage && (
+          <MouseoverTooltip text={t('dataApi.outage.modal.description')} placement="top" size={TooltipSize.Small}>
+            <AlertTriangleFilled size="$icon.16" />
+          </MouseoverTooltip>
+        )}
+      </Flex>
       <Balance
         currency={currency}
-        chainId={currency.chainId}
         fetchedBalance={pageChainBalance}
         isAggregate={isMultichainBalance}
         isMultichainBalance={isMultichainBalance}
@@ -124,7 +115,7 @@ export function PageChainBalanceSummary({
   )
 }
 
-function OtherChainsBalanceSummary({
+function BreakdownSection({
   otherChainBalances,
   pageChainBalance,
   hasPageChainBalance,
@@ -134,73 +125,76 @@ function OtherChainsBalanceSummary({
   hasPageChainBalance: boolean
 }): JSX.Element | null {
   const { t } = useTranslation()
-  const isMultichainUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
+  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
   const navigate = useNavigate()
+  const trace = useTrace()
+  const { setSelectedMultichainChainId } = useTDPSelectedMultichainChain()
   const { defaultChainId } = useEnabledChains()
-  const [isExpanded, setIsExpanded] = useState(true)
 
-  const displayBalances = isMultichainUxEnabled
-    ? [...(pageChainBalance ? [pageChainBalance] : []), ...otherChainBalances].sort((a, b) => {
-        const aQty = Number(a.quantity)
-        const bQty = Number(b.quantity)
-        return bQty - aQty
+  const displayBalances = useMemo(
+    () =>
+      multichainTokenUxEnabled
+        ? [...(pageChainBalance ? [pageChainBalance] : []), ...otherChainBalances]
+        : [...otherChainBalances],
+    [multichainTokenUxEnabled, pageChainBalance, otherChainBalances],
+  )
+
+  const handleSelectBalance = useCallback(
+    (balance: PortfolioBalance) => {
+      const currency = balance.currencyInfo.currency
+      const chainId = currency.chainId || defaultChainId
+      sendAnalyticsEvent(SharedEventName.ELEMENT_CLICKED, {
+        ...trace,
+        element: ElementName.NetworkBalanceRow,
+        chain_id: chainId,
       })
-    : otherChainBalances
+      if (multichainTokenUxEnabled) {
+        setSelectedMultichainChainId(chainId)
+        return
+      }
+      void navigate(
+        getTokenDetailsURL({
+          address: currency.isToken ? currency.address : undefined,
+          chain: toGraphQLChain(chainId),
+        }),
+      )
+    },
+    [defaultChainId, multichainTokenUxEnabled, navigate, setSelectedMultichainChainId, trace],
+  )
+
+  const renderNetworkLogo = useCallback((chainId: UniverseChainId) => {
+    const chainName = getChainLabel(chainId)
+    return (
+      <MouseoverTooltip
+        placement="left"
+        size={TooltipSize.Max}
+        text={<Text variant="body3">{chainName}</Text>}
+        offsetX={0}
+      >
+        <ChainLogo chainId={chainId} size={24} borderRadius={6} />
+      </MouseoverTooltip>
+    )
+  }, [])
+
+  const collapseLabel = multichainTokenUxEnabled
+    ? t('tdp.balanceSummary.breakdown')
+    : t('tdp.balanceSummary.otherNetworks')
+
+  const [isBreakdownExpanded, setIsBreakdownExpanded] = useState(true)
 
   if (!displayBalances.length) {
     return null
   }
 
-  const isCollapsible = hasPageChainBalance
-
-  const collapseLabel = isMultichainUxEnabled
-    ? t('tdp.balanceSummary.breakdown')
-    : t('tdp.balanceSummary.otherNetworks')
-
   return (
-    <Flex>
-      {isCollapsible && <Separator mb="$spacing12" />}
-      {isCollapsible ? (
-        <Flex pb="$spacing8">
-          <PortfolioExpandoRow
-            isExpanded={isExpanded}
-            label={collapseLabel}
-            onPress={() => setIsExpanded(!isExpanded)}
-            iconAlignRight
-            textVariant="body3"
-            iconSize="$icon.16"
-            p="$none"
-          />
-        </Flex>
-      ) : (
-        <Text variant="subheading1" color="$neutral1">
-          {collapseLabel}
-        </Text>
-      )}
-      <HeightAnimator open={!isCollapsible || isExpanded}>
-        {(!isCollapsible || isExpanded) &&
-          displayBalances.map((balance) => {
-            const currency = balance.currencyInfo.currency
-            const chainId = currency.chainId || defaultChainId
-            return (
-              <Balance
-                key={balance.id}
-                currency={currency}
-                chainId={chainId}
-                fetchedBalance={balance}
-                showChainLogoOnly
-                onClick={() =>
-                  navigate(
-                    getTokenDetailsURL({
-                      address: currency.isToken ? currency.address : undefined,
-                      chain: toGraphQLChain(chainId),
-                    }),
-                  )
-                }
-              />
-            )
-          })}
-      </HeightAnimator>
-    </Flex>
+    <NetworkBalanceBreakdown
+      balances={displayBalances}
+      label={collapseLabel}
+      expanded={hasPageChainBalance ? isBreakdownExpanded : true}
+      onExpandedChange={hasPageChainBalance ? setIsBreakdownExpanded : undefined}
+      collapsible={hasPageChainBalance}
+      renderNetworkLogo={renderNetworkLogo}
+      onSelectBalance={handleSelectBalance}
+    />
   )
 }

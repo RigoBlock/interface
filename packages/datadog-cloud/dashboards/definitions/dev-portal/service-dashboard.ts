@@ -1,16 +1,15 @@
-import {DashboardDefinition} from '../../dashboard-types';
-import {getDefaultServicePresets} from '../../dashboard-factory';
-import {settings} from '../../config';
+import { settings } from '../../config'
+import { getDefaultServicePresets } from '../../dashboard-factory'
+import { DashboardDefinition } from '../../dashboard-types'
 
 // ALB metrics — these have data immediately via AWS integration (no APM required)
-const albFilter = `name:dev-portal-lb,unienv:${settings.environment}`;
+const albFilter = `name:dev-portal-lb,unienv:${settings.environment}`
 
 export const devPortalDashboards: DashboardDefinition[] = [
   {
     id: 'dev-portal_service_overview',
     title: `[Dev Portal] [${settings.environment}] Service Overview`,
-    description:
-      'Dev Portal service health: request rate, errors, latency, and status codes (ALB metrics).',
+    description: 'Dev Portal service health: request rate, errors, latency, and status codes (ALB metrics).',
     team: 'dev-portal',
     layoutType: 'ordered',
     reflowType: 'fixed',
@@ -25,14 +24,14 @@ export const devPortalDashboards: DashboardDefinition[] = [
     widgets: [
       // Row 1: Request Rate + Error Rate
       {
-        layout: {x: 0, y: 0, width: 6, height: 4},
+        layout: { x: 0, y: 0, width: 6, height: 4 },
         definition: {
           timeseriesDefinition: {
             title: 'Request Rate',
             showLegend: true,
             requests: [
               {
-                formulas: [{formulaExpression: 'query1'}],
+                formulas: [{ formulaExpression: 'query1' }],
                 queries: [
                   {
                     metricQuery: {
@@ -42,7 +41,7 @@ export const devPortalDashboards: DashboardDefinition[] = [
                     },
                   },
                 ],
-                style: {palette: 'dog_classic', lineType: 'solid', lineWidth: 'normal'},
+                style: { palette: 'dog_classic', lineType: 'solid', lineWidth: 'normal' },
                 displayType: 'line',
               },
             ],
@@ -50,14 +49,14 @@ export const devPortalDashboards: DashboardDefinition[] = [
         },
       },
       {
-        layout: {x: 6, y: 0, width: 6, height: 4},
+        layout: { x: 6, y: 0, width: 6, height: 4 },
         definition: {
           timeseriesDefinition: {
             title: 'Error Rate (%)',
             showLegend: true,
             requests: [
               {
-                formulas: [{formulaExpression: 'query1 / query2 * 100'}],
+                formulas: [{ formulaExpression: 'query1 / query2 * 100' }],
                 queries: [
                   {
                     metricQuery: {
@@ -74,7 +73,7 @@ export const devPortalDashboards: DashboardDefinition[] = [
                     },
                   },
                 ],
-                style: {palette: 'warm', lineType: 'solid', lineWidth: 'normal'},
+                style: { palette: 'warm', lineType: 'solid', lineWidth: 'normal' },
                 displayType: 'line',
               },
             ],
@@ -83,7 +82,7 @@ export const devPortalDashboards: DashboardDefinition[] = [
       },
       // Row 2: Latency Percentiles + HTTP Status Distribution
       {
-        layout: {x: 0, y: 4, width: 6, height: 4},
+        layout: { x: 0, y: 4, width: 6, height: 4 },
         definition: {
           timeseriesDefinition: {
             title: 'Latency Percentiles',
@@ -91,8 +90,8 @@ export const devPortalDashboards: DashboardDefinition[] = [
             requests: [
               {
                 formulas: [
-                  {formulaExpression: 'query1', alias: 'P95'},
-                  {formulaExpression: 'query2', alias: 'P99'},
+                  { formulaExpression: 'query1', alias: 'P95' },
+                  { formulaExpression: 'query2', alias: 'P99' },
                 ],
                 queries: [
                   {
@@ -110,7 +109,7 @@ export const devPortalDashboards: DashboardDefinition[] = [
                     },
                   },
                 ],
-                style: {palette: 'dog_classic', lineType: 'solid', lineWidth: 'normal'},
+                style: { palette: 'dog_classic', lineType: 'solid', lineWidth: 'normal' },
                 displayType: 'line',
               },
             ],
@@ -118,13 +117,15 @@ export const devPortalDashboards: DashboardDefinition[] = [
         },
       },
       {
-        layout: {x: 6, y: 4, width: 6, height: 4},
+        layout: { x: 6, y: 4, width: 6, height: 4 },
         definition: {
           toplistDefinition: {
             title: 'HTTP Status Code Distribution',
             requests: [
               {
-                formulas: [{formulaExpression: 'query1 + query2 + query3 + query4', limit: {count: 10, order: 'desc'}}],
+                formulas: [
+                  { formulaExpression: 'query1 + query2 + query3 + query4', limit: { count: 10, order: 'desc' } },
+                ],
                 queries: [
                   {
                     metricQuery: {
@@ -166,4 +167,4 @@ export const devPortalDashboards: DashboardDefinition[] = [
       },
     ],
   },
-];
+]

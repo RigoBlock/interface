@@ -1,8 +1,8 @@
-import {MonitorDefinition} from '../../types';
-import {settings} from '../../config';
+import { settings } from '../../config'
+import { MonitorDefinition } from '../../types'
 
 // ALB metrics use name:dev-portal-lb tag, scoped by environment from Pulumi config
-const albTagFilter = `name:dev-portal-lb,unienv:${settings.environment}`;
+const albTagFilter = `name:dev-portal-lb,unienv:${settings.environment}`
 
 export const devPortalErrorMonitors: MonitorDefinition[] = [
   {
@@ -14,11 +14,10 @@ export const devPortalErrorMonitors: MonitorDefinition[] = [
     recoveryBody: '5xx error rate for dev-portal has recovered.',
     team: 'dev-portal',
     priority: 2,
-    thresholds: {critical: 5, warning: 2},
+    thresholds: { critical: 5, warning: 2 },
     logQuery: 'service:dev-portal status:error',
     runbookUrl: 'https://www.notion.so/uniswap/dev-portal-runbook',
-    readmeUrl:
-      'https://github.com/Uniswap/universe/tree/main/apps/dev-portal',
+    readmeUrl: 'https://github.com/Uniswap/universe/tree/main/apps/dev-portal',
     dashboards: [],
     notifyNoData: true,
     noDataTimeframe: 15,
@@ -32,16 +31,15 @@ export const devPortalErrorMonitors: MonitorDefinition[] = [
     recoveryBody: 'Error count anomaly for dev-portal has recovered.',
     team: 'dev-portal',
     priority: 3,
-    thresholds: {critical: 1, warning: 0.8},
+    thresholds: { critical: 1, warning: 0.8 },
     thresholdWindows: {
       triggerWindow: 'last_30m',
       recoveryWindow: 'last_30m',
     },
     logQuery: 'service:dev-portal status:error',
     runbookUrl: 'https://www.notion.so/uniswap/dev-portal-runbook',
-    readmeUrl:
-      'https://github.com/Uniswap/universe/tree/main/apps/dev-portal',
+    readmeUrl: 'https://github.com/Uniswap/universe/tree/main/apps/dev-portal',
     dashboards: [],
     enablePaging: false,
   },
-];
+]

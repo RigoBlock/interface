@@ -136,7 +136,7 @@ function useRpcTokenBalancesWithLoadingIndicator({
   return useMemo(
     () => [
       address && validatedTokens.length > 0
-        ? // eslint-disable-next-line max-params
+        ? // oxlint-disable-next-line max-params
           validatedTokens.reduce<{ [tokenAddress: string]: CurrencyAmount<Token> | undefined }>((memo, token, i) => {
             const value = data?.[i].result
             if (!value) {
@@ -224,7 +224,7 @@ function useGqlCurrencyBalances(
       const key = currencyKey(currency)
       const balance = balanceMap[key]
 
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       if (balance) {
         const currencyAmount = getCurrencyAmount({
           value: balance.balance.toString(),

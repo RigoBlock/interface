@@ -100,6 +100,7 @@ export function IncreaseLiquidityForm() {
         <Switch
           id="add-as-weth"
           checked={unwrapNativeCurrency}
+          // oxlint-disable-next-line no-shadow
           onCheckedChange={() => setUnwrapNativeCurrency((unwrapNativeCurrency) => !unwrapNativeCurrency)}
           variant="branded"
         />
@@ -109,11 +110,11 @@ export function IncreaseLiquidityForm() {
 
   const requestLoading = Boolean(
     !dataFetchingError &&
-      !error &&
-      currencyAmounts?.TOKEN0 &&
-      currencyAmounts.TOKEN1 &&
-      !txInfo?.txRequest &&
-      !fotErrorToken,
+    !error &&
+    currencyAmounts?.TOKEN0 &&
+    currencyAmounts.TOKEN1 &&
+    !txInfo?.txRequest &&
+    !fotErrorToken,
   )
 
   return (

@@ -6,7 +6,7 @@ import styled from '~/lib/deprecated-styled'
 import { memo } from 'react'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { TOKEN_SELECTOR_WEB_MAX_WIDTH } from 'uniswap/src/components/TokenSelector/TokenSelector'
-import { TokenSelectorVariation } from 'uniswap/src/components/TokenSelector/types'
+import { TokenSelectorFlow, TokenSelectorVariation } from 'uniswap/src/components/TokenSelector/types'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
@@ -39,6 +39,7 @@ interface CurrencySearchModalProps {
   currencyField?: CurrencyField
   chainIds?: UniverseChainId[]
   variation?: TokenSelectorVariation
+  flow?: TokenSelectorFlow
   operatedPools?: CurrencyInfo[]
   shouldDisplayPoolsOnly?: boolean
 }
@@ -51,6 +52,7 @@ export default memo(function CurrencySearchModal({
   switchNetworkAction,
   chainIds,
   variation,
+  flow,
   operatedPools,
   shouldDisplayPoolsOnly,
 }: CurrencySearchModalProps) {
@@ -73,6 +75,7 @@ export default memo(function CurrencySearchModal({
           onDismiss={onDismiss}
           chainIds={chainIds}
           variation={variation}
+          flow={flow}
         />
       ) : (
         <PoolListWrapper>

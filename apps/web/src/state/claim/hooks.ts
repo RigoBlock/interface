@@ -79,7 +79,6 @@ function fetchClaimMapping(): Promise<ClaimAddressMapping> {
 const FETCH_CLAIM_FILE_PROMISES: { [startingAddress: string]: Promise<{ [address: string]: UserClaimData }> } = {}
 function fetchClaimFile(key: string): Promise<{ [address: string]: UserClaimData }> {
   return (
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     FETCH_CLAIM_FILE_PROMISES[key] ??
     (FETCH_CLAIM_FILE_PROMISES[key] = fetch(
       `https://raw.githubusercontent.com/Uniswap/mrkl-drop-data-chunks/final/chunks/${key}.json`,
@@ -101,7 +100,6 @@ function fetchClaim(account: string): Promise<UserClaimData> {
   }
 
   return (
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     FETCH_CLAIM_PROMISES[account] ??
     (FETCH_CLAIM_PROMISES[account] = fetchClaimMapping()
       .then((mapping) => {
@@ -123,7 +121,7 @@ function fetchClaim(account: string): Promise<UserClaimData> {
       })
       .then(fetchClaimFile)
       .then((result) => {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        // oxlint-disable-next-line typescript/no-unnecessary-condition
         if (result[formatted]) {
           return result[formatted]
         }
@@ -150,6 +148,7 @@ function useUserClaimData(account: string | null | undefined): UserClaimData | n
 
     fetchClaim(account)
       .then((accountClaimInfo) =>
+        // oxlint-disable-next-line no-shadow
         setClaimInfo((claimInfo) => {
           return {
             ...claimInfo,
@@ -158,6 +157,7 @@ function useUserClaimData(account: string | null | undefined): UserClaimData | n
         }),
       )
       .catch(() => {
+        // oxlint-disable-next-line no-shadow
         setClaimInfo((claimInfo) => {
           return {
             ...claimInfo,
@@ -222,7 +222,9 @@ export function useClaimCallback(address: string | null | undefined): {
 
     const args = [claimData.index, address, claimData.amount, claimData.proof]
 
+    // oxlint-disable-next-line typescript/no-unsafe-return -- biome-parity: oxlint is stricter here
     return distributorContract.estimateGas.claim(...args, {}).then((estimatedGasLimit) => {
+      // oxlint-disable-next-line typescript/no-unsafe-return -- biome-parity: oxlint is stricter here
       return distributorContract
         .claim(...args, { value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
         .then((response: TransactionResponse) => {

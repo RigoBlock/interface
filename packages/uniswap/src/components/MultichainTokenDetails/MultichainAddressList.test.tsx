@@ -16,9 +16,9 @@ vi.mock('utilities/src/addresses', async (importOriginal) => {
 })
 
 const TEST_ENTRIES: MultichainTokenEntry[] = [
-  { chainId: UniverseChainId.Mainnet, address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' },
-  { chainId: UniverseChainId.Base, address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' },
-  { chainId: UniverseChainId.ArbitrumOne, address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' },
+  { chainId: UniverseChainId.Mainnet, address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', isNative: false },
+  { chainId: UniverseChainId.Base, address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', isNative: false },
+  { chainId: UniverseChainId.ArbitrumOne, address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', isNative: false },
 ]
 
 describe(MultichainAddressList, () => {
@@ -52,7 +52,7 @@ describe(MultichainAddressList, () => {
     const rows = getAllByTestId(TestID.MultichainCopyAddress)
     fireEvent.press(rows[0]!, ON_PRESS_EVENT_PAYLOAD)
 
-    expect(onCopyAddress).toHaveBeenCalledWith(TEST_ENTRIES[0]!.address)
+    expect(onCopyAddress).toHaveBeenCalledWith(TEST_ENTRIES[0]!.address, TEST_ENTRIES[0]!.chainId)
   })
 
   it('sets copied state when showInlineFeedback is true and resets after timeout', () => {
@@ -64,7 +64,7 @@ describe(MultichainAddressList, () => {
     const rows = getAllByTestId(TestID.MultichainCopyAddress)
     fireEvent.press(rows[0]!, ON_PRESS_EVENT_PAYLOAD)
 
-    expect(onCopyAddress).toHaveBeenCalledWith(TEST_ENTRIES[0]!.address)
+    expect(onCopyAddress).toHaveBeenCalledWith(TEST_ENTRIES[0]!.address, TEST_ENTRIES[0]!.chainId)
 
     // Timer resets the copied state after COPY_FEEDBACK_RESET_MS
     act(() => {
@@ -84,7 +84,7 @@ describe(MultichainAddressList, () => {
     const rows = getAllByTestId(TestID.MultichainCopyAddress)
     fireEvent.press(rows[0]!, ON_PRESS_EVENT_PAYLOAD)
 
-    expect(onCopyAddress).toHaveBeenCalledWith(TEST_ENTRIES[0]!.address)
+    expect(onCopyAddress).toHaveBeenCalledWith(TEST_ENTRIES[0]!.address, TEST_ENTRIES[0]!.chainId)
     expect(queryByText('Copied')).toBeFalsy()
   })
 })

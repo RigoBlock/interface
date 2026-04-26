@@ -8,11 +8,11 @@ import { Flex, SegmentedControlOption, Shine, Text } from 'ui/src'
 import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { CHART_DIMENSIONS } from '~/components/Charts/D3LiquidityChartShared/constants'
 import { D3LiquidityChartHeader } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/components/D3LiquidityChartHeader'
 import { D3LiquidityMinMaxInput } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/components/D3LiquidityMinMaxInput'
 import { DefaultPriceStrategies } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/components/DefaultPriceStrategies'
 import { LiquidityRangeActionButtons } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/components/LiquidityRangeActionButtons/LiquidityRangeActionButtons'
-import { CHART_DIMENSIONS } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/constants'
 import D3LiquidityRangeChart from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/D3LiquidityRangeChart'
 import { LiquidityChartStoreProvider } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/store/LiquidityChartStoreProvider'
 import { useDensityChartData } from '~/components/Charts/LiquidityRangeInput/hooks'
@@ -22,6 +22,7 @@ import { PriceChartData } from '~/components/Charts/PriceChart'
 import { ChartType } from '~/components/Charts/utils'
 import { InitialPosition, RangeAmountInputPriceMode } from '~/components/Liquidity/Create/types'
 import { getBaseAndQuoteCurrencies } from '~/components/Liquidity/utils/currency'
+import { useColor } from '~/hooks/useColor'
 import { usePoolPriceChartData } from '~/hooks/usePoolPriceChartData'
 import { useAllPoolTicks } from '~/hooks/usePoolTickData'
 import { useMultichainContext } from '~/state/multichain/useMultichainContext'
@@ -31,6 +32,7 @@ const MIN_DATA_POINTS = 1
 /**
  * Chart input for selecting the min/max prices for a liquidity position.
  */
+// oxlint-disable-next-line complexity
 export function D3LiquidityRangeInput({
   baseCurrency,
   quoteCurrency,
@@ -199,22 +201,32 @@ export function D3LiquidityRangeInput({
     priceInverted,
   )
 
+  // Token colors: token0Color for ticks above currentTick, token1Color for below
+  // When priceInverted, the visual base/quote are swapped relative to SDK token0/token1
+  const sdkToken0Color = useColor(sdkCurrencies.TOKEN0 ?? undefined)
+  const sdkToken1Color = useColor(sdkCurrencies.TOKEN1 ?? undefined)
+  const token0Color = priceInverted ? sdkToken1Color : sdkToken0Color
+  const token1Color = priceInverted ? sdkToken0Color : sdkToken1Color
+
   const finalTickData = useMemo(() => {
     if (!priceInverted) {
       return rawTicks
     }
     // Negate ticks and liquidityNet, then reverse to restore ascending order.
-    return rawTicks
-      ?.map((t) =>
-        t
-          ? {
-              ...t,
-              tick: t.tick !== undefined ? -t.tick : undefined,
-              liquidityNet: t.liquidityNet ? String(-BigInt(t.liquidityNet)) : t.liquidityNet,
-            }
-          : t,
-      )
-      .reverse()
+    return (
+      rawTicks
+        // oxlint-disable-next-line no-shadow
+        ?.map((t) =>
+          t
+            ? {
+                ...t,
+                tick: t.tick !== undefined ? -t.tick : undefined,
+                liquidityNet: t.liquidityNet ? String(-BigInt(t.liquidityNet)) : t.liquidityNet,
+              }
+            : t,
+        )
+        .reverse()
+    )
   }, [rawTicks, priceInverted])
 
   return (
@@ -271,6 +283,8 @@ export function D3LiquidityRangeInput({
               currentTick={priceInverted ? -currentTick : currentTick}
               rawTicks={finalTickData}
               protocolVersion={protocolVersion}
+              token0Color={token0Color}
+              token1Color={token1Color}
             />
           ) : (
             <Shine disabled={showChartErrorView} p="$spacing16">
@@ -291,7 +305,7 @@ export function D3LiquidityRangeInput({
           )}
           {!showChartErrorView && <LiquidityRangeActionButtons />}
         </Flex>
-        <DefaultPriceStrategies isLoading={isLoading} />
+        {!showChartErrorView && !creatingPoolOrPair && <DefaultPriceStrategies isLoading={isLoading} />}
         <D3LiquidityMinMaxInput />
       </LiquidityChartStoreProvider>
     </Flex>

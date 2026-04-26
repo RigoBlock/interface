@@ -4,9 +4,51 @@ import {
   convertRestBalanceToPortfolioBalance,
   createPortfolioCacheUpdater,
   formatPortfolioResponseToMap,
+  usePortfolioTotalValue,
 } from 'uniswap/src/features/dataApi/balances/balancesRest'
 import type { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
 import { DAI_CURRENCY_INFO, UNI_CURRENCY_INFO } from 'uniswap/src/test/fixtures'
+import { renderHookWithProviders } from 'uniswap/src/test/render'
+
+const {
+  mockUseEnabledChains,
+  mockUseCurrencyIdToVisibility,
+  mockUseGetPortfolioQuery,
+  mockUseHideSmallBalancesSetting,
+  mockUseHideSpamTokensSetting,
+  mockUsePlatformBasedFetchPolicy,
+} = vi.hoisted(() => ({
+  mockUseEnabledChains: vi.fn(),
+  mockUseCurrencyIdToVisibility: vi.fn(),
+  mockUseGetPortfolioQuery: vi.fn(),
+  mockUseHideSmallBalancesSetting: vi.fn(),
+  mockUseHideSpamTokensSetting: vi.fn(),
+  mockUsePlatformBasedFetchPolicy: vi.fn(),
+}))
+
+vi.mock('uniswap/src/data/rest/getPortfolio', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('uniswap/src/data/rest/getPortfolio')>()),
+  useGetPortfolioQuery: mockUseGetPortfolioQuery,
+}))
+
+vi.mock('uniswap/src/features/chains/hooks/useEnabledChains', () => ({
+  useEnabledChains: mockUseEnabledChains,
+}))
+
+vi.mock('uniswap/src/features/settings/hooks', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('uniswap/src/features/settings/hooks')>()),
+  useHideSmallBalancesSetting: mockUseHideSmallBalancesSetting,
+  useHideSpamTokensSetting: mockUseHideSpamTokensSetting,
+}))
+
+vi.mock('uniswap/src/features/transactions/selectors', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('uniswap/src/features/transactions/selectors')>()),
+  useCurrencyIdToVisibility: mockUseCurrencyIdToVisibility,
+}))
+
+vi.mock('uniswap/src/utils/usePlatformBasedFetchPolicy', () => ({
+  usePlatformBasedFetchPolicy: mockUsePlatformBasedFetchPolicy,
+}))
 
 const mainnetNativeAddress = getNativeAddress(UniverseChainId.Mainnet)
 
@@ -155,7 +197,7 @@ describe(formatPortfolioResponseToMap, () => {
     })
   })
 
-  it('with useMultichainFormat true and empty multichainBalances returns undefined', () => {
+  it('with useMultichainFormat true and empty multichainBalances returns empty object', () => {
     const portfolioData = {
       portfolio: {
         balances: [],
@@ -166,7 +208,7 @@ describe(formatPortfolioResponseToMap, () => {
 
     const result = formatPortfolioResponseToMap({ portfolioData, ownerAddress: owner, useMultichainFormat: true })
 
-    expect(result).toBeUndefined()
+    expect(result).toEqual({})
   })
 })
 
@@ -296,5 +338,70 @@ describe(createPortfolioCacheUpdater, () => {
     expect(result.portfolio.balances[1].isHidden).toBe(false)
     expect(result.portfolio.balances[2].isHidden).toBe(false)
     expect(result.portfolio.totalValueUsd).toBe(500)
+  })
+})
+
+describe(usePortfolioTotalValue, () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    window.localStorage.clear()
+
+    mockUseEnabledChains.mockReturnValue({ chains: [UniverseChainId.Mainnet] })
+    mockUsePlatformBasedFetchPolicy.mockReturnValue({ pollInterval: false })
+    mockUseCurrencyIdToVisibility.mockReturnValue({})
+    mockUseHideSmallBalancesSetting.mockReturnValue(false)
+    mockUseHideSpamTokensSetting.mockReturnValue(false)
+  })
+
+  it('returns the raw error state when the portfolio total request errors before any cached data exists', () => {
+    mockUseGetPortfolioQuery.mockReturnValue({
+      data: undefined,
+      isFetching: false,
+      refetch: vi.fn(),
+      error: new Error('Network error'),
+      status: 'error',
+      dataUpdatedAt: undefined,
+    })
+
+    const { result } = renderHookWithProviders(() =>
+      usePortfolioTotalValue({
+        evmAddress: '0x123',
+      }),
+    )
+
+    expect(result.current.data).toBeUndefined()
+    expect(result.current.loading).toBe(false)
+    expect(result.current.error).toEqual(expect.any(Error))
+    expect(result.current.dataUpdatedAt).toBeUndefined()
+  })
+
+  it('returns cached portfolio total data alongside the raw error metadata', () => {
+    mockUseGetPortfolioQuery.mockReturnValue({
+      data: {
+        balanceUSD: 100,
+        percentChange: 2,
+        absoluteChangeUSD: 5,
+      },
+      isFetching: false,
+      refetch: vi.fn(),
+      error: new Error('Network error'),
+      status: 'error',
+      dataUpdatedAt: 1710000000000,
+    })
+
+    const { result } = renderHookWithProviders(() =>
+      usePortfolioTotalValue({
+        evmAddress: '0x123',
+      }),
+    )
+
+    expect(result.current.loading).toBe(false)
+    expect(result.current.data).toEqual({
+      balanceUSD: 100,
+      percentChange: 2,
+      absoluteChangeUSD: 5,
+    })
+    expect(result.current.error).toEqual(expect.any(Error))
+    expect(result.current.dataUpdatedAt).toBe(1710000000000)
   })
 })

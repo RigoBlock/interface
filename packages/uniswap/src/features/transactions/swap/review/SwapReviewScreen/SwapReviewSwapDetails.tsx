@@ -9,13 +9,13 @@ import {
   useTransactionSettingsAutoSlippageToleranceStore,
   useTransactionSettingsStore,
 } from 'uniswap/src/features/transactions/components/settings/stores/transactionSettingsStore/useTransactionSettingsStore'
-import { SwapDetails } from 'uniswap/src/features/transactions/swap/review/SwapDetails/SwapDetails'
 import { useSwapReviewCallbacksStore } from 'uniswap/src/features/transactions/swap/review/stores/swapReviewCallbacksStore/useSwapReviewCallbacksStore'
 import { useSwapReviewTransactionStore } from 'uniswap/src/features/transactions/swap/review/stores/swapReviewTransactionStore/useSwapReviewTransactionStore'
 import {
   useSwapReviewWarningStateActions,
   useSwapReviewWarningStore,
 } from 'uniswap/src/features/transactions/swap/review/stores/swapReviewWarningStore/useSwapReviewWarningStore'
+import { SwapDetails } from 'uniswap/src/features/transactions/swap/review/SwapDetails/SwapDetails'
 import { setBridgeSyncMode } from 'uniswap/src/features/transactions/swap/utils/bridgeSyncMode'
 import { isBridge } from 'uniswap/src/features/transactions/swap/utils/routing'
 import { isWebApp } from 'utilities/src/platform'

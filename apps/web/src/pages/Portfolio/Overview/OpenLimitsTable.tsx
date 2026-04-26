@@ -239,6 +239,7 @@ export const OpenLimitsTable = memo(function OpenLimitsTable({
     <TableSectionHeader
       title={t('common.limits.open')}
       subtitle={t('portfolio.overview.limits.table.openLimits', { count: openLimitOrders.length })}
+      contentGap="$spacing2"
     >
       <Table
         hideHeader

@@ -4,28 +4,15 @@ import { GraphQLApi } from '@universe/api'
 import * as d3 from 'd3'
 import { UseSporeColorsReturn } from 'ui/src/hooks/useSporeColors'
 import { TickData } from '~/appGraphql/data/AllV3TicksQuery'
-import { BucketChartEntry } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/utils/liquidityBucketing/liquidityBucketing'
+import type { AnimateParams } from '~/components/Charts/D3LiquidityChartShared/store/createChartActions'
+import type { LinearTickScale, Renderer } from '~/components/Charts/D3LiquidityChartShared/types'
+import { BucketChartEntry } from '~/components/Charts/D3LiquidityChartShared/utils/liquidityBucketing/liquidityBucketing'
 import { TickAlignment } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/utils/priceToY'
 import { ChartEntry } from '~/components/Charts/LiquidityRangeInput/types'
 import { PriceChartData } from '~/components/Charts/PriceChart'
 import { RangeAmountInputPriceMode } from '~/components/Liquidity/Create/types'
 
-/**
- * Linear tick scale that maps ticks to Y positions.
- * Unlike scaleBand, this supports any tick value (not just those in the data).
- */
-export type LinearTickScale = {
-  /** Convert a tick to Y position */
-  tickToY: (tick: number) => number
-  /** Convert Y position to tick */
-  yToTick: (y: number) => number
-  /** Min tick in the data range */
-  minTick: number
-  /** Max tick in the data range */
-  maxTick: number
-  /** Y range [top, bottom] */
-  range: [number, number]
-}
+export type { Renderer } from '~/components/Charts/D3LiquidityChartShared/types'
 
 export type TickNavigationParams = {
   tickSpacing: number
@@ -70,15 +57,11 @@ export type ChartState = {
   zoomLevel: number
 }
 
-export type AnimationParams = {
-  targetZoom: number
-  targetPan: number
-  targetMinTick?: number
-  targetMaxTick?: number
-  duration?: number
-}
+export type { AnimateParams } from '~/components/Charts/D3LiquidityChartShared/store/createChartActions'
 
 export type RenderingContext = {
+  /** Unique ID per chart instance, used to namespace SVG IDs (clipPath, gradient) so multiple charts don't collide */
+  chartId: string
   colors: UseSporeColorsReturn
   dimensions: {
     width: number
@@ -93,6 +76,8 @@ export type RenderingContext = {
   tickSpacing: number
   /** Current tick derived from current price: Math.round(Math.log(currentPrice) / Math.log(1.0001)) */
   currentTick: number
+  token0Color: string
+  token1Color: string
   priceToY: ({ price, tickAlignment }: { price: number; tickAlignment?: TickAlignment }) => number
   tickToY: ({ tick, tickAlignment }: { tick: number; tickAlignment?: TickAlignment }) => number
   yToTick: (y: number) => number
@@ -105,10 +90,6 @@ export enum DefaultPriceStrategy {
   ONE_SIDED_LOWER = 'one_sided_lower',
   FULL_RANGE = 'full_range',
   CUSTOM = 'custom',
-}
-
-export interface Renderer {
-  draw(): void
 }
 
 type Renderers = {
@@ -149,7 +130,7 @@ export type ChartActions = {
   zoomOut: () => void
   reset: (params?: { animate?: boolean; minTick?: number; maxTick?: number }) => void
   drawAll: () => void
-  animateToState: (params: AnimationParams) => void
+  animateToState: (params: AnimateParams) => void
   incrementMax: (params: TickNavigationParams) => void
   decrementMax: (params: TickNavigationParams) => void
   incrementMin: (params: TickNavigationParams) => void

@@ -1,4 +1,5 @@
 import { createTradingApiClient, TradingApi, type TradingApiClient as TradingApiClientType } from '@universe/api'
+import { ChainId } from '@universe/api/src/clients/trading/__generated__'
 import { TRADING_API_PATHS } from '@universe/api/src/clients/trading/createTradingApiClient'
 import {
   EthAsErc20UniswapXProperties,
@@ -7,12 +8,15 @@ import {
   getExperimentValueFromLayer,
   getFeatureFlag,
   Layers,
+  waitForStatsigReady,
 } from '@universe/gating'
 import { config } from 'uniswap/src/config'
 import { tradingApiVersionPrefix, uniswapUrls } from 'uniswap/src/constants/urls'
 import { createUniswapFetchClient } from 'uniswap/src/data/apiClients/createUniswapFetchClient'
+import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { filterChainIdsByPlatform } from 'uniswap/src/features/chains/utils'
 import { Platform } from 'uniswap/src/features/platforms/types/Platform'
+import { tradingApiToUniverseChainId } from 'uniswap/src/features/transactions/swap/utils/tradingApi'
 
 const TradingFetchClient = createUniswapFetchClient({
   baseUrl: uniswapUrls.tradingApiUrl,
@@ -48,11 +52,19 @@ export enum TradingApiHeaders {
  * NOTE: Be sure to confirm that adding this header does not cause a CORS issue
  * with the web environments.
  */
-export const getFeatureFlaggedHeaders = (
+export const getFeatureFlaggedHeaders = async (
   tradingApiPath: (typeof TRADING_API_PATHS)[keyof typeof TRADING_API_PATHS],
-): HeadersInit => {
+  tradingApiChainId?: ChainId,
+): Promise<HeadersInit> => {
+  await waitForStatsigReady()
+  const chainId = tradingApiToUniverseChainId(tradingApiChainId)
+  const chainSupports211 =
+    chainId && getChainInfo(chainId).supportedURVersions.includes(TradingApi.UniversalRouterVersion._2_1_1)
+  const useUR211 = getFeatureFlag(FeatureFlags.UseUniversalRouterVersion211) && chainSupports211
   const headers: Record<string, string> = {
-    [TradingApiHeaders.UniversalRouterVersion]: TradingApi.UniversalRouterVersion._2_0,
+    [TradingApiHeaders.UniversalRouterVersion]: useUR211
+      ? TradingApi.UniversalRouterVersion._2_1_1
+      : TradingApi.UniversalRouterVersion._2_0,
   }
   const uniquoteEnabled = getFeatureFlag(FeatureFlags.UniquoteEnabled)
   const viemProviderEnabled = getFeatureFlag(FeatureFlags.ViemProviderEnabled)
@@ -61,7 +73,6 @@ export const getFeatureFlaggedHeaders = (
 
   const chainedActionsEnabled = getFeatureFlag(FeatureFlags.ChainedActions)
   const unirouteEnabled = getFeatureFlag(FeatureFlags.UnirouteEnabled)
-  const uniroutePulumiEnabled = getFeatureFlag(FeatureFlags.UniroutePulumiEnabled)
   const ethAsErc20UniswapXEnabled = getExperimentValueFromLayer<
     typeof Layers.SwapPage,
     Experiments.EthAsErc20UniswapX,
@@ -75,7 +86,8 @@ export const getFeatureFlaggedHeaders = (
   switch (tradingApiPath) {
     case TRADING_API_PATHS.quote:
       addHeaderIfEnabled({ headers, key: TradingApiHeaders.UnirouteEnabled, enabled: unirouteEnabled })
-      addHeaderIfEnabled({ headers, key: TradingApiHeaders.UniroutePulumiEnabled, enabled: uniroutePulumiEnabled })
+      // TODO(INFRA-1595): remove once backend is fully migrated to new route
+      headers[TradingApiHeaders.UniroutePulumiEnabled] = 'true'
       addHeaderIfEnabled({ headers, key: TradingApiHeaders.Erc20EthEnabled, enabled: ethAsErc20UniswapXEnabled })
       addHeaderIfEnabled({ headers, key: TradingApiHeaders.ChainedActionsEnabled, enabled: chainedActionsEnabled })
       addHeaderIfEnabled({
@@ -93,23 +105,11 @@ export const getFeatureFlaggedHeaders = (
       break
     case TRADING_API_PATHS.swap7702:
       addHeaderIfEnabled({ headers, key: TradingApiHeaders.UnirouteEnabled, enabled: unirouteEnabled })
-      addHeaderIfEnabled({ headers, key: TradingApiHeaders.UniroutePulumiEnabled, enabled: uniroutePulumiEnabled })
+      // TODO(INFRA-1595): remove once backend is fully migrated to new route
+      headers[TradingApiHeaders.UniroutePulumiEnabled] = 'true'
       addHeaderIfEnabled({ headers, key: TradingApiHeaders.Erc20EthEnabled, enabled: ethAsErc20UniswapXEnabled })
       break
   }
-  return headers
-}
-
-/**
- * NOTE: Be sure to confirm that adding this header does not cause a CORS issue
- * with the web environments
- */
-export const getQuoteHeaders = (): Record<string, string> => {
-  const headers: Record<string, string> = {}
-  const unirouteEnabled = getFeatureFlag(FeatureFlags.UnirouteEnabled)
-  const uniroutePulumiEnabled = getFeatureFlag(FeatureFlags.UniroutePulumiEnabled)
-  addHeaderIfEnabled({ headers, key: 'x-uniroute-enabled', enabled: unirouteEnabled })
-  addHeaderIfEnabled({ headers, key: 'x-uniroute-pulumi-enabled', enabled: uniroutePulumiEnabled })
   return headers
 }
 

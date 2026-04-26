@@ -1,26 +1,21 @@
 import { nearestUsableTick, TickMath } from '@uniswap/v3-sdk'
 import * as d3 from 'd3'
 import { logger } from 'utilities/src/logger/logger'
+import { CHART_BEHAVIOR, CHART_DIMENSIONS } from '~/components/Charts/D3LiquidityChartShared/constants'
+import { getOpacityForTick } from '~/components/Charts/D3LiquidityChartShared/utils/colorUtils'
+import type { BucketChartEntry } from '~/components/Charts/D3LiquidityChartShared/utils/liquidityBucketing/liquidityBucketing'
 import {
-  CHART_BEHAVIOR,
-  CHART_DIMENSIONS,
-} from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/constants'
+  buildBucketChartEntries,
+  buildBuckets,
+  buildSegmentsFromRawTicks,
+} from '~/components/Charts/D3LiquidityChartShared/utils/liquidityBucketing/liquidityBucketing'
 import type {
   ChartActions,
   ChartState,
   Renderer,
   RenderingContext,
 } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/store/types'
-import {
-  getColorForTick,
-  getOpacityForTick,
-} from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/utils/colorUtils'
-import type { BucketChartEntry } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/utils/liquidityBucketing/liquidityBucketing'
-import {
-  buildBucketChartEntries,
-  buildBuckets,
-  buildSegmentsFromRawTicks,
-} from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/utils/liquidityBucketing/liquidityBucketing'
+import { getCurrentTickDotY } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/utils/tickToY'
 
 export function createLiquidityBarsRenderer({
   g,
@@ -41,7 +36,17 @@ export function createLiquidityBarsRenderer({
       // Clear previous bars
       barsGroup.selectAll('*').remove()
 
-      const { colors, liquidityData, rawTicks, tickScale, tickSpacing, dimensions: contextDimensions } = context
+      const {
+        chartId,
+        liquidityData,
+        token0Color,
+        token1Color,
+        rawTicks,
+        tickScale,
+        currentTick,
+        tickSpacing,
+        dimensions: contextDimensions,
+      } = context
       const {
         minTick,
         maxTick,
@@ -69,8 +74,11 @@ export function createLiquidityBarsRenderer({
       // yToTick(0) = highest visible tick (top of viewport)
       // yToTick(height) = lowest visible tick (bottom of viewport)
       const chartHeight = contextDimensions.height || CHART_DIMENSIONS.LIQUIDITY_CHART_HEIGHT
-      const visibleMaxTick = Math.min(tickScale.yToTick(0), nearestUsableTick(TickMath.MAX_TICK, tickSpacing)) // Top of viewport = highest visible tick
-      const visibleMinTick = Math.max(tickScale.yToTick(chartHeight), nearestUsableTick(TickMath.MIN_TICK, tickSpacing)) // Bottom of viewport = lowest visible tick
+      const visibleMaxTick = Math.min(tickScale.axisToTick(0), nearestUsableTick(TickMath.MAX_TICK, tickSpacing)) // Top of viewport = highest visible tick
+      const visibleMinTick = Math.max(
+        tickScale.axisToTick(chartHeight),
+        nearestUsableTick(TickMath.MIN_TICK, tickSpacing),
+      ) // Bottom of viewport = lowest visible tick
 
       // Build buckets for VISIBLE range
       const buckets = buildBuckets({
@@ -113,69 +121,96 @@ export function createLiquidityBarsRenderer({
       // Each bucket spans [startTick, endTick], convert to Y using the linear scale
       // Subtract divider height to create 1px gap between bars
       const calculateBucketHeight = (bucket: BucketChartEntry): number => {
-        const topY = tickScale.tickToY(bucket.endTick) // Higher tick -> lower Y
-        const bottomY = tickScale.tickToY(bucket.startTick) // Lower tick -> higher Y
+        const topY = tickScale.tickToAxis(bucket.endTick) // Higher tick -> lower Y
+        const bottomY = tickScale.tickToAxis(bucket.startTick) // Lower tick -> higher Y
         return Math.max(2, bottomY - topY - CHART_DIMENSIONS.LIQUIDITY_BAR_SPACING)
       }
 
-      // Draw bucket bars
+      // Use previously-stored buckets for dotY so the color split aligns with other renderers
+      // (CurrentTickRenderer, PriceLineRenderer) that read from getState().renderedBuckets.
+      // Falls back to freshly-built buckets on the first render before state is populated.
+      const { renderedBuckets: existingBuckets } = getState()
+      const dotY = getCurrentTickDotY({ currentTick, renderedBuckets: existingBuckets ?? renderedBuckets, tickScale })
+
+      // Shared bar attributes
+      const getBarOpacity = (d: BucketChartEntry): number => {
+        const isInHoveredSegment =
+          hoveredSegment &&
+          d.segmentStartTick === hoveredSegment.startTick &&
+          d.segmentEndTick === hoveredSegment.endTick
+        if (isInHoveredSegment) {
+          return 1
+        }
+        const centerTick = (d.startTick + d.endTick) / 2
+        return getOpacityForTick({ tick: centerTick, minTick, maxTick })
+      }
+
+      const getBarX = (d: BucketChartEntry): number => {
+        const barWidth = d.liquidityActive <= 0 ? 0 : Math.max(3, liquidityXScale(Number(d.liquidityActive)))
+        return (
+          dimensions.width -
+          barWidth +
+          CHART_DIMENSIONS.LIQUIDITY_CHART_WIDTH -
+          CHART_DIMENSIONS.LIQUIDITY_SECTION_OFFSET
+        )
+      }
+
+      const getBarWidth = (d: BucketChartEntry): number => {
+        if (d.liquidityActive <= 0) {
+          return 0
+        }
+        return Math.max(3, liquidityXScale(Number(d.liquidityActive)))
+      }
+
+      // Clip paths to split bars at dotY
+      const defs = barsGroup.append('defs')
+      defs
+        .append('clipPath')
+        .attr('id', `${chartId}-bars-clip-above`)
+        .append('rect')
+        .attr('x', 0)
+        .attr('y', 0)
+        .attr('width', dimensions.width + CHART_DIMENSIONS.LIQUIDITY_CHART_WIDTH)
+        .attr('height', Math.max(0, dotY))
+
+      defs
+        .append('clipPath')
+        .attr('id', `${chartId}-bars-clip-below`)
+        .append('rect')
+        .attr('x', 0)
+        .attr('y', dotY)
+        .attr('width', dimensions.width + CHART_DIMENSIONS.LIQUIDITY_CHART_WIDTH)
+        .attr('height', Math.max(0, chartHeight - dotY))
+
+      // Draw bars above dotY (token0 zone)
       barsGroup
-        .selectAll<SVGRectElement, BucketChartEntry>('.liquidity-bar')
+        .append('g')
+        .attr('clip-path', `url(#${chartId}-bars-clip-above)`)
+        .selectAll<SVGRectElement, BucketChartEntry>('.liquidity-bar-above')
         .data(renderedBuckets, (d) => `${d.startTick}-${d.endTick}`)
         .join('rect')
-        .attr('class', 'liquidity-bar')
-        .attr('opacity', (d) => {
-          // Check if this bucket belongs to the hovered segment
-          const isInHoveredSegment =
-            hoveredSegment &&
-            d.segmentStartTick === hoveredSegment.startTick &&
-            d.segmentEndTick === hoveredSegment.endTick
-
-          // If in hovered segment, use full opacity for highlighting
-          if (isInHoveredSegment) {
-            return 1
-          }
-
-          // Use center tick for normal opacity calculation
-          const centerTick = (d.startTick + d.endTick) / 2
-          return getOpacityForTick({
-            tick: centerTick,
-            minTick,
-            maxTick,
-          })
-        })
-        .attr('x', (d) => {
-          // Calculate bar width first (0 for no liquidity, minimum 3px otherwise)
-          const barWidth = d.liquidityActive <= 0 ? 0 : Math.max(3, liquidityXScale(Number(d.liquidityActive)))
-          return (
-            dimensions.width -
-            barWidth +
-            CHART_DIMENSIONS.LIQUIDITY_CHART_WIDTH -
-            CHART_DIMENSIONS.LIQUIDITY_SECTION_OFFSET
-          )
-        })
-        .attr('y', (d) => {
-          // Position based on the higher tick (endTick) since high ticks are at top
-          return tickScale.tickToY(d.endTick)
-        })
-        .attr('width', (d) => {
-          // 0-liquidity buckets have 0 width, others have minimum 3px
-          if (d.liquidityActive <= 0) {
-            return 0
-          }
-          return Math.max(3, liquidityXScale(Number(d.liquidityActive)))
-        })
+        .attr('class', 'liquidity-bar liquidity-bar-above')
+        .attr('opacity', getBarOpacity)
+        .attr('x', getBarX)
+        .attr('y', (d) => tickScale.tickToAxis(d.endTick))
+        .attr('width', getBarWidth)
         .attr('height', (d) => calculateBucketHeight(d))
-        .attr('fill', (d) => {
-          const centerTick = (d.startTick + d.endTick) / 2
-          return getColorForTick({
-            tick: centerTick,
-            minTick,
-            maxTick,
-            getActiveColor: () => colors.accent1.val,
-            getInactiveColor: () => colors.neutral1.val,
-          })
-        })
+        .attr('fill', token0Color)
+
+      // Draw bars below dotY (token1 zone)
+      barsGroup
+        .append('g')
+        .attr('clip-path', `url(#${chartId}-bars-clip-below)`)
+        .selectAll<SVGRectElement, BucketChartEntry>('.liquidity-bar-below')
+        .data(renderedBuckets, (d) => `${d.startTick}-${d.endTick}`)
+        .join('rect')
+        .attr('class', 'liquidity-bar liquidity-bar-below')
+        .attr('opacity', getBarOpacity)
+        .attr('x', getBarX)
+        .attr('y', (d) => tickScale.tickToAxis(d.endTick))
+        .attr('width', getBarWidth)
+        .attr('height', (d) => calculateBucketHeight(d))
+        .attr('fill', token1Color)
     } catch (error) {
       logger.error('LiquidityBarsRenderer', {
         tags: {

@@ -1,4 +1,4 @@
-/* eslint-disable max-lines */
+/* oxlint-disable max-lines */
 import { TradingApi } from '@universe/api'
 import ms from 'ms'
 import { call, cancel, delay, fork } from 'typed-redux-saga'
@@ -66,7 +66,7 @@ import { ONE_SECOND_MS } from 'utilities/src/time/time'
  * to the TAPI to update the plan. As the steps are executed, the plan continues
  * to execute the next step until all last step is confirmed.
  */
-// eslint-disable-next-line complexity
+// oxlint-disable-next-line complexity typescript/explicit-function-return-type
 export function* plan(params: PlanParams) {
   const {
     address,
@@ -99,6 +99,7 @@ export function* plan(params: PlanParams) {
   let response: TradingApi.PlanResponse | undefined
   let wasPlanResumed = false
   let steps: TransactionAndPlanStep[]
+  // oxlint-disable-next-line prefer-const -- biome-parity: oxlint is stricter here
   let timeToCreatePlan: number | undefined
   let currentStepIndex: number
   let currentStep: TransactionAndPlanStep | undefined
@@ -167,6 +168,7 @@ export function* plan(params: PlanParams) {
 
       let signature: string | undefined
       let hash: string | undefined
+      let patchResponse: TradingApi.PlanResponse | undefined
 
       currentStep = steps[currentStepIndex]
       const isLastStep = currentStepIndex === steps.length - 1
@@ -179,8 +181,6 @@ export function* plan(params: PlanParams) {
         if (!chainSwitched) {
           throw new HandledTransactionInterrupt('Chain switch failed')
         }
-        // Workaround to allow the chain to switch on an external wallet
-        yield* call(delay, ONE_SECOND_MS / 5)
       }
 
       // TODO: API-1530 should be fixed by now, if not request removal.
@@ -293,18 +293,20 @@ export function* plan(params: PlanParams) {
         // We retry up to 10 times with a base delay of half the block time.
         // Mainnet (blockTime 12s) → baseDelay 6s → worst-case total = 54s
         // Unichain (blockTime 1s) → baseDelay 0.5s → worst-case total = 4.75s
-        yield* call(retryWithBackoff, {
-          fn: async () =>
-            TradingApiSessionClient.updateExistingPlan({
-              planId,
-              steps: [{ stepIndex, proof: { txHash: hash, signature } }],
-            }),
-          config: {
-            maxAttempts: 10,
-            baseDelayMs,
-            backoffStrategy: BackoffStrategy.None,
-          },
-        })
+        patchResponse = yield* call(() =>
+          retryWithBackoff({
+            fn: async () =>
+              TradingApiSessionClient.updateExistingPlan({
+                planId,
+                steps: [{ stepIndex, proof: { txHash: hash, signature } }],
+              }),
+            config: {
+              maxAttempts: 10,
+              baseDelayMs,
+              backoffStrategy: BackoffStrategy.None,
+            },
+          }),
+        )
 
         // Log UniswapXOrderSubmitted after signature is successfully submitted to TAPI
         if (currentStep.type === TransactionStepType.UniswapXPlanSignature) {
@@ -325,6 +327,7 @@ export function* plan(params: PlanParams) {
           startTime,
           timeToCreatePlan,
           response,
+          patchResponse,
           steps,
           swapTxContext,
           analyticsWithPlanStepContext,
@@ -339,6 +342,7 @@ export function* plan(params: PlanParams) {
         stepChainId: tradingApiToUniverseChainId(swapChainId),
         sourceChainId: inputChainId,
         address,
+        initialPlanResponse: patchResponse,
       })
       logger.debug('planSaga', 'plan', '🚨 updated steps', updatedSteps)
       response = latestPlanResponse
@@ -441,6 +445,7 @@ interface HandleLastStepCompletionParams {
   startTime: number
   timeToCreatePlan: number | undefined
   response: TradingApi.PlanResponse | undefined
+  patchResponse?: TradingApi.PlanResponse
   steps: TransactionAndPlanStep[]
   swapTxContext: ValidatedChainedSwapTxAndGasInfo
   analyticsWithPlanStepContext: PlanSagaAnalytics
@@ -487,6 +492,7 @@ function buildPlanErrorToast(params: {
  *   the real plan status (e.g. AwaitingAction) instead of overriding it to Pending,
  *   which is what allows the retry button to appear for failed last steps.
  */
+// oxlint-disable-next-line typescript/explicit-function-return-type
 function* watchLastPlanStepWithCleanup(params: WatchLastPlanStepParams) {
   const {
     stepType,
@@ -572,6 +578,7 @@ function* watchLastPlanStepWithCleanup(params: WatchLastPlanStepParams) {
  * Handles the last step of a plan: forks background polling, signals success,
  * backgrounds the plan, and logs timing.
  */
+// oxlint-disable-next-line typescript/explicit-function-return-type
 function* handleLastStepCompletion(params: HandleLastStepCompletionParams) {
   const {
     planId,
@@ -583,6 +590,7 @@ function* handleLastStepCompletion(params: HandleLastStepCompletionParams) {
     startTime,
     timeToCreatePlan,
     response,
+    patchResponse,
     steps,
     swapTxContext,
     analyticsWithPlanStepContext,
@@ -616,6 +624,7 @@ function* handleLastStepCompletion(params: HandleLastStepCompletionParams) {
     response,
     steps,
     swapTxContext,
+    initialPlanResponse: patchResponse,
   })
 
   // Signal success to the swap modal and background the plan so the user can navigate away.

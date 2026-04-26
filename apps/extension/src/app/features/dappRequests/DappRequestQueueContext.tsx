@@ -89,6 +89,7 @@ export function DappRequestQueueProvider({ children }: PropsWithChildren): JSX.E
       transactionTypeInfo?: TransactionTypeInfo
       preSignedTransaction?: SignedTransactionRequest
     }): Promise<void> => {
+      // oxlint-disable-next-line no-shadow
       const { request, transactionTypeInfo, preSignedTransaction } = params
       const requestWithTxInfo = {
         ...request,
@@ -109,8 +110,10 @@ export function DappRequestQueueProvider({ children }: PropsWithChildren): JSX.E
       }
 
       if (isDappRequestWithDappInfo(requestWithTxInfo)) {
+        // oxlint-disable-next-line typescript/await-thenable -- biome-parity: oxlint is stricter here
         await dispatch(confirmRequest(requestWithTxInfo))
       } else {
+        // oxlint-disable-next-line typescript/await-thenable -- biome-parity: oxlint is stricter here
         await dispatch(confirmRequestNoDappInfo(requestWithTxInfo))
       }
 
@@ -137,6 +140,7 @@ export function DappRequestQueueProvider({ children }: PropsWithChildren): JSX.E
         connectedAddresses,
       })
     }
+    // oxlint-disable-next-line typescript/await-thenable -- biome-parity: oxlint is stricter here
     await dispatch(
       rejectRequest({
         senderTabInfo: requestToCancel.senderTabInfo,

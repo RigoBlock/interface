@@ -124,6 +124,7 @@ export function usePoolData({
     errorPolicy: 'all',
   })
 
+  // oxlint-disable-next-line complexity
   return useMemo(() => {
     const anyError = Boolean(errorV4 || errorV3 || errorV2)
     const anyLoading = Boolean(loadingV4 || loadingV3 || loadingV2)

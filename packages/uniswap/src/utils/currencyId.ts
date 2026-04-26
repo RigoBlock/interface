@@ -1,6 +1,10 @@
 import { Currency } from '@uniswap/sdk-core'
 import { TradingApi } from '@universe/api'
-import { getNativeAddress, getWrappedNativeAddress } from 'uniswap/src/constants/addresses'
+import {
+  getNativeAddress,
+  getWrappedNativeAddress,
+  getWrappedNativeAddressWithThrow,
+} from 'uniswap/src/constants/addresses'
 import { normalizeCurrencyIdForMapLookup, normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
 import { TradeableAsset } from 'uniswap/src/entities/assets'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
@@ -58,8 +62,17 @@ export function buildNativeCurrencyId(chainId: UniverseChainId): string {
   return buildCurrencyId(chainId, getNativeAddress(chainId))
 }
 
-export function buildWrappedNativeCurrencyId(chainId: UniverseChainId): string {
-  return buildCurrencyId(chainId, getWrappedNativeAddress(chainId))
+export function buildWrappedNativeCurrencyId(chainId: UniverseChainId): string | undefined {
+  const address = getWrappedNativeAddress(chainId)
+  if (!address) {
+    return undefined
+  }
+  return buildCurrencyId(chainId, address)
+}
+
+export function buildWrappedNativeCurrencyIdWithThrow(chainId: UniverseChainId): string {
+  const address = getWrappedNativeAddressWithThrow(chainId)
+  return buildCurrencyId(chainId, address)
 }
 
 export function areCurrencyIdsEqual(id1: CurrencyId, id2: CurrencyId): boolean {
@@ -198,6 +211,7 @@ export type MaybeChainId = number | UniverseChainId | null | undefined | Trading
  */
 export function validateAndBuildCurrencyId(params: {
   chainId: MaybeChainId
+  // oxlint-disable-next-line typescript/no-duplicate-type-constituents -- biome-parity: oxlint is stricter here
   tokenAddress: Address | string | undefined
 }): {
   chainId: UniverseChainId

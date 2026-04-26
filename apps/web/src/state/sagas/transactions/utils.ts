@@ -1,4 +1,4 @@
-/* eslint-disable max-lines */
+/* oxlint-disable max-lines */
 import { datadogRum } from '@datadog/browser-rum'
 import type { TransactionResponse } from '@ethersproject/abstract-provider'
 import type { JsonRpcSigner, Web3Provider } from '@ethersproject/providers'
@@ -112,6 +112,7 @@ export function* handleSignatureStep({ setCurrentStep, step, ignoreInterrupt, ad
 
   addTransactionBreadcrumb({ step, data: { signature }, status: TransactionBreadcrumbStatus.Complete })
 
+  // oxlint-disable-next-line typescript/no-unsafe-return -- biome-parity: oxlint is stricter here
   return signature
 }
 
@@ -309,6 +310,7 @@ function* submitTransactionAsync(params: HandleOnChainStepParams): SagaGenerator
     return response
   } catch (error) {
     if (error && typeof error === 'object' && 'transactionHash' in error && isValidHexString(error.transactionHash)) {
+      // oxlint-disable-next-line typescript/no-unsafe-return -- biome-parity: oxlint is stricter here
       return error.transactionHash
     }
 
@@ -544,25 +546,30 @@ export function getSwapTransactionInfo(params: {
   trade: ClassicTrade | BridgeTrade | SolanaTrade | ChainedActionTrade
   swapStartTimestamp?: number
   planAnalytics?: PlanSwapTransactionInfoFields
+  transactedUSDValue?: number
 }): SwapInfo | BridgeTransactionInfo
 export function getSwapTransactionInfo(params: {
   trade: UniswapXTrade
   swapStartTimestamp?: number
   planAnalytics?: PlanSwapTransactionInfoFields
+  transactedUSDValue?: number
 }): SwapInfo & { isUniswapXOrder: true }
 export function getSwapTransactionInfo({
   trade,
   swapStartTimestamp,
   planAnalytics,
+  transactedUSDValue,
 }: {
   trade: ClassicTrade | BridgeTrade | UniswapXTrade | SolanaTrade | ChainedActionTrade
   swapStartTimestamp?: number
   planAnalytics?: PlanSwapTransactionInfoFields
+  transactedUSDValue?: number
 }): SwapInfo | BridgeTransactionInfo {
   const commonAttributes = {
     inputCurrencyId: currencyId(trade.inputAmount.currency),
     outputCurrencyId: currencyId(trade.outputAmount.currency),
     swapStartTimestamp,
+    transactedUSDValue,
     ...planAnalytics,
   }
 

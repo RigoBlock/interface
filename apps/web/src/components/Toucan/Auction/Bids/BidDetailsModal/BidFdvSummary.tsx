@@ -11,6 +11,7 @@ interface BidFdvSummaryProps {
   maxFdvDisplay: string
   fdvFraction: number
   displayState: BidDisplayState
+  isAuctionEnded?: boolean
 }
 
 const FdvArrow = styled(Flex, {
@@ -23,6 +24,7 @@ export function BidFdvSummary({
   maxFdvDisplay,
   fdvFraction,
   displayState,
+  isAuctionEnded,
 }: BidFdvSummaryProps): JSX.Element {
   const { t } = useTranslation()
   const { inRangeColor, warningColor, outOfRangeColor } = useBidStatusColors()
@@ -39,7 +41,7 @@ export function BidFdvSummary({
       <Flex row justifyContent="space-between" gap="$spacing8">
         <Flex gap="$spacing2">
           <Text variant="body4" color="$neutral2">
-            {t('toucan.bidDetails.label.currentFdv')}
+            {isAuctionEnded ? t('toucan.bidDetails.label.fdvAtLaunch') : t('toucan.bidDetails.label.currentFdv')}
           </Text>
           <Text variant="body3" color={currentFdvColor}>
             {currentFdvDisplay}

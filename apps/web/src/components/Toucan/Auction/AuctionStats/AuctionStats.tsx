@@ -1,7 +1,8 @@
+// oxlint-disable-next-line no-restricted-imports -- Used outside React component context where useTranslation is not available
 import { TFunction, t } from 'i18next'
 import { ReactNode, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, styled, Text, Tooltip, useMedia } from 'ui/src'
+import { Flex, styled, Text, Tooltip, TouchableArea, useMedia } from 'ui/src'
 import { Globe } from 'ui/src/components/icons/Globe'
 import { XTwitter } from 'ui/src/components/icons/XTwitter'
 import { zIndexes } from 'ui/src/theme/zIndexes'
@@ -38,7 +39,15 @@ const STATS_PLACEHOLDER = '--'
  * Formats the implied token price for display.
  * Renders range prices on two lines for better readability.
  */
-function formatImpliedTokenPrice(impliedTokenPrice: { start: string; end?: string } | null): ReactNode {
+export function formatImpliedTokenPrice({
+  impliedTokenPrice,
+  variant = 'subheading1',
+  stacked = false,
+}: {
+  impliedTokenPrice: { start: string; end?: string } | null
+  variant?: 'subheading1' | 'body3'
+  stacked?: boolean
+}): ReactNode {
   if (!impliedTokenPrice) {
     return STATS_PLACEHOLDER
   }
@@ -48,17 +57,22 @@ function formatImpliedTokenPrice(impliedTokenPrice: { start: string; end?: strin
     return impliedTokenPrice.start
   }
 
-  // Price range - render on two lines
+  // Price range
   return (
     <Flex>
       <Tooltip placement="top">
         <Tooltip.Trigger>
-          <Text variant="subheading1" color="$neutral1">
-            {impliedTokenPrice.start} –
-          </Text>
-          <Text variant="subheading1" color="$neutral1">
-            {impliedTokenPrice.end}
-          </Text>
+          <Flex row={!stacked} alignItems={stacked ? 'flex-start' : 'center'} gap={stacked ? '$none' : '$spacing4'}>
+            <Text variant={variant} color="$neutral1">
+              {impliedTokenPrice.start}
+            </Text>
+            <Text variant={variant} color="$neutral2">
+              –
+            </Text>
+            <Text variant={variant} color="$neutral1">
+              {impliedTokenPrice.end}
+            </Text>
+          </Flex>
         </Tooltip.Trigger>
         <Tooltip.Content zIndex={zIndexes.overlay}>
           <Text variant="body4" color="$neutral1" maxWidth={250}>
@@ -70,80 +84,37 @@ function formatImpliedTokenPrice(impliedTokenPrice: { start: string; end?: strin
   )
 }
 
-/**
- * Builds the list of stat items to display
- * Note: We don't filter out undefined values anymore since we want to show placeholders
- * @param params - The auction stats data and translation function
- * @returns Array of stat items with labels and values
- */
-/**
- * Formats the total currency raised with optional required amount below.
- */
-function formatCurrencyRaised({
-  totalCurrencyRaisedFormatted,
-  requiredCurrencyFormatted,
-  t,
-}: {
-  totalCurrencyRaisedFormatted: string | null
-  requiredCurrencyFormatted: string | null
-  t: TFunction
-}): ReactNode {
-  if (!totalCurrencyRaisedFormatted) {
-    return STATS_PLACEHOLDER
-  }
-
-  if (!requiredCurrencyFormatted) {
-    return totalCurrencyRaisedFormatted
-  }
-
-  return (
-    <Flex>
-      <Text variant="subheading1" color="$neutral1">
-        {totalCurrencyRaisedFormatted}
-      </Text>
-      <Text variant="body4" color="$neutral2">
-        {t('toucan.statsBanner.requiredCurrency', { amount: requiredCurrencyFormatted })}
-      </Text>
-    </Flex>
-  )
-}
-
 function buildStatItems({
+  // oxlint-disable-next-line no-shadow
   t,
   impliedTokenPrice,
   totalBidCount,
-  totalCurrencyRaisedFormatted,
-  requiredCurrencyFormatted,
   percentCommittedToLpFormatted,
-  auctionSupply,
   auctionTokenSymbol,
   totalSupply,
   isAuctionEnded,
-}: BuildStatItemsParams): StatItem[] {
+}: Pick<
+  BuildStatItemsParams,
+  | 't'
+  | 'impliedTokenPrice'
+  | 'totalBidCount'
+  | 'percentCommittedToLpFormatted'
+  | 'auctionTokenSymbol'
+  | 'totalSupply'
+  | 'isAuctionEnded'
+>): StatItem[] {
   return [
     {
       label: isAuctionEnded ? t('toucan.statsBanner.finalClearingPrice') : t('toucan.auction.stats.impliedTokenPrice'),
-      value: formatImpliedTokenPrice(impliedTokenPrice),
+      value: formatImpliedTokenPrice({ impliedTokenPrice, variant: 'subheading1', stacked: true }),
     },
     {
       label: t('toucan.auction.stats.totalBids'),
       value: totalBidCount?.toLocaleString() ?? STATS_PLACEHOLDER,
     },
     {
-      label: t('toucan.statsBanner.totalCurrencyRaised'),
-      value: formatCurrencyRaised({
-        totalCurrencyRaisedFormatted,
-        requiredCurrencyFormatted,
-        t,
-      }),
-    },
-    {
       label: t('toucan.auction.stats.percentLP'),
       value: percentCommittedToLpFormatted ?? '-',
-    },
-    {
-      label: t('toucan.auction.stats.auctionSupply'),
-      value: auctionSupply ? `${auctionSupply} ${auctionTokenSymbol ?? ''}`.trim() : STATS_PLACEHOLDER,
     },
     {
       label: t('toucan.auction.totalSupply'),
@@ -152,13 +123,20 @@ function buildStatItems({
   ]
 }
 
-const STATS_PER_ROW = 3
+const STATS_PER_ROW_DESKTOP = 4
 
 const StatsGrid = styled(Flex, {
   width: '100%',
   '$platform-web': {
     display: 'grid',
-    gridTemplateColumns: '1fr 1fr 1fr',
+    gridTemplateColumns: '1fr 1fr 1fr 1fr',
+  },
+  $lg: {
+    backgroundColor: '$surface3',
+    '$platform-web': {
+      gridTemplateColumns: '1fr 1fr',
+      gap: 1,
+    },
   },
 })
 
@@ -171,8 +149,13 @@ const StatCell = styled(Flex, {
   $md: {
     paddingVertical: '$spacing8',
   },
+  $lg: {
+    borderRightWidth: 0,
+    paddingRight: 0,
+    paddingHorizontal: '$spacing12',
+    backgroundColor: '$surface1',
+  },
   variants: {
-    // Position-based variants for grid layout
     isLastInRow: {
       true: {
         borderRightWidth: 0,
@@ -245,63 +228,55 @@ const StyledExternalLink = deprecatedStyled(ExternalLink)`
   stroke: none;
 `
 
-export const AuctionStats = () => {
+export const AuctionStatsGrid = ({ onViewAllStats }: { onViewAllStats?: () => void }) => {
+  // oxlint-disable-next-line no-shadow
   const { t } = useTranslation()
   const media = useMedia()
-  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
 
-  // Get real auction stats data
   const {
-    tokenAddress,
     auctionTokenSymbol,
-    launchedOnTimestamp,
-    isAuctionInFuture,
     isAuctionEnded,
-    auctionSupply,
     totalSupply,
     totalBidCount,
-    totalCurrencyRaisedFormatted,
-    requiredCurrencyFormatted,
     percentCommittedToLpFormatted,
     impliedTokenPrice,
-    metadata,
   } = useAuctionStatsData()
 
-  // Build stat items with real data
   const statItems = buildStatItems({
     t,
     impliedTokenPrice,
     totalBidCount,
-    totalCurrencyRaisedFormatted,
-    requiredCurrencyFormatted,
     percentCommittedToLpFormatted,
-    auctionSupply,
     auctionTokenSymbol,
     totalSupply,
     isAuctionEnded,
   })
 
-  const launchedOnLabel = isAuctionInFuture ? t('toucan.auction.launchesOn') : t('toucan.auction.launchedOn')
-  const launchedOnValue = launchedOnTimestamp ? formatTimestampToDate(launchedOnTimestamp) : '--'
-  const contractAddress = tokenAddress ?? '--'
-  const totalStats = statItems.length
-
   return (
-    <Flex width={400} maxWidth="100%" flexShrink={0} gap="$spacing16" $xl={{ width: 360 }} $lg={{ width: '100%' }}>
-      {/* Header */}
-      <Text variant={media.lg ? 'subheading1' : 'heading3'}>{t('toucan.auction.stats')}</Text>
-      {/* Stats Table */}
+    <Flex width="100%" flexShrink={0} gap="$spacing16">
+      <Flex row justifyContent="space-between" alignItems="center">
+        <Text variant={media.lg ? 'subheading1' : 'heading3'}>{t('toucan.auction.stats')}</Text>
+        {onViewAllStats && (
+          <TouchableArea row alignItems="center" gap="$spacing4" onPress={onViewAllStats}>
+            <Text variant="body3" color="$neutral2" hoverStyle={{ color: '$neutral1' }}>
+              {t('toucan.auction.viewAllStats')}
+            </Text>
+            <Text variant="body3" color="$neutral2">
+              →
+            </Text>
+          </TouchableArea>
+        )}
+      </Flex>
       <StatsGrid>
         {statItems.map((item, index) => {
-          // Calculate grid position for border/padding logic
-          const col = index % STATS_PER_ROW
-          const isInFirstRow = index < STATS_PER_ROW
+          const col = index % STATS_PER_ROW_DESKTOP
+          const isInFirstRow = index < STATS_PER_ROW_DESKTOP
 
           return (
             <StatCell
               key={`${item.label}-${index}`}
-              isLastInRow={col === STATS_PER_ROW - 1}
-              isFirstRow={isInFirstRow && totalStats > STATS_PER_ROW}
+              isLastInRow={col === STATS_PER_ROW_DESKTOP - 1}
+              isFirstRow={isInFirstRow && statItems.length > STATS_PER_ROW_DESKTOP}
               hasLeftPadding={col !== 0}
             >
               <Text variant="body3" color="$neutral2">
@@ -318,12 +293,27 @@ export const AuctionStats = () => {
           )
         })}
       </StatsGrid>
+    </Flex>
+  )
+}
 
-      {/* Info Section */}
+export const AuctionInfo = () => {
+  // oxlint-disable-next-line no-shadow
+  const { t } = useTranslation()
+  const media = useMedia()
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
+
+  const { tokenAddress, launchedOnTimestamp, isAuctionInFuture, metadata } = useAuctionStatsData()
+
+  const launchedOnLabel = isAuctionInFuture ? t('toucan.auction.launchesOn') : t('toucan.auction.launchedOn')
+  const launchedOnValue = launchedOnTimestamp ? formatTimestampToDate(launchedOnTimestamp) : '--'
+  const contractAddress = tokenAddress ?? '--'
+
+  return (
+    <Flex maxWidth="100%" flexShrink={0} gap="$spacing16" $xl={{ width: 360 }} $lg={{ width: '100%' }}>
       <Flex gap="$spacing16">
         <Text variant={media.lg ? 'subheading1' : 'heading3'}>{t('toucan.auction.info')}</Text>
 
-        {/* Launched by / Launched on / Contract address row */}
         <InfoRow>
           {metadata?.launchedByName && (
             <InfoCell>
@@ -378,7 +368,6 @@ export const AuctionStats = () => {
           </InfoCell>
         </InfoRow>
 
-        {/* Description - only shown if metadata exists */}
         {metadata?.description && (
           <Flex gap="$spacing8">
             <Text variant="body3" color="$neutral2">
@@ -404,8 +393,6 @@ export const AuctionStats = () => {
           </Flex>
         )}
 
-        {/* Social badges - only shown if at least one link exists */}
-        {/* TODO | Toucan - add analytics tracking for social link clicks */}
         {(metadata?.website || metadata?.twitter) && (
           <Flex row gap="$spacing8">
             {metadata.website && (

@@ -54,7 +54,6 @@ export function MobileMenuDrawer({ isOpen, closeMenu }: { isOpen: boolean; close
   const [openSections, setOpenSections] = useState<string[]>()
   const [settingsView, setSettingsView] = useState<PreferencesView>(PreferencesView.SETTINGS)
   const dropdownRef = useRef<HTMLDivElement>(null)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: +setSettingsView, +dropdownRef
   const changeView = useCallback(
     (view: PreferencesView) => {
       setSettingsView(view)
@@ -122,6 +121,7 @@ export function MobileMenuDrawer({ isOpen, closeMenu }: { isOpen: boolean; close
               </MenuSection>
               {Object.values(productContent).map((sectionContent, index) => (
                 <MenuSection key={`${sectionContent.title}_${index}`} title={sectionContent.title} collapsible={false}>
+                  {/* oxlint-disable-next-line no-shadow */}
                   {sectionContent.items.map(({ label, href, internal, icon, elementName }, index) => (
                     <MenuLink
                       key={`${label}_${index}}`}
@@ -141,6 +141,7 @@ export function MobileMenuDrawer({ isOpen, closeMenu }: { isOpen: boolean; close
 
               {Object.values(menuContent).map((sectionContent, index) => (
                 <MenuSection key={`${sectionContent.title}_${index}`} title={sectionContent.title}>
+                  {/* oxlint-disable-next-line no-shadow */}
                   {sectionContent.items.map(({ label, href, internal, elementName }, index) => (
                     <MenuLink
                       key={`${label}_${index}}`}

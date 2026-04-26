@@ -1,5 +1,7 @@
+/* oxlint-disable max-lines */
 import { SCREEN_WIDTH } from '@gorhom/bottom-sheet'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Platform } from 'react-native'
 import type { LayoutChangeEvent, TextStyle, ViewStyle } from 'react-native'
 import Animated, {
   useAnimatedStyle,
@@ -12,10 +14,45 @@ import { Flex, Shine, Text, TextLoaderWrapper, useSporeColors } from 'ui/src'
 import { fonts } from 'ui/src/theme'
 import { TopAndBottomGradient } from 'uniswap/src/components/AnimatedNumber/TopAndBottomGradient'
 import { useAppFiatCurrencyInfo } from 'uniswap/src/features/fiatCurrency/hooks'
-import { FiatCurrencyInfo } from 'uniswap/src/features/fiatOnRamp/types'
+import type { FiatCurrencyInfo } from 'uniswap/src/features/fiatOnRamp/types'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { usePrevious } from 'utilities/src/react/hooks'
 import { ONE_SECOND_MS } from 'utilities/src/time/time'
+
+export const AnimatedCharStyles = {
+  wrapperStyle: {
+    overflow: 'hidden',
+  } satisfies ViewStyle,
+}
+
+const AnimatedFontStyles = {
+  fontStyle: {
+    fontSize: fonts.heading2.fontSize,
+    // special case for the home screen balance, instead of using the heading2 font weight
+    fontWeight: '500',
+    lineHeight: fonts.heading2.lineHeight,
+    top: 1,
+  } satisfies TextStyle,
+  invisible: {
+    opacity: 0,
+    position: 'absolute',
+  } satisfies TextStyle,
+}
+
+const NativeNumberTextStyles = {
+  fontStyle: {
+    // Use the button font family for number rendering because android's "Book" variant
+    // looks noticeably thinner than the balance text shown elsewhere in this component.
+    fontFamily: fonts.buttonLabel1.family,
+  } satisfies TextStyle,
+}
+
+const StaticNumberStyles = {
+  fontStyle: {
+    ...NativeNumberTextStyles.fontStyle,
+    ...(Platform.OS === 'android' ? { includeFontPadding: false } : {}),
+  } satisfies TextStyle,
+}
 
 // Native-specific duration for balance change color indication
 export const BALANCE_CHANGE_INDICATION_DURATION = ONE_SECOND_MS * 2
@@ -59,6 +96,7 @@ const RollNumber = ({
   const fontColor = useSharedValue(
     nextColor || (shouldFadeDecimals && index > decimalSeparatorIndex ? colors.neutral3.val : colors.neutral1.val),
   )
+  // oxlint-disable-next-line typescript/no-unsafe-unary-minus -- biome-parity: oxlint is stricter here
   const yOffset = useSharedValue(digit && Number(digit) >= 0 ? DIGIT_HEIGHT * -digit : 0)
 
   const margin = {
@@ -67,7 +105,6 @@ const RollNumber = ({
     marginLeft: isRightToLeft ? -ADDITIONAL_WIDTH_FOR_ANIMATIONS : 0,
   }
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: +digit, currency
   useEffect(() => {
     const finishColor = shouldFadeDecimals && index > decimalSeparatorIndex ? colors.neutral3.val : colors.neutral1.val
     if (nextColor && index > commonPrefixLength - 1 && chars !== lastChars.current) {
@@ -107,8 +144,8 @@ const RollNumber = ({
         style={[
           animatedFontStyle,
           AnimatedFontStyles.fontStyle,
-          // fontFamily set to button style because android "Book" version of the font looks noticeably thinner
-          { height: DIGIT_HEIGHT, fontFamily: fonts.buttonLabel1.family },
+          NativeNumberTextStyles.fontStyle,
+          { height: DIGIT_HEIGHT },
         ]}
       >
         {char}
@@ -118,9 +155,11 @@ const RollNumber = ({
 
   useEffect(() => {
     if (digit && Number(digit) >= 0) {
+      // oxlint-disable-next-line typescript/no-unsafe-unary-minus -- biome-parity: oxlint is stricter here
       const newOffset = DIGIT_HEIGHT * -digit
       yOffset.value = newOffset
     }
+    // oxlint-disable-next-line react/exhaustive-deps -- biome-parity: oxlint is stricter here
   }, [digit])
 
   const animatedWrapperStyle = useAnimatedStyle(() => {
@@ -150,7 +189,8 @@ const RollNumber = ({
         style={[
           animatedFontStyle,
           AnimatedFontStyles.fontStyle,
-          { height: DIGIT_HEIGHT, fontFamily: fonts.buttonLabel1.family },
+          NativeNumberTextStyles.fontStyle,
+          { height: DIGIT_HEIGHT },
         ]}
       >
         {digit}
@@ -244,36 +284,54 @@ interface ReanimatedNumberProps extends AnimatedNumberProps {
   currency: FiatCurrencyInfo
 }
 
-const AnimatedNumber = (props: AnimatedNumberProps): JSX.Element => {
-  const currency = useAppFiatCurrencyInfo()
+const StaticNumber = ({
+  currency,
+  shouldFadeDecimals,
+  value,
+}: Pick<ReanimatedNumberProps, 'currency' | 'shouldFadeDecimals' | 'value'>): JSX.Element => {
   const colors = useSporeColors()
+  const amountOfCurrency = value?.split(currency.decimalSeparator)
 
-  if (props.disableAnimations) {
-    const amountOfCurrency = props.value?.split(currency.decimalSeparator)
-    if (amountOfCurrency?.length === 2) {
-      return (
-        <Text
+  // Keep the static path on native text primitives. On Android, routing this
+  // through Tamagui Text uses different font metrics/padding and can introduce clipping.
+  return (
+    <Animated.Text
+      allowFontScaling={false}
+      style={[
+        AnimatedFontStyles.fontStyle,
+        StaticNumberStyles.fontStyle,
+        {
+          color: colors.neutral1.val,
+          height: DIGIT_HEIGHT,
+        },
+      ]}
+      testID={TestID.PortfolioBalance}
+    >
+      {shouldFadeDecimals && amountOfCurrency?.length === 2 ? amountOfCurrency[0] : value}
+      {shouldFadeDecimals && amountOfCurrency?.length === 2 && (
+        <Animated.Text
           allowFontScaling={false}
           style={[
             AnimatedFontStyles.fontStyle,
+            StaticNumberStyles.fontStyle,
             {
-              color: colors.neutral1.val,
+              color: colors.neutral3.val,
             },
           ]}
-          testID={TestID.PortfolioBalance}
         >
-          {amountOfCurrency[0]}
-          <Text
-            style={{
-              color: colors.neutral3.val,
-            }}
-          >
-            {currency.decimalSeparator}
-            {amountOfCurrency[1]}
-          </Text>
-        </Text>
-      )
-    }
+          {currency.decimalSeparator}
+          {amountOfCurrency[1]}
+        </Animated.Text>
+      )}
+    </Animated.Text>
+  )
+}
+
+const AnimatedNumber = (props: AnimatedNumberProps): JSX.Element => {
+  const currency = useAppFiatCurrencyInfo()
+
+  if (props.disableAnimations) {
+    return <StaticNumber currency={currency} shouldFadeDecimals={props.shouldFadeDecimals} value={props.value} />
   }
 
   return <ReanimatedNumber {...props} currency={currency} />
@@ -374,7 +432,7 @@ const ReanimatedNumber = ({
         <Flex borderRadius="$rounded4" flexDirection="row">
           <Text
             allowFontScaling={false}
-            style={[AnimatedFontStyles.fontStyle, { height: DIGIT_HEIGHT, fontFamily: fonts.buttonLabel1.family }]}
+            style={[AnimatedFontStyles.fontStyle, NativeNumberTextStyles.fontStyle, { height: DIGIT_HEIGHT }]}
             opacity={0}
           >
             {loadingPlaceholderText}
@@ -444,32 +502,3 @@ const ReanimatedNumber = ({
 }
 
 export default AnimatedNumber
-
-interface AnimatedFontStylesType {
-  fontStyle: TextStyle
-  invisible: TextStyle
-}
-
-interface AnimatedCharStylesType {
-  wrapperStyle: ViewStyle
-}
-
-export const AnimatedCharStyles: AnimatedCharStylesType = {
-  wrapperStyle: {
-    overflow: 'hidden',
-  },
-}
-
-export const AnimatedFontStyles: AnimatedFontStylesType = {
-  fontStyle: {
-    fontSize: fonts.heading2.fontSize,
-    // special case for the home screen balance, instead of using the heading2 font weight
-    fontWeight: '500',
-    lineHeight: fonts.heading2.lineHeight,
-    top: 1,
-  },
-  invisible: {
-    opacity: 0,
-    position: 'absolute',
-  },
-}

@@ -1,4 +1,4 @@
-/* eslint-disable max-lines */
+/* oxlint-disable max-lines */
 import { BigNumber } from '@ethersproject/bignumber'
 import { queryOptions, useQuery } from '@tanstack/react-query'
 import type { Currency } from '@uniswap/sdk-core'
@@ -775,6 +775,7 @@ export async function transactionToActivity({
     const activity = { ...defaultFields, ...additionalFields }
 
     // Skip the canceled transaction override for UniswapX orders since they handle it specially
+    // oxlint-disable-next-line no-shadow
     const isUniswapX = details.typeInfo.type === TransactionType.Swap && isUniswapXActivity(details)
     const CancelledTransactionTitleTable = getCancelledTransactionTitleTable()
     if (details.status === TransactionStatus.Canceled && !isUniswapX) {
@@ -890,7 +891,7 @@ export function useLocalActivities(account: string): ActivityMap {
           }),
         )
 
-      const allActivities = await Promise.all([...transactions])
+      const allActivities = await Promise.all(transactions)
       return createActivityMapByHash(allActivities)
     },
   })

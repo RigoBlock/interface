@@ -3,7 +3,6 @@ import ms from 'ms'
 
 const IS_CI = process.env.CI === 'true'
 
-// eslint-disable-next-line import/no-unused-modules
 export default defineConfig({
   testDir: '../tests',
   testMatch: '**/*.test.ts',

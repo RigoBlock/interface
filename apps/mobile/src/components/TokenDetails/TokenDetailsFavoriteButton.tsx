@@ -1,9 +1,8 @@
 import React from 'react'
-import { useSelector } from 'react-redux'
 import { Favorite } from 'src/components/icons/Favorite'
 import { TouchableArea } from 'ui/src'
 import { iconSizes } from 'ui/src/theme'
-import { selectFavoriteTokens } from 'uniswap/src/features/favorites/selectors'
+import { useSelectHasTokenFavorited } from 'uniswap/src/features/favorites/useSelectHasTokenFavorited'
 import { useToggleFavoriteCallback } from 'uniswap/src/features/favorites/useToggleFavoriteCallback'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 
@@ -15,7 +14,7 @@ export function TokenDetailsFavoriteButton({
   tokenName?: string
 }): JSX.Element {
   const id = currencyId.toLowerCase()
-  const isFavoriteToken = useSelector(selectFavoriteTokens).indexOf(id) !== -1
+  const isFavoriteToken = useSelectHasTokenFavorited(id)
   const onFavoritePress = useToggleFavoriteCallback({ id, tokenName, isFavoriteToken })
   return (
     <TouchableArea

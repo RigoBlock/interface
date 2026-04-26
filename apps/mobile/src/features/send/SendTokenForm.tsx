@@ -1,4 +1,4 @@
-/* eslint-disable complexity */
+/* oxlint-disable complexity */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { StyleSheet } from 'react-native'
@@ -7,8 +7,8 @@ import { AlertCircle } from 'ui/src/components/icons'
 import { useDeviceDimensions } from 'ui/src/hooks/useDeviceDimensions'
 import { iconSizes, spacing } from 'ui/src/theme'
 import { CurrencyInputPanel } from 'uniswap/src/components/CurrencyInputPanel/CurrencyInputPanel'
-import { CurrencyInputPanelRef } from 'uniswap/src/components/CurrencyInputPanel/types'
-import { TextInputProps } from 'uniswap/src/components/input/TextInput'
+import type { CurrencyInputPanelRef } from 'uniswap/src/components/CurrencyInputPanel/types'
+import type { TextInputProps } from 'uniswap/src/components/input/TextInput'
 import { getAlertColor } from 'uniswap/src/components/modals/WarningModal/getAlertColor'
 import { WarningLabel, WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import { WarningModal } from 'uniswap/src/components/modals/WarningModal/WarningModal'
@@ -19,7 +19,7 @@ import {
   DecimalPadCalculatedSpaceId,
   DecimalPadCalculateSpace,
   DecimalPadInput,
-  DecimalPadInputRef,
+  type DecimalPadInputRef,
 } from 'uniswap/src/features/transactions/components/DecimalPadInput/DecimalPadInput'
 import { InsufficientNativeTokenWarning } from 'uniswap/src/features/transactions/components/InsufficientNativeTokenWarning/InsufficientNativeTokenWarning'
 import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPriceWrapper'
@@ -183,7 +183,12 @@ export function SendTokenForm(): JSX.Element {
   const onSetMax = useCallback(
     (amount: string) => {
       exactAmountTokenRef.current = amount
-      updateSendForm({ exactAmountToken: amount, isMax: true, isFiatInput: false, focusOnCurrencyField: null })
+      updateSendForm({
+        exactAmountToken: amount,
+        isMax: true,
+        isFiatInput: false,
+        focusOnCurrencyField: null,
+      })
 
       // We want this update to happen on the next tick, after the input value is updated.
       setTimeout(() => {

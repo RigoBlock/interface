@@ -15,6 +15,7 @@ import { calculateApr } from '~/appGraphql/data/pools/useTopPools'
 import { gqlToCurrency, unwrapToken } from '~/appGraphql/data/util'
 import { DetailsHeaderContainer } from '~/components/Explore/stickyHeader/DetailsHeaderContainer'
 import { LpIncentivesPoolDetailsRewardsDistribution } from '~/components/LpIncentives/LpIncentivesPoolDetailsRewardsDistribution'
+import { useChainIdFromUrlParam } from '~/features/params/chainParams'
 import { useColor } from '~/hooks/useColor'
 import { useScroll } from '~/hooks/useScroll'
 import { useScrollCompact } from '~/hooks/useScrollCompact'
@@ -30,7 +31,6 @@ import { PoolDetailsStatsButtons } from '~/pages/PoolDetails/components/PoolDeta
 import { PoolDetailsTableTab } from '~/pages/PoolDetails/components/PoolDetailsTable'
 import { getPoolDetailPageTitle } from '~/pages/PoolDetails/utils'
 import { ThemeProvider } from '~/theme'
-import { useChainIdFromUrlParam } from '~/utils/chainParams'
 
 const PageWrapper = styled(Flex, {
   row: true,
@@ -104,6 +104,7 @@ function getUnwrappedPoolToken({
     : [undefined, undefined]
 }
 
+// oxlint-disable-next-line complexity
 export default function PoolDetailsPage() {
   const { t } = useTranslation()
   const { poolAddress } = useParams<{ poolAddress: string }>()
@@ -164,9 +165,9 @@ export default function PoolDetailsPage() {
   const showRewardsDistribution = useMemo(() => {
     return Boolean(
       isLPIncentivesEnabled &&
-        poolData &&
-        poolData.rewardsCampaign?.boostedApr &&
-        poolData.rewardsCampaign.boostedApr > 0,
+      poolData &&
+      poolData.rewardsCampaign?.boostedApr &&
+      poolData.rewardsCampaign.boostedApr > 0,
     )
   }, [isLPIncentivesEnabled, poolData])
 

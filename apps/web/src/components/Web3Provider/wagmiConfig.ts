@@ -1,5 +1,4 @@
 import { getWagmiConnectorV2 } from '@binance/w3w-wagmi-connector-v2'
-import { porto } from 'porto/wagmi'
 import { RIGOBLOCK_LOGO } from 'ui/src/assets'
 import { UNISWAP_WEB_URL } from 'uniswap/src/constants/urls'
 import { CONNECTION_PROVIDER_IDS } from 'uniswap/src/constants/web3'
@@ -20,6 +19,10 @@ import { PLAYWRIGHT_CONNECT_ADDRESS } from '~/components/Web3Provider/constants'
 import { createRejectableMockConnector } from '~/components/Web3Provider/rejectableConnector'
 import { WC_PARAMS } from '~/components/Web3Provider/walletConnect'
 import { embeddedWallet } from '~/connection/EmbeddedWalletConnector'
+
+// Only accept Safe Apps SDK messages from the canonical Safe web app.
+// Tested against bypass patterns in wagmiConfig.test.ts.
+export const SAFE_ALLOWED_ORIGIN = /^https:\/\/app\.safe\.global$/
 
 // Get the appropriate Binance connector based on the environment
 const getBinanceConnector = () => {
@@ -47,16 +50,14 @@ const getBinanceConnector = () => {
 
   // Otherwise, use the Binance connector with QR modal for mobile connection
   const BinanceConnector = getWagmiConnectorV2()
-  return BinanceConnector({
-    showQrCodeModal: true,
-  })
+  return BinanceConnector()
 }
 
 export const orderedTransportUrls = (chain: ReturnType<typeof getChainInfo>): string[] => {
   const orderedRpcUrls = [
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     ...(chain.rpcUrls.interface?.http ?? []),
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     ...(chain.rpcUrls.default?.http ?? []),
     ...(chain.rpcUrls.public?.http ?? []),
     ...(chain.rpcUrls.fallback?.http ?? []),
@@ -72,7 +73,6 @@ function createWagmiConnectors(params: {
   const { includeMockConnector } = params
 
   const baseConnectors = [
-    porto(),
     // Binance connector - uses injected for extension, QR code for mobile
     getBinanceConnector(),
     // There are no unit tests that expect WalletConnect to be included here,
@@ -86,7 +86,9 @@ function createWagmiConnectors(params: {
       appLogoUrl: `${UNISWAP_WEB_URL}${RIGOBLOCK_LOGO}`,
       reloadOnDisconnect: false,
     }),
-    safe(),
+    safe({
+      allowedDomains: [SAFE_ALLOWED_ORIGIN],
+    }),
   ]
 
   return includeMockConnector
@@ -104,6 +106,7 @@ function createWagmiConfig(params: {
   /** The connector list to use. */
   connectors: any[]
   /** Optional custom `onFetchResponse` handler – defaults to `defaultOnFetchResponse`. */
+  // oxlint-disable-next-line max-params -- biome-parity: oxlint is stricter here
   onFetchResponse?: (response: Response, chain: Chain, url: string) => void
 }): Config<typeof ORDERED_EVM_CHAINS> {
   const { connectors, onFetchResponse = defaultOnFetchResponse } = params
@@ -132,7 +135,7 @@ function createWagmiConfig(params: {
   })
 }
 
-// eslint-disable-next-line max-params
+// oxlint-disable-next-line max-params
 const defaultOnFetchResponse = (response: Response, chain: Chain, url: string) => {
   if (response.status !== 200) {
     const message = `RPC provider returned non-200 status: ${response.status}`
@@ -169,7 +172,6 @@ export const wagmiConfig = createWagmiConfig({ connectors: defaultConnectors })
 
 declare module 'wagmi' {
   interface Register {
-    // eslint-disable-next-line @typescript-eslint/consistent-type-imports
     config: typeof wagmiConfig
   }
 }

@@ -22,7 +22,8 @@ import { Chart, refitChartContentAtom } from '~/components/Charts/ChartModel'
 import { LiquidityBarChartModel, useLiquidityBarData } from '~/components/Charts/LiquidityChart'
 import { LiquidityBarData } from '~/components/Charts/LiquidityChart/types'
 import { ChartSkeleton } from '~/components/Charts/LoadingState'
-import { PriceChartData, PriceChartDelta, PriceChartModel } from '~/components/Charts/PriceChart'
+import { PriceChartData, PriceChartModel } from '~/components/Charts/PriceChart'
+import { PriceChartDelta } from '~/components/Charts/PriceChart/PriceChartDelta'
 import { ChartQueryResult, ChartType, DataQuality, PriceChartType } from '~/components/Charts/utils'
 import { VolumeChart } from '~/components/Charts/VolumeChart'
 import { SingleHistogramData } from '~/components/Charts/VolumeChart/utils'
@@ -100,7 +101,7 @@ function usePDPChartState({
   const volumeQuery = usePDPVolumeChartData({ variables })
 
   return useMemo(() => {
-    // eslint-disable-next-line consistent-return
+    // oxlint-disable-next-line typescript/consistent-return
     const activeQuery = (() => {
       switch (chartType) {
         case ChartType.PRICE:
@@ -148,7 +149,7 @@ export default function ChartSection(props: ChartSectionProps) {
   // TODO(WEB-3740): Integrate BE tick query, remove special casing for liquidity chart
   const loading = props.loading || (activeQuery.chartType !== ChartType.LIQUIDITY ? activeQuery.loading : false)
 
-  // eslint-disable-next-line consistent-return
+  // oxlint-disable-next-line typescript/consistent-return
   const ChartBody = (() => {
     if (!currencyA || !currencyB || !props.poolData || !props.chain) {
       return <ChartSkeleton type={activeQuery.chartType} height={PDP_CHART_HEIGHT_PX} />
@@ -309,7 +310,7 @@ function PriceChart({
           <PriceDisplayContainer>
             <ChartPriceText>
               {`1 ${baseCurrency.symbol} = ${formatCurrencyAmount({
-                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                // oxlint-disable-next-line typescript/no-unnecessary-condition
                 value: tryParseCurrencyAmount((displayValue?.value ?? displayValue.close).toString(), baseCurrency),
               })} 
             ${quoteCurrency.symbol}`}

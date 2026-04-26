@@ -1,8 +1,8 @@
-import type { Dispatch, SetStateAction } from 'react'
 import { memo, useCallback, useState } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { FlexProps, TextProps } from 'ui/src'
 import { ElementAfterText, Flex, ScrollView, styled, Text } from 'ui/src'
+import type { FlexProps, TextProps } from 'ui/src'
 import { Check } from 'ui/src/components/icons/Check'
 import { iconSizes } from 'ui/src/theme'
 import Badge from 'uniswap/src/components/badge/Badge'
@@ -11,8 +11,8 @@ import { NewTag } from 'uniswap/src/components/pill/NewTag'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { useNewChainIds } from 'uniswap/src/features/chains/hooks/useNewChainIds'
 import { useIsSupportedChainIdCallback } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
-import type { UniverseChainInfo } from 'uniswap/src/features/chains/types'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import type { UniverseChainInfo } from 'uniswap/src/features/chains/types'
 import { isBackendSupportedChainId, toGraphQLChain } from 'uniswap/src/features/chains/utils'
 import { InterfacePageName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
@@ -94,6 +94,8 @@ export function NetworkFilter({
   size = DropdownSizeVariants.Medium,
   transition,
   networks,
+  customTrigger,
+  isTriggerStyled = true,
 }: {
   showMultichainOption?: boolean
   showDisplayName?: boolean
@@ -103,6 +105,8 @@ export function NetworkFilter({
   currentChainId: UniverseChainId | undefined
   transition?: FlexProps['transition']
   networks?: UniverseChainId[]
+  customTrigger?: JSX.Element | string
+  isTriggerStyled?: boolean
 }) {
   const { t } = useTranslation()
   const [isMenuOpen, toggleMenu] = useState(false)
@@ -116,6 +120,7 @@ export function NetworkFilter({
       if (!isSupportedChainCallback(chainId)) {
         return null
       }
+      // oxlint-disable-next-line no-shadow
       const chainInfo = getChainInfo(chainId)
       const supported = isBackendSupportedChainId(chainId)
 
@@ -140,24 +145,27 @@ export function NetworkFilter({
           isOpen={isMenuOpen}
           toggleOpen={toggleMenu}
           menuLabel={
-            <NetworkLabel testID={TestID.TokensNetworkFilterTrigger}>
-              {(!currentChainId || !isSupportedChainCallback(currentChainId)) && showMultichainOption ? (
-                <NetworkLogo size={NetworkLogoSizes[size]} chainId={null} transition={transition} />
-              ) : (
-                <ChainLogo
-                  chainId={currentChainId ?? UniverseChainId.Mainnet}
-                  size={NetworkLogoSizes[size]}
-                  testId={TestID.TokensNetworkFilterSelected}
-                  transition={transition}
-                />
-              )}
-              {showDisplayName && (
-                <Text variant={NetworkLabelTextVariants[size]} transition={transition}>
-                  {isAllNetworks ? t('transaction.network.all') : chainInfo.label}
-                </Text>
-              )}
-            </NetworkLabel>
+            customTrigger ?? (
+              <NetworkLabel testID={TestID.TokensNetworkFilterTrigger}>
+                {(!currentChainId || !isSupportedChainCallback(currentChainId)) && showMultichainOption ? (
+                  <NetworkLogo size={NetworkLogoSizes[size]} chainId={null} transition={transition} />
+                ) : (
+                  <ChainLogo
+                    chainId={currentChainId ?? UniverseChainId.Mainnet}
+                    size={NetworkLogoSizes[size]}
+                    testId={TestID.TokensNetworkFilterSelected}
+                    transition={transition}
+                  />
+                )}
+                {showDisplayName && (
+                  <Text variant={NetworkLabelTextVariants[size]} transition={transition}>
+                    {isAllNetworks ? t('transaction.network.all') : chainInfo.label}
+                  </Text>
+                )}
+              </NetworkLabel>
+            )
           }
+          isTriggerStyled={isTriggerStyled}
           buttonStyle={ButtonStyles[size]}
           dropdownStyle={StyledDropdown}
           adaptToSheet
@@ -165,7 +173,7 @@ export function NetworkFilter({
           alignRight={position === 'right'}
         >
           <ScrollView>
-            <Flex p="$spacing8" pr="$none">
+            <Flex p="$spacing8">
               {showMultichainOption && (
                 <TableNetworkItem
                   chainInfo={null}

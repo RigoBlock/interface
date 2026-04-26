@@ -9,7 +9,7 @@ export function useToucanBidDistributionChartLabels(): {
 
   return useMemo(() => {
     return {
-      bidOutOfRangeLabel: t('toucan.bidDistribution.bidOutOfRange', { defaultValue: 'Your bid' }),
+      bidOutOfRangeLabel: t('toucan.bidDistribution.yourBid'),
       fdvLabel: t('stats.fdv'),
     }
   }, [t])

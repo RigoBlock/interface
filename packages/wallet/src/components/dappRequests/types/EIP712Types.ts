@@ -1,7 +1,6 @@
 import { z } from 'zod'
 
 // Dynamic Message Schema Placeholder
-// eslint-disable-next-line no-restricted-syntax
 const DynamicMessageSchema = z.record(z.string(), z.any())
 export type EIP712Message = z.infer<typeof DynamicMessageSchema>
 

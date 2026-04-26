@@ -52,8 +52,8 @@ import { PersistGate } from 'redux-persist/integration/react'
 import { MobileWalletNavigationProvider } from 'src/app/MobileWalletNavigationProvider'
 import { AppModals } from 'src/app/modals/AppModals'
 import { useIsPartOfNavigationTree } from 'src/app/navigation/hooks'
-import { NavigationContainer } from 'src/app/navigation/NavigationContainer'
 import { AppStackNavigator } from 'src/app/navigation/navigation'
+import { NavigationContainer } from 'src/app/navigation/NavigationContainer'
 import { store } from 'src/app/store'
 import { TraceUserProperties } from 'src/components/Trace/TraceUserProperties'
 import { initAppsFlyer } from 'src/features/analytics/appsflyer'
@@ -90,14 +90,16 @@ import { useCurrentAppearanceSetting } from 'uniswap/src/features/appearance/hoo
 import { selectFavoriteTokens } from 'uniswap/src/features/favorites/selectors'
 import { useAppFiatCurrencyInfo } from 'uniswap/src/features/fiatCurrency/hooks'
 import { StatsigProviderWrapper } from 'uniswap/src/features/gating/StatsigProviderWrapper'
+import { mapLanguageToLocale } from 'uniswap/src/features/language/constants'
 import { useCurrentLanguageInfo } from 'uniswap/src/features/language/hooks'
 import { LocalizationContextProvider } from 'uniswap/src/features/language/LocalizationContext'
 import { clearNotificationQueue } from 'uniswap/src/features/notifications/slice/slice'
 import { TokenPriceProvider } from 'uniswap/src/features/prices/TokenPriceContext'
+import { selectCurrentLanguage } from 'uniswap/src/features/settings/selectors'
 import { MobileEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import i18n from 'uniswap/src/i18n'
+import i18n, { changeLanguage } from 'uniswap/src/i18n'
 import { type CurrencyId } from 'uniswap/src/types/currency'
 import { datadogEnabledBuild } from 'utilities/src/environment/constants'
 import { isTestEnv } from 'utilities/src/environment/env'
@@ -108,7 +110,7 @@ import { getLogger, logger } from 'utilities/src/logger/logger'
 import { isIOS } from 'utilities/src/platform'
 import { AnalyticsNavigationContextProvider } from 'utilities/src/telemetry/trace/AnalyticsNavigationContext'
 import { ErrorBoundary } from 'wallet/src/components/ErrorBoundary/ErrorBoundary'
-// biome-ignore lint/style/noRestrictedImports: Required for Apollo client initialization at app root
+// oxlint-disable-next-line no-restricted-imports -- Required for Apollo client initialization at app root
 import { usePersistedApolloClient } from 'wallet/src/data/apollo/usePersistedApolloClient'
 import { AccountsStoreContextProvider } from 'wallet/src/features/accounts/store/provider'
 import { StatsigUserIdentifiersUpdater } from 'wallet/src/features/gating/StatsigUserIdentifiersUpdater'
@@ -266,6 +268,20 @@ function App(): JSX.Element | null {
 
 const MAX_CACHE_SIZE_IN_BYTES = 1024 * 1024 * 25 // 25 MB
 
+/**
+ * Applies the persisted language from Redux to i18n on app launch.
+ * Renders inside PersistGate so Redux is already rehydrated when this mounts.
+ */
+function ApplyPersistedLanguage(): null {
+  const currentLanguage = useSelector(selectCurrentLanguage)
+
+  useEffect(() => {
+    changeLanguage(mapLanguageToLocale[currentLanguage]).catch(() => undefined)
+  }, [currentLanguage])
+
+  return null
+}
+
 // Ensures redux state is available inside usePersistedApolloClient for the custom endpoint
 function AppOuter(): JSX.Element | null {
   const customEndpoint = useSelector(selectCustomEndpoint)
@@ -333,6 +349,7 @@ function AppOuter(): JSX.Element | null {
     <ApolloProvider client={client}>
       <PersistGate loading={null} persistor={getReduxPersistor()}>
         <ErrorBoundaryWrapper>
+          <ApplyPersistedLanguage />
           <BlankUrlProvider>
             <LocalizationContextProvider>
               <ImageSettingsProvider enableExpoImage={enableExpoImage}>

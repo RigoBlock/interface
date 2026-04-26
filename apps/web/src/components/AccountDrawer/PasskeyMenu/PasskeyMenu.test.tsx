@@ -1,15 +1,30 @@
-import { waitFor } from '@testing-library/react'
+beforeAll(() => {
+  vi.stubEnv('PRIVY_APP_ID', 'test-privy-app-id')
+})
+
+afterAll(() => {
+  vi.unstubAllEnvs()
+})
+
+import { fireEvent, waitFor } from '@testing-library/react'
 import type { PropsWithChildren, ReactNode } from 'react'
-import { getPrivyEnums, listAuthenticators } from 'uniswap/src/features/passkey/embeddedWallet'
+import { listAuthenticators } from 'uniswap/src/features/passkey/embeddedWallet'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import PasskeyMenu from '~/components/AccountDrawer/PasskeyMenu/PasskeyMenu'
-import { usePasskeyAuthWithHelpModal } from '~/hooks/usePasskeyAuthWithHelpModal'
 import { useEmbeddedWalletState } from '~/state/embeddedWallet/store'
 import { render, screen } from '~/test-utils/render'
 
 vi.mock('uniswap/src/features/passkey/embeddedWallet', () => ({
   listAuthenticators: vi.fn(),
   authenticateWithPasskey: vi.fn(),
-  getPrivyEnums: vi.fn(),
+  AuthenticatorNameType: {
+    ICLOUD_KEYCHAIN: 15,
+    ICLOUD_KEYCHAIN_MANAGED: 4,
+    CHROME_MAC: 2,
+    GOOGLE_PASSWORD_MANAGER: 1,
+    WINDOWS_HELLO: 3,
+  },
 }))
 
 vi.mock('~/state/embeddedWallet/store', async (importOriginal) => ({
@@ -17,21 +32,15 @@ vi.mock('~/state/embeddedWallet/store', async (importOriginal) => ({
   useEmbeddedWalletState: vi.fn(),
 }))
 
-vi.mock('~/hooks/usePasskeyAuthWithHelpModal', () => ({
-  usePasskeyAuthWithHelpModal: vi.fn(),
+const mockDispatch = vi.fn()
+vi.mock('~/state/hooks', () => ({
+  useAppDispatch: () => mockDispatch,
+  useAppSelector: vi.fn(),
 }))
 
-// Allow isMobileWeb to be toggled per-test
-let mockIsMobileWeb = false
-vi.mock('utilities/src/platform', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('utilities/src/platform')>()
-  return {
-    ...actual,
-    get isMobileWeb() {
-      return mockIsMobileWeb
-    },
-  }
-})
+vi.mock('ui/src/components/icons/IcloudPasswordLogo', () => ({
+  IcloudPasswordLogo: () => <span data-testid="icloud-password-logo" />,
+}))
 
 vi.mock('~/components/AccountDrawer/SlideOutMenu', () => ({
   SlideOutMenu: ({ children, title }: PropsWithChildren<{ title: ReactNode }>) => (
@@ -40,19 +49,6 @@ vi.mock('~/components/AccountDrawer/SlideOutMenu', () => ({
       {children}
     </div>
   ),
-}))
-
-vi.mock('~/components/AccountDrawer/PasskeyMenu/AddPasskeyMenu', () => ({
-  AddPasskeyMenu: () => null,
-}))
-vi.mock('~/components/AccountDrawer/PasskeyMenu/DeletePasskeyMenu', () => ({
-  DeletePasskeyMenu: () => null,
-}))
-vi.mock('~/components/AccountDrawer/PasskeyMenu/DeletePasskeySpeedbumpMenu', () => ({
-  DeletePasskeySpeedbumpMenu: () => null,
-}))
-vi.mock('~/components/AccountDrawer/PasskeyMenu/VerifyPasskeyMenu', () => ({
-  VerifyPasskeyMenu: () => null,
 }))
 
 const mockAuthenticatorsDisplay = [
@@ -82,39 +78,43 @@ const MOCK_AUTHENTICATOR_NAME_TYPE = {
   WINDOWS_HELLO: 3,
 }
 
-// Sets up mocks so listAuthenticators resolves with data and verifyPasskey is a noop
-function setupLoadedMock(): void {
-  vi.mocked(getPrivyEnums).mockResolvedValue({
-    AuthenticatorNameType: MOCK_AUTHENTICATOR_NAME_TYPE,
-  } as unknown as Awaited<ReturnType<typeof getPrivyEnums>>)
-  vi.mocked(listAuthenticators).mockResolvedValue(
-    mockAuthenticatorsDisplay.map(({ credentialId, providerName, createdAt, aaguid }) => ({
+const mockRecoveryMethods = [
+  {
+    type: 'google',
+    identifier: 'user@gmail.com',
+    createdAt: '2024-01-15T00:00:00Z',
+    status: 'active',
+  },
+]
+
+// Sets up mocks so listAuthenticators resolves with data
+function setupLoadedMock(recoveryMethods: typeof mockRecoveryMethods = []): void {
+  vi.mocked(listAuthenticators).mockResolvedValue({
+    authenticators: mockAuthenticatorsDisplay.map(({ credentialId, providerName, createdAt, aaguid }) => ({
       credentialId,
       providerName,
       createdAt,
       aaguid,
-    })) as never,
-  )
-  vi.mocked(usePasskeyAuthWithHelpModal).mockReturnValue({
-    mutate: vi.fn(),
-  } as unknown as ReturnType<typeof usePasskeyAuthWithHelpModal>)
+    })),
+    recoveryMethods,
+  } as never)
 }
 
 describe('PasskeyMenu', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockIsMobileWeb = false
+    // PasskeyMenu logs an error when PRIVY_APP_ID is not set (always in test env)
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    // SVG icon components (IcloudPasswordLogo, Image) emit warnings in jsdom
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
   })
 
   it('shows 3 skeleton rows while loading', () => {
     vi.mocked(useEmbeddedWalletState).mockReturnValue({
-      walletId: 'test-wallet-id',
+      walletId: 'loading-test-wallet',
     } as ReturnType<typeof useEmbeddedWalletState>)
     // Never resolves so the component stays in loading state
     vi.mocked(listAuthenticators).mockReturnValue(new Promise(() => {}) as never)
-    vi.mocked(usePasskeyAuthWithHelpModal).mockReturnValue({
-      mutate: vi.fn(),
-    } as unknown as ReturnType<typeof usePasskeyAuthWithHelpModal>)
 
     render(<PasskeyMenu onClose={vi.fn()} />)
 
@@ -137,25 +137,151 @@ describe('PasskeyMenu', () => {
     expect(document.body).toMatchSnapshot()
   })
 
-  it('shows delete icon on mobile web (isMobileWeb=true bypasses hover requirement)', async () => {
-    // Tamagui's onHoverIn events don't fire in JSDOM. The delete icon has two
-    // triggers: hover (showDeleteIcon state) and isMobileWeb. We test the latter
-    // to verify the conditional rendering logic for the delete icon.
-    mockIsMobileWeb = true
+  it('shows overflow menu on authenticator rows', async () => {
     vi.mocked(useEmbeddedWalletState).mockReturnValue({
       walletId: 'test-wallet-id',
     } as ReturnType<typeof useEmbeddedWalletState>)
     setupLoadedMock()
 
     render(<PasskeyMenu onClose={vi.fn()} />)
-
     await screen.findByText('iCloud')
 
-    // On mobile web, trash icons are always visible (one per authenticator row)
+    // Each AuthenticatorRow renders a "..." overflow menu button
+    const overflowButtons = screen.getAllByTestId(TestID.DeletePasskey)
+    expect(overflowButtons).toHaveLength(2)
+  })
+
+  it('dispatches setOpenModal(AddPasskey) when Add passkey button is pressed', async () => {
+    vi.mocked(useEmbeddedWalletState).mockReturnValue({
+      walletId: 'test-wallet-id',
+    } as ReturnType<typeof useEmbeddedWalletState>)
+    setupLoadedMock()
+
+    render(<PasskeyMenu onClose={vi.fn()} />)
+    await screen.findByText('iCloud')
+
+    fireEvent.click(screen.getByText('Add a passkey'))
+
+    expect(mockDispatch).toHaveBeenCalledWith(expect.objectContaining({ payload: { name: ModalName.AddPasskey } }))
+  })
+
+  it('dispatches setOpenModal(DeletePasskey) when overflow menu Remove is clicked', async () => {
+    vi.mocked(useEmbeddedWalletState).mockReturnValue({
+      walletId: 'test-wallet-id',
+    } as ReturnType<typeof useEmbeddedWalletState>)
+    setupLoadedMock()
+
+    render(<PasskeyMenu onClose={vi.fn()} />)
+    await screen.findByText('iCloud')
+
+    // mouseDown opens the ContextMenu (Primary trigger mode)
+    const overflowButtons = screen.getAllByTestId(TestID.DeletePasskey)
+    fireEvent.mouseDown(overflowButtons[0])
+
+    // Click "Remove" in the popover
+    fireEvent.click(screen.getByText('Remove'))
+
+    expect(mockDispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          name: ModalName.DeletePasskey,
+          initialState: expect.objectContaining({
+            authenticatorId: 'cred-icloud-1',
+            isLastAuthenticator: false,
+          }),
+        }),
+      }),
+    )
+  })
+
+  it('shows recovery method with correct label and identifier', async () => {
+    vi.mocked(useEmbeddedWalletState).mockReturnValue({
+      walletId: 'test-wallet-id',
+    } as ReturnType<typeof useEmbeddedWalletState>)
+    setupLoadedMock(mockRecoveryMethods)
+
+    render(<PasskeyMenu onClose={vi.fn()} />)
+
     await waitFor(() => {
-      // Each AuthenticatorRow renders a Trash SVG when isMobileWeb is true
-      // We should have more SVGs than just the provider icons (iCloud + Chrome)
-      expect(document.querySelectorAll('svg').length).toBeGreaterThan(2)
+      expect(screen.getByText('Google')).toBeInTheDocument()
+      expect(screen.getByText('user@gmail.com')).toBeInTheDocument()
     })
+  })
+
+  it('shows overflow menu on recovery method row', async () => {
+    vi.mocked(useEmbeddedWalletState).mockReturnValue({
+      walletId: 'test-wallet-recovery-menu',
+    } as ReturnType<typeof useEmbeddedWalletState>)
+    setupLoadedMock(mockRecoveryMethods)
+
+    render(<PasskeyMenu onClose={vi.fn()} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Google')).toBeInTheDocument()
+    })
+
+    // Recovery method row should have its own overflow menu with a testID
+    expect(screen.getByTestId(TestID.RemoveBackupLoginOverflow)).toBeInTheDocument()
+  })
+
+  it('dispatches setOpenModal(RemoveBackupLogin) when recovery method overflow Remove is clicked', async () => {
+    vi.mocked(useEmbeddedWalletState).mockReturnValue({
+      walletId: 'test-wallet-remove-backup',
+    } as ReturnType<typeof useEmbeddedWalletState>)
+    setupLoadedMock(mockRecoveryMethods)
+
+    render(<PasskeyMenu onClose={vi.fn()} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Google')).toBeInTheDocument()
+    })
+
+    // mouseDown opens the ContextMenu (Primary trigger mode)
+    fireEvent.mouseDown(screen.getByTestId(TestID.RemoveBackupLoginOverflow))
+
+    // Click "Remove" in the popover
+    fireEvent.click(screen.getByText('Remove'))
+
+    expect(mockDispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          name: ModalName.RemoveBackupLogin,
+          initialState: expect.objectContaining({
+            recoveryMethodType: 'google',
+            recoveryMethodIdentifier: 'user@gmail.com',
+          }),
+        }),
+      }),
+    )
+  })
+
+  it('hides "Add a backup login" button when recovery methods exist', async () => {
+    vi.mocked(useEmbeddedWalletState).mockReturnValue({
+      walletId: 'test-wallet-id',
+    } as ReturnType<typeof useEmbeddedWalletState>)
+    setupLoadedMock(mockRecoveryMethods)
+
+    render(<PasskeyMenu onClose={vi.fn()} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Google')).toBeInTheDocument()
+    })
+    expect(screen.queryByText('Add a login')).not.toBeInTheDocument()
+  })
+
+  it('shows "Add a backup login" button when recovery methods is empty', async () => {
+    vi.mocked(useEmbeddedWalletState).mockReturnValue({
+      // Use a different walletId to avoid react-query cache from other tests
+      walletId: 'test-wallet-no-recovery',
+    } as ReturnType<typeof useEmbeddedWalletState>)
+    setupLoadedMock([])
+
+    render(<PasskeyMenu onClose={vi.fn()} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('iCloud')).toBeInTheDocument()
+    })
+    expect(screen.getByText('Backup login')).toBeInTheDocument()
+    expect(screen.queryByText('user@gmail.com')).not.toBeInTheDocument()
   })
 })

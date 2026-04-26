@@ -1,30 +1,38 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { ChartPeriod } from '@uniswap/client-data-api/dist/data/v1/api_pb'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { buildPortfolioUrl } from '~/pages/Portfolio/utils/portfolioUrls'
 import { OverviewStakingSection } from '~/pages/Portfolio/Overview/OverviewStakingSection'
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
 import { OverviewStatsTiles } from '~/pages/Portfolio/Overview/StatsTiles'
 import { OVERVIEW_RIGHT_COLUMN_WIDTH } from '~/pages/Portfolio/Overview/constants'
-import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { checkBalanceDiffWithinRange } from '~/pages/Portfolio/Overview/utils/checkBalanceDiffWithinRange'
 import { PortfolioTab } from '~/pages/Portfolio/types'
-import { PortfolioOverviewTables } from '~/pages/Portfolio/Overview/OverviewTables'
-import { useIsPortfolioZero } from '~/pages/Portfolio/Overview/hooks/useIsPortfolioZero'
-import { OverviewActionTiles } from '~/pages/Portfolio/Overview/ActionTiles'
 import { usePortfolioStaking } from '~/pages/Portfolio/hooks/usePortfolioStaking'
-import { EmptyWalletCards } from '~/components/emptyWallet/EmptyWalletCards'
-import { PortfolioChart } from '~/pages/Portfolio/Overview/PortfolioChart'
-import { memo, useMemo, useState } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Flex, Separator, styled, useMedia } from 'ui/src'
-import { useGetPortfolioHistoricalValueChartQuery } from 'uniswap/src/data/rest/getPortfolioChart'
+import {
+  getPortfolioHistoricalValueChartQuery,
+  useGetPortfolioHistoricalValueChartQuery,
+} from 'uniswap/src/data/rest/getPortfolioChart'
 import { useActivityData } from 'uniswap/src/features/activity/hooks/useActivityData'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { usePortfolioTotalValue } from 'uniswap/src/features/dataApi/balances/balancesRest'
+import { usePortfolioChartBalanceMismatch } from 'uniswap/src/features/portfolio/usePortfolioChartBalanceMismatch'
 import { ElementName, InterfacePageName, SectionName } from 'uniswap/src/features/telemetry/constants'
 import { Trace } from 'uniswap/src/features/telemetry/Trace'
+import { EmptyWalletCards } from '~/components/emptyWallet/EmptyWalletCards'
+import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
+import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
+import { OverviewActionTiles } from '~/pages/Portfolio/Overview/ActionTiles'
+import { OVERVIEW_RIGHT_COLUMN_WIDTH } from '~/pages/Portfolio/Overview/constants'
+import { useIsPortfolioZero } from '~/pages/Portfolio/Overview/hooks/useIsPortfolioZero'
+import { PortfolioOverviewTables } from '~/pages/Portfolio/Overview/OverviewTables'
+import { PortfolioChart } from '~/pages/Portfolio/Overview/PortfolioChart'
+import { PortfolioPerformance } from '~/pages/Portfolio/Overview/PortfolioPerformance'
+import { OverviewStatsTiles } from '~/pages/Portfolio/Overview/StatsTiles'
 import { filterDefinedWalletAddresses } from '~/utils/filterDefinedWalletAddresses'
-
-const BALANCE_PERCENT_DIFFERENCE_THRESHOLD = 2
 
 const ActionsAndStatsContainer = styled(Flex, {
   width: OVERVIEW_RIGHT_COLUMN_WIDTH,
@@ -45,6 +53,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   const media = useMedia()
   const navigate = useNavigate()
   const isFullWidth = media.xl
+  const isProfitLossEnabled = useFeatureFlag(FeatureFlags.ProfitLoss)
   const { chainId, externalAddress, isExternalWallet } = usePortfolioRoutes()
   const portfolioAddresses = usePortfolioAddresses()
 
@@ -55,6 +64,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   const { chains: allChainIds } = useEnabledChains()
 
   const isPortfolioZero = useIsPortfolioZero()
+  const queryClient = useQueryClient()
 
   const [selectedPeriod, setSelectedPeriod] = useState<ChartPeriod>(ChartPeriod.DAY)
 
@@ -101,21 +111,45 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   })
 
   // Get the latest value from chart endpoint (last point in the array) for comparison
-  const chartTotalBalanceUSD = useMemo(() => {
+  const lastChartValue = useMemo(() => {
     if (!portfolioChartData?.points || portfolioChartData.points.length === 0) {
       return undefined
     }
-    const lastPoint = portfolioChartData.points[portfolioChartData.points.length - 1]
-    return lastPoint.value
+    return portfolioChartData.points[portfolioChartData.points.length - 1]?.value
   }, [portfolioChartData])
 
-  // Compare portfolio balance (EVM + Solana) with chart endpoint balance (for debugging/validation)
+  // Compare portfolio balance (EVM + Solana) with chart endpoint balance to detect spam-token divergence
   // Note: Use base portfolio data (without staking) for comparison since chart data doesn't include staking
-  const isTotalValueMatch = checkBalanceDiffWithinRange({
-    chartTotalBalanceUSD,
-    portfolioTotalBalanceUSD: portfolioData?.balanceUSD || 0, // Use base portfolio value, not the one with staking
-    percentDifferenceThreshold: BALANCE_PERCENT_DIFFERENCE_THRESHOLD,
+  const { isTotalValueMatch } = usePortfolioChartBalanceMismatch({
+    lastChartValue,
+    portfolioTotalBalanceUSD: portfolioData?.balanceUSD,
   })
+
+  // Prefetch chart data for a timeframe on hover so it's ready when the user clicks
+  const handleHoverPeriod = useCallback(
+    (period: ChartPeriod) => {
+      if (!portfolioAddresses.evmAddress && !portfolioAddresses.svmAddress) {
+        return
+      }
+      if (period === selectedPeriod) {
+        return
+      }
+      const periodQuery = getPortfolioHistoricalValueChartQuery({
+        input: {
+          evmAddress: portfolioAddresses.evmAddress,
+          svmAddress: portfolioAddresses.svmAddress,
+          chainIds: filterChainIds,
+          chartPeriod: period,
+        },
+      })
+      const existingPeriodQueryState = queryClient.getQueryState(periodQuery.queryKey)
+      if (existingPeriodQueryState?.fetchStatus === 'fetching' || existingPeriodQueryState?.status === 'success') {
+        return
+      }
+      queryClient.prefetchQuery(periodQuery).catch(() => undefined)
+    },
+    [queryClient, portfolioAddresses.evmAddress, portfolioAddresses.svmAddress, filterChainIds, selectedPeriod],
+  )
 
   // Fetch activity data once at the top level to share between useSwapsThisWeek and MiniActivityTable
   const activityData = useActivityData({
@@ -140,7 +174,8 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
               error={chartError}
               selectedPeriod={selectedPeriod}
               setSelectedPeriod={setSelectedPeriod}
-              isTotalValueMatch={isTotalValueMatch} // Uses base portfolio for validation to enable pointer events
+              onHoverPeriod={handleHoverPeriod}
+              isTotalValueMatch={isTotalValueMatch}
             />
           </Trace>
           {isPortfolioZero ? (
@@ -162,7 +197,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
                   chainId={chainId}
                   onViewStaking={handleNavigateToStaking}
                 />
-                <OverviewStatsTiles activityData={activityData} />
+                {isProfitLossEnabled ? <PortfolioPerformance /> : <OverviewStatsTiles activityData={activityData} />}
               </ActionsAndStatsContainer>
             </Trace>
           )}

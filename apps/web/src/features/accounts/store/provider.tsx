@@ -18,9 +18,9 @@ import { isChainIdOnPlatform } from 'uniswap/src/features/platforms/utils/chains
 import {
   UseAccountReturnType,
   useCapabilities,
-  // biome-ignore lint/style/noRestrictedImports: direct wagmi hooks needed for web wallet integration
+  // oxlint-disable-next-line no-restricted-imports -- direct wagmi hooks needed for web wallet integration
   useAccount as useWagmiAccount,
-  // biome-ignore lint/style/noRestrictedImports: direct wagmi hooks needed for web wallet integration
+  // oxlint-disable-next-line no-restricted-imports -- direct wagmi hooks needed for web wallet integration
   useChainId as useWagmiChainId,
   useConnectors as useWagmiConnectors,
   Connector as WagmiConnector,
@@ -411,10 +411,12 @@ function useSVMWalletInfos(): PlatformWalletInfo<Platform.SVM>[] {
       const walletToUse = currentSolanaWalletIsActive ? activeSolanaWallet : wallet
 
       // Ignore the coinbase adapter if the extension is not detected, as it errs upon connection attempt in this state.
+      /* oxlint-disable typescript/no-unnecessary-condition -- biome-parity: oxlint is stricter here */
       if (
         wallet.readyState === SolanaWalletReadyState.NotDetected &&
         wallet.adapter.name === CONNECTION_PROVIDER_NAMES.COINBASE_SOLANA_WALLET_ADAPTER
       ) {
+        /* oxlint-enable typescript/no-unnecessary-condition */
         return []
       }
 

@@ -31,6 +31,35 @@ type ReceiveCryptoModalParams = {
   initialState: ReceiveCryptoModalInitialState
 }
 
+type DeletePasskeyModalInitialState = {
+  authenticatorId: string
+  isLastAuthenticator: boolean
+}
+
+export type DeletePasskeyModalParams = {
+  name: typeof ModalName.DeletePasskey
+  initialState: DeletePasskeyModalInitialState
+}
+
+type RemoveBackupLoginModalInitialState = {
+  recoveryMethodType: string
+  recoveryMethodIdentifier?: string
+}
+
+export type RemoveBackupLoginModalParams = {
+  name: typeof ModalName.RemoveBackupLogin
+  initialState: RemoveBackupLoginModalInitialState
+}
+
+type DataApiOutageModalInitialState = {
+  dataUpdatedAt?: number
+}
+
+export type DataApiOutageModalParams = {
+  name: typeof ModalName.DataApiOutage
+  initialState: DataApiOutageModalInitialState
+}
+
 export type OpenModalParams =
   | { name: ModalNameType; initialState?: undefined }
   | AddLiquidityModalParams
@@ -38,6 +67,9 @@ export type OpenModalParams =
   | ClaimFeeModalParams
   | BlockedAccountModalParams
   | ReceiveCryptoModalParams
+  | DeletePasskeyModalParams
+  | RemoveBackupLoginModalParams
+  | DataApiOutageModalParams
 
 type CloseModalParams = ModalNameType
 

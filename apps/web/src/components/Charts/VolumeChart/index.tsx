@@ -48,7 +48,7 @@ class VolumeChartModel extends CustomVolumeChartModel<SingleHistogramData> {
   }
 }
 
-// eslint-disable-next-line consistent-return
+// oxlint-disable-next-line typescript/consistent-return
 function formatHistoryDuration(t: TFunction, duration: GraphQLApi.HistoryDuration): string {
   switch (duration) {
     case GraphQLApi.HistoryDuration.FiveMinute:
@@ -151,7 +151,8 @@ export function VolumeChart({ height, data, feeTier, timePeriod, stale, override
       TooltipBody={
         feeTier === undefined // i.e. if is token volume chart
           ? undefined
-          : ({ data }: { data: SingleHistogramData }) => <FeesTooltipDisplay data={data} feeTier={feeTier} />
+          : // oxlint-disable-next-line no-shadow
+            ({ data }: { data: SingleHistogramData }) => <FeesTooltipDisplay data={data} feeTier={feeTier} />
       }
     >
       {(crosshairData) => <VolumeChartHeader crosshairData={crosshairData} volumes={data} timePeriod={timePeriod} />}

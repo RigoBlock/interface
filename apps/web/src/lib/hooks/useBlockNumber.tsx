@@ -1,4 +1,3 @@
-/* eslint-disable import/no-unused-modules */
 // TODO(WEB-4448): for multichain, refactored our custom useBlockNumber in favor of wagmi's hook. Remove this provider
 
 import { atom } from 'jotai'
@@ -51,10 +50,12 @@ export function BlockNumberProvider({ children }: PropsWithChildren) {
     mainnetBlock?: number
   }>({})
   const activeBlock = chainId === multicallChainId ? block : undefined
+  // oxlint-disable-next-line no-shadow
   const onChainBlock = useCallback((chainId: number | undefined, block: number) => {
     setChainBlock((chainBlock) => {
       if (chainBlock.chainId === chainId) {
         if (!chainBlock.block || chainBlock.block < block) {
+          // oxlint-disable-next-line no-shadow
           const mainnetBlock = chainId === UniverseChainId.Mainnet ? block : chainBlock.mainnetBlock
           return { chainId, block, mainnetBlock }
         }
@@ -77,6 +78,7 @@ export function BlockNumberProvider({ children }: PropsWithChildren) {
         // If chainId hasn't changed, don't invalidate the reference, as it will trigger re-fetching of still-valid data.
         return chainBlock
       })
+      // oxlint-disable-next-line no-shadow
       const onBlock = (block: number) => onChainBlock(multicallChainId, block)
       provider.on('block', onBlock)
       return () => {
@@ -89,6 +91,7 @@ export function BlockNumberProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     RPC_PROVIDERS[UniverseChainId.Mainnet]
       .getBlockNumber()
+      // oxlint-disable-next-line no-shadow
       .then((block) => onChainBlock(UniverseChainId.Mainnet, block))
       // swallow errors - it's ok if this fails, as we'll try again if we activate mainnet
       .catch(() => undefined)

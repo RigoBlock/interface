@@ -16,6 +16,7 @@ import {
   getStatsigClient,
 } from '@universe/gating'
 import JSBI from 'jsbi'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import {
   CHAIN_GAS_STRATEGY_OVERRIDES,
   DEFAULT_GAS_STRATEGY,
@@ -23,6 +24,7 @@ import {
   NORMAL_GAS_STRATEGY,
   URGENT_GAS_STRATEGY,
 } from 'uniswap/src/features/gas/consts'
+import { hasSufficientFundsIncludingTempoGas } from 'uniswap/src/features/gas/tempo'
 import { createEthersProvider } from 'uniswap/src/features/providers/createEthersProvider'
 import { getCurrencyAmount, ValueType } from 'uniswap/src/features/tokens/getCurrencyAmount'
 import { type Prettify } from 'viem'
@@ -104,6 +106,38 @@ export function hasSufficientFundsIncludingGas(params: {
     nativeCurrency: nativeCurrencyBalance?.currency,
   })
   return !totalSpend || !nativeCurrencyBalance?.lessThan(totalSpend)
+}
+
+export function hasSufficientGasBalance({
+  chainId,
+  gasBalance,
+  gasFee,
+  gasTokenTransactionAmount,
+}: {
+  chainId: UniverseChainId
+  gasBalance: CurrencyAmount<Currency> | undefined
+  gasFee: string | undefined
+  /** Amount being spent from the gas token balance (e.g. pathUSD on Tempo, native on other chains).
+   *  Consumers set this when `currencyAmountIn?.currency.equals(gasToken)`. */
+  gasTokenTransactionAmount?: CurrencyAmount<Currency>
+}): boolean {
+  // Without a fee estimate or balance we cannot prove insufficiency — return true
+  // so callers don't flash "insufficient gas" warnings while data is loading.
+  if (!gasFee || !gasBalance) {
+    return true
+  }
+  if (chainId === UniverseChainId.Tempo) {
+    return hasSufficientFundsIncludingTempoGas({
+      pathUsdBalance: gasBalance,
+      gasFee,
+      pathUsdTransactionAmount: gasTokenTransactionAmount,
+    })
+  }
+  return hasSufficientFundsIncludingGas({
+    transactionAmount: gasTokenTransactionAmount,
+    gasFee,
+    nativeCurrencyBalance: gasBalance,
+  })
 }
 
 // Function to find the name of a gas strategy based on the GasEstimate
@@ -254,4 +288,12 @@ export function hasGasEstimationFailed(isTransactionRequest: boolean, gasFeeResu
   return (
     isTransactionRequest && !!gasFeeResult && !gasFeeResult.isLoading && (!!gasFeeResult.error || !gasFeeResult.value)
   )
+}
+
+// 20% gas buffer to avoid out-of-gas failures
+const GAS_BUFFER_NUMERATOR = BigInt(12)
+const GAS_BUFFER_DENOMINATOR = BigInt(10)
+
+export function applyGasBuffer(gas: bigint): bigint {
+  return (gas * GAS_BUFFER_NUMERATOR) / GAS_BUFFER_DENOMINATOR
 }

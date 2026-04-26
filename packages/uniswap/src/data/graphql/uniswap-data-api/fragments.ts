@@ -3,6 +3,7 @@ import {
   useTokenBasicProjectPartsFragment as useTokenBasicProjectPartsFragmentFromApi,
   useTokenMarketPartsFragment as useTokenMarketPartsFragmentFromApi,
   useTokenProjectMarketsPartsFragment as useTokenProjectMarketsPartsFragmentFromApi,
+  useTokenProjectTokensTvlPartsFragment as useTokenProjectTokensTvlPartsFragmentFromApi,
   useTokenProjectUrlsPartsFragment as useTokenProjectUrlsPartsFragmentFromApi,
 } from '@universe/api'
 import { toGraphQLChain } from 'uniswap/src/features/chains/utils'
@@ -65,4 +66,12 @@ export function useTokenProjectMarketsPartsFragment({
   currencyId: string
 }): ReturnType<typeof useTokenProjectMarketsPartsFragmentFromApi> {
   return useTokenProjectMarketsPartsFragmentFromApi(currencyIdToGraphQLTokenVariables(currencyId))
+}
+
+export function useTokenProjectTokensTvlPartsFragment({
+  currencyId,
+}: {
+  currencyId: string
+}): ReturnType<typeof useTokenProjectTokensTvlPartsFragmentFromApi> {
+  return useTokenProjectTokensTvlPartsFragmentFromApi(currencyIdToGraphQLTokenVariables(currencyId))
 }

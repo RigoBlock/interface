@@ -11,6 +11,7 @@ import { UniverseChainId } from 'uniswap/src/features/chains/types'
 
 export default function Updater(): null {
   const dispatch = useAppDispatch()
+  // oxlint-disable-next-line no-shadow
   const state = useAppSelector((state) => state.logs)
   const { chainId } = useAccount()
 
@@ -43,7 +44,7 @@ export default function Updater(): null {
     }
 
     const active = state[chainId]
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     if (!active) {
       return []
     }

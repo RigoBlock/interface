@@ -1,7 +1,7 @@
 import { Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Flex, Text } from 'ui/src'
-import { INTERFACE_NAV_HEIGHT } from 'ui/src/theme'
+import { INTERFACE_NAV_HEIGHT, zIndexes } from 'ui/src/theme'
 import { assert } from 'utilities/src/errors'
 import { useStickyHeaderBorder } from '~/hooks/useStickyHeaderBorder'
 import { ClickableTamaguiStyle } from '~/theme/components/styles'
@@ -107,7 +107,7 @@ export function PoolProgressIndicatorHeader({
       borderTopWidth="$spacing1"
       borderTopColor={showBottomBorder ? 'transparent' : '$surface3'}
       borderBottomColor={showBottomBorder ? '$surface3' : 'transparent'}
-      $platform-web={{ position: 'sticky', top: INTERFACE_NAV_HEIGHT, zIndex: 10 }}
+      $platform-web={{ position: 'sticky', top: INTERFACE_NAV_HEIGHT, zIndex: zIndexes.sticky }}
     >
       <Flex
         width="$spacing32"

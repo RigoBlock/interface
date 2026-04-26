@@ -1,13 +1,53 @@
+import { AddressZero } from '@ethersproject/constants'
+import { type Currency, CurrencyAmount, Percent, Token } from '@uniswap/sdk-core'
 import type { StoreApi, UseBoundStore } from 'zustand'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
+import type { FeeData } from '~/components/Liquidity/Create/types'
 import {
+  type AuctionTokenAmounts,
+  AuctionType,
   CreateAuctionStep,
   type CreateAuctionStoreState,
   DEFAULT_CREATE_AUCTION_STATE,
+  DEFAULT_EXISTING_TOKEN_FORM,
+  NEW_TOKEN_DECIMALS,
+  type PriceRangeStrategy,
   type TokenFormState,
   TokenMode,
 } from '~/pages/Liquidity/CreateAuction/types'
+import { getRecommendedStrategy } from '~/pages/Liquidity/CreateAuction/utils'
+
+const DEFAULT_AUCTION_SUPPLY_PERCENT = new Percent(25, 100)
+// 100% means all auctioned tokens go to LP (50% token-side kept, 50% sold for raise-side)
+export const BOOTSTRAP_POST_LIQUIDITY_PERCENT = new Percent(100, 100)
+// 50% means half go to LP (25% token-side kept, 25% sold); the other 50% are the fundraise
+export const FUNDRAISE_POST_LIQUIDITY_PERCENT = new Percent(50, 100)
+
+/**
+ * Re-wrap existing committed amounts with a new token, preserving raw values.
+ * Used when only the token metadata (name/symbol) changed but the supply didn't.
+ */
+function rebaseAmounts(committed: AuctionTokenAmounts, newToken: Currency): AuctionTokenAmounts {
+  return {
+    totalSupply: CurrencyAmount.fromRawAmount(newToken, committed.totalSupply.quotient),
+    auctionSupplyAmount: CurrencyAmount.fromRawAmount(newToken, committed.auctionSupplyAmount.quotient),
+    postAuctionLiquidityAmount: CurrencyAmount.fromRawAmount(newToken, committed.postAuctionLiquidityAmount.quotient),
+  }
+}
+
+function buildDefaultAmounts(totalSupply: CurrencyAmount<Currency>, auctionType: AuctionType): AuctionTokenAmounts {
+  const auctionSupplyAmount = totalSupply.multiply(DEFAULT_AUCTION_SUPPLY_PERCENT)
+  const lpPercent =
+    auctionType === AuctionType.BOOTSTRAP_LIQUIDITY
+      ? BOOTSTRAP_POST_LIQUIDITY_PERCENT
+      : FUNDRAISE_POST_LIQUIDITY_PERCENT
+  return {
+    totalSupply,
+    auctionSupplyAmount,
+    postAuctionLiquidityAmount: auctionSupplyAmount.multiply(lpPercent),
+  }
+}
 
 export type CreateAuctionStore = UseBoundStore<StoreApi<CreateAuctionStoreState>>
 
@@ -17,7 +57,9 @@ export const createCreateAuctionStore = (): CreateAuctionStore =>
       (set) => ({
         step: DEFAULT_CREATE_AUCTION_STATE.step,
         tokenForm: DEFAULT_CREATE_AUCTION_STATE.tokenForm,
+        tokenColor: DEFAULT_CREATE_AUCTION_STATE.tokenColor,
         configureAuction: DEFAULT_CREATE_AUCTION_STATE.configureAuction,
+        customizePool: DEFAULT_CREATE_AUCTION_STATE.customizePool,
         xVerification: DEFAULT_CREATE_AUCTION_STATE.xVerification,
 
         actions: {
@@ -35,17 +77,28 @@ export const createCreateAuctionStore = (): CreateAuctionStore =>
             }))
           },
           setTokenMode: (mode) => {
-            set((state) => ({ tokenForm: { ...state.tokenForm, mode } }))
+            set(() => {
+              if (mode === TokenMode.CREATE_NEW) {
+                return { tokenForm: DEFAULT_CREATE_AUCTION_STATE.tokenForm }
+              }
+              return { tokenForm: DEFAULT_EXISTING_TOKEN_FORM }
+            })
           },
           updateCreateNewTokenField: (key, value) => {
-            set((state) => ({
-              tokenForm: { ...state.tokenForm, createNew: { ...state.tokenForm.createNew, [key]: value } },
-            }))
+            set((state) => {
+              if (state.tokenForm.mode !== TokenMode.CREATE_NEW) {
+                return {}
+              }
+              return { tokenForm: { ...state.tokenForm, [key]: value } }
+            })
           },
           updateExistingTokenField: (key, value) => {
-            set((state) => ({
-              tokenForm: { ...state.tokenForm, existing: { ...state.tokenForm.existing, [key]: value } },
-            }))
+            set((state) => {
+              if (state.tokenForm.mode !== TokenMode.EXISTING) {
+                return {}
+              }
+              return { tokenForm: { ...state.tokenForm, [key]: value } }
+            })
           },
           setTokenForm: (tokenForm: TokenFormState) => {
             set({ tokenForm })
@@ -53,50 +106,141 @@ export const createCreateAuctionStore = (): CreateAuctionStore =>
           setXVerification: (value) => {
             set({ xVerification: value })
           },
-          setAuctionType: (auctionType) => {
-            set((state) => ({ configureAuction: { ...state.configureAuction, auctionType } }))
+          setAuctionType: (activeAuctionType) => {
+            set((state) => {
+              const { committed } = state.configureAuction
+              if (!committed) {
+                return {}
+              }
+              const lpPercent =
+                activeAuctionType === AuctionType.BOOTSTRAP_LIQUIDITY
+                  ? BOOTSTRAP_POST_LIQUIDITY_PERCENT
+                  : FUNDRAISE_POST_LIQUIDITY_PERCENT
+              return {
+                configureAuction: {
+                  ...state.configureAuction,
+                  activeAuctionType,
+                  committed: {
+                    ...committed,
+                    postAuctionLiquidityAmount: committed.auctionSupplyAmount.multiply(lpPercent),
+                  },
+                },
+                customizePool: {
+                  ...state.customizePool,
+                  priceRangeStrategy: getRecommendedStrategy(activeAuctionType),
+                },
+              }
+            })
+          },
+          setAuctionConfig: (config) => {
+            set((state) => {
+              const { committed } = state.configureAuction
+              if (!committed) {
+                return {}
+              }
+              return {
+                configureAuction: {
+                  ...state.configureAuction,
+                  committed: { ...committed, ...config },
+                },
+              }
+            })
+          },
+          setStartTime: (startTime) => {
+            set((state) => ({ configureAuction: { ...state.configureAuction, startTime } }))
           },
           setMaxDurationDays: (maxDurationDays) => {
             set((state) => ({ configureAuction: { ...state.configureAuction, maxDurationDays } }))
           },
-          setAuctionSupplyPercent: (auctionSupplyPercent) => {
-            set((state) => ({ configureAuction: { ...state.configureAuction, auctionSupplyPercent } }))
-          },
           setRaiseCurrency: (raiseCurrency) => {
-            set((state) => ({ configureAuction: { ...state.configureAuction, raiseCurrency } }))
-          },
-          setSupplyCurve: (supplyCurve) => {
-            set((state) => ({ configureAuction: { ...state.configureAuction, supplyCurve } }))
+            set((state) => {
+              if (state.configureAuction.raiseCurrency === raiseCurrency) {
+                return {}
+              }
+              return {
+                configureAuction: {
+                  ...state.configureAuction,
+                  raiseCurrency,
+                  floorPrice: '',
+                },
+              }
+            })
           },
           setFloorPrice: (floorPrice) => {
             set((state) => ({ configureAuction: { ...state.configureAuction, floorPrice } }))
           },
-          setPostAuctionLiquidityPercent: (postAuctionLiquidityPercent) => {
-            set((state) => ({ configureAuction: { ...state.configureAuction, postAuctionLiquidityPercent } }))
+          setFee: (fee: FeeData) => {
+            set((state) => ({ customizePool: { ...state.customizePool, fee } }))
           },
-          updateConfigureAuctionField: (key, value) => {
-            set((state) => ({
-              configureAuction: { ...state.configureAuction, [key]: value },
-            }))
+          setPriceRangeStrategy: (priceRangeStrategy: PriceRangeStrategy) => {
+            set((state) => ({ customizePool: { ...state.customizePool, priceRangeStrategy } }))
+          },
+          setPoolOwner: (poolOwner: string) => {
+            set((state) => ({ customizePool: { ...state.customizePool, poolOwner } }))
+          },
+          setTimeLockEnabled: (timeLockEnabled: boolean) => {
+            set((state) => ({ customizePool: { ...state.customizePool, timeLockEnabled } }))
+          },
+          setTimeLockDurationDays: (timeLockDurationDays: number) => {
+            set((state) => ({ customizePool: { ...state.customizePool, timeLockDurationDays } }))
+          },
+          setSendFeesEnabled: (sendFeesEnabled: boolean) => {
+            set((state) => ({ customizePool: { ...state.customizePool, sendFeesEnabled } }))
+          },
+          setFeesRecipientAddress: (feesRecipientAddress: string) => {
+            set((state) => ({ customizePool: { ...state.customizePool, feesRecipientAddress } }))
+          },
+          setBuybackAndBurnEnabled: (buybackAndBurnEnabled: boolean) => {
+            set((state) => ({ customizePool: { ...state.customizePool, buybackAndBurnEnabled } }))
           },
           commitTokenFormAndAdvance: () => {
             set((state) => {
-              const defaults = DEFAULT_CREATE_AUCTION_STATE.tokenForm
-              const cleaned =
-                state.tokenForm.mode === TokenMode.CREATE_NEW
-                  ? { ...state.tokenForm, existing: defaults.existing }
-                  : { ...state.tokenForm, createNew: defaults.createNew }
+              const { tokenForm } = state
+              let totalSupply
+
+              if (tokenForm.mode === TokenMode.CREATE_NEW) {
+                const { network, symbol, name, totalSupply: formSupply } = tokenForm
+                const token = new Token(network, AddressZero, NEW_TOKEN_DECIMALS, symbol, name)
+                totalSupply = CurrencyAmount.fromRawAmount(token, formSupply.quotient)
+              } else {
+                totalSupply = tokenForm.totalSupply
+              }
+
+              if (!totalSupply) {
+                return {}
+              }
+
+              const { activeAuctionType, committed: existingCommitted } = state.configureAuction
+              const isSameSupply =
+                existingCommitted !== undefined &&
+                existingCommitted.totalSupply.currency.equals(totalSupply.currency) &&
+                existingCommitted.totalSupply.equalTo(totalSupply)
+              // When supply changes, slider percentages derived from the old supply become stale,
+              // so we intentionally reset amounts to defaults rather than carry them forward.
+              // When supply is unchanged, rebase with the new token to pick up name/symbol edits
+              const committed = isSameSupply
+                ? rebaseAmounts(existingCommitted, totalSupply.currency)
+                : buildDefaultAmounts(totalSupply, activeAuctionType)
+
               return {
-                tokenForm: cleaned,
+                configureAuction: {
+                  ...state.configureAuction,
+                  committed,
+                },
                 step: Math.min(state.step + 1, CreateAuctionStep.REVIEW_LAUNCH) as CreateAuctionStep,
               }
             })
+          },
+          setTokenColor: (tokenColor) => {
+            set({ tokenColor })
           },
           reset: () => {
             set({
               step: DEFAULT_CREATE_AUCTION_STATE.step,
               tokenForm: DEFAULT_CREATE_AUCTION_STATE.tokenForm,
+              tokenColor: DEFAULT_CREATE_AUCTION_STATE.tokenColor,
               configureAuction: DEFAULT_CREATE_AUCTION_STATE.configureAuction,
+              customizePool: DEFAULT_CREATE_AUCTION_STATE.customizePool,
               xVerification: DEFAULT_CREATE_AUCTION_STATE.xVerification,
             })
           },

@@ -38,6 +38,7 @@ export function BackupRecoveryPhraseScreen(): JSX.Element {
   )
 }
 
+// oxlint-disable-next-line typescript/consistent-return -- biome-parity: oxlint is stricter here
 function BackupRecoveryPhraseScreenSteps(): JSX.Element {
   const { t } = useTranslation()
   const dispatch = useDispatch()
@@ -191,6 +192,7 @@ function RecoveryPhraseVerificationStep({
               mnemonic={mnemonicArray}
               onComplete={onComplete}
               numberOfTests={NUMBER_OF_TESTS_FOR_RECOVERY_PHRASE_VERIFICATION}
+              // oxlint-disable-next-line no-shadow
               onWordVerified={(numberOfWordsVerified) => setNumberOfWordsVerified(numberOfWordsVerified)}
               setSubtitle={setSubtitle}
               setHasError={setHasError}

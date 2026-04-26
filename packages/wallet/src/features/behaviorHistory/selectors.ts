@@ -35,7 +35,7 @@ export const selectHasDismissedSmartWalletHomeScreenNudge = (state: WalletState,
   return state.behaviorHistory.smartWalletNudge?.[walletAddress]?.hasDismissedHomeScreenNudge ?? false
 }
 
-// eslint-disable-next-line max-params
+// oxlint-disable-next-line max-params
 export const selectHasShownEip5792Nudge = (state: WalletState, walletAddress: string, dappUrl: string): boolean => {
   if (selectIsAllSmartWalletNudgesDisabled(state, walletAddress)) {
     return true

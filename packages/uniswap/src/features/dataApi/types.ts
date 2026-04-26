@@ -1,9 +1,9 @@
-import { type NetworkStatus } from '@apollo/client'
-import { type Contract } from '@uniswap/client-data-api/dist/data/v1/types_pb'
-import { type Currency } from '@uniswap/sdk-core'
-import { type GraphQLApi, type SpamCode } from '@universe/api'
-import { type FoTPercent } from 'uniswap/src/features/tokens/warnings/TokenWarningModal'
-import { type CurrencyId } from 'uniswap/src/types/currency'
+import type { NetworkStatus } from '@apollo/client'
+import type { Contract } from '@uniswap/client-data-api/dist/data/v1/types_pb'
+import type { Currency } from '@uniswap/sdk-core'
+import type { GraphQLApi, SpamCode } from '@universe/api'
+import type { FoTPercent } from 'uniswap/src/features/tokens/warnings/TokenWarningModal'
+import type { CurrencyId } from 'uniswap/src/types/currency'
 
 export type RestContract = Pick<Contract, 'chainId' | 'address'>
 
@@ -13,6 +13,20 @@ export interface BaseResult<T> {
   networkStatus: NetworkStatus
   refetch: () => void
   error?: Error
+  /** Epoch ms when the underlying query last successfully fetched data. */
+  dataUpdatedAt?: number
+}
+
+/** Outage state from data-fetching hooks — pairs an error with the last-known data timestamp. */
+export type DataApiOutageState = {
+  error?: Error
+  dataUpdatedAt?: number
+}
+
+/** Outage props for UI components — boolean flag with the last-known data timestamp. */
+export type DataApiOutageProps = {
+  isOutage?: boolean
+  dataUpdatedAt?: number
 }
 
 export interface PaginationControls {
@@ -81,6 +95,8 @@ export type PortfolioChainBalance = {
   decimals: number
   quantity: number
   valueUsd: Maybe<number>
+  /** Hidden flag for this chain-specific balance (API / user visibility). */
+  isHidden: Maybe<boolean>
   currencyInfo: CurrencyInfo
 }
 

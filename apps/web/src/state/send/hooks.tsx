@@ -70,7 +70,7 @@ export function useDerivedSendInfo(state: SendState): SendInfo {
   const { data: recipientInputUnitag } = useUnitagsUsernameQuery({
     params: userInput ? { username: userInput } : undefined,
   })
-  const recipientInputUnitagAddress = recipientInputUnitag?.address?.address
+  const recipientInputUnitagAddress = recipientInputUnitag?.address
   const recipientInputUnitagUsername = validatedRecipientData?.unitag ?? recipientInputUnitag?.username
 
   const validatedRecipientAddress = useMemo(() => {
@@ -167,7 +167,7 @@ export function useDerivedSendInfo(state: SendState): SendInfo {
       totalAmount = totalAmount.add(parsedTokenAmount)
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     if (!totalAmount || nativeCurrencyBalance.lessThan(totalAmount)) {
       return SendInputError.INSUFFICIENT_FUNDS_FOR_GAS
     }

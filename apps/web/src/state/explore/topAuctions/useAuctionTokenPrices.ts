@@ -23,7 +23,6 @@ export function useAuctionTokenPrices(auctions: readonly EnrichedAuction[]): {
     const contractMap = auctions.reduce((acc: { [key: string]: GraphQLApi.ContractInput }, auction) => {
       if (auction.auction?.tokenAddress && auction.auction.chainId) {
         const key = `${auction.auction.chainId}-${auction.auction.tokenAddress}`
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (!acc[key]) {
           acc[key] = buildContractInputForAddress({
             chainId: auction.auction.chainId,

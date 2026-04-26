@@ -73,7 +73,7 @@ export function usePoolAddressCache() {
     [cache],
   )
   const set = useCallback(
-    // eslint-disable-next-line max-params
+    // oxlint-disable-next-line max-params
     (details: PositionDetails, chainId: UniverseChainId, address: string) =>
       updateCache((c) => ({ ...c, [poolAddressKey(details, chainId)]: address })),
     [updateCache],
@@ -95,6 +95,7 @@ function useTokenCache() {
   const set = useCallback(
     (token?: Token) => {
       if (token) {
+        // oxlint-disable-next-line no-shadow
         setCache((cache) => ({ ...cache, [currencyKey(token)]: serializeToken(token) }))
       }
     },

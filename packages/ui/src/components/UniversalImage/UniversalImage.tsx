@@ -1,4 +1,4 @@
-/* eslint-disable complexity */
+/* oxlint-disable complexity */
 import { useEffect, useState } from 'react'
 import { type ColorTokens, Image } from 'tamagui'
 import { Flex } from 'ui/src/components/layout/Flex'
@@ -20,7 +20,6 @@ export function UniversalImage({
   onLoad,
   allowLocalUri = false,
   autoplay = true,
-  shouldRasterizeIOS = false,
   allowUndefinedSize = false,
 }: UniversalImageProps): JSX.Element | null {
   // Allow calculation of fields as needed
@@ -44,7 +43,6 @@ export function UniversalImage({
 
   // Calculate width/height and check for an error in the image retrieval
   // TODO(apps-infra): See if we can remove this when Expo Image is fully enabled
-  // biome-ignore lint/correctness/useExhaustiveDependencies: +width, height
   useEffect(() => {
     // If we know dimension skip calculating width/height
     if (!uri || sizeKnown || isRequireSource) {

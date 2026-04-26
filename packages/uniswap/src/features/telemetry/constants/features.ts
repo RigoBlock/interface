@@ -42,7 +42,6 @@ export enum SwapEventName {
   SwapModifiedInWallet = 'Swap Modified in Wallet',
   SwapPreselectAssetSelected = 'Swap Preselect Asset Selected',
   SwapPresetTokenAmountSelected = 'Swap Preset Token Amount Selected',
-  SwapPriceImpactAcknowledged = 'Swap Price Impact Acknowledged',
   SwapPriceUpdateAcknowledged = 'Swap Price Update Acknowledged',
   SwapQuoteFetch = 'Swap Quote Fetch',
   SwapQuoteReceived = 'Swap Quote Received',
@@ -68,7 +67,6 @@ export enum LiquidityEventName {
   RemoveLiquiditySubmitted = 'Remove Liquidity Submitted',
   SelectLiquidityPoolFeeTier = 'Select Liquidity Pool Fee Tier',
   TransactionModifiedInWallet = 'Transaction Modified in Wallet',
-  PriceDiscrepancyChecked = 'Price Discrepancy Checked',
 }
 
 export enum AuctionEventName {

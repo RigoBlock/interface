@@ -151,7 +151,9 @@ function DownloadMobile() {
 }
 
 enum Page {
+  // oxlint-disable-next-line no-shadow
   DownloadApps = 0,
+  // oxlint-disable-next-line no-shadow
   DownloadMobile = 1,
 }
 

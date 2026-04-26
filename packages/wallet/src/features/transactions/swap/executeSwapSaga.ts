@@ -7,8 +7,6 @@ import { pushNotification } from 'uniswap/src/features/notifications/slice/slice
 import { AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
 import type { SwapTradeBaseProperties } from 'uniswap/src/features/telemetry/types'
 import { transactionActions } from 'uniswap/src/features/transactions/slice'
-import { FLASHBLOCKS_UI_SKIP_ROUTES } from 'uniswap/src/features/transactions/swap/components/UnichainInstantBalanceModal/constants'
-import { getIsFlashblocksEnabled } from 'uniswap/src/features/transactions/swap/hooks/useIsUnichainFlashblocksEnabled'
 import { SwapExecutionCallbacks } from 'uniswap/src/features/transactions/swap/types/swapCallback'
 import type {
   SwapGasFeeEstimation,
@@ -65,6 +63,7 @@ export type SwapParams = {
 /**
  * Helper function to handle approval transaction execution
  */
+// oxlint-disable-next-line typescript/explicit-function-return-type
 function* executeApprovalStep(params: {
   preSignedTransaction: PreSignedSwapTransaction
   factory: TransactionParamsFactory
@@ -102,6 +101,7 @@ function* executeApprovalStep(params: {
 /**
  * Helper function to handle permit transaction execution
  */
+// oxlint-disable-next-line typescript/explicit-function-return-type
 function* executePermitStep(params: {
   preSignedTransaction: PreSignedSwapTransaction
   factory: TransactionParamsFactory
@@ -134,6 +134,7 @@ function* executePermitStep(params: {
 /**
  * Helper function to execute a transaction step with sync/async fallback behavior
  */
+// oxlint-disable-next-line typescript/explicit-function-return-type
 function* executeTransactionStep(params: {
   executor: TransactionExecutor
   step: TransactionStep
@@ -326,17 +327,12 @@ export function createExecuteSwapSaga(
           params: swapParams,
         }
 
-        if (
-          !getIsFlashblocksEnabled(chainId) ||
-          FLASHBLOCKS_UI_SKIP_ROUTES.includes(preSignedTransaction.swapTxContext.routing)
-        ) {
-          yield* put(
-            pushNotification({
-              type: AppNotificationType.SwapPending,
-              wrapType: WrapType.NotApplicable,
-            }),
-          )
-        }
+        yield* put(
+          pushNotification({
+            type: AppNotificationType.SwapPending,
+            wrapType: WrapType.NotApplicable,
+          }),
+        )
 
         swapResult = yield* executeTransactionStep({
           executor,

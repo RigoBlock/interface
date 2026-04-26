@@ -1,4 +1,4 @@
-import type { LinearTickScale } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/store/types'
+import type { LinearTickScale } from '~/components/Charts/D3LiquidityChartShared/types'
 
 /**
  * Convert a Y position to a tick using the linear tick scale.
@@ -6,5 +6,5 @@ import type { LinearTickScale } from '~/components/Charts/D3LiquidityRangeInput/
  * With a linear scale, Y positions map directly back to tick values.
  */
 export const yToTick = ({ y, tickScale }: { y: number; tickScale: LinearTickScale }): number => {
-  return tickScale.yToTick(y)
+  return tickScale.axisToTick(y)
 }

@@ -211,6 +211,7 @@ export const createLiquidityChartStore = ({
   // Sync isFullRange changes back to parent
   store.subscribe(
     (state) => state.isFullRange,
+    // oxlint-disable-next-line no-shadow
     (isFullRange) => {
       setIsFullRange(isFullRange)
     },
@@ -219,10 +220,12 @@ export const createLiquidityChartStore = ({
   // Set minPrice and maxPrice from minTick and maxTick
   store.subscribe(
     (state) => state.minTick,
+    // oxlint-disable-next-line no-shadow
     (minTick) => {
       if (minTick === undefined) {
         return
       }
+      // oxlint-disable-next-line no-shadow
       const { baseCurrency, quoteCurrency, priceInverted, protocolVersion } = store.getState()
 
       const price = getDisplayPriceFromTick({
@@ -238,10 +241,12 @@ export const createLiquidityChartStore = ({
   )
   store.subscribe(
     (state) => state.maxTick,
+    // oxlint-disable-next-line no-shadow
     (maxTick) => {
       if (maxTick === undefined) {
         return
       }
+      // oxlint-disable-next-line no-shadow
       const { baseCurrency, quoteCurrency, priceInverted, protocolVersion } = store.getState()
 
       const price = getDisplayPriceFromTick({

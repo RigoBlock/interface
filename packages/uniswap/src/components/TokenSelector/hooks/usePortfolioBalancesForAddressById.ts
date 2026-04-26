@@ -1,12 +1,12 @@
 import { GqlResult } from '@universe/api'
 import { useMemo } from 'react'
 import type { AddressGroup } from 'uniswap/src/features/accounts/store/types/AccountsState'
-import { usePortfolioBalances } from 'uniswap/src/features/dataApi/balances/balances'
 import { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
+import { usePortfolioBalances } from 'uniswap/src/features/portfolio/balances/hooks'
 
-export function usePortfolioBalancesForAddressById(
-  addresses: AddressGroup,
-): GqlResult<Record<Address, PortfolioBalance> | undefined> {
+export type PortfolioBalancesResult = GqlResult<Record<Address, PortfolioBalance> | undefined>
+
+export function usePortfolioBalancesForAddressById(addresses: AddressGroup): PortfolioBalancesResult {
   const {
     data: portfolioBalancesById,
     error,

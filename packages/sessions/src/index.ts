@@ -1,11 +1,9 @@
-/** biome-ignore-all assist/source/organizeImports: we want to manually group exports by category */
-
 /**
  * @universe/sessions
  *
  * This is the ONLY public entry point for the Sessions package.
  * All exports must be explicitly listed here.
- * Deep imports are forbidden and will be blocked by ESLint.
+ * Deep imports are forbidden and will be blocked by lint.
  */
 
 // Device ID

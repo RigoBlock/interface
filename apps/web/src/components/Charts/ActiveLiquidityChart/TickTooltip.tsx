@@ -52,6 +52,7 @@ export function TickTooltip({
   )
 }
 
+// oxlint-disable-next-line complexity
 export function TickTooltipContent({
   currentPrice,
   hoveredTick,

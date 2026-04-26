@@ -6,7 +6,7 @@ import { ArrowChangeDown } from '~/components/Icons/ArrowChangeDown'
 import { MenuDropdown } from '~/components/NavBar/CompanyMenu/MenuDropdown'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router'
-import { Flex, Popover, styled, Text, useIsTouchDevice, useMedia } from 'ui/src'
+import { Flex, Popover, styled, Text, useMedia } from 'ui/src'
 import { Hamburger } from 'ui/src/components/icons/Hamburger'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
@@ -31,18 +31,14 @@ export function CompanyMenu() {
   const location = useLocation()
   const [isOpen, setIsOpen] = useState(false)
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: +popoverRef
   const closeMenu = useCallback(() => {
     popoverRef.current?.close()
   }, [popoverRef])
-  // biome-ignore lint/correctness/useExhaustiveDependencies: location dependency is sufficient for this effect
   useEffect(() => {
     // Immediately reset state to prevent flash during transitions
     setIsOpen(false)
     closeMenu()
   }, [location, closeMenu])
-
-  const isTouchDevice = useIsTouchDevice()
 
   return (
     <Popover ref={popoverRef} placement="bottom" hoverable={!media.xl} stayInFrame allowFlip onOpenChange={setIsOpen}>
@@ -57,7 +53,7 @@ export function CompanyMenu() {
           $platform-web={{ containerType: 'normal' }}
         >
           <Trace logPress element={ElementName.NavbarCompanyMenuLogo}>
-            <Link to="/?intro=true" style={{ textDecoration: 'none' }}>
+            <Link to="/?intro=true" onClick={(e) => e.stopPropagation()} style={{ textDecoration: 'none' }}>
               <Flex row alignItems="center" gap="$gap4" data-testid={TestID.NavUniswapLogo}>
                 <NavIcon />
                 {isLargeScreen && (
@@ -68,8 +64,8 @@ export function CompanyMenu() {
               </Flex>
             </Link>
           </Trace>
-          {(media.md || isTouchDevice) && <Hamburger size={22} color="$neutral2" cursor="pointer" ml="16px" />}
-          {!media.md && !isTouchDevice && (
+          {media.md && <Hamburger size={22} color="$neutral2" cursor="pointer" ml="16px" />}
+          {!media.md && (
             <ArrowDownWrapper open={isOpen}>
               <ArrowChangeDown width="12px" height="12px" />
             </ArrowDownWrapper>

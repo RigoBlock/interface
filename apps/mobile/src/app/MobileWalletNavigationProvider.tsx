@@ -1,5 +1,4 @@
 import { StackActions } from '@react-navigation/native'
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { PropsWithChildren, useCallback } from 'react'
 import { Share } from 'react-native'
 import { useDispatch } from 'react-redux'
@@ -103,21 +102,10 @@ function useHandleShareToken(): (args: ShareTokenArgs) => Promise<void> {
 
 function useNavigateToActivity(): () => void {
   const { navigate } = useAppStackNavigation()
-  const isBottomTabsEnabled = useFeatureFlag(FeatureFlags.BottomTabs)
-
-  const navigateToActivityTab = useNavigateToHomepageTab(HomeScreenTabIndex.Activity)
-
-  const navigateToActivityScreen = useCallback((): void => {
-    navigate(MobileScreens.Activity)
-  }, [navigate])
 
   return useCallback((): void => {
-    if (isBottomTabsEnabled) {
-      navigateToActivityScreen()
-    } else {
-      navigateToActivityTab()
-    }
-  }, [navigateToActivityTab, isBottomTabsEnabled, navigateToActivityScreen])
+    navigate(MobileScreens.Activity)
+  }, [navigate])
 }
 
 function useNavigateToHomepageTab(tab: HomeScreenTabIndex): () => void {
@@ -244,15 +232,9 @@ function useNavigateToTokenDetails(): (currencyId: string) => void {
   const appNavigation = useAppStackNavigation()
   const { onClose } = useReactNavigationModal()
   const dispatch = useDispatch()
-  const isBottomTabsEnabled = useFeatureFlag(FeatureFlags.BottomTabs)
 
   return useCallback(
     (currencyId: string): void => {
-      const currentNavRouteName = navigationRef.getCurrentRoute()?.name
-      const isExploreNavigationActuallyFocused = Boolean(
-        currentNavRouteName === ModalName.Explore && exploreNavigationRef.current && exploreNavigationRef.isFocused(),
-      )
-
       closeKeyboardBeforeCallback(() => {
         const route = navigationRef.getCurrentRoute()
         const isSwap = route?.name === ModalName.Swap
@@ -260,22 +242,8 @@ function useNavigateToTokenDetails(): (currencyId: string) => void {
 
         dispatch(closeAllModals())
 
-        if (!isBottomTabsEnabled) {
-          if (isExploreNavigationActuallyFocused) {
-            exploreNavigationRef.navigate(MobileScreens.TokenDetails, { currencyId })
-            return
-          }
-
-          onClose()
-          appNavigation.reset({
-            index: 1,
-            routes: [{ name: MobileScreens.Home }, { name: MobileScreens.TokenDetails, params: { currencyId } }],
-          })
-          return
-        }
-
         if (isExploreScreen) {
-          // There's nothing to close on Explore with bottom tabs enabled
+          // There's nothing to close on Explore
           appNavigation.navigate(MobileScreens.TokenDetails, { currencyId })
           return
         }
@@ -293,7 +261,7 @@ function useNavigateToTokenDetails(): (currencyId: string) => void {
         appNavigation.navigate(MobileScreens.TokenDetails, { currencyId })
       })
     },
-    [appNavigation, dispatch, onClose, isBottomTabsEnabled],
+    [appNavigation, dispatch, onClose],
   )
 }
 

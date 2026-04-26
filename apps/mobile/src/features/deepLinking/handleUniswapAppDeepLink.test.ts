@@ -1,5 +1,5 @@
-import { call, put } from 'redux-saga/effects'
 import { expectSaga } from 'redux-saga-test-plan'
+import { call, put } from 'redux-saga/effects'
 import { navigate } from 'src/app/navigation/rootNavigation'
 import { handleTopTokensDeepLink } from 'src/features/deepLinking/handleTopTokensDeepLink'
 import { handleUniswapAppDeepLink } from 'src/features/deepLinking/handleUniswapAppDeepLink'

@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Flex, Text, Tooltip, useMedia } from 'ui/src'
 import { zIndexes } from 'ui/src/theme'
@@ -7,7 +7,8 @@ import { useAbbreviatedTimeString } from '~/components/Table/utils/useAbbreviate
 import { MARKER_CONFIG } from '~/components/Toucan/Auction/BidDistributionChart/constants'
 import { MarkerPosition } from '~/components/Toucan/Auction/BidDistributionChart/markers/types'
 import { useBidStatusColors } from '~/components/Toucan/Auction/hooks/useBidStatusColors'
-import { BidTokenInfo, UserBid } from '~/components/Toucan/Auction/store/types'
+import { BidInfoTab, BidTokenInfo, UserBid } from '~/components/Toucan/Auction/store/types'
+import { useAuctionStoreActions } from '~/components/Toucan/Auction/store/useAuctionStore'
 import { BidAmountWithPrice } from '~/components/Toucan/Shared/BidAmountWithPrice'
 
 interface BidMarkerProps {
@@ -75,9 +76,17 @@ function BidTooltipRow({ bid, bidTokenInfo, formatPrice, formatTokenAmount, isIn
  * @param formatTokenAmount - Token amount formatting function
  */
 export function BidMarker({ marker, bidTokenInfo, formatPrice, formatTokenAmount }: BidMarkerProps) {
-  const { bids, left, top, address, isInRange } = marker
+  const { bids, left, top, address, bidRangeMap } = marker
   const media = useMedia()
   const { t } = useTranslation()
+  const { setChartSelectedBid, setActiveBidFormTab } = useAuctionStoreActions()
+
+  const handleClick = useCallback(() => {
+    if (bids.length === 1) {
+      setChartSelectedBid({ bidId: bids[0].bidId, isInRange: bidRangeMap[bids[0].bidId] })
+      setActiveBidFormTab(BidInfoTab.MY_BIDS)
+    }
+  }, [bids, bidRangeMap, setChartSelectedBid, setActiveBidFormTab])
 
   // Sort bids by creation time descending (newest first)
   const sortedBids = useMemo(() => {
@@ -100,11 +109,13 @@ export function BidMarker({ marker, bidTokenInfo, formatPrice, formatTokenAmount
     <Tooltip placement="right" delay={75} offset={{ mainAxis: 8 }}>
       <Tooltip.Trigger asChild>
         <Flex
+          group
           position="absolute"
           alignItems="center"
           justifyContent="center"
           cursor="pointer"
           pointerEvents="auto"
+          onPress={handleClick}
           style={{
             left: `${left}px`,
             top: `${top}px`,
@@ -112,23 +123,21 @@ export function BidMarker({ marker, bidTokenInfo, formatPrice, formatTokenAmount
             zIndex: 1000,
           }}
         >
-          <AccountIcon address={address} size={MARKER_CONFIG.AVATAR_SIZE} />
+          <Flex opacity={0.54} $group-hover={{ opacity: 1 }} style={{ transition: 'opacity 0.15s ease' }}>
+            <AccountIcon address={address} size={MARKER_CONFIG.AVATAR_SIZE} />
+          </Flex>
           {showBadge && (
             <Flex
               position="absolute"
-              bottom={4}
-              right={-4}
-              backgroundColor="$surface1"
-              borderRadius="$roundedFull"
-              minWidth={12}
-              height={12}
-              px="$spacing2"
+              inset={0}
               alignItems="center"
               justifyContent="center"
-              borderWidth="$spacing1"
-              borderColor="$surface3"
+              borderRadius="$roundedFull"
+              backgroundColor="$scrim"
+              $group-hover={{ opacity: 0 }}
+              style={{ transition: 'opacity 0.15s ease' }}
             >
-              <Text variant="body4" fontSize={10} lineHeight={10} color="$neutral1">
+              <Text variant="body4" fontSize={8} lineHeight={8} color="$white" fontWeight="600">
                 {bids.length}
               </Text>
             </Flex>
@@ -158,7 +167,7 @@ export function BidMarker({ marker, bidTokenInfo, formatPrice, formatTokenAmount
                 bidTokenInfo={bidTokenInfo}
                 formatPrice={formatPrice}
                 formatTokenAmount={formatTokenAmount}
-                isInRange={isInRange}
+                isInRange={bidRangeMap[bid.bidId]}
               />
             </Flex>
           ))}

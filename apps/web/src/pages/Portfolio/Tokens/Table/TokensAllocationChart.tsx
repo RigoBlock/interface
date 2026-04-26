@@ -19,21 +19,20 @@ function useExtractedTokenColors(tokenData: TokenData[]): string[] {
   const gray = colors.neutral3.val
 
   const results = Array.from({ length: MAX_TOKENS_FOR_EXTRACTED_COLOR }, (_, i) =>
-    // biome-ignore lint/correctness/useHookAtTopLevel: fixed-length loop, same 15 hook calls every render
+    // oxlint-disable-next-line react-hooks/rules-of-hooks -- fixed-length loop, same 15 hook calls every render
     useSrcColor({
       src: tokenData[i]?.currencyInfo?.logoUrl ?? undefined,
-      currencyName: tokenData[i]?.currencyInfo?.currency?.name,
+      currencyName: tokenData[i]?.name ?? tokenData[i]?.currencyInfo?.currency?.name,
     }),
   )
 
   // Snapshot with value-based deps so reference is stable when colors/loading unchanged
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally depend on primitive key so snapshot is stable for downstream memo
+  /* oxlint-disable react/exhaustive-deps -- intentional value-based deps for stable snapshots */
   const resultsSnapshot = useMemo(
     () => results.map((r) => ({ tokenColor: r.tokenColor, tokenColorLoading: r.tokenColorLoading })),
     [gray, results.map((r) => `${r.tokenColor ?? ''}-${r.tokenColorLoading}`).join('|')],
   )
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: value-based deps (length + snapshot) so returned array is stable and portfolioBreakdown memo can cache
   return useMemo(
     () =>
       tokenData.map((_, i) => {
@@ -48,6 +47,7 @@ function useExtractedTokenColors(tokenData: TokenData[]): string[] {
       }),
     [gray, tokenData.length, resultsSnapshot],
   )
+  /* oxlint-enable react/exhaustive-deps */
 }
 
 // Generate portfolio breakdown from tokens data

@@ -1,6 +1,6 @@
 // Vercel serverless function entry point (bundled by build-vercel.ts)
 import { handle } from '@hono/node-server/vercel'
-import { createApp, ENTRY_GATEWAY_URLS, PRIVY_EW_URLS, WEBSOCKET_URLS } from 'functions/app'
+import { createApp, ENTRY_GATEWAY_URLS, WEBSOCKET_URLS } from 'functions/app'
 
 // Note: upgradeWebSocket is not provided because Vercel serverless functions
 // do not support long-lived WebSocket connections. On Vercel staging,
@@ -15,7 +15,6 @@ const app = createApp({
     return fetch(`${origin}/index.html`)
   },
   getEntryGatewayUrl: () => process.env.ENTRY_GATEWAY_API_URL || ENTRY_GATEWAY_URLS.staging,
-  getPrivyEwUrl: () => process.env.PRIVY_EW_URL || PRIVY_EW_URLS.staging,
   getWebSocketUrl: () => process.env.WEBSOCKET_URL || WEBSOCKET_URLS.staging,
   getTrustedClientIp: (c) => c.req.header('x-real-ip'),
 })

@@ -8,6 +8,7 @@ ignores: [
     'serve',
     'typescript',
     '@typescript/native-preview',
+    'oxlint',
     # Dependencies that depcheck thinks are missing but are actually present or never used
     ## Internal packages / workspaces
     'src',

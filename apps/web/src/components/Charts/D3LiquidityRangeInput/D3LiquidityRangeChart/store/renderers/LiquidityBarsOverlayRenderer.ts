@@ -1,12 +1,16 @@
 import * as d3 from 'd3'
-import { CHART_DIMENSIONS } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/constants'
+import { CHART_DIMENSIONS } from '~/components/Charts/D3LiquidityChartShared/constants'
+import {
+  createEntryFromBucket,
+  findBucketForTick,
+  findClosestBucket,
+} from '~/components/Charts/D3LiquidityChartShared/utils/bucketUtils'
 import type {
   ChartActions,
   ChartState,
   Renderer,
   RenderingContext,
 } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/store/types'
-import { BucketChartEntry } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/utils/liquidityBucketing/liquidityBucketing'
 import { snapTickToSpacing } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/utils/tickUtils'
 import { ChartEntry } from '~/components/Charts/LiquidityRangeInput/types'
 
@@ -22,43 +26,6 @@ export function createLiquidityBarsOverlayRenderer({
   getActions: () => ChartActions
 }): Renderer {
   let liquidityOverlay: d3.Selection<SVGRectElement, unknown, null, undefined> | null = null
-
-  // Helper to find which bucket contains a tick
-  const findBucketForTick = (tick: number, buckets: BucketChartEntry[]): BucketChartEntry | undefined => {
-    return buckets.find((b) => tick >= b.startTick && tick < b.endTick)
-  }
-
-  // Helper to find the closest rendered bucket to a tick
-  const findClosestBucket = (tick: number, buckets: BucketChartEntry[]): BucketChartEntry | undefined => {
-    if (buckets.length === 0) {
-      return undefined
-    }
-    return buckets.reduce((prev, curr) => {
-      const prevCenter = (prev.startTick + prev.endTick) / 2
-      const currCenter = (curr.startTick + curr.endTick) / 2
-      return Math.abs(currCenter - tick) < Math.abs(prevCenter - tick) ? curr : prev
-    })
-  }
-
-  // Helper to create a synthetic ChartEntry from a rendered bucket
-  // Uses bucket's own price0 and locked amounts — no liquidityData cross-reference
-  const createEntryFromBucket = ({ bucket, tick }: { bucket: BucketChartEntry; tick: number }): ChartEntry => {
-    return {
-      tick,
-      liquidityActive: Number(bucket.liquidityActive),
-      price0: bucket.price0 ?? 0,
-      amount0Locked: bucket.amount0Locked ?? 0,
-      amount1Locked: bucket.amount1Locked ?? 0,
-      bucket: {
-        startTick: bucket.startTick,
-        endTick: bucket.endTick,
-      },
-      segment: {
-        startTick: bucket.segmentStartTick,
-        endTick: bucket.segmentEndTick,
-      },
-    }
-  }
 
   const draw = (): void => {
     // Clear previous overlay
@@ -93,7 +60,7 @@ export function createLiquidityBarsOverlayRenderer({
         const { tickScale } = context
 
         // Convert Y position to tick using linear scale
-        const hoveredTickValue = tickScale.yToTick(y)
+        const hoveredTickValue = tickScale.axisToTick(y)
 
         // Use rendered buckets from state (computed by LiquidityBarsRenderer)
         const { renderedBuckets } = getState()
@@ -181,8 +148,8 @@ export function createLiquidityBarsOverlayRenderer({
       const { tickScale, tickSpacing } = context
 
       // Convert Y positions directly to ticks
-      const startTick = tickScale.yToTick(startY)
-      const endTick = tickScale.yToTick(endY)
+      const startTick = tickScale.axisToTick(startY)
+      const endTick = tickScale.axisToTick(endY)
 
       // Floor the lower tick to include its bucket, ceil the upper tick to include its bucket
       const lowerTick = Math.min(startTick, endTick)
@@ -257,7 +224,7 @@ export function createLiquidityBarsOverlayRenderer({
         .drag<SVGRectElement, unknown>()
         .on('start', (event) => {
           const { tickScale } = context
-          const tickValue = tickScale.yToTick(event.y)
+          const tickValue = tickScale.axisToTick(event.y)
 
           setChartState({
             dragStartY: event.y,
@@ -269,7 +236,7 @@ export function createLiquidityBarsOverlayRenderer({
         })
         .on('drag', (event) => {
           const { tickScale } = context
-          const tickValue = tickScale.yToTick(event.y)
+          const tickValue = tickScale.axisToTick(event.y)
 
           setChartState({
             dragCurrentTick: createDragTickEntry(tickValue),

@@ -97,7 +97,6 @@ export function DecimalPadCalculateSpace({
     decimalPadRef.current?.setMaxHeight(height - additionalElementsHeight)
   })
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run it when additionalElementsHeight is changed
   useEffect(() => {
     if (precalculatedHeight !== undefined) {
       return
@@ -109,6 +108,7 @@ export function DecimalPadCalculateSpace({
       return
     }
     decimalPadRef.current?.setMaxHeight(bottomScreenHeight - additionalElementsHeight)
+    // oxlint-disable-next-line react/exhaustive-deps -- biome-parity: oxlint is stricter here
   }, [additionalElementsHeight])
 
   useEffect(() => {
@@ -144,9 +144,9 @@ export const DecimalPadInput = memo(
     const [disabledKeys, setDisabledKeys] = useState<Partial<Record<KeyLabel, boolean>>>({})
     const [maxHeight, setMaxHeight] = useState<number | null>(null)
 
-    // biome-ignore lint/correctness/useExhaustiveDependencies: -updateDisabledKeys, +selectionRef,maxDecimals
     useEffect(() => {
       updateDisabledKeys(valueRef.current)
+      // oxlint-disable-next-line react/exhaustive-deps -- biome-parity: oxlint is stricter here
     }, [valueRef, selectionRef, maxDecimals])
 
     useImperativeHandle(ref, () => ({
@@ -216,6 +216,7 @@ export const DecimalPadInput = memo(
         setDisabledKeys((prevDisabledKeys) => {
           let isUpdated = false
           const newDisabledKeys = Object.fromEntries(
+            // oxlint-disable-next-line max-nested-callbacks
             Object.entries(disableKeysConditions).map(([key, condition]) => {
               const isDisabled = condition(value)
               if (isDisabled !== prevDisabledKeys[key as KeyLabel]) {
@@ -227,7 +228,7 @@ export const DecimalPadInput = memo(
           // Prevent unnecessary re-renders and return the same value
           // if no key was updated (react state won't be updated if value is the
           // same as the previous one in terms of referential equality)
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unnecessary-condition
+          // oxlint-disable-next-line typescript/no-unnecessary-condition
           return isUpdated ? newDisabledKeys : prevDisabledKeys
         })
       },
@@ -275,7 +276,7 @@ export const DecimalPadInput = memo(
     )
 
     const handleDelete = useCallback((): void => {
-      // eslint-disable-next-line max-params
+      // oxlint-disable-next-line max-params
       const isEntireTextSelected = (start: number, end: number, value: string): boolean =>
         start === 0 && end === value.length
 

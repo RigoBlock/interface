@@ -59,6 +59,7 @@ export function ExternalLink({
         rest.onClick(event)
       }
     },
+    // oxlint-disable-next-line react/exhaustive-deps -- biome-parity: oxlint is stricter here
     [rest.onClick],
   )
   return <StyledLink target={target} rel={rel} href={href} onClick={handleClick} {...rest} />

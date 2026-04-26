@@ -211,7 +211,7 @@ const Toolbar = () => {
             settings={[Slippage, Deadline]}
             iconColor="$neutral1"
             iconSize="$icon.16"
-            isNativePool={Boolean(currencies.display.TOKEN0?.isNative || currencies.display.TOKEN1?.isNative)}
+            isNativePool={Boolean(currencies.sdk.TOKEN0?.isNative || currencies.sdk.TOKEN1?.isNative)}
           />
         </Flex>
       </ToolbarContainer>
@@ -220,9 +220,29 @@ const Toolbar = () => {
 }
 
 export const SharedCreateModals = () => {
+  const {
+    positionState: { fee: selectedFee, protocolVersion, hook },
+    currencies,
+    setPositionState,
+    feeTierSearchModalOpen,
+    setFeeTierSearchModalOpen,
+    setDynamicFeeTierSpeedbumpData,
+  } = useCreateLiquidityContext()
+  const { chainId } = useMultichainContext()
+
   return (
     <>
-      <FeeTierSearchModal />
+      <FeeTierSearchModal
+        isOpen={feeTierSearchModalOpen}
+        onClose={() => setFeeTierSearchModalOpen(false)}
+        chainId={chainId}
+        protocolVersion={protocolVersion}
+        hook={hook}
+        sdkCurrencies={currencies.sdk}
+        selectedFee={selectedFee}
+        onSelectFee={(fee) => setPositionState((prev) => ({ ...prev, fee }))}
+        onSelectDynamicFee={(fee) => setDynamicFeeTierSpeedbumpData({ open: true, wishFeeData: fee })}
+      />
       <DynamicFeeTierSpeedbump />
     </>
   )

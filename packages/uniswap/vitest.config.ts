@@ -1,7 +1,7 @@
-import react from '@vitejs/plugin-react'
 import path from 'path'
-import { defineConfig } from 'vitest/config'
+import react from '@vitejs/plugin-react'
 import vitestPreset from 'vitest-presets/vitest/vitest-preset.js'
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   ...vitestPreset,
@@ -9,6 +9,12 @@ export default defineConfig({
   test: {
     ...vitestPreset.test,
     pool: 'forks',
+    poolOptions: {
+      forks: {
+        minForks: 1,
+        maxForks: 2,
+      },
+    },
     globals: true,
     environment: 'jsdom',
     // Override the preset's jsdom customExportConditions to avoid loading React Native modules

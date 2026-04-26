@@ -1,4 +1,4 @@
-import { ExtensionOnboardingFlow, ExtensionScreens } from 'uniswap/src/types/screens/extension'
+import type { ExtensionOnboardingFlow, ExtensionScreens } from 'uniswap/src/types/screens/extension'
 
 export enum MobileScreens {
   Activity = 'Activity',
@@ -12,6 +12,7 @@ export enum MobileScreens {
   Explore = 'Explore',
   Home = 'Home',
   OnboardingStack = 'OnboardingStack',
+  PortfolioChartDetails = 'PortfolioChartDetails',
   UnitagStack = 'UnitagStack',
   Settings = 'Settings',
   SettingsCloudBackupPasswordCreate = 'SettingsCloudBackupPasswordCreate',

@@ -65,4 +65,5 @@ export const paths = [
   '/manage/passkey/:walletAddress',
   '/extension/uninstall',
   '/wrapped',
+  '/preview',
 ]

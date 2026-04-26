@@ -56,6 +56,7 @@ export function useConfirmModalState({
   onSwap: () => void
   allowance?: Allowance
   selectedPool?: Currency | null
+  // oxlint-disable-next-line max-params -- biome-parity: oxlint is stricter here
   onCurrencySelection: (field: CurrencyField, currency: Currency, isResettingWETHAfterWrap?: boolean) => void
 }) {
   const [confirmModalState, setConfirmModalState] = useState<ConfirmModalState>(ConfirmModalState.REVIEWING)

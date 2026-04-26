@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react'
-// biome-ignore lint/style/noRestrictedImports: styled-components needed for input component styling
+// oxlint-disable-next-line no-restricted-imports -- styled-components needed for input component styling
 import styled from 'styled-components'
 import { useCurrentLocale } from 'uniswap/src/features/language/hooks'
 import { InputProps, localeUsesComma, StyledInput } from '~/components/NumericalInput'
@@ -20,6 +20,7 @@ const PercentInput = forwardRef<HTMLInputElement, InputProps>(
       }
     }
 
+    // oxlint-disable-next-line no-shadow
     const formatValueWithLocale = (value: string | number) => {
       const [searchValue, replaceValue] = localeUsesComma(locale) ? [/\./g, ','] : [/,/g, '.']
       return value.toString().replace(searchValue, replaceValue)

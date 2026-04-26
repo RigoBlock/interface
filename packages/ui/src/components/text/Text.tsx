@@ -217,7 +217,7 @@ const TEXT_COMPONENTS = {
 } as const
 
 const getTextComponent = (variant: TextProps['variant']): typeof TextFrame => {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
   return TEXT_COMPONENTS[variant as keyof typeof TEXT_COMPONENTS] ?? TextFrame
 }
 

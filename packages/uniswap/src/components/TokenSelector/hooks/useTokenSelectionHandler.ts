@@ -36,6 +36,7 @@ export function useTokenSelectionHandler({
   }) => void
 }): {
   currencyFieldName: ElementName | undefined
+  // oxlint-disable-next-line max-params
   onSelectCurrencyCallback: (
     currencyInfo: CurrencyInfo,
     section: OnchainItemSection<TokenSelectorOption>,
@@ -53,7 +54,7 @@ export function useTokenSelectionHandler({
       : undefined
 
   const onSelectCurrencyCallback = useCallback(
-    // eslint-disable-next-line max-params
+    // oxlint-disable-next-line max-params
     (currencyInfo: CurrencyInfo, section: OnchainItemSection<TokenSelectorOption>, index: number): void => {
       const searchContext: SearchContext = {
         category: section.sectionKey,

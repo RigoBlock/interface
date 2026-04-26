@@ -47,6 +47,24 @@ export function getSelectedTickPriceFromChartClick(params: {
     const coordinateTime = chart.timeScale().coordinateToTime(param.point.x)
     if (coordinateTime !== null) {
       tickPrice = Number(coordinateTime) / priceScaleFactor
+    } else {
+      // coordinateToTime returns null for empty areas between histogram bars.
+      // Interpolate from the visible range — the result is snapped to a valid tick anyway.
+      try {
+        const visibleRange = chart.timeScale().getVisibleRange()
+        if (visibleRange) {
+          const chartWidth = chart.timeScale().width()
+          // oxlint-disable-next-line max-depth
+          if (chartWidth > 0) {
+            const from = Number(visibleRange.from)
+            const to = Number(visibleRange.to)
+            const interpolatedTime = from + (param.point.x / chartWidth) * (to - from)
+            tickPrice = interpolatedTime / priceScaleFactor
+          }
+        }
+      } catch {
+        // getVisibleRange can throw during chart initialization
+      }
     }
   }
 

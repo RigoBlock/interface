@@ -80,6 +80,7 @@ function SharedExtensionNavigationProvider({
   const navigateToTokenDetails = useNavigateToTokenDetails()
   const navigateToFiatOnRamp = useNavigateToFiatOnRamp()
   const navigateToExternalProfile = useCallback(({ address }: NavigateToExternalProfileArgs) => {
+    // oxlint-disable-next-line typescript/no-floating-promises -- biome-parity: oxlint is stricter here
     focusOrCreateUniswapInterfaceTab({ url: getPortfolioUrl(address) })
   }, [])
   const navigateToPoolDetails = useNavigateToPoolDetails()
@@ -205,7 +206,7 @@ function useNavigateToPoolDetails(): (args: { poolId: Address; chainId: Universe
     await focusOrCreateUniswapInterfaceTab({
       url: getPoolDetailsURL(poolId, chainId),
       // We want to reuse the active tab only if it's already in any other PDP.
-      // eslint-disable-next-line security/detect-non-literal-regexp
+      // oxlint-disable-next-line security/detect-non-literal-regexp
       reuseActiveTabIfItMatches: new RegExp(`^${escapeRegExp(uniswapUrls.webInterfacePoolsUrl)}`),
     })
   }, [])

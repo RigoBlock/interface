@@ -1,6 +1,7 @@
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Flex, useIsDarkMode, useMedia } from 'ui/src'
+import { Flex, useIsDarkMode, useMedia } from 'ui/src'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { logger } from 'utilities/src/logger/logger'
 import ErrorBoundary from '~/components/ErrorBoundary'
@@ -17,13 +18,11 @@ import {
   AuctionDetails,
   AuctionDetailsLoadState,
   AuctionProgressState,
-  BidInfoTab,
   BidTokenInfo,
 } from '~/components/Toucan/Auction/store/types'
 import { useAuctionStore } from '~/components/Toucan/Auction/store/useAuctionStore'
 import { getClearingPrice } from '~/components/Toucan/Auction/utils/clearingPrice'
 import { ToucanActionButton } from '~/components/Toucan/Shared/ToucanActionButton'
-import { MobileScreen, MobileScreenConfig } from '~/pages/Explore/ToucanToken'
 
 const PLACEHOLDER_HEIGHT = 400
 
@@ -31,6 +30,7 @@ enum AuctionChartName {
   ClearingPrice = 'ClearingPriceChart',
   BidDistribution = 'BidDistributionChart',
   BidDemand = 'BidDemandChart',
+  Combined = 'CombinedAuctionChart',
 }
 
 const createChartErrorFallback = (chartName: AuctionChartName) => {
@@ -57,6 +57,7 @@ const createChartErrorFallback = (chartName: AuctionChartName) => {
 const ClearingPriceChartErrorFallback = createChartErrorFallback(AuctionChartName.ClearingPrice)
 const BidDistributionChartErrorFallback = createChartErrorFallback(AuctionChartName.BidDistribution)
 const BidDemandChartErrorFallback = createChartErrorFallback(AuctionChartName.BidDemand)
+const CombinedChartErrorFallback = createChartErrorFallback(AuctionChartName.Combined)
 
 const LazyClearingPriceChart = lazy(async () => {
   const module = await import('~/components/Charts/ToucanChart/clearingPrice/ClearingPriceChart')
@@ -68,10 +69,16 @@ const LazyBidDistributionChart = lazy(async () => {
   return { default: module.BidDistributionChart }
 })
 
+const LazyCombinedAuctionChart = lazy(async () => {
+  const module = await import('~/components/Toucan/Auction/BidDistributionChart/CombinedAuctionChart')
+  return { default: module.CombinedAuctionChart }
+})
+
 interface AuctionChartContainerProps {
   activeTab: BidDistributionChartTab
   onTabChange: (tab: BidDistributionChartTab) => void
-  onMobileScreenChange?: (config: MobileScreenConfig) => void
+  onShowBidFormModal?: () => void
+  onLearnMorePress?: () => void
 }
 
 /**
@@ -83,7 +90,13 @@ interface AuctionChartContainerProps {
  * - Tab switching between chart types
  * - Shared footer
  */
-export function AuctionChartContainer({ activeTab, onTabChange, onMobileScreenChange }: AuctionChartContainerProps) {
+export function AuctionChartContainer({
+  activeTab,
+  onTabChange,
+  onShowBidFormModal,
+  onLearnMorePress,
+}: AuctionChartContainerProps) {
+  const isV2 = useFeatureFlag(FeatureFlags.AuctionDetailsV2)
   const { auctionDetails, auctionDetailsLoadState, auctionProgressState, isGraduated, currentBlockNumber } =
     useAuctionStore((state) => ({
       auctionDetails: state.auctionDetails,
@@ -108,7 +121,7 @@ export function AuctionChartContainer({ activeTab, onTabChange, onMobileScreenCh
     chainId: auctionDetails?.chainId,
   })
 
-  const { canPlaceBid, showAuctionGraduated, showMyBidsButton, showMobileWithdrawButton } = useBidFormState()
+  const { canPlaceBid, showMobileWithdrawButton } = useBidFormState()
 
   // Withdraw button state for $lg inline button (not $sm - that uses fixed bottom button)
   const {
@@ -155,96 +168,138 @@ export function AuctionChartContainer({ activeTab, onTabChange, onMobileScreenCh
     return renderPlaceholder(t('common.loading'))
   }
 
-  return (
-    <>
-      <BidDistributionChartHeader activeTab={activeTab} onTabChange={onTabChange} />
-      {activeTab === BidDistributionChartTab.ClearingPrice && (
-        <ErrorBoundary fallback={ClearingPriceChartErrorFallback}>
-          <Suspense fallback={renderPlaceholder(t('common.loading'))}>
-            <ClearingPriceChartPanel
-              key={`clearing-price-${isDarkMode}`}
-              auctionDetails={auctionDetails}
-              bidTokenInfo={bidTokenInfo}
-              tokenColor={effectiveTokenColor}
-            />
-          </Suspense>
-        </ErrorBoundary>
-      )}
-      {activeTab === BidDistributionChartTab.Distribution && (
-        <ErrorBoundary fallback={BidDistributionChartErrorFallback}>
-          <Suspense fallback={renderPlaceholder(t('common.loading'))}>
-            <BidDistributionChartPanel
-              key={`distribution-${isDarkMode}`}
-              auctionDetails={auctionDetails}
-              bidTokenInfo={bidTokenInfo}
-              tokenColor={effectiveTokenColor}
-              onGroupingToggleDisabledChange={setGroupingToggleDisabled}
-            />
-          </Suspense>
-        </ErrorBoundary>
-      )}
-      {activeTab === BidDistributionChartTab.Demand && (
-        <ErrorBoundary fallback={BidDemandChartErrorFallback}>
-          <Suspense fallback={renderPlaceholder(t('common.loading'))}>
-            <BidDemandChartPanel
-              key={`demand-${isDarkMode}`}
-              auctionDetails={auctionDetails}
-              bidTokenInfo={bidTokenInfo}
-              tokenColor={effectiveTokenColor}
-            />
-          </Suspense>
-        </ErrorBoundary>
-      )}
-      {/* ChartFooter is shared across all chart tabs */}
-      <ChartFooter activeTab={activeTab} groupingToggleDisabled={groupingToggleDisabled} />
-      {/* Mobile action buttons - only visible on $lg screens */}
-      <Flex
-        display="none"
-        $lg={{ display: 'flex', mt: '$none' }}
-        $sm={{ mt: '$spacing8' }}
-        gap="$spacing12"
-        mt="$spacing16"
-      >
-        {showMyBidsButton && (
-          <Button
-            flex={1}
-            emphasis="secondary"
-            onPress={() =>
-              onMobileScreenChange?.({
-                screen: MobileScreen.BID_FORM,
-                bidFormTab: showAuctionGraduated ? BidInfoTab.AUCTION_GRADUATED : BidInfoTab.MY_BIDS,
-              })
-            }
+  // V2: Combined price + distribution chart
+  if (isV2) {
+    return (
+      <Flex flexDirection="column">
+        <BidDistributionChartHeader activeTab={activeTab} onTabChange={onTabChange} combinedMode />
+        <Flex flexDirection="column" gap="$spacing16">
+          {activeTab === BidDistributionChartTab.Demand ? (
+            <ErrorBoundary fallback={BidDemandChartErrorFallback}>
+              <Suspense fallback={renderPlaceholder(t('common.loading'))}>
+                <BidDemandChartPanel
+                  key={`demand-${isDarkMode}`}
+                  auctionDetails={auctionDetails}
+                  bidTokenInfo={bidTokenInfo}
+                  tokenColor={effectiveTokenColor}
+                />
+              </Suspense>
+            </ErrorBoundary>
+          ) : (
+            <ErrorBoundary fallback={CombinedChartErrorFallback}>
+              <Suspense fallback={renderPlaceholder(t('common.loading'))}>
+                <CombinedAuctionChartPanel
+                  key={`combined-${isDarkMode}`}
+                  auctionDetails={auctionDetails}
+                  bidTokenInfo={bidTokenInfo}
+                  tokenColor={effectiveTokenColor}
+                />
+              </Suspense>
+            </ErrorBoundary>
+          )}
+          <ChartFooter
+            activeTab={activeTab}
+            groupingToggleDisabled={groupingToggleDisabled}
+            onLearnMorePress={onLearnMorePress}
+            combinedMode
+          />
+          {/* Mobile action buttons - visible when layout stacks ($xl) */}
+          <Flex
+            display="none"
+            $xl={{ display: 'flex', mt: '$none' }}
+            $sm={{ mt: '$spacing8' }}
+            gap="$spacing12"
+            mt="$spacing16"
           >
-            {t('toucan.auction.myBids')}
-          </Button>
+            {!media.sm && canPlaceBid && (
+              <ToucanActionButton label={t('toucan.bidForm.placeABid')} onPress={() => onShowBidFormModal?.()} />
+            )}
+            {!media.sm && showMobileWithdrawButton && (
+              <ToucanActionButton
+                elementName={ElementName.AuctionWithdrawTokensButton}
+                label={withdrawLabel}
+                onPress={() => setIsWithdrawModalOpen(true)}
+                isDisabled={isWithdrawDisabled}
+                disabledTooltip={isWithdrawDisabled ? withdrawDisabledTooltip : undefined}
+              />
+            )}
+          </Flex>
+        </Flex>
+        <WithdrawModal isOpen={isWithdrawModalOpen} onClose={() => setIsWithdrawModalOpen(false)} />
+      </Flex>
+    )
+  }
+
+  return (
+    <Flex flexDirection="column">
+      <BidDistributionChartHeader activeTab={activeTab} onTabChange={onTabChange} />
+      <Flex flexDirection="column" gap="$spacing16">
+        {activeTab === BidDistributionChartTab.ClearingPrice && (
+          <ErrorBoundary fallback={ClearingPriceChartErrorFallback}>
+            <Suspense fallback={renderPlaceholder(t('common.loading'))}>
+              <ClearingPriceChartPanel
+                key={`clearing-price-${isDarkMode}`}
+                auctionDetails={auctionDetails}
+                bidTokenInfo={bidTokenInfo}
+                tokenColor={effectiveTokenColor}
+              />
+            </Suspense>
+          </ErrorBoundary>
         )}
-        {/* Show Place Bid button during auction ($lg but not $sm) */}
-        {!media.sm && canPlaceBid && (
-          <ToucanActionButton
-            label={t('toucan.bidForm.placeABid')}
-            onPress={() =>
-              onMobileScreenChange?.({
-                screen: MobileScreen.BID_FORM,
-                bidFormTab: BidInfoTab.PLACE_A_BID,
-              })
-            }
-          />
+        {activeTab === BidDistributionChartTab.Distribution && (
+          <ErrorBoundary fallback={BidDistributionChartErrorFallback}>
+            <Suspense fallback={renderPlaceholder(t('common.loading'))}>
+              <BidDistributionChartPanel
+                key={`distribution-${isDarkMode}`}
+                auctionDetails={auctionDetails}
+                bidTokenInfo={bidTokenInfo}
+                tokenColor={effectiveTokenColor}
+                onGroupingToggleDisabledChange={setGroupingToggleDisabled}
+              />
+            </Suspense>
+          </ErrorBoundary>
         )}
-        {/* Show Withdraw button after auction ($lg but not $sm - $sm uses fixed bottom button) */}
-        {!media.sm && showMobileWithdrawButton && (
-          <ToucanActionButton
-            elementName={ElementName.AuctionWithdrawTokensButton}
-            label={withdrawLabel}
-            onPress={() => setIsWithdrawModalOpen(true)}
-            isDisabled={isWithdrawDisabled}
-            disabledTooltip={isWithdrawDisabled ? withdrawDisabledTooltip : undefined}
-          />
+        {activeTab === BidDistributionChartTab.Demand && (
+          <ErrorBoundary fallback={BidDemandChartErrorFallback}>
+            <Suspense fallback={renderPlaceholder(t('common.loading'))}>
+              <BidDemandChartPanel
+                key={`demand-${isDarkMode}`}
+                auctionDetails={auctionDetails}
+                bidTokenInfo={bidTokenInfo}
+                tokenColor={effectiveTokenColor}
+              />
+            </Suspense>
+          </ErrorBoundary>
         )}
+        {/* ChartFooter is shared across all chart tabs */}
+        <ChartFooter activeTab={activeTab} groupingToggleDisabled={groupingToggleDisabled} />
+        {/* Mobile action buttons - visible when layout stacks ($xl) */}
+        <Flex
+          display="none"
+          $xl={{ display: 'flex', mt: '$none' }}
+          $sm={{ mt: '$spacing8' }}
+          gap="$spacing12"
+          mt="$spacing16"
+        >
+          {/* Show Place Bid button during auction ($xl but not $sm) */}
+          {!media.sm && canPlaceBid && (
+            <ToucanActionButton label={t('toucan.bidForm.placeABid')} onPress={() => onShowBidFormModal?.()} />
+          )}
+          {/* Show Withdraw button after auction ($xl but not $sm - $sm uses fixed bottom button) */}
+          {!media.sm && showMobileWithdrawButton && (
+            <ToucanActionButton
+              elementName={ElementName.AuctionWithdrawTokensButton}
+              label={withdrawLabel}
+              onPress={() => setIsWithdrawModalOpen(true)}
+              isDisabled={isWithdrawDisabled}
+              disabledTooltip={isWithdrawDisabled ? withdrawDisabledTooltip : undefined}
+            />
+          )}
+        </Flex>
       </Flex>
       {/* Withdraw modal for $lg inline button */}
       <WithdrawModal isOpen={isWithdrawModalOpen} onClose={() => setIsWithdrawModalOpen(false)} />
-    </>
+    </Flex>
   )
 }
 
@@ -318,5 +373,19 @@ function BidDemandChartPanel({
       userBids={userBids}
       chartMode="demand"
     />
+  )
+}
+
+function CombinedAuctionChartPanel({
+  auctionDetails,
+  bidTokenInfo,
+  tokenColor,
+}: {
+  auctionDetails: AuctionDetails
+  bidTokenInfo: BidTokenInfo
+  tokenColor?: string
+}): JSX.Element {
+  return (
+    <LazyCombinedAuctionChart auctionDetails={auctionDetails} bidTokenInfo={bidTokenInfo} tokenColor={tokenColor} />
   )
 }

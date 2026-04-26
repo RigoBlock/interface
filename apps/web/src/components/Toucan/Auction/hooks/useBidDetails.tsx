@@ -198,6 +198,7 @@ export function useBidDetails({
       return { fdvFraction: 0, maxFdvBidTokenRaw: 0n, currentFdvBidTokenRaw: 0n }
     }
 
+    // oxlint-disable-next-line no-shadow
     const maxFdvBidTokenRaw = computeFdvBidTokenRaw({
       priceQ96: bid.maxPrice,
       bidTokenDecimals: bidTokenInfo.decimals,
@@ -205,6 +206,7 @@ export function useBidDetails({
       auctionTokenDecimals,
     })
 
+    // oxlint-disable-next-line no-shadow
     const currentFdvBidTokenRaw = computeFdvBidTokenRaw({
       priceQ96: clearingPrice,
       bidTokenDecimals: bidTokenInfo.decimals,

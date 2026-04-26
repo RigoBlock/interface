@@ -43,6 +43,7 @@ export function createExecutePlanSaga(dependencies: TransactionSagaDependencies)
 /**
  * Internal function to execute a chained plan with the provided dependencies
  */
+// oxlint-disable-next-line typescript/explicit-function-return-type
 function* executeChainedPlan(params: ExecutePlanParams, dependencies: TransactionSagaDependencies) {
   const { address, swapTxContext } = params
 
@@ -54,6 +55,7 @@ function* executeChainedPlan(params: ExecutePlanParams, dependencies: Transactio
   /**
    * Reusable helper to prepare transaction services with common parameters
    */
+  // oxlint-disable-next-line typescript/explicit-function-return-type
   function* prepareServicesForChain(chainId: UniverseChainId, txRequest?: ValidatedTransactionRequest) {
     const submitViaPrivateRpc = !!txRequest && (yield* call(shouldSubmitViaPrivateRpc, chainId))
 

@@ -23,7 +23,7 @@ export function LowLPSlippageWarning({ isNativePool }: { isNativePool: boolean }
     isNativePool,
     isSlippageDirty,
     isLpDynamicNativeSlippageEnabled,
-    effectiveSlippage: effectiveSlippage ?? 0,
+    effectiveSlippage,
   })
 
   return (

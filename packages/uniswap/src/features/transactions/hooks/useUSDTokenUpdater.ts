@@ -33,7 +33,6 @@ export function useUSDTokenUpdater({
   useEffect(() => {
     shouldUseUSDRef.current = isFiatInput
   }, [isFiatInput])
-  // biome-ignore lint/correctness/useExhaustiveDependencies: +shouldUseUSDRef, formatCurrencyAmount
   useEffect(() => {
     if (!currency || !price || !isUniverseChainId(currency.chainId)) {
       return undefined

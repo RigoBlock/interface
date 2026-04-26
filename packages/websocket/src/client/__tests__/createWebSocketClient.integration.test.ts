@@ -810,6 +810,7 @@ describe('createWebSocketClient integration', () => {
       expect(handler.refreshSession).not.toHaveBeenCalled()
     })
 
+    // oxlint-disable-next-line jest/expect-expect -- suppressed
     it('does not start timer without handler refreshSession method', async () => {
       const { client, mockSocket } = createTestClient({
         sessionRefreshIntervalMs: 5000,

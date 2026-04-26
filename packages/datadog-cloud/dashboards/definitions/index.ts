@@ -1,1 +1,1 @@
-export {devPortalDashboards} from './dev-portal';
+export { devPortalDashboards } from './dev-portal'

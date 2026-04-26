@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { NetworkStatus } from '@apollo/client'
 import { TradingApi } from '@universe/api'
 import dayjs from 'dayjs'
@@ -144,7 +143,7 @@ describe('useFormattedTransactionDataForActivity', () => {
 
       const { result } = renderFormattedHook()
 
-      expect(result.current.isError).toBe(mockError)
+      expect(result.current.error).toBe(mockError)
       expect(result.current.hasData).toBe(false)
     })
 

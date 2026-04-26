@@ -11,7 +11,6 @@ import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
 import { TokenLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
 import { GetHelpHeader } from 'uniswap/src/components/dialog/GetHelpHeader'
 import { Modal } from 'uniswap/src/components/modals/Modal'
-import { DEFAULT_TICK_SPACING } from 'uniswap/src/constants/pools'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { useGetPasskeyAuthStatus } from 'uniswap/src/features/passkey/hooks/useGetPasskeyAuthStatus'
 import { ModalNameType } from 'uniswap/src/features/telemetry/constants'
@@ -99,6 +98,7 @@ function TokenInfo({
   )
 }
 
+// oxlint-disable-next-line complexity
 export function ReviewModal({
   modalName,
   headerTitle,
@@ -141,8 +141,13 @@ export function ReviewModal({
   const { baseCurrency, quoteCurrency } = getBaseAndQuoteCurrencies(currencies.sdk, priceInverted)
 
   const ticksAtLimit = useMemo(() => {
+    // V2 pools return 0 tick spacing because every V2 position is full range
+    if (!fee?.tickSpacing) {
+      return [false, false]
+    }
+
     return getTicksAtLimit({
-      tickSpacing: fee?.tickSpacing ?? DEFAULT_TICK_SPACING,
+      tickSpacing: fee.tickSpacing,
       lowerTick: minTick,
       upperTick: maxTick,
       fullRange,
@@ -150,6 +155,7 @@ export function ReviewModal({
   }, [fee?.tickSpacing, minTick, maxTick, fullRange])
 
   const pricesAtTicks: [Maybe<Price<Currency, Currency>>, Maybe<Price<Currency, Currency>>] = useMemo(() => {
+    // oxlint-disable-next-line no-shadow
     let pricesAtTicks: [Maybe<Price<Currency, Currency>>, Maybe<Price<Currency, Currency>>] = [undefined, undefined]
     if (protocolVersion === ProtocolVersion.V4) {
       pricesAtTicks = [
@@ -310,7 +316,7 @@ export function ReviewModal({
           )}
           <Flex gap="$spacing12">
             <LowLPSlippageWarning
-              isNativePool={Boolean(currencies.display.TOKEN0?.isNative || currencies.display.TOKEN1?.isNative)}
+              isNativePool={Boolean(currencies.sdk.TOKEN0?.isNative || currencies.sdk.TOKEN1?.isNative)}
             />
             <ErrorCallout errorMessage={transactionError} onPress={refetch} />
             <PoolOutOfSyncError />
@@ -355,7 +361,7 @@ export function ReviewModal({
                 onPress={onConfirm}
                 isDisabled={isDisabled}
                 fill={false}
-                icon={needsPasskeySignin ? <Passkey size="$icon.24" /> : undefined}
+                icon={needsPasskeySignin ? <Passkey size="$icon.24" color="$white" /> : undefined}
               >
                 {isSignedInWithPasskey && isSessionAuthenticated ? t('position.create.confirm') : confirmButtonText}
               </Button>

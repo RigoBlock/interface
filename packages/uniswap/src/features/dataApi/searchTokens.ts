@@ -1,6 +1,5 @@
 import { SearchTokensResponse, SearchType } from '@uniswap/client-search/dist/search/v1/api_pb'
 import { GqlResult } from '@universe/api'
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useMemo } from 'react'
 import {
   multichainTokenToCurrencyInfos,
@@ -22,18 +21,19 @@ function useSearchTokensQuery<T>({
   chainFilter,
   skip,
   size = NUMBER_OF_RESULTS_LONG,
+  multichain = false,
   select,
 }: {
   searchQuery: string | null
   chainFilter: UniverseChainId | null
   skip: boolean
   size?: number
+  multichain?: boolean
   select: (data: SearchTokensResponse) => T
 }): GqlResult<T> {
   const { chains: enabledChainIds } = useEnabledChains()
 
   const isSvmConnected = useConnectionStatus(Platform.SVM).isConnected
-  const isMultichainTokenUx = useFeatureFlag(FeatureFlags.MultichainTokenUx)
 
   const variables = useMemo(
     () => ({
@@ -43,9 +43,9 @@ function useSearchTokensQuery<T>({
       page: 1,
       size,
       prioritizeSvm: isSvmConnected,
-      multichain: isMultichainTokenUx,
+      multichain,
     }),
-    [searchQuery, chainFilter, size, enabledChainIds, isSvmConnected, isMultichainTokenUx],
+    [searchQuery, chainFilter, size, enabledChainIds, isSvmConnected, multichain],
   )
 
   const { data, error, isPending, refetch } = useSearchTokensAndPoolsQuery<T>({
@@ -102,5 +102,5 @@ export function useMultichainSearchTokens({
       .filter((r): r is MultichainSearchResult => r !== undefined)
   })
 
-  return useSearchTokensQuery({ searchQuery, chainFilter, skip, size, select })
+  return useSearchTokensQuery({ searchQuery, chainFilter, skip, size, multichain: true, select })
 }

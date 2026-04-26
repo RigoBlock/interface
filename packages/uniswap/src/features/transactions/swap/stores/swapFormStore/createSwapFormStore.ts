@@ -36,8 +36,6 @@ export const INITIAL_SWAP_FORM_STATE: SwapFormState = {
   isSubmitting: false,
   isConfirmed: false,
   showPendingUI: false,
-  instantReceiptFetchTime: undefined,
-  instantOutputAmountRaw: undefined,
   smartPoolAddress: undefined,
 }
 
@@ -71,8 +69,8 @@ export const createSwapFormStore = ({
         const exactAmountTokenRef = createRef<string>() as MutableRefObject<string>
 
         amountUpdatedTimeRef.current = 0
-        exactAmountFiatRef.current = ''
-        exactAmountTokenRef.current = ''
+        exactAmountFiatRef.current = initialState?.exactAmountFiat ?? ''
+        exactAmountTokenRef.current = initialState?.exactAmountToken ?? ''
 
         return {
           exactAmountFiat: undefined,
@@ -82,7 +80,6 @@ export const createSwapFormStore = ({
           filteredChainIds: undefined,
           input: undefined,
           output: undefined,
-          instantReceiptFetchTime: undefined,
           selectingCurrencyField: undefined,
           isSelectingCurrencyFieldPrefilled: undefined,
           txId: undefined,
@@ -95,7 +92,8 @@ export const createSwapFormStore = ({
           isSubmitting: false,
           showPendingUI: false,
           isConfirmed: false,
-          instantOutputAmountRaw: undefined,
+          hideFooter,
+          hideSettings,
           prefilledCurrencies: undefined,
           isPrefilled: undefined,
           derivedSwapInfo,

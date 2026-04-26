@@ -1,13 +1,20 @@
+import { SharedEventName } from '@uniswap/analytics-events'
 import { ChartPeriod } from '@uniswap/client-data-api/dist/data/v1/api_pb'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo } from 'react'
+import { navigate } from 'src/app/navigation/rootNavigation'
 import { PortfolioChart } from 'src/components/home/PortfolioChart/PortfolioChart'
 import { usePortfolioChartData } from 'src/components/home/PortfolioChart/usePortfolioChartData'
 import { Flex, TouchableArea } from 'ui/src'
-import { useLayoutAnimationOnChange } from 'ui/src/animations/layout'
-import { AnglesMaximize } from 'ui/src/components/icons/AnglesMaximize'
-import { AnglesMinimize } from 'ui/src/components/icons/AnglesMinimize'
+import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
+import { usePortfolioTotalValue } from 'uniswap/src/features/dataApi/balances/balancesRest'
 import { PortfolioBalance } from 'uniswap/src/features/portfolio/PortfolioBalance/PortfolioBalance'
+import { getPortfolioChartPercentChange } from 'uniswap/src/features/portfolio/portfolioChartPercentChange'
+import { usePortfolioChartBalanceMismatch } from 'uniswap/src/features/portfolio/usePortfolioChartBalanceMismatch'
+import { ElementName } from 'uniswap/src/features/telemetry/constants'
+import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
+import { MobileScreens } from 'uniswap/src/types/screens/mobile'
+import { noop } from 'utilities/src/react/noop'
 
 interface PortfolioChartSectionProps {
   evmAddress: string
@@ -16,8 +23,7 @@ interface PortfolioChartSectionProps {
 }
 
 export function PortfolioOverview({ evmAddress, chainIds, isPnLEnabled }: PortfolioChartSectionProps): JSX.Element {
-  const [isChartExpanded, setIsChartExpanded] = useState(false)
-  const [chartPeriod, setChartPeriod] = useState(ChartPeriod.DAY)
+  const chartPeriod = ChartPeriod.DAY
 
   const {
     data: chartData,
@@ -30,79 +36,81 @@ export function PortfolioOverview({ evmAddress, chainIds, isPnLEnabled }: Portfo
     enabled: isPnLEnabled,
   })
 
+  const chartPercentChange = useMemo(() => {
+    return getPortfolioChartPercentChange(chartData.map((d) => d.value))
+  }, [chartData])
+
+  const lastChartValue = useMemo(() => {
+    if (chartData.length === 0) {
+      return undefined
+    }
+    return chartData[chartData.length - 1]?.value
+  }, [chartData])
+
+  const { data: portfolioData } = usePortfolioTotalValue({
+    evmAddress,
+    chainIds,
+  })
+
+  const { isTotalValueMatch } = usePortfolioChartBalanceMismatch({
+    lastChartValue,
+    portfolioTotalBalanceUSD: portfolioData?.balanceUSD,
+  })
+
   const canShowChart = isPnLEnabled && chartData.length > 0
 
-  useLayoutAnimationOnChange(isChartExpanded)
-
-  useEffect(() => {
-    // Only collapse when we definitively have no data (not during a loading/refetch transition).
-    // Without this guard, changing the chart period triggers a refetch that temporarily empties
-    // chartData, which would incorrectly collapse the expanded chart.
-    if (!canShowChart && !chartLoading) {
-      setIsChartExpanded(false)
-    }
-  }, [canShowChart, chartLoading])
-
-  const toggleChartExpanded = useCallback(() => {
-    setIsChartExpanded((prev) => !prev)
+  const openPortfolioChartDetails = useCallback(() => {
+    sendAnalyticsEvent(SharedEventName.ELEMENT_CLICKED, {
+      element: ElementName.PortfolioChart,
+    })
+    navigate(MobileScreens.PortfolioChartDetails)
   }, [])
 
-  const chartToggleIcon = useMemo((): JSX.Element | undefined => {
+  const chartNavigationIcon = useMemo((): JSX.Element | undefined => {
     if (!canShowChart) {
       return undefined
     }
-    const Icon = isChartExpanded ? AnglesMinimize : AnglesMaximize
+
     return (
       <Flex ml="$spacing4">
-        <Icon color="$neutral3" size="$icon.16" />
+        <RotatableChevron color="$neutral3" direction="right" size="$icon.16" />
       </Flex>
     )
-  }, [canShowChart, isChartExpanded])
+  }, [canShowChart])
 
   return (
-    <>
-      <TouchableArea
-        disabled={!canShowChart}
-        testID={TestID.PortfolioChartToggle}
-        activeOpacity={1}
-        onPress={toggleChartExpanded}
-      >
-        <Flex py="$spacing20" px="$spacing24">
-          {canShowChart && !isChartExpanded ? (
-            <Flex row alignItems="flex-start">
-              <Flex flex={1}>
-                <PortfolioBalance evmOwner={evmAddress} endText={chartToggleIcon} chartPeriod={chartPeriod} />
-              </Flex>
-              <PortfolioChart
-                data={chartData}
-                loading={chartLoading}
-                chartColor={chartColor}
-                isExpanded={false}
+    <TouchableArea
+      disabled={!canShowChart}
+      testID={TestID.PortfolioChartToggle}
+      activeOpacity={1}
+      onPress={openPortfolioChartDetails}
+    >
+      <Flex py="$spacing20" px="$spacing24">
+        {canShowChart ? (
+          <Flex row alignItems="flex-start">
+            <Flex flex={1}>
+              <PortfolioBalance
+                evmOwner={evmAddress}
+                endText={chartNavigationIcon}
                 chartPeriod={chartPeriod}
-                onChartPeriodChange={setChartPeriod}
+                overridePercentChange={chartPercentChange?.percentChange}
+                overrideAbsoluteChangeUSD={chartPercentChange?.absoluteChangeUSD}
               />
             </Flex>
-          ) : (
-            <PortfolioBalance
-              evmOwner={evmAddress}
-              endText={chartToggleIcon}
-              chartPeriod={canShowChart ? chartPeriod : undefined}
+            <PortfolioChart
+              data={chartData}
+              loading={chartLoading}
+              chartColor={chartColor}
+              isExpanded={false}
+              chartPeriod={chartPeriod}
+              isTotalValueMatch={isTotalValueMatch}
+              onChartPeriodChange={noop}
             />
-          )}
-        </Flex>
-      </TouchableArea>
-      {canShowChart && isChartExpanded && (
-        <Flex px="$spacing24">
-          <PortfolioChart
-            data={chartData}
-            loading={chartLoading}
-            chartColor={chartColor}
-            isExpanded={true}
-            chartPeriod={chartPeriod}
-            onChartPeriodChange={setChartPeriod}
-          />
-        </Flex>
-      )}
-    </>
+          </Flex>
+        ) : (
+          <PortfolioBalance evmOwner={evmAddress} />
+        )}
+      </Flex>
+    </TouchableArea>
   )
 }

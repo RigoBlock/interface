@@ -50,10 +50,11 @@ type V2DutchAuctionOrderSuccess = {
 type DutchAuctionOrderResponse = DutchAuctionOrderError | DutchAuctionOrderSuccess | V2DutchAuctionOrderSuccess
 
 function isV2DutchAuctionOrderSuccess(response: any): response is V2DutchAuctionOrderSuccess {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
   return (response as V2DutchAuctionOrderSuccess).orderHash !== undefined
 }
 
+// oxlint-disable-next-line no-unused-vars -- biome-parity: oxlint is stricter here
 const isErrorResponse = (res: Response, order: DutchAuctionOrderResponse): order is DutchAuctionOrderError =>
   res.status < 200 || res.status > 202
 
@@ -109,7 +110,9 @@ export function useUniswapXSwapCallback({
   const portfolioBalanceUsd = useTotalBalancesUsdForAnalytics()
 
   return useCallback(async () => {
+    // oxlint-disable-next-line no-shadow
     const account = accountRef.current
+    // oxlint-disable-next-line no-shadow
     const provider = providerRef.current
     if (account.status !== 'connected') {
       throw new Error('wallet not connected')
@@ -199,11 +202,14 @@ export function useUniswapXSwapCallback({
 
       const signature = await (async () => {
         try {
+          // oxlint-disable-next-line no-shadow
           const provider = providerRef.current
           if (!provider) {
             throw new Error('missing provider')
           }
+          // oxlint-disable-next-line no-shadow
           const account = accountRef.current
+          // oxlint-disable-next-line typescript/no-unsafe-return -- biome-parity: oxlint is stricter here
           return await signTypedData({ signer: provider.getSigner(account.address), domain, types, value: values })
         } catch (error) {
           if (didUserReject(error)) {
@@ -216,6 +222,7 @@ export function useUniswapXSwapCallback({
       const resultTime = Math.floor(Date.now() / 1000)
       if (deadline < resultTime) {
         sendAnalyticsEvent(InterfaceEventName.UniswapXSignatureDeadlineExpired, {
+          // oxlint-disable-next-line typescript/no-misused-spread -- biome-parity: oxlint is stricter here
           ...formatSwapSignedAnalyticsEventProperties({
             trade,
             allowedSlippage,
@@ -229,6 +236,7 @@ export function useUniswapXSwapCallback({
         throw new SignatureExpiredError()
       }
       sendAnalyticsEvent(SwapEventName.SwapSigned, {
+        // oxlint-disable-next-line typescript/no-misused-spread -- biome-parity: oxlint is stricter here
         ...formatSwapSignedAnalyticsEventProperties({
           trade,
           allowedSlippage,
@@ -276,6 +284,7 @@ export function useUniswapXSwapCallback({
       // check for status code and perform this type narrowing.
       if (isErrorResponse(res, responseBody)) {
         sendAnalyticsEvent(InterfaceEventName.UniswapXOrderPostError, {
+          // oxlint-disable-next-line typescript/no-misused-spread -- biome-parity: oxlint is stricter here
           ...formatSwapSignedAnalyticsEventProperties({
             trade,
             allowedSlippage,

@@ -1,6 +1,7 @@
-import { GraphQLApi } from '@universe/api'
+import { GraphQLApi, TradingApi } from '@universe/api'
 import { ETH_LOGO, OPTIMISM_LOGO } from 'ui/src/assets'
 import { config } from 'uniswap/src/config'
+import { CHAIN_ID_TO_URL_PARAM } from 'uniswap/src/features/chains/chainUrlParam'
 import {
   DEFAULT_NATIVE_ADDRESS_LEGACY,
   DEFAULT_RETRY_OPTIONS,
@@ -51,6 +52,7 @@ export const OPTIMISM_CHAIN_INFO = {
   },
   openseaName: 'optimism',
   interfaceName: 'optimism',
+  searchAliases: ['op'],
   label: 'OP Mainnet',
   logo: OPTIMISM_LOGO,
   nativeCurrency: {
@@ -73,9 +75,10 @@ export const OPTIMISM_CHAIN_INFO = {
   },
   tokens,
   statusPage: 'https://optimism.io/status',
+  supportedURVersions: [TradingApi.UniversalRouterVersion._2_0, TradingApi.UniversalRouterVersion._2_1_1],
   supportsV4: true,
   supportsNFTs: true,
-  urlParam: 'optimism',
+  urlParam: CHAIN_ID_TO_URL_PARAM[UniverseChainId.Optimism],
   wrappedNativeCurrency: {
     name: 'Wrapped Ether',
     symbol: 'WETH',

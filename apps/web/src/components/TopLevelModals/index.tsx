@@ -2,13 +2,17 @@ import { useAtomValue } from 'jotai/utils'
 import { useTranslation } from 'react-i18next'
 import { BridgedAssetModalAtom } from 'uniswap/src/components/BridgedAsset/BridgedAssetModal'
 import { WormholeModalAtom } from 'uniswap/src/components/BridgedAsset/WormholeModal'
+import { ReportTokenDataModalPropsAtom } from 'uniswap/src/components/reporting/ReportTokenDataModal'
 import { ReportTokenIssueModalPropsAtom } from 'uniswap/src/components/reporting/ReportTokenIssueModal'
 import { useUnitagsAddressQuery } from 'uniswap/src/data/apiClients/unitagsApi/useUnitagsAddressQuery'
 import { useActiveAddresses } from 'uniswap/src/features/accounts/store/hooks'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { AnalyticsDebugOverlayLazy } from 'uniswap/src/features/telemetry/debug/AnalyticsDebugOverlayLazy'
 import { shortenAddress } from 'utilities/src/addresses'
 import { isBetaEnv, isDevEnv } from 'utilities/src/environment/env'
 import { useEvent } from 'utilities/src/react/hooks'
+import { OAuthRedirectProvider } from '~/components/Passkey/OAuthRedirectContext'
+import { useOAuthRedirectRouter } from '~/components/Passkey/useOAuthRedirectRouter'
 import { POPUP_MEDIUM_DISMISS_MS } from '~/components/Popups/constants'
 import { popupRegistry } from '~/components/Popups/registry'
 import { PopupType } from '~/components/Popups/types'
@@ -18,6 +22,7 @@ import { PageType, useIsPage } from '~/hooks/useIsPage'
 import { PasskeysHelpModalTypeAtom } from '~/hooks/usePasskeyAuthWithHelpModal'
 
 export default function TopLevelModals() {
+  useOAuthRedirectRouter()
   const { t } = useTranslation()
   const isLandingPage = useIsPage(PageType.LANDING)
   const { evmAddress, svmAddress } = useActiveAddresses()
@@ -35,6 +40,7 @@ export default function TopLevelModals() {
   const wormholeModalProps = useAtomValue(WormholeModalAtom)
 
   const reportTokenIssueProps = useAtomValue(ReportTokenIssueModalPropsAtom)
+  const reportTokenDataProps = useAtomValue(ReportTokenDataModalPropsAtom)
   const onReportSuccess = useEvent(() => {
     popupRegistry.addPopup(
       { type: PopupType.Success, message: t('common.reported') },
@@ -51,7 +57,7 @@ export default function TopLevelModals() {
   // necessary and add minimal overhead to the dom.
   if (isLandingPage) {
     return (
-      <>
+      <OAuthRedirectProvider value={true}>
         <ModalRenderer modalName={ModalName.PrivacyPolicy} />
         <ModalRenderer modalName={ModalName.PrivacyChoices} />
         <ModalRenderer modalName={ModalName.GetTheApp} />
@@ -63,17 +69,27 @@ export default function TopLevelModals() {
         <ModalRenderer modalName={ModalName.OffchainActivity} />
         <ModalRenderer modalName={ModalName.ReceiveCryptoModal} />
         <ModalRenderer modalName={ModalName.PendingWalletConnection} />
-      </>
+        <ModalRenderer
+          modalName={ModalName.PasskeysHelp}
+          componentProps={{ type: passkeysHelpModalType, accountName: evmAccountName }}
+        />
+        <ModalRenderer modalName={ModalName.AddPasskey} />
+        <ModalRenderer modalName={ModalName.AddBackupLogin} />
+        <ModalRenderer modalName={ModalName.RecoverWallet} />
+        <ModalRenderer modalName={ModalName.DeletePasskey} />
+        <ModalRenderer modalName={ModalName.RemoveBackupLogin} />
+      </OAuthRedirectProvider>
     )
   }
 
   return (
-    <>
+    <OAuthRedirectProvider value={true}>
       <ModalRenderer modalName={ModalName.AddressClaim} />
       <ModalRenderer modalName={ModalName.BlockedAccount} componentProps={{ blockedAddress }} />
       <ModalRenderer modalName={ModalName.UniWalletConnect} />
       <ModalRenderer modalName={ModalName.Banners} />
       <ModalRenderer modalName={ModalName.OffchainActivity} />
+      <ModalRenderer modalName={ModalName.TransactionDetails} />
       <ModalRenderer modalName={ModalName.TransactionConfirmation} />
       <ModalRenderer modalName={ModalName.UkDisclaimer} />
       <ModalRenderer modalName={ModalName.TestnetMode} componentProps={{ showCloseButton: true }} />
@@ -83,6 +99,7 @@ export default function TopLevelModals() {
       <ModalRenderer modalName={ModalName.FeatureFlags} />
       <ModalRenderer modalName={ModalName.SolanaPromo} />
       {shouldShowDevFlags && <ModalRenderer modalName={ModalName.DevFlags} />}
+      {shouldShowDevFlags && <AnalyticsDebugOverlayLazy />}
       <ModalRenderer modalName={ModalName.AddLiquidity} />
       <ModalRenderer modalName={ModalName.RemoveLiquidity} />
       <ModalRenderer modalName={ModalName.ClaimFee} />
@@ -101,6 +118,16 @@ export default function TopLevelModals() {
         modalName={ModalName.ReportTokenIssue}
         componentProps={{ ...reportTokenIssueProps, onReportSuccess }}
       />
-    </>
+      <ModalRenderer
+        modalName={ModalName.ReportTokenData}
+        componentProps={{ ...reportTokenDataProps, onReportSuccess }}
+      />
+      <ModalRenderer modalName={ModalName.AddPasskey} />
+      <ModalRenderer modalName={ModalName.AddBackupLogin} />
+      <ModalRenderer modalName={ModalName.RecoverWallet} />
+      <ModalRenderer modalName={ModalName.DeletePasskey} />
+      <ModalRenderer modalName={ModalName.RemoveBackupLogin} />
+      <ModalRenderer modalName={ModalName.DataApiOutage} />
+    </OAuthRedirectProvider>
   )
 }

@@ -1,10 +1,16 @@
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { applyGasBuffer } from 'uniswap/src/features/gas/utils'
 import {
   signMessageWithPasskey,
   signTransactionWithPasskey,
   signTypedDataWithPasskey,
 } from 'uniswap/src/features/passkey/embeddedWallet'
+import {
+  checkEmbeddedWalletDelegation,
+  type EthTransactionParams,
+  sendDelegatedTransaction,
+} from 'uniswap/src/features/passkey/embeddedWalletDelegation'
 import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { createObservableTransport } from 'uniswap/src/features/providers/observability/createObservableTransport'
 import { getRpcObserver } from 'uniswap/src/features/providers/observability/rpcObserver'
@@ -25,6 +31,7 @@ type RequestArgs = {
 const safeJSONStringify = (param: any): any => {
   return JSON.stringify(
     param,
+    // oxlint-disable-next-line typescript/no-unsafe-return -- biome-parity: oxlint is stricter here
     (_, value) => (typeof value === 'bigint' ? value.toString() : value), // return everything else unchanged
   )
 }
@@ -84,7 +91,7 @@ export class EmbeddedWalletProvider {
       case 'eth_accounts':
         return this.getAccounts()
       case 'eth_sendTransaction':
-        return this.sendTransaction(args.params)
+        return this.sendTransaction(args.params ?? [])
       case 'eth_chainId':
         return this.getChainId()
       case 'eth_getTransactionByHash':
@@ -255,7 +262,7 @@ export class EmbeddedWalletProvider {
     return [account?.address]
   }
 
-  async sendTransaction(transactions: any) {
+  async sendTransaction(transactions: unknown[]) {
     try {
       const account = this.getAccount()
       if (!account) {
@@ -264,28 +271,74 @@ export class EmbeddedWalletProvider {
         })
         throw NoWalletFoundError
       }
-      const publicClient = this.getPublicClient(this.chainId)
-      const [currentGasData, nonce] = await Promise.all([
-        publicClient.estimateFeesPerGas({ chain: getChainInfo(this.chainId) }),
-        publicClient.getTransactionCount({ address: account.address }),
-      ])
-      const tx = {
-        ...transactions[0],
-        gas: (BigInt(Number(transactions[0].gas ?? 0)) * BigInt(12)) / BigInt(10), // add 20% buffer, TODO[EW]: play around with this
-        value: BigInt(transactions[0].value ?? 0),
-        chainId: this.chainId,
-        maxFeePerGas: BigInt(transactions[0].maxFeePerGas ?? currentGasData.maxFeePerGas),
-        maxPriorityFeePerGas: BigInt(transactions[0].maxPriorityFeePerGas ?? currentGasData.maxPriorityFeePerGas),
-        nonce: transactions[0].nonce ?? nonce,
+
+      const { walletId } = getEmbeddedWalletState()
+      const originalTx = transactions[0] as EthTransactionParams | undefined
+      const hasCalldata = originalTx?.data && originalTx.data !== '0x' && originalTx.data !== ''
+      const delegationResult = hasCalldata ? await checkEmbeddedWalletDelegation(account.address, this.chainId) : null
+      if (delegationResult && (delegationResult.needsDelegation || delegationResult.isWalletDelegatedToUniswap)) {
+        const { signTransaction } = account
+        // oxlint-disable-next-line typescript/no-unnecessary-condition -- defensive: Account union includes JsonRpcAccount which lacks signTransaction
+        if (!signTransaction) {
+          throw new Error('Account does not support signTransaction')
+        }
+        return sendDelegatedTransaction({
+          transactions: transactions as EthTransactionParams[],
+          account,
+          delegationResult,
+          chainId: this.chainId,
+          publicClient: this.getPublicClient(this.chainId),
+          signTransaction,
+          walletId: walletId ?? undefined,
+        })
       }
-      const signedTx = await account.signTransaction(tx)
-      const txHash = await publicClient.sendRawTransaction({ serializedTransaction: signedTx })
-      return txHash
-    } catch (e: any) {
-      logger.debug('EmbeddedWalletProvider.ts', 'sendTransaction', e, transactions)
+
+      return this.sendStandardTransaction(transactions, account)
+    } catch (e: unknown) {
+      logger.error(e, {
+        tags: { file: 'EmbeddedWalletProvider.ts', function: 'sendTransaction' },
+      })
       return undefined
     }
   }
+
+  private async sendStandardTransaction(transactions: unknown[], account: Account) {
+    const publicClient = this.getPublicClient(this.chainId)
+    const [feePerGasEstimates, nonce] = await Promise.all([
+      publicClient.estimateFeesPerGas({ chain: getChainInfo(this.chainId) }),
+      publicClient.getTransactionCount({ address: account.address }),
+    ])
+    const txData = transactions[0] as Record<string, unknown>
+    const toAddr = String(txData.to ?? '')
+    const txCalldata = String(txData.data ?? '0x')
+    const gas =
+      txData.gas != null
+        ? applyGasBuffer(BigInt(Number(txData.gas)))
+        : applyGasBuffer(
+            await publicClient.estimateGas({
+              account: account.address,
+              to: isValidHexString(toAddr) ? (toAddr as HexString) : undefined,
+              data: isValidHexString(txCalldata) ? (txCalldata as HexString) : undefined,
+              value: BigInt(String(txData.value ?? 0)),
+            }),
+          )
+    const tx = {
+      ...txData,
+      gas,
+      value: BigInt(String(txData.value ?? 0)),
+      chainId: this.chainId,
+      maxFeePerGas: BigInt(String(txData.maxFeePerGas ?? feePerGasEstimates.maxFeePerGas)),
+      maxPriorityFeePerGas: BigInt(String(txData.maxPriorityFeePerGas ?? feePerGasEstimates.maxPriorityFeePerGas)),
+      nonce: txData.nonce != null ? Number(txData.nonce) : nonce,
+    }
+    if (!account.signTransaction) {
+      throw new Error('Account does not support signTransaction')
+    }
+    const signedTx = await account.signTransaction(tx)
+    const txHash = await publicClient.sendRawTransaction({ serializedTransaction: signedTx })
+    return txHash
+  }
+
   updateChainId(chainId: UniverseChainId) {
     this.chainId = chainId
     localStorage.setItem('embeddedUniswapWallet.chainId', `${chainId}`)

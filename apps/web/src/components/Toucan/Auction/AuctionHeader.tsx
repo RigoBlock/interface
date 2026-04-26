@@ -129,7 +129,7 @@ export const AuctionHeader = () => {
   const logoUrl = auctionDetails.token?.logoUrl ?? ''
 
   return (
-    <Flex>
+    <Flex mt="$spacing24">
       <AuctionBreadcrumbs symbol={tokenSymbol} address={auctionDetails.tokenAddress} />
       <AuctionTokenInfo
         name={tokenName}

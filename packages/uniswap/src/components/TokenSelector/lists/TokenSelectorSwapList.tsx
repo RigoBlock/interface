@@ -1,10 +1,13 @@
 import { GqlResult } from '@universe/api'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { memo, useCallback, useMemo, useRef } from 'react'
+import { Flex } from 'ui/src'
 import { TokenSelectorOption } from 'uniswap/src/components/lists/items/types'
 import { type OnchainItemSection, OnchainItemSectionName } from 'uniswap/src/components/lists/OnchainItemList/types'
 import { useOnchainItemListSection } from 'uniswap/src/components/lists/utils'
 import { useCommonTokensOptionsWithFallback } from 'uniswap/src/components/TokenSelector/hooks/useCommonTokensOptionsWithFallback'
 import { useFavoriteTokensOptions } from 'uniswap/src/components/TokenSelector/hooks/useFavoriteTokensOptions'
+import { usePortfolioBalancesForAddressById } from 'uniswap/src/components/TokenSelector/hooks/usePortfolioBalancesForAddressById'
 import { usePortfolioTokenOptions } from 'uniswap/src/components/TokenSelector/hooks/usePortfolioTokenOptions'
 import { useRecentlySearchedTokens } from 'uniswap/src/components/TokenSelector/hooks/useRecentlySearchedTokens'
 import { useTrendingTokensOptions } from 'uniswap/src/components/TokenSelector/hooks/useTrendingTokensOptions'
@@ -17,7 +20,6 @@ import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { ClearRecentSearchesButton } from 'uniswap/src/features/search/ClearRecentSearchesButton'
 import { isMobileApp } from 'utilities/src/platform'
 
-// eslint-disable-next-line complexity
 function useTokenSectionsForSwap({
   addresses,
   chainFilter,
@@ -25,6 +27,10 @@ function useTokenSectionsForSwap({
   supportedBridgingChains,
 }: TokenSectionsHookProps): GqlResult<OnchainItemSection<TokenSelectorOption>[]> {
   const { defaultChainId, isTestnetModeEnabled } = useEnabledChains()
+  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
+
+  // Fetch portfolio balances once and share across all sub-hooks to avoid 5 redundant hook chain traversals
+  const portfolioData = usePortfolioBalancesForAddressById(addresses)
 
   // TODO: use smart pool portfolio tokens when selecting for smart pool swap
   const {
@@ -32,21 +38,21 @@ function useTokenSectionsForSwap({
     error: portfolioTokenOptionsError,
     refetch: refetchPortfolioTokenOptions,
     loading: portfolioTokenOptionsLoading,
-  } = usePortfolioTokenOptions({ addresses, chainFilter })
+  } = usePortfolioTokenOptions({ chainFilter, portfolioData })
 
   const {
     data: trendingTokenOptions,
     error: trendingTokenOptionsError,
     refetch: refetchTrendingTokenOptions,
     loading: trendingTokenOptionsLoading,
-  } = useTrendingTokensOptions({ addresses, chainFilter })
+  } = useTrendingTokensOptions({ chainFilter, portfolioData })
 
   const {
     data: favoriteTokenOptions,
     error: favoriteTokenOptionsError,
     refetch: refetchFavoriteTokenOptions,
     loading: favoriteTokenOptionsLoading,
-  } = useFavoriteTokensOptions({ addresses, chainFilter })
+  } = useFavoriteTokensOptions({ chainFilter, portfolioData })
 
   const {
     data: commonTokenOptions,
@@ -55,8 +61,8 @@ function useTokenSectionsForSwap({
     loading: commonTokenOptionsLoading,
     // if there is no chain filter, first check if the input token has a chainId, fallback to defaultChainId
   } = useCommonTokensOptionsWithFallback({
-    addresses,
     chainFilter: chainFilter ?? oppositeSelectedToken?.chainId ?? defaultChainId,
+    portfolioData,
   })
 
   const {
@@ -65,21 +71,21 @@ function useTokenSectionsForSwap({
     refetch: refetchBridgingTokenOptions,
     loading: bridgingTokenOptionsLoading,
     shouldNest: shouldNestBridgingTokens,
-  } = useBridgingTokensOptions({ oppositeSelectedToken, addresses, chainFilter })
+  } = useBridgingTokensOptions({ oppositeSelectedToken, chainFilter, portfolioData })
 
   const recentlySearchedTokenOptions = useRecentlySearchedTokens(chainFilter)
 
   const error =
     (!portfolioTokenOptions && portfolioTokenOptionsError) ||
     (!trendingTokenOptions && trendingTokenOptionsError) ||
-    (!favoriteTokenOptions && favoriteTokenOptionsError) ||
+    (!multichainTokenUxEnabled && !favoriteTokenOptions && favoriteTokenOptionsError) ||
     (!commonTokenOptions && commonTokenOptionsError) ||
     (!bridgingTokenOptions && bridgingTokenOptionsError)
 
   const loading =
     (!portfolioTokenOptions && portfolioTokenOptionsLoading) ||
     (!trendingTokenOptions && trendingTokenOptionsLoading) ||
-    (!favoriteTokenOptions && favoriteTokenOptionsLoading) ||
+    (!multichainTokenUxEnabled && !favoriteTokenOptions && favoriteTokenOptionsLoading) ||
     (!commonTokenOptions && commonTokenOptionsLoading) ||
     (!bridgingTokenOptions && bridgingTokenOptionsLoading)
 
@@ -116,14 +122,17 @@ function useTokenSectionsForSwap({
     options: recentlySearchedTokenOptions,
     endElement: memoizedEndElement,
   })
+
   const favoriteSection = useOnchainItemListSection({
     sectionKey: OnchainItemSectionName.FavoriteTokens,
     options: favoriteTokenOptions,
   })
+
   const trendingSection = useOnchainItemListSection({
     sectionKey: OnchainItemSectionName.TrendingTokens,
     options: trendingTokenOptions,
   })
+
   const bridgingSectionTokenOptions: TokenSelectorOption[] = useMemo(
     () => (shouldNestBridgingTokens ? [bridgingTokenOptions ?? []] : (bridgingTokenOptions ?? [])),
     [bridgingTokenOptions, shouldNestBridgingTokens],
@@ -150,7 +159,7 @@ function useTokenSectionsForSwap({
       ...(recentSection ?? []),
       // TODO(WEB-3061): Favorited wallets/tokens
       // Extension & interface do not support favoriting but has a default list, so we can't rely on empty array check
-      ...(isMobileApp ? (favoriteSection ?? []) : []),
+      ...(isMobileApp && !multichainTokenUxEnabled ? (favoriteSection ?? []) : []),
       ...(trendingSection ?? []),
     ]
   }, [
@@ -162,6 +171,7 @@ function useTokenSectionsForSwap({
     recentSection,
     favoriteSection,
     isTestnetModeEnabled,
+    multichainTokenUxEnabled,
   ])
 
   return useMemo(
@@ -175,7 +185,7 @@ function useTokenSectionsForSwap({
   )
 }
 
-function _TokenSelectorSwapList({
+function TokenSelectorSwapListInner({
   onSelectCurrency,
   addresses,
   chainFilter,
@@ -198,19 +208,24 @@ function _TokenSelectorSwapList({
     oppositeSelectedToken,
     supportedBridgingChains,
   })
+
+  const hasError = Boolean(error)
+
   return (
-    <TokenSelectorList
-      showTokenAddress
-      chainFilter={chainFilter}
-      hasError={Boolean(error)}
-      loading={loading}
-      refetch={refetch}
-      sections={sections}
-      showTokenWarnings={true}
-      renderedInModal={renderedInModal}
-      onSelectCurrency={onSelectCurrency}
-    />
+    <Flex grow>
+      <TokenSelectorList
+        showTokenAddress
+        chainFilter={chainFilter}
+        hasError={hasError}
+        loading={loading}
+        refetch={refetch}
+        sections={sections}
+        showTokenWarnings={true}
+        renderedInModal={renderedInModal}
+        onSelectCurrency={onSelectCurrency}
+      />
+    </Flex>
   )
 }
 
-export const TokenSelectorSwapList = memo(_TokenSelectorSwapList)
+export const TokenSelectorSwapList = memo(TokenSelectorSwapListInner)

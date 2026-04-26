@@ -21,11 +21,13 @@ export function usePoolsFromTokenAddress({
   sortState,
   chainId,
   isNative,
+  multichain,
 }: {
   tokenAddress: string
   sortState: PoolTableSortState
   chainId: UniverseChainId
   isNative?: boolean
+  multichain?: boolean
 }) {
   const chain = toGraphQLChain(chainId)
   const skipPoolQueries = isSVMChain(chainId)
@@ -39,6 +41,7 @@ export function usePoolsFromTokenAddress({
       first: DEFAULT_QUERY_SIZE,
       tokenAddress: isNative ? DEFAULT_NATIVE_ADDRESS : tokenAddress,
       chain,
+      multichain,
     },
     skip: skipPoolQueries,
   })
@@ -53,6 +56,7 @@ export function usePoolsFromTokenAddress({
       first: DEFAULT_QUERY_SIZE,
       tokenAddress,
       chain,
+      multichain,
     },
     skip: skipPoolQueries,
   })
@@ -67,6 +71,7 @@ export function usePoolsFromTokenAddress({
       first: DEFAULT_QUERY_SIZE,
       tokenAddress,
       chain,
+      multichain,
     },
     skip: skipPoolQueries,
   })

@@ -107,7 +107,6 @@ export function useTokenPriceHistory({
   const spotValue = useDerivedValue(() => price ?? 0)
   const spotRelativeChange = useDerivedValue(() => priceChange)
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ensure spot updates when price changes
   const spot = useMemo(
     () =>
       price !== undefined
@@ -116,6 +115,7 @@ export function useTokenPriceHistory({
             relativeChange: spotRelativeChange,
           }
         : undefined,
+    // oxlint-disable-next-line react/exhaustive-deps -- biome-parity: oxlint is stricter here
     [price, priceChange, spotValue, spotRelativeChange],
   )
 

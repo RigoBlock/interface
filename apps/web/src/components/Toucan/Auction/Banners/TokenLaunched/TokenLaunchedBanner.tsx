@@ -26,6 +26,7 @@ interface TokenLaunchedBannerProps {
  * Handles data fetching, loading states, and failure states
  * Shows success state when graduated, failure state when not graduated
  */
+// oxlint-disable-next-line complexity
 export function TokenLaunchedBanner({
   tokenName,
   tokenColor,
@@ -46,7 +47,7 @@ export function TokenLaunchedBanner({
   const chainId = auctionDetails?.chainId
   const auctionAddress = auctionDetails?.address
 
-  const { bannerGradient, scrimStyle, accentColor } = useTokenLaunchedBannerColorData({
+  const { bannerGradient, accentColor } = useTokenLaunchedBannerColorData({
     tokenColor: isGraduated ? tokenColor : colors.statusCritical.val,
     tokenColorLoading,
     colors,
@@ -174,7 +175,6 @@ export function TokenLaunchedBanner({
         changePercentage: effectivePriceData.changePercentage,
       }}
       bannerGradient={bannerGradient}
-      scrimStyle={scrimStyle}
       accentColor={accentColor}
     />
   )

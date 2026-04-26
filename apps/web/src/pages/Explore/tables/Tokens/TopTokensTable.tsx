@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react'
 import { Flex, styled } from 'ui/src'
 import { MAX_WIDTH_MEDIA_BREAKPOINT } from '~/constants/breakpoints'
+import { useChainIdFromUrlParam } from '~/features/params/chainParams'
 import useSimplePagination from '~/hooks/useSimplePagination'
 import { useExploreTablesFilterStore } from '~/pages/Explore/exploreTablesFilterStore'
 import { TokenTable } from '~/pages/Explore/tables/Tokens/TokensTable'
@@ -9,8 +10,8 @@ import {
   useTokenTableSortStore,
 } from '~/pages/Explore/tables/Tokens/tokenTableSortStore'
 import { TABLE_PAGE_SIZE } from '~/state/explore'
-import { useTopTokens } from '~/state/explore/topTokens/useTopTokens'
-import { useChainIdFromUrlParam } from '~/utils/chainParams'
+import { useListTokens } from '~/state/explore/listTokens/useListTokens'
+import { useExploreBackendSortingEnabled } from '~/state/explore/useExploreBackendSortingEnabled'
 
 const TableWrapper = styled(Flex, {
   m: '0 auto',
@@ -29,11 +30,12 @@ function TopTokensTableContent(): JSX.Element {
     [sortMethod, sortAscending, filterString, timePeriod],
   )
 
-  const { topTokens, tokenSortRank, isLoading, sparklines, isError, loadMore } = useTopTokens(chainId, options)
+  const backendSortingEnabled = useExploreBackendSortingEnabled()
+  const { topTokens, tokenSortRank, isLoading, sparklines, isError, loadMore } = useListTokens(chainId, options)
 
   const { page, loadMore: clientLoadMore } = useSimplePagination()
   const effectiveLoadMore = loadMore ?? clientLoadMore
-  const displayedTokens = loadMore ? topTokens : topTokens?.slice(0, page * TABLE_PAGE_SIZE)
+  const displayedTokens = backendSortingEnabled ? topTokens : topTokens.slice(0, page * TABLE_PAGE_SIZE)
 
   return (
     <TableWrapper data-testid="top-tokens-explore-table">
