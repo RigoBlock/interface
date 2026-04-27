@@ -476,12 +476,12 @@ export function useStakingPools(addresses: string[], poolIds: string[]): UseStak
   }, [combinedData, isLoading, poolIds])
 
   return useMemo(() => {
-    if (!stakingPoolsData || !supplyAmount) {
+    if (!stakingPoolsData || !supplyAmount?.totalSupply) {
       return { loading: isLoading, stakingPools: undefined }
     }
 
     const { pools, totalDelegatedStake, totalPoolsOwnStake } = stakingPoolsData
-    const totalRewardPool = Number(supplyAmount.quotient.toString()) * 0.02
+    const totalRewardPool = Number(supplyAmount.totalSupply.quotient.toString()) * 0.02
 
     const stakingPools = poolIds.map((poolId) => {
       const pool = pools[poolId]

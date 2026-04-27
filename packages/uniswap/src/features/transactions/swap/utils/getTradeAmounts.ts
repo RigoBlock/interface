@@ -39,7 +39,7 @@ export function getTradeAmounts(acceptedDerivedSwapInfo?: DerivedSwapInfo<Curren
   const inputCurrencyAmount = isWrap ? wrapInputCurrencyAmount : displayTrade?.inputAmount
   const outputCurrencyAmount = isWrap
     ? wrapOutputCurrencyAmount
-    : acceptedDerivedSwapInfo.smartPoolAddress && displayTrade?.routing === TradingApi.Routing.BRIDGE
+    : acceptedDerivedSwapInfo.smartPoolAddress && trade?.routing === TradingApi.Routing.BRIDGE
       ? currencyAmounts[CurrencyField.OUTPUT]
       : displayTrade?.outputAmount
 

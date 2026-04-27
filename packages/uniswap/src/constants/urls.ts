@@ -2,12 +2,14 @@ import {
   createHelpArticleUrl,
   DEV_ENTRY_GATEWAY_API_BASE_URL,
   getCloudflareApiBaseUrl,
+  getMigratedForApiUrl,
   getRbCloudflareApiBaseUrl,
   helpUrl,
   PROD_ENTRY_GATEWAY_API_BASE_URL,
   STAGING_ENTRY_GATEWAY_API_BASE_URL,
   TrafficFlows,
 } from '@universe/api'
+import { FeatureFlags, getFeatureFlag } from '@universe/gating'
 import { config } from 'uniswap/src/config'
 import { isBetaEnv, isDevEnv, isPlaywrightEnv } from 'utilities/src/environment/env'
 import { isWebApp } from 'utilities/src/platform'
@@ -184,10 +186,14 @@ export const uniswapUrls = {
   apiOrigin: 'https://api.rigoblock.com',
   apiBaseUrl: config.apiBaseUrlOverride || getRbCloudflareApiBaseUrl(),
   complianceApiBaseUrl: getComplianceApiBaseUrl(),
-  apiBaseUrlV2: config.apiBaseUrlV2Override || getRbCloudflareApiBaseUrl({ postfix: 'v2' }),
-  graphQLUrl: config.graphqlUrlOverride || getRbCloudflareApiBaseUrl({ flow: TrafficFlows.GraphQL, postfix: 'v1/graphql' })},
-  dataApiBaseUrlV2:
-    config.apiBaseUrlV2Override || `${getRbCloudflareApiBaseUrl()}/v2`,
+  // ConnectRPC transports append /{proto.package}.{Service}/{method} directly to this base URL.
+  // The RigoBlock Cloudflare worker routes /v2/* to the data API backend, so both ConnectRPC
+  // transports must include the /v2 path prefix. Without it the worker returns 403.
+  // Both apiBaseUrlV2 and dataApiBaseUrlV2 use the main gateway; the upstream's data-api.* subdomain
+  // does not exist on the RigoBlock gateway.
+  apiBaseUrlV2: config.apiBaseUrlV2Override || `${getRbCloudflareApiBaseUrl()}/v2`,
+  dataApiBaseUrlV2: config.apiBaseUrlV2Override || `${getRbCloudflareApiBaseUrl()}/v2`,
+  graphQLUrl: config.graphqlUrlOverride || getRbCloudflareApiBaseUrl(TrafficFlows.GraphQL),
 
   // Proxies
   amplitudeProxyUrl:

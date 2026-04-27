@@ -438,6 +438,7 @@ export function generateLiquidityServiceCreateCalldataQueryParams({
   nativeTokenBalance,
   useV2Endpoints,
   poolId,
+  isSmartPool,
 }: RawCreatePositionInput): CreateLPPositionRequest | CreateClassicPositionRequest | CreatePositionRequest | undefined {
   const validated = validateCreatePositionInput({
     protocolVersion,
@@ -455,6 +456,7 @@ export function generateLiquidityServiceCreateCalldataQueryParams({
     nativeTokenBalance,
     useV2Endpoints,
     poolId,
+    isSmartPool,
   })
 
   if (!validated) {

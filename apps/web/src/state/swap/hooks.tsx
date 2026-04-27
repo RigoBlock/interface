@@ -22,7 +22,6 @@ import { useMultichainContext } from '~/state/multichain/useMultichainContext'
 import { usePoolExtendedContract } from '~/state/pool/hooks'
 import { CurrencyState, SerializedCurrencyState, SwapState } from '~/state/swap/types'
 import { useSwapAndLimitContext } from '~/state/swap/useSwapContext'
-import { getParsedChainId } from '~/utils/chainParams'
 import { assume0xAddress } from '~/utils/wagmi'
 import { useReadContract } from 'wagmi'
 

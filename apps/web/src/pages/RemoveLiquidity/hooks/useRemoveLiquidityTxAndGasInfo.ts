@@ -20,7 +20,6 @@ import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import JSBI from 'jsbi'
 import { useEffect, useMemo, useState } from 'react'
 import { useActiveSmartPool } from '~/state/application/hooks'
-import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
 import { useCheckLPApprovalQuery } from 'uniswap/src/data/apiClients/liquidityService/useCheckLPApprovalQuery'
 import { useDecreasePositionQuery } from 'uniswap/src/data/apiClients/liquidityService/useDecreasePositionQuery'
 import { getTradeSettingsDeadline } from 'uniswap/src/data/apiClients/tradingApi/utils/getTradeSettingsDeadline'
@@ -305,7 +304,8 @@ export function useRemoveLiquidityTxAndGasInfo({ account }: { account?: string }
 
     if (isDecreasePositionV2) {
       return new DecreasePositionRequest({
-        walletAddress: account,
+        // Use smart pool address so the API resolves the NFT position owner correctly
+        walletAddress: activeSmartPool?.address ?? account,
         chainId: currency0.chainId,
         protocol: getProtocols(positionInfo.version),
         token0Address: getTokenOrZeroAddress(currency0),
@@ -314,7 +314,9 @@ export function useRemoveLiquidityTxAndGasInfo({ account }: { account?: string }
         liquidityPercentageToDecrease: Number(percent),
         slippageTolerance: customSlippageTolerance,
         deadline: getTradeSettingsDeadline(customDeadline),
-        simulateTransaction: !approvalsNeeded,
+        // Smart pool transactions always revert server-side simulation (vault routing);
+        // skip it and override from/to client-side after receiving calldata
+        simulateTransaction: activeSmartPool?.address ? false : !approvalsNeeded,
         withdrawAsWeth: !unwrapNativeCurrency,
       })
     }
@@ -379,12 +381,13 @@ export function useRemoveLiquidityTxAndGasInfo({ account }: { account?: string }
     })
   }
 
-  decreaseCalldata && decreaseCalldata.decrease && (decreaseCalldata.decrease.from = account ?? ZERO_ADDRESS)
-  decreaseCalldata &&
-    decreaseCalldata.decrease &&
-    (decreaseCalldata.decrease.to = activeSmartPool.address ?? ZERO_ADDRESS)
-  decreaseCalldata && decreaseCalldata.decrease && activeSmartPool.address && (decreaseCalldata.decrease.value = '0x0')
-  // Note: gasLimit overhead for smart pool routing is applied once in liquiditySaga.ts (RIGOBLOCK_LIQUIDITY_GAS_OVERHEAD)
+  if (decreaseCalldata?.decrease && activeSmartPool.address && account) {
+    // Smart pool routing: EOA signs, vault contract executes on-chain via settler
+    decreaseCalldata.decrease.from = account
+    decreaseCalldata.decrease.to = activeSmartPool.address
+    decreaseCalldata.decrease.value = '0x0'
+    // Note: gasLimit overhead for smart pool routing is applied in liquiditySaga.ts (RIGOBLOCK_LIQUIDITY_GAS_OVERHEAD)
+  }
 
   const { displayValue: estimatedGasFee } = useTransactionGasFee({
     tx: decreaseCalldata?.decrease,

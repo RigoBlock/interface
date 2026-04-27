@@ -68,6 +68,9 @@ import store from '~/state'
 import { LivePricesProvider } from '~/state/livePrices/LivePricesProvider'
 import { ThemedGlobalStyle, ThemeProvider } from '~/theme'
 import { TamaguiProvider } from '~/theme/tamaguiProvider'
+import { isBrowserRouterEnabled } from '~/utils/env'
+import { unregister as unregisterServiceWorker } from '~/utils/serviceWorker'
+import { getCanonicalUrl } from '~/utils/urlRoutes'
 
 if (window.ethereum) {
   window.ethereum.autoRefreshOnNetworkChange = false

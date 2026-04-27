@@ -104,7 +104,7 @@ export function RemoveLiquidityForm() {
                 maxDecimals={0}
                 maxLength={3}
               />
-              <NumericalInputSymbolContainer showPlaceholder={!percent}>%</NumericalInputSymbolContainer>
+              <NumericalInputSymbolContainer $showPlaceholder={!percent}>%</NumericalInputSymbolContainer>
               <NumericalInputMimic ref={hiddenObserver.ref}>{percent}</NumericalInputMimic>
             </NumericalInputWrapper>
           </Flex>

@@ -18,8 +18,6 @@ import {
 } from 'react'
 import { useActiveSmartPool } from '~/state/application/hooks'
 import { useSelector } from 'react-redux'
-import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
-import { PositionField } from '~/types/position'
 import { useUniswapContextSelector } from 'uniswap/src/contexts/UniswapContext'
 import { useCheckLPApprovalQuery } from 'uniswap/src/data/apiClients/liquidityService/useCheckLPApprovalQuery'
 import { useIncreasePositionQuery } from 'uniswap/src/data/apiClients/liquidityService/useIncreasePositionQuery'
@@ -95,6 +93,7 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
     positionInfo?.chainId ? state.delegation.delegations[String(positionInfo.chainId)] : null,
   )
 
+  // TODO: check this works, as an if block has been removed (early return for smart pool here)
   const increaseLiquidityApprovalParams = useMemo(() => {
     if (smartPoolAddress || !positionInfo || !accountAddress || !currencyAmounts?.TOKEN0 || !currencyAmounts.TOKEN1) {
       return undefined
@@ -109,7 +108,6 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
       isCheckApprovalV2,
     })
   }, [smartPoolAddress, positionInfo, accountAddress, currencyAmounts, canBatchTransactions, isCheckApprovalV2])
-  }, [smartPoolAddress, positionInfo, accountAddress, currencyAmounts, canBatchTransactions, isCheckApprovalV2])
 
   const {
     approvalData: increaseLiquidityTokenApprovals,
@@ -120,11 +118,6 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
     approvalQueryParams: increaseLiquidityApprovalParams,
     isQueryEnabled: !!increaseLiquidityApprovalParams && !error,
   })
-
-  // we override permitData as rigoblock automatically approves the tokens
-  if (increaseLiquidityTokenApprovals && !smartPoolAddress) {
-    increaseLiquidityTokenApprovals.permitData = { case: undefined }
-  }
 
   if (approvalError) {
     const message = parseErrorMessageTitle(approvalError, { defaultTitle: 'unknown CheckLpApprovalQuery' })
@@ -204,7 +197,8 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
       const independentAmount = exactField === PositionField.TOKEN0 ? token0Amount : token1Amount
 
       return new IncreasePositionRequest({
-        walletAddress: accountAddress,
+        // Use smart pool address so the API resolves the NFT position owner correctly
+        walletAddress: smartPoolAddress ?? accountAddress,
         chainId: positionInfo.currency0Amount.currency.chainId,
         protocol: getProtocols(positionInfo.version),
         token0Address: getTokenOrZeroAddress(token0),
@@ -216,7 +210,9 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
         }),
         slippageTolerance: customSlippageTolerance,
         deadline: getTradeSettingsDeadline(customDeadline),
-        simulateTransaction: !approvalsNeeded,
+        // Smart pool transactions always revert server-side simulation (vault routing);
+        // skip it and override from/to/gasLimit client-side after receiving calldata
+        simulateTransaction: !!smartPoolAddress ? false : !approvalsNeeded,
       })
     }
 
@@ -274,12 +270,17 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
   const increase = increaseCalldata?.increase
   const actualGasFee = increaseCalldata?.gasFee
 
-  increaseCalldata?.increase?.from && accountAddress && (increaseCalldata.increase.from = accountAddress)
-  increaseCalldata?.increase?.to && !!smartPoolAddress && (increaseCalldata.increase.to = smartPoolAddress)
-  increaseCalldata?.increase?.value && (increaseCalldata.increase.value = '0x0')
-
-  // TODO: we hardcode the gas limit because the estimate is slightly underpriced, resulting in failed transactions
-  increaseCalldata?.increase && (increaseCalldata.increase.gasLimit = Number(250000).toString())
+  if (increaseCalldata?.increase && smartPoolAddress && accountAddress) {
+    // Smart pool routing: EOA signs, vault contract executes on-chain via settler
+    increaseCalldata.increase.from = accountAddress
+    increaseCalldata.increase.to = smartPoolAddress
+    increaseCalldata.increase.value = '0x0'
+    // Do NOT set gasLimit — leave it unset so the wallet calls eth_estimateGas on the
+    // actual EOA→vault tx, which simulates the full execution path including settler overhead.
+    // A hardcoded value would underestimate; API simulation can't be used because
+    // the Position Manager needs token balance from the vault that doesn't exist at sim time.
+    delete increaseCalldata.increase.gasLimit
+  }
 
   if (calldataError) {
     const message = parseErrorMessageTitle(calldataError, { defaultTitle: 'unknown IncreaseLpPositionCalldataQuery' })

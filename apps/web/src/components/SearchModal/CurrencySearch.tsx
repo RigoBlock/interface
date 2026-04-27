@@ -54,7 +54,9 @@ export function CurrencySearch({
   // When a smart pool is active, use vault address for token selector balance queries
   const addresses = useMemo(
     () =>
-      smartPoolAddress ? { evmAddress: smartPoolAddress, svmAddress: undefined } : activeAddresses,
+      smartPoolAddress
+        ? { evmAddress: smartPoolAddress as `0x${string}`, svmAddress: undefined }
+        : activeAddresses,
     [smartPoolAddress, activeAddresses],
   )
 

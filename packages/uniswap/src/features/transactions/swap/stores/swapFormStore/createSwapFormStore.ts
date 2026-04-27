@@ -92,8 +92,6 @@ export const createSwapFormStore = ({
           isSubmitting: false,
           showPendingUI: false,
           isConfirmed: false,
-          hideFooter,
-          hideSettings,
           prefilledCurrencies: undefined,
           isPrefilled: undefined,
           derivedSwapInfo,

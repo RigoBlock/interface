@@ -158,7 +158,7 @@ const Toolbar = () => {
 
   const versionOptions = useMemo(
     () =>
-      [ProtocolVersion.V4, ProtocolVersion.V3, ProtocolVersion.V2]
+      [ProtocolVersion.V4]
         .filter((version) => version !== protocolVersion)
         .map((version) => (
           <TouchableArea key={`version-${version}`} onPress={() => handleVersionChange(version)}>

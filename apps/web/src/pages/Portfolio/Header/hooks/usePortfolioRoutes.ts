@@ -51,6 +51,7 @@ export function usePortfolioRoutes(): {
   chainId?: UniverseChainId
   externalAddress?: PlatformAddress
   isExternalWallet: boolean
+  hasExplicitUrlAddress: boolean
 } {
   const { pathname } = useLocation()
   const [searchParams] = useSearchParams()

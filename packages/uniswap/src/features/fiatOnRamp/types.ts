@@ -26,6 +26,26 @@ export {
   SupportedCountriesResponse,
 } from '@universe/api'
 
+// Legacy REST API type aliases (protobuf types used in the RTK Query API client)
+export type {
+  GetCountryResponse as FORGetCountryResponse,
+  OffRampWidgetUrlRequest,
+  QuoteRequest as FORQuoteRequest,
+  SupportedCountriesRequest as FORSupportedCountriesRequest,
+  SupportedFiatCurrenciesRequest as FORSupportedFiatCurrenciesRequest,
+  SupportedFiatCurrenciesResponse as FORSupportedFiatCurrenciesResponse,
+  SupportedTokensRequest as FORSupportedTokensRequest,
+  SupportedTokensResponse as FORSupportedTokensResponse,
+  TransactionResponse as FORTransactionResponse,
+  TransferServiceProvidersResponse as FORServiceProvidersResponse,
+  TransferWidgetUrlRequest as FORTransferWidgetUrlRequest,
+  WidgetUrlRequest as FORWidgetUrlRequest,
+  WidgetUrlResponse as FORWidgetUrlResponse,
+} from '@universe/api'
+
+// SupportedCountriesResponse is re-exported as a value above; alias it here for REST API usage
+export type { SupportedCountriesResponse as FORSupportedCountriesResponse } from '@universe/api'
+
 import { CurrencyInfo, PortfolioBalance } from 'uniswap/src/features/dataApi/types'
 import {
   LocalOffRampTransactionInfo,

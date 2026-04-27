@@ -17,7 +17,7 @@ import {
   transformPortfolioToMultichain,
 } from 'uniswap/src/data/rest/transformPortfolioToMultichain'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import type { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import {
   buildPortfolioBalance,
   PortfolioCacheUpdater,

@@ -252,7 +252,7 @@ export default function SendCurrencyInputForm({
             {inputInFiat && (
               <NumericalInputSymbolContainer
                 ref={prefixObserver.ref}
-                showPlaceholder={!displayValue}
+                $showPlaceholder={!displayValue}
                 style={{ lineHeight: `${lineHeight}px`, fontSize: `${fontSize}px` }}
               >
                 {fiatSymbol}

@@ -37,12 +37,12 @@ export const NumericalInputMimic = deprecatedStyled.span<{ $fontSize?: number }>
   ${NumericalInputFontStyle}
 `
 
-export const NumericalInputSymbolContainer = deprecatedStyled.span<{ showPlaceholder: boolean; $fontSize?: number }>`
+export const NumericalInputSymbolContainer = deprecatedStyled.span<{ $showPlaceholder: boolean; $fontSize?: number }>`
   user-select: none;
   color: ${({ theme }) => theme.neutral1};
   ${NumericalInputFontStyle}
-  ${({ showPlaceholder }) =>
-    showPlaceholder &&
+  ${({ $showPlaceholder }) =>
+    $showPlaceholder &&
     css`
       color: ${({ theme }) => theme.neutral3};
     `}

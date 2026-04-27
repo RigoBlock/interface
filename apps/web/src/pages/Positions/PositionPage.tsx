@@ -75,10 +75,6 @@ import { useLpIncentivesFormattedEarnings } from '~/hooks/useLpIncentivesFormatt
 import { usePositionTokenURI } from '~/hooks/usePositionTokenURI'
 import { useDynamicMetatags } from '~/pages/metatags'
 import NotFound from '~/pages/NotFound'
-import { MultichainContextProvider } from '~/state/multichain/MultichainContext'
-import { usePendingLPTransactionsChangeListener } from '~/state/transactions/hooks'
-import { ClickableTamaguiStyle } from '~/theme/components/styles'
-import { useChainIdFromUrlParam } from '~/utils/chainParams'
 
 const BodyWrapper = styled(Main, {
   backgroundColor: '$surface1',

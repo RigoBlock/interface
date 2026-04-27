@@ -4,7 +4,6 @@ import { getEntryGatewayUrl, getTransport } from '@universe/api'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
 import { BASE_UNISWAP_HEADERS } from 'uniswap/src/data/apiClients/createUniswapFetchClient'
 import { Environment } from 'utilities/src/environment/getCurrentEnv'
-import { isWebApp } from 'utilities/src/platform'
 
 export function createConnectTransportWithDefaults({
   options = {},
@@ -53,10 +52,13 @@ export const dataApiPostTransport = createConnectTransportWithDefaults({
 
 /**
  * ConnectRPC transport for services behind the entry-gateway (sessions-authenticated).
+ *
+ * RigoBlock: credentials are omitted because the RigoBlock CF Worker returns
+ * Access-Control-Allow-Origin: * which is incompatible with credentials: 'include'.
+ * RigoBlock does not use Uniswap session cookies so omitting credentials is correct.
  */
 export const entryGatewayPostTransport = createConnectTransportWithDefaults({
-  // Web uses cookies (credentials: 'include'), while mobile/extension use session headers (via getTransport interceptor).
-  options: isWebApp ? { credentials: 'include' } : undefined,
+  options: { credentials: 'omit' },
   getBaseUrlOverride: getEntryGatewayUrl,
 })
 
@@ -64,7 +66,6 @@ export const entryGatewayPostTransport = createConnectTransportWithDefaults({
  * The same as entryGatewayPostTransport, but always uses the prod entry gateway URL
  */
 export const entryGatewayProdPostTransport = createConnectTransportWithDefaults({
-  // Web uses cookies (credentials: 'include'), while mobile/extension use session headers (via getTransport interceptor).
-  options: isWebApp ? { credentials: 'include' } : undefined,
+  options: { credentials: 'omit' },
   getBaseUrlOverride: () => getEntryGatewayUrl(Environment.PROD),
 })

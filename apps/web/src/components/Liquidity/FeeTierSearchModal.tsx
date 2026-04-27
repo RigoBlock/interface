@@ -251,7 +251,7 @@ export function FeeTierSearchModal({
                     $fontSize={fontSize}
                     $width={createFeeValue && hiddenObserver.width ? hiddenObserver.width + 1 : undefined}
                   />
-                  <NumericalInputSymbolContainer showPlaceholder={!createFeeValue} $fontSize={fontSize}>
+                  <NumericalInputSymbolContainer $showPlaceholder={!createFeeValue} $fontSize={fontSize}>
                     %
                   </NumericalInputSymbolContainer>
                   <NumericalInputMimic ref={hiddenObserver.ref} $fontSize={fontSize}>

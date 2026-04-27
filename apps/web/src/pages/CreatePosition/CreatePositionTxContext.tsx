@@ -2,8 +2,8 @@
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
 import {
   CreateLPPositionRequest,
+  CreateLPPositionResponse,
 } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v1/api_pb'
-import { V4CreateLPPosition } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v1/types_pb'
 import {
   CreateClassicPositionResponse,
   CreatePositionRequest,
@@ -28,7 +28,6 @@ import { useActiveSmartPool } from '~/state/application/hooks'
 import { useSelector } from 'react-redux'
 import { PositionField } from '~/types/position'
 import { useUniswapContextSelector } from 'uniswap/src/contexts/UniswapContext'
-import { type NormalizedApprovalData } from 'uniswap/src/data/apiClients/liquidityService/normalizeApprovalResponse'
 import { useCheckLPApprovalQuery } from 'uniswap/src/data/apiClients/liquidityService/useCheckLPApprovalQuery'
 import { useCreatePositionQuery } from 'uniswap/src/data/apiClients/liquidityService/useCreatePositionQuery'
 import { useActiveAddress } from 'uniswap/src/features/accounts/store/hooks'
@@ -53,108 +52,7 @@ import { isInvalidRange, isOutOfRange } from '~/components/Liquidity/utils/price
 import { useCreateLiquidityContext } from '~/pages/CreatePosition/CreateLiquidityContextProvider'
 import { generateCreatePositionTxRequest } from '~/pages/CreatePosition/generateCreatePositionTxRequest'
 
-/** @internal - exported for testing */
-// oxlint-disable-next-line complexity
-export function generateCreatePositionTxRequest({
-  protocolVersion,
-  approvalCalldata,
-  createCalldata,
-  createCalldataQueryParams,
-  currencyAmounts,
-  poolOrPair,
-  canBatchTransactions,
-  delegatedAddress,
-}: {
-  protocolVersion: ProtocolVersion
-  approvalCalldata?: NormalizedApprovalData
-  createCalldata?: CreateLPPositionResponse | CreateClassicPositionResponse | CreatePositionResponse
-  createCalldataQueryParams?: CreateLPPositionRequest | CreatePositionRequest
-  currencyAmounts?: { [field in PositionField]?: Maybe<CurrencyAmount<Currency>> }
-  poolOrPair: Pair | undefined
-  canBatchTransactions: boolean
-  delegatedAddress: string | null
-}): CreatePositionTxAndGasInfo | undefined {
-  if (!createCalldata || !currencyAmounts?.TOKEN0 || !currencyAmounts.TOKEN1) {
-    return undefined
-  }
 
-  const approveToken0Request = validateTransactionRequest(approvalCalldata?.token0Approval)
-  const approveToken1Request = validateTransactionRequest(approvalCalldata?.token1Approval)
-  const revokeToken0Request = validateTransactionRequest(approvalCalldata?.token0Cancel)
-  const revokeToken1Request = validateTransactionRequest(approvalCalldata?.token1Cancel)
-
-  // If any transaction was present but failed validation, bail out
-  if (
-    (approvalCalldata?.token0Approval && !approveToken0Request) ||
-    (approvalCalldata?.token1Approval && !approveToken1Request) ||
-    (approvalCalldata?.token0Cancel && !revokeToken0Request) ||
-    (approvalCalldata?.token1Cancel && !revokeToken1Request)
-  ) {
-    return undefined
-  }
-
-  const batchPermitData = approvalCalldata?.v4BatchPermitData
-  const validatedPermitRequest = validatePermit(batchPermitData)
-  if (batchPermitData && !validatedPermitRequest) {
-    return undefined
-  }
-
-  const token0PermitTransaction = validateTransactionRequest(approvalCalldata?.token0PermitTransaction)
-  const token1PermitTransaction = validateTransactionRequest(approvalCalldata?.token1PermitTransaction)
-
-  const txRequest = validateTransactionRequest(createCalldata.create)
-  if (!txRequest && !(token0PermitTransaction || token1PermitTransaction)) {
-    return undefined
-  }
-
-  let updatedCreateCalldataQueryParams: CreateLPPositionRequest | CreatePositionRequest | undefined
-  if (createCalldataQueryParams instanceof CreatePositionRequest) {
-    updatedCreateCalldataQueryParams = validatedPermitRequest
-      ? new CreatePositionRequest({
-          // oxlint-disable-next-line typescript/no-misused-spread -- biome-parity: oxlint is stricter here
-          ...createCalldataQueryParams,
-          batchPermitData: validatedPermitRequest,
-        })
-      : createCalldataQueryParams
-  } else if (createCalldataQueryParams?.createLpPosition.case === 'v4CreateLpPosition') {
-    updatedCreateCalldataQueryParams = new CreateLPPositionRequest({
-      createLpPosition: {
-        case: 'v4CreateLpPosition',
-        value: new V4CreateLPPosition({
-          // oxlint-disable-next-line typescript/no-misused-spread -- biome-parity: oxlint is stricter here
-          ...createCalldataQueryParams.createLpPosition.value,
-          batchPermitData,
-        }),
-      },
-    })
-  } else {
-    updatedCreateCalldataQueryParams = createCalldataQueryParams
-  }
-
-  return {
-    type: LiquidityTransactionType.Create,
-    canBatchTransactions,
-    delegatedAddress,
-    unsigned: Boolean(validatedPermitRequest),
-    createPositionRequestArgs: updatedCreateCalldataQueryParams,
-    action: {
-      type: LiquidityTransactionType.Create,
-      currency0Amount: currencyAmounts.TOKEN0,
-      currency1Amount: currencyAmounts.TOKEN1,
-      liquidityToken: protocolVersion === ProtocolVersion.V2 ? poolOrPair?.liquidityToken : undefined,
-    },
-    approveToken0Request,
-    approveToken1Request,
-    txRequest,
-    approvePositionTokenRequest: undefined,
-    revokeToken0Request,
-    revokeToken1Request,
-    permit: validatedPermitRequest ? { method: PermitMethod.TypedData, typedData: validatedPermitRequest } : undefined,
-    token0PermitTransaction,
-    token1PermitTransaction,
-    positionTokenPermitTransaction: undefined,
-  } satisfies CreatePositionTxAndGasInfo
-}
 interface CreatePositionTxContextType {
   txInfo?: CreatePositionTxAndGasInfo
   gasFeeEstimateUSD?: Maybe<CurrencyAmount<Currency>>
@@ -244,8 +142,12 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
   const [transactionError, setTransactionError] = useState<string | boolean>(false)
 
   const addLiquidityApprovalParams = useMemo(() => {
+    // Smart pools handle approvals internally; skip the check to avoid blocking the calldata query
+    if (smartPoolAddress) {
+      return undefined
+    }
     return getCheckLPApprovalRequestParams({
-      walletAddress: smartPoolAddress ?? evmAddress,
+      walletAddress: evmAddress,
       protocolVersion,
       currencyAmounts,
       canBatchTransactions,
@@ -345,7 +247,8 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
     !approvalLoading &&
     !approvalError &&
     !invalidRange &&
-    Boolean(approvalCalldata) &&
+    // Either approval data is present, or no approval check was needed (smart pools skip it)
+    (Boolean(approvalCalldata) || !addLiquidityApprovalParams) &&
     Boolean(createCalldataQueryParams)
 
   const { createCalldata, createError, createRefetch } = useCreatePositionQuery({

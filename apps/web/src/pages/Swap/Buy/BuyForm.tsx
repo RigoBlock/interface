@@ -302,7 +302,7 @@ function BuyFormInner({ disabled, initialCurrency }: BuyFormProps) {
             )}
             <NumericalInputWrapper>
               {inputInFiat && (
-                <NumericalInputSymbolContainer showPlaceholder={!inputAmount} $fontSize={fontSize}>
+                <NumericalInputSymbolContainer $showPlaceholder={!inputAmount} $fontSize={fontSize}>
                   {fiatSymbol}
                 </NumericalInputSymbolContainer>
               )}

@@ -280,21 +280,7 @@ function WrapHeaderLogo({ transactionDetails, typeInfo }: SpecificHeaderLogoProp
 function UnknownHeaderLogo({
   transactionDetails,
   typeInfo,
-}: SpecificHeaderLogoProps<
-  | UnknownTransactionInfo
-  | WithdrawTransactionInfo
-  | SendCallsTransactionInfo
-  | Permit2ApproveTransactionInfo
-  | RemoveDelegationTransactionInfo
-  | ClaimUniTransactionInfo
-  | MigrateV2LiquidityToV3TransactionInfo
-  | LpIncentivesClaimTransactionInfo
-  | ToucanBidTransactionInfo
-  | ToucanWithdrawBidAndClaimTokensTransactionInfo
-  | AuctionBidTransactionInfo
-  | AuctionClaimedTransactionInfo
-  | AuctionExitedTransactionInfo
->): JSX.Element {
+}: SpecificHeaderLogoProps<TransactionDetails['typeInfo']>): JSX.Element {
   const colors = useSporeColors()
   // Check if dappInfo exists since it may not exist on all transaction types
   return 'dappInfo' in typeInfo && typeInfo.dappInfo?.icon ? (

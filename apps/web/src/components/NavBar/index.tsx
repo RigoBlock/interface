@@ -1,7 +1,7 @@
 import { Token } from '@uniswap/sdk-core'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useEffect, useMemo, useRef } from 'react'
-import { useLocation } from 'react-router'
+import { useLocation, useSearchParams } from 'react-router'
 import { Flex, styled, Nav as TamaguiNav, useMedia } from 'ui/src'
 import { breakpoints, INTERFACE_NAV_HEIGHT, zIndexes } from 'ui/src/theme'
 import { useConnectionStatus } from 'uniswap/src/features/accounts/store/hooks'
@@ -24,6 +24,7 @@ import { useAccount } from '~/hooks/useAccount'
 import { PageType, useIsPage } from '~/hooks/useIsPage'
 import usePrevious from '~/hooks/usePrevious'
 import { css, deprecatedStyled } from '~/lib/deprecated-styled'
+import { isPortfolioTab } from '~/pages/Portfolio/types'
 import { useActiveSmartPool, useSelectActiveSmartPool } from '~/state/application/hooks'
 import { useMultiChainAllPoolsData, useMultiChainStakingPools } from '~/state/pool/multichain'
 
@@ -129,10 +130,22 @@ function useShouldHideChainSelector() {
 
 function useShouldHidePoolSelector() {
   const { pathname } = useLocation()
+  const [searchParams] = useSearchParams()
   const isEarnPage = pathname === '/earn' || pathname === '/earn/manage'
   const isPoolPositionPage = pathname.includes('/smart-pool')
 
-  return isEarnPage || isPoolPositionPage
+  // Hide pool selector when browsing an external address in the portfolio
+  // (switching pools doesn't update the URL, which would be confusing)
+  const hasPortfolioExplicitAddress = useMemo(() => {
+    if (!pathname.startsWith('/portfolio')) {
+      return false
+    }
+    const segments = pathname.split('/').filter(Boolean)
+    const firstSegment = segments[1]
+    return (!!firstSegment && !isPortfolioTab(firstSegment)) || !!searchParams.get('address')
+  }, [pathname, searchParams])
+
+  return isEarnPage || isPoolPositionPage || hasPortfolioExplicitAddress
 }
 
 export default function Navbar() {

@@ -1,13 +1,18 @@
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
 import {
-  CheckApprovalLPResponse,
   CreateLPPositionRequest,
   CreateLPPositionResponse,
 } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v1/api_pb'
 import { V4CreateLPPosition } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v1/types_pb'
+import {
+  CreateClassicPositionResponse,
+  CreatePositionRequest,
+  CreatePositionResponse,
+} from '@uniswap/client-liquidity/dist/uniswap/liquidity/v2/api_pb'
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import { Pair } from '@uniswap/v2-sdk'
 import { PositionField } from '~/types/position'
+import { NormalizedApprovalData } from 'uniswap/src/data/apiClients/liquidityService/normalizeApprovalResponse'
 import { CreatePositionTxAndGasInfo, LiquidityTransactionType } from 'uniswap/src/features/transactions/liquidity/types'
 import { PermitMethod } from 'uniswap/src/features/transactions/swap/types/swapTxAndGasInfo'
 import { validatePermit, validateTransactionRequest } from 'uniswap/src/features/transactions/swap/utils/trade'
@@ -28,9 +33,9 @@ export function generateCreatePositionTxRequest({
   account,
 }: {
   protocolVersion: ProtocolVersion
-  approvalCalldata?: CheckApprovalLPResponse
-  createCalldata?: CreateLPPositionResponse
-  createCalldataQueryParams?: CreateLPPositionRequest
+  approvalCalldata?: NormalizedApprovalData
+  createCalldata?: CreateLPPositionResponse | CreateClassicPositionResponse | CreatePositionResponse
+  createCalldataQueryParams?: CreateLPPositionRequest | CreatePositionRequest
   currencyAmounts?: { [field in PositionField]?: Maybe<CurrencyAmount<Currency>> }
   poolOrPair: Pair | undefined
   canBatchTransactions: boolean
@@ -62,8 +67,8 @@ export function generateCreatePositionTxRequest({
     return undefined
   }
 
-  const validatedPermitRequest = validatePermit(approvalCalldata?.permitData.value)
-  if (approvalCalldata?.permitData.value && !validatedPermitRequest) {
+  const validatedPermitRequest = validatePermit(approvalCalldata?.v4BatchPermitData)
+  if (approvalCalldata?.v4BatchPermitData && !validatedPermitRequest) {
     return undefined
   }
 
@@ -83,23 +88,27 @@ export function generateCreatePositionTxRequest({
           to: smartPoolAddress,
           from: account.address,
           value: String(0),
-          gasLimit: Number(250000).toString(),
+          // Do NOT set gasLimit — leave it unset so the wallet calls eth_estimateGas on the
+          // actual EOA→vault tx, which simulates the full execution path including settler overhead.
+          gasLimit: undefined,
         }
       : txRequest
 
-  let updatedCreateCalldataQueryParams: CreateLPPositionRequest | undefined
-  if (createCalldataQueryParams?.createLpPosition.case === 'v4CreateLpPosition') {
+  let updatedCreateCalldataQueryParams: CreateLPPositionRequest | CreatePositionRequest | undefined
+  if (createCalldataQueryParams instanceof CreateLPPositionRequest &&
+      createCalldataQueryParams.createLpPosition.case === 'v4CreateLpPosition') {
+    // V1 V4: inject batch permit data before the async re-submission step
     updatedCreateCalldataQueryParams = new CreateLPPositionRequest({
       createLpPosition: {
         case: 'v4CreateLpPosition',
         value: new V4CreateLPPosition({
           ...createCalldataQueryParams.createLpPosition.value,
-          batchPermitData:
-            approvalCalldata?.permitData.case === 'permitBatchData' ? approvalCalldata.permitData.value : undefined,
+          batchPermitData: approvalCalldata?.v4BatchPermitData,
         }),
       },
     })
   } else {
+    // V1 non-V4 or V2: pass through as-is (V2 permit handled via signature in async step)
     updatedCreateCalldataQueryParams = createCalldataQueryParams
   }
 
@@ -132,6 +141,5 @@ export function generateCreatePositionTxRequest({
     token0PermitTransaction: isRigoBlockPool ? undefined : validatedToken0PermitTransaction,
     token1PermitTransaction: isRigoBlockPool ? undefined : validatedToken1PermitTransaction,
     positionTokenPermitTransaction: undefined,
-    sqrtRatioX96: createCalldata.sqrtRatioX96,
   } satisfies CreatePositionTxAndGasInfo
 }

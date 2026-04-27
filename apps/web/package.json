@@ -266,6 +266,7 @@
     "react-feather": "^2.0.10",
     "react-helmet-async": "2.0.4",
     "react-i18next": "14.1.0",
+    "react-infinite-scroll-component": "^7.1.0",
     "react-markdown": "^10.1.0",
     "react-native-gesture-handler": "2.24.0",
     "react-native-reanimated": "3.19.3",
