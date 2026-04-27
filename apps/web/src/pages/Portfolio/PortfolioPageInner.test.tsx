@@ -61,6 +61,7 @@ describe('PortfolioPageInner', () => {
         tab: PortfolioTab.Overview,
         externalAddress: undefined,
         isExternalWallet: false,
+        hasExplicitUrlAddress: false,
       })
     })
 
@@ -85,6 +86,7 @@ describe('PortfolioPageInner', () => {
         tab: PortfolioTab.Overview,
         externalAddress: undefined,
         isExternalWallet: false,
+        hasExplicitUrlAddress: false,
       })
     })
 

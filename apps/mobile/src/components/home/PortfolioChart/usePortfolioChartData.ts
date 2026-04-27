@@ -26,6 +26,7 @@ export function usePortfolioChartData({
   const {
     data: chartResponse,
     isPending,
+    isFetching,
     error,
   } = useGetPortfolioHistoricalValueChartQuery({
     input: {
@@ -63,7 +64,7 @@ export function usePortfolioChartData({
 
   return {
     data,
-    loading: isPending,
+    loading: isPending || isFetching,
     error: error ?? null,
     chartColor,
   }

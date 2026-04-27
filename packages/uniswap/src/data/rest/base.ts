@@ -1,25 +1,29 @@
 import { Transport } from '@connectrpc/connect'
 import { ConnectTransportOptions } from '@connectrpc/connect-web'
-import { getTransport } from '@universe/api'
+import { getEntryGatewayUrl, getTransport } from '@universe/api'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
 import { BASE_UNISWAP_HEADERS } from 'uniswap/src/data/apiClients/createUniswapFetchClient'
-import { isMobileApp } from 'utilities/src/platform'
+import { Environment } from 'utilities/src/environment/getCurrentEnv'
 
-export const createConnectTransportWithDefaults = (
-  options: Partial<ConnectTransportOptions> = {},
-  apiUrlOverride?: string,
-): Transport =>
-  getTransport({
-    getBaseUrl: () => apiUrlOverride ?? uniswapUrls.apiBaseUrlV2,
-    getHeaders: () => (isMobileApp ? BASE_UNISWAP_HEADERS : {}),
+export function createConnectTransportWithDefaults({
+  options = {},
+  getBaseUrlOverride,
+}: {
+  options?: Partial<ConnectTransportOptions>
+  getBaseUrlOverride?: () => string
+}): Transport {
+  return getTransport({
+    getBaseUrl: getBaseUrlOverride ?? ((): string => uniswapUrls.apiBaseUrlV2),
+    getHeaders: () => BASE_UNISWAP_HEADERS,
     options,
   })
+}
 
 /**
  * Connectrpc transports for Uniswap REST BE service
  */
-export const uniswapGetTransport = createConnectTransportWithDefaults({ useHttpGet: true })
-export const uniswapPostTransport = createConnectTransportWithDefaults()
+export const uniswapGetTransport = createConnectTransportWithDefaults({ options: { useHttpGet: true } })
+export const uniswapPostTransport = createConnectTransportWithDefaults({})
 
 // The string arg to pass to the BE for chainId to get data for all networks
 export const ALL_NETWORKS_ARG = 'ALL_NETWORKS'
@@ -37,9 +41,31 @@ export const ALL_NETWORKS_ARG = 'ALL_NETWORKS'
   }
  */
 
-export const dataApiGetTransport = createConnectTransportWithDefaults(
-  { useHttpGet: true },
-  uniswapUrls.dataApiBaseUrlV2,
-)
+export const dataApiGetTransport = createConnectTransportWithDefaults({
+  options: { useHttpGet: true },
+  getBaseUrlOverride: () => uniswapUrls.dataApiBaseUrlV2,
+})
 
-export const dataApiPostTransport = createConnectTransportWithDefaults(undefined, uniswapUrls.dataApiBaseUrlV2)
+export const dataApiPostTransport = createConnectTransportWithDefaults({
+  getBaseUrlOverride: () => uniswapUrls.dataApiBaseUrlV2,
+})
+
+/**
+ * ConnectRPC transport for services behind the entry-gateway (sessions-authenticated).
+ *
+ * RigoBlock: credentials are omitted because the RigoBlock CF Worker returns
+ * Access-Control-Allow-Origin: * which is incompatible with credentials: 'include'.
+ * RigoBlock does not use Uniswap session cookies so omitting credentials is correct.
+ */
+export const entryGatewayPostTransport = createConnectTransportWithDefaults({
+  options: { credentials: 'omit' },
+  getBaseUrlOverride: getEntryGatewayUrl,
+})
+
+/**
+ * The same as entryGatewayPostTransport, but always uses the prod entry gateway URL
+ */
+export const entryGatewayProdPostTransport = createConnectTransportWithDefaults({
+  options: { credentials: 'omit' },
+  getBaseUrlOverride: () => getEntryGatewayUrl(Environment.PROD),
+})

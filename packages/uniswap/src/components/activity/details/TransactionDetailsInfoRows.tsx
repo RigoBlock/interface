@@ -1,4 +1,3 @@
-/* eslint-disable complexity */
 import dayjs from 'dayjs'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
@@ -19,6 +18,7 @@ import { ExternalLink } from 'ui/src/components/icons/ExternalLink'
 import { UniswapX } from 'ui/src/components/icons/UniswapX'
 import { borderRadii, fonts, iconSizes } from 'ui/src/theme'
 import { InfoRow } from 'uniswap/src/components/activity/details/InfoRow'
+import { getVisiblePlanSteps } from 'uniswap/src/components/activity/details/plan/getVisiblePlanSteps'
 import { TransactionParticipantRow } from 'uniswap/src/components/activity/details/TransactionParticipantRow'
 import { SwapTypeTransactionInfo } from 'uniswap/src/components/activity/details/types'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
@@ -259,7 +259,7 @@ function TransactionHashRow({
 
   const stepDetails = typeInfo.type === TransactionType.Plan ? typeInfo.stepDetails : undefined
 
-  const stepInfosLength = stepDetails?.length ?? 0
+  const stepInfosLength = stepDetails ? getVisiblePlanSteps(stepDetails).length : 0
   if (stepInfosLength > 1) {
     return (
       <InfoRow key="transactionId" label={t('transaction.details.transactions')}>

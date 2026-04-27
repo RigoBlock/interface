@@ -46,7 +46,6 @@ export default function ExtensionPasskeyAuthPopUp() {
 
   const [searchParams] = useSearchParams()
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Intentionally only runs once on mount
   useEffect(() => {
     const chromeRuntime = getChromeRuntime()
 
@@ -98,6 +97,7 @@ export default function ExtensionPasskeyAuthPopUp() {
       } satisfies PasskeySignInFlowOpened,
       handleMessageRequestPasskey,
     )
+    // oxlint-disable-next-line react/exhaustive-deps -- biome-parity: oxlint is stricter here
   }, [])
 
   const onPressSignIn = async () => {
@@ -208,7 +208,13 @@ export default function ExtensionPasskeyAuthPopUp() {
 
               <Flex row py="$spacing16">
                 <Button
-                  icon={signInAttemptStatus === ReferrerVerification.Verifying ? <SpinningLoader /> : <Passkey />}
+                  icon={
+                    signInAttemptStatus === ReferrerVerification.Verifying ? (
+                      <SpinningLoader />
+                    ) : (
+                      <Passkey color="$neutral1" />
+                    )
+                  }
                   size="large"
                   variant="branded"
                   onPress={onPressSignIn}

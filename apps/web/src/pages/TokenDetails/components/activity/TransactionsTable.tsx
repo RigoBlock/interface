@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition */
+/* oxlint-disable typescript/no-unnecessary-condition */
 
 import { ApolloError } from '@apollo/client'
 import { createColumnHelper } from '@tanstack/react-table'
@@ -53,9 +53,17 @@ interface SwapLeg {
   token: GraphQLApi.Token
 }
 
-export function TransactionsTable({ chainId, referenceToken }: { chainId: UniverseChainId; referenceToken: Token }) {
+export function TransactionsTable({
+  chainId,
+  referenceToken,
+  isMultichainView,
+}: {
+  chainId: UniverseChainId
+  referenceToken: Token
+  isMultichainView: boolean
+}) {
   const { t } = useTranslation()
-  const isMultichainTokenUx = useFeatureFlag(FeatureFlags.MultichainTokenUx)
+  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
   const activeLocalCurrency = useAppFiatCurrency()
   const { convertFiatAmountFormatted, formatNumberOrString } = useLocalizationContext()
   const [filterModalIsOpen, toggleFilterModal] = useReducer((s) => !s, false)
@@ -65,6 +73,7 @@ export function TransactionsTable({ chainId, referenceToken }: { chainId: Univer
     address: referenceToken.address,
     chainId,
     filter,
+    multichain: isMultichainView,
   })
 
   // Only show full error state when ALL versions fail
@@ -329,7 +338,7 @@ export function TransactionsTable({ chainId, referenceToken }: { chainId: Univer
         data={data}
         loading={allDataStillLoading}
         error={combinedError}
-        v2={isMultichainTokenUx}
+        v2={multichainTokenUxEnabled}
         loadMore={loadMore}
         maxHeight={600}
         defaultPinnedColumns={['timestamp', 'swap-type']}

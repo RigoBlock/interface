@@ -1,4 +1,5 @@
 import { GraphQLApi, isNonPollingRequestInFlight } from '@universe/api'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import React, { memo, useMemo } from 'react'
 import type { StyleProp, ViewProps, ViewStyle } from 'react-native'
 import ContextMenu from 'react-native-context-menu-view'
@@ -35,6 +36,7 @@ const contextMenuStyle: StyleProp<ViewStyle> = {
 export type FavoriteTokenCardProps = {
   currencyId: string
   isEditing?: boolean
+  networkCount?: number
   setIsEditing: (update: boolean) => void
   showLoading?: boolean
 } & ViewProps
@@ -42,11 +44,13 @@ export type FavoriteTokenCardProps = {
 function FavoriteTokenCard({
   currencyId,
   isEditing,
+  networkCount,
   setIsEditing,
   showLoading,
   ...rest
 }: FavoriteTokenCardProps): JSX.Element {
   const dispatch = useDispatch()
+  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
   const { defaultChainId } = useEnabledChains()
   const tokenDetailsNavigation = useTokenDetailsNavigation()
   const { convertFiatAmountFormatted } = useLocalizationContext()
@@ -145,6 +149,7 @@ function FavoriteTokenCard({
               <TokenLogo
                 loading={loading}
                 chainId={chainId}
+                hideNetworkLogo={multichainTokenUxEnabled && (networkCount ?? 0) > 1}
                 name={token?.name ?? undefined}
                 size={imageSizes.image20}
                 symbol={token?.symbol ?? undefined}

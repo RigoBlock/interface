@@ -6,6 +6,7 @@ ignores: [
     "typescript",
     "@typescript/native-preview",
     "depcheck",
+    "oxlint",
 
     # Internal packages / workspaces
     "hashcash-native",

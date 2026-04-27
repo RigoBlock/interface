@@ -176,7 +176,7 @@ export function useDerivedPositionInfo(
 
     if (protocolVersion === ProtocolVersion.V3) {
       // Use API pool data if available; fall back to on-chain pool data if API didn't find the pool
-      const v3Pool = poolOrPair
+      const v3Pool = (poolOrPair
         ? getSDKPoolFromPoolInformation({
             poolOrPair,
             token0: sortedCurrencies.TOKEN0?.wrapped,
@@ -185,7 +185,7 @@ export function useDerivedPositionInfo(
           })
         : v3PoolExistsOnChain
           ? v3OnChainPool?.[1]
-          : undefined
+          : undefined) ?? undefined
 
       return {
         currencies: {

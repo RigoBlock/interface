@@ -78,7 +78,7 @@ exports[`SwapPreview.tsx > matches base snapshot, test trade exact input 1`] = `
                 class="c2"
               >
                 <div
-                  class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column"
+                  class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _cursor-default"
                 >
                   <span
                     class="font_body _display-inline _boxSizing-border-box _whiteSpace-pre-wrap _mt-0px _mr-t-space-spa94665593 _mb-0px _ml-0px _color-neutral2 _fontFamily-f-family _wordWrap-break-word _fontSize-f-size-smal108 _fontWeight-f-weight-bo3548 _lineHeight-f-lineHeigh1269072494 _cursor-help"
@@ -214,7 +214,7 @@ exports[`SwapPreview.tsx > renders ETH input token for an ETH input UniswapX swa
                 class="c2"
               >
                 <div
-                  class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column"
+                  class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _cursor-default"
                 >
                   <span
                     class="font_body _display-inline _boxSizing-border-box _whiteSpace-pre-wrap _mt-0px _mr-t-space-spa94665593 _mb-0px _ml-0px _color-neutral2 _fontFamily-f-family _wordWrap-break-word _fontSize-f-size-smal108 _fontWeight-f-weight-bo3548 _lineHeight-f-lineHeigh1269072494 _cursor-help"
@@ -350,7 +350,7 @@ exports[`SwapPreview.tsx > renders ETH input token for an ETH input UniswapX v2 
                 class="c2"
               >
                 <div
-                  class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column"
+                  class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _cursor-default"
                 >
                   <span
                     class="font_body _display-inline _boxSizing-border-box _whiteSpace-pre-wrap _mt-0px _mr-t-space-spa94665593 _mb-0px _ml-0px _color-neutral2 _fontFamily-f-family _wordWrap-break-word _fontSize-f-size-smal108 _fontWeight-f-weight-bo3548 _lineHeight-f-lineHeigh1269072494 _cursor-help"
@@ -467,7 +467,7 @@ exports[`SwapPreview.tsx > renders preview trades with loading states 1`] = `
                 class="c2"
               >
                 <div
-                  class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column"
+                  class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _cursor-default"
                 >
                   <span
                     class="font_body _display-inline _boxSizing-border-box _whiteSpace-pre-wrap _mt-0px _mr-t-space-spa94665593 _mb-0px _ml-0px _color-neutral2 _fontFamily-f-family _wordWrap-break-word _fontSize-f-size-smal108 _fontWeight-f-weight-bo3548 _lineHeight-f-lineHeigh1269072494 _cursor-help"
@@ -584,7 +584,7 @@ exports[`SwapPreview.tsx > test trade exact output, no recipient 1`] = `
                 class="c2"
               >
                 <div
-                  class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column"
+                  class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _cursor-default"
                 >
                   <span
                     class="font_body _display-inline _boxSizing-border-box _whiteSpace-pre-wrap _mt-0px _mr-t-space-spa94665593 _mb-0px _ml-0px _color-neutral2 _fontFamily-f-family _wordWrap-break-word _fontSize-f-size-smal108 _fontWeight-f-weight-bo3548 _lineHeight-f-lineHeigh1269072494 _cursor-help"

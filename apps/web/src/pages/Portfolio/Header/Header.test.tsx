@@ -78,6 +78,7 @@ describe('PortfolioHeader', () => {
         chainId: undefined,
         externalAddress: undefined,
         isExternalWallet: false,
+        hasExplicitUrlAddress: false,
       })
 
       const { container } = render(<PortfolioHeader />)
@@ -90,6 +91,7 @@ describe('PortfolioHeader', () => {
         chainId: undefined,
         externalAddress: undefined,
         isExternalWallet: false,
+        hasExplicitUrlAddress: false,
       })
 
       const { container } = render(<PortfolioHeader scrollY={150} />)
@@ -108,6 +110,7 @@ describe('PortfolioHeader', () => {
         chainId: undefined,
         externalAddress: { address: '0xAnotherAddress', platform: Platform.EVM },
         isExternalWallet: true,
+        hasExplicitUrlAddress: true,
       })
 
       const { container } = render(<PortfolioHeader />)

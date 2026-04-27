@@ -1,0 +1,26 @@
+{
+  "name": "@universe/chains",
+  "version": "0.0.0",
+  "devDependencies": {
+    "@types/node": "22.19.17",
+    "@typescript/native-preview": "7.0.0-dev.20260311.1",
+    "depcheck": "1.4.7",
+    "typescript": "5.8.3"
+  },
+  "scripts": {
+    "typecheck": "nx typecheck chains",
+    "check": "nx check chains",
+    "check:fast": "nx check:fast chains",
+    "check:deps:usage": "nx check:deps:usage chains",
+    "format": "nx format chains",
+    "format:check": "nx format:check chains",
+    "lint": "nx lint chains",
+    "lint:fix": "nx lint:fix chains"
+  },
+  "nx": {
+    "includedScripts": []
+  },
+  "main": "src/index.ts",
+  "private": true,
+  "sideEffects": false
+}

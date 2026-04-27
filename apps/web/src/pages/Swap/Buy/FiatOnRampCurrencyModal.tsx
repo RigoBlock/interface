@@ -151,6 +151,7 @@ export function FiatOnRampCurrencyModal({
                           <DropdownController
                             open={expanded}
                             onClick={() => {
+                              // oxlint-disable-next-line no-shadow
                               setExpanded((expanded) => !expanded)
                             }}
                           >

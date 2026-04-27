@@ -126,7 +126,7 @@ export function useTokenApprovalInfo(params: TokenApprovalInfoParams): ApprovalT
     if (data && !error) {
       // API returns null if no approval is required
 
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       if (data.approval === null) {
         return {
           action: ApprovalAction.None,
@@ -135,9 +135,9 @@ export function useTokenApprovalInfo(params: TokenApprovalInfoParams): ApprovalT
         }
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       if (data.approval) {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        // oxlint-disable-next-line typescript/no-unnecessary-condition
         if (data.cancel) {
           return {
             action: ApprovalAction.RevokeAndPermit2Approve,

@@ -19,10 +19,10 @@ import { DoubleCurrencyLogo } from '~/components/Logo/DoubleLogo'
 import { LoadingBubble } from '~/components/Tokens/loading'
 import { MouseoverTooltip, TooltipSize } from '~/components/Tooltip'
 import { NATIVE_CHAIN_ID } from '~/constants/tokens'
+import { getChainUrlParam } from '~/features/params/chainParams'
 import useCopyClipboard from '~/hooks/useCopyClipboard'
 import { ExternalLink } from '~/theme/components/Links'
 import { ClickableTamaguiStyle, EllipsisTamaguiStyle } from '~/theme/components/styles'
-import { getChainUrlParam } from '~/utils/chainParams'
 
 const TokenName = styled(Text, {
   display: 'none',
@@ -134,7 +134,6 @@ export function PoolDetailsLink({ address, chainId, tokens, loading }: PoolDetai
   }, [navigate, tokens, isPool, chainUrlParam])
 
   const [truncateAddress, setTruncateAddress] = useState<false | 'start' | 'both'>(false)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: +truncateAddress
   const onTextRender = useCallback(
     (textRef: HTMLElement | null) => {
       if (textRef) {
@@ -146,6 +145,7 @@ export function PoolDetailsLink({ address, chainId, tokens, loading }: PoolDetai
     },
     // This callback must run after it sets truncateAddress to 'start' to see if it needs to 'both'.
     // It checks if the textRef has overflow, and sets truncateAddress accordingly to avoid it.
+    // oxlint-disable-next-line react/exhaustive-deps -- biome-parity: oxlint is stricter here
     [truncateAddress],
   )
 

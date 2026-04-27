@@ -1,6 +1,10 @@
 /** How often to poll REST as a fallback for fresh prices */
 export const REST_POLL_INTERVAL_MS = 30_000
 
+/** If a cached price is older than this while WS reports connected,
+ *  trigger REST polling as a safety net against silent WS failures. */
+export const STALE_PRICE_THRESHOLD_MS = 60_000
+
 /** Maximum tokens per REST request (backend limit) */
 export const MAX_BATCH_SIZE = 100
 

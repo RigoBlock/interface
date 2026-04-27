@@ -81,6 +81,7 @@ export const useShowMismatchToast = () => {
   const isPermitMismatchUxEnabled = useFeatureFlag(FeatureFlags.EnablePermitMismatchUX)
   // create a unique id for the toast when hook is created (so we only show one toast at a time)
   const toastId = useRef<string>(nanoid())
+  // oxlint-disable-next-line no-shadow
   const showMismatchToast = useShowMismatchToastCallback()
   return useEvent(() => {
     if (isPermitMismatchUxEnabled) {

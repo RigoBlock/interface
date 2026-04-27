@@ -18,7 +18,7 @@ import { getFormattedCurrencyAmount } from 'uniswap/src/utils/currency'
  * @param param0
  * @returns
  */
-function _PlanSummaryItem({
+function PlanSummaryItemInner({
   transaction,
   index,
   isExternalProfile,
@@ -91,4 +91,4 @@ function _PlanSummaryItem({
   )
 }
 
-export const PlanSummaryItem = memo(_PlanSummaryItem)
+export const PlanSummaryItem = memo(PlanSummaryItemInner)

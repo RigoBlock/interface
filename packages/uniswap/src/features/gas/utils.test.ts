@@ -1,12 +1,14 @@
-import { CurrencyAmount } from '@uniswap/sdk-core'
+import { CurrencyAmount, Token } from '@uniswap/sdk-core'
 import type { GasStrategy } from '@universe/api'
 import { DynamicConfigs, type GasStrategies, getStatsigClient } from '@universe/gating'
 import { DAI } from 'uniswap/src/constants/tokens'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { DEFAULT_GAS_STRATEGY } from 'uniswap/src/features/gas/consts'
 import {
   applyNativeTokenPercentageBuffer,
   getActiveGasStrategy,
   hasSufficientFundsIncludingGas,
+  hasSufficientGasBalance,
 } from 'uniswap/src/features/gas/utils'
 import { MAINNET_CURRENCY } from 'uniswap/src/test/fixtures'
 
@@ -88,6 +90,54 @@ describe(hasSufficientFundsIncludingGas, () => {
     }
 
     expect(hasSufficientFundsIncludingGas(mockParams)).toBe(false)
+  })
+})
+
+const PATH_USD = new Token(UniverseChainId.Tempo, '0x20c0000000000000000000000000000000000000', 6, 'pathUSD', 'pathUSD')
+
+function pathUsdBalance(raw: string): CurrencyAmount<Token> {
+  return CurrencyAmount.fromRawAmount(PATH_USD, raw)
+}
+
+describe(hasSufficientGasBalance, () => {
+  it('delegates to hasSufficientFundsIncludingGas for non-Tempo chains', () => {
+    expect(
+      hasSufficientGasBalance({
+        chainId: UniverseChainId.Mainnet,
+        gasBalance: ONE_ETH,
+        gasFee: '1000',
+      }),
+    ).toBe(true)
+  })
+
+  it('returns false for non-Tempo chain with insufficient balance', () => {
+    expect(
+      hasSufficientGasBalance({
+        chainId: UniverseChainId.Mainnet,
+        gasBalance: ZERO_ETH,
+        gasFee: '1000',
+      }),
+    ).toBe(false)
+  })
+
+  it('delegates to hasSufficientFundsIncludingTempoGas for Tempo', () => {
+    expect(
+      hasSufficientGasBalance({
+        chainId: UniverseChainId.Tempo,
+        gasBalance: pathUsdBalance('1000000'),
+        gasFee: '1000000000000000000',
+      }),
+    ).toBe(true)
+  })
+
+  it('returns false for Tempo with insufficient pathUSD', () => {
+    expect(
+      hasSufficientGasBalance({
+        chainId: UniverseChainId.Tempo,
+        gasBalance: pathUsdBalance('0'),
+        gasFee: '1000000000000000000',
+      }),
+    ).toBe(false)
   })
 })
 

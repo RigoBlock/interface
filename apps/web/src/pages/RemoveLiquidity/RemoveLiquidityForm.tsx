@@ -62,6 +62,7 @@ export function RemoveLiquidityForm() {
         <Switch
           id="add-as-weth"
           checked={unwrapNativeCurrency}
+          // oxlint-disable-next-line no-shadow
           onCheckedChange={() => setUnwrapNativeCurrency((unwrapNativeCurrency) => !unwrapNativeCurrency)}
           variant="branded"
         />
@@ -103,7 +104,7 @@ export function RemoveLiquidityForm() {
                 maxDecimals={0}
                 maxLength={3}
               />
-              <NumericalInputSymbolContainer showPlaceholder={!percent}>%</NumericalInputSymbolContainer>
+              <NumericalInputSymbolContainer $showPlaceholder={!percent}>%</NumericalInputSymbolContainer>
               <NumericalInputMimic ref={hiddenObserver.ref}>{percent}</NumericalInputMimic>
             </NumericalInputWrapper>
           </Flex>

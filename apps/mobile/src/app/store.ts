@@ -48,16 +48,14 @@ const dataDogReduxEnhancer = createDatadogReduxEnhancer({
 const enhancers = [dataDogReduxEnhancer]
 
 if (isNonTestDev) {
+  // oxlint-disable-next-line typescript/no-var-requires
   const reactotron = require('src/../ReactotronConfig').default
   enhancers.push(reactotron.createEnhancer())
 }
 
 const middlewares: Middleware[] = [delegationListenerMiddleware.middleware]
 
-const setupStore = (
-  preloadedState?: PreloadedState<MobileState>,
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-) => {
+const setupStore = (preloadedState?: PreloadedState<MobileState>) => {
   return createStore({
     reducer: persistedReducer,
     preloadedState,

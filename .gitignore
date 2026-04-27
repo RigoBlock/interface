@@ -13,9 +13,10 @@ test-results/
 scripts/dist
 tools/uniswap-nx/dist
 
-# next.js
+# build output
 .next/
 out/
+bin/
 build
 
 # React Router
@@ -41,6 +42,7 @@ yarn-error.log*
 
 # nx
 .nx/
+graph.json
 
 # .yarn files
 .yarn/cache
@@ -89,6 +91,7 @@ CLAUDE.local.md
 # cursor
 .cursor/mcp.json
 .cursor/rules/local-workflow.mdc
+.cursor/*.log
 
 # lefthook
 .lefthook/
@@ -103,5 +106,6 @@ CLAUDE.local.md
 
 # temporary files
 /tmp/
+.env*.local
 
 .claude/worktrees

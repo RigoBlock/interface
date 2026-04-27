@@ -1,8 +1,15 @@
-import { useQuery } from '@tanstack/react-query'
+/* oxlint-disable max-lines */
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
 import {
   CreateLPPositionRequest,
+  CreateLPPositionResponse,
 } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v1/api_pb'
+import {
+  CreateClassicPositionResponse,
+  CreatePositionRequest,
+  CreatePositionResponse,
+} from '@uniswap/client-liquidity/dist/uniswap/liquidity/v2/api_pb'
+import { LPAction } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v2/types_pb'
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import {
@@ -21,7 +28,8 @@ import { useActiveSmartPool } from '~/state/application/hooks'
 import { useSelector } from 'react-redux'
 import { PositionField } from '~/types/position'
 import { useUniswapContextSelector } from 'uniswap/src/contexts/UniswapContext'
-import { liquidityQueries } from 'uniswap/src/data/apiClients/liquidityService/liquidityQueries'
+import { useCheckLPApprovalQuery } from 'uniswap/src/data/apiClients/liquidityService/useCheckLPApprovalQuery'
+import { useCreatePositionQuery } from 'uniswap/src/data/apiClients/liquidityService/useCreatePositionQuery'
 import { useActiveAddress } from 'uniswap/src/features/accounts/store/hooks'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { toSupportedChainId } from 'uniswap/src/features/chains/utils'
@@ -35,7 +43,6 @@ import { CreatePositionTxAndGasInfo } from 'uniswap/src/features/transactions/li
 import { getErrorMessageToDisplay, parseErrorMessageTitle } from 'uniswap/src/features/transactions/liquidity/utils'
 import { TransactionStepType } from 'uniswap/src/features/transactions/steps/types'
 import { logger } from 'utilities/src/logger/logger'
-import { ONE_SECOND_MS } from 'utilities/src/time/time'
 import { useDepositInfo } from '~/components/Liquidity/Create/hooks/useDepositInfo'
 import { useDynamicNativeSlippage } from '~/components/Liquidity/Create/hooks/useLPSlippageValues'
 import { useCreatePositionDependentAmountFallback } from '~/components/Liquidity/hooks/useDependentAmountFallback'
@@ -44,6 +51,7 @@ import { getCheckLPApprovalRequestParams } from '~/components/Liquidity/utils/ge
 import { isInvalidRange, isOutOfRange } from '~/components/Liquidity/utils/priceRangeInfo'
 import { useCreateLiquidityContext } from '~/pages/CreatePosition/CreateLiquidityContextProvider'
 import { generateCreatePositionTxRequest } from '~/pages/CreatePosition/generateCreatePositionTxRequest'
+
 
 interface CreatePositionTxContextType {
   txInfo?: CreatePositionTxAndGasInfo
@@ -60,6 +68,7 @@ interface CreatePositionTxContextType {
 
 const CreatePositionTxContext = createContext<CreatePositionTxContextType | undefined>(undefined)
 
+// oxlint-disable-next-line complexity
 export function CreatePositionTxContextProvider({ children }: PropsWithChildren): JSX.Element {
   const {
     protocolVersion,
@@ -68,6 +77,7 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
     poolOrPair,
     depositState,
     creatingPoolOrPair,
+    poolId,
     currentTransactionStep,
     positionState,
     setRefetch,
@@ -118,6 +128,8 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
   }))
   const isLiquidityBatchedTransactionsEnabled = useFeatureFlag(FeatureFlags.LiquidityBatchedTransactions)
   const isLpDynamicNativeSlippageEnabled = useFeatureFlag(FeatureFlags.LpDynamicNativeSlippage)
+  const isCreatePositionV2 = useFeatureFlag(FeatureFlags.CreatePositionV2)
+  const isCheckApprovalV2 = useFeatureFlag(FeatureFlags.CheckApprovalV2)
   const canBatchTransactions =
     (useUniswapContextSelector((ctx) => ctx.getCanBatchTransactions?.(poolOrPair?.chainId)) ?? false) &&
     poolOrPair?.chainId !== UniverseChainId.Monad &&
@@ -130,27 +142,29 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
   const [transactionError, setTransactionError] = useState<string | boolean>(false)
 
   const addLiquidityApprovalParams = useMemo(() => {
+    // Smart pools handle approvals internally; skip the check to avoid blocking the calldata query
+    if (smartPoolAddress) {
+      return undefined
+    }
     return getCheckLPApprovalRequestParams({
-      walletAddress: smartPoolAddress ?? evmAddress,
+      walletAddress: evmAddress,
       protocolVersion,
       currencyAmounts,
       canBatchTransactions,
+      action: LPAction.CREATE,
+      isCheckApprovalV2,
     })
-  }, [evmAddress, smartPoolAddress, protocolVersion, currencyAmounts, canBatchTransactions])
+  }, [evmAddress, smartPoolAddress, protocolVersion, currencyAmounts, canBatchTransactions, isCheckApprovalV2])
 
   const {
-    data: approvalCalldata,
-    error: approvalError,
-    isLoading: approvalLoading,
-    refetch: approvalRefetch,
-  } = useQuery(
-    liquidityQueries.checkApproval({
-      params: addLiquidityApprovalParams,
-      staleTime: 5 * ONE_SECOND_MS,
-      retry: false,
-      enabled: !!addLiquidityApprovalParams && !inputError && !transactionError && !invalidRange,
-    }),
-  )
+    approvalData: approvalCalldata,
+    approvalError,
+    approvalLoading,
+    approvalRefetch,
+  } = useCheckLPApprovalQuery({
+    approvalQueryParams: addLiquidityApprovalParams,
+    isQueryEnabled: !!addLiquidityApprovalParams && !inputError && !transactionError && !invalidRange,
+  })
 
   if (approvalError) {
     const message = parseErrorMessageTitle(approvalError, { defaultTitle: 'unknown CheckLpApprovalQuery' })
@@ -163,10 +177,11 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
     })
   }
 
-  const gasFeeToken0USD = useUSDCurrencyAmountOfGasFee(poolOrPair?.chainId, approvalCalldata?.gasFeeToken0Approval)
-  const gasFeeToken1USD = useUSDCurrencyAmountOfGasFee(poolOrPair?.chainId, approvalCalldata?.gasFeeToken1Approval)
-  const gasFeeToken0PermitUSD = useUSDCurrencyAmountOfGasFee(poolOrPair?.chainId, approvalCalldata?.gasFeeToken0Permit)
-  const gasFeeToken1PermitUSD = useUSDCurrencyAmountOfGasFee(poolOrPair?.chainId, approvalCalldata?.gasFeeToken1Permit)
+  const { gasFeeToken0Approval, gasFeeToken1Approval, gasFeeToken0Permit, gasFeeToken1Permit } = approvalCalldata ?? {}
+  const gasFeeToken0USD = useUSDCurrencyAmountOfGasFee(poolOrPair?.chainId, gasFeeToken0Approval)
+  const gasFeeToken1USD = useUSDCurrencyAmountOfGasFee(poolOrPair?.chainId, gasFeeToken1Approval)
+  const gasFeeToken0PermitUSD = useUSDCurrencyAmountOfGasFee(poolOrPair?.chainId, gasFeeToken0Permit)
+  const gasFeeToken1PermitUSD = useUSDCurrencyAmountOfGasFee(poolOrPair?.chainId, gasFeeToken1Permit)
 
   const nativeTokenBalance = useMemo(() => {
     if (!isLpDynamicNativeSlippageEnabled || protocolVersion !== ProtocolVersion.V4) {
@@ -179,6 +194,8 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
     }
     return undefined
   }, [isLpDynamicNativeSlippageEnabled, protocolVersion, currencyMaxAmounts])
+
+  const useV2Endpoints = isCreatePositionV2
 
   const createCalldataQueryParams = useMemo(() => {
     return generateLiquidityServiceCreateCalldataQueryParams({
@@ -195,6 +212,8 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
       slippageTolerance: nativeTokenBalance && !isSlippageDirty ? undefined : customSlippageTolerance,
       customDeadline,
       nativeTokenBalance,
+      useV2Endpoints,
+      poolId,
       isSmartPool: !!smartPoolAddress,
     })
   }, [
@@ -205,6 +224,7 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
     creatingPoolOrPair,
     ticks,
     poolOrPair,
+    poolId,
     positionState,
     depositState.exactField,
     customSlippageTolerance,
@@ -213,6 +233,7 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
     protocolVersion,
     customDeadline,
     nativeTokenBalance,
+    useV2Endpoints,
   ])
 
   const isUserCommittedToCreate =
@@ -226,23 +247,16 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
     !approvalLoading &&
     !approvalError &&
     !invalidRange &&
-    Boolean(approvalCalldata) &&
+    // Either approval data is present, or no approval check was needed (smart pools skip it)
+    (Boolean(approvalCalldata) || !addLiquidityApprovalParams) &&
     Boolean(createCalldataQueryParams)
 
-  const {
-    data: createCalldata,
-    error: createError,
-    refetch: createRefetch,
-  } = useQuery(
-    liquidityQueries.createPosition({
-      params: createCalldataQueryParams,
-      refetchInterval: transactionError ? false : 5 * ONE_SECOND_MS,
-      retry: false,
-      enabled: isQueryEnabled,
-    }),
-  )
+  const { createCalldata, createError, createRefetch } = useCreatePositionQuery({
+    createCalldataQueryParams,
+    transactionError: !!transactionError,
+    isQueryEnabled,
+  })
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: +createCalldataQueryParams, +addLiquidityApprovalParams
   useEffect(() => {
     setRefetch(() => (approvalError ? approvalRefetch : createError ? createRefetch : undefined)) // this must set it as a function otherwise it will actually call createRefetch immediately
   }, [
@@ -273,26 +287,40 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
     if (createCalldataQueryParams) {
       sendAnalyticsEvent(InterfaceEventName.CreatePositionFailed, {
         message,
+        // oxlint-disable-next-line typescript/no-misused-spread -- biome-parity: oxlint is stricter here
         ...createCalldataQueryParams,
       })
     }
   }
 
-  const dependentAmountFallback = useCreatePositionDependentAmountFallback(
-    createCalldataQueryParams,
-    isQueryEnabled && Boolean(createError),
-  )
+  const dependentAmountFallback = useCreatePositionDependentAmountFallback({
+    queryParams: createCalldataQueryParams,
+    isQueryEnabled: isQueryEnabled && Boolean(createError),
+    exactField: depositState.exactField,
+  })
 
   const actualGasFee = createCalldata?.gasFee
-  const needsApprovals = !!(
-    approvalCalldata?.token0Approval ||
-    approvalCalldata?.token1Approval ||
-    approvalCalldata?.token0Cancel ||
-    approvalCalldata?.token1Cancel ||
-    approvalCalldata?.token0PermitTransaction ||
-    approvalCalldata?.token1PermitTransaction
+  const {
+    token0Approval,
+    token1Approval,
+    positionTokenApproval,
+    v4BatchPermitData: permitData,
+    token0Cancel,
+    token1Cancel,
+    token0PermitTransaction,
+    token1PermitTransaction,
+  } = approvalCalldata ?? {}
+  const needsApprovals = Boolean(
+    permitData ||
+    token0Approval ||
+    token1Approval ||
+    positionTokenApproval ||
+    token0Cancel ||
+    token1Cancel ||
+    token0PermitTransaction ||
+    token1PermitTransaction,
   )
-  const { value: calculatedGasFee } = useTransactionGasFee({
+  const { displayValue: calculatedGasFee } = useTransactionGasFee({
     tx: createCalldata?.create,
     skip: !!actualGasFee || needsApprovals,
   })
@@ -302,7 +330,6 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
   )
 
   const lastKnownGasFeeRef = useRef<CurrencyAmount<Currency> | undefined>(undefined)
-
   const totalGasFee = useMemo(() => {
     const fees = [gasFeeToken0USD, gasFeeToken1USD, increaseGasFeeUsd, gasFeeToken0PermitUSD, gasFeeToken1PermitUSD]
     const currentFee = fees.reduce((total, fee) => {
@@ -325,7 +352,11 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
       protocolVersion,
       approvalCalldata,
       createCalldata,
-      createCalldataQueryParams,
+      createCalldataQueryParams:
+        createCalldataQueryParams instanceof CreateLPPositionRequest ||
+        createCalldataQueryParams instanceof CreatePositionRequest
+          ? createCalldataQueryParams
+          : undefined,
       currencyAmounts,
       poolOrPair: protocolVersion === ProtocolVersion.V2 ? poolOrPair : undefined,
       canBatchTransactions,
@@ -349,9 +380,24 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
   useDynamicNativeSlippage({
     isEnabled: isLpDynamicNativeSlippageEnabled,
     nativeTokenBalance,
-    createCalldata,
+    createCalldata: createCalldata instanceof CreateLPPositionResponse ? createCalldata : undefined,
     isSlippageDirty,
   })
+
+  const dependentAmount = useMemo(() => {
+    if (createError && dependentAmountFallback) {
+      return dependentAmountFallback
+    }
+    if (createCalldata instanceof CreateClassicPositionResponse) {
+      return createCalldata.dependentToken?.amount
+    }
+    if (createCalldata instanceof CreatePositionResponse) {
+      const dependentField =
+        depositState.exactField === PositionField.TOKEN0 ? createCalldata.token1 : createCalldata.token0
+      return dependentField?.amount
+    }
+    return createCalldata?.dependentAmount
+  }, [createCalldata, createError, dependentAmountFallback, depositState.exactField])
 
   const value = useMemo(
     (): CreatePositionTxContextType => ({
@@ -359,8 +405,7 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
       gasFeeEstimateUSD: totalGasFee,
       transactionError,
       setTransactionError,
-      dependentAmount:
-        createError && dependentAmountFallback ? dependentAmountFallback : createCalldata?.dependentAmount,
+      dependentAmount,
       currencyAmounts,
       inputError,
       formattedAmounts,
@@ -371,9 +416,7 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
       txInfo,
       totalGasFee,
       transactionError,
-      createError,
-      dependentAmountFallback,
-      createCalldata?.dependentAmount,
+      dependentAmount,
       currencyAmounts,
       inputError,
       formattedAmounts,
@@ -387,7 +430,6 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
 
 export const useCreatePositionTxContext = (): CreatePositionTxContextType => {
   const context = useContext(CreatePositionTxContext)
-
   if (!context) {
     throw new Error('`useCreatePositionTxContext` must be used inside of `CreatePositionTxContextProvider`')
   }

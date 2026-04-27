@@ -54,6 +54,7 @@ const ToucanToken = lazy(() => import('~/pages/Explore/ToucanToken'))
 const Vote = lazy(() => import('~/pages/Vote'))
 const CreateAuction = lazy(() => import('~/pages/Liquidity/CreateAuction/CreateAuction'))
 const XOAuthCallbackPage = lazy(() => import('~/pages/Liquidity/CreateAuction/XOAuthCallbackPage'))
+const BetaPage = lazy(() => import('~/pages/Beta'))
 const Wrapped = lazy(() => import('~/pages/Wrapped'))
 const PoolPositionPage = lazy(() => import('~/pages/CreatePool/PoolPositionPage'))
 
@@ -446,6 +447,15 @@ export const routes: RouteDefinition[] = [
     enabled: (args) => args.isWrappedEnabled ?? false,
   }),
   createRouteDefinition({
+    path: '/preview',
+    getTitle: () => 'Uniswap Preview',
+    getElement: () => (
+      <Suspense fallback={null}>
+        <BetaPage />
+      </Suspense>
+    ),
+  }),
+  createRouteDefinition({
     path: '/earn',
     getElement: () => <Earn />,
     getTitle: () => i18n.t(`Earn on Rigoblock Smart Pools`),
@@ -498,6 +508,7 @@ export const findRouteByPath = (pathname: string) => {
     }
     const subPaths = route.nestedPaths.map((nestedPath) => `${route.path}/${nestedPath}`)
     for (const subPath of subPaths) {
+      // oxlint-disable-next-line no-shadow
       const match = matchPath(subPath, pathname)
       if (match) {
         return route

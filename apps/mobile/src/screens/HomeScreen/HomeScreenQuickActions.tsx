@@ -1,3 +1,4 @@
+// oxlint-disable typescript/no-duplicate-type-constituents
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import React, { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -10,7 +11,7 @@ import { Flex, Text, TouchableArea, useSporeColors } from 'ui/src'
 import { ArrowDownCircle, Bank, MinusCircle, PlusCircle, SendAction, SwapDotted } from 'ui/src/components/icons'
 import { iconSizes, spacing } from 'ui/src/theme'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { useHighestBalanceNativeCurrencyId } from 'uniswap/src/features/dataApi/balances/balances'
+import { useHighestBalanceNativeCurrencyId } from 'uniswap/src/features/portfolio/balances/hooks'
 import { useHapticFeedback } from 'uniswap/src/features/settings/useHapticFeedback/useHapticFeedback'
 import { ElementName, MobileEventName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import { Trace } from 'uniswap/src/features/telemetry/Trace'
@@ -58,8 +59,7 @@ export function HomeScreenQuickActions(): JSX.Element {
   const openReceiveModal = useOpenReceiveModal()
   const { isTestnetModeEnabled, defaultChainId } = useEnabledChains()
   const disableForKorea = useFeatureFlag(FeatureFlags.DisableFiatOnRampKorea)
-  const isBottomTabsEnabled = useFeatureFlag(FeatureFlags.BottomTabs)
-  const isMultichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
+  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
   const isPortfolioZero = useIsPortfolioZero()
 
   const activeAccountAddress = useActiveAccountAddressWithThrow()
@@ -106,7 +106,7 @@ export function HomeScreenQuickActions(): JSX.Element {
       // When multichain UX is enabled, show the interstitial sheet unless
       // the user has zero balance (in which case go straight to FOR).
       // Korea check is handled inside the modal and below for the direct path.
-      if (isMultichainTokenUxEnabled && !isPortfolioZero) {
+      if (multichainTokenUxEnabled && !isPortfolioZero) {
         navigate(ModalName.FiatOnRampAction, { entry })
         return
       }
@@ -121,7 +121,7 @@ export function HomeScreenQuickActions(): JSX.Element {
         }),
       )
     },
-    [triggerHaptics, isTestnetModeEnabled, disableForKorea, isMultichainTokenUxEnabled, isPortfolioZero, dispatch, t],
+    [triggerHaptics, isTestnetModeEnabled, disableForKorea, multichainTokenUxEnabled, isPortfolioZero, dispatch, t],
   )
 
   // PR #4621 Necessary to declare these as direct dependencies due to race
@@ -133,20 +133,16 @@ export function HomeScreenQuickActions(): JSX.Element {
   const sellLabel = t('common.sell.label')
   const actions = useMemo(
     () => [
-      ...(isBottomTabsEnabled
-        ? [
-            {
-              Icon: SwapDotted,
-              label: 'Swap',
-              name: ElementName.Swap,
-              onPress: onPressSwap,
-            },
-          ]
-        : []),
       {
-        Icon: isMultichainTokenUxEnabled ? PlusCircle : Bank,
+        Icon: SwapDotted,
+        label: 'Swap',
+        name: ElementName.Swap,
+        onPress: onPressSwap,
+      },
+      {
+        Icon: multichainTokenUxEnabled ? PlusCircle : Bank,
         eventName: MobileEventName.FiatOnRampQuickActionButtonPressed,
-        label: isMultichainTokenUxEnabled ? buyLabel : forLabel,
+        label: multichainTokenUxEnabled ? buyLabel : forLabel,
         name: ElementName.Buy,
         onPress: () => onPressFORAction('onramp'),
       },
@@ -162,7 +158,7 @@ export function HomeScreenQuickActions(): JSX.Element {
         name: ElementName.Receive,
         onPress: onPressReceive,
       },
-      ...(isMultichainTokenUxEnabled
+      ...(multichainTokenUxEnabled
         ? [
             {
               Icon: MinusCircle,
@@ -175,9 +171,8 @@ export function HomeScreenQuickActions(): JSX.Element {
         : []),
     ],
     [
-      isBottomTabsEnabled,
       onPressSwap,
-      isMultichainTokenUxEnabled,
+      multichainTokenUxEnabled,
       buyLabel,
       forLabel,
       onPressFORAction,
@@ -189,7 +184,6 @@ export function HomeScreenQuickActions(): JSX.Element {
     ],
   )
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: +activeScale
   const renderItem = useCallback(
     ({ item: { eventName, name, label, Icon, onPress } }: ListRenderItemInfo<ActionItem>) => (
       <Trace key={name} logPress element={name} eventOnTrigger={eventName}>
@@ -221,33 +215,6 @@ export function HomeScreenQuickActions(): JSX.Element {
     ),
     [activeScale, contentColor, iconSize],
   )
-
-  if (!isBottomTabsEnabled) {
-    return (
-      <Flex centered row gap="$spacing8" px="$spacing12">
-        {actions.map(({ eventName, name, label, Icon, onPress }) => (
-          <Trace key={name} logPress element={name} eventOnTrigger={eventName}>
-            <TouchableArea flex={1} dd-action-name={name} testID={name} scaleTo={activeScale} onPress={onPress}>
-              <Flex
-                fill
-                backgroundColor="$accent2"
-                borderRadius="$rounded20"
-                py="$spacing16"
-                px="$spacing12"
-                gap="$spacing12"
-                justifyContent="space-between"
-              >
-                <Icon color={contentColor} size={iconSize} strokeWidth={2} />
-                <Text color={contentColor} variant="buttonLabel2">
-                  {label}
-                </Text>
-              </Flex>
-            </TouchableArea>
-          </Trace>
-        ))}
-      </Flex>
-    )
-  }
 
   return (
     <Flex>

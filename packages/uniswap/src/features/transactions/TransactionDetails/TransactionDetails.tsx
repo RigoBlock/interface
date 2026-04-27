@@ -17,7 +17,6 @@ import type { UniswapXGasBreakdown } from 'uniswap/src/features/transactions/swa
 import type { SwapFee as SwapFeeType } from 'uniswap/src/features/transactions/swap/types/trade'
 import { isBridge, isChained, isWrap } from 'uniswap/src/features/transactions/swap/utils/routing'
 import { ExpectedFailureBanner } from 'uniswap/src/features/transactions/TransactionDetails/ExpectedFailureBanner'
-import { ExpectedSpeed } from 'uniswap/src/features/transactions/TransactionDetails/ExpectedSpeed'
 import { FeeOnTransferFeeGroup } from 'uniswap/src/features/transactions/TransactionDetails/FeeOnTransferFee'
 import { ListSeparatorToggle } from 'uniswap/src/features/transactions/TransactionDetails/ListSeparatorToggle'
 import { SwapFee } from 'uniswap/src/features/transactions/TransactionDetails/SwapFee'
@@ -61,7 +60,7 @@ interface TransactionDetailsProps {
   includesDelegation?: boolean
 }
 
-// eslint-disable-next-line complexity
+// oxlint-disable-next-line complexity
 export function TransactionDetails({
   banner,
   children,
@@ -153,7 +152,6 @@ export function TransactionDetails({
           {!showChildren && CollapsedInfoRow}
           {(isSwap || isChainedTrade) && RoutingInfo}
           {AccountDetails}
-          {!isChainedTrade && <ExpectedSpeed chainId={chainId} />}
           {showChildren ? (
             <AnimatePresence>
               <Flex animation="fast" exitStyle={{ opacity: 0 }} enterStyle={{ opacity: 0 }} gap="$spacing8">

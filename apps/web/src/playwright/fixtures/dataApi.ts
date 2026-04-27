@@ -1,7 +1,8 @@
-// biome-ignore lint/style/noRestrictedImports: Data API fixtures need direct Playwright imports
+import path from 'path'
+/* oxlint-disable react-hooks/rules-of-hooks -- Playwright fixtures use `use()` which is not a React hook */
+// oxlint-disable-next-line no-restricted-imports -- Data API fixtures need direct Playwright imports
 import { test as base } from '@playwright/test'
 import { listTransactions } from '@uniswap/client-data-api/dist/data/v1/api-DataApiService_connectquery'
-import path from 'path'
 
 // TransactionTypeFilter enum values from client-data-api (used in ListTransactions request filter)
 const TRANSACTION_TYPE_FILTER_SEND = 'TRANSACTION_TYPE_FILTER_SEND'
@@ -61,6 +62,7 @@ function getListTransactionsMockPath({
     return defaultPath
   }
   // Only serve filtered mocks when using the full list_transactions mock (not empty or other variants)
+  // oxlint-disable-next-line no-shadow
   const base = path.basename(defaultPath, path.extname(defaultPath))
   if (base !== 'list_transactions') {
     return defaultPath

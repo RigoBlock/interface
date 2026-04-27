@@ -1,4 +1,4 @@
-/* eslint-disable max-lines -- TODO(Toucan): keep controller small; current file is an orchestration hub */
+/* oxlint-disable max-lines -- TODO(Toucan): keep controller small; current file is an orchestration hub */
 
 import { IChartApi, ISeriesApi, MouseEventParams, Time, UTCTimestamp } from 'lightweight-charts'
 import { opacify } from 'ui/src/theme'
@@ -232,6 +232,7 @@ export class ToucanBidDistributionChartController {
         minTick: next.minTick,
         maxTick: next.maxTick,
         tickSizeDecimal: next.tickSizeDecimal,
+        barStep: next.barStep,
         priceScaleFactor: next.priceScaleFactor,
         chartMode: this.createParams.chartMode,
       })
@@ -403,7 +404,7 @@ export class ToucanBidDistributionChartController {
 
     series.applyOptions({
       ...(baseOptions as ToucanChartSeriesOptions),
-      ...(next.seriesOptionsPatch ?? {}),
+      ...next.seriesOptionsPatch,
     })
 
     // Data + min/max time tracking
@@ -773,6 +774,7 @@ export class ToucanBidDistributionChartController {
       minTick: next.minTick,
       maxTick: next.maxTick,
       tickSizeDecimal: next.tickSizeDecimal,
+      barStep: next.barStep,
       priceScaleFactor: next.priceScaleFactor,
       chartMode: this.createParams.chartMode,
     })

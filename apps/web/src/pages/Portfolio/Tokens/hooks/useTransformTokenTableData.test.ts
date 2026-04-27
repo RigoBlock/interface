@@ -1,11 +1,22 @@
 import { NetworkStatus } from '@apollo/client'
+import { Token } from '@uniswap/sdk-core'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { useSortedPortfolioBalancesMultichain } from 'uniswap/src/features/dataApi/balances/balances'
-import type { PortfolioChainBalance, PortfolioMultichainBalance } from 'uniswap/src/features/dataApi/types'
+import type {
+  CurrencyInfo,
+  PortfolioChainBalance,
+  PortfolioMultichainBalance,
+} from 'uniswap/src/features/dataApi/types'
+import { useSortedPortfolioBalancesMultichain } from 'uniswap/src/features/portfolio/balances/hooks'
+import {
+  createPortfolioChainBalance,
+  createPortfolioMultichainBalance,
+} from 'uniswap/src/test/fixtures/dataApi/portfolioMultichainBalances'
+import { TestID } from 'uniswap/src/test/fixtures/testIDs'
+import { currencyId } from 'uniswap/src/utils/currencyId'
 import { describe, expect, it, vi } from 'vitest'
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
 import { useTransformTokenTableData } from '~/pages/Portfolio/Tokens/hooks/useTransformTokenTableData'
-import { TEST_TOKEN_1_INFO } from '~/test-utils/constants'
+import { TEST_TOKEN_1_INFO, TEST_TOKEN_2_INFO } from '~/test-utils/constants'
 import { renderHook } from '~/test-utils/render'
 import { assume0xAddress } from '~/utils/wagmi'
 
@@ -19,8 +30,8 @@ vi.mock('@universe/gating', async (importOriginal) => ({
   FeatureFlags: { MultichainTokenUx: 'multichain_token_ux' },
 }))
 
-vi.mock('uniswap/src/features/dataApi/balances/balances', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('uniswap/src/features/dataApi/balances/balances')>()
+vi.mock('uniswap/src/features/portfolio/balances/hooks', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('uniswap/src/features/portfolio/balances/hooks')>()
   return {
     ...actual,
     useSortedPortfolioBalancesMultichain: vi.fn(),
@@ -30,38 +41,52 @@ vi.mock('uniswap/src/features/dataApi/balances/balances', async (importOriginal)
 const mockUsePortfolioAddresses = vi.mocked(usePortfolioAddresses)
 const mockUseSortedPortfolioBalancesMultichain = vi.mocked(useSortedPortfolioBalancesMultichain)
 
-function createChainBalance(overrides: Partial<PortfolioChainBalance> = {}): PortfolioChainBalance {
-  return {
-    chainId: 1,
-    address: '0x0000000000000000000000000000000000000001',
-    decimals: 18,
+/** Web-only preset around shared {@link createPortfolioChainBalance} (quantity/valueUsd for token table tests). */
+function createPortfolioTableChainBalance(
+  currencyInfo: CurrencyInfo,
+  overrides: Partial<PortfolioChainBalance> = {},
+): PortfolioChainBalance {
+  const c = currencyInfo.currency
+  const address = c instanceof Token ? c.address : '0x0000000000000000000000000000000000000001'
+  return createPortfolioChainBalance({
+    chainId: c.chainId,
+    address,
+    decimals: c.decimals,
     quantity: 100,
     valueUsd: 1000,
-    currencyInfo: TEST_TOKEN_1_INFO,
+    isHidden: false,
+    currencyInfo,
     ...overrides,
-  }
+  })
 }
 
-function createMultichainBalance(
-  overrides: Partial<{ id?: string; tokens: PortfolioChainBalance[] }> & Partial<PortfolioMultichainBalance> = {},
+/** Web-only preset around shared {@link createPortfolioMultichainBalance}. */
+function createPortfolioTableMultichainBalance(
+  currencyInfo: CurrencyInfo,
+  overrides: Partial<PortfolioMultichainBalance> = {},
 ): PortfolioMultichainBalance {
-  const tokens = overrides.tokens ?? [createChainBalance()]
-  const id = overrides.id ?? tokens[0].currencyInfo.currencyId
-  return {
-    id,
-    cacheId: `TokenBalance:${id}-0xowner`,
-    name: 'Test Token',
-    symbol: 'TEST',
-    logoUrl: null,
-    totalAmount: 100,
-    priceUsd: 10,
-    pricePercentChange1d: null,
-    totalValueUsd: 1000,
-    isHidden: false,
-    tokens,
-    ...overrides,
-  }
+  return createPortfolioMultichainBalance(
+    {
+      name: 'Test Token',
+      symbol: 'TEST',
+      logoUrl: null,
+      totalAmount: 100,
+      priceUsd: 10,
+      pricePercentChange1d: null,
+      totalValueUsd: 1000,
+      isHidden: false,
+      tokens: [createPortfolioTableChainBalance(currencyInfo)],
+      ...overrides,
+    },
+    { cacheOwnerSuffix: '0xowner' },
+  )
 }
+
+const createChainBalance = (overrides: Partial<PortfolioChainBalance> = {}): PortfolioChainBalance =>
+  createPortfolioTableChainBalance(TEST_TOKEN_1_INFO, overrides)
+
+const createMultichainBalance = (overrides: Partial<PortfolioMultichainBalance> = {}): PortfolioMultichainBalance =>
+  createPortfolioTableMultichainBalance(TEST_TOKEN_1_INFO, overrides)
 
 describe('useTransformTokenTableData', () => {
   beforeEach(() => {
@@ -73,6 +98,7 @@ describe('useTransformTokenTableData', () => {
     })
     mockUseSortedPortfolioBalancesMultichain.mockReturnValue({
       data: undefined,
+      balancesById: undefined,
       loading: false,
       error: undefined,
       refetch: undefined,
@@ -83,6 +109,7 @@ describe('useTransformTokenTableData', () => {
   it('returns empty visible and hidden when no sorted balances', () => {
     mockUseSortedPortfolioBalancesMultichain.mockReturnValue({
       data: undefined,
+      balancesById: undefined,
       loading: false,
       error: undefined,
       refetch: undefined,
@@ -111,6 +138,7 @@ describe('useTransformTokenTableData', () => {
         balances: [balanceWithTokens, balanceWithNoTokens],
         hiddenBalances: [],
       },
+      balancesById: undefined,
       loading: false,
       error: undefined,
       refetch: vi.fn(),
@@ -140,6 +168,7 @@ describe('useTransformTokenTableData', () => {
         balances: [],
         hiddenBalances: [hiddenWithTokens, hiddenWithNoTokens],
       },
+      balancesById: undefined,
       loading: false,
       error: undefined,
       refetch: vi.fn(),
@@ -154,6 +183,68 @@ describe('useTransformTokenTableData', () => {
     expect(result.current.hidden![0].tokens).toHaveLength(1)
   })
 
+  it('flattens fully hidden multichain balances to one TokenData row per chain before table mapping', () => {
+    const t1 = createPortfolioTableChainBalance(TEST_TOKEN_1_INFO, {
+      chainId: UniverseChainId.Mainnet,
+      quantity: 2,
+      valueUsd: 10,
+    })
+    const t2 = createPortfolioTableChainBalance(TEST_TOKEN_2_INFO, {
+      chainId: UniverseChainId.ArbitrumOne,
+      quantity: 0,
+      valueUsd: 0,
+    })
+    const hiddenMulti = createMultichainBalance({
+      id: 'hidden-multi',
+      priceUsd: 5,
+      tokens: [t1, t2],
+    })
+
+    mockUseSortedPortfolioBalancesMultichain.mockReturnValue({
+      data: {
+        balances: [],
+        hiddenBalances: [hiddenMulti],
+      },
+      balancesById: undefined,
+      loading: false,
+      error: undefined,
+      refetch: vi.fn(),
+      networkStatus: NetworkStatus.ready,
+    } as ReturnType<typeof useSortedPortfolioBalancesMultichain>)
+
+    const { result } = renderHook(() => useTransformTokenTableData({}))
+
+    expect(result.current.hidden).not.toBeNull()
+    expect(result.current.hidden).toHaveLength(2)
+    for (const row of result.current.hidden!) {
+      expect(row.tokens).toHaveLength(1)
+    }
+
+    const suffix1 = currencyId(TEST_TOKEN_1_INFO.currency)!
+    expect(result.current.hidden![0]).toMatchObject({
+      id: `hidden-multi-${suffix1}`,
+      testId: `${TestID.TokenTableRowPrefix}hidden-multi-${suffix1}`,
+      chainId: UniverseChainId.Mainnet,
+      quantity: 2,
+      price: 5,
+      totalValue: 10,
+    })
+    expect(result.current.hidden![0]!.tokens[0]).toMatchObject({
+      chainId: UniverseChainId.Mainnet,
+      quantity: 2,
+      valueUsd: 10,
+      currencyInfo: TEST_TOKEN_1_INFO,
+    })
+    expect(result.current.hidden![1]).toMatchObject({
+      chainId: UniverseChainId.ArbitrumOne,
+      price: 5,
+    })
+    expect(result.current.hidden![1]!.tokens[0]).toMatchObject({
+      chainId: UniverseChainId.ArbitrumOne,
+      currencyInfo: TEST_TOKEN_2_INFO,
+    })
+  })
+
   it('every visible and hidden entry has tokens.length >= 1', () => {
     const balance1 = createMultichainBalance({ id: 'balance-1', tokens: [createChainBalance()] })
     const balance2 = createMultichainBalance({
@@ -166,6 +257,7 @@ describe('useTransformTokenTableData', () => {
         balances: [balance1, balance2],
         hiddenBalances: [],
       },
+      balancesById: undefined,
       loading: false,
       error: undefined,
       refetch: vi.fn(),
@@ -185,45 +277,5 @@ describe('useTransformTokenTableData', () => {
       expect(row.tokens.length).toBeGreaterThanOrEqual(1)
       expect(row.tokens[0]).toBeDefined()
     }
-  })
-
-  it('when chainIds is set, only includes balances with a token on a selected chain and filters tokens to those chains', () => {
-    const chain1Only = createMultichainBalance({
-      id: 'chain-1-only',
-      tokens: [createChainBalance({ chainId: 1, valueUsd: 500 })],
-    })
-    const multichain = createMultichainBalance({
-      id: 'multichain',
-      tokens: [
-        createChainBalance({ chainId: 1, valueUsd: 300 }),
-        createChainBalance({ chainId: 42161, valueUsd: 200 }),
-      ],
-    })
-    const chain42161Only = createMultichainBalance({
-      id: 'chain-42161-only',
-      tokens: [createChainBalance({ chainId: 42161, valueUsd: 100 })],
-    })
-
-    mockUseSortedPortfolioBalancesMultichain.mockReturnValue({
-      data: {
-        balances: [chain1Only, multichain, chain42161Only],
-        hiddenBalances: [],
-      },
-      loading: false,
-      error: undefined,
-      refetch: vi.fn(),
-      networkStatus: NetworkStatus.ready,
-    } as ReturnType<typeof useSortedPortfolioBalancesMultichain>)
-
-    const { result } = renderHook(() =>
-      useTransformTokenTableData({ chainIds: [UniverseChainId.Mainnet as UniverseChainId] }),
-    )
-
-    expect(result.current.visible).not.toBeNull()
-    expect(result.current.visible).toHaveLength(2)
-    expect(result.current.visible!.map((r) => r.id)).toEqual(['chain-1-only', 'multichain'])
-    expect(result.current.visible!.find((r) => r.id === 'multichain')!.tokens).toHaveLength(1)
-    expect(result.current.visible!.find((r) => r.id === 'multichain')!.tokens[0].chainId).toBe(1)
-    expect(result.current.visible!.find((r) => r.id === 'multichain')!.totalValue).toBe(300)
   })
 })

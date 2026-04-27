@@ -26,7 +26,7 @@ interface CurrencyInputPanelValueProps {
   fiatValueVariant?: TextProps['variant']
 }
 
-export const CurrencyInputPanelValue = memo(function _CurrencyInputPanelValue({
+export const CurrencyInputPanelValue = memo(function CurrencyInputPanelValueInner({
   disabled,
   value,
   usdValue,

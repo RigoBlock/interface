@@ -170,11 +170,11 @@ export const DepositStep = () => {
 
   const requestLoading = Boolean(
     !transactionError &&
-      !inputError &&
-      !txInfo?.txRequest &&
-      currencyAmounts?.TOKEN0 &&
-      currencyAmounts.TOKEN1 &&
-      !invalidRange,
+    !inputError &&
+    !txInfo?.txRequest &&
+    currencyAmounts?.TOKEN0 &&
+    currencyAmounts.TOKEN1 &&
+    !invalidRange,
   )
 
   return (
@@ -208,7 +208,7 @@ export const DepositStep = () => {
         isSmartPool={!!smartPoolAddress}
       />
       <LowLPSlippageWarning
-        isNativePool={Boolean(currencies.display.TOKEN0?.isNative || currencies.display.TOKEN1?.isNative)}
+        isNativePool={Boolean(currencies.sdk.TOKEN0?.isNative || currencies.sdk.TOKEN1?.isNative)}
       />
       <Flex row>
         {account.isConnected ? (

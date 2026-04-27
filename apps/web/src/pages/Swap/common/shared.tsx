@@ -1,4 +1,3 @@
-import { useLayoutEffect, useState } from 'react'
 import Row from '~/components/deprecated/Row'
 import { Input, InputProps } from '~/components/NumericalInput'
 import { css, deprecatedStyled } from '~/lib/deprecated-styled'
@@ -38,25 +37,13 @@ export const NumericalInputMimic = deprecatedStyled.span<{ $fontSize?: number }>
   ${NumericalInputFontStyle}
 `
 
-export const NumericalInputSymbolContainer = deprecatedStyled.span<{ showPlaceholder: boolean; $fontSize?: number }>`
+export const NumericalInputSymbolContainer = deprecatedStyled.span<{ $showPlaceholder: boolean; $fontSize?: number }>`
   user-select: none;
   color: ${({ theme }) => theme.neutral1};
   ${NumericalInputFontStyle}
-  ${({ showPlaceholder }) =>
-    showPlaceholder &&
+  ${({ $showPlaceholder }) =>
+    $showPlaceholder &&
     css`
       color: ${({ theme }) => theme.neutral3};
     `}
 `
-
-export function useWidthAdjustedDisplayValue(displayValue: string) {
-  const [postWidthAdjustedDisplayValue, setPostWidthAdjustedDisplayValue] = useState('')
-
-  // Doing this to set the value the user is seeing once the width of the
-  // hidden element is known (after 1 render) so users don't see a weird jump
-  useLayoutEffect(() => {
-    requestAnimationFrame(() => setPostWidthAdjustedDisplayValue(displayValue))
-  }, [displayValue])
-
-  return postWidthAdjustedDisplayValue
-}

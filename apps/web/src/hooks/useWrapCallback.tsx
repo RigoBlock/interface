@@ -90,6 +90,7 @@ export default function useWrapCallback({
         wrapType: WrapType.Wrap,
         execute: sufficientBalance
           ? async () => {
+              // oxlint-disable-next-line no-shadow
               const wethContract = wethContractRef.current
               if (!wethContract) {
                 throw new Error('wethContract is null')
@@ -105,6 +106,7 @@ export default function useWrapCallback({
                   contract_chain_id: network.chainId,
                   type: WrapType.Wrap,
                 })
+                // oxlint-disable-next-line no-shadow
                 const error = new Error(`Invalid WETH contract
 Please file a bug detailing how this happened - https://github.com/Uniswap/interface/issues/new?labels=bug&template=bug-report.md&title=Invalid%20WETH%20contract`)
                 setError(error)
@@ -136,6 +138,7 @@ Please file a bug detailing how this happened - https://github.com/Uniswap/inter
         execute: sufficientBalance
           ? async () => {
               try {
+                // oxlint-disable-next-line no-shadow
                 const wethContract = wethContractRef.current
                 if (!wethContract) {
                   throw new Error('wethContract is null')
@@ -152,6 +155,7 @@ Please file a bug detailing how this happened - https://github.com/Uniswap/inter
                   type: WrapType.Unwrap,
                 })
                 return txReceipt.hash
+                // oxlint-disable-next-line no-shadow
               } catch (error) {
                 logger.warn('useWrapCallback', 'useWrapCallback', 'Failed to wrap', error)
                 throw error

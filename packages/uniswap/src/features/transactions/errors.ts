@@ -149,6 +149,8 @@ function isSessionError(error: Error): boolean {
       e = e.originalError
     } else if (e instanceof Error) {
       e = e.cause
+    } else {
+      break
     }
   }
 

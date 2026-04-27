@@ -43,16 +43,19 @@ export const fiatOnRampAggregatorApi = createApi({
         method: 'POST',
       }),
       keepUnusedDataFor: 0,
-      transformResponse: (response: FORQuoteResponse) => ({
-        ...response,
-        quotes: response.quotes?.map((quote) => ({
-          ...quote,
-          serviceProviderDetails: {
-            ...quote.serviceProviderDetails,
-            paymentMethods: transformPaymentMethods(quote.serviceProviderDetails.paymentMethods),
-          },
-        })),
-      }),
+      transformResponse: (response: FORQuoteResponse): FORQuoteResponse =>
+        ({
+          ...response,
+          quotes: response.quotes?.map((quote) => ({
+            ...quote,
+            ...(quote.serviceProviderDetails && {
+              serviceProviderDetails: {
+                ...quote.serviceProviderDetails,
+                paymentMethods: transformPaymentMethods(quote.serviceProviderDetails.paymentMethods),
+              },
+            }),
+          })),
+        }) as FORQuoteResponse,
     }),
     fiatOnRampAggregatorTransferServiceProviders: builder.query<FORServiceProvidersResponse, void>({
       query: () => ({ url: '/TransferServiceProviders', body: {}, method: 'POST' }),

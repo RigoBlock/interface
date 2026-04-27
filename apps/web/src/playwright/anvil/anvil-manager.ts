@@ -1,6 +1,5 @@
-/* eslint-disable no-console */
-import { type ChildProcess, spawn } from 'child_process'
 import 'dotenv/config'
+import { type ChildProcess, spawn } from 'child_process'
 import * as fs from 'fs'
 import * as path from 'path'
 import { promiseTimeout, sleep } from 'utilities/src/time/timing'

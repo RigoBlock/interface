@@ -35,6 +35,7 @@ export function createSaga<SagaParams, SagaYieldType, SagaResultType>(
 } {
   const triggerAction = createAction<SagaParams>(`${name}/trigger`)
 
+  // oxlint-disable-next-line typescript/explicit-function-return-type
   const wrappedSaga = function* () {
     while (true) {
       try {
@@ -87,7 +88,7 @@ interface MonitoredSagaOptions {
   parallel?: boolean
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: Generic saga state interface needs flexible typing
+// oxlint-disable-next-line typescript/no-explicit-any -- Generic saga state interface needs flexible typing
 export interface MonitoredSaga<SagaParams = any> {
   name: string
   wrappedSaga: () => Generator
@@ -139,6 +140,7 @@ export function createMonitoredSaga<SagaParams, SagaYieldType, SagaResultType>({
   )
 
   // Handler for a single trigger - extracted to support both serial and parallel modes
+  // oxlint-disable-next-line typescript/explicit-function-return-type
   function* handleTrigger(trigger: { type: typeof triggerAction.type; payload: SagaParams }) {
     try {
       logger.debug('saga', 'monitoredSaga', `${name} triggered`)
@@ -218,7 +220,7 @@ export function getMonitoredSagaReducers(monitoredSagas: Record<string, Monitore
   return combineReducers(
     Object.keys(monitoredSagas).reduce((acc: { [name: string]: Reducer<SagaState> }, sagaName: string) => {
       // Safe non-null assertion because key `sagaName` comes from `Object.keys(monitoredSagas)`
-      // biome-ignore lint/style/noNonNullAssertion: Safe assertion in test or migration context
+      // oxlint-disable-next-line typescript/no-non-null-assertion -- Safe assertion in test or migration context
       acc[sagaName] = monitoredSagas[sagaName]!.reducer
       return acc
     }, {}),
@@ -253,6 +255,7 @@ export const signalSwapModalClosed = createAction<void>(`signalSwapModalClosed`)
  */
 export const signalPlanCancellation = createAction<{ planId: string }>(`saga/planCancellation`)
 
+// oxlint-disable-next-line typescript/explicit-function-return-type
 export function* waitForRehydration() {
   // First check if already rehydrated (might have happened before saga started)
   const alreadyRehydrated = yield* call(getIsRehydrated)

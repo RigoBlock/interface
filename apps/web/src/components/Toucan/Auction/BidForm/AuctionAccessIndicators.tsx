@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Flex, styled, Text, TouchableArea } from 'ui/src'
 import { EnvelopeCheck } from 'ui/src/components/icons/EnvelopeCheck'
 import { EnvelopeLock } from 'ui/src/components/icons/EnvelopeLock'
+import { QuestionInCircleFilled } from 'ui/src/components/icons/QuestionInCircleFilled'
 import { UserCheck } from 'ui/src/components/icons/UserCheck'
 import { UserLock } from 'ui/src/components/icons/UserLock'
 import { InfoTooltip } from 'uniswap/src/components/tooltip/InfoTooltip'
@@ -75,41 +76,51 @@ export function AuctionAccessIndicators(): JSX.Element | null {
   )
 
   return (
-    <Flex flexDirection="row" gap="$spacing8" justifyContent="center">
-      {kycStatus.auctionHasPresale && (
+    <Flex flexDirection="row" gap="$spacing8" justifyContent="space-between">
+      <Text variant="subheading2" color="$neutral2">
+        {t('toucan.bidForm.placeABid')}
+      </Text>
+      <Flex flexDirection="row" gap="$spacing8">
         <InfoTooltip
           placement="top"
-          trigger={
-            <TouchableArea>
-              <IconContainer active={kycStatus.isAllowlisted}>
-                {kycStatus.isAllowlisted ? (
-                  <EnvelopeCheck color="$statusSuccess" size="$icon.16" />
-                ) : (
-                  <EnvelopeLock color="$neutral1" size="$icon.16" />
-                )}
-              </IconContainer>
-            </TouchableArea>
-          }
-          text={whitelistTooltipContent}
+          trigger={<QuestionInCircleFilled color="$neutral2" size="$icon.20" />}
+          text={t('toucan.bidForm.placeABid.tooltip')}
         />
-      )}
-      {kycStatus.auctionNeedsVerification && (
-        <InfoTooltip
-          placement="top"
-          trigger={
-            <TouchableArea>
-              <IconContainer active={kycStatus.status === KycVerificationStatus.VERIFICATION_STATUS_COMPLETED}>
-                {kycStatus.status === KycVerificationStatus.VERIFICATION_STATUS_COMPLETED ? (
-                  <UserCheck color="$statusSuccess" size="$icon.16" />
-                ) : (
-                  <UserLock color="$neutral1" size="$icon.16" />
-                )}
-              </IconContainer>
-            </TouchableArea>
-          }
-          text={verificationTooltipContent}
-        />
-      )}
+        {kycStatus.auctionHasPresale && (
+          <InfoTooltip
+            placement="top"
+            trigger={
+              <TouchableArea>
+                <IconContainer active={kycStatus.isAllowlisted}>
+                  {kycStatus.isAllowlisted ? (
+                    <EnvelopeCheck color="$statusSuccess" size="$icon.16" />
+                  ) : (
+                    <EnvelopeLock color="$neutral1" size="$icon.16" />
+                  )}
+                </IconContainer>
+              </TouchableArea>
+            }
+            text={whitelistTooltipContent}
+          />
+        )}
+        {kycStatus.auctionNeedsVerification && (
+          <InfoTooltip
+            placement="top"
+            trigger={
+              <TouchableArea>
+                <IconContainer active={kycStatus.status === KycVerificationStatus.VERIFICATION_STATUS_COMPLETED}>
+                  {kycStatus.status === KycVerificationStatus.VERIFICATION_STATUS_COMPLETED ? (
+                    <UserCheck color="$statusSuccess" size="$icon.16" />
+                  ) : (
+                    <UserLock color="$neutral1" size="$icon.16" />
+                  )}
+                </IconContainer>
+              </TouchableArea>
+            }
+            text={verificationTooltipContent}
+          />
+        )}
+      </Flex>
     </Flex>
   )
 }

@@ -28,6 +28,7 @@ interface WithdrawModalProps {
 
 type SubmissionStatus = 'idle' | 'waitingForWallet'
 
+// oxlint-disable-next-line complexity
 export function WithdrawModal({
   isOpen,
   onClose,

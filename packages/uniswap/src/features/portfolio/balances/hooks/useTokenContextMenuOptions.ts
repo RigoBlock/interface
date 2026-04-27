@@ -54,6 +54,7 @@ interface TokenMenuParams {
   openReportTokenModal: () => void
   openReportDataIssueModal?: () => void
   copyAddressToClipboard?: (address: string) => Promise<void>
+  onPressCopyAddressOverride?: () => void
   closeMenu: () => void
   disableNotifications?: boolean
   recipient?: Address // Pre-filled recipient address for send action
@@ -71,6 +72,7 @@ export function useTokenContextMenuOptions({
   openReportTokenModal,
   openReportDataIssueModal,
   copyAddressToClipboard,
+  onPressCopyAddressOverride,
   closeMenu,
   disableNotifications,
   recipient,
@@ -139,8 +141,19 @@ export function useTokenContextMenuOptions({
       return
     }
 
+    if (onPressCopyAddressOverride) {
+      onPressCopyAddressOverride()
+      return
+    }
+
     await copyAddressToClipboard?.(currencyAddress)
-  }, [currencyAddress, hasViewedContractAddressExplainer, openContractAddressExplainerModal, copyAddressToClipboard])
+  }, [
+    currencyAddress,
+    hasViewedContractAddressExplainer,
+    onPressCopyAddressOverride,
+    openContractAddressExplainerModal,
+    copyAddressToClipboard,
+  ])
 
   const onPressHiddenStatus = useCallback(() => {
     /**

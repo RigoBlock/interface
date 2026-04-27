@@ -96,14 +96,21 @@ export function useLpIncentivesFormattedEarnings({
 
     if (uniLpRewardsFiatValue) {
       result.formattedRewardsValue = formatCurrency(uniLpRewardsFiatValue)
-      // Note: Both rewards are the same currency, but can be across different chains
+      // Fees and rewards may be in different USDC tokens with different decimals
+      // (e.g. BNB USDC has 18 decimals, Mainnet USDC has 6). Add as numbers via
+      // toExact() to avoid mixing quotients from different decimal scales.
+      const feesExact = result.totalFeesFiatValue ? Number(result.totalFeesFiatValue.toExact()) : 0
+      const rewardsExact = Number(uniLpRewardsFiatValue.toExact())
+      const totalExact = feesExact + rewardsExact
+
+      result.totalFormattedEarnings = convertFiatAmountFormatted(totalExact.toString(), NumberType.FiatStandard)
+      // Build totalEarningsFiatValue in the fees currency so percentage calculations
+      // in consumers (which compare against fiatFeeValue0/1.quotient) stay consistent.
+      const targetCurrency = result.totalFeesFiatValue?.currency ?? uniLpRewardsFiatValue.currency
       result.totalEarningsFiatValue = CurrencyAmount.fromRawAmount(
-        uniLpRewardsFiatValue.currency,
-        result.totalFeesFiatValue
-          ? JSBI.add(result.totalFeesFiatValue.quotient, uniLpRewardsFiatValue.quotient)
-          : uniLpRewardsFiatValue.quotient,
+        targetCurrency,
+        JSBI.BigInt(Math.round(totalExact * 10 ** targetCurrency.decimals)),
       )
-      result.totalFormattedEarnings = formatCurrency(result.totalEarningsFiatValue)
     }
 
     return result

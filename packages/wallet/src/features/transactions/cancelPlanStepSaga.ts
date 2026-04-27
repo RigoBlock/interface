@@ -72,6 +72,7 @@ interface CancelPlanStepParams {
  * - Force-refreshes plan status from Trading API
  * - Updates local state with new plan status
  */
+// oxlint-disable-next-line typescript/explicit-function-return-type
 export function* cancelPlanStep(params: CancelPlanStepParams) {
   const { planTransaction, cancelRequest, cancelableStepInfo } = params
   const { planId } = planTransaction.typeInfo
@@ -122,6 +123,7 @@ export function* cancelPlanStep(params: CancelPlanStepParams) {
  * Step transactions have `options.request = {}` (empty).
  * We must fetch the transaction from chain to get the nonce for replacement.
  */
+// oxlint-disable-next-line typescript/explicit-function-return-type
 function* cancelClassicPlanStep(params: {
   planTransaction: PlanTransactionDetails
   step: TransactionDetails
@@ -137,7 +139,7 @@ function* cancelClassicPlanStep(params: {
   const provider = yield* call(getProvider, step.chainId)
   const chainTx = yield* call([provider, provider.getTransaction], step.hash)
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- getTransaction can return null
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- getTransaction can return null
   if (!chainTx) {
     // Transaction not found - was likely dropped from mempool or never broadcast
     logger.warn('cancelPlanStepSaga', 'cancelClassicPlanStep', 'Transaction not found on chain', {
@@ -200,6 +202,7 @@ function* cancelClassicPlanStep(params: {
 /**
  * Cancels a UniswapX order step by submitting a permit2 nonce invalidation transaction
  */
+// oxlint-disable-next-line typescript/explicit-function-return-type
 function* cancelUniswapXPlanStep(params: {
   planTransaction: PlanTransactionDetails
   cancelRequest: providers.TransactionRequest

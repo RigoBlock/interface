@@ -51,13 +51,9 @@ export function getGetPortfolioQueryOptions(
 ): QueryOptionsResult<GetPortfolioResponse | undefined, Error, GetPortfolioResponse | undefined, GetPortfolioQueryKey> {
   const transformedInput = transformInput(input)
 
-  const { modifier, walletAccount: _walletAccount, ...queryCacheInputs } = transformedInput ?? {}
+  const { modifier: _modifier, walletAccount: _walletAccount, ...queryCacheInputs } = transformedInput ?? {}
 
-  const queryCacheInputsSorted = sortQueryCacheInputs({
-    ...queryCacheInputs,
-    includeSmallBalances: modifier?.includeSmallBalances,
-    includeSpamTokens: modifier?.includeSpamTokens,
-  })
+  const queryCacheInputsSorted = sortQueryCacheInputs(queryCacheInputs)
 
   const addressKey = {
     ...(input?.evmAddress && { evmAddress: input.evmAddress }),

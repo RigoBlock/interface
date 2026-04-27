@@ -118,6 +118,7 @@
 		77206ACF669BD9DAAC096227 /* PageInfo.graphql.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F2898E709490CC198B98228 /* PageInfo.graphql.swift */; };
 		77CF6065C8A24FE48204A2C1 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BF9176E944C84910B1C0B057 /* SplashScreen.storyboard */; };
 		7B49698C356931577828B41E /* TimestampedAmount.graphql.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C9E8E39C13967E447FC193F /* TimestampedAmount.graphql.swift */; };
+		7BDC2CBE10DC34F9BCFF86EA /* TokenProjectTokensTvlParts.graphql.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC2EE4B5A1180F03030E80A9 /* TokenProjectTokensTvlParts.graphql.swift */; };
 		8273FC23FB1AE47B80C5E09F /* Pods_OneSignalNotificationServiceExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 15092E550A1C78508ABA3280 /* Pods_OneSignalNotificationServiceExtension.framework */; };
 		8385A47D3C765B841F450090 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C26D739993D5C939C6FBB58A /* ExpoModulesProvider.swift */; };
 		890E98060D98F2F5617D1914 /* HomeScreenTokensQuery.graphql.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2240891823DAE7BF8BB88FF4 /* HomeScreenTokensQuery.graphql.swift */; };
@@ -372,6 +373,8 @@
 		201FF7E30EC98ABC121BC8BF /* BlockaidFees.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BlockaidFees.graphql.swift; path = WidgetsCore/MobileSchema/Schema/Objects/BlockaidFees.graphql.swift; sourceTree = "<group>"; };
 		2226DF79BEAFECEE11A51347 /* Pods_Uniswap.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Uniswap.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		2240891823DAE7BF8BB88FF4 /* HomeScreenTokensQuery.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HomeScreenTokensQuery.graphql.swift; path = WidgetsCore/MobileSchema/Operations/Queries/HomeScreenTokensQuery.graphql.swift; sourceTree = "<group>"; };
+		24343423F6B8A16CB14F1E4C /* Pods-WidgetsCore.debugoptimized.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-WidgetsCore.debugoptimized.xcconfig"; path = "Target Support Files/Pods-WidgetsCore/Pods-WidgetsCore.debugoptimized.xcconfig"; sourceTree = "<group>"; };
+		2590691EDB017AE6FB6C10AC /* Pods-WidgetIntentExtension.debugoptimized.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-WidgetIntentExtension.debugoptimized.xcconfig"; path = "Target Support Files/Pods-WidgetIntentExtension/Pods-WidgetIntentExtension.debugoptimized.xcconfig"; sourceTree = "<group>"; };
 		25DDE9DCAFA0EE2838508994 /* Chain.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Chain.graphql.swift; path = WidgetsCore/MobileSchema/Schema/Enums/Chain.graphql.swift; sourceTree = "<group>"; };
 		284C5150E9B50FB5BE531572 /* Image.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Image.graphql.swift; path = WidgetsCore/MobileSchema/Schema/Objects/Image.graphql.swift; sourceTree = "<group>"; };
 		290B66F38FEC486AF1709BE4 /* FeeData.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FeeData.graphql.swift; path = WidgetsCore/MobileSchema/Schema/Objects/FeeData.graphql.swift; sourceTree = "<group>"; };
@@ -381,8 +384,10 @@
 		2FB70424D7C456B9B72536C6 /* NetworkFee.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NetworkFee.graphql.swift; path = WidgetsCore/MobileSchema/Schema/Objects/NetworkFee.graphql.swift; sourceTree = "<group>"; };
 		3063061F7C203A1DA47B8FBB /* OffRampTransfer.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = OffRampTransfer.graphql.swift; path = WidgetsCore/MobileSchema/Schema/Objects/OffRampTransfer.graphql.swift; sourceTree = "<group>"; };
 		319AAC5377C60EB6579CC5C6 /* TokenBasicInfoParts.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TokenBasicInfoParts.graphql.swift; path = WidgetsCore/MobileSchema/Fragments/TokenBasicInfoParts.graphql.swift; sourceTree = "<group>"; };
+		31CB18D02DE297D6DADB87C0 /* Pods-Uniswap.debugoptimized.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Uniswap.debugoptimized.xcconfig"; path = "Target Support Files/Pods-Uniswap/Pods-Uniswap.debugoptimized.xcconfig"; sourceTree = "<group>"; };
 		32764E27B5D9FCF0AA4217CF /* SwapOrderDetails.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SwapOrderDetails.graphql.swift; path = WidgetsCore/MobileSchema/Schema/Objects/SwapOrderDetails.graphql.swift; sourceTree = "<group>"; };
 		346B304DE3207797FD1FDE71 /* ProtectionInfo.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ProtectionInfo.graphql.swift; path = WidgetsCore/MobileSchema/Schema/Objects/ProtectionInfo.graphql.swift; sourceTree = "<group>"; };
+		36F66895EB592B9F61AE658C /* Pods-Uniswap-UniswapTests.debugoptimized.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Uniswap-UniswapTests.debugoptimized.xcconfig"; path = "Target Support Files/Pods-Uniswap-UniswapTests/Pods-Uniswap-UniswapTests.debugoptimized.xcconfig"; sourceTree = "<group>"; };
 		37A6D5D76D31F8C5CDD29814 /* TransactionType.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TransactionType.graphql.swift; path = WidgetsCore/MobileSchema/Schema/Enums/TransactionType.graphql.swift; sourceTree = "<group>"; };
 		38EAF64134981DC76B6C7E90 /* OnRampTransactionsAuth.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = OnRampTransactionsAuth.graphql.swift; path = WidgetsCore/MobileSchema/Schema/InputObjects/OnRampTransactionsAuth.graphql.swift; sourceTree = "<group>"; };
 		3A2186B1FF7FB85663D96EA9 /* Pods-OneSignalNotificationServiceExtension.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OneSignalNotificationServiceExtension.debug.xcconfig"; path = "Target Support Files/Pods-OneSignalNotificationServiceExtension/Pods-OneSignalNotificationServiceExtension.debug.xcconfig"; sourceTree = "<group>"; };
@@ -454,6 +459,7 @@
 		8B2A92182EB3E79500990413 /* Uniswap-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "Uniswap-Bridging-Header.h"; path = "Uniswap/Uniswap-Bridging-Header.h"; sourceTree = "<group>"; };
 		8BB8B6395E3C86412FA793CB /* AssetActivity.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AssetActivity.graphql.swift; path = WidgetsCore/MobileSchema/Schema/Objects/AssetActivity.graphql.swift; sourceTree = "<group>"; };
 		8C66DD1D03A824EB6A231DCE /* TokenProjectDescriptionQuery.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TokenProjectDescriptionQuery.graphql.swift; path = WidgetsCore/MobileSchema/Operations/Queries/TokenProjectDescriptionQuery.graphql.swift; sourceTree = "<group>"; };
+		8CBD584CCF002F58176DA863 /* Pods-OneSignalNotificationServiceExtension.debugoptimized.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OneSignalNotificationServiceExtension.debugoptimized.xcconfig"; path = "Target Support Files/Pods-OneSignalNotificationServiceExtension/Pods-OneSignalNotificationServiceExtension.debugoptimized.xcconfig"; sourceTree = "<group>"; };
 		8D5FF4316461BD4FB5847D62 /* TokenBalanceQuantityParts.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TokenBalanceQuantityParts.graphql.swift; path = WidgetsCore/MobileSchema/Fragments/TokenBalanceQuantityParts.graphql.swift; sourceTree = "<group>"; };
 		8D973A66C23859D34E6FE175 /* NftStandard.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NftStandard.graphql.swift; path = WidgetsCore/MobileSchema/Schema/Enums/NftStandard.graphql.swift; sourceTree = "<group>"; };
 		8E89C3A62AB8AAA400C84DE5 /* MnemonicConfirmationView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MnemonicConfirmationView.swift; sourceTree = "<group>"; };
@@ -473,6 +479,7 @@
 		93783F96FA74CB9A1BEB32EE /* TokenTransfer.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TokenTransfer.graphql.swift; path = WidgetsCore/MobileSchema/Schema/Objects/TokenTransfer.graphql.swift; sourceTree = "<group>"; };
 		93D1BA7F635F61FC7E62C6C1 /* TokenProtectionInfoParts.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TokenProtectionInfoParts.graphql.swift; path = WidgetsCore/MobileSchema/Fragments/TokenProtectionInfoParts.graphql.swift; sourceTree = "<group>"; };
 		957594D21A42B9D77F5AD685 /* ContractInput.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ContractInput.graphql.swift; path = WidgetsCore/MobileSchema/Schema/InputObjects/ContractInput.graphql.swift; sourceTree = "<group>"; };
+		986A89D253EEB9BEBE5F08FF /* Pods-Widgets.debugoptimized.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Widgets.debugoptimized.xcconfig"; path = "Target Support Files/Pods-Widgets/Pods-Widgets.debugoptimized.xcconfig"; sourceTree = "<group>"; };
 		9A2AA83B4F9F4290A2BC7CCB /* NftContract.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NftContract.graphql.swift; path = WidgetsCore/MobileSchema/Schema/Objects/NftContract.graphql.swift; sourceTree = "<group>"; };
 		9BF540E1110D0FD1C219C45C /* ApplicationContract.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ApplicationContract.graphql.swift; path = WidgetsCore/MobileSchema/Schema/Objects/ApplicationContract.graphql.swift; sourceTree = "<group>"; };
 		9F1055EFA8467996754739A7 /* TokenProjectUrlsParts.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TokenProjectUrlsParts.graphql.swift; path = WidgetsCore/MobileSchema/Fragments/TokenProjectUrlsParts.graphql.swift; sourceTree = "<group>"; };
@@ -514,6 +521,8 @@
 		C8BAFEAABF78617095D44E32 /* NftBalance.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NftBalance.graphql.swift; path = WidgetsCore/MobileSchema/Schema/Objects/NftBalance.graphql.swift; sourceTree = "<group>"; };
 		CA586C522ABE5DA5363D27C7 /* ProtectionResult.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ProtectionResult.graphql.swift; path = WidgetsCore/MobileSchema/Schema/Enums/ProtectionResult.graphql.swift; sourceTree = "<group>"; };
 		CB29AC0C0907A833F23D2C30 /* Pods_WidgetsCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_WidgetsCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		CB72291CE6EFD3842A8E2A1D /* Pods-WidgetsCoreTests.debugoptimized.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-WidgetsCoreTests.debugoptimized.xcconfig"; path = "Target Support Files/Pods-WidgetsCoreTests/Pods-WidgetsCoreTests.debugoptimized.xcconfig"; sourceTree = "<group>"; };
+		CC2EE4B5A1180F03030E80A9 /* TokenProjectTokensTvlParts.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TokenProjectTokensTvlParts.graphql.swift; path = WidgetsCore/MobileSchema/Fragments/TokenProjectTokensTvlParts.graphql.swift; sourceTree = "<group>"; };
 		CD3573B4E6FD61F5DDBD9C75 /* NftAsset.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NftAsset.graphql.swift; path = WidgetsCore/MobileSchema/Schema/Objects/NftAsset.graphql.swift; sourceTree = "<group>"; };
 		CE5E0F71E23968DEFCEB7A4B /* TokenStandard.graphql.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TokenStandard.graphql.swift; path = WidgetsCore/MobileSchema/Schema/Enums/TokenStandard.graphql.swift; sourceTree = "<group>"; };
 		D79B717BEAEA7857469D770A /* Pods-Widgets.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Widgets.debug.xcconfig"; path = "Target Support Files/Pods-Widgets/Pods-Widgets.debug.xcconfig"; sourceTree = "<group>"; };
@@ -886,6 +895,7 @@
 				C6754D4BD9CE76AAC915F814 /* TokenMarketParts.graphql.swift */,
 				0A266B733FD2FA9C1C1A7731 /* TokenParts.graphql.swift */,
 				3BA467FB84503BB53B081C73 /* TokenProjectMarketsParts.graphql.swift */,
+				CC2EE4B5A1180F03030E80A9 /* TokenProjectTokensTvlParts.graphql.swift */,
 				9F1055EFA8467996754739A7 /* TokenProjectUrlsParts.graphql.swift */,
 				93D1BA7F635F61FC7E62C6C1 /* TokenProtectionInfoParts.graphql.swift */,
 				43D7F54953D864DC067FADD1 /* TopTokenParts.graphql.swift */,
@@ -1259,6 +1269,13 @@
 				C89238E3ED9F3AC98876B573 /* Pods-WidgetsCoreTests.release.xcconfig */,
 				065A981F892F7A06A900FCD5 /* Pods-WidgetsCoreTests.dev.xcconfig */,
 				4C445DB9798210862C34D0E0 /* Pods-WidgetsCoreTests.beta.xcconfig */,
+				8CBD584CCF002F58176DA863 /* Pods-OneSignalNotificationServiceExtension.debugoptimized.xcconfig */,
+				31CB18D02DE297D6DADB87C0 /* Pods-Uniswap.debugoptimized.xcconfig */,
+				36F66895EB592B9F61AE658C /* Pods-Uniswap-UniswapTests.debugoptimized.xcconfig */,
+				2590691EDB017AE6FB6C10AC /* Pods-WidgetIntentExtension.debugoptimized.xcconfig */,
+				986A89D253EEB9BEBE5F08FF /* Pods-Widgets.debugoptimized.xcconfig */,
+				24343423F6B8A16CB14F1E4C /* Pods-WidgetsCore.debugoptimized.xcconfig */,
+				CB72291CE6EFD3842A8E2A1D /* Pods-WidgetsCoreTests.debugoptimized.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -1702,6 +1719,7 @@
 				"$(SRCROOT)/WidgetsCore/MobileSchema/Fragments/TokenMarketParts.graphql.swift",
 				"$(SRCROOT)/WidgetsCore/MobileSchema/Fragments/TokenParts.graphql.swift",
 				"$(SRCROOT)/WidgetsCore/MobileSchema/Fragments/TokenProjectMarketsParts.graphql.swift",
+				"$(SRCROOT)/WidgetsCore/MobileSchema/Fragments/TokenProjectTokensTvlParts.graphql.swift",
 				"$(SRCROOT)/WidgetsCore/MobileSchema/Fragments/TokenProjectUrlsParts.graphql.swift",
 				"$(SRCROOT)/WidgetsCore/MobileSchema/Fragments/TokenProtectionInfoParts.graphql.swift",
 				"$(SRCROOT)/WidgetsCore/MobileSchema/Fragments/TopTokenParts.graphql.swift",
@@ -2027,7 +2045,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\n\nWITH_ENVIRONMENT=\"../../../node_modules/react-native/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"./sourcemaps-datadog.sh\"\n\nexport SOURCEMAP_FILE=$DERIVED_FILE_DIR/main.jsbundle.map\n\nif [[ -n \"$DATADOG_API_KEY\" && \"$SKIP_DATADOG_UPLOAD\" != \"true\" ]]; then\n  echo \"warning: Starting Datadog Uploads\"\n  echo \"warning: Build Configuration: $CONFIGURATION\"\n  echo \"warning: Product Name: $PRODUCT_NAME\"\n  echo \"warning: Source Map File: $SOURCEMAP_FILE\"\n  echo \"warning: dSYM Path: $DWARF_DSYM_FOLDER_PATH\"\n  echo \"\"\n\n  # JS source maps\n  echo \"warning: Uploading JS source maps...\"\n  \n  /bin/sh -c \"$WITH_ENVIRONMENT $REACT_NATIVE_XCODE\"\n\n  echo \"warning: \"\n\n  # iOS dSYM\n  echo \"warning: Uploading iOS dSYMs...\"\n  echo \"warning: dSYM command: datadog-ci dsyms upload $DWARF_DSYM_FOLDER_PATH\"\n\n  DSYM_LOG=$(mktemp)\n  if ../../../node_modules/.bin/datadog-ci dsyms upload $DWARF_DSYM_FOLDER_PATH 2>&1 | tee \"$DSYM_LOG\"; then\n    echo \"warning: dSYM upload completed successfully\"\n    rm -f \"$DSYM_LOG\"\n  else\n    DSYM_EXIT_CODE=$?\n    echo \"warning: \"\n    echo \"warning: dSYM Upload Failed\"\n    echo \"warning: Exit Code: $DSYM_EXIT_CODE\"\n    echo \"warning: \"\n    echo \"warning:Full Error Output:\"\n    echo \"warning: ---\"\n    echo \"warning: $(cat \"$DSYM_LOG\")\"\n    echo \"warning: ---\"\n    echo \"warning: \"\n    echo \"warning: Debug Information:\"\n    echo \"warning:   - datadog-ci version: $(../../../node_modules/.bin/datadog-ci version 2>&1 || echo 'Failed to get version')\"\n    echo \"warning:   - dSYM folder exists: $([ -d \\\"$DWARF_DSYM_FOLDER_PATH\\\" ] && echo 'Yes' || echo 'No')\"\n    echo \"warning:   - dSYM contents: $(ls -la \\\"$DWARF_DSYM_FOLDER_PATH\\\" 2>&1 || echo 'Failed to list')\"\n    echo \"warning:   - DATADOG_API_KEY set: $([ -n \\\"$DATADOG_API_KEY\\\" ] && echo 'Yes (${#DATADOG_API_KEY} chars)' || echo 'No')\"\n    echo \"warning:   - Working directory: $(pwd)\"\n    echo \"warning: \"\n    echo \"warning: This is non-critical. Build will continue.\"\n    rm -f \"$DSYM_LOG\"\n  fi\n\n  echo \"warning: \"\n  echo \"warning: Datadog upload phase completed (build continues regardless of upload status)\"\nelse\n  echo \"warning: Skipping Datadog upload (DATADOG_API_KEY not set or SKIP_DATADOG_UPLOAD=true)\"\nfi\n\n# Always exit 0 to not fail the build\nexit 0\n";
+			shellScript = "set -e\n\n# Skip in debug configs\nif [ \"$CONFIGURATION\" = \"Debug\" ] || [ \"$CONFIGURATION\" = \"DebugOptimized\" ]; then\n  echo \"warning: Skipping Datadog upload in $CONFIGURATION\"\n  exit 0\nfi\n\nWITH_ENVIRONMENT=\"../../../node_modules/react-native/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"./sourcemaps-datadog.sh\"\n\nexport SOURCEMAP_FILE=$DERIVED_FILE_DIR/main.jsbundle.map\n\nif [[ -n \"$DATADOG_API_KEY\" && \"$SKIP_DATADOG_UPLOAD\" != \"true\" ]]; then\n  echo \"warning: Starting Datadog Uploads\"\n  echo \"warning: Build Configuration: $CONFIGURATION\"\n  echo \"warning: Product Name: $PRODUCT_NAME\"\n  echo \"warning: Source Map File: $SOURCEMAP_FILE\"\n  echo \"warning: dSYM Path: $DWARF_DSYM_FOLDER_PATH\"\n  echo \"\"\n\n  # JS source maps\n  echo \"warning: Uploading JS source maps...\"\n  \n  /bin/sh -c \"$WITH_ENVIRONMENT $REACT_NATIVE_XCODE\"\n\n  echo \"warning: \"\n\n  # iOS dSYM\n  echo \"warning: Uploading iOS dSYMs...\"\n  echo \"warning: dSYM command: datadog-ci dsyms upload $DWARF_DSYM_FOLDER_PATH\"\n\n  DSYM_LOG=$(mktemp)\n  if ../../../node_modules/.bin/datadog-ci dsyms upload $DWARF_DSYM_FOLDER_PATH 2>&1 | tee \"$DSYM_LOG\"; then\n    echo \"warning: dSYM upload completed successfully\"\n    rm -f \"$DSYM_LOG\"\n  else\n    DSYM_EXIT_CODE=$?\n    echo \"warning: \"\n    echo \"warning: dSYM Upload Failed\"\n    echo \"warning: Exit Code: $DSYM_EXIT_CODE\"\n    echo \"warning: \"\n    echo \"warning:Full Error Output:\"\n    echo \"warning: ---\"\n    echo \"warning: $(cat \"$DSYM_LOG\")\"\n    echo \"warning: ---\"\n    echo \"warning: \"\n    echo \"warning: Debug Information:\"\n    echo \"warning:   - datadog-ci version: $(../../../node_modules/.bin/datadog-ci version 2>&1 || echo 'Failed to get version')\"\n    echo \"warning:   - dSYM folder exists: $([ -d \\\"$DWARF_DSYM_FOLDER_PATH\\\" ] && echo 'Yes' || echo 'No')\"\n    echo \"warning:   - dSYM contents: $(ls -la \\\"$DWARF_DSYM_FOLDER_PATH\\\" 2>&1 || echo 'Failed to list')\"\n    echo \"warning:   - DATADOG_API_KEY set: $([ -n \\\"$DATADOG_API_KEY\\\" ] && echo 'Yes (${#DATADOG_API_KEY} chars)' || echo 'No')\"\n    echo \"warning:   - Working directory: $(pwd)\"\n    echo \"warning: \"\n    echo \"warning: This is non-critical. Build will continue.\"\n    rm -f \"$DSYM_LOG\"\n  fi\n\n  echo \"warning: \"\n  echo \"warning: Datadog upload phase completed (build continues regardless of upload status)\"\nelse\n  echo \"warning: Skipping Datadog upload (DATADOG_API_KEY not set or SKIP_DATADOG_UPLOAD=true)\"\nfi\n\n# Always exit 0 to not fail the build\nexit 0\n";
 		};
 		F5C7F44CBF58F052A43EB4AA /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -2106,7 +2124,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\nif [ $CONFIGURATION == \"Release\" ]\nthen\n    cp \"${SRCROOT}/GoogleServiceInfo/GoogleService-Info-Prod.plist\" \"${SRCROOT}/GoogleService-Info.plist\"\nelif [ $CONFIGURATION == 'Debug' ]\nthen\n    cp \"${SRCROOT}/GoogleServiceInfo/GoogleService-Info-Dev.plist\" \"${SRCROOT}/GoogleService-Info.plist\"\nelse\n    cp \"${SRCROOT}/GoogleServiceInfo/GoogleService-Info-$CONFIGURATION.plist\" \"${SRCROOT}/GoogleService-Info.plist\"\nfi\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\nif [ $CONFIGURATION == \"Release\" ]\nthen\n    cp \"${SRCROOT}/GoogleServiceInfo/GoogleService-Info-Prod.plist\" \"${SRCROOT}/GoogleService-Info.plist\"\nelif [ $CONFIGURATION == 'Debug' ] || [ $CONFIGURATION == 'DebugOptimized' ]\nthen\n    cp \"${SRCROOT}/GoogleServiceInfo/GoogleService-Info-Dev.plist\" \"${SRCROOT}/GoogleService-Info.plist\"\nelse\n    cp \"${SRCROOT}/GoogleServiceInfo/GoogleService-Info-$CONFIGURATION.plist\" \"${SRCROOT}/GoogleService-Info.plist\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -2149,6 +2167,7 @@
 				3B27BBB18E152F19B68D6FAB /* TokenMarketParts.graphql.swift in Sources */,
 				7154698A2773F05CAD639211 /* TokenParts.graphql.swift in Sources */,
 				23FC1CDFE7B5E25CEDF338F2 /* TokenProjectMarketsParts.graphql.swift in Sources */,
+				7BDC2CBE10DC34F9BCFF86EA /* TokenProjectTokensTvlParts.graphql.swift in Sources */,
 				D0AC45D21734567F720877AD /* TokenProjectUrlsParts.graphql.swift in Sources */,
 				722E7F2ECE654320C2452CC8 /* TokenProtectionInfoParts.graphql.swift in Sources */,
 				CA4994AA5EF5F36F42117ECA /* TopTokenParts.graphql.swift in Sources */,
@@ -2467,7 +2486,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.68.1;
+				MARKETING_VERSION = 1.72;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
@@ -2520,7 +2539,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.68.1;
+				MARKETING_VERSION = 1.72;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = schemes.WidgetsCore;
@@ -2573,7 +2592,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.68.1;
+				MARKETING_VERSION = 1.72;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = schemes.WidgetsCore;
@@ -2626,7 +2645,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.68.1;
+				MARKETING_VERSION = 1.72;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = schemes.WidgetsCore;
@@ -2664,7 +2683,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
-				MARKETING_VERSION = 1.68.1;
+				MARKETING_VERSION = 1.72;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
@@ -2700,7 +2719,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
-				MARKETING_VERSION = 1.68.1;
+				MARKETING_VERSION = 1.72;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = schemes.WidgetsCoreTests;
@@ -2735,7 +2754,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
-				MARKETING_VERSION = 1.68.1;
+				MARKETING_VERSION = 1.72;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = schemes.WidgetsCoreTests;
@@ -2770,7 +2789,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
-				MARKETING_VERSION = 1.68.1;
+				MARKETING_VERSION = 1.72;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = schemes.WidgetsCoreTests;
@@ -2817,7 +2836,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.68.1;
+				MARKETING_VERSION = 1.72;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
@@ -2863,7 +2882,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.68.1;
+				MARKETING_VERSION = 1.72;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.uniswap.mobile.widgets;
@@ -2909,7 +2928,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.68.1;
+				MARKETING_VERSION = 1.72;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.uniswap.mobile.dev.widgets;
@@ -2955,7 +2974,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.68.1;
+				MARKETING_VERSION = 1.72;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.uniswap.mobile.beta.widgets;
@@ -2997,7 +3016,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.68.1;
+				MARKETING_VERSION = 1.72;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
@@ -3040,7 +3059,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.68.1;
+				MARKETING_VERSION = 1.72;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.uniswap.mobile.WidgetIntentExtension;
@@ -3083,7 +3102,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.68.1;
+				MARKETING_VERSION = 1.72;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.uniswap.mobile.dev.WidgetIntentExtension;
@@ -3126,7 +3145,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.68.1;
+				MARKETING_VERSION = 1.72;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.uniswap.mobile.beta.WidgetIntentExtension;
@@ -3162,7 +3181,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.68.1;
+				MARKETING_VERSION = 1.72;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -3200,7 +3219,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.68.1;
+				MARKETING_VERSION = 1.72;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -3215,6 +3234,333 @@
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Release;
+		};
+		31A0707BE53EF0E39440A5EA /* DebugOptimized */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 31CB18D02DE297D6DADB87C0 /* Pods-Uniswap.debugoptimized.xcconfig */;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = "$(inherited)";
+				ASSETCATALOG_COMPILER_APPICON_NAME = "AppIcon$(BUNDLE_ID_SUFFIX)";
+				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = "";
+				BUNDLE_ID_SUFFIX = .dev;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Uniswap/Uniswap.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JH3UHGZD75;
+				ENABLE_BITCODE = NO;
+				INFOPLIST_FILE = Uniswap/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.72;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+					"-lc++",
+				);
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
+				PRODUCT_BUNDLE_IDENTIFIER = com.uniswap.mobile.dev;
+				PRODUCT_NAME = Uniswap;
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_OBJC_BRIDGING_HEADER = "Uniswap/RNEthersRs/RNEthersRS-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = DebugOptimized;
+		};
+		32CACF657BA5BEC28E2F1B29 /* DebugOptimized */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = CB72291CE6EFD3842A8E2A1D /* Pods-WidgetsCoreTests.debugoptimized.xcconfig */;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = JH3UHGZD75;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				MARKETING_VERSION = 1.72;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
+				PRODUCT_BUNDLE_IDENTIFIER = schemes.WidgetsCoreTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Uniswap.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Uniswap";
+			};
+			name = DebugOptimized;
+		};
+		699CC042160867DCE68402B2 /* DebugOptimized */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COMPILER_INDEX_STORE_ENABLE = NO;
+				COPY_PHASE_STRIP = NO;
+				DEVELOPMENT_TEAM = CGCYLJG7GA;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = i386;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = s;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = NO;
+				GCC_WARN_UNUSED_FUNCTION = NO;
+				GCC_WARN_UNUSED_VARIABLE = NO;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"${PODS_CONFIGURATION_BUILD_DIR}/ReactCommon/ReactCommon.framework/Headers",
+					"${PODS_CONFIGURATION_BUILD_DIR}/ReactCommon/ReactCommon.framework/Headers/react/nativemodule/core",
+					"${PODS_CONFIGURATION_BUILD_DIR}/ReactCommon-Samples/ReactCommon_Samples.framework/Headers",
+					"${PODS_CONFIGURATION_BUILD_DIR}/ReactCommon-Samples/ReactCommon_Samples.framework/Headers/platform/ios",
+					"${PODS_CONFIGURATION_BUILD_DIR}/React-Fabric/React_Fabric.framework/Headers/react/renderer/components/view/platform/cxx",
+					"${PODS_CONFIGURATION_BUILD_DIR}/React-NativeModulesApple/React_NativeModulesApple.framework/Headers",
+					"${PODS_CONFIGURATION_BUILD_DIR}/React-graphics/React_graphics.framework/Headers",
+					"${PODS_CONFIGURATION_BUILD_DIR}/React-graphics/React_graphics.framework/Headers/react/renderer/graphics/platform/ios",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					/usr/lib/swift,
+					"$(inherited)",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(SDKROOT)/usr/lib/swift",
+					"\"$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)\"",
+					"\"$(inherited)\"",
+				);
+				MTL_ENABLE_DEBUG_INFO = NO;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_CFLAGS = "$(inherited)";
+				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
+				OTHER_LDFLAGS = "$(inherited)";
+				REACT_NATIVE_PATH = "${PODS_ROOT}/../../../../node_modules/react-native";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
+				SWIFT_ENFORCE_EXCLUSIVE_ACCESS = "compile-time";
+				SWIFT_VERSION = 5.0;
+				USE_HERMES = true;
+			};
+			name = DebugOptimized;
+		};
+		6DC48512A1ADEC1FF10D690A /* DebugOptimized */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 36F66895EB592B9F61AE658C /* Pods-Uniswap-UniswapTests.debugoptimized.xcconfig */;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = "$(inherited)";
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				INFOPLIST_FILE = UniswapTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"-ObjC",
+					"-lc++",
+					"$(inherited)",
+				);
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Uniswap.app/Uniswap";
+			};
+			name = DebugOptimized;
+		};
+		7385AD0991A48D80AD74DA33 /* DebugOptimized */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 24343423F6B8A16CB14F1E4C /* Pods-WidgetsCore.debugoptimized.xcconfig */;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = JH3UHGZD75;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = i386;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.72;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
+				PRODUCT_BUNDLE_IDENTIFIER = schemes.WidgetsCore;
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INSTALL_OBJC_HEADER = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+			};
+			name = DebugOptimized;
+		};
+		7932E66A3404F08533393AEE /* DebugOptimized */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 2590691EDB017AE6FB6C10AC /* Pods-WidgetIntentExtension.debugoptimized.xcconfig */;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_ENTITLEMENTS = WidgetIntentExtension/WidgetIntentExtension.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = JH3UHGZD75;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = WidgetIntentExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = WidgetIntentExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.72;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
+				PRODUCT_BUNDLE_IDENTIFIER = com.uniswap.mobile.dev.WidgetIntentExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = DebugOptimized;
+		};
+		7ACBAE66C5ABCA063B6627AC /* DebugOptimized */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8CBD584CCF002F58176DA863 /* Pods-OneSignalNotificationServiceExtension.debugoptimized.xcconfig */;
+			buildSettings = {
+				BUNDLE_ID_SUFFIX = .dev;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_ENTITLEMENTS = OneSignalNotificationServiceExtension/OneSignalNotificationServiceExtension.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = JH3UHGZD75;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = OneSignalNotificationServiceExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = OneSignalNotificationServiceExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.72;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
+				PRODUCT_BUNDLE_IDENTIFIER = com.uniswap.mobile.dev.OneSignalNotificationServiceExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = DebugOptimized;
 		};
 		83CBBA201A601CBA00E9B192 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -3376,6 +3722,51 @@
 			};
 			name = Release;
 		};
+		DFB0E04B2D800AD0DA05A6FA /* DebugOptimized */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 986A89D253EEB9BEBE5F08FF /* Pods-Widgets.debugoptimized.xcconfig */;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_ENTITLEMENTS = Widgets/Widgets.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = JH3UHGZD75;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Widgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Widgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.72;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
+				PRODUCT_BUNDLE_IDENTIFIER = com.uniswap.mobile.dev.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = DebugOptimized;
+		};
 		F35AFD4427EE49990011A725 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 3A2186B1FF7FB85663D96EA9 /* Pods-OneSignalNotificationServiceExtension.debug.xcconfig */;
@@ -3404,7 +3795,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.68.1;
+				MARKETING_VERSION = 1.72;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
@@ -3449,7 +3840,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.68.1;
+				MARKETING_VERSION = 1.72;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.uniswap.mobile.OneSignalNotificationServiceExtension;
@@ -3561,7 +3952,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.68.1;
+				MARKETING_VERSION = 1.72;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -3633,7 +4024,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.68.1;
+				MARKETING_VERSION = 1.72;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.uniswap.mobile.beta.OneSignalNotificationServiceExtension;
@@ -3745,7 +4136,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.68.1;
+				MARKETING_VERSION = 1.72;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -3817,7 +4208,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.68.1;
+				MARKETING_VERSION = 1.72;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.uniswap.mobile.dev.OneSignalNotificationServiceExtension;
@@ -3842,6 +4233,7 @@
 				00E356F71AD99517003FC87E /* Release */,
 				FDB6FD42294D3A8200C7B822 /* Dev */,
 				FDB6FD3E294D3A6E00C7B822 /* Beta */,
+				6DC48512A1ADEC1FF10D690A /* DebugOptimized */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -3853,6 +4245,7 @@
 				072E239D2A44D5BD006AD6C9 /* Release */,
 				072E239E2A44D5BD006AD6C9 /* Dev */,
 				072E239F2A44D5BD006AD6C9 /* Beta */,
+				7385AD0991A48D80AD74DA33 /* DebugOptimized */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -3864,6 +4257,7 @@
 				072E23A12A44D5BD006AD6C9 /* Release */,
 				072E23A22A44D5BD006AD6C9 /* Dev */,
 				072E23A32A44D5BD006AD6C9 /* Beta */,
+				32CACF657BA5BEC28E2F1B29 /* DebugOptimized */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -3875,6 +4269,7 @@
 				072F6C332A44A32F00DA720A /* Release */,
 				072F6C342A44A32F00DA720A /* Dev */,
 				072F6C352A44A32F00DA720A /* Beta */,
+				DFB0E04B2D800AD0DA05A6FA /* DebugOptimized */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -3886,6 +4281,7 @@
 				078E79512A55EB3400F59CF2 /* Release */,
 				078E79522A55EB3400F59CF2 /* Dev */,
 				078E79532A55EB3400F59CF2 /* Beta */,
+				7932E66A3404F08533393AEE /* DebugOptimized */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -3897,6 +4293,7 @@
 				13B07F951A680F5B00A75B9A /* Release */,
 				FDB6FD41294D3A8200C7B822 /* Dev */,
 				FDB6FD3D294D3A6E00C7B822 /* Beta */,
+				31A0707BE53EF0E39440A5EA /* DebugOptimized */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -3908,6 +4305,7 @@
 				83CBBA211A601CBA00E9B192 /* Release */,
 				FDB6FD40294D3A8200C7B822 /* Dev */,
 				FDB6FD3C294D3A6E00C7B822 /* Beta */,
+				699CC042160867DCE68402B2 /* DebugOptimized */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -3919,6 +4317,7 @@
 				F35AFD4527EE49990011A725 /* Release */,
 				FDB6FD43294D3A8200C7B822 /* Dev */,
 				FDB6FD3F294D3A6E00C7B822 /* Beta */,
+				7ACBAE66C5ABCA063B6627AC /* DebugOptimized */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

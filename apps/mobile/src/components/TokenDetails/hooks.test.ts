@@ -3,7 +3,7 @@ import { useTokenDetailsNavigation } from 'src/components/TokenDetails/hooks'
 import { preloadedMobileState } from 'src/test/fixtures'
 import { act, renderHook, waitFor } from 'src/test/test-utils'
 import { useCrossChainBalances } from 'uniswap/src/data/balances/hooks/useCrossChainBalances'
-import { usePortfolioBalances } from 'uniswap/src/features/dataApi/balances/balances'
+import { usePortfolioBalances } from 'uniswap/src/features/portfolio/balances/hooks'
 import {
   portfolio,
   portfolioBalances,
@@ -27,13 +27,12 @@ jest.mock('@react-navigation/native', () => {
   const actualNav = jest.requireActual('@react-navigation/native')
   return {
     ...actualNav,
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     useNavigation: () => mockedNavigation,
   }
 })
 
-jest.mock('uniswap/src/features/dataApi/balances/balances', () => {
-  const actual = jest.requireActual('uniswap/src/features/dataApi/balances/balances')
+jest.mock('uniswap/src/features/portfolio/balances/hooks', () => {
+  const actual = jest.requireActual('uniswap/src/features/portfolio/balances/hooks')
   const { NetworkStatus: MockNetworkStatus } = jest.requireActual('@apollo/client')
   return {
     ...actual,

@@ -46,7 +46,7 @@ function TableBodyInner<T extends RowData>(
     [tableWidth, propRowHeight, propCompactRowHeight],
   )
 
-  if (isOffline) {
+  if (isOffline && rows.length === 0) {
     return (
       <NoDataFoundTableRow py="$spacing20">
         <Flex row centered justifyContent="center" gap="$gap8" py="$spacing4">

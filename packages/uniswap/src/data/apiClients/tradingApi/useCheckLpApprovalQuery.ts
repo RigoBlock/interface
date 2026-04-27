@@ -1,25 +1,19 @@
 import { UseQueryResult, useQuery } from '@tanstack/react-query'
 import { TradingApi, UseQueryApiHelperHookArgs } from '@universe/api'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
-import { TradingApiClient } from 'uniswap/src/data/apiClients/tradingApi/TradingApiClient'
 import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
 
+/** @deprecated Use liquidityQueries.checkApproval via useLiquidityServiceQuery instead */
 export function useCheckLpApprovalQuery({
   params,
-  headers,
   ...rest
-}: UseQueryApiHelperHookArgs<TradingApi.CheckApprovalLPRequest, TradingApi.CheckApprovalLPResponse> & {
-  headers?: Record<string, string>
-}): UseQueryResult<TradingApi.CheckApprovalLPResponse> {
+}: UseQueryApiHelperHookArgs<TradingApi.LPApprovalRequest, TradingApi.LPApprovalResponse>): UseQueryResult<TradingApi.LPApprovalResponse> {
   const queryKey = [ReactQueryCacheKey.TradingApi, uniswapUrls.tradingApiPaths.lpApproval, params]
 
-  return useQuery<TradingApi.CheckApprovalLPResponse>({
+  return useQuery<TradingApi.LPApprovalResponse>({
     queryKey,
     queryFn: async () => {
-      if (!params) {
-        throw { name: 'Params are required' }
-      }
-      return await TradingApiClient.checkLpApproval(params, headers)
+      throw new Error('useCheckLpApprovalQuery is deprecated; use liquidityQueries.checkApproval')
     },
     ...rest,
   })

@@ -61,7 +61,9 @@ export function useSendCallback({
     try {
       const response = await (async () => {
         try {
+          // oxlint-disable-next-line no-shadow
           const account = accountRef.current
+          // oxlint-disable-next-line no-shadow
           let provider = providerRef.current
           if (account.status !== 'connected') {
             throw new Error('wallet must be connected to send')

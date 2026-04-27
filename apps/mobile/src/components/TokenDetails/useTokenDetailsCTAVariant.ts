@@ -16,7 +16,7 @@ interface UseTokenDetailsCTAVariantParams {
   nativeFiatOnRampCurrency: unknown | undefined
   fiatOnRampCurrency: unknown | undefined
   bridgingTokenWithHighestBalance: unknown | undefined
-  hasZeroNativeBalance: boolean | undefined
+  hasZeroGasBalance: boolean | undefined
   tokenSymbol: string | undefined
   onPressBuyFiatOnRamp: (isOfframp: boolean) => void
   onPressGet: () => void
@@ -35,7 +35,7 @@ interface UseMultichainBuyVariantParams {
   nativeFiatOnRampCurrency: unknown | undefined
   fiatOnRampCurrency: unknown | undefined
   bridgingTokenWithHighestBalance: unknown | undefined
-  hasZeroNativeBalance: boolean | undefined
+  hasZeroGasBalance: boolean | undefined
   tokenSymbol: string | undefined
   onPressBuyWithCash: () => void
   onPressGet: () => void
@@ -49,7 +49,7 @@ export function useMultichainBuyVariant({
   nativeFiatOnRampCurrency,
   fiatOnRampCurrency,
   bridgingTokenWithHighestBalance,
-  hasZeroNativeBalance,
+  hasZeroGasBalance,
   tokenSymbol,
   onPressBuyWithCash,
   onPressGet,
@@ -68,7 +68,7 @@ export function useMultichainBuyVariant({
       return { title: t('fiatOnRamp.action.buyWithCash'), icon: Bank, onPress: onPressBuyWithCash }
     }
 
-    if (hasZeroNativeBalance) {
+    if (hasZeroGasBalance) {
       return {
         title: tokenSymbol ? t('tdp.button.getToken', { tokenSymbol }) : t('tdp.button.getTokenFallback'),
         onPress: onPressGet,
@@ -82,7 +82,7 @@ export function useMultichainBuyVariant({
     fiatOnRampCurrency,
     nativeFiatOnRampCurrency,
     bridgingTokenWithHighestBalance,
-    hasZeroNativeBalance,
+    hasZeroGasBalance,
     tokenSymbol,
     t,
     onPressBuyWithCash,
@@ -97,7 +97,7 @@ export function useTokenDetailsCTAVariant({
   nativeFiatOnRampCurrency,
   fiatOnRampCurrency,
   bridgingTokenWithHighestBalance,
-  hasZeroNativeBalance,
+  hasZeroGasBalance,
   tokenSymbol,
   onPressBuyFiatOnRamp,
   onPressGet,
@@ -126,7 +126,7 @@ export function useTokenDetailsCTAVariant({
       }
     }
 
-    if (!isNativeCurrency && hasZeroNativeBalance) {
+    if (!isNativeCurrency && hasZeroGasBalance) {
       return {
         title: tokenSymbol ? t('tdp.button.getToken', { tokenSymbol }) : t('tdp.button.getTokenFallback'),
         onPress: onPressGet,
@@ -140,7 +140,7 @@ export function useTokenDetailsCTAVariant({
     fiatOnRampCurrency,
     nativeFiatOnRampCurrency,
     bridgingTokenWithHighestBalance,
-    hasZeroNativeBalance,
+    hasZeroGasBalance,
     tokenSymbol,
     t,
     onPressBuyFiatOnRamp,

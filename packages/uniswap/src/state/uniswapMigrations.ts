@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* biome-ignore-all lint/suspicious/noExplicitAny: legacy code needs review */
 import { FiatCurrency } from 'uniswap/src/features/fiatCurrency/constants'
 import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import {

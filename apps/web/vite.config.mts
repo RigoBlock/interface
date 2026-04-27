@@ -1,35 +1,27 @@
-/* eslint-disable max-lines */
+import { execSync } from 'child_process'
+import fs from 'fs'
+import { createHash } from 'node:crypto'
+import path from 'path'
+import process from 'process'
+import { fileURLToPath } from 'url'
 import { cloudflare } from '@cloudflare/vite-plugin'
 import { tamaguiPlugin } from '@tamagui/vite-plugin'
 import react from '@vitejs/plugin-react'
-import { execSync } from 'child_process'
 import { config as dotenvConfig } from 'dotenv'
-import fs from 'fs'
-import path from 'path'
-import { createHash } from 'node:crypto'
-import process from 'process'
-import { fileURLToPath } from 'url'
 import { defineConfig, loadEnv, type ViteDevServer } from 'vite'
 import bundlesize from 'vite-plugin-bundlesize'
 import commonjs from 'vite-plugin-commonjs'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import svgr from 'vite-plugin-svgr'
 import tsconfigPaths from 'vite-tsconfig-paths'
+import { createEntryGatewayProxy } from './vite/entry-gateway-proxy'
 import { generateAssetsIgnorePlugin } from './vite/generateAssetsIgnorePlugin.js'
 import { cspMetaTagPlugin } from './vite/vite.plugins.js'
-import {createEntryGatewayProxy} from './vite/entry-gateway-proxy'
 
 // Get current file directory (ESM equivalent of __dirname)
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-// When the private embedded wallet package is not installed,
-// externalize it so Rollup doesn't fail to resolve dynamic imports at build time.
-// At runtime, the dynamic import will fail and the try/catch in loadPrivyPbModule() provides
-// a clear error message: "Embedded Wallet requires @uniswap/client-privy-embedded-wallet".
-const privyPackageInstalled = fs.existsSync(
-  path.resolve(__dirname, '../../node_modules/@uniswap/client-privy-embedded-wallet'),
-)
 const ENABLE_REACT_COMPILER = process.env.ENABLE_REACT_COMPILER === 'true'
 const ReactCompilerConfig = {
   target: '18', // '17' | '18' | '19'
@@ -126,8 +118,49 @@ const portWarningPlugin = (isProduction: boolean) =>
 // Get git commit hash
 const commitHash = execSync('git rev-parse HEAD').toString().trim()
 
+// Compute next dev version from latest non-RC web/* git tag
+function getNextDevVersion(): string {
+  try {
+    const latestTag = execSync("git tag --list 'web/*' --sort=-version:refname | grep -v '\\-rc\\.' | head -1")
+      .toString()
+      .trim()
+    if (!latestTag) {
+      return ''
+    }
+    const version = latestTag.replace('web/', '')
+    const parts = version.split('.').map(Number)
+    if (parts.length < 3 || parts.some(isNaN)) {
+      return ''
+    }
+    return `${parts[0]}.${parts[1] + 1}.0`
+  } catch {
+    return ''
+  }
+}
+
 export default defineConfig(({ mode }) => {
   let env = loadEnv(mode, __dirname, '')
+
+  // Load root .env.defaults.local as a base layer (app-level env files take precedence)
+  const rootEnvDefaultsLocalPath = path.resolve(__dirname, '../../.env.defaults.local')
+  if (fs.existsSync(rootEnvDefaultsLocalPath)) {
+    try {
+      const result = dotenvConfig({ path: rootEnvDefaultsLocalPath })
+      if (result.parsed) {
+        // Only set values that aren't already defined (lowest priority)
+        for (const [key, value] of Object.entries(result.parsed)) {
+          if (!(key in env)) {
+            env[key] = value
+          }
+        }
+      }
+    } catch (error) {
+      console.warn(
+        `Warning: Failed to read ${rootEnvDefaultsLocalPath}:`,
+        error instanceof Error ? error.message : String(error),
+      )
+    }
+  }
 
   // Force load .env.[mode] files since NX ignores them
   const modeEnvPath = path.resolve(__dirname, `.env.${mode}`)
@@ -142,7 +175,7 @@ export default defineConfig(({ mode }) => {
         console.warn(`Warning: Failed to parse ${modeEnvPath}:`, result.error.message)
       }
     } catch (error) {
-      console.warn(`Warning: Failed to read ${modeEnvPath}:`, error.message)
+      console.warn(`Warning: Failed to read ${modeEnvPath}:`, error instanceof Error ? error.message : String(error))
     }
   }
 
@@ -206,6 +239,8 @@ export default defineConfig(({ mode }) => {
     // So getConfig().isVercelEnvironment is true in the client on Vercel; enables direct staging WS URL to match EGW
     ...(isVercelDeploy ? { 'process.env.VERCEL': JSON.stringify(process.env.VERCEL ?? '0') } : {}),
     ...envDefines,
+    // Fallback: compute next version from git tags when not set by CI
+    ...(!env.REACT_APP_VERSION_TAG ? { 'process.env.REACT_APP_VERSION_TAG': JSON.stringify(getNextDevVersion()) } : {}),
   }
 
   const cacheDir = path.resolve(__dirname, 'node_modules/.vite')
@@ -218,7 +253,17 @@ export default defineConfig(({ mode }) => {
 
     resolve: {
       // .web-app file extensions take priority over .web for web app-specific overrides
-      extensions: ['.web-app.tsx', '.web-app.ts', '.web-app.js', '.web.tsx', '.web.ts', '.web.js', '.tsx', '.ts', '.js'],
+      extensions: [
+        '.web-app.tsx',
+        '.web-app.ts',
+        '.web-app.js',
+        '.web.tsx',
+        '.web.ts',
+        '.web.js',
+        '.tsx',
+        '.ts',
+        '.js',
+      ],
       modules: [path.resolve(root, 'node_modules')],
       dedupe: [
         '@uniswap/sdk-core',
@@ -235,10 +280,7 @@ export default defineConfig(({ mode }) => {
         'react',
         'react-dom',
       ],
-      alias: [
-        ...exactAliases,
-        ...Object.entries(overrides).map(([find, replacement]) => ({ find, replacement })),
-      ],
+      alias: [...exactAliases, ...Object.entries(overrides).map(([find, replacement]) => ({ find, replacement }))],
     },
 
     plugins: [
@@ -272,8 +314,8 @@ export default defineConfig(({ mode }) => {
           // Transform JSX in react-native libraries that ship JSX in .js files
           const needsJsxTransform = [
             'node_modules/react-native-reanimated',
-            'node_modules/expo-blur'  // In case it's not fully mocked
-          ].some(path => id.includes(path))
+            'node_modules/expo-blur', // In case it's not fully mocked
+          ].some((path) => id.includes(path))
 
           if (!needsJsxTransform || !id.endsWith('.js')) {
             return null
@@ -336,7 +378,6 @@ export default defineConfig(({ mode }) => {
         transform(code: string) {
           const regex = /import\s+([a-zA-Z0-9_$]+)\s+from\s+['"]([^'"]+\.svg)['"]/g
 
-          // eslint-disable-next-line max-params
           const transformed = code.replace(regex, (match, varName, path) => {
             // Don't touch named imports like { ReactComponent }
             if (match.includes('{')) return match
@@ -438,9 +479,24 @@ export default defineConfig(({ mode }) => {
         '@visx/responsive',
       ],
       // Libraries that shouldn't be pre-bundled
-      exclude: ['expo-clipboard', '@connectrpc/connect', '@uniswap/client-liquidity'],
+      exclude: [
+        'expo-clipboard',
+        '@connectrpc/connect',
+        '@uniswap/client-liquidity',
+        '@uniswap/client-privy-embedded-wallet',
+      ],
       esbuildOptions: {
-        resolveExtensions: ['.web-app.js', '.web-app.ts', '.web-app.tsx', '.web.js', '.web.ts', '.web.tsx', '.js', '.ts', '.tsx'],
+        resolveExtensions: [
+          '.web-app.js',
+          '.web-app.ts',
+          '.web-app.tsx',
+          '.web.js',
+          '.web.ts',
+          '.web.tsx',
+          '.js',
+          '.ts',
+          '.tsx',
+        ],
         loader: {
           '.js': 'jsx',
           '.ts': 'ts',
@@ -458,30 +514,16 @@ export default defineConfig(({ mode }) => {
           secure: true,
           rewrite: (path) => path.replace(/^\/config/, '/v1/statsig-proxy'),
         },
-        // Must match PRIVY_EW_DEV_PROXY_PATH in packages/uniswap/src/data/rest/embeddedWallet/requests.ts
-        '/privy-ew': {
-          target: 'https://privy-embedded-wallet.backend-dev.api.uniswap.org',
-          changeOrigin: true,
-          secure: true,
-          rewrite: (path) => path.replace(/^\/privy-ew/, ''),
-        },
         ...(ENABLE_PROXY ? { '/entry-gateway': createEntryGatewayProxy({ getLogger }) } : {}),
       },
     },
 
     build: {
       outDir: 'build',
-      sourcemap: VITE_DISABLE_SOURCEMAP ? false : (isProduction && !isVercelDeploy ? 'hidden' : true),
+      sourcemap: VITE_DISABLE_SOURCEMAP ? false : isProduction && !isVercelDeploy ? 'hidden' : true,
       minify: isProduction && !isVercelDeploy ? 'esbuild' : undefined,
       rollupOptions: {
-        external: [
-          /\.stories\.[tj]sx?$/,
-          /\.mdx$/,
-          /expo-clipboard\/build\/ClipboardPasteButton\.js/,
-          // When the private package is not installed, externalize it so Rollup doesn't error.
-          // Dynamic imports of this module will fail at runtime (caught by loadPrivyPbModule's try/catch).
-          ...(!privyPackageInstalled ? [/^@uniswap\/client-privy-embedded-wallet/] : []),
-        ],
+        external: [/\.stories\.[tj]sx?$/, /\.mdx$/, /expo-clipboard\/build\/ClipboardPasteButton\.js/],
         output: {
           // Ensure consistent file naming for better caching
           entryFileNames: 'assets/[name]-[hash].js',

@@ -189,6 +189,7 @@ export function OrderContent({ order, onCancel }: { order: UniswapXOrderDetails;
   const createdAt = useFormattedDateTime(localizedDayjs(order.addedTime), FORMAT_DATE_TIME_SHORT)
 
   const details: Array<OffchainOrderLineItemProps> = useMemo(() => {
+    // oxlint-disable-next-line no-shadow
     const details = []
     if (amountsDefined) {
       details.push({ type: OffchainOrderLineItemType.EXCHANGE_RATE, amounts } as OffchainOrderLineItemProps)

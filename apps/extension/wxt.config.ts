@@ -1,5 +1,6 @@
-import { createHash } from 'node:crypto'
+/* oxlint-disable max-lines -- large config file */
 import fs from 'fs'
+import { createHash } from 'node:crypto'
 import path from 'path'
 import { loadEnv, transformWithEsbuild } from 'vite'
 import commonjs from 'vite-plugin-commonjs'
@@ -7,6 +8,7 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import svgr from 'vite-plugin-svgr'
 import tsconfigPaths from 'vite-tsconfig-paths'
 import { defineConfig } from 'wxt'
+// oxlint-disable-next-line universe-custom/no-relative-import-paths -- biome-parity: oxlint is stricter here
 import { getTsconfigAliases } from './config/getTsconfigAliases'
 
 const icons = {
@@ -33,7 +35,7 @@ const publicAssetsVariant = getPublicAssetsVariant()
 
 const BASE_NAME = 'Uniswap Extension'
 const BASE_DESCRIPTION = "The Uniswap Extension is a self-custody crypto wallet that's built for swapping."
-const BASE_VERSION = '1.68.1'
+const BASE_VERSION = '1.72.0'
 
 const BUILD_NUM = parseInt(process.env.BUILD_NUM || '0')
 const EXTENSION_VERSION = `${BASE_VERSION}.${BUILD_NUM}`
@@ -77,7 +79,7 @@ function shouldInvalidateOptimizeDepsForEnv({
   return true
 }
 
-// eslint-disable-next-line import/no-unused-modules
+// oxlint-disable-next-line import/no-unused-modules
 export default defineConfig({
   // WXT Configuration
   srcDir: 'src',
@@ -119,12 +121,12 @@ export default defineConfig({
       const { execSync } = await import('node:child_process')
       try {
         // Run script directly to avoid Nx dependsOn chain that would trigger a full rebuild
-        execSync('bunx tsx scripts/validateBuildOutput.ts --dev', {
+        execSync('bun run scripts/validateBuildOutput.ts --dev', {
           cwd: wxt.config.root,
           stdio: 'inherit',
         })
       } catch {
-        // biome-ignore lint/suspicious/noConsole: CLI output for build validation
+        // oxlint-disable-next-line no-console -- CLI output for build validation
         console.error('Build validation failed!')
         process.exit(1)
       }
@@ -132,6 +134,7 @@ export default defineConfig({
   },
 
   // Dynamic manifest generation
+  // oxlint-disable-next-line no-unused-vars -- biome-parity: oxlint is stricter here
   manifest: (env) => {
     // BUILD_ENV logic: no build_env for dev command, otherwise use vite build mode
     const isDevelopment = process.env.NODE_ENV === 'development'
@@ -246,7 +249,10 @@ export default defineConfig({
     }
 
     const cacheDir = path.resolve(__dirname, 'node_modules/.vite')
-    const forceOptimize = shouldInvalidateOptimizeDepsForEnv({ defines, cacheDir })
+    const forceOptimize = shouldInvalidateOptimizeDepsForEnv({
+      defines,
+      cacheDir,
+    })
 
     // External package aliases from web config
     const overrides = {
@@ -348,6 +354,7 @@ export default defineConfig({
           name: 'svg-import-fix',
           transform(code: string) {
             const regex = /import\s+([a-zA-Z0-9_$]+)\s+from\s+['"]([^'"]+\.svg)['"]/g
+            // oxlint-disable-next-line max-params -- biome-parity: oxlint is stricter here
             const transformed = code.replace(regex, (match, varName, path) => {
               if (match.includes('{')) {
                 return match
@@ -410,12 +417,11 @@ export default defineConfig({
           'bn.js',
         ],
         exclude: ['expo-clipboard', 'vite-plugin-node-polyfills'],
-        rollupOptions: {
-          resolve: {
-            extensions: ['.web.js', '.web.ts', '.web.tsx', '.js', '.ts', '.tsx'],
-          },
-        },
         esbuildOptions: {
+          // Prefer .web.* extensions so react-native packages resolve to their web variants
+          // (e.g. react-native-svg/ReactNativeSVG.web.js instead of ReactNativeSVG.js which
+          // imports Fabric/codegen internals that don't exist on web).
+          resolveExtensions: ['.web.tsx', '.web.ts', '.web.js', '.tsx', '.ts', '.js'],
           loader: {
             '.js': 'jsx',
             '.ts': 'ts',

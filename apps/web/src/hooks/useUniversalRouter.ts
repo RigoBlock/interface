@@ -86,7 +86,9 @@ export function useUniversalRouterSwapCallback({
     deadline?: BigNumber
   }> => {
     try {
+      // oxlint-disable-next-line no-shadow
       const account = accountRef.current
+      // oxlint-disable-next-line no-shadow
       const provider = providerRef.current
       if (account.status !== 'connected') {
         throw new Error('wallet not connected')
@@ -138,6 +140,7 @@ export function useUniversalRouterSwapCallback({
 
       const response = await (async () => {
         try {
+          // oxlint-disable-next-line no-shadow
           const provider = providerRef.current
           if (!provider) {
             throw new Error('missing provider')
@@ -152,6 +155,7 @@ export function useUniversalRouterSwapCallback({
         }
       })()
       sendAnalyticsEvent(SwapEventName.SwapSigned, {
+        // oxlint-disable-next-line typescript/no-misused-spread -- biome-parity: oxlint is stricter here
         ...formatSwapSignedAnalyticsEventProperties({
           trade,
           allowedSlippage: options.slippageTolerance,

@@ -1,21 +1,6 @@
-/* eslint-disable max-lines */
+/* oxlint-disable max-lines */
 import { PositionStatus, ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-import tokenLogo from '~/assets/images/token-logo.png'
-import { getPositionUrl } from '~/components/Liquidity/utils/getPositionUrl'
-import { useAccountDrawer } from '~/components/AccountDrawer/MiniPortfolio/hooks'
-import { useLpIncentives } from '~/hooks/useLpIncentives'
-import { PositionInfo } from '~/components/Liquidity/types'
-import { MenuStateVariant, useSetMenu } from '~/components/AccountDrawer/menuState'
-import { ExternalArrowLink } from '~/components/Liquidity/ExternalArrowLink'
-import { PositionsHeader } from '~/components/Liquidity/PositionsHeader'
-import { parseRestPosition } from '~/components/Liquidity/utils/parseFromRest'
-import PROVIDE_LIQUIDITY from '~/assets/images/provideLiquidity.png'
-import { useAccount } from '~/hooks/useAccount'
-import { LiquidityPositionCard, LiquidityPositionCardLoader } from '~/components/Liquidity/LiquidityPositionCard'
-import LpIncentiveRewardsCard from '~/components/Liquidity/LPIncentives/LpIncentiveRewardsCard'
-import V4_HOOK from '~/assets/images/v4Hooks.png'
-import { LpIncentiveClaimModal } from '~/components/Liquidity/LPIncentives/LpIncentiveClaimModal'
 import { atom, useAtom } from 'jotai'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -43,6 +28,21 @@ import { useIsMissingPlatformWallet } from 'uniswap/src/features/transactions/sw
 import { usePositionVisibilityCheck } from 'uniswap/src/features/visibility/hooks/usePositionVisibilityCheck'
 import { useInfiniteScroll } from 'utilities/src/react/useInfiniteScroll'
 import ALLOWLISTED_HOOKS from '~/assets/images/allowlistedHooks.jpg'
+import PROVIDE_LIQUIDITY from '~/assets/images/provideLiquidity.png'
+import tokenLogo from '~/assets/images/token-logo.png'
+import V4_HOOK from '~/assets/images/v4Hooks.png'
+import { MenuStateVariant, useSetMenu } from '~/components/AccountDrawer/menuState'
+import { useAccountDrawer } from '~/components/AccountDrawer/MiniPortfolio/hooks'
+import { ExternalArrowLink } from '~/components/Liquidity/ExternalArrowLink'
+import { LiquidityPositionCard, LiquidityPositionCardLoader } from '~/components/Liquidity/LiquidityPositionCard'
+import { LpIncentiveClaimModal } from '~/components/Liquidity/LPIncentives/LpIncentiveClaimModal'
+import LpIncentiveRewardsCard from '~/components/Liquidity/LPIncentives/LpIncentiveRewardsCard'
+import { PositionsHeader } from '~/components/Liquidity/PositionsHeader'
+import { PositionInfo } from '~/components/Liquidity/types'
+import { getPositionUrl } from '~/components/Liquidity/utils/getPositionUrl'
+import { parseRestPosition } from '~/components/Liquidity/utils/parseFromRest'
+import { useAccount } from '~/hooks/useAccount'
+import { useLpIncentives } from '~/hooks/useLpIncentives'
 import { ExpandoRow } from '~/pages/Positions/ExpandoRow'
 import { TopPools } from '~/pages/Positions/TopPools'
 
@@ -132,12 +132,6 @@ function DisconnectedWalletView() {
             img={V4_HOOK}
             text={t('liquidity.hooks')}
             link={uniswapUrls.helpArticleUrls.v4HooksInfo}
-          />
-          <LearnMoreTile
-            width="100%"
-            img={ALLOWLISTED_HOOKS}
-            text={t('liquidity.hooks.allowlisted')}
-            link={uniswapUrls.helpArticleUrls.allowlistedHooks}
           />
         </Flex>
       </Flex>
@@ -319,12 +313,7 @@ function VirtualizedPositionsList({
                 style={{ textDecoration: 'none' }}
                 to={getPositionUrl(position)}
               >
-                <LiquidityPositionCard
-                  showVisibilityOption
-                  liquidityPosition={position}
-                  showMigrateButton
-                  isLast={index === positions.length - 1}
-                />
+                <LiquidityPositionCard showVisibilityOption liquidityPosition={position} showMigrateButton />
               </Link>
             </Flex>
           )
@@ -425,7 +414,9 @@ export default function Pool() {
   }, [loadedPositions, savedPositions, chainFilter, statusFilter, versionFilter])
 
   const { visiblePositions, hiddenPositions } = useMemo(() => {
+    // oxlint-disable-next-line no-shadow
     const visiblePositions: PositionInfo[] = []
+    // oxlint-disable-next-line no-shadow
     const hiddenPositions: PositionInfo[] = []
 
     combinedPositions.forEach((position) => {
@@ -597,11 +588,6 @@ export default function Pool() {
                   img={V4_HOOK}
                   text={t('liquidity.hooks')}
                   link={uniswapUrls.helpArticleUrls.v4HooksInfo}
-                />
-                <LearnMoreTile
-                  img={ALLOWLISTED_HOOKS}
-                  text={t('liquidity.hooks.allowlisted')}
-                  link={uniswapUrls.helpArticleUrls.allowlistedHooks}
                 />
               </Flex>
               <ExternalArrowLink href={uniswapUrls.helpArticleUrls.positionsLearnMore}>

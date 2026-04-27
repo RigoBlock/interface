@@ -18,9 +18,22 @@ const RETRY_OPERATIONS = new Set([
   'TopV2Pairs',
 ])
 
+// The RigoBlock GraphQL proxy caches responses for ~2 minutes.
+// During cache-miss bursts many queries can trigger 429 rate limits.
+// These operations retry with backoff to let the cache warm up.
+const RATE_LIMIT_RETRY_OPERATIONS = new Set([
+  'PortfolioBalances',
+  'MultiplePortfolioBalances',
+  'NftsTab',
+  'Nfts',
+  'TransactionHistoryUpdater',
+  'TransactionList',
+])
+
 /**
  * Creates an Apollo RetryLink that retries specific operations on network failure.
  * Uses exponential backoff with jitter to avoid thundering herd.
+ * Also retries 429 rate-limited responses for portfolio/balance queries.
  */
 export function getRetryLink(): RetryLink {
   return new RetryLink({
@@ -32,6 +45,11 @@ export function getRetryLink(): RetryLink {
     attempts: {
       max: 3,
       retryIf: (error, operation) => {
+        const is429 = (error?.networkError as { statusCode?: number } | undefined)?.statusCode === 429
+        // Retry 429s for portfolio queries (RigoBlock proxy rate limiting)
+        if (is429 && RATE_LIMIT_RETRY_OPERATIONS.has(operation.operationName)) {
+          return true
+        }
         if (!RETRY_OPERATIONS.has(operation.operationName)) {
           return false
         }

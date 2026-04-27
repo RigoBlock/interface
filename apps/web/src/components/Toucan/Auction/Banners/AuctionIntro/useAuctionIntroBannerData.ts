@@ -2,16 +2,13 @@ import { TFunction } from 'i18next'
 import { CSSProperties, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSporeColors } from 'ui/src'
+import { opacifyRaw } from 'ui/src/theme'
 import { useAuctionTokenColor } from '~/components/Toucan/Auction/hooks/useAuctionTokenColor'
 import { useDurationRemaining } from '~/components/Toucan/Auction/hooks/useDurationRemaining'
 import { AuctionDetails, AuctionProgressState } from '~/components/Toucan/Auction/store/types'
 import { useAuctionStore } from '~/components/Toucan/Auction/store/useAuctionStore'
-import { createDottedBackgroundStyles } from '~/components/Toucan/utils/createDottedBackgroundStyles'
 
 type AuctionIntroBannerVariant = 'not-started' | 'in-progress'
-
-const DOT_OPACITY_NOT_STARTED = 8
-const DOT_OPACITY_IN_PROGRESS = 10
 
 function getAuctionBannerConfig({
   isPreBidPeriod,
@@ -58,16 +55,13 @@ interface UseAuctionIntroBannerDataResult {
   durationLabel: string
   /** Token accent color - used for indicator dot */
   tokenAccentColor: string
-  dottedBackgroundStyle: CSSProperties
-  radialGradientStyle: CSSProperties | undefined
-  backgroundColor: string
+  backgroundGradientStyle: CSSProperties
   /** True when token color is still loading or not yet available */
   isColorLoading: boolean
 }
 
 export function useAuctionIntroBannerData(): UseAuctionIntroBannerDataResult {
   const { t } = useTranslation()
-  const colors = useSporeColors()
 
   const { auctionDetails, progressState, currentBlockNumber } = useAuctionStore((state) => ({
     auctionDetails: state.auctionDetails,
@@ -75,6 +69,7 @@ export function useAuctionIntroBannerData(): UseAuctionIntroBannerDataResult {
     currentBlockNumber: state.currentBlockNumber,
   }))
 
+  const colors = useSporeColors()
   const { tokenColorLoading, effectiveTokenColor } = useAuctionTokenColor()
   const logoUrl = auctionDetails?.token?.logoUrl
 
@@ -83,7 +78,6 @@ export function useAuctionIntroBannerData(): UseAuctionIntroBannerDataResult {
   const lockedTokenColorRef = useRef<string | null>(null)
 
   // Reset locked color when logoUrl changes (e.g., navigating to a different auction)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: logoUrl is intentionally a dependency to trigger reset on token change
   useEffect(() => {
     lockedTokenColorRef.current = null
   }, [logoUrl])
@@ -133,23 +127,13 @@ export function useAuctionIntroBannerData(): UseAuctionIntroBannerDataResult {
     !!currentBlockNumber && !!auctionDetails && !!auctionDetails.startBlock && !!auctionDetails.endBlock
   const shouldShowBanner = hasAllRequiredData && (isNotStarted || isInProgress)
 
-  // Background color: surface3Solid for not-started (solid gray), surface1 for in-progress
-  // Note: surface3 is semi-transparent rgba, surface3Solid is a solid color
-  const backgroundColor = isNotStarted ? '$surface3Solid' : '$surface1'
-
-  // Dotted background pattern
-  // For not-started: use white dots at very low opacity on the gray background
-  // For in-progress: use token color dots (which get softened by radial gradient overlay)
-  const { dottedBackgroundStyle, radialGradientStyle } = useMemo(() => {
-    const dotColor = isNotStarted ? colors.white.val : tokenAccentColor
-    const dotOpacity = isNotStarted ? DOT_OPACITY_NOT_STARTED : DOT_OPACITY_IN_PROGRESS
-
-    return createDottedBackgroundStyles({
-      dotColor,
-      dotOpacity,
-      gradientOpacities: isNotStarted ? { center: 8, mid: 4 } : { center: 45, mid: 25 },
-    })
-  }, [isNotStarted, colors.white.val, tokenAccentColor])
+  // Background: dark base with a subtle token-colored gradient from the right
+  const backgroundGradientStyle: CSSProperties = useMemo(
+    () => ({
+      backgroundImage: `linear-gradient(270deg, ${opacifyRaw(24, tokenAccentColor)} 0%, ${opacifyRaw(0, tokenAccentColor)} 100%), linear-gradient(90deg, ${colors.surface1.val} 0%, ${colors.surface1.val} 100%)`,
+    }),
+    [tokenAccentColor, colors.surface1.val],
+  )
 
   return {
     shouldShowBanner,
@@ -157,9 +141,7 @@ export function useAuctionIntroBannerData(): UseAuctionIntroBannerDataResult {
     durationRemaining,
     durationLabel,
     tokenAccentColor,
-    dottedBackgroundStyle,
-    radialGradientStyle,
-    backgroundColor,
+    backgroundGradientStyle,
     isColorLoading,
   }
 }

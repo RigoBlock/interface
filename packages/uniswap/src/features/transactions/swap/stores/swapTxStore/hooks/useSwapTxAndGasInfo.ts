@@ -33,7 +33,7 @@ export function useSwapTxAndGasInfo({
   } = derivedSwapInfo
 
   const approvalTxInfo = useTokenApprovalInfo({
-    account,
+    address: account?.address,
     chainId,
     wrapType,
     currencyInAmount: currencyAmounts[CurrencyField.INPUT],

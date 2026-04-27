@@ -1,10 +1,4 @@
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-import { buildPortfolioUrl } from '~/pages/Portfolio/utils/portfolioUrls'
-//import { Limit } from '~/components/Icons/Limit'
-import { SwapV2 } from '~/components/Icons/SwapV2'
-import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
-import { PortfolioTab } from '~/pages/Portfolio/types'
-import { MenuItem } from '~/components/NavBar/CompanyMenu/Content'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router'
 import { useSporeColors } from 'ui/src'
@@ -15,6 +9,12 @@ import { Pools } from 'ui/src/components/icons/Pools'
 import { ReceiveAlt } from 'ui/src/components/icons/ReceiveAlt'
 import { Wallet } from 'ui/src/components/icons/Wallet'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
+import { SwapV2 } from '~/components/Icons/SwapV2'
+import { MenuItem } from '~/components/NavBar/CompanyMenu/Content'
+import { PageType } from '~/hooks/useIsPage'
+import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
+import { PortfolioTab } from '~/pages/Portfolio/types'
+import { buildPortfolioUrl } from '~/pages/Portfolio/utils/portfolioUrls'
 
 export type TabsSection = {
   title: string
@@ -145,7 +145,7 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
         tab: PortfolioTab.Overview,
         chainId: portfolioChainId,
       }),
-      isActive: pathname.startsWith('/portfolio') && !isExternalWallet,
+      isActive: pathname.startsWith(PageType.PORTFOLIO) && !isExternalWallet,
       icon: <Wallet color="$accent1" size="$icon.20" />,
       elementName: ElementName.NavbarPortfolioTab,
       items: [

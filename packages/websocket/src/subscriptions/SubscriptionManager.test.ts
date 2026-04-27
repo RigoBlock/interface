@@ -463,6 +463,7 @@ describe('SubscriptionManager', () => {
       expect(callback2).toHaveBeenCalledWith({ data: 'price-update' })
     })
 
+    // oxlint-disable-next-line jest/expect-expect -- suppressed
     it('ignores messages for unknown subscriptions', () => {
       const { manager } = createTestManager()
 

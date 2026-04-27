@@ -24,7 +24,6 @@ import { createTransactionId } from 'uniswap/src/utils/createTransactionId'
 import { DatadogLogMetrics, logAsMetric } from 'utilities/src/logger/datadog/datadogLogMetrics'
 import { logger } from 'utilities/src/logger/logger'
 import { ONE_SECOND_MS } from 'utilities/src/time/time'
-
 import { waitForTransactionConfirmation } from 'wallet/src/features/transactions/swap/confirmation'
 import { isSignedPermit, SignedPermit } from 'wallet/src/features/transactions/swap/types/preSignedTransaction'
 import { getSignerManager } from 'wallet/src/features/wallet/context'
@@ -48,6 +47,7 @@ export interface SubmitUniswapXOrderParams {
   onFailure: () => void
 }
 
+// oxlint-disable-next-line typescript/explicit-function-return-type
 export function* submitUniswapXOrder(params: SubmitUniswapXOrderParams) {
   const { quote, routing, permit, approveTxHash, txId, chainId, typeInfo, account, analytics, onSuccess, onFailure } =
     params

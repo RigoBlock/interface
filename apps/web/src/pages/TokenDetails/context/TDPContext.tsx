@@ -1,10 +1,9 @@
-import { QueryResult } from '@apollo/client'
-import { Currency } from '@uniswap/sdk-core'
-import { GraphQLApi } from '@universe/api'
+import type { QueryResult } from '@apollo/client'
+import type { Currency } from '@uniswap/sdk-core'
+import type { GraphQLApi } from '@universe/api'
 import { createContext } from 'react'
-import { GqlChainId, UniverseChainId } from 'uniswap/src/features/chains/types'
-import { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
-import { TDPChartState } from '~/pages/TokenDetails/components/chart/TDPChartState'
+import type { GqlChainId, UniverseChainId } from 'uniswap/src/features/chains/types'
+import type { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
 import type { createTDPStore } from '~/pages/TokenDetails/context/createTDPStore'
 
 export type MultiChainMap = {
@@ -20,9 +19,12 @@ type BaseTDPContext = {
   address: string
 
   tokenQuery: QueryResult<GraphQLApi.TokenWebQuery, GraphQLApi.Exact<{ chain: GraphQLApi.Chain; address?: string }>>
-  chartState: TDPChartState
 
   multiChainMap: MultiChainMap
+
+  balanceError?: Error
+
+  selectedMultichainChainId: UniverseChainId | undefined
 
   tokenColor?: string
 }

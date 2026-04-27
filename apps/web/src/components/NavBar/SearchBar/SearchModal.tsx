@@ -17,7 +17,7 @@ import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
 import { useDebounce } from 'utilities/src/time/timing'
 import { useModalState } from '~/hooks/useModalState'
 
-export const SearchModal = memo(function _SearchModal(): JSX.Element {
+export const SearchModal = memo(function SearchModalInner(): JSX.Element {
   const colors = useSporeColors()
   const { t } = useTranslation()
   const media = useMedia()
@@ -63,11 +63,6 @@ export const SearchModal = memo(function _SearchModal(): JSX.Element {
     onClose()
   }, [onChangeText, onClose])
 
-  const onResetFilters = useCallback(() => {
-    onChangeChainFilter(null)
-    setActiveTab(SearchTab.All)
-  }, [onChangeChainFilter])
-
   const { chains: enabledChains } = useEnabledChains()
 
   // Tamagui Dialog/Sheets should remove background scroll by default but does not work to disable ArrowUp/Down key scrolling
@@ -107,7 +102,8 @@ export const SearchModal = memo(function _SearchModal(): JSX.Element {
             ref={searchInputRef}
             minHeight={media.sm ? undefined : 24}
             backgroundColor={media.sm ? '$surface2' : '$none'}
-            borderColor={!media.sm ? '$none' : undefined}
+            borderColor={!media.sm ? '$transparent' : undefined}
+            borderWidth={!media.sm ? '$none' : undefined}
             py="$none"
             endAdornment={
               <Flex row alignItems="center">
@@ -154,7 +150,6 @@ export const SearchModal = memo(function _SearchModal(): JSX.Element {
               searchFilter={searchFilter}
               activeTab={activeTab}
               onSelect={onSelect}
-              onResetFilters={onResetFilters}
               renderedInModal={false}
             />
           ) : (

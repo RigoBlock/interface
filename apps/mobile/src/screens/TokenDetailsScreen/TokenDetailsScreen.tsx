@@ -1,6 +1,7 @@
 import { useApolloClient } from '@apollo/client'
 import { ReactNavigationPerformanceView } from '@shopify/react-native-performance-navigation'
 import { GQLQueries, GraphQLApi } from '@universe/api'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import React, { memo, useEffect, useMemo } from 'react'
 import { FadeInDown, FadeOutDown } from 'react-native-reanimated'
 import type { AppStackScreenProp } from 'src/app/navigation/types'
@@ -13,6 +14,7 @@ import { TokenDetailsContextProvider, useTokenDetailsContext } from 'src/compone
 import { TokenDetailsHeader } from 'src/components/TokenDetails/TokenDetailsHeader'
 import { TokenDetailsLinks } from 'src/components/TokenDetails/TokenDetailsLinks'
 import { TokenDetailsStats } from 'src/components/TokenDetails/TokenDetailsStats'
+import { TokenPerformance } from 'src/components/TokenDetails/TokenPerformance'
 import { TokenDetailsActionButtonsWrapper } from 'src/screens/TokenDetailsScreen/TokenDetailsActionButtonsWrapper'
 import { HeaderRightElement, HeaderTitleElement } from 'src/screens/TokenDetailsScreen/TokenDetailsHeaders'
 import { TokenDetailsModals } from 'src/screens/TokenDetailsScreen/TokenDetailsModals'
@@ -25,6 +27,7 @@ import {
   useTokenBasicInfoPartsFragment,
   useTokenBasicProjectPartsFragment,
 } from 'uniswap/src/data/graphql/uniswap-data-api/fragments'
+import { isMultichainProjectTokens } from 'uniswap/src/features/dataApi/tokenProjects/utils/isMultichainProjectTokens'
 import { currencyIdToContractInput } from 'uniswap/src/features/dataApi/utils/currencyIdToContractInput'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { TokenWarningCard } from 'uniswap/src/features/tokens/warnings/TokenWarningCard'
@@ -50,14 +53,18 @@ export function TokenDetailsScreen({ route, navigation }: AppStackScreenProp<Mob
 function TokenDetailsWrapper(): JSX.Element {
   const { chainId, address, currencyId } = useTokenDetailsContext()
   const { data: token } = useTokenBasicInfoPartsFragment({ currencyId })
+  const { data: projectParts } = useTokenBasicProjectPartsFragment({ currencyId })
+  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
+  const isMultichainAsset = isMultichainProjectTokens(projectParts.project?.tokens)
 
   const traceProperties = useMemo(
     () => ({
       chain: chainId,
       address,
       currencyName: token.name,
+      ...(multichainTokenUxEnabled ? { multichain: isMultichainAsset } : {}),
     }),
-    [address, chainId, token.name],
+    [address, chainId, isMultichainAsset, multichainTokenUxEnabled, token.name],
   )
 
   return (
@@ -69,11 +76,15 @@ function TokenDetailsWrapper(): JSX.Element {
   )
 }
 
-const TokenDetailsQuery = memo(function _TokenDetailsQuery(): JSX.Element {
+const TokenDetailsQuery = memo(function TokenDetailsQueryInner(): JSX.Element {
   const { currencyId, setError } = useTokenDetailsContext()
+  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
 
   const { error } = GraphQLApi.useTokenDetailsScreenQuery({
-    variables: currencyIdToContractInput(currencyId),
+    variables: {
+      ...currencyIdToContractInput(currencyId),
+      multichain: multichainTokenUxEnabled,
+    },
     pollInterval: PollingInterval.Normal,
     notifyOnNetworkStatusChange: true,
     returnPartialData: true,
@@ -84,10 +95,11 @@ const TokenDetailsQuery = memo(function _TokenDetailsQuery(): JSX.Element {
   return <TokenDetails />
 })
 
-const TokenDetails = memo(function _TokenDetails(): JSX.Element {
+const TokenDetails = memo(function TokenDetailsInner(): JSX.Element {
   const centerElement = useMemo(() => <HeaderTitleElement />, [])
   const rightElement = useMemo(() => <HeaderRightElement />, [])
   const { isContentHidden } = useDelayedRender(CONTEXT_MENU_RENDER_DELAY_MS)
+  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
 
   const inModal = useIsInModal(MobileScreens.Explore, true)
 
@@ -115,9 +127,10 @@ const TokenDetails = memo(function _TokenDetails(): JSX.Element {
 
             <TokenDetailsBridgedAssetSection />
 
-            <Separator />
+            {!multichainTokenUxEnabled && <Separator />}
           </Flex>
           <Flex gap="$spacing24">
+            <TokenPerformance />
             <Flex px="$spacing16">
               <TokenDetailsStats />
             </Flex>
@@ -133,7 +146,7 @@ const TokenDetails = memo(function _TokenDetails(): JSX.Element {
   )
 })
 
-const TokenDetailsErrorCard = memo(function _TokenDetailsErrorCard(): JSX.Element | null {
+const TokenDetailsErrorCard = memo(function TokenDetailsErrorCardInner(): JSX.Element | null {
   const apolloClient = useApolloClient()
   const { error, setError } = useTokenDetailsContext()
 
@@ -151,7 +164,7 @@ const TokenDetailsErrorCard = memo(function _TokenDetailsErrorCard(): JSX.Elemen
   ) : null
 })
 
-const TokenBalancesWrapper = memo(function _TokenBalancesWrapper(): JSX.Element | null {
+const TokenBalancesWrapper = memo(function TokenBalancesWrapperInner(): JSX.Element | null {
   const activeAddress = useActiveAccountAddressWithThrow()
   const { currencyId, isChainEnabled } = useTokenDetailsContext()
 
@@ -173,18 +186,28 @@ const TokenBalancesWrapper = memo(function _TokenBalancesWrapper(): JSX.Element 
     })
   }
 
-  const { currentChainBalance, otherChainBalances } = useCrossChainBalances({
+  const {
+    currentChainBalance,
+    otherChainBalances,
+    error: balanceError,
+    dataUpdatedAt,
+  } = useCrossChainBalances({
     evmAddress: activeAddress,
     currencyId,
     crossChainTokens,
   })
 
   return isChainEnabled ? (
-    <TokenBalances currentChainBalance={currentChainBalance} otherChainBalances={otherChainBalances} />
+    <TokenBalances
+      currentChainBalance={currentChainBalance}
+      otherChainBalances={otherChainBalances}
+      isOutage={!!balanceError}
+      dataUpdatedAt={dataUpdatedAt}
+    />
   ) : null
 })
 
-const TokenWarningCardWrapper = memo(function _TokenWarningCardWrapper(): JSX.Element | null {
+const TokenWarningCardWrapper = memo(function TokenWarningCardWrapperInner(): JSX.Element | null {
   const { currencyInfo, openTokenWarningModal } = useTokenDetailsContext()
 
   return <TokenWarningCard currencyInfo={currencyInfo} onPress={openTokenWarningModal} />

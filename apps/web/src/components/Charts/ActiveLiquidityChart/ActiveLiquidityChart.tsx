@@ -133,6 +133,7 @@ export function ActiveLiquidityChart({
 
   useEffect(() => {
     if (!brushDomain) {
+      // oxlint-disable-next-line no-shadow
       const [min, max] = yScale.domain()
       const lowerBound = min + (max - min) * 0.2
       const upperBound = min + (max - min) * 0.8

@@ -160,7 +160,6 @@ function SendFormInner({ disableTokenInputs = false, onCurrencyChange }: SendFor
     setSendFormModalState(newState ?? SendFormModalState.None)
   }, [])
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: +recipientData?.address
   useEffect(() => {
     setSendFormSpeedBumpState(() => ({
       [SendSpeedBump.SELF_SEND_SPEED_BUMP]: isCurrentWallet,

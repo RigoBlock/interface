@@ -1,11 +1,11 @@
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useMemo } from 'react'
 import { getChainInfo, TOUCAN_AUCTION_SUPPORTED_CHAINS } from 'uniswap/src/features/chains/chainInfo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import type { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 import { isNativeCurrencyAddress } from 'uniswap/src/utils/currencyId'
 import { zeroAddress } from 'viem'
-import { AuctionProgressState, UserBid } from '~/components/Toucan/Auction/store/types'
+import { AuctionProgressState, type UserBid } from '~/components/Toucan/Auction/store/types'
 
 interface UseBidFormWarningStateParams {
   chainId?: UniverseChainId
@@ -41,18 +41,18 @@ export function useBidFormWarningState({
     const normalizedCurrency = currency?.toLowerCase()
     const isNativeBidToken = Boolean(
       chainId &&
-        normalizedCurrency &&
-        (normalizedCurrency === zeroAddress || isNativeCurrencyAddress(chainId, normalizedCurrency)),
+      normalizedCurrency &&
+      (normalizedCurrency === zeroAddress || isNativeCurrencyAddress(chainId, normalizedCurrency)),
     )
     const usdcAddress = chainId && isSupportedChain ? getChainInfo(chainId).tokens.USDC?.address : undefined
     const isUsdcBidToken = Boolean(
       chainId &&
-        normalizedCurrency &&
-        usdcAddress &&
-        areAddressesEqual({
-          addressInput1: { address: normalizedCurrency, chainId },
-          addressInput2: { address: usdcAddress, chainId },
-        }),
+      normalizedCurrency &&
+      usdcAddress &&
+      areAddressesEqual({
+        addressInput1: { address: normalizedCurrency, chainId },
+        addressInput2: { address: usdcAddress, chainId },
+      }),
     )
     const isValidationErrorWarning = isToucanAuctionKYCEnabled
       ? Boolean(validationError)

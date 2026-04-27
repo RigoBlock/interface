@@ -74,7 +74,7 @@ function parseTokens({
 }) {
   const tokenDataSlices = arrayToSlices(returnData, 5)
 
-  // eslint-disable-next-line max-params
+  // oxlint-disable-next-line max-params
   return tokenDataSlices.reduce((acc: TokenMap, slice, index) => {
     const parsedToken = tryParseToken({ address: addresses[index], chainId, data: slice })
     if (parsedToken) {
@@ -85,6 +85,7 @@ function parseTokens({
 }
 
 const createCalls = (target: string, callData: string[]): Call[] =>
+  // oxlint-disable-next-line no-shadow
   callData.map((callData) => ({ target, callData, gasLimit: DEFAULT_GAS_LIMIT }))
 
 function createCallsForToken(address: string) {

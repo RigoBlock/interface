@@ -91,10 +91,12 @@ export function useMergeLocalAndRemoteTransactions({
   evmAddress,
   svmAddress,
   remoteTransactions,
+  skipLocalTransactions = false,
 }: {
   evmAddress?: Address
   svmAddress?: Address
   remoteTransactions: TransactionDetails[] | undefined
+  skipLocalTransactions?: boolean
 }): TransactionDetails[] | undefined {
   const dispatch = useDispatch()
   const localTransactions = useSelectAddressTransactions({ evmAddress, svmAddress })
@@ -103,8 +105,12 @@ export function useMergeLocalAndRemoteTransactions({
   const { chains } = useEnabledChains()
 
   // Merge local and remote txs into one array and reconcile data discrepancies
-  // biome-ignore lint/correctness/useExhaustiveDependencies: trackedPlanKey is a signal dep that triggers re-computation when activePlanStore changes so withDisplayStatusForTrackedPlans reads fresh state.
   return useMemo((): TransactionDetails[] | undefined => {
+    if (skipLocalTransactions) {
+      const planStepHashes = collectPlanStepHashesFromArray(remoteTransactions ?? [])
+      return filterPlanStepTransactions(remoteTransactions ?? [], planStepHashes).map(withDisplayStatusForTrackedPlans)
+    }
+
     if (!remoteTransactions?.length) {
       return localTransactions?.map(withDisplayStatusForTrackedPlans)
     }
@@ -180,6 +186,7 @@ export function useMergeLocalAndRemoteTransactions({
 
     const deDupedTxs: TransactionDetails[] = [...offChainFORTxs.values(), ...unsubmittedTxs]
 
+    // oxlint-disable-next-line unicorn/no-useless-spread -- biome-parity: oxlint is stricter here
     for (const hash of [...hashes]) {
       // Skip transactions that are part of a plan's stepDetails (they're already represented by the Plan transaction)
       if (planStepHashes.has(hash)) {
@@ -288,5 +295,6 @@ export function useMergeLocalAndRemoteTransactions({
 
       return timeA > timeB ? -1 : 1
     })
-  }, [dispatch, localTransactions, remoteTransactions, chains, trackedPlansKey])
+    // oxlint-disable-next-line react/exhaustive-deps -- biome-parity: oxlint is stricter here
+  }, [dispatch, localTransactions, remoteTransactions, chains, trackedPlansKey, skipLocalTransactions])
 }

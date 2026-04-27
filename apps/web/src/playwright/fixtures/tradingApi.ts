@@ -1,4 +1,5 @@
-// biome-ignore lint/style/noRestrictedImports: Trading API fixtures need direct Playwright imports
+/* oxlint-disable react-hooks/rules-of-hooks -- Playwright fixtures use `use()` which is not a React hook */
+// oxlint-disable-next-line no-restricted-imports -- Trading API fixtures need direct Playwright imports
 import { test as base, type Page, type Route } from '@playwright/test'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
 import { Mocks } from '~/playwright/mocks/mocks'
@@ -20,7 +21,6 @@ const shouldIgnorePageError = (error: Error): { ignored: boolean } => {
 /**
  * Generic helper function to stub trading API endpoints and disable transaction simulation
  */
-// eslint-disable-next-line max-params
 export async function stubTradingApiEndpoint({
   page,
   endpoint,
@@ -91,7 +91,7 @@ export async function stubTradingApiEndpoint({
   // Match the exact endpoint path, optionally followed by query params
   // Avoids matching longer paths (e.g., /v1/swap should not match /v1/swappable_tokens or /v1/swaps)
   const escapedUrl = `${uniswapUrls.tradingApiUrl}${endpoint}`.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  // eslint-disable-next-line security/detect-non-literal-regexp -- escapedUrl is sanitized above via regex escaping
+  // oxlint-disable-next-line security/detect-non-literal-regexp -- escapedUrl is sanitized via regex escaping
   await page.route(new RegExp(`^${escapedUrl}(\\?.*)?$`), handler)
 }
 
@@ -99,7 +99,6 @@ export async function stubTradingApiEndpoint({
  * Mocks the /v1/swap endpoint with a static mock response
  * Use this instead of stubTradingApiEndpoint when you need to avoid calling the real API
  */
-// eslint-disable-next-line import/no-unused-modules
 export async function mockTradingApiSwapResponse({ page }: { page: Page }) {
   await page.route(`**/${uniswapUrls.tradingApiPaths.swap}`, async (route) => {
     await route.fulfill({ path: Mocks.TradingApi.swap })

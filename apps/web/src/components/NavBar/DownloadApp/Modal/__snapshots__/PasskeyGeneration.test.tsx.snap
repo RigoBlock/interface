@@ -179,7 +179,7 @@ exports[`PasskeyGenerationModal > renders default state 1`] = `
             <svg
               fill="none"
               stroke-width="8"
-              style="width: 20.7px; height: 20.7px;"
+              style="width: 20.7px; height: 20.7px; color: rgb(255, 255, 255);"
               viewBox="0 0 24 24"
             >
               <path

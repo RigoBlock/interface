@@ -1,26 +1,28 @@
-import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
-import { Currency } from '@uniswap/sdk-core'
-import { nearestUsableTick, TickMath } from '@uniswap/v3-sdk'
+import type { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
+import type { Currency } from '@uniswap/sdk-core'
 import * as d3 from 'd3'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useId, useMemo, useRef } from 'react'
 import { Flex, useSporeColors } from 'ui/src'
-import { TickData } from '~/appGraphql/data/AllV3TicksQuery'
+import type { TickData } from '~/appGraphql/data/AllV3TicksQuery'
+import { CHART_DIMENSIONS } from '~/components/Charts/D3LiquidityChartShared/constants'
+import { createTickScale } from '~/components/Charts/D3LiquidityChartShared/utils/createTickScale'
 import { LiquidityActiveTooltips } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/components/LiquidityActiveTooltips'
-import { CHART_DIMENSIONS } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/constants'
 import { useLiquidityChartInteractions } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/hooks/useLiquidityChartInteractions'
 import { useResponsiveDimensions } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/hooks/useResponsiveDimensions'
 import { useChartPriceState } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/store/selectors/priceSelectors'
 import { useChartViewState } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/store/selectors/viewSelectors'
-import type { LinearTickScale } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/store/types'
 import { useLiquidityChartStoreActions } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/store/useLiquidityChartStore'
-import { priceToY, TickAlignment } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/utils/priceToY'
+import {
+  priceToY,
+  type TickAlignment,
+} from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/utils/priceToY'
 import { tickToY } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/utils/tickToY'
 import { yToTick } from '~/components/Charts/D3LiquidityRangeInput/D3LiquidityRangeChart/utils/yToTick'
-import { ChartEntry } from '~/components/Charts/LiquidityRangeInput/types'
-import { PriceChartData } from '~/components/Charts/PriceChart'
-import { ChartQueryResult, ChartType } from '~/components/Charts/utils'
+import type { ChartEntry } from '~/components/Charts/LiquidityRangeInput/types'
+import type { PriceChartData } from '~/components/Charts/PriceChart'
+import type { ChartQueryResult, ChartType } from '~/components/Charts/utils'
 import { useLiquidityUrlState } from '~/components/Liquidity/Create/hooks/useLiquidityUrlState'
-import { InitialPosition } from '~/components/Liquidity/Create/types'
+import type { InitialPosition } from '~/components/Liquidity/Create/types'
 
 const D3LiquidityRangeChart = ({
   priceData,
@@ -32,6 +34,8 @@ const D3LiquidityRangeChart = ({
   tickSpacing,
   rawTicks,
   protocolVersion,
+  token0Color,
+  token1Color,
 }: {
   priceData: ChartQueryResult<PriceChartData, ChartType.PRICE>
   liquidityData: ChartEntry[]
@@ -42,8 +46,11 @@ const D3LiquidityRangeChart = ({
   tickSpacing: number
   rawTicks: TickData[]
   protocolVersion: ProtocolVersion
+  token0Color: string
+  token1Color: string
 }) => {
   const colors = useSporeColors()
+  const chartId = useId()
   const svgRef = useRef<SVGSVGElement | null>(null)
   const timescaleSvgRef = useRef<SVGSVGElement | null>(null)
 
@@ -75,39 +82,12 @@ const D3LiquidityRangeChart = ({
 
   // Create linear tick scale for continuous tick-to-Y mapping
   // Uses FULL pool tick range (MIN_TICK to MAX_TICK) aligned to tickSpacing
-  const tickScale: LinearTickScale = useMemo(() => {
+  const tickScale = useMemo(() => {
     if (liquidityData.length === 0) {
-      // Default scale when no data
-      return {
-        tickToY: () => 0,
-        yToTick: () => 0,
-        minTick: 0,
-        maxTick: 0,
-        range: [0, 0],
-      }
+      return createTickScale({ tickSpacing, size: 0, zoomLevel: 1, pan: 0 })
     }
 
-    // Use full pool tick range (aligned to tickSpacing)
-    // This ensures we visualize the entire tick space, not just where liquidity exists
-    const fullMinTick = nearestUsableTick(TickMath.MIN_TICK, tickSpacing)
-    const fullMaxTick = nearestUsableTick(TickMath.MAX_TICK, tickSpacing)
-
-    // Calculate Y range with zoom
-    const scaledHeight = totalHeight * zoomLevel
-    // Higher ticks at top (Y=0 + panY), lower ticks at bottom
-    const yTop = panY
-    const yBottom = scaledHeight + panY
-
-    // Create d3 linear scale (inverted: high tick -> low Y)
-    const d3Scale = d3.scaleLinear().domain([fullMaxTick, fullMinTick]).range([yTop, yBottom])
-
-    return {
-      tickToY: (tick: number) => d3Scale(tick),
-      yToTick: (y: number) => d3Scale.invert(y),
-      minTick: fullMinTick,
-      maxTick: fullMaxTick,
-      range: [yTop, yBottom],
-    }
+    return createTickScale({ tickSpacing, size: totalHeight, zoomLevel, pan: panY, invert: true })
   }, [liquidityData.length, tickSpacing, totalHeight, zoomLevel, panY])
 
   // Initialize renderers when component mounts or data changes
@@ -126,6 +106,7 @@ const D3LiquidityRangeChart = ({
 
     // Create rendering context
     const renderingContext = {
+      chartId,
       colors,
       dimensions,
       priceData: priceData.entries,
@@ -134,6 +115,8 @@ const D3LiquidityRangeChart = ({
       tickScale,
       tickSpacing,
       currentTick,
+      token0Color,
+      token1Color,
       priceToY: ({ price, tickAlignment }: { price: number; tickAlignment?: TickAlignment }) =>
         priceToY({ price, liquidityData, tickScale, tickAlignment }),
       tickToY: ({ tick, tickAlignment }: { tick: number; tickAlignment?: TickAlignment }) =>
@@ -147,6 +130,7 @@ const D3LiquidityRangeChart = ({
     // Initial draw
     drawAll()
   }, [
+    chartId,
     priceData,
     liquidityData,
     rawTicks,
@@ -157,18 +141,20 @@ const D3LiquidityRangeChart = ({
     drawAll,
     currentTick,
     tickSpacing,
+    token0Color,
+    token1Color,
   ])
 
   // Update renderers when state changes
-  // biome-ignore lint/correctness/useExhaustiveDependencies: minTick, maxTick, zoomLevel, panY should trigger re-renders
   useEffect(() => {
     drawAll()
   }, [minTick, maxTick, zoomLevel, panY, drawAll])
 
   // Reset the chart when the price data changes (currentPrice omitted), maintaining the price range from the URL
-  // biome-ignore lint/correctness/useExhaustiveDependencies: priceRangeState should not trigger re-renders
   useEffect(() => {
+    // oxlint-disable-next-line no-shadow
     let minTick
+    // oxlint-disable-next-line no-shadow
     let maxTick
 
     if (initialPosition) {
@@ -186,6 +172,7 @@ const D3LiquidityRangeChart = ({
       minTick,
       maxTick,
     })
+    // oxlint-disable-next-line react/exhaustive-deps -- biome-parity: oxlint is stricter here
   }, [priceData.dataHash, initialPosition, reset])
 
   return (
@@ -202,6 +189,7 @@ const D3LiquidityRangeChart = ({
         }}
       >
         <svg
+          aria-label="Liquidity Range Chart"
           ref={svgRef}
           width="100%"
           height={CHART_DIMENSIONS.LIQUIDITY_CHART_HEIGHT}
@@ -210,15 +198,20 @@ const D3LiquidityRangeChart = ({
           }}
           onMouseEnter={() => setChartState({ isChartHovered: true })}
           onMouseLeave={() => setChartState({ isChartHovered: false })}
-        ></svg>
+        >
+          <title>Liquidity Range Chart</title>
+        </svg>
         <svg
+          aria-label="Timescale Chart"
           ref={timescaleSvgRef}
           width="100%"
           height={CHART_DIMENSIONS.TIMESCALE_HEIGHT}
           style={{
             touchAction: 'none',
           }}
-        ></svg>
+        >
+          <title>Timescale Chart</title>
+        </svg>
         <LiquidityActiveTooltips
           quoteCurrency={quoteCurrency}
           baseCurrency={baseCurrency}

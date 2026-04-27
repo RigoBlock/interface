@@ -9,11 +9,12 @@ import {
 } from '@universe/gating'
 import { memo, useContext, useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
-import { Button, Flex, Switch, Text, useShadowPropsShort } from 'ui/src'
+import { Button, Flex, Separator, Switch, Text, useShadowPropsShort } from 'ui/src'
 import { Flag } from 'ui/src/components/icons/Flag'
 import { Settings } from 'ui/src/components/icons/Settings'
 import { resetUniswapBehaviorHistory } from 'uniswap/src/features/behaviorHistory/slice'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { useAnalyticsDebugStore } from 'uniswap/src/features/telemetry/debug/useAnalyticsDebugStore'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { isBetaEnv, isDevEnv } from 'utilities/src/environment/env'
 import { useEvent } from 'utilities/src/react/hooks'
@@ -129,6 +130,9 @@ export default function DevFlagsBox() {
 
   const dispatch = useDispatch()
 
+  const analyticsDebugEnabled = useAnalyticsDebugStore((s) => s.enabled)
+  const toggleAnalyticsDebugger = useAnalyticsDebugStore((s) => s.actions.toggleEnabled)
+
   const onPressReset = (): void => {
     dispatch(resetUniswapBehaviorHistory())
   }
@@ -216,9 +220,21 @@ export default function DevFlagsBox() {
                 ))}
             </Flex>
           )}
-          <Button variant="branded" emphasis="secondary" size="small" onPress={onPressReset} mt="$spacing8">
-            Reset behavior history
-          </Button>
+
+          <Separator my="$spacing16" />
+
+          <Text variant="subheading2">Dev Tools</Text>
+
+          <Flex row>
+            <Button emphasis="secondary" size="xsmall" onPress={onPressReset} mt="$spacing8">
+              Reset behavior history
+            </Button>
+          </Flex>
+          <Flex row>
+            <Button emphasis="secondary" size="xsmall" onPress={toggleAnalyticsDebugger} mt="$spacing8">
+              {analyticsDebugEnabled ? 'Disable Analytics Debugger' : 'Enable Analytics Debugger'}
+            </Button>
+          </Flex>
         </>
       ) : (
         <Flag size="$icon.16" />

@@ -1,4 +1,4 @@
-/* eslint-disable max-lines */
+/* oxlint-disable max-lines */
 import { rpcErrors, serializeError } from '@metamask/rpc-errors'
 import { removeDappConnection } from 'src/app/features/dapp/actions'
 import { changeChain } from 'src/app/features/dapp/changeChain'
@@ -111,6 +111,7 @@ export function initMessageBridge(): void {
         windowId,
         onSuccess: () => {
           // Process request after panel opens (async operations safe here)
+          // oxlint-disable-next-line typescript/no-floating-promises -- biome-parity: oxlint is stricter here
           handleRequestAsync({ message, sender })
         },
         onError: (error, fallbackOpened) => {
@@ -153,6 +154,7 @@ export function initMessageBridge(): void {
       })
     } else {
       // Non-interactive request or panel already open - async handling is safe
+      // oxlint-disable-next-line typescript/no-floating-promises -- biome-parity: oxlint is stricter here
       handleRequestAsync({ message, sender })
     }
   })

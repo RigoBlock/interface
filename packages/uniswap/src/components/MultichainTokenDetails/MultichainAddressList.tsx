@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AnimatedCopyLabel } from 'ui/src'
+import { AnimatedCopyLabel, Text } from 'ui/src'
 import { iconSizes } from 'ui/src/theme'
 import { MultichainOptionRow } from 'uniswap/src/components/MultichainTokenDetails/MultichainOptionRow'
 import { MultichainScrollableList } from 'uniswap/src/components/MultichainTokenDetails/MultichainScrollableList'
@@ -13,7 +13,7 @@ export const COPY_FEEDBACK_RESET_MS = 750
 
 interface MultichainAddressListProps {
   chains: MultichainTokenEntry[]
-  onCopyAddress: (address: string) => void
+  onCopyAddress: (address: string, chainId: UniverseChainId) => void
   showInlineFeedback?: boolean
   /** Pass true when rendered inside a Modal to enable BottomSheetScrollView on native. */
   renderedInModal?: boolean
@@ -45,7 +45,7 @@ export function MultichainAddressList({
 
   const handleCopy = useCallback(
     (chainId: UniverseChainId, address: string) => {
-      onCopyAddress(address)
+      onCopyAddress(address, chainId)
       if (showInlineFeedback) {
         setCopiedChainId(chainId)
       }
@@ -55,6 +55,19 @@ export function MultichainAddressList({
 
   const renderAddressRow = useCallback(
     (entry: MultichainTokenEntry) => {
+      if (entry.isNative) {
+        return (
+          <MultichainOptionRow
+            chainId={entry.chainId}
+            rightContent={
+              <Text color="$neutral3" variant="body2">
+                {t('common.unavailable')}
+              </Text>
+            }
+          />
+        )
+      }
+
       const isCopied = showInlineFeedback && copiedChainId === entry.chainId
       const shortened = shortenAddress({ address: entry.address })
 

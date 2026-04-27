@@ -1,13 +1,16 @@
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-import { memo, useCallback, useMemo, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { Flex, RemoveScroll, Text, useMedia } from 'ui/src'
 import { TokensListEmptyState } from 'uniswap/src/components/tokens/TokensListEmptyState'
+import { useGetWalletTokensProfitLossQuery } from 'uniswap/src/data/rest/getWalletTokensProfitLoss'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { getChainLabel } from 'uniswap/src/features/chains/utils'
+import { useRestPortfolioValueModifier } from 'uniswap/src/features/dataApi/balances/balancesRest'
 import { PortfolioBalance } from 'uniswap/src/features/portfolio/PortfolioBalance/PortfolioBalance'
-import { ElementName, InterfacePageName, SectionName } from 'uniswap/src/features/telemetry/constants'
+import { ElementName, InterfacePageName, SectionName, UniswapEventName } from 'uniswap/src/features/telemetry/constants'
+import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { parseChainFromTokenSearchQuery } from 'uniswap/src/utils/search/parseChainFromTokenSearchQuery'
@@ -48,7 +51,10 @@ export const PortfolioTokens = memo(function PortfolioTokens() {
   const [search, setSearch] = useState('')
   const { chains: enabledChains } = useEnabledChains()
   const { chainId: urlChainId, isExternalWallet } = usePortfolioRoutes()
-  const isMultichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
+  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
+  const isProfitLossEnabled = useFeatureFlag(FeatureFlags.ProfitLoss)
+
+  const modifier = useRestPortfolioValueModifier(portfolioAddresses.evmAddress ?? portfolioAddresses.svmAddress)
 
   // Parse search query to extract chain filter and search term
   const { chainFilter, searchTerm } = useMemo(() => {
@@ -57,6 +63,17 @@ export const PortfolioTokens = memo(function PortfolioTokens() {
 
   // Use URL chain ID as primary filter, search chain filter as fallback
   const effectiveChainId = urlChainId || chainFilter
+
+  const { data: tokenProfitLossData, isError: isProfitLossError } = useGetWalletTokensProfitLossQuery({
+    input: {
+      evmAddress: portfolioAddresses.evmAddress,
+      svmAddress: portfolioAddresses.svmAddress,
+      chainIds: effectiveChainId ? [effectiveChainId] : enabledChains,
+      modifier,
+      multichain: multichainTokenUxEnabled || undefined,
+    },
+    enabled: isProfitLossEnabled,
+  })
 
   // Get token data filtered by chain at API level
   const {
@@ -68,12 +85,28 @@ export const PortfolioTokens = memo(function PortfolioTokens() {
     error,
   } = useTransformTokenTableData({
     chainIds: effectiveChainId ? [effectiveChainId] : undefined,
+    tokenProfitLossData: isProfitLossError ? undefined : (tokenProfitLossData ?? undefined),
   })
+
+  useEffect(() => {
+    if (!tokenData || !tokenProfitLossData?.tokenProfitLosses) {
+      return
+    }
+
+    const pnlCount = tokenProfitLossData.tokenProfitLosses.length
+    const portfolioCount = tokenData.length
+    const coverageRate = portfolioCount > 0 ? Math.min(pnlCount / portfolioCount, 1) : 0
+
+    sendAnalyticsEvent(UniswapEventName.PnlCoverageReport, {
+      pnl_token_count: pnlCount,
+      portfolio_token_count: portfolioCount,
+      coverage_rate: coverageRate,
+    })
+  }, [tokenData, tokenProfitLossData])
 
   // Filter tokens by search term at client level (chain filtering is handled at API level)
   const filteredTokenData = useMemo(() => {
     return filterTokensBySearch({ tokens: tokenData || [], searchTerm })
-    // return filterTokensBySearch({ tokens: tokenData, searchTerm }) || []
   }, [tokenData, searchTerm])
 
   const filteredHiddenTokenData = useMemo(() => {
@@ -138,7 +171,7 @@ export const PortfolioTokens = memo(function PortfolioTokens() {
 
           {hasTokens || loading ? (
             <>
-              {isMultichainTokenUxEnabled && (
+              {multichainTokenUxEnabled && (
                 <Trace section={SectionName.PortfolioTokensTab} element={ElementName.TokensAllocationChart}>
                   <TokensAllocationChart tokenData={tokenData || []} />
                 </Trace>

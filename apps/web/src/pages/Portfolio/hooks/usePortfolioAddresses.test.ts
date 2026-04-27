@@ -35,6 +35,7 @@ describe('usePortfolioAddresses', () => {
       mocked(usePortfolioRoutes).mockReturnValue({
         externalAddress: { address: SAMPLE_SEED_ADDRESS_2, platform: Platform.EVM },
         isExternalWallet: true,
+        hasExplicitUrlAddress: true,
         tab: 'overview' as any,
       })
 
@@ -44,6 +45,7 @@ describe('usePortfolioAddresses', () => {
         evmAddress: SAMPLE_SEED_ADDRESS_2,
         svmAddress: undefined,
         isExternalWallet: true,
+        hasExplicitUrlAddress: true,
       })
     })
 
@@ -55,6 +57,7 @@ describe('usePortfolioAddresses', () => {
       mocked(usePortfolioRoutes).mockReturnValue({
         externalAddress: { address: MOCK_SVM_ADDRESS, platform: Platform.SVM },
         isExternalWallet: true,
+        hasExplicitUrlAddress: true,
         tab: 'overview' as any,
       })
 
@@ -64,6 +67,7 @@ describe('usePortfolioAddresses', () => {
         evmAddress: undefined,
         svmAddress: MOCK_SVM_ADDRESS,
         isExternalWallet: true,
+        hasExplicitUrlAddress: true,
       })
     })
 
@@ -76,6 +80,7 @@ describe('usePortfolioAddresses', () => {
       mocked(usePortfolioRoutes).mockReturnValue({
         externalAddress: { address: SAMPLE_SEED_ADDRESS_2, platform: Platform.EVM },
         isExternalWallet: true,
+        hasExplicitUrlAddress: true,
         tab: 'overview' as any,
       })
 
@@ -85,6 +90,7 @@ describe('usePortfolioAddresses', () => {
         evmAddress: SAMPLE_SEED_ADDRESS_2,
         svmAddress: undefined,
         isExternalWallet: true,
+        hasExplicitUrlAddress: true,
       })
     })
   })
@@ -98,6 +104,7 @@ describe('usePortfolioAddresses', () => {
       mocked(usePortfolioRoutes).mockReturnValue({
         externalAddress: undefined,
         isExternalWallet: false,
+        hasExplicitUrlAddress: false,
         tab: 'overview' as any,
       })
 
@@ -107,6 +114,7 @@ describe('usePortfolioAddresses', () => {
         evmAddress: SAMPLE_SEED_ADDRESS_1,
         svmAddress: undefined,
         isExternalWallet: false,
+        hasExplicitUrlAddress: false,
       })
     })
 
@@ -118,6 +126,7 @@ describe('usePortfolioAddresses', () => {
       mocked(usePortfolioRoutes).mockReturnValue({
         externalAddress: undefined,
         isExternalWallet: false,
+        hasExplicitUrlAddress: false,
         tab: 'overview' as any,
       })
 
@@ -127,6 +136,7 @@ describe('usePortfolioAddresses', () => {
         evmAddress: undefined,
         svmAddress: MOCK_SVM_ADDRESS,
         isExternalWallet: false,
+        hasExplicitUrlAddress: false,
       })
     })
 
@@ -138,6 +148,7 @@ describe('usePortfolioAddresses', () => {
       mocked(usePortfolioRoutes).mockReturnValue({
         externalAddress: undefined,
         isExternalWallet: false,
+        hasExplicitUrlAddress: false,
         tab: 'overview' as any,
       })
 
@@ -147,6 +158,7 @@ describe('usePortfolioAddresses', () => {
         evmAddress: SAMPLE_SEED_ADDRESS_1,
         svmAddress: MOCK_SVM_ADDRESS,
         isExternalWallet: false,
+        hasExplicitUrlAddress: false,
       })
     })
   })
@@ -160,6 +172,7 @@ describe('usePortfolioAddresses', () => {
       mocked(usePortfolioRoutes).mockReturnValue({
         externalAddress: undefined,
         isExternalWallet: false,
+        hasExplicitUrlAddress: false,
         tab: 'overview' as any,
       })
 
@@ -169,6 +182,7 @@ describe('usePortfolioAddresses', () => {
         evmAddress: DEMO_WALLET_ADDRESS,
         svmAddress: undefined,
         isExternalWallet: false,
+        hasExplicitUrlAddress: false,
       })
     })
   })

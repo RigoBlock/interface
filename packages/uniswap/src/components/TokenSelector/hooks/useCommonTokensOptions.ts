@@ -4,13 +4,12 @@ import { TokenOption } from 'uniswap/src/components/lists/items/types'
 import { filter } from 'uniswap/src/components/TokenSelector/filter'
 import { useAllCommonBaseCurrencies } from 'uniswap/src/components/TokenSelector/hooks/useAllCommonBaseCurrencies'
 import { useCurrencyInfosToTokenOptions } from 'uniswap/src/components/TokenSelector/hooks/useCurrencyInfosToTokenOptions'
-import { usePortfolioBalancesForAddressById } from 'uniswap/src/components/TokenSelector/hooks/usePortfolioBalancesForAddressById'
-import { USDT0_XLAYER } from 'uniswap/src/constants/tokens'
-import type { AddressGroup } from 'uniswap/src/features/accounts/store/types/AccountsState'
+import { type PortfolioBalancesResult } from 'uniswap/src/components/TokenSelector/hooks/usePortfolioBalancesForAddressById'
+import { USDC_LINEA, USDT_LINEA, USDT0_XLAYER } from 'uniswap/src/constants/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useCurrencyInfosWithLoading } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { areAddressesEqual } from 'uniswap/src/utils/addresses'
-import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
+import { buildCurrencyId, buildNativeCurrencyId } from 'uniswap/src/utils/currencyId'
 
 // X Layer quick-select tokens
 const XLAYER_CURRENCY_IDS = [
@@ -20,19 +19,28 @@ const XLAYER_CURRENCY_IDS = [
   buildCurrencyId(UniverseChainId.XLayer, '0xE7B000003A45145decf8a28FC755aD5eC5EA025A'), // xETH
 ]
 
+// Linea quick-select tokens
+const LINEA_CURRENCY_IDS = [
+  buildNativeCurrencyId(UniverseChainId.Linea), // ETH
+  buildCurrencyId(UniverseChainId.Linea, USDC_LINEA.address), // USDC
+  buildCurrencyId(UniverseChainId.Linea, USDT_LINEA.address), // USDT
+  buildCurrencyId(UniverseChainId.Linea, '0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f'), // WETH
+  buildCurrencyId(UniverseChainId.Linea, '0x3aAB2285ddcDdaD8edf438C1bAB47e1a9D05a9b4'), // WBTC
+]
+
 export function useCommonTokensOptions({
-  addresses,
   chainFilter,
+  portfolioData,
 }: {
-  addresses: AddressGroup
   chainFilter: UniverseChainId | null
+  portfolioData: PortfolioBalancesResult
 }): GqlResult<TokenOption[] | undefined> {
   const {
     data: portfolioBalancesById,
     error: portfolioBalancesByIdError,
     refetch: portfolioBalancesByIdRefetch,
     loading: loadingPorfolioBalancesById,
-  } = usePortfolioBalancesForAddressById(addresses)
+  } = portfolioData
 
   const {
     data: commonBaseCurrencies,
@@ -48,6 +56,13 @@ export function useCommonTokensOptions({
     loading: loadingXLayerCurrencies,
   } = useCurrencyInfosWithLoading(XLAYER_CURRENCY_IDS, { skip: chainFilter !== UniverseChainId.XLayer })
 
+  const {
+    data: lineaCurrencies,
+    error: lineaCurrenciesError,
+    refetch: refetchLineaCurrencies,
+    loading: loadingLineaCurrencies,
+  } = useCurrencyInfosWithLoading(LINEA_CURRENCY_IDS, { skip: chainFilter !== UniverseChainId.Linea })
+
   // this is a one-off filter for USDT on Unichain which at time of launch does not have enough liquidity for swapping so we are filtering it out of quick select
   // TODO(WEB-6284): Replace useAllCommonBaseCurrencies static filter with a dynamic filter
   const USDT_UNICHAIN_ADDRESS = '0x588ce4f028d8e7b53b687865d6a67b3a54c75518'
@@ -55,6 +70,9 @@ export function useCommonTokensOptions({
     const filtered = commonBaseCurrencies?.filter((currency) => {
       // Use our custom X Layer tokens list instead of the commonBaseCurrencies list
       const isXLayerToken = currency.currency.chainId === UniverseChainId.XLayer
+
+      // Use our custom Linea tokens list instead of the commonBaseCurrencies list
+      const isLineaToken = currency.currency.chainId === UniverseChainId.Linea
 
       const isUSDTUnichain =
         currency.currency.chainId === UniverseChainId.Unichain &&
@@ -64,11 +82,17 @@ export function useCommonTokensOptions({
           addressInput2: { address: currency.currency.address, chainId: currency.currency.chainId },
         })
 
-      return !isXLayerToken && !isUSDTUnichain
+      return !isXLayerToken && !isLineaToken && !isUSDTUnichain
     })
 
-    return chainFilter === UniverseChainId.XLayer ? xLayerCurrencies : filtered
-  }, [chainFilter, commonBaseCurrencies, xLayerCurrencies])
+    if (chainFilter === UniverseChainId.XLayer) {
+      return xLayerCurrencies
+    }
+    if (chainFilter === UniverseChainId.Linea) {
+      return lineaCurrencies
+    }
+    return filtered
+  }, [chainFilter, commonBaseCurrencies, lineaCurrencies, xLayerCurrencies])
 
   const commonBaseTokenOptions = useCurrencyInfosToTokenOptions({
     currencyInfos: filteredCommonBaseCurrencies,
@@ -79,12 +103,14 @@ export function useCommonTokensOptions({
     portfolioBalancesByIdRefetch?.()
     refetchCommonBaseCurrencies?.()
     refetchXLayerCurrencies?.()
-  }, [portfolioBalancesByIdRefetch, refetchCommonBaseCurrencies, refetchXLayerCurrencies])
+    refetchLineaCurrencies?.()
+  }, [portfolioBalancesByIdRefetch, refetchCommonBaseCurrencies, refetchXLayerCurrencies, refetchLineaCurrencies])
 
   const error =
     (!portfolioBalancesById && portfolioBalancesByIdError) ||
     (!commonBaseCurrencies && commonBaseCurrenciesError) ||
-    (!xLayerCurrencies?.length && xLayerCurrenciesError)
+    (!xLayerCurrencies?.length && xLayerCurrenciesError) ||
+    (!lineaCurrencies?.length && lineaCurrenciesError)
 
   const filteredCommonBaseTokenOptions = useMemo(
     () => commonBaseTokenOptions && filter({ tokenOptions: commonBaseTokenOptions, chainFilter }),
@@ -96,11 +122,13 @@ export function useCommonTokensOptions({
       data: filteredCommonBaseTokenOptions,
       refetch,
       error: error || undefined,
-      loading: loadingPorfolioBalancesById || loadingCommonBaseCurrencies || loadingXLayerCurrencies,
+      loading:
+        loadingPorfolioBalancesById || loadingCommonBaseCurrencies || loadingXLayerCurrencies || loadingLineaCurrencies,
     }),
     [
       error,
       loadingCommonBaseCurrencies,
+      loadingLineaCurrencies,
       loadingXLayerCurrencies,
       loadingPorfolioBalancesById,
       filteredCommonBaseTokenOptions,

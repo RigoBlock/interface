@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition */
-/* eslint-disable max-lines */
+/* oxlint-disable typescript/no-unnecessary-condition */
+/* oxlint-disable max-lines */
 
 import { ApolloError } from '@apollo/client'
 import { createColumnHelper, Row } from '@tanstack/react-table'
@@ -25,11 +25,11 @@ import { NumberType } from 'utilities/src/format/types'
 import { supportedChainIdFromGQLChain } from '~/appGraphql/data/chainUtils'
 import { PoolSortFields, TablePool } from '~/appGraphql/data/pools/useTopPools'
 import { gqlToCurrency, OrderDirection, unwrapToken } from '~/appGraphql/data/util'
-import { PortfolioLogo } from '~/components/AccountDrawer/MiniPortfolio/PortfolioLogo'
 import { FeeData } from '~/components/Liquidity/Create/types'
 import LPIncentiveFeeStatTooltip from '~/components/Liquidity/LPIncentives/LPIncentiveFeeStatTooltip'
 import { isDynamicFeeTier } from '~/components/Liquidity/utils/feeTiers'
 import CurrencyLogo from '~/components/Logo/CurrencyLogo'
+import { DoubleCurrencyLogo } from '~/components/Logo/DoubleLogo'
 import { Table } from '~/components/Table'
 import { Cell } from '~/components/Table/Cell'
 import { ClickableHeaderRow, HeaderArrow, HeaderSortText } from '~/components/Table/shared/SortableHeader'
@@ -37,6 +37,7 @@ import { EllipsisText, TableText } from '~/components/Table/shared/TableText'
 import { HeaderCell } from '~/components/Table/styled'
 import { MouseoverTooltip, TooltipSize } from '~/components/Tooltip'
 import { MAX_WIDTH_MEDIA_BREAKPOINT } from '~/constants/breakpoints'
+import { getChainUrlParam, useChainIdFromUrlParam } from '~/features/params/chainParams'
 import useSimplePagination from '~/hooks/useSimplePagination'
 import { useExploreTablesFilterStore } from '~/pages/Explore/exploreTablesFilterStore'
 import {
@@ -47,7 +48,6 @@ import {
 import { TABLE_PAGE_SIZE } from '~/state/explore'
 import { useTopPools } from '~/state/explore/topPools/useTopPools'
 import { PoolStat } from '~/state/explore/types'
-import { getChainUrlParam, useChainIdFromUrlParam } from '~/utils/chainParams'
 
 const TableWrapper = styled(Flex, {
   m: '0 auto',
@@ -73,7 +73,6 @@ interface PoolTableValues {
 function PoolDescription({
   token0,
   token1,
-  chainId,
 }: {
   token0?: Token | TokenStats
   token1?: Token | TokenStats
@@ -83,7 +82,7 @@ function PoolDescription({
 
   return (
     <Flex row gap="$gap8" alignItems="center" maxWidth="100%">
-      <PortfolioLogo currencies={currencies} chainId={chainId} size={24} />
+      <DoubleCurrencyLogo currencies={currencies} size={24} />
       <EllipsisText>
         {token0?.symbol}/{token1?.symbol}
       </EllipsisText>
@@ -242,7 +241,7 @@ export function PoolsTable({
 }) {
   const { t } = useTranslation()
   const isLPIncentivesEnabled = useFeatureFlag(FeatureFlags.LpIncentives)
-  const isMultichainTokenUx = useFeatureFlag(FeatureFlags.MultichainTokenUx)
+  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
 
   const { formatPercent, formatNumberOrString, convertFiatAmountFormatted } = useLocalizationContext()
   const { sortMethod, sortAscending } = usePoolTableStore((s) => ({
@@ -551,7 +550,7 @@ export function PoolsTable({
       data={poolTableValues}
       loading={loading}
       error={error}
-      v2={isMultichainTokenUx}
+      v2={multichainTokenUxEnabled}
       loadMore={loadMore}
       maxWidth={maxWidth}
       maxHeight={maxHeight}

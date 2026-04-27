@@ -55,6 +55,7 @@ export default function AddressClaimModal({ isOpen, closeModal }: ModalState) {
   function onClaim() {
     setAttempting(true)
     claimCallback()
+      // oxlint-disable-next-line no-shadow
       .then((hash) => {
         setHash(hash)
       })

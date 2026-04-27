@@ -2,10 +2,12 @@ import { GraphQLApi } from '@universe/api'
 import { useLocation, useParams } from 'react-router'
 import { USDC_MAINNET } from 'uniswap/src/constants/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { usePortfolioBalances } from 'uniswap/src/features/portfolio/balances/hooks'
 import { NATIVE_CHAIN_ID } from '~/constants/tokens'
 import { useCreateTDPContext } from '~/pages/TokenDetails/context/useCreateTDPContext'
 import { mocked } from '~/test-utils/mocked'
 import { renderHook as renderHookWithProviders } from '~/test-utils/render'
+import { createMockTDPChartState } from '~/test-utils/tokenDetails/fixtures'
 import { validTokenProjectResponse } from '~/test-utils/tokens/fixtures'
 
 vi.mock('react-router', async (importOriginal) => {
@@ -35,23 +37,15 @@ vi.mock('@universe/gating', async (importOriginal) => {
   }
 })
 
-vi.mock('~/utils/chainParams', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('~/utils/chainParams')>()
+vi.mock('~/features/params/chainParams', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('~/features/params/chainParams')>()
   return {
     ...actual,
     useChainIdFromUrlParam: vi.fn(() => UniverseChainId.Mainnet),
   }
 })
 
-const mockChartState = {
-  timePeriod: '1D' as const,
-  setTimePeriod: vi.fn(),
-  setChartType: vi.fn(),
-  priceChartType: 'LINE' as const,
-  setPriceChartType: vi.fn(),
-  activeQuery: { chartType: 'PRICE' as const, entries: [], loading: false },
-  disableCandlestickUI: false,
-}
+const mockChartState = createMockTDPChartState()
 
 vi.mock('~/pages/TokenDetails/components/chart/TDPChartState', () => ({
   useCreateTDPChartState: vi.fn(() => mockChartState),
@@ -79,11 +73,11 @@ vi.mock('~/features/accounts/store/hooks', () => ({
   })),
 }))
 
-vi.mock('uniswap/src/features/dataApi/balances/balances', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('uniswap/src/features/dataApi/balances/balances')>()
+vi.mock('uniswap/src/features/portfolio/balances/hooks', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('uniswap/src/features/portfolio/balances/hooks')>()
   return {
     ...actual,
-    usePortfolioBalances: vi.fn(() => ({ data: undefined })),
+    usePortfolioBalances: vi.fn(() => ({ data: undefined, error: undefined })),
   }
 })
 
@@ -105,6 +99,10 @@ describe('useCreateTDPContext', () => {
       loading: false,
       error: undefined,
     } as ReturnType<typeof GraphQLApi.useTokenWebQuery>)
+    vi.mocked(usePortfolioBalances).mockReturnValue({
+      data: undefined,
+      error: undefined,
+    } as ReturnType<typeof usePortfolioBalances>)
   })
 
   it('throws when tokenAddress URL param is undefined', () => {
@@ -127,8 +125,9 @@ describe('useCreateTDPContext', () => {
       currencyChainId: UniverseChainId.Mainnet,
       address: expect.any(String),
       tokenQuery: expect.anything(),
-      chartState: mockChartState,
       multiChainMap: expect.any(Object),
+      balanceError: undefined,
+      selectedMultichainChainId: undefined,
     })
     expect(Object.keys(result.current)).toContain('tokenColor')
   })
@@ -172,5 +171,16 @@ describe('useCreateTDPContext', () => {
     expect(result.current.currency).toBeDefined()
     expect(result.current.currency?.isNative).toBe(true)
     expect(result.current.address).toBe(NATIVE_CHAIN_ID)
+  })
+
+  it('exposes the raw balance query error for stale balance UI decisions', () => {
+    vi.mocked(usePortfolioBalances).mockReturnValue({
+      data: undefined,
+      error: new Error('Network error'),
+    } as ReturnType<typeof usePortfolioBalances>)
+
+    const { result } = renderHookWithProviders(() => useCreateTDPContext())
+
+    expect(result.current.balanceError).toEqual(expect.any(Error))
   })
 })

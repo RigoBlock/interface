@@ -12,9 +12,9 @@ import { formatCompactFromRaw } from '~/components/Toucan/Auction/utils/fixedPoi
 import { getAuctionMetadata } from '~/components/Toucan/Config/config'
 import { computeProjectedFdvTableValue } from '~/components/Toucan/utils/computeProjectedFdv'
 import { createDottedBackgroundStyles } from '~/components/Toucan/utils/createDottedBackgroundStyles'
+import { getChainUrlParam } from '~/features/params/chainParams'
 import { useSrcColor } from '~/hooks/useColor'
 import type { EnrichedAuction } from '~/state/explore/topAuctions/useTopAuctions'
-import { getChainUrlParam } from '~/utils/chainParams'
 
 const DOT_OPACITY = 10
 const TOKEN_BACKGROUND_OPACITY = 8
@@ -53,7 +53,6 @@ export function AuctionChip({
   const lockedTokenColorRef = useRef<string | null>(null)
 
   // Reset locked color when logoUrl changes
-  // biome-ignore lint/correctness/useExhaustiveDependencies: logoUrl is intentionally a dependency to trigger reset on logo change
   useEffect(() => {
     lockedTokenColorRef.current = null
   }, [logoUrl])

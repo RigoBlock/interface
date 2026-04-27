@@ -1,4 +1,4 @@
-import { isDevEnv, isRNDev } from 'utilities/src/environment/env'
+import { isDevEnv, isPlaywrightEnv, isRNDev } from 'utilities/src/environment/env'
 import { isMobileApp } from 'utilities/src/platform'
 
 const isVitestRun = !!process.env.VITEST_POOL_ID
@@ -11,5 +11,6 @@ export const isNonTestDev = !isVitestRun && !isTestRun && (isMobileApp ? isRNDev
  * sent from your local development.
  */
 export const localDevDatadogEnabled = false
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-export const datadogEnabledBuild = (localDevDatadogEnabled || !isRNDev()) && !isTestRun && !isVitestRun
+export const datadogEnabledBuild =
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
+  (localDevDatadogEnabled || !isRNDev()) && !isTestRun && !isVitestRun && !isPlaywrightEnv()

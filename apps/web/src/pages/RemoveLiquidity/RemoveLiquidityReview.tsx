@@ -93,14 +93,18 @@ export function RemoveLiquidityReview({ onClose }: { onClose: () => void }) {
     currency0AmountToRemove,
     currency1AmountToRemove,
   } = useMemo(() => {
+    // oxlint-disable-next-line no-shadow
     const unwrappedCurrency0AmountToRemove = CurrencyAmount.fromRawAmount(currency0, currency0Amount.quotient)
       .multiply(percent)
       .divide(100)
+    // oxlint-disable-next-line no-shadow
     const unwrappedCurrency1AmountToRemove = CurrencyAmount.fromRawAmount(currency1, currency1Amount.quotient)
       .multiply(percent)
       .divide(100)
 
+    // oxlint-disable-next-line no-shadow
     const currency0AmountToRemove = currency0Amount.multiply(percent).divide(100)
+    // oxlint-disable-next-line no-shadow
     const currency1AmountToRemove = currency1Amount.multiply(percent).divide(100)
 
     return {
@@ -305,7 +309,7 @@ export function RemoveLiquidityReview({ onClose }: { onClose: () => void }) {
             <Button
               size="large"
               onPress={onDecreaseLiquidity}
-              icon={needsPasskeySignin ? <Passkey size="$icon.24" /> : undefined}
+              icon={needsPasskeySignin ? <Passkey size="$icon.24" color="$white" /> : undefined}
             >
               {needsPasskeySignin ? t('pool.removeLiquidity') : t('common.confirm')}
             </Button>

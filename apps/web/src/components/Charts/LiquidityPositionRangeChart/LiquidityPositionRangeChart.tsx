@@ -1,4 +1,4 @@
-/* eslint-disable max-lines */
+/* oxlint-disable max-lines */
 import { PositionStatus, ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
 import { Currency, Price } from '@uniswap/sdk-core'
 import { Pair } from '@uniswap/v2-sdk'
@@ -16,7 +16,7 @@ import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import useResizeObserver from 'use-resize-observer'
 // Not using the formatters in a react context, so we need to import the formatter directly.
-// biome-ignore lint/style/noRestrictedImports: Need direct formatter import for chart formatting outside React context
+// oxlint-disable-next-line no-restricted-imports -- Need direct formatter import for chart formatting outside React context
 import { formatNumber } from 'utilities/src/format/localeBased'
 import { isMobileWeb } from 'utilities/src/platform'
 import { ActiveLiquidityChart } from '~/components/Charts/ActiveLiquidityChart/ActiveLiquidityChart'
@@ -181,6 +181,7 @@ class LPPriceChartModel extends ChartModel<PriceChartData> {
     const autoscaleInfoProvider = (original: () => any) => {
       const res = original()
       if (params.minVisiblePrice && params.maxVisiblePrice) {
+        // oxlint-disable-next-line typescript/no-unsafe-return -- biome-parity: oxlint is stricter here
         return {
           ...res,
           priceRange: {
@@ -189,6 +190,7 @@ class LPPriceChartModel extends ChartModel<PriceChartData> {
           },
         }
       }
+      // oxlint-disable-next-line typescript/no-unsafe-return -- biome-parity: oxlint is stricter here
       return res
     }
 
@@ -284,7 +286,7 @@ class LPPriceChartModel extends ChartModel<PriceChartData> {
 
   private overrideCrosshair(params: LPPriceChartModelParams): void {
     const lastDataPoint = this.data[this.data.length - 1]
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     if (!lastDataPoint) {
       return
     }
@@ -446,6 +448,7 @@ export function LiquidityPositionRangeChartLoader({
   )
 }
 
+// oxlint-disable-next-line complexity
 function LiquidityPositionRangeChart({
   version,
   quoteCurrency,
@@ -544,6 +547,7 @@ function LiquidityPositionRangeChart({
     })
 
     // Convert Map values back to array and sort
+    // oxlint-disable-next-line typescript/no-unsafe-return -- biome-parity: oxlint is stricter here
     return Array.from(uniqueTicksMap.values()).sort((a, b) => a.price0 - b.price0)
   }, [formattedData])
 

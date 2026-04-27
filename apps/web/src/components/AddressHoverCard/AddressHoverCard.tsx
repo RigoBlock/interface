@@ -1,5 +1,6 @@
 import { SharedEventName } from '@uniswap/analytics-events'
-import { ReactNode, useCallback, useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { AnimatableCopyIcon, Flex, Popover, Separator, Text, TouchableArea, useIsTouchDevice } from 'ui/src'
@@ -44,11 +45,12 @@ export function AddressHoverCard({ address, platform, children }: AddressHoverCa
   const shadowProps = useShadowPropsMedium()
   const isTouchDevice = useIsTouchDevice()
 
-  const { data, loading } = usePortfolioTotalValue({
+  const { data, error, loading } = usePortfolioTotalValue({
     evmAddress: platform === Platform.EVM ? address : undefined,
     svmAddress: platform === Platform.SVM ? address : undefined,
     enabled: isOpen && !!address,
   })
+  const isLoading = !data && (loading || !!error)
 
   const formattedBalance = convertFiatAmountFormatted(data?.balanceUSD, NumberType.PortfolioBalance)
 
@@ -115,7 +117,7 @@ export function AddressHoverCard({ address, platform, children }: AddressHoverCa
       </Popover.Trigger>
       <Popover.Content
         animation="quick"
-        backgroundColor="$surface4"
+        backgroundColor="$surface1"
         borderColor="$surface3"
         borderRadius="$rounded20"
         borderWidth="$spacing1"
@@ -123,10 +125,7 @@ export function AddressHoverCard({ address, platform, children }: AddressHoverCa
         zIndex={zIndexes.popover}
         enterStyle={{ opacity: 0, y: -4 }}
         exitStyle={{ opacity: 0, y: -4 }}
-        $platform-web={{
-          ...shadowProps['$platform-web'],
-          backdropFilter: 'blur(12px)',
-        }}
+        {...shadowProps}
         {...stopPressEventPropagation}
       >
         <Flex gap="$spacing16" minWidth={320}>
@@ -165,7 +164,7 @@ export function AddressHoverCard({ address, platform, children }: AddressHoverCa
               <Text variant="body3" color="$neutral2">
                 {t('portfolio.tokens.table.column.balance')}
               </Text>
-              <Text variant="body3" color="$neutral1" loading={loading} loadingPlaceholderText="$00,000.00">
+              <Text variant="body3" color="$neutral1" loading={isLoading} loadingPlaceholderText="$00,000.00">
                 {formattedBalance}
               </Text>
             </Flex>
@@ -178,7 +177,7 @@ export function AddressHoverCard({ address, platform, children }: AddressHoverCa
               <RelativeChange
                 change={data?.percentChange}
                 absoluteChange={data?.absoluteChangeUSD}
-                loading={loading}
+                loading={isLoading}
                 variant="body3"
                 arrowSize="$icon.12"
               />

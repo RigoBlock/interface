@@ -48,6 +48,7 @@ interface UseFormattedTransactionDataOptions {
   skip?: boolean
   chainIds?: UniverseChainId[]
   filterTransactionTypes?: TransactionTypeFilter[]
+  searchText?: string
 }
 
 type FormattedTransactionInputs = UseFormattedTransactionDataOptions &
@@ -59,11 +60,13 @@ export interface FormattedTransactionDataResult extends PaginationControls {
   hasData: boolean
   isLoading: boolean
   isFetching: boolean
-  isError: Error | undefined
+  error: Error | undefined
   sectionData: ActivityItem[] | undefined
   keyExtractor: (item: ActivityItem) => string
   onRetry: () => Promise<void>
   skip?: boolean
+  /** Epoch ms when transaction data was last successfully fetched. */
+  dataUpdatedAt?: number
 }
 
 /**
@@ -78,6 +81,7 @@ export function useFormattedTransactionDataForActivity({
   skip,
   chainIds,
   filterTransactionTypes,
+  searchText,
   showLoadingOnRefetch = false,
   ...queryOptions
 }: FormattedTransactionInputs): FormattedTransactionDataResult {
@@ -96,6 +100,7 @@ export function useFormattedTransactionDataForActivity({
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    dataUpdatedAt,
   } = useListTransactions({
     evmAddress,
     svmAddress,
@@ -106,6 +111,7 @@ export function useFormattedTransactionDataForActivity({
     skip,
     chainIds,
     filterTransactionTypes,
+    searchText,
     ...queryOptions,
   })
 
@@ -120,6 +126,7 @@ export function useFormattedTransactionDataForActivity({
     evmAddress,
     svmAddress,
     remoteTransactions: formattedTransactions,
+    skipLocalTransactions: !!searchText,
   })
 
   // TODO(CONS-722): update to only TradingApi.Routing.DUTCH_V2 once limit orders can be excluded from REST query
@@ -145,9 +152,14 @@ export function useFormattedTransactionDataForActivity({
   const hasTransactions = transactions && transactions.length > 0
   const hasData = Boolean(formattedTransactions?.length)
 
-  // show loading if no data and fetching, or refetching when there is error (for UX when "retry" is clicked).
+  // show loading if:
+  // 1. Query has never completed and not intentionally skipped — this is synchronously true from render 1
+  // when there is no cached data, ensuring skeletons appear immediately on mount.
+  // 2. No data and loading (redundant when condition 1 is true, but kept as a safety net)
+  // 3. Error with a retry in progress (for UX when "retry" is clicked)
+  // 4. Explicitly showing loading on refetch
   const showLoading =
-    (!hasData && loading) ||
+    (!hasData && (loading || (!skip && networkStatus === NetworkStatus.loading))) ||
     (Boolean(error) && networkStatus === NetworkStatus.loading) ||
     (showLoadingOnRefetch && isFetching && !isFetchingNextPage)
 
@@ -177,6 +189,7 @@ export function useFormattedTransactionDataForActivity({
   const memoizedSectionData = useMemoizedTransactionSectionData(sectionData, keyExtractor)
 
   const onRetry = useCallback(async () => {
+    // oxlint-disable-next-line typescript/await-thenable -- biome-parity: oxlint is stricter here
     await refetch()
   }, [refetch])
 
@@ -184,13 +197,14 @@ export function useFormattedTransactionDataForActivity({
     onRetry,
     sectionData: memoizedSectionData,
     hasData,
-    isError: error ?? undefined,
+    error: error ?? undefined,
     isLoading: showLoading,
     isFetching,
     keyExtractor,
     fetchNextPage,
     hasNextPage: hasNextPage && !hasReachedLimit(transactions),
     isFetchingNextPage,
+    dataUpdatedAt,
   }
 }
 

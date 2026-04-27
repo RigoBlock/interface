@@ -1,4 +1,5 @@
-// biome-ignore lint/style/noRestrictedImports: Anvil test fixtures need direct ethers imports
+/* oxlint-disable react-hooks/rules-of-hooks -- Playwright fixtures use `use()` which is not a React hook */
+// oxlint-disable-next-line no-restricted-imports -- Anvil test fixtures need direct ethers imports
 import { test as base } from '@playwright/test'
 import { MaxUint160, MaxUint256, permit2Address } from '@uniswap/permit2-sdk'
 import { WETH_ADDRESS } from '@uniswap/universal-router-sdk'
@@ -36,6 +37,7 @@ const allowedErc20BalanceAddresses = [
 
 // Helper to check if error is a timeout
 const isTimeoutError = (error: any): boolean => {
+  // oxlint-disable-next-line typescript/no-unsafe-return -- biome-parity: oxlint is stricter here
   return (
     error?.message?.includes('timeout') ||
     error?.message?.includes('took too long') ||
@@ -231,7 +233,7 @@ const createAnvilClient = () => {
 }
 
 export const test = base.extend<{ anvil: AnvilClient; delegateToZeroAddress?: void }>({
-  // biome-ignore lint/correctness/noEmptyPattern: it's ok here
+  // oxlint-disable-next-line no-empty-pattern -- it's ok here
   async anvil({}, use) {
     // Ensure Anvil is running and healthy
     if (!(await getAnvilManager().ensureHealthy())) {

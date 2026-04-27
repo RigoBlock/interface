@@ -54,6 +54,27 @@
     },
     {
       "path": "./packages/prices"
+    },
+    {
+      "path": "./apps/mobile"
+    },
+    {
+      "path": "./packages/privacy"
+    },
+    {
+      "path": "./packages/logger"
+    },
+    {
+      "path": "./packages/react-query"
+    },
+    {
+      "path": "./packages/analytics"
+    },
+    {
+      "path": "./packages/trpc"
+    },
+    {
+      "path": "./packages/chains"
     }
   ]
 }

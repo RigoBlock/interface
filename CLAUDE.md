@@ -145,6 +145,41 @@ Core shared packages:
 
 Be cognizant of the app or package within which a given change is being made. Be sure to reference that app or package's respective `CLAUDE.md` file and other local configuration files, including (but not limited to): `package.json`, `tsconfig.json`, etc.
 
+## RigoBlock Fork — Key Differences from Upstream Uniswap
+
+This repository is a RigoBlock fork of the Uniswap interface. The following deviations from upstream are intentional and must be preserved when syncing:
+
+### Protocol Behavior
+- **No user-side approvals**: RigoBlock's smart pool protocol handles approvals internally. Never add flows that ask users to approve tokens or permit2. The `generateCreatePositionTxRequest.ts` and related liquidity flows must not include approval steps visible to the user.
+- **Vault/smart-pool balances**: Portfolio balances and position data are sourced from the smart pool (vault) context, not a standard EOA wallet. The `smartPoolAddress` concept is used throughout portfolio and currency search components.
+- **Liquidity API V1 and V2**: Both are supportable — the CF worker routes `/v2/liquidity/v1/lp/*` and `/v2/liquidity/v2/lp/*` to the Uniswap liquidity backend. V2 (`CreatePositionRequest`) is controlled by the `FeatureFlags.CreatePositionV2` gate. Current limitation: `generateCreatePositionTxRequest.ts` only handles `CreateLPPositionResponse` (V1); to fully enable V2, it needs to also handle `CreatePositionResponse`.
+
+### API Routing (Cloudflare Worker)
+- **RigoBlock gateway**: `interface.gateway.rigoblock.com` — the Cloudflare Worker that proxies data API calls.
+- **Worker routing rule**: The worker routes `/v2/*` → data API backend. ConnectRPC transports must include `/v2` in the base URL, otherwise the worker returns 403.
+- **`apiBaseUrlV2` and `dataApiBaseUrlV2`**: Both point to `${getRbCloudflareApiBaseUrl()}/v2` (NOT the upstream's `data-api.*` subdomain, which doesn't exist on the RigoBlock gateway). Defined in `packages/uniswap/src/constants/urls.ts`.
+- **`GetTokenPrices`**: Routes through the RigoBlock worker's `/v2/entry-gateway/` proxy (`createRestPriceClient.ts`). The worker forwards `/v2/entry-gateway/*` to `entry-gateway.backend-prod.api.uniswap.org` with `Origin: app.uniswap.org`, bypassing client-side session auth. `GetTokenPrices` is registered on the EGW (not the CF gateway), so the `/v2/entry-gateway/` proxy path is required rather than the generic CF gateway.
+- **TrafficFlows.DataApi**: Do NOT use this flow for `dataApiBaseUrlV2` — it adds a `data-api.` subdomain prefix that doesn't exist on the RigoBlock gateway.
+
+### Authentication / Sessions
+- **`ENABLE_ENTRY_GATEWAY_PROXY=false`**: The Uniswap entry gateway proxy is disabled. Session service (`SessionService/Challenge`) calls go to the Uniswap EGW directly but may return 400 — this is expected in the RigoBlock deployment.
+- **No Uniswap session cookies**: `GetTokenPrices` and WebSocket live prices cannot rely on Uniswap session cookies. REST pricing uses the RigoBlock CF gateway directly (no credentials).
+
+### Price Data
+- **USD value unavailable**: If position USD values show as unavailable, the cause is almost certainly the `GetTokenPrices` REST call failing — not a minimum liquidity threshold. The legacy `useUSDCPrice` (useTrade via TAPI) is the fallback when the `CentralizedPrices` Statsig flag is off.
+- **Token price pipeline**: `FeatureFlags.CentralizedPrices` (Statsig gate `centralized_prices`) controls whether `LivePricesProvider` creates the REST batcher. When ON, prices come from `createRestPriceClient` → `GetTokenPrices` via RigoBlock CF gateway. When OFF, legacy `useUSDCPrice` (useTrade) is used.
+
+### URL / Hostname
+- `UNISWAP_WEB_HOSTNAME = 'app.rigoblock.com'` — not `app.uniswap.org`.
+- Blog, docs, governance, social links all point to RigoBlock properties.
+
+### Type Fixes (sync artifacts)
+When syncing from upstream, watch for these recurring merge issues:
+- Duplicate import blocks from conflicting merge regions (check `PositionPage.tsx`, `Overview.tsx`, `IncreaseLiquidityTxContext.tsx`).
+- `NormalizedApprovalData` vs `CheckApprovalLPResponse` — approval data is normalized before being passed to `generateCreatePositionTxRequest`.
+- `Pool | null | undefined` vs `Pool | undefined` — SDK types may need `?? undefined` coercion.
+- `hasExplicitUrlAddress` must be declared in `usePortfolioRoutes` return type and included in all test mocks.
+
 
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Flex, Text, useMedia } from 'ui/src'
+import { QuestionInCircleFilled } from 'ui/src/components/icons/QuestionInCircleFilled'
+import { InfoTooltip } from 'uniswap/src/components/tooltip/InfoTooltip'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { useEvent } from 'utilities/src/react/hooks'
 import { Bid } from '~/components/Toucan/Auction/Bids/Bid'
@@ -10,21 +12,24 @@ import { WithdrawModal } from '~/components/Toucan/Auction/Bids/WithdrawModal/Wi
 import { useBidsListData } from '~/components/Toucan/Auction/hooks/useBidsListData'
 import { useBidTokenInfo } from '~/components/Toucan/Auction/hooks/useBidTokenInfo'
 import { useWithdrawButtonState } from '~/components/Toucan/Auction/hooks/useWithdrawButtonState'
-import { AuctionProgressState, UserBid } from '~/components/Toucan/Auction/store/types'
-import { useAuctionStore } from '~/components/Toucan/Auction/store/useAuctionStore'
+import { AuctionProgressState, type UserBid } from '~/components/Toucan/Auction/store/types'
+import { useAuctionStore, useAuctionStoreActions } from '~/components/Toucan/Auction/store/useAuctionStore'
 import { InlineAlertBanner } from '~/components/Toucan/Shared/InlineAlertBanner'
 import { ToucanActionButton } from '~/components/Toucan/Shared/ToucanActionButton'
 
-export function Bids({ showBidForm }: { showBidForm: () => void }): JSX.Element {
+export function Bids(): JSX.Element {
   const media = useMedia()
   const { t } = useTranslation()
 
-  const { auctionDetails, auctionProgress, isGraduated, currentBlockNumber } = useAuctionStore((state) => ({
-    auctionDetails: state.auctionDetails,
-    auctionProgress: state.progress.state,
-    isGraduated: state.progress.isGraduated,
-    currentBlockNumber: state.currentBlockNumber,
-  }))
+  const { auctionDetails, auctionProgress, isGraduated, currentBlockNumber, chartSelectedBid } = useAuctionStore(
+    (state) => ({
+      auctionDetails: state.auctionDetails,
+      auctionProgress: state.progress.state,
+      isGraduated: state.progress.isGraduated,
+      currentBlockNumber: state.currentBlockNumber,
+      chartSelectedBid: state.chartSelectedBid,
+    }),
+  )
 
   const { bidTokenInfo } = useBidTokenInfo({
     bidTokenAddress: auctionDetails?.currency,
@@ -57,6 +62,16 @@ export function Bids({ showBidForm }: { showBidForm: () => void }): JSX.Element 
     return currentBlockNumber < Number(claimBlock)
   }, [auctionDetails?.claimBlock, currentBlockNumber])
 
+  const { setChartSelectedBid } = useAuctionStoreActions()
+
+  // Open bid details modal when a chart marker is clicked
+  useEffect(() => {
+    if (chartSelectedBid) {
+      setSelectedBid({ bidId: chartSelectedBid.bidId, isOpen: true })
+      setChartSelectedBid(null)
+    }
+  }, [chartSelectedBid, setChartSelectedBid])
+
   const handleBidPress = useEvent((bid: UserBid, _isInRange: boolean) => {
     if (bid.bidId === 'optimistic-pending') {
       return
@@ -81,7 +96,12 @@ export function Bids({ showBidForm }: { showBidForm: () => void }): JSX.Element 
       // Use the override if provided, otherwise use the calculated value
       // This allows the BidDetailsModal to pass the correct value based on its own state
       const usePreClaimWindow = isPreClaimWindowOverride ?? (isAuctionEnded && isGraduated && isInPreClaimWindow)
-      setWithdrawModalState({ isOpen: true, bidId, mode, isPreClaimWindow: usePreClaimWindow })
+      setWithdrawModalState({
+        isOpen: true,
+        bidId,
+        mode,
+        isPreClaimWindow: usePreClaimWindow,
+      })
     },
   )
 
@@ -109,18 +129,7 @@ export function Bids({ showBidForm }: { showBidForm: () => void }): JSX.Element 
     chainId: auctionDetails?.chainId,
   })
 
-  // During auction, show "Place Bid" button; after auction, use hook values
-  const withdrawButtonLabel = isAuctionInProgress ? t('toucan.bidForm.placeBid') : withdrawLabel
-  const isWithdrawDisabled = isAuctionInProgress ? false : isWithdrawDisabledFromHook
-
-  // Switch to bid form when list is empty (e.g., after wallet switch)
-  useEffect(() => {
-    if (!isLoading && bidItems.length === 0 && !hasErrors) {
-      showBidForm()
-    }
-  }, [isLoading, bidItems.length, hasErrors, showBidForm])
-
-  // Loading state or empty state (empty will redirect to bid form via effect above)
+  // Loading state or empty state
   if (isLoading || (bidItems.length === 0 && !hasErrors)) {
     return (
       <Flex width="100%" gap="$spacing12">
@@ -131,6 +140,16 @@ export function Bids({ showBidForm }: { showBidForm: () => void }): JSX.Element 
 
   return (
     <Flex width="100%" grow justifyContent="space-between" gap="$spacing12">
+      <Flex row justifyContent="space-between" alignItems="center">
+        <Text color="$neutral2" variant="subheading2">
+          {t('toucan.auction.yourBids')}
+        </Text>
+        <InfoTooltip
+          placement="top"
+          trigger={<QuestionInCircleFilled color="$neutral2" size="$icon.20" />}
+          text={t('toucan.auction.yourBids.tooltip')}
+        />
+      </Flex>
       {hasErrors && (
         <Flex
           px="$spacing12"
@@ -175,13 +194,13 @@ export function Bids({ showBidForm }: { showBidForm: () => void }): JSX.Element 
         ))}
       </Flex>
       {/* Hide on $lg and below - mobile uses AuctionChartContainer inline button or ToucanToken fixed button */}
-      {!media.lg && (
+      {!media.lg && !isAuctionInProgress && (
         <ToucanActionButton
-          elementName={isAuctionInProgress ? undefined : ElementName.AuctionWithdrawTokensButton}
-          label={withdrawButtonLabel}
-          onPress={isAuctionInProgress ? showBidForm : () => setWithdrawModalState({ isOpen: true })}
-          isDisabled={isWithdrawDisabled}
-          disabledTooltip={isWithdrawDisabled ? withdrawDisabledTooltip : undefined}
+          elementName={ElementName.AuctionWithdrawTokensButton}
+          label={withdrawLabel}
+          onPress={() => setWithdrawModalState({ isOpen: true })}
+          isDisabled={isWithdrawDisabledFromHook}
+          disabledTooltip={isWithdrawDisabledFromHook ? withdrawDisabledTooltip : undefined}
         />
       )}
       {hasSelectedBid && bidTokenInfo ? (

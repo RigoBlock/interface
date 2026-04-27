@@ -4,9 +4,11 @@ ignores: [
     "typescript",
     "@typescript/native-preview",
     "depcheck",
+    "oxlint",
     "graphql",
     "@graphql-codegen/*",
     "@vitest/coverage-v8",
+    "bun",
     # Dependencies that depcheck thinks are missing but are actually present
     ## Internal packages / workspaces
     "@universe/api",

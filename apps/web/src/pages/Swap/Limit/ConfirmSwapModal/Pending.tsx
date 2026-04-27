@@ -93,6 +93,7 @@ function getTitle({
   return t('swap.confirmSwap')
 }
 
+// oxlint-disable-next-line complexity
 export function Pending({
   trade,
   swapResult,

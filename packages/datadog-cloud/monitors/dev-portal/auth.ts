@@ -1,4 +1,4 @@
-import {MonitorDefinition} from '../../types';
+import { MonitorDefinition } from '../../types'
 
 export const devPortalAuthMonitors: MonitorDefinition[] = [
   {
@@ -6,16 +6,14 @@ export const devPortalAuthMonitors: MonitorDefinition[] = [
     name: 'Auth Failure Rate on dev-portal',
     type: 'log alert',
     query: `logs("service:dev-portal (message:*auth*failed OR message:*session*failed)").index("*").rollup("count").last("15m") > 20`,
-    alertBody:
-      'Auth failure log count for dev-portal has exceeded 20 in the last 15 minutes.',
+    alertBody: 'Auth failure log count for dev-portal has exceeded 20 in the last 15 minutes.',
     recoveryBody: 'Auth failure rate for dev-portal has recovered.',
     team: 'dev-portal',
     priority: 3,
-    thresholds: {critical: 20},
+    thresholds: { critical: 20 },
     logQuery: 'service:dev-portal',
     runbookUrl: 'https://www.notion.so/uniswap/dev-portal-runbook',
-    readmeUrl:
-      'https://github.com/Uniswap/universe/tree/main/apps/dev-portal',
+    readmeUrl: 'https://github.com/Uniswap/universe/tree/main/apps/dev-portal',
     dashboards: [],
     enablePaging: false,
     onMissingData: 'show_no_data',
@@ -26,19 +24,17 @@ export const devPortalAuthMonitors: MonitorDefinition[] = [
     name: 'Session Conflict Spike on dev-portal',
     type: 'log alert',
     query: `logs("service:dev-portal message:*conflict").index("*").rollup("count").last("15m") > 10`,
-    alertBody:
-      'Session conflict log count for dev-portal has exceeded 10 in the last 15 minutes.',
+    alertBody: 'Session conflict log count for dev-portal has exceeded 10 in the last 15 minutes.',
     recoveryBody: 'Session conflict rate for dev-portal has recovered.',
     team: 'dev-portal',
     priority: 3,
-    thresholds: {critical: 10},
+    thresholds: { critical: 10 },
     logQuery: 'service:dev-portal',
     runbookUrl: 'https://www.notion.so/uniswap/dev-portal-runbook',
-    readmeUrl:
-      'https://github.com/Uniswap/universe/tree/main/apps/dev-portal',
+    readmeUrl: 'https://github.com/Uniswap/universe/tree/main/apps/dev-portal',
     dashboards: [],
     enablePaging: false,
     onMissingData: 'show_no_data',
     prodOnly: true,
   },
-];
+]

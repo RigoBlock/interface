@@ -16,7 +16,6 @@ describe('safeNamehash', () => {
 
   // suppress console.debug for the next test
   beforeEach(() => {
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
     vi.spyOn(console, 'info').mockImplementation(() => {})
   })
 

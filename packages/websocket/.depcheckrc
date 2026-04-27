@@ -3,6 +3,7 @@ ignores: [
     "typescript",
     "@typescript/native-preview",
     "depcheck",
+    "oxlint",
 
     # Test dependencies (used by vitest config)
     "@vitest/coverage-v8",

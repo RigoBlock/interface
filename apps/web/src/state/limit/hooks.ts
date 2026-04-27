@@ -3,6 +3,7 @@ import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import JSBI from 'jsbi'
 import { useEffect, useMemo, useState } from 'react'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
+import { LIMIT_SUPPORTED_CHAINS } from 'uniswap/src/features/chains/chainInfo'
 import { getStablecoinsForChain, isUniverseChainId } from 'uniswap/src/features/chains/utils'
 import { isEVMChain, isSVMChain } from 'uniswap/src/features/platforms/utils/chains'
 import { useTrade } from 'uniswap/src/features/transactions/swap/hooks/useTrade'
@@ -184,6 +185,7 @@ function useLimitOrderTrade({
           trade && isClassic(trade) && trade.quote.quote.gasFeeUSD ? parseFloat(trade.quote.quote.gasFeeUSD) : undefined
         const usdCostPerGas = getUSDCostPerGas(gasUseEstimateUSD, gasUseEstimate)
 
+        // oxlint-disable-next-line no-shadow
         const wrapInfo = await getWrapInfo({
           needsWrap,
           account: account.address,
@@ -232,7 +234,10 @@ function useMarketPriceAndFee(
   outputCurrency: Currency | undefined,
 ): { marketPrice?: Price<Currency, Currency>; fee?: SwapFeeInfo } {
   const skip =
-    !(inputCurrency && outputCurrency) || isSVMChain(inputCurrency.chainId) || isSVMChain(outputCurrency.chainId)
+    !(inputCurrency && outputCurrency) ||
+    !LIMIT_SUPPORTED_CHAINS.includes(inputCurrency.chainId) ||
+    isSVMChain(inputCurrency.chainId) ||
+    isSVMChain(outputCurrency.chainId)
 
   // TODO(limits): update amount for MATIC and CELO once Limits are supported on those chains
   const baseCurrencyAmount =
@@ -290,7 +295,7 @@ function useMarketPriceAndFee(
 
     const priceA = tradeA.routes[0]?.midPrice
     const priceB = tradeB.routes[0]?.midPrice
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     if (!priceA || !priceB) {
       return undefined
     }

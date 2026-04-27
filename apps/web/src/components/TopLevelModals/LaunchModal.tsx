@@ -1,5 +1,4 @@
 // Remove the following line when LaunchModal is used again:
-/* eslint-disable import/no-unused-modules */
 
 import { useAtom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'

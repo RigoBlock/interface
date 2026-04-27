@@ -1,6 +1,5 @@
 import '@tamagui/core/reset.css'
 import 'src/app/Global.css'
-
 import { SharedEventName } from '@uniswap/analytics-events'
 import { useEffect, useRef, useState } from 'react'
 import { useDispatch } from 'react-redux'
@@ -44,6 +43,7 @@ import { BackgroundToSidePanelRequestType } from 'src/background/messagePassing/
 import { PrimaryAppInstanceDebuggerLazy } from 'src/store/PrimaryAppInstanceDebuggerLazy'
 import { useResetUnitagsQueries } from 'uniswap/src/data/apiClients/unitagsApi/useResetUnitagsQueries'
 import { ExtensionEventName } from 'uniswap/src/features/telemetry/constants'
+import { AnalyticsDebugOverlayLazy } from 'uniswap/src/features/telemetry/debug/AnalyticsDebugOverlayLazy'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { isDevEnv } from 'utilities/src/environment/env'
 import { logger } from 'utilities/src/logger/logger'
@@ -151,13 +151,13 @@ function useDappRequestPortListener(): void {
   const [currentPortChannel, setCurrentPortChannel] = useState<DappBackgroundPortChannel | undefined>()
   const [windowId, setWindowId] = useState<string | undefined>()
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Only run on component mount for initial setup, disconnect cleanup is managed separately
   useEffect(() => {
     chrome.windows.getCurrent((window) => {
       setWindowId(window.id?.toString())
     })
 
     return () => currentPortChannel?.port.disconnect()
+    // oxlint-disable-next-line react/exhaustive-deps -- biome-parity: oxlint is stricter here
   }, [])
 
   useEffect(() => {
@@ -258,6 +258,7 @@ function SidebarContent(): JSX.Element {
   return (
     <>
       <PrimaryAppInstanceDebuggerLazy />
+      <AnalyticsDebugOverlayLazy />
       <RouterProvider router={router} />
     </>
   )

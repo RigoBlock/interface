@@ -36,6 +36,7 @@ import { useCurrencyInfo } from '~/hooks/Tokens'
 import { liquiditySaga } from '~/state/sagas/liquidity/liquiditySaga'
 import { ExternalLink } from '~/theme/components/Links'
 
+// oxlint-disable-next-line complexity
 export function IncreaseLiquidityReview({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
@@ -339,7 +340,7 @@ export function IncreaseLiquidityReview({ onClose }: { onClose: () => void }) {
                       {t('addLiquidity.shareOfPool')}
                     </Text>
                   ),
-                  Value: () => <Text>{formatPercent(poolTokenPercentage.toFixed())}</Text>,
+                  Value: () => <Text variant="body3">{formatPercent(poolTokenPercentage.toFixed())}</Text>,
                 }}
               />
             ) : null}
@@ -366,7 +367,7 @@ export function IncreaseLiquidityReview({ onClose }: { onClose: () => void }) {
               variant="branded"
               size="large"
               onPress={onIncreaseLiquidity}
-              icon={needsPasskeySignin ? <Passkey size="$icon.24" /> : undefined}
+              icon={needsPasskeySignin ? <Passkey size="$icon.24" color="$white" /> : undefined}
             >
               {needsPasskeySignin ? t('common.addLiquidity') : t('common.confirm')}
             </Button>

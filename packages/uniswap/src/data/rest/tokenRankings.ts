@@ -2,13 +2,13 @@ import { PartialMessage } from '@bufbuild/protobuf'
 import { ConnectError } from '@connectrpc/connect'
 import { useQuery } from '@connectrpc/connect-query'
 import { UseQueryResult } from '@tanstack/react-query'
+import { tokenRankings } from '@uniswap/client-explore/dist/uniswap/explore/v1/service-ExploreStatsService_connectquery'
 import { ONE_MINUTE_MS } from 'utilities/src/time/time'
 import {
   TokenRankingsRequest,
   TokenRankingsResponse,
   TokenRankingsStat,
 } from '@uniswap/client-explore/dist/uniswap/explore/v1/service_pb'
-import { tokenRankings } from '@uniswap/client-explore/dist/uniswap/explore/v1/service-ExploreStatsService_connectquery'
 import { parseProtectionInfo, parseSafetyLevel } from '@universe/api'
 import { RIGOBLOCK_LOGO } from 'ui/src/assets'
 import { GRG } from 'uniswap/src/constants/tokens'

@@ -16,7 +16,12 @@ import {
 } from '~/components/Charts/utils'
 import { SingleHistogramData } from '~/components/Charts/VolumeChart/utils'
 
-type TDPChartQueryVariables = { chain: GraphQLApi.Chain; address?: string; duration: GraphQLApi.HistoryDuration }
+export type TDPChartQueryVariables = {
+  chain: GraphQLApi.Chain
+  address?: string
+  duration: GraphQLApi.HistoryDuration
+  multichain: boolean
+}
 
 function fallbackToPriceChartData(priceHistoryEntry: GraphQLApi.PriceHistoryFallbackFragment): PriceChartData {
   const { value, timestamp } = priceHistoryEntry
@@ -70,7 +75,7 @@ export function useTDPPriceChartData({
         : { address: undefined, chain: variables.chain },
       duration: variables.duration,
     },
-    skip: skip || !currencyIdValue || priceChartType === PriceChartType.CANDLESTICK,
+    skip: skip || !currencyIdValue || priceChartType === PriceChartType.CANDLESTICK || variables.multichain,
     // IMPORTANT: Must use no-cache to prevent infinite query loop.
     //
     // TokenPriceHistory returns Token objects (with chain/address) nested inside tokenProjects.
@@ -80,8 +85,10 @@ export function useTDPPriceChartData({
     fetchPolicy: 'no-cache',
   })
 
-  const loading = subgraphLoading || (priceChartType === PriceChartType.LINE && coinGeckoLoading)
+  const loading =
+    subgraphLoading || (priceChartType === PriceChartType.LINE && !variables.multichain && coinGeckoLoading)
 
+  // oxlint-disable-next-line complexity
   return useMemo(() => {
     const subgraphMarket = subgraphData?.token?.market
     const { ohlc, priceHistory: subgraphPriceHistory, price: subgraphPrice } = subgraphMarket ?? {}
@@ -96,7 +103,7 @@ export function useTDPPriceChartData({
 
     // For line charts, prefer CoinGecko priceHistory but use PER-CHAIN current price
     // For candlestick charts, always use subgraph OHLC (only source)
-    const useCoinGeckoHistory = priceChartType === PriceChartType.LINE && coinGeckoPriceHistory
+    const useCoinGeckoHistory = priceChartType === PriceChartType.LINE && coinGeckoPriceHistory && !variables.multichain
     const priceHistory = useCoinGeckoHistory ? coinGeckoPriceHistory : subgraphPriceHistory
 
     // CRITICAL: Always use per-chain price from subgraph for multi-chain tokens
@@ -152,7 +159,7 @@ export function useTDPPriceChartData({
         }
       }
       // Special case: backend data for OHLC data is currently too granular, so points should be combined, halving the data
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       else if (priceChartType === PriceChartType.CANDLESTICK) {
         const combinedEntries = []
 
@@ -201,15 +208,18 @@ export function useTDPPriceChartData({
 
     const dataQuality = checkDataQuality({ data: entries, chartType: ChartType.PRICE, duration: variables.duration })
     return { chartType: ChartType.PRICE, entries, loading, dataQuality, disableCandlestickUI: fallback }
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- coinGeckoData.tokenProjects is intentionally accessed via optional chaining
   }, [
     currentPriceOverride,
     subgraphData?.token?.market,
+    // oxlint-disable-next-line react/exhaustive-deps -- biome-parity: oxlint is stricter here
     coinGeckoData?.tokenProjects?.[0],
     fallback,
     loading,
     priceChartType,
     variables.duration,
     variables.chain,
+    variables.multichain,
   ])
 }
 

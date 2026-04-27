@@ -1,8 +1,8 @@
+// oxlint-disable typescript/no-var-requires
 import { NavigationContainer, NavigationIndependentTree } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { createStackNavigator, TransitionPresets } from '@react-navigation/stack'
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import { DevSettings } from 'react-native'
 import { INCLUDE_PROTOTYPE_FEATURES, IS_E2E_TEST } from 'react-native-dotenv'
 import { useSelector } from 'react-redux'
@@ -36,11 +36,11 @@ import { HorizontalEdgeGestureTarget } from 'src/components/layout/screens/EdgeG
 import { AdvancedSettingsModal } from 'src/components/modals/ReactNavigationModals/AdvancedSettingsModal'
 import { BridgedAssetModalScreen } from 'src/components/modals/ReactNavigationModals/BridgedAssetModal'
 import { HiddenTokenInfoModalScreen } from 'src/components/modals/ReactNavigationModals/HiddenTokenInfoModalScreen'
-import { LanguageSettingsScreen } from 'src/components/modals/ReactNavigationModals/LanguageSettingsScreen'
 import { PasskeyHelpModalScreen } from 'src/components/modals/ReactNavigationModals/PasskeyHelpModalScreen'
 import { PasskeyManagementModalScreen } from 'src/components/modals/ReactNavigationModals/PasskeyManagementModalScreen'
 import { PermissionsSettingsScreen } from 'src/components/modals/ReactNavigationModals/PermissionsSettingsScreen'
 import { PortfolioBalanceSettingsScreen } from 'src/components/modals/ReactNavigationModals/PortfolioBalanceSettingsScreen'
+import { ReportPortfolioDataModalScreen } from 'src/components/modals/ReactNavigationModals/ReportPortfolioDataModalScreen'
 import { ReportTokenDataModalScreen } from 'src/components/modals/ReactNavigationModals/ReportTokenDataModalScreen'
 import { ReportTokenIssueModalScreen } from 'src/components/modals/ReactNavigationModals/ReportTokenIssueModalScreen'
 import { SmartWalletEnabledModalScreen } from 'src/components/modals/ReactNavigationModals/SmartWalletEnabledModalScreen'
@@ -75,7 +75,6 @@ import { ExternalProfileScreen } from 'src/screens/ExternalProfileScreen'
 import { FiatOnRampConnectingScreen } from 'src/screens/FiatOnRampConnecting'
 import { FiatOnRampScreen } from 'src/screens/FiatOnRampScreen'
 import { FiatOnRampServiceProvidersScreen } from 'src/screens/FiatOnRampServiceProviders'
-import { WrappedHomeScreen } from 'src/screens/HomeScreen/HomeScreen'
 import { ImportMethodScreen } from 'src/screens/Import/ImportMethodScreen'
 import { OnDeviceRecoveryScreen } from 'src/screens/Import/OnDeviceRecoveryScreen'
 import { OnDeviceRecoveryViewSeedPhraseScreen } from 'src/screens/Import/OnDeviceRecoveryViewSeedPhraseScreen'
@@ -96,12 +95,14 @@ import { ManualBackupScreen } from 'src/screens/Onboarding/ManualBackupScreen'
 import { NotificationsSetupScreen } from 'src/screens/Onboarding/NotificationsSetupScreen'
 import { SecuritySetupScreen } from 'src/screens/Onboarding/SecuritySetupScreen'
 import { WelcomeWalletScreen } from 'src/screens/Onboarding/WelcomeWalletScreen'
+import { PortfolioChartDetailsScreen } from 'src/screens/PortfolioChartDetailsScreen'
 import { ReceiveCryptoModal } from 'src/screens/ReceiveCryptoModal'
 import { SettingsCloudBackupPasswordConfirmScreen } from 'src/screens/SettingsCloudBackupPasswordConfirmScreen'
 import { SettingsCloudBackupPasswordCreateScreen } from 'src/screens/SettingsCloudBackupPasswordCreateScreen'
 import { SettingsCloudBackupProcessingScreen } from 'src/screens/SettingsCloudBackupProcessingScreen'
 import { SettingsCloudBackupStatus } from 'src/screens/SettingsCloudBackupStatus'
 import { SettingsFiatCurrencyModal } from 'src/screens/SettingsFiatCurrencyModal'
+import { SettingsLanguageModal } from 'src/screens/SettingsLanguageModal'
 import { SettingsNotificationsScreen } from 'src/screens/SettingsNotificationsScreen'
 import { SettingsPrivacyScreen } from 'src/screens/SettingsPrivacyScreen'
 import { SettingsScreen } from 'src/screens/SettingsScreen'
@@ -347,8 +348,6 @@ export function AppStackNavigator(): JSX.Element {
   const finishedOnboarding = useSelector(selectFinishedOnboarding)
   const navigation = useAppStackNavigation()
 
-  const isBottomTabsEnabled = useFeatureFlag(FeatureFlags.BottomTabs)
-
   useEffect(() => {
     // Adds a menu item to navigate to Storybook in debug builds
     if (__DEV__) {
@@ -371,12 +370,7 @@ export function AppStackNavigator(): JSX.Element {
         animation: 'slide_from_right',
       }}
     >
-      {finishedOnboarding && (
-        <AppStack.Screen
-          component={isBottomTabsEnabled ? TabsNavigator : WrappedHomeScreen}
-          name={MobileScreens.Home}
-        />
-      )}
+      {finishedOnboarding && <AppStack.Screen component={TabsNavigator} name={MobileScreens.Home} />}
       <AppStack.Screen
         component={OnboardingStackNavigator}
         name={MobileScreens.OnboardingStack}
@@ -385,6 +379,11 @@ export function AppStackNavigator(): JSX.Element {
             ? OnboardingEntryPoint.Sidebar.valueOf()
             : OnboardingEntryPoint.FreshInstallOrReplace.valueOf()
         }
+      />
+      <AppStack.Screen
+        component={PortfolioChartDetailsScreen}
+        name={MobileScreens.PortfolioChartDetails}
+        options={{ fullScreenGestureEnabled: false }}
       />
       <AppStack.Screen component={UnitagStackNavigator} name={MobileScreens.UnitagStack} />
       <AppStack.Screen component={ExternalProfileScreen} name={MobileScreens.ExternalProfile} />
@@ -420,12 +419,14 @@ export function AppStackNavigator(): JSX.Element {
         <AppStack.Screen component={BuyNativeTokenModal} name={ModalName.BuyNativeToken} />
         <AppStack.Screen component={HiddenTokenInfoModalScreen} name={ModalName.HiddenTokenInfoModal} />
         <AppStack.Screen component={ReportTokenIssueModalScreen} name={ModalName.ReportTokenIssue} />
+        <AppStack.Screen component={ReportPortfolioDataModalScreen} name={ModalName.ReportPortfolioData} />
         <AppStack.Screen component={ReportTokenDataModalScreen} name={ModalName.ReportTokenData} />
         <AppStack.Screen component={ScreenshotWarningModal} name={ModalName.ScreenshotWarning} />
         <AppStack.Screen component={PasskeyManagementModalScreen} name={ModalName.PasskeyManagement} />
         <AppStack.Screen component={PasskeyHelpModalScreen} name={ModalName.PasskeysHelp} />
         <AppStack.Screen component={SettingsBiometricModal} name={ModalName.BiometricsModal} />
         <AppStack.Screen component={SettingsFiatCurrencyModal} name={ModalName.FiatCurrencySelector} />
+        <AppStack.Screen component={SettingsLanguageModal} name={ModalName.LanguageSelector} />
         <AppStack.Screen component={ManageWalletsModal} name={ModalName.ManageWalletsModal} />
         <AppStack.Screen component={EditLabelSettingsModal} name={ModalName.EditLabelSettingsModal} />
         <AppStack.Screen component={EditProfileSettingsModal} name={ModalName.EditProfileSettingsModal} />
@@ -436,7 +437,6 @@ export function AppStackNavigator(): JSX.Element {
         <AppStack.Screen component={SettingsAppearanceModal} name={ModalName.SettingsAppearance} />
         <AppStack.Screen component={PermissionsSettingsScreen} name={ModalName.PermissionsModal} />
         <AppStack.Screen component={PortfolioBalanceSettingsScreen} name={ModalName.PortfolioBalanceModal} />
-        <AppStack.Screen component={LanguageSettingsScreen} name={ModalName.LanguageSelector} />
         <AppStack.Screen component={SmartWalletNudgeScreen} name={ModalName.SmartWalletNudge} />
         <AppStack.Screen component={BridgedAssetModalScreen} name={ModalName.BridgedAsset} />
         <AppStack.Screen component={WormholeModalScreen} name={ModalName.Wormhole} />

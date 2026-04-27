@@ -3,7 +3,7 @@
   "display": "Web App",
   "extends": ["../../tsconfig.base.json"],
   "include": ["**/*.ts", "**/*.tsx", "**/*.json", "declarations.d.ts"],
-  "exclude": ["node_modules", ".output", "wxt.config.ts"],
+  "exclude": ["node_modules", ".output", "wxt.config.ts", "oxlint.config.ts"],
   "references": [
     {
       "path": "../../packages/wallet"

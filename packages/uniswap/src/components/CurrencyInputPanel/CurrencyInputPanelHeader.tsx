@@ -32,7 +32,7 @@ export function CurrencyInputPanelHeader({
   currencyField,
   currencyBalance,
   currencyAmount,
-  currencyInfo,
+  currencyInfo: _currencyInfo,
   onSetPresetValue,
   showDefaultTokenOptions,
   hidePresets,

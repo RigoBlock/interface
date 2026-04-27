@@ -9,9 +9,10 @@ import { ShieldCheck } from 'ui/src/components/icons/ShieldCheck'
 import { CONNECTION_PROVIDER_IDS } from 'uniswap/src/constants/web3'
 import { useAppFiatCurrency } from 'uniswap/src/features/fiatCurrency/hooks'
 import { useCurrentLanguage, useLanguageInfo } from 'uniswap/src/features/language/hooks'
+import { ElementName } from 'uniswap/src/features/telemetry/constants'
+import Trace from 'uniswap/src/features/telemetry/Trace'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { AnalyticsToggle } from '~/components/AccountDrawer/AnalyticsToggle'
-import { AppVersionRow } from '~/components/AccountDrawer/AppVersionRow'
 import { useOnDisconnect } from '~/components/AccountDrawer/DisconnectButton'
 import { SettingsButton } from '~/components/AccountDrawer/SettingsButton'
 import { SlideOutMenu } from '~/components/AccountDrawer/SlideOutMenu'
@@ -47,6 +48,7 @@ export default function SettingsMenu({
   const activeLocalCurrency = useAppFiatCurrency()
   const languageInfo = useLanguageInfo(activeLanguage)
   const connectedWithEmbeddedWallet =
+    // oxlint-disable-next-line typescript/no-unnecessary-condition -- biome-parity: oxlint is stricter here
     useAccount().connector?.id === CONNECTION_PROVIDER_IDS.EMBEDDED_WALLET_CONNECTOR_ID
   const onLogOut = useOnDisconnect()
 
@@ -54,7 +56,7 @@ export default function SettingsMenu({
   const shouldAllowAnalytics = false
 
   return (
-    <SlideOutMenu title={t('common.settings')} onClose={onClose} versionComponent={<AppVersionRow />} height="100%">
+    <SlideOutMenu title={t('common.settings')} onClose={onClose} height="100%">
       <Flex gap="$gap24" px="$padding12">
         <Flex gap="$gap8">
           <SectionHeader title={t('settings.section.preferences')} />
@@ -104,16 +106,18 @@ export default function SettingsMenu({
           <TestnetsToggle />
         </Flex>
 
-        <Flex row alignSelf="stretch" display={connectedWithEmbeddedWallet ? 'flex' : 'none'} mb="$padding8">
-          <Button
-            size="medium"
-            emphasis="secondary"
-            icon={<Power size="$icon.20" color="$neutral2" />}
-            onPress={onLogOut}
-          >
-            {t('settings.logOut')}
-          </Button>
-        </Flex>
+        <Trace logPress element={ElementName.SignOut}>
+          <Flex row alignSelf="stretch" display={connectedWithEmbeddedWallet ? 'flex' : 'none'} mb="$padding8">
+            <Button
+              size="medium"
+              emphasis="secondary"
+              icon={<Power size="$icon.20" color="$neutral2" />}
+              onPress={onLogOut}
+            >
+              {t('settings.logOut')}
+            </Button>
+          </Flex>
+        </Trace>
       </Flex>
     </SlideOutMenu>
   )

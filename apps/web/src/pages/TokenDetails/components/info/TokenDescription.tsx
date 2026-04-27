@@ -1,5 +1,6 @@
+import { SharedEventName } from '@uniswap/analytics-events'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-import { useCallback, useMemo, useReducer, useState } from 'react'
+import { useCallback, useReducer, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AnimatableCopyIcon, Flex, styled, Text, TouchableArea } from 'ui/src'
 import { BlockExplorer } from 'ui/src/components/icons/BlockExplorer'
@@ -9,19 +10,22 @@ import { XTwitter } from 'ui/src/components/icons/XTwitter'
 import { iconSizes } from 'ui/src/theme'
 import { useShadowPropsMedium } from 'ui/src/theme/shadows'
 import { getBlockExplorerIcon } from 'uniswap/src/components/chains/BlockExplorerIcon'
+import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
 import { MultichainAddressList } from 'uniswap/src/components/MultichainTokenDetails/MultichainAddressList'
 import { MultichainExplorerList } from 'uniswap/src/components/MultichainTokenDetails/MultichainExplorerList'
-import type { MultichainTokenEntry } from 'uniswap/src/components/MultichainTokenDetails/useOrderedMultichainEntries'
-import { useOrderedMultichainEntries } from 'uniswap/src/components/MultichainTokenDetails/useOrderedMultichainEntries'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { fromGraphQLChain } from 'uniswap/src/features/chains/utils'
+import type { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
+import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
-import { ExplorerDataType, getExplorerLink, openUri } from 'uniswap/src/utils/linking'
+import { ExplorerDataType, getExplorerLink, isAllowedExternalUri, openUri } from 'uniswap/src/utils/linking'
 import { shortenAddress } from 'utilities/src/addresses'
+import { logger } from 'utilities/src/logger/logger'
+import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
 import { FOTTooltipContent } from '~/components/swap/SwapLineItem'
 import { MouseoverTooltip, TooltipSize } from '~/components/Tooltip'
+import { NATIVE_CHAIN_ID } from '~/constants/tokens'
 import useCopyClipboard from '~/hooks/useCopyClipboard'
 import { useSwapTaxes } from '~/hooks/useSwapTaxes'
 import {
@@ -29,8 +33,9 @@ import {
   TokenInfoButton,
   tokenPillStyles,
 } from '~/pages/TokenDetails/components/info/MultichainPillDropdown'
-import { MultiChainMap } from '~/pages/TokenDetails/context/TDPContext'
 import { useTDPStore } from '~/pages/TokenDetails/context/useTDPStore'
+import { useMultichainTokenEntries } from '~/pages/TokenDetails/hooks/useMultichainTokenEntries'
+import { useTDPEffectiveCurrency } from '~/pages/TokenDetails/hooks/useTDPEffectiveCurrency'
 import { EllipsisTamaguiStyle } from '~/theme/components/styles'
 
 const TRUNCATE_CHARACTER_COUNT = 300
@@ -58,7 +63,22 @@ const TokenDescriptionContainer = styled(Text, {
   lineHeight: 24,
 })
 
-function TokenLinkButton({ uri, icon, name }: { uri: string; icon: JSX.Element; name: string }) {
+function TokenLinkButton({
+  uri,
+  icon,
+  name,
+  onPress,
+}: {
+  uri: string
+  icon: JSX.Element
+  name: string
+  /** Fires on click before the browser follows the link (e.g. analytics). */
+  onPress?: () => void
+}) {
+  if (!isAllowedExternalUri(uri)) {
+    logger.warn('TokenLinkButton', 'render', 'Blocked unsafe external URL', { uri, name })
+    return null
+  }
   return (
     <TouchableArea
       tag="a"
@@ -68,6 +88,7 @@ function TokenLinkButton({ uri, icon, name }: { uri: string; icon: JSX.Element; 
       rel="noopener noreferrer"
       {...tokenPillStyles}
       $platform-web={{ textDecorationLine: 'none' }}
+      onPress={onPress}
     >
       {icon}
       <Text variant="buttonLabel3" color="$neutral1">
@@ -77,53 +98,61 @@ function TokenLinkButton({ uri, icon, name }: { uri: string; icon: JSX.Element; 
   )
 }
 
-/** Converts TDPContext's multiChainMap into a list of MultichainTokenEntry items ordered by network selector order. */
-function useMultichainTokenEntries(multiChainMap: MultiChainMap): MultichainTokenEntry[] {
-  const entries = useMemo(() => {
-    const result: MultichainTokenEntry[] = []
-    for (const [graphqlChain, data] of Object.entries(multiChainMap)) {
-      const chainId = fromGraphQLChain(graphqlChain)
-      if (chainId && data.address) {
-        result.push({ chainId, address: data.address })
-      }
-    }
-    return result
-  }, [multiChainMap])
-
-  return useOrderedMultichainEntries(entries)
-}
-
 export function TokenDescription() {
   const { t } = useTranslation()
-  const { address, currency, tokenQuery, multiChainMap } = useTDPStore((s) => ({
-    address: s.address,
-    currency: s.currency!,
+  const trace = useTrace()
+  const { tokenQuery, multiChainMap, selectedMultichainChainId } = useTDPStore((s) => ({
     tokenQuery: s.tokenQuery,
     multiChainMap: s.multiChainMap,
+    selectedMultichainChainId: s.selectedMultichainChainId,
   }))
 
-  const isMultichainTokenUx = useFeatureFlag(FeatureFlags.MultichainTokenUx)
+  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
   const multichainEntries = useMultichainTokenEntries(multiChainMap)
   const hasMultipleChains = multichainEntries.length > 1
 
+  const effectiveCurrency = useTDPEffectiveCurrency()
+
+  const displayAddress = effectiveCurrency.isNative ? NATIVE_CHAIN_ID : effectiveCurrency.address
+
   const { description, homepageUrl, twitterName } = tokenQuery.data?.token?.project ?? {}
   const explorerUrl = getExplorerLink({
-    chainId: currency.chainId,
-    data: address,
-    type: currency.isNative ? ExplorerDataType.NATIVE : ExplorerDataType.TOKEN,
+    chainId: effectiveCurrency.chainId,
+    data: displayAddress,
+    type: effectiveCurrency.isNative ? ExplorerDataType.NATIVE : ExplorerDataType.TOKEN,
   })
 
   const [isCopied, setCopied] = useCopyClipboard()
+
+  const logAddressCopied = useCallback(
+    (chainId: UniverseChainId) => {
+      sendAnalyticsEvent(SharedEventName.ELEMENT_CLICKED, {
+        ...trace,
+        element: ElementName.CopyAddress,
+        chain_name: getChainInfo(chainId).urlParam,
+      })
+    },
+    [trace],
+  )
+
   const copy = useCallback(() => {
-    setCopied(address)
-  }, [address, setCopied])
+    setCopied(displayAddress)
+    logAddressCopied(effectiveCurrency.chainId)
+  }, [displayAddress, effectiveCurrency.chainId, logAddressCopied, setCopied])
+
+  const onCopyMultichainAddress = useCallback(
+    (address: string, chainId: UniverseChainId) => {
+      setCopied(address)
+      logAddressCopied(chainId)
+    },
+    [logAddressCopied, setCopied],
+  )
 
   const shadowProps = useShadowPropsMedium()
   const [isExplorerOpen, setIsExplorerOpen] = useState(false)
   const [isAddressOpen, setIsAddressOpen] = useState(false)
 
   const multichainPopoverContentProps = {
-    isSheet: false,
     placement: 'top-start' as const,
     borderRadius: '$rounded20' as const,
     borderWidth: 1,
@@ -138,18 +167,37 @@ export function TokenDescription() {
     ...shadowProps,
   }
 
-  const handleExplorerPress = useCallback((url: string) => {
-    openUri({ uri: url })
-  }, [])
+  const logTdpExplorerLinkClicked = useCallback(
+    (chainId: UniverseChainId) => {
+      sendAnalyticsEvent(SharedEventName.ELEMENT_CLICKED, {
+        ...trace,
+        element: ElementName.TokenExplorerLink,
+        chain_name: getChainInfo(chainId).urlParam,
+      })
+    },
+    [trace],
+  )
+
+  const handleExplorerPress = useCallback(
+    (url: string, chainId: UniverseChainId) => {
+      logTdpExplorerLinkClicked(chainId)
+      void openUri({ uri: url })
+    },
+    [logTdpExplorerLinkClicked],
+  )
+
+  const handleSingleChainExplorerPress = useCallback(() => {
+    logTdpExplorerLinkClicked(effectiveCurrency.chainId)
+  }, [effectiveCurrency.chainId, logTdpExplorerLinkClicked])
 
   const [isDescriptionTruncated, toggleIsDescriptionTruncated] = useReducer((x) => !x, true)
   const truncatedDescription = truncateDescription(description ?? '', TRUNCATE_CHARACTER_COUNT)
   const shouldTruncate = !!description && description.length > TRUNCATE_CHARACTER_COUNT
   const showTruncatedDescription = shouldTruncate && isDescriptionTruncated
   const { inputTax: sellFee, outputTax: buyFee } = useSwapTaxes({
-    inputTokenAddress: address,
-    outputTokenAddress: address,
-    tokenChainId: currency.chainId,
+    inputTokenAddress: displayAddress,
+    outputTokenAddress: displayAddress,
+    tokenChainId: effectiveCurrency.chainId,
   })
   const { formatPercent } = useLocalizationContext()
   const { sellFeeString, buyFeeString } = {
@@ -159,28 +207,39 @@ export function TokenDescription() {
   const hasFee = Boolean(parseFloat(sellFeeString)) || Boolean(parseFloat(buyFee.toFixed(2)))
   const sameFee = sellFeeString === buyFeeString
 
-  const Icon = getBlockExplorerIcon(currency.chainId)
-  const explorerName = getChainInfo(currency.chainId).explorer.name
+  const Icon = getBlockExplorerIcon(effectiveCurrency.chainId)
+  const explorerName = getChainInfo(effectiveCurrency.chainId).explorer.name
 
-  const showMultichainDropdowns = isMultichainTokenUx && hasMultipleChains
+  const showMultichainDropdowns = multichainTokenUxEnabled && hasMultipleChains && !selectedMultichainChainId
 
-  const addressPill = currency.isNative ? null : showMultichainDropdowns ? (
+  const addressPill = effectiveCurrency.isNative ? null : showMultichainDropdowns ? (
     <MultichainPillDropdown
       testID={TestID.MultichainAddressDropdown}
       icon={<Page size="$icon.16" color="$neutral1" />}
       name={t('common.address')}
       isOpen={isAddressOpen}
       onOpenChange={setIsAddressOpen}
-      modalName={ModalName.MultichainAddressModal}
       popoverContentProps={multichainPopoverContentProps}
+      modalName={ModalName.MultichainAddressModal}
     >
-      <MultichainAddressList chains={multichainEntries} onCopyAddress={setCopied} />
+      <MultichainAddressList chains={multichainEntries} onCopyAddress={onCopyMultichainAddress} />
     </MultichainPillDropdown>
   ) : (
     <TokenInfoButton
       onPress={copy}
-      icon={<AnimatableCopyIcon isCopied={isCopied} size={iconSizes.icon16} textColor="$neutral1" />}
-      name={shortenAddress({ address })}
+      icon={
+        multichainTokenUxEnabled && selectedMultichainChainId ? (
+          <NetworkLogo chainId={selectedMultichainChainId} size={iconSizes.icon16} />
+        ) : (
+          <Page size="$icon.16" color="$neutral1" />
+        )
+      }
+      iconRight={
+        multichainTokenUxEnabled && selectedMultichainChainId ? (
+          <AnimatableCopyIcon isCopied={isCopied} size={iconSizes.icon16} textColor="$neutral1" />
+        ) : undefined
+      }
+      name={shortenAddress({ address: displayAddress })}
     />
   )
 
@@ -191,17 +250,28 @@ export function TokenDescription() {
       name={t('common.explorer')}
       isOpen={isExplorerOpen}
       onOpenChange={setIsExplorerOpen}
-      modalName={ModalName.MultichainExplorerModal}
       popoverContentProps={multichainPopoverContentProps}
+      modalName={ModalName.MultichainExplorerModal}
     >
       <MultichainExplorerList
         chains={multichainEntries}
-        isNativeToken={currency.isNative}
+        isNativeToken={effectiveCurrency.isNative}
         onExplorerPress={handleExplorerPress}
       />
     </MultichainPillDropdown>
   ) : (
-    <TokenLinkButton uri={explorerUrl} icon={<Icon size="$icon.16" color="$neutral1" />} name={explorerName} />
+    <TokenLinkButton
+      uri={explorerUrl}
+      icon={
+        multichainTokenUxEnabled && selectedMultichainChainId ? (
+          <BlockExplorer size="$icon.16" color="$neutral1" />
+        ) : (
+          <Icon size="$icon.16" color="$neutral1" />
+        )
+      }
+      name={explorerName}
+      onPress={handleSingleChainExplorerPress}
+    />
   )
 
   const websitePill = homepageUrl ? (
@@ -269,19 +339,19 @@ export function TokenDescription() {
           <Flex gap="$gap8">
             {sameFee ? (
               <Text variant="body2" color="$neutral1">
-                {currency.symbol}&nbsp;
+                {effectiveCurrency.symbol}&nbsp;
                 {t('token.fee.label')}
                 :&nbsp;{sellFeeString}
               </Text>
             ) : (
               <>
                 <Text variant="body2" color="$neutral1">
-                  {currency.symbol}&nbsp;
+                  {effectiveCurrency.symbol}&nbsp;
                   {t('token.fee.buy.label')}
                   :&nbsp;{buyFeeString}
                 </Text>{' '}
                 <Text variant="body2" color="$neutral1">
-                  {currency.symbol}&nbsp;
+                  {effectiveCurrency.symbol}&nbsp;
                   {t('token.fee.sell.label')}
                   :&nbsp;{sellFeeString}
                 </Text>{' '}

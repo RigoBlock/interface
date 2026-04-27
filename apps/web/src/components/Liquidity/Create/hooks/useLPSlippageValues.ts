@@ -40,7 +40,6 @@ export function useLPSlippageValue({
  * When the backend returns a new slippage value for native token pools, apply it as both
  * the custom and auto tolerance. Since we omit slippageTolerance from the request when
  * nativeTokenBalance is provided, the backend always computes the optimal value.
- * Resets store values when switching away from a native pool to avoid stale slippage.
  */
 export function useDynamicNativeSlippage({
   isEnabled,
@@ -53,17 +52,11 @@ export function useDynamicNativeSlippage({
   createCalldata?: CreateLPPositionResponse
   isSlippageDirty: boolean
 }): void {
-  const { setCustomSlippageTolerance, setIsSlippageDirty } = useTransactionSettingsActions()
+  const { setCustomSlippageTolerance } = useTransactionSettingsActions()
   const setAutoSlippageTolerance = useSetTransactionSettingsAutoSlippageTolerance()
 
   useEffect(() => {
-    if (!isEnabled || !nativeTokenBalance) {
-      setCustomSlippageTolerance(undefined)
-      setAutoSlippageTolerance(undefined)
-      setIsSlippageDirty(false)
-      return
-    }
-    if (!createCalldata) {
+    if (!createCalldata || !isEnabled || !nativeTokenBalance) {
       return
     }
     const responseSlippage = createCalldata.slippage
@@ -79,6 +72,5 @@ export function useDynamicNativeSlippage({
     isSlippageDirty,
     setCustomSlippageTolerance,
     setAutoSlippageTolerance,
-    setIsSlippageDirty,
   ])
 }

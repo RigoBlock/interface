@@ -115,7 +115,6 @@ type DeepLinkHandler = (url: URL, data: BasePayload) => DeepLinkActionResult
  *
  * @param urlString - The URL to parse.
  */
-// eslint-disable-next-line complexity
 export function parseDeepLinkUrl(urlString: string): DeepLinkActionResult {
   const url = new URL(urlString)
   const screen = url.searchParams.get('screen') ?? 'other'
@@ -305,9 +304,9 @@ const handlers: Record<string, DeepLinkHandler> = {
 }
 
 const UNISWAP_EXTERNAL_WEB_LINK_VALID_REGEXES = [
-  // eslint-disable-next-line security/detect-unsafe-regex
+  // oxlint-disable-next-line security/detect-unsafe-regex
   /^https:\/\/([a-zA-Z0-9-]+)\.uniswap\.org(\/.*)?$/,
-  // eslint-disable-next-line security/detect-unsafe-regex
+  // oxlint-disable-next-line security/detect-unsafe-regex
   /^https:\/\/cryptothegame\.com(\/.*)?$/,
 ]
 

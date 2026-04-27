@@ -1,4 +1,4 @@
-/* eslint-disable max-lines */
+/* oxlint-disable max-lines */
 import { type ApolloError } from '@apollo/client'
 import { type PartialMessage } from '@bufbuild/protobuf'
 import { type TransactionRequest as EthersTransactionRequest } from '@ethersproject/providers'
@@ -11,7 +11,7 @@ import {
   type IncreaseLPPositionRequest,
 } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v1/api_pb'
 import { type Currency, type TradeType } from '@uniswap/sdk-core'
-import { type TradingApi, type UnitagClaimContext } from '@universe/api'
+import { type TradingApi } from '@universe/api'
 import { type Experiments } from '@universe/gating'
 import type { PresetPercentage } from 'uniswap/src/components/CurrencyInputPanel/AmountInputPresets/types'
 import { type OnchainItemSectionName } from 'uniswap/src/components/lists/OnchainItemList/types'
@@ -39,6 +39,7 @@ import {
 import { type TokenProtectionWarning } from 'uniswap/src/features/tokens/warnings/types'
 import { type TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { type WrapType } from 'uniswap/src/features/transactions/types/wrap'
+import { type UnitagClaimContext } from 'uniswap/src/features/unitags/types'
 import { type CurrencyField } from 'uniswap/src/types/currency'
 import { type LimitsExpiry } from 'uniswap/src/types/limits'
 import { type ImportType } from 'uniswap/src/types/onboarding'
@@ -319,11 +320,6 @@ export type DappContextProperties = {
   connectedAddresses: Address[]
 }
 
-export enum SwapPriceImpactUserResponse {
-  ACCEPTED = 'Accepted',
-  REJECTED = 'Rejected',
-}
-
 export enum SwapPriceUpdateUserResponse {
   ACCEPTED = 'Accepted',
   REJECTED = 'Rejected',
@@ -335,10 +331,6 @@ export type SwapPriceUpdateActionProperties = {
   token_in_symbol?: string
   token_out_symbol?: string
   price_update_basis_points?: number
-}
-
-export type SwapPriceImpactActionProperties = {
-  response: SwapPriceImpactUserResponse
 }
 
 type InterfaceSearchResultSelectionProperties = {
@@ -840,7 +832,6 @@ export type UniverseEventProperties = {
     createPosition?: boolean
     expectedAmountBaseRaw: string
     expectedAmountQuoteRaw: string
-    price_discrepancy?: string
   } & LiquidityAnalyticsProperties
   [LiquidityEventName.RemoveLiquiditySubmitted]: {
     expectedAmountBaseRaw: string
@@ -850,14 +841,6 @@ export type UniverseEventProperties = {
   [LiquidityEventName.TransactionModifiedInWallet]: {
     expected?: string
     actual: string
-  } & LiquidityAnalyticsProperties
-  [LiquidityEventName.PriceDiscrepancyChecked]: {
-    event_name: LiquidityEventName
-    status: number
-    price_discrepancy: string
-    absolute_price_discrepancy: number
-    sqrt_ratio_x96_before: string
-    sqrt_ratio_x96_after: string
   } & LiquidityAnalyticsProperties
   [AuctionEventName.AuctionWithdrawSubmitted]: AuctionWithdrawAnalyticsProperties
   [AuctionEventName.AuctionBidSubmitted]: AuctionBidAnalyticsProperties
@@ -956,8 +939,21 @@ export type UniverseEventProperties = {
     collection_address?: string
     token_id?: string
     link_type?: string
+    // Covering ElementName.DisconnectWalletButton
+    connector_id?: string
+    svm_connector_id?: string
+    /** NetworkBalanceBreakdown accordion on token details */
+    balanceToggleState?: 'open' | 'close'
+    /** ElementName.NetworkBalanceRow — multichain balance row on token details (web) */
+    chain_id?: UniverseChainId
+    /** Extension portfolio multichain token row expand/collapse */
+    multichainTokenRowState?: 'open' | 'close'
+    chain_name?: string
   }
-  [SharedEventName.PAGE_VIEWED]: ITraceContext
+  [SharedEventName.PAGE_VIEWED]: ITraceContext & {
+    /** Token details */
+    multichain?: boolean
+  }
   [SharedEventName.ANALYTICS_SWITCH_TOGGLED]: {
     enabled: boolean
   }
@@ -1004,11 +1000,11 @@ export type UniverseEventProperties = {
     chain_id: UniverseChainId
     token_symbol: string | undefined
   }
-  [SwapEventName.SwapPriceImpactAcknowledged]: SwapPriceImpactActionProperties
   [SwapEventName.SwapPriceUpdateAcknowledged]: SwapPriceUpdateActionProperties
   [SwapEventName.SwapTransactionCompleted]:
     | ClassicSwapTransactionResultProperties
     | UniswapXTransactionResultProperties
+    // oxlint-disable-next-line typescript/no-duplicate-type-constituents -- biome-parity: oxlint is stricter here
     | BridgeSwapTransactionResultProperties
   [SwapEventName.SwapTransactionFailed]:
     | FailedClassicSwapResultProperties
@@ -1103,6 +1099,42 @@ export type UniverseEventProperties = {
     wallet: string
     view_only: boolean
   }
+  [UniswapEventName.PnlCoverageReport]: {
+    pnl_token_count: number
+    portfolio_token_count: number
+    coverage_rate: number
+  }
+  [UniswapEventName.PnlPortfolioReport]: {
+    unrealized_return_usd: number | undefined
+    unrealized_return_percent: number | undefined
+    realized_return_usd: number | undefined
+    total_return_usd: number | undefined
+    period: string
+  }
+  [UniswapEventName.PnlTokenReport]: {
+    average_cost_usd: number | undefined
+    unrealized_return_usd: number | undefined
+    unrealized_return_percent: number | undefined
+    realized_return_usd: number | undefined
+    realized_return_percent: number | undefined
+    token_address: string
+    chain_id: number
+  }
+  [UniswapEventName.MultichainExploreMetrics]: {
+    total_token_row_count: number
+    multichain_row_reduction_count: number
+    multichain_asset_count: number
+  } & Partial<ITraceContext>
+  [UniswapEventName.MultichainSearchMetrics]: {
+    total_token_row_count: number
+    multichain_row_reduction_count: number
+    multichain_asset_count: number
+  } & Partial<ITraceContext>
+  [UniswapEventName.MultichainPortfolioMetrics]: {
+    total_token_row_count: number
+    multichain_row_reduction_count: number
+    multichain_asset_count: number
+  } & Partial<ITraceContext>
   [UniswapEventName.ConversionEventSubmitted]: {
     id: string
     eventId: string
@@ -1112,10 +1144,13 @@ export type UniverseEventProperties = {
   [UniswapEventName.DataReportSubmitted]:
     | (TokenReportProperties & {
         type: 'data'
+        wallet_address?: string
         price?: boolean
         volume?: boolean
         price_chart?: boolean
         token_details?: boolean
+        performance?: boolean
+        performance_text?: string
         something_else?: boolean
       })
     | (TokenReportProperties & {
@@ -1130,6 +1165,14 @@ export type UniverseEventProperties = {
         something_else: boolean
         text?: string
       })
+    | {
+        type: 'portfolio'
+        wallet_address?: string
+        performance: boolean
+        performance_text?: string
+        something_else: boolean
+        text?: string
+      }
   [UniswapEventName.TokenSelected]:
     | (ITraceContext &
         AssetDetailsBaseProperties &
@@ -1154,6 +1197,7 @@ export type UniverseEventProperties = {
   [UniswapEventName.ContextMenuItemClicked]: ITraceContext & {
     menu_item: string
     menu_item_index: number
+    chain_name?: string
   }
   [UniswapEventName.ContextMenuOpened]: ITraceContext
   [UniswapEventName.LowNetworkTokenInfoModalOpened]: {

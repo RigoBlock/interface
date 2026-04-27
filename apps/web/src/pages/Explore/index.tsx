@@ -14,6 +14,7 @@ import { VolumeTimeFrameSelector } from '~/components/Explore/VolumeTimeFrameSel
 import PoolNotFoundModal from '~/components/NotFoundModal/PoolNotFoundModal'
 import TokenNotFoundModal from '~/components/NotFoundModal/TokenNotFoundModal'
 import { MAX_WIDTH_MEDIA_BREAKPOINT } from '~/constants/breakpoints'
+import { getChainUrlParam, useChainIdFromUrlParam } from '~/features/params/chainParams'
 import { AuctionStatusFilter as AuctionStatusFilterComponent } from '~/pages/Explore/AuctionStatusFilter'
 import { AuctionVerificationFilter as AuctionVerificationFilterComponent } from '~/pages/Explore/AuctionVerificationFilter'
 import { ExploreTab } from '~/pages/Explore/constants'
@@ -32,7 +33,6 @@ import { setOpenModal } from '~/state/application/reducer'
 import { ExploreContextProvider } from '~/state/explore'
 import { useManualChainOutageStore } from '~/state/outage/store'
 import { ClickableTamaguiStyle } from '~/theme/components/styles'
-import { getChainUrlParam, useChainIdFromUrlParam } from '~/utils/chainParams'
 
 interface Page {
   title: React.ReactNode
@@ -129,12 +129,12 @@ const Explore = ({ initialTab }: { initialTab?: ExploreTab }) => {
   }, [initialTab, Pages])
 
   // scroll to tab navbar on initial page mount only
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Intentionally only runs once on mount
   useEffect(() => {
     if (tabNavRef.current && initialTab) {
       const offsetTop = tabNavRef.current.getBoundingClientRect().top + window.scrollY
       window.scrollTo({ top: offsetTop - 90, behavior: 'smooth' })
     }
+    // oxlint-disable-next-line react/exhaustive-deps -- biome-parity: oxlint is stricter here
   }, [])
 
   useEffect(() => {

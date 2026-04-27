@@ -38,7 +38,6 @@ export function useConversionTracking(accountAddress?: HexString): UseConversion
   ]
   const conversionProxy = useConversionProxy()
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: -conversionProxy.mutateAsync
   const trackConversion = useCallback(
     async ({ platformIdType, eventId, eventName }: TrackConversionArgs) => {
       const lead = conversionLeads.find(({ type }) => type === platformIdType)
@@ -91,6 +90,7 @@ export function useConversionTracking(accountAddress?: HexString): UseConversion
       }
     },
     // TODO: Investigate why conversionProxy as a dependency causes a rendering loop
+    // oxlint-disable-next-line react/exhaustive-deps -- biome-parity: oxlint is stricter here
     [accountAddress, conversionLeads, setConversionLeads],
   )
 

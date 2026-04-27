@@ -14,8 +14,8 @@ import { AnimatePresence, Button, Flex, type GetThemeValueForKey, styled, Text }
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { type UniverseChainId } from 'uniswap/src/features/chains/types'
 import { DappRequestType } from 'uniswap/src/features/dappRequests/types'
-import { hasGasEstimationFailed, hasSufficientFundsIncludingGas } from 'uniswap/src/features/gas/utils'
-import { useOnChainNativeCurrencyBalance } from 'uniswap/src/features/portfolio/api'
+import { useChainGasToken } from 'uniswap/src/features/gas/hooks/useChainGasToken'
+import { hasGasEstimationFailed, hasSufficientGasBalance } from 'uniswap/src/features/gas/utils'
 import { type TransactionTypeInfo } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { extractNameFromUrl } from 'utilities/src/format/extractNameFromUrl'
 import { logger } from 'utilities/src/logger/logger'
@@ -178,13 +178,14 @@ function DappRequestFooter({
   const sendTransactionChainId =
     request.dappRequest.type === DappRequestType.SendTransaction ? request.dappRequest.transaction.chainId : undefined
   const currentChainId = chainId || sendTransactionChainId || activeChain || defaultChainId
-  const { balance: nativeBalance } = useOnChainNativeCurrencyBalance(currentChainId, currentAccount.address)
+  const { gasBalance } = useChainGasToken({ chainId: currentChainId, accountAddress: currentAccount.address })
   const isRequestConfirming = useIsDappRequestConfirming(request.dappRequest.requestId)
   const isRequestStale = useIsRequestStale(request.createdAt)
 
-  const hasSufficientGas = hasSufficientFundsIncludingGas({
+  const hasSufficientGas = hasSufficientGasBalance({
+    chainId: currentChainId,
+    gasBalance,
     gasFee: transactionGasFeeResult?.value,
-    nativeCurrencyBalance: nativeBalance,
   })
 
   const shouldCloseSidebar = request.isSidebarClosed && totalRequestCount <= 1
@@ -251,7 +252,7 @@ function DappRequestFooter({
           <Flex pb="$spacing8">
             <Text color="$statusWarning" variant="body3">
               {t('swap.warning.insufficientGas.title', {
-                currencySymbol: nativeBalance?.currency.symbol ?? '',
+                currencySymbol: gasBalance?.currency.symbol ?? '',
               })}
             </Text>
           </Flex>
@@ -296,6 +297,7 @@ function DappRequestFooter({
   )
 }
 
+// oxlint-disable-next-line typescript/consistent-return -- biome-parity: oxlint is stricter here
 function WarningSection({ request, isRequestStale }: { request: DappRequest; isRequestStale: boolean }) {
   const { t } = useTranslation()
 

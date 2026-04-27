@@ -15,6 +15,7 @@ import {
 } from 'src/components/TokenDetails/useTokenDetailsCTAVariant'
 import { useTokenDetailsCurrentChainBalance } from 'src/components/TokenDetails/useTokenDetailsCurrentChainBalance'
 import { NetworkBalanceSheetContent } from 'src/screens/TokenDetailsScreen/NetworkBalanceSheetContent'
+import { useHighestTvlChain } from 'src/screens/TokenDetailsScreen/useHighestTvlChain'
 import { useNetworkBalanceSheet } from 'src/screens/TokenDetailsScreen/useNetworkBalanceSheet'
 import { useIsScreenNavigationReady } from 'src/utils/useIsScreenNavigationReady'
 import { ArrowDownCircle, ArrowUpCircle, Bank, QrCode, SendRoundedAirplane } from 'ui/src/components/icons'
@@ -28,7 +29,7 @@ import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { type PortfolioBalance, TokenList } from 'uniswap/src/features/dataApi/types'
 import { useIsSupportedFiatOnRampCurrency } from 'uniswap/src/features/fiatOnRamp/hooks'
-import { useOnChainNativeCurrencyBalance } from 'uniswap/src/features/portfolio/api'
+import { useChainGasToken } from 'uniswap/src/features/gas/hooks/useChainGasToken'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { useAppInsets } from 'uniswap/src/hooks/useAppInsets'
 import { CurrencyField } from 'uniswap/src/types/currency'
@@ -41,303 +42,311 @@ function getHighestBalanceEntry(balances: PortfolioBalance[]): PortfolioBalance 
   return balances.reduce((best, current) => ((current.balanceUSD ?? 0) > (best.balanceUSD ?? 0) ? current : best))
 }
 
-export const TokenDetailsActionButtonsWrapper = memo(function _TokenDetailsActionButtonsWrapper(): JSX.Element | null {
-  const { t } = useTranslation()
-  const insets = useAppInsets()
-  const activeAddress = useActiveAccountAddressWithThrow()
-  const { isTestnetModeEnabled } = useEnabledChains()
-  const isMultichainTokenUx = useFeatureFlag(FeatureFlags.MultichainTokenUx)
+export const TokenDetailsActionButtonsWrapper = memo(
+  function TokenDetailsActionButtonsWrapperInner(): JSX.Element | null {
+    const { t } = useTranslation()
+    const insets = useAppInsets()
+    const activeAddress = useActiveAccountAddressWithThrow()
+    const { isTestnetModeEnabled } = useEnabledChains()
+    const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
 
-  const { currencyId, chainId, address, currencyInfo, openTokenWarningModal, tokenColorLoading, navigation } =
-    useTokenDetailsContext()
+    const { currencyId, chainId, address, currencyInfo, openTokenWarningModal, tokenColorLoading, navigation } =
+      useTokenDetailsContext()
 
-  const { navigateToFiatOnRamp, navigateToSwapFlow, navigateToSend, navigateToReceive } = useWalletNavigation()
+    const { navigateToFiatOnRamp, navigateToSwapFlow, navigateToSend, navigateToReceive } = useWalletNavigation()
 
-  const token = useTokenBasicInfoPartsFragment({ currencyId }).data
+    const token = useTokenBasicInfoPartsFragment({ currencyId }).data
 
-  const isBlocked = currencyInfo?.safetyInfo?.tokenList === TokenList.Blocked
+    const isBlocked = currencyInfo?.safetyInfo?.tokenList === TokenList.Blocked
 
-  const isNativeCurrency = isNativeCurrencyAddress(chainId, address)
-  const nativeCurrencyAddress = getChainInfo(chainId).nativeCurrency.address
+    const isNativeCurrency = isNativeCurrencyAddress(chainId, address)
+    const nativeCurrencyAddress = getChainInfo(chainId).nativeCurrency.address
 
-  const { balance: nativeCurrencyBalance, isLoading: isNativeCurrencyBalanceLoading } = useOnChainNativeCurrencyBalance(
-    chainId,
-    activeAddress,
-  )
-  const hasZeroNativeBalance = nativeCurrencyBalance && nativeCurrencyBalance.equalTo('0')
+    const { gasBalance, isLoading: isGasBalanceLoading } = useChainGasToken({ chainId, accountAddress: activeAddress })
+    const hasZeroGasBalance = gasBalance && gasBalance.equalTo('0')
 
-  const { currency: nativeFiatOnRampCurrency, isLoading: isNativeFiatOnRampCurrencyLoading } =
-    useIsSupportedFiatOnRampCurrency(buildCurrencyId(chainId, nativeCurrencyAddress))
+    const { currency: nativeFiatOnRampCurrency, isLoading: isNativeFiatOnRampCurrencyLoading } =
+      useIsSupportedFiatOnRampCurrency(buildCurrencyId(chainId, nativeCurrencyAddress))
 
-  const currentChainBalance = useTokenDetailsCurrentChainBalance()
+    const currentChainBalance = useTokenDetailsCurrentChainBalance()
 
-  const { currency: fiatOnRampCurrency, isLoading: isFiatOnRampCurrencyLoading } =
-    useIsSupportedFiatOnRampCurrency(currencyId)
+    const { currency: fiatOnRampCurrency, isLoading: isFiatOnRampCurrencyLoading } =
+      useIsSupportedFiatOnRampCurrency(currencyId)
 
-  const { data: bridgingTokenWithHighestBalance, isLoading: isBridgingTokenLoading } =
-    useBridgingTokenWithHighestBalance({
-      evmAddress: activeAddress,
-      currencyAddress: address,
-      currencyChainId: chainId,
+    const { data: bridgingTokenWithHighestBalance, isLoading: isBridgingTokenLoading } =
+      useBridgingTokenWithHighestBalance({
+        evmAddress: activeAddress,
+        currencyAddress: address,
+        currencyChainId: chainId,
+      })
+
+    const {
+      allChainBalances,
+      hasMultiChainBalances,
+      isNetworkSheetOpen,
+      openSellSheet,
+      openSendSheet,
+      onCloseNetworkSheet,
+      onSelectNetwork,
+    } = useNetworkBalanceSheet({ currencyId, chainId })
+
+    const hasTokenBalance = multichainTokenUxEnabled ? allChainBalances.length > 0 : Boolean(currentChainBalance)
+
+    // For multichain UX: resolve the chain with the highest balance (computed once, used by multiple handlers)
+    const highestBalanceEntry = useMemo(() => {
+      if (!multichainTokenUxEnabled || !allChainBalances.length) {
+        return null
+      }
+      return getHighestBalanceEntry(allChainBalances)
+    }, [multichainTokenUxEnabled, allChainBalances])
+
+    const highestBalanceCurrencyId = highestBalanceEntry?.currencyInfo.currencyId ?? currencyId
+
+    const { currency: highestBalanceFiatCurrency } = useIsSupportedFiatOnRampCurrency(highestBalanceCurrencyId)
+
+    const { chainId: highestTvlChainId, address: highestTvlAddress } = useHighestTvlChain({ currencyId })
+
+    const onPressSwap = useEvent((currencyField: CurrencyField) => {
+      if (isBlocked) {
+        openTokenWarningModal()
+      } else {
+        navigateToSwapFlow({ currencyField, currencyAddress: address, currencyChainId: chainId })
+      }
     })
 
-  const {
-    allChainBalances,
-    hasMultiChainBalances,
-    isNetworkSheetOpen,
-    openSellSheet,
-    openSendSheet,
-    onCloseNetworkSheet,
-    onSelectNetwork,
-  } = useNetworkBalanceSheet({ currencyId, chainId })
-
-  const hasTokenBalance = isMultichainTokenUx ? allChainBalances.length > 0 : Boolean(currentChainBalance)
-
-  // For multichain UX: resolve the chain with the highest balance (computed once, used by multiple handlers)
-  const highestBalanceEntry = useMemo(() => {
-    if (!isMultichainTokenUx || !allChainBalances.length) {
-      return null
-    }
-    return getHighestBalanceEntry(allChainBalances)
-  }, [isMultichainTokenUx, allChainBalances])
-
-  const highestBalanceCurrencyId = highestBalanceEntry?.currencyInfo.currencyId ?? currencyId
-
-  const { currency: highestBalanceFiatCurrency } = useIsSupportedFiatOnRampCurrency(highestBalanceCurrencyId)
-
-  const onPressSwap = useEvent((currencyField: CurrencyField) => {
-    if (isBlocked) {
-      openTokenWarningModal()
-    } else {
-      navigateToSwapFlow({ currencyField, currencyAddress: address, currencyChainId: chainId })
-    }
-  })
-
-  const onPressBuyFiatOnRamp = useEvent((isOfframp: boolean = false): void => {
-    navigateToFiatOnRamp({ prefilledCurrency: fiatOnRampCurrency, isOfframp })
-  })
-
-  const onPressGet = useEvent(() => {
-    navigate(ModalName.BuyNativeToken, {
-      chainId,
-      currencyId,
+    const onPressBuyFiatOnRamp = useEvent((isOfframp: boolean = false): void => {
+      navigateToFiatOnRamp({ prefilledCurrency: fiatOnRampCurrency, isOfframp })
     })
-  })
 
-  const onPressSend = useEvent(() => {
-    if (isMultichainTokenUx && hasMultiChainBalances) {
-      openSendSheet()
-    } else {
-      navigateToSend({ currencyAddress: address, chainId })
-    }
-  })
-
-  const onPressWithdraw = useEvent(() => {
-    setTimeout(() => {
-      navigate(ModalName.Wormhole, {
-        currencyInfo,
+    const onPressGet = useEvent(() => {
+      navigate(ModalName.BuyNativeToken, {
+        chainId,
+        currencyId,
       })
-    }, MODAL_OPEN_WAIT_TIME)
-  })
+    })
 
-  const onPressBuy = useEvent(() => {
-    if (isBlocked) {
-      openTokenWarningModal()
-      return
-    }
-    if (isMultichainTokenUx && highestBalanceEntry) {
-      const { currency } = highestBalanceEntry.currencyInfo
-      const currencyAddress = currency.isToken ? currency.address : getNativeAddress(currency.chainId)
-      navigateToSwapFlow({ currencyField: CurrencyField.OUTPUT, currencyAddress, currencyChainId: currency.chainId })
-    } else {
-      navigateToSwapFlow({ currencyField: CurrencyField.OUTPUT, currencyAddress: address, currencyChainId: chainId })
-    }
-  })
+    const onPressSend = useEvent(() => {
+      if (multichainTokenUxEnabled && hasMultiChainBalances) {
+        openSendSheet()
+      } else {
+        navigateToSend({ currencyAddress: address, chainId })
+      }
+    })
 
-  const onPressSell = useEvent(() => {
-    if (isMultichainTokenUx && hasMultiChainBalances) {
-      openSellSheet()
-    } else {
-      onPressSwap(CurrencyField.INPUT)
-    }
-  })
-
-  const onPressBuyWithCash = useEvent(() => {
-    navigateToFiatOnRamp({ prefilledCurrency: highestBalanceFiatCurrency ?? fiatOnRampCurrency })
-  })
-
-  const onPressSellForCash = useEvent(() => {
-    navigateToFiatOnRamp({ prefilledCurrency: highestBalanceFiatCurrency ?? fiatOnRampCurrency, isOfframp: true })
-  })
-
-  const bridgedWithdrawalInfo = currencyInfo?.bridgedWithdrawalInfo
-
-  const isScreenNavigationReady = useIsScreenNavigationReady({ navigation })
-
-  const getCTAVariant = useTokenDetailsCTAVariant({
-    hasTokenBalance,
-    isNativeCurrency,
-    nativeFiatOnRampCurrency,
-    fiatOnRampCurrency,
-    bridgingTokenWithHighestBalance,
-    hasZeroNativeBalance,
-    tokenSymbol: token.symbol,
-    onPressBuyFiatOnRamp,
-    onPressGet,
-    onPressSwap,
-  })
-
-  const actionMenuOptions: MenuOptionItem[] = useMemo(() => {
-    const actions: MenuOptionItem[] = []
-
-    if (fiatOnRampCurrency) {
-      actions.push({
-        label: t('common.button.buy'),
-        Icon: Bank,
-        onPress: onPressBuyFiatOnRamp,
-      })
-    }
-
-    if (bridgedWithdrawalInfo && hasTokenBalance) {
-      actions.push({
-        label: t('common.withdraw'),
-        Icon: ArrowUpCircle,
-        onPress: onPressWithdraw,
-        subheader: t('bridgedAsset.wormhole.toNativeChain', { nativeChainName: bridgedWithdrawalInfo.chain }),
-        actionType: 'external-link',
-        height: 56,
-      })
-    }
-
-    if (hasTokenBalance && fiatOnRampCurrency) {
-      actions.push({
-        label: t('common.button.sell'),
-        Icon: ArrowUpCircle,
-        onPress: () => onPressBuyFiatOnRamp(true),
-      })
-    }
-
-    if (hasTokenBalance) {
-      actions.push({ label: t('common.button.send'), Icon: SendRoundedAirplane, onPress: onPressSend })
-    }
-
-    // All cases have a receive action
-    actions.push({ label: t('common.button.receive'), Icon: ArrowDownCircle, onPress: navigateToReceive })
-
-    return actions
-  }, [
-    fiatOnRampCurrency,
-    t,
-    bridgedWithdrawalInfo,
-    hasTokenBalance,
-    onPressWithdraw,
-    onPressSend,
-    navigateToReceive,
-    onPressBuyFiatOnRamp,
-  ])
-
-  const multichainActionMenuOptions: MenuOptionItem[] = useMemo(() => {
-    const actions: MenuOptionItem[] = []
-
-    if (hasTokenBalance) {
-      actions.push({ label: t('common.button.send'), Icon: SendRoundedAirplane, onPress: onPressSend })
-    }
-
-    actions.push({ label: t('common.button.receive'), Icon: QrCode, onPress: navigateToReceive })
-
-    if (highestBalanceFiatCurrency || fiatOnRampCurrency) {
-      actions.push({ label: t('fiatOnRamp.action.buyWithCash'), Icon: Bank, onPress: onPressBuyWithCash })
-    }
-
-    if (hasTokenBalance && (highestBalanceFiatCurrency || fiatOnRampCurrency)) {
-      actions.push({ label: t('fiatOnRamp.action.sellForCash'), Icon: ArrowUpCircle, onPress: onPressSellForCash })
-    }
-
-    if (bridgedWithdrawalInfo && hasTokenBalance) {
-      actions.push({
-        label: t('common.withdraw'),
-        Icon: ArrowUpCircle,
-        onPress: onPressWithdraw,
-        subheader: t('bridgedAsset.wormhole.toNativeChain', { nativeChainName: bridgedWithdrawalInfo.chain }),
-        actionType: 'external-link',
-        height: 56,
-      })
-    }
-
-    return actions
-  }, [
-    t,
-    hasTokenBalance,
-    bridgedWithdrawalInfo,
-    highestBalanceFiatCurrency,
-    fiatOnRampCurrency,
-    onPressSend,
-    navigateToReceive,
-    onPressBuyWithCash,
-    onPressSellForCash,
-    onPressWithdraw,
-  ])
-
-  const hideActionButtons =
-    !isScreenNavigationReady ||
-    tokenColorLoading ||
-    isNativeCurrencyBalanceLoading ||
-    isNativeFiatOnRampCurrencyLoading ||
-    isFiatOnRampCurrencyLoading ||
-    isBridgingTokenLoading
-
-  const onPressDisabled = isTestnetModeEnabled
-    ? (): void =>
-        navigate(ModalName.TestnetMode, {
-          unsupported: true,
-          descriptionCopy: t('tdp.noTestnetSupportDescription'),
+    const onPressWithdraw = useEvent(() => {
+      setTimeout(() => {
+        navigate(ModalName.Wormhole, {
+          currencyInfo,
         })
-    : openTokenWarningModal
+      }, MODAL_OPEN_WAIT_TIME)
+    })
 
-  const multichainBuyVariant = useMultichainBuyVariant({
-    hasTokenBalance,
-    isNativeCurrency,
-    nativeFiatOnRampCurrency,
-    fiatOnRampCurrency,
-    bridgingTokenWithHighestBalance,
-    hasZeroNativeBalance,
-    tokenSymbol: token.symbol,
-    onPressBuyWithCash,
-    onPressGet,
-    onPressBuy,
-  })
+    // Chain selection priority for the Buy (swap) flow:
+    // 1. Chain where the user holds the highest balance (they already have a position)
+    // 2. Chain with the highest TVL (best liquidity for new buyers with 0 balance)
+    // 3. Current TDP chain (fallback when data is unavailable)
+    const onPressBuy = useEvent(() => {
+      if (isBlocked) {
+        openTokenWarningModal()
+        return
+      }
+      if (multichainTokenUxEnabled && highestBalanceEntry) {
+        const { currency } = highestBalanceEntry.currencyInfo
+        const currencyAddress = currency.isToken ? currency.address : getNativeAddress(currency.chainId)
+        navigateToSwapFlow({ currencyField: CurrencyField.OUTPUT, currencyAddress, currencyChainId: currency.chainId })
+      } else if (multichainTokenUxEnabled && highestTvlChainId) {
+        const currencyAddress = highestTvlAddress ?? getNativeAddress(highestTvlChainId)
+        navigateToSwapFlow({ currencyField: CurrencyField.OUTPUT, currencyAddress, currencyChainId: highestTvlChainId })
+      } else {
+        navigateToSwapFlow({ currencyField: CurrencyField.OUTPUT, currencyAddress: address, currencyChainId: chainId })
+      }
+    })
 
-  return hideActionButtons ? null : (
-    <AnimatedFlex mb={insets.bottom} backgroundColor="$surface1" entering={FadeInDown}>
-      {isMultichainTokenUx ? (
-        <TokenDetailsBuySellButtons
-          actionMenuOptions={multichainActionMenuOptions}
-          buyButtonIcon={multichainBuyVariant.icon}
-          buyButtonTitle={multichainBuyVariant.title}
-          userHasBalance={hasTokenBalance}
-          onPressBuy={multichainBuyVariant.onPress}
-          onPressDisabled={onPressDisabled}
-          onPressSell={onPressSell}
-        />
-      ) : (
-        <TokenDetailsSwapButtons
-          actionMenuOptions={actionMenuOptions}
-          ctaButton={getCTAVariant}
-          userHasBalance={hasTokenBalance}
-          onPressDisabled={onPressDisabled}
-        />
-      )}
+    const onPressSell = useEvent(() => {
+      if (multichainTokenUxEnabled && hasMultiChainBalances) {
+        openSellSheet()
+      } else {
+        onPressSwap(CurrencyField.INPUT)
+      }
+    })
 
-      {isMultichainTokenUx && isNetworkSheetOpen && (
-        <Modal
-          overrideInnerContainer
-          enableDynamicSizing
-          name={ModalName.NetworkBalanceSelector}
-          onClose={onCloseNetworkSheet}
-        >
-          <NetworkBalanceSheetContent allChainBalances={allChainBalances} onSelectBalance={onSelectNetwork} />
-        </Modal>
-      )}
-    </AnimatedFlex>
-  )
-})
+    const onPressBuyWithCash = useEvent(() => {
+      navigateToFiatOnRamp({ prefilledCurrency: highestBalanceFiatCurrency ?? fiatOnRampCurrency })
+    })
+
+    const onPressSellForCash = useEvent(() => {
+      navigateToFiatOnRamp({ prefilledCurrency: highestBalanceFiatCurrency ?? fiatOnRampCurrency, isOfframp: true })
+    })
+
+    const bridgedWithdrawalInfo = currencyInfo?.bridgedWithdrawalInfo
+
+    const isScreenNavigationReady = useIsScreenNavigationReady({ navigation })
+
+    const getCTAVariant = useTokenDetailsCTAVariant({
+      hasTokenBalance,
+      isNativeCurrency,
+      nativeFiatOnRampCurrency,
+      fiatOnRampCurrency,
+      bridgingTokenWithHighestBalance,
+      hasZeroGasBalance,
+      tokenSymbol: token.symbol,
+      onPressBuyFiatOnRamp,
+      onPressGet,
+      onPressSwap,
+    })
+
+    const actionMenuOptions: MenuOptionItem[] = useMemo(() => {
+      const actions: MenuOptionItem[] = []
+
+      if (fiatOnRampCurrency) {
+        actions.push({
+          label: t('common.button.buy'),
+          Icon: Bank,
+          onPress: onPressBuyFiatOnRamp,
+        })
+      }
+
+      if (bridgedWithdrawalInfo && hasTokenBalance) {
+        actions.push({
+          label: t('common.withdraw'),
+          Icon: ArrowUpCircle,
+          onPress: onPressWithdraw,
+          subheader: t('bridgedAsset.wormhole.toNativeChain', { nativeChainName: bridgedWithdrawalInfo.chain }),
+          actionType: 'external-link',
+          height: 56,
+        })
+      }
+
+      if (hasTokenBalance && fiatOnRampCurrency) {
+        actions.push({
+          label: t('common.button.sell'),
+          Icon: ArrowUpCircle,
+          onPress: () => onPressBuyFiatOnRamp(true),
+        })
+      }
+
+      if (hasTokenBalance) {
+        actions.push({ label: t('common.button.send'), Icon: SendRoundedAirplane, onPress: onPressSend })
+      }
+
+      // All cases have a receive action
+      actions.push({ label: t('common.button.receive'), Icon: ArrowDownCircle, onPress: navigateToReceive })
+
+      return actions
+    }, [
+      fiatOnRampCurrency,
+      t,
+      bridgedWithdrawalInfo,
+      hasTokenBalance,
+      onPressWithdraw,
+      onPressSend,
+      navigateToReceive,
+      onPressBuyFiatOnRamp,
+    ])
+
+    const multichainActionMenuOptions: MenuOptionItem[] = useMemo(() => {
+      const actions: MenuOptionItem[] = []
+
+      if (hasTokenBalance) {
+        actions.push({ label: t('common.button.send'), Icon: SendRoundedAirplane, onPress: onPressSend })
+      }
+
+      actions.push({ label: t('common.button.receive'), Icon: QrCode, onPress: navigateToReceive })
+
+      if (highestBalanceFiatCurrency || fiatOnRampCurrency) {
+        actions.push({ label: t('fiatOnRamp.action.buyWithCash'), Icon: Bank, onPress: onPressBuyWithCash })
+      }
+
+      if (hasTokenBalance && (highestBalanceFiatCurrency || fiatOnRampCurrency)) {
+        actions.push({ label: t('fiatOnRamp.action.sellForCash'), Icon: ArrowUpCircle, onPress: onPressSellForCash })
+      }
+
+      if (bridgedWithdrawalInfo && hasTokenBalance) {
+        actions.push({
+          label: t('common.withdraw'),
+          Icon: ArrowUpCircle,
+          onPress: onPressWithdraw,
+          subheader: t('bridgedAsset.wormhole.toNativeChain', { nativeChainName: bridgedWithdrawalInfo.chain }),
+          actionType: 'external-link',
+          height: 56,
+        })
+      }
+
+      return actions
+    }, [
+      t,
+      hasTokenBalance,
+      bridgedWithdrawalInfo,
+      highestBalanceFiatCurrency,
+      fiatOnRampCurrency,
+      onPressSend,
+      navigateToReceive,
+      onPressBuyWithCash,
+      onPressSellForCash,
+      onPressWithdraw,
+    ])
+
+    const hideActionButtons =
+      !isScreenNavigationReady ||
+      tokenColorLoading ||
+      isGasBalanceLoading ||
+      isNativeFiatOnRampCurrencyLoading ||
+      isFiatOnRampCurrencyLoading ||
+      isBridgingTokenLoading
+
+    const onPressDisabled = isTestnetModeEnabled
+      ? (): void =>
+          navigate(ModalName.TestnetMode, {
+            unsupported: true,
+            descriptionCopy: t('tdp.noTestnetSupportDescription'),
+          })
+      : openTokenWarningModal
+
+    const multichainBuyVariant = useMultichainBuyVariant({
+      hasTokenBalance,
+      isNativeCurrency,
+      nativeFiatOnRampCurrency,
+      fiatOnRampCurrency,
+      bridgingTokenWithHighestBalance,
+      hasZeroGasBalance,
+      tokenSymbol: token.symbol,
+      onPressBuyWithCash,
+      onPressGet,
+      onPressBuy,
+    })
+
+    return hideActionButtons ? null : (
+      <AnimatedFlex mb={insets.bottom} backgroundColor="$surface1" entering={FadeInDown}>
+        {multichainTokenUxEnabled ? (
+          <TokenDetailsBuySellButtons
+            actionMenuOptions={multichainActionMenuOptions}
+            buyButtonIcon={multichainBuyVariant.icon}
+            buyButtonTitle={multichainBuyVariant.title}
+            userHasBalance={hasTokenBalance}
+            onPressBuy={multichainBuyVariant.onPress}
+            onPressDisabled={onPressDisabled}
+            onPressSell={onPressSell}
+          />
+        ) : (
+          <TokenDetailsSwapButtons
+            actionMenuOptions={actionMenuOptions}
+            ctaButton={getCTAVariant}
+            userHasBalance={hasTokenBalance}
+            onPressDisabled={onPressDisabled}
+          />
+        )}
+
+        {multichainTokenUxEnabled && isNetworkSheetOpen && (
+          <Modal
+            overrideInnerContainer
+            enableDynamicSizing
+            name={ModalName.NetworkBalanceSelector}
+            onClose={onCloseNetworkSheet}
+          >
+            <NetworkBalanceSheetContent allChainBalances={allChainBalances} onSelectBalance={onSelectNetwork} />
+          </Modal>
+        )}
+      </AnimatedFlex>
+    )
+  },
+)

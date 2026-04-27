@@ -27,6 +27,7 @@ interface CurrencySearchProps {
   onDismiss: () => void
   chainIds?: UniverseChainId[]
   variation?: TokenSelectorVariation
+  flow?: TokenSelectorFlow
 }
 
 export function CurrencySearch({
@@ -36,6 +37,7 @@ export function CurrencySearch({
   onDismiss,
   chainIds,
   variation,
+  flow = TokenSelectorFlow.Swap,
 }: CurrencySearchProps) {
   const activeAddresses = useActiveAddresses()
 
@@ -52,7 +54,9 @@ export function CurrencySearch({
   // When a smart pool is active, use vault address for token selector balance queries
   const addresses = useMemo(
     () =>
-      smartPoolAddress ? { evmAddress: smartPoolAddress, svmAddress: undefined } : activeAddresses,
+      smartPoolAddress
+        ? { evmAddress: smartPoolAddress as `0x${string}`, svmAddress: undefined }
+        : activeAddresses,
     [smartPoolAddress, activeAddresses],
   )
 
@@ -82,18 +86,24 @@ export function CurrencySearch({
     showSwitchNetworkNotification({ chainId, prevChainId, action: switchNetworkAction })
   }, [currentTab, chainId, prevChainId, isMultichainContext, switchNetworkAction])
 
+  const isSingleChainContext = chainIds?.length === 1
+  const resolvedChainId = isSingleChainContext
+    ? chainIds[0]
+    : !isMultichainContext || isUserSelectedToken
+      ? chainId
+      : undefined
+
   return (
     <Trace logImpression eventOnTrigger={InterfaceEventName.TokenSelectorOpened} modal={ModalName.TokenSelectorWeb}>
       <Flex width="100%" flexGrow={1} flexShrink={1} flexBasis="auto">
         <TokenSelectorContent
           renderedInModal={false}
           addresses={addresses}
-          isLimits={currentTab === SwapTab.Limit}
-          chainId={!isMultichainContext || isUserSelectedToken ? chainId : undefined}
+          chainId={resolvedChainId}
           chainIds={chainIds ?? chains}
           supportedBridgingChains={smartPoolAddress ? RIGOBLOCK_BRIDGE_SUPPORTED_CHAINS : undefined}
           currencyField={currencyField}
-          flow={TokenSelectorFlow.Swap}
+          flow={currentTab === SwapTab.Limit ? TokenSelectorFlow.Limit : flow}
           isSurfaceReady={true}
           variation={
             variation ??
