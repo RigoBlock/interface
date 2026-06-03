@@ -7,7 +7,11 @@ function isRigoblockHostname(): boolean {
     return false
   }
 
-  return isAppRigoblockCom(window.location) || isAppRigoblockStagingCom(window.location)
+  return (
+    isAppRigoblockCom(window.location) ||
+    isAppRigoblockStagingCom(window.location) ||
+    window.location.hostname === 'localhost'
+  )
 }
 
 export function getIsSessionServiceEnabledOnWeb(): boolean {
