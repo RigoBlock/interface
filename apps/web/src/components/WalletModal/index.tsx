@@ -5,6 +5,10 @@ import { EmbeddedWalletConnectionsModal } from '~/components/WalletModal/Embedde
 import { StandardWalletModal } from '~/components/WalletModal/StandardWalletModal'
 import { SwitchWalletModal } from '~/components/WalletModal/SwitchWalletModal'
 
+// PrivyProvider is only mounted when PRIVY_APP_ID is set and the hostname is app.uniswap.org.
+// Without it, Privy hooks crash. Mirror the same condition used in index.tsx.
+const isPrivyProviderMounted = !!process.env.PRIVY_APP_ID && window.location.hostname === 'app.uniswap.org'
+
 export default function WalletModal({ connectOnPlatform }: { connectOnPlatform?: Platform | 'any' }) {
   const isEmbeddedWalletEnabled = useFeatureFlag(FeatureFlags.EmbeddedWallet)
   const onClose = useSetMenuCallback(MenuStateVariant.MAIN)
@@ -13,5 +17,5 @@ export default function WalletModal({ connectOnPlatform }: { connectOnPlatform?:
     return <SwitchWalletModal connectOnPlatform={connectOnPlatform} onClose={onClose} />
   }
 
-  return isEmbeddedWalletEnabled ? <EmbeddedWalletConnectionsModal /> : <StandardWalletModal />
+  return isEmbeddedWalletEnabled && isPrivyProviderMounted ? <EmbeddedWalletConnectionsModal /> : <StandardWalletModal />
 }
