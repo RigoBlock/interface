@@ -133,7 +133,8 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
   const canBatchTransactions =
     (useUniswapContextSelector((ctx) => ctx.getCanBatchTransactions?.(poolOrPair?.chainId)) ?? false) &&
     poolOrPair?.chainId !== UniverseChainId.Monad &&
-    isLiquidityBatchedTransactionsEnabled
+    isLiquidityBatchedTransactionsEnabled &&
+    !smartPoolAddress
 
   const delegatedAddress = useSelector((state: { delegation: DelegatedState }) =>
     poolOrPair?.chainId ? state.delegation.delegations[String(poolOrPair.chainId)] : null,
@@ -322,7 +323,7 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
   )
   const { displayValue: calculatedGasFee } = useTransactionGasFee({
     tx: createCalldata?.create,
-    skip: !!actualGasFee || needsApprovals,
+    skip: !!actualGasFee || needsApprovals || !!smartPoolAddress,
   })
   const increaseGasFeeUsd = useUSDCurrencyAmountOfGasFee(
     toSupportedChainId(createCalldata?.create?.chainId) ?? undefined,

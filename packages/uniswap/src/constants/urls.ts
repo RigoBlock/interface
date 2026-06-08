@@ -2,6 +2,7 @@ import {
   createHelpArticleUrl,
   DEV_ENTRY_GATEWAY_API_BASE_URL,
   getCloudflareApiBaseUrl,
+  getEntryGatewayUrl,
   getMigratedForApiUrl,
   getRbCloudflareApiBaseUrl,
   helpUrl,
@@ -13,17 +14,6 @@ import { FeatureFlags, getFeatureFlag } from '@universe/gating'
 import { config } from 'uniswap/src/config'
 import { isBetaEnv, isDevEnv, isPlaywrightEnv } from 'utilities/src/environment/env'
 import { isWebApp } from 'utilities/src/platform'
-
-function getComplianceApiBaseUrl(): string {
-  if (isPlaywrightEnv()) {
-    return PROD_ENTRY_GATEWAY_API_BASE_URL
-  }
-  // Dev and staging both use the staging compliance backend
-  if (isDevEnv() || isBetaEnv()) {
-    return STAGING_ENTRY_GATEWAY_API_BASE_URL
-  }
-  return PROD_ENTRY_GATEWAY_API_BASE_URL
-}
 
 export const UNISWAP_WEB_HOSTNAME = 'app.rigoblock.com'
 const EMBEDDED_WALLET_HOSTNAME = isPlaywrightEnv() || isDevEnv() ? 'staging.ew.unihq.org' : UNISWAP_WEB_HOSTNAME
@@ -185,7 +175,7 @@ export const uniswapUrls = {
   // Core API Urls
   apiOrigin: 'https://api.rigoblock.com',
   apiBaseUrl: config.apiBaseUrlOverride || getRbCloudflareApiBaseUrl(),
-  complianceApiBaseUrl: getComplianceApiBaseUrl(),
+  complianceApiBaseUrl: getEntryGatewayUrl(),
   // ConnectRPC transports append /{proto.package}.{Service}/{method} directly to this base URL.
   // The RigoBlock Cloudflare worker routes /v2/* to the data API backend, so both ConnectRPC
   // transports must include the /v2 path prefix. Without it the worker returns 403.

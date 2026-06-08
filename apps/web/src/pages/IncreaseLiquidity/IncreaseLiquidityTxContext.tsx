@@ -87,7 +87,8 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
   const canBatchTransactions =
     useUniswapContextSelector((ctx) => ctx.getCanBatchTransactions?.(positionInfo?.chainId)) &&
     positionInfo?.chainId !== UniverseChainId.Monad &&
-    isLiquidityBatchedTransactionsEnabled
+    isLiquidityBatchedTransactionsEnabled &&
+    !smartPoolAddress
 
   const delegatedAddress = useSelector((state: { delegation: DelegatedState }) =>
     positionInfo?.chainId ? state.delegation.delegations[String(positionInfo.chainId)] : null,
@@ -212,7 +213,7 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
         deadline: getTradeSettingsDeadline(customDeadline),
         // Smart pool transactions always revert server-side simulation (vault routing);
         // skip it and override from/to/gasLimit client-side after receiving calldata
-        simulateTransaction: !!smartPoolAddress ? false : !approvalsNeeded,
+        simulateTransaction: smartPoolAddress ? false : !approvalsNeeded,
       })
     }
 
@@ -321,7 +322,10 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
     return increaseCalldata?.dependentAmount
   }, [increaseCalldata, calldataError, fallbackDependentAmount, exactField])
 
-  const { displayValue: calculatedGasFee } = useTransactionGasFee({ tx: increase, skip: !!actualGasFee })
+  const { displayValue: calculatedGasFee } = useTransactionGasFee({
+    tx: increase,
+    skip: !!actualGasFee || !!smartPoolAddress,
+  })
   const increaseGasFeeUsd = useUSDCurrencyAmountOfGasFee(
     toSupportedChainId(increaseCalldata?.increase?.chainId) ?? undefined,
     actualGasFee || calculatedGasFee,

@@ -1,5 +1,4 @@
 import { Currency } from '@uniswap/sdk-core'
-import { useMemo } from 'react'
 import { useExtractedTokenColor, useSporeColors } from 'ui/src'
 import { useCurrencyInfo } from '~/hooks/Tokens'
 
@@ -32,10 +31,7 @@ export function useSrcColor({
 }) {
   const colors = useSporeColors()
 
-  const extractSrc = useMemo(
-    () => (src?.includes('coingecko') ? 'https://corsproxy.io/?' + encodeURIComponent(src) : src),
-    [src],
-  )
+  const extractSrc = src
 
   return useExtractedTokenColor({
     imageUrl: extractSrc,
