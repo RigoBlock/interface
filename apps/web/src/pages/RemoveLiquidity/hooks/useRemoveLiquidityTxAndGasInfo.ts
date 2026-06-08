@@ -391,7 +391,7 @@ export function useRemoveLiquidityTxAndGasInfo({ account }: { account?: string }
 
   const { displayValue: estimatedGasFee } = useTransactionGasFee({
     tx: decreaseCalldata?.decrease,
-    skip: !!decreaseCalldata?.gasFee,
+    skip: !!decreaseCalldata?.gasFee || !!activeSmartPool.address,
   })
   const decreaseGasFeeUsd =
     useUSDCurrencyAmountOfGasFee(
