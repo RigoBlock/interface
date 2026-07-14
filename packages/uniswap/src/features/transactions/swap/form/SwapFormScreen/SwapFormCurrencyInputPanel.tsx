@@ -87,13 +87,16 @@ export function SwapFormCurrencyInputPanel(): JSX.Element {
           value={exactFieldIsInput ? exactValue : formattedDerivedValue}
           valueIsIndicative={!exactFieldIsInput && trade.indicativeTrade && !trade.trade}
           tokenColor={tokenColor}
+          isSmartPool={!!smartPoolAddress}
+          // Smart pools do not need gas reserves, so a single MAX button is more appropriate
+          // than percentage presets for swapping from the pool.
+          showMaxButtonOnly={!!smartPoolAddress}
           onPressIn={onFocusInput}
           onSelectionChange={onInputSelectionChange}
           onSetExactAmount={onSetExactAmountInput}
           onSetPresetValue={onSetPresetValue}
           onShowTokenSelector={onShowTokenSelectorInput}
           onToggleIsFiatMode={onToggleIsFiatMode}
-          isSmartPool={!!smartPoolAddress}
         />
       </Flex>
     </Trace>

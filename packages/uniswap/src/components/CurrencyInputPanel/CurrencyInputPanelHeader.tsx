@@ -47,8 +47,8 @@ export function CurrencyInputPanelHeader({
         currencyField={currencyField}
         elementName={ElementName.PresetPercentage}
         buttonProps={PRESET_BUTTON_PROPS}
-        onSetPresetValue={onSetPresetValue}
         isSmartPool={isSmartPool}
+        onSetPresetValue={onSetPresetValue}
       />
     ),
     [currencyAmount, currencyBalance, currencyField, onSetPresetValue, isSmartPool],

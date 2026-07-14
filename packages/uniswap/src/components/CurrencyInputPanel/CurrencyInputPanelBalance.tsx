@@ -16,6 +16,7 @@ interface CurrencyInputBalanceProps {
   hideBalance: boolean
   variant?: TextProps['variant']
   onPressBalance?: () => void
+  isSmartPool?: boolean
 }
 export function CurrencyInputPanelBalance({
   currencyBalance,
@@ -25,13 +26,17 @@ export function CurrencyInputPanelBalance({
   hideBalance,
   variant = 'body3',
   onPressBalance,
+  isSmartPool,
 }: CurrencyInputBalanceProps): JSX.Element | null {
   const { formatCurrencyAmount } = useLocalizationContext()
   const { isDisconnected } = useConnectionStatus()
   const isOutput = currencyField === CurrencyField.OUTPUT
 
-  // Hide balance if panel is output, and no balance, or disconnected or the token selector is hidden
-  const hideCurrencyBalance = (isOutput && currencyBalance?.equalTo(0)) || isDisconnected || hideBalance
+  // Hide balance if panel is output and has no balance, or the token selector is hidden.
+  // For smart pools we still show the balance even when the user wallet is disconnected,
+  // because the Swap tab always sources balances from the smart pool itself.
+  const hideCurrencyBalance =
+    (isOutput && currencyBalance?.equalTo(0)) || (!isSmartPool && isDisconnected) || hideBalance
 
   const color = showInsufficientBalanceWarning ? '$statusCritical' : '$neutral2'
   const hoverColor = showInsufficientBalanceWarning ? '$statusCriticalHovered' : '$neutral2Hovered'
