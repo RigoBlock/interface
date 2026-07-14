@@ -13,7 +13,7 @@ import styled from '~/lib/deprecated-styled'
 import { darken } from 'polished'
 import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 import { X } from 'react-feather'
-import { Trans } from 'react-i18next'
+import { Trans, useTranslation } from 'react-i18next'
 import { useCreateCallback } from '~/state/pool/hooks'
 import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
 import { ThemedText } from '~/theme/components/text'
@@ -107,6 +107,7 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
   // monitor call to help UI loading state
   const [hash, setHash] = useState<string | undefined>()
   const [attempting, setAttempting] = useState(false)
+  const [createError, setCreateError] = useState<string | undefined>()
 
   // by memoizing native, new chain native currency is stored on switch chain
   const account = useAccount()
@@ -123,8 +124,10 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
 
   const handleCurrencySelect = useCallback((currency: Currency) => {
     setCurrencyValue(currency)
+    setCreateError(undefined)
     setIsSearchingCurrency(false)
   }, [])
+
 
   // wrapped onUserInput to clear signatures
   const onNameInput = useCallback((typedName: string) => {
@@ -135,6 +138,7 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
     setTypedSymbol(typedSymbol.toUpperCase())
   }, [])
 
+  const { t } = useTranslation()
   const createCallback = useCreateCallback()
 
   const transaction = useTransaction(hash)
@@ -148,6 +152,7 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
       setAttempting(false)
       setTypedName('')
       setTypedSymbol('')
+      setCreateError(undefined)
       setCurrencyValue(native)
     }, MODAL_TRANSITION_DURATION)
   }
@@ -163,6 +168,7 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
     // try deploy pool and store hash
     const hash = await createCallback({ name: typedName, symbol: typedSymbol, currencyValue })?.catch((error) => {
       setAttempting(false)
+      setCreateError(error instanceof Error ? error.message : String(error))
       logger.info('CreateModal', 'onCreate', error)
     })
 
@@ -257,6 +263,11 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
                     <Trans>Create Smart Pool</Trans>
                   </ThemedText.DeprecatedMediumHeader>
                 </ButtonPrimary>
+                {createError && (
+                  <ThemedText.DeprecatedBody style={{ color: '#ff6b6b', wordBreak: 'break-all', fontSize: '12px' }}>
+                    {t('pool.create.error.createFailed', { error: createError })}
+                  </ThemedText.DeprecatedBody>
+                )}
               </AutoColumn>
             </ContentWrapper>
           )}

@@ -1,5 +1,10 @@
 [
   {
+    "inputs": [],
+    "name": "BaseTokenPriceFeedError",
+    "type": "error"
+  },
+  {
     "anonymous": false,
     "inputs": [
       {

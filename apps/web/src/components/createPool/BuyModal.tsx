@@ -11,7 +11,7 @@ import { ApprovalState, useApproveCallback } from '~/hooks/useApproveCallback'
 import JSBI from 'jsbi'
 import styled from '~/lib/deprecated-styled'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Trans } from 'react-i18next'
+import { Trans, useTranslation } from 'react-i18next'
 import { PoolInfo, useDerivedPoolInfo } from '~/state/buy/hooks'
 import { usePoolExtendedContract } from '~/state/pool/hooks'
 import { useIsTransactionConfirmed, useTransaction, useTransactionAdder } from '~/state/transactions/hooks'
@@ -71,6 +71,8 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
   const [expectedMintAmount, setExpectedMintAmount] = useState<any>(undefined)
   const [mintCallError, setMintCallError] = useState<string | undefined>()
 
+  const { t } = useTranslation()
+
   useEffect(() => {
     async function retrieveRealTimeMintAmount() {
       if (
@@ -96,14 +98,10 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
         }
       } catch (e: unknown) {
         setExpectedMintAmount(undefined)
-        // Before approval the ERC-20 transferFrom inside mint() always reverts due to zero allowance.
-        // That is expected — suppress it. Only surface errors once the user has already approved,
-        // which means something in the contract logic itself is rejecting the call.
-        if (approval === ApprovalState.APPROVED) {
-          setMintCallError(e instanceof Error ? e.message : String(e))
-        } else {
-          setMintCallError(undefined)
-        }
+        // With BaseTokenPriceFeedError in the ABI, ethers will decode it into e.reason.
+        // Surface the decoded reason so the user sees the real failure before spending gas.
+        const errorMessage = e instanceof Error ? ((e as { reason?: string }).reason ?? e.message) : String(e)
+        setMintCallError(errorMessage)
         return
       }
       setExpectedMintAmount(mintAmount)
@@ -240,9 +238,9 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
             >
               {error ?? <Trans>Buy</Trans>}
             </ButtonError>
-            {mintCallError && approval === ApprovalState.APPROVED && (
+            {mintCallError && (
               <ThemedText.DeprecatedBody style={{ color: '#ff6b6b', wordBreak: 'break-all', fontSize: '12px' }}>
-                {mintCallError}
+                {t('pool.buy.error.mintSimulationFailed', { error: mintCallError })}
               </ThemedText.DeprecatedBody>
             )}
           </RowBetween>
