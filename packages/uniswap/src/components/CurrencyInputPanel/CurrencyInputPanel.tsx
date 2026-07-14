@@ -128,8 +128,8 @@ export const CurrencyInputPanel = memo(
             transactionType={transactionType}
             elementName={ElementName.PresetPercentage}
             buttonProps={PRESET_BUTTON_PROPS}
-            onSetPresetValue={handleSetPresetValue}
             isSmartPool={isSmartPool}
+            onSetPresetValue={handleSetPresetValue}
           />
         ),
         [currencyAmount, currencyBalance, currencyField, handleSetPresetValue, transactionType, isSmartPool],
@@ -158,8 +158,8 @@ export const CurrencyInputPanel = memo(
               currencyInfo={currencyInfo}
               showDefaultTokenOptions={showDefaultTokenOptions}
               hidePresets={hidePresets}
-              onSetPresetValue={handleSetPresetValue}
               isSmartPool={isSmartPool}
+              onSetPresetValue={handleSetPresetValue}
             />
             <CurrencyInputPanelInput
               ref={forwardedRef}
@@ -230,6 +230,7 @@ export const CurrencyInputPanel = memo(
                     showInsufficientBalanceWarning={showInsufficientBalanceWarning}
                     hideBalance={!!hidePresets}
                     variant={balanceVariant}
+                    isSmartPool={isSmartPool}
                     onPressBalance={
                       (isOutput || onSetPresetValue) && currencyBalance?.greaterThan(0) ? handlePressBalance : undefined
                     }

@@ -4,6 +4,7 @@ import { CurrencyInputPanel } from 'uniswap/src/components/CurrencyInputPanel/Cu
 import { SectionName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { useSwapFormScreenStore } from 'uniswap/src/features/transactions/swap/form/stores/swapFormScreenStore/useSwapFormScreenStore'
+import { useSwapFormStore } from 'uniswap/src/features/transactions/swap/stores/swapFormStore/useSwapFormStore'
 import { useCurrencyInputFocusedStyle } from 'uniswap/src/features/transactions/swap/form/SwapFormScreen/hooks/useCurrencyInputFocusedStyle'
 import { WalletRestoreButton } from 'uniswap/src/features/transactions/swap/form/SwapFormScreen/WalletRestoreButton'
 import { CurrencyField } from 'uniswap/src/types/currency'
@@ -11,6 +12,7 @@ import { isWebPlatform } from 'utilities/src/platform'
 
 export function SwapFormCurrencyOutputPanel(): JSX.Element {
   const { t } = useTranslation()
+  const smartPoolAddress = useSwapFormStore((s) => s.smartPoolAddress)
 
   const {
     outputRef,
@@ -85,6 +87,7 @@ export function SwapFormCurrencyOutputPanel(): JSX.Element {
           value={exactFieldIsOutput ? exactValue : formattedDerivedValue}
           valueIsIndicative={!exactFieldIsOutput && trade.indicativeTrade && !trade.trade}
           tokenColor={tokenColor}
+          isSmartPool={!!smartPoolAddress}
           onPressDisabled={showTemporaryExactOutputUnavailableWarning}
           onPressIn={onFocusOutput}
           onSelectionChange={onOutputSelectionChange}

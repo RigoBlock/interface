@@ -250,8 +250,11 @@ export default function PoolPositionPage() {
   const DEFAULT_UNITARY_VALUE = '1000000000000000000'
   const simulatedOrStoredValue =
     useSimulatedUnitaryValue(poolAddressFromUrl, storedUnitaryValue?.toString()) ?? storedUnitaryValue
-  // Use default value of 1e18 when pool is uninitialized (null/undefined unitary value)
-  const unitaryValue = simulatedOrStoredValue ?? DEFAULT_UNITARY_VALUE
+  // Use default value of 1e18 when pool is uninitialized (null/undefined/zero unitary value).
+  // A simulated value of '0' can be returned for uninitialized/upgraded pools whose storage slot
+  // has been cleared, so we fall back to the default NAV in that case.
+  const unitaryValue =
+    simulatedOrStoredValue && simulatedOrStoredValue !== '0' ? simulatedOrStoredValue : DEFAULT_UNITARY_VALUE
 
   let base = useCurrency({ address: baseToken !== ZERO_ADDRESS ? baseToken : undefined, chainId })
   if (baseToken === ZERO_ADDRESS) {
