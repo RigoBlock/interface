@@ -5,6 +5,7 @@ import { useUniswapContextSelector } from 'uniswap/src/contexts/UniswapContext'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useOnChainCurrencyBalance } from 'uniswap/src/features/portfolio/api'
+import { useSmartPoolCurrencyBalances } from 'uniswap/src/features/portfolio/useSmartPoolCurrencyBalances'
 import { getCurrencyAmount, ValueType } from 'uniswap/src/features/tokens/getCurrencyAmount'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { useTransactionSettingsStore } from 'uniswap/src/features/transactions/components/settings/stores/transactionSettingsStore/useTransactionSettingsStore'
@@ -71,8 +72,24 @@ export function useDerivedSwapInfo({
 
   // Use smart pool address for balances if available, otherwise fall back to user account
   const balanceAddress = smartPoolAddress || account?.address
-  const { balance: tokenInBalance } = useOnChainCurrencyBalance(currencyIn, balanceAddress)
-  const { balance: tokenOutBalance } = useOnChainCurrencyBalance(currencyOut, balanceAddress)
+  const { balance: tokenInOnChainBalance } = useOnChainCurrencyBalance(currencyIn, balanceAddress)
+  const { balance: tokenOutOnChainBalance } = useOnChainCurrencyBalance(currencyOut, balanceAddress)
+
+  // For smart pools, also fetch balances from the portfolio API (same source as the token selector),
+  // because the on-chain balance hook can fail when the wallet is disconnected or the pool address
+  // is not recognized as a regular account. Prefer portfolio, fall back to on-chain.
+  const smartPoolBalances = useSmartPoolCurrencyBalances({
+    currencyIn,
+    currencyOut,
+    smartPoolAddress,
+  })
+
+  const tokenInBalance = smartPoolAddress
+    ? smartPoolBalances[CurrencyField.INPUT] ?? tokenInOnChainBalance
+    : tokenInOnChainBalance
+  const tokenOutBalance = smartPoolAddress
+    ? smartPoolBalances[CurrencyField.OUTPUT] ?? tokenOutOnChainBalance
+    : tokenOutOnChainBalance
 
   const isExactIn = exactCurrencyField === CurrencyField.INPUT
   const wrapType = getWrapType(currencyIn, currencyOut)
