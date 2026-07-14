@@ -1,11 +1,14 @@
-import { CurrencyAmount, TradeType } from '@uniswap/sdk-core'
+import { Currency, CurrencyAmount, TradeType } from '@uniswap/sdk-core'
+import { parseUnits } from 'ethers/lib/utils'
 import { TradingApi } from '@universe/api'
 import { useMemo } from 'react'
+import { NATIVE_TOKEN_PLACEHOLDER } from 'uniswap/src/constants/addresses'
 import { useUniswapContextSelector } from 'uniswap/src/contexts/UniswapContext'
+import { normalizeCurrencyIdForMapLookup } from 'uniswap/src/data/cache'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useOnChainCurrencyBalance } from 'uniswap/src/features/portfolio/api'
-import { useSmartPoolCurrencyBalances } from 'uniswap/src/features/portfolio/useSmartPoolCurrencyBalances'
+import { usePortfolioBalances } from 'uniswap/src/features/portfolio/balances/hooks'
 import { getCurrencyAmount, ValueType } from 'uniswap/src/features/tokens/getCurrencyAmount'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { useTransactionSettingsStore } from 'uniswap/src/features/transactions/components/settings/stores/transactionSettingsStore/useTransactionSettingsStore'
@@ -17,7 +20,8 @@ import { getWrapType } from 'uniswap/src/features/transactions/swap/utils/wrap'
 import type { TransactionState } from 'uniswap/src/features/transactions/types/transactionState'
 import { useWallet } from 'uniswap/src/features/wallet/hooks/useWallet'
 import { CurrencyField } from 'uniswap/src/types/currency'
-import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
+import { buildCurrencyId, currencyId } from 'uniswap/src/utils/currencyId'
+import { isValidHexString } from 'utilities/src/addresses/hex'
 
 /** Returns information derived from the current swap state */
 export function useDerivedSwapInfo({
@@ -75,20 +79,44 @@ export function useDerivedSwapInfo({
   const { balance: tokenInOnChainBalance } = useOnChainCurrencyBalance(currencyIn, balanceAddress)
   const { balance: tokenOutOnChainBalance } = useOnChainCurrencyBalance(currencyOut, balanceAddress)
 
-  // For smart pools, also fetch balances from the portfolio API (same source as the token selector),
-  // because the on-chain balance hook can fail when the wallet is disconnected or the pool address
-  // is not recognized as a regular account. Prefer portfolio, fall back to on-chain.
-  const smartPoolBalances = useSmartPoolCurrencyBalances({
-    currencyIn,
-    currencyOut,
-    smartPoolAddress,
+  // For smart pools, also pull balances from the portfolio API (the same source used by the
+  // token selector and web useTokenBalances). This is more reliable than direct RPC when the
+  // wallet is disconnected or not on the pool's chain. Prefer portfolio, fall back to on-chain.
+  const { data: smartPoolPortfolioBalances } = usePortfolioBalances({
+    evmAddress: smartPoolAddress && isValidHexString(smartPoolAddress) ? smartPoolAddress : undefined,
+    fetchPolicy: 'cache-and-network',
   })
 
+  const getSmartPoolPortfolioBalance = (currency: Currency | undefined): CurrencyAmount<Currency> | undefined => {
+    if (!currency || !smartPoolPortfolioBalances) {
+      return undefined
+    }
+
+    const key = currency.isNative
+      ? `${currency.chainId}-${NATIVE_TOKEN_PLACEHOLDER}`
+      : normalizeCurrencyIdForMapLookup(currencyId(currency))
+    if (!key) {
+      return undefined
+    }
+
+    const portfolioBalance = smartPoolPortfolioBalances[key]
+    if (!portfolioBalance) {
+      return undefined
+    }
+
+    try {
+      const rawAmount = parseUnits(portfolioBalance.quantity.toString(), currency.decimals).toString()
+      return CurrencyAmount.fromRawAmount(currency, rawAmount)
+    } catch {
+      return undefined
+    }
+  }
+
   const tokenInBalance = smartPoolAddress
-    ? smartPoolBalances[CurrencyField.INPUT] ?? tokenInOnChainBalance
+    ? getSmartPoolPortfolioBalance(currencyIn) ?? tokenInOnChainBalance
     : tokenInOnChainBalance
   const tokenOutBalance = smartPoolAddress
-    ? smartPoolBalances[CurrencyField.OUTPUT] ?? tokenOutOnChainBalance
+    ? getSmartPoolPortfolioBalance(currencyOut) ?? tokenOutOnChainBalance
     : tokenOutOnChainBalance
 
   const isExactIn = exactCurrencyField === CurrencyField.INPUT
