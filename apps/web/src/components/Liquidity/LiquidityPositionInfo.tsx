@@ -1,4 +1,5 @@
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
+import { useAtom } from 'jotai'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
@@ -19,6 +20,7 @@ import {
 import { TextLoader } from '~/components/Liquidity/Loader'
 import { PositionInfo } from '~/components/Liquidity/types'
 import { LpIncentivesAprDisplay } from '~/components/LpIncentives/LpIncentivesAprDisplay'
+import { shouldDisableExploreRoutesAtom } from '~/state/application/atoms'
 import { ClickableTamaguiStyle } from '~/theme/components/styles'
 import { isV4UnsupportedChain } from '~/utils/networkSupportsV4'
 
@@ -60,6 +62,7 @@ export function LiquidityPositionInfo({
 }: LiquidityPositionInfoProps) {
   const { currency0Amount, currency1Amount, status, feeTier, v4hook, version, chainId } = positionInfo
   const navigate = useNavigate()
+  const [shouldDisableExploreRoutes] = useAtom(shouldDisableExploreRoutesAtom)
   const chainInfo = getChainInfo(positionInfo.chainId)
   const media = useMedia()
   const { t } = useTranslation()
@@ -108,7 +111,7 @@ export function LiquidityPositionInfo({
           alignItems={isMiniVersion ? 'flex-start' : 'center'}
         >
           <Flex>
-            {linkToPool ? (
+            {linkToPool && !shouldDisableExploreRoutes ? (
               <Anchor href={getPoolDetailsURL(positionInfo.poolId, positionInfo.chainId)} textDecorationLine="none">
                 <Text variant="subheading1" {...ClickableTamaguiStyle}>
                   {currency0Amount.currency.symbol} / {currency1Amount.currency.symbol}

@@ -116,7 +116,7 @@ export default function RaceModal({ isOpen, poolAddress, poolName, onDismiss, ti
                     <p></p>
                     <p>
                       <Trans>
-                        The smart vault must have a positive <BoldText>own</BoldText> stake, and a minimum 100 GRG{' '}
+                        The smart pool must have a positive <BoldText>own</BoldText> stake, and a minimum 100 GRG{' '}
                         <BoldText>delegated</BoldText> stake, otherwise won&apos;t be able to participate in rewards.
                       </Trans>
                     </p>

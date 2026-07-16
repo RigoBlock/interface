@@ -1,4 +1,5 @@
 import { PositionStatus, ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
+import { useAtom } from 'jotai'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
@@ -19,6 +20,7 @@ import { useReportPositionHandler } from '~/components/Liquidity/hooks/useReport
 import { PositionInfo } from '~/components/Liquidity/types'
 import { useAccount } from '~/hooks/useAccount'
 import useSelectChain from '~/hooks/useSelectChain'
+import { shouldDisableExploreRoutesAtom } from '~/state/application/atoms'
 import { setOpenModal } from '~/state/application/reducer'
 import { useAppDispatch } from '~/state/hooks'
 import { isV4UnsupportedChain } from '~/utils/networkSupportsV4'
@@ -40,6 +42,7 @@ export function useLiquidityPositionDropdownOptions({
   const account = useAccount()
   const selectChain = useSelectChain()
   const reportPositionHandler = useReportPositionHandler({ position: liquidityPosition, isVisible })
+  const [shouldDisableExploreRoutes] = useAtom(shouldDisableExploreRoutesAtom)
 
   return useMemo(() => {
     const chainInfo = getChainInfo(liquidityPosition.chainId)
@@ -115,17 +118,19 @@ export function useLiquidityPositionDropdownOptions({
       })
     }
 
-    options.push({
-      onPress: () => {
-        if (!liquidityPosition.poolId) {
-          return
-        }
+    if (!shouldDisableExploreRoutes) {
+      options.push({
+        onPress: () => {
+          if (!liquidityPosition.poolId) {
+            return
+          }
 
-        navigate(getPoolDetailsURL(liquidityPosition.poolId, liquidityPosition.chainId))
-      },
-      label: t('pool.info'),
-      Icon: InfoCircleFilled,
-    })
+          navigate(getPoolDetailsURL(liquidityPosition.poolId, liquidityPosition.chainId))
+        },
+        label: t('pool.info'),
+        Icon: InfoCircleFilled,
+      })
+    }
 
     if (showVisibilityOption) {
       options.push({
@@ -163,8 +168,9 @@ export function useLiquidityPositionDropdownOptions({
     isVisible,
     liquidityPosition,
     navigate,
-    showVisibilityOption,
     selectChain,
+    shouldDisableExploreRoutes,
+    showVisibilityOption,
     t,
   ])
 }

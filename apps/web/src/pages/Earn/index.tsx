@@ -1,37 +1,30 @@
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
+import JSBI from 'jsbi'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Trans } from 'react-i18next'
+import { useLocation, useNavigate } from 'react-router'
+import { Flex, SegmentedControl, SegmentedControlOption } from 'ui/src'
+import { NetworkFilter } from 'uniswap/src/components/network/NetworkFilter'
+import { GRG } from 'uniswap/src/constants/tokens'
+import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { ElementName, InterfaceEventName, InterfacePageName, ModalName } from 'uniswap/src/features/telemetry/constants'
+import Trace from 'uniswap/src/features/telemetry/Trace'
 import { useAccountDrawer } from '~/components/AccountDrawer/MiniPortfolio/hooks'
 import { ButtonPrimary } from '~/components/Button/buttons'
 import CreateModal from '~/components/createPool/CreateModal'
 import { AutoColumn } from '~/components/deprecated/Column'
-import { RowBetween } from '~/components/deprecated/Row'
 import HarvestYieldModal from '~/components/earn/HarvestYieldModal'
 import RaceModal from '~/components/earn/RaceModal'
-import { CardBGImage, CardNoise, CardSection, DataCard } from '~/components/earn/styled'
 import UnstakeModal from '~/components/earn/UnstakeModal'
-
 import PoolPositionList from '~/components/PoolPositionList'
 import { RIGOBLOCK_SUPPORTED_CHAINS, RIGOBLOCK_TESTNET_CHAINS } from '~/constants/addresses'
 import { useAccount } from '~/hooks/useAccount'
 import { useModalState } from '~/hooks/useModalState'
-import JSBI from 'jsbi'
 import styled from '~/lib/deprecated-styled'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Trans } from 'react-i18next'
-
-import { useLocation, useNavigate } from 'react-router'
 import { PoolRegisteredLog } from '~/state/pool/hooks'
-import {
-  useMultiChainAllPoolsData,
-  useMultiChainStakingPools,
-} from '~/state/pool/multichain'
+import { useMultiChainAllPoolsData, useMultiChainStakingPools } from '~/state/pool/multichain'
 import { ThemedText } from '~/theme/components/text'
-import { Flex, SegmentedControl, SegmentedControlOption } from 'ui/src'
-import { NetworkFilter } from 'uniswap/src/components/network/NetworkFilter'
-import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { GRG } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { ElementName, InterfaceEventName, InterfacePageName, ModalName } from 'uniswap/src/features/telemetry/constants'
-import Trace from 'uniswap/src/features/telemetry/Trace'
 
 const PageWrapper = styled(AutoColumn)`
   padding: 68px 8px 0px;
@@ -47,11 +40,6 @@ const PageWrapper = styled(AutoColumn)`
   }
 `
 
-const TopSection = styled(AutoColumn)`
-  max-width: 720px;
-  width: 100%;
-`
-
 const MainContentWrapper = styled.main`
   background-color: ${({ theme }) => theme.surface1};
   border: 1px solid ${({ theme }) => theme.surface3};
@@ -59,7 +47,10 @@ const MainContentWrapper = styled.main`
   border-radius: 16px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0px 0px 1px rgba(0, 0, 0, 0.01), 0px 4px 8px rgba(0, 0, 0, 0.04), 0px 16px 24px rgba(0, 0, 0, 0.04),
+  box-shadow:
+    0px 0px 1px rgba(0, 0, 0, 0.01),
+    0px 4px 8px rgba(0, 0, 0, 0.04),
+    0px 16px 24px rgba(0, 0, 0, 0.04),
     0px 24px 32px rgba(0, 0, 0, 0.01);
 `
 
@@ -82,7 +73,11 @@ function biggestOwnStakeFirst(a: any, b: any) {
 }
 
 export default function Earn() {
-  const { isOpen: createModalOpen, closeModal: closeCreateModal, toggleModal: toggleCreateModal } = useModalState(ModalName.CreateVault)
+  const {
+    isOpen: createModalOpen,
+    closeModal: closeCreateModal,
+    toggleModal: toggleCreateModal,
+  } = useModalState(ModalName.CreateVault)
   const [showHarvestYieldModal, setShowHarvestYieldModal] = useState(false)
   const [showUnstakeModal, setShowUnstakeModal] = useState(false)
   const [racePool, setRacePool] = useState<{ address: string; name: string } | null>(null)
@@ -115,11 +110,7 @@ export default function Earn() {
   // Single-batch staking data: one useReadContracts, wagmi splits into per-chain multicalls.
   // Includes freeStakeBalance + unclaimedRewards for the connected chain,
   // plus owner + userBalance via storage slot reads (folded into the same batch).
-  const {
-    stakingPools,
-    freeStakeBalance,
-    unclaimedRewards,
-  } = useMultiChainStakingPools(allPools ?? [])
+  const { stakingPools, freeStakeBalance, unclaimedRewards } = useMultiChainStakingPools(allPools ?? [])
 
   const grg = useMemo(() => (account.chainId ? GRG[account.chainId] : undefined), [account.chainId])
   const hasFreeStake = JSBI.greaterThan(freeStakeBalance ? freeStakeBalance.quotient : JSBI.BigInt(0), JSBI.BigInt(0))
@@ -129,9 +120,7 @@ export default function Earn() {
     if (!grg || unclaimedRewards.length === 0) {
       return undefined
     }
-    const yieldBigint = unclaimedRewards
-      .map((r) => r.amount.quotient)
-      .reduce((acc, value) => JSBI.add(acc, value))
+    const yieldBigint = unclaimedRewards.map((r) => r.amount.quotient).reduce((acc, value) => JSBI.add(acc, value))
     return CurrencyAmount.fromRawAmount(grg, yieldBigint)
   }, [grg, unclaimedRewards])
 
@@ -145,21 +134,20 @@ export default function Earn() {
     if (!allPools || !stakingPools) {
       return undefined
     }
-    return allPools
-      .map((p, i) => {
-        const s = stakingPools[i]
-        return {
-          ...p,
-          irr: s.irr,
-          apr: s.apr,
-          poolOwnStake: s.poolOwnStake,
-          poolDelegatedStake: s.delegatedStake,
-          userHasStake: s.userHasStake,
-          userIsOwner: s.userIsOwner,
-          userBalance: s.userBalance,
-          currentEpochReward: s.currentEpochReward,
-        }
-      })
+    return allPools.map((p, i) => {
+      const s = stakingPools[i]
+      return {
+        ...p,
+        irr: s.irr,
+        apr: s.apr,
+        poolOwnStake: s.poolOwnStake,
+        poolDelegatedStake: s.delegatedStake,
+        userHasStake: s.userHasStake,
+        userIsOwner: s.userIsOwner,
+        userBalance: s.userBalance,
+        currentEpochReward: s.currentEpochReward,
+      }
+    })
   }, [allPools, stakingPools])
 
   // "Top Smart Pools": only pools with positive own stake, sorted biggest first
@@ -198,9 +186,15 @@ export default function Earn() {
       return undefined
     }
     const myPools = poolsWithStats.filter((p) => {
-      if (p.userIsOwner || p.userHasStake) return true
+      if (p.userIsOwner || p.userHasStake) {
+        return true
+      }
       if (p.userBalance) {
-        try { return BigInt(p.userBalance) > 0n } catch { return false }
+        try {
+          return BigInt(p.userBalance) > 0n
+        } catch {
+          return false
+        }
       }
       return false
     })
@@ -237,49 +231,41 @@ export default function Earn() {
   )
 
   // Whether to show the action bar (only when there are buttons)
-  const showActionBar =
-    !account.isConnected ||
-    (selectedTab === EarnTab.AllPools && (!!yieldAmount || hasFreeStake))
+  const showActionBar = !account.isConnected || (selectedTab === EarnTab.AllPools && (!!yieldAmount || hasFreeStake))
 
   return (
     <Trace logImpression page={InterfacePageName.PoolPage}>
       <PageWrapper gap="lg" justify="center">
-        <TopSection gap="md">
-          <DataCard>
-            <CardBGImage />
-            <CardNoise />
-            <CardSection>
-              <AutoColumn gap="md">
-                <RowBetween>
-                  <ThemedText.DeprecatedWhite fontWeight={600}>
-                    <Trans>Smart Pools</Trans>
-                  </ThemedText.DeprecatedWhite>
-                  {account.isConnected && (
-                    <ButtonPrimary
-                      style={{ width: 'fit-content', height: '36px', whiteSpace: 'nowrap' }}
-                      padding="6px 12px"
-                      $borderRadius="8px"
-                      onClick={toggleCreateModal}
-                    >
-                      <Trans>Create</Trans>
-                    </ButtonPrimary>
-                  )}
-                </RowBetween>
-                <RowBetween>
-                  <ThemedText.DeprecatedWhite fontSize={14}>
-                    <Trans>Your smart interface with DeFi. Create, swap, earn on your tokens.</Trans>
-                  </ThemedText.DeprecatedWhite>
-                </RowBetween>{' '}
-              </AutoColumn>
-            </CardSection>
-            <CardBGImage />
-            <CardNoise />
-          </DataCard>
-        </TopSection>
+        <Flex
+          row
+          justifyContent="space-between"
+          alignItems="center"
+          gap="$spacing16"
+          width="100%"
+          style={{ maxWidth: '720px' }}
+        >
+          <ThemedText.HeadlineMedium>
+            <Trans>{isManagePath ? 'Manage Smart Pools' : 'Smart Pools'}</Trans>
+          </ThemedText.HeadlineMedium>
+          {account.isConnected && (
+            <ButtonPrimary
+              style={{ width: 'fit-content', height: '40px' }}
+              padding="8px"
+              $borderRadius="8px"
+              onClick={toggleCreateModal}
+            >
+              <Trans>Create</Trans>
+            </ButtonPrimary>
+          )}
+        </Flex>
 
         <AutoColumn gap="lg" style={{ width: '100%', maxWidth: '720px' }}>
           {/* Modals */}
-          <CreateModal isOpen={createModalOpen} onDismiss={() => closeCreateModal()} title={<Trans>Create Smart Pool</Trans>} />
+          <CreateModal
+            isOpen={createModalOpen}
+            onDismiss={() => closeCreateModal()}
+            title={<Trans>Create Smart Pool</Trans>}
+          />
           <HarvestYieldModal
             isOpen={showHarvestYieldModal}
             yieldAmount={yieldAmount}
@@ -323,52 +309,54 @@ export default function Earn() {
           </Flex>
 
           {/* Action buttons — only shown when relevant */}
-          {showActionBar && <ActionBar>
-            {account.isConnected ? (
-              <>
-                {selectedTab === EarnTab.AllPools && yieldAmount && (
-                  <ButtonPrimary
-                    style={{ width: 'fit-content', height: '40px' }}
-                    padding="8px"
-                    $borderRadius="8px"
-                    onClick={() => setShowHarvestYieldModal(true)}
-                  >
-                    <Trans>Harvest</Trans>
-                  </ButtonPrimary>
-                )}
-                {selectedTab === EarnTab.AllPools && hasFreeStake && (
-                  <ButtonPrimary
-                    style={{ width: 'fit-content', height: '40px' }}
-                    padding="8px"
-                    $borderRadius="8px"
-                    onClick={() => setShowUnstakeModal(true)}
-                  >
-                    <Trans>Unstake</Trans>
-                  </ButtonPrimary>
-                )}
-              </>
-            ) : (
-              <Trace
-                logPress
-                eventOnTrigger={InterfaceEventName.ConnectWalletButtonClicked}
-                properties={{ received_swap_quote: false }}
-                element={ElementName.ConnectWalletButton}
-              >
-                <ButtonPrimary
-                  style={{ padding: '8px 16px' }}
-                  onClick={accountDrawer.open}
+          {showActionBar && (
+            <ActionBar>
+              {account.isConnected ? (
+                <>
+                  {selectedTab === EarnTab.AllPools && yieldAmount && (
+                    <ButtonPrimary
+                      style={{ width: 'fit-content', height: '40px' }}
+                      padding="8px"
+                      $borderRadius="8px"
+                      onClick={() => setShowHarvestYieldModal(true)}
+                    >
+                      <Trans>Harvest</Trans>
+                    </ButtonPrimary>
+                  )}
+                  {selectedTab === EarnTab.AllPools && hasFreeStake && (
+                    <ButtonPrimary
+                      style={{ width: 'fit-content', height: '40px' }}
+                      padding="8px"
+                      $borderRadius="8px"
+                      onClick={() => setShowUnstakeModal(true)}
+                    >
+                      <Trans>Unstake</Trans>
+                    </ButtonPrimary>
+                  )}
+                </>
+              ) : (
+                <Trace
+                  logPress
+                  eventOnTrigger={InterfaceEventName.ConnectWalletButtonClicked}
+                  properties={{ received_swap_quote: false }}
+                  element={ElementName.ConnectWalletButton}
                 >
-                  <Trans i18nKey="common.connectAWallet.button" />
-                </ButtonPrimary>
-              </Trace>
-            )}
-          </ActionBar>}
+                  <ButtonPrimary style={{ padding: '8px 16px' }} onClick={accountDrawer.open}>
+                    <Trans i18nKey="common.connectAWallet.button" />
+                  </ButtonPrimary>
+                </Trace>
+              )}
+            </ActionBar>
+          )}
 
           <MainContentWrapper>
             {selectedTab === EarnTab.MyPools ? (
               <PoolPositionList positions={filteredMyPools} shouldFilterByUserPools={true} onRaceClick={onRaceClick} />
             ) : (
-              <PoolPositionList positions={filteredOrderedPools.length > 0 ? filteredOrderedPools : undefined} onRaceClick={onRaceClick} />
+              <PoolPositionList
+                positions={filteredOrderedPools.length > 0 ? filteredOrderedPools : undefined}
+                onRaceClick={onRaceClick}
+              />
             )}
           </MainContentWrapper>
         </AutoColumn>

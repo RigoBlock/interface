@@ -1,6 +1,5 @@
 /* oxlint-disable max-lines */
 import { PositionStatus, ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { atom, useAtom } from 'jotai'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -21,28 +20,19 @@ import { useGetPositionsInfiniteQuery } from 'uniswap/src/data/rest/getPositions
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { Platform } from 'uniswap/src/features/platforms/types/Platform'
-import { InterfacePageName, UniswapEventName } from 'uniswap/src/features/telemetry/constants'
-import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
+import { InterfacePageName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { useIsMissingPlatformWallet } from 'uniswap/src/features/transactions/swap/components/SwapFormButton/hooks/useIsMissingPlatformWallet'
 import { usePositionVisibilityCheck } from 'uniswap/src/features/visibility/hooks/usePositionVisibilityCheck'
 import { useInfiniteScroll } from 'utilities/src/react/useInfiniteScroll'
-import ALLOWLISTED_HOOKS from '~/assets/images/allowlistedHooks.jpg'
-import PROVIDE_LIQUIDITY from '~/assets/images/provideLiquidity.png'
-import tokenLogo from '~/assets/images/token-logo.png'
-import V4_HOOK from '~/assets/images/v4Hooks.png'
 import { MenuStateVariant, useSetMenu } from '~/components/AccountDrawer/menuState'
 import { useAccountDrawer } from '~/components/AccountDrawer/MiniPortfolio/hooks'
-import { ExternalArrowLink } from '~/components/Liquidity/ExternalArrowLink'
 import { LiquidityPositionCard, LiquidityPositionCardLoader } from '~/components/Liquidity/LiquidityPositionCard'
-import { LpIncentiveClaimModal } from '~/components/Liquidity/LPIncentives/LpIncentiveClaimModal'
-import LpIncentiveRewardsCard from '~/components/Liquidity/LPIncentives/LpIncentiveRewardsCard'
 import { PositionsHeader } from '~/components/Liquidity/PositionsHeader'
 import { PositionInfo } from '~/components/Liquidity/types'
 import { getPositionUrl } from '~/components/Liquidity/utils/getPositionUrl'
 import { parseRestPosition } from '~/components/Liquidity/utils/parseFromRest'
 import { useAccount } from '~/hooks/useAccount'
-import { useLpIncentives } from '~/hooks/useLpIncentives'
 import { ExpandoRow } from '~/pages/Positions/ExpandoRow'
 import { TopPools } from '~/pages/Positions/TopPools'
 
@@ -119,22 +109,6 @@ function DisconnectedWalletView() {
           </Button>
         </Flex>
       </Flex>
-      <Flex gap="$gap20" mb="$spacing24">
-        <Flex row gap="$gap12" $sm={{ flexDirection: 'column' }}>
-          <LearnMoreTile
-            width="100%"
-            img={PROVIDE_LIQUIDITY}
-            text={t('liquidity.provideOnProtocols')}
-            link={uniswapUrls.helpArticleUrls.providingLiquidityInfo}
-          />
-          <LearnMoreTile
-            width="100%"
-            img={V4_HOOK}
-            text={t('liquidity.hooks')}
-            link={uniswapUrls.helpArticleUrls.v4HooksInfo}
-          />
-        </Flex>
-      </Flex>
     </Flex>
   )
 }
@@ -171,7 +145,9 @@ function EmptyPositionsView() {
             size="small"
             emphasis="secondary"
             tag="a"
-            href="/explore/pools"
+            href={uniswapUrls.webInterfacePoolsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
             $platform-web={{
               textDecoration: 'none',
             }}
@@ -226,44 +202,6 @@ function ErrorPositionsView({ onRetry }: { onRetry: () => void }) {
         </Button>
       </Flex>
     </Flex>
-  )
-}
-
-function LearnMoreTile({
-  img,
-  text,
-  link,
-  width = 344,
-}: {
-  img: string
-  text: string
-  link?: string
-  width?: number | string
-}) {
-  return (
-    <Anchor
-      href={link}
-      textDecorationLine="none"
-      target="_blank"
-      rel="noopener noreferrer"
-      width={width}
-      {...ClickableTamaguiStyle}
-      hoverStyle={{ backgroundColor: '$surface1Hovered', borderColor: '$surface3Hovered' }}
-    >
-      <Flex
-        row
-        borderRadius="$rounded20"
-        borderColor="$surface3"
-        borderWidth="$spacing1"
-        borderStyle="solid"
-        alignItems="center"
-        gap="$gap16"
-        overflow="hidden"
-      >
-        <img src={img} style={{ objectFit: 'cover', width: '72px', height: '72px' }} />
-        <Text variant="subheading2">{text}</Text>
-      </Flex>
-    </Anchor>
   )
 }
 
@@ -343,9 +281,6 @@ export default function Pool() {
   // Use smart pool address instead of user address for LP positions
   const address = activeSmartPool.address ?? undefined
 
-  // TODO: check if could modify to display GRG unclaimed rewards, and move to another page
-  const isLPIncentivesEnabled = false //useFeatureFlag(FeatureFlags.LpIncentives) && isConnected
-
   const [chainFilter, setChainFilter] = useAtom(chainFilterAtom)
   const { chains: currentModeChains } = useEnabledChains({ platform: Platform.EVM })
   const [versionFilter, setVersionFilter] = useAtom(versionFilterAtom)
@@ -354,17 +289,6 @@ export default function Pool() {
 
   const isPositionVisible = usePositionVisibilityCheck()
   const [showHiddenPositions, setShowHiddenPositions] = useState(false)
-
-  const {
-    isPendingTransaction,
-    isModalOpen,
-    tokenRewards,
-    openModal,
-    closeModal,
-    setTokenRewards,
-    onTransactionSuccess,
-    hasCollectedRewards,
-  } = useLpIncentives()
 
   const { data, isPlaceholderData, refetch, isLoading, fetchNextPage, hasNextPage, isFetching, error } =
     useGetPositionsInfiniteQuery(
@@ -466,18 +390,7 @@ export default function Pool() {
         $lg={{ px: '$spacing20' }}
       >
         <Flex grow shrink gap="$spacing24" maxWidth={740} $xl={{ maxWidth: '100%' }}>
-          {isLPIncentivesEnabled && (
-            <LpIncentiveRewardsCard
-              walletAddress={account.address}
-              onCollectRewards={() => {
-                sendAnalyticsEvent(UniswapEventName.LpIncentiveCollectRewardsButtonClicked)
-                openModal()
-              }}
-              setTokenRewards={setTokenRewards}
-              initialHasCollectedRewards={hasCollectedRewards}
-            />
-          )}
-          <Flex row justifyContent="space-between" alignItems="center" mt={isLPIncentivesEnabled ? '$spacing28' : 0}>
+          <Flex row justifyContent="space-between" alignItems="center">
             <PositionsHeader
               showFilters={account.isConnected}
               selectedChain={chainFilter}
@@ -575,43 +488,8 @@ export default function Pool() {
         </Flex>
         <Flex gap="$gap32">
           <TopPools chainId={chainFilter} />
-          {isConnected && (
-            <Flex gap="$gap20" mb="$spacing24">
-              <Text variant="subheading1">{t('liquidity.learnMoreLabel')}</Text>
-              <Flex gap="$gap12">
-                <LearnMoreTile
-                  img={PROVIDE_LIQUIDITY}
-                  text={t('liquidity.provideOnProtocols')}
-                  link={uniswapUrls.helpArticleUrls.providingLiquidityInfo}
-                />
-                <LearnMoreTile
-                  img={V4_HOOK}
-                  text={t('liquidity.hooks')}
-                  link={uniswapUrls.helpArticleUrls.v4HooksInfo}
-                />
-              </Flex>
-              <ExternalArrowLink href={uniswapUrls.helpArticleUrls.positionsLearnMore}>
-                {t('common.button.learn')}
-              </ExternalArrowLink>
-            </Flex>
-          )}
         </Flex>
       </Flex>
-      {isLPIncentivesEnabled && (
-        <LpIncentiveClaimModal
-          isOpen={isModalOpen}
-          onClose={() => closeModal()}
-          onSuccess={() => {
-            sendAnalyticsEvent(UniswapEventName.LpIncentiveCollectRewardsSuccess, {
-              token_rewards: tokenRewards,
-            })
-            onTransactionSuccess()
-          }}
-          tokenRewards={tokenRewards}
-          isPendingTransaction={isPendingTransaction}
-          iconUrl={tokenLogo}
-        />
-      )}
     </Trace>
   )
 }

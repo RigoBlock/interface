@@ -12,7 +12,7 @@ import { useSupportedChainId } from 'uniswap/src/features/chains/hooks/useSuppor
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { isEVMChain } from 'uniswap/src/features/platforms/utils/chains'
-import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPriceWrapper'
+import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'
 import { shortenAddress } from 'utilities/src/addresses'
 import { NumberType } from 'utilities/src/format/types'
 import { useEvent } from 'utilities/src/react/hooks'
@@ -28,6 +28,7 @@ import { useAccount } from '~/hooks/useAccount'
 import { usePositionOwnerV2 } from '~/hooks/usePositionOwnerV2'
 import { useDynamicMetatags } from '~/pages/metatags'
 import NotFound from '~/pages/NotFound'
+import { useActiveSmartPool } from '~/state/application/hooks'
 import { MultichainContextProvider } from '~/state/multichain/MultichainContext'
 import { usePendingLPTransactionsChangeListener } from '~/state/transactions/hooks'
 
@@ -81,6 +82,7 @@ function V2PositionPage() {
   const { pairAddress } = useParams<{ pairAddress: string }>()
   const chainId = useChainIdFromUrlParam()
   const account = useAccount()
+  const activeSmartPool = useActiveSmartPool()
   const supportedAccountChainId = useSupportedChainId(account.chainId)
   const chainInfo = getChainInfo(chainId ?? UniverseChainId.Mainnet)
 
@@ -89,7 +91,7 @@ function V2PositionPage() {
     isLoading: positionLoading,
     refetch,
   } = useGetPositionQuery({
-    owner: account.address ?? ZERO_ADDRESS,
+    owner: activeSmartPool.address ?? account.address ?? ZERO_ADDRESS,
     protocolVersion: ProtocolVersion.V2,
     pairAddress,
     chainId: chainId ?? supportedAccountChainId,

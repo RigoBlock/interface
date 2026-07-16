@@ -1,69 +1,43 @@
 import { Currency, Token } from '@uniswap/sdk-core'
-import { ButtonGray } from '~/components/Button/buttons'
-import { SwitchNetworkAction } from '~/components/Popups/types'
-import CurrencySearchModal from '~/components/SearchModal/CurrencySearchModal'
-import styled from '~/lib/deprecated-styled'
-import React, { useCallback, useEffect, useState } from 'react'
-import { useActiveSmartPool, useSelectActiveSmartPool } from '~/state/application/hooks'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { styled, Flex, Text } from 'ui/src'
+import { Caret } from 'ui/src/components/icons/Caret'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
+import CurrencySearchModal from '~/components/SearchModal/CurrencySearchModal'
+import { SwitchNetworkAction } from '~/components/Popups/types'
+import { useActiveSmartPool, useSelectActiveSmartPool } from '~/state/application/hooks'
 
-const PoolSelectButton = styled(ButtonGray)<{
-  $visible: boolean
-  $selected: boolean
-  $hideInput?: boolean
-  disabled?: boolean
-}>`
-    align-items: center;
-    background-color: ${({ $selected, theme }) => ($selected ? theme.surface1 : theme.accent1)};
-    opacity: ${({ disabled }) => (!disabled ? 1 : 0.4)};
-    box-shadow: ${({ $selected }) => ($selected ? 'none' : '0px 6px 10px rgba(0, 0, 0, 0.075)')};
-    box-shadow: 0px 6px 10px rgba(0, 0, 0, 0.075);
-    color: ${({ $selected, theme }) => ($selected ? theme.neutral1 : theme.white)};
-    cursor: pointer;
-    border-radius: 16px;
-    outline: none;
-    user-select: none;
-    border: none;
-    font-size: 24px;
-    font-weight: 500;
-    height: ${({ $hideInput }) => ($hideInput ? '2.8rem' : '2.4rem')};
-    width: ${({ $hideInput }) => ($hideInput ? '100%' : 'initial')};
-    padding: 0 8px;
-    justify-content: space-between;
-    margin-bottom: 16px;
-    margin-left: ${({ $hideInput }) => ($hideInput ? '0' : '12px')};
-    visibility: ${({ $visible }) => ($visible ? 'visible' : 'hidden')};
-    display: flex;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+const PoolSelectButton = styled(Flex, {
+  row: true,
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: '$spacing8',
+  backgroundColor: '$surface3',
+  borderRadius: '$roundedFull',
+  paddingVertical: '$spacing8',
+  paddingHorizontal: '$spacing12',
+  height: 40,
+  maxWidth: 240,
+  cursor: 'pointer',
+  borderWidth: 1,
+  borderColor: '$surface3',
+  borderStyle: 'solid',
+  hoverStyle: {
+    backgroundColor: '$surface3Hovered',
+    borderColor: '$surface3Hovered',
+  },
+  pressStyle: {
+    backgroundColor: '$surface1Pressed',
+    borderColor: '$surface3',
+  },
 
-    @media (max-width: 910px) { 
-      white-space: normal;
-      word-wrap: break-word;
-      height: auto;
-      min-height: 3rem;
-    }
-
-    :focus,
-    :hover {
-      background-color: ${({ $selected, theme }) => ($selected ? theme.surface2 : theme.accent1)};
-    }
-`
-
-const StyledTokenName = styled.span<{ $active?: boolean }>`
-  ${({ $active }) => ($active ? '  margin: 0 0.25rem 0 0.25rem;' : '  margin: 0 0.25rem 0 0.25rem;')}
-  font-size: 20px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-  white-space: nowrap;
-
-  @media (max-width: 910px) {
-    white-space: normal;
-    word-wrap: break-word;
-  }
-`
+  // On small screens, allow the name to wrap and grow slightly
+  $md: {
+    height: 'auto',
+    minHeight: 40,
+    maxWidth: 160,
+  },
+})
 
 interface PoolSelectProps {
   operatedPools: Token[]
@@ -73,14 +47,11 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
   const [showModal, setShowModal] = useState(false)
   const activeSmartPool = useActiveSmartPool()
   const onPoolSelect = useSelectActiveSmartPool()
+  const hasInitialized = useRef(false)
 
-  // Check if currently-selected pool exists in the deduplicated list
   const activePoolExists = operatedPools.some(
     (pool) => pool.address.toLowerCase() === activeSmartPool?.address?.toLowerCase(),
   )
-
-  // initialize selected pool - use ref to prevent re-initialization
-  const hasInitialized = React.useRef(false)
 
   useEffect(() => {
     if (!hasInitialized.current && (!activeSmartPool.name || !activePoolExists)) {
@@ -90,8 +61,7 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePoolExists, activeSmartPool.name])
 
-  // Memoize poolsAsCurrrencies to prevent recreation on every render
-  const poolsAsCurrrencies = React.useMemo(
+  const poolsAsCurrrencies = useMemo(
     () =>
       operatedPools.map((pool: Token) => ({
         currency: pool,
@@ -113,22 +83,27 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
     [onPoolSelect],
   )
 
+  if (!activeSmartPool?.name) {
+    return null
+  }
+
   return (
     <>
-      {activeSmartPool && (
-        <PoolSelectButton
-          disabled={false}
-          $visible={true}
-          $selected={true}
-          $hideInput={false}
-          className="operated-pool-select-button"
-          onClick={() => setShowModal(true)}
+      <PoolSelectButton
+        className="operated-pool-select-button"
+        onPress={() => setShowModal(true)}
+      >
+        <Text
+          variant="buttonLabel3"
+          color="$neutral1"
+          numberOfLines={1}
+          flexShrink={1}
+          minWidth={0}
         >
-          <StyledTokenName className="pool-name-container" $active={true}>
-            {activeSmartPool.name}
-          </StyledTokenName>
-        </PoolSelectButton>
-      )}
+          {activeSmartPool.name}
+        </Text>
+        <Caret color="$neutral2" direction="s" size="$icon.16" />
+      </PoolSelectButton>
 
       <CurrencySearchModal
         isOpen={showModal}

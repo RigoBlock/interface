@@ -77,7 +77,7 @@ export const CurrencyInputPanel = memo(
       const showInsufficientBalanceWarning =
         !isOutput && !!currencyBalance && !!currencyAmount && currencyBalance.lessThan(currencyAmount)
 
-      const showMaxButton = showMaxButtonOnly && !isOutput && !hidePresets
+      const showMaxButton = showMaxButtonOnly && !isOutput && !hidePresets && Boolean(currencyBalance)
       const showPercentagePresetOptions = !showMaxButtonOnly && !hidePresets && currencyField === CurrencyField.INPUT
 
       const isDesktop = isWebAppDesktop || isExtensionApp

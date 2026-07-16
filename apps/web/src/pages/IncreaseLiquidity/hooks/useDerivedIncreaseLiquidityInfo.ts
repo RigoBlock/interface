@@ -1,12 +1,11 @@
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
 import { useDepositInfo } from '~/components/Liquidity/Create/hooks/useDepositInfo'
 import { getCurrencyWithOptionalUnwrap } from '~/components/Liquidity/utils/currency'
-import { useAccount } from '~/hooks/useAccount'
-import { useActiveSmartPool } from '~/state/application/hooks'
 import {
   IncreaseLiquidityDerivedInfo,
   IncreaseLiquidityState,
 } from '~/pages/IncreaseLiquidity/IncreaseLiquidityContext'
+import { useActiveSmartPool } from '~/state/application/hooks'
 import { PositionField } from '~/types/position'
 
 export function useDerivedIncreaseLiquidityInfo({
@@ -18,7 +17,6 @@ export function useDerivedIncreaseLiquidityInfo({
   unwrapNativeCurrency: boolean
   actualGasFee?: string
 }): IncreaseLiquidityDerivedInfo {
-  const account = useAccount()
   const activeSmartPool = useActiveSmartPool()
   const { position: positionInfo, exactAmount, exactField } = state
 
@@ -41,6 +39,7 @@ export function useDerivedIncreaseLiquidityInfo({
     protocolVersion: positionInfo.version,
     poolOrPair: positionInfo.poolOrPair,
     address: activeSmartPool.address ?? undefined,
+    isSmartPool: !!activeSmartPool.address,
     token0: currency0,
     token1: currency1,
     tickLower,

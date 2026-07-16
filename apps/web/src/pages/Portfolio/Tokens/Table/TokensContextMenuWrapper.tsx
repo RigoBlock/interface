@@ -19,6 +19,7 @@ import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioR
 import { useShowDemoView } from '~/pages/Portfolio/hooks/useShowDemoView'
 import { useNavigateToTokenDetails } from '~/pages/Portfolio/Tokens/hooks/useNavigateToTokenDetails'
 import { TokenData } from '~/pages/Portfolio/Tokens/hooks/useTransformTokenTableData'
+import { shouldDisableExploreRoutesAtom } from '~/state/application/atoms'
 
 export function TokensContextMenuWrapper({
   tokenData,
@@ -37,6 +38,8 @@ export function TokensContextMenuWrapper({
 
   const { openModal: openDataIssueModal } = useModalState(ModalName.ReportTokenData)
   const [, setDataIssueModalProps] = useAtom(ReportTokenDataModalPropsAtom)
+
+  const [shouldDisableExploreRoutes] = useAtom(shouldDisableExploreRoutesAtom)
 
   const portfolioBalance: PortfolioBalance = useMemo(() => {
     const chainToken = tokenData.tokens[0]
@@ -84,13 +87,18 @@ export function TokensContextMenuWrapper({
     openReportDataIssueModalWithCurrency(portfolioBalance.currencyInfo.currency)
   }, [portfolioBalance, openReportDataIssueModalWithCurrency])
 
-  // When viewing external wallet, exclude hide and report options from context menu
+  // When viewing external wallet, exclude hide and report options from context menu.
+  // Also exclude view details when explore routes are disabled.
   const excludedActions = useMemo(() => {
+    const actions: TokenMenuActionType[] = []
     if (isExternalWallet) {
-      return [TokenMenuActionType.ToggleVisibility, TokenMenuActionType.ReportToken]
+      actions.push(TokenMenuActionType.ToggleVisibility, TokenMenuActionType.ReportToken)
     }
-    return undefined
-  }, [isExternalWallet])
+    if (shouldDisableExploreRoutes) {
+      actions.push(TokenMenuActionType.ViewDetails)
+    }
+    return actions.length > 0 ? actions : undefined
+  }, [isExternalWallet, shouldDisableExploreRoutes])
 
   // Context menu not available in demo view
   if (showDemoView) {
@@ -105,7 +113,9 @@ export function TokensContextMenuWrapper({
       openReportTokenModal={openReportTokenModalForCurrency}
       openReportDataIssueModal={openReportDataIssueModalForCurrency}
       copyAddressToClipboard={copyAddressToClipboard}
-      onPressToken={() => navigateToTokenDetails(tokenData.currencyInfo.currency, chainId)}
+      onPressToken={
+        shouldDisableExploreRoutes ? undefined : () => navigateToTokenDetails(tokenData.currencyInfo.currency, chainId)
+      }
       disableNotifications={true}
       recipient={isExternalWallet ? externalAddress?.address : undefined}
     >

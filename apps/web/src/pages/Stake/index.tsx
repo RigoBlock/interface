@@ -203,12 +203,12 @@ export default function Stake() {
               <AutoColumn gap="md">
                 <RowBetween>
                   <ThemedText.DeprecatedWhite fontWeight={600}>
-                    <Trans>Smart Vaults</Trans>
+                    <Trans>Smart Pools</Trans>
                   </ThemedText.DeprecatedWhite>
                 </RowBetween>
                 <RowBetween>
                   <ThemedText.DeprecatedWhite fontSize={14}>
-                    <Trans>Get exposure to best DeFi vaults and stake your GRG to grow your assets</Trans>
+                    <Trans>Get exposure to best DeFi smart pools and stake your GRG to grow your assets</Trans>
                   </ThemedText.DeprecatedWhite>
                 </RowBetween>{' '}
               </AutoColumn>
@@ -235,7 +235,7 @@ export default function Stake() {
             />
             <WrapSmall>
               <ThemedText.DeprecatedMediumHeader style={{ marginTop: '0.5rem' }}>
-                <Trans>Vaults</Trans>
+                <Trans>Smart Pools</Trans>
               </ThemedText.DeprecatedMediumHeader>
               <RowFixed gap="8px" style={{ marginRight: '4px' }}>
                 {yieldAmount && (

@@ -110,6 +110,18 @@ globalThis.origin = 'https://app.rigoblock.com'
   window.open = vi.fn()
   window.getComputedStyle = vi.fn()
 
+  Object.defineProperty(window, 'localStorage', {
+    value: {
+      getItem: vi.fn(),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+      key: vi.fn(),
+      length: 0,
+    },
+    writable: true,
+  })
+
   if (typeof globalThis.TextEncoder === 'undefined') {
     globalThis.ReadableStream = Readable as unknown as typeof globalThis.ReadableStream
     // Cast through unknown due to Node.js TextEncoder vs Web API TextEncoder type compatibility

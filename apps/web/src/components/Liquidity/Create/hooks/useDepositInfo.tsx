@@ -3,12 +3,19 @@ import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import { Pair } from '@uniswap/v2-sdk'
 import { Pool as V3Pool } from '@uniswap/v3-sdk'
 import { Pool as V4Pool } from '@uniswap/v4-sdk'
+import { parseUnits } from 'ethers/lib/utils'
 import { useMemo } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
+import { NATIVE_TOKEN_PLACEHOLDER } from 'uniswap/src/constants/addresses'
+import { normalizeCurrencyIdForMapLookup } from 'uniswap/src/data/cache'
+import type { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
 import { useMaxAmountSpend } from 'uniswap/src/features/gas/hooks/useMaxAmountSpend'
 import { applyNativeTokenPercentageBuffer } from 'uniswap/src/features/gas/utils'
 import { useOnChainCurrencyBalance } from 'uniswap/src/features/portfolio/api'
+import { usePortfolioBalances } from 'uniswap/src/features/portfolio/balances/hooks'
 import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPriceWrapper'
+import { currencyId } from 'uniswap/src/utils/currencyId'
+import { isValidHexString } from 'utilities/src/addresses/hex'
 import { useNativeTokenPercentageBufferExperiment } from '~/components/Liquidity/Create/hooks/useNativeTokenPercentageBufferExperiment'
 import { DepositInfo } from '~/components/Liquidity/types'
 import {
@@ -52,8 +59,54 @@ export function useDepositInfo(state: UseDepositInfoProps): DepositInfo {
   const bufferPercentage = useNativeTokenPercentageBufferExperiment()
   const { protocolVersion, address, token0, token1, exactField, exactAmounts, actualGasFee } = state
 
-  const { balance: token0Balance } = useOnChainCurrencyBalance(token0, address)
-  const { balance: token1Balance } = useOnChainCurrencyBalance(token1, address)
+  const { balance: token0OnChainBalance } = useOnChainCurrencyBalance(token0, address)
+  const { balance: token1OnChainBalance } = useOnChainCurrencyBalance(token1, address)
+
+  // For smart pools, also pull balances from the portfolio API (the same source used by the
+  // token selector and web useTokenBalances). This is more reliable than direct RPC when the
+  // wallet is disconnected or not on the pool's chain. Prefer portfolio, fall back to on-chain.
+  const { data: smartPoolPortfolioBalances } = usePortfolioBalances({
+    evmAddress: state.isSmartPool && address && isValidHexString(address) ? address : undefined,
+    fetchPolicy: 'cache-and-network',
+  })
+
+  const getSmartPoolPortfolioBalance = (currency: Maybe<Currency>): CurrencyAmount<Currency> | undefined => {
+    if (!currency || !smartPoolPortfolioBalances) {
+      return undefined
+    }
+
+    const key = normalizeCurrencyIdForMapLookup(currencyId(currency))
+    if (!key) {
+      return undefined
+    }
+
+    let portfolioBalance = smartPoolPortfolioBalances[key] as PortfolioBalance | undefined
+    // The portfolio API keys native balances by the placeholder address `NATIVE` for some
+    // chains, while the pool's native currency resolves to the canonical native address.
+    // Fallback to the placeholder key when the canonical lookup misses.
+    if (!portfolioBalance && currency.isNative) {
+      portfolioBalance = smartPoolPortfolioBalances[`${currency.chainId}-${NATIVE_TOKEN_PLACEHOLDER}`] as
+        | PortfolioBalance
+        | undefined
+    }
+    if (portfolioBalance === undefined) {
+      return undefined
+    }
+
+    try {
+      const rawAmount = parseUnits(portfolioBalance.quantity.toString(), currency.decimals).toString()
+      return CurrencyAmount.fromRawAmount(currency, rawAmount)
+    } catch {
+      return undefined
+    }
+  }
+
+  const token0Balance = state.isSmartPool
+    ? (getSmartPoolPortfolioBalance(token0) ?? token0OnChainBalance)
+    : token0OnChainBalance
+  const token1Balance = state.isSmartPool
+    ? (getSmartPoolPortfolioBalance(token1) ?? token1OnChainBalance)
+    : token1OnChainBalance
 
   // For smart pool operations, the pool's ETH is spent, not the user's — no gas buffer needed
   const effectiveBuffer = state.isSmartPool ? 0 : bufferPercentage

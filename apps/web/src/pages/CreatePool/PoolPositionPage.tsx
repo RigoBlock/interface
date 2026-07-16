@@ -4,16 +4,12 @@ import { CurrencyAmount, Percent } from '@uniswap/sdk-core'
 import { useWeb3React } from '@web3-react/core'
 // TODO: check if should refactor AddressCard
 import { AddressCard } from '~/components/AddressCard'
-import { ButtonPrimary } from '~/components/Button/buttons'
-import { DarkCard, LightCard } from '~/components/Card/cards'
 import BuyModal from '~/components/createPool/BuyModal'
 import SellModal from '~/components/createPool/SellModal'
 import SetLockupModal from '~/components/createPool/SetLockupModal'
 import SetSpreadModal from '~/components/createPool/SetSpreadModal'
 import SetValueModal from '~/components/createPool/SetValueModal'
 import UpgradeModal from '~/components/createPool/UpgradeModal'
-import { AutoColumn } from '~/components/deprecated/Column'
-import { RowBetween, RowFixed } from '~/components/deprecated/Row'
 import HarvestYieldModal from '~/components/earn/HarvestYieldModal'
 import MoveStakeModal from '~/components/earn/MoveStakeModal'
 import UnstakeModal from '~/components/earn/UnstakeModal'
@@ -25,7 +21,6 @@ import useSelectChain from '~/hooks/useSelectChain'
 import { UserAccount, useImplementation, useSmartPoolFromAddress, useUserPoolBalance } from '~/hooks/useSmartPools'
 // TODO: this import is from node modules
 import JSBI from 'jsbi'
-import styled from '~/lib/deprecated-styled'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Trans } from 'react-i18next'
 import { Link, useParams } from 'react-router'
@@ -33,99 +28,56 @@ import { PoolInfo } from '~/state/buy/hooks'
 import { useCurrencyBalancesMultipleAccounts } from '~/state/connection/hooks'
 import { usePoolIdByAddress } from '~/state/governance/hooks'
 import { useFreeStakeBalance, useUnclaimedRewards } from '~/state/stake/hooks'
-import { ThemedText } from '~/theme/components'
 import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { NumberType } from 'utilities/src/format/types'
+import { Button, Flex, styled, Text } from 'ui/src'
 
 const NAV_SIMULATE_DEPLOYMENT_BYTECODE =
   '0x608060405234801561000f575f5ffd5b5060405161017738038061017783398101604081905261002e916100ef565b806001600160a01b031663e7d8724e6040518163ffffffff1660e01b81526004015f604051808303815f87803b158015610066575f5ffd5b505af1158015610078573d5f5f3e3d5ffd5b505050505f816001600160a01b03166389c065686040518163ffffffff1660e01b81526004016040805180830381865afa1580156100b8573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906100dc919061011c565b80515f8181524260205291925090604090f35b5f602082840312156100ff575f5ffd5b81516001600160a01b0381168114610115575f5ffd5b9392505050565b5f604082840312801561012d575f5ffd5b50604080519081016001600160401b038111828210171561015c57634e487b7160e01b5f52604160045260245ffd5b60405282518152602092830151928101929092525091905056fe'
 
-const PageWrapper = styled.div`
-  padding: 68px 8px 0px;
+const PageWrapper = styled(Flex, {
+  width: '100%',
+  maxWidth: 960,
+  mx: 'auto',
+  paddingTop: 68,
+  paddingBottom: '$spacing24',
+  paddingHorizontal: '$spacing12',
 
-  min-width: 800px;
-  max-width: 960px;
+  $md: {
+    paddingTop: 48,
+  },
 
-  @media only screen and (max-width: ${({ theme }) => `${theme.breakpoint.md}px`}) {
-    padding: 48px 8px 0px;
-  }
+  $sm: {
+    paddingTop: '$spacing20',
+  },
+})
 
-  @media only screen and (max-width: ${({ theme }) => `${theme.breakpoint.sm}px`}) {
-    padding-top: 20px;
-  }
+const DataCard = styled(Flex, {
+  backgroundColor: '$surface2',
+  borderRadius: '$rounded20',
+  padding: '$spacing16',
+  gap: '$spacing16',
+  width: '100%',
+})
 
-  ${({ theme }) => theme.deprecated_mediaWidth.deprecated_upToMedium`
-    min-width: 680px;
-    max-width: 680px;
-  `};
+const DataRow = styled(Flex, {
+  row: true,
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: '$spacing12',
+  width: '100%',
+})
 
-  ${({ theme }) => theme.deprecated_mediaWidth.deprecated_upToSmall`
-    min-width: 600px;
-    max-width: 600px;
-  `};
-
-  @media only screen and (max-width: 620px) {
-    min-width: 500px;
-    max-width: 500px;
-  }
-
-  ${({ theme }) => theme.deprecated_mediaWidth.deprecated_upToExtraSmall`
-    min-width: 340px;
-    max-width: 340px;
-  `};
-`
-
-//const BadgeText = styled.div`
-//  font-weight: 500;
-//  font-size: 14px;
-//`
-
-// responsive text
-// disable the warning because we don't use the end prop, we just want to filter it out
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const Label = styled(({ end, ...props }) => <ThemedText.DeprecatedLabel {...props} />)<{ end?: boolean }>`
-  display: flex;
-  font-size: 16px;
-  justify-content: ${({ end }) => (end ? 'flex-end' : 'flex-start')};
-  align-items: center;
-`
-
-const HoverText = styled(ThemedText.DeprecatedMain)`
-  text-decoration: none;
-  color: ${({ theme }) => theme.neutral3};
-  :hover {
-    color: ${({ theme }) => theme.neutral1};
-    text-decoration: none;
-  }
-`
-
-//const DoubleArrow = styled.span`
-//  color: ${({ theme }) => theme.neutral2};
-//  margin: 0 1rem;
-//`
-
-const ResponsiveRow = styled(RowBetween)`
-  ${({ theme }) => theme.deprecated_mediaWidth.deprecated_upToSmall`
-    flex-direction: column;
-    align-items: flex-start;
-    row-gap: 16px;
-    width: 100%:
-  `};
-`
-
-const ResponsiveButtonPrimary = styled(ButtonPrimary)`
-  border-radius: 12px;
-  padding: 6px 8px;
-  width: fit-content;
-  ${({ theme }) => theme.deprecated_mediaWidth.deprecated_upToSmall`
-    flex: 1 1 auto;
-    width: 49%;
-  `};
-`
+const BackLink = styled(Text, {
+  color: '$neutral2',
+  hoverStyle: {
+    color: '$neutral1',
+  },
+})
 
 export default function PoolPositionPage() {
   const {
@@ -146,7 +98,6 @@ export default function PoolPositionPage() {
     irr: string
   }>()
   const account = useAccount()
-  //const theme = useTheme()
   const IMPLEMENTATION_SLOT = '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc'
 
   const [showConfirm, setShowConfirm] = useState(false)
@@ -356,7 +307,16 @@ export default function PoolPositionPage() {
       currentImplementation.toLowerCase() !== beaconImplementation.toLowerCase()
 
     return needs
-  }, [currentImplementation, beaconImplementation, poolAddressFromUrl, chainId, chainIdFromUrl, isLoadingImplementations, owner, account.address])
+  }, [
+    currentImplementation,
+    beaconImplementation,
+    poolAddressFromUrl,
+    chainId,
+    chainIdFromUrl,
+    isLoadingImplementations,
+    owner,
+    account.address,
+  ])
 
   const handleMoveStakeClick = useCallback(() => {
     setShowMoveStakeModal(true)
@@ -467,366 +427,263 @@ export default function PoolPositionPage() {
             )}
           </>
         )}
-        <AutoColumn gap="md">
-          <AutoColumn gap="sm">
-            <ResponsiveRow>
-              <RowFixed gap="lg">
-                {originFromUrl && (
-                  <Link
+
+        <Flex gap="$spacing24" width="100%">
+          <Flex gap="$spacing16" width="100%">
+            <Flex
+              row
+              justifyContent="space-between"
+              alignItems="center"
+              $sm={{ flexDirection: 'column', alignItems: 'flex-start', gap: '$spacing12' }}
+            >
+              {originFromUrl && (
+                <Link
                   data-cy="visit-pool"
-                  style={{ textDecoration: 'none', width: 'fit-content', marginBottom: '0.5rem' }}
+                  style={{ textDecoration: 'none' }}
                   to={originFromUrl === 'manage' ? '/earn/manage' : '/earn'}
                 >
-                  <HoverText>
+                  <BackLink variant="body3">
                     <Trans>← Back to Smart Pools</Trans>
-                  </HoverText>
+                  </BackLink>
                 </Link>
-                )}
+              )}
+              <Flex row gap="$spacing8" flexWrap="wrap" justifyContent="flex-end">
                 {needsUpgrade && owner === account.address && (
-                  <ResponsiveButtonPrimary
-                    style={{ marginRight: '8px' }}
-                    width="fit-content"
-                    padding="6px 8px"
-                    $borderRadius="12px"
-                    onClick={handleUpgradeClick}
-                  >
+                  <Button size="small" variant="branded" onPress={handleUpgradeClick}>
                     <Trans>Upgrade</Trans>
-                  </ResponsiveButtonPrimary>
+                  </Button>
                 )}
                 {unclaimedRewards?.[0]?.yieldAmount && (
-                  <ResponsiveButtonPrimary
-                    style={{ marginRight: '8px' }}
-                    width="fit-content"
-                    padding="6px 8px"
-                    $borderRadius="12px"
-                    onClick={() => setShowHarvestYieldModal(true)}
-                  >
+                  <Button size="small" variant="branded" onPress={() => setShowHarvestYieldModal(true)}>
                     <Trans>
                       Harvest{' '}
                       {formatCurrencyAmount({ value: unclaimedRewards[0].yieldAmount, type: NumberType.TokenNonTx })}{' '}
                       GRG
                     </Trans>
-                  </ResponsiveButtonPrimary>
+                  </Button>
                 )}
-              </RowFixed>
-            </ResponsiveRow>
-            <ResponsiveRow>
-              <RowFixed style={{ alignItems: 'center', gap: '8px' }}>
-                <ThemedText.DeprecatedLabel fontSize="24px" mr="10px">
+              </Flex>
+            </Flex>
+
+            <Flex
+              row
+              justifyContent="space-between"
+              alignItems="center"
+              $sm={{ flexDirection: 'column', alignItems: 'flex-start', gap: '$spacing12' }}
+            >
+              <Flex row gap="$spacing12" alignItems="center">
+                <Text variant="heading3">
                   {name}&nbsp;|&nbsp;{symbol}
-                </ThemedText.DeprecatedLabel>
+                </Text>
                 <NetworkLogo chainId={chainId as UniverseChainId} size={24} />
-              </RowFixed>
-              {poolAddressFromUrl && (
-                <Link to={`/portfolio/${poolAddressFromUrl}`}>
-                  <RowFixed>
-                    <ThemedText.DeprecatedMain>Vault Portfolio →</ThemedText.DeprecatedMain>
-                  </RowFixed>
-                </Link>
-              )}
-              <RowFixed>
-                <ResponsiveButtonPrimary
-                  onClick={() => setShowBuyModal(true)}
-                  width="fit-content"
-                  padding="6px 8px"
-                  $borderRadius="12px"
-                  style={{ marginRight: '8px' }}
-                >
+              </Flex>
+              <Flex row gap="$spacing8" alignItems="center" flexWrap="wrap">
+                {poolAddressFromUrl && (
+                  <Link to={`/portfolio/${poolAddressFromUrl}`} style={{ textDecoration: 'none' }}>
+                    <Text variant="body3" color="$accent1">
+                      <Trans>Smart Pool Portfolio →</Trans>
+                    </Text>
+                  </Link>
+                )}
+                <Button size="small" variant="branded" onPress={() => setShowBuyModal(true)}>
                   <Trans>Buy</Trans>
-                </ResponsiveButtonPrimary>
+                </Button>
                 {hasBalance && (
-                  <ResponsiveButtonPrimary
-                    onClick={() => setShowSellModal(true)}
-                    width="fit-content"
-                    padding="6px 8px"
-                    $borderRadius="12px"
-                  >
+                  <Button size="small" variant="branded" onPress={() => setShowSellModal(true)}>
                     <Trans>Sell</Trans>
-                  </ResponsiveButtonPrimary>
+                  </Button>
                 )}
-              </RowFixed>
-            </ResponsiveRow>
-          </AutoColumn>
-          <ResponsiveRow align="flex-start">
-            <AutoColumn gap="sm" style={{ width: '100%', height: '100%' }}>
-              <DarkCard
-                width="100%"
-                height="100%"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  flexDirection: 'column',
-                  justifyContent: 'space-around',
-                  marginRight: '12px',
-                }}
-              >
-                <AutoColumn gap="md" style={{ width: '100%' }}>
-                  <AutoColumn gap="md">
-                    <Label>Pool Values</Label>
-                  </AutoColumn>
-                  <LightCard padding="12px 16px">
-                    <AutoColumn gap="md">
-                      {poolValueAmount && (
-                        <RowBetween>
-                          <RowFixed>
-                            <ThemedText.DeprecatedMain>
-                              <Trans>Total Value</Trans>
-                            </ThemedText.DeprecatedMain>
-                          </RowFixed>
-                          <RowFixed>
-                            <ThemedText.DeprecatedMain>
-                              <Trans>
-                                {formatCurrencyAmount({ value: poolValueAmount })}&nbsp;
-                                {baseTokenSymbol}
-                              </Trans>
-                            </ThemedText.DeprecatedMain>
-                          </RowFixed>
-                        </RowBetween>
-                      )}
-                      {baseTokenSymbol && (
-                        <RowBetween>
-                          <RowFixed>
-                            <ThemedText.DeprecatedMain>
-                              <Trans>Unitary Value</Trans>
-                            </ThemedText.DeprecatedMain>
-                          </RowFixed>
-                          <RowFixed>
-                            {owner === account.address && poolValueAmount ? (
-                              <ResponsiveButtonPrimary
-                                onClick={() => setShowSetValueModal(true)}
-                                height="1.1em"
-                                width="fit-content"
-                                padding="6px 8px"
-                                $borderRadius="12px"
-                              >
-                                <Trans>
-                                  {formatCurrencyAmount({ value: poolPrice, type: NumberType.TokenNonTx })}&nbsp;
-                                  {baseTokenSymbol}
-                                </Trans>
-                              </ResponsiveButtonPrimary>
-                            ) : (
-                              <ThemedText.DeprecatedMain>
-                                <Trans>
-                                  {formatCurrencyAmount({ value: poolPrice, type: NumberType.TokenNonTx })}&nbsp;
-                                  {baseTokenSymbol}
-                                </Trans>
-                              </ThemedText.DeprecatedMain>
-                            )}
-                          </RowFixed>
-                        </RowBetween>
-                      )}
-                    </AutoColumn>
-                  </LightCard>
-                </AutoColumn>
-              </DarkCard>
-              <DarkCard>
-                <AutoColumn gap="sm" style={{ width: '100%', height: '100%' }}>
-                  <DarkCard>
-                    <AutoColumn gap="md" style={{ width: '100%' }}>
-                      <AutoColumn gap="md">
-                        <Label>
-                          <Trans>Issuance Data</Trans>
-                        </Label>
-                        <LightCard>
-                          <AutoColumn>
-                            {totalSupply && base && (
-                              <RowBetween>
-                                <RowFixed>
-                                  <ThemedText.DeprecatedMain>
-                                    <Trans>Total Supply</Trans>
-                                  </ThemedText.DeprecatedMain>
-                                </RowFixed>
-                                <RowFixed>
-                                  <ThemedText.DeprecatedMain>
-                                    <Trans>
-                                      {formatCurrencyAmount({
-                                        value: CurrencyAmount.fromRawAmount(base, JSBI.BigInt(String(totalSupply))),
-                                        type: NumberType.TokenNonTx,
-                                      })}
-                                    </Trans>
-                                    &nbsp;{symbol}
-                                  </ThemedText.DeprecatedMain>
-                                </RowFixed>
-                              </RowBetween>
-                            )}
-                          </AutoColumn>
-                        </LightCard>
-                      </AutoColumn>
-                    </AutoColumn>
-                  </DarkCard>
-                </AutoColumn>
-              </DarkCard>
-            </AutoColumn>
-            <RowBetween style={{ width: '2%' }}></RowBetween>
-            <AutoColumn gap="sm" style={{ width: '100%', height: '100%' }}>
-              <DarkCard>
-                <AutoColumn gap="md" style={{ width: '100%' }}>
-                  <AutoColumn gap="md">
-                    <Label>
-                      <Trans>Cost Factors</Trans>
-                    </Label>
-                    <LightCard padding="12px 16px">
-                      <AutoColumn gap="md">
-                        {spread && (
-                          <RowBetween>
-                            <RowFixed>
-                              <ThemedText.DeprecatedMain>
-                                <Trans>Spread</Trans>
-                              </ThemedText.DeprecatedMain>
-                            </RowFixed>
-                            <RowFixed>
-                              {owner === account.address ? (
-                                <ResponsiveButtonPrimary
-                                  onClick={() => setShowSetSpreadModal(true)}
-                                  height="1.1em"
-                                  width="fit-content"
-                                  padding="6px 8px"
-                                  $borderRadius="12px"
-                                >
-                                  <Trans>{new Percent(String(spread), 10_000).toSignificant()}%</Trans>
-                                </ResponsiveButtonPrimary>
-                              ) : (
-                                <ThemedText.DeprecatedMain>
-                                  <Trans>{new Percent(String(spread), 10_000).toSignificant()}%</Trans>
-                                </ThemedText.DeprecatedMain>
-                              )}
-                            </RowFixed>
-                          </RowBetween>
+              </Flex>
+            </Flex>
+          </Flex>
+
+          <Flex row gap="$spacing16" width="100%" $lg={{ flexDirection: 'column' }}>
+            <Flex flex={1} gap="$spacing16" width="100%">
+              <DataCard>
+                <Text variant="subheading2">
+                  <Trans>Pool Values</Trans>
+                </Text>
+                <Flex gap="$spacing12" width="100%">
+                  {poolValueAmount && (
+                    <DataRow>
+                      <Text variant="body3" color="$neutral2">
+                        <Trans>Total Value</Trans>
+                      </Text>
+                      <Text variant="body3" color="$neutral1">
+                        <Trans>
+                          {formatCurrencyAmount({ value: poolValueAmount })}&nbsp;{baseTokenSymbol}
+                        </Trans>
+                      </Text>
+                    </DataRow>
+                  )}
+                  {baseTokenSymbol && (
+                    <DataRow>
+                      <Text variant="body3" color="$neutral2">
+                        <Trans>Unitary Value</Trans>
+                      </Text>
+                      <Flex row alignItems="center" gap="$spacing8">
+                        {owner === account.address && poolValueAmount ? (
+                          <Button
+                            size="xxsmall"
+                            variant="branded"
+                            emphasis="secondary"
+                            onPress={() => setShowSetValueModal(true)}
+                          >
+                            <Trans>
+                              {formatCurrencyAmount({ value: poolPrice, type: NumberType.TokenNonTx })}&nbsp;
+                              {baseTokenSymbol}
+                            </Trans>
+                          </Button>
+                        ) : (
+                          <Text variant="body3" color="$neutral1">
+                            <Trans>
+                              {formatCurrencyAmount({ value: poolPrice, type: NumberType.TokenNonTx })}&nbsp;
+                              {baseTokenSymbol}
+                            </Trans>
+                          </Text>
                         )}
-                        {transactionFee && transactionFee !== 0 ? (
-                          <RowBetween>
-                            <RowFixed>
-                              <ThemedText.DeprecatedMain>
-                                <Trans>Distribution Fee</Trans>
-                              </ThemedText.DeprecatedMain>
-                            </RowFixed>
-                            <RowFixed>
-                              <ThemedText.DeprecatedMain>
-                                <Trans>{new Percent(String(transactionFee), 10_000).toSignificant()}%</Trans>
-                              </ThemedText.DeprecatedMain>
-                            </RowFixed>
-                          </RowBetween>
-                        ) : null}
-                        {lockup && (
-                          <RowBetween>
-                            <RowFixed>
-                              <ThemedText.DeprecatedMain>
-                                <Trans>Lockup</Trans>
-                              </ThemedText.DeprecatedMain>
-                            </RowFixed>
-                            <RowFixed>
-                              {owner === account.address ? (
-                                <ResponsiveButtonPrimary
-                                  onClick={() => setShowSetLockupModal(true)}
-                                  height="1.1em"
-                                  width="fit-content"
-                                  fontSize={4}
-                                  padding="6px 8px"
-                                  $borderRadius="12px"
-                                >
-                                  <Trans>{lockup} days</Trans>
-                                </ResponsiveButtonPrimary>
-                              ) : (
-                                <ThemedText.DeprecatedMain>
-                                  <Trans>{lockup} days</Trans>
-                                </ThemedText.DeprecatedMain>
-                              )}
-                            </RowFixed>
-                          </RowBetween>
+                      </Flex>
+                    </DataRow>
+                  )}
+                </Flex>
+              </DataCard>
+
+              <DataCard>
+                <Text variant="subheading2">
+                  <Trans>Issuance Data</Trans>
+                </Text>
+                <Flex gap="$spacing12" width="100%">
+                  {totalSupply && base && (
+                    <DataRow>
+                      <Text variant="body3" color="$neutral2">
+                        <Trans>Total Supply</Trans>
+                      </Text>
+                      <Text variant="body3" color="$neutral1">
+                        <Trans>
+                          {formatCurrencyAmount({
+                            value: CurrencyAmount.fromRawAmount(base, JSBI.BigInt(String(totalSupply))),
+                            type: NumberType.TokenNonTx,
+                          })}
+                        </Trans>
+                        &nbsp;{symbol}
+                      </Text>
+                    </DataRow>
+                  )}
+                </Flex>
+              </DataCard>
+            </Flex>
+
+            <Flex flex={1} gap="$spacing16" width="100%">
+              <DataCard>
+                <Text variant="subheading2">
+                  <Trans>Cost Factors</Trans>
+                </Text>
+                <Flex gap="$spacing12" width="100%">
+                  {spread && (
+                    <DataRow>
+                      <Text variant="body3" color="$neutral2">
+                        <Trans>Spread</Trans>
+                      </Text>
+                      <Flex row alignItems="center" gap="$spacing8">
+                        {owner === account.address ? (
+                          <Button
+                            size="xxsmall"
+                            variant="branded"
+                            emphasis="secondary"
+                            onPress={() => setShowSetSpreadModal(true)}
+                          >
+                            <Trans>{new Percent(String(spread), 10_000).toSignificant()}%</Trans>
+                          </Button>
+                        ) : (
+                          <Text variant="body3" color="$neutral1">
+                            <Trans>{new Percent(String(spread), 10_000).toSignificant()}%</Trans>
+                          </Text>
                         )}
-                      </AutoColumn>
-                    </LightCard>
-                  </AutoColumn>
-                </AutoColumn>
-              </DarkCard>
-              <DarkCard>
-                <AutoColumn gap="sm" style={{ width: '100%', height: '100%' }}>
-                  <DarkCard>
-                    <AutoColumn gap="md" style={{ width: '100%' }}>
-                      <AutoColumn gap="md">
-                        <Label>
-                          <Trans>Pool Constants</Trans>
-                        </Label>
-                        <LightCard padding="12px 16px">
-                          <AutoColumn gap="md">
-                            {decimals && decimals !== 0 && (
-                              <RowBetween>
-                                <RowFixed>
-                                  <ThemedText.DeprecatedMain>
-                                    <Trans>Decimals</Trans>
-                                  </ThemedText.DeprecatedMain>
-                                </RowFixed>
-                                <RowFixed>
-                                  <ThemedText.DeprecatedMain>
-                                    <Trans i18nKey="smartPool.decimals" values={{ decimals }} />
-                                  </ThemedText.DeprecatedMain>
-                                </RowFixed>
-                              </RowBetween>
-                            )}
-                          </AutoColumn>
-                        </LightCard>
-                      </AutoColumn>
-                    </AutoColumn>
-                  </DarkCard>
-                </AutoColumn>
-              </DarkCard>
-            </AutoColumn>
-          </ResponsiveRow>
-          <AutoColumn>
-            <DarkCard>
+                      </Flex>
+                    </DataRow>
+                  )}
+                  {transactionFee && transactionFee !== 0 ? (
+                    <DataRow>
+                      <Text variant="body3" color="$neutral2">
+                        <Trans>Distribution Fee</Trans>
+                      </Text>
+                      <Text variant="body3" color="$neutral1">
+                        <Trans>{new Percent(String(transactionFee), 10_000).toSignificant()}%</Trans>
+                      </Text>
+                    </DataRow>
+                  ) : null}
+                  {lockup && (
+                    <DataRow>
+                      <Text variant="body3" color="$neutral2">
+                        <Trans>Lockup</Trans>
+                      </Text>
+                      <Flex row alignItems="center" gap="$spacing8">
+                        {owner === account.address ? (
+                          <Button
+                            size="xxsmall"
+                            variant="branded"
+                            emphasis="secondary"
+                            onPress={() => setShowSetLockupModal(true)}
+                          >
+                            <Trans>{lockup} days</Trans>
+                          </Button>
+                        ) : (
+                          <Text variant="body3" color="$neutral1">
+                            <Trans>{lockup} days</Trans>
+                          </Text>
+                        )}
+                      </Flex>
+                    </DataRow>
+                  )}
+                </Flex>
+              </DataCard>
+
+              <DataCard>
+                <Text variant="subheading2">
+                  <Trans>Pool Constants</Trans>
+                </Text>
+                <Flex gap="$spacing12" width="100%">
+                  {decimals && decimals !== 0 && (
+                    <DataRow>
+                      <Text variant="body3" color="$neutral2">
+                        <Trans>Decimals</Trans>
+                      </Text>
+                      <Text variant="body3" color="$neutral1">
+                        <Trans i18nKey="smartPool.decimals" values={{ decimals }} />
+                      </Text>
+                    </DataRow>
+                  )}
+                </Flex>
+              </DataCard>
+            </Flex>
+          </Flex>
+
+          <Flex row gap="$spacing16" width="100%" $lg={{ flexDirection: 'column' }}>
+            <Flex flex={1} width="100%">
               <AddressCard address={poolAddressFromUrl} chainId={chainId} label="Smart Pool" />
-            </DarkCard>
-          </AutoColumn>
-          <AutoColumn>
-            <DarkCard>
+            </Flex>
+            <Flex flex={1} width="100%">
               <AddressCard address={owner} chainId={chainId} label="Pool Operator" />
-            </DarkCard>
-          </AutoColumn>
-          <AutoColumn gap="sm" style={{ width: '100%', height: '100%', justifyContent: 'center' }}>
-            <ResponsiveRow>
-              <RowFixed>
-                <ResponsiveButtonPrimary
-                  onClick={() => setShowStakeModal(true)}
-                  width="fit-content"
-                  padding="6px 8px"
-                  $borderRadius="12px"
-                  style={{ marginRight: '8px' }}
-                >
-                  <Trans>Stake</Trans>
-                </ResponsiveButtonPrimary>
-                <ResponsiveButtonPrimary
-                  onClick={handleMoveStakeClick}
-                  width="fit-content"
-                  padding="6px 8px"
-                  $borderRadius="12px"
-                  style={{ marginRight: '8px' }}
-                >
-                  <Trans>Switch</Trans>
-                </ResponsiveButtonPrimary>
-                <ResponsiveButtonPrimary
-                  onClick={handleDeactivateStakeClick}
-                  width="fit-content"
-                  padding="6px 8px"
-                  $borderRadius="12px"
-                  style={{ marginRight: '8px' }}
-                >
-                  <Trans>Disable</Trans>
-                </ResponsiveButtonPrimary>
-                {owner === account.address && hasFreeStake && (
-                  <ResponsiveButtonPrimary
-                    style={{ marginRight: '8px' }}
-                    width="fit-content"
-                    padding="6px 8px"
-                    $borderRadius="12px"
-                    onClick={() => setShowUnstakeModal(true)}
-                  >
-                    <Trans>Unstake</Trans>
-                  </ResponsiveButtonPrimary>
-                )}
-              </RowFixed>
-            </ResponsiveRow>
-          </AutoColumn>
-        </AutoColumn>
+            </Flex>
+          </Flex>
+
+          <Flex row gap="$spacing8" flexWrap="wrap" width="100%">
+            <Button size="small" variant="branded" onPress={() => setShowStakeModal(true)}>
+              <Trans>Stake</Trans>
+            </Button>
+            <Button size="small" variant="branded" onPress={handleMoveStakeClick}>
+              <Trans>Switch</Trans>
+            </Button>
+            <Button size="small" variant="branded" onPress={handleDeactivateStakeClick}>
+              <Trans>Disable</Trans>
+            </Button>
+            {owner === account.address && hasFreeStake && (
+              <Button size="small" variant="branded" onPress={() => setShowUnstakeModal(true)}>
+                <Trans>Unstake</Trans>
+              </Button>
+            )}
+          </Flex>
+        </Flex>
       </PageWrapper>
       <SwitchLocaleLink />
     </>

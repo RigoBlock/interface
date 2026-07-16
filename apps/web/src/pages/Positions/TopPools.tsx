@@ -1,6 +1,7 @@
 import { ExploreStatsResponse } from '@uniswap/client-explore/dist/uniswap/explore/v1/service_pb'
 import { ALL_NETWORKS_ARG } from '@universe/api'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { useAtom } from 'jotai'
 import { useTranslation } from 'react-i18next'
 import { Flex, useMedia } from 'ui/src'
 import { useExploreStatsQuery } from 'uniswap/src/data/rest/exploreStats'
@@ -11,6 +12,7 @@ import { ExternalArrowLink } from '~/components/Liquidity/ExternalArrowLink'
 import { useAccount } from '~/hooks/useAccount'
 import { ExploreTablesFilterStoreContextProvider } from '~/pages/Explore/exploreTablesFilterStore'
 import { TopPoolsSection } from '~/pages/Positions/TopPoolsSection'
+import { shouldDisableExploreRoutesAtom } from '~/state/application/atoms'
 import { useTopPoolsLegacy } from '~/state/explore/topPools'
 
 const MAX_BOOSTED_POOLS = 3
@@ -69,7 +71,13 @@ function TopPoolsContent({ chainId }: { chainId: UniverseChainId | null }): JSX.
   )
 }
 
-export function TopPools(props: { chainId: UniverseChainId | null }): JSX.Element {
+export function TopPools(props: { chainId: UniverseChainId | null }): JSX.Element | null {
+  const [shouldDisableExploreRoutes] = useAtom(shouldDisableExploreRoutesAtom)
+
+  if (shouldDisableExploreRoutes) {
+    return null
+  }
+
   return (
     <ExploreTablesFilterStoreContextProvider>
       <TopPoolsContent {...props} />

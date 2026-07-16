@@ -68,6 +68,8 @@ vi.mock('ui/src/assets', () => ({
   UNISWAP_LOGO_LARGE: 'uniswap-logo-large.png',
   UNISWAP_MONO_LOGO_LARGE: 'uniswap-mono-logo-large.png',
   UNISWAP_APP_ICON: 'uniswap-app-icon.png',
+  RIGOBLOCK_LOGO: 'rigoblock-logo.png',
+  RIGOBLOCK_LOGO_LARGE: 'rigoblock-logo-large.png',
   BINANCE_WALLET_ICON: 'binance-wallet-icon.png',
   ONBOARDING_QR_ETCHING_VIDEO_LIGHT: 'light-etching.mp4',
   ONBOARDING_QR_ETCHING_VIDEO_DARK: 'dark-etching.mp4',

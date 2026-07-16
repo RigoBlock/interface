@@ -9,6 +9,7 @@ import { ElementName, SectionName } from 'uniswap/src/features/telemetry/constan
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
+import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
 import { PortfolioExpandoRow } from '~/pages/Portfolio/components/PortfolioExpandoRow'
 import { TokenData } from '~/pages/Portfolio/Tokens/hooks/useTransformTokenTableData'
 import { TokenColumns } from '~/pages/Portfolio/Tokens/Table/columns/useTokenColumns'
@@ -37,6 +38,7 @@ function TokensTableContent({ visible, hidden, loading, refetching, error }: Tok
   const tableLoading = loading && !refetching
   const trace = useTrace()
   const isProfitLossEnabled = useFeatureFlag(FeatureFlags.ProfitLoss)
+  const { isExternalWallet } = usePortfolioAddresses()
 
   const { sortMethod, sortAscending } = usePortfolioTokenTableSortStore((s) => ({
     sortMethod: s.sortMethod,
@@ -60,11 +62,11 @@ function TokensTableContent({ visible, hidden, loading, refetching, error }: Tok
   )
 
   const hiddenColumns = useMemo(() => {
-    if (isProfitLossEnabled) {
+    if (isProfitLossEnabled && !isExternalWallet) {
       return undefined
     }
     return [TokenColumns.AvgCost, TokenColumns.UnrealizedPnl]
-  }, [isProfitLossEnabled])
+  }, [isProfitLossEnabled, isExternalWallet])
 
   const flattenedHiddenTokens = useMemo(() => flattenTokenDataToSingleChainRows(hidden), [hidden])
 

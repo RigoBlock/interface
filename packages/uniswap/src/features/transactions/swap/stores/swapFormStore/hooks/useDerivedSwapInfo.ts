@@ -1,6 +1,6 @@
 import { Currency, CurrencyAmount, TradeType } from '@uniswap/sdk-core'
-import { parseUnits } from 'ethers/lib/utils'
 import { TradingApi } from '@universe/api'
+import { parseUnits } from 'ethers/lib/utils'
 import { useMemo } from 'react'
 import { NATIVE_TOKEN_PLACEHOLDER } from 'uniswap/src/constants/addresses'
 import { useUniswapContextSelector } from 'uniswap/src/contexts/UniswapContext'
@@ -92,14 +92,18 @@ export function useDerivedSwapInfo({
       return undefined
     }
 
-    const key = currency.isNative
-      ? `${currency.chainId}-${NATIVE_TOKEN_PLACEHOLDER}`
-      : normalizeCurrencyIdForMapLookup(currencyId(currency))
+    const key = normalizeCurrencyIdForMapLookup(currencyId(currency))
     if (!key) {
       return undefined
     }
 
-    const portfolioBalance = smartPoolPortfolioBalances[key]
+    let portfolioBalance = smartPoolPortfolioBalances[key]
+    // The portfolio API keys native balances by the placeholder address `NATIVE` for some
+    // chains, while the swap input currency resolves to the canonical native address.
+    // Fallback to the placeholder key when the canonical lookup misses.
+    if (!portfolioBalance && currency.isNative) {
+      portfolioBalance = smartPoolPortfolioBalances[`${currency.chainId}-${NATIVE_TOKEN_PLACEHOLDER}`]
+    }
     if (!portfolioBalance) {
       return undefined
     }
@@ -113,10 +117,10 @@ export function useDerivedSwapInfo({
   }
 
   const tokenInBalance = smartPoolAddress
-    ? getSmartPoolPortfolioBalance(currencyIn) ?? tokenInOnChainBalance
+    ? (getSmartPoolPortfolioBalance(currencyIn) ?? tokenInOnChainBalance)
     : tokenInOnChainBalance
   const tokenOutBalance = smartPoolAddress
-    ? getSmartPoolPortfolioBalance(currencyOut) ?? tokenOutOnChainBalance
+    ? (getSmartPoolPortfolioBalance(currencyOut) ?? tokenOutOnChainBalance)
     : tokenOutOnChainBalance
 
   const isExactIn = exactCurrencyField === CurrencyField.INPUT
@@ -205,12 +209,8 @@ export function useDerivedSwapInfo({
     }
 
     // Derive token price from input amount (same asset, source chain → USD works)
-    const inputTokens = displayableTrade.inputAmount
-      ? parseFloat(displayableTrade.inputAmount.toExact())
-      : 0
-    const inputUSD = inputCurrencyUSDValue
-      ? parseFloat(inputCurrencyUSDValue.toExact())
-      : 0
+    const inputTokens = parseFloat(displayableTrade.inputAmount.toExact())
+    const inputUSD = inputCurrencyUSDValue ? parseFloat(inputCurrencyUSDValue.toExact()) : 0
     if (inputTokens <= 0 || inputUSD <= 0) {
       return displayableTradeOutputAmount
     }
@@ -265,8 +265,7 @@ export function useDerivedSwapInfo({
   const currencyAmounts = useMemo(
     () => ({
       [CurrencyField.INPUT]: inputCurrencyAmount,
-      [CurrencyField.OUTPUT]:
-        exactCurrencyField === CurrencyField.OUTPUT ? amountSpecified : adjustedOutputAmount,
+      [CurrencyField.OUTPUT]: exactCurrencyField === CurrencyField.OUTPUT ? amountSpecified : adjustedOutputAmount,
     }),
     [exactCurrencyField, amountSpecified, inputCurrencyAmount, adjustedOutputAmount],
   )

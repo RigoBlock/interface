@@ -8,8 +8,8 @@ import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useRestPortfolioValueModifier } from 'uniswap/src/features/dataApi/balances/balancesRest'
 import { ElementName, SectionName } from 'uniswap/src/features/telemetry/constants'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
-import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
+import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { MAX_TOKENS_ROWS } from '~/pages/Portfolio/Overview/constants'
 import { TableSectionHeader } from '~/pages/Portfolio/Overview/TableSectionHeader'
 import { ViewAllButton } from '~/pages/Portfolio/Overview/ViewAllButton'
@@ -64,7 +64,7 @@ export const MiniTokensTable = memo(function MiniTokensTable({ maxTokens = 8, ch
   const tableLoading = loading && !tokenData
 
   const hiddenColumns = [TokenColumns.Change1d, TokenColumns.Allocation, TokenColumns.AvgCost]
-  if (!isProfitLossEnabled) {
+  if (!isProfitLossEnabled || portfolioAddresses.isExternalWallet) {
     hiddenColumns.push(TokenColumns.UnrealizedPnl)
   }
 

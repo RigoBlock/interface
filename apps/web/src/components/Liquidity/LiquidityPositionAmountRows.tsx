@@ -1,4 +1,5 @@
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
+import { useAtom } from 'jotai'
 import { useCallback } from 'react'
 import { useNavigate } from 'react-router'
 import { Flex, Text, TouchableArea } from 'ui/src'
@@ -9,6 +10,7 @@ import { useLocalizationContext } from 'uniswap/src/features/language/Localizati
 import { NumberType } from 'utilities/src/format/types'
 import { getTokenDetailsURL } from '~/appGraphql/data/util'
 import { getChainUrlParam } from '~/features/params/chainParams'
+import { shouldDisableExploreRoutesAtom } from '~/state/application/atoms'
 import { ClickableTamaguiStyle } from '~/theme/components/styles'
 
 type AmountRow = {
@@ -24,6 +26,7 @@ type LiquidityPositionAmountRowsProps = {
 export function LiquidityPositionAmountRows({ rows }: LiquidityPositionAmountRowsProps) {
   const navigate = useNavigate()
   const { formatCurrencyAmount } = useLocalizationContext()
+  const [shouldDisableExploreRoutes] = useAtom(shouldDisableExploreRoutesAtom)
   const chainUrlParam = getChainUrlParam(rows[0].currencyInfo.currency.chainId || UniverseChainId.Mainnet)
 
   const getLink = useCallback(
@@ -40,18 +43,27 @@ export function LiquidityPositionAmountRows({ rows }: LiquidityPositionAmountRow
     <Flex gap="$gap16">
       {rows.map((row) => (
         <Flex row alignItems="center" justifyContent="space-between" key={row.currencyInfo.currencyId}>
-          <TouchableArea
-            onPress={() => navigate(getLink(row.currencyInfo))}
-            {...ClickableTamaguiStyle}
-            pressStyle={{ scale: 1 }}
-          >
+          {shouldDisableExploreRoutes ? (
             <Flex row alignItems="center" gap="$gap12" maxWidth={160}>
               <CurrencyLogo currencyInfo={row.currencyInfo} size={24} />
               <Text variant="subheading1" color="neutral1" $lg={{ variant: 'subheading2' }}>
                 {formatCurrencyAmount({ value: row.fiatValue, type: NumberType.FiatTokenPrice })}
               </Text>
             </Flex>
-          </TouchableArea>
+          ) : (
+            <TouchableArea
+              onPress={() => navigate(getLink(row.currencyInfo))}
+              {...ClickableTamaguiStyle}
+              pressStyle={{ scale: 1 }}
+            >
+              <Flex row alignItems="center" gap="$gap12" maxWidth={160}>
+                <CurrencyLogo currencyInfo={row.currencyInfo} size={24} />
+                <Text variant="subheading1" color="neutral1" $lg={{ variant: 'subheading2' }}>
+                  {formatCurrencyAmount({ value: row.fiatValue, type: NumberType.FiatTokenPrice })}
+                </Text>
+              </Flex>
+            </TouchableArea>
+          )}
           <Flex alignItems="flex-end" gap="$gap4">
             <Flex row alignItems="center" justifyContent="flex-end" gap="$gap4">
               <Text variant="body2" color="$neutral2">

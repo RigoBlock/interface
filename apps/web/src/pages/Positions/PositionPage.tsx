@@ -8,10 +8,6 @@ import { useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet-async/lib/index'
 import { useTranslation } from 'react-i18next'
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router'
-import { useActiveSmartPool } from '~/state/application/hooks'
-import { usePendingLPTransactionsChangeListener } from '~/state/transactions/hooks'
-import { ClickableTamaguiStyle } from '~/theme/components/styles'
-import { MultichainContextProvider } from '~/state/multichain/MultichainContext'
 import {
   Button,
   Flex,
@@ -42,7 +38,7 @@ import { isEVMChain } from 'uniswap/src/features/platforms/utils/chains'
 import { InterfacePageName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { useCurrencyInfos } from 'uniswap/src/features/tokens/useCurrencyInfo'
-import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPriceWrapper'
+import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'
 import { usePositionVisibilityCheck } from 'uniswap/src/features/visibility/hooks/usePositionVisibilityCheck'
 import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 import { buildCurrencyId, currencyId, currencyIdToAddress } from 'uniswap/src/utils/currencyId'
@@ -75,6 +71,10 @@ import { useLpIncentivesFormattedEarnings } from '~/hooks/useLpIncentivesFormatt
 import { usePositionTokenURI } from '~/hooks/usePositionTokenURI'
 import { useDynamicMetatags } from '~/pages/metatags'
 import NotFound from '~/pages/NotFound'
+import { useActiveSmartPool } from '~/state/application/hooks'
+import { MultichainContextProvider } from '~/state/multichain/MultichainContext'
+import { usePendingLPTransactionsChangeListener } from '~/state/transactions/hooks'
+import { ClickableTamaguiStyle } from '~/theme/components/styles'
 
 const BodyWrapper = styled(Main, {
   backgroundColor: '$surface1',

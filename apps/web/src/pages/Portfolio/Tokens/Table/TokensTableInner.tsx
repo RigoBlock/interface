@@ -1,28 +1,18 @@
 import { type ColumnDef, Row } from '@tanstack/react-table'
-import { SharedEventName } from '@uniswap/analytics-events'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { TouchableArea } from 'ui/src'
 import { InformationBanner } from 'uniswap/src/components/banners/InformationBanner'
 import { ElementName, SectionName } from 'uniswap/src/features/telemetry/constants'
-import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { HiddenTokenInfoModal } from 'uniswap/src/features/transactions/modals/HiddenTokenInfoModal'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { useBooleanState } from 'utilities/src/react/useBooleanState'
-import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
 import { Table } from '~/components/Table'
 import { PORTFOLIO_TABLE_ROW_HEIGHT } from '~/pages/Portfolio/constants'
-import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
-import { useNavigateToTokenDetails } from '~/pages/Portfolio/Tokens/hooks/useNavigateToTokenDetails'
 import { TokenData } from '~/pages/Portfolio/Tokens/hooks/useTransformTokenTableData'
 import { TokenColumns, useTokenColumns } from '~/pages/Portfolio/Tokens/Table/columns/useTokenColumns'
-import {
-  buildTokenTableRows,
-  getSubRows,
-  getTokenDataForRow,
-  getTokenTableRowId,
-} from '~/pages/Portfolio/Tokens/Table/tokenTableRowUtils'
+import { buildTokenTableRows, getSubRows, getTokenTableRowId } from '~/pages/Portfolio/Tokens/Table/tokenTableRowUtils'
 import type { TokenTableRow } from '~/pages/Portfolio/Tokens/Table/tokenTableRowUtils'
 
 export function TokensTableInner({
@@ -37,7 +27,6 @@ export function TokensTableInner({
   loadingRowsCount,
   externalScrollSync = true,
   scrollGroup = 'portfolio-tokens',
-  analyticsContext,
   showUnrealizedPnlPercent = false,
   columnSortEnabled = true,
 }: {
@@ -60,7 +49,6 @@ export function TokensTableInner({
   const { value: isModalVisible, setTrue: openModal, setFalse: closeModal } = useBooleanState(false)
   const hasData = tokenData.length > 0
   const showLoadingSkeleton = loading || (!!error && !hasData)
-  const trace = useTrace()
   const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
   const allowMultichainExpandRows = multichainTokenUxEnabled && !showHiddenTokensBanner
   const rows = useMemo(
@@ -74,21 +62,6 @@ export function TokensTableInner({
     showUnrealizedPnlPercent,
     columnSortEnabled,
   })
-  const { chainId } = usePortfolioRoutes()
-
-  const navigateToTokenDetails = useNavigateToTokenDetails()
-
-  const handleTokenRowClick = useCallback(
-    (data: TokenData) => {
-      sendAnalyticsEvent(SharedEventName.ELEMENT_CLICKED, {
-        element: analyticsContext?.element ?? ElementName.TokenItem,
-        section: analyticsContext?.section ?? SectionName.PortfolioTokensTab,
-        ...trace,
-      })
-      navigateToTokenDetails(data.currencyInfo.currency, chainId)
-    },
-    [navigateToTokenDetails, trace, analyticsContext, chainId],
-  )
 
   const rowWrapper = useCallback(
     (row: Row<TokenTableRow>, content: JSX.Element) => {
@@ -96,16 +69,16 @@ export function TokensTableInner({
         return content
       }
       const canExpand = allowMultichainExpandRows && row.getCanExpand()
-      const onPress = canExpand
-        ? () => row.toggleExpanded()
-        : () => handleTokenRowClick(getTokenDataForRow(row.original))
+      if (!canExpand) {
+        return content
+      }
       return (
-        <TouchableArea onPress={onPress} pressStyle={{ scale: 1 }}>
+        <TouchableArea onPress={() => row.toggleExpanded()} pressStyle={{ scale: 1 }}>
           {content}
         </TouchableArea>
       )
     },
-    [loading, allowMultichainExpandRows, handleTokenRowClick],
+    [loading, allowMultichainExpandRows],
   )
 
   return (
