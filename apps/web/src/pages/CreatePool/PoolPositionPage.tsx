@@ -7,7 +7,7 @@ import JSBI from 'jsbi'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Trans } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router'
-import { Button, Flex, styled, Text } from 'ui/src'
+import { Button, Flex, FlexLoader, Skeleton, styled, Text } from 'ui/src'
 import { Edit } from 'ui/src/components/icons/Edit'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
 import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
@@ -134,6 +134,15 @@ function EditAffordance({ visible, onPress }: { visible: boolean; onPress: () =>
   )
 }
 
+/** Inline loading placeholder that keeps the row at text height while chain data loads */
+function LoadingValue({ width = 80 }: { width?: number }): JSX.Element {
+  return (
+    <Skeleton>
+      <FlexLoader borderRadius="$rounded4" height={16} opacity={0.4} width={width} />
+    </Skeleton>
+  )
+}
+
 export default function PoolPositionPage() {
   const {
     chainId: chainIdFromUrl,
@@ -223,6 +232,9 @@ export default function PoolPositionPage() {
         return
       }
 
+      // Reset the previous chain's value so it is never shown for the newly selected chain
+      setSimulatedValue(undefined)
+
       // @Notice: simulate function to deploy ephemeral contract that returns the real-time updateUnitaryValue
       async function simulate(address: string) {
         try {
@@ -275,7 +287,8 @@ export default function PoolPositionPage() {
       }
 
       simulate(poolAddress)
-    }, [poolAddress, provider, fallbackValue])
+      // oxlint-disable-next-line react/exhaustive-deps -- chainId is intentionally included to re-simulate on chain switch
+    }, [poolAddress, provider, fallbackValue, chainId])
 
     return simulatedValue
   }
@@ -318,6 +331,9 @@ export default function PoolPositionPage() {
     return JSBI.greaterThan(balanceJSBI, JSBI.BigInt(0))
   }, [userAccount])
   const baseTokenSymbol = base?.symbol ?? ''
+  // False while the selected chain's pool storage is loading (e.g. right after a chain switch),
+  // so fields render placeholders instead of stale or missing values
+  const poolStorageLoaded = !!poolStorage
 
   const poolValue = useMemo(() => {
     try {
@@ -614,12 +630,12 @@ export default function PoolPositionPage() {
               )}
               <Flex row gap="$spacing8" flexWrap="wrap" justifyContent="flex-end">
                 {needsUpgrade && owner === account.address && (
-                  <Button size="small" variant="branded" onPress={handleUpgradeClick}>
+                  <Button size="small" variant="branded" fill={false} onPress={handleUpgradeClick}>
                     <Trans>Upgrade</Trans>
                   </Button>
                 )}
                 {harvestYieldString && (
-                  <Button size="small" variant="branded" onPress={() => setShowHarvestYieldModal(true)}>
+                  <Button size="small" variant="branded" fill={false} onPress={() => setShowHarvestYieldModal(true)}>
                     <Trans>Harvest {harvestYieldString} GRG</Trans>
                   </Button>
                 )}
@@ -630,31 +646,37 @@ export default function PoolPositionPage() {
               row
               justifyContent="space-between"
               alignItems="center"
+              gap="$spacing12"
               $sm={{
                 flexDirection: 'column',
                 alignItems: 'flex-start',
-                gap: '$spacing12',
               }}
             >
-              <Flex row gap="$spacing12" alignItems="center">
-                <Text variant="heading3">
-                  {name}&nbsp;|&nbsp;{symbol}
-                </Text>
+              <Flex row gap="$spacing12" alignItems="center" flexShrink={1} minWidth={0}>
+                {name ? (
+                  <Text variant="heading3" numberOfLines={1}>
+                    {name}&nbsp;|&nbsp;{symbol}
+                  </Text>
+                ) : (
+                  <Skeleton>
+                    <FlexLoader borderRadius="$rounded8" height={28} opacity={0.4} width={180} />
+                  </Skeleton>
+                )}
                 <NetworkLogo chainId={chainId as UniverseChainId} size={24} />
-              </Flex>
-              <Flex row gap="$spacing8" alignItems="center" flexWrap="wrap">
                 {poolAddressFromUrl && (
                   <Link to={`/portfolio/${poolAddressFromUrl}`} style={{ textDecoration: 'none' }}>
-                    <Text variant="body3" color="$accent1">
+                    <Text variant="body2" color="$accent1" whiteSpace="nowrap">
                       <Trans>Portfolio →</Trans>
                     </Text>
                   </Link>
                 )}
-                <Button size="small" variant="branded" onPress={() => setShowBuyModal(true)}>
+              </Flex>
+              <Flex row gap="$spacing8" alignItems="center" flexShrink={0}>
+                <Button size="small" variant="branded" fill={false} onPress={() => setShowBuyModal(true)}>
                   <Trans>Buy</Trans>
                 </Button>
                 {hasBalance && (
-                  <Button size="small" variant="branded" onPress={() => setShowSellModal(true)}>
+                  <Button size="small" variant="branded" fill={false} onPress={() => setShowSellModal(true)}>
                     <Trans>Sell</Trans>
                   </Button>
                 )}
@@ -702,23 +724,25 @@ export default function PoolPositionPage() {
                 <Trans>Pool Values</Trans>
               </Text>
               <Flex gap="$spacing12" width="100%">
-                {poolValueAmount && (
-                  <DataRow>
-                    <Text variant="body3" color="$neutral2">
-                      <Trans>Total Value</Trans>
-                    </Text>
+                <DataRow>
+                  <Text variant="body3" color="$neutral2">
+                    <Trans>Total Value</Trans>
+                  </Text>
+                  {poolValueAmount ? (
                     <Text variant="body3" color="$neutral1">
                       {formatCurrencyAmount({ value: poolValueAmount })}&nbsp;
                       {baseTokenSymbol}
                     </Text>
-                  </DataRow>
-                )}
-                {baseTokenSymbol && (
-                  <DataRow>
-                    <Text variant="body3" color="$neutral2">
-                      <Trans>Unitary Value</Trans>
-                    </Text>
-                    <Flex row alignItems="center" gap="$spacing8">
+                  ) : (
+                    <LoadingValue width={90} />
+                  )}
+                </DataRow>
+                <DataRow>
+                  <Text variant="body3" color="$neutral2">
+                    <Trans>Unitary Value</Trans>
+                  </Text>
+                  <Flex row alignItems="center" gap="$spacing8">
+                    {poolPrice && baseTokenSymbol ? (
                       <Text variant="body3" color="$neutral1">
                         {formatCurrencyAmount({
                           value: poolPrice,
@@ -727,13 +751,15 @@ export default function PoolPositionPage() {
                         &nbsp;
                         {baseTokenSymbol}
                       </Text>
-                      <EditAffordance
-                        visible={owner === account.address && !!poolValueAmount}
-                        onPress={() => setShowSetValueModal(true)}
-                      />
-                    </Flex>
-                  </DataRow>
-                )}
+                    ) : (
+                      <LoadingValue width={70} />
+                    )}
+                    <EditAffordance
+                      visible={poolStorageLoaded && owner === account.address && !!poolValueAmount}
+                      onPress={() => setShowSetValueModal(true)}
+                    />
+                  </Flex>
+                </DataRow>
               </Flex>
             </DataCard>
 
@@ -742,57 +768,75 @@ export default function PoolPositionPage() {
                 <Trans>Cost Factors</Trans>
               </Text>
               <Flex gap="$spacing12" width="100%">
-                {spread && (
-                  <DataRow>
-                    <Text variant="body3" color="$neutral2">
-                      <Trans>Spread</Trans>
-                    </Text>
-                    <Flex row alignItems="center" gap="$spacing8">
+                <DataRow>
+                  <Text variant="body3" color="$neutral2">
+                    <Trans>Spread</Trans>
+                  </Text>
+                  <Flex row alignItems="center" gap="$spacing8">
+                    {poolStorageLoaded && spread ? (
                       <Text variant="body3" color="$neutral1">
                         <Trans>{new Percent(String(spread), 10_000).toSignificant()}%</Trans>
                       </Text>
-                      <EditAffordance visible={owner === account.address} onPress={() => setShowSetSpreadModal(true)} />
-                    </Flex>
-                  </DataRow>
-                )}
-                {transactionFee && transactionFee !== 0 ? (
-                  <DataRow>
-                    <Text variant="body3" color="$neutral2">
-                      <Trans>Distribution Fee</Trans>
-                    </Text>
+                    ) : poolStorageLoaded ? (
+                      <Text variant="body3" color="$neutral1">
+                        0%
+                      </Text>
+                    ) : (
+                      <LoadingValue width={48} />
+                    )}
+                    <EditAffordance
+                      visible={poolStorageLoaded && owner === account.address}
+                      onPress={() => setShowSetSpreadModal(true)}
+                    />
+                  </Flex>
+                </DataRow>
+                <DataRow>
+                  <Text variant="body3" color="$neutral2">
+                    <Trans>Distribution Fee</Trans>
+                  </Text>
+                  {poolStorageLoaded ? (
                     <Text variant="body3" color="$neutral1">
-                      <Trans>{new Percent(String(transactionFee), 10_000).toSignificant()}%</Trans>
+                      {transactionFee ? (
+                        <Trans>{new Percent(String(transactionFee), 10_000).toSignificant()}%</Trans>
+                      ) : (
+                        '0%'
+                      )}
                     </Text>
-                  </DataRow>
-                ) : null}
-                {lockup && (
-                  <DataRow>
-                    <Text variant="body3" color="$neutral2">
-                      <Trans>Lockup</Trans>
-                    </Text>
-                    <Flex row alignItems="center" gap="$spacing8">
+                  ) : (
+                    <LoadingValue width={48} />
+                  )}
+                </DataRow>
+                <DataRow>
+                  <Text variant="body3" color="$neutral2">
+                    <Trans>Lockup</Trans>
+                  </Text>
+                  <Flex row alignItems="center" gap="$spacing8">
+                    {poolStorageLoaded ? (
                       <Text variant="body3" color="$neutral1">
                         <Trans>{lockup} days</Trans>
                       </Text>
-                      <EditAffordance visible={owner === account.address} onPress={() => setShowSetLockupModal(true)} />
-                    </Flex>
-                  </DataRow>
-                )}
+                    ) : (
+                      <LoadingValue width={64} />
+                    )}
+                    <EditAffordance
+                      visible={poolStorageLoaded && owner === account.address}
+                      onPress={() => setShowSetLockupModal(true)}
+                    />
+                  </Flex>
+                </DataRow>
               </Flex>
             </DataCard>
-          </Flex>
 
-          <Flex row gap="$spacing16" width="100%" alignItems="stretch" $lg={{ flexDirection: 'column' }}>
             <DataCard flex={1}>
               <Text variant="subheading2">
                 <Trans>Issuance Data</Trans>
               </Text>
               <Flex gap="$spacing12" width="100%">
-                {totalSupply && base && (
-                  <DataRow>
-                    <Text variant="body3" color="$neutral2">
-                      <Trans>Total Supply</Trans>
-                    </Text>
+                <DataRow>
+                  <Text variant="body3" color="$neutral2">
+                    <Trans>Total Supply</Trans>
+                  </Text>
+                  {totalSupply && base ? (
                     <Text variant="body3" color="$neutral1">
                       {formatCurrencyAmount({
                         value: CurrencyAmount.fromRawAmount(base, JSBI.BigInt(String(totalSupply))),
@@ -800,36 +844,38 @@ export default function PoolPositionPage() {
                       })}
                       &nbsp;{symbol}
                     </Text>
-                  </DataRow>
-                )}
-              </Flex>
-            </DataCard>
-
-            <DataCard flex={1}>
-              <Text variant="subheading2">
-                <Trans>Pool Constants</Trans>
-              </Text>
-              <Flex gap="$spacing12" width="100%">
-                {decimals && decimals !== 0 && (
-                  <DataRow>
-                    <Text variant="body3" color="$neutral2">
-                      <Trans>Decimals</Trans>
-                    </Text>
+                  ) : (
+                    <LoadingValue width={80} />
+                  )}
+                </DataRow>
+                <DataRow>
+                  <Text variant="body3" color="$neutral2">
+                    <Trans>Decimals</Trans>
+                  </Text>
+                  {poolStorageLoaded && decimals ? (
                     <Text variant="body3" color="$neutral1">
                       <Trans i18nKey="smartPool.decimals" values={{ decimals }} />
                     </Text>
-                  </DataRow>
-                )}
-                {baseTokenSymbol && (
-                  <DataRow>
-                    <Text variant="body3" color="$neutral2">
-                      <Trans>Base Token</Trans>
+                  ) : poolStorageLoaded ? (
+                    <Text variant="body3" color="$neutral1">
+                      18
                     </Text>
+                  ) : (
+                    <LoadingValue width={32} />
+                  )}
+                </DataRow>
+                <DataRow>
+                  <Text variant="body3" color="$neutral2">
+                    <Trans>Base Token</Trans>
+                  </Text>
+                  {baseTokenSymbol ? (
                     <Text variant="body3" color="$neutral1">
                       {baseTokenSymbol}
                     </Text>
-                  </DataRow>
-                )}
+                  ) : (
+                    <LoadingValue width={56} />
+                  )}
+                </DataRow>
               </Flex>
             </DataCard>
           </Flex>
@@ -847,99 +893,125 @@ export default function PoolPositionPage() {
                 )}
               </Flex>
               {canEnrollForRewards && (
-                <Button size="xxsmall" variant="branded" emphasis="secondary" onPress={() => setShowRaceModal(true)}>
+                <Button
+                  size="xxsmall"
+                  variant="branded"
+                  emphasis="secondary"
+                  fill={false}
+                  onPress={() => setShowRaceModal(true)}
+                >
                   <Trans>Enroll for rewards</Trans>
                 </Button>
               )}
             </Flex>
-            <Flex gap="$spacing12" width="100%">
-              <DataRow>
-                <Text variant="body3" color="$neutral2">
-                  <Trans>APR</Trans>
-                </Text>
-                <Text variant="body3" color="$neutral1">
-                  {stakingAprString}
-                </Text>
-              </DataRow>
-              {selectedChainStaking?.userIsOwner && (
+            <Flex row gap="$spacing24" width="100%" $md={{ flexDirection: 'column', gap: '$spacing12' }}>
+              <Flex flex={1} gap="$spacing12">
                 <DataRow>
                   <Text variant="body3" color="$neutral2">
-                    <Trans>IRR (operator)</Trans>
+                    <Trans>APR</Trans>
                   </Text>
                   <Text variant="body3" color="$neutral1">
-                    {stakingIrrString}
+                    {stakingAprString}
                   </Text>
                 </DataRow>
-              )}
-              <DataRow>
-                <Text variant="body3" color="$neutral2">
-                  <Trans>Delegated Stake</Trans>
-                </Text>
-                <Text variant="body3" color="$neutral1">
-                  {formatGrgAmount(selectedChainStaking?.delegatedStake.toString())} GRG
-                </Text>
-              </DataRow>
-              <DataRow>
-                <Text variant="body3" color="$neutral2">
-                  <Trans>Operator Own Stake</Trans>
-                </Text>
-                <Text variant="body3" color="$neutral1">
-                  {formatGrgAmount(selectedChainStaking?.poolOwnStake.toString())} GRG
-                </Text>
-              </DataRow>
-              <DataRow>
-                <Text variant="body3" color="$neutral2">
-                  <Trans>Current Epoch Reward</Trans>
-                </Text>
-                <Text variant="body3" color="$neutral1">
-                  {formatGrgAmount(selectedChainStaking?.currentEpochReward)} GRG
-                </Text>
-              </DataRow>
-              {epochInfo?.currentEpoch !== undefined && (
+                {selectedChainStaking?.userIsOwner && (
+                  <DataRow>
+                    <Text variant="body3" color="$neutral2">
+                      <Trans>IRR (operator)</Trans>
+                    </Text>
+                    <Text variant="body3" color="$neutral1">
+                      {stakingIrrString}
+                    </Text>
+                  </DataRow>
+                )}
+                <DataRow>
+                  <Text variant="body3" color="$neutral2">
+                    <Trans>Delegated Stake</Trans>
+                  </Text>
+                  <Text variant="body3" color="$neutral1">
+                    {formatGrgAmount(selectedChainStaking?.delegatedStake.toString())} GRG
+                  </Text>
+                </DataRow>
+                <DataRow>
+                  <Text variant="body3" color="$neutral2">
+                    <Trans>Operator Own Stake</Trans>
+                  </Text>
+                  <Text variant="body3" color="$neutral1">
+                    {formatGrgAmount(selectedChainStaking?.poolOwnStake.toString())} GRG
+                  </Text>
+                </DataRow>
+              </Flex>
+              <Flex flex={1} gap="$spacing12">
+                <DataRow>
+                  <Text variant="body3" color="$neutral2">
+                    <Trans>Current Epoch Reward</Trans>
+                  </Text>
+                  <Text variant="body3" color="$neutral1">
+                    {formatGrgAmount(selectedChainStaking?.currentEpochReward)} GRG
+                  </Text>
+                </DataRow>
                 <DataRow>
                   <Text variant="body3" color="$neutral2">
                     <Trans>Current Epoch</Trans>
                   </Text>
-                  <Text variant="body3" color="$neutral1">
-                    #{epochInfo.currentEpoch}
-                    {epochCountdown ? ` · ${epochCountdown}` : ''}
-                  </Text>
+                  {epochInfo?.currentEpoch !== undefined ? (
+                    <Text variant="body3" color="$neutral1">
+                      #{epochInfo.currentEpoch}
+                      {epochCountdown ? ` · ${epochCountdown}` : ''}
+                    </Text>
+                  ) : (
+                    <LoadingValue width={64} />
+                  )}
                 </DataRow>
-              )}
-              {epochInfo?.minimumPoolStake && (
                 <DataRow>
                   <Text variant="body3" color="$neutral2">
                     <Trans>Minimum Pool Stake</Trans>
                   </Text>
-                  <Text variant="body3" color="$neutral1">
-                    {formatGrgAmount(epochInfo.minimumPoolStake)} GRG
-                  </Text>
+                  {epochInfo?.minimumPoolStake ? (
+                    <Text variant="body3" color="$neutral1">
+                      {formatGrgAmount(epochInfo.minimumPoolStake)} GRG
+                    </Text>
+                  ) : (
+                    <LoadingValue width={72} />
+                  )}
                 </DataRow>
-              )}
+              </Flex>
             </Flex>
           </DataCard>
 
           <Flex row gap="$spacing16" width="100%" $lg={{ flexDirection: 'column' }}>
             <Flex flex={1} width="100%">
-              <AddressCard address={poolAddressFromUrl} chainId={chainId} label="Smart Pool" />
+              {poolAddressFromUrl && chainId ? (
+                <AddressCard address={poolAddressFromUrl} chainId={chainId} label="Smart Pool" />
+              ) : (
+                <Skeleton>
+                  <FlexLoader borderRadius="$rounded16" height={66} opacity={0.3} width="100%" />
+                </Skeleton>
+              )}
             </Flex>
             <Flex flex={1} width="100%">
-              <AddressCard address={owner} chainId={chainId} label="Pool Operator" />
+              {owner && chainId ? (
+                <AddressCard address={owner} chainId={chainId} label="Pool Operator" />
+              ) : (
+                <Skeleton>
+                  <FlexLoader borderRadius="$rounded16" height={66} opacity={0.3} width="100%" />
+                </Skeleton>
+              )}
             </Flex>
           </Flex>
 
           <Flex row gap="$spacing8" flexWrap="wrap" width="100%">
-            <Button size="small" variant="branded" onPress={() => setShowStakeModal(true)}>
+            <Button size="small" variant="branded" fill={false} onPress={() => setShowStakeModal(true)}>
               <Trans>Stake</Trans>
             </Button>
-            <Button size="small" variant="branded" onPress={handleMoveStakeClick}>
+            <Button size="small" variant="branded" fill={false} onPress={handleMoveStakeClick}>
               <Trans>Switch</Trans>
             </Button>
-            <Button size="small" variant="branded" onPress={handleDeactivateStakeClick}>
+            <Button size="small" variant="branded" fill={false} onPress={handleDeactivateStakeClick}>
               <Trans>Disable</Trans>
             </Button>
             {owner === account.address && hasFreeStake && (
-              <Button size="small" variant="branded" onPress={() => setShowUnstakeModal(true)}>
+              <Button size="small" variant="branded" fill={false} onPress={() => setShowUnstakeModal(true)}>
                 <Trans>Unstake</Trans>
               </Button>
             )}

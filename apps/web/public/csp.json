@@ -43,6 +43,8 @@
     "https://*.coinmarketcap.com/",
     "https://*.drpc.org/",
     "https://*.googleapis.com",
+    "https://*.gmxapi.io",
+    "https://*.gmxinfra.io",
     "https://*.infura.io",
     "https://*.nodereal.io",
     "https://*.optimism.io",

@@ -1,4 +1,3 @@
-import { keepPreviousData } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import STAKING_ABI from 'uniswap/src/abis/staking-impl.json'
 import type { Abi } from 'viem'
@@ -55,7 +54,6 @@ export function useStakingEpochInfo(chainId?: number): {
       enabled: contracts.length > 0,
       staleTime: 60_000,
       refetchOnWindowFocus: false,
-      placeholderData: keepPreviousData,
     },
   })
 

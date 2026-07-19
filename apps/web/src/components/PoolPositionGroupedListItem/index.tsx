@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Trans } from 'react-i18next'
-import { useNavigate } from 'react-router'
-import { Button, Flex, Text } from 'ui/src'
+import { Link, useNavigate } from 'react-router'
+import { Flex, Text } from 'ui/src'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { ChainLogo } from '~/components/Logo/ChainLogo'
 import { useAccount } from '~/hooks/useAccount'
@@ -9,9 +9,16 @@ import styled from '~/lib/deprecated-styled'
 import { MEDIA_WIDTHS } from '~/theme'
 import { PoolPositionDetails } from '~/types/position'
 
-const GroupRow = styled.div`
+/**
+ * The whole row is a native link to the smart pool page, so the full padded area
+ * is clickable with a full-row hover background. The Portfolio button below is a
+ * plain DOM button that preventDefaults + stopPropagations, so the two click
+ * targets can never interfere with each other.
+ */
+const GroupRow = styled(Link)`
   align-items: center;
   display: flex;
+  text-decoration: none;
   cursor: pointer;
   user-select: none;
   flex-direction: column;
@@ -22,6 +29,26 @@ const GroupRow = styled.div`
 
   :hover {
     background-color: ${({ theme }) => theme.deprecated_hoverDefault};
+  }
+`
+
+const PortfolioButton = styled.button`
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  background-color: ${({ theme }) => theme.accent2};
+  color: ${({ theme }) => theme.accent1};
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+
+  :hover {
+    background-color: ${({ theme }) => theme.accent1};
+    color: ${({ theme }) => theme.white};
   }
 `
 
@@ -141,7 +168,7 @@ export default function PoolPositionGroupedListItem({
   }/${defaultPosition.address ?? defaultPosition.pool}/${returnPage}`
 
   return (
-    <GroupRow onClick={() => navigate(link)}>
+    <GroupRow to={link}>
       <Flex row width="100%" justifyContent="space-between" alignItems="center">
         <Flex row alignItems="center" gap="$spacing8" style={{ minWidth: 0, flex: 1 }}>
           <Flex style={{ minWidth: 0 }}>
@@ -171,17 +198,15 @@ export default function PoolPositionGroupedListItem({
           <Text fontSize={14} fontWeight="600" color="$neutral1" whiteSpace="nowrap">
             {rateString} {rateLabel}
           </Text>
-          <Button
-            size="xxsmall"
-            variant="branded"
-            emphasis="secondary"
-            onPress={(e) => {
+          <PortfolioButton
+            onClick={(e) => {
+              e.preventDefault()
               e.stopPropagation()
               navigate(`/portfolio/${poolAddress}`)
             }}
           >
             <Trans>Portfolio</Trans>
-          </Button>
+          </PortfolioButton>
         </Flex>
       </Flex>
     </GroupRow>

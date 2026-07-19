@@ -1,12 +1,12 @@
 import { Trans } from 'react-i18next'
-import { ArrowUpRight } from 'ui/src/components/icons/ArrowUpRight'
+import { Checkmark } from 'ui/src/components/icons/Checkmark'
+import { CopySheets } from 'ui/src/components/icons/CopySheets'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
 import { shortenAddress } from 'utilities/src/addresses'
 import { LightCard } from '~/components/Card/cards'
 import { AutoColumn } from '~/components/deprecated/Column'
-import Row from '~/components/deprecated/Row'
+import useCopyClipboard from '~/hooks/useCopyClipboard'
 import styled from '~/lib/deprecated-styled'
-import { CopyHelper } from '~/theme/components/CopyHelper'
 import { ExternalLink } from '~/theme/components/Links'
 
 const ExtentsText = styled.span`
@@ -17,41 +17,25 @@ const ExtentsText = styled.span`
   font-weight: 500;
 `
 
-// TODO: refactor IconHoverText usage
-const IconHoverText = styled.span`
-  color: ${({ theme }) => theme.neutral1};
-  position: absolute;
-  top: 28px;
-  border-radius: 8px;
-  transform: translateX(-50%);
-  opacity: 0;
-  font-size: 12px;
-  padding: 5px;
-  left: 10px;
-`
-
-const IconContainer = styled.div`
+const AddressRow = styled.div`
   display: flex;
   align-items: center;
-  & > a,
-  & > button {
-    margin-right: 0px;
-    margin-left: 40px;
-  }
-
-  & > button:last-child {
-    margin-left: 8px;
-    ${IconHoverText}:last-child {
-      right: 0px;
-    }
-  }
   justify-content: center;
+  gap: 8px;
 `
 
-const ExplorerLink = styled(ExternalLink)`
+const CopyButton = styled.button`
   display: flex;
   align-items: center;
-  margin-left: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  color: ${({ theme }) => theme.neutral2};
+
+  :hover {
+    color: ${({ theme }) => theme.accent1};
+  }
 `
 
 function AddressCard({
@@ -63,6 +47,8 @@ function AddressCard({
   chainId?: number | null
   label?: string | null
 }) {
+  const [isCopied, copy] = useCopyClipboard()
+
   if (!address || !chainId || !label) {
     return null
   }
@@ -74,42 +60,24 @@ function AddressCard({
           <Trans>{label}</Trans>
         </ExtentsText>
       </AutoColumn>
-      {/*<AutoColumn gap="8px" justify="center">#*/}
       <AutoColumn gap="md">
         <ExtentsText>
           {typeof chainId === 'number' && address ? (
-            <IconContainer>
-              <CopyHelper iconSize={20} iconPosition="right" toCopy={address}>
-                <Row width="100px" padding="8px 4px">
-                  <ExternalLink
-                    href={getExplorerLink({
-                      chainId,
-                      data: address,
-                      type: ExplorerDataType.ADDRESS,
-                    })}
-                  >
-                    <Trans>{shortenAddress({ address })}</Trans>
-                  </ExternalLink>
-                </Row>
-              </CopyHelper>
-              <ExplorerLink
-                href={getExplorerLink({
-                  chainId,
-                  data: address,
-                  type: ExplorerDataType.ADDRESS,
-                })}
-                aria-label="View on block explorer"
-              >
-                <ArrowUpRight size="$icon.16" color="$accent1" />
-              </ExplorerLink>
-            </IconContainer>
+            <AddressRow>
+              {/* Clicking the address opens the block explorer; the icon on the right copies it */}
+              <ExternalLink href={getExplorerLink({ chainId, data: address, type: ExplorerDataType.ADDRESS })}>
+                <Trans>{shortenAddress({ address })}</Trans>
+              </ExternalLink>
+              <CopyButton onClick={() => copy(address)} aria-label="Copy address">
+                {isCopied ? (
+                  <Checkmark size="$icon.16" color="$statusSuccess" />
+                ) : (
+                  <CopySheets size="$icon.16" color="$neutral2" />
+                )}
+              </CopyButton>
+            </AddressRow>
           ) : null}
         </ExtentsText>
-        {/*</AutoColumn>
-          <ExtentsText>
-            <Trans>{poolAddress}</Trans>
-          </ExtentsText>
-        */}
       </AutoColumn>
     </LightCard>
   )

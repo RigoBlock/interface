@@ -1,7 +1,6 @@
 /* eslint-disable max-params */
 
 import { BigNumber } from '@ethersproject/bignumber'
-import { keepPreviousData } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
 import { useReadContract, useReadContracts } from 'wagmi'
@@ -67,7 +66,7 @@ export function useImplementation(
         chainId,
       },
     ],
-    query: { enabled: queryEnabled, placeholderData: keepPreviousData },
+    query: { enabled: queryEnabled },
   })
 
   const currentImplementation = (typeof data?.[0]?.result === 'string' ? data[0].result.slice(-40) : undefined) as
@@ -97,7 +96,7 @@ export function useSmartPoolFromAddress(poolAddress?: string, chainId?: number):
     abi: POOL_EXTENDED_ABI,
     functionName: 'getPoolStorage',
     chainId,
-    query: { enabled: isQueryEnabled, placeholderData: keepPreviousData },
+    query: { enabled: isQueryEnabled },
   })
 
   return useMemo(() => {
@@ -121,7 +120,7 @@ export function useUserPoolBalance(poolAddress?: string, account?: string, chain
     functionName: 'getUserAccount',
     args: [target],
     chainId,
-    query: { enabled: !!poolAddress && !!account, placeholderData: keepPreviousData },
+    query: { enabled: !!poolAddress && !!account },
   })
 
   return useMemo(() => {
