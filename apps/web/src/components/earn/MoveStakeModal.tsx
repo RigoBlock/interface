@@ -1,5 +1,19 @@
 import { isAddress } from '@ethersproject/address'
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
+import JSBI from 'jsbi'
+import { ReactNode, useCallback, useMemo, useState } from 'react'
+import { X } from 'react-feather'
+import { Trans, useTranslation } from 'react-i18next'
+import { Flex, useSporeColors } from 'ui/src'
+import { Modal } from 'uniswap/src/components/modals/Modal'
+import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
+import { GRG } from 'uniswap/src/constants/tokens'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { useENS } from 'uniswap/src/features/ens/useENS'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { logger } from 'utilities/src/logger/logger'
 import AddressInputPanel from '~/components/AddressInputPanel'
 import { /*ButtonConfirmed,*/ ButtonPrimary } from '~/components/Button/buttons'
 //import { ButtonError } from '../Button'
@@ -11,13 +25,9 @@ import Slider from '~/components/Slider'
 import { ResponsiveHeaderText, TextButton } from '~/components/vote/DelegateModal'
 import { useAccount } from '~/hooks/useAccount'
 import useDebouncedChangeHandler from '~/hooks/useDebouncedChangeHandler'
-import JSBI from 'jsbi'
 import styled from '~/lib/deprecated-styled'
 import { useRemoveLiquidityModalContext } from '~/pages/RemoveLiquidity/RemoveLiquidityModalContext'
 import { ClickablePill } from '~/pages/Swap/Buy/PredefinedAmount'
-import { ReactNode, useCallback, useMemo, useState } from 'react'
-import { X } from 'react-feather'
-import { Trans, useTranslation } from 'react-i18next'
 import { PoolInfo /*,useDerivedPoolInfo*/ } from '~/state/buy/hooks'
 import {
   StakeData,
@@ -30,16 +40,6 @@ import { usePoolExtendedContract } from '~/state/pool/hooks'
 import { useFreeStakeBalance } from '~/state/stake/hooks'
 import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
 import { ThemedText } from '~/theme/components/text'
-import { Flex, useSporeColors } from 'ui/src'
-import { Modal } from 'uniswap/src/components/modals/Modal'
-import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
-import { GRG } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { useENS } from 'uniswap/src/features/ens/useENS'
-import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { logger } from 'utilities/src/logger/logger'
 
 const ContentWrapper = styled(AutoColumn)`
   width: 100%;
@@ -203,9 +203,7 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
               </>
             )}
             <RowBetween>
-              <ResponsiveHeaderText>
-                {percentForSlider}%
-              </ResponsiveHeaderText>
+              <ResponsiveHeaderText>{percentForSlider}%</ResponsiveHeaderText>
               <Flex row gap="$gap8" width="100%" justifyContent="center">
                 {[25, 50, 75, 100].map((option) => {
                   const active = percent === option.toString()

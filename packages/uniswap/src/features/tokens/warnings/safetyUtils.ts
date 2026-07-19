@@ -227,7 +227,9 @@ export function useModalHeaderText({
             tokenSymbol0: tokenSymbol0 ?? t('common.thisToken'),
             tokenSymbol1,
           })
-        : t('token.safety.blocked.title.tokenNotAvailable', { tokenSymbol: tokenSymbol0 ?? t('common.thisToken') })
+        : t('token.safety.blocked.title.tokenNotAvailable', {
+            tokenSymbol: tokenSymbol0 ?? t('common.thisToken'),
+          })
     case TokenProtectionWarning.MaliciousHoneypot:
       return t('token.safety.warning.sellFee100.title')
     case TokenProtectionWarning.FotVeryHigh:
@@ -283,20 +285,30 @@ export function useModalSubtitleText({
           : t('token.safety.warning.blocked.description.default_one')
         : t('token.safetyLevel.blocked.message')
     case TokenProtectionWarning.MaliciousHoneypot:
-      return t('token.safety.warning.honeypot.message', { tokenSymbol: tokenSymbolWithFallback })
+      return t('token.safety.warning.honeypot.message', {
+        tokenSymbol: tokenSymbolWithFallback,
+      })
     case TokenProtectionWarning.MaliciousGeneral:
       return (
-        t('token.safety.warning.malicious.general.message', { tokenSymbol: tokenSymbolWithFallback }) +
+        t('token.safety.warning.malicious.general.message', {
+          tokenSymbol: tokenSymbolWithFallback,
+        }) +
         ' ' +
         t('token.safety.warning.doYourOwnResearch')
       )
     case TokenProtectionWarning.MaliciousImpersonator:
-      return t('token.safety.warning.malicious.impersonator.message', { tokenSymbol: tokenSymbolWithFallback })
+      return t('token.safety.warning.malicious.impersonator.message', {
+        tokenSymbol: tokenSymbolWithFallback,
+      })
     case TokenProtectionWarning.PotentialHoneypot:
-      return t('token.safety.warning.potentialHoneypot.modal.message', { tokenSymbol: tokenSymbolWithFallback })
+      return t('token.safety.warning.potentialHoneypot.modal.message', {
+        tokenSymbol: tokenSymbolWithFallback,
+      })
     case TokenProtectionWarning.SpamAirdrop:
       return (
-        t('token.safety.warning.spam.message', { tokenSymbol: tokenSymbolWithFallback }) +
+        t('token.safety.warning.spam.message', {
+          tokenSymbol: tokenSymbolWithFallback,
+        }) +
         ' ' +
         t('token.safety.warning.doYourOwnResearch')
       )
@@ -334,7 +346,9 @@ export function useModalSubtitleText({
     case TokenProtectionWarning.NonDefault:
       return shouldHavePluralTreatment
         ? t('token.safetyLevel.medium.message.plural')
-        : t('token.safety.warning.medium.heading.named', { tokenSymbol: tokenSymbolWithFallback })
+        : t('token.safety.warning.medium.heading.named', {
+            tokenSymbol: tokenSymbolWithFallback,
+          })
     case TokenProtectionWarning.None:
       return null
   }
@@ -419,15 +433,25 @@ export function useCardSubtitleText({
         ? t('token.safety.warning.blocked.description.default_one')
         : t('token.safetyLevel.blocked.message')
     case TokenProtectionWarning.MaliciousHoneypot:
-      return t('token.safety.warning.sellFee100.message', { tokenSymbol: tokenSymbolWithFallback })
+      return t('token.safety.warning.sellFee100.message', {
+        tokenSymbol: tokenSymbolWithFallback,
+      })
     case TokenProtectionWarning.MaliciousGeneral:
-      return t('token.safety.warning.malicious.general.message', { tokenSymbol: tokenSymbolWithFallback })
+      return t('token.safety.warning.malicious.general.message', {
+        tokenSymbol: tokenSymbolWithFallback,
+      })
     case TokenProtectionWarning.MaliciousImpersonator:
-      return t('token.safety.warning.malicious.impersonator.message.short', { tokenSymbol: tokenSymbolWithFallback })
+      return t('token.safety.warning.malicious.impersonator.message.short', {
+        tokenSymbol: tokenSymbolWithFallback,
+      })
     case TokenProtectionWarning.PotentialHoneypot:
-      return t('token.safety.warning.potentialHoneypot.card.message', { tokenSymbol: tokenSymbolWithFallback })
+      return t('token.safety.warning.potentialHoneypot.card.message', {
+        tokenSymbol: tokenSymbolWithFallback,
+      })
     case TokenProtectionWarning.SpamAirdrop:
-      return t('token.safety.warning.spam.message', { tokenSymbol: tokenSymbolWithFallback })
+      return t('token.safety.warning.spam.message', {
+        tokenSymbol: tokenSymbolWithFallback,
+      })
     case TokenProtectionWarning.FotVeryHigh:
     case TokenProtectionWarning.FotHigh:
     case TokenProtectionWarning.FotLow: {
@@ -454,7 +478,9 @@ export function useCardSubtitleText({
       return feePercentCopy
     }
     case TokenProtectionWarning.NonDefault:
-      return t('token.safety.warning.medium.heading.named', { tokenSymbol: tokenSymbolWithFallback })
+      return t('token.safety.warning.medium.heading.named', {
+        tokenSymbol: tokenSymbolWithFallback,
+      })
     case TokenProtectionWarning.None:
       return null
   }

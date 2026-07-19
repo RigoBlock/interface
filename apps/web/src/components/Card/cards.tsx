@@ -1,6 +1,6 @@
-import styled from '~/lib/deprecated-styled'
 import { PropsWithChildren } from 'react'
 import { Flex, FlexProps, useSporeColors } from 'ui/src'
+import styled from '~/lib/deprecated-styled'
 
 const Card = ({ children, ...rest }: PropsWithChildren<FlexProps>) => {
   return (
@@ -71,4 +71,3 @@ export const BlueCard = ({ children, ...rest }: PropsWithChildren<FlexProps>) =>
     </Card>
   )
 }
-

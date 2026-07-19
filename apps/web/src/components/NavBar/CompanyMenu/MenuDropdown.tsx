@@ -190,7 +190,11 @@ export function MenuDropdown({ close }: { close?: () => void }) {
             flexDirection="row"
             justifyContent="space-between"
             alignItems="center"
-            $xl={{ flexDirection: 'column', gap: '$spacing16', alignItems: 'flex-start' }}
+            $xl={{
+              flexDirection: 'column',
+              gap: '$spacing16',
+              alignItems: 'flex-start',
+            }}
           >
             <Flex flex={1} width="100%">
               <LegalAndPrivacyMenu closeMenu={close} />

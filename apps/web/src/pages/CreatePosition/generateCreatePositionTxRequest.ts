@@ -11,11 +11,11 @@ import {
 } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v2/api_pb'
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import { Pair } from '@uniswap/v2-sdk'
-import { PositionField } from '~/types/position'
 import { NormalizedApprovalData } from 'uniswap/src/data/apiClients/liquidityService/normalizeApprovalResponse'
 import { CreatePositionTxAndGasInfo, LiquidityTransactionType } from 'uniswap/src/features/transactions/liquidity/types'
 import { PermitMethod } from 'uniswap/src/features/transactions/swap/types/swapTxAndGasInfo'
 import { validatePermit, validateTransactionRequest } from 'uniswap/src/features/transactions/swap/utils/trade'
+import { PositionField } from '~/types/position'
 
 /**
  * @internal - exported for testing
@@ -36,7 +36,9 @@ export function generateCreatePositionTxRequest({
   approvalCalldata?: NormalizedApprovalData
   createCalldata?: CreateLPPositionResponse | CreateClassicPositionResponse | CreatePositionResponse
   createCalldataQueryParams?: CreateLPPositionRequest | CreatePositionRequest
-  currencyAmounts?: { [field in PositionField]?: Maybe<CurrencyAmount<Currency>> }
+  currencyAmounts?: {
+    [field in PositionField]?: Maybe<CurrencyAmount<Currency>>
+  }
   poolOrPair: Pair | undefined
   canBatchTransactions: boolean
   delegatedAddress: string | null
@@ -95,8 +97,10 @@ export function generateCreatePositionTxRequest({
       : txRequest
 
   let updatedCreateCalldataQueryParams: CreateLPPositionRequest | CreatePositionRequest | undefined
-  if (createCalldataQueryParams instanceof CreateLPPositionRequest &&
-      createCalldataQueryParams.createLpPosition.case === 'v4CreateLpPosition') {
+  if (
+    createCalldataQueryParams instanceof CreateLPPositionRequest &&
+    createCalldataQueryParams.createLpPosition.case === 'v4CreateLpPosition'
+  ) {
     // V1 V4: inject batch permit data before the async re-submission step
     updatedCreateCalldataQueryParams = new CreateLPPositionRequest({
       createLpPosition: {

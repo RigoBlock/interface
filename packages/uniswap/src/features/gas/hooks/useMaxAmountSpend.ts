@@ -33,7 +33,12 @@ export function useMaxAmountSpend({
 }): Maybe<CurrencyAmount<Currency>> {
   const chainId = currencyAmount?.currency.chainId
   const gasToken = chainId !== undefined ? getChainGasToken(chainId) : undefined
-  const minAmountPerTx = useMinGasAmount({ chainId, txType, gasTokenDecimals: gasToken?.decimals, isSmartPool })
+  const minAmountPerTx = useMinGasAmount({
+    chainId,
+    txType,
+    gasTokenDecimals: gasToken?.decimals,
+    isSmartPool,
+  })
   const multiplierAsPercent = useLowBalanceWarningGasPercentage()
 
   if (!currencyAmount) {
@@ -58,7 +63,11 @@ export function useMaxAmountSpend({
   if (actualGasFee) {
     // actualGasFee is in native currency units (e.g. 18-decimal "attodollars" on Tempo).
     // Convert to gas token units when decimals differ (e.g. pathUSD has 6 decimals).
-    const gasFeeInGasTokenUnits = convertGasFeeToGasTokenUnits({ chainId, gasFee: actualGasFee, gasToken })
+    const gasFeeInGasTokenUnits = convertGasFeeToGasTokenUnits({
+      chainId,
+      gasFee: actualGasFee,
+      gasToken,
+    })
     const buffer = JSBI.divide(
       JSBI.multiply(gasFeeInGasTokenUnits, JSBI.BigInt(ACTUAL_GAS_FEE_BUFFER_PERCENT)),
       JSBI.BigInt(100),
@@ -143,7 +152,11 @@ export function useMinGasAmount({
   const defaultAmount = gasConfig[variant].default
 
   // Always call the hook, but return undefined for unsupported cases
-  const result = useCalculateMinForGas({ key, defaultAmount, gasTokenDecimals })
+  const result = useCalculateMinForGas({
+    key,
+    defaultAmount,
+    gasTokenDecimals,
+  })
 
   // For smart pools, return 0 - they don't need a gas reserve since gas is paid by user's wallet, not the pool
   if (isSmartPool) {
@@ -167,7 +180,11 @@ export function useCalculateMinForGas(config: {
   gasTokenDecimals?: number
 }): JSBI {
   const { key, defaultAmount, gasTokenDecimals } = config
-  const multiplier = useDynamicConfigValue({ config: DynamicConfigs.Swap, key, defaultValue: defaultAmount })
+  const multiplier = useDynamicConfigValue({
+    config: DynamicConfigs.Swap,
+    key,
+    defaultValue: defaultAmount,
+  })
 
   // Use gas token decimals so the reservation is in the correct units
   // (e.g. 6 for pathUSD on Tempo, 18 for ETH on mainnet)

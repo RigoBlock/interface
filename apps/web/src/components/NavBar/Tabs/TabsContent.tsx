@@ -46,8 +46,18 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
       icon: <Compass color="$accent1" size="$icon.20" />,
       elementName: ElementName.NavbarExploreTab,
       items: [
-        { label: t('common.earn'), href: '/earn', internal: true, elementName: ElementName.NavbarExploreTab },
-        { label: 'Manage', href: '/earn/manage', internal: true, elementName: ElementName.NavbarExploreTab },
+        {
+          label: t('common.earn'),
+          href: '/earn',
+          internal: true,
+          elementName: ElementName.NavbarExploreTab,
+        },
+        {
+          label: 'Manage',
+          href: '/earn/manage',
+          internal: true,
+          elementName: ElementName.NavbarExploreTab,
+        },
       ],
     },
     {

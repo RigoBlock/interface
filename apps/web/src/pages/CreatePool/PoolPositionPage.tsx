@@ -2,6 +2,21 @@
 
 import { CurrencyAmount, Percent } from '@uniswap/sdk-core'
 import { useWeb3React } from '@web3-react/core'
+// TODO: this import is from node modules
+import JSBI from 'jsbi'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Trans } from 'react-i18next'
+import { Link, useNavigate, useParams } from 'react-router'
+import { Button, Flex, styled, Text } from 'ui/src'
+import { Edit } from 'ui/src/components/icons/Edit'
+import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
+import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
+import { GRG, nativeOnChain } from 'uniswap/src/constants/tokens'
+import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { getChainLabel } from 'uniswap/src/features/chains/utils'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { NumberType } from 'utilities/src/format/types'
 // TODO: check if should refactor AddressCard
 import { AddressCard } from '~/components/AddressCard'
 import BuyModal from '~/components/createPool/BuyModal'
@@ -12,29 +27,22 @@ import SetValueModal from '~/components/createPool/SetValueModal'
 import UpgradeModal from '~/components/createPool/UpgradeModal'
 import HarvestYieldModal from '~/components/earn/HarvestYieldModal'
 import MoveStakeModal from '~/components/earn/MoveStakeModal'
+import RaceModal from '~/components/earn/RaceModal'
 import UnstakeModal from '~/components/earn/UnstakeModal'
+import { ChainLogo } from '~/components/Logo/ChainLogo'
 import { SwitchLocaleLink } from '~/components/SwitchLocaleLink'
 import DelegateModal from '~/components/vote/DelegateModal'
+import { RIGOBLOCK_SUPPORTED_CHAINS, RIGOBLOCK_TESTNET_CHAINS } from '~/constants/addresses'
 import { useCurrency } from '~/hooks/Tokens'
 import { useAccount } from '~/hooks/useAccount'
 import useSelectChain from '~/hooks/useSelectChain'
 import { UserAccount, useImplementation, useSmartPoolFromAddress, useUserPoolBalance } from '~/hooks/useSmartPools'
-// TODO: this import is from node modules
-import JSBI from 'jsbi'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Trans } from 'react-i18next'
-import { Link, useParams } from 'react-router'
 import { PoolInfo } from '~/state/buy/hooks'
 import { useCurrencyBalancesMultipleAccounts } from '~/state/connection/hooks'
 import { usePoolIdByAddress } from '~/state/governance/hooks'
+import { StakingPoolData, useMultiChainAllPoolsData, useMultiChainStakingPools } from '~/state/pool/multichain'
 import { useFreeStakeBalance, useUnclaimedRewards } from '~/state/stake/hooks'
-import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
-import { nativeOnChain } from 'uniswap/src/constants/tokens'
-import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { NumberType } from 'utilities/src/format/types'
-import { Button, Flex, styled, Text } from 'ui/src'
+import { useStakingEpochInfo } from '~/state/stake/useStakingEpochInfo'
 
 const NAV_SIMULATE_DEPLOYMENT_BYTECODE =
   '0x608060405234801561000f575f5ffd5b5060405161017738038061017783398101604081905261002e916100ef565b806001600160a01b031663e7d8724e6040518163ffffffff1660e01b81526004015f604051808303815f87803b158015610066575f5ffd5b505af1158015610078573d5f5f3e3d5ffd5b505050505f816001600160a01b03166389c065686040518163ffffffff1660e01b81526004016040805180830381865afa1580156100b8573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906100dc919061011c565b80515f8181524260205291925090604090f35b5f602082840312156100ff575f5ffd5b81516001600160a01b0381168114610115575f5ffd5b9392505050565b5f604082840312801561012d575f5ffd5b50604080519081016001600160401b038111828210171561015c57634e487b7160e01b5f52604160045260245ffd5b60405282518152602092830151928101929092525091905056fe'
@@ -62,6 +70,7 @@ const DataCard = styled(Flex, {
   padding: '$spacing16',
   gap: '$spacing16',
   width: '100%',
+  height: '100%',
 })
 
 const DataRow = styled(Flex, {
@@ -72,12 +81,58 @@ const DataRow = styled(Flex, {
   width: '100%',
 })
 
+const ChainPill = styled(Flex, {
+  row: true,
+  alignItems: 'center',
+  gap: '$spacing8',
+  paddingHorizontal: '$spacing12',
+  paddingVertical: '$spacing8',
+  borderRadius: '$rounded12',
+  borderWidth: 1,
+  borderColor: '$surface3',
+  cursor: 'pointer',
+  hoverStyle: {
+    backgroundColor: '$surface2',
+  },
+  variants: {
+    active: {
+      true: {
+        borderColor: '$accent1',
+        backgroundColor: '$accent2',
+      },
+    },
+  } as const,
+})
+
 const BackLink = styled(Text, {
   color: '$neutral2',
   hoverStyle: {
     color: '$neutral1',
   },
 })
+
+/**
+ * Edit affordance for owner-editable pool values. Always rendered (invisible for
+ * non-owners) so row heights are identical whether or not the pool is operated,
+ * keeping the cards the same size across chains.
+ */
+function EditAffordance({ visible, onPress }: { visible: boolean; onPress: () => void }): JSX.Element {
+  return (
+    <Flex
+      width={16}
+      height={16}
+      alignItems="center"
+      justifyContent="center"
+      cursor={visible ? 'pointer' : undefined}
+      opacity={visible ? 1 : 0}
+      pointerEvents={visible ? 'auto' : 'none'}
+      onPress={visible ? onPress : undefined}
+      hoverStyle={visible ? { opacity: 0.7 } : undefined}
+    >
+      <Edit size={16} color="$accent1" />
+    </Flex>
+  )
+}
 
 export default function PoolPositionPage() {
   const {
@@ -113,6 +168,9 @@ export default function PoolPositionPage() {
   const [showUnstakeModal, setShowUnstakeModal] = useState(false)
   const [deactivate, setDeactivate] = useState(false)
   const [showHarvestYieldModal, setShowHarvestYieldModal] = useState(false)
+  const [showRaceModal, setShowRaceModal] = useState(false)
+
+  const navigate = useNavigate()
 
   // Use chainId from URL if available, otherwise fall back to account.chainId
   const chainId = useMemo(
@@ -125,6 +183,31 @@ export default function PoolPositionPage() {
   const poolStorage = useSmartPoolFromAddress(poolAddressFromUrl, chainId)
   // TODO: user account also stores activation
   const userAccount: UserAccount | undefined = useUserPoolBalance(poolAddressFromUrl, account.address, chainId)
+
+  // Multichain staking data for this pool (same shared query as NavBar/Earn — one batch across all chains)
+  const { isTestnetModeEnabled } = useEnabledChains()
+  const supportedChains = useMemo(
+    () => (isTestnetModeEnabled ? RIGOBLOCK_TESTNET_CHAINS : RIGOBLOCK_SUPPORTED_CHAINS),
+    [isTestnetModeEnabled],
+  )
+  const { data: allPools } = useMultiChainAllPoolsData(supportedChains)
+  const { stakingPools } = useMultiChainStakingPools(allPools ?? [])
+  const chainEntries = useMemo(() => {
+    if (!allPools || !stakingPools || !poolAddressFromUrl) {
+      return []
+    }
+    return allPools
+      .map((pool, index) => ({
+        pool,
+        staking: stakingPools[index] as StakingPoolData | undefined,
+      }))
+      .filter(({ pool }) => pool.pool.toLowerCase() === poolAddressFromUrl.toLowerCase())
+  }, [allPools, stakingPools, poolAddressFromUrl])
+  const selectedChainStaking = useMemo(
+    () => chainEntries.find(({ pool }) => pool.chainId === chainId)?.staking,
+    [chainEntries, chainId],
+  )
+  const { data: epochInfo } = useStakingEpochInfo(chainId)
 
   const { name, symbol, decimals, owner, baseToken } = poolStorage?.poolInitParams || {}
   const { minPeriod, spread, transactionFee } = poolStorage?.poolVariables || {}
@@ -207,12 +290,18 @@ export default function PoolPositionPage() {
   const unitaryValue =
     simulatedOrStoredValue && simulatedOrStoredValue !== '0' ? simulatedOrStoredValue : DEFAULT_UNITARY_VALUE
 
-  let base = useCurrency({ address: baseToken !== ZERO_ADDRESS ? baseToken : undefined, chainId })
+  let base = useCurrency({
+    address: baseToken !== ZERO_ADDRESS ? baseToken : undefined,
+    chainId,
+  })
   if (baseToken === ZERO_ADDRESS) {
     base = nativeOnChain(chainId ?? UniverseChainId.Mainnet)
   }
 
-  const pool = useCurrency({ address: poolAddressFromUrl ?? undefined, chainId })
+  const pool = useCurrency({
+    address: poolAddressFromUrl ?? undefined,
+    chainId,
+  })
   const amount = JSBI.BigInt(String(unitaryValue))
   const poolPrice = pool ? CurrencyAmount.fromRawAmount(pool, amount) : undefined
   const userPoolBalance = useMemo(() => {
@@ -269,10 +358,15 @@ export default function PoolPositionPage() {
           activation: Number(userAccount?.activation),
           poolPriceAmount: poolPrice,
           spread,
-          poolStake: Number(poolStakeFromUrl),
-          apr: Number(aprFromUrl),
-          poolOwnStake: Number(poolOwnStakeFromUrl),
-          irr: Number(irrFromUrl),
+          // Prefer live staking data; URL params are only a fallback for legacy links
+          poolStake: selectedChainStaking
+            ? Number(selectedChainStaking.delegatedStake.toString()) / 1e18
+            : Number(poolStakeFromUrl),
+          apr: selectedChainStaking ? selectedChainStaking.apr * 100 : Number(aprFromUrl),
+          poolOwnStake: selectedChainStaking
+            ? Number(selectedChainStaking.poolOwnStake.toString()) / 1e18
+            : Number(poolOwnStakeFromUrl),
+          irr: selectedChainStaking?.irr != null ? selectedChainStaking.irr * 100 : Number(irrFromUrl),
           chainId,
         } as PoolInfo)
       : undefined
@@ -291,6 +385,66 @@ export default function PoolPositionPage() {
   const unclaimedRewards = useUnclaimedRewards(isPoolOperator && poolId ? [poolId] : [])
   const freeStakeBalance = useFreeStakeBalance()
   const hasFreeStake = JSBI.greaterThan(freeStakeBalance ? freeStakeBalance.quotient : JSBI.BigInt(0), JSBI.BigInt(0))
+  const harvestYieldString = unclaimedRewards?.[0]?.yieldAmount
+    ? formatCurrencyAmount({ value: unclaimedRewards[0].yieldAmount, type: NumberType.TokenNonTx })
+    : undefined
+
+  // Staking card display data (selected chain)
+  const grg = chainId ? GRG[chainId as UniverseChainId] : undefined
+  const formatGrgAmount = useCallback(
+    (raw?: string) => {
+      if (!raw || !grg) {
+        return '—'
+      }
+      try {
+        return formatCurrencyAmount({
+          value: CurrencyAmount.fromRawAmount(grg, JSBI.BigInt(raw)),
+          type: NumberType.TokenNonTx,
+        })
+      } catch {
+        return '—'
+      }
+    },
+    [grg, formatCurrencyAmount],
+  )
+  const stakingAprString =
+    selectedChainStaking && Number(selectedChainStaking.apr) > 0
+      ? `${(Number(selectedChainStaking.apr) * 100).toFixed(1)}%`
+      : '—'
+  const stakingIrrString =
+    selectedChainStaking?.irr != null && Number(selectedChainStaking.irr) > 0
+      ? `${(Number(selectedChainStaking.irr) * 100).toFixed(1)}%`
+      : '—'
+  const epochCountdown = useMemo(() => {
+    if (!epochInfo?.earliestEndTime) {
+      return undefined
+    }
+    const secondsLeft = epochInfo.earliestEndTime - Math.floor(Date.now() / 1000)
+    if (secondsLeft <= 0) {
+      return 'ends soon'
+    }
+    const days = Math.floor(secondsLeft / 86400)
+    const hours = Math.floor((secondsLeft % 86400) / 3600)
+    return days > 0 ? `ends in ~${days}d ${hours}h` : `ends in ~${hours}h`
+  }, [epochInfo?.earliestEndTime])
+  // A pool can be enrolled for the current epoch rewards once it has enough own stake and is not enrolled yet
+  const canEnrollForRewards = useMemo(() => {
+    if (!account.isConnected || !selectedChainStaking) {
+      return false
+    }
+    if (Number(selectedChainStaking.currentEpochReward) > 0) {
+      return false
+    }
+    try {
+      const ownStake = BigInt(selectedChainStaking.poolOwnStake.toString())
+      if (ownStake <= 0n) {
+        return false
+      }
+      return epochInfo?.minimumPoolStake ? ownStake >= BigInt(epochInfo.minimumPoolStake) : true
+    } catch {
+      return false
+    }
+  }, [account.isConnected, selectedChainStaking, epochInfo?.minimumPoolStake])
 
   // Check if the pool needs an upgrade
   const { implementations, isLoading: isLoadingImplementations } = useImplementation(
@@ -425,6 +579,13 @@ export default function PoolPositionPage() {
                 title={<Trans>Harvest Pool Yield</Trans>}
               />
             )}
+            <RaceModal
+              isOpen={showRaceModal}
+              poolAddress={poolAddressFromUrl}
+              poolName={name}
+              onDismiss={() => setShowRaceModal(false)}
+              title={<Trans>Race</Trans>}
+            />
           </>
         )}
 
@@ -434,7 +595,11 @@ export default function PoolPositionPage() {
               row
               justifyContent="space-between"
               alignItems="center"
-              $sm={{ flexDirection: 'column', alignItems: 'flex-start', gap: '$spacing12' }}
+              $sm={{
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: '$spacing12',
+              }}
             >
               {originFromUrl && (
                 <Link
@@ -453,13 +618,9 @@ export default function PoolPositionPage() {
                     <Trans>Upgrade</Trans>
                   </Button>
                 )}
-                {unclaimedRewards?.[0]?.yieldAmount && (
+                {harvestYieldString && (
                   <Button size="small" variant="branded" onPress={() => setShowHarvestYieldModal(true)}>
-                    <Trans>
-                      Harvest{' '}
-                      {formatCurrencyAmount({ value: unclaimedRewards[0].yieldAmount, type: NumberType.TokenNonTx })}{' '}
-                      GRG
-                    </Trans>
+                    <Trans>Harvest {harvestYieldString} GRG</Trans>
                   </Button>
                 )}
               </Flex>
@@ -469,7 +630,11 @@ export default function PoolPositionPage() {
               row
               justifyContent="space-between"
               alignItems="center"
-              $sm={{ flexDirection: 'column', alignItems: 'flex-start', gap: '$spacing12' }}
+              $sm={{
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: '$spacing12',
+              }}
             >
               <Flex row gap="$spacing12" alignItems="center">
                 <Text variant="heading3">
@@ -481,7 +646,7 @@ export default function PoolPositionPage() {
                 {poolAddressFromUrl && (
                   <Link to={`/portfolio/${poolAddressFromUrl}`} style={{ textDecoration: 'none' }}>
                     <Text variant="body3" color="$accent1">
-                      <Trans>Smart Pool Portfolio →</Trans>
+                      <Trans>Portfolio →</Trans>
                     </Text>
                   </Link>
                 )}
@@ -495,168 +660,264 @@ export default function PoolPositionPage() {
                 )}
               </Flex>
             </Flex>
+
+            {chainEntries.length > 1 && (
+              <Flex row gap="$spacing8" flexWrap="wrap" width="100%">
+                {chainEntries.map(({ pool: chainPool, staking: chainStaking }) => {
+                  const entryChainId = chainPool.chainId as UniverseChainId
+                  const entryAprString =
+                    chainStaking && Number(chainStaking.apr) > 0
+                      ? `${(Number(chainStaking.apr) * 100).toFixed(1)}%`
+                      : '—'
+                  return (
+                    <ChainPill
+                      key={entryChainId}
+                      active={entryChainId === chainId}
+                      onPress={() =>
+                        entryChainId !== chainId &&
+                        navigate(
+                          `/smart-pool/${entryChainId}/${poolAddressFromUrl}${
+                            originFromUrl ? `/${originFromUrl}` : ''
+                          }`,
+                        )
+                      }
+                    >
+                      <ChainLogo chainId={entryChainId} size={16} />
+                      <Text fontSize={13} fontWeight="600">
+                        {getChainLabel(entryChainId)}
+                      </Text>
+                      <Text fontSize={12} color="$neutral2">
+                        {entryAprString} APR
+                      </Text>
+                    </ChainPill>
+                  )
+                })}
+              </Flex>
+            )}
           </Flex>
 
-          <Flex row gap="$spacing16" width="100%" $lg={{ flexDirection: 'column' }}>
-            <Flex flex={1} gap="$spacing16" width="100%">
-              <DataCard>
-                <Text variant="subheading2">
-                  <Trans>Pool Values</Trans>
-                </Text>
-                <Flex gap="$spacing12" width="100%">
-                  {poolValueAmount && (
-                    <DataRow>
-                      <Text variant="body3" color="$neutral2">
-                        <Trans>Total Value</Trans>
-                      </Text>
+          <Flex row gap="$spacing16" width="100%" alignItems="stretch" $lg={{ flexDirection: 'column' }}>
+            <DataCard flex={1}>
+              <Text variant="subheading2">
+                <Trans>Pool Values</Trans>
+              </Text>
+              <Flex gap="$spacing12" width="100%">
+                {poolValueAmount && (
+                  <DataRow>
+                    <Text variant="body3" color="$neutral2">
+                      <Trans>Total Value</Trans>
+                    </Text>
+                    <Text variant="body3" color="$neutral1">
+                      {formatCurrencyAmount({ value: poolValueAmount })}&nbsp;
+                      {baseTokenSymbol}
+                    </Text>
+                  </DataRow>
+                )}
+                {baseTokenSymbol && (
+                  <DataRow>
+                    <Text variant="body3" color="$neutral2">
+                      <Trans>Unitary Value</Trans>
+                    </Text>
+                    <Flex row alignItems="center" gap="$spacing8">
                       <Text variant="body3" color="$neutral1">
-                        <Trans>
-                          {formatCurrencyAmount({ value: poolValueAmount })}&nbsp;{baseTokenSymbol}
-                        </Trans>
+                        {formatCurrencyAmount({
+                          value: poolPrice,
+                          type: NumberType.TokenNonTx,
+                        })}
+                        &nbsp;
+                        {baseTokenSymbol}
                       </Text>
-                    </DataRow>
-                  )}
-                  {baseTokenSymbol && (
-                    <DataRow>
-                      <Text variant="body3" color="$neutral2">
-                        <Trans>Unitary Value</Trans>
-                      </Text>
-                      <Flex row alignItems="center" gap="$spacing8">
-                        {owner === account.address && poolValueAmount ? (
-                          <Button
-                            size="xxsmall"
-                            variant="branded"
-                            emphasis="secondary"
-                            onPress={() => setShowSetValueModal(true)}
-                          >
-                            <Trans>
-                              {formatCurrencyAmount({ value: poolPrice, type: NumberType.TokenNonTx })}&nbsp;
-                              {baseTokenSymbol}
-                            </Trans>
-                          </Button>
-                        ) : (
-                          <Text variant="body3" color="$neutral1">
-                            <Trans>
-                              {formatCurrencyAmount({ value: poolPrice, type: NumberType.TokenNonTx })}&nbsp;
-                              {baseTokenSymbol}
-                            </Trans>
-                          </Text>
-                        )}
-                      </Flex>
-                    </DataRow>
-                  )}
-                </Flex>
-              </DataCard>
+                      <EditAffordance
+                        visible={owner === account.address && !!poolValueAmount}
+                        onPress={() => setShowSetValueModal(true)}
+                      />
+                    </Flex>
+                  </DataRow>
+                )}
+              </Flex>
+            </DataCard>
 
-              <DataCard>
-                <Text variant="subheading2">
-                  <Trans>Issuance Data</Trans>
-                </Text>
-                <Flex gap="$spacing12" width="100%">
-                  {totalSupply && base && (
-                    <DataRow>
-                      <Text variant="body3" color="$neutral2">
-                        <Trans>Total Supply</Trans>
-                      </Text>
+            <DataCard flex={1}>
+              <Text variant="subheading2">
+                <Trans>Cost Factors</Trans>
+              </Text>
+              <Flex gap="$spacing12" width="100%">
+                {spread && (
+                  <DataRow>
+                    <Text variant="body3" color="$neutral2">
+                      <Trans>Spread</Trans>
+                    </Text>
+                    <Flex row alignItems="center" gap="$spacing8">
                       <Text variant="body3" color="$neutral1">
-                        <Trans>
-                          {formatCurrencyAmount({
-                            value: CurrencyAmount.fromRawAmount(base, JSBI.BigInt(String(totalSupply))),
-                            type: NumberType.TokenNonTx,
-                          })}
-                        </Trans>
-                        &nbsp;{symbol}
+                        <Trans>{new Percent(String(spread), 10_000).toSignificant()}%</Trans>
                       </Text>
-                    </DataRow>
-                  )}
-                </Flex>
-              </DataCard>
-            </Flex>
-
-            <Flex flex={1} gap="$spacing16" width="100%">
-              <DataCard>
-                <Text variant="subheading2">
-                  <Trans>Cost Factors</Trans>
-                </Text>
-                <Flex gap="$spacing12" width="100%">
-                  {spread && (
-                    <DataRow>
-                      <Text variant="body3" color="$neutral2">
-                        <Trans>Spread</Trans>
-                      </Text>
-                      <Flex row alignItems="center" gap="$spacing8">
-                        {owner === account.address ? (
-                          <Button
-                            size="xxsmall"
-                            variant="branded"
-                            emphasis="secondary"
-                            onPress={() => setShowSetSpreadModal(true)}
-                          >
-                            <Trans>{new Percent(String(spread), 10_000).toSignificant()}%</Trans>
-                          </Button>
-                        ) : (
-                          <Text variant="body3" color="$neutral1">
-                            <Trans>{new Percent(String(spread), 10_000).toSignificant()}%</Trans>
-                          </Text>
-                        )}
-                      </Flex>
-                    </DataRow>
-                  )}
-                  {transactionFee && transactionFee !== 0 ? (
-                    <DataRow>
-                      <Text variant="body3" color="$neutral2">
-                        <Trans>Distribution Fee</Trans>
-                      </Text>
+                      <EditAffordance visible={owner === account.address} onPress={() => setShowSetSpreadModal(true)} />
+                    </Flex>
+                  </DataRow>
+                )}
+                {transactionFee && transactionFee !== 0 ? (
+                  <DataRow>
+                    <Text variant="body3" color="$neutral2">
+                      <Trans>Distribution Fee</Trans>
+                    </Text>
+                    <Text variant="body3" color="$neutral1">
+                      <Trans>{new Percent(String(transactionFee), 10_000).toSignificant()}%</Trans>
+                    </Text>
+                  </DataRow>
+                ) : null}
+                {lockup && (
+                  <DataRow>
+                    <Text variant="body3" color="$neutral2">
+                      <Trans>Lockup</Trans>
+                    </Text>
+                    <Flex row alignItems="center" gap="$spacing8">
                       <Text variant="body3" color="$neutral1">
-                        <Trans>{new Percent(String(transactionFee), 10_000).toSignificant()}%</Trans>
+                        <Trans>{lockup} days</Trans>
                       </Text>
-                    </DataRow>
-                  ) : null}
-                  {lockup && (
-                    <DataRow>
-                      <Text variant="body3" color="$neutral2">
-                        <Trans>Lockup</Trans>
-                      </Text>
-                      <Flex row alignItems="center" gap="$spacing8">
-                        {owner === account.address ? (
-                          <Button
-                            size="xxsmall"
-                            variant="branded"
-                            emphasis="secondary"
-                            onPress={() => setShowSetLockupModal(true)}
-                          >
-                            <Trans>{lockup} days</Trans>
-                          </Button>
-                        ) : (
-                          <Text variant="body3" color="$neutral1">
-                            <Trans>{lockup} days</Trans>
-                          </Text>
-                        )}
-                      </Flex>
-                    </DataRow>
-                  )}
-                </Flex>
-              </DataCard>
-
-              <DataCard>
-                <Text variant="subheading2">
-                  <Trans>Pool Constants</Trans>
-                </Text>
-                <Flex gap="$spacing12" width="100%">
-                  {decimals && decimals !== 0 && (
-                    <DataRow>
-                      <Text variant="body3" color="$neutral2">
-                        <Trans>Decimals</Trans>
-                      </Text>
-                      <Text variant="body3" color="$neutral1">
-                        <Trans i18nKey="smartPool.decimals" values={{ decimals }} />
-                      </Text>
-                    </DataRow>
-                  )}
-                </Flex>
-              </DataCard>
-            </Flex>
+                      <EditAffordance visible={owner === account.address} onPress={() => setShowSetLockupModal(true)} />
+                    </Flex>
+                  </DataRow>
+                )}
+              </Flex>
+            </DataCard>
           </Flex>
+
+          <Flex row gap="$spacing16" width="100%" alignItems="stretch" $lg={{ flexDirection: 'column' }}>
+            <DataCard flex={1}>
+              <Text variant="subheading2">
+                <Trans>Issuance Data</Trans>
+              </Text>
+              <Flex gap="$spacing12" width="100%">
+                {totalSupply && base && (
+                  <DataRow>
+                    <Text variant="body3" color="$neutral2">
+                      <Trans>Total Supply</Trans>
+                    </Text>
+                    <Text variant="body3" color="$neutral1">
+                      {formatCurrencyAmount({
+                        value: CurrencyAmount.fromRawAmount(base, JSBI.BigInt(String(totalSupply))),
+                        type: NumberType.TokenNonTx,
+                      })}
+                      &nbsp;{symbol}
+                    </Text>
+                  </DataRow>
+                )}
+              </Flex>
+            </DataCard>
+
+            <DataCard flex={1}>
+              <Text variant="subheading2">
+                <Trans>Pool Constants</Trans>
+              </Text>
+              <Flex gap="$spacing12" width="100%">
+                {decimals && decimals !== 0 && (
+                  <DataRow>
+                    <Text variant="body3" color="$neutral2">
+                      <Trans>Decimals</Trans>
+                    </Text>
+                    <Text variant="body3" color="$neutral1">
+                      <Trans i18nKey="smartPool.decimals" values={{ decimals }} />
+                    </Text>
+                  </DataRow>
+                )}
+                {baseTokenSymbol && (
+                  <DataRow>
+                    <Text variant="body3" color="$neutral2">
+                      <Trans>Base Token</Trans>
+                    </Text>
+                    <Text variant="body3" color="$neutral1">
+                      {baseTokenSymbol}
+                    </Text>
+                  </DataRow>
+                )}
+              </Flex>
+            </DataCard>
+          </Flex>
+
+          <DataCard>
+            <Flex row justifyContent="space-between" alignItems="center" width="100%">
+              <Flex row alignItems="center" gap="$spacing8">
+                <Text variant="subheading2">
+                  <Trans>Staking</Trans>
+                </Text>
+                {chainId && (
+                  <Text variant="body3" color="$neutral2">
+                    · {getChainLabel(chainId as UniverseChainId)}
+                  </Text>
+                )}
+              </Flex>
+              {canEnrollForRewards && (
+                <Button size="xxsmall" variant="branded" emphasis="secondary" onPress={() => setShowRaceModal(true)}>
+                  <Trans>Enroll for rewards</Trans>
+                </Button>
+              )}
+            </Flex>
+            <Flex gap="$spacing12" width="100%">
+              <DataRow>
+                <Text variant="body3" color="$neutral2">
+                  <Trans>APR</Trans>
+                </Text>
+                <Text variant="body3" color="$neutral1">
+                  {stakingAprString}
+                </Text>
+              </DataRow>
+              {selectedChainStaking?.userIsOwner && (
+                <DataRow>
+                  <Text variant="body3" color="$neutral2">
+                    <Trans>IRR (operator)</Trans>
+                  </Text>
+                  <Text variant="body3" color="$neutral1">
+                    {stakingIrrString}
+                  </Text>
+                </DataRow>
+              )}
+              <DataRow>
+                <Text variant="body3" color="$neutral2">
+                  <Trans>Delegated Stake</Trans>
+                </Text>
+                <Text variant="body3" color="$neutral1">
+                  {formatGrgAmount(selectedChainStaking?.delegatedStake.toString())} GRG
+                </Text>
+              </DataRow>
+              <DataRow>
+                <Text variant="body3" color="$neutral2">
+                  <Trans>Operator Own Stake</Trans>
+                </Text>
+                <Text variant="body3" color="$neutral1">
+                  {formatGrgAmount(selectedChainStaking?.poolOwnStake.toString())} GRG
+                </Text>
+              </DataRow>
+              <DataRow>
+                <Text variant="body3" color="$neutral2">
+                  <Trans>Current Epoch Reward</Trans>
+                </Text>
+                <Text variant="body3" color="$neutral1">
+                  {formatGrgAmount(selectedChainStaking?.currentEpochReward)} GRG
+                </Text>
+              </DataRow>
+              {epochInfo?.currentEpoch !== undefined && (
+                <DataRow>
+                  <Text variant="body3" color="$neutral2">
+                    <Trans>Current Epoch</Trans>
+                  </Text>
+                  <Text variant="body3" color="$neutral1">
+                    #{epochInfo.currentEpoch}
+                    {epochCountdown ? ` · ${epochCountdown}` : ''}
+                  </Text>
+                </DataRow>
+              )}
+              {epochInfo?.minimumPoolStake && (
+                <DataRow>
+                  <Text variant="body3" color="$neutral2">
+                    <Trans>Minimum Pool Stake</Trans>
+                  </Text>
+                  <Text variant="body3" color="$neutral1">
+                    {formatGrgAmount(epochInfo.minimumPoolStake)} GRG
+                  </Text>
+                </DataRow>
+              )}
+            </Flex>
+          </DataCard>
 
           <Flex row gap="$spacing16" width="100%" $lg={{ flexDirection: 'column' }}>
             <Flex flex={1} width="100%">

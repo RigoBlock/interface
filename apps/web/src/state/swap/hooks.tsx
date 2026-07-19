@@ -15,6 +15,7 @@ import { selectFilteredChainIds } from 'uniswap/src/features/transactions/swap/s
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { getValidAddress } from 'uniswap/src/utils/addresses'
 import { currencyAddress } from 'uniswap/src/utils/currencyId'
+import { useReadContract } from 'wagmi'
 import { NATIVE_CHAIN_ID } from '~/constants/tokens'
 import { getParsedChainId } from '~/features/params/chainParams'
 import { useCurrency } from '~/hooks/Tokens'
@@ -23,7 +24,6 @@ import { usePoolExtendedContract } from '~/state/pool/hooks'
 import { CurrencyState, SerializedCurrencyState, SwapState } from '~/state/swap/types'
 import { useSwapAndLimitContext } from '~/state/swap/useSwapContext'
 import { assume0xAddress } from '~/utils/wagmi'
-import { useReadContract } from 'wagmi'
 
 export function useOnSwitchTokens(): () => void {
   const { setCurrencyState } = useSwapAndLimitContext()
@@ -45,7 +45,11 @@ function parseFromURLParameter(urlParam: ParsedQs[string]): string | undefined {
 
 export function parseCurrencyFromURLParameter(urlParam: ParsedQs[string], platform: Platform): string | undefined {
   if (typeof urlParam === 'string') {
-    const valid = getValidAddress({ address: urlParam, platform, withEVMChecksum: true })
+    const valid = getValidAddress({
+      address: urlParam,
+      platform,
+      withEVMChecksum: true,
+    })
     if (valid) {
       return valid
     }
@@ -291,7 +295,10 @@ export function useInitialCurrencyState(): {
     [initialInputCurrencyAddress, parsedCurrencyState.outputCurrencyAddress, supportedOutputChainId],
   )
 
-  const initialInputCurrency = useCurrency({ address: initialInputCurrencyAddress, chainId: initialChainId })
+  const initialInputCurrency = useCurrency({
+    address: initialInputCurrencyAddress,
+    chainId: initialChainId,
+  })
   const initialOutputCurrency = useCurrency({
     address: initialOutputCurrencyAddress,
     chainId: parsedCurrencyState.outputChainId ?? initialChainId,

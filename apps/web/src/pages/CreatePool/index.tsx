@@ -1,3 +1,6 @@
+import { Trans } from 'react-i18next'
+import { ElementName, InterfaceEventName, InterfacePageName, ModalName } from 'uniswap/src/features/telemetry/constants'
+import Trace from 'uniswap/src/features/telemetry/Trace'
 import { useAccountDrawer } from '~/components/AccountDrawer/MiniPortfolio/hooks'
 import { ButtonPrimary } from '~/components/Button/buttons'
 import CreateModal from '~/components/createPool/CreateModal'
@@ -8,11 +11,8 @@ import PoolPositionList from '~/components/PoolPositionList'
 import { useAccount } from '~/hooks/useAccount'
 import { useModalState } from '~/hooks/useModalState'
 import styled from '~/lib/deprecated-styled'
-import { Trans } from 'react-i18next'
 import { useAllPoolsData } from '~/state/pool/hooks'
 import { ThemedText } from '~/theme/components/text'
-import { ElementName, InterfaceEventName, InterfacePageName, ModalName } from 'uniswap/src/features/telemetry/constants'
-import Trace from 'uniswap/src/features/telemetry/Trace'
 
 const PageWrapper = styled(AutoColumn)`
   padding: 68px 8px 0px;
@@ -49,7 +49,10 @@ const MainContentWrapper = styled.main`
   border-radius: 16px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0px 0px 1px rgba(0, 0, 0, 0.01), 0px 4px 8px rgba(0, 0, 0, 0.04), 0px 16px 24px rgba(0, 0, 0, 0.04),
+  box-shadow:
+    0px 0px 1px rgba(0, 0, 0, 0.01),
+    0px 4px 8px rgba(0, 0, 0, 0.04),
+    0px 16px 24px rgba(0, 0, 0, 0.04),
     0px 24px 32px rgba(0, 0, 0, 0.01);
 `
 
@@ -123,7 +126,11 @@ export default function CreatePool() {
                     element={ElementName.ConnectWalletButton}
                   >
                     <ButtonPrimary
-                      style={{ marginTop: '2em', marginBottom: '2em', padding: '8px 16px' }}
+                      style={{
+                        marginTop: '2em',
+                        marginBottom: '2em',
+                        padding: '8px 16px',
+                      }}
                       onClick={accountDrawer.open}
                     >
                       <Trans i18nKey="common.connectAWallet.button" />

@@ -1,4 +1,15 @@
 import { Currency } from '@uniswap/sdk-core'
+import { darken } from 'polished'
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
+import { X } from 'react-feather'
+import { Trans, useTranslation } from 'react-i18next'
+import { Modal } from 'uniswap/src/components/modals/Modal'
+import { nativeOnChain } from 'uniswap/src/constants/tokens'
+import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
+import { useIsSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { logger } from 'utilities/src/logger/logger'
 import { ReactComponent as DropDown } from '~/assets/images/dropdown.svg'
 import { ButtonGray, ButtonPrimary } from '~/components/Button/buttons'
 import { AutoColumn } from '~/components/deprecated/Column'
@@ -10,20 +21,9 @@ import { SwitchNetworkAction } from '~/components/Popups/types'
 import CurrencySearchModal from '~/components/SearchModal/CurrencySearchModal'
 import { useAccount } from '~/hooks/useAccount'
 import styled from '~/lib/deprecated-styled'
-import { darken } from 'polished'
-import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
-import { X } from 'react-feather'
-import { Trans, useTranslation } from 'react-i18next'
 import { useCreateCallback } from '~/state/pool/hooks'
 import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
 import { ThemedText } from '~/theme/components/text'
-import { Modal } from 'uniswap/src/components/modals/Modal'
-import { nativeOnChain } from 'uniswap/src/constants/tokens'
-import { useIsSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
-import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { logger } from 'utilities/src/logger/logger'
 
 const Aligner = styled.span`
   display: flex;
@@ -128,7 +128,6 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
     setIsSearchingCurrency(false)
   }, [])
 
-
   // wrapped onUserInput to clear signatures
   const onNameInput = useCallback((typedName: string) => {
     setTypedName(typedName)
@@ -166,7 +165,11 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
     }
 
     // try deploy pool and store hash
-    const hash = await createCallback({ name: typedName, symbol: typedSymbol, currencyValue })?.catch((error) => {
+    const hash = await createCallback({
+      name: typedName,
+      symbol: typedSymbol,
+      currencyValue,
+    })?.catch((error) => {
       setAttempting(false)
       setCreateError(error instanceof Error ? error.message : String(error))
       logger.info('CreateModal', 'onCreate', error)
@@ -251,11 +254,11 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
                 <ButtonPrimary
                   disabled={Boolean(
                     typedName === '' ||
-                      typedName.length < 4 ||
-                      typedName.length > 31 ||
-                      typedSymbol === '' ||
-                      typedSymbol.length < 3 ||
-                      typedSymbol.length > 5,
+                    typedName.length < 4 ||
+                    typedName.length > 31 ||
+                    typedSymbol === '' ||
+                    typedSymbol.length < 3 ||
+                    typedSymbol.length > 5,
                   )}
                   onClick={onCreate}
                 >
@@ -264,8 +267,16 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
                   </ThemedText.DeprecatedMediumHeader>
                 </ButtonPrimary>
                 {createError && (
-                  <ThemedText.DeprecatedBody style={{ color: '#ff6b6b', wordBreak: 'break-all', fontSize: '12px' }}>
-                    {t('pool.create.error.createFailed', { error: createError })}
+                  <ThemedText.DeprecatedBody
+                    style={{
+                      color: '#ff6b6b',
+                      wordBreak: 'break-all',
+                      fontSize: '12px',
+                    }}
+                  >
+                    {t('pool.create.error.createFailed', {
+                      error: createError,
+                    })}
                   </ThemedText.DeprecatedBody>
                 )}
               </AutoColumn>

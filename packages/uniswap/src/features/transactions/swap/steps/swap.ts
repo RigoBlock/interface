@@ -59,7 +59,10 @@ export function createSwapTransactionAsyncStep(
 export function createSwapTransactionStepBatched(
   txRequests: ValidatedTransactionRequest[],
 ): SwapTransactionStepBatched {
-  return { type: TransactionStepType.SwapTransactionBatched, batchedTxRequests: txRequests }
+  return {
+    type: TransactionStepType.SwapTransactionBatched,
+    batchedTxRequests: txRequests,
+  }
 }
 
 export async function getSwapTxRequest(

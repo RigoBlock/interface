@@ -1,6 +1,15 @@
 import type { TransactionResponse } from '@ethersproject/providers'
 import { Currency, CurrencyAmount /*, Token*/ } from '@uniswap/sdk-core'
 import { useWeb3React } from '@web3-react/core'
+import JSBI from 'jsbi'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
+import { ModalCloseIcon } from 'ui/src'
+import { Modal } from 'uniswap/src/components/modals/Modal'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { TransactionStatus, TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { parseUnits } from 'viem'
 import { ButtonConfirmed, ButtonError } from '~/components/Button/buttons'
 import CurrencyInputPanel from '~/components/CurrencyInputPanel'
 import { AutoColumn } from '~/components/deprecated/Column'
@@ -8,22 +17,13 @@ import { RowBetween } from '~/components/deprecated/Row'
 import { LoadingView, SubmittedView } from '~/components/ModalViews'
 import ProgressCircles from '~/components/ProgressSteps'
 import { ApprovalState, useApproveCallback } from '~/hooks/useApproveCallback'
-import JSBI from 'jsbi'
 import styled from '~/lib/deprecated-styled'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Trans, useTranslation } from 'react-i18next'
 import { PoolInfo, useDerivedPoolInfo } from '~/state/buy/hooks'
 import { usePoolExtendedContract } from '~/state/pool/hooks'
 import { useIsTransactionConfirmed, useTransaction, useTransactionAdder } from '~/state/transactions/hooks'
 import { ThemedText } from '~/theme/components'
-import { ModalCloseIcon } from 'ui/src'
-import { Modal } from 'uniswap/src/components/modals/Modal'
-import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { TransactionStatus, TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { calculateGasMargin } from '~/utils/calculateGasMargin'
 import { maxAmountSpend } from '~/utils/maxAmountSpend'
-import { parseUnits } from 'viem'
 
 const mintAmountCache = new Map()
 
@@ -79,7 +79,10 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
         !poolContract ||
         !poolInfo?.recipient ||
         !parsedAmount?.quotient ||
-        !JSBI.greaterThan(parsedAmount.quotient, JSBI.BigInt(parseUnits('0.0001', parsedAmount.currency.decimals).toString()))
+        !JSBI.greaterThan(
+          parsedAmount.quotient,
+          JSBI.BigInt(parseUnits('0.0001', parsedAmount.currency.decimals).toString()),
+        )
       ) {
         return
       }
@@ -239,8 +242,16 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
               {error ?? <Trans>Buy</Trans>}
             </ButtonError>
             {mintCallError && (
-              <ThemedText.DeprecatedBody style={{ color: '#ff6b6b', wordBreak: 'break-all', fontSize: '12px' }}>
-                {t('pool.buy.error.mintSimulationFailed', { error: mintCallError })}
+              <ThemedText.DeprecatedBody
+                style={{
+                  color: '#ff6b6b',
+                  wordBreak: 'break-all',
+                  fontSize: '12px',
+                }}
+              >
+                {t('pool.buy.error.mintSimulationFailed', {
+                  error: mintCallError,
+                })}
               </ThemedText.DeprecatedBody>
             )}
           </RowBetween>

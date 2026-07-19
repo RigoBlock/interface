@@ -1,13 +1,13 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { Trans } from 'react-i18next'
+import InfiniteScroll from 'react-infinite-scroll-component'
+import { Flex, Text } from 'ui/src'
 import Loader from '~/components/Icons/LoadingSpinner'
 import PoolPositionGroupedListItem from '~/components/PoolPositionGroupedListItem'
 import { useAccount } from '~/hooks/useAccount'
 import styled from '~/lib/deprecated-styled'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import InfiniteScroll from 'react-infinite-scroll-component'
-import { Trans } from 'react-i18next'
 import { MEDIA_WIDTHS } from '~/theme'
 import { PoolPositionDetails } from '~/types/position'
-import { Flex, Text } from 'ui/src'
 
 const DesktopHeader = styled.div`
   display: none;
@@ -52,12 +52,13 @@ const MobileHeader = styled.div`
 type PoolPositionListProps = React.PropsWithChildren<{
   positions?: PoolPositionDetails[]
   shouldFilterByUserPools?: boolean
-  onRaceClick?: (poolAddress: string, poolName: string) => void
+  /** Optional action rendered at the right of the list header (e.g. the Create button) */
+  headerAction?: React.ReactNode
 }>
 
 const GROUPS_PER_PAGE = 10
 
-export default function PoolPositionList({ positions, shouldFilterByUserPools, onRaceClick }: PoolPositionListProps) {
+export default function PoolPositionList({ positions, shouldFilterByUserPools, headerAction }: PoolPositionListProps) {
   const account = useAccount()
 
   // --- Grouping & Pagination ---
@@ -146,11 +147,13 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools, o
             {groupCount > 0 && ` (${groupCount})`}
           </Text>
         </Flex>
+        {headerAction}
       </DesktopHeader>
       <MobileHeader>
         <Flex>
           <Text>{shouldFilterByUserPools ? <Trans>Your Smart Pools</Trans> : <Trans>Top Smart Pools</Trans>}</Text>
         </Flex>
+        {headerAction}
       </MobileHeader>
       {groupCount > 0 ? (
         <InfiniteScroll
@@ -162,7 +165,11 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools, o
             </Flex>
           }
           dataLength={groupCount}
-          style={{ overflow: 'unset', display: 'flex', flexDirection: 'column' }}
+          style={{
+            overflow: 'unset',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
         >
           {groupedPools?.map((group) => (
             <PoolPositionGroupedListItem
@@ -170,7 +177,6 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools, o
               positions={group}
               returnPage={shouldFilterByUserPools ? 'manage' : 'earn'}
               isMyPools={!!shouldFilterByUserPools}
-              onRaceClick={onRaceClick}
             />
           ))}
         </InfiniteScroll>

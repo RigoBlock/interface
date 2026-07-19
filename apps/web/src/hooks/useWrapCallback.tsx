@@ -1,12 +1,5 @@
 import { Currency } from '@uniswap/sdk-core'
-import { useActiveSmartPool } from '~/state/application/hooks'
 import { useMemo, useRef, useState } from 'react'
-import { useMultichainContext } from '~/state/multichain/useMultichainContext'
-import tryParseCurrencyAmount from '~/lib/utils/tryParseCurrencyAmount'
-import { useTransactionAdder } from '~/state/transactions/hooks'
-import { usePoolContract, useWETHContract } from '~/hooks/useContract'
-import { useCurrencyBalance } from '~/state/connection/hooks'
-import { formatToDecimal, getTokenAddress } from '~/lib/utils/analytics'
 import { WRAPPED_NATIVE_CURRENCY } from 'uniswap/src/constants/tokens'
 import { InterfaceEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
@@ -14,6 +7,13 @@ import { TransactionType } from 'uniswap/src/features/transactions/types/transac
 import { WrapType } from 'uniswap/src/features/transactions/types/wrap'
 import { logger } from 'utilities/src/logger/logger'
 import { useAccount } from '~/hooks/useAccount'
+import { usePoolContract, useWETHContract } from '~/hooks/useContract'
+import { formatToDecimal, getTokenAddress } from '~/lib/utils/analytics'
+import tryParseCurrencyAmount from '~/lib/utils/tryParseCurrencyAmount'
+import { useActiveSmartPool } from '~/state/application/hooks'
+import { useCurrencyBalance } from '~/state/connection/hooks'
+import { useMultichainContext } from '~/state/multichain/useMultichainContext'
+import { useTransactionAdder } from '~/state/transactions/hooks'
 
 const NOT_APPLICABLE = { wrapType: WrapType.NotApplicable }
 
@@ -39,7 +39,11 @@ export default function useWrapCallback({
   inputCurrency?: Currency | null
   outputCurrency?: Currency | null
   typedValue?: string
-}): { wrapType: WrapType; execute?: () => Promise<string | undefined>; inputError?: WrapInputError } {
+}): {
+  wrapType: WrapType
+  execute?: () => Promise<string | undefined>
+  inputError?: WrapInputError
+} {
   const { chainId } = useMultichainContext()
 
   const wethContract = useWETHContract(true, chainId)

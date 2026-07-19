@@ -5,10 +5,6 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { FixedSizeList } from 'react-window'
-import { useActiveSmartPool } from '~/state/application/hooks'
-import { usePendingLPTransactionsChangeListener } from '~/state/transactions/hooks'
-import { useRequestPositionsForSavedPairs } from '~/state/user/hooks'
-import { ClickableTamaguiStyle } from '~/theme/components/styles'
 import { Anchor, Button, Flex, Text, useMedia } from 'ui/src'
 import { AlertTriangleFilled } from 'ui/src/components/icons/AlertTriangleFilled'
 import { CloseIconWithHover } from 'ui/src/components/icons/CloseIconWithHover'
@@ -35,6 +31,10 @@ import { parseRestPosition } from '~/components/Liquidity/utils/parseFromRest'
 import { useAccount } from '~/hooks/useAccount'
 import { ExpandoRow } from '~/pages/Positions/ExpandoRow'
 import { TopPools } from '~/pages/Positions/TopPools'
+import { useActiveSmartPool } from '~/state/application/hooks'
+import { usePendingLPTransactionsChangeListener } from '~/state/transactions/hooks'
+import { useRequestPositionsForSavedPairs } from '~/state/user/hooks'
+import { ClickableTamaguiStyle } from '~/theme/components/styles'
 
 // The BE limits the number of positions by chain and protocol version.
 // PAGE_SIZE=25 means the limit is at most 25 positions * x chains * y protocol versions.
@@ -51,7 +51,10 @@ function DisconnectedWalletView() {
 
   const handleConnectWallet = () => {
     if (connectedWithoutEVM) {
-      setMenu({ variant: MenuStateVariant.CONNECT_PLATFORM, platform: Platform.EVM })
+      setMenu({
+        variant: MenuStateVariant.CONNECT_PLATFORM,
+        platform: Platform.EVM,
+      })
     }
     accountDrawer.open()
   }
@@ -230,7 +233,11 @@ function VirtualizedPositionsList({
     return positions.length * positionItemHeight
   }, [positionItemHeight, positions.length])
 
-  const { sentinelRef } = useInfiniteScroll({ onLoadMore, hasNextPage, isFetching })
+  const { sentinelRef } = useInfiniteScroll({
+    onLoadMore,
+    hasNextPage,
+    isFetching,
+  })
 
   return (
     <Flex grow>
@@ -282,7 +289,9 @@ export default function Pool() {
   const address = activeSmartPool.address ?? undefined
 
   const [chainFilter, setChainFilter] = useAtom(chainFilterAtom)
-  const { chains: currentModeChains } = useEnabledChains({ platform: Platform.EVM })
+  const { chains: currentModeChains } = useEnabledChains({
+    platform: Platform.EVM,
+  })
   const [versionFilter, setVersionFilter] = useAtom(versionFilterAtom)
   const [statusFilter, setStatusFilter] = useAtom(statusFilterAtom)
   const [closedCTADismissed, setClosedCTADismissed] = useState(false)

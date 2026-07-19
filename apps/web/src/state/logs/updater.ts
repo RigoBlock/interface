@@ -1,13 +1,13 @@
 import type { Filter } from '@ethersproject/providers'
-import { getBackupRpcProvider, RPC_PROVIDERS } from '~/constants/providers'
 import { useEffect, useMemo } from 'react'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { logger } from 'utilities/src/logger/logger'
+import { getBackupRpcProvider, RPC_PROVIDERS } from '~/constants/providers'
 import { useAccount } from '~/hooks/useAccount'
 import useBlockNumber from '~/lib/hooks/useBlockNumber'
 import { useAppDispatch, useAppSelector } from '~/state/hooks'
 import { fetchedLogs, fetchedLogsError, fetchingLogs } from '~/state/logs/slice'
 import { isHistoricalLog, keyToFilter } from '~/state/logs/utils'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 
 export default function Updater(): null {
   const dispatch = useAppDispatch()

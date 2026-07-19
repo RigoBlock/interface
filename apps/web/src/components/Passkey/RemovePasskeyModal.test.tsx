@@ -38,6 +38,11 @@ vi.mock('~/state/hooks', () => ({
   useAppDispatch: vi.fn(() => vi.fn()),
 }))
 
+vi.mock('~/state/application/hooks', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('~/state/application/hooks')>()),
+  useActiveSmartPool: vi.fn(() => ({ address: null, name: '' })),
+}))
+
 vi.mock('~/hooks/useDisconnect', () => ({
   useDisconnect: vi.fn(),
 }))
@@ -86,9 +91,13 @@ function setupMocks(initialState = MOCK_INITIAL_STATE) {
     typeof useAccountDrawer
   >)
 
-  vi.mocked(usePasskeyAuthWithHelpModal)
-    .mockReturnValueOnce({ mutate: mockVerify } as unknown as ReturnType<typeof usePasskeyAuthWithHelpModal>)
-    .mockReturnValueOnce({ mutate: mockDelete } as unknown as ReturnType<typeof usePasskeyAuthWithHelpModal>)
+  // The component can render more than once, so alternate return values by call parity:
+  // odd calls are the verify mutation, even calls are the delete mutation.
+  let call = 0
+  vi.mocked(usePasskeyAuthWithHelpModal).mockImplementation((() => {
+    call += 1
+    return { mutate: call % 2 === 1 ? mockVerify : mockDelete }
+  }) as unknown as typeof usePasskeyAuthWithHelpModal)
 }
 
 describe('RemovePasskeyModal', () => {

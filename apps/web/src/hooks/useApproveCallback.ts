@@ -1,10 +1,10 @@
 /* eslint-disable max-params */
 
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
-import { ApprovalState, useApproval } from '~/lib/hooks/useApproval'
 import { useCallback } from 'react'
-import { useHasPendingApproval, useTransactionAdder } from '~/state/transactions/hooks'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { ApprovalState, useApproval } from '~/lib/hooks/useApproval'
+import { useHasPendingApproval, useTransactionAdder } from '~/state/transactions/hooks'
 
 export { ApprovalState } from '~/lib/hooks/useApproval'
 

@@ -107,7 +107,10 @@ export function useTokenApprovalInfo(params: TokenApprovalInfoParams): ApprovalT
   const tokenApprovalInfo: TokenApprovalInfo = useMemo(() => {
     if (error) {
       logger.error(error, {
-        tags: { file: 'useTokenApprovalInfo', function: 'useTokenApprovalInfo' },
+        tags: {
+          file: 'useTokenApprovalInfo',
+          function: 'useTokenApprovalInfo',
+        },
         extra: {
           approvalRequestArgs,
         },

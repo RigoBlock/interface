@@ -66,7 +66,9 @@ export function useSharedIntroCards({
   // No app fees announcement state
   const { navigateToSwapFlow } = useUniswapContext()
   const handleNavigateToSwapFlow = useEvent(() =>
-    navigateToSwapFlow({ inputCurrencyId: buildNativeCurrencyId(UniverseChainId.Mainnet) }),
+    navigateToSwapFlow({
+      inputCurrencyId: buildNativeCurrencyId(UniverseChainId.Mainnet),
+    }),
   )
   const isNoAppFeesAnnouncementEnabled = useFeatureFlag(FeatureFlags.NoUniswapInterfaceFees)
   const isNoAppFeesCardDismissed = useSelector(selectHasDismissedNoAppFeesAnnouncement)

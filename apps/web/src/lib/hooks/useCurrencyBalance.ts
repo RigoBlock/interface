@@ -1,5 +1,4 @@
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core'
-import { useInterfaceMulticall } from '~/hooks/useContract'
 import JSBI from 'jsbi'
 import { useMemo } from 'react'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
@@ -8,6 +7,7 @@ import { isEVMAddress } from 'utilities/src/addresses/evm/evm'
 import { Abi, erc20Abi, isAddress } from 'viem'
 import { useBalance, useReadContracts } from 'wagmi'
 import { useAccount } from '~/hooks/useAccount'
+import { useInterfaceMulticall } from '~/hooks/useContract'
 import { useTokenBalances } from '~/hooks/useTokenBalances'
 import { currencyKey } from '~/utils/currencyKey'
 import { assume0xAddress } from '~/utils/wagmi'
@@ -74,7 +74,10 @@ export function useCurrencyBalancesMultipleAccounts(
   // if a type is returned instead of a mapping, must assert no sort() op is performed.
   return useMemo(
     () => [
-      validAddressInputs.reduce<{ memo: { [address: string]: CurrencyAmount<Currency> }; index: number }>(
+      validAddressInputs.reduce<{
+        memo: { [address: string]: CurrencyAmount<Currency> }
+        index: number
+      }>(
         (acc, [address]) => {
           const value = data?.[acc.index]?.result
           if (value && chainId) {
@@ -137,7 +140,9 @@ function useRpcTokenBalancesWithLoadingIndicator({
     () => [
       address && validatedTokens.length > 0
         ? // oxlint-disable-next-line max-params
-          validatedTokens.reduce<{ [tokenAddress: string]: CurrencyAmount<Token> | undefined }>((memo, token, i) => {
+          validatedTokens.reduce<{
+            [tokenAddress: string]: CurrencyAmount<Token> | undefined
+          }>((memo, token, i) => {
             const value = data?.[i].result
             if (!value) {
               return memo

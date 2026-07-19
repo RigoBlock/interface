@@ -6,12 +6,7 @@ import {
   ARB,
   AUSD_MONAD,
   BUSD_BSC,
-  DAI,
-  DAI_ARBITRUM_ONE,
   DAI_AVALANCHE,
-  DAI_BSC,
-  DAI_OPTIMISM,
-  DAI_POLYGON,
   ETH_BSC,
   GRG,
   nativeOnChain,
@@ -75,7 +70,7 @@ type ChainCurrencyList = {
 export const COMMON_BASES: ChainCurrencyList = {
   [UniverseChainId.Mainnet]: [
     nativeOnChain(UniverseChainId.Mainnet),
-    DAI,
+    GRG[UniverseChainId.Mainnet] as Token,
     USDC_MAINNET,
     USDT,
     WBTC,
@@ -85,7 +80,7 @@ export const COMMON_BASES: ChainCurrencyList = {
   [UniverseChainId.ArbitrumOne]: [
     nativeOnChain(UniverseChainId.ArbitrumOne),
     ARB,
-    DAI_ARBITRUM_ONE,
+    GRG[UniverseChainId.ArbitrumOne] as Token,
     USDC_ARBITRUM,
     USDT_ARBITRUM_ONE,
     WBTC_ARBITRUM_ONE,
@@ -111,9 +106,14 @@ export const COMMON_BASES: ChainCurrencyList = {
     WRAPPED_NATIVE_CURRENCY[UniverseChainId.Blast] as Token,
   ].map(buildPartialCurrencyInfo),
 
-  [UniverseChainId.Bnb]: [nativeOnChain(UniverseChainId.Bnb), DAI_BSC, USDC_BSC, USDT_BSC, ETH_BSC, BUSD_BSC].map(
-    buildPartialCurrencyInfo,
-  ),
+  [UniverseChainId.Bnb]: [
+    nativeOnChain(UniverseChainId.Bnb),
+    GRG[UniverseChainId.Bnb] as Token,
+    USDC_BSC,
+    USDT_BSC,
+    ETH_BSC,
+    BUSD_BSC,
+  ].map(buildPartialCurrencyInfo),
 
   [UniverseChainId.Celo]: [nativeOnChain(UniverseChainId.Celo), USDC_CELO].map(buildPartialCurrencyInfo),
 
@@ -127,7 +127,7 @@ export const COMMON_BASES: ChainCurrencyList = {
   [UniverseChainId.Optimism]: [
     nativeOnChain(UniverseChainId.Optimism),
     OP,
-    DAI_OPTIMISM,
+    GRG[UniverseChainId.Optimism] as Token,
     USDC_OPTIMISM,
     USDT_OPTIMISM,
     WBTC_OPTIMISM,
@@ -138,7 +138,7 @@ export const COMMON_BASES: ChainCurrencyList = {
     nativeOnChain(UniverseChainId.Polygon),
     WETH_POLYGON,
     USDC_POLYGON,
-    DAI_POLYGON,
+    GRG[UniverseChainId.Polygon] as Token,
     USDT_POLYGON,
     WBTC_POLYGON,
   ].map(buildPartialCurrencyInfo),
@@ -214,7 +214,10 @@ export function getCommonBase(chainId?: number, address?: string): CurrencyInfo 
       (base.currency.isNative && isNative) ||
       (base.currency.isToken &&
         areAddressesEqual({
-          addressInput1: { address: base.currency.address, chainId: base.currency.chainId },
+          addressInput1: {
+            address: base.currency.address,
+            chainId: base.currency.chainId,
+          },
           addressInput2: { address, chainId },
         })),
   )
@@ -236,7 +239,10 @@ export function getTokenLogoURI(chainId: UniverseChainId, address: string): Imag
     chainId === UniverseChainId.Celo &&
     areAddressesEqual({
       addressInput1: { address, platform: Platform.EVM },
-      addressInput2: { address: nativeOnChain(chainId).wrapped.address, platform: Platform.EVM },
+      addressInput2: {
+        address: nativeOnChain(chainId).wrapped.address,
+        platform: Platform.EVM,
+      },
     })
   ) {
     return CELO_LOGO as ImageSourcePropType
@@ -245,7 +251,10 @@ export function getTokenLogoURI(chainId: UniverseChainId, address: string): Imag
     chainId === UniverseChainId.Celo &&
     areAddressesEqual({
       addressInput1: { address, platform: Platform.EVM },
-      addressInput2: { address: PORTAL_ETH_CELO.address, platform: Platform.EVM },
+      addressInput2: {
+        address: PORTAL_ETH_CELO.address,
+        platform: Platform.EVM,
+      },
     })
   ) {
     return ETH_LOGO as ImageSourcePropType
@@ -255,7 +264,10 @@ export function getTokenLogoURI(chainId: UniverseChainId, address: string): Imag
     chainId === UniverseChainId.Unichain &&
     areAddressesEqual({
       addressInput1: { address, platform: Platform.EVM },
-      addressInput2: { address: (GRG[UniverseChainId.Unichain] as Token).address, platform: Platform.EVM },
+      addressInput2: {
+        address: (GRG[UniverseChainId.Unichain] as Token).address,
+        platform: Platform.EVM,
+      },
     })
   ) {
     return RIGOBLOCK_LOGO as ImageSourcePropType

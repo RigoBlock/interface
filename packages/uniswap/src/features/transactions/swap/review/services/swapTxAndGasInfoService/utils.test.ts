@@ -21,7 +21,9 @@ import { DEFAULT_PROTOCOL_OPTIONS } from 'uniswap/src/features/transactions/swap
 import { WrapType } from 'uniswap/src/features/transactions/types/wrap'
 import { CurrencyField } from 'uniswap/src/types/currency'
 
-const mockPermitData = { fakePermitField: 'hi' } as unknown as TradingApi.NullablePermit
+const mockPermitData = {
+  fakePermitField: 'hi',
+} as unknown as TradingApi.NullablePermit
 
 describe('processWrapResponse', () => {
   it('should process wrap response with gas fee result', () => {
@@ -191,7 +193,9 @@ describe('getSimulationError', () => {
 })
 
 describe('getShouldSkipSwapRequest', () => {
-  const mockTrade = { trade: { quote: { permitData: null } } } as unknown as TradeWithStatus
+  const mockTrade = {
+    trade: { quote: { permitData: null } },
+  } as unknown as TradeWithStatus
   const mockTradeNeedingPermit = {
     trade: { quote: { permitData: { fakePermitField: 'hi' } } },
   } as unknown as TradeWithStatus

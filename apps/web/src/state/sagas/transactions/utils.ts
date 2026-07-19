@@ -106,11 +106,20 @@ export function* handleSignatureStep({ setCurrentStep, step, ignoreInterrupt, ad
   setCurrentStep({ step, accepted: false })
 
   const signer = yield* call(getSigner, address)
-  const signature = yield* call(signTypedData, { signer, domain: step.domain, types: step.types, value: step.values }) // TODO(WEB-5077): look into removing / simplifying signTypedData
+  const signature = yield* call(signTypedData, {
+    signer,
+    domain: step.domain,
+    types: step.types,
+    value: step.values,
+  }) // TODO(WEB-5077): look into removing / simplifying signTypedData
   // If the transaction flow was interrupted, throw an error after the step has completed
   yield* call(throwIfInterrupted)
 
-  addTransactionBreadcrumb({ step, data: { signature }, status: TransactionBreadcrumbStatus.Complete })
+  addTransactionBreadcrumb({
+    step,
+    data: { signature },
+    status: TransactionBreadcrumbStatus.Complete,
+  })
 
   // oxlint-disable-next-line typescript/no-unsafe-return -- biome-parity: oxlint is stricter here
   return signature
@@ -133,7 +142,12 @@ export function* handleOnChainStep<T extends OnChainTransactionStep>(params: Han
   addTransactionBreadcrumb({ step, data: { ...info } })
 
   // Avoid sending prompting a transaction if the user already submitted an equivalent tx, e.g. by closing and reopening a transaction flow
-  const duplicativeTx = yield* findDuplicativeTx({ info, address, chainId, allowDuplicativeTx })
+  const duplicativeTx = yield* findDuplicativeTx({
+    info,
+    address,
+    chainId,
+    allowDuplicativeTx,
+  })
 
   const interfaceDuplicativeTx = duplicativeTx ? getInterfaceTransaction(duplicativeTx) : undefined
   if (interfaceDuplicativeTx && interfaceDuplicativeTx.hash) {
@@ -227,7 +241,10 @@ export function* handleOnChainStep<T extends OnChainTransactionStep>(params: Han
   yield* call(throwIfInterrupted)
 
   if (!transaction.hash) {
-    throw new TransactionStepFailedError({ message: `Transaction failed, no hash returned`, step })
+    throw new TransactionStepFailedError({
+      message: `Transaction failed, no hash returned`,
+      step,
+    })
   }
 
   return yield* handleOnChainConfirmation(params, transaction.hash)
@@ -255,7 +272,11 @@ function* handleOnChainConfirmation(params: HandleOnChainStepParams, hash: strin
     throw new HandledTransactionInterrupt('Transaction flow was interrupted')
   }
 
-  addTransactionBreadcrumb({ step, data: { txHash: hash }, status: TransactionBreadcrumbStatus.Complete })
+  addTransactionBreadcrumb({
+    step,
+    data: { txHash: hash },
+    status: TransactionBreadcrumbStatus.Complete,
+  })
 
   return hash
 }
@@ -304,7 +325,10 @@ function* submitTransactionAsync(params: HandleOnChainStepParams): SagaGenerator
     ])
 
     if (!isValidHexString(response)) {
-      throw new TransactionStepFailedError({ message: `Transaction failed, not a valid hex string: ${response}`, step })
+      throw new TransactionStepFailedError({
+        message: `Transaction failed, not a valid hex string: ${response}`,
+        step,
+      })
     }
 
     return response
@@ -323,7 +347,10 @@ function* recoverTransactionFromHash(hash: HexString, step: OnChainTransactionSt
   const transaction = yield* pollForTransaction(hash, step.txRequest.chainId)
 
   if (!transaction) {
-    throw new TransactionStepFailedError({ message: `Transaction not found`, step })
+    throw new TransactionStepFailedError({
+      message: `Transaction not found`,
+      step,
+    })
   }
 
   return transformTransactionResponse(transaction)
@@ -504,7 +531,10 @@ function* waitForTransaction(hash: string | undefined, step: TransactionStep) {
       if (payload.status === TransactionStatus.Success) {
         return payload
       } else {
-        throw new TransactionStepFailedError({ message: `${step.type} failed on-chain`, step })
+        throw new TransactionStepFailedError({
+          message: `${step.type} failed on-chain`,
+          step,
+        })
       }
     }
   }

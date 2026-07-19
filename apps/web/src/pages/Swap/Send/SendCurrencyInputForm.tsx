@@ -177,7 +177,10 @@ export default function SendCurrencyInputForm({
 
   const handleSelectCurrency = useCallback(
     (currency: Currency) => {
-      onCurrencyChange?.({ inputCurrency: currency, outputCurrency: undefined })
+      onCurrencyChange?.({
+        inputCurrency: currency,
+        outputCurrency: undefined,
+      })
 
       if (fiatCurrency.equals(currency)) {
         setSendState((prev) => {
@@ -253,7 +256,10 @@ export default function SendCurrencyInputForm({
               <NumericalInputSymbolContainer
                 ref={prefixObserver.ref}
                 $showPlaceholder={!displayValue}
-                style={{ lineHeight: `${lineHeight}px`, fontSize: `${fontSize}px` }}
+                style={{
+                  lineHeight: `${lineHeight}px`,
+                  fontSize: `${fontSize}px`,
+                }}
               >
                 {fiatSymbol}
               </NumericalInputSymbolContainer>
@@ -273,7 +279,10 @@ export default function SendCurrencyInputForm({
             />
             <NumericalInputMimic
               ref={hiddenObserver.ref}
-              style={{ lineHeight: `${lineHeight}px`, fontSize: `${fontSize}px` }}
+              style={{
+                lineHeight: `${lineHeight}px`,
+                fontSize: `${fontSize}px`,
+              }}
             >
               {displayValue}
             </NumericalInputMimic>

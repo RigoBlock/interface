@@ -152,10 +152,16 @@ function BuyFormInner({ disabled, initialCurrency }: BuyFormProps) {
     if (!selectedCountry) {
       // Use API result if available, otherwise default to locale-based country immediately
       // This ensures the UI is never blocked by a failed or slow country detection
-      setBuyFormState((state) => ({ ...state, selectedCountry: countryResult ?? DEFAULT_COUNTRY }))
+      setBuyFormState((state) => ({
+        ...state,
+        selectedCountry: countryResult ?? DEFAULT_COUNTRY,
+      }))
     } else if (countryResult && selectedCountry.countryCode === DEFAULT_COUNTRY.countryCode) {
       // Update to API result only if we're currently using the default locale-based country
-      setBuyFormState((state) => ({ ...state, selectedCountry: countryResult }))
+      setBuyFormState((state) => ({
+        ...state,
+        selectedCountry: countryResult,
+      }))
     }
   }, [buyFormState.selectedCountry, countryResult, selectedCountry, setBuyFormState, DEFAULT_COUNTRY])
 
@@ -204,7 +210,10 @@ function BuyFormInner({ disabled, initialCurrency }: BuyFormProps) {
     }
 
     if (supportedToken) {
-      const providerState: Partial<{ inputAmount: string; providers: string[] }> = {}
+      const providerState: Partial<{
+        inputAmount: string
+        providers: string[]
+      }> = {}
       if (hasProviders) {
         providerState.inputAmount = currencyAmount
         providerState.providers = providers.map((provider) => provider.toLowerCase())
@@ -281,7 +290,10 @@ function BuyFormInner({ disabled, initialCurrency }: BuyFormProps) {
             </Text>
             <FiatOnRampCountryPicker
               onPress={() => {
-                setBuyFormState((state) => ({ ...state, countryModalOpen: true }))
+                setBuyFormState((state) => ({
+                  ...state,
+                  countryModalOpen: true,
+                }))
               }}
               countryCode={selectedCountry?.countryCode}
             />
@@ -407,7 +419,10 @@ function BuyFormInner({ disabled, initialCurrency }: BuyFormProps) {
         <FiatOnRampCurrencyModal
           isOpen={currencyModalOpen}
           onDismiss={() => {
-            setBuyFormState((state) => ({ ...state, currencyModalOpen: false }))
+            setBuyFormState((state) => ({
+              ...state,
+              currencyModalOpen: false,
+            }))
           }}
           onSelectCurrency={(currency) => {
             setBuyFormState((state) => ({ ...state, quoteCurrency: currency }))
@@ -440,10 +455,16 @@ function BuyFormInner({ disabled, initialCurrency }: BuyFormProps) {
           navigate(`/swap?${params.toString()}`)
         }}
         onClose={() => {
-          setBuyFormState((state) => ({ ...state, selectedUnsupportedCurrency: undefined }))
+          setBuyFormState((state) => ({
+            ...state,
+            selectedUnsupportedCurrency: undefined,
+          }))
         }}
         onBack={() => {
-          setBuyFormState((state) => ({ ...state, selectedUnsupportedCurrency: undefined }))
+          setBuyFormState((state) => ({
+            ...state,
+            selectedUnsupportedCurrency: undefined,
+          }))
         }}
       />
       {countryOptionsResult?.supportedCountries && (
@@ -461,7 +482,11 @@ function BuyFormInner({ disabled, initialCurrency }: BuyFormProps) {
         <ChooseProviderModal
           isOpen={true}
           closeModal={() =>
-            setBuyFormState((prev) => ({ ...prev, providerModalOpen: false, paymentMethod: undefined }))
+            setBuyFormState((prev) => ({
+              ...prev,
+              providerModalOpen: false,
+              paymentMethod: undefined,
+            }))
           }
         />
       )}

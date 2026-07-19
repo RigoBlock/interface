@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
-import { useActiveSmartPool } from '~/state/application/hooks'
-import { useResolvedAddresses } from '~/pages/Portfolio/hooks/useResolvedAddresses'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
+import { useResolvedAddresses } from '~/pages/Portfolio/hooks/useResolvedAddresses'
+import { useActiveSmartPool } from '~/state/application/hooks'
 
 // This is the address used for the disconnected demo view. It is only used in the disconnected state for the portfolio page.
 const DEMO_WALLET_ADDRESS = '0x8796207d877194d97a2c360c041f13887896FC79'

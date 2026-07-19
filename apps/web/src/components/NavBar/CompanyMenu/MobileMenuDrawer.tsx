@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useActiveSmartPool } from '~/state/application/hooks'
-import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
 import { Accordion, AnimateTransition, Flex, Separator, Square, Text } from 'ui/src'
+import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { HelpModal } from '~/components/HelpModal/HelpModal'
 import { MenuSectionTitle, useMenuContent } from '~/components/NavBar/CompanyMenu/Content'
@@ -15,6 +14,7 @@ import { LanguageSettings } from '~/components/NavBar/PreferencesMenu/Language'
 import { PreferencesView } from '~/components/NavBar/PreferencesMenu/shared'
 import { useTabsContent } from '~/components/NavBar/Tabs/TabsContent'
 import { Socials } from '~/pages/Landing/sections/Footer'
+import { useActiveSmartPool } from '~/state/application/hooks'
 
 function MenuSection({
   title,

@@ -1,13 +1,13 @@
 import { ErrorBoundary as DatadogErrorBoundary } from '@datadog/browser-rum-react'
 import { Component, type ErrorInfo, type PropsWithChildren, type ReactNode, useCallback, useState } from 'react'
-import styled from '~/lib/deprecated-styled'
-import { useIsMobile } from '~/hooks/screenSize/useIsMobile'
 import { useTranslation } from 'react-i18next'
 import { Button, Flex, Switch, Text, TouchableArea } from 'ui/src'
 import { CopyAlt } from 'ui/src/components/icons/CopyAlt'
 import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
 import { logger } from 'utilities/src/logger/logger'
+import { useIsMobile } from '~/hooks/screenSize/useIsMobile'
+import styled from '~/lib/deprecated-styled'
 import { deprecatedStyled } from '~/lib/deprecated-styled'
 import { persistor } from '~/state'
 import { useAppStateResetter } from '~/state/reset/appResetter'
@@ -181,7 +181,11 @@ class ReactErrorBoundary extends Component<
   }>,
   { error: Error | null }
 > {
-  constructor(props: PropsWithChildren<{ fallback: (props: { error: Error; resetError: () => void }) => ReactNode }>) {
+  constructor(
+    props: PropsWithChildren<{
+      fallback: (props: { error: Error; resetError: () => void }) => ReactNode
+    }>,
+  ) {
     super(props)
     this.state = { error: null }
   }
@@ -201,7 +205,10 @@ class ReactErrorBoundary extends Component<
 
   render() {
     if (this.state.error) {
-      return this.props.fallback({ error: this.state.error, resetError: this.resetError })
+      return this.props.fallback({
+        error: this.state.error,
+        resetError: this.resetError,
+      })
     }
     return this.props.children
   }

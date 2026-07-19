@@ -1,7 +1,11 @@
 [
   {
     "inputs": [
-      { "internalType": "address", "name": "_universalRouter", "type": "address" },
+      {
+        "internalType": "address",
+        "name": "_universalRouter",
+        "type": "address"
+      },
       { "internalType": "address", "name": "_v4Posm", "type": "address" },
       { "internalType": "address", "name": "weth", "type": "address" }
     ],
@@ -86,14 +90,26 @@
   {
     "inputs": [],
     "name": "uniV4Posm",
-    "outputs": [{ "internalType": "contract IPositionManager", "name": "", "type": "address" }],
+    "outputs": [
+      {
+        "internalType": "contract IPositionManager",
+        "name": "",
+        "type": "address"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [],
     "name": "uniswapRouter",
-    "outputs": [{ "internalType": "address", "name": "universalRouter", "type": "address" }],
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "universalRouter",
+        "type": "address"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   }

@@ -1,16 +1,16 @@
 import { useTheme } from '@tamagui/core'
+import { ArrowUpCircle, CheckCircle } from 'react-feather'
+import { Trans } from 'react-i18next'
+import { Flex, ModalCloseIcon } from 'ui/src'
+import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
 import Circle from '~/assets/images/blue-loader.svg'
 import { AutoColumn, ColumnCenter } from '~/components/deprecated/Column'
 import { RowBetween } from '~/components/deprecated/Row'
 import { useAccount } from '~/hooks/useAccount'
 import styled from '~/lib/deprecated-styled'
-import { ArrowUpCircle, CheckCircle } from 'react-feather'
-import { Trans } from 'react-i18next'
 import { ThemedText } from '~/theme/components'
 import { CustomLightSpinner } from '~/theme/components/icons/spinner'
 import { ExternalLink } from '~/theme/components/Links'
-import { Flex, ModalCloseIcon } from 'ui/src'
-import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
 
 const ConfirmOrLoadingWrapper = styled.div`
   width: 100%;
@@ -72,7 +72,11 @@ export function SubmittedView({
         {children}
         {chainId && hash && (
           <ExternalLink
-            href={getExplorerLink({ chainId, data: hash, type: ExplorerDataType.TRANSACTION })}
+            href={getExplorerLink({
+              chainId,
+              data: hash,
+              type: ExplorerDataType.TRANSACTION,
+            })}
             style={{ marginLeft: '4px' }}
           >
             <ThemedText.DeprecatedSubHeader>

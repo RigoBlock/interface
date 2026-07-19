@@ -67,11 +67,18 @@ export const OPTIMISM_CHAIN_INFO = {
   blockTimeMs: 2000,
   pendingTransactionsRetryOptions: DEFAULT_RETRY_OPTIONS,
   rpcUrls: {
-    [RPCType.Public]: { http: [getQuicknodeEndpointUrl(UniverseChainId.Optimism)] },
+    [RPCType.Public]: {
+      http: [getQuicknodeEndpointUrl(UniverseChainId.Optimism)],
+    },
     [RPCType.PublicAlt]: { http: ['https://mainnet.optimism.io'] },
     [RPCType.Default]: { http: ['https://mainnet.optimism.io/'] },
     [RPCType.Fallback]: { http: ['https://rpc.ankr.com/optimism'] },
-    [RPCType.Interface]: { http: [`https://opt-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`, `https://optimism-mainnet.infura.io/v3/${config.infuraKey}`] },
+    [RPCType.Interface]: {
+      http: [
+        `https://opt-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`,
+        `https://optimism-mainnet.infura.io/v3/${config.infuraKey}`,
+      ],
+    },
   },
   tokens,
   statusPage: 'https://optimism.io/status',

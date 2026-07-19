@@ -44,7 +44,11 @@ const slice = createSlice({
       state,
       {
         payload: { chainId, filters, blockNumber },
-      }: PayloadAction<{ chainId: number; filters: Filter[]; blockNumber: number }>,
+      }: PayloadAction<{
+        chainId: number
+        filters: Filter[]
+        blockNumber: number
+      }>,
     ) {
       if (!state[chainId]) {
         return
@@ -61,7 +65,11 @@ const slice = createSlice({
       state,
       {
         payload: { chainId, filter, results },
-      }: PayloadAction<{ chainId: number; filter: Filter; results: { blockNumber: number; logs: Log[] } }>,
+      }: PayloadAction<{
+        chainId: number
+        filter: Filter
+        results: { blockNumber: number; logs: Log[] }
+      }>,
     ) {
       if (!state[chainId]) {
         return
@@ -88,7 +96,10 @@ const slice = createSlice({
         }
         if (logsEqual) {
           // Same logs — just bump the blockNumber, keep the same logs reference
-          fetchState.results = { logs: existingLogs, blockNumber: results.blockNumber }
+          fetchState.results = {
+            logs: existingLogs,
+            blockNumber: results.blockNumber,
+          }
           return
         }
       }

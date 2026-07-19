@@ -1,16 +1,15 @@
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useAtom } from 'jotai'
-//import CreatePool from '~/pages/CreatePool'
-import Earn from '~/pages/Earn'
 //import Stake from '~/pages/Stake'
 import { lazy, ReactNode, Suspense, useMemo } from 'react'
 import { matchPath, Navigate, useLocation } from 'react-router'
-import { shouldDisableExploreRoutesAtom } from '~/state/application/atoms'
 import { WRAPPED_PATH } from 'uniswap/src/components/banners/shared/utils'
 import { CHROME_EXTENSION_UNINSTALL_URL_PATH } from 'uniswap/src/constants/urls'
 import { WRAPPED_SOL_ADDRESS_SOLANA } from 'uniswap/src/features/chains/svm/defaults'
 import { EXTENSION_PASSKEY_AUTH_PATH } from 'uniswap/src/features/passkey/constants'
 import i18n from 'uniswap/src/i18n'
+//import CreatePool from '~/pages/CreatePool'
+import Earn from '~/pages/Earn'
 import { getExploreDescription, getExploreTitle } from '~/pages/getExploreTitle'
 import { getPortfolioDescription, getPortfolioTitle } from '~/pages/getPortfolioTitle'
 import {
@@ -21,6 +20,7 @@ import {
 // High-traffic pages (index and /swap) should not be lazy-loaded.
 import Landing from '~/pages/Landing'
 import Swap from '~/pages/Swap'
+import { shouldDisableExploreRoutesAtom } from '~/state/application/atoms'
 import { isBrowserRouterEnabled } from '~/utils/env'
 
 const CreatePosition = lazy(() => import('~/pages/CreatePosition/CreatePosition'))
@@ -31,16 +31,24 @@ const MigrateV3 = lazy(() => import('~/pages/Migrate'))
 const NotFound = lazy(() => import('~/pages/NotFound'))
 const Pool = lazy(() => import('~/pages/Positions'))
 const LegacyPoolRedirects = lazy(() =>
-  import('~/pages/LegacyPool/redirects').then((module) => ({ default: module.LegacyPoolRedirects })),
+  import('~/pages/LegacyPool/redirects').then((module) => ({
+    default: module.LegacyPoolRedirects,
+  })),
 )
 const PoolFinderRedirects = lazy(() =>
-  import('~/pages/LegacyPool/redirects').then((module) => ({ default: module.PoolFinderRedirects })),
+  import('~/pages/LegacyPool/redirects').then((module) => ({
+    default: module.PoolFinderRedirects,
+  })),
 )
 const LegacyPositionPageRedirects = lazy(() =>
-  import('~/pages/LegacyPool/redirects').then((module) => ({ default: module.LegacyPositionPageRedirects })),
+  import('~/pages/LegacyPool/redirects').then((module) => ({
+    default: module.LegacyPositionPageRedirects,
+  })),
 )
 const RemoveLiquidityV2WithTokenRedirects = lazy(() =>
-  import('~/pages/LegacyPool/redirects').then((module) => ({ default: module.RemoveLiquidityV2WithTokenRedirects })),
+  import('~/pages/LegacyPool/redirects').then((module) => ({
+    default: module.RemoveLiquidityV2WithTokenRedirects,
+  })),
 )
 const PositionPage = lazy(() => import('~/pages/Positions/PositionPage'))
 const V2PositionPage = lazy(() => import('~/pages/Positions/V2PositionPage'))
@@ -88,7 +96,14 @@ export function useRouterConfig(): RouterConfig {
       isToucanLaunchAuctionEnabled,
       shouldDisableExploreRoutes: Boolean(shouldDisableExploreRoutes),
     }),
-    [browserRouterEnabled, hash, isEmbeddedWalletEnabled, isWrappedEnabled, isToucanLaunchAuctionEnabled, shouldDisableExploreRoutes],
+    [
+      browserRouterEnabled,
+      hash,
+      isEmbeddedWalletEnabled,
+      isWrappedEnabled,
+      isToucanLaunchAuctionEnabled,
+      shouldDisableExploreRoutes,
+    ],
   )
 }
 
@@ -423,12 +438,14 @@ export const routes: RouteDefinition[] = [
       'tokens',
       'staking',
       'defi',
+      'perps',
       'nfts',
       'activity',
       ':walletAddress',
       ':walletAddress/tokens',
       ':walletAddress/staking',
       ':walletAddress/defi',
+      ':walletAddress/perps',
       ':walletAddress/nfts',
       ':walletAddress/activity',
     ],
@@ -496,7 +513,10 @@ export const routes: RouteDefinition[] = [
     getElement: () => <PoolPositionPage />,
     getTitle: () => i18n.t(`Buy smart pools on Rigoblock`),
   }),
-  createRouteDefinition({ path: '*', getElement: () => <Navigate to="/not-found" replace /> }),
+  createRouteDefinition({
+    path: '*',
+    getElement: () => <Navigate to="/not-found" replace />,
+  }),
   createRouteDefinition({ path: '/not-found', getElement: () => <NotFound /> }),
 ]
 

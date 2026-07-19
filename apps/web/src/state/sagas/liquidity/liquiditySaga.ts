@@ -230,7 +230,11 @@ function* modifyLiquidity(params: LiquidityParams & { steps: TransactionStep[] }
       switch (step.type) {
         case TransactionStepType.TokenRevocationTransaction:
         case TransactionStepType.TokenApprovalTransaction: {
-          yield* call(handleApprovalTransactionStep, { address: account.address, step, setCurrentStep })
+          yield* call(handleApprovalTransactionStep, {
+            address: account.address,
+            step,
+            setCurrentStep,
+          })
           break
         }
         case TransactionStepType.Permit2Signature: {
@@ -238,7 +242,11 @@ function* modifyLiquidity(params: LiquidityParams & { steps: TransactionStep[] }
           break
         }
         case TransactionStepType.Permit2Transaction: {
-          yield* call(handlePermitTransactionStep, { address: account.address, step, setCurrentStep })
+          yield* call(handlePermitTransactionStep, {
+            address: account.address,
+            step,
+            setCurrentStep,
+          })
           break
         }
         case TransactionStepType.IncreasePositionTransaction:
@@ -271,7 +279,11 @@ function* modifyLiquidity(params: LiquidityParams & { steps: TransactionStep[] }
         }
       }
     } catch (e) {
-      const displayableError = getDisplayableError({ error: e, step, flow: 'liquidity' })
+      const displayableError = getDisplayableError({
+        error: e,
+        step,
+        flow: 'liquidity',
+      })
 
       if (displayableError) {
         logger.error(displayableError, {

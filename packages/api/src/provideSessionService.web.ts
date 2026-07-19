@@ -59,7 +59,10 @@ function getWebAppSessionService(ctx: {
     }),
   })
 
-  const sessionRepository = createSessionRepository({ client: sessionClient, getLogger: ctx.getLogger })
+  const sessionRepository = createSessionRepository({
+    client: sessionClient,
+    getLogger: ctx.getLogger,
+  })
 
   return createSessionService({
     sessionStorage: provideSessionStorage(),
@@ -81,7 +84,10 @@ function getExtensionSessionService(ctx: {
     }),
   })
 
-  const sessionRepository = createSessionRepository({ client: sessionClient, getLogger: ctx.getLogger })
+  const sessionRepository = createSessionRepository({
+    client: sessionClient,
+    getLogger: ctx.getLogger,
+  })
 
   return createSessionService({
     sessionStorage: provideSessionStorage(),

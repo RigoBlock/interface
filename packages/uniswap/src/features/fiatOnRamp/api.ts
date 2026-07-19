@@ -31,7 +31,11 @@ export const fiatOnRampAggregatorApi = createApi({
   }),
   endpoints: (builder) => ({
     fiatOnRampAggregatorCountryList: builder.query<FORSupportedCountriesResponse, FORSupportedCountriesRequest>({
-      query: (request) => ({ url: '/SupportedCountries', body: request, method: 'POST' }),
+      query: (request) => ({
+        url: '/SupportedCountries',
+        body: request,
+        method: 'POST',
+      }),
     }),
     fiatOnRampAggregatorGetCountry: builder.query<FORGetCountryResponse, void>({
       query: () => ({ url: '/GetCountry', body: {}, method: 'POST' }),
@@ -58,7 +62,11 @@ export const fiatOnRampAggregatorApi = createApi({
         }) as FORQuoteResponse,
     }),
     fiatOnRampAggregatorTransferServiceProviders: builder.query<FORServiceProvidersResponse, void>({
-      query: () => ({ url: '/TransferServiceProviders', body: {}, method: 'POST' }),
+      query: () => ({
+        url: '/TransferServiceProviders',
+        body: {},
+        method: 'POST',
+      }),
       keepUnusedDataFor: 60 * 60, // 1 hour
     }),
     fiatOnRampAggregatorSupportedTokens: builder.query<FORSupportedTokensResponse, FORSupportedTokensRequest>({
@@ -100,7 +108,11 @@ export const fiatOnRampAggregatorApi = createApi({
       // TODO: make sessionId required in FORTransactionRequest after backend is updated
       Omit<FORTransactionRequest, 'sessionId'> & { sessionId: string }
     >({
-      query: (request) => ({ url: '/Transaction', body: request, method: 'POST' }),
+      query: (request) => ({
+        url: '/Transaction',
+        body: request,
+        method: 'POST',
+      }),
     }),
     fiatOnRampAggregatorOffRampWidget: builder.query<FORWidgetUrlResponse, OffRampWidgetUrlRequest>({
       query: (request) => ({

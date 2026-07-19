@@ -6,15 +6,8 @@ import { Contract } from '@ethersproject/contracts'
 import type { TransactionResponse } from '@ethersproject/providers'
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { useWeb3React } from '@web3-react/core'
-import { GOVERNANCE_PROXY_ADDRESSES, RB_REGISTRY_ADDRESSES, STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
-import { useAccount } from '~/hooks/useAccount'
-import { useContract } from '~/hooks/useContract'
-import { useEthersWeb3Provider } from '~/hooks/useEthersProvider'
 import JSBI from 'jsbi'
 import { useCallback, useMemo } from 'react'
-import { VoteOption } from '~/state/governance/types'
-import { useLogs } from '~/state/logs/hooks'
-import { useTransactionAdder } from '~/state/transactions/hooks'
 import GOVERNANCE_RB_ABI from 'uniswap/src/abis/governance.json'
 import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
 import RB_REGISTRY_ABI from 'uniswap/src/abis/rb-registry.json'
@@ -24,10 +17,17 @@ import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { calculateGasMargin } from '~/utils/calculateGasMargin'
-import { assume0xAddress } from '~/utils/wagmi'
 import type { Abi } from 'viem'
 import { useReadContract, useReadContracts } from 'wagmi'
+import { GOVERNANCE_PROXY_ADDRESSES, RB_REGISTRY_ADDRESSES, STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
+import { useAccount } from '~/hooks/useAccount'
+import { useContract } from '~/hooks/useContract'
+import { useEthersWeb3Provider } from '~/hooks/useEthersProvider'
+import { VoteOption } from '~/state/governance/types'
+import { useLogs } from '~/state/logs/hooks'
+import { useTransactionAdder } from '~/state/transactions/hooks'
+import { calculateGasMargin } from '~/utils/calculateGasMargin'
+import { assume0xAddress } from '~/utils/wagmi'
 
 function useGovernanceProxyContract(): Contract | null {
   const { chainId } = useAccount()
@@ -659,7 +659,10 @@ export function useProposalData(
 }
 
 // gets the users current votes
-export function useUserVotes(): { loading: boolean; votes?: CurrencyAmount<Token> } {
+export function useUserVotes(): {
+  loading: boolean
+  votes?: CurrencyAmount<Token>
+} {
   const account = useAccount()
   const governance = useGovernanceProxyContract()
 
@@ -675,7 +678,10 @@ export function useUserVotes(): { loading: boolean; votes?: CurrencyAmount<Token
 
   return useMemo(() => {
     const grg = account.chainId ? GRG[account.chainId] : undefined
-    return { loading, votes: grg && data ? CurrencyAmount.fromRawAmount(grg, JSBI.BigInt(data.toString())) : undefined }
+    return {
+      loading,
+      votes: grg && data ? CurrencyAmount.fromRawAmount(grg, JSBI.BigInt(data.toString())) : undefined,
+    }
   }, [account.chainId, loading, data])
 }
 
@@ -742,8 +748,14 @@ export function useDelegateCallback(): (stakeData: StakeData | undefined) => und
       //if (!stakeData.amount) return
       const createPoolCall = stakingContract?.interface.encodeFunctionData('createStakingPool', [stakeData.pool])
       const stakeCall = stakingContract?.interface.encodeFunctionData('stake', [stakeData.amount])
-      const fromInfo: StakeInfo = { status: StakeStatus.UNDELEGATED, poolId: stakeData.poolId }
-      const toInfo: StakeInfo = { status: StakeStatus.DELEGATED, poolId: stakeData.poolId }
+      const fromInfo: StakeInfo = {
+        status: StakeStatus.UNDELEGATED,
+        poolId: stakeData.poolId,
+      }
+      const toInfo: StakeInfo = {
+        status: StakeStatus.DELEGATED,
+        poolId: stakeData.poolId,
+      }
       const moveStakeCall = stakingContract?.interface.encodeFunctionData('moveStake', [
         fromInfo,
         toInfo,
@@ -763,7 +775,10 @@ export function useDelegateCallback(): (stakeData: StakeData | undefined) => und
       }
       return stakingProxy.estimateGas.batchExecute(...args, {}).then((estimatedGasLimit) => {
         return stakingProxy
-          .batchExecute(...args, { value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
+          .batchExecute(...args, {
+            value: null,
+            gasLimit: calculateGasMargin(estimatedGasLimit),
+          })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
               type: TransactionType.Delegate,
@@ -801,7 +816,10 @@ export function useDelegatePoolCallback(): (stakeData: StakeData | undefined) =>
       }
       return poolInstance.estimateGas.stake(...args, {}).then((estimatedGasLimit) => {
         return poolInstance
-          .stake(...args, { value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
+          .stake(...args, {
+            value: null,
+            gasLimit: calculateGasMargin(estimatedGasLimit),
+          })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
               type: TransactionType.Delegate,
@@ -838,15 +856,27 @@ export function useMoveStakeCallback(): (stakeData: StakeData | undefined) => un
       const createPoolCall = stakingContract?.interface.encodeFunctionData('createStakingPool', [stakeData.pool])
       // until a staking implementation upgrade, moving delegated stake requires batching from pool deactivation
       //  and to pool activation
-      const deactivateFromInfo: StakeInfo = { status: StakeStatus.DELEGATED, poolId: stakeData.fromPoolId }
-      const deactivateToInfo: StakeInfo = { status: StakeStatus.UNDELEGATED, poolId: stakeData.fromPoolId }
+      const deactivateFromInfo: StakeInfo = {
+        status: StakeStatus.DELEGATED,
+        poolId: stakeData.fromPoolId,
+      }
+      const deactivateToInfo: StakeInfo = {
+        status: StakeStatus.UNDELEGATED,
+        poolId: stakeData.fromPoolId,
+      }
       const deactivateCall = stakingContract?.interface.encodeFunctionData('moveStake', [
         deactivateFromInfo,
         deactivateToInfo,
         stakeData.amount,
       ])
-      const activateFromInfo: StakeInfo = { status: StakeStatus.UNDELEGATED, poolId: stakeData.poolId }
-      const activateToInfo: StakeInfo = { status: StakeStatus.DELEGATED, poolId: stakeData.poolId }
+      const activateFromInfo: StakeInfo = {
+        status: StakeStatus.UNDELEGATED,
+        poolId: stakeData.poolId,
+      }
+      const activateToInfo: StakeInfo = {
+        status: StakeStatus.DELEGATED,
+        poolId: stakeData.poolId,
+      }
       const activateCall = stakingContract?.interface.encodeFunctionData('moveStake', [
         activateFromInfo,
         activateToInfo,
@@ -870,7 +900,10 @@ export function useMoveStakeCallback(): (stakeData: StakeData | undefined) => un
       }
       return stakingProxy.estimateGas.batchExecute(...args, {}).then((estimatedGasLimit) => {
         return stakingProxy
-          .batchExecute(...args, { value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
+          .batchExecute(...args, {
+            value: null,
+            gasLimit: calculateGasMargin(estimatedGasLimit),
+          })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
               type: TransactionType.Delegate,
@@ -896,8 +929,14 @@ export function useDeactivateStakeCallback(): (stakeData: StakeData | undefined)
       if (!provider || !account.chainId || !account.address || !stakeData || !isAddress(stakeData.pool ?? '')) {
         return undefined
       }
-      const deactivateFromInfo: StakeInfo = { status: StakeStatus.DELEGATED, poolId: stakeData.poolId }
-      const deactivateToInfo: StakeInfo = { status: StakeStatus.UNDELEGATED, poolId: stakeData.poolId }
+      const deactivateFromInfo: StakeInfo = {
+        status: StakeStatus.DELEGATED,
+        poolId: stakeData.poolId,
+      }
+      const deactivateToInfo: StakeInfo = {
+        status: StakeStatus.UNDELEGATED,
+        poolId: stakeData.poolId,
+      }
       //if (!stakeData.amount) return
       // in unstake, we use the same StakeData struct but use stakeData.poolId instead of stakeData.fromPoolId
       const deactivateCall = stakingContract?.interface.encodeFunctionData('moveStake', [
@@ -922,7 +961,10 @@ export function useDeactivateStakeCallback(): (stakeData: StakeData | undefined)
       if (stakeData.isPoolMoving && poolInstance) {
         return poolInstance.estimateGas.undelegateStake(...args, {}).then((estimatedGasLimit) => {
           return poolInstance
-            .undelegateStake(...args, { value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
+            .undelegateStake(...args, {
+              value: null,
+              gasLimit: calculateGasMargin(estimatedGasLimit),
+            })
             .then((response: TransactionResponse) => {
               // TODO: add more transaction types in store
               addTransaction(response, {
@@ -935,7 +977,10 @@ export function useDeactivateStakeCallback(): (stakeData: StakeData | undefined)
       }
       return stakingProxy.estimateGas.batchExecute(...args, {}).then((estimatedGasLimit) => {
         return stakingProxy
-          .batchExecute(...args, { value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
+          .batchExecute(...args, {
+            value: null,
+            gasLimit: calculateGasMargin(estimatedGasLimit),
+          })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
               type: TransactionType.Delegate,
@@ -965,7 +1010,10 @@ export function useVoteCallback(): (
       const args = [proposalId, voteOption === VoteOption.For ? 0 : voteOption === VoteOption.Against ? 1 : 2]
       return latestGovernanceContract.estimateGas.castVote(...args, {}).then((estimatedGasLimit) => {
         return latestGovernanceContract
-          .castVote(...args, { value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
+          .castVote(...args, {
+            value: null,
+            gasLimit: calculateGasMargin(estimatedGasLimit),
+          })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
               type: TransactionType.Vote,
@@ -992,7 +1040,10 @@ export function useQueueCallback(): (proposalId: string | undefined) => undefine
       const args = [proposalId]
       return latestGovernanceContract.estimateGas.queue(...args, {}).then((estimatedGasLimit) => {
         return latestGovernanceContract
-          .queue(...args, { value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
+          .queue(...args, {
+            value: null,
+            gasLimit: calculateGasMargin(estimatedGasLimit),
+          })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
               type: TransactionType.Queue,
@@ -1019,7 +1070,10 @@ export function useExecuteCallback(): (proposalId: string | undefined) => undefi
       const args = [proposalId]
       return latestGovernanceContract.estimateGas.execute(...args, {}).then((estimatedGasLimit) => {
         return latestGovernanceContract
-          .execute(...args, { value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
+          .execute(...args, {
+            value: null,
+            gasLimit: calculateGasMargin(estimatedGasLimit),
+          })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
               type: TransactionType.Execute,
@@ -1056,7 +1110,9 @@ export function useCreateProposalCallback(): (
 
       return latestGovernanceContract.estimateGas.propose(...args).then((estimatedGasLimit) => {
         return latestGovernanceContract
-          .propose(...args, { gasLimit: calculateGasMargin(estimatedGasLimit) })
+          .propose(...args, {
+            gasLimit: calculateGasMargin(estimatedGasLimit),
+          })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
               type: TransactionType.SubmitProposal,

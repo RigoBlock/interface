@@ -92,7 +92,12 @@ export function useSwapTxAndGasInfoService(): SwapTxAndGasInfoService {
     })
   }, [swapConfig, presignPermit])
 
-  const decorateWithEVMLogging = useEvent(createDecorateSwapTxInfoServiceWithEVMLogging({ trace, transactionSettings }))
+  const decorateWithEVMLogging = useEvent(
+    createDecorateSwapTxInfoServiceWithEVMLogging({
+      trace,
+      transactionSettings,
+    }),
+  )
 
   const classicSwapTxInfoService = useMemo(() => {
     const classicService = createClassicSwapTxAndGasInfoService({
@@ -123,7 +128,11 @@ export function useSwapTxAndGasInfoService(): SwapTxAndGasInfoService {
   }, [swapConfig.getSwapDelegationInfo])
 
   const wrapTxInfoService = useMemo(() => {
-    const wrapService = createWrapTxAndGasInfoService({ ...swapConfig, transactionSettings, instructionService })
+    const wrapService = createWrapTxAndGasInfoService({
+      ...swapConfig,
+      transactionSettings,
+      instructionService,
+    })
     return decorateWithEVMLogging(wrapService)
   }, [swapConfig, transactionSettings, instructionService, decorateWithEVMLogging])
 
@@ -238,7 +247,13 @@ function createGetQueryOptions(ctx: {
 
     return queryOptions({
       queryKey: [ReactQueryCacheKey.SwapTxAndGasInfo, parseQueryKeyParams(params)],
-      queryFn: async () => (trade ? ctx.swapTxAndGasInfoService.getSwapTxAndGasInfo({ ...params, trade }) : null),
+      queryFn: async () =>
+        trade
+          ? ctx.swapTxAndGasInfoService.getSwapTxAndGasInfo({
+              ...params,
+              trade,
+            })
+          : null,
       refetchInterval: ctx.refetchInterval,
       enabled: !!trade,
     })
@@ -320,7 +335,11 @@ export function useSwapTxAndGasInfo(): SwapTxAndGasInfo {
 }
 
 export async function ensureFreshSwapTxData(
-  params: { trade: Trade; approvalTxInfo: ApprovalTxInfo; derivedSwapInfo: DerivedSwapInfo },
+  params: {
+    trade: Trade
+    approvalTxInfo: ApprovalTxInfo
+    derivedSwapInfo: DerivedSwapInfo
+  },
   swapTxAndGasInfoService: SwapTxAndGasInfoService,
 ): Promise<SwapTxAndGasInfo> {
   const getQueryOptions = createGetQueryOptions({ swapTxAndGasInfoService })

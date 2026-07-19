@@ -34,6 +34,8 @@ function getPageNameFromTab(tab: PortfolioTab | undefined): InterfacePageName {
       return InterfacePageName.PortfolioTokensPage
     case PortfolioTab.Defi:
       return InterfacePageName.PortfolioDefiPage
+    case PortfolioTab.Perps:
+      return InterfacePageName.PortfolioPerpsPage
     case PortfolioTab.Nfts:
       return InterfacePageName.PortfolioNftsPage
     case PortfolioTab.Activity:
@@ -118,7 +120,13 @@ export function PortfolioHeader({ scrollY }: PortfolioHeaderProps) {
       chain: selectedChain,
     })
 
-    navigate(buildPortfolioUrl({ tab, chainId, externalAddress: externalAddress?.address }))
+    navigate(
+      buildPortfolioUrl({
+        tab,
+        chainId,
+        externalAddress: externalAddress?.address,
+      }),
+    )
   })
 
   return (

@@ -18,5 +18,9 @@
     "tslib": "2.3.0"
   },
   "generators": "./generators.json",
-  "files": ["dist", "!**/*.tsbuildinfo", "generators.json"]
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo",
+    "generators.json"
+  ]
 }

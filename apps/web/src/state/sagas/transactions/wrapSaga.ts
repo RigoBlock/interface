@@ -2,13 +2,6 @@ import { BigNumber } from '@ethersproject/bignumber'
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import { useCallback } from 'react'
 import { useDispatch } from 'react-redux'
-import {
-  encodeSmartPoolUnwrapWETH9,
-  encodeSmartPoolWrapEth,
-  extractWETHWithdrawAmount,
-  isWETHDepositCalldata,
-  isWETHWithdrawCalldata,
-} from '~/state/sagas/transactions/smartPoolWrapUtils'
 import { call } from 'typed-redux-saga'
 import { isTestnetChain } from 'uniswap/src/features/chains/utils'
 import { HandleOnChainStepParams, TransactionStepType } from 'uniswap/src/features/transactions/steps/types'
@@ -23,6 +16,13 @@ import { PopupType } from '~/components/Popups/types'
 import { INTERNAL_JSON_RPC_ERROR_CODE } from '~/constants/misc'
 import { useAccount } from '~/hooks/useAccount'
 import useSelectChain from '~/hooks/useSelectChain'
+import {
+  encodeSmartPoolUnwrapWETH9,
+  encodeSmartPoolWrapEth,
+  extractWETHWithdrawAmount,
+  isWETHDepositCalldata,
+  isWETHWithdrawCalldata,
+} from '~/state/sagas/transactions/smartPoolWrapUtils'
 import { handleOnChainStep } from '~/state/sagas/transactions/utils'
 import { didUserReject } from '~/utils/swapErrorToUserReadableMessage'
 
@@ -33,7 +33,10 @@ function* handleWrapStep(params: HandleWrapStepParams) {
   return yield* call(handleOnChainStep, { ...params, info })
 }
 
-type WrapParams = WrapCallbackParams & { selectChain: (chainId: number) => Promise<boolean>; startChainId?: number }
+type WrapParams = WrapCallbackParams & {
+  selectChain: (chainId: number) => Promise<boolean>
+  startChainId?: number
+}
 
 function* wrap(params: WrapParams) {
   try {
@@ -48,7 +51,11 @@ function* wrap(params: WrapParams) {
       }
     }
 
-    const step = { type: TransactionStepType.WrapTransaction, txRequest, amount: inputCurrencyAmount } as const
+    const step = {
+      type: TransactionStepType.WrapTransaction,
+      txRequest,
+      amount: inputCurrencyAmount,
+    } as const
     smartPoolAddress && (step.txRequest.to = smartPoolAddress)
     step.txRequest.from = address
     step.txRequest.gasLimit = BigNumber.from(step.txRequest.gasLimit || '200000').add(200000) // Add buffer to gas limit

@@ -229,29 +229,42 @@ function V2PositionPage() {
                   </Text>
                   <Flex row gap="$gap8">
                     <Text variant="body2">
-                      {formatCurrencyAmount({ value: liquidityAmount, type: NumberType.TokenNonTx })}
+                      {formatCurrencyAmount({
+                        value: liquidityAmount,
+                        type: NumberType.TokenNonTx,
+                      })}
                     </Text>
                     <DoubleCurrencyLogo currencies={[currency0Amount.currency, currency1Amount.currency]} size={24} />
                   </Flex>
                 </Flex>
                 <Flex row width="100%" justifyContent="space-between">
                   <Text variant="subheading2" color="$neutral2">
-                    {t('position.depositedCurrency', { currencySymbol: currency0Amount.currency.symbol })}
+                    {t('position.depositedCurrency', {
+                      currencySymbol: currency0Amount.currency.symbol,
+                    })}
                   </Text>
                   <Flex row gap="$gap8">
                     <Text variant="body2">
-                      {formatCurrencyAmount({ value: currency0Amount, type: NumberType.TokenNonTx })}
+                      {formatCurrencyAmount({
+                        value: currency0Amount,
+                        type: NumberType.TokenNonTx,
+                      })}
                     </Text>
                     <DoubleCurrencyLogo currencies={[currency0Amount.currency]} size={24} />
                   </Flex>
                 </Flex>
                 <Flex row width="100%" justifyContent="space-between">
                   <Text variant="subheading2" color="$neutral2">
-                    {t('position.depositedCurrency', { currencySymbol: currency1Amount.currency.symbol })}
+                    {t('position.depositedCurrency', {
+                      currencySymbol: currency1Amount.currency.symbol,
+                    })}
                   </Text>
                   <Flex row gap="$gap8">
                     <Text variant="body2">
-                      {formatCurrencyAmount({ value: currency1Amount, type: NumberType.TokenNonTx })}
+                      {formatCurrencyAmount({
+                        value: currency1Amount,
+                        type: NumberType.TokenNonTx,
+                      })}
                     </Text>
                     <DoubleCurrencyLogo currencies={[currency1Amount.currency]} size={24} />
                   </Flex>

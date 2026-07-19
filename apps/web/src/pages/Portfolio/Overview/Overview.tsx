@@ -1,10 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { ChartPeriod } from '@uniswap/client-data-api/dist/data/v1/api_pb'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-import { buildPortfolioUrl } from '~/pages/Portfolio/utils/portfolioUrls'
-import { OverviewStakingSection } from '~/pages/Portfolio/Overview/OverviewStakingSection'
-import { PortfolioTab } from '~/pages/Portfolio/types'
-import { usePortfolioStaking } from '~/pages/Portfolio/hooks/usePortfolioStaking'
 import { memo, useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Flex, Separator, styled, useMedia } from 'ui/src'
@@ -20,14 +16,19 @@ import { ElementName, InterfacePageName, SectionName } from 'uniswap/src/feature
 import { Trace } from 'uniswap/src/features/telemetry/Trace'
 import { EmptyWalletCards } from '~/components/emptyWallet/EmptyWalletCards'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
+import { useGmxPositions } from '~/pages/Portfolio/hooks/useGmxPositions'
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
+import { usePortfolioStaking } from '~/pages/Portfolio/hooks/usePortfolioStaking'
 import { OverviewActionTiles } from '~/pages/Portfolio/Overview/ActionTiles'
 import { OVERVIEW_RIGHT_COLUMN_WIDTH } from '~/pages/Portfolio/Overview/constants'
 import { useIsPortfolioZero } from '~/pages/Portfolio/Overview/hooks/useIsPortfolioZero'
+import { OverviewStakingSection } from '~/pages/Portfolio/Overview/OverviewStakingSection'
 import { PortfolioOverviewTables } from '~/pages/Portfolio/Overview/OverviewTables'
 import { PortfolioChart } from '~/pages/Portfolio/Overview/PortfolioChart'
 import { PortfolioPerformance } from '~/pages/Portfolio/Overview/PortfolioPerformance'
 import { OverviewStatsTiles } from '~/pages/Portfolio/Overview/StatsTiles'
+import { PortfolioTab } from '~/pages/Portfolio/types'
+import { buildPortfolioUrl } from '~/pages/Portfolio/utils/portfolioUrls'
 import { filterDefinedWalletAddresses } from '~/utils/filterDefinedWalletAddresses'
 
 const ActionsAndStatsContainer = styled(Flex, {
@@ -55,7 +56,13 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
 
   // Use portfolioAddresses.evmAddress which already handles URL params, active smart pool, and user address priority
   // Pass chainId to filter staking data by selected chain
-  const { totalStakeUSD } = usePortfolioStaking({ address: portfolioAddresses.evmAddress, chainId })
+  const { totalStakeUSD } = usePortfolioStaking({
+    address: portfolioAddresses.evmAddress,
+    chainId,
+  })
+
+  // GMX perp positions (Arbitrum): position equity (collateral + unrealized PnL) counts towards the total value
+  const { totalNetValueUsd: gmxTotalNetValueUsd } = useGmxPositions(portfolioAddresses.evmAddress)
 
   const { chains: allChainIds } = useEnabledChains()
 
@@ -67,7 +74,13 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   const filterChainIds = useMemo(() => (chainId ? [chainId] : allChainIds), [chainId, allChainIds])
 
   const handleNavigateToStaking = () => {
-    navigate(buildPortfolioUrl({ tab: PortfolioTab.Staking, chainId, externalAddress: externalAddress?.address }))
+    navigate(
+      buildPortfolioUrl({
+        tab: PortfolioTab.Staking,
+        chainId,
+        externalAddress: externalAddress?.address,
+      }),
+    )
   }
 
   const { data: portfolioData } = usePortfolioTotalValue({
@@ -87,9 +100,10 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
     // Ensure both values are valid numbers to prevent BigNumber errors
     const safeBaseValue = isNaN(baseValue) ? 0 : baseValue
     const safeStakingValue = isNaN(stakingValueStable) ? 0 : stakingValueStable
+    const safeGmxValue = isNaN(gmxTotalNetValueUsd) ? 0 : gmxTotalNetValueUsd
 
-    return safeBaseValue + safeStakingValue
-  }, [portfolioData?.balanceUSD, stakingValueStable])
+    return safeBaseValue + safeStakingValue + safeGmxValue
+  }, [portfolioData?.balanceUSD, stakingValueStable, gmxTotalNetValueUsd])
 
   // Fetch portfolio historical value chart data
   const {

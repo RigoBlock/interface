@@ -41,7 +41,10 @@ export function useLiquidityPositionDropdownOptions({
   const navigate = useNavigate()
   const account = useAccount()
   const selectChain = useSelectChain()
-  const reportPositionHandler = useReportPositionHandler({ position: liquidityPosition, isVisible })
+  const reportPositionHandler = useReportPositionHandler({
+    position: liquidityPosition,
+    isVisible,
+  })
   const [shouldDisableExploreRoutes] = useAtom(shouldDisableExploreRoutesAtom)
 
   return useMemo(() => {
@@ -76,7 +79,12 @@ export function useLiquidityPositionDropdownOptions({
     if (!isV2Position || isOpenLiquidityPosition) {
       options.push({
         onPress: () => {
-          dispatch(setOpenModal({ name: ModalName.AddLiquidity, initialState: liquidityPosition }))
+          dispatch(
+            setOpenModal({
+              name: ModalName.AddLiquidity,
+              initialState: liquidityPosition,
+            }),
+          )
         },
         label: t('common.addLiquidity'),
         Icon: Plus,
@@ -86,7 +94,12 @@ export function useLiquidityPositionDropdownOptions({
     if (isOpenLiquidityPosition) {
       options.push({
         onPress: () => {
-          dispatch(setOpenModal({ name: ModalName.RemoveLiquidity, initialState: liquidityPosition }))
+          dispatch(
+            setOpenModal({
+              name: ModalName.RemoveLiquidity,
+              initialState: liquidityPosition,
+            }),
+          )
         },
         label: t('pool.removeLiquidity'),
         Icon: Minus,

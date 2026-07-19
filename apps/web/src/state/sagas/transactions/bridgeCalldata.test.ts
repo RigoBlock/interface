@@ -62,7 +62,20 @@ function buildTestDepositV3Calldata(overrides?: {
   const params = { ...defaults, ...overrides }
 
   const encoded = abiCoder.encode(
-    ['address', 'address', 'address', 'address', 'uint256', 'uint256', 'uint256', 'address', 'uint32', 'uint32', 'uint32', 'bytes'],
+    [
+      'address',
+      'address',
+      'address',
+      'address',
+      'uint256',
+      'uint256',
+      'uint256',
+      'address',
+      'uint32',
+      'uint32',
+      'uint32',
+      'bytes',
+    ],
     [
       params.depositor,
       params.recipient,
@@ -190,7 +203,9 @@ describe('findExpandedMessageInTrace', () => {
 
   it('finds expanded message in a nested trace tree', () => {
     const expandedMessage = '0xdeadbeef1234'
-    const depositCalldata = buildTestDepositV3Calldata({ message: expandedMessage })
+    const depositCalldata = buildTestDepositV3Calldata({
+      message: expandedMessage,
+    })
 
     // Simulate: Pool.depositV3 → ... → SpokePool.depositV3 (nested 2 levels)
     const trace = {
@@ -218,9 +233,7 @@ describe('findExpandedMessageInTrace', () => {
     const trace = {
       type: 'CALL',
       input: '0xabcdef00',
-      calls: [
-        { type: 'CALL', input: '0x12345678' },
-      ],
+      calls: [{ type: 'CALL', input: '0x12345678' }],
     }
     expect(findExpandedMessageInTrace(trace)).toBeUndefined()
   })
@@ -244,7 +257,9 @@ describe('findExpandedMessageInTrace', () => {
 describe('extractExpandedMessageFromTrace', () => {
   it('calls debug_traceCall with correct parameters', async () => {
     const expandedMessage = '0xdeadbeef1234'
-    const depositCalldata = buildTestDepositV3Calldata({ message: expandedMessage })
+    const depositCalldata = buildTestDepositV3Calldata({
+      message: expandedMessage,
+    })
 
     const mockProvider = {
       send: vi.fn().mockResolvedValue({
@@ -262,7 +277,12 @@ describe('extractExpandedMessageFromTrace', () => {
     })
 
     expect(mockProvider.send).toHaveBeenCalledWith('debug_traceCall', [
-      { from: '0xUserAddress', to: '0xPoolAddress', data: '0xSomeCalldata', value: '0x0' },
+      {
+        from: '0xUserAddress',
+        to: '0xPoolAddress',
+        data: '0xSomeCalldata',
+        value: '0x0',
+      },
       'latest',
       { tracer: 'callTracer', tracerConfig: { onlyTopCall: false } },
     ])
@@ -369,7 +389,10 @@ describe('queryAcrossRelayerGasFee', () => {
     }
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(mockResponse as unknown as Response)
 
-    const result = await queryAcrossRelayerGasFee({ originChainId: 42161, calldata })
+    const result = await queryAcrossRelayerGasFee({
+      originChainId: 42161,
+      calldata,
+    })
 
     expect(result).toEqual({
       relayerGasFeeTotal: '1234',
@@ -389,7 +412,10 @@ describe('queryAcrossRelayerGasFee', () => {
     }
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(mockResponse as unknown as Response)
 
-    const result = await queryAcrossRelayerGasFee({ originChainId: 42161, calldata })
+    const result = await queryAcrossRelayerGasFee({
+      originChainId: 42161,
+      calldata,
+    })
     expect(result?.isAmountTooLow).toBe(true)
   })
 
@@ -402,9 +428,9 @@ describe('queryAcrossRelayerGasFee', () => {
     }
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(mockResponse as unknown as Response)
 
-    await expect(
-      queryAcrossRelayerGasFee({ originChainId: 42161, calldata }),
-    ).rejects.toThrow('Across API rejected bridge route (400)')
+    await expect(queryAcrossRelayerGasFee({ originChainId: 42161, calldata })).rejects.toThrow(
+      'Across API rejected bridge route (400)',
+    )
   })
 
   it('returns undefined on 5xx server error (fallback)', async () => {
@@ -416,14 +442,20 @@ describe('queryAcrossRelayerGasFee', () => {
     }
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(mockResponse as unknown as Response)
 
-    const result = await queryAcrossRelayerGasFee({ originChainId: 42161, calldata })
+    const result = await queryAcrossRelayerGasFee({
+      originChainId: 42161,
+      calldata,
+    })
     expect(result).toBeUndefined()
   })
 
   it('returns undefined on network error (fallback)', async () => {
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network timeout'))
 
-    const result = await queryAcrossRelayerGasFee({ originChainId: 42161, calldata })
+    const result = await queryAcrossRelayerGasFee({
+      originChainId: 42161,
+      calldata,
+    })
     expect(result).toBeUndefined()
   })
 })
@@ -470,7 +502,10 @@ describe('modifyAcrossDepositV3ForSmartPool', () => {
     // IERC20.transfer(params.recipient, ...) and drainLeftoverTokens(..., params.recipient)
     // So it MUST be the pool itself. The contract resolves the Across handler internally.
     const userWallet = '0x64B2b51f538E928bB8BaCbFe15018aBeee1f7322'
-    const calldata = buildTestDepositV3Calldata({ recipient: userWallet, destinationChainId: 56 })
+    const calldata = buildTestDepositV3Calldata({
+      recipient: userWallet,
+      destinationChainId: 56,
+    })
     const result = modifyAcrossDepositV3ForSmartPool({
       calldata,
       smartPoolAddress,
@@ -514,7 +549,7 @@ describe('modifyAcrossDepositV3ForSmartPool', () => {
       calldata,
       smartPoolAddress,
       value: '0',
-      outputTokenPriceUSD: 1.0,  // $1 per USDT
+      outputTokenPriceUSD: 1.0, // $1 per USDT
       outputTokenDecimals: 18,
     })
 
@@ -554,7 +589,10 @@ describe('modifyAcrossDepositV3ForSmartPool', () => {
     const outputAmount = parseUnits('10', 18) // 10 USDT
     // Use Ethereum mainnet destination (chainId=1) for $5.00 fallback → 50% on 10 USDT
     // Without inputTokenDecimals, falls back to 2% of outputAmount cap
-    const calldata = buildTestDepositV3Calldata({ outputAmount, destinationChainId: 1 })
+    const calldata = buildTestDepositV3Calldata({
+      outputAmount,
+      destinationChainId: 1,
+    })
     const result = modifyAcrossDepositV3ForSmartPool({
       calldata,
       smartPoolAddress,
@@ -636,7 +674,7 @@ describe('modifyAcrossDepositV3ForSmartPool', () => {
       value: '0',
       outputTokenPriceUSD: 1.0,
       outputTokenDecimals: 18, // BSC USDT = 18 decimals
-      inputTokenDecimals: 6,   // Arb USDT = 6 decimals
+      inputTokenDecimals: 6, // Arb USDT = 6 decimals
     })
 
     const abiCoder = new AbiCoder()
@@ -736,10 +774,7 @@ describe('modifyAcrossDepositV3ForSmartPool', () => {
     const message = decoded[0][11]
 
     // Decode the SourceMessageParams
-    const msgDecoded = abiCoder.decode(
-      ['uint8', 'uint256', 'uint256', 'bool'],
-      message,
-    )
+    const msgDecoded = abiCoder.decode(['uint8', 'uint256', 'uint256', 'bool'], message)
     expect(msgDecoded[0]).toBe(OpType.Sync)
   })
 
@@ -882,7 +917,10 @@ describe('queryAcrossRelayerGasFee (limits & fillability)', () => {
     }
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(mockResponse as unknown as Response)
 
-    const result = await queryAcrossRelayerGasFee({ originChainId: 42161, calldata })
+    const result = await queryAcrossRelayerGasFee({
+      originChainId: 42161,
+      calldata,
+    })
     expect(result).toBeDefined()
     expect(result!.estimatedFillTimeSec).toBe(15)
     expect(result!.limits).toBeDefined()
@@ -902,7 +940,10 @@ describe('queryAcrossRelayerGasFee (limits & fillability)', () => {
     }
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(mockResponse as unknown as Response)
 
-    const result = await queryAcrossRelayerGasFee({ originChainId: 42161, calldata })
+    const result = await queryAcrossRelayerGasFee({
+      originChainId: 42161,
+      calldata,
+    })
     expect(result).toBeDefined()
     expect(result!.estimatedFillTimeSec).toBeUndefined()
     expect(result!.limits).toBeUndefined()
@@ -912,10 +953,10 @@ describe('queryAcrossRelayerGasFee (limits & fillability)', () => {
 describe('message overhead calculation (trace + Across API integration)', () => {
   it('computes overhead as difference between fees with and without message', () => {
     // This tests the calculation logic used in swapSaga.ts
-    const baseGasFee = BigNumber.from('1000')     // simple fill fee (in input token units)
-    const fullGasFee = BigNumber.from('5000')      // fill + message execution fee
-    const inputTokenDecimals = 6                   // USDT on Arb
-    const outputTokenDecimals = 18                 // USDT on BSC
+    const baseGasFee = BigNumber.from('1000') // simple fill fee (in input token units)
+    const fullGasFee = BigNumber.from('5000') // fill + message execution fee
+    const inputTokenDecimals = 6 // USDT on Arb
+    const outputTokenDecimals = 18 // USDT on BSC
 
     const messageOverheadInputUnits = fullGasFee.sub(baseGasFee) // 4000 in input decimals
     const compensationOutputUnits = messageOverheadInputUnits
@@ -943,16 +984,14 @@ describe('fetchNativeTokenPriceUSD', () => {
     const mockResponse = {
       ok: true,
       json: vi.fn().mockResolvedValue({
-        ethereum: { usd: 2400.50 },
+        ethereum: { usd: 2400.5 },
       }),
     }
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(mockResponse as unknown as Response)
 
     const price = await fetchNativeTokenPriceUSD(1)
-    expect(price).toBe(2400.50)
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('ids=ethereum'),
-    )
+    expect(price).toBe(2400.5)
+    expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringContaining('ids=ethereum'))
   })
 
   it('returns price for BSC (BNB)', async () => {
@@ -1013,12 +1052,8 @@ describe('fetchTokenPriceUSD', () => {
 
     const price = await fetchTokenPriceUSD(56, bscUSDT)
     expect(price).toBe(1.0)
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('binance-smart-chain'),
-    )
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      expect.stringContaining(bscUSDT.toLowerCase()),
-    )
+    expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringContaining('binance-smart-chain'))
+    expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringContaining(bscUSDT.toLowerCase()))
   })
 
   it('returns price for WETH on Arbitrum', async () => {
@@ -1033,9 +1068,7 @@ describe('fetchTokenPriceUSD', () => {
 
     const price = await fetchTokenPriceUSD(42161, arbWETH)
     expect(price).toBe(2400.0)
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('arbitrum-one'),
-    )
+    expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringContaining('arbitrum-one'))
   })
 
   it('returns undefined for unsupported chain', async () => {
@@ -1123,7 +1156,7 @@ describe('computeDestinationSimulationCompensation', () => {
       poolAddress: '0xPoolAddress',
       destinationChainId: 56,
       outputTokenPriceUSD: 1.0, // USDT = $1
-      outputTokenDecimals: 18,  // USDT on BSC = 18 dec
+      outputTokenDecimals: 18, // USDT on BSC = 18 dec
     })
 
     expect(result).toBeDefined()
@@ -1215,7 +1248,7 @@ describe('checkSmartPoolBridgeFeasibility', () => {
     // 40 USDT: 2% cap = $0.80, overhead = $0.50 → fits
     const calldata = buildTestDepositV3Calldata({
       inputAmount: BigNumber.from('40000000'), // 40 USDT (6 dec)
-      outputAmount: parseUnits('39.977', 18),  // ~39.977 USDT (18 dec)
+      outputAmount: parseUnits('39.977', 18), // ~39.977 USDT (18 dec)
     })
 
     const result = checkSmartPoolBridgeFeasibility({
@@ -1234,7 +1267,7 @@ describe('checkSmartPoolBridgeFeasibility', () => {
     // 10 USDT: 2% cap = $0.20, overhead = $0.50 → does NOT fit
     const calldata = buildTestDepositV3Calldata({
       inputAmount: BigNumber.from('10000000'), // 10 USDT (6 dec)
-      outputAmount: parseUnits('9.992', 18),   // ~9.992 USDT (18 dec)
+      outputAmount: parseUnits('9.992', 18), // ~9.992 USDT (18 dec)
     })
 
     const result = checkSmartPoolBridgeFeasibility({

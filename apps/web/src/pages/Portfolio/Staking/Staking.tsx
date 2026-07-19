@@ -1,14 +1,6 @@
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
-import { STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
 import JSBI from 'jsbi'
-import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
-import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
-import { usePortfolioStaking } from '~/pages/Portfolio/hooks/usePortfolioStaking'
 import { useMemo } from 'react'
-import { useActiveSmartPool } from '~/state/application/hooks'
-import { usePoolIdByAddress } from '~/state/governance/hooks'
-import { useMultichainContext } from '~/state/multichain/useMultichainContext'
-import { useTotalStakeBalances, useUnclaimedRewards, useUserStakeBalances } from '~/state/stake/hooks'
 import { Flex, Shine, Text, useMedia } from 'ui/src'
 import { TokenLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
 import { GRG } from 'uniswap/src/constants/tokens'
@@ -19,6 +11,14 @@ import { isTestnetChain } from 'uniswap/src/features/chains/utils'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'
 import { NumberType } from 'utilities/src/format/types'
+import { STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
+import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
+import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
+import { usePortfolioStaking } from '~/pages/Portfolio/hooks/usePortfolioStaking'
+import { useActiveSmartPool } from '~/state/application/hooks'
+import { usePoolIdByAddress } from '~/state/governance/hooks'
+import { useMultichainContext } from '~/state/multichain/useMultichainContext'
+import { useTotalStakeBalances, useUnclaimedRewards, useUserStakeBalances } from '~/state/stake/hooks'
 
 interface ChainStakingRowProps {
   chainId: UniverseChainId
@@ -324,7 +324,15 @@ function useMultiChainStakingData(address?: string, smartPoolAddress?: string) {
           grg,
         }
       })
-      .filter((chain): chain is { chainId: UniverseChainId; chainName: string; grg: Token } => chain !== null)
+      .filter(
+        (
+          chain,
+        ): chain is {
+          chainId: UniverseChainId
+          chainName: string
+          grg: Token
+        } => chain !== null,
+      )
   }, [stakingChains])
 
   return chainStakingData

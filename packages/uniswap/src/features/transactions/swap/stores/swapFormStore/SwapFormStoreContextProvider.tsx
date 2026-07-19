@@ -192,16 +192,19 @@ function SwapFormStoreContextProviderBase({
     setSwapForm: setSwapFormState,
   })
 
-  const dangerouslyGetLatestDerivedSwapInfo = useCalculatedInitialDerivedSwapInfo({
-    exactAmountFiat,
-    exactAmountToken,
-    exactCurrencyField,
-    focusOnCurrencyField,
-    input,
-    output,
-    selectingCurrencyField,
-    txId,
-  }, smartPoolAddress)
+  const dangerouslyGetLatestDerivedSwapInfo = useCalculatedInitialDerivedSwapInfo(
+    {
+      exactAmountFiat,
+      exactAmountToken,
+      exactCurrencyField,
+      focusOnCurrencyField,
+      input,
+      output,
+      selectingCurrencyField,
+      txId,
+    },
+    smartPoolAddress,
+  )
 
   // This prevents the swap form from displaying a new trade while an old one is still being submitted.
   const derivedSwapInfo = useFreezeWhileSubmitting(dangerouslyGetLatestDerivedSwapInfo, isSubmitting)

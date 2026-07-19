@@ -1,8 +1,6 @@
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useActiveSmartPool } from '~/state/application/hooks'
-import { PositionField } from '~/types/position'
 import { Button, Flex, Switch, Text } from 'ui/src'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
 import { ErrorCallout } from '~/components/ErrorCallout'
@@ -14,6 +12,8 @@ import { canUnwrapCurrency } from '~/components/Liquidity/utils/currency'
 import { getFieldsDisabled } from '~/components/Liquidity/utils/priceRangeInfo'
 import { IncreaseLiquidityStep, useIncreaseLiquidityContext } from '~/pages/IncreaseLiquidity/IncreaseLiquidityContext'
 import { useIncreaseLiquidityTxContext } from '~/pages/IncreaseLiquidity/IncreaseLiquidityTxContext'
+import { useActiveSmartPool } from '~/state/application/hooks'
+import { PositionField } from '~/types/position'
 
 export function IncreaseLiquidityForm() {
   const { t } = useTranslation()
@@ -148,7 +148,9 @@ export function IncreaseLiquidityForm() {
         <ErrorCallout
           errorMessage={true}
           title={t('token.safety.warning.fotLow.title')}
-          description={t('position.increase.fot', { token: fotErrorToken.currency.symbol })}
+          description={t('position.increase.fot', {
+            token: fotErrorToken.currency.symbol,
+          })}
         />
       )}
       <ErrorCallout errorMessage={dataFetchingError} onPress={refetch} />

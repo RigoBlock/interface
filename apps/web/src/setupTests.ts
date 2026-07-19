@@ -110,14 +110,20 @@ globalThis.origin = 'https://app.rigoblock.com'
   window.open = vi.fn()
   window.getComputedStyle = vi.fn()
 
+  // Functional in-memory localStorage: a no-op mock breaks code that reads back
+  // stored values (e.g. redux migrations reading legacy jotai atom values).
+  // vi.fn() wrappers are kept so tests can still spy on calls.
+  const localStorageStore = new Map<string, string>()
   Object.defineProperty(window, 'localStorage', {
     value: {
-      getItem: vi.fn(),
-      setItem: vi.fn(),
-      removeItem: vi.fn(),
-      clear: vi.fn(),
-      key: vi.fn(),
-      length: 0,
+      getItem: vi.fn((key: string) => localStorageStore.get(key) ?? null),
+      setItem: vi.fn((key: string, value: string) => localStorageStore.set(key, String(value))),
+      removeItem: vi.fn((key: string) => localStorageStore.delete(key)),
+      clear: vi.fn(() => localStorageStore.clear()),
+      key: vi.fn((index: number) => [...localStorageStore.keys()][index] ?? null),
+      get length() {
+        return localStorageStore.size
+      },
     },
     writable: true,
   })
@@ -470,7 +476,30 @@ function muteStatsigWarnings() {
       return typeof arg === 'string' && arg.includes('Statsig')
     })
 
-    if (isStatsigWarning) {
+    // The fork's rpcObserver warns when RPC calls fail; in jsdom, wagmi RPC calls
+    // always fail with an AbortSignal incompatibility, which is expected test noise.
+    // Similarly, network is disabled in tests, so "could not detect network" warnings
+    // from hooks that warn on RPC failures are expected.
+    const isRpcObserverJsdomWarning = [message, ...args].some((arg) => {
+      if (typeof arg === 'string') {
+        return (
+          arg.includes('rpcObserver') ||
+          arg.includes('to be an instance of AbortSignal') ||
+          arg.includes('could not detect network')
+        )
+      }
+      if (arg && typeof arg === 'object') {
+        const serialized = JSON.stringify(arg)
+        return (
+          serialized.includes('rpcObserver') ||
+          serialized.includes('AbortSignal') ||
+          serialized.includes('NETWORK_ERROR')
+        )
+      }
+      return false
+    })
+
+    if (isStatsigWarning || isRpcObserverJsdomWarning) {
       return
     } else {
       // Forward all other warnings to the original console.warn to avoid losing them

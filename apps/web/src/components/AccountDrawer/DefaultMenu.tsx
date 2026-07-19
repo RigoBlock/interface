@@ -1,6 +1,5 @@
 import { useEffect, useMemo } from 'react'
 import { useLocation } from 'react-router'
-import { useActiveSmartPool } from '~/state/application/hooks'
 import { Flex } from 'ui/src'
 import { TransitionItem } from 'ui/src/animations'
 import { InterfaceEventName } from 'uniswap/src/features/telemetry/constants'
@@ -17,6 +16,7 @@ import StorageMenu from '~/components/AccountDrawer/StorageMenu'
 import { OtherWalletsModal } from '~/components/WalletModal/OtherWalletsModal'
 import { SwitchWalletModal } from '~/components/WalletModal/SwitchWalletModal'
 import usePrevious from '~/hooks/usePrevious'
+import { useActiveSmartPool } from '~/state/application/hooks'
 
 export function DefaultMenu() {
   const { menuState } = useMenuState()

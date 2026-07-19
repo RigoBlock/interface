@@ -142,7 +142,10 @@ function createRetryableImport<T extends ComponentType<any>>(
         }
 
         // Calculate delay and wait before retrying
-        const delay = calculateDelay(attempt, { baseDelay: options.baseDelay, maxDelay: options.maxDelay })
+        const delay = calculateDelay(attempt, {
+          baseDelay: options.baseDelay,
+          maxDelay: options.maxDelay,
+        })
 
         // oxlint-disable-next-line no-console -- Need console for debugging import retry attempts
         console.warn(

@@ -116,10 +116,25 @@ export function usePoolTransactions({
   const loadingMore = useRef(false)
   const { transactions, loading, fetchMore, error } =
     protocolVersion === GraphQLApi.ProtocolVersion.V4
-      ? { transactions: dataV4?.v4Pool?.transactions, loading: loadingV4, fetchMore: fetchMoreV4, error: errorV4 }
+      ? {
+          transactions: dataV4?.v4Pool?.transactions,
+          loading: loadingV4,
+          fetchMore: fetchMoreV4,
+          error: errorV4,
+        }
       : protocolVersion === GraphQLApi.ProtocolVersion.V3
-        ? { transactions: dataV3?.v3Pool?.transactions, loading: loadingV3, fetchMore: fetchMoreV3, error: errorV3 }
-        : { transactions: dataV2?.v2Pair?.transactions, loading: loadingV2, fetchMore: fetchMoreV2, error: errorV2 }
+        ? {
+            transactions: dataV3?.v3Pool?.transactions,
+            loading: loadingV3,
+            fetchMore: fetchMoreV3,
+            error: errorV3,
+          }
+        : {
+            transactions: dataV2?.v2Pair?.transactions,
+            loading: loadingV2,
+            fetchMore: fetchMoreV2,
+            error: errorV2,
+          }
 
   const loadMore = useCallback(
     ({ onComplete }: { onComplete?: () => void }) => {
@@ -191,7 +206,10 @@ export function usePoolTransactions({
             address: tokenIn.address,
             chainId: fromGraphQLChain(tokenIn.chain) ?? UniverseChainId.Mainnet,
           },
-          addressInput2: { address: token0Address, chainId: chainId ?? UniverseChainId.Mainnet },
+          addressInput2: {
+            address: token0Address,
+            chainId: chainId ?? UniverseChainId.Mainnet,
+          },
         })
         const type =
           tx.type === GraphQLApi.PoolTransactionType.Swap

@@ -47,7 +47,10 @@ export function LiquidityPositionAmountRows({ rows }: LiquidityPositionAmountRow
             <Flex row alignItems="center" gap="$gap12" maxWidth={160}>
               <CurrencyLogo currencyInfo={row.currencyInfo} size={24} />
               <Text variant="subheading1" color="neutral1" $lg={{ variant: 'subheading2' }}>
-                {formatCurrencyAmount({ value: row.fiatValue, type: NumberType.FiatTokenPrice })}
+                {formatCurrencyAmount({
+                  value: row.fiatValue,
+                  type: NumberType.FiatTokenPrice,
+                })}
               </Text>
             </Flex>
           ) : (
@@ -59,7 +62,10 @@ export function LiquidityPositionAmountRows({ rows }: LiquidityPositionAmountRow
               <Flex row alignItems="center" gap="$gap12" maxWidth={160}>
                 <CurrencyLogo currencyInfo={row.currencyInfo} size={24} />
                 <Text variant="subheading1" color="neutral1" $lg={{ variant: 'subheading2' }}>
-                  {formatCurrencyAmount({ value: row.fiatValue, type: NumberType.FiatTokenPrice })}
+                  {formatCurrencyAmount({
+                    value: row.fiatValue,
+                    type: NumberType.FiatTokenPrice,
+                  })}
                 </Text>
               </Flex>
             </TouchableArea>
@@ -67,7 +73,10 @@ export function LiquidityPositionAmountRows({ rows }: LiquidityPositionAmountRow
           <Flex alignItems="flex-end" gap="$gap4">
             <Flex row alignItems="center" justifyContent="flex-end" gap="$gap4">
               <Text variant="body2" color="$neutral2">
-                {formatCurrencyAmount({ value: row.currencyAmount, type: NumberType.TokenNonTx })}{' '}
+                {formatCurrencyAmount({
+                  value: row.currencyAmount,
+                  type: NumberType.TokenNonTx,
+                })}{' '}
                 {row.currencyAmount.currency.symbol}
               </Text>
             </Flex>

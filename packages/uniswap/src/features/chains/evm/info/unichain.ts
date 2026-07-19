@@ -59,7 +59,9 @@ export const UNICHAIN_CHAIN_INFO = {
   blockTimeMs: 1000,
   pendingTransactionsRetryOptions: undefined,
   rpcUrls: {
-    [RPCType.Public]: { http: [getQuicknodeEndpointUrl(UniverseChainId.Unichain)] },
+    [RPCType.Public]: {
+      http: [getQuicknodeEndpointUrl(UniverseChainId.Unichain)],
+    },
     [RPCType.Default]: { http: ['https://mainnet.unichain.org'] },
     [RPCType.Interface]: {
       http: [

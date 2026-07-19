@@ -1,13 +1,12 @@
 import { useTheme } from '@tamagui/core'
+import { ChangeEvent, ReactNode, useCallback } from 'react'
+import { Trans } from 'react-i18next'
+import i18n from 'uniswap/src/i18n'
 import { AutoColumn } from '~/components/deprecated/Column'
 import { RowBetween } from '~/components/deprecated/Row'
 import styled from '~/lib/deprecated-styled'
-import { ChangeEvent, ReactNode, useCallback } from 'react'
-import { Trans } from 'react-i18next'
-
 import { ThemedText } from '~/theme/components/text'
 import { flexColumnNoWrap } from '~/theme/styles'
-import i18n from 'uniswap/src/i18n'
 
 const InputPanel = styled.div`
   ${flexColumnNoWrap};
@@ -24,7 +23,8 @@ const ContainerRow = styled.div<{ $error: boolean }>`
   align-items: center;
   border-radius: 1.25rem;
   border: 1px solid ${({ $error, theme }) => ($error ? theme.critical : theme.surface3)};
-  transition: border-color 300ms ${({ $error }) => ($error ? 'step-end' : 'step-start')},
+  transition:
+    border-color 300ms ${({ $error }) => ($error ? 'step-end' : 'step-start')},
     color 500ms ${({ $error }) => ($error ? 'step-end' : 'step-start')};
   background-color: ${({ theme }) => theme.surface1};
 `

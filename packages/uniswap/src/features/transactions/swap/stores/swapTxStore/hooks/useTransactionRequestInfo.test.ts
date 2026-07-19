@@ -100,7 +100,10 @@ describe('useTransactionRequestInfo', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockUseIsSmartContractAddress.mockReturnValue({ loading: false, isSmartContractAddress: false })
+    mockUseIsSmartContractAddress.mockReturnValue({
+      loading: false,
+      isSmartContractAddress: false,
+    })
     mockUseAllTransactionSettings.mockReturnValue({
       ...initialTransactionSettingsState,
       autoSlippageTolerance: undefined,
@@ -118,7 +121,10 @@ describe('useTransactionRequestInfo', () => {
         wrapType: WrapType.Wrap,
       },
     })
-    mockUsePermit2SignatureWithData.mockReturnValue({ signature: undefined, isLoading: false })
+    mockUsePermit2SignatureWithData.mockReturnValue({
+      signature: undefined,
+      isLoading: false,
+    })
     mockUseTradingApiSwapQuery.mockReturnValue(wrapQueryResult)
     mockUseTransactionGasFee.mockReturnValue(mockWrapGasFee)
     mockUseV4SwapEnabled.mockReturnValue(true)
@@ -148,7 +154,10 @@ describe('useTransactionRequestInfo', () => {
       outputAmount: '1000000000',
     })
 
-    mockUsePermit2SignatureWithData.mockReturnValue({ signature: undefined, isLoading: false })
+    mockUsePermit2SignatureWithData.mockReturnValue({
+      signature: undefined,
+      isLoading: false,
+    })
     mockUseTradingApiSwapQuery.mockReturnValue(swapQueryResult)
     mockUseTransactionGasFee.mockReturnValue({ error: null, isLoading: false })
     mockUseV4SwapEnabled.mockReturnValue(true)
@@ -186,7 +195,10 @@ describe('useTransactionRequestInfo', () => {
       action: ApprovalAction.Unknown,
     })
 
-    mockUsePermit2SignatureWithData.mockReturnValue({ signature: undefined, isLoading: false })
+    mockUsePermit2SignatureWithData.mockReturnValue({
+      signature: undefined,
+      isLoading: false,
+    })
     mockUseTradingApiSwapQuery.mockReturnValue(swapQueryResult)
     mockUseTransactionGasFee.mockReturnValue({ error: null, isLoading: false })
     mockUseV4SwapEnabled.mockReturnValue(true)

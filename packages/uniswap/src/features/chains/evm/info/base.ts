@@ -74,10 +74,19 @@ export const BASE_CHAIN_INFO = {
   rpcUrls: isPlaywrightEnv()
     ? getPlaywrightRpcUrls(LOCAL_BASE_PLAYWRIGHT_RPC_URL)
     : {
-        [RPCType.Public]: { http: [getQuicknodeEndpointUrl(UniverseChainId.Base)] },
+        [RPCType.Public]: {
+          http: [getQuicknodeEndpointUrl(UniverseChainId.Base)],
+        },
         [RPCType.Default]: { http: ['https://mainnet.base.org/'] },
-        [RPCType.Fallback]: { http: ['https://1rpc.io/base', 'https://base.meowrpc.com'] },
-        [RPCType.Interface]: { http: [`https://base-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`, `https://base-mainnet.infura.io/v3/${config.infuraKey}`] },
+        [RPCType.Fallback]: {
+          http: ['https://1rpc.io/base', 'https://base.meowrpc.com'],
+        },
+        [RPCType.Interface]: {
+          http: [
+            `https://base-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`,
+            `https://base-mainnet.infura.io/v3/${config.infuraKey}`,
+          ],
+        },
       },
   assetRepoNetworkName: 'base',
   tokens,

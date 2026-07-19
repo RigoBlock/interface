@@ -33,8 +33,15 @@ function TopPoolsContent({ chainId }: { chainId: UniverseChainId | null }): JSX.
   })
 
   const { topPools, topBoostedPools } = useTopPoolsLegacy({
-    topPoolData: { data: exploreStatsData, isLoading: exploreStatsLoading, isError: !!exploreStatsError },
-    sortState: { sortDirection: OrderDirection.Desc, sortBy: PoolSortFields.TVL },
+    topPoolData: {
+      data: exploreStatsData,
+      isLoading: exploreStatsLoading,
+      isError: !!exploreStatsError,
+    },
+    sortState: {
+      sortDirection: OrderDirection.Desc,
+      sortBy: PoolSortFields.TVL,
+    },
   })
 
   const displayBoostedPools =

@@ -1,30 +1,32 @@
 import { Contract } from '@ethersproject/contracts'
 import type { TransactionResponse } from '@ethersproject/providers'
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
-import { POP_ADDRESSES, STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
-import { useAccount } from '~/hooks/useAccount'
-import { useContract } from '~/hooks/useContract'
-import { useEthersWeb3Provider } from '~/hooks/useEthersProvider'
 import JSBI from 'jsbi'
 import { useCallback, useMemo } from 'react'
 import { useParams } from 'react-router'
-import { StakeStatus, useStakingContract, useStakingProxyContract } from '~/state/governance/hooks'
-import { usePoolExtendedContract } from '~/state/pool/hooks'
-import { useTransactionAdder } from '~/state/transactions/hooks'
 import POP_ABI from 'uniswap/src/abis/pop.json'
 import STAKING_ABI from 'uniswap/src/abis/staking-impl.json'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { calculateGasMargin } from '~/utils/calculateGasMargin'
-import { assume0xAddress } from '~/utils/wagmi'
 import type { Abi } from 'viem'
 import { useReadContract, useReadContracts } from 'wagmi'
+import { POP_ADDRESSES, STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
+import { useAccount } from '~/hooks/useAccount'
+import { useContract } from '~/hooks/useContract'
+import { useEthersWeb3Provider } from '~/hooks/useEthersProvider'
+import { StakeStatus, useStakingContract, useStakingProxyContract } from '~/state/governance/hooks'
+import { usePoolExtendedContract } from '~/state/pool/hooks'
+import { useTransactionAdder } from '~/state/transactions/hooks'
+import { calculateGasMargin } from '~/utils/calculateGasMargin'
+import { assume0xAddress } from '~/utils/wagmi'
 
 export function useFreeStakeBalance(isDelegateFreeStake?: boolean): CurrencyAmount<Token> | undefined {
   const account = useAccount()
   const grg = useMemo(() => (account.chainId ? GRG[account.chainId] : undefined), [account.chainId])
   const stakingContract = useStakingContract()
-  const { poolAddress: poolAddressFromUrl } = useParams<{ poolAddress?: string }>()
+  const { poolAddress: poolAddressFromUrl } = useParams<{
+    poolAddress?: string
+  }>()
   // TODO: check if can improve as whenever there is an address in the url the pool's balance will be checked
   const queryEnabled = !!account.address && !!stakingContract
   const { data: freeStake } = useReadContract({
@@ -178,7 +180,9 @@ export function useUnclaimedRewards(poolIds: string[]): UnclaimedRewardsData[] |
   const account = useAccount()
   const grg = useMemo(() => (account.chainId ? GRG[account.chainId] : undefined), [account.chainId])
   const stakingContract = useStakingContract()
-  const { poolAddress: poolAddressFromUrl } = useParams<{ poolAddress?: string }>()
+  const { poolAddress: poolAddressFromUrl } = useParams<{
+    poolAddress?: string
+  }>()
   //const members = Array(poolIds.length).fill(poolAddressFromUrl ?? account)
   const farmer = poolAddressFromUrl ?? account.address
   // TODO: check if can improve as whenever there is an address in the url the pool's balance will be checked
@@ -269,7 +273,9 @@ export function useUnstakeCallback(): (amount: CurrencyAmount<Token>, isPool?: b
   const account = useAccount()
   const provider = useEthersWeb3Provider()
   const stakingContract = useStakingContract()
-  const { poolAddress: poolAddressFromUrl } = useParams<{ poolAddress?: string }>()
+  const { poolAddress: poolAddressFromUrl } = useParams<{
+    poolAddress?: string
+  }>()
   const poolContract = usePoolExtendedContract(poolAddressFromUrl ?? undefined)
 
   // state for pending and submitted txn views
@@ -327,7 +333,9 @@ export function useHarvestCallback(): (poolIds: string[], isPool?: boolean) => u
   const provider = useEthersWeb3Provider()
   const stakingContract = useStakingContract()
   const stakingProxy = useStakingProxyContract()
-  const { poolAddress: poolAddressFromUrl } = useParams<{ poolAddress?: string }>()
+  const { poolAddress: poolAddressFromUrl } = useParams<{
+    poolAddress?: string
+  }>()
   const poolContract = usePoolExtendedContract(poolAddressFromUrl ?? undefined)
 
   // state for pending and submitted txn views

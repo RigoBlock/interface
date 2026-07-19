@@ -214,7 +214,10 @@ export function useTransactionGasWarning({
   const { chainId, currencyAmounts, currencyBalances } = derivedInfo
   const { t } = useTranslation()
 
-  const { gasToken, gasBalance } = useChainGasToken({ chainId, accountAddress })
+  const { gasToken, gasBalance } = useChainGasToken({
+    chainId,
+    accountAddress,
+  })
 
   const { isSmartContractAddress } = useIsSmartContractAddress(accountAddress, chainId)
 
@@ -227,10 +230,10 @@ export function useTransactionGasWarning({
 
   // Include input amount in gas check when spending the gas token
   // (pathUSD on Tempo, native currency on other chains)
-  const gasTokenAmountIn = 
+  const gasTokenAmountIn =
     !isSmartPoolSwap && currencyAmountIn?.currency.equals(gasToken)
-    ? (currencyAmountIn as CurrencyAmount<Currency>)
-    : undefined
+      ? (currencyAmountIn as CurrencyAmount<Currency>)
+      : undefined
   const hasGasFunds = hasSufficientGasBalance({
     chainId,
     gasBalance,

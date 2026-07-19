@@ -25,7 +25,9 @@ describe('application reducer', () => {
   describe('setOpenModal', () => {
     it('should correctly set the open modal', () => {
       store.dispatch(setOpenModal({ name: ModalName.ClaimPopup }))
-      expect(store.getState().openModal).toEqual({ name: ModalName.ClaimPopup })
+      expect(store.getState().openModal).toEqual({
+        name: ModalName.ClaimPopup,
+      })
       store.dispatch(setCloseModal())
       expect(store.getState().openModal).toEqual(null)
     })
@@ -36,7 +38,10 @@ describe('application reducer', () => {
         isLastAuthenticator: true,
       }
       store.dispatch(setOpenModal({ name: ModalName.DeletePasskey, initialState }))
-      expect(store.getState().openModal).toEqual({ name: ModalName.DeletePasskey, initialState })
+      expect(store.getState().openModal).toEqual({
+        name: ModalName.DeletePasskey,
+        initialState,
+      })
 
       store.dispatch(setCloseModal(ModalName.DeletePasskey))
       expect(store.getState().openModal).toBeNull()

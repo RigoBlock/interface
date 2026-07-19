@@ -163,7 +163,11 @@ const Toolbar = () => {
         .map((version) => (
           <TouchableArea key={`version-${version}`} onPress={() => handleVersionChange(version)}>
             <Flex p="$spacing8" borderRadius="$rounded8" hoverStyle={{ backgroundColor: '$surface2' }}>
-              <Text variant="body2">{t('position.new.protocol', { protocol: getProtocolVersionLabel(version) })}</Text>
+              <Text variant="body2">
+                {t('position.new.protocol', {
+                  protocol: getProtocolVersionLabel(version),
+                })}
+              </Text>
             </Flex>
           </TouchableArea>
         )),
@@ -186,7 +190,9 @@ const Toolbar = () => {
           dropdownStyle={{ width: 200, borderRadius: '$rounded16' }}
           menuLabel={
             <Text variant="buttonLabel3" lineHeight="16px" whiteSpace="nowrap">
-              {t('position.protocol', { protocol: getProtocolVersionLabel(protocolVersion) })}
+              {t('position.protocol', {
+                protocol: getProtocolVersionLabel(protocolVersion),
+              })}
             </Text>
           }
           isOpen={versionDropdownOpen}
@@ -259,7 +265,10 @@ function CreatePositionContent({
 }) {
   const initialProtocolVersion = paramsProtocolVersion ?? ProtocolVersion.V4
 
-  const [currencyInputs, setCurrencyInputs] = useState<{ tokenA: Maybe<Currency>; tokenB: Maybe<Currency> }>({
+  const [currencyInputs, setCurrencyInputs] = useState<{
+    tokenA: Maybe<Currency>
+    tokenB: Maybe<Currency>
+  }>({
     tokenA: initialInputs.tokenA,
     tokenB: initialInputs.tokenB,
   })

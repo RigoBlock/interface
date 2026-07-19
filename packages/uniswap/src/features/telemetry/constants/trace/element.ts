@@ -181,6 +181,7 @@ export enum ElementName {
   PortfolioBalance = 'portfolio-balance',
   PortfolioChart = 'portfolio-chart',
   PortfolioDefiTab = 'portfolio-defi-tab',
+  PortfolioPerpsTab = 'portfolio-perps-tab',
   PortfolioNftItem = 'portfolio-nft-item',
   PortfolioNftsTab = 'portfolio-nfts-tab',
   PortfolioNetworkFilter = 'portfolio-network-filter',

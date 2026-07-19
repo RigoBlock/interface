@@ -13,17 +13,40 @@ export function usePortfolioTabs(): PortfolioTabInfo[] {
   const isPortfolioDefiTabEnabled = useFeatureFlag(FeatureFlags.PortfolioDefiTab)
 
   return [
-    { path: '/portfolio', pageName: InterfacePageName.PortfolioPage, label: t('portfolio.overview.title') },
-    { path: '/portfolio/tokens', pageName: InterfacePageName.PortfolioTokensPage, label: t('portfolio.tokens.title') },
+    {
+      path: '/portfolio',
+      pageName: InterfacePageName.PortfolioPage,
+      label: t('portfolio.overview.title'),
+    },
+    {
+      path: '/portfolio/tokens',
+      pageName: InterfacePageName.PortfolioTokensPage,
+      label: t('portfolio.tokens.title'),
+    },
     {
       path: '/portfolio/staking',
       pageName: InterfacePageName.PortfolioStakingPage,
       label: t('portfolio.staking.title'),
     },
+    {
+      path: '/portfolio/perps',
+      pageName: InterfacePageName.PortfolioPerpsPage,
+      label: t('portfolio.perps.title'),
+    },
     ...(isPortfolioDefiTabEnabled
-      ? [{ path: '/portfolio/defi', pageName: InterfacePageName.PortfolioDefiPage, label: t('portfolio.defi.title') }]
+      ? [
+          {
+            path: '/portfolio/defi',
+            pageName: InterfacePageName.PortfolioDefiPage,
+            label: t('portfolio.defi.title'),
+          },
+        ]
       : []),
-    { path: '/portfolio/nfts', pageName: InterfacePageName.PortfolioNftsPage, label: t('portfolio.nfts.title') },
+    {
+      path: '/portfolio/nfts',
+      pageName: InterfacePageName.PortfolioNftsPage,
+      label: t('portfolio.nfts.title'),
+    },
     // Temporarily hidden - Activity API doesn't support smart pools properly
     // {
     //   path: '/portfolio/activity',

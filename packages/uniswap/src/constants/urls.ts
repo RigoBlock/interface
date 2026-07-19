@@ -43,7 +43,10 @@ export function getForApiUrl(): string {
     return getMigratedForApiUrl()
   }
 
-  return getCloudflareApiBaseUrl({ flow: TrafficFlows.FOR, postfix: 'v2/FOR.v1.FORService' })
+  return getCloudflareApiBaseUrl({
+    flow: TrafficFlows.FOR,
+    postfix: 'v2/FOR.v1.FORService',
+  })
 }
 
 export const UNISWAP_WEB_URL = `https://${UNISWAP_WEB_HOSTNAME}`
@@ -188,23 +191,36 @@ export const uniswapUrls = {
   // Proxies
   amplitudeProxyUrl:
     config.amplitudeProxyUrlOverride ||
-    getCloudflareApiBaseUrl({ flow: TrafficFlows.Metrics, postfix: 'v1/amplitude-proxy' }),
+    getCloudflareApiBaseUrl({
+      flow: TrafficFlows.Metrics,
+      postfix: 'v1/amplitude-proxy',
+    }),
   // On web, proxy through same-origin "/config" — the BFF (Hono) rewrites to the real Cloudflare URL.
   statsigProxyUrl:
     config.statsigProxyUrlOverride ||
-    (isWebApp ? '/config' : getCloudflareApiBaseUrl({ flow: TrafficFlows.Gating, postfix: 'v1/statsig-proxy' })),
+    (isWebApp
+      ? '/config'
+      : getCloudflareApiBaseUrl({
+          flow: TrafficFlows.Gating,
+          postfix: 'v1/statsig-proxy',
+        })),
 
   // Feature service URL's
   unitagsApiUrl:
-    config.unitagsApiUrlOverride || getCloudflareApiBaseUrl({ flow: TrafficFlows.Unitags, postfix: 'v2/unitags' }),
+    config.unitagsApiUrlOverride ||
+    getCloudflareApiBaseUrl({
+      flow: TrafficFlows.Unitags,
+      postfix: 'v2/unitags',
+    }),
   scantasticApiUrl:
     config.scantasticApiUrlOverride ||
-    getCloudflareApiBaseUrl({ flow: TrafficFlows.Scantastic, postfix: 'v2/scantastic' }),
+    getCloudflareApiBaseUrl({
+      flow: TrafficFlows.Scantastic,
+      postfix: 'v2/scantastic',
+    }),
   forApiUrl: config.forApiUrlOverride || `${getRbCloudflareApiBaseUrl(TrafficFlows.FOR)}/v2/FOR.v1.FORService`,
   tradingApiUrl: config.tradingApiUrlOverride || getRbCloudflareApiBaseUrl(TrafficFlows.TradingApi),
-  liquidityServiceUrl:
-    config.liquidityServiceUrlOverride ||
-    `${getRbCloudflareApiBaseUrl()}/v2/liquidity`,
+  liquidityServiceUrl: config.liquidityServiceUrlOverride || `${getRbCloudflareApiBaseUrl()}/v2/liquidity`,
 
   // Merkl Docs for LP Incentives
   merklDocsUrl: 'https://docs.merkl.xyz/earn-with-merkl/faq-earn#how-are-aprs-calculated',

@@ -123,7 +123,9 @@ export function UniswapWalletOptions() {
           <OptionContainer
             onPress={() => {
               setPersistHideMobileAppPromoBanner(true)
-              openDownloadApp({ element: ElementName.UniswapWalletModalDownloadButton })
+              openDownloadApp({
+                element: ElementName.UniswapWalletModalDownloadButton,
+              })
             }}
           >
             <PhoneDownload size="$icon.40" minWidth={40} color="$accent1" backgroundColor="$accent2" borderRadius={8} />

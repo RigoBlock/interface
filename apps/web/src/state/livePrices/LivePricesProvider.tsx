@@ -51,7 +51,10 @@ function createLivePricesClient(): WebSocketClient<TokenSubscriptionParams, Toke
       'x-request-source': REQUEST_SOURCE,
     }),
     getSessionService: () =>
-      provideSessionService({ getBaseUrl: () => getEntryGatewayUrl(), getIsSessionServiceEnabled: getIsSessionServiceEnabledOnWeb }),
+      provideSessionService({
+        getBaseUrl: () => getEntryGatewayUrl(),
+        getIsSessionServiceEnabled: getIsSessionServiceEnabledOnWeb,
+      }),
     defaultOptions: { credentials: 'include' },
   })
 

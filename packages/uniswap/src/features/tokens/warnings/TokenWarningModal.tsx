@@ -275,7 +275,11 @@ export default function TokenWarningModal({
   const [warningIndex, setWarningIndex] = useState<0 | 1>(0)
 
   // Check for dismissed warnings
-  const warningModalCurrencies = useWarningModalCurrenciesDismissed({ t0, t1, isInfoOnlyWarning })
+  const warningModalCurrencies = useWarningModalCurrenciesDismissed({
+    t0,
+    t1,
+    isInfoOnlyWarning,
+  })
   if (!warningModalCurrencies) {
     return null
   }

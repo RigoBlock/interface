@@ -77,7 +77,10 @@ function PopupContent(): JSX.Element {
               width="100%"
               onPress={async () => {
                 if (windowIdNumber) {
-                  await chrome.sidePanel.open({ tabId: tabIdNumber, windowId: windowIdNumber })
+                  await chrome.sidePanel.open({
+                    tabId: tabIdNumber,
+                    windowId: windowIdNumber,
+                  })
                   window.close()
                 }
               }}

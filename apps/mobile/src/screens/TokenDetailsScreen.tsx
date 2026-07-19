@@ -158,7 +158,9 @@ const TokenDetailsErrorCard = memo(function _TokenDetailsErrorCard(): JSX.Elemen
   const onRetry = useCallback(() => {
     setError(undefined)
     apolloClient
-      .refetchQueries({ include: [GQLQueries.TokenDetailsScreen, GQLQueries.TokenPriceHistory] })
+      .refetchQueries({
+        include: [GQLQueries.TokenDetailsScreen, GQLQueries.TokenPriceHistory],
+      })
       .catch((e) => setError(e))
   }, [apolloClient, setError])
 
@@ -193,7 +195,11 @@ const TokenDetailsModals = memo(function _TokenDetailsModals(): JSX.Element {
   const onAcknowledgeTokenWarning = useEvent(() => {
     closeTokenWarningModal()
     if (activeTransactionType !== undefined) {
-      navigateToSwapFlow({ currencyField: activeTransactionType, currencyAddress: address, currencyChainId: chainId })
+      navigateToSwapFlow({
+        currencyField: activeTransactionType,
+        currencyAddress: address,
+        currencyChainId: chainId,
+      })
     }
   })
 
@@ -283,7 +289,11 @@ const TokenDetailsActionButtonsWrapper = memo(function _TokenDetailsActionButton
       if (isBlocked) {
         openTokenWarningModal()
       } else {
-        navigateToSwapFlow({ currencyField, currencyAddress: address, currencyChainId: chainId })
+        navigateToSwapFlow({
+          currencyField,
+          currencyAddress: address,
+          currencyChainId: chainId,
+        })
       }
     },
     [isBlocked, openTokenWarningModal, navigateToSwapFlow, address, chainId],
@@ -291,7 +301,10 @@ const TokenDetailsActionButtonsWrapper = memo(function _TokenDetailsActionButton
 
   const onPressBuyFiatOnRamp = useCallback(
     (isOfframp = false): void => {
-      navigateToFiatOnRamp({ prefilledCurrency: fiatOnRampCurrency, isOfframp })
+      navigateToFiatOnRamp({
+        prefilledCurrency: fiatOnRampCurrency,
+        isOfframp,
+      })
     },
     [navigateToFiatOnRamp, fiatOnRampCurrency],
   )
@@ -336,7 +349,11 @@ const TokenDetailsActionButtonsWrapper = memo(function _TokenDetailsActionButton
     const actions: MenuOptionItem[] = []
 
     if (fiatOnRampCurrency) {
-      actions.push({ label: t('common.button.buy'), Icon: Bank, onPress: () => onPressBuyFiatOnRamp() })
+      actions.push({
+        label: t('common.button.buy'),
+        Icon: Bank,
+        onPress: () => onPressBuyFiatOnRamp(),
+      })
     }
 
     if (bridgedWithdrawalInfo && hasTokenBalance) {
@@ -344,22 +361,36 @@ const TokenDetailsActionButtonsWrapper = memo(function _TokenDetailsActionButton
         label: t('common.withdraw'),
         Icon: ArrowUpCircle,
         onPress: () => onPressWithdraw(),
-        subheader: t('bridgedAsset.wormhole.toNativeChain', { nativeChainName: bridgedWithdrawalInfo.chain }),
+        subheader: t('bridgedAsset.wormhole.toNativeChain', {
+          nativeChainName: bridgedWithdrawalInfo.chain,
+        }),
         actionType: 'external-link',
         height: 56,
       })
     }
 
     if (hasTokenBalance && fiatOnRampCurrency) {
-      actions.push({ label: t('common.button.sell'), Icon: ArrowUpCircle, onPress: () => onPressBuyFiatOnRamp(true) })
+      actions.push({
+        label: t('common.button.sell'),
+        Icon: ArrowUpCircle,
+        onPress: () => onPressBuyFiatOnRamp(true),
+      })
     }
 
     if (hasTokenBalance) {
-      actions.push({ label: t('common.button.send'), Icon: SendRoundedAirplane, onPress: onPressSend })
+      actions.push({
+        label: t('common.button.send'),
+        Icon: SendRoundedAirplane,
+        onPress: onPressSend,
+      })
     }
 
     // All cases have a receive action
-    actions.push({ label: t('common.button.receive'), Icon: ArrowDownCircle, onPress: navigateToReceive })
+    actions.push({
+      label: t('common.button.receive'),
+      Icon: ArrowDownCircle,
+      onPress: navigateToReceive,
+    })
 
     return actions
   }, [

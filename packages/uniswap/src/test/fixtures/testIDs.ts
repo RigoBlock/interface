@@ -154,6 +154,7 @@ export const TestID = {
   PortfolioTabDefi: 'portfolio-tab-defi',
   PortfolioTabNfts: 'portfolio-tab-nfts',
   PortfolioTabOverview: 'portfolio-tab-overview',
+  PortfolioTabPerps: 'portfolio-tab-perps',
   PortfolioTabTokens: 'portfolio-tab-tokens',
   PortfolioNftCardCollectionName: 'portfolio-nft-card-collection-name',
   PortfolioNftCardContextMenuTrigger: 'portfolio-nft-card-context-menu-trigger',

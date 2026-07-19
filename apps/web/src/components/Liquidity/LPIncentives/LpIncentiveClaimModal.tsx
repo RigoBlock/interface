@@ -55,7 +55,10 @@ export function LpIncentiveClaimModal({
   const account = useAccount()
   const activeSmartPool = useActiveSmartPool()
   const isSmartPool = !!activeSmartPool?.address
-  const formattedTokenRewards = useFormattedTokenRewards({ tokenRewards, token })
+  const formattedTokenRewards = useFormattedTokenRewards({
+    tokenRewards,
+    token,
+  })
 
   const {
     data,

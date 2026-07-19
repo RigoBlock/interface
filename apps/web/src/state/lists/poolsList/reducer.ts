@@ -27,7 +27,9 @@ const NEW_LIST_STATE: PoolsListState = {
   pendingUpdate: null,
 }
 
-type Mutable<T> = { -readonly [P in keyof T]: T[P] extends ReadonlyArray<infer U> ? U[] : T[P] }
+type Mutable<T> = {
+  -readonly [P in keyof T]: T[P] extends ReadonlyArray<infer U> ? U[] : T[P]
+}
 
 const initialState: PoolsListsState = {
   lastInitializedPoolsList: POOLS_LIST,

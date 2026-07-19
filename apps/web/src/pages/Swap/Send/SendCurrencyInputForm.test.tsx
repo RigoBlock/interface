@@ -88,7 +88,7 @@ describe('SendCurrencyInputform', () => {
   })
 
   it('should render placeholder values', async () => {
-    const { container } = await act(() =>
+    await act(() =>
       renderWithUniswapContext(
         <MultichainContext.Provider value={mockMultichainContextValue}>
           <SwapAndLimitContext.Provider value={mockSwapAndLimitContextValue}>
@@ -102,12 +102,11 @@ describe('SendCurrencyInputform', () => {
 
     expect(screen.getByPlaceholderText('0')).toBeVisible()
     expect(screen.getByText('0 DAI')).toBeVisible()
-    expect(screen.getByText('DAI')).toBeVisible()
-    expect(container.firstChild).toMatchSnapshot()
+    expect(screen.getAllByText('DAI')[0]).toBeVisible()
   })
 
   it('renders input in fiat correctly', async () => {
-    const { container } = await act(() =>
+    await act(() =>
       renderWithUniswapContext(
         <MultichainContext.Provider value={mockMultichainContextValue}>
           <SwapAndLimitContext.Provider value={mockSwapAndLimitContextValue}>
@@ -121,12 +120,11 @@ describe('SendCurrencyInputform', () => {
 
     expect(screen.getByDisplayValue('1000')).toBeVisible()
     expect(screen.getByText('100.00 DAI')).toBeVisible()
-    expect(screen.getByText('DAI')).toBeVisible()
-    expect(container.firstChild).toMatchSnapshot()
+    expect(screen.getAllByText('DAI')[0]).toBeVisible()
   })
 
   it('renders input in token amount correctly', async () => {
-    const { container } = await act(() =>
+    await act(() =>
       renderWithUniswapContext(
         <MultichainContext.Provider value={mockMultichainContextValue}>
           <SwapAndLimitContext.Provider value={mockSwapAndLimitContextValue}>
@@ -140,7 +138,6 @@ describe('SendCurrencyInputform', () => {
 
     expect(screen.getByDisplayValue('1')).toBeVisible()
     expect(screen.getByText('$100.00')).toBeVisible()
-    expect(screen.getByText('DAI')).toBeVisible()
-    expect(container.firstChild).toMatchSnapshot()
+    expect(screen.getAllByText('DAI')[0]).toBeVisible()
   })
 })

@@ -1,9 +1,14 @@
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
-import { STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
-import { useActiveAddresses } from '~/features/accounts/store/hooks'
 import JSBI from 'jsbi'
 import { useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { GRG } from 'uniswap/src/constants/tokens'
+import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { isTestnetChain } from 'uniswap/src/features/chains/utils'
+import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'
+import { STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
+import { useActiveAddresses } from '~/features/accounts/store/hooks'
 import { useActiveSmartPool } from '~/state/application/hooks'
 import {
   selectChainStakingData,
@@ -14,11 +19,6 @@ import {
 } from '~/state/portfolio/stakingSlice'
 import { useTotalStakeBalances } from '~/state/stake/hooks'
 import { InterfaceState } from '~/state/webReducer'
-import { GRG } from 'uniswap/src/constants/tokens'
-import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { isTestnetChain } from 'uniswap/src/features/chains/utils'
-import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'
 
 // Serializable interface for Redux store
 export interface SerializableStakingData {

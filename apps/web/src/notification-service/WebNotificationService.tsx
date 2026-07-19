@@ -73,7 +73,10 @@ function provideWebNotificationService(ctx: {
       }
     },
     getSessionService: () =>
-      provideSessionService({ getBaseUrl: () => getEntryGatewayUrl(), getIsSessionServiceEnabled: getIsSessionServiceEnabledOnWeb }),
+      provideSessionService({
+        getBaseUrl: () => getEntryGatewayUrl(),
+        getIsSessionServiceEnabled: getIsSessionServiceEnabledOnWeb,
+      }),
     defaultOptions: {
       credentials: 'include',
     },
@@ -208,7 +211,10 @@ export function WebNotificationServiceManager(): JSX.Element | null {
 
   // Hook values that need to be passed to system alerts data source
   const { swapInputChainId } = useUniswapContext()
-  const blockTimestamp = useCurrentBlockTimestamp({ refetchInterval: ms('5min'), chainId: swapInputChainId })
+  const blockTimestamp = useCurrentBlockTimestamp({
+    refetchInterval: ms('5min'),
+    chainId: swapInputChainId,
+  })
   const machineTime = useMachineTimeMs(AVERAGE_L1_BLOCK_TIME_MS)
 
   // Store latest values in refs so getter functions always return current values

@@ -46,7 +46,11 @@ interface BaseValidatedInput {
 }
 
 type ValidatedCreateInput =
-  | ({ protocol: ProtocolVersion.V2; pairAddress?: string; useV2Endpoints?: boolean } & BaseValidatedInput)
+  | ({
+      protocol: ProtocolVersion.V2
+      pairAddress?: string
+      useV2Endpoints?: boolean
+    } & BaseValidatedInput)
   | ({
       protocol: ProtocolVersion.V3
       tickLower: number
@@ -76,7 +80,9 @@ interface RawCreatePositionInput {
   ticks: [Maybe<number>, Maybe<number>]
   poolOrPair: V3Pool | V4Pool | Pair | undefined
   displayCurrencies: { [field in PositionField]: Maybe<Currency> }
-  currencyAmounts?: { [field in PositionField]?: Maybe<CurrencyAmount<Currency>> }
+  currencyAmounts?: {
+    [field in PositionField]?: Maybe<CurrencyAmount<Currency>>
+  }
   independentField: PositionField
   slippageTolerance?: number
   customDeadline?: number
@@ -258,7 +264,9 @@ function buildV2CreateRequestDeprecated(
         defaultDependentAmount: input.dependentAmount,
         slippageTolerance: input.slippageTolerance,
         deadline: input.deadline,
-        position: { pool: { token0: input.token0Address, token1: input.token1Address } },
+        position: {
+          pool: { token0: input.token0Address, token1: input.token1Address },
+        },
       }),
     },
   })

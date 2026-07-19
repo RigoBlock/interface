@@ -37,7 +37,7 @@ const RIGOBLOCK_DEPOSIT_V3_SELECTOR = '0x770d096f'
 const ETHEREUM_MAINNET_CHAIN_ID = 1
 const POLYGON_CHAIN_ID = 137
 
-const FALLBACK_MESSAGE_OVERHEAD_USD_L2 = 0.50
+const FALLBACK_MESSAGE_OVERHEAD_USD_L2 = 0.5
 const FALLBACK_MESSAGE_OVERHEAD_USD_POLYGON = 1.0
 const FALLBACK_MESSAGE_OVERHEAD_USD_MAINNET = 5.0
 
@@ -246,16 +246,20 @@ export async function extractExpandedMessageFromTrace(params: {
   data: string
 }): Promise<string | undefined> {
   try {
-    const trace = await params.provider.send('debug_traceCall', [
+    const trace = (await params.provider.send('debug_traceCall', [
       { from: params.from, to: params.to, data: params.data, value: '0x0' },
       'latest',
       { tracer: 'callTracer', tracerConfig: { onlyTopCall: false } },
-    ]) as CallTrace
+    ])) as CallTrace
 
     const message = findExpandedMessageInTrace(trace)
     if (message) {
-      logger.debug('bridgeCalldata', 'extractExpandedMessageFromTrace',
-        'Extracted expanded message from source trace', { messageLength: message.length })
+      logger.debug(
+        'bridgeCalldata',
+        'extractExpandedMessageFromTrace',
+        'Extracted expanded message from source trace',
+        { messageLength: message.length },
+      )
     }
     return message
   } catch {
@@ -276,7 +280,11 @@ export function checkSmartPoolBridgeFeasibility(params: {
   outputTokenPriceUSD?: number
   destinationChainId: number
   messageOverheadCompensation?: BigNumber
-}): { isFeasible: boolean; maxAllowedCompensation: BigNumber; neededCompensation: BigNumber } {
+}): {
+  isFeasible: boolean
+  maxAllowedCompensation: BigNumber
+  neededCompensation: BigNumber
+} {
   const { calldata, inputTokenDecimals, outputTokenDecimals, destinationChainId, messageOverheadCompensation } = params
   const { params: decoded } = decodeAcrossDepositV3(calldata)
 
@@ -285,7 +293,11 @@ export function checkSmartPoolBridgeFeasibility(params: {
   if (!neededCompensation) {
     if (!params.outputTokenPriceUSD) {
       // Can't compute — assume feasible (will be caught later during TX build)
-      return { isFeasible: true, maxAllowedCompensation: BigNumber.from(0), neededCompensation: BigNumber.from(0) }
+      return {
+        isFeasible: true,
+        maxAllowedCompensation: BigNumber.from(0),
+        neededCompensation: BigNumber.from(0),
+      }
     }
     let overheadUSD = FALLBACK_MESSAGE_OVERHEAD_USD_L2
     if (destinationChainId === ETHEREUM_MAINNET_CHAIN_ID) {
@@ -301,15 +313,20 @@ export function checkSmartPoolBridgeFeasibility(params: {
 
   // Compute max allowed under 2% cap
   const decimalDiff = outputTokenDecimals - inputTokenDecimals
-  const normalizedInput = decimalDiff >= 0
-    ? decoded.inputAmount.mul(BigNumber.from(10).pow(decimalDiff))
-    : decoded.inputAmount.div(BigNumber.from(10).pow(-decimalDiff))
+  const normalizedInput =
+    decimalDiff >= 0
+      ? decoded.inputAmount.mul(BigNumber.from(10).pow(decimalDiff))
+      : decoded.inputAmount.div(BigNumber.from(10).pow(-decimalDiff))
 
   const minRequired = normalizedInput.mul(10000 - ON_CHAIN_MAX_BRIDGE_FEE_BPS).div(10000)
   const room = decoded.outputAmount.sub(minRequired)
 
   if (room.lte(0)) {
-    return { isFeasible: false, maxAllowedCompensation: BigNumber.from(0), neededCompensation }
+    return {
+      isFeasible: false,
+      maxAllowedCompensation: BigNumber.from(0),
+      neededCompensation,
+    }
   }
 
   const maxAllowed = room.mul(90).div(100)
@@ -348,7 +365,7 @@ function calculateSolverGasCompensation(params: SolverGasCompensationParams): Bi
   if (!outputTokenDecimals || !outputTokenPriceUSD) {
     throw new Error(
       'Cannot estimate solver gas compensation: output token price is unknown. ' +
-      'Bridge transactions require a known token price to ensure correct solver compensation.',
+        'Bridge transactions require a known token price to ensure correct solver compensation.',
     )
   }
 
@@ -382,11 +399,13 @@ export function modifyAcrossDepositV3ForSmartPool(fnParams: ModifyAcrossParams):
     const sourceNativeAmount = BigNumber.from(value || '0')
 
     // Use pre-computed compensation or fall back to USD estimates
-    let solverCompensation = messageOverheadCompensation ?? calculateSolverGasCompensation({
-      destinationChainId: decodedParams.destinationChainId,
-      outputTokenPriceUSD,
-      outputTokenDecimals,
-    })
+    let solverCompensation =
+      messageOverheadCompensation ??
+      calculateSolverGasCompensation({
+        destinationChainId: decodedParams.destinationChainId,
+        outputTokenPriceUSD,
+        outputTokenDecimals,
+      })
 
     // Cap solver compensation based on the on-chain MAX_BRIDGE_FEE_BPS (2%) limit.
     // AIntents.depositV3 enforces: scaledOutputAmount * 10000 >= inputAmount * (10000 - 200)
@@ -396,9 +415,10 @@ export function modifyAcrossDepositV3ForSmartPool(fnParams: ModifyAcrossParams):
     // For 10 USDT, this leaves ~$0.19; for 30 USDT ~$0.57; for 40 USDT ~$0.78.
     if (inputTokenDecimals !== undefined && outputTokenDecimals !== undefined) {
       const decimalDiff = outputTokenDecimals - inputTokenDecimals
-      const normalizedInputAmount = decimalDiff >= 0
-        ? decodedParams.inputAmount.mul(BigNumber.from(10).pow(decimalDiff))
-        : decodedParams.inputAmount.div(BigNumber.from(10).pow(-decimalDiff))
+      const normalizedInputAmount =
+        decimalDiff >= 0
+          ? decodedParams.inputAmount.mul(BigNumber.from(10).pow(decimalDiff))
+          : decodedParams.inputAmount.div(BigNumber.from(10).pow(-decimalDiff))
       // Minimum output the AIntents contract will accept (MAX_BRIDGE_FEE_BPS = 2% max fee)
       const minRequiredOutput = normalizedInputAmount.mul(10000 - ON_CHAIN_MAX_BRIDGE_FEE_BPS).div(10000)
       const remainingRoom = decodedParams.outputAmount.sub(minRequiredOutput)

@@ -7,7 +7,11 @@ function getAppProvider(chainId: UniverseChainId) {
   const info = getChainInfo(chainId)
   return new AppJsonRpcProvider(
     info.rpcUrls.interface.http.map(
-      (url) => new ConfiguredJsonRpcProvider({ url, networkish: { chainId, name: info.interfaceName } }),
+      (url) =>
+        new ConfiguredJsonRpcProvider({
+          url,
+          networkish: { chainId, name: info.interfaceName },
+        }),
     ),
   )
 }
@@ -22,6 +26,9 @@ export function getBackupRpcProvider(chainId: UniverseChainId) {
   const urlParam = info.urlParam
   const url = `https://api.rigoblock.com/logs?network=${urlParam}`
   return new AppJsonRpcProvider([
-    new ConfiguredJsonRpcProvider({ url, networkish: { chainId, name: info.interfaceName } }),
+    new ConfiguredJsonRpcProvider({
+      url,
+      networkish: { chainId, name: info.interfaceName },
+    }),
   ])
 }

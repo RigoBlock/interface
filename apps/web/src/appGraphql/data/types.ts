@@ -61,8 +61,14 @@ export function useMeldSupportedCurrencyToCurrencyInfo(): {
           }
         }
         return areAddressesEqual({
-          addressInput1: { address: base.currency.address, chainId: base.currency.chainId },
-          addressInput2: { address: forCurrency.address, chainId: supportedChainId },
+          addressInput1: {
+            address: base.currency.address,
+            chainId: base.currency.chainId,
+          },
+          addressInput2: {
+            address: forCurrency.address,
+            chainId: supportedChainId,
+          },
         })
       })
 

@@ -1,10 +1,5 @@
 import { Currency, Percent } from '@uniswap/sdk-core'
 import { useCallback, useEffect, useState } from 'react'
-import { useMultichainContext } from '~/state/multichain/useMultichainContext'
-import { InterfaceTrade } from '~/state/routing/types'
-import { isUniswapXTrade } from '~/state/routing/utils'
-import { useIsTransactionConfirmed } from '~/state/transactions/hooks'
-import { useIsTokenOwnable } from '~/state/swap/hooks'
 import invariant from 'tiny-invariant'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { CurrencyField } from 'uniswap/src/types/currency'
@@ -20,7 +15,12 @@ import useNativeCurrency from '~/lib/hooks/useNativeCurrency'
 import { getPriceUpdateBasisPoints } from '~/lib/utils/analytics'
 import { PendingModalError } from '~/pages/Swap/Limit/ConfirmSwapModal/Error'
 import { ConfirmModalState } from '~/pages/Swap/Limit/ConfirmSwapModal/state'
+import { useMultichainContext } from '~/state/multichain/useMultichainContext'
+import { InterfaceTrade } from '~/state/routing/types'
+import { isUniswapXTrade } from '~/state/routing/utils'
 import { isLimitTrade } from '~/state/routing/utils'
+import { useIsTokenOwnable } from '~/state/swap/hooks'
+import { useIsTransactionConfirmed } from '~/state/transactions/hooks'
 import { didUserReject } from '~/utils/swapErrorToUserReadableMessage'
 import { tradeMeaningfullyDiffers } from '~/utils/tradeMeaningFullyDiffer'
 
@@ -133,7 +133,10 @@ export function useConfirmModalState({
       if (didUserReject(e)) {
         return
       }
-      logger.warn('useConfirmModalState', 'catchUserReject', 'Failed to wrap', { error: e, trade })
+      logger.warn('useConfirmModalState', 'catchUserReject', 'Failed to wrap', {
+        error: e,
+        trade,
+      })
       setApprovalError(errorType)
     },
     [trade],

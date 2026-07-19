@@ -115,22 +115,36 @@ export default function ProgressIndicator({
         icon: <CurrencyLogo currency={trade?.inputAmount.currency} size={ICON_SIZE} />,
         rippleColor: inputTokenColor,
         previewTitle: t('common.wrap', { symbol: nativeCurrency.symbol }),
-        actionRequiredTitle: t('common.wrapIn', { symbol: nativeCurrency.symbol }),
-        inProgressTitle: t('common.wrappingToken', { symbol: nativeCurrency.symbol }),
-        learnMoreLinkText: t('common.whyWrap', { symbol: nativeCurrency.symbol }),
+        actionRequiredTitle: t('common.wrapIn', {
+          symbol: nativeCurrency.symbol,
+        }),
+        inProgressTitle: t('common.wrappingToken', {
+          symbol: nativeCurrency.symbol,
+        }),
+        learnMoreLinkText: t('common.whyWrap', {
+          symbol: nativeCurrency.symbol,
+        }),
         learnMoreLinkHref: uniswapUrls.helpArticleUrls.wethExplainer,
       },
       [ConfirmModalState.RESETTING_TOKEN_ALLOWANCE]: {
         icon: <CurrencyLogo currency={trade?.inputAmount.currency} size={ICON_SIZE} />,
         rippleColor: inputTokenColor,
-        previewTitle: t('common.resetLimit', { symbol: trade?.inputAmount.currency.symbol }),
-        actionRequiredTitle: t('common.resetLimitWallet', { symbol: trade?.inputAmount.currency.symbol }),
-        inProgressTitle: t('common.resettingLimit', { symbol: trade?.inputAmount.currency.symbol }),
+        previewTitle: t('common.resetLimit', {
+          symbol: trade?.inputAmount.currency.symbol,
+        }),
+        actionRequiredTitle: t('common.resetLimitWallet', {
+          symbol: trade?.inputAmount.currency.symbol,
+        }),
+        inProgressTitle: t('common.resettingLimit', {
+          symbol: trade?.inputAmount.currency.symbol,
+        }),
       },
       [ConfirmModalState.APPROVING_TOKEN]: {
         icon: <CurrencyLogo currency={trade?.inputAmount.currency} size={ICON_SIZE} />,
         rippleColor: inputTokenColor,
-        previewTitle: t('common.approveSpend', { symbol: trade?.inputAmount.currency.symbol }),
+        previewTitle: t('common.approveSpend', {
+          symbol: trade?.inputAmount.currency.symbol,
+        }),
         actionRequiredTitle: t('common.wallet.approve'),
         inProgressTitle: t('common.approvePending'),
         learnMoreLinkText: t('common.whyApprove'),

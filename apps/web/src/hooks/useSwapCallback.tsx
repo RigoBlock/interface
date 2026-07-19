@@ -47,9 +47,16 @@ function getUniversalRouterFeeFields(
 
   // TODO: this does not overwrite recipient in the onchain transaction
   if (trade.tradeType === TradeType.EXACT_INPUT) {
-    return { feeOptions: { fee: trade.swapFee.percent, recipient: smartPoolAddress } } // trade.swapFee.recipient
+    return {
+      feeOptions: { fee: trade.swapFee.percent, recipient: smartPoolAddress },
+    } // trade.swapFee.recipient
   } else {
-    return { flatFeeOptions: { amount: BigNumber.from(trade.swapFee.amount), recipient: smartPoolAddress } } // trade.swapFee.recipient
+    return {
+      flatFeeOptions: {
+        amount: BigNumber.from(trade.swapFee.amount),
+        recipient: smartPoolAddress,
+      },
+    } // trade.swapFee.recipient
   }
 }
 

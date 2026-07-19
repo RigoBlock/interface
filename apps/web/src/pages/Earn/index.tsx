@@ -3,7 +3,8 @@ import JSBI from 'jsbi'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Trans } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router'
-import { Flex, SegmentedControl, SegmentedControlOption } from 'ui/src'
+import { Button, Flex, SegmentedControl, SegmentedControlOption } from 'ui/src'
+import { Plus } from 'ui/src/components/icons/Plus'
 import { NetworkFilter } from 'uniswap/src/components/network/NetworkFilter'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
@@ -11,11 +12,9 @@ import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { ElementName, InterfaceEventName, InterfacePageName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { useAccountDrawer } from '~/components/AccountDrawer/MiniPortfolio/hooks'
-import { ButtonPrimary } from '~/components/Button/buttons'
 import CreateModal from '~/components/createPool/CreateModal'
 import { AutoColumn } from '~/components/deprecated/Column'
 import HarvestYieldModal from '~/components/earn/HarvestYieldModal'
-import RaceModal from '~/components/earn/RaceModal'
 import UnstakeModal from '~/components/earn/UnstakeModal'
 import PoolPositionList from '~/components/PoolPositionList'
 import { RIGOBLOCK_SUPPORTED_CHAINS, RIGOBLOCK_TESTNET_CHAINS } from '~/constants/addresses'
@@ -24,7 +23,6 @@ import { useModalState } from '~/hooks/useModalState'
 import styled from '~/lib/deprecated-styled'
 import { PoolRegisteredLog } from '~/state/pool/hooks'
 import { useMultiChainAllPoolsData, useMultiChainStakingPools } from '~/state/pool/multichain'
-import { ThemedText } from '~/theme/components/text'
 
 const PageWrapper = styled(AutoColumn)`
   padding: 68px 8px 0px;
@@ -80,11 +78,6 @@ export default function Earn() {
   } = useModalState(ModalName.CreateVault)
   const [showHarvestYieldModal, setShowHarvestYieldModal] = useState(false)
   const [showUnstakeModal, setShowUnstakeModal] = useState(false)
-  const [racePool, setRacePool] = useState<{ address: string; name: string } | null>(null)
-
-  const onRaceClick = useCallback((poolAddress: string, poolName: string) => {
-    setRacePool({ address: poolAddress, name: poolName })
-  }, [])
 
   const account = useAccount()
   const accountDrawer = useAccountDrawer()
@@ -225,7 +218,9 @@ export default function Earn() {
   const handleTabChange = useCallback(
     (tab: EarnTab) => {
       setSelectedTab(tab)
-      navigate(tab === EarnTab.MyPools ? '/earn/manage' : '/earn', { replace: true })
+      navigate(tab === EarnTab.MyPools ? '/earn/manage' : '/earn', {
+        replace: true,
+      })
     },
     [navigate],
   )
@@ -233,32 +228,15 @@ export default function Earn() {
   // Whether to show the action bar (only when there are buttons)
   const showActionBar = !account.isConnected || (selectedTab === EarnTab.AllPools && (!!yieldAmount || hasFreeStake))
 
+  const createButton = account.isConnected ? (
+    <Button size="xsmall" variant="branded" icon={<Plus />} onPress={toggleCreateModal}>
+      <Trans>Create</Trans>
+    </Button>
+  ) : undefined
+
   return (
     <Trace logImpression page={InterfacePageName.PoolPage}>
       <PageWrapper gap="lg" justify="center">
-        <Flex
-          row
-          justifyContent="space-between"
-          alignItems="center"
-          gap="$spacing16"
-          width="100%"
-          style={{ maxWidth: '720px' }}
-        >
-          <ThemedText.HeadlineMedium>
-            <Trans>{isManagePath ? 'Manage Smart Pools' : 'Smart Pools'}</Trans>
-          </ThemedText.HeadlineMedium>
-          {account.isConnected && (
-            <ButtonPrimary
-              style={{ width: 'fit-content', height: '40px' }}
-              padding="8px"
-              $borderRadius="8px"
-              onClick={toggleCreateModal}
-            >
-              <Trans>Create</Trans>
-            </ButtonPrimary>
-          )}
-        </Flex>
-
         <AutoColumn gap="lg" style={{ width: '100%', maxWidth: '720px' }}>
           {/* Modals */}
           <CreateModal
@@ -278,13 +256,6 @@ export default function Earn() {
             freeStakeBalance={freeStakeBalance}
             onDismiss={() => setShowUnstakeModal(false)}
             title={<Trans>Withdraw</Trans>}
-          />
-          <RaceModal
-            isOpen={!!racePool}
-            poolAddress={racePool?.address}
-            poolName={racePool?.name}
-            onDismiss={() => setRacePool(null)}
-            title={<Trans>Race</Trans>}
           />
 
           {/* Tab Selector + Chain Filter — always on one row */}
@@ -314,24 +285,14 @@ export default function Earn() {
               {account.isConnected ? (
                 <>
                   {selectedTab === EarnTab.AllPools && yieldAmount && (
-                    <ButtonPrimary
-                      style={{ width: 'fit-content', height: '40px' }}
-                      padding="8px"
-                      $borderRadius="8px"
-                      onClick={() => setShowHarvestYieldModal(true)}
-                    >
+                    <Button size="small" variant="branded" onPress={() => setShowHarvestYieldModal(true)}>
                       <Trans>Harvest</Trans>
-                    </ButtonPrimary>
+                    </Button>
                   )}
                   {selectedTab === EarnTab.AllPools && hasFreeStake && (
-                    <ButtonPrimary
-                      style={{ width: 'fit-content', height: '40px' }}
-                      padding="8px"
-                      $borderRadius="8px"
-                      onClick={() => setShowUnstakeModal(true)}
-                    >
+                    <Button size="small" variant="branded" onPress={() => setShowUnstakeModal(true)}>
                       <Trans>Unstake</Trans>
-                    </ButtonPrimary>
+                    </Button>
                   )}
                 </>
               ) : (
@@ -341,9 +302,9 @@ export default function Earn() {
                   properties={{ received_swap_quote: false }}
                   element={ElementName.ConnectWalletButton}
                 >
-                  <ButtonPrimary style={{ padding: '8px 16px' }} onClick={accountDrawer.open}>
+                  <Button size="small" variant="branded" onPress={accountDrawer.open}>
                     <Trans i18nKey="common.connectAWallet.button" />
-                  </ButtonPrimary>
+                  </Button>
                 </Trace>
               )}
             </ActionBar>
@@ -351,11 +312,15 @@ export default function Earn() {
 
           <MainContentWrapper>
             {selectedTab === EarnTab.MyPools ? (
-              <PoolPositionList positions={filteredMyPools} shouldFilterByUserPools={true} onRaceClick={onRaceClick} />
+              <PoolPositionList
+                positions={filteredMyPools}
+                shouldFilterByUserPools={true}
+                headerAction={createButton}
+              />
             ) : (
               <PoolPositionList
                 positions={filteredOrderedPools.length > 0 ? filteredOrderedPools : undefined}
-                onRaceClick={onRaceClick}
+                headerAction={createButton}
               />
             )}
           </MainContentWrapper>

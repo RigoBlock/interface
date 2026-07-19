@@ -142,7 +142,11 @@ function PositionPage({ chainId }: { chainId: EVMUniverseChainId | undefined }) 
   })
   const position = data?.position
   const positionInfo = useMemo(() => parseRestPosition(position), [position])
-  const metadata = usePositionTokenURI({ tokenId, chainId, version: positionInfo?.version })
+  const metadata = usePositionTokenURI({
+    tokenId,
+    chainId,
+    version: positionInfo?.version,
+  })
   usePendingLPTransactionsChangeListener(refetch)
 
   const isLpIncentivesEnabled = useFeatureFlag(FeatureFlags.LpIncentives)
@@ -232,7 +236,11 @@ function PositionPage({ chainId }: { chainId: EVMUniverseChainId | undefined }) 
   const [timePeriodDropdownOpen, setTimePeriodDropdownOpen] = useState(false)
   const [mainViewDropdownOpen, setMainViewDropdownOpen] = useState(false)
   const timePeriodOptions = useMemo(() => {
-    const options: Array<SegmentedControlOption<GraphQLApi.HistoryDuration> & { verboseDisplay: JSX.Element }> = [
+    const options: Array<
+      SegmentedControlOption<GraphQLApi.HistoryDuration> & {
+        verboseDisplay: JSX.Element
+      }
+    > = [
       [
         GraphQLApi.HistoryDuration.Day,
         t('token.priceExplorer.timeRangeLabel.day'),
@@ -343,8 +351,14 @@ function PositionPage({ chainId }: { chainId: EVMUniverseChainId | undefined }) 
   const token1Price = positionInfo.version !== ProtocolVersion.V2 ? positionInfo.poolOrPair?.token1Price : undefined
 
   const isOwner = areAddressesEqual({
-    addressInput1: { address: positionInfo.owner, chainId: positionInfo.chainId },
-    addressInput2: { address: activeSmartPool.address, chainId: supportedAccountChainId ?? positionInfo.chainId },
+    addressInput1: {
+      address: positionInfo.owner,
+      chainId: positionInfo.chainId,
+    },
+    addressInput2: {
+      address: activeSmartPool.address,
+      chainId: supportedAccountChainId ?? positionInfo.chainId,
+    },
   })
 
   return (
@@ -427,7 +441,10 @@ function PositionPage({ chainId }: { chainId: EVMUniverseChainId | undefined }) 
                   version={positionInfo.version}
                   quoteCurrency={quoteCurrency}
                   baseCurrency={baseCurrency}
-                  sdkCurrencies={{ TOKEN0: currency0Amount.currency, TOKEN1: currency1Amount.currency }}
+                  sdkCurrencies={{
+                    TOKEN0: currency0Amount.currency,
+                    TOKEN1: currency1Amount.currency,
+                  }}
                   priceInverted={priceInverted}
                   poolAddressOrId={positionInfo.poolId}
                   chainId={positionInfo.chainId}
@@ -466,7 +483,12 @@ function PositionPage({ chainId }: { chainId: EVMUniverseChainId | undefined }) 
                   {'result' in metadata ? (
                     <PositionNFT image={metadata.result.image} height={400} />
                   ) : (
-                    <LoadingFullscreen style={{ borderRadius: 12, backgroundColor: 'transparent' }} />
+                    <LoadingFullscreen
+                      style={{
+                        borderRadius: 12,
+                        backgroundColor: 'transparent',
+                      }}
+                    />
                   )}
                 </Flex>
               )}

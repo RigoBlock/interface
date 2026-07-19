@@ -19,7 +19,18 @@ import {
   CreateV4PositionInfo,
   PositionState,
 } from '~/components/Liquidity/Create/types'
+import { PoolState } from '~/hooks/usePools'
 import { ETH_MAINNET } from '~/test-utils/constants'
+
+// The on-chain V3 pool fallback uses wagmi, which is not available in tests.
+// Mock it out: default to "no pools on-chain" (NOT_EXISTS).
+vi.mock('~/hooks/usePools', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('~/hooks/usePools')>()
+  return {
+    ...actual,
+    usePools: vi.fn((poolKeys: unknown[]) => poolKeys.map(() => [PoolState.NOT_EXISTS, null])),
+  }
+})
 
 class MockPoolInformation extends PoolInformation {
   fee = FeeAmount.MEDIUM

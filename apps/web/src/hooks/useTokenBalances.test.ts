@@ -13,7 +13,11 @@ import { renderHook } from '~/test-utils/render'
 vi.mock('~/features/accounts/store/hooks', () => ({
   useActiveAddresses: vi.fn(),
   useActiveWallet: vi.fn(),
-  useConnectionStatus: vi.fn(() => ({ isConnected: false, isConnecting: false, isDisconnected: true })),
+  useConnectionStatus: vi.fn(() => ({
+    isConnected: false,
+    isConnecting: false,
+    isDisconnected: true,
+  })),
 }))
 
 vi.mock('~/state/application/hooks', () => ({
@@ -57,7 +61,7 @@ describe('useTokenBalances', () => {
   })
 
   it('should return empty balances when loading', () => {
-    mocked(usePortfolioBalances).mockReturnValueOnce({
+    mocked(usePortfolioBalances).mockReturnValue({
       data: undefined,
       loading: true,
       networkStatus: NetworkStatus.loading,
@@ -142,7 +146,7 @@ describe('useTokenBalances', () => {
       },
     }
 
-    mocked(usePortfolioBalances).mockReturnValueOnce({
+    mocked(usePortfolioBalances).mockReturnValue({
       data: mockPortfolioBalances,
       loading: false,
       networkStatus: NetworkStatus.ready,
@@ -184,7 +188,7 @@ describe('useTokenBalances', () => {
       },
     }
 
-    mocked(usePortfolioBalances).mockReturnValueOnce({
+    mocked(usePortfolioBalances).mockReturnValue({
       data: mockPortfolioBalances,
       loading: false,
       networkStatus: NetworkStatus.ready,

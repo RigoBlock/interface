@@ -45,6 +45,13 @@ vi.mock('uniswap/src/features/transactions/swap/utils/routing', () => ({
   isWrap: vi.fn(),
 }))
 
+const MOCK_SMART_POOL_ADDRESS = '0x00000000000000000000000000000000000000aa'
+
+vi.mock('~/state/application/hooks', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('~/state/application/hooks')>()),
+  useActiveSmartPool: vi.fn(() => ({ address: MOCK_SMART_POOL_ADDRESS, name: 'Mock Smart Pool' })),
+}))
+
 describe('validateWrapParams', () => {
   const mockInputCurrencyAmount = {
     currency: { symbol: 'ETH' },
@@ -284,6 +291,7 @@ describe('useSwapHandlers', () => {
 
         expect(mockWrapCallbackFn).toHaveBeenCalledWith({
           address: mockAccount.address,
+          smartPoolAddress: MOCK_SMART_POOL_ADDRESS,
           inputCurrencyAmount: mockInputCurrencyAmount,
           txRequest: mockSwapTxContext.txRequests![0],
           txId: 'test-tx-id',
@@ -377,6 +385,8 @@ describe('useSwapHandlers', () => {
         await result.current.execute(params)
 
         expect(mockSwapCallbackFn).toHaveBeenCalledWith({
+          address: mockAccount.address,
+          smartPoolAddress: MOCK_SMART_POOL_ADDRESS,
           swapTxContext: mockSwapTxContext,
           currencyInAmountUSD: mockCurrencyInAmountUSD,
           currencyOutAmountUSD: mockCurrencyOutAmountUSD,
@@ -405,6 +415,8 @@ describe('useSwapHandlers', () => {
         await result.current.execute(params)
 
         expect(mockSwapCallbackFn).toHaveBeenCalledWith({
+          address: mockAccount.address,
+          smartPoolAddress: MOCK_SMART_POOL_ADDRESS,
           swapTxContext: mockSwapTxContext,
           currencyInAmountUSD: undefined,
           currencyOutAmountUSD: undefined,

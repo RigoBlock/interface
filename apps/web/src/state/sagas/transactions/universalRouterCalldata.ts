@@ -346,24 +346,24 @@ export function modifyV4ExecuteCalldata(calldata: string, smartPoolAddress: stri
 
 /**
  * Strips BALANCE_CHECK_ERC20 commands from Universal Router calldata
- * 
+ *
  * RigoBlock smart pools handle balance checks internally, and some chain-specific
  * Universal Router deployments may not support this command.
  * This function removes any BALANCE_CHECK_ERC20 commands from the calldata.
- * 
+ *
  * @param calldata - The Universal Router execute calldata (with or without function selector)
  * @returns The modified calldata without BALANCE_CHECK_ERC20 commands
  */
 export function stripBalanceCheckERC20(calldata: string): string {
   try {
     const abiCoder = new AbiCoder()
-    
+
     // Check if this has a function selector (starts with 0x and has selector)
     // execute(bytes,bytes[],uint256) selector is 0x3593564c
     const hasSelector = calldata.toLowerCase().startsWith('0x3593564c')
     const dataWithoutSelector = hasSelector ? '0x' + calldata.slice(10) : calldata
     const functionSelector = hasSelector ? calldata.slice(0, 10) : ''
-    
+
     const decoded = abiCoder.decode(['bytes', 'bytes[]', 'uint256'], dataWithoutSelector)
     const [commands, inputs, deadline] = decoded
 
@@ -378,7 +378,7 @@ export function stripBalanceCheckERC20(calldata: string): string {
     // Process each command and filter out BALANCE_CHECK_ERC20
     for (let i = 0; i < commandsBytes.length && i < inputs.length; i++) {
       const command = commandsBytes[i]
-      
+
       if (command !== UNIVERSAL_ROUTER_COMMANDS.BALANCE_CHECK_ERC20) {
         filteredCommands.push(command)
         filteredInputs.push(inputs[i])

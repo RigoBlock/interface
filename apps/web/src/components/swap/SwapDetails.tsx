@@ -1,12 +1,6 @@
 import { Currency, Percent } from '@uniswap/sdk-core'
 import { PropsWithChildren, ReactNode, useMemo } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { useActiveSmartPool } from '~/state/application/hooks'
-import { InterfaceTrade, LimitOrderTrade, RouterPreference } from '~/state/routing/types'
-import { ThemedText } from '~/theme/components'
-import { ExternalLink } from '~/theme/components/Links'
-import { useRouterPreference, useUserSlippageTolerance } from '~/state/user/hooks'
-import { isLimitTrade } from '~/state/routing/utils'
 import { Button, Flex, Separator, Text } from 'ui/src'
 import { AlertTriangleFilled } from 'ui/src/components/icons/AlertTriangleFilled'
 import { ElementName, SwapEventName } from 'uniswap/src/features/telemetry/constants'
@@ -22,6 +16,12 @@ import SwapLineItem, { SwapLineItemType } from '~/components/swap/SwapLineItem'
 import { Allowance, AllowanceState } from '~/hooks/usePermit2Allowance'
 import { SwapResult } from '~/hooks/useSwapCallback'
 import { deprecatedStyled } from '~/lib/deprecated-styled'
+import { useActiveSmartPool } from '~/state/application/hooks'
+import { InterfaceTrade, LimitOrderTrade, RouterPreference } from '~/state/routing/types'
+import { isLimitTrade } from '~/state/routing/utils'
+import { useRouterPreference, useUserSlippageTolerance } from '~/state/user/hooks'
+import { ThemedText } from '~/theme/components'
+import { ExternalLink } from '~/theme/components/Links'
 import { formatSwapButtonClickEventProperties } from '~/utils/loggingFormatters'
 
 const DetailsContainer = deprecatedStyled(Column)`
@@ -131,7 +131,6 @@ export function SwapDetails({
   const isAutoSlippage = useUserSlippageTolerance()[0] === 'auto'
   const [routerPreference] = useRouterPreference()
   const { address: smartPoolAddress } = useActiveSmartPool()
-  console.log('smartPoolAddress in SwapDetails:', smartPoolAddress, disabledConfirm)
 
   const analyticsContext = useTrace()
 

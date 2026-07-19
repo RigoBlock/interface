@@ -1,11 +1,11 @@
-import { RigoblockUrls } from '~/constants/rigoblockUrls'
-import { SwapResult } from '~/hooks/useSwapCallback'
-import AlertTriangleFilled from '~/components/Icons/AlertTriangleFilled'
 import { Trans, useTranslation } from 'react-i18next'
 import { Button, Flex, Text } from 'ui/src'
 import { LearnMoreLink } from 'uniswap/src/components/text/LearnMoreLink'
 import { uniswapUrls } from 'uniswap/src/constants/urls'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
+import AlertTriangleFilled from '~/components/Icons/AlertTriangleFilled'
+import { RigoblockUrls } from '~/constants/rigoblockUrls'
+import { SwapResult } from '~/hooks/useSwapCallback'
 import { TradeSummary } from '~/pages/Swap/Limit/ConfirmSwapModal/TradeSummary'
 import { InterfaceTrade, TradeFillType } from '~/state/routing/types'
 import { isLimitTrade, isUniswapXTrade } from '~/state/routing/utils'
@@ -93,7 +93,10 @@ function getErrorContent({ errorType, trade }: { errorType: PendingModalError; t
 }
 
 export default function Error({ errorType, trade, showTrade, swapResult, onRetry }: ErrorModalContentProps) {
-  const { title, message, supportArticleURL } = getErrorContent({ errorType, trade })
+  const { title, message, supportArticleURL } = getErrorContent({
+    errorType,
+    trade,
+  })
   const { t } = useTranslation()
 
   return (

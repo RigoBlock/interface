@@ -1,4 +1,13 @@
 import { useTheme } from '@tamagui/core'
+import JSBI from 'jsbi'
+import { darken } from 'polished'
+import { useState } from 'react'
+import { Trans } from 'react-i18next'
+import { Link } from 'react-router'
+import { Button } from 'rebass/styled-components'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { InterfacePageName, ModalName } from 'uniswap/src/features/telemetry/constants'
+import Trace from 'uniswap/src/features/telemetry/Trace'
 import { ButtonPrimary } from '~/components/Button/buttons'
 import { AutoColumn } from '~/components/deprecated/Column'
 import { AutoRow, RowBetween } from '~/components/deprecated/Row'
@@ -10,20 +19,11 @@ import DelegateModal from '~/components/vote/DelegateModal'
 import ProposalEmptyState from '~/components/vote/ProposalEmptyState'
 import { useAccount } from '~/hooks/useAccount'
 import { useModalState } from '~/hooks/useModalState'
-import JSBI from 'jsbi'
 import styled from '~/lib/deprecated-styled'
 import { ProposalStatus } from '~/pages/Vote/styled'
-import { darken } from 'polished'
-import { useState } from 'react'
-import { Trans } from 'react-i18next'
-import { Link } from 'react-router'
-import { Button } from 'rebass/styled-components'
 import { ProposalData, ProposalState, useAllProposalData } from '~/state/governance/hooks'
 import { ThemedText } from '~/theme/components'
 import { ExternalLink } from '~/theme/components/Links'
-import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { InterfacePageName, ModalName } from 'uniswap/src/features/telemetry/constants'
-import Trace from 'uniswap/src/features/telemetry/Trace'
 
 const PageWrapper = styled(AutoColumn)`
   padding-top: 68px;
@@ -191,7 +191,11 @@ export default function Landing() {
                     ) : availableVotes ? (
                       <Trans
                         i18nKey="vote.landing.voteAmount"
-                        values={{ amount: formatCurrencyAmount({ value: availableVotes }) }}
+                        values={{
+                          amount: formatCurrencyAmount({
+                            value: availableVotes,
+                          }),
+                        }}
                       />
                     ) : (
                       ''
@@ -203,7 +207,11 @@ export default function Landing() {
                 <ButtonPrimary
                   as={Link}
                   to="/create-proposal"
-                  style={{ width: 'fit-content', borderRadius: '8px', height: '40px' }}
+                  style={{
+                    width: 'fit-content',
+                    borderRadius: '8px',
+                    height: '40px',
+                  }}
                   padding="8px"
                 >
                   <Trans i18nKey="vote.landing.createProposal" />

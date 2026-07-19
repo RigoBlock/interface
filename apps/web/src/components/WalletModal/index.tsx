@@ -17,5 +17,9 @@ export default function WalletModal({ connectOnPlatform }: { connectOnPlatform?:
     return <SwitchWalletModal connectOnPlatform={connectOnPlatform} onClose={onClose} />
   }
 
-  return isEmbeddedWalletEnabled && isPrivyProviderMounted ? <EmbeddedWalletConnectionsModal /> : <StandardWalletModal />
+  return isEmbeddedWalletEnabled && isPrivyProviderMounted ? (
+    <EmbeddedWalletConnectionsModal />
+  ) : (
+    <StandardWalletModal />
+  )
 }

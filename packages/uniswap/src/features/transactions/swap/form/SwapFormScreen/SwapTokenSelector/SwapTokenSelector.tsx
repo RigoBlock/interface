@@ -26,13 +26,13 @@ export function SwapTokenSelector({
 
   const eoaAddresses = useActiveAddresses()
   // When a smart pool is active, show vault token balances in the token selector
-  const addresses: AddressGroup = smartPoolAddress
-    ? { evmAddress: smartPoolAddress as `0x${string}` }
-    : eoaAddresses
+  const addresses: AddressGroup = smartPoolAddress ? { evmAddress: smartPoolAddress as `0x${string}` } : eoaAddresses
   const chainId = useChainId()
 
   const handleHideTokenSelector = useHideTokenSelector()
-  const onSelectCurrency = useOnSelectCurrency({ onSelect: handleHideTokenSelector })
+  const onSelectCurrency = useOnSelectCurrency({
+    onSelect: handleHideTokenSelector,
+  })
 
   if (!isModalOpen) {
     // `TokenSelectorModal` already returns `null` when `isModalOpen` is `false

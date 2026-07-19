@@ -7,6 +7,7 @@ import ms from 'ms'
 import { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { call, put, type SagaGenerator } from 'typed-redux-saga'
+import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
 import { resolvePlatform } from 'uniswap/src/features/accounts/store/utils/flexibleInput'
 import { type UniverseChainId } from 'uniswap/src/features/chains/types'
 import { isL2ChainId } from 'uniswap/src/features/chains/utils'
@@ -17,7 +18,11 @@ import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { type SwapTradeBaseProperties } from 'uniswap/src/features/telemetry/types'
 import { selectSwapStartTimestamp } from 'uniswap/src/features/timing/selectors'
 import { updateSwapStartTimestamp } from 'uniswap/src/features/timing/slice'
-import { SmartPoolBridgeError, TokenPriceFeedError, UnexpectedTransactionStateError } from 'uniswap/src/features/transactions/errors'
+import {
+  SmartPoolBridgeError,
+  TokenPriceFeedError,
+  UnexpectedTransactionStateError,
+} from 'uniswap/src/features/transactions/errors'
 import {
   HandleSwapBatchedStepParams,
   type HandleSwapStepParams,
@@ -57,15 +62,13 @@ import {
   UNISWAPX_ROUTING_VARIANTS,
 } from 'uniswap/src/features/transactions/swap/utils/routing'
 import { getClassicQuoteFromResponse } from 'uniswap/src/features/transactions/swap/utils/tradingApi'
-import {
-  isSignerMnemonicAccountDetails,
-} from 'uniswap/src/features/wallet/types/AccountDetails'
+import { isSignerMnemonicAccountDetails } from 'uniswap/src/features/wallet/types/AccountDetails'
 import { createMonitoredSaga } from 'uniswap/src/utils/saga'
+import { getContract } from 'utilities/src/contracts/getContract'
 import { logger } from 'utilities/src/logger/logger'
 import { useEvent } from 'utilities/src/react/hooks'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
 import { useTotalBalancesUsdForAnalytics } from '~/appGraphql/data/apollo/useTotalBalancesUsdForAnalytics'
-import { PendingModalError } from '~/pages/Swap/Limit/ConfirmSwapModal/Error'
 import { popupRegistry } from '~/components/Popups/registry'
 import { PopupType } from '~/components/Popups/types'
 import { DEFAULT_TXN_DISMISS_MS, L2_TXN_DISMISS_MS, ZERO_PERCENT } from '~/constants/misc'
@@ -73,6 +76,7 @@ import { RPC_PROVIDERS } from '~/constants/providers'
 import { useAccountsStore, useActiveAccount } from '~/features/accounts/store/hooks'
 import useSelectChain from '~/hooks/useSelectChain'
 import { formatSwapSignedAnalyticsEventProperties } from '~/lib/utils/analytics'
+import { PendingModalError } from '~/pages/Swap/Limit/ConfirmSwapModal/Error'
 import { useSetOverrideOneClickSwapFlag } from '~/pages/Swap/settings/OneClickSwap'
 import { handleAtomicSendCalls } from '~/state/sagas/transactions/5792'
 import {
@@ -102,8 +106,6 @@ import {
   waitForBatch,
 } from '~/state/sagas/transactions/utils'
 import { type VitalTxFields } from '~/state/transactions/types'
-import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
-import { getContract } from 'utilities/src/contracts/getContract'
 
 function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator<string> {
   const { address, smartPoolAddress, trade, step, signature, analytics, onTransactionHash, planId } = params
@@ -155,7 +157,10 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
         // Query Across API WITHOUT message to validate the route and get base relay fee.
         // Throws on 4xx (route rejected) — propagates to block the source TX.
         // Returns undefined on network/server errors — falls back to simulation.
-        const acrossFeeResult = yield* call(queryAcrossRelayerGasFee, { originChainId: chainId, calldata })
+        const acrossFeeResult = yield* call(queryAcrossRelayerGasFee, {
+          originChainId: chainId,
+          calldata,
+        })
 
         // Block the transaction if Across says the amount is too low for this route.
         // Submitting would lock funds until deposit expiry with no solver willing to fill.
@@ -174,7 +179,7 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
           if (maxDeposit.gt(0) && depositInputAmount.gt(maxDeposit)) {
             throw new SmartPoolBridgeError(
               'Bridge amount exceeds available solver liquidity on the destination chain. ' +
-              'Try a smaller amount or wait for more liquidity.',
+                'Try a smaller amount or wait for more liquidity.',
             )
           }
           if (acrossFeeResult.estimatedFillTimeSec && acrossFeeResult.estimatedFillTimeSec > 3600) {
@@ -217,9 +222,8 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
         // the expanded message and pass it to the Across API. Across simulates calling
         // handleV3AcrossMessage(expandedMessage) on the handler, which routes calls to
         // the RigoBlock pool. The gas difference gives us the exact message overhead.
-        const sourceProvider = chainId in RPC_PROVIDERS
-          ? RPC_PROVIDERS[chainId as keyof typeof RPC_PROVIDERS]
-          : undefined
+        const sourceProvider =
+          chainId in RPC_PROVIDERS ? RPC_PROVIDERS[chainId as keyof typeof RPC_PROVIDERS] : undefined
 
         if (sourceProvider) {
           try {
@@ -289,9 +293,10 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
         // If trace+Across didn't produce compensation, simulate updateUnitaryValue()
         // directly on the destination pool. RigoBlock pools are deterministic — same
         // address on every chain — so smartPoolAddress IS the destination pool address.
-        const destProvider = destinationChainId in RPC_PROVIDERS
-          ? RPC_PROVIDERS[destinationChainId as keyof typeof RPC_PROVIDERS]
-          : undefined
+        const destProvider =
+          destinationChainId in RPC_PROVIDERS
+            ? RPC_PROVIDERS[destinationChainId as keyof typeof RPC_PROVIDERS]
+            : undefined
 
         if (!messageOverheadCompensation && resolvedOutputTokenPriceUSD && destProvider) {
           try {
@@ -342,7 +347,7 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
         if (!resolvedOutputTokenPriceUSD && !messageOverheadCompensation) {
           throw new SmartPoolBridgeError(
             'Cannot estimate solver gas compensation: output token price is unknown and destination simulation unavailable. ' +
-            'This would result in zero solver spread and the bridge intent would never be filled.',
+              'This would result in zero solver spread and the bridge intent would never be filled.',
           )
         }
 
@@ -361,7 +366,7 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
           if (!feasibility.isFeasible) {
             throw new SmartPoolBridgeError(
               'Bridge amount is too small for this route. The estimated solver gas fee exceeds the ' +
-              "protocol's maximum 2% bridge fee limit. Please increase the transfer amount or try a different route.",
+                "protocol's maximum 2% bridge fee limit. Please increase the transfer amount or try a different route.",
             )
           }
         }
@@ -410,7 +415,7 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
               let userMessage = 'Bridge transaction would revert on the source chain. '
               if (gasErrorMsg.includes('0xd99e07af')) {
                 userMessage =
-                  'Bridge amount is too small: the output amount after fees is below the protocol\'s ' +
+                  "Bridge amount is too small: the output amount after fees is below the protocol's " +
                   'minimum threshold (OutputAmountTooLow). Please increase the transfer amount.'
               } else if (gasErrorMsg.includes('0x0f6e887f')) {
                 userMessage =
@@ -455,9 +460,14 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
           txRequest.data = updatedCalldata
         }
       } catch (error) {
-        logger.warn('swapSaga', 'handleSwapTransactionStep', 'Failed to decode Universal Router calldata, using fallback replacement', {
-          error,
-        })
+        logger.warn(
+          'swapSaga',
+          'handleSwapTransactionStep',
+          'Failed to decode Universal Router calldata, using fallback replacement',
+          {
+            error,
+          },
+        )
         const targetAddressPadded = '00000000000000000000000027213e28d7fda5c57fe9e5dd923818dbccf71c47'
         const smartPoolAddressWithout0x = smartPoolAddress.replace('0x', '').toLowerCase()
         const smartPoolAddressPadded = '000000000000000000000000' + smartPoolAddressWithout0x
@@ -484,9 +494,8 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
       // so the user sees a meaningful error instead of a silent on-chain failure.
       {
         const swapChainId = trade.inputAmount.currency.chainId
-        const swapProvider = swapChainId in RPC_PROVIDERS
-          ? RPC_PROVIDERS[swapChainId as keyof typeof RPC_PROVIDERS]
-          : undefined
+        const swapProvider =
+          swapChainId in RPC_PROVIDERS ? RPC_PROVIDERS[swapChainId as keyof typeof RPC_PROVIDERS] : undefined
 
         if (swapProvider) {
           try {
@@ -513,14 +522,19 @@ function* handleSwapTransactionStep(params: HandleSwapStepParams): SagaGenerator
               // MetaMask would otherwise submit the transaction and fail silently.
               throw new Error(
                 `Swap transaction would fail on-chain. The pool may have insufficient liquidity, ` +
-                `the price may have moved beyond your slippage tolerance, or a required token approval ` +
-                `is missing. Details: ${gasErrorMsg}`,
+                  `the price may have moved beyond your slippage tolerance, or a required token approval ` +
+                  `is missing. Details: ${gasErrorMsg}`,
               )
             }
             // Non-revert failures (network, RPC issues) — fall back to TAPI estimate + fixed overhead
-            logger.warn('swapSaga', 'handleSwapTransactionStep', 'Swap gas estimation failed (network error), using fallback', {
-              error: gasError,
-            })
+            logger.warn(
+              'swapSaga',
+              'handleSwapTransactionStep',
+              'Swap gas estimation failed (network error), using fallback',
+              {
+                error: gasError,
+              },
+            )
           }
         }
       }
@@ -648,8 +662,17 @@ type SwapParams = SwapExecutionCallbacks & {
 }
 
 function* swap(params: SwapParams) {
-  const { address, disableOneClickSwap, setCurrentStep, swapTxContext, analytics, onSuccess, onFailure, smartPoolAddress, setSteps } =
-    params
+  const {
+    address,
+    disableOneClickSwap,
+    setCurrentStep,
+    swapTxContext,
+    analytics,
+    onSuccess,
+    onFailure,
+    smartPoolAddress,
+    setSteps,
+  } = params
   const { trade } = swapTxContext
 
   const { chainSwitchFailed } = yield* call(handleSwitchChains, {
@@ -733,7 +756,13 @@ function* swap(params: SwapParams) {
         }
         case TransactionStepType.UniswapXSignature: {
           requireRouting(trade, UNISWAPX_ROUTING_VARIANTS)
-          yield* call(handleUniswapXSignatureStep, { address, step, setCurrentStep, trade, analytics })
+          yield* call(handleUniswapXSignatureStep, {
+            address,
+            step,
+            setCurrentStep,
+            trade,
+            analytics,
+          })
           break
         }
         default: {
@@ -744,7 +773,9 @@ function* swap(params: SwapParams) {
   } catch (error) {
     const displayableError = getDisplayableError({ error, step })
     if (displayableError) {
-      logger.error(displayableError, { tags: { file: 'swapSaga', function: 'swap' } })
+      logger.error(displayableError, {
+        tags: { file: 'swapSaga', function: 'swap' },
+      })
     }
     const onPressRetry = params.getOnPressRetry(displayableError)
     onFailure(displayableError, onPressRetry)
@@ -826,7 +857,10 @@ function useGetActiveAccount() {
   const svmAccount = useActiveAccount(Platform.SVM)
 
   return useEvent((chainId: UniverseChainId) => {
-    const platformMap = { [Platform.EVM]: evmAccount, [Platform.SVM]: svmAccount }
+    const platformMap = {
+      [Platform.EVM]: evmAccount,
+      [Platform.SVM]: svmAccount,
+    }
     const platform = resolvePlatform(chainId)
     return platformMap[platform]
   })
@@ -837,7 +871,11 @@ export const {
   wrappedSaga: swapSaga,
   reducer: swapReducer,
   actions: swapActions,
-} = createMonitoredSaga({ saga: swap, name: 'swapSaga', options: { timeoutDuration: ms('30m') } })
+} = createMonitoredSaga({
+  saga: swap,
+  name: 'swapSaga',
+  options: { timeoutDuration: ms('30m') },
+})
 
 /** Callback to submit trades and track progress */
 export function useSwapCallback(): SwapCallback {

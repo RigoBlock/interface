@@ -40,7 +40,14 @@ export function LiquidityPositionInfoLoader({ hideStatus }: { hideStatus?: boole
   return (
     <Flex row gap="$gap16" $md={{ width: '100%' }}>
       <Circle size={44} backgroundColor="$surface3" />
-      <Flex grow $md={{ row: true, justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <Flex
+        grow
+        $md={{
+          row: true,
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+        }}
+      >
         <Flex my={hideStatus ? 'auto' : '$none'}>
           <TextLoader variant="subheading1" width={100} />
         </Flex>

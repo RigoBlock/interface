@@ -1,9 +1,9 @@
 import { Currency } from '@uniswap/sdk-core'
+import { Trans } from 'react-i18next'
 import AddressInputPanel from '~/components/AddressInputPanel'
 import CurrencyInputPanel from '~/components/CurrencyInputPanel'
 import styled from '~/lib/deprecated-styled'
 import { ProposalAction } from '~/pages/CreateProposal/ProposalActionSelector'
-import { Trans } from 'react-i18next'
 
 enum ProposalActionDetailField {
   ADDRESS = 0,

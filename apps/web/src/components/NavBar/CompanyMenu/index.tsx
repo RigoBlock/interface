@@ -1,9 +1,4 @@
-import { NavIcon } from '~/components/Logo/NavIcon'
-import { MobileMenuDrawer } from '~/components/NavBar/CompanyMenu/MobileMenuDrawer'
 import { useTheme } from '@tamagui/core'
-import { useIsMobileDrawer } from '~/components/NavBar/ScreenSizes'
-import { ArrowChangeDown } from '~/components/Icons/ArrowChangeDown'
-import { MenuDropdown } from '~/components/NavBar/CompanyMenu/MenuDropdown'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { Flex, Popover, styled, Text, useMedia } from 'ui/src'
@@ -11,6 +6,11 @@ import { Hamburger } from 'ui/src/components/icons/Hamburger'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
+import { ArrowChangeDown } from '~/components/Icons/ArrowChangeDown'
+import { NavIcon } from '~/components/Logo/NavIcon'
+import { MenuDropdown } from '~/components/NavBar/CompanyMenu/MenuDropdown'
+import { MobileMenuDrawer } from '~/components/NavBar/CompanyMenu/MobileMenuDrawer'
+import { useIsMobileDrawer } from '~/components/NavBar/ScreenSizes'
 
 const ArrowDownWrapper = styled(Text, {
   color: '$neutral2',

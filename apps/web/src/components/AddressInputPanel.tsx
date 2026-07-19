@@ -114,7 +114,11 @@ export default function AddressInputPanel({
               </Text>
               {address && chainId && (
                 <ExternalLink
-                  href={getExplorerLink({ chainId, data: name ?? address, type: ExplorerDataType.ADDRESS })}
+                  href={getExplorerLink({
+                    chainId,
+                    data: name ?? address,
+                    type: ExplorerDataType.ADDRESS,
+                  })}
                   style={{ fontSize: '14px' }}
                 >
                   (<Trans i18nKey="common.viewOnExplorer" />)

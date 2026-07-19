@@ -92,4 +92,6 @@ function getWindowPathname() {
   return window.location.pathname
 }
 
-export const getIsBrowserPage = createGetIsPage({ getPathname: getWindowPathname })
+export const getIsBrowserPage = createGetIsPage({
+  getPathname: getWindowPathname,
+})

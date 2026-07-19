@@ -1,7 +1,11 @@
 [
   {
     "inputs": [
-      { "internalType": "address", "name": "newImplementation", "type": "address" },
+      {
+        "internalType": "address",
+        "name": "newImplementation",
+        "type": "address"
+      },
       { "internalType": "address", "name": "registry", "type": "address" }
     ],
     "stateMutability": "nonpayable",
@@ -9,19 +13,40 @@
   },
   {
     "anonymous": false,
-    "inputs": [{ "indexed": false, "internalType": "address", "name": "poolAddress", "type": "address" }],
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "poolAddress",
+        "type": "address"
+      }
+    ],
     "name": "PoolCreated",
     "type": "event"
   },
   {
     "anonymous": false,
-    "inputs": [{ "indexed": true, "internalType": "address", "name": "registry", "type": "address" }],
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "registry",
+        "type": "address"
+      }
+    ],
     "name": "RegistryUpgraded",
     "type": "event"
   },
   {
     "anonymous": false,
-    "inputs": [{ "indexed": true, "internalType": "address", "name": "implementation", "type": "address" }],
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "implementation",
+        "type": "address"
+      }
+    ],
     "name": "Upgraded",
     "type": "event"
   },
@@ -33,7 +58,11 @@
     ],
     "name": "createPool",
     "outputs": [
-      { "internalType": "address", "name": "newPoolAddress", "type": "address" },
+      {
+        "internalType": "address",
+        "name": "newPoolAddress",
+        "type": "address"
+      },
       { "internalType": "bytes32", "name": "poolId", "type": "bytes32" }
     ],
     "stateMutability": "nonpayable",
@@ -73,7 +102,13 @@
     "type": "function"
   },
   {
-    "inputs": [{ "internalType": "address", "name": "newImplementation", "type": "address" }],
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newImplementation",
+        "type": "address"
+      }
+    ],
     "name": "setImplementation",
     "outputs": [],
     "stateMutability": "nonpayable",

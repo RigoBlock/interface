@@ -54,7 +54,10 @@ export type PricePoint = { timestamp: number; value: number }
 export function toContractInput(currency: Currency, fallback: UniverseChainId): GraphQLApi.ContractInput {
   const supportedChainId = toSupportedChainId(currency.chainId)
   const chain = toGraphQLChain(supportedChainId ?? fallback)
-  return { chain, address: currency.isToken ? currency.address : getNativeTokenDBAddress(chain) }
+  return {
+    chain,
+    address: currency.isToken ? currency.address : getNativeTokenDBAddress(chain),
+  }
 }
 
 export function gqlToCurrency(token: DeepPartial<GraphQLApi.Token | TokenStat>): Currency | undefined {
@@ -187,7 +190,10 @@ export function unwrapToken<
   if (
     !areAddressesEqual({
       addressInput1: { address: token.address, chainId },
-      addressInput2: { address: WRAPPED_NATIVE_CURRENCY[chainId]?.address, chainId },
+      addressInput2: {
+        address: WRAPPED_NATIVE_CURRENCY[chainId]?.address,
+        chainId,
+      },
     })
   ) {
     return token
@@ -208,28 +214,44 @@ export function unwrapToken<
   }
 }
 
-type ProtocolMeta = { name: string; color: ColorTokens; gradient: { start: string; end: string } }
+type ProtocolMeta = {
+  name: string
+  color: ColorTokens
+  gradient: { start: string; end: string }
+}
 const PROTOCOL_META: { [source in GraphQLApi.PriceSource]: ProtocolMeta } = {
   [GraphQLApi.PriceSource.SubgraphV2]: {
     name: 'v2',
     color: '$DEP_blue400',
-    gradient: { start: 'rgba(96, 123, 238, 0.20)', end: 'rgba(55, 70, 136, 0.00)' },
+    gradient: {
+      start: 'rgba(96, 123, 238, 0.20)',
+      end: 'rgba(55, 70, 136, 0.00)',
+    },
   },
   [GraphQLApi.PriceSource.SubgraphV3]: {
     name: 'v3',
     color: '$accent1',
-    gradient: { start: 'rgba(252, 116, 254, 0.20)', end: 'rgba(252, 116, 254, 0.00)' },
+    gradient: {
+      start: 'rgba(252, 116, 254, 0.20)',
+      end: 'rgba(252, 116, 254, 0.00)',
+    },
   },
   [GraphQLApi.PriceSource.SubgraphV4]: {
     name: 'v4',
     color: '$chain_137',
-    gradient: { start: 'rgba(96, 123, 238, 0.20)', end: 'rgba(55, 70, 136, 0.00)' },
+    gradient: {
+      start: 'rgba(96, 123, 238, 0.20)',
+      end: 'rgba(55, 70, 136, 0.00)',
+    },
   },
   [GraphQLApi.PriceSource.External]: {
     // TODO (LP-350): Remove this since this protocol chart does not exist anymore
     name: 'external',
     color: '$neutral1',
-    gradient: { start: 'rgba(252, 116, 254, 0.20)', end: 'rgba(252, 116, 254, 0.00)' },
+    gradient: {
+      start: 'rgba(252, 116, 254, 0.20)',
+      end: 'rgba(252, 116, 254, 0.00)',
+    },
   },
   /* [GraphQLApi.PriceSource.UniswapX]: { name: 'UniswapX', color: purple } */
 }

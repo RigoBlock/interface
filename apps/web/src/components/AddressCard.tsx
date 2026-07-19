@@ -1,12 +1,13 @@
+import { Trans } from 'react-i18next'
+import { ArrowUpRight } from 'ui/src/components/icons/ArrowUpRight'
+import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
+import { shortenAddress } from 'utilities/src/addresses'
 import { LightCard } from '~/components/Card/cards'
 import { AutoColumn } from '~/components/deprecated/Column'
 import Row from '~/components/deprecated/Row'
 import styled from '~/lib/deprecated-styled'
-import { Trans } from 'react-i18next'
 import { CopyHelper } from '~/theme/components/CopyHelper'
 import { ExternalLink } from '~/theme/components/Links'
-import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
-import { shortenAddress } from 'utilities/src/addresses'
 
 const ExtentsText = styled.span`
   color: ${({ theme }) => theme.neutral2};
@@ -47,6 +48,12 @@ const IconContainer = styled.div`
   justify-content: center;
 `
 
+const ExplorerLink = styled(ExternalLink)`
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
+`
+
 function AddressCard({
   address,
   chainId,
@@ -74,11 +81,27 @@ function AddressCard({
             <IconContainer>
               <CopyHelper iconSize={20} iconPosition="right" toCopy={address}>
                 <Row width="100px" padding="8px 4px">
-                  <ExternalLink href={getExplorerLink({ chainId, data: address, type: ExplorerDataType.ADDRESS })}>
+                  <ExternalLink
+                    href={getExplorerLink({
+                      chainId,
+                      data: address,
+                      type: ExplorerDataType.ADDRESS,
+                    })}
+                  >
                     <Trans>{shortenAddress({ address })}</Trans>
                   </ExternalLink>
                 </Row>
               </CopyHelper>
+              <ExplorerLink
+                href={getExplorerLink({
+                  chainId,
+                  data: address,
+                  type: ExplorerDataType.ADDRESS,
+                })}
+                aria-label="View on block explorer"
+              >
+                <ArrowUpRight size="$icon.16" color="$accent1" />
+              </ExplorerLink>
             </IconContainer>
           ) : null}
         </ExtentsText>

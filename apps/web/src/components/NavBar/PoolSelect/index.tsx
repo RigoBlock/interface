@@ -3,8 +3,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { styled, Flex, Text } from 'ui/src'
 import { Caret } from 'ui/src/components/icons/Caret'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
-import CurrencySearchModal from '~/components/SearchModal/CurrencySearchModal'
 import { SwitchNetworkAction } from '~/components/Popups/types'
+import CurrencySearchModal from '~/components/SearchModal/CurrencySearchModal'
 import { useActiveSmartPool, useSelectActiveSmartPool } from '~/state/application/hooks'
 
 const PoolSelectButton = styled(Flex, {
@@ -89,17 +89,8 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
 
   return (
     <>
-      <PoolSelectButton
-        className="operated-pool-select-button"
-        onPress={() => setShowModal(true)}
-      >
-        <Text
-          variant="buttonLabel3"
-          color="$neutral1"
-          numberOfLines={1}
-          flexShrink={1}
-          minWidth={0}
-        >
+      <PoolSelectButton className="operated-pool-select-button" onPress={() => setShowModal(true)}>
+        <Text variant="buttonLabel3" color="$neutral1" numberOfLines={1} flexShrink={1} minWidth={0}>
           {activeSmartPool.name}
         </Text>
         <Caret color="$neutral2" direction="s" size="$icon.16" />

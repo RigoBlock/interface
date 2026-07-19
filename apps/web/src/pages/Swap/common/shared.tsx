@@ -16,7 +16,12 @@ export const NumericalInputWrapper = deprecatedStyled(Row)`
 `
 
 export const StyledNumericalInput = deprecatedStyled(Input)<
-  { $width?: number; $hasPrefix?: boolean; $fontSize?: number; $prefixWidth?: number } & InputProps
+  {
+    $width?: number
+    $hasPrefix?: boolean
+    $fontSize?: number
+    $prefixWidth?: number
+  } & InputProps
 >`
   max-height: 84px;
   max-width: ${({ $hasPrefix, $prefixWidth }) => ($hasPrefix ? `calc(100% - ${$prefixWidth ?? 43}px)` : '100%')};
@@ -29,7 +34,9 @@ export const StyledNumericalInput = deprecatedStyled(Input)<
   }
 `
 
-export const NumericalInputMimic = deprecatedStyled.span<{ $fontSize?: number }>`
+export const NumericalInputMimic = deprecatedStyled.span<{
+  $fontSize?: number
+}>`
   position: absolute;
   visibility: hidden;
   bottom: 0px;
@@ -37,7 +44,10 @@ export const NumericalInputMimic = deprecatedStyled.span<{ $fontSize?: number }>
   ${NumericalInputFontStyle}
 `
 
-export const NumericalInputSymbolContainer = deprecatedStyled.span<{ $showPlaceholder: boolean; $fontSize?: number }>`
+export const NumericalInputSymbolContainer = deprecatedStyled.span<{
+  $showPlaceholder: boolean
+  $fontSize?: number
+}>`
   user-select: none;
   color: ${({ theme }) => theme.neutral1};
   ${NumericalInputFontStyle}

@@ -6,8 +6,8 @@ exports[`PasskeyGenerationModal > renders default state 1`] = `
   text-decoration: none;
   cursor: pointer;
   transition-duration: 125ms;
-  color: #FF37C7;
-  stroke: #FF37C7;
+  color: #feb239;
+  stroke: #feb239;
   font-weight: 500;
 }
 
@@ -220,8 +220,8 @@ exports[`PasskeyGenerationModal > renders loading state 1`] = `
   text-decoration: none;
   cursor: pointer;
   transition-duration: 125ms;
-  color: #FF37C7;
-  stroke: #FF37C7;
+  color: #feb239;
+  stroke: #feb239;
   font-weight: 500;
 }
 

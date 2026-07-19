@@ -1,5 +1,6 @@
 /* oxlint-disable max-lines */
 
+import { BigNumber } from '@ethersproject/bignumber'
 import type {
   BridgeQuoteResponse,
   ClassicQuoteResponse,
@@ -11,7 +12,6 @@ import type {
   WrapQuoteResponse,
 } from '@universe/api'
 import { TradingApi } from '@universe/api'
-import { BigNumber } from '@ethersproject/bignumber'
 import type { providers } from 'ethers/lib/ethers'
 import { useMemo } from 'react'
 import { getTradeSettingsDeadline } from 'uniswap/src/data/apiClients/tradingApi/utils/getTradeSettingsDeadline'
@@ -317,7 +317,11 @@ export function createLogSwapRequestErrors({ trace }: { trace: ITraceContext }) 
     // TODO(SWAP-415): review how we're logging these errors to avoid spamming the logs with things we don't need to log.
     if (gasFeeResult.error) {
       const extra = {
-        ...getBaseTradeAnalyticsPropertiesFromSwapInfo({ derivedSwapInfo, transactionSettings, trace }),
+        ...getBaseTradeAnalyticsPropertiesFromSwapInfo({
+          derivedSwapInfo,
+          transactionSettings,
+          trace,
+        }),
         // we explicitly log it here to show on Datadog dashboard
         chainLabel: getChainLabel(derivedSwapInfo.chainId),
         requestId: quote.requestId,
@@ -347,7 +351,11 @@ export function createLogSwapRequestErrors({ trace }: { trace: ITraceContext }) 
 
       if (!(isMobileApp || isExtensionApp)) {
         sendAnalyticsEvent(SwapEventName.SwapEstimateGasCallFailed, {
-          ...getBaseTradeAnalyticsPropertiesFromSwapInfo({ derivedSwapInfo, transactionSettings, trace }),
+          ...getBaseTradeAnalyticsPropertiesFromSwapInfo({
+            derivedSwapInfo,
+            transactionSettings,
+            trace,
+          }),
           error: gasFeeResult.error,
           txRequest,
           simulationFailureReasons: isClassic(quote) ? quote.quote.txFailureReasons : undefined,
@@ -430,7 +438,10 @@ export function getClassicSwapTxAndGasInfo({
     : typedData
       ? ({ method: PermitMethod.TypedData, typedData } as const)
       : permitTxInfo.permitTxRequest
-        ? ({ method: PermitMethod.Transaction, txRequest: permitTxInfo.permitTxRequest } as const)
+        ? ({
+            method: PermitMethod.Transaction,
+            txRequest: permitTxInfo.permitTxRequest,
+          } as const)
         : undefined
 
   // For RigoBlock pools, clean up swapRequestArgs to remove permitData
@@ -444,7 +455,11 @@ export function getClassicSwapTxAndGasInfo({
     ? { approveTxRequest: undefined, revocationTxRequest: undefined }
     : createApprovalFields({ approvalTxInfo })
 
-  const gasFields = createGasFields({ swapTxInfo, approvalTxInfo, permitTxInfo })
+  const gasFields = createGasFields({
+    swapTxInfo,
+    approvalTxInfo,
+    permitTxInfo,
+  })
 
   // For RigoBlock pools, inflate the displayed gas fee to account for smart pool routing overhead.
   // The API gas estimate doesn't include the extra gas consumed by the pool contract execution.

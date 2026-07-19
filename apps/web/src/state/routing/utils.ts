@@ -75,7 +75,11 @@ export function computeRoutes(args: GetQuoteArgs, routes: ClassicQuoteData['rout
   if (routes.length === 0) {
     return []
   }
-  const [currencyIn, currencyOut] = getTradeCurrencies({ args, isUniswapXTrade: false, routes })
+  const [currencyIn, currencyOut] = getTradeCurrencies({
+    args,
+    isUniswapXTrade: false,
+    routes,
+  })
 
   try {
     return routes.map((route) => {
@@ -102,7 +106,9 @@ export function computeRoutes(args: GetQuoteArgs, routes: ClassicQuoteData['rout
       }
     })
   } catch (e) {
-    logger.warn('routing/utils', 'computeRoutes', 'Failed to compute routes', { error: e })
+    logger.warn('routing/utils', 'computeRoutes', 'Failed to compute routes', {
+      error: e,
+    })
     return undefined
   }
 }
@@ -330,7 +336,10 @@ export async function transformQuoteToTrade({
       routingType === URAQuoteType.PRIORITY) &&
     routerPreference === RouterPreference.X
 
-  const [currencyIn, currencyOut] = getTradeCurrencies({ args, isUniswapXTrade: showUniswapXTrade })
+  const [currencyIn, currencyOut] = getTradeCurrencies({
+    args,
+    isUniswapXTrade: showUniswapXTrade,
+  })
 
   if (!isEVMChain(currencyIn.chainId)) {
     throw new Error('chainId must be EVM for routing api paths')
@@ -350,7 +359,13 @@ export async function transformQuoteToTrade({
   const classicTrade = new ClassicTrade({
     v2Routes:
       routes
-        ?.filter((r): r is RouteResult & { routev2: NonNullable<RouteResult['routev2']> } => r.routev2 !== null)
+        ?.filter(
+          (
+            r,
+          ): r is RouteResult & {
+            routev2: NonNullable<RouteResult['routev2']>
+          } => r.routev2 !== null,
+        )
         .map(({ routev2, inputAmount, outputAmount }) => ({
           routev2,
           inputAmount,
@@ -358,7 +373,13 @@ export async function transformQuoteToTrade({
         })) ?? [],
     v3Routes:
       routes
-        ?.filter((r): r is RouteResult & { routev3: NonNullable<RouteResult['routev3']> } => r.routev3 !== null)
+        ?.filter(
+          (
+            r,
+          ): r is RouteResult & {
+            routev3: NonNullable<RouteResult['routev3']>
+          } => r.routev3 !== null,
+        )
         .map(({ routev3, inputAmount, outputAmount }) => ({
           routev3,
           inputAmount,
@@ -367,7 +388,11 @@ export async function transformQuoteToTrade({
     mixedRoutes:
       routes
         ?.filter(
-          (r): r is RouteResult & { mixedRoute: NonNullable<RouteResult['mixedRoute']> } => r.mixedRoute !== null,
+          (
+            r,
+          ): r is RouteResult & {
+            mixedRoute: NonNullable<RouteResult['mixedRoute']>
+          } => r.mixedRoute !== null,
         )
         .map(({ mixedRoute, inputAmount, outputAmount }) => ({
           mixedRoute,

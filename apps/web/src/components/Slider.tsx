@@ -1,5 +1,5 @@
-import styled from '~/lib/deprecated-styled'
 import { ChangeEvent, useCallback } from 'react'
+import styled from '~/lib/deprecated-styled'
 
 const StyledRangeInput = styled.input<{ size: number }>`
   -webkit-appearance: none; /* Hides the slider so that custom slider can be made */

@@ -1,10 +1,10 @@
-import { usePortfolioStaking } from '~/pages/Portfolio/hooks/usePortfolioStaking'
 import { memo } from 'react'
 import { Flex, Text } from 'ui/src'
 import { ActivityRenderData } from 'uniswap/src/features/activity/hooks/useActivityData'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { NumberType } from 'utilities/src/format/types'
+import { usePortfolioStaking } from '~/pages/Portfolio/hooks/usePortfolioStaking'
 import {
   MAX_ACTIVITY_ROWS,
   MAX_POOLS_ROWS,
@@ -19,7 +19,10 @@ import { OpenLimitsTable } from '~/pages/Portfolio/Overview/OpenLimitsTable'
 interface PortfolioOverviewTablesProps {
   activityData: ActivityRenderData
   chainId: UniverseChainId | undefined
-  portfolioAddresses: { evmAddress: Address | undefined; svmAddress: Address | undefined }
+  portfolioAddresses: {
+    evmAddress: Address | undefined
+    svmAddress: Address | undefined
+  }
   stakingAddress?: string // Address for staking context (smart pool or user)
 }
 

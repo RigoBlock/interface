@@ -90,7 +90,10 @@ export function useUSDCPrice(
 
     if (currencyIsStablecoin) {
       // handle stablecoin
-      return { price: new Price(stablecoin, stablecoin, '1', '1'), isLoading: false }
+      return {
+        price: new Price(stablecoin, stablecoin, '1', '1'),
+        isLoading: false,
+      }
     }
 
     // Try primary trade first
@@ -98,12 +101,18 @@ export function useUSDCPrice(
       // Convert the string amounts to JSBI.BigInt values
       const inputAmount = JSBI.BigInt(trade.quote.quote.inAmount)
       const outputAmount = JSBI.BigInt(trade.quote.quote.outAmount)
-      return { price: new Price(currency, stablecoin, inputAmount, outputAmount), isLoading }
+      return {
+        price: new Price(currency, stablecoin, inputAmount, outputAmount),
+        isLoading,
+      }
     }
 
     if (trade && isClassic(trade) && trade.routes[0] && currency) {
       const { numerator, denominator } = trade.routes[0].midPrice
-      return { price: new Price(currency, stablecoin, denominator, numerator), isLoading }
+      return {
+        price: new Price(currency, stablecoin, denominator, numerator),
+        isLoading,
+      }
     }
 
     // Fallback to EXACT_INPUT trade for GRG tokens
@@ -112,13 +121,19 @@ export function useUSDCPrice(
         // For Jupiter trades, calculate price from the quote amounts
         const inputAmount = JSBI.BigInt(fallbackTrade.quote.quote.inAmount)
         const outputAmount = JSBI.BigInt(fallbackTrade.quote.quote.outAmount)
-        return { price: new Price(currency, stablecoin, inputAmount, outputAmount), isLoading: fallbackLoading }
+        return {
+          price: new Price(currency, stablecoin, inputAmount, outputAmount),
+          isLoading: fallbackLoading,
+        }
       }
 
       if (isClassic(fallbackTrade) && fallbackTrade.routes[0]) {
         // For classic trades, use the midPrice from the route
         const { numerator, denominator } = fallbackTrade.routes[0].midPrice
-        return { price: new Price(currency, stablecoin, denominator, numerator), isLoading: fallbackLoading }
+        return {
+          price: new Price(currency, stablecoin, denominator, numerator),
+          isLoading: fallbackLoading,
+        }
       }
     }
 

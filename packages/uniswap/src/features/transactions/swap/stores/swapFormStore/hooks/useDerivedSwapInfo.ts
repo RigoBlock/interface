@@ -28,7 +28,10 @@ export function useDerivedSwapInfo({
   isDebouncing,
   smartPoolAddress,
   ...state
-}: TransactionState & { isDebouncing?: boolean; smartPoolAddress?: string }): DerivedSwapInfo {
+}: TransactionState & {
+  isDebouncing?: boolean
+  smartPoolAddress?: string
+}): DerivedSwapInfo {
   const {
     [CurrencyField.INPUT]: currencyAssetIn,
     [CurrencyField.OUTPUT]: currencyAssetOut,
@@ -179,7 +182,10 @@ export function useDerivedSwapInfo({
   )
 
   const existingPlanTrade = useTradeFromExistingPlan(tradeParams)
-  const tradeFromQuote = useTrade({ ...tradeParams, skip: !!existingPlanTrade })
+  const tradeFromQuote = useTrade({
+    ...tradeParams,
+    skip: !!existingPlanTrade,
+  })
   const trade = existingPlanTrade ?? tradeFromQuote
 
   const displayableTrade = trade.trade ?? trade.indicativeTrade

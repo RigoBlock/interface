@@ -127,7 +127,10 @@ export function useUniversalRouterSwapCallback({
         gasLimit = calculateGasMargin(gasEstimate)
       } catch (gasError) {
         sendAnalyticsEvent(SwapEventName.SwapEstimateGasCallFailed, {
-          ...formatCommonPropertiesForTrade({ trade, allowedSlippage: options.slippageTolerance }),
+          ...formatCommonPropertiesForTrade({
+            trade,
+            allowedSlippage: options.slippageTolerance,
+          }),
           ...analyticsContext,
           client_block_number: blockNumber,
           txRequest: tx,

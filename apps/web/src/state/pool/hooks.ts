@@ -7,15 +7,8 @@ import type { TransactionResponse } from '@ethersproject/providers'
 import { parseBytes32String } from '@ethersproject/strings'
 import { Currency } from '@uniswap/sdk-core'
 import { useWeb3React } from '@web3-react/core'
-import { RB_FACTORY_ADDRESSES, RB_REGISTRY_ADDRESSES } from '~/constants/addresses'
-import { useAccount } from '~/hooks/useAccount'
-import { useContract } from '~/hooks/useContract'
-import { useTotalSupply } from '~/hooks/useTotalSupply'
 import { useCallback, useMemo } from 'react'
 import { useParams } from 'react-router'
-import { useStakingContract } from '~/state/governance/hooks'
-import { useLogs } from '~/state/logs/hooks'
-import { useTransactionAdder } from '~/state/transactions/hooks'
 import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
 import RB_POOL_FACTORY_ABI from 'uniswap/src/abis/rb-pool-factory.json'
 import RB_REGISTRY_ABI from 'uniswap/src/abis/rb-registry.json'
@@ -24,10 +17,17 @@ import { GRG } from 'uniswap/src/constants/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { isValidHexString } from 'utilities/src/addresses/hex'
-import { calculateGasMargin } from '~/utils/calculateGasMargin'
-import { assume0xAddress } from '~/utils/wagmi'
 import type { Abi } from 'viem'
 import { useReadContracts } from 'wagmi'
+import { RB_FACTORY_ADDRESSES, RB_REGISTRY_ADDRESSES } from '~/constants/addresses'
+import { useAccount } from '~/hooks/useAccount'
+import { useContract } from '~/hooks/useContract'
+import { useTotalSupply } from '~/hooks/useTotalSupply'
+import { useStakingContract } from '~/state/governance/hooks'
+import { useLogs } from '~/state/logs/hooks'
+import { useTransactionAdder } from '~/state/transactions/hooks'
+import { calculateGasMargin } from '~/utils/calculateGasMargin'
+import { assume0xAddress } from '~/utils/wagmi'
 
 export const PoolInterface = new Interface(POOL_EXTENDED_ABI)
 const RegistryInterface = new Interface(RB_REGISTRY_ABI)
@@ -74,7 +74,10 @@ export interface PoolRegisteredLog {
   userHasStake?: boolean
 }
 
-function useStartBlock(chainId?: number): { fromBlock: number; toBlock?: number } {
+function useStartBlock(chainId?: number): {
+  fromBlock: number
+  toBlock?: number
+} {
   let registryStartBlock: number
   //const blockNumber = useBlockNumber()
 
@@ -173,7 +176,10 @@ export function useCreateCallback(): (options: {
       }
       return factoryContract.estimateGas.createPool(name, symbol, parsedAddress, {}).then((estimatedGasLimit) => {
         return factoryContract
-          .createPool(name, symbol, parsedAddress, { value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
+          .createPool(name, symbol, parsedAddress, {
+            value: null,
+            gasLimit: calculateGasMargin(estimatedGasLimit),
+          })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
               type: TransactionType.Deploy,
@@ -220,7 +226,14 @@ function useRegisteredPools(): PoolRegisteredLog[] | undefined {
       const name = parseBytes32String(parsed.name)
       const symbol = parseBytes32String(parsed.symbol)
       const id = parsed.id //.toString()
-      const poolData: PoolRegisteredLog = { group, pool, name, symbol, id, chainId }
+      const poolData: PoolRegisteredLog = {
+        group,
+        pool,
+        name,
+        symbol,
+        id,
+        chainId,
+      }
 
       return poolData
     })
@@ -232,7 +245,9 @@ export function useSetLockupCallback(): (lockup: string | undefined) => undefine
   const { provider } = useWeb3React()
   const addTransaction = useTransactionAdder()
 
-  const { poolAddress: poolAddressFromUrl } = useParams<{ poolAddress?: string }>()
+  const { poolAddress: poolAddressFromUrl } = useParams<{
+    poolAddress?: string
+  }>()
   const poolContract = usePoolExtendedContract(poolAddressFromUrl ?? undefined)
 
   return useCallback(
@@ -245,7 +260,10 @@ export function useSetLockupCallback(): (lockup: string | undefined) => undefine
       }
       return poolContract.estimateGas.changeMinPeriod(lockup, {}).then((estimatedGasLimit) => {
         return poolContract
-          .changeMinPeriod(lockup, { value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
+          .changeMinPeriod(lockup, {
+            value: null,
+            gasLimit: calculateGasMargin(estimatedGasLimit),
+          })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
               type: TransactionType.SetLockup,
@@ -265,7 +283,9 @@ export function useSetSpreadCallback(): (spread: string | undefined) => undefine
   const { provider } = useWeb3React()
   const addTransaction = useTransactionAdder()
 
-  const { poolAddress: poolAddressFromUrl } = useParams<{ poolAddress?: string }>()
+  const { poolAddress: poolAddressFromUrl } = useParams<{
+    poolAddress?: string
+  }>()
   const poolContract = usePoolExtendedContract(poolAddressFromUrl ?? undefined)
 
   return useCallback(
@@ -278,7 +298,10 @@ export function useSetSpreadCallback(): (spread: string | undefined) => undefine
       }
       return poolContract.estimateGas.changeSpread(spread, {}).then((estimatedGasLimit) => {
         return poolContract
-          .changeSpread(spread, { value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
+          .changeSpread(spread, {
+            value: null,
+            gasLimit: calculateGasMargin(estimatedGasLimit),
+          })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
               type: TransactionType.SetSpread,
@@ -298,7 +321,9 @@ export function useSetValueCallback(): () => undefined | Promise<string> {
   const { provider } = useWeb3React()
   const addTransaction = useTransactionAdder()
 
-  const { poolAddress: poolAddressFromUrl } = useParams<{ poolAddress?: string }>()
+  const { poolAddress: poolAddressFromUrl } = useParams<{
+    poolAddress?: string
+  }>()
   const poolContract = usePoolExtendedContract(poolAddressFromUrl ?? undefined)
 
   return useCallback(() => {
@@ -310,7 +335,10 @@ export function useSetValueCallback(): () => undefined | Promise<string> {
     }
     return poolContract.estimateGas.updateUnitaryValue().then((estimatedGasLimit) => {
       return poolContract
-        .updateUnitaryValue({ value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
+        .updateUnitaryValue({
+          value: null,
+          gasLimit: calculateGasMargin(estimatedGasLimit),
+        })
         .then((response: TransactionResponse) => {
           addTransaction(response, {
             type: TransactionType.SetValue,
@@ -327,7 +355,9 @@ export function useUpgradeCallback(): () => undefined | Promise<string> {
   const { provider } = useWeb3React()
   const addTransaction = useTransactionAdder()
 
-  const { poolAddress: poolAddressFromUrl } = useParams<{ poolAddress?: string }>()
+  const { poolAddress: poolAddressFromUrl } = useParams<{
+    poolAddress?: string
+  }>()
   const poolContract = usePoolExtendedContract(poolAddressFromUrl ?? undefined)
 
   return useCallback(() => {
@@ -339,7 +369,10 @@ export function useUpgradeCallback(): () => undefined | Promise<string> {
     }
     return poolContract.estimateGas.upgradeImplementation().then((estimatedGasLimit) => {
       return poolContract
-        .upgradeImplementation({ value: null, gasLimit: calculateGasMargin(estimatedGasLimit) })
+        .upgradeImplementation({
+          value: null,
+          gasLimit: calculateGasMargin(estimatedGasLimit),
+        })
         .then((response: TransactionResponse) => {
           addTransaction(response, {
             type: TransactionType.Upgrade,

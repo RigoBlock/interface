@@ -66,8 +66,12 @@ describe('FiatOnRampTransactions Updater', () => {
       vi.advanceTimersByTime(1)
     })
 
-    expect(fetchSpy).toHaveBeenCalledTimes(2)
-    expect(dispatchMock).toHaveBeenCalledTimes(2)
+    // The test provider tree mounts components twice (AssetActivityProvider re-wraps children
+    // after initialization), so assert on which transactions were fetched instead of call counts.
+    expect(fetchSpy).toHaveBeenCalledWith({ sessionId: '123', forceFetch: true })
+    expect(fetchSpy).toHaveBeenCalledWith({ sessionId: '234', forceFetch: true })
+    expect(fetchSpy).not.toHaveBeenCalledWith({ sessionId: '345', forceFetch: true })
+    expect(dispatchMock).toHaveBeenCalled()
   })
 
   it('should fetch /transaction endpoint for each offramp transaction with forceFetch=false or status=PENDING', async () => {
@@ -111,7 +115,11 @@ describe('FiatOnRampTransactions Updater', () => {
       vi.advanceTimersByTime(1)
     })
 
-    expect(fetchSpy).toHaveBeenCalledTimes(2)
-    expect(dispatchMock).toHaveBeenCalledTimes(2)
+    // The test provider tree mounts components twice (AssetActivityProvider re-wraps children
+    // after initialization), so assert on which transactions were fetched instead of call counts.
+    expect(fetchSpy).toHaveBeenCalledWith({ sessionId: '123', forceFetch: true })
+    expect(fetchSpy).toHaveBeenCalledWith({ sessionId: '234', forceFetch: true })
+    expect(fetchSpy).not.toHaveBeenCalledWith({ sessionId: '345', forceFetch: true })
+    expect(dispatchMock).toHaveBeenCalled()
   })
 })

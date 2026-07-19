@@ -46,7 +46,9 @@ const slice = createSlice({
       action: PayloadAction<{
         userAddress: Address
         chainId: UniverseChainId
-        data: Omit<ChainStakingData, 'chainId' | 'lastUpdated'> & { lastUpdated?: number }
+        data: Omit<ChainStakingData, 'chainId' | 'lastUpdated'> & {
+          lastUpdated?: number
+        }
       }>,
     ) => {
       const { userAddress, chainId, data } = action.payload
@@ -68,7 +70,9 @@ const slice = createSlice({
         poolAddress: Address
         userAddress: Address
         chainId: UniverseChainId
-        data: Omit<ChainStakingData, 'chainId' | 'lastUpdated'> & { lastUpdated?: number }
+        data: Omit<ChainStakingData, 'chainId' | 'lastUpdated'> & {
+          lastUpdated?: number
+        }
       }>,
     ) => {
       const { poolAddress, userAddress, chainId, data } = action.payload

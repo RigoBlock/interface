@@ -56,12 +56,19 @@ export function TokensContextMenuWrapper({
   }, [tokenData])
 
   const openReportTokenModal = useEvent((currency: Currency) => {
-    setModalProps({ source: 'portfolio', currency, isMarkedSpam: portfolioBalance.currencyInfo.isSpam })
+    setModalProps({
+      source: 'portfolio',
+      currency,
+      isMarkedSpam: portfolioBalance.currencyInfo.isSpam,
+    })
     openModal()
   })
 
   const openReportDataIssueModalWithCurrency = useEvent((currency: Currency) => {
-    setDataIssueModalProps({ currency, isMarkedSpam: portfolioBalance.currencyInfo.isSpam })
+    setDataIssueModalProps({
+      currency,
+      isMarkedSpam: portfolioBalance.currencyInfo.isSpam,
+    })
     openDataIssueModal()
   })
 

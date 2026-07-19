@@ -1,16 +1,6 @@
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
 import { CurrencyAmount } from '@uniswap/sdk-core'
-import useSelectChain from '~/hooks/useSelectChain'
-import { useIncreaseLiquidityTxContext } from '~/pages/IncreaseLiquidity/IncreaseLiquidityTxContext'
-import { useSetOverrideOneClickSwapFlag } from '~/pages/Swap/settings/OneClickSwap'
-import { useUpdatedAmountsFromDependentAmount } from '~/components/Liquidity/hooks/useDependentAmountFallback'
-import { getLPBaseAnalyticsProperties } from '~/components/Liquidity/analytics'
-import { IncreaseLiquidityStep, useIncreaseLiquidityContext } from '~/pages/IncreaseLiquidity/IncreaseLiquidityContext'
-import { DetailLineItem } from '~/components/swap/DetailLineItem'
 import { BigNumber } from 'ethers/lib/ethers'
-import { useGetPoolTokenPercentage } from '~/components/Liquidity/hooks/useGetPoolTokenPercentage'
-import { TokenInfo } from '~/components/Liquidity/TokenInfo'
-import { useAccount } from '~/hooks/useAccount'
 import { useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
@@ -32,7 +22,17 @@ import { isSignerMnemonicAccountDetails } from 'uniswap/src/features/wallet/type
 import { getSymbolDisplayText } from 'uniswap/src/utils/currency'
 import { NumberType } from 'utilities/src/format/types'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
+import { getLPBaseAnalyticsProperties } from '~/components/Liquidity/analytics'
+import { useUpdatedAmountsFromDependentAmount } from '~/components/Liquidity/hooks/useDependentAmountFallback'
+import { useGetPoolTokenPercentage } from '~/components/Liquidity/hooks/useGetPoolTokenPercentage'
+import { TokenInfo } from '~/components/Liquidity/TokenInfo'
+import { DetailLineItem } from '~/components/swap/DetailLineItem'
 import { useCurrencyInfo } from '~/hooks/Tokens'
+import { useAccount } from '~/hooks/useAccount'
+import useSelectChain from '~/hooks/useSelectChain'
+import { IncreaseLiquidityStep, useIncreaseLiquidityContext } from '~/pages/IncreaseLiquidity/IncreaseLiquidityContext'
+import { useIncreaseLiquidityTxContext } from '~/pages/IncreaseLiquidity/IncreaseLiquidityTxContext'
+import { useSetOverrideOneClickSwapFlag } from '~/pages/Swap/settings/OneClickSwap'
 import { liquiditySaga } from '~/state/sagas/liquidity/liquiditySaga'
 import { ExternalLink } from '~/theme/components/Links'
 
@@ -282,7 +282,9 @@ export function IncreaseLiquidityReview({ onClose }: { onClose: () => void }) {
                   </Text>
                 ),
                 Value: () => (
-                  <Text variant="body3">{`1 ${currentPrice?.baseCurrency.symbol} = ${currentPrice?.toFixed()} ${currentPrice?.quoteCurrency.symbol}`}</Text>
+                  <Text variant="body3">{`1 ${currentPrice?.baseCurrency.symbol} = ${currentPrice?.toFixed()} ${
+                    currentPrice?.quoteCurrency.symbol
+                  }`}</Text>
                 ),
               }}
             />
@@ -292,18 +294,26 @@ export function IncreaseLiquidityReview({ onClose }: { onClose: () => void }) {
                   <Text variant="body3" color="$neutral2">
                     <Trans
                       i18nKey="pool.newSpecificPosition"
-                      values={{ symbol: currencyAmounts?.TOKEN0?.currency.symbol }}
+                      values={{
+                        symbol: currencyAmounts?.TOKEN0?.currency.symbol,
+                      }}
                     />
                   </Text>
                 ),
                 Value: () => (
                   <Flex row gap="$gap4">
                     <Text variant="body3">
-                      {formatCurrencyAmount({ value: newToken0Amount, type: NumberType.TokenNonTx })}{' '}
+                      {formatCurrencyAmount({
+                        value: newToken0Amount,
+                        type: NumberType.TokenNonTx,
+                      })}{' '}
                       {getSymbolDisplayText(newToken0Amount?.currency.symbol)}
                     </Text>
                     <Text variant="body3" color="$neutral2">
-                      {`(${formatCurrencyAmount({ value: newToken0AmountUSD, type: NumberType.FiatStandard })})`}
+                      {`(${formatCurrencyAmount({
+                        value: newToken0AmountUSD,
+                        type: NumberType.FiatStandard,
+                      })})`}
                     </Text>
                   </Flex>
                 ),
@@ -315,18 +325,26 @@ export function IncreaseLiquidityReview({ onClose }: { onClose: () => void }) {
                   <Text variant="body3" color="$neutral2">
                     <Trans
                       i18nKey="pool.newSpecificPosition"
-                      values={{ symbol: currencyAmounts?.TOKEN1?.currency.symbol }}
+                      values={{
+                        symbol: currencyAmounts?.TOKEN1?.currency.symbol,
+                      }}
                     />
                   </Text>
                 ),
                 Value: () => (
                   <Flex row gap="$gap4">
                     <Text variant="body3">
-                      {formatCurrencyAmount({ value: newToken1Amount, type: NumberType.TokenNonTx })}{' '}
+                      {formatCurrencyAmount({
+                        value: newToken1Amount,
+                        type: NumberType.TokenNonTx,
+                      })}{' '}
                       {getSymbolDisplayText(newToken1Amount?.currency.symbol)}
                     </Text>
                     <Text variant="body3" color="$neutral2">
-                      {`(${formatCurrencyAmount({ value: newToken1AmountUSD, type: NumberType.FiatStandard })})`}
+                      {`(${formatCurrencyAmount({
+                        value: newToken1AmountUSD,
+                        type: NumberType.FiatStandard,
+                      })})`}
                     </Text>
                   </Flex>
                 ),
@@ -355,7 +373,10 @@ export function IncreaseLiquidityReview({ onClose }: { onClose: () => void }) {
                   <Flex row gap="$gap4" alignItems="center">
                     <NetworkLogo chainId={chainId} size={iconSizes.icon16} shape="square" />
                     <Text variant="body3">
-                      {formatCurrencyAmount({ value: gasFeeEstimateUSD, type: NumberType.FiatGasPrice })}
+                      {formatCurrencyAmount({
+                        value: gasFeeEstimateUSD,
+                        type: NumberType.FiatGasPrice,
+                      })}
                     </Text>
                   </Flex>
                 ),

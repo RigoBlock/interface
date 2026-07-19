@@ -71,8 +71,16 @@ export const getFeatureFlaggedHeaders = async (
   }
   const uniquoteEnabled = getFeatureFlag(FeatureFlags.UniquoteEnabled)
   const viemProviderEnabled = getFeatureFlag(FeatureFlags.ViemProviderEnabled)
-  addHeaderIfEnabled({ headers, key: TradingApiHeaders.UniquoteEnabled, enabled: uniquoteEnabled })
-  addHeaderIfEnabled({ headers, key: TradingApiHeaders.ViemProviderEnabled, enabled: viemProviderEnabled })
+  addHeaderIfEnabled({
+    headers,
+    key: TradingApiHeaders.UniquoteEnabled,
+    enabled: uniquoteEnabled,
+  })
+  addHeaderIfEnabled({
+    headers,
+    key: TradingApiHeaders.ViemProviderEnabled,
+    enabled: viemProviderEnabled,
+  })
 
   const chainedActionsEnabled = getFeatureFlag(FeatureFlags.ChainedActions)
   const unirouteEnabled = getFeatureFlag(FeatureFlags.UnirouteEnabled)
@@ -88,11 +96,23 @@ export const getFeatureFlaggedHeaders = async (
   const disableUniswapInterfaceFees = getFeatureFlag(FeatureFlags.NoUniswapInterfaceFees)
   switch (tradingApiPath) {
     case TRADING_API_PATHS.quote:
-      addHeaderIfEnabled({ headers, key: TradingApiHeaders.UnirouteEnabled, enabled: unirouteEnabled })
+      addHeaderIfEnabled({
+        headers,
+        key: TradingApiHeaders.UnirouteEnabled,
+        enabled: unirouteEnabled,
+      })
       // TODO(INFRA-1595): remove once backend is fully migrated to new route
       headers[TradingApiHeaders.UniroutePulumiEnabled] = 'true'
-      addHeaderIfEnabled({ headers, key: TradingApiHeaders.Erc20EthEnabled, enabled: ethAsErc20UniswapXEnabled })
-      addHeaderIfEnabled({ headers, key: TradingApiHeaders.ChainedActionsEnabled, enabled: chainedActionsEnabled })
+      addHeaderIfEnabled({
+        headers,
+        key: TradingApiHeaders.Erc20EthEnabled,
+        enabled: ethAsErc20UniswapXEnabled,
+      })
+      addHeaderIfEnabled({
+        headers,
+        key: TradingApiHeaders.ChainedActionsEnabled,
+        enabled: chainedActionsEnabled,
+      })
       addHeaderIfEnabled({
         headers,
         key: TradingApiHeaders.DisableUniswapInterfaceFees,
@@ -100,17 +120,37 @@ export const getFeatureFlaggedHeaders = async (
       })
       break
     case TRADING_API_PATHS.plan:
-      addHeaderIfEnabled({ headers, key: TradingApiHeaders.ChainedActionsEnabled, enabled: chainedActionsEnabled })
-      addHeaderIfEnabled({ headers, key: TradingApiHeaders.Erc20EthEnabled, enabled: ethAsErc20UniswapXEnabled })
+      addHeaderIfEnabled({
+        headers,
+        key: TradingApiHeaders.ChainedActionsEnabled,
+        enabled: chainedActionsEnabled,
+      })
+      addHeaderIfEnabled({
+        headers,
+        key: TradingApiHeaders.Erc20EthEnabled,
+        enabled: ethAsErc20UniswapXEnabled,
+      })
       break
     case TRADING_API_PATHS.order:
-      addHeaderIfEnabled({ headers, key: TradingApiHeaders.Erc20EthEnabled, enabled: ethAsErc20UniswapXEnabled })
+      addHeaderIfEnabled({
+        headers,
+        key: TradingApiHeaders.Erc20EthEnabled,
+        enabled: ethAsErc20UniswapXEnabled,
+      })
       break
     case TRADING_API_PATHS.swap7702:
-      addHeaderIfEnabled({ headers, key: TradingApiHeaders.UnirouteEnabled, enabled: unirouteEnabled })
+      addHeaderIfEnabled({
+        headers,
+        key: TradingApiHeaders.UnirouteEnabled,
+        enabled: unirouteEnabled,
+      })
       // TODO(INFRA-1595): remove once backend is fully migrated to new route
       headers[TradingApiHeaders.UniroutePulumiEnabled] = 'true'
-      addHeaderIfEnabled({ headers, key: TradingApiHeaders.Erc20EthEnabled, enabled: ethAsErc20UniswapXEnabled })
+      addHeaderIfEnabled({
+        headers,
+        key: TradingApiHeaders.Erc20EthEnabled,
+        enabled: ethAsErc20UniswapXEnabled,
+      })
       break
   }
   return headers

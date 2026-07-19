@@ -121,7 +121,10 @@ export class ApprovalEditedInWalletError extends TransactionStepFailedError {
   logError = false
 
   constructor({ step }: { step: TokenApprovalTransactionStep | TokenRevocationTransactionStep }) {
-    super({ message: 'Approval decreased to insufficient amount in wallet', step })
+    super({
+      message: 'Approval decreased to insufficient amount in wallet',
+      step,
+    })
   }
 }
 

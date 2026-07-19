@@ -1,16 +1,17 @@
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-import { PortfolioTokens } from '~/pages/Portfolio/Tokens/Tokens'
-import { PortfolioOverview } from '~/pages/Portfolio/Overview/Overview'
-import { PortfolioStaking } from '~/pages/Portfolio/Staking/Staking'
-import { PortfolioNfts } from '~/pages/Portfolio/NFTs/Nfts'
-import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
-import { PortfolioDefi } from '~/pages/Portfolio/Defi'
-import { PortfolioTab } from '~/pages/Portfolio/types'
-import PortfolioActivity from '~/pages/Portfolio/Activity/Activity'
-import { usePortfolioTabsAnimation } from '~/pages/Portfolio/Header/hooks/usePortfolioTabsAnimation'
 import { useLocation } from 'react-router'
 import { Flex } from 'ui/src'
 import { TransitionItem } from 'ui/src/animations/components/AnimatePresencePager'
+import PortfolioActivity from '~/pages/Portfolio/Activity/Activity'
+import { PortfolioDefi } from '~/pages/Portfolio/Defi'
+import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
+import { usePortfolioTabsAnimation } from '~/pages/Portfolio/Header/hooks/usePortfolioTabsAnimation'
+import { PortfolioNfts } from '~/pages/Portfolio/NFTs/Nfts'
+import { PortfolioOverview } from '~/pages/Portfolio/Overview/Overview'
+import { PortfolioPerps } from '~/pages/Portfolio/Perps/Perps'
+import { PortfolioStaking } from '~/pages/Portfolio/Staking/Staking'
+import { PortfolioTokens } from '~/pages/Portfolio/Tokens/Tokens'
+import { PortfolioTab } from '~/pages/Portfolio/types'
 
 const renderPortfolioContent = (tab: PortfolioTab | undefined, isPortfolioDefiTabEnabled: boolean) => {
   switch (tab) {
@@ -23,6 +24,8 @@ const renderPortfolioContent = (tab: PortfolioTab | undefined, isPortfolioDefiTa
     case PortfolioTab.Defi:
       // If defi tab is disabled, usePortfolioRoutes will redirect to overview tab
       return isPortfolioDefiTabEnabled ? <PortfolioDefi /> : <></>
+    case PortfolioTab.Perps:
+      return <PortfolioPerps />
     case PortfolioTab.Nfts:
       return <PortfolioNfts />
     case PortfolioTab.Activity:

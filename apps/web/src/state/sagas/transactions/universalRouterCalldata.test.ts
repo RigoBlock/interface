@@ -40,17 +40,27 @@ function buildV4SwapCalldata(
   return abiCoder.encode(['bytes', 'bytes[]', 'uint256'], ['0x' + commands.toString('hex'), inputs, DEADLINE])
 }
 
-function decodeCurrencyAddressUint256(params: string): { currency: string; recipient: string; amount: bigint } {
+function decodeCurrencyAddressUint256(params: string): {
+  currency: string
+  recipient: string
+  amount: bigint
+} {
   const [currency, recipient, amount] = abiCoder.decode(['address', 'address', 'uint256'], params)
   return { currency, recipient, amount: BigInt(amount.toString()) }
 }
 
-function decodeV4SwapInput(encodedInput: string): { actionsHex: string; params: string[] } {
+function decodeV4SwapInput(encodedInput: string): {
+  actionsHex: string
+  params: string[]
+} {
   const [actions, params] = abiCoder.decode(['bytes', 'bytes[]'], encodedInput)
   return { actionsHex: actions as string, params: params as string[] }
 }
 
-function decodeOutputCalldata(outputCalldata: string): { commands: string; inputs: string[] } {
+function decodeOutputCalldata(outputCalldata: string): {
+  commands: string
+  inputs: string[]
+} {
   const [commands, inputs] = abiCoder.decode(['bytes', 'bytes[]', 'uint256'], outputCalldata)
   return { commands: commands as string, inputs: inputs as string[] }
 }
@@ -63,10 +73,7 @@ describe('PAY_PORTION_FULL_PRECISION downgrade', () => {
   it('downgrades 0x07 → 0x06 and converts portion to bips', () => {
     // 5 bips = 5 * 1e18 / 10000 in full-precision
     const portion = BigInt(5) * BigInt('100000000000000') // 5e14 = 0.05% in 1e18 precision
-    const input = abiCoder.encode(
-      ['address', 'address', 'uint256'],
-      [SOME_TOKEN, FEE_RECIPIENT, portion.toString()],
-    )
+    const input = abiCoder.encode(['address', 'address', 'uint256'], [SOME_TOKEN, FEE_RECIPIENT, portion.toString()])
     const commands = Buffer.from([CMD_PAY_PORTION_FULL_PRECISION])
     const calldata = abiCoder.encode(
       ['bytes', 'bytes[]', 'uint256'],
@@ -89,10 +96,7 @@ describe('PAY_PORTION_FULL_PRECISION downgrade', () => {
 
   it('replaces fee recipient in PAY_PORTION_FULL_PRECISION', () => {
     const portion = BigInt(25) * BigInt('100000000000000') // 25 bips in 1e18 precision
-    const input = abiCoder.encode(
-      ['address', 'address', 'uint256'],
-      [NATIVE_TOKEN, FEE_RECIPIENT, portion.toString()],
-    )
+    const input = abiCoder.encode(['address', 'address', 'uint256'], [NATIVE_TOKEN, FEE_RECIPIENT, portion.toString()])
     const commands = Buffer.from([CMD_PAY_PORTION_FULL_PRECISION])
     const calldata = abiCoder.encode(
       ['bytes', 'bytes[]', 'uint256'],
@@ -117,7 +121,10 @@ describe('stripBalanceCheckERC20', () => {
     const balanceCheckInput = abiCoder.encode(['address', 'uint256'], [SOME_TOKEN, 100])
     const v4Input = abiCoder.encode(
       ['bytes', 'bytes[]'],
-      ['0x' + Buffer.from([V4_TAKE]).toString('hex'), [abiCoder.encode(['address', 'address', 'uint256'], [NATIVE_TOKEN, SMART_POOL, 100])]],
+      [
+        '0x' + Buffer.from([V4_TAKE]).toString('hex'),
+        [abiCoder.encode(['address', 'address', 'uint256'], [NATIVE_TOKEN, SMART_POOL, 100])],
+      ],
     )
     const commands = Buffer.from([CMD_BALANCE_CHECK_ERC20, CMD_V4_SWAP])
     const calldata = abiCoder.encode(
@@ -159,8 +166,8 @@ describe('V4 action codes are preserved during recipient replacement', () => {
 
     // All action codes must be preserved exactly
     expect(actionsBytes[0]).toBe(V4_SWAP_EXACT_IN_SINGLE) // 0x06
-    expect(actionsBytes[1]).toBe(V4_SETTLE)                // 0x0b
-    expect(actionsBytes[2]).toBe(V4_TAKE)                  // 0x0e
+    expect(actionsBytes[1]).toBe(V4_SETTLE) // 0x0b
+    expect(actionsBytes[2]).toBe(V4_TAKE) // 0x0e
 
     // TAKE recipient replaced to smart pool
     const { recipient } = decodeCurrencyAddressUint256(outParams[2]!)
@@ -172,10 +179,7 @@ describe('V4 action codes are preserved during recipient replacement', () => {
     const takeParams = abiCoder.encode(['address', 'address', 'uint256'], [NATIVE_TOKEN, FEE_RECIPIENT, 100])
 
     // Multi-hop ExactIn: [SWAP_EXACT_IN(0x07), SETTLE(0x0b), TAKE(0x0e)]
-    const calldata = buildV4SwapCalldata(
-      [V4_SWAP_EXACT_IN, V4_SETTLE, V4_TAKE],
-      ['0x', settleParams, takeParams],
-    )
+    const calldata = buildV4SwapCalldata([V4_SWAP_EXACT_IN, V4_SETTLE, V4_TAKE], ['0x', settleParams, takeParams])
 
     const result = modifyV4ExecuteCalldata(calldata, SMART_POOL)
     const { inputs } = decodeOutputCalldata(result)
@@ -183,8 +187,8 @@ describe('V4 action codes are preserved during recipient replacement', () => {
     const actionsBytes = Buffer.from(actionsHex.slice(2), 'hex')
 
     expect(actionsBytes[0]).toBe(V4_SWAP_EXACT_IN) // 0x07 unchanged
-    expect(actionsBytes[1]).toBe(V4_SETTLE)         // 0x0b unchanged
-    expect(actionsBytes[2]).toBe(V4_TAKE)           // 0x0e unchanged
+    expect(actionsBytes[1]).toBe(V4_SETTLE) // 0x0b unchanged
+    expect(actionsBytes[2]).toBe(V4_TAKE) // 0x0e unchanged
   })
 
   it('returns calldata unchanged when TAKE recipient is already smart pool', () => {
@@ -245,11 +249,7 @@ const USDC = '0xaf88d065e77c8cc2239327c5edb3a432268e5831'
 // V3 path: WETH -0.05%- USDC (43 bytes)
 const V3_PATH = ('0x' + WETH.slice(2) + '000064' + USDC.slice(2)).toLowerCase()
 
-function buildWrapEthV3Calldata(
-  wrapRecipient: string,
-  swapRecipient: string,
-  payerIsUser: boolean,
-): string {
+function buildWrapEthV3Calldata(wrapRecipient: string, swapRecipient: string, payerIsUser: boolean): string {
   const wrapInput = abiCoder.encode(['address', 'uint256'], [wrapRecipient, '10000000000000000'])
   const swapInput = abiCoder.encode(
     ['address', 'uint256', 'uint256', 'bytes', 'bool'],
@@ -295,10 +295,7 @@ describe('WRAP_ETH + V3_SWAP_EXACT_IN (ETH → token via smart pool)', () => {
     expect(wrapRecipient.toLowerCase()).toBe(MSG_SENDER.toLowerCase())
 
     // V3 recipient still replaced
-    const [swapRecipient] = abiCoder.decode(
-      ['address', 'uint256', 'uint256', 'bytes', 'bool'],
-      inputs[1]!,
-    )
+    const [swapRecipient] = abiCoder.decode(['address', 'uint256', 'uint256', 'bytes', 'bool'], inputs[1]!)
     expect(swapRecipient.toLowerCase()).toBe(SMART_POOL.toLowerCase())
   })
 

@@ -38,7 +38,9 @@ export function QueuedOrderModal(): JSX.Element | null {
   const isShortMobileDevice = useIsShortMobileDevice()
 
   const account = useActiveSignerAccount()
-  const erroredQueuedOrders = useErroredQueuedOrders({ evmAddress: account?.address })
+  const erroredQueuedOrders = useErroredQueuedOrders({
+    evmAddress: account?.address,
+  })
   const currentFailedOrder = erroredQueuedOrders?.[0]
 
   const dispatch = useDispatch()
@@ -46,7 +48,12 @@ export function QueuedOrderModal(): JSX.Element | null {
     if (!currentFailedOrder) {
       return
     }
-    dispatch(updateTransaction({ ...currentFailedOrder, status: TransactionStatus.Canceled }))
+    dispatch(
+      updateTransaction({
+        ...currentFailedOrder,
+        status: TransactionStatus.Canceled,
+      }),
+    )
   }, [dispatch, currentFailedOrder])
 
   const { navigateToSwapFlow } = useWalletNavigation()
