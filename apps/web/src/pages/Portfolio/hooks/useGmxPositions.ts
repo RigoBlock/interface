@@ -60,6 +60,10 @@ export interface GmxPosition {
   unrealizedPnlUsd: number
   /** Unrealized PnL after all fees, in percent (e.g. 5.23 for 5.23%) */
   unrealizedPnlPercent: number
+  /** Raw values (GMX scales) needed to build orders */
+  sizeInUsdRaw: string
+  collateralAmountRaw: string
+  markPriceRaw: string
 }
 
 function rawToUsd(value?: string): number {
@@ -92,6 +96,9 @@ function normalizePosition(position: GmxApiPosition): GmxPosition {
     liquidationPrice: liquidationPrice > 0 ? liquidationPrice : undefined,
     unrealizedPnlUsd,
     unrealizedPnlPercent: Number(position.pnlAfterAllFeesPercentage ?? '0') / 100,
+    sizeInUsdRaw: position.sizeInUsd ?? '0',
+    collateralAmountRaw: position.collateralAmount ?? '0',
+    markPriceRaw: position.markPrice ?? '0',
   }
 }
 

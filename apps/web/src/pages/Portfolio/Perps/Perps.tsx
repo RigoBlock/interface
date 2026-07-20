@@ -1,11 +1,19 @@
+import { useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Flex, Text } from 'ui/src'
 import { InterfacePageName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
+import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 import Loader from '~/components/Icons/LoadingSpinner'
 import { ChainLogo } from '~/components/Logo/ChainLogo'
+import { useAccount } from '~/hooks/useAccount'
+import { useSmartPoolFromAddress } from '~/hooks/useSmartPools'
 import { GMX_CHAIN_ID, GmxPosition, useGmxPositions } from '~/pages/Portfolio/hooks/useGmxPositions'
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
+import { GmxOrderModal } from '~/pages/Portfolio/Perps/gmx/GmxOrderModal'
+import { GmxPositionActionsMenu } from '~/pages/Portfolio/Perps/gmx/GmxPositionActionsMenu'
+import { useGmxMarkets } from '~/pages/Portfolio/Perps/gmx/useGmxMarkets'
+import { GmxOrderAction } from '~/pages/Portfolio/Perps/gmx/useGmxOrderCallback'
 
 const usdFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -45,20 +53,20 @@ function pnlColor(value: number): PnlColor {
   return value < 0 ? '$statusCritical' : '$neutral1'
 }
 
-// Shared column sizing so header and data cells stay aligned
+// Shared fixed column widths so header and data cells always stay aligned
 const COLUMN = {
-  market: { flex: 2, minWidth: 140 },
-  side: { width: 64, minWidth: 64 },
-  size: { flex: 1, minWidth: 90 },
-  netValue: { flex: 1, minWidth: 90 },
-  leverage: { width: 72, minWidth: 72 },
-  entry: { flex: 1, minWidth: 90 },
-  mark: { flex: 1, minWidth: 90 },
-  liq: { flex: 1, minWidth: 90 },
-  pnl: { flex: 1.2, minWidth: 120 },
+  market: { width: 220 },
+  side: { width: 64 },
+  size: { width: 100 },
+  netValue: { width: 100 },
+  leverage: { width: 72 },
+  entry: { width: 100 },
+  mark: { width: 100 },
+  liq: { width: 100 },
+  pnl: { width: 140 },
 } as const
 
-const TABLE_MIN_WIDTH = 960
+const TABLE_MIN_WIDTH = 1052
 
 function HeaderCell({ label, alignLeft }: { label: React.ReactNode; alignLeft?: boolean }): JSX.Element {
   return (
@@ -76,7 +84,15 @@ function CellText({ children, color = '$neutral1' }: { children: React.ReactNode
   )
 }
 
-function PositionRow({ position }: { position: GmxPosition }): JSX.Element {
+function PositionRow({
+  position,
+  isOperator,
+  onAction,
+}: {
+  position: GmxPosition
+  isOperator: boolean
+  onAction: (position: GmxPosition, action: GmxOrderAction) => void
+}): JSX.Element {
   return (
     <Flex
       row
@@ -87,38 +103,49 @@ function PositionRow({ position }: { position: GmxPosition }): JSX.Element {
       borderBottomColor="$surface3"
       minWidth={TABLE_MIN_WIDTH}
     >
-      <Flex {...COLUMN.market} minWidth={0}>
-        <Text variant="body3" fontWeight="600" numberOfLines={1}>
-          {position.indexName}
-        </Text>
-        <Text variant="body4" color="$neutral2" numberOfLines={1}>
-          {position.poolName}
-        </Text>
+      <Flex
+        {...COLUMN.market}
+        flexShrink={0}
+        minWidth={0}
+        row
+        alignItems="center"
+        justifyContent="space-between"
+        gap="$spacing8"
+      >
+        <Flex minWidth={0}>
+          <Text variant="body3" fontWeight="600" numberOfLines={1}>
+            {position.indexName}
+          </Text>
+          <Text variant="body4" color="$neutral2" numberOfLines={1}>
+            {position.poolName}
+          </Text>
+        </Flex>
+        {isOperator && <GmxPositionActionsMenu onSelect={(action) => onAction(position, action)} />}
       </Flex>
-      <Flex {...COLUMN.side} alignItems="flex-end">
+      <Flex {...COLUMN.side} flexShrink={0} alignItems="flex-end">
         <Text variant="body3" fontWeight="600" color={position.isLong ? '$statusSuccess' : '$statusCritical'}>
           {position.isLong ? <Trans>Long</Trans> : <Trans>Short</Trans>}
         </Text>
       </Flex>
-      <Flex {...COLUMN.size} alignItems="flex-end">
+      <Flex {...COLUMN.size} flexShrink={0} alignItems="flex-end">
         <CellText>{formatUsd(position.sizeUsd)}</CellText>
       </Flex>
-      <Flex {...COLUMN.netValue} alignItems="flex-end">
+      <Flex {...COLUMN.netValue} flexShrink={0} alignItems="flex-end">
         <CellText>{formatUsd(position.netValueUsd)}</CellText>
       </Flex>
-      <Flex {...COLUMN.leverage} alignItems="flex-end">
+      <Flex {...COLUMN.leverage} flexShrink={0} alignItems="flex-end">
         <CellText>{position.leverage.toFixed(1)}x</CellText>
       </Flex>
-      <Flex {...COLUMN.entry} alignItems="flex-end">
+      <Flex {...COLUMN.entry} flexShrink={0} alignItems="flex-end">
         <CellText>{formatPrice(position.entryPrice)}</CellText>
       </Flex>
-      <Flex {...COLUMN.mark} alignItems="flex-end">
+      <Flex {...COLUMN.mark} flexShrink={0} alignItems="flex-end">
         <CellText>{formatPrice(position.markPrice)}</CellText>
       </Flex>
-      <Flex {...COLUMN.liq} alignItems="flex-end">
+      <Flex {...COLUMN.liq} flexShrink={0} alignItems="flex-end">
         <CellText>{formatPrice(position.liquidationPrice)}</CellText>
       </Flex>
-      <Flex {...COLUMN.pnl} alignItems="flex-end">
+      <Flex {...COLUMN.pnl} flexShrink={0} alignItems="flex-end">
         <CellText color={pnlColor(position.unrealizedPnlUsd)}>
           {formatSignedUsd(position.unrealizedPnlUsd)} ({position.unrealizedPnlPercent.toFixed(1)}%)
         </CellText>
@@ -129,8 +156,35 @@ function PositionRow({ position }: { position: GmxPosition }): JSX.Element {
 
 export function PortfolioPerps(): JSX.Element {
   const { t } = useTranslation()
+  const account = useAccount()
   const { evmAddress } = usePortfolioAddresses()
   const { positions, totalNetValueUsd, totalUnrealizedPnlUsd, isLoading, isError } = useGmxPositions(evmAddress)
+
+  // Order actions are only available to the pool operator (the adapter rejects anyone else)
+  const poolStorage = useSmartPoolFromAddress(evmAddress, GMX_CHAIN_ID)
+  const poolOwner = poolStorage?.poolInitParams.owner
+  const isOperator =
+    !!account.address &&
+    !!poolOwner &&
+    areAddressesEqual({
+      addressInput1: { address: account.address, chainId: GMX_CHAIN_ID },
+      addressInput2: { address: poolOwner, chainId: GMX_CHAIN_ID },
+    })
+
+  const { marketsByAddress } = useGmxMarkets()
+  const [orderPosition, setOrderPosition] = useState<GmxPosition | undefined>()
+  const [orderAction, setOrderAction] = useState<GmxOrderAction | undefined>()
+
+  const onAction = (position: GmxPosition, action: GmxOrderAction) => {
+    setOrderPosition(position)
+    setOrderAction(action)
+  }
+  const onDismissOrderModal = () => {
+    setOrderPosition(undefined)
+    setOrderAction(undefined)
+  }
+
+  const orderMarket = orderPosition ? marketsByAddress.get(orderPosition.marketAddress.toLowerCase()) : undefined
 
   return (
     <Trace logImpression page={InterfacePageName.PortfolioPerpsPage}>
@@ -144,6 +198,15 @@ export function PortfolioPerps(): JSX.Element {
             {t('portfolio.perps.subtitle')}
           </Text>
         </Flex>
+
+        <GmxOrderModal
+          isOpen={!!orderPosition && !!orderAction}
+          action={orderAction}
+          position={orderPosition}
+          poolAddress={evmAddress}
+          indexToken={orderMarket?.indexToken}
+          onDismiss={onDismissOrderModal}
+        />
 
         {isLoading ? (
           <Flex centered padding="$spacing24">
@@ -210,31 +273,31 @@ export function PortfolioPerps(): JSX.Element {
                   borderBottomWidth={1}
                   borderBottomColor="$surface3"
                 >
-                  <Flex {...COLUMN.market}>
+                  <Flex {...COLUMN.market} flexShrink={0}>
                     <HeaderCell alignLeft label={<Trans>Market</Trans>} />
                   </Flex>
-                  <Flex {...COLUMN.side} alignItems="flex-end">
+                  <Flex {...COLUMN.side} flexShrink={0} alignItems="flex-end">
                     <HeaderCell label={<Trans>Side</Trans>} />
                   </Flex>
-                  <Flex {...COLUMN.size} alignItems="flex-end">
+                  <Flex {...COLUMN.size} flexShrink={0} alignItems="flex-end">
                     <HeaderCell label={<Trans>Size</Trans>} />
                   </Flex>
-                  <Flex {...COLUMN.netValue} alignItems="flex-end">
+                  <Flex {...COLUMN.netValue} flexShrink={0} alignItems="flex-end">
                     <HeaderCell label={<Trans>Net Value</Trans>} />
                   </Flex>
-                  <Flex {...COLUMN.leverage} alignItems="flex-end">
+                  <Flex {...COLUMN.leverage} flexShrink={0} alignItems="flex-end">
                     <HeaderCell label={<Trans>Leverage</Trans>} />
                   </Flex>
-                  <Flex {...COLUMN.entry} alignItems="flex-end">
+                  <Flex {...COLUMN.entry} flexShrink={0} alignItems="flex-end">
                     <HeaderCell label={<Trans>Entry Price</Trans>} />
                   </Flex>
-                  <Flex {...COLUMN.mark} alignItems="flex-end">
+                  <Flex {...COLUMN.mark} flexShrink={0} alignItems="flex-end">
                     <HeaderCell label={<Trans>Mark Price</Trans>} />
                   </Flex>
-                  <Flex {...COLUMN.liq} alignItems="flex-end">
+                  <Flex {...COLUMN.liq} flexShrink={0} alignItems="flex-end">
                     <HeaderCell label={<Trans>Liq. Price</Trans>} />
                   </Flex>
-                  <Flex {...COLUMN.pnl} alignItems="flex-end">
+                  <Flex {...COLUMN.pnl} flexShrink={0} alignItems="flex-end">
                     <HeaderCell label={<Trans>Unrealized PnL</Trans>} />
                   </Flex>
                 </Flex>
@@ -242,6 +305,8 @@ export function PortfolioPerps(): JSX.Element {
                   <PositionRow
                     key={`${position.marketAddress}-${position.collateralTokenAddress}-${position.isLong}`}
                     position={position}
+                    isOperator={isOperator}
+                    onAction={onAction}
                   />
                 ))}
               </Flex>

@@ -4,6 +4,7 @@ import { getAddress } from '@ethersproject/address'
 import { BigNumber } from '@ethersproject/bignumber'
 import { keccak256 } from '@ethersproject/keccak256'
 import { parseBytes32String } from '@ethersproject/strings'
+import { keepPreviousData } from '@tanstack/react-query'
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
 import JSBI from 'jsbi'
 import { useEffect, useMemo, useState } from 'react'
@@ -235,7 +236,7 @@ function extractStorageValues(storageValue?: string): {
   owner?: string
   userBalance?: string
 } {
-  if (!storageValue || storageValue === '0x') {
+  if (typeof storageValue !== 'string' || !storageValue.startsWith('0x') || storageValue === '0x') {
     return {}
   }
   const hexRaw = storageValue.slice(2)
@@ -378,37 +379,43 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
         chainId,
       })
 
-      // ── Connected-chain-only: unclaimed rewards + free stake ──
-      if (account.address && chainId === account.chainId) {
-        connectedChainRewardsBase = allContracts.length
-        for (const entry of entries) {
-          connectedChainPoolIds.push(entry.pool.id)
-          allContracts.push({
-            address: stakingAddr,
-            abi: STAKING_ABI as Abi,
-            functionName: 'computeRewardBalanceOfDelegator',
-            args: [entry.pool.id, account.address],
-            chainId,
-          })
-        }
-
-        freeStakeIdx = allContracts.length
-        freeStakeChainId = chainId
-        allContracts.push({
-          address: stakingAddr,
-          abi: STAKING_ABI as Abi,
-          functionName: 'getOwnerStakeByStatus',
-          args: [account.address, 0],
-          chainId, // 0 = UNDELEGATED
-        })
-      }
-
       meta.push({
         chainId,
         poolIndices: entries.map((e) => e.index),
         baseOffset,
         supplyOffset,
       })
+    }
+
+    // ── Connected-chain-only tail: unclaimed rewards + free stake ──
+    // Kept after the per-chain sections so per-chain offsets stay stable when the
+    // wallet switches chain — previous (placeholder) results then remain aligned.
+    if (account.address && account.chainId) {
+      const connectedEntries = poolsByChain.get(account.chainId)
+      if (connectedEntries && connectedEntries.length > 0) {
+        const stakingAddr = assume0xAddress(STAKING_PROXY_ADDRESSES[account.chainId])
+        connectedChainRewardsBase = allContracts.length
+        for (const entry of connectedEntries) {
+          connectedChainPoolIds.push(entry.pool.id)
+          allContracts.push({
+            address: stakingAddr,
+            abi: STAKING_ABI as Abi,
+            functionName: 'computeRewardBalanceOfDelegator',
+            args: [entry.pool.id, account.address],
+            chainId: account.chainId,
+          })
+        }
+
+        freeStakeIdx = allContracts.length
+        freeStakeChainId = account.chainId
+        allContracts.push({
+          address: stakingAddr,
+          abi: STAKING_ABI as Abi,
+          functionName: 'getOwnerStakeByStatus',
+          args: [account.address, 0], // 0 = UNDELEGATED
+          chainId: account.chainId,
+        })
+      }
     }
 
     return {
@@ -432,6 +439,9 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
       retry: 5,
       retryDelay: (attempt: number) => Math.min(attempt > 1 ? 2 ** attempt * 1000 : 1000, 30_000),
       refetchOnWindowFocus: false,
+      // Keep previous data while a chain switch rebuilds the query — it covers all
+      // chains, so previous values stay valid and dependent UI (chain pills, lists) doesn't flicker
+      placeholderData: keepPreviousData,
     },
   })
 
@@ -451,11 +461,13 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
     const results = new Array<StakingPoolData>(pools.length)
 
     for (const cm of chainMeta) {
-      // GRG totalSupply for this chain
-      const supplyResult = rawData[cm.supplyOffset]
-      const totalSupply = supplyResult?.result
-        ? parseFloat(BigNumber.from(supplyResult.result.toString()).toString())
-        : 0
+      // GRG totalSupply for this chain — only accept numeric results
+      // (a stale, differently-shaped query response may briefly hold a tuple here)
+      const supplyRaw = rawData[cm.supplyOffset]?.result
+      const totalSupply =
+        typeof supplyRaw === 'bigint' || typeof supplyRaw === 'string' || typeof supplyRaw === 'number'
+          ? parseFloat(BigNumber.from(supplyRaw.toString()).toString())
+          : 0
 
       // Per-chain totals for reward ratio
       let totalDelegatedStake = BigNumber.from(0)
@@ -494,8 +506,8 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
           }
           // Storage slot data: owner + user token balance (baseIndex + 5)
           const storageResult = rawData[baseIndex + 5]?.result
-          if (storageResult) {
-            const { owner, userBalance: bal } = extractStorageValues(storageResult as string)
+          if (typeof storageResult === 'string') {
+            const { owner, userBalance: bal } = extractStorageValues(storageResult)
             if (owner && account.address && owner.toLowerCase() === account.address.toLowerCase()) {
               userIsOwner = true
             }
@@ -547,7 +559,8 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
       const grg = GRG[account.chainId]
       for (let i = 0; i < rewardsMeta.poolIds.length; i++) {
         const rewardResult = rawData[rewardsMeta.connectedChainBase + i]?.result
-        if (rewardResult) {
+        // Skip non-numeric results (e.g. tuple from a stale, differently-shaped query response)
+        if (typeof rewardResult === 'bigint' || typeof rewardResult === 'string' || typeof rewardResult === 'number') {
           const amount = CurrencyAmount.fromRawAmount(grg, JSBI.BigInt(String(rewardResult)))
           if (JSBI.greaterThan(amount.quotient, JSBI.BigInt(0))) {
             unclaimedRewards.push({ poolId: rewardsMeta.poolIds[i], amount })

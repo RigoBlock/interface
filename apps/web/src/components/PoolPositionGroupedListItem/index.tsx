@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Trans } from 'react-i18next'
-import { Link, useNavigate } from 'react-router'
+import { useNavigate } from 'react-router'
 import { Flex, Text } from 'ui/src'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { ChainLogo } from '~/components/Logo/ChainLogo'
@@ -10,28 +10,11 @@ import { MEDIA_WIDTHS } from '~/theme'
 import { PoolPositionDetails } from '~/types/position'
 
 /**
- * The whole row is a native link to the smart pool page, so the full padded area
- * is clickable with a full-row hover background. The Portfolio button below is a
- * plain DOM button that preventDefaults + stopPropagations, so the two click
- * targets can never interfere with each other.
+ * Row follows the same pattern as the Portfolio Staking list: the row element
+ * itself carries a surface1 background that turns surface2 on hover, covering
+ * the entire row. The Portfolio button stopPropagations so the two click
+ * targets never interfere.
  */
-const GroupRow = styled(Link)`
-  align-items: center;
-  display: flex;
-  text-decoration: none;
-  cursor: pointer;
-  user-select: none;
-  flex-direction: column;
-  justify-content: space-between;
-  color: ${({ theme }) => theme.neutral1};
-  padding: 16px;
-  font-weight: 500;
-
-  :hover {
-    background-color: ${({ theme }) => theme.deprecated_hoverDefault};
-  }
-`
-
 const PortfolioButton = styled.button`
   font-size: 13px;
   font-weight: 600;
@@ -168,47 +151,58 @@ export default function PoolPositionGroupedListItem({
   }/${defaultPosition.address ?? defaultPosition.pool}/${returnPage}`
 
   return (
-    <GroupRow to={link}>
-      <Flex row width="100%" justifyContent="space-between" alignItems="center">
-        <Flex row alignItems="center" gap="$spacing8" style={{ minWidth: 0, flex: 1 }}>
-          <Flex style={{ minWidth: 0 }}>
-            <Flex row alignItems="center" gap="$spacing8">
-              <DataText>{poolName}</DataText>
-              <ChainInfo>
-                {chainIds.map((chainId) => (
-                  <ChainLogo key={chainId} chainId={chainId} size={16} />
-                ))}
-                <Text color="$neutral2" fontSize={14}>
-                  {chainCount} {chainCount === 1 ? 'chain' : 'chains'}
-                </Text>
-              </ChainInfo>
-              {!isMyPools && anyStaked && <Badge $color="#40B66B">Staked</Badge>}
-              {isMyPools && anyOwned && <Badge $color="#4C82FB">Operated</Badge>}
-              {isMyPools && anyHeld && <Badge $color="#9B59B6">Held</Badge>}
-            </Flex>
-            <MobileChainCount>
+    <Flex
+      row
+      width="100%"
+      alignItems="center"
+      justifyContent="space-between"
+      backgroundColor="$surface1"
+      borderRadius="$rounded12"
+      hoverStyle={{ backgroundColor: '$surface2' }}
+      px="$spacing16"
+      py="$spacing12"
+      gap="$spacing12"
+      cursor="pointer"
+      onPress={() => navigate(link)}
+    >
+      <Flex row alignItems="center" gap="$spacing8" style={{ minWidth: 0, flex: 1 }}>
+        <Flex style={{ minWidth: 0 }}>
+          <Flex row alignItems="center" gap="$spacing8">
+            <DataText>{poolName}</DataText>
+            <ChainInfo>
               {chainIds.map((chainId) => (
-                <ChainLogo key={chainId} chainId={chainId} size={14} />
+                <ChainLogo key={chainId} chainId={chainId} size={16} />
               ))}
-              {chainCount} {chainCount === 1 ? 'chain' : 'chains'}
-            </MobileChainCount>
+              <Text color="$neutral2" fontSize={14}>
+                {chainCount} {chainCount === 1 ? 'chain' : 'chains'}
+              </Text>
+            </ChainInfo>
+            {!isMyPools && anyStaked && <Badge $color="#40B66B">Staked</Badge>}
+            {isMyPools && anyOwned && <Badge $color="#4C82FB">Operated</Badge>}
+            {isMyPools && anyHeld && <Badge $color="#9B59B6">Held</Badge>}
           </Flex>
-        </Flex>
-        <Flex row alignItems="center" gap="$spacing8" flexShrink={0}>
-          <Text fontSize={14} fontWeight="600" color="$neutral1" whiteSpace="nowrap">
-            {rateString} {rateLabel}
-          </Text>
-          <PortfolioButton
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              navigate(`/portfolio/${poolAddress}`)
-            }}
-          >
-            <Trans>Portfolio</Trans>
-          </PortfolioButton>
+          <MobileChainCount>
+            {chainIds.map((chainId) => (
+              <ChainLogo key={chainId} chainId={chainId} size={14} />
+            ))}
+            {chainCount} {chainCount === 1 ? 'chain' : 'chains'}
+          </MobileChainCount>
         </Flex>
       </Flex>
-    </GroupRow>
+      <Flex row alignItems="center" gap="$spacing8" flexShrink={0}>
+        <Text fontSize={14} fontWeight="600" color="$neutral1" whiteSpace="nowrap">
+          {rateString} {rateLabel}
+        </Text>
+        <PortfolioButton
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            navigate(`/portfolio/${poolAddress}`)
+          }}
+        >
+          <Trans>Portfolio</Trans>
+        </PortfolioButton>
+      </Flex>
+    </Flex>
   )
 }

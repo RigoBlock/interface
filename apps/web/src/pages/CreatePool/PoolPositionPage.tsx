@@ -94,6 +94,11 @@ const ChainPill = styled(Flex, {
   hoverStyle: {
     backgroundColor: '$surface2',
   },
+  $sm: {
+    gap: '$spacing4',
+    paddingHorizontal: '$spacing8',
+    paddingVertical: '$spacing4',
+  },
   variants: {
     active: {
       true: {
@@ -431,18 +436,6 @@ export default function PoolPositionPage() {
     selectedChainStaking?.irr != null && Number(selectedChainStaking.irr) > 0
       ? `${(Number(selectedChainStaking.irr) * 100).toFixed(1)}%`
       : '—'
-  const epochCountdown = useMemo(() => {
-    if (!epochInfo?.earliestEndTime) {
-      return undefined
-    }
-    const secondsLeft = epochInfo.earliestEndTime - Math.floor(Date.now() / 1000)
-    if (secondsLeft <= 0) {
-      return 'ends soon'
-    }
-    const days = Math.floor(secondsLeft / 86400)
-    const hours = Math.floor((secondsLeft % 86400) / 3600)
-    return days > 0 ? `ends in ~${days}d ${hours}h` : `ends in ~${hours}h`
-  }, [epochInfo?.earliestEndTime])
   // A pool can be enrolled for the current epoch rewards once it has enough own stake and is not enrolled yet
   const canEnrollForRewards = useMemo(() => {
     if (!account.isConnected || !selectedChainStaking) {
@@ -653,9 +646,9 @@ export default function PoolPositionPage() {
               }}
             >
               <Flex row gap="$spacing12" alignItems="center" flexShrink={1} minWidth={0}>
-                {name ? (
+                {name || chainEntries[0]?.pool.name ? (
                   <Text variant="heading3" numberOfLines={1}>
-                    {name}&nbsp;|&nbsp;{symbol}
+                    {name ?? chainEntries[0]?.pool.name}&nbsp;|&nbsp;{symbol ?? chainEntries[0]?.pool.symbol}
                   </Text>
                 ) : (
                   <Skeleton>
@@ -664,11 +657,13 @@ export default function PoolPositionPage() {
                 )}
                 <NetworkLogo chainId={chainId as UniverseChainId} size={24} />
                 {poolAddressFromUrl && (
-                  <Link to={`/portfolio/${poolAddressFromUrl}`} style={{ textDecoration: 'none' }}>
-                    <Text variant="body2" color="$accent1" whiteSpace="nowrap">
-                      <Trans>Portfolio →</Trans>
-                    </Text>
-                  </Link>
+                  <Flex marginLeft="$spacing16">
+                    <Link to={`/portfolio/${poolAddressFromUrl}`} style={{ textDecoration: 'none' }}>
+                      <Text variant="body2" color="$accent1" whiteSpace="nowrap">
+                        <Trans>Portfolio →</Trans>
+                      </Text>
+                    </Link>
+                  </Flex>
                 )}
               </Flex>
               <Flex row gap="$spacing8" alignItems="center" flexShrink={0}>
@@ -718,8 +713,8 @@ export default function PoolPositionPage() {
             )}
           </Flex>
 
-          <Flex row gap="$spacing16" width="100%" alignItems="stretch" $lg={{ flexDirection: 'column' }}>
-            <DataCard flex={1}>
+          <Flex row flexWrap="wrap" gap="$spacing16" width="100%" alignItems="stretch">
+            <DataCard flexBasis="31%" $lg={{ flexBasis: '47%' }}>
               <Text variant="subheading2">
                 <Trans>Pool Values</Trans>
               </Text>
@@ -763,7 +758,7 @@ export default function PoolPositionPage() {
               </Flex>
             </DataCard>
 
-            <DataCard flex={1}>
+            <DataCard flexBasis="31%" $lg={{ flexBasis: '47%' }}>
               <Text variant="subheading2">
                 <Trans>Cost Factors</Trans>
               </Text>
@@ -827,7 +822,7 @@ export default function PoolPositionPage() {
               </Flex>
             </DataCard>
 
-            <DataCard flex={1}>
+            <DataCard flexBasis="31%" $lg={{ flexBasis: '47%' }}>
               <Text variant="subheading2">
                 <Trans>Issuance Data</Trans>
               </Text>
@@ -904,83 +899,46 @@ export default function PoolPositionPage() {
                 </Button>
               )}
             </Flex>
-            <Flex row gap="$spacing24" width="100%" $md={{ flexDirection: 'column', gap: '$spacing12' }}>
-              <Flex flex={1} gap="$spacing12">
+            <Flex gap="$spacing12" width="100%">
+              <DataRow>
+                <Text variant="body3" color="$neutral2">
+                  <Trans>APR</Trans>
+                </Text>
+                <Text variant="body3" color="$neutral1">
+                  {stakingAprString}
+                </Text>
+              </DataRow>
+              {selectedChainStaking?.userIsOwner && (
                 <DataRow>
                   <Text variant="body3" color="$neutral2">
-                    <Trans>APR</Trans>
+                    <Trans>IRR (operator)</Trans>
                   </Text>
                   <Text variant="body3" color="$neutral1">
-                    {stakingAprString}
+                    {stakingIrrString}
                   </Text>
                 </DataRow>
-                {selectedChainStaking?.userIsOwner && (
-                  <DataRow>
-                    <Text variant="body3" color="$neutral2">
-                      <Trans>IRR (operator)</Trans>
-                    </Text>
-                    <Text variant="body3" color="$neutral1">
-                      {stakingIrrString}
-                    </Text>
-                  </DataRow>
-                )}
-                <DataRow>
-                  <Text variant="body3" color="$neutral2">
-                    <Trans>Delegated Stake</Trans>
-                  </Text>
-                  <Text variant="body3" color="$neutral1">
-                    {formatGrgAmount(selectedChainStaking?.delegatedStake.toString())} GRG
-                  </Text>
-                </DataRow>
-                <DataRow>
-                  <Text variant="body3" color="$neutral2">
-                    <Trans>Operator Own Stake</Trans>
-                  </Text>
-                  <Text variant="body3" color="$neutral1">
-                    {formatGrgAmount(selectedChainStaking?.poolOwnStake.toString())} GRG
-                  </Text>
-                </DataRow>
-              </Flex>
-              <Flex flex={1} gap="$spacing12">
-                <DataRow>
-                  <Text variant="body3" color="$neutral2">
-                    <Trans>Current Epoch Reward</Trans>
-                  </Text>
-                  <Text variant="body3" color="$neutral1">
-                    {formatGrgAmount(selectedChainStaking?.currentEpochReward)} GRG
-                  </Text>
-                </DataRow>
-                <DataRow>
-                  <Text variant="body3" color="$neutral2">
-                    <Trans>Current Epoch</Trans>
-                  </Text>
-                  {epochInfo?.currentEpoch !== undefined ? (
-                    <Text variant="body3" color="$neutral1">
-                      #{epochInfo.currentEpoch}
-                      {epochCountdown ? ` · ${epochCountdown}` : ''}
-                    </Text>
-                  ) : (
-                    <LoadingValue width={64} />
-                  )}
-                </DataRow>
-                <DataRow>
-                  <Text variant="body3" color="$neutral2">
-                    <Trans>Minimum Pool Stake</Trans>
-                  </Text>
-                  {epochInfo?.minimumPoolStake ? (
-                    <Text variant="body3" color="$neutral1">
-                      {formatGrgAmount(epochInfo.minimumPoolStake)} GRG
-                    </Text>
-                  ) : (
-                    <LoadingValue width={72} />
-                  )}
-                </DataRow>
-              </Flex>
+              )}
+              <DataRow>
+                <Text variant="body3" color="$neutral2">
+                  <Trans>Delegated Stake</Trans>
+                </Text>
+                <Text variant="body3" color="$neutral1">
+                  {formatGrgAmount(selectedChainStaking?.delegatedStake.toString())} GRG
+                </Text>
+              </DataRow>
+              <DataRow>
+                <Text variant="body3" color="$neutral2">
+                  <Trans>Operator Own Stake</Trans>
+                </Text>
+                <Text variant="body3" color="$neutral1">
+                  {formatGrgAmount(selectedChainStaking?.poolOwnStake.toString())} GRG
+                </Text>
+              </DataRow>
             </Flex>
           </DataCard>
 
-          <Flex row gap="$spacing16" width="100%" $lg={{ flexDirection: 'column' }}>
-            <Flex flex={1} width="100%">
+          <Flex row gap="$spacing16" width="100%" $sm={{ flexDirection: 'column' }}>
+            <Flex flex={1}>
               {poolAddressFromUrl && chainId ? (
                 <AddressCard address={poolAddressFromUrl} chainId={chainId} label="Smart Pool" />
               ) : (
@@ -989,7 +947,7 @@ export default function PoolPositionPage() {
                 </Skeleton>
               )}
             </Flex>
-            <Flex flex={1} width="100%">
+            <Flex flex={1}>
               {owner && chainId ? (
                 <AddressCard address={owner} chainId={chainId} label="Pool Operator" />
               ) : (
@@ -1000,7 +958,7 @@ export default function PoolPositionPage() {
             </Flex>
           </Flex>
 
-          <Flex row gap="$spacing8" flexWrap="wrap" width="100%">
+          <Flex row gap="$spacing8" flexWrap="wrap" width="100%" justifyContent="center">
             <Button size="small" variant="branded" fill={false} onPress={() => setShowStakeModal(true)}>
               <Trans>Stake</Trans>
             </Button>

@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { ChartPeriod } from '@uniswap/client-data-api/dist/data/v1/api_pb'
+import { GetPortfolioChartResponse } from '@uniswap/client-data-api/dist/data/v1/api_pb'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { memo, useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
@@ -128,6 +129,28 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
     return portfolioChartData.points[portfolioChartData.points.length - 1]?.value
   }, [portfolioChartData])
 
+  // The historical chart data only covers token balances; staking and GMX perp values
+  // have no history, so bootstrap them flatly using the current value at every point
+  const chartDataWithExtras = useMemo(() => {
+    if (!portfolioChartData?.points) {
+      return portfolioChartData
+    }
+    const stakingExtra = isNaN(stakingValueStable) ? 0 : stakingValueStable
+    const gmxExtra = isNaN(gmxTotalNetValueUsd) ? 0 : gmxTotalNetValueUsd
+    const extra = stakingExtra + gmxExtra
+    if (extra === 0) {
+      return portfolioChartData
+    }
+    return new GetPortfolioChartResponse({
+      beginAt: portfolioChartData.beginAt,
+      endAt: portfolioChartData.endAt,
+      points: portfolioChartData.points.map((point) => ({
+        timestamp: point.timestamp,
+        value: point.value + extra,
+      })),
+    })
+  }, [portfolioChartData, stakingValueStable, gmxTotalNetValueUsd])
+
   // Compare portfolio balance (EVM + Solana) with chart endpoint balance to detect spam-token divergence
   // Note: Use base portfolio data (without staking) for comparison since chart data doesn't include staking
   const { isTotalValueMatch } = usePortfolioChartBalanceMismatch({
@@ -179,7 +202,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
             <PortfolioChart
               portfolioTotalBalanceUSD={portfolioTotalWithStaking} // Shows current total with staking in header
               isPortfolioZero={isPortfolioZero}
-              chartData={portfolioChartData} // Historical data (portfolio only, no staking history available)
+              chartData={chartDataWithExtras} // Historical data with staking + perps bootstrapped at current value
               isPending={isChartPending}
               error={chartError}
               selectedPeriod={selectedPeriod}
