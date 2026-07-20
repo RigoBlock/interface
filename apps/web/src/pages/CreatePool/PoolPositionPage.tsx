@@ -84,20 +84,15 @@ const DataRow = styled(Flex, {
 const ChainPill = styled(Flex, {
   row: true,
   alignItems: 'center',
-  gap: '$spacing8',
-  paddingHorizontal: '$spacing12',
-  paddingVertical: '$spacing8',
-  borderRadius: '$rounded12',
+  gap: '$spacing4',
+  paddingHorizontal: '$spacing8',
+  paddingVertical: '$spacing4',
+  borderRadius: '$rounded8',
   borderWidth: 1,
   borderColor: '$surface3',
   cursor: 'pointer',
   hoverStyle: {
     backgroundColor: '$surface2',
-  },
-  $sm: {
-    gap: '$spacing4',
-    paddingHorizontal: '$spacing8',
-    paddingVertical: '$spacing4',
   },
   variants: {
     active: {
@@ -699,11 +694,11 @@ export default function PoolPositionPage() {
                         )
                       }
                     >
-                      <ChainLogo chainId={entryChainId} size={16} />
-                      <Text fontSize={13} fontWeight="600">
+                      <ChainLogo chainId={entryChainId} size={14} />
+                      <Text fontSize={12} fontWeight="600">
                         {getChainLabel(entryChainId)}
                       </Text>
-                      <Text fontSize={12} color="$neutral2">
+                      <Text fontSize={11} color="$neutral2">
                         {entryAprString} APR
                       </Text>
                     </ChainPill>
@@ -875,70 +870,70 @@ export default function PoolPositionPage() {
             </DataCard>
           </Flex>
 
-          <DataCard>
-            <Flex row justifyContent="space-between" alignItems="center" width="100%">
-              <Flex row alignItems="center" gap="$spacing8">
-                <Text variant="subheading2">
-                  <Trans>Staking</Trans>
-                </Text>
-                {chainId && (
-                  <Text variant="body3" color="$neutral2">
-                    · {getChainLabel(chainId as UniverseChainId)}
+          <Flex row gap="$spacing16" width="100%" alignItems="stretch" $lg={{ flexDirection: 'column' }}>
+            <DataCard flex={1}>
+              <Flex row justifyContent="space-between" alignItems="center" width="100%">
+                <Flex row alignItems="center" gap="$spacing8">
+                  <Text variant="subheading2">
+                    <Trans>Staking</Trans>
                   </Text>
+                  {chainId && (
+                    <Text variant="body3" color="$neutral2">
+                      · {getChainLabel(chainId as UniverseChainId)}
+                    </Text>
+                  )}
+                </Flex>
+                {canEnrollForRewards && (
+                  <Button
+                    size="xxsmall"
+                    variant="branded"
+                    emphasis="secondary"
+                    fill={false}
+                    onPress={() => setShowRaceModal(true)}
+                  >
+                    <Trans>Enroll for rewards</Trans>
+                  </Button>
                 )}
               </Flex>
-              {canEnrollForRewards && (
-                <Button
-                  size="xxsmall"
-                  variant="branded"
-                  emphasis="secondary"
-                  fill={false}
-                  onPress={() => setShowRaceModal(true)}
-                >
-                  <Trans>Enroll for rewards</Trans>
-                </Button>
-              )}
-            </Flex>
-            <Flex gap="$spacing12" width="100%">
-              <DataRow>
-                <Text variant="body3" color="$neutral2">
-                  <Trans>APR</Trans>
-                </Text>
-                <Text variant="body3" color="$neutral1">
-                  {stakingAprString}
-                </Text>
-              </DataRow>
-              {selectedChainStaking?.userIsOwner && (
+              <Flex gap="$spacing12" width="100%">
                 <DataRow>
                   <Text variant="body3" color="$neutral2">
-                    <Trans>IRR (operator)</Trans>
+                    <Trans>APR</Trans>
                   </Text>
                   <Text variant="body3" color="$neutral1">
-                    {stakingIrrString}
+                    {stakingAprString}
                   </Text>
                 </DataRow>
-              )}
-              <DataRow>
-                <Text variant="body3" color="$neutral2">
-                  <Trans>Delegated Stake</Trans>
-                </Text>
-                <Text variant="body3" color="$neutral1">
-                  {formatGrgAmount(selectedChainStaking?.delegatedStake.toString())} GRG
-                </Text>
-              </DataRow>
-              <DataRow>
-                <Text variant="body3" color="$neutral2">
-                  <Trans>Operator Own Stake</Trans>
-                </Text>
-                <Text variant="body3" color="$neutral1">
-                  {formatGrgAmount(selectedChainStaking?.poolOwnStake.toString())} GRG
-                </Text>
-              </DataRow>
-            </Flex>
-          </DataCard>
+                {selectedChainStaking?.userIsOwner && (
+                  <DataRow>
+                    <Text variant="body3" color="$neutral2">
+                      <Trans>IRR (operator)</Trans>
+                    </Text>
+                    <Text variant="body3" color="$neutral1">
+                      {stakingIrrString}
+                    </Text>
+                  </DataRow>
+                )}
+                <DataRow>
+                  <Text variant="body3" color="$neutral2">
+                    <Trans>Delegated Stake</Trans>
+                  </Text>
+                  <Text variant="body3" color="$neutral1">
+                    {formatGrgAmount(selectedChainStaking?.delegatedStake.toString())} GRG
+                  </Text>
+                </DataRow>
+                <DataRow>
+                  <Text variant="body3" color="$neutral2">
+                    <Trans>Operator Own Stake</Trans>
+                  </Text>
+                  <Text variant="body3" color="$neutral1">
+                    {formatGrgAmount(selectedChainStaking?.poolOwnStake.toString())} GRG
+                  </Text>
+                </DataRow>
+              </Flex>
+            </DataCard>
 
-          <Flex row gap="$spacing16" width="100%" $sm={{ flexDirection: 'column' }}>
-            <Flex flex={1}>
+            <Flex flexBasis="24%">
               {poolAddressFromUrl && chainId ? (
                 <AddressCard address={poolAddressFromUrl} chainId={chainId} label="Smart Pool" />
               ) : (
@@ -947,7 +942,7 @@ export default function PoolPositionPage() {
                 </Skeleton>
               )}
             </Flex>
-            <Flex flex={1}>
+            <Flex flexBasis="24%">
               {owner && chainId ? (
                 <AddressCard address={owner} chainId={chainId} label="Pool Operator" />
               ) : (

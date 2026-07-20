@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
-import { Trans } from 'react-i18next'
-import { Flex, Text } from 'ui/src'
+import { useMemo } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
+import { Flex, TouchableArea } from 'ui/src'
 import { MoreHorizontal } from 'ui/src/components/icons/MoreHorizontal'
-import { Portal } from '~/components/Popups/Portal'
+import { ContextMenu } from 'uniswap/src/components/menus/ContextMenu'
+import { ContextMenuTriggerMode } from 'uniswap/src/components/menus/types'
+import { useBooleanState } from 'utilities/src/react/useBooleanState'
 import { GmxOrderAction } from '~/pages/Portfolio/Perps/gmx/useGmxOrderCallback'
 
 /** Order actions with their display labels, shared by the menu and the order modal */
@@ -18,91 +20,58 @@ export function gmxOrderActionLabel(action: GmxOrderAction): JSX.Element {
   return GMX_ORDER_ACTIONS.find((entry) => entry.action === action)?.label ?? <></>
 }
 
+const ICON_BUTTON_SIZE = 28
+
 /**
  * 3-dot dropdown menu with the available order actions for a GMX position.
- * The menu is portaled to the document body and anchored to the trigger, so it
- * overlays the table (and any transformed ancestors) instead of being clipped.
+ * Built on the same ContextMenu used by the Pools table in portfolio Overview.
  */
 export function GmxPositionActionsMenu({ onSelect }: { onSelect: (action: GmxOrderAction) => void }): JSX.Element {
-  const [anchorRect, setAnchorRect] = useState<DOMRect | undefined>()
-  const triggerRef = useRef<HTMLDivElement>(null)
+  const { t } = useTranslation()
+  const { value: isOpen, setTrue: openMenu, setFalse: closeMenu, toggle } = useBooleanState(false)
 
-  const open = anchorRect !== undefined
-
-  useEffect(() => {
-    if (!open) {
-      return undefined
-    }
-    const close = () => setAnchorRect(undefined)
-    const onClickOutside = (event: MouseEvent) => {
-      if (triggerRef.current && !triggerRef.current.contains(event.target as Node)) {
-        close()
-      }
-    }
-    document.addEventListener('mousedown', onClickOutside)
-    window.addEventListener('scroll', close, true)
-    window.addEventListener('resize', close)
-    return () => {
-      document.removeEventListener('mousedown', onClickOutside)
-      window.removeEventListener('scroll', close, true)
-      window.removeEventListener('resize', close)
-    }
-  }, [open])
+  const menuItems = useMemo(
+    () => [
+      { label: t('Increase position'), onPress: () => onSelect(GmxOrderAction.IncreasePosition) },
+      { label: t('Decrease position'), onPress: () => onSelect(GmxOrderAction.DecreasePosition) },
+      { label: t('Increase collateral'), onPress: () => onSelect(GmxOrderAction.IncreaseCollateral) },
+      { label: t('Decrease collateral'), onPress: () => onSelect(GmxOrderAction.DecreaseCollateral) },
+      {
+        label: t('Close position'),
+        onPress: () => onSelect(GmxOrderAction.ClosePosition),
+        destructive: true,
+      },
+    ],
+    [t, onSelect],
+  )
 
   return (
-    <Flex
-      cursor="pointer"
-      padding="$spacing4"
-      hoverStyle={{ opacity: 0.7 }}
-      ref={triggerRef}
-      onPress={(e) => {
-        e.stopPropagation()
-        if (open) {
-          setAnchorRect(undefined)
-        } else {
-          setAnchorRect(triggerRef.current?.getBoundingClientRect())
-        }
-      }}
+    <ContextMenu
+      trackItemClicks
+      menuItems={menuItems}
+      triggerMode={ContextMenuTriggerMode.Primary}
+      isOpen={isOpen}
+      openMenu={openMenu}
+      closeMenu={closeMenu}
     >
-      <MoreHorizontal size="$icon.20" color="$neutral2" />
-      {anchorRect && (
-        <Portal>
-          <Flex
-            backgroundColor="$surface1"
-            borderRadius="$rounded12"
-            borderWidth={1}
-            borderColor="$surface3"
-            padding="$spacing4"
-            minWidth={190}
-            style={{
-              position: 'fixed',
-              top: anchorRect.bottom + 4,
-              right: window.innerWidth - anchorRect.right,
-              zIndex: 1000,
-            }}
-          >
-            {GMX_ORDER_ACTIONS.map(({ action, label }) => (
-              <Flex
-                key={action}
-                paddingVertical="$spacing8"
-                paddingHorizontal="$spacing12"
-                borderRadius="$rounded8"
-                cursor="pointer"
-                hoverStyle={{ backgroundColor: '$surface2' }}
-                onPress={(e) => {
-                  e.stopPropagation()
-                  setAnchorRect(undefined)
-                  onSelect(action)
-                }}
-              >
-                <Text variant="body3" color={action === GmxOrderAction.ClosePosition ? '$statusCritical' : '$neutral1'}>
-                  {label}
-                </Text>
-              </Flex>
-            ))}
-          </Flex>
-        </Portal>
-      )}
-    </Flex>
+      <TouchableArea
+        onPress={(e) => {
+          e.stopPropagation()
+          e.preventDefault()
+          toggle()
+        }}
+      >
+        <Flex
+          aria-label="View position options"
+          centered
+          height={ICON_BUTTON_SIZE}
+          width={ICON_BUTTON_SIZE}
+          borderRadius="$rounded12"
+          hoverStyle={{ backgroundColor: '$surface3' }}
+        >
+          <MoreHorizontal size="$icon.16" color="$neutral2" />
+        </Flex>
+      </TouchableArea>
+    </ContextMenu>
   )
 }

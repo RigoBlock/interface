@@ -39,8 +39,8 @@ function formatPrice(value?: number): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: value > 0 && value < 1 ? 4 : 2,
+    minimumFractionDigits: 4,
+    maximumFractionDigits: 4,
   }).format(value)
 }
 
@@ -55,7 +55,7 @@ function pnlColor(value: number): PnlColor {
 
 // Shared fixed column widths so header and data cells always stay aligned
 const COLUMN = {
-  market: { width: 220 },
+  market: { width: 180 },
   side: { width: 64 },
   size: { width: 100 },
   netValue: { width: 100 },
@@ -64,9 +64,10 @@ const COLUMN = {
   mark: { width: 100 },
   liq: { width: 100 },
   pnl: { width: 140 },
+  actions: { width: 48 },
 } as const
 
-const TABLE_MIN_WIDTH = 1052
+const TABLE_MIN_WIDTH = 1100
 
 function HeaderCell({ label, alignLeft }: { label: React.ReactNode; alignLeft?: boolean }): JSX.Element {
   return (
@@ -103,24 +104,13 @@ function PositionRow({
       borderBottomColor="$surface3"
       minWidth={TABLE_MIN_WIDTH}
     >
-      <Flex
-        {...COLUMN.market}
-        flexShrink={0}
-        minWidth={0}
-        row
-        alignItems="center"
-        justifyContent="space-between"
-        gap="$spacing8"
-      >
-        <Flex minWidth={0}>
-          <Text variant="body3" fontWeight="600" numberOfLines={1}>
-            {position.indexName}
-          </Text>
-          <Text variant="body4" color="$neutral2" numberOfLines={1}>
-            {position.poolName}
-          </Text>
-        </Flex>
-        {isOperator && <GmxPositionActionsMenu onSelect={(action) => onAction(position, action)} />}
+      <Flex {...COLUMN.market} flexShrink={0} minWidth={0}>
+        <Text variant="body3" fontWeight="600" numberOfLines={1}>
+          {position.indexName}
+        </Text>
+        <Text variant="body4" color="$neutral2" numberOfLines={1}>
+          {position.poolName}
+        </Text>
       </Flex>
       <Flex {...COLUMN.side} flexShrink={0} alignItems="flex-end">
         <Text variant="body3" fontWeight="600" color={position.isLong ? '$statusSuccess' : '$statusCritical'}>
@@ -149,6 +139,9 @@ function PositionRow({
         <CellText color={pnlColor(position.unrealizedPnlUsd)}>
           {formatSignedUsd(position.unrealizedPnlUsd)} ({position.unrealizedPnlPercent.toFixed(1)}%)
         </CellText>
+      </Flex>
+      <Flex {...COLUMN.actions} flexShrink={0} alignItems="center" justifyContent="center">
+        {isOperator && <GmxPositionActionsMenu onSelect={(action) => onAction(position, action)} />}
       </Flex>
     </Flex>
   )
@@ -300,6 +293,7 @@ export function PortfolioPerps(): JSX.Element {
                   <Flex {...COLUMN.pnl} flexShrink={0} alignItems="flex-end">
                     <HeaderCell label={<Trans>Unrealized PnL</Trans>} />
                   </Flex>
+                  <Flex {...COLUMN.actions} flexShrink={0} />
                 </Flex>
                 {positions.map((position) => (
                   <PositionRow
