@@ -48,7 +48,7 @@ export function GmxPositionActionsMenu({ onSelect }: { onSelect: (action: GmxOrd
         <MenuContent
           items={menuItems}
           handleCloseMenu={closeMenu}
-          containerStyles={{ minWidth: 220, maxWidth: 320 }}
+          containerStyles={{ minWidth: 280, maxWidth: 400 }}
         />
       }
     >

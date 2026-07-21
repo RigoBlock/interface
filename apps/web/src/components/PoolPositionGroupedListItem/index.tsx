@@ -139,18 +139,18 @@ export default function PoolPositionGroupedListItem({
     return [...positions].sort((a, b) => Number(b.poolOwnStake ?? 0) - Number(a.poolOwnStake ?? 0))[0]
   }, [positions, account.chainId])
 
-  // Rate: operators see their IRR, everyone else sees the best delegator APR across chains
+  // Rate: Top Smart Pools always show APR; My Smart Pools show IRR for operators
   const { rateString, rateLabel } = useMemo(() => {
     const operated = positions.filter((p) => p.userIsOwner)
     const isOperator = operated.length > 0
-    const rateValue = isOperator
+    const rateValue = isOperator && isMyPools
       ? Math.max(0, ...operated.map((p) => Number(p.irr ?? 0)))
       : Math.max(0, ...positions.map((p) => Number(p.apr ?? 0)))
     return {
       rateString: rateValue > 0 ? `${(rateValue * 100).toFixed(1)}%` : '—',
-      rateLabel: isOperator ? 'IRR' : 'APR',
+      rateLabel: isOperator && isMyPools ? 'IRR' : 'APR',
     }
-  }, [positions])
+  }, [positions, isMyPools])
 
   if (positions.length === 0) {
     return null

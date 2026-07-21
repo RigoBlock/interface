@@ -50,13 +50,23 @@ export function ContextMenu({
     capture: true,
   })
 
+  const triggerHandledRef = useRef(false)
+
   const onContextMenu = useEvent((e: React.MouseEvent<HTMLDivElement>): void => {
     if (disabled) {
       return
     }
 
-    e.preventDefault()
+    // Avoid "Unable to preventDefault inside passive event listener invocation" warnings
+    // on touch devices where the event may be marked passive.
+    if (e.cancelable) {
+      e.preventDefault()
+    }
     e.stopPropagation()
+
+    if (isLeftClick) {
+      triggerHandledRef.current = true
+    }
 
     // Toggle: close if already open, otherwise open
     if (isOpen) {
@@ -72,14 +82,30 @@ export function ContextMenu({
   })
 
   // Prevent click events from propagating to parent elements (e.g., TouchableArea)
+  // and act as a fallback to open the menu on touch/click devices that do not fire
+  // onMouseDown for primary triggers (e.g., mobile web browsers).
   const onClickCapture = useEvent((e: React.MouseEvent<HTMLDivElement>): void => {
-    e.preventDefault()
+    if (e.cancelable) {
+      e.preventDefault()
+    }
     e.stopPropagation()
+
+    if (isLeftClick && !triggerHandledRef.current) {
+      if (isOpen) {
+        handleCloseMenu()
+      } else {
+        openMenu?.()
+      }
+    }
+
+    triggerHandledRef.current = false
   })
 
   // Prevent native browser context menu from appearing
   const onPreventContextMenu = useEvent((e: React.MouseEvent<HTMLDivElement>): void => {
-    e.preventDefault()
+    if (e.cancelable) {
+      e.preventDefault()
+    }
     e.stopPropagation()
   })
 
