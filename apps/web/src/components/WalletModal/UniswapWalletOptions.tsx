@@ -1,3 +1,4 @@
+/* oxlint-disable typescript/no-unnecessary-condition */
 import { useAtom } from 'jotai'
 import { PropsWithChildren } from 'react'
 import { Trans } from 'react-i18next'
@@ -123,7 +124,9 @@ export function UniswapWalletOptions() {
           <OptionContainer
             onPress={() => {
               setPersistHideMobileAppPromoBanner(true)
-              openDownloadApp({ element: ElementName.UniswapWalletModalDownloadButton })
+              openDownloadApp({
+                element: ElementName.UniswapWalletModalDownloadButton,
+              })
             }}
           >
             <PhoneDownload size="$icon.40" minWidth={40} color="$accent1" backgroundColor="$accent2" borderRadius={8} />

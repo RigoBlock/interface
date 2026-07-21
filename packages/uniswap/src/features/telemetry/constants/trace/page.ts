@@ -24,6 +24,7 @@ export enum InterfacePageName {
   PortfolioStakingPage = 'portfolio-staking-page',
   PortfolioDefiPage = 'portfolio-defi-page',
   PortfolioNftsPage = 'portfolio-nfts-page',
+  PortfolioPerpsPage = 'portfolio-perps-page',
   PortfolioActivityPage = 'portfolio-activity-page',
   PortfolioPage = 'portfolio-page',
   PositionDetails = 'position-details-page',

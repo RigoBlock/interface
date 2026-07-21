@@ -2,62 +2,7 @@
 
 exports[`Pending - classic trade titles > renders classic trade correctly, with approvalPending= %p , revocationPending= %p, wrapTxHash= %p false false undefined 1`] = `
 <DocumentFragment>
-  .c3 {
-  transition: display 250ms ease-in-out,transform 250ms ease-in-out;
-  animation: dDLNFg 250ms ease-in-out forwards;
-}
-
-.c3.exiting {
-  animation: hNFZXE 250ms ease-in-out;
-}
-
-.c8 {
-  color: #131313;
-  letter-spacing: -0.01em;
-}
-
-.c9 {
-  color: rgba(19, 19, 19, 0.63);
-  letter-spacing: -0.01em;
-}
-
-.c14 {
-  text-decoration: none;
-  cursor: pointer;
-  transition-duration: 125ms;
-  color: #FF37C7;
-  stroke: #FF37C7;
-  font-weight: 500;
-}
-
-.c14 :hover {
-  opacity: 0.6;
-}
-
-.c14 :active {
-  opacity: 0.4;
-}
-
-.c0 {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 24px;
-}
-
-.c4 {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 12px;
-}
-
-.c1 {
-  width: 100%;
-  align-items: center;
-}
-
-.c10 {
+  .c10 {
   box-sizing: border-box;
   margin: 0;
   min-width: 0;
@@ -86,6 +31,61 @@ exports[`Pending - classic trade titles > renders classic trade correctly, with 
   padding: 0;
   align-items: center;
   justify-content: center;
+}
+
+.c8 {
+  color: #131313;
+  letter-spacing: -0.01em;
+}
+
+.c9 {
+  color: rgba(19, 19, 19, 0.63);
+  letter-spacing: -0.01em;
+}
+
+.c14 {
+  text-decoration: none;
+  cursor: pointer;
+  transition-duration: 125ms;
+  color: #feb239;
+  stroke: #feb239;
+  font-weight: 500;
+}
+
+.c14 :hover {
+  opacity: 0.6;
+}
+
+.c14 :active {
+  opacity: 0.4;
+}
+
+.c3 {
+  transition: display 250ms ease-in-out,transform 250ms ease-in-out;
+  animation: dDLNFg 250ms ease-in-out forwards;
+}
+
+.c3.exiting {
+  animation: hNFZXE 250ms ease-in-out;
+}
+
+.c0 {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 24px;
+}
+
+.c4 {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.c1 {
+  width: 100%;
+  align-items: center;
 }
 
 .c2 {
@@ -148,7 +148,7 @@ exports[`Pending - classic trade titles > renders classic trade correctly, with 
             >
               <path
                 d="M26.9997 0.333496C12.2717 0.333496 0.333008 12.2722 0.333008 27.0002C0.333008 41.7282 12.2717 53.6668 26.9997 53.6668C41.7277 53.6668 53.6663 41.7282 53.6663 27.0002C53.6663 12.2722 41.7277 0.333496 26.9997 0.333496ZM36.4131 25.7469C36.0238 26.1362 35.5117 26.3335 34.9997 26.3335C34.4877 26.3335 33.9756 26.1389 33.5863 25.7469L28.9997 21.1603V37.6668C28.9997 38.7708 28.1037 39.6668 26.9997 39.6668C25.8957 39.6668 24.9997 38.7708 24.9997 37.6668V21.1629L20.4131 25.7495C19.6318 26.5308 18.365 26.5308 17.5837 25.7495C16.8023 24.9682 16.8023 23.7014 17.5837 22.9201L25.5837 14.9201C25.7677 14.7361 25.9887 14.5898 26.2341 14.4884C26.722 14.2858 27.274 14.2858 27.762 14.4884C28.0074 14.5898 28.2291 14.7361 28.4131 14.9201L36.4131 22.9201C37.1944 23.7014 37.1944 24.9656 36.4131 25.7469Z"
-                fill="#FF37C7"
+                fill="#feb239"
               />
             </svg>
           </div>
@@ -236,62 +236,7 @@ exports[`Pending - classic trade titles > renders classic trade correctly, with 
 
 exports[`Pending - classic trade titles > renders classic trade correctly, with approvalPending= %p , revocationPending= %p, wrapTxHash= %p false false undefined 2`] = `
 <DocumentFragment>
-  .c3 {
-  transition: display 250ms ease-in-out,transform 250ms ease-in-out;
-  animation: dDLNFg 250ms ease-in-out forwards;
-}
-
-.c3.exiting {
-  animation: hNFZXE 250ms ease-in-out;
-}
-
-.c8 {
-  color: #131313;
-  letter-spacing: -0.01em;
-}
-
-.c9 {
-  color: rgba(19, 19, 19, 0.63);
-  letter-spacing: -0.01em;
-}
-
-.c14 {
-  text-decoration: none;
-  cursor: pointer;
-  transition-duration: 125ms;
-  color: #FF37C7;
-  stroke: #FF37C7;
-  font-weight: 500;
-}
-
-.c14 :hover {
-  opacity: 0.6;
-}
-
-.c14 :active {
-  opacity: 0.4;
-}
-
-.c0 {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 24px;
-}
-
-.c4 {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 12px;
-}
-
-.c1 {
-  width: 100%;
-  align-items: center;
-}
-
-.c10 {
+  .c10 {
   box-sizing: border-box;
   margin: 0;
   min-width: 0;
@@ -320,6 +265,61 @@ exports[`Pending - classic trade titles > renders classic trade correctly, with 
   padding: 0;
   align-items: center;
   justify-content: center;
+}
+
+.c8 {
+  color: #131313;
+  letter-spacing: -0.01em;
+}
+
+.c9 {
+  color: rgba(19, 19, 19, 0.63);
+  letter-spacing: -0.01em;
+}
+
+.c14 {
+  text-decoration: none;
+  cursor: pointer;
+  transition-duration: 125ms;
+  color: #feb239;
+  stroke: #feb239;
+  font-weight: 500;
+}
+
+.c14 :hover {
+  opacity: 0.6;
+}
+
+.c14 :active {
+  opacity: 0.4;
+}
+
+.c3 {
+  transition: display 250ms ease-in-out,transform 250ms ease-in-out;
+  animation: dDLNFg 250ms ease-in-out forwards;
+}
+
+.c3.exiting {
+  animation: hNFZXE 250ms ease-in-out;
+}
+
+.c0 {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 24px;
+}
+
+.c4 {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.c1 {
+  width: 100%;
+  align-items: center;
 }
 
 .c2 {
@@ -469,16 +469,7 @@ exports[`Pending - classic trade titles > renders classic trade correctly, with 
 
 exports[`Pending - classic trade titles > renders classic trade correctly, with approvalPending= %p , revocationPending= %p, wrapTxHash= %p false false undefined 3`] = `
 <DocumentFragment>
-  .c3 {
-  transition: display 250ms ease-in-out,transform 250ms ease-in-out;
-  animation: iCPeaJ 250ms ease-in-out forwards;
-}
-
-.c3.exiting {
-  animation: bbnGid 250ms ease-in-out;
-}
-
-.c4 {
+  .c4 {
   height: 16px;
   width: 16px;
 }
@@ -491,35 +482,6 @@ exports[`Pending - classic trade titles > renders classic trade correctly, with 
 
 .c5 {
   animation: 2s fvtopB linear infinite;
-}
-
-.c10 {
-  color: #131313;
-  letter-spacing: -0.01em;
-}
-
-.c11 {
-  color: rgba(19, 19, 19, 0.63);
-  letter-spacing: -0.01em;
-}
-
-.c0 {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 24px;
-}
-
-.c6 {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 12px;
-}
-
-.c1 {
-  width: 100%;
-  align-items: center;
 }
 
 .c12 {
@@ -551,6 +513,44 @@ exports[`Pending - classic trade titles > renders classic trade correctly, with 
   padding: 0;
   align-items: center;
   justify-content: center;
+}
+
+.c10 {
+  color: #131313;
+  letter-spacing: -0.01em;
+}
+
+.c11 {
+  color: rgba(19, 19, 19, 0.63);
+  letter-spacing: -0.01em;
+}
+
+.c3 {
+  transition: display 250ms ease-in-out,transform 250ms ease-in-out;
+  animation: iCPeaJ 250ms ease-in-out forwards;
+}
+
+.c3.exiting {
+  animation: bbnGid 250ms ease-in-out;
+}
+
+.c0 {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 24px;
+}
+
+.c6 {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.c1 {
+  width: 100%;
+  align-items: center;
 }
 
 .c2 {
@@ -693,13 +693,19 @@ exports[`Pending - classic trade titles > renders classic trade correctly, with 
 
 exports[`Pending - uniswapX trade titles > renders limit order correctly, with approvalPending= %p , revocationPending= %p, wrapTxHash= %p false false undefined 1`] = `
 <DocumentFragment>
-  .c3 {
-  transition: display 250ms ease-in-out,transform 250ms ease-in-out;
-  animation: dDLNFg 250ms ease-in-out forwards;
+  .c10 {
+  box-sizing: border-box;
+  margin: 0;
+  min-width: 0;
 }
 
-.c3.exiting {
-  animation: hNFZXE 250ms ease-in-out;
+.c11 {
+  width: 100%;
+  display: flex;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .c8 {
@@ -710,6 +716,15 @@ exports[`Pending - uniswapX trade titles > renders limit order correctly, with a
 .c9 {
   color: rgba(19, 19, 19, 0.63);
   letter-spacing: -0.01em;
+}
+
+.c3 {
+  transition: display 250ms ease-in-out,transform 250ms ease-in-out;
+  animation: dDLNFg 250ms ease-in-out forwards;
+}
+
+.c3.exiting {
+  animation: hNFZXE 250ms ease-in-out;
 }
 
 .c0 {
@@ -729,21 +744,6 @@ exports[`Pending - uniswapX trade titles > renders limit order correctly, with a
 .c1 {
   width: 100%;
   align-items: center;
-}
-
-.c10 {
-  box-sizing: border-box;
-  margin: 0;
-  min-width: 0;
-}
-
-.c11 {
-  width: 100%;
-  display: flex;
-  padding: 0;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
 }
 
 .c2 {
@@ -806,7 +806,7 @@ exports[`Pending - uniswapX trade titles > renders limit order correctly, with a
             >
               <path
                 d="M26.9997 0.333496C12.2717 0.333496 0.333008 12.2722 0.333008 27.0002C0.333008 41.7282 12.2717 53.6668 26.9997 53.6668C41.7277 53.6668 53.6663 41.7282 53.6663 27.0002C53.6663 12.2722 41.7277 0.333496 26.9997 0.333496ZM36.4131 25.7469C36.0238 26.1362 35.5117 26.3335 34.9997 26.3335C34.4877 26.3335 33.9756 26.1389 33.5863 25.7469L28.9997 21.1603V37.6668C28.9997 38.7708 28.1037 39.6668 26.9997 39.6668C25.8957 39.6668 24.9997 38.7708 24.9997 37.6668V21.1629L20.4131 25.7495C19.6318 26.5308 18.365 26.5308 17.5837 25.7495C16.8023 24.9682 16.8023 23.7014 17.5837 22.9201L25.5837 14.9201C25.7677 14.7361 25.9887 14.5898 26.2341 14.4884C26.722 14.2858 27.274 14.2858 27.762 14.4884C28.0074 14.5898 28.2291 14.7361 28.4131 14.9201L36.4131 22.9201C37.1944 23.7014 37.1944 24.9656 36.4131 25.7469Z"
-                fill="#FF37C7"
+                fill="#feb239"
               />
             </svg>
           </div>
@@ -838,25 +838,6 @@ exports[`Pending - uniswapX trade titles > renders limit order correctly, with a
                 gap="sm"
                 justify="center"
               >
-                <div
-                  class="_display-flex _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _alignItems-center _height-16px _justifyContent-center _pointerEvents-auto _width-16px _position-relative"
-                  data-testid="token-logo"
-                >
-                  <div
-                    class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _opacity-0 _height-9637 _width-9637 _zIndex-0 _backgroundColor-FFFFFF35 _position-absolute _top-237 _left-237 _borderTopLeftRadius-8px _borderTopRightRadius-8px _borderBottomRightRadius-8px _borderBottomLeftRadius-8px"
-                  />
-                  <div
-                    class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column"
-                    data-testid="img-token-image"
-                  >
-                    <img
-                      height="16"
-                      src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
-                      style="object-fit: contain; border-radius: 8px; z-index: 1;"
-                      width="16"
-                    />
-                  </div>
-                </div>
                 <div
                   class="c8 css-142zc9n"
                 >
@@ -912,62 +893,7 @@ exports[`Pending - uniswapX trade titles > renders limit order correctly, with a
 
 exports[`Pending - uniswapX trade titles > renders limit order correctly, with approvalPending= %p , revocationPending= %p, wrapTxHash= %p false false undefined 2`] = `
 <DocumentFragment>
-  .c3 {
-  transition: display 250ms ease-in-out,transform 250ms ease-in-out;
-  animation: dDLNFg 250ms ease-in-out forwards;
-}
-
-.c3.exiting {
-  animation: hNFZXE 250ms ease-in-out;
-}
-
-.c8 {
-  color: #131313;
-  letter-spacing: -0.01em;
-}
-
-.c9 {
-  color: rgba(19, 19, 19, 0.63);
-  letter-spacing: -0.01em;
-}
-
-.c14 {
-  text-decoration: none;
-  cursor: pointer;
-  transition-duration: 125ms;
-  color: #FF37C7;
-  stroke: #FF37C7;
-  font-weight: 500;
-}
-
-.c14 :hover {
-  opacity: 0.6;
-}
-
-.c14 :active {
-  opacity: 0.4;
-}
-
-.c0 {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 24px;
-}
-
-.c4 {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 12px;
-}
-
-.c1 {
-  width: 100%;
-  align-items: center;
-}
-
-.c10 {
+  .c10 {
   box-sizing: border-box;
   margin: 0;
   min-width: 0;
@@ -996,6 +922,61 @@ exports[`Pending - uniswapX trade titles > renders limit order correctly, with a
   padding: 0;
   align-items: center;
   justify-content: center;
+}
+
+.c8 {
+  color: #131313;
+  letter-spacing: -0.01em;
+}
+
+.c9 {
+  color: rgba(19, 19, 19, 0.63);
+  letter-spacing: -0.01em;
+}
+
+.c14 {
+  text-decoration: none;
+  cursor: pointer;
+  transition-duration: 125ms;
+  color: #feb239;
+  stroke: #feb239;
+  font-weight: 500;
+}
+
+.c14 :hover {
+  opacity: 0.6;
+}
+
+.c14 :active {
+  opacity: 0.4;
+}
+
+.c3 {
+  transition: display 250ms ease-in-out,transform 250ms ease-in-out;
+  animation: dDLNFg 250ms ease-in-out forwards;
+}
+
+.c3.exiting {
+  animation: hNFZXE 250ms ease-in-out;
+}
+
+.c0 {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 24px;
+}
+
+.c4 {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.c1 {
+  width: 100%;
+  align-items: center;
 }
 
 .c2 {
@@ -1090,25 +1071,6 @@ exports[`Pending - uniswapX trade titles > renders limit order correctly, with a
                 justify="center"
               >
                 <div
-                  class="_display-flex _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _alignItems-center _height-16px _justifyContent-center _pointerEvents-auto _width-16px _position-relative"
-                  data-testid="token-logo"
-                >
-                  <div
-                    class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _opacity-0 _height-9637 _width-9637 _zIndex-0 _backgroundColor-FFFFFF35 _position-absolute _top-237 _left-237 _borderTopLeftRadius-8px _borderTopRightRadius-8px _borderBottomRightRadius-8px _borderBottomLeftRadius-8px"
-                  />
-                  <div
-                    class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column"
-                    data-testid="img-token-image"
-                  >
-                    <img
-                      height="16"
-                      src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
-                      style="object-fit: contain; border-radius: 8px; z-index: 1;"
-                      width="16"
-                    />
-                  </div>
-                </div>
-                <div
                   class="c8 css-142zc9n"
                 >
                   &lt;0.00001 DAI
@@ -1183,16 +1145,7 @@ exports[`Pending - uniswapX trade titles > renders limit order correctly, with a
 
 exports[`Pending - uniswapX trade titles > renders limit order correctly, with approvalPending= %p , revocationPending= %p, wrapTxHash= %p false false undefined 3`] = `
 <DocumentFragment>
-  .c3 {
-  transition: display 250ms ease-in-out,transform 250ms ease-in-out;
-  animation: iCPeaJ 250ms ease-in-out forwards;
-}
-
-.c3.exiting {
-  animation: bbnGid 250ms ease-in-out;
-}
-
-.c4 {
+  .c4 {
   height: 16px;
   width: 16px;
 }
@@ -1205,35 +1158,6 @@ exports[`Pending - uniswapX trade titles > renders limit order correctly, with a
 
 .c5 {
   animation: 2s fvtopB linear infinite;
-}
-
-.c10 {
-  color: #131313;
-  letter-spacing: -0.01em;
-}
-
-.c11 {
-  color: rgba(19, 19, 19, 0.63);
-  letter-spacing: -0.01em;
-}
-
-.c0 {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 24px;
-}
-
-.c6 {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 12px;
-}
-
-.c1 {
-  width: 100%;
-  align-items: center;
 }
 
 .c12 {
@@ -1265,6 +1189,44 @@ exports[`Pending - uniswapX trade titles > renders limit order correctly, with a
   padding: 0;
   align-items: center;
   justify-content: center;
+}
+
+.c10 {
+  color: #131313;
+  letter-spacing: -0.01em;
+}
+
+.c11 {
+  color: rgba(19, 19, 19, 0.63);
+  letter-spacing: -0.01em;
+}
+
+.c3 {
+  transition: display 250ms ease-in-out,transform 250ms ease-in-out;
+  animation: iCPeaJ 250ms ease-in-out forwards;
+}
+
+.c3.exiting {
+  animation: bbnGid 250ms ease-in-out;
+}
+
+.c0 {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 24px;
+}
+
+.c6 {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.c1 {
+  width: 100%;
+  align-items: center;
 }
 
 .c2 {
@@ -1359,25 +1321,6 @@ exports[`Pending - uniswapX trade titles > renders limit order correctly, with a
                 gap="sm"
                 justify="center"
               >
-                <div
-                  class="_display-flex _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _alignItems-center _height-16px _justifyContent-center _pointerEvents-auto _width-16px _position-relative"
-                  data-testid="token-logo"
-                >
-                  <div
-                    class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _opacity-0 _height-9637 _width-9637 _zIndex-0 _backgroundColor-FFFFFF35 _position-absolute _top-237 _left-237 _borderTopLeftRadius-8px _borderTopRightRadius-8px _borderBottomRightRadius-8px _borderBottomLeftRadius-8px"
-                  />
-                  <div
-                    class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column"
-                    data-testid="img-token-image"
-                  >
-                    <img
-                      height="16"
-                      src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
-                      style="object-fit: contain; border-radius: 8px; z-index: 1;"
-                      width="16"
-                    />
-                  </div>
-                </div>
                 <div
                   class="c10 css-142zc9n"
                 >

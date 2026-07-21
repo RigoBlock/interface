@@ -1,3 +1,4 @@
+/* oxlint-disable jest/no-disabled-tests */
 import RouterPreferenceSettings from '~/pages/MigrateV2/Settings/RouterPreferenceSettings'
 import store from '~/state'
 import { RouterPreference } from '~/state/routing/types'

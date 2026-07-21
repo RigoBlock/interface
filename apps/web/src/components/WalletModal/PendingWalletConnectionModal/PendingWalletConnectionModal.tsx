@@ -1,3 +1,4 @@
+/* oxlint-disable typescript/no-unnecessary-condition */
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AnimatePresence, Button, Flex, HeightAnimator, Text } from 'ui/src'
@@ -82,7 +83,9 @@ export default function PendingWalletConnectionModal() {
     resetSolanaWalletToPrompt()
   })
 
-  const modalContent = useModalContent({ showSolanaPrompt: Boolean(solanaWalletToPrompt) })
+  const modalContent = useModalContent({
+    showSolanaPrompt: Boolean(solanaWalletToPrompt),
+  })
 
   const isOpen = Boolean(applicablePendingWallet) || (Boolean(solanaWalletToPrompt) && !!modalContent)
 
@@ -130,7 +133,7 @@ export default function PendingWalletConnectionModal() {
   )
 }
 
-function useModalContent(params: { showSolanaPrompt: boolean }) {
+function useModalContent(_params: { showSolanaPrompt: boolean }) {
   //const { showSolanaPrompt } = params
   const showSolanaPrompt = false
 
@@ -144,7 +147,9 @@ function useModalContent(params: { showSolanaPrompt: boolean }) {
     if (evmConnecting) {
       return {
         key: 'evm-connecting',
-        title: t('wallet.connecting.title.evm', { walletName: pendingWallet?.name || '' }),
+        title: t('wallet.connecting.title.evm', {
+          walletName: pendingWallet?.name || '',
+        }),
         description: t('wallet.connecting.description'),
         icon: pendingWallet?.icon,
         animate: true,
@@ -154,7 +159,9 @@ function useModalContent(params: { showSolanaPrompt: boolean }) {
     if (showSolanaPrompt) {
       return {
         key: 'solana-prompt',
-        title: t('wallet.connecting.solanaPrompt', { walletName: pendingWallet?.name || '' }),
+        title: t('wallet.connecting.solanaPrompt', {
+          walletName: pendingWallet?.name || '',
+        }),
         description: t('wallet.connecting.solanaPrompt.description'),
         icon: SOLANA_ICON,
         animate: false,
@@ -164,7 +171,9 @@ function useModalContent(params: { showSolanaPrompt: boolean }) {
     if (svmConnecting) {
       return {
         key: 'svm-connecting',
-        title: t('wallet.connecting.title.svm', { walletName: pendingWallet?.name || '' }),
+        title: t('wallet.connecting.title.svm', {
+          walletName: pendingWallet?.name || '',
+        }),
         description: t('wallet.connecting.description'),
         icon: SOLANA_ICON,
         animate: true,
@@ -186,7 +195,10 @@ function UserInput(props: { solanaWalletToPrompt: ExternalWallet | undefined; re
   const connectSolana = useEvent(() => {
     if (solanaWalletToPrompt) {
       setHasAcceptedSolanaConnectionPrompt(true)
-      connectWallet({ wallet: solanaWalletToPrompt, individualPlatform: Platform.SVM })
+      connectWallet({
+        wallet: solanaWalletToPrompt,
+        individualPlatform: Platform.SVM,
+      })
       resetModalState()
     }
   })

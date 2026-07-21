@@ -1,6 +1,8 @@
+/* oxlint-disable typescript/no-unnecessary-condition */
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { Address } from 'viem'
+import { assume0xAddress } from '~/utils/wagmi'
 
 // Serializable interface for Redux store (no CurrencyAmount objects)
 export interface ChainStakingData {
@@ -46,7 +48,9 @@ const slice = createSlice({
       action: PayloadAction<{
         userAddress: Address
         chainId: UniverseChainId
-        data: Omit<ChainStakingData, 'chainId' | 'lastUpdated'> & { lastUpdated?: number }
+        data: Omit<ChainStakingData, 'chainId' | 'lastUpdated'> & {
+          lastUpdated?: number
+        }
       }>,
     ) => {
       const { userAddress, chainId, data } = action.payload
@@ -68,7 +72,9 @@ const slice = createSlice({
         poolAddress: Address
         userAddress: Address
         chainId: UniverseChainId
-        data: Omit<ChainStakingData, 'chainId' | 'lastUpdated'> & { lastUpdated?: number }
+        data: Omit<ChainStakingData, 'chainId' | 'lastUpdated'> & {
+          lastUpdated?: number
+        }
       }>,
     ) => {
       const { poolAddress, userAddress, chainId, data } = action.payload
@@ -144,7 +150,7 @@ const slice = createSlice({
       const now = Date.now()
 
       Object.keys(state.stakingDataByAddress).forEach((userAddress) => {
-        const userKey = userAddress as `0x${string}`
+        const userKey = assume0xAddress(userAddress)
         Object.keys(state.stakingDataByAddress[userKey]).forEach((chainId) => {
           const data = state.stakingDataByAddress[userKey][Number(chainId) as UniverseChainId]
           if (data?.lastUpdated && now - data.lastUpdated > STAKING_DATA_MAX_AGE) {
@@ -193,9 +199,9 @@ export const selectStakingDataNeedsFetch = (
   params: { userAddress: Address; chainId: UniverseChainId },
 ) => {
   const data = selectChainStakingData(state, params)
-  if (!data) return true
-  if (data.isLoading) return false
-  if (data.error) return true
-  if (!data.lastUpdated) return true
+  if (!data) {return true}
+  if (data.isLoading) {return false}
+  if (data.error) {return true}
+  if (!data.lastUpdated) {return true}
   return Date.now() - data.lastUpdated > STAKING_DATA_MAX_AGE
 }

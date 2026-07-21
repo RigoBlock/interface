@@ -13,6 +13,7 @@ const PORTFOLIO_TAB_TEST_IDS: Record<PortfolioTab, string> = {
   [PortfolioTab.Tokens]: TestID.PortfolioTabTokens,
   [PortfolioTab.Staking]: TestID.PortfolioTabOverview,
   [PortfolioTab.Defi]: TestID.PortfolioTabDefi,
+  [PortfolioTab.Perps]: TestID.PortfolioTabPerps,
   [PortfolioTab.Nfts]: TestID.PortfolioTabNfts,
   [PortfolioTab.Activity]: TestID.PortfolioTabActivity,
 }
@@ -27,6 +28,8 @@ function getTabElementName(pageName: InterfacePageName): ElementName {
       return ElementName.PortfolioStakingTab
     case InterfacePageName.PortfolioDefiPage:
       return ElementName.PortfolioDefiTab
+    case InterfacePageName.PortfolioPerpsPage:
+      return ElementName.PortfolioPerpsTab
     case InterfacePageName.PortfolioNftsPage:
       return ElementName.PortfolioNftsTab
     case InterfacePageName.PortfolioActivityPage:
@@ -45,7 +48,11 @@ export function PortfolioTabs() {
       <Flex row gap="$spacing24" $sm={{ gap: '$spacing12', justifyContent: 'space-around' }}>
         {portfolioTabs.map((tab: PortfolioTabInfo) => {
           const portfolioTab = pathToPortfolioTab(tab.path)
-          const tabPath = buildPortfolioUrl({ tab: portfolioTab, chainId, externalAddress: externalAddress?.address })
+          const tabPath = buildPortfolioUrl({
+            tab: portfolioTab,
+            chainId,
+            externalAddress: externalAddress?.address,
+          })
           // Compare with the current tab from usePortfolioRoutes which handles external wallet URLs
           const isActive = portfolioTab === currentTab
           const elementName = getTabElementName(tab.pageName)

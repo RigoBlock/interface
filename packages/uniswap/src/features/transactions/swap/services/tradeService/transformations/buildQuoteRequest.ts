@@ -76,7 +76,12 @@ export function createBuildQuoteRequest(
     return {
       amount: validatedInput.amount.quotient.toString(),
       generatePermitAsTransaction: validatedInput.generatePermitAsTransaction,
-      gasStrategies: [getActiveGasStrategy({ chainId: validatedInput.tokenInChainId, type: 'swap' })],
+      gasStrategies: [
+        getActiveGasStrategy({
+          chainId: validatedInput.tokenInChainId,
+          type: 'swap',
+        }),
+      ],
       isUSDQuote: validatedInput.isUSDQuote,
       // Use the connected account address for gas estimation — the RPC node checks ETH balance before estimating.
       // For RigoBlock pools, the vault is MSG_SENDER at execution time, so tokens are pulled from the vault.

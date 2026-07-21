@@ -1,6 +1,6 @@
+import * as path from 'path'
 import { addProjectConfiguration, generateFiles, Tree, updateJson } from '@nx/devkit'
 import { addTsConfigPath } from '@nx/js'
-import * as path from 'path'
 import { PackageGeneratorSchema } from './schema'
 
 export async function packageGenerator(tree: Tree, options: PackageGeneratorSchema) {

@@ -1,6 +1,23 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`SendReviewModal > should render input in fiat correctly 1`] = `
+.c2 {
+  --size: 36px;
+  border-radius: 100px;
+  color: #FFBF17;
+  background-color: #FFFCF2;
+  font-size: calc(var(--size) / 3);
+  font-weight: 535;
+  height: 36px;
+  line-height: 36px;
+  text-align: center;
+  width: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
 .c0 {
   color: #131313;
   letter-spacing: -0.01em;
@@ -45,23 +62,9 @@ exports[`SendReviewModal > should render input in fiat correctly 1`] = `
             class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _position-relative"
           >
             <div
-              class="_display-flex _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _alignItems-center _height-36px _justifyContent-center _pointerEvents-auto _width-36px _position-relative"
-              data-testid="token-logo"
+              class="c2"
             >
-              <div
-                class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _opacity-0 _height-9637 _width-9637 _zIndex-0 _backgroundColor-FFFFFF35 _position-absolute _top-237 _left-237 _borderTopLeftRadius-18px _borderTopRightRadius-18px _borderBottomRightRadius-18px _borderBottomLeftRadius-18px"
-              />
-              <div
-                class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column"
-                data-testid="img-token-image"
-              >
-                <img
-                  height="36"
-                  src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
-                  style="object-fit: contain; border-radius: 18px; z-index: 1;"
-                  width="36"
-                />
-              </div>
+              DAI
             </div>
           </div>
         </div>
@@ -94,7 +97,11 @@ exports[`SendReviewModal > should render input in fiat correctly 1`] = `
         <div
           class="c1 css-1a4qi6e"
         >
-          0x9984...9103
+          <div
+            class="c0 css-142zc9n"
+          >
+            0x9984...9103
+          </div>
         </div>
       </div>
       <div
@@ -166,6 +173,23 @@ exports[`SendReviewModal > should render input in fiat correctly 1`] = `
 `;
 
 exports[`SendReviewModal > should render input in token amount correctly 1`] = `
+.c2 {
+  --size: 36px;
+  border-radius: 100px;
+  color: #FFBF17;
+  background-color: #FFFCF2;
+  font-size: calc(var(--size) / 3);
+  font-weight: 535;
+  height: 36px;
+  line-height: 36px;
+  text-align: center;
+  width: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
 .c0 {
   color: #131313;
   letter-spacing: -0.01em;
@@ -210,23 +234,9 @@ exports[`SendReviewModal > should render input in token amount correctly 1`] = `
             class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _position-relative"
           >
             <div
-              class="_display-flex _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _alignItems-center _height-36px _justifyContent-center _pointerEvents-auto _width-36px _position-relative"
-              data-testid="token-logo"
+              class="c2"
             >
-              <div
-                class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _opacity-0 _height-9637 _width-9637 _zIndex-0 _backgroundColor-FFFFFF35 _position-absolute _top-237 _left-237 _borderTopLeftRadius-18px _borderTopRightRadius-18px _borderBottomRightRadius-18px _borderBottomLeftRadius-18px"
-              />
-              <div
-                class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column"
-                data-testid="img-token-image"
-              >
-                <img
-                  height="36"
-                  src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
-                  style="object-fit: contain; border-radius: 18px; z-index: 1;"
-                  width="36"
-                />
-              </div>
+              DAI
             </div>
           </div>
         </div>
@@ -259,7 +269,11 @@ exports[`SendReviewModal > should render input in token amount correctly 1`] = `
         <div
           class="c1 css-1a4qi6e"
         >
-          0x9984...9103
+          <div
+            class="c0 css-142zc9n"
+          >
+            0x9984...9103
+          </div>
         </div>
       </div>
       <div

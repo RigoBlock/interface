@@ -16,6 +16,7 @@ import type {
 } from 'uniswap/src/features/transactions/swap/types/trade'
 import { ApprovalAction } from 'uniswap/src/features/transactions/swap/types/trade'
 import { tryCatch } from 'utilities/src/errors'
+import { logger } from 'utilities/src/logger/logger'
 
 type GetEVMSwapTransactionRequestInfoFn = (params: {
   trade: ClassicTrade | BridgeTrade | WrapTrade | UnwrapTrade
@@ -62,7 +63,7 @@ export function createGetEVMSwapTransactionRequestInfo(ctx: {
       derivedSwapInfo.smartPoolAddress &&
       (!data?.response?.transactions || data.response.transactions.length === 0)
     ) {
-      console.error('🚨 RigoBlock Trading API issue:', {
+      logger.warn('evm/utils', 'createGetEVMSwapTransactionRequestInfo', '🚨 RigoBlock Trading API issue:', {
         hasData: !!data,
         hasError: !!error,
         errorMessage: error?.message,

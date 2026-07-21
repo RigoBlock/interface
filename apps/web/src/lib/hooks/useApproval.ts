@@ -1,14 +1,14 @@
 import { MaxUint256 } from '@ethersproject/constants'
 import type { TransactionResponse } from '@ethersproject/providers'
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core'
-import { useAccount } from '~/hooks/useAccount'
-import { useTokenContract } from '~/hooks/useContract'
-import { useTokenAllowance } from '~/hooks/useTokenAllowance'
-import { getTokenAddress } from '~/lib/utils/analytics'
 import { useCallback, useMemo } from 'react'
 import { InterfaceEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { logger } from 'utilities/src/logger/logger'
+import { useAccount } from '~/hooks/useAccount'
+import { useTokenContract } from '~/hooks/useContract'
+import { useTokenAllowance } from '~/hooks/useTokenAllowance'
+import { getTokenAddress } from '~/lib/utils/analytics'
 import { calculateGasMargin } from '~/utils/calculateGasMargin'
 
 export enum ApprovalState {
@@ -33,7 +33,11 @@ function useApprovalStateForSpender({
   const account = useAccount()
   const token = amountToApprove?.currency.isToken ? amountToApprove.currency : undefined
 
-  const { tokenAllowance } = useTokenAllowance({ token, owner: account.address, spender })
+  const { tokenAllowance } = useTokenAllowance({
+    token,
+    owner: account.address,
+    spender,
+  })
   const pendingApproval = useIsPendingApproval(token, spender)
 
   return useMemo(() => {
@@ -74,7 +78,12 @@ export function useApproval({
 }): [
   ApprovalState,
   () => Promise<
-    | { response: TransactionResponse; tokenAddress: string; spenderAddress: string; amount: CurrencyAmount<Currency> }
+    | {
+        response: TransactionResponse
+        tokenAddress: string
+        spenderAddress: string
+        amount: CurrencyAmount<Currency>
+      }
     | undefined
   >,
 ] {

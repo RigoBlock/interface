@@ -46,8 +46,18 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
       icon: <Compass color="$accent1" size="$icon.20" />,
       elementName: ElementName.NavbarExploreTab,
       items: [
-        { label: t('common.earn'), href: '/earn', internal: true, elementName: ElementName.NavbarExploreTab },
-        { label: 'Manage', href: '/earn/manage', internal: true, elementName: ElementName.NavbarExploreTab },
+        {
+          label: t('common.earn'),
+          href: '/earn',
+          internal: true,
+          elementName: ElementName.NavbarExploreTab,
+        },
+        {
+          label: 'Manage',
+          href: '/earn/manage',
+          internal: true,
+          elementName: ElementName.NavbarExploreTab,
+        },
       ],
     },
     {
@@ -175,6 +185,15 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
           }),
           internal: true,
           elementName: ElementName.NavbarPortfolioDropdownStaking,
+        },
+        {
+          label: t('portfolio.perps.title'),
+          href: buildPortfolioUrl({
+            tab: PortfolioTab.Perps,
+            chainId: portfolioChainId,
+          }),
+          internal: true,
+          elementName: ElementName.NavbarPortfolioDropdownPerps,
         },
         ...(isPortfolioDefiTabEnabled
           ? [

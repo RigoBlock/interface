@@ -201,7 +201,13 @@ export class UniswapXV3Trade extends V3DutchOrderTrade<Currency, Currency, Trade
     const { expectedAmountIn, expectedAmountOut } = quote.quote
     const expectedAmounts = expectedAmountIn && expectedAmountOut ? { expectedAmountIn, expectedAmountOut } : undefined
 
-    super({ currencyIn, currenciesOut: [currencyOut], orderInfo, tradeType, expectedAmounts })
+    super({
+      currencyIn,
+      currenciesOut: [currencyOut],
+      orderInfo,
+      tradeType,
+      expectedAmounts,
+    })
 
     this.quote = quote
     this.slippageTolerance = this.quote.quote.slippageTolerance ?? 0
@@ -274,7 +280,13 @@ export class PriorityOrderTrade extends IPriorityOrderTrade<Currency, Currency, 
     const { expectedAmountIn, expectedAmountOut } = quote.quote
     const expectedAmounts = expectedAmountIn && expectedAmountOut ? { expectedAmountIn, expectedAmountOut } : undefined
 
-    super({ currencyIn, currenciesOut: [currencyOut], orderInfo, tradeType, expectedAmounts })
+    super({
+      currencyIn,
+      currenciesOut: [currencyOut],
+      orderInfo,
+      tradeType,
+      expectedAmounts,
+    })
 
     this.quote = quote
     this.slippageTolerance = this.quote.quote.slippageTolerance ?? 0
@@ -599,7 +611,11 @@ export function validateIndicativeQuoteResponse(
       return {
         ...response,
         input: { amount: input.amount, token: input.token },
-        output: { amount: output.amount, token: output.token, recipient: output.recipient },
+        output: {
+          amount: output.amount,
+          token: output.token,
+          recipient: output.recipient,
+        },
       }
     }
   }
@@ -700,7 +716,11 @@ export class BridgeTrade {
       throw new Error('Error parsing bridge quote currency amounts')
     }
 
-    const inputAmount = getCurrencyAmount({ value: quoteInputAmount, valueType: ValueType.Raw, currency: currencyIn })
+    const inputAmount = getCurrencyAmount({
+      value: quoteInputAmount,
+      valueType: ValueType.Raw,
+      currency: currencyIn,
+    })
     const outputAmount = getCurrencyAmount({
       value: quoteOutputAmount,
       valueType: ValueType.Raw,
@@ -780,7 +800,11 @@ abstract class BaseWrapTrade<
     if (!quoteInputAmount || !quoteOutputAmount) {
       throw new Error('Error parsing wrap/unwrap quote currency amounts')
     }
-    const inputAmount = getCurrencyAmount({ value: quoteInputAmount, valueType: ValueType.Raw, currency: currencyIn })
+    const inputAmount = getCurrencyAmount({
+      value: quoteInputAmount,
+      valueType: ValueType.Raw,
+      currency: currencyIn,
+    })
     const outputAmount = getCurrencyAmount({
       value: quoteOutputAmount,
       valueType: ValueType.Raw,

@@ -6,9 +6,6 @@ import { type Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { type Dispatch, type SetStateAction, useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { useActiveSmartPool } from '~/state/application/hooks'
-import { useAppDispatch } from '~/state/hooks'
-import { liquiditySaga } from '~/state/sagas/liquidity/liquiditySaga'
 import { Button, Flex, Switch, Text } from 'ui/src'
 import { Passkey } from 'ui/src/components/icons/Passkey'
 import { iconSizes } from 'ui/src/theme'
@@ -50,6 +47,9 @@ import { useAccount } from '~/hooks/useAccount'
 import { useModalInitialState } from '~/hooks/useModalInitialState'
 import { useModalState } from '~/hooks/useModalState'
 import useSelectChain from '~/hooks/useSelectChain'
+import { useActiveSmartPool } from '~/state/application/hooks'
+import { useAppDispatch } from '~/state/hooks'
+import { liquiditySaga } from '~/state/sagas/liquidity/liquiditySaga'
 
 function getProtocolCase(
   version: ProtocolVersion,
@@ -252,7 +252,15 @@ export function ClaimFeeModal() {
       isClaimFeesNewEndpoint: isClaimFeesV2,
       isSmartPool: !!activeSmartPool.address,
     })
-  }, [activeSmartPool.address, account?.address, currency0, currency1, positionInfo, unwrapNativeCurrency, isClaimFeesV2])
+  }, [
+    activeSmartPool.address,
+    account?.address,
+    currency0,
+    currency1,
+    positionInfo,
+    unwrapNativeCurrency,
+    isClaimFeesV2,
+  ])
 
   const {
     claimFeesData: data,

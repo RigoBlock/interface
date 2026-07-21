@@ -47,7 +47,9 @@ export function useContract<T extends Contract = Contract>({
         account: withSignerIfPossible && account.address ? account.address : undefined,
       })
     } catch (error) {
-      const wrappedError = new Error('failed to get contract', { cause: error })
+      const wrappedError = new Error('failed to get contract', {
+        cause: error,
+      })
       logger.warn('useContract', 'useContract', wrappedError.message, {
         error: wrappedError,
         contractAddress: address,
@@ -76,7 +78,11 @@ export function useTokenContract({
 }
 
 export function usePoolContract(poolAddress?: string) {
-  return useContract<AUniswap>({ address: poolAddress, ABI: AUNISWAP_ABI, withSignerIfPossible: true })
+  return useContract<AUniswap>({
+    address: poolAddress,
+    ABI: AUNISWAP_ABI,
+    withSignerIfPossible: true,
+  })
 }
 
 export function useWETHContract(withSignerIfPossible?: boolean, chainId?: UniverseChainId) {

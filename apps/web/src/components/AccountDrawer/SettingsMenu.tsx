@@ -52,9 +52,6 @@ export default function SettingsMenu({
     useAccount().connector?.id === CONNECTION_PROVIDER_IDS.EMBEDDED_WALLET_CONNECTOR_ID
   const onLogOut = useOnDisconnect()
 
-  // we do not collect analytics atm
-  const shouldAllowAnalytics = false
-
   return (
     <SlideOutMenu title={t('common.settings')} onClose={onClose} height="100%">
       <Flex gap="$gap24" px="$padding12">

@@ -4,20 +4,23 @@ import { getAddress } from '@ethersproject/address'
 import { BigNumber } from '@ethersproject/bignumber'
 import { keccak256 } from '@ethersproject/keccak256'
 import { parseBytes32String } from '@ethersproject/strings'
-import { RB_REGISTRY_ADDRESSES, STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
-import { getBackupRpcProvider } from '~/constants/providers'
+import { keepPreviousData } from '@tanstack/react-query'
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
-import { useAccount } from '~/hooks/useAccount'
+import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 import JSBI from 'jsbi'
 import { useEffect, useMemo, useState } from 'react'
-import { PoolRegisteredLog } from '~/state/pool/hooks'
+import { logger } from 'utilities/src/logger/logger'
 import RB_REGISTRY_ABI from 'uniswap/src/abis/rb-registry.json'
 import STAKING_ABI from 'uniswap/src/abis/staking-impl.json'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { assume0xAddress } from '~/utils/wagmi'
 import type { Abi } from 'viem'
 import { useReadContracts } from 'wagmi'
+import { RB_REGISTRY_ADDRESSES, STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
+import { getBackupRpcProvider } from '~/constants/providers'
+import { useAccount } from '~/hooks/useAccount'
+import { PoolRegisteredLog } from '~/state/pool/hooks'
+import { assume0xAddress } from '~/utils/wagmi'
 
 const RegistryInterface = new Interface(RB_REGISTRY_ABI)
 
@@ -81,7 +84,7 @@ async function fetchChainPools(chainId: number): Promise<PoolRegisteredLog[]> {
       })
     }
   } catch (e) {
-    console.error(`Failed to fetch pools for chain ${chainId}:`, e)
+    logger.debug('multichain', 'fetchChainPools', `Failed to fetch pools for chain ${chainId}`, e)
   }
   return pools
 }
@@ -151,7 +154,9 @@ export function useMultiChainRegisteredPools(chains: number[]): PoolRegisteredLo
 /**
  * Returns deduplicated pool data from the given chains.
  */
-export function useMultiChainAllPoolsData(chains: number[]): { data?: PoolRegisteredLog[] } {
+export function useMultiChainAllPoolsData(chains: number[]): {
+  data?: PoolRegisteredLog[]
+} {
   const pools = useMultiChainRegisteredPools(chains)
 
   return useMemo(() => {
@@ -229,8 +234,22 @@ function getUserAccountSlot(userAddress: string): bigint {
   return BigInt(keccak256(encoded))
 }
 
-function extractStorageValues(storageValue?: string): { owner?: string; userBalance?: string } {
-  if (!storageValue || storageValue === '0x') {
+function safeBigNumber(value: unknown): BigNumber {
+  if (typeof value === 'bigint' || typeof value === 'string' || typeof value === 'number') {
+    try {
+      return BigNumber.from(value.toString())
+    } catch {
+      return BigNumber.from(0)
+    }
+  }
+  return BigNumber.from(0)
+}
+
+function extractStorageValues(storageValue?: unknown): {
+  owner?: string
+  userBalance?: string
+} {
+  if (typeof storageValue !== 'string' || !storageValue.startsWith('0x') || storageValue === '0x') {
     return {}
   }
   const hexRaw = storageValue.slice(2)
@@ -250,7 +269,7 @@ function extractStorageValues(storageValue?: string): { owner?: string; userBala
   // Second slot: [6 bytes epoch][26 bytes balance]
   const secondSlot = hex.slice(64, 128)
   const userBalanceHex = secondSlot.slice(12, 64)
-  const userBalance = BigNumber.from('0x' + userBalanceHex).toString()
+  const userBalance = safeBigNumber('0x' + userBalanceHex).toString()
   return { owner, userBalance }
 }
 
@@ -274,7 +293,12 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
     if (pools.length === 0) {
       return {
         contracts: [] as any[],
-        chainMeta: [] as { chainId: number; poolIndices: number[]; baseOffset: number; supplyOffset: number }[],
+        chainMeta: [] as {
+          chainId: number
+          poolIndices: number[]
+          baseOffset: number
+          supplyOffset: number
+        }[],
         rewardsMeta: { connectedChainBase: -1, poolIds: [] as string[] },
         freeStakeMeta: { idx: -1, chainId: 0 },
       }
@@ -291,7 +315,12 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
     })
 
     const allContracts: any[] = []
-    const meta: { chainId: number; poolIndices: number[]; baseOffset: number; supplyOffset: number }[] = []
+    const meta: {
+      chainId: number
+      poolIndices: number[]
+      baseOffset: number
+      supplyOffset: number
+    }[] = []
     let connectedChainRewardsBase = -1
     const connectedChainPoolIds: string[] = []
     let freeStakeIdx = -1
@@ -307,15 +336,42 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
       for (const entry of entries) {
         const pool = entry.pool
         allContracts.push(
-          { address: stakingAddr, abi: STAKING_ABI as Abi, functionName: 'getStakingPool', args: [pool.id], chainId },
-          { address: stakingAddr, abi: STAKING_ABI as Abi, functionName: 'getTotalStakeDelegatedToPool', args: [pool.id], chainId },
-          { address: stakingAddr, abi: STAKING_ABI as Abi, functionName: 'getOwnerStakeByStatus', args: [pool.pool, 1], chainId },
-          { address: stakingAddr, abi: STAKING_ABI as Abi, functionName: 'getStakingPoolStatsThisEpoch', args: [pool.id], chainId },
+          {
+            address: stakingAddr,
+            abi: STAKING_ABI as Abi,
+            functionName: 'getStakingPool',
+            args: [pool.id],
+            chainId,
+          },
+          {
+            address: stakingAddr,
+            abi: STAKING_ABI as Abi,
+            functionName: 'getTotalStakeDelegatedToPool',
+            args: [pool.id],
+            chainId,
+          },
+          {
+            address: stakingAddr,
+            abi: STAKING_ABI as Abi,
+            functionName: 'getOwnerStakeByStatus',
+            args: [pool.pool, 1],
+            chainId,
+          },
+          {
+            address: stakingAddr,
+            abi: STAKING_ABI as Abi,
+            functionName: 'getStakingPoolStatsThisEpoch',
+            args: [pool.id],
+            chainId,
+          },
         )
         if (account.address) {
           allContracts.push({
-            address: stakingAddr, abi: STAKING_ABI as Abi, functionName: 'getStakeDelegatedToPoolByOwner',
-            args: [account.address, pool.id], chainId,
+            address: stakingAddr,
+            abi: STAKING_ABI as Abi,
+            functionName: 'getStakeDelegatedToPoolByOwner',
+            args: [account.address, pool.id],
+            chainId,
           })
           allContracts.push({
             address: assume0xAddress(pool.pool),
@@ -336,25 +392,6 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
         chainId,
       })
 
-      // ── Connected-chain-only: unclaimed rewards + free stake ──
-      if (account.address && chainId === account.chainId) {
-        connectedChainRewardsBase = allContracts.length
-        for (const entry of entries) {
-          connectedChainPoolIds.push(entry.pool.id)
-          allContracts.push({
-            address: stakingAddr, abi: STAKING_ABI as Abi, functionName: 'computeRewardBalanceOfDelegator',
-            args: [entry.pool.id, account.address], chainId,
-          })
-        }
-
-        freeStakeIdx = allContracts.length
-        freeStakeChainId = chainId
-        allContracts.push({
-          address: stakingAddr, abi: STAKING_ABI as Abi, functionName: 'getOwnerStakeByStatus',
-          args: [account.address, 0], chainId, // 0 = UNDELEGATED
-        })
-      }
-
       meta.push({
         chainId,
         poolIndices: entries.map((e) => e.index),
@@ -363,13 +400,47 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
       })
     }
 
+    // ── Connected-chain-only tail: unclaimed rewards + free stake ──
+    // Kept after the per-chain sections so per-chain offsets stay stable when the
+    // wallet switches chain — previous (placeholder) results then remain aligned.
+    if (account.address && account.chainId) {
+      const connectedEntries = poolsByChain.get(account.chainId)
+      if (connectedEntries && connectedEntries.length > 0) {
+        const stakingAddr = assume0xAddress(STAKING_PROXY_ADDRESSES[account.chainId])
+        connectedChainRewardsBase = allContracts.length
+        for (const entry of connectedEntries) {
+          connectedChainPoolIds.push(entry.pool.id)
+          allContracts.push({
+            address: stakingAddr,
+            abi: STAKING_ABI as Abi,
+            functionName: 'computeRewardBalanceOfDelegator',
+            args: [entry.pool.id, account.address],
+            chainId: account.chainId,
+          })
+        }
+
+        freeStakeIdx = allContracts.length
+        freeStakeChainId = account.chainId
+        allContracts.push({
+          address: stakingAddr,
+          abi: STAKING_ABI as Abi,
+          functionName: 'getOwnerStakeByStatus',
+          args: [account.address, 0], // 0 = UNDELEGATED
+          chainId: account.chainId,
+        })
+      }
+    }
+
     return {
       contracts: allContracts,
       chainMeta: meta,
-      rewardsMeta: { connectedChainBase: connectedChainRewardsBase, poolIds: connectedChainPoolIds },
+      rewardsMeta: {
+        connectedChainBase: connectedChainRewardsBase,
+        poolIds: connectedChainPoolIds,
+      },
       freeStakeMeta: { idx: freeStakeIdx, chainId: freeStakeChainId },
     }
-  }, [pools, account.address, account.chainId, STAKING_CALLS_PER_POOL])
+  }, [pools, account.address, account.chainId])
 
   const { data: rawData, isLoading } = useReadContracts({
     contracts,
@@ -381,6 +452,9 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
       retry: 5,
       retryDelay: (attempt: number) => Math.min(attempt > 1 ? 2 ** attempt * 1000 : 1000, 30_000),
       refetchOnWindowFocus: false,
+      // Keep previous data while a chain switch rebuilds the query — it covers all
+      // chains, so previous values stay valid and dependent UI (chain pills, lists) doesn't flicker
+      placeholderData: keepPreviousData,
     },
   })
 
@@ -389,17 +463,21 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
     const emptyRewards: { poolId: string; amount: CurrencyAmount<Token> }[] = []
 
     if (!rawData || rawData.length === 0 || contracts.length === 0) {
-      return { loading: isLoading, stakingPools: undefined, freeStakeBalance: undefined, unclaimedRewards: emptyRewards }
+      return {
+        loading: isLoading,
+        stakingPools: undefined,
+        freeStakeBalance: undefined,
+        unclaimedRewards: emptyRewards,
+      }
     }
 
     const results = new Array<StakingPoolData>(pools.length)
 
     for (const cm of chainMeta) {
-      // GRG totalSupply for this chain
-      const supplyResult = rawData[cm.supplyOffset]
-      const totalSupply = supplyResult?.result
-        ? parseFloat(BigNumber.from(supplyResult.result.toString()).toString())
-        : 0
+      // GRG totalSupply for this chain — only accept numeric results
+      // (a stale, differently-shaped query response may briefly hold a tuple here)
+      const supplyRaw = rawData[cm.supplyOffset]?.result
+      const totalSupply = parseFloat(safeBigNumber(supplyRaw).toString())
 
       // Per-chain totals for reward ratio
       let totalDelegatedStake = BigNumber.from(0)
@@ -409,8 +487,8 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
         const baseIndex = cm.baseOffset + i * STAKING_CALLS_PER_POOL
         const delegated = (rawData[baseIndex + 1]?.result as any)?.nextEpochBalance
         const ownStake = (rawData[baseIndex + 2]?.result as any)?.nextEpochBalance
-        totalDelegatedStake = totalDelegatedStake.add(delegated ? BigNumber.from(delegated) : BigNumber.from(0))
-        totalPoolsOwnStake = totalPoolsOwnStake.add(ownStake ? BigNumber.from(ownStake) : BigNumber.from(0))
+        totalDelegatedStake = totalDelegatedStake.add(safeBigNumber(delegated))
+        totalPoolsOwnStake = totalPoolsOwnStake.add(safeBigNumber(ownStake))
       })
 
       const totalRewardPool = totalSupply * 0.02
@@ -422,8 +500,8 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
         const operatorShare = Number((rawData[baseIndex]?.result as any)?.operatorShare ?? 0)
         const delegated = (rawData[baseIndex + 1]?.result as any)?.nextEpochBalance
         const ownStake = (rawData[baseIndex + 2]?.result as any)?.nextEpochBalance
-        const delegatedBN = delegated ? BigNumber.from(delegated) : BigNumber.from(0)
-        const ownStakeBN = ownStake ? BigNumber.from(ownStake) : BigNumber.from(0)
+        const delegatedBN = safeBigNumber(delegated)
+        const ownStakeBN = safeBigNumber(ownStake)
 
         const epochStats = rawData[baseIndex + 3]?.result as any
         const currentEpochReward = epochStats?.feesCollected?.toString() ?? '0'
@@ -432,16 +510,19 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
         let userIsOwner = false
         let userBalance: string | undefined
         if (account.address && STAKING_CALLS_PER_POOL === 6) {
-          const userStake = (rawData[baseIndex + 4]?.result as any)?.nextEpochBalance
-          if (userStake) {
-            userHasStake = JSBI.greaterThan(JSBI.BigInt(String(userStake)), JSBI.BigInt(0))
-          }
+          const userStakeRaw = (rawData[baseIndex + 4]?.result as any)?.nextEpochBalance
+          const userStakeBN = safeBigNumber(userStakeRaw)
+          userHasStake = userStakeBN.gt(0)
           // Storage slot data: owner + user token balance (baseIndex + 5)
           const storageResult = rawData[baseIndex + 5]?.result
-          if (storageResult) {
-            const { owner, userBalance: bal } = extractStorageValues(storageResult as string)
-            if (owner && account.address && owner.toLowerCase() === account.address.toLowerCase()) {
-              userIsOwner = true
+          if (typeof storageResult === 'string') {
+            const { owner, userBalance: bal } = extractStorageValues(storageResult)
+            if (owner && account.address) {
+              const chainId = (pools[originalIndex].chainId ?? UniverseChainId.Mainnet) as UniverseChainId
+              userIsOwner = areAddressesEqual({
+                addressInput1: { address: owner, chainId },
+                addressInput2: { address: account.address, chainId },
+              })
             }
             userBalance = bal
           }
@@ -450,10 +531,7 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
         const pds = parseFloat(delegatedBN.toString())
         const pos = parseFloat(ownStakeBN.toString())
 
-        const rewardRatio =
-          tds > 0 && tps > 0
-            ? Math.pow(pos / tps, 2 / 3) * Math.pow(pds / tds, 1 / 3)
-            : 0
+        const rewardRatio = tds > 0 && tps > 0 ? Math.pow(pos / tps, 2 / 3) * Math.pow(pds / tds, 1 / 3) : 0
 
         const totalReward = rewardRatio * totalRewardPool
         const apr = pds !== 0 ? (totalReward * ((1_000_000 - operatorShare) / 1_000_000)) / pds : 0
@@ -479,29 +557,47 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
     if (freeStakeMeta.idx >= 0 && rawData[freeStakeMeta.idx]?.result) {
       const grg = GRG[freeStakeMeta.chainId]
       const res = rawData[freeStakeMeta.idx].result as any
-      const currentEpoch = BigNumber.from(res.currentEpochBalance?.toString() ?? '0')
-      const nextEpoch = BigNumber.from(res.nextEpochBalance?.toString() ?? '0')
+      const currentEpoch = safeBigNumber(res.currentEpochBalance)
+      const nextEpoch = safeBigNumber(res.nextEpochBalance)
       const lower = currentEpoch.gt(nextEpoch) ? nextEpoch : currentEpoch
       freeStakeBalance = CurrencyAmount.fromRawAmount(grg, JSBI.BigInt(lower.toString()))
     }
 
     // ── Unclaimed rewards (connected chain only) ──
-    const unclaimedRewards: { poolId: string; amount: CurrencyAmount<Token> }[] = []
+    const unclaimedRewards: {
+      poolId: string
+      amount: CurrencyAmount<Token>
+    }[] = []
     if (rewardsMeta.connectedChainBase >= 0 && account.chainId) {
       const grg = GRG[account.chainId]
       for (let i = 0; i < rewardsMeta.poolIds.length; i++) {
         const rewardResult = rawData[rewardsMeta.connectedChainBase + i]?.result
-        if (rewardResult) {
-          const amount = CurrencyAmount.fromRawAmount(grg, JSBI.BigInt(String(rewardResult)))
-          if (JSBI.greaterThan(amount.quotient, JSBI.BigInt(0))) {
-            unclaimedRewards.push({ poolId: rewardsMeta.poolIds[i], amount })
-          }
+        const rewardAmount = safeBigNumber(rewardResult)
+        if (rewardAmount.gt(0)) {
+          const amount = CurrencyAmount.fromRawAmount(grg, JSBI.BigInt(rewardAmount.toString()))
+          unclaimedRewards.push({ poolId: rewardsMeta.poolIds[i], amount })
         }
       }
     }
 
-    return { loading: isLoading, stakingPools: results, freeStakeBalance, unclaimedRewards }
-  }, [rawData, chainMeta, contracts.length, pools, account.address, account.chainId, STAKING_CALLS_PER_POOL, isLoading, rewardsMeta, freeStakeMeta])
+    return {
+      loading: isLoading,
+      stakingPools: results,
+      freeStakeBalance,
+      unclaimedRewards,
+    }
+  }, [
+    rawData,
+    chainMeta,
+    contracts.length,
+    pools,
+    account.address,
+    account.chainId,
+    STAKING_CALLS_PER_POOL,
+    isLoading,
+    rewardsMeta,
+    freeStakeMeta,
+  ])
 
   return result
 }

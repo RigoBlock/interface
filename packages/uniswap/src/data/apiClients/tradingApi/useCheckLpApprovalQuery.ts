@@ -7,7 +7,10 @@ import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
 export function useCheckLpApprovalQuery({
   params,
   ...rest
-}: UseQueryApiHelperHookArgs<TradingApi.LPApprovalRequest, TradingApi.LPApprovalResponse>): UseQueryResult<TradingApi.LPApprovalResponse> {
+}: UseQueryApiHelperHookArgs<
+  TradingApi.LPApprovalRequest,
+  TradingApi.LPApprovalResponse
+>): UseQueryResult<TradingApi.LPApprovalResponse> {
   const queryKey = [ReactQueryCacheKey.TradingApi, uniswapUrls.tradingApiPaths.lpApproval, params]
 
   return useQuery<TradingApi.LPApprovalResponse>({

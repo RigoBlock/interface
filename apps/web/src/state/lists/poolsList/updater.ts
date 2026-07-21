@@ -1,16 +1,17 @@
+/* oxlint-disable typescript/no-unnecessary-condition */
 import { getVersionUpgrade, VersionUpgrade } from '@uniswap/token-lists'
 import { useWeb3React } from '@web3-react/core'
+import ms from 'ms'
+import { useCallback, useEffect } from 'react'
+import { logger } from 'utilities/src/logger/logger'
 import { POOLS_LIST } from '~/constants/lists'
 import { useFetchPoolListCallback } from '~/hooks/useFetchPoolListCallback'
 import useIsWindowVisible from '~/hooks/useIsWindowVisible'
 import { useStateRehydrated } from '~/hooks/useStateRehydrated'
 import useInterval from '~/lib/hooks/useInterval'
-import ms from 'ms'
-import { useCallback, useEffect } from 'react'
 import { useAppDispatch } from '~/state/hooks'
 import { acceptListUpdate } from '~/state/lists/poolsList/actions'
 import { usePoolsList } from '~/state/lists/poolsList/hooks'
-import { logger } from 'utilities/src/logger/logger'
 
 export default function Updater(): null {
   const { provider } = useWeb3React()

@@ -103,16 +103,11 @@ describe('useCurrencyValidation', () => {
         currencyAddressB: undefined,
       })
 
-      // Mock the first call (currencyA) to return ETH, second call (currencyB) to return undefined
-      useCurrencyWithLoadingMock
-        .mockReturnValueOnce({
-          currency: ETH,
-          loading: false,
-        })
-        .mockReturnValueOnce({
-          currency: undefined,
-          loading: false,
-        })
+      // Return by address so the mock is robust to re-renders
+      useCurrencyWithLoadingMock.mockImplementation(({ address }: { address?: string }) => ({
+        currency: address === mockTokenAddressA ? ETH : undefined,
+        loading: false,
+      }))
 
       const { result } = renderHook(() =>
         useCurrencyValidation({
@@ -142,16 +137,11 @@ describe('useCurrencyValidation', () => {
         currencyAddressB: mockTokenAddressB,
       })
 
-      // Mock the first call (currencyA) to return undefined, second call (currencyB) to return USDC
-      useCurrencyWithLoadingMock
-        .mockReturnValueOnce({
-          currency: undefined,
-          loading: false,
-        })
-        .mockReturnValueOnce({
-          currency: USDC,
-          loading: false,
-        })
+      // Return by address so the mock is robust to re-renders
+      useCurrencyWithLoadingMock.mockImplementation(({ address }: { address?: string }) => ({
+        currency: address === mockTokenAddressB ? USDC : undefined,
+        loading: false,
+      }))
 
       const { result } = renderHook(() =>
         useCurrencyValidation({
@@ -182,15 +172,10 @@ describe('useCurrencyValidation', () => {
         currencyAddressB: mockTokenAddressB,
       })
 
-      useCurrencyWithLoadingMock
-        .mockReturnValueOnce({
-          currency: ETH,
-          loading: false,
-        })
-        .mockReturnValueOnce({
-          currency: USDC,
-          loading: false,
-        })
+      useCurrencyWithLoadingMock.mockImplementation(({ address }: { address?: string }) => ({
+        currency: address === mockTokenAddressA ? ETH : address === mockTokenAddressB ? USDC : undefined,
+        loading: false,
+      }))
 
       const { result } = renderHook(() =>
         useCurrencyValidation({
@@ -202,7 +187,9 @@ describe('useCurrencyValidation', () => {
       )
 
       expect(mockValidateCurrencies).toHaveBeenCalledWith(mockTokenAddressA, mockTokenAddressB)
-      expect(useCurrencyWithLoadingMock).toHaveBeenCalledTimes(2)
+      // Call counts are not asserted: the test provider tree mounts components twice.
+      expect(useCurrencyWithLoadingMock).toHaveBeenCalledWith({ address: mockTokenAddressA, chainId: mockChainId })
+      expect(useCurrencyWithLoadingMock).toHaveBeenCalledWith({ address: mockTokenAddressB, chainId: mockChainId })
       expect(result.current).toEqual({
         currencyAddressA: mockTokenAddressA,
         currencyAddressB: mockTokenAddressB,
@@ -220,16 +207,12 @@ describe('useCurrencyValidation', () => {
         currencyAddressB: mockTokenAddressB,
       })
 
-      // Mock first call loading, second call loaded
-      useCurrencyWithLoadingMock
-        .mockReturnValueOnce({
-          currency: undefined,
-          loading: true,
-        })
-        .mockReturnValueOnce({
-          currency: USDC,
-          loading: false,
-        })
+      // currencyA loading, currencyB loaded (by address, robust to re-renders)
+      useCurrencyWithLoadingMock.mockImplementation(({ address }: { address?: string }) =>
+        address === mockTokenAddressA
+          ? { currency: undefined, loading: true }
+          : { currency: USDC, loading: false },
+      )
 
       const { result } = renderHook(() =>
         useCurrencyValidation({

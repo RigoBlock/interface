@@ -2,23 +2,49 @@
   {
     "inputs": [
       { "internalType": "address", "name": "newAuthority", "type": "address" },
-      { "internalType": "address", "name": "newRigoblockDao", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "newRigoblockDao",
+        "type": "address"
+      }
     ],
     "stateMutability": "nonpayable",
     "type": "constructor"
   },
   {
     "anonymous": false,
-    "inputs": [{ "indexed": true, "internalType": "address", "name": "authority", "type": "address" }],
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "authority",
+        "type": "address"
+      }
+    ],
     "name": "AuthorityChanged",
     "type": "event"
   },
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": true, "internalType": "address", "name": "pool", "type": "address" },
-      { "indexed": true, "internalType": "bytes32", "name": "key", "type": "bytes32" },
-      { "indexed": false, "internalType": "bytes32", "name": "value", "type": "bytes32" }
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "key",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "value",
+        "type": "bytes32"
+      }
     ],
     "name": "MetaChanged",
     "type": "event"
@@ -26,18 +52,50 @@
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": true, "internalType": "address", "name": "group", "type": "address" },
-      { "indexed": false, "internalType": "address", "name": "pool", "type": "address" },
-      { "indexed": true, "internalType": "bytes32", "name": "name", "type": "bytes32" },
-      { "indexed": true, "internalType": "bytes32", "name": "symbol", "type": "bytes32" },
-      { "indexed": false, "internalType": "bytes32", "name": "id", "type": "bytes32" }
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "group",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "name",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "symbol",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "id",
+        "type": "bytes32"
+      }
     ],
     "name": "Registered",
     "type": "event"
   },
   {
     "anonymous": false,
-    "inputs": [{ "indexed": true, "internalType": "address", "name": "rigoblockDao", "type": "address" }],
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "rigoblockDao",
+        "type": "address"
+      }
+    ],
     "name": "RigoblockDaoChanged",
     "type": "event"
   },
@@ -103,7 +161,13 @@
     "type": "function"
   },
   {
-    "inputs": [{ "internalType": "address", "name": "newRigoblockDao", "type": "address" }],
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newRigoblockDao",
+        "type": "address"
+      }
+    ],
     "name": "setRigoblockDao",
     "outputs": [],
     "stateMutability": "nonpayable",

@@ -1,9 +1,5 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useActiveSmartPool } from '~/state/application/hooks'
-import { CopyHelper } from '~/theme/components/CopyHelper'
-import { EllipsisTamaguiStyle } from '~/theme/components/styles'
-import { useSearchParams } from 'react-router'
 import { Flex, Text } from 'ui/src'
 import { Unitag } from 'ui/src/components/icons/Unitag'
 import { iconSizes } from 'ui/src/theme'
@@ -21,6 +17,8 @@ import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { shortenAddress } from 'utilities/src/addresses'
 import StatusIcon from '~/components/StatusIcon'
 import { useAccountsStore, useActiveAddresses } from '~/features/accounts/store/hooks'
+import { CopyHelper } from '~/theme/components/CopyHelper'
+import { EllipsisTamaguiStyle } from '~/theme/components/styles'
 
 function AddressDisplay({
   unitag,

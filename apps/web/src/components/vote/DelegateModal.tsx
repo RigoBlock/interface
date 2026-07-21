@@ -1,6 +1,20 @@
+/* oxlint-disable complexity */
 import { isAddress } from '@ethersproject/address'
-import { useTheme } from '@tamagui/core'
+import { useTheme } from 'tamagui'
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
+import JSBI from 'jsbi'
+import { ReactNode, useCallback, useMemo, useState } from 'react'
+import { X } from 'react-feather'
+import { Trans, useTranslation } from 'react-i18next'
+import { Button, ButtonProps, Flex, Text, useSporeColors } from 'ui/src'
+import { Modal } from 'uniswap/src/components/modals/Modal'
+import { GRG } from 'uniswap/src/constants/tokens'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { useENS } from 'uniswap/src/features/ens/useENS'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { logger } from 'utilities/src/logger/logger'
 import AddressInputPanel from '~/components/AddressInputPanel'
 import { ButtonConfirmed, ButtonPrimary } from '~/components/Button/buttons'
 import { LightCard } from '~/components/Card/cards'
@@ -12,32 +26,15 @@ import { GRG_TRANSFER_PROXY_ADDRESSES } from '~/constants/addresses'
 import { useAccount } from '~/hooks/useAccount'
 import { ApprovalState, useApproveCallback } from '~/hooks/useApproveCallback'
 import useDebouncedChangeHandler from '~/hooks/useDebouncedChangeHandler'
-import JSBI from 'jsbi'
-import { useTokenBalance } from '~/lib/hooks/useCurrencyBalance'
 import styled from '~/lib/deprecated-styled'
+import { useTokenBalance } from '~/lib/hooks/useCurrencyBalance'
 import { useRemoveLiquidityModalContext } from '~/pages/RemoveLiquidity/RemoveLiquidityModalContext'
 import { ClickablePill } from '~/pages/Swap/Buy/PredefinedAmount'
-import { ReactNode, useCallback, useMemo, useState } from 'react'
-import { X } from 'react-feather'
-import { Trans, useTranslation } from 'react-i18next'
 import { PoolInfo /*,useDerivedPoolInfo*/ } from '~/state/buy/hooks'
-import {
-  useDelegateCallback,
-  useDelegatePoolCallback,
-  usePoolIdByAddress,
-} from '~/state/governance/hooks'
+import { useDelegateCallback, useDelegatePoolCallback, usePoolIdByAddress } from '~/state/governance/hooks'
 import { usePoolExtendedContract } from '~/state/pool/hooks'
 import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
 import { ThemedText } from '~/theme/components'
-import { Button, ButtonProps, Flex, Text, useSporeColors } from 'ui/src'
-import { Modal } from 'uniswap/src/components/modals/Modal'
-import { GRG } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { useENS } from 'uniswap/src/features/ens/useENS'
-import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { logger } from 'utilities/src/logger/logger'
 
 const ContentWrapper = styled(AutoColumn)`
   width: 100%;
@@ -101,8 +98,8 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
   const { formatCurrencyAmount } = useLocalizationContext()
   const { percent, setPercent } = useRemoveLiquidityModalContext()
   const onPercentSelect = useCallback(
-    (percent: number) => {
-      setPercent(percent.toString())
+    (value: number) => {
+      setPercent(value.toString())
     },
     [setPercent],
   )
@@ -202,13 +199,13 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
     }
 
     // try delegation and store hash
-    const hash = await delegateCallback(stakeData)?.catch((error) => {
+    const txHash = await delegateCallback(stakeData)?.catch((error) => {
       setAttempting(false)
       logger.info('DelegateModal', 'onDelegate', error)
     })
 
-    if (hash) {
-      setHash(hash)
+    if (txHash) {
+      setHash(txHash)
     }
   }
 
@@ -257,9 +254,7 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
             )}
             {!poolInfo && <AddressInputPanel value={typed} onChange={handleRecipientType} />}
             <RowBetween>
-              <ResponsiveHeaderText>
-                {percentForSlider}%
-              </ResponsiveHeaderText>
+              <ResponsiveHeaderText>{percentForSlider}%</ResponsiveHeaderText>
               <Flex row gap="$gap8" width="100%" justifyContent="center">
                 {[25, 50, 75, 100].map((option) => {
                   const active = percent === option.toString()
@@ -287,7 +282,11 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
               <AutoColumn gap="md">
                 <RowBetween>
                   <ThemedText.DeprecatedBody fontSize={16} fontWeight={500}>
-                    <Trans>Staking {formatCurrencyAmount({ value: parsedAmount })} GRG</Trans>
+                    <Trans
+                      i18nKey="vote.delegate.stakingAmount"
+                      values={{ amount: formatCurrencyAmount({ value: parsedAmount }) }}
+                      defaults="Staking {{amount}} GRG"
+                    />
                   </ThemedText.DeprecatedBody>
                   {Boolean(newApr && newApr.toString() !== 'NaN' && !usingDelegate) && (
                     <ThemedText.DeprecatedBody fontSize={16} fontWeight={500}>

@@ -1,3 +1,4 @@
+/* oxlint-disable complexity */
 /* eslint-disable max-lines */
 import { Currency, CurrencyAmount, Price, Rounding, Token } from '@uniswap/sdk-core'
 import {
@@ -12,16 +13,16 @@ import {
   Pool as V3Pool,
 } from '@uniswap/v3-sdk'
 import { tickToPrice as tickToPriceV4, Pool as V4Pool } from '@uniswap/v4-sdk'
+import JSBI from 'jsbi'
+import { ReactNode, useCallback, useMemo } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router'
 import { FeeData } from '~/components/Liquidity/Create/types'
 import { BIG_INT_ZERO } from '~/constants/misc'
 import { useAccount } from '~/hooks/useAccount'
 import { PoolState, usePool } from '~/hooks/usePools'
 import { useSwapTaxes } from '~/hooks/useSwapTaxes'
-import JSBI from 'jsbi'
 import tryParseCurrencyAmount from '~/lib/utils/tryParseCurrencyAmount'
-import { ReactNode, useCallback, useMemo } from 'react'
-import { Trans, useTranslation } from 'react-i18next'
-import { useSearchParams } from 'react-router'
 import { useActiveSmartPool } from '~/state/application/hooks'
 import { useCurrencyBalances } from '~/state/connection/hooks'
 import { useAppDispatch, useAppSelector } from '~/state/hooks'
@@ -53,14 +54,26 @@ export function useV3MintActionHandlers(noLiquidity: boolean | undefined): {
 
   const onFieldAInput = useCallback(
     (typedValue: string) => {
-      dispatch(typeInput({ field: Field.CURRENCY_A, typedValue, noLiquidity: noLiquidity === true }))
+      dispatch(
+        typeInput({
+          field: Field.CURRENCY_A,
+          typedValue,
+          noLiquidity: noLiquidity === true,
+        }),
+      )
     },
     [dispatch, noLiquidity],
   )
 
   const onFieldBInput = useCallback(
     (typedValue: string) => {
-      dispatch(typeInput({ field: Field.CURRENCY_B, typedValue, noLiquidity: noLiquidity === true }))
+      dispatch(
+        typeInput({
+          field: Field.CURRENCY_B,
+          typedValue,
+          noLiquidity: noLiquidity === true,
+        }),
+      )
     },
     [dispatch, noLiquidity],
   )
@@ -207,10 +220,10 @@ export function useV3DerivedMintInfo({
       const parsedQuoteAmount = tryParseCurrencyAmount(startPriceTypedValue, invertPrice ? token0 : token1)
       if (parsedQuoteAmount && token0 && token1) {
         const baseAmount = tryParseCurrencyAmount('1', invertPrice ? token1 : token0)
-        const price = baseAmount
+        const startPrice = baseAmount
           ? new Price(baseAmount.currency, parsedQuoteAmount.currency, baseAmount.quotient, parsedQuoteAmount.quotient)
           : undefined
-        return (invertPrice ? price?.invert() : price) ?? undefined
+        return (invertPrice ? startPrice?.invert() : startPrice) ?? undefined
       }
       return undefined
     } else {
@@ -325,16 +338,32 @@ export function useV3DerivedMintInfo({
 
   const pricesAtLimit = useMemo(() => {
     return {
-      [Bound.LOWER]: getTickToPrice({ baseToken: token0, quoteToken: token1, tick: tickSpaceLimits.LOWER }),
-      [Bound.UPPER]: getTickToPrice({ baseToken: token0, quoteToken: token1, tick: tickSpaceLimits.UPPER }),
+      [Bound.LOWER]: getTickToPrice({
+        baseToken: token0,
+        quoteToken: token1,
+        tick: tickSpaceLimits.LOWER,
+      }),
+      [Bound.UPPER]: getTickToPrice({
+        baseToken: token0,
+        quoteToken: token1,
+        tick: tickSpaceLimits.UPPER,
+      }),
     }
   }, [token0, token1, tickSpaceLimits.LOWER, tickSpaceLimits.UPPER])
 
   // always returns the price with 0 as base token
   const pricesAtTicks = useMemo(() => {
     return {
-      [Bound.LOWER]: getTickToPrice({ baseToken: token0, quoteToken: token1, tick: ticks[Bound.LOWER] }),
-      [Bound.UPPER]: getTickToPrice({ baseToken: token0, quoteToken: token1, tick: ticks[Bound.UPPER] }),
+      [Bound.LOWER]: getTickToPrice({
+        baseToken: token0,
+        quoteToken: token1,
+        tick: ticks[Bound.LOWER],
+      }),
+      [Bound.UPPER]: getTickToPrice({
+        baseToken: token0,
+        quoteToken: token1,
+        tick: ticks[Bound.UPPER],
+      }),
     }
   }, [token0, token1, ticks])
   const { [Bound.LOWER]: lowerPrice, [Bound.UPPER]: upperPrice } = pricesAtTicks
@@ -400,7 +429,9 @@ export function useV3DerivedMintInfo({
     invalidRange,
   ])
 
-  const parsedAmounts: { [field in Field]: CurrencyAmount<Currency> | undefined } = useMemo(() => {
+  const parsedAmounts: {
+    [field in Field]: CurrencyAmount<Currency> | undefined
+  } = useMemo(() => {
     return {
       [Field.CURRENCY_A]: independentField === Field.CURRENCY_A ? independentAmount : dependentAmount,
       [Field.CURRENCY_B]: independentField === Field.CURRENCY_A ? dependentAmount : independentAmount,
@@ -420,13 +451,13 @@ export function useV3DerivedMintInfo({
     invalidRange ||
     Boolean(
       (deposit0Disabled && poolForPosition && tokenA && poolForPosition.token0.equals(tokenA)) ||
-        (deposit1Disabled && poolForPosition && tokenA && poolForPosition.token1.equals(tokenA)),
+      (deposit1Disabled && poolForPosition && tokenA && poolForPosition.token1.equals(tokenA)),
     )
   const depositBDisabled =
     invalidRange ||
     Boolean(
       (deposit0Disabled && poolForPosition && tokenB && poolForPosition.token0.equals(tokenB)) ||
-        (deposit1Disabled && poolForPosition && tokenB && poolForPosition.token1.equals(tokenB)),
+      (deposit1Disabled && poolForPosition && tokenB && poolForPosition.token1.equals(tokenB)),
     )
 
   const { inputTax: currencyATax, outputTax: currencyBTax } = useSwapTaxes({
@@ -656,5 +687,11 @@ export function useRangeHopCallbacks(props: V3UseRangeHopCallbacksProps | V4UseR
     dispatch(setFullRange())
   }, [dispatch])
 
-  return { getDecrementLower, getIncrementLower, getDecrementUpper, getIncrementUpper, getSetFullRange }
+  return {
+    getDecrementLower,
+    getIncrementLower,
+    getDecrementUpper,
+    getIncrementUpper,
+    getSetFullRange,
+  }
 }

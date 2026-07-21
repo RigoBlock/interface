@@ -1,7 +1,20 @@
-/* eslint-disable max-lines */
 import { Interface } from '@ethersproject/abi'
 import { getAddress, isAddress } from '@ethersproject/address'
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core'
+import JSBI from 'jsbi'
+import { useCallback, useMemo, useState } from 'react'
+import { ArrowLeft, X } from 'react-feather'
+import { Trans } from 'react-i18next'
+import { Link } from 'react-router'
+import AUTHORITY_ABI from 'uniswap/src/abis/authority.json'
+import TOKEN_ABI from 'uniswap/src/abis/erc20.json'
+import GOVERNANCE_RB_ABI from 'uniswap/src/abis/governance.json'
+import RB_POOL_FACTORY_ABI from 'uniswap/src/abis/rb-pool-factory.json'
+import STAKING_PROXY_ABI from 'uniswap/src/abis/staking-proxy.json'
+import { GRG } from 'uniswap/src/constants/tokens'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { InterfacePageName } from 'uniswap/src/features/telemetry/constants'
+import Trace from 'uniswap/src/features/telemetry/Trace'
 import { ButtonError } from '~/components/Button/buttons'
 import { BlueCard } from '~/components/Card/cards'
 import { AutoColumn } from '~/components/deprecated/Column'
@@ -12,7 +25,6 @@ import {
   STAKING_PROXY_ADDRESSES,
 } from '~/constants/addresses'
 import { useAccount } from '~/hooks/useAccount'
-import JSBI from 'jsbi'
 import styled from '~/lib/deprecated-styled'
 import tryParseCurrencyAmount from '~/lib/utils/tryParseCurrencyAmount'
 import { BodyWrapper } from '~/pages/App/AppBody'
@@ -24,22 +36,9 @@ import {
 } from '~/pages/CreateProposal/ProposalActionSelector'
 import { ProposalEditor } from '~/pages/CreateProposal/ProposalEditor'
 import { ProposalSubmissionModal } from '~/pages/CreateProposal/ProposalSubmissionModal'
-import { useCallback, useMemo, useState } from 'react'
-import { ArrowLeft, X } from 'react-feather'
-import { Trans } from 'react-i18next'
-import { Link } from 'react-router'
 import { CreateProposalData, useCreateProposalCallback, useVotingParams } from '~/state/governance/hooks'
 import { ThemedText } from '~/theme/components'
 import { ExternalLink, StyledInternalLink } from '~/theme/components/Links'
-import AUTHORITY_ABI from 'uniswap/src/abis/authority.json'
-import TOKEN_ABI from 'uniswap/src/abis/erc20.json'
-import GOVERNANCE_RB_ABI from 'uniswap/src/abis/governance.json'
-import RB_POOL_FACTORY_ABI from 'uniswap/src/abis/rb-pool-factory.json'
-import STAKING_PROXY_ABI from 'uniswap/src/abis/staking-proxy.json'
-import { GRG } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { InterfacePageName } from 'uniswap/src/features/telemetry/constants'
-import Trace from 'uniswap/src/features/telemetry/Trace'
 
 const PageWrapper = styled(AutoColumn)`
   padding: 68px 8px 0px;
@@ -184,7 +183,10 @@ export default function CreateProposal() {
   const { userVotingPower: availableVotes, proposalThreshold } = useVotingParams(account.address)
 
   //const [modalOpen, setModalOpen] = useState(false)
-  const [modalOpen, setModalOpen] = useState<{ open: boolean; actionId?: number }>({ open: false })
+  const [modalOpen, setModalOpen] = useState<{
+    open: boolean
+    actionId?: number
+  }>({ open: false })
   const [hash, setHash] = useState<string | undefined>()
   const [attempting, setAttempting] = useState(false)
   const [actions, setActions] = useState<ActionData[]>([
@@ -258,15 +260,15 @@ export default function CreateProposal() {
     () =>
       Boolean(
         actions.length === 0 ||
-          actions.some(
-            (action) =>
-              !isAddress(action.toAddress) ||
-              !action.currency.isToken ||
-              (action.proposalAction === ProposalAction.TRANSFER_TOKEN && action.amount === '') ||
-              (action.proposalAction === ProposalAction.APPROVE_TOKEN && action.amount === ''),
-          ) ||
-          titleValue === '' ||
-          bodyValue === '',
+        actions.some(
+          (action) =>
+            !isAddress(action.toAddress) ||
+            !action.currency.isToken ||
+            (action.proposalAction === ProposalAction.TRANSFER_TOKEN && action.amount === '') ||
+            (action.proposalAction === ProposalAction.APPROVE_TOKEN && action.amount === ''),
+        ) ||
+        titleValue === '' ||
+        bodyValue === '',
       ),
     [actions, titleValue, bodyValue],
   )
@@ -390,12 +392,12 @@ export default function CreateProposal() {
       }
     }
 
-    const hash = await createProposalCallback(createProposalData)?.catch(() => {
+    const txHash = await createProposalCallback(createProposalData)?.catch(() => {
       setAttempting(false)
     })
 
-    if (hash) {
-      setHash(hash)
+    if (txHash) {
+      setHash(txHash)
     }
   }
 

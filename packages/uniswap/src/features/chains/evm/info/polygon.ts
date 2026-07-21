@@ -62,11 +62,13 @@ export const POLYGON_CHAIN_INFO = {
   blockTimeMs: 2000,
   pendingTransactionsRetryOptions: undefined,
   rpcUrls: {
-    [RPCType.Public]: { http: [getQuicknodeEndpointUrl(UniverseChainId.Polygon)] },
+    [RPCType.Public]: {
+      http: [getQuicknodeEndpointUrl(UniverseChainId.Polygon)],
+    },
     [RPCType.PublicAlt]: { http: ['https://polygon-rpc.com/'] },
     [RPCType.Default]: { http: ['https://polygon-rpc.com/'] },
     [RPCType.Interface]: {
-      http: [ `https://polygon-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}` ],
+      http: [`https://polygon-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`],
     },
   },
   tokens,

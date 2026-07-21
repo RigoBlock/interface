@@ -1,8 +1,9 @@
+/* oxlint-disable typescript/no-unnecessary-condition */
+import { Trans } from 'react-i18next'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useAccount } from '~/hooks/useAccount'
 import styled from '~/lib/deprecated-styled'
-import { Trans } from 'react-i18next'
 import { ThemedText } from '~/theme/components'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 
 const EmptyProposals = styled.div`
   border: 1px solid ${({ theme }) => theme.neutral2};

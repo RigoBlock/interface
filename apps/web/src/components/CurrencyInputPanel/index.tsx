@@ -1,7 +1,18 @@
-import { PrefetchBalancesWrapper } from '~/appGraphql/data/apollo/AdaptiveTokenBalancesProvider'
-import { useTheme } from '@tamagui/core'
+/* oxlint-disable complexity */
+import { useTheme } from 'tamagui'
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import { Pair } from '@uniswap/v2-sdk'
+import { darken } from 'polished'
+import { ReactNode, useCallback, useState } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
+import { breakpoints } from 'ui/src/theme'
+import { useIsSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { ElementName, SwapEventName } from 'uniswap/src/features/telemetry/constants'
+import Trace from 'uniswap/src/features/telemetry/Trace'
+import { CurrencyField } from 'uniswap/src/types/currency'
+import { NumberType } from 'utilities/src/format/types'
+import { PrefetchBalancesWrapper } from '~/appGraphql/data/apollo/AdaptiveTokenBalancesProvider'
 import { ReactComponent as DropDown } from '~/assets/images/dropdown.svg'
 import { ButtonGray } from '~/components/Button/buttons'
 import { FiatValue } from '~/components/CurrencyInputPanel/FiatValue'
@@ -14,20 +25,10 @@ import { SwitchNetworkAction } from '~/components/Popups/types'
 import CurrencySearchModal from '~/components/SearchModal/CurrencySearchModal'
 import { useAccount } from '~/hooks/useAccount'
 import styled from '~/lib/deprecated-styled'
-import { darken } from 'polished'
-import { ReactNode, useCallback, useState } from 'react'
-import { Trans, useTranslation } from 'react-i18next'
 import { useActiveSmartPool } from '~/state/application/hooks'
 import { useCurrencyBalance } from '~/state/connection/hooks'
 import { ThemedText } from '~/theme/components'
 import { flexColumnNoWrap, flexRowNoWrap } from '~/theme/styles'
-import { breakpoints } from 'ui/src/theme'
-import { useIsSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
-import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { ElementName, SwapEventName } from 'uniswap/src/features/telemetry/constants'
-import Trace from 'uniswap/src/features/telemetry/Trace'
-import { CurrencyField } from 'uniswap/src/types/currency'
-import { NumberType } from 'utilities/src/format/types'
 
 const InputPanel = styled.div<{ $hideInput?: boolean }>`
   ${flexColumnNoWrap};
@@ -171,7 +172,9 @@ const StyledNumericalInput = styled(NumericalInput)<{ $loading: boolean }>`
   text-align: left;
 `
 
-const StyledPrefetchBalancesWrapper = styled(PrefetchBalancesWrapper)<{ $fullWidth: boolean }>`
+const StyledPrefetchBalancesWrapper = styled(PrefetchBalancesWrapper)<{
+  $fullWidth: boolean
+}>`
   width: ${({ $fullWidth }) => ($fullWidth ? '100%' : 'auto')};
 `
 

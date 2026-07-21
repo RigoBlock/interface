@@ -1,8 +1,13 @@
-import styled, { keyframes } from '~/lib/deprecated-styled'
+/* oxlint-disable max-params */
 import { darken } from 'polished'
 import { useState } from 'react'
+import styled, { keyframes } from '~/lib/deprecated-styled'
 
-const Wrapper = styled.button<{ isActive?: boolean; activeElement?: boolean; $disabled?: boolean }>`
+const Wrapper = styled.button<{
+  isActive?: boolean
+  activeElement?: boolean
+  $disabled?: boolean
+}>`
   align-items: center;
   background: ${({ isActive, theme }) => (isActive ? theme.accent2 : 'transparent')};
   border: ${({ theme, isActive }) => (isActive ? '1px solid transparent' : `1px solid ${theme.surface3}`)};
@@ -48,7 +53,11 @@ const ToggleElementHoverStyle = (hasBgColor: boolean, theme: any, isActive?: boo
         color: isActive ? theme.white : theme.neutral3,
       }
 
-const ToggleElement = styled.span<{ isActive?: boolean; bgColor?: string; isInitialToggleLoad?: boolean }>`
+const ToggleElement = styled.span<{
+  isActive?: boolean
+  bgColor?: string
+  isInitialToggleLoad?: boolean
+}>`
   animation: 0.1s
     ${({ isActive, isInitialToggleLoad }) => (isInitialToggleLoad ? 'none' : isActive ? turnOnToggle : turnOffToggle)}
     ease-in;

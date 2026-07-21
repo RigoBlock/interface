@@ -1,8 +1,6 @@
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { useActiveSmartPool } from '~/state/application/hooks'
-import { PositionField } from '~/types/position'
 import { Button, Flex, Text } from 'ui/src'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import { SLIPPAGE_CRITICAL_TOLERANCE } from 'uniswap/src/constants/transactions'
@@ -25,6 +23,8 @@ import ConfirmCreatePositionModal from '~/pages/CreatePosition/ConfirmCreatePosi
 import { useCreateLiquidityContext } from '~/pages/CreatePosition/CreateLiquidityContextProvider'
 import { CreatePositionModal } from '~/pages/CreatePosition/CreatePositionModal'
 import { useCreatePositionTxContext } from '~/pages/CreatePosition/CreatePositionTxContext'
+import { useActiveSmartPool } from '~/state/application/hooks'
+import { PositionField } from '~/types/position'
 
 export const DepositStep = () => {
   const {

@@ -82,7 +82,11 @@ export const useMenuContent = (args?: {
       [MenuSectionTitle.Protocol]: {
         title: t('common.protocol'),
         items: [
-          { label: t('common.vote'), href: uniswapUrls.voteUrl, elementName: ElementName.NavbarCompanyMenuVote },
+          {
+            label: t('common.vote'),
+            href: uniswapUrls.voteUrl,
+            elementName: ElementName.NavbarCompanyMenuVote,
+          },
           {
             label: t('common.governance'),
             href: uniswapUrls.governanceUrl,
@@ -98,13 +102,21 @@ export const useMenuContent = (args?: {
       [MenuSectionTitle.Company]: {
         title: t('common.company'),
         items: [
-          { label: t('common.about'), href: uniswapUrls.aboutUrl, elementName: ElementName.NavbarCompanyMenuAbout },
+          {
+            label: t('common.about'),
+            href: uniswapUrls.aboutUrl,
+            elementName: ElementName.NavbarCompanyMenuAbout,
+          },
           {
             label: t('common.careers'),
             href: uniswapUrls.careersUrl,
             elementName: ElementName.NavbarCompanyMenuCareers,
           },
-          { label: t('common.blog'), href: uniswapUrls.blogUrl, elementName: ElementName.NavbarCompanyMenuBlog },
+          {
+            label: t('common.blog'),
+            href: uniswapUrls.blogUrl,
+            elementName: ElementName.NavbarCompanyMenuBlog,
+          },
         ],
       },
       [MenuSectionTitle.NeedHelp]: {
@@ -133,7 +145,9 @@ export const useMenuContent = (args?: {
       const filteredEntries = Object.entries(menuContent).filter(
         ([key]) => keys.includes(key as MenuSectionTitle) && key !== MenuSectionTitle.Products,
       )
-      return Object.fromEntries(filteredEntries) as Partial<{ [key in MenuSectionTitle]: MenuSection }>
+      return Object.fromEntries(filteredEntries) as Partial<{
+        [key in MenuSectionTitle]: MenuSection
+      }>
     }
 
     return menuContent

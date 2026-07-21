@@ -1,4 +1,12 @@
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
+import JSBI from 'jsbi'
+import { useMemo, useState } from 'react'
+import { Trans } from 'react-i18next'
+import InfiniteScroll from 'react-infinite-scroll-component'
+import { Flex } from 'ui/src'
+import { GRG } from 'uniswap/src/constants/tokens'
+import { ElementName, InterfaceEventName, InterfacePageName } from 'uniswap/src/features/telemetry/constants'
+import Trace from 'uniswap/src/features/telemetry/Trace'
 import { useAccountDrawer } from '~/components/AccountDrawer/MiniPortfolio/hooks'
 import { ButtonPrimary } from '~/components/Button/buttons'
 import { AutoColumn } from '~/components/deprecated/Column'
@@ -9,19 +17,11 @@ import UnstakeModal from '~/components/earn/UnstakeModal'
 import Loader from '~/components/Icons/LoadingSpinner'
 import PoolPositionList from '~/components/PoolPositionList'
 import { useAccount } from '~/hooks/useAccount'
-import JSBI from 'jsbi'
 import styled from '~/lib/deprecated-styled'
-import { useMemo, useState } from 'react'
-import { Trans } from 'react-i18next'
-import InfiniteScroll from 'react-infinite-scroll-component'
 import { PoolRegisteredLog, useAllPoolsData } from '~/state/pool/hooks'
 import { useMultiChainStakingPools } from '~/state/pool/multichain'
 import { useUserStakeBalances } from '~/state/stake/hooks'
 import { ThemedText } from '~/theme/components/text'
-import { Flex } from 'ui/src'
-import { GRG } from 'uniswap/src/constants/tokens'
-import { ElementName, InterfaceEventName, InterfacePageName } from 'uniswap/src/features/telemetry/constants'
-import Trace from 'uniswap/src/features/telemetry/Trace'
 
 const PageWrapper = styled(AutoColumn)`
   padding: 68px 8px 0px;
@@ -58,7 +58,10 @@ const MainContentWrapper = styled.main`
   border-radius: 16px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0px 0px 1px rgba(0, 0, 0, 0.01), 0px 4px 8px rgba(0, 0, 0, 0.04), 0px 16px 24px rgba(0, 0, 0, 0.04),
+  box-shadow:
+    0px 0px 1px rgba(0, 0, 0, 0.01),
+    0px 4px 8px rgba(0, 0, 0, 0.04),
+    0px 16px 24px rgba(0, 0, 0, 0.04),
     0px 24px 32px rgba(0, 0, 0, 0.01);
 `
 
@@ -94,7 +97,11 @@ export default function Stake() {
   const accountDrawer = useAccountDrawer()
 
   // Use consolidated multichain hook - makes ONE batched RPC call instead of 3 separate calls
-  const { stakingPools, freeStakeBalance, unclaimedRewards: unclaimedRewardsData } = useMultiChainStakingPools(allPools ?? [])
+  const {
+    stakingPools,
+    freeStakeBalance,
+    unclaimedRewards: unclaimedRewardsData,
+  } = useMultiChainStakingPools(allPools ?? [])
 
   const hasFreeStake = JSBI.greaterThan(freeStakeBalance ? freeStakeBalance.quotient : JSBI.BigInt(0), JSBI.BigInt(0))
   const poolIds = allPools?.map((p) => p.id)
@@ -103,7 +110,7 @@ export default function Stake() {
 
   // Convert from new format to old format for backward compatibility
   const unclaimedRewards = useMemo(() => {
-    if (!unclaimedRewardsData || unclaimedRewardsData.length === 0) {
+    if (unclaimedRewardsData.length === 0) {
       return undefined
     }
     return unclaimedRewardsData.map((reward) => ({
@@ -178,11 +185,11 @@ export default function Stake() {
     }
   }
 
-  const showItems = (records: number, orderedPools: PoolRegisteredLog[]) => {
+  const showItems = (maxRecords: number, pools: PoolRegisteredLog[]) => {
     const items: PoolRegisteredLog[] = []
 
-    for (let i = 0; i < records && i < orderedPools.length; i++) {
-      items.push(orderedPools[i])
+    for (let i = 0; i < maxRecords && i < pools.length; i++) {
+      items.push(pools[i])
     }
 
     return items
@@ -266,7 +273,11 @@ export default function Stake() {
                     element={ElementName.ConnectWalletButton}
                   >
                     <ButtonPrimary
-                      style={{ marginTop: '2em', marginBottom: '2em', padding: '8px 16px' }}
+                      style={{
+                        marginTop: '2em',
+                        marginBottom: '2em',
+                        padding: '8px 16px',
+                      }}
                       onClick={accountDrawer.open}
                     >
                       <Trans i18nKey="common.connectAWallet.button" />
@@ -289,7 +300,11 @@ export default function Stake() {
                 ) : null
               }
               dataLength={orderedPools.length}
-              style={{ overflow: 'unset', display: 'flex', flexDirection: 'column' }}
+              style={{
+                overflow: 'unset',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
             >
               <PoolPositionList positions={items.length > 0 ? items : undefined} />
             </InfiniteScroll>

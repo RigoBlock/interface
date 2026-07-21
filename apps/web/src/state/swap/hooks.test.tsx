@@ -335,7 +335,7 @@ describe('hooks', () => {
     })
 
     describe('Disconnected wallet', () => {
-      test('optimism output UNI', () => {
+      test('optimism output UNI', async () => {
         mocked(useUrlContext).mockReturnValue({
           useParsedQueryString: () => ({
             outputCurrency: USDC_OPTIMISM.address,
@@ -350,16 +350,17 @@ describe('hooks', () => {
           },
         } = renderHook(() => useInitialCurrencyState())
 
-        waitFor(() => {
+        await waitFor(() => {
           expect(initialInputCurrency).toEqual(undefined)
           expect(initialOutputCurrency?.symbol).toEqual('USDC')
           expect(initialChainId).toEqual(10)
         })
       })
 
-      test('optimism input ETH, output USDC', () => {
+      test('optimism input ETH, output USDC', async () => {
         mocked(useUrlContext).mockReturnValue({
           useParsedQueryString: () => ({
+            inputCurrency: 'ETH',
             outputCurrency: USDC_OPTIMISM.address,
             chain: 'optimism',
           }),
@@ -372,7 +373,7 @@ describe('hooks', () => {
           },
         } = renderHook(() => useInitialCurrencyState())
 
-        waitFor(() => {
+        await waitFor(() => {
           expect(initialInputCurrency?.isNative).toEqual(true)
           expect(initialOutputCurrency?.symbol).toEqual('USDC')
           expect(initialChainId).toEqual(10)
@@ -410,7 +411,7 @@ describe('hooks', () => {
         expect(initialChainId).toEqual(10)
       })
 
-      test('empty query should default to ETH mainnet', () => {
+      test('empty query should default to ETH mainnet', async () => {
         mocked(useUrlContext).mockReturnValue({
           useParsedQueryString: () => ({
             chain: 'mainnet',
@@ -424,7 +425,7 @@ describe('hooks', () => {
           },
         } = renderHook(() => useInitialCurrencyState())
 
-        waitFor(() => {
+        await waitFor(() => {
           expect(initialInputCurrency?.isNative).toEqual(true)
           expect(initialOutputCurrency).not.toBeDefined()
           expect(initialChainId).toEqual(1)

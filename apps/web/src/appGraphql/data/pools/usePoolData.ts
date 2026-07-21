@@ -94,7 +94,6 @@ export function usePoolData({
 } {
   const { defaultChainId } = useEnabledChains()
   const chain = toGraphQLChain(chainId ?? defaultChainId)
-  const isV4DataEnabled = true //useFeatureFlag(FeatureFlags.V4Data)
   const isSolanaChain = chainId && isSVMChain(chainId)
   const {
     loading: loadingV4,

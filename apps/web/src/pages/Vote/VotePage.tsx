@@ -1,7 +1,22 @@
+/* oxlint-disable complexity no-unused-vars */
 /* eslint-disable max-lines */
 
 import { BigNumber } from '@ethersproject/bignumber'
 import { CurrencyAmount, Fraction, Token } from '@uniswap/sdk-core'
+import JSBI from 'jsbi'
+import ms from 'ms'
+import { useState } from 'react'
+import { ArrowLeft } from 'react-feather'
+import { Trans, useTranslation } from 'react-i18next'
+import ReactMarkdown from 'react-markdown'
+import { useParams } from 'react-router'
+import { Flex, Text } from 'ui/src'
+import { GRG } from 'uniswap/src/constants/tokens'
+import { useCurrentLocale } from 'uniswap/src/features/language/hooks'
+import { InterfacePageName, ModalName } from 'uniswap/src/features/telemetry/constants'
+import Trace from 'uniswap/src/features/telemetry/Trace'
+import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
+import { isAddress } from 'viem'
 import { ButtonPrimary } from '~/components/Button/buttons'
 import { DarkGrayCard } from '~/components/Card/cards'
 import { AutoColumn } from '~/components/deprecated/Column'
@@ -20,28 +35,14 @@ import {
 import { useAccount } from '~/hooks/useAccount'
 import useCurrentBlockTimestamp from '~/hooks/useCurrentBlockTimestamp'
 import { useModalState } from '~/hooks/useModalState'
-import JSBI from 'jsbi'
-import useBlockNumber from '~/lib/hooks/useBlockNumber'
 import styled from '~/lib/deprecated-styled'
-import ms from 'ms'
+import useBlockNumber from '~/lib/hooks/useBlockNumber'
 import { ProposalStatus } from '~/pages/Vote/styled'
-import { useState } from 'react'
-import { ArrowLeft } from 'react-feather'
-import { Trans, useTranslation } from 'react-i18next'
-import ReactMarkdown from 'react-markdown'
-import { useParams } from 'react-router'
 import { useTokenBalance } from '~/state/connection/hooks'
 import { ProposalState, useProposalData, useUserVotes } from '~/state/governance/hooks'
 import { VoteOption } from '~/state/governance/types'
 import { ThemedText } from '~/theme/components'
 import { ExternalLink, StyledInternalLink } from '~/theme/components/Links'
-import { Flex, Text } from 'ui/src'
-import { GRG } from 'uniswap/src/constants/tokens'
-import { useCurrentLocale } from 'uniswap/src/features/language/hooks'
-import { InterfacePageName, ModalName } from 'uniswap/src/features/telemetry/constants'
-import Trace from 'uniswap/src/features/telemetry/Trace'
-import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
-import { isAddress } from 'viem'
 
 const PageWrapper = styled(AutoColumn)`
   padding-top: 68px;
@@ -104,7 +105,10 @@ const ProgressWrapper = styled.div`
   position: relative;
 `
 
-const Progress = styled.div<{ status: 'for' | 'against'; percentageString?: string }>`
+const Progress = styled.div<{
+  status: 'for' | 'against'
+  percentageString?: string
+}>`
   height: 4px;
   border-radius: 4px;
   background-color: ${({ theme, status }) => (status === 'for' ? theme.success : theme.critical)};
@@ -187,7 +191,10 @@ export default function VotePage() {
 
   const { t } = useTranslation()
   // see https://github.com/remix-run/react-router/issues/8200#issuecomment-962520661
-  const { governorIndex, id } = useParams() as { governorIndex: string; id: string }
+  const { governorIndex, id } = useParams() as {
+    governorIndex: string
+    id: string
+  }
   const parsedGovernorIndex = Number.parseInt(governorIndex)
 
   const account = useAccount()
@@ -269,7 +276,11 @@ export default function VotePage() {
       const commonName = COMMON_CONTRACT_NAMES[account.chainId]?.[content] || content
       return (
         <ExternalLink
-          href={getExplorerLink({ chainId: account.chainId, data: content, type: ExplorerDataType.ADDRESS })}
+          href={getExplorerLink({
+            chainId: account.chainId,
+            data: content,
+            type: ExplorerDataType.ADDRESS,
+          })}
         >
           {commonName}
         </ExternalLink>
@@ -454,7 +465,9 @@ export default function VotePage() {
                       </Text>
                       {proposalData && (
                         <Text fontWeight={500}>
-                          {proposalData.forCount.toFixed(0, { groupSeparator: ',' })}
+                          {proposalData.forCount.toFixed(0, {
+                            groupSeparator: ',',
+                          })}
                           {quorumAmount && (
                             <span style={{ fontWeight: 485 }}>{` / ${quorumAmount.toExact({
                               groupSeparator: ',',
@@ -482,7 +495,11 @@ export default function VotePage() {
                         <Trans i18nKey="vote.votePage.against" />
                       </Text>
                       {proposalData && (
-                        <Text fontWeight={500}>{proposalData.againstCount.toFixed(0, { groupSeparator: ',' })}</Text>
+                        <Text fontWeight={500}>
+                          {proposalData.againstCount.toFixed(0, {
+                            groupSeparator: ',',
+                          })}
+                        </Text>
                       )}
                     </WrapSmall>
                   </AutoColumn>
@@ -505,11 +522,11 @@ export default function VotePage() {
                 return (
                   <DetailText key={i}>
                     {i + 1}: {linkIfAddress(d.target)}.{d.functionSig}(
-                    {d.callData.split(',').map((content, i) => {
+                    {d.callData.split(',').map((content, contentIndex) => {
                       return (
-                        <span key={i}>
+                        <span key={contentIndex}>
                           {linkIfAddress(content)}
-                          {d.callData.split(',').length - 1 === i ? '' : ','}
+                          {d.callData.split(',').length - 1 === contentIndex ? '' : ','}
                         </span>
                       )
                     })}

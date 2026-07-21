@@ -300,7 +300,9 @@ export const getOrderTextTable = (): {
   }
 }
 
-export const getCancelledTransactionTitleTable = (): { [key in TransactionType]: string } => ({
+export const getCancelledTransactionTitleTable = (): {
+  [key in TransactionType]: string
+} => ({
   [TransactionType.Swap]: i18n.t('transaction.status.swap.canceled'),
   [TransactionType.Plan]: i18n.t('transaction.status.swap.canceled'),
   [TransactionType.Wrap]: i18n.t('transaction.status.wrap.canceled'),

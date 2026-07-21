@@ -1,12 +1,13 @@
 /* eslint-disable max-params */
 
 import { BigNumber } from '@ethersproject/bignumber'
+import { keepPreviousData } from '@tanstack/react-query'
 import { useMemo } from 'react'
+import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
+import { useReadContract, useReadContracts } from 'wagmi'
 // TODO: remove duplicate method definition and reorg code
 import { usePoolExtendedContract, usePoolFactoryContract } from '~/state/pool/hooks'
-import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
 import { assume0xAddress } from '~/utils/wagmi'
-import { useReadContract, useReadContracts } from 'wagmi'
 
 interface PoolInitParams {
   name: string
@@ -76,7 +77,10 @@ export function useImplementation(
 
   return useMemo(() => {
     if (!currentImplementation || !beaconImplementation) {
-      return { implementations: undefined, isLoading: isLoadingImplementations }
+      return {
+        implementations: undefined,
+        isLoading: isLoadingImplementations,
+      }
     }
     return {
       implementations: ['0x' + currentImplementation.slice(-40), beaconImplementation],
@@ -93,7 +97,7 @@ export function useSmartPoolFromAddress(poolAddress?: string, chainId?: number):
     abi: POOL_EXTENDED_ABI,
     functionName: 'getPoolStorage',
     chainId,
-    query: { enabled: isQueryEnabled },
+    query: { enabled: isQueryEnabled, placeholderData: keepPreviousData },
   })
 
   return useMemo(() => {
@@ -117,7 +121,7 @@ export function useUserPoolBalance(poolAddress?: string, account?: string, chain
     functionName: 'getUserAccount',
     args: [target],
     chainId,
-    query: { enabled: !!poolAddress && !!account },
+    query: { enabled: !!poolAddress && !!account, placeholderData: keepPreviousData },
   })
 
   return useMemo(() => {

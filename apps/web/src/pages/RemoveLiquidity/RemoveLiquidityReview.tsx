@@ -1,15 +1,5 @@
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
 import { CurrencyAmount } from '@uniswap/sdk-core'
-import useSelectChain from '~/hooks/useSelectChain'
-import { useRemoveLiquidityTxContext } from '~/pages/RemoveLiquidity/RemoveLiquidityTxContext'
-import { getLPBaseAnalyticsProperties } from '~/components/Liquidity/analytics'
-import { useRemoveLiquidityModalContext } from '~/pages/RemoveLiquidity/RemoveLiquidityModalContext'
-import { BigNumber } from 'ethers/lib/ethers'
-import { DetailLineItem } from '~/components/swap/DetailLineItem'
-import { useGetPoolTokenPercentage } from '~/components/Liquidity/hooks/useGetPoolTokenPercentage'
-import { TokenInfo } from '~/components/Liquidity/TokenInfo'
-import { useAccount } from '~/hooks/useAccount'
-import { useCurrencyInfo } from '~/hooks/Tokens'
 import { useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
@@ -30,6 +20,15 @@ import { isSignerMnemonicAccountDetails } from 'uniswap/src/features/wallet/type
 import { getSymbolDisplayText } from 'uniswap/src/utils/currency'
 import { NumberType } from 'utilities/src/format/types'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
+import { getLPBaseAnalyticsProperties } from '~/components/Liquidity/analytics'
+import { useGetPoolTokenPercentage } from '~/components/Liquidity/hooks/useGetPoolTokenPercentage'
+import { TokenInfo } from '~/components/Liquidity/TokenInfo'
+import { DetailLineItem } from '~/components/swap/DetailLineItem'
+import { useCurrencyInfo } from '~/hooks/Tokens'
+import { useAccount } from '~/hooks/useAccount'
+import useSelectChain from '~/hooks/useSelectChain'
+import { useRemoveLiquidityModalContext } from '~/pages/RemoveLiquidity/RemoveLiquidityModalContext'
+import { useRemoveLiquidityTxContext } from '~/pages/RemoveLiquidity/RemoveLiquidityTxContext'
 import { liquiditySaga } from '~/state/sagas/liquidity/liquiditySaga'
 
 export function RemoveLiquidityReview({ onClose }: { onClose: () => void }) {
@@ -231,7 +230,9 @@ export function RemoveLiquidityReview({ onClose }: { onClose: () => void }) {
                   </Text>
                 ),
                 Value: () => (
-                  <Text variant="body3">{`1 ${currentPrice?.baseCurrency.symbol} = ${currentPrice?.toFixed()} ${currentPrice?.quoteCurrency.symbol}`}</Text>
+                  <Text variant="body3">{`1 ${currentPrice?.baseCurrency.symbol} = ${currentPrice?.toFixed()} ${
+                    currentPrice?.quoteCurrency.symbol
+                  }`}</Text>
                 ),
               }}
             />
@@ -245,7 +246,10 @@ export function RemoveLiquidityReview({ onClose }: { onClose: () => void }) {
                 Value: () => (
                   <Flex row gap="$gap4">
                     <Text variant="body3">
-                      {formatCurrencyAmount({ value: newCurrency0Amount, type: NumberType.TokenNonTx })}{' '}
+                      {formatCurrencyAmount({
+                        value: newCurrency0Amount,
+                        type: NumberType.TokenNonTx,
+                      })}{' '}
                       {getSymbolDisplayText(newCurrency0Amount.currency.symbol)}
                     </Text>
                     <Text variant="body3" color="$neutral2">
@@ -265,7 +269,10 @@ export function RemoveLiquidityReview({ onClose }: { onClose: () => void }) {
                 Value: () => (
                   <Flex row gap="$gap4">
                     <Text variant="body3">
-                      {formatCurrencyAmount({ value: newCurrency1Amount, type: NumberType.TokenNonTx })}{' '}
+                      {formatCurrencyAmount({
+                        value: newCurrency1Amount,
+                        type: NumberType.TokenNonTx,
+                      })}{' '}
                       {getSymbolDisplayText(newCurrency1Amount.currency.symbol)}
                     </Text>
                     <Text variant="body3" color="$neutral2">

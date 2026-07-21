@@ -3,7 +3,6 @@ import { ConnectError } from '@connectrpc/connect'
 import { useQuery } from '@connectrpc/connect-query'
 import { UseQueryResult } from '@tanstack/react-query'
 import { tokenRankings } from '@uniswap/client-explore/dist/uniswap/explore/v1/service-ExploreStatsService_connectquery'
-import { ONE_MINUTE_MS } from 'utilities/src/time/time'
 import {
   TokenRankingsRequest,
   TokenRankingsResponse,
@@ -19,6 +18,7 @@ import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { buildCurrency, buildCurrencyInfo } from 'uniswap/src/features/dataApi/utils/buildCurrency'
 import { getCurrencySafetyInfo } from 'uniswap/src/features/dataApi/utils/getCurrencySafetyInfo'
 import { currencyId } from 'uniswap/src/utils/currencyId'
+import { ONE_MINUTE_MS } from 'utilities/src/time/time'
 
 /**
  * Wrapper around Tanstack useQuery for the Uniswap REST BE service TokenRankings
@@ -30,7 +30,12 @@ export function useTokenRankingsQuery(
   input?: PartialMessage<TokenRankingsRequest>,
   enabled = true,
 ): UseQueryResult<TokenRankingsResponse, ConnectError> {
-  return useQuery(tokenRankings, input, { transport: uniswapGetTransport, enabled, retry: false, staleTime: 5 * ONE_MINUTE_MS })
+  return useQuery(tokenRankings, input, {
+    transport: uniswapGetTransport,
+    enabled,
+    retry: false,
+    staleTime: 5 * ONE_MINUTE_MS,
+  })
 }
 
 export function tokenRankingsStatToCurrencyInfo(tokenRankingsStat: TokenRankingsStat): CurrencyInfo | null {

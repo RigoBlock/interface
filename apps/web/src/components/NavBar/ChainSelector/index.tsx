@@ -1,14 +1,14 @@
-import { useAccount } from '~/hooks/useAccount'
-import useSelectChain from '~/hooks/useSelectChain'
 import { useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router'
-import { useMultichainContext } from '~/state/multichain/useMultichainContext'
 import { Flex, Popover } from 'ui/src'
 import { NetworkFilter } from 'uniswap/src/components/network/NetworkFilter'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { useIsSupportedChainIdCallback } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { useAccount } from '~/hooks/useAccount'
+import useSelectChain from '~/hooks/useSelectChain'
+import { useMultichainContext } from '~/state/multichain/useMultichainContext'
 
 type ChainSelectorProps = {
   hideArrow?: boolean

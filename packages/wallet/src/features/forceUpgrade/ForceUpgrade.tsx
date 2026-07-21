@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSporeColors } from 'ui/src'
 import { StyleSheet } from 'react-native'
 import Svg, { Circle } from 'react-native-svg'
+import { useSporeColors } from 'ui/src'
 import { RIGOBLOCK_LOGO } from 'ui/src/assets'
 import { imageSizes } from 'ui/src/theme'
 import { Modal } from 'uniswap/src/components/modals/Modal'
@@ -26,7 +26,10 @@ type Translation = {
 }
 
 interface ForceUpgradeProps {
-  SeedPhraseModalContent: React.ComponentType<{ mnemonicId: string; onDismiss: () => void }>
+  SeedPhraseModalContent: React.ComponentType<{
+    mnemonicId: string
+    onDismiss: () => void
+  }>
 }
 
 export function ForceUpgrade({ SeedPhraseModalContent }: ForceUpgradeProps): JSX.Element | null {
@@ -99,13 +102,21 @@ function ForceUpgradeModal({
     }
 
     if (isExtensionApp) {
-      await openUri({ uri: EXTENSION_FORCED_UPGRADE_HELP_LINK, openExternalBrowser: true, isSafeUri: true })
+      await openUri({
+        uri: EXTENSION_FORCED_UPGRADE_HELP_LINK,
+        openExternalBrowser: true,
+        isSafeUri: true,
+      })
       return
     }
 
     if (isIOS) {
       // iOS doesn't support in-app updates, just open the App Store
-      await openUri({ uri: MOBILE_APP_STORE_LINK, openExternalBrowser: true, isSafeUri: true })
+      await openUri({
+        uri: MOBILE_APP_STORE_LINK,
+        openExternalBrowser: true,
+        isSafeUri: true,
+      })
       return
     }
 
@@ -114,7 +125,11 @@ function ForceUpgradeModal({
 
     // If in-app update wasn't available or failed, fall back to store link
     if (!updateStarted) {
-      await openUri({ uri: MOBILE_APP_STORE_LINK, openExternalBrowser: true, isSafeUri: true })
+      await openUri({
+        uri: MOBILE_APP_STORE_LINK,
+        openExternalBrowser: true,
+        isSafeUri: true,
+      })
     }
   })
 

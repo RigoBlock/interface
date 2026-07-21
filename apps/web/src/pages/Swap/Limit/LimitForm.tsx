@@ -4,15 +4,7 @@ import { UNIVERSAL_ROUTER_ADDRESS, UniversalRouterVersion } from '@uniswap/unive
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { useActiveSmartPool } from '~/state/application/hooks'
 import { Anchor, Button, Flex, styled, Text, useIsShortMobileDevice } from 'ui/src'
-import { useMultichainContext } from '~/state/multichain/useMultichainContext'
-import { CurrencyState } from '~/state/swap/types'
-import { useSwapAndLimitContext } from '~/state/swap/useSwapContext'
-import { useOnSwitchTokens } from '~/state/swap/hooks'
-import { LimitOrderTrade, TradeFillType } from '~/state/routing/types'
-import { LimitContextProvider, useLimitContext } from '~/state/limit/LimitContext'
-import { getDefaultPriceInverted } from '~/state/limit/hooks'
 import { AlertTriangleFilled } from 'ui/src/components/icons/AlertTriangleFilled'
 import { ArrowDown } from 'ui/src/components/icons/ArrowDown'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
@@ -52,6 +44,14 @@ import { LimitExpirySection } from '~/pages/Swap/Limit/LimitExpirySection'
 import LimitOrdersNotSupportedBanner from '~/pages/Swap/Limit/LimitOrdersNotSupportedBanner'
 import { LimitPriceError } from '~/pages/Swap/Limit/LimitPriceError'
 import { OpenLimitOrdersButton } from '~/pages/Swap/Limit/OpenLimitOrdersButton'
+import { useActiveSmartPool } from '~/state/application/hooks'
+import { getDefaultPriceInverted } from '~/state/limit/hooks'
+import { LimitContextProvider, useLimitContext } from '~/state/limit/LimitContext'
+import { useMultichainContext } from '~/state/multichain/useMultichainContext'
+import { LimitOrderTrade, TradeFillType } from '~/state/routing/types'
+import { useOnSwitchTokens } from '~/state/swap/hooks'
+import { CurrencyState } from '~/state/swap/types'
+import { useSwapAndLimitContext } from '~/state/swap/useSwapContext'
 import { maxAmountSpend } from '~/utils/maxAmountSpend'
 
 const CustomHeightSwapSection = styled(SwapSection, {
@@ -111,7 +111,10 @@ function LimitForm({ onCurrencyChange }: LimitFormProps) {
         ? nativeOnChain(defaultLimitChainId)
         : stablecoin
 
-    const newCurrencyState = { inputCurrency: newInput, outputCurrency: newOutput }
+    const newCurrencyState = {
+      inputCurrency: newInput,
+      outputCurrency: newOutput,
+    }
     onCurrencyChange?.(newCurrencyState)
     setCurrencyState(newCurrencyState)
 
@@ -133,7 +136,9 @@ function LimitForm({ onCurrencyChange }: LimitFormProps) {
   const { formatCurrencyAmount } = useLocalizationContext()
 
   const isPermitMismatchUxEnabled = useFeatureFlag(FeatureFlags.EnablePermitMismatchUX)
-  const { data: isDelegationMismatch } = useIsMismatchAccountQuery({ chainId: LIMIT_SUPPORTED_CHAINS[0] })
+  const { data: isDelegationMismatch } = useIsMismatchAccountQuery({
+    chainId: LIMIT_SUPPORTED_CHAINS[0],
+  })
   const displayDelegationMismatchUI = isPermitMismatchUxEnabled && isDelegationMismatch
 
   const [displayDelegationMismatchModal, setDisplayDelegationMismatchModal] = useState(false)
@@ -572,7 +577,9 @@ function SubmitOrderButton({
 
     if (hasInsufficientFunds) {
       return inputCurrency
-        ? t('common.insufficientTokenBalance.error.simple', { tokenSymbol: inputCurrency.symbol })
+        ? t('common.insufficientTokenBalance.error.simple', {
+            tokenSymbol: inputCurrency.symbol,
+          })
         : t('common.insufficientBalance.error')
     }
     return t('common.confirm')

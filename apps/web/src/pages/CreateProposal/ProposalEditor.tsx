@@ -1,11 +1,11 @@
-// eslint-disable-next-line no-restricted-imports
-import { ResizingTextArea } from '~/components/ResizingTextArea'
-import styled from '~/lib/deprecated-styled'
+/* oxlint-disable react/display-name */
 import { memo } from 'react'
 import { Trans } from 'react-i18next'
 import { Text } from 'rebass'
 import { TextInput } from 'uniswap/src/components/input/TextInput'
 import i18n from 'uniswap/src/i18n'
+import { ResizingTextArea } from '~/components/ResizingTextArea'
+import styled from '~/lib/deprecated-styled'
 
 const ProposalEditorHeader = styled(Text)`
   font-size: 14px;

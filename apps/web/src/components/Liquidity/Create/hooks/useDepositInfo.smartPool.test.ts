@@ -77,7 +77,11 @@ describe('useDepositInfo smart pool balances', () => {
   beforeEach(() => {
     vi.clearAllMocks()
 
-    useOnChainCurrencyBalanceMock.mockReturnValue({ balance: undefined, isLoading: false, error: null })
+    useOnChainCurrencyBalanceMock.mockReturnValue({
+      balance: undefined,
+      isLoading: false,
+      error: null,
+    })
 
     useMaxAmountSpendMock.mockImplementation(({ currencyAmount }) => {
       if (currencyAmount) {
@@ -124,7 +128,10 @@ describe('useDepositInfo smart pool balances', () => {
         token0: ETH_MAINNET,
         token1: USDT,
         exactField: PositionField.TOKEN0,
-        exactAmounts: { [PositionField.TOKEN0]: '1', [PositionField.TOKEN1]: '' },
+        exactAmounts: {
+          [PositionField.TOKEN0]: '1',
+          [PositionField.TOKEN1]: '',
+        },
         poolOrPair: pool,
         tickLower: nearestUsableTick(TickMath.MIN_TICK, pool.tickSpacing),
         tickUpper: nearestUsableTick(TickMath.MAX_TICK, pool.tickSpacing),
@@ -167,7 +174,10 @@ describe('useDepositInfo smart pool balances', () => {
         token0: ETH_MAINNET,
         token1: USDT,
         exactField: PositionField.TOKEN0,
-        exactAmounts: { [PositionField.TOKEN0]: '1', [PositionField.TOKEN1]: '' },
+        exactAmounts: {
+          [PositionField.TOKEN0]: '1',
+          [PositionField.TOKEN1]: '',
+        },
         poolOrPair: pool,
         tickLower: nearestUsableTick(TickMath.MIN_TICK, pool.tickSpacing),
         tickUpper: nearestUsableTick(TickMath.MAX_TICK, pool.tickSpacing),
@@ -219,7 +229,10 @@ describe('useDepositInfo smart pool balances', () => {
         token0: ETH_MAINNET,
         token1: USDT,
         exactField: PositionField.TOKEN0,
-        exactAmounts: { [PositionField.TOKEN0]: '1', [PositionField.TOKEN1]: '' },
+        exactAmounts: {
+          [PositionField.TOKEN0]: '1',
+          [PositionField.TOKEN1]: '',
+        },
         poolOrPair: pool,
         tickLower: nearestUsableTick(TickMath.MIN_TICK, pool.tickSpacing),
         tickUpper: nearestUsableTick(TickMath.MAX_TICK, pool.tickSpacing),

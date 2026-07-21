@@ -118,7 +118,9 @@ export function SendReviewModalInner({ onConfirm, isConfirming }: SendModalInner
 
   const handleConfirm = () => {
     if (!hasDismissedLowNetworkTokenWarning && isMax && inputCurrency?.isNative) {
-      sendAnalyticsEvent(UniswapEventName.LowNetworkTokenInfoModalOpened, { location: 'send' })
+      sendAnalyticsEvent(UniswapEventName.LowNetworkTokenInfoModalOpened, {
+        location: 'send',
+      })
       handleShowMaxTransferModal()
       return
     }

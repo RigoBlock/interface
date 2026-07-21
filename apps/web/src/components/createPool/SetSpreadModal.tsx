@@ -1,22 +1,22 @@
 import { parseUnits } from '@ethersproject/units'
+import JSBI from 'jsbi'
+import { ReactNode, useCallback, useState } from 'react'
+import { X } from 'react-feather'
+import { Trans } from 'react-i18next'
+import { Modal } from 'uniswap/src/components/modals/Modal'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { logger } from 'utilities/src/logger/logger'
 import { ButtonError } from '~/components/Button/buttons'
 import { AutoColumn } from '~/components/deprecated/Column'
 import { RowBetween } from '~/components/deprecated/Row'
 import { LoadingView, SubmittedView } from '~/components/ModalViews'
 import NameInputPanel from '~/components/NameInputPanel'
 import { useAccount } from '~/hooks/useAccount'
-import JSBI from 'jsbi'
 import styled from '~/lib/deprecated-styled'
-import { ReactNode, useCallback, useState } from 'react'
-import { X } from 'react-feather'
-import { Trans } from 'react-i18next'
 import { useSetSpreadCallback } from '~/state/pool/hooks'
 import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
 import { ThemedText } from '~/theme/components/text'
-import { Modal } from 'uniswap/src/components/modals/Modal'
-import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { logger } from 'utilities/src/logger/logger'
 
 const ContentWrapper = styled(AutoColumn)`
   width: 100%;
@@ -43,10 +43,10 @@ export default function SetSpreadModal({ isOpen, currentSpread, onDismiss, title
   const [typed, setTyped] = useState('')
 
   // wrapped onUserInput to clear signatures
-  const onUserInput = useCallback((typed: string) => {
+  const onUserInput = useCallback((value: string) => {
     const numberRegEx = RegExp(`^[0-9]*[.,]?[0-9]*$`)
-    if (numberRegEx.test(String(typed))) {
-      setTyped(typed)
+    if (numberRegEx.test(String(value))) {
+      setTyped(value)
     }
   }, [])
 
@@ -85,13 +85,13 @@ export default function SetSpreadModal({ isOpen, currentSpread, onDismiss, title
     }
 
     // try set spread and store hash
-    const hash = await setSpreadCallback(parsedSpread)?.catch((error) => {
+    const txHash = await setSpreadCallback(parsedSpread)?.catch((error) => {
       setAttempting(false)
       logger.info('SetSpreadModal', 'onSetSpread', error)
     })
 
-    if (hash) {
-      setHash(hash)
+    if (txHash) {
+      setHash(txHash)
     }
   }
 

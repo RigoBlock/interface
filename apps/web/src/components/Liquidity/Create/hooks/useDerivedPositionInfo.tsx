@@ -1,3 +1,4 @@
+/* oxlint-disable typescript/no-unnecessary-condition */
 import { useQuery } from '@tanstack/react-query'
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
 import { PoolInfoRequest } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v1/api_pb'
@@ -6,6 +7,7 @@ import { Currency } from '@uniswap/sdk-core'
 import { FeeAmount } from '@uniswap/v3-sdk'
 import { useMemo } from 'react'
 import { liquidityQueries } from 'uniswap/src/data/apiClients/liquidityService/liquidityQueries'
+import { EVMUniverseChainId } from 'uniswap/src/features/chains/types'
 import {
   CreatePositionInfo,
   CreateV2PositionInfo,
@@ -23,9 +25,8 @@ import { isDynamicFeeTier } from '~/components/Liquidity/utils/feeTiers'
 import { isUnsupportedLPChain } from '~/components/Liquidity/utils/isUnsupportedLPChain'
 import { getSDKPoolFromPoolInformation } from '~/components/Liquidity/utils/parseFromRest'
 import { getProtocols } from '~/components/Liquidity/utils/protocolVersion'
-import { PositionField } from '~/types/position'
 import { PoolState, usePools } from '~/hooks/usePools'
-import { EVMUniverseChainId } from 'uniswap/src/features/chains/types'
+import { PositionField } from '~/types/position'
 
 function getSortedCurrencies(a: Maybe<Currency>, b: Maybe<Currency>): { [field in PositionField]: Maybe<Currency> } {
   if (!a || !b) {
@@ -84,7 +85,11 @@ export function useDerivedPositionInfo(
   const { protocolVersion } = state
   const { tokenA, tokenB } = currencyInputs
 
-  const sortedCurrencies = getSortedCurrenciesForProtocol({ a: tokenA, b: tokenB, protocolVersion })
+  const sortedCurrencies = getSortedCurrenciesForProtocol({
+    a: tokenA,
+    b: tokenB,
+    protocolVersion,
+  })
   const validCurrencyInput = validateCurrencyInput(sortedCurrencies)
 
   const token0 = getCurrencyWithWrap(sortedCurrencies.TOKEN0, protocolVersion)
@@ -135,8 +140,7 @@ export function useDerivedPositionInfo(
 
   const poolOrPair = poolData?.pools && poolData.pools.length > 0 ? poolData.pools[0] : undefined
   // Pool is only "creating" if the API says it doesn't exist AND on-chain fallback confirms it
-  const creatingPoolOrPair =
-    poolDataIsFetched && !poolOrPair && !isChainUnsupported && !v3PoolExistsOnChain
+  const creatingPoolOrPair = poolDataIsFetched && !poolOrPair && !isChainUnsupported && !v3PoolExistsOnChain
 
   return useMemo(() => {
     if (protocolVersion === ProtocolVersion.UNSPECIFIED) {
@@ -176,16 +180,17 @@ export function useDerivedPositionInfo(
 
     if (protocolVersion === ProtocolVersion.V3) {
       // Use API pool data if available; fall back to on-chain pool data if API didn't find the pool
-      const v3Pool = (poolOrPair
-        ? getSDKPoolFromPoolInformation({
-            poolOrPair,
-            token0: sortedCurrencies.TOKEN0?.wrapped,
-            token1: sortedCurrencies.TOKEN1?.wrapped,
-            protocolVersion,
-          })
-        : v3PoolExistsOnChain
-          ? v3OnChainPool?.[1]
-          : undefined) ?? undefined
+      const v3Pool =
+        (poolOrPair
+          ? getSDKPoolFromPoolInformation({
+              poolOrPair,
+              token0: sortedCurrencies.TOKEN0?.wrapped,
+              token1: sortedCurrencies.TOKEN1?.wrapped,
+              protocolVersion,
+            })
+          : v3PoolExistsOnChain
+            ? v3OnChainPool?.[1]
+            : undefined) ?? undefined
 
       return {
         currencies: {
@@ -224,5 +229,14 @@ export function useDerivedPositionInfo(
       poolId: poolOrPair?.poolReferenceIdentifier,
       refetchPoolData,
     } satisfies CreateV4PositionInfo
-  }, [protocolVersion, poolOrPair, creatingPoolOrPair, poolIsLoading, refetchPoolData, sortedCurrencies, v3PoolExistsOnChain, v3OnChainPool])
+  }, [
+    protocolVersion,
+    poolOrPair,
+    creatingPoolOrPair,
+    poolIsLoading,
+    refetchPoolData,
+    sortedCurrencies,
+    v3PoolExistsOnChain,
+    v3OnChainPool,
+  ])
 }

@@ -71,7 +71,11 @@ function useTokenSectionsForSwap({
     refetch: refetchBridgingTokenOptions,
     loading: bridgingTokenOptionsLoading,
     shouldNest: shouldNestBridgingTokens,
-  } = useBridgingTokensOptions({ oppositeSelectedToken, chainFilter, portfolioData })
+  } = useBridgingTokensOptions({
+    oppositeSelectedToken,
+    chainFilter,
+    portfolioData,
+  })
 
   const recentlySearchedTokenOptions = useRecentlySearchedTokens(chainFilter)
 
@@ -144,7 +148,14 @@ function useTokenSectionsForSwap({
   })
 
   const sections = useMemo(() => {
-    if (isSwapListLoading({ loading, portfolioSection, trendingSection, isTestnetModeEnabled })) {
+    if (
+      isSwapListLoading({
+        loading,
+        portfolioSection,
+        trendingSection,
+        isTestnetModeEnabled,
+      })
+    ) {
       return undefined
     }
 

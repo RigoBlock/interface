@@ -47,7 +47,9 @@ export function YouReceiveDetailsTooltip({
     <Tooltip.Outer>
       <Tooltip.Header
         title={{
-          title: t('swap.bestPrice.through', { provider: isUniswapXContext ? 'UniswapX' : 'Rigoblock API' }),
+          title: t('swap.bestPrice.through', {
+            provider: isUniswapXContext ? 'UniswapX' : 'Rigoblock API',
+          }),
         }}
         Icon={isUniswapXContext ? UniswapX : UniswapLogo}
         iconColor="$accent1"
@@ -56,7 +58,9 @@ export function YouReceiveDetailsTooltip({
         {feeOnTransferProps?.inputTokenInfo.fee.greaterThan(0) && (
           <Tooltip.Row>
             <Tooltip.LineItemLabel
-              label={`${t('swap.details.feeOnTransfer', { tokenSymbol: feeOnTransferProps.inputTokenInfo.tokenSymbol })} (${formatPercent(feeOnTransferProps.inputTokenInfo.fee.toFixed(8))})`}
+              label={`${t('swap.details.feeOnTransfer', {
+                tokenSymbol: feeOnTransferProps.inputTokenInfo.tokenSymbol,
+              })} (${formatPercent(feeOnTransferProps.inputTokenInfo.fee.toFixed(8))})`}
             />
             <Tooltip.LineItemValue
               value={feeOnTransferProps.inputTokenInfo.formattedAmount}
@@ -67,7 +71,9 @@ export function YouReceiveDetailsTooltip({
         {feeOnTransferProps?.outputTokenInfo.fee.greaterThan(0) && (
           <Tooltip.Row>
             <Tooltip.LineItemLabel
-              label={`${t('swap.details.feeOnTransfer', { tokenSymbol: feeOnTransferProps.outputTokenInfo.tokenSymbol })} (${formatPercent(feeOnTransferProps.outputTokenInfo.fee.toFixed(8))})`}
+              label={`${t('swap.details.feeOnTransfer', {
+                tokenSymbol: feeOnTransferProps.outputTokenInfo.tokenSymbol,
+              })} (${formatPercent(feeOnTransferProps.outputTokenInfo.fee.toFixed(8))})`}
             />
             <Tooltip.LineItemValue
               value={feeOnTransferProps.outputTokenInfo.formattedAmount}

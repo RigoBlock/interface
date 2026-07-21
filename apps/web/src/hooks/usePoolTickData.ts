@@ -66,7 +66,7 @@ function usePaginatedTickQuery({
   // Check if we have a recent cached result
   const shouldSkipDueToCache = useMemo(() => {
     const cached = queryCache.get(cacheKey)
-    if (!cached) return false
+    if (!cached) {return false}
 
     const isRecent = Date.now() - cached.timestamp < CACHE_DURATION
     return isRecent

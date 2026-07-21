@@ -11,8 +11,18 @@
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": true, "internalType": "address", "name": "target", "type": "address" },
-      { "indexed": true, "internalType": "address", "name": "caller", "type": "address" }
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      }
     ],
     "name": "AuthorizedAddressAdded",
     "type": "event"
@@ -20,26 +30,68 @@
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": true, "internalType": "address", "name": "target", "type": "address" },
-      { "indexed": true, "internalType": "address", "name": "caller", "type": "address" }
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      }
     ],
     "name": "AuthorizedAddressRemoved",
     "type": "event"
   },
   {
     "anonymous": false,
-    "inputs": [{ "indexed": false, "internalType": "string", "name": "reason", "type": "string" }],
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "reason",
+        "type": "string"
+      }
+    ],
     "name": "CatchStringEvent",
     "type": "event"
   },
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": true, "internalType": "uint256", "name": "epoch", "type": "uint256" },
-      { "indexed": false, "internalType": "uint256", "name": "numPoolsToFinalize", "type": "uint256" },
-      { "indexed": false, "internalType": "uint256", "name": "rewardsAvailable", "type": "uint256" },
-      { "indexed": false, "internalType": "uint256", "name": "totalFeesCollected", "type": "uint256" },
-      { "indexed": false, "internalType": "uint256", "name": "totalWeightedStake", "type": "uint256" }
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "epoch",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "numPoolsToFinalize",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "rewardsAvailable",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "totalFeesCollected",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "totalWeightedStake",
+        "type": "uint256"
+      }
     ],
     "name": "EpochEnded",
     "type": "event"
@@ -47,28 +99,80 @@
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": true, "internalType": "uint256", "name": "epoch", "type": "uint256" },
-      { "indexed": false, "internalType": "uint256", "name": "rewardsPaid", "type": "uint256" },
-      { "indexed": false, "internalType": "uint256", "name": "rewardsRemaining", "type": "uint256" }
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "epoch",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "rewardsPaid",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "rewardsRemaining",
+        "type": "uint256"
+      }
     ],
     "name": "EpochFinalized",
     "type": "event"
   },
   {
     "anonymous": false,
-    "inputs": [{ "indexed": false, "internalType": "uint256", "name": "grgAmount", "type": "uint256" }],
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "grgAmount",
+        "type": "uint256"
+      }
+    ],
     "name": "GrgMintEvent",
     "type": "event"
   },
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": true, "internalType": "address", "name": "staker", "type": "address" },
-      { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" },
-      { "indexed": false, "internalType": "uint8", "name": "fromStatus", "type": "uint8" },
-      { "indexed": true, "internalType": "bytes32", "name": "fromPool", "type": "bytes32" },
-      { "indexed": false, "internalType": "uint8", "name": "toStatus", "type": "uint8" },
-      { "indexed": true, "internalType": "bytes32", "name": "toPool", "type": "bytes32" }
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "staker",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "fromStatus",
+        "type": "uint8"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "fromPool",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "toStatus",
+        "type": "uint8"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "toPool",
+        "type": "bytes32"
+      }
     ],
     "name": "MoveStake",
     "type": "event"
@@ -76,9 +180,24 @@
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": true, "internalType": "bytes32", "name": "poolId", "type": "bytes32" },
-      { "indexed": false, "internalType": "uint32", "name": "oldOperatorShare", "type": "uint32" },
-      { "indexed": false, "internalType": "uint32", "name": "newOperatorShare", "type": "uint32" }
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "poolId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint32",
+        "name": "oldOperatorShare",
+        "type": "uint32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint32",
+        "name": "newOperatorShare",
+        "type": "uint32"
+      }
     ],
     "name": "OperatorShareDecreased",
     "type": "event"
@@ -86,8 +205,18 @@
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": true, "internalType": "address", "name": "previousOwner", "type": "address" },
-      { "indexed": true, "internalType": "address", "name": "newOwner", "type": "address" }
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
     ],
     "name": "OwnershipTransferred",
     "type": "event"
@@ -95,49 +224,125 @@
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": false, "internalType": "uint256", "name": "epochDurationInSeconds", "type": "uint256" },
-      { "indexed": false, "internalType": "uint32", "name": "rewardDelegatedStakeWeight", "type": "uint32" },
-      { "indexed": false, "internalType": "uint256", "name": "minimumPoolStake", "type": "uint256" },
-      { "indexed": false, "internalType": "uint256", "name": "cobbDouglasAlphaNumerator", "type": "uint256" },
-      { "indexed": false, "internalType": "uint256", "name": "cobbDouglasAlphaDenominator", "type": "uint256" }
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "epochDurationInSeconds",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint32",
+        "name": "rewardDelegatedStakeWeight",
+        "type": "uint32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "minimumPoolStake",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "cobbDouglasAlphaNumerator",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "cobbDouglasAlphaDenominator",
+        "type": "uint256"
+      }
     ],
     "name": "ParamsSet",
     "type": "event"
   },
   {
     "anonymous": false,
-    "inputs": [{ "indexed": false, "internalType": "address", "name": "exchangeAddress", "type": "address" }],
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "exchangeAddress",
+        "type": "address"
+      }
+    ],
     "name": "PopAdded",
     "type": "event"
   },
   {
     "anonymous": false,
-    "inputs": [{ "indexed": false, "internalType": "address", "name": "exchangeAddress", "type": "address" }],
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "exchangeAddress",
+        "type": "address"
+      }
+    ],
     "name": "PopRemoved",
     "type": "event"
   },
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": true, "internalType": "address", "name": "rbPoolAddress", "type": "address" },
-      { "indexed": true, "internalType": "bytes32", "name": "poolId", "type": "bytes32" }
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "rbPoolAddress",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "poolId",
+        "type": "bytes32"
+      }
     ],
     "name": "RbPoolStakingPoolSet",
     "type": "event"
   },
   {
     "anonymous": false,
-    "inputs": [{ "indexed": false, "internalType": "bytes", "name": "reason", "type": "bytes" }],
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "reason",
+        "type": "bytes"
+      }
+    ],
     "name": "ReturnDataEvent",
     "type": "event"
   },
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": true, "internalType": "uint256", "name": "epoch", "type": "uint256" },
-      { "indexed": true, "internalType": "bytes32", "name": "poolId", "type": "bytes32" },
-      { "indexed": false, "internalType": "uint256", "name": "operatorReward", "type": "uint256" },
-      { "indexed": false, "internalType": "uint256", "name": "membersReward", "type": "uint256" }
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "epoch",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "poolId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "operatorReward",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "membersReward",
+        "type": "uint256"
+      }
     ],
     "name": "RewardsPaid",
     "type": "event"
@@ -145,8 +350,18 @@
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": true, "internalType": "address", "name": "staker", "type": "address" },
-      { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "staker",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
     ],
     "name": "Stake",
     "type": "event"
@@ -154,9 +369,24 @@
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": false, "internalType": "bytes32", "name": "poolId", "type": "bytes32" },
-      { "indexed": false, "internalType": "address", "name": "operator", "type": "address" },
-      { "indexed": false, "internalType": "uint32", "name": "operatorShare", "type": "uint32" }
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "poolId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "operator",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint32",
+        "name": "operatorShare",
+        "type": "uint32"
+      }
     ],
     "name": "StakingPoolCreated",
     "type": "event"
@@ -164,8 +394,18 @@
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": true, "internalType": "uint256", "name": "epoch", "type": "uint256" },
-      { "indexed": true, "internalType": "bytes32", "name": "poolId", "type": "bytes32" }
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "epoch",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "poolId",
+        "type": "bytes32"
+      }
     ],
     "name": "StakingPoolEarnedRewardsInEpoch",
     "type": "event"
@@ -173,8 +413,18 @@
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": true, "internalType": "address", "name": "staker", "type": "address" },
-      { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "staker",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
     ],
     "name": "Unstake",
     "type": "event"
@@ -197,11 +447,31 @@
     "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
     "name": "aggregatedStatsByEpoch",
     "outputs": [
-      { "internalType": "uint256", "name": "rewardsAvailable", "type": "uint256" },
-      { "internalType": "uint256", "name": "numPoolsToFinalize", "type": "uint256" },
-      { "internalType": "uint256", "name": "totalFeesCollected", "type": "uint256" },
-      { "internalType": "uint256", "name": "totalWeightedStake", "type": "uint256" },
-      { "internalType": "uint256", "name": "totalRewardsFinalized", "type": "uint256" }
+      {
+        "internalType": "uint256",
+        "name": "rewardsAvailable",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "numPoolsToFinalize",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalFeesCollected",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalWeightedStake",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalRewardsFinalized",
+        "type": "uint256"
+      }
     ],
     "stateMutability": "view",
     "type": "function"
@@ -252,7 +522,13 @@
     "type": "function"
   },
   {
-    "inputs": [{ "internalType": "address", "name": "rigoblockPoolAddress", "type": "address" }],
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "rigoblockPoolAddress",
+        "type": "address"
+      }
+    ],
     "name": "createStakingPool",
     "outputs": [{ "internalType": "bytes32", "name": "poolId", "type": "bytes32" }],
     "stateMutability": "nonpayable",
@@ -295,7 +571,13 @@
   {
     "inputs": [],
     "name": "endEpoch",
-    "outputs": [{ "internalType": "uint256", "name": "numPoolsToFinalize", "type": "uint256" }],
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "numPoolsToFinalize",
+        "type": "uint256"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -328,14 +610,32 @@
     "type": "function"
   },
   {
-    "inputs": [{ "internalType": "enum IStructs.StakeStatus", "name": "stakeStatus", "type": "uint8" }],
+    "inputs": [
+      {
+        "internalType": "enum IStructs.StakeStatus",
+        "name": "stakeStatus",
+        "type": "uint8"
+      }
+    ],
     "name": "getGlobalStakeByStatus",
     "outputs": [
       {
         "components": [
-          { "internalType": "uint64", "name": "currentEpoch", "type": "uint64" },
-          { "internalType": "uint96", "name": "currentEpochBalance", "type": "uint96" },
-          { "internalType": "uint96", "name": "nextEpochBalance", "type": "uint96" }
+          {
+            "internalType": "uint64",
+            "name": "currentEpoch",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint96",
+            "name": "currentEpochBalance",
+            "type": "uint96"
+          },
+          {
+            "internalType": "uint96",
+            "name": "nextEpochBalance",
+            "type": "uint96"
+          }
         ],
         "internalType": "struct IStructs.StoredBalance",
         "name": "balance",
@@ -362,15 +662,31 @@
   {
     "inputs": [
       { "internalType": "address", "name": "staker", "type": "address" },
-      { "internalType": "enum IStructs.StakeStatus", "name": "stakeStatus", "type": "uint8" }
+      {
+        "internalType": "enum IStructs.StakeStatus",
+        "name": "stakeStatus",
+        "type": "uint8"
+      }
     ],
     "name": "getOwnerStakeByStatus",
     "outputs": [
       {
         "components": [
-          { "internalType": "uint64", "name": "currentEpoch", "type": "uint64" },
-          { "internalType": "uint96", "name": "currentEpochBalance", "type": "uint96" },
-          { "internalType": "uint96", "name": "nextEpochBalance", "type": "uint96" }
+          {
+            "internalType": "uint64",
+            "name": "currentEpoch",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint96",
+            "name": "currentEpochBalance",
+            "type": "uint96"
+          },
+          {
+            "internalType": "uint96",
+            "name": "nextEpochBalance",
+            "type": "uint96"
+          }
         ],
         "internalType": "struct IStructs.StoredBalance",
         "name": "balance",
@@ -384,11 +700,31 @@
     "inputs": [],
     "name": "getParams",
     "outputs": [
-      { "internalType": "uint256", "name": "_epochDurationInSeconds", "type": "uint256" },
-      { "internalType": "uint32", "name": "_rewardDelegatedStakeWeight", "type": "uint32" },
-      { "internalType": "uint256", "name": "_minimumPoolStake", "type": "uint256" },
-      { "internalType": "uint32", "name": "_cobbDouglasAlphaNumerator", "type": "uint32" },
-      { "internalType": "uint32", "name": "_cobbDouglasAlphaDenominator", "type": "uint32" }
+      {
+        "internalType": "uint256",
+        "name": "_epochDurationInSeconds",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint32",
+        "name": "_rewardDelegatedStakeWeight",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_minimumPoolStake",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint32",
+        "name": "_cobbDouglasAlphaNumerator",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "_cobbDouglasAlphaDenominator",
+        "type": "uint32"
+      }
     ],
     "stateMutability": "view",
     "type": "function"
@@ -396,7 +732,13 @@
   {
     "inputs": [],
     "name": "getPoolRegistry",
-    "outputs": [{ "internalType": "contract IPoolRegistry", "name": "", "type": "address" }],
+    "outputs": [
+      {
+        "internalType": "contract IPoolRegistry",
+        "name": "",
+        "type": "address"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
@@ -409,9 +751,21 @@
     "outputs": [
       {
         "components": [
-          { "internalType": "uint64", "name": "currentEpoch", "type": "uint64" },
-          { "internalType": "uint96", "name": "currentEpochBalance", "type": "uint96" },
-          { "internalType": "uint96", "name": "nextEpochBalance", "type": "uint96" }
+          {
+            "internalType": "uint64",
+            "name": "currentEpoch",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint96",
+            "name": "currentEpochBalance",
+            "type": "uint96"
+          },
+          {
+            "internalType": "uint96",
+            "name": "nextEpochBalance",
+            "type": "uint96"
+          }
         ],
         "internalType": "struct IStructs.StoredBalance",
         "name": "balance",
@@ -428,9 +782,21 @@
       {
         "components": [
           { "internalType": "address", "name": "operator", "type": "address" },
-          { "internalType": "address", "name": "stakingPal", "type": "address" },
-          { "internalType": "uint32", "name": "operatorShare", "type": "uint32" },
-          { "internalType": "uint32", "name": "stakingPalShare", "type": "uint32" }
+          {
+            "internalType": "address",
+            "name": "stakingPal",
+            "type": "address"
+          },
+          {
+            "internalType": "uint32",
+            "name": "operatorShare",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "stakingPalShare",
+            "type": "uint32"
+          }
         ],
         "internalType": "struct IStructs.Pool",
         "name": "",
@@ -446,9 +812,21 @@
     "outputs": [
       {
         "components": [
-          { "internalType": "uint256", "name": "feesCollected", "type": "uint256" },
-          { "internalType": "uint256", "name": "weightedStake", "type": "uint256" },
-          { "internalType": "uint256", "name": "membersStake", "type": "uint256" }
+          {
+            "internalType": "uint256",
+            "name": "feesCollected",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "weightedStake",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "membersStake",
+            "type": "uint256"
+          }
         ],
         "internalType": "struct IStructs.PoolStats",
         "name": "",
@@ -471,9 +849,21 @@
     "outputs": [
       {
         "components": [
-          { "internalType": "uint64", "name": "currentEpoch", "type": "uint64" },
-          { "internalType": "uint96", "name": "currentEpochBalance", "type": "uint96" },
-          { "internalType": "uint96", "name": "nextEpochBalance", "type": "uint96" }
+          {
+            "internalType": "uint64",
+            "name": "currentEpoch",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint96",
+            "name": "currentEpochBalance",
+            "type": "uint96"
+          },
+          {
+            "internalType": "uint96",
+            "name": "nextEpochBalance",
+            "type": "uint96"
+          }
         ],
         "internalType": "struct IStructs.StoredBalance",
         "name": "balance",
@@ -490,7 +880,13 @@
     "stateMutability": "view",
     "type": "function"
   },
-  { "inputs": [], "name": "init", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+  {
+    "inputs": [],
+    "name": "init",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
   {
     "inputs": [],
     "name": "minimumPoolStake",
@@ -502,7 +898,11 @@
     "inputs": [
       {
         "components": [
-          { "internalType": "enum IStructs.StakeStatus", "name": "status", "type": "uint8" },
+          {
+            "internalType": "enum IStructs.StakeStatus",
+            "name": "status",
+            "type": "uint8"
+          },
           { "internalType": "bytes32", "name": "poolId", "type": "bytes32" }
         ],
         "internalType": "struct IStructs.StakeInfo",
@@ -511,7 +911,11 @@
       },
       {
         "components": [
-          { "internalType": "enum IStructs.StakeStatus", "name": "status", "type": "uint8" },
+          {
+            "internalType": "enum IStructs.StakeStatus",
+            "name": "status",
+            "type": "uint8"
+          },
           { "internalType": "bytes32", "name": "poolId", "type": "bytes32" }
         ],
         "internalType": "struct IStructs.StakeInfo",
@@ -593,11 +997,31 @@
   },
   {
     "inputs": [
-      { "internalType": "uint256", "name": "_epochDurationInSeconds", "type": "uint256" },
-      { "internalType": "uint32", "name": "_rewardDelegatedStakeWeight", "type": "uint32" },
-      { "internalType": "uint256", "name": "_minimumPoolStake", "type": "uint256" },
-      { "internalType": "uint32", "name": "_cobbDouglasAlphaNumerator", "type": "uint32" },
-      { "internalType": "uint32", "name": "_cobbDouglasAlphaDenominator", "type": "uint32" }
+      {
+        "internalType": "uint256",
+        "name": "_epochDurationInSeconds",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint32",
+        "name": "_rewardDelegatedStakeWeight",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_minimumPoolStake",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint32",
+        "name": "_cobbDouglasAlphaNumerator",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "_cobbDouglasAlphaDenominator",
+        "type": "uint32"
+      }
     ],
     "name": "setParams",
     "outputs": [],
@@ -607,7 +1031,11 @@
   {
     "inputs": [
       { "internalType": "bytes32", "name": "poolId", "type": "bytes32" },
-      { "internalType": "address", "name": "newStakingPalAddress", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "newStakingPalAddress",
+        "type": "address"
+      }
     ],
     "name": "setStakingPalAddress",
     "outputs": [],

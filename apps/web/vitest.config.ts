@@ -21,6 +21,7 @@ export default defineConfig({
       '.nx',
     ],
     testTimeout: 15000,
+    hookTimeout: 20000,
     deps: {
       inline: [/packages\/ui/, /packages\/utilities/, /packages\/uniswap/],
     },

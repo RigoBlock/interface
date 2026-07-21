@@ -4,6 +4,7 @@ import { authorizeAndCompleteRecovery, encryptAndStoreRecovery } from 'uniswap/s
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { AddBackupLoginModal } from '~/components/Passkey/AddBackupLoginModal'
+import { useOAuthResult } from '~/components/Passkey/useOAuthResult'
 import { useModalState } from '~/hooks/useModalState'
 import { useEmbeddedWalletState } from '~/state/embeddedWallet/store'
 import { render, screen } from '~/test-utils/render'
@@ -16,6 +17,12 @@ vi.mock('@privy-io/react-auth', () => ({
 
 vi.mock('~/hooks/useModalState', () => ({
   useModalState: vi.fn(),
+}))
+
+// Mock the OAuth return detection directly: the test provider tree mounts components
+// more than once, which makes the real sessionStorage-consuming hook non-deterministic.
+vi.mock('~/components/Passkey/useOAuthResult', () => ({
+  useOAuthResult: vi.fn(() => ({ provider: null, providerEmail: undefined, pending: false })),
 }))
 
 vi.mock('~/state/embeddedWallet/store', () => ({
@@ -56,6 +63,8 @@ function setupMocks({ oauthLoading = false }: { oauthLoading?: boolean } = {}) {
   vi.mocked(useEmbeddedWalletState).mockReturnValue({ walletId: 'wallet-123' } as unknown as ReturnType<
     typeof useEmbeddedWalletState
   >)
+  // Default to no pending OAuth return; individual tests override this.
+  vi.mocked(useOAuthResult).mockReturnValue({ provider: null, providerEmail: undefined, pending: false })
   // Crypto phase runs eagerly when passcode is submitted
   mockGetAccessToken.mockResolvedValue('access-token')
   vi.mocked(encryptAndStoreRecovery).mockResolvedValue({ publicKey: 'pk', authMethodId: 'am', encryptedKeyId: 'ek' })
@@ -302,6 +311,11 @@ describe('AddBackupLoginModal', () => {
         authenticated: true,
         user: { google: { email: 'user@gmail.com' } },
       } as unknown as ReturnType<typeof usePrivy>)
+      vi.mocked(useOAuthResult).mockReturnValue({
+        provider: 'google',
+        providerEmail: 'user@gmail.com',
+        pending: false,
+      })
 
       render(<AddBackupLoginModal />)
 
@@ -320,6 +334,11 @@ describe('AddBackupLoginModal', () => {
         authenticated: true,
         user: { apple: { email: 'user@icloud.com' } },
       } as unknown as ReturnType<typeof usePrivy>)
+      vi.mocked(useOAuthResult).mockReturnValue({
+        provider: 'apple',
+        providerEmail: 'user@icloud.com',
+        pending: false,
+      })
 
       render(<AddBackupLoginModal />)
 
@@ -402,6 +421,11 @@ describe('AddBackupLoginModal', () => {
         publicKey: 'pk',
         authMethodId: 'am',
         encryptedKeyId: 'ek',
+      })
+      vi.mocked(useOAuthResult).mockReturnValue({
+        provider: 'google',
+        providerEmail: 'oauth@gmail.com',
+        pending: false,
       })
 
       render(<AddBackupLoginModal />)

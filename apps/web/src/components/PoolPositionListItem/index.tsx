@@ -1,19 +1,19 @@
-import { useTheme } from '@tamagui/core'
-//import Badge from '~/components/Badge'
-import { ButtonPrimary } from '~/components/Button/buttons'
-import Row, { RowBetween, RowFixed } from '~/components/deprecated/Row'
-import RaceModal from '~/components/earn/RaceModal'
-import { ChainLogo } from '~/components/Logo/ChainLogo'
-import styled from '~/lib/deprecated-styled'
+import { useTheme } from 'tamagui'
 import { useCallback, useState } from 'react'
 //import RangeBadge from '~/components/Badge/RangeBadge'
 //import Loader from '~/components/Loader'
 //import { useToken } from '~/hooks/Tokens'
 import { Trans } from 'react-i18next'
 import { Link } from 'react-router'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
+//import Badge from '~/components/Badge'
+import { ButtonPrimary } from '~/components/Button/buttons'
+import Row, { RowBetween, RowFixed } from '~/components/deprecated/Row'
+import RaceModal from '~/components/earn/RaceModal'
+import { ChainLogo } from '~/components/Logo/ChainLogo'
+import styled from '~/lib/deprecated-styled'
 import { MEDIA_WIDTHS } from '~/theme'
 import { PoolPositionDetails } from '~/types/position'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 
 const LinkRow = styled(Link)`
   align-items: center;
@@ -102,7 +102,12 @@ interface PoolPositionListItemProps {
   isSubRow?: boolean
 }
 
-export default function PoolPositionListItem({ positionDetails, returnPage, showOperatorView, isSubRow }: PoolPositionListItemProps) {
+export default function PoolPositionListItem({
+  positionDetails,
+  returnPage,
+  showOperatorView,
+  isSubRow,
+}: PoolPositionListItemProps) {
   const theme = useTheme()
   const {
     name,
@@ -129,7 +134,9 @@ export default function PoolPositionListItem({ positionDetails, returnPage, show
   const irrToString = irr ? (Number(irr) * 100).toFixed(2) : 'NaN'
   const positionSummaryLink =
     poolStake !== 'NaN'
-      ? `/smart-pool/${chainId ?? '1'}/${positionDetails.address}/${returnPage}/${poolStake}/${aprToString}/${poolOwnStakeString}/${irrToString}`
+      ? `/smart-pool/${chainId ?? '1'}/${
+          positionDetails.address
+        }/${returnPage}/${poolStake}/${aprToString}/${poolOwnStakeString}/${irrToString}`
       : `/smart-pool/${chainId ?? '1'}/${positionDetails.address}/${returnPage}` ///${positionDetails.id}
 
   const [showRaceModal, setShowRaceModal] = useState<boolean>(false)
@@ -174,14 +181,22 @@ export default function PoolPositionListItem({ positionDetails, returnPage, show
                   <ActiveDot />
                 </LabelText>
               )}
-              {showOperatorView && userBalance && (() => { try { return BigInt(userBalance) > 0n } catch { return false } })() && (
-                <LabelText color={theme.success?.get()}>
-                  <BadgeText>
-                    <Trans>held</Trans>
-                  </BadgeText>
-                  <ActiveDot />
-                </LabelText>
-              )}
+              {showOperatorView &&
+                userBalance &&
+                (() => {
+                  try {
+                    return BigInt(userBalance) > 0n
+                  } catch {
+                    return false
+                  }
+                })() && (
+                  <LabelText color={theme.success?.get()}>
+                    <BadgeText>
+                      <Trans>held</Trans>
+                    </BadgeText>
+                    <ActiveDot />
+                  </LabelText>
+                )}
             </Row>
           </PrimaryPositionIdData>
           {showOperatorView && shouldDisplayRaceButton ? (

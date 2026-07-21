@@ -73,7 +73,9 @@ export const ARBITRUM_CHAIN_INFO = {
   supportsNFTs: true,
   urlParam: CHAIN_ID_TO_URL_PARAM[UniverseChainId.ArbitrumOne],
   rpcUrls: {
-    [RPCType.Public]: { http: [getQuicknodeEndpointUrl(UniverseChainId.ArbitrumOne)] },
+    [RPCType.Public]: {
+      http: [getQuicknodeEndpointUrl(UniverseChainId.ArbitrumOne)],
+    },
     [RPCType.Default]: { http: ['https://arb1.arbitrum.io/rpc'] },
     [RPCType.Fallback]: { http: ['https://arbitrum.public-rpc.com'] },
     [RPCType.Interface]: {

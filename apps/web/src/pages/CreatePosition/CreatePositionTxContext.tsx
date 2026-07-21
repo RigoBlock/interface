@@ -1,4 +1,4 @@
-/* oxlint-disable max-lines */
+/* oxlint-disable react-hooks/exhaustive-deps */
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
 import {
   CreateLPPositionRequest,
@@ -24,9 +24,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import { useActiveSmartPool } from '~/state/application/hooks'
 import { useSelector } from 'react-redux'
-import { PositionField } from '~/types/position'
 import { useUniswapContextSelector } from 'uniswap/src/contexts/UniswapContext'
 import { useCheckLPApprovalQuery } from 'uniswap/src/data/apiClients/liquidityService/useCheckLPApprovalQuery'
 import { useCreatePositionQuery } from 'uniswap/src/data/apiClients/liquidityService/useCreatePositionQuery'
@@ -51,7 +49,8 @@ import { getCheckLPApprovalRequestParams } from '~/components/Liquidity/utils/ge
 import { isInvalidRange, isOutOfRange } from '~/components/Liquidity/utils/priceRangeInfo'
 import { useCreateLiquidityContext } from '~/pages/CreatePosition/CreateLiquidityContextProvider'
 import { generateCreatePositionTxRequest } from '~/pages/CreatePosition/generateCreatePositionTxRequest'
-
+import { useActiveSmartPool } from '~/state/application/hooks'
+import { PositionField } from '~/types/position'
 
 interface CreatePositionTxContextType {
   txInfo?: CreatePositionTxAndGasInfo
@@ -59,10 +58,14 @@ interface CreatePositionTxContextType {
   transactionError: boolean | string
   setTransactionError: Dispatch<SetStateAction<string | boolean>>
   dependentAmount?: string
-  currencyAmounts?: { [field in PositionField]?: Maybe<CurrencyAmount<Currency>> }
+  currencyAmounts?: {
+    [field in PositionField]?: Maybe<CurrencyAmount<Currency>>
+  }
   inputError?: ReactNode
   formattedAmounts?: { [field in PositionField]?: string }
-  currencyAmountsUSDValue?: { [field in PositionField]?: Maybe<CurrencyAmount<Currency>> }
+  currencyAmountsUSDValue?: {
+    [field in PositionField]?: Maybe<CurrencyAmount<Currency>>
+  }
   currencyBalances?: { [field in PositionField]?: CurrencyAmount<Currency> }
 }
 
@@ -110,7 +113,18 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
       skipDependentAmount: protocolVersion === ProtocolVersion.V2 ? false : outOfRange || invalidRange,
       isSmartPool: !!smartPoolAddress,
     }
-  }, [TOKEN0, TOKEN1, exactField, ticks, poolOrPair, depositState, evmAddress, smartPoolAddress, protocolVersion, invalidRange])
+  }, [
+    TOKEN0,
+    TOKEN1,
+    exactField,
+    ticks,
+    poolOrPair,
+    depositState,
+    evmAddress,
+    smartPoolAddress,
+    protocolVersion,
+    invalidRange,
+  ])
 
   const {
     currencyMaxAmounts,
@@ -168,7 +182,9 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
   })
 
   if (approvalError) {
-    const message = parseErrorMessageTitle(approvalError, { defaultTitle: 'unknown CheckLpApprovalQuery' })
+    const message = parseErrorMessageTitle(approvalError, {
+      defaultTitle: 'unknown CheckLpApprovalQuery',
+    })
     logger.error(message, {
       tags: { file: 'CreatePositionTxContext', function: 'useEffect' },
       extra: {
@@ -276,7 +292,9 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
   }, [approvalError, createError])
 
   if (createError) {
-    const message = parseErrorMessageTitle(createError, { defaultTitle: 'unknown CreateLpPositionCalldataQuery' })
+    const message = parseErrorMessageTitle(createError, {
+      defaultTitle: 'unknown CreateLpPositionCalldataQuery',
+    })
     logger.error(message, {
       tags: { file: 'CreatePositionTxContext', function: 'useEffect' },
       extra: {

@@ -1,19 +1,19 @@
+import { ReactNode, /*useCallback,*/ useState } from 'react'
+import { X } from 'react-feather'
+import { Trans } from 'react-i18next'
+import { Modal } from 'uniswap/src/components/modals/Modal'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { logger } from 'utilities/src/logger/logger'
 import { ButtonError } from '~/components/Button/buttons'
 import { AutoColumn } from '~/components/deprecated/Column'
 import { RowBetween } from '~/components/deprecated/Row'
 import { LoadingView, SubmittedView } from '~/components/ModalViews'
 import { useAccount } from '~/hooks/useAccount'
 import styled from '~/lib/deprecated-styled'
-import { ReactNode, /*useCallback,*/ useState } from 'react'
-import { X } from 'react-feather'
-import { Trans } from 'react-i18next'
 import { useSetValueCallback } from '~/state/pool/hooks'
 import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
 import { ThemedText } from '~/theme/components/text'
-import { Modal } from 'uniswap/src/components/modals/Modal'
-import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { logger } from 'utilities/src/logger/logger'
 
 const ContentWrapper = styled(AutoColumn)`
   width: 100%;
@@ -73,13 +73,13 @@ export default function SetValueModal({ isOpen, onDismiss, baseTokenSymbol, titl
     }
 
     // try delegation and store hash
-    const hash = await setValueCallback()?.catch((error) => {
+    const txHash = await setValueCallback()?.catch((error) => {
       setAttempting(false)
       logger.info('SetValueModal', 'onSetValue', error)
     })
 
-    if (hash) {
-      setHash(hash)
+    if (txHash) {
+      setHash(txHash)
     }
   }
 

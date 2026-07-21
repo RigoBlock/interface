@@ -1,5 +1,3 @@
-import { useAccountDrawer } from '~/components/AccountDrawer/MiniPortfolio/hooks'
-import { filterTransactionDetailsFromActivityItems } from '~/pages/Portfolio/Activity/Filters/utils'
 import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
@@ -8,6 +6,8 @@ import { ArrowRight } from 'ui/src/components/icons/ArrowRight'
 import { iconSizes } from 'ui/src/theme'
 import { ActivityItem } from 'uniswap/src/components/activity/generateActivityItemRenderer'
 import { useActivityData } from 'uniswap/src/features/activity/hooks/useActivityData'
+import { useAccountDrawer } from '~/components/AccountDrawer/MiniPortfolio/hooks'
+import { filterTransactionDetailsFromActivityItems } from '~/pages/Portfolio/Activity/Filters/utils'
 import { filterDefinedWalletAddresses } from '~/utils/filterDefinedWalletAddresses'
 
 const MAX_RECENT_ACTIVITY_ITEMS = 3
@@ -22,11 +22,6 @@ export default function MiniPortfolioV2({ evmAddress, svmAddress }: { evmAddress
 
   const handleViewPortfolio = useCallback(() => {
     navigate(portfolioAddress ? `/portfolio/${portfolioAddress}` : '/portfolio')
-    accountDrawer.close()
-  }, [navigate, accountDrawer, portfolioAddress])
-
-  const handleViewActivity = useCallback(() => {
-    navigate(portfolioAddress ? `/portfolio/${portfolioAddress}/activity` : '/portfolio/activity')
     accountDrawer.close()
   }, [navigate, accountDrawer, portfolioAddress])
 

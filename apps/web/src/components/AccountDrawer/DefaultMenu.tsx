@@ -1,6 +1,4 @@
 import { useEffect, useMemo } from 'react'
-import { useLocation } from 'react-router'
-import { useActiveSmartPool } from '~/state/application/hooks'
 import { Flex } from 'ui/src'
 import { TransitionItem } from 'ui/src/animations'
 import { InterfaceEventName } from 'uniswap/src/features/telemetry/constants'
@@ -79,12 +77,6 @@ export function DefaultMenu() {
     )
   }, [menuState])
 
-  const { address: smartPoolAddress } = useActiveSmartPool()
-  const { pathname: page } = useLocation()
-
-  const isSendPage = page === '/send'
-  const shouldQueryPoolBalances = useMemo(() => smartPoolAddress && !isSendPage, [smartPoolAddress, isSendPage])
-
   const SubMenu = useMemo(() => {
     switch (menuState.variant) {
       case MenuStateVariant.MAIN:
@@ -128,8 +120,6 @@ export function DefaultMenu() {
     openStorageSettings,
     openSettings,
     returnToMain,
-    smartPoolAddress,
-    shouldQueryPoolBalances,
   ])
 
   return (

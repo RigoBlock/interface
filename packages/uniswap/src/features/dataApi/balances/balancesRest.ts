@@ -200,9 +200,17 @@ function usePortfolioDataQueryWithSelect<T>(
 export function usePortfolioData(options: UsePortfolioDataQueryOptions): PortfolioDataResult {
   const ownerAddress = options.evmAddress ?? options.svmAddress
   const select = useEvent((portfolioData: GetPortfolioResponse | undefined) =>
-    formatPortfolioResponseToMap({ portfolioData, ownerAddress, useMultichainFormat: false }),
+    formatPortfolioResponseToMap({
+      portfolioData,
+      ownerAddress,
+      useMultichainFormat: false,
+    }),
   )
-  return usePortfolioDataQueryWithSelect({ ...options, select, requestMultichainFromBackend: false })
+  return usePortfolioDataQueryWithSelect({
+    ...options,
+    select,
+    requestMultichainFromBackend: false,
+  })
 }
 
 /**
@@ -440,7 +448,10 @@ export function usePortfolioCacheUpdater(evmAddress?: string, svmAddress?: strin
   }, [queryClient])
 
   return useEvent((hidden: boolean, portfolioBalance?: PortfolioBalance) =>
-    cacheUpdater({ evmAddress, svmAddress, chainIds, modifier })({ hidden, portfolioBalance }),
+    cacheUpdater({ evmAddress, svmAddress, chainIds, modifier })({
+      hidden,
+      portfolioBalance,
+    }),
   )
 }
 

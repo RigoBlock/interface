@@ -1,14 +1,30 @@
 [
   {
-    "inputs": [{ "internalType": "address", "name": "_stakingContract", "type": "address" }],
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_stakingContract",
+        "type": "address"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "constructor"
   },
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": true, "internalType": "address", "name": "target", "type": "address" },
-      { "indexed": true, "internalType": "address", "name": "caller", "type": "address" }
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      }
     ],
     "name": "AuthorizedAddressAdded",
     "type": "event"
@@ -16,8 +32,18 @@
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": true, "internalType": "address", "name": "target", "type": "address" },
-      { "indexed": true, "internalType": "address", "name": "caller", "type": "address" }
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      }
     ],
     "name": "AuthorizedAddressRemoved",
     "type": "event"
@@ -25,19 +51,41 @@
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": true, "internalType": "address", "name": "previousOwner", "type": "address" },
-      { "indexed": true, "internalType": "address", "name": "newOwner", "type": "address" }
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
     ],
     "name": "OwnershipTransferred",
     "type": "event"
   },
   {
     "anonymous": false,
-    "inputs": [{ "indexed": false, "internalType": "address", "name": "newStakingContractAddress", "type": "address" }],
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "newStakingContractAddress",
+        "type": "address"
+      }
+    ],
     "name": "StakingContractAttachedToProxy",
     "type": "event"
   },
-  { "anonymous": false, "inputs": [], "name": "StakingContractDetachedFromProxy", "type": "event" },
+  {
+    "anonymous": false,
+    "inputs": [],
+    "name": "StakingContractDetachedFromProxy",
+    "type": "event"
+  },
   { "stateMutability": "nonpayable", "type": "fallback" },
   {
     "inputs": [{ "internalType": "address", "name": "target", "type": "address" }],
@@ -50,18 +98,50 @@
     "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
     "name": "aggregatedStatsByEpoch",
     "outputs": [
-      { "internalType": "uint256", "name": "rewardsAvailable", "type": "uint256" },
-      { "internalType": "uint256", "name": "numPoolsToFinalize", "type": "uint256" },
-      { "internalType": "uint256", "name": "totalFeesCollected", "type": "uint256" },
-      { "internalType": "uint256", "name": "totalWeightedStake", "type": "uint256" },
-      { "internalType": "uint256", "name": "totalRewardsFinalized", "type": "uint256" }
+      {
+        "internalType": "uint256",
+        "name": "rewardsAvailable",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "numPoolsToFinalize",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalFeesCollected",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalWeightedStake",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalRewardsFinalized",
+        "type": "uint256"
+      }
     ],
     "stateMutability": "view",
     "type": "function"
   },
-  { "inputs": [], "name": "assertValidStorageParams", "outputs": [], "stateMutability": "view", "type": "function" },
   {
-    "inputs": [{ "internalType": "address", "name": "_stakingContract", "type": "address" }],
+    "inputs": [],
+    "name": "assertValidStorageParams",
+    "outputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_stakingContract",
+        "type": "address"
+      }
+    ],
     "name": "attachStakingContract",
     "outputs": [],
     "stateMutability": "nonpayable",
@@ -84,7 +164,13 @@
   {
     "inputs": [{ "internalType": "bytes[]", "name": "data", "type": "bytes[]" }],
     "name": "batchExecute",
-    "outputs": [{ "internalType": "bytes[]", "name": "batchReturnData", "type": "bytes[]" }],
+    "outputs": [
+      {
+        "internalType": "bytes[]",
+        "name": "batchReturnData",
+        "type": "bytes[]"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -116,7 +202,13 @@
     "stateMutability": "view",
     "type": "function"
   },
-  { "inputs": [], "name": "detachStakingContract", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+  {
+    "inputs": [],
+    "name": "detachStakingContract",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
   {
     "inputs": [],
     "name": "epochDurationInSeconds",

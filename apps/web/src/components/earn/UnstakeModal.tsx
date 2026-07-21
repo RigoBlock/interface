@@ -1,4 +1,16 @@
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
+import JSBI from 'jsbi'
+import { ReactNode, useCallback, useState } from 'react'
+import { X } from 'react-feather'
+import { Trans, useTranslation } from 'react-i18next'
+import { Flex, useSporeColors } from 'ui/src'
+import { Modal } from 'uniswap/src/components/modals/Modal'
+import { GRG } from 'uniswap/src/constants/tokens'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { logger } from 'utilities/src/logger/logger'
 import { /*ButtonConfirmed,*/ ButtonPrimary } from '~/components/Button/buttons'
 //import { ButtonError } from '../Button'
 import { LightCard } from '~/components/Card/cards'
@@ -9,24 +21,12 @@ import Slider from '~/components/Slider'
 import { ResponsiveHeaderText } from '~/components/vote/DelegateModal'
 import { useAccount } from '~/hooks/useAccount'
 import useDebouncedChangeHandler from '~/hooks/useDebouncedChangeHandler'
-import JSBI from 'jsbi'
 import styled from '~/lib/deprecated-styled'
 import { useRemoveLiquidityModalContext } from '~/pages/RemoveLiquidity/RemoveLiquidityModalContext'
 import { ClickablePill } from '~/pages/Swap/Buy/PredefinedAmount'
-import { ReactNode, useCallback, useState } from 'react'
-import { X } from 'react-feather'
-import { Trans, useTranslation } from 'react-i18next'
 import { useUnstakeCallback } from '~/state/stake/hooks'
 import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
 import { ThemedText } from '~/theme/components/text'
-import { Flex, useSporeColors } from 'ui/src'
-import { Modal } from 'uniswap/src/components/modals/Modal'
-import { GRG } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { logger } from 'utilities/src/logger/logger'
 
 const ContentWrapper = styled(AutoColumn)`
   width: 100%;
@@ -62,8 +62,8 @@ export default function UnstakeModal({ isOpen, isPool, freeStakeBalance, onDismi
   const { percent, setPercent } = useRemoveLiquidityModalContext()
   const { formatCurrencyAmount } = useLocalizationContext()
   const onPercentSelect = useCallback(
-    (percent: number) => {
-      setPercent(percent.toString())
+    (value: number) => {
+      setPercent(value.toString())
     },
     [setPercent],
   )
@@ -110,13 +110,13 @@ export default function UnstakeModal({ isOpen, isPool, freeStakeBalance, onDismi
     }
 
     // try delegation and store hash
-    const hash = await unstakeCallback(parsedAmount, isPool)?.catch((error) => {
+    const txHash = await unstakeCallback(parsedAmount, isPool)?.catch((error) => {
       setAttempting(false)
       logger.info('UnstakeModal', 'onUnstake', error)
     })
 
-    if (hash) {
-      setHash(hash)
+    if (txHash) {
+      setHash(txHash)
     }
   }
 
@@ -133,9 +133,7 @@ export default function UnstakeModal({ isOpen, isPool, freeStakeBalance, onDismi
               {isPool ? <Trans>Unstaking smart pool free stake.</Trans> : <Trans>Unstaking your free stake.</Trans>}
             </RowBetween>
             <RowBetween>
-              <ResponsiveHeaderText>
-                {percentForSlider}%
-              </ResponsiveHeaderText>
+              <ResponsiveHeaderText>{percentForSlider}%</ResponsiveHeaderText>
               <Flex row gap="$gap8" width="100%" justifyContent="center">
                 {[25, 50, 75, 100].map((option) => {
                   const active = percent === option.toString()
@@ -163,7 +161,11 @@ export default function UnstakeModal({ isOpen, isPool, freeStakeBalance, onDismi
               <AutoColumn gap="md">
                 <RowBetween>
                   <ThemedText.DeprecatedBody fontSize={16} fontWeight={500}>
-                    <Trans>Withdrawing {formatCurrencyAmount({ value: parsedAmount })} GRG</Trans>
+                    <Trans
+                      i18nKey="earn.unstake.withdrawing"
+                      values={{ amount: formatCurrencyAmount({ value: parsedAmount }) }}
+                      defaults="Withdrawing {{amount}} GRG"
+                    />
                   </ThemedText.DeprecatedBody>
                 </RowBetween>
               </AutoColumn>

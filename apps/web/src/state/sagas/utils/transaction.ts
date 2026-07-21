@@ -137,7 +137,10 @@ export const createUniverseTransaction = ({
       assertUnreachable(info)
   }
 
-  return { ...baseTransaction, ...transaction } satisfies UniswapTransactionDetails
+  return {
+    ...baseTransaction,
+    ...transaction,
+  } satisfies UniswapTransactionDetails
 }
 
 function assertUnreachable(x: never): never {

@@ -1,10 +1,10 @@
-import { usePortfolioStaking } from '~/pages/Portfolio/hooks/usePortfolioStaking'
 import { memo } from 'react'
 import { Flex, Text } from 'ui/src'
 import { ActivityRenderData } from 'uniswap/src/features/activity/hooks/useActivityData'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { NumberType } from 'utilities/src/format/types'
+import { usePortfolioStaking } from '~/pages/Portfolio/hooks/usePortfolioStaking'
 import {
   MAX_ACTIVITY_ROWS,
   MAX_POOLS_ROWS,
@@ -19,7 +19,10 @@ import { OpenLimitsTable } from '~/pages/Portfolio/Overview/OpenLimitsTable'
 interface PortfolioOverviewTablesProps {
   activityData: ActivityRenderData
   chainId: UniverseChainId | undefined
-  portfolioAddresses: { evmAddress: Address | undefined; svmAddress: Address | undefined }
+  portfolioAddresses: {
+    evmAddress: Address | undefined
+    svmAddress: Address | undefined
+  }
   stakingAddress?: string // Address for staking context (smart pool or user)
 }
 
@@ -33,7 +36,7 @@ export const PortfolioOverviewTables = memo(function PortfolioOverviewTables({
   const showMiniPoolsTable = !!evmAddress
   const showOpenLimitsTable = !!evmAddress && (!chainId || chainId === UniverseChainId.Mainnet)
 
-  const { totalStakeAmount, totalStakeUSD, hasAnyStake, isLoading } = usePortfolioStaking({
+  const { totalStakeAmount, totalStakeUSD, hasAnyStake } = usePortfolioStaking({
     address: stakingAddress || portfolioAddresses.evmAddress,
     chainId, // Filter staking data by selected chain
   })
@@ -69,10 +72,7 @@ export const PortfolioOverviewTables = memo(function PortfolioOverviewTables({
                     Total Value
                   </Text>
                   <Text variant="heading3" color="$neutral1">
-                    {convertFiatAmountFormatted(
-                      parseFloat(totalStakeUSD ? totalStakeUSD.toExact() : '0'),
-                      NumberType.FiatTokenPrice,
-                    )}
+                    {convertFiatAmountFormatted(parseFloat(totalStakeUSD.toExact()), NumberType.FiatTokenPrice)}
                   </Text>
                 </Flex>
               )}

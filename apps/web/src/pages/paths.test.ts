@@ -84,7 +84,7 @@ describe('getExploreTitle', () => {
 describe('positionPage static titles and descriptions', () => {
   it('should return the correct title & description for v4 positions page', () => {
     const v4PositionsPageUrl = '/positions/v4/optimism/512372'
-    expect(getPositionPageTitle(v4PositionsPageUrl)).toBe('Manage pool liquidity on Uniswap')
+    expect(getPositionPageTitle(v4PositionsPageUrl)).toBe('Manage pool liquidity on Rigoblock')
     expect(getPositionPageDescription(v4PositionsPageUrl)).toBe(
       'View your active v4 liquidity positions. Add new positions.',
     )
@@ -92,7 +92,7 @@ describe('positionPage static titles and descriptions', () => {
 
   it('should return the correct title & description for v3 positions page', () => {
     const v3PositionsPageUrl = '/positions/v3/optimism/512372'
-    expect(getPositionPageTitle(v3PositionsPageUrl)).toBe('Manage pool liquidity (v3) on Uniswap')
+    expect(getPositionPageTitle(v3PositionsPageUrl)).toBe('Manage pool liquidity (v3) on Rigoblock')
     expect(getPositionPageDescription(v3PositionsPageUrl)).toBe(
       'View your active v3 liquidity positions. Add new positions.',
     )
@@ -100,14 +100,14 @@ describe('positionPage static titles and descriptions', () => {
 
   it('should return the correct title & description for v2 positions page', () => {
     const v2PositionsPageUrl = '/positions/v2/ethereum/0x004375Dff511095CC5A197A54140a24eFEF3A416'
-    expect(getPositionPageTitle(v2PositionsPageUrl)).toBe('Manage pool liquidity (v2) on Uniswap')
+    expect(getPositionPageTitle(v2PositionsPageUrl)).toBe('Manage pool liquidity (v2) on Rigoblock')
     expect(getPositionPageDescription(v2PositionsPageUrl)).toBe(
       'View your active v2 liquidity positions. Add new positions.',
     )
   })
 
   it('should return the correct title for Add Liquidity pages', () => {
-    expect(getAddLiquidityPageTitle('/add')).toBe('Add liquidity to pools on Uniswap')
-    expect(getAddLiquidityPageTitle('/add/v2')).toBe('Add liquidity to pools (v2) on Uniswap')
+    expect(getAddLiquidityPageTitle('/add')).toBe('Add liquidity to pools on Rigoblock')
+    expect(getAddLiquidityPageTitle('/add/v2')).toBe('Add liquidity to pools (v2) on Rigoblock')
   })
 })

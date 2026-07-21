@@ -136,7 +136,12 @@ export function searchTokenToCurrencyInfo(token: SearchToken): CurrencyInfo | nu
     }
   }
 
-  return buildCurrencyInfo({ currency, currencyId: currencyId(currency), logoUrl: finalLogoUrl, safetyInfo })
+  return buildCurrencyInfo({
+    currency,
+    currencyId: currencyId(currency),
+    logoUrl: finalLogoUrl,
+    safetyInfo,
+  })
 }
 
 /**

@@ -1,9 +1,14 @@
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
-import { STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
-import { useActiveAddresses } from '~/features/accounts/store/hooks'
 import JSBI from 'jsbi'
 import { useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { GRG } from 'uniswap/src/constants/tokens'
+import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { isTestnetChain } from 'uniswap/src/features/chains/utils'
+import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'
+import { STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
+import { useActiveAddresses } from '~/features/accounts/store/hooks'
 import { useActiveSmartPool } from '~/state/application/hooks'
 import {
   selectChainStakingData,
@@ -14,11 +19,10 @@ import {
 } from '~/state/portfolio/stakingSlice'
 import { useTotalStakeBalances } from '~/state/stake/hooks'
 import { InterfaceState } from '~/state/webReducer'
-import { GRG } from 'uniswap/src/constants/tokens'
-import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { isTestnetChain } from 'uniswap/src/features/chains/utils'
-import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'
+import { assume0xAddress } from '~/utils/wagmi'
+import { isValidHexString } from 'utilities/src/addresses/hex'
+import { Platform } from 'uniswap/src/features/platforms/types/Platform'
+import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 
 // Serializable interface for Redux store
 export interface SerializableStakingData {
@@ -49,9 +53,8 @@ function serializeStakingAmount(amount?: CurrencyAmount<Token>): string | undefi
 }
 
 function deserializeStakingAmount(amountStr?: string, chainId?: UniverseChainId): CurrencyAmount<Token> | undefined {
-  if (!amountStr || !chainId) return undefined
+  if (!amountStr || !chainId) {return undefined}
   const token = GRG[chainId]
-  if (!token) return undefined
   try {
     return CurrencyAmount.fromRawAmount(token, JSBI.BigInt(amountStr))
   } catch {
@@ -85,8 +88,14 @@ function useChainStakingData({
     chainId,
   })
 
+  // Serialize values to avoid infinite re-renders from CurrencyAmount object references
+  const serializedUserFreeStake = serializeStakingAmount(userFreeStake)
+  const serializedUserDelegatedStake = serializeStakingAmount(userDelegatedStake)
+  const serializedSmartPoolFreeStake = serializeStakingAmount(smartPoolFreeStake)
+  const serializedSmartPoolDelegatedStake = serializeStakingAmount(smartPoolDelegatedStake)
+
   useEffect(() => {
-    if (!userAddress) return
+    if (!userAddress) {return}
 
     // Only set loading state if we need to fetch and aren't already loading
     if (needsFetch && !cachedData?.isLoading) {
@@ -105,14 +114,14 @@ function useChainStakingData({
 
   useEffect(() => {
     // Process data when we have valid stake information
-    if (!userAddress) return
+    if (!userAddress) {return}
 
     // If we have data from useTotalStakeBalances, serialize and save it to store
     if (
-      userFreeStake !== undefined ||
-      userDelegatedStake !== undefined ||
-      smartPoolFreeStake !== undefined ||
-      smartPoolDelegatedStake !== undefined
+      serializedUserFreeStake !== undefined ||
+      serializedUserDelegatedStake !== undefined ||
+      serializedSmartPoolFreeStake !== undefined ||
+      serializedSmartPoolDelegatedStake !== undefined
     ) {
       try {
         dispatch(
@@ -121,10 +130,10 @@ function useChainStakingData({
             chainId,
             data: {
               // Serialize CurrencyAmount objects to strings for Redux
-              userFreeStake: serializeStakingAmount(userFreeStake),
-              userDelegatedStake: serializeStakingAmount(userDelegatedStake),
-              smartPoolFreeStake: serializeStakingAmount(smartPoolFreeStake),
-              smartPoolDelegatedStake: serializeStakingAmount(smartPoolDelegatedStake),
+              userFreeStake: serializedUserFreeStake,
+              userDelegatedStake: serializedUserDelegatedStake,
+              smartPoolFreeStake: serializedSmartPoolFreeStake,
+              smartPoolDelegatedStake: serializedSmartPoolDelegatedStake,
               isLoading: false,
               error: undefined,
             },
@@ -144,11 +153,10 @@ function useChainStakingData({
     dispatch,
     userAddress,
     chainId,
-    // Use serialized values to avoid infinite re-renders from CurrencyAmount object references
-    userFreeStake?.quotient.toString(),
-    userDelegatedStake?.quotient.toString(),
-    smartPoolFreeStake?.quotient.toString(),
-    smartPoolDelegatedStake?.quotient.toString(),
+    serializedUserFreeStake,
+    serializedUserDelegatedStake,
+    serializedSmartPoolFreeStake,
+    serializedSmartPoolDelegatedStake,
   ])
 }
 
@@ -178,7 +186,12 @@ export function usePortfolioStaking({
   const { targetAddress, isViewingOwnStakes } = useMemo(() => {
     // If address is explicitly passed (from usePortfolioAddresses), always use it
     if (address) {
-      const isViewingOwnAddress = Boolean(evmAddress && address.toLowerCase() === evmAddress.toLowerCase())
+      const isViewingOwnAddress = evmAddress
+        ? areAddressesEqual({
+            addressInput1: { address, platform: Platform.EVM },
+            addressInput2: { address: evmAddress, platform: Platform.EVM },
+          })
+        : false
       return {
         targetAddress: address,
         isViewingOwnStakes: isViewingOwnAddress,
@@ -188,7 +201,12 @@ export function usePortfolioStaking({
     // Only use internal resolution if no address is passed
     // Priority 1: URL address parameter
     if (paramAddress) {
-      const isViewingOwnAddress = Boolean(evmAddress && paramAddress.toLowerCase() === evmAddress.toLowerCase())
+      const isViewingOwnAddress = evmAddress
+        ? areAddressesEqual({
+            addressInput1: { address: paramAddress, platform: Platform.EVM },
+            addressInput2: { address: evmAddress, platform: Platform.EVM },
+          })
+        : false
       return {
         targetAddress: paramAddress,
         isViewingOwnStakes: isViewingOwnAddress,
@@ -222,7 +240,7 @@ export function usePortfolioStaking({
 
   // Get cached staking data from Redux store
   const allUserStakingData = useSelector((state: InterfaceState) =>
-    targetAddress ? selectUserStakingData(state, targetAddress as `0x${string}`) : {},
+    targetAddress ? selectUserStakingData(state, assume0xAddress(targetAddress)) : {},
   )
 
   // Trigger data fetching for each chain using individual hooks (fixed number to avoid infinite loops)
@@ -241,7 +259,7 @@ export function usePortfolioStaking({
     const isActiveChain = i < chainsToProcess.length
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useChainStakingData({
-      userAddress: isActiveChain && targetAddress ? (targetAddress as `0x${string}`) : '',
+      userAddress: isActiveChain && targetAddress ? (isValidHexString(targetAddress) ? targetAddress : '') : '',
       chainId,
       targetAddress: isActiveChain && targetAddress ? (isViewingOwnStakes ? undefined : targetAddress) : undefined,
     })

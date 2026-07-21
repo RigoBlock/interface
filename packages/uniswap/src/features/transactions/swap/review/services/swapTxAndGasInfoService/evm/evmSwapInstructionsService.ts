@@ -25,9 +25,21 @@ import { ApprovalAction } from 'uniswap/src/features/transactions/swap/types/tra
 import { tradingApiToUniverseChainId } from 'uniswap/src/features/transactions/swap/utils/tradingApi'
 
 type SwapInstructions =
-  | { response: SwapData; unsignedPermit: null; swapRequestParams: TradingApi.CreateSwapRequest | null }
-  | { response: null; unsignedPermit: TradingApi.Permit; swapRequestParams: TradingApi.CreateSwapRequest }
-  | { response: null; unsignedPermit: null; swapRequestParams: TradingApi.CreateSwapRequest }
+  | {
+      response: SwapData
+      unsignedPermit: null
+      swapRequestParams: TradingApi.CreateSwapRequest | null
+    }
+  | {
+      response: null
+      unsignedPermit: TradingApi.Permit
+      swapRequestParams: TradingApi.CreateSwapRequest
+    }
+  | {
+      response: null
+      unsignedPermit: null
+      swapRequestParams: TradingApi.CreateSwapRequest
+    }
 
 /** A service utility capable of fetching swap instructions or returning unsigned permit data when instructions cannot yet be fetched. */
 export interface EVMSwapInstructionsService {
@@ -49,7 +61,9 @@ interface EVMSwapInstructionsServiceContext {
 }
 
 function createLegacyEVMSwapInstructionsService(
-  ctx: Omit<EVMSwapInstructionsServiceContext, 'swapDelegationAddress'> & { swapRepository: EVMSwapRepository },
+  ctx: Omit<EVMSwapInstructionsServiceContext, 'swapDelegationAddress'> & {
+    swapRepository: EVMSwapRepository
+  },
 ): EVMSwapInstructionsService {
   const { gasStrategy, swapRepository } = ctx
 
@@ -81,7 +95,11 @@ function createLegacyEVMSwapInstructionsService(
       })
 
       if (signatureMissing) {
-        return { response: null, unsignedPermit: permitData, swapRequestParams }
+        return {
+          response: null,
+          unsignedPermit: permitData,
+          swapRequestParams,
+        }
       }
 
       const response = await swapRepository.fetchSwapData(swapRequestParams)
@@ -93,7 +111,9 @@ function createLegacyEVMSwapInstructionsService(
 }
 
 function createBatchedEVMSwapInstructionsService(
-  ctx: Omit<EVMSwapInstructionsServiceContext, 'presignPermit'> & { swapRepository: EVMSwapRepository },
+  ctx: Omit<EVMSwapInstructionsServiceContext, 'presignPermit'> & {
+    swapRepository: EVMSwapRepository
+  },
 ): EVMSwapInstructionsService {
   const { gasStrategy, swapRepository } = ctx
 

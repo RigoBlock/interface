@@ -68,7 +68,10 @@ function Loading({ width = 50 }: { width?: number }) {
 
 function CurrencyAmountRow({ amount }: { amount: CurrencyAmount<Currency> }) {
   const { formatCurrencyAmount } = useLocalizationContext()
-  const formattedAmount = formatCurrencyAmount({ value: amount, type: NumberType.SwapTradeAmount })
+  const formattedAmount = formatCurrencyAmount({
+    value: amount,
+    type: NumberType.SwapTradeAmount,
+  })
   return <>{`${formattedAmount} ${amount.currency.symbol}`}</>
 }
 
@@ -118,7 +121,10 @@ function useLineItem(props: SwapLineItemProps): LineItemData | undefined {
       }
     case SwapLineItemType.SWAP_FEE: {
       if (isPreview) {
-        return { Label: () => <Trans i18nKey="common.fee" />, Value: () => <Loading /> }
+        return {
+          Label: () => <Trans i18nKey="common.fee" />,
+          Value: () => <Loading />,
+        }
       }
       return {
         Label: () => (

@@ -63,7 +63,14 @@ export function createDefaultStore() {
               // meta.arg and meta.baseQueryMeta are defaults. payload.trade is a nonserializable return value, but that's ok
               // because we are not adding it into any persisted store that requires serialization (e.g. localStorage)
               // payload.apolloClient and payload.queryClient are non-serializable saga params, but they're not persisted
-              ignoredActionPaths: ['meta.arg', 'meta.baseQueryMeta', 'payload.trade', 'payload.apolloClient', 'payload.queryClient', 'payload.initialState'],
+              ignoredActionPaths: [
+                'meta.arg',
+                'meta.baseQueryMeta',
+                'payload.trade',
+                'payload.apolloClient',
+                'payload.queryClient',
+                'payload.initialState',
+              ],
               ignoredPaths: [routingApi.reducerPath, 'application.openModal'],
               ignoredActions: [
                 // ignore saga trigger actions

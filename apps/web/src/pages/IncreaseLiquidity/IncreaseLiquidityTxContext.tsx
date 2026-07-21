@@ -16,7 +16,6 @@ import {
   useMemo,
   useState,
 } from 'react'
-import { useActiveSmartPool } from '~/state/application/hooks'
 import { useSelector } from 'react-redux'
 import { useUniswapContextSelector } from 'uniswap/src/contexts/UniswapContext'
 import { useCheckLPApprovalQuery } from 'uniswap/src/data/apiClients/liquidityService/useCheckLPApprovalQuery'
@@ -51,6 +50,7 @@ import { hasLPFoTTransferError } from '~/components/Liquidity/utils/hasLPFoTTran
 import { getProtocols } from '~/components/Liquidity/utils/protocolVersion'
 import { useModalInitialState } from '~/hooks/useModalInitialState'
 import { useIncreaseLiquidityContext } from '~/pages/IncreaseLiquidity/IncreaseLiquidityContext'
+import { useActiveSmartPool } from '~/state/application/hooks'
 import { PositionField } from '~/types/position'
 
 interface IncreasePositionContextType {
@@ -121,7 +121,9 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
   })
 
   if (approvalError) {
-    const message = parseErrorMessageTitle(approvalError, { defaultTitle: 'unknown CheckLpApprovalQuery' })
+    const message = parseErrorMessageTitle(approvalError, {
+      defaultTitle: 'unknown CheckLpApprovalQuery',
+    })
     logger.error(message, {
       tags: {
         file: 'IncreaseLiquidityTxContext',
@@ -172,15 +174,15 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
   )
 
   const approvalsNeeded = false
-    //!approvalLoading &&
-    //Boolean(
-    //  permitData ||
-    //  token0Approval ||
-    //  token1Approval ||
-    //  positionTokenApproval ||
-    //  token0PermitTransaction ||
-    //  token1PermitTransaction,
-    //)
+  //!approvalLoading &&
+  //Boolean(
+  //  permitData ||
+  //  token0Approval ||
+  //  token1Approval ||
+  //  positionTokenApproval ||
+  //  token0PermitTransaction ||
+  //  token1PermitTransaction,
+  //)
 
   const token0 = currencyAmounts?.TOKEN0?.currency
   const token1 = currencyAmounts?.TOKEN1?.currency
@@ -284,7 +286,9 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
   }
 
   if (calldataError) {
-    const message = parseErrorMessageTitle(calldataError, { defaultTitle: 'unknown IncreaseLpPositionCalldataQuery' })
+    const message = parseErrorMessageTitle(calldataError, {
+      defaultTitle: 'unknown IncreaseLpPositionCalldataQuery',
+    })
     logger.error(message, {
       tags: {
         file: 'IncreaseLiquidityTxContext',

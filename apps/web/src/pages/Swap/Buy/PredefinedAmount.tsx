@@ -1,13 +1,16 @@
-import styled, { css } from '~/lib/deprecated-styled'
 import { useSporeColors } from 'ui/src'
 import { Pill, PillProps } from 'uniswap/src/components/pill/Pill'
+import styled, { css } from '~/lib/deprecated-styled'
 
 interface PredefinedAmountProps {
   label: string
 }
 
 // TODO: check remove ClickablePill in slider
-export const ClickablePill = styled(Pill)<{ $disabled: boolean; $active: boolean }>`
+export const ClickablePill = styled(Pill)<{
+  $disabled: boolean
+  $active: boolean
+}>`
   background-color: ${({ $disabled, $active, theme }) =>
     $disabled ? theme.surface2 : $active ? theme.surface3 : theme.surface1};
   user-select: none;

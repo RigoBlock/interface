@@ -3,9 +3,10 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { styled, Flex, Text } from 'ui/src'
 import { Caret } from 'ui/src/components/icons/Caret'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
-import CurrencySearchModal from '~/components/SearchModal/CurrencySearchModal'
 import { SwitchNetworkAction } from '~/components/Popups/types'
+import CurrencySearchModal from '~/components/SearchModal/CurrencySearchModal'
 import { useActiveSmartPool, useSelectActiveSmartPool } from '~/state/application/hooks'
+import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
 
 const PoolSelectButton = styled(Flex, {
   row: true,
@@ -50,7 +51,7 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
   const hasInitialized = useRef(false)
 
   const activePoolExists = operatedPools.some(
-    (pool) => pool.address.toLowerCase() === activeSmartPool?.address?.toLowerCase(),
+    (pool) => normalizeTokenAddressForCache(pool.address) === normalizeTokenAddressForCache(activeSmartPool.address ?? null),
   )
 
   useEffect(() => {
@@ -83,23 +84,14 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
     [onPoolSelect],
   )
 
-  if (!activeSmartPool?.name) {
+  if (!activeSmartPool.name) {
     return null
   }
 
   return (
     <>
-      <PoolSelectButton
-        className="operated-pool-select-button"
-        onPress={() => setShowModal(true)}
-      >
-        <Text
-          variant="buttonLabel3"
-          color="$neutral1"
-          numberOfLines={1}
-          flexShrink={1}
-          minWidth={0}
-        >
+      <PoolSelectButton className="operated-pool-select-button" onPress={() => setShowModal(true)}>
+        <Text variant="buttonLabel3" color="$neutral1" numberOfLines={1} flexShrink={1} minWidth={0}>
           {activeSmartPool.name}
         </Text>
         <Caret color="$neutral2" direction="s" size="$icon.16" />

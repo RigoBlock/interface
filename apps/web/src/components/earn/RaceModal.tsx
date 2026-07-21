@@ -1,20 +1,18 @@
-import { ButtonPrimary } from '~/components/Button/buttons'
-import { AutoColumn } from '~/components/deprecated/Column'
-import { RowBetween } from '~/components/deprecated/Row'
-import { LoadingView, SubmittedView } from '~/components/ModalViews'
-import { useAccount } from '~/hooks/useAccount'
-import styled from '~/lib/deprecated-styled'
 import { ReactNode, useState } from 'react'
 import { X } from 'react-feather'
 import { Trans } from 'react-i18next'
-
-import { useRaceCallback } from '~/state/stake/hooks'
-import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
-import { ThemedText } from '~/theme/components/text'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { logger } from 'utilities/src/logger/logger'
+import { ButtonPrimary } from '~/components/Button/buttons'
+import { AutoColumn } from '~/components/deprecated/Column'
+import { RowBetween } from '~/components/deprecated/Row'
+import { LoadingView, SubmittedView } from '~/components/ModalViews'
+import styled from '~/lib/deprecated-styled'
+import { useRaceCallback } from '~/state/stake/hooks'
+import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
+import { ThemedText } from '~/theme/components/text'
 
 const ContentWrapper = styled(AutoColumn)`
   width: 100%;
@@ -51,8 +49,6 @@ interface RaceModalProps {
 const MODAL_TRANSITION_DURATION = 200
 
 export default function RaceModal({ isOpen, poolAddress, poolName, onDismiss, title }: RaceModalProps) {
-  const { chainId } = useAccount()
-
   const raceCallback = useRaceCallback()
 
   // monitor call to help UI loading state
@@ -82,14 +78,14 @@ export default function RaceModal({ isOpen, poolAddress, poolName, onDismiss, ti
     }
 
     // try credit reward and store hash
-    const hash = await raceCallback(poolAddress)?.catch((error) => {
+    const txHash = await raceCallback(poolAddress)?.catch((error) => {
       setErrorReason(error.reason)
       setAttempting(false)
       logger.info('RaceModal', 'onRace', error)
     })
 
-    if (hash) {
-      setHash(hash)
+    if (txHash) {
+      setHash(txHash)
     }
   }
 
@@ -113,7 +109,7 @@ export default function RaceModal({ isOpen, poolAddress, poolName, onDismiss, ti
                         run once per each epoch.
                       </Trans>
                     </p>
-                    <p></p>
+                    <p />
                     <p>
                       <Trans>
                         The smart pool must have a positive <BoldText>own</BoldText> stake, and a minimum 100 GRG{' '}

@@ -1,5 +1,5 @@
-import styled from '~/lib/deprecated-styled'
 import { ChangeEvent, memo, useCallback, useRef } from 'react'
+import styled from '~/lib/deprecated-styled'
 
 const TextAreaInput = styled.textarea<{ error?: boolean; fontSize?: string }>`
   font-size: ${({ fontSize }) => fontSize || '1.25rem'};

@@ -1,17 +1,17 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { GraphQLApi } from '@universe/api'
-import { useActiveSmartPool } from '~/state/application/hooks'
-import { PropsWithChildren, useCallback, useEffect, useMemo, useState } from 'react'
+import { PropsWithChildren, useCallback, useEffect, useMemo } from 'react'
 import { useLocation } from 'react-router'
-import { usePendingActivity } from '~/components/AccountDrawer/MiniPortfolio/Activity/hooks'
-import { usePendingTransactions } from '~/state/transactions/hooks'
-import { useWatchTransactionsCallback } from '~/state/sagas/transactions/watcherSaga'
-import { useAccount } from '~/hooks/useAccount'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { usePortfolioValueModifiers } from 'uniswap/src/features/portfolio/balances/hooks'
 import { usePrevious } from 'utilities/src/react/hooks'
 import { AdaptiveTokenBalancesProvider } from '~/appGraphql/data/apollo/AdaptiveTokenBalancesProvider'
 import { apolloClient } from '~/appGraphql/data/apollo/client'
+import { usePendingActivity } from '~/components/AccountDrawer/MiniPortfolio/Activity/hooks'
+import { useAccount } from '~/hooks/useAccount'
+import { useActiveSmartPool } from '~/state/application/hooks'
+import { useWatchTransactionsCallback } from '~/state/sagas/transactions/watcherSaga'
+import { usePendingTransactions } from '~/state/transactions/hooks'
 
 function useHasAccountUpdate(page: string) {
   // Used to detect account updates without relying on subscription data.
@@ -51,7 +51,9 @@ function useHasAccountUpdate(page: string) {
 }
 
 function TokenBalancesProviderInternal({ children }: PropsWithChildren) {
-  const [lazyFetch, query] = GraphQLApi.usePortfolioBalancesLazyQuery({ errorPolicy: 'all' })
+  const [lazyFetch, query] = GraphQLApi.usePortfolioBalancesLazyQuery({
+    errorPolicy: 'all',
+  })
   const account = useAccount()
   const { pathname: page } = useLocation()
   const hasAccountUpdate = useHasAccountUpdate(page)

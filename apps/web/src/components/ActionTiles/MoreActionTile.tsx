@@ -1,11 +1,9 @@
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
-import { Flex, type FlexProps, Text, useSporeColors } from 'ui/src'
-import { ArrowDownCircleFilled } from 'ui/src/components/icons/ArrowDownCircleFilled'
+import { Flex, type FlexProps, Text } from 'ui/src'
 import { CoinConvert } from 'ui/src/components/icons/CoinConvert'
 import { MoreHorizontal } from 'ui/src/components/icons/MoreHorizontal'
 import { Plus } from 'ui/src/components/icons/Plus'
-import { iconSizes } from 'ui/src/theme'
 import { useUniswapContext } from 'uniswap/src/contexts/UniswapContext'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
@@ -15,27 +13,15 @@ import { useBooleanState } from 'utilities/src/react/useBooleanState'
 import { ActionTileWithIconAnimation } from '~/components/ActionTiles/ActionTileWithIconAnimation'
 import { AdaptiveDropdown } from '~/components/Dropdowns/AdaptiveDropdown'
 import { InternalMenuItem } from '~/components/Dropdowns/Dropdown'
-import { Limit } from '~/components/Icons/Limit'
 
 export function MoreActionTile({ padding = '$spacing12' }: { padding?: FlexProps['p'] }) {
   const { t } = useTranslation()
-  const colors = useSporeColors()
   const { navigateToSwapFlow } = useUniswapContext()
   const navigate = useNavigate()
   const { value: isDropdownOpen, setFalse: closeDropdown, toggle: toggleDropdown } = useBooleanState(false)
 
   const onPressSwap = useEvent(() => {
     navigateToSwapFlow({})
-    closeDropdown()
-  })
-
-  const onPressSell = useEvent(() => {
-    navigate('/sell')
-    closeDropdown()
-  })
-
-  const onPressLimit = useEvent(() => {
-    navigate('/limit')
     closeDropdown()
   })
 
@@ -70,27 +56,6 @@ export function MoreActionTile({ padding = '$spacing12' }: { padding?: FlexProps
           </Flex>
         </InternalMenuItem>
       </Trace>
-
-      {/*
-      <Trace logPress element={ElementName.PortfolioActionSell}>
-        <InternalMenuItem onPress={onPressSell}>
-          <Flex row alignItems="center" gap="$gap8">
-            <ArrowDownCircleFilled size="$icon.16" color="$neutral2" transform="rotate(180deg)" />
-            <Text variant="buttonLabel3">{t('common.sell.label')}</Text>
-          </Flex>
-        </InternalMenuItem>
-      </Trace>
-
-
-      <Trace logPress element={ElementName.PortfolioActionLimit}>
-        <InternalMenuItem onPress={onPressLimit}>
-          <Flex row alignItems="center" gap="$gap8">
-            <Limit width={iconSizes.icon16} height={iconSizes.icon16} fill={colors.neutral2.val} />
-            <Text variant="buttonLabel3">{t('swap.limit')}</Text>
-          </Flex>
-        </InternalMenuItem>
-      </Trace>
-      */}
 
       <Trace logPress element={ElementName.PortfolioActionPosition}>
         <InternalMenuItem onPress={onPressCreatePool}>

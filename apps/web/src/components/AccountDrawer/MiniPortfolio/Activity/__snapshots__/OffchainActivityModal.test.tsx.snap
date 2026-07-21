@@ -11,22 +11,12 @@ exports[`OrderContent > should render without error, filled order 1`] = `
   letter-spacing: -0.01em;
 }
 
-.c3 {
-  cursor: auto;
-  color: rgba(19, 19, 19, 0.63);
-}
-
-.c4 {
-  text-align: right;
-  overflow-wrap: break-word;
-}
-
 .c6 {
   text-decoration: none;
   cursor: pointer;
   transition-duration: 125ms;
-  color: #FF37C7;
-  stroke: #FF37C7;
+  color: #feb239;
+  stroke: #feb239;
   font-weight: 500;
 }
 
@@ -36,6 +26,16 @@ exports[`OrderContent > should render without error, filled order 1`] = `
 
 .c6 :active {
   opacity: 0.4;
+}
+
+.c3 {
+  cursor: auto;
+  color: rgba(19, 19, 19, 0.63);
+}
+
+.c4 {
+  text-align: right;
+  overflow-wrap: break-word;
 }
 
 .c5 {
@@ -80,55 +80,22 @@ exports[`OrderContent > should render without error, filled order 1`] = `
             class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _position-relative"
           >
             <div
-              class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _height-40px _width-40px"
+              class="_display-flex _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _alignItems-center _height-40px _justifyContent-center _pointerEvents-auto _width-40px _position-relative"
+              data-testid="token-logo"
             >
               <div
-                class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _left-0px _overflowX-hidden _overflowY-hidden _position-absolute _top-0px _width-19px"
-                data-testid="input-currency-logo-container"
-              >
-                <div
-                  class="_display-flex _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _alignItems-center _height-40px _justifyContent-center _pointerEvents-auto _width-40px _position-relative"
-                  data-testid="token-logo"
-                >
-                  <div
-                    class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _opacity-0 _height-9637 _width-9637 _zIndex-0 _backgroundColor-FFFFFF35 _position-absolute _top-237 _left-237 _borderTopLeftRadius-20px _borderTopRightRadius-20px _borderBottomRightRadius-20px _borderBottomLeftRadius-20px"
-                  />
-                  <div
-                    class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column"
-                    data-testid="img-token-image"
-                  >
-                    <img
-                      height="40"
-                      src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
-                      style="object-fit: contain; border-radius: 20px; z-index: 1;"
-                      width="40"
-                    />
-                  </div>
-                </div>
-              </div>
+                class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _opacity-0 _height-9637 _width-9637 _zIndex-0 _backgroundColor-FFFFFF35 _position-absolute _top-237 _left-237 _borderTopLeftRadius-20px _borderTopRightRadius-20px _borderBottomRightRadius-20px _borderBottomLeftRadius-20px"
+              />
               <div
-                class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-row-reverse _overflowX-hidden _overflowY-hidden _position-absolute _right-0px _top-0px _width-19px"
-                data-testid="output-currency-logo-container"
+                class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column"
+                data-testid="img-token-image"
               >
-                <div
-                  class="_display-flex _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _alignItems-center _height-40px _justifyContent-center _pointerEvents-auto _width-40px _position-relative"
-                  data-testid="token-logo"
-                >
-                  <div
-                    class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _opacity-0 _height-9637 _width-9637 _zIndex-0 _backgroundColor-FFFFFF35 _position-absolute _top-237 _left-237 _borderTopLeftRadius-20px _borderTopRightRadius-20px _borderBottomRightRadius-20px _borderBottomLeftRadius-20px"
-                  />
-                  <div
-                    class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column"
-                    data-testid="img-token-image"
-                  >
-                    <img
-                      height="40"
-                      src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/logo.png"
-                      style="object-fit: contain; border-radius: 20px; z-index: 1;"
-                      width="40"
-                    />
-                  </div>
-                </div>
+                <img
+                  height="40"
+                  src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/logo.png"
+                  style="object-fit: contain; border-radius: 20px; z-index: 1;"
+                  width="40"
+                />
               </div>
             </div>
           </div>
@@ -178,25 +145,6 @@ exports[`OrderContent > should render without error, filled order 1`] = `
               >
                 -
               </span>
-            </div>
-          </div>
-          <div
-            class="_display-flex _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _alignItems-center _height-36px _justifyContent-center _pointerEvents-auto _width-36px _position-relative"
-            data-testid="token-logo"
-          >
-            <div
-              class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _opacity-0 _height-9637 _width-9637 _zIndex-0 _backgroundColor-FFFFFF35 _position-absolute _top-237 _left-237 _borderTopLeftRadius-18px _borderTopRightRadius-18px _borderBottomRightRadius-18px _borderBottomLeftRadius-18px"
-            />
-            <div
-              class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column"
-              data-testid="img-token-image"
-            >
-              <img
-                height="36"
-                src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
-                style="object-fit: contain; border-radius: 18px; z-index: 1;"
-                width="36"
-              />
             </div>
           </div>
         </div>
@@ -358,22 +306,12 @@ exports[`OrderContent > should render without error, limit order 1`] = `
   letter-spacing: -0.01em;
 }
 
-.c3 {
-  cursor: auto;
-  color: rgba(19, 19, 19, 0.63);
-}
-
-.c4 {
-  text-align: right;
-  overflow-wrap: break-word;
-}
-
 .c6 {
   text-decoration: none;
   cursor: pointer;
   transition-duration: 125ms;
-  color: #FF37C7;
-  stroke: #FF37C7;
+  color: #feb239;
+  stroke: #feb239;
   font-weight: 500;
 }
 
@@ -383,6 +321,16 @@ exports[`OrderContent > should render without error, limit order 1`] = `
 
 .c6 :active {
   opacity: 0.4;
+}
+
+.c3 {
+  cursor: auto;
+  color: rgba(19, 19, 19, 0.63);
+}
+
+.c4 {
+  text-align: right;
+  overflow-wrap: break-word;
 }
 
 .c5 {
@@ -427,55 +375,22 @@ exports[`OrderContent > should render without error, limit order 1`] = `
             class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _position-relative"
           >
             <div
-              class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _height-40px _width-40px"
+              class="_display-flex _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _alignItems-center _height-40px _justifyContent-center _pointerEvents-auto _width-40px _position-relative"
+              data-testid="token-logo"
             >
               <div
-                class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _left-0px _overflowX-hidden _overflowY-hidden _position-absolute _top-0px _width-19px"
-                data-testid="input-currency-logo-container"
-              >
-                <div
-                  class="_display-flex _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _alignItems-center _height-40px _justifyContent-center _pointerEvents-auto _width-40px _position-relative"
-                  data-testid="token-logo"
-                >
-                  <div
-                    class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _opacity-0 _height-9637 _width-9637 _zIndex-0 _backgroundColor-FFFFFF35 _position-absolute _top-237 _left-237 _borderTopLeftRadius-20px _borderTopRightRadius-20px _borderBottomRightRadius-20px _borderBottomLeftRadius-20px"
-                  />
-                  <div
-                    class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column"
-                    data-testid="img-token-image"
-                  >
-                    <img
-                      height="40"
-                      src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
-                      style="object-fit: contain; border-radius: 20px; z-index: 1;"
-                      width="40"
-                    />
-                  </div>
-                </div>
-              </div>
+                class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _opacity-0 _height-9637 _width-9637 _zIndex-0 _backgroundColor-FFFFFF35 _position-absolute _top-237 _left-237 _borderTopLeftRadius-20px _borderTopRightRadius-20px _borderBottomRightRadius-20px _borderBottomLeftRadius-20px"
+              />
               <div
-                class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-row-reverse _overflowX-hidden _overflowY-hidden _position-absolute _right-0px _top-0px _width-19px"
-                data-testid="output-currency-logo-container"
+                class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column"
+                data-testid="img-token-image"
               >
-                <div
-                  class="_display-flex _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _alignItems-center _height-40px _justifyContent-center _pointerEvents-auto _width-40px _position-relative"
-                  data-testid="token-logo"
-                >
-                  <div
-                    class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _opacity-0 _height-9637 _width-9637 _zIndex-0 _backgroundColor-FFFFFF35 _position-absolute _top-237 _left-237 _borderTopLeftRadius-20px _borderTopRightRadius-20px _borderBottomRightRadius-20px _borderBottomLeftRadius-20px"
-                  />
-                  <div
-                    class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column"
-                    data-testid="img-token-image"
-                  >
-                    <img
-                      height="40"
-                      src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/logo.png"
-                      style="object-fit: contain; border-radius: 20px; z-index: 1;"
-                      width="40"
-                    />
-                  </div>
-                </div>
+                <img
+                  height="40"
+                  src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/logo.png"
+                  style="object-fit: contain; border-radius: 20px; z-index: 1;"
+                  width="40"
+                />
               </div>
             </div>
           </div>
@@ -525,25 +440,6 @@ exports[`OrderContent > should render without error, limit order 1`] = `
               >
                 -
               </span>
-            </div>
-          </div>
-          <div
-            class="_display-flex _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _alignItems-center _height-36px _justifyContent-center _pointerEvents-auto _width-36px _position-relative"
-            data-testid="token-logo"
-          >
-            <div
-              class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _opacity-0 _height-9637 _width-9637 _zIndex-0 _backgroundColor-FFFFFF35 _position-absolute _top-237 _left-237 _borderTopLeftRadius-18px _borderTopRightRadius-18px _borderBottomRightRadius-18px _borderBottomLeftRadius-18px"
-            />
-            <div
-              class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column"
-              data-testid="img-token-image"
-            >
-              <img
-                height="36"
-                src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
-                style="object-fit: contain; border-radius: 18px; z-index: 1;"
-                width="36"
-              />
             </div>
           </div>
         </div>
@@ -767,22 +663,12 @@ exports[`OrderContent > should render without error, open order 1`] = `
   letter-spacing: -0.01em;
 }
 
-.c3 {
-  cursor: auto;
-  color: rgba(19, 19, 19, 0.63);
-}
-
-.c4 {
-  text-align: right;
-  overflow-wrap: break-word;
-}
-
 .c6 {
   text-decoration: none;
   cursor: pointer;
   transition-duration: 125ms;
-  color: #FF37C7;
-  stroke: #FF37C7;
+  color: #feb239;
+  stroke: #feb239;
   font-weight: 500;
 }
 
@@ -792,6 +678,16 @@ exports[`OrderContent > should render without error, open order 1`] = `
 
 .c6 :active {
   opacity: 0.4;
+}
+
+.c3 {
+  cursor: auto;
+  color: rgba(19, 19, 19, 0.63);
+}
+
+.c4 {
+  text-align: right;
+  overflow-wrap: break-word;
 }
 
 .c5 {
@@ -836,55 +732,22 @@ exports[`OrderContent > should render without error, open order 1`] = `
             class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _position-relative"
           >
             <div
-              class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _height-40px _width-40px"
+              class="_display-flex _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _alignItems-center _height-40px _justifyContent-center _pointerEvents-auto _width-40px _position-relative"
+              data-testid="token-logo"
             >
               <div
-                class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _left-0px _overflowX-hidden _overflowY-hidden _position-absolute _top-0px _width-19px"
-                data-testid="input-currency-logo-container"
-              >
-                <div
-                  class="_display-flex _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _alignItems-center _height-40px _justifyContent-center _pointerEvents-auto _width-40px _position-relative"
-                  data-testid="token-logo"
-                >
-                  <div
-                    class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _opacity-0 _height-9637 _width-9637 _zIndex-0 _backgroundColor-FFFFFF35 _position-absolute _top-237 _left-237 _borderTopLeftRadius-20px _borderTopRightRadius-20px _borderBottomRightRadius-20px _borderBottomLeftRadius-20px"
-                  />
-                  <div
-                    class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column"
-                    data-testid="img-token-image"
-                  >
-                    <img
-                      height="40"
-                      src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
-                      style="object-fit: contain; border-radius: 20px; z-index: 1;"
-                      width="40"
-                    />
-                  </div>
-                </div>
-              </div>
+                class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _opacity-0 _height-9637 _width-9637 _zIndex-0 _backgroundColor-FFFFFF35 _position-absolute _top-237 _left-237 _borderTopLeftRadius-20px _borderTopRightRadius-20px _borderBottomRightRadius-20px _borderBottomLeftRadius-20px"
+              />
               <div
-                class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-row-reverse _overflowX-hidden _overflowY-hidden _position-absolute _right-0px _top-0px _width-19px"
-                data-testid="output-currency-logo-container"
+                class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column"
+                data-testid="img-token-image"
               >
-                <div
-                  class="_display-flex _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _alignItems-center _height-40px _justifyContent-center _pointerEvents-auto _width-40px _position-relative"
-                  data-testid="token-logo"
-                >
-                  <div
-                    class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _opacity-0 _height-9637 _width-9637 _zIndex-0 _backgroundColor-FFFFFF35 _position-absolute _top-237 _left-237 _borderTopLeftRadius-20px _borderTopRightRadius-20px _borderBottomRightRadius-20px _borderBottomLeftRadius-20px"
-                  />
-                  <div
-                    class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column"
-                    data-testid="img-token-image"
-                  >
-                    <img
-                      height="40"
-                      src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/logo.png"
-                      style="object-fit: contain; border-radius: 20px; z-index: 1;"
-                      width="40"
-                    />
-                  </div>
-                </div>
+                <img
+                  height="40"
+                  src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/logo.png"
+                  style="object-fit: contain; border-radius: 20px; z-index: 1;"
+                  width="40"
+                />
               </div>
             </div>
           </div>
@@ -934,25 +797,6 @@ exports[`OrderContent > should render without error, open order 1`] = `
               >
                 -
               </span>
-            </div>
-          </div>
-          <div
-            class="_display-flex _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _alignItems-center _height-36px _justifyContent-center _pointerEvents-auto _width-36px _position-relative"
-            data-testid="token-logo"
-          >
-            <div
-              class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _opacity-0 _height-9637 _width-9637 _zIndex-0 _backgroundColor-FFFFFF35 _position-absolute _top-237 _left-237 _borderTopLeftRadius-18px _borderTopRightRadius-18px _borderBottomRightRadius-18px _borderBottomLeftRadius-18px"
-            />
-            <div
-              class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column"
-              data-testid="img-token-image"
-            >
-              <img
-                height="36"
-                src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
-                style="object-fit: contain; border-radius: 18px; z-index: 1;"
-                width="36"
-              />
             </div>
           </div>
         </div>

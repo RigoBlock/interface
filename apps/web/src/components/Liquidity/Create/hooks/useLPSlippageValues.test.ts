@@ -17,9 +17,10 @@ describe('useLPSlippageValue', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    useDynamicConfigValueMock
-      .mockImplementationOnce(() => defaultSlippage)
-      .mockImplementationOnce(() => v4SlippageOverride)
+    // Return by config key so the mock is robust to re-renders
+    useDynamicConfigValueMock.mockImplementation(({ key }: { key: string }) =>
+      key === 'v4SlippageOverride' ? v4SlippageOverride : defaultSlippage,
+    )
   })
 
   const makeCurrency = (isNative: boolean) => ({ isNative }) as any

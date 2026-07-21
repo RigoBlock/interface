@@ -1,3 +1,4 @@
+/* oxlint-disable max-params */
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 /**

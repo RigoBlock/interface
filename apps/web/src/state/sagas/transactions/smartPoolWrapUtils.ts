@@ -1,4 +1,5 @@
 import { AbiCoder } from '@ethersproject/abi'
+import { BigNumber } from '@ethersproject/bignumber'
 
 /**
  * Encodes a smart pool wrapEth call with the given amount
@@ -49,6 +50,6 @@ export function extractWETHWithdrawAmount(calldata: string): string {
   // Remove function selector (first 4 bytes) and decode amount
   const abiCoder = new AbiCoder()
   const parametersOnly = '0x' + calldata.slice(10)
-  const [amount] = abiCoder.decode(['uint256'], parametersOnly)
+  const [amount] = abiCoder.decode(['uint256'], parametersOnly) as [BigNumber]
   return amount.toString()
 }

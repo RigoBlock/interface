@@ -18,7 +18,9 @@ export const CardBGImage = deprecatedStyled.span<{ desaturate?: boolean }>`
   ${({ desaturate }) => desaturate && `filter: saturate(0)`}
 `
 
-export const CardBGImageSmaller = deprecatedStyled.span<{ desaturate?: boolean }>`
+export const CardBGImageSmaller = deprecatedStyled.span<{
+  desaturate?: boolean
+}>`
   background: url(${xlUnicorn});
   width: 1200px;
   height: 1200px;

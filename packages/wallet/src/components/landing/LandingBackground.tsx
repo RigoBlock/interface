@@ -150,7 +150,12 @@ const AnimatedElements = ({
     return [
       {
         element: <SwapElement />,
-        coordinates: { radius: outerCircleSize + 40, deg: 1, speed: 1, flatteningY: 0.85 },
+        coordinates: {
+          radius: outerCircleSize + 40,
+          deg: 1,
+          speed: 1,
+          flatteningY: 0.85,
+        },
       },
       { element: <PolygonElement />, coordinates: { deg: 2.2, ...outerProps } },
       { element: <UniconElement />, coordinates: { deg: 3.8, ...outerProps } },

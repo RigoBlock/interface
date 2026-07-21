@@ -1,12 +1,5 @@
 import { Currency } from '@uniswap/sdk-core'
-import { useActiveSmartPool } from '~/state/application/hooks'
 import { useCallback, useEffect, useMemo } from 'react'
-import { useMultichainContext } from '~/state/multichain/useMultichainContext'
-import { useLocation } from 'react-router'
-import { SwitchNetworkAction } from '~/components/Popups/types'
-import useSelectChain from '~/hooks/useSelectChain'
-import { useSwapAndLimitContext } from '~/state/swap/useSwapContext'
-import { RIGOBLOCK_BRIDGE_SUPPORTED_CHAINS } from '~/constants/addresses'
 import { Flex } from 'ui/src'
 import { TokenSelectorContent } from 'uniswap/src/components/TokenSelector/TokenSelector'
 import { TokenSelectorFlow, TokenSelectorVariation } from 'uniswap/src/components/TokenSelector/types'
@@ -18,7 +11,14 @@ import Trace from 'uniswap/src/features/telemetry/Trace'
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { SwapTab } from 'uniswap/src/types/screens/interface'
 import { usePrevious } from 'utilities/src/react/hooks'
+import { SwitchNetworkAction } from '~/components/Popups/types'
+import { RIGOBLOCK_BRIDGE_SUPPORTED_CHAINS } from '~/constants/addresses'
+import useSelectChain from '~/hooks/useSelectChain'
+import { useActiveSmartPool } from '~/state/application/hooks'
+import { useMultichainContext } from '~/state/multichain/useMultichainContext'
+import { useSwapAndLimitContext } from '~/state/swap/useSwapContext'
 import { showSwitchNetworkNotification } from '~/utils/showSwitchNetworkNotification'
+import { assume0xAddress } from '~/utils/wagmi'
 
 interface CurrencySearchProps {
   currencyField: CurrencyField
@@ -45,7 +45,6 @@ export function CurrencySearch({
     useMultichainContext()
   const { currentTab } = useSwapAndLimitContext()
   const prevChainId = usePrevious(chainId)
-  const { pathname } = useLocation()
 
   const selectChain = useSelectChain()
   const { chains } = useEnabledChains()
@@ -55,7 +54,10 @@ export function CurrencySearch({
   const addresses = useMemo(
     () =>
       smartPoolAddress
-        ? { evmAddress: smartPoolAddress as `0x${string}`, svmAddress: undefined }
+        ? {
+            evmAddress: assume0xAddress(smartPoolAddress),
+            svmAddress: undefined,
+          }
         : activeAddresses,
     [smartPoolAddress, activeAddresses],
   )
@@ -83,7 +85,11 @@ export function CurrencySearch({
       return
     }
 
-    showSwitchNetworkNotification({ chainId, prevChainId, action: switchNetworkAction })
+    showSwitchNetworkNotification({
+      chainId,
+      prevChainId,
+      action: switchNetworkAction,
+    })
   }, [currentTab, chainId, prevChainId, isMultichainContext, switchNetworkAction])
 
   const isSingleChainContext = chainIds?.length === 1

@@ -1,6 +1,5 @@
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import { useCallback, useMemo } from 'react'
-import { useActiveSmartPool } from '~/state/application/hooks'
 import {
   ExecuteSwapCallback,
   ExecuteSwapParams,
@@ -9,6 +8,7 @@ import {
 } from 'uniswap/src/features/transactions/swap/types/swapHandlers'
 import { isWrap } from 'uniswap/src/features/transactions/swap/utils/routing'
 import { WrapType } from 'uniswap/src/features/transactions/types/wrap'
+import { useActiveSmartPool } from '~/state/application/hooks'
 import { useSwapCallback } from '~/state/sagas/transactions/swapSaga'
 import { useWrapCallback } from '~/state/sagas/transactions/wrapSaga'
 

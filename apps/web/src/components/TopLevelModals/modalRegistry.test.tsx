@@ -38,6 +38,7 @@ vi.mock('~/state/hooks', () => ({
 describe('ModalRegistry', () => {
   describe('ModalRenderer', () => {
     it('renders nothing when modal name is not in registry', () => {
+      mocked(useAppSelector).mockReturnValue({ application: { openModal: null } })
       const { container } = render(
         <ModalRenderer modalName={'INVALID_MODAL' as (typeof ModalName)[keyof typeof ModalName]} />,
       )

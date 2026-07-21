@@ -25,6 +25,6 @@ describe('RouterLabel', () => {
 
   it('renders correct label for classic trade with API routing', () => {
     render(<RouterLabel trade={TEST_TRADE_EXACT_INPUT_API} />)
-    expect(screen.getByText('Uniswap API')).toBeInTheDocument()
+    expect(screen.getByText('Rigoblock API')).toBeInTheDocument()
   })
 })

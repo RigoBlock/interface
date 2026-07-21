@@ -86,7 +86,9 @@ export default function AddressClaimModal({ isOpen, closeModal }: ModalState) {
             width="100%"
             position="relative"
             overflow="hidden"
-            $platform-web={{ background: 'radial-gradient(76.02% 75.41% at 1.84% 0%, #ff007a 0%, #021d43 100%)' }}
+            $platform-web={{
+              background: 'radial-gradient(76.02% 75.41% at 1.84% 0%, #ff007a 0%, #021d43 100%)',
+            }}
             borderRadius="$rounded12"
             boxShadow="0px 4px 10px rgba(0, 0, 0, 0.1)"
           >
@@ -186,7 +188,11 @@ export default function AddressClaimModal({ isOpen, closeModal }: ModalState) {
             )}
             {attempting && hash && !claimConfirmed && chainId && hash && (
               <ExternalLink
-                href={getExplorerLink({ chainId, data: hash, type: ExplorerDataType.TRANSACTION })}
+                href={getExplorerLink({
+                  chainId,
+                  data: hash,
+                  type: ExplorerDataType.TRANSACTION,
+                })}
                 style={{ zIndex: 99 }}
               >
                 View transaction on Explorer

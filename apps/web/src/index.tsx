@@ -2,7 +2,6 @@
 import '~/sideEffects'
 import { getDeviceId } from '@amplitude/analytics-browser'
 import { ApolloProvider } from '@apollo/client'
-import { datadogRum } from '@datadog/browser-rum'
 import { PrivyProvider } from '@privy-io/react-auth'
 import { ApiInit, getEntryGatewayUrl, provideSessionService } from '@universe/api'
 import type { StatsigUser } from '@universe/gating'
@@ -26,7 +25,7 @@ import {
 } from '@universe/sessions'
 import { NuqsAdapter } from 'nuqs/adapters/react-router/v7'
 import type { PropsWithChildren, ReactNode } from 'react'
-import React, { StrictMode, useEffect, useMemo } from 'react'
+import React, { StrictMode, useMemo } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Helmet, HelmetProvider } from 'react-helmet-async/lib/index'
 import { I18nextProvider } from 'react-i18next'
@@ -40,8 +39,7 @@ import { StatsigProviderWrapper } from 'uniswap/src/features/gating/StatsigProvi
 import { LocalizationContextProvider } from 'uniswap/src/features/language/LocalizationContext'
 import { TokenPriceProvider } from 'uniswap/src/features/prices/TokenPriceContext'
 import i18n from 'uniswap/src/i18n'
-import { initializeDatadog } from 'uniswap/src/utils/datadog'
-import { isDevEnv, isTestEnv } from 'utilities/src/environment/env'
+import { isTestEnv } from 'utilities/src/environment/env'
 import { getLogger } from 'utilities/src/logger/logger'
 // oxlint-disable-next-line no-restricted-imports -- custom useAccount hook requires statsig
 import { useAccount } from 'wagmi'
@@ -67,8 +65,8 @@ import { LivePricesProvider } from '~/state/livePrices/LivePricesProvider'
 import { ThemedGlobalStyle, ThemeProvider } from '~/theme'
 import { TamaguiProvider } from '~/theme/tamaguiProvider'
 import { isBrowserRouterEnabled } from '~/utils/env'
-import { getIsSessionServiceEnabledOnWeb, useIsSessionServiceEnabledOnWeb } from '~/utils/sessionService'
 import { unregister as unregisterServiceWorker } from '~/utils/serviceWorker'
+import { getIsSessionServiceEnabledOnWeb, useIsSessionServiceEnabledOnWeb } from '~/utils/sessionService'
 import { getCanonicalUrl } from '~/utils/urlRoutes'
 
 if (window.ethereum) {
@@ -86,11 +84,15 @@ initializePortfolioQueryOverrides({ store })
 const loadListsUpdater = () => import('~/state/lists/updater')
 const loadApplicationUpdater = () => import('~/state/application/updater')
 const loadActivityStateUpdater = () =>
-  import('~/state/activity/updater').then((m) => ({ default: m.ActivityStateUpdater }))
+  import('~/state/activity/updater').then((m) => ({
+    default: m.ActivityStateUpdater,
+  }))
 const loadLogsUpdater = () => import('~/state/logs/updater')
 const loadFiatOnRampTransactionsUpdater = () => import('~/state/fiatOnRampTransactions/updater')
 const loadWebAccountsStoreUpdater = () =>
-  import('~/features/accounts/store/updater').then((m) => ({ default: m.WebAccountsStoreUpdater }))
+  import('~/features/accounts/store/updater').then((m) => ({
+    default: m.WebAccountsStoreUpdater,
+  }))
 
 const provideSessionInitService = () => {
   // Create performance tracker with feature flag control
@@ -106,7 +108,11 @@ const provideSessionInitService = () => {
   if (getIsTurnstileSolverEnabled()) {
     solvers.set(
       ChallengeType.TURNSTILE,
-      createTurnstileSolver({ performanceTracker, getLogger, onSolveCompleted: onTurnstileSolveCompleted }),
+      createTurnstileSolver({
+        performanceTracker,
+        getLogger,
+        onSolveCompleted: onTurnstileSolveCompleted,
+      }),
     )
   } else {
     solvers.set(ChallengeType.TURNSTILE, createTurnstileMockSolver())
@@ -221,9 +227,7 @@ function StatsigProvider({ children }: PropsWithChildren) {
 // ERR_FAILED for the auth resource. Only enable Privy on the Uniswap domain so the error
 // is suppressed on RigoBlock without requiring a separate Privy app configuration.
 const PRIVY_APP_ID =
-  process.env.PRIVY_APP_ID && window.location.hostname === 'app.uniswap.org'
-    ? process.env.PRIVY_APP_ID
-    : undefined
+  process.env.PRIVY_APP_ID && window.location.hostname === 'app.uniswap.org' ? process.env.PRIVY_APP_ID : undefined
 
 function MaybePrivyProvider({ children }: { children: ReactNode }) {
   if (!PRIVY_APP_ID) {

@@ -174,7 +174,9 @@ export function useDepositInfo(state: UseDepositInfoProps): DepositInfo {
 
   const dependentField = exactField === PositionField.TOKEN0 ? PositionField.TOKEN1 : PositionField.TOKEN0
 
-  const parsedAmounts: { [field in PositionField]: CurrencyAmount<Currency> | undefined | null } = useMemo(() => {
+  const parsedAmounts: {
+    [field in PositionField]: CurrencyAmount<Currency> | undefined | null
+  } = useMemo(() => {
     return {
       [PositionField.TOKEN0]: exactField === PositionField.TOKEN0 ? independentAmount : dependentAmount,
       [PositionField.TOKEN1]: exactField === PositionField.TOKEN0 ? dependentAmount : independentAmount,
@@ -231,11 +233,26 @@ export function useDepositInfo(state: UseDepositInfoProps): DepositInfo {
 
   return useMemo(
     () => ({
-      currencyMaxAmounts: { [PositionField.TOKEN0]: token0MaxAmount, [PositionField.TOKEN1]: token1MaxAmount },
-      currencyBalances: { [PositionField.TOKEN0]: token0Balance, [PositionField.TOKEN1]: token1Balance },
-      formattedAmounts: { [exactField]: exactAmounts[exactField], [dependentField]: dependentAmount?.toExact() },
-      currencyAmounts: { [exactField]: independentAmount, [dependentField]: dependentAmount },
-      currencyAmountsUSDValue: { [exactField]: independentTokenUSDValue, [dependentField]: dependentTokenUSDValue },
+      currencyMaxAmounts: {
+        [PositionField.TOKEN0]: token0MaxAmount,
+        [PositionField.TOKEN1]: token1MaxAmount,
+      },
+      currencyBalances: {
+        [PositionField.TOKEN0]: token0Balance,
+        [PositionField.TOKEN1]: token1Balance,
+      },
+      formattedAmounts: {
+        [exactField]: exactAmounts[exactField],
+        [dependentField]: dependentAmount?.toExact(),
+      },
+      currencyAmounts: {
+        [exactField]: independentAmount,
+        [dependentField]: dependentAmount,
+      },
+      currencyAmountsUSDValue: {
+        [exactField]: independentTokenUSDValue,
+        [dependentField]: dependentTokenUSDValue,
+      },
       error,
     }),
     [

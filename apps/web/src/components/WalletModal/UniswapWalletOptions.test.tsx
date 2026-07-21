@@ -28,7 +28,7 @@ const UniswapExtensionWallet = {
 } as ExternalWallet
 
 describe('UniswapWalletOptions', () => {
-  it('Download wallet option should be visible if extension is not detected', () => {
+  it('Download wallet option should be hidden even if extension is not detected', () => {
     mocked(useWalletWithId).mockImplementation(
       (testId) =>
         ({
@@ -38,8 +38,8 @@ describe('UniswapWalletOptions', () => {
     mocked(useFeatureFlag).mockReturnValue(true)
     const { asFragment } = render(<UniswapWalletOptions />)
     expect(asFragment()).toMatchSnapshot()
-    const downloadOption = screen.getByTestId('download-uniswap-wallet')
-    expect(downloadOption).toBeInTheDocument()
+    // Rigoblock intentionally hides the Uniswap wallet download option
+    expect(screen.queryByTestId('download-uniswap-wallet')).not.toBeInTheDocument()
   })
   it('Extension connecter should be shown if detected', () => {
     mocked(useWalletWithId).mockImplementation(

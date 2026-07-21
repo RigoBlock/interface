@@ -1,3 +1,5 @@
+/* oxlint-disable no-unused-vars */
+import { AbiCoder } from '@ethersproject/abi'
 import { BigNumber } from '@ethersproject/bignumber'
 import { logger } from 'utilities/src/logger/logger'
 
@@ -64,11 +66,22 @@ function decodeAcrossParams(calldata: string): {
   inputAmount: BigNumber
   destinationChainId: BigNumber
 } {
-  const { AbiCoder } = require('@ethersproject/abi')
   const abiCoder = new AbiCoder()
   const decoded = abiCoder.decode(
-    ['address', 'address', 'address', 'address', 'uint256', 'uint256', 'uint256',
-     'address', 'uint32', 'uint32', 'uint32', 'bytes'],
+    [
+      'address',
+      'address',
+      'address',
+      'address',
+      'uint256',
+      'uint256',
+      'uint256',
+      'address',
+      'uint32',
+      'uint32',
+      'uint32',
+      'bytes',
+    ],
     '0x' + calldata.slice(10),
   )
   return {
@@ -113,7 +126,8 @@ export async function queryAcrossRelayerGasFee(params: {
         throw new Error(`Across API rejected bridge route (${response.status}): ${body || response.statusText}`)
       }
       logger.warn('bridgeCalldata', 'queryAcrossRelayerGasFee', 'Across API server error', {
-        status: response.status, body,
+        status: response.status,
+        body,
       })
       return undefined
     }
@@ -124,12 +138,14 @@ export async function queryAcrossRelayerGasFee(params: {
       totalRelayFeeTotal: data?.totalRelayFee?.total ?? '0',
       isAmountTooLow: data?.isAmountTooLow === true,
       estimatedFillTimeSec: typeof data?.estimatedFillTimeSec === 'number' ? data.estimatedFillTimeSec : undefined,
-      limits: data?.limits ? {
-        minDeposit: String(data.limits.minDeposit ?? '0'),
-        maxDeposit: String(data.limits.maxDeposit ?? '0'),
-        maxDepositInstant: String(data.limits.maxDepositInstant ?? '0'),
-        maxDepositShortDelay: String(data.limits.maxDepositShortDelay ?? '0'),
-      } : undefined,
+      limits: data?.limits
+        ? {
+            minDeposit: String(data.limits.minDeposit ?? '0'),
+            maxDeposit: String(data.limits.maxDeposit ?? '0'),
+            maxDepositInstant: String(data.limits.maxDepositInstant ?? '0'),
+            maxDepositShortDelay: String(data.limits.maxDepositShortDelay ?? '0'),
+          }
+        : undefined,
     }
 
     logger.debug('bridgeCalldata', 'queryAcrossRelayerGasFee', 'Across API response', {
@@ -194,7 +210,9 @@ export async function fetchTokenPriceUSD(chainId: number, tokenAddress: string):
 
 /** Estimates destination message gas by simulating updateUnitaryValue() on the pool. */
 export async function estimateDestinationMessageGas(params: {
-  provider: { estimateGas(tx: { to: string; data: string; from?: string }): Promise<BigNumber> }
+  provider: {
+    estimateGas(tx: { to: string; data: string; from?: string }): Promise<BigNumber>
+  }
   poolAddress: string
 }): Promise<BigNumber | undefined> {
   try {
@@ -204,7 +222,9 @@ export async function estimateDestinationMessageGas(params: {
     })
     const buffered = gasEstimate.mul(Math.round(DESTINATION_GAS_BUFFER_MULTIPLIER * 100)).div(100)
     logger.debug('bridgeCalldata', 'estimateDestinationMessageGas', 'Destination gas estimated', {
-      raw: gasEstimate.toString(), buffered: buffered.toString(), pool: params.poolAddress,
+      raw: gasEstimate.toString(),
+      buffered: buffered.toString(),
+      pool: params.poolAddress,
     })
     return buffered
   } catch {
@@ -225,7 +245,10 @@ export async function computeDestinationSimulationCompensation(params: {
 }): Promise<BigNumber | undefined> {
   const { provider, poolAddress, destinationChainId, outputTokenPriceUSD, outputTokenDecimals } = params
 
-  const gasUnits = await estimateDestinationMessageGas({ provider, poolAddress })
+  const gasUnits = await estimateDestinationMessageGas({
+    provider,
+    poolAddress,
+  })
   if (!gasUnits) {
     return undefined
   }
@@ -246,13 +269,15 @@ export async function computeDestinationSimulationCompensation(params: {
   const nativePriceScaled = BigNumber.from(Math.round(nativePriceUSD * 1e8))
   const gasCostUSDScaled = gasCostWei.mul(nativePriceScaled).div(BigNumber.from(10).pow(18))
   const outputPriceScaled = BigNumber.from(Math.round(outputTokenPriceUSD * 1e8))
-  const compensation = gasCostUSDScaled
-    .mul(BigNumber.from(10).pow(outputTokenDecimals))
-    .div(outputPriceScaled)
+  const compensation = gasCostUSDScaled.mul(BigNumber.from(10).pow(outputTokenDecimals)).div(outputPriceScaled)
 
   logger.debug('bridgeCalldata', 'computeDestinationSimulationCompensation', 'Destination simulation result', {
-    gasUnits: gasUnits.toString(), gasPrice: gasPrice.toString(), nativePriceUSD,
-    gasCostWei: gasCostWei.toString(), outputTokenPriceUSD, compensation: compensation.toString(),
+    gasUnits: gasUnits.toString(),
+    gasPrice: gasPrice.toString(),
+    nativePriceUSD,
+    gasCostWei: gasCostWei.toString(),
+    outputTokenPriceUSD,
+    compensation: compensation.toString(),
   })
 
   return compensation.gt(0) ? compensation : undefined
@@ -265,7 +290,9 @@ export async function computeDestinationSimulationCompensation(params: {
  * Returns { healthy: false, error } if the call explicitly reverts.
  */
 export async function checkDestinationPoolHealth(params: {
-  provider: { estimateGas(tx: { to: string; data: string; from?: string }): Promise<BigNumber> }
+  provider: {
+    estimateGas(tx: { to: string; data: string; from?: string }): Promise<BigNumber>
+  }
   poolAddress: string
 }): Promise<{ healthy: boolean; error?: string }> {
   try {
@@ -284,7 +311,8 @@ export async function checkDestinationPoolHealth(params: {
       msg.includes('0x0f6e887f')
     ) {
       logger.warn('bridgeCalldata', 'checkDestinationPoolHealth', 'Destination pool unhealthy', {
-        poolAddress: params.poolAddress, error: msg,
+        poolAddress: params.poolAddress,
+        error: msg,
       })
       return {
         healthy: false,

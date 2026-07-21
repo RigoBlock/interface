@@ -1,13 +1,13 @@
 import { nanoid } from '@reduxjs/toolkit'
 import { TokenList } from '@uniswap/token-lists'
+import { useCallback } from 'react'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { logger } from 'utilities/src/logger/logger'
 import { RPC_PROVIDERS } from '~/constants/providers'
 import getTokenList from '~/lib/hooks/useTokenList/fetchTokenList'
 import resolveENSContentHash from '~/lib/utils/resolveENSContentHash'
-import { useCallback } from 'react'
 import { useAppDispatch } from '~/state/hooks'
 import { fetchTokenList } from '~/state/lists/poolsList/actions'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { logger } from 'utilities/src/logger/logger'
 
 export function useFetchPoolListCallback(): (listUrl: string, skipValidation?: boolean) => Promise<TokenList> {
   const dispatch = useAppDispatch()
@@ -18,7 +18,8 @@ export function useFetchPoolListCallback(): (listUrl: string, skipValidation?: b
       dispatch(fetchTokenList.pending({ requestId, url: listUrl }))
       return getTokenList({
         listUrl,
-        resolveENSContentHash: (ensName: string) => resolveENSContentHash(ensName, RPC_PROVIDERS[UniverseChainId.Mainnet]),
+        resolveENSContentHash: (ensName: string) =>
+          resolveENSContentHash(ensName, RPC_PROVIDERS[UniverseChainId.Mainnet]),
         skipValidation,
       })
         .then((tokenList) => {
@@ -30,7 +31,13 @@ export function useFetchPoolListCallback(): (listUrl: string, skipValidation?: b
             error,
             listUrl,
           })
-          dispatch(fetchTokenList.rejected({ url: listUrl, requestId, errorMessage: error.message }))
+          dispatch(
+            fetchTokenList.rejected({
+              url: listUrl,
+              requestId,
+              errorMessage: error.message,
+            }),
+          )
           throw error
         })
     },

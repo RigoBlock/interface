@@ -47,7 +47,11 @@ export function useTokenSectionsForSearchResults({
     error: portfolioTokenOptionsError,
     refetch: refetchPortfolioTokenOptions,
     loading: portfolioTokenOptionsLoading,
-  } = usePortfolioTokenOptions({ chainFilter, searchFilter: searchFilter ?? undefined, portfolioData })
+  } = usePortfolioTokenOptions({
+    chainFilter,
+    searchFilter: searchFilter ?? undefined,
+    portfolioData,
+  })
 
   // Bridging tokens are only shown if input is provided
   const {
@@ -55,7 +59,11 @@ export function useTokenSectionsForSearchResults({
     error: bridgingTokenOptionsError,
     refetch: refetchBridgingTokenOptions,
     loading: bridgingTokenOptionsLoading,
-  } = useBridgingTokensOptions({ oppositeSelectedToken: input, chainFilter, portfolioData })
+  } = useBridgingTokensOptions({
+    oppositeSelectedToken: input,
+    chainFilter,
+    portfolioData,
+  })
 
   // Only call search endpoint if isBalancesOnlySearch is false
   const {

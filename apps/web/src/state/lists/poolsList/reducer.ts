@@ -1,3 +1,4 @@
+/* oxlint-disable typescript/no-unnecessary-condition */
 import { createReducer } from '@reduxjs/toolkit'
 import { getVersionUpgrade, TokenList, VersionUpgrade } from '@uniswap/token-lists'
 import { POOLS_LIST } from '~/constants/lists'
@@ -27,16 +28,16 @@ const NEW_LIST_STATE: PoolsListState = {
   pendingUpdate: null,
 }
 
-type Mutable<T> = { -readonly [P in keyof T]: T[P] extends ReadonlyArray<infer U> ? U[] : T[P] }
+type Mutable<T> = {
+  -readonly [P in keyof T]: T[P] extends ReadonlyArray<infer U> ? U[] : T[P]
+}
 
 const initialState: PoolsListsState = {
   lastInitializedPoolsList: POOLS_LIST,
-  byUrl: {
-    ...POOLS_LIST.reduce<Mutable<PoolsListsState['byUrl']>>((memo, listUrl) => {
+  byUrl: POOLS_LIST.reduce<Mutable<PoolsListsState['byUrl']>>((memo, listUrl) => {
       memo[listUrl] = NEW_LIST_STATE
       return memo
     }, {}),
-  },
 }
 
 export default createReducer(initialState, (builder) =>

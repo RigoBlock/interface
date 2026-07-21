@@ -1,4 +1,4 @@
-import { useTheme } from '@tamagui/core'
+import { useTheme } from 'tamagui'
 import { AutoColumn } from '~/components/deprecated/Column'
 import styled from '~/lib/deprecated-styled'
 import { ThemedText } from '~/theme/components/text'

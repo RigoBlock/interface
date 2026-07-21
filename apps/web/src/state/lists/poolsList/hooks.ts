@@ -1,8 +1,8 @@
-import { TokenAddressMap, tokensToChainTokenMap } from '~/lib/hooks/useTokenList/utils'
 import { useMemo } from 'react'
+import { logger } from 'utilities/src/logger/logger'
+import { TokenAddressMap, tokensToChainTokenMap } from '~/lib/hooks/useTokenList/utils'
 import { useAppSelector } from '~/state/hooks'
 import { InterfaceState } from '~/state/webReducer'
-import { logger } from 'utilities/src/logger/logger'
 
 type Mutable<T> = {
   -readonly [P in keyof T]: Mutable<T[P]>

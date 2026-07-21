@@ -1,19 +1,8 @@
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
-import { ButtonPrimary } from '~/components/Button/buttons'
-import { LightCard } from '~/components/Card/cards'
-import { AutoColumn } from '~/components/deprecated/Column'
-import { RowBetween } from '~/components/deprecated/Row'
-import { LoadingView, SubmittedView } from '~/components/ModalViews'
-import { useAccount } from '~/hooks/useAccount'
-import styled from '~/lib/deprecated-styled'
 //import JSBI from 'jsbi'
 import { ReactNode, useState } from 'react'
 import { X } from 'react-feather'
 import { Trans } from 'react-i18next'
-
-import { useHarvestCallback } from '~/state/stake/hooks'
-import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
-import { ThemedText } from '~/theme/components/text'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
@@ -21,6 +10,16 @@ import { useLocalizationContext } from 'uniswap/src/features/language/Localizati
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { logger } from 'utilities/src/logger/logger'
+import { ButtonPrimary } from '~/components/Button/buttons'
+import { LightCard } from '~/components/Card/cards'
+import { AutoColumn } from '~/components/deprecated/Column'
+import { RowBetween } from '~/components/deprecated/Row'
+import { LoadingView, SubmittedView } from '~/components/ModalViews'
+import { useAccount } from '~/hooks/useAccount'
+import styled from '~/lib/deprecated-styled'
+import { useHarvestCallback } from '~/state/stake/hooks'
+import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
+import { ThemedText } from '~/theme/components/text'
 
 const ContentWrapper = styled(AutoColumn)`
   width: 100%;
@@ -83,13 +82,13 @@ export default function HarvestYieldModal({
     setFarmAmount(yieldAmount)
 
     // try delegation and store hash
-    const hash = await harvestCallback(poolIds, isPool)?.catch((error) => {
+    const txHash = await harvestCallback(poolIds, isPool)?.catch((error) => {
       setAttempting(false)
       logger.info('HarvestModal', 'onHarvest', error)
     })
 
-    if (hash) {
-      setHash(hash)
+    if (txHash) {
+      setHash(txHash)
     }
   }
 
@@ -113,7 +112,11 @@ export default function HarvestYieldModal({
               <AutoColumn gap="md">
                 <RowBetween>
                   <ThemedText.DeprecatedBody fontSize={16} fontWeight={500}>
-                    <Trans>Harvesting {formatCurrencyAmount({ value: yieldAmount })} GRG</Trans>
+                    <Trans
+                      i18nKey="earn.harvest.harvesting"
+                      values={{ amount: formatCurrencyAmount({ value: yieldAmount }) }}
+                      defaults="Harvesting {{amount}} GRG"
+                    />
                   </ThemedText.DeprecatedBody>
                 </RowBetween>
               </AutoColumn>

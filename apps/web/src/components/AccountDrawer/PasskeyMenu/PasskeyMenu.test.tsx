@@ -38,6 +38,11 @@ vi.mock('~/state/hooks', () => ({
   useAppSelector: vi.fn(),
 }))
 
+vi.mock('~/state/application/hooks', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('~/state/application/hooks')>()),
+  useActiveSmartPool: vi.fn(() => ({ address: null, name: '' })),
+}))
+
 vi.mock('ui/src/components/icons/IcloudPasswordLogo', () => ({
   IcloudPasswordLogo: () => <span data-testid="icloud-password-logo" />,
 }))

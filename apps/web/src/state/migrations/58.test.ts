@@ -80,7 +80,7 @@ describe('migration to v58', () => {
       expect(result._persist.version).toEqual(58)
     })
 
-    it('should migrate Hungarian to browser language when browser is fr-FR', () => {
+    it('should migrate Hungarian to English when browser is fr-FR (web supports English only)', () => {
       Object.defineProperty(global.navigator, 'language', {
         writable: true,
         configurable: true,
@@ -91,11 +91,13 @@ describe('migration to v58', () => {
         userSettings: { currentLanguage: 'hu' as Language }, // Hungarian - removed language
       }
       const result: any = migration58(hungarianState)
-      expect(result.userSettings.currentLanguage).toEqual(Language.French)
+      // Web only supports English (see WEB_SUPPORTED_LANGUAGES), so non-English browser
+      // locales cannot be matched and the migration falls back to English.
+      expect(result.userSettings.currentLanguage).toEqual(Language.English)
       expect(result._persist.version).toEqual(58)
     })
 
-    it('should migrate Czech to browser language when browser is ja-JP', () => {
+    it('should migrate Czech to English when browser is ja-JP (web supports English only)', () => {
       Object.defineProperty(global.navigator, 'language', {
         writable: true,
         configurable: true,
@@ -106,7 +108,7 @@ describe('migration to v58', () => {
         userSettings: { currentLanguage: 'cs' as Language }, // Czech - removed language
       }
       const result: any = migration58(czechState)
-      expect(result.userSettings.currentLanguage).toEqual(Language.Japanese)
+      expect(result.userSettings.currentLanguage).toEqual(Language.English)
       expect(result._persist.version).toEqual(58)
     })
 

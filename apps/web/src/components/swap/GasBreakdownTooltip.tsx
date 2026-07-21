@@ -22,7 +22,11 @@ const Container = deprecatedStyled(AutoColumn)`
   padding: 4px;
 `
 
-type GasCostItemProps = { title: ReactNode; itemValue?: React.ReactNode; amount?: number }
+type GasCostItemProps = {
+  title: ReactNode
+  itemValue?: React.ReactNode
+  amount?: number
+}
 
 const GasCostItem = ({ title, amount, itemValue }: GasCostItemProps) => {
   const { convertFiatAmountFormatted } = useLocalizationContext()

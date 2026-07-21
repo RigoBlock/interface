@@ -8,8 +8,8 @@ import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useRestPortfolioValueModifier } from 'uniswap/src/features/dataApi/balances/balancesRest'
 import { ElementName, SectionName } from 'uniswap/src/features/telemetry/constants'
 import { TestID } from 'uniswap/src/test/fixtures/testIDs'
-import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
+import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
 import { MAX_TOKENS_ROWS } from '~/pages/Portfolio/Overview/constants'
 import { TableSectionHeader } from '~/pages/Portfolio/Overview/TableSectionHeader'
 import { ViewAllButton } from '~/pages/Portfolio/Overview/ViewAllButton'
@@ -72,7 +72,9 @@ export const MiniTokensTable = memo(function MiniTokensTable({ maxTokens = 8, ch
     <Flex grow gap="$gap12">
       <TableSectionHeader
         title={t('common.tokens')}
-        subtitle={t('portfolio.tokens.balance.totalTokens', { count: totalCount ?? tableData.length })}
+        subtitle={t('portfolio.tokens.balance.totalTokens', {
+          count: totalCount ?? tableData.length,
+        })}
         loading={tableLoading}
         testId={TestID.PortfolioOverviewTokensSection}
       >

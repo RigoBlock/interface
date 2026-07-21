@@ -46,11 +46,13 @@ function setupMocks() {
     typeof useEmbeddedWalletState
   >)
 
-  vi.mocked(usePasskeyAuthWithHelpModal)
-    .mockReturnValueOnce({ mutate: mockVerifyPasskey } as unknown as ReturnType<typeof usePasskeyAuthWithHelpModal>)
-    .mockReturnValueOnce({ mutate: mockRegisterAuthenticator } as unknown as ReturnType<
-      typeof usePasskeyAuthWithHelpModal
-    >)
+  // The component can render more than once, so alternate return values by call parity:
+  // odd calls are the verify mutation, even calls are the register mutation.
+  let call = 0
+  vi.mocked(usePasskeyAuthWithHelpModal).mockImplementation((() => {
+    call += 1
+    return { mutate: call % 2 === 1 ? mockVerifyPasskey : mockRegisterAuthenticator }
+  }) as unknown as typeof usePasskeyAuthWithHelpModal)
 }
 
 describe('AddPasskeyModal', () => {

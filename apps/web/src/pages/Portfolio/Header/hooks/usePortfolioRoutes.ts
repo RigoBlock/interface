@@ -94,14 +94,24 @@ export function usePortfolioRoutes(): {
   useEffect(() => {
     // Redirect query param format to path segment format for consistency
     if (queryAddress && !pathAddress) {
-      const targetUrl = buildPortfolioUrl({ tab, chainId, externalAddress: queryAddress })
+      const targetUrl = buildPortfolioUrl({
+        tab,
+        chainId,
+        externalAddress: queryAddress,
+      })
       navigate(targetUrl, { replace: true })
       return
     }
 
     // Redirect to overview if trying to access DeFi tab when feature flag is disabled
     if (tab === PortfolioTab.Defi && !isPortfolioDefiTabEnabled) {
-      navigate(buildPortfolioUrl({ chainId, externalAddress: externalAddress?.address }), { replace: true })
+      navigate(
+        buildPortfolioUrl({
+          chainId,
+          externalAddress: externalAddress?.address,
+        }),
+        { replace: true },
+      )
     }
   }, [
     potentialAddress,
@@ -116,5 +126,12 @@ export function usePortfolioRoutes(): {
     isOwnSvmAddress,
   ])
 
-  return { tab, chainName, chainId, externalAddress, isExternalWallet, hasExplicitUrlAddress: !!potentialAddress }
+  return {
+    tab,
+    chainName,
+    chainId,
+    externalAddress,
+    isExternalWallet,
+    hasExplicitUrlAddress: !!potentialAddress,
+  }
 }

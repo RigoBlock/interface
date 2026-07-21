@@ -183,7 +183,14 @@ export function LiquidityPositionCard({
           borderRadius="$rounded20"
           borderColor="$surface3"
           width="100%"
-          hoverStyle={!disabled ? { borderColor: '$surface3Hovered', backgroundColor: '$surface1Hovered' } : {}}
+          hoverStyle={
+            !disabled
+              ? {
+                  borderColor: '$surface3Hovered',
+                  backgroundColor: '$surface1Hovered',
+                }
+              : {}
+          }
         >
           <Flex
             row
@@ -309,8 +316,22 @@ function MiniPositionCard({
       borderWidth="$spacing1"
       position="relative"
       group
-      hoverStyle={!disabled ? { backgroundColor: '$surface1Hovered', borderColor: '$surface3Hovered' } : {}}
-      pressStyle={!disabled ? { backgroundColor: '$surface1Pressed', borderColor: '$surface3Pressed' } : {}}
+      hoverStyle={
+        !disabled
+          ? {
+              backgroundColor: '$surface1Hovered',
+              borderColor: '$surface3Hovered',
+            }
+          : {}
+      }
+      pressStyle={
+        !disabled
+          ? {
+              backgroundColor: '$surface1Pressed',
+              borderColor: '$surface3Pressed',
+            }
+          : {}
+      }
     >
       <LiquidityPositionInfo hideStatusIndicator positionInfo={positionInfo} currencyLogoSize={32} isMiniVersion />
       <Flex row gap="$gap12">

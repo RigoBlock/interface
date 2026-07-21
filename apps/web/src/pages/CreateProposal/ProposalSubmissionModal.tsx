@@ -1,18 +1,18 @@
-import { useTheme } from '@tamagui/core'
-import { ButtonPrimary } from '~/components/Button/buttons'
-import { AutoColumn } from '~/components/deprecated/Column'
-import { LoadingView, SubmittedView } from '~/components/ModalViews'
-import { useAccount } from '~/hooks/useAccount'
+import { useTheme } from 'tamagui'
 import { Trans } from 'react-i18next'
 import { Link } from 'react-router'
 import { Text } from 'rebass'
-import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
-import { ThemedText } from '~/theme/components'
-import { ExternalLink } from '~/theme/components/Links'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
+import { ButtonPrimary } from '~/components/Button/buttons'
+import { AutoColumn } from '~/components/deprecated/Column'
+import { LoadingView, SubmittedView } from '~/components/ModalViews'
+import { useAccount } from '~/hooks/useAccount'
+import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
+import { ThemedText } from '~/theme/components'
+import { ExternalLink } from '~/theme/components/Links'
 
 export const ProposalSubmissionModal = ({
   isOpen,
@@ -62,7 +62,11 @@ export const ProposalSubmissionModal = ({
             )}
             {hash && account.chainId && (
               <ExternalLink
-                href={getExplorerLink({ chainId: account.chainId, data: hash, type: ExplorerDataType.TRANSACTION })}
+                href={getExplorerLink({
+                  chainId: account.chainId,
+                  data: hash,
+                  type: ExplorerDataType.TRANSACTION,
+                })}
               >
                 <Text fontWeight={535} fontSize={14} color={theme.accent1.get()}>
                   <Trans i18nKey="common.etherscan.link" />

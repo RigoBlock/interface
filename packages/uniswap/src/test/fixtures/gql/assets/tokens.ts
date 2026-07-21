@@ -81,7 +81,10 @@ type TokenMarketOptions = {
 }
 
 export const tokenMarket = createFixture<GraphQLApi.TokenMarket, TokenMarketOptions>(() => ({
-  priceHistory: priceHistory({ duration: GraphQLApi.HistoryDuration.Week, size: 7 }),
+  priceHistory: priceHistory({
+    duration: GraphQLApi.HistoryDuration.Week,
+    size: 7,
+  }),
 }))(({ priceHistory: history }) => ({
   __typename: 'TokenMarket',
   id: faker.datatype.uuid(),
@@ -97,7 +100,10 @@ type TokenProjectMarketOptions = {
 }
 
 export const tokenProjectMarket = createFixture<GraphQLApi.TokenProjectMarket, TokenProjectMarketOptions>(() => ({
-  priceHistory: priceHistory({ duration: GraphQLApi.HistoryDuration.Week, size: 7 }),
+  priceHistory: priceHistory({
+    duration: GraphQLApi.HistoryDuration.Week,
+    size: 7,
+  }),
 }))(({ priceHistory: history }) => ({
   __typename: 'TokenProjectMarket',
   id: faker.datatype.uuid(),
@@ -131,7 +137,10 @@ type TokenProjectOptions = {
 }
 
 export const tokenProject = createFixture<GraphQLApi.TokenProject, TokenProjectOptions>(() => ({
-  priceHistory: priceHistory({ duration: GraphQLApi.HistoryDuration.Week, size: 7 }),
+  priceHistory: priceHistory({
+    duration: GraphQLApi.HistoryDuration.Week,
+    size: 7,
+  }),
   safetyLevel: GraphQLApi.SafetyLevel.Verified,
 }))(({ priceHistory: history, safetyLevel }) => ({
   ...tokenProjectBase({
@@ -141,7 +150,10 @@ export const tokenProject = createFixture<GraphQLApi.TokenProject, TokenProjectO
 }))
 
 export const usdcTokenProject = createFixture<GraphQLApi.TokenProject, TokenProjectOptions>(() => ({
-  priceHistory: priceHistory({ duration: GraphQLApi.HistoryDuration.Week, size: 7 }),
+  priceHistory: priceHistory({
+    duration: GraphQLApi.HistoryDuration.Week,
+    size: 7,
+  }),
   safetyLevel: GraphQLApi.SafetyLevel.Verified,
 }))(({ priceHistory: history, safetyLevel }) =>
   tokenProject({
@@ -169,7 +181,10 @@ const ethProject = tokenProject({
 
 export const ethToken = createFixture<GraphQLApi.Token>()(() => token({ sdkToken: ETH, project: ethProject }))
 export const wethToken = createFixture<GraphQLApi.Token>()(() =>
-  token({ sdkToken: WRAPPED_NATIVE_CURRENCY[UniverseChainId.Mainnet], project: ethProject }),
+  token({
+    sdkToken: WRAPPED_NATIVE_CURRENCY[UniverseChainId.Mainnet],
+    project: ethProject,
+  }),
 )
 
 const daiProject = tokenProject({
@@ -195,7 +210,10 @@ export const usdcArbitrumToken = createFixture<GraphQLApi.Token>()(() =>
 )
 
 export const grgTokenProject = createFixture<GraphQLApi.TokenProject, TokenProjectOptions>(() => ({
-  priceHistory: priceHistory({ duration: GraphQLApi.HistoryDuration.Week, size: 7 }),
+  priceHistory: priceHistory({
+    duration: GraphQLApi.HistoryDuration.Week,
+    size: 7,
+  }),
   safetyLevel: GraphQLApi.SafetyLevel.Verified,
 }))(({ priceHistory: history, safetyLevel }) =>
   tokenProject({

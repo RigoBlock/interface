@@ -1,25 +1,26 @@
+/* oxlint-disable complexity no-shadow no-unused-vars typescript/no-unnecessary-condition typescript/no-unsafe-return */
 import type { TransactionResponse } from '@ethersproject/providers'
 import { Currency, CurrencyAmount /*, Token*/ } from '@uniswap/sdk-core'
+import JSBI from 'jsbi'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+//import { useWeb3React } from '@web3-react/core'
+import { Trans, useTranslation } from 'react-i18next'
+import { ModalCloseIcon } from 'ui/src'
+import { Modal } from 'uniswap/src/components/modals/Modal'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { TransactionStatus, TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { /*ButtonConfirmed,*/ ButtonError } from '~/components/Button/buttons'
 import CurrencyInputPanel from '~/components/CurrencyInputPanel'
 import { AutoColumn } from '~/components/deprecated/Column'
 import { RowBetween } from '~/components/deprecated/Row'
 import { LoadingView, SubmittedView } from '~/components/ModalViews'
 import ProgressCircles from '~/components/ProgressSteps'
-import JSBI from 'jsbi'
 import styled from '~/lib/deprecated-styled'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-//import { useWeb3React } from '@web3-react/core'
-import { Trans } from 'react-i18next'
 import { PoolInfo, useDerivedPoolInfo } from '~/state/buy/hooks'
 import { usePoolExtendedContract } from '~/state/pool/hooks'
 import { useIsTransactionConfirmed, useTransaction, useTransactionAdder } from '~/state/transactions/hooks'
 import { ThemedText } from '~/theme/components'
-import { ModalCloseIcon } from 'ui/src'
-import { Modal } from 'uniswap/src/components/modals/Modal'
-import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { TransactionStatus, TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { calculateGasMargin } from '~/utils/calculateGasMargin'
 import { maxAmountSpend } from '~/utils/maxAmountSpend'
 
@@ -58,6 +59,7 @@ export default function SellModal({
   const transaction = useTransaction(hash)
   const confirmed = useIsTransactionConfirmed(hash)
   const { formatCurrencyAmount } = useLocalizationContext()
+  const { t } = useTranslation()
   const transactionSuccess = transaction?.status === TransactionStatus.Success
 
   const wrappedOnDismiss = useCallback(() => {
@@ -195,7 +197,11 @@ export default function SellModal({
                 isAccount={true}
                 label=""
                 renderBalance={(amount) => (
-                  <Trans>Available to withdraw: {formatCurrencyAmount({ value: amount })}</Trans>
+                  <Trans
+                    i18nKey="createPool.sell.availableToWithdraw"
+                    values={{ amount: formatCurrencyAmount({ value: amount }) }}
+                    defaults="Available to withdraw: {{amount}}"
+                  />
                 )}
                 id="buy-pool-tokens"
               />

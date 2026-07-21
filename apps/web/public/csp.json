@@ -1,6 +1,10 @@
 {
   "defaultSrc": ["'self'"],
-  "scriptSrc": ["'self'", "'wasm-unsafe-eval'", "https://challenges.cloudflare.com"],
+  "scriptSrc": [
+    "'self'",
+    "'wasm-unsafe-eval'",
+    "https://challenges.cloudflare.com"
+  ],
   "styleSrc": [
     "'self'",
     "'unsafe-inline'",
@@ -39,6 +43,9 @@
     "https://*.coinmarketcap.com/",
     "https://*.drpc.org/",
     "https://*.googleapis.com",
+    "https://*.gmxapi.io",
+    "https://arbitrum.gmxapi.io",
+    "https://*.gmxinfra.io",
     "https://*.infura.io",
     "https://*.nodereal.io",
     "https://*.optimism.io",

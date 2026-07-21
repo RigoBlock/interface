@@ -100,7 +100,10 @@ export function useBridgingTokenWithHighestBalance({
 
         if (!currencyInfo) {
           logger.error(new Error('Failed to convert swappable token to currency info'), {
-            tags: { file: 'bridging/hooks/tokens.ts', function: 'useBridgingTokenWithHighestBalance' },
+            tags: {
+              file: 'bridging/hooks/tokens.ts',
+              function: 'useBridgingTokenWithHighestBalance',
+            },
             extra: { token },
           })
           return currentHighest
@@ -168,7 +171,11 @@ export function useBridgingTokensOptions({
   const isSameChain = oppositeSelectedToken?.chainId === chainFilter
   const shouldFilterByChain = chainFilter !== null && !isSameChain
   const filteredTokenOptions = useMemo(
-    () => filter({ tokenOptions: tokenOptions ?? null, chainFilter: shouldFilterByChain ? chainFilter : null }),
+    () =>
+      filter({
+        tokenOptions: tokenOptions ?? null,
+        chainFilter: shouldFilterByChain ? chainFilter : null,
+      }),
     [tokenOptions, shouldFilterByChain, chainFilter],
   )
 

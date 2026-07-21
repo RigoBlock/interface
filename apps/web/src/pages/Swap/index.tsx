@@ -1,16 +1,10 @@
+/* oxlint-disable no-unused-vars */
 import type { Currency } from '@uniswap/sdk-core'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useCallback, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router'
-import { useActiveSmartPool } from '~/state/application/hooks'
-import { useSwapHandlers } from '~/state/sagas/transactions/useSwapHandlers'
-import { SwapAndLimitContextProvider } from '~/state/swap/SwapContext'
-import { useSwapAndLimitContext } from '~/state/swap/useSwapContext'
-import { MultichainContextProvider } from '~/state/multichain/MultichainContext'
-import { useInitialCurrencyState } from '~/state/swap/hooks'
-import type { CurrencyState } from '~/state/swap/types'
 import type { SegmentedControlOption } from 'ui/src'
 import { Flex, SegmentedControl, styled, Text, Tooltip } from 'ui/src'
 import type { AppTFunction } from 'ui/src/i18n/types'
@@ -52,6 +46,13 @@ import { useModalState } from '~/hooks/useModalState'
 import { ReturnToAuctionBanner } from '~/pages/Swap/ReturnToAuctionBanner'
 import { useResetOverrideOneClickSwapFlag } from '~/pages/Swap/settings/OneClickSwap'
 import { useWebSwapSettings } from '~/pages/Swap/settings/useWebSwapSettings'
+import { useActiveSmartPool } from '~/state/application/hooks'
+import { MultichainContextProvider } from '~/state/multichain/MultichainContext'
+import { useSwapHandlers } from '~/state/sagas/transactions/useSwapHandlers'
+import { useInitialCurrencyState } from '~/state/swap/hooks'
+import { SwapAndLimitContextProvider } from '~/state/swap/SwapContext'
+import type { CurrencyState } from '~/state/swap/types'
+import { useSwapAndLimitContext } from '~/state/swap/useSwapContext'
 import { isIFramed } from '~/utils/isIFramed'
 
 export default function SwapPage() {
@@ -115,7 +116,10 @@ function getFilteredChainIdsOverride({
 }): TransactionState['filteredChainIdsOverride'] {
   return usePersistedFilteredChainIds && !!persistedFilteredChainIds
     ? persistedFilteredChainIds
-    : { [CurrencyField.OUTPUT]: initialOutputChainId, [CurrencyField.INPUT]: initialInputChainId }
+    : {
+        [CurrencyField.OUTPUT]: initialOutputChainId,
+        [CurrencyField.INPUT]: initialInputChainId,
+      }
 }
 
 /**

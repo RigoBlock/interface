@@ -108,7 +108,10 @@ describe('PortfolioHeader', () => {
       mocked(usePortfolioRoutes).mockReturnValue({
         tab: PortfolioTab.Overview,
         chainId: undefined,
-        externalAddress: { address: '0xAnotherAddress', platform: Platform.EVM },
+        externalAddress: {
+          address: '0xAnotherAddress',
+          platform: Platform.EVM,
+        },
         isExternalWallet: true,
         hasExplicitUrlAddress: true,
       })

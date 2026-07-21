@@ -1,12 +1,13 @@
+/* oxlint-disable react-hooks/rules-of-hooks */
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import { Protocol } from '@uniswap/router-sdk'
 import ms from 'ms'
-import { useActiveSmartPool } from '~/state/application/hooks'
 import { InterfaceEventName } from 'uniswap/src/features/telemetry/constants'
-import { logger } from 'utilities/src/logger/logger'
-import { logSwapQuoteFetch } from 'uniswap/src/features/transactions/swap/analytics'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
+import { logSwapQuoteFetch } from 'uniswap/src/features/transactions/swap/analytics'
+import { logger } from 'utilities/src/logger/logger'
 import { REQUEST_SOURCE } from 'utilities/src/platform/requestSource'
+import { useActiveSmartPool } from '~/state/application/hooks'
 import {
   ClassicAPIConfig,
   GetQuoteArgs,
@@ -152,7 +153,10 @@ export const routingApi = createApi({
           if (response.error) {
             try {
               // cast as any here because we do a runtime check on it being an object before indexing into .errorCode
-              const errorData = response.error.data as { errorCode?: string; detail?: string }
+              const errorData = response.error.data as {
+                errorCode?: string
+                detail?: string
+              }
               // NO_ROUTE should be treated as a valid response to prevent retries.
               if (
                 typeof errorData === 'object' &&

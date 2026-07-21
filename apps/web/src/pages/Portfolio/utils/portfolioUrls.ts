@@ -1,4 +1,3 @@
-
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { isEVMAddress } from 'utilities/src/addresses/evm/evm'
 import { isSVMAddress } from 'utilities/src/addresses/svm/svm'
@@ -41,6 +40,7 @@ export function pathToPortfolioTab(path: string): PortfolioTab | undefined {
     '/portfolio/tokens': PortfolioTab.Tokens,
     '/portfolio/staking': PortfolioTab.Staking,
     '/portfolio/defi': PortfolioTab.Defi,
+    '/portfolio/perps': PortfolioTab.Perps,
     '/portfolio/nfts': PortfolioTab.Nfts,
     '/portfolio/activity': PortfolioTab.Activity,
   }

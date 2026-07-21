@@ -1,3 +1,4 @@
+/* oxlint-disable no-unused-vars */
 import { SkipToken, skipToken } from '@reduxjs/toolkit/query/react'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useMemo } from 'react'
@@ -20,7 +21,9 @@ export function useRoutingAPIArguments(input: RoutingAPIInput): GetQuoteArgs | S
   const isUniswapXSupportedChain = useIsUniswapXSupportedChain(input.tokenIn?.chainId)
   const isPriorityOrdersEnabled = useUniswapXPriorityOrderFlag(input.tokenIn?.chainId)
   const isDutchV3Enabled = useFeatureFlag(FeatureFlags.ArbitrumDutchV3)
-  const { data: isDelegationMismatch } = useIsMismatchAccountQuery({ chainId: input.tokenIn?.chainId })
+  const { data: isDelegationMismatch } = useIsMismatchAccountQuery({
+    chainId: input.tokenIn?.chainId,
+  })
   // if there is a mismatched account, we want to disable uniswapX
   const canUseUniswapX = isUniswapXSupportedChain && !isDelegationMismatch
 

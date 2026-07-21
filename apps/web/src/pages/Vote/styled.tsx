@@ -1,5 +1,5 @@
-import styled, { DefaultTheme } from '~/lib/deprecated-styled'
 import { Trans } from 'react-i18next'
+import styled, { DefaultTheme } from '~/lib/deprecated-styled'
 import { ProposalState } from '~/state/governance/hooks'
 
 const handleColorType = (status: ProposalState, theme: DefaultTheme) => {

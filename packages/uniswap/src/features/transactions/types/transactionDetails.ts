@@ -68,7 +68,11 @@ export interface TransactionDetailsCore extends TransactionId {
 // Platform-specific extensions
 export interface InterfaceTransactionExtensions {
   /** EIP-5792 batch transaction tracking */
-  batchInfo?: { connectorId?: string; batchId: string; chainId: UniverseChainId }
+  batchInfo?: {
+    connectorId?: string
+    batchId: string
+    chainId: UniverseChainId
+  }
   /** Transaction deadline for cleanup */
   deadline?: number
 }
@@ -873,12 +877,17 @@ export interface DeployVaultTransactionInfo extends BaseTransactionInfo {
 
 type AllKeysOf<T> = T extends T ? keyof T : never
 
-type ExtractPropertyType<T, K extends AllKeysOf<T>> = T extends T ? (K extends keyof T ? T[K] : never) : never
-  | ToucanBidTransactionInfo
-  | ToucanWithdrawBidAndClaimTokensTransactionInfo
-  | AuctionBidTransactionInfo
-  | AuctionClaimedTransactionInfo
-  | AuctionExitedTransactionInfo
+type ExtractPropertyType<T, K extends AllKeysOf<T>> = T extends T
+  ? K extends keyof T
+    ? T[K]
+    : never
+  :
+      | never
+      | ToucanBidTransactionInfo
+      | ToucanWithdrawBidAndClaimTokensTransactionInfo
+      | AuctionBidTransactionInfo
+      | AuctionClaimedTransactionInfo
+      | AuctionExitedTransactionInfo
 
 /**
  * Typeguard to check if a `TransactionTypeInfo` has a specific attribute.

@@ -36,7 +36,10 @@ function useSwapTransactionRequestInfo({
 
   const permitData = derivedSwapInfo.trade.trade?.quote.permitData
   // On interface, we do not fetch signature until after swap is clicked, as it requires user interaction.
-  const { data: signature } = usePermit2SignatureWithData({ permitData, skip: isWebApp })
+  const { data: signature } = usePermit2SignatureWithData({
+    permitData,
+    skip: isWebApp,
+  })
 
   const swapQuoteResponse = useMemo(() => {
     const quote = derivedSwapInfo.trade.trade?.quote
@@ -187,7 +190,10 @@ export function useTransactionRequestInfo({
   const uniswapXTransactionRequestInfo = useUniswapXTransactionRequestInfo(
     derivedSwapInfo.trade.trade?.quote.permitData,
   )
-  const swapTransactionRequestInfo = useSwapTransactionRequestInfo({ derivedSwapInfo, tokenApprovalInfo })
+  const swapTransactionRequestInfo = useSwapTransactionRequestInfo({
+    derivedSwapInfo,
+    tokenApprovalInfo,
+  })
 
   if (derivedSwapInfo.trade.trade && isUniswapX(derivedSwapInfo.trade.trade)) {
     return uniswapXTransactionRequestInfo
