@@ -1,3 +1,4 @@
+/* oxlint-disable no-unused-vars */
 import type { Currency } from '@uniswap/sdk-core'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useCallback, useEffect, useMemo } from 'react'

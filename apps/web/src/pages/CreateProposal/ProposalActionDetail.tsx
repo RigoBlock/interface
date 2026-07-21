@@ -1,3 +1,4 @@
+/* oxlint-disable typescript/no-unnecessary-condition */
 import { Currency } from '@uniswap/sdk-core'
 import { Trans } from 'react-i18next'
 import AddressInputPanel from '~/components/AddressInputPanel'
@@ -103,8 +104,8 @@ export const ProposalActionDetail = ({
             key={i}
             value={amount}
             currency={currency}
-            onUserInput={(amount: string) => onAmountInput(amount)}
-            onCurrencySelect={(currency: Currency) => onCurrencySelect(currency)}
+            onUserInput={(value: string) => onAmountInput(value)}
+            onCurrencySelect={(selectedCurrency: Currency) => onCurrencySelect(selectedCurrency)}
             showMaxButton={false}
             showCurrencyAmount={false}
             hideBalance

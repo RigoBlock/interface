@@ -1,3 +1,4 @@
+/* oxlint-disable typescript/no-unnecessary-condition */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Accordion, AnimateTransition, Flex, Separator, Square, Text } from 'ui/src'
@@ -82,8 +83,6 @@ export function MobileMenuDrawer({ isOpen, closeMenu }: { isOpen: boolean; close
       setTimeout(() => setOpenSections([]), 300)
     }
   }, [isOpen])
-
-  const shouldDisplayAppTab = false
 
   return (
     <NavDropdown

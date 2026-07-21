@@ -1,4 +1,4 @@
-import { useTheme } from '@tamagui/core'
+import { useTheme } from 'tamagui'
 import { useCallback, useState } from 'react'
 //import RangeBadge from '~/components/Badge/RangeBadge'
 //import Loader from '~/components/Loader'

@@ -1,3 +1,4 @@
+/* oxlint-disable max-lines */
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useAtom } from 'jotai'
 //import Stake from '~/pages/Stake'
@@ -18,7 +19,6 @@ import {
   getPositionPageTitle,
 } from '~/pages/getPositionPageTitle'
 // High-traffic pages (index and /swap) should not be lazy-loaded.
-import Landing from '~/pages/Landing'
 import Swap from '~/pages/Swap'
 import { shouldDisableExploreRoutesAtom } from '~/state/application/atoms'
 import { isBrowserRouterEnabled } from '~/utils/env'

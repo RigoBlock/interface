@@ -82,13 +82,13 @@ export default function HarvestYieldModal({
     setFarmAmount(yieldAmount)
 
     // try delegation and store hash
-    const hash = await harvestCallback(poolIds, isPool)?.catch((error) => {
+    const txHash = await harvestCallback(poolIds, isPool)?.catch((error) => {
       setAttempting(false)
       logger.info('HarvestModal', 'onHarvest', error)
     })
 
-    if (hash) {
-      setHash(hash)
+    if (txHash) {
+      setHash(txHash)
     }
   }
 
@@ -112,7 +112,11 @@ export default function HarvestYieldModal({
               <AutoColumn gap="md">
                 <RowBetween>
                   <ThemedText.DeprecatedBody fontSize={16} fontWeight={500}>
-                    <Trans>Harvesting {formatCurrencyAmount({ value: yieldAmount })} GRG</Trans>
+                    <Trans
+                      i18nKey="earn.harvest.harvesting"
+                      values={{ amount: formatCurrencyAmount({ value: yieldAmount }) }}
+                      defaults="Harvesting {{amount}} GRG"
+                    />
                   </ThemedText.DeprecatedBody>
                 </RowBetween>
               </AutoColumn>

@@ -1,4 +1,5 @@
-import { useTheme } from '@tamagui/core'
+/* oxlint-disable complexity */
+import { useTheme } from 'tamagui'
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import { Pair } from '@uniswap/v2-sdk'
 import { darken } from 'polished'

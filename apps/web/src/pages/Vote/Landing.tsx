@@ -1,4 +1,4 @@
-import { useTheme } from '@tamagui/core'
+import { useTheme } from 'tamagui'
 import JSBI from 'jsbi'
 import { darken } from 'polished'
 import { useState } from 'react'
@@ -223,14 +223,14 @@ export default function Landing() {
 
             {allProposals.length > 0 && (
               <AutoColumn gap="md">
-                <RowBetween></RowBetween>
+                <RowBetween />
                 <RowBetween>
                   <ThemedText.DeprecatedMain>
                     <Trans i18nKey="vote.landing.showCancelled" />
                   </ThemedText.DeprecatedMain>
                   <Toggle
                     isActive={!hideCancelled}
-                    toggle={() => setHideCancelled((hideCancelled) => !hideCancelled)}
+                    toggle={() => setHideCancelled((prev) => !prev)}
                   />
                 </RowBetween>
               </AutoColumn>

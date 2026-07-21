@@ -9,17 +9,27 @@ import styled from '~/lib/deprecated-styled'
 import { MEDIA_WIDTHS } from '~/theme'
 import { PoolPositionDetails } from '~/types/position'
 
-/**
- * Row follows the same pattern as the Portfolio Staking list: the row element
- * itself carries a surface1 background that turns surface2 on hover, covering
- * the entire row. The Portfolio button stopPropagations so the two click
- * targets never interfere.
- */
+const RowWrapper = styled(Flex)`
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  gap: 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  background-color: ${({ theme }) => theme.surface1};
+  transition: background-color 0.15s ease;
+
+  :hover {
+    background-color: ${({ theme }) => theme.surface2};
+  }
+`
+
 const PortfolioButton = styled.button`
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
-  padding: 6px 14px;
-  border-radius: 8px;
+  padding: 8px 18px;
+  border-radius: 10px;
   border: none;
   cursor: pointer;
   flex-shrink: 0;
@@ -151,23 +161,13 @@ export default function PoolPositionGroupedListItem({
   }/${defaultPosition.address ?? defaultPosition.pool}/${returnPage}`
 
   return (
-    <Flex
+    <RowWrapper
       row
-      width="100%"
-      alignItems="center"
-      justifyContent="space-between"
-      backgroundColor="$surface1"
-      borderRadius="$rounded12"
-      hoverStyle={{ backgroundColor: '$surface2' }}
-      px="$spacing16"
-      py="$spacing12"
-      gap="$spacing12"
-      cursor="pointer"
       onPress={() => navigate(link)}
     >
       <Flex row alignItems="center" gap="$spacing8" style={{ minWidth: 0, flex: 1 }}>
         <Flex style={{ minWidth: 0 }}>
-          <Flex row alignItems="center" gap="$spacing8">
+          <Flex row alignItems="center" gap="$spacing8" flexWrap="wrap">
             <DataText>{poolName}</DataText>
             <ChainInfo>
               {chainIds.map((chainId) => (
@@ -199,10 +199,11 @@ export default function PoolPositionGroupedListItem({
             e.stopPropagation()
             navigate(`/portfolio/${poolAddress}`)
           }}
+          onMouseDown={(e) => e.stopPropagation()}
         >
-          <Trans>Portfolio</Trans>
+          <Trans i18nKey="earn.portfolio" />
         </PortfolioButton>
       </Flex>
-    </Flex>
+    </RowWrapper>
   )
 }

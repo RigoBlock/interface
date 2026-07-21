@@ -1,3 +1,4 @@
+/* oxlint-disable complexity */
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
 import {
   CreateLPPositionRequest,

@@ -1,4 +1,4 @@
-import { useTheme } from '@tamagui/core'
+import { useTheme } from 'tamagui'
 import { useState } from 'react'
 import { ArrowUpCircle, X } from 'react-feather'
 import { Trans } from 'react-i18next'
@@ -76,13 +76,13 @@ export default function VoteModal({ isOpen, onDismiss, proposalId, voteOption }:
     }
 
     // try delegation and store hash
-    const hash = await voteCallback(proposalId, voteOption)?.catch((error) => {
+    const txHash = await voteCallback(proposalId, voteOption)?.catch((error) => {
       setAttempting(false)
       logger.info('VoteModal', 'onVote', error)
     })
 
-    if (hash) {
-      setHash(hash)
+    if (txHash) {
+      setHash(txHash)
     }
   }
 

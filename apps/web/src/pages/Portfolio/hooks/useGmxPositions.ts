@@ -1,11 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
+import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
 import { PollingInterval } from 'uniswap/src/constants/misc'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 
 /** GMX v2 is only deployed on Arbitrum */
 export const GMX_CHAIN_ID = UniverseChainId.ArbitrumOne
 
+/** GMX v2 positions API — arbitrum.gmxapi.io is the canonical endpoint for the
+ *  positions resource and is now explicitly allowed in the CSP. */
 const GMX_POSITIONS_API_URL = 'https://arbitrum.gmxapi.io/v1/positions'
 
 /** GMX scales all USD values by 1e30 */
@@ -103,7 +106,7 @@ function normalizePosition(position: GmxApiPosition): GmxPosition {
 }
 
 async function fetchGmxPositions(address: string): Promise<GmxApiPosition[]> {
-  const response = await fetch(`${GMX_POSITIONS_API_URL}?address=${address.toLowerCase()}`, {
+  const response = await fetch(`${GMX_POSITIONS_API_URL}?address=${normalizeTokenAddressForCache(address)}`, {
     headers: { Accept: 'application/json' },
   })
   if (!response.ok) {
@@ -127,7 +130,7 @@ export function useGmxPositions(address?: string): {
   isError: boolean
 } {
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['gmxPositions', address?.toLowerCase()],
+    queryKey: ['gmxPositions', address ? normalizeTokenAddressForCache(address) : undefined],
     queryFn: () => fetchGmxPositions(address!),
     enabled: !!address,
     refetchInterval: PollingInterval.KindaFast,

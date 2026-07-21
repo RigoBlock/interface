@@ -1,4 +1,4 @@
-import { useTheme } from '@tamagui/core'
+import { useTheme } from 'tamagui'
 import { ArrowUpCircle, CheckCircle } from 'react-feather'
 import { Trans } from 'react-i18next'
 import { Flex, ModalCloseIcon } from 'ui/src'

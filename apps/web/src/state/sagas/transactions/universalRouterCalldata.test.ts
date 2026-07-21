@@ -137,7 +137,11 @@ describe('stripBalanceCheckERC20', () => {
     const { commands: outCommands } = decodeOutputCalldata(stripped)
     expect(outCommands.toLowerCase()).not.toContain('0e')
     expect(outCommands.toLowerCase()).toContain('10') // V4_SWAP remains
-    expect(consoleInfoSpy).toHaveBeenCalledWith(expect.stringContaining('Stripped BALANCE_CHECK_ERC20'))
+    expect(consoleInfoSpy).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.stringContaining('Stripped BALANCE_CHECK_ERC20'),
+    )
     consoleInfoSpy.mockRestore()
   })
 })

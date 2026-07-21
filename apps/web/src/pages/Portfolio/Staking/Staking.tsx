@@ -5,13 +5,10 @@ import { Flex, Shine, Text, useMedia } from 'ui/src'
 import { TokenLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { isTestnetChain } from 'uniswap/src/features/chains/utils'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'
 import { NumberType } from 'utilities/src/format/types'
-import { STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
 import { usePortfolioStaking } from '~/pages/Portfolio/hooks/usePortfolioStaking'
@@ -42,16 +39,16 @@ function ChainStakingRow({
 
   // Calculate total stake for this chain
   const totalStake = useMemo(() => {
-    if (!userFreeStake && !userDelegatedStake && !smartPoolTotalStake) return undefined
+    if (!userFreeStake && !userDelegatedStake && !smartPoolTotalStake) {return undefined}
 
     const grg = GRG[chainId]
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (!grg) return undefined
+    if (!grg) {return undefined}
 
     let total = JSBI.BigInt(0)
-    if (userFreeStake) total = JSBI.add(total, userFreeStake.quotient)
-    if (userDelegatedStake) total = JSBI.add(total, userDelegatedStake.quotient)
-    if (smartPoolTotalStake) total = JSBI.add(total, smartPoolTotalStake.quotient)
+    if (userFreeStake) {total = JSBI.add(total, userFreeStake.quotient)}
+    if (userDelegatedStake) {total = JSBI.add(total, userDelegatedStake.quotient)}
+    if (smartPoolTotalStake) {total = JSBI.add(total, smartPoolTotalStake.quotient)}
 
     return CurrencyAmount.fromRawAmount(grg, total)
   }, [chainId, userFreeStake, userDelegatedStake, smartPoolTotalStake])
@@ -67,7 +64,7 @@ function ChainStakingRow({
     (userDelegatedStake && userDelegatedStake.greaterThan(0)) ||
     (smartPoolTotalStake && smartPoolTotalStake.greaterThan(0))
 
-  if (!hasAnyStake) return null
+  if (!hasAnyStake) {return null}
 
   const formatAmount = (amount?: CurrencyAmount<Token>) => {
     return amount && amount.greaterThan(0) ? formatNumberOrString({ value: amount.toSignificant(6) }) : '—'
@@ -284,58 +281,6 @@ function PoolStakingInfo({ poolAddress, poolId, stakingPoolExists }: PoolStaking
       )}
     </Flex>
   )
-}
-
-interface ChainStakingData {
-  chainId: UniverseChainId
-  chainName: string
-  userFreeStake?: CurrencyAmount<Token>
-  userDelegatedStake?: CurrencyAmount<Token>
-  smartPoolFreeStake?: CurrencyAmount<Token>
-  smartPoolDelegatedStake?: CurrencyAmount<Token>
-  smartPoolTotalStake?: CurrencyAmount<Token>
-}
-
-function useMultiChainStakingData(address?: string, smartPoolAddress?: string) {
-  const { chains: enabledChains, isTestnetModeEnabled } = useEnabledChains()
-
-  // Filter to only chains that have staking contracts
-  const stakingChains = useMemo(() => {
-    return enabledChains.filter((chainId) => {
-      const hasStakingContract = STAKING_PROXY_ADDRESSES[chainId]
-      const isTestnet = isTestnetChain(chainId)
-      return hasStakingContract && isTestnet === isTestnetModeEnabled
-    })
-  }, [enabledChains, isTestnetModeEnabled])
-
-  // Get staking data for all supported chains
-  const chainStakingData = useMemo(() => {
-    return stakingChains
-      .map((chainId) => {
-        const chainInfo = getChainInfo(chainId)
-        const grg = GRG[chainId]
-
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        if (!grg) return null
-
-        return {
-          chainId,
-          chainName: chainInfo.label,
-          grg,
-        }
-      })
-      .filter(
-        (
-          chain,
-        ): chain is {
-          chainId: UniverseChainId
-          chainName: string
-          grg: Token
-        } => chain !== null,
-      )
-  }, [stakingChains])
-
-  return chainStakingData
 }
 
 function MultiChainStakingInfo({

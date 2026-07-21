@@ -36,7 +36,7 @@ export const PortfolioOverviewTables = memo(function PortfolioOverviewTables({
   const showMiniPoolsTable = !!evmAddress
   const showOpenLimitsTable = !!evmAddress && (!chainId || chainId === UniverseChainId.Mainnet)
 
-  const { totalStakeAmount, totalStakeUSD, hasAnyStake, isLoading } = usePortfolioStaking({
+  const { totalStakeAmount, totalStakeUSD, hasAnyStake } = usePortfolioStaking({
     address: stakingAddress || portfolioAddresses.evmAddress,
     chainId, // Filter staking data by selected chain
   })
@@ -72,10 +72,7 @@ export const PortfolioOverviewTables = memo(function PortfolioOverviewTables({
                     Total Value
                   </Text>
                   <Text variant="heading3" color="$neutral1">
-                    {convertFiatAmountFormatted(
-                      parseFloat(totalStakeUSD ? totalStakeUSD.toExact() : '0'),
-                      NumberType.FiatTokenPrice,
-                    )}
+                    {convertFiatAmountFormatted(parseFloat(totalStakeUSD.toExact()), NumberType.FiatTokenPrice)}
                   </Text>
                 </Flex>
               )}

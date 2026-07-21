@@ -107,7 +107,7 @@ export function usePools(
 ): [PoolState, Pool | null][] {
   const poolTokens: ([Token, Token, FeeAmount] | undefined)[] = useMemo(() => {
     if (!chainId) {
-      return new Array(poolKeys.length)
+      return new Array<[Token, Token, FeeAmount] | undefined>(poolKeys.length)
     }
 
     return poolKeys.map(([currencyA, currencyB, feeAmount]) => {
@@ -127,7 +127,7 @@ export function usePools(
   const poolAddresses: (string | undefined)[] = useMemo(() => {
     const v3CoreFactoryAddress = chainId && V3_CORE_FACTORY_ADDRESSES[chainId]
     if (!v3CoreFactoryAddress) {
-      return Array(poolTokens.length).fill(undefined)
+      return Array<string | undefined>(poolTokens.length).fill(undefined)
     }
 
     return poolTokens.map(

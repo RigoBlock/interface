@@ -1,4 +1,4 @@
-import { useTheme } from '@tamagui/core'
+import { useTheme } from 'tamagui'
 import { useState } from 'react'
 import { ArrowUpCircle, X } from 'react-feather'
 import { Trans } from 'react-i18next'
@@ -66,13 +66,13 @@ export default function ExecuteModal({ isOpen, onDismiss, proposalId }: ExecuteM
     setAttempting(true)
 
     // try delegation and store hash
-    const hash = await executeCallback(proposalId)?.catch((error) => {
+    const txHash = await executeCallback(proposalId)?.catch((error) => {
       setAttempting(false)
       logger.info('ExecuteModal', 'onExecute', error)
     })
 
-    if (hash) {
-      setHash(hash)
+    if (txHash) {
+      setHash(txHash)
     }
   }
 

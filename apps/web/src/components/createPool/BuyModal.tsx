@@ -1,3 +1,4 @@
+/* oxlint-disable complexity no-shadow react-hooks/exhaustive-deps typescript/no-unsafe-return */
 import type { TransactionResponse } from '@ethersproject/providers'
 import { Currency, CurrencyAmount /*, Token*/ } from '@uniswap/sdk-core'
 import { useWeb3React } from '@web3-react/core'
@@ -218,7 +219,11 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
                 isAccount={true}
                 label=""
                 renderBalance={(amount) => (
-                  <Trans>Available to deposit: {formatCurrencyAmount({ value: amount })}</Trans>
+                  <Trans
+                    i18nKey="createPool.buy.availableToDeposit"
+                    values={{ amount: formatCurrencyAmount({ value: amount }) }}
+                    defaults="Available to deposit: {{amount}}"
+                  />
                 )}
                 id="buy-pool-tokens"
               />

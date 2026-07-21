@@ -43,10 +43,10 @@ export default function SetSpreadModal({ isOpen, currentSpread, onDismiss, title
   const [typed, setTyped] = useState('')
 
   // wrapped onUserInput to clear signatures
-  const onUserInput = useCallback((typed: string) => {
+  const onUserInput = useCallback((value: string) => {
     const numberRegEx = RegExp(`^[0-9]*[.,]?[0-9]*$`)
-    if (numberRegEx.test(String(typed))) {
-      setTyped(typed)
+    if (numberRegEx.test(String(value))) {
+      setTyped(value)
     }
   }, [])
 
@@ -85,13 +85,13 @@ export default function SetSpreadModal({ isOpen, currentSpread, onDismiss, title
     }
 
     // try set spread and store hash
-    const hash = await setSpreadCallback(parsedSpread)?.catch((error) => {
+    const txHash = await setSpreadCallback(parsedSpread)?.catch((error) => {
       setAttempting(false)
       logger.info('SetSpreadModal', 'onSetSpread', error)
     })
 
-    if (hash) {
-      setHash(hash)
+    if (txHash) {
+      setHash(txHash)
     }
   }
 

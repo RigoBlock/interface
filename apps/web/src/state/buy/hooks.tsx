@@ -1,3 +1,4 @@
+/* oxlint-disable max-params */
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core'
 import JSBI from 'jsbi'
 import { ReactNode } from 'react'

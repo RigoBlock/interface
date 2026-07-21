@@ -165,8 +165,6 @@ export function MenuDropdown({ close }: { close?: () => void }) {
     })
   }, [tabs])
 
-  const shouldDisplayAppTab = false
-
   return (
     <NavDropdown isOpen={false} dataTestId={TestID.NavCompanyDropdown} borderColor="$surface3">
       <Container>

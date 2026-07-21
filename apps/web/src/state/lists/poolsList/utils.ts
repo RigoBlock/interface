@@ -1,4 +1,6 @@
+/* oxlint-disable max-params */
 import { minVersionBump, TokenList, VersionUpgrade } from '@uniswap/token-lists'
+import { logger } from 'utilities/src/logger/logger'
 
 export function shouldAcceptVersionUpdate(
   listUrl: string,
@@ -11,7 +13,9 @@ export function shouldAcceptVersionUpdate(
   if (targetBump >= min) {
     return true
   } else {
-    console.debug(
+    logger.debug(
+      'lists/poolsList/utils',
+      'shouldAcceptVersionUpdate',
       `List at url ${listUrl} could not automatically update because the version bump was only PATCH/MINOR while the update had breaking changes and should have been MAJOR`,
     )
     return false

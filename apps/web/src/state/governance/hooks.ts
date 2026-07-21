@@ -1,3 +1,4 @@
+/* oxlint-disable no-shadow react-hooks/exhaustive-deps typescript/no-unsafe-return */
 /* eslint-disable max-lines */
 import { defaultAbiCoder, Interface } from '@ethersproject/abi'
 import { isAddress } from '@ethersproject/address'
@@ -9,7 +10,6 @@ import { useWeb3React } from '@web3-react/core'
 import JSBI from 'jsbi'
 import { useCallback, useMemo } from 'react'
 import GOVERNANCE_RB_ABI from 'uniswap/src/abis/governance.json'
-import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
 import RB_REGISTRY_ABI from 'uniswap/src/abis/rb-registry.json'
 import STAKING_ABI from 'uniswap/src/abis/staking-impl.json'
 import STAKING_PROXY_ABI from 'uniswap/src/abis/staking-proxy.json'

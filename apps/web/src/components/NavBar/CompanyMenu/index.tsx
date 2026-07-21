@@ -1,4 +1,3 @@
-import { useTheme } from '@tamagui/core'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { Flex, Popover, styled, Text, useMedia } from 'ui/src'
@@ -23,7 +22,6 @@ const ArrowDownWrapper = styled(Text, {
 })
 
 export function CompanyMenu() {
-  const theme = useTheme()
   const popoverRef = useRef<Popover>(null)
   const media = useMedia()
   const isMobileDrawer = useIsMobileDrawer()

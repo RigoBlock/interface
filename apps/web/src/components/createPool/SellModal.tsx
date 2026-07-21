@@ -1,9 +1,10 @@
+/* oxlint-disable complexity no-shadow no-unused-vars typescript/no-unnecessary-condition typescript/no-unsafe-return */
 import type { TransactionResponse } from '@ethersproject/providers'
 import { Currency, CurrencyAmount /*, Token*/ } from '@uniswap/sdk-core'
 import JSBI from 'jsbi'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 //import { useWeb3React } from '@web3-react/core'
-import { Trans } from 'react-i18next'
+import { Trans, useTranslation } from 'react-i18next'
 import { ModalCloseIcon } from 'ui/src'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
@@ -58,6 +59,7 @@ export default function SellModal({
   const transaction = useTransaction(hash)
   const confirmed = useIsTransactionConfirmed(hash)
   const { formatCurrencyAmount } = useLocalizationContext()
+  const { t } = useTranslation()
   const transactionSuccess = transaction?.status === TransactionStatus.Success
 
   const wrappedOnDismiss = useCallback(() => {
@@ -195,7 +197,11 @@ export default function SellModal({
                 isAccount={true}
                 label=""
                 renderBalance={(amount) => (
-                  <Trans>Available to withdraw: {formatCurrencyAmount({ value: amount })}</Trans>
+                  <Trans
+                    i18nKey="createPool.sell.availableToWithdraw"
+                    values={{ amount: formatCurrencyAmount({ value: amount }) }}
+                    defaults="Available to withdraw: {{amount}}"
+                  />
                 )}
                 id="buy-pool-tokens"
               />

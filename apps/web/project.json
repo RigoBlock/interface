@@ -105,14 +105,14 @@
       ]
     },
     "start": {
-      "command": "vite dev",
+      "command": "CHOKIDAR_USEPOLLING=true vite dev",
       "options": {
         "cwd": "{projectRoot}"
       },
       "continuous": true
     },
     "dev": {
-      "command": "vite dev",
+      "command": "CHOKIDAR_USEPOLLING=true vite dev",
       "options": {
         "cwd": "{projectRoot}"
       }

@@ -1,3 +1,4 @@
+/* oxlint-disable max-params */
 import { darken } from 'polished'
 import { useState } from 'react'
 import styled, { keyframes } from '~/lib/deprecated-styled'

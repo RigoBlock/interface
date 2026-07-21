@@ -1,6 +1,5 @@
 import { SharedEventName } from '@uniswap/analytics-events'
 import { ReactNode, useEffect, useMemo, useRef } from 'react'
-import { ArrowDown, Info } from 'react-feather'
 import { useTranslation } from 'react-i18next'
 import { Flex, ModalCloseIcon, Text } from 'ui/src'
 import { ArrowUpRight } from 'ui/src/components/icons/ArrowUpRight'
@@ -13,7 +12,6 @@ import Card, { DarkGrayCard } from '~/components/Card/cards'
 import { AutoColumn } from '~/components/deprecated/Column'
 import Row, { AutoRow, RowBetween } from '~/components/deprecated/Row'
 import { useModalState } from '~/hooks/useModalState'
-import { deprecatedStyled as styled } from '~/lib/deprecated-styled'
 import { ExternalLink } from '~/theme/components/Links'
 
 export function PrivacyPolicyModal() {

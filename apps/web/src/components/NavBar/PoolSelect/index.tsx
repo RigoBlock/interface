@@ -6,6 +6,7 @@ import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { SwitchNetworkAction } from '~/components/Popups/types'
 import CurrencySearchModal from '~/components/SearchModal/CurrencySearchModal'
 import { useActiveSmartPool, useSelectActiveSmartPool } from '~/state/application/hooks'
+import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
 
 const PoolSelectButton = styled(Flex, {
   row: true,
@@ -50,7 +51,7 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
   const hasInitialized = useRef(false)
 
   const activePoolExists = operatedPools.some(
-    (pool) => pool.address.toLowerCase() === activeSmartPool?.address?.toLowerCase(),
+    (pool) => normalizeTokenAddressForCache(pool.address) === normalizeTokenAddressForCache(activeSmartPool.address ?? null),
   )
 
   useEffect(() => {
@@ -83,7 +84,7 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
     [onPoolSelect],
   )
 
-  if (!activeSmartPool?.name) {
+  if (!activeSmartPool.name) {
     return null
   }
 

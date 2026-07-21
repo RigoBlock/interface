@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { GraphQLApi } from '@universe/api'
-import { PropsWithChildren, useCallback, useEffect, useMemo, useState } from 'react'
+import { PropsWithChildren, useCallback, useEffect, useMemo } from 'react'
 import { useLocation } from 'react-router'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { usePortfolioValueModifiers } from 'uniswap/src/features/portfolio/balances/hooks'

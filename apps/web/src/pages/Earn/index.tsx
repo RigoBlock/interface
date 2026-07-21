@@ -229,8 +229,15 @@ export default function Earn() {
   const showActionBar = !account.isConnected || (selectedTab === EarnTab.AllPools && (!!yieldAmount || hasFreeStake))
 
   const createButton = account.isConnected ? (
-    <Button size="xsmall" variant="branded" fill={false} icon={<Plus />} onPress={toggleCreateModal}>
-      <Trans>Create</Trans>
+    <Button
+      size="xsmall"
+      variant="branded"
+      fill={false}
+      icon={<Plus />}
+      onPress={toggleCreateModal}
+      style={{ width: 'fit-content' }}
+    >
+      <Trans i18nKey="earn.create" />
     </Button>
   ) : undefined
 

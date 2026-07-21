@@ -1,4 +1,4 @@
-/* oxlint-disable max-lines */
+/* oxlint-disable react-hooks/exhaustive-deps */
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
 import {
   CreateLPPositionRequest,

@@ -6,8 +6,10 @@ import { keccak256 } from '@ethersproject/keccak256'
 import { parseBytes32String } from '@ethersproject/strings'
 import { keepPreviousData } from '@tanstack/react-query'
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
+import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 import JSBI from 'jsbi'
 import { useEffect, useMemo, useState } from 'react'
+import { logger } from 'utilities/src/logger/logger'
 import RB_REGISTRY_ABI from 'uniswap/src/abis/rb-registry.json'
 import STAKING_ABI from 'uniswap/src/abis/staking-impl.json'
 import { GRG } from 'uniswap/src/constants/tokens'
@@ -82,7 +84,7 @@ async function fetchChainPools(chainId: number): Promise<PoolRegisteredLog[]> {
       })
     }
   } catch (e) {
-    console.error(`Failed to fetch pools for chain ${chainId}:`, e)
+    logger.debug('multichain', 'fetchChainPools', `Failed to fetch pools for chain ${chainId}`, e)
   }
   return pools
 }
@@ -232,7 +234,18 @@ function getUserAccountSlot(userAddress: string): bigint {
   return BigInt(keccak256(encoded))
 }
 
-function extractStorageValues(storageValue?: string): {
+function safeBigNumber(value: unknown): BigNumber {
+  if (typeof value === 'bigint' || typeof value === 'string' || typeof value === 'number') {
+    try {
+      return BigNumber.from(value.toString())
+    } catch {
+      return BigNumber.from(0)
+    }
+  }
+  return BigNumber.from(0)
+}
+
+function extractStorageValues(storageValue?: unknown): {
   owner?: string
   userBalance?: string
 } {
@@ -256,7 +269,7 @@ function extractStorageValues(storageValue?: string): {
   // Second slot: [6 bytes epoch][26 bytes balance]
   const secondSlot = hex.slice(64, 128)
   const userBalanceHex = secondSlot.slice(12, 64)
-  const userBalance = BigNumber.from('0x' + userBalanceHex).toString()
+  const userBalance = safeBigNumber('0x' + userBalanceHex).toString()
   return { owner, userBalance }
 }
 
@@ -427,7 +440,7 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
       },
       freeStakeMeta: { idx: freeStakeIdx, chainId: freeStakeChainId },
     }
-  }, [pools, account.address, account.chainId, STAKING_CALLS_PER_POOL])
+  }, [pools, account.address, account.chainId])
 
   const { data: rawData, isLoading } = useReadContracts({
     contracts,
@@ -464,10 +477,7 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
       // GRG totalSupply for this chain — only accept numeric results
       // (a stale, differently-shaped query response may briefly hold a tuple here)
       const supplyRaw = rawData[cm.supplyOffset]?.result
-      const totalSupply =
-        typeof supplyRaw === 'bigint' || typeof supplyRaw === 'string' || typeof supplyRaw === 'number'
-          ? parseFloat(BigNumber.from(supplyRaw.toString()).toString())
-          : 0
+      const totalSupply = parseFloat(safeBigNumber(supplyRaw).toString())
 
       // Per-chain totals for reward ratio
       let totalDelegatedStake = BigNumber.from(0)
@@ -477,8 +487,8 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
         const baseIndex = cm.baseOffset + i * STAKING_CALLS_PER_POOL
         const delegated = (rawData[baseIndex + 1]?.result as any)?.nextEpochBalance
         const ownStake = (rawData[baseIndex + 2]?.result as any)?.nextEpochBalance
-        totalDelegatedStake = totalDelegatedStake.add(delegated ? BigNumber.from(delegated) : BigNumber.from(0))
-        totalPoolsOwnStake = totalPoolsOwnStake.add(ownStake ? BigNumber.from(ownStake) : BigNumber.from(0))
+        totalDelegatedStake = totalDelegatedStake.add(safeBigNumber(delegated))
+        totalPoolsOwnStake = totalPoolsOwnStake.add(safeBigNumber(ownStake))
       })
 
       const totalRewardPool = totalSupply * 0.02
@@ -490,8 +500,8 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
         const operatorShare = Number((rawData[baseIndex]?.result as any)?.operatorShare ?? 0)
         const delegated = (rawData[baseIndex + 1]?.result as any)?.nextEpochBalance
         const ownStake = (rawData[baseIndex + 2]?.result as any)?.nextEpochBalance
-        const delegatedBN = delegated ? BigNumber.from(delegated) : BigNumber.from(0)
-        const ownStakeBN = ownStake ? BigNumber.from(ownStake) : BigNumber.from(0)
+        const delegatedBN = safeBigNumber(delegated)
+        const ownStakeBN = safeBigNumber(ownStake)
 
         const epochStats = rawData[baseIndex + 3]?.result as any
         const currentEpochReward = epochStats?.feesCollected?.toString() ?? '0'
@@ -500,16 +510,19 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
         let userIsOwner = false
         let userBalance: string | undefined
         if (account.address && STAKING_CALLS_PER_POOL === 6) {
-          const userStake = (rawData[baseIndex + 4]?.result as any)?.nextEpochBalance
-          if (userStake) {
-            userHasStake = JSBI.greaterThan(JSBI.BigInt(String(userStake)), JSBI.BigInt(0))
-          }
+          const userStakeRaw = (rawData[baseIndex + 4]?.result as any)?.nextEpochBalance
+          const userStakeBN = safeBigNumber(userStakeRaw)
+          userHasStake = userStakeBN.gt(0)
           // Storage slot data: owner + user token balance (baseIndex + 5)
           const storageResult = rawData[baseIndex + 5]?.result
           if (typeof storageResult === 'string') {
             const { owner, userBalance: bal } = extractStorageValues(storageResult)
-            if (owner && account.address && owner.toLowerCase() === account.address.toLowerCase()) {
-              userIsOwner = true
+            if (owner && account.address) {
+              const chainId = (pools[originalIndex].chainId ?? UniverseChainId.Mainnet) as UniverseChainId
+              userIsOwner = areAddressesEqual({
+                addressInput1: { address: owner, chainId },
+                addressInput2: { address: account.address, chainId },
+              })
             }
             userBalance = bal
           }
@@ -544,8 +557,8 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
     if (freeStakeMeta.idx >= 0 && rawData[freeStakeMeta.idx]?.result) {
       const grg = GRG[freeStakeMeta.chainId]
       const res = rawData[freeStakeMeta.idx].result as any
-      const currentEpoch = BigNumber.from(res.currentEpochBalance?.toString() ?? '0')
-      const nextEpoch = BigNumber.from(res.nextEpochBalance?.toString() ?? '0')
+      const currentEpoch = safeBigNumber(res.currentEpochBalance)
+      const nextEpoch = safeBigNumber(res.nextEpochBalance)
       const lower = currentEpoch.gt(nextEpoch) ? nextEpoch : currentEpoch
       freeStakeBalance = CurrencyAmount.fromRawAmount(grg, JSBI.BigInt(lower.toString()))
     }
@@ -559,12 +572,10 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
       const grg = GRG[account.chainId]
       for (let i = 0; i < rewardsMeta.poolIds.length; i++) {
         const rewardResult = rawData[rewardsMeta.connectedChainBase + i]?.result
-        // Skip non-numeric results (e.g. tuple from a stale, differently-shaped query response)
-        if (typeof rewardResult === 'bigint' || typeof rewardResult === 'string' || typeof rewardResult === 'number') {
-          const amount = CurrencyAmount.fromRawAmount(grg, JSBI.BigInt(String(rewardResult)))
-          if (JSBI.greaterThan(amount.quotient, JSBI.BigInt(0))) {
-            unclaimedRewards.push({ poolId: rewardsMeta.poolIds[i], amount })
-          }
+        const rewardAmount = safeBigNumber(rewardResult)
+        if (rewardAmount.gt(0)) {
+          const amount = CurrencyAmount.fromRawAmount(grg, JSBI.BigInt(rewardAmount.toString()))
+          unclaimedRewards.push({ poolId: rewardsMeta.poolIds[i], amount })
         }
       }
     }

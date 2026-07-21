@@ -1,3 +1,4 @@
+/* oxlint-disable typescript/no-unnecessary-condition */
 import type { Filter } from '@ethersproject/providers'
 import { useEffect, useMemo, useRef } from 'react'
 import { useAccount } from '~/hooks/useAccount'

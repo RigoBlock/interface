@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import { Interface } from '@ethersproject/abi'
 import { getAddress, isAddress } from '@ethersproject/address'
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core'
@@ -393,12 +392,12 @@ export default function CreateProposal() {
       }
     }
 
-    const hash = await createProposalCallback(createProposalData)?.catch(() => {
+    const txHash = await createProposalCallback(createProposalData)?.catch(() => {
       setAttempting(false)
     })
 
-    if (hash) {
-      setHash(hash)
+    if (txHash) {
+      setHash(txHash)
     }
   }
 

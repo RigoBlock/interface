@@ -216,7 +216,7 @@ export function findExpandedMessageInTrace(trace: CallTrace): string | undefined
   if (Array.isArray(trace.calls)) {
     for (const child of trace.calls) {
       const result = findExpandedMessageInTrace(child)
-      if (result) return result
+      if (result) {return result}
     }
   }
   return undefined
@@ -470,7 +470,12 @@ export function modifyAcrossDepositV3ForSmartPool(fnParams: ModifyAcrossParams):
     // Encode using RigoBlock's depositV3 format
     return encodeRigoblockDepositV3(modifiedParams)
   } catch (error) {
-    console.error('Failed to modify Across depositV3 for smart pool:', error)
+    logger.error(error, {
+      tags: {
+        file: 'bridgeCalldata',
+        function: 'modifyAcrossDepositV3ForSmartPool',
+      },
+    })
     throw error
   }
 }

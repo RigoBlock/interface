@@ -1,6 +1,7 @@
+import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
+import { PollingInterval } from 'uniswap/src/constants/misc'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
-import { PollingInterval } from 'uniswap/src/constants/misc'
 
 const GMX_MARKETS_API_URL = 'https://arbitrum-api.gmxinfra.io/markets'
 
@@ -38,7 +39,7 @@ export function useGmxMarkets(): { marketsByAddress: Map<string, GmxMarketInfo>;
   const marketsByAddress = useMemo(() => {
     const map = new Map<string, GmxMarketInfo>()
     for (const market of data ?? []) {
-      map.set(market.marketToken.toLowerCase(), market)
+      map.set(normalizeTokenAddressForCache(market.marketToken), market)
     }
     return map
   }, [data])

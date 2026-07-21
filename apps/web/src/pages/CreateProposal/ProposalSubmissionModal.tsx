@@ -1,4 +1,4 @@
-import { useTheme } from '@tamagui/core'
+import { useTheme } from 'tamagui'
 import { Trans } from 'react-i18next'
 import { Link } from 'react-router'
 import { Text } from 'rebass'

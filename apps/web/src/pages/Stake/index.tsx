@@ -110,7 +110,7 @@ export default function Stake() {
 
   // Convert from new format to old format for backward compatibility
   const unclaimedRewards = useMemo(() => {
-    if (!unclaimedRewardsData || unclaimedRewardsData.length === 0) {
+    if (unclaimedRewardsData.length === 0) {
       return undefined
     }
     return unclaimedRewardsData.map((reward) => ({
@@ -185,11 +185,11 @@ export default function Stake() {
     }
   }
 
-  const showItems = (records: number, orderedPools: PoolRegisteredLog[]) => {
+  const showItems = (maxRecords: number, pools: PoolRegisteredLog[]) => {
     const items: PoolRegisteredLog[] = []
 
-    for (let i = 0; i < records && i < orderedPools.length; i++) {
-      items.push(orderedPools[i])
+    for (let i = 0; i < maxRecords && i < pools.length; i++) {
+      items.push(pools[i])
     }
 
     return items

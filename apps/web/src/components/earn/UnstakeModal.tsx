@@ -62,8 +62,8 @@ export default function UnstakeModal({ isOpen, isPool, freeStakeBalance, onDismi
   const { percent, setPercent } = useRemoveLiquidityModalContext()
   const { formatCurrencyAmount } = useLocalizationContext()
   const onPercentSelect = useCallback(
-    (percent: number) => {
-      setPercent(percent.toString())
+    (value: number) => {
+      setPercent(value.toString())
     },
     [setPercent],
   )
@@ -110,13 +110,13 @@ export default function UnstakeModal({ isOpen, isPool, freeStakeBalance, onDismi
     }
 
     // try delegation and store hash
-    const hash = await unstakeCallback(parsedAmount, isPool)?.catch((error) => {
+    const txHash = await unstakeCallback(parsedAmount, isPool)?.catch((error) => {
       setAttempting(false)
       logger.info('UnstakeModal', 'onUnstake', error)
     })
 
-    if (hash) {
-      setHash(hash)
+    if (txHash) {
+      setHash(txHash)
     }
   }
 
@@ -161,7 +161,11 @@ export default function UnstakeModal({ isOpen, isPool, freeStakeBalance, onDismi
               <AutoColumn gap="md">
                 <RowBetween>
                   <ThemedText.DeprecatedBody fontSize={16} fontWeight={500}>
-                    <Trans>Withdrawing {formatCurrencyAmount({ value: parsedAmount })} GRG</Trans>
+                    <Trans
+                      i18nKey="earn.unstake.withdrawing"
+                      values={{ amount: formatCurrencyAmount({ value: parsedAmount }) }}
+                      defaults="Withdrawing {{amount}} GRG"
+                    />
                   </ThemedText.DeprecatedBody>
                 </RowBetween>
               </AutoColumn>

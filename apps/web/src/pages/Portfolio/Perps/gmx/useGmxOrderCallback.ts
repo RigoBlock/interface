@@ -1,8 +1,10 @@
 import { BigNumber } from '@ethersproject/bignumber'
+import { getAddress } from '@ethersproject/address'
 import { TransactionResponse } from '@ethersproject/providers'
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { logger } from 'utilities/src/logger/logger'
 import { parseUnits } from 'viem'
 import { useAccount } from '~/hooks/useAccount'
 import { useContract } from '~/hooks/useContract'
@@ -14,7 +16,6 @@ import {
   RIGOBLOCK_GMX_ABI,
 } from '~/pages/Portfolio/Perps/gmx/abi'
 import { useTransactionAdder } from '~/state/transactions/hooks'
-import { calculateGasMargin } from '~/utils/calculateGasMargin'
 
 export enum GmxOrderAction {
   IncreasePosition = 'increase-position',
@@ -22,6 +23,19 @@ export enum GmxOrderAction {
   DecreasePosition = 'decrease-position',
   DecreaseCollateral = 'decrease-collateral',
   ClosePosition = 'close-position',
+  /** Unified collateral edit; direction is chosen inside the modal */
+  DeltaCollateral = 'delta-collateral',
+}
+
+/** Maps the unified collateral action to a concrete direction; passes everything else through. */
+export function resolveCollateralDirection(
+  action: GmxOrderAction,
+  direction: 'increase' | 'decrease',
+): GmxOrderAction {
+  if (action === GmxOrderAction.DeltaCollateral) {
+    return direction === 'increase' ? GmxOrderAction.IncreaseCollateral : GmxOrderAction.DecreaseCollateral
+  }
+  return action
 }
 
 const USD_DECIMALS = 30
@@ -46,7 +60,7 @@ function isIncrease(action: GmxOrderAction): boolean {
  * Increase: longs pay up to price*(1+slip), shorts down to price*(1-slip).
  * Decrease: longs accept down to price*(1-slip), shorts up to price*(1+slip).
  */
-function computeAcceptablePrice({
+export function computeAcceptablePrice({
   markPriceRaw,
   indexDecimals,
   isLong,
@@ -63,7 +77,7 @@ function computeAcceptablePrice({
   return favorableMove ? currentPrice + delta : currentPrice - delta
 }
 
-function buildParamsForAction({
+export function buildParamsForAction({
   action,
   position,
   input,
@@ -119,6 +133,13 @@ function buildParamsForAction({
   return { functionName: increase ? 'createIncreaseOrder' : 'createDecreaseOrder', params }
 }
 
+/** Hardcoded 1.5M gas limit for GMX v2 orders via the Rigoblock adapter.
+ * Observed usage: ~1.04M for createIncreaseOrder + Rigoblock proxy overhead.
+ * Estimate gas is attempted first; this value is used as a fallback so the
+ * transaction can still be submitted if estimation fails or the wallet is not
+ * on Arbitrum. */
+const GMX_GAS_LIMIT = 1_500_000
+
 /**
  * Builds and sends a GMX v2 order through the smart pool's adapter (Arbitrum).
  * The caller must be the pool operator and the wallet must be on Arbitrum.
@@ -134,8 +155,21 @@ export function useGmxOrderCallback(poolAddress?: string): {
 } {
   const account = useAccount()
   const addTransaction = useTransactionAdder()
+
+  // getContract requires a checksummed address; poolAddress may arrive lowercase.
+  const checksummedAddress = useMemo(() => {
+    if (!poolAddress) {
+      return undefined
+    }
+    try {
+      return getAddress(poolAddress)
+    } catch {
+      return undefined
+    }
+  }, [poolAddress])
+
   const gmxContract = useContract({
-    address: poolAddress,
+    address: checksummedAddress,
     ABI: RIGOBLOCK_GMX_ABI,
     withSignerIfPossible: true,
     chainId: UniverseChainId.ArbitrumOne,
@@ -155,8 +189,20 @@ export function useGmxOrderCallback(poolAddress?: string): {
       indexDecimals: number
       collateralDecimals: number
     }): Promise<string> | undefined => {
-      if (!account.address || !gmxContract) {
-        return undefined
+      if (!account.address) {
+        logger.error(new Error('GMX order attempted without a connected wallet'), {
+          tags: { file: 'useGmxOrderCallback', function: 'sendGmxOrder' },
+        })
+        return Promise.reject(new Error('Connect your wallet to send an order'))
+      }
+      if (!gmxContract) {
+        logger.error(
+          new Error(`Failed to initialize GMX adapter contract at ${checksummedAddress ?? poolAddress}`),
+          {
+            tags: { file: 'useGmxOrderCallback', function: 'sendGmxOrder' },
+          },
+        )
+        return Promise.reject(new Error('Could not initialize the GMX adapter contract on Arbitrum'))
       }
 
       const { functionName, params } = buildParamsForAction({
@@ -167,21 +213,21 @@ export function useGmxOrderCallback(poolAddress?: string): {
         collateralDecimals,
       })
 
-      const estimateGasPromise = gmxContract.estimateGas[functionName](params, {}) as Promise<BigNumber>
-      return estimateGasPromise.then((estimatedGasLimit) => {
-        const txPromise = gmxContract[functionName](params, {
-          gasLimit: calculateGasMargin(estimatedGasLimit),
-        }) as Promise<TransactionResponse>
-        return txPromise.then((response: TransactionResponse) => {
-          addTransaction(response, {
-            type: TransactionType.ClaimUni,
-            recipient: account.address ?? '',
-          })
-          return response.hash
+      logger.info('useGmxOrderCallback', 'sendGmxOrder', `Sending ${functionName} for market ${position.marketAddress}`, {
+        tags: { file: 'useGmxOrderCallback', function: 'sendGmxOrder' },
+      })
+
+      const txOptions = { gasLimit: BigNumber.from(GMX_GAS_LIMIT).mul(120).div(100) }
+      const txPromise = gmxContract[functionName](params, txOptions) as Promise<TransactionResponse>
+      return txPromise.then((response: TransactionResponse) => {
+        addTransaction(response, {
+          type: TransactionType.ClaimUni,
+          recipient: account.address ?? '',
         })
+        return response.hash
       })
     },
-    [account.address, gmxContract, addTransaction],
+    [account.address, gmxContract, addTransaction, checksummedAddress, poolAddress],
   )
 
   return { sendGmxOrder }

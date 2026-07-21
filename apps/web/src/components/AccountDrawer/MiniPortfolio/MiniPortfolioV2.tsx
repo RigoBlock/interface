@@ -25,11 +25,6 @@ export default function MiniPortfolioV2({ evmAddress, svmAddress }: { evmAddress
     accountDrawer.close()
   }, [navigate, accountDrawer, portfolioAddress])
 
-  const handleViewActivity = useCallback(() => {
-    navigate(portfolioAddress ? `/portfolio/${portfolioAddress}/activity` : '/portfolio/activity')
-    accountDrawer.close()
-  }, [navigate, accountDrawer, portfolioAddress])
-
   const { renderActivityItem, sectionData } = useActivityData({
     evmOwner: evmAddress,
     svmOwner: svmAddress,

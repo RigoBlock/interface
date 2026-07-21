@@ -14,7 +14,7 @@ export function getInitialLogoUrl({
   address?: string | null
   chainId?: number | null
   backupImg?: string | null
-}) {
+}): string | undefined {
   const networkName = isUniverseChainId(chainId)
     ? (getChainInfo(chainId).assetRepoNetworkName ?? 'ethereum')
     : 'ethereum'
@@ -35,7 +35,7 @@ export function getInitialLogoUrl({
       address === GRG[UniverseChainId.Unichain].address) &&
     checksummedAddress
   ) {
-    return RIGOBLOCK_LOGO
+    return RIGOBLOCK_LOGO as string
   }
 
   if (chainId === UniverseChainId.Celo && address === nativeOnChain(chainId).wrapped.address) {

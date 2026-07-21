@@ -1,6 +1,5 @@
 import { Currency } from '@uniswap/sdk-core'
 import { useCallback, useEffect, useMemo } from 'react'
-import { useLocation } from 'react-router'
 import { Flex } from 'ui/src'
 import { TokenSelectorContent } from 'uniswap/src/components/TokenSelector/TokenSelector'
 import { TokenSelectorFlow, TokenSelectorVariation } from 'uniswap/src/components/TokenSelector/types'
@@ -19,6 +18,7 @@ import { useActiveSmartPool } from '~/state/application/hooks'
 import { useMultichainContext } from '~/state/multichain/useMultichainContext'
 import { useSwapAndLimitContext } from '~/state/swap/useSwapContext'
 import { showSwitchNetworkNotification } from '~/utils/showSwitchNetworkNotification'
+import { assume0xAddress } from '~/utils/wagmi'
 
 interface CurrencySearchProps {
   currencyField: CurrencyField
@@ -45,7 +45,6 @@ export function CurrencySearch({
     useMultichainContext()
   const { currentTab } = useSwapAndLimitContext()
   const prevChainId = usePrevious(chainId)
-  const { pathname } = useLocation()
 
   const selectChain = useSelectChain()
   const { chains } = useEnabledChains()
@@ -56,7 +55,7 @@ export function CurrencySearch({
     () =>
       smartPoolAddress
         ? {
-            evmAddress: smartPoolAddress as `0x${string}`,
+            evmAddress: assume0xAddress(smartPoolAddress),
             svmAddress: undefined,
           }
         : activeAddresses,

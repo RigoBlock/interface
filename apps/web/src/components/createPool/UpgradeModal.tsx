@@ -62,13 +62,13 @@ export default function UpgradeModal({ isOpen, implementation, onDismiss, title 
     }
 
     // try set spread and store hash
-    const hash = await upgradeCallback()?.catch((error) => {
+    const txHash = await upgradeCallback()?.catch((error) => {
       setAttempting(false)
       logger.info('UpgradeModal', 'onUpgrade', error)
     })
 
-    if (hash) {
-      setHash(hash)
+    if (txHash) {
+      setHash(txHash)
     }
   }
 

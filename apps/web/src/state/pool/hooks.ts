@@ -1,4 +1,4 @@
-/* eslint-disable max-params */
+/* eslint-disable max-params, max-lines */
 import { Interface } from '@ethersproject/abi'
 import { isAddress } from '@ethersproject/address'
 import { BigNumber } from '@ethersproject/bignumber'
@@ -174,13 +174,12 @@ export function useCreateCallback(): (options: {
       if (!factoryContract) {
         throw new Error('No Factory Contract!')
       }
-      return factoryContract.estimateGas.createPool(name, symbol, parsedAddress, {}).then((estimatedGasLimit) => {
-        return factoryContract
-          .createPool(name, symbol, parsedAddress, {
+      return (factoryContract.estimateGas.createPool(name, symbol, parsedAddress, {}) as Promise<BigNumber>).then(
+        (estimatedGasLimit): Promise<string> => {
+          return (factoryContract.createPool(name, symbol, parsedAddress, {
             value: null,
             gasLimit: calculateGasMargin(estimatedGasLimit),
-          })
-          .then((response: TransactionResponse) => {
+          }) as Promise<TransactionResponse>).then((response: TransactionResponse): string => {
             addTransaction(response, {
               type: TransactionType.Deploy,
               name: `${name} (${symbol})`,
@@ -189,7 +188,8 @@ export function useCreateCallback(): (options: {
             })
             return response.hash
           })
-      })
+        },
+      )
     },
     [account.address, addTransaction, account.chainId, provider, factoryContract],
   )
@@ -202,12 +202,12 @@ function useRegisteredPools(): PoolRegisteredLog[] | undefined {
 
   // create filters for Registered events
   const filter = useMemo(() => {
-    const filter = registry?.filters.Registered()
-    if (!filter) {
+    const registeredFilter = registry?.filters.Registered()
+    if (!registeredFilter) {
       return undefined
     }
     return {
-      ...filter,
+      ...registeredFilter,
       fromBlock,
       toBlock,
     }
@@ -258,13 +258,12 @@ export function useSetLockupCallback(): (lockup: string | undefined) => undefine
       if (!poolContract) {
         throw new Error('No Pool Contract!')
       }
-      return poolContract.estimateGas.changeMinPeriod(lockup, {}).then((estimatedGasLimit) => {
-        return poolContract
-          .changeMinPeriod(lockup, {
+      return (poolContract.estimateGas.changeMinPeriod(lockup, {}) as Promise<BigNumber>).then(
+        (estimatedGasLimit): Promise<string> => {
+          return (poolContract.changeMinPeriod(lockup, {
             value: null,
             gasLimit: calculateGasMargin(estimatedGasLimit),
-          })
-          .then((response: TransactionResponse) => {
+          }) as Promise<TransactionResponse>).then((response: TransactionResponse): string => {
             addTransaction(response, {
               type: TransactionType.SetLockup,
               vaultAddress: poolContract.address,
@@ -272,7 +271,8 @@ export function useSetLockupCallback(): (lockup: string | undefined) => undefine
             })
             return response.hash
           })
-      })
+        },
+      )
     },
     [account.address, account.chainId, provider, poolContract, addTransaction],
   )
@@ -296,13 +296,12 @@ export function useSetSpreadCallback(): (spread: string | undefined) => undefine
       if (!poolContract) {
         throw new Error('No Pool Contract!')
       }
-      return poolContract.estimateGas.changeSpread(spread, {}).then((estimatedGasLimit) => {
-        return poolContract
-          .changeSpread(spread, {
+      return (poolContract.estimateGas.changeSpread(spread, {}) as Promise<BigNumber>).then(
+        (estimatedGasLimit): Promise<string> => {
+          return (poolContract.changeSpread(spread, {
             value: null,
             gasLimit: calculateGasMargin(estimatedGasLimit),
-          })
-          .then((response: TransactionResponse) => {
+          }) as Promise<TransactionResponse>).then((response: TransactionResponse): string => {
             addTransaction(response, {
               type: TransactionType.SetSpread,
               vaultAddress: poolContract.address,
@@ -310,7 +309,8 @@ export function useSetSpreadCallback(): (spread: string | undefined) => undefine
             })
             return response.hash
           })
-      })
+        },
+      )
     },
     [account.address, account.chainId, provider, poolContract, addTransaction],
   )
@@ -333,20 +333,20 @@ export function useSetValueCallback(): () => undefined | Promise<string> {
     if (!poolContract) {
       throw new Error('No Pool Contract!')
     }
-    return poolContract.estimateGas.updateUnitaryValue().then((estimatedGasLimit) => {
-      return poolContract
-        .updateUnitaryValue({
+    return (poolContract.estimateGas.updateUnitaryValue() as Promise<BigNumber>).then(
+      (estimatedGasLimit): Promise<string> => {
+        return (poolContract.updateUnitaryValue({
           value: null,
           gasLimit: calculateGasMargin(estimatedGasLimit),
-        })
-        .then((response: TransactionResponse) => {
+        }) as Promise<TransactionResponse>).then((response: TransactionResponse): string => {
           addTransaction(response, {
             type: TransactionType.SetValue,
             vaultAddress: poolContract.address,
           })
           return response.hash
         })
-    })
+      },
+    )
   }, [account.address, account.chainId, provider, poolContract, addTransaction])
 }
 
@@ -367,20 +367,20 @@ export function useUpgradeCallback(): () => undefined | Promise<string> {
     if (!poolContract) {
       throw new Error('No Pool Contract!')
     }
-    return poolContract.estimateGas.upgradeImplementation().then((estimatedGasLimit) => {
-      return poolContract
-        .upgradeImplementation({
+    return (poolContract.estimateGas.upgradeImplementation() as Promise<BigNumber>).then(
+      (estimatedGasLimit): Promise<string> => {
+        return (poolContract.upgradeImplementation({
           value: null,
           gasLimit: calculateGasMargin(estimatedGasLimit),
-        })
-        .then((response: TransactionResponse) => {
+        }) as Promise<TransactionResponse>).then((response: TransactionResponse): string => {
           addTransaction(response, {
             type: TransactionType.Upgrade,
             vaultAddress: poolContract.address,
           })
           return response.hash
         })
-    })
+      },
+    )
   }, [account.address, account.chainId, provider, poolContract, addTransaction])
 }
 
@@ -420,7 +420,7 @@ export function useStakingPoolsRewards(poolIds: string[] | undefined) {
 
   return useMemo(() => {
     return data?.map((result) => {
-      return (result as any).feesCollected
+      return (result as { feesCollected?: unknown }).feesCollected
     })
   }, [data])
 }
@@ -509,7 +509,7 @@ export function useStakingPools(addresses: string[], poolIds: string[]): UseStak
   }, [combinedData, isLoading, poolIds])
 
   return useMemo(() => {
-    if (!stakingPoolsData || !supplyAmount?.totalSupply) {
+    if (!stakingPoolsData || !supplyAmount.totalSupply) {
       return { loading: isLoading, stakingPools: undefined }
     }
 

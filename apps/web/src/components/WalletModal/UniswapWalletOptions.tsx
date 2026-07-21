@@ -1,3 +1,4 @@
+/* oxlint-disable typescript/no-unnecessary-condition */
 import { useAtom } from 'jotai'
 import { PropsWithChildren } from 'react'
 import { Trans } from 'react-i18next'

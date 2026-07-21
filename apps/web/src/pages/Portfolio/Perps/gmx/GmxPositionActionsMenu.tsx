@@ -1,77 +1,58 @@
-import { useMemo } from 'react'
-import { Trans, useTranslation } from 'react-i18next'
-import { Flex, TouchableArea } from 'ui/src'
-import { MoreHorizontal } from 'ui/src/components/icons/MoreHorizontal'
+import { useTranslation } from 'react-i18next'
 import { ContextMenu } from 'uniswap/src/components/menus/ContextMenu'
+import { MenuContent } from 'uniswap/src/components/menus/ContextMenuContent'
+import { ContextMenuTriggerButton } from 'uniswap/src/components/menus/ContextMenuTriggerButton'
 import { ContextMenuTriggerMode } from 'uniswap/src/components/menus/types'
 import { useBooleanState } from 'utilities/src/react/useBooleanState'
 import { GmxOrderAction } from '~/pages/Portfolio/Perps/gmx/useGmxOrderCallback'
 
 /** Order actions with their display labels, shared by the menu and the order modal */
-export const GMX_ORDER_ACTIONS: { action: GmxOrderAction; label: JSX.Element }[] = [
-  { action: GmxOrderAction.IncreasePosition, label: <Trans>Increase position</Trans> },
-  { action: GmxOrderAction.DecreasePosition, label: <Trans>Decrease position</Trans> },
-  { action: GmxOrderAction.IncreaseCollateral, label: <Trans>Increase collateral</Trans> },
-  { action: GmxOrderAction.DecreaseCollateral, label: <Trans>Decrease collateral</Trans> },
-  { action: GmxOrderAction.ClosePosition, label: <Trans>Close position</Trans> },
+export const GMX_ORDER_ACTIONS: { action: GmxOrderAction; label: string }[] = [
+  { action: GmxOrderAction.IncreasePosition, label: 'Increase' },
+  { action: GmxOrderAction.DecreasePosition, label: 'Decrease' },
+  { action: GmxOrderAction.ClosePosition, label: 'Close' },
+  { action: GmxOrderAction.DeltaCollateral, label: 'Δ Collateral' },
 ]
 
-export function gmxOrderActionLabel(action: GmxOrderAction): JSX.Element {
-  return GMX_ORDER_ACTIONS.find((entry) => entry.action === action)?.label ?? <></>
+export function gmxOrderActionLabel(action: GmxOrderAction): string {
+  return GMX_ORDER_ACTIONS.find((entry) => entry.action === action)?.label ?? ''
 }
-
-const ICON_BUTTON_SIZE = 28
 
 /**
  * 3-dot dropdown menu with the available order actions for a GMX position.
- * Built on the same ContextMenu used by the Pools table in portfolio Overview.
+ * Uses the same ContextMenu + ContextMenuTriggerButton components as the rest
+ * of the portfolio so the interaction and styling are identical. The menu is
+ * widened slightly so the action labels are always fully visible.
  */
 export function GmxPositionActionsMenu({ onSelect }: { onSelect: (action: GmxOrderAction) => void }): JSX.Element {
   const { t } = useTranslation()
-  const { value: isOpen, setTrue: openMenu, setFalse: closeMenu, toggle } = useBooleanState(false)
+  const { value: isOpen, setTrue: openMenu, setFalse: closeMenu } = useBooleanState(false)
 
-  const menuItems = useMemo(
-    () => [
-      { label: t('Increase position'), onPress: () => onSelect(GmxOrderAction.IncreasePosition) },
-      { label: t('Decrease position'), onPress: () => onSelect(GmxOrderAction.DecreasePosition) },
-      { label: t('Increase collateral'), onPress: () => onSelect(GmxOrderAction.IncreaseCollateral) },
-      { label: t('Decrease collateral'), onPress: () => onSelect(GmxOrderAction.DecreaseCollateral) },
-      {
-        label: t('Close position'),
-        onPress: () => onSelect(GmxOrderAction.ClosePosition),
-        destructive: true,
-      },
-    ],
-    [t, onSelect],
-  )
+  const menuItems = [
+    { label: t('perps.actions.increase'), onPress: () => onSelect(GmxOrderAction.IncreasePosition) },
+    { label: t('perps.actions.decrease'), onPress: () => onSelect(GmxOrderAction.DecreasePosition) },
+    { label: t('perps.actions.close'), onPress: () => onSelect(GmxOrderAction.ClosePosition) },
+    { label: t('perps.actions.deltaCollateral'), onPress: () => onSelect(GmxOrderAction.DeltaCollateral) },
+  ]
 
   return (
     <ContextMenu
-      trackItemClicks
       menuItems={menuItems}
       triggerMode={ContextMenuTriggerMode.Primary}
       isOpen={isOpen}
       openMenu={openMenu}
       closeMenu={closeMenu}
+      isPlacementRight
+      adaptToSheet={false}
+      contentOverride={
+        <MenuContent
+          items={menuItems}
+          handleCloseMenu={closeMenu}
+          containerStyles={{ minWidth: 220, maxWidth: 320 }}
+        />
+      }
     >
-      <TouchableArea
-        onPress={(e) => {
-          e.stopPropagation()
-          e.preventDefault()
-          toggle()
-        }}
-      >
-        <Flex
-          aria-label="View position options"
-          centered
-          height={ICON_BUTTON_SIZE}
-          width={ICON_BUTTON_SIZE}
-          borderRadius="$rounded12"
-          hoverStyle={{ backgroundColor: '$surface3' }}
-        >
-          <MoreHorizontal size="$icon.16" color="$neutral2" />
-        </Flex>
-      </TouchableArea>
+      <ContextMenuTriggerButton />
     </ContextMenu>
   )
 }

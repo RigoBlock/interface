@@ -44,6 +44,7 @@
     "https://*.drpc.org/",
     "https://*.googleapis.com",
     "https://*.gmxapi.io",
+    "https://arbitrum.gmxapi.io",
     "https://*.gmxinfra.io",
     "https://*.infura.io",
     "https://*.nodereal.io",

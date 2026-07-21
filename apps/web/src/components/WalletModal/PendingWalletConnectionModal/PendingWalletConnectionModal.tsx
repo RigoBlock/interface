@@ -1,3 +1,4 @@
+/* oxlint-disable typescript/no-unnecessary-condition */
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AnimatePresence, Button, Flex, HeightAnimator, Text } from 'ui/src'
@@ -132,7 +133,7 @@ export default function PendingWalletConnectionModal() {
   )
 }
 
-function useModalContent(params: { showSolanaPrompt: boolean }) {
+function useModalContent(_params: { showSolanaPrompt: boolean }) {
   //const { showSolanaPrompt } = params
   const showSolanaPrompt = false
 

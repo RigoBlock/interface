@@ -13,7 +13,6 @@ import { NewUserCTAButton } from '~/components/NavBar/DownloadApp/NewUserCTAButt
 import PoolSelect from '~/components/NavBar/PoolSelect'
 import { PreferenceMenu } from '~/components/NavBar/PreferencesMenu'
 import { useTabsVisible } from '~/components/NavBar/ScreenSizes'
-import { SearchBar } from '~/components/NavBar/SearchBar'
 import { useIsSearchBarVisible } from '~/components/NavBar/SearchBar/useIsSearchBarVisible'
 import { Tabs } from '~/components/NavBar/Tabs/Tabs'
 import TestnetModeTooltip from '~/components/NavBar/TestnetMode/TestnetModeTooltip'
@@ -27,6 +26,7 @@ import { css, deprecatedStyled } from '~/lib/deprecated-styled'
 import { isPortfolioTab } from '~/pages/Portfolio/types'
 import { useActiveSmartPool, useSelectActiveSmartPool } from '~/state/application/hooks'
 import { useMultiChainAllPoolsData, useMultiChainStakingPools } from '~/state/pool/multichain'
+import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
 
 // Flex is position relative by default, we must unset the position on every Flex
 // between the body and search component
@@ -189,11 +189,11 @@ export default function Navbar() {
     const result: Token[] = []
     for (let i = 0; i < allPools.length; i++) {
       const s = stakingPools[i]
-      if (!s?.userIsOwner) {
+      if (!s.userIsOwner) {
         continue
       }
       const p = allPools[i]
-      const key = p.pool.toLowerCase()
+      const key = normalizeTokenAddressForCache(p.pool)
       if (seen.has(key)) {
         continue
       }
@@ -215,21 +215,21 @@ export default function Navbar() {
 
   // Use cached pools while loading new data
   const { operatedPools, newDefaultVaultLoaded } = useMemo(() => {
-    let newDefaultVaultLoaded = false
+    let hasNewDefaultVault = false
 
     if (rawOperatedPools.length === 0) {
-      return { operatedPools: cachedPoolsRef.current, newDefaultVaultLoaded }
+      return { operatedPools: cachedPoolsRef.current, newDefaultVaultLoaded: hasNewDefaultVault }
     }
 
-    const operatedAddresses = rawOperatedPools.map((pool) => pool.address.toLowerCase())
-    if (activeSmartVault.address && !operatedAddresses.includes(activeSmartVault.address.toLowerCase())) {
-      const cachedAddresses = cachedPoolsRef.current.map((p) => p.address.toLowerCase())
-      if (!cachedAddresses.includes(activeSmartVault.address.toLowerCase())) {
-        newDefaultVaultLoaded = true
+    const operatedAddresses = new Set(rawOperatedPools.map((pool) => normalizeTokenAddressForCache(pool.address)))
+    if (activeSmartVault.address && !operatedAddresses.has(normalizeTokenAddressForCache(activeSmartVault.address))) {
+      const cachedAddresses = new Set(cachedPoolsRef.current.map((p) => normalizeTokenAddressForCache(p.address)))
+      if (!cachedAddresses.has(normalizeTokenAddressForCache(activeSmartVault.address))) {
+        hasNewDefaultVault = true
       }
     }
 
-    return { operatedPools: rawOperatedPools, newDefaultVaultLoaded }
+    return { operatedPools: rawOperatedPools, newDefaultVaultLoaded: hasNewDefaultVault }
   }, [rawOperatedPools, activeSmartVault.address])
 
   const defaultPool = operatedPools[0] as Token | undefined

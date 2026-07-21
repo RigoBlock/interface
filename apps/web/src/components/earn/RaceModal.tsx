@@ -9,7 +9,6 @@ import { ButtonPrimary } from '~/components/Button/buttons'
 import { AutoColumn } from '~/components/deprecated/Column'
 import { RowBetween } from '~/components/deprecated/Row'
 import { LoadingView, SubmittedView } from '~/components/ModalViews'
-import { useAccount } from '~/hooks/useAccount'
 import styled from '~/lib/deprecated-styled'
 import { useRaceCallback } from '~/state/stake/hooks'
 import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
@@ -50,8 +49,6 @@ interface RaceModalProps {
 const MODAL_TRANSITION_DURATION = 200
 
 export default function RaceModal({ isOpen, poolAddress, poolName, onDismiss, title }: RaceModalProps) {
-  const { chainId } = useAccount()
-
   const raceCallback = useRaceCallback()
 
   // monitor call to help UI loading state
@@ -81,14 +78,14 @@ export default function RaceModal({ isOpen, poolAddress, poolName, onDismiss, ti
     }
 
     // try credit reward and store hash
-    const hash = await raceCallback(poolAddress)?.catch((error) => {
+    const txHash = await raceCallback(poolAddress)?.catch((error) => {
       setErrorReason(error.reason)
       setAttempting(false)
       logger.info('RaceModal', 'onRace', error)
     })
 
-    if (hash) {
-      setHash(hash)
+    if (txHash) {
+      setHash(txHash)
     }
   }
 
@@ -112,7 +109,7 @@ export default function RaceModal({ isOpen, poolAddress, poolName, onDismiss, ti
                         run once per each epoch.
                       </Trans>
                     </p>
-                    <p></p>
+                    <p />
                     <p>
                       <Trans>
                         The smart pool must have a positive <BoldText>own</BoldText> stake, and a minimum 100 GRG{' '}

@@ -73,13 +73,13 @@ export default function SetValueModal({ isOpen, onDismiss, baseTokenSymbol, titl
     }
 
     // try delegation and store hash
-    const hash = await setValueCallback()?.catch((error) => {
+    const txHash = await setValueCallback()?.catch((error) => {
       setAttempting(false)
       logger.info('SetValueModal', 'onSetValue', error)
     })
 
-    if (hash) {
-      setHash(hash)
+    if (txHash) {
+      setHash(txHash)
     }
   }
 

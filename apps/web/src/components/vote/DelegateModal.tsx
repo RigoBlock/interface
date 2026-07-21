@@ -1,5 +1,6 @@
+/* oxlint-disable complexity */
 import { isAddress } from '@ethersproject/address'
-import { useTheme } from '@tamagui/core'
+import { useTheme } from 'tamagui'
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import JSBI from 'jsbi'
 import { ReactNode, useCallback, useMemo, useState } from 'react'
@@ -97,8 +98,8 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
   const { formatCurrencyAmount } = useLocalizationContext()
   const { percent, setPercent } = useRemoveLiquidityModalContext()
   const onPercentSelect = useCallback(
-    (percent: number) => {
-      setPercent(percent.toString())
+    (value: number) => {
+      setPercent(value.toString())
     },
     [setPercent],
   )
@@ -198,13 +199,13 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
     }
 
     // try delegation and store hash
-    const hash = await delegateCallback(stakeData)?.catch((error) => {
+    const txHash = await delegateCallback(stakeData)?.catch((error) => {
       setAttempting(false)
       logger.info('DelegateModal', 'onDelegate', error)
     })
 
-    if (hash) {
-      setHash(hash)
+    if (txHash) {
+      setHash(txHash)
     }
   }
 
@@ -281,7 +282,11 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
               <AutoColumn gap="md">
                 <RowBetween>
                   <ThemedText.DeprecatedBody fontSize={16} fontWeight={500}>
-                    <Trans>Staking {formatCurrencyAmount({ value: parsedAmount })} GRG</Trans>
+                    <Trans
+                      i18nKey="vote.delegate.stakingAmount"
+                      values={{ amount: formatCurrencyAmount({ value: parsedAmount }) }}
+                      defaults="Staking {{amount}} GRG"
+                    />
                   </ThemedText.DeprecatedBody>
                   {Boolean(newApr && newApr.toString() !== 'NaN' && !usingDelegate) && (
                     <ThemedText.DeprecatedBody fontSize={16} fontWeight={500}>

@@ -156,6 +156,10 @@ globalThis.origin = 'https://app.rigoblock.com'
   globalThis.React = React
 }
 
+// Disable Apollo Client devtools registration in tests to avoid stray timers that
+// access `window` after the JSDOM environment is torn down.
+;(globalThis as any).__DEV__ = false
+
 const IntersectionObserverMock = vi.fn(() => ({
   disconnect: vi.fn(),
   observe: vi.fn(),

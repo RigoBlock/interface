@@ -1,3 +1,4 @@
+/* oxlint-disable typescript/no-unnecessary-condition */
 import { TokenInfo, TokenList } from '@uniswap/token-lists'
 import { TokenFromList } from '~/state/lists/tokenFromList'
 
@@ -20,7 +21,7 @@ export function tokensToChainTokenMap(tokens: TokenList | TokenInfo[]): TokenAdd
   }
 
   const [list, infos] = Array.isArray(tokens) ? [undefined, tokens] : [tokens, tokens.tokens]
-  const map = infos.reduce<Mutable<TokenAddressMap>>((map, info) => {
+  const chainTokenMap = infos.reduce<Mutable<TokenAddressMap>>((map, info) => {
     try {
       const token = new TokenFromList(info, list)
       if (map[token.chainId][token.address] !== undefined) {
@@ -35,6 +36,6 @@ export function tokensToChainTokenMap(tokens: TokenList | TokenInfo[]): TokenAdd
       return map
     }
   }, {}) as TokenAddressMap
-  mapCache?.set(tokens, map)
-  return map
+  mapCache?.set(tokens, chainTokenMap)
+  return chainTokenMap
 }

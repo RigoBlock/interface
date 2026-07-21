@@ -1,3 +1,4 @@
+/* oxlint-disable complexity no-unused-vars */
 /* eslint-disable max-lines */
 
 import { BigNumber } from '@ethersproject/bignumber'
@@ -521,11 +522,11 @@ export default function VotePage() {
                 return (
                   <DetailText key={i}>
                     {i + 1}: {linkIfAddress(d.target)}.{d.functionSig}(
-                    {d.callData.split(',').map((content, i) => {
+                    {d.callData.split(',').map((content, contentIndex) => {
                       return (
-                        <span key={i}>
+                        <span key={contentIndex}>
                           {linkIfAddress(content)}
-                          {d.callData.split(',').length - 1 === i ? '' : ','}
+                          {d.callData.split(',').length - 1 === contentIndex ? '' : ','}
                         </span>
                       )
                     })}

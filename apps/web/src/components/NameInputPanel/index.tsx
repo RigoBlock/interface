@@ -1,4 +1,4 @@
-import { useTheme } from '@tamagui/core'
+import { useTheme } from 'tamagui'
 import { ChangeEvent, ReactNode, useCallback } from 'react'
 import { Trans } from 'react-i18next'
 import i18n from 'uniswap/src/i18n'

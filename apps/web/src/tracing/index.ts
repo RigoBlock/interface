@@ -1,3 +1,4 @@
+/* oxlint-disable typescript/no-unnecessary-condition */
 import { setupAmplitude } from '~/tracing/amplitude'
 import { isRemoteReportingEnabled } from '~/utils/env'
 

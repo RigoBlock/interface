@@ -93,7 +93,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   // Calculate total portfolio value including staking - memoize with stable dependencies
   const stakingValueStable = useMemo(() => {
     return totalStakeUSD ? parseFloat(totalStakeUSD.toExact()) : 0
-  }, [totalStakeUSD?.quotient.toString()])
+  }, [totalStakeUSD])
 
   const portfolioTotalWithStaking = useMemo(() => {
     const baseValue = portfolioData?.balanceUSD || 0

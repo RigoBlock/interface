@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Flex, Text } from 'ui/src'
+import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
 import { InterfacePageName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { areAddressesEqual } from 'uniswap/src/utils/addresses'
@@ -64,10 +65,10 @@ const COLUMN = {
   mark: { width: 100 },
   liq: { width: 100 },
   pnl: { width: 140 },
-  actions: { width: 48 },
+  actions: { width: 72 },
 } as const
 
-const TABLE_MIN_WIDTH = 1100
+const TABLE_MIN_WIDTH = 1120
 
 function HeaderCell({ label, alignLeft }: { label: React.ReactNode; alignLeft?: boolean }): JSX.Element {
   return (
@@ -114,7 +115,7 @@ function PositionRow({
       </Flex>
       <Flex {...COLUMN.side} flexShrink={0} alignItems="flex-end">
         <Text variant="body3" fontWeight="600" color={position.isLong ? '$statusSuccess' : '$statusCritical'}>
-          {position.isLong ? <Trans>Long</Trans> : <Trans>Short</Trans>}
+          {position.isLong ? <Trans i18nKey="perps.side.long" /> : <Trans i18nKey="perps.side.short" />}
         </Text>
       </Flex>
       <Flex {...COLUMN.size} flexShrink={0} alignItems="flex-end">
@@ -168,16 +169,18 @@ export function PortfolioPerps(): JSX.Element {
   const [orderPosition, setOrderPosition] = useState<GmxPosition | undefined>()
   const [orderAction, setOrderAction] = useState<GmxOrderAction | undefined>()
 
-  const onAction = (position: GmxPosition, action: GmxOrderAction) => {
+  const onAction = useCallback((position: GmxPosition, action: GmxOrderAction) => {
     setOrderPosition(position)
     setOrderAction(action)
-  }
+  }, [])
   const onDismissOrderModal = () => {
     setOrderPosition(undefined)
     setOrderAction(undefined)
   }
 
-  const orderMarket = orderPosition ? marketsByAddress.get(orderPosition.marketAddress.toLowerCase()) : undefined
+  const orderMarket = orderPosition
+    ? marketsByAddress.get(normalizeTokenAddressForCache(orderPosition.marketAddress))
+    : undefined
 
   return (
     <Trace logImpression page={InterfacePageName.PortfolioPerpsPage}>
@@ -215,10 +218,10 @@ export function PortfolioPerps(): JSX.Element {
             borderWidth="$spacing1"
           >
             <Text variant="subheading2">
-              <Trans>Could not load GMX positions</Trans>
+              <Trans i18nKey="perps.error.title" />
             </Text>
             <Text variant="body3" color="$neutral2">
-              <Trans>Please try again later.</Trans>
+              <Trans i18nKey="perps.error.subtitle" />
             </Text>
           </Flex>
         ) : positions.length === 0 ? (
@@ -231,10 +234,10 @@ export function PortfolioPerps(): JSX.Element {
             borderWidth="$spacing1"
           >
             <Text variant="subheading2">
-              <Trans>No open perp positions</Trans>
+              <Trans i18nKey="perps.empty.title" />
             </Text>
             <Text variant="body3" color="$neutral2">
-              <Trans>Open GMX positions on Arbitrum will appear here.</Trans>
+              <Trans i18nKey="perps.empty.subtitle" />
             </Text>
           </Flex>
         ) : (
@@ -242,13 +245,13 @@ export function PortfolioPerps(): JSX.Element {
             <Flex row gap="$spacing24" flexWrap="wrap">
               <Flex gap="$spacing4">
                 <Text variant="body4" color="$neutral2">
-                  <Trans>Total Net Value</Trans>
+                  <Trans i18nKey="perps.total.netValue" />
                 </Text>
                 <Text variant="subheading1">{formatUsd(totalNetValueUsd)}</Text>
               </Flex>
               <Flex gap="$spacing4">
                 <Text variant="body4" color="$neutral2">
-                  <Trans>Unrealized PnL</Trans>
+                  <Trans i18nKey="perps.table.unrealizedPnl" />
                 </Text>
                 <Text variant="subheading1" color={pnlColor(totalUnrealizedPnlUsd)}>
                   {formatSignedUsd(totalUnrealizedPnlUsd)}
@@ -267,31 +270,31 @@ export function PortfolioPerps(): JSX.Element {
                   borderBottomColor="$surface3"
                 >
                   <Flex {...COLUMN.market} flexShrink={0}>
-                    <HeaderCell alignLeft label={<Trans>Market</Trans>} />
+                    <HeaderCell alignLeft label={<Trans i18nKey="perps.table.market" />} />
                   </Flex>
                   <Flex {...COLUMN.side} flexShrink={0} alignItems="flex-end">
-                    <HeaderCell label={<Trans>Side</Trans>} />
+                    <HeaderCell label={<Trans i18nKey="perps.table.side" />} />
                   </Flex>
                   <Flex {...COLUMN.size} flexShrink={0} alignItems="flex-end">
-                    <HeaderCell label={<Trans>Size</Trans>} />
+                    <HeaderCell label={<Trans i18nKey="perps.table.size" />} />
                   </Flex>
                   <Flex {...COLUMN.netValue} flexShrink={0} alignItems="flex-end">
-                    <HeaderCell label={<Trans>Net Value</Trans>} />
+                    <HeaderCell label={<Trans i18nKey="perps.table.netValue" />} />
                   </Flex>
                   <Flex {...COLUMN.leverage} flexShrink={0} alignItems="flex-end">
-                    <HeaderCell label={<Trans>Leverage</Trans>} />
+                    <HeaderCell label={<Trans i18nKey="perps.table.leverage" />} />
                   </Flex>
                   <Flex {...COLUMN.entry} flexShrink={0} alignItems="flex-end">
-                    <HeaderCell label={<Trans>Entry Price</Trans>} />
+                    <HeaderCell label={<Trans i18nKey="perps.table.entryPrice" />} />
                   </Flex>
                   <Flex {...COLUMN.mark} flexShrink={0} alignItems="flex-end">
-                    <HeaderCell label={<Trans>Mark Price</Trans>} />
+                    <HeaderCell label={<Trans i18nKey="perps.table.markPrice" />} />
                   </Flex>
                   <Flex {...COLUMN.liq} flexShrink={0} alignItems="flex-end">
-                    <HeaderCell label={<Trans>Liq. Price</Trans>} />
+                    <HeaderCell label={<Trans i18nKey="perps.table.liqPrice" />} />
                   </Flex>
                   <Flex {...COLUMN.pnl} flexShrink={0} alignItems="flex-end">
-                    <HeaderCell label={<Trans>Unrealized PnL</Trans>} />
+                    <HeaderCell label={<Trans i18nKey="perps.table.unrealizedPnl" />} />
                   </Flex>
                   <Flex {...COLUMN.actions} flexShrink={0} />
                 </Flex>

@@ -71,14 +71,14 @@ function* wrap(params: WrapParams) {
         const wrapAmount = BigNumber.from(originalValue).toString()
         step.txRequest.data = encodeSmartPoolWrapEth(wrapAmount)
         step.txRequest.value = String(0) // Set value to 0 since smart pool handles the ETH
-        console.log(`Modified WETH deposit to smart pool wrapEth(${wrapAmount})`)
+        logger.debug('wrapSaga', 'wrap', `Modified WETH deposit to smart pool wrapEth(${wrapAmount})`)
       } else if (isWETHWithdrawCalldata(calldata)) {
         // WETH -> ETH (unwrap): use pool.unwrapWETH9(amount) instead of weth.withdraw(amount)
         // Extract amount from original calldata
         const unwrapAmount = extractWETHWithdrawAmount(calldata)
         step.txRequest.data = encodeSmartPoolUnwrapWETH9(unwrapAmount)
         step.txRequest.value = String(0) // Ensure value is zero for unwrap
-        console.log(`Modified WETH withdraw to smart pool unwrapWETH9(${unwrapAmount})`)
+        logger.debug('wrapSaga', 'wrap', `Modified WETH withdraw to smart pool unwrapWETH9(${unwrapAmount})`)
       }
     }
 
@@ -88,7 +88,7 @@ function* wrap(params: WrapParams) {
       step.txRequest.value = String(0)
     }
 
-    console.log('Wrap txRequest:', step.txRequest)
+    logger.debug('wrapSaga', 'wrap', 'Wrap txRequest:', step.txRequest)
 
     const hash = yield* call(handleWrapStep, {
       step,

@@ -1,3 +1,4 @@
+/* oxlint-disable complexity */
 /* eslint-disable max-lines */
 import { Currency, CurrencyAmount, Price, Rounding, Token } from '@uniswap/sdk-core'
 import {
@@ -219,10 +220,10 @@ export function useV3DerivedMintInfo({
       const parsedQuoteAmount = tryParseCurrencyAmount(startPriceTypedValue, invertPrice ? token0 : token1)
       if (parsedQuoteAmount && token0 && token1) {
         const baseAmount = tryParseCurrencyAmount('1', invertPrice ? token1 : token0)
-        const price = baseAmount
+        const startPrice = baseAmount
           ? new Price(baseAmount.currency, parsedQuoteAmount.currency, baseAmount.quotient, parsedQuoteAmount.quotient)
           : undefined
-        return (invertPrice ? price?.invert() : price) ?? undefined
+        return (invertPrice ? startPrice?.invert() : startPrice) ?? undefined
       }
       return undefined
     } else {

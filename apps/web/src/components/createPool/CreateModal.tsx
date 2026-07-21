@@ -129,12 +129,12 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
   }, [])
 
   // wrapped onUserInput to clear signatures
-  const onNameInput = useCallback((typedName: string) => {
-    setTypedName(typedName)
+  const onNameInput = useCallback((name: string) => {
+    setTypedName(name)
   }, [])
 
-  const onSymbolInput = useCallback((typedSymbol: string) => {
-    setTypedSymbol(typedSymbol.toUpperCase())
+  const onSymbolInput = useCallback((symbol: string) => {
+    setTypedSymbol(symbol.toUpperCase())
   }, [])
 
   const { t } = useTranslation()
@@ -165,7 +165,7 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
     }
 
     // try deploy pool and store hash
-    const hash = await createCallback({
+    const txHash = await createCallback({
       name: typedName,
       symbol: typedSymbol,
       currencyValue,
@@ -175,8 +175,8 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
       logger.info('CreateModal', 'onCreate', error)
     })
 
-    if (hash) {
-      setHash(hash)
+    if (txHash) {
+      setHash(txHash)
     }
   }
 

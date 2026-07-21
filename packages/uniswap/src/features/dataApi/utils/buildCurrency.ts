@@ -44,7 +44,8 @@ const CURRENCY_CACHE = new Map<string, Token | NativeCurrency | undefined>()
  * @returns A new instance of Token or NativeCurrency if the parameters are valid, otherwise returns undefined.
  */
 export function buildCurrency(args: BuildCurrencyParams): Token | NativeCurrency | undefined {
-  let { chainId, address, decimals, symbol, name, bypassChecksum = true, buyFeeBps, sellFeeBps } = args
+  const { chainId, address, decimals, symbol, bypassChecksum = true, buyFeeBps, sellFeeBps } = args
+  let { name } = args
 
   if (!chainId || decimals === undefined || decimals === null) {
     return undefined

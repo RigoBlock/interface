@@ -42,10 +42,10 @@ export default function SetLockupModal({ isOpen, currentLockup, onDismiss, title
   const [typed, setTyped] = useState('')
 
   // wrapped onUserInput to clear signatures
-  const onUserInput = useCallback((typed: string) => {
+  const onUserInput = useCallback((value: string) => {
     const numberRegEx = RegExp(`^[0-9]*$`)
-    if (numberRegEx.test(String(typed))) {
-      setTyped(typed)
+    if (numberRegEx.test(String(value))) {
+      setTyped(value)
     }
   }, [])
 
@@ -88,13 +88,13 @@ export default function SetLockupModal({ isOpen, currentLockup, onDismiss, title
     }
 
     // try set lockup and store hash
-    const hash = await setLockupCallback(parsedLockup)?.catch((error) => {
+    const txHash = await setLockupCallback(parsedLockup)?.catch((error) => {
       setAttempting(false)
       logger.info('SetLockupModal', 'onSetLockup', error)
     })
 
-    if (hash) {
-      setHash(hash)
+    if (txHash) {
+      setHash(txHash)
     }
   }
 

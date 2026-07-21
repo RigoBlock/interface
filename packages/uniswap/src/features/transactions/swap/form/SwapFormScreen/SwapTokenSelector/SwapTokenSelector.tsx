@@ -9,6 +9,7 @@ import { useChainId } from 'uniswap/src/features/transactions/swap/form/SwapForm
 import { useHideTokenSelector } from 'uniswap/src/features/transactions/swap/form/SwapFormScreen/SwapTokenSelector/hooks/useHideTokenSelector'
 import { useSwapFormStore } from 'uniswap/src/features/transactions/swap/stores/swapFormStore/useSwapFormStore'
 import { CurrencyField } from 'uniswap/src/types/currency'
+import { isValidHexString } from 'utilities/src/addresses/hex'
 
 export function SwapTokenSelector({
   isModalOpen,
@@ -26,7 +27,8 @@ export function SwapTokenSelector({
 
   const eoaAddresses = useActiveAddresses()
   // When a smart pool is active, show vault token balances in the token selector
-  const addresses: AddressGroup = smartPoolAddress ? { evmAddress: smartPoolAddress as `0x${string}` } : eoaAddresses
+  const addresses: AddressGroup =
+    smartPoolAddress && isValidHexString(smartPoolAddress) ? { evmAddress: smartPoolAddress } : eoaAddresses
   const chainId = useChainId()
 
   const handleHideTokenSelector = useHideTokenSelector()

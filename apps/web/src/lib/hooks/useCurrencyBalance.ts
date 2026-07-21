@@ -1,10 +1,11 @@
+/* oxlint-disable max-params typescript/no-unsafe-return typescript/no-unnecessary-condition */
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core'
 import JSBI from 'jsbi'
 import { useMemo } from 'react'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
 import { getCurrencyAmount, ValueType } from 'uniswap/src/features/tokens/getCurrencyAmount'
 import { isEVMAddress } from 'utilities/src/addresses/evm/evm'
-import { Abi, erc20Abi, isAddress } from 'viem'
+import { Abi, ContractFunctionParameters, erc20Abi, isAddress } from 'viem'
 import { useBalance, useReadContracts } from 'wagmi'
 import { useAccount } from '~/hooks/useAccount'
 import { useInterfaceMulticall } from '~/hooks/useContract'
@@ -17,7 +18,7 @@ import { assume0xAddress } from '~/utils/wagmi'
  */
 export function useCurrencyBalancesMultipleAccounts(
   uncheckedAddresses?: (string | undefined)[],
-  currency?: Currency | undefined,
+  currency?: Currency  ,
 ): [{ [address: string]: CurrencyAmount<Currency> | undefined }, boolean] {
   const { chainId } = useAccount()
   const multicallContract = useInterfaceMulticall()
@@ -65,7 +66,7 @@ export function useCurrencyBalancesMultipleAccounts(
                   functionName: 'getEthBalance',
                   args: [address],
                 }) as const,
-            )) as any,
+            )) as ContractFunctionParameters[],
       [validAddressInputs, validatedToken, chainId, multicallContract.address, multicallContract.interface.fragments],
     ),
     query: { enabled: validAddressInputs.length > 0 && !!multicallContract },
@@ -139,8 +140,7 @@ function useRpcTokenBalancesWithLoadingIndicator({
   return useMemo(
     () => [
       address && validatedTokens.length > 0
-        ? // oxlint-disable-next-line max-params
-          validatedTokens.reduce<{
+        ? validatedTokens.reduce<{
             [tokenAddress: string]: CurrencyAmount<Token> | undefined
           }>((memo, token, i) => {
             const value = data?.[i].result
@@ -229,7 +229,6 @@ function useGqlCurrencyBalances(
       const key = currencyKey(currency)
       const balance = balanceMap[key]
 
-      // oxlint-disable-next-line typescript/no-unnecessary-condition
       if (balance) {
         const currencyAmount = getCurrencyAmount({
           value: balance.balance.toString(),

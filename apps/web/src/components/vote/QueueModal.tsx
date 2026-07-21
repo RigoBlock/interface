@@ -1,4 +1,4 @@
-import { useTheme } from '@tamagui/core'
+import { useTheme } from 'tamagui'
 import { useState } from 'react'
 import { ArrowUpCircle, X } from 'react-feather'
 import { Trans } from 'react-i18next'
@@ -66,13 +66,13 @@ export default function QueueModal({ isOpen, onDismiss, proposalId }: QueueModal
     setAttempting(true)
 
     // try delegation and store hash
-    const hash = await queueCallback(proposalId)?.catch((error) => {
+    const txHash = await queueCallback(proposalId)?.catch((error) => {
       setAttempting(false)
       logger.info('QueueModal', 'onQueue', error)
     })
 
-    if (hash) {
-      setHash(hash)
+    if (txHash) {
+      setHash(txHash)
     }
   }
 

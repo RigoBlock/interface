@@ -1,3 +1,5 @@
+/* oxlint-disable no-unused-vars */
+import { AbiCoder } from '@ethersproject/abi'
 import { BigNumber } from '@ethersproject/bignumber'
 import { logger } from 'utilities/src/logger/logger'
 
@@ -64,7 +66,6 @@ function decodeAcrossParams(calldata: string): {
   inputAmount: BigNumber
   destinationChainId: BigNumber
 } {
-  const { AbiCoder } = require('@ethersproject/abi')
   const abiCoder = new AbiCoder()
   const decoded = abiCoder.decode(
     [

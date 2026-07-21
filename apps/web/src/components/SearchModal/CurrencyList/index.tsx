@@ -91,7 +91,6 @@ export function CurrencyRow({
   currencyInfo,
   onSelect,
   isSelected,
-  isSmartPool,
   otherSelected,
   style,
   showCurrencyAmount,
