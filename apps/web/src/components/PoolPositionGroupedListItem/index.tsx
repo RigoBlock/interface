@@ -95,12 +95,15 @@ const MobileChainCount = styled.div`
 
 interface PoolPositionGroupedListItemProps {
   positions: PoolPositionDetails[]
+  /** Full, unfiltered pool list used to count every chain where this pool is deployed. */
+  allPositions?: PoolPositionDetails[]
   returnPage: string
   isMyPools?: boolean
 }
 
 export default function PoolPositionGroupedListItem({
   positions,
+  allPositions,
   returnPage,
   isMyPools,
 }: PoolPositionGroupedListItemProps) {
@@ -109,7 +112,20 @@ export default function PoolPositionGroupedListItem({
 
   const poolName = positions[0]?.name
   const poolAddress = positions[0]?.pool
-  const chainIds = positions.map((p) => p.chainId as UniverseChainId).filter(Boolean)
+
+  // Count every chain where this pool address is registered, using the unfiltered
+  // list when available. Dedup to guard against duplicate entries in the source data.
+  const chainIds = useMemo(() => {
+    const address = (positions[0]?.pool || '').toLowerCase()
+    if (!address) {
+      return []
+    }
+    const source = allPositions ?? positions
+    const ids = source
+      .filter((p) => (p.pool || '').toLowerCase() === address && p.chainId)
+      .map((p) => p.chainId as UniverseChainId)
+    return [...new Set(ids)]
+  }, [positions, allPositions])
   const chainCount = chainIds.length
 
   // Aggregate badges

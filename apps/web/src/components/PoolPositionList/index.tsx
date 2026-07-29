@@ -51,6 +51,8 @@ const MobileHeader = styled.div`
 
 type PoolPositionListProps = React.PropsWithChildren<{
   positions?: PoolPositionDetails[]
+  /** Full, unfiltered pool list used to show every chain where a pool is deployed in the row counter. */
+  allPositions?: PoolPositionDetails[]
   shouldFilterByUserPools?: boolean
   /** Optional action rendered at the right of the list header (e.g. the Create button) */
   headerAction?: React.ReactNode
@@ -58,7 +60,12 @@ type PoolPositionListProps = React.PropsWithChildren<{
 
 const GROUPS_PER_PAGE = 10
 
-export default function PoolPositionList({ positions, shouldFilterByUserPools, headerAction }: PoolPositionListProps) {
+export default function PoolPositionList({
+  positions,
+  allPositions,
+  shouldFilterByUserPools,
+  headerAction,
+}: PoolPositionListProps) {
   const account = useAccount()
 
   // --- Grouping & Pagination ---
@@ -69,7 +76,9 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools, h
     }
     const map = new Map<string, PoolPositionDetails[]>()
     for (const p of positions) {
-      const key = (p.name || '').toLowerCase()
+      // Group by pool address so the same vault across chains stays in one row.
+      // Different vaults with the same name are shown as separate rows.
+      const key = (p.pool || '').toLowerCase()
       if (!map.has(key)) {
         map.set(key, [])
       }
@@ -122,7 +131,8 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools, h
 
     const groups = new Map<string, any[]>()
     for (const p of displayPools) {
-      const key = (p.name || '').toLowerCase()
+      // Group by pool address to match the pagination grouping above.
+      const key = (p.pool || '').toLowerCase()
       if (!groups.has(key)) {
         groups.set(key, [])
       }
@@ -173,8 +183,9 @@ export default function PoolPositionList({ positions, shouldFilterByUserPools, h
         >
           {groupedPools?.map((group) => (
             <PoolPositionGroupedListItem
-              key={`group-${group[0]?.name}`}
+              key={`group-${group[0]?.pool ?? group[0]?.name}`}
               positions={group}
+              allPositions={allPositions}
               returnPage={shouldFilterByUserPools ? 'manage' : 'earn'}
               isMyPools={!!shouldFilterByUserPools}
             />
