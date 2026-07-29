@@ -1232,12 +1232,14 @@ function PoolDataCards(): JSX.Element {
             <Text variant="body3" color="$neutral2">
               <Trans>Total Supply</Trans>
             </Text>
-            {totalSupply && base ? (
+            {poolStorageLoaded ? (
               <Text variant="body3" color="$neutral1">
-                {formatCurrencyAmount({
-                  value: CurrencyAmount.fromRawAmount(base, JSBI.BigInt(String(totalSupply))),
-                  type: NumberType.TokenNonTx,
-                })}
+                {base
+                  ? formatCurrencyAmount({
+                      value: CurrencyAmount.fromRawAmount(base, JSBI.BigInt(String(totalSupply ?? 0))),
+                      type: NumberType.TokenNonTx,
+                    })
+                  : '0'}
                 &nbsp;{symbol}
               </Text>
             ) : (

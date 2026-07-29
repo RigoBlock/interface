@@ -143,13 +143,27 @@ export default function Earn() {
     })
   }, [allPools, stakingPools])
 
-  // "Top Smart Pools": only pools with positive own stake, sorted biggest first
+  // "Top Smart Pools": include all chains for any pool name that has at least one
+  // chain with positive own stake, sorted by the biggest own stake per pool name.
+  // This keeps the chain counters in the list (e.g. "3 chains") consistent with
+  // the individual smart pool page and the My Pools tab, even when some chains have
+  // zero/null stake or APR.
   const topPools = useMemo(() => {
     if (!poolsWithStats) {
       return undefined
     }
+    const qualifyingNames = new Set<string>()
+    for (const p of poolsWithStats) {
+      try {
+        if (JSBI.greaterThan(JSBI.BigInt(p.poolOwnStake.toString()), JSBI.BigInt(0))) {
+          qualifyingNames.add((p.name || '').toLowerCase())
+        }
+      } catch {
+        // ignore invalid stake values
+      }
+    }
     return poolsWithStats
-      .filter((p) => JSBI.greaterThan(JSBI.BigInt(p.poolOwnStake.toString()), JSBI.BigInt(0)))
+      .filter((p) => qualifyingNames.has((p.name || '').toLowerCase()))
       .sort(biggestOwnStakeFirst)
   }, [poolsWithStats])
 
