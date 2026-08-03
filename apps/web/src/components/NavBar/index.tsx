@@ -211,25 +211,33 @@ export default function Navbar() {
     }
   }, [rawOperatedPools])
 
+  // Clear the cache when the connected account changes so a stale operator list is not reused for a new wallet.
+  useEffect(() => {
+    if (accountChanged) {
+      cachedPoolsRef.current = []
+    }
+  }, [accountChanged])
+
   const activeSmartVault = useActiveSmartPool()
 
   // Use cached pools while loading new data
-  const { operatedPools, newDefaultVaultLoaded } = useMemo(() => {
+  const { operatedPools, newDefaultVaultLoaded, rawOperatedAddresses } = useMemo(() => {
     let hasNewDefaultVault = false
 
+    const rawAddresses = new Set(rawOperatedPools.map((pool) => normalizeTokenAddressForCache(pool.address)))
+
     if (rawOperatedPools.length === 0) {
-      return { operatedPools: cachedPoolsRef.current, newDefaultVaultLoaded: hasNewDefaultVault }
+      return { operatedPools: cachedPoolsRef.current, newDefaultVaultLoaded: hasNewDefaultVault, rawOperatedAddresses: rawAddresses }
     }
 
-    const operatedAddresses = new Set(rawOperatedPools.map((pool) => normalizeTokenAddressForCache(pool.address)))
-    if (activeSmartVault.address && !operatedAddresses.has(normalizeTokenAddressForCache(activeSmartVault.address))) {
+    if (activeSmartVault.address && !rawAddresses.has(normalizeTokenAddressForCache(activeSmartVault.address))) {
       const cachedAddresses = new Set(cachedPoolsRef.current.map((p) => normalizeTokenAddressForCache(p.address)))
       if (!cachedAddresses.has(normalizeTokenAddressForCache(activeSmartVault.address))) {
         hasNewDefaultVault = true
       }
     }
 
-    return { operatedPools: rawOperatedPools, newDefaultVaultLoaded: hasNewDefaultVault }
+    return { operatedPools: rawOperatedPools, newDefaultVaultLoaded: hasNewDefaultVault, rawOperatedAddresses: rawAddresses }
   }, [rawOperatedPools, activeSmartVault.address])
 
   const defaultPool = operatedPools[0] as Token | undefined
@@ -243,6 +251,15 @@ export default function Navbar() {
       onPoolSelect(defaultPool)
     }
   }, [accountChanged, defaultPool, onPoolSelect, newDefaultVaultLoaded, activeSmartVault.address])
+
+  // Clear the active smart pool when it is not one of the pools the current wallet operates.
+  // The smart pool context is only meaningful for operators; without this, the portfolio page and
+  // sidebar would fall back to a stale vault address instead of the connected wallet.
+  useEffect(() => {
+    if (activeSmartVault.address && !rawOperatedAddresses.has(normalizeTokenAddressForCache(activeSmartVault.address))) {
+      onPoolSelect(undefined)
+    }
+  }, [rawOperatedAddresses, activeSmartVault.address, onPoolSelect])
 
   const userIsOperator = operatedPools.length > 0
 

@@ -1,7 +1,8 @@
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
 import JSBI from 'jsbi'
-import { useMemo } from 'react'
-import { Flex, Shine, Text, useMedia } from 'ui/src'
+import { useMemo, useRef, useState } from 'react'
+import { Trans } from 'react-i18next'
+import { Button, Flex, Shine, Text, useMedia } from 'ui/src'
 import { TokenLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
@@ -12,10 +13,13 @@ import { NumberType } from 'utilities/src/format/types'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
 import { usePortfolioStaking } from '~/pages/Portfolio/hooks/usePortfolioStaking'
+import { PoolStakingInfo } from '~/pages/Portfolio/Staking/PoolStakingInfo'
+import { RemoveLiquidityModalContextProvider } from '~/pages/RemoveLiquidity/RemoveLiquidityModalContext'
 import { useActiveSmartPool } from '~/state/application/hooks'
 import { usePoolIdByAddress } from '~/state/governance/hooks'
-import { useMultichainContext } from '~/state/multichain/useMultichainContext'
-import { useTotalStakeBalances, useUnclaimedRewards, useUserStakeBalances } from '~/state/stake/hooks'
+import { useTotalStakeBalances } from '~/state/stake/hooks'
+import UnstakeModal from '~/components/earn/UnstakeModal'
+import { FreeStakeBalanceByChain } from '~/state/stake/useMultiChainFreeStakeBalances'
 
 interface ChainStakingRowProps {
   chainId: UniverseChainId
@@ -146,10 +150,11 @@ function ChainStakingRowWithData({
   smartPoolAddress?: string
   cachedData?: any // StakingData from new hook
 }) {
-  // Check if we have valid cached data from the new hook structure
+  // Check if we have valid cached data from the new hook structure.
+  // Use cached amounts even while a background refresh is loading so the rows
+  // don't flash to zero/"—" on every quote-API poll.
   const shouldUseCachedData =
     cachedData &&
-    !cachedData.isLoading &&
     !cachedData.error &&
     (cachedData.userFreeStake !== undefined ||
       cachedData.userDelegatedStake !== undefined ||
@@ -194,92 +199,8 @@ function ChainStakingRowWithData({
       userFreeStake={displayedFreeStake}
       userDelegatedStake={displayedDelegatedStake}
       smartPoolTotalStake={undefined}
+      isLoading={cachedData?.isLoading}
     />
-  )
-}
-
-interface PoolStakingInfoProps {
-  poolAddress: string
-  poolId: string
-  stakingPoolExists: boolean
-}
-
-function PoolStakingInfo({ poolAddress, poolId, stakingPoolExists }: PoolStakingInfoProps) {
-  // TODO: we should modify the hook to accept chainId as param, and run loop for the supported chains
-  // Get unclaimed rewards for this specific pool
-  const unclaimedRewards = useUnclaimedRewards([poolId])
-  const poolRewards = unclaimedRewards?.[0]?.yieldAmount
-
-  // Get user's stake delegated to this pool
-  const userStakeBalances = useUserStakeBalances([poolId])
-  const userStake = userStakeBalances?.[0]?.stake
-
-  const { chainId } = useMultichainContext()
-  const chainInfo = chainId && getChainInfo(chainId)
-
-  if (!stakingPoolExists) {
-    return (
-      <Flex gap="$spacing16">
-        <Text variant="heading2" color="$neutral1">
-          Pool Rewards
-        </Text>
-        <Flex p="$spacing16" borderRadius="$rounded16" backgroundColor="$surface2">
-          <Text variant="body2" color="$neutral2">
-            This smart pool ({poolAddress.slice(0, 6)}...{poolAddress.slice(-4)}) does not have a staking pool
-            configured.
-          </Text>
-        </Flex>
-      </Flex>
-    )
-  }
-
-  const hasRewards = poolRewards?.greaterThan(0)
-  const hasStake = userStake?.greaterThan(0)
-
-  if (!hasRewards && !hasStake) {
-    return (
-      <Flex gap="$spacing16">
-        <Text variant="heading2" color="$neutral1">
-          Pool Rewards
-        </Text>
-        <Flex p="$spacing16" borderRadius="$rounded16" backgroundColor="$surface2">
-          <Text variant="body2" color="$neutral2" textAlign="center">
-            No stake or rewards found for this pool
-          </Text>
-        </Flex>
-      </Flex>
-    )
-  }
-
-  return (
-    <Flex gap="$spacing16">
-      <Text variant="heading2" color="$neutral1">
-        Pool Rewards
-      </Text>
-
-      {chainId && chainInfo && (
-        <Flex gap="$spacing8">
-          {hasStake && (
-            <ChainStakingRow
-              chainId={chainId}
-              chainName={chainInfo.label}
-              userFreeStake={undefined}
-              userDelegatedStake={userStake}
-              smartPoolTotalStake={undefined}
-            />
-          )}
-          {hasRewards && (
-            <ChainStakingRow
-              chainId={chainId}
-              chainName={chainInfo.label}
-              userFreeStake={poolRewards}
-              userDelegatedStake={undefined}
-              smartPoolTotalStake={undefined}
-            />
-          )}
-        </Flex>
-      )}
-    </Flex>
   )
 }
 
@@ -296,6 +217,31 @@ function MultiChainStakingInfo({
     { address, chainId: filterChainId },
   )
   const { convertFiatAmountFormatted } = useLocalizationContext()
+  const [showUnstakeModal, setShowUnstakeModal] = useState(false)
+
+  // Build the list of chains that have withdrawable free stake from the cached
+  // staking data, so no extra RPC calls are needed.
+  const freeStakeChains = useMemo(() => {
+    if (!isViewingOwnStakes) {
+      return []
+    }
+    const chains: FreeStakeBalanceByChain[] = []
+    for (const chainId of stakingChains) {
+      const data = stakingData[chainId]
+      if (data?.userFreeStake && !data.userFreeStake.equalTo(0)) {
+        chains.push({ chainId, freeStakeBalance: data.userFreeStake })
+      }
+    }
+    return chains
+  }, [isViewingOwnStakes, stakingChains, stakingData])
+
+  // Preserve the last rendered USD total so the headline doesn't flash to $0.00
+  // while the underlying quote API refreshes in the background.
+  const lastTotalStakeUSD = useRef(totalStakeUSD)
+  if (totalStakeUSD) {
+    lastTotalStakeUSD.current = totalStakeUSD
+  }
+  const displayedTotalStakeUSD = totalStakeUSD ?? lastTotalStakeUSD.current
 
   if (!address || stakingChains.length === 0) {
     return (
@@ -329,23 +275,38 @@ function MultiChainStakingInfo({
 
   return (
     <Flex gap="$spacing16">
-      {/* Total USD Value at top */}
-      <Flex>
-        {isLoading ? (
-          <Text variant="heading1" color="$neutral3">
-            {convertFiatAmountFormatted(0, NumberType.PortfolioBalance)}
-          </Text>
-        ) : (
-          <Text variant="heading1" color="$neutral1">
+      <RemoveLiquidityModalContextProvider>
+        <UnstakeModal
+          isOpen={showUnstakeModal}
+          chains={freeStakeChains}
+          onDismiss={() => setShowUnstakeModal(false)}
+          title={<Trans>Withdraw</Trans>}
+        />
+      </RemoveLiquidityModalContextProvider>
+
+      {/* Total USD Value at top + Withdraw action */}
+      <Flex flexDirection="row" justifyContent="space-between" alignItems="flex-start">
+        <Flex>
+          <Text variant="heading1" color={isLoading ? '$neutral3' : '$neutral1'}>
             {convertFiatAmountFormatted(
-              totalStakeUSD ? parseFloat(totalStakeUSD.toExact()) : 0,
+              displayedTotalStakeUSD ? parseFloat(displayedTotalStakeUSD.toExact()) : 0,
               NumberType.PortfolioBalance,
             )}
           </Text>
+          <Text variant="subheading1" color="$neutral2" mt="$spacing8">
+            {isViewingOwnStakes ? 'Your Stake' : 'Smart Pool Stake'}
+          </Text>
+        </Flex>
+        {isViewingOwnStakes && freeStakeChains.length > 0 && (
+          <Button
+            size="xsmall"
+            variant="branded"
+            fill={false}
+            onPress={() => setShowUnstakeModal(true)}
+          >
+            <Trans>Withdraw</Trans>
+          </Button>
         )}
-        <Text variant="subheading1" color="$neutral2" mt="$spacing8">
-          {isViewingOwnStakes ? 'Your Stake' : 'Smart Pool Stake'}
-        </Text>
       </Flex>
 
       <Flex gap="$spacing4">
@@ -420,7 +381,7 @@ export function PortfolioStaking() {
           <MultiChainStakingInfo address={evmAddress} smartPoolAddress={smartPoolAddress} filterChainId={urlChainId} />
 
           {smartPoolAddress && poolId && (
-            <PoolStakingInfo poolAddress={smartPoolAddress} poolId={poolId} stakingPoolExists={stakingPoolExists} />
+            <PoolStakingInfo poolAddress={smartPoolAddress} stakingPoolExists={stakingPoolExists} />
           )}
 
           {!smartPoolAddress && (

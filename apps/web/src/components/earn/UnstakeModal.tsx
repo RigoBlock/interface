@@ -1,11 +1,12 @@
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
 import JSBI from 'jsbi'
-import { ReactNode, useCallback, useState } from 'react'
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 import { X } from 'react-feather'
 import { Trans, useTranslation } from 'react-i18next'
-import { Flex, useSporeColors } from 'ui/src'
+import { Button, Flex, Text, useSporeColors } from 'ui/src'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { GRG } from 'uniswap/src/constants/tokens'
+import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
@@ -20,11 +21,13 @@ import { LoadingView, SubmittedView } from '~/components/ModalViews'
 import Slider from '~/components/Slider'
 import { ResponsiveHeaderText } from '~/components/vote/DelegateModal'
 import { useAccount } from '~/hooks/useAccount'
+import useSelectChain from '~/hooks/useSelectChain'
 import useDebouncedChangeHandler from '~/hooks/useDebouncedChangeHandler'
 import styled from '~/lib/deprecated-styled'
 import { useRemoveLiquidityModalContext } from '~/pages/RemoveLiquidity/RemoveLiquidityModalContext'
 import { ClickablePill } from '~/pages/Swap/Buy/PredefinedAmount'
 import { useUnstakeCallback } from '~/state/stake/hooks'
+import { type FreeStakeBalanceByChain } from '~/state/stake/useMultiChainFreeStakeBalances'
 import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
 import { ThemedText } from '~/theme/components/text'
 
@@ -39,28 +42,70 @@ const StyledClosed = styled(X)`
   }
 `
 
+const ChainPill = styled(Button)`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background-color: ${({ theme }) => theme.surface2};
+  color: ${({ theme }) => theme.neutral1};
+  border: 1px solid ${({ theme }) => theme.surface3};
+
+  &[data-active='true'] {
+    background-color: ${({ theme }) => theme.accent2};
+    border-color: ${({ theme }) => theme.accent1};
+  }
+`
+
+export type UnstakeChainOption = FreeStakeBalanceByChain
+
 interface UnstakeModalProps {
   isOpen: boolean
   isPool?: boolean
-  freeStakeBalance?: CurrencyAmount<Token>
+  chains: UnstakeChainOption[]
   onDismiss: () => void
   title: ReactNode
 }
 
 // TODO: add balance input to display amount when withdrawing
-export default function UnstakeModal({ isOpen, isPool, freeStakeBalance, onDismiss, title }: UnstakeModalProps) {
+export default function UnstakeModal({ isOpen, isPool, chains, onDismiss, title }: UnstakeModalProps) {
   const account = useAccount()
+  const selectChain = useSelectChain()
   const { t } = useTranslation()
   const colors = useSporeColors()
+  const { formatCurrencyAmount } = useLocalizationContext()
 
-  // state for unstake input
-  const [currencyValue] = useState<Token | undefined>(GRG[account.chainId ?? UniverseChainId.Mainnet])
-  if (!currencyValue) {
-    throw new Error('No GRG token found to unstake')
-  }
+  const [selectedChainId, setSelectedChainId] = useState<number | undefined>(undefined)
+
+  useEffect(() => {
+    if (chains.length === 0) {
+      setSelectedChainId(undefined)
+      return
+    }
+    const connectedOption = chains.find((c) => c.chainId === account.chainId)
+    setSelectedChainId(connectedOption?.chainId ?? chains[0].chainId)
+  }, [chains, account.chainId, isOpen])
+
+  const selectedChain = useMemo(
+    () => chains.find((c) => c.chainId === selectedChainId),
+    [chains, selectedChainId],
+  )
+
+  const unstakeChainId = selectedChain?.chainId ?? account.chainId ?? UniverseChainId.Mainnet
+  const chainInfo = getChainInfo(unstakeChainId)
+  const currencyValue = GRG[unstakeChainId]
+
+  const freeStakeBalance = selectedChain?.freeStakeBalance
 
   const { percent, setPercent } = useRemoveLiquidityModalContext()
-  const { formatCurrencyAmount } = useLocalizationContext()
+
+  // Reset the slider when the selected chain changes so the user doesn't accidentally
+  // unstake a different amount on a different chain.
+  useEffect(() => {
+    setPercent('0')
+  }, [selectedChainId, setPercent])
+
   const onPercentSelect = useCallback(
     (value: number) => {
       setPercent(value.toString())
@@ -68,7 +113,6 @@ export default function UnstakeModal({ isOpen, isPool, freeStakeBalance, onDismi
     [setPercent],
   )
 
-  // boilerplate for the slider
   const [percentForSlider, onPercentSelectForSlider] = useDebouncedChangeHandler(Number(percent), onPercentSelect)
   const parsedAmount = CurrencyAmount.fromRawAmount(
     currencyValue,
@@ -78,7 +122,7 @@ export default function UnstakeModal({ isOpen, isPool, freeStakeBalance, onDismi
     ),
   )
 
-  const unstakeCallback = useUnstakeCallback()
+  const unstakeCallback = useUnstakeCallback(unstakeChainId)
 
   // monitor call to help UI loading state
   const [hash, setHash] = useState<string | undefined>()
@@ -101,13 +145,19 @@ export default function UnstakeModal({ isOpen, isPool, freeStakeBalance, onDismi
   }
 
   async function onUnstake() {
-    setAttempting(true)
-    setStakeAmount(parsedAmount)
-
     // if callback not returned properly ignore
-    if (!freeStakeBalance || !currencyValue?.isToken) {
+    if (!freeStakeBalance) {
       return
     }
+
+    // Switch to the target chain in the background; the wallet does not need to manually switch.
+    const switched = await selectChain(unstakeChainId)
+    if (!switched) {
+      return
+    }
+
+    setAttempting(true)
+    setStakeAmount(parsedAmount)
 
     // try delegation and store hash
     const txHash = await unstakeCallback(parsedAmount, isPool)?.catch((error) => {
@@ -132,6 +182,39 @@ export default function UnstakeModal({ isOpen, isPool, freeStakeBalance, onDismi
             <RowBetween>
               {isPool ? <Trans>Unstaking smart pool free stake.</Trans> : <Trans>Unstaking your free stake.</Trans>}
             </RowBetween>
+            {chains.length > 1 && (
+              <Flex row flexWrap="wrap" gap="$spacing8" width="100%">
+                {chains.map((chain) => {
+                  const info = getChainInfo(chain.chainId)
+                  const active = chain.chainId === selectedChainId
+                  return (
+                    <ChainPill
+                      key={chain.chainId}
+                      size="small"
+                      variant="branded"
+                      emphasis="secondary"
+                      fill={false}
+                      data-active={active}
+                      onPress={() => setSelectedChainId(chain.chainId)}
+                    >
+                      <Text fontSize={14} fontWeight="600">
+                        {info.label}
+                      </Text>
+                      <Text fontSize={12} color="$neutral2">
+                        {formatCurrencyAmount({ value: chain.freeStakeBalance })} GRG
+                      </Text>
+                    </ChainPill>
+                  )
+                })}
+              </Flex>
+            )}
+            {chains.length === 1 && (
+              <Flex row alignItems="center" gap="$spacing8">
+                <ThemedText.DeprecatedBody fontSize={14} color="neutral2">
+                  {chainInfo.label}
+                </ThemedText.DeprecatedBody>
+              </Flex>
+            )}
             <RowBetween>
               <ResponsiveHeaderText>{percentForSlider}%</ResponsiveHeaderText>
               <Flex row gap="$gap8" width="100%" justifyContent="center">

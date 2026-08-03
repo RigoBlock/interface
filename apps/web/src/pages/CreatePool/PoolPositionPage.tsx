@@ -28,7 +28,7 @@ import SetLockupModal from '~/components/createPool/SetLockupModal'
 import SetSpreadModal from '~/components/createPool/SetSpreadModal'
 import SetValueModal from '~/components/createPool/SetValueModal'
 import UpgradeModal from '~/components/createPool/UpgradeModal'
-import HarvestYieldModal from '~/components/earn/HarvestYieldModal'
+import HarvestYieldModal, { HarvestChainOption } from '~/components/earn/HarvestYieldModal'
 import MoveStakeModal from '~/components/earn/MoveStakeModal'
 import RaceModal from '~/components/earn/RaceModal'
 import UnstakeModal from '~/components/earn/UnstakeModal'
@@ -45,7 +45,8 @@ import { useCurrencyBalancesMultipleAccounts } from '~/state/connection/hooks'
 import { usePoolIdByAddress } from '~/state/governance/hooks'
 import { PoolRegisteredLog } from '~/state/pool/hooks'
 import { StakingPoolData, useMultiChainAllPoolsData, useMultiChainStakingPools } from '~/state/pool/multichain'
-import { useFreeStakeBalance, useUnclaimedRewards } from '~/state/stake/hooks'
+import { useUnclaimedRewards } from '~/state/stake/hooks'
+import { useMultiChainFreeStakeBalances, type FreeStakeBalanceByChain } from '~/state/stake/useMultiChainFreeStakeBalances'
 import { useStakingEpochInfo } from '~/state/stake/useStakingEpochInfo'
 
 const NAV_SIMULATE_DEPLOYMENT_BYTECODE =
@@ -576,8 +577,8 @@ interface PoolPageContextValue {
   formatGrgAmount: (raw?: string) => string
   epochInfo: ReturnType<typeof useStakingEpochInfo>['data']
   poolId: string | undefined
-  unclaimedRewards: ReturnType<typeof useUnclaimedRewards>
-  freeStakeBalance: CurrencyAmount<Token> | undefined
+  harvestChains: HarvestChainOption[]
+  unstakeChains: FreeStakeBalanceByChain[]
   hasFreeStake: boolean
   harvestYieldString: string | undefined
   needsUpgrade: boolean
@@ -678,15 +679,63 @@ function usePoolPageData(): PoolPageContextValue {
   // TODO: check how improve efficiency as this method is called each time a pool is loaded
   const { poolId } = usePoolIdByAddress(poolAddressFromUrl ?? undefined)
   const isPoolOperator = account.address === baseValues.owner
-  const unclaimedRewards = useUnclaimedRewards(isPoolOperator && poolId ? [poolId] : [])
-  const freeStakeBalance = useFreeStakeBalance()
-  const hasFreeStake = JSBI.greaterThan(
-    freeStakeBalance ? freeStakeBalance.quotient : JSBI.BigInt(0),
-    JSBI.BigInt(0),
+  // Pool harvest is only meaningful for the operator: it claims the pool's own delegator rewards.
+  // We check the pool address as delegator across every chain where this address is deployed.
+  const rewardPoolEntries = useMemo(
+    () => chainEntries.map((e) => ({ poolId: e.pool.id, chainId: e.pool.chainId ?? 0 })).filter((e) => e.chainId !== 0),
+    [chainEntries],
   )
-  const harvestYieldString = unclaimedRewards?.[0]?.yieldAmount
-    ? formatCurrencyAmount({ value: unclaimedRewards[0].yieldAmount, type: NumberType.TokenNonTx })
-    : undefined
+  const unclaimedRewards = useUnclaimedRewards({
+    farmer: poolAddressFromUrl,
+    pools: isPoolOperator ? rewardPoolEntries : [],
+  })
+
+  // Pool harvest is available on every chain where this pool has unclaimed rewards.
+  const harvestChains: HarvestChainOption[] = useMemo(() => {
+    if ((unclaimedRewards?.length ?? 0) === 0) {
+      return []
+    }
+    const byChain = new Map<number, { yieldAmount: CurrencyAmount<Token>; poolIds: string[]; grg: Token }>()
+    for (const reward of unclaimedRewards ?? []) {
+      const grg = GRG[reward.chainId]
+      const existing = byChain.get(reward.chainId)
+      if (existing) {
+        existing.yieldAmount = CurrencyAmount.fromRawAmount(grg, JSBI.add(existing.yieldAmount.quotient, reward.yieldAmount.quotient))
+        existing.poolIds.push(reward.poolId)
+      } else {
+        byChain.set(reward.chainId, {
+          yieldAmount: reward.yieldAmount,
+          poolIds: [reward.poolId],
+          grg,
+        })
+      }
+    }
+    return Array.from(byChain.entries()).map(([entryChainId, { yieldAmount, poolIds }]) => ({
+      chainId: entryChainId,
+      yieldAmount,
+      poolIds,
+    }))
+  }, [unclaimedRewards])
+
+  const harvestYieldString =
+    harvestChains.length === 1
+      ? formatCurrencyAmount({
+          value: harvestChains[0].yieldAmount,
+          type: NumberType.TokenNonTx,
+        })
+      : undefined
+
+  // Free stake for the pool operator across every chain where this pool is deployed.
+  const poolChainIds = useMemo(
+    () => chainEntries.map((e) => e.pool.chainId ?? 0).filter((id) => id !== 0),
+    [chainEntries],
+  )
+  const freeStakeBalances = useMultiChainFreeStakeBalances(false, poolChainIds)
+  const hasFreeStake = (freeStakeBalances?.length ?? 0) > 0
+
+  // The pool has one stake pool ID per chain, but we currently unstake the whole pool free stake
+  // on a single selected chain via the modal chain selector.
+  const unstakeChains = freeStakeBalances ?? []
 
   // Check if the pool needs an upgrade
   const upgradeInfo = usePoolUpgradeStatus(poolAddressFromUrl, chainId)
@@ -779,8 +828,8 @@ function usePoolPageData(): PoolPageContextValue {
     formatGrgAmount: stakingInfo.formatGrgAmount,
     epochInfo,
     poolId,
-    unclaimedRewards,
-    freeStakeBalance,
+    harvestChains,
+    unstakeChains,
     hasFreeStake,
     harvestYieldString,
     needsUpgrade: upgradeInfo.needsUpgrade,
@@ -833,9 +882,8 @@ function PoolModals(): JSX.Element | null {
     baseTokenSymbol,
     needsUpgrade,
     beaconImplementation,
-    poolId,
-    unclaimedRewards,
-    freeStakeBalance,
+    harvestChains,
+    unstakeChains,
     showBuyModal,
     setShowBuyModal,
     showSellModal,
@@ -930,16 +978,16 @@ function PoolModals(): JSX.Element | null {
       <UnstakeModal
         isOpen={showUnstakeModal}
         isPool={true}
-        freeStakeBalance={freeStakeBalance}
+        chains={unstakeChains}
         onDismiss={() => setShowUnstakeModal(false)}
         title={<Trans>Withdraw</Trans>}
       />
-      {unclaimedRewards && poolId && (
+      {harvestChains.length > 0 && poolAddressFromUrl && (
         <HarvestYieldModal
           isOpen={showHarvestYieldModal}
           isPool={true}
-          yieldAmount={unclaimedRewards[0]?.yieldAmount}
-          poolIds={[poolId]}
+          poolAddress={poolAddressFromUrl}
+          chains={harvestChains}
           onDismiss={() => setShowHarvestYieldModal(false)}
           title={<Trans>Harvest Pool Yield</Trans>}
         />
@@ -967,6 +1015,7 @@ function PoolHeader(): JSX.Element {
     needsUpgrade,
     owner,
     hasBalance,
+    harvestChains,
     harvestYieldString,
     handleUpgradeClick,
     setShowBuyModal,
@@ -1004,11 +1053,17 @@ function PoolHeader(): JSX.Element {
               <Trans>Upgrade</Trans>
             </Button>
           )}
-          {harvestYieldString && (
+          {harvestChains.length > 0 && (
             <Button size="small" variant="branded" fill={false} onPress={() => setShowHarvestYieldModal(true)}>
-              <Trans>
-                Harvest {harvestYieldString} GRG
-              </Trans>
+              <Text>
+                {harvestChains.length === 1 ? (
+                  <Trans>
+                    Harvest {harvestYieldString} GRG
+                  </Trans>
+                ) : (
+                  <Trans>Harvest</Trans>
+                )}
+              </Text>
             </Button>
           )}
         </Flex>

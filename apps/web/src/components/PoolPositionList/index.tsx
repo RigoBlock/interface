@@ -106,10 +106,11 @@ export default function PoolPositionList({
   // --- Build Display Data (pure passthrough — no RPC calls) ---
   // All filtering (ownership, staking) is done by the parent (Earn page).
   // PoolPositionList is a pure display component.
+  const isLoading = positions === undefined
 
   const displayPools = useMemo(() => {
     if (!visiblePositions.length) {
-      return undefined
+      return []
     }
 
     return visiblePositions.map((p) => ({
@@ -125,7 +126,7 @@ export default function PoolPositionList({
   // --- Group for Display ---
 
   const groupedPools = useMemo(() => {
-    if (!displayPools) {
+    if (displayPools.length === 0) {
       return null
     }
 
@@ -191,7 +192,7 @@ export default function PoolPositionList({
             />
           ))}
         </InfiniteScroll>
-      ) : !displayPools ? (
+      ) : isLoading ? (
         <Loader style={{ margin: 'auto' }} />
       ) : !shouldFilterByUserPools && !account.isConnected ? (
         <>

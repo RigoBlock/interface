@@ -7,6 +7,8 @@ import StatusIcon from '~/components/StatusIcon'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { useResolvedAddresses } from '~/pages/Portfolio/hooks/useResolvedAddresses'
 import { useActiveSmartPool } from '~/state/application/hooks'
+import { useOperatedPoolAddresses } from '~/state/pool/hooks'
+import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
 
 interface ConnectedAddressDisplayProps {
   isCompact: boolean
@@ -16,9 +18,14 @@ export function ConnectedAddressDisplay({ isCompact }: ConnectedAddressDisplayPr
   const { evmAddress, svmAddress, isExternalWallet } = useResolvedAddresses()
   const { address: smartPoolAddress } = useActiveSmartPool()
   const { hasExplicitUrlAddress } = usePortfolioRoutes()
+  const operatedPoolAddresses = useOperatedPoolAddresses()
 
-  // Priority: URL address > smart pool (only when no URL address) > connected wallet
-  const useSmartPoolFallback = !hasExplicitUrlAddress && !!smartPoolAddress && !isExternalWallet
+  // Only treat the active smart pool as the portfolio address if the connected wallet actually operates it.
+  // Otherwise fall back to the connected wallet so a non-operator never sees a stale/random vault address.
+  const isActiveSmartPoolOwned = smartPoolAddress
+    ? operatedPoolAddresses.has(normalizeTokenAddressForCache(smartPoolAddress))
+    : false
+  const useSmartPoolFallback = !hasExplicitUrlAddress && !!smartPoolAddress && !isExternalWallet && isActiveSmartPoolOwned
   const primaryAddress = isExternalWallet
     ? (evmAddress ?? svmAddress)
     : useSmartPoolFallback

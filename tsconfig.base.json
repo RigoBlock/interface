@@ -1,11 +1,12 @@
 {
-  "__comment": "The base tsconfig for all packages. Must be here for NX to keep in sync as packages change",
+  // The base tsconfig for all packages. Must be here for NX to keep in sync as packages change
   "compilerOptions": {
     "allowSyntheticDefaultImports": true,
     "composite": true,
     "declaration": true,
     "declarationMap": true,
     "downlevelIteration": true,
+    "ignoreDeprecations": "6.0",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,

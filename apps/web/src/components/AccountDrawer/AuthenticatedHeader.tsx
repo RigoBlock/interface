@@ -13,6 +13,7 @@ import AnimatedNumber, {
 import { TestnetModeBanner } from 'uniswap/src/components/banners/TestnetModeBanner'
 import { RelativeChange } from 'uniswap/src/components/RelativeChange/RelativeChange'
 import { useConnectionStatus } from 'uniswap/src/features/accounts/store/hooks'
+import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { usePortfolioTotalValue } from 'uniswap/src/features/dataApi/balances/balancesRest'
 import { DataApiOutageBanner } from 'uniswap/src/features/dataApi/outage/DataApiOutageBanner'
 import type { DataApiOutageState } from 'uniswap/src/features/dataApi/types'
@@ -29,7 +30,6 @@ import { NumberType } from 'utilities/src/format/types'
 import { MultiBlockchainAddressDisplay } from '~/components/AccountDetails/MultiBlockchainAddressDisplay'
 import { DisconnectButton } from '~/components/AccountDrawer/DisconnectButton'
 import { DownloadGraduatedWalletCard } from '~/components/AccountDrawer/DownloadGraduatedWalletCard'
-import { EmptyWallet } from '~/components/AccountDrawer/MiniPortfolio/EmptyWallet'
 import { useAccountDrawer } from '~/components/AccountDrawer/MiniPortfolio/hooks'
 import MiniPortfolio from '~/components/AccountDrawer/MiniPortfolio/MiniPortfolio'
 import { ReceiveActionTile } from '~/components/ActionTiles/ReceiveActionTile'
@@ -43,7 +43,6 @@ import { useAccountsStore } from '~/features/accounts/store/hooks'
 import { useDataApiOutageModal } from '~/hooks/useDataApiOutageModal'
 import { useIsUniswapExtensionConnected } from '~/hooks/useIsUniswapExtensionConnected'
 import { useModalState } from '~/hooks/useModalState'
-import { useIsPortfolioZero } from '~/pages/Portfolio/Overview/hooks/useIsPortfolioZero'
 import { useUserHasAvailableClaim, useUserUnclaimedAmount } from '~/state/claim/hooks'
 
 export default function AuthenticatedHeader({
@@ -113,7 +112,9 @@ export default function AuthenticatedHeader({
   const { convertFiatAmountFormatted } = useLocalizationContext()
   const totalFormattedValue = convertFiatAmountFormatted(balanceUSD, NumberType.PortfolioBalance)
 
-  const isPortfolioZero = useIsPortfolioZero()
+  const { isTestnetModeEnabled } = useEnabledChains()
+  // The sidebar must always reflect the connected wallet, never the smart pool context.
+  const isPortfolioZero = !isTestnetModeEnabled && balanceUSD === 0
   const isDelegationMismatch = useHasAccountMismatchOnAnyChain()
   const isPermitMismatchUxEnabled = useFeatureFlag(FeatureFlags.EnablePermitMismatchUX)
   const shouldShowDelegationMismatch = isPermitMismatchUxEnabled && isDelegationMismatch
@@ -211,26 +212,20 @@ export default function AuthenticatedHeader({
           {shouldShowDelegationMismatch && (
             <LimitedSupportBanner onPress={() => setDisplayDelegationMismatchModal(true)} />
           )}
-          {isPortfolioZero ? (
-            <EmptyWallet />
-          ) : (
-            <>
-              <Flex row gap="$gap8">
-                <Flex grow>
-                  <SendActionTile />
-                </Flex>
-                <Flex grow>
-                  <ReceiveActionTile />
-                </Flex>
-              </Flex>
-              <DownloadGraduatedWalletCard />
-              <MiniPortfolio
-                evmAddress={evmAddress}
-                svmAddress={svmAddress}
-                onActivityOutageChange={setActivityOutage}
-              />
-            </>
-          )}
+          <Flex row gap="$gap8">
+            <Flex grow>
+              <SendActionTile />
+            </Flex>
+            <Flex grow>
+              <ReceiveActionTile />
+            </Flex>
+          </Flex>
+          <DownloadGraduatedWalletCard />
+          <MiniPortfolio
+            evmAddress={evmAddress}
+            svmAddress={svmAddress}
+            onActivityOutageChange={setActivityOutage}
+          />
           {isUnclaimed && (
             <Trace logPress element={ElementName.AccountDrawerClaimReward}>
               <Button

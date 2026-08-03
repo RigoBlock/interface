@@ -19,7 +19,7 @@ import { TransactionType } from 'uniswap/src/features/transactions/types/transac
 import { isValidHexString } from 'utilities/src/addresses/hex'
 import type { Abi } from 'viem'
 import { useReadContracts } from 'wagmi'
-import { RB_FACTORY_ADDRESSES, RB_REGISTRY_ADDRESSES } from '~/constants/addresses'
+import { RIGOBLOCK_SUPPORTED_CHAINS, RIGOBLOCK_TESTNET_CHAINS, RB_FACTORY_ADDRESSES, RB_REGISTRY_ADDRESSES } from '~/constants/addresses'
 import { useAccount } from '~/hooks/useAccount'
 import { useContract } from '~/hooks/useContract'
 import { useTotalSupply } from '~/hooks/useTotalSupply'
@@ -28,6 +28,9 @@ import { useLogs } from '~/state/logs/hooks'
 import { useTransactionAdder } from '~/state/transactions/hooks'
 import { calculateGasMargin } from '~/utils/calculateGasMargin'
 import { assume0xAddress } from '~/utils/wagmi'
+import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
+import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
+import { useMultiChainAllPoolsData, useMultiChainStakingPools } from '~/state/pool/multichain'
 
 export const PoolInterface = new Interface(POOL_EXTENDED_ABI)
 const RegistryInterface = new Interface(RB_REGISTRY_ABI)
@@ -423,6 +426,36 @@ export function useStakingPoolsRewards(poolIds: string[] | undefined) {
       return (result as { feesCollected?: unknown }).feesCollected
     })
   }, [data])
+}
+
+/**
+ * Returns a Set of normalized addresses for pools the connected wallet currently operates.
+ * This uses the same multi-chain staking batch as the Earn/NavBar data, so it is cached/shared.
+ */
+export function useOperatedPoolAddresses(): Set<string> {
+  const account = useAccount()
+  const { isTestnetModeEnabled } = useEnabledChains()
+  const chains = useMemo(
+    () => (isTestnetModeEnabled ? RIGOBLOCK_TESTNET_CHAINS : RIGOBLOCK_SUPPORTED_CHAINS),
+    [isTestnetModeEnabled],
+  )
+
+  const { data: allPools } = useMultiChainAllPoolsData(chains)
+  const { stakingPools } = useMultiChainStakingPools(allPools ?? [])
+
+  return useMemo(() => {
+    const operated = new Set<string>()
+    if (!account.address || !allPools || !stakingPools) {
+      return operated
+    }
+
+    for (let i = 0; i < allPools.length; i++) {
+      if (stakingPools[i]?.userIsOwner) {
+        operated.add(normalizeTokenAddressForCache(allPools[i].pool))
+      }
+    }
+    return operated
+  }, [account.address, allPools, stakingPools])
 }
 
 export function useStakingPools(addresses: string[], poolIds: string[]): UseStakingPools {

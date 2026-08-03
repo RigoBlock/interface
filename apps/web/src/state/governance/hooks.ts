@@ -47,21 +47,25 @@ function useRegistryContract(): Contract | null {
   })
 }
 
-export function useStakingContract(): Contract | null {
-  const { chainId } = useAccount()
+export function useStakingContract(chainId?: number): Contract | null {
+  const account = useAccount()
+  const resolvedChainId = chainId ?? account.chainId
   return useContract({
-    address: chainId ? STAKING_PROXY_ADDRESSES[chainId] : undefined,
+    address: resolvedChainId ? STAKING_PROXY_ADDRESSES[resolvedChainId] : undefined,
     ABI: STAKING_ABI,
     withSignerIfPossible: true,
+    chainId: resolvedChainId,
   })
 }
 
-export function useStakingProxyContract(): Contract | null {
-  const { chainId } = useAccount()
+export function useStakingProxyContract(chainId?: number): Contract | null {
+  const account = useAccount()
+  const resolvedChainId = chainId ?? account.chainId
   return useContract({
-    address: chainId ? STAKING_PROXY_ADDRESSES[chainId] : undefined,
+    address: resolvedChainId ? STAKING_PROXY_ADDRESSES[resolvedChainId] : undefined,
     ABI: STAKING_PROXY_ABI,
     withSignerIfPossible: true,
+    chainId: resolvedChainId,
   })
 }
 

@@ -106,11 +106,17 @@ function useChainStakingData({
           data: {
             isLoading: true,
             error: undefined,
+            // Preserve the last-known amounts so the UI doesn't flash to zero
+            // while the quote API refreshes in the background.
+            userFreeStake: cachedData?.userFreeStake,
+            userDelegatedStake: cachedData?.userDelegatedStake,
+            smartPoolFreeStake: cachedData?.smartPoolFreeStake,
+            smartPoolDelegatedStake: cachedData?.smartPoolDelegatedStake,
           },
         }),
       )
     }
-  }, [dispatch, userAddress, chainId, needsFetch, cachedData?.isLoading])
+  }, [dispatch, userAddress, chainId, needsFetch, cachedData?.isLoading, cachedData?.userFreeStake, cachedData?.userDelegatedStake, cachedData?.smartPoolFreeStake, cachedData?.smartPoolDelegatedStake])
 
   useEffect(() => {
     // Process data when we have valid stake information
@@ -306,10 +312,14 @@ export function usePortfolioStaking({
         primaryToken = GRG[UniverseChainId.Mainnet]
       }
 
-      // If data is still loading for any chain, don't conclude "no stake" yet
-      if (!data || data.isLoading) {
+      // If data is still loading for any chain, don't conclude "no stake" yet,
+      // but still include any cached amounts so the total doesn't drop to zero.
+      if (!data) {
         hasLoadingChains = true
         continue
+      }
+      if (data.isLoading) {
+        hasLoadingChains = true
       }
 
       // Choose which stakes to display based on context

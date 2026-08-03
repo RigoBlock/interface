@@ -11,7 +11,7 @@ import { useAccountDrawer } from '~/components/AccountDrawer/MiniPortfolio/hooks
 import { ButtonPrimary } from '~/components/Button/buttons'
 import { AutoColumn } from '~/components/deprecated/Column'
 import { RowBetween, RowFixed } from '~/components/deprecated/Row'
-import HarvestYieldModal from '~/components/earn/HarvestYieldModal'
+import HarvestYieldModal, { HarvestChainOption } from '~/components/earn/HarvestYieldModal'
 import { CardBGImage, CardNoise, CardSection, DataCard } from '~/components/earn/styled'
 import UnstakeModal from '~/components/earn/UnstakeModal'
 import Loader from '~/components/Icons/LoadingSpinner'
@@ -108,30 +108,41 @@ export default function Stake() {
 
   const grg = useMemo(() => (account.chainId ? GRG[account.chainId] : undefined), [account.chainId])
 
-  // Convert from new format to old format for backward compatibility
-  const unclaimedRewards = useMemo(() => {
-    if (unclaimedRewardsData.length === 0) {
-      return undefined
-    }
-    return unclaimedRewardsData.map((reward) => ({
-      yieldPoolId: reward.poolId,
-      yieldAmount: reward.amount,
-    }))
-  }, [unclaimedRewardsData])
+  const connectedChainRewards = useMemo(
+    () => unclaimedRewardsData.filter((r) => r.chainId === account.chainId),
+    [unclaimedRewardsData, account.chainId],
+  )
 
   const yieldAmount: CurrencyAmount<Token> | undefined = useMemo(() => {
-    if (!grg || !unclaimedRewards || unclaimedRewards.length === 0) {
+    if (!grg || connectedChainRewards.length === 0) {
       return undefined
     }
-    const yieldBigint = unclaimedRewards
-      .map((reward) => reward.yieldAmount.quotient)
+    const yieldBigint = connectedChainRewards
+      .map((reward) => reward.amount.quotient)
       .reduce((acc, value) => JSBI.add(acc, value))
     return CurrencyAmount.fromRawAmount(grg, yieldBigint)
-  }, [grg, unclaimedRewards])
+  }, [grg, connectedChainRewards])
   const farmingPoolIds = useMemo(() => {
-    const ids = unclaimedRewards?.map((reward) => reward.yieldPoolId)
-    return ids && ids.length > 0 ? ids : undefined
-  }, [unclaimedRewards])
+    const ids = connectedChainRewards.map((reward) => reward.poolId)
+    return ids.length > 0 ? ids : undefined
+  }, [connectedChainRewards])
+
+  // The Stake page currently targets the connected chain only (it uses single-chain pool discovery),
+  // so pass a one-item chain array to the updated multi-chain modals.
+  const harvestChains: HarvestChainOption[] = useMemo(() => {
+    if (!account.chainId || !yieldAmount || !farmingPoolIds) {
+      return []
+    }
+    return [{ chainId: account.chainId, yieldAmount, poolIds: farmingPoolIds }]
+  }, [account.chainId, yieldAmount, farmingPoolIds])
+
+  const unstakeChains = useMemo(() => {
+    if (!account.chainId || !freeStakeBalance || !hasFreeStake) {
+      return []
+    }
+    return [{ chainId: account.chainId, freeStakeBalance }]
+  }, [account.chainId, freeStakeBalance, hasFreeStake])
+
   const userStakeBalances = useUserStakeBalances(poolIds ?? [])
 
   // TODO: check PoolPositionDetails type as irr and apr are number not string
@@ -229,14 +240,13 @@ export default function Stake() {
           <DataRow style={{ alignItems: 'baseline' }}>
             <HarvestYieldModal
               isOpen={showHarvestYieldModal}
-              yieldAmount={yieldAmount}
-              poolIds={farmingPoolIds}
+              chains={harvestChains}
               onDismiss={() => setShowHarvestYieldModal(false)}
               title={<Trans>Harvest</Trans>}
             />
             <UnstakeModal
               isOpen={showUnstakeModal}
-              freeStakeBalance={freeStakeBalance}
+              chains={unstakeChains}
               onDismiss={() => setShowUnstakeModal(false)}
               title={<Trans>Withdraw</Trans>}
             />

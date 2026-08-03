@@ -7,10 +7,11 @@ import { useActiveSmartPool } from '~/state/application/hooks'
 const DEMO_WALLET_ADDRESS = '0x8796207d877194d97a2c360c041f13887896FC79'
 
 /**
- * Returns portfolio addresses with priority: URL address > active smart pool > user wallet > demo wallet.
+ * Returns portfolio addresses with priority: URL address > connected user wallet > active smart pool > demo wallet.
  * When a URL specifies an external address, that takes precedence.
- * When no URL address is set but a smart pool is active, the smart pool address is used.
- * Falls back to the connected user wallet, then demo wallet for disconnected state.
+ * When the user is connected, the connected wallet is always used; the active smart pool is only used
+ * as a fallback when the user is disconnected and a pool has been explicitly selected.
+ * Falls back to the demo wallet for the disconnected state when no smart pool is selected.
  */
 export function usePortfolioAddresses(): {
   evmAddress: Address | undefined
@@ -29,18 +30,19 @@ export function usePortfolioAddresses(): {
       return resolved
     }
 
-    // 2. Active smart pool as fallback only when NO address is in the URL
+    // 2. Connected user wallet always takes precedence over the active smart pool. This prevents
+    //    a stale/selected pool from showing instead of the user's own portfolio.
+    if (resolved.evmAddress || resolved.svmAddress) {
+      return resolved
+    }
+
+    // 3. Active smart pool as fallback only when the user is disconnected AND a pool was explicitly selected
     if (smartPoolAddress) {
       return {
         evmAddress: smartPoolAddress as Address,
         svmAddress: undefined,
         isExternalWallet: true,
       }
-    }
-
-    // 3. Connected user wallet
-    if (resolved.evmAddress || resolved.svmAddress) {
-      return resolved
     }
 
     // 4. Demo wallet for disconnected state

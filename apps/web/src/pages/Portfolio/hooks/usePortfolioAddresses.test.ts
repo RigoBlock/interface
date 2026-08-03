@@ -111,53 +111,7 @@ describe('usePortfolioAddresses', () => {
     })
   })
 
-  describe('active smart pool (second priority)', () => {
-    it('should return the active smart pool address when no URL address is set', () => {
-      mocked(useActiveAddresses).mockReturnValue({
-        evmAddress: undefined,
-        svmAddress: undefined,
-      })
-      mocked(useActiveSmartPool).mockReturnValue({ address: MOCK_SMART_POOL_ADDRESS, name: 'Pool' })
-      mocked(usePortfolioRoutes).mockReturnValue({
-        externalAddress: undefined,
-        isExternalWallet: false,
-        hasExplicitUrlAddress: false,
-        tab: 'overview' as any,
-      })
-
-      const { result } = renderHook(() => usePortfolioAddresses())
-
-      expect(result.current).toEqual({
-        evmAddress: MOCK_SMART_POOL_ADDRESS,
-        svmAddress: undefined,
-        isExternalWallet: true,
-      })
-    })
-
-    it('should prioritize the active smart pool over the connected wallet', () => {
-      mocked(useActiveAddresses).mockReturnValue({
-        evmAddress: SAMPLE_SEED_ADDRESS_1,
-        svmAddress: undefined,
-      })
-      mocked(useActiveSmartPool).mockReturnValue({ address: MOCK_SMART_POOL_ADDRESS, name: 'Pool' })
-      mocked(usePortfolioRoutes).mockReturnValue({
-        externalAddress: undefined,
-        isExternalWallet: false,
-        hasExplicitUrlAddress: false,
-        tab: 'overview' as any,
-      })
-
-      const { result } = renderHook(() => usePortfolioAddresses())
-
-      expect(result.current).toEqual({
-        evmAddress: MOCK_SMART_POOL_ADDRESS,
-        svmAddress: undefined,
-        isExternalWallet: true,
-      })
-    })
-  })
-
-  describe('connected wallet (third priority)', () => {
+  describe('connected wallet (second priority)', () => {
     it('should return connected EVM address when connected', () => {
       mocked(useActiveAddresses).mockReturnValue({
         evmAddress: SAMPLE_SEED_ADDRESS_1,
@@ -200,11 +154,12 @@ describe('usePortfolioAddresses', () => {
       })
     })
 
-    it('should return both EVM and SVM addresses when both are connected', () => {
+    it('should prioritize the connected wallet over the active smart pool', () => {
       mocked(useActiveAddresses).mockReturnValue({
         evmAddress: SAMPLE_SEED_ADDRESS_1,
-        svmAddress: MOCK_SVM_ADDRESS,
+        svmAddress: undefined,
       })
+      mocked(useActiveSmartPool).mockReturnValue({ address: MOCK_SMART_POOL_ADDRESS, name: 'Pool' })
       mocked(usePortfolioRoutes).mockReturnValue({
         externalAddress: undefined,
         isExternalWallet: false,
@@ -216,8 +171,32 @@ describe('usePortfolioAddresses', () => {
 
       expect(result.current).toEqual({
         evmAddress: SAMPLE_SEED_ADDRESS_1,
-        svmAddress: MOCK_SVM_ADDRESS,
+        svmAddress: undefined,
         isExternalWallet: false,
+      })
+    })
+  })
+
+  describe('active smart pool (fallback when disconnected)', () => {
+    it('should return the active smart pool address when disconnected and a smart pool is selected', () => {
+      mocked(useActiveAddresses).mockReturnValue({
+        evmAddress: undefined,
+        svmAddress: undefined,
+      })
+      mocked(useActiveSmartPool).mockReturnValue({ address: MOCK_SMART_POOL_ADDRESS, name: 'Pool' })
+      mocked(usePortfolioRoutes).mockReturnValue({
+        externalAddress: undefined,
+        isExternalWallet: false,
+        hasExplicitUrlAddress: false,
+        tab: 'overview' as any,
+      })
+
+      const { result } = renderHook(() => usePortfolioAddresses())
+
+      expect(result.current).toEqual({
+        evmAddress: MOCK_SMART_POOL_ADDRESS,
+        svmAddress: undefined,
+        isExternalWallet: true,
       })
     })
   })

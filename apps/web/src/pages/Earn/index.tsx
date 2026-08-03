@@ -7,15 +7,13 @@ import { Button, Flex, SegmentedControl, SegmentedControlOption } from 'ui/src'
 import { Plus } from 'ui/src/components/icons/Plus'
 import { NetworkFilter } from 'uniswap/src/components/network/NetworkFilter'
 import { GRG } from 'uniswap/src/constants/tokens'
-import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { ElementName, InterfaceEventName, InterfacePageName, ModalName } from 'uniswap/src/features/telemetry/constants'
+import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
+import { InterfacePageName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { useAccountDrawer } from '~/components/AccountDrawer/MiniPortfolio/hooks'
 import CreateModal from '~/components/createPool/CreateModal'
 import { AutoColumn } from '~/components/deprecated/Column'
-import HarvestYieldModal from '~/components/earn/HarvestYieldModal'
-import UnstakeModal from '~/components/earn/UnstakeModal'
+import HarvestYieldModal, { HarvestChainOption } from '~/components/earn/HarvestYieldModal'
 import PoolPositionList from '~/components/PoolPositionList'
 import { RIGOBLOCK_SUPPORTED_CHAINS, RIGOBLOCK_TESTNET_CHAINS } from '~/constants/addresses'
 import { useAccount } from '~/hooks/useAccount'
@@ -52,15 +50,6 @@ const MainContentWrapper = styled.main`
     0px 24px 32px rgba(0, 0, 0, 0.01);
 `
 
-/** Fixed-height action bar so tabs don't shift when buttons appear/disappear */
-const ActionBar = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  min-height: 40px;
-  gap: 8px;
-`
-
 enum EarnTab {
   AllPools = 'all',
   MyPools = 'my',
@@ -77,10 +66,8 @@ export default function Earn() {
     toggleModal: toggleCreateModal,
   } = useModalState(ModalName.CreateVault)
   const [showHarvestYieldModal, setShowHarvestYieldModal] = useState(false)
-  const [showUnstakeModal, setShowUnstakeModal] = useState(false)
 
   const account = useAccount()
-  const accountDrawer = useAccountDrawer()
   const location = useLocation()
   const navigate = useNavigate()
   const { isTestnetModeEnabled } = useEnabledChains()
@@ -101,25 +88,34 @@ export default function Earn() {
   const { data: allPools } = useMultiChainAllPoolsData(supportedChains)
 
   // Single-batch staking data: one useReadContracts, wagmi splits into per-chain multicalls.
-  // Includes freeStakeBalance + unclaimedRewards for the connected chain,
-  // plus owner + userBalance via storage slot reads (folded into the same batch).
-  const { stakingPools, freeStakeBalance, unclaimedRewards } = useMultiChainStakingPools(allPools ?? [])
+  // Includes unclaimedRewards across ALL chains, plus owner + userBalance via storage slot reads.
+  const { stakingPools, unclaimedRewards } = useMultiChainStakingPools(allPools ?? [])
 
-  const grg = useMemo(() => (account.chainId ? GRG[account.chainId] : undefined), [account.chainId])
-  const hasFreeStake = JSBI.greaterThan(freeStakeBalance ? freeStakeBalance.quotient : JSBI.BigInt(0), JSBI.BigInt(0))
-
-  // Yield amount for Harvest button
-  const yieldAmount: CurrencyAmount<Token> | undefined = useMemo(() => {
-    if (!grg || unclaimedRewards.length === 0) {
-      return undefined
+  // Unclaimed rewards grouped by chain. The user picks one chain at a time to harvest on.
+  const harvestChains: HarvestChainOption[] = useMemo(() => {
+    if (unclaimedRewards.length === 0) {
+      return []
     }
-    const yieldBigint = unclaimedRewards.map((r) => r.amount.quotient).reduce((acc, value) => JSBI.add(acc, value))
-    return CurrencyAmount.fromRawAmount(grg, yieldBigint)
-  }, [grg, unclaimedRewards])
-
-  const farmingPoolIds = useMemo(() => {
-    const ids = unclaimedRewards.map((r) => r.poolId)
-    return ids.length > 0 ? ids : undefined
+    const byChain = new Map<number, { yieldAmount: JSBI; poolIds: string[]; grg: Token }>()
+    for (const reward of unclaimedRewards) {
+      const grg = GRG[reward.chainId]
+      const existing = byChain.get(reward.chainId)
+      if (existing) {
+        existing.yieldAmount = JSBI.add(existing.yieldAmount, reward.amount.quotient)
+        existing.poolIds.push(reward.poolId)
+      } else {
+        byChain.set(reward.chainId, {
+          yieldAmount: reward.amount.quotient,
+          poolIds: [reward.poolId],
+          grg,
+        })
+      }
+    }
+    return Array.from(byChain.entries()).map(([chainId, { yieldAmount, poolIds, grg }]) => ({
+      chainId,
+      yieldAmount: CurrencyAmount.fromRawAmount(grg, yieldAmount),
+      poolIds,
+    }))
   }, [unclaimedRewards])
 
   // Pools enriched with staking stats + ownership + balance (all from the single staking batch)
@@ -156,13 +152,13 @@ export default function Earn() {
   // Separate staked / non-staked pools, put user-staked first
   const [stakedPools, nonStakedPools] = topPools?.reduce<[PoolRegisteredLog[], PoolRegisteredLog[]]>(
     (acc, p) => {
-      acc[p.userHasStake ? 1 : 0].push(p)
+      acc[p.userHasStake ? 0 : 1].push(p)
       return acc
     },
     [[], []],
   ) ?? [[], []]
 
-  const orderedAllPools = useMemo(() => [...nonStakedPools, ...stakedPools], [stakedPools, nonStakedPools])
+  const orderedAllPools = useMemo(() => [...stakedPools, ...nonStakedPools], [stakedPools, nonStakedPools])
 
   // Apply chain filter
   const filteredOrderedPools = useMemo(() => {
@@ -172,14 +168,21 @@ export default function Earn() {
     return orderedAllPools.filter((p) => p.chainId === selectedChain)
   }, [orderedAllPools, selectedChain])
 
-  // "My Smart Pools": pools the user operates, has staked to, or holds tokens of.
+  // "My Smart Pools": pools the user operates or holds tokens of only.
   // All data comes from the staking batch — zero additional RPC calls.
   const filteredMyPools = useMemo(() => {
-    if (!poolsWithStats || !account.address) {
+    if (!account.address) {
+      return undefined
+    }
+    // If no pools exist at all, the user has no pools to manage. Show the empty state instead of a loader.
+    if (allPools && allPools.length === 0) {
+      return []
+    }
+    if (!poolsWithStats) {
       return undefined
     }
     const myPools = poolsWithStats.filter((p) => {
-      if (p.userIsOwner || p.userHasStake) {
+      if (p.userIsOwner) {
         return true
       }
       if (p.userBalance) {
@@ -195,7 +198,7 @@ export default function Earn() {
       return myPools
     }
     return myPools.filter((p) => p.chainId === selectedChain)
-  }, [poolsWithStats, account.address, selectedChain])
+  }, [allPools, poolsWithStats, account.address, selectedChain])
 
   // Tab options
   const tabOptions: SegmentedControlOption<EarnTab>[] = useMemo(
@@ -225,20 +228,30 @@ export default function Earn() {
     [navigate],
   )
 
-  // Whether to show the action bar (only when there are buttons)
-  const showActionBar = !account.isConnected || (selectedTab === EarnTab.AllPools && (!!yieldAmount || hasFreeStake))
-
-  const createButton = account.isConnected ? (
-    <Button
-      size="xsmall"
-      variant="branded"
-      fill={false}
-      icon={<Plus />}
-      onPress={toggleCreateModal}
-      style={{ width: 'fit-content' }}
-    >
-      <Trans i18nKey="earn.create" />
-    </Button>
+  // The header action contains the Harvest button (when rewards are available)
+  // followed by the Create button, so both tabs share the same layout.
+  const headerAction = account.isConnected ? (
+    <Flex row gap="$spacing8" alignItems="center">
+      {harvestChains.length > 0 && (
+        <Button
+          size="xsmall"
+          variant="branded"
+          fill={false}
+          onPress={() => setShowHarvestYieldModal(true)}
+        >
+          <Trans>Harvest</Trans>
+        </Button>
+      )}
+      <Button
+        size="xsmall"
+        variant="branded"
+        fill={false}
+        icon={<Plus />}
+        onPress={toggleCreateModal}
+      >
+        <Trans i18nKey="earn.create" />
+      </Button>
+    </Flex>
   ) : undefined
 
   return (
@@ -253,16 +266,9 @@ export default function Earn() {
           />
           <HarvestYieldModal
             isOpen={showHarvestYieldModal}
-            yieldAmount={yieldAmount}
-            poolIds={farmingPoolIds}
+            chains={harvestChains}
             onDismiss={() => setShowHarvestYieldModal(false)}
             title={<Trans>Harvest</Trans>}
-          />
-          <UnstakeModal
-            isOpen={showUnstakeModal}
-            freeStakeBalance={freeStakeBalance}
-            onDismiss={() => setShowUnstakeModal(false)}
-            title={<Trans>Withdraw</Trans>}
           />
 
           {/* Tab Selector + Chain Filter — always on one row */}
@@ -286,50 +292,19 @@ export default function Earn() {
             />
           </Flex>
 
-          {/* Action buttons — only shown when relevant */}
-          {showActionBar && (
-            <ActionBar>
-              {account.isConnected ? (
-                <>
-                  {selectedTab === EarnTab.AllPools && yieldAmount && (
-                    <Button size="small" variant="branded" onPress={() => setShowHarvestYieldModal(true)}>
-                      <Trans>Harvest</Trans>
-                    </Button>
-                  )}
-                  {selectedTab === EarnTab.AllPools && hasFreeStake && (
-                    <Button size="small" variant="branded" onPress={() => setShowUnstakeModal(true)}>
-                      <Trans>Unstake</Trans>
-                    </Button>
-                  )}
-                </>
-              ) : (
-                <Trace
-                  logPress
-                  eventOnTrigger={InterfaceEventName.ConnectWalletButtonClicked}
-                  properties={{ received_swap_quote: false }}
-                  element={ElementName.ConnectWalletButton}
-                >
-                  <Button size="small" variant="branded" onPress={accountDrawer.open}>
-                    <Trans i18nKey="common.connectAWallet.button" />
-                  </Button>
-                </Trace>
-              )}
-            </ActionBar>
-          )}
-
           <MainContentWrapper>
             {selectedTab === EarnTab.MyPools ? (
               <PoolPositionList
                 positions={filteredMyPools}
                 allPositions={poolsWithStats}
                 shouldFilterByUserPools={true}
-                headerAction={createButton}
+                headerAction={headerAction}
               />
             ) : (
               <PoolPositionList
-                positions={filteredOrderedPools.length > 0 ? filteredOrderedPools : undefined}
+                positions={poolsWithStats === undefined ? undefined : filteredOrderedPools}
                 allPositions={poolsWithStats}
-                headerAction={createButton}
+                headerAction={headerAction}
               />
             )}
           </MainContentWrapper>

@@ -21,10 +21,11 @@ import { useTransactionAdder } from '~/state/transactions/hooks'
 import { calculateGasMargin } from '~/utils/calculateGasMargin'
 import { assume0xAddress } from '~/utils/wagmi'
 
-export function useFreeStakeBalance(isDelegateFreeStake?: boolean): CurrencyAmount<Token> | undefined {
+export function useFreeStakeBalance(isDelegateFreeStake?: boolean, chainId?: number): CurrencyAmount<Token> | undefined {
   const account = useAccount()
-  const grg = useMemo(() => (account.chainId ? GRG[account.chainId] : undefined), [account.chainId])
-  const stakingContract = useStakingContract()
+  const resolvedChainId = chainId ?? account.chainId
+  const grg = useMemo(() => (resolvedChainId ? GRG[resolvedChainId] : undefined), [resolvedChainId])
+  const stakingContract = useStakingContract(resolvedChainId)
   const { poolAddress: poolAddressFromUrl } = useParams<{
     poolAddress?: string
   }>()
@@ -32,7 +33,7 @@ export function useFreeStakeBalance(isDelegateFreeStake?: boolean): CurrencyAmou
   const queryEnabled = !!account.address && !!stakingContract
   const { data: freeStake } = useReadContract({
     address: assume0xAddress(stakingContract?.address),
-    chainId: account.chainId,
+    chainId: resolvedChainId,
     abi: stakingContract?.interface.fragments,
     functionName: 'getOwnerStakeByStatus',
     args: [isDelegateFreeStake ? account.address : (poolAddressFromUrl ?? account.address), StakeStatus.UNDELEGATED],
@@ -151,58 +152,71 @@ export function useTotalStakeBalances({ address, smartPoolAddress, chainId }: St
       }
 }
 
-interface UnclaimedRewardsData {
+export interface UnclaimedReward {
+  chainId: number
+  poolId: string
   yieldAmount: CurrencyAmount<Token>
-  yieldPoolId: string
 }
 
-// TODO: check as from pool page we are passing [] if not pool operator, i.e. we want to skip the rpc call when normal user
-export function useUnclaimedRewards(poolIds: string[]): UnclaimedRewardsData[] | undefined {
-  const account = useAccount()
-  const grg = useMemo(() => (account.chainId ? GRG[account.chainId] : undefined), [account.chainId])
-  const stakingContract = useStakingContract()
-  const { poolAddress: poolAddressFromUrl } = useParams<{
-    poolAddress?: string
-  }>()
-  //const members = Array(poolIds.length).fill(poolAddressFromUrl ?? account)
-  const farmer = poolAddressFromUrl ?? account.address
-  // TODO: check if can improve as whenever there is an address in the url the pool's balance will be checked
-  //  we should check the logic of appending pool address as we should also append its pool id, but will result
-  //  in a duplicate id, however the positive reward filter will return that id either for user or for pool, never both
-  //  [poolIds, poolAddressFromUrl ? [...members, ...poolAddressFromUrl] : members]
-  const inputs = useMemo(() => {
-    return poolIds.map((poolId) => {
-      return [poolId, farmer]
-    })
-  }, [farmer, poolIds])
+interface UseUnclaimedRewardsArgs {
+  /** Address to check as delegator. Defaults to the connected wallet. */
+  farmer?: string
+  /** Per-chain pool IDs to check. */
+  pools?: { poolId: string; chainId: number }[]
+}
 
-  const { data: unclaimedRewards } = useReadContract({
-    address: assume0xAddress(stakingContract?.address),
-    chainId: account.chainId,
-    abi: stakingContract?.interface.fragments,
-    functionName: 'computeRewardBalanceOfDelegator',
-    args: inputs,
+// TODO: this can be further optimized by grouping calls by chain and using a single batch per chain.
+export function useUnclaimedRewards({ farmer, pools }: UseUnclaimedRewardsArgs): UnclaimedReward[] | undefined {
+  const account = useAccount()
+  const resolvedFarmer = farmer ?? account.address
+
+  const contracts = useMemo(() => {
+    if (!resolvedFarmer || !pools || pools.length === 0) {
+      return []
+    }
+    const calls = []
+    for (const { poolId, chainId } of pools) {
+      const stakingAddr = STAKING_PROXY_ADDRESSES[chainId]
+      if (!stakingAddr) {
+        continue
+      }
+      calls.push({
+        address: assume0xAddress(stakingAddr),
+        abi: STAKING_ABI as Abi,
+        functionName: 'computeRewardBalanceOfDelegator',
+        args: [poolId, resolvedFarmer],
+        chainId,
+      })
+    }
+    return calls
+  }, [resolvedFarmer, pools])
+
+  const { data } = useReadContracts({
+    contracts,
     query: {
-      enabled: !!stakingContract && inputs.length > 0,
+      enabled: contracts.length > 0,
       retry: 3,
       retryDelay: (attempt: number) => Math.min(attempt > 1 ? 2 ** attempt * 1000 : 1000, 30_000),
     },
   })
 
   return useMemo(() => {
-    if (!unclaimedRewards || !grg) {
+    if (!data || !pools) {
       return undefined
     }
-    return (unclaimedRewards as any[])
-      .map((reward, i) => {
-        const value = reward?.result?.[0]
-        return {
-          yieldAmount: CurrencyAmount.fromRawAmount(grg, value ?? JSBI.BigInt(0)),
-          yieldPoolId: poolIds[i],
-        }
-      })
-      .filter((p) => JSBI.greaterThan(p.yieldAmount.quotient, JSBI.BigInt(0)))
-  }, [grg, unclaimedRewards, poolIds])
+    const rewards: UnclaimedReward[] = []
+    for (let i = 0; i < data.length; i++) {
+      const call = contracts[i]
+      const grg = GRG[call.chainId]
+      const result = data[i]
+      const value = (result as any)?.result?.[0] ?? 0
+      const amount = CurrencyAmount.fromRawAmount(grg, JSBI.BigInt(value.toString()))
+      if (JSBI.greaterThan(amount.quotient, JSBI.BigInt(0))) {
+        rewards.push({ chainId: call.chainId, poolId: call.args[0] as string, yieldAmount: amount })
+      }
+    }
+    return rewards
+  }, [data, contracts, pools])
 }
 
 interface UserStakeData {
@@ -250,14 +264,14 @@ export function useUserStakeBalances(poolIds: string[]): UserStakeData[] | undef
   }, [grg, userStakeBalances])
 }
 
-export function useUnstakeCallback(): (amount: CurrencyAmount<Token>, isPool?: boolean) => undefined | Promise<string> {
+export function useUnstakeCallback(chainId?: number): (amount: CurrencyAmount<Token>, isPool?: boolean) => undefined | Promise<string> {
   const account = useAccount()
-  const provider = useEthersWeb3Provider()
-  const stakingContract = useStakingContract()
+  const provider = useEthersWeb3Provider({ chainId })
+  const stakingContract = useStakingContract(chainId)
   const { poolAddress: poolAddressFromUrl } = useParams<{
     poolAddress?: string
   }>()
-  const poolContract = usePoolExtendedContract(poolAddressFromUrl ?? undefined)
+  const poolContract = usePoolExtendedContract(poolAddressFromUrl ?? undefined, chainId)
 
   // state for pending and submitted txn views
   const addTransaction = useTransactionAdder()
@@ -308,21 +322,30 @@ export function useUnstakeCallback(): (amount: CurrencyAmount<Token>, isPool?: b
   )
 }
 
-export function useHarvestCallback(): (poolIds: string[], isPool?: boolean) => undefined | Promise<string> {
+export function useHarvestCallback({
+  chainId,
+  poolAddress,
+  isPool = false,
+}: {
+  chainId: number
+  poolAddress?: string
+  isPool?: boolean
+}): (poolIds: string[]) => undefined | Promise<string> {
   const account = useAccount()
-  const provider = useEthersWeb3Provider()
-  const stakingContract = useStakingContract()
-  const stakingProxy = useStakingProxyContract()
+  const provider = useEthersWeb3Provider({ chainId })
   const { poolAddress: poolAddressFromUrl } = useParams<{
     poolAddress?: string
   }>()
-  const poolContract = usePoolExtendedContract(poolAddressFromUrl ?? undefined)
+  const effectivePoolAddress = poolAddress ?? poolAddressFromUrl
+  const stakingContract = useStakingContract(chainId)
+  const stakingProxy = useStakingProxyContract(chainId)
+  const poolContract = usePoolExtendedContract(effectivePoolAddress ?? undefined, chainId)
 
   // state for pending and submitted txn views
   const addTransaction = useTransactionAdder()
 
   return useCallback(
-    (poolIds: string[], isPool?: boolean) => {
+    (poolIds: string[]) => {
       if (!provider || !account.chainId || !account.address) {
         return undefined
       }
@@ -333,9 +356,6 @@ export function useHarvestCallback(): (poolIds: string[], isPool?: boolean) => u
         throw new Error('No Pool Contract!')
       }
       const harvestCalls: string[] = []
-      // when withdrawing pool rewards we will pass an array of only 1 pool ids
-      // TODO: we encode pool calls but do not use them as we want to use direct method instead of multicall.
-      //  Check if should remove encoding call for pool.
       for (const poolId of poolIds) {
         const harvestCall = !isPool
           ? stakingContract.interface.encodeFunctionData('withdrawDelegatorRewards', [poolId])
@@ -375,7 +395,7 @@ export function useHarvestCallback(): (poolIds: string[], isPool?: boolean) => u
         })()
       }
     },
-    [account.address, account.chainId, provider, poolContract, stakingContract, stakingProxy, addTransaction],
+    [account.address, account.chainId, provider, poolContract, stakingContract, stakingProxy, isPool, addTransaction],
   )
 }
 
