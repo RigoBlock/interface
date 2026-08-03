@@ -33,7 +33,7 @@ export type TabsItem = MenuItem & {
 export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSection[] => {
   const { t } = useTranslation()
   const { pathname } = useLocation()
-  const { chainId: portfolioChainId, isExternalWallet } = usePortfolioRoutes()
+  const { chainId: portfolioChainId } = usePortfolioRoutes()
   const colors = useSporeColors()
 
   const isPortfolioDefiTabEnabled = useFeatureFlag(FeatureFlags.PortfolioDefiTab)
@@ -155,7 +155,7 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
         tab: PortfolioTab.Overview,
         chainId: portfolioChainId,
       }),
-      isActive: pathname.startsWith(PageType.PORTFOLIO) && !isExternalWallet,
+      isActive: pathname.startsWith(PageType.PORTFOLIO),
       icon: <Wallet color="$accent1" size="$icon.20" />,
       elementName: ElementName.NavbarPortfolioTab,
       items: [

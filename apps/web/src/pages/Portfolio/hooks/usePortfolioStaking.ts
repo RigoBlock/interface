@@ -2,14 +2,14 @@ import { CurrencyAmount, Token } from '@uniswap/sdk-core'
 import JSBI from 'jsbi'
 import { useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { GRG } from 'uniswap/src/constants/tokens'
+import { GRG, USDC_MAINNET } from 'uniswap/src/constants/tokens'
+import { usePortfolioDataMultichain } from 'uniswap/src/features/dataApi/balances/balancesRest'
+import { PortfolioMultichainBalance } from 'uniswap/src/features/dataApi/types'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { isTestnetChain } from 'uniswap/src/features/chains/utils'
-import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'
 import { STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
 import { useActiveAddresses } from '~/features/accounts/store/hooks'
-import { useActiveSmartPool } from '~/state/application/hooks'
 import {
   selectChainStakingData,
   selectStakingDataNeedsFetch,
@@ -60,6 +60,55 @@ function deserializeStakingAmount(amountStr?: string, chainId?: UniverseChainId)
   } catch {
     return undefined
   }
+}
+
+// Read the GRG USD price from the same REST portfolio data source that powers the
+// Tokens tab. This avoids the quote-API flicker that useUSDCValue triggers and
+// works even when the legacy spot-price feed does not have a GRG price.
+function useGrgPriceFromPortfolio(address?: string): number | undefined {
+  const { data: portfolioData } = usePortfolioDataMultichain({
+    evmAddress: address,
+    skip: !address,
+  })
+
+  return useMemo(() => {
+    if (!portfolioData) {
+      return undefined
+    }
+
+    const grg = Object.values(portfolioData).find(
+      (balance): balance is PortfolioMultichainBalance =>
+        balance.symbol === 'GRG' ||
+        balance.tokens.some((token) => token.currencyInfo.currency.symbol === 'GRG'),
+    )
+
+    return grg?.priceUsd ?? undefined
+  }, [portfolioData])
+}
+
+// Convert a GRG amount to its USD value using the portfolio-derived GRG price.
+// This is the same price source used for portfolio tokens, so it avoids the extra
+// quote-API round trip that useUSDCValue triggers for every refresh.
+export function useGrgFiatValue(
+  grgAmount?: CurrencyAmount<Token>,
+  priceUSD?: number,
+): CurrencyAmount<Token> | undefined {
+  const mainnetGRG = GRG[UniverseChainId.Mainnet]
+
+  return useMemo(() => {
+    if (!grgAmount || priceUSD === undefined) {
+      return undefined
+    }
+    try {
+      const mainnetAmount = CurrencyAmount.fromRawAmount(mainnetGRG, grgAmount.quotient)
+      const pricePrecision = BigInt(10 ** USDC_MAINNET.decimals)
+      const priceRaw = BigInt(Math.floor(priceUSD * Number(pricePrecision)))
+      const usdRaw = (BigInt(mainnetAmount.quotient.toString()) * priceRaw) / BigInt(10 ** mainnetGRG.decimals)
+      return CurrencyAmount.fromRawAmount(USDC_MAINNET, usdRaw.toString())
+    } catch {
+      return undefined
+    }
+  }, [grgAmount, priceUSD, mainnetGRG])
 }
 
 // Hook to fetch and manage staking data for a single chain with Redux caching
@@ -178,61 +227,35 @@ export function usePortfolioStaking({
   stakingData: Partial<Record<UniverseChainId, StakingData>>
   totalStakeAmount?: CurrencyAmount<any>
   totalStakeUSD?: CurrencyAmount<any>
+  grgPriceUSD?: number
   hasAnyStake: boolean
   isLoading: boolean
   targetAddress?: string // The address we're displaying stakes for
   isViewingOwnStakes: boolean // Whether we're viewing user's own stakes vs smart pool stakes
 } {
   const { chains: enabledChains, isTestnetModeEnabled } = useEnabledChains()
-  const smartPoolAddress = useActiveSmartPool().address
-  const [paramAddress] = new URLSearchParams(window.location.search).getAll('address')
   const { evmAddress } = useActiveAddresses()
 
-  // Determine target address and context based on priority rules
+  // Read the GRG USD price from the same portfolio REST data that prices the tokens tab.
+  const grgPriceUSD = useGrgPriceFromPortfolio(evmAddress ?? undefined)
+
+  // Determine target address and context based on the caller-supplied address or the connected wallet.
+  // We intentionally do NOT fall back to the active smart pool here; all portfolio tabs should display
+  // the same wallet/pool that the portfolio page is currently rendering.
   const { targetAddress, isViewingOwnStakes } = useMemo(() => {
-    // If address is explicitly passed (from usePortfolioAddresses), always use it
-    if (address) {
-      const isViewingOwnAddress = evmAddress
-        ? areAddressesEqual({
-            addressInput1: { address, platform: Platform.EVM },
-            addressInput2: { address: evmAddress, platform: Platform.EVM },
-          })
-        : false
-      return {
-        targetAddress: address,
-        isViewingOwnStakes: isViewingOwnAddress,
-      }
-    }
-
-    // Only use internal resolution if no address is passed
-    // Priority 1: URL address parameter
-    if (paramAddress) {
-      const isViewingOwnAddress = evmAddress
-        ? areAddressesEqual({
-            addressInput1: { address: paramAddress, platform: Platform.EVM },
-            addressInput2: { address: evmAddress, platform: Platform.EVM },
-          })
-        : false
-      return {
-        targetAddress: paramAddress,
-        isViewingOwnStakes: isViewingOwnAddress,
-      }
-    }
-
-    // Priority 2: Active smart pool (if no URL param)
-    if (smartPoolAddress) {
-      return {
-        targetAddress: smartPoolAddress,
-        isViewingOwnStakes: false,
-      }
-    }
-
-    // Priority 3: Default to user's own address
+    const resolvedAddress = address || evmAddress
+    const isViewingOwnAddress =
+      !!resolvedAddress &&
+      !!evmAddress &&
+      areAddressesEqual({
+        addressInput1: { address: resolvedAddress, platform: Platform.EVM },
+        addressInput2: { address: evmAddress, platform: Platform.EVM },
+      })
     return {
-      targetAddress: evmAddress,
-      isViewingOwnStakes: true,
+      targetAddress: resolvedAddress,
+      isViewingOwnStakes: isViewingOwnAddress,
     }
-  }, [address, paramAddress, smartPoolAddress, evmAddress])
+  }, [address, evmAddress])
 
   // Filter to only chains that have staking contracts
   const stakingChains = useMemo(() => {
@@ -348,8 +371,9 @@ export function usePortfolioStaking({
     }
   }, [targetAddress, stakingChains, stakingData, isViewingOwnStakes])
 
-  // Get USD value for primary stake amount
-  const totalStakeUSDValue = useUSDCValue(totalStakeAmount)
+  // Get USD value for primary stake amount using the portfolio-derived GRG price.
+  // This avoids the quote-API flicker/lag that useUSDCValue introduces during refreshes.
+  const totalStakeUSDValue = useGrgFiatValue(totalStakeAmount, grgPriceUSD)
 
   // Check if any data is loading
   const isLoading = useMemo(() => {
@@ -361,6 +385,7 @@ export function usePortfolioStaking({
     stakingData,
     totalStakeAmount,
     totalStakeUSD: totalStakeUSDValue || undefined,
+    grgPriceUSD,
     hasAnyStake,
     isLoading,
     targetAddress,

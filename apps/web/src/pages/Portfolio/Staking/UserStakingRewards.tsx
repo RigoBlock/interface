@@ -3,31 +3,21 @@ import { Trans } from 'react-i18next'
 import { Button, Flex, Text } from 'ui/src'
 import { TokenLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
+import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
-import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 import HarvestYieldModal from '~/components/earn/HarvestYieldModal'
 import { useAccount } from '~/hooks/useAccount'
-import { useSmartPoolFromAddress } from '~/hooks/useSmartPools'
-import { usePoolIdsByAddressAcrossChains } from '~/state/pool/multichain'
+import { RIGOBLOCK_SUPPORTED_CHAINS, RIGOBLOCK_TESTNET_CHAINS } from '~/constants/addresses'
+import { useMultiChainAllPoolsData } from '~/state/pool/multichain'
 import { useUnclaimedRewards, type UnclaimedReward } from '~/state/stake/hooks'
 
-function PoolRewardRow({
-  reward,
-  poolAddress,
-  isOperator,
-}: {
-  reward: UnclaimedReward
-  poolAddress: string
-  isOperator: boolean
-}) {
+function UserRewardRow({ reward }: { reward: UnclaimedReward }) {
   const [showHarvestModal, setShowHarvestModal] = useState(false)
   const account = useAccount()
   const chainInfo = getChainInfo(reward.chainId)
   const { formatCurrencyAmount } = useLocalizationContext()
 
-  // Harvest can only be executed on the currently connected chain.
-  const canHarvest = isOperator && reward.chainId === account.chainId
+  const canHarvest = reward.chainId === account.chainId
 
   return (
     <Flex
@@ -64,58 +54,40 @@ function PoolRewardRow({
 
       <HarvestYieldModal
         isOpen={showHarvestModal}
-        isPool={true}
-        poolAddress={poolAddress}
+        isPool={false}
         chains={[{ chainId: reward.chainId, yieldAmount: reward.yieldAmount, poolIds: [reward.poolId] }]}
         onDismiss={() => setShowHarvestModal(false)}
-        title={<Trans>Harvest Pool Yield</Trans>}
+        title={<Trans>Harvest Your Yield</Trans>}
       />
     </Flex>
   )
 }
 
-interface PoolStakingInfoProps {
-  poolAddress: string
-  stakingPoolExists: boolean
+interface UserStakingRewardsProps {
+  farmer: string
 }
 
-export function PoolStakingInfo({ poolAddress, stakingPoolExists }: PoolStakingInfoProps) {
-  const poolEntries = usePoolIdsByAddressAcrossChains(poolAddress)
-  const unclaimedRewards = useUnclaimedRewards({ farmer: poolAddress, pools: poolEntries })
-  const account = useAccount()
-  const poolStorage = useSmartPoolFromAddress(poolAddress, account.chainId)
-  const isOperator = useMemo(
-    () =>
-      !!account.address &&
-      !!poolStorage?.poolInitParams.owner &&
-      areAddressesEqual({
-        addressInput1: { address: account.address, platform: Platform.EVM },
-        addressInput2: { address: poolStorage.poolInitParams.owner, platform: Platform.EVM },
-      }),
-    [account.address, poolStorage],
+export function UserStakingRewards({ farmer }: UserStakingRewardsProps) {
+  const { isTestnetModeEnabled } = useEnabledChains()
+  const chains = useMemo(
+    () => (isTestnetModeEnabled ? RIGOBLOCK_TESTNET_CHAINS : RIGOBLOCK_SUPPORTED_CHAINS),
+    [isTestnetModeEnabled],
   )
-
-  if (!stakingPoolExists) {
-    return (
-      <Flex gap="$spacing16">
-        <Text variant="heading2" color="$neutral1">
-          Pool Rewards
-        </Text>
-        <Flex p="$spacing16" borderRadius="$rounded16" backgroundColor="$surface2">
-          <Text variant="body2" color="$neutral2">
-            This smart pool ({poolAddress.slice(0, 6)}...{poolAddress.slice(-4)}) does not have a staking pool
-            configured.
-          </Text>
-        </Flex>
-      </Flex>
-    )
-  }
+  const { data: allPools } = useMultiChainAllPoolsData(chains)
+  const poolEntries = useMemo(
+    () =>
+      allPools
+        ?.map((pool) => ({ poolId: pool.id, chainId: pool.chainId ?? 0 }))
+        .filter((entry) => entry.chainId !== 0),
+    [allPools],
+  )
+  const unclaimedRewards = useUnclaimedRewards({ farmer, pools: poolEntries })
 
   if (!unclaimedRewards || unclaimedRewards.length === 0) {
     return (
       <Flex gap="$spacing16">
         <Text variant="heading2" color="$neutral1">
-          Pool Rewards
+          Your Rewards
         </Text>
         <Flex p="$spacing16" borderRadius="$rounded16" backgroundColor="$surface2">
           <Text variant="body2" color="$neutral2" textAlign="center">
@@ -129,7 +101,7 @@ export function PoolStakingInfo({ poolAddress, stakingPoolExists }: PoolStakingI
   return (
     <Flex gap="$spacing16">
       <Text variant="heading2" color="$neutral1">
-        Pool Rewards
+        Your Rewards
       </Text>
       <Flex gap="$spacing4">
         <Flex
@@ -149,12 +121,7 @@ export function PoolStakingInfo({ poolAddress, stakingPoolExists }: PoolStakingI
           <Flex width={80} />
         </Flex>
         {unclaimedRewards.map((reward) => (
-          <PoolRewardRow
-            key={reward.chainId}
-            reward={reward}
-            poolAddress={poolAddress}
-            isOperator={isOperator}
-          />
+          <UserRewardRow key={reward.chainId} reward={reward} />
         ))}
       </Flex>
     </Flex>

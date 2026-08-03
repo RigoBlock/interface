@@ -1,7 +1,7 @@
 import { Token } from '@uniswap/sdk-core'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useEffect, useMemo, useRef } from 'react'
-import { useLocation, useSearchParams } from 'react-router'
+import { useLocation } from 'react-router'
 import { Flex, styled, Nav as TamaguiNav, useMedia } from 'ui/src'
 import { breakpoints, INTERFACE_NAV_HEIGHT, zIndexes } from 'ui/src/theme'
 import { useConnectionStatus } from 'uniswap/src/features/accounts/store/hooks'
@@ -21,9 +21,9 @@ import Web3Status from '~/components/Web3Status'
 import { RIGOBLOCK_SUPPORTED_CHAINS, RIGOBLOCK_TESTNET_CHAINS } from '~/constants/addresses'
 import { useAccount } from '~/hooks/useAccount'
 import { PageType, useIsPage } from '~/hooks/useIsPage'
+import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import usePrevious from '~/hooks/usePrevious'
 import { css, deprecatedStyled } from '~/lib/deprecated-styled'
-import { isPortfolioTab } from '~/pages/Portfolio/types'
 import { useActiveSmartPool, useSelectActiveSmartPool } from '~/state/application/hooks'
 import { useMultiChainAllPoolsData, useMultiChainStakingPools } from '~/state/pool/multichain'
 import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
@@ -130,22 +130,15 @@ function useShouldHideChainSelector() {
 
 function useShouldHidePoolSelector() {
   const { pathname } = useLocation()
-  const [searchParams] = useSearchParams()
+  const { hasExplicitUrlAddress } = usePortfolioRoutes()
   const isEarnPage = pathname === '/earn' || pathname === '/earn/manage'
   const isPoolPositionPage = pathname.includes('/smart-pool')
+  // Hide on portfolio only when an explicit address is in the URL (e.g. redirect from a pool click
+  // or the user's own-wallet portfolio link). Otherwise operators can use the selector to switch
+  // the smart pool portfolio shown on /portfolio.
+  const isExplicitPortfolioAddress = pathname.startsWith('/portfolio') && hasExplicitUrlAddress
 
-  // Hide pool selector when browsing an external address in the portfolio
-  // (switching pools doesn't update the URL, which would be confusing)
-  const hasPortfolioExplicitAddress = useMemo(() => {
-    if (!pathname.startsWith('/portfolio')) {
-      return false
-    }
-    const segments = pathname.split('/').filter(Boolean)
-    const firstSegment = segments[1]
-    return (!!firstSegment && !isPortfolioTab(firstSegment)) || !!searchParams.get('address')
-  }, [pathname, searchParams])
-
-  return isEarnPage || isPoolPositionPage || hasPortfolioExplicitAddress
+  return isEarnPage || isPoolPositionPage || isExplicitPortfolioAddress
 }
 
 export default function Navbar() {
@@ -177,7 +170,7 @@ export default function Navbar() {
   )
 
   const { data: allPools } = useMultiChainAllPoolsData(chains)
-  const { stakingPools } = useMultiChainStakingPools(allPools ?? [])
+  const { stakingPools, loading: stakingPoolsLoading } = useMultiChainStakingPools(allPools ?? [])
 
   // Derive operated Token[] from staking results — all RigoBlock pools use 18 decimals.
   // Deduplicated by address so pools deployed on multiple chains appear once.
@@ -253,13 +246,18 @@ export default function Navbar() {
   }, [accountChanged, defaultPool, onPoolSelect, newDefaultVaultLoaded, activeSmartVault.address])
 
   // Clear the active smart pool when it is not one of the pools the current wallet operates.
-  // The smart pool context is only meaningful for operators; without this, the portfolio page and
-  // sidebar would fall back to a stale vault address instead of the connected wallet.
+  // Only do this once pool data is fully loaded; otherwise the active vault flickers between the
+  // connected wallet and the selected pool while the staking batch is still resolving.
   useEffect(() => {
-    if (activeSmartVault.address && !rawOperatedAddresses.has(normalizeTokenAddressForCache(activeSmartVault.address))) {
+    if (
+      activeSmartVault.address &&
+      allPools !== undefined &&
+      !stakingPoolsLoading &&
+      !rawOperatedAddresses.has(normalizeTokenAddressForCache(activeSmartVault.address))
+    ) {
       onPoolSelect(undefined)
     }
-  }, [rawOperatedAddresses, activeSmartVault.address, onPoolSelect])
+  }, [activeSmartVault.address, allPools, stakingPoolsLoading, rawOperatedAddresses, onPoolSelect])
 
   const userIsOperator = operatedPools.length > 0
 

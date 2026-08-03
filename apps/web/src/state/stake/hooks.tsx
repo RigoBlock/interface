@@ -133,15 +133,18 @@ export function useTotalStakeBalances({ address, smartPoolAddress, chainId }: St
       : String(current)
   }
 
+  const userFreeStakeRaw = getStakeAmount(0)
+  const userDelegatedStakeRaw = getStakeAmount(1)
+  const smartPoolFreeStakeRaw = smartPoolAddress ? getStakeAmount(2) : undefined
+  const smartPoolDelegatedStakeRaw = smartPoolAddress ? getStakeAmount(3) : undefined
+
   return data && grg
     ? {
-        userFreeStake: CurrencyAmount.fromRawAmount(grg, getStakeAmount(0) ?? JSBI.BigInt(0)),
-        userDelegatedStake: CurrencyAmount.fromRawAmount(grg, getStakeAmount(1) ?? JSBI.BigInt(0)),
-        smartPoolFreeStake: smartPoolAddress
-          ? CurrencyAmount.fromRawAmount(grg, getStakeAmount(2) ?? JSBI.BigInt(0))
-          : undefined,
-        smartPoolDelegatedStake: smartPoolAddress
-          ? CurrencyAmount.fromRawAmount(grg, getStakeAmount(3) ?? JSBI.BigInt(0))
+        userFreeStake: userFreeStakeRaw ? CurrencyAmount.fromRawAmount(grg, userFreeStakeRaw) : undefined,
+        userDelegatedStake: userDelegatedStakeRaw ? CurrencyAmount.fromRawAmount(grg, userDelegatedStakeRaw) : undefined,
+        smartPoolFreeStake: smartPoolFreeStakeRaw ? CurrencyAmount.fromRawAmount(grg, smartPoolFreeStakeRaw) : undefined,
+        smartPoolDelegatedStake: smartPoolDelegatedStakeRaw
+          ? CurrencyAmount.fromRawAmount(grg, smartPoolDelegatedStakeRaw)
           : undefined,
       }
     : {
@@ -209,7 +212,7 @@ export function useUnclaimedRewards({ farmer, pools }: UseUnclaimedRewardsArgs):
       const call = contracts[i]
       const grg = GRG[call.chainId]
       const result = data[i]
-      const value = (result as any)?.result?.[0] ?? 0
+      const value = (result as any)?.result ?? 0
       const amount = CurrencyAmount.fromRawAmount(grg, JSBI.BigInt(value.toString()))
       if (JSBI.greaterThan(amount.quotient, JSBI.BigInt(0))) {
         rewards.push({ chainId: call.chainId, poolId: call.args[0] as string, yieldAmount: amount })

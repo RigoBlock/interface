@@ -8,15 +8,14 @@ import { GRG } from 'uniswap/src/constants/tokens'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'
 import { NumberType } from 'utilities/src/format/types'
-import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
-import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
-import { usePortfolioStaking } from '~/pages/Portfolio/hooks/usePortfolioStaking'
+import { usePortfolioStakingContext } from '~/pages/Portfolio/PortfolioStakingContext'
+import { useGrgFiatValue } from '~/pages/Portfolio/hooks/usePortfolioStaking'
 import { PoolStakingInfo } from '~/pages/Portfolio/Staking/PoolStakingInfo'
+import { UserStakingRewards } from '~/pages/Portfolio/Staking/UserStakingRewards'
 import { RemoveLiquidityModalContextProvider } from '~/pages/RemoveLiquidity/RemoveLiquidityModalContext'
-import { useActiveSmartPool } from '~/state/application/hooks'
 import { usePoolIdByAddress } from '~/state/governance/hooks'
+import { usePoolIdsByAddressAcrossChains } from '~/state/pool/multichain'
 import { useTotalStakeBalances } from '~/state/stake/hooks'
 import UnstakeModal from '~/components/earn/UnstakeModal'
 import { FreeStakeBalanceByChain } from '~/state/stake/useMultiChainFreeStakeBalances'
@@ -57,11 +56,12 @@ function ChainStakingRow({
     return CurrencyAmount.fromRawAmount(grg, total)
   }, [chainId, userFreeStake, userDelegatedStake, smartPoolTotalStake])
 
-  // Get USD value for the total
-  // Get USD value using mainnet GRG for consistent pricing across chains
-  const mainnetGRG = GRG[UniverseChainId.Mainnet]
-  const usdValue = useUSDCValue(totalStake ? CurrencyAmount.fromRawAmount(mainnetGRG, totalStake.quotient) : totalStake)
-  const usdFormatted = convertFiatAmountFormatted(usdValue?.toExact(), NumberType.PortfolioBalance)
+  // Get USD value for the total using the portfolio-derived GRG price (same source
+  // as portfolio tokens), avoiding the per-refresh quote-API call that useUSDCValue triggers.
+  const { grgPriceUSD } = usePortfolioStakingContext()
+  const displayedUsdValue = useGrgFiatValue(totalStake, grgPriceUSD)
+
+  const usdFormatted = convertFiatAmountFormatted(displayedUsdValue?.toExact(), NumberType.PortfolioBalance)
 
   const hasAnyStake =
     (userFreeStake && userFreeStake.greaterThan(0)) ||
@@ -204,20 +204,20 @@ function ChainStakingRowWithData({
   )
 }
 
-function MultiChainStakingInfo({
-  address,
-  smartPoolAddress,
-  filterChainId,
-}: {
-  address?: string
-  smartPoolAddress?: string
-  filterChainId?: UniverseChainId
-}) {
-  const { stakingData, stakingChains, hasAnyStake, isLoading, totalStakeUSD, isViewingOwnStakes } = usePortfolioStaking(
-    { address, chainId: filterChainId },
-  )
+function MultiChainStakingInfo() {
+  const {
+    stakingData,
+    stakingChains,
+    hasAnyStake,
+    isLoading,
+    totalStakeUSD,
+    isViewingOwnStakes,
+    targetAddress,
+  } = usePortfolioStakingContext()
   const { convertFiatAmountFormatted } = useLocalizationContext()
   const [showUnstakeModal, setShowUnstakeModal] = useState(false)
+
+  const smartPoolAddress = isViewingOwnStakes ? undefined : targetAddress
 
   // Build the list of chains that have withdrawable free stake from the cached
   // staking data, so no extra RPC calls are needed.
@@ -243,7 +243,7 @@ function MultiChainStakingInfo({
   }
   const displayedTotalStakeUSD = totalStakeUSD ?? lastTotalStakeUSD.current
 
-  if (!address || stakingChains.length === 0) {
+  if (!targetAddress || stakingChains.length === 0) {
     return (
       <Flex gap="$spacing16">
         <Text variant="heading2" color="$neutral1">
@@ -346,7 +346,7 @@ function MultiChainStakingInfo({
               key={chainId}
               chainId={chainId}
               chainName={chainInfo.label}
-              address={address}
+              address={targetAddress}
               smartPoolAddress={smartPoolAddress}
               cachedData={data}
             />
@@ -358,19 +358,19 @@ function MultiChainStakingInfo({
 }
 
 export function PortfolioStaking() {
-  const { evmAddress } = usePortfolioAddresses()
-  const { chainId: urlChainId } = usePortfolioRoutes()
-  const [paramAddress] = new URLSearchParams(window.location.search).getAll('address')
-  const activeSmartPool = useActiveSmartPool()
-  // TODO: the paramAddress could be the user address when coming from the account drawer, check if it's a smart pool address
-  const smartPoolAddress = paramAddress || (activeSmartPool.address ?? undefined)
+  // The staking tab must reflect the portfolio currently being viewed: user wallet or smart pool.
+  const { targetAddress } = usePortfolioStakingContext()
+  // Detect whether the displayed portfolio address is a known smart pool (across any chain)
+  // so we can render the pool-specific staking context instead of the user context.
+  const poolEntries = usePoolIdsByAddressAcrossChains(targetAddress ?? '')
+  const smartPoolAddress = poolEntries && poolEntries.length > 0 ? targetAddress : undefined
 
   // Get pool ID if we're viewing from a smart pool context
   const { poolId, stakingPoolExists } = usePoolIdByAddress(smartPoolAddress || '')
 
   return (
     <Flex gap="$spacing24" p="$spacing16">
-      {!evmAddress ? (
+      {!targetAddress ? (
         <Flex p="$spacing16" borderRadius="$rounded16" backgroundColor="$surface2" alignItems="center">
           <Text variant="body1" color="$neutral2">
             Connect your wallet to view staking information
@@ -378,19 +378,22 @@ export function PortfolioStaking() {
         </Flex>
       ) : (
         <>
-          <MultiChainStakingInfo address={evmAddress} smartPoolAddress={smartPoolAddress} filterChainId={urlChainId} />
+          <MultiChainStakingInfo />
 
           {smartPoolAddress && poolId && (
             <PoolStakingInfo poolAddress={smartPoolAddress} stakingPoolExists={stakingPoolExists} />
           )}
 
-          {!smartPoolAddress && (
-            <Flex p="$spacing16" borderRadius="$rounded16" backgroundColor="$surface3">
-              <Text variant="body2" color="$neutral2" textAlign="center">
-                Navigate to a smart pool to see pool-specific staking information, or view your general staking overview
-                above.
-              </Text>
-            </Flex>
+          {!smartPoolAddress && targetAddress && (
+            <>
+              <UserStakingRewards farmer={targetAddress} />
+              <Flex p="$spacing16" borderRadius="$rounded16" backgroundColor="$surface3">
+                <Text variant="body2" color="$neutral2" textAlign="center">
+                  Navigate to a smart pool to see pool-specific staking information, or view your general staking overview
+                  above.
+                </Text>
+              </Flex>
+            </>
           )}
         </>
       )}

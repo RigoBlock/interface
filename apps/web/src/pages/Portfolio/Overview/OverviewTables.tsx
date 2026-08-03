@@ -4,7 +4,7 @@ import { ActivityRenderData } from 'uniswap/src/features/activity/hooks/useActiv
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { NumberType } from 'utilities/src/format/types'
-import { usePortfolioStaking } from '~/pages/Portfolio/hooks/usePortfolioStaking'
+import { usePortfolioStakingContext } from '~/pages/Portfolio/PortfolioStakingContext'
 import {
   MAX_ACTIVITY_ROWS,
   MAX_POOLS_ROWS,
@@ -23,23 +23,18 @@ interface PortfolioOverviewTablesProps {
     evmAddress: Address | undefined
     svmAddress: Address | undefined
   }
-  stakingAddress?: string // Address for staking context (smart pool or user)
 }
 
 export const PortfolioOverviewTables = memo(function PortfolioOverviewTables({
   activityData,
   chainId,
   portfolioAddresses,
-  stakingAddress,
 }: PortfolioOverviewTablesProps) {
   const evmAddress = portfolioAddresses.evmAddress
   const showMiniPoolsTable = !!evmAddress
   const showOpenLimitsTable = !!evmAddress && (!chainId || chainId === UniverseChainId.Mainnet)
 
-  const { totalStakeAmount, totalStakeUSD, hasAnyStake } = usePortfolioStaking({
-    address: stakingAddress || portfolioAddresses.evmAddress,
-    chainId, // Filter staking data by selected chain
-  })
+  const { totalStakeAmount, totalStakeUSD, hasAnyStake } = usePortfolioStakingContext()
   const { convertFiatAmountFormatted, formatCurrencyAmount } = useLocalizationContext()
 
   return (

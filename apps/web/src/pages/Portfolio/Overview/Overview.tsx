@@ -19,7 +19,7 @@ import { EmptyWalletCards } from '~/components/emptyWallet/EmptyWalletCards'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { useGmxPositions } from '~/pages/Portfolio/hooks/useGmxPositions'
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
-import { usePortfolioStaking } from '~/pages/Portfolio/hooks/usePortfolioStaking'
+import { usePortfolioStakingContext } from '~/pages/Portfolio/PortfolioStakingContext'
 import { OverviewActionTiles } from '~/pages/Portfolio/Overview/ActionTiles'
 import { OVERVIEW_RIGHT_COLUMN_WIDTH } from '~/pages/Portfolio/Overview/constants'
 import { useIsPortfolioZero } from '~/pages/Portfolio/Overview/hooks/useIsPortfolioZero'
@@ -55,12 +55,9 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   const { chainId, externalAddress, isExternalWallet } = usePortfolioRoutes()
   const portfolioAddresses = usePortfolioAddresses()
 
-  // Use portfolioAddresses.evmAddress which already handles URL params, active smart pool, and user address priority
-  // Pass chainId to filter staking data by selected chain
-  const { totalStakeUSD } = usePortfolioStaking({
-    address: portfolioAddresses.evmAddress,
-    chainId,
-  })
+  // Staking totals are fetched once by PortfolioPageInner and shared across tabs so the value
+  // doesn't reset when the animated tab content remounts.
+  const { totalStakeUSD } = usePortfolioStakingContext()
 
   // GMX perp positions (Arbitrum): position equity (collateral + unrealized PnL) counts towards the total value
   const { totalNetValueUsd: gmxTotalNetValueUsd } = useGmxPositions(portfolioAddresses.evmAddress)
@@ -225,11 +222,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
             <Trace section={SectionName.PortfolioOverviewTab} element={ElementName.PortfolioActionTiles}>
               <ActionsAndStatsContainer fullWidth={isFullWidth}>
                 <OverviewActionTiles />
-                <OverviewStakingSection
-                  address={portfolioAddresses.evmAddress}
-                  chainId={chainId}
-                  onViewStaking={handleNavigateToStaking}
-                />
+                <OverviewStakingSection onViewStaking={handleNavigateToStaking} />
                 {isProfitLossEnabled ? <PortfolioPerformance /> : <OverviewStatsTiles activityData={activityData} />}
               </ActionsAndStatsContainer>
             </Trace>
@@ -245,7 +238,6 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
               activityData={activityData}
               chainId={chainId}
               portfolioAddresses={portfolioAddresses}
-              stakingAddress={portfolioAddresses.evmAddress}
             />
           </Trace>
         )}

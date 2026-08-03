@@ -1,5 +1,6 @@
 import { Currency, Token } from '@uniswap/sdk-core'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router'
 import { styled, Flex, Text } from 'ui/src'
 import { Caret } from 'ui/src/components/icons/Caret'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
@@ -49,6 +50,17 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
   const activeSmartPool = useActiveSmartPool()
   const onPoolSelect = useSelectActiveSmartPool()
   const hasInitialized = useRef(false)
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
+
+  const isPortfolio = pathname.startsWith('/portfolio')
+  const portfolioAddress = useMemo(() => {
+    if (!isPortfolio) {
+      return undefined
+    }
+    const segments = pathname.split('/').filter(Boolean)
+    return segments[1]
+  }, [isPortfolio, pathname])
 
   const activePoolExists = operatedPools.some(
     (pool) => normalizeTokenAddressForCache(pool.address) === normalizeTokenAddressForCache(activeSmartPool.address ?? null),
@@ -59,8 +71,7 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
       onPoolSelect(operatedPools[0])
       hasInitialized.current = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePoolExists, activeSmartPool.name])
+  }, [activePoolExists, activeSmartPool.name, onPoolSelect, operatedPools])
 
   const poolsAsCurrrencies = useMemo(
     () =>
@@ -79,12 +90,27 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
   const handleSelectPool = useCallback(
     (pool: Currency) => {
       onPoolSelect(pool)
+      if (isPortfolio && pool.isToken) {
+        navigate(`/portfolio/${pool.address}`)
+      }
       setShowModal(false)
     },
-    [onPoolSelect],
+    [isPortfolio, navigate, onPoolSelect],
   )
 
-  if (!activeSmartPool.name) {
+  const selectorLabel = useMemo(() => {
+    if (!isPortfolio) {
+      return activeSmartPool.name || 'Select pool'
+    }
+    const selectedPool = portfolioAddress
+      ? operatedPools.find(
+          (pool) => normalizeTokenAddressForCache(pool.address) === normalizeTokenAddressForCache(portfolioAddress),
+        )
+      : undefined
+    return selectedPool?.name ?? activeSmartPool.name ?? 'Select pool'
+  }, [isPortfolio, portfolioAddress, operatedPools, activeSmartPool.name])
+
+  if (!isPortfolio && !activeSmartPool.name) {
     return null
   }
 
@@ -92,7 +118,7 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
     <>
       <PoolSelectButton className="operated-pool-select-button" onPress={() => setShowModal(true)}>
         <Text variant="buttonLabel3" color="$neutral1" numberOfLines={1} flexShrink={1} minWidth={0}>
-          {activeSmartPool.name}
+          {selectorLabel}
         </Text>
         <Caret color="$neutral2" direction="s" size="$icon.16" />
       </PoolSelectButton>
