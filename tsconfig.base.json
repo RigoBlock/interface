@@ -1,5 +1,5 @@
 {
-  // The base tsconfig for all packages. Must be here for NX to keep in sync as packages change
+  "__comment": "The base tsconfig for all packages. Must be here for NX to keep in sync as packages change",
   "compilerOptions": {
     "allowSyntheticDefaultImports": true,
     "composite": true,

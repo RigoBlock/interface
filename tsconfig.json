@@ -1,5 +1,5 @@
 {
-  // NX's entrypoint for establishing the project graph
+  "__comment": "NX's entrypoint for establishing the project graph",
   "extends": "./tsconfig.base.json",
   "files": [],
   "include": [],
