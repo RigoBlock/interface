@@ -1409,7 +1409,7 @@ function PoolStakingSection(): JSX.Element {
           </DataRow>
           <DataRow>
             <Text variant="body3" color="$neutral2">
-              <Trans i18nKey="smartPool.operatorOwnStake" />
+              <Trans i18nKey="smartPool.poolOwnStake" />
             </Text>
             <Text variant="body3" color="$neutral1">
               {formatGrgAmount(selectedChainStaking?.poolOwnStake.toString())} GRG

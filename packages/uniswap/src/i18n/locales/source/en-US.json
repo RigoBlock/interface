@@ -2192,7 +2192,7 @@
   "smartPool.delegatedStake": "Delegated Stake",
   "smartPool.enrollForRewards": "Enroll for rewards",
   "smartPool.irrOperator": "IRR (operator)",
-  "smartPool.operatorOwnStake": "Operator Own Stake",
+  "smartPool.poolOwnStake": "Pool Own Stake",
   "smartPool.portfolioLink": "Portfolio →",
   "smartPool.staking": "Staking",
   "smartWallet.actionRequired.cta": "Disable on 1 network",
