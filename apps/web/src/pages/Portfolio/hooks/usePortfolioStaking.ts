@@ -236,26 +236,26 @@ export function usePortfolioStaking({
   const { chains: enabledChains, isTestnetModeEnabled } = useEnabledChains()
   const { evmAddress } = useActiveAddresses()
 
-  // Read the GRG USD price from the same portfolio REST data that prices the tokens tab.
-  const grgPriceUSD = useGrgPriceFromPortfolio(evmAddress ?? undefined)
-
-  // Determine target address and context based on the caller-supplied address or the connected wallet.
+  // Determine target address based on the caller-supplied address or the connected wallet.
   // We intentionally do NOT fall back to the active smart pool here; all portfolio tabs should display
   // the same wallet/pool that the portfolio page is currently rendering.
-  const { targetAddress, isViewingOwnStakes } = useMemo(() => {
-    const resolvedAddress = address || evmAddress
-    const isViewingOwnAddress =
-      !!resolvedAddress &&
-      !!evmAddress &&
-      areAddressesEqual({
-        addressInput1: { address: resolvedAddress, platform: Platform.EVM },
-        addressInput2: { address: evmAddress, platform: Platform.EVM },
-      })
-    return {
-      targetAddress: resolvedAddress,
-      isViewingOwnStakes: isViewingOwnAddress,
+  const targetAddress = useMemo(() => address || evmAddress, [address, evmAddress])
+
+  // Read the GRG USD price from the same portfolio REST data that prices the tokens tab.
+  // Use the target portfolio address so the price is available even when viewing an
+  // external/disconnected portfolio, consistent with how the other tabs fetch data.
+  const grgPriceUSD = useGrgPriceFromPortfolio(targetAddress ?? undefined)
+
+  // Determine whether the viewer is looking at their own connected wallet's stakes.
+  const isViewingOwnStakes = useMemo(() => {
+    if (!targetAddress || !evmAddress) {
+      return false
     }
-  }, [address, evmAddress])
+    return areAddressesEqual({
+      addressInput1: { address: targetAddress, platform: Platform.EVM },
+      addressInput2: { address: evmAddress, platform: Platform.EVM },
+    })
+  }, [targetAddress, evmAddress])
 
   // Filter to only chains that have staking contracts
   const stakingChains = useMemo(() => {
