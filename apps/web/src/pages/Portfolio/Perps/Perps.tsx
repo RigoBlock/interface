@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { Flex, Text } from 'ui/src'
+import { Button, Flex, Text } from 'ui/src'
 import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
 import { InterfacePageName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
@@ -12,6 +12,7 @@ import { useSmartPoolFromAddress } from '~/hooks/useSmartPools'
 import { GMX_CHAIN_ID, GmxPosition, useGmxPositions } from '~/pages/Portfolio/hooks/useGmxPositions'
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
 import { GmxOrderModal } from '~/pages/Portfolio/Perps/gmx/GmxOrderModal'
+import { GmxOpenPositionModal } from '~/pages/Portfolio/Perps/gmx/GmxOpenPositionModal'
 import { GmxPositionActionsMenu } from '~/pages/Portfolio/Perps/gmx/GmxPositionActionsMenu'
 import { useGmxMarkets } from '~/pages/Portfolio/Perps/gmx/useGmxMarkets'
 import { GmxOrderAction } from '~/pages/Portfolio/Perps/gmx/useGmxOrderCallback'
@@ -165,9 +166,10 @@ export function PortfolioPerps(): JSX.Element {
       addressInput2: { address: poolOwner, chainId: GMX_CHAIN_ID },
     })
 
-  const { marketsByAddress } = useGmxMarkets()
+  const { markets, marketsByAddress } = useGmxMarkets()
   const [orderPosition, setOrderPosition] = useState<GmxPosition | undefined>()
   const [orderAction, setOrderAction] = useState<GmxOrderAction | undefined>()
+  const [isOpenPositionModalOpen, setIsOpenPositionModalOpen] = useState(false)
 
   const onAction = useCallback((position: GmxPosition, action: GmxOrderAction) => {
     setOrderPosition(position)
@@ -176,6 +178,9 @@ export function PortfolioPerps(): JSX.Element {
   const onDismissOrderModal = () => {
     setOrderPosition(undefined)
     setOrderAction(undefined)
+  }
+  const onDismissOpenPositionModal = () => {
+    setIsOpenPositionModalOpen(false)
   }
 
   const orderMarket = orderPosition
@@ -186,9 +191,21 @@ export function PortfolioPerps(): JSX.Element {
     <Trace logImpression page={InterfacePageName.PortfolioPerpsPage}>
       <Flex gap="$spacing16">
         <Flex gap="$spacing4">
-          <Flex row alignItems="center" gap="$spacing8">
-            <Text variant="heading2">{t('portfolio.perps.title')}</Text>
-            <ChainLogo chainId={GMX_CHAIN_ID} size={20} />
+          <Flex row alignItems="center" justifyContent="space-between" gap="$spacing8">
+            <Flex row alignItems="center" gap="$spacing8">
+              <Text variant="heading2">{t('portfolio.perps.title')}</Text>
+              <ChainLogo chainId={GMX_CHAIN_ID} size={20} />
+            </Flex>
+            {isOperator && (
+              <Button
+                variant="branded"
+                size="small"
+                fill={false}
+                onPress={() => setIsOpenPositionModalOpen(true)}
+              >
+                <Trans i18nKey="perps.open.button" />
+              </Button>
+            )}
           </Flex>
           <Text variant="body3" color="$neutral2">
             {t('portfolio.perps.subtitle')}
@@ -202,6 +219,14 @@ export function PortfolioPerps(): JSX.Element {
           poolAddress={evmAddress}
           indexToken={orderMarket?.indexToken}
           onDismiss={onDismissOrderModal}
+        />
+
+        <GmxOpenPositionModal
+          isOpen={isOpenPositionModalOpen}
+          poolAddress={evmAddress}
+          markets={markets}
+          positions={positions}
+          onDismiss={onDismissOpenPositionModal}
         />
 
         {isLoading ? (

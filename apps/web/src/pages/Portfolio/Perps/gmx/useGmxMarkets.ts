@@ -4,6 +4,20 @@ import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 
 const GMX_MARKETS_API_URL = 'https://arbitrum-api.gmxinfra.io/markets'
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+
+function isGmxPerpMarket(market: GmxMarketInfo): boolean {
+  if (market.isListed === false) {
+    return false
+  }
+  if (normalizeTokenAddressForCache(market.indexToken) === ZERO_ADDRESS) {
+    return false
+  }
+  if (market.name.toUpperCase().startsWith('SWAP-ONLY')) {
+    return false
+  }
+  return true
+}
 
 export interface GmxMarketInfo {
   name: string
@@ -19,7 +33,11 @@ export interface GmxMarketInfo {
  * (index/long/short token addresses) for open positions. Markets change rarely,
  * so a long stale time is fine.
  */
-export function useGmxMarkets(): { marketsByAddress: Map<string, GmxMarketInfo>; isLoading: boolean } {
+export function useGmxMarkets(): {
+  markets: GmxMarketInfo[]
+  marketsByAddress: Map<string, GmxMarketInfo>
+  isLoading: boolean
+} {
   const { data, isLoading } = useQuery({
     queryKey: ['gmxMarkets'],
     queryFn: async (): Promise<GmxMarketInfo[]> => {
@@ -29,20 +47,22 @@ export function useGmxMarkets(): { marketsByAddress: Map<string, GmxMarketInfo>;
       }
       const body = (await response.json()) as { markets: GmxMarketInfo[] } | GmxMarketInfo[]
       const markets = Array.isArray(body) ? body : body.markets
-      return markets.filter((market) => market.isListed !== false)
+      return markets.filter((market) => isGmxPerpMarket(market))
     },
     staleTime: PollingInterval.Slow,
     gcTime: PollingInterval.Slow,
     retry: 2,
   })
 
+  const markets = useMemo(() => data ?? [], [data])
+
   const marketsByAddress = useMemo(() => {
     const map = new Map<string, GmxMarketInfo>()
-    for (const market of data ?? []) {
+    for (const market of markets) {
       map.set(normalizeTokenAddressForCache(market.marketToken), market)
     }
     return map
-  }, [data])
+  }, [markets])
 
-  return { marketsByAddress, isLoading }
+  return { markets, marketsByAddress, isLoading }
 }

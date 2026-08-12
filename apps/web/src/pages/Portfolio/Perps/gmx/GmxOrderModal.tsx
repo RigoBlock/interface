@@ -364,7 +364,7 @@ export function GmxOrderModal({
     }
   }
 
-  const actionLabel = action ? gmxOrderActionLabel(action) : undefined
+  const actionLabel = action ? gmxOrderActionLabel(action, t) : undefined
 
   return (
     <Modal name={ModalName.DappRequest} isModalOpen={isOpen} isDismissible onClose={wrappedOnDismiss} maxHeight={480}>
