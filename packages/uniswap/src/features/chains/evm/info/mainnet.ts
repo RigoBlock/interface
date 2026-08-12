@@ -90,7 +90,7 @@ export const MAINNET_CHAIN_INFO = {
           http: [
             `https://eth-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`,
             `https://mainnet.infura.io/v3/${config.infuraKey}`,
-            getQuicknodeEndpointUrl(UniverseChainId.Mainnet),
+            //getQuicknodeEndpointUrl(UniverseChainId.Mainnet),
           ],
         },
       },

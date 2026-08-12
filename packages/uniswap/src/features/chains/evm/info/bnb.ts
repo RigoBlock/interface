@@ -67,7 +67,7 @@ export const BNB_CHAIN_INFO = {
     [RPCType.Interface]: {
       http: [
         `https://bnb-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`,
-        getQuicknodeEndpointUrl(UniverseChainId.Bnb),
+        //getQuicknodeEndpointUrl(UniverseChainId.Bnb),
       ],
     },
   },

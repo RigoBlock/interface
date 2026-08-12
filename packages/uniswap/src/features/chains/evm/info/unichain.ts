@@ -66,7 +66,7 @@ export const UNICHAIN_CHAIN_INFO = {
     [RPCType.Interface]: {
       http: [
         `https://unichain-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`,
-        getQuicknodeEndpointUrl(UniverseChainId.Unichain),
+        //getQuicknodeEndpointUrl(UniverseChainId.Unichain),
       ],
     },
   },

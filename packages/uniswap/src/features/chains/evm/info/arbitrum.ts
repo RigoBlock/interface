@@ -82,7 +82,7 @@ export const ARBITRUM_CHAIN_INFO = {
       http: [
         `https://arb-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`,
         `https://arbitrum-mainnet.infura.io/v3/${config.infuraKey}`,
-        getQuicknodeEndpointUrl(UniverseChainId.ArbitrumOne),
+        //getQuicknodeEndpointUrl(UniverseChainId.ArbitrumOne),
       ],
     },
     [RPCType.PublicAlt]: { http: ['https://arb1.arbitrum.io/rpc'] },
