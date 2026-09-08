@@ -154,7 +154,7 @@ export default function PoolPositionList({
       <DesktopHeader>
         <Flex>
           <Text>
-            {shouldFilterByUserPools ? <Trans>Your Smart Pools</Trans> : <Trans>Top Smart Pools</Trans>}
+            {shouldFilterByUserPools ? <Trans>My Smart Pools</Trans> : <Trans>Top Smart Pools</Trans>}
             {groupCount > 0 && ` (${groupCount})`}
           </Text>
         </Flex>
@@ -162,7 +162,7 @@ export default function PoolPositionList({
       </DesktopHeader>
       <MobileHeader>
         <Flex>
-          <Text>{shouldFilterByUserPools ? <Trans>Your Smart Pools</Trans> : <Trans>Top Smart Pools</Trans>}</Text>
+          <Text>{shouldFilterByUserPools ? <Trans>My Smart Pools</Trans> : <Trans>Top Smart Pools</Trans>}</Text>
         </Flex>
         {headerAction}
       </MobileHeader>

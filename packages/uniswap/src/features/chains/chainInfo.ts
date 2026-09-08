@@ -46,6 +46,7 @@ export const ORDERED_CHAINS = [
   XLAYER_CHAIN_INFO,
   ZORA_CHAIN_INFO,
   ZKSYNC_CHAIN_INFO,
+  HYPEREVM_CHAIN_INFO,
   SEPOLIA_CHAIN_INFO,
   UNICHAIN_SEPOLIA_CHAIN_INFO,
 ] as const satisfies UniverseChainInfo[]
@@ -70,7 +71,9 @@ export const ORDERED_EVM_CHAINS = getNonEmptyArrayOrThrow(getOrderedEVMChains())
 export const ALL_EVM_CHAIN_IDS = ORDERED_EVM_CHAINS.map((chain) => chain.id)
 
 // Typing ensures the `UNIVERSE_CHAIN_INFO` map contains a proper mapping for each item defined in `ORDERED_EVM_CHAINS` (all keys defined & keys match corresponding value's `id` field).
-// Chains that are registered but not part of `ORDERED_CHAINS` (e.g. HyperEVM) only need to satisfy `UniverseChainInfo` with a matching `id`.
+// Chains that are registered but not part of `ORDERED_CHAINS` only need to satisfy
+// `UniverseChainInfo` with a matching `id`. Note: HyperEVM IS part of ORDERED_CHAINS,
+// but it is not supported by the GraphQL backend (`backendChain.backendSupported: false`).
 type AllChainsMap = {
   [chainId in UniverseChainId]: [Extract<ConstChainInfo, { id: chainId }>] extends [never]
     ? UniverseChainInfo & { readonly id: chainId }
@@ -107,13 +110,15 @@ export const UNIVERSE_CHAIN_INFO = {
   [UniverseChainId.Solana]: SOLANA_CHAIN_INFO,
 } as const satisfies AllChainsMap
 
-export const GQL_MAINNET_CHAINS = ORDERED_EVM_CHAINS.filter((chain) => !chain.testnet).map(
-  (chain) => chain.backendChain.chain,
-)
+// GQL chain lists must only contain chains the GraphQL backend actually supports;
+// backend-unsupported chains (e.g. HyperEVM) have no GraphQL Chain enum member.
+export const GQL_MAINNET_CHAINS = ORDERED_EVM_CHAINS.filter(
+  (chain) => !chain.testnet && chain.backendChain.backendSupported,
+).map((chain) => chain.backendChain.chain)
 
-export const GQL_TESTNET_CHAINS = ORDERED_EVM_CHAINS.filter((chain) => chain.testnet).map(
-  (chain) => chain.backendChain.chain,
-)
+export const GQL_TESTNET_CHAINS = ORDERED_EVM_CHAINS.filter(
+  (chain) => chain.testnet && chain.backendChain.backendSupported,
+).map((chain) => chain.backendChain.chain)
 
 // If limit support expands beyond Mainnet, refactor to use a `supportsLimits`
 // property on chain info objects and filter chains, similar to the pattern used above

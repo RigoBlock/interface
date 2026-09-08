@@ -2,8 +2,6 @@ import { formatUnits, parseUnits } from '@ethersproject/units'
 import { useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Button, Flex, Input, SegmentedControl, Text } from 'ui/src'
-import { ChainLogo } from '~/components/Logo/ChainLogo'
-import { LoadingView, SubmittedView } from '~/components/ModalViews'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
@@ -13,31 +11,26 @@ import { logger } from 'utilities/src/logger/logger'
 import { erc20Abi } from 'viem'
 import { useReadContract } from 'wagmi'
 import { wagmiConfig } from '~/components/Web3Provider/wagmiConfig'
-import {
-  HYPERLIQUID_BRIDGE_EVM_CHAINS,
-  HYPERLIQUID_BRIDGE_USDC,
-} from '~/pages/Portfolio/Perps/hyperliquid/hyperliquidBridgeConfig'
+import { HYPERLIQUID_BRIDGE_USDC } from '~/pages/Portfolio/Perps/hyperliquid/hyperliquidBridgeConfig'
 import { onNumericInput } from '~/pages/Portfolio/Perps/gmx/gmxOpenPositionUtils'
+import {
+  BridgeChainChips,
+  BridgePoolBalanceRow,
+  BridgeQuoteDetails,
+  BridgeStatusView,
+  getBridgeInputErrorKey,
+  scaleRawDecimals,
+} from '~/pages/Portfolio/Perps/hyperliquid/HyperliquidBridgeModalParts'
 import {
   buildStandardAcrossDepositV3Calldata,
   useHyperliquidBridgeCallback,
 } from '~/pages/Portfolio/Perps/hyperliquid/useHyperliquidBridgeCallback'
-import { useHyperliquidBridgeQuote, type HyperliquidBridgeQuote } from '~/pages/Portfolio/Perps/hyperliquid/useHyperliquidBridgeQuote'
-import {
-  checkSmartPoolBridgeFeasibility,
-  modifyAcrossDepositV3ForSmartPool,
-  ON_CHAIN_MAX_BRIDGE_FEE_BPS,
-  OpType,
-} from '~/state/sagas/transactions/bridgeCalldata'
+import { useHyperliquidBridgeQuote } from '~/pages/Portfolio/Perps/hyperliquid/useHyperliquidBridgeQuote'
+import { checkSmartPoolBridgeFeasibility, modifyAcrossDepositV3ForSmartPool, OpType } from '~/state/sagas/transactions/bridgeCalldata'
 import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
 import { assume0xAddress } from '~/utils/wagmi'
 
 const MODAL_TRANSITION_DURATION = 200
-
-/** Safety margin under the on-chain 2% cap: fees above 1.5% leave no room for solver compensation. */
-const MAX_RELAY_FEE_BPS = ON_CHAIN_MAX_BRIDGE_FEE_BPS - 50
-
-const BRIDGE_USDC_DECIMALS = 6
 
 type BridgeDirection = 'toHyperEvm' | 'fromHyperEvm'
 
@@ -46,88 +39,6 @@ interface HyperliquidBridgeModalProps {
   /** The smart pool (vault) address — deterministic, same on every chain. */
   poolAddress?: string
   onDismiss: () => void
-}
-
-function formatSeconds(totalSeconds: number): string {
-  if (totalSeconds < 60) {
-    return `~${Math.round(totalSeconds)}s`
-  }
-  return `~${Math.round(totalSeconds / 60)}min`
-}
-
-type BridgeInputErrorKey = 'enter-amount' | 'exceeds-balance' | 'amount-too-low' | 'fee-too-high' | 'not-feasible'
-
-function getBridgeInputErrorKey(params: {
-  amount: string
-  balanceUsd: number
-  quote: HyperliquidBridgeQuote | undefined
-  standardCalldata: string | undefined
-  isFeasible: boolean
-}): BridgeInputErrorKey | undefined {
-  const { amount, balanceUsd, quote, standardCalldata, isFeasible } = params
-  const amountNumber = Number(amount)
-  if (!amount || !Number.isFinite(amountNumber) || amountNumber <= 0) {
-    return 'enter-amount'
-  }
-  if (amountNumber > balanceUsd) {
-    return 'exceeds-balance'
-  }
-  if (quote?.isAmountTooLow) {
-    return 'amount-too-low'
-  }
-  if (quote && quote.totalRelayFeeBps > MAX_RELAY_FEE_BPS) {
-    return 'fee-too-high'
-  }
-  if (standardCalldata && !isFeasible) {
-    return 'not-feasible'
-  }
-  return undefined
-}
-
-function BridgeQuoteDetails({
-  quote,
-  isLoading,
-  isError,
-}: {
-  quote: HyperliquidBridgeQuote | undefined
-  isLoading: boolean
-  isError: boolean
-}): JSX.Element {
-  const { t } = useTranslation()
-  return (
-    <Flex gap="$spacing8" padding="$spacing16" borderRadius="$rounded12" backgroundColor="$surface2">
-      {quote && !isLoading ? (
-        <>
-          <Flex row justifyContent="space-between">
-            <Text variant="body3" color="$neutral2">
-              {t('perps.hyperliquid.bridge.youReceive')}
-            </Text>
-            <Text variant="body3">{formatUnits(quote.outputAmountRaw, BRIDGE_USDC_DECIMALS)} USDC</Text>
-          </Flex>
-          <Flex row justifyContent="space-between">
-            <Text variant="body3" color="$neutral2">
-              {t('perps.hyperliquid.bridge.fee')}
-            </Text>
-            <Text variant="body3">
-              {formatUnits(quote.totalRelayFeeRaw, BRIDGE_USDC_DECIMALS)} USDC ({(quote.totalRelayFeeBps / 100).toFixed(2)}%)
-            </Text>
-          </Flex>
-          {quote.estimatedFillTimeSec !== undefined && (
-            <Flex row justifyContent="space-between">
-              <Text variant="body3" color="$neutral2">
-                {t('perps.hyperliquid.bridge.estimatedTime')}
-              </Text>
-              <Text variant="body3">{formatSeconds(quote.estimatedFillTimeSec)}</Text>
-            </Flex>
-          )}
-        </>
-      ) : (
-        <Text variant="body3" color="$neutral2">
-          {isError ? t('perps.hyperliquid.bridge.quoteError') : t('perps.modal.loading')}
-        </Text>
-      )}
-    </Flex>
-  )
 }
 
 export function HyperliquidBridgeModal({ isOpen, poolAddress, onDismiss }: HyperliquidBridgeModalProps): JSX.Element {
@@ -150,18 +61,20 @@ export function HyperliquidBridgeModal({ isOpen, poolAddress, onDismiss }: Hyper
   const destinationChainId = direction === 'toHyperEvm' ? UniverseChainId.HyperEvm : selectedChainId
   const sourceUsdc = HYPERLIQUID_BRIDGE_USDC[sourceChainId]
   const destinationUsdc = HYPERLIQUID_BRIDGE_USDC[destinationChainId]
+  const sourceDecimals = sourceUsdc?.decimals ?? 6
+  const destinationDecimals = destinationUsdc?.decimals ?? 6
 
   const inputAmountRaw = useMemo(() => {
     if (!amount) {
       return undefined
     }
     try {
-      const parsed = parseUnits(amount, BRIDGE_USDC_DECIMALS)
+      const parsed = parseUnits(amount, sourceDecimals)
       return parsed.gt(0) ? parsed : undefined
     } catch {
       return undefined
     }
-  }, [amount])
+  }, [amount, sourceDecimals])
 
   // Pool's USDC balance on the source chain (the bridgeable balance).
   const { data: balanceRaw, isLoading: isLoadingBalance } = useReadContract({
@@ -172,7 +85,9 @@ export function HyperliquidBridgeModal({ isOpen, poolAddress, onDismiss }: Hyper
     chainId: sourceChainId as (typeof wagmiConfig)['chains'][number]['id'],
     query: { enabled: isOpen && !!poolAddress && !!sourceUsdc, refetchInterval: 15_000 },
   })
-  const balanceUsd = balanceRaw !== undefined ? Number(formatUnits(balanceRaw, BRIDGE_USDC_DECIMALS)) : 0
+  const balanceLabel = balanceRaw !== undefined ? formatUnits(balanceRaw, sourceDecimals) : undefined
+
+  const balanceUsd = balanceLabel !== undefined ? Number(balanceLabel) : 0
 
   const { quote, isLoading: isLoadingQuote, isError: isQuoteError } = useHyperliquidBridgeQuote({
     sourceChainId,
@@ -192,8 +107,16 @@ export function HyperliquidBridgeModal({ isOpen, poolAddress, onDismiss }: Hyper
         inputToken: sourceUsdc.address,
         outputToken: destinationUsdc.address,
         inputAmount: inputAmountRaw,
-        // The solver must deliver input − total relay fee (both 6dp USDC).
-        outputAmount: inputAmountRaw.sub(quote.totalRelayFeeRaw),
+        // Across returns the solver-delivered amount in OUTPUT token raw units; fall back to
+        // input − fee scaled across decimals when the field is missing.
+        outputAmount:
+          quote.outputAmountRaw.gt(0)
+            ? quote.outputAmountRaw
+            : scaleRawDecimals({
+                value: inputAmountRaw.sub(quote.totalRelayFeeRaw),
+                sourceDecimals,
+                destinationDecimals,
+              }),
         destinationChainId,
         quoteTimestamp: quote.quoteTimestamp,
       })
@@ -201,7 +124,7 @@ export function HyperliquidBridgeModal({ isOpen, poolAddress, onDismiss }: Hyper
       logger.warn('HyperliquidBridgeModal', 'standardCalldata', 'Failed to build depositV3 calldata', { error })
       return undefined
     }
-  }, [destinationChainId, destinationUsdc, inputAmountRaw, poolAddress, quote, sourceUsdc])
+  }, [destinationChainId, destinationDecimals, destinationUsdc, inputAmountRaw, poolAddress, quote, sourceDecimals, sourceUsdc])
 
   const isFeasible = useMemo(() => {
     if (!standardCalldata) {
@@ -209,12 +132,12 @@ export function HyperliquidBridgeModal({ isOpen, poolAddress, onDismiss }: Hyper
     }
     return checkSmartPoolBridgeFeasibility({
       calldata: standardCalldata,
-      inputTokenDecimals: BRIDGE_USDC_DECIMALS,
-      outputTokenDecimals: BRIDGE_USDC_DECIMALS,
+      inputTokenDecimals: sourceDecimals,
+      outputTokenDecimals: destinationDecimals,
       outputTokenPriceUSD: 1,
       destinationChainId,
     }).isFeasible
-  }, [destinationChainId, standardCalldata])
+  }, [destinationChainId, destinationDecimals, sourceDecimals, standardCalldata])
 
   const inputErrorKey = useMemo(
     () => getBridgeInputErrorKey({ amount, balanceUsd, quote, standardCalldata, isFeasible }),
@@ -240,6 +163,11 @@ export function HyperliquidBridgeModal({ isOpen, poolAddress, onDismiss }: Hyper
 
   const canSubmit =
     !!poolAddress && !!standardCalldata && !!quote && !inputErrorKey && !isLoadingQuote && !isQuoteError
+
+  const chainPickerLabel =
+    direction === 'toHyperEvm'
+      ? t('perps.hyperliquid.bridge.sourceChain')
+      : t('perps.hyperliquid.bridge.destinationChain')
 
   function wrappedOnDismiss() {
     onDismiss()
@@ -267,8 +195,8 @@ export function HyperliquidBridgeModal({ isOpen, poolAddress, onDismiss }: Hyper
         value: '0',
         opType: OpType.Transfer,
         outputTokenPriceUSD: 1,
-        outputTokenDecimals: BRIDGE_USDC_DECIMALS,
-        inputTokenDecimals: BRIDGE_USDC_DECIMALS,
+        outputTokenDecimals: destinationDecimals,
+        inputTokenDecimals: sourceDecimals,
       })
       const txHash = await sendBridgeTransaction({ sourceChainId, calldata })
       if (txHash) {
@@ -314,27 +242,9 @@ export function HyperliquidBridgeModal({ isOpen, poolAddress, onDismiss }: Hyper
 
           <Flex gap="$spacing8">
             <Text variant="body3" color="$neutral2">
-              {direction === 'toHyperEvm'
-                ? t('perps.hyperliquid.bridge.sourceChain')
-                : t('perps.hyperliquid.bridge.destinationChain')}
+              {chainPickerLabel}
             </Text>
-            <Flex row gap="$spacing8" flexWrap="wrap">
-              {HYPERLIQUID_BRIDGE_EVM_CHAINS.map((chainId) => (
-                <Button
-                  key={chainId}
-                  variant="default"
-                  emphasis={selectedChainId === chainId ? 'primary' : 'secondary'}
-                  size="small"
-                  fill={false}
-                  onPress={() => setSelectedChainId(chainId)}
-                >
-                  <Flex row gap="$spacing4" alignItems="center">
-                    <ChainLogo chainId={chainId} size={16} />
-                    <Text variant="buttonLabel4">{getChainInfo(chainId).label}</Text>
-                  </Flex>
-                </Button>
-              ))}
-            </Flex>
+            <BridgeChainChips selectedChainId={selectedChainId} onSelect={setSelectedChainId} />
           </Flex>
 
           <Flex gap="$spacing4">
@@ -352,27 +262,21 @@ export function HyperliquidBridgeModal({ isOpen, poolAddress, onDismiss }: Hyper
             />
           </Flex>
 
-          <Flex row justifyContent="space-between">
-            <Text variant="body3" color="$neutral2">
-              {t('perps.hyperliquid.bridge.poolBalance', { chain: getChainInfo(sourceChainId).label })}
-            </Text>
-            <Flex row gap="$spacing8" alignItems="center">
-              <Text variant="body3">
-                {isLoadingBalance ? t('perps.modal.loading') : `${balanceUsd.toFixed(2)} USDC`}
-              </Text>
-              <Text
-                variant="body3"
-                color="$accent1"
-                cursor="pointer"
-                onPress={() => setAmount(balanceUsd.toFixed(BRIDGE_USDC_DECIMALS).replace(/\.?0+$/, ''))}
-              >
-                {t('perps.hyperliquid.transfer.max')}
-              </Text>
-            </Flex>
-          </Flex>
+          <BridgePoolBalanceRow
+            chainLabel={getChainInfo(sourceChainId).label}
+            balanceLabel={balanceLabel}
+            isLoadingBalance={isLoadingBalance}
+            onMax={() => balanceLabel !== undefined && setAmount(balanceLabel.replace(/\.?0+$/, ''))}
+          />
 
           {inputAmountRaw && (
-            <BridgeQuoteDetails quote={quote} isLoading={isLoadingQuote} isError={isQuoteError} />
+            <BridgeQuoteDetails
+              quote={quote}
+              isLoading={isLoadingQuote}
+              isError={isQuoteError}
+              sourceDecimals={sourceDecimals}
+              destinationDecimals={destinationDecimals}
+            />
           )}
 
           {errorReason && (
@@ -393,21 +297,15 @@ export function HyperliquidBridgeModal({ isOpen, poolAddress, onDismiss }: Hyper
             {inputErrorLabel ?? t('perps.hyperliquid.bridge.submit')}
           </Button>
         </Flex>
-      ) : attempting && !hash ? (
-        <LoadingView onDismiss={wrappedOnDismiss}>
-          <Text variant="body2" color="$neutral2" textAlign="center">
-            <Trans i18nKey="perps.modal.confirmInWallet" />
-          </Text>
-        </LoadingView>
-      ) : hash ? (
-        <SubmittedView onDismiss={wrappedOnDismiss} hash={hash} transactionSuccess={transactionSuccess}>
-          {confirmed && transactionSuccess && (
-            <Text variant="body2" color="$neutral2" textAlign="center">
-              <Trans i18nKey="perps.hyperliquid.bridge.submitted" />
-            </Text>
-          )}
-        </SubmittedView>
-      ) : null}
+      ) : (
+        <BridgeStatusView
+          attempting={attempting}
+          hash={hash}
+          transactionSuccess={transactionSuccess}
+          confirmed={confirmed}
+          onDismiss={wrappedOnDismiss}
+        />
+      )}
     </Modal>
   )
 }

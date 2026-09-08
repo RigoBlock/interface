@@ -3,8 +3,8 @@ import { useMemo } from 'react'
 import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
 import { hlInfoApi } from '~/pages/Portfolio/Perps/hyperliquid/hyperliquidApi'
 
-const HISTORY_STALE_TIME_MS = 5 * 60 * 1000
-const HISTORY_GC_TIME_MS = 30 * 60 * 1000
+const HISTORY_STALE_TIME_MS = 30 * 60 * 1000
+const HISTORY_GC_TIME_MS = 60 * 60 * 1000
 
 /** Bucket names returned by the Hyperliquid `portfolio` info endpoint. */
 type HlPortfolioBucket = 'day' | 'week' | 'month' | 'allTime' | 'perpDay' | 'perpWeek' | 'perpMonth' | 'perpAllTime'
@@ -92,7 +92,8 @@ export function useHyperliquidPortfolioHistory(address?: string): {
     staleTime: HISTORY_STALE_TIME_MS,
     gcTime: HISTORY_GC_TIME_MS,
     retry: 2,
-    refetchOnWindowFocus: true,
+    // Historical values don't need refreshes.
+    refetchOnWindowFocus: false,
   })
 
   const history = useMemo(() => data ?? [], [data])

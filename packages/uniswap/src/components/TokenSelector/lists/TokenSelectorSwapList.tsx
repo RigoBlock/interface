@@ -24,7 +24,7 @@ function useTokenSectionsForSwap({
   addresses,
   chainFilter,
   oppositeSelectedToken,
-  supportedBridgingChains,
+  supportedBridgingChains: _supportedBridgingChains,
 }: TokenSectionsHookProps): GqlResult<OnchainItemSection<TokenSelectorOption>[]> {
   const { defaultChainId, isTestnetModeEnabled } = useEnabledChains()
   const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)

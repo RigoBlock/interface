@@ -8,6 +8,7 @@ import { type PortfolioBalancesResult } from 'uniswap/src/components/TokenSelect
 import { USDC_LINEA, USDT_LINEA, USDT0_XLAYER } from 'uniswap/src/constants/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useCurrencyInfosWithLoading } from 'uniswap/src/features/tokens/useCurrencyInfo'
+import { useLocalChainTokens } from 'uniswap/src/components/TokenSelector/hooks/useLocalChainTokens'
 import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 import { buildCurrencyId, buildNativeCurrencyId } from 'uniswap/src/utils/currencyId'
 
@@ -63,10 +64,17 @@ export function useCommonTokensOptions({
     loading: loadingLineaCurrencies,
   } = useCurrencyInfosWithLoading(LINEA_CURRENCY_IDS, { skip: chainFilter !== UniverseChainId.Linea })
 
+  // Chains without backend support (e.g. HyperEVM) are not indexed — offer the chain's
+  // locally-configured stablecoin instead of querying the backend for common bases.
+  const localChainTokens = useLocalChainTokens(chainFilter)
+
   // this is a one-off filter for USDT on Unichain which at time of launch does not have enough liquidity for swapping so we are filtering it out of quick select
   // TODO(WEB-6284): Replace useAllCommonBaseCurrencies static filter with a dynamic filter
   const USDT_UNICHAIN_ADDRESS = '0x588ce4f028d8e7b53b687865d6a67b3a54c75518'
   const filteredCommonBaseCurrencies = useMemo(() => {
+    if (localChainTokens.length) {
+      return localChainTokens
+    }
     const filtered = commonBaseCurrencies?.filter((currency) => {
       // Use our custom X Layer tokens list instead of the commonBaseCurrencies list
       const isXLayerToken = currency.currency.chainId === UniverseChainId.XLayer
@@ -92,7 +100,7 @@ export function useCommonTokensOptions({
       return lineaCurrencies
     }
     return filtered
-  }, [chainFilter, commonBaseCurrencies, lineaCurrencies, xLayerCurrencies])
+  }, [chainFilter, commonBaseCurrencies, lineaCurrencies, xLayerCurrencies, localChainTokens])
 
   const commonBaseTokenOptions = useCurrencyInfosToTokenOptions({
     currencyInfos: filteredCommonBaseCurrencies,

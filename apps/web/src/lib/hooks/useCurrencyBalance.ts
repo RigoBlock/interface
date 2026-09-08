@@ -57,19 +57,21 @@ export function useCurrencyBalancesMultipleAccounts(
                   args: [address],
                 }) as const,
             )
-          : validAddressInputs.map(
-              ([address]) =>
-                ({
-                  address: assume0xAddress(multicallContract.address),
-                  chainId,
-                  abi: multicallContract.interface.fragments as Abi,
-                  functionName: 'getEthBalance',
-                  args: [address],
-                }) as const,
-            )) as ContractFunctionParameters[],
-      [validAddressInputs, validatedToken, chainId, multicallContract.address, multicallContract.interface.fragments],
+          : multicallContract
+            ? validAddressInputs.map(
+                ([address]) =>
+                  ({
+                    address: assume0xAddress(multicallContract.address),
+                    chainId,
+                    abi: multicallContract.interface.fragments as Abi,
+                    functionName: 'getEthBalance',
+                    args: [address],
+                  }) as const,
+              )
+            : []) as ContractFunctionParameters[],
+      [validAddressInputs, validatedToken, chainId, multicallContract],
     ),
-    query: { enabled: validAddressInputs.length > 0 && !!multicallContract },
+    query: { enabled: validAddressInputs.length > 0 && (!!validatedToken || !!multicallContract) },
   })
 
   // if a type is returned instead of a mapping, must assert no sort() op is performed.

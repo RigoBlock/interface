@@ -4,7 +4,6 @@ import { UNISWAP_WEB_URL } from 'uniswap/src/constants/urls'
 import { CONNECTION_PROVIDER_IDS } from 'uniswap/src/constants/web3'
 import type { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { ORDERED_EVM_CHAINS } from 'uniswap/src/features/chains/chainInfo'
-import { HYPEREVM_CHAIN_INFO } from 'uniswap/src/features/chains/evm/info/hyperevm'
 import { isTestnetChain } from 'uniswap/src/features/chains/utils'
 import { createObservableTransport } from 'uniswap/src/features/providers/observability/createObservableTransport'
 import { getRpcObserver } from 'uniswap/src/features/providers/observability/rpcObserver'
@@ -103,9 +102,7 @@ function createWagmiConnectors(params: {
     : baseConnectors
 }
 
-// HyperEVM is intentionally not part of ORDERED_CHAINS (it is not an interface-enabled
-// chain), but its RPCs still need to be wired into wagmi for direct chain interactions.
-const WAGMI_CHAINS = getNonEmptyArrayOrThrow([...ORDERED_EVM_CHAINS, HYPEREVM_CHAIN_INFO])
+const WAGMI_CHAINS = getNonEmptyArrayOrThrow(ORDERED_EVM_CHAINS)
 
 function createWagmiConfig(params: {
   /** The connector list to use. */

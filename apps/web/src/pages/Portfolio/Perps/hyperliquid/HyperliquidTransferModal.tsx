@@ -261,6 +261,20 @@ export function HyperliquidTransferModal({
                   >
                     {step1Error ?? t('perps.hyperliquid.transfer.withdraw.step1Submit')}
                   </Button>
+                  {spotUsdcBalanceUsd > SPOT_SEND_GAS_USDC && (
+                    <Button
+                      variant="default"
+                      emphasis="secondary"
+                      size="small"
+                      alignSelf="center"
+                      onPress={() => {
+                        setWithdrawStep(2)
+                        setErrorReason(undefined)
+                      }}
+                    >
+                      {t('perps.hyperliquid.transfer.withdraw.goToStep2')}
+                    </Button>
+                  )}
                 </>
               ) : (
                 <>
@@ -283,6 +297,18 @@ export function HyperliquidTransferModal({
                     onPress={() => submit(() => sendHlSpotSend(Number(step2Amount)))}
                   >
                     {step2Error ?? t('perps.hyperliquid.transfer.withdraw.step2Submit')}
+                  </Button>
+                  <Button
+                    variant="default"
+                    emphasis="secondary"
+                    size="small"
+                    alignSelf="center"
+                    onPress={() => {
+                      setWithdrawStep(1)
+                      setErrorReason(undefined)
+                    }}
+                  >
+                    {t('perps.hyperliquid.transfer.withdraw.backToStep1')}
                   </Button>
                 </>
               )}

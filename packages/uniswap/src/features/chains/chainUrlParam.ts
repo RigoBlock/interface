@@ -17,7 +17,7 @@ export const CHAIN_ID_TO_URL_PARAM: Record<UniverseChainId, string> = {
   [UniverseChainId.Blast]: 'blast',
   [UniverseChainId.Bnb]: 'bnb',
   [UniverseChainId.Celo]: 'celo',
-  [UniverseChainId.HyperEvm]: 'hyperevm',
+  [UniverseChainId.HyperEvm]: 'hyperliquid',
   [UniverseChainId.Linea]: 'linea',
   [UniverseChainId.Monad]: 'monad',
   [UniverseChainId.Optimism]: 'optimism',

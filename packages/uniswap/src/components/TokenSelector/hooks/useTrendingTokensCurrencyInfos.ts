@@ -1,6 +1,7 @@
 import { ALL_NETWORKS_ARG, CustomRankingType } from '@universe/api'
 import { useMemo } from 'react'
 import { tokenRankingsStatToCurrencyInfo, useTokenRankingsQuery } from 'uniswap/src/data/rest/tokenRankings'
+import { isBackendSupportedChainId } from 'uniswap/src/features/chains/utils'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 
@@ -13,11 +14,14 @@ export function useTrendingTokensCurrencyInfos(
   refetch: () => void
   loading: boolean
 } {
+  // Chains without backend support (e.g. HyperEVM) are not indexed by the rankings
+  // service — skip the query instead of surfacing a load error.
+  const isChainIndexed = !chainFilter || isBackendSupportedChainId(chainFilter)
   const { data, isLoading, error, refetch, isFetching } = useTokenRankingsQuery(
     {
       chainId: chainFilter?.toString() ?? ALL_NETWORKS_ARG,
     },
-    !skip,
+    !skip && isChainIndexed,
   )
 
   const trendingTokens = data?.tokenRankings[CustomRankingType.Trending]?.tokens
@@ -26,5 +30,10 @@ export function useTrendingTokensCurrencyInfos(
     [trendingTokens],
   )
 
-  return { data: formattedTokens, loading: isLoading || isFetching, error: error ?? undefined, refetch }
+  return {
+    data: isChainIndexed ? formattedTokens : [],
+    loading: isChainIndexed ? isLoading || isFetching : false,
+    error: error ?? undefined,
+    refetch,
+  }
 }

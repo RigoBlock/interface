@@ -12,9 +12,11 @@ import { TradeableAsset } from 'uniswap/src/entities/assets'
 import type { AddressGroup } from 'uniswap/src/features/accounts/store/types/AccountsState'
 import { useBridgingTokensOptions } from 'uniswap/src/features/bridging/hooks/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { getChainLabel } from 'uniswap/src/features/chains/utils'
+import { getChainLabel, isBackendSupportedChainId } from 'uniswap/src/features/chains/utils'
 import { useSearchTokens } from 'uniswap/src/features/dataApi/searchTokens'
 import type { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
+import { useLocalChainTokens } from 'uniswap/src/components/TokenSelector/hooks/useLocalChainTokens'
+import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 
 export function useTokenSectionsForSearchResults({
   addresses,
@@ -22,7 +24,7 @@ export function useTokenSectionsForSearchResults({
   searchFilter,
   isBalancesOnlySearch,
   input,
-  supportedBridgingChains,
+  supportedBridgingChains: _supportedBridgingChains,
 }: {
   addresses: AddressGroup
   chainFilter: UniverseChainId | null
@@ -65,6 +67,11 @@ export function useTokenSectionsForSearchResults({
     portfolioData,
   })
 
+  // Chains without backend support (e.g. HyperEVM) are not indexed — the search
+  // endpoint would fail, so we match locally against the chain's configured tokens.
+  const isChainIndexed = !chainFilter || isBackendSupportedChainId(chainFilter)
+  const localChainTokens = useLocalChainTokens(chainFilter)
+
   // Only call search endpoint if isBalancesOnlySearch is false
   const {
     data: searchResultCurrencies,
@@ -74,9 +81,33 @@ export function useTokenSectionsForSearchResults({
   } = useSearchTokens({
     searchQuery: searchFilter,
     chainFilter,
-    skip: isBalancesOnlySearch,
+    skip: isBalancesOnlySearch || !isChainIndexed,
     hideWSOL: true, // Hide WSOL in token selector
   })
+
+  const localSearchResults = useMemo(() => {
+    if (isChainIndexed || !searchFilter) {
+      return []
+    }
+    const query = searchFilter.trim().toLowerCase()
+    if (!query) {
+      return []
+    }
+    const isAddressQuery = query.startsWith('0x') && query.length === 42
+    return localChainTokens.filter((token: CurrencyInfo) => {
+      const { currency } = token
+      return (
+        currency.symbol?.toLowerCase().includes(query) ||
+        currency.name?.toLowerCase().includes(query) ||
+        (isAddressQuery &&
+          !currency.isNative &&
+          areAddressesEqual({
+            addressInput1: { address: currency.address, chainId: currency.chainId },
+            addressInput2: { address: searchFilter.trim(), chainId: currency.chainId },
+          }))
+      )
+    })
+  }, [isChainIndexed, localChainTokens, searchFilter])
 
   const [selectedNetworkResults, otherNetworksSearchResults] = useMemo((): [CurrencyInfo[], CurrencyInfo[]] => {
     if (!searchResultCurrencies) {
@@ -103,13 +134,18 @@ export function useTokenSectionsForSearchResults({
   const loading =
     portfolioTokenOptionsLoading ||
     portfolioBalancesByIdLoading ||
-    (!isBalancesOnlySearch && searchTokensLoading) ||
+    (!isBalancesOnlySearch && isChainIndexed && searchTokensLoading) ||
     bridgingTokenOptionsLoading
+
+  const localSearchTokenOptions = useCurrencyInfosToTokenOptions({
+    currencyInfos: localSearchResults,
+    portfolioBalancesById,
+  })
 
   const searchResultsSections = useOnchainItemListSection({
     sectionKey: OnchainItemSectionName.SearchResults,
     // Use local search when only searching balances
-    options: isBalancesOnlySearch ? portfolioTokenOptions : searchResults,
+    options: isBalancesOnlySearch ? portfolioTokenOptions : isChainIndexed ? searchResults : localSearchTokenOptions,
   })
 
   // Create section for other chains search results if they exist

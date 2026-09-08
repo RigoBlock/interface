@@ -1616,6 +1616,8 @@
   "perps.hyperliquid.transfer.withdraw.activationNote": "The first Core to HyperEVM send deducts a one-time ~1 USDC activation fee from the Core spot balance. Each send also charges gas from Core spot, so leave a small residual.",
   "perps.hyperliquid.transfer.withdraw.amount": "Amount (USDC)",
   "perps.hyperliquid.transfer.withdraw.available": "Withdrawable",
+  "perps.hyperliquid.transfer.withdraw.backToStep1": "Back to step 1",
+  "perps.hyperliquid.transfer.withdraw.goToStep2": "Already have Core spot USDC? Go to step 2",
   "perps.hyperliquid.transfer.withdraw.step1": "Step 1 — Perps to Core spot",
   "perps.hyperliquid.transfer.withdraw.step1Submit": "Transfer to Core spot",
   "perps.hyperliquid.transfer.withdraw.step2": "Step 2 — Core spot to HyperEVM",
@@ -3522,6 +3524,5 @@
   "You don&apos;t have a smart pool. Create yours or buy an existing one.": "You don&apos;t have a smart pool. Create yours or buy an existing one.",
   "You may also stake GRG from a Rigoblock Pool operated by yourself.": "You may also stake GRG from a Rigoblock Pool operated by yourself.",
   "Your smart interface with DeFi. Create, mint, swap, earn on your tokens.": "Your smart interface with DeFi. Create, mint, swap, earn on your tokens.",
-  "Your Smart Pools": "Your Smart Pools",
   "Your voting power will unlock at the beginning of the next Rigoblock epoch.": "Your voting power will unlock at the beginning of the next Rigoblock epoch."
 }

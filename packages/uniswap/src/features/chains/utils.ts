@@ -265,6 +265,7 @@ export function getEnabledChains({
       UniverseChainId.Polygon,
       UniverseChainId.Sepolia,
       UniverseChainId.Unichain,
+      UniverseChainId.HyperEvm,
     ]
     if (!allowedChains.includes(chainInfo.id)) {
       return false
@@ -273,9 +274,13 @@ export function getEnabledChains({
     return true
   })
 
-  // Extract chain IDs and GQL chains from filtered results
+  // Extract chain IDs and GQL chains from filtered results. Chains the GraphQL backend
+  // does not support (e.g. HyperEVM) stay enabled but are excluded from gqlChains, which
+  // is sent verbatim as GraphQL enum variables.
   const chains = enabledChainInfos.map((chainInfo) => chainInfo.id)
-  const gqlChains = enabledChainInfos.map((chainInfo) => chainInfo.backendChain.chain)
+  const gqlChains = enabledChainInfos
+    .filter((chainInfo) => chainInfo.backendChain.backendSupported)
+    .map((chainInfo) => chainInfo.backendChain.chain)
 
   const result = {
     chains,

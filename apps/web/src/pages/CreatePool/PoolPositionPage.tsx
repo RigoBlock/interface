@@ -2,7 +2,6 @@
 
 import { Currency, CurrencyAmount, Percent, Token } from '@uniswap/sdk-core'
 import { BigNumber } from '@ethersproject/bignumber'
-import { useWeb3React } from '@web3-react/core'
 // TODO: this import is from node modules
 import JSBI from 'jsbi'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
@@ -14,8 +13,8 @@ import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
 import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
 import { GRG, nativeOnChain } from 'uniswap/src/constants/tokens'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { getChainLabel } from 'uniswap/src/features/chains/utils'
+import { UniverseChainId, EVMUniverseChainId } from 'uniswap/src/features/chains/types'
+import { getChainLabel, getPrimaryStablecoin, isBackendSupportedChainId } from 'uniswap/src/features/chains/utils'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { NumberType } from 'utilities/src/format/types'
 import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
@@ -32,10 +31,12 @@ import HarvestYieldModal, { HarvestChainOption } from '~/components/earn/Harvest
 import MoveStakeModal from '~/components/earn/MoveStakeModal'
 import RaceModal from '~/components/earn/RaceModal'
 import UnstakeModal from '~/components/earn/UnstakeModal'
+import { ChainPill } from '~/components/ChainPill'
 import { ChainLogo } from '~/components/Logo/ChainLogo'
 import { SwitchLocaleLink } from '~/components/SwitchLocaleLink'
 import DelegateModal from '~/components/vote/DelegateModal'
 import { RIGOBLOCK_SUPPORTED_CHAINS, RIGOBLOCK_TESTNET_CHAINS } from '~/constants/addresses'
+import { RPC_PROVIDERS } from '~/constants/providers'
 import { useCurrency } from '~/hooks/Tokens'
 import { useAccount } from '~/hooks/useAccount'
 import useSelectChain from '~/hooks/useSelectChain'
@@ -48,9 +49,14 @@ import { StakingPoolData, useMultiChainAllPoolsData, useMultiChainStakingPools }
 import { useUnclaimedRewards } from '~/state/stake/hooks'
 import { useMultiChainFreeStakeBalances, type FreeStakeBalanceByChain } from '~/state/stake/useMultiChainFreeStakeBalances'
 import { useStakingEpochInfo } from '~/state/stake/useStakingEpochInfo'
+import { assume0xAddress } from '~/utils/wagmi'
 
 const NAV_SIMULATE_DEPLOYMENT_BYTECODE =
   '0x608060405234801561000f575f5ffd5b5060405161017738038061017783398101604081905261002e916100ef565b806001600160a01b031663e7d8724e6040518163ffffffff1660e01b81526004015f604051808303815f87803b158015610066575f5ffd5b505af1158015610078573d5f5f3e3d5ffd5b505050505f816001600160a01b03166389c065686040518163ffffffff1660e01b81526004016040805180830381865afa1580156100b8573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906100dc919061011c565b80515f8181524260205291925090604090f35b5f602082840312156100ff575f5ffd5b81516001600160a01b0381168114610115575f5ffd5b9392505050565b5f604082840312801561012d575f5ffd5b50604080519081016001600160401b038111828210171561015c57634e487b7160e01b5f52604160045260245ffd5b60405282518152602092830151928101929092525091905056fe'
+
+// Selector of INavView.getNavDataView() — used on HyperEVM instead of the ephemeral
+// deployment simulation, as it reads NAV without triggering the 2-minute NAV lock.
+const HL_NAV_DATA_VIEW_SELECTOR = '0x5d7d86de'
 
 const PageWrapper = styled(Flex, {
   width: '100%',
@@ -84,29 +90,6 @@ const DataRow = styled(Flex, {
   alignItems: 'center',
   gap: '$spacing12',
   width: '100%',
-})
-
-const ChainPill = styled(Flex, {
-  row: true,
-  alignItems: 'center',
-  gap: '$spacing4',
-  paddingHorizontal: '$spacing6',
-  paddingVertical: '$spacing2',
-  borderRadius: '$rounded8',
-  borderWidth: 1,
-  borderColor: '$surface3',
-  cursor: 'pointer',
-  hoverStyle: {
-    backgroundColor: '$surface2',
-  },
-  variants: {
-    active: {
-      true: {
-        borderColor: '$accent1',
-        backgroundColor: '$accent2',
-      },
-    },
-  } as const,
 })
 
 const BackLink = styled(Text, {
@@ -162,19 +145,63 @@ function useSimulatedUnitaryValue({
   fallbackValue?: string
   chainId?: number
 }): string | undefined {
-  const { provider } = useWeb3React()
   const [simulatedValue, setSimulatedValue] = useState<string>()
 
   useEffect(() => {
-    if (!poolAddress || !provider) {
+    if (!poolAddress || !chainId) {
       return
     }
 
     // Reset the previous chain's value so it is never shown for the newly selected chain
     setSimulatedValue(undefined)
 
+    // Read-only calls must target the SELECTED chain, not the wallet's connected chain:
+    // the same pool address exists on several chains, so simulating on the wallet chain
+    // would read another chain's NAV (wrong decimals scale).
+    const provider = RPC_PROVIDERS[chainId as EVMUniverseChainId]
+
+    const MAX_REASONABLE_VALUE = BigInt('1000000000000000000000000000000') // 10^30 (1 trillion with 18 decimals)
+    const isReasonable = (unitaryValue: string): boolean => {
+      const parsedValue = BigInt(unitaryValue)
+      if (parsedValue > MAX_REASONABLE_VALUE) {
+        return false
+      }
+      // A zero simulated value with a non-zero fallback means the NAV calculation
+      // likely failed silently (missing price feed, token not in active array)
+      if (parsedValue === BigInt(0) && fallbackValue && BigInt(fallbackValue) > BigInt(0)) {
+        return false
+      }
+      return true
+    }
+
+    // @Notice: on HyperEVM use INavView.getNavDataView() — it reads NAV via the
+    // Hyperliquid balances helper and does not hit the 2-minute NAV lock that makes
+    // the ephemeral updateUnitaryValue simulation revert there.
+    async function fetchNavDataView(address: string) {
+      try {
+        const result = await provider.call({
+          to: assume0xAddress(address),
+          data: HL_NAV_DATA_VIEW_SELECTOR,
+        })
+        // abi-encoded (uint256 totalValue, uint256 unitaryValue, uint256 timestamp): word index 1
+        if (result && result.length >= 130) {
+          const unitaryValue = BigInt('0x' + result.slice(66, 130)).toString()
+          setSimulatedValue(isReasonable(unitaryValue) ? unitaryValue : fallbackValue)
+        } else {
+          setSimulatedValue(fallbackValue)
+        }
+      } catch {
+        // If the call reverts, fall back to the stored value — no extra calls.
+        setSimulatedValue(fallbackValue)
+      }
+    }
+
     // @Notice: simulate function to deploy ephemeral contract that returns the real-time updateUnitaryValue
     async function simulate(address: string) {
+      if (chainId === UniverseChainId.HyperEvm) {
+        await fetchNavDataView(address)
+        return
+      }
       try {
         // Method 1: Simulate contract deployment that returns value from constructor
         // Deploy ephemeral contract that calls updateUnitaryValue and returns the result
@@ -186,7 +213,7 @@ function useSimulatedUnitaryValue({
         }
 
         // eth_call simulates the deployment without actually deploying
-        const result = await provider?.call(tx)
+        const result = await provider.call(tx)
 
         if (result && result !== '0x' && result.length <= 150) {
           // Extract first 32 bytes (uint256) from the 64-byte return value
@@ -194,39 +221,24 @@ function useSimulatedUnitaryValue({
           // Convert hex to decimal string for JSBI compatibility
           const unitaryValue = BigInt(unitaryValueHex).toString()
 
-          // Sanity check: if the simulated value is unreasonably large (> 10^30) or zero when we have a fallback,
-          // the NAV calculation likely failed (e.g., missing price feed, token not in active array).
-          // In this case, fall back to the stored value which is more reliable.
-          const MAX_REASONABLE_VALUE = BigInt('1000000000000000000000000000000') // 10^30 (1 trillion with 18 decimals)
-          const parsedValue = BigInt(unitaryValue)
-
-          if (parsedValue > MAX_REASONABLE_VALUE) {
-            // Value is unreasonably large - NAV simulation likely returned garbage
+          if (isReasonable(unitaryValue)) {
+            setSimulatedValue(unitaryValue)
+          } else {
             setSimulatedValue(fallbackValue)
-            return
           }
-
-          // If simulated value is 0 but we have a non-zero fallback, prefer fallback
-          // (NAV simulation may have failed silently)
-          if (parsedValue === BigInt(0) && fallbackValue && BigInt(fallbackValue) > BigInt(0)) {
-            setSimulatedValue(fallbackValue)
-            return
-          }
-
-          setSimulatedValue(unitaryValue)
-          return
-        } else {
-          setSimulatedValue(fallbackValue)
           return
         }
+        setSimulatedValue(fallbackValue)
       } catch {
+        // NAV calculations can legitimately revert (e.g. Rigoblock's 2-minute NAV lock
+        // after a deposit/withdrawal) — no extra call: the fallback is the stored value.
         setSimulatedValue(fallbackValue)
       }
     }
 
     simulate(poolAddress)
     // chainId is intentionally included to re-simulate on chain switch
-  }, [poolAddress, provider, fallbackValue, chainId])
+  }, [poolAddress, fallbackValue, chainId])
 
   return simulatedValue
 }
@@ -303,18 +315,34 @@ function usePoolBaseValues({
   const unitaryValue =
     simulatedOrStoredValue && simulatedOrStoredValue !== '0' ? simulatedOrStoredValue : DEFAULT_UNITARY_VALUE
 
+  // Chains the GraphQL backend doesn't index (e.g. HyperEVM) can never resolve through
+  // useCurrency — build the currencies from on-chain data instead. On HyperEVM the base
+  // token is always USDC (Rigoblock constraint), so the chain's primary stablecoin is used.
+  const isBackendSupported = chainId ? isBackendSupportedChainId(chainId as UniverseChainId) : true
+
+  const onChainPoolToken = useMemo(() => {
+    if (isBackendSupported || !chainId || !poolAddressFromUrl) {
+      return undefined
+    }
+    return new Token(chainId, poolAddressFromUrl, decimals ?? 18, symbol ?? '', name ?? '')
+  }, [isBackendSupported, chainId, poolAddressFromUrl, decimals, symbol, name])
+
   let base = useCurrency({
     address: baseToken !== ZERO_ADDRESS ? baseToken : undefined,
     chainId,
   })
+  if (!isBackendSupported && chainId && baseToken !== ZERO_ADDRESS) {
+    base = getPrimaryStablecoin(chainId as UniverseChainId)
+  }
   if (baseToken === ZERO_ADDRESS) {
     base = nativeOnChain(chainId ?? UniverseChainId.Mainnet)
   }
 
-  const pool = useCurrency({
+  const gqlPool = useCurrency({
     address: poolAddressFromUrl ?? undefined,
     chainId,
   })
+  const pool = isBackendSupported ? gqlPool : onChainPoolToken
   const amount = JSBI.BigInt(String(unitaryValue))
   const poolPrice = pool ? CurrencyAmount.fromRawAmount(pool, amount) : undefined
 
@@ -785,10 +813,12 @@ function usePoolPageData(): PoolPageContextValue {
     setShowUpgradeModal(true)
   }, [])
 
-  // Automatically switch to the pool's chain when viewing it
+  // Automatically switch to the pool's chain when viewing it.
+  // HyperEVM is exempt: pool data there is read chain-scoped and does not require the wallet
+  // to be on 999, and hijacking the wallet chain app-wide breaks other flows (e.g. Create Pool).
   const selectChain = useSelectChain()
   useEffect(() => {
-    if (chainId && account.chainId && account.chainId !== chainId && account.isConnected) {
+    if (chainId && chainId !== UniverseChainId.HyperEvm && account.chainId && account.chainId !== chainId && account.isConnected) {
       // Auto-switch to the correct chain
       selectChain(chainId)
     }
@@ -1335,6 +1365,29 @@ function PoolDataCards(): JSX.Element {
   )
 }
 
+function PoolAddressCards(): JSX.Element {
+  const { chainId, poolAddressFromUrl, owner } = usePoolPageContext()
+
+  return (
+    <Flex flex={1} gap="$spacing12">
+      {poolAddressFromUrl && chainId ? (
+        <AddressCard address={poolAddressFromUrl} chainId={chainId} label="Smart Pool" />
+      ) : (
+        <Skeleton>
+          <FlexLoader borderRadius="$rounded16" height={66} opacity={0.3} width="100%" />
+        </Skeleton>
+      )}
+      {owner && chainId ? (
+        <AddressCard address={owner} chainId={chainId} label="Pool Operator" />
+      ) : (
+        <Skeleton>
+          <FlexLoader borderRadius="$rounded16" height={66} opacity={0.3} width="100%" />
+        </Skeleton>
+      )}
+    </Flex>
+  )
+}
+
 function PoolStakingSection(): JSX.Element {
   const {
     chainId,
@@ -1344,7 +1397,6 @@ function PoolStakingSection(): JSX.Element {
     selectedChainStaking,
     stakingIrrString,
     formatGrgAmount,
-    poolAddressFromUrl,
     owner,
     account,
     hasFreeStake,
@@ -1419,22 +1471,7 @@ function PoolStakingSection(): JSX.Element {
       </DataCard>
 
       <Flex flexBasis="33%" flexShrink={0} gap="$spacing12" $lg={{ flexBasis: 'auto' }} justifyContent="space-between">
-        <Flex flex={1} gap="$spacing12">
-          {poolAddressFromUrl && chainId ? (
-            <AddressCard address={poolAddressFromUrl} chainId={chainId} label="Smart Pool" />
-          ) : (
-            <Skeleton>
-              <FlexLoader borderRadius="$rounded16" height={66} opacity={0.3} width="100%" />
-            </Skeleton>
-          )}
-          {owner && chainId ? (
-            <AddressCard address={owner} chainId={chainId} label="Pool Operator" />
-          ) : (
-            <Skeleton>
-              <FlexLoader borderRadius="$rounded16" height={66} opacity={0.3} width="100%" />
-            </Skeleton>
-          )}
-        </Flex>
+        <PoolAddressCards />
         <Flex centered paddingTop="$spacing12">
           <Flex row gap="$spacing8" flexWrap="wrap" justifyContent="center">
             <Button size="small" variant="branded" fill={false} onPress={() => setShowStakeModal(true)}>
@@ -1470,8 +1507,17 @@ export default function PoolPositionPage() {
             <PoolHeader />
           </Flex>
           <PoolDataCards />
-          {/* Staking is not deployed on HyperEVM — hide the staking section there. */}
-          {value.chainId !== UniverseChainId.HyperEvm && <PoolStakingSection />}
+          {/* Staking is not deployed on HyperEVM — hide the staking section there,
+              but keep the pool/operator address cards visible on every chain. */}
+          {value.chainId !== UniverseChainId.HyperEvm ? (
+            <PoolStakingSection />
+          ) : (
+            <Flex row gap="$spacing16" width="100%" alignItems="stretch" $lg={{ flexDirection: 'column' }}>
+              <Flex flexBasis="33%" flexShrink={0} $lg={{ flexBasis: 'auto' }}>
+                <PoolAddressCards />
+              </Flex>
+            </Flex>
+          )}
         </Flex>
       </PageWrapper>
       <SwitchLocaleLink />

@@ -83,8 +83,13 @@ function PositionRow({
       <Flex {...COLUMN.liq} flexShrink={0} alignItems="flex-end">
         <CellText>{formatPrice(position.liquidationPrice)}</CellText>
       </Flex>
-      <Flex {...COLUMN.pnl} flexShrink={0} alignItems="flex-end">
+      <Flex {...COLUMN.pnl} flexShrink={0} alignItems="flex-end" gap="$spacing2">
         <CellText color={pnlColor(position.unrealizedPnlUsd)}>{formatSignedUsd(position.unrealizedPnlUsd)}</CellText>
+        {position.unrealizedPnlPercent !== undefined && (
+          <Text variant="body4" color={pnlColor(position.unrealizedPnlUsd)}>
+            {position.unrealizedPnlPercent.toFixed(1)}%
+          </Text>
+        )}
       </Flex>
       <Flex {...COLUMN.actions} flexShrink={0} alignItems="center" justifyContent="center">
         {isOperator && <HyperliquidPositionActionsMenu onSelect={(action) => onAction(position, action)} />}

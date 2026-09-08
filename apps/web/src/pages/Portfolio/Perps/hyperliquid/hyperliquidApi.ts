@@ -23,6 +23,8 @@ interface HlApiPosition {
   liquidationPx?: string | null
   marginUsed: string
   maxLeverage: number
+  /** Unrealized PnL as a fraction of margin/equity (e.g. "0.05" = 5%). */
+  returnOnEquity?: string
 }
 
 interface HlApiMarginSummary {
@@ -60,6 +62,8 @@ export interface HyperliquidPosition {
   liquidationPrice?: number
   leverage: { type: 'cross' | 'isolated'; value: number }
   unrealizedPnlUsd: number
+  /** Unrealized PnL as a percentage of margin/equity (Core returnOnEquity), when reported. */
+  unrealizedPnlPercent?: number
   positionValueUsd: number
   marginUsedUsd: number
   /** Absolute size on the 1e8 wire scale, truncated to the market quantum (for reduce-only close sizing). */
@@ -153,6 +157,10 @@ export function normalizeHlPosition(
     liquidationPrice: liquidationPrice && liquidationPrice > 0 ? liquidationPrice : undefined,
     leverage: { type: raw.leverage.type === 'isolated' ? 'isolated' : 'cross', value: raw.leverage.value },
     unrealizedPnlUsd: parseFloat(raw.unrealizedPnl) || 0,
+    unrealizedPnlPercent:
+      raw.returnOnEquity != null && Number.isFinite(parseFloat(raw.returnOnEquity))
+        ? parseFloat(raw.returnOnEquity) * 100
+        : undefined,
     positionValueUsd,
     marginUsedUsd: parseFloat(raw.marginUsed) || 0,
     sizeRaw,
@@ -160,29 +168,46 @@ export function normalizeHlPosition(
 }
 
 /**
- * Full Hyperliquid account snapshot for the vault: meta + mids + clearinghouseState
- * + Core spot USDC in a single react-query fetch.
+ * Core account state for an address (the vault): clearinghouseState + Core spot USDC.
+ * Two info-API calls, polled by useHyperliquidAccount. Market metadata (meta) and mid
+ * prices (allMids) are NOT fetched here — they live in their own cached/polled queries
+ * (useHyperliquidMeta / useHyperliquidMids) so the account poll stays minimal.
  */
-export async function fetchHyperliquidAccount(user: string): Promise<HyperliquidAccount> {
-  const [meta, mids, clearinghouse, spotUsdcBalanceUsd] = await Promise.all([
-    fetchHlMeta(),
-    fetchHlAllMids(),
+export async function fetchHlAccountState(user: string): Promise<{
+  clearinghouse: HlClearinghouseState
+  spotUsdcBalanceUsd: number
+}> {
+  const [clearinghouse, spotUsdcBalanceUsd] = await Promise.all([
     fetchHlClearinghouseState(user),
     fetchHlSpotUsdcBalance(user),
   ])
+  return { clearinghouse, spotUsdcBalanceUsd }
+}
 
+/**
+ * Assembles the account snapshot from the polled state plus market metadata/mids
+ * (either may be undefined while its query is still loading — positions are then
+ * omitted and mark prices fall back to positionValue / size).
+ */
+export function buildHyperliquidAccount(params: {
+  clearinghouse: HlClearinghouseState
+  spotUsdcBalanceUsd: number
+  meta?: HlMeta
+  mids?: Record<string, string>
+}): HyperliquidAccount {
+  const { clearinghouse, spotUsdcBalanceUsd, meta, mids } = params
   const coinIndex = new Map<string, number>()
-  meta.universe.forEach((asset, index) => coinIndex.set(asset.name.toUpperCase(), index))
+  meta?.universe.forEach((asset, index) => coinIndex.set(asset.name.toUpperCase(), index))
 
   const positions = clearinghouse.assetPositions
     .map(({ position }) => {
       const assetIndex = coinIndex.get(position.coin.toUpperCase()) ?? -1
-      const szDecimals = assetIndex >= 0 ? meta.universe[assetIndex].szDecimals : 6
-      const midPrice = Number(mids[position.coin])
+      const szDecimals = assetIndex >= 0 ? meta!.universe[assetIndex].szDecimals : 6
+      const midPrice = mids ? Number(mids[position.coin]) : NaN
       return normalizeHlPosition(position, {
         assetIndex,
         szDecimals,
-        midPrice: Number.isFinite(midPrice) ? midPrice : undefined,
+        midPrice: Number.isFinite(midPrice) && midPrice > 0 ? midPrice : undefined,
       })
     })
     .filter((position) => position.assetIndex >= 0)

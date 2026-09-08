@@ -58,16 +58,16 @@ let cachedChainsKey = ''
 
 async function fetchChainPools(chainId: number): Promise<PoolRegisteredLog[]> {
   const pools: PoolRegisteredLog[] = []
+  const registryAddress = RB_REGISTRY_ADDRESSES[chainId]
+  if (!registryAddress) {
+    return pools
+  }
+
+  const fromBlock = getRegistryStartBlock(chainId)
+  const registeredTopic = RegistryInterface.getEventTopic('Registered')
+
   try {
     const provider = getBackupRpcProvider(chainId)
-    const registryAddress = RB_REGISTRY_ADDRESSES[chainId]
-    if (!registryAddress) {
-      return pools
-    }
-
-    const fromBlock = getRegistryStartBlock(chainId)
-    const registeredTopic = RegistryInterface.getEventTopic('Registered')
-
     const logs = await provider.getLogs({
       address: registryAddress,
       topics: [registeredTopic],
@@ -88,6 +88,7 @@ async function fetchChainPools(chainId: number): Promise<PoolRegisteredLog[]> {
   } catch (e) {
     logger.debug('multichain', 'fetchChainPools', `Failed to fetch pools for chain ${chainId}`, e)
   }
+
   return pools
 }
 

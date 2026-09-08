@@ -8,8 +8,8 @@ const GMX_SUBSQUID_API_URL = 'https://gmx.squids.live/gmx-synthetics-arbitrum:pr
 /** The indexer reports USD values at 1e30 scale (same as the GMX v2 positions API) */
 const GMX_USD_SCALE = 1e30
 
-const HISTORY_STALE_TIME_MS = 5 * 60 * 1000
-const HISTORY_GC_TIME_MS = 30 * 60 * 1000
+const HISTORY_STALE_TIME_MS = 30 * 60 * 1000
+const HISTORY_GC_TIME_MS = 60 * 60 * 1000
 
 interface GmxPnlHistoryResponse {
   data?: {
@@ -77,7 +77,8 @@ export function useGmxPnlHistory(address?: string): {
     staleTime: HISTORY_STALE_TIME_MS,
     gcTime: HISTORY_GC_TIME_MS,
     retry: 2,
-    refetchOnWindowFocus: true,
+    // Historical values don't need refreshes.
+    refetchOnWindowFocus: false,
   })
 
   const history = useMemo(() => data ?? [], [data])

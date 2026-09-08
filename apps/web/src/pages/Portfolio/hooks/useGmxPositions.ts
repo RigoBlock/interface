@@ -14,8 +14,8 @@ const GMX_POSITIONS_API_URL = 'https://arbitrum.gmxapi.io/v1/positions'
 const GMX_USD_SCALE = 1e30
 /** GMX scales leverage by 1e4 */
 const GMX_LEVERAGE_SCALE = 10_000
-/** Refresh open positions / unrealized PnL every 2s so the UI tracks the market closely */
-const GMX_POSITIONS_POLLING_INTERVAL_MS = 2_000
+/** Refresh open positions / unrealized PnL every 5s so the UI tracks the market closely */
+const GMX_POSITIONS_POLLING_INTERVAL_MS = 5_000
 
 /** Raw position shape returned by the GMX v2 HTTP API (fields may be missing on malformed entries) */
 interface GmxApiPosition {
