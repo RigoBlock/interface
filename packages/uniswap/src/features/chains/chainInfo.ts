@@ -4,6 +4,7 @@ import { BASE_CHAIN_INFO } from 'uniswap/src/features/chains/evm/info/base'
 import { BLAST_CHAIN_INFO } from 'uniswap/src/features/chains/evm/info/blast'
 import { BNB_CHAIN_INFO } from 'uniswap/src/features/chains/evm/info/bnb'
 import { CELO_CHAIN_INFO } from 'uniswap/src/features/chains/evm/info/celo'
+import { HYPEREVM_CHAIN_INFO } from 'uniswap/src/features/chains/evm/info/hyperevm'
 import { LINEA_CHAIN_INFO } from 'uniswap/src/features/chains/evm/info/linea'
 import { MAINNET_CHAIN_INFO, SEPOLIA_CHAIN_INFO } from 'uniswap/src/features/chains/evm/info/mainnet'
 import { MONAD_CHAIN_INFO } from 'uniswap/src/features/chains/evm/info/monad'
@@ -68,9 +69,12 @@ export const ORDERED_EVM_CHAINS = getNonEmptyArrayOrThrow(getOrderedEVMChains())
 
 export const ALL_EVM_CHAIN_IDS = ORDERED_EVM_CHAINS.map((chain) => chain.id)
 
-// Typing ensures the `UNIVERSE_CHAIN_INFO` map contains a proper mapping for each item defined in `ORDERED_EVM_CHAINS` (all keys defined & keys match corresponding value's `id` field)
+// Typing ensures the `UNIVERSE_CHAIN_INFO` map contains a proper mapping for each item defined in `ORDERED_EVM_CHAINS` (all keys defined & keys match corresponding value's `id` field).
+// Chains that are registered but not part of `ORDERED_CHAINS` (e.g. HyperEVM) only need to satisfy `UniverseChainInfo` with a matching `id`.
 type AllChainsMap = {
-  [chainId in UniverseChainId]: Extract<ConstChainInfo, { id: chainId }>
+  [chainId in UniverseChainId]: [Extract<ConstChainInfo, { id: chainId }>] extends [never]
+    ? UniverseChainInfo & { readonly id: chainId }
+    : Extract<ConstChainInfo, { id: chainId }>
 }
 
 export const UNIVERSE_CHAIN_INFO = {
@@ -93,6 +97,7 @@ export const UNIVERSE_CHAIN_INFO = {
   [UniverseChainId.Zora]: ZORA_CHAIN_INFO,
   [UniverseChainId.Zksync]: ZKSYNC_CHAIN_INFO,
   [UniverseChainId.Monad]: MONAD_CHAIN_INFO,
+  [UniverseChainId.HyperEvm]: HYPEREVM_CHAIN_INFO,
 
   // TESTNET
   [UniverseChainId.Sepolia]: SEPOLIA_CHAIN_INFO,

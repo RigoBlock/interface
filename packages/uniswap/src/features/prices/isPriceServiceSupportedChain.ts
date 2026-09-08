@@ -33,6 +33,7 @@ const PRICE_SERVICE_SUPPORT: Record<UniverseChainId, boolean> = {
 
   // Unsupported — falls back to legacy (TAPI /quote or GraphQL)
   [UniverseChainId.Celo]: false,
+  [UniverseChainId.HyperEvm]: false,
   [UniverseChainId.Linea]: false,
   [UniverseChainId.Tempo]: false,
   [UniverseChainId.WorldChain]: false,

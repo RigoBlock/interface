@@ -145,7 +145,11 @@ export function useV4NFTPositionManagerContract(
   const chainIdToUse = chainId ?? account.chainId
 
   const contract = useContract<Erc721>({
-    address: chainIdToUse ? CHAIN_TO_ADDRESSES_MAP[chainIdToUse].v4PositionManagerAddress : undefined,
+    // HyperEVM (and any other non-sdk-core chain) has no v4 position manager deployment.
+    address: chainIdToUse
+      ? CHAIN_TO_ADDRESSES_MAP[chainIdToUse as unknown as keyof typeof CHAIN_TO_ADDRESSES_MAP]
+          ?.v4PositionManagerAddress
+      : undefined,
     ABI: NFTPositionManagerABI,
     withSignerIfPossible,
     chainId: chainIdToUse,

@@ -72,10 +72,22 @@ async function getTextFetch({
   return text ?? null
 }
 
+// ENS lookups always resolve on Mainnet; cache the provider instead of creating
+// a new JsonRpcProvider per fetch (each new provider restarts its request-id counter
+// and repeats the eth_chainId probe against the RPC).
+const ensProviderCache = new Map<UniverseChainId, providers.JsonRpcProvider | null>()
+
+function getEnsProvider(chainId: UniverseChainId): providers.JsonRpcProvider | null {
+  if (!ensProviderCache.has(chainId)) {
+    ensProviderCache.set(chainId, createEthersProvider({ chainId }))
+  }
+  return ensProviderCache.get(chainId) ?? null
+}
+
 async function getOnChainEnsFetch(params: EnsLookupParams): Promise<string | null> {
   const { type, nameOrAddress } = params
 
-  const provider = createEthersProvider({ chainId: UniverseChainId.Mainnet })
+  const provider = getEnsProvider(UniverseChainId.Mainnet)
 
   if (!provider) {
     return null
@@ -105,6 +117,9 @@ function useEnsQuery(type: EnsLookupType, nameOrAddress?: string | null) {
           await getOnChainEnsFetch({ type, nameOrAddress, chainId: UniverseChainId.Mainnet })
       : skipToken,
     staleTime: 5 * ONE_MINUTE_MS,
+    // A broken ENS RPC must not trigger react-query's default 3-retry storm
+    // (multiple mounted consumers would otherwise hammer the endpoint continuously).
+    retry: 1,
   })
 }
 

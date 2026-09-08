@@ -291,7 +291,7 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
   const STAKING_CALLS_PER_POOL = account.address ? 6 : 4
 
   // Build all contract calls plus metadata to decode results.
-  const { contracts, chainMeta, freeStakeMeta } = useMemo(() => {
+  const { contracts, chainMeta, freeStakeMeta, skippedIndices } = useMemo(() => {
     if (pools.length === 0) {
       return {
         contracts: [] as any[],
@@ -304,6 +304,7 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
           rewardPoolIds: string[]
         }[],
         freeStakeMeta: { idx: -1, chainId: 0 },
+        skippedIndices: [] as number[],
       }
     }
 
@@ -326,13 +327,25 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
       rewardBaseOffset: number
       rewardPoolIds: string[]
     }[] = []
+    // Pool indices on chains without staking deployments (e.g. HyperEVM). Staking
+    // enrichment is optional, so these chains are skipped and their entries are
+    // filled with zeroed StakingPoolData to stay aligned with the pools array.
+    const skippedPoolIndices: number[] = []
     let freeStakeIdx = -1
     let freeStakeChainId = 0
     const userAccountSlot = account.address ? getUserAccountSlot(account.address) : 0n
 
     for (const [chainId, entries] of poolsByChain) {
-      const stakingAddr = assume0xAddress(STAKING_PROXY_ADDRESSES[chainId])
+      const stakingAddress = STAKING_PROXY_ADDRESSES[chainId]
       const grg = GRG[chainId]
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
+      if (!stakingAddress || !grg) {
+        for (const entry of entries) {
+          skippedPoolIndices.push(entry.index)
+        }
+        continue
+      }
+      const stakingAddr = assume0xAddress(stakingAddress)
       const baseOffset = allContracts.length
 
       // ── Per-pool staking calls ──
@@ -426,8 +439,9 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
     // wallet switches chain — previous (placeholder) results then remain aligned.
     if (account.address && account.chainId) {
       const connectedEntries = poolsByChain.get(account.chainId)
-      if (connectedEntries && connectedEntries.length > 0) {
-        const stakingAddr = assume0xAddress(STAKING_PROXY_ADDRESSES[account.chainId])
+      const connectedStakingAddress = STAKING_PROXY_ADDRESSES[account.chainId]
+      if (connectedEntries && connectedStakingAddress && connectedEntries.length > 0) {
+        const stakingAddr = assume0xAddress(connectedStakingAddress)
         freeStakeIdx = allContracts.length
         freeStakeChainId = account.chainId
         allContracts.push({
@@ -444,6 +458,7 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
       contracts: allContracts,
       chainMeta: meta,
       freeStakeMeta: { idx: freeStakeIdx, chainId: freeStakeChainId },
+      skippedIndices: skippedPoolIndices,
     }
   }, [pools, account.address, account.chainId])
 
@@ -467,16 +482,34 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
   const result: MultiChainStakingResult = useMemo(() => {
     const emptyRewards: { poolId: string; amount: CurrencyAmount<Token>; chainId: number }[] = []
 
+    const results = new Array<StakingPoolData>(pools.length)
+
+    // Pools on chains without staking deployments (e.g. HyperEVM) get zeroed
+    // staking data so every pool still maps to a StakingPoolData entry.
+    for (const index of skippedIndices) {
+      results[index] = {
+        id: pools[index].id,
+        operatorShare: 0,
+        apr: 0,
+        delegatedStake: BigNumber.from(0),
+        poolOwnStake: BigNumber.from(0),
+        currentEpochReward: '0',
+        userHasStake: false,
+        userIsOwner: false,
+      }
+    }
+
     if (!rawData || rawData.length === 0 || contracts.length === 0) {
+      // Every pool lives on a chain without staking: nothing to fetch, but still
+      // report the zeroed entries so consumers don't wait on a batch that never comes.
+      const onlySkippedPools = pools.length > 0 && skippedIndices.length === pools.length
       return {
         loading: isLoading,
-        stakingPools: undefined,
+        stakingPools: onlySkippedPools ? results : undefined,
         freeStakeBalance: undefined,
         unclaimedRewards: emptyRewards,
       }
     }
-
-    const results = new Array<StakingPoolData>(pools.length)
 
     for (const cm of chainMeta) {
       // GRG totalSupply for this chain — only accept numeric results
@@ -604,6 +637,7 @@ export function useMultiChainStakingPools(pools: PoolRegisteredLog[]): MultiChai
     STAKING_CALLS_PER_POOL,
     isLoading,
     freeStakeMeta,
+    skippedIndices,
   ])
 
   return result

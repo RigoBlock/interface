@@ -73,6 +73,7 @@ export const RB_FACTORY_ADDRESSES: AddressMap = {
     UniverseChainId.Bnb,
     UniverseChainId.Base,
     UniverseChainId.Unichain,
+    UniverseChainId.HyperEvm,
   ]),
 }
 
@@ -86,6 +87,7 @@ export const RB_REGISTRY_ADDRESSES: AddressMap = {
     UniverseChainId.Bnb,
     UniverseChainId.Base,
     UniverseChainId.Unichain,
+    UniverseChainId.HyperEvm,
   ]),
 }
 
@@ -109,6 +111,7 @@ export const RIGOBLOCK_SUPPORTED_CHAINS: UniverseChainId[] = [
   UniverseChainId.Base,
   UniverseChainId.Bnb,
   UniverseChainId.Unichain,
+  UniverseChainId.HyperEvm,
 ]
 
 /** Testnet chains where RigoBlock smart pool contracts are deployed */

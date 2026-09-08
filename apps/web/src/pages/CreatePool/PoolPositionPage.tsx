@@ -1470,7 +1470,8 @@ export default function PoolPositionPage() {
             <PoolHeader />
           </Flex>
           <PoolDataCards />
-          <PoolStakingSection />
+          {/* Staking is not deployed on HyperEVM — hide the staking section there. */}
+          {value.chainId !== UniverseChainId.HyperEvm && <PoolStakingSection />}
         </Flex>
       </PageWrapper>
       <SwitchLocaleLink />

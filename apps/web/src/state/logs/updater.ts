@@ -30,6 +30,7 @@ export default function Updater(): null {
       case UniverseChainId.Optimism:
       case UniverseChainId.Base:
       case UniverseChainId.Sepolia:
+      case UniverseChainId.HyperEvm:
         return getBackupRpcProvider(chainId)
       default:
         return RPC_PROVIDERS[chainId as keyof typeof RPC_PROVIDERS]

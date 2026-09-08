@@ -178,6 +178,10 @@ export const networkColors = {
     light: '#3667F6',
     dark: '#3667F6',
   },
+  hyperliquid: {
+    light: '#3B785C',
+    dark: '#97FCE4',
+  },
 }
 
 const sporeLight = {
@@ -357,6 +361,7 @@ export const colorsLight = {
   chain_59144: networkColors.linea.light,
   chain_501000101: networkColors.solana.light,
   chain_143: networkColors.monad.light,
+  chain_999: networkColors.hyperliquid.light,
 
   // Testnets
   chain_11155111: networkColors.ethereum.light,
@@ -450,6 +455,7 @@ export const colorsDark = {
   chain_59144: networkColors.linea.dark,
   chain_501000101: networkColors.solana.dark,
   chain_143: networkColors.monad.dark,
+  chain_999: networkColors.hyperliquid.dark,
 
   // Testnets
   chain_11155111: networkColors.ethereum.dark,

@@ -99,6 +99,11 @@ export default function Earn() {
     const byChain = new Map<number, { yieldAmount: JSBI; poolIds: string[]; grg: Token }>()
     for (const reward of unclaimedRewards) {
       const grg = GRG[reward.chainId]
+      // Chains without GRG (e.g. HyperEVM, no staking) cannot harvest
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
+      if (!grg) {
+        continue
+      }
       const existing = byChain.get(reward.chainId)
       if (existing) {
         existing.yieldAmount = JSBI.add(existing.yieldAmount, reward.amount.quotient)

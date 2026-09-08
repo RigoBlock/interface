@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
-import { PollingInterval } from 'uniswap/src/constants/misc'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 
 /** GMX v2 is only deployed on Arbitrum */
@@ -15,6 +14,8 @@ const GMX_POSITIONS_API_URL = 'https://arbitrum.gmxapi.io/v1/positions'
 const GMX_USD_SCALE = 1e30
 /** GMX scales leverage by 1e4 */
 const GMX_LEVERAGE_SCALE = 10_000
+/** Refresh open positions / unrealized PnL every 2s so the UI tracks the market closely */
+const GMX_POSITIONS_POLLING_INTERVAL_MS = 2_000
 
 /** Raw position shape returned by the GMX v2 HTTP API (fields may be missing on malformed entries) */
 interface GmxApiPosition {
@@ -133,8 +134,8 @@ export function useGmxPositions(address?: string): {
     queryKey: ['gmxPositions', address ? normalizeTokenAddressForCache(address) : undefined],
     queryFn: () => fetchGmxPositions(address!),
     enabled: !!address,
-    refetchInterval: PollingInterval.KindaFast,
-    staleTime: PollingInterval.Fast,
+    refetchInterval: GMX_POSITIONS_POLLING_INTERVAL_MS,
+    staleTime: 1_000,
     retry: 2,
     refetchOnWindowFocus: true,
   })

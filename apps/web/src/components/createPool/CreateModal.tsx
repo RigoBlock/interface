@@ -4,9 +4,10 @@ import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 import { X } from 'react-feather'
 import { Trans, useTranslation } from 'react-i18next'
 import { Modal } from 'uniswap/src/components/modals/Modal'
-import { nativeOnChain } from 'uniswap/src/constants/tokens'
+import { nativeOnChain, USDC_HYPEREVM } from 'uniswap/src/constants/tokens'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { useIsSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
+import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { logger } from 'utilities/src/logger/logger'
@@ -111,16 +112,21 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
 
   // by memoizing native, new chain native currency is stored on switch chain
   const account = useAccount()
-  const native = useMemo(() => nativeOnChain(account.chainId ?? 1), [account.chainId])
+  const isHyperEvm = account.chainId === UniverseChainId.HyperEvm
+  // HyperEVM pools must be USDC-based (native base token is not supported there)
+  const defaultCurrency = useMemo(
+    () => (isHyperEvm ? USDC_HYPEREVM : nativeOnChain(account.chainId ?? 1)),
+    [account.chainId, isHyperEvm],
+  )
   const chainLabel = account.chainId ? getChainInfo(account.chainId).label : undefined
 
   // TODO: as native is memoized now, we can simply set currency value, probably not needed to
   // update currency at initialization or on chain switch
   useEffect(() => {
     if (!currencyValue?.chainId || currencyValue.chainId !== account.chainId) {
-      setCurrencyValue(native)
+      setCurrencyValue(defaultCurrency)
     }
-  }, [account.chainId, currencyValue?.chainId, native])
+  }, [account.chainId, currencyValue?.chainId, defaultCurrency])
 
   const handleCurrencySelect = useCallback((currency: Currency) => {
     setCurrencyValue(currency)
@@ -152,7 +158,7 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
       setTypedName('')
       setTypedSymbol('')
       setCreateError(undefined)
-      setCurrencyValue(native)
+      setCurrencyValue(defaultCurrency)
     }, MODAL_TRANSITION_DURATION)
   }
 
@@ -180,7 +186,7 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
     }
   }
 
-  const chainAllowed = useIsSupportedChainId(account.chainId)
+  const chainAllowed = useIsSupportedChainId(account.chainId) || isHyperEvm
 
   return (
     <>
@@ -193,6 +199,7 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
           selectedCurrency={currencyValue ?? null}
           showCurrencyAmount={false}
           shouldDisplayPoolsOnly={false}
+          chainIds={isHyperEvm ? [UniverseChainId.HyperEvm] : undefined}
         />
       ) : (
         <Modal

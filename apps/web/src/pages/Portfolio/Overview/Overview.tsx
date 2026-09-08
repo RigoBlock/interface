@@ -17,8 +17,12 @@ import { ElementName, InterfacePageName, SectionName } from 'uniswap/src/feature
 import { Trace } from 'uniswap/src/features/telemetry/Trace'
 import { EmptyWalletCards } from '~/components/emptyWallet/EmptyWalletCards'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
+import { useGmxPnlHistory } from '~/pages/Portfolio/hooks/useGmxPnlHistory'
 import { useGmxPositions } from '~/pages/Portfolio/hooks/useGmxPositions'
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
+import { useHyperEvmUsdcBalance } from '~/pages/Portfolio/Perps/hyperliquid/useHyperEvmUsdcBalance'
+import { useHyperliquidAccount } from '~/pages/Portfolio/Perps/hyperliquid/useHyperliquidAccount'
+import { useHyperliquidPortfolioHistory } from '~/pages/Portfolio/Perps/hyperliquid/useHyperliquidPortfolioHistory'
 import { usePortfolioStakingContext } from '~/pages/Portfolio/PortfolioStakingContext'
 import { OverviewActionTiles } from '~/pages/Portfolio/Overview/ActionTiles'
 import { OVERVIEW_RIGHT_COLUMN_WIDTH } from '~/pages/Portfolio/Overview/constants'
@@ -62,6 +66,20 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   // GMX perp positions (Arbitrum): position equity (collateral + unrealized PnL) counts towards the total value
   const { totalNetValueUsd: gmxTotalNetValueUsd } = useGmxPositions(portfolioAddresses.evmAddress)
 
+  // GMX daily cumulative PnL history (Subsquid indexer) — used to reconstruct historical account value
+  const { history: gmxPnlHistory } = useGmxPnlHistory(portfolioAddresses.evmAddress)
+
+  // Hyperliquid perp account value + Core spot USDC (temporary, in-transit balance) on HyperCore
+  const { perpsAccountValueUsd: hyperliquidPerpsValue, spotUsdcBalanceUsd: hyperliquidSpotValue } =
+    useHyperliquidAccount(portfolioAddresses.evmAddress)
+
+  // Hyperliquid historical account value (HyperCore spot + perps) from the Hyperliquid
+  // `portfolio` info endpoint
+  const { history: hyperliquidHistory } = useHyperliquidPortfolioHistory(portfolioAddresses.evmAddress)
+
+  // The vault's HyperEVM USDC balance (chain 999 is not indexed by the Uniswap data API)
+  const { balanceUsd: hyperEvmUsdcValue } = useHyperEvmUsdcBalance(portfolioAddresses.evmAddress)
+
   const { chains: allChainIds } = useEnabledChains()
 
   const isPortfolioZero = useIsPortfolioZero()
@@ -99,9 +117,26 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
     const safeBaseValue = isNaN(baseValue) ? 0 : baseValue
     const safeStakingValue = isNaN(stakingValueStable) ? 0 : stakingValueStable
     const safeGmxValue = isNaN(gmxTotalNetValueUsd) ? 0 : gmxTotalNetValueUsd
+    const safeHyperliquidPerpsValue = isNaN(hyperliquidPerpsValue) ? 0 : hyperliquidPerpsValue
+    const safeHyperliquidSpotValue = isNaN(hyperliquidSpotValue) ? 0 : hyperliquidSpotValue
+    const safeHyperEvmUsdcValue = isNaN(hyperEvmUsdcValue) ? 0 : hyperEvmUsdcValue
 
-    return safeBaseValue + safeStakingValue + safeGmxValue
-  }, [portfolioData?.balanceUSD, stakingValueStable, gmxTotalNetValueUsd])
+    return (
+      safeBaseValue +
+      safeStakingValue +
+      safeGmxValue +
+      safeHyperliquidPerpsValue +
+      safeHyperliquidSpotValue +
+      safeHyperEvmUsdcValue
+    )
+  }, [
+    portfolioData?.balanceUSD,
+    stakingValueStable,
+    gmxTotalNetValueUsd,
+    hyperliquidPerpsValue,
+    hyperliquidSpotValue,
+    hyperEvmUsdcValue,
+  ])
 
   // Fetch portfolio historical value chart data
   const {
@@ -126,27 +161,102 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
     return portfolioChartData.points[portfolioChartData.points.length - 1]?.value
   }, [portfolioChartData])
 
-  // The historical chart data only covers token balances; staking and GMX perp values
-  // have no history, so bootstrap them flatly using the current value at every point
+  // The historical chart data only covers token balances. Staking and the HyperEVM USDC
+  // balance have no history, so they are bootstrapped flatly at the current value. GMX has
+  // daily cumulative-PnL history from the Subsquid indexer, so its historical account value
+  // is derived as currentValue − (cumulativePnlNow − cumulativePnl(t)), forward-filled.
+  // Hyperliquid has absolute account value history (spot + perps) from the Hyperliquid
+  // `portfolio` endpoint; when that endpoint reports no history (all-zero buckets), the
+  // current perps + Core spot value is bootstrapped flatly instead.
   const chartDataWithExtras = useMemo(() => {
     if (!portfolioChartData?.points) {
       return portfolioChartData
     }
     const stakingExtra = isNaN(stakingValueStable) ? 0 : stakingValueStable
+    const hyperliquidFlatExtra = [hyperliquidSpotValue, hyperEvmUsdcValue].reduce(
+      (acc, value) => acc + (isNaN(value) ? 0 : value),
+      0,
+    )
     const gmxExtra = isNaN(gmxTotalNetValueUsd) ? 0 : gmxTotalNetValueUsd
-    const extra = stakingExtra + gmxExtra
-    if (extra === 0) {
+    const hlPerpsExtra = isNaN(hyperliquidPerpsValue) ? 0 : hyperliquidPerpsValue
+
+    // Historical account value at a timestamp, given daily cumulative-PnL points. Before the
+    // first point the first bucket's cumulative value applies; with no history (or no current
+    // value) the flat current value is used.
+    const valueFromPnlHistory = ({
+      currentValue,
+      history,
+      timestampSec,
+    }: {
+      currentValue: number
+      history: { timestamp: number; cumulativePnlUsd: number }[]
+      timestampSec: number
+    }): number => {
+      if (history.length === 0 || currentValue === 0) {
+        return currentValue
+      }
+      const cumulativeNow = history[history.length - 1]?.cumulativePnlUsd ?? 0
+      let cumulativeAtT = history[0]?.cumulativePnlUsd ?? 0
+      for (const point of history) {
+        if (point.timestamp <= timestampSec) {
+          cumulativeAtT = point.cumulativePnlUsd
+        } else {
+          break
+        }
+      }
+      return currentValue - (cumulativeNow - cumulativeAtT)
+    }
+
+    // Historical account value at a timestamp from absolute portfolio-history points:
+    // 0 before the first sample (the account did not exist yet), forward-filled after.
+    const valueFromHlHistory = (history: { timestamp: number; valueUsd: number }[], timestampSec: number): number => {
+      let value = 0
+      for (const point of history) {
+        if (point.timestamp <= timestampSec) {
+          value = point.valueUsd
+        } else {
+          break
+        }
+      }
+      return value
+    }
+
+    const hasExtras =
+      stakingExtra !== 0 || hyperliquidFlatExtra !== 0 || gmxExtra !== 0 || hlPerpsExtra !== 0
+    if (!hasExtras) {
       return portfolioChartData
     }
     return new GetPortfolioChartResponse({
       beginAt: portfolioChartData.beginAt,
       endAt: portfolioChartData.endAt,
-      points: portfolioChartData.points.map((point) => ({
-        timestamp: point.timestamp,
-        value: point.value + extra,
-      })),
+      points: portfolioChartData.points.map((point) => {
+        const timestampSec = Number(point.timestamp)
+        const hlExtra =
+          hyperliquidHistory.length > 0
+            ? valueFromHlHistory(hyperliquidHistory, timestampSec)
+            : // No portfolio history: spot is already in hyperliquidFlatExtra, add perps only.
+              hlPerpsExtra
+        return {
+          timestamp: point.timestamp,
+          value:
+            point.value +
+            stakingExtra +
+            (hyperliquidHistory.length > 0 ? hyperEvmUsdcValue : hyperliquidFlatExtra) +
+            valueFromPnlHistory({ currentValue: gmxExtra, history: gmxPnlHistory, timestampSec }) +
+            hlExtra,
+        }
+      }),
     })
-  }, [portfolioChartData, stakingValueStable, gmxTotalNetValueUsd])
+  }, [
+    portfolioChartData,
+    stakingValueStable,
+    gmxTotalNetValueUsd,
+    gmxPnlHistory,
+    hyperliquidPerpsValue,
+    hyperliquidHistory,
+    hyperliquidSpotValue,
+    hyperEvmUsdcValue,
+  ])
 
   // Compare portfolio balance (EVM + Solana) with chart endpoint balance to detect spam-token divergence
   // Note: Use base portfolio data (without staking) for comparison since chart data doesn't include staking
@@ -199,7 +309,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
             <PortfolioChart
               portfolioTotalBalanceUSD={portfolioTotalWithStaking} // Shows current total with staking in header
               isPortfolioZero={isPortfolioZero}
-              chartData={chartDataWithExtras} // Historical data with staking + perps bootstrapped at current value
+              chartData={chartDataWithExtras} // Historical data with staking bootstrapped at current value; GMX reconstructed from indexed daily PnL; Hyperliquid from the portfolio API account value history (flat fallback)
               isPending={isChartPending}
               error={chartError}
               selectedPeriod={selectedPeriod}
