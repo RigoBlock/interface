@@ -3,6 +3,7 @@ import type {
   ChainDelegationDetails,
   DelegationRepository,
 } from 'uniswap/src/features/smartWallet/delegation/delegationRepository'
+import { toTradingApiSupportedChainId } from 'uniswap/src/features/transactions/swap/utils/tradingApi'
 import type { Logger } from 'utilities/src/logger/logger'
 
 interface TradingApiClient {
@@ -25,16 +26,29 @@ export function createTradingApiDelegationRepository(ctx: {
    */
   const getWalletDelegations: DelegationRepository['getWalletDelegations'] = async (input) => {
     const result: ChainDelegationDetails = {}
+    // The TradingApi rejects unsupported chain ids (e.g. HyperEVM) with a 400 for the entire
+    // request — only query supported chains and report the rest as not delegated.
+    const supportedChainIds = input.chainIds.filter(
+      (chainId) => toTradingApiSupportedChainId(chainId) !== undefined,
+    )
+    for (const chainId of input.chainIds) {
+      if (toTradingApiSupportedChainId(chainId) === undefined) {
+        result[String(chainId)] = null
+      }
+    }
+    if (!supportedChainIds.length) {
+      return result
+    }
     try {
       const response = await ctx.tradingApiClient.checkWalletDelegation({
         walletAddresses: [input.address],
-        chainIds: input.chainIds,
+        chainIds: supportedChainIds,
       })
 
       const walletDelegationDetails = response.delegationDetails[input.address]
 
       // Populate the record with results for each requested chain
-      for (const chainId of input.chainIds) {
+      for (const chainId of supportedChainIds) {
         const delegationDetails = walletDelegationDetails?.[chainId]
         if (delegationDetails) {
           result[String(chainId)] = {

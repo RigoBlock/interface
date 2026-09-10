@@ -171,7 +171,8 @@ interface ActionData {
   id: number
   proposalAction: ProposalAction
   toAddress: string
-  currency: Currency
+  // Undefined on chains without GRG (e.g. HyperEVM), where governance is not deployed.
+  currency: Currency | undefined
   amount: string
   methods?: string[]
   values?: (string | boolean)[][]
@@ -262,6 +263,7 @@ export default function CreateProposal() {
         actions.length === 0 ||
         actions.some(
           (action) =>
+            !action.currency ||
             !isAddress(action.toAddress) ||
             !action.currency.isToken ||
             (action.proposalAction === ProposalAction.TRANSFER_TOKEN && action.amount === '') ||
@@ -294,7 +296,7 @@ export default function CreateProposal() {
 
     for (const action of actions) {
       // TODO: verify action.currency.isToken
-      if (!action.currency.isToken) {
+      if (!action.currency || !action.currency.isToken) {
         setAttempting(false)
         return
       }

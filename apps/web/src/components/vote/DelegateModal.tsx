@@ -87,7 +87,7 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
   const colors = useSporeColors()
 
   // state for delegate input
-  const [currencyValue] = useState<Currency>(GRG[account.chainId ?? UniverseChainId.Mainnet])
+  const [currencyValue] = useState<Currency | undefined>(GRG[account.chainId ?? UniverseChainId.Mainnet])
   const [usingDelegate, setUsingDelegate] = useState(false)
   const [typed, setTyped] = useState('')
 
@@ -124,14 +124,21 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
   // boilerplate for the slider
   const [percentForSlider, onPercentSelectForSlider] = useDebouncedChangeHandler(Number(percent), onPercentSelect)
   //CurrencyAmount.fromRawAmount(currency, JSBI.BigInt(typedValueParsed))
-  const parsedAmount = CurrencyAmount.fromRawAmount(
-    currencyValue,
-    JSBI.divide(
-      JSBI.multiply(grgBalance ? grgBalance.quotient : JSBI.BigInt(0), JSBI.BigInt(percentForSlider)),
-      JSBI.BigInt(100),
-    ),
-  )
+  // Governance is not deployed on every chain (e.g. HyperEVM) — GRG is undefined there
+  // and the user is prompted to switch chains instead (see SwitchToGovernanceChain).
+  const parsedAmount = currencyValue
+    ? CurrencyAmount.fromRawAmount(
+        currencyValue,
+        JSBI.divide(
+          JSBI.multiply(grgBalance ? grgBalance.quotient : JSBI.BigInt(0), JSBI.BigInt(percentForSlider)),
+          JSBI.BigInt(100),
+        ),
+      )
+    : undefined
   const newApr = useMemo(() => {
+    if (!parsedAmount) {
+      return undefined
+    }
     if (poolInfo?.apr?.toString() !== 'NaN') {
       const aprImpact =
         Number(poolInfo?.poolStake) / (Number(poolInfo?.poolStake) + Number(parsedAmount.quotient.toString()) / 1e18)
@@ -142,6 +149,9 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
   }, [poolInfo, parsedAmount])
 
   const newIrr = useMemo(() => {
+    if (!parsedAmount) {
+      return undefined
+    }
     if (poolInfo?.irr?.toString() !== 'NaN') {
       const irrImpact =
         Number(poolInfo?.poolOwnStake) /
@@ -153,7 +163,7 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
   }, [poolInfo, parsedAmount])
 
   const stakeData = useMemo(() => {
-    if (!poolId) {
+    if (!poolId || !parsedAmount) {
       return undefined
     }
     return {
@@ -194,7 +204,7 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
     setStakeAmount(parsedAmount)
 
     // if callback not returned properly ignore
-    if (!grgBalance || !stakeData || !currencyValue.isToken) {
+    if (!grgBalance || !stakeData || !currencyValue?.isToken) {
       return
     }
 

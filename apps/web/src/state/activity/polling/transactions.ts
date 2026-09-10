@@ -151,7 +151,15 @@ export function usePollPendingTransactions(onActivityUpdate: OnActivityUpdate) {
   )
 
   useEffect(() => {
-    if (!account.address || !account.chainId || !publicClient || !lastBlockNumber || !hasPending) {
+    // The TradingApi only supports a subset of chains (e.g. not HyperEVM) — there is nothing to poll elsewhere.
+    if (
+      !account.address ||
+      !account.chainId ||
+      !toTradingApiSupportedChainId(account.chainId) ||
+      !publicClient ||
+      !lastBlockNumber ||
+      !hasPending
+    ) {
       return undefined
     }
 

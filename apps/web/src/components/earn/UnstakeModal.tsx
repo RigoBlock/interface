@@ -94,7 +94,8 @@ export default function UnstakeModal({ isOpen, isPool, chains, onDismiss, title 
 
   const unstakeChainId = selectedChain?.chainId ?? account.chainId ?? UniverseChainId.Mainnet
   const chainInfo = getChainInfo(unstakeChainId)
-  const currencyValue = GRG[unstakeChainId]
+  // Staking is not deployed on every chain (e.g. HyperEVM) — GRG is undefined there.
+  const currencyValue = unstakeChainId in GRG ? GRG[unstakeChainId] : undefined
 
   const freeStakeBalance = selectedChain?.freeStakeBalance
 
@@ -114,13 +115,16 @@ export default function UnstakeModal({ isOpen, isPool, chains, onDismiss, title 
   )
 
   const [percentForSlider, onPercentSelectForSlider] = useDebouncedChangeHandler(Number(percent), onPercentSelect)
-  const parsedAmount = CurrencyAmount.fromRawAmount(
-    currencyValue,
-    JSBI.divide(
-      JSBI.multiply(freeStakeBalance ? freeStakeBalance.quotient : JSBI.BigInt(0), JSBI.BigInt(percentForSlider)),
-      JSBI.BigInt(100),
-    ),
-  )
+  // Staking is not deployed on every chain (e.g. HyperEVM) — GRG is undefined there.
+  const parsedAmount = currencyValue
+    ? CurrencyAmount.fromRawAmount(
+        currencyValue,
+        JSBI.divide(
+          JSBI.multiply(freeStakeBalance ? freeStakeBalance.quotient : JSBI.BigInt(0), JSBI.BigInt(percentForSlider)),
+          JSBI.BigInt(100),
+        ),
+      )
+    : undefined
 
   const unstakeCallback = useUnstakeCallback(unstakeChainId)
 
@@ -146,7 +150,7 @@ export default function UnstakeModal({ isOpen, isPool, chains, onDismiss, title 
 
   async function onUnstake() {
     // if callback not returned properly ignore
-    if (!freeStakeBalance) {
+    if (!freeStakeBalance || !parsedAmount) {
       return
     }
 

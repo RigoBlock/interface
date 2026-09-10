@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Trans } from 'react-i18next'
 import { Link } from 'react-router'
 import { Button } from 'rebass/styled-components'
+import { GRG } from 'uniswap/src/constants/tokens'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { InterfacePageName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
@@ -115,6 +116,9 @@ export default function Landing() {
 
   // show delegation option if they have have a balance, but have not delegated
   const showUnlockVoting = availableVotes && Boolean(JSBI.equal(availableVotes.quotient, JSBI.BigInt(0)))
+  // Governance is only deployed on chains with GRG (not e.g. HyperEVM) — on other chains the
+  // proposals list shows the existing "switch to a governance chain" empty state instead.
+  const isGovernanceChain = Boolean(account.chainId && account.chainId in GRG)
   const formattedProposalThreshold = proposalThreshold
     ? JSBI.divide(
         proposalThreshold.quotient,
@@ -179,7 +183,7 @@ export default function Landing() {
               <AutoRow gap="6px" justify="flex-end">
                 {loadingProposals ? (
                   <Loader />
-                ) : account.isConnected ? (
+                ) : account.isConnected && isGovernanceChain ? (
                   <ButtonPrimary
                     style={{ width: 'fit-content', height: '40px' }}
                     padding="8px"

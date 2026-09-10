@@ -1472,7 +1472,10 @@ function PoolStakingSection(): JSX.Element {
 
       <Flex flexBasis="33%" flexShrink={0} gap="$spacing12" $lg={{ flexBasis: 'auto' }} justifyContent="space-between">
         <PoolAddressCards />
-        <Flex centered paddingTop="$spacing12">
+        {/* Staking transactions require GRG on the connected chain — staking is not
+            deployed on every chain (e.g. HyperEVM), where these actions are unavailable. */}
+        {account.chainId && account.chainId in GRG && (
+          <Flex centered paddingTop="$spacing12">
           <Flex row gap="$spacing8" flexWrap="wrap" justifyContent="center">
             <Button size="small" variant="branded" fill={false} onPress={() => setShowStakeModal(true)}>
               <Trans>Stake</Trans>
@@ -1489,7 +1492,8 @@ function PoolStakingSection(): JSX.Element {
               </Button>
             )}
           </Flex>
-        </Flex>
+          </Flex>
+        )}
       </Flex>
     </Flex>
   )

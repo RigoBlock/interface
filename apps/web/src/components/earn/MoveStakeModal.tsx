@@ -61,7 +61,7 @@ interface MoveStakeModalProps {
 }
 
 interface ParsedMoveAmountParams {
-  currencyValue: Currency
+  currencyValue: Currency | undefined
   fromPoolStakeBalance: CurrencyAmount<Currency> | undefined
   freeStakeBalance: CurrencyAmount<Currency> | undefined
   percentForSlider: number
@@ -72,23 +72,25 @@ function useParsedMoveAmount({
   fromPoolStakeBalance,
   freeStakeBalance,
   percentForSlider,
-}: ParsedMoveAmountParams): CurrencyAmount<Currency> {
+}: ParsedMoveAmountParams): CurrencyAmount<Currency> | undefined {
   return useMemo(
     () =>
-      CurrencyAmount.fromRawAmount(
-        currencyValue,
-        JSBI.divide(
-          JSBI.multiply(
-            fromPoolStakeBalance
-              ? fromPoolStakeBalance.quotient
-              : freeStakeBalance
-                ? freeStakeBalance.quotient
-                : JSBI.BigInt(0),
-            JSBI.BigInt(percentForSlider),
-          ),
-          JSBI.BigInt(100),
-        ),
-      ),
+      currencyValue
+        ? CurrencyAmount.fromRawAmount(
+            currencyValue,
+            JSBI.divide(
+              JSBI.multiply(
+                fromPoolStakeBalance
+                  ? fromPoolStakeBalance.quotient
+                  : freeStakeBalance
+                    ? freeStakeBalance.quotient
+                    : JSBI.BigInt(0),
+                JSBI.BigInt(percentForSlider),
+              ),
+              JSBI.BigInt(100),
+            ),
+          )
+        : undefined,
     [currencyValue, freeStakeBalance, fromPoolStakeBalance, percentForSlider],
   )
 }
@@ -162,7 +164,7 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
   const { formatCurrencyAmount } = useLocalizationContext()
 
   // state for delegate input
-  const [currencyValue] = useState<Currency>(GRG[account.chainId ?? UniverseChainId.Mainnet])
+  const [currencyValue] = useState<Currency | undefined>(GRG[account.chainId ?? UniverseChainId.Mainnet])
   const [typed, setTyped] = useState('')
   const [isPoolMoving, setIsPoolMoving] = useState(false)
 
@@ -201,6 +203,9 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
   })
 
   const newApr = useMemo(() => {
+    if (!parsedAmount) {
+      return undefined
+    }
     if (poolInfo.apr?.toString() !== 'NaN') {
       const aprImpact =
         Number(poolInfo.poolStake) / (Number(poolInfo.poolStake) + Number(parsedAmount.quotient.toString()) / 1e18)
@@ -209,8 +214,11 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
     return undefined
   }, [poolInfo, parsedAmount])
 
-  const moveStakeData: StakeData = useMemo(
-    () => ({
+  const moveStakeData: StakeData | undefined = useMemo(() => {
+    if (!parsedAmount) {
+      return undefined
+    }
+    return {
       amount: parsedAmount.quotient.toString(),
       pool: poolInfo.pool.address,
       fromPoolId: fromPoolId ?? poolId,
@@ -218,9 +226,8 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
       poolContract: isPoolMoving ? poolContract : null,
       stakingPoolExists,
       isPoolMoving,
-    }),
-    [parsedAmount, poolInfo.pool.address, fromPoolId, poolId, isPoolMoving, poolContract, stakingPoolExists],
-  )
+    }
+  }, [parsedAmount, poolInfo.pool.address, fromPoolId, poolId, isPoolMoving, poolContract, stakingPoolExists])
 
   const moveStakeCallback = useMoveStakeCallback()
   const deactivateStakeCallback = useDeactivateStakeCallback()
@@ -252,7 +259,9 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
     // if callback not returned properly ignore
     if (
       (!fromPoolStakeBalance && !freeStakeBalance) ||
-      !currencyValue.isToken ||
+      !parsedAmount ||
+      !moveStakeData ||
+      !currencyValue?.isToken ||
       JSBI.equal(parsedAmount.quotient, JSBI.BigInt(0))
     ) {
       return
@@ -270,7 +279,7 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
       setHash(txHash)
     }
   }, [
-    currencyValue.isToken,
+    currencyValue?.isToken,
     deactivateStakeCallback,
     freeStakeBalance,
     fromPoolStakeBalance,
