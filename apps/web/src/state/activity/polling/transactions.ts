@@ -150,23 +150,67 @@ export function usePollPendingTransactions(onActivityUpdate: OnActivityUpdate) {
     [account.chainId, account.isConnected, blockTimestamp, removeTransaction, publicClient],
   )
 
+  // On-chain fallback for chains the TradingApi does not support (e.g. HyperEVM): poll the
+  // receipt directly from the public client instead of waiting for a TradingApi status.
+  const getReceipt = useCallback(
+    (tx: PendingTransactionDetails): { promise: Promise<ReceiptWithStatus>; cancel: () => void } => {
+      if (!account.chainId) {
+        throw new Error('No chainId')
+      }
+
+      const pollingInterval = getChainInfo(account.chainId).tradingApiPollingIntervalMs
+      const retryOptions: RetryOptions = {
+        n: 20,
+        minWait: pollingInterval,
+        medWait: pollingInterval,
+        maxWait: pollingInterval,
+      }
+
+      return retry(async () => {
+        if (!publicClient || !tx.hash || !isValidHexString(tx.hash)) {
+          throw new RetryableError()
+        }
+
+        try {
+          const viemReceipt = await publicClient.getTransactionReceipt({ hash: tx.hash })
+
+          sendAnalyticsEvent(InterfaceEventName.SwapConfirmedOnClient, {
+            time: Date.now() - tx.addedTime,
+            swap_success: viemReceipt.status === 'success',
+            success: viemReceipt.status === 'success',
+            chainId: account.chainId,
+            txHash: tx.hash,
+            transactionType: tx.typeInfo.type,
+            routing: 'classic',
+          })
+
+          const adaptedReceipt = receiptFromViemReceipt(viemReceipt)
+          if (!adaptedReceipt) {
+            throw new Error('Error converting viem receipt to transaction receipt')
+          }
+
+          return { status: viemReceipt.status, receipt: adaptedReceipt } as ReceiptWithStatus
+        } catch {
+          // Receipt not found (still pending) or a transient RPC error — retry on the next pass.
+          throw new RetryableError()
+        }
+      }, retryOptions) as { promise: Promise<ReceiptWithStatus>; cancel: () => void }
+    },
+    [account.chainId, publicClient],
+  )
+
   useEffect(() => {
-    // The TradingApi only supports a subset of chains (e.g. not HyperEVM) — there is nothing to poll elsewhere.
-    if (
-      !account.address ||
-      !account.chainId ||
-      !toTradingApiSupportedChainId(account.chainId) ||
-      !publicClient ||
-      !lastBlockNumber ||
-      !hasPending
-    ) {
+    if (!account.address || !account.chainId || !publicClient || !lastBlockNumber || !hasPending) {
       return undefined
     }
+
+    // The TradingApi only supports a subset of chains; the rest (e.g. HyperEVM) are polled on-chain.
+    const isTradingApiChain = Boolean(toTradingApiSupportedChainId(account.chainId))
 
     const cancels = pendingTransactions
       .filter((tx) => shouldCheckTransaction(lastBlockNumber, tx))
       .map((tx) => {
-        const { promise, cancel } = getReceiptWithTradingApi(tx)
+        const { promise, cancel } = isTradingApiChain ? getReceiptWithTradingApi(tx) : getReceipt(tx)
         promise
           .then(({ status, receipt }) => {
             if (!account.chainId) {
@@ -214,5 +258,6 @@ export function usePollPendingTransactions(onActivityUpdate: OnActivityUpdate) {
     dispatch,
     onActivityUpdate,
     getReceiptWithTradingApi,
+    getReceipt,
   ])
 }
