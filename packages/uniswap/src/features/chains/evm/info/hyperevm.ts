@@ -87,12 +87,9 @@ export const HYPEREVM_CHAIN_INFO = {
   supportsNFTs: false,
   urlParam: CHAIN_ID_TO_URL_PARAM[UniverseChainId.HyperEvm],
   rpcUrls: {
-    [RPCType.Public]: {
-      http: [`https://hyperliquid-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`],
-    },
-    [RPCType.Default]: {
-      http: [`https://hyperliquid-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`],
-    },
+    // Default/Public must stay keyless: they are what wallets receive on switch/add-chain prompts.
+    [RPCType.Public]: { http: ['https://rpc.hyperliquid.xyz/evm'] },
+    [RPCType.Default]: { http: ['https://rpc.hyperliquid.xyz/evm'] },
     [RPCType.Interface]: {
       http: [`https://hyperliquid-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`],
     },

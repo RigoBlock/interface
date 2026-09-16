@@ -13,6 +13,7 @@ import { RowBetween } from '~/components/deprecated/Row'
 import { LoadingView, SubmittedView } from '~/components/ModalViews'
 import NameInputPanel from '~/components/NameInputPanel'
 import { useAccount } from '~/hooks/useAccount'
+import { useSwitchToPoolChain } from '~/hooks/useSelectChain'
 import styled from '~/lib/deprecated-styled'
 import { useSetSpreadCallback } from '~/state/pool/hooks'
 import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
@@ -32,11 +33,12 @@ const StyledClosed = styled(X)`
 interface SetSpreadModalProps {
   isOpen: boolean
   currentSpread: number
+  chainId?: number
   onDismiss: () => void
   title: ReactNode
 }
 
-export default function SetSpreadModal({ isOpen, currentSpread, onDismiss, title }: SetSpreadModalProps) {
+export default function SetSpreadModal({ isOpen, currentSpread, chainId, onDismiss, title }: SetSpreadModalProps) {
   const account = useAccount()
 
   // state for create input
@@ -60,6 +62,7 @@ export default function SetSpreadModal({ isOpen, currentSpread, onDismiss, title
   const isSameAsCurrent: boolean = currentSpread === Number(parsedSpread)
 
   const setSpreadCallback = useSetSpreadCallback()
+  const switchToPoolChain = useSwitchToPoolChain(chainId)
 
   // monitor call to help UI loading state
   const [hash, setHash] = useState<string | undefined>()
@@ -77,12 +80,17 @@ export default function SetSpreadModal({ isOpen, currentSpread, onDismiss, title
   }
 
   async function onSetSpread() {
-    setAttempting(true)
-
     // if callback not returned properly ignore
     if (!account.address || !account.chainId || !parsedSpread) {
       return
     }
+
+    // The change must be sent on the pool's own chain, so switch the wallet there first.
+    if (!(await switchToPoolChain())) {
+      return
+    }
+
+    setAttempting(true)
 
     // try set spread and store hash
     const txHash = await setSpreadCallback(parsedSpread)?.catch((error) => {

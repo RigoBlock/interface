@@ -17,6 +17,7 @@ import { GRG } from 'uniswap/src/constants/tokens'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { isValidHexString } from 'utilities/src/addresses/hex'
+import { useEvent } from 'utilities/src/react/hooks'
 import type { Abi } from 'viem'
 import { useReadContracts } from 'wagmi'
 import { RIGOBLOCK_SUPPORTED_CHAINS, RIGOBLOCK_TESTNET_CHAINS, RB_FACTORY_ADDRESSES, RB_REGISTRY_ADDRESSES } from '~/constants/addresses'
@@ -248,36 +249,42 @@ export function useSetLockupCallback(): (lockup: string | undefined) => undefine
   const { provider } = useWeb3React()
   const addTransaction = useTransactionAdder()
 
-  const { poolAddress: poolAddressFromUrl } = useParams<{
+  const { poolAddress: poolAddressFromUrl, chainId: chainIdFromUrl } = useParams<{
     poolAddress?: string
+    chainId?: string
   }>()
-  const poolContract = usePoolExtendedContract(poolAddressFromUrl ?? undefined)
+  // The pool's chain comes from the route, so the transaction targets the chain being viewed
+  // rather than whatever chain the wallet happens to be connected to.
+  const poolChainId = chainIdFromUrl ? parseInt(chainIdFromUrl, 10) : undefined
+  const poolContract = usePoolExtendedContract(poolAddressFromUrl ?? undefined, poolChainId)
 
-  return useCallback(
-    (lockup: string | undefined) => {
-      if (!provider || !account.chainId || !account.address) {
-        return undefined
-      }
-      if (!poolContract) {
-        throw new Error('No Pool Contract!')
-      }
-      return (poolContract.estimateGas.changeMinPeriod(lockup, {}) as Promise<BigNumber>).then(
-        (estimatedGasLimit): Promise<string> => {
-          return (poolContract.changeMinPeriod(lockup, {
-            value: null,
-            gasLimit: calculateGasMargin(estimatedGasLimit),
-          }) as Promise<TransactionResponse>).then((response: TransactionResponse): string => {
-            addTransaction(response, {
-              type: TransactionType.SetLockup,
-              vaultAddress: poolContract.address,
-              lockupPeriodSeconds: Number(lockup),
+  return useEvent(
+    useCallback(
+      (lockup: string | undefined) => {
+        if (!provider || !account.chainId || !account.address) {
+          return undefined
+        }
+        if (!poolContract) {
+          throw new Error('No Pool Contract!')
+        }
+        return (poolContract.estimateGas.changeMinPeriod(lockup, {}) as Promise<BigNumber>).then(
+          (estimatedGasLimit): Promise<string> => {
+            return (poolContract.changeMinPeriod(lockup, {
+              value: null,
+              gasLimit: calculateGasMargin(estimatedGasLimit),
+            }) as Promise<TransactionResponse>).then((response: TransactionResponse): string => {
+              addTransaction(response, {
+                type: TransactionType.SetLockup,
+                vaultAddress: poolContract.address,
+                lockupPeriodSeconds: Number(lockup),
+              })
+              return response.hash
             })
-            return response.hash
-          })
-        },
-      )
-    },
-    [account.address, account.chainId, provider, poolContract, addTransaction],
+          },
+        )
+      },
+      [account.address, account.chainId, provider, poolContract, addTransaction],
+    ),
   )
 }
 
@@ -286,36 +293,40 @@ export function useSetSpreadCallback(): (spread: string | undefined) => undefine
   const { provider } = useWeb3React()
   const addTransaction = useTransactionAdder()
 
-  const { poolAddress: poolAddressFromUrl } = useParams<{
+  const { poolAddress: poolAddressFromUrl, chainId: chainIdFromUrl } = useParams<{
     poolAddress?: string
+    chainId?: string
   }>()
-  const poolContract = usePoolExtendedContract(poolAddressFromUrl ?? undefined)
+  const poolChainId = chainIdFromUrl ? parseInt(chainIdFromUrl, 10) : undefined
+  const poolContract = usePoolExtendedContract(poolAddressFromUrl ?? undefined, poolChainId)
 
-  return useCallback(
-    (spread: string | undefined) => {
-      if (!provider || !account.chainId || !account.address) {
-        return undefined
-      }
-      if (!poolContract) {
-        throw new Error('No Pool Contract!')
-      }
-      return (poolContract.estimateGas.changeSpread(spread, {}) as Promise<BigNumber>).then(
-        (estimatedGasLimit): Promise<string> => {
-          return (poolContract.changeSpread(spread, {
-            value: null,
-            gasLimit: calculateGasMargin(estimatedGasLimit),
-          }) as Promise<TransactionResponse>).then((response: TransactionResponse): string => {
-            addTransaction(response, {
-              type: TransactionType.SetSpread,
-              vaultAddress: poolContract.address,
-              spreadBasisPoints: Number(spread),
+  return useEvent(
+    useCallback(
+      (spread: string | undefined) => {
+        if (!provider || !account.chainId || !account.address) {
+          return undefined
+        }
+        if (!poolContract) {
+          throw new Error('No Pool Contract!')
+        }
+        return (poolContract.estimateGas.changeSpread(spread, {}) as Promise<BigNumber>).then(
+          (estimatedGasLimit): Promise<string> => {
+            return (poolContract.changeSpread(spread, {
+              value: null,
+              gasLimit: calculateGasMargin(estimatedGasLimit),
+            }) as Promise<TransactionResponse>).then((response: TransactionResponse): string => {
+              addTransaction(response, {
+                type: TransactionType.SetSpread,
+                vaultAddress: poolContract.address,
+                spreadBasisPoints: Number(spread),
+              })
+              return response.hash
             })
-            return response.hash
-          })
-        },
-      )
-    },
-    [account.address, account.chainId, provider, poolContract, addTransaction],
+          },
+        )
+      },
+      [account.address, account.chainId, provider, poolContract, addTransaction],
+    ),
   )
 }
 
@@ -324,33 +335,37 @@ export function useSetValueCallback(): () => undefined | Promise<string> {
   const { provider } = useWeb3React()
   const addTransaction = useTransactionAdder()
 
-  const { poolAddress: poolAddressFromUrl } = useParams<{
+  const { poolAddress: poolAddressFromUrl, chainId: chainIdFromUrl } = useParams<{
     poolAddress?: string
+    chainId?: string
   }>()
-  const poolContract = usePoolExtendedContract(poolAddressFromUrl ?? undefined)
+  const poolChainId = chainIdFromUrl ? parseInt(chainIdFromUrl, 10) : undefined
+  const poolContract = usePoolExtendedContract(poolAddressFromUrl ?? undefined, poolChainId)
 
-  return useCallback(() => {
-    if (!provider || !account.chainId || !account.address) {
-      return undefined
-    }
-    if (!poolContract) {
-      throw new Error('No Pool Contract!')
-    }
-    return (poolContract.estimateGas.updateUnitaryValue() as Promise<BigNumber>).then(
-      (estimatedGasLimit): Promise<string> => {
-        return (poolContract.updateUnitaryValue({
-          value: null,
-          gasLimit: calculateGasMargin(estimatedGasLimit),
-        }) as Promise<TransactionResponse>).then((response: TransactionResponse): string => {
-          addTransaction(response, {
-            type: TransactionType.SetValue,
-            vaultAddress: poolContract.address,
+  return useEvent(
+    useCallback(() => {
+      if (!provider || !account.chainId || !account.address) {
+        return undefined
+      }
+      if (!poolContract) {
+        throw new Error('No Pool Contract!')
+      }
+      return (poolContract.estimateGas.updateUnitaryValue() as Promise<BigNumber>).then(
+        (estimatedGasLimit): Promise<string> => {
+          return (poolContract.updateUnitaryValue({
+            value: null,
+            gasLimit: calculateGasMargin(estimatedGasLimit),
+          }) as Promise<TransactionResponse>).then((response: TransactionResponse): string => {
+            addTransaction(response, {
+              type: TransactionType.SetValue,
+              vaultAddress: poolContract.address,
+            })
+            return response.hash
           })
-          return response.hash
-        })
-      },
-    )
-  }, [account.address, account.chainId, provider, poolContract, addTransaction])
+        },
+      )
+    }, [account.address, account.chainId, provider, poolContract, addTransaction]),
+  )
 }
 
 export function useUpgradeCallback(): () => undefined | Promise<string> {
@@ -358,33 +373,37 @@ export function useUpgradeCallback(): () => undefined | Promise<string> {
   const { provider } = useWeb3React()
   const addTransaction = useTransactionAdder()
 
-  const { poolAddress: poolAddressFromUrl } = useParams<{
+  const { poolAddress: poolAddressFromUrl, chainId: chainIdFromUrl } = useParams<{
     poolAddress?: string
+    chainId?: string
   }>()
-  const poolContract = usePoolExtendedContract(poolAddressFromUrl ?? undefined)
+  const poolChainId = chainIdFromUrl ? parseInt(chainIdFromUrl, 10) : undefined
+  const poolContract = usePoolExtendedContract(poolAddressFromUrl ?? undefined, poolChainId)
 
-  return useCallback(() => {
-    if (!provider || !account.chainId || !account.address) {
-      return undefined
-    }
-    if (!poolContract) {
-      throw new Error('No Pool Contract!')
-    }
-    return (poolContract.estimateGas.upgradeImplementation() as Promise<BigNumber>).then(
-      (estimatedGasLimit): Promise<string> => {
-        return (poolContract.upgradeImplementation({
-          value: null,
-          gasLimit: calculateGasMargin(estimatedGasLimit),
-        }) as Promise<TransactionResponse>).then((response: TransactionResponse): string => {
-          addTransaction(response, {
-            type: TransactionType.Upgrade,
-            vaultAddress: poolContract.address,
+  return useEvent(
+    useCallback(() => {
+      if (!provider || !account.chainId || !account.address) {
+        return undefined
+      }
+      if (!poolContract) {
+        throw new Error('No Pool Contract!')
+      }
+      return (poolContract.estimateGas.upgradeImplementation() as Promise<BigNumber>).then(
+        (estimatedGasLimit): Promise<string> => {
+          return (poolContract.upgradeImplementation({
+            value: null,
+            gasLimit: calculateGasMargin(estimatedGasLimit),
+          }) as Promise<TransactionResponse>).then((response: TransactionResponse): string => {
+            addTransaction(response, {
+              type: TransactionType.Upgrade,
+              vaultAddress: poolContract.address,
+            })
+            return response.hash
           })
-          return response.hash
-        })
-      },
-    )
-  }, [account.address, account.chainId, provider, poolContract, addTransaction])
+        },
+      )
+    }, [account.address, account.chainId, provider, poolContract, addTransaction]),
+  )
 }
 
 interface StakingPools {

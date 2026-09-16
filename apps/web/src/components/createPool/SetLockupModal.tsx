@@ -13,6 +13,7 @@ import { RowBetween } from '~/components/deprecated/Row'
 import { LoadingView, SubmittedView } from '~/components/ModalViews'
 import NameInputPanel from '~/components/NameInputPanel'
 import { useAccount } from '~/hooks/useAccount'
+import { useSwitchToPoolChain } from '~/hooks/useSelectChain'
 import styled from '~/lib/deprecated-styled'
 import { useSetLockupCallback } from '~/state/pool/hooks'
 import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
@@ -32,11 +33,12 @@ const StyledClosed = styled(X)`
 interface SetLockupModalProps {
   isOpen: boolean
   currentLockup: string
+  chainId?: number
   onDismiss: () => void
   title: ReactNode
 }
 
-export default function SetLockupModal({ isOpen, currentLockup, onDismiss, title }: SetLockupModalProps) {
+export default function SetLockupModal({ isOpen, currentLockup, chainId, onDismiss, title }: SetLockupModalProps) {
   const account = useAccount()
 
   const [typed, setTyped] = useState('')
@@ -50,6 +52,7 @@ export default function SetLockupModal({ isOpen, currentLockup, onDismiss, title
   }, [])
 
   const setLockupCallback = useSetLockupCallback()
+  const switchToPoolChain = useSwitchToPoolChain(chainId)
 
   // monitor call to help UI loading state
   const [hash, setHash] = useState<string | undefined>()
@@ -75,8 +78,6 @@ export default function SetLockupModal({ isOpen, currentLockup, onDismiss, title
   }
 
   async function onSetLockup() {
-    setAttempting(true)
-
     // if callback not returned properly ignore
     if (!account.address || !account.chainId || !parsedLockup) {
       return
@@ -86,6 +87,13 @@ export default function SetLockupModal({ isOpen, currentLockup, onDismiss, title
     if (parsedLockup === '0') {
       parsedLockup = '2'
     }
+
+    // The change must be sent on the pool's own chain, so switch the wallet there first.
+    if (!(await switchToPoolChain())) {
+      return
+    }
+
+    setAttempting(true)
 
     // try set lockup and store hash
     const txHash = await setLockupCallback(parsedLockup)?.catch((error) => {

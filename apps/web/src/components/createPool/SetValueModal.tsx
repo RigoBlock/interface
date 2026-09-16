@@ -10,6 +10,7 @@ import { AutoColumn } from '~/components/deprecated/Column'
 import { RowBetween } from '~/components/deprecated/Row'
 import { LoadingView, SubmittedView } from '~/components/ModalViews'
 import { useAccount } from '~/hooks/useAccount'
+import { useSwitchToPoolChain } from '~/hooks/useSelectChain'
 import styled from '~/lib/deprecated-styled'
 import { useSetValueCallback } from '~/state/pool/hooks'
 import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
@@ -30,10 +31,11 @@ interface SetValueModalProps {
   isOpen: boolean
   onDismiss: () => void
   baseTokenSymbol: string
+  chainId?: number
   title: ReactNode
 }
 
-export default function SetValueModal({ isOpen, onDismiss, baseTokenSymbol, title }: SetValueModalProps) {
+export default function SetValueModal({ isOpen, onDismiss, baseTokenSymbol, chainId, title }: SetValueModalProps) {
   const account = useAccount()
 
   // state for create input
@@ -48,6 +50,7 @@ export default function SetValueModal({ isOpen, onDismiss, baseTokenSymbol, titl
   //}, [])
 
   const setValueCallback = useSetValueCallback()
+  const switchToPoolChain = useSwitchToPoolChain(chainId)
 
   // monitor call to help UI loading state
   const [hash, setHash] = useState<string | undefined>()
@@ -65,12 +68,17 @@ export default function SetValueModal({ isOpen, onDismiss, baseTokenSymbol, titl
   }
 
   async function onSetValue() {
-    setAttempting(true)
-
     // if callback not returned properly ignore
     if (!account.address || !account.chainId) {
       return
     }
+
+    // The change must be sent on the pool's own chain, so switch the wallet there first.
+    if (!(await switchToPoolChain())) {
+      return
+    }
+
+    setAttempting(true)
 
     // try delegation and store hash
     const txHash = await setValueCallback()?.catch((error) => {

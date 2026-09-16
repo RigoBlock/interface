@@ -65,3 +65,18 @@ export default function useSelectChain() {
     }
   })
 }
+
+/**
+ * Returns a stable helper that switches the wallet to the target chain if it is not already there.
+ * Resolves to true when the wallet is on the target chain (or no target was given), false if the switch failed.
+ */
+export function useSwitchToPoolChain(targetChainId?: number): () => Promise<boolean> {
+  const account = useAccount()
+  const selectChain = useSelectChain()
+  return useEvent(async () => {
+    if (!targetChainId || targetChainId === account.chainId) {
+      return true
+    }
+    return selectChain(targetChainId as UniverseChainId)
+  })
+}

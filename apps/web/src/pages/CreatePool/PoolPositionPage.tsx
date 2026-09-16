@@ -39,6 +39,7 @@ import { RIGOBLOCK_SUPPORTED_CHAINS, RIGOBLOCK_TESTNET_CHAINS } from '~/constant
 import { RPC_PROVIDERS } from '~/constants/providers'
 import { useCurrency } from '~/hooks/Tokens'
 import { useAccount } from '~/hooks/useAccount'
+import { useIsUserWhitelisted } from '~/hooks/useKycWhitelist'
 import useSelectChain from '~/hooks/useSelectChain'
 import { UserAccount, useImplementation, useSmartPoolFromAddress, useUserPoolBalance } from '~/hooks/useSmartPools'
 import { PoolInfo } from '~/state/buy/hooks'
@@ -905,6 +906,7 @@ function PoolModals(): JSX.Element | null {
     poolInfo,
     account,
     poolAddressFromUrl,
+    chainId,
     baseTokenBalances,
     name,
     minPeriod,
@@ -965,6 +967,7 @@ function PoolModals(): JSX.Element | null {
       <SetLockupModal
         isOpen={showSetLockupModal}
         currentLockup={Number(minPeriod).toString()}
+        chainId={chainId}
         onDismiss={() => setShowSetLockupModal(false)}
         title={<Trans>Set Lockup</Trans>}
       />
@@ -972,6 +975,7 @@ function PoolModals(): JSX.Element | null {
         <SetSpreadModal
           isOpen={showSetSpreadModal}
           currentSpread={spread}
+          chainId={chainId}
           onDismiss={() => setShowSetSpreadModal(false)}
           title={<Trans>Set Spread</Trans>}
         />
@@ -981,6 +985,7 @@ function PoolModals(): JSX.Element | null {
           isOpen={showSetValueModal}
           onDismiss={() => setShowSetValueModal(false)}
           baseTokenSymbol={baseTokenSymbol}
+          chainId={chainId}
           title={<Trans>Set Value</Trans>}
         />
       )}
@@ -989,6 +994,7 @@ function PoolModals(): JSX.Element | null {
           isOpen={showUpgradeModal}
           onDismiss={() => setShowUpgradeModal(false)}
           implementation={beaconImplementation}
+          chainId={chainId}
           title={<Trans>Upgrade Implementation</Trans>}
         />
       )}
@@ -1042,6 +1048,7 @@ function PoolHeader(): JSX.Element {
     chainId,
     chainEntries,
     account,
+    poolStorage,
     needsUpgrade,
     owner,
     hasBalance,
@@ -1053,6 +1060,11 @@ function PoolHeader(): JSX.Element {
     setShowHarvestYieldModal,
     navigate,
   } = usePoolPageContext()
+
+  // Pools with a KYC provider only allow mints from whitelisted wallets; burns are unrestricted.
+  const kycProvider = poolStorage?.poolVariables.kycProvider
+  const isWhitelisted = useIsUserWhitelisted({ kycProvider, userAddress: account.address, chainId })
+  const hideBuy = Boolean(kycProvider && kycProvider !== ZERO_ADDRESS && isWhitelisted === false)
 
   return (
     <>
@@ -1129,9 +1141,11 @@ function PoolHeader(): JSX.Element {
           )}
         </Flex>
         <Flex row gap="$spacing8" alignItems="center" flexShrink={0}>
-          <Button size="small" variant="branded" fill={false} onPress={() => setShowBuyModal(true)}>
-            <Trans>Buy</Trans>
-          </Button>
+          {!hideBuy && (
+            <Button size="small" variant="branded" fill={false} onPress={() => setShowBuyModal(true)}>
+              <Trans>Buy</Trans>
+            </Button>
+          )}
           {hasBalance && (
             <Button size="small" variant="branded" fill={false} onPress={() => setShowSellModal(true)}>
               <Trans>Sell</Trans>

@@ -9,6 +9,7 @@ import POP_ABI from 'uniswap/src/abis/pop.json'
 import STAKING_ABI from 'uniswap/src/abis/staking-impl.json'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { useEvent } from 'utilities/src/react/hooks'
 import type { Abi } from 'viem'
 import { useReadContract, useReadContracts } from 'wagmi'
 import { POP_ADDRESSES, STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
@@ -347,58 +348,60 @@ export function useHarvestCallback({
   // state for pending and submitted txn views
   const addTransaction = useTransactionAdder()
 
-  return useCallback(
-    (poolIds: string[]) => {
-      if (!provider || !account.chainId || !account.address) {
-        return undefined
-      }
-      if (!stakingContract || !stakingProxy) {
-        throw new Error('No Staking Proxy Contract!')
-      }
-      if (isPool && !poolContract) {
-        throw new Error('No Pool Contract!')
-      }
-      const harvestCalls: string[] = []
-      for (const poolId of poolIds) {
-        const harvestCall = !isPool
-          ? stakingContract.interface.encodeFunctionData('withdrawDelegatorRewards', [poolId])
-          : poolContract?.interface.encodeFunctionData('withdrawDelegatorRewards')
-        if (harvestCall) {
-          harvestCalls.push(harvestCall)
+  return useEvent(
+    useCallback(
+      (poolIds: string[]) => {
+        if (!provider || !account.chainId || !account.address) {
+          return undefined
         }
-      }
-      if (!isPool) {
-        return (async (): Promise<string> => {
-          const estimatedGasLimit = await stakingProxy.estimateGas.batchExecute(harvestCalls, {}) as BigNumber
-          const response = await stakingProxy.batchExecute(harvestCalls, {
-            value: null,
-            gasLimit: calculateGasMargin(estimatedGasLimit),
-          }) as TransactionResponse
-          addTransaction(response, {
-            type: TransactionType.ClaimUni,
-            recipient: account.address ?? '',
-          })
-          return response.hash
-        })()
-      } else {
-        return (async (): Promise<string> => {
-          if (!poolContract) {
-            throw new Error('No Pool Contract!')
+        if (!stakingContract || !stakingProxy) {
+          throw new Error('No Staking Proxy Contract!')
+        }
+        if (isPool && !poolContract) {
+          throw new Error('No Pool Contract!')
+        }
+        const harvestCalls: string[] = []
+        for (const poolId of poolIds) {
+          const harvestCall = !isPool
+            ? stakingContract.interface.encodeFunctionData('withdrawDelegatorRewards', [poolId])
+            : poolContract?.interface.encodeFunctionData('withdrawDelegatorRewards')
+          if (harvestCall) {
+            harvestCalls.push(harvestCall)
           }
-          const estimatedGasLimit = await poolContract.estimateGas.withdrawDelegatorRewards({}) as BigNumber
-          const response = await poolContract.withdrawDelegatorRewards({
-            value: null,
-            gasLimit: calculateGasMargin(estimatedGasLimit),
-          }) as TransactionResponse
-          addTransaction(response, {
-            type: TransactionType.ClaimUni,
-            recipient: poolContract.address,
-          })
-          return response.hash
-        })()
-      }
-    },
-    [account.address, account.chainId, provider, poolContract, stakingContract, stakingProxy, isPool, addTransaction],
+        }
+        if (!isPool) {
+          return (async (): Promise<string> => {
+            const estimatedGasLimit = await stakingProxy.estimateGas.batchExecute(harvestCalls, {}) as BigNumber
+            const response = await stakingProxy.batchExecute(harvestCalls, {
+              value: null,
+              gasLimit: calculateGasMargin(estimatedGasLimit),
+            }) as TransactionResponse
+            addTransaction(response, {
+              type: TransactionType.ClaimUni,
+              recipient: account.address ?? '',
+            })
+            return response.hash
+          })()
+        } else {
+          return (async (): Promise<string> => {
+            if (!poolContract) {
+              throw new Error('No Pool Contract!')
+            }
+            const estimatedGasLimit = await poolContract.estimateGas.withdrawDelegatorRewards({}) as BigNumber
+            const response = await poolContract.withdrawDelegatorRewards({
+              value: null,
+              gasLimit: calculateGasMargin(estimatedGasLimit),
+            }) as TransactionResponse
+            addTransaction(response, {
+              type: TransactionType.ClaimUni,
+              recipient: poolContract.address,
+            })
+            return response.hash
+          })()
+        }
+      },
+      [account.address, account.chainId, provider, poolContract, stakingContract, stakingProxy, isPool, addTransaction],
+    ),
   )
 }
 

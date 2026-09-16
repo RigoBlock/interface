@@ -10,12 +10,14 @@ import { Modal } from 'uniswap/src/components/modals/Modal'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TransactionStatus, TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { useEvent } from 'utilities/src/react/hooks'
 import { /*ButtonConfirmed,*/ ButtonError } from '~/components/Button/buttons'
 import CurrencyInputPanel from '~/components/CurrencyInputPanel'
 import { AutoColumn } from '~/components/deprecated/Column'
 import { RowBetween } from '~/components/deprecated/Row'
 import { LoadingView, SubmittedView } from '~/components/ModalViews'
 import ProgressCircles from '~/components/ProgressSteps'
+import { useSwitchToPoolChain } from '~/hooks/useSelectChain'
 import styled from '~/lib/deprecated-styled'
 import { PoolInfo, useDerivedPoolInfo } from '~/state/buy/hooks'
 import { usePoolExtendedContract } from '~/state/pool/hooks'
@@ -75,8 +77,16 @@ export default function SellModal({
     poolInfo?.activation,
   )
 
-  const poolContract = usePoolExtendedContract(poolInfo?.pool?.address)
+  const poolContract = usePoolExtendedContract(poolInfo?.pool?.address, poolInfo?.chainId)
+  const switchToPoolChain = useSwitchToPoolChain(poolInfo?.chainId)
   const [expectedBurnOutputAmount, setExpectedBurnOutputAmount] = useState<any>(undefined)
+
+  // The burn must be sent on the pool's own chain.
+  useEffect(() => {
+    if (isOpen) {
+      switchToPoolChain()
+    }
+  }, [isOpen, switchToPoolChain])
 
   useEffect(() => {
     async function retrieveBurnOutputAmount() {
@@ -132,8 +142,15 @@ export default function SellModal({
     )
   }, [poolBaseTokenBalance, expectedBaseTokens, poolInfo])
 
-  async function onSell(): Promise<void | undefined> {
+  const onSell = useEvent(async (): Promise<void | undefined> => {
     setAttempting(true)
+
+    // The burn must be sent on the pool's own chain, so switch the wallet there first.
+    if (!(await switchToPoolChain())) {
+      setAttempting(false)
+      return undefined
+    }
+
     if (poolContract && parsedAmount && poolInfo /*&& deadline*/) {
       const args = [parsedAmount.quotient.toString(), minimumAmount?.quotient.toString()]
 
@@ -158,9 +175,10 @@ export default function SellModal({
           })
       })
     } else {
+      setAttempting(false)
       return undefined
     }
-  }
+  })
 
   // wrapped onUserInput to clear signatures
   const onUserInput = useCallback((typedValue: string) => {

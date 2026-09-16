@@ -10,6 +10,7 @@ import { Modal } from 'uniswap/src/components/modals/Modal'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TransactionStatus, TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { useEvent } from 'utilities/src/react/hooks'
 import { parseUnits } from 'viem'
 import { ButtonConfirmed, ButtonError } from '~/components/Button/buttons'
 import CurrencyInputPanel from '~/components/CurrencyInputPanel'
@@ -18,6 +19,7 @@ import { RowBetween } from '~/components/deprecated/Row'
 import { LoadingView, SubmittedView } from '~/components/ModalViews'
 import ProgressCircles from '~/components/ProgressSteps'
 import { ApprovalState, useApproveCallback } from '~/hooks/useApproveCallback'
+import { useSwitchToPoolChain } from '~/hooks/useSelectChain'
 import styled from '~/lib/deprecated-styled'
 import { PoolInfo, useDerivedPoolInfo } from '~/state/buy/hooks'
 import { usePoolExtendedContract } from '~/state/pool/hooks'
@@ -68,11 +70,19 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
   //const deadline = useTransactionDeadline()
   const [approval, approveCallback] = useApproveCallback(parsedAmount, poolInfo?.pool.address)
 
-  const poolContract = usePoolExtendedContract(poolInfo?.pool.address)
+  const poolContract = usePoolExtendedContract(poolInfo?.pool.address, poolInfo?.chainId)
+  const switchToPoolChain = useSwitchToPoolChain(poolInfo?.chainId)
   const [expectedMintAmount, setExpectedMintAmount] = useState<any>(undefined)
   const [mintCallError, setMintCallError] = useState<string | undefined>()
 
   const { t } = useTranslation()
+
+  // The whole buy flow (approval + mint) must run on the pool's own chain.
+  useEffect(() => {
+    if (isOpen) {
+      switchToPoolChain()
+    }
+  }, [isOpen, switchToPoolChain])
 
   useEffect(() => {
     async function retrieveRealTimeMintAmount() {
@@ -131,8 +141,15 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
     }
   }, [parsedAmount, poolInfo, expectedMintAmount])
 
-  async function onBuy(): Promise<void | undefined> {
+  const onBuy = useEvent(async (): Promise<void | undefined> => {
     setAttempting(true)
+
+    // The mint must be sent on the pool's own chain, so switch the wallet there first.
+    if (!(await switchToPoolChain())) {
+      setAttempting(false)
+      return undefined
+    }
+
     if (poolContract && parsedAmount && poolInfo /*&& deadline*/) {
       if (approval === ApprovalState.APPROVED) {
         const value = userBaseTokenBalance?.currency.isNative ? parsedAmount.quotient.toString() : null
@@ -167,9 +184,10 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
         throw new Error('Attempting to stake without approval. Please contact support.')
       }
     } else {
+      setAttempting(false)
       return undefined
     }
-  }
+  })
 
   // wrapped onUserInput to clear signatures
   const onUserInput = useCallback((typedValue: string) => {
@@ -191,6 +209,11 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
     }
     if (!parsedAmount) {
       throw new Error('missing liquidity amount')
+    }
+
+    // The approval must be sent on the pool's own chain.
+    if (!(await switchToPoolChain())) {
+      return
     }
 
     await approveCallback()

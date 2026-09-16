@@ -10,6 +10,7 @@ import { AutoColumn } from '~/components/deprecated/Column'
 import { RowBetween } from '~/components/deprecated/Row'
 import { LoadingView, SubmittedView } from '~/components/ModalViews'
 import { useAccount } from '~/hooks/useAccount'
+import { useSwitchToPoolChain } from '~/hooks/useSelectChain'
 import styled from '~/lib/deprecated-styled'
 import { useUpgradeCallback } from '~/state/pool/hooks'
 import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
@@ -29,14 +30,16 @@ const StyledClosed = styled(X)`
 interface UpgradeModalProps {
   isOpen: boolean
   implementation: string
+  chainId?: number
   onDismiss: () => void
   title: ReactNode
 }
 
-export default function UpgradeModal({ isOpen, implementation, onDismiss, title }: UpgradeModalProps) {
+export default function UpgradeModal({ isOpen, implementation, chainId, onDismiss, title }: UpgradeModalProps) {
   const account = useAccount()
 
   const upgradeCallback = useUpgradeCallback()
+  const switchToPoolChain = useSwitchToPoolChain(chainId)
 
   // monitor call to help UI loading state
   const [hash, setHash] = useState<string | undefined>()
@@ -54,12 +57,17 @@ export default function UpgradeModal({ isOpen, implementation, onDismiss, title 
   }
 
   async function onUpgrade() {
-    setAttempting(true)
-
     // if callback not returned properly ignore
     if (!account.address || !account.chainId) {
       return
     }
+
+    // The upgrade must be sent on the pool's own chain, so switch the wallet there first.
+    if (!(await switchToPoolChain())) {
+      return
+    }
+
+    setAttempting(true)
 
     // try set spread and store hash
     const txHash = await upgradeCallback()?.catch((error) => {
