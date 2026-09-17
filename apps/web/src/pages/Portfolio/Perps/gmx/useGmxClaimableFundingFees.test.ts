@@ -45,9 +45,9 @@ describe('computeClaimableFundingAmountKey', () => {
     )
   })
 
-  it('computes the DataStore key for (market, token, account) as packed keccak256', () => {
+  it('computes the DataStore key for (market, token, account) as keccak256 over abi.encode (32-byte padded)', () => {
     expect(computeClaimableFundingAmountKey({ market: MARKET, token: WETH, account: POOL })).toBe(
-      '0x1f9e8dfc76488baf12d2dfa98c8a310ecda5f3d7080db2062a7e5253e52375a5',
+      '0x35cc170b14f4165b11f59d7969d57dcd8252ef1ea754a070172faf0a8a107b1b',
     )
   })
 })

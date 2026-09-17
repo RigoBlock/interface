@@ -5,7 +5,7 @@ import { useMemo } from 'react'
 import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
 import { PollingInterval } from 'uniswap/src/constants/misc'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { encodeAbiParameters, getAddress, keccak256, encodePacked, parseAbiParameters } from 'viem'
+import { encodeAbiParameters, getAddress, keccak256, parseAbiParameters } from 'viem'
 import { RPC_PROVIDERS } from '~/constants/providers'
 import { useGmxMarkets } from '~/pages/Portfolio/Perps/gmx/useGmxMarkets'
 import { useGmxOpenPositionMarketData } from '~/pages/Portfolio/Perps/gmx/useGmxOpenPositionMarketData'
@@ -43,13 +43,13 @@ const MAX_TRACKED_MARKETS = 128
 
 /**
  * Markets always scanned for claimable funding fees IN ADDITION to the pool's
- * tracked-markets storage set. The protocol only untracks a market after its fees are
- * claimed, but previous protocol upgrades changed that clearing behavior, so residual
- * claimables can exist on markets that are no longer (or never were) in the pool's
- * storage set. XAUT.v2/USD [WBTC.b-USDC] ("XAUT/USD"): a production pool holds an unclaimed
- * funding fee there while its storage set only contains LIT/USD.
+ * tracked-markets storage set. The adapter (AGmxV2.claimFundingFees) prunes a market from
+ * the tracked set once it has no active position AND no claimable funding, so any residual
+ * on a tracked market is visible here automatically. Left EMPTY by design: untracked
+ * markets are ignored by GmxLib (NAV) and should not be claimed through the adapter —
+ * only the pool's active (tracked) markets produce valid claim calls.
  */
-const EXTRA_CLAIM_MARKETS: string[] = ['0xeb28aD1a2e497F4Acc5D9b87e7B496623C93061E']
+const EXTRA_CLAIM_MARKETS: string[] = []
 
 /** GMX scales oracle prices by 1e30 */
 const GMX_PRICE_SCALE = 10 ** 30
@@ -98,7 +98,10 @@ export function trackedMarketWordToAddress(word: string): string | undefined {
   return address === ZERO_ADDRESS ? undefined : address
 }
 
-/** DataStore key for the claimable funding fee of (market, token, account). */
+/** DataStore key for the claimable funding fee of (market, token, account).
+ *  Must use standard abi.encode (32-byte padded words) exactly like GMX Keys.sol:
+ *  keccak256(abi.encode(CLAIMABLE_FUNDING_AMOUNT, market, token, account)) — NOT
+ *  abi.encodePacked, which keeps addresses at 20 bytes and hashes to a different key. */
 export function computeClaimableFundingAmountKey({
   market,
   token,
@@ -109,10 +112,12 @@ export function computeClaimableFundingAmountKey({
   account: string
 }): string {
   return keccak256(
-    encodePacked(
-      ['bytes32', 'address', 'address', 'address'],
-      [CLAIMABLE_FUNDING_AMOUNT_KEY, getAddress(market), getAddress(token), getAddress(account)],
-    ),
+    encodeAbiParameters(parseAbiParameters('bytes32, address, address, address'), [
+      CLAIMABLE_FUNDING_AMOUNT_KEY,
+      getAddress(market),
+      getAddress(token),
+      getAddress(account),
+    ]),
   )
 }
 
