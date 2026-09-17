@@ -46,6 +46,7 @@
     "https://*.googleapis.com",
     "https://*.gmxapi.io",
     "https://arbitrum.gmxapi.io",
+    "https://arbitrum.gmxapi.ai",
     "https://*.gmxinfra.io",
     "https://gmx.squids.live",
     "https://api.hyperliquid.xyz",

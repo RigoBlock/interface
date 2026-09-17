@@ -5,7 +5,7 @@ import { useMemo } from 'react'
 import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
 import { PollingInterval } from 'uniswap/src/constants/misc'
 import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { encodePacked, getAddress, keccak256, toBytes } from 'viem'
+import { encodeAbiParameters, getAddress, keccak256, encodePacked, parseAbiParameters } from 'viem'
 import { RPC_PROVIDERS } from '~/constants/providers'
 import { useGmxMarkets } from '~/pages/Portfolio/Perps/gmx/useGmxMarkets'
 import { useGmxOpenPositionMarketData } from '~/pages/Portfolio/Perps/gmx/useGmxOpenPositionMarketData'
@@ -16,23 +16,40 @@ import { getStaticTokenDecimals } from '~/pages/Portfolio/Perps/gmx/useGmxTokenD
  *
  * The pool proxy keeps an enumerable set of tracked GMX markets in storage at a fixed
  * slot (RigoBlock v3-contracts GmxCallbackLib), so the set survives closed positions —
- * a market is removed only after its funding fees are claimed. For each tracked market
- * we read CLAIMABLE_FUNDING_AMOUNT from the GMX v2 DataStore for both the long and the
- * short token.
+ * a market is removed only after its funding fees are claimed. Because protocol
+ * upgrades changed that clearing behavior, EXTRA_CLAIM_MARKETS are scanned in addition
+ * to the storage set. For each market we read CLAIMABLE_FUNDING_AMOUNT from the GMX v2
+ * DataStore for both the long and the short token.
  */
 
 /** GmxCallbackLib.GMX_CALLBACK_DATA_SLOT */
 export const GMX_CALLBACK_DATA_SLOT =
   '0xef0ce2d52a301ad6c6e80df0060b9ecd4dec1ba111fe46b11bf9055649205071'
 
-/** GMX v2 DataStore on Arbitrum */
-export const GMX_DATA_STORE_ADDRESS = '0xFD70de5b200147157461Cf7e72Ee9D35e2D0A264'
+/**
+ * GMX v2 DataStore on Arbitrum (current deployment — the original Aug-2023
+ * DataStore 0xFD70de5b200147157461Cf7e72Ee9D35e2D0A264 is no longer deployed).
+ */
+export const GMX_DATA_STORE_ADDRESS = '0xFD70de6b91282D8017aA4E741e9Ae325CAb992d8'
 
-/** keccak256("CLAIMABLE_FUNDING_AMOUNT") */
-export const CLAIMABLE_FUNDING_AMOUNT_KEY = keccak256(toBytes('CLAIMABLE_FUNDING_AMOUNT'))
+/** keccak256(abi.encode("CLAIMABLE_FUNDING_AMOUNT")) — matches GMX Keys.sol and
+ *  RigoBlock's GmxCallbackLib (keccak256(abi.encode(...)), NOT the raw-string hash). */
+export const CLAIMABLE_FUNDING_AMOUNT_KEY = keccak256(
+  encodeAbiParameters(parseAbiParameters('string'), ['CLAIMABLE_FUNDING_AMOUNT']),
+)
 
 /** The Bytes32Set in GmxCallbackSlot is capped at 128 elements in the protocol */
 const MAX_TRACKED_MARKETS = 128
+
+/**
+ * Markets always scanned for claimable funding fees IN ADDITION to the pool's
+ * tracked-markets storage set. The protocol only untracks a market after its fees are
+ * claimed, but previous protocol upgrades changed that clearing behavior, so residual
+ * claimables can exist on markets that are no longer (or never were) in the pool's
+ * storage set. XAUT.v2/USD [WBTC.b-USDC] ("XAUT/USD"): a production pool holds an unclaimed
+ * funding fee there while its storage set only contains LIT/USD.
+ */
+const EXTRA_CLAIM_MARKETS: string[] = ['0xeb28aD1a2e497F4Acc5D9b87e7B496623C93061E']
 
 /** GMX scales oracle prices by 1e30 */
 const GMX_PRICE_SCALE = 10 ** 30
@@ -173,12 +190,19 @@ export function useGmxClaimableFundingFees(
     retry: 2,
   })
 
-  // Pair each tracked market with its long and short token (deduped), as GmxLib does.
+  // Union of the pool's tracked markets (from proxy storage) and the extra markets:
+  // residual claimables can survive on markets the storage set no longer (or never did) track.
+  const allMarkets = useMemo(() => {
+    const combined = [...(trackedMarkets ?? []), ...EXTRA_CLAIM_MARKETS.map((m) => normalizeTokenAddressForCache(m))]
+    return [...new Set(combined)]
+  }, [trackedMarkets])
+
+  // Pair each market with its long and short token (deduped), as GmxLib does.
   // Claimables are resolved against ALL markets (including unlisted ones): fees can
   // linger on tracked markets whose listing was removed after the position closed.
   const claimTargets = useMemo(() => {
     const targets: GmxClaimTarget[] = []
-    for (const market of trackedMarkets ?? []) {
+    for (const market of allMarkets) {
       const marketInfo = marketsByAddressIncludingUnlisted.get(market)
       if (!marketInfo) {
         continue
@@ -191,7 +215,7 @@ export function useGmxClaimableFundingFees(
       }
     }
     return targets
-  }, [trackedMarkets, marketsByAddressIncludingUnlisted])
+  }, [allMarkets, marketsByAddressIncludingUnlisted])
 
   const {
     data: amountsByTarget,

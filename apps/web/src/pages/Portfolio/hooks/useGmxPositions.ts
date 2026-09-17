@@ -6,9 +6,11 @@ import { UniverseChainId } from 'uniswap/src/features/chains/types'
 /** GMX v2 is only deployed on Arbitrum */
 export const GMX_CHAIN_ID = UniverseChainId.ArbitrumOne
 
-/** GMX v2 positions API — arbitrum.gmxapi.io is the canonical endpoint for the
- *  positions resource and is now explicitly allowed in the CSP. */
-const GMX_POSITIONS_API_URL = 'https://arbitrum.gmxapi.io/v1/positions'
+/** GMX v2 positions API (v1 = read-only resources). GMX runs two independent peer
+ *  regions per chain (docs.gmx.io API overview): arbitrum.gmxapi.ai is used as primary
+ *  because the .io region has been erroring; the .io peer is the fallback.
+ *  Both hosts are explicitly allowed in the CSP. */
+const GMX_POSITIONS_API_URLS = ['https://arbitrum.gmxapi.ai/v1/positions', 'https://arbitrum.gmxapi.io/v1/positions']
 
 /** GMX scales all USD values by 1e30 */
 const GMX_USD_SCALE = 1e30
@@ -107,14 +109,24 @@ function normalizePosition(position: GmxApiPosition): GmxPosition {
 }
 
 async function fetchGmxPositions(address: string): Promise<GmxApiPosition[]> {
-  const response = await fetch(`${GMX_POSITIONS_API_URL}?address=${normalizeTokenAddressForCache(address)}`, {
-    headers: { Accept: 'application/json' },
-  })
-  if (!response.ok) {
-    throw new Error(`GMX positions request failed: ${response.status} ${response.statusText}`)
+  const normalizedAddress = normalizeTokenAddressForCache(address)
+  // Try the peer regions in order; a region can be down while its peer serves.
+  let lastError: unknown
+  for (const url of GMX_POSITIONS_API_URLS) {
+    try {
+      const response = await fetch(`${url}?address=${normalizedAddress}`, {
+        headers: { Accept: 'application/json' },
+      })
+      if (!response.ok) {
+        throw new Error(`GMX positions request failed: ${response.status} ${response.statusText}`)
+      }
+      const data = (await response.json()) as GmxApiPosition[] | null
+      return data ?? []
+    } catch (error) {
+      lastError = error
+    }
   }
-  const data = (await response.json()) as GmxApiPosition[] | null
-  return data ?? []
+  throw lastError instanceof Error ? lastError : new Error('GMX positions request failed')
 }
 
 /**

@@ -39,15 +39,15 @@ describe('trackedMarketWordToAddress', () => {
 })
 
 describe('computeClaimableFundingAmountKey', () => {
-  it('derives the CLAIMABLE_FUNDING_AMOUNT constant', () => {
+  it('derives the CLAIMABLE_FUNDING_AMOUNT constant as keccak256(abi.encode("CLAIMABLE_FUNDING_AMOUNT"))', () => {
     expect(CLAIMABLE_FUNDING_AMOUNT_KEY).toBe(
-      '0xd1fafc4771610e715a1d01362a07c445dc1000f16515f61578965c0b26e734a7',
+      '0x06fc3f5466c175728538f97bb3af89978c1db23c9c7f107930c4bb1b84305a1d',
     )
   })
 
   it('computes the DataStore key for (market, token, account) as packed keccak256', () => {
     expect(computeClaimableFundingAmountKey({ market: MARKET, token: WETH, account: POOL })).toBe(
-      '0xb47c0e86bcc6881e1657796143af1b8c62bc5366d07360f2d888ad1680d381ff',
+      '0x1f9e8dfc76488baf12d2dfa98c8a310ecda5f3d7080db2062a7e5253e52375a5',
     )
   })
 })
