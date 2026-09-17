@@ -19,6 +19,7 @@ import { HyperliquidOrderAction } from '~/pages/Portfolio/Perps/hyperliquid/useH
 import {
   CellText,
   COLUMN,
+  formatAmount,
   formatPrice,
   formatSignedUsd,
   formatUsd,
@@ -68,8 +69,10 @@ function PositionRow({
       <Flex {...COLUMN.size} flexShrink={0} alignItems="flex-end">
         <CellText>{formatUsd(position.sizeUsd)}</CellText>
       </Flex>
-      <Flex {...COLUMN.netValue} flexShrink={0} alignItems="flex-end">
-        <CellText>{formatUsd(position.positionValueUsd + position.unrealizedPnlUsd)}</CellText>
+      <Flex {...COLUMN.amount} flexShrink={0} alignItems="flex-end">
+        <CellText>
+          {formatAmount(position.amountBase)} {position.coin}
+        </CellText>
       </Flex>
       <Flex {...COLUMN.leverage} flexShrink={0} alignItems="flex-end">
         <CellText>{position.leverage.value.toFixed(1)}x</CellText>
@@ -272,8 +275,8 @@ export function HyperliquidPerpsSection(): JSX.Element {
                 <Flex {...COLUMN.size} flexShrink={0} alignItems="flex-end">
                   <HeaderCell label={<Trans i18nKey="perps.table.size" />} />
                 </Flex>
-                <Flex {...COLUMN.netValue} flexShrink={0} alignItems="flex-end">
-                  <HeaderCell label={<Trans i18nKey="perps.table.netValue" />} />
+                <Flex {...COLUMN.amount} flexShrink={0} alignItems="flex-end">
+                  <HeaderCell label={<Trans i18nKey="perps.table.amount" />} />
                 </Flex>
                 <Flex {...COLUMN.leverage} flexShrink={0} alignItems="flex-end">
                   <HeaderCell label={<Trans i18nKey="perps.table.leverage" />} />

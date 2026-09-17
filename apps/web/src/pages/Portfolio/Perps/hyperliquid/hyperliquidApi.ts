@@ -56,6 +56,8 @@ export interface HyperliquidPosition {
   side: 'long' | 'short'
   /** Position notional in USD (Core 6-decimal positionValue). */
   sizeUsd: number
+  /** Absolute position size in base units (|szi|, e.g. 100,722 LIT). */
+  amountBase: number
   entryPrice: number
   /** Mark price from allMids (falls back to positionValue / size). */
   markPrice: number
@@ -194,6 +196,7 @@ export function normalizeHlPosition(
     assetIndex,
     side: szi >= 0 ? 'long' : 'short',
     sizeUsd: positionValueUsd,
+    amountBase: absSize,
     entryPrice,
     markPrice,
     liquidationPrice: liquidationPrice && liquidationPrice > 0 ? liquidationPrice : undefined,

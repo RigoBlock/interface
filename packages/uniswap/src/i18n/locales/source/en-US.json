@@ -1655,6 +1655,7 @@
   "perps.open.title": "Open Position",
   "perps.side.long": "Long",
   "perps.side.short": "Short",
+  "perps.table.amount": "Amount",
   "perps.table.entryPrice": "Entry Price",
   "perps.table.leverage": "Leverage",
   "perps.table.liqPrice": "Liq. Price",

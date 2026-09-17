@@ -34,6 +34,11 @@ export function formatPrice(value?: number): string {
   }).format(value)
 }
 
+/** Formats a base-asset amount (e.g. Hyperliquid |szi|) with thousands separators, trimming trailing zeros. */
+export function formatAmount(value: number): string {
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 6 }).format(value)
+}
+
 export type PnlColor = '$neutral1' | '$statusSuccess' | '$statusCritical'
 
 export function pnlColor(value: number): PnlColor {
@@ -48,6 +53,7 @@ export const COLUMN = {
   market: { width: 180 },
   side: { width: 64 },
   size: { width: 100 },
+  amount: { width: 110 },
   netValue: { width: 100 },
   leverage: { width: 72 },
   entry: { width: 100 },
