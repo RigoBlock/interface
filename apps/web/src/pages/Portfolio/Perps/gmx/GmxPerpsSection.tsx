@@ -146,6 +146,7 @@ export function GmxPerpsSection(): JSX.Element {
           <Flex row gap="$spacing8" alignItems="center">
             <GmxClaimFundingFeesButton
               isOperator={isOperator}
+              claimsCount={claims.length}
               totalClaimableUsd={totalClaimableUsd}
               onPress={() => setIsClaimModalOpen(true)}
             />

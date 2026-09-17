@@ -32,12 +32,12 @@ export interface HyperliquidPortfolioHistoryPoint {
 const PLAIN_BUCKETS = ['day', 'week', 'month', 'allTime'] as const
 const PERP_BUCKETS = ['perpDay', 'perpWeek', 'perpMonth', 'perpAllTime'] as const
 
-/** Candle interval + lookback window for the per-coin candle reconstruction, by chart period. */
-const CANDLE_PERIOD_CONFIG: Partial<Record<ChartPeriod, { interval: string; intervalMs: number; windowMs: number }>> = {
-  [ChartPeriod.HOUR]: { interval: '1m', intervalMs: 60_000, windowMs: 60 * 60_000 },
-  [ChartPeriod.DAY]: { interval: '5m', intervalMs: 5 * 60_000, windowMs: 24 * 60 * 60_000 },
-  [ChartPeriod.WEEK]: { interval: '30m', intervalMs: 30 * 60_000, windowMs: 7 * 24 * 60 * 60_000 },
-  [ChartPeriod.MONTH]: { interval: '2h', intervalMs: 2 * 60 * 60_000, windowMs: 30 * 24 * 60 * 60_000 },
+/** Candle interval for the per-coin candle reconstruction, by chart period. The window itself is pinned to the base chart's [beginAt, endAt]. */
+const CANDLE_PERIOD_CONFIG: Partial<Record<ChartPeriod, { interval: string }>> = {
+  [ChartPeriod.HOUR]: { interval: '1m' },
+  [ChartPeriod.DAY]: { interval: '5m' },
+  [ChartPeriod.WEEK]: { interval: '30m' },
+  [ChartPeriod.MONTH]: { interval: '2h' },
 }
 
 /**
@@ -131,19 +131,18 @@ function pnlAt(model: HlPositionPnlModel, price: number): number {
 async function fetchHlCandleHistory(params: {
   account: HyperliquidAccount
   interval: string
-  windowMs: number
-  nowMs: number
+  startTimeMs: number
+  endTimeMs: number
 }): Promise<HyperliquidPortfolioHistoryPoint[]> {
-  const { account, interval, windowMs, nowMs } = params
+  const { account, interval, startTimeMs, endTimeMs } = params
   const models = account.positions.map(toPnlModel).filter((model): model is HlPositionPnlModel => !!model)
   if (models.length === 0) {
     return []
   }
 
-  const startTimeMs = nowMs - windowMs
   const results = await Promise.all(
     models.map(async (model) => {
-      const candles = await fetchHlCandles(model.coin, interval, startTimeMs, nowMs)
+      const candles = await fetchHlCandles(model.coin, interval, startTimeMs, endTimeMs)
       return { model, candles }
     }),
   )
@@ -209,17 +208,25 @@ async function fetchHlCandleHistory(params: {
  * chart period. HOUR/DAY/WEEK/MONTH are reconstructed from per-coin candle closes at
  * the period's interval granularity (1m/5m/30m/2h), anchored to the live account at
  * fetch time so retrieved history stays fixed; YEAR/MAX keep the `portfolio` info
- * endpoint bucket merge. Points are irregularly spaced (candle timestamps or ~11 per
- * bucket); consumers should forward-fill and overlay the live value after the last
- * sample (see Overview chart assembly). Returns [] when there is no reconstructable
- * history (no open positions / all-zero buckets) — the chart then falls back to the
- * flat current value.
+ * endpoint bucket merge.
+ *
+ * The reconstruction window is PINNED to the base chart's own [beginAt, endAt] window
+ * (`chartWindow`): the Uniswap data API computes its series for a fixed request-time
+ * window and does not roll it while displayed, so the extras must cover exactly that
+ * window — anchoring to a wall-clock "now" bucket would make early chart points fall
+ * outside the history as time passes (forward-fill then yields 0 and distorts the
+ * chart). The window advances only when the base chart refetches (period switch,
+ * remount, refetch-on-focus), and the live tail after the last sample is overlaid by
+ * the consumer (see Overview chart assembly). Returns [] when there is no
+ * reconstructable history (no open positions / all-zero buckets) — the chart then
+ * falls back to the flat current value.
  */
-// oxlint-disable-next-line max-params -- (address, period, account) is the required hook signature
+// oxlint-disable-next-line max-params -- (address, period, account, chartWindow) is the required hook signature
 export function useHyperliquidPortfolioHistory(
   address: string | undefined,
   period: ChartPeriod,
   account?: HyperliquidAccount,
+  chartWindow?: { startSec: number; endSec: number },
 ): {
   history: HyperliquidPortfolioHistoryPoint[]
   isLoading: boolean
@@ -227,14 +234,6 @@ export function useHyperliquidPortfolioHistory(
 } {
   const candleConfig = CANDLE_PERIOD_CONFIG[period]
   const isCandlePeriod = candleConfig !== undefined
-
-  // Align the window start to interval buckets so queries rendered within the same
-  // bucket share cache; the key (and thus a fresh anchored fetch) advances once per
-  // interval as time crosses bucket boundaries (Overview re-renders on every 5s
-  // account poll). There is intentionally no refetchInterval: historical values are
-  // retrieved once per bucket and only the live tail refreshes (see Overview).
-  // Recomputed every render on purpose — memoizing would freeze the anchor.
-  const startTimeBucket = candleConfig ? Math.floor(Date.now() / candleConfig.intervalMs) * candleConfig.intervalMs : 0
 
   const normalizedAddress = address ? normalizeTokenAddressForCache(address) : undefined
 
@@ -245,16 +244,17 @@ export function useHyperliquidPortfolioHistory(
       normalizedAddress,
       period,
       candleConfig?.interval,
-      startTimeBucket,
+      chartWindow?.startSec,
+      chartWindow?.endSec,
     ],
     queryFn: () =>
       fetchHlCandleHistory({
         account: account!,
         interval: candleConfig!.interval,
-        windowMs: candleConfig!.windowMs,
-        nowMs: startTimeBucket,
+        startTimeMs: chartWindow!.startSec * 1000,
+        endTimeMs: chartWindow!.endSec * 1000,
       }),
-    enabled: isCandlePeriod && !!normalizedAddress && !!account && account.positions.length > 0,
+    enabled: isCandlePeriod && !!normalizedAddress && !!account && account.positions.length > 0 && !!chartWindow,
     staleTime: CANDLE_HISTORY_STALE_TIME_MS,
     gcTime: HISTORY_GC_TIME_MS,
     retry: 2,

@@ -23,17 +23,16 @@ export interface GmxValueHistoryPoint {
 }
 
 /**
- * Candle period + lookback window per chart period. The GMX candles endpoint does not
- * support 30m/2h, so WEEK uses 15m (672 candles) and MONTH uses 1h (720 candles, under
- * the 1000-candle cap) as the closest available granularities.
+ * Candle period per chart period. The GMX candles endpoint does not support 30m/2h,
+ * so WEEK uses 15m (672 candles) and MONTH uses 1h (720 candles, under the 1000-candle
+ * cap) as the closest available granularities. The window itself is pinned to the
+ * base chart's [beginAt, endAt] (see the hook docs).
  */
-const CANDLE_PERIOD_CONFIG: Partial<
-  Record<ChartPeriod, { candlePeriod: string; intervalMs: number; windowMs: number }>
-> = {
-  [ChartPeriod.HOUR]: { candlePeriod: '1m', intervalMs: 60_000, windowMs: 60 * 60_000 },
-  [ChartPeriod.DAY]: { candlePeriod: '5m', intervalMs: 5 * 60_000, windowMs: 24 * 60 * 60_000 },
-  [ChartPeriod.WEEK]: { candlePeriod: '15m', intervalMs: 15 * 60_000, windowMs: 7 * 24 * 60 * 60_000 },
-  [ChartPeriod.MONTH]: { candlePeriod: '1h', intervalMs: 60 * 60_000, windowMs: 30 * 24 * 60 * 60_000 },
+const CANDLE_PERIOD_CONFIG: Partial<Record<ChartPeriod, { candlePeriod: string }>> = {
+  [ChartPeriod.HOUR]: { candlePeriod: '1m' },
+  [ChartPeriod.DAY]: { candlePeriod: '5m' },
+  [ChartPeriod.WEEK]: { candlePeriod: '15m' },
+  [ChartPeriod.MONTH]: { candlePeriod: '1h' },
 }
 
 /** Candle entry returned by the endpoint: [timestampSec, open, high, low, close], descending by time. */
@@ -105,21 +104,18 @@ function pnlAt(model: GmxPositionPnlModel, price: number): number {
  */
 async function fetchGmxValueHistory(params: {
   candlePeriod: string
-  windowMs: number
-  nowMs: number
+  fromSec: number
+  toSec: number
   positions: GmxPosition[]
   totalNetValueUsd: number
 }): Promise<GmxValueHistoryPoint[]> {
-  const { candlePeriod, windowMs, nowMs, positions, totalNetValueUsd } = params
+  const { candlePeriod, fromSec, toSec, positions, totalNetValueUsd } = params
   const models = positions
     .map(toPnlModel)
     .filter((model): model is GmxPositionPnlModel => !!model && model.symbol !== '')
   if (models.length === 0) {
     return []
   }
-
-  const fromSec = Math.floor((nowMs - windowMs) / 1000)
-  const toSec = Math.ceil(nowMs / 1000)
 
   // One candles fetch per unique index symbol (several markets can share an index).
   const symbols = [...new Set(models.map((model) => model.symbol))]
@@ -197,8 +193,12 @@ async function fetchGmxValueHistory(params: {
  * Historical total GMX positions value (collateral + unrealized PnL) samples for
  * HOUR/DAY/WEEK/MONTH, reconstructed from index-token candle closes at the period's
  * interval granularity (1m/5m/15m/1h) and anchored to the live total net value at
- * fetch time. Points are candle-timestamped; consumers should forward-fill and
- * overlay the live total after the last sample (see Overview chart assembly).
+ * fetch time. The reconstruction window is PINNED to the base chart's [beginAt, endAt]
+ * (`chartWindow`) for the same reason as the Hyperliquid hook: the base series covers
+ * a fixed request-time window and the extras must cover exactly it, otherwise early
+ * chart points fall outside the history as wall-clock time advances (forward-fill
+ * then yields 0 and distorts the chart). The window advances only when the base chart
+ * refetches; consumers overlay the live total after the last sample (see Overview).
  * YEAR/MAX keep using the daily cumulative-PnL history from `useGmxPnlHistory`.
  * Returns [] when there is no reconstructable history (no open positions) — the
  * chart then falls back to the flat current value.
@@ -208,11 +208,13 @@ export function useGmxValueHistory({
   period,
   positions,
   totalNetValueUsd,
+  chartWindow,
 }: {
   address: string | undefined
   period: ChartPeriod
   positions: GmxPosition[]
   totalNetValueUsd: number
+  chartWindow?: { startSec: number; endSec: number }
 }): {
   history: GmxValueHistoryPoint[]
   isLoading: boolean
@@ -221,27 +223,26 @@ export function useGmxValueHistory({
   const candleConfig = CANDLE_PERIOD_CONFIG[period]
   const isCandlePeriod = candleConfig !== undefined
 
-  // Align the window start to interval buckets so queries rendered within the same
-  // bucket share cache; the key (and thus a fresh anchored fetch) advances once per
-  // candle period as time crosses bucket boundaries (Overview re-renders on every 5s
-  // positions poll). There is intentionally no refetchInterval: historical values are
-  // retrieved once per bucket and only the live tail refreshes (see Overview).
-  // Recomputed every render on purpose — memoizing would freeze the anchor.
-  const startTimeBucket = candleConfig ? Math.floor(Date.now() / candleConfig.intervalMs) * candleConfig.intervalMs : 0
-
   const normalizedAddress = address ? normalizeTokenAddressForCache(address) : undefined
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['gmxValueHistory', normalizedAddress, period, candleConfig?.candlePeriod, startTimeBucket],
+    queryKey: [
+      'gmxValueHistory',
+      normalizedAddress,
+      period,
+      candleConfig?.candlePeriod,
+      chartWindow?.startSec,
+      chartWindow?.endSec,
+    ],
     queryFn: () =>
       fetchGmxValueHistory({
         candlePeriod: candleConfig!.candlePeriod,
-        windowMs: candleConfig!.windowMs,
-        nowMs: startTimeBucket,
+        fromSec: chartWindow!.startSec,
+        toSec: chartWindow!.endSec,
         positions,
         totalNetValueUsd,
       }),
-    enabled: isCandlePeriod && !!normalizedAddress && positions.length > 0,
+    enabled: isCandlePeriod && !!normalizedAddress && positions.length > 0 && !!chartWindow,
     staleTime: HISTORY_STALE_TIME_MS,
     gcTime: HISTORY_GC_TIME_MS,
     retry: 2,

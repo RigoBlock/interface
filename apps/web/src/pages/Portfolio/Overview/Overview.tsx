@@ -76,15 +76,47 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   // Hyperliquid `portfolio` endpoint bucket history.
   const isCandlePeriod = selectedPeriod !== ChartPeriod.YEAR && selectedPeriod !== ChartPeriod.MAX
 
+  const { chains: allChainIds } = useEnabledChains()
+  const filterChainIds = useMemo(() => (chainId ? [chainId] : allChainIds), [chainId, allChainIds])
+
+  // Fetch portfolio historical value chart data. The base series covers a fixed
+  // request-time window ([beginAt, endAt]) and does not roll while displayed — the
+  // perps history reconstructions below are pinned to exactly this window so early
+  // chart points never fall outside the history as wall-clock time advances.
+  const {
+    data: portfolioChartData,
+    isPending: isChartPending,
+    error: chartError,
+  } = useGetPortfolioHistoricalValueChartQuery({
+    input: {
+      evmAddress: portfolioAddresses.evmAddress,
+      svmAddress: portfolioAddresses.svmAddress,
+      chainIds: filterChainIds,
+      chartPeriod: selectedPeriod,
+    },
+    enabled: !!(portfolioAddresses.evmAddress || portfolioAddresses.svmAddress),
+  })
+
+  const chartWindow = useMemo(() => {
+    const beginAt = portfolioChartData?.beginAt
+    const endAt = portfolioChartData?.endAt
+    if (!beginAt || !endAt) {
+      return undefined
+    }
+    return { startSec: Number(beginAt), endSec: Number(endAt) }
+  }, [portfolioChartData?.beginAt, portfolioChartData?.endAt])
+
   // GMX daily cumulative PnL history (Subsquid indexer) — used to reconstruct historical account value
   const { history: gmxPnlHistory } = useGmxPnlHistory(portfolioAddresses.evmAddress, !isCandlePeriod)
 
-  // GMX positions value history at the chart period's candle granularity (HOUR–MONTH)
+  // GMX positions value history at the chart period's candle granularity (HOUR–MONTH),
+  // pinned to the base chart window
   const { history: gmxValueHistory } = useGmxValueHistory({
     address: portfolioAddresses.evmAddress,
     period: selectedPeriod,
     positions: gmxPositions,
     totalNetValueUsd: gmxTotalNetValueUsd,
+    chartWindow,
   })
 
   // Hyperliquid perp account value + Core spot USDC (temporary, in-transit balance) on HyperCore
@@ -93,22 +125,20 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
 
   // Hyperliquid historical total account value (Core spot + perps): candle-based
   // reconstruction at the chart period's interval granularity for HOUR–MONTH (anchored
-  // at fetch time), `portfolio` info endpoint buckets for YEAR/MAX
+  // at fetch time, pinned to the base chart window), `portfolio` info endpoint buckets
+  // for YEAR/MAX
   const { history: hyperliquidHistory } = useHyperliquidPortfolioHistory(
     portfolioAddresses.evmAddress,
     selectedPeriod,
     hyperliquidAccount,
+    chartWindow,
   )
 
   // The vault's HyperEVM USDC balance (chain 999 is not indexed by the Uniswap data API)
   const { balanceUsd: hyperEvmUsdcValue } = useHyperEvmUsdcBalance(portfolioAddresses.evmAddress)
 
-  const { chains: allChainIds } = useEnabledChains()
-
   const isPortfolioZero = useIsPortfolioZero()
   const queryClient = useQueryClient()
-
-  const filterChainIds = useMemo(() => (chainId ? [chainId] : allChainIds), [chainId, allChainIds])
 
   const handleNavigateToStaking = () => {
     navigate(
@@ -159,21 +189,6 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
     hyperEvmUsdcValue,
   ])
 
-  // Fetch portfolio historical value chart data
-  const {
-    data: portfolioChartData,
-    isPending: isChartPending,
-    error: chartError,
-  } = useGetPortfolioHistoricalValueChartQuery({
-    input: {
-      evmAddress: portfolioAddresses.evmAddress,
-      svmAddress: portfolioAddresses.svmAddress,
-      chainIds: filterChainIds,
-      chartPeriod: selectedPeriod,
-    },
-    enabled: !!(portfolioAddresses.evmAddress || portfolioAddresses.svmAddress),
-  })
-
   // Get the latest value from chart endpoint (last point in the array) for comparison
   const lastChartValue = useMemo(() => {
     if (!portfolioChartData?.points || portfolioChartData.points.length === 0) {
@@ -185,15 +200,16 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   // The historical chart data only covers token balances. Staking and the HyperEVM USDC
   // balance have no history, so they are bootstrapped flatly at the current value. For
   // HOUR/DAY/WEEK/MONTH, GMX and Hyperliquid historical values are reconstructed from
-  // per-coin candle closes at the chart's own interval granularity (retrieved once,
-  // anchored to the live account value at fetch time, so past samples stay fixed). For
-  // YEAR/MAX, GMX uses its daily cumulative-PnL history from the Subsquid indexer
-  // (currentValue − (cumulativePnlNow − cumulativePnl(t))) and Hyperliquid the absolute
-  // account value history from the `portfolio` endpoint. At or after the last history
-  // sample the LIVE values are used instead of the frozen forward-fill (both poll every
-  // 5s), so the end of the line tracks unrealized PnL in real time while history stays
-  // fixed. When a source reports no history at all, its current value is bootstrapped
-  // flatly instead.
+  // per-coin candle closes at the chart's own interval granularity; both are pinned to
+  // the base chart's [beginAt, endAt] window and anchored to the live account value at
+  // fetch time, so retrieved history stays aligned with the base series and never rolls
+  // with wall-clock time. For YEAR/MAX, GMX uses its daily cumulative-PnL history from
+  // the Subsquid indexer (currentValue − (cumulativePnlNow − cumulativePnl(t))) and
+  // Hyperliquid the absolute account value history from the `portfolio` endpoint. At or
+  // after the last history sample the LIVE values are used instead of the frozen
+  // forward-fill (both poll every 5s), so the end of the line tracks unrealized PnL in
+  // real time while history stays fixed. When a source reports no history at all, its
+  // current value is bootstrapped flatly instead.
   const chartDataWithExtras = useMemo(() => {
     if (!portfolioChartData?.points) {
       return portfolioChartData

@@ -48,6 +48,18 @@ export interface GmxClaimableFunding {
   amountUsd: number
   /** Claimable amount in token raw units */
   amountRaw: string
+  /** Token symbol when known (for display when no USD price is available) */
+  symbol: string
+  /** Claimable amount formatted in token units (for display when no USD price is available) */
+  amountText: string
+}
+
+/** Formats a token-unit amount for display when no reliable USD price exists. */
+function formatClaimAmount(value: number): string {
+  if (!Number.isFinite(value)) {
+    return '0'
+  }
+  return value.toLocaleString(undefined, { maximumSignificantDigits: 6 })
 }
 
 /** Base slot of the trackedMarkets.values array: keccak256(bytes32(GMX_CALLBACK_DATA_SLOT)). */
@@ -145,7 +157,7 @@ export function useGmxClaimableFundingFees(
 } {
   const normalizedPoolAddress = poolAddress ? normalizeTokenAddressForCache(poolAddress) : undefined
 
-  const { marketsByAddress, isLoading: isLoadingMarkets } = useGmxMarkets()
+  const { marketsByAddressIncludingUnlisted, isLoading: isLoadingMarkets } = useGmxMarkets()
   const { pricesByTokenAddress, tokensByAddress, isLoading: isLoadingMarketData } =
     useGmxOpenPositionMarketData({ enabled })
 
@@ -162,10 +174,12 @@ export function useGmxClaimableFundingFees(
   })
 
   // Pair each tracked market with its long and short token (deduped), as GmxLib does.
+  // Claimables are resolved against ALL markets (including unlisted ones): fees can
+  // linger on tracked markets whose listing was removed after the position closed.
   const claimTargets = useMemo(() => {
     const targets: GmxClaimTarget[] = []
     for (const market of trackedMarkets ?? []) {
-      const marketInfo = marketsByAddress.get(market)
+      const marketInfo = marketsByAddressIncludingUnlisted.get(market)
       if (!marketInfo) {
         continue
       }
@@ -177,7 +191,7 @@ export function useGmxClaimableFundingFees(
       }
     }
     return targets
-  }, [trackedMarkets, marketsByAddress])
+  }, [trackedMarkets, marketsByAddressIncludingUnlisted])
 
   const {
     data: amountsByTarget,
@@ -212,7 +226,17 @@ export function useGmxClaimableFundingFees(
       const priceRaw = priceTicker?.maxPrice || priceTicker?.minPrice
       const priceUsd = priceRaw ? Number(BigInt(priceRaw)) / GMX_PRICE_SCALE : undefined
       const amountUsd = priceUsd === undefined ? 0 : (Number(amount) / 10 ** decimals) * priceUsd
-      return [{ market: target.market, token: target.token, amountUsd, amountRaw }]
+      const symbol = tokenInfo?.symbol ?? `${target.token.slice(0, 6)}…${target.token.slice(-4)}`
+      return [
+        {
+          market: target.market,
+          token: target.token,
+          amountUsd,
+          amountRaw,
+          symbol,
+          amountText: formatClaimAmount(Number(amount) / 10 ** decimals),
+        },
+      ]
     })
   }, [claimTargets, amountsByTarget, tokensByAddress, pricesByTokenAddress])
 

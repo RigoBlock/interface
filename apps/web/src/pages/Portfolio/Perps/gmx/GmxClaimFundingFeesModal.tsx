@@ -74,11 +74,25 @@ export function GmxClaimFundingFeesModal({
             </Text>
           </Flex>
           <Text variant="body3" color="$neutral2">
-            <Trans
-              i18nKey="perps.gmx.claimFundingFees.description"
-              values={{ amount: formatUsd(totalClaimableUsd), count: claims.length }}
-            />
+            {totalClaimableUsd > 0 ? (
+              <Trans
+                i18nKey="perps.gmx.claimFundingFees.description"
+                values={{ amount: formatUsd(totalClaimableUsd), count: claims.length }}
+              />
+            ) : (
+              <Trans i18nKey="perps.gmx.claimFundingFees.descriptionUnpriced" values={{ count: claims.length }} />
+            )}
           </Text>
+          <Flex gap="$spacing4">
+            {claims.map((claim) => (
+              <Flex key={`${claim.market}-${claim.token}`} row justifyContent="space-between">
+                <Text variant="body3" color="$neutral2">
+                  {claim.symbol}
+                </Text>
+                <Text variant="body3">{claim.amountText}</Text>
+              </Flex>
+            ))}
+          </Flex>
           {errorReason && (
             <Text variant="body3" color="$statusCritical">
               {errorReason}
@@ -117,24 +131,29 @@ export function GmxClaimFundingFeesModal({
 
 interface GmxClaimFundingFeesButtonProps {
   isOperator: boolean
+  /** Number of market/token pairs with a positive raw claim amount. */
+  claimsCount: number
+  /** Total claimable in USD (0 when a token price is unavailable — gating must not depend on it). */
   totalClaimableUsd: number
   onPress: () => void
 }
 
-/** Operator-gated entry point showing the total claimable funding fees. */
+/** Operator-gated entry point shown whenever a positive claim exists (priced or not). */
 export function GmxClaimFundingFeesButton({
   isOperator,
+  claimsCount,
   totalClaimableUsd,
   onPress,
 }: GmxClaimFundingFeesButtonProps): JSX.Element | null {
   const { t } = useTranslation()
-  // Only the pool operator can claim, and only when there is something to claim.
-  if (!isOperator || totalClaimableUsd <= 0) {
+  if (!isOperator || claimsCount === 0) {
     return null
   }
   return (
     <Button variant="branded" size="small" fill={false} onPress={onPress}>
-      {t('perps.gmx.claimFundingFees.button', { amount: formatUsd(totalClaimableUsd) })}
+      {totalClaimableUsd > 0
+        ? t('perps.gmx.claimFundingFees.button', { amount: formatUsd(totalClaimableUsd) })
+        : t('perps.gmx.claimFundingFees.buttonUnpriced')}
     </Button>
   )
 }

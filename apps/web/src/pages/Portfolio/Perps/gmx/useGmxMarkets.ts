@@ -36,9 +36,12 @@ export interface GmxMarketInfo {
 export function useGmxMarkets(): {
   markets: GmxMarketInfo[]
   marketsByAddress: Map<string, GmxMarketInfo>
+  // All markets regardless of listing status: claimable funding fees can persist on
+  // tracked markets whose listing was removed (GmxLib iterates tracked markets too).
+  marketsByAddressIncludingUnlisted: Map<string, GmxMarketInfo>
   isLoading: boolean
 } {
-  const { data, isLoading } = useQuery({
+  const { data: allMarkets, isLoading } = useQuery({
     queryKey: ['gmxMarkets'],
     queryFn: async (): Promise<GmxMarketInfo[]> => {
       const response = await fetch(GMX_MARKETS_API_URL, { headers: { Accept: 'application/json' } })
@@ -46,15 +49,14 @@ export function useGmxMarkets(): {
         throw new Error(`GMX markets request failed: ${response.status} ${response.statusText}`)
       }
       const body = (await response.json()) as { markets: GmxMarketInfo[] } | GmxMarketInfo[]
-      const markets = Array.isArray(body) ? body : body.markets
-      return markets.filter((market) => isGmxPerpMarket(market))
+      return Array.isArray(body) ? body : body.markets
     },
     staleTime: PollingInterval.Slow,
     gcTime: PollingInterval.Slow,
     retry: 2,
   })
 
-  const markets = useMemo(() => data ?? [], [data])
+  const markets = useMemo(() => (allMarkets ?? []).filter(isGmxPerpMarket), [allMarkets])
 
   const marketsByAddress = useMemo(() => {
     const map = new Map<string, GmxMarketInfo>()
@@ -64,5 +66,13 @@ export function useGmxMarkets(): {
     return map
   }, [markets])
 
-  return { markets, marketsByAddress, isLoading }
+  const marketsByAddressIncludingUnlisted = useMemo(() => {
+    const map = new Map<string, GmxMarketInfo>()
+    for (const market of allMarkets ?? []) {
+      map.set(normalizeTokenAddressForCache(market.marketToken), market)
+    }
+    return map
+  }, [allMarkets])
+
+  return { markets, marketsByAddress, marketsByAddressIncludingUnlisted, isLoading }
 }
