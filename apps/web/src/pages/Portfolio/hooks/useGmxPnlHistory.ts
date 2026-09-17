@@ -63,9 +63,14 @@ async function fetchGmxPnlHistory(address: string): Promise<GmxPnlHistoryPoint[]
  * Daily cumulative PnL history for an account on GMX v2 (Arbitrum), from the GMX Subsquid
  * indexer. Combined with the current account value it yields a historical account-value
  * series (see Overview chart assembly); granularity is daily, so intra-day chart points
- * reuse the latest daily figure.
+ * reuse the latest daily figure. Used for the YEAR/MAX chart periods; shorter periods use
+ * candle-based reconstruction (`useGmxValueHistory`) instead — pass `enabled: false` there
+ * to avoid the double fetch.
  */
-export function useGmxPnlHistory(address?: string): {
+export function useGmxPnlHistory(
+  address?: string,
+  enabled = true,
+): {
   history: GmxPnlHistoryPoint[]
   isLoading: boolean
   isError: boolean
@@ -73,7 +78,7 @@ export function useGmxPnlHistory(address?: string): {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['gmxPnlHistory', address ? normalizeTokenAddressForCache(address) : undefined],
     queryFn: () => fetchGmxPnlHistory(address!),
-    enabled: !!address,
+    enabled: enabled && !!address,
     staleTime: HISTORY_STALE_TIME_MS,
     gcTime: HISTORY_GC_TIME_MS,
     retry: 2,

@@ -109,6 +109,49 @@ export function fetchHlAllMids(): Promise<Record<string, string>> {
   return hlInfoApi<Record<string, string>>({ type: 'allMids' })
 }
 
+/** One candle from the Core `candleSnapshot` info request (OHLC as strings, ms timestamps). */
+interface HlApiCandle {
+  /** Candle open time, ms since epoch. */
+  t: number
+  /** Candle close time, ms since epoch. */
+  T: number
+  o: string
+  c: string
+  h: string
+  l: string
+}
+
+export interface HlCandlePrice {
+  /** Candle open time, seconds since epoch. */
+  timestampSec: number
+  /** Candle close price. */
+  price: number
+}
+
+/**
+ * Candle closes for a perp coin from the Core `candleSnapshot` info request, sorted
+ * ascending by time. `interval` is a Hyperliquid interval ('1m', '5m', '30m', '2h',
+ * '1d', ...); time-range responses are capped at 5000 candles. Zero/invalid closes
+ * are dropped.
+ */
+// oxlint-disable-next-line max-params -- (coin, interval, startTimeMs, endTimeMs) mirrors the info API request
+export async function fetchHlCandles(
+  coin: string,
+  interval: string,
+  startTimeMs: number,
+  endTimeMs?: number,
+): Promise<HlCandlePrice[]> {
+  const req: Record<string, unknown> = { coin, interval, startTime: startTimeMs }
+  if (endTimeMs) {
+    req.endTime = endTimeMs
+  }
+  const candles = await hlInfoApi<HlApiCandle[]>({ type: 'candleSnapshot', req })
+  return candles
+    .map((candle) => ({ timestampSec: Math.floor(candle.t / 1000), price: parseFloat(candle.c) || 0 }))
+    .filter((point) => point.price > 0)
+    .sort((a, b) => a.timestampSec - b.timestampSec)
+}
+
 /** Full Core perp account state for an address (user = the vault address). */
 export function fetchHlClearinghouseState(user: string): Promise<HlClearinghouseState> {
   return hlInfoApi<HlClearinghouseState>({ type: 'clearinghouseState', user })
@@ -139,8 +182,7 @@ export function normalizeHlPosition(
   const absSize = Math.abs(szi)
   const positionValueUsd = parseFloat(raw.positionValue) || 0
   const entryPrice = raw.entryPx ? parseFloat(raw.entryPx) || 0 : 0
-  const markPrice =
-    midPrice && midPrice > 0 ? midPrice : absSize > 0 ? positionValueUsd / absSize : 0
+  const markPrice = midPrice && midPrice > 0 ? midPrice : absSize > 0 ? positionValueUsd / absSize : 0
   const liquidationPrice = raw.liquidationPx ? parseFloat(raw.liquidationPx) || undefined : undefined
   // Absolute size truncated to the market quantum (toward zero), scaled to the 1e8
   // wire scale — mirrors toHlSz() in hlAdapterAbi so closes size the full position.

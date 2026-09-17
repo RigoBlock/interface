@@ -105,6 +105,19 @@ export const RIGOBLOCK_GMX_ABI = [
     inputs: [{ name: 'params', type: 'tuple', components: GMX_CREATE_ORDER_PARAMS_COMPONENTS }],
     outputs: [{ name: 'orderKey', type: 'bytes32' }],
   },
+  {
+    // Claims accumulated GMX funding fees for the pool; the adapter ignores `receiver`
+    // (forced to the pool) and zips the parallel markets/tokens arrays 1:1.
+    name: 'claimFundingFees',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'markets', type: 'address[]' },
+      { name: 'tokens', type: 'address[]' },
+      { name: 'receiver', type: 'address' },
+    ],
+    outputs: [],
+  },
 ]
 
 /** Builds the CreateOrderParams tuple; adapter-overridden fields are zeroed. */

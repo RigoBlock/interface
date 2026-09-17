@@ -11,7 +11,12 @@ import { GMX_CHAIN_ID, GmxPosition, useGmxPositions } from '~/pages/Portfolio/ho
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
 import { GmxOrderModal } from '~/pages/Portfolio/Perps/gmx/GmxOrderModal'
 import { GmxOpenPositionModal } from '~/pages/Portfolio/Perps/gmx/GmxOpenPositionModal'
+import {
+  GmxClaimFundingFeesButton,
+  GmxClaimFundingFeesModal,
+} from '~/pages/Portfolio/Perps/gmx/GmxClaimFundingFeesModal'
 import { GmxPositionActionsMenu } from '~/pages/Portfolio/Perps/gmx/GmxPositionActionsMenu'
+import { useGmxClaimableFundingFees } from '~/pages/Portfolio/Perps/gmx/useGmxClaimableFundingFees'
 import { useGmxMarkets } from '~/pages/Portfolio/Perps/gmx/useGmxMarkets'
 import { GmxOrderAction } from '~/pages/Portfolio/Perps/gmx/useGmxOrderCallback'
 import {
@@ -107,9 +112,12 @@ export function GmxPerpsSection(): JSX.Element {
     })
 
   const { markets, marketsByAddress } = useGmxMarkets()
+  // Claimable GMX funding fees (tracked markets survive closed positions) — operator only
+  const { claims, totalClaimableUsd } = useGmxClaimableFundingFees(evmAddress, isOperator)
   const [orderPosition, setOrderPosition] = useState<GmxPosition | undefined>()
   const [orderAction, setOrderAction] = useState<GmxOrderAction | undefined>()
   const [isOpenPositionModalOpen, setIsOpenPositionModalOpen] = useState(false)
+  const [isClaimModalOpen, setIsClaimModalOpen] = useState(false)
 
   const onAction = useCallback((position: GmxPosition, action: GmxOrderAction) => {
     setOrderPosition(position)
@@ -135,11 +143,26 @@ export function GmxPerpsSection(): JSX.Element {
           <ChainLogo chainId={GMX_CHAIN_ID} size={20} />
         </Flex>
         {isOperator && (
-          <Button variant="branded" size="small" fill={false} onPress={() => setIsOpenPositionModalOpen(true)}>
-            <Trans i18nKey="perps.open.button" />
-          </Button>
+          <Flex row gap="$spacing8" alignItems="center">
+            <GmxClaimFundingFeesButton
+              isOperator={isOperator}
+              totalClaimableUsd={totalClaimableUsd}
+              onPress={() => setIsClaimModalOpen(true)}
+            />
+            <Button variant="branded" size="small" fill={false} onPress={() => setIsOpenPositionModalOpen(true)}>
+              <Trans i18nKey="perps.open.button" />
+            </Button>
+          </Flex>
         )}
       </Flex>
+
+      <GmxClaimFundingFeesModal
+        isOpen={isClaimModalOpen}
+        poolAddress={evmAddress}
+        claims={claims}
+        totalClaimableUsd={totalClaimableUsd}
+        onDismiss={() => setIsClaimModalOpen(false)}
+      />
 
       <GmxOrderModal
         isOpen={!!orderPosition && !!orderAction}

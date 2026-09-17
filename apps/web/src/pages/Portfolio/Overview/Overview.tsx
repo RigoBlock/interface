@@ -19,11 +19,8 @@ import { EmptyWalletCards } from '~/components/emptyWallet/EmptyWalletCards'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { useGmxPnlHistory } from '~/pages/Portfolio/hooks/useGmxPnlHistory'
 import { useGmxPositions } from '~/pages/Portfolio/hooks/useGmxPositions'
+import { useGmxValueHistory } from '~/pages/Portfolio/hooks/useGmxValueHistory'
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
-import { useHyperEvmUsdcBalance } from '~/pages/Portfolio/Perps/hyperliquid/useHyperEvmUsdcBalance'
-import { useHyperliquidAccount } from '~/pages/Portfolio/Perps/hyperliquid/useHyperliquidAccount'
-import { useHyperliquidPortfolioHistory } from '~/pages/Portfolio/Perps/hyperliquid/useHyperliquidPortfolioHistory'
-import { usePortfolioStakingContext } from '~/pages/Portfolio/PortfolioStakingContext'
 import { OverviewActionTiles } from '~/pages/Portfolio/Overview/ActionTiles'
 import { OVERVIEW_RIGHT_COLUMN_WIDTH } from '~/pages/Portfolio/Overview/constants'
 import { useIsPortfolioZero } from '~/pages/Portfolio/Overview/hooks/useIsPortfolioZero'
@@ -32,6 +29,10 @@ import { PortfolioOverviewTables } from '~/pages/Portfolio/Overview/OverviewTabl
 import { PortfolioChart } from '~/pages/Portfolio/Overview/PortfolioChart'
 import { PortfolioPerformance } from '~/pages/Portfolio/Overview/PortfolioPerformance'
 import { OverviewStatsTiles } from '~/pages/Portfolio/Overview/StatsTiles'
+import { useHyperEvmUsdcBalance } from '~/pages/Portfolio/Perps/hyperliquid/useHyperEvmUsdcBalance'
+import { useHyperliquidAccount } from '~/pages/Portfolio/Perps/hyperliquid/useHyperliquidAccount'
+import { useHyperliquidPortfolioHistory } from '~/pages/Portfolio/Perps/hyperliquid/useHyperliquidPortfolioHistory'
+import { usePortfolioStakingContext } from '~/pages/Portfolio/PortfolioStakingContext'
 import { PortfolioTab } from '~/pages/Portfolio/types'
 import { buildPortfolioUrl } from '~/pages/Portfolio/utils/portfolioUrls'
 import { filterDefinedWalletAddresses } from '~/utils/filterDefinedWalletAddresses'
@@ -64,18 +65,40 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   const { totalStakeUSD } = usePortfolioStakingContext()
 
   // GMX perp positions (Arbitrum): position equity (collateral + unrealized PnL) counts towards the total value
-  const { totalNetValueUsd: gmxTotalNetValueUsd } = useGmxPositions(portfolioAddresses.evmAddress)
+  const { positions: gmxPositions, totalNetValueUsd: gmxTotalNetValueUsd } = useGmxPositions(
+    portfolioAddresses.evmAddress,
+  )
+
+  const [selectedPeriod, setSelectedPeriod] = useState<ChartPeriod>(ChartPeriod.DAY)
+
+  // HOUR/DAY/WEEK/MONTH use candle-based reconstruction at the chart's own interval
+  // granularity; YEAR/MAX keep the daily GMX cumulative-PnL indexer and the
+  // Hyperliquid `portfolio` endpoint bucket history.
+  const isCandlePeriod = selectedPeriod !== ChartPeriod.YEAR && selectedPeriod !== ChartPeriod.MAX
 
   // GMX daily cumulative PnL history (Subsquid indexer) — used to reconstruct historical account value
-  const { history: gmxPnlHistory } = useGmxPnlHistory(portfolioAddresses.evmAddress)
+  const { history: gmxPnlHistory } = useGmxPnlHistory(portfolioAddresses.evmAddress, !isCandlePeriod)
+
+  // GMX positions value history at the chart period's candle granularity (HOUR–MONTH)
+  const { history: gmxValueHistory } = useGmxValueHistory({
+    address: portfolioAddresses.evmAddress,
+    period: selectedPeriod,
+    positions: gmxPositions,
+    totalNetValueUsd: gmxTotalNetValueUsd,
+  })
 
   // Hyperliquid perp account value + Core spot USDC (temporary, in-transit balance) on HyperCore
-  const { perpsAccountValueUsd: hyperliquidPerpsValue, spotUsdcBalanceUsd: hyperliquidSpotValue } =
-    useHyperliquidAccount(portfolioAddresses.evmAddress)
+  const hyperliquidAccount = useHyperliquidAccount(portfolioAddresses.evmAddress)
+  const { perpsAccountValueUsd: hyperliquidPerpsValue, spotUsdcBalanceUsd: hyperliquidSpotValue } = hyperliquidAccount
 
-  // Hyperliquid historical account value (HyperCore spot + perps) from the Hyperliquid
-  // `portfolio` info endpoint
-  const { history: hyperliquidHistory } = useHyperliquidPortfolioHistory(portfolioAddresses.evmAddress)
+  // Hyperliquid historical total account value (Core spot + perps): candle-based
+  // reconstruction at the chart period's interval granularity for HOUR–MONTH (anchored
+  // at fetch time), `portfolio` info endpoint buckets for YEAR/MAX
+  const { history: hyperliquidHistory } = useHyperliquidPortfolioHistory(
+    portfolioAddresses.evmAddress,
+    selectedPeriod,
+    hyperliquidAccount,
+  )
 
   // The vault's HyperEVM USDC balance (chain 999 is not indexed by the Uniswap data API)
   const { balanceUsd: hyperEvmUsdcValue } = useHyperEvmUsdcBalance(portfolioAddresses.evmAddress)
@@ -84,8 +107,6 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
 
   const isPortfolioZero = useIsPortfolioZero()
   const queryClient = useQueryClient()
-
-  const [selectedPeriod, setSelectedPeriod] = useState<ChartPeriod>(ChartPeriod.DAY)
 
   const filterChainIds = useMemo(() => (chainId ? [chainId] : allChainIds), [chainId, allChainIds])
 
@@ -162,12 +183,17 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   }, [portfolioChartData])
 
   // The historical chart data only covers token balances. Staking and the HyperEVM USDC
-  // balance have no history, so they are bootstrapped flatly at the current value. GMX has
-  // daily cumulative-PnL history from the Subsquid indexer, so its historical account value
-  // is derived as currentValue − (cumulativePnlNow − cumulativePnl(t)), forward-filled.
-  // Hyperliquid has absolute account value history (spot + perps) from the Hyperliquid
-  // `portfolio` endpoint; when that endpoint reports no history (all-zero buckets), the
-  // current perps + Core spot value is bootstrapped flatly instead.
+  // balance have no history, so they are bootstrapped flatly at the current value. For
+  // HOUR/DAY/WEEK/MONTH, GMX and Hyperliquid historical values are reconstructed from
+  // per-coin candle closes at the chart's own interval granularity (retrieved once,
+  // anchored to the live account value at fetch time, so past samples stay fixed). For
+  // YEAR/MAX, GMX uses its daily cumulative-PnL history from the Subsquid indexer
+  // (currentValue − (cumulativePnlNow − cumulativePnl(t))) and Hyperliquid the absolute
+  // account value history from the `portfolio` endpoint. At or after the last history
+  // sample the LIVE values are used instead of the frozen forward-fill (both poll every
+  // 5s), so the end of the line tracks unrealized PnL in real time while history stays
+  // fixed. When a source reports no history at all, its current value is bootstrapped
+  // flatly instead.
   const chartDataWithExtras = useMemo(() => {
     if (!portfolioChartData?.points) {
       return portfolioChartData
@@ -179,10 +205,13 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
     )
     const gmxExtra = isNaN(gmxTotalNetValueUsd) ? 0 : gmxTotalNetValueUsd
     const hlPerpsExtra = isNaN(hyperliquidPerpsValue) ? 0 : hyperliquidPerpsValue
+    // Live Hyperliquid tail = live perps value + live Core spot USDC, matching the
+    // spot+perp semantics of the history samples.
+    const hlLiveTail = hlPerpsExtra + (isNaN(hyperliquidSpotValue) ? 0 : hyperliquidSpotValue)
 
     // Historical account value at a timestamp, given daily cumulative-PnL points. Before the
     // first point the first bucket's cumulative value applies; with no history (or no current
-    // value) the flat current value is used.
+    // value) the flat current value is used. (YEAR/MAX GMX only.)
     const valueFromPnlHistory = ({
       currentValue,
       history,
@@ -209,7 +238,20 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
 
     // Historical account value at a timestamp from absolute portfolio-history points:
     // 0 before the first sample (the account did not exist yet), forward-filled after.
-    const valueFromHlHistory = (history: { timestamp: number; valueUsd: number }[], timestampSec: number): number => {
+    // When liveTailValue is given, timestamps at or after the last sample use it instead
+    // of the frozen forward-fill so the end of the line moves with the live value.
+    const valueFromHistory = ({
+      history,
+      timestampSec,
+      liveTailValue,
+    }: {
+      history: { timestamp: number; valueUsd: number }[]
+      timestampSec: number
+      liveTailValue?: number
+    }): number => {
+      if (history.length > 0 && liveTailValue !== undefined && timestampSec >= history[history.length - 1]!.timestamp) {
+        return liveTailValue
+      }
       let value = 0
       for (const point of history) {
         if (point.timestamp <= timestampSec) {
@@ -221,8 +263,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
       return value
     }
 
-    const hasExtras =
-      stakingExtra !== 0 || hyperliquidFlatExtra !== 0 || gmxExtra !== 0 || hlPerpsExtra !== 0
+    const hasExtras = stakingExtra !== 0 || hyperliquidFlatExtra !== 0 || gmxExtra !== 0 || hlPerpsExtra !== 0
     if (!hasExtras) {
       return portfolioChartData
     }
@@ -233,16 +274,24 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
         const timestampSec = Number(point.timestamp)
         const hlExtra =
           hyperliquidHistory.length > 0
-            ? valueFromHlHistory(hyperliquidHistory, timestampSec)
+            ? valueFromHistory({ history: hyperliquidHistory, timestampSec, liveTailValue: hlLiveTail })
             : // No portfolio history: spot is already in hyperliquidFlatExtra, add perps only.
               hlPerpsExtra
+        const gmxValue = isCandlePeriod
+          ? gmxValueHistory.length > 0
+            ? // Candle-based reconstruction: live GMX total net value after the last sample.
+              valueFromHistory({ history: gmxValueHistory, timestampSec, liveTailValue: gmxExtra })
+            : // No candle history (no positions / still loading): flat current value.
+              gmxExtra
+          : // YEAR/MAX: daily cumulative-PnL reconstruction.
+            valueFromPnlHistory({ currentValue: gmxExtra, history: gmxPnlHistory, timestampSec })
         return {
           timestamp: point.timestamp,
           value:
             point.value +
             stakingExtra +
             (hyperliquidHistory.length > 0 ? hyperEvmUsdcValue : hyperliquidFlatExtra) +
-            valueFromPnlHistory({ currentValue: gmxExtra, history: gmxPnlHistory, timestampSec }) +
+            gmxValue +
             hlExtra,
         }
       }),
@@ -252,6 +301,8 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
     stakingValueStable,
     gmxTotalNetValueUsd,
     gmxPnlHistory,
+    gmxValueHistory,
+    isCandlePeriod,
     hyperliquidPerpsValue,
     hyperliquidHistory,
     hyperliquidSpotValue,
@@ -309,7 +360,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
             <PortfolioChart
               portfolioTotalBalanceUSD={portfolioTotalWithStaking} // Shows current total with staking in header
               isPortfolioZero={isPortfolioZero}
-              chartData={chartDataWithExtras} // Historical data with staking bootstrapped at current value; GMX reconstructed from indexed daily PnL; Hyperliquid from the portfolio API account value history (flat fallback)
+              chartData={chartDataWithExtras} // Historical data with staking bootstrapped at current value; GMX and Hyperliquid reconstructed at the period's candle granularity (daily PnL / portfolio endpoint for YEAR/MAX), live values after the last history sample
               isPending={isChartPending}
               error={chartError}
               selectedPeriod={selectedPeriod}
