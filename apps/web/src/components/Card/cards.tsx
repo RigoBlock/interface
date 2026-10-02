@@ -28,7 +28,8 @@ export const DarkGrayCard = ({ children, ...rest }: PropsWithChildren<FlexProps>
   )
 }
 
-export const DarkCard = styled(Card)`
+// Explicit type: styled()'s inferred type references non-portable mycelium internals (TS2883).
+export const DarkCard: typeof Card = styled(Card)`
   background-color: ${({ theme }: { theme: DefaultTheme }) => theme.surface1};
   border: 1px solid ${({ theme }: { theme: DefaultTheme }) => theme.surface3};
 `

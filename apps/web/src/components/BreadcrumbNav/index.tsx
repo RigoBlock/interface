@@ -14,8 +14,10 @@ import { SPORE_ANIMATION_CURVE_CSS } from '@universe/tailwind/animations'
 import { TestID } from '@universe/test'
 import {
   type ComponentPropsWithoutRef,
+  type FC,
   forwardRef,
   type ForwardRefExoticComponent,
+  type ReactNode,
   type RefAttributes,
   useState,
 } from 'react'
@@ -31,7 +33,12 @@ export const BreadcrumbNavContainer: ForwardRefExoticComponent<FlexCompatProps &
     return <Flex ref={ref} row alignItems="center" gap="$gap4" mb={20} width="fit-content" {...props} />
   })
 
-export const BreadcrumbNavLink = ({ to, children, ...rest }: { to: string; children: React.ReactNode } & TextProps) => {
+// Explicit type: the inferred arrow-function type isn't nameable under declaration emit (TS2883).
+export const BreadcrumbNavLink: FC<{ to: string; children: ReactNode } & TextProps> = ({
+  to,
+  children,
+  ...rest
+}) => {
   return (
     <Link to={to} style={{ textDecoration: 'none' }}>
       <Text

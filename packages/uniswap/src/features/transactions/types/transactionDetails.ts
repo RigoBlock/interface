@@ -987,23 +987,12 @@ export interface DeployVaultTransactionInfo extends BaseTransactionInfo {
   baseTokenAddress?: string
 }
 
-type AllKeysOf<T> = T extends T ? keyof T : never
-
-type ExtractPropertyType<T, K extends AllKeysOf<T>> = T extends T
-  ? K extends keyof T
-    ? T[K]
-    : never
-  :
-      | never
-      | ToucanBidTransactionInfo
-      | ToucanWithdrawBidAndClaimTokensTransactionInfo
-      | AuctionBidTransactionInfo
-      | AuctionClaimedTransactionInfo
-      | AuctionExitedTransactionInfo
-
 /**
  * Typeguard to check if a `TransactionTypeInfo` has a specific attribute.
  * Useful when you need to access an attribute that is only in a subset of `TransactionTypeInfo`s.
+ *
+ * `AllKeysOf` / `ExtractPropertyType` come from the global declarations in the root `index.d.ts`
+ * (same as upstream — do not redeclare them locally or they shadow the globals).
  */
 export function transactionTypeInfoHasAttribute<K extends AllKeysOf<TransactionTypeInfo>>(
   typeInfo: TransactionTypeInfo,

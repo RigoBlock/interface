@@ -3,7 +3,7 @@
 import { BigNumber, type BigNumberish } from '@ethersproject/bignumber'
 import { Currency } from '@uniswap/sdk-core'
 import { TradingApi } from '@universe/api'
-import { normalizeTokenAddressForCache } from 'uniswap/src/utils/currencyId'
+import { normalizeTokenAddressForCache } from '@universe/chains'
 import ms from 'ms'
 import { call, put, type SagaGenerator } from 'typed-redux-saga'
 import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'

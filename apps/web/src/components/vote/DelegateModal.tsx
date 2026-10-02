@@ -65,7 +65,8 @@ export const SmallMaxButton = styled(MaxButton)`
   font-size: 12px;
 `
 
-export const ResponsiveHeaderText = styled(Text)`
+// Explicit type: styled()'s inferred type references non-portable mycelium internals (TS2883).
+export const ResponsiveHeaderText: typeof Text = styled(Text)`
   font-size: 40px;
   font-weight: 535;
   ${({ theme }) => theme.deprecated_mediaWidth.deprecated_upToExtraSmall`

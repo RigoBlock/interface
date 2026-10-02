@@ -3,7 +3,7 @@ import { curveToAnimationTiming, ENTER_PRESET_CLASSES } from '@universe/mycelium
 import { styled } from '@universe/mycelium/styled'
 import { SPORE_ANIMATION_CURVE_CSS } from '@universe/tailwind/animations'
 import { TestID } from '@universe/test'
-import { ReactNode, useMemo } from 'react'
+import { type FC, ReactNode, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import AnimatedNumber from 'uniswap/src/components/AnimatedNumber/AnimatedNumber'
 import { getChainLabel } from 'uniswap/src/features/chains/utils'
@@ -20,11 +20,12 @@ import { useTDPMultichainAggregate } from '~/pages/TokenDetails/hooks/useTDPMult
 
 const STATS_GAP = '$gap20'
 
-export const StatWrapper = ({
+// Explicit type: the inferred arrow-function type isn't nameable under declaration emit (TS2883).
+export const StatWrapper: FC<{ tableRow?: boolean; children: ReactNode } & FlexProps> = ({
   tableRow = false,
   children,
   ...props
-}: { tableRow?: boolean; children: ReactNode } & FlexProps) => (
+}) => (
   <Flex
     tag={tableRow ? 'tr' : 'div'}
     flexBasis="33.33%"
@@ -42,7 +43,8 @@ export const StatWrapper = ({
 // instead of the preset's pinned default.
 const STATS_ENTER_TIMING = curveToAnimationTiming(SPORE_ANIMATION_CURVE_CSS['200ms'])
 
-export const StatsWrapper = ({ children, className, style, ...props }: { children: ReactNode } & FlexProps) => (
+// Explicit type: the inferred arrow-function type isn't nameable under declaration emit (TS2883).
+export const StatsWrapper: FC<{ children: ReactNode } & FlexProps> = ({ children, className, style, ...props }) => (
   <Flex
     className={cn(ENTER_PRESET_CLASSES.fadeIn, className)}
     style={style ? [STATS_ENTER_TIMING, style] : STATS_ENTER_TIMING}

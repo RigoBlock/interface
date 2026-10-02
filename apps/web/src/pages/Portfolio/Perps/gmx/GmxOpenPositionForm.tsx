@@ -6,7 +6,7 @@ import { Flex, ScrollView, Text, TouchableArea } from '@universe/mycelium'
 import { SegmentedControl } from '@universe/mycelium/segmented-control-compat'
 import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
 import { zIndexes } from 'ui/src/theme'
-import { normalizeTokenAddressForCache } from 'uniswap/src/utils/currencyId'
+import { normalizeTokenAddressForCache } from '@universe/chains'
 import { GmxPosition } from '~/pages/Portfolio/hooks/useGmxPositions'
 import {
   formatGmxAnnualizedRate,

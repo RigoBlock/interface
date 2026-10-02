@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker'
 import { TradingApi } from '@universe/api'
 import { UniverseChainId } from '@universe/chains'
-import { combineReducers } from 'redux'
+import { combineReducers, type AnyAction } from 'redux'
 import { expectSaga } from 'redux-saga-test-plan'
 import { call } from 'redux-saga/effects'
 import { WalletEventName } from 'uniswap/src/features/telemetry/constants'
@@ -283,15 +283,15 @@ describe(transactionWatcher, () => {
       .run()
 
     // Run the watcher with a real transactions reducer so the cleanup actually mutates state
+    const rootReducer = combineReducers({
+      transactions: transactionReducer,
+      wallet: (state = initialState.wallet) => state,
+      userSettings: (state = initialState.userSettings) => state,
+    })
     const { storeState } = await expectSaga(transactionWatcher)
-      .withReducer(
-        combineReducers({
-          transactions: transactionReducer,
-          wallet: (state = initialState.wallet) => state,
-          userSettings: (state = initialState.userSettings) => state,
-        }),
-        initialState,
-      )
+      // Pin the reducer state type explicitly: inferring it from `initialState` (an exact literal)
+      // rejects the wider Partial<Record<...>> reducer output under tsgo.
+      .withReducer<ReturnType<typeof rootReducer>, AnyAction>(rootReducer, initialState)
       .provide([
         [call(getProvider, UniverseChainId.Mainnet), mockProvider],
         [call(getProviderManager), mockProviderManager],

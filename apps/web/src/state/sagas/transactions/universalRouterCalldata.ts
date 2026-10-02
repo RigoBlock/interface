@@ -1,5 +1,5 @@
 import { AbiCoder } from '@ethersproject/abi'
-import { normalizeTokenAddressForCache } from 'uniswap/src/utils/currencyId'
+import { normalizeTokenAddressForCache } from '@universe/chains'
 import { logger } from 'utilities/src/logger/logger'
 
 // Universal Router Command Constants

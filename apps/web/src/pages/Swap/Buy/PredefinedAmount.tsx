@@ -1,4 +1,5 @@
 import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
+import type { FC } from 'react'
 import { Pill, PillProps } from 'uniswap/src/components/pill/Pill'
 import styled, { css } from '~/lib/deprecated-styled'
 
@@ -7,7 +8,8 @@ interface PredefinedAmountProps {
 }
 
 // TODO: check remove ClickablePill in slider
-export const ClickablePill = styled(Pill)<{
+// Explicit type: styled()'s inferred type references non-portable mycelium internals (TS2883).
+export const ClickablePill: FC<PillProps & { $disabled: boolean; $active: boolean }> = styled(Pill)<{
   $disabled: boolean
   $active: boolean
 }>`

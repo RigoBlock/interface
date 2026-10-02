@@ -1,8 +1,9 @@
 import { Flex } from '@universe/mycelium'
-import { ComponentProps, PropsWithChildren } from 'react'
+import { ComponentProps, type FC, PropsWithChildren } from 'react'
 import { MAX_CONTENT_WIDTH_PX } from '~/theme'
 
-export const ToucanContainer = ({ children, ...props }: PropsWithChildren<ComponentProps<typeof Flex>>) => {
+// Explicit type: the inferred arrow-function type isn't nameable under declaration emit (TS2883).
+export const ToucanContainer: FC<PropsWithChildren<ComponentProps<typeof Flex>>> = ({ children, ...props }) => {
   return (
     <Flex
       width="100%"
