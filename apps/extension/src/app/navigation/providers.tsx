@@ -1,16 +1,23 @@
+import { UniverseChainId } from '@universe/chains'
 import { PropsWithChildren, useCallback } from 'react'
 import { createSearchParams, useLocation, useNavigate } from 'react-router'
 import { navigateToInterfaceFiatOnRamp } from 'src/app/features/for/utils'
 import { AppRoutes, HomeQueryParams, HomeTabs } from 'src/app/navigation/constants'
 import { navigate } from 'src/app/navigation/state'
 import {
+  focusOrCreateEarnVaultTab,
   focusOrCreateTokensExploreTab,
   focusOrCreateUniswapInterfaceTab,
   SidebarLocationState,
 } from 'src/app/navigation/utils'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapStaticUrls } from 'uniswap/src/constants/urls'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import {
+  EarnAnalyticsSurface,
+  EarnEntryPoint,
+  getEarnVaultAnalyticsProperties,
+  logEarnVaultSelected,
+} from 'uniswap/src/features/earn/analytics'
 import { useNavigateToNftExplorerLink } from 'uniswap/src/features/nfts/hooks/useNavigateToNftExplorerLink'
 import { CopyNotificationType } from 'uniswap/src/features/notifications/slice/types'
 import { WalletEventName } from 'uniswap/src/features/telemetry/constants'
@@ -24,6 +31,7 @@ import { useCopyToClipboard } from 'wallet/src/components/copy/useCopyToClipboar
 import {
   getNavigateToSendFlowArgsInitialState,
   getNavigateToSwapFlowArgsInitialState,
+  NavigateToEarnVaultArgs,
   NavigateToExternalProfileArgs,
   NavigateToFiatOnRampArgs,
   NavigateToSendFlowArgs,
@@ -85,6 +93,7 @@ function SharedExtensionNavigationProvider({
   }, [])
   const navigateToPoolDetails = useNavigateToPoolDetails()
   const navigateToAdvancedSettings = useNavigateToAdvancedSettings()
+  const navigateToEarnVault = useNavigateToEarnVault()
 
   return (
     <WalletNavigationProvider
@@ -92,6 +101,7 @@ function SharedExtensionNavigationProvider({
       navigateToAccountActivityList={navigateToAccountActivityList}
       navigateToAccountTokenList={navigateToAccountTokenList}
       navigateToBuyOrReceiveWithEmptyWallet={navigateToBuyOrReceiveWithEmptyWallet}
+      navigateToEarnVault={navigateToEarnVault}
       navigateToExternalProfile={navigateToExternalProfile}
       navigateToFiatOnRamp={navigateToFiatOnRamp}
       navigateToNftDetails={navigateToNftDetails}
@@ -207,7 +217,7 @@ function useNavigateToPoolDetails(): (args: { poolId: Address; chainId: Universe
       url: getPoolDetailsURL(poolId, chainId),
       // We want to reuse the active tab only if it's already in any other PDP.
       // oxlint-disable-next-line security/detect-non-literal-regexp
-      reuseActiveTabIfItMatches: new RegExp(`^${escapeRegExp(uniswapUrls.webInterfacePoolsUrl)}`),
+      reuseActiveTabIfItMatches: new RegExp(`^${escapeRegExp(UniswapStaticUrls.webInterfacePoolsUrl)}`),
     })
   }, [])
 }
@@ -227,5 +237,21 @@ function useNavigateToFiatOnRamp(): (args: NavigateToFiatOnRampArgs) => void {
 function useNavigateToAdvancedSettings(): () => void {
   return useCallback((): void => {
     navigate(`/${AppRoutes.Settings}`, { state: { openAdvancedSettings: true } })
+  }, [])
+}
+
+function useNavigateToEarnVault(): (args: NavigateToEarnVaultArgs) => void {
+  return useCallback(async ({ analyticsEntryPoint, position, vault }: NavigateToEarnVaultArgs): Promise<void> => {
+    // The vault opens in a web tab, so this click is the extension's last chance to attribute
+    // the selection — mirrors the mobile navigation provider.
+    logEarnVaultSelected(
+      getEarnVaultAnalyticsProperties({
+        entryPoint: analyticsEntryPoint ?? EarnEntryPoint.GlobalModal,
+        position,
+        surface: EarnAnalyticsSurface.Extension,
+        vault,
+      }),
+    )
+    await focusOrCreateEarnVaultTab({ analyticsEntryPoint, vault })
   }, [])
 }

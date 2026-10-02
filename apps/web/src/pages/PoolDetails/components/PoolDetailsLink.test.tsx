@@ -1,11 +1,11 @@
 import '~/test-utils/tokens/mocks'
+import { UniverseChainId } from '@universe/chains'
 import { USDC_MAINNET } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { dismissTokenWarning } from 'uniswap/src/features/tokens/warnings/slice/slice'
 import { TokenProtectionWarning } from 'uniswap/src/features/tokens/warnings/types'
 import { PoolDetailsLink } from '~/pages/PoolDetails/components/PoolDetailsLink'
 import store from '~/state'
-import { usdcWethPoolAddress, validBEPoolToken0, validBEPoolToken1 } from '~/test-utils/pools/fixtures'
+import { usdcWethPoolAddress, validParsedPoolToken0, validParsedPoolToken1 } from '~/test-utils/pools/fixtures'
 import { render, screen } from '~/test-utils/render'
 
 describe('PoolDetailsHeader', () => {
@@ -41,7 +41,7 @@ describe('PoolDetailsHeader', () => {
       <PoolDetailsLink
         address={usdcWethPoolAddress}
         chainId={UniverseChainId.Mainnet}
-        tokens={[validBEPoolToken0, validBEPoolToken1]}
+        tokens={[validParsedPoolToken0, validParsedPoolToken1]}
       />,
     )
     expect(asFragment()).toMatchSnapshot()
@@ -54,7 +54,11 @@ describe('PoolDetailsHeader', () => {
 
   it('renders link for token address', async () => {
     const { asFragment } = render(
-      <PoolDetailsLink address={USDC_MAINNET.address} chainId={UniverseChainId.Mainnet} tokens={[validBEPoolToken0]} />,
+      <PoolDetailsLink
+        address={USDC_MAINNET.address}
+        chainId={UniverseChainId.Mainnet}
+        tokens={[validParsedPoolToken0]}
+      />,
     )
     expect(asFragment()).toMatchSnapshot()
 

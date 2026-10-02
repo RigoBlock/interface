@@ -1,5 +1,5 @@
+import { UniverseChainId } from '@universe/chains'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useEvent } from 'utilities/src/react/hooks'
 
 export function createGetSupportedChainId(ctx: { getChains: () => UniverseChainId[] }): {

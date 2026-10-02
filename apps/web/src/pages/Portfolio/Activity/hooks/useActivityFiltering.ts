@@ -1,15 +1,16 @@
+import { UniverseChainId } from '@universe/chains'
 import { useMemo, useRef } from 'react'
 import { ActivityItem } from 'uniswap/src/components/activity/generateActivityItemRenderer'
 import { useActivityData } from 'uniswap/src/features/activity/hooks/useActivityData'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { TransactionDetails } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { useInfiniteScroll } from 'utilities/src/react/useInfiniteScroll'
 import { ONE_DAY_MS } from 'utilities/src/time/time'
+import { ActivityFilterType } from '~/pages/Portfolio/Activity/Filters/activityFilterTypes'
 import {
-  ActivityFilterType,
   filterTransactionDetailsFromActivityItems,
+  getServerTransactionTypesForFilter,
+  getTransactionTypeForActivityFilter,
   getTransactionTypesForFilter,
-  SERVER_FILTER_MAP,
   TimePeriod,
 } from '~/pages/Portfolio/Activity/Filters/utils'
 import { filterDefinedWalletAddresses } from '~/utils/filterDefinedWalletAddresses'
@@ -43,7 +44,9 @@ function filterTransactions({
   const allowedTypes = getTransactionTypesForFilter(typeFilter)
 
   return filterTransactionDetailsFromActivityItems(transactions)
-    .filter((tx) => allowedTypes === 'all' || allowedTypes.includes(tx.typeInfo.type))
+    .filter(
+      (tx) => allowedTypes === 'all' || allowedTypes.includes(getTransactionTypeForActivityFilter({ transaction: tx })),
+    )
     .filter((tx) => isWithinTimePeriod(tx.addedTime, timeFilter))
 }
 
@@ -102,7 +105,7 @@ export function useActivityFiltering({
     if (!canUseServerSideFiltering || selectedTransactionType === ActivityFilterType.All) {
       return undefined
     }
-    return SERVER_FILTER_MAP[selectedTransactionType as ActivityFilterType]
+    return getServerTransactionTypesForFilter(selectedTransactionType)
   }, [canUseServerSideFiltering, selectedTransactionType])
 
   const { sectionData, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isFetching, error, dataUpdatedAt } =
@@ -114,6 +117,7 @@ export function useActivityFiltering({
       chainIds: chainId ? [chainId] : undefined,
       filterTransactionTypes: serverFilterTypes,
       searchText,
+      maxItems: Infinity,
     })
 
   // Track chainId changes to show loading skeleton when switching networks

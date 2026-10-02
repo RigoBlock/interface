@@ -1,4 +1,4 @@
-import { Flex } from 'ui/src'
+import { Flex } from '@universe/mycelium'
 import { ApproveTransactionDetails } from 'uniswap/src/components/activity/details/transactions/ApproveTransactionDetails'
 import { AuctionTransactionDetails } from 'uniswap/src/components/activity/details/transactions/AuctionTransactionDetails'
 import { BridgeTransactionDetails } from 'uniswap/src/components/activity/details/transactions/BridgeTransactionDetails'
@@ -9,6 +9,7 @@ import { OnRampTransactionDetails } from 'uniswap/src/components/activity/detail
 import { PlanTransactionDetails } from 'uniswap/src/components/activity/details/transactions/PlanTransactionDetails'
 import { SwapTransactionDetails } from 'uniswap/src/components/activity/details/transactions/SwapTransactionDetails'
 import { TransferTransactionDetails } from 'uniswap/src/components/activity/details/transactions/TransferTransactionDetails'
+import { VaultTransactionDetails } from 'uniswap/src/components/activity/details/transactions/VaultTransactionDetails'
 import { WrapTransactionDetails } from 'uniswap/src/components/activity/details/transactions/WrapTransactionDetails'
 import { TransactionDetails, TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 
@@ -37,11 +38,19 @@ export function TransactionDetailsContent({
         return (
           <TransferTransactionDetails transactionDetails={transactionDetails} typeInfo={typeInfo} onClose={onClose} />
         )
+      case TransactionType.Deposit:
+      case TransactionType.Withdraw:
+        return typeInfo.isVault ? (
+          <VaultTransactionDetails transactionDetails={transactionDetails} typeInfo={typeInfo} onClose={onClose} />
+        ) : null
       case TransactionType.Bridge:
         return <BridgeTransactionDetails typeInfo={typeInfo} onClose={onClose} />
       case TransactionType.Swap:
         return <SwapTransactionDetails typeInfo={typeInfo} onClose={onClose} />
       case TransactionType.WCConfirm:
+        return <></>
+      case TransactionType.UniswapXCancel:
+        // Nonce invalidation has no asset content; the default info rows (fee/hash/date) suffice
         return <></>
       case TransactionType.Wrap:
         return <WrapTransactionDetails transactionDetails={transactionDetails} typeInfo={typeInfo} onClose={onClose} />
@@ -69,6 +78,8 @@ export function TransactionDetailsContent({
         return (
           <AuctionTransactionDetails transactionDetails={transactionDetails} typeInfo={typeInfo} onClose={onClose} />
         )
+      case TransactionType.AuctionLaunch:
+        return null
       default:
         return null
     }

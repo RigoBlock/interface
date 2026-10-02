@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import useDebounce from '~/hooks/useDebounce'
+import { useDebounce } from '~/hooks/useDebounce'
 
-const SHOW_RETURN_TO_TOP_OFFSET = 500
 const LOAD_MORE_BOTTOM_OFFSET = 50
+// A client-side filter can discard entire fetched pages, so completions that grow nothing get a
+// small budget before auto-fetch stops — unbounded, an all-filtered stretch pages through the
+// source's full history (or shows an infinite spinner when nothing ever matches).
+const MAX_AUTO_FETCHES_WITHOUT_GROWTH = 3
 
 export function useTableLoadMore(params: {
   tableBodyRef: React.RefObject<HTMLDivElement | null>
@@ -15,21 +18,21 @@ export function useTableLoadMore(params: {
   const { tableBodyRef, maxHeight, loadMore, dataLength, loading, error } = params
 
   const [loadingMore, setLoadingMore] = useState(false)
-  const [scrollPosition, setScrollPosition] = useState<{
-    distanceFromTop: number
-    distanceToBottom: number
-  }>({
-    distanceFromTop: 0,
-    distanceToBottom: LOAD_MORE_BOTTOM_OFFSET,
-  })
-  const { distanceFromTop, distanceToBottom } = useDebounce(scrollPosition, 125)
+  const [isNearBottom, setIsNearBottom] = useState(false)
+  const debouncedIsNearBottom = useDebounce(isNearBottom, 125)
   const lastLoadedLengthRef = useRef(0)
+  const noGrowthFetchesRef = useRef(0)
   const canLoadMore = useRef(true)
   const dataLengthRef = useRef(dataLength)
   const prevLoadMoreRef = useRef(loadMore)
 
   useEffect(() => {
     dataLengthRef.current = dataLength
+    // Any change to the rendered row set (a page landed, a filter toggled) grants a fresh budget
+    // and re-arms load-more — covers filter changes that swap the rows without any fetch
+    // (onComplete never fires there), and corrects a budget spent on a stale pre-render count.
+    noGrowthFetchesRef.current = 0
+    canLoadMore.current = true
   }, [dataLength])
 
   // Reset load-more state when switching between pagination modes (e.g. experiment off → on).
@@ -45,36 +48,47 @@ export function useTableLoadMore(params: {
   }, [loadMore])
 
   useEffect(() => {
+    if (!loadMore) {
+      return undefined
+    }
     // Use parentElement because the actual scrolling container is the parent wrapper,
     // not the table body div itself (which is a child of the scrollable container)
     const scrollableElement = maxHeight ? tableBodyRef.current?.parentElement : window
     if (!scrollableElement) {
       return undefined
     }
+    let rafId: number | null = null
     const updateScrollPosition = () => {
-      if (scrollableElement instanceof HTMLDivElement) {
-        const { scrollTop, scrollHeight, clientHeight } = scrollableElement
-        setScrollPosition({
-          distanceFromTop: scrollTop,
-          distanceToBottom: scrollHeight - scrollTop - clientHeight,
-        })
-      } else if (scrollableElement === window) {
-        setScrollPosition({
-          distanceFromTop: scrollableElement.scrollY,
-          distanceToBottom: document.body.scrollHeight - scrollableElement.scrollY - scrollableElement.innerHeight,
-        })
+      if (rafId !== null) {
+        return
       }
+      rafId = requestAnimationFrame(() => {
+        rafId = null
+        if (scrollableElement instanceof HTMLDivElement) {
+          const { scrollTop, scrollHeight, clientHeight } = scrollableElement
+          setIsNearBottom(scrollHeight - scrollTop - clientHeight < LOAD_MORE_BOTTOM_OFFSET)
+        } else if (scrollableElement === window) {
+          setIsNearBottom(
+            document.body.scrollHeight - scrollableElement.scrollY - scrollableElement.innerHeight <
+              LOAD_MORE_BOTTOM_OFFSET,
+          )
+        }
+      })
     }
     scrollableElement.addEventListener('scroll', updateScrollPosition)
-    return () => scrollableElement.removeEventListener('scroll', updateScrollPosition)
+    return () => {
+      scrollableElement.removeEventListener('scroll', updateScrollPosition)
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId)
+      }
+    }
   }, [loadMore, maxHeight, loadingMore, tableBodyRef])
 
   useEffect(() => {
     const scrollableElement = maxHeight ? tableBodyRef.current?.parentElement : window
-    const shouldLoadMoreFromScroll = distanceToBottom < LOAD_MORE_BOTTOM_OFFSET
     let shouldLoadMoreFromViewportHeight = false
 
-    if (!shouldLoadMoreFromScroll) {
+    if (!debouncedIsNearBottom) {
       if (!maxHeight && scrollableElement === window) {
         const contentHeight = document.body.scrollHeight
         const viewportHeight = window.innerHeight
@@ -86,7 +100,12 @@ export function useTableLoadMore(params: {
     }
 
     if (
-      (shouldLoadMoreFromScroll || shouldLoadMoreFromViewportHeight) &&
+      (debouncedIsNearBottom || shouldLoadMoreFromViewportHeight) &&
+      // Completions without rendered-row growth spend from a budget only a row-set change restores
+      // — the latch below alone can't cap them, since loadMore is recreated per fetch and the
+      // mode-switch effect above re-arms on its identity change. Applies to the empty table (all
+      // rows filtered out) and the sparse one (rows that never fill the viewport) alike.
+      noGrowthFetchesRef.current < MAX_AUTO_FETCHES_WITHOUT_GROWTH &&
       !loadingMore &&
       loadMore &&
       canLoadMore.current &&
@@ -94,25 +113,24 @@ export function useTableLoadMore(params: {
       !loading
     ) {
       setLoadingMore(true)
-      // Manually update scroll position to prevent re-triggering
-      setScrollPosition({
-        distanceFromTop: SHOW_RETURN_TO_TOP_OFFSET,
-        distanceToBottom: LOAD_MORE_BOTTOM_OFFSET,
-      })
+      // Latch off so a still-true debounce cannot re-trigger until the next near-bottom edge
+      setIsNearBottom(false)
       loadMore({
         onComplete: () => {
           setLoadingMore(false)
           // dataLength would be stale here (captured when loadMore was called); use ref for latest value when onComplete runs
           const currentLength = dataLengthRef.current
           if (currentLength === lastLoadedLengthRef.current) {
+            noGrowthFetchesRef.current += 1
             canLoadMore.current = false
           } else {
+            noGrowthFetchesRef.current = 0
             lastLoadedLengthRef.current = currentLength
           }
         },
       })
     }
-  }, [dataLength, distanceFromTop, distanceToBottom, error, loadMore, loading, loadingMore, maxHeight, tableBodyRef])
+  }, [dataLength, debouncedIsNearBottom, error, loadMore, loading, loadingMore, maxHeight, tableBodyRef])
 
   return { loadingMore }
 }

@@ -1,4 +1,5 @@
-import { Flex, FlexProps, Text, TouchableArea, useShadowPropsShort } from 'ui/src'
+import { Flex, type FlexProps, Text, TouchableArea } from '@universe/mycelium'
+import { useShadowPropsShort } from '@universe/mycelium/theme-hooks-compat'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 

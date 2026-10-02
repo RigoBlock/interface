@@ -21,7 +21,7 @@ export function* dismissAllModalsBeforeNavigation(): Generator {
 
 /**
  * Helper function to dismiss React Navigation modals without resetting the stack.
- * This preserves the current screen state and prevents re-animation of the home screen.
+ * This preserves the current screen state and prevents re-animation of the main tabs.
  */
 function* dismissReactNavigationModalsWithoutAnimation(): Generator {
   const navigationState = navigationRef.getState()
@@ -32,16 +32,16 @@ function* dismissReactNavigationModalsWithoutAnimation(): Generator {
     return
   }
 
-  // Find the index of the first non-modal screen (usually Home)
-  const homeScreenIndex = navigationState.routes.findIndex((route) => route.name === MobileScreens.Home)
+  // Find the index of the first non-modal screen (usually the main tabs)
+  const mainTabsScreenIndex = navigationState.routes.findIndex((route) => route.name === MobileScreens.MainTabs)
 
-  // If we're already on the home screen or no modals are open, no action needed
-  if (homeScreenIndex === -1 || navigationState.index === homeScreenIndex) {
+  // If we're already on the main tabs or no modals are open, no action needed
+  if (mainTabsScreenIndex === -1 || navigationState.index === mainTabsScreenIndex) {
     return
   }
 
-  // Calculate how many screens we need to go back to reach the home screen
-  const modalsToClose = navigationState.index - homeScreenIndex
+  // Calculate how many screens we need to go back to reach the main tabs
+  const modalsToClose = navigationState.index - mainTabsScreenIndex
 
   // Go back multiple times to dismiss modals without resetting the stack
   for (let i = 0; i < modalsToClose; i++) {

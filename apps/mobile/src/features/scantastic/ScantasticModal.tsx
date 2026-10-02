@@ -1,20 +1,21 @@
+import { Button, Flex, Text, TouchableArea } from '@universe/mycelium'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
+import { TestID } from '@universe/test'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { AppStackScreenProp } from 'src/app/navigation/types'
 import { useReactNavigationModal } from 'src/components/modals/useReactNavigationModal'
+import { getUniswapServiceUrls } from 'src/config'
 import { useBiometricAppSettings } from 'src/features/biometrics/useBiometricAppSettings'
 import { useBiometricPrompt } from 'src/features/biometricsSettings/hooks'
 import { closeAllModals } from 'src/features/modals/modalSlice'
 import { getEncryptedMnemonic } from 'src/features/scantastic/ScantasticEncryption'
-import { Button, Flex, Text, TouchableArea, useSporeColors } from 'ui/src'
 import { AlertTriangleFilled, Faceid, Laptop, LinkBrokenHorizontal, Wifi } from 'ui/src/components/icons'
 import { Modal } from 'uniswap/src/components/modals/Modal'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
 import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
 import { AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { logger } from 'utilities/src/logger/logger'
 import { ONE_MINUTE_MS, ONE_SECOND_MS } from 'utilities/src/time/time'
 import { useInterval } from 'utilities/src/time/timing'
@@ -121,7 +122,7 @@ export function ScantasticModal({ route }: AppStackScreenProp<typeof ModalName.S
 
     try {
       // submit encrypted blob
-      const response = await fetch(`${uniswapUrls.scantasticApiUrl}/blob`, {
+      const response = await fetch(`${getUniswapServiceUrls().scantasticApiUrl}/blob`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
@@ -181,7 +182,7 @@ export function ScantasticModal({ route }: AppStackScreenProp<typeof ModalName.S
       return
     }
     try {
-      const response = await fetch(`${uniswapUrls.scantasticApiUrl}/otp-state/${uuid}`, {
+      const response = await fetch(`${getUniswapServiceUrls().scantasticApiUrl}/otp-state/${uuid}`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',

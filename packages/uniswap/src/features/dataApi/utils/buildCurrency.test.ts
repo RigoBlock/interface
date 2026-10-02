@@ -1,5 +1,5 @@
 import { NativeCurrency, Token } from '@uniswap/sdk-core'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { buildCurrency } from 'uniswap/src/features/dataApi/utils/buildCurrency'
 
 const TEST_TOKEN_ADDRESS = '0xabcdef0123456789abcdef0123456789abcdef01'

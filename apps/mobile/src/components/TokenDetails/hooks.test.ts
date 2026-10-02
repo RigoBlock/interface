@@ -1,62 +1,62 @@
-import { NetworkStatus } from '@apollo/client'
 import { useTokenDetailsNavigation } from 'src/components/TokenDetails/hooks'
 import { preloadedMobileState } from 'src/test/fixtures'
 import { act, renderHook, waitFor } from 'src/test/test-utils'
-import { useCrossChainBalances } from 'uniswap/src/data/balances/hooks/useCrossChainBalances'
+import { useCrossChainBalances } from 'uniswap/src/data/apiClients/dataApiService/balances/hooks/useCrossChainBalances'
+import { toGraphQLChain } from 'uniswap/src/features/chains/utils'
 import { usePortfolioBalances } from 'uniswap/src/features/portfolio/balances/hooks'
 import {
-  portfolio,
+  portfolioBalance,
   portfolioBalances,
   SAMPLE_CURRENCY_ID_1,
   SAMPLE_SEED_ADDRESS_1,
-  tokenBalance,
-  usdcArbitrumToken,
-  usdcBaseToken,
 } from 'uniswap/src/test/fixtures'
+import { usdcArbitrumV2Token, usdcBaseV2Token } from 'uniswap/src/test/fixtures/dataApi/tokens'
 import { MobileScreens } from 'uniswap/src/types/screens/mobile'
 import { portfolioBalancesById } from 'uniswap/src/utils/balances'
+import type { MockedFunction } from 'vitest'
 
 const mockedNavigation = {
-  navigate: jest.fn(),
-  canGoBack: jest.fn(),
-  pop: jest.fn(),
-  push: jest.fn(),
+  navigate: vi.fn(),
+  canGoBack: vi.fn(),
+  pop: vi.fn(),
+  push: vi.fn(),
 }
 
-jest.mock('@react-navigation/native', () => {
-  const actualNav = jest.requireActual('@react-navigation/native')
+vi.mock('@react-navigation/native', async () => {
+  const actualNav = await vi.importActual('@react-navigation/native')
   return {
     ...actualNav,
     useNavigation: () => mockedNavigation,
   }
 })
 
-jest.mock('uniswap/src/features/portfolio/balances/hooks', () => {
-  const actual = jest.requireActual('uniswap/src/features/portfolio/balances/hooks')
-  const { NetworkStatus: MockNetworkStatus } = jest.requireActual('@apollo/client')
+vi.mock('uniswap/src/features/portfolio/balances/hooks', async () => {
+  const actual = await vi.importActual('uniswap/src/features/portfolio/balances/hooks')
   return {
     ...actual,
-    usePortfolioBalances: jest.fn(() => ({
+    usePortfolioBalances: vi.fn(() => ({
       data: undefined,
       loading: false,
-      networkStatus: MockNetworkStatus.ready,
-      refetch: jest.fn(),
+      isPending: false,
+      isError: false,
+      refetch: vi.fn(),
       error: undefined,
     })),
   }
 })
 
-const mockUsePortfolioBalances = usePortfolioBalances as jest.MockedFunction<typeof usePortfolioBalances>
+const mockUsePortfolioBalances = usePortfolioBalances as MockedFunction<typeof usePortfolioBalances>
 
 describe(useCrossChainBalances, () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     // Reset mock to default state
     mockUsePortfolioBalances.mockReturnValue({
       data: undefined,
       loading: false,
-      networkStatus: NetworkStatus.ready,
-      refetch: jest.fn(),
+      isPending: false,
+      isError: false,
+      refetch: vi.fn(),
       error: undefined,
     })
   })
@@ -85,16 +85,16 @@ describe(useCrossChainBalances, () => {
     })
 
     it('returns balance if there is at least one for the specified currency', async () => {
-      const Portfolio = portfolio()
-      const testPortfolioBalances = portfolioBalances({ portfolio: Portfolio })
+      const testPortfolioBalances = portfolioBalances()
       const currentChainBalance = testPortfolioBalances[0]!
 
       const portfolioBalancesByIdData = portfolioBalancesById(testPortfolioBalances)
       mockUsePortfolioBalances.mockReturnValue({
         data: portfolioBalancesByIdData,
         loading: false,
-        networkStatus: NetworkStatus.ready,
-        refetch: jest.fn(),
+        isPending: false,
+        isError: false,
+        refetch: vi.fn(),
         error: undefined,
       })
 
@@ -144,24 +144,22 @@ describe(useCrossChainBalances, () => {
     })
 
     it('does not include current chain balance in other chain balances', async () => {
-      const tokenBalances = [tokenBalance({ token: usdcBaseToken() }), tokenBalance({ token: usdcArbitrumToken() })]
+      const tokens = [usdcBaseV2Token(), usdcArbitrumV2Token()]
 
-      const bridgeInfo = tokenBalances.map((balance) => ({
-        chain: balance.token.chain,
-        address: balance.token.address,
+      const bridgeInfo = tokens.map((token) => ({
+        chain: toGraphQLChain(token.chainId),
+        address: token.address,
       }))
-      const Portfolio = portfolio({ tokenBalances })
-      const testPortfolioBalances = portfolioBalances({
-        portfolio: Portfolio,
-      })
+      const testPortfolioBalances = tokens.map((token) => portfolioBalance({ fromToken: token }))
       const [currentChainBalance, ...otherChainBalances] = testPortfolioBalances
 
       const portfolioBalancesByIdData = portfolioBalancesById(testPortfolioBalances)
       mockUsePortfolioBalances.mockReturnValue({
         data: portfolioBalancesByIdData,
         loading: false,
-        networkStatus: NetworkStatus.ready,
-        refetch: jest.fn(),
+        isPending: false,
+        isError: false,
+        refetch: vi.fn(),
         error: undefined,
       })
 
@@ -186,7 +184,7 @@ describe(useCrossChainBalances, () => {
 
 describe(useTokenDetailsNavigation, () => {
   afterEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('returns correct result', () => {
@@ -196,6 +194,19 @@ describe(useTokenDetailsNavigation, () => {
       preload: expect.any(Function),
       navigate: expect.any(Function),
       navigateWithPop: expect.any(Function),
+      push: expect.any(Function),
+    })
+  })
+
+  it('pushes token details onto the stack without popping when push is called', async () => {
+    const { result } = renderHook(() => useTokenDetailsNavigation())
+
+    await act(() => result.current.push(SAMPLE_CURRENCY_ID_1))
+
+    expect(mockedNavigation.pop).not.toHaveBeenCalled()
+    expect(mockedNavigation.push).toHaveBeenNthCalledWith(1, MobileScreens.TokenDetails, {
+      currencyId: SAMPLE_CURRENCY_ID_1,
+      isMultichainAsset: undefined,
     })
   })
 
@@ -214,6 +225,18 @@ describe(useTokenDetailsNavigation, () => {
     expect(mockedNavigation.navigate).toHaveBeenCalledTimes(1)
     expect(mockedNavigation.navigate).toHaveBeenNthCalledWith(1, MobileScreens.TokenDetails, {
       currencyId: SAMPLE_CURRENCY_ID_1,
+      isMultichainAsset: undefined,
+    })
+  })
+
+  it('forwards the isMultichainAsset hint to the navigation params when provided', async () => {
+    const { result } = renderHook(() => useTokenDetailsNavigation())
+
+    await act(() => result.current.navigate(SAMPLE_CURRENCY_ID_1, { isMultichainAsset: true }))
+
+    expect(mockedNavigation.navigate).toHaveBeenNthCalledWith(1, MobileScreens.TokenDetails, {
+      currencyId: SAMPLE_CURRENCY_ID_1,
+      isMultichainAsset: true,
     })
   })
 
@@ -228,6 +251,7 @@ describe(useTokenDetailsNavigation, () => {
       expect(mockedNavigation.push).toHaveBeenCalledTimes(1)
       expect(mockedNavigation.push).toHaveBeenNthCalledWith(1, MobileScreens.TokenDetails, {
         currencyId: SAMPLE_CURRENCY_ID_1,
+        isMultichainAsset: undefined,
       })
     })
 
@@ -241,6 +265,7 @@ describe(useTokenDetailsNavigation, () => {
       expect(mockedNavigation.push).toHaveBeenCalledTimes(1)
       expect(mockedNavigation.push).toHaveBeenNthCalledWith(1, MobileScreens.TokenDetails, {
         currencyId: SAMPLE_CURRENCY_ID_1,
+        isMultichainAsset: undefined,
       })
     })
   })

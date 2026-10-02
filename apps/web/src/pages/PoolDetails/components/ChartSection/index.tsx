@@ -1,58 +1,82 @@
 import { ProtocolVersion as RestProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
-import { Currency, NativeCurrency, Token } from '@uniswap/sdk-core'
-import { FeeAmount } from '@uniswap/v3-sdk'
-import { GraphQLApi, parseRestProtocolVersion } from '@universe/api'
+import { NativeCurrency, Token } from '@uniswap/sdk-core'
+import { UniverseChainId } from '@universe/chains'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Flex } from '@universe/mycelium'
+import { SegmentedControl } from '@universe/mycelium/segmented-control-compat'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
 import { useAtomValue } from 'jotai/utils'
+import { createParser, useQueryState } from 'nuqs'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, SegmentedControl, styled, Text, useMedia, useSporeColors } from 'ui/src'
-import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
-import { useGetPoolsByTokens } from 'uniswap/src/data/rest/getPools'
-import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { fromGraphQLChain } from 'uniswap/src/features/chains/utils'
+import { getLowVarianceAxisDecimals } from 'uniswap/src/components/charts/utils'
+import { v2TokenToCurrency } from 'uniswap/src/features/dataApi/utils/parsedToken'
+import { useCurrentLocale } from 'uniswap/src/features/language/hooks'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPriceWrapper'
+import { InterfaceEventName, InterfacePageName } from 'uniswap/src/features/telemetry/constants'
+import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
+import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'
 import { NumberType } from 'utilities/src/format/types'
-import { PoolData } from '~/appGraphql/data/pools/usePoolData'
-import { gqlToCurrency, TimePeriod, toHistoryDuration } from '~/appGraphql/data/util'
-import { TickTooltipContent } from '~/components/Charts/ActiveLiquidityChart/TickTooltip'
 import { ChartHeader } from '~/components/Charts/ChartHeader'
 import { Chart, refitChartContentAtom } from '~/components/Charts/ChartModel'
-import { LiquidityBarChartModel, useLiquidityBarData } from '~/components/Charts/LiquidityChart'
-import { LiquidityBarData } from '~/components/Charts/LiquidityChart/types'
 import { ChartSkeleton } from '~/components/Charts/LoadingState'
 import { PriceChartData, PriceChartModel } from '~/components/Charts/PriceChart'
 import { PriceChartDelta } from '~/components/Charts/PriceChart/PriceChartDelta'
+import { getCandlestickPriceBounds } from '~/components/Charts/PriceChart/utils'
 import { ChartQueryResult, ChartType, DataQuality, PriceChartType } from '~/components/Charts/utils'
 import { VolumeChart } from '~/components/Charts/VolumeChart'
 import { SingleHistogramData } from '~/components/Charts/VolumeChart/utils'
-import ErrorBoundary from '~/components/ErrorBoundary'
-import { ChartActionsContainer } from '~/components/Explore/chart/ChartActionsContainer'
-import { ChartTypeToggle } from '~/components/Explore/chart/ChartTypeToggle'
-import { LoadingChart } from '~/components/Explore/chart/LoadingChart'
+import type { PoolData } from '~/data/pools/poolData'
+import { TimePeriod, toHistoryDuration } from '~/data/util'
+import { ChartActionsContainer } from '~/features/Explore/chart/ChartActionsContainer'
+import { ChartTypeToggle } from '~/features/Explore/chart/ChartTypeToggle'
+import { getPillTimeSelectorOptions, ORDERED_TIMES } from '~/features/Explore/timeLabels'
+import { ZoomButtons } from '~/features/Liquidity/charts/D3LiquidityChartShared/components/ZoomButtons'
+import { useLiquidityServicePoolPriceChartData } from '~/features/Liquidity/charts/useLiquidityServicePoolPriceChartData'
+import { useLiquidityServicePoolVolumeChartData } from '~/features/Liquidity/charts/useLiquidityServicePoolVolumeChartData'
+import { useLiquidityServiceGetPool } from '~/features/Liquidity/hooks/useLiquidityServiceGetPool'
+import { getTickToPrice, getV4TickToPrice } from '~/features/Liquidity/utils/getTickToPrice'
+import { V2Reserves } from '~/features/Liquidity/utils/v2SyntheticTicks'
+import { tryParseCurrencyAmount } from '~/lib/utils/tryParseCurrencyAmount'
+import { ChartPriceText, PriceDisplayContainer } from '~/pages/PoolDetails/components/ChartSection/ChartPriceDisplay'
 import {
-  DEFAULT_PILL_TIME_SELECTOR_OPTIONS,
-  DISPLAYS,
-  getTimePeriodFromDisplay,
-  TimePeriodDisplay,
-} from '~/components/Explore/constants'
-import { getTokenOrZeroAddress } from '~/components/Liquidity/utils/currency'
-import { SubscriptZeroPrice } from '~/components/Toucan/Shared/SubscriptZeroPrice'
-import { usePoolPriceChartData } from '~/hooks/usePoolPriceChartData'
-import tryParseCurrencyAmount from '~/lib/utils/tryParseCurrencyAmount'
-import { usePDPVolumeChartData } from '~/pages/PoolDetails/components/ChartSection/hooks'
-import { EllipsisTamaguiStyle } from '~/theme/components/styles'
+  D3LiquidityPoolChart,
+  D3LiquidityPoolChartZoomActions,
+} from '~/pages/PoolDetails/components/ChartSection/D3LiquidityPoolChart'
+import { DepthChart } from '~/pages/PoolDetails/components/ChartSection/DepthChart'
+import { formatPriceWithSubscript } from '~/pages/PoolDetails/components/formatPriceWithSubscript'
+import { unwrappedToken } from '~/utils/unwrappedToken'
 
 const PDP_CHART_HEIGHT_PX = 356
-const PDP_CHART_SELECTOR_OPTIONS = [ChartType.VOLUME, ChartType.PRICE, ChartType.LIQUIDITY] as const
+// Pool prices routinely run to 1e-6 and below, so keep enough significant digits to survive `Number()`.
+const SPOT_PRICE_SIGNIFICANT_DIGITS = 12
+const PDP_CHART_SELECTOR_OPTIONS = [ChartType.VOLUME, ChartType.PRICE, ChartType.LIQUIDITY, ChartType.DEPTH] as const
 
 export type PoolsDetailsChartType = (typeof PDP_CHART_SELECTOR_OPTIONS)[number]
+
+const CHART_URL_VALUE_TO_TYPE: Record<string, PoolsDetailsChartType> = {
+  volume: ChartType.VOLUME,
+  price: ChartType.PRICE,
+  liquidity: ChartType.LIQUIDITY,
+  depth: ChartType.DEPTH,
+}
+const CHART_TYPE_TO_URL_VALUE: Record<PoolsDetailsChartType, string> = {
+  [ChartType.VOLUME]: 'volume',
+  [ChartType.PRICE]: 'price',
+  [ChartType.LIQUIDITY]: 'liquidity',
+  [ChartType.DEPTH]: 'depth',
+}
+const parseAsPDPChartType = createParser({
+  parse: (query: string) => CHART_URL_VALUE_TO_TYPE[query.toLowerCase()] ?? null,
+  serialize: (value: PoolsDetailsChartType) => CHART_TYPE_TO_URL_VALUE[value],
+})
+  .withDefault(ChartType.VOLUME)
+  .withOptions({ clearOnDefault: true })
 interface ChartSectionProps {
   poolData?: PoolData
   loading: boolean
   isReversed: boolean
-  chain?: GraphQLApi.Chain
+  chainId?: UniverseChainId
   tokenAColor: string
   tokenBColor: string
 }
@@ -67,91 +91,171 @@ type TDPChartState = {
   timePeriod: TimePeriod
   setTimePeriod: (timePeriod: TimePeriod) => void
   setChartType: (chartType: PoolsDetailsChartType) => void
+  selectedChartType: PoolsDetailsChartType
   activeQuery: ActiveQuery
   dataQuality?: DataQuality
+  priceEntries?: PriceChartData[]
+}
+
+/**
+ * Live spot price from the pool's active tick, oriented to match the chart's `priceInverted`
+ * display so it lands in the same units as the price-history entries.
+ *
+ * Reads the same liquidity-service `GetPool` row the liquidity and depth tabs already load for this
+ * pool (keyed on `{chainId, poolId}`), so the request is shared with them rather than being a new
+ * data source.
+ */
+function usePoolSpotPrice({
+  poolData,
+  isReversed,
+  chainId,
+  version,
+  enabled,
+}: {
+  poolData: PoolData | undefined
+  isReversed: boolean
+  chainId: UniverseChainId
+  version: RestProtocolVersion
+  enabled: boolean
+}): number | undefined {
+  const poolId = poolData?.idOrAddress
+  const { data } = useLiquidityServiceGetPool({ chainId, poolId, enabled })
+  const pool = data?.pool
+
+  return useMemo(() => {
+    // `sqrtPriceX96` is only set on an initialized pool; pair it with `currentTick` (proto3-optional,
+    // absent on an uninitialized row) so a real tick 0 (price 1) reads differently from "no tick".
+    if (!pool?.sqrtPriceX96 || pool.currentTick === undefined || !poolData) {
+      return undefined
+    }
+    const currency0 = v2TokenToCurrency(poolData.token0)
+    const currency1 = v2TokenToCurrency(poolData.token1)
+    const [base, quote] = isReversed ? [currency1, currency0] : [currency0, currency1]
+
+    const price =
+      version === RestProtocolVersion.V4
+        ? getV4TickToPrice({ baseCurrency: base, quoteCurrency: quote, tick: pool.currentTick })
+        : getTickToPrice({ baseToken: base?.wrapped, quoteToken: quote?.wrapped, tick: pool.currentTick })
+
+    return price ? Number(price.toSignificant(SPOT_PRICE_SIGNIFICANT_DIGITS)) : undefined
+  }, [pool?.sqrtPriceX96, pool?.currentTick, poolData, isReversed, version])
 }
 
 function usePDPChartState({
   poolData,
   isReversed,
-  chain,
+  chainId,
   protocolVersion,
 }: {
   poolData: PoolData | undefined
   isReversed: boolean
-  chain: GraphQLApi.Chain
-  protocolVersion: GraphQLApi.ProtocolVersion
+  chainId: UniverseChainId
+  protocolVersion: RestProtocolVersion
 }): TDPChartState {
   const [timePeriod, setTimePeriod] = useState<TimePeriod>(TimePeriod.DAY)
-  const [chartType, setChartType] = useState<PoolsDetailsChartType>(ChartType.VOLUME)
+  const [selectedChartType, setChartType] = useQueryState('chart', parseAsPDPChartType)
 
-  const isV2 = protocolVersion === GraphQLApi.ProtocolVersion.V2
-  const isV3 = protocolVersion === GraphQLApi.ProtocolVersion.V3
-  const isV4 = protocolVersion === GraphQLApi.ProtocolVersion.V4
+  const isV2 = protocolVersion === RestProtocolVersion.V2
+
+  // DEPTH is a different visualization of the same data as LIQUIDITY — share data fetching.
+  const chartType = selectedChartType === ChartType.DEPTH ? ChartType.LIQUIDITY : selectedChartType
+  const isV3 = protocolVersion === RestProtocolVersion.V3
+  const isV4 = protocolVersion === RestProtocolVersion.V4
   const variables = {
     addressOrId: poolData?.idOrAddress ?? '',
-    chain,
+    chainId,
     duration: toHistoryDuration(timePeriod),
     isV4,
     isV3,
     isV2,
   }
 
-  const priceQuery = usePoolPriceChartData({ variables, priceInverted: isReversed })
-  const volumeQuery = usePDPVolumeChartData({ variables })
+  const currentPrice = usePoolSpotPrice({
+    poolData,
+    isReversed,
+    chainId,
+    version: protocolVersion,
+    enabled: chartType === ChartType.PRICE,
+  })
+
+  const priceQuery = useLiquidityServicePoolPriceChartData({ variables, priceInverted: isReversed, currentPrice })
+  const volumeQuery = useLiquidityServicePoolVolumeChartData({ variables })
 
   return useMemo(() => {
-    // oxlint-disable-next-line typescript/consistent-return
-    const activeQuery = (() => {
-      switch (chartType) {
-        case ChartType.PRICE:
-          return priceQuery
-        case ChartType.VOLUME:
-          return volumeQuery
-        case ChartType.LIQUIDITY:
-          return {
-            chartType: ChartType.LIQUIDITY as const,
-            entries: [],
-            loading: false,
-            dataQuality: DataQuality.VALID,
-          }
-      }
-    })()
+    const activeQuery =
+      chartType === ChartType.PRICE
+        ? priceQuery
+        : chartType === ChartType.VOLUME
+          ? volumeQuery
+          : {
+              chartType: ChartType.LIQUIDITY as const,
+              entries: [],
+              loading: false,
+              dataQuality: DataQuality.VALID,
+            }
 
     return {
       timePeriod,
       setTimePeriod,
       setChartType,
+      selectedChartType,
       activeQuery,
+      priceEntries: priceQuery.entries,
     }
-  }, [chartType, volumeQuery, priceQuery, timePeriod])
+  }, [chartType, selectedChartType, volumeQuery, priceQuery, timePeriod, setChartType])
 }
 
-export default function ChartSection(props: ChartSectionProps) {
-  const { defaultChainId } = useEnabledChains()
+/**
+ * v2 has no ticks on chain; its liquidity and depth charts are derived from the pair's reserves,
+ * which `PoolData` already carries as the per-token TVL (decimal-adjusted).
+ */
+function useV2Reserves(poolData?: PoolData): V2Reserves | undefined {
+  const isV2 = poolData?.protocolVersion === RestProtocolVersion.V2
+  const reserve0 = poolData?.tvlToken0
+  const reserve1 = poolData?.tvlToken1
+  // Memoized on the raw numbers: the whole synthetic tick set is rebuilt whenever this changes
+  // identity, and it feeds a react-query key downstream.
+  return useMemo(
+    () => (isV2 && reserve0 !== undefined && reserve1 !== undefined ? { reserve0, reserve1 } : undefined),
+    [isV2, reserve0, reserve1],
+  )
+}
+
+export function ChartSection(props: ChartSectionProps) {
   const media = useMedia()
   const { t } = useTranslation()
+  const isLiquidityDepthChartEnabled = useFeatureFlag(FeatureFlags.LpPdpDepthChart)
+  const [zoomActions, setZoomActions] = useState<D3LiquidityPoolChartZoomActions | null>(null)
+  const v2Reserves = useV2Reserves(props.poolData)
 
-  const [currencyA, currencyB] = [
-    props.poolData?.token0 && gqlToCurrency(props.poolData.token0),
-    props.poolData?.token1 && gqlToCurrency(props.poolData.token1),
-  ]
+  // Memoized: these flow into the chart hooks' dependency arrays, and `v2TokenToCurrency` mints a
+  // fresh Token every call, which would rebuild the whole tick distribution on every render.
+  const currencyA = useMemo(
+    () => props.poolData?.token0 && v2TokenToCurrency(props.poolData.token0),
+    [props.poolData?.token0],
+  )
+  const currencyB = useMemo(
+    () => props.poolData?.token1 && v2TokenToCurrency(props.poolData.token1),
+    [props.poolData?.token1],
+  )
 
-  const { setChartType, timePeriod, setTimePeriod, activeQuery } = usePDPChartState({
+  const { setChartType, timePeriod, setTimePeriod, activeQuery, selectedChartType, priceEntries } = usePDPChartState({
     poolData: props.poolData,
     isReversed: props.isReversed,
-    chain: props.chain ?? GraphQLApi.Chain.Ethereum,
-    protocolVersion: props.poolData?.protocolVersion ?? GraphQLApi.ProtocolVersion.V3,
+    chainId: props.chainId ?? UniverseChainId.Mainnet,
+    protocolVersion: props.poolData?.protocolVersion ?? RestProtocolVersion.V3,
   })
 
   const refitChartContent = useAtomValue(refitChartContentAtom)
+  const analyticsChainId = props.chainId
+  const poolId = props.poolData?.idOrAddress
 
   // TODO(WEB-3740): Integrate BE tick query, remove special casing for liquidity chart
   const loading = props.loading || (activeQuery.chartType !== ChartType.LIQUIDITY ? activeQuery.loading : false)
 
   // oxlint-disable-next-line typescript/consistent-return
   const ChartBody = (() => {
-    if (!currencyA || !currencyB || !props.poolData || !props.chain) {
+    if (!currencyA || !currencyB || !props.poolData || !props.chainId) {
       return <ChartSkeleton type={activeQuery.chartType} height={PDP_CHART_HEIGHT_PX} />
     }
 
@@ -164,15 +268,19 @@ export default function ChartSection(props: ChartSectionProps) {
       tokenB: currencyB,
       tokenAColor: props.tokenAColor,
       tokenBColor: props.tokenBColor,
-      chainId: fromGraphQLChain(props.chain) ?? defaultChainId,
+      chainId: props.chainId,
       poolId: props.poolData.idOrAddress,
       hooks: props.poolData.hookAddress,
-      version: parseRestProtocolVersion(props.poolData.protocolVersion) ?? RestProtocolVersion.V3,
+      version: props.poolData.protocolVersion ?? RestProtocolVersion.V3,
+      v2Reserves,
     }
 
     // TODO(WEB-3740): Integrate BE tick query, remove special casing for liquidity chart
     if (activeQuery.chartType === ChartType.LIQUIDITY) {
-      return <LiquidityChart {...selectedChartProps} />
+      if (selectedChartType === ChartType.DEPTH) {
+        return <DepthChart {...selectedChartProps} onZoomActionsReady={setZoomActions} priceEntries={priceEntries} />
+      }
+      return <D3LiquidityPoolChart {...selectedChartProps} onZoomActionsReady={setZoomActions} />
     }
     if (activeQuery.dataQuality === DataQuality.INVALID) {
       const errorText = loading ? undefined : t('chart.error.pools')
@@ -188,7 +296,6 @@ export default function ChartSection(props: ChartSectionProps) {
             {...selectedChartProps}
             data={activeQuery.entries}
             stale={stale}
-            tokenFormatType={NumberType.TokenNonTx}
             overrideColor={props.isReversed ? props.tokenBColor : props.tokenAColor}
           />
         )
@@ -200,73 +307,101 @@ export default function ChartSection(props: ChartSectionProps) {
   // BE does not support hourly price data for pools
   const filteredTimeOptions = useMemo(() => {
     if (activeQuery.chartType === ChartType.PRICE) {
-      const filtered = DEFAULT_PILL_TIME_SELECTOR_OPTIONS.filter((option) => option.value !== TimePeriodDisplay.HOUR)
       if (timePeriod === TimePeriod.HOUR) {
         setTimePeriod(TimePeriod.DAY)
       }
       return {
-        options: filtered,
-        selected: DISPLAYS[timePeriod],
+        options: getPillTimeSelectorOptions(
+          t,
+          ORDERED_TIMES.filter((period) => period !== TimePeriod.HOUR),
+        ),
+        selected: timePeriod,
       }
     }
     return {
-      options: DEFAULT_PILL_TIME_SELECTOR_OPTIONS,
-      selected: DISPLAYS[timePeriod],
+      options: getPillTimeSelectorOptions(t),
+      selected: timePeriod,
     }
-  }, [activeQuery.chartType, timePeriod, setTimePeriod])
+  }, [activeQuery.chartType, timePeriod, setTimePeriod, t])
 
-  const disabledChartOption =
-    props.poolData?.protocolVersion === GraphQLApi.ProtocolVersion.V2 ? ChartType.LIQUIDITY : undefined
+  const availableChartOptions = useMemo(
+    () =>
+      isLiquidityDepthChartEnabled
+        ? PDP_CHART_SELECTOR_OPTIONS
+        : PDP_CHART_SELECTOR_OPTIONS.filter((o) => o !== ChartType.DEPTH),
+    [isLiquidityDepthChartEnabled],
+  )
+
+  // When the depth flag is off but the URL still holds ?chart=depth, reflect it as liquidity in the toggle.
+  const displayChartType = isLiquidityDepthChartEnabled ? selectedChartType : activeQuery.chartType
 
   return (
-    <Flex data-testid="pdp-chart-container">
+    <Flex testID="pdp-chart-container">
+      <Flex height="$spacing48" justifyContent="center" mb="$spacing24">
+        <ChartTypeToggle
+          variant="text"
+          availableOptions={availableChartOptions}
+          currentChartType={displayChartType}
+          onChartTypeChange={(c: ChartType) => {
+            if (c !== displayChartType) {
+              sendAnalyticsEvent(InterfaceEventName.ChartSettingSelected, {
+                page: InterfacePageName.PoolDetailsPage,
+                selection: 'chart_type',
+                chart_type: c,
+                time_period: timePeriod,
+                previous_value: displayChartType,
+                chain_id: analyticsChainId,
+                pool_id: poolId,
+              })
+            }
+            if (c !== ChartType.LIQUIDITY) {
+              setZoomActions(null)
+            }
+            setChartType(c as PoolsDetailsChartType)
+          }}
+        />
+      </Flex>
       {ChartBody}
-      <ChartActionsContainer>
-        <Flex $md={{ width: '100%' }}>
-          <ChartTypeToggle
-            availableOptions={PDP_CHART_SELECTOR_OPTIONS}
-            currentChartType={activeQuery.chartType}
-            onChartTypeChange={(c: ChartType) => {
-              setChartType(c as PoolsDetailsChartType)
-            }}
-            disabledOption={disabledChartOption}
-          />
-        </Flex>
-        {activeQuery.chartType !== ChartType.LIQUIDITY && (
+      {activeQuery.chartType === ChartType.LIQUIDITY ? (
+        zoomActions ? (
+          <ChartActionsContainer>
+            <ZoomButtons
+              onZoomIn={zoomActions.zoomIn}
+              onZoomOut={zoomActions.zoomOut}
+              onReset={zoomActions.resetView}
+            />
+          </ChartActionsContainer>
+        ) : null
+      ) : (
+        <ChartActionsContainer>
           <Flex $md={{ width: '100%' }}>
             <SegmentedControl
               fullWidth={media.md}
               options={filteredTimeOptions.options}
               selectedOption={filteredTimeOptions.selected}
-              onSelectOption={(option) => {
-                const time = getTimePeriodFromDisplay(option as TimePeriodDisplay)
-                if (time === timePeriod) {
+              onSelectOption={(option: TimePeriod) => {
+                if (option === timePeriod) {
                   refitChartContent?.()
                 } else {
-                  setTimePeriod(time)
+                  sendAnalyticsEvent(InterfaceEventName.ChartSettingSelected, {
+                    page: InterfacePageName.PoolDetailsPage,
+                    selection: 'time_period',
+                    chart_type: selectedChartType,
+                    time_period: option,
+                    previous_value: timePeriod,
+                    chain_id: analyticsChainId,
+                    pool_id: poolId,
+                  })
+                  setTimePeriod(option)
                 }
               }}
             />
           </Flex>
-        )}
-      </ChartActionsContainer>
+        </ChartActionsContainer>
+      )}
     </Flex>
   )
 }
-
-const PriceDisplayContainer = styled(Flex, {
-  flexWrap: 'wrap',
-  columnGap: '$spacing4',
-})
-
-const ChartPriceText = styled(Text, {
-  variant: 'heading2',
-  ...EllipsisTamaguiStyle,
-  $md: {
-    fontSize: 24,
-    lineHeight: 32,
-  },
-})
 
 function PriceChart({
   tokenA,
@@ -274,7 +409,6 @@ function PriceChart({
   isReversed,
   data,
   stale,
-  tokenFormatType,
   overrideColor,
 }: {
   tokenA: Token | NativeCurrency
@@ -282,15 +416,30 @@ function PriceChart({
   isReversed: boolean
   data: PriceChartData[]
   stale: boolean
-  tokenFormatType?: NumberType
   overrideColor?: string
 }) {
-  const { convertFiatAmountFormatted, formatCurrencyAmount } = useLocalizationContext()
+  const { convertFiatAmountFormatted, formatNumberOrString } = useLocalizationContext()
+  const locale = useCurrentLocale()
   const [baseCurrency, quoteCurrency] = isReversed ? [tokenB, tokenA] : [tokenA, tokenB]
+  const baseSymbol = unwrappedToken(baseCurrency).symbol ?? baseCurrency.symbol
+  const quoteSymbol = unwrappedToken(quoteCurrency).symbol ?? quoteCurrency.symbol
+
+  // Stablecoin pools sit in a price range too tight for the magnitude-based formatter to resolve,
+  // so derive the precision from the visible range to keep gridlines (and the header) distinct.
+  const axisFractionDigits = useMemo(() => {
+    const { min, max } = getCandlestickPriceBounds(data)
+    return getLowVarianceAxisDecimals(min, max)
+  }, [data])
+
+  const yAxisFormatter = useMemo(
+    () => (price: number) =>
+      formatPriceWithSubscript({ price, locale, formatNumberOrString, fractionDigits: axisFractionDigits }),
+    [locale, formatNumberOrString, axisFractionDigits],
+  )
 
   const params = useMemo(
-    () => ({ data, stale, type: PriceChartType.LINE, tokenFormatType }),
-    [data, stale, tokenFormatType],
+    () => ({ data, stale, type: PriceChartType.LINE, yAxisFormatter }),
+    [data, stale, yAxisFormatter],
   )
 
   const lastPrice = data[data.length - 1]
@@ -306,175 +455,30 @@ function PriceChart({
     >
       {(crosshairData) => {
         const displayValue = crosshairData ?? lastPrice
+        // `useLiquidityServicePoolPriceChartData` emits flat entries — `buildFlatEntry` sets `value`
+        // and every OHLC field to the same price — so reading `close` here is equivalent to `value`.
         const priceDisplay = (
           <PriceDisplayContainer>
             <ChartPriceText>
-              {`1 ${baseCurrency.symbol} = ${formatCurrencyAmount({
-                // oxlint-disable-next-line typescript/no-unnecessary-condition
-                value: tryParseCurrencyAmount((displayValue?.value ?? displayValue.close).toString(), baseCurrency),
-              })} 
-            ${quoteCurrency.symbol}`}
+              {`1 ${baseSymbol} = ${formatPriceWithSubscript({
+                price: displayValue.close,
+                locale,
+                formatNumberOrString,
+                fractionDigits: axisFractionDigits,
+              })} ${quoteSymbol}`}
             </ChartPriceText>
-            <ChartPriceText color="neutral2">
+            <ChartPriceText color="$neutral2">
               {/* the usd price is only calculated for the most recent data point so hide it when selecting a crosshair */}
               {price && !crosshairData
                 ? '(' + convertFiatAmountFormatted(price.toSignificant(), NumberType.FiatTokenPrice) + ')'
                 : ''}
             </ChartPriceText>
+            <PriceChartDelta startingPrice={data[0].close} endingPrice={displayValue.close} />
           </PriceDisplayContainer>
         )
         return (
-          <ChartHeader
-            value={priceDisplay}
-            additionalFields={<PriceChartDelta startingPrice={data[0].close} endingPrice={displayValue.close} />}
-            valueFormatterType={NumberType.FiatTokenPrice}
-            time={crosshairData?.time}
-          />
+          <ChartHeader value={priceDisplay} valueFormatterType={NumberType.FiatTokenPrice} time={crosshairData?.time} />
         )
-      }}
-    </Chart>
-  )
-}
-
-function LiquidityChart({
-  tokenA,
-  tokenB,
-  tokenAColor,
-  tokenBColor,
-  feeTier,
-  isReversed,
-  chainId,
-  version,
-  hooks,
-  poolId,
-}: {
-  tokenA: Currency
-  tokenB: Currency
-  tokenAColor: string
-  tokenBColor: string
-  feeTier: FeeAmount
-  isReversed: boolean
-  chainId: UniverseChainId
-  version: RestProtocolVersion
-  hooks?: string
-  poolId?: string
-}) {
-  const { t } = useTranslation()
-  const tokenADescriptor = tokenA.symbol ?? tokenA.name ?? t('common.tokenA')
-  const tokenBDescriptor = tokenB.symbol ?? tokenB.name ?? t('common.tokenB')
-
-  const { data: poolData } = useGetPoolsByTokens(
-    {
-      fee: feeTier,
-      chainId,
-      protocolVersions: [version],
-      token0: getTokenOrZeroAddress(tokenA),
-      token1: getTokenOrZeroAddress(tokenB),
-      hooks: hooks ?? ZERO_ADDRESS,
-    },
-    true,
-  )
-
-  const sdkCurrencies = useMemo(
-    () => ({
-      TOKEN0: tokenA,
-      TOKEN1: tokenB,
-    }),
-    [tokenA, tokenB],
-  )
-
-  const { tickData, activeTick, loading } = useLiquidityBarData({
-    sdkCurrencies,
-    feeTier,
-    isReversed,
-    chainId,
-    version,
-    hooks,
-    poolId,
-    tickSpacing: poolData?.pools[0]?.tickSpacing,
-  })
-
-  const colors = useSporeColors()
-  const params = useMemo(() => {
-    return {
-      data: tickData?.barData ?? [],
-      tokenAColor,
-      tokenBColor,
-      highlightColor: colors.surface3.val,
-      activeTick,
-      activeTickProgress: tickData?.activeRangePercentage,
-      hideTooltipBorder: true,
-    }
-  }, [activeTick, tokenAColor, tokenBColor, colors, tickData])
-
-  if (loading) {
-    return <LoadingChart />
-  }
-
-  return (
-    <Chart
-      height={PDP_CHART_HEIGHT_PX}
-      Model={LiquidityBarChartModel}
-      params={params}
-      showDottedBackground
-      TooltipBody={({ data: crosshairData }: { data: LiquidityBarData }) => (
-        // TODO(WEB-3628): investigate potential off-by-one or subgraph issues causing calculated TVL issues on 1 bip pools
-        // Also remove Error Boundary when its determined its not needed
-        <ErrorBoundary fallback={() => null}>
-          {tickData?.activeRangeData && (
-            <TickTooltipContent
-              baseCurrency={tokenB}
-              quoteCurrency={tokenA}
-              hoveredTick={crosshairData}
-              currentTick={tickData.activeRangeData.tick}
-              currentPrice={parseFloat(tickData.activeRangeData.price0)}
-              showQuoteCurrencyFirst={false}
-            />
-          )}
-        </ErrorBoundary>
-      )}
-    >
-      {(crosshair) => {
-        const displayPoint = crosshair ?? tickData?.activeRangeData
-        const display = (
-          <Flex gap="$spacing8" $md={{ gap: '$spacing4' }}>
-            <Text variant="heading3" animation="125ms" enterStyle={{ opacity: 0 }}>
-              <Flex row gap="$spacing4">
-                {`1 ${tokenADescriptor} =`}{' '}
-                <SubscriptZeroPrice
-                  variant="heading3"
-                  value={parseFloat(displayPoint?.price0 ?? '0')}
-                  subscriptThreshold={6}
-                  symbol={tokenBDescriptor}
-                />
-              </Flex>
-            </Text>
-            <Text variant="heading3" animation="125ms" enterStyle={{ opacity: 0 }}>
-              <Flex row gap="$spacing4">
-                {' '}
-                {`1 ${tokenBDescriptor} =`}{' '}
-                <SubscriptZeroPrice
-                  variant="heading3"
-                  value={parseFloat(displayPoint?.price1 ?? '0')}
-                  subscriptThreshold={6}
-                  symbol={tokenADescriptor}
-                />
-              </Flex>
-            </Text>
-            {displayPoint && displayPoint.tick === activeTick && (
-              <Text
-                variant="subheading2"
-                color="$neutral2"
-                animation="125ms"
-                enterStyle={{ opacity: 0 }}
-                $md={{ variant: 'body3' }}
-              >
-                {t('pool.activeRange')}
-              </Text>
-            )}
-          </Flex>
-        )
-        return <ChartHeader value={display} />
       }}
     </Chart>
   )

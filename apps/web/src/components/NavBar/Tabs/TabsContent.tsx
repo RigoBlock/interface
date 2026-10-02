@@ -1,20 +1,23 @@
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { ChartBar } from '@universe/mycelium/icons/ChartBar'
+import { CoinConvert } from '@universe/mycelium/icons/CoinConvert'
+import { Compass } from '@universe/mycelium/icons/Compass'
+import { CreditCard } from '@universe/mycelium/icons/CreditCard'
+import { Pools } from '@universe/mycelium/icons/Pools'
+import { ReceiveAlt } from '@universe/mycelium/icons/ReceiveAlt'
+import { Wallet } from '@universe/mycelium/icons/Wallet'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router'
-import { useSporeColors } from 'ui/src'
-import { CoinConvert } from 'ui/src/components/icons/CoinConvert'
-import { Compass } from 'ui/src/components/icons/Compass'
-import { CreditCard } from 'ui/src/components/icons/CreditCard'
-import { Pools } from 'ui/src/components/icons/Pools'
-import { ReceiveAlt } from 'ui/src/components/icons/ReceiveAlt'
-import { Wallet } from 'ui/src/components/icons/Wallet'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { SwapV2 } from '~/components/Icons/SwapV2'
 import { MenuItem } from '~/components/NavBar/CompanyMenu/Content'
 import { PageType } from '~/hooks/useIsPage'
+import { ADD_LIQUIDITY_PATH } from '~/pages/AddLiquidity/poolLinkParams'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { PortfolioTab } from '~/pages/Portfolio/types'
 import { buildPortfolioUrl } from '~/pages/Portfolio/utils/portfolioUrls'
+import { EntryPointKind, resolveEntryPoint } from '~/utils/createPositionEntryPoint'
 
 export type TabsSection = {
   title: string
@@ -23,6 +26,8 @@ export type TabsSection = {
   items?: TabsItem[]
   closeMenu?: () => void
   icon?: JSX.Element
+  /** Small pill rendered next to the tab label (e.g. the Launches "Beta" tag). */
+  badge?: JSX.Element
   elementName: ElementName
 }
 
@@ -32,11 +37,14 @@ export type TabsItem = MenuItem & {
 
 export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSection[] => {
   const { t } = useTranslation()
-  const { pathname } = useLocation()
-  const { chainId: portfolioChainId } = usePortfolioRoutes()
+  const { pathname, search, state } = useLocation()
+  const { chainId: portfolioChainId, isExternalWallet } = usePortfolioRoutes()
   const colors = useSporeColors()
 
   const isPortfolioDefiTabEnabled = useFeatureFlag(FeatureFlags.PortfolioDefiTab)
+  const portfolioPoolsBalancesEnabled = useFeatureFlag(FeatureFlags.PortfolioPoolsBalances)
+  const entryPoint = resolveEntryPoint({ search, state })
+  const isPortfolioPoolsEntryPointActive = entryPoint.kind === EntryPointKind.PortfolioPools
 
   return [
     {
@@ -131,8 +139,9 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
     {
       title: t('common.pool'),
       href: '/positions',
-      isActive: pathname.startsWith('/positions') || pathname.startsWith('/liquidity'),
-      icon: <Pools color="$accent1" size="$icon.20" />,
+      isActive:
+        !isPortfolioPoolsEntryPointActive && (pathname.startsWith('/positions') || pathname.startsWith('/liquidity')),
+      icon: <Pools color="$accent1" size="$icon.24" />,
       elementName: ElementName.NavbarPoolTab,
       items: [
         {
@@ -143,7 +152,7 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
         },
         {
           label: t('nav.tabs.createPosition'),
-          href: '/positions/create',
+          href: ADD_LIQUIDITY_PATH,
           internal: true,
           elementName: ElementName.NavbarPoolDropdownCreatePosition,
         },
@@ -155,8 +164,8 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
         tab: PortfolioTab.Overview,
         chainId: portfolioChainId,
       }),
-      isActive: pathname.startsWith(PageType.PORTFOLIO),
-      icon: <Wallet color="$accent1" size="$icon.20" />,
+      isActive: (pathname.startsWith(PageType.PORTFOLIO) && !isExternalWallet) || isPortfolioPoolsEntryPointActive,
+      icon: <Wallet color="$accent1" size="$icon.24" />,
       elementName: ElementName.NavbarPortfolioTab,
       items: [
         {
@@ -169,7 +178,7 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
           elementName: ElementName.NavbarPortfolioDropdownOverview,
         },
         {
-          label: t('portfolio.tokens.title'),
+          label: t('common.token.plural'),
           href: buildPortfolioUrl({
             tab: PortfolioTab.Tokens,
             chainId: portfolioChainId,
@@ -195,6 +204,19 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
           internal: true,
           elementName: ElementName.NavbarPortfolioDropdownPerps,
         },
+        ...(portfolioPoolsBalancesEnabled
+          ? [
+              {
+                label: t('common.pools'),
+                href: buildPortfolioUrl({
+                  tab: PortfolioTab.Pools,
+                  chainId: portfolioChainId,
+                }),
+                internal: true,
+                elementName: ElementName.NavbarPortfolioDropdownPools,
+              },
+            ]
+          : []),
         ...(isPortfolioDefiTabEnabled
           ? [
               {
@@ -218,7 +240,7 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
           elementName: ElementName.NavbarPortfolioDropdownNfts,
         },
         {
-          label: t('portfolio.activity.title'),
+          label: t('common.activity'),
           href: buildPortfolioUrl({
             tab: PortfolioTab.Activity,
             chainId: portfolioChainId,

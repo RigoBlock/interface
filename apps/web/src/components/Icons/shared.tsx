@@ -1,28 +1,14 @@
-import { css, deprecatedStyled, keyframes } from '~/lib/deprecated-styled'
+import { cn } from '@universe/mycelium'
+import type { SVGProps } from 'react'
 
-const rotateAnimation = keyframes`
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-`
+type StyledSVGProps = SVGProps<SVGSVGElement> & { size: string }
 
-const RotationStyle = css`
-  animation: 2s ${rotateAnimation} linear infinite;
-`
+// stroke/fill reach the paths via SVG attribute inheritance (they ride {...rest}); child paths
+// must not set competing presentation attributes for these props.
+export function StyledSVG({ size, style, ...rest }: StyledSVGProps): JSX.Element {
+  return <svg style={{ height: size, width: size, ...style }} {...rest} />
+}
 
-export const StyledSVG = deprecatedStyled.svg<{ size: string; stroke?: string; fill?: string }>`
-  height: ${({ size }) => size};
-  width: ${({ size }) => size};
-  path {
-    stroke: ${({ stroke }) => stroke};
-    background: ${({ theme }) => theme.neutral2};
-    fill: ${({ fill }) => fill};
-  }
-`
-
-export const StyledRotatingSVG = deprecatedStyled(StyledSVG)`
-  ${RotationStyle}
-`
+export function StyledRotatingSVG({ className, ...rest }: StyledSVGProps): JSX.Element {
+  return <StyledSVG className={cn('rotating-svg', className)} {...rest} />
+}

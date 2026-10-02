@@ -1,11 +1,11 @@
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { LayerGroup } from '@universe/mycelium/icons/LayerGroup'
+import { opacify } from '@universe/mycelium/theme-hooks-compat'
 import { useTranslation } from 'react-i18next'
-import { LayerGroup } from 'ui/src/components/icons/LayerGroup'
-import { opacify } from 'ui/src/theme'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapStaticUrls } from 'uniswap/src/constants/urls'
 import { CardContents } from '~/pages/Landing/components/cards/CardContents'
 import { PillButton } from '~/pages/Landing/components/cards/PillButton'
-import ValuePropCard from '~/pages/Landing/components/cards/ValuePropCard'
+import { ValuePropCard } from '~/pages/Landing/components/cards/ValuePropCard'
 
 const primary = '#FF4D00'
 
@@ -19,13 +19,13 @@ export function TradingApiCard() {
       $theme-dark={{
         backgroundColor: opacify(12, primary),
       }}
-      href={uniswapUrls.tradingApiDocsUrl}
+      href={UniswapStaticUrls.tradingApiDocsUrl}
       color={primary}
       title={
         <PillButton
           color={primary}
           label={t('landing.tradingApi')}
-          icon={<LayerGroup size="$icon.24" fill={primary} />}
+          icon={<LayerGroup size="$icon.24" color={primary} />}
         />
       }
       bodyText={t('landing.tradingApiBody')}

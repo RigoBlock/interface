@@ -1,10 +1,10 @@
-import { Flex, Text } from 'ui/src'
-import { ArrowRight } from 'ui/src/components/icons/ArrowRight'
+import { Flex } from '@universe/mycelium'
+import { ArrowRight } from '@universe/mycelium/icons/ArrowRight'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { EmptyCell } from '~/pages/Portfolio/Activity/ActivityTable/ActivityAmountCell/EmptyCell'
+import { AMOUNT_COLUMN_WIDTH } from '~/pages/Portfolio/Activity/ActivityTable/ActivityAmountCell/utils'
 import { TokenAmountDisplay } from '~/pages/Portfolio/Activity/ActivityTable/TokenAmountDisplay'
 
-const AMOUNT_COLUMN_WIDTH = 180
 const AMOUNT_COLUMN_SEPARATOR_WIDTH = 24
 
 interface DualTokenLayoutProps {
@@ -15,20 +15,6 @@ interface DualTokenLayoutProps {
   inputUsdValue: string | null
   outputUsdValue: string | null
   separator?: React.ReactNode
-}
-
-function Separator({ children }: { children: React.ReactNode }) {
-  return (
-    <Flex justifyContent="center" alignItems="center" pt="$spacing2">
-      {typeof children === 'string' ? (
-        <Text variant="body3" color="$neutral2">
-          {children}
-        </Text>
-      ) : (
-        children
-      )}
-    </Flex>
-  )
 }
 
 export function DualTokenLayout({
@@ -62,7 +48,11 @@ export function DualTokenLayout({
 
       {/* Separator - always reserve space for alignment */}
       <Flex minWidth={AMOUNT_COLUMN_SEPARATOR_WIDTH} centered>
-        {separator && hasInput && hasOutput && <Separator>{separator}</Separator>}
+        {separator && hasInput && hasOutput && (
+          <Flex justifyContent="center" alignItems="center" pt="$spacing2">
+            {separator}
+          </Flex>
+        )}
       </Flex>
 
       {/* Output side */}

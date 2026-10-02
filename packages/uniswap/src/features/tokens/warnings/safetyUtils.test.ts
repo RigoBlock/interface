@@ -1,6 +1,6 @@
 import { Currency, NativeCurrency, Token } from '@uniswap/sdk-core'
-import { GraphQLApi } from '@universe/api'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
+import { ProtectionResult } from 'uniswap/src/features/dataApi/safety'
 import { AttackType, CurrencyInfo, SafetyInfo, TokenList } from 'uniswap/src/features/dataApi/types'
 import {
   getFeeColor,
@@ -34,7 +34,7 @@ const mockCurrency = {
 const mockNativeCurrency = { isNative: true } as NativeCurrency
 const mockSafetyInfo: SafetyInfo = {
   tokenList: TokenList.Default,
-  protectionResult: GraphQLApi.ProtectionResult.Benign,
+  protectionResult: ProtectionResult.Benign,
   attackType: AttackType.Other,
 }
 const mockCurrencyInfo = {
@@ -68,7 +68,7 @@ describe('getTokenWarningSeverity', () => {
       ...mockCurrencyInfo,
       safetyInfo: {
         ...mockSafetyInfo,
-        protectionResult: GraphQLApi.ProtectionResult.Spam,
+        protectionResult: ProtectionResult.Spam,
         attackType: AttackType.Airdrop,
       },
     }
@@ -91,6 +91,18 @@ describe('getTokenWarningSeverity', () => {
     expect(getTokenWarningSeverity(potentialHoneypotCurrencyInfo)).toBe(WarningSeverity.Medium)
   })
 
+  it('should return Medium for exit scam risk', () => {
+    const exitScamRiskCurrencyInfo = {
+      ...mockCurrencyInfo,
+      safetyInfo: {
+        ...mockSafetyInfo,
+        protectionResult: ProtectionResult.Warning,
+        attackType: AttackType.ExitScamRisk,
+      },
+    }
+    expect(getTokenWarningSeverity(exitScamRiskCurrencyInfo)).toBe(WarningSeverity.Medium)
+  })
+
   it('should return Medium for low fee on transfer', () => {
     const lowFeeCurrencyInfo = {
       ...mockCurrencyInfo,
@@ -108,7 +120,7 @@ describe('getTokenWarningSeverity', () => {
       ...mockCurrencyInfo,
       safetyInfo: {
         ...mockSafetyInfo,
-        protectionResult: GraphQLApi.ProtectionResult.Malicious,
+        protectionResult: ProtectionResult.Malicious,
         attackType: AttackType.Impersonator,
       },
     }
@@ -127,7 +139,7 @@ describe('getTokenWarningSeverity', () => {
     expect(getTokenWarningSeverity(highFeeCurrencyInfo)).toBe(WarningSeverity.High)
   })
 
-  it('should return High for very high fee on transfer even if our fees DB doesnt have fees data & if Blockaid hasnt properly updated their GraphQLApi.ProtectionResult to malicious lol', () => {
+  it('should return High for very high fee on transfer even if our fees DB doesnt have fees data & if Blockaid hasnt properly updated their ProtectionResult to malicious lol', () => {
     const highFeeCurrencyInfo = {
       ...mockCurrencyInfo,
       safetyInfo: {
@@ -136,7 +148,7 @@ describe('getTokenWarningSeverity', () => {
           sellFeePercent: 100,
         },
         tokenList: TokenList.NonDefault,
-        protectionResult: GraphQLApi.ProtectionResult.Benign,
+        protectionResult: ProtectionResult.Benign,
       },
       currency: {
         ...mockCurrency,
@@ -185,7 +197,7 @@ describe('getShouldHaveCombinedPluralTreatment', () => {
     }
     const highCurrencyInfo = {
       ...mockCurrencyInfo,
-      safetyInfo: { ...mockSafetyInfo, protectionResult: GraphQLApi.ProtectionResult.Malicious },
+      safetyInfo: { ...mockSafetyInfo, protectionResult: ProtectionResult.Malicious },
     }
     expect(getShouldHaveCombinedPluralTreatment(lowCurrencyInfo, highCurrencyInfo)).toBe(false)
   })
@@ -301,7 +313,7 @@ describe('getTokenProtectionWarning', () => {
         ...mockCurrencyInfo,
         safetyInfo: {
           ...mockSafetyInfo,
-          protectionResult: GraphQLApi.ProtectionResult.Malicious,
+          protectionResult: ProtectionResult.Malicious,
           attackType: AttackType.Impersonator,
         },
       },
@@ -313,7 +325,7 @@ describe('getTokenProtectionWarning', () => {
         ...mockCurrencyInfo,
         safetyInfo: {
           ...mockSafetyInfo,
-          protectionResult: GraphQLApi.ProtectionResult.Spam,
+          protectionResult: ProtectionResult.Spam,
           attackType: AttackType.Airdrop,
         },
       },
@@ -325,7 +337,7 @@ describe('getTokenProtectionWarning', () => {
         ...mockCurrencyInfo,
         safetyInfo: {
           ...mockSafetyInfo,
-          protectionResult: GraphQLApi.ProtectionResult.Malicious,
+          protectionResult: ProtectionResult.Malicious,
           attackType: AttackType.Other,
         },
       },
@@ -348,6 +360,30 @@ describe('getTokenProtectionWarning', () => {
       TokenProtectionWarning.PotentialHoneypot,
       'honeypot attack without 100% fee -> PotentialHoneypot',
     ],
+    [
+      {
+        ...mockCurrencyInfo,
+        safetyInfo: {
+          ...mockSafetyInfo,
+          protectionResult: ProtectionResult.Warning,
+          attackType: AttackType.ExitScamRisk,
+        },
+      },
+      TokenProtectionWarning.ExitScamRisk,
+      'exit scam risk with Warning verdict -> ExitScamRisk',
+    ],
+    [
+      {
+        ...mockCurrencyInfo,
+        safetyInfo: {
+          ...mockSafetyInfo,
+          protectionResult: ProtectionResult.Malicious,
+          attackType: AttackType.ExitScamRisk,
+        },
+      },
+      TokenProtectionWarning.MaliciousGeneral,
+      'exit scam risk with Malicious verdict -> MaliciousGeneral',
+    ],
 
     // Edge cases
     [
@@ -367,7 +403,7 @@ describe('getTokenProtectionWarning', () => {
         ...mockCurrencyInfo,
         safetyInfo: {
           ...mockSafetyInfo,
-          protectionResult: GraphQLApi.ProtectionResult.Unknown,
+          protectionResult: ProtectionResult.Unknown,
           attackType: undefined,
         },
       } satisfies CurrencyInfo,
@@ -379,7 +415,7 @@ describe('getTokenProtectionWarning', () => {
         ...mockCurrencyInfo,
         safetyInfo: {
           ...mockSafetyInfo,
-          protectionResult: GraphQLApi.ProtectionResult.Spam,
+          protectionResult: ProtectionResult.Spam,
           attackType: AttackType.HighFees,
         },
       },
@@ -391,7 +427,7 @@ describe('getTokenProtectionWarning', () => {
         ...mockCurrencyInfo,
         safetyInfo: {
           ...mockSafetyInfo,
-          protectionResult: GraphQLApi.ProtectionResult.Malicious,
+          protectionResult: ProtectionResult.Malicious,
           attackType: AttackType.HighFees,
         },
       },
@@ -477,6 +513,14 @@ describe('useModalHeaderText', () => {
       }),
     ).toBe('token.safety.warning.potentialHoneypot.title')
   })
+
+  it('returns correct text for exit scam risk', () => {
+    expect(
+      useModalHeaderText({
+        tokenProtectionWarning: TokenProtectionWarning.ExitScamRisk,
+      }),
+    ).toBe('token.safety.warning.exitScamRisk.title')
+  })
 })
 
 describe('useModalSubtitleText', () => {
@@ -499,6 +543,15 @@ describe('useModalSubtitleText', () => {
         tokenSymbol: 'ABC',
       }),
     ).toBe('token.safety.warning.potentialHoneypot.modal.message')
+  })
+
+  it('returns correct text for exit scam risk warning', () => {
+    expect(
+      useModalSubtitleText({
+        tokenProtectionWarning: TokenProtectionWarning.ExitScamRisk,
+        tokenSymbol: 'ABC',
+      }),
+    ).toBe('token.safety.warning.exitScamRisk.modal.message')
   })
 
   it('returns correct text for non-default warning', () => {
@@ -525,7 +578,7 @@ describe('useTokenWarningCardText', () => {
         ...mockCurrencyInfo,
         safetyInfo: {
           ...mockSafetyInfo,
-          protectionResult: GraphQLApi.ProtectionResult.Spam,
+          protectionResult: ProtectionResult.Spam,
           attackType: AttackType.Airdrop,
         },
       }),
@@ -542,7 +595,7 @@ describe('useTokenWarningCardText', () => {
       } as Token,
       safetyInfo: {
         ...mockSafetyInfo,
-        protectionResult: GraphQLApi.ProtectionResult.Malicious,
+        protectionResult: ProtectionResult.Malicious,
         attackType: AttackType.HighFees,
         blockaidFees: {
           sellFeePercent: 15,
@@ -576,6 +629,14 @@ describe('useCardHeaderText', () => {
       }),
     ).toBe('token.safety.warning.potentialHoneypot.title')
   })
+
+  it('returns correct text for exit scam risk warning', () => {
+    expect(
+      useCardHeaderText({
+        tokenProtectionWarning: TokenProtectionWarning.ExitScamRisk,
+      }),
+    ).toBe('token.safety.warning.exitScamRisk.title')
+  })
 })
 
 describe('useCardSubtitleText', () => {
@@ -598,5 +659,14 @@ describe('useCardSubtitleText', () => {
         tokenSymbol: 'ABC',
       }),
     ).toBe('token.safety.warning.potentialHoneypot.card.message')
+  })
+
+  it('returns correct text for exit scam risk warning', () => {
+    expect(
+      useCardSubtitleText({
+        tokenProtectionWarning: TokenProtectionWarning.ExitScamRisk,
+        tokenSymbol: 'ABC',
+      }),
+    ).toBe('token.safety.warning.exitScamRisk.card.message')
   })
 })

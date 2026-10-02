@@ -1,25 +1,27 @@
-import { GraphQLApi } from '@universe/api'
+import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
+import { UniverseChainId } from '@universe/chains'
+import { BlockExplorer } from '@universe/mycelium/icons/BlockExplorer'
+import { ChartBarCrossed } from '@universe/mycelium/icons/ChartBarCrossed'
+import { Ellipsis } from '@universe/mycelium/icons/Ellipsis'
+import { ExternalLink } from '@universe/mycelium/icons/ExternalLink'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChartBarCrossed } from 'ui/src/components/icons/ChartBarCrossed'
-import { Ellipsis } from 'ui/src/components/icons/Ellipsis'
-import { ExternalLink } from 'ui/src/components/icons/ExternalLink'
 import { getBlockExplorerIcon } from 'uniswap/src/components/chains/BlockExplorerIcon'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { type ParsedToken, isNativeParsedToken } from 'uniswap/src/features/dataApi/utils/parsedToken'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
 import { shortenAddress } from 'utilities/src/addresses'
-import { deriveFromSections } from '~/components/Explore/stickyHeader/HeaderActions/deriveHeaderActions'
-import type { HeaderAction, HeaderActionSection } from '~/components/Explore/stickyHeader/HeaderActions/types'
-import { useShareAction } from '~/components/Explore/stickyHeader/HeaderActions/useShareAction'
+import { deriveFromSections } from '~/components/StickyCollapsibleHeader/HeaderActions/deriveHeaderActions'
+import type { HeaderAction, HeaderActionSection } from '~/components/StickyCollapsibleHeader/HeaderActions/types'
+import { useShareAction } from '~/components/StickyCollapsibleHeader/HeaderActions/useShareAction'
 import { NATIVE_CHAIN_ID } from '~/constants/tokens'
 
 type UsePoolDetailsHeaderActionsParams = {
   chainId?: UniverseChainId
   poolAddress?: string
   poolName: string
-  token0?: GraphQLApi.Token
-  token1?: GraphQLApi.Token
-  protocolVersion?: GraphQLApi.ProtocolVersion
+  token0?: ParsedToken
+  token1?: ParsedToken
+  protocolVersion?: ProtocolVersion
   openReportDataIssueModal: () => void
   isMobileScreen: boolean
 }
@@ -61,26 +63,28 @@ export function usePoolDetailsHeaderActions({
   const BlockExplorerIcon = chainId ? getBlockExplorerIcon(chainId) : null
 
   const poolExplorerUrl =
-    chainId && poolAddress && protocolVersion !== GraphQLApi.ProtocolVersion.V4
+    chainId && poolAddress && protocolVersion !== ProtocolVersion.V4
       ? getExplorerUrl({ chainId, address: poolAddress, type: ExplorerDataType.ADDRESS })
       : undefined
+  // Absent address = native on the parsed shape; the NATIVE_CHAIN_ID sentinel keeps the explorer
+  // row (linking to the chain's native asset page) instead of dropping the native leg entirely.
   const token0Address = token0?.address
-  const token0IsNative = token0Address === NATIVE_CHAIN_ID || !token0Address
+  const token0IsNative = token0 ? isNativeParsedToken(token0) : false
   const token0ExplorerUrl =
-    chainId && token0Address
+    chainId && token0
       ? getExplorerUrl({
           chainId,
-          address: token0Address,
+          address: token0Address ?? NATIVE_CHAIN_ID,
           type: token0IsNative ? ExplorerDataType.NATIVE : ExplorerDataType.TOKEN,
         })
       : undefined
   const token1Address = token1?.address
-  const token1IsNative = token1Address === NATIVE_CHAIN_ID || !token1Address
+  const token1IsNative = token1 ? isNativeParsedToken(token1) : false
   const token1ExplorerUrl =
-    chainId && token1Address
+    chainId && token1
       ? getExplorerUrl({
           chainId,
-          address: token1Address,
+          address: token1Address ?? NATIVE_CHAIN_ID,
           type: token1IsNative ? ExplorerDataType.NATIVE : ExplorerDataType.TOKEN,
         })
       : undefined
@@ -108,20 +112,20 @@ export function usePoolDetailsHeaderActions({
         show: true,
       })
     }
-    if (token0ExplorerUrl && token0?.symbol && token0Address) {
+    if (token0ExplorerUrl && token0?.symbol) {
       items.push({
         title: token0.symbol,
-        subtitle: shortenAddress({ address: token0Address }),
+        subtitle: !token0IsNative && token0Address ? shortenAddress({ address: token0Address }) : undefined,
         icon: <BlockExplorerIcon size="$icon.18" color="$neutral1" />,
         trailingIcon: linkIcon,
         onPress: () => window.open(token0ExplorerUrl, '_blank'),
         show: true,
       })
     }
-    if (token1ExplorerUrl && token1?.symbol && token1Address) {
+    if (token1ExplorerUrl && token1?.symbol) {
       items.push({
         title: token1.symbol,
-        subtitle: shortenAddress({ address: token1Address }),
+        subtitle: !token1IsNative && token1Address ? shortenAddress({ address: token1Address }) : undefined,
         icon: <BlockExplorerIcon size="$icon.18" color="$neutral1" />,
         trailingIcon: linkIcon,
         onPress: () => window.open(token1ExplorerUrl, '_blank'),
@@ -140,6 +144,8 @@ export function usePoolDetailsHeaderActions({
     token1?.symbol,
     token0Address,
     token1Address,
+    token0IsNative,
+    token1IsNative,
     t,
   ])
 
@@ -152,7 +158,7 @@ export function usePoolDetailsHeaderActions({
         actions: [
           {
             title: t('pool.explorers'),
-            icon: <BlockExplorerIcon size="$icon.18" color="$neutral2" />,
+            icon: <BlockExplorer size="$icon.18" color="$neutral2" />,
             show: true,
             dropdownItems: explorerDropdownItems,
           },

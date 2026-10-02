@@ -1,10 +1,20 @@
+import { isWebApp } from '@universe/environment'
+import type { FlexProps } from '@universe/mycelium'
 import { useMemo } from 'react'
-import type { FlexProps } from 'ui/src/components/layout'
 import { useIsDarkMode } from 'ui/src/hooks/useIsDarkMode'
 import { colors, colorsDark, opacify } from 'ui/src/theme/color'
-import { isWebApp } from 'utilities/src/platform'
 
-type ShadowProps = Pick<FlexProps, 'shadowColor' | 'shadowOffset' | 'shadowRadius' | '$platform-web'>
+/**
+ * The `$platform-web` pool is declared as what these helpers actually return
+ * rather than as `Pick<FlexProps, '$platform-web'>`. That pool type carries the
+ * whole long-tail style surface, whose values admit `number` on 76 keys that CSS
+ * types as enums, so spreading these props into a component whose `$platform-web`
+ * is `CSSProperties` failed on the first such key. Both helpers only ever set
+ * `boxShadow`.
+ */
+type ShadowProps = Pick<FlexProps, 'shadowColor' | 'shadowOffset' | 'shadowRadius'> & {
+  '$platform-web'?: { boxShadow?: string }
+}
 
 // TODO WALL-3699 replace with spore shadow support
 export function useShadowPropsShort(): ShadowProps {

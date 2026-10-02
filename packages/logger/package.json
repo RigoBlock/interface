@@ -6,10 +6,7 @@
     "source-map-js": "1.2.1"
   },
   "devDependencies": {
-    "@types/node": "22.19.17",
-    "@typescript/native-preview": "7.0.0-dev.20260311.1",
-    "depcheck": "1.4.7",
-    "typescript": "5.8.3"
+    "@types/node": "22.19.17"
   },
   "scripts": {
     "typecheck": "nx typecheck logger",

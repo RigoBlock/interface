@@ -1,15 +1,21 @@
 import type { BottomSheetView } from '@gorhom/bottom-sheet'
+import { isValidHexString } from '@universe/encoding'
 import type { ComponentProps } from 'react'
+import type { RwaTokenOption } from 'uniswap/src/components/lists/items/types'
 import { TokenSelectorModal } from 'uniswap/src/components/TokenSelector/TokenSelector'
 import { TokenSelectorFlow, TokenSelectorVariation } from 'uniswap/src/components/TokenSelector/types'
+import { AssetType } from 'uniswap/src/entities/assets'
 import { useActiveAddresses } from 'uniswap/src/features/accounts/store/hooks'
 import type { AddressGroup } from 'uniswap/src/features/accounts/store/types/AccountsState'
-import { useOnSelectCurrency } from 'uniswap/src/features/transactions/swap/form/hooks/useOnSelectCurrency'
+import {
+  useOnSelectCurrency,
+  useOnSelectTradeableAsset,
+} from 'uniswap/src/features/transactions/swap/form/hooks/useOnSelectCurrency'
 import { useChainId } from 'uniswap/src/features/transactions/swap/form/SwapFormScreen/SwapTokenSelector/hooks/useChainId'
 import { useHideTokenSelector } from 'uniswap/src/features/transactions/swap/form/SwapFormScreen/SwapTokenSelector/hooks/useHideTokenSelector'
 import { useSwapFormStore } from 'uniswap/src/features/transactions/swap/stores/swapFormStore/useSwapFormStore'
 import { CurrencyField } from 'uniswap/src/types/currency'
-import { isValidHexString } from 'utilities/src/addresses/hex'
+import { useEvent } from 'utilities/src/react/hooks'
 
 export function SwapTokenSelector({
   isModalOpen,
@@ -34,6 +40,18 @@ export function SwapTokenSelector({
   const handleHideTokenSelector = useHideTokenSelector()
   const onSelectCurrency = useOnSelectCurrency({
     onSelect: handleHideTokenSelector,
+  })
+
+  const selectTradeableAsset = useOnSelectTradeableAsset({ onSelect: handleHideTokenSelector })
+  const onSelectRwaToken = useEvent((option: RwaTokenOption) => {
+    if (!selectingCurrencyField) {
+      return
+    }
+    selectTradeableAsset({
+      tradeableAsset: { address: option.address, chainId: option.chainId, type: AssetType.Currency },
+      field: selectingCurrencyField,
+      allowCrossChainPair: false,
+    })
   })
 
   if (!isModalOpen) {
@@ -63,6 +81,7 @@ export function SwapTokenSelector({
       focusHook={focusHook}
       onClose={handleHideTokenSelector}
       onSelectCurrency={onSelectCurrency}
+      onSelectRwaToken={onSelectRwaToken}
     />
   )
 }

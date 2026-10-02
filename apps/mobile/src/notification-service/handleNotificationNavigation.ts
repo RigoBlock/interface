@@ -1,9 +1,10 @@
+import { UniverseChainId } from '@universe/chains'
 import { navigationRef } from 'src/app/navigation/navigationRef'
+import type { TabsParamList } from 'src/app/navigation/types'
 import { store } from 'src/app/store'
 import { MOBILE_NAV_PREFIX, UNITAG_NAV_PREFIX } from 'src/notification-service/data-sources/banners/types'
 import { getNativeAddress } from 'uniswap/src/constants/addresses'
 import { AssetType } from 'uniswap/src/entities/assets'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { ImportType, OnboardingEntryPoint } from 'uniswap/src/types/onboarding'
@@ -22,6 +23,16 @@ const CHAIN_ID_MAP: Record<string, UniverseChainId> = {
   polygon: UniverseChainId.Polygon,
   base: UniverseChainId.Base,
   monad: UniverseChainId.Monad,
+}
+
+const MAIN_TAB_SCREENS: Record<keyof TabsParamList, true> = {
+  [MobileScreens.Home]: true,
+  [MobileScreens.Explore]: true,
+  [MobileScreens.Activity]: true,
+}
+
+function isMainTabScreen(screen: string | undefined): screen is keyof TabsParamList {
+  return screen !== undefined && Object.hasOwn(MAIN_TAB_SCREENS, screen)
 }
 
 /**
@@ -114,6 +125,19 @@ function handleMobileNavigation(url: string, path: string): void {
 
   // Handle mobile://{Stack}/{Screen} pattern for stack navigation
   const parts = path.split('/').filter((p) => p.length > 0)
+
+  // Route exact tab URLs through their owning navigator.
+  if (parts.length === 1 && isMainTabScreen(parts[0])) {
+    navigationRef.navigate(MobileScreens.MainTabs, { screen: parts[0] })
+    return
+  }
+
+  // Keep legacy mobile://Home/{Tab} URLs while targeting tabs through their owning navigator.
+  if (parts[0] === MobileScreens.Home) {
+    const tabScreen = isMainTabScreen(parts[1]) ? parts[1] : MobileScreens.Home
+    navigationRef.navigate(MobileScreens.MainTabs, { screen: tabScreen })
+    return
+  }
 
   // Navigate to the screen based on path segments
   // e.g., "SettingsStack/SettingsViewSeedPhrase" → navigate(SettingsStack, { screen: SettingsViewSeedPhrase })

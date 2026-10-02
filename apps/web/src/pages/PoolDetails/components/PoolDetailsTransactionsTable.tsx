@@ -1,27 +1,27 @@
 /* oxlint-disable typescript/no-unnecessary-condition */
 
 import { createColumnHelper } from '@tanstack/react-table'
-import { GraphQLApi } from '@universe/api'
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { UniverseChainId, Platform, areAddressesEqual } from '@universe/chains'
+import {
+  Flex,
+  Text,
+  TouchableTextLink,
+  type TouchableTextLinkProps,
+  View,
+  type ViewCompatProps,
+} from '@universe/mycelium'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
 import { useMemo, useReducer, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, styled, Text, useMedia, View } from 'ui/src'
 import { WRAPPED_NATIVE_CURRENCY } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import type { ParsedToken } from 'uniswap/src/features/dataApi/utils/parsedToken'
 import { useAppFiatCurrency } from 'uniswap/src/features/fiatCurrency/hooks'
+import { useCurrentLocale } from 'uniswap/src/features/language/hooks'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
-import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
 import { shortenAddress } from 'utilities/src/addresses'
+import { TOKEN_AMOUNT_DISPLAY_FLOOR } from 'utilities/src/format/localeBasedFormats'
 import { NumberType } from 'utilities/src/format/types'
-import { supportedChainIdFromGQLChain } from '~/appGraphql/data/chainUtils'
-import {
-  getPoolTableTransactionTypeTranslation,
-  PoolTableTransaction,
-  PoolTableTransactionType,
-  usePoolTransactions,
-} from '~/appGraphql/data/pools/usePoolTransactions'
 import { Table } from '~/components/Table'
 import { Cell } from '~/components/Table/Cell'
 import { Filter } from '~/components/Table/Filter'
@@ -29,19 +29,25 @@ import { TableText } from '~/components/Table/shared/TableText'
 import { TimestampCell } from '~/components/Table/shared/TimestampCell'
 import { FilterHeaderRow } from '~/components/Table/styled'
 import { NATIVE_CHAIN_ID } from '~/constants/tokens'
-import { useChainIdFromUrlParam } from '~/features/params/chainParams'
-import { ExternalLink } from '~/theme/components/Links'
+import {
+  getPoolTableTransactionTypeTranslation,
+  PoolTableTransaction,
+  PoolTableTransactionType,
+  usePoolTransactions,
+} from '~/features/Explore/state/transactions/usePoolTransactions'
+import { formatPriceWithSubscript } from '~/pages/PoolDetails/components/formatPriceWithSubscript'
+import { ExternalLink, type ExternalLinkProps } from '~/theme/components/Links'
+import { useChainIdFromUrlParam } from '~/utils/params/chainParams'
 
-const StyledExternalLink = styled(ExternalLink, {
-  color: '$neutral2',
-  '$platform-web': {
-    stroke: 'var(--neutral2)',
-  },
-})
+// `stroke` has no compat style prop (it exists only to tint the inline external-link glyph),
+// so it rides the arbitrary-property class escape hatch.
+function StyledExternalLink(props: ExternalLinkProps): JSX.Element {
+  return <ExternalLink color="$neutral2" className="[stroke:var(--neutral2)]" {...props} />
+}
 
-const TableWrapper = styled(View, {
-  minHeight: 256,
-})
+function TableWrapper(props: ViewCompatProps): JSX.Element {
+  return <View minHeight={256} {...props} />
+}
 
 enum PoolTransactionColumn {
   Timestamp = 0,
@@ -61,16 +67,14 @@ const PoolTransactionColumnWidth: { [key in PoolTransactionColumn]: number } = {
   [PoolTransactionColumn.OutputAmount]: 125,
 }
 
-function comparePoolTokens(tokenA: PoolTableTransaction['pool']['token0'], tokenB?: GraphQLApi.Token) {
-  if (tokenB?.address === NATIVE_CHAIN_ID) {
-    const chainId = supportedChainIdFromGQLChain(tokenB.chain)
-    return (
-      chainId &&
-      areAddressesEqual({
-        addressInput1: { address: tokenA.id, chainId },
-        addressInput2: { address: WRAPPED_NATIVE_CURRENCY[chainId]?.address, chainId },
-      })
-    )
+function comparePoolTokens(tokenA: PoolTableTransaction['pool']['token0'], tokenB?: ParsedToken) {
+  // Absent address = native on the parsed shape; swap legs trade as wrapped, so compare as wrapped.
+  if (tokenB && !tokenB.address) {
+    const chainId = tokenB.chainId
+    return areAddressesEqual({
+      addressInput1: { address: tokenA.id, chainId },
+      addressInput2: { address: WRAPPED_NATIVE_CURRENCY[chainId]?.address, chainId },
+    })
   }
   return areAddressesEqual({
     addressInput1: { address: tokenA.id, platform: Platform.EVM },
@@ -82,18 +86,18 @@ export function PoolDetailsTransactionsTable({
   poolAddress,
   token0,
   token1,
-  protocolVersion,
+  isPoolDataLoading,
 }: {
   poolAddress: string
-  token0?: GraphQLApi.Token
-  token1?: GraphQLApi.Token
-  protocolVersion?: GraphQLApi.ProtocolVersion
+  token0?: ParsedToken
+  token1?: ParsedToken
+  isPoolDataLoading?: boolean
 }) {
   const { t } = useTranslation()
-  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
   const chainId = useChainIdFromUrlParam() ?? UniverseChainId.Mainnet
   const activeLocalCurrency = useAppFiatCurrency()
   const { convertFiatAmountFormatted, formatNumberOrString } = useLocalizationContext()
+  const locale = useCurrentLocale()
   const [filterModalIsOpen, toggleFilterModal] = useReducer((s) => !s, false)
   const filterAnchorRef = useRef<HTMLDivElement>(null)
   const [filter, setFilters] = useState<PoolTableTransactionType[]>([
@@ -103,12 +107,14 @@ export function PoolDetailsTransactionsTable({
     PoolTableTransactionType.ADD,
   ])
 
+  // The NATIVE_CHAIN_ID fallback is permanent: absent address = native on the parsed shape, and
+  // usePoolTransactions expects the sentinel.
   const { transactions, loading, loadMore, error } = usePoolTransactions({
     address: poolAddress,
     chainId,
     filter,
-    token0,
-    protocolVersion,
+    token0Address: token0 ? (token0.address ?? NATIVE_CHAIN_ID) : undefined,
+    isPoolDataLoading,
   })
 
   const showLoadingSkeleton = loading || !!error
@@ -142,35 +148,40 @@ export function PoolDetailsTransactionsTable({
       }),
       columnHelper.accessor(
         (row) => {
-          let color, text
+          let color: '$statusSuccess' | '$statusCritical'
+          let text: string
           if (row.type === PoolTableTransactionType.BUY) {
             color = '$statusSuccess'
-            text = (
-              <span>
-                {t('common.buy.label')}
-                &nbsp;{token0?.symbol}
-              </span>
-            )
+            text = `${t('common.buy.label')} ${token0?.symbol}`
           } else if (row.type === PoolTableTransactionType.SELL) {
             color = '$statusCritical'
-            text = (
-              <span>
-                {t('common.sell.label')}
-                &nbsp;{token0?.symbol}
-              </span>
-            )
+            text = `${t('common.sell.label')} ${token0?.symbol}`
           } else {
             color = row.type === PoolTableTransactionType.ADD ? '$statusSuccess' : '$statusCritical'
             text = row.type === PoolTableTransactionType.ADD ? t('common.add.label') : t('common.remove.label')
           }
-          return <TableText color={color}>{text}</TableText>
+          return (
+            <TouchableTextLink
+              noUnderline
+              onlyUseText
+              color={color}
+              link={getExplorerLink({
+                chainId,
+                data: row.transaction,
+                type: ExplorerDataType.TRANSACTION,
+              })}
+              variant={'body2' as TouchableTextLinkProps['variant']}
+            >
+              {text}
+            </TouchableTextLink>
+          )
         },
         {
           id: 'swap-type',
           size: PoolTransactionColumnWidth[PoolTransactionColumn.Type],
           header: () => (
             <Cell justifyContent="flex-start">
-              <FilterHeaderRow clickable={filterModalIsOpen} onPress={() => toggleFilterModal()} ref={filterAnchorRef}>
+              <FilterHeaderRow onPress={() => toggleFilterModal()} ref={filterAnchorRef}>
                 <Filter
                   allFilters={Object.values(PoolTableTransactionType).map((type) => ({
                     value: type,
@@ -224,9 +235,12 @@ export function PoolDetailsTransactionsTable({
         cell: (inputTokenAmount) => (
           <Cell loading={showLoadingSkeleton} justifyContent="flex-end" grow>
             <TableText>
-              {formatNumberOrString({
-                value: Math.abs(inputTokenAmount.getValue?.() ?? 0),
-                type: NumberType.TokenTx,
+              {formatPriceWithSubscript({
+                price: Math.abs(inputTokenAmount.getValue?.() ?? 0),
+                locale,
+                formatNumberOrString,
+                numberType: NumberType.TokenTx,
+                subscriptThreshold: TOKEN_AMOUNT_DISPLAY_FLOOR,
               })}
             </TableText>
           </Cell>
@@ -245,9 +259,12 @@ export function PoolDetailsTransactionsTable({
         cell: (outputTokenAmount) => (
           <Cell loading={showLoadingSkeleton} justifyContent="flex-end" grow>
             <TableText>
-              {formatNumberOrString({
-                value: Math.abs(outputTokenAmount.getValue?.() ?? 0),
-                type: NumberType.TokenTx,
+              {formatPriceWithSubscript({
+                price: Math.abs(outputTokenAmount.getValue?.() ?? 0),
+                locale,
+                formatNumberOrString,
+                numberType: NumberType.TokenTx,
+                subscriptThreshold: TOKEN_AMOUNT_DISPLAY_FLOOR,
               })}
             </TableText>
           </Cell>
@@ -285,6 +302,7 @@ export function PoolDetailsTransactionsTable({
     filterModalIsOpen,
     convertFiatAmountFormatted,
     formatNumberOrString,
+    locale,
     showLoadingSkeleton,
     token0,
     token1?.symbol,
@@ -299,8 +317,7 @@ export function PoolDetailsTransactionsTable({
         columns={columns}
         data={transactions}
         loading={loading}
-        error={error}
-        v2={multichainTokenUxEnabled}
+        error={Boolean(error)}
         loadMore={loadMore}
         maxHeight={600}
         defaultPinnedColumns={['timestamp', 'swap-type']}

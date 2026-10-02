@@ -1,6 +1,6 @@
+import { TouchableArea } from '@universe/mycelium'
 import { ReactNode } from 'react'
 import { useNavigate } from 'react-router'
-import { TouchableArea } from 'ui/src'
 import { useEvent } from 'utilities/src/react/hooks'
 
 interface InternalLinkProps {

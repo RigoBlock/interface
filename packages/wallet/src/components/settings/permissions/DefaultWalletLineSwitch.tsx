@@ -1,4 +1,4 @@
-import { Flex, Switch, Text } from 'ui/src'
+import { Flex, Switch, Text } from '@universe/mycelium'
 
 type DefaultWalletLineSwitchProps = {
   description: string

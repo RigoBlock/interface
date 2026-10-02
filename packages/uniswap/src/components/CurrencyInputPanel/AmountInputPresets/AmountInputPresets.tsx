@@ -1,12 +1,13 @@
+import { isHoverable } from '@universe/environment'
+import { Flex, type FlexProps } from '@universe/mycelium'
 import { Key } from 'react'
-import { ButtonProps, Flex, FlexProps } from 'ui/src'
+import type { ButtonProps } from 'ui/src'
 import { AmountInputPresetsProps } from 'uniswap/src/components/CurrencyInputPanel/AmountInputPresets/types'
 import {
   getStaggeredGroupHoverStyle,
   HOVER_REVEAL_EXIT_TRANSITION,
   HOVER_REVEAL_TRANSFORM,
 } from 'uniswap/src/components/CurrencyInputPanel/hoverStyles'
-import { isHoverable } from 'utilities/src/platform'
 
 export const PRESET_BUTTON_PROPS: ButtonProps = { variant: 'default', py: '$spacing4' }
 

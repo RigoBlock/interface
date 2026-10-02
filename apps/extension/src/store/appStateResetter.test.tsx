@@ -1,4 +1,3 @@
-import { ApolloClient, InMemoryCache } from '@apollo/client'
 import { configureStore } from '@reduxjs/toolkit'
 import { QueryClient } from '@tanstack/react-query'
 import { dappRequestActions } from 'src/app/features/dappRequests/slice'
@@ -8,23 +7,14 @@ import { DappRequestType } from 'uniswap/src/features/dappRequests/types'
 import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
 import { AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
 
-const createMockApolloClient = (): ApolloClient<unknown> => {
-  const client = new ApolloClient({
-    cache: new InMemoryCache(),
-  })
-  jest.spyOn(client, 'resetStore').mockResolvedValue([])
-  return client
-}
-
 const createMockQueryClient = (): QueryClient => {
   const client = new QueryClient()
-  jest.spyOn(client, 'resetQueries').mockResolvedValue()
+  vi.spyOn(client, 'resetQueries').mockResolvedValue()
   return client
 }
 
 describe('createExtensionAppStateResetter', () => {
   let store: ReturnType<typeof configureStore<ExtensionState>>
-  let apolloClient: ApolloClient<unknown>
   let queryClient: QueryClient
   let resetter: ReturnType<typeof createExtensionAppStateResetter>
 
@@ -32,14 +22,12 @@ describe('createExtensionAppStateResetter', () => {
     store = configureStore({
       reducer: extensionReducer,
     })
-    apolloClient = createMockApolloClient()
     queryClient = createMockQueryClient()
     resetter = createExtensionAppStateResetter({
       dispatch: store.dispatch,
-      apolloClient,
       queryClient,
     })
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('resetAccountHistory', () => {
@@ -81,7 +69,6 @@ describe('createExtensionAppStateResetter', () => {
       await resetter.resetQueryCaches()
 
       // Verify cache clearing methods were called
-      expect(apolloClient.resetStore).toHaveBeenCalledTimes(1)
       expect(queryClient.resetQueries).toHaveBeenCalledTimes(1)
     })
   })
@@ -104,7 +91,6 @@ describe('createExtensionAppStateResetter', () => {
       // Verify all resets worked
       const state = store.getState()
       expect(state.notifications.notificationQueue).toEqual([])
-      expect(apolloClient.resetStore).toHaveBeenCalledTimes(1)
       expect(queryClient.resetQueries).toHaveBeenCalledTimes(1)
     })
   })

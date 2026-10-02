@@ -1,6 +1,5 @@
 import { TradingApi } from '@universe/api'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
-import { chainIdToPlatform } from 'uniswap/src/features/platforms/utils/chains'
+import { Platform, chainIdToPlatform } from '@universe/chains'
 import { UniswapEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import type { SwapRedirectFn } from 'uniswap/src/features/transactions/components/TransactionModal/TransactionModalContext'

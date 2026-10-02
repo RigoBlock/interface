@@ -1,4 +1,5 @@
-import { Flex, Image } from 'ui/src'
+import { Flex } from '@universe/mycelium'
+import { Image } from 'ui/src'
 import { OPENSEA_LOGO } from 'ui/src/assets'
 import { DEP_accentColors, imageSizes, validColor } from 'ui/src/theme'
 

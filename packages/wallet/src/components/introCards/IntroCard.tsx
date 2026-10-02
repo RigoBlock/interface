@@ -1,20 +1,12 @@
+import { isExtensionApp } from '@universe/environment'
+import { ElementAfterText, Flex, FlexCompatProps, LinearGradient, spacing, Text } from '@universe/mycelium'
+import type { GeneratedIcon, GeneratedIconProps } from '@universe/mycelium/icons'
+import { X } from '@universe/mycelium/icons/X'
+import { useIsDarkMode, useShadowPropsShort } from '@universe/mycelium/theme-hooks-compat'
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ImageSourcePropType } from 'react-native'
-import {
-  ClickableWithinGesture,
-  ElementAfterText,
-  Flex,
-  FlexProps,
-  GeneratedIcon,
-  IconProps,
-  LinearGradient,
-  Image as TamaguiImage,
-  Text,
-  useIsDarkMode,
-  useShadowPropsShort,
-} from 'ui/src'
-import { X } from 'ui/src/components/icons'
+import { ClickableWithinGesture, Image as TamaguiImage } from 'ui/src'
 import { CardImage, CardImageGraphicSizeInfo } from 'uniswap/src/components/cards/image'
 import { NewTag } from 'uniswap/src/components/pill/NewTag'
 import { WalletEventName } from 'uniswap/src/features/telemetry/constants'
@@ -24,7 +16,6 @@ import {
   DappRequestCardLoggingName,
   OnboardingCardLoggingName,
 } from 'uniswap/src/features/telemetry/types'
-import { isExtensionApp } from 'utilities/src/platform'
 
 const DESCRIPTION_LENGTH_THRESHOLD = 66
 
@@ -44,8 +35,8 @@ export enum IntroCardGraphicType {
 type IconGraphic = {
   type: IntroCardGraphicType.Icon
   Icon: GeneratedIcon
-  iconProps?: IconProps
-  iconContainerProps?: FlexProps
+  iconProps?: GeneratedIconProps
+  iconContainerProps?: FlexCompatProps
 }
 
 export type ImageGraphic = {
@@ -78,7 +69,7 @@ export type IntroCardProps = {
   cardType: CardType
   isNew?: boolean
   loggingName: CardLoggingName
-  containerProps?: FlexProps
+  containerProps?: FlexCompatProps
   iconColor?: string
   onPress?: () => void
   onClose?: () => void
@@ -196,13 +187,10 @@ export function IntroCard({
           </Flex>
         )
       case CardType.Dismissible:
-        return (
-          <ClickableWithinGesture onPress={closeHandler}>
-            <Flex p="$spacing8">
-              <X color="$neutral3" size="$icon.16" />
-            </Flex>
-          </ClickableWithinGesture>
-        )
+        // Width-only spacer keeping the title clear of the close button, which renders
+        // as an absolute overlay (closeButtonOverlay) so its padded tap box neither
+        // stretches the title row nor gets clipped by the row's bounds when tapped.
+        return <Flex width={spacing.spacing32} />
       case CardType.Swipe:
         return (
           <Text color="$neutral3" variant="body4">
@@ -212,7 +200,20 @@ export function IntroCard({
       default:
         return null
     }
-  }, [cardType, isDarkMode, closeHandler, t])
+  }, [cardType, isDarkMode, t])
+
+  const closeButtonOverlay = useMemo(
+    () => (
+      <Flex position="absolute" right={0} top={0}>
+        <ClickableWithinGesture onPress={closeHandler}>
+          <Flex p="$spacing8">
+            <X color="$neutral3" size="$icon.16" />
+          </Flex>
+        </ClickableWithinGesture>
+      </Flex>
+    ),
+    [closeHandler],
+  )
 
   const cardPadding = isExtensionApp ? '$spacing12' : '$spacing16'
 
@@ -331,7 +332,13 @@ export function IntroCard({
             flex={1}
           >
             {GraphicElement}
-            <Flex fill gap="$spacing4" paddingStart={isIcon ? '$none' : '$spacing12'} py="$spacing2">
+            <Flex
+              fill
+              gap="$spacing4"
+              paddingStart={isIcon ? '$none' : '$spacing12'}
+              position="relative"
+              py="$spacing2"
+            >
               <Flex row justifyContent="space-between">
                 <Flex fill>
                   <ElementAfterText
@@ -352,6 +359,7 @@ export function IntroCard({
               >
                 {description}
               </Text>
+              {cardType === CardType.Dismissible && closeButtonOverlay}
             </Flex>
           </Flex>
         )}

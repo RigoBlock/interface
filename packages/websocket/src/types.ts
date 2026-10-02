@@ -14,6 +14,8 @@ export interface WebSocketLike {
   readyState: number
   addEventListener(event: string, handler: (event: unknown) => void): void
   close(): void
+  /** PartySocket extension: re-arms the retry loop after an explicit close(). */
+  reconnect?(): void
 }
 
 /**
@@ -36,6 +38,10 @@ export interface ConnectionConfig {
   connectionTimeout?: number
   maxRetries?: number
   debug?: boolean
+  /** Close codes meaning the server shed this connection on purpose (default [1013]). */
+  overloadCloseCodes?: number[]
+  /** Base hold-off (ms) before the single retry after an overload close (default 60s, +50% jitter). */
+  overloadRetryDelayMs?: number
 }
 
 /**

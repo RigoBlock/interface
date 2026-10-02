@@ -1,42 +1,7 @@
-import { GraphQLApi } from '@universe/api'
-import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
+import { normalizeTokenAddressForCache } from '@universe/chains'
 import { EMPTY_NFT_ITEM, HIDDEN_NFTS_ROW } from 'uniswap/src/features/nfts/constants'
 import { NFTItem } from 'uniswap/src/features/nfts/types'
 import { NFTKeyToVisibility } from 'uniswap/src/features/visibility/slice'
-
-export function formatNftItems(data: GraphQLApi.NftsTabQuery | undefined): NFTItem[] | undefined {
-  const items = data?.nftBalances?.edges.flatMap((item) => item.node)
-  if (!items) {
-    return undefined
-  }
-
-  const nfts = items
-    .filter((item) => item.ownedAsset?.nftContract?.address && item.ownedAsset.tokenId)
-    // oxlint-disable-next-line complexity
-    .map((item): NFTItem => {
-      return {
-        name: item.ownedAsset?.name ?? undefined,
-        description: item.ownedAsset?.description ?? undefined,
-        contractAddress: item.ownedAsset?.nftContract?.address ?? undefined,
-        tokenId: item.ownedAsset?.tokenId ?? undefined,
-        imageUrl: item.ownedAsset?.image?.url ?? undefined,
-        thumbnailUrl: item.ownedAsset?.thumbnail?.url ?? undefined,
-        collectionName: item.ownedAsset?.collection?.name ?? undefined,
-        isVerifiedCollection: item.ownedAsset?.collection?.isVerified ?? undefined,
-        floorPrice: item.ownedAsset?.collection?.markets?.[0]?.floorPrice?.value ?? undefined,
-        isSpam: item.ownedAsset?.isSpam ?? undefined,
-        imageDimensions:
-          item.ownedAsset?.image?.dimensions?.height && item.ownedAsset.image.dimensions.width
-            ? {
-                width: item.ownedAsset.image.dimensions.width,
-                height: item.ownedAsset.image.dimensions.height,
-              }
-            : undefined,
-        chain: item.ownedAsset?.chain,
-      }
-    })
-  return nfts
-}
 
 export const getNFTAssetKey = (address: Address, token_id: string): string => {
   // Backend returns both checksummed and non-checksummed addresses
@@ -117,7 +82,9 @@ export function filterNft(item: NFTItem, searchQuery?: string): boolean {
   const lowercaseSearch = searchQuery.trim().toLowerCase()
   const name = item.name?.toLowerCase() ?? ''
   const collectionName = item.collectionName?.toLowerCase() ?? ''
+  // oxlint-disable-next-line universe-custom/no-tolowercase-address-currencyid -- case-insensitive NFT search field, not a currencyId lookup
   const tokenId = item.tokenId?.toLowerCase() ?? ''
+  // oxlint-disable-next-line universe-custom/no-tolowercase-address-currencyid -- case-insensitive NFT search field, not a currencyId lookup
   const contract = item.contractAddress?.toLowerCase() ?? ''
 
   return (

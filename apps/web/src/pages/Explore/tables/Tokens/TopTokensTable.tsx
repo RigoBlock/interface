@@ -1,24 +1,28 @@
+import { Flex } from '@universe/mycelium'
+import { styled } from '@universe/mycelium/styled'
 import { memo, useMemo } from 'react'
-import { Flex, styled } from 'ui/src'
-import { MAX_WIDTH_MEDIA_BREAKPOINT } from '~/constants/breakpoints'
-import { useChainIdFromUrlParam } from '~/features/params/chainParams'
-import useSimplePagination from '~/hooks/useSimplePagination'
-import { useExploreTablesFilterStore } from '~/pages/Explore/exploreTablesFilterStore'
+import { useExploreTablesFilterStore } from '~/features/Explore/state/exploreTablesFilterStore'
+import { useListTokens } from '~/features/Explore/state/listTokens/useListTokens'
 import { TokenTable } from '~/pages/Explore/tables/Tokens/TokensTable'
 import {
   TokenTableSortStoreContextProvider,
   useTokenTableSortStore,
 } from '~/pages/Explore/tables/Tokens/tokenTableSortStore'
-import { TABLE_PAGE_SIZE } from '~/state/explore'
-import { useListTokens } from '~/state/explore/listTokens/useListTokens'
-import { useExploreBackendSortingEnabled } from '~/state/explore/useExploreBackendSortingEnabled'
+import { useChainIdFromUrlParam } from '~/utils/params/chainParams'
 
+// Legacy `m: '0 auto'` expanded to per-side `margin-top: 0 auto` etc. — invalid CSS the browser
+// drops — so no margin ever rendered; only the max-width (MAX_WIDTH_MEDIA_BREAKPOINT) carries over.
 const TableWrapper = styled(Flex, {
-  m: '0 auto',
-  maxWidth: MAX_WIDTH_MEDIA_BREAKPOINT,
+  base: 'max-w-[1200px]',
 })
 
-function TopTokensTableContent(): JSX.Element {
+interface TopTokensTableProps {
+  categoryId?: string
+  /** Category came from the URL and isn't confirmed yet; terminal states are held as loading. */
+  categoryUnverified?: boolean
+}
+
+function TopTokensTableContent({ categoryId, categoryUnverified = false }: TopTokensTableProps): JSX.Element {
   const chainId = useChainIdFromUrlParam()
   const sortMethod = useTokenTableSortStore((s) => s.sortMethod)
   const sortAscending = useTokenTableSortStore((s) => s.sortAscending)
@@ -26,35 +30,35 @@ function TopTokensTableContent(): JSX.Element {
   const timePeriod = useExploreTablesFilterStore((s) => s.timePeriod)
 
   const options = useMemo(
-    () => ({ sortMethod, sortAscending, filterString, filterTimePeriod: timePeriod }),
-    [sortMethod, sortAscending, filterString, timePeriod],
+    () => ({ sortMethod, sortAscending, filterString, filterTimePeriod: timePeriod, categoryId }),
+    [sortMethod, sortAscending, filterString, timePeriod, categoryId],
   )
 
-  const backendSortingEnabled = useExploreBackendSortingEnabled()
   const { topTokens, tokenSortRank, isLoading, sparklines, isError, loadMore } = useListTokens(chainId, options)
 
-  const { page, loadMore: clientLoadMore } = useSimplePagination()
-  const effectiveLoadMore = loadMore ?? clientLoadMore
-  const displayedTokens = backendSortingEnabled ? topTokens : topTokens.slice(0, page * TABLE_PAGE_SIZE)
+  // An unverified category may be a bogus slug the BE rejects or empties; keep the skeleton up until
+  // ListCategories settles it, since a fallback to All is about to replace this table anyway.
+  const holdUnverifiedResult = categoryUnverified && (isError || topTokens.length === 0)
 
   return (
-    <TableWrapper data-testid="top-tokens-explore-table">
+    <TableWrapper testID="top-tokens-explore-table">
       <TokenTable
-        tokens={displayedTokens}
+        tokens={topTokens}
         tokenSortRank={tokenSortRank}
         sparklines={sparklines}
-        loading={isLoading}
-        loadMore={effectiveLoadMore}
-        error={isError}
+        loading={isLoading || holdUnverifiedResult}
+        loadMore={loadMore}
+        error={isError && !categoryUnverified}
+        categoryId={categoryId}
       />
     </TableWrapper>
   )
 }
 
-export const TopTokensTable = memo(function TopTokensTable() {
+export const TopTokensTable = memo(function TopTokensTable(props: TopTokensTableProps) {
   return (
     <TokenTableSortStoreContextProvider>
-      <TopTokensTableContent />
+      <TopTokensTableContent {...props} />
     </TokenTableSortStoreContextProvider>
   )
 })

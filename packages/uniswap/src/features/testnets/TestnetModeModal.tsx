@@ -1,6 +1,6 @@
+import { Flex } from '@universe/mycelium'
+import { Wrench } from '@universe/mycelium/icons/Wrench'
 import { useTranslation } from 'react-i18next'
-import { Flex } from 'ui/src'
-import { Wrench } from 'ui/src/components/icons/Wrench'
 import { InfoLinkModal } from 'uniswap/src/components/modals/InfoLinkModal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 

@@ -1,125 +1,95 @@
-import { motion } from 'framer-motion'
+import '~/pages/Landing/components/StatCard.css'
+import { Flex, Text } from '@universe/mycelium'
+import { styled } from '@universe/mycelium/styled'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { parseToRgb } from 'polished'
-import { Flex, Text, useSporeColors } from 'ui/src'
-import { opacify } from 'ui/src/theme'
+import type { ComponentPropsWithoutRef, CSSProperties } from 'react'
 import { useCurrentLocale } from 'uniswap/src/features/language/hooks'
-import { deprecatedStyled, keyframes } from '~/lib/deprecated-styled'
 
-const Mask = motion(deprecatedStyled.div`
-  position: relative;
-  display: flex;
-  flex: 0;
-  min-height: 52px;
-  width: 100%;
-  overflow: hidden;
-  @media (max-width: 1024px) {
-    min-height: 40px;
-  }
-  @media (max-width: 768px) {
-    min-height: 32px;
-  }
-`)
+const SPRITE_HEIGHT = 60
+const SPRITE_STAGGER_MS = 25
+const SPRITE_RISE_DURATION_MS = 1000
+const CHAR_FADE_DURATION_MS = 500
+// Approximates the previous spring rise (slight overshoot, smooth settle)
+const SPRITE_RISE_EASING = 'cubic-bezier(0.25, 1.25, 0.5, 1)'
 
-const Char = motion(deprecatedStyled.div<{ color: string }>`
-  font-variant-numeric: lining-nums tabular-nums;
-  font-family: Basel;
-  font-size: 52px;
-  font-style: normal;
-  font-weight: 500;
-  color: ${({ color }) => color};
-  line-height: 52px;
-  @media (max-width: 1280px) {
-    font-size: 40px;
-    line-height: 40px;
-  }
-  @media (max-width: 1050px) {
-    font-size: 32px;
-    line-height: 32px;
-  }
-  @media (max-width: 850px) {
-    font-size: 28px;
-    line-height: 28px;
-  }
-  @media (max-width: 396px) {
-    font-size: 22px;
-    line-height: 22px;
-  }
-`)
-const Container = deprecatedStyled.div<{ live?: boolean }>`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
-  border-radius: 20px;
+const Mask = styled('div', {
+  platform: 'web',
+  base: 'relative flex flex-[0] min-h-[52px] w-full overflow-hidden max-[1024px]:min-h-[40px] max-[768px]:min-h-[32px]',
+})
 
-  width: 100%;
-  height: 100%;
-  max-height: 230px;
+const CharFrame = styled('div', {
+  platform: 'web',
+  base: '[font-variant-numeric:lining-nums_tabular-nums] [font-family:Basel] text-[52px] not-italic font-[500] [line-height:52px] max-[1280px]:text-[40px] max-[1280px]:[line-height:40px] max-[1050px]:text-[32px] max-[1050px]:[line-height:32px] max-[850px]:text-[28px] max-[850px]:[line-height:28px] max-[396px]:text-[22px] max-[396px]:[line-height:22px]',
+})
 
-  padding: 32px;
+function Char({ color, style, ...rest }: { color: string } & ComponentPropsWithoutRef<typeof CharFrame>): JSX.Element {
+  return <CharFrame style={{ color, ...style }} {...rest} />
+}
 
-  background-color: ${({ theme, live }) => (live ? '#2FBA610A' : theme.surface2)};
-  overflow: hidden;
+const ContainerFrame = styled('div', {
+  platform: 'web',
+  base: 'flex flex-col items-start justify-between rounded-[20px] w-full h-full max-h-[230px] p-[32px] overflow-hidden [background-size:12px_12px] [background-position:-8.5px_-8.5px] max-[1024px]:p-[24px] max-[450px]:max-h-[160px]',
+  variants: {
+    live: {
+      true: 'bg-[#2FBA610A]',
+      false: 'bg-surface2',
+    },
+  },
+  defaultVariants: { live: false },
+})
 
-  @media (max-width: 1024px) {
-    padding: 24px;
-  }
-  @media (max-width: 768px) {
-  }
-  background-image: radial-gradient(rgba(${({ theme }) => {
-    const { red, green, blue } = parseToRgb(theme.neutral2)
-    return `${red}, ${green}, ${blue}`
-  }}, 0.25) 0.5px, transparent 0)};
-  background-size: 12px 12px;
-  background-position: -8.5px -8.5px;
-`
-const SpriteContainer = motion(deprecatedStyled.div`
-  pointer-events: none;
-  diplay: flex;
-  flex-direction: column;
-  color: ${({ theme }) => theme.neutral2};
-`)
+// The dot colour derives from the theme's neutral2 at runtime, so the gradient rides an inline style
+// while the 12px tiling stays in the base classes.
+function Container({
+  style,
+  ...rest
+}: ComponentPropsWithoutRef<typeof ContainerFrame> & { live?: boolean }): JSX.Element {
+  const colors = useSporeColors()
+  const { red, green, blue } = parseToRgb(colors.neutral2.val)
+  return (
+    <ContainerFrame
+      style={{
+        backgroundImage: `radial-gradient(rgba(${red}, ${green}, ${blue}, 0.25) 0.5px, transparent 0)`,
+        ...style,
+      }}
+      {...rest}
+    />
+  )
+}
 
-const pulsate = (color: string) => keyframes`
-  0% {
-    box-shadow: 0 0 0 0 ${opacify(24, color)};
-  }
-  100% {
-    box-shadow: 0 0 0 4px ${opacify(24, color)};
-  }
-`
-export const LiveIcon = deprecatedStyled.div<{ display: string }>`
-  display: ${({ display }) => display};
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: ${({ theme }) => theme.success};
-  animation-name: ${({ theme }) => pulsate(theme.success)};
-  animation-fill-mode: forwards;
-  animation-direction: alternate;
-  animation-duration: 1000ms;
-  animation-iteration-count: infinite;
-  animation-timing-function: ease-in-out;
-`
+// No display utility: the chars must stay block-level to stack vertically inside the flex Mask.
+const SpriteContainer = styled('div', {
+  platform: 'web',
+  base: 'pointer-events-none text-neutral2',
+})
 
-const Title = deprecatedStyled.h3<{ color: string }>`
-  padding: 0;
-  margin: 0;
-  font-family: Basel;
-  font-size: 24px;
-  font-style: normal;
-  font-weight: 535;
-  line-height: 32px; /* 133.333% */
-  color: ${({ color }) => color};
-  @media (max-width: 1024px) {
-    font-size: 18px;
-    line-height: 26px;
-  }
-  @media (max-width: 768px) {
-    font-size: 18px;
-    line-height: 20px;
-  }
-`
+const LiveIconFrame = styled('div', {
+  platform: 'web',
+  base: 'w-[6px] h-[6px] rounded-[50%] bg-success stat-card-live-icon',
+})
+
+export function LiveIcon({
+  display,
+  style,
+  ...rest
+}: { display: CSSProperties['display'] } & ComponentPropsWithoutRef<typeof LiveIconFrame>): JSX.Element {
+  return <LiveIconFrame style={{ display, ...style }} {...rest} />
+}
+
+const TitleFrame = styled('h3', {
+  platform: 'web',
+  base: 'p-0 m-0 [font-family:Basel] text-[24px] not-italic font-[535] [line-height:32px] max-[1024px]:text-[18px] max-[1024px]:[line-height:26px] max-[768px]:text-[18px] max-[768px]:[line-height:20px]',
+})
+
+function Title({
+  color,
+  style,
+  ...rest
+}: { color: string } & ComponentPropsWithoutRef<typeof TitleFrame>): JSX.Element {
+  return <TitleFrame style={{ color, ...style }} {...rest} />
+}
+
 type StatCardProps = {
   title: string
   value: string
@@ -147,7 +117,7 @@ export function StatCard(props: StatCardProps) {
       <Flex row alignItems="center" gap="$gap4">
         <Title color={props.live ? colors.statusSuccess.val : colors.neutral2.val}>{props.title}</Title>
       </Flex>
-      <StringInterpolationWithMotion
+      <AnimatedStringInterpolation
         prefix={props.prefix}
         suffix={props.suffix}
         value={props.value}
@@ -159,7 +129,7 @@ export function StatCard(props: StatCardProps) {
   )
 }
 
-function StringInterpolationWithMotion({ value, delay, inView, live }: Omit<StatCardProps, 'title'>) {
+function AnimatedStringInterpolation({ value, delay, inView, live }: Omit<StatCardProps, 'title'>) {
   const chars = value.split('')
   const colors = useSporeColors()
   const locale = useCurrentLocale()
@@ -174,12 +144,10 @@ function StringInterpolationWithMotion({ value, delay, inView, live }: Omit<Stat
     )
   }
 
+  const baseDelayMs = 1000 * (delay ?? 0)
+
   return (
-    <Mask
-      initial="initial"
-      animate={inView ? 'animate' : 'initial'}
-      transition={{ staggerChildren: 0.025, delayChildren: delay }}
-    >
+    <Mask>
       {chars.map((char: string, index: number) => {
         // select charset based on char
         const charset = numeric.includes(char)
@@ -196,6 +164,8 @@ function StringInterpolationWithMotion({ value, delay, inView, live }: Omit<Stat
             key={index}
             charset={charset}
             color={live ? colors.statusSuccess.val : colors.neutral1.val}
+            inView={inView}
+            delayMs={baseDelayMs + index * SPRITE_STAGGER_MS}
           />
         )
       })}
@@ -203,53 +173,47 @@ function StringInterpolationWithMotion({ value, delay, inView, live }: Omit<Stat
   )
 }
 
-function NumberSprite({ char, charset, color }: { char: string; charset: string[]; color: string }) {
-  const height = 60
-
+function NumberSprite({
+  char,
+  charset,
+  color,
+  inView,
+  delayMs,
+}: {
+  char: string
+  charset: string[]
+  color: string
+  inView?: boolean
+  delayMs: number
+}) {
   // rotate array so that the char is at the top
   const chars = rotateArray(charset, charset.indexOf(char))
 
   const idx = chars.indexOf(char)
 
-  const variants = {
-    initial: {
-      y: idx + 3 * -height,
-    },
-    animate: {
-      y: idx * -height,
-      transition: {
-        duration: 1,
-        type: 'spring',
-      },
-    },
-  }
+  const initialY = idx - 3 * SPRITE_HEIGHT
+  const targetY = idx * -SPRITE_HEIGHT
 
   return (
-    <SpriteContainer variants={variants}>
+    <SpriteContainer
+      style={{
+        transform: `translateY(${inView ? targetY : initialY}px)`,
+        transition: `transform ${SPRITE_RISE_DURATION_MS}ms ${SPRITE_RISE_EASING} ${delayMs}ms`,
+      }}
+    >
       {/* oxlint-disable-next-line no-shadow */}
-      {chars.map((char, index) => {
-        const charVariants = {
-          initial: {
-            opacity: 0.25,
-          },
-          animate: {
-            opacity: idx === index ? 1 : 0,
-            transition: {
-              opacity: {
-                duration: 0.5,
-              },
-              duration: 1,
-              type: 'spring',
-            },
-          },
-        }
-
-        return (
-          <Char variants={charVariants} key={index} color={color}>
-            {char}
-          </Char>
-        )
-      })}
+      {chars.map((char, index) => (
+        <Char
+          key={index}
+          color={color}
+          style={{
+            opacity: inView ? (idx === index ? 1 : 0) : 0.25,
+            transition: `opacity ${CHAR_FADE_DURATION_MS}ms ease ${delayMs}ms`,
+          }}
+        >
+          {char}
+        </Char>
+      ))}
     </SpriteContainer>
   )
 }

@@ -1,30 +1,18 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`LongText renders without error 1`] = `
-<View
-  style={
-    {
-      "flexDirection": "column",
-      "gap": 8,
-    }
-  }
->
-  <Text
-    allowFontScaling={true}
-    maxFontSizeMultiplier={1.4}
-    onTextLayout={[Function]}
-    style={
-      {
-        "color": "#131313",
-        "fontFamily": "Basel Grotesk",
-        "fontSize": 17,
-        "fontWeight": "400",
-        "lineHeight": 22.1,
-      }
-    }
-    suppressHighlighting={true}
+exports[`LongText > renders without error 1`] = `
+<DocumentFragment>
+  <div
+    class="css-view-175oi2r"
+    style="gap: 8px;"
   >
-    Some very long text
-  </Text>
-</View>
+    <div
+      class="css-text-146c3p1"
+      dir="auto"
+      style="font-size: 17px; line-height: 22px; font-family: Basel Grotesk; font-weight: 400; color: rgb(19, 19, 19);"
+    >
+      Some very long text
+    </div>
+  </div>
+</DocumentFragment>
 `;

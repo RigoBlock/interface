@@ -1,4 +1,7 @@
+import { UniverseChainId, normalizeTokenAddressForCache } from '@universe/chains'
+import { isMobileApp, isWebApp } from '@universe/environment'
 import { useMemo } from 'react'
+import { useState } from 'react'
 import { useSelector } from 'react-redux'
 import { usePoolSearchResultsToPoolOptions } from 'uniswap/src/components/lists/items/pools/usePoolSearchResultsToPoolOptions'
 import {
@@ -12,9 +15,7 @@ import {
 import { MAX_RECENT_SEARCH_RESULTS } from 'uniswap/src/components/TokenSelector/constants'
 import { useCurrencyInfosToTokenOptions } from 'uniswap/src/components/TokenSelector/hooks/useCurrencyInfosToTokenOptions'
 import { getNativeAddress } from 'uniswap/src/constants/addresses'
-import { normalizeCurrencyIdForMapLookup, normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { CurrencyInfo, MultichainSearchResult } from 'uniswap/src/features/dataApi/types'
+import { CurrencyInfo, MultichainSearchResult, SearchMultichainParent } from 'uniswap/src/features/dataApi/types'
 import {
   isEtherscanSearchHistoryResult,
   isMultichainTokenSearchHistoryResult,
@@ -25,23 +26,11 @@ import {
   SearchHistoryResult,
 } from 'uniswap/src/features/search/SearchHistoryResult'
 import { SearchTab } from 'uniswap/src/features/search/SearchModal/types'
+import { dedupeCurrencyIds } from 'uniswap/src/features/search/SearchModal/utils/dedupeCurrencyIds'
 import { selectSearchHistory } from 'uniswap/src/features/search/selectSearchHistory'
 import { useCurrencyInfos } from 'uniswap/src/features/tokens/useCurrencyInfo'
+import { normalizeCurrencyIdForMapLookup } from 'uniswap/src/utils/currencyId'
 import { buildCurrencyId, buildNativeCurrencyId, currencyId, currencyIdToChain } from 'uniswap/src/utils/currencyId'
-import { isMobileApp, isWebApp } from 'utilities/src/platform'
-
-function dedupeCurrencyIds(ids: string[]): string[] {
-  const seen = new Set<string>()
-  const out: string[] = []
-  for (const id of ids) {
-    const k = normalizeCurrencyIdForMapLookup(id)
-    if (!seen.has(k)) {
-      seen.add(k)
-      out.push(id)
-    }
-  }
-  return out
-}
 
 function multichainHistoryToTokenOption(
   history: MultichainTokenSearchHistoryResult,
@@ -58,31 +47,54 @@ function multichainHistoryToTokenOption(
   if (!primaryCurrencyInfo) {
     return undefined
   }
+  // Use history.tokenCurrencyIds (the full saved list) so multichain detection
+  // works even when some chain tokens haven't been loaded into the cache yet.
+  const searchMultichainParent: SearchMultichainParent = {
+    id: history.multichainId,
+    tokenCurrencyIds: history.tokenCurrencyIds,
+  }
   const multichainResult: MultichainSearchResult = {
     id: history.multichainId,
     name: history.name,
     symbol: history.symbol,
     logoUrl: history.logoUrl,
-    tokens,
+    tokens: tokens.map((t) => ({ ...t, searchMultichainParent })),
     safetyInfo: primaryCurrencyInfo.safetyInfo,
   }
   return {
     type: OnchainItemListOptionType.MultichainToken,
     multichainResult,
-    primaryCurrencyInfo,
+    primaryCurrencyInfo: { ...primaryCurrencyInfo, searchMultichainParent },
+    ...(history.tdpChainFilter != null ? { tdpChainFilter: history.tdpChainFilter } : {}),
   }
+}
+
+export interface RecentlySearchedOptions {
+  options: SearchModalOption[]
+  historyCount: number
 }
 
 export function useRecentlySearchedOptions({
   chainFilter,
   activeTab,
+  // oxlint-disable-next-line typescript/no-useless-default-assignment -- defensive default
   numberOfRecentSearchResults = MAX_RECENT_SEARCH_RESULTS,
 }: {
   chainFilter: UniverseChainId | null
   activeTab: SearchTab
   numberOfRecentSearchResults: number
-}): SearchModalOption[] {
-  const recentHistory = useSelector(selectSearchHistory)
+}): RecentlySearchedOptions {
+  // Snapshot the search history when the modal opens to prevent a layout shift due to modifier-clicks (web only).
+  const liveHistory = useSelector(selectSearchHistory)
+  const [snapshot, setSnapshot] = useState(liveHistory)
+
+  if (liveHistory.length === 0 && snapshot.length > 0) {
+    setSnapshot(liveHistory)
+  }
+
+  const history = isWebApp ? snapshot : liveHistory
+
+  const recentHistory = history
     .filter((searchResult) => {
       switch (activeTab) {
         case SearchTab.Tokens:
@@ -91,6 +103,8 @@ export function useRecentlySearchedOptions({
           return isPoolSearchHistoryResult(searchResult)
         case SearchTab.Wallets:
           return isWalletSearchHistoryResult(searchResult)
+        case SearchTab.Auctions:
+          return false // Auctions don't have search history yet
         default:
         case SearchTab.All:
           if (isMobileApp) {
@@ -170,7 +184,7 @@ export function useRecentlySearchedOptions({
       type: OnchainItemListOptionType.WalletByAddress,
     }))
 
-  return useMemo(() => {
+  const options = useMemo(() => {
     /** If we only have 1 asset type, we can return the Options directly */
     if (recentHistory.every(isTokenSearchHistoryResult)) {
       return tokenOptions ?? []
@@ -220,4 +234,6 @@ export function useRecentlySearchedOptions({
 
     return data
   }, [recentHistory, tokenOptions, poolOptions, walletOptions, currencyInfoById])
+
+  return { options, historyCount: recentHistory.length }
 }

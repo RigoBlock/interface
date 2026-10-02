@@ -1,6 +1,6 @@
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
 import React, { memo } from 'react'
 import { type LogEntry, useHashcashBenchmarkStore } from 'src/screens/stores/hashcashBenchmarkStore'
-import { Flex, Text, TouchableArea } from 'ui/src'
 
 function formatTime(date: Date): string {
   return date.toLocaleTimeString('en-US', {

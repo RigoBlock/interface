@@ -1,7 +1,8 @@
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
+import { AlertTriangleFilled } from '@universe/mycelium/icons/AlertTriangleFilled'
+import { InfoCircleFilled } from '@universe/mycelium/icons/InfoCircleFilled'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text, TouchableArea, useSporeColors } from 'ui/src'
-import { AlertTriangleFilled } from 'ui/src/components/icons/AlertTriangleFilled'
-import { InfoCircleFilled } from 'ui/src/components/icons/InfoCircleFilled'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 

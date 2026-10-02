@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
+import { normalizeTokenAddressForCache } from '@universe/chains'
 import { isUniverseChainId } from 'uniswap/src/features/chains/utils'
 import {
   isMultichainTokenSearchHistoryResult,
@@ -8,7 +8,8 @@ import {
   SearchHistoryResultType,
 } from 'uniswap/src/features/search/SearchHistoryResult'
 
-const SEARCH_HISTORY_LENGTH = 5
+// Sized for the Search V2 recents pill row (RECENT_SEARCH_PILLS_MAX_COUNT); other surfaces slice further on read.
+const SEARCH_HISTORY_LENGTH = 30
 
 export function searchResultId(searchResult: SearchHistoryResult): string {
   switch (searchResult.type) {
@@ -28,8 +29,10 @@ export function searchResultId(searchResult: SearchHistoryResult): string {
       const normalizedAddress = normalizeTokenAddressForCache(searchResult.poolId)
       return `pool-${searchResult.chainId}-${normalizedAddress}-${searchResult.feeTier}`
     }
-    case SearchHistoryResultType.MultichainToken:
-      return `multichain-token-${searchResult.multichainId}`
+    case SearchHistoryResultType.MultichainToken: {
+      const suffix = searchResult.tdpChainFilter != null ? String(searchResult.tdpChainFilter) : 'all'
+      return `multichain-token-${searchResult.multichainId}-${suffix}`
+    }
     default: {
       const _unexpected: never = searchResult
       throw new Error(`Unexpected search history type: ${String(_unexpected)}`)

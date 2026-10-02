@@ -1,18 +1,18 @@
+import { Flex, fonts, iconSizes, spacing, Text } from '@universe/mycelium'
+import { ArrowLeft } from '@universe/mycelium/icons/ArrowLeft'
+import { ArrowRight } from '@universe/mycelium/icons/ArrowRight'
+import { TestID } from '@universe/test'
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { I18nManager, LayoutChangeEvent } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated'
-import { Flex, Text } from 'ui/src'
-import { ArrowLeft, ArrowRight } from 'ui/src/components/icons'
 import { AnimatedFlex } from 'ui/src/components/layout/AnimatedFlex'
-import { fonts, iconSizes, spacing } from 'ui/src/theme'
 import { useAppFiatCurrencyInfo } from 'uniswap/src/features/fiatCurrency/hooks'
 import {
   DecimalPadProps,
   KeyAction,
   KeyLabel,
 } from 'uniswap/src/features/transactions/components/DecimalPadInput/types'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 
 const KEY_PRESS_ANIMATION_DURATION_MS = 150
 
@@ -131,10 +131,7 @@ export const DecimalPad = memo(function DecimalPad({
   }, [])
 
   useEffect(() => {
-    // skip resize if the layout is still the same height as before
-    if (currentHeightRef.current === currentHeight) {
-      return
-    }
+    const layoutChanged = currentHeightRef.current !== currentHeight
 
     currentHeightRef.current = currentHeight
     maxHeightRef.current = maxHeight
@@ -144,6 +141,11 @@ export const DecimalPad = memo(function DecimalPad({
     }
 
     if (currentHeight < maxHeight) {
+      // Already fits and the pad's own layout didn't change (e.g. `maxHeight` grew) — nothing to do.
+      // There's deliberately no grow-back: resizing up on accessory changes would make the pad flap.
+      if (!layoutChanged) {
+        return
+      }
       // We call `onReady` on the next frame to ensure layout has stabilized and `maxHeight` is accurate.
       requestAnimationFrame(() => {
         if (
@@ -157,6 +159,8 @@ export const DecimalPad = memo(function DecimalPad({
       return
     }
 
+    // Shrink even when only `maxHeight` changed: a consumer's accessory elements can finish
+    // measuring (or grow) after the pad has already settled at its current size.
     setSizeMultiplier({
       fontSize: sizeMultiplier.fontSize * 0.95,
       icon: sizeMultiplier.icon * 0.97,

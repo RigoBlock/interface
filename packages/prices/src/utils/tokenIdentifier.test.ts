@@ -13,7 +13,9 @@ import {
 import { describe, expect, it } from 'vitest'
 
 const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
+const WETH_ADDRESS_LOWERCASE = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
 const USDC_ADDRESS = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+const USDC_ADDRESS_LOWERCASE = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
 
 describe('tokenIdentifier utilities', () => {
   describe('isCurrency', () => {
@@ -46,7 +48,7 @@ describe('tokenIdentifier utilities', () => {
       const result = normalizeToken(identifier)
       expect(result).toEqual({
         chainId: 1,
-        address: WETH_ADDRESS.toLowerCase(),
+        address: WETH_ADDRESS_LOWERCASE,
       })
     })
 
@@ -64,7 +66,7 @@ describe('tokenIdentifier utilities', () => {
       const result = normalizeToken(token)
       expect(result).toEqual({
         chainId: 1,
-        address: WETH_ADDRESS.toLowerCase(),
+        address: WETH_ADDRESS_LOWERCASE,
       })
     })
   })
@@ -72,12 +74,12 @@ describe('tokenIdentifier utilities', () => {
   describe('createPriceKey', () => {
     it('creates key with format chainId-address', () => {
       const key = createPriceKey(1, WETH_ADDRESS)
-      expect(key).toBe(`1-${WETH_ADDRESS.toLowerCase()}`)
+      expect(key).toBe(`1-${WETH_ADDRESS_LOWERCASE}`)
     })
 
     it('lowercases address', () => {
-      const key = createPriceKey(1, '0xABC')
-      expect(key).toBe('1-0xabc')
+      const key = createPriceKey(1, USDC_ADDRESS)
+      expect(key).toBe(`1-${USDC_ADDRESS_LOWERCASE}`)
     })
   })
 
@@ -85,23 +87,23 @@ describe('tokenIdentifier utilities', () => {
     it('creates key from TokenIdentifier', () => {
       const identifier: TokenIdentifier = { chainId: 1, address: WETH_ADDRESS }
       const key = createPriceKeyFromToken(identifier)
-      expect(key).toBe(`1-${WETH_ADDRESS.toLowerCase()}`)
+      expect(key).toBe(`1-${WETH_ADDRESS_LOWERCASE}`)
     })
 
     it('creates key from Token', () => {
       const token = new Token(1, WETH_ADDRESS, 18, 'WETH', 'Wrapped Ether')
       const key = createPriceKeyFromToken(token)
-      expect(key).toBe(`1-${WETH_ADDRESS.toLowerCase()}`)
+      expect(key).toBe(`1-${WETH_ADDRESS_LOWERCASE}`)
     })
   })
 
   describe('parsePriceKey', () => {
     it('parses key back to TokenIdentifier', () => {
-      const key = `1-${WETH_ADDRESS.toLowerCase()}`
+      const key = `1-${WETH_ADDRESS_LOWERCASE}`
       const result = parsePriceKey(key)
       expect(result).toEqual({
         chainId: 1,
-        address: WETH_ADDRESS.toLowerCase(),
+        address: WETH_ADDRESS_LOWERCASE,
       })
     })
 
@@ -124,7 +126,7 @@ describe('tokenIdentifier utilities', () => {
       const params = toSubscriptionParams(identifier)
       expect(params).toEqual({
         chainId: 1,
-        tokenAddress: WETH_ADDRESS.toLowerCase(),
+        tokenAddress: WETH_ADDRESS_LOWERCASE,
       })
     })
   })
@@ -138,8 +140,8 @@ describe('tokenIdentifier utilities', () => {
       ]
       const result = filterValidTokens(tokens)
       expect(result).toHaveLength(2)
-      expect(result[0]?.address).toBe(WETH_ADDRESS.toLowerCase())
-      expect(result[1]?.address).toBe(USDC_ADDRESS.toLowerCase())
+      expect(result[0]?.address).toBe(WETH_ADDRESS_LOWERCASE)
+      expect(result[1]?.address).toBe(USDC_ADDRESS_LOWERCASE)
     })
   })
 })

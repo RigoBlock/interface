@@ -1,3 +1,5 @@
+import fs from 'fs'
+import os from 'os'
 import path from 'path'
 import { getTsconfigAliases } from './getTsconfigAliases'
 
@@ -20,5 +22,51 @@ describe('getTsconfigAliases', () => {
     expect(result['@universe/api']).toContain('packages/api')
     expect(path.isAbsolute(result['uniswap']!)).toBe(true)
     expect(path.isAbsolute(result['@universe/api']!)).toBe(true)
+  })
+
+  it('should not alias packages whose exports map is the resolution contract', () => {
+    const result = getTsconfigAliases()
+
+    // Aliasing an exports-map package to its source dir would bypass `exports`
+    // and break subpaths that don't mirror the file layout (e.g.
+    // @universe/mycelium/icons/<Name>). These packages declare `exports` today:
+    expect(result).not.toHaveProperty('@universe/mycelium')
+    expect(result).not.toHaveProperty('@universe/logger')
+    expect(result).not.toHaveProperty('@universe/tailwind')
+  })
+
+  it('should derive the skip set from each mapped package.json exports field', () => {
+    const fixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tsconfig-aliases-'))
+    try {
+      fs.mkdirSync(path.join(fixtureDir, 'packages/with-exports'), { recursive: true })
+      fs.mkdirSync(path.join(fixtureDir, 'packages/without-exports'), { recursive: true })
+      fs.writeFileSync(
+        path.join(fixtureDir, 'packages/with-exports/package.json'),
+        JSON.stringify({ name: '@fixture/with-exports', exports: { '.': './src/index.ts' } }),
+      )
+      fs.writeFileSync(
+        path.join(fixtureDir, 'packages/without-exports/package.json'),
+        JSON.stringify({ name: '@fixture/without-exports', main: 'src/index.ts' }),
+      )
+      const tsconfigPath = path.join(fixtureDir, 'tsconfig.base.json')
+      fs.writeFileSync(
+        tsconfigPath,
+        JSON.stringify({
+          compilerOptions: {
+            paths: {
+              '@fixture/with-exports/*': ['./packages/with-exports/*'],
+              '@fixture/without-exports/*': ['./packages/without-exports/*'],
+            },
+          },
+        }),
+      )
+
+      const result = getTsconfigAliases(tsconfigPath)
+
+      expect(result).not.toHaveProperty('@fixture/with-exports')
+      expect(result['@fixture/without-exports']).toBe(path.join(fixtureDir, 'packages/without-exports'))
+    } finally {
+      fs.rmSync(fixtureDir, { recursive: true, force: true })
+    }
   })
 })

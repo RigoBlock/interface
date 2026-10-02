@@ -1,3 +1,8 @@
+import { Flex, iconSizes, Text } from '@universe/mycelium'
+import { PapersText } from '@universe/mycelium/icons/PapersText'
+import { Passkey } from '@universe/mycelium/icons/Passkey'
+import { QrCode } from '@universe/mycelium/icons/QrCode'
+import { WalletFilled } from '@universe/mycelium/icons/WalletFilled'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router'
 import { OptionCard } from 'src/app/components/buttons/OptionCard'
@@ -8,9 +13,6 @@ import {
 import { OnboardingScreen } from 'src/app/features/onboarding/OnboardingScreen'
 import { OnboardingRoutes, TopLevelRoutes } from 'src/app/navigation/constants'
 import { navigate } from 'src/app/navigation/state'
-import { Flex, Square, Text } from 'ui/src'
-import { PapersText, Passkey, QrCode, WalletFilled } from 'ui/src/components/icons'
-import { iconSizes } from 'ui/src/theme'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { ExtensionOnboardingFlow, ExtensionOnboardingScreens } from 'uniswap/src/types/screens/extension'
 
@@ -29,14 +31,15 @@ export function SelectImportMethod(): JSX.Element {
       <Flex gap="$spacing16">
         <OnboardingScreen
           Icon={
-            <Square
+            <Flex
+              centered
               backgroundColor="$surface2"
               borderRadius="$rounded12"
               height={iconSizes.icon48}
               width={iconSizes.icon48}
             >
               <WalletFilled color="$neutral1" size="$icon.24" />
-            </Square>
+            </Flex>
           }
           title={t('onboarding.import.selectMethod.title')}
           onBack={(): void => navigate(`/${TopLevelRoutes.Onboarding}`, { replace: true })}
@@ -50,6 +53,17 @@ export function SelectImportMethod(): JSX.Element {
               </Flex>
             )}
             <OptionCard
+              Icon={Passkey}
+              title={t('nav.logIn.button')}
+              subtitle={t('onboarding.import.selectMethod.passkey.subtitle')}
+              onPress={(): void =>
+                navigate(`/${TopLevelRoutes.Onboarding}/${OnboardingRoutes.ImportPasskey}`, {
+                  replace: true,
+                  state: { importPasskey: true } satisfies InitiatePasskeyAuthLocationState,
+                })
+              }
+            />
+            <OptionCard
               Icon={PapersText}
               title={t('onboarding.import.selectMethod.recoveryPhrase.title')}
               subtitle={t('onboarding.import.selectMethod.recoveryPhrase.subtitle')}
@@ -57,25 +71,12 @@ export function SelectImportMethod(): JSX.Element {
                 navigate(`/${TopLevelRoutes.Onboarding}/${OnboardingRoutes.Import}`, { replace: true })
               }
             />
-
             <OptionCard
               Icon={QrCode}
               title={t('onboarding.import.selectMethod.mobileApp.title')}
               subtitle={t('onboarding.import.selectMethod.mobileApp.subtitle')}
               onPress={(): void =>
                 navigate(`/${TopLevelRoutes.Onboarding}/${OnboardingRoutes.Scan}`, { replace: true })
-              }
-            />
-
-            <OptionCard
-              Icon={Passkey}
-              title={t('onboarding.import.selectMethod.passkey.title')}
-              subtitle={t('onboarding.import.selectMethod.passkey.subtitle')}
-              onPress={(): void =>
-                navigate(`/${TopLevelRoutes.Onboarding}/${OnboardingRoutes.ImportPasskey}`, {
-                  replace: true,
-                  state: { importPasskey: true } satisfies InitiatePasskeyAuthLocationState,
-                })
               }
             />
           </Flex>

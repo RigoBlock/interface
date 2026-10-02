@@ -4,13 +4,14 @@ import { useRef } from 'react'
 import { selectHasShownMismatchToast } from 'uniswap/src/features/behaviorHistory/selectors'
 import { setHasShownMismatchToast } from 'uniswap/src/features/behaviorHistory/slice'
 import { createHasMismatchUtil, type HasMismatchUtil } from 'uniswap/src/features/smartWallet/mismatch/mismatch'
+import { isPermit2MismatchDelegate } from 'uniswap/src/features/smartWallet/mismatch/permit2MismatchDelegates'
 import { UniswapEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { getLogger } from 'utilities/src/logger/logger'
 import { useEvent } from 'utilities/src/react/hooks'
-import { popupRegistry } from '~/components/Popups/registry'
-import { PopupType } from '~/components/Popups/types'
 import { useAppDispatch, useAppSelector } from '~/state/hooks'
+import { popupRegistry } from '~/state/popups/registry'
+import { PopupType } from '~/state/popups/types'
 import { useIsAtomicBatchingSupportedByChainIdCallback } from '~/state/walletCapabilities/hooks/useIsAtomicBatchingSupportedByChain'
 import { useWalletGetCapabilitiesMutation } from '~/state/walletCapabilities/hooks/useWalletGetCapabilitiesMutation'
 import { isAtomicBatchingSupportedByChainId } from '~/state/walletCapabilities/lib/handleGetCapabilities'
@@ -69,6 +70,8 @@ export function useHasMismatchCallback(): HasMismatchUtil {
       delegationService,
       getIsAtomicBatchingSupported,
       onMismatchDetected,
+      // limit the mismatch fallback flow to delegates that reject raw Permit2 signatures
+      shouldTreatAsMismatch: isPermit2MismatchDelegate,
     }),
   )
 }

@@ -1,6 +1,6 @@
+import type { UniverseChainId } from '@universe/chains'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import type { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useSwapFormStore } from 'uniswap/src/features/transactions/swap/stores/swapFormStore/useSwapFormStore'
 import { isChainSupportedForChainedActions } from 'uniswap/src/features/transactions/swap/utils/chainedActions'
 import { CurrencyField } from 'uniswap/src/types/currency'

@@ -1,12 +1,12 @@
 import { TradeType } from '@uniswap/sdk-core'
 import { TradingApi } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
 import { createTransactionDetails } from 'uniswap/src/features/activity/extract/extractPlanUtils'
 import {
   mapTAPIPlanStatusToTXStatus,
   mapTAPIPlanStepStatusToTXStatus,
 } from 'uniswap/src/features/activity/extract/statusMappers'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { ValueType } from 'uniswap/src/features/tokens/getCurrencyAmount'
 import { planStepTypeToTradingRoute } from 'uniswap/src/features/transactions/swap/utils/routing'
 import {
@@ -61,6 +61,7 @@ export default function extractPlanResponseDetails(
     type: TransactionType.Plan,
     planId,
     planStatus: status,
+    earnAction: planResponse.earnIntent?.action,
     stepDetails: extractStepDetailsFromPlanResponse({
       steps,
       swapper,
@@ -126,8 +127,14 @@ export function extractPlanResponseAssetDetails(steps: TradingApi.PlanStep[]): {
   const { tokenIn, tokenInChainId, tokenInAmount } = firstStep ?? {}
   const { tokenOut, tokenOutChainId, tokenOutAmount } = lastStep ?? {}
 
-  const validatedTokenIn = validateAndBuildCurrencyId({ chainId: tokenInChainId, tokenAddress: tokenIn })
-  const validatedTokenOut = validateAndBuildCurrencyId({ chainId: tokenOutChainId, tokenAddress: tokenOut })
+  const validatedTokenIn = validateAndBuildCurrencyId({
+    chainId: tokenInChainId,
+    tokenAddress: tokenIn,
+  })
+  const validatedTokenOut = validateAndBuildCurrencyId({
+    chainId: tokenOutChainId,
+    tokenAddress: tokenOut,
+  })
   if (!validatedTokenIn || !validatedTokenOut || !tokenInAmount || !tokenOutAmount) {
     logger.warn(
       'extractPlanResponseDetails',
@@ -177,6 +184,7 @@ function extractStepDetailsFromPlanResponse({
         planId,
         status: mapTAPIPlanStepStatusToTXStatus(step.status),
         planStepType,
+        stepIndex: step.stepIndex,
         inputCurrencyAmountRaw: step.tokenInAmount ?? '0',
         outputCurrencyAmountRaw: step.tokenOutAmount ?? '0',
         addedTime: updatedMillis,

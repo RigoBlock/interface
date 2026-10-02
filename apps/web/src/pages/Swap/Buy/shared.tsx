@@ -1,6 +1,9 @@
 import { Currency } from '@uniswap/sdk-core'
-import { PropsWithChildren } from 'react'
-import { Flex, ModalCloseIcon, styled, TouchableArea, useSporeColors } from 'ui/src'
+import { Flex, type FlexCompatProps, TouchableArea } from '@universe/mycelium'
+import { styled } from '@universe/mycelium/styled'
+import { TestID } from '@universe/test'
+import { forwardRef, type ForwardRefExoticComponent, PropsWithChildren, type RefAttributes } from 'react'
+import { ModalCloseIcon, useSporeColors } from 'ui/src'
 import { ReactComponent as ForConnectingBackground } from 'ui/src/assets/backgrounds/for-connecting-v2.svg'
 import { ArrowLeft } from 'ui/src/components/icons/ArrowLeft'
 import { FiatCurrencyInfo, FORCountry, RampDirection } from 'uniswap/src/features/fiatOnRamp/types'
@@ -9,28 +12,26 @@ import { navigatorLocale } from 'uniswap/src/features/language/navigatorLocale'
 import { NumberType } from 'utilities/src/format/types'
 import { logger } from 'utilities/src/logger/logger'
 
-export const ContentWrapper = styled(Flex, {
-  backgroundColor: '$surface1',
-  width: '100%',
-  flex: 1,
-  position: 'relative',
+// Explicit return type: forwardRef's inferred type isn't nameable under declaration emit (TS2883).
+export const ContentWrapper: ForwardRefExoticComponent<FlexCompatProps & RefAttributes<HTMLDivElement>> = forwardRef<
+  HTMLDivElement,
+  FlexCompatProps
+>(function ContentWrapper(props, ref) {
+  return <Flex ref={ref} backgroundColor="$surface1" width="100%" flex={1} position="relative" {...props} />
 })
 
+// The SVGR component has no compat primitive, so this stays on the house factory.
+// apps/web only, so `platform: 'web'` is safe.
 const ConnectingBackgroundImage = styled(ForConnectingBackground, {
-  position: 'absolute',
-  zIndex: 0,
-  width: '100%',
-  height: '100%',
+  platform: 'web',
+  base: 'absolute z-0 w-full h-full',
 })
 
-const ConnectingBackgroundImageFadeLayer = styled(Flex, {
-  position: 'absolute',
-  zIndex: 1,
-  width: '100%',
-  height: '100%',
-  top: 0,
-  left: 0,
-})
+const ConnectingBackgroundImageFadeLayer = forwardRef<HTMLDivElement, FlexCompatProps>(
+  function ConnectingBackgroundImageFadeLayer(props, ref) {
+    return <Flex ref={ref} position="absolute" zIndex={1} width="100%" height="100%" top={0} left={0} {...props} />
+  },
+)
 
 interface ConnectingViewWrapperProps {
   closeModal?: () => void
@@ -57,9 +58,9 @@ export function ConnectingViewWrapper({
         </>
       )}
       <Flex flexDirection="row-reverse" alignItems="center" justifyContent="space-between" zIndex={2}>
-        {closeModal && <ModalCloseIcon testId="ConnectingViewWrapper-close" onClose={closeModal} />}
+        {closeModal && <ModalCloseIcon testId={TestID.ConnectingViewWrapperClose} onClose={closeModal} />}
         {onBack && (
-          <TouchableArea data-testid="ConnectingViewWrapper-back" onPress={onBack}>
+          <TouchableArea data-testid={TestID.ConnectingViewWrapperBack} onPress={onBack}>
             <ArrowLeft color="$neutral2" size="$icon.24" hoverColor="$neutral2Hovered" />
           </TouchableArea>
         )}

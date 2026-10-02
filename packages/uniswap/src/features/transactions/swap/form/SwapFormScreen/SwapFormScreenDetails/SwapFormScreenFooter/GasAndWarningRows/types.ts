@@ -1,5 +1,5 @@
-import { FormattedUniswapXGasFeeInfo, GasFeeResult } from '@universe/api'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { FormattedUniswapXGasFeeInfo, GasFeeResult, TradingApi } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
 
 export type GasInfo = {
   gasFee: GasFeeResult
@@ -8,4 +8,5 @@ export type GasInfo = {
   isHighRelativeToValue: boolean
   isLoading: boolean
   chainId: UniverseChainId
+  sponsorshipInfo?: TradingApi.SponsorshipInfo
 }

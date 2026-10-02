@@ -1,7 +1,9 @@
+import { ElementAfterText, Flex, Text, TouchableArea } from '@universe/mycelium'
+import { useShadowPropsShort } from '@universe/mycelium/theme-hooks-compat'
+import { TestID } from '@universe/test'
 //! tamagui-ignore
 // TODO(EXT-732): fix encoding error in tamagui optimizer on this file
 import { useState } from 'react'
-import { ElementAfterText, Flex, Text, TouchableArea, useShadowPropsShort } from 'ui/src'
 import {
   LARGE_TOAST_RADIUS,
   MAX_TEXT_LENGTH,
@@ -9,7 +11,6 @@ import {
   SMALL_TOAST_RADIUS,
   TOAST_BORDER_WIDTH,
 } from 'uniswap/src/features/notifications/constants'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 
 export interface NotificationContentProps {
   title: string

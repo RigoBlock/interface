@@ -6,22 +6,23 @@ import { dispatchNavigationAction } from 'src/app/navigation/rootNavigation'
 import { dismissAllModalsBeforeNavigation } from 'src/features/deepLinking/utils'
 import { closeAllModals } from 'src/features/modals/modalSlice'
 import { MobileScreens } from 'uniswap/src/types/screens/mobile'
+import type { Mocked } from 'vitest'
 
 // Mock the navigation ref
-jest.mock('src/app/navigation/navigationRef', () => ({
+vi.mock('src/app/navigation/navigationRef', () => ({
   navigationRef: {
-    isReady: jest.fn(),
-    dispatch: jest.fn(),
-    getState: jest.fn(),
-    canGoBack: jest.fn(),
+    isReady: vi.fn(),
+    dispatch: vi.fn(),
+    getState: vi.fn(),
+    canGoBack: vi.fn(),
   },
 }))
 
-const mockNavigationRef = navigationRef as jest.Mocked<typeof navigationRef>
+const mockNavigationRef = navigationRef as Mocked<typeof navigationRef>
 
 describe('dismissAllModalsBeforeNavigation', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('should close all Redux-managed modals and dismiss React Navigation modals when navigationRef is ready', () => {
@@ -29,11 +30,11 @@ describe('dismissAllModalsBeforeNavigation', () => {
     mockNavigationRef.getState.mockReturnValue({
       key: 'root',
       index: 2,
-      routeNames: [MobileScreens.Home, 'ModalName.Swap', 'ModalName.Explore'],
+      routeNames: [MobileScreens.MainTabs, 'ModalName.Swap', 'ModalName.Explore'],
       type: 'stack',
       stale: false,
       routes: [
-        { name: MobileScreens.Home, key: 'home', params: undefined },
+        { name: MobileScreens.MainTabs, key: 'main-tabs', params: undefined },
         { name: 'ModalName.Swap', key: 'swap', params: undefined },
         { name: 'ModalName.Explore', key: 'explore', params: undefined },
       ],
@@ -63,15 +64,15 @@ describe('dismissAllModalsBeforeNavigation', () => {
       .silentRun()
   })
 
-  it('should not dispatch navigation actions when already on home screen', () => {
+  it('should not dispatch navigation actions when already on the main tabs', () => {
     mockNavigationRef.isReady.mockReturnValue(true)
     mockNavigationRef.getState.mockReturnValue({
       key: 'root',
       index: 0,
-      routeNames: [MobileScreens.Home],
+      routeNames: [MobileScreens.MainTabs],
       type: 'stack',
       stale: false,
-      routes: [{ name: MobileScreens.Home, key: 'home', params: undefined }],
+      routes: [{ name: MobileScreens.MainTabs, key: 'main-tabs', params: undefined }],
     })
 
     return expectSaga(dismissAllModalsBeforeNavigation)
@@ -99,7 +100,7 @@ describe('dismissAllModalsBeforeNavigation', () => {
       .silentRun()
   })
 
-  it('should handle case when home screen is not found in navigation stack', () => {
+  it('should handle case when the main tabs are not found in navigation stack', () => {
     mockNavigationRef.isReady.mockReturnValue(true)
     mockNavigationRef.getState.mockReturnValue({
       key: 'root',
@@ -125,11 +126,11 @@ describe('dismissAllModalsBeforeNavigation', () => {
     mockNavigationRef.getState.mockReturnValue({
       key: 'root',
       index: 2,
-      routeNames: [MobileScreens.Home, 'ModalName.Swap', 'ModalName.Explore'],
+      routeNames: [MobileScreens.MainTabs, 'ModalName.Swap', 'ModalName.Explore'],
       type: 'stack',
       stale: false,
       routes: [
-        { name: MobileScreens.Home, key: 'home', params: undefined },
+        { name: MobileScreens.MainTabs, key: 'main-tabs', params: undefined },
         { name: 'ModalName.Swap', key: 'swap', params: undefined },
         { name: 'ModalName.Explore', key: 'explore', params: undefined },
       ],

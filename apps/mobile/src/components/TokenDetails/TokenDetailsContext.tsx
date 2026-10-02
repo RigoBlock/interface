@@ -1,16 +1,26 @@
+import { type PlainMessage } from '@bufbuild/protobuf'
 import { NativeStackNavigationProp } from '@react-navigation/native-stack'
+import { useQuery } from '@tanstack/react-query'
 import { SharedEventName } from '@uniswap/analytics-events'
+import type { GetTokenMultiChainResponse } from '@uniswap/client-data-api/dist/data/v2/api_pb'
+import { Platform, UniverseChainId } from '@universe/chains'
 import { createContext, PropsWithChildren, useCallback, useContext, useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { AppStackParamList } from 'src/app/navigation/types'
+import {
+  MultichainTokenDeployment,
+  multichainTokensFromAddresses,
+} from 'src/components/TokenDetails/multichainTokensFromAddresses'
 import { useTokenDetailsColors } from 'src/components/TokenDetails/useTokenDetailsColors'
+import { getGetTokenMultiChainQueryOptions } from 'uniswap/src/data/apiClients/dataApiService/tokens/queries'
 import { setHasViewedContractAddressExplainer } from 'uniswap/src/features/behaviorHistory/slice'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
+import { currencyIdToRestContractInput } from 'uniswap/src/features/dataApi/utils/currencyIdToContractInput'
 import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
 import { AppNotificationType, CopyNotificationType } from 'uniswap/src/features/notifications/slice/types'
+import { useTokenKYCStatus } from 'uniswap/src/features/permissionedTokens/useTokenKYCStatus'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
@@ -20,6 +30,7 @@ import { currencyIdToAddress, currencyIdToChain } from 'uniswap/src/utils/curren
 import { setClipboard } from 'utilities/src/clipboard/clipboard'
 import { useBooleanState } from 'utilities/src/react/useBooleanState'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
+import { useActiveAccountAddressWithThrow } from 'wallet/src/features/wallet/hooks'
 
 type TokenDetailsContextState = {
   currencyId: string
@@ -27,6 +38,9 @@ type TokenDetailsContextState = {
   address: Address
   chainId: UniverseChainId
   currencyInfo?: CurrencyInfo
+  multichainTokens: MultichainTokenDeployment[]
+  hasMultichainAddresses: boolean
+  initialIsMultichainAsset: boolean
   tokenColor: string | null
   tokenColorLoading: boolean
   isChainEnabled: boolean
@@ -42,21 +56,30 @@ type TokenDetailsContextState = {
   openMultichainAddressSheet: () => void
   closeMultichainAddressSheet: () => void
   copyAddressToClipboard: (address: string) => Promise<void>
-  error: unknown | undefined
-  setError: (error: unknown | undefined) => void
+  isPermissioned: boolean
+  isAllowlisted: boolean
+  isPermissionedLoading: boolean
+  permissionedIssuer: string | undefined
 }
 
 const TokenDetailsContext = createContext<TokenDetailsContextState | undefined>(undefined)
+
+function selectMultichainAddresses(
+  data: PlainMessage<GetTokenMultiChainResponse> | undefined,
+): Record<string, string> | undefined {
+  return data?.token?.addresses
+}
 
 export function TokenDetailsContextProvider({
   children,
   currencyId,
   navigation,
-}: PropsWithChildren<Pick<TokenDetailsContextState, 'currencyId' | 'navigation'>>): JSX.Element {
+  initialIsMultichainAsset = false,
+}: PropsWithChildren<
+  Pick<TokenDetailsContextState, 'currencyId' | 'navigation'> & { initialIsMultichainAsset?: boolean }
+>): JSX.Element {
   const dispatch = useDispatch()
   const trace = useTrace()
-
-  const [error, setError] = useState<unknown>(undefined)
 
   const [isTokenWarningModalOpen, setIsTokenWarningModalOpen] = useState(false)
   const openTokenWarningModal = useCallback(() => setIsTokenWarningModalOpen(true), [])
@@ -109,12 +132,40 @@ export function TokenDetailsContextProvider({
 
   const { tokenColor, tokenColorLoading } = useTokenDetailsColors({ currencyId })
 
-  const { chains: enabledChains } = useEnabledChains()
+  const { chains: enabledChains } = useEnabledChains({ platform: Platform.EVM })
+
+  const activeAddress = useActiveAccountAddressWithThrow()
+  const chainId = currencyIdToChain(currencyId)
+  const address = currencyIdToAddress(currencyId)
+
+  const multichainParams = useMemo(
+    () => ({ identifier: { case: 'token' as const, value: currencyIdToRestContractInput(currencyId) } }),
+    [currencyId],
+  )
+  const { data: allMultichainAddresses } = useQuery(
+    getGetTokenMultiChainQueryOptions({ params: multichainParams, select: selectMultichainAddresses }),
+  )
+
+  const multichainTokens = useMemo((): MultichainTokenDeployment[] => {
+    if (!allMultichainAddresses) {
+      // When null, this throws before being used
+      return [{ chainId: chainId ?? UniverseChainId.Mainnet, address }]
+    }
+    return multichainTokensFromAddresses({ addresses: allMultichainAddresses, enabledChains })
+  }, [allMultichainAddresses, enabledChains, address, chainId])
+
+  const {
+    isPermissioned: permissioned,
+    isAllowlisted: allowlisted,
+    isLoading: isPermissionedLoading,
+    issuer: permissionedIssuer,
+  } = useTokenKYCStatus({
+    tokenAddress: address,
+    chainId: chainId ?? undefined,
+    walletAddress: activeAddress,
+  })
 
   const state = useMemo<TokenDetailsContextState>((): TokenDetailsContextState => {
-    const chainId = currencyIdToChain(currencyId)
-    const address = currencyIdToAddress(currencyId)
-
     if (!chainId) {
       throw new Error(`Unable to find chainId for currencyId: ${currencyId}`)
     }
@@ -127,6 +178,9 @@ export function TokenDetailsContextProvider({
       address,
       chainId,
       currencyInfo,
+      multichainTokens,
+      hasMultichainAddresses: multichainTokens.length > 1,
+      initialIsMultichainAsset,
       tokenColor,
       tokenColorLoading,
       isChainEnabled,
@@ -142,8 +196,10 @@ export function TokenDetailsContextProvider({
       openMultichainAddressSheet,
       closeMultichainAddressSheet,
       copyAddressToClipboard,
-      error,
-      setError,
+      isPermissioned: permissioned,
+      isAllowlisted: allowlisted,
+      isPermissionedLoading,
+      permissionedIssuer,
     }
   }, [
     activeTransactionType,
@@ -153,7 +209,8 @@ export function TokenDetailsContextProvider({
     currencyId,
     currencyInfo,
     enabledChains,
-    error,
+    multichainTokens,
+    initialIsMultichainAsset,
     isContractAddressExplainerModalOpen,
     isMultichainAddressSheetOpen,
     isTokenWarningModalOpen,
@@ -164,6 +221,12 @@ export function TokenDetailsContextProvider({
     tokenColor,
     tokenColorLoading,
     copyAddressToClipboard,
+    permissioned,
+    allowlisted,
+    isPermissionedLoading,
+    permissionedIssuer,
+    address,
+    chainId,
   ])
 
   return <TokenDetailsContext.Provider value={state}>{children}</TokenDetailsContext.Provider>

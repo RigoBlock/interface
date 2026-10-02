@@ -1,5 +1,5 @@
+import { Text } from '@universe/mycelium'
 import { memo } from 'react'
-import { Text } from 'ui/src'
 import { HeaderCell } from '~/components/Table/styled'
 
 interface ColumnHeaderProps {

@@ -1,25 +1,23 @@
-import { TypedDataDomain, TypedDataField } from '@ethersproject/abstract-signer'
 import { BigNumber } from '@ethersproject/bignumber'
-import { PermitTransferFrom } from '@uniswap/permit2-sdk'
 import { Percent } from '@uniswap/sdk-core'
 import {
-  DutchOrder,
   DutchOrderBuilder,
   PriorityOrderBuilder,
-  UnsignedPriorityOrder,
-  UnsignedV2DutchOrder,
-  UnsignedV3DutchOrder,
   V2DutchOrderBuilder,
   V3DutchOrderBuilder,
 } from '@uniswap/uniswapx-sdk'
+import { SharedQueryClient } from '@universe/api'
+import { getValidAddress } from '@universe/chains'
 import { useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { getDisplayedPriceSource } from 'uniswap/src/features/prices/getDisplayedPriceSource'
 import { InterfaceEventName, SwapEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
-import { getValidAddress } from 'uniswap/src/utils/addresses'
+import { getCurrencyAddressForAnalytics } from 'uniswap/src/utils/currencyId'
 import { logger } from 'utilities/src/logger/logger'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
-import { useTotalBalancesUsdForAnalytics } from '~/appGraphql/data/apollo/useTotalBalancesUsdForAnalytics'
+import { getConfig } from '~/config'
+import { useTotalBalancesUsdForAnalytics } from '~/features/balances/useTotalBalancesUsdForAnalytics'
 import { useAccount } from '~/hooks/useAccount'
 import { useEthersWeb3Provider } from '~/hooks/useEthersProvider'
 import { formatSwapSignedAnalyticsEventProperties } from '~/lib/utils/analytics'
@@ -58,10 +56,7 @@ function isV2DutchAuctionOrderSuccess(response: any): response is V2DutchAuction
 const isErrorResponse = (res: Response, order: DutchAuctionOrderResponse): order is DutchAuctionOrderError =>
   res.status < 200 || res.status > 202
 
-const UNISWAP_GATEWAY_DNS_URL = process.env.REACT_APP_UNISWAP_GATEWAY_DNS
-if (UNISWAP_GATEWAY_DNS_URL === undefined) {
-  throw new Error(`UNISWAP_GATEWAY_DNS_URL must be defined environment variables`)
-}
+const UNISWAP_GATEWAY_DNS_URL = getConfig().uniswapGatewayDns
 
 // getUpdatedNonce queries the UniswapX service for the most up-to-date nonce for a user.
 // The `nonce` exists as part of the Swap quote response already, but if a user submits back-to-back
@@ -85,6 +80,78 @@ async function getUpdatedNonce(swapper: string, chainId: number): Promise<BigNum
     })
     return null
   }
+}
+
+/**
+ * Per-trade-type dispatch to the right uniswapx-sdk
+ * builder, applying the fresh nonce when present.
+ */
+function buildUniswapXSignableOrder({
+  trade,
+  swapperAddress,
+  updatedNonce,
+  now,
+}: {
+  trade: DutchOrderTrade | V2DutchOrderTrade | V3DutchOrderTrade | LimitOrderTrade | PriorityOrderTrade
+  swapperAddress: string
+  updatedNonce: BigNumber | null
+  now: number
+}) {
+  if (trade instanceof V3DutchOrderTrade) {
+    const deadline = now + trade.deadlineBufferSecs
+    const order = trade.order
+    const updatedOrder = V3DutchOrderBuilder.fromOrder(order)
+      .deadline(deadline)
+      .nonFeeRecipient(swapperAddress, trade.swapFee?.recipient)
+      // If fetching the nonce fails for any reason,
+      // default to existing nonce from the Swap quote.
+      .nonce(updatedNonce ?? order.info.nonce)
+      .buildPartial()
+    const { domain, types, values } = updatedOrder.permitData()
+    return { deadline, updatedOrder, domain, types, values }
+  }
+  if (trade instanceof V2DutchOrderTrade) {
+    const deadline = now + trade.deadlineBufferSecs
+    const order = trade.order
+    const updatedOrder = V2DutchOrderBuilder.fromOrder(order)
+      .deadline(deadline)
+      .nonFeeRecipient(swapperAddress, trade.swapFee?.recipient)
+      // If fetching the nonce fails for any reason,
+      // default to existing nonce from the Swap quote.
+      .nonce(updatedNonce ?? order.info.nonce)
+      .buildPartial()
+    const { domain, types, values } = updatedOrder.permitData()
+    return { deadline, updatedOrder, domain, types, values }
+  }
+  if (trade instanceof PriorityOrderTrade) {
+    const deadline = now + trade.deadlineBufferSecs
+    const order = trade.order
+    const updatedOrder = PriorityOrderBuilder.fromOrder(order)
+      .deadline(deadline)
+      .nonFeeRecipient(swapperAddress, trade.swapFee?.recipient)
+      // If fetching the nonce fails for any reason,
+      // default to existing nonce from the Swap quote.
+      .nonce(updatedNonce ?? order.info.nonce)
+      .buildPartial()
+    const { domain, types, values } = updatedOrder.permitData()
+    return { deadline, updatedOrder, domain, types, values }
+  }
+  // DutchOrderTrade or LimitOrderTrade, both adapt to a DutchOrder
+  const startTime = now + trade.startTimeBufferSecs
+  const endTime = startTime + trade.auctionPeriodSecs
+  const deadline = endTime + trade.deadlineBufferSecs
+  const order = trade.asDutchOrderTrade({ nonce: updatedNonce, swapper: swapperAddress }).order
+  const updatedOrder = DutchOrderBuilder.fromOrder(order)
+    .decayStartTime(startTime)
+    .decayEndTime(endTime)
+    .deadline(deadline)
+    .nonFeeRecipient(swapperAddress, trade.swapFee?.recipient)
+    // If fetching the nonce fails for any reason,
+    // default to existing nonce from the Swap quote.
+    .nonce(updatedNonce ?? order.info.nonce)
+    .build()
+  const { domain, types, values } = updatedOrder.permitData()
+  return { deadline, updatedOrder, domain, types, values }
 }
 
 export function useUniswapXSwapCallback({
@@ -128,6 +195,12 @@ export function useUniswapXSwapCallback({
       throw new WrongChainError()
     }
 
+    const priceSource = getDisplayedPriceSource({
+      chainId: trade.inputAmount.currency.chainId,
+      address: getCurrencyAddressForAnalytics(trade.inputAmount.currency),
+      queryClient: SharedQueryClient,
+    })
+
     sendAnalyticsEvent(
       InterfaceEventName.UniswapXSignatureRequested,
       formatSwapSignedAnalyticsEventProperties({
@@ -136,6 +209,7 @@ export function useUniswapXSwapCallback({
         fiatValues,
         portfolioBalanceUsd,
         trace: analyticsContext,
+        priceSource,
       }),
     )
 
@@ -144,61 +218,12 @@ export function useUniswapXSwapCallback({
       const updatedNonce = await getUpdatedNonce(account.address, trade.inputAmount.currency.chainId)
 
       const now = Math.floor(Date.now() / 1000)
-      let deadline: number
-      let domain: TypedDataDomain
-      let types: Record<string, TypedDataField[]>
-      let values: PermitTransferFrom
-      let updatedOrder: DutchOrder | UnsignedV2DutchOrder | UnsignedPriorityOrder | UnsignedV3DutchOrder
-
-      if (trade instanceof V3DutchOrderTrade) {
-        deadline = now + trade.deadlineBufferSecs
-
-        const order = trade.order
-        updatedOrder = V3DutchOrderBuilder.fromOrder(order)
-          .deadline(deadline)
-          .nonFeeRecipient(account.address, trade.swapFee?.recipient)
-          // if fetching the nonce fails for any reason, default to existing nonce from the Swap quote.
-          .nonce(updatedNonce ?? order.info.nonce)
-          .buildPartial()
-        ;({ domain, types, values } = updatedOrder.permitData())
-      } else if (trade instanceof V2DutchOrderTrade) {
-        deadline = now + trade.deadlineBufferSecs
-
-        const order: UnsignedV2DutchOrder = trade.order
-        updatedOrder = V2DutchOrderBuilder.fromOrder(order)
-          .deadline(deadline)
-          .nonFeeRecipient(account.address, trade.swapFee?.recipient)
-          // if fetching the nonce fails for any reason, default to existing nonce from the Swap quote.
-          .nonce(updatedNonce ?? order.info.nonce)
-          .buildPartial()
-        ;({ domain, types, values } = updatedOrder.permitData())
-      } else if (trade instanceof PriorityOrderTrade) {
-        deadline = now + trade.deadlineBufferSecs
-
-        const order = trade.order
-        updatedOrder = PriorityOrderBuilder.fromOrder(order)
-          .deadline(deadline)
-          .nonFeeRecipient(account.address, trade.swapFee?.recipient)
-          // if fetching the nonce fails for any reason, default to existing nonce from the Swap quote.
-          .nonce(updatedNonce ?? order.info.nonce)
-          .buildPartial()
-        ;({ domain, types, values } = updatedOrder.permitData())
-      } else {
-        const startTime = now + trade.startTimeBufferSecs
-        const endTime = startTime + trade.auctionPeriodSecs
-        deadline = endTime + trade.deadlineBufferSecs
-
-        const order = trade.asDutchOrderTrade({ nonce: updatedNonce, swapper: account.address }).order
-        updatedOrder = DutchOrderBuilder.fromOrder(order)
-          .decayStartTime(startTime)
-          .decayEndTime(endTime)
-          .deadline(deadline)
-          .nonFeeRecipient(account.address, trade.swapFee?.recipient)
-          // if fetching the nonce fails for any reason, default to existing nonce from the Swap quote.
-          .nonce(updatedNonce ?? order.info.nonce)
-          .build()
-        ;({ domain, types, values } = updatedOrder.permitData())
-      }
+      const { deadline, updatedOrder, domain, types, values } = buildUniswapXSignableOrder({
+        trade,
+        swapperAddress: account.address,
+        updatedNonce,
+        now,
+      })
 
       const signature = await (async () => {
         try {
@@ -209,7 +234,6 @@ export function useUniswapXSwapCallback({
           }
           // oxlint-disable-next-line no-shadow
           const account = accountRef.current
-          // oxlint-disable-next-line typescript/no-unsafe-return -- biome-parity: oxlint is stricter here
           return await signTypedData({ signer: provider.getSigner(account.address), domain, types, value: values })
         } catch (error) {
           if (didUserReject(error)) {
@@ -222,13 +246,13 @@ export function useUniswapXSwapCallback({
       const resultTime = Math.floor(Date.now() / 1000)
       if (deadline < resultTime) {
         sendAnalyticsEvent(InterfaceEventName.UniswapXSignatureDeadlineExpired, {
-          // oxlint-disable-next-line typescript/no-misused-spread -- biome-parity: oxlint is stricter here
           ...formatSwapSignedAnalyticsEventProperties({
             trade,
             allowedSlippage,
             fiatValues,
             portfolioBalanceUsd,
             trace: analyticsContext,
+            priceSource,
           }),
           deadline,
           resultTime,
@@ -236,13 +260,13 @@ export function useUniswapXSwapCallback({
         throw new SignatureExpiredError()
       }
       sendAnalyticsEvent(SwapEventName.SwapSigned, {
-        // oxlint-disable-next-line typescript/no-misused-spread -- biome-parity: oxlint is stricter here
         ...formatSwapSignedAnalyticsEventProperties({
           trade,
           allowedSlippage,
           fiatValues,
           portfolioBalanceUsd,
           trace: analyticsContext,
+          priceSource,
         }),
       })
 
@@ -284,13 +308,13 @@ export function useUniswapXSwapCallback({
       // check for status code and perform this type narrowing.
       if (isErrorResponse(res, responseBody)) {
         sendAnalyticsEvent(InterfaceEventName.UniswapXOrderPostError, {
-          // oxlint-disable-next-line typescript/no-misused-spread -- biome-parity: oxlint is stricter here
           ...formatSwapSignedAnalyticsEventProperties({
             trade,
             allowedSlippage,
             fiatValues,
             portfolioBalanceUsd,
             trace: analyticsContext,
+            priceSource,
           }),
           errorCode: responseBody.errorCode,
           detail: responseBody.detail,
@@ -313,6 +337,7 @@ export function useUniswapXSwapCallback({
           fiatValues,
           portfolioBalanceUsd,
           trace: analyticsContext,
+          priceSource,
         }),
       )
 

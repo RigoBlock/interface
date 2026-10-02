@@ -1,53 +1,61 @@
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
-import { CSSProperties } from 'react'
-import { Flex, styled, Text, TextStyle } from 'ui/src'
+import { Flex, type FlexCompatProps, Text, type TextCompatProps } from '@universe/mycelium'
+import { type ComponentRef, type CSSProperties, forwardRef } from 'react'
+import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import WarningIcon from 'uniswap/src/components/warnings/WarningIcon'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { ElementName, UniswapEventName } from 'uniswap/src/features/telemetry/constants'
+import { getCurrencyInfoSafetyAnalytics } from 'uniswap/src/features/telemetry/tokenSafetyAnalytics'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { getTokenWarningSeverity } from 'uniswap/src/features/tokens/warnings/safetyUtils'
 import { shortenAddress } from 'utilities/src/addresses'
 import { NumberType } from 'utilities/src/format/types'
-import CurrencyLogo from '~/components/Logo/CurrencyLogo'
 import { MenuItem } from '~/components/SearchModal/styled'
 import { MouseoverTooltip, TooltipSize } from '~/components/Tooltip'
 import { useTokenBalances } from '~/hooks/useTokenBalances'
 import { TokenFromList } from '~/state/lists/tokenFromList'
-import { ThemedText } from '~/theme/components'
 import { currencyKey } from '~/utils/currencyKey'
 
 function currencyListRowKey(data: Currency): string {
   return currencyKey(data)
 }
 
-const TextOverflowStyle = {
+const TextOverflowStyle: TextCompatProps = {
   whiteSpace: 'nowrap',
   overflow: 'hidden',
   textOverflow: 'ellipsis',
-} satisfies TextStyle
+}
 
-const StyledBalanceText = styled(Text, {
-  ...TextOverflowStyle,
-  maxWidth: '80px',
-  textAlign: 'right',
+const StyledBalanceText = forwardRef<ComponentRef<typeof Text>, TextCompatProps>(
+  function StyledBalanceText(props, ref) {
+    return <Text ref={ref} {...TextOverflowStyle} maxWidth="80px" textAlign="right" {...props} />
+  },
+)
+
+const CurrencyName = forwardRef<ComponentRef<typeof Text>, TextCompatProps>(function CurrencyName(props, ref) {
+  return <Text ref={ref} {...TextOverflowStyle} {...props} />
 })
 
-const CurrencyName = styled(Text, TextOverflowStyle)
-
-const Tag = styled(Text, {
-  backgroundColor: '$surface2',
-  color: '$neutral2',
-  fontSize: '14px',
-  borderRadius: '$rounded4',
-  p: '$spacing4',
-  maxWidth: '100px',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
-  alignSelf: 'flex-end',
-  mr: '$spacing4',
+const Tag = forwardRef<ComponentRef<typeof Text>, TextCompatProps>(function Tag(props, ref) {
+  return (
+    <Text
+      ref={ref}
+      backgroundColor="$surface2"
+      color="$neutral2"
+      fontSize="14px"
+      borderRadius="$rounded4"
+      p="$spacing4"
+      maxWidth="100px"
+      overflow="hidden"
+      textOverflow="ellipsis"
+      whiteSpace="nowrap"
+      alignSelf="flex-end"
+      mr="$spacing4"
+      {...props}
+    />
+  )
 })
 
 function TokenTags({ currency }: { currency: Currency }) {
@@ -81,9 +89,8 @@ function TokenTags({ currency }: { currency: Currency }) {
   )
 }
 
-const RowWrapper = styled(Flex, {
-  row: true,
-  height: '$spacing60',
+const RowWrapper = forwardRef<ComponentRef<typeof Flex>, FlexCompatProps>(function RowWrapper(props, ref) {
+  return <Flex ref={ref} row height="$spacing60" {...props} />
 })
 
 // TODO: we should pass balance instead of defining poolBalance
@@ -127,7 +134,66 @@ export function CurrencyRow({
   const { usdValue, balance: cachedBalance } = balanceMap[currencyKey(currency)] ?? {}
   const tokenBalance = balance ? balance.toExact() : cachedBalance
 
-  const Wrapper = tooltip ? MouseoverTooltip : RowWrapper
+  const row = (
+    // oxlint-disable-next-line react/forbid-elements -- the row needs DOM props (onKeyDown, onClick, tabIndex) for a11y; MenuItem is a compat Flex and doesn't type them
+    <div
+      role="button"
+      tabIndex={0}
+      className={`token-item-${key}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          onSelect(warningSeverity === WarningSeverity.None)
+        }
+      }}
+      onClick={() => onSelect(warningSeverity === WarningSeverity.None)}
+      style={{ outline: 'none', display: 'contents' }}
+    >
+      <MenuItem
+        onPress={() => onSelect(warningSeverity === WarningSeverity.None)}
+        selected={otherSelected || isSelected}
+        dim={isBlockedToken}
+        disabled={disabled}
+      >
+        <CurrencyLogo currencyInfo={currencyInfo} size={36} />
+        <Flex style={{ opacity: isBlockedToken ? blockedTokenOpacity : '1' }} gap="$spacing2">
+          <Flex row alignItems="center" gap="$spacing4">
+            <CurrencyName variant="body2">{currency.name}</CurrencyName>
+            <WarningIcon severity={warningSeverity} size="$icon.16" ml="$spacing4" />
+          </Flex>
+          <Flex row alignItems="center" gap="$spacing8">
+            <Text variant="body4" ml={0} color="$neutral2">
+              {currency.symbol}
+            </Text>
+            {showAddress && currency.isToken && (
+              <Text variant="body4" color="$neutral3">
+                {shortenAddress({ address: currency.address })}
+              </Text>
+            )}
+          </Flex>
+        </Flex>
+        <Flex>
+          <Flex row alignSelf="flex-end">
+            <TokenTags currency={currency} />
+          </Flex>
+        </Flex>
+        <Flex alignSelf="center" justifyContent="flex-end">
+          {showUsdValue && usdValue ? (
+            <StyledBalanceText variant="body4" color="$neutral1">
+              {convertFiatAmountFormatted(usdValue, NumberType.FiatStandard)}
+            </StyledBalanceText>
+          ) : null}
+          {showCurrencyAmount && tokenBalance ? (
+            <StyledBalanceText variant="body4" color="$neutral2">
+              {formatNumberOrString({
+                value: tokenBalance,
+                type: NumberType.TokenNonTx,
+              })}
+            </StyledBalanceText>
+          ) : null}
+        </Flex>
+      </MenuItem>
+    </div>
+  )
 
   // only show add or remove buttons if not on selected list
   return (
@@ -135,77 +201,24 @@ export function CurrencyRow({
       logPress
       logKeyPress
       eventOnTrigger={UniswapEventName.TokenSelected}
-      properties={{ ...eventProperties, token_balance_usd: usdValue }}
+      properties={{ ...eventProperties, ...getCurrencyInfoSafetyAnalytics(currencyInfo), token_balance_usd: usdValue }}
       element={ElementName.TokenSelectorRow}
     >
-      <Wrapper
-        style={style}
-        text={<ThemedText.Caption textAlign="center">{tooltip}</ThemedText.Caption>}
-        size={TooltipSize.ExtraSmall}
-      >
-        {/* oxlint-disable-next-line react/forbid-elements -- Wrapper needs DOM props (onKeyDown, onClick, tabIndex) for a11y; MenuItem is Tamagui Flex and doesn't type them */}
-        <div
-          role="button"
-          tabIndex={0}
-          className={`token-item-${key}`}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              onSelect(warningSeverity === WarningSeverity.None)
-            }
-          }}
-          onClick={() => onSelect(warningSeverity === WarningSeverity.None)}
-          style={{ outline: 'none', display: 'contents' }}
+      {tooltip ? (
+        <MouseoverTooltip
+          style={style}
+          text={
+            <Text variant="body4" textAlign="center">
+              {tooltip}
+            </Text>
+          }
+          size={TooltipSize.ExtraSmall}
         >
-          <MenuItem
-            onPress={() => onSelect(warningSeverity === WarningSeverity.None)}
-            selected={otherSelected || isSelected}
-            dim={isBlockedToken}
-            disabled={disabled}
-          >
-            <CurrencyLogo
-              currency={currency}
-              size={36}
-              style={{ opacity: isBlockedToken ? blockedTokenOpacity : '1' }}
-            />
-            <Flex style={{ opacity: isBlockedToken ? blockedTokenOpacity : '1' }} gap="$spacing2">
-              <Flex row alignItems="center" gap="$spacing4">
-                <CurrencyName variant="body2">{currency.name}</CurrencyName>
-                <WarningIcon severity={warningSeverity} size="$icon.16" ml="$spacing4" />
-              </Flex>
-              <Flex row alignItems="center" gap="$spacing8">
-                <Text variant="body4" ml="0px" color="$neutral2">
-                  {currency.symbol}
-                </Text>
-                {showAddress && currency.isToken && (
-                  <Text variant="body4" color="$neutral3">
-                    {shortenAddress({ address: currency.address })}
-                  </Text>
-                )}
-              </Flex>
-            </Flex>
-            <Flex>
-              <Flex row alignSelf="flex-end">
-                <TokenTags currency={currency} />
-              </Flex>
-            </Flex>
-            <Flex alignSelf="center" justifyContent="flex-end">
-              {showUsdValue && usdValue ? (
-                <StyledBalanceText variant="body4" color="$neutral1">
-                  {convertFiatAmountFormatted(usdValue, NumberType.FiatStandard)}
-                </StyledBalanceText>
-              ) : null}
-              {showCurrencyAmount && tokenBalance ? (
-                <StyledBalanceText variant="body4" color="$neutral2">
-                  {formatNumberOrString({
-                    value: tokenBalance,
-                    type: NumberType.TokenNonTx,
-                  })}
-                </StyledBalanceText>
-              ) : null}
-            </Flex>
-          </MenuItem>
-        </div>
-      </Wrapper>
+          {row}
+        </MouseoverTooltip>
+      ) : (
+        <RowWrapper style={style}>{row}</RowWrapper>
+      )}
     </Trace>
   )
 }

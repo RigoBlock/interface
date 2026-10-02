@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useNavigate } from 'react-router'
 import { IconCloud, ItemPoint } from 'uniswap/src/components/IconCloud/IconCloud'
-import { getTokenDetailsURL } from '~/appGraphql/data/util'
+import { getTokenDetailsURL } from '~/data/util'
 import { InteractiveToken } from '~/pages/Landing/assets/approvedTokens'
 import { Ticker } from '~/pages/Landing/components/TokenCloud/Ticker'
 import { usePromoTokensData } from '~/pages/Landing/components/TokenCloud/usePromoTokensData'
@@ -25,12 +25,14 @@ export function TokenCloud(): JSX.Element {
   const onPress = useCallback(
     (item: ItemPoint<InteractiveToken>) => {
       const { address, chain } = item.itemData
-      void navigate(
-        getTokenDetailsURL({
-          address,
-          chain,
-        }),
-      )
+      Promise.resolve(
+        navigate(
+          getTokenDetailsURL({
+            address,
+            chain,
+          }),
+        ),
+      ).catch(() => {})
     },
     [navigate],
   )

@@ -1,17 +1,19 @@
 import { useMutation } from '@tanstack/react-query'
-import { CurrencyAmount } from '@uniswap/sdk-core'
+import { Button, Flex, Text } from '@universe/mycelium'
+import { AlertTriangleFilled } from '@universe/mycelium/icons/AlertTriangleFilled'
+import { ArrowDown } from '@universe/mycelium/icons/ArrowDown'
+import { useIsDarkMode } from '@universe/mycelium/theme-hooks-compat'
 import { useWeb3React } from '@web3-react/core'
 import { useCallback, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
-import { Button, Flex, Image, Text, useIsDarkMode } from 'ui/src'
-import { AlertTriangleFilled } from 'ui/src/components/icons/AlertTriangleFilled'
-import { ArrowDown } from 'ui/src/components/icons/ArrowDown'
+import { Image } from 'ui/src'
+import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
 import { Dialog } from 'uniswap/src/components/dialog/Dialog'
 import { GetHelpHeader } from 'uniswap/src/components/dialog/GetHelpHeader'
 import { NetworkFeeWarning } from 'uniswap/src/components/gas/NetworkFeeWarning'
 import { Modal } from 'uniswap/src/components/modals/Modal'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { useSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { useFiatOnRampAggregatorOffRampTransferDetailsQuery } from 'uniswap/src/features/fiatOnRamp/hooks/useFiatOnRampQueries'
@@ -29,17 +31,17 @@ import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
 import { shortenAddress } from 'utilities/src/addresses'
 import { NumberType } from 'utilities/src/format/types'
-import CurrencyLogo from '~/components/Logo/CurrencyLogo'
-import { popupRegistry } from '~/components/Popups/registry'
-import { PopupType } from '~/components/Popups/types'
+import { useSendCallback } from '~/features/Swap/hooks/useSendCallback'
 import { useAccount } from '~/hooks/useAccount'
-import { useSendCallback } from '~/hooks/useSendCallback'
 import { useTransactionGasFee } from '~/hooks/useTransactionGasFee'
+import { getOffRampTransferCurrencyAmount } from '~/pages/Swap/Buy/offRampTransferAmount'
 import { useFiatOnRampTransactions } from '~/state/fiatOnRampTransactions/hooks'
 import { updateFiatOnRampTransaction } from '~/state/fiatOnRampTransactions/reducer'
 import { FiatOnRampTransactionStatus } from '~/state/fiatOnRampTransactions/types'
 import { statusToTransactionInfoStatus } from '~/state/fiatOnRampTransactions/utils'
 import { useAppDispatch } from '~/state/hooks'
+import { popupRegistry } from '~/state/popups/registry'
+import { PopupType } from '~/state/popups/types'
 import { useCreateTransferTransaction } from '~/utils/transfer'
 
 const ProviderDetails = ({ details }: { details: OffRampTransferDetailsResponse }) => {
@@ -89,7 +91,7 @@ const TransferDetails = ({
         </Text>
       </Flex>
       <Flex justifyContent="center">
-        <CurrencyLogo currency={currencyInfo.currency} />
+        <CurrencyLogo currencyInfo={currencyInfo} />
       </Flex>
     </Flex>
   )
@@ -154,10 +156,10 @@ export const OffRampConfirmTransferModal = ({
       provider,
       account: account.address,
       chainId,
-      currencyAmount: CurrencyAmount.fromRawAmount(
-        currencyInfo.currency,
-        offRampTransferDetails.baseCurrencyAmount * 10 ** currencyInfo.currency.decimals,
-      ),
+      currencyAmount: getOffRampTransferCurrencyAmount({
+        baseCurrencyAmount: offRampTransferDetails.baseCurrencyAmount,
+        currency: currencyInfo.currency,
+      }),
       toAddress: offRampTransferDetails.depositWalletAddress,
     }
   }, [offRampTransferDetails, currencyInfo, chainId, provider, account.address])
@@ -266,7 +268,7 @@ export const OffRampConfirmTransferModal = ({
                 {t('common.youreSelling')}
               </Text>
             }
-            link={uniswapUrls.helpArticleUrls.fiatOffRampHelp}
+            link={UniswapHelpUrls.articles.fiatOffRampHelp}
             closeModal={onClose}
           />
           <Flex py="$gap12" gap="$gap16">
@@ -297,7 +299,7 @@ export const OffRampConfirmTransferModal = ({
           </Flex>
         </Flex>
         <Flex row>
-          <Button variant="branded" emphasis="primary" onPress={handleSend} loading={isSending} isDisabled={isSending}>
+          <Button variant="branded" emphasis="primary" onPress={handleSend} loading={isSending} disabled={isSending}>
             {t('common.confirmTransfer')}
           </Button>
         </Flex>

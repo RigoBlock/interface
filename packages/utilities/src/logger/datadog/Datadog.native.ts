@@ -4,7 +4,7 @@ import { DdLogs, DdRum, DdSdkReactNative, ErrorSource, RumActionType } from '@da
 import dayjs from 'dayjs'
 import { Action, AnyAction, PreloadedState, Reducer, StoreEnhancerStoreCreator } from 'redux'
 import { ReduxEnhancerConfig } from 'utilities/src/logger/datadog/Datadog'
-import { handleReduxAction } from 'utilities/src/logger/datadog/reduxUtils'
+import { getRedactedReduxActionContext, handleReduxAction } from 'utilities/src/logger/datadog/reduxUtils'
 import { addErrorExtras } from 'utilities/src/logger/logger'
 import { LoggerErrorContext, LogLevel } from 'utilities/src/logger/types'
 
@@ -21,21 +21,21 @@ export function createDatadogReduxEnhancer({
       const enhancedReducer: Reducer<S, A> = (state, action): S => {
         const newState = reducer(state, action)
 
-        const { isAction, reduxStateToLog } = handleReduxAction({
-          action,
+        const { shouldLogAction, reduxStateToLog } = handleReduxAction({
           newState,
           shouldLogState: shouldLogReduxState(newState),
         })
 
-        if (reduxStateToLog) {
-          reduxState = reduxStateToLog
-        }
+        // Cleared, not merely left stale, on opt-out: the error paths below read this cache.
+        reduxState = reduxStateToLog
 
-        /* Log action to Datadog */
-        if (isAction) {
-          DdRum.addAction(RumActionType.CUSTOM, `Redux Action: ${action.type}`, action, dayjs().valueOf()).catch(
-            () => undefined,
-          )
+        if (shouldLogAction) {
+          DdRum.addAction(
+            RumActionType.CUSTOM,
+            `Redux Action: ${action.type}`,
+            getRedactedReduxActionContext(action),
+            dayjs().valueOf(),
+          ).catch(() => undefined)
         }
 
         return newState
@@ -123,5 +123,5 @@ export function attachUnhandledRejectionHandler(): void {
 }
 
 export async function setAttributesToDatadog(attributes: { [key: string]: unknown }): Promise<void> {
-  await DdSdkReactNative.setAttributes(attributes)
+  await DdSdkReactNative.addAttributes(attributes)
 }

@@ -1,9 +1,10 @@
+import { ColorTokens, Flex } from '@universe/mycelium'
 import React, { PropsWithChildren, useMemo } from 'react'
 import { Edge } from 'react-native-safe-area-context'
 import { BackButton } from 'src/components/buttons/BackButton'
 import { Screen } from 'src/components/layout/Screen'
 import { HorizontalEdgeGestureTarget } from 'src/components/layout/screens/EdgeGestureTarget'
-import { ColorTokens, Flex, flexStyles } from 'ui/src'
+import { flexStyles } from 'ui/src'
 import { iconSizes } from 'ui/src/theme'
 import { useAppInsets } from 'uniswap/src/hooks/useAppInsets'
 
@@ -84,7 +85,7 @@ function ScreenHeader({
         </Flex>
         {rightElement}
       </Flex>
-      <Flex borderBottomColor={backgroundColor ?? '$surface3'} borderBottomWidth={0.25} height={1} />
+      <Flex borderColor={backgroundColor ?? '$surface3'} borderBottomWidth={0.25} height={1} />
     </HeaderWrapper>
   )
 }

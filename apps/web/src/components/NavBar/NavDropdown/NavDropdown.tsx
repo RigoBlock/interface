@@ -1,35 +1,49 @@
-import { ReactNode, RefObject } from 'react'
-import { Flex, FlexProps, Popover, styled, useScrollbarStyles, useShadowPropsMedium, WebBottomSheet } from 'ui/src'
+import { Flex, type FlexCompatProps } from '@universe/mycelium'
+import { forwardRef, ReactNode, RefObject } from 'react'
+import { Popover, useScrollbarStyles, WebBottomSheet } from 'ui/src'
 import { INTERFACE_NAV_HEIGHT, zIndexes } from 'ui/src/theme'
 
-const NavDropdownContent = styled(Flex, {
-  borderRadius: '$rounded16',
-  borderWidth: 1,
-  borderStyle: 'solid',
-  boxShadow: '$shadow.1',
-  backgroundColor: '$surface1',
-  maxHeight: `calc(100dvh - ${INTERFACE_NAV_HEIGHT + 20}px)`,
-  $sm: {
-    width: '100%',
-    borderRadius: '$none',
-    borderWidth: 0,
-    shadowColor: '$transparent',
-    maxHeight: `calc(100dvh - ${INTERFACE_NAV_HEIGHT}px)`,
-  },
-  '$platform-web': {
-    overflowY: 'auto',
-    overflowX: 'hidden',
-  },
-  variants: {
-    padded: {
-      true: {
-        py: '12px',
-        pl: '16px',
-        pr: '4px', // Smaller right padding allows scrollbar to be closer to container edge
-      },
-      false: {},
-    },
-  },
+type NavDropdownContentProps = FlexCompatProps & { padded?: boolean }
+
+const NavDropdownContent = forwardRef<HTMLDivElement, NavDropdownContentProps>(function NavDropdownContent(
+  { padded, '$platform-web': platformWeb, ...rest },
+  ref,
+) {
+  return (
+    <Flex
+      ref={ref}
+      borderRadius="$rounded16"
+      borderWidth={1}
+      borderStyle="solid"
+      backgroundColor="$surface1"
+      maxHeight={`calc(100dvh - ${INTERFACE_NAV_HEIGHT + 20}px)`}
+      $sm={{
+        width: '100%',
+        borderRadius: '$none',
+        borderWidth: 0,
+        shadowColor: '$transparent',
+        maxHeight: `calc(100dvh - ${INTERFACE_NAV_HEIGHT}px)`,
+      }}
+      // Replace-not-merge is deliberate, and differs from the plain spread used for the same
+      // problem in MobileBottomBar. react-native-web normalizes an `overflow` shorthand into both
+      // longhands before the style merge, so under Tamagui a caller's `overflow` overwrote these
+      // axis defaults outright (measured: the legacy element carried `overflow-x: auto`, with no
+      // `hidden` rule emitted). Merging instead would leave `overflow-auto` and
+      // `[overflow-x:hidden]` in different tailwind-merge groups, letting the default win.
+      // The sole caller below always passes `overflow`, so the defaults branch is currently
+      // unreachable — it exists for future callers that don't.
+      $platform-web={
+        platformWeb?.overflow === undefined ? { overflowY: 'auto', overflowX: 'hidden', ...platformWeb } : platformWeb
+      }
+      // The legacy `padded` variant table's `false` branch was empty, so `false` is a no-op.
+      // `py`/`pl`/`pr` were authored as '12px'/'16px'/'4px' strings; numeric px is the same value.
+      {...(padded
+        ? // Smaller right padding allows scrollbar to be closer to container edge
+          { py: 12, pl: 16, pr: 4 }
+        : {})}
+      {...rest}
+    />
+  )
 })
 
 interface NavDropdownProps {
@@ -41,7 +55,7 @@ interface NavDropdownProps {
   dataTestId?: string
   padded?: boolean
   mr?: number
-  borderColor?: FlexProps['borderColor']
+  borderColor?: FlexCompatProps['borderColor']
 }
 
 export function NavDropdown({
@@ -55,7 +69,6 @@ export function NavDropdown({
   mr = 0,
   borderColor = '$surface2',
 }: NavDropdownProps) {
-  const shadowProps = useShadowPropsMedium()
   const scrollbarStyles = useScrollbarStyles()
 
   return (
@@ -87,7 +100,6 @@ export function NavDropdown({
           minWidth={minWidth}
           padded={padded}
           borderColor={borderColor}
-          {...shadowProps}
           $platform-web={{ overflow: 'auto' }}
           style={scrollbarStyles}
         >

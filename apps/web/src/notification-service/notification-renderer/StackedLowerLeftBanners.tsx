@@ -1,11 +1,30 @@
 import type { InAppNotification } from '@universe/api'
+import { Flex, useMedia } from '@universe/mycelium'
+import { curveToAnimationTiming } from '@universe/mycelium/compat'
+import { Portal } from '@universe/mycelium/portal'
+import { Presence, type PresenceExitProps } from '@universe/mycelium/presence'
 import { InlineBannerNotification, type NotificationClickTarget } from '@universe/notifications'
-import { AnimatePresence, motion } from 'framer-motion'
-import { memo, useEffect } from 'react'
-import { Portal, useMedia } from 'ui/src'
+import { SPORE_ANIMATION_CURVE_CSS } from '@universe/tailwind/animations'
+import { memo, useEffect, type CSSProperties } from 'react'
 import { zIndexes } from 'ui/src/theme'
 import { useEvent } from 'utilities/src/react/hooks'
 import { calculateStackingProps, MAX_STACKED_BANNERS } from '~/notification-service/notification-renderer/stackingUtils'
+
+const EXIT_DROP_PX = 24
+const EXIT_Z_INDEX = 1035 // Above the stack but below modalBackdrop (1040)
+
+// The exit target (drop by EXIT_DROP_PX below the banner's own stacked offset, keeping its
+// stacked scale) is dynamic per banner, so it rides the parameterized presence exit keyframe
+// through per-banner CSS custom properties instead of a pinned preset.
+const BANNER_EXIT_CLASSES = 'data-exiting:animate-spore-exit-presence'
+
+// Timing of the legacy '300ms' animation preset.
+const BANNER_EXIT_TIMING: CSSProperties = curveToAnimationTiming(SPORE_ANIMATION_CURVE_CSS['300ms'])
+
+// Legacy exitStyle raised every exiting banner above the stack for the drop-out.
+function getBannerExitProps(): PresenceExitProps {
+  return { style: { zIndex: EXIT_Z_INDEX } }
+}
 
 interface StackedLowerLeftBannersProps {
   notifications: InAppNotification[]
@@ -24,7 +43,7 @@ interface StackedLowerLeftBannersProps {
  * - 2nd notification: 95% scale, offset vertically
  * - 3rd notification: 90% scale, offset vertically
  * - Animates scale and position when notifications are dismissed
- * - Exit animation: 90deg counter-clockwise rotation + fade out
+ * - Exit animation: slide down + fade out
  */
 export const StackedLowerLeftBanners = memo(function StackedLowerLeftBanners({
   notifications,
@@ -52,41 +71,41 @@ export const StackedLowerLeftBanners = memo(function StackedLowerLeftBanners({
 
   return (
     <Portal zIndex={zIndexes.fixed + 10}>
-      <AnimatePresence initial={false} mode="sync">
+      <Presence initial={false} getExitProps={getBannerExitProps}>
         {stackedNotifications.map((notification, index) => {
           const { scale, offsetY, zIndex } = calculateStackingProps(index, stackedNotifications.length)
 
           return (
-            <motion.div
+            <Flex
               key={notification.id}
-              layout="position"
-              initial={{ scale, y: offsetY, opacity: 1, originX: 0.5, originY: 1, zIndex }}
-              animate={{ scale, y: offsetY, opacity: 1, originX: 0.5, originY: 1, zIndex }}
-              exit={{
-                y: offsetY + 24,
-                opacity: 0,
-                zIndex: 1035, // Above the stack but below modalBackdrop (1040)
-              }}
-              transition={{
-                duration: 0.3,
-                ease: 'easeInOut',
-              }}
-              style={{
-                position: 'fixed',
-                left: leftPosition,
-                bottom: 29,
-                willChange: 'transform, opacity',
-              }}
+              transition={`transform ${SPORE_ANIMATION_CURVE_CSS['300ms']}, opacity ${SPORE_ANIMATION_CURVE_CSS['300ms']}`}
+              scale={scale}
+              y={offsetY}
+              opacity={1}
+              zIndex={zIndex}
+              className={BANNER_EXIT_CLASSES}
+              style={
+                {
+                  position: 'fixed',
+                  left: leftPosition,
+                  bottom: 29,
+                  transformOrigin: '50% 100%',
+                  willChange: 'transform, opacity',
+                  '--spore-presence-exit-y': `${offsetY + EXIT_DROP_PX}px`,
+                  '--spore-presence-exit-scale': `${scale}`,
+                  ...BANNER_EXIT_TIMING,
+                } as CSSProperties
+              }
             >
               <InlineBannerNotification
                 notification={notification}
                 onNotificationClick={onNotificationClick}
                 renderButton
               />
-            </motion.div>
+            </Flex>
           )
         })}
-      </AnimatePresence>
+      </Presence>
     </Portal>
   )
 })

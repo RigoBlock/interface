@@ -1,7 +1,7 @@
-import { createMedia } from '@tamagui/react-native-media-driver'
-import { breakpoints, heightBreakpoints } from 'ui/src/theme'
+import { breakpoints, heightBreakpoints } from 'ui/src/theme/breakpoints'
 
-export const media = createMedia({
+/** Plain media-query map. */
+export const media = {
   // the order here is important: least strong to most
   xxxl: { maxWidth: breakpoints.xxxl },
   xxl: { maxWidth: breakpoints.xxl },
@@ -14,4 +14,4 @@ export const media = createMedia({
   short: { maxHeight: heightBreakpoints.short },
   midHeight: { maxHeight: heightBreakpoints.midHeight },
   lgHeight: { maxHeight: heightBreakpoints.lgHeight },
-})
+}

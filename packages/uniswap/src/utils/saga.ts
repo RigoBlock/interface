@@ -11,7 +11,7 @@ import { type ReducerWithInitialState } from '@reduxjs/toolkit/dist/createReduce
 import { useSelector } from 'react-redux'
 import { type PersistState, REHYDRATE } from 'redux-persist'
 import type { SagaIterator } from 'redux-saga'
-import { call, delay, put, race, select, take, takeEvery } from 'typed-redux-saga'
+import { call, delay, put, race, select, take, takeEvery, takeLatest } from 'typed-redux-saga'
 import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
 import { AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
 import { errorToString } from 'utilities/src/errors'
@@ -24,9 +24,18 @@ const DEFAULT_TIMEOUT = 90 * 1000 // 1.5 minutes
  * Use to create simple sagas, for more complex ones use createMonitoredSaga.
  * Note: the wrapped saga this returns must be added to rootSaga.ts
  */
+// oxlint-disable-next-line max-params
 export function createSaga<SagaParams, SagaYieldType, SagaResultType>(
   saga: (params: SagaParams) => Generator<SagaYieldType, SagaResultType, unknown>,
   name: string,
+  options?: {
+    /**
+     * When true, a new trigger cancels the in-flight run (takeLatest) instead of being
+     * silently dropped while the previous run is still blocked. Use for user-retriggerable
+     * flows that can stall on external input (e.g. a wallet prompt that never settles).
+     */
+    restartOnRetrigger?: boolean
+  },
 ): {
   wrappedSaga: () => Generator<unknown, void, unknown>
   actions: {
@@ -36,21 +45,29 @@ export function createSaga<SagaParams, SagaYieldType, SagaResultType>(
   const triggerAction = createAction<SagaParams>(`${name}/trigger`)
 
   // oxlint-disable-next-line typescript/explicit-function-return-type
-  const wrappedSaga = function* () {
-    while (true) {
-      try {
-        const trigger = yield* take<{ type: typeof triggerAction.type; payload: SagaParams }>(triggerAction.type)
-        logger.debug('saga', 'wrappedSaga', `${name} triggered`)
-        yield* call(saga, trigger.payload)
-        logger.debug('saga', 'wrappedSaga', `${name} completed`)
-      } catch (error) {
-        logger.error(error, {
-          tags: { file: 'utils/saga', function: 'createSaga' },
-          extra: { sagaName: name },
-        })
-      }
+  function* handleTrigger(trigger: { type: typeof triggerAction.type; payload: SagaParams }) {
+    try {
+      logger.debug('saga', 'wrappedSaga', `${name} triggered`)
+      yield* call(saga, trigger.payload)
+      logger.debug('saga', 'wrappedSaga', `${name} completed`)
+    } catch (error) {
+      logger.error(error, {
+        tags: { file: 'utils/saga', function: 'createSaga' },
+        extra: { sagaName: name },
+      })
     }
   }
+
+  const wrappedSaga = options?.restartOnRetrigger
+    ? function* () {
+        yield* takeLatest(triggerAction.type, handleTrigger)
+      }
+    : function* () {
+        while (true) {
+          const trigger = yield* take<{ type: typeof triggerAction.type; payload: SagaParams }>(triggerAction.type)
+          yield* call(handleTrigger, trigger)
+        }
+      }
 
   return {
     wrappedSaga,
@@ -247,6 +264,9 @@ export const interruptTransactionFlow = createAction<void>(`interruptTransaction
 
 /** Signal that the swap modal was closed while a plan is executing. Unlike interruption, this does not stop the saga. */
 export const signalSwapModalClosed = createAction<void>(`signalSwapModalClosed`)
+
+/** Signal that the earn modal was closed while an earn plan is executing. Unlike interruption, this does not stop the saga. */
+export const signalEarnModalClosed = createAction<void>(`signalEarnModalClosed`)
 
 /**
  * Signal that a plan has been cancelled by the user from the activity history.

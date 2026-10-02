@@ -1,9 +1,13 @@
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId, areAddressesEqual } from '@universe/chains'
 import { EthMethod } from 'uniswap/src/features/dappRequests/types'
-import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 
-export const isSignTypedDataRequest = (request: { type: EthMethod }): boolean =>
-  request.type === EthMethod.SignTypedData || request.type === EthMethod.SignTypedDataV4
+export function isSignTypedDataMethod(
+  method: EthMethod,
+): method is EthMethod.SignTypedData | EthMethod.SignTypedDataV4 {
+  return method === EthMethod.SignTypedData || method === EthMethod.SignTypedDataV4
+}
+
+export const isSignTypedDataRequest = (request: { type: EthMethod }): boolean => isSignTypedDataMethod(request.type)
 
 /**
  * Checks if a transaction or call is a self-call with data

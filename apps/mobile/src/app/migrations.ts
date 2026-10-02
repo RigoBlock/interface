@@ -49,11 +49,13 @@ import {
   removeFlashbotsEnabledFromWalletSlice,
   removeLocalTypeAccounts,
   removeNonZeroDerivationIndexAccounts,
+  removePersistedApolloCache,
   removePersistedWalletConnectSlice,
   removeProviders,
   removeReplaceAccountOptions,
   removeShowSmallBalances,
   removeTokenListsAndCustomTokens,
+  removeTweaksSlice,
   removeTokensMetadataDisplayType,
   removeWalletConnectModalState,
   renameFollowedAddressesToWatchedAddresses,
@@ -72,9 +74,12 @@ import {
 import {
   addActivityVisibility,
   addDismissedBridgedAndCompatibleWarnings,
+  addEnableCustomGasFeeEntry,
+  markPoolsBalanceCoachmarkEligible,
   migrateDismissedTokenWarnings,
   migrateSearchHistory,
   removeThaiBahtFromFiatCurrency,
+  removeUniswapWrapped2025BehaviorHistory,
   unchecksumDismissedTokenWarningKeys,
 } from 'uniswap/src/state/uniswapMigrations'
 import {
@@ -202,6 +207,11 @@ export const migrations = {
   95: addActivityVisibility,
   96: migrateDismissedTokenWarnings,
   97: setWalletDeviceLanguage,
+  98: addEnableCustomGasFeeEntry,
+  99: removeUniswapWrapped2025BehaviorHistory,
+  100: markPoolsBalanceCoachmarkEligible,
+  101: removeTweaksSlice,
+  102: removePersistedApolloCache,
 }
 
-export const MOBILE_STATE_VERSION = 97
+export const MOBILE_STATE_VERSION = 102

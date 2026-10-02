@@ -1,5 +1,5 @@
+import { UniverseChainId } from '@universe/chains'
 import { nativeOnChain, PATHUSD_TEMPO } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { getWrapType } from 'uniswap/src/features/transactions/swap/utils/wrap'
 import { WrapType } from 'uniswap/src/features/transactions/types/wrap'
 import { wrappedNativeCurrency } from 'uniswap/src/utils/currency'

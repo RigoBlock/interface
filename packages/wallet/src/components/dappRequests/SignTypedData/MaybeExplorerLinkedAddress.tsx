@@ -1,36 +1,14 @@
-import { Anchor, Text } from 'ui/src'
-import { ExternalLink } from 'ui/src/components/icons'
-import { shortenAddress } from 'utilities/src/addresses'
+import { PlatformSplitStubError } from 'utilities/src/errors'
 
-interface MaybeExplorerLinkedAddressProps {
+export interface MaybeExplorerLinkedAddressProps {
   address: string
   link: Maybe<string>
 }
 
-export function MaybeExplorerLinkedAddress({ address, link }: MaybeExplorerLinkedAddressProps): JSX.Element {
-  if (!link) {
-    return (
-      <Text color="$neutral1" variant="body4">
-        {shortenAddress({ address })}
-      </Text>
-    )
-  }
-  return (
-    <Anchor
-      alignItems="center"
-      display="flex"
-      flexDirection="row"
-      gap="$spacing4"
-      href={link}
-      lineHeight={16}
-      rel="noopener noreferrer"
-      target="_blank"
-      textDecorationLine="none"
-    >
-      <Text color="$neutral1" variant="body4">
-        {shortenAddress({ address })}
-      </Text>
-      <ExternalLink color="$neutral2" size="$icon.16" />
-    </Anchor>
-  )
+/**
+ * Shortened address that links out to a block explorer when a link is available.
+ * Web/extension render a real anchor; native opens the link via `openUri` on tap.
+ */
+export function MaybeExplorerLinkedAddress(_: MaybeExplorerLinkedAddressProps): JSX.Element {
+  throw new PlatformSplitStubError('MaybeExplorerLinkedAddress')
 }

@@ -1,10 +1,9 @@
+import { UniverseChainId } from '@universe/chains'
+import { Flex, spacing, Text } from '@universe/mycelium'
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text } from 'ui/src'
-import { spacing } from 'ui/src/theme'
 import { NetworkPile } from 'uniswap/src/components/network/NetworkPile/NetworkPile'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 
 interface ExcludedNetworkBannerProps {
   chainIds: UniverseChainId[]

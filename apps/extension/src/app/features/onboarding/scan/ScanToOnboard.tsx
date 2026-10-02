@@ -1,3 +1,5 @@
+import { AnimatedFlex, Flex, Square, Text, TouchableArea, useSporeColors } from '@universe/mycelium'
+import { SPORE_ANIMATION_CURVE_CSS } from '@universe/tailwind/animations'
 import { useCallback, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -7,9 +9,10 @@ import {
   withRepeat,
   withSequence,
   withSpring,
+  WithSpringConfig,
 } from 'react-native-reanimated'
-import { SpringConfig } from 'react-native-reanimated/lib/typescript/animation/springUtils'
 import QRCode from 'react-qr-code' //TODO(EXT-476): Replace with custom QR code designs
+import { getUniswapServiceUrls } from 'src/app/config'
 import { OnboardingScreen } from 'src/app/features/onboarding/OnboardingScreen'
 import { useOnboardingSteps } from 'src/app/features/onboarding/OnboardingSteps'
 import { useScantasticContext } from 'src/app/features/onboarding/scan/ScantasticContextProvider'
@@ -17,12 +20,10 @@ import { getScantasticUrl } from 'src/app/features/onboarding/scan/utils'
 import { OnboardingRoutes, TopLevelRoutes } from 'src/app/navigation/constants'
 import { navigate } from 'src/app/navigation/state'
 import UAParser from 'ua-parser-js'
-import { Flex, Image, Square, Text, TouchableArea, useSporeColors } from 'ui/src'
+import { Image } from 'ui/src'
 import { DOT_GRID, UNISWAP_LOGO } from 'ui/src/assets'
 import { FileListLock, Mobile, RotatableChevron, Wifi } from 'ui/src/components/icons'
-import { AnimatedFlex } from 'ui/src/components/layout/AnimatedFlex'
 import { iconSizes, zIndexes } from 'ui/src/theme'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { ExtensionOnboardingFlow, ExtensionOnboardingScreens } from 'uniswap/src/types/screens/extension'
 import { logger } from 'utilities/src/logger/logger'
@@ -86,7 +87,7 @@ export function ScanToOnboard(): JSX.Element {
     }
     try {
       // poll OTP state
-      const response = await fetch(`${uniswapUrls.scantasticApiUrl}/otp-state/${sessionUUID}`, {
+      const response = await fetch(`${getUniswapServiceUrls().scantasticApiUrl}/otp-state/${sessionUUID}`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
@@ -123,7 +124,7 @@ export function ScanToOnboard(): JSX.Element {
   }, [sessionUUID, setExpirationTimestamp, goToNextStep, resetScantastic])
 
   useEffect(() => {
-    let interval: NodeJS.Timeout | undefined
+    let interval: ReturnType<typeof setInterval> | undefined
 
     if (isWindowVisible) {
       interval = setInterval(checkOTPState, ONE_SECOND_MS)
@@ -141,7 +142,7 @@ export function ScanToOnboard(): JSX.Element {
       return undefined
     }
 
-    const springConfig: SpringConfig = {
+    const springConfig: WithSpringConfig = {
       mass: 1,
       stiffness: 80,
       damping: 20,
@@ -217,12 +218,7 @@ export function ScanToOnboard(): JSX.Element {
           ) : undefined
         }
         Icon={
-          <Square
-            backgroundColor="$surface2"
-            borderRadius="$rounded12"
-            height={iconSizes.icon48}
-            width={iconSizes.icon48}
-          >
+          <Square backgroundColor="$surface2" borderRadius="$rounded12" size={iconSizes.icon48}>
             <Mobile color="$neutral1" size="$icon.24" />
           </Square>
         }
@@ -275,8 +271,7 @@ export function ScanToOnboard(): JSX.Element {
                   <Image height={QR_CODE_SIZE} source={DOT_GRID} width={QR_CODE_SIZE} />
                 ) : (
                   <Flex
-                    animateOnly={['opacity']}
-                    animation="lazy"
+                    transition={`opacity ${SPORE_ANIMATION_CURVE_CSS.lazy}`}
                     enterStyle={{
                       opacity: 0,
                     }}

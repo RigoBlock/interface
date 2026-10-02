@@ -1,21 +1,29 @@
 import { Row } from '@tanstack/react-table'
 import { SharedEventName } from '@uniswap/analytics-events'
+import { UniverseChainId } from '@universe/chains'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Flex, TouchableArea } from '@universe/mycelium'
+import { TestID } from '@universe/test'
 import { memo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
-import { Flex, TouchableArea } from 'ui/src'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { PortfolioBalancePart } from 'uniswap/src/data/apiClients/dataApiService/balances/getWalletBalances/getWalletBalances'
+import { getPositionUrl } from 'uniswap/src/features/positions/getPositionUrl'
+import { PositionInfo } from 'uniswap/src/features/positions/types'
 import { ElementName, SectionName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
-import { PositionInfo } from '~/components/Liquidity/types'
-import { getPositionUrl } from '~/components/Liquidity/utils/getPositionUrl'
 import { Table } from '~/components/Table'
 import { PORTFOLIO_TABLE_ROW_HEIGHT } from '~/pages/Portfolio/constants'
+import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
+import { usePoolsSectionWarning } from '~/pages/Portfolio/Overview/hooks/usePoolsSectionWarning'
+import { usePortfolioSectionTotalValue } from '~/pages/Portfolio/Overview/hooks/usePortfolioSectionTotalValue'
 import { useMiniPoolsTableColumns } from '~/pages/Portfolio/Overview/MiniPoolsTable/hooks/useMiniPoolsTableColumns'
 import { useMiniPoolsTableData } from '~/pages/Portfolio/Overview/MiniPoolsTable/hooks/useMiniPoolsTableData'
 import { TableSectionHeader } from '~/pages/Portfolio/Overview/TableSectionHeader'
 import { ViewAllButton } from '~/pages/Portfolio/Overview/ViewAllButton'
+import { PortfolioTab } from '~/pages/Portfolio/types'
+import { buildPortfolioUrl } from '~/pages/Portfolio/utils/portfolioUrls'
 
 const POOLS_TABLE_MAX_HEIGHT = 800
 const POOLS_TABLE_MAX_WIDTH = 1200
@@ -30,10 +38,30 @@ export const MiniPoolsTable = memo(function MiniPoolsTable({ account, maxPools, 
   const { t } = useTranslation()
   const navigate = useNavigate()
   const trace = useTrace()
+  const portfolioPoolsBalancesEnabled = useFeatureFlag(FeatureFlags.PortfolioPoolsBalances)
+  const { chainId: routeChainId, externalAddress, isExternalWallet } = usePortfolioRoutes()
 
   const { positions, showLoading, hasNoData } = useMiniPoolsTableData({ account, maxPools, chainId })
 
-  const columns = useMiniPoolsTableColumns({ isLoading: showLoading })
+  const { count: openPositionsCount, ...sectionTotalValue } = usePortfolioSectionTotalValue({
+    part: PortfolioBalancePart.Pools,
+    chainId,
+    enabled: portfolioPoolsBalancesEnabled,
+  })
+
+  const subtitleCount = openPositionsCount || positions.length
+  const subtitleLoading = showLoading || sectionTotalValue.totalValueLoading
+
+  const { warningMessage } = usePoolsSectionWarning({ chainId, enabled: portfolioPoolsBalancesEnabled })
+  const viewAllHref = portfolioPoolsBalancesEnabled
+    ? buildPortfolioUrl({
+        tab: PortfolioTab.Pools,
+        chainId: routeChainId,
+        externalAddress: externalAddress?.address,
+      })
+    : '/positions'
+
+  const columns = useMiniPoolsTableColumns({ isLoading: showLoading, readOnly: isExternalWallet })
 
   const handleRowPress = useCallback(
     (position: PositionInfo) => {
@@ -65,16 +93,18 @@ export const MiniPoolsTable = memo(function MiniPoolsTable({ account, maxPools, 
       <TableSectionHeader
         title={t('common.pools')}
         subtitle={t('portfolio.overview.pools.subtitle.openPositions', {
-          numPositions: positions.length,
-          count: positions.length,
+          numPositions: subtitleCount,
+          count: subtitleCount,
         })}
+        loading={subtitleLoading}
+        warningMessage={warningMessage}
+        {...sectionTotalValue}
       >
         <Table
           columns={columns}
           data={positions}
           loading={showLoading}
           error={false}
-          v2={true}
           rowWrapper={rowWrapper}
           rowHeight={PORTFOLIO_TABLE_ROW_HEIGHT}
           compactRowHeight={PORTFOLIO_TABLE_ROW_HEIGHT}
@@ -85,9 +115,10 @@ export const MiniPoolsTable = memo(function MiniPoolsTable({ account, maxPools, 
         />
       </TableSectionHeader>
       <ViewAllButton
-        href="/positions"
+        href={viewAllHref}
         label={t('portfolio.overview.pools.table.viewAllPools')}
         elementName={ElementName.PortfolioViewAllPools}
+        testId={TestID.PortfolioOverviewViewAllPools}
       />
     </Flex>
   )

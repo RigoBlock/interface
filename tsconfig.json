@@ -75,6 +75,33 @@
     },
     {
       "path": "./packages/chains"
+    },
+    {
+      "path": "./packages/encoding"
+    },
+    {
+      "path": "./packages/environment"
+    },
+    {
+      "path": "./packages/config-cli"
+    },
+    {
+      "path": "./packages/cryptography"
+    },
+    {
+      "path": "./packages/compliance"
+    },
+    {
+      "path": "./packages/tailwind"
+    },
+    {
+      "path": "./packages/experiments"
+    },
+    {
+      "path": "packages/embedded-wallet"
+    },
+    {
+      "path": "packages/test"
     }
   ]
 }

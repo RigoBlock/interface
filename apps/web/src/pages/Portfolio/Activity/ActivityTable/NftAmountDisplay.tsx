@@ -1,5 +1,6 @@
+import { Flex, Text } from '@universe/mycelium'
+import { styled } from '@universe/mycelium/styled'
 import { memo } from 'react'
-import { Flex, styled, Text } from 'ui/src'
 import { NFTViewer } from 'uniswap/src/components/nfts/NFTViewer'
 
 interface NftAmountDisplayProps {
@@ -10,11 +11,7 @@ interface NftAmountDisplayProps {
 }
 
 const NftImageContainer = styled(Flex, {
-  width: 40,
-  height: 40,
-  borderRadius: '$rounded8',
-  overflow: 'hidden',
-  backgroundColor: '$surface3',
+  base: 'w-[40px] h-[40px] bg-surface3 rounded-[8px] overflow-hidden',
 })
 
 function NftAmountDisplayInner({
@@ -35,7 +32,7 @@ function NftAmountDisplayInner({
           />
         </NftImageContainer>
       )}
-      <Flex gap="$gap2">
+      <Flex gap="$spacing2">
         <Text variant="body3" fontWeight="500">
           {nftName}
         </Text>

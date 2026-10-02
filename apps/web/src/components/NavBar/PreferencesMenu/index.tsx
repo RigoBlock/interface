@@ -1,5 +1,6 @@
+import { AnimateTransition } from '@universe/mycelium/animate-presence-pager'
 import { useCallback, useState } from 'react'
-import { AnimateTransition, Popover } from 'ui/src'
+import { Popover } from 'ui/src'
 import { MoreHorizontal } from 'ui/src/components/icons/MoreHorizontal'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'

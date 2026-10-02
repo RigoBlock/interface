@@ -1,7 +1,6 @@
 import {
   ChallengeResponse,
   ChallengeType,
-  DeleteSessionResponse,
   GetChallengeTypesResponse,
   InitSessionResponse,
   SignoutResponse,
@@ -84,11 +83,8 @@ describe('Challenge Flow Integration Tests', () => {
       '/uniswap.platformservice.v1.SessionService/Verify': async (): Promise<VerifyResponse> => {
         return createSuccessVerifyResponse()
       },
-      '/uniswap.platformservice.v1.SessionService/DeleteSession': async (): Promise<DeleteSessionResponse> => {
-        return new DeleteSessionResponse({})
-      },
       '/uniswap.platformservice.v1.SessionService/GetChallengeTypes': async (): Promise<GetChallengeTypesResponse> => {
-        return new GetChallengeTypesResponse({ challengeTypes: [] })
+        return new GetChallengeTypesResponse({ challengeTypeConfig: [] })
       },
       '/uniswap.platformservice.v1.SessionService/Signout': async (): Promise<SignoutResponse> => {
         return new SignoutResponse({})
@@ -133,7 +129,6 @@ describe('Challenge Flow Integration Tests', () => {
       getSessionService: () => sessionService,
       challengeSolverService,
       performanceTracker: createMockPerformanceTracker(),
-      getIsSessionUpgradeAutoEnabled: () => true,
     })
   })
 
@@ -204,14 +199,14 @@ describe('Challenge Flow Integration Tests', () => {
     expect(storedSession?.sessionId).toBe('776973bd-bbc2-452b-9c35-1b72c475afbd')
 
     // Verify challenge request had session headers
-    expect(challengeCalls[0].headers['X-Session-ID']).toBe('776973bd-bbc2-452b-9c35-1b72c475afbd')
+    expect(challengeCalls[0]?.headers['X-Session-ID']).toBe('776973bd-bbc2-452b-9c35-1b72c475afbd')
 
     // Verify upgrade request had correct challenge ID and solution
-    expect(verifyCalls[0].request).toMatchObject({
+    expect(verifyCalls[0]?.request).toMatchObject({
       challengeId: '02c241f3-8d45-4a88-842a-d364c30a6c44',
       solution: 'test-turnstile-solution-token',
     })
-    expect(verifyCalls[0].headers['X-Session-ID']).toBe('776973bd-bbc2-452b-9c35-1b72c475afbd')
+    expect(verifyCalls[0]?.headers['X-Session-ID']).toBe('776973bd-bbc2-452b-9c35-1b72c475afbd')
   })
 
   it('handles challenge flow with proper request/response data', async () => {
@@ -447,7 +442,6 @@ describe('Challenge Flow Integration Tests', () => {
       getSessionService: () => sessionService,
       challengeSolverService,
       performanceTracker: createMockPerformanceTracker(),
-      getIsSessionUpgradeAutoEnabled: () => true,
     })
 
     // Should NOT throw — empty solution is submitted instead
@@ -457,7 +451,7 @@ describe('Challenge Flow Integration Tests', () => {
     expect(mockTurnstileSolve).toHaveBeenCalledTimes(1)
     // Verify was called with empty solution
     expect(verifyCalls).toHaveLength(1)
-    expect(verifyCalls[0].request.solution).toBe('solver-failed')
+    expect(verifyCalls[0]?.request.solution).toBe('solver-failed')
   })
 
   it('Turnstile solver fails → empty verify → retry → Hashcash succeeds end-to-end', async () => {
@@ -522,7 +516,6 @@ describe('Challenge Flow Integration Tests', () => {
       getSessionService: () => sessionService,
       challengeSolverService,
       performanceTracker: createMockPerformanceTracker(),
-      getIsSessionUpgradeAutoEnabled: () => true,
     })
 
     // Full flow: Turnstile throws → empty verify → retry → Hashcash succeeds
@@ -605,7 +598,6 @@ describe('Challenge Flow Integration Tests', () => {
       getSessionService: () => sessionService,
       challengeSolverService,
       performanceTracker: createMockPerformanceTracker(),
-      getIsSessionUpgradeAutoEnabled: () => true,
     })
 
     // Flow: mock Turnstile token → verify rejects → retry → backend sends Hashcash → succeeds

@@ -1,8 +1,8 @@
+import { UniverseChainId } from '@universe/chains'
+import { iconSizes } from '@universe/mycelium'
 import { ComponentProps } from 'react'
-import { iconSizes } from 'ui/src/theme'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
 import { Pill } from 'uniswap/src/components/pill/Pill'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { getChainLabel } from 'uniswap/src/features/chains/utils'
 import { useNetworkColors } from 'uniswap/src/utils/colors'
 
@@ -28,7 +28,7 @@ export function NetworkPill({
   return (
     <Pill
       customBackgroundColor={showBackgroundColor ? colors.background : undefined}
-      customBorderColor={showBorder ? colors.foreground : 'transparent'}
+      customBorderColor={showBorder ? colors.foreground : undefined}
       foregroundColor={colors.foreground}
       icon={showIcon ? <NetworkLogo chainId={chainId} size={iconSize} /> : null}
       label={label}

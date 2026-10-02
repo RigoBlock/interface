@@ -1,10 +1,10 @@
+import { Button, Flex, Text } from '@universe/mycelium'
+import { Edit } from '@universe/mycelium/icons/Edit'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Flex, Separator, Text } from 'ui/src'
-import { Edit } from 'ui/src/components/icons/Edit'
-import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
-import { TokenLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
+import { Separator } from 'ui/src'
 import { useCreateAuctionStore } from '~/pages/Liquidity/CreateAuction/CreateAuctionContext'
+import { useCreateAuctionTokenLogoNode } from '~/pages/Liquidity/CreateAuction/hooks/useCreateAuctionTokenLogoNode'
 import { TokenMode } from '~/pages/Liquidity/CreateAuction/types'
 
 const TOKEN_LOGO_SIZE = 60
@@ -36,18 +36,7 @@ export function useTokenSummaryCardProps(): Omit<TokenSummaryCardProps, 'onEdit'
       ? tokenForm.symbol
       : (tokenForm.existingTokenCurrencyInfo?.currency.symbol ?? '')
 
-  const logoNode =
-    tokenForm.mode === TokenMode.CREATE_NEW ? (
-      <TokenLogo
-        url={tokenForm.imageUrl || null}
-        symbol={tokenForm.symbol}
-        name={tokenForm.name}
-        chainId={tokenForm.network}
-        size={TOKEN_LOGO_SIZE}
-      />
-    ) : (
-      <CurrencyLogo currencyInfo={tokenForm.existingTokenCurrencyInfo ?? null} size={TOKEN_LOGO_SIZE} />
-    )
+  const logoNode = useCreateAuctionTokenLogoNode(TOKEN_LOGO_SIZE)
 
   return { name, symbol, logoNode }
 }

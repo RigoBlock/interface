@@ -1,6 +1,6 @@
+import { Flex } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
-import { Flex } from 'ui/src'
 import { CopyAlt } from 'ui/src/components/icons/CopyAlt'
 import { Person } from 'ui/src/components/icons/Person'
 import { InfoRow } from 'uniswap/src/components/activity/details/InfoRow'

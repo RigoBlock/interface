@@ -1,5 +1,5 @@
+import { UniverseChainId } from '@universe/chains'
 import { InlineNetworkPill, NetworkPill } from 'uniswap/src/components/network/NetworkPill'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { render } from 'uniswap/src/test/test-utils'
 
 describe(NetworkPill, () => {

@@ -1,10 +1,11 @@
+import { Flex, FlexCompatProps, iconSizes, Text, TouchableArea, TouchableAreaCompatProps } from '@universe/mycelium'
+import { ExternalLink } from '@universe/mycelium/icons/ExternalLink'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { useMemo } from 'react'
-import { Flex, FlexProps, Text, TouchableArea, TouchableAreaProps, useSporeColors } from 'ui/src'
-import { ExternalLink } from 'ui/src/components/icons'
-import { iconSizes, TextVariantTokens } from 'ui/src/theme'
+import { TextVariantTokens } from 'ui/src/theme'
 import { openUri } from 'uniswap/src/utils/linking'
 
-interface LinkButtonProps extends Omit<TouchableAreaProps, 'onPress' | 'children' | 'variant'> {
+interface LinkButtonProps extends Omit<TouchableAreaCompatProps, 'onPress' | 'children' | 'variant'> {
   label: string
   url: string
   openExternalBrowser?: boolean
@@ -28,7 +29,7 @@ export function LinkButton({
   size = iconSizes.icon20,
   justifyContent = 'center',
   ...rest
-}: LinkButtonProps & Pick<FlexProps, 'justifyContent'>): JSX.Element {
+}: LinkButtonProps & Pick<FlexCompatProps, 'justifyContent'>): JSX.Element {
   const colors = useSporeColors()
   const colorStyles = useMemo(() => {
     return color
@@ -40,7 +41,7 @@ export function LinkButton({
   return (
     <TouchableArea onPress={() => openUri({ uri: url, openExternalBrowser, isSafeUri })} {...rest}>
       <Flex row alignItems="center" gap="$spacing4" justifyContent={justifyContent}>
-        <Text {...colorStyles} flexShrink={1} variant={textVariant}>
+        <Text {...colorStyles} flexShrink={1} variant={textVariant ?? 'body2'}>
           {label}
         </Text>
         {showIcon && <ExternalLink color={iconColor ?? color ?? colors.accent1.get()} size={size} strokeWidth={1.5} />}

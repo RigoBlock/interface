@@ -1,6 +1,6 @@
+import { Flex, Text } from '@universe/mycelium'
+import { Contrast } from '@universe/mycelium/icons/Contrast'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text } from 'ui/src'
-import { Contrast } from 'ui/src/components/icons/Contrast'
 import { ThemeToggle } from 'uniswap/src/components/appearance/ThemeToggle'
 
 export function ThemeToggleWithLabel(): JSX.Element {

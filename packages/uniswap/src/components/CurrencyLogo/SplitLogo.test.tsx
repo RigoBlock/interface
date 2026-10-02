@@ -1,21 +1,11 @@
-import { useFeatureFlag } from '@universe/gating'
+import { UniverseChainId } from '@universe/chains'
+import { TestID } from '@universe/test'
 import { SplitLogo } from 'uniswap/src/components/CurrencyLogo/SplitLogo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { DAI_CURRENCY_INFO, daiCurrencyInfo, ETH_CURRENCY_INFO, ethCurrencyInfo } from 'uniswap/src/test/fixtures'
 import { render, within } from 'uniswap/src/test/test-utils'
 
-vi.mock('ui/src/components/UniversalImage/internal/PlainImage', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('ui/src/components/UniversalImage/internal/PlainImage.web')>()
-  return { ...actual }
-})
-
-vi.mock('@universe/gating', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@universe/gating')>()
-  return {
-    ...actual,
-    useFeatureFlag: vi.fn(),
-  }
-})
+const arbitrumNetworkLogoTestID = `${TestID.NetworkLogoPrefix}${UniverseChainId.ArbitrumOne}`
+const mainnetNetworkLogoTestID = `${TestID.NetworkLogoPrefix}${UniverseChainId.Mainnet}`
 
 describe(SplitLogo, () => {
   it('renders without error', () => {
@@ -96,10 +86,6 @@ describe(SplitLogo, () => {
   })
 
   describe('icon', () => {
-    beforeEach(() => {
-      vi.mocked(useFeatureFlag).mockReturnValue(false)
-    })
-
     it('renders icon when chainId is specified', () => {
       const { getByTestId } = render(
         <SplitLogo
@@ -110,7 +96,7 @@ describe(SplitLogo, () => {
         />,
       )
 
-      const icon = getByTestId('network-logo')
+      const icon = getByTestId(arbitrumNetworkLogoTestID)
 
       expect(icon).toBeTruthy()
     })
@@ -125,26 +111,12 @@ describe(SplitLogo, () => {
         />,
       )
 
-      const icon = queryByTestId('network-logo')
+      const icon = queryByTestId(arbitrumNetworkLogoTestID)
 
       expect(icon).toBeFalsy()
     })
 
-    it('does not render icon for Mainnet when multichain token UX is disabled', () => {
-      const { queryByTestId } = render(
-        <SplitLogo
-          chainId={UniverseChainId.Mainnet}
-          inputCurrencyInfo={daiCurrencyInfo()}
-          outputCurrencyInfo={ethCurrencyInfo()}
-          size={10}
-        />,
-      )
-
-      expect(queryByTestId('network-logo')).toBeFalsy()
-    })
-
-    it('renders icon for Mainnet when multichain token UX is enabled', () => {
-      vi.mocked(useFeatureFlag).mockReturnValue(true)
+    it('renders icon for Mainnet', () => {
       const { getByTestId } = render(
         <SplitLogo
           chainId={UniverseChainId.Mainnet}
@@ -154,7 +126,51 @@ describe(SplitLogo, () => {
         />,
       )
 
-      expect(getByTestId('network-logo')).toBeTruthy()
+      expect(getByTestId(mainnetNetworkLogoTestID)).toBeTruthy()
+    })
+  })
+
+  describe('stacked orientation', () => {
+    it('renders without error', () => {
+      const tree = render(
+        <SplitLogo
+          chainId={UniverseChainId.ArbitrumOne}
+          inputCurrencyInfo={DAI_CURRENCY_INFO}
+          outputCurrencyInfo={ETH_CURRENCY_INFO}
+          orientation="stacked"
+          size={10}
+        />,
+      )
+
+      expect(tree).toMatchSnapshot()
+    })
+
+    it('renders icon when chainId is specified', () => {
+      const { getByTestId } = render(
+        <SplitLogo
+          chainId={UniverseChainId.ArbitrumOne}
+          inputCurrencyInfo={daiCurrencyInfo()}
+          outputCurrencyInfo={ethCurrencyInfo()}
+          orientation="stacked"
+          size={10}
+        />,
+      )
+
+      expect(getByTestId(arbitrumNetworkLogoTestID)).toBeTruthy()
+    })
+
+    it('does not render icon when chainId is not specified', () => {
+      const { queryByTestId } = render(
+        <SplitLogo
+          chainId={null}
+          inputCurrencyInfo={daiCurrencyInfo()}
+          outputCurrencyInfo={ethCurrencyInfo()}
+          orientation="stacked"
+          size={10}
+        />,
+      )
+
+      expect(queryByTestId(arbitrumNetworkLogoTestID)).toBeFalsy()
     })
   })
 })

@@ -1,6 +1,6 @@
+import { UniverseChainId } from '@universe/chains'
 import { useCallback } from 'react'
 import { useDispatch } from 'react-redux'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
 import { AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
 import { ONE_SECOND_MS } from 'utilities/src/time/time'

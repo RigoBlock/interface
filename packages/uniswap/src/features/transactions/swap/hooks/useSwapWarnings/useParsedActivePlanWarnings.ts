@@ -1,12 +1,13 @@
 import { type Currency, type CurrencyAmount } from '@uniswap/sdk-core'
 import { TradingApi } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
+import { isWebPlatform } from '@universe/environment'
 import type { TFunction } from 'i18next'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ParsedWarnings, Warning } from 'uniswap/src/components/modals/WarningModal/types'
 import { WarningAction, WarningLabel, WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import { useActiveAddress } from 'uniswap/src/features/accounts/store/hooks'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { getChainLabel } from 'uniswap/src/features/chains/utils'
 import { useChainGasToken } from 'uniswap/src/features/gas/hooks/useChainGasToken'
 import { hasSufficientGasBalance } from 'uniswap/src/features/gas/utils'
@@ -19,7 +20,6 @@ import { activePlanStore } from 'uniswap/src/features/transactions/swap/review/s
 import { useSwapFormStore } from 'uniswap/src/features/transactions/swap/stores/swapFormStore/useSwapFormStore'
 import { tradingApiToUniverseChainId } from 'uniswap/src/features/transactions/swap/utils/tradingApi'
 import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
-import { isWebPlatform } from 'utilities/src/platform'
 import { useStore } from 'zustand'
 
 const APPROVAL_STEP_TYPES = new Set<TradingApi.PlanStepType>([
@@ -125,7 +125,7 @@ function getGasWarning({
     chainId,
     gasBalance,
     gasFee: totalGasFee,
-    gasTokenTransactionAmount,
+    spend: gasTokenTransactionAmount ? { kind: 'gas-token-amount', amount: gasTokenTransactionAmount } : undefined,
   })
 
   if (hasGasFunds) {

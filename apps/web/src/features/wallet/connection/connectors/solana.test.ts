@@ -15,14 +15,12 @@ vi.mock('utilities/src/time/timing', () => ({
 // Import mocked modules to get references to their functions
 import { WalletName, WalletReadyState } from '@solana/wallet-adapter-base'
 import { useWallet } from '@solana/wallet-adapter-react'
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Platform } from '@universe/chains'
 import { AccessPattern, ConnectorStatus } from 'uniswap/src/features/accounts/store/types/Connector'
 import { SigningCapability } from 'uniswap/src/features/accounts/store/types/Wallet'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { sleep } from 'utilities/src/time/timing'
 import { ExternalConnector, ExternalWallet } from '~/features/accounts/store/types'
 import { GetConnectorFn } from '~/features/wallet/connection/services/createConnectionService'
-import { mocked } from '~/test-utils/mocked'
 
 const mockSleep = vi.mocked(sleep)
 const mockUseWallet = vi.mocked(useWallet)
@@ -107,13 +105,6 @@ describe('Solana connectors', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockSleep.mockResolvedValue(true)
-
-    mocked(useFeatureFlag).mockImplementation((flag) => {
-      if (flag === FeatureFlags.Solana) {
-        return true
-      }
-      return false
-    })
   })
 
   describe('useConnectSolanaWallet', () => {
@@ -314,6 +305,59 @@ describe('Solana connectors', () => {
       // Assert
       expect(mockContext.select).toHaveBeenCalledWith('Solflare')
       expect(mockSleep).toHaveBeenCalledWith(10)
+      expect(mockConnect).toHaveBeenCalled()
+    })
+
+    it('should connect to the MetaMask Connect Solana wallet (wallet-standard)', async () => {
+      // Arrange
+      const mockConnect = vi.fn()
+      const mockAddListener = vi.fn().mockImplementation((event: string, handler: () => void) => {
+        if (event === 'connect') {
+          setTimeout(handler, 0)
+        }
+      })
+      const mockRemoveListener = vi.fn()
+
+      const mockMetaMaskAdapter = createMockAdapter({
+        name: 'MetaMask',
+        icon: 'metamask-icon.svg',
+        connect: mockConnect,
+        addListener: mockAddListener,
+        removeListener: mockRemoveListener,
+      })
+
+      const mockContext = createMockWalletContext([])
+      mockContext.wallets = [{ adapter: mockMetaMaskAdapter, readyState: WalletReadyState.Installed }] as any
+
+      mockUseWallet.mockReturnValue(mockContext)
+      const mockGetConnectorWithMetaMask = createMockGetConnector({
+        SolanaAdapter_MetaMask: {
+          id: 'SolanaAdapter_MetaMask',
+          externalLibraryId: 'MetaMask' as WalletName,
+          access: AccessPattern.SDK,
+          status: ConnectorStatus.Disconnected,
+          platform: Platform.SVM,
+        },
+      })
+      const { result } = renderHook(() => useSolanaConnectionService(mockGetConnectorWithMetaMask))
+
+      const wallet: ExternalWallet = {
+        id: 'metaMaskSDK',
+        name: 'MetaMask',
+        icon: 'metamask-icon.svg',
+        signingCapability: SigningCapability.Interactive,
+        addresses: [],
+        connectorIds: {
+          [Platform.SVM]: 'SolanaAdapter_MetaMask',
+        },
+        analyticsWalletType: 'MetaMask SDK',
+      }
+
+      // Act
+      await result.current.connect({ wallet })
+
+      // Assert
+      expect(mockContext.select).toHaveBeenCalledWith('MetaMask')
       expect(mockConnect).toHaveBeenCalled()
     })
   })

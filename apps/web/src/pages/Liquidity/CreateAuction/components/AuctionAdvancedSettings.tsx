@@ -1,6 +1,6 @@
+import { Flex, Text } from '@universe/mycelium'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text } from 'ui/src'
 import { AdvancedSettingsSeparator } from '~/pages/Liquidity/CreateAuction/components/AdvancedSettingsSeparator'
 import { KycCard } from '~/pages/Liquidity/CreateAuction/components/KycCard'
 

@@ -1,11 +1,10 @@
-/* oxlint-disable max-depth */
-/* oxlint-disable max-lines */
+/* oxlint-disable max-depth max-lines */
 
 import { RankingType } from '@universe/api'
+import { Platform, areAddressesEqual } from '@universe/chains'
 import { AccountType } from 'uniswap/src/features/accounts/types'
 import { FiatCurrency } from 'uniswap/src/features/fiatCurrency/constants'
 import { Language } from 'uniswap/src/features/language/constants'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import {
   type BasicTokenInfo,
   type SerializedTokenMap,
@@ -14,7 +13,6 @@ import {
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { createSafeMigrationFactory } from 'uniswap/src/state/createSafeMigration'
 import { type CurrencyId } from 'uniswap/src/types/currency'
-import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 import { currencyIdToAddress, currencyIdToChain } from 'uniswap/src/utils/currencyId'
 import { type Account } from 'wallet/src/features/wallet/accounts/types'
 

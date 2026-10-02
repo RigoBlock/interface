@@ -1,5 +1,23 @@
+import { render, screen, waitFor } from '@testing-library/react'
+import { Component, ComponentType, ReactElement, ReactNode, Suspense, createElement } from 'react'
+import { logger } from 'utilities/src/logger/logger'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createLazy, createLazyFactory, isDynamicImportError, lazyWithRetry } from '~/utils/lazyWithRetry'
+import {
+  createLazy,
+  createLazyFactory,
+  createLazyNoReload,
+  isDynamicImportError,
+  lazyWithRetry,
+} from '~/utils/lazyWithRetry'
+
+vi.mock('utilities/src/logger/logger', () => ({
+  logger: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  },
+}))
 
 // Mock window.location.reload
 const mockReload = vi.fn()
@@ -319,11 +337,136 @@ describe('lazyWithRetry', () => {
     })
   })
 
+  describe('final failure behavior', () => {
+    const FAST_RETRY_OPTIONS = { maxRetries: 1, baseDelay: 0, maxDelay: 0 }
+
+    function chunkLoadError(): Error {
+      return new Error('Failed to fetch dynamically imported module')
+    }
+
+    function LoadedComponent(): ReactElement {
+      return createElement('div', { 'data-testid': 'loaded-component' })
+    }
+
+    function renderInSuspense(LazyComponent: ComponentType, fallback: ReactNode = null): ReturnType<typeof render> {
+      return render(createElement(Suspense, { fallback }, createElement(LazyComponent)))
+    }
+
+    class TestErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+      state = { hasError: false }
+
+      static getDerivedStateFromError(): { hasError: boolean } {
+        return { hasError: true }
+      }
+
+      override render(): ReactNode {
+        return this.state.hasError ? createElement('div', { 'data-testid': 'error-fallback' }) : this.props.children
+      }
+    }
+
+    it('reloads the page when a user-initiated lazy load fails after all retries', async () => {
+      const importFn = vi.fn().mockRejectedValue(chunkLoadError())
+      const LazyComponent = lazyWithRetry(importFn, FAST_RETRY_OPTIONS)
+
+      render(
+        createElement(
+          TestErrorBoundary,
+          null,
+          createElement(Suspense, { fallback: null }, createElement(LazyComponent)),
+        ),
+      )
+
+      await waitFor(() => expect(mockReload).toHaveBeenCalledTimes(1))
+      expect(importFn).toHaveBeenCalledTimes(2)
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith('lazy-retry-refresh', expect.any(String))
+    })
+
+    describe('createLazyNoReload', () => {
+      it('renders the component when the import succeeds', async () => {
+        const importFn = vi.fn().mockResolvedValue({ default: LoadedComponent })
+        const NoReloadComponent = createLazyNoReload(importFn, FAST_RETRY_OPTIONS)
+
+        renderInSuspense(NoReloadComponent)
+
+        expect(await screen.findByTestId('loaded-component')).toBeInTheDocument()
+      })
+
+      it('logs and renders nothing instead of reloading when the import fails after all retries', async () => {
+        const importFn = vi.fn().mockRejectedValue(chunkLoadError())
+        const NoReloadComponent = createLazyNoReload(importFn, FAST_RETRY_OPTIONS)
+
+        const { container } = renderInSuspense(NoReloadComponent)
+
+        await waitFor(() => expect(importFn).toHaveBeenCalledTimes(2))
+        await waitFor(() => expect(container).toBeEmptyDOMElement())
+        expect(mockReload).not.toHaveBeenCalled()
+        expect(mockLocalStorage.setItem).not.toHaveBeenCalled()
+        expect(logger.error).toHaveBeenCalledWith(
+          expect.objectContaining({ message: expect.stringContaining('Failed to fetch') }),
+          expect.anything(),
+        )
+      })
+
+      it('re-attempts the import on the next mount after a final failure', async () => {
+        const importFn = vi
+          .fn()
+          .mockRejectedValueOnce(chunkLoadError())
+          .mockRejectedValueOnce(chunkLoadError())
+          .mockResolvedValueOnce({ default: LoadedComponent })
+        const NoReloadComponent = createLazyNoReload(importFn, FAST_RETRY_OPTIONS)
+
+        const firstMount = renderInSuspense(
+          NoReloadComponent,
+          createElement('div', { 'data-testid': 'loading-fallback' }),
+        )
+        await waitFor(() => expect(importFn).toHaveBeenCalledTimes(2))
+        // The failed load must commit (fallback gone) before the next mount can re-attempt
+        await waitFor(() => expect(screen.queryByTestId('loading-fallback')).not.toBeInTheDocument())
+        firstMount.unmount()
+
+        renderInSuspense(NoReloadComponent)
+
+        expect(await screen.findByTestId('loaded-component')).toBeInTheDocument()
+        expect(importFn).toHaveBeenCalledTimes(3)
+        expect(mockReload).not.toHaveBeenCalled()
+      })
+
+      it('treats an import that resolves undefined as a retryable failure', async () => {
+        const importFn = vi.fn().mockResolvedValueOnce(undefined).mockResolvedValueOnce({ default: LoadedComponent })
+        const NoReloadComponent = createLazyNoReload(importFn, FAST_RETRY_OPTIONS)
+
+        renderInSuspense(NoReloadComponent)
+
+        expect(await screen.findByTestId('loaded-component')).toBeInTheDocument()
+        expect(importFn).toHaveBeenCalledTimes(2)
+        expect(mockReload).not.toHaveBeenCalled()
+      })
+
+      it('rethrows non-import errors to the nearest error boundary', async () => {
+        const importFn = vi.fn().mockRejectedValue(new Error('Unexpected token'))
+        const NoReloadComponent = createLazyNoReload(importFn, FAST_RETRY_OPTIONS)
+
+        render(
+          createElement(
+            TestErrorBoundary,
+            null,
+            createElement(Suspense, { fallback: null }, createElement(NoReloadComponent)),
+          ),
+        )
+
+        expect(await screen.findByTestId('error-fallback')).toBeInTheDocument()
+        expect(importFn).toHaveBeenCalledTimes(1)
+        expect(mockReload).not.toHaveBeenCalled()
+      })
+    })
+  })
+
   describe('exports', () => {
     it('should export all expected functions', () => {
       expect(typeof lazyWithRetry).toBe('function')
       expect(typeof createLazy).toBe('function')
       expect(typeof createLazyFactory).toBe('function')
+      expect(typeof createLazyNoReload).toBe('function')
     })
 
     it('should have proper default options in createLazy', () => {

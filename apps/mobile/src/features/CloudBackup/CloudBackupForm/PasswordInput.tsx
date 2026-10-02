@@ -1,10 +1,10 @@
+import { Flex, Text } from '@universe/mycelium'
 import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { TextInput } from 'react-native'
 import { PasswordInput } from 'src/components/input/PasswordInput'
 import { useCloudBackupPasswordFormContext } from 'src/features/CloudBackup/CloudBackupForm/CloudBackupPasswordFormContext'
 import { PasswordError } from 'src/features/onboarding/PasswordError'
-import { Flex, Text } from 'ui/src'
 import { useDebounce } from 'utilities/src/time/timing'
 import {
   getPasswordStrengthTextAndColor,

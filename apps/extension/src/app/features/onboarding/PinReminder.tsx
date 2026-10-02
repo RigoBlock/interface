@@ -1,7 +1,7 @@
+import { Flex, Text, zIndexes } from '@universe/mycelium'
+import { Pin } from '@universe/mycelium/icons/Pin'
+import { X } from '@universe/mycelium/icons/X'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text } from 'ui/src'
-import { Pin, X } from 'ui/src/components/icons'
-import { zIndexes } from 'ui/src/theme'
 
 const POPUP_WIDTH = 240
 const POPUP_OFFSET = 4

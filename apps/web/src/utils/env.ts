@@ -1,4 +1,4 @@
-import { isBetaEnv, isProdEnv } from 'utilities/src/environment/env'
+import { isBetaEnv, isProdEnv } from '@universe/environment'
 
 export function isAppRigoblockCom({ hostname }: { hostname: string }): boolean {
   return hostname === 'app.rigoblock.com'
@@ -34,5 +34,6 @@ export function isRemoteReportingEnabled(): boolean {
   if (isProdEnv()) {
     return false
   }
-  return process.env.REACT_APP_ANALYTICS_ENABLED === 'false'
+  // RigoBlock: remote reporting (analytics/error telemetry) stays disabled.
+  return false
 }

@@ -1,5 +1,8 @@
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Platform, areAddressesEqual } from '@universe/chains'
+import { Flex, ScrollView, Text, TouchableArea } from '@universe/mycelium'
+import { X } from '@universe/mycelium/icons/X'
+import { TestID } from '@universe/test'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { ScreenHeader } from 'src/app/components/layout/ScreenHeader'
@@ -12,29 +15,24 @@ import { useDappContext } from 'src/app/features/dapp/DappContext'
 import { useDappConnectedAccounts } from 'src/app/features/dapp/hooks'
 import { isConnectedAccount } from 'src/app/features/dapp/utils'
 import { openPopup, PopupName } from 'src/app/features/popups/slice'
+import { useLockScroll } from 'src/app/hooks/useLockScroll'
 import { AppRoutes, RemoveRecoveryPhraseRoutes, SettingsRoutes, UnitagClaimRoutes } from 'src/app/navigation/constants'
 import { navigate } from 'src/app/navigation/state'
 import { focusOrCreateUnitagTab, useExtensionNavigation } from 'src/app/navigation/utils'
-import { Button, Flex, Popover, ScrollView, Text, TouchableArea, useSporeColors } from 'ui/src'
-import { Ellipsis, Globe, Person, TrashFilled, WalletFilled, X } from 'ui/src/components/icons'
+import { Button, Popover, useSporeColors } from 'ui/src'
+import { Ellipsis, Globe, Person, TrashFilled, WalletFilled } from 'ui/src/components/icons'
 import { spacing } from 'ui/src/theme'
 import { AddressDisplay } from 'uniswap/src/components/accounts/AddressDisplay'
-import { buildWrappedUrl } from 'uniswap/src/components/banners/shared/utils'
-import { UniswapWrapped2025Card } from 'uniswap/src/components/banners/UniswapWrapped2025Card/UniswapWrapped2025Card'
 import { ContextMenu, MenuOptionItem } from 'uniswap/src/components/menus/ContextMenu'
 import { ContextMenuTriggerMode } from 'uniswap/src/components/menus/types'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import { WarningModal } from 'uniswap/src/components/modals/WarningModal/WarningModal'
-import { UNISWAP_WEB_URL } from 'uniswap/src/constants/urls'
+import { useUnitagsAddressQuery } from 'uniswap/src/data/apiClients/unitagsApi/useUnitagsAddressQuery'
 import { AccountType, DisplayNameType } from 'uniswap/src/features/accounts/types'
-import { setHasDismissedUniswapWrapped2025Banner } from 'uniswap/src/features/behaviorHistory/slice'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { ModalName, WalletEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { ImportType } from 'uniswap/src/types/onboarding'
-import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 import { logger } from 'utilities/src/logger/logger'
 import { useBooleanState } from 'utilities/src/react/useBooleanState'
 import { sleep } from 'utilities/src/time/timing'
@@ -67,8 +65,6 @@ export function AccountSwitcherScreen(): JSX.Element {
   const activeAddress = activeAccount.address
   const isViewOnly = activeAccount.type === AccountType.Readonly
 
-  const isWrappedBannerEnabled = useFeatureFlag(FeatureFlags.UniswapWrapped2025)
-
   const accounts = useSignerAccounts()
   const accountAddresses = useMemo(
     () =>
@@ -97,13 +93,25 @@ export function AccountSwitcherScreen(): JSX.Element {
   const [showRemoveWalletModal, setShowRemoveWalletModal] = useState(false)
   const [showImportWalletModal, setShowImportWalletModal] = useState(false)
   const [showCreateWalletModal, setShowCreateWalletModal] = useState(false)
+  const [isResolvingCreateWallet, setIsResolvingCreateWallet] = useState(false)
   const { value: isEllipsisMenuOpen, setTrue: openEllipsisMenu, setFalse: closeEllipsisMenu } = useBooleanState(false)
+  const { value: isAddWalletMenuOpen, setValue: setIsAddWalletMenuOpen } = useBooleanState(false)
+  const accountListRef = useRef(null)
+  useLockScroll({ ref: accountListRef, enabled: isAddWalletMenuOpen })
 
   const [pendingWallet, setPendingWallet] = useState<SignerMnemonicAccount>()
 
   const sortedMnemonicAccounts = useSelector(selectSortedSignerMnemonicAccounts)
 
   const { canClaimUnitag } = useCanActiveAddressClaimUnitag(activeAddress)
+
+  const {
+    data: pendingUnitag,
+    isSuccess: isPendingUnitagSuccess,
+    isError: isPendingUnitagError,
+  } = useUnitagsAddressQuery({
+    params: isResolvingCreateWallet && pendingWallet?.address ? { address: pendingWallet.address } : undefined,
+  })
 
   useEffect(() => {
     const createOnboardingAccountAfterTransitionAnimation = async (): Promise<void> => {
@@ -130,7 +138,7 @@ export function AccountSwitcherScreen(): JSX.Element {
   }
 
   const onConfirmCreateWallet = useCallback(
-    async (walletLabel: string): Promise<void> => {
+    (walletLabel: string): void => {
       setShowCreateWalletModal(false)
       if (!pendingWallet) {
         return
@@ -164,21 +172,34 @@ export function AccountSwitcherScreen(): JSX.Element {
     [connectedAccounts.length, dispatch, pendingWallet],
   )
 
-  const onPressWrappedCard = useCallback(() => {
-    try {
-      const url = buildWrappedUrl(UNISWAP_WEB_URL, activeAddress)
-      window.open(url, '_blank')
-      dispatch(setHasDismissedUniswapWrapped2025Banner(true))
-      navigate(-1)
-    } catch (error) {
-      logger.error(error, { tags: { file: 'AccountSwitcherScreen', function: 'onPressWrappedCard' } })
+  // If the next derived address already has a unitag, skip the nickname prompt and create immediately.
+  useEffect(() => {
+    if (!isResolvingCreateWallet || !pendingWallet || (!isPendingUnitagSuccess && !isPendingUnitagError)) {
+      return
     }
-  }, [activeAddress, dispatch])
+
+    setIsResolvingCreateWallet(false)
+
+    if (pendingUnitag?.username) {
+      onConfirmCreateWallet('')
+      return
+    }
+
+    setShowCreateWalletModal(true)
+  }, [
+    isPendingUnitagError,
+    isPendingUnitagSuccess,
+    isResolvingCreateWallet,
+    onConfirmCreateWallet,
+    pendingUnitag?.username,
+    pendingWallet,
+  ])
 
   const addWalletMenuOptions: MenuContentItem[] = [
     {
       label: t('account.wallet.button.create'),
-      onPress: (): void => setShowCreateWalletModal(true),
+      onPress: (): void => setIsResolvingCreateWallet(true),
+      disabled: !pendingWallet || isResolvingCreateWallet,
     },
     {
       label: t('account.wallet.button.import'),
@@ -300,15 +321,10 @@ export function AccountSwitcherScreen(): JSX.Element {
                 showViewOnlyBadge={isViewOnly}
                 size={spacing.spacing60 - spacing.spacing4}
                 variant="subheading1"
+                numberOfLines={2}
               />
             </Flex>
           </Flex>
-
-          {isWrappedBannerEnabled && (
-            <Flex pt="$spacing16">
-              <UniswapWrapped2025Card onPress={onPressWrappedCard} />
-            </Flex>
-          )}
 
           <Flex pt={activeAccountHasENS ? undefined : '$padding16'}>
             {activeAccountHasUnitag ? (
@@ -329,7 +345,7 @@ export function AccountSwitcherScreen(): JSX.Element {
             )}
           </Flex>
         </Flex>
-        <ScrollView backgroundColor="$surface1" height="auto">
+        <ScrollView ref={accountListRef} backgroundColor="$surface1" height="auto">
           <Flex pt="$padding20">
             {sortedAddressesByBalance.map(({ address, balance }) => {
               return (
@@ -349,7 +365,12 @@ export function AccountSwitcherScreen(): JSX.Element {
               )
             })}
           </Flex>
-          <Popover offset={-spacing.spacing4} placement="top-start">
+          <Popover
+            offset={-spacing.spacing4}
+            placement="top-start"
+            open={isAddWalletMenuOpen}
+            onOpenChange={setIsAddWalletMenuOpen}
+          >
             <Popover.Trigger>
               <Flex
                 row
@@ -378,7 +399,6 @@ export function AccountSwitcherScreen(): JSX.Element {
               borderColor="$surface3"
               borderRadius="$rounded16"
               borderWidth="$spacing1"
-              enableRemoveScroll={true}
               enterStyle={{ y: -10, opacity: 0 }}
               exitStyle={{ y: -10, opacity: 0 }}
               p="$none"

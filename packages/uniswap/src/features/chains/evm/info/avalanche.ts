@@ -1,19 +1,14 @@
 import { Token } from '@uniswap/sdk-core'
 import { GraphQLApi, TradingApi } from '@universe/api'
+import { UniverseChainId, Platform } from '@universe/chains'
 import { SwapConfigKey } from '@universe/gating'
 import { AVALANCHE_LOGO } from 'ui/src/assets'
 import { config } from 'uniswap/src/config'
+import { ALL_APPS_CHAIN_SUPPORTED_APPS } from 'uniswap/src/features/chains/chainAppSupport'
 import { CHAIN_ID_TO_URL_PARAM } from 'uniswap/src/features/chains/chainUrlParam'
-import { DEFAULT_NATIVE_ADDRESS_LEGACY, getQuicknodeEndpointUrl } from 'uniswap/src/features/chains/evm/rpc'
+import { DEFAULT_NATIVE_ADDRESS_LEGACY, getUniRpcEndpointUrl } from 'uniswap/src/features/chains/evm/rpc'
 import { buildChainTokens } from 'uniswap/src/features/chains/evm/tokens'
-import {
-  GqlChainId,
-  NetworkLayer,
-  RPCType,
-  UniverseChainId,
-  UniverseChainInfo,
-} from 'uniswap/src/features/chains/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
+import { GqlChainId, NetworkLayer, RPCType, UniverseChainInfo } from 'uniswap/src/features/chains/types'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { buildUSDC, buildUSDT } from 'uniswap/src/features/tokens/stablecoin'
 import { avalanche } from 'wagmi/chains'
@@ -31,6 +26,7 @@ export const AVALANCHE_CHAIN_INFO = {
   ...avalanche,
   id: UniverseChainId.Avalanche,
   platform: Platform.EVM,
+  supportedApps: ALL_APPS_CHAIN_SUPPORTED_APPS,
   assetRepoNetworkName: 'avalanchec',
   backendChain: {
     chain: GraphQLApi.Chain.Avalanche as GqlChainId,
@@ -45,7 +41,6 @@ export const AVALANCHE_CHAIN_INFO = {
   explorer: {
     name: 'Snowtrace',
     url: 'https://snowtrace.io/',
-    apiURL: 'https://api.snowscan.xyz',
   },
   openseaName: 'avalanche',
   interfaceName: 'avalanche',
@@ -63,7 +58,7 @@ export const AVALANCHE_CHAIN_INFO = {
   blockTimeMs: 2000,
   pendingTransactionsRetryOptions: undefined,
   rpcUrls: {
-    [RPCType.Public]: { http: [getQuicknodeEndpointUrl(UniverseChainId.Avalanche)] },
+    [RPCType.Public]: { http: [getUniRpcEndpointUrl(UniverseChainId.Avalanche)] },
     [RPCType.Default]: { http: ['https://api.avax.network/ext/bc/C/rpc'] },
     [RPCType.Interface]: { http: [`https://avalanche-mainnet.infura.io/v3/${config.infuraKey}`] },
   },

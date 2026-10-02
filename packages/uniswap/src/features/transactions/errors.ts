@@ -1,11 +1,11 @@
-import { datadogRum } from '@datadog/browser-rum'
 import { FetchError, is401Error } from '@universe/api'
-import { AppTFunction } from 'ui/src/i18n/types'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { isWebApp } from '@universe/environment'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
+import { reportFingerprintError } from 'uniswap/src/features/transactions/reportFingerprintError'
 import { TokenApprovalTransactionStep } from 'uniswap/src/features/transactions/steps/approve'
 import { TokenRevocationTransactionStep } from 'uniswap/src/features/transactions/steps/revoke'
 import { TransactionStep, TransactionStepType } from 'uniswap/src/features/transactions/steps/types'
-import { isWebApp } from 'utilities/src/platform'
+import { AppTFunction } from 'utilities/src/i18n/types'
 
 /** Superclass used to differentiate categorized/known transaction errors from generic/unknown errors. */
 export abstract class TransactionError extends Error {}
@@ -15,6 +15,17 @@ export class UnexpectedTransactionStateError extends TransactionError {
   constructor(message: string) {
     super(message)
     this.name = 'UnexpectedTransactionStateError'
+  }
+}
+
+/**
+ * Thrown when a sponsored approval was attempted (account capable) but sponsorship was not granted or the request
+ * errored. We error out rather than silently downgrading to a user-paid approval — no surprise charges.
+ */
+export class SponsoredApprovalRejectedError extends TransactionError {
+  constructor(reason?: string) {
+    super(reason ?? 'Sponsored approval was not granted')
+    this.name = 'SponsoredApprovalRejectedError'
   }
 }
 
@@ -80,14 +91,7 @@ export class TransactionStepFailedError extends TransactionError {
       }
     } catch (e) {
       if (isWebApp) {
-        datadogRum.addAction('Transaction Action', {
-          message: `problem determining fingerprint for ${this.step.type}`,
-          level: 'info',
-          step: this.step.type,
-          data: {
-            errorMessage: e instanceof Error ? e.message : undefined,
-          },
-        })
+        reportFingerprintError({ stepType: this.step.type, error: e })
       }
     }
 
@@ -202,7 +206,7 @@ function getJupiterExecuteErrorContent(
   const errorContent = {
     title: t('common.swap.failed'),
     message: t('error.jupiterApi.execute.default.title'),
-    supportArticleURL: uniswapUrls.helpArticleUrls.jupiterApiError,
+    supportArticleURL: UniswapHelpUrls.articles.jupiterApiError,
   }
 
   switch (code) {
@@ -256,7 +260,7 @@ function getStepSpecificErrorContent(
       return {
         title: t('common.wrap.failed'),
         message: t('token.wrap.fail.message'),
-        supportArticleURL: uniswapUrls.helpArticleUrls.wethExplainer,
+        supportArticleURL: UniswapHelpUrls.articles.wethExplainer,
       }
     case TransactionStepType.SwapTransaction:
     case TransactionStepType.SwapTransactionAsync:
@@ -272,15 +276,15 @@ function getStepSpecificErrorContent(
         return {
           title: t('common.swap.failed'),
           message: error.originalError.message,
-          supportArticleURL: uniswapUrls.rigoblockDiscordUrl,
+          supportArticleURL: UniswapHelpUrls.rigoblockDiscordUrl,
         }
       }
       return {
         title: t('common.swap.failed'),
         message: error.isPlanStep ? t('swap.fail.message.plan') : t('swap.fail.message'),
-        supportArticleURL: uniswapUrls.rigoblockDiscordUrl,
+        supportArticleURL: UniswapHelpUrls.rigoblockDiscordUrl,
       }
-    case TransactionStepType.SwapTransactionBatched: {
+    case TransactionStepType.SwapTransactionWalletCall: {
       // Only show batched-specific retry UI if the first step failed;
       // Handles scenarios where plan cannot disable one-click swap beyond first step.
       const shouldDisableOneClickSwap = !error.stepIndex || error.stepIndex === 0
@@ -290,14 +294,14 @@ function getStepSpecificErrorContent(
           title: t('swap.fail.batched.title'),
           buttonText: t('swap.fail.batched.retry'),
           message: t('swap.fail.batched'),
-          supportArticleURL: uniswapUrls.rigoblockDiscordUrl,
+          supportArticleURL: UniswapHelpUrls.rigoblockDiscordUrl,
         }
       }
       // Fall through to generic swap error
       return {
         title: t('common.swap.failed'),
         message: error.isPlanStep ? t('swap.fail.message.plan') : t('swap.fail.message'),
-        supportArticleURL: uniswapUrls.rigoblockDiscordUrl,
+        supportArticleURL: UniswapHelpUrls.rigoblockDiscordUrl,
       }
     }
     case TransactionStepType.UniswapXSignature:
@@ -306,38 +310,38 @@ function getStepSpecificErrorContent(
         return {
           title: t('common.swap.failed'),
           message: t('swap.fail.uniswapX'),
-          supportArticleURL: uniswapUrls.helpArticleUrls.uniswapXFailure,
+          supportArticleURL: UniswapHelpUrls.articles.uniswapXFailure,
         }
       }
       return {
         title: t('common.swap.failed'),
         message: t('swap.fail.message'),
-        supportArticleURL: uniswapUrls.helpArticleUrls.uniswapXFailure,
+        supportArticleURL: UniswapHelpUrls.articles.uniswapXFailure,
       }
     case TransactionStepType.Permit2Signature:
       return {
         title: t('permit.approval.fail'),
         message: t('permit.approval.fail.message'),
-        supportArticleURL: uniswapUrls.helpArticleUrls.approvalsExplainer,
+        supportArticleURL: UniswapHelpUrls.articles.approvalsExplainer,
       }
     case TransactionStepType.TokenApprovalTransaction:
       if (error instanceof ApprovalEditedInWalletError) {
         return {
           title: t('error.tokenApprovalEdited'),
           message: t('error.tokenApprovalEdited.message'),
-          supportArticleURL: uniswapUrls.helpArticleUrls.approvalsExplainer,
+          supportArticleURL: UniswapHelpUrls.articles.approvalsExplainer,
         }
       }
       return {
         title: t('error.tokenApproval'),
         message: t('error.tokenApproval.message'),
-        supportArticleURL: uniswapUrls.helpArticleUrls.approvalsExplainer,
+        supportArticleURL: UniswapHelpUrls.articles.approvalsExplainer,
       }
     case TransactionStepType.TokenRevocationTransaction:
       return {
         title: t('common.revoke.approval.failed'),
         message: t('revoke.failed.message'),
-        supportArticleURL: uniswapUrls.helpArticleUrls.revokeExplainer,
+        supportArticleURL: UniswapHelpUrls.articles.revokeExplainer,
       }
     default:
       return {

@@ -1,6 +1,6 @@
+import { UniverseChainId } from '@universe/chains'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { useSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 
 export function useV4SwapEnabled(chainId?: number): boolean {
   const supportedChainId = useSupportedChainId(chainId)

@@ -1,10 +1,16 @@
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { SynchronizedHeartbeatsConfigKey } from '@universe/gating'
+import { Flex } from '@universe/mycelium'
+import { Coin } from '@universe/mycelium/icons/Coin'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
+import { TestID } from '@universe/test'
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
-import { Flex, RemoveScroll, Text, useMedia } from 'ui/src'
+import { RemoveScroll } from 'ui/src'
+import { BaseCard } from 'uniswap/src/components/BaseCard/BaseCard'
 import { TokensListEmptyState } from 'uniswap/src/components/tokens/TokensListEmptyState'
-import { useGetWalletTokensProfitLossQuery } from 'uniswap/src/data/rest/getWalletTokensProfitLoss'
+import { PortfolioBalancePart } from 'uniswap/src/data/apiClients/dataApiService/balances/getWalletBalances/getWalletBalances'
+import { useGetWalletTokensProfitLossQuery } from 'uniswap/src/data/apiClients/dataApiService/performance/getWalletTokensProfitLoss'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { getChainLabel } from 'uniswap/src/features/chains/utils'
 import { useRestPortfolioValueModifier } from 'uniswap/src/features/dataApi/balances/balancesRest'
@@ -12,32 +18,28 @@ import { PortfolioBalance } from 'uniswap/src/features/portfolio/PortfolioBalanc
 import { ElementName, InterfacePageName, SectionName, UniswapEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { parseChainFromTokenSearchQuery } from 'uniswap/src/utils/search/parseChainFromTokenSearchQuery'
+import { useIsSynchronizedHeartbeatEnabled } from '~/lib/hooks/useHeartbeatCoordinator'
+import { PortfolioBalanceCountIndicator } from '~/pages/Portfolio/components/PortfolioBalanceCountIndicator'
 import { SearchInput } from '~/pages/Portfolio/components/SearchInput'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
+import { usePortfolioHeartbeatEnabled } from '~/pages/Portfolio/hooks/usePortfolioHeartbeatCoordinator'
+import { useShowDemoView } from '~/pages/Portfolio/hooks/useShowDemoView'
 import { useTransformTokenTableData } from '~/pages/Portfolio/Tokens/hooks/useTransformTokenTableData'
 import { TokensAllocationChart } from '~/pages/Portfolio/Tokens/Table/TokensAllocationChart'
 import { TokensTable } from '~/pages/Portfolio/Tokens/Table/TokensTable'
 import { filterTokensBySearch } from '~/pages/Portfolio/Tokens/utils/filterTokensBySearch'
+import { PortfolioTab } from '~/pages/Portfolio/types'
+
+// Disabled until polished in future projects
+const SHOW_TOKEN_ALLOCATION_CHART = false
 
 const TokenCountIndicator = memo(({ count }: { count: number }) => {
   const { t } = useTranslation()
 
   return (
-    <Flex row alignItems="center">
-      <Flex
-        borderRadius="$roundedFull"
-        backgroundColor="$neutral2"
-        width="$spacing4"
-        height="$spacing4"
-        mx="$spacing8"
-      />
-      <Text variant="body3" color="$neutral2">
-        {t('portfolio.tokens.balance.totalTokens', { numTokens: count, count })}
-      </Text>
-    </Flex>
+    <PortfolioBalanceCountIndicator label={t('portfolio.tokens.balance.totalTokens', { numTokens: count, count })} />
   )
 })
 
@@ -48,11 +50,14 @@ export const PortfolioTokens = memo(function PortfolioTokens() {
   const media = useMedia()
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const isSynchronizedHeartbeatsEnabled = useIsSynchronizedHeartbeatEnabled(
+    SynchronizedHeartbeatsConfigKey.PortfolioPollIntervalSeconds,
+    usePortfolioHeartbeatEnabled({ tab: PortfolioTab.Tokens }),
+  )
   const [search, setSearch] = useState('')
   const { chains: enabledChains } = useEnabledChains()
   const { chainId: urlChainId, isExternalWallet } = usePortfolioRoutes()
-  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
-  const isProfitLossEnabled = useFeatureFlag(FeatureFlags.ProfitLoss)
+  const showDemoView = useShowDemoView()
 
   const modifier = useRestPortfolioValueModifier(portfolioAddresses.evmAddress ?? portfolioAddresses.svmAddress)
 
@@ -64,15 +69,18 @@ export const PortfolioTokens = memo(function PortfolioTokens() {
   // Use URL chain ID as primary filter, search chain filter as fallback
   const effectiveChainId = urlChainId || chainFilter
 
+  // Multichain PnL responses use `multichainTokenProfitLoss` / `chainBreakdown`. With a single-network
+  // filter, the API often omits that shape; request flat `tokenProfitLosses` instead (multichain: false).
+  const requestMultichainPnlShape = effectiveChainId === null
+
   const { data: tokenProfitLossData, isError: isProfitLossError } = useGetWalletTokensProfitLossQuery({
     input: {
       evmAddress: portfolioAddresses.evmAddress,
       svmAddress: portfolioAddresses.svmAddress,
       chainIds: effectiveChainId ? [effectiveChainId] : enabledChains,
       modifier,
-      multichain: multichainTokenUxEnabled || undefined,
+      multichain: requestMultichainPnlShape || undefined,
     },
-    enabled: isProfitLossEnabled,
   })
 
   // Get token data filtered by chain at API level
@@ -81,7 +89,6 @@ export const PortfolioTokens = memo(function PortfolioTokens() {
     hidden: hiddenTokenData,
     loading,
     refetching,
-    networkStatus,
     error,
   } = useTransformTokenTableData({
     chainIds: effectiveChainId ? [effectiveChainId] : undefined,
@@ -89,18 +96,28 @@ export const PortfolioTokens = memo(function PortfolioTokens() {
   })
 
   useEffect(() => {
-    if (!tokenData || !tokenProfitLossData?.tokenProfitLosses) {
+    if (!tokenData || !tokenProfitLossData) {
       return
     }
 
-    const pnlCount = tokenProfitLossData.tokenProfitLosses.length
-    const portfolioCount = tokenData.length
+    // Coverage is counted per token-per-chain, not per collapsed multichain row. A user holding ETH
+    // on 5 chains with PnL on 3 of them counts as 3/5, not 1/1
+    const portfolioCount = tokenData.reduce((sum, row) => sum + row.tokens.length, 0)
+
+    const flatPnlCount = tokenProfitLossData.tokenProfitLosses.length
+    const multichainPnlCount = tokenProfitLossData.multichainTokenProfitLoss.reduce(
+      (sum, group) =>
+        sum + (group.chainBreakdown.length > 0 ? group.chainBreakdown.length : group.aggregated?.token ? 1 : 0),
+      0,
+    )
+    const pnlCount = flatPnlCount + multichainPnlCount
     const coverageRate = portfolioCount > 0 ? Math.min(pnlCount / portfolioCount, 1) : 0
 
     sendAnalyticsEvent(UniswapEventName.PnlCoverageReport, {
       pnl_token_count: pnlCount,
       portfolio_token_count: portfolioCount,
       coverage_rate: coverageRate,
+      multichain_ux_enabled: true,
     })
   }, [tokenData, tokenProfitLossData])
 
@@ -115,7 +132,7 @@ export const PortfolioTokens = memo(function PortfolioTokens() {
 
   // Handler to clear chain filter and show all networks
   const handleShowAllNetworks = useCallback(() => {
-    navigate('/portfolio/tokens')
+    Promise.resolve(navigate('/portfolio/tokens')).catch(() => {})
   }, [navigate])
 
   // Custom empty state for chain filtering
@@ -140,7 +157,7 @@ export const PortfolioTokens = memo(function PortfolioTokens() {
   const hasFilteredTokens = (filteredTokenData?.length ?? 0) > 0 || filteredHiddenTokenData.length > 0
 
   return (
-    <RemoveScroll enabled={loading}>
+    <RemoveScroll enabled={loading && !refetching}>
       <Trace logImpression page={InterfacePageName.PortfolioTokensPage} properties={{ isExternal: isExternalWallet }}>
         <Flex flexDirection="column" gap="$spacing16">
           <Flex
@@ -156,6 +173,10 @@ export const PortfolioTokens = memo(function PortfolioTokens() {
                 svmOwner={portfolioAddresses.svmAddress}
                 endText={tokenData ? <TokenCountIndicator count={tokenData.length} /> : undefined}
                 chainIds={effectiveChainId ? [effectiveChainId] : undefined}
+                part={PortfolioBalancePart.Tokens}
+                // The heartbeat refetches balances on its tick — avoid a second overlapping schedule
+                disablePolling={isSynchronizedHeartbeatsEnabled}
+                disableRefresh={showDemoView}
               />
             </Trace>
             <Trace logFocus section={SectionName.PortfolioTokensTab} element={ElementName.PortfolioTokensSearch}>
@@ -171,7 +192,8 @@ export const PortfolioTokens = memo(function PortfolioTokens() {
 
           {hasTokens || loading ? (
             <>
-              {multichainTokenUxEnabled && (
+              {/* oxlint-disable-next-line typescript/no-unnecessary-condition */}
+              {SHOW_TOKEN_ALLOCATION_CHART && (
                 <Trace section={SectionName.PortfolioTokensTab} element={ElementName.TokensAllocationChart}>
                   <TokensAllocationChart tokenData={tokenData || []} />
                 </Trace>
@@ -183,15 +205,18 @@ export const PortfolioTokens = memo(function PortfolioTokens() {
                     hidden={filteredHiddenTokenData}
                     loading={loading && !refetching}
                     refetching={refetching}
-                    networkStatus={networkStatus}
                     error={error}
                   />
                 </Trace>
               ) : (
-                <Flex centered py="$spacing48" data-testid={TestID.PortfolioTokensNoResults}>
-                  <Text variant="body1" color="$neutral2">
-                    {t('common.noResults')}
-                  </Text>
+                <Flex py="$spacing40">
+                  <BaseCard.EmptyState
+                    icon={<Coin size="$icon.64" color="$neutral3" />}
+                    description={t('portfolio.noResults.search.title')}
+                    buttonLabel={t('portfolio.noResults.search.clear')}
+                    dataTestId={TestID.PortfolioTokensNoResults}
+                    onPress={() => setSearch('')}
+                  />
                 </Flex>
               )}
             </>

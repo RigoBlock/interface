@@ -69,6 +69,11 @@ const getTransactionTitleTable = (): {
     [TransactionStatus.Success]: i18n.t('common.received'),
     [TransactionStatus.Failed]: i18n.t('transaction.status.receive.failed'),
   },
+  [TransactionType.Deposit]: {
+    [TransactionStatus.Pending]: i18n.t('transaction.status.deposit.pending'),
+    [TransactionStatus.Success]: i18n.t('transaction.status.deposit.success'),
+    [TransactionStatus.Failed]: i18n.t('transaction.status.deposit.failed'),
+  },
   [TransactionType.FiatPurchaseDeprecated]: {
     [TransactionStatus.Pending]: i18n.t('transaction.status.purchase.pending'),
     [TransactionStatus.Success]: i18n.t('common.purchased'),
@@ -199,6 +204,11 @@ const getTransactionTitleTable = (): {
     [TransactionStatus.Success]: i18n.t('transaction.status.swap.success'),
     [TransactionStatus.Failed]: i18n.t('common.swap.failed'),
   },
+  [TransactionType.UniswapXCancel]: {
+    [TransactionStatus.Pending]: i18n.t('transaction.status.limitCancel.pending'),
+    [TransactionStatus.Success]: i18n.t('transaction.status.limitCancel.success'),
+    [TransactionStatus.Failed]: i18n.t('transaction.status.limitCancel.failed'),
+  },
   [TransactionType.RemoveDelegation]: {
     [TransactionStatus.Pending]: i18n.t('transaction.status.removeDelegation.pending'),
     [TransactionStatus.Success]: i18n.t('transaction.status.removeDelegation.success'),
@@ -223,6 +233,11 @@ const getTransactionTitleTable = (): {
     [TransactionStatus.Pending]: i18n.t('transaction.status.withdrawBid.pending'),
     [TransactionStatus.Success]: i18n.t('transaction.status.withdrawBid.success'),
     [TransactionStatus.Failed]: i18n.t('transaction.status.withdrawBid.failed'),
+  },
+  [TransactionType.AuctionLaunch]: {
+    [TransactionStatus.Pending]: i18n.t('toucan.createAuction.transaction.pending'),
+    [TransactionStatus.Success]: i18n.t('toucan.createAuction.transaction.success'),
+    [TransactionStatus.Failed]: i18n.t('toucan.createAuction.transaction.failed'),
   },
   [TransactionType.Withdraw]: {
     [TransactionStatus.Pending]: i18n.t('transaction.status.withdraw.pending'),
@@ -297,6 +312,10 @@ export const getOrderTextTable = (): {
       getTitle: () => i18n.t('transaction.status.swap.canceled'),
       status: TransactionStatus.Failed,
     },
+    [TransactionStatus.FailedCancel]: {
+      getTitle: () => i18n.t('transaction.status.cancellation.failed'),
+      status: TransactionStatus.Failed,
+    },
   }
 }
 
@@ -325,6 +344,7 @@ export const getCancelledTransactionTitleTable = (): {
   [TransactionType.NFTTrade]: i18n.t('transaction.status.swap.canceled'),
   [TransactionType.NFTMint]: i18n.t('transaction.status.mint.canceled'),
   [TransactionType.Receive]: i18n.t('transaction.status.receive.canceled'),
+  [TransactionType.Deposit]: i18n.t('transaction.status.deposit.canceled'),
   [TransactionType.FiatPurchaseDeprecated]: i18n.t('transaction.status.purchase.canceled'),
   [TransactionType.LocalOnRamp]: i18n.t('transaction.status.onramp.canceled'),
   [TransactionType.LocalOffRamp]: i18n.t('transaction.status.offramp.canceled'),
@@ -336,10 +356,12 @@ export const getCancelledTransactionTitleTable = (): {
   [TransactionType.SendCalls]: i18n.t('transaction.status.send.canceled'),
   [TransactionType.CreatePosition]: i18n.t('pool.createdPosition.canceled'),
   [TransactionType.UniswapXOrder]: i18n.t('transaction.status.swap.canceled'),
+  [TransactionType.UniswapXCancel]: i18n.t('transaction.status.limitCancel.success'),
   [TransactionType.RemoveDelegation]: i18n.t('transaction.status.removeDelegation.canceled'),
   [TransactionType.AuctionBid]: i18n.t('transaction.status.submitBid.canceled'),
   [TransactionType.AuctionClaimed]: i18n.t('transaction.status.claim.canceled'),
   [TransactionType.AuctionExited]: i18n.t('transaction.status.withdrawBid.canceled'),
+  [TransactionType.AuctionLaunch]: i18n.t('toucan.createAuction.transaction.canceled'),
   [TransactionType.Withdraw]: i18n.t('transaction.status.withdraw.canceled'),
   [TransactionType.SetSpread]: i18n.t('Set spread canceled'),
   [TransactionType.SetLockup]: i18n.t('Set lockup canceled'),
@@ -443,6 +465,10 @@ export const getLimitOrderTextTable = (): {
   },
   [TransactionStatus.Canceled]: {
     getTitle: () => i18n.t('common.limit.canceled'),
+    status: TransactionStatus.Failed,
+  },
+  [TransactionStatus.FailedCancel]: {
+    getTitle: () => i18n.t('transaction.status.cancellation.failed'),
     status: TransactionStatus.Failed,
   },
 })

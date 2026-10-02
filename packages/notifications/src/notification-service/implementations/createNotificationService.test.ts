@@ -1,4 +1,4 @@
-import { type InAppNotification, OnClickAction } from '@universe/api'
+import { ContentStyle, type InAppNotification, OnClickAction, serializeNotificationExtra } from '@universe/api'
 import type { NotificationDataSource } from '@universe/notifications/src/notification-data-source/NotificationDataSource'
 import type { NotificationProcessor } from '@universe/notifications/src/notification-processor/NotificationProcessor'
 import type { NotificationRenderer } from '@universe/notifications/src/notification-renderer/NotificationRenderer'
@@ -11,15 +11,16 @@ import { sleep } from 'utilities/src/time/timing'
 import { describe, expect, it, vi } from 'vitest'
 
 describe('createNotificationService', () => {
-  const createMockNotification = (params: { name: string; timestamp: number; id?: string }): InAppNotification =>
-    ({
-      id: params.id ?? `${params.name}-id`,
-      notificationName: params.name,
-      timestamp: params.timestamp,
-      content: { style: 'CONTENT_STYLE_MODAL', title: `${params.name}-title` },
-      metaData: {},
-      userId: 'user-1',
-    }) as InAppNotification
+  const createMockNotification = (params: { name: string; id?: string }): InAppNotification => ({
+    id: params.id ?? `${params.name}-id`,
+    content: {
+      version: 0,
+      style: ContentStyle.MODAL,
+      title: `${params.name}-title`,
+      subtitle: '',
+      buttons: [],
+    },
+  })
 
   function createMockDataSource(): {
     dataSource: NotificationDataSource
@@ -103,23 +104,20 @@ describe('createNotificationService', () => {
   // Helper function to create a notification with specific button configuration
   function createNotificationWithButton(params: {
     id: string
-    timestamp: number
-    buttonLabel: string
+    buttonText: string
     buttonActions: OnClickAction[]
     buttonLink?: string
   }): InAppNotification {
     return {
       id: params.id,
-      notificationName: params.id,
-      timestamp: params.timestamp,
       content: {
-        style: 'CONTENT_STYLE_MODAL',
+        version: 0,
+        style: ContentStyle.MODAL,
         title: `${params.id}-title`,
         subtitle: '',
-        version: 0,
         buttons: [
           {
-            label: params.buttonLabel,
+            text: params.buttonText,
             onClick: {
               onClick: params.buttonActions,
               onClickLink: params.buttonLink,
@@ -127,30 +125,27 @@ describe('createNotificationService', () => {
           },
         ],
       },
-      metaData: {},
-      userId: 'user-1',
-    } as unknown as InAppNotification
+    }
   }
 
   // Helper function to create a notification with background onClick
   function createNotificationWithBackground(params: {
     id: string
-    timestamp: number
-    buttonLabel: string
+    buttonText: string
     buttonActions: OnClickAction[]
     backgroundActions: OnClickAction[]
     backgroundLink?: string
   }): InAppNotification {
     return {
       id: params.id,
-      notificationName: params.id,
-      timestamp: params.timestamp,
       content: {
-        style: 'CONTENT_STYLE_MODAL',
+        version: 0,
+        style: ContentStyle.MODAL,
         title: `${params.id}-title`,
+        subtitle: '',
         buttons: [
           {
-            label: params.buttonLabel,
+            text: params.buttonText,
             onClick: { onClick: params.buttonActions },
           },
         ],
@@ -161,9 +156,7 @@ describe('createNotificationService', () => {
           },
         },
       },
-      metaData: {},
-      userId: 'user-1',
-    } as unknown as InAppNotification
+    }
   }
 
   describe('initialization', () => {
@@ -229,8 +222,8 @@ describe('createNotificationService', () => {
       await system.initialize()
 
       const notifications = [
-        createMockNotification({ name: 'notif-1', timestamp: 1000, id: 'id-1' }),
-        createMockNotification({ name: 'notif-2', timestamp: 2000, id: 'id-2' }),
+        createMockNotification({ name: 'notif-1', id: 'id-1' }),
+        createMockNotification({ name: 'notif-2', id: 'id-2' }),
       ]
 
       triggerNotifications(notifications)
@@ -259,8 +252,8 @@ describe('createNotificationService', () => {
       await system.initialize()
 
       const notifications = [
-        createMockNotification({ name: 'notif-1', timestamp: 1000, id: 'id-1' }),
-        createMockNotification({ name: 'notif-2', timestamp: 2000, id: 'id-2' }),
+        createMockNotification({ name: 'notif-1', id: 'id-1' }),
+        createMockNotification({ name: 'notif-2', id: 'id-2' }),
       ]
 
       triggerNotifications(notifications)
@@ -270,7 +263,7 @@ describe('createNotificationService', () => {
 
       // Only notif-2 should be rendered (notif-1 was already processed)
       expect(getRenderedNotifications()).toHaveLength(1)
-      expect(getRenderedNotifications()[0].id).toBe('id-2')
+      expect(getRenderedNotifications()[0]?.id).toBe('id-2')
     })
 
     it('does not render notifications that cannot be rendered', async () => {
@@ -288,7 +281,7 @@ describe('createNotificationService', () => {
 
       await system.initialize()
 
-      const notifications = [createMockNotification({ name: 'notif-1', timestamp: 1000, id: 'id-1' })]
+      const notifications = [createMockNotification({ name: 'notif-1', id: 'id-1' })]
 
       triggerNotifications(notifications)
 
@@ -314,7 +307,7 @@ describe('createNotificationService', () => {
 
       await system.initialize()
 
-      const notifications = [createMockNotification({ name: 'notif-1', timestamp: 1000, id: 'id-1' })]
+      const notifications = [createMockNotification({ name: 'notif-1', id: 'id-1' })]
 
       // Trigger same notification twice
       triggerNotifications(notifications)
@@ -343,10 +336,10 @@ describe('createNotificationService', () => {
 
       await system.initialize()
 
-      trigger1([createMockNotification({ name: 'notif-1', timestamp: 1000, id: 'id-1' })])
+      trigger1([createMockNotification({ name: 'notif-1', id: 'id-1' })])
       await sleep(10)
 
-      trigger2([createMockNotification({ name: 'notif-2', timestamp: 2000, id: 'id-2' })])
+      trigger2([createMockNotification({ name: 'notif-2', id: 'id-2' })])
       await sleep(10)
 
       expect(getRenderedNotifications()).toHaveLength(2)
@@ -391,7 +384,7 @@ describe('createNotificationService', () => {
 
       await system.initialize()
 
-      const notifications = [createMockNotification({ name: 'notif-1', timestamp: 1000, id: 'id-1' })]
+      const notifications = [createMockNotification({ name: 'notif-1', id: 'id-1' })]
 
       triggerNotifications(notifications)
       await sleep(10)
@@ -455,7 +448,7 @@ describe('createNotificationService', () => {
 
       await system.initialize()
 
-      const notification = createMockNotification({ name: 'notif-1', timestamp: 1000, id: 'id-1' })
+      const notification = createMockNotification({ name: 'notif-1', id: 'id-1' })
 
       // Render notification
       triggerNotifications([notification])
@@ -490,7 +483,7 @@ describe('createNotificationService', () => {
 
       await system.initialize()
 
-      const notification = createMockNotification({ name: 'notif-1', timestamp: 1000, id: 'id-1' })
+      const notification = createMockNotification({ name: 'notif-1', id: 'id-1' })
       triggerNotifications([notification])
       await sleep(10)
 
@@ -527,7 +520,7 @@ describe('createNotificationService', () => {
 
       await system.initialize()
 
-      const notification = createMockNotification({ name: 'notif-1', timestamp: 1000, id: 'id-1' })
+      const notification = createMockNotification({ name: 'notif-1', id: 'id-1' })
 
       // First render
       triggerNotifications([notification])
@@ -623,9 +616,9 @@ describe('createNotificationService', () => {
       await system.initialize()
 
       const notifications = [
-        createMockNotification({ name: 'notif-1', timestamp: 1000, id: 'id-1' }),
-        createMockNotification({ name: 'notif-2', timestamp: 2000, id: 'id-2' }),
-        createMockNotification({ name: 'notif-3', timestamp: 3000, id: 'id-3' }),
+        createMockNotification({ name: 'notif-1', id: 'id-1' }),
+        createMockNotification({ name: 'notif-2', id: 'id-2' }),
+        createMockNotification({ name: 'notif-3', id: 'id-3' }),
       ]
 
       triggerNotifications(notifications)
@@ -692,7 +685,7 @@ describe('createNotificationService', () => {
 
       await system.initialize()
 
-      const notifications = [createMockNotification({ name: 'notif-1', timestamp: 1000, id: 'id-1' })]
+      const notifications = [createMockNotification({ name: 'notif-1', id: 'id-1' })]
 
       triggerNotifications(notifications)
       await sleep(10)
@@ -733,7 +726,7 @@ describe('createNotificationService', () => {
 
       await system.initialize()
 
-      const notification = createMockNotification({ name: 'notif-1', timestamp: 1000, id: 'id-1' })
+      const notification = createMockNotification({ name: 'notif-1', id: 'id-1' })
 
       // Source returns notification
       triggerNotifications([notification], 'source-a')
@@ -745,6 +738,42 @@ describe('createNotificationService', () => {
       // Source stops returning it
       triggerNotifications([], 'source-a')
       await sleep(10)
+
+      expect(getCleanupCallCount()).toBe(1)
+    })
+
+    it('keeps interaction-persistent notification rendered until it is dismissed', async () => {
+      const { dataSource, triggerNotifications } = createMockDataSource()
+      const { tracker } = createMockTracker()
+      const processor = createMockProcessor()
+      const { renderer, getCleanupCallCount } = createMockRenderer()
+
+      const system = createNotificationService({
+        dataSources: [dataSource],
+        tracker,
+        processor,
+        renderer,
+      })
+
+      await system.initialize()
+
+      const notification = createMockNotification({ name: 'persistent', id: 'persistent-id' })
+      if (!notification.content) {
+        throw new Error('Expected test notification content')
+      }
+      notification.content.extra = serializeNotificationExtra({ persistUntilInteraction: true })
+      notification.content.onDismissClick = { onClick: [OnClickAction.DISMISS] }
+
+      triggerNotifications([notification], 'source-a')
+      await sleep(10)
+
+      triggerNotifications([], 'source-a')
+      await sleep(10)
+
+      expect(getCleanupCallCount()).toBe(0)
+
+      system.onNotificationClick(notification.id, { type: 'dismiss' })
+      await sleep(0)
 
       expect(getCleanupCallCount()).toBe(1)
     })
@@ -765,8 +794,8 @@ describe('createNotificationService', () => {
 
       await system.initialize()
 
-      const notifA = createMockNotification({ name: 'notif-a', timestamp: 1000, id: 'id-a' })
-      const notifB = createMockNotification({ name: 'notif-b', timestamp: 2000, id: 'id-b' })
+      const notifA = createMockNotification({ name: 'notif-a', id: 'id-a' })
+      const notifB = createMockNotification({ name: 'notif-b', id: 'id-b' })
 
       // Each source returns its own notification
       trigger1([notifA], 'source-a')
@@ -803,7 +832,7 @@ describe('createNotificationService', () => {
 
       await system.initialize()
 
-      const notification = createMockNotification({ name: 'notif-1', timestamp: 1000, id: 'id-1' })
+      const notification = createMockNotification({ name: 'notif-1', id: 'id-1' })
 
       // Source returns notification but processor filters it out
       triggerNotifications([notification], 'source-a')
@@ -842,15 +871,15 @@ describe('createNotificationService', () => {
 
       await system.initialize()
 
-      const notif1 = createMockNotification({ name: 'notif-1', timestamp: 1000, id: 'id-1' })
-      const notif2 = createMockNotification({ name: 'notif-2', timestamp: 2000, id: 'id-2' })
+      const notif1 = createMockNotification({ name: 'notif-1', id: 'id-1' })
+      const notif2 = createMockNotification({ name: 'notif-2', id: 'id-2' })
 
       // Source returns notif-1
       triggerNotifications([notif1], 'source-a')
       await sleep(10)
 
       expect(getRenderedNotifications()).toHaveLength(1)
-      expect(getRenderedNotifications()[0].id).toBe('id-1')
+      expect(getRenderedNotifications()[0]?.id).toBe('id-1')
 
       // Source now returns notif-2 instead
       triggerNotifications([notif2], 'source-a')
@@ -859,7 +888,7 @@ describe('createNotificationService', () => {
       // notif-1 cleanup should have been called, notif-2 should be rendered
       expect(getCleanupCallCount()).toBe(1)
       expect(getRenderedNotifications()).toHaveLength(2)
-      expect(getRenderedNotifications()[1].id).toBe('id-2')
+      expect(getRenderedNotifications()[1]?.id).toBe('id-2')
     })
   })
 
@@ -871,23 +900,20 @@ describe('createNotificationService', () => {
       // Create chain: A → B → C
       const notificationC = createNotificationWithButton({
         id: 'notif-C',
-        timestamp: 3000,
-        buttonLabel: 'Dismiss',
+        buttonText: 'Dismiss',
         buttonActions: [OnClickAction.DISMISS],
       })
 
       const notificationB = createNotificationWithButton({
         id: 'notif-B',
-        timestamp: 2000,
-        buttonLabel: 'Show C',
+        buttonText: 'Show C',
         buttonActions: [OnClickAction.POPUP, OnClickAction.DISMISS],
         buttonLink: 'notif-C',
       })
 
       const notificationA = createNotificationWithButton({
         id: 'notif-A',
-        timestamp: 1000,
-        buttonLabel: 'Show B',
+        buttonText: 'Show B',
         buttonActions: [OnClickAction.POPUP, OnClickAction.ACK],
         buttonLink: 'notif-B',
       })
@@ -934,30 +960,26 @@ describe('createNotificationService', () => {
       // Create two independent chains: A → B and C → D
       const notificationD = createNotificationWithButton({
         id: 'notif-D',
-        timestamp: 4000,
-        buttonLabel: 'Dismiss',
+        buttonText: 'Dismiss',
         buttonActions: [OnClickAction.DISMISS],
       })
 
       const notificationC = createNotificationWithButton({
         id: 'notif-C',
-        timestamp: 3000,
-        buttonLabel: 'Show D',
+        buttonText: 'Show D',
         buttonActions: [OnClickAction.POPUP, OnClickAction.ACK],
         buttonLink: 'notif-D',
       })
 
       const notificationB = createNotificationWithButton({
         id: 'notif-B',
-        timestamp: 2000,
-        buttonLabel: 'Dismiss',
+        buttonText: 'Dismiss',
         buttonActions: [OnClickAction.DISMISS],
       })
 
       const notificationA = createNotificationWithButton({
         id: 'notif-A',
-        timestamp: 1000,
-        buttonLabel: 'Show B',
+        buttonText: 'Show B',
         buttonActions: [OnClickAction.POPUP, OnClickAction.ACK],
         buttonLink: 'notif-B',
       })
@@ -1003,15 +1025,13 @@ describe('createNotificationService', () => {
 
       const notificationB = createNotificationWithButton({
         id: 'notif-B',
-        timestamp: 2000,
-        buttonLabel: 'Dismiss',
+        buttonText: 'Dismiss',
         buttonActions: [OnClickAction.DISMISS],
       })
 
       const notificationA = createNotificationWithBackground({
         id: 'notif-A',
-        timestamp: 1000,
-        buttonLabel: 'Acknowledge',
+        buttonText: 'Acknowledge',
         buttonActions: [OnClickAction.ACK],
         backgroundActions: [OnClickAction.POPUP],
         backgroundLink: 'notif-B',
@@ -1055,16 +1075,14 @@ describe('createNotificationService', () => {
       // Create circular chain: A → B → A (pathological case)
       const notificationB = createNotificationWithButton({
         id: 'notif-B',
-        timestamp: 2000,
-        buttonLabel: 'Show A',
+        buttonText: 'Show A',
         buttonActions: [OnClickAction.POPUP, OnClickAction.DISMISS],
         buttonLink: 'notif-A',
       })
 
       const notificationA = createNotificationWithButton({
         id: 'notif-A',
-        timestamp: 1000,
-        buttonLabel: 'Show B',
+        buttonText: 'Show B',
         buttonActions: [OnClickAction.POPUP, OnClickAction.ACK],
         buttonLink: 'notif-B',
       })
@@ -1107,8 +1125,7 @@ describe('createNotificationService', () => {
       // Create notification A that references non-existent notification B via POPUP
       const notificationA = createNotificationWithButton({
         id: 'notif-A',
-        timestamp: 1000,
-        buttonLabel: 'Show B',
+        buttonText: 'Show B',
         buttonActions: [OnClickAction.POPUP, OnClickAction.ACK],
         buttonLink: 'notif-B-does-not-exist', // This notification doesn't exist
       })
@@ -1140,7 +1157,7 @@ describe('createNotificationService', () => {
       const trackedCalls = getTrackedCalls()
       // Should only track A, not the non-existent notification
       expect(trackedCalls).toHaveLength(1)
-      expect(trackedCalls[0].id).toBe('notif-A')
+      expect(trackedCalls[0]?.id).toBe('notif-A')
     })
 
     it('does not track non-existent downstream notifications referenced by background POPUP', async () => {
@@ -1150,8 +1167,7 @@ describe('createNotificationService', () => {
       // Create notification with background that references non-existent notification
       const notificationA = createNotificationWithBackground({
         id: 'notif-A',
-        timestamp: 1000,
-        buttonLabel: 'Acknowledge',
+        buttonText: 'Acknowledge',
         buttonActions: [OnClickAction.ACK],
         backgroundActions: [OnClickAction.POPUP],
         backgroundLink: 'notif-B-does-not-exist', // This notification doesn't exist
@@ -1184,7 +1200,7 @@ describe('createNotificationService', () => {
       const trackedCalls = getTrackedCalls()
       // Should only track A, not the non-existent notification
       expect(trackedCalls).toHaveLength(1)
-      expect(trackedCalls[0].id).toBe('notif-A')
+      expect(trackedCalls[0]?.id).toBe('notif-A')
     })
 
     it('does not track downstream notifications when notification is dismissed', async () => {
@@ -1193,15 +1209,13 @@ describe('createNotificationService', () => {
 
       const notificationB = createNotificationWithButton({
         id: 'notif-B',
-        timestamp: 2000,
-        buttonLabel: 'Dismiss',
+        buttonText: 'Dismiss',
         buttonActions: [OnClickAction.DISMISS],
       })
 
       const notificationA = createNotificationWithButton({
         id: 'notif-A',
-        timestamp: 1000,
-        buttonLabel: 'Show B',
+        buttonText: 'Show B',
         buttonActions: [OnClickAction.POPUP, OnClickAction.DISMISS],
         buttonLink: 'notif-B',
       })

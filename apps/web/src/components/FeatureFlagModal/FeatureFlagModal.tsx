@@ -1,6 +1,10 @@
-import type { DynamicConfigKeys } from '@universe/gating'
+import { clearComplianceOverrides } from '@universe/compliance'
+import { TRUSTED_CHROME_EXTENSION_IDS } from '@universe/environment'
+import type { DynamicConfigKeys, ExperimentProperties } from '@universe/gating'
 import {
   DynamicConfigs,
+  EmbeddedWalletOnboardingProperties,
+  Experiments,
   ExternallyConnectableExtensionConfigKey,
   FeatureFlags,
   getFeatureFlagName,
@@ -8,42 +12,78 @@ import {
   Layers,
   NetworkRequestsConfigKey,
   useDynamicConfigValue,
+  useExperimentValueWithExposureLoggingDisabled,
   useFeatureFlagWithExposureLoggingDisabled,
 } from '@universe/gating'
+import {
+  Button,
+  Flex,
+  type FlexCompatProps,
+  Input,
+  ModalCloseIcon,
+  Switch,
+  Text,
+  TouchableArea,
+  type TouchableAreaCompatProps,
+} from '@universe/mycelium'
 import type { PropsWithChildren, ReactNode } from 'react'
-import { memo, useMemo, useState } from 'react'
-import { Button, Flex, FlexProps, Input, ModalCloseIcon, styled, Switch, Text, TouchableArea } from 'ui/src'
+import { forwardRef, Fragment, memo, useMemo, useState } from 'react'
 import { Pin } from 'ui/src/components/icons/Pin'
+import { ComplianceOverrides } from 'uniswap/src/components/gating/ComplianceOverrides'
 import { useLayerValue } from 'uniswap/src/components/gating/Rows'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { TRUSTED_CHROME_EXTENSION_IDS } from 'utilities/src/environment/extensionId'
 import { useEvent } from 'utilities/src/react/hooks'
 import { FeatureFlagSelector } from '~/components/FeatureFlagModal/FeatureFlagSelector'
-import { buildFlagGroups } from '~/components/FeatureFlagModal/flagGroups'
-import { usePinnedExperiments, usePinnedFeatureFlags } from '~/dev/usePinnedFeatureFlags'
+import {
+  type ExtraItemDef,
+  buildFlagGroups,
+  EMBEDDED_WALLET_ONBOARDING_LABEL,
+  EXTENSION_ID_LABEL,
+  NETWORK_REQUESTS_LABEL,
+} from '~/components/FeatureFlagModal/flagGroups'
+import { usePinnedExperiments, usePinnedFeatureFlags, usePinnedFlagGroups } from '~/dev/usePinnedFeatureFlags'
 import { useModalState } from '~/hooks/useModalState'
 import { useExternallyConnectableExtensionId } from '~/pages/ExtensionPasskeyAuthPopUp/useExternallyConnectableExtensionId'
 import { EllipsisTamaguiStyle } from '~/theme/components/styles'
 
-const CenteredRowProps: FlexProps = {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  py: '$gap8',
-  maxWidth: '100%',
-  gap: '$gap4',
-}
-
-const CenteredRow = styled(Flex, CenteredRowProps)
-
-const TouchableCenteredRow = styled(TouchableArea, CenteredRowProps)
-
-const FlagInfo = styled(Flex, {
-  flexShrink: 1,
+const CenteredRow = forwardRef<HTMLDivElement, FlexCompatProps>(function CenteredRow(props, ref) {
+  return (
+    <Flex
+      ref={ref}
+      flexDirection="row"
+      justifyContent="space-between"
+      alignItems="center"
+      py="$gap8"
+      maxWidth="100%"
+      gap="$gap4"
+      {...props}
+    />
+  )
 })
 
-function fuzzyMatch(query: string, ...targets: string[]): boolean {
+const TouchableCenteredRow = forwardRef<HTMLElement, TouchableAreaCompatProps>(
+  function TouchableCenteredRow(props, ref) {
+    return (
+      <TouchableArea
+        ref={ref}
+        flexDirection="row"
+        justifyContent="space-between"
+        alignItems="center"
+        py="$gap8"
+        maxWidth="100%"
+        gap="$gap4"
+        {...props}
+      />
+    )
+  },
+)
+
+const FlagInfo = forwardRef<HTMLDivElement, FlexCompatProps>(function FlagInfo(props, ref) {
+  return <Flex ref={ref} flexShrink={1} {...props} />
+})
+
+function fuzzyMatch(query: string, ...targets: (string | undefined)[]): boolean {
   if (!query.trim()) {
     return true
   }
@@ -103,7 +143,7 @@ function PinnableRow({ isPinned, onPinPress, title, label, rightContent }: Pinna
     <TouchableCenteredRow group="item" onPress={onPinPress} gap="$gap8">
       <Flex
         alignSelf="center"
-        p="$padding4"
+        p="$spacing4"
         opacity={isPinned ? 1 : 0}
         $group-item-hover={{ opacity: isPinned ? 1 : 0.6 }}
       >
@@ -115,7 +155,7 @@ function PinnableRow({ isPinned, onPinPress, title, label, rightContent }: Pinna
 }
 
 interface FeatureFlagProps {
-  label: string
+  label?: string
   flag: FeatureFlags
 }
 
@@ -123,11 +163,30 @@ const FeatureFlagGroup = memo(function FeatureFlagGroup({
   name,
   children,
 }: PropsWithChildren<{ name: string }>): JSX.Element {
+  const { isPinned, pinGroup, unpinGroup } = usePinnedFlagGroups()
+  const pinned = isPinned(name)
+
+  const onPinPress = useEvent(() => {
+    if (pinned) {
+      unpinGroup(name)
+    } else {
+      pinGroup(name)
+    }
+  })
+
   return (
     <>
-      <CenteredRow key={name}>
+      <TouchableCenteredRow key={name} group="item" onPress={onPinPress} justifyContent="flex-start" gap="$gap8">
         <Text variant="body1">{name}</Text>
-      </CenteredRow>
+        <Flex
+          alignSelf="center"
+          pl="$spacing4"
+          opacity={pinned ? 1 : 0}
+          $group-item-hover={{ opacity: pinned ? 1 : 0.6 }}
+        >
+          <Pin size="$icon.16" color={pinned ? '$accent1' : '$neutral2'} />
+        </Flex>
+      </TouchableCenteredRow>
       {children}
     </>
   )
@@ -170,6 +229,35 @@ const FeatureFlagOption = memo(function FeatureFlagOption({ flag, label }: Featu
     />
   )
 })
+
+// Toggles a boolean experiment param: off mirrors the control group, on mirrors the test group.
+function ExperimentToggleOption<Exp extends keyof ExperimentProperties>({
+  experiment,
+  param,
+  label,
+}: {
+  experiment: Exp
+  param: ExperimentProperties[Exp]
+  label: string
+}): JSX.Element {
+  const enabled = useExperimentValueWithExposureLoggingDisabled({
+    experiment,
+    param,
+    defaultValue: false,
+  })
+
+  const onCheckedChange = useEvent((checked: boolean) => {
+    getOverrideAdapter().overrideExperiment(experiment, { [param]: checked })
+  })
+
+  return (
+    <GatingRowContent
+      title={experiment}
+      label={label}
+      rightContent={<GatingSwitch checked={enabled} onCheckedChange={onCheckedChange} />}
+    />
+  )
+}
 
 interface LayerOptionProps {
   layerName: Layers
@@ -239,13 +327,15 @@ const DynamicConfigDropdown = memo(function DynamicConfigDropdown<
   )
 })
 
-export default function FeatureFlagModal(): JSX.Element {
+export function FeatureFlagModal(): JSX.Element {
   const { isOpen, closeModal } = useModalState(ModalName.FeatureFlags)
   const externallyConnectableExtensionId = useExternallyConnectableExtensionId()
   const [searchQuery, setSearchQuery] = useState('')
+  const { pinnedGroups } = usePinnedFlagGroups()
 
   const removeAllOverrides = useEvent(() => {
     getOverrideAdapter().removeAllOverrides()
+    clearComplianceOverrides()
   })
 
   const handleReload = useEvent(() => {
@@ -264,20 +354,27 @@ export default function FeatureFlagModal(): JSX.Element {
             parser={(id: string) => id}
             config={DynamicConfigs.ExternallyConnectableExtension}
             configKey={ExternallyConnectableExtensionConfigKey.ExtensionId}
-            label="Which Extension the web app will communicate with"
+            label={EXTENSION_ID_LABEL}
           />
         ),
         networkRequestsConfig: <NetworkRequestsConfig />,
-        layerOptions: (
+        experimentOptions: (
           <Flex ml="$padding8" gap="$gap8">
-            <FeatureFlagGroup name={Layers.ExplorePage}>
-              <LayerOption layerName={Layers.ExplorePage} />
-            </FeatureFlagGroup>
-            <FeatureFlagGroup name={Layers.SwapPage}>
-              <LayerOption layerName={Layers.SwapPage} />
+            <ExperimentToggleOption
+              experiment={Experiments.EmbeddedWalletOnboarding}
+              param={EmbeddedWalletOnboardingProperties.NewFlowEnabled}
+              label={EMBEDDED_WALLET_ONBOARDING_LABEL}
+            />
+          </Flex>
+        ),
+        layerOption: (layerName) => (
+          <Flex ml="$padding8" gap="$gap8">
+            <FeatureFlagGroup name={layerName}>
+              <LayerOption layerName={layerName} />
             </FeatureFlagGroup>
           </Flex>
         ),
+        complianceOverrides: <ComplianceOverrides />,
       }),
     [externallyConnectableExtensionId],
   )
@@ -319,31 +416,41 @@ export default function FeatureFlagModal(): JSX.Element {
           {(() => {
             let hasResults = false
 
-            const groups = flagGroups.map((group) => {
+            const pinned = pinnedGroups
+              .map((name) => flagGroups.find((g) => g.name === name))
+              .filter((g): g is (typeof flagGroups)[number] => g !== undefined)
+            const rest = flagGroups.filter((g) => !pinnedGroups.includes(g.name))
+            const sortedFlagGroups = [...pinned, ...rest]
+
+            const groups = sortedFlagGroups.map((group) => {
+              const extraItems: readonly ExtraItemDef[] = group.extraItems ?? []
               const matchingFlags = isSearching
                 ? group.flags.filter(({ flag, label }) => fuzzyMatch(searchQuery, getFeatureFlagName(flag), label))
                 : group.flags
+              const matchingExtraItems = isSearching
+                ? extraItems.filter(({ name, searchText }) => fuzzyMatch(searchQuery, name, searchText))
+                : extraItems
               const groupNameMatches = isSearching && fuzzyMatch(searchQuery, group.name)
 
-              if (matchingFlags.length === 0 && !groupNameMatches) {
-                // Groups with extra content (e.g. Network Requests, Layers) show when not searching,
-                // but hide during search if their name doesn't match
-                if (isSearching || !group.extra) {
-                  return null
-                }
+              if (matchingFlags.length === 0 && matchingExtraItems.length === 0 && !groupNameMatches) {
+                return null
               }
 
               hasResults = true
 
-              // If specific flags match, show only those. If only the group name matches, show all flags in the group.
-              const flagsToShow = matchingFlags.length > 0 ? matchingFlags : group.flags
+              // If specific rows match, show only those. If only the group name matches, show the whole group.
+              const anyRowMatches = matchingFlags.length > 0 || matchingExtraItems.length > 0
+              const flagsToShow = anyRowMatches ? matchingFlags : group.flags
+              const extraItemsToShow = anyRowMatches ? matchingExtraItems : extraItems
 
               return (
                 <FeatureFlagGroup key={group.name} name={group.name}>
                   {flagsToShow.map(({ flag, label }) => (
                     <FeatureFlagOption key={flag} flag={flag} label={label} />
                   ))}
-                  {group.extra}
+                  {extraItemsToShow.map(({ name, node }) => (
+                    <Fragment key={name}>{node}</Fragment>
+                  ))}
                 </FeatureFlagGroup>
               )
             })
@@ -351,6 +458,7 @@ export default function FeatureFlagModal(): JSX.Element {
             return (
               <>
                 {groups}
+                {/* oxlint-disable-next-line typescript/no-unnecessary-condition */}
                 {isSearching && !hasResults && (
                   <Text variant="body2" color="$neutral3" py="$gap16" textAlign="center">
                     No flags found
@@ -368,6 +476,8 @@ export default function FeatureFlagModal(): JSX.Element {
   )
 }
 
+export default FeatureFlagModal
+
 function NetworkRequestsConfig() {
   const currentValue = useDynamicConfigValue({
     config: DynamicConfigs.NetworkRequests,
@@ -382,7 +492,7 @@ function NetworkRequestsConfig() {
       parser={Number.parseInt}
       config={DynamicConfigs.NetworkRequests}
       configKey={NetworkRequestsConfigKey.BalanceMaxRefetchAttempts}
-      label="Max refetch attempts"
+      label={NETWORK_REQUESTS_LABEL}
     />
   )
 }

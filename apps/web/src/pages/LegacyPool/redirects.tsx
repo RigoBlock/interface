@@ -1,30 +1,17 @@
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
-import { lazy, Suspense } from 'react'
 import { Navigate, useParams, useSearchParams } from 'react-router'
-import { Loader } from 'ui/src/loading/Loader'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { toGraphQLChain } from 'uniswap/src/features/chains/utils'
 import { currencyIdToAddress, currencyIdToChain } from 'uniswap/src/utils/currencyId'
-import { getCurrencyWithWrap } from '~/components/Liquidity/utils/currency'
-import { searchParamToBackendName } from '~/features/params/chainParams'
+import { getCurrencyWithWrap } from '~/features/Liquidity/utils/currency'
 import { useCurrency } from '~/hooks/Tokens'
 import { useAccount } from '~/hooks/useAccount'
 import { useV2Pair } from '~/hooks/useV2Pairs'
-
-const PoolFinder = lazy(() => import('~/pages/PoolFinder'))
+import { searchParamToBackendName } from '~/utils/params/chainParams'
 
 // /pool
 export function LegacyPoolRedirects() {
   return <Navigate to="/positions" replace />
-}
-
-// /pool/v2/find
-export function PoolFinderRedirects() {
-  return (
-    <Suspense fallback={<Loader.Box />}>
-      <PoolFinder />
-    </Suspense>
-  )
 }
 
 // /remove/v2/:currencyIdA/:currencyIdB

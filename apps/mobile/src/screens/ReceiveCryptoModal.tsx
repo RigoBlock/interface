@@ -1,11 +1,13 @@
 import { SharedEventName } from '@uniswap/analytics-events'
+import { Flex, Separator, Text, TouchableArea } from '@universe/mycelium'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
+import { TestID } from '@universe/test'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { AppStackScreenProp } from 'src/app/navigation/types'
 import { useReactNavigationModal } from 'src/components/modals/useReactNavigationModal'
 import { ServiceProviderSelector } from 'src/features/fiatOnRamp/ExchangeTransferServiceProviderSelector'
 import { openModal } from 'src/features/modals/modalSlice'
-import { Flex, Separator, Text, TouchableArea, useSporeColors } from 'ui/src'
 import { CopySheets, QrCode } from 'ui/src/components/icons'
 import { AddressDisplay } from 'uniswap/src/components/accounts/AddressDisplay'
 import { Modal } from 'uniswap/src/components/modals/Modal'
@@ -14,7 +16,7 @@ import { pushNotification } from 'uniswap/src/features/notifications/slice/slice
 import { AppNotificationType, CopyNotificationType } from 'uniswap/src/features/notifications/slice/types'
 import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
+import { useBottomScreenGap } from 'uniswap/src/hooks/useBottomScreenGap'
 import { setClipboard } from 'utilities/src/clipboard/clipboard'
 import { useActiveAccountAddressWithThrow } from 'wallet/src/features/wallet/hooks'
 
@@ -98,6 +100,7 @@ function AccountCardItem({ onClose }: { onClose: () => void }): JSX.Element {
 export function ReceiveCryptoModal({ route }: AppStackScreenProp<typeof ModalName.ReceiveCryptoModal>): JSX.Element {
   const colors = useSporeColors()
   const { t } = useTranslation()
+  const { bottomScreenExtraGap } = useBottomScreenGap()
   const { serviceProviders } = route.params
   const { onClose } = useReactNavigationModal()
 
@@ -110,7 +113,7 @@ export function ReceiveCryptoModal({ route }: AppStackScreenProp<typeof ModalNam
       name={ModalName.ReceiveCryptoModal}
       onClose={onClose}
     >
-      <Flex grow gap="$spacing12" mb="$spacing16" px="$spacing16">
+      <Flex grow gap="$spacing12" mb={bottomScreenExtraGap} px="$spacing16">
         <Flex gap="$spacing4" p="$spacing8">
           <Text color="$neutral1" mt="$spacing2" textAlign="center" variant="subheading1">
             {t('home.upsell.receive.title')}

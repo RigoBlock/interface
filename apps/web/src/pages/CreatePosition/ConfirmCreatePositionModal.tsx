@@ -1,12 +1,13 @@
+import { Flex, Text } from '@universe/mycelium'
+import { AlertTriangleFilled } from '@universe/mycelium/icons/AlertTriangleFilled'
 import { useTranslation } from 'react-i18next'
-import { Button, Flex, Text } from 'ui/src'
-import { AlertTriangleFilled } from 'ui/src/components/icons/AlertTriangleFilled'
+import { Button } from 'ui/src'
 import { GetHelpHeader } from 'uniswap/src/components/dialog/GetHelpHeader'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { PriceDifference } from '~/components/Liquidity/Create/types'
+import { PriceDifference } from '~/features/Liquidity/Create/types'
 
-export default function ConfirmCreatePositionModal({
+export function ConfirmCreatePositionModal({
   isOpen,
   onClose,
   onContinue,

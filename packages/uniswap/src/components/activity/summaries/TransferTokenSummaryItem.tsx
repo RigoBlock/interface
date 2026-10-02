@@ -1,6 +1,6 @@
+import { ElementAfterText } from '@universe/mycelium'
 import { memo, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ElementAfterText } from 'ui/src'
 import { Unitag } from 'ui/src/components/icons/Unitag'
 import { TransactionSummaryLayout } from 'uniswap/src/components/activity/summaries/TransactionSummaryLayout'
 import { SummaryItemProps } from 'uniswap/src/components/activity/types'

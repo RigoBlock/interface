@@ -1,5 +1,5 @@
+import { UniverseChainId } from '@universe/chains'
 import { AuthTrigger } from 'uniswap/src/features/auth/types'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { TransactionDetails } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { TransactionState } from 'uniswap/src/features/transactions/types/transactionState'
 

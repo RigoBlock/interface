@@ -1,8 +1,8 @@
-import { useCallback, useState } from 'react'
+import { Button, Flex, iconSizes, Text } from '@universe/mycelium'
+import { useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Flex, Text } from 'ui/src'
-import { iconSizes } from 'ui/src/theme'
-import { TextInput } from 'uniswap/src/components/input/TextInput'
+import { useWalletLabelField } from 'src/app/features/accounts/useWalletLabelField'
+import { WalletLabelInput } from 'src/app/features/accounts/WalletLabelInput'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { AccountIcon } from 'uniswap/src/features/accounts/AccountIcon'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
@@ -24,15 +24,20 @@ export function CreateWalletModal({
   onConfirm,
 }: CreateWalletModalProps): JSX.Element | null {
   const { t } = useTranslation()
-
-  const [inputText, setInputText] = useState<string>('')
+  const { value, setValue, error } = useWalletLabelField()
 
   const nextDerivationIndex = pendingWallet?.derivationIndex
   const onboardingAccountAddress = pendingWallet?.address
 
+  useEffect(() => {
+    if (isOpen) {
+      setValue('')
+    }
+  }, [isOpen, setValue])
+
   const onPressConfirm = useCallback(() => {
-    onConfirm(inputText)
-  }, [inputText, onConfirm])
+    onConfirm(value)
+  }, [onConfirm, value])
 
   const placeholderText = nextDerivationIndex
     ? t('account.wallet.create.placeholder', { index: nextDerivationIndex + 1 })
@@ -43,18 +48,7 @@ export function CreateWalletModal({
       <Flex centered fill borderRadius="$rounded16" gap="$spacing24" mt="$spacing16">
         <Flex centered gap="$spacing12" width="100%">
           {onboardingAccountAddress && <AccountIcon address={onboardingAccountAddress} size={iconSizes.icon48} />}
-          <Flex borderColor="$surface3" borderRadius="$rounded16" borderWidth="$spacing1" width="100%">
-            <TextInput
-              autoFocus
-              borderRadius="$rounded16"
-              placeholder={placeholderText}
-              py="$spacing12"
-              textAlign="center"
-              value={inputText}
-              width="100%"
-              onChangeText={setInputText}
-            />
-          </Flex>
+          <WalletLabelInput value={value} error={error} placeholder={placeholderText} onChangeText={setValue} />
           {onboardingAccountAddress && (
             <Text color="$neutral3" variant="body3">
               {shortenAddress({ address: onboardingAccountAddress })}
@@ -66,7 +60,13 @@ export function CreateWalletModal({
           <Button size="small" emphasis="secondary" onPress={onCancel}>
             {t('common.button.cancel')}
           </Button>
-          <Button variant="branded" emphasis="secondary" size="small" onPress={onPressConfirm}>
+          <Button
+            variant="branded"
+            emphasis="secondary"
+            size="small"
+            disabled={Boolean(error)}
+            onPress={onPressConfirm}
+          >
             {t('common.button.create')}
           </Button>
         </Flex>

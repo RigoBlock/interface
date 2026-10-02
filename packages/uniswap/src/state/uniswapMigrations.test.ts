@@ -6,16 +6,18 @@
  *
  * For tests of the full migration chain, see uniswapMigrationTests.ts.
  */
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { SearchHistoryResultType } from 'uniswap/src/features/search/SearchHistoryResult'
 import { TokenProtectionWarning } from 'uniswap/src/features/tokens/warnings/types'
 import { PreV55SearchResultType } from 'uniswap/src/state/oldTypes'
 import {
   addActivityVisibility,
   addDismissedBridgedAndCompatibleWarnings,
+  addEnableCustomGasFeeEntry,
   migrateDismissedTokenWarnings,
   migrateSearchHistory,
   removeThaiBahtFromFiatCurrency,
+  removeUniswapWrapped2025BehaviorHistory,
   unchecksumDismissedTokenWarningKeys,
 } from 'uniswap/src/state/uniswapMigrations'
 import { createThrowingProxy } from 'utilities/src/test/utils'
@@ -418,5 +420,61 @@ describe('migrateDismissedTokenWarnings', () => {
     const result = migrateDismissedTokenWarnings(state)
     expect(result.tokens.dismissedTokenWarnings).toEqual({})
     expect(result.otherData).toBe('preserved')
+  })
+})
+
+// Mobile: 98
+// Extension: 32
+// Web: 62
+describe('addEnableCustomGasFeeEntry', () => {
+  it('initializes userSettings.enableCustomGasFeeEntry to false', () => {
+    const state = { userSettings: { hideSmallBalances: true }, otherData: 'preserved' }
+    const result = addEnableCustomGasFeeEntry(state)
+    expect(result.userSettings.enableCustomGasFeeEntry).toBe(false)
+    expect(result.userSettings.hideSmallBalances).toBe(true)
+    expect(result.otherData).toBe('preserved')
+  })
+
+  it('overwrites a preexisting enableCustomGasFeeEntry value', () => {
+    const state = { userSettings: { enableCustomGasFeeEntry: true } }
+    const result = addEnableCustomGasFeeEntry(state)
+    expect(result.userSettings.enableCustomGasFeeEntry).toBe(false)
+  })
+
+  it('returns state unchanged when userSettings is missing', () => {
+    const state = { otherData: 'preserved' }
+    const result = addEnableCustomGasFeeEntry(state)
+    expect(result).toBe(state)
+  })
+})
+
+// Mobile: 99
+// Extension: 33
+// Web: 63
+describe('removeUniswapWrapped2025BehaviorHistory', () => {
+  it('removes hasDismissedUniswapWrapped2025Banner from uniswapBehaviorHistory', () => {
+    const state = {
+      uniswapBehaviorHistory: {
+        hasDismissedUniswapWrapped2025Banner: true,
+        hasViewedBridgingBanner: true,
+      },
+      otherData: 'preserved',
+    }
+    const result = removeUniswapWrapped2025BehaviorHistory(state)
+    expect(result.uniswapBehaviorHistory).not.toHaveProperty('hasDismissedUniswapWrapped2025Banner')
+    expect(result.uniswapBehaviorHistory.hasViewedBridgingBanner).toBe(true)
+    expect(result.otherData).toBe('preserved')
+  })
+
+  it('handles uniswapBehaviorHistory without the field', () => {
+    const state = { uniswapBehaviorHistory: { hasViewedBridgingBanner: false } }
+    const result = removeUniswapWrapped2025BehaviorHistory(state)
+    expect(result.uniswapBehaviorHistory).toEqual({ hasViewedBridgingBanner: false })
+  })
+
+  it('returns state unchanged when uniswapBehaviorHistory is missing', () => {
+    const state = { otherData: 'preserved' }
+    const result = removeUniswapWrapped2025BehaviorHistory(state)
+    expect(result).toBe(state)
   })
 })

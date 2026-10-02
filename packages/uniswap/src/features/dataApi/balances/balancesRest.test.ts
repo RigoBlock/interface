@@ -1,35 +1,43 @@
-import { getNativeAddress } from 'uniswap/src/constants/addresses'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { type PlainMessage } from '@bufbuild/protobuf'
+import type { GetPortfolioResponse } from '@uniswap/client-data-api/dist/data/v1/api_pb.d'
+import { SharedQueryClient } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
+import { getPortfolioQuery } from 'uniswap/src/data/apiClients/dataApiService/balances/getPortfolio'
 import {
   convertRestBalanceToPortfolioBalance,
-  createPortfolioCacheUpdater,
   formatPortfolioResponseToMap,
+  usePortfolioData,
+  usePortfolioTotalBalancesUsdPerChain,
   usePortfolioTotalValue,
 } from 'uniswap/src/features/dataApi/balances/balancesRest'
-import type { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
-import { DAI_CURRENCY_INFO, UNI_CURRENCY_INFO } from 'uniswap/src/test/fixtures'
 import { renderHookWithProviders } from 'uniswap/src/test/render'
+import { act, waitFor } from 'uniswap/src/test/test-utils'
 
 const {
   mockUseEnabledChains,
   mockUseCurrencyIdToVisibility,
-  mockUseGetPortfolioQuery,
+  mockUseGetWalletBalancesQuery,
   mockUseHideSmallBalancesSetting,
   mockUseHideSpamTokensSetting,
   mockUsePlatformBasedFetchPolicy,
 } = vi.hoisted(() => ({
   mockUseEnabledChains: vi.fn(),
   mockUseCurrencyIdToVisibility: vi.fn(),
-  mockUseGetPortfolioQuery: vi.fn(),
+  mockUseGetWalletBalancesQuery: vi.fn(),
   mockUseHideSmallBalancesSetting: vi.fn(),
   mockUseHideSpamTokensSetting: vi.fn(),
   mockUsePlatformBasedFetchPolicy: vi.fn(),
 }))
 
-vi.mock('uniswap/src/data/rest/getPortfolio', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('uniswap/src/data/rest/getPortfolio')>()),
-  useGetPortfolioQuery: mockUseGetPortfolioQuery,
-}))
+vi.mock(
+  'uniswap/src/data/apiClients/dataApiService/balances/getWalletBalances/getWalletBalances',
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('uniswap/src/data/apiClients/dataApiService/balances/getWalletBalances/getWalletBalances')
+    >()),
+    useGetWalletBalancesQuery: mockUseGetWalletBalancesQuery,
+  }),
+)
 
 vi.mock('uniswap/src/features/chains/hooks/useEnabledChains', () => ({
   useEnabledChains: mockUseEnabledChains,
@@ -49,39 +57,6 @@ vi.mock('uniswap/src/features/transactions/selectors', async (importOriginal) =>
 vi.mock('uniswap/src/utils/usePlatformBasedFetchPolicy', () => ({
   usePlatformBasedFetchPolicy: mockUsePlatformBasedFetchPolicy,
 }))
-
-const mainnetNativeAddress = getNativeAddress(UniverseChainId.Mainnet)
-
-const mockPortfolioData = {
-  portfolio: {
-    balances: [
-      { token: { address: mainnetNativeAddress, chainId: 1 }, amount: { amount: 1 }, isHidden: false },
-      { token: { address: '0x2', chainId: 1 }, amount: { amount: 2 }, isHidden: false },
-      { token: { address: mainnetNativeAddress, chainId: 1 }, amount: { amount: 3 }, isHidden: true },
-    ],
-    totalValueUsd: 300,
-  },
-}
-
-const mockPortfolioBalance1: PortfolioBalance = {
-  balanceUSD: 100,
-  cacheId: 'TokenBalance:1-0x1-0xuser',
-  currencyInfo: UNI_CURRENCY_INFO,
-  id: '1-0x1-0xuser',
-  isHidden: false,
-  quantity: 1,
-  relativeChange24: 2.5,
-}
-
-const mockPortfolioBalance2: PortfolioBalance = {
-  balanceUSD: 200,
-  cacheId: 'TokenBalance:1-0x3-0xuser',
-  currencyInfo: DAI_CURRENCY_INFO,
-  id: '1-0x3-0xuser',
-  isHidden: false,
-  quantity: 1,
-  relativeChange24: 0,
-}
 
 describe(formatPortfolioResponseToMap, () => {
   const owner = '0xuser'
@@ -277,67 +252,82 @@ describe(convertRestBalanceToPortfolioBalance, () => {
     const result = convertRestBalanceToPortfolioBalance(balance as never, '0xuser')
     expect(result).toBeUndefined()
   })
+
+  // Polygon's canonical native address is the real 0x…1010 placeholder, not the zero address the
+  // v2 backend serves for native balances — must still resolve to the native currency, not a
+  // distinct Token at the zero address (which would never match the multichain deployment map).
+  it('normalizes a Polygon native balance served as the zero address to the native currencyId', () => {
+    const balance = {
+      token: {
+        chainId: UniverseChainId.Polygon,
+        address: '0x0000000000000000000000000000000000000000',
+        decimals: 18,
+        symbol: 'POL',
+        name: 'Polygon Ecosystem Token',
+        metadata: {},
+      },
+      amount: { amount: 1, raw: '1000000000000000000' },
+      valueUsd: 1,
+      pricePercentChange1d: 0,
+      isHidden: false,
+    }
+
+    const result = convertRestBalanceToPortfolioBalance(balance as never, '0xuser')
+
+    expect(result?.currencyInfo.currency.isNative).toBe(true)
+    expect(result?.currencyInfo.currencyId).toBe(
+      `${UniverseChainId.Polygon}-0x0000000000000000000000000000000000001010`,
+    )
+  })
 })
 
-describe(createPortfolioCacheUpdater, () => {
-  it('updates balance visibility and total value when hiding', () => {
-    const ctx = {
-      getCurrentData: vi.fn().mockReturnValue(mockPortfolioData),
-      updateData: vi.fn(),
-    }
+describe(usePortfolioData, () => {
+  const evmAddress = '0x123'
 
-    const updater = createPortfolioCacheUpdater(ctx)({
-      evmAddress: '0xuser',
-      chainIds: [1, 2],
-    })
+  beforeEach(() => {
+    vi.clearAllMocks()
+    window.localStorage.clear()
+    SharedQueryClient.clear()
 
-    // Execute the update
-    updater({ hidden: true, portfolioBalance: mockPortfolioBalance1 })
-
-    // Verify the key was built correctly
-    expect(ctx.getCurrentData).toHaveBeenCalledWith({
-      evmAddress: '0xuser',
-      chainIds: [1, 2],
-    })
-
-    // Test the updater function that was passed to setQueryData
-    const updaterFn = ctx.updateData.mock.calls[0]![1]
-    const result = updaterFn(mockPortfolioData)
-
-    expect(result.portfolio.balances[0].isHidden).toBe(true)
-    expect(result.portfolio.balances[1].isHidden).toBe(false)
-    expect(result.portfolio.balances[2].isHidden).toBe(true)
-    expect(result.portfolio.totalValueUsd).toBe(200)
+    mockUseEnabledChains.mockReturnValue({ chains: [UniverseChainId.Mainnet] })
+    mockUsePlatformBasedFetchPolicy.mockReturnValue({ pollInterval: false })
+    mockUseCurrencyIdToVisibility.mockReturnValue({})
+    mockUseHideSmallBalancesSetting.mockReturnValue(false)
+    mockUseHideSpamTokensSetting.mockReturnValue(false)
   })
 
-  it('updates balance visibility and total value when un-hiding', () => {
-    const ctx = {
-      getCurrentData: vi.fn().mockReturnValue(mockPortfolioData),
-      updateData: vi.fn(),
-    }
+  // The request always carries useSubstreamData: true, so it is part of the cache key — data primed
+  // without it belongs to a different key and must not be picked up.
+  it('reads cache under a key that includes useSubstreamData: true', () => {
+    const portfolioResponse = {
+      portfolio: { balances: [], totalValueUsd: 0 },
+    } as unknown as PlainMessage<GetPortfolioResponse>
 
-    const updater = createPortfolioCacheUpdater(ctx)({
-      evmAddress: '0xuser',
-      chainIds: [1, 2],
+    act(() => {
+      SharedQueryClient.setQueryData(
+        getPortfolioQuery({
+          input: { evmAddress, chainIds: [UniverseChainId.Mainnet], multichain: false },
+        }).queryKey,
+        portfolioResponse,
+      )
     })
 
-    // Execute the update
-    updater({ hidden: false, portfolioBalance: mockPortfolioBalance2 })
+    const { result: withoutSubstreamData } = renderHookWithProviders(() =>
+      usePortfolioData({ evmAddress, cacheOnly: true }),
+    )
+    expect(withoutSubstreamData.current.data).toBeUndefined()
 
-    // Verify the key was built correctly
-    expect(ctx.getCurrentData).toHaveBeenCalledWith({
-      evmAddress: '0xuser',
-      chainIds: [1, 2],
+    act(() => {
+      SharedQueryClient.setQueryData(
+        getPortfolioQuery({
+          input: { evmAddress, chainIds: [UniverseChainId.Mainnet], multichain: false, useSubstreamData: true },
+        }).queryKey,
+        portfolioResponse,
+      )
     })
 
-    // Test the updater function that was passed to setQueryData
-    const updaterFn = ctx.updateData.mock.calls[0]![1]
-    const result = updaterFn(mockPortfolioData)
-
-    expect(result.portfolio.balances[0].isHidden).toBe(false)
-    expect(result.portfolio.balances[1].isHidden).toBe(false)
-    expect(result.portfolio.balances[2].isHidden).toBe(false)
-    expect(result.portfolio.totalValueUsd).toBe(500)
+    const { result } = renderHookWithProviders(() => usePortfolioData({ evmAddress, cacheOnly: true }))
+    expect(result.current.data).toEqual({})
   })
 })
 
@@ -354,7 +344,7 @@ describe(usePortfolioTotalValue, () => {
   })
 
   it('returns the raw error state when the portfolio total request errors before any cached data exists', () => {
-    mockUseGetPortfolioQuery.mockReturnValue({
+    mockUseGetWalletBalancesQuery.mockReturnValue({
       data: undefined,
       isFetching: false,
       refetch: vi.fn(),
@@ -376,7 +366,7 @@ describe(usePortfolioTotalValue, () => {
   })
 
   it('returns cached portfolio total data alongside the raw error metadata', () => {
-    mockUseGetPortfolioQuery.mockReturnValue({
+    mockUseGetWalletBalancesQuery.mockReturnValue({
       data: {
         balanceUSD: 100,
         percentChange: 2,
@@ -403,5 +393,58 @@ describe(usePortfolioTotalValue, () => {
     })
     expect(result.current.error).toEqual(expect.any(Error))
     expect(result.current.dataUpdatedAt).toBe(1710000000000)
+  })
+})
+
+describe(usePortfolioTotalBalancesUsdPerChain, () => {
+  const evmAddress = '0x123'
+
+  // The exact input shape every fetching consumer uses (usePortfolioData & friends):
+  // `multichain` and `useSubstreamData` are always present in the cache key.
+  const producerQueryKey = getPortfolioQuery({
+    input: { evmAddress, chainIds: [UniverseChainId.Mainnet], multichain: false, useSubstreamData: true },
+  }).queryKey
+
+  const portfolioResponse = {
+    portfolio: {
+      balances: [
+        { token: { chainId: UniverseChainId.Mainnet }, valueUsd: 1200 },
+        { token: { chainId: UniverseChainId.Mainnet }, valueUsd: 300 },
+      ],
+    },
+  } as unknown as PlainMessage<GetPortfolioResponse>
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    window.localStorage.clear()
+    SharedQueryClient.clear()
+
+    mockUseEnabledChains.mockReturnValue({ chains: [UniverseChainId.Mainnet] })
+    mockUsePlatformBasedFetchPolicy.mockReturnValue({ pollInterval: false })
+    mockUseCurrencyIdToVisibility.mockReturnValue({})
+    mockUseHideSmallBalancesSetting.mockReturnValue(false)
+    mockUseHideSpamTokensSetting.mockReturnValue(false)
+  })
+
+  it('never fetches on its own', () => {
+    renderHookWithProviders(() => usePortfolioTotalBalancesUsdPerChain({ evmAddress }))
+
+    expect(SharedQueryClient.isFetching()).toBe(0)
+  })
+
+  // CONS-2575 regression: the analytics read must share a cache key with the queries that actually
+  // fetch portfolio data AND stay subscribed so it re-renders when one of them fills the cache.
+  it('starts undefined on a cold cache, then emits per-chain totals when a producer fills the cache', async () => {
+    const { result } = renderHookWithProviders(() => usePortfolioTotalBalancesUsdPerChain({ evmAddress }))
+
+    expect(result.current).toBeUndefined()
+
+    act(() => {
+      SharedQueryClient.setQueryData(producerQueryKey, portfolioResponse)
+    })
+
+    await waitFor(() => {
+      expect(result.current).toEqual({ ETHEREUM: 1500 })
+    })
   })
 })

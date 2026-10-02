@@ -1,7 +1,7 @@
-import { forwardRef } from 'react'
-import { type TamaguiElement, withStaticProperties } from 'tamagui'
-import { useLayoutAnimationOnChange } from 'ui/src/animations'
-import { CustomButtonFrame } from 'ui/src/components/buttons/Button/components/CustomButtonFrame/CustomButtonFrame'
+import { ButtonFrameCompat } from '@universe/mycelium/button-frame-compat'
+import { forwardRef, type ForwardedRef, type ForwardRefExoticComponent, type RefAttributes } from 'react'
+// Deep import, not the barrel: the barrel still reaches Tamagui via AnimatePresencePager.
+import { useLayoutAnimationOnChange } from 'ui/src/animations/layout/useLayoutAnimationOnChange'
 import { CustomButtonText } from 'ui/src/components/buttons/Button/components/CustomButtonText/CustomButtonText'
 import { ThemedIcon } from 'ui/src/components/buttons/Button/components/ThemedIcon'
 import { ThemedSpinningLoader } from 'ui/src/components/buttons/Button/components/ThemedSpinnerLoader'
@@ -10,7 +10,7 @@ import type { ButtonProps } from 'ui/src/components/buttons/Button/types'
 import { getIconPosition } from 'ui/src/components/buttons/Button/utils/getIconPosition'
 import { getIsButtonDisabled } from 'ui/src/components/buttons/Button/utils/getIsButtonDisabled'
 
-const ButtonComponent = forwardRef<TamaguiElement, ButtonProps>(function Button(
+function ButtonComponent(
   {
     children,
     icon,
@@ -23,17 +23,17 @@ const ButtonComponent = forwardRef<TamaguiElement, ButtonProps>(function Button(
     lineHeightDisabled = false,
     loading,
     iconPosition: propIconPosition = 'before',
-    isDisabled: propDisabled,
+    disabled: propDisabled,
     onPress,
     ...props
-  },
-  ref,
-) {
+  }: ButtonProps,
+  ref: ForwardedRef<HTMLElement>,
+): JSX.Element {
   useLayoutAnimationOnChange(shouldAnimateBetweenLoadingStates ? loading : false)
 
   // This is responsible for the disabled UI state of the button
   // If `onDisabledPress` is provided, though, the button will be interactive even when disabled
-  const isDisabled = getIsButtonDisabled({ isDisabled: propDisabled, loading })
+  const isDisabled = getIsButtonDisabled({ disabled: propDisabled, loading })
   const { onDisabledPress, ...restProps } = props
   const handleOnPress = isDisabled ? (onDisabledPress ?? undefined) : onPress
   const iconPosition = getIconPosition(propIconPosition)
@@ -43,7 +43,7 @@ const ButtonComponent = forwardRef<TamaguiElement, ButtonProps>(function Button(
   const customBackgroundColor = restProps.backgroundColor
 
   return (
-    <CustomButtonFrame
+    <ButtonFrameCompat
       ref={ref}
       fill={fill}
       focusScaling={focusScaling}
@@ -85,9 +85,15 @@ const ButtonComponent = forwardRef<TamaguiElement, ButtonProps>(function Button(
       ) : (
         children
       )}
-    </CustomButtonFrame>
+    </ButtonFrameCompat>
   )
-})
+}
+
+// Explicit annotation: the inferred type names non-exported mycelium types (TS2883 under declaration emit).
+const ButtonWithoutStatics: ForwardRefExoticComponent<ButtonProps & RefAttributes<HTMLElement>> =
+  forwardRef(ButtonComponent)
+
+ButtonWithoutStatics.displayName = 'Button'
 
 /**
  * Button component
@@ -103,11 +109,11 @@ const ButtonComponent = forwardRef<TamaguiElement, ButtonProps>(function Button(
  * @param {JSX.Element} [props.icon] - The icon to be displayed in the button; it is automatically themed based on the button's emphasis and variant.
  * @param {boolean} [props.loading=false] - Whether the button is in a loading state. A `SpinningLoader` themed with the button's emphasis and variant will be displayed aside of the children.
  * @param {boolean} [props.shouldAnimateBetweenLoadingStates=true] - Whether to apply a LayoutAnimation when the loading state changes.
- * @param {boolean} [props.isDisabled=false] - Whether the button is disabled.
+ * @param {boolean} [props.disabled=false] - Whether the button is disabled.
  * @param {string} [props.backgroundColor] - Custom background color for the button. This overrides the button's emphasis and variant. It also automatically sets, for different states, the `Button`'s default text and/or icon colors to the color that most contrasts with the `backgroundColor`.
  * @param {React.ReactNode} props.children - The content of the button. If a string, it will be automatically themed based on the button's emphasis and variant. Otherwise, to achieve the same effect, use `Button.Text` as a `child` (direct or otherwise) of `Button`
  * @param {string} [props.iconPosition] - The position of the icon in the button.
- * @param {React.Ref} [ref] - The ref to be passed to the CustomButtonFrame component.
+ * @param {React.Ref} [ref] - The ref to be passed to the button frame.
  *
  * Props with hyphens:
  * @param {string} dd-action-name - The Datadog action name for the button.
@@ -115,8 +121,13 @@ const ButtonComponent = forwardRef<TamaguiElement, ButtonProps>(function Button(
  *
  * @returns {JSX.Element} The rendered Button component.
  */
+type ButtonComponentType = typeof ButtonWithoutStatics & {
+  Text: typeof CustomButtonText
+  Icon: typeof ThemedIcon
+}
 
-export const Button = withStaticProperties(ButtonComponent, {
-  Text: CustomButtonText,
-  Icon: ThemedIcon,
-})
+const ButtonWithStatics = ButtonWithoutStatics as ButtonComponentType
+ButtonWithStatics.Text = CustomButtonText
+ButtonWithStatics.Icon = ThemedIcon
+
+export const Button = ButtonWithStatics

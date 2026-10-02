@@ -1,5 +1,5 @@
+import { UniverseChainId } from '@universe/chains'
 import { useMemo } from 'react'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { useSelectTransaction } from 'uniswap/src/features/transactions/hooks/useSelectTransaction'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'

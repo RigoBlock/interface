@@ -1,43 +1,66 @@
-import { CellContext, flexRender, RowData } from '@tanstack/react-table'
-import { forwardRef, useMemo } from 'react'
-import { Trans, useTranslation } from 'react-i18next'
-import { Flex, styled, Text } from 'ui/src'
-import { WifiError } from 'ui/src/components/icons/WifiError'
+import { CellContext, flexRender, Row, RowData } from '@tanstack/react-table'
+import { isMobileWeb } from '@universe/environment'
+import { Flex, Text } from '@universe/mycelium'
+import type { SpaceValue } from '@universe/mycelium/compat'
+import { HeightAnimator } from '@universe/mycelium/height-animator'
+import { WifiError } from '@universe/mycelium/icons/WifiError'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
+import { forwardRef, useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { breakpoints } from 'ui/src/theme'
-import { useIsOffline } from 'utilities/src/connection/useIsOffline'
 import { ROW_HEIGHT_DESKTOP, ROW_HEIGHT_MOBILE_WEB } from '~/components/Table/constants'
 import { ErrorModal } from '~/components/Table/ErrorBox'
+import { TableBodyRenderMode, useTableBodyRenderMode } from '~/components/Table/hooks/useTableBodyRenderMode'
+import { useTableVirtualizer } from '~/components/Table/hooks/useTableVirtualizer'
+import { getCommonPinningStyles } from '~/components/Table/PinnedColumns/getCommonPinningStyles'
 import { CellContainer, DataRow, TableRowBase } from '~/components/Table/styled'
 import { TableRow } from '~/components/Table/TableRow'
 import { useTableSize } from '~/components/Table/TableSizeProvider'
+import { TableTopLevelRow } from '~/components/Table/TableTopLevelRow'
 import { TableBodyProps } from '~/components/Table/types'
-import { getColumnSizingStyles } from '~/components/Table/utils/getColumnSizingStyles'
-import { ThemedText } from '~/theme/components'
+import { StaticSkeletonContext } from '~/components/Tokens/loading'
 
-const NoDataFoundTableRow = styled(TableRowBase, {
-  justifyContent: 'center',
-})
+const ROW_GAP_PX = 2
+
+// The error overlay is centered against the skeleton block (top: 50%). On window-scroll tables the
+// container height equals content height, so a full-length skeleton would push the message below the
+// fold — cap the error backdrop to keep it visible without scrolling.
+const ERROR_SKELETON_ROW_COUNT = 8
+
+const NoDataFoundTableRow = forwardRef<HTMLDivElement, React.ComponentProps<typeof TableRowBase>>(
+  function NoDataFoundTableRow(props, ref) {
+    return <TableRowBase ref={ref} justifyContent="center" {...props} />
+  },
+)
 
 function TableBodyInner<T extends RowData>(
   {
     table,
     loading,
     error,
-    v2 = true,
+    errorState,
+    emptyState,
     rowWrapper,
+    topLevelRowWrapper,
+    subRowsWrapper,
+    renderUnifiedExpandableRow,
     loadingRowsCount = 20,
     rowHeight: propRowHeight,
     compactRowHeight: propCompactRowHeight,
     subRowHeight: propSubRowHeight,
     hasPinnedColumns = false,
+    extendedPinnedColumnDivider = false,
     dimmed,
+    virtualization,
   }: TableBodyProps<T>,
   ref: React.Ref<HTMLDivElement>,
 ) {
   const rows = table.getRowModel().rows
   const { width: tableWidth } = useTableSize()
-  const isOffline = useIsOffline()
+  const colors = useSporeColors()
+  const renderMode = useTableBodyRenderMode({ loading: !!loading, error: !!error, rowCount: rows.length })
   const { t } = useTranslation()
+
   const skeletonRowHeight = useMemo(
     () =>
       tableWidth <= breakpoints.lg
@@ -46,9 +69,117 @@ function TableBodyInner<T extends RowData>(
     [tableWidth, propRowHeight, propCompactRowHeight],
   )
 
-  if (isOffline && rows.length === 0) {
+  const numericRowGap = !hasPinnedColumns ? ROW_GAP_PX : 0
+  const topLevelRows = useMemo(() => rows.filter((row) => row.depth === 0), [rows])
+
+  const flatEstimateSize = useCallback(() => skeletonRowHeight + numericRowGap, [skeletonRowHeight, numericRowGap])
+
+  const { virtualizer: flatRowVirtualizer, setContainerRef } = useTableVirtualizer({
+    mode: virtualization,
+    count: rows.length,
+    estimateSize: flatEstimateSize,
+    forwardedRef: ref,
+  })
+
+  const renderTableRow = useCallback(
+    (row: Row<T>) => {
+      const embeddedInExpandableGroup = Boolean(renderUnifiedExpandableRow && row.subRows.length > 0)
+      const embeddedInIssuerPanel = Boolean(renderUnifiedExpandableRow && row.depth > 0)
+      const activeRowWrapper = embeddedInExpandableGroup && row.getCanExpand() ? undefined : rowWrapper
+
+      return (
+        <TableRow<T>
+          row={row}
+          rowWrapper={activeRowWrapper}
+          rowHeight={propRowHeight}
+          compactRowHeight={propCompactRowHeight}
+          subRowHeight={propSubRowHeight}
+          isExpanded={row.getCanExpand() ? row.getIsExpanded() : undefined}
+          dimmed={dimmed}
+          embeddedInExpandableGroup={embeddedInExpandableGroup}
+          embeddedInIssuerPanel={embeddedInIssuerPanel}
+          extendedPinnedColumnDivider={extendedPinnedColumnDivider}
+        />
+      )
+    },
+    [
+      rowWrapper,
+      renderUnifiedExpandableRow,
+      propRowHeight,
+      propCompactRowHeight,
+      propSubRowHeight,
+      dimmed,
+      extendedPinnedColumnDivider,
+    ],
+  )
+
+  const renderSubRows = useCallback(
+    (row: Row<T>, rowGap: string | undefined) => {
+      const subRows = row.subRows
+      if (subRows.length === 0) {
+        return null
+      }
+
+      const subRowElements = subRows.map((subRow) => (
+        <TableRow<T>
+          key={subRow.id}
+          row={subRow}
+          rowWrapper={rowWrapper}
+          rowHeight={propRowHeight}
+          compactRowHeight={propCompactRowHeight}
+          subRowHeight={propSubRowHeight}
+          dimmed={dimmed}
+          extendedPinnedColumnDivider={extendedPinnedColumnDivider}
+        />
+      ))
+      const subRowsContent = subRowsWrapper ? subRowsWrapper(row, <>{subRowElements}</>) : <>{subRowElements}</>
+      const spaceGap = rowGap as SpaceValue | undefined
+
+      return (
+        <HeightAnimator
+          open={row.getIsExpanded()}
+          animation="quick"
+          unmountChildrenWhenCollapsed
+          // overflow-y: hidden would coerce overflow-x to auto (CSS disallows mixing visible with a clipped axis), breaking sticky pinned columns
+          styleProps={{ '$platform-web': { overflowY: 'clip', overflowX: 'visible' } }}
+        >
+          <Flex gap={spaceGap} paddingTop={spaceGap}>
+            {subRowsContent}
+          </Flex>
+        </HeightAnimator>
+      )
+    },
+    [
+      rowWrapper,
+      subRowsWrapper,
+      propRowHeight,
+      propCompactRowHeight,
+      propSubRowHeight,
+      dimmed,
+      extendedPinnedColumnDivider,
+    ],
+  )
+
+  const renderTopLevelRow = useCallback(
+    (row: Row<T>, rowGapValue: string | undefined) => (
+      <TableTopLevelRow
+        row={row}
+        isExpanded={row.getIsExpanded()}
+        rowGap={rowGapValue}
+        renderTableRow={renderTableRow}
+        renderSubRows={renderSubRows}
+        topLevelRowWrapper={topLevelRowWrapper}
+        renderUnifiedExpandableRow={renderUnifiedExpandableRow}
+      />
+    ),
+    [renderTableRow, renderSubRows, topLevelRowWrapper, renderUnifiedExpandableRow],
+  )
+
+  const rowGap = !hasPinnedColumns ? '$spacing2' : undefined
+
+  if (renderMode === TableBodyRenderMode.Offline) {
     return (
-      <NoDataFoundTableRow py="$spacing20">
+      <NoDataFoundTableRow ref={setContainerRef} py="$spacing20">
         <Flex row centered justifyContent="center" gap="$gap8" py="$spacing4">
           <WifiError color="$neutral2" size="$icon.20" />
           <Text color="$neutral2" variant="subheading1">
@@ -59,16 +190,22 @@ function TableBodyInner<T extends RowData>(
     )
   }
 
-  if (loading || error) {
+  if (renderMode === TableBodyRenderMode.Skeleton) {
+    const skeletonRowCount = error ? Math.min(loadingRowsCount, ERROR_SKELETON_ROW_COUNT) : loadingRowsCount
     return (
-      <>
-        <Flex gap={!hasPinnedColumns && v2 ? '$spacing2' : undefined}>
-          {Array.from({ length: loadingRowsCount }, (_, rowIndex) => (
-            <DataRow key={`skeleton-row-${rowIndex}`} height={skeletonRowHeight} v2={v2}>
+      <StaticSkeletonContext.Provider value={!!error}>
+        <Flex ref={setContainerRef} gap={!hasPinnedColumns ? '$spacing2' : undefined}>
+          {Array.from({ length: skeletonRowCount }, (_, rowIndex) => (
+            <DataRow key={`skeleton-row-${rowIndex}`} height={skeletonRowHeight}>
               {table.getAllColumns().map((column, columnIndex) => (
                 <CellContainer
                   key={`skeleton-row-${rowIndex}-column-${columnIndex}`}
-                  style={getColumnSizingStyles(column)}
+                  style={getCommonPinningStyles({
+                    column,
+                    colors,
+                    isHeader: false,
+                    hidePinnedColumnBorder: extendedPinnedColumnDivider,
+                  })}
                 >
                   {flexRender(column.columnDef.cell, {} as CellContext<T, any>)}
                 </CellContainer>
@@ -78,38 +215,78 @@ function TableBodyInner<T extends RowData>(
         </Flex>
         {error && (
           <ErrorModal
-            header={<Trans i18nKey="common.errorLoadingData.error" />}
-            subtitle={<Trans i18nKey="error.dataUnavailable" />}
+            header={errorState?.title ?? t('common.errorLoadingData.error')}
+            subtitle={errorState?.description ?? t('error.dataUnavailable')}
+            onRetry={errorState?.onRetry}
+            retryText={errorState?.retryText}
           />
         )}
-      </>
+      </StaticSkeletonContext.Provider>
     )
   }
 
-  if (!rows.length) {
+  if (renderMode === TableBodyRenderMode.Empty) {
     return (
-      <NoDataFoundTableRow py="$spacing20">
-        <ThemedText.BodySecondary>
-          <Trans i18nKey="error.noData" />
-        </ThemedText.BodySecondary>
+      <NoDataFoundTableRow ref={setContainerRef} py="$spacing20">
+        {emptyState ? (
+          <Flex centered gap="$gap8" py="$spacing4">
+            {emptyState.title && (
+              <Text variant="subheading2" color="$neutral1">
+                {emptyState.title}
+              </Text>
+            )}
+            {emptyState.description && (
+              <Text variant="body3" color="$neutral2" textAlign="center">
+                {emptyState.description}
+              </Text>
+            )}
+            {emptyState.action}
+          </Flex>
+        ) : (
+          <Text variant="body2" color="$neutral2">
+            {t('error.noData')}
+          </Text>
+        )}
       </NoDataFoundTableRow>
     )
   }
 
+  if (virtualization) {
+    // Flat rows only: renderTableRow, not renderTopLevelRow / renderSubRows / renderUnifiedExpandableRow.
+    const virtualItems = flatRowVirtualizer.getVirtualItems()
+    return (
+      <Flex ref={setContainerRef} position="relative" style={{ height: flatRowVirtualizer.getTotalSize() }}>
+        {virtualItems.map((virtualRow) => {
+          const row = rows[virtualRow.index]!
+          // Container virtualizer has scrollMargin 0, so this is a no-op there.
+          const translateY = virtualRow.start - flatRowVirtualizer.options.scrollMargin
+          return (
+            <Flex
+              key={virtualRow.key}
+              position="absolute"
+              top={0}
+              left={0}
+              width="100%"
+              style={{
+                height: virtualRow.size - numericRowGap,
+                transform: `translateY(${translateY}px)`,
+                willChange: isMobileWeb ? undefined : 'transform',
+              }}
+            >
+              {renderTableRow(row)}
+            </Flex>
+          )
+        })}
+      </Flex>
+    )
+  }
+
   return (
-    <Flex ref={ref} position="relative" gap={!hasPinnedColumns ? '$spacing2' : undefined}>
-      {rows.map((row) => (
-        <TableRow<T>
-          key={row.id}
-          row={row}
-          v2={v2}
-          rowWrapper={rowWrapper}
-          rowHeight={propRowHeight}
-          compactRowHeight={propCompactRowHeight}
-          subRowHeight={propSubRowHeight}
-          isExpanded={row.getCanExpand() ? row.getIsExpanded() : undefined}
-          dimmed={dimmed}
-        />
+    <Flex ref={setContainerRef} position="relative" gap={rowGap}>
+      {topLevelRows.map((row) => (
+        <Flex key={row.id} width="100%">
+          {renderTopLevelRow(row, rowGap)}
+        </Flex>
       ))}
     </Flex>
   )

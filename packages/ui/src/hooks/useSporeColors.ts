@@ -1,37 +1,34 @@
-// until the web app needs all of tamagui, avoid heavy imports there
-// oxlint-disable-next-line no-restricted-imports -- until the web app needs all of tamagui, avoid heavy imports there
-import { ColorTokens, ThemeKeys, ThemeProps, useTheme } from '@tamagui/core'
-import { useMemo } from 'react'
+/**
+ * Platform-split base stub — bundlers resolve `useSporeColors.web` /
+ * `useSporeColors.native`. Shared types live here.
+ */
+import type { SporeColorToken, SporeThemeKeys, SporeThemeName } from 'ui/src/theme/color/types'
+import { PlatformSplitStubError } from 'utilities/src/errors'
 
 // copied from react-native (avoiding import for web)
 type OpaqueColorValue = symbol & { __TYPE__: 'Color' }
 
-export type DynamicColor = ColorTokens | string | OpaqueColorValue
+export type DynamicColor = SporeColorToken | string | OpaqueColorValue
 
 export type UseSporeColorsReturn = {
-  [key in ThemeKeys]: {
-    val: ColorTokens
+  [key in SporeThemeKeys]: {
+    val: SporeColorToken
     get: () => DynamicColor
     variable: string
   }
 }
 
 /**
- * Wraps `useTheme` hook to provide spore color theme.
- * Do not pass a conditional value to `name` prop.
+ * Provides the spore color theme (the same token → color map Tamagui's
+ * `useTheme` resolved) from the app's active theme.
+ * Do not pass a conditional value to `name`.
  *
- * @param name the theme name
- * @returns `useTheme` hook with the passed color theme
+ * @param name force a theme instead of following the app's active theme
  */
-export const useSporeColors = (name?: ThemeProps['name']): UseSporeColorsReturn => {
-  const config = useMemo(() => ({ name }), [name])
-
-  return useTheme(config) as unknown as UseSporeColorsReturn
+export const useSporeColors = (_name?: SporeThemeName | null): UseSporeColorsReturn => {
+  throw new PlatformSplitStubError('useSporeColors')
 }
 
-export const useSporeColorsForTheme = (name?: ThemeProps['name']): UseSporeColorsReturn => {
-  const darkColors = useSporeColors('dark')
-  const themeColors = useSporeColors()
-
-  return name === 'dark' ? darkColors : themeColors
+export const useSporeColorsForTheme = (_name?: SporeThemeName | null): UseSporeColorsReturn => {
+  throw new PlatformSplitStubError('useSporeColorsForTheme')
 }

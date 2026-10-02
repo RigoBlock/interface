@@ -1,29 +1,27 @@
+import { Flex as MyceliumFlex, Flex, Text } from '@universe/mycelium'
+import { styled, type StyledComponent } from '@universe/mycelium/styled'
 import { ReactNode } from 'react'
 import type { To } from 'react-router'
 import { Link } from 'react-router'
-import { Flex, styled, Text } from 'ui/src'
 import { Check } from 'ui/src/components/icons/Check'
-import { ClickableTamaguiStyle } from '~/theme/components/styles'
-
+// Web-only base, so `platform: 'web'` legalizes the hover:/active: classes.
+// `py-[12px]` is load-bearing: the menu containers set no gap, so it is the only thing
+// separating consecutive rows.
 const InternalLinkMenuItem = styled(Link, {
-  flex: 1,
-  display: 'flex',
-  flexDirection: 'row',
-  alignItems: 'center',
-  py: '$spacing12',
-  justifyContent: 'space-between',
-  color: '$neutral1',
-  ...ClickableTamaguiStyle,
-
-  '$platform-web': {
-    textDecoration: 'none',
-  },
+  platform: 'web',
+  base: 'flex flex-row items-center justify-between grow shrink basis-auto py-[12px] cursor-pointer [text-decoration-line:none] [text-decoration:none] opacity-[1] hover:opacity-[0.8] active:opacity-[0.6]',
+  // ClickableTamaguiStyle's constant `style` default.
+  inlineStyle: () => ({ transition: '100ms' }),
 })
 
-export const MenuColumn = styled(Flex, {
-  $md: {
-    pb: '$spacing14',
-  },
+const MENU_COLUMN_VARIANTS = {} as const
+
+// Empty variants table + explicit annotation: the inferred styled() type isn't
+// portable under declaration emit (TS2883).
+export const MenuColumn: StyledComponent<typeof MyceliumFlex, typeof MENU_COLUMN_VARIANTS> = styled(MyceliumFlex, {
+  platform: 'web',
+  variants: MENU_COLUMN_VARIANTS,
+  base: 'media-md:pb-[14px]',
 })
 
 export function MenuItem({

@@ -1,8 +1,7 @@
-// until the web app needs all of tamagui, avoid heavy imports there
-// oxlint-disable-next-line no-restricted-imports -- until the web app needs all of tamagui, avoid heavy imports there
-import { createFont, isAndroid } from '@tamagui/core'
+import { isAndroid, isWebApp, isWebPlatform } from '@universe/environment'
+// Needed for the _Pin drift check below despite the re-export near the bottom (which creates no local binding) — both lines are required
+import type { FontVariantToken } from 'ui/src/theme/fontVariants'
 import { needsSmallFont } from 'ui/src/utils/needs-small-font'
-import { isWebApp, isWebPlatform } from 'utilities/src/platform'
 
 // TODO(EXT-148): remove this type and use Tamagui's FontTokens
 export type TextVariantTokens = keyof typeof fonts
@@ -45,15 +44,15 @@ const fontFamily = {
   },
 }
 
-const baselMedium = isWebPlatform
+export const baselMedium = isWebPlatform
   ? 'Basel, -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
   : fontFamily.sansSerif.medium
 
-const baselBook = isWebPlatform
+export const baselBook = isWebPlatform
   ? 'Basel, -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
   : fontFamily.sansSerif.book
 
-const monospaceFontFamily = isWebPlatform
+export const monospaceFontFamily = isWebPlatform
   ? 'ui-monospace, SFMono-Regular, SF Mono, Menlo, Monaco, "Cascadia Mono", "Segoe UI Mono", "Roboto Mono", "Courier New", monospace'
   : fontFamily.sansSerif.monospace
 
@@ -80,21 +79,26 @@ const BOOK_WEIGHT_WEB = '485'
 const MEDIUM_WEIGHT = '500'
 const MEDIUM_WEIGHT_WEB = '535'
 
-const defaultWeights = {
+export const defaultWeights = {
   book: isWebApp ? BOOK_WEIGHT_WEB : BOOK_WEIGHT,
   true: isWebApp ? BOOK_WEIGHT_WEB : BOOK_WEIGHT,
   medium: isWebApp ? MEDIUM_WEIGHT_WEB : MEDIUM_WEIGHT,
 }
 
+/** Button font weight — the `$true` weight in a `$button` font context. */
+export const BUTTON_MEDIUM_WEIGHT = MEDIUM_WEIGHT
+
 // on native, the Basel font files render down a few px
 // this adjusts them to be visually centered by default
 export const NATIVE_LINE_HEIGHT_SCALE = 1.15
 
+// heading1/heading3/body1/body2/body3 line-heights are absolute px, not a ratio of the size:
+// design requires whole-pixel line-boxes, so they must not be re-derived from adjustedSize.
 export const fonts = {
   heading1: {
     family: platformFontFamily('book'),
     fontSize: adjustedSize(52),
-    lineHeight: adjustedSize(52) * 0.96,
+    lineHeight: 50,
     fontWeight: BOOK_WEIGHT,
     maxFontSizeMultiplier: 1.2,
     letterSpacing: '-2%',
@@ -111,7 +115,7 @@ export const fonts = {
   heading3: {
     family: platformFontFamily('book'),
     fontSize: adjustedSize(24),
-    lineHeight: adjustedSize(24) * 1.2,
+    lineHeight: 28,
     fontWeight: BOOK_WEIGHT,
     maxFontSizeMultiplier: 1.2,
     letterSpacing: '-0.5%',
@@ -133,21 +137,21 @@ export const fonts = {
   body1: {
     family: platformFontFamily('book'),
     fontSize: adjustedSize(18),
-    lineHeight: adjustedSize(18) * 1.3,
+    lineHeight: 24,
     fontWeight: BOOK_WEIGHT,
     maxFontSizeMultiplier: 1.4,
   },
   body2: {
     family: platformFontFamily('book'),
     fontSize: adjustedSize(16),
-    lineHeight: adjustedSize(16) * 1.3,
+    lineHeight: 22,
     fontWeight: BOOK_WEIGHT,
     maxFontSizeMultiplier: 1.4,
   },
   body3: {
     family: platformFontFamily('book'),
     fontSize: adjustedSize(14),
-    lineHeight: adjustedSize(14) * 1.3,
+    lineHeight: 18,
     fontWeight: BOOK_WEIGHT,
     maxFontSizeMultiplier: 1.4,
   },
@@ -155,6 +159,13 @@ export const fonts = {
     family: platformFontFamily('book'),
     fontSize: adjustedSize(12),
     lineHeight: 16,
+    fontWeight: BOOK_WEIGHT,
+    maxFontSizeMultiplier: 1.4,
+  },
+  body5: {
+    family: platformFontFamily('book'),
+    fontSize: adjustedSize(10),
+    lineHeight: 12,
     fontWeight: BOOK_WEIGHT,
     maxFontSizeMultiplier: 1.4,
   },
@@ -194,115 +205,84 @@ export const fonts = {
   },
 } as const
 
-// TODO: Tamagui breaks font weights on Android if face *not* defined
-// but breaks iOS if face is defined
-const face = {
-  [defaultWeights.book]: { normal: baselBook },
-  [defaultWeights.medium]: { normal: baselMedium },
+// Tamagui-free defining file (INFRA-3290); re-exported here so `ui/src/theme` consumers are unchanged.
+export type { FontVariantToken } from 'ui/src/theme/fontVariants'
+
+type _Pin<T extends true> = T
+/**
+ * Compile-time pin (INFRA-3290): the Tamagui-free union in ./fontVariants.ts must stay exactly
+ * `$<keyof typeof fonts>` — either drift direction fails typecheck here.
+ */
+type _FontVariantTokenIsPinnedToFonts = _Pin<
+  [FontVariantToken] extends [`$${TextVariantTokens & string}`]
+    ? [`$${TextVariantTokens & string}`] extends [FontVariantToken]
+      ? true
+      : false
+    : false
+>
+
+/** Same keys as Text variant and fonts.* (no $). */
+export type TextVariantKey = TextVariantTokens
+
+/** Resolved font style for use in raw inline styles; family is the actual font stack, not a token. */
+export interface ResolvedFontStyle {
+  fontSize: number
+  lineHeight: number
+  family: string
+  fontWeight: string
+  letterSpacing?: string
 }
 
-export const headingFont = createFont({
-  family: baselBook,
-  ...(isAndroid ? { face } : null),
-  size: {
-    small: fonts.heading3.fontSize,
-    medium: fonts.heading2.fontSize,
-    true: fonts.heading2.fontSize,
-    large: fonts.heading1.fontSize,
-  },
-  weight: defaultWeights,
-  lineHeight: {
-    small: fonts.heading3.lineHeight,
-    medium: fonts.heading2.lineHeight,
-    true: fonts.heading2.lineHeight,
-    large: fonts.heading1.lineHeight,
-  },
-})
-
-export const subHeadingFont = createFont({
-  family: baselBook,
-  ...(isAndroid ? { face } : null),
-  size: {
-    small: fonts.subheading2.fontSize,
-    large: fonts.subheading1.fontSize,
-    true: fonts.subheading1.fontSize,
-  },
-  weight: defaultWeights,
-  lineHeight: {
-    small: fonts.subheading2.lineHeight,
-    large: fonts.subheading1.lineHeight,
-    true: fonts.subheading1.lineHeight,
-  },
-})
-
-// for now tamagui is inferring all the font size from body, but we have differences in the diff fonts
-// so i'm filling in blanks (adding medium here), but will need to fix this properly in tamagui...
-
-export const bodyFont = createFont({
-  family: baselBook,
-  ...(isAndroid ? { face } : null),
-  size: {
-    micro: fonts.body4.fontSize,
-    small: fonts.body3.fontSize,
-    medium: fonts.body2.fontSize,
-    true: fonts.body2.fontSize,
-    large: fonts.body1.fontSize,
-  },
-  weight: defaultWeights,
-  lineHeight: {
-    micro: fonts.body4.lineHeight,
-    small: fonts.body3.lineHeight,
-    medium: fonts.body2.lineHeight,
-    true: fonts.body2.lineHeight,
-    large: fonts.body1.lineHeight,
-  },
-})
-
-export const buttonFont = createFont({
-  family: baselMedium,
-  size: {
-    micro: fonts.buttonLabel4.fontSize,
-    small: fonts.buttonLabel3.fontSize,
-    medium: fonts.buttonLabel2.fontSize,
-    large: fonts.buttonLabel1.fontSize,
-    true: fonts.buttonLabel2.fontSize,
-  },
-  weight: {
-    ...defaultWeights,
-    true: MEDIUM_WEIGHT,
-  },
-  lineHeight: {
-    micro: fonts.buttonLabel4.lineHeight,
-    small: fonts.buttonLabel3.lineHeight,
-    medium: fonts.buttonLabel2.lineHeight,
-    large: fonts.buttonLabel1.lineHeight,
-    true: fonts.buttonLabel2.lineHeight,
-  },
-})
-
-export const monospaceFont = createFont({
-  family: monospaceFontFamily,
-  size: {
-    micro: fonts.body4.fontSize,
-    small: fonts.body3.fontSize,
-    medium: fonts.body2.fontSize,
-    large: fonts.body1.fontSize,
-    true: fonts.body4.fontSize,
-  },
-  weight: defaultWeights,
-  lineHeight: {
-    micro: fonts.body4.lineHeight,
-    small: fonts.body3.lineHeight,
-    medium: fonts.body2.lineHeight,
-    large: fonts.body1.lineHeight,
-    true: fonts.body4.lineHeight,
-  },
-})
-
-export const allFonts = {
-  heading: headingFont,
-  subHeading: subHeadingFont,
-  body: bodyFont,
-  button: buttonFont,
-  monospace: monospaceFont,
+function isTextVariantKey(key: string): key is TextVariantKey {
+  return key in fonts
 }
+
+/**
+ * Web `fonts.*.family` can be Tamagui tokens (`book`, `medium`); only raw DOM (e.g. AnimatedNumber digit
+ * `<span>`s) needs a real font stack. Prefer `<Text variant>` elsewhere — no public export.
+ */
+function resolveFontFamilyForRawDomStyles(family: string): string {
+  if (!isWebPlatform) {
+    return family
+  }
+  if (family === 'book') {
+    return baselBook
+  }
+  if (family === 'medium') {
+    return baselMedium
+  }
+  if (family in fontFamily.sansSerif) {
+    return String(fontFamily.sansSerif[family as SansSerifFontFamilyKey])
+  }
+  return family
+}
+
+function fontEntryToResolvedStyles(entry: (typeof fonts)[TextVariantKey]): ResolvedFontStyle {
+  return {
+    fontSize: entry.fontSize,
+    lineHeight: entry.lineHeight,
+    family: resolveFontFamilyForRawDomStyles(entry.family),
+    // `fonts.monospace` has no fontWeight; match Text monospace variant (book).
+    fontWeight: 'fontWeight' in entry ? entry.fontWeight : BOOK_WEIGHT,
+    letterSpacing: 'letterSpacing' in entry ? entry.letterSpacing : undefined,
+  }
+}
+
+/** Map a variant token to the Text variant prop (e.g. $heading2 → 'heading2'). */
+export function getTextVariantKey(token: FontVariantToken): TextVariantKey {
+  const key = token.slice(1)
+  return isTextVariantKey(key) ? key : 'heading2'
+}
+
+/**
+ * Resolve a variant token (e.g. $body3) for raw inline styles (e.g. AnimatedNumber digit rails).
+ * Punctuation/loading should use `<Text variant={getTextVariantKey(token)}>`; this exists for non-Text DOM.
+ */
+export function getFontStylesForVariant(token: FontVariantToken): ResolvedFontStyle {
+  return fontEntryToResolvedStyles(fonts[getTextVariantKey(token)])
+}
+
+/** Every `$variant` token from theme fonts (for Storybook selects, etc.). */
+export const ALL_FONT_VARIANT_TOKENS = (Object.keys(fonts) as TextVariantTokens[]).map(
+  (k) => `$${k}` as FontVariantToken,
+)

@@ -1,8 +1,11 @@
-import { TradingApi } from '@universe/api'
+import { SharedQueryClient, TradingApi, V1_TRADING_API_PATHS, type CheckPermissionsResponse } from '@universe/api'
 import { SwapEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
-import { getRouteAnalyticsData, logSwapQuoteFetch } from 'uniswap/src/features/transactions/swap/analytics'
-import { ClassicTrade, Trade } from 'uniswap/src/features/transactions/swap/types/trade'
+import { getRouteAnalyticsData } from 'uniswap/src/features/transactions/swap/analytics'
+import { logSwapQuoteFetch } from 'uniswap/src/features/transactions/swap/logSwapQuoteFetch'
+import { Trade } from 'uniswap/src/features/transactions/swap/types/trade'
+import { NATIVE_ADDRESS_FOR_TRADING_API } from 'uniswap/src/features/transactions/swap/utils/tradingApi'
+import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
 
 vi.mock('uniswap/src/features/telemetry/send', () => ({
   sendAnalyticsEvent: vi.fn(),
@@ -21,55 +24,40 @@ vi.mock('uniswap/src/features/transactions/swap/utils/SwapEventTimestampTracker'
   }
 })
 
-// Mock the @uniswap/v2-sdk package to provide Pair.getAddress
-vi.mock('@uniswap/v2-sdk', async (importOriginal) => {
-  const originalModule = await importOriginal<typeof import('@uniswap/v2-sdk')>()
-  originalModule.Pair.getAddress = (): string => {
-    return `0xv2PoolAddress`
-  }
-  return originalModule
-})
+const mockV2Pool = { type: 'v2-pool', address: '0xv2PoolAddress' }
+const mockV3Pool = { type: 'v3-pool', address: '0xv3PoolAddress' }
+const mockV4Pool = { type: 'v4-pool', address: '0xpool1' }
 
-vi.mock('@uniswap/v3-sdk', async (importOriginal) => {
-  const originalModule = await importOriginal<typeof import('@uniswap/v3-sdk')>()
-  originalModule.Pool.getAddress = (): string => {
-    return `0xv3PoolAddress`
-  }
-  return originalModule
-})
+const PERMISSIONED_TOKEN = '0xbf56488c857A881ae7e3BED27Cf99c10A7Ab7e50'
+const STANDARD_TOKEN = '0x1F46ea239595706960a9208897968b169db1b89c'
 
-// Create instances of the mock classes
-const mockV2Pool = {
-  token0: { address: 'token0Address' },
-  token1: { address: 'token1Address' },
+function seedPermissions(params: { tokens: string[]; chainId: number; response: CheckPermissionsResponse }): void {
+  const { tokens, chainId, response } = params
+  SharedQueryClient.setQueryData<CheckPermissionsResponse>(
+    [
+      ReactQueryCacheKey.TradingApi,
+      V1_TRADING_API_PATHS.checkPermissions,
+      { walletAddress: '0xwallet', tokens, chainId },
+    ],
+    response,
+  )
 }
-const { Pair: V2Pool } = await vi.importActual<typeof import('@uniswap/v2-sdk')>('@uniswap/v2-sdk')
-Object.setPrototypeOf(mockV2Pool, V2Pool.prototype)
-
-const mockV3Pool = {
-  token0: { address: 'token0Address' },
-  token1: { address: 'token1Address' },
-  fee: 0,
-}
-const { Pool: V3Pool } = await vi.importActual<typeof import('@uniswap/v3-sdk')>('@uniswap/v3-sdk')
-Object.setPrototypeOf(mockV3Pool, V3Pool.prototype)
-//
-const mockV4Pool = { poolId: '0xpool1', v4: true }
-const { Pool: V4Pool } = await vi.importActual<typeof import('@uniswap/v4-sdk')>('@uniswap/v4-sdk')
-Object.setPrototypeOf(mockV4Pool, V4Pool.prototype)
-
-// Helper to cast isClassic as a Mock
-// const mockIsClassic = isClassic as unknown as Mock
 
 describe('analytics', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    SharedQueryClient.clear()
   })
 
   it('logSwapQuoteRequest calls sendAnalyticsEvent with correct parameters', () => {
     const mockChainId = 1
 
-    logSwapQuoteFetch({ chainId: mockChainId })
+    logSwapQuoteFetch({
+      chainId: mockChainId,
+      tokenOutChainId: mockChainId,
+      tokenIn: STANDARD_TOKEN,
+      tokenOut: PERMISSIONED_TOKEN,
+    })
 
     expect(sendAnalyticsEvent).toHaveBeenCalledWith(SwapEventName.SwapQuoteFetch, {
       chainId: mockChainId,
@@ -77,6 +65,7 @@ describe('analytics', () => {
       isUSDQuote: false,
       quoteSource: undefined,
       pollInterval: undefined,
+      is_permissioned: undefined,
       time_to_first_quote_request: 100,
       time_to_first_quote_request_since_first_input: 100,
     })
@@ -85,7 +74,13 @@ describe('analytics', () => {
   it('logSwapQuoteRequest excludes perf metrics for price quotes', () => {
     const mockChainId = 1
 
-    logSwapQuoteFetch({ chainId: mockChainId, isUSDQuote: true })
+    logSwapQuoteFetch({
+      chainId: mockChainId,
+      tokenOutChainId: mockChainId,
+      tokenIn: STANDARD_TOKEN,
+      tokenOut: PERMISSIONED_TOKEN,
+      isUSDQuote: true,
+    })
 
     expect(sendAnalyticsEvent).toHaveBeenCalledWith(SwapEventName.SwapQuoteFetch, {
       chainId: mockChainId,
@@ -93,6 +88,79 @@ describe('analytics', () => {
       isUSDQuote: true,
       quoteSource: undefined,
       pollInterval: undefined,
+      is_permissioned: undefined,
+    })
+  })
+
+  describe('logSwapQuoteFetch is_permissioned', () => {
+    const mockChainId = 1
+
+    function getSentSwapQuoteFetchProperties(): Record<string, unknown> {
+      const call = vi.mocked(sendAnalyticsEvent).mock.calls.find(([name]) => name === SwapEventName.SwapQuoteFetch)
+      expect(call).toBeDefined()
+      return call?.[1] as Record<string, unknown>
+    }
+
+    it('is true when a pair token is resolved permissioned in the cache', () => {
+      seedPermissions({
+        tokens: [PERMISSIONED_TOKEN],
+        chainId: mockChainId,
+        response: { requestId: 'req-1', results: [{ token: PERMISSIONED_TOKEN, isPermissioned: true }] },
+      })
+
+      logSwapQuoteFetch({
+        chainId: mockChainId,
+        tokenOutChainId: mockChainId,
+        tokenIn: PERMISSIONED_TOKEN,
+        tokenOut: STANDARD_TOKEN,
+      })
+
+      expect(getSentSwapQuoteFetchProperties()['is_permissioned']).toBe(true)
+    })
+
+    it('is false when every pair token is resolved not-permissioned (native counts as resolved)', () => {
+      seedPermissions({
+        tokens: [STANDARD_TOKEN],
+        chainId: mockChainId,
+        response: { requestId: 'req-2', results: [{ token: STANDARD_TOKEN, isPermissioned: false }] },
+      })
+
+      logSwapQuoteFetch({
+        chainId: mockChainId,
+        tokenOutChainId: mockChainId,
+        tokenIn: NATIVE_ADDRESS_FOR_TRADING_API,
+        tokenOut: STANDARD_TOKEN,
+      })
+
+      expect(getSentSwapQuoteFetchProperties()['is_permissioned']).toBe(false)
+    })
+
+    it('is omitted when the cache has no resolved answer for the pair', () => {
+      logSwapQuoteFetch({
+        chainId: mockChainId,
+        tokenOutChainId: mockChainId,
+        tokenIn: STANDARD_TOKEN,
+        tokenOut: PERMISSIONED_TOKEN,
+      })
+
+      expect(getSentSwapQuoteFetchProperties()['is_permissioned']).toBeUndefined()
+    })
+
+    it('is omitted for a cross-chain pair whose tokens were never checked', () => {
+      seedPermissions({
+        tokens: [STANDARD_TOKEN],
+        chainId: mockChainId,
+        response: { requestId: 'req-3', results: [{ token: STANDARD_TOKEN, isPermissioned: false }] },
+      })
+
+      logSwapQuoteFetch({
+        chainId: mockChainId,
+        tokenOutChainId: 10,
+        tokenIn: STANDARD_TOKEN,
+        tokenOut: STANDARD_TOKEN,
+      })
+
+      expect(getSentSwapQuoteFetchProperties()['is_permissioned']).toBeUndefined()
     })
   })
 
@@ -119,8 +187,8 @@ describe('analytics', () => {
     it('extracts route data from classic trade with V2 and V3 pools', () => {
       const mockClassicTrade = {
         routing: TradingApi.Routing.CLASSIC,
-        routes: [{ pools: [mockV2Pool] }, { pools: [mockV3Pool] }],
-      } as unknown as ClassicTrade
+        quote: { quote: { route: [[mockV2Pool], [mockV3Pool]] } },
+      } as unknown as Trade
 
       // We need to cast to Trade because the mock isn't a complete implementation
       const result = getRouteAnalyticsData(mockClassicTrade as unknown as Trade)
@@ -144,8 +212,8 @@ describe('analytics', () => {
       // We need to cast to Trade because the mock isn't a complete implementation
       const mockClassicTrade = {
         routing: TradingApi.Routing.CLASSIC,
-        routes: [{ pools: [mockV4Pool] }],
-      } as unknown as ClassicTrade
+        quote: { quote: { route: [[mockV4Pool]] } },
+      } as unknown as Trade
 
       const result = getRouteAnalyticsData(mockClassicTrade as unknown as Trade)
 
@@ -165,8 +233,8 @@ describe('analytics', () => {
       // Create a mock trade that will cause extraction to fail
       const mockBrokenTrade = {
         routing: TradingApi.Routing.CLASSIC,
-        routes: null, // This will cause an error during extraction
-      } as unknown as ClassicTrade
+        quote: { quote: { route: [[{ type: 'unknown-pool' }]] } },
+      } as unknown as Trade
 
       const result = getRouteAnalyticsData(mockBrokenTrade as unknown as Trade)
 

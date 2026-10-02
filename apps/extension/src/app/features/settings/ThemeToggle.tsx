@@ -1,7 +1,7 @@
+import { Flex, Text } from '@universe/mycelium'
+import { Contrast } from '@universe/mycelium/icons/Contrast'
 import { useTranslation } from 'react-i18next'
 import { SCREEN_ITEM_HORIZONTAL_PAD } from 'src/app/constants'
-import { Flex, Text } from 'ui/src'
-import { Contrast } from 'ui/src/components/icons'
 import { ThemeToggle } from 'uniswap/src/components/appearance/ThemeToggle'
 
 export function ThemeToggleWithLabel(): JSX.Element {

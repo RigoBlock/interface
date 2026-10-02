@@ -1,16 +1,15 @@
-import { GasFeeResult } from '@universe/api'
+import { GasFeeResult, TradingApi } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
+import { Flex, iconSizes, Separator, Text } from '@universe/mycelium'
+import { ArrowDown } from '@universe/mycelium/icons/ArrowDown'
 import { useTranslation } from 'react-i18next'
 import { DappRequestContent } from 'src/app/features/dappRequests/DappRequestContent'
-import { Flex, Separator, Text } from 'ui/src'
-import { ArrowDown } from 'ui/src/components/icons'
-import { iconSizes } from 'ui/src/theme'
 import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
 import { SplitLogo } from 'uniswap/src/components/CurrencyLogo/SplitLogo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { getCurrencyAmount, ValueType } from 'uniswap/src/features/tokens/getCurrencyAmount'
-import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPriceWrapper'
+import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'
 import { NumberType } from 'utilities/src/format/types'
 
 export function SwapDisplay({
@@ -20,6 +19,7 @@ export function SwapDisplay({
   outputCurrencyInfo,
   chainId,
   transactionGasFeeResult,
+  sponsorMetadata,
   showSmartWalletActivation,
   onCancel,
   onConfirm,
@@ -33,6 +33,7 @@ export function SwapDisplay({
   outputCurrencyInfo: Maybe<CurrencyInfo>
   chainId: UniverseChainId | null
   transactionGasFeeResult?: GasFeeResult
+  sponsorMetadata?: TradingApi.SponsorMetadata
   showSmartWalletActivation?: boolean
   onCancel?: () => Promise<void>
   onConfirm?: () => Promise<void>
@@ -94,6 +95,7 @@ export function SwapDisplay({
       isUniswapX={isUniswapX}
       title={title}
       transactionGasFeeResult={transactionGasFeeResult}
+      sponsorMetadata={sponsorMetadata}
       showSmartWalletActivation={showSmartWalletActivation}
       onCancel={onCancel}
       onConfirm={onConfirm}

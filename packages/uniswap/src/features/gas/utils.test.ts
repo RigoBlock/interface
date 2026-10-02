@@ -1,12 +1,15 @@
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
-import type { GasStrategy } from '@universe/api'
+import type { GasFeeResult, GasStrategy } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
 import { DynamicConfigs, type GasStrategies, getStatsigClient } from '@universe/gating'
-import { DAI } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { DAI, USDC_ARC } from 'uniswap/src/constants/tokens'
 import { DEFAULT_GAS_STRATEGY } from 'uniswap/src/features/gas/consts'
 import {
   applyNativeTokenPercentageBuffer,
   getActiveGasStrategy,
+  getDisplayGasStrategy,
+  hasGasEstimationFailed,
+  hasGasOverrides,
   hasSufficientFundsIncludingGas,
   hasSufficientGasBalance,
 } from 'uniswap/src/features/gas/utils'
@@ -26,6 +29,27 @@ vi.mock('@universe/gating', async (importOriginal) => {
 const ZERO_ETH = CurrencyAmount.fromRawAmount(MAINNET_CURRENCY, 0)
 const ONE_ETH = CurrencyAmount.fromRawAmount(MAINNET_CURRENCY, 1e18)
 const TEN_ETH = ONE_ETH.multiply(10)
+
+describe(getDisplayGasStrategy, () => {
+  it('returns undefined when no strategy is available', () => {
+    expect(getDisplayGasStrategy(undefined)).toBeUndefined()
+  })
+
+  it('returns a display strategy without mutating the submission strategy', () => {
+    const strategy: GasStrategy = {
+      limitInflationFactor: 1.2,
+      displayLimitInflationFactor: 1.2,
+      priceInflationFactor: 1.3,
+      percentileThresholdFor1559Fee: 80,
+    }
+
+    expect(getDisplayGasStrategy(strategy)).toEqual({
+      ...strategy,
+      displayLimitInflationFactor: 1,
+    })
+    expect(strategy.displayLimitInflationFactor).toBe(1.2)
+  })
+})
 
 describe(applyNativeTokenPercentageBuffer, () => {
   it('returns undefined if no currency amount is provided', () => {
@@ -100,6 +124,42 @@ function pathUsdBalance(raw: string): CurrencyAmount<Token> {
 }
 
 describe(hasSufficientGasBalance, () => {
+  it.each([
+    { currency: USDC_ARC, balance: '1001000', value: '1000000000000000000', expected: true },
+    { currency: USDC_ARC, balance: '1001000', value: '0xde0b6b3a7640000', expected: true },
+    { currency: USDC_ARC, balance: '1000000', value: '1000000000000000000', expected: false },
+    { currency: USDC_ARC, balance: '1001000', value: '1000000000000000001', expected: false },
+    { currency: MAINNET_CURRENCY, balance: '1001000000000000000', value: '1000000000000000000', expected: true },
+    { currency: MAINNET_CURRENCY, balance: '1000000000000000000', value: '1000000000000000000', expected: false },
+  ])(
+    'checks native value $value plus gas against $balance raw $currency.symbol',
+    ({ currency, balance, value, expected }) => {
+      expect(
+        hasSufficientGasBalance({
+          chainId: currency.chainId,
+          gasBalance: CurrencyAmount.fromRawAmount(currency, balance),
+          gasFee: '1000000000000000',
+          spend: { kind: 'raw-native-value', value },
+        }),
+      ).toBe(expected)
+    },
+  )
+
+  it.each([USDC_ARC, PATH_USD])('does not shift an amount already expressed in $symbol units', (gasToken) => {
+    const params = {
+      chainId: gasToken.chainId,
+      gasFee: '1000000000000000',
+      spend: { kind: 'gas-token-amount' as const, amount: CurrencyAmount.fromRawAmount(gasToken, '1000000') },
+    }
+
+    expect(hasSufficientGasBalance({ ...params, gasBalance: CurrencyAmount.fromRawAmount(gasToken, '1001000') })).toBe(
+      true,
+    )
+    expect(hasSufficientGasBalance({ ...params, gasBalance: CurrencyAmount.fromRawAmount(gasToken, '1000000') })).toBe(
+      false,
+    )
+  })
+
   it('delegates to hasSufficientFundsIncludingGas for non-Tempo chains', () => {
     expect(
       hasSufficientGasBalance({
@@ -120,7 +180,7 @@ describe(hasSufficientGasBalance, () => {
     ).toBe(false)
   })
 
-  it('delegates to hasSufficientFundsIncludingTempoGas for Tempo', () => {
+  it('delegates to the shifted-gas-token path for Tempo', () => {
     expect(
       hasSufficientGasBalance({
         chainId: UniverseChainId.Tempo,
@@ -247,5 +307,52 @@ describe(getActiveGasStrategy, () => {
       minPriorityFeeGwei: 0,
       maxPriorityFeeGwei: 0,
     })
+  })
+})
+
+describe(hasGasEstimationFailed, () => {
+  const idleSkippedResult: GasFeeResult = { isLoading: false, error: null }
+  const loadingResult: GasFeeResult = { isLoading: true, error: null }
+  const successResult: GasFeeResult = { value: '21000', displayValue: '21000', isLoading: false, error: null }
+  const erroredResult: GasFeeResult = { isLoading: false, error: new Error('estimation failed') }
+
+  it('returns false when the request is not a transaction type', () => {
+    expect(hasGasEstimationFailed(false, erroredResult)).toBe(false)
+  })
+
+  it('returns false when the gas fee result is undefined', () => {
+    expect(hasGasEstimationFailed(true, undefined)).toBe(false)
+  })
+
+  it('returns false while the query is loading', () => {
+    expect(hasGasEstimationFailed(true, loadingResult)).toBe(false)
+  })
+
+  // Regression test: prevents the transient error flash while the query is still
+  // waiting for async inputs (e.g. chainId) and React Query is reporting the
+  // skipped state as `{ isLoading: false, error: null, value: undefined }`.
+  it('returns false when the query is skipped or has not started yet', () => {
+    expect(hasGasEstimationFailed(true, idleSkippedResult)).toBe(false)
+  })
+
+  it('returns false when estimation succeeded', () => {
+    expect(hasGasEstimationFailed(true, successResult)).toBe(false)
+  })
+
+  it('returns true when the query settled with an error', () => {
+    expect(hasGasEstimationFailed(true, erroredResult)).toBe(true)
+  })
+})
+
+describe(hasGasOverrides, () => {
+  it('returns false when no overrides are saved', () => {
+    expect(hasGasOverrides(undefined)).toBe(false)
+    expect(hasGasOverrides({})).toBe(false)
+  })
+
+  it('returns true when any override field is set', () => {
+    expect(hasGasOverrides({ maxBaseFeeGwei: '10' })).toBe(true)
+    expect(hasGasOverrides({ priorityFeeGwei: '1' })).toBe(true)
+    expect(hasGasOverrides({ gasLimit: '21000' })).toBe(true)
   })
 })

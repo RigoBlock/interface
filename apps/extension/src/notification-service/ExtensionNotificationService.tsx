@@ -7,8 +7,7 @@ import {
   provideSessionService,
   SharedQueryClient,
 } from '@universe/api'
-import { SESSION_INIT_QUERY_KEY } from '@universe/api/src/components/ApiInit'
-import { getIsSessionServiceEnabled } from '@universe/gating'
+import { REQUEST_SOURCE } from '@universe/environment'
 import {
   createApiNotificationTracker,
   createBaseNotificationProcessor,
@@ -18,7 +17,9 @@ import {
   getNotificationQueryOptions,
   type NotificationService,
 } from '@universe/notifications'
+import { SESSION_INIT_QUERY_KEY } from '@universe/sessions'
 import ms from 'ms'
+import { getConfig } from 'src/app/config'
 import { UnitagClaimRoutes } from 'src/app/navigation/constants'
 import { focusOrCreateUniswapInterfaceTab, focusOrCreateUnitagTab } from 'src/app/navigation/utils'
 import { createChromeStorageAdapter } from 'src/notification-service/createChromeStorageAdapter'
@@ -29,14 +30,14 @@ import { extensionNotificationStore } from 'src/notification-service/notificatio
 import { getNotificationTelemetry } from 'src/notification-service/notification-telemetry/getNotificationTelemetry'
 import { createExtensionLocalTriggerDataSource } from 'src/notification-service/triggers/createExtensionLocalTriggerDataSource'
 import { getReduxStore } from 'src/store/store'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapStaticUrls } from 'uniswap/src/constants/urls'
 import { mapLocaleToBackendLocale } from 'uniswap/src/features/language/constants'
 import { getLocale } from 'uniswap/src/features/language/navigatorLocale'
 import { selectCurrentLanguage } from 'uniswap/src/features/settings/selectors'
 import { getLogger } from 'utilities/src/logger/logger'
-import { REQUEST_SOURCE } from 'utilities/src/platform/requestSource'
 import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
 import { type QueryOptionsResult } from 'utilities/src/reactQuery/queryOptions'
+import { getBackupReminderPortfolioValue } from 'wallet/src/features/behaviorHistory/getBackupReminderPortfolioValue'
 
 /**
  * Checks if the session has been initialized by looking at the React Query cache.
@@ -69,13 +70,12 @@ function provideExtensionNotificationService(ctx: {
         'Content-Type': 'application/json',
         'x-request-source': REQUEST_SOURCE,
         'x-uniswap-locale': backendLocale,
-        'x-app-version': (process.env.VERSION ?? '').split('.').slice(0, 3).join('.'),
+        'x-app-version': getConfig().appVersion.split('.').slice(0, 3).join('.'),
       }
     },
     getSessionService: () =>
       provideSessionService({
         getBaseUrl: () => getEntryGatewayUrl(),
-        getIsSessionServiceEnabled,
       }),
   })
 
@@ -107,11 +107,20 @@ function provideExtensionNotificationService(ctx: {
     pollIntervalMs: ms('10s'),
   })
 
+  /**
+   * Fetches the portfolio value for the active account.
+   * Used by local triggers that need to check portfolio-based conditions (e.g. backup reminder).
+   */
+  const getPortfolioValue = async (): Promise<number> => {
+    return getBackupReminderPortfolioValue(ctx.getReduxStore().getState())
+  }
+
   const localTriggersDataSource = createExtensionLocalTriggerDataSource({
     // oxlint-disable-next-line typescript/no-unsafe-return -- biome-parity: oxlint is stricter here
     getState: () => ctx.getReduxStore().getState(),
     dispatch: ctx.getReduxStore().dispatch,
     tracker,
+    getPortfolioValue,
     pollIntervalMs: ms('5s'),
   })
 
@@ -140,7 +149,7 @@ function provideExtensionNotificationService(ctx: {
     // Handle explore paths by opening in web interface
     if (url.startsWith('/explore/')) {
       focusOrCreateUniswapInterfaceTab({
-        url: `${uniswapUrls.requestOriginUrl}${url}`,
+        url: `${UniswapStaticUrls.requestOriginUrl}${url}`,
       }).catch((error) => {
         getLogger().error(error, {
           tags: {

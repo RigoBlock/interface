@@ -1,6 +1,6 @@
+import { Flex, Text } from '@universe/mycelium'
+import { Caret } from '@universe/mycelium/icons/Caret'
 import { memo, useMemo } from 'react'
-import { Flex, Text } from 'ui/src'
-import { Caret } from 'ui/src/components/icons/Caret'
 import { getValueSignInfo } from 'uniswap/src/components/ProfitLoss/constants'
 import { useAppFiatCurrencyInfo } from 'uniswap/src/features/fiatCurrency/hooks'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'

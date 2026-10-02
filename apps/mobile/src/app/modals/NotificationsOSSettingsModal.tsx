@@ -1,4 +1,5 @@
 import { useFocusEffect } from '@react-navigation/core'
+import { Button, Flex } from '@universe/mycelium'
 import React, { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SettingsStackNavigationProp } from 'src/app/navigation/types'
@@ -9,7 +10,6 @@ import {
 } from 'src/features/notifications/hooks/useNotificationOSPermissionsEnabled'
 import { usePromptPushPermission } from 'src/features/notifications/hooks/usePromptPushPermission'
 import { openNotificationSettings } from 'src/utils/linking'
-import { Button, Flex } from 'ui/src'
 import { BellOn } from 'ui/src/components/icons/BellOn'
 import { GenericHeader } from 'uniswap/src/components/misc/GenericHeader'
 import { Modal } from 'uniswap/src/components/modals/Modal'
@@ -67,7 +67,7 @@ export function NotificationsOSSettingsModal({ navigation }: NotificationsOSSett
 
   return (
     <Modal name={ModalName.NotificationsOSSettings} isModalOpen={true} onClose={onClose}>
-      <Flex animation="fast" gap="$spacing40" pb="$spacing12" px="$spacing24" width="100%">
+      <Flex gap="$spacing40" pb="$spacing12" px="$spacing24" width="100%">
         <GenericHeader
           Icon={BellOn}
           flexProps={{ m: '$spacing12' }}

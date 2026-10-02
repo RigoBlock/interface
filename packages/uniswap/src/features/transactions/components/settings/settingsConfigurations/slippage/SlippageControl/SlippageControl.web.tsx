@@ -1,7 +1,7 @@
+import { ColorTokens, Flex, Input, Text } from '@universe/mycelium'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { LayoutChangeEvent } from 'react-native'
-import { ColorTokens, Flex, Input, Text } from 'ui/src'
 import type { SlippageControlProps } from 'uniswap/src/features/transactions/components/settings/settingsConfigurations/slippage/SlippageControl/types'
 import { useSlippageSettings } from 'uniswap/src/features/transactions/components/settings/settingsConfigurations/slippage/useSlippageSettings'
 import { getSlippageWarningColor } from 'uniswap/src/features/transactions/swap/utils/styleHelpers'
@@ -125,7 +125,7 @@ export function SlippageControl(props: SlippageControlProps): JSX.Element {
               ref={inputRef}
               keyboardType="decimal-pad"
               backgroundColor={backgroundColor}
-              $group-hover={{ backgroundColor: '$surface1Hovered' }}
+              groupHoverStyle={{ backgroundColor: '$surface1Hovered' }}
               color={inputValueTextColor}
               editable={true}
               fontFamily="$subHeading"

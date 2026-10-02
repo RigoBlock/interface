@@ -14,7 +14,11 @@ export const WORLD_CHAIN_LOGO = require('./logos/png/world-chain-logo.png')
 export const ZORA_LOGO = require('./logos/png/zora-logo.png')
 export const ZKSYNC_LOGO = require('./logos/png/zksync-logo.png')
 export const HYPERLIQUID_LOGO = require('./logos/png/hyperliquid-logo.png')
+export const ARC_LOGO = require('./logos/png/arc-logo.png')
+export const INK_LOGO = require('./logos/png/ink-logo.png')
 export const LINEA_LOGO = require('./logos/png/linea-logo.png')
+export const MEGAETH_LOGO = require('./logos/png/megaeth-logo.png')
+export const ROBINHOOD_LOGO = require('./logos/png/robinhood-logo.png')
 export const RIGOBLOCK_LOGO = require('./logos/png/rigoblock-logo.png')
 export const RIGOBLOCK_LOGO_LARGE = require('./logos/png/rigoblock-logo-large.png')
 export const SOLANA_LOGO = require('./logos/png/solana-logo.png')
@@ -78,9 +82,6 @@ export const FOR_CONNECTING_BACKGROUND_LIGHT = require('./backgrounds/for-connec
 export const CRYPTO_PURCHASE_BACKGROUND_LIGHT = require('./backgrounds/coins-background-light.png')
 export const CRYPTO_PURCHASE_BACKGROUND_DARK = require('./backgrounds/coins-background-dark.png')
 
-export const SOLANA_BANNER_LIGHT = require('./backgrounds/solana-banner-light.png')
-export const SOLANA_BANNER_DARK = require('./backgrounds/solana-banner-dark.png')
-
 export const SECURITY_SCREEN_BACKGROUND_DARK = {
   ios: require(`./backgrounds/ios/security-background-dark.png`),
   android: require(`./backgrounds/android/security-background-dark.png`),
@@ -111,7 +112,3 @@ export const UNITAGS_SPENCER_DARK = require('./graphics/unitags/spencer-dark.png
 
 export const SMART_WALLET_UPGRADE_VIDEO = require('./videos/smart-wallet-upgrade.mp4')
 export const SMART_WALLET_UPGRADE_FALLBACK = require('./graphics/smart-wallet-image.png')
-
-export const NO_UNISWAP_INTERFACE_FEES_BANNER_LIGHT = require('./backgrounds/dots-banner-light.png')
-export const NO_UNISWAP_INTERFACE_FEES_BANNER_DARK = require('./backgrounds/dots-banner-dark.png')
-export const NO_FEES_ICON = require('./graphics/zero-percent.png')

@@ -1,6 +1,6 @@
+import { Flex } from '@universe/mycelium'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex } from 'ui/src'
 import useResizeObserver from 'use-resize-observer'
 import { adjustItemWidths, MIN_BAR_WIDTH } from '~/components/PercentageAllocationChart/chartUtils'
 import { Legend } from '~/components/PercentageAllocationChart/Legend'

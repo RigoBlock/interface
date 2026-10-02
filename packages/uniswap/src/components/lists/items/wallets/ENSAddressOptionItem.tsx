@@ -1,21 +1,25 @@
+import { sanitizeAddressText } from '@universe/chains'
+import { iconSizes, type ModifierPressProps, Text } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
-import { Text } from 'ui/src'
-import { iconSizes } from 'ui/src/theme'
 import { OptionItemProps } from 'uniswap/src/components/lists/items/OptionItem'
 import { ENSAddressOption } from 'uniswap/src/components/lists/items/types'
 import { WalletBaseOptionItem } from 'uniswap/src/components/lists/items/wallets/WalletBaseOptionItem'
 import { AccountIcon } from 'uniswap/src/features/accounts/AccountIcon'
 import { useENSName } from 'uniswap/src/features/ens/api'
 import { getCompletedENSName } from 'uniswap/src/features/ens/useENS'
-import { sanitizeAddressText } from 'uniswap/src/utils/addresses'
 import { shortenAddress } from 'utilities/src/addresses'
 
-type ENSAddressOptionItemProps = {
+type ENSAddressOptionItemProps = ModifierPressProps & {
   ensAddressOption: ENSAddressOption
   onPress: OptionItemProps['onPress']
 }
 
-export function ENSAddressOptionItem({ ensAddressOption, onPress }: ENSAddressOptionItemProps): JSX.Element {
+export function ENSAddressOptionItem({
+  ensAddressOption,
+  onPress,
+  modifierPressHref,
+  onModifierPress,
+}: ENSAddressOptionItemProps): JSX.Element {
   const { t } = useTranslation()
 
   // Use `savedPrimaryEnsName` for WalletSearchResults that are stored in the search history
@@ -58,7 +62,9 @@ export function ENSAddressOptionItem({ ensAddressOption, onPress }: ENSAddressOp
           {showAddress && formattedAddress}
         </Text>
       }
+      modifierPressHref={modifierPressHref}
       onPress={onPress}
+      onModifierPress={onModifierPress}
     />
   )
 }

@@ -1,4 +1,4 @@
-import { Flex } from 'ui/src'
+import { Flex } from '@universe/mycelium'
 import { BaseCard } from 'uniswap/src/components/BaseCard/BaseCard'
 import { ON_PRESS_EVENT_PAYLOAD } from 'uniswap/src/test/fixtures'
 import { fireEvent, render } from 'uniswap/src/test/test-utils'

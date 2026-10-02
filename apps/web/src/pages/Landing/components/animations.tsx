@@ -1,61 +1,43 @@
-import { motion } from 'framer-motion'
-import { css, deprecatedStyled, keyframes } from '~/lib/deprecated-styled'
+import '~/pages/Landing/components/animations.css'
+import { styled } from '@universe/mycelium/styled'
+import type { ComponentPropsWithoutRef } from 'react'
 
 type RiseInProps = {
   delay?: number
   children?: React.ReactNode
 }
 
-const riseInAnimation = keyframes`
-  0% {
-    opacity: 0;
-    transform: translateY(100px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0px);
-  }
-`
+const RiseInTextFrame = styled('span', {
+  platform: 'web',
+  base: 'inline-flex landing-rise-in',
+})
 
-const RiseInStyles = css<{ count?: number; delay?: number }>`
-  opacity: 0;
-  animation-name: ${riseInAnimation};
-  animation-fill-mode: forwards;
-  animation-duration: 1000ms;
-  animation-iteration-count: 1;
-  animation-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
-  animation-delay: ${(props) => 1000 * (props.delay ?? 0)}ms;
-`
+export function RiseInText({
+  delay,
+  style,
+  ...rest
+}: { delay?: number } & ComponentPropsWithoutRef<typeof RiseInTextFrame>): JSX.Element {
+  return <RiseInTextFrame style={{ animationDelay: `${1000 * (delay ?? 0)}ms`, ...style }} {...rest} />
+}
 
-export const RiseInText = deprecatedStyled.span<{ delay?: number }>`
-  display: inline-flex;
-  ${RiseInStyles}
-`
+const RiseInFrame = styled('span', {
+  platform: 'web',
+  base: 'flex w-full flex-none justify-center pointer-events-none landing-rise-in',
+})
 
-export const RiseIn = deprecatedStyled.span<{ delay?: number }>`
-  display: flex;
-  width: 100%;
-  flex: none;
-  justify-content: center;
-  pointer-events: none;
-  ${RiseInStyles}
-`
+export function RiseIn({
+  delay,
+  style,
+  ...rest
+}: { delay?: number } & ComponentPropsWithoutRef<typeof RiseInFrame>): JSX.Element {
+  return <RiseInFrame style={{ animationDelay: `${1000 * (delay ?? 0)}ms`, ...style }} {...rest} />
+}
+
+const HoverContainer = styled('div', {
+  platform: 'web',
+  base: 'inline-block relative landing-hover-float',
+})
 
 export const Hover = (props: RiseInProps) => {
-  return (
-    <motion.div
-      animate={{
-        y: ['-4px', '4px', '-4px'],
-        opacity: [0.5, 1, 0.5],
-      }}
-      transition={{
-        duration: 2,
-        repeat: Infinity, // repeat animation forever
-        ease: 'easeInOut',
-      }}
-      style={{ display: 'inline-block', position: 'relative' }}
-    >
-      {props.children}
-    </motion.div>
-  )
+  return <HoverContainer>{props.children}</HoverContainer>
 }

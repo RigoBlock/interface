@@ -1,3 +1,4 @@
+import { Platform, UniverseChainId, getValidAddress } from '@universe/chains'
 import { parseUri } from '@walletconnect/utils'
 import {
   isUwULinkDirectLink,
@@ -11,8 +12,8 @@ import {
   UNISWAP_URL_SCHEME_WALLETCONNECT_AS_PARAM,
   UNISWAP_WALLETCONNECT_URL,
 } from 'src/features/deepLinking/constants'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
-import { getValidAddress } from 'uniswap/src/utils/addresses'
+import { toSupportedChainId } from 'uniswap/src/features/chains/utils'
+import { tryCatch } from 'utilities/src/errors'
 import { logger } from 'utilities/src/logger/logger'
 import { ScantasticParams, ScantasticParamsSchema } from 'wallet/src/features/scantastic/types'
 
@@ -20,28 +21,36 @@ export enum URIType {
   WalletConnectURL = 'walletconnect',
   WalletConnectV2URL = 'walletconnect-v2',
   Address = 'address',
+  EIP681 = 'eip-681',
   EasterEgg = 'easter-egg',
   Scantastic = 'scantastic',
   UwULink = 'uwu-link',
 }
 
-type URIFormat = {
-  type: URIType
+type SimpleURIFormat = {
+  type: Exclude<URIType, URIType.EIP681>
   value: string
 }
 
-interface EnabledFeatureFlags {
-  isUwULinkEnabled: boolean
-  isScantasticEnabled: boolean
+export type EIP681URI = {
+  type: URIType.EIP681
+  value: string
+  chainId?: UniverseChainId
+  tokenAddress?: string
+}
+
+export type URIFormat = SimpleURIFormat | EIP681URI
+
+interface SupportedURIOptions {
+  isUwULinkEnabled?: boolean
+  isScantasticEnabled?: boolean
+  enabledChainIds?: UniverseChainId[]
 }
 
 const EASTER_EGG_QR_CODE = 'DO_NOT_SCAN_OR_ELSE_YOU_WILL_GO_TO_MOBILE_TEAM_JAIL'
 export const CUSTOM_UNI_QR_CODE_PREFIX = 'hello_uniwallet:'
 
-export async function getSupportedURI(
-  uri: string,
-  enabledFeatureFlags?: EnabledFeatureFlags,
-): Promise<URIFormat | undefined> {
+export async function getSupportedURI(uri: string, options?: SupportedURIOptions): Promise<URIFormat | undefined> {
   if (!uri) {
     return undefined
   }
@@ -59,13 +68,30 @@ export async function getSupportedURI(
     return { type: URIType.Address, value: maybeAddress }
   }
 
-  const maybeMetamaskAddress = getMetamaskAddress(uri)
-  if (maybeMetamaskAddress) {
-    return { type: URIType.Address, value: maybeMetamaskAddress }
+  const maybeEIP681URI = getEIP681URI(uri)
+  if (maybeEIP681URI === null) {
+    return undefined
+  }
+
+  if (
+    maybeEIP681URI?.chainId &&
+    options?.enabledChainIds &&
+    !options.enabledChainIds.includes(maybeEIP681URI.chainId)
+  ) {
+    return undefined
+  }
+
+  if (maybeEIP681URI) {
+    return maybeEIP681URI
+  }
+
+  const maybeSchemeAddress = getAddressFromSchemeUri(uri)
+  if (maybeSchemeAddress) {
+    return { type: URIType.Address, value: maybeSchemeAddress }
   }
 
   const maybeScantasticQueryParams = getScantasticQueryParams(uri)
-  if (enabledFeatureFlags?.isScantasticEnabled && maybeScantasticQueryParams) {
+  if (options?.isScantasticEnabled && maybeScantasticQueryParams) {
     return { type: URIType.Scantastic, value: maybeScantasticQueryParams }
   }
 
@@ -82,7 +108,13 @@ export async function getSupportedURI(
     return { type, value: maybeCustomWcUri }
   }
 
-  const wctUriVersion = parseUri(uri).version
+  const { data: parsedUri, error: parseUriError } = tryCatch(() => parseUri(uri))
+  if (parseUriError) {
+    logger.debug('util.ts', 'getSupportedURI', 'Failed to parse URI as WalletConnect URI', {
+      error: parseUriError.message,
+    })
+  }
+  const wctUriVersion = parsedUri?.version
   if (wctUriVersion === 1) {
     return { type: URIType.WalletConnectURL, value: uri }
   }
@@ -97,7 +129,10 @@ export async function getSupportedURI(
 
   if (isUwULinkDirectLink(uri)) {
     // remove escape strings from the stringified JSON before parsing it
-    return { type: URIType.UwULink, value: uri.slice(UWULINK_PREFIX.length).replaceAll('\\', '') }
+    return {
+      type: URIType.UwULink,
+      value: uri.slice(UWULINK_PREFIX.length).replaceAll('\\', ''),
+    }
   }
 
   if (isUwuLinkUniswapDeepLink(uri)) {
@@ -118,21 +153,87 @@ async function getWcUriWithCustomPrefix(uri: string, prefix: string): Promise<{ 
 
   const maybeWcUri = uri.slice(prefix.length)
 
-  if (parseUri(maybeWcUri).version === 2) {
+  const { data: parsedWcUri, error: parseWcUriError } = tryCatch(() => parseUri(maybeWcUri))
+  if (parseWcUriError) {
+    logger.debug('util.ts', 'getWcUriWithCustomPrefix', 'Failed to parse URI as WalletConnect URI', {
+      error: parseWcUriError.message,
+    })
+  }
+  if (parsedWcUri?.version === 2) {
     return { uri: maybeWcUri, type: URIType.WalletConnectV2URL }
   }
 
   return null
 }
 
-// metamask QR code values have the format "ethereum:<address>"
-function getMetamaskAddress(uri: string): Nullable<string> {
+function getAddressFromSchemeUri(uri: string): Nullable<string> {
   const uriParts = uri.split(':')
   if (uriParts.length < 2) {
     return null
   }
 
-  return getValidAddress({ address: uriParts[1], platform: Platform.EVM, withEVMChecksum: true, log: false })
+  return getValidEvmAddress(uriParts[1] ?? '')
+}
+
+// Returns undefined for other formats and null for invalid EIP-681 requests.
+function getEIP681URI(uri: string): EIP681URI | null | undefined {
+  const prefix = 'ethereum:'
+  if (!uri.startsWith(prefix)) {
+    return undefined
+  }
+
+  let rest = uri.slice(prefix.length)
+  const hasPaymentRequestSyntax = rest.startsWith('pay-') || /[@/?]/.test(rest)
+  if (!hasPaymentRequestSyntax) {
+    return undefined
+  }
+
+  if (rest.startsWith('pay-')) {
+    rest = rest.slice('pay-'.length)
+  }
+
+  const [path = '', query] = rest.split('?')
+  const [targetWithChain = '', functionName] = path.split('/')
+  const [target = '', rawChainId] = targetWithChain.split('@')
+  const parsedChainId = rawChainId ? toSupportedChainId(rawChainId) : undefined
+
+  if (rawChainId && !parsedChainId) {
+    return null
+  }
+  const chainId = parsedChainId ?? undefined
+
+  if (functionName !== undefined) {
+    // ERC-20 transfer targets the token contract; its address param is the recipient.
+    if (functionName !== 'transfer' || !query) {
+      return null
+    }
+    const tokenAddress = getValidEvmAddress(target)
+    const recipient = new URLSearchParams(query).get('address')
+    const recipientAddress = recipient ? getValidEvmAddress(recipient) : null
+
+    return tokenAddress && recipientAddress
+      ? { type: URIType.EIP681, value: recipientAddress, chainId, tokenAddress }
+      : null
+  }
+
+  const recipientAddress = getValidEvmAddress(target)
+  return recipientAddress
+    ? {
+        type: URIType.EIP681,
+        value: recipientAddress,
+        chainId,
+        tokenAddress: undefined,
+      }
+    : null
+}
+
+function getValidEvmAddress(address: string): Nullable<string> {
+  return getValidAddress({
+    address,
+    platform: Platform.EVM,
+    withEVMChecksum: true,
+    log: false,
+  })
 }
 
 // format is uniswap://scantastic?<params>

@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react'
 import { Token } from '@uniswap/sdk-core'
+import { UniverseChainId } from '@universe/chains'
 import { act } from 'react'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useUserPreservedCurrencies } from '~/pages/TokenDetails/hooks/useUserPreservedCurrencies'
 
 const ETH_USDC = new Token(UniverseChainId.Mainnet, '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', 6, 'USDC')

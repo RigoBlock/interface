@@ -1,7 +1,7 @@
+import { Flex, iconSizes } from '@universe/mycelium'
+import { TestID } from '@universe/test'
 import { useMemo } from 'react'
-import { Trans } from 'react-i18next'
-import { Flex } from 'ui/src'
-import { iconSizes } from 'ui/src/theme'
+import { useTranslation } from 'react-i18next'
 import { FiatCurrency, ORDERED_CURRENCIES } from 'uniswap/src/features/fiatCurrency/constants'
 import { useAppFiatCurrency } from 'uniswap/src/features/fiatCurrency/hooks'
 import { MenuColumn, MenuItem } from '~/components/AccountDrawer/shared'
@@ -31,7 +31,7 @@ function LocalCurrencyMenuItem({ localCurrency, isActive }: { localCurrency: Fia
       isActive={isActive}
       to={to}
       onClick={onClick}
-      testId="wallet-local-currency-item"
+      testId={TestID.WalletLocalCurrencyItem}
     />
   )
 }
@@ -52,9 +52,10 @@ export function LocalCurrencyMenuItems() {
   )
 }
 
-export default function LocalCurrencyMenu({ onClose }: { onClose: () => void }) {
+export function LocalCurrencyMenu({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation()
   return (
-    <SlideOutMenu title={<Trans i18nKey="common.currency" />} onClose={onClose}>
+    <SlideOutMenu title={t('common.currency')} onClose={onClose}>
       <MenuColumn>
         <LocalCurrencyMenuItems />
       </MenuColumn>

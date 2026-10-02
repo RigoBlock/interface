@@ -1,9 +1,8 @@
 import { Currency } from '@uniswap/sdk-core'
 import { useCallback } from 'react'
-import { PopupType } from '~/components/Popups/types'
 import { addSuppressedPopups, removeSuppressedPopups, setSmartPoolValue } from '~/state/application/reducer'
 import { useAppDispatch, useAppSelector } from '~/state/hooks'
-import { InterfaceState } from '~/state/webReducer'
+import { PopupType } from '~/state/popups/types'
 
 export function useSelectActiveSmartPool(): (smartPoolValue?: Currency) => void {
   const dispatch = useAppDispatch()

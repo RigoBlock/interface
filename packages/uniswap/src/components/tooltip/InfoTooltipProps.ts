@@ -1,5 +1,5 @@
+import type { TooltipCompatProps as TooltipProps } from '@universe/mycelium/tooltip-compat'
 import { ReactNode } from 'react'
-import { PopperProps } from 'ui/src'
 
 export type InfoTooltipProps = {
   title?: string
@@ -13,4 +13,4 @@ export type InfoTooltipProps = {
   open?: boolean
   enabled?: boolean
   onOpenChange?: (isOpen: boolean) => void
-} & Pick<PopperProps, 'placement'>
+} & Pick<TooltipProps, 'placement'>

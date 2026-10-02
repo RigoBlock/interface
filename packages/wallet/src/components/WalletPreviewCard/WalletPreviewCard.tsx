@@ -1,6 +1,5 @@
-import { Flex, Text, TouchableArea } from 'ui/src'
-import { Check } from 'ui/src/components/icons'
-import { iconSizes } from 'ui/src/theme'
+import { Flex, iconSizes, Text, TouchableArea } from '@universe/mycelium'
+import { Check } from '@universe/mycelium/icons/Check'
 import { AddressDisplay } from 'uniswap/src/components/accounts/AddressDisplay'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'

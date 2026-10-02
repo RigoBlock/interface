@@ -1,7 +1,13 @@
 // New helper for adapting ethers or viem receipts to the shared TransactionReceipt type
+import { UniverseChainId } from '@universe/chains'
 import { providers } from 'ethers/lib/ethers'
-import { TransactionReceipt as SharedTransactionReceipt } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { TransactionReceipt as ViemTransactionReceipt } from 'viem'
+import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
+import { ValueType } from 'uniswap/src/features/tokens/getCurrencyAmount'
+import {
+  TransactionNetworkFee,
+  TransactionReceipt as SharedTransactionReceipt,
+} from 'uniswap/src/features/transactions/types/transactionDetails'
+import { formatEther, TransactionReceipt as ViemTransactionReceipt } from 'viem'
 import { ZksyncTransactionReceipt } from 'viem/chains'
 
 type ViemTransactionReceiptOrZksyncReceipt = ViemTransactionReceipt | ZksyncTransactionReceipt
@@ -69,5 +75,35 @@ export function receiptFromViemReceipt(
     confirmedTime: confirmedTime ?? Date.now(),
     gasUsed: toNumber(viemReceipt.gasUsed),
     effectiveGasPrice: toNumber(viemReceipt.effectiveGasPrice),
+  }
+}
+
+/**
+ * Builds the network fee paid for a mined transaction from its viem receipt, denominated in the
+ * chain's native currency. Mirrors the wallet-side `buildNetworkFeeFromReceipt` (packages/wallet),
+ * which does the same math on an ethers receipt.
+ * Returns undefined when the RPC omitted `effectiveGasPrice` (viem types it as required, but some
+ * RPCs leave it out) — callers skip the fee rather than break finalization.
+ */
+export function buildNetworkFeeFromViemReceipt({
+  receipt,
+  chainId,
+}: {
+  receipt: ViemTransactionReceiptOrZksyncReceipt
+  chainId: UniverseChainId
+}): TransactionNetworkFee | undefined {
+  const gasUsed = receipt.gasUsed as bigint | undefined
+  const effectiveGasPrice = receipt.effectiveGasPrice as bigint | undefined
+  if (typeof gasUsed !== 'bigint' || typeof effectiveGasPrice !== 'bigint') {
+    return undefined
+  }
+
+  const { nativeCurrency } = getChainInfo(chainId)
+  return {
+    quantity: formatEther(gasUsed * effectiveGasPrice),
+    tokenSymbol: nativeCurrency.symbol,
+    tokenAddress: nativeCurrency.address,
+    chainId,
+    valueType: ValueType.Exact,
   }
 }

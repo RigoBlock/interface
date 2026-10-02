@@ -1,6 +1,6 @@
+import { Flex } from '@universe/mycelium'
+import { SendAlt } from '@universe/mycelium/icons/SendAlt'
 import { useTranslation } from 'react-i18next'
-import { Flex } from 'ui/src'
-import { SendAlt } from 'ui/src/components/icons'
 import { TransactionAssetList } from 'wallet/src/components/dappRequests/TransactionAssetList'
 import { type TransactionAsset, TransactionRiskLevel } from 'wallet/src/features/dappRequests/types'
 

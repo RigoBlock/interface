@@ -1,29 +1,34 @@
-import { Tooltip as TamaguiTooltip, TooltipProps, withStaticProperties } from 'tamagui'
+import type {
+  TooltipArrowProps,
+  TooltipContentProps,
+  TooltipProps,
+  TooltipTriggerProps,
+} from 'ui/src/components/tooltip/types'
 import { PlatformSplitStubError } from 'utilities/src/errors'
 
-export type { TooltipProps } from 'tamagui'
+export type {
+  TooltipAnimationDirection,
+  TooltipArrowProps,
+  TooltipContentProps,
+  TooltipDelay,
+  TooltipOffset,
+  TooltipPlacement,
+  TooltipProps,
+  TooltipTriggerProps,
+} from 'ui/src/components/tooltip/types'
 
-type TriggerProps = React.ComponentProps<typeof TamaguiTooltip.Trigger>
-export type TooltipContentProps = Omit<React.ComponentProps<typeof TamaguiTooltip.Content>, 'zIndex'> & {
-  animationDirection?: 'left' | 'right' | 'top' | 'bottom'
-  // zIndex is required to properly display components
-  zIndex: NonNullable<React.ComponentProps<typeof TamaguiTooltip.Content>['zIndex']>
+function TooltipStub(_props: TooltipProps): JSX.Element {
+  throw new PlatformSplitStubError('Tooltip')
 }
-type ArrowProps = React.ComponentProps<typeof TamaguiTooltip.Arrow>
 
-export const Tooltip = withStaticProperties(
-  (_props: TooltipProps) => {
-    throw new PlatformSplitStubError('Tooltip')
+export const Tooltip = Object.assign(TooltipStub, {
+  Trigger: (_props: TooltipTriggerProps): JSX.Element => {
+    throw new PlatformSplitStubError('Tooltip.Trigger')
   },
-  {
-    Trigger: (_props: TriggerProps) => {
-      throw new PlatformSplitStubError('Tooltip.Trigger')
-    },
-    Content: (_props: TooltipContentProps) => {
-      throw new PlatformSplitStubError('Tooltip.Content')
-    },
-    Arrow: (_props: ArrowProps) => {
-      throw new PlatformSplitStubError('Tooltip.Arrow')
-    },
+  Content: (_props: TooltipContentProps): JSX.Element => {
+    throw new PlatformSplitStubError('Tooltip.Content')
   },
-)
+  Arrow: (_props: TooltipArrowProps): JSX.Element => {
+    throw new PlatformSplitStubError('Tooltip.Arrow')
+  },
+})

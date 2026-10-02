@@ -1,8 +1,10 @@
+import { Flex, iconSizes, Text } from '@universe/mycelium'
+import { IconProps } from '@universe/mycelium/icons'
+import { EyeOff } from '@universe/mycelium/icons/EyeOff'
+import { Key } from '@universe/mycelium/icons/Key'
+import { PencilDetailed } from '@universe/mycelium/icons/PencilDetailed'
 import { FunctionComponent } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { Circle, Flex, IconProps, Text } from 'ui/src'
-import { EyeOff, Key, PencilDetailed } from 'ui/src/components/icons'
-import { iconSizes } from 'ui/src/theme'
 
 export function BackupWarningBulletPoints(): JSX.Element {
   const { t } = useTranslation()
@@ -39,8 +41,15 @@ export function BackupWarningBulletPoints(): JSX.Element {
 
 function WarningIcon({ Icon }: { Icon: FunctionComponent<IconProps> }): JSX.Element {
   return (
-    <Circle backgroundColor="$statusCritical2" size={iconSizes.icon36}>
+    <Flex
+      alignItems="center"
+      justifyContent="center"
+      backgroundColor="$statusCritical2"
+      borderRadius="$roundedFull"
+      height={iconSizes.icon36}
+      width={iconSizes.icon36}
+    >
       <Icon color="$statusCritical" size="$icon.24" />
-    </Circle>
+    </Flex>
   )
 }

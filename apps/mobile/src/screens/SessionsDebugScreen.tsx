@@ -1,5 +1,5 @@
-import { getEntryGatewayUrl, provideSessionService } from '@universe/api'
-import { getStorageDriver } from '@universe/api/src/storage/getStorageDriver'
+import { getEntryGatewayUrl, getStorageDriver, provideSessionService } from '@universe/api'
+import { Button, Flex, Text, TouchableArea } from '@universe/mycelium'
 import { ChallengeType, createHashcashSolver, type SessionService } from '@universe/sessions'
 import React, { useCallback, useEffect, useRef } from 'react'
 import { ScrollView } from 'react-native'
@@ -10,8 +10,7 @@ import { CurrentOperationSection } from 'src/screens/components/sessions/Current
 import { HashcashProgressSection } from 'src/screens/components/sessions/HashcashProgressSection'
 import { LogSection } from 'src/screens/components/sessions/LogSection'
 import { useSessionsDebugStore } from 'src/screens/stores/sessionsDebugStore'
-import { Button, Flex, Text, TouchableArea } from 'ui/src'
-import { CopyAlt } from 'ui/src/components/icons'
+import { CopyAlt } from 'ui/src/components/icons/CopyAlt'
 import { setClipboard } from 'utilities/src/clipboard/clipboard'
 import { logger } from 'utilities/src/logger/logger'
 import { useShallow } from 'zustand/shallow'
@@ -67,7 +66,6 @@ export function SessionsDebugScreen(): JSX.Element {
     if (!sessionServiceRef.current) {
       sessionServiceRef.current = provideSessionService({
         getBaseUrl: getEntryGatewayUrl,
-        getIsSessionServiceEnabled: () => true, // Always enabled for debug
         getLogger: () => logger,
       })
     }
@@ -370,10 +368,10 @@ export function SessionsDebugScreen(): JSX.Element {
 
           {/* Action Buttons */}
           <Flex row gap="$spacing8" flexWrap="wrap">
-            <Button size="small" emphasis="secondary" isDisabled={isLoading} onPress={refreshSessionState}>
+            <Button size="small" emphasis="secondary" disabled={isLoading} onPress={refreshSessionState}>
               Refresh
             </Button>
-            <Button size="small" emphasis="tertiary" isDisabled={isLoading} onPress={clearAllState}>
+            <Button size="small" emphasis="tertiary" disabled={isLoading} onPress={clearAllState}>
               Clear All State
             </Button>
           </Flex>
@@ -382,16 +380,16 @@ export function SessionsDebugScreen(): JSX.Element {
           <Flex backgroundColor="$surface2" p="$spacing16" borderRadius="$rounded16" gap="$spacing12">
             <Text variant="subheading1">Step-by-Step Testing</Text>
             <Flex gap="$spacing8">
-              <Button size="small" emphasis="primary" isDisabled={isLoading} onPress={handleInitSession}>
+              <Button size="small" emphasis="primary" disabled={isLoading} onPress={handleInitSession}>
                 1. Init Session
               </Button>
-              <Button size="small" emphasis="secondary" isDisabled={isLoading} onPress={handleRequestChallenge}>
+              <Button size="small" emphasis="secondary" disabled={isLoading} onPress={handleRequestChallenge}>
                 2. Request Challenge
               </Button>
               <Button
                 size="small"
                 emphasis="secondary"
-                isDisabled={isLoading || !hasChallenge}
+                disabled={isLoading || !hasChallenge}
                 onPress={handleSolveChallenge}
               >
                 3. Solve Challenge

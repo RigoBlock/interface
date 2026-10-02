@@ -1,3 +1,4 @@
+import { UniverseChainId } from '@universe/chains'
 import { expectSaga } from 'redux-saga-test-plan'
 import { call, put } from 'redux-saga/effects'
 import { navigate } from 'src/app/navigation/rootNavigation'
@@ -5,7 +6,6 @@ import { handleTopTokensDeepLink } from 'src/features/deepLinking/handleTopToken
 import { handleUniswapAppDeepLink } from 'src/features/deepLinking/handleUniswapAppDeepLink'
 import { LinkSource } from 'src/features/deepLinking/types'
 import { openModal } from 'src/features/modals/modalSlice'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { fromUniswapWebAppLink } from 'uniswap/src/features/chains/utils'
 import { BACKEND_NATIVE_CHAIN_ADDRESS_STRING } from 'uniswap/src/features/search/utils'
 import { MobileEventName, ModalName } from 'uniswap/src/features/telemetry/constants'

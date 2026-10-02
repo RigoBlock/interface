@@ -3,30 +3,15 @@ import { ExtensionEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { createMonitoredSaga } from 'uniswap/src/utils/saga'
 import { logger } from 'utilities/src/logger/logger'
-import { AuthActionType, AuthSagaError, LockParams, UnlockParams } from 'wallet/src/features/auth/types'
+import { LockParams } from 'wallet/src/features/auth/types'
 import { Keyring } from 'wallet/src/features/wallet/Keyring/Keyring'
 
-function* auth(params: UnlockParams | LockParams) {
-  logger.debug('authSaga', 'auth', `Using monitored auth saga`)
-
-  if (params.type === AuthActionType.Unlock) {
-    return yield* call(unlock, params)
-  } else {
-    return yield* call(lock)
-  }
-}
-
+// Lock only. Unlock is `unlockWallet`, a plain function: a dispatched action reaches every middleware,
+// enhancer and telemetry sink, so the password must never travel on one.
 // oxlint-disable-next-line typescript/explicit-function-return-type
-function* unlock({ password }: UnlockParams) {
-  logger.debug('authSaga', 'unlock', `Unlocking wallet`)
-  const success = yield* call(Keyring.unlock, password)
-  if (!success) {
-    throw new Error(AuthSagaError.InvalidPassword)
-  }
-  yield* call(sendAnalyticsEvent, ExtensionEventName.ChangeLockedState, {
-    locked: false,
-    location: 'sidebar',
-  })
+function* auth(_params: LockParams) {
+  logger.debug('authSaga', 'auth', `Using monitored auth saga`)
+  yield* call(lock)
 }
 
 // oxlint-disable-next-line typescript/explicit-function-return-type
@@ -47,5 +32,5 @@ export const {
 } = createMonitoredSaga({
   saga: auth,
   name: 'auth',
-  options: { showErrorNotification: false, doNotLogErrors: [AuthSagaError.InvalidPassword] },
+  options: { showErrorNotification: false },
 })

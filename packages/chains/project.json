@@ -5,9 +5,13 @@
   "projectType": "library",
   "tags": [],
   "targets": {
+    "test": {
+      "command": "vitest run",
+      "options": {
+        "cwd": "{projectRoot}"
+      }
+    },
     "typecheck": {},
-    "typecheck:tsc": {},
-    "typecheck:tsgo": {},
     "format": {},
     "format:check": {},
     "lint:oxlint": {},
@@ -17,6 +21,12 @@
     "lint:fix": {},
     "check": {},
     "check:fast": {},
-    "check:deps:usage": {}
+    "check:deps:usage": {},
+    "test:integration": {
+      "command": "vitest run --config vitest.integration.config.ts",
+      "options": {
+        "cwd": "{projectRoot}"
+      }
+    }
   }
 }

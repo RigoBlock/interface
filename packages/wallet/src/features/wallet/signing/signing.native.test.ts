@@ -4,10 +4,7 @@ import { SignMessageInfo } from 'wallet/src/features/wallet/signing/signing'
 import { signMessage } from 'wallet/src/features/wallet/signing/signing.native'
 
 // Mock dependencies
-jest.mock('uniswap/src/features/transactions/signing')
-jest.mock('uniswap/src/utils/addresses', () => ({
-  ensureLeading0x: (sig: string): string => (sig.startsWith('0x') ? sig : `0x${sig}`),
-}))
+vi.mock('uniswap/src/features/transactions/signing')
 
 describe('signMessage (native)', () => {
   const mockSignature =
@@ -15,11 +12,11 @@ describe('signMessage (native)', () => {
   const mockSignedSignature = `0x${mockSignature}`
 
   const mockSigner = {
-    signMessage: jest.fn().mockResolvedValue(mockSignature),
+    signMessage: vi.fn().mockResolvedValue(mockSignature),
   }
 
   const mockSignerManager = {
-    getSignerForAccount: jest.fn().mockResolvedValue(mockSigner),
+    getSignerForAccount: vi.fn().mockResolvedValue(mockSigner),
   }
 
   const mockAccount = {
@@ -28,7 +25,7 @@ describe('signMessage (native)', () => {
   } as Account
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('signAsString flag', () => {

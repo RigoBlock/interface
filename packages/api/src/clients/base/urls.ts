@@ -1,11 +1,27 @@
-import { isBetaEnv, isDevEnv, isPlaywrightEnv, isTestEnv } from 'utilities/src/environment/env'
-import { isAndroid, isExtensionApp, isMobileApp, isWebApp } from 'utilities/src/platform'
+import {
+  DEV_ENTRY_GATEWAY_API_BASE_URL,
+  DEV_ENTRY_GATEWAY_HOST,
+  PROD_ENTRY_GATEWAY_API_BASE_URL,
+  PROD_ENTRY_GATEWAY_HOST,
+  STAGING_ENTRY_GATEWAY_API_BASE_URL,
+  STAGING_ENTRY_GATEWAY_HOST,
+} from '@universe/api/src/clients/base/entryGatewayUrls'
+import { Environment } from '@universe/config'
+import {
+  isAndroid,
+  isExtensionApp,
+  isMobileApp,
+  isWebApp,
+  isBetaEnv,
+  isDevEnv,
+  isE2eTestEnv,
+  isTestEnv,
+} from '@universe/environment'
 
 export enum TrafficFlows {
   GraphQL = 'graphql',
   Metrics = 'metrics',
   Gating = 'gating',
-  TradingApi = 'trading-api-labs',
   Unitags = 'unitags',
   FOR = 'for',
   Scantastic = 'scantastic',
@@ -16,10 +32,13 @@ export const helpUrl = 'https://support.uniswap.org/hc/en-us'
 
 const FLOWS_USING_BETA = [TrafficFlows.FOR]
 
-const isDevOrBeta = isPlaywrightEnv() ? false : isDevEnv() || isBetaEnv()
+// Lazy: module-scope evaluation crashes non-web/extension servers (isBetaEnv throws).
+function isDevOrBetaEnv(): boolean {
+  return isE2eTestEnv() ? false : isDevEnv() || isBetaEnv()
+}
 
 export function getCloudflarePrefix(flow?: TrafficFlows): string {
-  if (flow && isDevOrBeta && FLOWS_USING_BETA.includes(flow)) {
+  if (flow && isDevOrBetaEnv() && FLOWS_USING_BETA.includes(flow)) {
     return `beta`
   }
 
@@ -31,7 +50,7 @@ export function getCloudflarePrefix(flow?: TrafficFlows): string {
     return 'extension'
   }
 
-  if (isPlaywrightEnv() || isWebApp) {
+  if (isE2eTestEnv() || isWebApp) {
     return 'interface'
   }
 
@@ -43,7 +62,7 @@ export function getCloudflarePrefix(flow?: TrafficFlows): string {
 }
 
 export function getServicePrefix(flow?: TrafficFlows): string {
-  if (flow && (isPlaywrightEnv() || !(isDevOrBeta && FLOWS_USING_BETA.includes(flow)))) {
+  if (flow && (isE2eTestEnv() || !(isDevOrBetaEnv() && FLOWS_USING_BETA.includes(flow)))) {
     return flow + '.'
   } else {
     return ''
@@ -53,13 +72,9 @@ export function getServicePrefix(flow?: TrafficFlows): string {
 export function getCloudflareApiBaseUrl(params?: { flow?: TrafficFlows; postfix?: string }): string {
   const { flow, postfix } = params ?? {}
   let baseUrl
-  if (flow === TrafficFlows.TradingApi && !isPlaywrightEnv()) {
-    // This is an exception that only applies to dev + TAPI where the order of the prefix matters
-    baseUrl = `https://${isDevEnv() ? 'beta.' : ''}trading-api-labs.${getCloudflarePrefix(flow)}.gateway.uniswap.org`
-  }
   // DataApi: use staging entry gateway in dev to avoid CORS issues with beta.gateway.
   // Entry gateway doesn't use the /v2 path prefix, so postfix is intentionally ignored here.
-  else if (flow === TrafficFlows.DataApi && isDevEnv() && !isPlaywrightEnv()) {
+  if (flow === TrafficFlows.DataApi && isDevEnv() && !isE2eTestEnv()) {
     return STAGING_ENTRY_GATEWAY_API_BASE_URL
   } else if (flow === TrafficFlows.DataApi) {
     baseUrl = `https://${getCloudflarePrefix(flow)}.gateway.uniswap.org`
@@ -76,17 +91,34 @@ export function getRbCloudflareApiBaseUrl(flow?: TrafficFlows): string {
   return `https://${getServicePrefix(flow)}${getCloudflarePrefix(flow)}.gateway.rigoblock.com`
 }
 
-export function createHelpArticleUrl(resourceId: string, path: string = 'articles'): string {
+export function createHelpArticleUrl(resourceId: string, options?: { path?: string; section?: string }): string {
+  const { path = 'articles', section } = options ?? {}
   const product = isMobileApp ? 'mobileApp' : isExtensionApp ? 'extension' : 'web'
-  return `${helpUrl}/${path}/${resourceId}?product_link=${product}`
+  // The fragment must come after the query string so the browser resolves it to a section anchor.
+  const fragment = section ? `#${section}` : ''
+  return `${helpUrl}/${path}/${resourceId}?product_link=${product}${fragment}`
 }
 
-// Entry Gateway API URLs
-export const DEV_ENTRY_GATEWAY_API_BASE_URL: string = 'https://entry-gateway.backend-dev.api.uniswap.org'
-export const STAGING_ENTRY_GATEWAY_API_BASE_URL: string = 'https://entry-gateway.backend-staging.api.uniswap.org'
-export const PROD_ENTRY_GATEWAY_API_BASE_URL: string = 'https://entry-gateway.backend-prod.api.uniswap.org'
+// Entry Gateway API URLs — canonical definitions live in ./entryGatewayUrls (zero-dep module)
+export {
+  DEV_ENTRY_GATEWAY_API_BASE_URL,
+  DEV_ENTRY_GATEWAY_HOST,
+  PROD_ENTRY_GATEWAY_API_BASE_URL,
+  PROD_ENTRY_GATEWAY_HOST,
+  STAGING_ENTRY_GATEWAY_API_BASE_URL,
+  STAGING_ENTRY_GATEWAY_HOST,
+} from '@universe/api/src/clients/base/entryGatewayUrls'
 
-// WebSocket URLs
-export const DEV_WEBSOCKET_BASE_URL: string = 'wss://websockets.backend-staging.api.uniswap.org'
-export const STAGING_WEBSOCKET_BASE_URL: string = 'wss://websockets.backend-staging.api.uniswap.org'
-export const PROD_WEBSOCKET_BASE_URL: string = 'wss://websockets.backend-prod.api.uniswap.org'
+/** Entry Gateway base URL (with scheme) per backend environment. */
+export const ENTRY_GATEWAY_API_BASE_URLS: Record<Environment, string> = {
+  [Environment.Development]: DEV_ENTRY_GATEWAY_API_BASE_URL,
+  [Environment.Staging]: STAGING_ENTRY_GATEWAY_API_BASE_URL,
+  [Environment.Production]: PROD_ENTRY_GATEWAY_API_BASE_URL,
+}
+
+/** Entry Gateway hostname (no scheme) per backend environment. */
+export const ENTRY_GATEWAY_HOSTS: Record<Environment, string> = {
+  [Environment.Development]: DEV_ENTRY_GATEWAY_HOST,
+  [Environment.Staging]: STAGING_ENTRY_GATEWAY_HOST,
+  [Environment.Production]: PROD_ENTRY_GATEWAY_HOST,
+}

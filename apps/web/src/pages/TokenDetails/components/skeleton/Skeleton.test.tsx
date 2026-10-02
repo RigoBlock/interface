@@ -1,5 +1,5 @@
+import { UniverseChainId } from '@universe/chains'
 import { USDC_MAINNET } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { LoadingTitle, TokenDetailsPageSkeleton } from '~/pages/TokenDetails/components/skeleton/Skeleton'
 import { render } from '~/test-utils/render'
 

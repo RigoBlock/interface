@@ -1,7 +1,7 @@
-import { Flex, useIsDarkMode } from 'ui/src'
+import { Flex } from '@universe/mycelium'
+import { opacify, useIsDarkMode } from '@universe/mycelium/theme-hooks-compat'
 import { PolygonPurple } from 'ui/src/components/logos/PolygonPurple'
-import { imageSizes, networkColors, opacify } from 'ui/src/theme'
-
+import { imageSizes, networkColors } from 'ui/src/theme'
 export const PolygonElement = (): JSX.Element => {
   const isDarkMode = useIsDarkMode()
 

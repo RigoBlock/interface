@@ -1,6 +1,7 @@
 export enum HomeTabs {
   Tokens = 'Tokens',
   NFTs = 'NFTs',
+  Pools = 'Pools',
   Activity = 'Activity',
 }
 
@@ -10,6 +11,7 @@ export enum ExtensionScreens {
   UnsupportedBrowserScreen = 'UnsupportedBrowserScreen',
   ManageDappConnectionsScreen = 'ManageDappConnectionsScreen',
   Settings = 'Settings',
+  SettingsDisclosures = 'SettingsDisclosures',
 }
 
 export enum ExtensionOnboardingFlow {

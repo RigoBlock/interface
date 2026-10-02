@@ -1,15 +1,18 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useBiometricsIcon } from 'src/components/icons/useBiometricsIcon'
+import type { EIP681URI } from 'src/components/Requests/ScanSheet/util'
 import { useBiometricAppSettings } from 'src/features/biometrics/useBiometricAppSettings'
 import { useOsBiometricAuthEnabled } from 'src/features/biometrics/useOsBiometricAuthEnabled'
 import { useBiometricPrompt } from 'src/features/biometricsSettings/hooks'
 import { closeModal } from 'src/features/modals/modalSlice'
 import { selectModalState } from 'src/features/modals/selectModalState'
+import { getQrCodeSelection } from 'src/features/send/qrCodeSelection'
 import { SendFormScreen } from 'src/features/send/SendFormScreen'
 import { SendRecipientSelectFullScreen } from 'src/features/send/SendRecipientSelectFullScreen'
 import { SendReviewScreen } from 'src/features/send/SendReviewScreen'
 import { useWalletRestore } from 'src/features/wallet/useWalletRestore'
+import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { ModalName, SectionName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { TransactionSettingsStoreContextProvider } from 'uniswap/src/features/transactions/components/settings/stores/transactionSettingsStore/TransactionSettingsStoreContextProvider'
@@ -60,7 +63,31 @@ export function SendFlow(): JSX.Element {
 
 function CurrentScreen({ screenOverride }: { screenOverride?: TransactionScreen }): JSX.Element {
   const { screen, setScreen } = useTransactionModalContext()
-  const { recipient } = useSendContext()
+  const { input, recipient } = useSendContext()
+  const { defaultChainId } = useEnabledChains()
+  const [pendingQrCodeRequest, setPendingQrCodeRequest] = useState<EIP681URI>()
+  const pendingQrCodeSelection = useMemo(
+    () =>
+      pendingQrCodeRequest
+        ? getQrCodeSelection({
+            currentSelection: input,
+            defaultChainId,
+            paymentRequest: pendingQrCodeRequest,
+          })
+        : undefined,
+    [defaultChainId, input, pendingQrCodeRequest],
+  )
+
+  const onQrCodeSelectionChange = useCallback((paymentRequest?: EIP681URI) => {
+    setPendingQrCodeRequest(paymentRequest)
+  }, [])
+  const onClearQrCodeSelection = useCallback(() => setPendingQrCodeRequest(undefined), [])
+
+  useEffect(() => {
+    if (pendingQrCodeRequest && !pendingQrCodeSelection) {
+      setPendingQrCodeRequest(undefined)
+    }
+  }, [pendingQrCodeRequest, pendingQrCodeSelection])
 
   if (screenOverride) {
     setScreen(screenOverride)
@@ -71,7 +98,7 @@ function CurrentScreen({ screenOverride }: { screenOverride?: TransactionScreen 
   if (!recipient) {
     return (
       <Trace logImpression section={SectionName.SendRecipientSelectFullScreen}>
-        <SendRecipientSelectFullScreen />
+        <SendRecipientSelectFullScreen onQrCodeSelectionChange={onQrCodeSelectionChange} />
       </Trace>
     )
   }
@@ -80,7 +107,11 @@ function CurrentScreen({ screenOverride }: { screenOverride?: TransactionScreen 
     case TransactionScreen.Form:
       return (
         <Trace logImpression section={SectionName.SendForm}>
-          <SendFormScreen />
+          <SendFormScreen
+            pendingQrCodeSelection={pendingQrCodeSelection}
+            onClearQrCodeSelection={onClearQrCodeSelection}
+            onQrCodeSelectionChange={onQrCodeSelectionChange}
+          />
         </Trace>
       )
     case TransactionScreen.Review:

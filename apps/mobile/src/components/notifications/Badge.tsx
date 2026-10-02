@@ -1,5 +1,5 @@
+import { Flex } from '@universe/mycelium'
 import React, { memo, PropsWithChildren } from 'react'
-import { Flex } from 'ui/src'
 import { useSelectAddressHasNotifications } from 'uniswap/src/features/notifications/slice/hooks'
 
 type Props = PropsWithChildren<{

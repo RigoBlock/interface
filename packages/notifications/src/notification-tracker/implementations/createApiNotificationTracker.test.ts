@@ -108,41 +108,6 @@ describe('createApiNotificationTracker', () => {
       })
     })
 
-    it('updates storage and logs error when API call fails', async () => {
-      const mockApiClient = createMockApiClient()
-      const mockStorage = createMockStorage()
-      const apiError = new Error('API request failed')
-      mockApiClient.ackNotification = vi.fn().mockRejectedValue(apiError)
-
-      const tracker = createApiNotificationTracker({
-        notificationsApiClient: mockApiClient,
-        queryClient: createMockQueryClient(),
-        storage: mockStorage,
-      })
-
-      // Should not throw - errors are caught and logged
-      await expect(tracker.track('notif-1', mockMetadata)).resolves.not.toThrow()
-
-      // Verify storage was still updated despite API failure
-      expect(mockStorage.add).toHaveBeenCalledWith('notif-1', {
-        timestamp: mockMetadata.timestamp,
-      })
-    })
-
-    it('logs error when API fails and no storage provided', async () => {
-      const mockApiClient = createMockApiClient()
-      const apiError = new Error('Network error')
-      mockApiClient.ackNotification = vi.fn().mockRejectedValue(apiError)
-
-      const tracker = createApiNotificationTracker({
-        notificationsApiClient: mockApiClient,
-        storage: createMockStorage(),
-      })
-
-      // Should not throw - errors are caught and logged
-      await expect(tracker.track('notif-1', mockMetadata)).resolves.not.toThrow()
-    })
-
     it('calls API and updates storage even when API fails', async () => {
       const mockApiClient = createMockApiClient()
       const mockStorage = createMockStorage()
@@ -201,14 +166,14 @@ describe('createApiNotificationTracker', () => {
 
       const notificationIds = ['notif-1', 'notif-2', 'notif-3', 'notif-4']
 
-      for (let i = 0; i < notificationIds.length; i++) {
+      for (const [i, notificationId] of notificationIds.entries()) {
         const metadata: TrackingMetadata = {
           timestamp: Date.now() + i,
         }
 
-        await tracker.track(notificationIds[i], metadata)
+        await tracker.track(notificationId, metadata)
 
-        expect(mockStorage.add).toHaveBeenCalledWith(notificationIds[i], {
+        expect(mockStorage.add).toHaveBeenCalledWith(notificationId, {
           timestamp: metadata.timestamp,
         })
       }

@@ -1,10 +1,12 @@
+import { isEVMChain, Platform } from '@universe/chains'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Flex } from '@universe/mycelium'
 //! tamagui-ignore
 // tamagui-ignore
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Helmet } from 'react-helmet-async/lib/index'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router'
-import { Flex } from 'ui/src'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { useActiveAddress } from 'uniswap/src/features/accounts/store/hooks'
 import {
@@ -12,49 +14,171 @@ import {
   selectHasSeenToucanIntroModalForWallet,
 } from 'uniswap/src/features/behaviorHistory/selectors'
 import { setHasSeenToucanIntroModal, setToucanIntroModalSeenByWallet } from 'uniswap/src/features/behaviorHistory/slice'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import { InterfacePageName } from 'uniswap/src/features/telemetry/constants/trace/page'
 import { Trace } from 'uniswap/src/features/telemetry/Trace'
-import { ActivitySection } from '~/components/Toucan/Auction/ActivityTimeline/ActivitySection'
-import { AuctionDetailsModal } from '~/components/Toucan/Auction/ActivityTimeline/AuctionDetailsModal'
-import { BidDistributionChartTab } from '~/components/Toucan/Auction/AuctionChartShared'
-import { AuctionHeader } from '~/components/Toucan/Auction/AuctionHeader'
-import { AuctionInfo, AuctionStatsGrid } from '~/components/Toucan/Auction/AuctionStats/AuctionStats'
-import { AuctionIntroBanner } from '~/components/Toucan/Auction/Banners/AuctionIntro/AuctionIntroBanner'
-import { AuctionStatsBanner } from '~/components/Toucan/Auction/Banners/AuctionStatsBanner/AuctionStatsBanner'
-import { TokenLaunchedBanner } from '~/components/Toucan/Auction/Banners/TokenLaunched/TokenLaunchedBanner'
-import { AuctionChartContainer } from '~/components/Toucan/Auction/BidDistributionChart/AuctionChartContainer'
-import { BidForm } from '~/components/Toucan/Auction/BidForm/BidForm'
-import { AuctionGraduated } from '~/components/Toucan/Auction/Bids/AuctionGraduated'
-import { Bids } from '~/components/Toucan/Auction/Bids/Bids'
-import { WithdrawModal } from '~/components/Toucan/Auction/Bids/WithdrawModal/WithdrawModal'
-import { useBidFormState } from '~/components/Toucan/Auction/hooks/useBidFormState'
-import { useWithdrawButtonState } from '~/components/Toucan/Auction/hooks/useWithdrawButtonState'
-import { AuctionStoreProvider } from '~/components/Toucan/Auction/store/AuctionStoreContextProvider'
-import { AuctionProgressState, BidInfoTab } from '~/components/Toucan/Auction/store/types'
-import { useAuctionStore, useAuctionStoreActions } from '~/components/Toucan/Auction/store/useAuctionStore'
-import { ToucanActionButton } from '~/components/Toucan/Shared/ToucanActionButton'
-import { ToucanContainer } from '~/components/Toucan/Shared/ToucanContainer'
-import { ToucanIntroModal } from '~/components/Toucan/ToucanIntroModal'
+import { isEVMAddress, isEVMAddressWithChecksum } from 'utilities/src/addresses/evm/evm'
+import { StickyCollapsibleHeader } from '~/components/StickyCollapsibleHeader/StickyCollapsibleHeader'
+import { ActivitySection } from '~/features/Toucan/Auction/ActivityTimeline/ActivitySection'
+import { AuctionDetailsModal } from '~/features/Toucan/Auction/ActivityTimeline/AuctionDetailsModal'
+import { BidDistributionChartTab } from '~/features/Toucan/Auction/AuctionChartShared'
+import { AuctionHeader } from '~/features/Toucan/Auction/AuctionHeader'
+import { AuctionInfo } from '~/features/Toucan/Auction/AuctionStats/AuctionInfo'
+import { AuctionStatsGrid } from '~/features/Toucan/Auction/AuctionStats/AuctionStats'
+import { AuctionIntroBanner } from '~/features/Toucan/Auction/Banners/AuctionIntro/AuctionIntroBanner'
+import { AuctionStatsBanner } from '~/features/Toucan/Auction/Banners/AuctionStatsBanner/AuctionStatsBanner'
+import { BiddingClosedStrip } from '~/features/Toucan/Auction/Banners/BiddingClosedStrip'
+import { QuickLaunchStatsRow } from '~/features/Toucan/Auction/Banners/QuickLaunchStatsRow'
+import { TokenLaunchedBanner } from '~/features/Toucan/Auction/Banners/TokenLaunched/TokenLaunchedBanner'
+import { TradeTokenBanner } from '~/features/Toucan/Auction/Banners/TradeTokenBanner'
+import { AuctionChartContainer } from '~/features/Toucan/Auction/BidDistributionChart/AuctionChartContainer'
+import { BidForm } from '~/features/Toucan/Auction/BidForm/BidForm'
+import { Bids } from '~/features/Toucan/Auction/Bids/Bids'
+import { WithdrawModal } from '~/features/Toucan/Auction/Bids/WithdrawModal/WithdrawModal'
+import { useAuctionDisplayState } from '~/features/Toucan/Auction/hooks/useAuctionDisplayState'
+import { useBidFormState } from '~/features/Toucan/Auction/hooks/useBidFormState'
+import { useIsQuickLaunchAuction } from '~/features/Toucan/Auction/hooks/useIsQuickLaunchAuction'
+import { usePostAuctionPanelState } from '~/features/Toucan/Auction/hooks/usePostAuctionPanelState'
+import { useWithdrawButtonState } from '~/features/Toucan/Auction/hooks/useWithdrawButtonState'
+import { PostAuctionPanel } from '~/features/Toucan/Auction/PostAuctionPanel'
+import { AuctionStoreProvider } from '~/features/Toucan/Auction/store/AuctionStoreContextProvider'
+import {
+  AuctionDetails,
+  AuctionDetailsLoadState,
+  AuctionProgressState,
+  BidInfoTab,
+} from '~/features/Toucan/Auction/store/types'
+import { useAuctionStore, useAuctionStoreActions } from '~/features/Toucan/Auction/store/useAuctionStore'
+import { AuctionDisplayPhase } from '~/features/Toucan/Auction/utils/resolveAuctionDisplayState'
+import {
+  getTokenLaunchTradeAvailabilityBlock,
+  isTokenLaunchTradeAvailable,
+  shouldShowTokenLaunchedBanner as getShouldShowTokenLaunchedBanner,
+} from '~/features/Toucan/Auction/utils/tokenLaunchedBannerUtils'
+import { getAuctionTokenDecimals } from '~/features/Toucan/Auction/utils/tokenMetadata'
+import { isTradingRestrictedUntilTge } from '~/features/Toucan/Config/config'
+import { ToucanActionButton } from '~/features/Toucan/Shared/ToucanActionButton'
+import { ToucanContainer } from '~/features/Toucan/Shared/ToucanContainer'
+import { ToucanIntroModal } from '~/features/Toucan/ToucanIntroModal'
+import { useScrollCompact } from '~/hooks/useScrollCompact'
+import { useDynamicMetatags } from '~/pages/metatags'
+import { NotFound } from '~/pages/NotFound'
 import { LeftPanel, RightPanel, TokenDetailsLayout } from '~/pages/TokenDetails/components/skeleton/Skeleton'
+import { formatAuctionMetatagTitleName } from '~/shared-cloud/metatags'
 import { useAppDispatch, useAppSelector } from '~/state/hooks'
 import { InterfaceState } from '~/state/webReducer'
+import { getChainIdFromChainUrlParam } from '~/utils/params/chainParams'
 
 const TOUCAN_INTRO_MODAL_SESSION_KEY = 'toucan-intro-modal-seen-session'
 
+function usePageMetatags(auctionDetails: AuctionDetails | null) {
+  const { chainName, auctionAddress } = useParams<{ chainName: string; auctionAddress: string }>()
+
+  const tokenSymbol = auctionDetails?.token?.currency.symbol ?? auctionDetails?.tokenSymbol
+  const tokenName = auctionDetails?.token?.currency.name ?? auctionDetails?.tokenName ?? tokenSymbol
+  const pageTitle = formatAuctionMetatagTitleName(tokenSymbol, tokenName)
+  const pageDescription = tokenName ? `Bid on ${tokenName} in a Uniswap token auction.` : undefined
+  const metatagProperties = useMemo(
+    () => ({
+      title: pageTitle,
+      image:
+        chainName && auctionAddress
+          ? window.location.origin + '/api/image/auctions/' + chainName + '/' + auctionAddress
+          : undefined,
+      url: window.location.href,
+      description: pageDescription,
+    }),
+    [auctionAddress, chainName, pageDescription, pageTitle],
+  )
+  const metatags = useDynamicMetatags(metatagProperties)
+
+  return { pageTitle, metatags }
+}
+
+function useTokenLaunchedBannerState({
+  auctionDetails,
+  auctionState,
+  currentBlockNumber,
+  isGraduated,
+  isTokenProvenanceEnabled,
+}: {
+  auctionDetails: AuctionDetails | null
+  auctionState: AuctionProgressState
+  currentBlockNumber: number | undefined
+  isGraduated: boolean
+  isTokenProvenanceEnabled: boolean
+}) {
+  const isAuctionEnded = auctionState === AuctionProgressState.ENDED
+  const displayState = useAuctionDisplayState()
+  // The scheduled migration block and whether migration has actually run are both served by
+  // data-api now (lbp_migration_block / lbp_migration_tx_hash), so no on-chain lookup is needed.
+  const migrationBlock = auctionDetails?.lbpMigrationBlock
+  const hasMigrated = Boolean(auctionDetails?.lbpMigrationTxHash)
+  const shouldShowTokenLaunchedBanner =
+    auctionDetails !== null &&
+    getShouldShowTokenLaunchedBanner({
+      isAuctionEnded,
+      isTokenProvenanceEnabled,
+      isGraduated,
+      displayState,
+      tradingRestrictedUntilTge: isTradingRestrictedUntilTge({
+        chainId: auctionDetails.chainId,
+        tokenAddress: auctionDetails.tokenAddress,
+      }),
+    })
+  const isTradeAvailable =
+    auctionDetails !== null &&
+    isTokenLaunchTradeAvailable({
+      claimBlock: auctionDetails.claimBlock,
+      currentBlockNumber,
+      hasLbpStrategyAddress: Boolean(auctionDetails.lbpStrategyAddress),
+      isGraduated,
+      hasMigrated,
+    })
+  const tradeAvailabilityBlock =
+    auctionDetails !== null && !isTradeAvailable
+      ? getTokenLaunchTradeAvailabilityBlock({
+          claimBlock: auctionDetails.claimBlock,
+          hasLbpStrategyAddress: Boolean(auctionDetails.lbpStrategyAddress),
+          migrationBlock,
+        })
+      : undefined
+
+  return {
+    isAuctionEnded,
+    // Same phase as BiddingClosedStrip so the tightened spacing and the strip agree at the end block.
+    isProvenanceAuctionEnded: displayState?.phase === AuctionDisplayPhase.Ended,
+    shouldShowTokenLaunchedBanner,
+    isTradeAvailable,
+    tradeAvailabilityBlock,
+  }
+}
+
 function ToucanTokenContent({ isModalOpen, onCloseModal }: { isModalOpen: boolean; onCloseModal: () => void }) {
   const { t } = useTranslation()
-  const isV2 = useFeatureFlag(FeatureFlags.AuctionDetailsV2)
+  const isTokenProvenanceEnabled = useFeatureFlag(FeatureFlags.TokenProvenance)
   const { chainName, auctionAddress } = useParams<{ chainName: string; auctionAddress: string }>()
-  const { auctionState, auctionDetails, tokenColor, isGraduated, currentBlockNumber } = useAuctionStore((state) => ({
+  const {
+    auctionState,
+    auctionDetails,
+    auctionDetailsLoadState,
+    tokenColor,
+    outcome,
+    isGraduated,
+    currentBlockNumber,
+  } = useAuctionStore((state) => ({
     auctionState: state.progress.state,
     auctionDetails: state.auctionDetails,
+    auctionDetailsLoadState: state.auctionDetailsLoadState,
     tokenColor: state.tokenColor,
+    outcome: state.progress.outcome,
     isGraduated: state.progress.isGraduated,
     currentBlockNumber: state.currentBlockNumber,
   }))
-  const { canPlaceBid, showMobileWithdrawButton, hasUserBids } = useBidFormState()
+  const { canPlaceBid, showMobileWithdrawButton, hasUserBids, showAuctionGraduated } = useBidFormState()
+  // Mirror the post-auction panel so the mobile fixed button never double-renders alongside a
+  // creator/migrate card or the graduated success card.
+  const { hasPanelContent } = usePostAuctionPanelState()
 
   // Withdraw button state for mobile fixed button
   const {
@@ -62,36 +186,55 @@ function ToucanTokenContent({ isModalOpen, onCloseModal }: { isModalOpen: boolea
     isDisabled: isWithdrawDisabled,
     disabledTooltip: withdrawDisabledTooltip,
   } = useWithdrawButtonState({
-    isGraduated,
+    outcome,
     claimBlock: auctionDetails?.claimBlock,
     currentBlockNumber,
     chainId: auctionDetails?.chainId,
   })
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false)
+  const isCompact = useScrollCompact({ thresholdCompact: 100 })
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
   const handleDetailsModal = useCallback(() => setIsDetailsModalOpen(true), [])
   const handleCloseDetailsModal = useCallback(() => setIsDetailsModalOpen(false), [])
-  const isAuctionEnded = auctionState === AuctionProgressState.ENDED
-  const showAuctionGraduated = isAuctionEnded && isGraduated && hasUserBids
-  const shouldShowTokenLaunchedBanner = isAuctionEnded && auctionDetails !== null
+  const {
+    isAuctionEnded,
+    isProvenanceAuctionEnded,
+    shouldShowTokenLaunchedBanner,
+    isTradeAvailable,
+    tradeAvailabilityBlock,
+  } = useTokenLaunchedBannerState({
+    auctionDetails,
+    auctionState,
+    currentBlockNumber,
+    isGraduated,
+    isTokenProvenanceEnabled,
+  })
 
   const [chartActiveTab, setChartActiveTab] = useState<BidDistributionChartTab>(BidDistributionChartTab.ClearingPrice)
   const [showBidFormModal, setShowBidFormModal] = useState(false)
+  // Fixed mobile trigger has no action once concluded with nothing to withdraw; it stays visible but disabled.
+  const handleConcludedPress = useCallback(() => {}, [])
 
-  // In V2 combined mode, ClearingPrice tab already includes distribution data,
-  // so no auto-switch is needed. In V1, switch to the separate Distribution tab.
-  const handleBidFormInputChange = useCallback(() => {
-    const isAuctionInProgress = auctionState === AuctionProgressState.IN_PROGRESS
-    if (!isV2 && isAuctionInProgress && chartActiveTab === BidDistributionChartTab.ClearingPrice) {
-      setChartActiveTab(BidDistributionChartTab.Distribution)
-    }
-  }, [auctionState, chartActiveTab, isV2])
+  // Once ended, the inline disabled bid frame is never shown; when there's no other content for this
+  // viewer (no withdraw, no creator/migrate CTA, no graduated card) the mobile fixed button becomes a
+  // disabled "Auction Concluded" trigger and nothing renders inline.
+  const showConcludedTrigger = isAuctionEnded && !showMobileWithdrawButton && !hasPanelContent
+
+  // QuickLaunch: quick launches swap the standard stats banner for the simpler stat row.
+  const isQuickLaunch = useIsQuickLaunchAuction()
+
+  const { pageTitle, metatags } = usePageMetatags(auctionDetails)
 
   // Sync activeBidFormTab to store so chart knows whether to render bid line
   const { setActiveBidFormTab } = useAuctionStoreActions()
   useEffect(() => {
     setActiveBidFormTab(showAuctionGraduated ? BidInfoTab.AUCTION_GRADUATED : BidInfoTab.PLACE_A_BID)
   }, [showAuctionGraduated, setActiveBidFormTab])
+
+  // The API returned no auction for this address - show a 404 page instead of a blank auction page
+  if (auctionDetailsLoadState === AuctionDetailsLoadState.NotFound) {
+    return <NotFound />
+  }
 
   return (
     <Trace
@@ -104,40 +247,57 @@ function ToucanTokenContent({ isModalOpen, onCloseModal }: { isModalOpen: boolea
         tokenName: auctionDetails?.token?.currency.name,
       }}
     >
+      <Helmet>
+        <title>{pageTitle}</title>
+        {metatags.map((tag, index) => (
+          <meta key={index} {...tag} />
+        ))}
+      </Helmet>
       <ToucanIntroModal isOpen={isModalOpen} onClose={onCloseModal} />
       <AuctionDetailsModal isOpen={isDetailsModalOpen} onClose={handleCloseDetailsModal} />
-      <ToucanContainer mb="$spacing48">
-        <AuctionIntroBanner onLearnMorePress={handleDetailsModal} />
-        {shouldShowTokenLaunchedBanner && (
+      <ToucanContainer>
+        {!isTokenProvenanceEnabled && <AuctionIntroBanner onLearnMorePress={handleDetailsModal} />}
+        {shouldShowTokenLaunchedBanner && auctionDetails && (
           <TokenLaunchedBanner
             tokenName={auctionDetails.token?.currency.name ?? ''}
             tokenColor={tokenColor}
-            totalSupply={auctionDetails.tokenTotalSupply}
-            auctionTokenDecimals={auctionDetails.token?.currency.decimals}
+            tokenTotalSupply={auctionDetails.tokenTotalSupply}
+            auctionTokenDecimals={getAuctionTokenDecimals(auctionDetails.token)}
+            isTradeAvailableFromStatus={isTradeAvailable}
+            tradeAvailabilityBlock={tradeAvailabilityBlock}
           />
         )}
-        <AuctionHeader />
-        <AuctionStatsBanner />
-        <TokenDetailsLayout justifyContent="flex-start" px="$none" $lg={{ px: '$none' }} gap={46}>
-          <LeftPanel
-            maxWidth={744}
-            gap="$spacing40"
-            display="flex"
-            $lg={{
-              gap: '$gap32',
-              maxWidth: '100%',
-            }}
-          >
+      </ToucanContainer>
+      <StickyCollapsibleHeader isCompact={isCompact} px="$none" $lg={{ px: '$none' }}>
+        <ToucanContainer>
+          <AuctionHeader isCompact={isCompact} />
+        </ToucanContainer>
+      </StickyCollapsibleHeader>
+      <ToucanContainer
+        mb="$spacing48"
+        // Keep the collapsing header from moving the scroll position back across its expand threshold.
+        style={isTokenProvenanceEnabled ? { overflowAnchor: 'none' } : undefined}
+      >
+        {isTokenProvenanceEnabled && <AuctionIntroBanner onLearnMorePress={handleDetailsModal} />}
+        {isQuickLaunch ? <QuickLaunchStatsRow /> : <AuctionStatsBanner />}
+        <BiddingClosedStrip />
+        <TokenDetailsLayout toucan topSpacing={isProvenanceAuctionEnded ? '16' : undefined}>
+          <LeftPanel clamped>
+            {/* On mobile/tablet ($xl), surface the post-auction panel above the chart once the auction ends */}
+            {isAuctionEnded && (
+              <Flex display="none" $xl={{ display: 'flex', flexDirection: 'column' }}>
+                <PostAuctionPanel />
+              </Flex>
+            )}
             <AuctionChartContainer
               activeTab={chartActiveTab}
               onTabChange={setChartActiveTab}
               onLearnMorePress={handleDetailsModal}
               onShowBidFormModal={() => setShowBidFormModal(true)}
             />
-            {/* On mobile/tablet ($xl), show graduated state and bids below the chart */}
-            {(showAuctionGraduated || hasUserBids) && (
+            {/* On mobile/tablet ($xl), show bids below the chart */}
+            {hasUserBids && (
               <Flex display="none" $xl={{ display: 'flex', flexDirection: 'column', gap: '$spacing24' }}>
-                {showAuctionGraduated && <AuctionGraduated />}
                 <Bids />
               </Flex>
             )}
@@ -146,22 +306,23 @@ function ToucanTokenContent({ isModalOpen, onCloseModal }: { isModalOpen: boolea
             <AuctionInfo />
           </LeftPanel>
 
-          <RightPanel
-            width={390}
-            display="flex"
-            gap="$spacing24"
-            alignSelf="flex-start"
-            $xl={{
-              display: 'none',
-            }}
-          >
-            {showAuctionGraduated ? <AuctionGraduated /> : <BidForm onInputChange={handleBidFormInputChange} />}
+          <RightPanel toucan>
+            {isAuctionEnded ? (
+              <PostAuctionPanel />
+            ) : (
+              <Flex gap="$spacing12">
+                <BidForm />
+                <TradeTokenBanner />
+              </Flex>
+            )}
             {hasUserBids && <Bids />}
           </RightPanel>
         </TokenDetailsLayout>
       </ToucanContainer>
-      {/* Fixed bottom button - $sm only - show Place Bid OR Withdraw */}
-      {(canPlaceBid || showMobileWithdrawButton) && (
+      {/* Fixed bottom button - $sm only - show Place Bid, Withdraw, or (once concluded) a disabled
+          "Auction Concluded" trigger. The concluded bid form never renders as a full inline box on
+          mobile: it collapses behind this disabled trigger unless a creator/graduated card is shown. */}
+      {(canPlaceBid || showMobileWithdrawButton || showConcludedTrigger) && (
         <Flex
           display="none"
           $sm={{
@@ -180,13 +341,19 @@ function ToucanTokenContent({ isModalOpen, onCloseModal }: { isModalOpen: boolea
         >
           {canPlaceBid ? (
             <ToucanActionButton label={t('toucan.bidForm.placeABid')} onPress={() => setShowBidFormModal(true)} />
-          ) : (
+          ) : showMobileWithdrawButton ? (
             <ToucanActionButton
               elementName={ElementName.AuctionWithdrawTokensButton}
               label={withdrawLabel}
               onPress={() => setIsWithdrawModalOpen(true)}
               isDisabled={isWithdrawDisabled}
               disabledTooltip={isWithdrawDisabled ? withdrawDisabledTooltip : undefined}
+            />
+          ) : (
+            <ToucanActionButton
+              label={t('toucan.auction.bidForm.auctionConcluded')}
+              onPress={handleConcludedPress}
+              isDisabled
             />
           )}
         </Flex>
@@ -199,7 +366,7 @@ function ToucanTokenContent({ isModalOpen, onCloseModal }: { isModalOpen: boolea
         maxWidth={420}
         padding="$spacing16"
       >
-        <BidForm onInputChange={handleBidFormInputChange} onBidSubmitted={() => setShowBidFormModal(false)} />
+        <BidForm onBidSubmitted={() => setShowBidFormModal(false)} />
       </Modal>
       {/* Withdraw modal - $sm only */}
       <WithdrawModal isOpen={isWithdrawModalOpen} onClose={() => setIsWithdrawModalOpen(false)} />
@@ -207,7 +374,8 @@ function ToucanTokenContent({ isModalOpen, onCloseModal }: { isModalOpen: boolea
   )
 }
 
-export default function ToucanToken() {
+export function ToucanToken() {
+  const { chainName, auctionAddress } = useParams<{ chainName: string; auctionAddress: string }>()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const walletAddress = useActiveAddress(Platform.EVM)
   const dispatch = useAppDispatch()
@@ -264,9 +432,31 @@ export default function ToucanToken() {
     }
   }
 
+  // Validate route params before mounting the auction store so malformed or truncated
+  // addresses never reach the GetAuction API - render a 404 page instead.
+  // Validate the lowercased address: the API is case-insensitive (GetAuction lowercases it),
+  // so hex format is enforced without rejecting mixed-case addresses with a bad checksum.
+  const chainId = getChainIdFromChainUrlParam(chainName)
+  // oxlint-disable-next-line universe-custom/no-tolowercase-address-currencyid -- format validation, not comparison
+  const lowercasedAuctionAddress = auctionAddress?.toLowerCase()
+  // isEVMAddressWithChecksum is not sufficient on its own: it wraps ethers' getAddress, which matches
+  // /^(0x)?[0-9a-fA-F]{40}$/ and *prepends* a missing `0x` rather than rejecting it. A bare 40-hex
+  // param would therefore pass while the un-prefixed value flowed on to GetAuction. isEVMAddress pins
+  // the `0x` prefix and the 42-char length; isEVMAddressWithChecksum enforces the hex charset.
+  if (
+    !isEVMAddress(lowercasedAuctionAddress) ||
+    !isEVMAddressWithChecksum(lowercasedAuctionAddress) ||
+    !chainId ||
+    !isEVMChain(chainId)
+  ) {
+    return <NotFound />
+  }
+
   return (
     <AuctionStoreProvider>
       <ToucanTokenContent isModalOpen={isModalOpen} onCloseModal={handleCloseModal} />
     </AuctionStoreProvider>
   )
 }
+
+export default ToucanToken

@@ -1,5 +1,4 @@
-import { Flex, FlexProps } from 'ui/src/components/layout/Flex'
-
+import { Flex, FlexProps } from '@universe/mycelium'
 type HiddenWordViewProps = {
   rows: number
   columns?: number

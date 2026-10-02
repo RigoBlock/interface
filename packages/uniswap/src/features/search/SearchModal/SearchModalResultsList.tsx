@@ -1,14 +1,22 @@
-import { ContentStyle } from '@shopify/flash-list'
+import { UniverseChainId } from '@universe/chains'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { memo, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { StyleProp, ViewStyle } from 'react-native'
 import { NetworkError, NoResultsFound } from 'uniswap/src/components/lists/NoResultsFound'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useSectionsForSearchResults } from 'uniswap/src/features/search/SearchModal/hooks/useSectionsForSearchResults'
 import { SearchModalList, SearchModalListProps } from 'uniswap/src/features/search/SearchModal/SearchModalList'
+import { SearchModalListSkeleton } from 'uniswap/src/features/search/SearchModal/SearchModalListSkeleton'
+import { useRwaIssuerCurrencyInfos } from 'uniswap/src/features/search/SearchModal/stocks/useRwaIssuerCurrencyInfos'
 import { SearchTab } from 'uniswap/src/features/search/SearchModal/types'
 import { useMultichainSearchModalMetricsAnalytics } from 'uniswap/src/features/search/SearchModal/useMultichainSearchModalMetricsAnalytics'
+import { withSectionGaps } from 'uniswap/src/features/search/SearchModal/viewAll/withSectionGaps'
+import { withViewAllFooters } from 'uniswap/src/features/search/SearchModal/viewAll/withViewAllFooters'
 import { useIsOffline } from 'utilities/src/connection/useIsOffline'
 import { usePreviousWithLayoutEffect } from 'utilities/src/react/usePreviousWithLayoutEffect'
+
+// Stable identity so it doesn't bust SearchModalList's memo.
+const RESULTS_LIST_SKELETON = <SearchModalListSkeleton />
 
 interface SearchModalResultsListProps {
   chainFilter: UniverseChainId | null
@@ -17,10 +25,15 @@ interface SearchModalResultsListProps {
   debouncedSearchFilter: string | null
   debouncedParsedSearchFilter: string | null
   activeTab: SearchTab
+  auctionSearchEnabled?: boolean
   onSelect?: SearchModalListProps['onSelect']
   onResetFilters?: () => void
+  /** Search V2: shows "View all" under All-tab sections with more results; called with the section's tab. */
+  onViewAll?: (tab: SearchTab) => void
   renderedInModal: boolean
-  contentContainerStyle?: ContentStyle
+  contentContainerStyle?: StyleProp<ViewStyle>
+  rowWrapper?: SearchModalListProps['rowWrapper']
+  onResultsShownChange?: SearchModalListProps['onResultsShownChange']
 }
 
 function SearchModalResultsListInner({
@@ -30,28 +43,42 @@ function SearchModalResultsListInner({
   debouncedSearchFilter,
   debouncedParsedSearchFilter,
   activeTab,
+  auctionSearchEnabled = false,
   onSelect,
   onResetFilters,
+  onViewAll,
   renderedInModal,
   contentContainerStyle,
+  rowWrapper,
+  onResultsShownChange,
 }: SearchModalResultsListProps): JSX.Element {
   const { t } = useTranslation()
   const isOffline = useIsOffline()
+  const isSearchV2UIEnabled = useFeatureFlag(FeatureFlags.SearchV2UI)
 
   const searchQuery = debouncedParsedSearchFilter ?? debouncedSearchFilter
   const shouldPrioritizeWallets =
     searchQuery?.toLowerCase().endsWith('.eth') || searchQuery?.toLowerCase().endsWith('.uni')
 
+  /** Align with token search: network from UI filter or parsed from query (e.g. "Unichain ETH"). Pools tab uses UI filter only. */
+  const effectiveTokenSearchChainFilter = useMemo((): UniverseChainId | null => {
+    if (activeTab === SearchTab.Pools) {
+      return chainFilter
+    }
+    return chainFilter ?? parsedChainFilter
+  }, [activeTab, chainFilter, parsedChainFilter])
+
   const {
     data: sections,
-    loading,
+    isLoading,
     error,
     refetch,
+    truncatedSectionKeys,
   } = useSectionsForSearchResults({
-    // turn off parsed chainFilter for pools (to avoid "eth usdc" searches filtering by eth mainnet)
-    chainFilter: activeTab !== SearchTab.Pools ? (chainFilter ?? parsedChainFilter) : chainFilter,
+    chainFilter: effectiveTokenSearchChainFilter,
     searchFilter: searchQuery,
     activeTab,
+    auctionSearchEnabled,
     shouldPrioritizePools: searchQuery?.includes('/') ?? false,
     shouldPrioritizeWallets: shouldPrioritizeWallets ?? false,
   })
@@ -64,9 +91,13 @@ function SearchModalResultsListInner({
 
   const sectionsForMetrics = useMemo(() => (isOfflineWithNoData ? [] : sections), [isOfflineWithNoData, sections])
 
+  // Resolve from the RAW sections (not the offline-guarded []): the hook tolerates empty and must see the real
+  // sections to resolve the RwaCollection rows' primary-chain CurrencyInfos.
+  const rwaIssuerCurrencyInfos = useRwaIssuerCurrencyInfos({ sections })
+
   useMultichainSearchModalMetricsAnalytics({
     sections: sectionsForMetrics,
-    isSearchResultsLoading: loading,
+    isSearchResultsLoading: isLoading,
     isSearchQueryPending: userIsTyping,
   })
 
@@ -91,22 +122,41 @@ function SearchModalResultsListInner({
     ) : undefined
   }, [debouncedSearchFilter, isOfflineWithNoData, hasActiveFilters, onResetFilters])
 
+  const displayedSections = useMemo(() => {
+    if (isOfflineWithNoData) {
+      return []
+    }
+    if (!isSearchV2UIEnabled || activeTab !== SearchTab.All) {
+      return sections
+    }
+    return withSectionGaps(onViewAll ? withViewAllFooters({ sections, truncatedSectionKeys, onViewAll }) : sections)
+  }, [isOfflineWithNoData, isSearchV2UIEnabled, onViewAll, activeTab, sections, truncatedSectionKeys])
+
+  const searchFilters = useMemo(
+    (): SearchModalListProps['searchFilters'] => ({
+      query: debouncedParsedSearchFilter ?? debouncedSearchFilter ?? undefined,
+      searchChainFilter: effectiveTokenSearchChainFilter,
+      searchTabFilter: activeTab,
+    }),
+    [debouncedParsedSearchFilter, debouncedSearchFilter, effectiveTokenSearchChainFilter, activeTab],
+  )
+
   return (
     <SearchModalList
       emptyElement={emptyElement}
       errorText={t('token.selector.search.error')}
       hasError={!isOffline && Boolean(error)}
-      loading={!isOffline && (userIsTyping || loading)}
+      loading={!isOffline && (userIsTyping || isLoading)}
+      loadingElement={isSearchV2UIEnabled ? RESULTS_LIST_SKELETON : undefined}
       refetch={refetch}
-      sections={isOfflineWithNoData ? [] : sections}
-      searchFilters={{
-        query: debouncedParsedSearchFilter ?? debouncedSearchFilter ?? undefined,
-        searchChainFilter: chainFilter,
-        searchTabFilter: activeTab,
-      }}
+      sections={displayedSections}
+      searchFilters={searchFilters}
       renderedInModal={renderedInModal}
       contentContainerStyle={contentContainerStyle}
+      rowWrapper={rowWrapper}
+      rwaIssuerCurrencyInfos={rwaIssuerCurrencyInfos}
       onSelect={onSelect}
+      onResultsShownChange={onResultsShownChange}
     />
   )
 }

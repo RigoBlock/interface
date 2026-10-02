@@ -1,3 +1,4 @@
+import { UniverseChainId } from '@universe/chains'
 /**
  * This context is used to persist Fiat On Ramp related data between Fiat On Ramp screens.
  */
@@ -7,12 +8,11 @@ import { getCountry } from 'react-native-localize'
 import { useSelector } from 'react-redux'
 import { selectModalState } from 'src/features/modals/selectModalState'
 import { getNativeAddress } from 'uniswap/src/constants/addresses'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { FiatCurrencyInfo, FiatOnRampCurrency, FORFilters, FORQuote } from 'uniswap/src/features/fiatOnRamp/types'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
-import { v4 as uuidv4 } from 'uuid'
+import { uuid } from 'utilities/src/primitives/uuid'
 
 interface FiatOnRampContextType {
   quotesSections?: SectionListData<FORQuote>[] | undefined
@@ -89,7 +89,7 @@ export function FiatOnRampProvider({ children }: { children: React.ReactNode }):
   const [tokenAmount, setTokenAmount] = useState<number | undefined>()
   const [externalTransactionIdSuffix] = useState<string>(() => {
     // Generate a UUID and extract the last 4 groups as the suffix
-    return uuidv4().split('-').slice(1).join('-')
+    return uuid().split('-').slice(1).join('-')
   })
 
   // We hardcode ETH as the default starting currency if not specified by modal state's prefilledCurrency

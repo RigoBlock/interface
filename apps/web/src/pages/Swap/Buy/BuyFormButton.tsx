@@ -1,8 +1,9 @@
+import { isSVMChain } from '@universe/chains'
+import { Button, type ButtonProps } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
-import { Button, type ButtonProps, useIsShortMobileDevice } from 'ui/src'
+import { useIsShortMobileDevice } from 'ui/src'
 import { MAINNET_CHAIN_INFO } from 'uniswap/src/features/chains/evm/info/mainnet'
 import { SOLANA_CHAIN_INFO } from 'uniswap/src/features/chains/svm/info/solana'
-import { isSVMChain } from 'uniswap/src/features/platforms/utils/chains'
 import { useIsMissingPlatformWallet } from 'uniswap/src/features/transactions/swap/components/SwapFormButton/hooks/useIsMissingPlatformWallet'
 import { useAccountDrawer } from '~/components/AccountDrawer/MiniPortfolio/hooks'
 import { useConnectionStatus } from '~/features/accounts/store/hooks'
@@ -41,7 +42,7 @@ export function BuyFormButton({ forceDisabled }: BuyFormButtonProps) {
 
   if (!inputAmount || forceDisabled || notAvailableInThisRegion || !quoteCurrency) {
     return (
-      <Button size={buttonSize} key="BuyFormButton" isDisabled>
+      <Button size={buttonSize} key="BuyFormButton" disabled>
         {notAvailableInThisRegion
           ? t('common.notAvailableInRegion.error')
           : quoteCurrency
@@ -57,7 +58,7 @@ export function BuyFormButton({ forceDisabled }: BuyFormButtonProps) {
       variant="branded"
       loading={fetchingQuotes}
       key="BuyFormButton"
-      isDisabled={Boolean(fetchingQuotes || !quotes || quotes.quotes.length === 0 || error)}
+      disabled={Boolean(fetchingQuotes || !quotes || quotes.quotes.length === 0 || error)}
       onPress={() => {
         setBuyFormState((prev) => ({ ...prev, providerModalOpen: true }))
       }}

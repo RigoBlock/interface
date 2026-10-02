@@ -1,27 +1,21 @@
 import { GraphQLApi, TradingApi } from '@universe/api'
+import { UniverseChainId, Platform } from '@universe/chains'
+import { isWebApp, isE2eTestEnv } from '@universe/environment'
 import { BASE_LOGO, ETH_LOGO } from 'ui/src/assets'
 import { config } from 'uniswap/src/config'
+import { ALL_APPS_CHAIN_SUPPORTED_APPS } from 'uniswap/src/features/chains/chainAppSupport'
 import { CHAIN_ID_TO_URL_PARAM } from 'uniswap/src/features/chains/chainUrlParam'
 import {
   DEFAULT_NATIVE_ADDRESS_LEGACY,
   DEFAULT_RETRY_OPTIONS,
   getPlaywrightRpcUrls,
-  getQuicknodeEndpointUrl,
+  getUniRpcEndpointUrl,
 } from 'uniswap/src/features/chains/evm/rpc'
 import { buildChainTokens } from 'uniswap/src/features/chains/evm/tokens'
 import { GENERIC_L2_GAS_CONFIG } from 'uniswap/src/features/chains/gasDefaults'
-import {
-  GqlChainId,
-  NetworkLayer,
-  RPCType,
-  UniverseChainId,
-  UniverseChainInfo,
-} from 'uniswap/src/features/chains/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
+import { GqlChainId, NetworkLayer, RPCType, UniverseChainInfo } from 'uniswap/src/features/chains/types'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { buildUSDC } from 'uniswap/src/features/tokens/stablecoin'
-import { isPlaywrightEnv } from 'utilities/src/environment/env'
-import { isWebApp } from 'utilities/src/platform'
 import { base } from 'wagmi/chains'
 
 const tokens = buildChainTokens({
@@ -36,6 +30,7 @@ export const BASE_CHAIN_INFO = {
   ...base,
   id: UniverseChainId.Base,
   platform: Platform.EVM,
+  supportedApps: ALL_APPS_CHAIN_SUPPORTED_APPS,
   backendChain: {
     chain: GraphQLApi.Chain.Base as GqlChainId,
     backendSupported: true,
@@ -49,7 +44,6 @@ export const BASE_CHAIN_INFO = {
   explorer: {
     name: 'BaseScan',
     url: 'https://basescan.org/',
-    apiURL: 'https://api.basescan.org',
   },
   openseaName: 'base',
   interfaceName: 'base',
@@ -71,12 +65,10 @@ export const BASE_CHAIN_INFO = {
   supportsV4: true,
   supportsNFTs: true,
   urlParam: CHAIN_ID_TO_URL_PARAM[UniverseChainId.Base],
-  rpcUrls: isPlaywrightEnv()
+  rpcUrls: isE2eTestEnv()
     ? getPlaywrightRpcUrls(LOCAL_BASE_PLAYWRIGHT_RPC_URL)
     : {
-        [RPCType.Public]: {
-          http: [getQuicknodeEndpointUrl(UniverseChainId.Base)],
-        },
+        [RPCType.Public]: { http: [getUniRpcEndpointUrl(UniverseChainId.Base)] },
         [RPCType.Default]: { http: ['https://mainnet.base.org/'] },
         [RPCType.Fallback]: {
           http: ['https://1rpc.io/base', 'https://base.meowrpc.com'],

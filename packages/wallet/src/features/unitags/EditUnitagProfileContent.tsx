@@ -1,8 +1,8 @@
+import { isExtensionApp, isIOS } from '@universe/environment'
+import { Button, Flex } from '@universe/mycelium'
 import type { ComponentType, PropsWithChildren } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Flex } from 'ui/src'
 import { spacing } from 'ui/src/theme'
-import { isExtensionApp, isIOS } from 'utilities/src/platform'
 import { KeyboardAwareScrollView } from 'wallet/src/components/scrollView/KeyboardAwareScrollView'
 import { UnitagProfileForm } from 'wallet/src/features/unitags/components/UnitagProfileForm'
 import { UnitagProfileHeader } from 'wallet/src/features/unitags/components/UnitagProfileHeader'
@@ -59,7 +59,7 @@ export function EditUnitagProfileContent({
         stickyComponent={
           <Button
             loading={isSaving}
-            isDisabled={!profileMetadataEdited}
+            disabled={!profileMetadataEdited}
             mt="$spacing12"
             mx={isExtensionApp ? undefined : '$spacing24'}
             size="large"

@@ -1,12 +1,18 @@
+import { View, type ViewCompatProps as ViewProps } from '@universe/mycelium'
 import { lighten } from 'polished'
-import { FlexProps, Shine, useSporeColors, View, ViewProps } from 'ui/src'
+import { createContext, useContext } from 'react'
+import type { ComponentProps } from 'react'
+import { Shine, useSporeColors } from 'ui/src'
+/** When true, LoadingBubbles render as static skeletons (no shine). E.g. a table's error state. */
+export const StaticSkeletonContext = createContext(false)
 
 interface LoadingBubbleProps {
   delay?: string
   round?: boolean
   height?: ViewProps['height']
   width?: ViewProps['width']
-  containerProps?: FlexProps
+  // Typed against the legacy Shine the props spread onto (its own props convert with it).
+  containerProps?: Partial<ComponentProps<typeof Shine>>
   skeletonProps?: ViewProps
 }
 
@@ -19,9 +25,16 @@ export const LoadingBubble = ({
   skeletonProps,
 }: LoadingBubbleProps) => {
   const colors = useSporeColors()
+  const isStatic = useContext(StaticSkeletonContext)
 
   return (
-    <Shine flexDirection="row" width="100%" $platform-web={{ animationDelay: delay }} {...containerProps}>
+    <Shine
+      disabled={isStatic}
+      flexDirection="row"
+      width="100%"
+      $platform-web={{ animationDelay: delay }}
+      {...containerProps}
+    >
       <View
         borderRadius={round ? '$roundedFull' : '$rounded12'}
         height={height}

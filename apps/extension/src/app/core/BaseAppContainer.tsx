@@ -1,12 +1,5 @@
+import 'src/app/tailwind.css'
 import { ApiInit, getEntryGatewayUrl, provideSessionService } from '@universe/api'
-import {
-  getIsHashcashSolverEnabled,
-  getIsSessionServiceEnabled,
-  getIsSessionsPerformanceTrackingEnabled,
-  getIsSessionUpgradeAutoEnabled,
-  getIsTurnstileSolverEnabled,
-  useIsSessionServiceEnabled,
-} from '@universe/gating'
 import {
   type ChallengeSolver,
   ChallengeType,
@@ -21,17 +14,20 @@ import {
 } from '@universe/sessions'
 import { PropsWithChildren, useEffect } from 'react'
 import { I18nextProvider } from 'react-i18next'
-import { GraphqlProvider } from 'src/app/apollo'
 import { TraceUserProperties } from 'src/app/components/Trace/TraceUserProperties'
 import { ExtensionStatsigProvider } from 'src/app/core/StatsigProvider'
 import { type DatadogAppNameTag } from 'src/app/datadog'
 import { onHashcashSolveCompleted, sessionInitAnalytics } from 'src/app/features/sessions/analytics'
+import { createStatsigGatedHashcashSolver } from 'src/app/features/sessions/createStatsigGatedHashcashSolver'
 import { useOnCrashAppStateResetter } from 'src/store/appStateResetter'
 import { getReduxStore } from 'src/store/store'
+import { createHashcashWorker } from 'src/workers/hashcashWorker'
 import { BlankUrlProvider } from 'uniswap/src/contexts/UrlContext'
+import { useSelectedColorScheme } from 'uniswap/src/features/appearance/hooks'
 import { useCurrentLanguage } from 'uniswap/src/features/language/hooks'
 import { LocalizationContextProvider } from 'uniswap/src/features/language/LocalizationContext'
 import { getLocale } from 'uniswap/src/features/language/navigatorLocale'
+import { usePoolsBalanceCoachmarkStateInit } from 'uniswap/src/features/portfolio/PortfolioBalance/usePoolsBalanceCoachmarkStateInit'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import i18n, { changeLanguage } from 'uniswap/src/i18n'
 import { getLogger } from 'utilities/src/logger/logger'
@@ -40,52 +36,51 @@ import { StatsigUserIdentifiersUpdater } from 'wallet/src/features/gating/Statsi
 import { SharedWalletProvider } from 'wallet/src/providers/SharedWalletProvider'
 
 const provideSessionInitializationService = (): SessionInitializationService => {
-  // Create performance tracker with feature flag control
   const performanceTracker = createPerformanceTracker({
-    getIsPerformanceTrackingEnabled: getIsSessionsPerformanceTrackingEnabled,
     getNow: () => performance.now(),
   })
 
   const solvers = new Map<ChallengeType, ChallengeSolver>()
 
-  if (getIsTurnstileSolverEnabled()) {
-    solvers.set(ChallengeType.TURNSTILE, createTurnstileMockSolver())
-  } else {
-    solvers.set(ChallengeType.TURNSTILE, createTurnstileMockSolver())
-  }
+  // Turnstile is web-only; the extension stubs it with a mock.
+  solvers.set(ChallengeType.TURNSTILE, createTurnstileMockSolver())
 
-  if (getIsHashcashSolverEnabled()) {
-    solvers.set(
-      ChallengeType.HASHCASH,
-      createHashcashSolver({
+  solvers.set(
+    ChallengeType.HASHCASH,
+    createStatsigGatedHashcashSolver({
+      realSolver: createHashcashSolver({
         performanceTracker,
-        getWorkerChannel: () =>
-          createHashcashWorkerChannel({
-            getWorker: () =>
-              new Worker(
-                new URL('@universe/sessions/src/challenge-solvers/hashcash/worker/hashcash.worker.ts', import.meta.url),
-                { type: 'module' },
-              ),
-          }),
+        // Vite dev serves workers from the dev-server origin, cross-origin to chrome-extension:// — Chrome kills
+        // the renderer (DWH_INVALID_SCRIPT_URL_ORIGIN). Solve on the main thread in dev; builds bundle it same-origin.
+        getWorkerChannel: __DEV__
+          ? undefined
+          : () =>
+              createHashcashWorkerChannel({
+                getWorker: createHashcashWorker,
+                // Log worker boot failures (e.g. `importScripts` NetworkError from
+                // a broken Vite chunk path)
+                // to Datadog so a regression is visible before users report it.
+                onWorkerError: (error) =>
+                  getLogger().error(error, {
+                    tags: { file: 'BaseAppContainer.tsx', function: 'createHashcashWorkerChannel' },
+                  }),
+              }),
         onSolveCompleted: onHashcashSolveCompleted,
         getLogger,
       }),
-    )
-  } else {
-    solvers.set(ChallengeType.HASHCASH, createHashcashMockSolver())
-  }
+      mockSolver: createHashcashMockSolver(),
+    }),
+  )
 
   return createSessionInitializationService({
     getSessionService: () =>
       provideSessionService({
         getBaseUrl: getEntryGatewayUrl,
-        getIsSessionServiceEnabled,
       }),
     challengeSolverService: createChallengeSolverService({
       solvers,
     }),
     performanceTracker,
-    getIsSessionUpgradeAutoEnabled,
     getLogger,
     analytics: sessionInitAnalytics,
   })
@@ -100,26 +95,21 @@ function ErrorBoundaryWrapper({ children }: PropsWithChildren): JSX.Element {
 }
 
 function BaseAppContainerInner({ children }: PropsWithChildren): JSX.Element {
-  const isSessionServiceEnabled = useIsSessionServiceEnabled()
-
   return (
     <I18nextProvider i18n={i18n}>
       <SharedWalletProvider reduxStore={getReduxStore()}>
         <ErrorBoundaryWrapper>
           <LanguageSync />
-          <GraphqlProvider>
-            <BlankUrlProvider>
-              <LocalizationContextProvider>
-                <TraceUserProperties />
-                <StatsigUserIdentifiersUpdater />
-                <ApiInit
-                  getSessionInitService={provideSessionInitializationService}
-                  isSessionServiceEnabled={isSessionServiceEnabled}
-                />
-                {children}
-              </LocalizationContextProvider>
-            </BlankUrlProvider>
-          </GraphqlProvider>
+          <TailwindThemeSync />
+          <BlankUrlProvider>
+            <LocalizationContextProvider>
+              <TraceUserProperties />
+              <StatsigUserIdentifiersUpdater />
+              <PoolsBalanceCoachmarkStateInit />
+              <ApiInit getSessionInitService={provideSessionInitializationService} />
+              {children}
+            </LocalizationContextProvider>
+          </BlankUrlProvider>
         </ErrorBoundaryWrapper>
       </SharedWalletProvider>
     </I18nextProvider>
@@ -139,12 +129,33 @@ export function BaseAppContainer({
   )
 }
 
+function PoolsBalanceCoachmarkStateInit(): null {
+  usePoolsBalanceCoachmarkStateInit()
+  return null
+}
+
 function LanguageSync(): null {
   const currentLanguage = useCurrentLanguage()
 
   useEffect(() => {
     changeLanguage(getLocale(currentLanguage)).catch(() => undefined)
   }, [currentLanguage])
+
+  return null
+}
+
+/**
+ * Mirrors the resolved color scheme onto the <html> `.dark` class so Tailwind v4
+ * `dark:` variants and @universe/tailwind dark tokens activate in sync with the
+ * Tamagui theme (driven by the same useSelectedColorScheme signal). Each
+ * extension UI page is its own document, so this runs per entrypoint.
+ */
+function TailwindThemeSync(): null {
+  const colorScheme = useSelectedColorScheme()
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', colorScheme === 'dark')
+  }, [colorScheme])
 
   return null
 }

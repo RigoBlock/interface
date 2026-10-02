@@ -1,10 +1,9 @@
+import type { UniverseChainId } from '@universe/chains'
+import { Flex, flexStyles, spacing, Text, TouchableArea } from '@universe/mycelium'
 import { memo, useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller'
 import { ESTIMATED_BOTTOM_TABS_HEIGHT } from 'src/app/navigation/tabs/CustomTabBar/constants'
-import { Flex, flexStyles, Text, TouchableArea } from 'ui/src'
-import { spacing } from 'ui/src/theme'
-import type { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { SearchModalNoQueryList } from 'uniswap/src/features/search/SearchModal/SearchModalNoQueryList'
 import { SearchModalResultsList } from 'uniswap/src/features/search/SearchModal/SearchModalResultsList'
 import { MOBILE_SEARCH_TABS, SearchTab } from 'uniswap/src/features/search/SearchModal/types'
@@ -64,11 +63,13 @@ export const ExploreScreenSearchResultsList = memo(function ExploreScreenSearchR
         case SearchTab.All:
           return t('common.all')
         case SearchTab.Tokens:
-          return t('common.tokens')
+          return t('common.token.plural')
         case SearchTab.Pools:
           return t('common.pools')
         case SearchTab.Wallets:
           return t('explore.search.section.wallets')
+        case SearchTab.Auctions:
+          return t('common.auctions')
       }
     },
     [t],
@@ -82,7 +83,7 @@ export const ExploreScreenSearchResultsList = memo(function ExploreScreenSearchR
   )
 
   return (
-    <KeyboardAvoidingView behavior="height" style={flexStyles.fill}>
+    <KeyboardAvoidingView behavior="padding" style={flexStyles.fill}>
       <Trace section={SectionName.ExploreSearch}>
         <Flex row px="$spacing20" pt="$spacing16" pb="$spacing8" gap="$spacing16">
           {MOBILE_SEARCH_TABS.map((tab) => (
@@ -105,6 +106,7 @@ export const ExploreScreenSearchResultsList = memo(function ExploreScreenSearchR
             activeTab={activeTab}
             renderedInModal={false}
             contentContainerStyle={contentContainerStyle}
+            onViewAll={setActiveTab}
           />
         ) : (
           <SearchModalNoQueryList
@@ -112,6 +114,7 @@ export const ExploreScreenSearchResultsList = memo(function ExploreScreenSearchR
             activeTab={activeTab}
             renderedInModal={false}
             contentContainerStyle={contentContainerStyle}
+            onViewAll={setActiveTab}
           />
         )}
       </Trace>

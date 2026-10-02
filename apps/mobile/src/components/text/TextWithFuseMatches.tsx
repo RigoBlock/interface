@@ -1,13 +1,13 @@
+import { Flex, Text } from '@universe/mycelium'
+import type { TextCompatProps, TextVariant } from '@universe/mycelium/text-compat'
 import Fuse from 'fuse.js'
 import React from 'react'
-import { Flex, Text, TextProps } from 'ui/src'
-import { TextVariantTokens } from 'ui/src/theme'
 
 interface TextWithFuseMatchesProps {
   text: string
   matches?: readonly Fuse.FuseResultMatch[]
-  variant?: TextVariantTokens
-  numberOfLines?: Pick<TextProps, 'numberOfLines'>
+  variant?: TextVariant
+  numberOfLines?: Pick<TextCompatProps, 'numberOfLines'>
 }
 
 export function TextWithFuseMatches({
@@ -15,7 +15,7 @@ export function TextWithFuseMatches({
   text,
   variant = 'body1',
   numberOfLines = 1,
-}: TextWithFuseMatchesProps & TextProps): JSX.Element {
+}: TextWithFuseMatchesProps & TextCompatProps): JSX.Element {
   if (!matches || matches.length === 0) {
     return (
       <Text color="$neutral1" numberOfLines={numberOfLines} variant={variant}>

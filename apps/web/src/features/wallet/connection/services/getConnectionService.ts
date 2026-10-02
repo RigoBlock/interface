@@ -1,6 +1,6 @@
+import { Platform } from '@universe/chains'
 import { useMemo } from 'react'
 import { CONNECTION_PROVIDER_IDS } from 'uniswap/src/constants/web3'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { useEvent } from 'utilities/src/react/hooks'
 import { useAccountDrawer } from '~/components/AccountDrawer/MiniPortfolio/hooks'
 import {

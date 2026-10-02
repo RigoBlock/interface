@@ -1,11 +1,12 @@
 import { skipToken } from '@tanstack/react-query'
+import { UniverseChainId } from '@universe/chains'
 import { createContext, Dispatch, PropsWithChildren, SetStateAction, useContext, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { buildPartialCurrencyInfo } from 'uniswap/src/constants/routing'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
 import { useActiveAddress } from 'uniswap/src/features/accounts/store/hooks'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { useAppFiatCurrency, useLocalFiatToUSDConverter } from 'uniswap/src/features/fiatCurrency/hooks'
+import { useAppFiatCurrency } from 'uniswap/src/features/fiatCurrency/hooks'
+import { useLocalFiatToUSDConverter } from 'uniswap/src/features/fiatCurrency/useLocalFiatToUSDConverter'
 import {
   useFiatOnRampAggregatorCountryListQuery,
   useFiatOnRampAggregatorCryptoQuoteQuery,
@@ -29,10 +30,13 @@ import {
   isInvalidRequestAmountTooLow,
 } from 'uniswap/src/features/fiatOnRamp/utils'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { getSymbolDisplayText } from 'uniswap/src/utils/currency'
+import { currencyId } from 'uniswap/src/utils/currencyId'
 import { useDebounce } from 'utilities/src/time/timing'
+import { v4 as uuidv4 } from 'uuid'
 import { useUSDTokenUpdater } from '~/hooks/useUSDTokenUpdater'
-import useCurrencyBalance from '~/lib/hooks/useCurrencyBalance'
+import { useCurrencyBalance } from '~/lib/hooks/useCurrencyBalance'
 import { useFiatOnRampSupportedTokens, useMeldFiatCurrencyInfo } from '~/pages/Swap/Buy/hooks'
 import { formatFORErrorAmount, getOnRampInputAmount, parseAndFormatFiatOnRampFiatAmount } from '~/pages/Swap/Buy/shared'
 
@@ -73,6 +77,7 @@ type BuyFormContextType = {
   buyFormState: BuyFormState
   setBuyFormState: Dispatch<SetStateAction<BuyFormState>>
   derivedBuyFormInfo: BuyInfo
+  externalTransactionIdSuffix: string
 }
 
 export const ethCurrencyInfo = buildPartialCurrencyInfo(nativeOnChain(UniverseChainId.Mainnet))
@@ -105,6 +110,7 @@ export const BuyFormContext = createContext<BuyFormContextType>({
     error: undefined,
     providerSourceAmount: undefined,
   },
+  externalTransactionIdSuffix: '',
 })
 
 export function useBuyFormContext() {
@@ -114,16 +120,21 @@ export function useBuyFormContext() {
 function useDerivedBuyFormInfo(state: BuyFormState): BuyInfo {
   const { t } = useTranslation()
   const inputAmount = useDebounce(state.inputAmount)
+  // The FOR token list is built from multichain data, whose `decimals` can be the parent token's rather
+  // than this deployment's. The fiat<->token conversion (which sets the sell amount sent to the provider)
+  // and the balance check use the per-chain currency from GetToken; both are withheld until it resolves.
+  // TODO(CONS-3725): remove once data-api returns per-deployment decimals for multichain tokens.
+  const resolvedQuoteCurrency = useCurrencyInfo(currencyId(state.quoteCurrency?.currencyInfo?.currency))?.currency
   const { formattedAmount: amountOut, loading: amountOutLoading } = useUSDTokenUpdater({
     isFiatInput: state.inputInFiat,
     exactAmount: inputAmount,
-    exactCurrency: state.quoteCurrency?.currencyInfo?.currency,
+    exactCurrency: resolvedQuoteCurrency,
   })
 
   const accountAddress = useActiveAddress(
     state.quoteCurrency?.currencyInfo?.currency.chainId ?? UniverseChainId.Mainnet,
   )
-  const balance = useCurrencyBalance(accountAddress, state.quoteCurrency?.currencyInfo?.currency)
+  const balance = useCurrencyBalance(accountAddress, resolvedQuoteCurrency)
 
   const { meldSupportedFiatCurrency, notAvailableInThisRegion } = useMeldFiatCurrencyInfo(state.selectedCountry)
   const appFiatCurrency = useAppFiatCurrency()
@@ -160,6 +171,7 @@ function useDerivedBuyFormInfo(state: BuyFormState): BuyInfo {
       return undefined
     }
     const needsConversion =
+      // oxlint-disable-next-line universe-custom/no-tolowercase-address-currencyid -- fiat currency codes, not addresses
       state.inputInFiat && appFiatCurrency.toLowerCase() !== meldSupportedFiatCurrency.code.toLowerCase()
     if (!needsConversion) {
       return raw
@@ -314,6 +326,7 @@ export function BuyFormContextProvider({
   rampDirection,
 }: PropsWithChildren<{ rampDirection: RampDirection }>) {
   const [buyFormState, setBuyFormState] = useState<BuyFormState>({ ...DEFAULT_BUY_FORM_STATE, rampDirection })
+  const [externalTransactionIdSuffix] = useState<string>(() => uuidv4().split('-').slice(1).join('-'))
   const derivedBuyFormInfo = useDerivedBuyFormInfo(buyFormState)
 
   const value = useMemo(
@@ -321,8 +334,9 @@ export function BuyFormContextProvider({
       buyFormState,
       setBuyFormState,
       derivedBuyFormInfo,
+      externalTransactionIdSuffix,
     }),
-    [buyFormState, derivedBuyFormInfo],
+    [buyFormState, derivedBuyFormInfo, externalTransactionIdSuffix],
   )
 
   return <BuyFormContext.Provider value={value}>{children}</BuyFormContext.Provider>

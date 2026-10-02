@@ -1,52 +1,58 @@
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
-import { useMemo } from 'react'
+import { UniverseChainId, isEVMChain } from '@universe/chains'
+import { Button, Flex, Shine, Text, View } from '@universe/mycelium'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
+import { type ReactNode, useMemo } from 'react'
 import { Helmet } from 'react-helmet-async/lib/index'
 import { useTranslation } from 'react-i18next'
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router'
-import { Button, Circle, Flex, Main, Shine, styled, Text } from 'ui/src'
 import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
 import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
-import { useGetPositionQuery } from 'uniswap/src/data/rest/getPosition'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { useSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { isEVMChain } from 'uniswap/src/features/platforms/utils/chains'
+import { useGetPositionInfo } from 'uniswap/src/features/positions/hooks/useGetPositionInfo'
 import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'
 import { shortenAddress } from 'utilities/src/addresses'
 import { NumberType } from 'utilities/src/format/types'
 import { useEvent } from 'utilities/src/react/hooks'
 import { BreadcrumbNavContainer, BreadcrumbNavLink } from '~/components/BreadcrumbNav'
-import { useGetPoolTokenPercentage } from '~/components/Liquidity/hooks/useGetPoolTokenPercentage'
-import { LiquidityPositionInfo, LiquidityPositionInfoLoader } from '~/components/Liquidity/LiquidityPositionInfo'
-import { TextLoader } from '~/components/Liquidity/Loader'
-import { PositionPageActionButtons } from '~/components/Liquidity/PositionPageActionButtons'
-import { parseRestPosition } from '~/components/Liquidity/utils/parseFromRest'
 import { DoubleCurrencyLogo } from '~/components/Logo/DoubleLogo'
-import { useChainIdFromUrlParam } from '~/features/params/chainParams'
+import { useEntryPointBreadcrumb } from '~/features/Liquidity/Create/hooks/useEntryPointBreadcrumb'
+import { useGetPoolTokenPercentage } from '~/features/Liquidity/hooks/useGetPoolTokenPercentage'
+import { LiquidityPositionInfo, LiquidityPositionInfoLoader } from '~/features/Liquidity/LiquidityPositionInfo'
+import { TextLoader } from '~/features/Liquidity/Loader'
+import { PositionPageActionButtons } from '~/features/Liquidity/PositionPageActionButtons'
 import { useAccount } from '~/hooks/useAccount'
 import { usePositionOwnerV2 } from '~/hooks/usePositionOwnerV2'
 import { useDynamicMetatags } from '~/pages/metatags'
-import NotFound from '~/pages/NotFound'
+import { NotFound } from '~/pages/NotFound'
 import { useActiveSmartPool } from '~/state/application/hooks'
 import { MultichainContextProvider } from '~/state/multichain/MultichainContext'
 import { usePendingLPTransactionsChangeListener } from '~/state/transactions/hooks'
+import { useChainIdFromUrlParam } from '~/utils/params/chainParams'
 
-const BodyWrapper = styled(Main, {
-  backgroundColor: '$surface1',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  width: '100%',
-  maxWidth: 600, // intentionally less than the other LP screens
-  zIndex: '$default',
-  py: '$spacing24',
-  px: '$spacing40',
-
-  $lg: {
-    px: '$padding20',
-  },
-})
+function BodyWrapper({ children }: { children: ReactNode }): JSX.Element {
+  return (
+    <View
+      tag="main"
+      backgroundColor="$surface1"
+      display="flex"
+      flexDirection="column"
+      alignItems="center"
+      width="100%"
+      maxWidth={600} // intentionally less than the other LP screens
+      zIndex="$default"
+      py="$spacing24"
+      px="$spacing40"
+      $lg={{
+        px: '$padding20',
+      }}
+    >
+      {children}
+    </View>
+  )
+}
 
 function RowLoader({ withIcon }: { withIcon?: boolean }) {
   return (
@@ -55,7 +61,7 @@ function RowLoader({ withIcon }: { withIcon?: boolean }) {
       {withIcon ? (
         <Flex row alignItems="center" gap="$gap4">
           <TextLoader variant="body2" width={78} />
-          <Circle size={24} backgroundColor="$surface3" />
+          <Flex height={24} width={24} borderRadius="$roundedFull" backgroundColor="$surface3" />
         </Flex>
       ) : (
         <TextLoader variant="body2" width={72} />
@@ -64,7 +70,7 @@ function RowLoader({ withIcon }: { withIcon?: boolean }) {
   )
 }
 
-export default function V2PositionPageWrapper() {
+export function V2PositionPageWrapper() {
   const chainId = useChainIdFromUrlParam()
 
   if (chainId && !isEVMChain(chainId)) {
@@ -78,6 +84,9 @@ export default function V2PositionPageWrapper() {
   )
 }
 
+export default V2PositionPageWrapper
+
+// oxlint-disable-next-line complexity
 function V2PositionPage() {
   const { pairAddress } = useParams<{ pairAddress: string }>()
   const chainId = useChainIdFromUrlParam()
@@ -85,23 +94,24 @@ function V2PositionPage() {
   const activeSmartPool = useActiveSmartPool()
   const supportedAccountChainId = useSupportedChainId(account.chainId)
   const chainInfo = getChainInfo(chainId ?? UniverseChainId.Mainnet)
+  const breadcrumb = useEntryPointBreadcrumb()
 
   const {
-    data,
+    positionInfo,
     isLoading: positionLoading,
     refetch,
-  } = useGetPositionQuery({
+  } = useGetPositionInfo({
+    // Use smart pool address instead of user address for LP positions
     owner: activeSmartPool.address ?? account.address ?? ZERO_ADDRESS,
     protocolVersion: ProtocolVersion.V2,
     pairAddress,
     chainId: chainId ?? supportedAccountChainId,
   })
-  const position = data?.position
-  const positionInfo = useMemo(() => parseRestPosition(position), [position])
   const navigate = useNavigate()
   const location = useLocation()
   const { formatCurrencyAmount, formatPercent } = useLocalizationContext()
   const { t } = useTranslation()
+  const media = useMedia()
 
   usePendingLPTransactionsChangeListener(refetch)
 
@@ -125,7 +135,6 @@ function V2PositionPage() {
   const token0USDValue = useUSDCValue(currency0Amount)
   const token1USDValue = useUSDCValue(currency1Amount)
   const poolTokenPercentage = useGetPoolTokenPercentage(positionInfo)
-  // oxlint-disable-next-line typescript/no-unnecessary-condition -- biome-parity: oxlint is stricter here
   const liquidityTokenAddress = positionInfo?.liquidityToken?.isToken ? positionInfo.liquidityToken.address : undefined
   const isOwner = usePositionOwnerV2({
     account: account.address,
@@ -154,8 +163,8 @@ function V2PositionPage() {
         }
         actionButton={
           <Flex row centered>
-            <Button width="fit-content" variant="branded" onPress={() => navigate('/positions')}>
-              {t('common.backToPositions')}
+            <Button width="fit-content" variant="branded" onPress={() => navigate(breadcrumb.to)}>
+              {breadcrumb.label}
             </Button>
           </Flex>
         }
@@ -168,8 +177,8 @@ function V2PositionPage() {
       <Helmet>
         <title>
           {t(`liquidityPool.positions.page.title`, {
-            quoteSymbol: currency1Amount?.currency.symbol,
-            baseSymbol: currency0Amount?.currency.symbol,
+            quoteSymbol: currency1Amount?.currency.symbol ?? t('common.token'),
+            baseSymbol: currency0Amount?.currency.symbol ?? t('common.token'),
           })}
         </title>
         {metatags.map((tag, index) => (
@@ -180,8 +189,8 @@ function V2PositionPage() {
         <Flex gap="$gap20" width="100%">
           <Flex row width="100%" justifyContent="flex-start" alignItems="center">
             <BreadcrumbNavContainer aria-label="breadcrumb-nav">
-              <BreadcrumbNavLink to="/positions">
-                {t('pool.positions.title')} <RotatableChevron direction="right" size="$icon.16" />
+              <BreadcrumbNavLink to={breadcrumb.to}>
+                {breadcrumb.label} <RotatableChevron direction="right" size="$icon.16" />
               </BreadcrumbNavLink>
               {positionInfo && <Text variant="subheading2">{shortenAddress({ address: positionInfo.poolId })}</Text>}
             </BreadcrumbNavContainer>
@@ -189,14 +198,29 @@ function V2PositionPage() {
 
           {positionLoading || !positionInfo ? (
             <Shine>
-              <LiquidityPositionInfoLoader hideStatus />
+              <LiquidityPositionInfoLoader hideStatus stacked />
             </Shine>
           ) : (
-            <LiquidityPositionInfo positionInfo={positionInfo} />
+            <Flex row justifyContent="space-between" alignItems="flex-start" gap="$gap16">
+              <Flex flex={1} minWidth={0}>
+                <LiquidityPositionInfo positionInfo={positionInfo} stackedLogo />
+              </Flex>
+              {/* Below $lg the actions collapse into a '…' that sits in the header row, like the pool detail page. */}
+              {media.lg && (
+                <PositionPageActionButtons isOwner={isOwner} positionInfo={positionInfo} onMigrate={onMigrate} />
+              )}
+            </Flex>
           )}
-          <Flex>
-            <PositionPageActionButtons buttonFill isOwner={isOwner} positionInfo={positionInfo} onMigrate={onMigrate} />
-          </Flex>
+          {!media.lg && (
+            <Flex>
+              <PositionPageActionButtons
+                buttonFill
+                isOwner={isOwner}
+                positionInfo={positionInfo}
+                onMigrate={onMigrate}
+              />
+            </Flex>
+          )}
           <Flex borderColor="$surface3" borderWidth="$spacing1" p="$spacing24" gap="$gap12" borderRadius="$rounded20">
             {positionLoading || !currency0Amount || !currency1Amount ? (
               <Shine>
@@ -240,7 +264,7 @@ function V2PositionPage() {
                 <Flex row width="100%" justifyContent="space-between">
                   <Text variant="subheading2" color="$neutral2">
                     {t('position.depositedCurrency', {
-                      currencySymbol: currency0Amount.currency.symbol,
+                      currencySymbol: currency0Amount.currency.symbol ?? t('common.token'),
                     })}
                   </Text>
                   <Flex row gap="$gap8">
@@ -256,7 +280,7 @@ function V2PositionPage() {
                 <Flex row width="100%" justifyContent="space-between">
                   <Text variant="subheading2" color="$neutral2">
                     {t('position.depositedCurrency', {
-                      currencySymbol: currency1Amount.currency.symbol,
+                      currencySymbol: currency1Amount.currency.symbol ?? t('common.token'),
                     })}
                   </Text>
                   <Flex row gap="$gap8">

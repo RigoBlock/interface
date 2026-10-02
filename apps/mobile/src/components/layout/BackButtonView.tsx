@@ -1,6 +1,6 @@
+import { ColorTokens, Flex, Text } from '@universe/mycelium'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { ColorTokens, Flex, Text } from 'ui/src'
 import { RotatableChevron } from 'ui/src/components/icons'
 import { IconSizeTokens } from 'ui/src/theme/tokens'
 

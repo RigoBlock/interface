@@ -5,9 +5,10 @@ import {
   createNotificationsApiClient,
   getEntryGatewayUrl,
   provideSessionService,
-  SESSION_INIT_QUERY_KEY,
   SharedQueryClient,
 } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
+import { isE2eTestEnv, REQUEST_SOURCE } from '@universe/environment'
 import {
   createApiNotificationTracker,
   createBaseNotificationProcessor,
@@ -17,23 +18,21 @@ import {
   type NotificationDataSource,
   type NotificationService,
 } from '@universe/notifications'
+import { SESSION_INIT_QUERY_KEY } from '@universe/sessions'
 import ms from 'ms'
 import { useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router'
-import { useIsDarkMode } from 'ui/src'
 import { useUniswapContext } from 'uniswap/src/contexts/UniswapContext'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { mapLocaleToBackendLocale } from 'uniswap/src/features/language/constants'
 import { getLocale } from 'uniswap/src/features/language/navigatorLocale'
 import { selectCurrentLanguage } from 'uniswap/src/features/settings/selectors'
 import { AVERAGE_L1_BLOCK_TIME_MS } from 'uniswap/src/features/transactions/hooks/usePollingIntervalByChain'
-import { isPlaywrightEnv } from 'utilities/src/environment/env'
 import { getLogger } from 'utilities/src/logger/logger'
-import { REQUEST_SOURCE } from 'utilities/src/platform/requestSource'
 import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
 import { type QueryOptionsResult } from 'utilities/src/reactQuery/queryOptions'
-import useCurrentBlockTimestamp from '~/hooks/useCurrentBlockTimestamp'
-import useMachineTimeMs from '~/hooks/useMachineTime'
+import { getConfig } from '~/config'
+import { useCurrentBlockTimestamp } from '~/hooks/useCurrentBlockTimestamp'
+import { useMachineTimeMs } from '~/hooks/useMachineTime'
 import { createLocalStorageAdapter } from '~/notification-service/createLocalStorageAdapter'
 import { createLegacyBannersNotificationDataSource } from '~/notification-service/data-sources/createLegacyBannersNotificationDataSource'
 import { createSystemAlertsDataSource } from '~/notification-service/data-sources/createSystemAlertsDataSource'
@@ -41,6 +40,7 @@ import { createWebNotificationRenderer } from '~/notification-service/notificati
 import { NotificationContainer } from '~/notification-service/notification-renderer/NotificationContainer'
 import { useNotificationStore } from '~/notification-service/notification-renderer/notificationStore'
 import { getNotificationTelemetry } from '~/notification-service/telemetry/getNotificationTelemetry'
+import { getInAppDestination } from '~/notification-service/utils/getNotificationDestination'
 import store from '~/state'
 import { getIsSessionServiceEnabledOnWeb } from '~/utils/sessionService'
 
@@ -48,11 +48,11 @@ import { getIsSessionServiceEnabledOnWeb } from '~/utils/sessionService'
  * Creates the notification service with all necessary dependencies
  */
 function provideWebNotificationService(ctx: {
-  getIsDarkMode: () => boolean
   navigate: (path: string) => void
   getSwapInputChainId: () => UniverseChainId | undefined
   getBlockTimestamp: () => bigint | undefined
-  getMachineTime: () => number
+  getBlockTimestampUpdatedAt: () => number
+  getStalenessCheckTimeMs: () => number
   getPathname: () => string
 }): NotificationService {
   const notifApiBaseUrl = getEntryGatewayUrl()
@@ -69,7 +69,7 @@ function provideWebNotificationService(ctx: {
         'Content-Type': 'application/json',
         'x-request-source': REQUEST_SOURCE,
         'x-uniswap-locale': backendLocale,
-        'x-app-version': process.env.REACT_APP_VERSION_TAG ?? '',
+        'x-app-version': getConfig().appVersion,
       }
     },
     getSessionService: () =>
@@ -108,18 +108,17 @@ function provideWebNotificationService(ctx: {
     storage: createLocalStorageAdapter(),
   })
 
-  // Legacy banners that would conflict with the new notification system (Solana and Bridging)
+  // Migrates legacy banner dismissal state (Bridging) into the notification system
   const bannersDataSource = createLegacyBannersNotificationDataSource({
     tracker,
-    getIsDarkMode: ctx.getIsDarkMode,
-    pollIntervalMs: 10000,
   })
 
   // System alerts data source (chain connectivity, outages)
   const systemAlertsDataSource = createSystemAlertsDataSource({
     getSwapInputChainId: ctx.getSwapInputChainId,
     getBlockTimestamp: ctx.getBlockTimestamp,
-    getMachineTime: ctx.getMachineTime,
+    getBlockTimestampUpdatedAt: ctx.getBlockTimestampUpdatedAt,
+    getStalenessCheckTimeMs: ctx.getStalenessCheckTimeMs,
     getPathname: ctx.getPathname,
     pollIntervalMs: 5000,
   })
@@ -141,29 +140,17 @@ function provideWebNotificationService(ctx: {
     renderer,
     telemetry,
     onNavigate: (url: string) => {
-      if (url.startsWith('/')) {
-        ctx.navigate(url)
+      const destination = getInAppDestination(url, {
+        onParseError: (error) =>
+          getLogger().warn('WebNotificationService', 'onNavigate', 'Failed to parse URL', { url, error }),
+      })
+
+      if (destination) {
+        ctx.navigate(destination)
         return
       }
 
-      try {
-        // Parse the URL to check if it's same-origin
-        const urlObj = new URL(url, window.location.origin)
-        const isSameOrigin = urlObj.origin === window.location.origin
-
-        if (isSameOrigin) {
-          // Use internal navigation for same-origin links
-          const path = urlObj.pathname + urlObj.search + urlObj.hash
-          ctx.navigate(path)
-        } else {
-          // Open external links in new tab
-          window.open(url, '_blank', 'noopener,noreferrer')
-        }
-      } catch (error) {
-        // If URL parsing fails, fall back to opening in new tab
-        getLogger().warn('WebNotificationService', 'onNavigate', 'Failed to parse URL', { url, error })
-        window.open(url, '_blank', 'noopener,noreferrer')
-      }
+      window.open(url, '_blank', 'noopener,noreferrer')
     },
   })
 
@@ -175,25 +162,25 @@ function provideWebNotificationService(ctx: {
  * Accepts the context needed to create the notification service
  */
 function getNotificationServiceQueryOptions(ctx: {
-  getIsDarkMode: () => boolean
   navigate: (path: string) => void
   getSwapInputChainId: () => UniverseChainId | undefined
   getBlockTimestamp: () => bigint | undefined
-  getMachineTime: () => number
+  getBlockTimestampUpdatedAt: () => number
+  getStalenessCheckTimeMs: () => number
   getPathname: () => string
 }): QueryOptionsResult<NotificationService, Error, NotificationService, [ReactQueryCacheKey.NotificationService]> {
   return queryOptions({
     queryKey: [ReactQueryCacheKey.NotificationService],
     queryFn: () =>
       provideWebNotificationService({
-        getIsDarkMode: ctx.getIsDarkMode,
         navigate: ctx.navigate,
         getSwapInputChainId: ctx.getSwapInputChainId,
         getBlockTimestamp: ctx.getBlockTimestamp,
-        getMachineTime: ctx.getMachineTime,
+        getBlockTimestampUpdatedAt: ctx.getBlockTimestampUpdatedAt,
+        getStalenessCheckTimeMs: ctx.getStalenessCheckTimeMs,
         getPathname: ctx.getPathname,
       }),
-    enabled: !isPlaywrightEnv(),
+    enabled: !isE2eTestEnv(),
     staleTime: Infinity, // Never refetch while mounted
     gcTime: 0, // Don't persist in cache - NotificationService has methods that can't be serialized
   })
@@ -203,15 +190,9 @@ export function WebNotificationServiceManager(): JSX.Element | null {
   const location = useLocation()
   const navigate = useNavigate()
 
-  // Don't show notifications on the landing page
-  const shouldRenderNotifications = location.pathname !== '/'
-
-  // Get current values for banner conditions (using refs to avoid recreating system)
-  const isDarkMode = useIsDarkMode()
-
   // Hook values that need to be passed to system alerts data source
   const { swapInputChainId } = useUniswapContext()
-  const blockTimestamp = useCurrentBlockTimestamp({
+  const { blockTimestamp, blockTimestampUpdatedAt } = useCurrentBlockTimestamp({
     refetchInterval: ms('5min'),
     chainId: swapInputChainId,
   })
@@ -220,12 +201,14 @@ export function WebNotificationServiceManager(): JSX.Element | null {
   // Store latest values in refs so getter functions always return current values
   const swapInputChainIdRef = useRef<UniverseChainId | undefined>(swapInputChainId)
   const blockTimestampRef = useRef<bigint | undefined>(blockTimestamp)
+  const blockTimestampUpdatedAtRef = useRef<number>(blockTimestampUpdatedAt)
   const machineTimeRef = useRef<number>(machineTime)
   const pathnameRef = useRef<string>(location.pathname)
 
   // Update refs on every render to ensure getters return fresh values
   swapInputChainIdRef.current = swapInputChainId
   blockTimestampRef.current = blockTimestamp
+  blockTimestampUpdatedAtRef.current = blockTimestampUpdatedAt
   machineTimeRef.current = machineTime
   pathnameRef.current = location.pathname
 
@@ -234,7 +217,8 @@ export function WebNotificationServiceManager(): JSX.Element | null {
     () => ({
       getSwapInputChainId: () => swapInputChainIdRef.current,
       getBlockTimestamp: () => blockTimestampRef.current,
-      getMachineTime: () => machineTimeRef.current,
+      getBlockTimestampUpdatedAt: () => blockTimestampUpdatedAtRef.current,
+      getStalenessCheckTimeMs: () => machineTimeRef.current,
       getPathname: () => pathnameRef.current,
     }),
     [],
@@ -242,7 +226,6 @@ export function WebNotificationServiceManager(): JSX.Element | null {
 
   const { data: notificationService } = useQuery(
     getNotificationServiceQueryOptions({
-      getIsDarkMode: () => isDarkMode,
       navigate: (path: string) => navigate(path),
       ...getters,
     }),
@@ -265,12 +248,13 @@ export function WebNotificationServiceManager(): JSX.Element | null {
     }
   }, [notificationService])
 
-  if (!shouldRenderNotifications || !notificationService) {
+  if (!notificationService) {
     return null
   }
 
   return (
     <NotificationContainer
+      currentLocation={location}
       onRenderFailed={notificationService.onRenderFailed}
       onNotificationShown={notificationService.onNotificationShown}
       onNotificationClick={notificationService.onNotificationClick}

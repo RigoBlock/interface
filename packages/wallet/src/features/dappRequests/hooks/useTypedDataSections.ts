@@ -1,10 +1,11 @@
 import type { BlockaidScanJsonRpcRequest } from '@universe/api'
+import type { UniverseChainId } from '@universe/chains'
 import { useMemo } from 'react'
-import type { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { isUniswapXSwapRequest, UniswapXSwapRequest } from 'wallet/src/components/dappRequests/types/Permit2Types'
 import { useBlockaidJsonRpcScan } from 'wallet/src/features/dappRequests/hooks/useBlockaidJsonRpcScan'
 import { useParseUniswapXSwap } from 'wallet/src/features/dappRequests/hooks/useParseUniswapXSwap'
 import type { ParsedTransactionData } from 'wallet/src/features/dappRequests/types'
+import type { BlockaidScanFailureState } from 'wallet/src/features/dappRequests/utils/blockaidScanQuery'
 import { parseTransactionSections } from 'wallet/src/features/dappRequests/utils/blockaidUtils'
 import { buildBlockaidScanJsonRpcRequest } from 'wallet/src/features/dappRequests/utils/buildBlockaidScanJsonRpcRequest'
 
@@ -17,7 +18,7 @@ interface UseTypedDataSectionsParams {
   dappUrl: string
 }
 
-interface UseTypedDataSectionsResult extends ParsedTransactionData {
+interface UseTypedDataSectionsResult extends ParsedTransactionData, BlockaidScanFailureState {
   isLoading: boolean
 }
 
@@ -34,8 +35,9 @@ export function useTypedDataSections({
   params,
   dappUrl,
 }: UseTypedDataSectionsParams): UseTypedDataSectionsResult {
-  // Detect UniswapX swap requests
-  const isUniswapX = isUniswapXSwapRequest(parsedTypedData)
+  // chainId pins the preview to the authorized chain, so the payload cannot pick one that
+  // flatters its own spender.
+  const isUniswapX = isUniswapXSwapRequest(parsedTypedData, chainId)
   const uniswapXTypedData = isUniswapX ? (parsedTypedData as UniswapXSwapRequest) : null
 
   // Build Blockaid scan request (always needed for risk level)
@@ -52,14 +54,19 @@ export function useTypedDataSections({
   )
 
   // Scan with Blockaid (for risk level and fallback sections)
-  const { scanResult, isLoading: isBlockaidLoading } = useBlockaidJsonRpcScan(blockaidRequest, Boolean(blockaidRequest))
+  const {
+    scanResult,
+    isLoading: isBlockaidLoading,
+    hasScanFailed,
+    isScanFailurePermanent,
+  } = useBlockaidJsonRpcScan(blockaidRequest)
 
   // Parse UniswapX sections (returns empty when not UniswapX)
   const { sections: uniswapXSections, isLoading: isUniswapXLoading } = useParseUniswapXSwap(uniswapXTypedData, chainId)
 
   // Parse Blockaid result for risk level and sections
   const { sections: blockaidSections, riskLevel } = useMemo(
-    () => parseTransactionSections(scanResult ?? null, chainId),
+    () => parseTransactionSections({ scanResult: scanResult ?? null, chainId }),
     [scanResult, chainId],
   )
 
@@ -73,5 +80,7 @@ export function useTypedDataSections({
     sections,
     riskLevel,
     isLoading,
+    hasScanFailed,
+    isScanFailurePermanent,
   }
 }

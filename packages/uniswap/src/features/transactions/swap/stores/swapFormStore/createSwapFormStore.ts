@@ -1,3 +1,4 @@
+import { isDevEnv } from '@universe/environment'
 import type { MutableRefObject } from 'react'
 import { createRef } from 'react'
 import type { Dispatch } from 'redux'
@@ -9,7 +10,6 @@ import type {
 } from 'uniswap/src/features/transactions/swap/stores/swapFormStore/types'
 import type { DerivedSwapInfo } from 'uniswap/src/features/transactions/swap/types/derivedSwapInfo'
 import { CurrencyField } from 'uniswap/src/types/currency'
-import { isDevEnv } from 'utilities/src/environment/env'
 import { logContextUpdate } from 'utilities/src/logger/contextEnhancer'
 import type { StoreApi, UseBoundStore } from 'zustand'
 import { create } from 'zustand'
@@ -30,6 +30,8 @@ export const INITIAL_SWAP_FORM_STATE: SwapFormState = {
   txHash: undefined,
   txHashReceivedTime: undefined,
   isFiatMode: false,
+  isEarnFlow: false,
+  earnSwapUpsellAnalyticsProperties: undefined,
   isMax: false,
   presetPercentage: undefined,
   preselectAsset: undefined,
@@ -43,14 +45,12 @@ export type SwapFormStore = UseBoundStore<StoreApi<SwapFormStoreState>>
 
 export const createSwapFormStore = ({
   hideFooter,
-  hideSettings,
   initialState,
   derivedSwapInfo,
   dependenciesForSideEffect: { dispatch },
   smartPoolAddress,
 }: {
   hideFooter?: boolean
-  hideSettings?: boolean
   initialState?: SwapFormState
   derivedSwapInfo: DerivedSwapInfo
   smartPoolAddress?: string
@@ -86,6 +86,8 @@ export const createSwapFormStore = ({
           txHash: undefined,
           txHashReceivedTime: undefined,
           isFiatMode: false,
+          isEarnFlow: false,
+          earnSwapUpsellAnalyticsProperties: undefined,
           isMax: false,
           presetPercentage: undefined,
           preselectAsset: undefined,
@@ -106,7 +108,6 @@ export const createSwapFormStore = ({
           // These must come AFTER ...initialState to prevent being overridden
           smartPoolAddress,
           hideFooter,
-          hideSettings,
           actions: {
             // This is the same as `setSwapForm` in the locally-managed state (via `useState) from the previous Context-driven version of this state management solution
             setSwapFormState: (newState: Partial<SwapFormStateForConsumers>): void => {

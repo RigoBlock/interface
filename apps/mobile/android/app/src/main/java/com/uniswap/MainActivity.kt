@@ -3,6 +3,7 @@ package com.uniswap
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
@@ -37,6 +38,23 @@ class MainActivity : ReactActivity() {
     }
     val sharedI18nUtilInstance = I18nUtil.getInstance()
     sharedI18nUtilInstance.allowRTL(applicationContext, false)
+  }
+
+  /**
+   * expo-dev-launcher redirects away from this activity before ReactActivityDelegate has created
+   * its ReactDelegate whenever the app is launched without a dev-client URL — which is what
+   * `expo run:android` does. React Native then hits requireNonNull in
+   * ReactActivityDelegate.onUserLeaveHint and crashes the debug build, which also leaves
+   * expo-dev-launcher warning that the app crashed the next time it opens. There is no React
+   * instance to hand the callback to at that point, so dropping it is safe. Release builds stub
+   * out expo-dev-launcher, so the delegate always exists there and this never triggers.
+   */
+  override fun onUserLeaveHint() {
+    try {
+      super.onUserLeaveHint()
+    } catch (e: NullPointerException) {
+      Log.w("MainActivity", "Ignoring onUserLeaveHint before the React delegate was created", e)
+    }
   }
 
   /**

@@ -1,14 +1,16 @@
+import { Platform } from '@universe/chains'
+import { isMobileWeb } from '@universe/environment'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Flex } from '@universe/mycelium'
 import { Fragment } from 'react'
-import { Flex, Separator } from 'ui/src'
+import { Separator } from 'ui/src'
 import { CONNECTION_PROVIDER_IDS } from 'uniswap/src/constants/web3'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
-import { isMobileWeb } from 'utilities/src/platform'
 import { MenuStateVariant, useSetMenuCallback } from '~/components/AccountDrawer/menuState'
 import { NoSolanaWalletConnectedView } from '~/components/WalletModal/NoSolanaWalletConnectedView'
 import { UniswapMobileWalletConnectorOption } from '~/components/WalletModal/UniswapMobileWalletConnectorOption'
 import { OtherWalletsOption, WalletConnectorOption } from '~/components/WalletModal/WalletConnectorOption'
-import { useRecentConnectorId } from '~/components/Web3Provider/constants'
+import { useRecentConnectorId } from '~/connection/constants'
+import { ExternalWallet } from '~/features/accounts/store/types'
 import { useOrderedWallets } from '~/features/wallet/connection/hooks/useOrderedWalletConnectors'
 import { transitions } from '~/theme/styles'
 
@@ -16,20 +18,40 @@ interface WalletOptionsGridProps {
   connectOnPlatform?: Platform | 'any'
   showMobileConnector?: boolean
   showOtherWallets?: boolean
+  onShowOtherWallets?: () => void
   showSeparators?: boolean
   maxHeight?: string
   opacity?: number
+}
+
+/**
+ * Finds the wallet tagged "Recent" within `wallets`, which `useOrderedWallets` has already sorted to the front.
+ * Uniswap Mobile is excluded because it is rendered as its own row rather than as part of `wallets`.
+ */
+function findRecentWallet({
+  wallets,
+  recentConnectorId,
+}: {
+  wallets: ExternalWallet[]
+  recentConnectorId?: string
+}): ExternalWallet | undefined {
+  if (!recentConnectorId || recentConnectorId === CONNECTION_PROVIDER_IDS.UNISWAP_WALLET_CONNECT_CONNECTOR_ID) {
+    return undefined
+  }
+  return wallets.find((wallet) => wallet.id === recentConnectorId)
 }
 
 export function WalletOptionsGrid({
   connectOnPlatform,
   showMobileConnector = false,
   showOtherWallets = false,
+  onShowOtherWallets,
   showSeparators = true,
   maxHeight = '100vh',
   opacity = 1,
 }: WalletOptionsGridProps): JSX.Element {
-  const showOtherWalletsCallback = useSetMenuCallback(MenuStateVariant.OTHER_WALLETS)
+  const defaultShowOtherWalletsCallback = useSetMenuCallback(MenuStateVariant.OTHER_WALLETS)
+  const showOtherWalletsCallback = onShowOtherWallets ?? defaultShowOtherWalletsCallback
   const wallets = useOrderedWallets({ showSecondaryConnectors: isMobileWeb, platformFilter: connectOnPlatform })
   const recentConnectorId = useRecentConnectorId()
   const isEmbeddedWalletEnabled = useFeatureFlag(FeatureFlags.EmbeddedWallet)
@@ -39,6 +61,15 @@ export function WalletOptionsGrid({
     (recentConnectorId === CONNECTION_PROVIDER_IDS.UNISWAP_WALLET_CONNECT_CONNECTOR_ID ||
       isMobileWeb ||
       isEmbeddedWalletEnabled)
+  // Mobile web already inlines the secondary connectors (showSecondaryConnectors: isMobileWeb above),
+  // so the "Other wallets" row would open an empty list there.
+  const shouldShowOtherWallets = showOtherWallets && !isMobileWeb
+
+  // The Uniswap Mobile row sits above `wallets`, which would bury the wallet tagged "Recent" a slot down;
+  // lift that wallet above the Uniswap Mobile row so returning users still see their last-used wallet first.
+  const recentWallet = shouldShowMobileConnector ? findRecentWallet({ wallets, recentConnectorId }) : undefined
+  const remainingWallets = recentWallet ? wallets.filter((wallet) => wallet !== recentWallet) : wallets
+  const rowSeparator = isEmbeddedWalletEnabled ? <Flex height={2} backgroundColor="$surface1" /> : <Separator />
 
   if (connectOnPlatform === Platform.SVM && wallets.length === 0) {
     return <NoSolanaWalletConnectedView />
@@ -53,23 +84,27 @@ export function WalletOptionsGrid({
         maxHeight={maxHeight}
         opacity={opacity}
         transition={`${transitions.duration.medium} ${transitions.timing.inOut}`}
-        data-testid="option-grid"
+        testID="option-grid"
       >
+        {recentWallet && (
+          <>
+            <WalletConnectorOption wallet={recentWallet} connectOnPlatform={connectOnPlatform} />
+            {showSeparators && rowSeparator}
+          </>
+        )}
         {shouldShowMobileConnector && (
           <>
             <UniswapMobileWalletConnectorOption />
-            {isEmbeddedWalletEnabled ? <Flex height={2} backgroundColor="$surface1" /> : <Separator />}
+            {rowSeparator}
           </>
         )}
-        {wallets.map((wallet, index) => (
+        {remainingWallets.map((wallet, index) => (
           <Fragment key={wallet.name}>
             <WalletConnectorOption wallet={wallet} connectOnPlatform={connectOnPlatform} />
-            {showSeparators &&
-              (index < wallets.length - 1 || showOtherWallets) &&
-              (isEmbeddedWalletEnabled ? <Flex height={2} backgroundColor="$surface1" /> : <Separator />)}
+            {showSeparators && (index < remainingWallets.length - 1 || shouldShowOtherWallets) && rowSeparator}
           </Fragment>
         ))}
-        {showOtherWallets && !isMobileWeb && <OtherWalletsOption onPress={showOtherWalletsCallback} />}
+        {shouldShowOtherWallets && <OtherWalletsOption onPress={showOtherWalletsCallback} />}
       </Flex>
     </Flex>
   )

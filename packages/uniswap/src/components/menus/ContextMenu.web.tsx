@@ -1,33 +1,50 @@
-import { Fragment, PropsWithChildren, useRef, useState } from 'react'
-import { AdaptiveWebPopoverContent, Popover, RemoveScroll, useMedia } from 'ui/src'
-import { ContextMenuProps } from 'uniswap/src/components/menus/ContextMenu'
-import { MenuContent } from 'uniswap/src/components/menus/ContextMenuContent'
+import { isWebApp } from '@universe/environment'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
+import {
+  ForwardedRef,
+  forwardRef,
+  Fragment,
+  PropsWithChildren,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
+import { AdaptiveWebPopoverContent, Popover, RemoveScroll } from 'ui/src'
+import { ContextMenuHandle, ContextMenuProps } from 'uniswap/src/components/menus/ContextMenu'
+import { MENU_CONTENT_SHEET_CONTAINER_STYLES, MenuContent } from 'uniswap/src/components/menus/ContextMenuContent'
 import { useContextMenuTracking } from 'uniswap/src/components/menus/hooks/useContextMenuTracking'
 import { ContextMenuTriggerMode } from 'uniswap/src/components/menus/types'
-import { isWebApp } from 'utilities/src/platform'
 import { useEvent, useOnClickOutside } from 'utilities/src/react/hooks'
 
-export function ContextMenu({
-  menuItems,
-  contentOverride,
-  isPlacementAbove = false,
-  isPlacementRight = false,
-  offsetX = 0,
-  offsetY = 0,
-  triggerMode,
-  disabled = false,
-  children,
-  isOpen,
-  closeMenu,
-  openMenu,
-  elementName,
-  sectionName,
-  trackItemClicks,
-  adaptToSheet = true,
-}: PropsWithChildren<ContextMenuProps>): JSX.Element {
+function ContextMenuWebInner(
+  {
+    menuItems,
+    contentOverride,
+    isPlacementAbove = false,
+    isPlacementRight = false,
+    offsetX = 0,
+    offsetY = 0,
+    triggerMode,
+    disabled = false,
+    children,
+    isOpen,
+    closeMenu,
+    openMenu,
+    elementName,
+    sectionName,
+    trackItemClicks,
+    adaptToSheet = true,
+  }: PropsWithChildren<ContextMenuProps>,
+  ref: ForwardedRef<ContextMenuHandle>,
+): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const triggerContainerRef = useRef<HTMLDivElement>(null)
+  // Stable reference so useOnClickOutside doesn't re-subscribe on every render.
+  const ignoredNodes = useMemo(() => [triggerContainerRef], [])
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 })
+  // True once a real position (right-click or openAt) has been captured, independent of triggerMode.
+  const [hasExplicitPosition, setHasExplicitPosition] = useState(false)
   const media = useMedia()
 
   const isSheet = isWebApp && media.sm && adaptToSheet
@@ -40,17 +57,48 @@ export function ContextMenu({
     sectionName,
   })
 
+  // A right-click's own trailing mouseup can land outside triggerContainerRef and get misread as an outside
+  // click, closing the menu we just opened. This flag suppresses that one mouseup.
+  const suppressNextOutsideCloseRef = useRef(false)
+  const armSuppressNextOutsideClose = useEvent((): void => {
+    suppressNextOutsideCloseRef.current = true
+  })
+
+  const handleOutsideClick = useEvent((): void => {
+    if (suppressNextOutsideCloseRef.current) {
+      suppressNextOutsideCloseRef.current = false
+      return
+    }
+    handleCloseMenu()
+  })
+
   // Skip click-outside handling when showing as sheet (sheet has its own dismiss handling via overlay).
   // Use capture so we run before modal/sheet handlers that stopPropagation (e.g. when menu is inside transaction-details modal).
   useOnClickOutside({
     node: containerRef,
-    handler: isSheet ? undefined : handleCloseMenu,
+    handler: isSheet ? undefined : handleOutsideClick,
     event: isLeftClick ? 'mouseup' : 'mousedown',
-    ignoredNodes: [triggerContainerRef],
+    ignoredNodes,
     capture: true,
   })
 
   const triggerHandledRef = useRef(false)
+
+  // Primary mode's own trigger (e.g. a "…" button): always anchored to the trigger, not the click position.
+  // Clears hasExplicitPosition on open, not on close, so it doesn't reposition mid exit-animation.
+  const openMenuAnchored = useEvent((): void => {
+    if (disabled) {
+      return
+    }
+
+    if (isOpen) {
+      handleCloseMenu()
+      return
+    }
+
+    openMenu?.()
+    setHasExplicitPosition(false)
+  })
 
   const onContextMenu = useEvent((e: React.MouseEvent<HTMLDivElement>): void => {
     if (disabled) {
@@ -75,11 +123,36 @@ export function ContextMenu({
     }
 
     openMenu?.()
+    armSuppressNextOutsideClose()
 
     // Capture raw click coords
     const { clientX, clientY } = e
+    setHasExplicitPosition(true)
     setMenuPosition({ x: clientX, y: clientY })
   })
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      openAt: (x: number, y: number) => {
+        if (disabled) {
+          return
+        }
+
+        // Toggle: close if already open, otherwise open at the given coordinates
+        if (isOpen) {
+          handleCloseMenu()
+          return
+        }
+
+        openMenu?.()
+        armSuppressNextOutsideClose()
+        setHasExplicitPosition(true)
+        setMenuPosition({ x, y })
+      },
+    }),
+    [disabled, isOpen, handleCloseMenu, openMenu, armSuppressNextOutsideClose],
+  )
 
   // Prevent click events from propagating to parent elements (e.g., TouchableArea)
   // and act as a fallback to open the menu on touch/click devices that do not fire
@@ -101,16 +174,17 @@ export function ContextMenu({
     triggerHandledRef.current = false
   })
 
-  // Prevent native browser context menu from appearing
+  // No stopPropagation: lets a right-click on the trigger bubble to an ancestor's own onContextMenu (openAt).
   const onPreventContextMenu = useEvent((e: React.MouseEvent<HTMLDivElement>): void => {
+    // Avoid "Unable to preventDefault inside passive event listener invocation" warnings
+    // on touch devices where the event may be marked passive.
     if (e.cancelable) {
       e.preventDefault()
     }
-    e.stopPropagation()
   })
 
   const getRelativeCoordinates = useEvent(() => {
-    if (isLeftClick || !triggerContainerRef.current) {
+    if (!hasExplicitPosition || !triggerContainerRef.current) {
       return { x: 0, y: 0 }
     }
 
@@ -156,7 +230,7 @@ export function ContextMenu({
         This ensures that left-click events are not blocked from propagating,
         keeping normal click behavior intact.
       */}
-      <Popover.Trigger onMouseDown={isLeftClick ? onContextMenu : undefined}>
+      <Popover.Trigger onMouseDown={isLeftClick ? openMenuAnchored : undefined}>
         {/* oxlint-disable-next-line react/forbid-elements -- needed here */}
         <div
           ref={triggerContainerRef}
@@ -181,22 +255,7 @@ export function ContextMenu({
       >
         {contentOverride ?? (
           <MenuContent
-            containerStyles={
-              isSheet
-                ? {
-                    p: '$none',
-                    pb: '$spacing16',
-                    backgroundColor: 'transparent',
-                    borderWidth: '$none',
-                    gap: '$spacing8',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    width: '100%',
-                    minWidth: undefined,
-                    maxWidth: undefined,
-                  }
-                : undefined
-            }
+            containerStyles={isSheet ? MENU_CONTENT_SHEET_CONTAINER_STYLES : undefined}
             items={menuItems}
             handleCloseMenu={handleCloseMenu}
             elementName={elementName}
@@ -208,3 +267,5 @@ export function ContextMenu({
     </Popover>
   )
 }
+
+export const ContextMenu = forwardRef(ContextMenuWebInner)

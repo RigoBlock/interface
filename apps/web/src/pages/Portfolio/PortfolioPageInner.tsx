@@ -1,24 +1,27 @@
-import { Flex } from 'ui/src'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Flex } from '@universe/mycelium'
 import { PortfolioConnectWalletBanner } from '~/pages/Portfolio/ConnectWalletBanner'
 import { ConnectWalletFixedBottomButton } from '~/pages/Portfolio/ConnectWalletFixedBottomButton'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { PortfolioHeader } from '~/pages/Portfolio/Header/Header'
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
+import { usePortfolioHeartbeatCoordinator } from '~/pages/Portfolio/hooks/usePortfolioHeartbeatCoordinator'
 import { useShowDemoView } from '~/pages/Portfolio/hooks/useShowDemoView'
 import { PortfolioContent } from '~/pages/Portfolio/PortfolioContent'
 import { PortfolioOutageProvider } from '~/pages/Portfolio/PortfolioOutageContext'
 import { PortfolioStakingProvider } from '~/pages/Portfolio/PortfolioStakingContext'
 
 interface PortfolioPageInnerProps {
-  scrollY: number
-  isBannerVisible: boolean
-  mb?: number | string
+  mb?: number
 }
 
-export function PortfolioPageInner({ scrollY, isBannerVisible, mb }: PortfolioPageInnerProps): JSX.Element {
+export function PortfolioPageInner({ mb }: PortfolioPageInnerProps): JSX.Element {
   const showDemoView = useShowDemoView()
+  const { tab, chainId } = usePortfolioRoutes()
   const portfolioAddresses = usePortfolioAddresses()
-  const { chainId } = usePortfolioRoutes()
+  const portfolioPoolsBalancesEnabled = useFeatureFlag(FeatureFlags.PortfolioPoolsBalances)
+
+  usePortfolioHeartbeatCoordinator({ tab, poolsEnabled: portfolioPoolsBalancesEnabled })
 
   return (
     <PortfolioOutageProvider>
@@ -26,7 +29,7 @@ export function PortfolioPageInner({ scrollY, isBannerVisible, mb }: PortfolioPa
         <Flex
           flexDirection="column"
           gap="$spacing40"
-          maxWidth="$maxWidth1200"
+          maxWidth={1200}
           width="100%"
           p="$spacing24"
           pt="$none"
@@ -35,10 +38,10 @@ export function PortfolioPageInner({ scrollY, isBannerVisible, mb }: PortfolioPa
           $sm={{ p: '$spacing8' }}
         >
           {showDemoView && <PortfolioConnectWalletBanner />}
-          {showDemoView && <ConnectWalletFixedBottomButton shouldShow={!isBannerVisible} />}
+          {showDemoView && <ConnectWalletFixedBottomButton />}
           {/* Animated Content Area - All routes show same content, filtered by chain */}
           <Flex gap="$spacing24">
-            <PortfolioHeader scrollY={showDemoView ? undefined : scrollY} />
+            <PortfolioHeader enableScrollCompact={!showDemoView} />
             {showDemoView ? (
               <Flex cursor="not-allowed">
                 <PortfolioContent disabled />

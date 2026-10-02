@@ -1,12 +1,16 @@
+HEAD
 /* oxlint-disable typescript/no-unnecessary-condition */
+import { Accordion, Flex, Square, Text } from '@universe/mycelium'
+import { AnimateTransition } from '@universe/mycelium/animate-presence-pager'
+import { spacing } from '@universe/mycelium/tokens'
+import { TestID } from '@universe/test'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Accordion, AnimateTransition, Flex, Separator, Square, Text } from 'ui/src'
+import { Separator } from 'ui/src'
 import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { HelpModal } from '~/components/HelpModal/HelpModal'
 import { MenuSectionTitle, useMenuContent } from '~/components/NavBar/CompanyMenu/Content'
-import { MenuLink } from '~/components/NavBar/CompanyMenu/MenuDropdown'
+import { MenuLink } from '~/components/NavBar/CompanyMenu/MenuLink'
 import { LegalAndPrivacyMenu } from '~/components/NavBar/LegalAndPrivacyMenu'
 import { NavDropdown } from '~/components/NavBar/NavDropdown'
 import { getSettingsViewIndex } from '~/components/NavBar/PreferencesMenu'
@@ -14,8 +18,15 @@ import { CurrencySettings } from '~/components/NavBar/PreferencesMenu/Currency'
 import { LanguageSettings } from '~/components/NavBar/PreferencesMenu/Language'
 import { PreferencesView } from '~/components/NavBar/PreferencesMenu/shared'
 import { useTabsContent } from '~/components/NavBar/Tabs/TabsContent'
+import { IN_APP_BROWSER_CHROME_PX } from '~/constants/inAppBrowser'
 import { Socials } from '~/pages/Landing/sections/Footer'
+HEAD
 import { useActiveSmartPool } from '~/state/application/hooks'
+import { isInAppBrowser } from '~/utils/isInAppBrowser'
+
+const BOTTOM_CLEARANCE = `calc(${spacing.spacing32}px + env(safe-area-inset-bottom))` as const
+const IN_APP_BROWSER_BOTTOM_CLEARANCE =
+  `calc(${spacing.spacing32 + IN_APP_BROWSER_CHROME_PX}px + env(safe-area-inset-bottom))` as const
 
 function MenuSection({
   title,
@@ -28,23 +39,29 @@ function MenuSection({
 }) {
   return (
     <Accordion.Item value={title} disabled={!collapsible}>
-      <Flex gap="8px">
-        <Accordion.Trigger flexDirection="row" p="0" gap="4px">
+      <Flex gap="$none">
+        <Accordion.Trigger
+          flexDirection="row"
+          alignItems="center"
+          p="$none"
+          gap="4px"
+          minHeight={collapsible ? 36 : undefined}
+        >
           {({ open }: { open: boolean }) => (
             <>
-              <Text variant="body4" color="$neutral2">
+              <Text variant="body3" color="$neutral2">
                 {title}
               </Text>
               {collapsible && (
                 <Square animation="200ms" rotate={open ? '90deg' : '270deg'}>
-                  <RotatableChevron size="$icon.16" color="$neutral2" />
+                  <RotatableChevron size="$icon.20" color="$neutral2" />
                 </Square>
               )}
             </>
           )}
         </Accordion.Trigger>
-        <Accordion.Content p="0" forceMount={!collapsible || undefined}>
-          <Flex gap="8px">{children}</Flex>
+        <Accordion.Content p="$none" forceMount={!collapsible || undefined}>
+          <Flex gap="$none">{children}</Flex>
         </Accordion.Content>
       </Flex>
     </Accordion.Item>
@@ -91,7 +108,7 @@ export function MobileMenuDrawer({ isOpen, closeMenu }: { isOpen: boolean; close
       dataTestId={TestID.CompanyMenuMobileDrawer}
       borderColor="$surface3"
     >
-      <Flex pt="$spacing12" pb="$spacing32" px="$spacing24">
+      <Flex pt="$spacing12" pb={isInAppBrowser() ? IN_APP_BROWSER_BOTTOM_CLEARANCE : BOTTOM_CLEARANCE} px="$spacing24">
         <AnimateTransition
           currentIndex={getSettingsViewIndex(settingsView)}
           animationType={settingsView === PreferencesView.SETTINGS ? 'forward' : 'backward'}
@@ -113,53 +130,54 @@ export function MobileMenuDrawer({ isOpen, closeMenu }: { isOpen: boolean; close
                     internal
                     closeMenu={closeMenu}
                     icon={tab.icon}
-                    textVariant="body2"
+                    textVariant="body1"
                     elementName={tab.elementName}
                   />
                 ))}
               </MenuSection>
-              {Object.values(productContent).map((sectionContent, index) => (
-                <MenuSection key={`${sectionContent.title}_${index}`} title={sectionContent.title} collapsible={false}>
-                  {/* oxlint-disable-next-line no-shadow */}
-                  {sectionContent.items.map(({ label, href, internal, icon, elementName }, index) => (
-                    <MenuLink
-                      key={`${label}_${index}}`}
-                      label={label}
-                      href={href}
-                      internal={internal}
-                      closeMenu={closeMenu}
-                      icon={icon}
-                      textVariant="body2"
-                      elementName={elementName}
-                    />
-                  ))}
-                </MenuSection>
-              ))}
+
+              <Flex gap="$spacing8">
+                {Object.values(productContent).map((sectionContent, index) => (
+                  <MenuSection key={`${sectionContent.title}_${index}`} title={sectionContent.title}>
+                    {/* oxlint-disable-next-line no-shadow */}
+                    {sectionContent.items.map(({ label, href, internal, elementName }, index) => (
+                      <MenuLink
+                        key={`${label}_${index}}`}
+                        label={label}
+                        href={href}
+                        internal={internal}
+                        closeMenu={closeMenu}
+                        textVariant="body2"
+                        elementName={elementName}
+                      />
+                    ))}
+                  </MenuSection>
+                ))}
+                {Object.values(menuContent).map((sectionContent, index) => (
+                  <MenuSection key={`${sectionContent.title}_${index}`} title={sectionContent.title}>
+                    {/* oxlint-disable-next-line no-shadow */}
+                    {sectionContent.items.map(({ label, href, internal, elementName }, index) => (
+                      <MenuLink
+                        key={`${label}_${index}}`}
+                        label={label}
+                        href={href}
+                        internal={internal}
+                        closeMenu={closeMenu}
+                        textVariant="body2"
+                        elementName={elementName}
+                      />
+                    ))}
+                  </MenuSection>
+                ))}
+              </Flex>
 
               <Separator backgroundColor="$surface3" />
 
-              {Object.values(menuContent).map((sectionContent, index) => (
-                <MenuSection key={`${sectionContent.title}_${index}`} title={sectionContent.title}>
-                  {/* oxlint-disable-next-line no-shadow */}
-                  {sectionContent.items.map(({ label, href, internal, elementName }, index) => (
-                    <MenuLink
-                      key={`${label}_${index}}`}
-                      label={label}
-                      href={href}
-                      internal={internal}
-                      closeMenu={closeMenu}
-                      elementName={elementName}
-                    />
-                  ))}
-                </MenuSection>
-              ))}
-              <Flex paddingBottom="$padding8">
+              <Flex gap="$spacing12">
                 <LegalAndPrivacyMenu closeMenu={closeMenu} />
-              </Flex>
-              <Flex row width="100%" justifyContent="space-between" alignItems="flex-end">
-                <HelpModal showOnXL />
-                <Flex gap="$spacing16">
-                  <Socials iconSize="20px" />
+                <Flex row width="100%" justifyContent="space-between" alignItems="flex-end">
+                  <HelpModal showOnXL flushInDrawer />
+                  <Socials iconSize="24px" gap="$spacing12" iconPadding="$spacing4" flushLastRight />
                 </Flex>
               </Flex>
             </Flex>

@@ -1,7 +1,11 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { ReactNavigationPerformanceView } from '@shopify/react-native-performance-navigation'
 import { SharedEventName } from '@uniswap/analytics-events'
+import { Platform, areAddressesEqual } from '@universe/chains'
 import { DynamicConfigs, OnDeviceRecoveryConfigKey, useDynamicConfigValue } from '@universe/gating'
+import { Flex, iconSizes, Text, TouchableArea } from '@universe/mycelium'
+import { PapersText } from '@universe/mycelium/icons/PapersText'
+import { TestID } from '@universe/test'
 import dayjs from 'dayjs'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -14,21 +18,16 @@ import {
   OnDeviceRecoveryWalletCardLoader,
 } from 'src/screens/Import/OnDeviceRecoveryWalletCard'
 import { RecoveryWalletInfo } from 'src/screens/Import/useOnDeviceRecoveryData'
-import { Flex, Image, Text, TouchableArea } from 'ui/src'
+import { Image } from 'ui/src'
 import { UNISWAP_LOGO } from 'ui/src/assets'
-import { PapersText } from 'ui/src/components/icons'
-import { iconSizes } from 'ui/src/theme'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import { WarningModal } from 'uniswap/src/components/modals/WarningModal/WarningModal'
 import { AccountType } from 'uniswap/src/features/accounts/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { ImportType, OnboardingEntryPoint } from 'uniswap/src/types/onboarding'
 import { OnboardingScreens } from 'uniswap/src/types/screens/mobile'
-import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 import { getCloudProviderName } from 'uniswap/src/utils/cloud-backup/getCloudProviderName'
 import { logger } from 'utilities/src/logger/logger'
 import { useOnboardingContext } from 'wallet/src/features/onboarding/OnboardingContext'
@@ -249,8 +248,14 @@ export function OnDeviceRecoveryScreen({
                   {t('onboarding.import.onDeviceRecovery.other_options.label')}
                 </Text>
                 <Trace logPress element={ElementName.OnDeviceRecoveryImportOther}>
-                  <TouchableArea alignItems="center" hitSlop={16} mb="$spacing12" testID={TestID.WatchWallet}>
-                    <Text color="$accent1" variant="buttonLabel2" onPress={onPressOtherWallet}>
+                  <TouchableArea
+                    alignItems="center"
+                    hitSlop={16}
+                    mb="$spacing12"
+                    testID={TestID.WatchWallet}
+                    onPress={onPressOtherWallet}
+                  >
+                    <Text color="$accent1" variant="buttonLabel2">
                       {t('onboarding.import.onDeviceRecovery.other_options')}
                     </Text>
                   </TouchableArea>

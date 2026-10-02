@@ -1,43 +1,8 @@
-import '@testing-library/jest-native'
-import { ReactNode } from 'react'
-import { Text } from 'ui/src'
+import { Text } from '@universe/mycelium'
 import { ActionSheetDropdown } from 'uniswap/src/components/dropdowns/ActionSheetDropdown'
 import { MenuItemProp } from 'uniswap/src/components/modals/ActionSheetModal'
 import { ON_PRESS_EVENT_PAYLOAD } from 'uniswap/src/test/fixtures'
-import { fireEvent, render, screen, waitFor, waitForElementToBeRemoved } from 'uniswap/src/test/test-utils'
-
-vi.mock('react-native', async (importOriginal) => {
-  const actualReactNative = await importOriginal<typeof import('react-native')>()
-
-  // In web environment (react-native-web), View doesn't have prototype.measureInWindow
-  // So we need to handle this safely - only set if prototype exists
-  const MockedView = actualReactNative.View
-
-  // oxlint-disable-next-line typescript/no-unnecessary-condition
-  if (MockedView?.prototype) {
-    MockedView.prototype.measureInWindow = (
-      callback: (x: number, y: number, width: number, height: number) => void,
-    ): void => {
-      // Provide mock measurements
-      const mockX = 0
-      const mockY = 0
-      const mockWidth = 100
-      const mockHeight = 50
-      callback(mockX, mockY, mockWidth, mockHeight)
-    }
-  }
-
-  return actualReactNative
-})
-
-vi.mock('tamagui', async (importOriginal) => {
-  const actualTamagui = await importOriginal<typeof import('tamagui')>()
-
-  return {
-    ...actualTamagui,
-    Portal: ({ children }: { children: ReactNode }): ReactNode => children,
-  }
-})
+import { fireEvent, render, screen, waitFor } from 'uniswap/src/test/test-utils'
 
 const createOption = (key: string, label: string): MenuItemProp => ({
   key,
@@ -67,10 +32,7 @@ describe(ActionSheetDropdown, () => {
     expect(tree).toMatchSnapshot()
   })
 
-  // TODO: Skip tests that require dropdown to open - doesn't work in jsdom/Vitest environment
-  // The dropdown state management and Portal rendering don't function properly in jsdom
-  // oxlint-disable-next-line jest/no-disabled-tests -- suppressed
-  it.skip('opens the dropdown when the toggle is pressed', async () => {
+  it('opens the dropdown when the toggle is pressed', async () => {
     render(<ActionSheetDropdown options={options} />)
 
     // Should be closed by default
@@ -81,9 +43,7 @@ describe(ActionSheetDropdown, () => {
     // Should render all options
     options.forEach(({ key }) => expect(screen.queryByTestId(key)).toBeTruthy())
   })
-
-  // oxlint-disable-next-line jest/no-disabled-tests, jest/expect-expect -- suppressed
-  it.skip('closes the dropdown after pressing on a backdrop', async () => {
+  it('closes the dropdown after pressing on a backdrop', async () => {
     const { getByTestId } = render(<ActionSheetDropdown options={options} />)
     await openDropdown()
 
@@ -91,12 +51,12 @@ describe(ActionSheetDropdown, () => {
 
     fireEvent.press(backdrop, ON_PRESS_EVENT_PAYLOAD)
 
-    // Should be closed after pressing the backdrop
-    await waitForElementToBeRemoved(() => screen.queryByTestId('dropdown-content'))
+    // Should be closed after pressing the backdrop. `Presence` takes its instant lane under
+    // `isTestEnv`, so the content is gone synchronously — hence a direct assertion rather than
+    // `waitForElementToBeRemoved`, which requires the node to still be present when it is called.
+    await waitFor(() => expect(screen.queryByTestId('dropdown-content')).toBeNull())
   })
-
-  // oxlint-disable-next-line jest/no-disabled-tests, jest/expect-expect -- suppressed
-  it.skip('closes the dropdown after pressing on an option', async () => {
+  it('closes the dropdown after pressing on an option', async () => {
     const { getByTestId } = render(<ActionSheetDropdown options={options} />)
 
     await openDropdown()
@@ -105,12 +65,10 @@ describe(ActionSheetDropdown, () => {
 
     fireEvent.press(option, ON_PRESS_EVENT_PAYLOAD)
 
-    // Should be closed after pressing an option
-    await waitForElementToBeRemoved(() => screen.queryByTestId('dropdown-content'))
+    // Should be closed after pressing an option (removed synchronously — see above)
+    await waitFor(() => expect(screen.queryByTestId('dropdown-content')).toBeNull())
   })
-
-  // oxlint-disable-next-line jest/no-disabled-tests -- suppressed
-  it.skip('calls the onPress function of the option after pressing on an option', async () => {
+  it('calls the onPress function of the option after pressing on an option', async () => {
     const { getByTestId } = render(<ActionSheetDropdown options={options} />)
 
     await openDropdown()

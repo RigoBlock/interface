@@ -1,28 +1,32 @@
 import { PublicKey } from '@solana/web3.js'
 import { skipToken, useQuery } from '@tanstack/react-query'
 import { Currency, CurrencyAmount, NativeCurrency as NativeCurrencyClass } from '@uniswap/sdk-core'
-import { SharedQueryClient } from '@universe/api'
+import { SharedQueryClient, tryProvideSession } from '@universe/api'
+import { UniverseChainId, Platform, chainIdToPlatform, normalizeTokenAddressForCache } from '@universe/chains'
 import { DynamicConfigs, getDynamicConfigValue, SyncTransactionSubmissionChainIdsConfigKey } from '@universe/gating'
 import { Contract } from 'ethers/lib/ethers'
 import { useMemo } from 'react'
 import ERC20_ABI from 'uniswap/src/abis/erc20.json'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
-import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
+import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
+import { RPCType } from 'uniswap/src/features/chains/types'
+import { getPollingIntervalByBlocktime } from 'uniswap/src/features/chains/utils'
 import {
   getSolanaParsedTokenAccountsByOwnerQueryOptions,
   SOLANA_ONCHAIN_BALANCE_COMMITMENT,
-} from 'uniswap/src/data/solanaConnection/getSolanaParsedTokenAccountsByOwnerQueryOptions'
-import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { getPollingIntervalByBlocktime } from 'uniswap/src/features/chains/utils'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
-import { chainIdToPlatform } from 'uniswap/src/features/platforms/utils/chains'
-import { createEthersProvider } from 'uniswap/src/features/providers/createEthersProvider'
+} from 'uniswap/src/features/portfolio/getSolanaParsedTokenAccountsByOwnerQueryOptions'
+import { createEthersProviderFactory } from 'uniswap/src/features/providers/createEthersProvider'
 import { getSolanaConnection } from 'uniswap/src/features/providers/getSolanaConnection'
+import { defaultResolveRpcConfig } from 'uniswap/src/features/providers/resolveRpcConfig'
 import { getCurrencyAmount, ValueType } from 'uniswap/src/features/tokens/getCurrencyAmount'
 import { currencyAddress as getCurrencyAddress } from 'uniswap/src/utils/currencyId'
 import { logger } from 'utilities/src/logger/logger'
 import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
+
+const createProvider = createEthersProviderFactory({
+  resolveRpcConfig: defaultResolveRpcConfig,
+  getSessionGate: tryProvideSession,
+})
 
 export type BalanceLookupParams = {
   currencyAddress: Address
@@ -80,7 +84,7 @@ async function getOnChainBalancesFetchEVM(params: BalanceLookupParams): Promise<
     return getOnChainBalancesFetchWithPending(params)
   }
 
-  const provider = createEthersProvider({ chainId })
+  const provider = createProvider({ chainId, rpcType: RPCType.Public })
   if (!provider) {
     return { balance: undefined }
   }
@@ -110,7 +114,7 @@ export async function getOnChainBalancesFetchWithPending(
     return { balance: undefined }
   }
 
-  const provider = createEthersProvider({ chainId })
+  const provider = createProvider({ chainId, rpcType: RPCType.Public })
   if (!provider) {
     return { balance: undefined }
   }

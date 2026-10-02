@@ -5,10 +5,16 @@ tags:
 env:
   E2E_RECOVERY_PHRASE: ${E2E_RECOVERY_PHRASE}
   DATADOG_API_KEY: ${DATADOG_API_KEY}
+  PLATFORM: ${PLATFORM}
+  GITHUB_REF_NAME: ${GITHUB_REF_NAME}
+  GITHUB_SHA: ${GITHUB_SHA}
+  GITHUB_RUN_ID: ${GITHUB_RUN_ID}
 ---
 # Initialize tracking at the very beginning
 - runScript:
     file: ../../scripts/performance/dist/actions/init-tracking.js
+    env:
+      PLATFORM: ${PLATFORM}
 
 # Start flow tracking
 - runScript:
@@ -113,8 +119,9 @@ env:
     timeout: 3000
 - assertVisible:
     id: ${output.testIds.TokenDetailsHeaderText}
+# Multichain UX: Buy/Sell buttons replaced single Swap button
 - assertVisible:
-    id: ${output.testIds.TokenDetailsSwapButton}
+    id: ${output.testIds.TokenDetailsBuyButton}
 - runScript:
     file: ../../scripts/performance/dist/actions/track-action.js
     env:
@@ -230,4 +237,7 @@ env:
     file: ../../scripts/performance/upload-metrics.js
     env:
       DATADOG_API_KEY: ${DATADOG_API_KEY}
+      GITHUB_REF_NAME: ${GITHUB_REF_NAME}
+      GITHUB_SHA: ${GITHUB_SHA}
+      GITHUB_RUN_ID: ${GITHUB_RUN_ID}
       ENVIRONMENT: "maestro_cloud"

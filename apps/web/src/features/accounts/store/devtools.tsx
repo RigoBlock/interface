@@ -1,5 +1,5 @@
+import { Platform } from '@universe/chains'
 import { PropsWithChildren, useEffect, useState } from 'react'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import {
   useActiveAddress,
   useActiveAddresses,

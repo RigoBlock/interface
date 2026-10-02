@@ -1,6 +1,6 @@
-import { GraphQLApi } from '@universe/api'
 import { TickMarkType, UTCTimestamp } from 'lightweight-charts'
 import ms from 'ms'
+import { HistoryDuration } from 'uniswap/src/features/dataApi/types'
 
 /** Compatible with ISeriesApi<'Area' | 'Candlestick'> */
 export enum PriceChartType {
@@ -13,6 +13,7 @@ export enum ChartType {
   VOLUME = 'Volume',
   TVL = 'TVL', // Locked value distributed by timestamp
   LIQUIDITY = 'Liquidity', // Locked value distributed by tick
+  DEPTH = 'Depth', // Cumulative liquidity depth (bid/ask)
 }
 
 export type ChartQueryResult<TDataType, TChartType extends ChartType> = {
@@ -21,6 +22,8 @@ export type ChartQueryResult<TDataType, TChartType extends ChartType> = {
   loading: boolean
   dataQuality: DataQuality
   dataHash?: string
+  /** True when the underlying query failed, distinguishing a fetch failure from a token with no data to plot. */
+  isError?: boolean
 }
 
 export enum DataQuality {
@@ -29,34 +32,27 @@ export enum DataQuality {
   STALE = 2,
 }
 
-/** Used for expecting the same data freshness regardless of time period, e.g. 1y price chart should still have a recent point */
-const CONSTANT_STALENESS: Partial<Record<GraphQLApi.HistoryDuration, number>> = {
-  [GraphQLApi.HistoryDuration.Hour]: ms('15m'),
-  [GraphQLApi.HistoryDuration.Day]: ms('15m'),
-  [GraphQLApi.HistoryDuration.Week]: ms('15m'),
-  [GraphQLApi.HistoryDuration.Month]: ms('15m'),
-  [GraphQLApi.HistoryDuration.Year]: ms('15m'),
-}
-
 /** Used decreasing freshness regardless of time period, e.g. 1h volume chart has more recent data than 1y volume chart */
-const GRANULAR_STALENESS: Partial<Record<GraphQLApi.HistoryDuration, number>> = {
-  [GraphQLApi.HistoryDuration.Hour]: ms('15m'),
-  [GraphQLApi.HistoryDuration.Day]: ms('4h'),
-  [GraphQLApi.HistoryDuration.Week]: ms('1d'),
-  [GraphQLApi.HistoryDuration.Month]: ms('4d'),
-  [GraphQLApi.HistoryDuration.Year]: ms('30d'),
+const GRANULAR_STALENESS: Partial<Record<HistoryDuration, number>> = {
+  [HistoryDuration.Hour]: ms('15m'),
+  [HistoryDuration.Day]: ms('4h'),
+  [HistoryDuration.Week]: ms('1d'),
+  [HistoryDuration.Month]: ms('4d'),
+  [HistoryDuration.Year]: ms('30d'),
 }
 
 /** Maps from `ChartType` and `HistoryDuration` to expected data freshness threshold */
-const CHART_DURATION_STALE_THRESHOLD_MAP: Record<
-  ChartType,
-  Partial<Record<GraphQLApi.HistoryDuration, number> | undefined>
-> = {
-  [ChartType.PRICE]: CONSTANT_STALENESS,
+const CHART_DURATION_STALE_THRESHOLD_MAP: Record<ChartType, Partial<Record<HistoryDuration, number> | undefined>> = {
+  // Price chart appends a live spot-price point stamped to "now" (see appendLiveSpotPriceEntry), so this
+  // threshold is only hit as a fallback when that append no-ops (e.g. current price momentarily unavailable).
+  // GRANULAR_STALENESS avoids treating a coarser Week/Month/Year bucket as stale in that fallback case.
+  [ChartType.PRICE]: GRANULAR_STALENESS,
   [ChartType.VOLUME]: GRANULAR_STALENESS,
-  [ChartType.TVL]: CONSTANT_STALENESS,
+  [ChartType.TVL]: GRANULAR_STALENESS,
   // Liquidity chart does not have a time axis
   [ChartType.LIQUIDITY]: undefined,
+  // Depth chart does not have a time axis
+  [ChartType.DEPTH]: undefined,
 }
 
 export function checkDataQuality({
@@ -66,7 +62,7 @@ export function checkDataQuality({
 }: {
   data: { time: number }[]
   chartType: ChartType
-  duration: GraphQLApi.HistoryDuration
+  duration: HistoryDuration
 }): DataQuality {
   if (data.length < 3) {
     return DataQuality.INVALID
@@ -80,8 +76,22 @@ export function checkDataQuality({
   }
 }
 
-export function withUTCTimestamp<T extends { timestamp: number }>(entry: T): T & { time: UTCTimestamp } {
-  return { ...entry, time: entry.timestamp as UTCTimestamp }
+/** Current time as lightweight-charts UTCTimestamp (whole seconds since epoch). */
+export function getCurrentUTCTimestamp(): UTCTimestamp {
+  // lightweight-charts requires integer UTCTimestamps; Date.now() is millisecond-precision,
+  // so floor to whole seconds to avoid fractional times in the chart series.
+  return Math.floor(Date.now() / 1000) as UTCTimestamp
+}
+
+const CANDLESTICK_FALLBACK_THRESHOLD = 0.1
+
+/** Backend sometimes returns invalid OHLC data on some chains: a long run of 0-valued candles. Used to trigger a fallback to price history. */
+export function isZeroOhlcSeries(entries: { value: number }[]): boolean {
+  if (!entries.length) {
+    return true
+  }
+  const zeroCount = entries.filter((entry) => entry.value === 0).length
+  return zeroCount / entries.length > CANDLESTICK_FALLBACK_THRESHOLD
 }
 
 /**

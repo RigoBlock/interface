@@ -1,4 +1,8 @@
-import { findProof, type HashcashChallenge } from '@universe/sessions/src/challenge-solvers/hashcash/core'
+import {
+  findProof as defaultFindProof,
+  type HashcashChallenge,
+} from '@universe/sessions/src/challenge-solvers/hashcash/core'
+import { HashcashWorkerBootError } from '@universe/sessions/src/challenge-solvers/hashcash/worker/hashcashWorkerErrors'
 import type { HashcashWorkerChannelFactory } from '@universe/sessions/src/challenge-solvers/hashcash/worker/types'
 import type { ChallengeData, ChallengeSolver } from '@universe/sessions/src/challenge-solvers/types'
 import type { PerformanceTracker } from '@universe/sessions/src/performance/types'
@@ -6,7 +10,7 @@ import type { Logger } from 'utilities/src/logger/logger'
 import { z } from 'zod'
 
 /** Error type for analytics classification */
-type HashcashErrorType = 'validation' | 'no_proof' | 'worker_busy' | 'unknown'
+type HashcashErrorType = 'validation' | 'no_proof' | 'worker_busy' | 'worker_boot_failed' | 'unknown'
 
 /** Base class for hashcash errors with typed errorType for reliable analytics classification */
 class HashcashError extends Error {
@@ -50,7 +54,7 @@ class HashcashWorkerBusyError extends HashcashError {
 interface HashcashSolveAnalytics {
   durationMs: number
   success: boolean
-  errorType?: 'validation' | 'no_proof' | 'worker_busy' | 'unknown'
+  errorType?: HashcashErrorType
   errorMessage?: string
   /** The difficulty level of the challenge (number of leading zero bytes) */
   difficulty: number
@@ -75,6 +79,14 @@ interface CreateHashcashSolverContext {
    * If not provided, falls back to main-thread execution (blocking).
    */
   getWorkerChannel?: HashcashWorkerChannelFactory
+  /**
+   * Main-thread proof-of-work implementation, used when no worker channel is provided.
+   * Defaults to the platform-split `hashcash/core` module, which platform-aware bundlers
+   * resolve to `core.web.ts` / `core.native.ts`. Runtimes without platform-split
+   * resolution (plain Node loaders) must inject an implementation explicitly, e.g. the
+   * headless client passes `core.web`'s `findProof`.
+   */
+  findProofFn?: typeof defaultFindProof
   /**
    * Callback for analytics when solve completes (success or failure)
    */
@@ -134,6 +146,9 @@ function parseHashcashChallenge(challengeDataStr: string): HashcashChallenge {
  */
 function classifyError(error: unknown): HashcashSolveAnalytics['errorType'] {
   // Prefer typed error classification via instanceof
+  if (error instanceof HashcashWorkerBootError) {
+    return 'worker_boot_failed'
+  }
   if (error instanceof HashcashError) {
     return error.errorType
   }
@@ -164,6 +179,7 @@ function classifyError(error: unknown): HashcashSolveAnalytics['errorType'] {
  */
 function createHashcashSolver(ctx: CreateHashcashSolverContext): ChallengeSolver {
   const usedWorker = !!ctx.getWorkerChannel
+  const findProof = ctx.findProofFn ?? defaultFindProof
 
   async function solve(challengeData: ChallengeData): Promise<string> {
     const startTime = ctx.performanceTracker.now()

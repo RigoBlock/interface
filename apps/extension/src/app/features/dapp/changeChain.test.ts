@@ -1,19 +1,19 @@
 import { JsonRpcProvider } from '@ethersproject/providers'
 import { providerErrors, serializeError } from '@metamask/rpc-errors'
+import { UniverseChainId } from '@universe/chains'
 import { changeChain } from 'src/app/features/dapp/changeChain'
 import { dappStore } from 'src/app/features/dapp/store'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { chainIdToHexadecimalString } from 'uniswap/src/features/chains/utils'
 import { DappResponseType } from 'uniswap/src/features/dappRequests/types'
 import { ExtensionEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 
 // Mock dependencies
-jest.mock('@ethersproject/providers')
-jest.mock('@metamask/rpc-errors')
-jest.mock('src/app/features/dapp/store')
-jest.mock('uniswap/src/features/telemetry/send')
-jest.mock('uniswap/src/features/chains/utils')
+vi.mock('@ethersproject/providers')
+vi.mock('@metamask/rpc-errors')
+vi.mock('src/app/features/dapp/store')
+vi.mock('uniswap/src/features/telemetry/send')
+vi.mock('uniswap/src/features/chains/utils')
 
 describe('changeChain', () => {
   const mockRequestId = 'test-request-id'
@@ -23,7 +23,7 @@ describe('changeChain', () => {
   let mockProvider: JsonRpcProvider
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
 
     mockProvider = {
       connection: {

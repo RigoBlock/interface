@@ -4,14 +4,14 @@ import android.view.View
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
-import com.facebook.react.bridge.ReactContext
 import com.facebook.react.uimanager.ThemedReactContext
 import com.facebook.react.uimanager.ViewGroupManager
 import com.facebook.react.uimanager.ViewManager
 import com.facebook.react.uimanager.annotations.ReactProp
-import com.facebook.react.uimanager.events.RCTEventEmitter
 import com.uniswap.R
 import com.uniswap.RnEthersRs
+import com.uniswap.compose.ComposeHostView
+import com.uniswap.compose.dispatchComposeHostEvent
 import com.uniswap.onboarding.backup.ui.MnemonicConfirmation
 import com.uniswap.onboarding.backup.ui.MnemonicConfirmationViewModel
 import com.uniswap.theme.UniswapComponent
@@ -23,25 +23,35 @@ import kotlinx.coroutines.flow.update
  * for the MnemonicTest component used to test if user has saved their
  * seed phrase
  */
-class MnemonicConfirmationViewManager : ViewGroupManager<ComposeView>() {
+class MnemonicConfirmationViewManager : ViewGroupManager<ComposeHostView>() {
 
   override fun getName(): String = REACT_CLASS
 
   private val mnemonicIdFlow = MutableStateFlow("")
   private val shouldShowSmallTextFlow = MutableStateFlow(false)
   private val selectedWordPlaceholderFlow = MutableStateFlow("")
+  private val pageStartFlow = MutableStateFlow(0)
+  private val pageSizeFlow = MutableStateFlow(0)
+  private val currentPageFlow = MutableStateFlow(0)
+  private val totalPagesFlow = MutableStateFlow(0)
 
-  override fun createViewInstance(reactContext: ThemedReactContext): ComposeView {
+  override fun createViewInstance(reactContext: ThemedReactContext): ComposeHostView {
     val ethersRs = RnEthersRs(reactContext)
     val viewModel = MnemonicConfirmationViewModel(ethersRs)
 
-    return ComposeView(reactContext).apply {
+    val host = ComposeHostView(reactContext).apply {
       id = R.id.mnemonic_confirmation_compose_id // Needed for RN event emitter
+    }
 
+    val composeView = ComposeView(reactContext).apply {
       setContent {
         val mnemonicId by mnemonicIdFlow.collectAsState()
         val shouldShowSmallText by shouldShowSmallTextFlow.collectAsState()
         val selectedWordPlaceholder by selectedWordPlaceholderFlow.collectAsState()
+        val pageStart by pageStartFlow.collectAsState()
+        val pageSize by pageSizeFlow.collectAsState()
+        val currentPage by currentPageFlow.collectAsState()
+        val totalPages by totalPagesFlow.collectAsState()
 
         viewModel.updatePlaceholder(selectedWordPlaceholder)
 
@@ -50,15 +60,19 @@ class MnemonicConfirmationViewManager : ViewGroupManager<ComposeView>() {
             mnemonicId = mnemonicId,
             viewModel = viewModel,
             shouldShowSmallText = shouldShowSmallText,
+            pageStart = pageStart,
+            pageSize = pageSize,
+            currentPage = currentPage,
+            totalPages = totalPages,
           ) {
-            context as ReactContext
-            reactContext
-              .getJSModule(RCTEventEmitter::class.java)
-              .receiveEvent(id, EVENT_COMPLETED, null) // Sends event to RN bridge
+            dispatchComposeHostEvent(reactContext, host.id, EVENT_COMPLETED) // Sends event to RN bridge
           }
         }
       }
     }
+
+    host.setComposeView(composeView)
+    return host
   }
 
   /**
@@ -89,6 +103,26 @@ class MnemonicConfirmationViewManager : ViewGroupManager<ComposeView>() {
   @ReactProp(name = "selectedWordPlaceholder")
   fun setSelectedWordPlaceholder(view: View, selectedWordPlaceholder: String) {
     selectedWordPlaceholderFlow.update { selectedWordPlaceholder }
+  }
+
+  @ReactProp(name = "pageStart", defaultInt = 0)
+  fun setPageStart(view: View, pageStart: Int) {
+    pageStartFlow.update { pageStart }
+  }
+
+  @ReactProp(name = "pageSize", defaultInt = 0)
+  fun setPageSize(view: View, pageSize: Int) {
+    pageSizeFlow.update { pageSize }
+  }
+
+  @ReactProp(name = "currentPage", defaultInt = 0)
+  fun setCurrentPage(view: View, currentPage: Int) {
+    currentPageFlow.update { currentPage }
+  }
+
+  @ReactProp(name = "totalPages", defaultInt = 0)
+  fun setTotalPages(view: View, totalPages: Int) {
+    totalPagesFlow.update { totalPages }
   }
 
   companion object {

@@ -1,5 +1,5 @@
+import { Flex } from '@universe/mycelium'
 import { PropsWithChildren } from 'react'
-import { Flex } from 'ui/src'
 import { ContentRow } from 'uniswap/src/components/transactions/requests/ContentRow'
 
 export function InfoRow({

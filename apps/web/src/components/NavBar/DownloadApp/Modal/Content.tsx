@@ -1,10 +1,11 @@
+import { Flex, type FlexProps, Text, TouchableArea } from '@universe/mycelium'
+import { TestID } from '@universe/test'
 import { PropsWithChildren, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, FlexProps, Image, ModalCloseIcon, Text, TouchableArea } from 'ui/src'
+import { Image, ModalCloseIcon } from 'ui/src'
 import { RIGOBLOCK_LOGO } from 'ui/src/assets'
 import { BackArrow } from 'ui/src/components/icons/BackArrow'
 import { iconSizes } from 'ui/src/theme'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { ExternalLink } from '~/theme/components/Links'
 
 export function ModalContent({
@@ -31,8 +32,8 @@ export function ModalContent({
 
   return (
     <>
-      <Flex pt="$padding16">
-        <Flex row mt="$spacing6" mb="$spacing6" px="$spacing20" width="100%">
+      <Flex>
+        <Flex row width="100%">
           {goBack && (
             <TouchableArea testID={TestID.Back} onPress={goBack}>
               <BackArrow size="$icon.20" color="$neutral2" hoverColor="$neutral2Hovered" />
@@ -44,10 +45,10 @@ export function ModalContent({
             </Flex>
           )}
         </Flex>
-        <Flex alignItems="center" gap="$spacing32" maxWidth="480px" {...rest}>
-          <Flex alignItems="center" gap="$spacing12">
+        <Flex alignSelf="center" alignItems="center" gap="$spacing16" width="100%" {...rest}>
+          <Flex alignItems="center" gap="$spacing24">
             {header ?? <Image height={iconSizes.icon64} source={RIGOBLOCK_LOGO} width={iconSizes.icon64} />}
-            <Flex alignItems="center" gap="$spacing12" px="$spacing40">
+            <Flex alignItems="center" gap="$spacing12">
               <Text variant="heading3" color="$neutral1">
                 {title}
               </Text>
@@ -60,7 +61,7 @@ export function ModalContent({
               )}
               {learnMoreLink && (
                 <ExternalLink href={learnMoreLink}>
-                  <Text variant="buttonLabel1">{t('common.button.learn')}</Text>
+                  <Text variant="body2">{t('common.button.learn')}</Text>
                 </ExternalLink>
               )}
             </Flex>

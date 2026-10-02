@@ -1,3 +1,4 @@
+import { UniverseChainId } from '@universe/chains'
 import { DappInfo, dappStore } from 'src/app/features/dapp/store'
 import { getCapitalizedDisplayNameFromTab } from 'src/app/features/dapp/utils'
 import { externalDappMessageChannel } from 'src/background/messagePassing/messageChannels'
@@ -6,7 +7,6 @@ import {
   ExtensionToDappRequestType,
   UpdateConnectionRequest,
 } from 'src/background/messagePassing/types/requests'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { chainIdToHexadecimalString } from 'uniswap/src/features/chains/utils'
 import { Account } from 'wallet/src/features/wallet/accounts/types'
 import { getProviderSync } from 'wallet/src/features/wallet/context'

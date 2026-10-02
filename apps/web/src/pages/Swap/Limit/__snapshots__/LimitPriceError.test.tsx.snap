@@ -1,581 +1,226 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`LimitPriceError > renders the limit price error correctly when there is a calculation error 1`] = `
-.c5 {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-}
-
-.c1 {
-  box-sizing: border-box;
-  margin: 0;
-  min-width: 0;
-}
-
-.c2 {
-  width: 100%;
-  display: flex;
-  padding: 0;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 12px;
-}
-
-.c6 {
-  color: #131313;
-  letter-spacing: -0.01em;
-}
-
-.c7 {
-  color: rgba(19, 19, 19, 0.63);
-  letter-spacing: -0.01em;
-}
-
-.c0 {
-  transition: display 125ms ease-in-out,transform 125ms ease-in-out;
-  animation: gyvpAI 125ms ease-in-out forwards;
-  animation-delay: 125ms;
-  opacity: 0;
-  translate: translateY(10px);
-}
-
-.c0.exiting {
-  animation: dnSqss 125ms ease-in-out;
-}
-
-.c3 {
-  padding: 12px;
-  border: 1px solid rgba(19, 19, 19, 0.08);
-  border-radius: 16px;
-  margin-top: 4px;
-}
-
-.c4 {
-  height: 40px;
-  width: 40px;
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 12px;
-  background-color: rgba(255, 0, 0, 0.05);
-  flex-shrink: 0;
-}
-
-<span
-  class=""
-  style="display: contents;"
+<div
+  class="fade-presence fade-presence-translate fade-presence-delayed"
+  style="--fade-presence-duration: 125ms; --fade-presence-delay: 125ms;"
 >
   <div
-    animationtype="translate"
-    class="c0"
+    class="flex basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row items-center gap-[12px] mt-[4px] p-[12px] w-[100%] border-surface3 border-[1px] rounded-[16px]"
   >
     <div
-      class="c1 c2 c3"
-      gap="md"
+      class="flex flex-col basis-auto box-border relative min-h-[0px] min-w-[0px] items-center justify-center shrink-[0] w-[40px] h-[40px] bg-critical-secondary rounded-[12px]"
     >
-      <div
-        class="c4"
+      <svg
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1"
+        style="width: 20px; height: 20px;"
+        viewBox="0 0 24 24"
       >
-        <svg
-          fill="none"
+        <path
+          d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"
           stroke="currentColor"
-          stroke-width="1"
-          style="width: 20px; height: 20px; color: rgb(225, 15, 15);"
-          viewBox="0 0 24 24"
-        >
-          <path
-            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-          />
-        </svg>
-      </div>
-      <div
-        class="c5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+        />
+      </svg>
+    </div>
+    <div
+      class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink gap-[8px]"
+    >
+      <span
+        class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[16px] [line-height:20px] [font-weight:485] [color:var(--stext-neutral1)]"
       >
-        <div
-          class="c6 css-n8z49y"
-        >
-          Market price not available
-        </div>
-        <div
-          class="c7 css-142zc9n"
-        >
-          We are unable to calculate the current market price. To avoid submitting an order below market price, please check your network connection and try again.
-        </div>
-      </div>
+        Market price not available
+      </span>
+      <span
+        class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[14px] [line-height:18px] [font-weight:485] [color:var(--stext-neutral2)]"
+      >
+        We are unable to calculate the current market price. To avoid submitting an order below market price, please check your network connection and try again.
+      </span>
     </div>
   </div>
-  <div
-    style="display: contents;"
-  />
-</span>
+</div>
 `;
 
 exports[`LimitPriceError > renders the limit price error correctly, inverted %p change %p false -10 1`] = `
-.c5 {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-}
-
-.c1 {
-  box-sizing: border-box;
-  margin: 0;
-  min-width: 0;
-}
-
-.c2 {
-  width: 100%;
-  display: flex;
-  padding: 0;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 12px;
-}
-
-.c6 {
-  color: #131313;
-  letter-spacing: -0.01em;
-}
-
-.c7 {
-  color: rgba(19, 19, 19, 0.63);
-  letter-spacing: -0.01em;
-}
-
-.c0 {
-  transition: display 125ms ease-in-out,transform 125ms ease-in-out;
-  animation: gyvpAI 125ms ease-in-out forwards;
-  animation-delay: 125ms;
-  opacity: 0;
-  translate: translateY(10px);
-}
-
-.c0.exiting {
-  animation: dnSqss 125ms ease-in-out;
-}
-
-.c3 {
-  padding: 12px;
-  border: 1px solid rgba(19, 19, 19, 0.08);
-  border-radius: 16px;
-  margin-top: 4px;
-}
-
-.c4 {
-  height: 40px;
-  width: 40px;
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 12px;
-  background-color: rgba(255, 0, 0, 0.05);
-  flex-shrink: 0;
-}
-
-<span
-  class=""
-  style="display: contents;"
+<div
+  class="fade-presence fade-presence-translate fade-presence-delayed"
+  style="--fade-presence-duration: 125ms; --fade-presence-delay: 125ms;"
 >
   <div
-    animationtype="translate"
-    class="c0"
+    class="flex basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row items-center gap-[12px] mt-[4px] p-[12px] w-[100%] border-surface3 border-[1px] rounded-[16px]"
   >
     <div
-      class="c1 c2 c3"
-      gap="md"
+      class="flex flex-col basis-auto box-border relative min-h-[0px] min-w-[0px] items-center justify-center shrink-[0] w-[40px] h-[40px] bg-critical-secondary rounded-[12px]"
     >
-      <div
-        class="c4"
+      <svg
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1"
+        style="width: 20px; height: 20px;"
+        viewBox="0 0 24 24"
       >
-        <svg
-          fill="none"
+        <path
+          d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"
           stroke="currentColor"
-          stroke-width="1"
-          style="width: 20px; height: 20px; color: rgb(225, 15, 15);"
-          viewBox="0 0 24 24"
-        >
-          <path
-            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-          />
-        </svg>
-      </div>
-      <div
-        class="c5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+        />
+      </svg>
+    </div>
+    <div
+      class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink gap-[8px]"
+    >
+      <span
+        class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[16px] [line-height:20px] [font-weight:485] [color:var(--stext-neutral1)]"
       >
-        <div
-          class="c6 css-n8z49y"
-        >
-          Selling DAI below market price
-        </div>
-        <div
-          class="c7 css-142zc9n"
-        >
-          Your limit price is 10% lower than market. Adjust your limit price to proceed.
-        </div>
-      </div>
+        Selling DAI below market price
+      </span>
+      <span
+        class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[14px] [line-height:18px] [font-weight:485] [color:var(--stext-neutral2)]"
+      >
+        Your limit price is 10% lower than market. Adjust your limit price to proceed.
+      </span>
     </div>
   </div>
-  <div
-    style="display: contents;"
-  />
-</span>
+</div>
 `;
 
 exports[`LimitPriceError > renders the limit price error correctly, inverted %p change %p false 10 1`] = `
-.c5 {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-}
-
-.c1 {
-  box-sizing: border-box;
-  margin: 0;
-  min-width: 0;
-}
-
-.c2 {
-  width: 100%;
-  display: flex;
-  padding: 0;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 12px;
-}
-
-.c6 {
-  color: #131313;
-  letter-spacing: -0.01em;
-}
-
-.c7 {
-  color: rgba(19, 19, 19, 0.63);
-  letter-spacing: -0.01em;
-}
-
-.c0 {
-  transition: display 125ms ease-in-out,transform 125ms ease-in-out;
-  animation: gyvpAI 125ms ease-in-out forwards;
-  animation-delay: 125ms;
-  opacity: 0;
-  translate: translateY(10px);
-}
-
-.c0.exiting {
-  animation: dnSqss 125ms ease-in-out;
-}
-
-.c3 {
-  padding: 12px;
-  border: 1px solid rgba(19, 19, 19, 0.08);
-  border-radius: 16px;
-  margin-top: 4px;
-}
-
-.c4 {
-  height: 40px;
-  width: 40px;
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 12px;
-  background-color: rgba(255, 0, 0, 0.05);
-  flex-shrink: 0;
-}
-
-<span
-  class=""
-  style="display: contents;"
+<div
+  class="fade-presence fade-presence-translate fade-presence-delayed"
+  style="--fade-presence-duration: 125ms; --fade-presence-delay: 125ms;"
 >
   <div
-    animationtype="translate"
-    class="c0"
+    class="flex basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row items-center gap-[12px] mt-[4px] p-[12px] w-[100%] border-surface3 border-[1px] rounded-[16px]"
   >
     <div
-      class="c1 c2 c3"
-      gap="md"
+      class="flex flex-col basis-auto box-border relative min-h-[0px] min-w-[0px] items-center justify-center shrink-[0] w-[40px] h-[40px] bg-critical-secondary rounded-[12px]"
     >
-      <div
-        class="c4"
+      <svg
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1"
+        style="width: 20px; height: 20px;"
+        viewBox="0 0 24 24"
       >
-        <svg
-          fill="none"
+        <path
+          d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"
           stroke="currentColor"
-          stroke-width="1"
-          style="width: 20px; height: 20px; color: rgb(225, 15, 15);"
-          viewBox="0 0 24 24"
-        >
-          <path
-            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-          />
-        </svg>
-      </div>
-      <div
-        class="c5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+        />
+      </svg>
+    </div>
+    <div
+      class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink gap-[8px]"
+    >
+      <span
+        class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[16px] [line-height:20px] [font-weight:485] [color:var(--stext-neutral1)]"
       >
-        <div
-          class="c6 css-n8z49y"
-        >
-          Selling DAI below market price
-        </div>
-        <div
-          class="c7 css-142zc9n"
-        >
-          Your limit price is 10% lower than market. Adjust your limit price to proceed.
-        </div>
-      </div>
+        Selling DAI below market price
+      </span>
+      <span
+        class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[14px] [line-height:18px] [font-weight:485] [color:var(--stext-neutral2)]"
+      >
+        Your limit price is 10% lower than market. Adjust your limit price to proceed.
+      </span>
     </div>
   </div>
-  <div
-    style="display: contents;"
-  />
-</span>
+</div>
 `;
 
 exports[`LimitPriceError > renders the limit price error correctly, inverted %p change %p true -10 1`] = `
-.c5 {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-}
-
-.c1 {
-  box-sizing: border-box;
-  margin: 0;
-  min-width: 0;
-}
-
-.c2 {
-  width: 100%;
-  display: flex;
-  padding: 0;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 12px;
-}
-
-.c6 {
-  color: #131313;
-  letter-spacing: -0.01em;
-}
-
-.c7 {
-  color: rgba(19, 19, 19, 0.63);
-  letter-spacing: -0.01em;
-}
-
-.c0 {
-  transition: display 125ms ease-in-out,transform 125ms ease-in-out;
-  animation: gyvpAI 125ms ease-in-out forwards;
-  animation-delay: 125ms;
-  opacity: 0;
-  translate: translateY(10px);
-}
-
-.c0.exiting {
-  animation: dnSqss 125ms ease-in-out;
-}
-
-.c3 {
-  padding: 12px;
-  border: 1px solid rgba(19, 19, 19, 0.08);
-  border-radius: 16px;
-  margin-top: 4px;
-}
-
-.c4 {
-  height: 40px;
-  width: 40px;
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 12px;
-  background-color: rgba(255, 0, 0, 0.05);
-  flex-shrink: 0;
-}
-
-<span
-  class=""
-  style="display: contents;"
+<div
+  class="fade-presence fade-presence-translate fade-presence-delayed"
+  style="--fade-presence-duration: 125ms; --fade-presence-delay: 125ms;"
 >
   <div
-    animationtype="translate"
-    class="c0"
+    class="flex basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row items-center gap-[12px] mt-[4px] p-[12px] w-[100%] border-surface3 border-[1px] rounded-[16px]"
   >
     <div
-      class="c1 c2 c3"
-      gap="md"
+      class="flex flex-col basis-auto box-border relative min-h-[0px] min-w-[0px] items-center justify-center shrink-[0] w-[40px] h-[40px] bg-critical-secondary rounded-[12px]"
     >
-      <div
-        class="c4"
+      <svg
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1"
+        style="width: 20px; height: 20px;"
+        viewBox="0 0 24 24"
       >
-        <svg
-          fill="none"
+        <path
+          d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"
           stroke="currentColor"
-          stroke-width="1"
-          style="width: 20px; height: 20px; color: rgb(225, 15, 15);"
-          viewBox="0 0 24 24"
-        >
-          <path
-            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-          />
-        </svg>
-      </div>
-      <div
-        class="c5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+        />
+      </svg>
+    </div>
+    <div
+      class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink gap-[8px]"
+    >
+      <span
+        class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[16px] [line-height:20px] [font-weight:485] [color:var(--stext-neutral1)]"
       >
-        <div
-          class="c6 css-n8z49y"
-        >
-          Buying USDC above market price
-        </div>
-        <div
-          class="c7 css-142zc9n"
-        >
-          Your limit price is 10% higher than market. Adjust your limit price to proceed.
-        </div>
-      </div>
+        Buying USDC above market price
+      </span>
+      <span
+        class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[14px] [line-height:18px] [font-weight:485] [color:var(--stext-neutral2)]"
+      >
+        Your limit price is 10% higher than market. Adjust your limit price to proceed.
+      </span>
     </div>
   </div>
-  <div
-    style="display: contents;"
-  />
-</span>
+</div>
 `;
 
 exports[`LimitPriceError > renders the limit price error correctly, inverted %p change %p true 10 1`] = `
-.c5 {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-}
-
-.c1 {
-  box-sizing: border-box;
-  margin: 0;
-  min-width: 0;
-}
-
-.c2 {
-  width: 100%;
-  display: flex;
-  padding: 0;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 12px;
-}
-
-.c6 {
-  color: #131313;
-  letter-spacing: -0.01em;
-}
-
-.c7 {
-  color: rgba(19, 19, 19, 0.63);
-  letter-spacing: -0.01em;
-}
-
-.c0 {
-  transition: display 125ms ease-in-out,transform 125ms ease-in-out;
-  animation: gyvpAI 125ms ease-in-out forwards;
-  animation-delay: 125ms;
-  opacity: 0;
-  translate: translateY(10px);
-}
-
-.c0.exiting {
-  animation: dnSqss 125ms ease-in-out;
-}
-
-.c3 {
-  padding: 12px;
-  border: 1px solid rgba(19, 19, 19, 0.08);
-  border-radius: 16px;
-  margin-top: 4px;
-}
-
-.c4 {
-  height: 40px;
-  width: 40px;
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 12px;
-  background-color: rgba(255, 0, 0, 0.05);
-  flex-shrink: 0;
-}
-
-<span
-  class=""
-  style="display: contents;"
+<div
+  class="fade-presence fade-presence-translate fade-presence-delayed"
+  style="--fade-presence-duration: 125ms; --fade-presence-delay: 125ms;"
 >
   <div
-    animationtype="translate"
-    class="c0"
+    class="flex basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row items-center gap-[12px] mt-[4px] p-[12px] w-[100%] border-surface3 border-[1px] rounded-[16px]"
   >
     <div
-      class="c1 c2 c3"
-      gap="md"
+      class="flex flex-col basis-auto box-border relative min-h-[0px] min-w-[0px] items-center justify-center shrink-[0] w-[40px] h-[40px] bg-critical-secondary rounded-[12px]"
     >
-      <div
-        class="c4"
+      <svg
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1"
+        style="width: 20px; height: 20px;"
+        viewBox="0 0 24 24"
       >
-        <svg
-          fill="none"
+        <path
+          d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"
           stroke="currentColor"
-          stroke-width="1"
-          style="width: 20px; height: 20px; color: rgb(225, 15, 15);"
-          viewBox="0 0 24 24"
-        >
-          <path
-            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-          />
-        </svg>
-      </div>
-      <div
-        class="c5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+        />
+      </svg>
+    </div>
+    <div
+      class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink gap-[8px]"
+    >
+      <span
+        class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[16px] [line-height:20px] [font-weight:485] [color:var(--stext-neutral1)]"
       >
-        <div
-          class="c6 css-n8z49y"
-        >
-          Buying USDC above market price
-        </div>
-        <div
-          class="c7 css-142zc9n"
-        >
-          Your limit price is 10% higher than market. Adjust your limit price to proceed.
-        </div>
-      </div>
+        Buying USDC above market price
+      </span>
+      <span
+        class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[14px] [line-height:18px] [font-weight:485] [color:var(--stext-neutral2)]"
+      >
+        Your limit price is 10% higher than market. Adjust your limit price to proceed.
+      </span>
     </div>
   </div>
-  <div
-    style="display: contents;"
-  />
-</span>
+</div>
 `;

@@ -1,8 +1,9 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import type { PositionInfo } from 'uniswap/src/features/positions/types'
 import { ModalName, ModalNameType } from 'uniswap/src/features/telemetry/constants'
-import { PositionInfo } from '~/components/Liquidity/types'
-import { PopupType } from '~/components/Popups/types'
-import { ReceiveCryptoModalInitialState } from '~/components/ReceiveCryptoModal/types'
+import { PopupType } from '~/state/popups/types'
+import type { AuthenticatorProvider } from '~/types/authenticatorProvider'
+import { ReceiveCryptoModalInitialState } from '~/types/receiveCryptoModal'
 
 export type LiquidityModalInitialState = PositionInfo
 
@@ -33,7 +34,11 @@ type ReceiveCryptoModalParams = {
 
 type DeletePasskeyModalInitialState = {
   authenticatorId: string
+  authenticatorLabel: string
+  authenticatorProvider: AuthenticatorProvider
   isLastAuthenticator: boolean
+  // Unix ms of the most recent successful seed phrase export, or undefined if never exported.
+  lastExportedMs?: number
 }
 
 export type DeletePasskeyModalParams = {
@@ -44,6 +49,9 @@ export type DeletePasskeyModalParams = {
 type RemoveBackupLoginModalInitialState = {
   recoveryMethodType: string
   recoveryMethodIdentifier?: string
+  // Explicit wallet id for contexts without an active session (e.g. recover-with-email rotation).
+  // Falls back to the embedded-wallet store when omitted.
+  walletId?: string
 }
 
 export type RemoveBackupLoginModalParams = {
@@ -60,6 +68,35 @@ export type DataApiOutageModalParams = {
   initialState: DataApiOutageModalInitialState
 }
 
+type RecoverWalletModalInitialState = {
+  initialMethod?: 'email'
+}
+
+export type RecoverWalletModalParams = {
+  name: typeof ModalName.RecoverWallet
+  initialState: RecoverWalletModalInitialState
+}
+
+type GetTheAppModalInitialState = {
+  initialInnerPage?: 'mobile'
+}
+
+export type GetTheAppModalParams = {
+  name: typeof ModalName.GetTheApp
+  initialState: GetTheAppModalInitialState
+}
+
+type UnitagRateLimitSpeedbumpModalInitialState = {
+  walletAddress: string
+  walletId: string
+  exported?: boolean
+}
+
+export type UnitagRateLimitSpeedbumpModalParams = {
+  name: typeof ModalName.UnitagRateLimitSpeedbump
+  initialState: UnitagRateLimitSpeedbumpModalInitialState
+}
+
 export type OpenModalParams =
   | { name: ModalNameType; initialState?: undefined }
   | AddLiquidityModalParams
@@ -70,6 +107,9 @@ export type OpenModalParams =
   | DeletePasskeyModalParams
   | RemoveBackupLoginModalParams
   | DataApiOutageModalParams
+  | RecoverWalletModalParams
+  | GetTheAppModalParams
+  | UnitagRateLimitSpeedbumpModalParams
 
 type CloseModalParams = ModalNameType
 
@@ -78,8 +118,6 @@ export interface ApplicationState {
   readonly openModal: OpenModalParams | null
   readonly smartPool: { address?: string | null; name: string | null }
   readonly suppressedPopups: PopupType[]
-  /** List of addresses where the graduated wallet card has been dismissed for this session. The same property in the user reducer is if the card has been dismissed for 30 days. */
-  readonly downloadGraduatedWalletCardsDismissed: string[]
 }
 
 const initialState: ApplicationState = {
@@ -87,21 +125,12 @@ const initialState: ApplicationState = {
   openModal: null,
   smartPool: { address: null, name: '' },
   suppressedPopups: [],
-  downloadGraduatedWalletCardsDismissed: [],
 }
 
 const applicationSlice = createSlice({
   name: 'application',
   initialState,
   reducers: {
-    updateDownloadGraduatedWalletCardsDismissed(
-      state,
-      { payload: { walletAddress } }: PayloadAction<{ walletAddress: string }>,
-    ) {
-      state.downloadGraduatedWalletCardsDismissed = Array.from(
-        new Set([...state.downloadGraduatedWalletCardsDismissed, walletAddress]),
-      )
-    },
     updateChainId(state, action) {
       const { chainId } = action.payload
       state.chainId = chainId
@@ -137,7 +166,6 @@ export const {
   setSmartPoolValue,
   addSuppressedPopups,
   removeSuppressedPopups,
-  updateDownloadGraduatedWalletCardsDismissed,
   resetApplication,
 } = applicationSlice.actions
 export default applicationSlice.reducer

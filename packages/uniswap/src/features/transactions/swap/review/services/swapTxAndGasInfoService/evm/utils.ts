@@ -28,10 +28,12 @@ export function createGetEVMSwapTransactionRequestInfo(ctx: {
   instructionService: EVMSwapInstructionsService
   gasStrategy: GasStrategy
   transactionSettings: TransactionSettings
+  /** Forwarded to `createProcessSwapResponse`: any override → display the tx max cost. */
+  hasOverrides?: boolean
 }): GetEVMSwapTransactionRequestInfoFn {
-  const { gasStrategy, transactionSettings, instructionService } = ctx
+  const { gasStrategy, transactionSettings, instructionService, hasOverrides } = ctx
 
-  const processSwapResponse = createProcessSwapResponse({ gasStrategy })
+  const processSwapResponse = createProcessSwapResponse({ gasStrategy, hasOverrides })
 
   const getEVMSwapTransactionRequestInfo: GetEVMSwapTransactionRequestInfoFn = async ({
     trade,
@@ -88,6 +90,7 @@ export function createGetEVMSwapTransactionRequestInfo(ctx: {
       isRevokeNeeded,
       swapRequestParams: data?.swapRequestParams ?? undefined,
       permitsDontNeedSignature,
+      sponsorshipExpected: swapQuoteResponse.sponsorshipInfo?.sponsored,
     })
 
     return swapTxInfo

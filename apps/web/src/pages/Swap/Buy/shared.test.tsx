@@ -14,6 +14,16 @@ vi.mock('ui/src', () => ({
   useSporeColors: () => ({}),
 }))
 
+// shared.tsx takes Flex from mycelium and styled from its subpath; a package-root
+// mock does not intercept the subpath, so both specifiers are mocked separately.
+vi.mock('@universe/mycelium', () => ({
+  Flex: 'div',
+}))
+
+vi.mock('@universe/mycelium/styled', () => ({
+  styled: () => 'div',
+}))
+
 // Mock SVG
 vi.mock('ui/src/assets/backgrounds/for-connecting-v2.svg', () => ({
   ReactComponent: 'svg',

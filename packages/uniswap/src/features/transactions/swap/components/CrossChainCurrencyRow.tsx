@@ -1,7 +1,6 @@
-import { Flex, Text } from 'ui/src'
-import { iconSizes } from 'ui/src/theme'
+import { UniverseChainId } from '@universe/chains'
+import { Flex, iconSizes, Text } from '@universe/mycelium'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 
 export type CrossChainCurrencyRowProps = {
   inputChainId: UniverseChainId | null

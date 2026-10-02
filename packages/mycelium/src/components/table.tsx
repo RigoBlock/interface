@@ -5,36 +5,87 @@ const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableE
   ({ className, ...props }, ref) => (
     // oxlint-disable-next-line react/forbid-elements -- scroll wrapper for table
     <div className="relative w-full overflow-auto">
-      <table ref={ref} className={cn('w-full caption-bottom text-sm', className)} {...props} />
+      {/* border-separate + zero spacing: `border-collapse` suppresses border-radius on cells,
+          and rows need 12px corners. Consequence — row rules and row fills are painted by the
+          cells, applied from TableRow/TableHeader via child selectors, not by <tr> itself
+          (browsers ignore background-radius and borders on <tr> in the separated model). */}
+      <table
+        ref={ref}
+        className={cn('w-full caption-bottom border-separate border-spacing-0 text-sm', className)}
+        {...props}
+      />
     </div>
   ),
 )
 Table.displayName = 'Table'
 
 const TableHeader = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
-  ({ className, ...props }, ref) => <thead ref={ref} className={cn('[&_tr]:border-b', className)} {...props} />,
+  ({ className, ...props }, ref) => (
+    <thead
+      ref={ref}
+      // Header hairline + persistent title-row fill with matching 12px end-cap radius.
+      // All three live on the cells: <tr> borders, fills and radii are ignored under
+      // border-separate (see Table's note).
+      className={cn(
+        '[&>tr>*]:border-b [&>tr>*]:border-surface3',
+        '[&>tr>*]:bg-surface2 [&>tr>*:first-child]:rounded-l-12 [&>tr>*:last-child]:rounded-r-12',
+        className,
+      )}
+      {...props}
+    />
+  ),
 )
 TableHeader.displayName = 'TableHeader'
 
 const TableBody = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
   ({ className, ...props }, ref) => (
-    <tbody ref={ref} className={cn('[&_tr:last-child]:border-0', className)} {...props} />
+    <tbody ref={ref} className={cn('[&>tr:last-child>*]:border-b-0', className)} {...props} />
   ),
 )
 TableBody.displayName = 'TableBody'
 
 const TableFooter = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
   ({ className, ...props }, ref) => (
-    <tfoot ref={ref} className={cn('border-t bg-muted/50 font-medium [&>tr]:last:border-b-0', className)} {...props} />
+    // Rule lives on the cells, same as TableBody: a `border-t` on <tfoot> and a
+    // `border-b-0` on its <tr> are both ignored under border-separate.
+    <tfoot
+      ref={ref}
+      className={cn(
+        'bg-muted/50 font-medium',
+        '[&>tr:first-child>*]:border-t [&>tr:first-child>*]:border-surface3',
+        '[&>tr:last-child>*]:border-b-0',
+        className,
+      )}
+      {...props}
+    />
   ),
 )
 TableFooter.displayName = 'TableFooter'
 
-const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTMLTableRowElement>>(
-  ({ className, ...props }, ref) => (
+interface TableRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
+  /**
+   * The row is a target the user can act on: adds the surface2 hover fill and a
+   * pointer cursor. Off by default so read-only rows don't advertise a click
+   * that does nothing.
+   */
+  selectable?: boolean
+}
+
+const TableRow = React.forwardRef<HTMLTableRowElement, TableRowProps>(
+  ({ className, selectable = false, ...props }, ref) => (
     <tr
       ref={ref}
-      className={cn('border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted', className)}
+      data-selectable={selectable || undefined}
+      className={cn(
+        // Rule + fills live on the cells (see Table's note on border-separate).
+        // No colour transition: the cells carry surface tokens, so transitioning
+        // background/border cross-fades them on light/dark toggle (root CLAUDE.md).
+        '[&>*]:border-b [&>*]:border-surface3',
+        '[&>*:first-child]:rounded-l-12 [&>*:last-child]:rounded-r-12',
+        selectable && 'cursor-pointer hover:[&>*]:bg-surface2',
+        'data-[state=selected]:[&>*]:bg-surface3',
+        className,
+      )}
       {...props}
     />
   ),
@@ -73,4 +124,5 @@ const TableCaption = React.forwardRef<HTMLTableCaptionElement, React.HTMLAttribu
 )
 TableCaption.displayName = 'TableCaption'
 
+export type { TableRowProps }
 export { Table, TableHeader, TableBody, TableFooter, TableHead, TableRow, TableCell, TableCaption }

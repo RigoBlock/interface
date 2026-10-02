@@ -1,5 +1,5 @@
+import { UniverseChainId } from '@universe/chains'
 import { NetworkLogo, TransactionSummaryNetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { render } from 'uniswap/src/test/test-utils'
 
 vi.mock('uniswap/src/features/chains/chainInfo', async (importOriginal) => {
@@ -41,7 +41,7 @@ describe('NetworkLogo', () => {
     const { queryByTestId } = render(<NetworkLogo chainId={'chainWithoutLogo' as unknown as UniverseChainId} />)
 
     // The wrapper may still exist, but the logo element should not be rendered
-    expect(queryByTestId('network-logo')).toBeNull()
+    expect(queryByTestId('network-logo-chainWithoutLogo')).toBeNull()
   })
 })
 

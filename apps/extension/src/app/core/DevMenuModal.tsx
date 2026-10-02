@@ -1,6 +1,6 @@
+import { Flex } from '@universe/mycelium'
+import { Flag } from '@universe/mycelium/icons/Flag'
 import { lazy, Suspense } from 'react'
-import { Flex } from 'ui/src'
-import { Flag } from 'ui/src/components/icons/Flag'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { useBooleanState } from 'utilities/src/react/useBooleanState'

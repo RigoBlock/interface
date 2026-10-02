@@ -1,24 +1,24 @@
-import { ColorTokens } from 'tamagui'
+import type { SporeColorToken } from 'ui/src/theme/color/types'
 import { logger } from 'utilities/src/logger/logger'
 
 const HEX_REGEX = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/
 
 /**
- * Adds opacity to the input color. Same as opacifyRaw but returns a ColorTokens object.
+ * Adds opacity to the input color. Same as opacifyRaw but returns a color-token-typed value.
  *
  * @param opacity Opacity value to apply from 0-100
  * @param color Hex or RGB to apply the opacity to.
  * @returns
  */
-export function opacify(opacity: number, color: string): ColorTokens {
-  return opacifyRaw(opacity, color) as ColorTokens
+export function opacify(opacity: number, color: string): SporeColorToken {
+  return opacifyRaw(opacity, color) as SporeColorToken
 }
 
 /**
- * Adds opacity to the input color and returns a string. RGBA is intentionally not supported.
+ * Adds opacity to the input color and returns a string.
  *
  * @param opacity Opacity value to apply from 0-100
- * @param color Hex or RGB to apply the opacity to.
+ * @param color Hex or RGB(A) to apply the opacity to. An alpha already on the input is replaced, not multiplied.
  * @returns
  */
 export function opacifyRaw(opacity: number, color: string): string {
@@ -31,7 +31,7 @@ export function opacifyRaw(opacity: number, color: string): string {
     if (color.startsWith('#')) {
       return _opacifyHex(opacity, color)
     }
-    if (color.startsWith('rgb(')) {
+    if (color.startsWith('rgb(') || color.startsWith('rgba(')) {
       return _opacifyRgba(opacity, color)
     }
     throw new Error(`provided color ${color} is neither a hex nor an rgb color`)

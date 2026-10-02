@@ -1,14 +1,12 @@
+import { isTestEnv } from '@universe/environment'
+import { Flex } from '@universe/mycelium'
 import React, { lazy, Suspense } from 'react'
-import { Flex } from 'ui/src/components/layout/Flex'
 import { UniconProps } from 'ui/src/components/Unicon/types'
 import { getUniconColors, getUniconsDeterministicHash } from 'ui/src/components/Unicon/utils'
 import { useIsDarkMode } from 'ui/src/hooks/useIsDarkMode'
 import { isEVMAddressWithChecksum } from 'utilities/src/addresses/evm/evm'
 import { isSVMAddress } from 'utilities/src/addresses/svm/svm'
 
-// In test environments, we use an empty Icons object since tests don't render
-// the actual Unicon SVGs. In production, Icons is loaded lazily via dynamic import.
-const isTestEnv = process.env.NODE_ENV === 'test'
 const Icons: Record<string, string[]> = {}
 
 function UniconSVGInner({
@@ -34,8 +32,17 @@ function UniconSVGInner({
   const translateX = (size - scaledSVGSize) / 2
   const translateY = (size - scaledSVGSize) / 2
 
+  // Size inline, not by width/height attributes alone: an ancestor's descendant
+  // selector (e.g. ButtonCompat's `[&_svg]:size-*` icon box) beats presentation
+  // attributes and would otherwise resize this svg from several levels up.
   return (
-    <svg height={size} viewBox={`0 0 ${size} ${size}`} width={size} xmlns="http://www.w3.org/2000/svg">
+    <svg
+      height={size}
+      style={{ width: size, height: size }}
+      viewBox={`0 0 ${size} ${size}`}
+      width={size}
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <g style={{ transformOrigin: 'center center' }}>
         <circle cx={size / 2} cy={size / 2} fill={color + `${isDarkMode ? '29' : '1F'}`} r={size / 2} />
         <g transform={`translate(${translateX}, ${translateY}) scale(${scaleValue})`}>
@@ -50,7 +57,9 @@ function UniconSVGInner({
 
 const UniconSVGBase = (props: UniconProps): React.ReactElement | null => UniconSVGInner({ ...props, icons: Icons })
 
-const UniconSVGComponent = isTestEnv
+// In test environments, we use an empty Icons object since tests don't render
+// the actual Unicon SVGs. In production, Icons is loaded lazily via dynamic import.
+const UniconSVGComponent = isTestEnv()
   ? UniconSVGBase
   : lazy(async () => {
       const { Icons: LazyIcons } = await import('ui/src/components/Unicon/UniconSVGs')

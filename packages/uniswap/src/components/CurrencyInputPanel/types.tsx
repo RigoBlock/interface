@@ -1,7 +1,7 @@
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
+import type { FlexProps, TextProps } from '@universe/mycelium'
 import { ReactNode, RefObject } from 'react'
 import type { TextInput, TextInputProps } from 'react-native'
-import { FlexProps, TextProps } from 'ui/src'
 import { FontSizeOptions } from 'ui/src/hooks/useDynamicFontSizing'
 import type { PresetPercentage } from 'uniswap/src/components/CurrencyInputPanel/AmountInputPresets/types'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
@@ -61,4 +61,8 @@ export type CurrencyInputPanelProps = {
   maxValuationPresets?: number[]
   onSetMaxValuation?: (value: number) => void
   isSmartPool?: boolean
+  /** Gas fee in wei from backend simulation, used for accurate max amount in liquidity flows. */
+  actualGasFee?: string
+  /** When gas is sponsored/paymaster-covered, "Max" spends the full native balance (no gas reservation). */
+  isGasCovered?: boolean
 }

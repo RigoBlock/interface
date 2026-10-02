@@ -1,7 +1,7 @@
 import MaskedView from '@react-native-masked-view/masked-view'
+import { Flex } from '@universe/mycelium'
 import { useMemo } from 'react'
 import { Path, Svg } from 'react-native-svg'
-import { Flex } from 'ui/src'
 import type { OverlapIconWrapperProps } from 'uniswap/src/components/network/NetworkIconList/OverlapIconWrapper'
 
 /** Rounded rect SVG path (squircle). Two paths with evenodd fill create a punch-out mask. */

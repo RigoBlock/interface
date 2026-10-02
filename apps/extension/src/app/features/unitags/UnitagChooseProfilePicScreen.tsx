@@ -1,3 +1,5 @@
+import { Flex, fonts, iconSizes } from '@universe/mycelium'
+import { Person } from '@universe/mycelium/icons/Person'
 import { useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { OnboardingScreen } from 'src/app/features/onboarding/OnboardingScreen'
@@ -5,9 +7,6 @@ import { useOnboardingSteps } from 'src/app/features/onboarding/OnboardingStepsC
 import { useUnitagClaimContext } from 'src/app/features/unitags/UnitagClaimContext'
 import { backgroundToSidePanelMessageChannel } from 'src/background/messagePassing/messageChannels'
 import { BackgroundToSidePanelRequestType } from 'src/background/messagePassing/types/requests'
-import { Flex, Square } from 'ui/src'
-import { Person } from 'ui/src/components/icons'
-import { fonts, iconSizes } from 'ui/src/theme'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { ExtensionUnitagClaimScreens } from 'uniswap/src/types/screens/extension'
 import { logger } from 'utilities/src/logger/logger'
@@ -43,14 +42,16 @@ export function UnitagChooseProfilePicScreen(): JSX.Element {
     <Trace logImpression screen={ExtensionUnitagClaimScreens.CreateUsername}>
       <OnboardingScreen
         Icon={
-          <Square
+          <Flex
+            alignItems="center"
+            justifyContent="center"
             backgroundColor="$surface2"
             borderRadius="$rounded12"
             height={iconSizes.icon48}
             width={iconSizes.icon48}
           >
             <Person color="$neutral1" size="$icon.24" />
-          </Square>
+          </Flex>
         }
         title={t('unitags.onboarding.profile.title')}
         subtitle={t('unitags.onboarding.profile.subtitle')}

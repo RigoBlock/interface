@@ -1,5 +1,5 @@
+import { ColorTokens, Flex } from '@universe/mycelium'
 import React from 'react'
-import { ColorTokens, Flex } from 'ui/src'
 import { iconSizes } from 'ui/src/theme'
 
 interface SelectionCircleProps {

@@ -1,16 +1,14 @@
+import { UniverseChainId, chainIdToPlatform, areAddressesEqual } from '@universe/chains'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSporeColors } from 'ui/src'
 import { Eye } from 'ui/src/components/icons'
 import { PaginatedModalRenderer } from 'uniswap/src/components/modals/PaginatedModals'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import { WarningModal } from 'uniswap/src/components/modals/WarningModal/WarningModal'
 import { useIsSmartContractAddress } from 'uniswap/src/features/address/useIsSmartContractAddress'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { chainIdToPlatform } from 'uniswap/src/features/platforms/utils/chains'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 import { ConditionalModalRenderer, SpeedBumps } from 'wallet/src/components/modals/SpeedBumps'
 import { NewAddressWarningModal } from 'wallet/src/components/RecipientSearch/modals/NewAddressWarningModal'
 import { useIsErc20Contract } from 'wallet/src/features/contracts/hooks'
@@ -25,6 +23,8 @@ interface RecipientSelectSpeedBumpsProps {
   recipientAddress?: string
   chainId?: UniverseChainId
   checkSpeedBumps: boolean
+  /** Skips recipient warnings already checked before a chain change. */
+  onlyCheckChainDependentWarnings?: boolean
   setCheckSpeedBumps: (value: boolean) => void
   onConfirm: () => void
 }
@@ -33,6 +33,7 @@ export function RecipientSelectSpeedBumps({
   recipientAddress,
   checkSpeedBumps,
   chainId,
+  onlyCheckChainDependentWarnings = false,
   ...rest
 }: RecipientSelectSpeedBumpsProps): JSX.Element | null {
   const { t } = useTranslation()
@@ -152,27 +153,33 @@ export function RecipientSelectSpeedBumps({
     addressInput2: { address: recipientAddress, platform },
   })
 
-  const modalRenderers = useMemo<ConditionalModalRenderer[]>(
-    () => [
-      { renderModal: renderViewOnlyWarning, condition: shouldWarnViewOnly },
-      { renderModal: renderNewAddressWarning, condition: shouldWarnNewAddress },
-      { renderModal: renderSelfSendWarning, condition: shouldWarnSelfSend },
+  const modalRenderers = useMemo<ConditionalModalRenderer[]>(() => {
+    const chainDependentWarnings = [
       { renderModal: renderErc20Warning, condition: shouldWarnERC20 },
       { renderModal: renderSmartContractWarning, condition: shouldWarnSmartContract },
-    ],
-    [
-      renderViewOnlyWarning,
-      renderNewAddressWarning,
-      renderSelfSendWarning,
-      renderErc20Warning,
-      renderSmartContractWarning,
-      shouldWarnViewOnly,
-      shouldWarnNewAddress,
-      shouldWarnSelfSend,
-      shouldWarnERC20,
-      shouldWarnSmartContract,
-    ],
-  )
+    ]
+
+    return onlyCheckChainDependentWarnings
+      ? chainDependentWarnings
+      : [
+          { renderModal: renderViewOnlyWarning, condition: shouldWarnViewOnly },
+          { renderModal: renderNewAddressWarning, condition: shouldWarnNewAddress },
+          { renderModal: renderSelfSendWarning, condition: shouldWarnSelfSend },
+          ...chainDependentWarnings,
+        ]
+  }, [
+    onlyCheckChainDependentWarnings,
+    renderViewOnlyWarning,
+    renderNewAddressWarning,
+    renderSelfSendWarning,
+    renderErc20Warning,
+    renderSmartContractWarning,
+    shouldWarnViewOnly,
+    shouldWarnNewAddress,
+    shouldWarnSelfSend,
+    shouldWarnERC20,
+    shouldWarnSmartContract,
+  ])
 
   return (
     <SpeedBumps

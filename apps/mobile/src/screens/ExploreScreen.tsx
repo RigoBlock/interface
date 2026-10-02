@@ -1,10 +1,13 @@
 import type { RouteProp } from '@react-navigation/native'
 import { useIsFocused, useNavigation, useRoute, useScrollToTop } from '@react-navigation/native'
 import { SharedEventName } from '@uniswap/analytics-events'
+import type { UniverseChainId } from '@universe/chains'
+import { isAndroid } from '@universe/environment'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Flex } from '@universe/mycelium'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { type TextInput } from 'react-native'
-import type { FlatList } from 'react-native-gesture-handler'
+import { type ScrollView, type TextInput } from 'react-native'
 import { useAnimatedRef } from 'react-native-reanimated'
 import type { Edge } from 'react-native-safe-area-context'
 import { useDispatch } from 'react-redux'
@@ -12,17 +15,16 @@ import type { ExploreStackParamList } from 'src/app/navigation/types'
 import { ExploreSections } from 'src/components/explore/ExploreSections/ExploreSections'
 import { ExploreScreenSearchResultsList } from 'src/components/explore/search/ExploreScreenSearchResultsList'
 import { Screen } from 'src/components/layout/Screen'
-import { Flex, useLayoutAnimationOnChange } from 'ui/src'
+import { useLayoutAnimationOnChange } from 'ui/src'
 import { useBottomSheetContext } from 'uniswap/src/components/modals/BottomSheetContext'
 import { NetworkFilter, type NetworkFilterProps } from 'uniswap/src/components/network/NetworkFilter'
+import { NetworkFilterV2 } from 'uniswap/src/components/network/NetworkFilterV2/NetworkFilterV2'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import type { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useFilterCallbacks } from 'uniswap/src/features/search/SearchModal/hooks/useFilterCallbacks'
 import { CancelBehaviorType, SearchTextInput } from 'uniswap/src/features/search/SearchTextInput'
 import { MobileEventName, ModalName, SectionName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { MobileScreens } from 'uniswap/src/types/screens/mobile'
-import { isAndroid } from 'utilities/src/platform'
 import { useEvent } from 'utilities/src/react/hooks'
 import { setHasUsedExplore } from 'wallet/src/features/behaviorHistory/slice'
 
@@ -36,6 +38,7 @@ const networkFilterStyles: NetworkFilterProps['styles'] = { buttonPaddingY: '$no
 
 export function ExploreScreen(): JSX.Element {
   const { chains } = useEnabledChains()
+  const isNetworkFilterV2Enabled = useFeatureFlag(FeatureFlags.NetworkFilterV2)
   const navigation = useNavigation()
   const route = useRoute<RouteProp<ExploreStackParamList, MobileScreens.Explore>>()
   // oxlint-disable-next-line typescript/no-unnecessary-condition -- route.params can be null
@@ -47,7 +50,8 @@ export function ExploreScreen(): JSX.Element {
   const { t } = useTranslation()
 
   const textInputRef = useRef<TextInput>(null)
-  const listRef = useAnimatedRef<FlatList<unknown>>()
+  const listRef = useAnimatedRef<ScrollView>()
+  const exploreScrollToTopRef = useRef<(() => void) | null>(null)
   const isFocused = useIsFocused()
 
   const [isAtTop, setIsAtTop] = useState<boolean>(true)
@@ -98,16 +102,15 @@ export function ExploreScreen(): JSX.Element {
         textInputRef.current?.focus()
       } else {
         // If not at top, scroll to top
-        listRef.current?.scrollToOffset({ offset: 0, animated: true })
+        exploreScrollToTopRef.current?.()
       }
     })
 
     return unsubscribe
-    // oxlint-disable-next-line react/exhaustive-deps -- biome-parity: oxlint is stricter here
   }, [navigation])
 
   // TODO(WALL-5482): investigate list rendering performance/scrolling issue
-  const canRenderList = useRenderNextFrame(isSheetReady && !isSearchMode)
+  const canRenderList = useRenderNextFrame(isSheetReady)
 
   const { onChangeChainFilter, onChangeText, searchFilter, chainFilter, parsedChainFilter, parsedSearchFilter } =
     useFilterCallbacks(chainId ?? null, ModalName.Search)
@@ -152,13 +155,22 @@ export function ExploreScreen(): JSX.Element {
           endAdornment={
             isSearchMode ? (
               <Flex row alignItems="center" animateEnterExit="fadeInDownOutUp">
-                <NetworkFilter
-                  includeAllNetworks
-                  chainIds={chains}
-                  selectedChain={chainFilter}
-                  styles={networkFilterStyles}
-                  onPressChain={onPressChain}
-                />
+                {isNetworkFilterV2Enabled ? (
+                  <NetworkFilterV2
+                    includeAllNetworks
+                    chainIds={chains}
+                    selectedChain={chainFilter}
+                    onPressChain={onPressChain}
+                  />
+                ) : (
+                  <NetworkFilter
+                    includeAllNetworks
+                    chainIds={chains}
+                    selectedChain={chainFilter}
+                    styles={networkFilterStyles}
+                    onPressChain={onPressChain}
+                  />
+                )}
               </Flex>
             ) : null
           }
@@ -186,6 +198,9 @@ export function ExploreScreen(): JSX.Element {
           chainId={chainId}
           orderByMetric={orderByMetric}
           showFavorites={showFavorites}
+          onScrollToTopReady={(scrollToTop): void => {
+            exploreScrollToTopRef.current = scrollToTop
+          }}
         />
       ) : null}
     </Screen>
@@ -200,21 +215,14 @@ export function ExploreScreen(): JSX.Element {
 const useRenderNextFrame = (condition: boolean): boolean => {
   const [canRender, setCanRender] = useState<boolean>(false)
   const rafRef = useRef<number>(undefined)
-  const mountedRef = useRef<boolean>(true)
-
   const conditionRef = useRef<boolean>(condition)
 
-  // clean up on unmount to prevent memory leaks
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false
-      if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current)
-      }
-    }
-  }, [])
-
-  // schedule render for next frame if we should mount
+  // schedule render for next frame if we should mount.
+  // The cleanup cancels the RAF on real unmount, so the callback can't fire after
+  // unmount — no separate `mountedRef` guard is needed (and a `mountedRef` set
+  // only by the cleanup is broken under React 19 strict-mode dev double-invocation:
+  // the simulated unmount sets it to false and the simulated remount never resets
+  // it, so `setCanRender(true)` is never called).
   useEffect(() => {
     conditionRef.current = condition
 
@@ -222,7 +230,7 @@ const useRenderNextFrame = (condition: boolean): boolean => {
       rafRef.current = requestAnimationFrame(() => {
         // By the time this callback runs, 'condition' might have changed
         // since RAF executes in the next frame, so we store the condition in a ref
-        if (mountedRef.current && conditionRef.current) {
+        if (conditionRef.current) {
           setCanRender(true)
         }
       })

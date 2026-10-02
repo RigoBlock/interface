@@ -100,6 +100,11 @@ export function useActiveSignerAccount(): SignerMnemonicAccount | null {
   return activeAccount?.type === AccountType.SignerMnemonic ? activeAccount : null
 }
 
+/** Whether the active account is a view-only (watched) wallet. */
+export function useIsViewOnlyWallet(): boolean {
+  return useActiveAccount()?.type === AccountType.Readonly
+}
+
 export function useActiveAccountAddress(): Address | null {
   return useSelector(selectActiveAccountAddress)
 }

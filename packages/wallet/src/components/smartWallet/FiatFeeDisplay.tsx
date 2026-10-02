@@ -1,5 +1,4 @@
-import { Flex, Text } from 'ui/src'
-import { iconSizes } from 'ui/src/theme'
+import { Flex, iconSizes, Text } from '@universe/mycelium'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
 
 interface FiatFeeDisplayProps {

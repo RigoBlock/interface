@@ -1,8 +1,11 @@
+// Saga handlers — redux-saga binds the receiver via call([obj, method]), which unbound-method can't model.
+/* oxlint-disable typescript/unbound-method */
 import { type JsonRpcProvider } from '@ethersproject/providers'
 import { providerErrors, serializeError } from '@metamask/rpc-errors'
+import { type UniverseChainId, Platform } from '@universe/chains'
 import { saveDappConnection } from 'src/app/features/dapp/actions'
 import { type DappInfo, dappStore } from 'src/app/features/dapp/store'
-import { getOrderedConnectedAddresses } from 'src/app/features/dapp/utils'
+import { getOrderedConnectedAddresses, isConnectedAccount } from 'src/app/features/dapp/utils'
 import type { SenderTabInfo } from 'src/app/features/dappRequests/shared'
 import {
   type AccountResponse,
@@ -13,12 +16,10 @@ import {
 } from 'src/app/features/dappRequests/types/DappRequestTypes'
 import { dappResponseMessageChannel } from 'src/background/messagePassing/messageChannels'
 import { call, put, select } from 'typed-redux-saga'
-import { type UniverseChainId } from 'uniswap/src/features/chains/types'
 import { chainIdToHexadecimalString } from 'uniswap/src/features/chains/utils'
 import { DappResponseType } from 'uniswap/src/features/dappRequests/types'
 import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
 import { AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { getEnabledChainIdsSaga } from 'uniswap/src/features/settings/saga'
 import { ExtensionEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
@@ -108,15 +109,24 @@ export function* saveAccount({ url, favIconUrl }: SenderTabInfo) {
     return undefined
   }
 
-  yield* call(saveDappConnection, { dappUrl, account: activeAccount, iconUrl: favIconUrl })
-  // No dapp info means that this is a first time connection request
-  if (!dappInfo) {
-    yield* put(
-      pushNotification({
-        type: AppNotificationType.DappConnected,
-        dappIconUrl: favIconUrl,
-      }),
-    )
+  // Block an auto-confirmed account request from silently adding the active account to an origin that is already
+  // connected to a different account. New accounts must be connected through the user-driven flow.
+  const wouldExpandConnectionToUnapprovedAccount =
+    !!dappInfo &&
+    dappInfo.connectedAccounts.length > 0 &&
+    !isConnectedAccount(dappInfo.connectedAccounts, activeAccount.address)
+
+  if (!wouldExpandConnectionToUnapprovedAccount) {
+    yield* call(saveDappConnection, { dappUrl, account: activeAccount, iconUrl: favIconUrl })
+    // No dapp info means that this is a first time connection request
+    if (!dappInfo) {
+      yield* put(
+        pushNotification({
+          type: AppNotificationType.DappConnected,
+          dappIconUrl: favIconUrl,
+        }),
+      )
+    }
   }
 
   const chainId = dappInfo?.lastChainId ?? defaultChainId
@@ -125,7 +135,6 @@ export function* saveAccount({ url, favIconUrl }: SenderTabInfo) {
 
   return {
     dappUrl,
-    activeAccount,
     connectedAddresses,
     chainId,
     providerUrl: provider.connection.url,
@@ -148,7 +157,7 @@ export function* getAccountRequest(request: RequestAccountRequest, senderTabInfo
 
     yield* call(dappResponseMessageChannel.sendMessageToTab, senderTabInfo.id, errorResponse)
   } else {
-    const { dappUrl, activeAccount, connectedAddresses, chainId, providerUrl } = accountInfo
+    const { dappUrl, connectedAddresses, chainId, providerUrl } = accountInfo
 
     const accountResponse: AccountResponse = {
       type: DappResponseType.AccountResponse,
@@ -164,7 +173,7 @@ export function* getAccountRequest(request: RequestAccountRequest, senderTabInfo
     sendAnalyticsEvent(ExtensionEventName.DappConnect, {
       dappUrl,
       chainId,
-      activeConnectedAddress: activeAccount.address,
+      activeConnectedAddress: connectedAddresses[0],
       connectedAddresses,
     })
   }

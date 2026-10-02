@@ -3,10 +3,19 @@
   "include": ["src"],
   "references": [
     {
+      "path": "../environment"
+    },
+    {
       "path": "../utilities"
     },
     {
       "path": "../../config/vitest-presets"
+    },
+    {
+      "path": "../tailwind"
+    },
+    {
+      "path": "../mycelium"
     }
   ],
   "compilerOptions": {

@@ -6,6 +6,7 @@ import {
   OnClick,
 } from '@uniswap/client-notification-service/dist/uniswap/notificationservice/v1/api_pb'
 import { BackgroundType, ContentStyle, type InAppNotification, OnClickAction, SharedQueryClient } from '@universe/api'
+import { Platform, getValidAddress } from '@universe/chains'
 import {
   createNotificationDataSource,
   type NotificationDataSource,
@@ -14,10 +15,8 @@ import {
 import { AppRoutes, SettingsRoutes, UnitagClaimRoutes } from 'src/app/navigation/constants'
 import { getReduxStore } from 'src/store/store'
 import { AccountType } from 'uniswap/src/features/accounts/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { UNITAG_SUFFIX_NO_LEADING_DOT } from 'uniswap/src/features/unitags/constants'
 import i18n from 'uniswap/src/i18n'
-import { getValidAddress } from 'uniswap/src/utils/addresses'
 import { logger } from 'utilities/src/logger/logger'
 import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
 import { selectHasSkippedUnitagPrompt } from 'wallet/src/features/behaviorHistory/selectors'
@@ -50,7 +49,7 @@ export function createExtensionLegacyBannersNotificationDataSource(
 ): NotificationDataSource {
   const { tracker, pollIntervalMs = 5000 } = ctx
 
-  let intervalId: NodeJS.Timeout | null = null
+  let intervalId: ReturnType<typeof setInterval> | null = null
   let currentCallback: ((notifications: InAppNotification[], source: string) => void) | null = null
   let hasMigratedLegacyState = false
 

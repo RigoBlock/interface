@@ -1,9 +1,9 @@
+import { isExtensionApp } from '@universe/environment'
+import { Flex, Text } from '@universe/mycelium'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text } from 'ui/src'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { isExtensionApp } from 'utilities/src/platform'
 import { AnalyticsToggleLineSwitch } from 'wallet/src/components/settings/AnalyticsToggleLineSwitch'
 import { DefaultWalletLineSwitch } from 'wallet/src/components/settings/permissions/DefaultWalletLineSwitch'
 
@@ -36,7 +36,6 @@ export function PermissionsModal({
   return (
     <Modal isModalOpen={isOpen} name={ModalName.PermissionsModal} onClose={onClose}>
       <Flex
-        animation="fast"
         gap="$spacing16"
         pb={isExtensionApp ? undefined : '$spacing60'}
         py={isExtensionApp ? '$spacing16' : undefined}

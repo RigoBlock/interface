@@ -1,5 +1,6 @@
+import { Flex } from '@universe/mycelium'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { useEffect, useState } from 'react'
-import { Flex, useSporeColors } from 'ui/src'
 
 export interface ChartModelWithLiveDot {
   getLastPointCoordinates?: () => { x: number; y: number } | null

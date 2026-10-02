@@ -5,7 +5,7 @@ import {
   SwapTxAndGasInfo,
   UniswapXSwapTxAndGasInfo,
 } from 'uniswap/src/features/transactions/swap/types/swapTxAndGasInfo'
-import { ClassicTrade } from 'uniswap/src/features/transactions/swap/types/trade'
+import type { ClassicTrade } from 'uniswap/src/features/transactions/swap/types/trade'
 import { generateSwapTransactionSteps } from 'uniswap/src/features/transactions/swap/utils/generateSwapTransactionSteps'
 import { mockPermit } from 'uniswap/src/test/fixtures/permit'
 import {
@@ -17,8 +17,8 @@ import {
 // Use vi.hoisted to create a mutable mock state that can be changed between tests
 const mockPlatformState = vi.hoisted(() => ({ isWebApp: false }))
 
-vi.mock('utilities/src/platform', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('utilities/src/platform')>()
+vi.mock('@universe/environment', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@universe/environment')>()
   return {
     ...actual,
     get isWebApp(): boolean {
@@ -68,7 +68,7 @@ describe('Swap', () => {
     },
     trade: mockTrade.trade as ClassicTrade,
     txRequests: [mockTxRequest],
-    unsigned: false,
+    hasUnsignedPermit: false,
     includesDelegation: false,
   } as const satisfies SwapTxAndGasInfo
 
@@ -142,7 +142,7 @@ describe('Swap', () => {
       const swapTxContext = {
         ...baseSwapTxContext,
         approveTxRequest: mockApproveRequest,
-        unsigned: true,
+        hasUnsignedPermit: true,
         permit: mockPermit,
       }
 

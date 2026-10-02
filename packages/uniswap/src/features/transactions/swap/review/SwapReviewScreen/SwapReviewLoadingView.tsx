@@ -1,6 +1,5 @@
+import { Flex, iconSizes, SpinningLoader } from '@universe/mycelium'
 import { memo } from 'react'
-import { Flex, SpinningLoader } from 'ui/src'
-import { iconSizes } from 'ui/src/theme'
 import { TransactionModalInnerContainer } from 'uniswap/src/features/transactions/components/TransactionModal/TransactionModal'
 import { useTransactionModalContext } from 'uniswap/src/features/transactions/components/TransactionModal/TransactionModalContext'
 

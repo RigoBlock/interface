@@ -1,9 +1,8 @@
+import { Platform, getValidAddress, sanitizeAddressText } from '@universe/chains'
 import { useUnitagsAddressQuery } from 'uniswap/src/data/apiClients/unitagsApi/useUnitagsAddressQuery'
 import { DisplayName, DisplayNameType } from 'uniswap/src/features/accounts/types'
 import { useENSName } from 'uniswap/src/features/ens/api'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { UNITAG_SUFFIX } from 'uniswap/src/features/unitags/constants'
-import { getValidAddress, sanitizeAddressText } from 'uniswap/src/utils/addresses'
 import { shortenAddress } from 'utilities/src/addresses'
 import { trimToLength } from 'utilities/src/primitives/string'
 

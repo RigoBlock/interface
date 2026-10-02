@@ -1,7 +1,7 @@
+import { Platform } from '@universe/chains'
 import { navigate } from 'src/app/navigation/rootNavigation'
 import { createSwapTransactionState, ParseSwapLinkFunction } from 'src/features/deepLinking/parseSwapLink'
 import { isTestnetChain } from 'uniswap/src/features/chains/utils'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { getEnabledChainIdsSaga } from 'uniswap/src/features/settings/saga'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { logger } from 'utilities/src/logger/logger'

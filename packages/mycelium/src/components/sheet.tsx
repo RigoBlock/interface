@@ -3,7 +3,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { X } from 'lucide-react'
 import * as React from 'react'
 import { cn } from '../cn'
-import { Flex } from './flex'
+import { FlexCompat as Flex } from '../flex-compat/FlexCompat'
 
 const Sheet = SheetPrimitive.Root
 
@@ -25,15 +25,20 @@ const SheetOverlay = React.forwardRef<
 ))
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName
 
-const sheetVariants = cva('fixed z-50 gap-4 bg-surface1 p-6 shadow-lg', {
+// Floating panel: 12px viewport offset on every side (per-side insets, since a
+// single `inset-3` would stretch the panel across the whole viewport) and a
+// 28px radius on all four corners. h-full/w-full are deliberately absent —
+// opposing insets size the panel, so a full-length dimension would overflow by
+// the offset.
+const sheetVariants = cva('fixed z-50 gap-4 rounded-28 bg-surface1 p-6 shadow-lg', {
   variants: {
     side: {
-      top: 'inset-x-0 top-0 border-b border-surface3 data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top',
+      top: 'inset-x-3 top-3 border border-surface3 data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top',
       bottom:
-        'inset-x-0 bottom-0 border-t border-surface3 data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom',
-      left: 'inset-y-0 left-0 h-full w-80 border-r border-surface3 data-[state=closed]:animate-sheet-out-left data-[state=open]:animate-sheet-in-left',
+        'inset-x-3 bottom-3 border border-surface3 data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom',
+      left: 'inset-y-3 left-3 h-auto w-80 border border-surface3 data-[state=closed]:animate-sheet-out-left data-[state=open]:animate-sheet-in-left',
       right:
-        'inset-y-0 right-0 h-full w-80 border-l border-surface3 data-[state=closed]:animate-sheet-out-right data-[state=open]:animate-sheet-in-right',
+        'inset-y-3 right-3 h-auto w-80 border border-surface3 data-[state=closed]:animate-sheet-out-right data-[state=open]:animate-sheet-in-right',
     },
   },
   defaultVariants: {
@@ -51,16 +56,20 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
     <SheetPortal>
       <SheetOverlay />
       <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
+        {children}
+        {/* Rendered after `children`, as dialog.tsx's Close is: FlexCompat's
+            `relative` frame default makes SheetHeader/SheetFooter positioned with
+            z-index:auto, so a Close rendered BEFORE them would paint underneath
+            and lose the pointer hit test -- being later in tree order restores it. */}
         {!hideClose && (
           <SheetPrimitive.Close
             tabIndex={-1}
-            className="absolute right-4 top-4 rounded-8 p-1 text-neutral2 transition-all duration-80 ease-in-out hover:text-neutral1 hover:bg-surface2 focus:outline-none focus:ring-1 focus:ring-ring disabled:pointer-events-none active:scale-90"
+            className="absolute right-4 top-4 cursor-pointer rounded-8 p-1 text-neutral2 transition-all duration-80 ease-in-out hover:text-neutral1 hover:bg-surface2 focus:outline-none focus:ring-1 focus:ring-ring disabled:pointer-events-none active:scale-90"
           >
             <X className="size-4" />
             <span className="sr-only">Close</span>
           </SheetPrimitive.Close>
         )}
-        {children}
       </SheetPrimitive.Content>
     </SheetPortal>
   ),
@@ -68,12 +77,17 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
 SheetContent.displayName = SheetPrimitive.Content.displayName
 
 const SheetHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>): React.JSX.Element => (
-  <Flex direction="column" className={cn('gap-1.5', className)} {...props} />
+  <Flex justifyContent="flex-start" flexDirection="column" className={cn('gap-1.5', className)} {...props} />
 )
 SheetHeader.displayName = 'SheetHeader'
 
 const SheetFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>): React.JSX.Element => (
-  <Flex className={cn('flex-col-reverse sm:flex-row sm:justify-end sm:gap-2', className)} {...props} />
+  <Flex
+    flexDirection="row"
+    justifyContent="flex-start"
+    className={cn('flex-col-reverse sm:flex-row sm:justify-end sm:gap-2', className)}
+    {...props}
+  />
 )
 SheetFooter.displayName = 'SheetFooter'
 

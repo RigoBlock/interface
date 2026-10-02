@@ -1,14 +1,14 @@
+import { UniverseChainId } from '@universe/chains'
+import { Flex, iconSizes, Text } from '@universe/mycelium'
+import { TestID } from '@universe/test'
 import ms from 'ms'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text } from 'ui/src'
-import { iconSizes } from 'ui/src/theme'
 import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
 import { GetHelpHeader } from 'uniswap/src/components/dialog/GetHelpHeader'
 import { Modal } from 'uniswap/src/components/modals/Modal'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { useActiveAddress } from 'uniswap/src/features/accounts/store/hooks'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { getFiatCurrencyCode, useAppFiatCurrency } from 'uniswap/src/features/fiatCurrency/hooks'
 import { EdgeFade } from 'uniswap/src/features/fiatOnRamp/EdgeFade/EdgeFade'
 import { PaymentMethodFilter } from 'uniswap/src/features/fiatOnRamp/PaymentMethodFilter/PaymentMethodFilter'
@@ -22,7 +22,6 @@ import { filterQuotesByPaymentMethod } from 'uniswap/src/features/fiatOnRamp/uti
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { buildCurrencyId, currencyAddress } from 'uniswap/src/utils/currencyId'
 import { NumberType } from 'utilities/src/format/types'
 import { logger } from 'utilities/src/logger/logger'
@@ -165,9 +164,9 @@ function ChooseProviderModalContent({ closeModal }: ChooseProviderModal) {
     >
       <Flex gap="$spacing24">
         <GetHelpHeader
-          link={uniswapUrls.helpArticleUrls.fiatOnRampHelp}
+          link={UniswapHelpUrls.articles.fiatOnRampHelp}
           closeModal={closeModal}
-          closeDataTestId="ChooseProviderModal-close"
+          closeDataTestId={TestID.ChooseProviderModalClose}
         />
         <Flex row alignItems="center" justifyContent="space-between">
           <Text variant="subheading1" color="$neutral1" testID={TestID.BuyFormChooseProvider}>

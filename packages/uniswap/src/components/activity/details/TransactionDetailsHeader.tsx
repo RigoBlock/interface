@@ -1,10 +1,10 @@
 import { TradingApi } from '@universe/api'
+import { Flex, Text } from '@universe/mycelium'
+import { AlertTriangleFilled } from '@universe/mycelium/icons/AlertTriangleFilled'
+import { Ellipsis } from '@universe/mycelium/icons/Ellipsis'
+import { UniswapX } from '@universe/mycelium/icons/UniswapX'
 import dayjs from 'dayjs'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text } from 'ui/src'
-import { AlertTriangleFilled } from 'ui/src/components/icons'
-import { Ellipsis } from 'ui/src/components/icons/Ellipsis'
-import { UniswapX } from 'ui/src/components/icons/UniswapX'
 import { TransactionDetailsHeaderLogo } from 'uniswap/src/components/activity/details/TransactionDetailsHeaderLogo'
 import { ContextMenu, MenuOptionItem } from 'uniswap/src/components/menus/ContextMenu'
 import { ContextMenuTriggerMode } from 'uniswap/src/components/menus/types'
@@ -27,7 +27,10 @@ export function TransactionDetailsHeader({
   const showTransactionActions = transactionActions.length > 0 && !hideTransactionActions
 
   const dateString = useFormattedDateTime(dayjs(transactionDetails.addedTime), FORMAT_DATE_TIME_MEDIUM)
-  const title = getTransactionSummaryTitle(transactionDetails, t)
+  const title = getTransactionSummaryTitle({
+    tx: transactionDetails,
+    t,
+  })
 
   return (
     <Flex centered row justifyContent="space-between">

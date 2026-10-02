@@ -1,12 +1,11 @@
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { UniverseChainId } from '@universe/chains'
+import { Flex, zIndexes } from '@universe/mycelium'
+import { Shuffle } from '@universe/mycelium/icons/Shuffle'
 import { memo, ReactNode } from 'react'
-import { Flex } from 'ui/src'
-import { Shuffle } from 'ui/src/components/icons/Shuffle'
-import { zIndexes } from 'ui/src/theme'
-import { CurrencyLogo, STATUS_RATIO } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
+import { STATUS_RATIO } from 'uniswap/src/components/CurrencyLogo/constants'
+import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
 import { TransactionSummaryNetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
 import { TokenLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 
@@ -20,11 +19,32 @@ interface Props {
   size: number
   chainId: UniverseChainId | null
   customIcon?: ReactNode
+  /**
+   * 'split' (default): each icon shows its outer half, joined into one circle.
+   * 'stacked': two full circular logos side by side, the front (input) logo overlapping the second (output).
+   */
+  orientation?: 'split' | 'stacked'
+}
+
+// px the second logo slides left so the front full logo overlaps it in stacked mode.
+// Scales with the logo size so the overlap stays proportional (avoids a cramped look at small
+// sizes); equals 12 at size=36 (the mWeb thumbnail), preserving the established look there.
+export function getStackedLogoOverlap(size: number): number {
+  return Math.round(size / 3)
+}
+
+// Total footprint width of the stacked pair: two full logos minus the overlap. Consumers that need
+// to reserve the same space (e.g. loading skeletons) should size themselves with this.
+export function getStackedLogoWidth(size: number): number {
+  return size * 2 - getStackedLogoOverlap(size)
 }
 
 /*
- * Logo, where left 50% of width is taken from one icon (its left 50%)
- * and right side is taken from another icon (its right 50%)
+ * Pair logo with two layouts:
+ * - 'split': one circle where the left 50% comes from the input icon and the right 50% from the output icon.
+ * - 'stacked': two full circular logos side by side, the front (input) logo overlapping the output logo.
+ * Both layouts show the network/custom badge bottom-right. To suppress the badge, omit the chainId
+ * (pass `chainId={null}`) and pass no `customIcon`.
  */
 export function SplitLogo({
   size,
@@ -36,13 +56,65 @@ export function SplitLogo({
   outputFallbackSymbol,
   chainId,
   customIcon,
+  orientation = 'split',
 }: Props): JSX.Element {
-  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
   const iconSize = size / 2
-  const networkLogo =
-    chainId && (chainId !== UniverseChainId.Mainnet || multichainTokenUxEnabled) ? (
-      <TransactionSummaryNetworkLogo chainId={chainId} size={size * STATUS_RATIO} />
-    ) : undefined
+  const networkLogo = chainId ? (
+    <TransactionSummaryNetworkLogo chainId={chainId} size={size * STATUS_RATIO} />
+  ) : undefined
+
+  const badge = (customIcon || networkLogo) && (
+    <Flex bottom={-4} position="absolute" right={-4} zIndex={zIndexes.mask}>
+      {customIcon ?? networkLogo}
+    </Flex>
+  )
+
+  if (orientation === 'stacked') {
+    // Two full logos side by side: the front (input) logo sits on the left, on top, and overlaps
+    // the second (output) logo tucked behind it to the right. The network badge renders bottom-right
+    // like in split mode (suppressed when chainId is omitted and there's no customIcon).
+    const overlap = getStackedLogoOverlap(size)
+    return (
+      <Flex row height={size} width={size * 2 - overlap} position="relative">
+        {/* 2px surface1 ring reads as a clean cutout over the second logo behind it. The negative
+            margin keeps the ring purely visual so the logo footprint and overlap stay unchanged. */}
+        <Flex
+          testID="input-currency-logo-container"
+          zIndex={zIndexes.mask}
+          m={-2}
+          borderWidth="$spacing2"
+          borderColor="$surface1"
+          borderRadius="$roundedFull"
+        >
+          {inputLogoUrl || inputFallbackSymbol ? (
+            <TokenLogo
+              hideNetworkLogo
+              url={inputLogoUrl}
+              chainId={chainId ?? undefined}
+              size={size}
+              symbol={inputFallbackSymbol}
+            />
+          ) : (
+            <CurrencyLogo hideNetworkLogo currencyInfo={inputCurrencyInfo} size={size} />
+          )}
+        </Flex>
+        <Flex testID="output-currency-logo-container" ml={-overlap} zIndex={zIndexes.default}>
+          {outputLogoUrl || outputFallbackSymbol ? (
+            <TokenLogo
+              hideNetworkLogo
+              url={outputLogoUrl}
+              chainId={chainId ?? undefined}
+              size={size}
+              symbol={outputFallbackSymbol}
+            />
+          ) : (
+            <CurrencyLogo hideNetworkLogo currencyInfo={outputCurrencyInfo} size={size} />
+          )}
+        </Flex>
+        {badge}
+      </Flex>
+    )
+  }
 
   return (
     <Flex height={size} width={size}>
@@ -87,11 +159,7 @@ export function SplitLogo({
           <CurrencyLogo hideNetworkLogo currencyInfo={outputCurrencyInfo} size={size} />
         )}
       </Flex>
-      {(customIcon || networkLogo) && (
-        <Flex bottom={-4} position="absolute" right={-4} zIndex={zIndexes.mask}>
-          {customIcon ?? networkLogo}
-        </Flex>
-      )}
+      {badge}
     </Flex>
   )
 }

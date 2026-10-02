@@ -8,8 +8,8 @@ import {
   getCancelSingleParams,
 } from '@uniswap/uniswapx-sdk'
 import { TradingApi } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
 import { providers } from 'ethers/lib/ethers'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { createPermit2Contract } from 'uniswap/src/features/transactions/utils/permit2'
 import { logger } from 'utilities/src/logger/logger'
 
@@ -97,8 +97,25 @@ export async function buildBatchCancellation(
       return null
     }
 
+    // Tripwire (latent batch defect): a dropped nonce means an order silently not cancelled.
+    // Full fix (builder returns per-tx order attribution + summed gas) is a named follow-up.
+    if (nonces.length < orders.length) {
+      logger.error(new Error('buildBatchCancellation dropped orders with unextractable nonces'), {
+        tags: { file: 'cancelOrderFactory', function: 'buildBatchCancellation' },
+        extra: { orderCount: orders.length, nonceCount: nonces.length, orderHashes: orders.map((o) => o.orderHash) },
+      })
+    }
+
     // Get cancellation parameters for multiple nonces
     const cancelParams = getCancelMultipleParams(nonces)
+
+    // Tripwire (latent batch defect): >1 tx means gas display/attribution only covers tx[0]
+    if (cancelParams.length > 1) {
+      logger.error(new Error('buildBatchCancellation produced multiple transactions'), {
+        tags: { file: 'cancelOrderFactory', function: 'buildBatchCancellation' },
+        extra: { txCount: cancelParams.length, orderCount: orders.length },
+      })
+    }
 
     if (cancelParams.length === 0) {
       return null

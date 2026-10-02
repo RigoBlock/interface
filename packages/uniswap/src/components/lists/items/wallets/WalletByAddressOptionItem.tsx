@@ -1,4 +1,4 @@
-import { iconSizes } from 'ui/src/theme'
+import { iconSizes, type ModifierPressProps } from '@universe/mycelium'
 import { OptionItemProps } from 'uniswap/src/components/lists/items/OptionItem'
 import {
   ENSAddressOption,
@@ -14,7 +14,7 @@ import { DisplayNameType } from 'uniswap/src/features/accounts/types'
 import { useOnchainDisplayName } from 'uniswap/src/features/accounts/useOnchainDisplayName'
 import { ENS_SUFFIX } from 'uniswap/src/features/ens/constants'
 
-type WalletByAddressOptionItemProps = {
+type WalletByAddressOptionItemProps = ModifierPressProps & {
   walletByAddressOption: WalletByAddressOption
   onPress: OptionItemProps['onPress']
 }
@@ -22,6 +22,8 @@ type WalletByAddressOptionItemProps = {
 export function WalletByAddressOptionItem({
   walletByAddressOption,
   onPress,
+  modifierPressHref,
+  onModifierPress,
 }: WalletByAddressOptionItemProps): JSX.Element {
   const { address } = walletByAddressOption
 
@@ -33,7 +35,14 @@ export function WalletByAddressOptionItem({
       address,
       unitag: displayName.name,
     }
-    return <UnitagOptionItem unitagOption={unitagOption} onPress={onPress} />
+    return (
+      <UnitagOptionItem
+        unitagOption={unitagOption}
+        modifierPressHref={modifierPressHref}
+        onPress={onPress}
+        onModifierPress={onModifierPress}
+      />
+    )
   } else if (displayName?.type === DisplayNameType.ENS) {
     const ensAddressOption: ENSAddressOption = {
       type: OnchainItemListOptionType.ENSAddress,
@@ -41,7 +50,14 @@ export function WalletByAddressOptionItem({
       ensName: displayName.name,
       isRawName: !displayName.name.endsWith(ENS_SUFFIX), // Ensure raw name is used for subdomains only
     }
-    return <ENSAddressOptionItem ensAddressOption={ensAddressOption} onPress={onPress} />
+    return (
+      <ENSAddressOptionItem
+        ensAddressOption={ensAddressOption}
+        modifierPressHref={modifierPressHref}
+        onPress={onPress}
+        onModifierPress={onModifierPress}
+      />
+    )
   }
 
   return (
@@ -49,7 +65,9 @@ export function WalletByAddressOptionItem({
       option={walletByAddressOption}
       image={<AccountIcon address={address} size={iconSizes.icon40} />}
       title={displayName?.name ?? ''}
+      modifierPressHref={modifierPressHref}
       onPress={onPress}
+      onModifierPress={onModifierPress}
     />
   )
 }

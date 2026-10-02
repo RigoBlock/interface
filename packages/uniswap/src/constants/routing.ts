@@ -1,13 +1,16 @@
 import { Currency, Token, WETH9 } from '@uniswap/sdk-core'
-import { GraphQLApi } from '@universe/api'
+import { UniverseChainId, Platform, areAddressesEqual } from '@universe/chains'
 import type { ImageSourcePropType } from 'react-native'
 import { CELO_LOGO, ETH_LOGO, RIGOBLOCK_LOGO } from 'ui/src/assets'
 import {
   ARB,
   AUSD_MONAD,
+  BTC_B_MEGAETH,
   BUSD_BSC,
+  CIRBTC_ARC,
   DAI_AVALANCHE,
   ETH_BSC,
+  EURC_ARC,
   GRG,
   nativeOnChain,
   OP,
@@ -15,11 +18,13 @@ import {
   PORTAL_ETH_CELO,
   UNI,
   USDC_ARBITRUM,
+  USDC_ARC,
   USDC_AVALANCHE,
   USDC_BASE,
   USDC_BSC,
   USDC_CELO,
   USDC_E_TEMPO,
+  USDC_INK,
   USDC_LINEA,
   USDC_MAINNET,
   USDC_MONAD,
@@ -33,6 +38,8 @@ import {
   USDC_XLAYER,
   USDC_ZKSYNC,
   USDC_ZORA,
+  USDE_MEGAETH,
+  USDG_ROBINHOOD,
   USDT,
   USDT_ARBITRUM_ONE,
   USDT_AVALANCHE,
@@ -40,22 +47,24 @@ import {
   USDT_LINEA,
   USDT_OPTIMISM,
   USDT_POLYGON,
+  USDT0_INK,
   USDT0_XLAYER,
+  USDM_MEGAETH,
+  USYC_ARC,
   WBTC,
   WBTC_ARBITRUM_ONE,
   WBTC_OPTIMISM,
   WBTC_POLYGON,
+  WETH_ARC,
   WETH_AVALANCHE,
   WETH_POLYGON,
   WRAPPED_NATIVE_CURRENCY,
 } from 'uniswap/src/constants/tokens'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapStaticUrls } from 'uniswap/src/constants/urls'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { ProtectionResult } from 'uniswap/src/features/dataApi/safety'
 import { CurrencyInfo, TokenList } from 'uniswap/src/features/dataApi/types'
 import { buildCurrencyInfo } from 'uniswap/src/features/dataApi/utils/buildCurrency'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
-import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 import { isNativeCurrencyAddress } from 'uniswap/src/utils/currencyId'
 
 type ChainCurrencyList = {
@@ -155,6 +164,29 @@ export const COMMON_BASES: ChainCurrencyList = {
     WRAPPED_NATIVE_CURRENCY[UniverseChainId.Linea] as Token,
     USDC_LINEA,
     USDT_LINEA,
+  ].map(buildPartialCurrencyInfo),
+
+  [UniverseChainId.MegaETH]: [
+    nativeOnChain(UniverseChainId.MegaETH),
+    WRAPPED_NATIVE_CURRENCY[UniverseChainId.MegaETH] as Token,
+    USDM_MEGAETH,
+    USDE_MEGAETH,
+    BTC_B_MEGAETH,
+  ].map(buildPartialCurrencyInfo),
+
+  [UniverseChainId.Robinhood]: [
+    nativeOnChain(UniverseChainId.Robinhood),
+    USDG_ROBINHOOD,
+    WRAPPED_NATIVE_CURRENCY[UniverseChainId.Robinhood] as Token,
+  ].map(buildPartialCurrencyInfo),
+
+  [UniverseChainId.Arc]: [USDC_ARC, EURC_ARC, CIRBTC_ARC, WETH_ARC, USYC_ARC].map(buildPartialCurrencyInfo),
+
+  [UniverseChainId.Ink]: [
+    nativeOnChain(UniverseChainId.Ink),
+    WRAPPED_NATIVE_CURRENCY[UniverseChainId.Ink] as Token,
+    USDT0_INK,
+    USDC_INK,
   ].map(buildPartialCurrencyInfo),
 
   [UniverseChainId.Soneium]: [
@@ -274,7 +306,7 @@ export function getTokenLogoURI(chainId: UniverseChainId, address: string): Imag
   }
 
   return networkName
-    ? `${uniswapUrls.uniswapAssetsBlockchainsBaseUrl}/${networkName}/assets/${address}/logo.png`
+    ? `${UniswapStaticUrls.uniswapAssetsBlockchainsBaseUrl}/${networkName}/assets/${address}/logo.png`
     : undefined
 }
 
@@ -288,7 +320,7 @@ export function buildPartialCurrencyInfo(commonBase: Currency): CurrencyInfo {
     logoUrl,
     safetyInfo: {
       tokenList: TokenList.Default,
-      protectionResult: GraphQLApi.ProtectionResult.Benign,
+      protectionResult: ProtectionResult.Benign,
     },
     isSpam: false,
   } as CurrencyInfo)

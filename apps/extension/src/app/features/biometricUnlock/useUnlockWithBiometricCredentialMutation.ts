@@ -5,24 +5,24 @@ import {
 } from 'src/app/features/biometricUnlock/biometricAuthUtils'
 import { BiometricUnlockStorage } from 'src/app/features/biometricUnlock/BiometricUnlockStorage'
 import { startNavigatorCredentialRequest } from 'src/app/features/biometricUnlock/useNavigatorCredentialAbortSignal'
-import { useUnlockWithPassword } from 'src/app/features/lockScreen/useUnlockWithPassword'
 import { logger } from 'utilities/src/logger/logger'
-import { useEvent } from 'utilities/src/react/hooks'
+import { InvalidPasswordError, unlockWallet } from 'wallet/src/features/auth/unlockWallet'
 import { Keyring } from 'wallet/src/features/wallet/Keyring/Keyring'
 
 export function useUnlockWithBiometricCredentialMutation(): UseMutationResult<void, Error, void> {
-  const unlockWithPassword = useUnlockWithPassword()
-
-  const unlockWithBiometric = useEvent(async (): Promise<void> => {
-    const { abortSignal } = startNavigatorCredentialRequest('New biometric unlock request initiated')
-    const password = await getPasswordFromBiometricCredential(abortSignal)
-    unlockWithPassword({ password })
-  })
-
   return useMutation({
-    mutationFn: unlockWithBiometric,
+    mutationFn: async (): Promise<void> => {
+      const { abortSignal } = startNavigatorCredentialRequest('New biometric unlock request initiated')
+      const password = await getPasswordFromBiometricCredential(abortSignal)
+      await unlockWallet({ password })
+    },
     retry: false,
+    networkMode: 'always',
     onError: (error) => {
+      // A stale biometric secret after a password change; the lock screen renders it.
+      if (error instanceof InvalidPasswordError) {
+        return
+      }
       logger.error(error, {
         tags: {
           file: 'useUnlockWithBiometricCredentialMutation.ts',

@@ -1,10 +1,10 @@
+import type { ColorTokens } from '@universe/mycelium'
+import { Flex } from '@universe/mycelium'
+import { Text } from '@universe/mycelium'
+import { TransitionItem } from '@universe/mycelium/animate-presence-pager'
 import { ReactNode } from 'react'
-import { ColorTokens } from 'tamagui'
-import { TransitionItem } from 'ui/src/animations/components/AnimatePresencePager'
 import { CheckmarkCircle } from 'ui/src/components/icons/CheckmarkCircle'
 import { CopySheets } from 'ui/src/components/icons/CopySheets'
-import { Flex } from 'ui/src/components/layout'
-import { Text } from 'ui/src/components/text'
 import { iconSizes } from 'ui/src/theme'
 
 interface AnimatedCopyLabelProps {
@@ -32,7 +32,7 @@ export function AnimatedCopyLabel({
   return (
     <Flex shrink overflow="hidden">
       <TransitionItem
-        animation="fast"
+        curve="fast"
         animationType={isCopied ? 'up' : 'down'}
         childKey={isCopied ? 'copied' : 'default'}
         distance={5}
@@ -40,19 +40,27 @@ export function AnimatedCopyLabel({
         <Flex row alignItems="center" gap="$spacing8">
           {isCopied ? (
             <>
-              <Text color="$statusSuccess" variant="body3">
+              <Text color="$statusSuccess" flexShrink={1} numberOfLines={1} variant="body3">
                 {copiedLabel}
               </Text>
-              <Flex centered $md={{ backgroundColor: '$statusSuccess2', borderRadius: '$rounded12', p: '$spacing8' }}>
+              <Flex
+                centered
+                flexShrink={0}
+                $md={{ backgroundColor: '$statusSuccess2', borderRadius: '$rounded12', p: '$spacing8' }}
+              >
                 <CheckmarkCircle color="$statusSuccess" size={iconSize} />
               </Flex>
             </>
           ) : (
             <>
-              <Text color="$neutral2" variant="body3">
+              <Text color="$neutral2" flexShrink={1} numberOfLines={1} variant="body3">
                 {label}
               </Text>
-              <Flex centered $md={{ backgroundColor: '$surface3', borderRadius: '$rounded12', p: '$spacing8' }}>
+              <Flex
+                centered
+                flexShrink={0}
+                $md={{ backgroundColor: '$surface3', borderRadius: '$rounded12', p: '$spacing8' }}
+              >
                 <CopySheets color={iconColor} size={iconSize} />
               </Flex>
             </>

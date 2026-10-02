@@ -12,10 +12,9 @@
     "utilities": "workspace:*"
   },
   "devDependencies": {
+    "@testing-library/react": "16.3.0",
     "@types/node": "22.19.17",
-    "@typescript/native-preview": "7.0.0-dev.20260311.1",
-    "depcheck": "1.4.7",
-    "typescript": "5.8.3",
+    "jsdom": "20.0.3",
     "vitest": "3.2.1"
   },
   "scripts": {
@@ -24,8 +23,8 @@
     "check:fast": "nx check:fast gating",
     "check:deps:usage": "nx check:deps:usage gating",
     "test": "nx test gating",
-    "format": "nx format gating",
-    "format:check": "nx format:check gating",
+    "format": "nx run gating:format",
+    "format:check": "nx run gating:format:check",
     "lint": "nx lint gating",
     "lint:fix": "nx lint:fix gating"
   },

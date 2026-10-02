@@ -1,4 +1,5 @@
-import { createStore, Store } from 'redux'
+import { configureStore } from '@reduxjs/toolkit'
+import { Store } from 'redux'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import reducer, {
   ApplicationState,
@@ -8,17 +9,21 @@ import reducer, {
   setSmartPoolValue,
   updateChainId,
 } from '~/state/application/reducer'
+import { AuthenticatorProvider } from '~/types/authenticatorProvider'
 
 describe('application reducer', () => {
   let store: Store<ApplicationState>
 
   beforeEach(() => {
-    store = createStore(reducer, {
-      chainId: null,
-      openModal: null,
-      smartPool: { address: null, name: '' },
-      suppressedPopups: [],
-      downloadGraduatedWalletCardsDismissed: [],
+    store = configureStore({
+      reducer,
+      preloadedState: {
+        chainId: null,
+        openModal: null,
+        smartPool: { address: null, name: '' },
+        suppressedPopups: [],
+        downloadGraduatedWalletCardsDismissed: [],
+      },
     })
   })
 
@@ -35,7 +40,10 @@ describe('application reducer', () => {
     it('should set and close DeletePasskey modal with initialState', () => {
       const initialState: DeletePasskeyModalParams['initialState'] = {
         authenticatorId: 'cred-abc',
+        authenticatorLabel: 'Chrome',
+        authenticatorProvider: AuthenticatorProvider.Google,
         isLastAuthenticator: true,
+        lastExportedMs: 1_717_000_000_000,
       }
       store.dispatch(setOpenModal({ name: ModalName.DeletePasskey, initialState }))
       expect(store.getState().openModal).toEqual({

@@ -1,4 +1,4 @@
-import { borderRadii, iconSizes, spacing } from 'ui/src/theme'
+import { borderRadii, iconSizes, spacing } from '@universe/mycelium'
 import { ONE_MINUTE_MS, ONE_SECOND_MS } from 'utilities/src/time/time'
 
 // Timing

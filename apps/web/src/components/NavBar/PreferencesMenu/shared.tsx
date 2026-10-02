@@ -1,4 +1,5 @@
-import { Flex, styled } from 'ui/src'
+import { Flex, type FlexCompatProps } from '@universe/mycelium'
+import { forwardRef, type ForwardRefExoticComponent, type RefAttributes } from 'react'
 
 export enum PreferencesView {
   SETTINGS = 'Settings',
@@ -6,6 +7,9 @@ export enum PreferencesView {
   CURRENCY = 'Currency',
 }
 
-export const SettingsColumn = styled(Flex, {
-  width: '100%',
+export const SettingsColumn: ForwardRefExoticComponent<FlexCompatProps & RefAttributes<HTMLDivElement>> = forwardRef<
+  HTMLDivElement,
+  FlexCompatProps
+>(function SettingsColumn(props, ref) {
+  return <Flex ref={ref} width="100%" {...props} />
 })

@@ -1,11 +1,10 @@
-import '@reach/dialog/styles.css'
 import '../src/global.css'
 import '../src/polyfills'
 import type { Preview } from '@storybook/react'
 import { Provider } from 'react-redux'
 import { MemoryRouter } from 'react-router'
 import { ReactRouterUrlProvider } from 'uniswap/src/contexts/UrlContext'
-import { TamaguiProvider } from '../src/theme/tamaguiProvider'
+import { ColorSchemeProvider } from '../src/theme/colorSchemeProvider'
 import store from '~/state'
 
 const preview: Preview = {
@@ -14,10 +13,10 @@ const preview: Preview = {
       <MemoryRouter>
         <ReactRouterUrlProvider>
           <Provider store={store}>
-            <TamaguiProvider>
+            <ColorSchemeProvider>
               {/* 👇 Decorators in Storybook also accept a function. Replace <Story/> with Story() to enable it  */}
               <Story />
-            </TamaguiProvider>
+            </ColorSchemeProvider>
           </Provider>
         </ReactRouterUrlProvider>
       </MemoryRouter>

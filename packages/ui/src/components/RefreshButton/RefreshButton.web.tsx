@@ -1,12 +1,11 @@
+import { isWebPlatform } from '@universe/environment'
+import { Flex } from '@universe/mycelium'
+import { Text } from '@universe/mycelium'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex } from 'ui/src/components/layout'
 import type { RefreshButtonProps } from 'ui/src/components/RefreshButton/RefreshButton'
 import { RefreshButtonIcon } from 'ui/src/components/RefreshButton/RefreshButtonIcon'
-import { Text } from 'ui/src/components/text'
 import { Tooltip } from 'ui/src/components/tooltip/Tooltip'
-import { zIndexes } from 'ui/src/theme'
-import { isWebPlatform } from 'utilities/src/platform'
 
 /**
  * A button component that allows users to refresh their balance with a visual indicator
@@ -25,13 +24,18 @@ import { isWebPlatform } from 'utilities/src/platform'
  *
  * @param {() => void} onPress - Callback function to execute when the refresh button is pressed
  * @param {boolean} isLoading - Indicates whether a refresh operation is in progress
+ * @param {boolean} disabled - Blocks both the press handler and the keyboard shortcut
  *
  * @returns {JSX.Element} A button with refresh icon and tooltip showing keyboard shortcut
  */
-export function RefreshButton({ onPress, isLoading }: RefreshButtonProps): JSX.Element {
+export function RefreshButton({ onPress, isLoading, disabled }: RefreshButtonProps): JSX.Element {
   const { t } = useTranslation()
 
   useEffect(() => {
+    if (disabled) {
+      return undefined
+    }
+
     const handleKeyDown = (e: KeyboardEvent): void => {
       if (!isWebPlatform) {
         return
@@ -46,14 +50,14 @@ export function RefreshButton({ onPress, isLoading }: RefreshButtonProps): JSX.E
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onPress])
+  }, [onPress, disabled])
 
   return (
     <Tooltip delay={0} restMs={0} placement="bottom">
       <Tooltip.Trigger>
-        <RefreshButtonIcon isLoading={isLoading} onPress={onPress} />
+        <RefreshButtonIcon disabled={disabled} isLoading={isLoading} onPress={onPress} />
       </Tooltip.Trigger>
-      <Tooltip.Content zIndex={zIndexes.overlay}>
+      <Tooltip.Content>
         <Tooltip.Arrow />
         <Flex row gap="$gap8">
           <Text variant="body4">{t('common.refresh')}</Text>

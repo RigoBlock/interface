@@ -1,7 +1,8 @@
+import type { GeneratedIcon } from '@universe/mycelium/icons'
+import { Bank } from '@universe/mycelium/icons/Bank'
+import { CoinConvert } from '@universe/mycelium/icons/CoinConvert'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { GeneratedIcon } from 'ui/src'
-import { Bank, SwapDotted } from 'ui/src/components/icons'
 import { CurrencyField } from 'uniswap/src/types/currency'
 
 interface TokenCTAButtonVariant {
@@ -108,7 +109,7 @@ export function useTokenDetailsCTAVariant({
   return useMemo(() => {
     const swapVariant = {
       title: t('common.button.swap'),
-      icon: SwapDotted,
+      icon: CoinConvert,
       onPress: () => onPressSwap(hasTokenBalance ? CurrencyField.INPUT : CurrencyField.OUTPUT),
     }
 

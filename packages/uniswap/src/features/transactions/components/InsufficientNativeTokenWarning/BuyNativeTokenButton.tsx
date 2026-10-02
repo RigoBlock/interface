@@ -1,8 +1,9 @@
+import { UniverseChainId } from '@universe/chains'
+import { Flex } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
-import { Button, Flex } from 'ui/src'
+import { Button } from 'ui/src'
 import { validColor } from 'ui/src/theme'
 import { useUniswapContext } from 'uniswap/src/contexts/UniswapContext'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { useIsSupportedFiatOnRampCurrency } from 'uniswap/src/features/fiatOnRamp/hooks'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
@@ -53,7 +54,7 @@ export function BuyNativeTokenButton({
     <Trace logPress element={ElementName.BuyNativeTokenButton}>
       <Flex row alignSelf="stretch">
         <Button
-          isDisabled={isDisabled}
+          disabled={isDisabled}
           backgroundColor={backgroundColor}
           borderColor="$transparent"
           size="medium"

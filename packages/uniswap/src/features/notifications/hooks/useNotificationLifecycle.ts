@@ -1,10 +1,11 @@
+import { Platform } from '@universe/chains'
 import { useCallback, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
 import { useActiveAddress } from 'uniswap/src/features/accounts/store/hooks'
 import { DEFAULT_TOAST_HIDE_DELAY, SPRING_ANIMATION_DELAY } from 'uniswap/src/features/notifications/constants'
 import { useSelectAddressNotifications } from 'uniswap/src/features/notifications/slice/hooks'
 import { popNotification, setNotificationViewed } from 'uniswap/src/features/notifications/slice/slice'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
+import { AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
 import { useTimeout } from 'utilities/src/time/timing'
 
 interface NotificationLifecycleProps {
@@ -33,7 +34,8 @@ export function useNotificationLifecycle({
   const evmAddress = useActiveAddress(Platform.EVM)
   const notifications = useSelectAddressNotifications(evmAddress ?? null)
   const currentNotification = notifications?.[0]
-  const hasQueuedNotification = !!notifications?.[1]
+  const hasQueuedNotification =
+    notifications?.slice(1).some((notification) => notification.type !== AppNotificationType.EarnSwapUpsell) ?? false
 
   useEffect(() => {
     if (currentNotification?.shown) {

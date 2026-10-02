@@ -1,4 +1,10 @@
 import { SharedEventName } from '@uniswap/analytics-events'
+import { Flex, iconSizes, Text, TouchableArea } from '@universe/mycelium'
+import { CopySheets } from '@universe/mycelium/icons/CopySheets'
+import { Edit } from '@universe/mycelium/icons/Edit'
+import { Ellipsis } from '@universe/mycelium/icons/Ellipsis'
+import { Globe } from '@universe/mycelium/icons/Globe'
+import { TrashFilled } from '@universe/mycelium/icons/TrashFilled'
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
@@ -6,9 +12,6 @@ import { EditLabelModal } from 'src/app/features/accounts/EditLabelModal'
 import { removeAllDappConnectionsForAccount } from 'src/app/features/dapp/actions'
 import { AppRoutes, SettingsRoutes, UnitagClaimRoutes } from 'src/app/navigation/constants'
 import { focusOrCreateUnitagTab, useExtensionNavigation } from 'src/app/navigation/utils'
-import { Flex, Text, TouchableArea } from 'ui/src'
-import { CopySheets, Edit, Ellipsis, Globe, TrashFilled } from 'ui/src/components/icons'
-import { iconSizes } from 'ui/src/theme'
 import { AddressDisplay } from 'uniswap/src/components/accounts/AddressDisplay'
 import { ContextMenu, MenuOptionItem } from 'uniswap/src/components/menus/ContextMenu'
 import { ContextMenuTriggerMode } from 'uniswap/src/components/menus/types'
@@ -149,6 +152,7 @@ export function AccountItem({ address, onAccountSelect, balanceUSD }: AccountIte
             showViewOnlyBadge={false}
             size={iconSizes.icon40}
             variant="subheading2"
+            numberOfLines={2}
           />
           <ContextMenu
             menuItems={menuOptions}

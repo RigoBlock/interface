@@ -1,14 +1,16 @@
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-import { memo } from 'react'
+import { UniverseChainId } from '@universe/chains'
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
+import { ChevronsIn } from '@universe/mycelium/icons/ChevronsIn'
+import { ChevronsOut } from '@universe/mycelium/icons/ChevronsOut'
+import { memo, useContext } from 'react'
 import { useTranslation } from 'react-i18next'
-import { EM_DASH, Flex, Text } from 'ui/src'
-import { ChevronsOut } from 'ui/src/components/icons/ChevronsOut'
+import { EM_DASH } from 'ui/src'
 import { TokenLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
 import { GroupHoverTransition } from 'uniswap/src/components/GroupHoverTransition'
 import { NetworkIconList } from 'uniswap/src/components/network/NetworkIconList/NetworkIconList'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { getSymbolDisplayText } from 'uniswap/src/utils/currency'
+import { TableRowHoverContext } from '~/components/Table/TableRowHoverContext'
 import { EmptyTableCell } from '~/pages/Portfolio/EmptyTableCell'
 
 const SYMBOL_SLOT_HEIGHT = 18
@@ -19,6 +21,9 @@ interface TokenDisplayProps {
   isExpanded?: boolean
   displayName?: string
   displaySymbol?: string
+  onNameClick?: () => void
+  /** Explore-style unified expandable row: always show symbol + chevron instead of hover-to-expand affordance. */
+  unifiedExpandableRows?: boolean
 }
 
 export const TokenDisplay = memo(function TokenDisplay({
@@ -27,10 +32,11 @@ export const TokenDisplay = memo(function TokenDisplay({
   isExpanded,
   displayName: multichainDisplayName,
   displaySymbol: multichainDisplaySymbol,
+  onNameClick,
+  unifiedExpandableRows = false,
 }: TokenDisplayProps) {
   const { t } = useTranslation()
-  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
-
+  const rowHovered = useContext(TableRowHoverContext)
   if (!currencyInfo) {
     return <EmptyTableCell />
   }
@@ -39,7 +45,27 @@ export const TokenDisplay = memo(function TokenDisplay({
   const displayName = multichainDisplayName ?? currency.name
   const displaySymbol = multichainDisplaySymbol ?? currency.symbol
   const symbolText = getSymbolDisplayText(displaySymbol) || EM_DASH
-  const showNetworksHover = multichainTokenUxEnabled && chainIds && chainIds.length > 1
+  const showNetworksHover = chainIds && chainIds.length > 1
+  const showUnifiedExpandableSubline = unifiedExpandableRows && chainIds && chainIds.length > 1
+
+  const unifiedExpandableSubline = (
+    <Flex row alignItems="center" gap="$gap4" height={SYMBOL_SLOT_HEIGHT}>
+      <Text
+        variant="body4"
+        $platform-web={{ minWidth: 'fit-content' }}
+        color="$neutral2"
+        height={SYMBOL_SLOT_HEIGHT}
+        numberOfLines={1}
+      >
+        {symbolText}
+      </Text>
+      {isExpanded ? (
+        <ChevronsIn color="$neutral2" size="$icon.16" />
+      ) : (
+        <ChevronsOut color="$neutral2" size="$icon.16" />
+      )}
+    </Flex>
+  )
 
   return (
     <Flex row gap="$gap8" alignItems="center" justifyContent="flex-start" width="100%">
@@ -49,35 +75,60 @@ export const TokenDisplay = memo(function TokenDisplay({
         symbol={getSymbolDisplayText(displaySymbol) || undefined}
         size={32}
         url={currencyInfo.logoUrl}
-        alwaysShowNetworkLogo={multichainTokenUxEnabled && chainIds?.length === 1}
+        alwaysShowNetworkLogo={chainIds?.length === 1}
         networkCount={chainIds?.length}
       />
       <Flex width="100%">
-        <Text variant="body3" color="$neutral1" numberOfLines={1}>
-          {displayName || EM_DASH}
-        </Text>
+        {onNameClick ? (
+          <TouchableArea
+            hoverStyle={{ opacity: 0.7 }}
+            onPressIn={(e) => e.stopPropagation()}
+            onPressOut={(e) => e.stopPropagation()}
+            onPress={(e) => {
+              e.stopPropagation()
+              onNameClick()
+            }}
+          >
+            <Text variant="body3" color="$neutral1" numberOfLines={1}>
+              {displayName || EM_DASH}
+            </Text>
+          </TouchableArea>
+        ) : (
+          <Text variant="body3" color="$neutral1" numberOfLines={1}>
+            {displayName || EM_DASH}
+          </Text>
+        )}
         <GroupHoverTransition
           height={SYMBOL_SLOT_HEIGHT}
           showTransition={showNetworksHover}
+          isHovered={rowHovered}
           defaultContent={
-            <Text
-              variant="body4"
-              $platform-web={{ minWidth: 'fit-content' }}
-              color="$neutral2"
-              height={SYMBOL_SLOT_HEIGHT}
-              width="100%"
-              numberOfLines={1}
-            >
-              {symbolText}
-            </Text>
+            showUnifiedExpandableSubline ? (
+              unifiedExpandableSubline
+            ) : (
+              <Text
+                variant="body4"
+                $platform-web={{ minWidth: 'fit-content' }}
+                color="$neutral2"
+                height={SYMBOL_SLOT_HEIGHT}
+                width="100%"
+                numberOfLines={1}
+              >
+                {symbolText}
+              </Text>
+            )
           }
           hoverContent={
-            <Flex row gap="$gap4">
+            <Flex row alignItems="center" gap="$gap4" height={SYMBOL_SLOT_HEIGHT}>
               <Text variant="body4" color="$neutral2">
                 {t('portfolio.tokens.table.balances')}
               </Text>
               {!isExpanded && <NetworkIconList chainIds={chainIds ?? []} />}
-              <ChevronsOut color="$neutral2" size="$icon.16" />
+              {isExpanded ? (
+                <ChevronsIn color="$neutral2" size="$icon.16" />
+              ) : (
+                <ChevronsOut color="$neutral2" size="$icon.16" />
+              )}
             </Flex>
           }
         />

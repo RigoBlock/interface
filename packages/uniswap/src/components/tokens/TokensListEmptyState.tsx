@@ -1,10 +1,10 @@
+import { isExtensionApp } from '@universe/environment'
+import { Flex } from '@universe/mycelium'
 import { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { StyleProp, ViewStyle } from 'react-native'
-import { Flex } from 'ui/src'
 import { NoTokens } from 'ui/src/components/icons/NoTokens'
 import { BaseCard } from 'uniswap/src/components/BaseCard/BaseCard'
-import { isExtensionApp } from 'utilities/src/platform'
 
 interface TokensListEmptyStateProps {
   buttonDataTestId?: string

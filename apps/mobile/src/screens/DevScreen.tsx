@@ -1,3 +1,4 @@
+import { Flex, spacing, Switch, Text, TouchableArea } from '@universe/mycelium'
 import React, { useState } from 'react'
 import { I18nManager, ScrollView } from 'react-native'
 import { getUniqueIdSync } from 'react-native-device-info'
@@ -5,9 +6,8 @@ import { useDispatch, useSelector } from 'react-redux'
 import { navigate } from 'src/app/navigation/rootNavigation'
 import { BackButton } from 'src/components/buttons/BackButton'
 import { Screen } from 'src/components/layout/Screen'
-import { Flex, Switch, Text, TouchableArea } from 'ui/src'
 import { CheckmarkCircle, CopyAlt } from 'ui/src/components/icons'
-import { spacing } from 'ui/src/theme'
+import { setPoolsBalanceCoachmarkDismissed } from 'uniswap/src/features/behaviorHistory/slice'
 import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
 import { AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
 import {
@@ -55,6 +55,19 @@ export function DevScreen(): JSX.Element {
 
   const activateWormhole = (s: MobileScreens): void => {
     switch (s) {
+      case MobileScreens.MainTabs:
+      case MobileScreens.Home:
+        navigate(MobileScreens.MainTabs, { screen: MobileScreens.Home })
+        break
+
+      case MobileScreens.Explore:
+        navigate(MobileScreens.MainTabs, { screen: MobileScreens.Explore })
+        break
+
+      case MobileScreens.Activity:
+        navigate(MobileScreens.MainTabs, { screen: MobileScreens.Activity })
+        break
+
       case MobileScreens.SettingsCloudBackupPasswordCreate:
         navigate(s, {
           address: '0x0000000000000000000000000000000000000000',
@@ -95,6 +108,12 @@ export function DevScreen(): JSX.Element {
     }
 
     dispatch(resetWallet())
+  }
+
+  // Re-shows the one-time, persisted pools-balance coachmark (still needs the PortfolioPoolsBalances
+  // flag on and a wallet with a pools balance) so it can be tested repeatedly.
+  const onPressShowPoolsBalanceCoachmark = (): void => {
+    dispatch(setPoolsBalanceCoachmarkDismissed(false))
   }
 
   const [showUniconsModal, setShowUniconsModal] = useState(false)
@@ -171,6 +190,9 @@ export function DevScreen(): JSX.Element {
           </TouchableArea>
           <TouchableArea mt="$spacing12" onPress={onPressResetOnboarding}>
             <Text color="$neutral1">Reset onboarding</Text>
+          </TouchableArea>
+          <TouchableArea mt="$spacing12" onPress={onPressShowPoolsBalanceCoachmark}>
+            <Text color="$neutral1">Show pools balance coachmark</Text>
           </TouchableArea>
           <Flex row alignItems="center" gap="$spacing16" justifyContent="space-between" mt="$spacing12">
             <Text>Force RTL (requires restart to apply)</Text>

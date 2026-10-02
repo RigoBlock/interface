@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react-native'
+import { UniverseChainId } from '@universe/chains'
 import { useUniswapContext } from 'uniswap/src/contexts/UniswapContext'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useSwapNetworkChangeEffect } from 'uniswap/src/features/transactions/swap/form/stores/swapFormScreenStore/hooks/useSwapNetworkChangeEffect'
 import type { Mock } from 'vitest'
 

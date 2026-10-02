@@ -1,3 +1,5 @@
+import { Flex, iconSizes, Text } from '@universe/mycelium'
+import { Lock } from '@universe/mycelium/icons/Lock'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PADDING_STRENGTH_INDICATOR, PasswordInput } from 'src/app/components/PasswordInput'
@@ -7,9 +9,6 @@ import { OnboardingScreen } from 'src/app/features/onboarding/OnboardingScreen'
 import { useOnboardingSteps } from 'src/app/features/onboarding/OnboardingSteps'
 import { TopLevelRoutes } from 'src/app/navigation/constants'
 import { navigate } from 'src/app/navigation/state'
-import { Flex, Square, Text } from 'ui/src'
-import { Lock } from 'ui/src/components/icons'
-import { iconSizes } from 'ui/src/theme'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { ExtensionOnboardingFlow, ExtensionOnboardingScreens } from 'uniswap/src/types/screens/extension'
 import { useEvent } from 'utilities/src/react/hooks'
@@ -112,9 +111,16 @@ function PasswordScreen({
     <Trace logImpression properties={{ flow }} screen={ExtensionOnboardingScreens.SetPassword}>
       <OnboardingScreen
         Icon={
-          <Square backgroundColor="$surface2" borderRadius="$rounded12" size={iconSizes.icon48}>
+          <Flex
+            alignItems="center"
+            backgroundColor="$surface2"
+            borderRadius="$rounded12"
+            height={iconSizes.icon48}
+            justifyContent="center"
+            width={iconSizes.icon48}
+          >
             <Lock color="$neutral1" size="$icon.24" />
-          </Square>
+          </Flex>
         }
         nextButtonEnabled={enableNext}
         nextButtonText={t('common.button.continue')}

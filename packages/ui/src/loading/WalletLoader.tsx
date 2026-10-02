@@ -1,6 +1,5 @@
-import { Flex } from 'ui/src/components/layout/Flex'
-import { Text } from 'ui/src/components/text/Text'
-
+import { Flex } from '@universe/mycelium'
+import { Text } from '@universe/mycelium'
 interface Props {
   opacity: number
 }

@@ -1,9 +1,8 @@
-import { GetProps } from 'tamagui'
-import { Text } from 'ui/src/components/text'
+import type { TextCompatProps } from '@universe/mycelium/text-compat'
 import { GradientText } from 'ui/src/components/text/GradientText'
 import { colors } from 'ui/src/theme/color/colors'
 
-export function UniswapXText({ children, ...props }: GetProps<typeof Text>): JSX.Element {
+export function UniswapXText({ children, ...props }: TextCompatProps): JSX.Element {
   return (
     <GradientText
       {...props}

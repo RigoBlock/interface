@@ -1,19 +1,23 @@
-import { Text } from 'ui/src'
-import { iconSizes } from 'ui/src/theme'
+import { sanitizeAddressText } from '@universe/chains'
+import { iconSizes, type ModifierPressProps, Text } from '@universe/mycelium'
 import { OptionItemProps } from 'uniswap/src/components/lists/items/OptionItem'
 import { UnitagOption } from 'uniswap/src/components/lists/items/types'
 import { WalletBaseOptionItem } from 'uniswap/src/components/lists/items/wallets/WalletBaseOptionItem'
 import { AccountIcon } from 'uniswap/src/features/accounts/AccountIcon'
 import { UnitagName } from 'uniswap/src/features/unitags/UnitagName'
-import { sanitizeAddressText } from 'uniswap/src/utils/addresses'
 import { shortenAddress } from 'utilities/src/addresses'
 
-type UnitagOptionItemProps = {
+type UnitagOptionItemProps = ModifierPressProps & {
   unitagOption: UnitagOption
   onPress: OptionItemProps['onPress']
 }
 
-export function UnitagOptionItem({ unitagOption, onPress }: UnitagOptionItemProps): JSX.Element {
+export function UnitagOptionItem({
+  unitagOption,
+  onPress,
+  modifierPressHref,
+  onModifierPress,
+}: UnitagOptionItemProps): JSX.Element {
   const { address, unitag } = unitagOption
 
   return (
@@ -25,7 +29,10 @@ export function UnitagOptionItem({ unitagOption, onPress }: UnitagOptionItemProp
           displayUnitagSuffix
           displayIconInline
           name={unitag}
-          textProps={{ variant: 'body1', lineHeight: undefined }}
+          // UnitagName pins fontFamily="$heading", and a variant's size is a font-relative token
+          // resolved against that font — body1's $large would render at the heading scale (52px).
+          // Re-keying the font context to $body resolves it to 18px (same `book` family either way).
+          textProps={{ variant: 'body1', fontFamily: '$body', lineHeight: undefined }}
         />
       }
       subtitle={
@@ -33,7 +40,9 @@ export function UnitagOptionItem({ unitagOption, onPress }: UnitagOptionItemProp
           {sanitizeAddressText(shortenAddress({ address }))}
         </Text>
       }
+      modifierPressHref={modifierPressHref}
       onPress={onPress}
+      onModifierPress={onModifierPress}
     />
   )
 }

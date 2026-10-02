@@ -1,16 +1,16 @@
 import { SharedEventName } from '@uniswap/analytics-events'
+import { isMobileApp } from '@universe/environment'
+import { Flex, Separator, Text, TouchableArea } from '@universe/mycelium'
+import { HeightAnimator } from '@universe/mycelium/height-animator'
+import { ChevronsIn } from '@universe/mycelium/icons/ChevronsIn'
+import { ChevronsOut } from '@universe/mycelium/icons/ChevronsOut'
 import { useCallback, useMemo } from 'react'
-import { Flex, HeightAnimator, Separator, Text, TouchableArea } from 'ui/src'
-import { ChevronsIn } from 'ui/src/components/icons/ChevronsIn'
-import { ChevronsOut } from 'ui/src/components/icons/ChevronsOut'
 import { NetworkIconList } from 'uniswap/src/components/network/NetworkIconList/NetworkIconList'
 import { NetworkBalanceRow } from 'uniswap/src/components/tokenDetails/NetworkBalanceRow'
 import { sortBalancesByValue } from 'uniswap/src/components/tokenDetails/utils'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
-import { isMobileApp } from 'utilities/src/platform'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
 
 interface NetworkBalanceBreakdownProps {
@@ -20,7 +20,6 @@ interface NetworkBalanceBreakdownProps {
   onExpandedChange?: (expanded: boolean) => void
   collapsible?: boolean
   onSelectBalance?: (balance: PortfolioBalance) => void
-  renderNetworkLogo?: (chainId: UniverseChainId) => JSX.Element
 }
 
 export function NetworkBalanceBreakdown({
@@ -30,7 +29,6 @@ export function NetworkBalanceBreakdown({
   onExpandedChange,
   collapsible = true,
   onSelectBalance,
-  renderNetworkLogo,
 }: NetworkBalanceBreakdownProps): JSX.Element | null {
   const trace = useTrace()
   const sortedBalances = useMemo(() => sortBalancesByValue(balances), [balances])
@@ -65,7 +63,7 @@ export function NetworkBalanceBreakdown({
               {label}
             </Text>
             <Flex row alignItems="center" gap="$spacing8">
-              {!isExpanded && <NetworkIconList chainIds={chainIds} size={16} />}
+              {!isExpanded && <NetworkIconList showNumberBadge chainIds={chainIds} size={16} />}
               {isExpanded ? (
                 <ChevronsIn color="$neutral2" size={chevronSize} />
               ) : (
@@ -86,7 +84,6 @@ export function NetworkBalanceBreakdown({
               <NetworkBalanceRow
                 key={balance.id}
                 balance={balance}
-                renderNetworkLogo={renderNetworkLogo}
                 onPress={onSelectBalance ? () => onSelectBalance(balance) : undefined}
               />
             ),

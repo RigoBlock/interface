@@ -1,11 +1,11 @@
 import { Currency } from '@uniswap/sdk-core'
+import { Anchor, Flex, fonts, getTokenValue, spacing, Text } from '@universe/mycelium'
+import { ApproveAlt } from '@universe/mycelium/icons/ApproveAlt'
+import { AvatarPlaceholder } from '@universe/mycelium/icons/AvatarPlaceholder'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { PropsWithChildren, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Anchor, Flex, getTokenValue, Text, useSporeColors } from 'ui/src'
-import { ApproveAlt } from 'ui/src/components/icons'
-import { AvatarPlaceholder } from 'ui/src/components/icons/AvatarPlaceholder'
 import { PulseRipple } from 'ui/src/loading/PulseRipple'
-import { fonts, spacing } from 'ui/src/theme'
 import Badge from 'uniswap/src/components/badge/Badge'
 import { SpinningBorderIcon } from 'uniswap/src/components/ConfirmSwapModal/steps/SpinningBorderIcon'
 import { StepStatus } from 'uniswap/src/components/ConfirmSwapModal/types'
@@ -140,14 +140,14 @@ export function StepIconWrapper({
             <Flex position="absolute" top={centerOffset} left={centerOffset}>
               <PulseRipple rippleColor={colors.accent1.val} size={iconSize} />
             </Flex>
-            <Flex data-testid="step-icon" height={iconSize} width={iconSize} opacity={1} filter="grayscale(0)">
+            <Flex testID="step-icon" height={iconSize} width={iconSize} opacity={1} filter="grayscale(0)">
               {children}
             </Flex>
           </>
         )
       case StepStatus.Failed:
         return (
-          <Flex data-testid="step-icon" height={iconSize} width={iconSize} opacity={1} filter="grayscale(0)">
+          <Flex testID="step-icon" height={iconSize} width={iconSize} opacity={1} filter="grayscale(0)">
             {children}
           </Flex>
         )
@@ -191,7 +191,7 @@ function Timer({ secondsRemaining }: { secondsRemaining: number }): JSX.Element 
   }, [secondsRemaining])
 
   return (
-    <Text data-testid="step-timer" fontSize={14} fontWeight="500" pr={8}>
+    <Text testID="step-timer" fontSize={14} fontWeight="500" pr={8}>
       {timerText}
     </Text>
   )

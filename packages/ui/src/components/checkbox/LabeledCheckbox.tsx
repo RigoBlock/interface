@@ -1,12 +1,12 @@
+import type { ColorTokens, SpaceTokens } from '@universe/mycelium'
+import type { FlexProps } from '@universe/mycelium'
+import { Flex } from '@universe/mycelium'
+import { Text } from '@universe/mycelium'
+import { TouchableArea } from '@universe/mycelium'
 import { useMemo } from 'react'
 import type { GestureResponderEvent, StyleProp, ViewStyle } from 'react-native'
-import type { ColorTokens, SpaceTokens } from 'tamagui'
 import type { CheckboxSizeTokens } from 'ui/src/components/checkbox/Checkbox'
 import { Checkbox } from 'ui/src/components/checkbox/Checkbox'
-import type { FlexProps } from 'ui/src/components/layout'
-import { Flex } from 'ui/src/components/layout'
-import { Text } from 'ui/src/components/text'
-import { TouchableArea } from 'ui/src/components/touchable'
 import type { SporeComponentVariant } from 'ui/src/components/types'
 import { useEvent } from 'utilities/src/react/hooks'
 
@@ -17,6 +17,7 @@ export type LabeledCheckboxProps = {
   text?: string | JSX.Element
   checkedColor?: ColorTokens
   variant?: SporeComponentVariant
+  /** gap/px/py take `$`-tokens only: mycelium's SpaceTokens drops the raw-number leg tamagui allowed. */
   gap?: SpaceTokens
   px?: SpaceTokens
   py?: SpaceTokens

@@ -1,16 +1,18 @@
 import type { GasFeeResult } from '@universe/api'
-import { useEffect, useMemo } from 'react'
-import { Flex } from 'ui/src'
-import type { UniverseChainId } from 'uniswap/src/features/chains/types'
+import type { UniverseChainId } from '@universe/chains'
+import { Flex } from '@universe/mycelium'
+import { useMemo } from 'react'
 import { EthMethod } from 'uniswap/src/features/dappRequests/types'
 import { DappRequestFooter } from 'wallet/src/components/dappRequests/DappRequestFooter'
 import { SignatureMessageSection } from 'wallet/src/components/dappRequests/SignatureMessageSection'
 import { TransactionLoadingState } from 'wallet/src/components/dappRequests/TransactionLoadingState'
 import { TransactionPreviewCard } from 'wallet/src/components/dappRequests/TransactionPreviewCard'
 import { useBlockaidJsonRpcScan } from 'wallet/src/features/dappRequests/hooks/useBlockaidJsonRpcScan'
-import { TransactionRiskLevel } from 'wallet/src/features/dappRequests/types'
+import { usePublishScanGating } from 'wallet/src/features/dappRequests/hooks/usePublishScanGating'
+import { TransactionErrorType, TransactionRiskLevel } from 'wallet/src/features/dappRequests/types'
 import { parseTransactionSections } from 'wallet/src/features/dappRequests/utils/blockaidUtils'
 import { buildBlockaidScanJsonRpcRequest } from 'wallet/src/features/dappRequests/utils/buildBlockaidScanJsonRpcRequest'
+import { deriveScanGating } from 'wallet/src/features/dappRequests/utils/scanGating'
 
 interface DappPersonalSignContentProps {
   message: string
@@ -25,7 +27,13 @@ interface DappPersonalSignContentProps {
   showSmartWalletActivation?: boolean
   confirmedRisk: boolean
   onConfirmRisk: (confirmed: boolean) => void
-  onRiskLevelChange: (riskLevel: TransactionRiskLevel) => void
+  onRiskLevelChange: (riskLevel: TransactionRiskLevel | null) => void
+  /**
+   * Reports whether the confirm button should get the destructive "critical" styling — true only for
+   * a genuine malicious Blockaid verdict, never for a scan-failure caution (which borrows the
+   * acknowledgement flow but is not a verdict).
+   */
+  onCriticalRiskChange?: (isCriticalRisk: boolean) => void
 }
 
 /**
@@ -45,6 +53,7 @@ export function DappPersonalSignContent({
   confirmedRisk,
   onConfirmRisk,
   onRiskLevelChange,
+  onCriticalRiskChange,
 }: DappPersonalSignContentProps): JSX.Element {
   // Build Blockaid scan request
   const blockaidRequest = useMemo(() => {
@@ -58,18 +67,24 @@ export function DappPersonalSignContent({
   }, [chainId, account, method, params, dappUrl])
 
   // Scan signature with Blockaid
-  const { scanResult, isLoading } = useBlockaidJsonRpcScan(blockaidRequest, Boolean(blockaidRequest))
+  const { scanResult, isLoading, hasScanFailed, isScanFailurePermanent } = useBlockaidJsonRpcScan(blockaidRequest)
 
   // Parse the Blockaid scan result to extract risk information
-  const { riskLevel } = useMemo(() => parseTransactionSections(scanResult ?? null, chainId), [scanResult, chainId])
+  const { riskLevel } = useMemo(
+    () => parseTransactionSections({ scanResult: scanResult ?? null, chainId }),
+    [scanResult, chainId],
+  )
 
-  // Show error type when message cannot be decoded
-  const errorType = !isDecoded ? 'decode_message' : undefined
+  const gating = deriveScanGating({
+    riskLevel,
+    hasScanFailed,
+    isScanFailurePermanent,
+    isLoading,
+    fallbackErrorType: !isDecoded ? TransactionErrorType.DecodeMessage : undefined,
+    onConfirmRisk,
+  })
 
-  // Notify parent when risk level changes
-  useEffect(() => {
-    onRiskLevelChange(riskLevel)
-  }, [riskLevel, onRiskLevelChange])
+  usePublishScanGating({ gating, onRiskLevelChange, onCriticalRiskChange, onConfirmRisk })
 
   if (isLoading) {
     return <TransactionLoadingState />
@@ -78,19 +93,25 @@ export function DappPersonalSignContent({
   return (
     <Flex gap="$spacing12">
       {/* Signature Preview Card */}
-      <TransactionPreviewCard sections={[]} riskLevel={riskLevel} errorType={errorType} chainId={chainId}>
+      <TransactionPreviewCard
+        sections={[]}
+        riskLevel={gating.previewRiskLevel}
+        errorType={gating.errorType}
+        chainId={chainId}
+      >
         <SignatureMessageSection message={message} isDecoded={isDecoded} />
       </TransactionPreviewCard>
 
       <DappRequestFooter
         chainId={chainId}
         account={account}
-        riskLevel={riskLevel}
+        riskLevel={gating.footerRiskLevel}
         confirmedRisk={confirmedRisk}
         gasFee={gasFee}
         requestMethod={requestMethod}
         showSmartWalletActivation={showSmartWalletActivation}
-        onConfirmRisk={onConfirmRisk}
+        scanFailureError={gating.scanFailureError}
+        onConfirmRisk={gating.onConfirmRisk}
       />
     </Flex>
   )

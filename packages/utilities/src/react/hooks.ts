@@ -1,4 +1,5 @@
-import { RefObject, useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
+import type { RefObject } from 'react'
 
 // modified from https://usehooks.com/usePrevious/
 export function usePrevious<T>(value: T): T | undefined {

@@ -1,30 +1,28 @@
+import { Flex } from '@universe/mycelium'
+import { Text } from '@universe/mycelium'
+import { TouchableTextLink } from '@universe/mycelium'
 import { Fragment, PropsWithChildren } from 'react'
-import { Spacer } from 'tamagui'
-import { Flex } from 'ui/src/components/layout'
 import { Separator } from 'ui/src/components/layout/Separator'
-import { Text } from 'ui/src/components/text/Text'
-import { TouchableTextLink } from 'ui/src/components/touchable/TouchableTextLink/TouchableTextLink'
-
 const SectionHeader = ({ title }: { title: string }): JSX.Element => (
   <>
     <Text variant="heading3">{title}</Text>
-    <Spacer size="$spacing16" />
+    <Flex height="$spacing16" />
   </>
 )
 
 const SectionSubHeader = ({ title }: { title: string }): JSX.Element => (
   <>
-    <Spacer size="$spacing20" />
+    <Flex height="$spacing20" />
     <Text variant="subheading1">{title}</Text>
-    <Spacer size="$spacing16" />
+    <Flex height="$spacing16" />
   </>
 )
 
 const SectionSeparator = (): JSX.Element => (
   <>
-    <Spacer size="$spacing16" />
+    <Flex height="$spacing16" />
     <Separator />
-    <Spacer size="$spacing16" />
+    <Flex height="$spacing16" />
   </>
 )
 
@@ -47,7 +45,7 @@ const PageTitle = ({
       </TouchableTextLink>
       {description}
     </Text>
-    <Spacer size="$spacing8" />
+    <Flex height="$spacing8" />
     <Flex row>
       <TouchableTextLink color="$neutral2" link={figmaUrl} target="_blank">
         Go to Figma

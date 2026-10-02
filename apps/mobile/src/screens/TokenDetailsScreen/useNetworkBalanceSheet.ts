@@ -1,10 +1,10 @@
 import { GraphQLApi } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
 import { useMemo, useState } from 'react'
+import { useTokenDetailsContext } from 'src/components/TokenDetails/TokenDetailsContext'
 import { getNativeAddress } from 'uniswap/src/constants/addresses'
-import { useCrossChainBalances } from 'uniswap/src/data/balances/hooks/useCrossChainBalances'
-import { useTokenBasicProjectPartsFragment } from 'uniswap/src/data/graphql/uniswap-data-api/fragments'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { fromGraphQLChain } from 'uniswap/src/features/chains/utils'
+import { useCrossChainBalances } from 'uniswap/src/data/apiClients/dataApiService/balances/hooks/useCrossChainBalances'
+import { toGraphQLChain, toSupportedChainId } from 'uniswap/src/features/chains/utils'
 import { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { useEvent } from 'utilities/src/react/hooks'
@@ -30,25 +30,21 @@ interface UseNetworkBalanceSheetResult {
 
 export function useNetworkBalanceSheet({
   currencyId,
-  chainId,
+  chainId: requestedChainId,
 }: UseNetworkBalanceSheetParams): UseNetworkBalanceSheetResult {
   const activeAddress = useActiveAccountAddressWithThrow()
   const { navigateToSwapFlow, navigateToSend } = useWalletNavigation()
+  const { multichainTokens } = useTokenDetailsContext()
 
-  // Cross-chain balances (Apollo-cached, no extra network requests)
-  const projectTokens = useTokenBasicProjectPartsFragment({ currencyId }).data.project?.tokens
-  const crossChainTokens = useMemo(() => {
-    const result: Array<{ address: string | null; chain: GraphQLApi.Chain }> = []
-    for (const projectToken of projectTokens ?? []) {
-      if (projectToken?.chain && projectToken.address !== undefined) {
-        const chainIdForToken = fromGraphQLChain(projectToken.chain)
-        if (chainIdForToken && chainIdForToken !== chainId) {
-          result.push({ address: projectToken.address, chain: projectToken.chain })
-        }
-      }
-    }
-    return result
-  }, [projectTokens, chainId])
+  // Cross-chain balances
+  const crossChainTokens = useMemo<{ chain: GraphQLApi.Chain; address?: Maybe<string> }[]>(() => {
+    return multichainTokens
+      .filter(({ chainId }) => toSupportedChainId(chainId) !== requestedChainId)
+      .map(({ chainId, address }) => {
+        return { address, chain: toGraphQLChain(chainId) }
+      })
+      .filter((v): v is NonNullable<typeof v> => !!v)
+  }, [multichainTokens, requestedChainId])
 
   const { currentChainBalance: crossChainCurrentBalance, otherChainBalances } = useCrossChainBalances({
     evmAddress: activeAddress,

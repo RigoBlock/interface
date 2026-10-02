@@ -1,11 +1,12 @@
+import { UniswapX } from '@universe/mycelium/icons/UniswapX'
+import { opacify } from '@universe/mycelium/theme-hooks-compat'
 import { useTranslation } from 'react-i18next'
+// TODO(INFRA-3318): mycelium has no Image counterpart yet — swap this import when its Image compat ships
 import { Image } from 'ui/src'
-import { UniswapX } from 'ui/src/components/icons/UniswapX'
-import { opacify } from 'ui/src/theme'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapStaticUrls } from 'uniswap/src/constants/urls'
 import { CardContents } from '~/pages/Landing/components/cards/CardContents'
 import { PillButton } from '~/pages/Landing/components/cards/PillButton'
-import ValuePropCard from '~/pages/Landing/components/cards/ValuePropCard'
+import { ValuePropCard } from '~/pages/Landing/components/cards/ValuePropCard'
 
 const primary = '#8251FB'
 
@@ -14,7 +15,7 @@ export function UniswapXCard() {
 
   return (
     <ValuePropCard
-      href={uniswapUrls.uniswapXUrl}
+      href={UniswapStaticUrls.uniswapXUrl}
       color={primary}
       backgroundColor={opacify(6, primary)}
       title={
@@ -25,7 +26,7 @@ export function UniswapXCard() {
       button={<PillButton color={primary} label={t('landing.uniswapX.button')} backgroundColor="$surface1" />}
       alignTextToBottom
     >
-      <CardContents alignItems="flex-end">
+      <CardContents className="items-end">
         <Image src="/images/landing_page/UniswapX-bg.svg" width="55%" height="100%" position="absolute" bottom="0" />
         <img
           src="/images/landing_page/UniswapX.svg"

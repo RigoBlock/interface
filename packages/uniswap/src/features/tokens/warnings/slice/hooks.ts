@@ -1,4 +1,5 @@
 import { Currency } from '@uniswap/sdk-core'
+import { getValidAddress } from '@universe/chains'
 import { useCallback, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
@@ -13,7 +14,6 @@ import {
 } from 'uniswap/src/features/tokens/warnings/slice/slice'
 import { BasicTokenInfo, isBasicTokenInfo } from 'uniswap/src/features/tokens/warnings/slice/types'
 import { TokenProtectionWarning } from 'uniswap/src/features/tokens/warnings/types'
-import { getValidAddress } from 'uniswap/src/utils/addresses'
 import { serializeToken } from 'uniswap/src/utils/currency'
 
 /**

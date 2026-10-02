@@ -1,15 +1,15 @@
+import { isMobileApp } from '@universe/environment'
+import { zIndexes } from '@universe/mycelium'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { useTranslation } from 'react-i18next'
-import { useSporeColors } from 'ui/src'
 import { Settings } from 'ui/src/components/icons/Settings'
-import { zIndexes } from 'ui/src/theme'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import { WarningInfo } from 'uniswap/src/components/modals/WarningModal/WarningInfo'
 import { LearnMoreLink } from 'uniswap/src/components/text/LearnMoreLink'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { SlippageInfoCaption } from 'uniswap/src/features/transactions/swap/components/MaxSlippageRow/SlippageInfo/SlippageInfoCaption'
 import type { SlippageInfoProps } from 'uniswap/src/features/transactions/swap/components/MaxSlippageRow/SlippageInfo/types'
-import { isMobileApp } from 'utilities/src/platform'
 
 export function SlippageInfo({
   children,
@@ -36,7 +36,7 @@ export function SlippageInfo({
   return (
     <WarningInfo
       infoButton={
-        isMobileApp ? <LearnMoreLink textColor="$neutral1" url={uniswapUrls.helpArticleUrls.swapSlippage} /> : null
+        isMobileApp ? <LearnMoreLink textColor="$neutral1" url={UniswapHelpUrls.articles.swapSlippage} /> : null
       }
       modalProps={{
         backgroundIconColor: colors.surface2.get(),

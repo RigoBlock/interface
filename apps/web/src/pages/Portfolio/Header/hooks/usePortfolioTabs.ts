@@ -11,18 +11,11 @@ export type PortfolioTabInfo = {
 export function usePortfolioTabs(): PortfolioTabInfo[] {
   const { t } = useTranslation()
   const isPortfolioDefiTabEnabled = useFeatureFlag(FeatureFlags.PortfolioDefiTab)
+  const portfolioPoolsBalancesEnabled = useFeatureFlag(FeatureFlags.PortfolioPoolsBalances)
 
   return [
-    {
-      path: '/portfolio',
-      pageName: InterfacePageName.PortfolioPage,
-      label: t('portfolio.overview.title'),
-    },
-    {
-      path: '/portfolio/tokens',
-      pageName: InterfacePageName.PortfolioTokensPage,
-      label: t('portfolio.tokens.title'),
-    },
+    { path: '/portfolio', pageName: InterfacePageName.PortfolioPage, label: t('portfolio.overview.title') },
+    { path: '/portfolio/tokens', pageName: InterfacePageName.PortfolioTokensPage, label: t('common.token.plural') },
     {
       path: '/portfolio/staking',
       pageName: InterfacePageName.PortfolioStakingPage,
@@ -33,20 +26,19 @@ export function usePortfolioTabs(): PortfolioTabInfo[] {
       pageName: InterfacePageName.PortfolioPerpsPage,
       label: t('portfolio.perps.title'),
     },
-    ...(isPortfolioDefiTabEnabled
+    ...(portfolioPoolsBalancesEnabled
       ? [
           {
-            path: '/portfolio/defi',
-            pageName: InterfacePageName.PortfolioDefiPage,
-            label: t('portfolio.defi.title'),
+            path: '/portfolio/pools',
+            pageName: InterfacePageName.PortfolioPoolsPage,
+            label: t('common.pools'),
           },
         ]
       : []),
-    {
-      path: '/portfolio/nfts',
-      pageName: InterfacePageName.PortfolioNftsPage,
-      label: t('portfolio.nfts.title'),
-    },
+    ...(isPortfolioDefiTabEnabled
+      ? [{ path: '/portfolio/defi', pageName: InterfacePageName.PortfolioDefiPage, label: t('portfolio.defi.title') }]
+      : []),
+    { path: '/portfolio/nfts', pageName: InterfacePageName.PortfolioNftsPage, label: t('portfolio.nfts.title') },
     // Temporarily hidden - Activity API doesn't support smart pools properly
     // {
     //   path: '/portfolio/activity',

@@ -1,15 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Flex, ScrollView, Square, Text, TouchableArea } from '@universe/mycelium'
 import { ComponentProps, useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { SelectWalletsSkeleton } from 'src/app/components/loading/SelectWalletSkeleton'
 import { OnboardingScreen } from 'src/app/features/onboarding/OnboardingScreen'
 import { useOnboardingSteps } from 'src/app/features/onboarding/OnboardingSteps'
 import { useSubmitOnEnter } from 'src/app/features/onboarding/utils'
-import { Flex, ScrollView, SpinningLoader, Square, Text, Tooltip, TouchableArea } from 'ui/src'
+import { SpinningLoader, Tooltip } from 'ui/src'
 import { WalletFilled } from 'ui/src/components/icons'
-import { iconSizes, zIndexes } from 'ui/src/theme'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { iconSizes } from 'ui/src/theme'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { ExtensionOnboardingFlow, ExtensionOnboardingScreens } from 'uniswap/src/types/screens/extension'
 import { openUri } from 'uniswap/src/utils/linking'
@@ -132,13 +133,13 @@ function SmartWalletTooltip(): JSX.Element | undefined {
           <Trans components={{ highlight: triggerComponent }} i18nKey="account.wallet.select.smartWalletDisclaimer" />
         </Text>
       </Flex>
-      <Tooltip.Content animationDirection="top" pointerEvents="auto" zIndex={zIndexes.overlay}>
+      <Tooltip.Content animationDirection="top" pointerEvents="auto">
         <Tooltip.Arrow />
         <Flex>
           <Text variant="body4" color="$neutral2">
             {`${t('smartWallet.modal.description.block1')} ${t('smartWallet.modal.description.block2')}`}
           </Text>
-          <TouchableArea onPress={() => onPressLearnMore(uniswapUrls.helpArticleUrls.smartWalletDelegation)}>
+          <TouchableArea onPress={() => onPressLearnMore(UniswapHelpUrls.articles.smartWalletDelegation)}>
             <Text variant="buttonLabel4" color="$neutral1" mt="$spacing4">
               {t('common.button.learn')}
             </Text>

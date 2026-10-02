@@ -1,385 +1,177 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`renders text with few matches 1`] = `
-<View
-  style={
-    {
-      "flexDirection": "row",
-      "gap": 16,
-    }
-  }
->
-  <Text
-    allowFontScaling={true}
-    maxFontSizeMultiplier={1.4}
-    style={
-      {
-        "color": "#131313",
-        "fontFamily": "Basel Grotesk",
-        "fontSize": 19,
-        "fontWeight": "400",
-        "lineHeight": 24.7,
-      }
-    }
-    suppressHighlighting={true}
+<DocumentFragment>
+  <div
+    class="css-view-175oi2r"
+    style="gap: 16px;"
   >
-    A
-  </Text>
-  <Text
-    allowFontScaling={true}
-    maxFontSizeMultiplier={1.4}
-    style={
-      {
-        "color": "#131313",
-        "fontFamily": "Basel Grotesk",
-        "fontSize": 19,
-        "fontWeight": "400",
-        "lineHeight": 24.7,
-      }
-    }
-    suppressHighlighting={true}
-  >
-     
-  </Text>
-  <Text
-    allowFontScaling={true}
-    maxFontSizeMultiplier={1.4}
-    style={
-      {
-        "color": "rgba(19, 19, 19, 0.35)",
-        "fontFamily": "Basel Grotesk",
-        "fontSize": 19,
-        "fontWeight": "400",
-        "lineHeight": 24.7,
-      }
-    }
-    suppressHighlighting={true}
-  >
-    t
-  </Text>
-  <Text
-    allowFontScaling={true}
-    maxFontSizeMultiplier={1.4}
-    style={
-      {
-        "color": "rgba(19, 19, 19, 0.35)",
-        "fontFamily": "Basel Grotesk",
-        "fontSize": 19,
-        "fontWeight": "400",
-        "lineHeight": 24.7,
-      }
-    }
-    suppressHighlighting={true}
-  >
-    e
-  </Text>
-  <Text
-    allowFontScaling={true}
-    maxFontSizeMultiplier={1.4}
-    style={
-      {
-        "color": "#131313",
-        "fontFamily": "Basel Grotesk",
-        "fontSize": 19,
-        "fontWeight": "400",
-        "lineHeight": 24.7,
-      }
-    }
-    suppressHighlighting={true}
-  >
-    x
-  </Text>
-  <Text
-    allowFontScaling={true}
-    maxFontSizeMultiplier={1.4}
-    style={
-      {
-        "color": "#131313",
-        "fontFamily": "Basel Grotesk",
-        "fontSize": 19,
-        "fontWeight": "400",
-        "lineHeight": 24.7,
-      }
-    }
-    suppressHighlighting={true}
-  >
-    t
-  </Text>
-  <Text
-    allowFontScaling={true}
-    maxFontSizeMultiplier={1.4}
-    style={
-      {
-        "color": "#131313",
-        "fontFamily": "Basel Grotesk",
-        "fontSize": 19,
-        "fontWeight": "400",
-        "lineHeight": 24.7,
-      }
-    }
-    suppressHighlighting={true}
-  >
-     
-  </Text>
-  <Text
-    allowFontScaling={true}
-    maxFontSizeMultiplier={1.4}
-    style={
-      {
-        "color": "#131313",
-        "fontFamily": "Basel Grotesk",
-        "fontSize": 19,
-        "fontWeight": "400",
-        "lineHeight": 24.7,
-      }
-    }
-    suppressHighlighting={true}
-  >
-    w
-  </Text>
-  <Text
-    allowFontScaling={true}
-    maxFontSizeMultiplier={1.4}
-    style={
-      {
-        "color": "#131313",
-        "fontFamily": "Basel Grotesk",
-        "fontSize": 19,
-        "fontWeight": "400",
-        "lineHeight": 24.7,
-      }
-    }
-    suppressHighlighting={true}
-  >
-    i
-  </Text>
-  <Text
-    allowFontScaling={true}
-    maxFontSizeMultiplier={1.4}
-    style={
-      {
-        "color": "rgba(19, 19, 19, 0.35)",
-        "fontFamily": "Basel Grotesk",
-        "fontSize": 19,
-        "fontWeight": "400",
-        "lineHeight": 24.7,
-      }
-    }
-    suppressHighlighting={true}
-  >
-    t
-  </Text>
-  <Text
-    allowFontScaling={true}
-    maxFontSizeMultiplier={1.4}
-    style={
-      {
-        "color": "rgba(19, 19, 19, 0.35)",
-        "fontFamily": "Basel Grotesk",
-        "fontSize": 19,
-        "fontWeight": "400",
-        "lineHeight": 24.7,
-      }
-    }
-    suppressHighlighting={true}
-  >
-    h
-  </Text>
-  <Text
-    allowFontScaling={true}
-    maxFontSizeMultiplier={1.4}
-    style={
-      {
-        "color": "rgba(19, 19, 19, 0.35)",
-        "fontFamily": "Basel Grotesk",
-        "fontSize": 19,
-        "fontWeight": "400",
-        "lineHeight": 24.7,
-      }
-    }
-    suppressHighlighting={true}
-  >
-    o
-  </Text>
-  <Text
-    allowFontScaling={true}
-    maxFontSizeMultiplier={1.4}
-    style={
-      {
-        "color": "rgba(19, 19, 19, 0.35)",
-        "fontFamily": "Basel Grotesk",
-        "fontSize": 19,
-        "fontWeight": "400",
-        "lineHeight": 24.7,
-      }
-    }
-    suppressHighlighting={true}
-  >
-    u
-  </Text>
-  <Text
-    allowFontScaling={true}
-    maxFontSizeMultiplier={1.4}
-    style={
-      {
-        "color": "rgba(19, 19, 19, 0.35)",
-        "fontFamily": "Basel Grotesk",
-        "fontSize": 19,
-        "fontWeight": "400",
-        "lineHeight": 24.7,
-      }
-    }
-    suppressHighlighting={true}
-  >
-    t
-  </Text>
-  <Text
-    allowFontScaling={true}
-    maxFontSizeMultiplier={1.4}
-    style={
-      {
-        "color": "rgba(19, 19, 19, 0.35)",
-        "fontFamily": "Basel Grotesk",
-        "fontSize": 19,
-        "fontWeight": "400",
-        "lineHeight": 24.7,
-      }
-    }
-    suppressHighlighting={true}
-  >
-     
-  </Text>
-  <Text
-    allowFontScaling={true}
-    maxFontSizeMultiplier={1.4}
-    style={
-      {
-        "color": "rgba(19, 19, 19, 0.35)",
-        "fontFamily": "Basel Grotesk",
-        "fontSize": 19,
-        "fontWeight": "400",
-        "lineHeight": 24.7,
-      }
-    }
-    suppressHighlighting={true}
-  >
-    m
-  </Text>
-  <Text
-    allowFontScaling={true}
-    maxFontSizeMultiplier={1.4}
-    style={
-      {
-        "color": "rgba(19, 19, 19, 0.35)",
-        "fontFamily": "Basel Grotesk",
-        "fontSize": 19,
-        "fontWeight": "400",
-        "lineHeight": 24.7,
-      }
-    }
-    suppressHighlighting={true}
-  >
-    a
-  </Text>
-  <Text
-    allowFontScaling={true}
-    maxFontSizeMultiplier={1.4}
-    style={
-      {
-        "color": "rgba(19, 19, 19, 0.35)",
-        "fontFamily": "Basel Grotesk",
-        "fontSize": 19,
-        "fontWeight": "400",
-        "lineHeight": 24.7,
-      }
-    }
-    suppressHighlighting={true}
-  >
-    t
-  </Text>
-  <Text
-    allowFontScaling={true}
-    maxFontSizeMultiplier={1.4}
-    style={
-      {
-        "color": "rgba(19, 19, 19, 0.35)",
-        "fontFamily": "Basel Grotesk",
-        "fontSize": 19,
-        "fontWeight": "400",
-        "lineHeight": 24.7,
-      }
-    }
-    suppressHighlighting={true}
-  >
-    c
-  </Text>
-  <Text
-    allowFontScaling={true}
-    maxFontSizeMultiplier={1.4}
-    style={
-      {
-        "color": "rgba(19, 19, 19, 0.35)",
-        "fontFamily": "Basel Grotesk",
-        "fontSize": 19,
-        "fontWeight": "400",
-        "lineHeight": 24.7,
-      }
-    }
-    suppressHighlighting={true}
-  >
-    h
-  </Text>
-  <Text
-    allowFontScaling={true}
-    maxFontSizeMultiplier={1.4}
-    style={
-      {
-        "color": "rgba(19, 19, 19, 0.35)",
-        "fontFamily": "Basel Grotesk",
-        "fontSize": 19,
-        "fontWeight": "400",
-        "lineHeight": 24.7,
-      }
-    }
-    suppressHighlighting={true}
-  >
-    e
-  </Text>
-  <Text
-    allowFontScaling={true}
-    maxFontSizeMultiplier={1.4}
-    style={
-      {
-        "color": "rgba(19, 19, 19, 0.35)",
-        "fontFamily": "Basel Grotesk",
-        "fontSize": 19,
-        "fontWeight": "400",
-        "lineHeight": 24.7,
-      }
-    }
-    suppressHighlighting={true}
-  >
-    s
-  </Text>
-</View>
+    <div
+      class="css-text-146c3p1"
+      dir="auto"
+      style="font-size: 19px; line-height: 24px; font-family: Basel Grotesk; font-weight: 400;"
+    >
+      A
+    </div>
+    <div
+      class="css-text-146c3p1"
+      dir="auto"
+      style="font-size: 19px; line-height: 24px; font-family: Basel Grotesk; font-weight: 400;"
+    >
+       
+    </div>
+    <div
+      class="css-text-146c3p1"
+      dir="auto"
+      style="font-size: 19px; line-height: 24px; font-family: Basel Grotesk; font-weight: 400;"
+    >
+      t
+    </div>
+    <div
+      class="css-text-146c3p1"
+      dir="auto"
+      style="font-size: 19px; line-height: 24px; font-family: Basel Grotesk; font-weight: 400;"
+    >
+      e
+    </div>
+    <div
+      class="css-text-146c3p1"
+      dir="auto"
+      style="font-size: 19px; line-height: 24px; font-family: Basel Grotesk; font-weight: 400;"
+    >
+      x
+    </div>
+    <div
+      class="css-text-146c3p1"
+      dir="auto"
+      style="font-size: 19px; line-height: 24px; font-family: Basel Grotesk; font-weight: 400;"
+    >
+      t
+    </div>
+    <div
+      class="css-text-146c3p1"
+      dir="auto"
+      style="font-size: 19px; line-height: 24px; font-family: Basel Grotesk; font-weight: 400;"
+    >
+       
+    </div>
+    <div
+      class="css-text-146c3p1"
+      dir="auto"
+      style="font-size: 19px; line-height: 24px; font-family: Basel Grotesk; font-weight: 400;"
+    >
+      w
+    </div>
+    <div
+      class="css-text-146c3p1"
+      dir="auto"
+      style="font-size: 19px; line-height: 24px; font-family: Basel Grotesk; font-weight: 400;"
+    >
+      i
+    </div>
+    <div
+      class="css-text-146c3p1"
+      dir="auto"
+      style="font-size: 19px; line-height: 24px; font-family: Basel Grotesk; font-weight: 400;"
+    >
+      t
+    </div>
+    <div
+      class="css-text-146c3p1"
+      dir="auto"
+      style="font-size: 19px; line-height: 24px; font-family: Basel Grotesk; font-weight: 400;"
+    >
+      h
+    </div>
+    <div
+      class="css-text-146c3p1"
+      dir="auto"
+      style="font-size: 19px; line-height: 24px; font-family: Basel Grotesk; font-weight: 400;"
+    >
+      o
+    </div>
+    <div
+      class="css-text-146c3p1"
+      dir="auto"
+      style="font-size: 19px; line-height: 24px; font-family: Basel Grotesk; font-weight: 400;"
+    >
+      u
+    </div>
+    <div
+      class="css-text-146c3p1"
+      dir="auto"
+      style="font-size: 19px; line-height: 24px; font-family: Basel Grotesk; font-weight: 400;"
+    >
+      t
+    </div>
+    <div
+      class="css-text-146c3p1"
+      dir="auto"
+      style="font-size: 19px; line-height: 24px; font-family: Basel Grotesk; font-weight: 400;"
+    >
+       
+    </div>
+    <div
+      class="css-text-146c3p1"
+      dir="auto"
+      style="font-size: 19px; line-height: 24px; font-family: Basel Grotesk; font-weight: 400;"
+    >
+      m
+    </div>
+    <div
+      class="css-text-146c3p1"
+      dir="auto"
+      style="font-size: 19px; line-height: 24px; font-family: Basel Grotesk; font-weight: 400;"
+    >
+      a
+    </div>
+    <div
+      class="css-text-146c3p1"
+      dir="auto"
+      style="font-size: 19px; line-height: 24px; font-family: Basel Grotesk; font-weight: 400;"
+    >
+      t
+    </div>
+    <div
+      class="css-text-146c3p1"
+      dir="auto"
+      style="font-size: 19px; line-height: 24px; font-family: Basel Grotesk; font-weight: 400;"
+    >
+      c
+    </div>
+    <div
+      class="css-text-146c3p1"
+      dir="auto"
+      style="font-size: 19px; line-height: 24px; font-family: Basel Grotesk; font-weight: 400;"
+    >
+      h
+    </div>
+    <div
+      class="css-text-146c3p1"
+      dir="auto"
+      style="font-size: 19px; line-height: 24px; font-family: Basel Grotesk; font-weight: 400;"
+    >
+      e
+    </div>
+    <div
+      class="css-text-146c3p1"
+      dir="auto"
+      style="font-size: 19px; line-height: 24px; font-family: Basel Grotesk; font-weight: 400;"
+    >
+      s
+    </div>
+  </div>
+</DocumentFragment>
 `;
 
 exports[`renders text without matches 1`] = `
-<Text
-  allowFontScaling={true}
-  maxFontSizeMultiplier={1.4}
-  numberOfLines={1}
-  style={
-    {
-      "color": "#131313",
-      "fontFamily": "Basel Grotesk",
-      "fontSize": 19,
-      "fontWeight": "400",
-      "lineHeight": 24.7,
-    }
-  }
-  suppressHighlighting={true}
->
-  A text without matches
-</Text>
+<DocumentFragment>
+  <div
+    class="css-text-146c3p1 r-maxWidth-dnmrzs r-overflow-1udh08x r-textOverflow-1udbk01 r-whiteSpace-3s2u2q r-wordWrap-1iln25a"
+    dir="auto"
+    style="font-size: 19px; line-height: 24px; font-family: Basel Grotesk; font-weight: 400;"
+  >
+    A text without matches
+  </div>
+</DocumentFragment>
 `;

@@ -1,6 +1,4 @@
-import type { UniverseChainIdByPlatform } from 'uniswap/src/features/chains/types'
-import type { Platform } from 'uniswap/src/features/platforms/types/Platform'
-import { chainIdToPlatform } from 'uniswap/src/features/platforms/utils/chains'
+import { type Platform, chainIdToPlatform, type UniverseChainIdByPlatform } from '@universe/chains'
 
 export type FlexiblePlatformInput<P extends Platform = Platform> = P | UniverseChainIdByPlatform<P>
 

@@ -1,5 +1,5 @@
 import { act, fireEvent } from '@testing-library/react'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
+import { TestID } from '@universe/test'
 import { PasskeyGenerationModal } from '~/components/NavBar/DownloadApp/Modal/PasskeyGeneration'
 import { useSignInWithPasskey } from '~/hooks/useSignInWithPasskey'
 import { mocked } from '~/test-utils/mocked'
@@ -32,9 +32,9 @@ describe('PasskeyGenerationModal', () => {
   })
 
   it('renders default state', () => {
-    const { asFragment, getByText } = render(<PasskeyGenerationModal {...getDefaultProps()} />)
+    const { asFragment, getByTestId } = render(<PasskeyGenerationModal {...getDefaultProps()} />)
     expect(asFragment()).toMatchSnapshot()
-    expect(getByText('Create your passkey')).toBeVisible()
+    expect(getByTestId(TestID.CreatePasskey)).toBeVisible()
   })
 
   it('renders loading state', () => {

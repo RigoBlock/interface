@@ -1,14 +1,14 @@
 import { ChartPeriod } from '@uniswap/client-data-api/dist/data/v1/api_pb'
+import { Flex, Separator, Text, TouchableArea } from '@universe/mycelium'
+import { opacify, useDeviceDimensions, useSporeColors } from '@universe/mycelium/theme-hooks-compat'
+import { TestID } from '@universe/test'
 import { LinearGradient } from 'expo-linear-gradient'
-import { memo, useMemo } from 'react'
+import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { I18nManager, StyleSheet } from 'react-native'
 import { DotGrid } from 'src/components/charts/DotGrid'
-import { type ChartData, SparklineChart } from 'src/components/home/PortfolioChart/SparklineChart'
+import { type ChartData, SparklineChart } from 'src/components/charts/SparklineChart'
 import { Loader } from 'src/components/loading/loaders'
-import { Flex, Separator, Text, TouchableArea, useSporeColors } from 'ui/src'
-import { useDeviceDimensions } from 'ui/src/hooks/useDeviceDimensions'
-import { opacify } from 'ui/src/theme'
 import {
   CHART_PERIOD_OPTIONS,
   chartPeriodToElementName,
@@ -16,7 +16,6 @@ import {
   chartPeriodToTestIdSuffix,
 } from 'uniswap/src/features/portfolio/chartPeriod'
 import { Trace } from 'uniswap/src/features/telemetry/Trace'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 
 const EXPANDED_CHART_HEIGHT = 180
 const COLLAPSED_CHART_VISIBLE_HEIGHT = 70
@@ -54,16 +53,6 @@ export const PortfolioChart = memo(function PortfolioChart({
   const isRTL = I18nManager.isRTL
   const chartWidth = fullWidth - CHART_HORIZONTAL_PADDING
 
-  // Slice data to only the points visible in the collapsed chart width
-  const collapsedData = useMemo(() => {
-    if (data.length <= 2) {
-      return data
-    }
-    const visibleRatio = COLLAPSED_CHART_WIDTH / chartWidth
-    const visibleCount = Math.max(2, Math.ceil(data.length * visibleRatio))
-    return data.slice(-visibleCount)
-  }, [data, chartWidth])
-
   if (!isExpanded) {
     return (
       <Flex
@@ -76,10 +65,9 @@ export const PortfolioChart = memo(function PortfolioChart({
           <Loader.Graph />
         ) : (
           <>
-            <DotGrid width={COLLAPSED_CHART_WIDTH} height={COLLAPSED_CHART_VISIBLE_HEIGHT} />
             <Flex direction="ltr" style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
               <SparklineChart
-                data={collapsedData}
+                data={data}
                 width={COLLAPSED_CHART_WIDTH}
                 height={COLLAPSED_CHART_VISIBLE_HEIGHT}
                 color={chartColor}

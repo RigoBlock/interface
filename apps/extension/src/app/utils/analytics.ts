@@ -1,11 +1,10 @@
-import '@tamagui/core/reset.css'
 import 'src/app/Global.css'
 import 'symbol-observable' // Needed by `reduxed-chrome-storage` as polyfill, order matters
+import { isDevEnv, isTestEnv } from '@universe/environment'
+import { getUniswapServiceUrls } from 'src/app/config'
 import { EXTENSION_ORIGIN_APPLICATION } from 'src/app/version'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
 import { createAnalyticsDebugBridge } from 'uniswap/src/features/telemetry/debug/analyticsDebugStore'
 import { getUniqueId } from 'utilities/src/device/uniqueId'
-import { isDevEnv, isTestEnv } from 'utilities/src/environment/env'
 import { logger } from 'utilities/src/logger/logger'
 // oxlint-disable-next-line no-restricted-imports -- Direct utilities import required for analytics initialization
 import { analytics, getAnalyticsAtomDirect } from 'utilities/src/telemetry/analytics/analytics'
@@ -21,7 +20,7 @@ export async function initExtensionAnalytics(): Promise<void> {
   const analyticsAllowed = await getAnalyticsAtomDirect(true)
   await analytics.init({
     transportProvider: new ApplicationTransport({
-      serverUrl: uniswapUrls.amplitudeProxyUrl,
+      serverUrl: getUniswapServiceUrls().amplitudeProxyUrl,
       appOrigin: EXTENSION_ORIGIN_APPLICATION,
       debugBridge,
     }),

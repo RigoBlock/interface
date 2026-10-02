@@ -1,9 +1,9 @@
+import { UniverseChainId } from '@universe/chains'
+import { isMobileApp } from '@universe/environment'
+import { Flex, iconSizes, Text } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text } from 'ui/src'
-import { iconSizes } from 'ui/src/theme'
 import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
 import { ContentRow } from 'uniswap/src/components/transactions/requests/ContentRow'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { useUSDValueOfGasFee } from 'uniswap/src/features/gas/hooks'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
@@ -11,7 +11,6 @@ import { getCurrencyAmount, ValueType } from 'uniswap/src/features/tokens/getCur
 import { useNativeCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { getSymbolDisplayText } from 'uniswap/src/utils/currency'
 import { NumberType } from 'utilities/src/format/types'
-import { isMobileApp } from 'utilities/src/platform'
 
 export function SpendingEthDetails({ value, chainId }: { value: string; chainId: UniverseChainId }): JSX.Element {
   const variant = isMobileApp ? 'body3' : 'body4'

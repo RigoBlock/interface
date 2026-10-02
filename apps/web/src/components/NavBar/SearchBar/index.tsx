@@ -1,9 +1,11 @@
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
+import { Search } from '@universe/mycelium/icons/Search'
+import { styled } from '@universe/mycelium/styled'
+import { TestID } from '@universe/test'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text, TouchableArea } from 'ui/src'
-import { Search } from 'ui/src/components/icons/Search'
 import { ElementName, InterfaceEventName, ModalName, SectionName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { KeyAction } from 'utilities/src/device/keyboard/types'
 import { useKeyDown } from 'utilities/src/device/keyboard/useKeyDown'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
@@ -11,36 +13,24 @@ import { NavIcon } from '~/components/NavBar/NavIcon'
 import { SearchModal } from '~/components/NavBar/SearchBar/SearchModal'
 import { useIsSearchBarVisible } from '~/components/NavBar/SearchBar/useIsSearchBarVisible'
 import { useModalState } from '~/hooks/useModalState'
-import { deprecatedStyled } from '~/lib/deprecated-styled'
 import { EllipsisTamaguiStyle } from '~/theme/components/styles'
 
-const NAV_SEARCH_MIN_WIDTH = '340px'
+const NAV_SEARCH_MIN_WIDTH = '320px'
 
-const KeyShortcut = deprecatedStyled.div`
-  background-color: ${({ theme }) => theme.surface3};
-  color: ${({ theme }) => theme.neutral2};
-  padding: 0px 8px;
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 535;
-  line-height: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.6;
-  backdrop-filter: blur(60px);
-`
+const KeyShortcut = styled('div', {
+  platform: 'web',
+  base: 'bg-surface3 text-neutral2 [padding:0px_8px] w-[20px] h-[20px] rounded-[4px] text-[12px] font-[535] [line-height:16px] flex items-center justify-center opacity-60 backdrop-blur-[60px]',
+})
 
-const SearchIcon = deprecatedStyled.div`
-  width: 20px;
-  height: 20px;
-`
+const SearchIcon = styled('div', {
+  platform: 'web',
+  base: 'w-[20px] h-[20px]',
+})
 
 export const SearchBar = () => {
   const { t } = useTranslation()
   const isNavSearchInputVisible = useIsSearchBarVisible()
+  const isAuctionSearchEnabled = useFeatureFlag(FeatureFlags.AuctionSearch)
 
   const {
     isOpen: isModalOpen,
@@ -67,13 +57,13 @@ export const SearchBar = () => {
 
   const trace = useTrace({ section: SectionName.NavbarSearch })
 
-  const placeholderText = t('search.input.placeholder.withWallets')
+  const placeholderText = t('search.input.placeholder.header')
 
   return (
     <Trace section={SectionName.NavbarSearch}>
-      <SearchModal />
+      <SearchModal isAuctionSearchEnabled={isAuctionSearchEnabled} />
       {isNavSearchInputVisible ? (
-        <TouchableArea onPress={openSearchModal} data-testid="nav-search-input" width={NAV_SEARCH_MIN_WIDTH}>
+        <TouchableArea onPress={openSearchModal} testID="nav-search-input" width={NAV_SEARCH_MIN_WIDTH}>
           <Flex
             row
             backgroundColor="$surface2"

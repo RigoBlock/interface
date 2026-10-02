@@ -2,6 +2,7 @@ export enum PortfolioTab {
   Overview = 'overview',
   Tokens = 'tokens',
   Staking = 'staking',
+  Pools = 'pools',
   Defi = 'defi',
   Perps = 'perps',
   Nfts = 'nfts',

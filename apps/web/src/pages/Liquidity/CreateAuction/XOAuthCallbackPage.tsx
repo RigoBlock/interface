@@ -1,12 +1,12 @@
 import { VerifyXCallbackRequest } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v1/x_verification_pb'
+import { Flex, Text } from '@universe/mycelium'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text } from 'ui/src'
 import { XVerificationClient } from 'uniswap/src/data/apiClients/liquidityService/XVerificationClient'
 
 type CallbackState = 'loading' | 'success' | 'error'
 
-export default function XOAuthCallbackPage() {
+export function XOAuthCallbackPage() {
   const { t } = useTranslation()
   const [callbackState, setCallbackState] = useState<CallbackState>('loading')
   const [errorMessage, setErrorMessage] = useState<string>('')
@@ -26,8 +26,10 @@ export default function XOAuthCallbackPage() {
       return
     }
 
-    const storedState = sessionStorage.getItem('x_oauth_state')
-    sessionStorage.removeItem('x_oauth_state')
+    // Paired with the localStorage write in useXOAuthFlow — sessionStorage isn't shared with this popup
+    // when it runs in an isolated browsing-context group under COOP (see the comment there).
+    const storedState = localStorage.getItem('x_oauth_state')
+    localStorage.removeItem('x_oauth_state')
 
     if (state !== storedState) {
       const message = 'State mismatch — possible CSRF attack'
@@ -76,3 +78,5 @@ export default function XOAuthCallbackPage() {
     </Flex>
   )
 }
+
+export default XOAuthCallbackPage

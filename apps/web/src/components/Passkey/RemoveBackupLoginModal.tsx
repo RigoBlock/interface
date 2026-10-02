@@ -1,47 +1,55 @@
-import { useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { deleteRecoveryMethod, useEmbeddedWalletState } from '@universe/embedded-wallet'
+import { Button, Flex, Text } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
-import { Button, Flex, Text } from 'ui/src'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import WarningIcon from 'uniswap/src/components/warnings/WarningIcon'
-import { deleteRecoveryMethod } from 'uniswap/src/features/passkey/embeddedWallet'
 import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import {
-  getRecoveryMethodLabel,
-  LIST_AUTHENTICATORS_QUERY_KEY,
-} from '~/components/AccountDrawer/PasskeyMenu/PasskeyMenu'
+import { logger } from 'utilities/src/logger/logger'
+import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
+import { getRecoveryMethodLabel } from '~/components/AccountDrawer/PasskeyMenu/PasskeyMenu'
+import { POPUP_MEDIUM_DISMISS_MS } from '~/components/Popups/constants'
 import { useModalState } from '~/hooks/useModalState'
-import { usePasskeyAuthWithHelpModal } from '~/hooks/usePasskeyAuthWithHelpModal'
 import type { RemoveBackupLoginModalParams } from '~/state/application/reducer'
-import { useEmbeddedWalletState } from '~/state/embeddedWallet/store'
 import { useAppSelector } from '~/state/hooks'
+import { popupRegistry } from '~/state/popups/registry'
+import { PopupType } from '~/state/popups/types'
 
 export function RemoveBackupLoginModal() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const { isOpen, onClose } = useModalState(ModalName.RemoveBackupLogin)
-  const { walletId } = useEmbeddedWalletState()
+  const { walletId: sessionWalletId } = useEmbeddedWalletState()
 
   const initialState = useAppSelector(
     (state) => (state.application.openModal as RemoveBackupLoginModalParams | null)?.initialState,
   )
+  // Prefer an explicit walletId (recover-with-email rotation has no active session).
+  const walletId = initialState?.walletId ?? sessionWalletId
 
   const providerLabel = initialState?.recoveryMethodType ? getRecoveryMethodLabel(initialState.recoveryMethodType) : ''
 
-  const { mutate: handleRemove, isPending } = usePasskeyAuthWithHelpModal(
-    async () => {
+  const { mutate: handleRemove, isPending } = useMutation({
+    mutationFn: async () => {
       if (!walletId) {
         throw new Error('No walletId available')
       }
       return await deleteRecoveryMethod(walletId)
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: [LIST_AUTHENTICATORS_QUERY_KEY] })
-        onClose()
-      },
+    onSuccess: () => {
+      popupRegistry.addPopup(
+        { type: PopupType.Success, message: t('notification.backupLogin.deleted') },
+        'backup-login-deleted-success',
+        POPUP_MEDIUM_DISMISS_MS,
+      )
+      queryClient.invalidateQueries({ queryKey: [ReactQueryCacheKey.ListAuthenticators] })
+      onClose()
     },
-  )
+    onError: (error) => {
+      logger.error(error, { tags: { file: 'RemoveBackupLoginModal', function: 'handleRemove' } })
+    },
+  })
 
   return (
     <Modal name={ModalName.RemoveBackupLogin} isModalOpen={isOpen} onClose={onClose} maxWidth={420}>
@@ -79,7 +87,7 @@ export function RemoveBackupLoginModal() {
                 emphasis="primary"
                 size="medium"
                 onPress={() => handleRemove()}
-                isDisabled={isPending}
+                disabled={isPending}
                 loading={isPending}
               >
                 {t('common.button.remove')}
@@ -91,3 +99,5 @@ export function RemoveBackupLoginModal() {
     </Modal>
   )
 }
+
+export default RemoveBackupLoginModal

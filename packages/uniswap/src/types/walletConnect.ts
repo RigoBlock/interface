@@ -117,6 +117,8 @@ export interface EthTransaction {
   data?: string
   gasLimit?: string
   gasPrice?: string
+  maxPriorityFeePerGas?: string
+  maxFeePerGas?: string
   nonce?: string
 }
 

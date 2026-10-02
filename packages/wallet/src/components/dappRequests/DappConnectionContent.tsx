@@ -1,6 +1,9 @@
+import { Flex, Text } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text } from 'ui/src'
-import { AccountSelectPopover } from 'wallet/src/components/dappRequests/AccountSelectPopover'
+import {
+  type AccountSelectionMode,
+  AccountSelectPopover,
+} from 'wallet/src/components/dappRequests/AccountSelectPopover'
 import { DappConnectionPermissions } from 'wallet/src/components/dappRequests/DappConnectionPermissions'
 import { DappVerificationStatus } from 'wallet/src/features/dappRequests/types'
 
@@ -9,10 +12,12 @@ interface DappConnectionContentProps {
   confirmedWarning?: boolean
   onConfirmWarning?: (confirmed: boolean) => void
 
-  // Optional multi-account selection
+  // Optional account selection
   allAccountAddresses?: string[]
   selectedAccountAddresses?: string[]
   setSelectedAccountAddresses?: (addresses: string[]) => void
+  selectionMode?: AccountSelectionMode
+  placement?: 'top-end' | 'bottom-end'
 
   // Account state
   isViewOnly: boolean
@@ -28,6 +33,8 @@ export function DappConnectionContent({
   allAccountAddresses,
   selectedAccountAddresses,
   setSelectedAccountAddresses,
+  selectionMode,
+  placement,
   isViewOnly,
   bottomSpacing,
 }: DappConnectionContentProps): JSX.Element {
@@ -49,6 +56,8 @@ export function DappConnectionContent({
             selectedAccountAddresses={selectedAccountAddresses}
             setSelectedAccountAddresses={setSelectedAccountAddresses}
             allAccountAddresses={allAccountAddresses}
+            selectionMode={selectionMode}
+            placement={placement}
           />
         </Flex>
       )}

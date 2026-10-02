@@ -1,12 +1,12 @@
+import { isWebPlatform } from '@universe/environment'
+import { Button, Flex, Text, TouchableArea } from '@universe/mycelium'
+import { CloudSlash } from '@universe/mycelium/icons/CloudSlash'
+import { X } from '@universe/mycelium/icons/X'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Flex, Text, TouchableArea } from 'ui/src'
-import { CloudSlash } from 'ui/src/components/icons/CloudSlash'
-import { X } from 'ui/src/components/icons/X'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { useLocalizedDayjs } from 'uniswap/src/features/language/localizedDayjs'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { isWebPlatform } from 'utilities/src/platform'
 
 type DataApiOutageModalContentProps = {
   isOpen: boolean

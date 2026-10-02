@@ -1,36 +1,42 @@
 import { Currency, CurrencyAmount, TradeType } from '@uniswap/sdk-core'
 import { TradingApi } from '@universe/api'
+import { UniverseChainId, Platform } from '@universe/chains'
+import { isValidHexString } from '@universe/encoding'
 import { parseUnits } from 'ethers/lib/utils'
 import { useMemo } from 'react'
 import { NATIVE_TOKEN_PLACEHOLDER } from 'uniswap/src/constants/addresses'
 import { useUniswapContextSelector } from 'uniswap/src/contexts/UniswapContext'
-import { normalizeCurrencyIdForMapLookup } from 'uniswap/src/data/cache'
+import { useAccountsStore } from 'uniswap/src/features/accounts/store/hooks'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { useTradingApiGasOverrides } from 'uniswap/src/features/gas/hooks/useTradingApiGasOverrides'
+import { useShouldWaitForPermissionedCheck } from 'uniswap/src/features/permissionedTokens/useShouldWaitForPermissionedCheck'
 import { useOnChainCurrencyBalance } from 'uniswap/src/features/portfolio/api'
 import { usePortfolioBalances } from 'uniswap/src/features/portfolio/balances/hooks'
 import { getCurrencyAmount, ValueType } from 'uniswap/src/features/tokens/getCurrencyAmount'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { useTransactionSettingsStore } from 'uniswap/src/features/transactions/components/settings/stores/transactionSettingsStore/useTransactionSettingsStore'
-import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPriceWrapper'
+import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'
+import { useSwapEarnIntent } from 'uniswap/src/features/transactions/swap/hooks/useSwapEarnIntent'
 import { useTrade } from 'uniswap/src/features/transactions/swap/hooks/useTrade'
 import { useTradeFromExistingPlan } from 'uniswap/src/features/transactions/swap/hooks/useTradeFromExistingPlan'
+import { getWalletExecutionContext } from 'uniswap/src/features/transactions/swap/plan/planSagaUtils'
 import type { DerivedSwapInfo } from 'uniswap/src/features/transactions/swap/types/derivedSwapInfo'
 import { getWrapType } from 'uniswap/src/features/transactions/swap/utils/wrap'
 import type { TransactionState } from 'uniswap/src/features/transactions/types/transactionState'
 import { useWallet } from 'uniswap/src/features/wallet/hooks/useWallet'
 import { CurrencyField } from 'uniswap/src/types/currency'
-import { buildCurrencyId, currencyId } from 'uniswap/src/utils/currencyId'
-import { isValidHexString } from 'utilities/src/addresses/hex'
+import { buildCurrencyId, currencyId, normalizeCurrencyIdForMapLookup } from 'uniswap/src/utils/currencyId'
 
 /** Returns information derived from the current swap state */
 export function useDerivedSwapInfo({
   isDebouncing,
   smartPoolAddress,
+  isEarnFlow,
   ...state
 }: TransactionState & {
   isDebouncing?: boolean
   smartPoolAddress?: string
+  isEarnFlow?: boolean
 }): DerivedSwapInfo {
   const {
     [CurrencyField.INPUT]: currencyAssetIn,
@@ -39,7 +45,6 @@ export function useDerivedSwapInfo({
     exactAmountToken,
     exactCurrencyField,
     focusOnCurrencyField = CurrencyField.INPUT,
-    selectingCurrencyField,
     txId,
   } = state
 
@@ -53,12 +58,10 @@ export function useDerivedSwapInfo({
 
   const currencyInInfo = useCurrencyInfo(
     currencyAssetIn ? buildCurrencyId(currencyAssetIn.chainId, currencyAssetIn.address) : undefined,
-    { refetch: true },
   )
 
   const currencyOutInfo = useCurrencyInfo(
     currencyAssetOut ? buildCurrencyId(currencyAssetOut.chainId, currencyAssetOut.address) : undefined,
-    { refetch: true },
   )
 
   const currencyIn = currencyInInfo?.currency
@@ -143,6 +146,14 @@ export function useDerivedSwapInfo({
 
   // TODO: we disable fee logic here, otherwise protocol will revert
   const sendPortionEnabled = false //useFeatureFlag(FeatureFlags.PortionFields)
+  // Earn deposits are exact-input only: the user specifies how much of the input token to
+  // swap + deposit. Exact-asset (output-specified) deposits are not supported. When
+  // disabled, the Earn hook passes inert query inputs so normal swaps do not fetch Earn data.
+  const { earnIntent, quoteOutputOverride } = useSwapEarnIntent({
+    currencyIn,
+    currencyOut,
+    enabled: isEarnFlow === true && exactCurrencyField === CurrencyField.INPUT,
+  })
 
   const generatePermitAsTransaction = useUniswapContextSelector((ctx) => {
     // For RigoBlock smart pools, don't generate permits as transactions and don't include permitData
@@ -154,6 +165,11 @@ export function useDerivedSwapInfo({
     // swap_7702 endpoint consumes typedData in the process encoding the swap.
     return ctx.getCanSignPermits?.(chainId) && !ctx.getSwapDelegationInfo?.(chainId).delegationAddress
   })
+  const caip25Info = useAccountsStore((s) => s.getActiveConnector(Platform.EVM)?.session?.caip25Info)
+  const walletExecutionContext = useMemo(() => getWalletExecutionContext(caip25Info), [caip25Info])
+  // tx is unavailable at quote time (this hook runs before the /swap response
+  // resolves); recommended falls back to undefined, which is fine for full overrides.
+  const gasOverrides = useTradingApiGasOverrides({ tx: undefined })
   const tradeParams = useMemo(
     () => ({
       account,
@@ -166,6 +182,11 @@ export function useDerivedSwapInfo({
       isDebouncing,
       generatePermitAsTransaction,
       isV4HookPoolsEnabled,
+      walletExecutionContext,
+      gasOverrides,
+      earnIntent,
+      quoteOutputOverride,
+      skipIndicativeTrade: earnIntent !== undefined,
     }),
     [
       account,
@@ -178,14 +199,23 @@ export function useDerivedSwapInfo({
       isDebouncing,
       generatePermitAsTransaction,
       isV4HookPoolsEnabled,
+      walletExecutionContext,
+      gasOverrides,
+      earnIntent,
+      quoteOutputOverride,
     ],
   )
 
-  const existingPlanTrade = useTradeFromExistingPlan(tradeParams)
-  const tradeFromQuote = useTrade({
-    ...tradeParams,
-    skip: !!existingPlanTrade,
+  // Hold the quote until the permissioned-token check for this pair has resolved, so the first
+  // quote can't ship the wrong Universal Router version off a cold cache. See the hook for detail.
+  const isPermissionedCheckLoading = useShouldWaitForPermissionedCheck({
+    inputCurrency: currencyIn,
+    outputCurrency: currencyOut,
+    walletAddress: account?.address,
   })
+
+  const existingPlanTrade = useTradeFromExistingPlan(tradeParams)
+  const tradeFromQuote = useTrade({ ...tradeParams, skip: !!existingPlanTrade || isPermissionedCheckLoading })
   const trade = existingPlanTrade ?? tradeFromQuote
 
   const displayableTrade = trade.trade ?? trade.indicativeTrade
@@ -305,7 +335,6 @@ export function useDerivedSwapInfo({
       exactCurrencyField,
       focusOnCurrencyField,
       wrapType,
-      selectingCurrencyField,
       txId,
       outputAmountUserWillReceive: displayableTrade?.quoteOutputAmountUserWillReceive,
       smartPoolAddress,
@@ -320,7 +349,6 @@ export function useDerivedSwapInfo({
     exactAmountToken,
     exactCurrencyField,
     focusOnCurrencyField,
-    selectingCurrencyField,
     trade,
     txId,
     wrapType,

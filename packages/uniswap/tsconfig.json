@@ -3,6 +3,15 @@
   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.json", "src/**/*.mts", "env.d.ts"],
   "references": [
     {
+      "path": "../websocket"
+    },
+    {
+      "path": "../sessions"
+    },
+    {
+      "path": "../environment"
+    },
+    {
       "path": "../utilities"
     },
     {
@@ -18,13 +27,34 @@
       "path": "../gating"
     },
     {
+      "path": "../experiments"
+    },
+    {
+      "path": "../encoding"
+    },
+    {
       "path": "../config"
+    },
+    {
+      "path": "../compliance"
+    },
+    {
+      "path": "../chains"
     },
     {
       "path": "../api"
     },
     {
       "path": "../../config/vitest-presets"
+    },
+    {
+      "path": "../mycelium"
+    },
+    {
+      "path": "../tailwind"
+    },
+    {
+      "path": "../test"
     }
   ],
   "compilerOptions": {

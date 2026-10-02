@@ -1,7 +1,7 @@
+import { Anchor, Button, ButtonEmphasis, Flex, Text, TouchableArea, zIndexes } from '@universe/mycelium'
+import { X } from '@universe/mycelium/icons/X'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { ReactNode } from 'react'
-import { Anchor, Button, ButtonEmphasis, Flex, Text, TouchableArea, useSporeColors } from 'ui/src'
-import { X } from 'ui/src/components/icons'
-import { zIndexes } from 'ui/src/theme'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalNameType } from 'uniswap/src/features/telemetry/constants'
 

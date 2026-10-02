@@ -1,6 +1,4 @@
-import { Select, styled } from 'ui/src'
-import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
-import { zIndexes } from 'ui/src/theme'
+import { useSporeColors } from '@universe/mycelium'
 
 interface FeatureFlagSelectOption {
   value: string
@@ -23,17 +21,6 @@ function normalizeOptions(
   return Object.entries(options).map(([key, value]) => ({ value: String(value), label: key }))
 }
 
-const SelectTrigger = styled(Select.Trigger, {
-  borderRadius: '$rounded12',
-  padding: '$padding8',
-  backgroundColor: '$surface3',
-  fontWeight: '535',
-  fontSize: 16,
-  borderWidth: 0,
-  color: '$neutral1',
-  maxWidth: 'max-content',
-})
-
 interface FeatureFlagSelectorProps {
   value: string
   onValueChange: (value: string) => void
@@ -52,22 +39,36 @@ export function FeatureFlagSelector({
   placeholder,
   width = 125,
 }: FeatureFlagSelectorProps): JSX.Element {
+  const colors = useSporeColors()
   const items = normalizeOptions(options)
 
   return (
-    <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger id={id} width={width} iconAfter={<RotatableChevron direction="down" />}>
-        <Select.Value placeholder={placeholder} />
-      </SelectTrigger>
-      <Select.Content zIndex={zIndexes.popover}>
-        <Select.Viewport borderRadius="$rounded12">
-          {items.map((opt, i) => (
-            <Select.Item key={opt.value} index={i} value={opt.value}>
-              <Select.ItemText>{opt.label}</Select.ItemText>
-            </Select.Item>
-          ))}
-        </Select.Viewport>
-      </Select.Content>
-    </Select>
+    <select
+      id={id}
+      value={value}
+      style={{
+        borderRadius: 12,
+        padding: 8,
+        backgroundColor: colors.surface3.val,
+        fontWeight: 535,
+        fontSize: 16,
+        border: 'none',
+        color: colors.neutral1.val,
+        maxWidth: 'max-content',
+        width,
+      }}
+      onChange={(event) => onValueChange(event.target.value)}
+    >
+      {placeholder !== undefined && (
+        <option value="" disabled hidden>
+          {placeholder}
+        </option>
+      )}
+      {items.map((opt) => (
+        <option key={opt.value} value={opt.value}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
   )
 }

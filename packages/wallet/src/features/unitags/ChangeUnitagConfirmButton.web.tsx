@@ -1,6 +1,6 @@
+import { Button, Flex } from '@universe/mycelium'
+import { TestID } from '@universe/test'
 import { useTranslation } from 'react-i18next'
-import { Button, Flex } from 'ui/src'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { ChangeUnitagConfirmButtonProps } from 'wallet/src/features/unitags/ChangeUnitagConfirmButton'
 
 export const ChangeUnitagConfirmButton = ({
@@ -13,7 +13,7 @@ export const ChangeUnitagConfirmButton = ({
   return (
     <Flex row width="100%" pt="$spacing4">
       <Button
-        isDisabled={isSubmitButtonDisabled}
+        disabled={isSubmitButtonDisabled}
         loading={isCheckingUnitag || isChangeResponseLoading}
         testID={TestID.Confirm}
         variant="branded"

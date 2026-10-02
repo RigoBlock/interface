@@ -1,4 +1,11 @@
-import { isWebApp } from 'utilities/src/platform'
+/**
+ * Language/locale constants. MUST stay dependency-free (no imports): the
+ * repo-root i18n.config.ts imports this file relatively and is loaded by the
+ * external `@uniswap/i18n-cli` without this repo's node_modules installed —
+ * a bare-specifier import here breaks the translation workflow. Anything
+ * platform-dependent belongs in platformSupportedLanguages.ts.
+ * scripts/i18n-config.test.ts enforces this.
+ */
 
 /**
  * List of supported languages in app, represented by ISO 639 language code.
@@ -116,8 +123,6 @@ export const WEB_SUPPORTED_LANGUAGES: Language[] = [
   //Language.Vietnamese,
 ]
 
-export const PLATFORM_SUPPORTED_LANGUAGES = isWebApp ? WEB_SUPPORTED_LANGUAGES : WALLET_SUPPORTED_LANGUAGES
-
 /**
  * External mapping to be used with system locale strings trying to resolve to specific language
  * Included different Spanish variations availabled on Android/iOS as of 11/17/23
@@ -129,7 +134,7 @@ export const mapDeviceLanguageToLanguage: Record<string, Language> = {
 
 /**
  * List of supported locales in app, comprised of two letter language code (ISO 639) combined with two letter country code (ISO 3166).
- * Matches to locale codes for languages provided by Crowdin
+ * Drives the AI translation pipeline's target locale set via i18n.config.ts.
  */
 export enum Locale {
   ChineseSimplified = 'zh-Hans',
@@ -171,6 +176,26 @@ export enum Locale {
 }
 
 export const DEFAULT_LOCALE: Locale = Locale.EnglishUnitedStates
+
+// Locales whose translation file doesn't share their name
+const LOCALE_TO_FILE_NAME: Record<string, string> = {
+  'zh-Hans': 'zh-CN',
+  'zh-Hant': 'zh-TW',
+}
+
+/**
+ * Returns the translation file name or statsig translation key for a given locale.
+ *
+ * @param locale - The locale to get the translation file name for.
+ * @returns The translation file name.
+ */
+export function getLocaleTranslationKey(locale: string): string {
+  if (locale === 'es' || locale.startsWith('es-')) {
+    // All Spanish variants map to es-ES.json
+    return 'es-ES'
+  }
+  return LOCALE_TO_FILE_NAME[locale] || locale
+}
 
 /**
  * Internal app mapping between language and locale enums
@@ -261,15 +286,12 @@ export const mapLocaleToLanguage: Record<Locale, Language> = {
  * List of locale codes supported by the backend notification service.
  * These are simplified locale codes without country/region modifiers (except where specific variants are needed).
  * Use this enum when sending locale information to backend APIs that expect this specific format.
- *
- * Note: The app does not currently support Filipino ('fil'), but it's included here for completeness.
  */
 export enum BackendSupportedLocale {
   ChineseSimplified = 'zh-CN',
   ChineseTraditional = 'zh-TW',
   Dutch = 'nl',
   English = 'en',
-  Filipino = 'fil',
   French = 'fr',
   Indonesian = 'id',
   Japanese = 'ja',
@@ -282,8 +304,8 @@ export enum BackendSupportedLocale {
 }
 
 /**
- * Mapping from internal Locale enum values (used for Crowdin integration) to backend-supported locale codes.
- * The backend expects simplified locale codes, while the app uses more specific Crowdin locale formats.
+ * Mapping from internal Locale enum values to backend-supported locale codes.
+ * The backend expects simplified locale codes, while the app uses more specific IETF locale tags.
  */
 const localeToBackendLocaleMap: Record<Locale, BackendSupportedLocale | undefined> = {
   // Chinese variants
@@ -348,8 +370,8 @@ const localeToBackendLocaleMap: Record<Locale, BackendSupportedLocale | undefine
 }
 
 /**
- * Converts internal Locale enum values (used for Crowdin integration) to backend-supported locale codes.
- * The backend expects simplified locale codes, while the app uses more specific Crowdin locale formats.
+ * Converts internal Locale enum values to backend-supported locale codes.
+ * The backend expects simplified locale codes, while the app uses more specific IETF locale tags.
  *
  * @param locale - The internal Locale enum value
  * @returns The corresponding backend-supported locale code, defaults to English if not found

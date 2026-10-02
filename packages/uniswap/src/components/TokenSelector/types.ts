@@ -1,8 +1,8 @@
-import { TokenSelectorOption } from 'uniswap/src/components/lists/items/types'
+import { UniverseChainId } from '@universe/chains'
+import { RwaTokenOption, TokenSelectorOption } from 'uniswap/src/components/lists/items/types'
 import type { OnchainItemSection } from 'uniswap/src/components/lists/OnchainItemList/types'
 import { TradeableAsset } from 'uniswap/src/entities/assets'
 import type { AddressGroup } from 'uniswap/src/features/accounts/store/types/AccountsState'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { FiatNumberType } from 'utilities/src/format/types'
 
@@ -13,12 +13,16 @@ export type OnSelectCurrency = (
   index: number,
 ) => void
 
+export type OnSelectRwaToken = (option: RwaTokenOption) => void
+
 export type TokenSectionsHookProps = {
   addresses: AddressGroup
   chainFilter: UniverseChainId | null
+  chainIds?: UniverseChainId[]
   oppositeSelectedToken?: TradeableAsset
   /** Optional list of chains to restrict bridging tokens to (e.g., for RigoBlock smart pools) */
   supportedBridgingChains?: UniverseChainId[]
+  variation: TokenSelectorVariation
 }
 
 // oxlint-disable-next-line max-params -- biome-parity: oxlint is stricter here

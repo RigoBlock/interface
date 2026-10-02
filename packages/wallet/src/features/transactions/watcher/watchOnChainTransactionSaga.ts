@@ -1,11 +1,13 @@
 /* oxlint-disable typescript/explicit-function-return-type */
-import { ApolloClient, NormalizedCacheObject } from '@apollo/client'
+/* oxlint-disable max-lines */
+import { waitForFlashbotsProtectReceipt, UniverseChainId } from '@universe/chains'
 import { BigNumber, BigNumberish, providers } from 'ethers'
 import { call, cancel, delay, fork, put, race, spawn, take } from 'typed-redux-saga'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
 import { AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
-import { waitForFlashbotsProtectReceipt } from 'uniswap/src/features/providers/FlashbotsCommon'
+import { WalletEventName } from 'uniswap/src/features/telemetry/constants'
+import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
+import type { UniverseEventProperties } from 'uniswap/src/features/telemetry/types'
 import { CancelableStepInfo } from 'uniswap/src/features/transactions/hooks/useIsCancelable'
 import {
   cancelPlanStep,
@@ -13,7 +15,7 @@ import {
   replaceTransaction,
   transactionActions,
 } from 'uniswap/src/features/transactions/slice'
-import { waitForPlanUpdateOrFinalizedState } from 'uniswap/src/features/transactions/swap/plan/planPollingUtils'
+import { waitForPlanUpdateOrFinalizedState } from 'uniswap/src/features/transactions/swap/plan/planWatcherSaga'
 import { isBridge, isChained, isClassic, isUniswapX } from 'uniswap/src/features/transactions/swap/utils/routing'
 import {
   FinalizedTransactionDetails,
@@ -28,6 +30,7 @@ import { logger } from 'utilities/src/logger/logger'
 import { cancelPlanStep as cancelPlanStepSaga } from 'wallet/src/features/transactions/cancelPlanStepSaga'
 import { attemptCancelTransaction } from 'wallet/src/features/transactions/cancelTransactionSaga'
 import { attemptReplaceTransaction } from 'wallet/src/features/transactions/replaceTransactionSaga'
+import { buildPendingTransactionStuckProperties } from 'wallet/src/features/transactions/telemetry/nonceTelemetry'
 import { processTransactionReceipt } from 'wallet/src/features/transactions/utils'
 import { OrderWatcher } from 'wallet/src/features/transactions/watcher/orderWatcherSaga'
 import {
@@ -68,6 +71,22 @@ function* getFlashbotsTransactionStatus(transaction: TransactionDetails, hash: s
         return TransactionStatus.Success
       case 'UNKNOWN': // Transaction not found by Flashbots Protect, might have been submitted through another provider
       default:
+        // SWAP-2471: no terminal Flashbots status — the private tx may never finalize (it falls through
+        // to the Trading-API poll). Capture it as a stuck signal.
+        logger.info(
+          'watchOnChainTransactionSaga',
+          'getFlashbotsTransactionStatus',
+          'Flashbots Protect status unresolved',
+          { transactionId: transaction.id, hash, flashbotsStatus: flashbotsReceipt.status },
+        )
+        if (isClassic(transaction)) {
+          // provider_knows_tx omitted: this path only awaited the Flashbots relay, never probed the
+          // chain provider (the tx may well exist via another provider) — emitting false would mislead.
+          yield* emitPendingTransactionStuck({
+            transaction,
+            reason: 'flashbots_unknown',
+          })
+        }
         return undefined
     }
   } catch (error) {
@@ -89,6 +108,13 @@ function* waitForRemoteUpdate(transaction: TransactionDetails, provider: provide
   // For UniswapX orders, we need to wait for the order to be filled before we can get the hash
   if (isUniswapX(transaction) && transaction.orderHash && transaction.queueStatus) {
     const updatedOrder = yield* call(OrderWatcher.waitForOrderStatus, transaction.orderHash, transaction.queueStatus)
+
+    // Pre-submission watcher released: the submission update forked a replacement watcher that
+    // owns the fill (mirrors the classic not-yet-submitted early return below)
+    if (!updatedOrder) {
+      return undefined
+    }
+
     hash = updatedOrder.hash
     status = updatedOrder.status
 
@@ -98,7 +124,11 @@ function* waitForRemoteUpdate(transaction: TransactionDetails, provider: provide
     }
   }
 
-  if ((isBridge(transaction) || isClassic(transaction)) && !transaction.options.rpcSubmissionTimestampMs) {
+  if (
+    (isBridge(transaction) || isClassic(transaction)) &&
+    !transaction.options.rpcSubmissionTimestampMs &&
+    !transaction.userOpHash
+  ) {
     // Transaction was not submitted yet, ignore it for now
     // Once it's submitted, it'll be updated and the watcher will pick it up
     return undefined
@@ -106,6 +136,29 @@ function* waitForRemoteUpdate(transaction: TransactionDetails, provider: provide
 
   if (isPlanTransactionDetails(transaction)) {
     return yield* call(waitForPlanUpdateOrFinalizedState, transaction)
+  }
+
+  // 4337 UserOp path: poll Trading API /swaps with userOpHashes
+  if (transaction.userOpHash) {
+    const {
+      status: userOpStatus,
+      txHash: resolvedHash,
+      sponsorInfo: resolvedSponsorInfo,
+      paymaster: resolvedPaymaster,
+    } = yield* call(waitForTransactionStatus, transaction)
+    const resolvedTxHash = resolvedHash ?? transaction.hash
+
+    if (resolvedTxHash) {
+      yield* spawn(updateTransactionWithReceipt, { ...transaction, hash: resolvedTxHash }, provider)
+    }
+
+    return {
+      ...transaction,
+      status: userOpStatus,
+      hash: resolvedTxHash,
+      sponsorInfo: resolvedSponsorInfo ?? transaction.sponsorInfo,
+      paymaster: resolvedPaymaster ?? transaction.paymaster,
+    }
   }
 
   // At this point, the tx should either be a classic / bridge tx or a filled order, both of which have hashes
@@ -120,7 +173,14 @@ function* waitForRemoteUpdate(transaction: TransactionDetails, provider: provide
     return undefined
   }
 
-  if (isClassic(transaction) && transaction.options.submitViaPrivateRpc) {
+  // UniRPC-protected txs never hit the Flashbots Protect API, so its status endpoint
+  // can't know them — their status resolves via the Trading API poll below. Older
+  // persisted txs without the provider label were all Flashbots, so they still poll.
+  if (
+    isClassic(transaction) &&
+    transaction.options.submitViaPrivateRpc &&
+    transaction.options.privateRpcProvider !== 'unirpc'
+  ) {
     const flashbotsStatus = yield* call(getFlashbotsTransactionStatus, transaction, hash)
     if (flashbotsStatus === TransactionStatus.Failed || flashbotsStatus === TransactionStatus.Canceled) {
       // Status is final and we won't get a receipt from ethers. Return early and finalize the transaction
@@ -148,9 +208,31 @@ function* waitForRemoteUpdate(transaction: TransactionDetails, provider: provide
   // For non-bridge transactions, use Trading API polling
   // Trading API returns status but not receipt/networkFee, so update the transaction with these after the transaction is confirmed
   yield* spawn(updateTransactionWithReceipt, { ...transaction, hash }, provider)
-  status = yield* call(waitForTransactionStatus, { ...transaction, hash })
+  const { status: classicStatus } = yield* call(waitForTransactionStatus, { ...transaction, hash })
 
-  return { ...transaction, status, hash }
+  return { ...transaction, status: classicStatus, hash }
+}
+
+// SWAP-2471: emit the unsampled stuck-tx analytics event (the recovery-hole + Flashbots-UNKNOWN signals).
+function* emitPendingTransactionStuck(params: {
+  transaction: OnChainTransactionDetails
+  reason: UniverseEventProperties[WalletEventName.PendingTransactionStuck]['reason']
+  providerKnowsTx?: boolean
+  requestNonce?: number
+  nextNonce?: number
+}) {
+  yield* call(
+    sendAnalyticsEvent,
+    WalletEventName.PendingTransactionStuck,
+    buildPendingTransactionStuckProperties({
+      transaction: params.transaction,
+      reason: params.reason,
+      providerKnowsTx: params.providerKnowsTx,
+      requestNonce: params.requestNonce,
+      nextNonce: params.nextNonce,
+      nowMs: Date.now(),
+    }),
+  )
 }
 
 /**
@@ -164,7 +246,8 @@ export function* checkIfTransactionInvalidated(
   transaction: OnChainTransactionDetails,
   provider: providers.Provider,
 ): Generator<unknown, boolean> {
-  if (transaction.options.request.nonce === undefined || !transaction.hash) {
+  const nonce = transaction.options.request?.nonce
+  if (nonce === undefined || !transaction.hash) {
     // We can't check if the transaction is invalidated
     return false
   }
@@ -182,26 +265,43 @@ export function* checkIfTransactionInvalidated(
     return true
   }
 
-  const requestNonce = BigNumber.from(transaction.options.request.nonce).toNumber()
+  const requestNonce = BigNumber.from(nonce).toNumber()
   const nextNonce = yield* call([provider, provider.getTransactionCount], transaction.from)
-  if (nextNonce > requestNonce) {
+  const invalidated = nextNonce > requestNonce
+
+  // SWAP-2471: log the invalidation decision. NOTE this uses the default 'latest' block tag, vs the
+  // 'pending' tag used at nonce derivation — both are logged deliberately for comparison.
+  logger.info('watchOnChainTransactionSaga', 'checkIfTransactionInvalidated', 'Invalidation check', {
+    transactionId: transaction.id,
+    hash: transaction.hash,
+    chainId: transaction.chainId,
+    submitViaPrivateRpc: transaction.options.submitViaPrivateRpc,
+    requestNonce,
+    nextNonce,
+    invalidated,
+  })
+
+  if (invalidated) {
     // Transaction nonce is not valid anymore, it can't be included in a future block
     return true
   }
+
+  // SWAP-2471 recovery hole: reaching here means a private tx (public txs already returned above) whose
+  // hash the provider no longer knows AND whose nonce the chain has not passed (nextNonce <= requestNonce).
+  // It stays Pending forever and inflates later nonces. Capture it.
+  yield* emitPendingTransactionStuck({
+    transaction,
+    reason: 'invalidation_check_false',
+    providerKnowsTx: false,
+    requestNonce,
+    nextNonce,
+  })
 
   // Transaction could still be around and included in a future block, so we don't consider it invalidated
   return false
 }
 
-function* handleTimeout({
-  transaction,
-  apolloClient,
-  provider,
-}: {
-  transaction: TransactionDetails
-  apolloClient: ApolloClient<NormalizedCacheObject>
-  provider: providers.Provider
-}) {
+function* handleTimeout({ transaction, provider }: { transaction: TransactionDetails; provider: providers.Provider }) {
   if (
     isUniswapX(transaction) ||
     // TODO: SWAP-440/SWAP-441 - Handle Plan transaction timeout
@@ -234,7 +334,6 @@ function* handleTimeout({
     const failedTransaction = { ...transaction, status: TransactionStatus.Failed } as FinalizedTransactionDetails
     yield* call(finalizeTransaction, {
       transaction: failedTransaction,
-      apolloClient,
     })
   }
 }
@@ -294,7 +393,7 @@ export function* waitForSameNonceFinalized({ chainId, id, nonce }: WaitForParams
       !isUniswapX(payload) && // UniswapX transactions are submitted by a filler, so they cannot invalidate a transaction sent by a user.
       payload.chainId === chainId &&
       payload.id !== id &&
-      payload.options.request.nonce === nonce
+      payload.options.request?.nonce === nonce
     ) {
       return true
     }
@@ -316,7 +415,7 @@ export function* waitForBridgeSendCompleted({ chainId, id, nonce }: WaitForParam
       payload.sendConfirmed &&
       payload.chainId === chainId &&
       payload.id !== id &&
-      payload.options.request.nonce === nonce
+      payload.options.request?.nonce === nonce
     ) {
       return true
     }
@@ -336,19 +435,13 @@ function* waitForTxnInvalidated({ chainId, id, nonce }: WaitForParams): Generato
   return true
 }
 
-export function* watchTransaction({
-  transaction,
-  apolloClient,
-}: {
-  transaction: TransactionDetails
-  apolloClient: ApolloClient<NormalizedCacheObject>
-}): Generator<unknown> {
+export function* watchTransaction({ transaction }: { transaction: TransactionDetails }): Generator<unknown> {
   const { chainId, id, hash } = transaction
 
   logger.debug('watchOnChainTransactionSaga', 'watchTransaction', 'Watching for updates for tx:', { hash, id })
   const provider = yield* call(getProvider, chainId)
   const options = isUniswapX(transaction) ? undefined : transaction.options
-  const timeoutTask = yield* fork(handleTimeout, { transaction, apolloClient, provider })
+  const timeoutTask = yield* fork(handleTimeout, { transaction, provider })
   const listenForAppBackgrounded = options && !options.appBackgroundedWhilePending
 
   // Handle plan transactions with cancellation support
@@ -390,7 +483,7 @@ export function* watchTransaction({
 
     if (updatedTransaction) {
       if (isFinalizedTx(updatedTransaction)) {
-        yield* call(finalizeTransaction, { transaction: updatedTransaction, apolloClient })
+        yield* call(finalizeTransaction, { transaction: updatedTransaction })
         return
       } else {
         yield* put(transactionActions.updateTransaction(updatedTransaction))
@@ -403,7 +496,7 @@ export function* watchTransaction({
     updatedTransaction: call(waitForRemoteUpdate, transaction, provider),
     cancelTx: call(waitForCancellation, chainId, id),
     replace: call(waitForReplacement, chainId, id),
-    invalidated: call(waitForTxnInvalidated, { chainId, id, nonce: options?.request.nonce }),
+    invalidated: call(waitForTxnInvalidated, { chainId, id, nonce: options?.request?.nonce }),
     ...(listenForAppBackgrounded ? { appBackgrounded: call(watchForAppBackgrounded) } : {}),
   })
 
@@ -414,7 +507,7 @@ export function* watchTransaction({
   // `cancelTx` and `updatedTransaction` conditions apply to both Classic and UniswapX transactions
   if (cancelTx) {
     // reset watcher for the current txn, as it can still be mined (or invalidated by the new txn)
-    yield* fork(watchTransaction, { transaction, apolloClient })
+    yield* fork(watchTransaction, { transaction })
     // Cancel the current txn, which submits a new txn on chain and monitored in state
     yield* call(attemptCancelTransaction, transaction, cancelTx)
     return
@@ -423,7 +516,7 @@ export function* watchTransaction({
   if (updatedTransaction) {
     if (isFinalizedTx(updatedTransaction)) {
       // Update the store with tx receipt details
-      yield* call(finalizeTransaction, { transaction: updatedTransaction, apolloClient })
+      yield* call(finalizeTransaction, { transaction: updatedTransaction })
       return
     } else {
       // Update transaction with the new status, which will trigger a new transaction watcher
@@ -438,7 +531,7 @@ export function* watchTransaction({
 
   if (replace) {
     // Same logic as cancelation, but skip directly to replacement
-    yield* fork(watchTransaction, { transaction, apolloClient })
+    yield* fork(watchTransaction, { transaction })
     yield* call(attemptReplaceTransaction, { transaction, newTxRequest: replace.newTxParams })
     return
   }

@@ -1,3 +1,4 @@
+/* oxlint-disable max-lines max-params */
 /**
  * Test helpers for testing migrations run in sequence.
  *
@@ -6,14 +7,12 @@
  *
  * For unit tests of individual migrations, see walletMigrations.test.ts.
  */
-/* oxlint-disable max-lines */
-/* oxlint-disable max-params */
 
 import { RankingType } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
 import { BigNumber } from 'ethers'
 import { USDC } from 'uniswap/src/constants/tokens'
 import { AccountType } from 'uniswap/src/features/accounts/types'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { FiatCurrency } from 'uniswap/src/features/fiatCurrency/constants'
 import { Language } from 'uniswap/src/features/language/constants'
 import { TransactionStatus, TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'

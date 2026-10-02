@@ -7,9 +7,8 @@ import {
 } from 'src/app/features/dappRequests/configuredSagas'
 import { dappRequestApprovalWatcher } from 'src/app/features/dappRequests/dappRequestApprovalWatcherSaga'
 import { dappRequestWatcher } from 'src/app/features/dappRequests/saga'
-import { call, spawn } from 'typed-redux-saga'
-import { getMonitoredSagaReducers, type MonitoredSaga } from 'uniswap/src/utils/saga'
-import { apolloClientRef } from 'wallet/src/data/apollo/usePersistedApolloClient'
+import { spawn, call } from 'typed-redux-saga'
+import { getMonitoredSagaReducers, waitForRehydration, type MonitoredSaga } from 'uniswap/src/utils/saga'
 import { authActions, authReducer, authSaga, authSagaName } from 'wallet/src/features/auth/saga'
 import { initProviders } from 'wallet/src/features/providers/saga'
 import {
@@ -27,6 +26,10 @@ import {
   executeSwapReducer,
   executeSwapSaga,
   executeSwapSagaName,
+  executeUserOpSwapActions,
+  executeUserOpSwapReducer,
+  executeUserOpSwapSaga,
+  executeUserOpSwapSagaName,
   prepareAndSignSwapActions,
   prepareAndSignSwapReducer,
   prepareAndSignSwapSaga,
@@ -85,6 +88,12 @@ const monitoredSagas: Record<string, MonitoredSaga> = {
     reducer: executePlanReducer,
     actions: executePlanActions,
   },
+  [executeUserOpSwapSagaName]: {
+    name: executeUserOpSwapSagaName,
+    wrappedSaga: executeUserOpSwapSaga,
+    reducer: executeUserOpSwapReducer,
+    actions: executeUserOpSwapActions,
+  },
   [removeDelegationSagaName]: {
     name: removeDelegationSagaName,
     wrappedSaga: removeDelegationSaga,
@@ -114,8 +123,8 @@ export function* rootExtensionSaga() {
     yield* spawn(s)
   }
 
-  const apolloClient = yield* call(apolloClientRef.onReady)
-  yield* spawn(transactionWatcher, { apolloClient })
+  yield* call(waitForRehydration)
+  yield* spawn(transactionWatcher)
 
   for (const m of Object.values(monitoredSagas)) {
     yield* spawn(m['wrappedSaga'])

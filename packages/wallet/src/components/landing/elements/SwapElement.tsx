@@ -1,9 +1,10 @@
+import { Flex, iconSizes, Text, validColor } from '@universe/mycelium'
+import { ArrowRight } from '@universe/mycelium/icons/ArrowRight'
+import { useIsDarkMode } from '@universe/mycelium/theme-hooks-compat'
 import { useMemo } from 'react'
-import { Flex, Image, Text, useIsDarkMode } from 'ui/src'
+import { Image } from 'ui/src'
 import { DAI_LOGO, ETH_LOGO } from 'ui/src/assets'
-import { ArrowRight } from 'ui/src/components/icons'
-import { DEP_accentColors, iconSizes, imageSizes, validColor } from 'ui/src/theme'
-
+import { DEP_accentColors, imageSizes } from 'ui/src/theme'
 export const SwapElement = (): JSX.Element => {
   const isDarkMode = useIsDarkMode()
   const colorPalette = useMemo(

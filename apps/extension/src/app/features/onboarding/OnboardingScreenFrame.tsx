@@ -1,9 +1,9 @@
+import { Button, Flex, Text, TouchableArea } from '@universe/mycelium'
+import { BackArrow } from '@universe/mycelium/icons/BackArrow'
+import { TestID } from '@universe/test'
 import { useTranslation } from 'react-i18next'
 import { OnboardingScreenProps } from 'src/app/features/onboarding/OnboardingScreenProps'
-import { Button, Flex, Text, TouchableArea } from 'ui/src'
-import { BackArrow } from 'ui/src/components/icons'
 import i18n from 'uniswap/src/i18n'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 
 export function OnboardingScreenFrame({
   Icon,
@@ -89,10 +89,11 @@ export function OnboardingScreenFrame({
       <Flex row gap="$spacing12" width="100%">
         {Boolean(onSubmit) && nextButtonText && (
           <Button
-            isDisabled={!nextButtonEnabled}
+            disabled={!nextButtonEnabled}
             icon={nextButtonIcon}
             variant={nextButtonVariant}
             emphasis={nextButtonEmphasis}
+            testID={TestID.Next}
             onPress={onSubmit}
           >
             {nextButtonText}

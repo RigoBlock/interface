@@ -1,8 +1,9 @@
-import { useState } from 'react'
-import { animationPresets, Flex, Popover, Text, TouchableArea, useScrollbarStyles } from 'ui/src'
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
+import { useRef, useState } from 'react'
+import { useLockScroll } from 'src/app/hooks/useLockScroll'
+import { animationPresets, Popover, useScrollbarStyles } from 'ui/src'
 import { Check, RotatableChevron } from 'ui/src/components/icons'
 import { iconSizes, zIndexes } from 'ui/src/theme'
-
 type DropdownItem = {
   label: string
   value: unknown
@@ -20,10 +21,13 @@ const MAX_DROPDOWN_WIDTH = 250
 
 export function SettingsDropdown({ selected, items, disableDropdown, onSelect }: SettingsDropdownProps): JSX.Element {
   const [isOpen, setIsOpen] = useState(false)
+  const containerRef = useRef(null)
   const scrollbarStyles = useScrollbarStyles()
 
+  useLockScroll({ ref: containerRef, enabled: isOpen })
+
   return (
-    <Flex>
+    <Flex ref={containerRef}>
       <Popover open={isOpen} stayInFrame={true} onOpenChange={setIsOpen}>
         <Popover.Trigger disabled={disableDropdown}>
           <Flex
@@ -47,7 +51,6 @@ export function SettingsDropdown({ selected, items, disableDropdown, onSelect }:
           animation="quicker"
           animateOnly={['transform', 'opacity']}
           backgroundColor="$transparent"
-          enableRemoveScroll={true}
           {...animationPresets.fadeInDownOutUp}
         >
           <Flex

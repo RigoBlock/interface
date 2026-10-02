@@ -7,7 +7,9 @@ import {
   type GasStrategy,
   type TransactionEip1559FeeParams,
   type TransactionLegacyFeeParams,
+  tryProvideSession,
 } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
 import {
   DynamicConfigs,
   type GasStrategies,
@@ -16,7 +18,7 @@ import {
   getStatsigClient,
 } from '@universe/gating'
 import JSBI from 'jsbi'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { RPCType } from 'uniswap/src/features/chains/types'
 import {
   CHAIN_GAS_STRATEGY_OVERRIDES,
   DEFAULT_GAS_STRATEGY,
@@ -24,10 +26,22 @@ import {
   NORMAL_GAS_STRATEGY,
   URGENT_GAS_STRATEGY,
 } from 'uniswap/src/features/gas/consts'
-import { hasSufficientFundsIncludingTempoGas } from 'uniswap/src/features/gas/tempo'
-import { createEthersProvider } from 'uniswap/src/features/providers/createEthersProvider'
+import {
+  convertShiftedGasFeeForDisplay,
+  getGasFeeDecimalsShift,
+  hasShiftedGasToken,
+  hasSufficientFundsIncludingShiftedGasToken,
+} from 'uniswap/src/features/gas/shiftedGasToken'
+import type { GasFeeOverrides } from 'uniswap/src/features/gas/types'
+import { createEthersProviderFactory } from 'uniswap/src/features/providers/createEthersProvider'
+import { defaultResolveRpcConfig } from 'uniswap/src/features/providers/resolveRpcConfig'
 import { getCurrencyAmount, ValueType } from 'uniswap/src/features/tokens/getCurrencyAmount'
 import { type Prettify } from 'viem'
+
+const createProvider = createEthersProviderFactory({
+  resolveRpcConfig: defaultResolveRpcConfig,
+  getSessionGate: tryProvideSession,
+})
 
 export enum GasSpeed {
   Normal = 'normal',
@@ -40,6 +54,12 @@ export const GAS_SPEED_STRATEGIES: Record<GasSpeed, GasStrategy> = {
   [GasSpeed.Fast]: FAST_GAS_STRATEGY,
   [GasSpeed.Urgent]: URGENT_GAS_STRATEGY,
 } as const
+
+const DISPLAY_GAS_LIMIT_INFLATION_FACTOR = 1
+
+export function getDisplayGasStrategy(strategy: GasStrategy | undefined): GasStrategy | undefined {
+  return strategy ? { ...strategy, displayLimitInflationFactor: DISPLAY_GAS_LIMIT_INFLATION_FACTOR } : undefined
+}
 
 export function applyNativeTokenPercentageBuffer(
   currencyAmount: Maybe<CurrencyAmount<Currency>>,
@@ -108,33 +128,47 @@ export function hasSufficientFundsIncludingGas(params: {
   return !totalSpend || !nativeCurrencyBalance?.lessThan(totalSpend)
 }
 
+type GasSpend =
+  /** Raw native transaction value (decimal or hex `tx.value`), converted to gas-token units here. */
+  | { kind: 'raw-native-value'; value: string }
+  /** Amount already expressed in the gas token's currency and units. */
+  | { kind: 'gas-token-amount'; amount: CurrencyAmount<Currency> }
+
 export function hasSufficientGasBalance({
   chainId,
   gasBalance,
   gasFee,
-  gasTokenTransactionAmount,
+  spend,
 }: {
   chainId: UniverseChainId
   gasBalance: CurrencyAmount<Currency> | undefined
   gasFee: string | undefined
-  /** Amount being spent from the gas token balance (e.g. pathUSD on Tempo, native on other chains).
-   *  Consumers set this when `currencyAmountIn?.currency.equals(gasToken)`. */
-  gasTokenTransactionAmount?: CurrencyAmount<Currency>
+  spend?: GasSpend
 }): boolean {
   // Without a fee estimate or balance we cannot prove insufficiency — return true
   // so callers don't flash "insufficient gas" warnings while data is loading.
   if (!gasFee || !gasBalance) {
     return true
   }
-  if (chainId === UniverseChainId.Tempo) {
-    return hasSufficientFundsIncludingTempoGas({
-      pathUsdBalance: gasBalance,
+  const transactionAmount =
+    spend?.kind === 'raw-native-value'
+      ? (getCurrencyAmount({
+          value: convertShiftedGasFeeForDisplay(spend.value, getGasFeeDecimalsShift(chainId)),
+          valueType: ValueType.Raw,
+          currency: gasBalance.currency,
+        }) ?? undefined)
+      : spend?.amount
+
+  if (hasShiftedGasToken(chainId)) {
+    return hasSufficientFundsIncludingShiftedGasToken({
+      gasTokenBalance: gasBalance,
       gasFee,
-      pathUsdTransactionAmount: gasTokenTransactionAmount,
+      gasTokenTransactionAmount: transactionAmount,
+      decimalShift: getGasFeeDecimalsShift(chainId),
     })
   }
   return hasSufficientFundsIncludingGas({
-    transactionAmount: gasTokenTransactionAmount,
+    transactionAmount,
     gasFee,
     nativeCurrencyBalance: gasBalance,
   })
@@ -161,7 +195,7 @@ function isValidGasStrategies(value: unknown): value is GasStrategies {
   )
 }
 
-function getIsStatsigReady(): boolean {
+export function getIsStatsigReady(): boolean {
   return getStatsigClient().loadingStatus === 'Ready'
 }
 
@@ -242,7 +276,7 @@ export async function estimateGasWithClientSideProvider({
     if (!tx.chainId) {
       throw new Error('No chainId for clientside gas estimation')
     }
-    const provider = createEthersProvider({ chainId: tx.chainId })
+    const provider = createProvider({ chainId: tx.chainId, rpcType: RPCType.Public })
     if (!provider) {
       throw new Error('No provider for clientside gas estimation')
     }
@@ -279,15 +313,14 @@ export function extractGasFeeParams(estimate: GasEstimate): TransactionLegacyFee
 
 /**
  * Determines if gas estimation has failed for a transaction request.
- * Returns true when:
- * - The request is a transaction type that requires gas estimation
- * - Gas fee result has finished loading
- * - Either an error occurred OR no value was returned
+ *
+ * A missing `value` without an `error` is not a failure: React Query reports
+ * `isLoading: false` while a query is skipped (e.g. before the chainId resolves
+ * from an async hook), and treating that transient state as a failure flashes
+ * the error UI before the first real estimate resolves.
  */
 export function hasGasEstimationFailed(isTransactionRequest: boolean, gasFeeResult: GasFeeResult | undefined): boolean {
-  return (
-    isTransactionRequest && !!gasFeeResult && !gasFeeResult.isLoading && (!!gasFeeResult.error || !gasFeeResult.value)
-  )
+  return isTransactionRequest && !!gasFeeResult && !gasFeeResult.isLoading && !!gasFeeResult.error
 }
 
 // 20% gas buffer to avoid out-of-gas failures
@@ -296,4 +329,14 @@ const GAS_BUFFER_DENOMINATOR = BigInt(10)
 
 export function applyGasBuffer(gas: bigint): bigint {
   return (gas * GAS_BUFFER_NUMERATOR) / GAS_BUFFER_DENOMINATOR
+}
+
+/** True when the user has saved at least one per-tx gas override. */
+export function hasGasOverrides(gasOverrides: GasFeeOverrides | undefined): boolean {
+  return Boolean(
+    gasOverrides &&
+    (gasOverrides.maxBaseFeeGwei !== undefined ||
+      gasOverrides.priorityFeeGwei !== undefined ||
+      gasOverrides.gasLimit !== undefined),
+  )
 }

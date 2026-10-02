@@ -1,15 +1,6 @@
 {
   "extends": "../../config/tsconfig/app.json",
-  "include": [
-    "src/**/*.ts",
-    "src/*.ts",
-    "src/**/*.d.ts",
-    "src/**/*.json",
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/**/*.mts"
-  ],
-  "exclude": ["src/**/*.spec.ts", "src/**/*.spec.tsx", "src/**/*.test.ts", "src/**/*.test.tsx"],
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.json", "src/**/*.tsx", "src/**/*.mts"],
   "compilerOptions": {
     "emitDeclarationOnly": true,
     "noEmit": false,
@@ -18,8 +9,13 @@
     },
     "types": ["chrome", "node"]
   },
-  "types": ["vitest/globals"],
   "references": [
+    {
+      "path": "../../config/vitest-presets"
+    },
+    {
+      "path": "../environment"
+    },
     {
       "path": "../utilities"
     },

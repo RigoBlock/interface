@@ -1,10 +1,10 @@
+import { UniverseChainId } from '@universe/chains'
+import { Flex, ModalCloseIcon, Text } from '@universe/mycelium'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
-import { Flex, ModalCloseIcon, Text } from 'ui/src'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { InterfacePageName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { TransactionModal } from 'uniswap/src/features/transactions/components/TransactionModal/TransactionModal'
@@ -15,11 +15,11 @@ import {
 import { SwapTab } from 'uniswap/src/types/screens/interface'
 import { isEVMAddress } from 'utilities/src/addresses/evm/evm'
 import { noop } from 'utilities/src/react/noop'
-import { getChainIdFromChainUrlParam } from '~/features/params/chainParams'
+import { SwapAndLimitContext } from '~/features/Swap/state/types'
 import { useCurrency } from '~/hooks/Tokens'
 import { SendForm, SendFormProps } from '~/pages/Swap/Send/SendForm'
-import { SendContextProvider } from '~/state/send/SendContext'
-import { SwapAndLimitContext } from '~/state/swap/types'
+import { SendContextProvider } from '~/pages/Swap/Send/state/SendContext'
+import { getChainIdFromChainUrlParam } from '~/utils/params/chainParams'
 
 type SendFormModalProps = {
   isModalOpen: boolean
@@ -79,7 +79,7 @@ const SendFormModalInner = (props: SendFormModalProps) => {
     <Flex backgroundColor="$surface1" width="100%" flex={1} position="relative" gap="$spacing24">
       <Flex row justifyContent="center" alignItems="center">
         <Text variant="body2">{title}</Text>
-        <Flex row position="absolute" right="0" justifyContent="flex-end" alignItems="center" gap="10px">
+        <Flex row position="absolute" right={0} justifyContent="flex-end" alignItems="center" gap={10}>
           <ModalCloseIcon onClose={onClose} role="none" />
         </Flex>
       </Flex>
@@ -89,3 +89,5 @@ const SendFormModalInner = (props: SendFormModalProps) => {
     </Flex>
   )
 }
+
+export default SendFormModal

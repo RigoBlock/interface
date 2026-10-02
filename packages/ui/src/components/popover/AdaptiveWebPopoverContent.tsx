@@ -1,24 +1,20 @@
+import { isWebApp } from '@universe/environment'
 import { ComponentProps, ReactNode, useContext, useMemo } from 'react'
-import { GetProps, Popover, useMedia } from 'tamagui'
 // oxlint-disable-next-line no-restricted-imports -- needed here
-import { EffectiveModalOrSheetZIndexContext, WebBottomSheet } from 'ui/src/components/modal/AdaptiveWebModal'
+import {
+  DualZIndexProvider,
+  EffectiveModalOrSheetZIndexContext,
+  stackingLayerAbove,
+  WebBottomSheet,
+} from 'ui/src/components/modal/AdaptiveWebModal'
+import { Popover } from 'ui/src/components/popover/Popover'
+import { mediaQueryFor, useMediaQueryMatch } from 'ui/src/components/popover/popoverWebHelpers'
+import type { PopoverPlacement, PopoverPresenceStyle } from 'ui/src/components/popover/types'
 import { zIndexes } from 'ui/src/theme'
-import { isWebApp } from 'utilities/src/platform'
 
 const ANIMATION_OFFSET = 10
 
-const defaultPopoverAnimation: GetProps<typeof Popover.Content>['animation'] = [
-  'quick',
-  {
-    opacity: {
-      overshootClamping: true,
-    },
-  },
-]
-
-type PopoverPlacement = ComponentProps<typeof Popover>['placement']
-
-function getEnterExitStyle(placement?: PopoverPlacement): GetProps<typeof Popover.Content>['enterStyle'] {
+function getEnterExitStyle(placement?: PopoverPlacement): PopoverPresenceStyle {
   // Determine y offset based on vertical placement
   // When popover appears above trigger (top*): animate from below (positive y)
   // When popover appears below trigger (bottom*) or default: animate from above (negative y)
@@ -31,7 +27,10 @@ function getEnterExitStyle(placement?: PopoverPlacement): GetProps<typeof Popove
   }
 }
 
-type AdaptiveWebPopoverContentProps = Omit<ComponentProps<typeof Popover.Content>, 'children' | 'zIndex'> & {
+type AdaptiveWebPopoverContentProps = Omit<
+  ComponentProps<typeof Popover.Content>,
+  'children' | 'zIndex' | 'data-testid'
+> & {
   children: ReactNode
   isOpen: boolean
   isSheet?: boolean
@@ -61,31 +60,32 @@ export function AdaptiveWebPopoverContent({
   webBottomSheetProps,
   ...popoverContentProps
 }: AdaptiveWebPopoverContentProps): JSX.Element {
-  const media = useMedia()
-  const useSheetOnWeb = adaptWhen ?? media.sm
+  // Same true-below-breakpoint semantics as the retired Tamagui `useMedia().sm`
+  // (`sm` is a max-width query in ui/src/theme/media.ts).
+  const isBelowSmBreakpoint = useMediaQueryMatch(mediaQueryFor('sm'))
+  const useSheetOnWeb = adaptWhen ?? isBelowSmBreakpoint
   const effectiveModalZ = useContext(EffectiveModalOrSheetZIndexContext)
-  const stackingLayerNumber = Math.max((effectiveModalZ ?? 0) + 1, zIndexes.popover)
+  const stackingLayerNumber = stackingLayerAbove(effectiveModalZ, zIndexes.popover)
 
   const enterExitStyle = useMemo(() => getEnterExitStyle(placement), [placement])
 
   return (
     <>
+      {/* The legacy `animation` preset is retired: the rebuilt Content drives its fixed
+          150ms transform/opacity transition from enterStyle/exitStyle alone. */}
       <Popover.Content
         zIndex={stackingLayerNumber}
-        animation={defaultPopoverAnimation}
         enterStyle={enterExitStyle}
         exitStyle={enterExitStyle}
         {...popoverContentProps}
       >
-        <EffectiveModalOrSheetZIndexContext.Provider value={stackingLayerNumber}>
-          {children}
-        </EffectiveModalOrSheetZIndexContext.Provider>
+        <DualZIndexProvider value={stackingLayerNumber}>{children}</DualZIndexProvider>
       </Popover.Content>
       <Popover.Adapt when={isSheet ?? (isWebApp && useSheetOnWeb)}>
         <WebBottomSheet isOpen={isOpen} zIndex={stackingLayerNumber} {...(webBottomSheetProps || {})}>
-          <EffectiveModalOrSheetZIndexContext.Provider value={stackingLayerNumber}>
+          <DualZIndexProvider value={stackingLayerNumber}>
             <Popover.Adapt.Contents />
-          </EffectiveModalOrSheetZIndexContext.Provider>
+          </DualZIndexProvider>
         </WebBottomSheet>
       </Popover.Adapt>
     </>

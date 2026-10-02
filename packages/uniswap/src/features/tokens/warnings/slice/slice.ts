@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { getValidAddress } from '@universe/chains'
 import {
   BasicTokenInfo,
   SerializedToken,
@@ -7,7 +8,6 @@ import {
   TokenWarningDismissal,
 } from 'uniswap/src/features/tokens/warnings/slice/types'
 import { TokenProtectionWarning } from 'uniswap/src/features/tokens/warnings/types'
-import { getValidAddress } from 'uniswap/src/utils/addresses'
 
 export interface TokensState {
   dismissedTokenWarnings: SerializedTokenMap<TokenWarningDismissal>

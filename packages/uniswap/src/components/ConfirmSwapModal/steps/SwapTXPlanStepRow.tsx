@@ -1,24 +1,24 @@
 import { TradingApi } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
+import { iconSizes } from '@universe/mycelium'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { TFunction } from 'i18next'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSporeColors } from 'ui/src'
 import { CrosschainIcon } from 'ui/src/components/icons/CrosschainIcon'
-import { iconSizes } from 'ui/src/theme'
 import { StepRowProps, StepRowSkeleton } from 'uniswap/src/components/ConfirmSwapModal/steps/StepRowSkeleton'
 import { StepStatus } from 'uniswap/src/components/ConfirmSwapModal/types'
 import { useSecondsUntilDeadline } from 'uniswap/src/components/ConfirmSwapModal/useSecondsUntilDeadline'
 import { SplitLogo } from 'uniswap/src/components/CurrencyLogo/SplitLogo'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { TransactionStepType } from 'uniswap/src/features/transactions/steps/types'
 import { UniswapXSignatureStep } from 'uniswap/src/features/transactions/swap/steps/signOrder'
 import {
   SwapTransactionStep,
   SwapTransactionStepAsync,
-  SwapTransactionStepBatched,
+  SwapTransactionStepWalletCall,
 } from 'uniswap/src/features/transactions/swap/steps/swap'
 import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
 import { logger } from 'utilities/src/logger/logger'
@@ -27,7 +27,7 @@ export type SwapSteps = (
   | SwapTransactionStep
   | SwapTransactionStepAsync
   | UniswapXSignatureStep
-  | SwapTransactionStepBatched
+  | SwapTransactionStepWalletCall
 ) &
   TradingApi.PlanStep
 
@@ -97,9 +97,9 @@ export function SwapTransactionPlanStepRow({
       icon={Icon}
       learnMore={{
         url:
-          step.type === TransactionStepType.SwapTransactionBatched
-            ? uniswapUrls.helpArticleUrls.batchedSwaps
-            : uniswapUrls.helpArticleUrls.howToSwapTokens,
+          step.type === TransactionStepType.SwapTransactionWalletCall
+            ? UniswapHelpUrls.articles.batchedSwaps
+            : UniswapHelpUrls.articles.howToSwapTokens,
         text: t('common.learnMoreSwap'),
       }}
       status={status}

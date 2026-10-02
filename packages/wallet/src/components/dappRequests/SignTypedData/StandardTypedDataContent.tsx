@@ -1,7 +1,6 @@
+import { Flex, spacing, Text } from '@universe/mycelium'
 import { useMemo } from 'react'
 import { ScrollView } from 'react-native-gesture-handler'
-import { Flex, Text } from 'ui/src'
-import { spacing } from 'ui/src/theme'
 import { toSupportedChainId } from 'uniswap/src/features/chains/utils'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
 import { isEVMAddressWithChecksum } from 'utilities/src/addresses/evm/evm'

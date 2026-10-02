@@ -1,29 +1,33 @@
-import { Anchor, styled } from 'ui/src'
+import { Anchor, type AnchorProps, clickableStyle } from '@universe/mycelium'
+import { forwardRef } from 'react'
+import AnimatedNumber from 'uniswap/src/components/AnimatedNumber/AnimatedNumber'
+import { AnimatedNumberDirection } from 'uniswap/src/components/AnimatedNumber/types'
 import { useCurrentLocale } from 'uniswap/src/features/language/hooks'
-import { TableText } from '~/components/Table/shared/TableText'
+import { ONE_SECOND_MS } from 'utilities/src/time/time'
 import { useAbbreviatedTimeString } from '~/components/Table/utils/useAbbreviatedTimeString'
+import { useSyncedNowMs } from '~/components/Table/utils/useSyncedNowMs'
 import { MouseoverTooltip, TooltipSize } from '~/components/Tooltip'
-import { ClickableTamaguiStyle } from '~/theme/components/styles'
 
-const StyledExternalLink = styled(Anchor, {
-  textDecorationLine: 'none',
-  ...ClickableTamaguiStyle,
-  color: '$neutral1',
-  target: '_blank',
-  rel: 'noopener noreferrer',
+const StyledExternalLink = forwardRef<HTMLElement, AnchorProps>(function StyledExternalLink(props, ref) {
+  return <Anchor ref={ref} color="$neutral1" target="_blank" rel="noopener noreferrer" {...clickableStyle} {...props} />
 })
 
-const StyledTimestampRow = styled(StyledExternalLink, {
-  group: true,
-  display: 'flex',
-  flexDirection: 'row',
-  alignItems: 'center',
-  gap: '$gap8',
-  width: '100%',
-  whiteSpace: 'nowrap',
-  hoverStyle: {
-    opacity: 1,
-  },
+// The legacy config's unnamed `group: true` anchor has no consumer in this component's fixed
+// subtree (MouseoverTooltip/AnimatedNumber render no `$group-*` prop) — verified dead, dropped.
+const StyledTimestampRow = forwardRef<HTMLElement, AnchorProps>(function StyledTimestampRow(props, ref) {
+  return (
+    <StyledExternalLink
+      ref={ref}
+      display="flex"
+      flexDirection="row"
+      alignItems="center"
+      gap="$gap8"
+      width="100%"
+      whiteSpace="nowrap"
+      hoverStyle={{ opacity: 1 }}
+      {...props}
+    />
+  )
 })
 
 /**
@@ -50,11 +54,19 @@ export const TimestampCell = ({ timestamp, link }: { timestamp: number; link: st
     .replace(/\s(am|pm)/, '$1')
 
   const abbreviatedTime = useAbbreviatedTimeString(timestamp * 1000)
+  const now = useSyncedNowMs()
+  const elapsedSeconds = Math.floor((now - timestamp * ONE_SECOND_MS) / ONE_SECOND_MS)
 
   return (
     <StyledTimestampRow href={link}>
       <MouseoverTooltip text={fullDate} placement="top" size={TooltipSize.Max}>
-        <TableText>{abbreviatedTime}</TableText>
+        <AnimatedNumber
+          value={abbreviatedTime}
+          numericValue={elapsedSeconds}
+          textVariant="$body2"
+          color="$neutral1"
+          forceDirection={AnimatedNumberDirection.UP}
+        />
       </MouseoverTooltip>
     </StyledTimestampRow>
   )

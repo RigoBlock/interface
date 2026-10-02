@@ -1,31 +1,26 @@
-import { PROD_WEBSOCKET_BASE_URL, STAGING_WEBSOCKET_BASE_URL } from '@universe/api/src/clients/base/urls'
+import { ENTRY_GATEWAY_API_BASE_URLS } from '@universe/api/src/clients/base/urls'
+import { getEntryGatewayUrl } from '@universe/api/src/getEntryGatewayUrl'
 import { getConfig } from '@universe/config'
-import { Environment, getCurrentEnv } from 'utilities/src/environment/getCurrentEnv'
+import { getCurrentEnv } from '@universe/environment'
+
+function toWebSocketUrl(httpBaseUrl: string): string {
+  return `${httpBaseUrl.replace('https:', 'wss:')}/ws`
+}
 
 /**
- * Returns the appropriate WebSocket URL based on the current environment.
- * When the entry gateway proxy is enabled (and not on Vercel), returns the BFF
- * proxy path so the Cloudflare Worker can forward the connection with correct
- * cookies/origin. On Vercel, WebSocket proxying is not supported (neither via
- * serverless/edge functions nor external rewrites), so we return the direct
- * backend URL — the WS connection will fail (no session cookies cross-origin)
- * and the REST fallback (RestPriceBatcher via /entry-gateway) handles pricing.
+ * Socket opens against the same entry gateway host as REST — the session cookie is host-only,
+ * and the gateway authenticates and proxies through to the websockets service.
  */
 export function getWebSocketUrl(): string {
   const config = getConfig()
 
-  if (config.enableEntryGatewayProxy && !config.isVercelEnvironment) {
-    return '/ws'
+  if (config.enableEntryGatewayProxy) {
+    if (!config.isVercelEnvironment) {
+      return '/ws'
+    }
+    // Vercel can't proxy WS, so previews connect directly and fall back to REST pricing.
+    return toWebSocketUrl(ENTRY_GATEWAY_API_BASE_URLS[getCurrentEnv({ isVercelEnvironment: true })])
   }
 
-  const environment = getCurrentEnv({ isVercelEnvironment: config.isVercelEnvironment })
-  switch (environment) {
-    case Environment.DEV:
-    case Environment.STAGING:
-      return STAGING_WEBSOCKET_BASE_URL as string
-    case Environment.PROD:
-      return PROD_WEBSOCKET_BASE_URL as string
-    default:
-      throw new Error(`Invalid environment: ${environment}`)
-  }
+  return toWebSocketUrl(getEntryGatewayUrl())
 }

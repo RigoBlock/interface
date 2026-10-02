@@ -1,9 +1,13 @@
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
+import type { GeneratedIcon } from '@universe/mycelium/icons'
+import { Check } from '@universe/mycelium/icons/Check'
+import { Contrast } from '@universe/mycelium/icons/Contrast'
+import { Moon } from '@universe/mycelium/icons/Moon'
+import { Sun } from '@universe/mycelium/icons/Sun'
 import { default as React, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { useReactNavigationModal } from 'src/components/modals/useReactNavigationModal'
-import { Flex, GeneratedIcon, Text, TouchableArea } from 'ui/src'
-import { Check, Contrast, Moon, Sun } from 'ui/src/components/icons'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { useCurrentAppearanceSetting } from 'uniswap/src/features/appearance/hooks'
 import { AppearanceSettingType, setSelectedAppearanceSettings } from 'uniswap/src/features/appearance/slice'
@@ -16,7 +20,7 @@ export function SettingsAppearanceModal(): JSX.Element {
 
   return (
     <Modal name={ModalName.SettingsAppearance} onClose={onClose}>
-      <Flex animation="fast" gap="$spacing16" pb="$spacing24" px="$spacing24" width="100%">
+      <Flex gap="$spacing16" pb="$spacing24" px="$spacing24" width="100%">
         <Flex centered>
           <Text color="$neutral1" variant="subheading1">
             {t('settings.setting.appearance.title')}

@@ -15,10 +15,10 @@ Uniswap Universe is a monorepo containing all Uniswap front-end interfaces:
 ### Setup
 
 ```bash
-# Initial setup (requires 1Password CLI)
+# Initial setup
 bun install
 bun local:check
-bun lfg  # Sets up mobile and extension
+bun config:login
 ```
 
 ### Development Servers
@@ -33,7 +33,6 @@ bun extension start     # Extension
 ### Building
 
 ```bash
-bun g:build                      # Build all packages
 bun web build:production    # Web production build
 bun mobile ios:bundle            # iOS bundle
 bun mobile android:release       # Android release
@@ -73,14 +72,13 @@ bun i18n:extract                # Extract localized strings (run after changing 
 - **React** for web/extension
 - **React Native** for mobile
 - **Redux Toolkit** for state management
-- **Tamagui** for cross-platform UI components
 - **Ethers.js/Viem** for blockchain interactions
 
 ### Code Organization Principles
 
 #### Styling
 
-- **ALWAYS** use `styled` from `ui/src` (never styled-components or direct Tamagui); UI components may use inline styling where appropriate
+- **ALWAYS** use `styled` from `ui/src` (never styled-components); UI components may use inline styling where appropriate
 - Use theme tokens instead of hardcoded values
 - Platform-specific files: `Component.ios.tsx`, `Component.android.tsx`, `Component.web.tsx`, `Component.native.tsx` (with stub files for platforms where specific implementation isn't needed)
 
@@ -114,6 +112,7 @@ bun i18n:extract                # Extract localized strings (run after changing 
 - Always update existing unit tests related to changes made
 - Run tests before considering a task to be 'complete'
 - Also run linting and typecheck before considering a task to be 'complete'
+- Don't ignore new lint warnings — fix them; suppress with a one-line reasoned `oxlint-disable-next-line` only when a proper fix would change behavior
 - Run `bun i18n:extract` after making changes to localized strings (e.g., using translation hooks like `useTranslation`)
 
 ## Critical Development Notes
@@ -123,6 +122,7 @@ bun i18n:extract                # Extract localized strings (run after changing 
 3. **Python Setup**: Run `brew install python-setuptools` if you encounter Python module errors
 4. **Mobile Development**: Always run `bun mobile pod` after dependency changes
 5. **Bundle Size**: Monitor bundle size impacts when adding dependencies
+6. **Bun Version Bumps**: `.bun-version` is the single source of truth. After editing it, run `bun sync:bun-version` to rewrite the pins that can't read the file (`engines.bun`, EAS build profiles) — CI fails if they drift. CI runners install Bun via `oven-sh/setup-bun` (reading `.bun-version` directly), so they need no pin. Bump `@types/bun` and rerun `bun install` separately.
 
 ## Package Dependencies
 
@@ -169,3 +169,39 @@ Be cognizant of the app or package within which a given change is being made. Be
 
 
 <!-- nx configuration end-->
+
+## Cursor Cloud specific instructions
+
+### Environment
+
+- Node.js and Bun are pre-installed and match `.nvmrc` / `.bun-version`.
+- The `tsgo` binary is at `node_modules/.bin/tsgo` (not globally in PATH). The `bun g:typecheck` script handles this automatically.
+- Set `export LEFTHOOK=0` to disable git hooks in Cloud Agent sessions (no TTY for interactive hooks).
+- Set `export SKIP_CONFIG_PULL=true` to disable remote config fetching (no Okta auth for agents)
+- All backend APIs are external (no local databases or Docker needed for development).
+
+### Web App
+
+- **Start dev server**: `bun web dev` → runs on `http://localhost:3000/`
+- **Run tests**: `bunx nx run web:test -- --run` (317 test files, ~2.5 min)
+- **Lint (fast)**: `bunx nx run web:format` (formatting) and `bunx nx run web:lint` (oxlint)
+- **Typecheck**: `bun g:typecheck` runs `tsgo -b` globally (fastest). Per-project: `bunx nx run web:typecheck`.
+- The `web:typecheck:cloud` target typechecks the `apps/web/functions/` (edge functions) separately and may fail independently of the main app.
+- The web app loads live data from Uniswap's public APIs without requiring API keys for basic swap quotes and token exploration.
+
+### Extension
+
+- **Start dev server**: `bun extension dev` → WXT builds the extension and opens Chrome with it pre-loaded.
+- A pre-built extension is available at `/var/tmp/stretch` and is already loaded in the default Chrome profile (`/home/ubuntu/.config/google-chrome`).
+- The extension wallet is **already onboarded**. To unlock it, use the password from the `EXTENSION_UNLOCK_PASSWORD` environment variable.
+- To type the password programmatically: write it to a temp file with `python3 -c "import os; open('/tmp/ext_pw.txt','w').write(os.environ['EXTENSION_UNLOCK_PASSWORD'])"`, then read/type from that file (the env var value is redacted in shell output but available to processes).
+- The extension opens as a **side panel** in Chrome (not a popup). Click the Uniswap icon in the toolbar or use Ctrl+Shift+U.
+- The wallet contains a small amount of ETH and cBTC on Ethereum mainnet.
+- **Known limitation**: connecting the extension wallet to the web app on `localhost` does not currently work (the `externally_connectable` manifest only allows `app.uniswap.org` and staging origins).
+
+### Gotchas
+
+- `bun install` runs a `preinstall` script that validates Node/Bun versions and will fail if they don't match `.nvmrc` / `.bun-version`.
+- The `postinstall` script runs `git config core.hooksPath .husky && bun g:prepare`. The `g:prepare` step (`nx run-many -t prepare`) generates codegen files needed for typecheck/build.
+- Mobile requires native tooling (Xcode, CocoaPods, Android SDK) not available in Cloud Agent VMs.
+- When running `bun extension dev`, WXT creates a `web-ext.config.ts` override file (gitignored) to customize browser startup behavior. You can set `startUrls`, `chromiumArgs`, or `WXT_NO_OPEN_BROWSER=true` as needed.

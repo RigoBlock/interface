@@ -1,18 +1,18 @@
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet'
+import { Text } from '@universe/mycelium'
+import { Accordion } from '@universe/mycelium'
+import { TestID } from '@universe/test'
 import React from 'react'
-import { ScrollView } from 'react-native-gesture-handler'
 import { SeedPhraseAndPrivateKeysDevSection } from 'src/components/experiments/SeedPhraseAndPrivateKeysDevSection'
-import { ServerOverrides } from 'src/components/experiments/ServerOverrides'
 import { useReactNavigationModal } from 'src/components/modals/useReactNavigationModal'
 import { E2EPixel } from 'src/test/E2EPixel'
 import { getFullAppVersion } from 'src/utils/version'
-import { Accordion, Text } from 'ui/src'
 import { spacing } from 'ui/src/theme'
 import { CacheConfig } from 'uniswap/src/components/gating/CacheConfig'
 import { GatingOverrides } from 'uniswap/src/components/gating/GatingOverrides'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { useAppInsets } from 'uniswap/src/hooks/useAppInsets'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 
 export function ExperimentsModal(): JSX.Element {
   const insets = useAppInsets()
@@ -20,7 +20,9 @@ export function ExperimentsModal(): JSX.Element {
 
   return (
     <Modal fullScreen renderBehindBottomInset name={ModalName.Experiments} onClose={onClose}>
-      <ScrollView
+      {/* Sheet-aware scrollable: a plain ScrollView inside a gorhom sheet loses scroll-vs-pan
+          arbitration, so downward scrolls can be taken by the sheet's dismiss gesture. */}
+      <BottomSheetScrollView
         contentContainerStyle={{
           paddingBottom: insets.bottom,
           paddingRight: spacing.spacing24,
@@ -37,10 +39,9 @@ export function ExperimentsModal(): JSX.Element {
             Miscellaneous
           </Text>
           <CacheConfig />
-          <ServerOverrides />
           <SeedPhraseAndPrivateKeysDevSection />
         </Accordion>
-      </ScrollView>
+      </BottomSheetScrollView>
     </Modal>
   )
 }

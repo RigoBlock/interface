@@ -1,5 +1,5 @@
+import { TouchableArea } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
-import { TouchableArea } from 'ui/src'
 import { InlineWarningCard } from 'uniswap/src/components/InlineWarningCard/InlineWarningCard'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'

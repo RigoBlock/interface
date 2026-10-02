@@ -1,6 +1,6 @@
 import { Percent } from '@uniswap/sdk-core'
 import { type JupiterOrderResponse, TradingApi } from '@universe/api'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { SolanaTrade } from 'uniswap/src/features/transactions/swap/types/solana'
 import { jupiterRoutingProvider } from 'uniswap/src/utils/routingDiagram/routingProviders/jupiterRoutingProvider'
 

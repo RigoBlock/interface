@@ -1,15 +1,33 @@
+import { Flex, type FlexCompatProps, validColor } from '@universe/mycelium'
 import { startTransition, useEffect, useState } from 'react'
-import { Flex, type FlexProps, styled } from 'ui/src'
-import { validColor } from 'ui/src/theme'
-import { ItemData, ItemPoint } from 'uniswap/src/components/IconCloud/IconCloud'
+import type { ItemData, ItemPoint } from 'uniswap/src/components/IconCloud/IconCloud'
 import { randomChoice } from 'uniswap/src/components/IconCloud/utils'
+import { useInjectSingleStylesheet } from 'utilities/src/react/useInjectSingleStylesheet'
 import { ONE_SECOND_MS } from 'utilities/src/time/time'
+
+/** Mirrors the `bouncy`/`fast` presets in `ui/src/theme/animations`; spelled as CSS since new Tamagui `animation` props are banned (INFRA-2958). */
+const BOUNCY_CURVE = '400ms cubic-bezier(0.34, 1.56, 0.64, 1)'
+const FAST_CURVE = '100ms cubic-bezier(0.17, 0.67, 0.45, 1)'
+
+const CLOUD_ITEM_KEYFRAMES_ID = 'uniswap-cloud-item-keyframes'
+// Transform function order (translate, scale, rotate) matches the compat transform merge, so the
+// enter animation lands exactly on the elements' base transforms.
+const CLOUD_ITEM_KEYFRAMES_CSS = `
+    @keyframes uniswap-cloud-item-enter {
+      from { transform: translateY(30px); }
+      to { transform: translateY(0); }
+    }
+    @keyframes uniswap-cloud-icon-enter {
+      from { transform: translateY(30px) scale(0) rotate(-15deg); opacity: 0; }
+      to { transform: translateY(0) scale(1) rotate(15deg); opacity: 1; }
+    }
+  `
 
 function TokenIconPositioner({
   size,
   delay,
   ...rest
-}: FlexProps & {
+}: FlexCompatProps & {
   size: number
   delay: number
 }): JSX.Element | null {
@@ -34,123 +52,96 @@ function TokenIconPositioner({
   return <Flex pointerEvents="auto" width={size} height={size} {...rest} />
 }
 
-const FloatContainer = styled(Flex, {
-  '$platform-web': {
-    position: 'absolute',
-    transformOrigin: 'center center',
-    animationName: 'cloud-float-animation',
-    animationIterationCount: 'infinite',
-    animationTimingFunction: 'linear',
-  },
+function FloatContainer({
+  duration = 0,
+  paused,
+  style,
+  ...rest
+}: FlexCompatProps & { duration?: number; paused?: boolean }): JSX.Element {
+  return (
+    <Flex
+      $platform-web={{ position: 'absolute', transformOrigin: 'center center' }}
+      style={{
+        animationName: 'cloud-float-animation',
+        animationDuration: `${1000 * duration}ms`,
+        animationIterationCount: 'infinite',
+        animationTimingFunction: 'linear',
+        animationPlayState: paused ? 'paused' : 'running',
+        ...style,
+      }}
+      {...rest}
+    />
+  )
+}
 
-  variants: {
-    duration: {
-      ':number': (val = 0) => ({
-        '$platform-web': {
-          animationDuration: `${1000 * val}ms`,
-        },
-      }),
-    },
-    paused: {
-      true: {
-        '$platform-web': {
-          animationPlayState: 'paused',
-        },
-      },
-    },
-  } as const,
-})
+function RotateContainer({
+  duration = 0,
+  paused,
+  style,
+  ...rest
+}: FlexCompatProps & { duration?: number; paused?: boolean }): JSX.Element {
+  return (
+    <Flex
+      $platform-web={{ position: 'absolute', transformOrigin: 'center center' }}
+      style={{
+        animationName: 'token-rotate-animation',
+        animationDuration: `${1000 * duration}ms`,
+        animationFillMode: 'forwards',
+        animationIterationCount: 'infinite',
+        animationTimingFunction: 'ease-in-out',
+        animationDirection: 'alternate-reverse',
+        animationPlayState: paused ? 'paused' : 'running',
+        ...style,
+      }}
+      {...rest}
+    />
+  )
+}
 
-const RotateContainer = styled(Flex, {
-  '$platform-web': {
-    position: 'absolute',
-    transformOrigin: 'center center',
-    animationFillMode: 'forwards',
-    animationName: 'token-rotate-animation',
-    animationIterationCount: 'infinite',
-    animationTimingFunction: 'ease-in-out',
-    animationDirection: 'alternate-reverse',
-  },
+function TokenIconRing({
+  size,
+  rounded,
+  style,
+  ...rest
+}: FlexCompatProps & { size?: number; rounded?: boolean }): JSX.Element {
+  return (
+    <Flex
+      borderWidth={1}
+      borderColor="$color"
+      transformOrigin="center center"
+      position="absolute"
+      width={size}
+      height={size}
+      style={rounded ? { borderRadius: '50%', ...style } : style}
+      {...rest}
+    />
+  )
+}
 
-  variants: {
-    duration: {
-      ':number': (val = 0) => ({
-        '$platform-web': {
-          animationDuration: `${1000 * val}ms`,
-        },
-      }),
-    },
-    paused: {
-      true: {
-        '$platform-web': {
-          animationPlayState: 'paused',
-        },
-      },
-    },
-  } as const,
-})
-
-const TokenIconRing = styled(Flex, {
-  borderWidth: 1,
-  borderColor: '$color',
-  transformOrigin: 'center center',
-  position: 'absolute',
-
-  variants: {
-    size: {
-      ':number': (val) => ({
-        width: val,
-        height: val,
-      }),
-    },
-
-    rounded: {
-      true: {
-        '$platform-web': {
-          borderRadius: '50%',
-        },
-      },
-    },
-  } as const,
-})
-
-const ItemContainer = styled(Flex, {
-  backgroundSize: 'cover',
-  backgroundPosition: 'center center',
-  transition: 'filter 0.15s ease-in-out',
-  transformOrigin: 'center center',
-
-  variants: {
-    logoUrl: {
-      ':string': (val) => ({
-        backgroundImage: `url(${val})`,
-        backgroundSize: 'contain',
-        backgroundRepeat: 'no-repeat',
-      }),
-    },
-
-    blur: {
-      ':number': (val) => ({
-        filter: `blur(${val}px)`,
-      }),
-    },
-
-    size: {
-      ':number': (val) => ({
-        width: val,
-        height: val,
-      }),
-    },
-
-    rounded: {
-      true: {
-        '$platform-web': {
-          borderRadius: '50%',
-        },
-      },
-    },
-  } as const,
-})
+function ItemContainer({
+  logoUrl,
+  blur,
+  size,
+  rounded,
+  style,
+  ...rest
+}: FlexCompatProps & { logoUrl?: string; blur?: number; size?: number; rounded?: boolean }): JSX.Element {
+  return (
+    <Flex
+      backgroundSize={logoUrl !== undefined ? 'contain' : 'cover'}
+      backgroundPosition="center center"
+      backgroundImage={logoUrl !== undefined ? `url(${logoUrl})` : undefined}
+      backgroundRepeat={logoUrl !== undefined ? 'no-repeat' : undefined}
+      transition={`opacity ${FAST_CURVE}, transform ${FAST_CURVE}, filter ${FAST_CURVE}`}
+      transformOrigin="center center"
+      width={size}
+      height={size}
+      filter={blur !== undefined ? `blur(${blur}px)` : undefined}
+      style={rounded ? { borderRadius: '50%', ...style } : style}
+      {...rest}
+    />
+  )
+}
 
 export function CloudItem<T extends ItemData>({
   point,
@@ -165,6 +156,8 @@ export function CloudItem<T extends ItemData>({
   onPress?: (point: ItemPoint<T>) => void
   isPaused?: boolean
 }): JSX.Element {
+  useInjectSingleStylesheet({ id: CLOUD_ITEM_KEYFRAMES_ID, css: CLOUD_ITEM_KEYFRAMES_CSS })
+
   const { x, y, blur, size, rotation, opacity, delay, floatDuration, color } = point
 
   const borderRadius = size / 8
@@ -172,25 +165,13 @@ export function CloudItem<T extends ItemData>({
 
   return (
     <Flex position="absolute" group="item" top={y} left={x} width={size} height={size} transformOrigin="center center">
-      <Flex animation="bouncy" enterStyle={{ y: 30 }}>
+      <Flex style={{ animation: `uniswap-cloud-item-enter ${BOUNCY_CURVE}` }}>
         <TokenIconPositioner
-          animation="bouncy"
           delay={delay}
           rotate="15deg"
           opacity={1}
           scale={1}
-          enterStyle={{
-            scale: 0,
-            opacity: 0,
-            y: 30,
-            rotate: '-15deg',
-          }}
-          exitStyle={{
-            scale: 3,
-            opacity: 0,
-            rotate: '15deg',
-            y: 10,
-          }}
+          style={{ animation: `uniswap-cloud-icon-enter ${BOUNCY_CURVE}` }}
           size={size}
         >
           <FloatContainer duration={floatDuration} paused={isPaused}>
@@ -198,7 +179,6 @@ export function CloudItem<T extends ItemData>({
             <RotateContainer duration={duration} paused={isPaused}>
               <ItemContainer
                 size={size}
-                animation="fast"
                 blur={blur}
                 backgroundColor={validColor(color)}
                 rounded={getElementRounded?.(point)}
@@ -218,7 +198,7 @@ export function CloudItem<T extends ItemData>({
                   <>
                     <TokenIconRing
                       opacity={0}
-                      animation="bouncy"
+                      transition={`opacity ${BOUNCY_CURVE}, transform ${BOUNCY_CURVE}`}
                       $group-item-hover={{
                         opacity: 0.3,
                         scale: 1.2,
@@ -230,7 +210,7 @@ export function CloudItem<T extends ItemData>({
                     />
                     <TokenIconRing
                       opacity={0}
-                      animation="bouncy"
+                      transition={`opacity ${BOUNCY_CURVE}, transform ${BOUNCY_CURVE}`}
                       $group-item-hover={{
                         opacity: 0.1,
                         scale: 1.4,

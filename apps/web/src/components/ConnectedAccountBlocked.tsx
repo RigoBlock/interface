@@ -1,43 +1,46 @@
+import { Anchor, Flex, Text } from '@universe/mycelium'
+import { Blocked } from '@universe/mycelium/icons/Blocked'
 import { Trans, useTranslation } from 'react-i18next'
-import { Flex, Text } from 'ui/src'
-import { Blocked } from 'ui/src/components/icons/Blocked'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { useModalInitialState } from '~/hooks/useModalInitialState'
 import { ModalState } from '~/hooks/useModalState'
-import { CopyHelper } from '~/theme/components/CopyHelper'
 import { ExternalLink } from '~/theme/components/Links'
 
-export default function ConnectedAccountBlocked({ isOpen, closeModal }: ModalState) {
+export function ConnectedAccountBlocked({ isOpen, closeModal }: ModalState) {
   const blockedAddress = useModalInitialState(ModalName.BlockedAccount)?.blockedAddress
   const { t } = useTranslation()
   return (
-    <Modal name={ModalName.AccountBlocked} isModalOpen={isOpen} onClose={closeModal} padding={0}>
-      <Flex centered margin="$spacing32" gap="$spacing24">
+    <Modal name={ModalName.AccountBlocked} isModalOpen={isOpen} onClose={closeModal}>
+      <Flex centered gap="$spacing16">
+        <Flex backgroundColor="$surface3" p="$spacing12" borderRadius="$rounded12">
+          <Blocked color="$neutral1" size="$icon.24" />
+        </Flex>
         <Flex centered gap="$spacing8">
-          <Blocked color="$neutral2" size="$icon.24" />
-          <Text variant="heading3">{t('common.blockedAddress')}</Text>
+          <Text variant="subheading1">{t('common.blockedAddress')}</Text>
           <Text color="$neutral2" variant="body3">
             {blockedAddress}
           </Text>
         </Flex>
         <Flex centered gap="$spacing8">
-          <Text color="$neutral2" variant="body4" textAlign="center">
+          <Text color="$neutral2" variant="body3" textAlign="center">
             <Trans
               i18nKey="common.blocked.reason"
               components={{ link: <ExternalLink href="https://help.uniswap.org/en/articles/6149816" /> }}
             />
           </Text>
-          <Text color="$neutral2" variant="body4" textAlign="center">
+          <Text color="$neutral2" variant="body3" textAlign="center">
             <Trans
               i18nKey="common.blocked.ifError"
               components={{
+                // The catalog string ends in "...to <emailAddress />", and the placeholder is
+                // self-closing, so Trans clones it with no children — the anchor carries its own
+                // text. It also has to render inline: Text is display:inline, so a Flex (a block
+                // flex box) here drops the email out of the sentence onto its own line.
                 emailAddress: (
-                  <Flex mt="$spacing12" alignItems="center">
-                    <CopyHelper toCopy="compliance@uniswap.org" iconSize={16} color="$accent1" iconPosition="right">
-                      compliance@uniswap.org
-                    </CopyHelper>
-                  </Flex>
+                  <Anchor href="mailto:compliance@uniswap.org" variant="body3" color="$neutral1">
+                    compliance@uniswap.org
+                  </Anchor>
                 ),
               }}
             />
@@ -47,3 +50,5 @@ export default function ConnectedAccountBlocked({ isOpen, closeModal }: ModalSta
     </Modal>
   )
 }
+
+export default ConnectedAccountBlocked

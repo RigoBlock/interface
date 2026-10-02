@@ -1,7 +1,7 @@
+import { Platform } from '@universe/chains'
 import type { ConnectionStatusInfo } from 'uniswap/src/features/accounts/store/types/Connector'
 import { ConnectorStatus } from 'uniswap/src/features/accounts/store/types/Connector'
 import { SigningCapability } from 'uniswap/src/features/accounts/store/types/Wallet'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { InterfaceEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { WalletConnectionResult } from 'uniswap/src/features/telemetry/types'

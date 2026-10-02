@@ -1,6 +1,6 @@
+import { Flex, Text } from '@universe/mycelium'
 import React, { memo } from 'react'
 import { useSessionsDebugStore } from 'src/screens/stores/sessionsDebugStore'
-import { Flex, Text } from 'ui/src'
 import { useShallow } from 'zustand/shallow'
 
 export const HashcashProgressSection = memo(function HashcashProgressSection(): JSX.Element | null {

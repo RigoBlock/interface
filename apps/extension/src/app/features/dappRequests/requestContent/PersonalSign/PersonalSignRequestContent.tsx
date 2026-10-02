@@ -24,6 +24,7 @@ export function PersonalSignRequestContent({ dappRequest }: PersonalSignRequestP
   const { value: confirmedRisk, setValue: setConfirmedRisk } = useBooleanState(false)
   // Initialize with null to indicate scan hasn't completed yet
   const [riskLevel, setRiskLevel] = useState<TransactionRiskLevel | null>(null)
+  const [isCriticalRisk, setIsCriticalRisk] = useState(false)
 
   // Decode message to UTF-8
   const hexMessage = dappRequest.messageHex
@@ -61,6 +62,7 @@ export function PersonalSignRequestContent({ dappRequest }: PersonalSignRequestP
       title={t('dapp.request.signature.header')}
       showAddressFooter={false}
       disableConfirm={disableConfirm}
+      isCriticalRisk={isCriticalRisk}
     >
       <DappPersonalSignContent
         chainId={activeChain}
@@ -73,6 +75,7 @@ export function PersonalSignRequestContent({ dappRequest }: PersonalSignRequestP
         confirmedRisk={confirmedRisk}
         onConfirmRisk={setConfirmedRisk}
         onRiskLevelChange={setRiskLevel}
+        onCriticalRiskChange={setIsCriticalRisk}
       />
     </DappRequestContent>
   )

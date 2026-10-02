@@ -1,6 +1,7 @@
+import { Flex, Text, TouchableArea, type ColorTokens } from '@universe/mycelium'
+import type { GeneratedIcon } from '@universe/mycelium/icons'
+import { RotatableChevron } from '@universe/mycelium/icons/RotatableChevron'
 import { Link } from 'react-router'
-import { ColorTokens, Flex, GeneratedIcon, Text, TouchableArea, useSporeColors } from 'ui/src'
-import { RotatableChevron } from 'ui/src/components/icons'
 
 export function SettingsItem({
   Icon,
@@ -21,13 +22,12 @@ export function SettingsItem({
   onPress?: () => void
   iconProps?: { strokeWidth?: number }
   // TODO: do this with a wrapping Theme, "detrimental" wasn't working
-  themeProps?: { color?: string; hoverColor?: string }
+  themeProps?: { color?: ColorTokens; hoverColor?: ColorTokens }
   url?: string
   count?: number
   testID?: string
 }): JSX.Element {
-  const colors = useSporeColors()
-  const hoverColor = themeProps?.hoverColor ?? colors.surface2.val
+  const hoverColor = themeProps?.hoverColor ?? '$surface2'
 
   const content = (
     <TouchableArea
@@ -37,7 +37,7 @@ export function SettingsItem({
       flexGrow={1}
       gap="$spacing12"
       hoverStyle={{
-        backgroundColor: hoverColor as ColorTokens,
+        backgroundColor: hoverColor,
       }}
       justifyContent="space-between"
       px="$spacing12"
@@ -52,7 +52,7 @@ export function SettingsItem({
             size="$icon.24"
             strokeWidth={iconProps?.strokeWidth ?? undefined}
           />
-          <Text style={{ color: themeProps?.color ?? colors.neutral1.val }} variant="subheading2">
+          <Text color={themeProps?.color ?? '$neutral1'} variant="subheading2">
             {title}
           </Text>
         </Flex>

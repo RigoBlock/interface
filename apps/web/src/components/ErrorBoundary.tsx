@@ -1,34 +1,26 @@
+import { Button, Flex, Switch, Text, TouchableArea } from '@universe/mycelium'
+import { CopyAlt } from '@universe/mycelium/icons/CopyAlt'
+import { RotatableChevron } from '@universe/mycelium/icons/RotatableChevron'
+import { styled } from '@universe/mycelium/styled'
 import { Component, type ErrorInfo, type PropsWithChildren, type ReactNode, useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Flex, Switch, Text, TouchableArea } from 'ui/src'
-import { CopyAlt } from 'ui/src/components/icons/CopyAlt'
-import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { CopyToClipboard } from 'uniswap/src/components/CopyHelper/CopyHelper'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { logger } from 'utilities/src/logger/logger'
 import { useIsMobile } from '~/hooks/screenSize/useIsMobile'
-import { deprecatedStyled } from '~/lib/deprecated-styled'
 import { persistor } from '~/state'
 import { useAppStateResetter } from '~/state/reset/appResetter'
-import { ThemedText } from '~/theme/components'
-import { CopyToClipboard } from '~/theme/components/CopyHelper'
 import { ExternalLink } from '~/theme/components/Links'
 
-const Code = deprecatedStyled.code`
-  font-weight: 485;
-  font-size: 12px;
-  line-height: 16px;
-  word-wrap: break-word;
-  width: 100%;
-  color: ${({ theme }) => theme.neutral1};
-  font-family: ${({ theme }) => theme.fonts.code};
-  overflow: scroll;
-  max-height: calc(100vh - 450px);
-  -webkit-overflow-scrolling: touch;
-`
+const Code = styled('code', {
+  platform: 'web',
+  base: 'font-[485] text-[12px] [line-height:16px] [word-wrap:break-word] w-full text-neutral1 [font-family:courier,courier_new,serif] overflow-scroll max-h-[calc(100vh-450px)] [-webkit-overflow-scrolling:touch]',
+})
 
-const Separator = deprecatedStyled.div`
-  border-bottom: 1px solid ${({ theme }) => theme.surface3};
-`
+const Separator = styled('div', {
+  platform: 'web',
+  base: 'border-b border-surface3',
+})
 
 const Fallback = ({ error, eventId }: { error: Error; eventId: string | null }) => {
   const { t } = useTranslation()
@@ -97,7 +89,7 @@ const Fallback = ({ error, eventId }: { error: Error; eventId: string | null }) 
           <ExternalLink
             style={{ flexGrow: 1, flexBasis: 0 }}
             id="get-support-on-discord"
-            href={uniswapUrls.rigoblockDiscordUrl}
+            href={UniswapHelpUrls.rigoblockDiscordUrl}
             target="_blank"
           >
             <Flex row>
@@ -107,13 +99,7 @@ const Fallback = ({ error, eventId }: { error: Error; eventId: string | null }) 
             </Flex>
           </ExternalLink>
           <Flex row flexBasis={0} flexGrow={1}>
-            <Button
-              emphasis="primary"
-              size="small"
-              loading={isReloading}
-              isDisabled={isReloading}
-              onPress={handleReload}
-            >
+            <Button emphasis="primary" size="small" loading={isReloading} disabled={isReloading} onPress={handleReload}>
               {t('common.reload.label')}
             </Button>
           </Flex>
@@ -128,18 +114,15 @@ function ErrorDetailsSection({ errorDetails, eventId }: { errorDetails: string; 
   const [isExpanded, setExpanded] = useState(false)
   const isMobile = useIsMobile()
 
-  // @todo: ThemedText components should be responsive by default
-  const [Title, Description] = isMobile
-    ? [ThemedText.HeadlineSmall, ThemedText.BodySmall]
-    : [ThemedText.HeadlineLarge, ThemedText.BodySecondary]
-
   return (
     <>
       <Flex gap="$gap8" mb="$spacing8">
-        <Title textAlign="center">{t('common.card.error.description')}</Title>
-        <Description textAlign="center" color="neutral2">
+        <Text variant={isMobile ? 'body1' : 'heading2'} textAlign="center">
+          {t('common.card.error.description')}
+        </Text>
+        <Text variant={isMobile ? 'body3' : 'body2'} textAlign="center" color="$neutral2">
           {eventId ? t('error.request.provideId') : t('common.error.request')}
-        </Description>
+        </Text>
       </Flex>
       <Flex
         alignSelf="stretch"
@@ -149,22 +132,20 @@ function ErrorDetailsSection({ errorDetails, eventId }: { errorDetails: string; 
         borderRadius="$rounded24"
       >
         <Flex row gap="$gap16" alignItems="center" justifyContent="space-between">
-          <ThemedText.SubHeader>
-            {eventId ? t('error.id', { eventId }) : t('common.error.details')}
-          </ThemedText.SubHeader>
+          <Text variant="body2">{eventId ? t('error.id', { eventId }) : t('common.error.details')}</Text>
           <CopyToClipboard toCopy={eventId ?? errorDetails}>
             <CopyAlt color="$neutral2" size="$icon.24" />
           </CopyToClipboard>
         </Flex>
         <Separator />
-        <Flex my="spacing12" gap="$spacing8">
+        <Flex my="$spacing12" gap="$spacing8">
           <Code>{errorDetails.split('\n').slice(0, isExpanded ? undefined : 4)}</Code>
           <Separator />
         </Flex>
         <TouchableArea flexDirection="row" justifyContent="space-between" onPress={() => setExpanded((s) => !s)}>
-          <ThemedText.Link color="neutral2">
+          <Text variant="body3" color="$neutral2">
             {isExpanded ? t('common.showLess.button') : t('common.showMore.button')}
-          </ThemedText.Link>
+          </Text>
           <RotatableChevron size="$icon.20" direction={isExpanded ? 'up' : 'down'} />
         </TouchableArea>
       </Flex>
@@ -212,7 +193,7 @@ class ReactErrorBoundary extends Component<
   }
 }
 
-export default function ErrorBoundary({
+export function ErrorBoundary({
   children,
   fallback,
 }: PropsWithChildren & {

@@ -1,8 +1,7 @@
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Flex } from '@universe/mycelium'
 import { useMemo } from 'react'
-import { Flex } from 'ui/src'
-import { toHistoryDuration } from '~/appGraphql/data/util'
 import { ChartType } from '~/components/Charts/utils'
+import { toHistoryDuration } from '~/data/util'
 import { ChartControls } from '~/pages/TokenDetails/components/chart/ChartControls'
 import { getDisplayPriceChartType } from '~/pages/TokenDetails/components/chart/TDPChartState'
 import {
@@ -14,45 +13,34 @@ import { TDPTvlChartPanel } from '~/pages/TokenDetails/components/chart/TDPTvlCh
 import { TDPVolumeChartPanel } from '~/pages/TokenDetails/components/chart/TDPVolumeChartPanel'
 import { useTDPStore } from '~/pages/TokenDetails/context/useTDPStore'
 import { getTDPChartGraphqlTarget } from '~/pages/TokenDetails/hooks/getTDPChartGraphqlTarget'
-import { useMultichainTokenEntries } from '~/pages/TokenDetails/hooks/useMultichainTokenEntries'
+import { useTDPMultichainAggregate } from '~/pages/TokenDetails/hooks/useTDPMultichainAggregate'
+import { useTokenDetailsAuctionDisplay } from '~/pages/TokenDetails/hooks/useTokenDetailsAuctionDisplay'
+import { shouldShowAuctionOnlyLayout } from '~/pages/TokenDetails/utils/tokenDetailsAuctionDisplay'
 
 function ChartSectionBody(): JSX.Element {
-  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
+  const { tokenColor, currency, multichainToken, pathGraphqlChain, pathTokenDbAddress, selectedMultichainChainId } =
+    useTDPStore((s) => ({
+      tokenColor: s.tokenColor,
+      currency: s.currency!,
+      multichainToken: s.multichainToken,
+      pathGraphqlChain: s.currencyChain,
+      pathTokenDbAddress: s.pathTokenDbAddress,
+      selectedMultichainChainId: s.selectedMultichainChainId,
+    }))
 
-  const {
-    tokenColor,
-    currency,
-    tokenQueryData,
-    pathGraphqlChain,
-    pathTokenDbAddress,
-    selectedMultichainChainId,
-    multiChainMap,
-  } = useTDPStore((s) => ({
-    tokenColor: s.tokenColor,
-    currency: s.currency!,
-    tokenQueryData: s.tokenQuery.data?.token,
-    pathGraphqlChain: s.currencyChain,
-    pathTokenDbAddress: s.tokenQuery.variables?.address,
-    selectedMultichainChainId: s.selectedMultichainChainId,
-    multiChainMap: s.multiChainMap,
-  }))
-
-  const multichainEntries = useMultichainTokenEntries(multiChainMap)
-  const isMultiChainAsset = multichainEntries.length > 1
-
-  const showMultichainAggregation =
-    multichainTokenUxEnabled && isMultiChainAsset && selectedMultichainChainId === undefined
+  const { isMultichainAggregateView } = useTDPMultichainAggregate()
+  const auctionDisplay = useTokenDetailsAuctionDisplay()
+  const isAuctionOnly = shouldShowAuctionOnlyLayout(auctionDisplay)
 
   const { chain: tokenChain, address: tokenDBAddress } = useMemo(
     () =>
       getTDPChartGraphqlTarget({
-        multichainTokenUxEnabled,
         selectedMultichainChainId,
-        tokenQueryData,
+        multichainToken,
         pathGraphqlChain,
         pathTokenDbAddress,
       }),
-    [multichainTokenUxEnabled, pathGraphqlChain, pathTokenDbAddress, selectedMultichainChainId, tokenQueryData],
+    [pathGraphqlChain, pathTokenDbAddress, selectedMultichainChainId, multichainToken],
   )
 
   const { chartType, timePeriod, priceChartType, disableCandlestickUI, setDisableCandlestickUI } =
@@ -63,9 +51,9 @@ function ChartSectionBody(): JSX.Element {
       address: tokenDBAddress,
       chain: tokenChain,
       duration: toHistoryDuration(timePeriod),
-      multichain: showMultichainAggregation,
+      multichain: isMultichainAggregateView,
     }),
-    [showMultichainAggregation, timePeriod, tokenChain, tokenDBAddress],
+    [isMultichainAggregateView, timePeriod, tokenChain, tokenDBAddress],
   )
 
   const displayPriceChartType = getDisplayPriceChartType(priceChartType, disableCandlestickUI)
@@ -81,13 +69,14 @@ function ChartSectionBody(): JSX.Element {
           tokenColor={tokenColor}
           timePeriod={timePeriod}
           currency={currency}
+          auctionOnlyPhase={isAuctionOnly ? auctionDisplay.phase : undefined}
         />
       )}
       {chartType === ChartType.VOLUME && (
         <TDPVolumeChartPanel variables={variables} tokenColor={tokenColor} timePeriod={timePeriod} />
       )}
       {chartType === ChartType.TVL && <TDPTvlChartPanel variables={variables} tokenColor={tokenColor} />}
-      <ChartControls />
+      <ChartControls variables={variables} />
     </Flex>
   )
 }

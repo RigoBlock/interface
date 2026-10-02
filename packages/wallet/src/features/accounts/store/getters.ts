@@ -1,3 +1,4 @@
+import { Platform } from '@universe/chains'
 /* oxlint-disable typescript/explicit-function-return-type */
 import { Account } from 'uniswap/src/features/accounts/store/types/Account'
 import { AccountsGetters } from 'uniswap/src/features/accounts/store/types/AccountsState'
@@ -7,7 +8,6 @@ import {
   FlexiblePlatformInput as Flexible,
   resolvePlatform,
 } from 'uniswap/src/features/accounts/store/utils/flexibleInput'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import type { WalletAppsAccountsData } from 'wallet/src/features/accounts/store/types'
 
 // Temporary utility type to ensure correct return type for getActiveConnector during temporary EVM-only wallet package state.

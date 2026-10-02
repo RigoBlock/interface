@@ -1,6 +1,6 @@
 import { Currency } from '@uniswap/sdk-core'
+import { UniverseChainId } from '@universe/chains'
 import { nativeOnChain, WRAPPED_NATIVE_CURRENCY } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { SolanaToken } from 'uniswap/src/features/tokens/SolanaToken'
 import { isWSOL } from 'uniswap/src/utils/isWSOL'
 

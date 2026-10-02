@@ -5,13 +5,14 @@ import { useMemo } from 'react'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
 import { getCurrencyAmount, ValueType } from 'uniswap/src/features/tokens/getCurrencyAmount'
 import { isEVMAddress } from 'utilities/src/addresses/evm/evm'
-import { Abi, ContractFunctionParameters, erc20Abi, isAddress } from 'viem'
+import { Abi, ContractFunctionParameters, isAddress } from 'viem'
 import { useBalance, useReadContracts } from 'wagmi'
+import { erc20Abi } from '~/chains'
+import { assume0xAddress } from '~/chains'
 import { useAccount } from '~/hooks/useAccount'
 import { useInterfaceMulticall } from '~/hooks/useContract'
 import { useTokenBalances } from '~/hooks/useTokenBalances'
 import { currencyKey } from '~/utils/currencyKey'
-import { assume0xAddress } from '~/utils/wagmi'
 
 /**
  * Returns a currency address to its eventually consistent currency balances for multiple account.
@@ -279,10 +280,7 @@ export function useTokenBalance(account?: string, token?: Token): CurrencyAmount
   return useCurrencyBalance(account, token) as CurrencyAmount<Token> | undefined
 }
 
-export default function useCurrencyBalance(
-  account?: string,
-  currency?: Currency,
-): CurrencyAmount<Currency> | undefined {
+export function useCurrencyBalance(account?: string, currency?: Currency): CurrencyAmount<Currency> | undefined {
   return useCurrencyBalances(
     account,
     useMemo(() => [currency], [currency]),

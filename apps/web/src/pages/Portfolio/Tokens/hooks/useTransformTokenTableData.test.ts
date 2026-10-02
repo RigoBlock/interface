@@ -1,45 +1,51 @@
-import { NetworkStatus } from '@apollo/client'
+import { GetWalletTokensProfitLossResponse } from '@uniswap/client-data-api/dist/data/v1/api_pb'
 import { Token } from '@uniswap/sdk-core'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId, normalizeTokenAddressForCache } from '@universe/chains'
+import { TestID } from '@universe/test'
+import { USDC_ARBITRUM, USDC_MAINNET } from 'uniswap/src/constants/tokens'
 import type {
   CurrencyInfo,
   PortfolioChainBalance,
   PortfolioMultichainBalance,
 } from 'uniswap/src/features/dataApi/types'
+import { useEarnVaults } from 'uniswap/src/features/earn/hooks/useEarnVaults'
+import type { EarnVaultInfo } from 'uniswap/src/features/earn/types'
 import { useSortedPortfolioBalancesMultichain } from 'uniswap/src/features/portfolio/balances/hooks'
 import {
   createPortfolioChainBalance,
   createPortfolioMultichainBalance,
 } from 'uniswap/src/test/fixtures/dataApi/portfolioMultichainBalances'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
-import { currencyId } from 'uniswap/src/utils/currencyId'
+import { buildCurrencyId, currencyId } from 'uniswap/src/utils/currencyId'
 import { describe, expect, it, vi } from 'vitest'
+import { assume0xAddress } from '~/chains'
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
 import { useTransformTokenTableData } from '~/pages/Portfolio/Tokens/hooks/useTransformTokenTableData'
-import { TEST_TOKEN_1_INFO, TEST_TOKEN_2_INFO } from '~/test-utils/constants'
+import {
+  TEST_TOKEN_1,
+  TEST_TOKEN_1_INFO,
+  TEST_TOKEN_2_INFO,
+  USDC_ARBITRUM_INFO,
+  USDC_INFO,
+} from '~/test-utils/constants'
 import { renderHook } from '~/test-utils/render'
-import { assume0xAddress } from '~/utils/wagmi'
 
 vi.mock('~/pages/Portfolio/hooks/usePortfolioAddresses', () => ({
   usePortfolioAddresses: vi.fn(),
 }))
 
-vi.mock('@universe/gating', async (importOriginal) => ({
-  ...(await importOriginal()),
-  useFeatureFlag: vi.fn().mockReturnValue(false),
-  FeatureFlags: { MultichainTokenUx: 'multichain_token_ux' },
-}))
-
-vi.mock('uniswap/src/features/portfolio/balances/hooks', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('uniswap/src/features/portfolio/balances/hooks')>()
+vi.mock('uniswap/src/features/portfolio/balances/hooks', () => {
   return {
-    ...actual,
     useSortedPortfolioBalancesMultichain: vi.fn(),
   }
 })
 
+vi.mock('uniswap/src/features/earn/hooks/useEarnVaults', () => ({
+  useEarnVaults: vi.fn(),
+}))
+
 const mockUsePortfolioAddresses = vi.mocked(usePortfolioAddresses)
 const mockUseSortedPortfolioBalancesMultichain = vi.mocked(useSortedPortfolioBalancesMultichain)
+const mockUseEarnVaults = vi.mocked(useEarnVaults)
 
 /** Web-only preset around shared {@link createPortfolioChainBalance} (quantity/valueUsd for token table tests). */
 function createPortfolioTableChainBalance(
@@ -88,6 +94,27 @@ const createChainBalance = (overrides: Partial<PortfolioChainBalance> = {}): Por
 const createMultichainBalance = (overrides: Partial<PortfolioMultichainBalance> = {}): PortfolioMultichainBalance =>
   createPortfolioTableMultichainBalance(TEST_TOKEN_1_INFO, overrides)
 
+const VAULT_SHARE_ADDRESS = '0x8c106EEDAd96553e64287A5A6839c3Cc78afA3D0'
+const VAULT_SHARE_TOKEN = new Token(UniverseChainId.Mainnet, VAULT_SHARE_ADDRESS, 18, 'gtUSDC', 'Gauntlet USDC Prime')
+const VAULT_SHARE_INFO: CurrencyInfo = {
+  currency: VAULT_SHARE_TOKEN,
+  currencyId: buildCurrencyId(UniverseChainId.Mainnet, VAULT_SHARE_ADDRESS),
+  logoUrl: null,
+}
+const EARN_VAULT: EarnVaultInfo = {
+  id: `1-${normalizeTokenAddressForCache(VAULT_SHARE_ADDRESS)}`,
+  currencyId: buildCurrencyId(UniverseChainId.Mainnet, USDC_MAINNET.address),
+  displayCurrencyId: buildCurrencyId(UniverseChainId.Mainnet, USDC_MAINNET.address),
+  vaultAddress: VAULT_SHARE_ADDRESS,
+  chainId: UniverseChainId.Mainnet,
+  apyPercent: 4,
+  exposureCurrencyIds: [buildCurrencyId(UniverseChainId.Mainnet, USDC_MAINNET.address)],
+  exposures: [],
+  totalDepositsUsd: 1_000_000,
+  liquidityUsd: 1_000_000,
+  curator: { name: 'Gauntlet' },
+}
+
 describe('useTransformTokenTableData', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -101,9 +128,18 @@ describe('useTransformTokenTableData', () => {
       balancesById: undefined,
       loading: false,
       error: undefined,
-      refetch: undefined,
-      networkStatus: NetworkStatus.ready,
     } as ReturnType<typeof useSortedPortfolioBalancesMultichain>)
+    mockUseEarnVaults.mockReturnValue({
+      hasLoadedPositions: true,
+      isError: false,
+      isLoadingPositions: false,
+      isLoadingVaults: false,
+      positionsByVaultId: new Map(),
+      refetch: vi.fn(),
+      totalDepositedUsd: 0,
+      vaults: [],
+      vaultsSortedByPosition: [],
+    })
   })
 
   it('returns empty visible and hidden when no sorted balances', () => {
@@ -112,8 +148,6 @@ describe('useTransformTokenTableData', () => {
       balancesById: undefined,
       loading: false,
       error: undefined,
-      refetch: undefined,
-      networkStatus: NetworkStatus.ready,
     } as ReturnType<typeof useSortedPortfolioBalancesMultichain>)
 
     const { result } = renderHook(() => useTransformTokenTableData({}))
@@ -142,7 +176,8 @@ describe('useTransformTokenTableData', () => {
       loading: false,
       error: undefined,
       refetch: vi.fn(),
-      networkStatus: NetworkStatus.ready,
+      isPending: false,
+      isError: false,
     } as ReturnType<typeof useSortedPortfolioBalancesMultichain>)
 
     const { result } = renderHook(() => useTransformTokenTableData({}))
@@ -172,7 +207,8 @@ describe('useTransformTokenTableData', () => {
       loading: false,
       error: undefined,
       refetch: vi.fn(),
-      networkStatus: NetworkStatus.ready,
+      isPending: false,
+      isError: false,
     } as ReturnType<typeof useSortedPortfolioBalancesMultichain>)
 
     const { result } = renderHook(() => useTransformTokenTableData({}))
@@ -181,6 +217,85 @@ describe('useTransformTokenTableData', () => {
     expect(result.current.hidden).toHaveLength(1)
     expect(result.current.hidden![0].id).toBe('hidden-with-tokens')
     expect(result.current.hidden![0].tokens).toHaveLength(1)
+    expect(result.current.hidden![0].isMultichainAsset).toBe(false)
+  })
+
+  it('omits Earn vault share tokens from visible portfolio token rows', () => {
+    mockUseEarnVaults.mockReturnValue({
+      hasLoadedPositions: true,
+      isError: false,
+      isLoadingPositions: false,
+      isLoadingVaults: false,
+      positionsByVaultId: new Map(),
+      refetch: vi.fn(),
+      totalDepositedUsd: 0,
+      vaults: [EARN_VAULT],
+      vaultsSortedByPosition: [EARN_VAULT],
+    })
+
+    const balance = createMultichainBalance({
+      id: 'mixed-vault-share-row',
+      tokens: [
+        createPortfolioTableChainBalance(VAULT_SHARE_INFO, { quantity: 1, valueUsd: 500 }),
+        createPortfolioTableChainBalance(USDC_INFO, { quantity: 100, valueUsd: 100 }),
+      ],
+    })
+
+    mockUseSortedPortfolioBalancesMultichain.mockReturnValue({
+      data: {
+        balances: [balance],
+        hiddenBalances: [],
+      },
+      balancesById: undefined,
+      loading: false,
+      error: undefined,
+      refetch: vi.fn(),
+      isPending: false,
+      isError: false,
+    } as ReturnType<typeof useSortedPortfolioBalancesMultichain>)
+
+    const { result } = renderHook(() => useTransformTokenTableData({}))
+
+    expect(result.current.visible).toHaveLength(1)
+    expect(result.current.visible![0].tokens).toHaveLength(1)
+    expect(result.current.visible![0].tokens[0].currencyInfo).toBe(USDC_INFO)
+    expect(result.current.hidden).toEqual([])
+  })
+
+  it('drops fully hidden Earn vault share token rows instead of moving them to hidden balances', () => {
+    mockUseEarnVaults.mockReturnValue({
+      hasLoadedPositions: true,
+      isError: false,
+      isLoadingPositions: false,
+      isLoadingVaults: false,
+      positionsByVaultId: new Map(),
+      refetch: vi.fn(),
+      totalDepositedUsd: 0,
+      vaults: [EARN_VAULT],
+      vaultsSortedByPosition: [EARN_VAULT],
+    })
+    const hiddenVaultShareBalance = createMultichainBalance({
+      id: 'hidden-vault-share-row',
+      tokens: [createPortfolioTableChainBalance(VAULT_SHARE_INFO, { quantity: 1, valueUsd: 500, isHidden: true })],
+    })
+
+    mockUseSortedPortfolioBalancesMultichain.mockReturnValue({
+      data: {
+        balances: [],
+        hiddenBalances: [hiddenVaultShareBalance],
+      },
+      balancesById: undefined,
+      loading: false,
+      error: undefined,
+      refetch: vi.fn(),
+      isPending: false,
+      isError: false,
+    } as ReturnType<typeof useSortedPortfolioBalancesMultichain>)
+
+    const { result } = renderHook(() => useTransformTokenTableData({}))
+
+    expect(result.current.visible).toEqual([])
+    expect(result.current.hidden).toEqual([])
   })
 
   it('flattens fully hidden multichain balances to one TokenData row per chain before table mapping', () => {
@@ -209,7 +324,8 @@ describe('useTransformTokenTableData', () => {
       loading: false,
       error: undefined,
       refetch: vi.fn(),
-      networkStatus: NetworkStatus.ready,
+      isPending: false,
+      isError: false,
     } as ReturnType<typeof useSortedPortfolioBalancesMultichain>)
 
     const { result } = renderHook(() => useTransformTokenTableData({}))
@@ -228,6 +344,7 @@ describe('useTransformTokenTableData', () => {
       quantity: 2,
       price: 5,
       totalValue: 10,
+      isMultichainAsset: true,
     })
     expect(result.current.hidden![0]!.tokens[0]).toMatchObject({
       chainId: UniverseChainId.Mainnet,
@@ -238,11 +355,314 @@ describe('useTransformTokenTableData', () => {
     expect(result.current.hidden![1]).toMatchObject({
       chainId: UniverseChainId.ArbitrumOne,
       price: 5,
+      isMultichainAsset: true,
     })
     expect(result.current.hidden![1]!.tokens[0]).toMatchObject({
       chainId: UniverseChainId.ArbitrumOne,
       currencyInfo: TEST_TOKEN_2_INFO,
     })
+  })
+
+  it('omits unrealized P/L on per-chain token entries when the asset is a stablecoin', () => {
+    const mainnetUsdc = createPortfolioTableChainBalance(USDC_INFO, {
+      chainId: UniverseChainId.Mainnet,
+      quantity: 100,
+      valueUsd: 2000,
+    })
+    const arbitrumUsdc = createPortfolioTableChainBalance(USDC_ARBITRUM_INFO, {
+      chainId: UniverseChainId.ArbitrumOne,
+      quantity: 50,
+      valueUsd: 1000,
+    })
+    const usdcMultichain = createMultichainBalance({
+      id: 'usdc-multi',
+      name: 'USD Coin',
+      symbol: 'USDC',
+      tokens: [mainnetUsdc, arbitrumUsdc],
+    })
+
+    const tokenProfitLossData = {
+      tokenProfitLosses: [
+        {
+          token: {
+            address: USDC_MAINNET.address,
+            chainId: UniverseChainId.Mainnet,
+          },
+          averageCostUsd: 1,
+          unrealizedReturnUsd: 12.34,
+          unrealizedReturnPercent: 0.05,
+        },
+        {
+          token: {
+            address: USDC_ARBITRUM.address,
+            chainId: UniverseChainId.ArbitrumOne,
+          },
+          averageCostUsd: 1,
+          unrealizedReturnUsd: 56.78,
+          unrealizedReturnPercent: 0.06,
+        },
+      ],
+      multichainTokenProfitLoss: [],
+    } as unknown as GetWalletTokensProfitLossResponse
+
+    mockUseSortedPortfolioBalancesMultichain.mockReturnValue({
+      data: {
+        balances: [usdcMultichain],
+        hiddenBalances: [],
+      },
+      balancesById: undefined,
+      loading: false,
+      error: undefined,
+      refetch: vi.fn(),
+      isPending: false,
+      isError: false,
+    } as ReturnType<typeof useSortedPortfolioBalancesMultichain>)
+
+    const { result } = renderHook(() =>
+      useTransformTokenTableData({
+        tokenProfitLossData,
+      }),
+    )
+
+    expect(result.current.visible).not.toBeNull()
+    expect(result.current.visible).toHaveLength(1)
+    const row = result.current.visible![0]
+    expect(row.isMultichainAsset).toBe(true)
+    expect(row.tokens).toHaveLength(2)
+    for (const chainToken of row.tokens) {
+      expect(chainToken.avgCost).toBe(1)
+      expect(chainToken.unrealizedPnl).toBeUndefined()
+      expect(chainToken.unrealizedPnlPercent).toBeUndefined()
+    }
+  })
+
+  it('uses multichain aggregated PnL on the parent row when multichainTokenProfitLoss includes aggregated', () => {
+    const mainT = createPortfolioTableChainBalance(TEST_TOKEN_1_INFO, {
+      chainId: UniverseChainId.Mainnet,
+      valueUsd: 3000,
+    })
+    const arbT = createPortfolioTableChainBalance(TEST_TOKEN_1_INFO, {
+      chainId: UniverseChainId.ArbitrumOne,
+      valueUsd: 1000,
+    })
+    const multi = createMultichainBalance({
+      id: 'mc-agg-pnl',
+      tokens: [mainT, arbT],
+    })
+
+    const tokenProfitLossData = {
+      tokenProfitLosses: [],
+      multichainTokenProfitLoss: [
+        {
+          aggregated: {
+            averageCostUsd: 7.43,
+            unrealizedReturnUsd: -41785.75,
+            unrealizedReturnPercent: -56.14,
+            token: { address: TEST_TOKEN_1.address, chainId: UniverseChainId.Mainnet },
+          },
+          chainBreakdown: [
+            {
+              tokenAddress: TEST_TOKEN_1.address,
+              chainId: UniverseChainId.Mainnet,
+              averageCostUsd: 10,
+              unrealizedReturnUsd: -100,
+              unrealizedReturnPercent: -10,
+            },
+            {
+              tokenAddress: TEST_TOKEN_1.address,
+              chainId: UniverseChainId.ArbitrumOne,
+              averageCostUsd: 20,
+              unrealizedReturnUsd: -200,
+              unrealizedReturnPercent: -20,
+            },
+          ],
+        },
+      ],
+    } as unknown as GetWalletTokensProfitLossResponse
+
+    mockUseSortedPortfolioBalancesMultichain.mockReturnValue({
+      data: {
+        balances: [multi],
+        hiddenBalances: [],
+      },
+      balancesById: undefined,
+      loading: false,
+      error: undefined,
+      refetch: vi.fn(),
+      isPending: false,
+      isError: false,
+    } as ReturnType<typeof useSortedPortfolioBalancesMultichain>)
+
+    const { result } = renderHook(() =>
+      useTransformTokenTableData({
+        tokenProfitLossData,
+      }),
+    )
+
+    expect(result.current.visible).not.toBeNull()
+    expect(result.current.visible).toHaveLength(1)
+    const row = result.current.visible![0]
+    expect(row.isMultichainAsset).toBe(true)
+    expect(row.avgCost).toBe(7.43)
+    expect(row.unrealizedPnl).toBe(-41785.75)
+    expect(row.unrealizedPnlPercent).toBe(-56.14)
+
+    const mainChainToken = row.tokens.find((t) => t.chainId === UniverseChainId.Mainnet)
+    const arbChainToken = row.tokens.find((t) => t.chainId === UniverseChainId.ArbitrumOne)
+    expect(mainChainToken?.avgCost).toBe(10)
+    expect(mainChainToken?.unrealizedPnl).toBe(-100)
+    expect(mainChainToken?.unrealizedPnlPercent).toBe(-10)
+    expect(arbChainToken?.avgCost).toBe(20)
+    expect(arbChainToken?.unrealizedPnl).toBe(-200)
+    expect(arbChainToken?.unrealizedPnlPercent).toBe(-20)
+  })
+
+  it('uses aggregated PnL when chainBreakdown is empty but aggregated.token matches the row leg', () => {
+    const mainT = createPortfolioTableChainBalance(TEST_TOKEN_1_INFO, {
+      chainId: UniverseChainId.Mainnet,
+    })
+    const single = createMultichainBalance({ id: 'single-agg-no-breakdown', tokens: [mainT] })
+
+    const tokenProfitLossData = {
+      tokenProfitLosses: [],
+      multichainTokenProfitLoss: [
+        {
+          aggregated: {
+            averageCostUsd: 5,
+            unrealizedReturnUsd: 99,
+            unrealizedReturnPercent: 0.25,
+            token: { address: TEST_TOKEN_1.address, chainId: UniverseChainId.Mainnet },
+          },
+          chainBreakdown: [],
+        },
+      ],
+    } as unknown as GetWalletTokensProfitLossResponse
+
+    mockUseSortedPortfolioBalancesMultichain.mockReturnValue({
+      data: {
+        balances: [single],
+        hiddenBalances: [],
+      },
+      balancesById: undefined,
+      loading: false,
+      error: undefined,
+      refetch: vi.fn(),
+      isPending: false,
+      isError: false,
+    } as ReturnType<typeof useSortedPortfolioBalancesMultichain>)
+
+    const { result } = renderHook(() =>
+      useTransformTokenTableData({
+        tokenProfitLossData,
+      }),
+    )
+
+    expect(result.current.visible).not.toBeNull()
+    const row = result.current.visible![0]
+    expect(row.avgCost).toBe(5)
+    expect(row.unrealizedPnl).toBe(99)
+    expect(row.unrealizedPnlPercent).toBe(0.25)
+    expect(row.tokens).toHaveLength(1)
+    expect(row.tokens[0].avgCost).toBeUndefined()
+    expect(row.tokens[0].unrealizedPnl).toBeUndefined()
+  })
+
+  it('marks hidden spam token rows as isSpamHidden', () => {
+    const spamInfo: CurrencyInfo = { ...TEST_TOKEN_1_INFO, isSpam: true }
+    const hiddenSpam = createPortfolioTableMultichainBalance(spamInfo, {
+      id: 'hidden-spam',
+      isHidden: true,
+      tokens: [createPortfolioTableChainBalance(spamInfo, { isHidden: true })],
+    })
+    const hiddenNonSpam = createMultichainBalance({
+      id: 'hidden-manual',
+      isHidden: true,
+      tokens: [createChainBalance({ isHidden: true })],
+    })
+
+    mockUseSortedPortfolioBalancesMultichain.mockReturnValue({
+      data: {
+        balances: [],
+        hiddenBalances: [hiddenSpam, hiddenNonSpam],
+      },
+      balancesById: undefined,
+      loading: false,
+      error: undefined,
+      refetch: vi.fn(),
+      isPending: false,
+      isError: false,
+    } as ReturnType<typeof useSortedPortfolioBalancesMultichain>)
+
+    const { result } = renderHook(() => useTransformTokenTableData({}))
+
+    expect(result.current.hidden).toHaveLength(2)
+    const spamRow = result.current.hidden!.find((r) => r.id === 'hidden-spam')
+    const manualRow = result.current.hidden!.find((r) => r.id === 'hidden-manual')
+    expect(spamRow?.isSpamHidden).toBe(true)
+    expect(manualRow?.isSpamHidden).toBe(false)
+  })
+
+  it('does not mark visible spam token rows as isSpamHidden', () => {
+    const spamInfo: CurrencyInfo = { ...TEST_TOKEN_1_INFO, isSpam: true }
+    const visibleSpam = createPortfolioTableMultichainBalance(spamInfo, {
+      id: 'visible-spam',
+      tokens: [createPortfolioTableChainBalance(spamInfo)],
+    })
+
+    mockUseSortedPortfolioBalancesMultichain.mockReturnValue({
+      data: {
+        balances: [visibleSpam],
+        hiddenBalances: [],
+      },
+      balancesById: undefined,
+      loading: false,
+      error: undefined,
+      refetch: vi.fn(),
+      isPending: false,
+      isError: false,
+    } as ReturnType<typeof useSortedPortfolioBalancesMultichain>)
+
+    const { result } = renderHook(() => useTransformTokenTableData({}))
+
+    expect(result.current.visible).toHaveLength(1)
+    expect(result.current.visible![0].isSpamHidden).toBe(false)
+    expect(result.current.hidden).toEqual([])
+  })
+
+  it('marks per-chain hidden spam legs of a partially visible multichain asset', () => {
+    const spamInfo: CurrencyInfo = { ...TEST_TOKEN_2_INFO, isSpam: true }
+    const visibleLeg = createPortfolioTableChainBalance(TEST_TOKEN_1_INFO, {
+      chainId: UniverseChainId.Mainnet,
+      isHidden: false,
+    })
+    const hiddenSpamLeg = createPortfolioTableChainBalance(spamInfo, {
+      chainId: UniverseChainId.ArbitrumOne,
+      isHidden: true,
+    })
+    const partiallyVisible = createMultichainBalance({
+      id: 'partial-visible',
+      tokens: [visibleLeg, hiddenSpamLeg],
+    })
+
+    mockUseSortedPortfolioBalancesMultichain.mockReturnValue({
+      data: {
+        balances: [partiallyVisible],
+        hiddenBalances: [],
+      },
+      balancesById: undefined,
+      loading: false,
+      error: undefined,
+      refetch: vi.fn(),
+      isPending: false,
+      isError: false,
+    } as ReturnType<typeof useSortedPortfolioBalancesMultichain>)
+
+    const { result } = renderHook(() => useTransformTokenTableData({}))
+
+    expect(result.current.visible).toHaveLength(1)
+    expect(result.current.visible![0].isSpamHidden).toBe(false)
+    expect(result.current.hidden).toHaveLength(1)
+    expect(result.current.hidden![0].isSpamHidden).toBe(true)
   })
 
   it('every visible and hidden entry has tokens.length >= 1', () => {
@@ -261,7 +681,8 @@ describe('useTransformTokenTableData', () => {
       loading: false,
       error: undefined,
       refetch: vi.fn(),
-      networkStatus: NetworkStatus.ready,
+      isPending: false,
+      isError: false,
     } as ReturnType<typeof useSortedPortfolioBalancesMultichain>)
 
     const { result } = renderHook(() => useTransformTokenTableData({}))

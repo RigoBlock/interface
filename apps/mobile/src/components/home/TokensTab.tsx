@@ -1,8 +1,8 @@
 import { useStartProfiler } from '@shopify/react-native-performance'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Flex, type UniversalListRef } from '@universe/mycelium'
 import React, { forwardRef, memo, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FlatList } from 'react-native'
 import { useDispatch } from 'react-redux'
 import { navigate } from 'src/app/navigation/rootNavigation'
 import { TabProps } from 'src/components/layout/TabHelpers'
@@ -10,32 +10,19 @@ import { TokenBalanceList } from 'src/components/TokenBalanceList/TokenBalanceLi
 import { useTokenDetailsNavigation } from 'src/components/TokenDetails/hooks'
 import { useOpenReceiveModal } from 'src/features/modals/hooks/useOpenReceiveModal'
 import { openModal } from 'src/features/modals/modalSlice'
-import { Flex } from 'ui/src'
 import { NoTokens } from 'ui/src/components/icons'
 import { BaseCard } from 'uniswap/src/components/BaseCard/BaseCard'
 import { PortfolioEmptyState } from 'uniswap/src/components/portfolio/PortfolioEmptyState'
 import { ScannerModalState } from 'uniswap/src/components/ReceiveQRCode/constants'
-import { TokenBalanceListRow } from 'uniswap/src/features/portfolio/types'
+import { TokenBalancePressOptions } from 'uniswap/src/features/portfolio/TokenBalanceListContext'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { CurrencyId } from 'uniswap/src/types/currency'
 import { MobileScreens } from 'uniswap/src/types/screens/mobile'
 import { usePortfolioEmptyStateBackground } from 'wallet/src/components/portfolio/empty'
 
-// ignore ref type
-
 export const TokensTab = memo(
-  forwardRef<FlatList<TokenBalanceListRow>, TabProps & { isExternalProfile?: boolean }>(function TokensTabInner(
-    {
-      owner,
-      containerProps,
-      scrollHandler,
-      isExternalProfile = false,
-      renderedInModal = false,
-      onRefresh,
-      refreshing,
-      headerHeight,
-      testID,
-    },
+  forwardRef<UniversalListRef, TabProps & { isExternalProfile?: boolean }>(function TokensTabInner(
+    { owner, containerProps, isExternalProfile = false, renderedInModal = false, onRefresh, refreshing, testID },
     ref,
   ) {
     const { t } = useTranslation()
@@ -48,9 +35,9 @@ export const TokensTab = memo(
     const disableForKorea = useFeatureFlag(FeatureFlags.DisableFiatOnRampKorea)
 
     const onPressToken = useCallback(
-      (currencyId: CurrencyId): void => {
+      (currencyId: CurrencyId, options?: TokenBalancePressOptions): void => {
         startProfilerTimer({ source: MobileScreens.Home })
-        tokenDetailsNavigation.navigate(currencyId)
+        tokenDetailsNavigation.navigate(currencyId, options)
       },
       [startProfilerTimer, tokenDetailsNavigation],
     )
@@ -104,17 +91,15 @@ export const TokensTab = memo(
     ])
 
     return (
-      <Flex grow backgroundColor="$surface1">
+      <Flex fill backgroundColor="$surface1">
         <TokenBalanceList
           ref={ref}
           containerProps={containerProps}
           empty={renderEmpty}
-          headerHeight={headerHeight}
           isExternalProfile={isExternalProfile}
           owner={owner}
           refreshing={refreshing}
           renderedInModal={renderedInModal}
-          scrollHandler={scrollHandler}
           testID={testID}
           onPressToken={onPressToken}
           onRefresh={onRefresh}

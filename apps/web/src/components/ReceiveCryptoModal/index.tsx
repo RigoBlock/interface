@@ -1,22 +1,22 @@
+import { AnimateTransition } from '@universe/mycelium/animate-presence-pager'
 import ms from 'ms'
 import { useEffect, useState } from 'react'
-import { AnimateTransition } from 'ui/src'
 import { GetHelpHeader } from 'uniswap/src/components/dialog/GetHelpHeader'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ReceiveQRCode } from 'uniswap/src/components/ReceiveQRCode/ReceiveQRCode'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { FORServiceProvider } from 'uniswap/src/features/fiatOnRamp/types'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { logger } from 'utilities/src/logger/logger'
 import { useEvent } from 'utilities/src/react/hooks'
 import { ChooseMultiPlatformProvider } from '~/components/ReceiveCryptoModal/ChooseMultiPlatformProvider'
 import { ChooseProvider } from '~/components/ReceiveCryptoModal/ChooseProvider'
-import { ReceiveModalState } from '~/components/ReceiveCryptoModal/types'
 import { useOpenReceiveCryptoModal } from '~/components/ReceiveCryptoModal/useOpenReceiveCryptoModal'
 import { useConnectionStatus } from '~/features/accounts/store/hooks'
 import { useModalInitialState } from '~/hooks/useModalInitialState'
 import { useModalState } from '~/hooks/useModalState'
 import { ContentWrapper } from '~/pages/Swap/Buy/shared'
+import { ReceiveModalState } from '~/types/receiveCryptoModal'
 
 export function ReceiveCryptoModal() {
   const modalState = useModalInitialState(ModalName.ReceiveCryptoModal)
@@ -82,7 +82,7 @@ export function ReceiveCryptoModal() {
               ? goBack
               : undefined
           }
-          link={uniswapUrls.rigoblockDiscordUrl}
+          link={UniswapHelpUrls.rigoblockDiscordUrl}
           closeModal={onClose}
         />
         <AnimateTransition currentIndex={currentIndex} animationType="forward">
@@ -109,3 +109,5 @@ export function ReceiveCryptoModal() {
     </Modal>
   )
 }
+
+export default ReceiveCryptoModal

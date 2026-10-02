@@ -1,7 +1,9 @@
+/* oxlint-disable eslint-js/no-restricted-syntax */
 import { EthersTransactionRequestSchema } from 'src/app/features/dappRequests/types/EthersTypes'
-import { HexadecimalNumberSchema } from 'src/app/features/dappRequests/types/utilityTypes'
 import { HomeTabs } from 'src/app/navigation/constants'
+import { normalizeSendCalls } from 'wallet/src/features/batchedTransactions/normalizeSendCalls'
 import { GetCallsStatusParamsSchema, SendCallsParamsSchema } from 'wallet/src/features/dappRequests/types'
+import { canonicalizeTypedData } from 'wallet/src/features/wallet/signing/canonicalizeTypedData'
 import { z } from 'zod'
 
 /**
@@ -49,13 +51,9 @@ export const EthSendTransactionRequestSchema = EthereumRequestWithIdSchema.exten
     throw new Error('Params array must contain at least one element')
   }
 
-  const parseResult = EthersTransactionRequestSchema.safeParse(params[0])
-
-  if (!parseResult.success) {
-    throw new Error('First element of the array must match EthersTransactionRequestSchema')
-  }
-
-  const transaction = parseResult.data
+  // Preserve ZodError so the content-script boundary returns an EIP-1193 parsing error
+  // instead of leaving an invalid request pending.
+  const transaction = EthersTransactionRequestSchema.parse(params[0])
 
   return {
     requestId,
@@ -115,10 +113,22 @@ export const EthSignTypedDataV4RequestSchema = EthereumRequestWithIdSchema.exten
   }
 
   const address = z.string().parse(params[0])
-  const typedData = z.string().parse(params[1])
+  let typedData: string
+  try {
+    typedData = canonicalizeTypedData(z.string().parse(params[1]))
+  } catch {
+    throw new z.ZodError([
+      {
+        message: 'Typed data must be valid EIP-712 data',
+        path: ['params', '1'],
+        code: 'custom',
+        input: params[1],
+      },
+    ])
+  }
 
   const chainId = JSON.parse(typedData)?.domain?.chainId
-  const formattedChainId = HexadecimalNumberSchema.parse(chainId)
+  const formattedChainId = Number(chainId)
   if (!formattedChainId) {
     throw new z.ZodError([
       {
@@ -132,7 +142,7 @@ export const EthSignTypedDataV4RequestSchema = EthereumRequestWithIdSchema.exten
   return {
     requestId,
     method,
-    params,
+    params: [address, typedData],
     address,
     typedData,
   }
@@ -320,14 +330,34 @@ export const WalletSendCallsRequestSchema = EthereumRequestWithIdSchema.extend({
   const parseResult = SendCallsParamsSchema.safeParse(params[0])
 
   if (!parseResult.success) {
-    throw new Error('First element of the array must match SendCallsParamsSchema')
+    throw parseResult.error
   }
 
   if (!parseResult.data.from) {
-    throw new Error('From address must be specified')
+    throw new z.ZodError([
+      {
+        message: 'From address must be specified',
+        path: ['params', 0, 'from'],
+        code: 'custom',
+        input: params[0],
+      },
+    ])
   }
 
-  const { calls, chainId, from, id, capabilities, version } = parseResult.data
+  const { chainId, from, id, capabilities, version } = parseResult.data
+  let calls: ReturnType<typeof normalizeSendCalls>
+  try {
+    calls = normalizeSendCalls(parseResult.data.calls)
+  } catch (error) {
+    throw new z.ZodError([
+      {
+        message: error instanceof Error ? error.message : 'Calls must be valid',
+        path: ['params', 0, 'calls'],
+        code: 'custom',
+        input: parseResult.data.calls,
+      },
+    ])
+  }
 
   return {
     requestId,

@@ -1,6 +1,13 @@
 import { BigNumber } from '@ethersproject/bignumber'
+import { UniverseChainId } from '@universe/chains'
 import { providers } from 'ethers/lib/ethers'
-import { receiptFromEthersReceipt, receiptFromViemReceipt } from 'uniswap/src/features/transactions/utils/receipt'
+import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
+import { ValueType } from 'uniswap/src/features/tokens/getCurrencyAmount'
+import {
+  buildNetworkFeeFromViemReceipt,
+  receiptFromEthersReceipt,
+  receiptFromViemReceipt,
+} from 'uniswap/src/features/transactions/utils/receipt'
 import { TransactionReceipt as ViemTransactionReceipt } from 'viem'
 
 describe('receipt conversion helpers', () => {
@@ -60,5 +67,58 @@ describe('receipt conversion helpers', () => {
     expect(adapted.gasUsed).toBe(30_000)
     expect(adapted.effectiveGasPrice).toBe(2_000_000_000)
     expect(typeof adapted.confirmedTime).toBe('number')
+  })
+
+  test('buildNetworkFeeFromViemReceipt computes gasUsed * effectiveGasPrice in native currency', () => {
+    const viemReceipt: ViemTransactionReceipt = {
+      blockHash: '0xdef',
+      blockNumber: BigInt(200),
+      contractAddress: null,
+      cumulativeGasUsed: BigInt(21_000),
+      effectiveGasPrice: BigInt(2_000_000_000),
+      from: '0x0',
+      gasUsed: BigInt(21_000),
+      logs: [],
+      logsBloom: '0x0',
+      status: 'success',
+      to: '0x0',
+      transactionHash: '0x456',
+      transactionIndex: 2,
+      type: 'eip1559',
+    }
+
+    const networkFee = buildNetworkFeeFromViemReceipt({ receipt: viemReceipt, chainId: UniverseChainId.Mainnet })
+
+    const { nativeCurrency } = getChainInfo(UniverseChainId.Mainnet)
+    expect(networkFee).toEqual({
+      // 21_000 gas * 2 gwei = 42_000_000_000_000 wei
+      quantity: '0.000042',
+      tokenSymbol: nativeCurrency.symbol,
+      tokenAddress: nativeCurrency.address,
+      chainId: UniverseChainId.Mainnet,
+      valueType: ValueType.Exact,
+    })
+  })
+
+  test('buildNetworkFeeFromViemReceipt returns undefined when the RPC omitted effectiveGasPrice', () => {
+    const viemReceipt = {
+      blockHash: '0xdef',
+      blockNumber: BigInt(200),
+      contractAddress: null,
+      cumulativeGasUsed: BigInt(21_000),
+      // Some RPCs omit effectiveGasPrice despite viem typing it as required
+      effectiveGasPrice: undefined,
+      from: '0x0',
+      gasUsed: BigInt(21_000),
+      logs: [],
+      logsBloom: '0x0',
+      status: 'success',
+      to: '0x0',
+      transactionHash: '0x456',
+      transactionIndex: 2,
+      type: 'eip1559',
+    } as unknown as ViemTransactionReceipt
+
+    expect(buildNetworkFeeFromViemReceipt({ receipt: viemReceipt, chainId: UniverseChainId.Mainnet })).toBeUndefined()
   })
 })

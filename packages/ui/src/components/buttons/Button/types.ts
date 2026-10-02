@@ -1,12 +1,11 @@
-import type { GetProps } from 'tamagui'
-import { CustomButtonFrame } from 'ui/src/components/buttons/Button/components/CustomButtonFrame/CustomButtonFrame'
-import type { FlexProps } from 'ui/src/components/layout'
+import type { ButtonFrameCompatProps, ButtonFrameVariantProps } from '@universe/mycelium/button-frame-compat'
 
 export type ButtonVariant = 'default' | 'branded' | 'critical' | 'warning'
 export type ButtonEmphasis = 'primary' | 'secondary' | 'tertiary' | 'text-only'
 
 type ButtonSize = 'xxsmall' | 'xsmall' | 'small' | 'medium' | 'large'
-type CustomButtonFrameProps = GetProps<typeof CustomButtonFrame>
+
+type CustomButtonFrameProps = ButtonFrameCompatProps
 
 export type ButtonVariantProps = {
   size?: ButtonSize
@@ -14,15 +13,16 @@ export type ButtonVariantProps = {
   emphasis?: ButtonEmphasis
   // This prevents trimming the string, when the language has special characters (i.e. Vietnamese)
   lineHeightDisabled?: boolean
-  // TODO(WEB-6347): change variant name back to `disabled`
+  // Internal styling flag, deliberately not named `disabled`: that prop detaches interaction, so a
+  // same-named variant could not express a button that looks disabled but stays interactive
+  // (see `onDisabledPress`). Consumers use the public `disabled` prop on `ButtonProps`.
   isDisabled?: boolean
   // Used for automatically setting the text color to the color that most contrasts with the custom background color provided
-  'custom-background-color'?: FlexProps['backgroundColor']
+  'custom-background-color'?: ButtonFrameVariantProps['custom-background-color']
 }
 
-// TODO(WEB-6347): don't allow people to set disabled prop until Tamagui issue resolved
-export type ButtonProps = Omit<CustomButtonFrameProps, 'variant' | 'disabled'> &
-  ButtonVariantProps & {
+export type ButtonProps = Omit<CustomButtonFrameProps, 'variant' | 'disabled' | 'isDisabled'> &
+  Omit<ButtonVariantProps, 'isDisabled'> & {
     /**
      * add icon before or after, passes color and size automatically if it's a Component
      */
@@ -37,6 +37,11 @@ export type ButtonProps = Omit<CustomButtonFrameProps, 'variant' | 'disabled'> &
      * Whether to apply a LayoutAnimation when the loading state changes
      */
     shouldAnimateBetweenLoadingStates?: boolean
+    /**
+     * Whether the button is disabled
+     * Displays the disabled UI state and, unless `onDisabledPress` is provided, blocks interaction
+     */
+    disabled?: boolean
     /**
      * The Datadog action name for the button
      */

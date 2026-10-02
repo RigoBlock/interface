@@ -6,9 +6,9 @@
 import { BitmapCoordinatesRenderingScope, CanvasRenderingTarget2D } from 'fancy-canvas'
 import {
   ICustomSeriesPaneRenderer,
+  IRange,
   PaneRendererCustomData,
   PriceToCoordinateConverter,
-  Range,
   Time,
 } from 'lightweight-charts'
 import { StackedAreaData } from '~/components/Charts/StackedLineChart/stacked-area-series/data'
@@ -88,7 +88,6 @@ export class StackedAreaSeriesRenderer<TData extends StackedAreaData> implements
 
     const areaPaths = this._createAreas(fullLinesMeshed)
 
-    // oxlint-disable-next-line typescript/no-unnecessary-condition -- biome-parity: oxlint is stricter here
     const isHovered = options.hoveredLogicalIndex && options.hoveredLogicalIndex !== -1
     areaPaths.forEach((areaPath, index) => {
       // Modification: determine area fill opacity based on number of lines and hover state
@@ -176,7 +175,7 @@ export class StackedAreaSeriesRenderer<TData extends StackedAreaData> implements
     isV4DataEnabled,
   }: {
     bars: StackedAreaBarItem[]
-    visibleRange: Range<number>
+    visibleRange: IRange<number>
     renderingScope: BitmapCoordinatesRenderingScope
     zeroY: number
     hoveredIndex?: number | null

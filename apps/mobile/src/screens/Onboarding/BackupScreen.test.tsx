@@ -9,19 +9,19 @@ import { renderWithProviders } from 'src/test/render'
 import { render } from 'src/test/test-utils'
 import { ImportType, OnboardingEntryPoint } from 'uniswap/src/types/onboarding'
 import { MobileScreens, OnboardingScreens } from 'uniswap/src/types/screens/mobile'
-import { TamaguiProvider } from 'wallet/src/providers/tamagui-provider'
+import { AppPortalProvider } from 'wallet/src/providers/portal-provider'
 import { ACCOUNT, preloadedWalletPackageState } from 'wallet/src/test/fixtures'
 
-jest.mock('wallet/src/features/wallet/accounts/utils', () => ({
-  hasExternalBackup: jest.fn(),
-  hasBackup: jest.fn(),
+vi.mock('wallet/src/features/wallet/accounts/utils', () => ({
+  hasExternalBackup: vi.fn(),
+  hasBackup: vi.fn(),
 }))
 
-jest.mock('wallet/src/features/onboarding/OnboardingContext', () => ({
-  useOnboardingContext: jest.fn().mockReturnValue({
-    getOnboardingOrImportedAccount: jest.fn().mockReturnValue({ address: 'mockedAccountAddress' }),
+vi.mock('wallet/src/features/onboarding/OnboardingContext', () => ({
+  useOnboardingContext: vi.fn().mockReturnValue({
+    getOnboardingOrImportedAccount: vi.fn().mockReturnValue({ address: 'mockedAccountAddress' }),
   }),
-  useCreateImportedAccountsFromMnemonicIfNone: jest.fn(),
+  useCreateImportedAccountsFromMnemonicIfNone: vi.fn(),
 }))
 
 const navigationProp = {} as CompositeNavigationProp<
@@ -48,9 +48,9 @@ describe(BackupScreen, () => {
 
   it('renders backup options when some are completed', async () => {
     const tree = renderWithProviders(
-      <TamaguiProvider>
+      <AppPortalProvider>
         <BackupScreen navigation={navigationProp} route={routeProp} />
-      </TamaguiProvider>,
+      </AppPortalProvider>,
       { preloadedState: preloadedWalletPackageState({ account: ACCOUNT }) },
     )
 

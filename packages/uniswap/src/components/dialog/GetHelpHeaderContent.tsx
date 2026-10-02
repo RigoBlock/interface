@@ -1,6 +1,5 @@
-import { Flex, ModalCloseIcon, TouchableArea } from 'ui/src'
+import { Flex, ModalCloseIcon, Text, TouchableArea } from '@universe/mycelium'
 import { BackArrow } from 'ui/src/components/icons/BackArrow'
-import { Text } from 'ui/src/components/text/Text'
 import type { GetHelpHeaderProps } from 'uniswap/src/components/dialog/GetHelpHeader'
 
 export type GetHelpButtonProps = {

@@ -1,8 +1,8 @@
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import { GasEstimate } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
 import { AssetType, NFTAssetType } from 'uniswap/src/entities/assets'
 import { SignerMnemonicAccountMeta } from 'uniswap/src/features/accounts/types'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 
 interface BaseSendParams {
   type: AssetType

@@ -1,7 +1,8 @@
 import type { GasFeeResult } from '@universe/api'
 import { TradingApi } from '@universe/api'
+import type { UniverseChainId } from '@universe/chains'
+import { isDevEnv } from '@universe/environment'
 import type { Warning, WarningWithStyle } from 'uniswap/src/components/modals/WarningModal/types'
-import type { UniverseChainId } from 'uniswap/src/features/chains/types'
 import type { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import type { SwapTxStoreState } from 'uniswap/src/features/transactions/swap/stores/swapTxStore/createSwapTxStore'
 import type { DerivedSwapInfo } from 'uniswap/src/features/transactions/swap/types/derivedSwapInfo'
@@ -11,7 +12,6 @@ import type {
   FeeOnTransferFeeGroupProps,
   TokenWarningProps,
 } from 'uniswap/src/features/transactions/TransactionDetails/types'
-import { isDevEnv } from 'utilities/src/environment/env'
 import type { StoreApi, UseBoundStore } from 'zustand'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'

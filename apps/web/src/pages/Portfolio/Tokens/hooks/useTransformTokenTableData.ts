@@ -1,26 +1,32 @@
-import { NetworkStatus } from '@apollo/client'
+import type { PlainMessage } from '@bufbuild/protobuf'
 import { GetWalletTokensProfitLossResponse } from '@uniswap/client-data-api/dist/data/v1/api_pb'
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { UniverseChainId } from '@universe/chains'
+import { TestID } from '@universe/test'
 import { useMemo } from 'react'
 import { HYPERLIQUID_LOGO } from 'ui/src/assets'
 import { USDC_HYPEREVM } from 'uniswap/src/constants/tokens'
 import { DEFAULT_NATIVE_ADDRESS } from 'uniswap/src/features/chains/evm/rpc'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { isStablecoinAddress } from 'uniswap/src/features/chains/utils'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import type { PortfolioChainBalance, PortfolioMultichainBalance } from 'uniswap/src/features/dataApi/types'
 import { buildCurrencyInfo } from 'uniswap/src/features/dataApi/utils/buildCurrency'
+import { useEarnVaults } from 'uniswap/src/features/earn/hooks/useEarnVaults'
 import {
   flattenPortfolioMultichainBalanceToSingleChainRows,
   partitionMultichainBalancesByPerChainVisibility,
 } from 'uniswap/src/features/portfolio/balances/buildExtensionMultichainBalancesListData'
 import { useSortedPortfolioBalancesMultichain } from 'uniswap/src/features/portfolio/balances/hooks'
 import { useCurrencyIdToVisibility } from 'uniswap/src/features/transactions/selectors'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
-import { currencyAddress, currencyId } from 'uniswap/src/utils/currencyId'
+import { normalizeCurrencyIdForMapLookup } from 'uniswap/src/utils/currencyId'
+import { buildCurrencyId, currencyAddress, currencyId } from 'uniswap/src/utils/currencyId'
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
 import { useHyperEvmUsdcBalance } from '~/pages/Portfolio/Perps/hyperliquid/useHyperEvmUsdcBalance'
+import {
+  buildPnlLookupsFromProfitLoss,
+  pnlLookupKeyFromPortfolioChainBalance,
+  resolveAggregatedPnlForChainTokens,
+} from '~/pages/Portfolio/Tokens/hooks/portfolioTokenTablePnl'
 
 /** Per-chain token instance (use TokenData['tokens'][number] in other modules) */
 interface TokenDataToken {
@@ -30,6 +36,9 @@ interface TokenDataToken {
   valueUsd: number
   symbol: string | undefined
   isHidden: boolean | null | undefined
+  avgCost?: number
+  unrealizedPnl?: number
+  unrealizedPnlPercent?: number
 }
 
 export interface TokenData {
@@ -43,17 +52,37 @@ export interface TokenData {
   price: number | undefined
   change1d: number | undefined
   tokens: TokenDataToken[]
+  isMultichainAsset: boolean
   totalValue: number
   allocation: number
   avgCost?: number
   unrealizedPnl?: number
   unrealizedPnlPercent?: number
   isStablecoin: boolean
+  /** Spam-flagged token in the hidden section: value and P&L cells render as "-". */
+  isSpamHidden?: boolean
 }
 
-// Custom hook to format portfolio data
-// When flag OFF: do not request multichain from backend → backend returns legacy → we transform to multichain shape for the table.
-// When flag ON: request multichain from backend → backend returns portfolio.multichainBalances → no transform needed.
+function filterVaultShareTokens({
+  balance,
+  vaultShareCurrencyIds,
+}: {
+  balance: PortfolioMultichainBalance
+  vaultShareCurrencyIds: Set<string>
+}): PortfolioMultichainBalance {
+  if (vaultShareCurrencyIds.size === 0) {
+    return balance
+  }
+
+  const tokens = balance.tokens.filter((token) => {
+    const tokenCurrencyId = normalizeCurrencyIdForMapLookup(currencyId(token.currencyInfo.currency))
+    return !vaultShareCurrencyIds.has(tokenCurrencyId)
+  })
+
+  return tokens.length === balance.tokens.length ? balance : { ...balance, tokens }
+}
+
+/** Insert a balance into a value-sorted balance list, preserving descending order. */
 function insertBalanceSortedByValue(
   balances: PortfolioMultichainBalance[],
   balance: PortfolioMultichainBalance,
@@ -79,7 +108,7 @@ export function useTransformTokenTableData({
 }: {
   chainIds?: UniverseChainId[]
   limit?: number
-  tokenProfitLossData?: GetWalletTokensProfitLossResponse
+  tokenProfitLossData?: PlainMessage<GetWalletTokensProfitLossResponse>
 }): {
   visible: TokenData[] | null
   hidden: TokenData[] | null
@@ -88,29 +117,34 @@ export function useTransformTokenTableData({
   refetching: boolean
   error: Error | undefined
   refetch: (() => void) | undefined
-  networkStatus: NetworkStatus
 } {
   const { evmAddress, svmAddress } = usePortfolioAddresses()
-  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
   const ownerAddresses = useMemo(
     () => [evmAddress, svmAddress].filter((a): a is Address => !!a),
     [evmAddress, svmAddress],
   )
   const currencyIdToTokenVisibility = useCurrencyIdToVisibility(ownerAddresses)
   const { isTestnetModeEnabled } = useEnabledChains()
+  const { isLoadingVaults, vaults } = useEarnVaults()
+  const vaultShareCurrencyIds = useMemo(
+    () =>
+      new Set(
+        vaults.map((vault) => normalizeCurrencyIdForMapLookup(buildCurrencyId(vault.chainId, vault.vaultAddress))),
+      ),
+    [vaults],
+  )
 
   const {
     data: sortedBalances,
     loading,
     error,
     refetch,
-    networkStatus,
+    isPending,
   } = useSortedPortfolioBalancesMultichain({
     evmAddress,
     svmAddress,
     chainIds,
-    // Flag OFF: legacy data from backend, transform to multichain shape on client. Flag ON: multichain (mock) data from backend.
-    requestMultichainFromBackend: multichainTokenUxEnabled,
+    requestMultichainFromBackend: true,
   })
 
   // HyperEVM (chain 999) is not indexed by the Uniswap data API, so the vault's HyperEVM USDC
@@ -153,9 +187,9 @@ export function useTransformTokenTableData({
 
   return useMemo(() => {
     // Only show empty state on initial load, not during refetch.
-    // networkStatus === NetworkStatus.loading means the query has never completed.
+    // 'pending' means the query has never completed.
     // This is synchronously true from the very first render when there is no cached data, even before isFetching is set.
-    const isInitialLoading = networkStatus === NetworkStatus.loading && !sortedBalances
+    const isInitialLoading = (isPending && !sortedBalances) || isLoadingVaults
     const isRefetching = loading && !!sortedBalances
 
     if (isInitialLoading) {
@@ -167,7 +201,6 @@ export function useTransformTokenTableData({
         refetching: false,
         error,
         refetch,
-        networkStatus,
       }
     }
 
@@ -183,14 +216,15 @@ export function useTransformTokenTableData({
           refetching: false,
           error,
           refetch,
-          networkStatus,
         }
       }
-      return { visible: [], hidden: [], totalCount: 0, loading, refetching: false, error, refetch, networkStatus }
+      return { visible: [], hidden: [], totalCount: 0, loading, refetching: false, error, refetch }
     }
 
     const balancesWithTokens = (balances: PortfolioMultichainBalance[]): PortfolioMultichainBalance[] =>
-      balances.filter((b) => b.tokens.length > 0)
+      balances
+        .map((balance) => filterVaultShareTokens({ balance, vaultShareCurrencyIds }))
+        .filter((b) => b.tokens.length > 0)
 
     // Only inject the HyperEVM USDC row when no per-chain filter is active or HyperEVM is selected
     const allBalances = sortedBalances.balances
@@ -226,41 +260,43 @@ export function useTransformTokenTableData({
         currencyIdToTokenVisibility,
       })
 
-    const pnlLookup = new Map<string, { avgCost: number; unrealizedPnl: number; unrealizedPnlPercent: number }>()
-    if (tokenProfitLossData?.tokenProfitLosses) {
-      for (const entry of tokenProfitLossData.tokenProfitLosses) {
-        if (entry.token) {
-          const key = `${entry.token.address.toLowerCase()}-${entry.token.chainId}`
-          pnlLookup.set(key, {
-            avgCost: entry.averageCostUsd,
-            unrealizedPnl: entry.unrealizedReturnUsd,
-            unrealizedPnlPercent: entry.unrealizedReturnPercent,
-          })
-        }
-      }
-    }
+    const { perChainPnlLookup, aggregatedJoinByLegKey } = buildPnlLookupsFromProfitLoss(tokenProfitLossData)
 
     const mapBalanceToTokenData = ({
       balance,
       chainTokensForRow,
       allocationFromTotal,
+      /** Fully hidden multichain rows are flattened to one synthetic balance per leg (`tokens.length === 1`); set from the parent when that still represents a multichain asset. */
+      isMultichainAssetOverride,
+      isHiddenRow = false,
     }: {
       balance: PortfolioMultichainBalance
       chainTokensForRow: PortfolioChainBalance[]
       allocationFromTotal?: number
+      isMultichainAssetOverride?: boolean
+      isHiddenRow?: boolean
     }): TokenData | null => {
       if (chainTokensForRow.length === 0) {
         return null
       }
       const tokens: TokenData['tokens'] = chainTokensForRow
-        .map((t) => ({
-          chainId: t.chainId,
-          currencyInfo: t.currencyInfo,
-          quantity: t.quantity,
-          valueUsd: t.valueUsd ?? 0,
-          symbol: t.currencyInfo.currency.symbol,
-          isHidden: t.isHidden,
-        }))
+        .map((t) => {
+          const rawAddr = currencyAddress(t.currencyInfo.currency).toLowerCase()
+          const addr = t.currencyInfo.currency.isNative ? DEFAULT_NATIVE_ADDRESS : rawAddr
+          const pnl = perChainPnlLookup.get(pnlLookupKeyFromPortfolioChainBalance(t))
+          const isStableOnChain = isStablecoinAddress(t.chainId as UniverseChainId, addr)
+          return {
+            chainId: t.chainId,
+            currencyInfo: t.currencyInfo,
+            quantity: t.quantity,
+            valueUsd: t.valueUsd ?? 0,
+            symbol: t.currencyInfo.currency.symbol,
+            isHidden: t.isHidden,
+            avgCost: pnl?.avgCost,
+            unrealizedPnl: isStableOnChain ? undefined : pnl?.unrealizedPnl,
+            unrealizedPnlPercent: isStableOnChain ? undefined : pnl?.unrealizedPnlPercent,
+          }
+        })
         .sort((a, b) => b.valueUsd - a.valueUsd)
       const first = tokens[0]
       // useTransformTokenTableData already ensures that there is at least one token, but adding check for safety
@@ -272,12 +308,17 @@ export function useTransformTokenTableData({
       const quantity = tokens.reduce((sum, t) => sum + t.quantity, 0)
       const price = quantity > 0 && totalValue > 0 ? totalValue / quantity : (balance.priceUsd ?? undefined)
 
-      // currencyAddress() returns the legacy native address (0xeeee...) for native tokens,
-      // but the backend returns the canonical zero address (0x0000...). Normalize for lookup.
-      const rawAddr = currencyAddress(first.currencyInfo.currency).toLowerCase()
-      const addr = first.currencyInfo.currency.isNative ? DEFAULT_NATIVE_ADDRESS : rawAddr
-      const pnl = pnlLookup.get(`${addr}-${first.chainId}`)
-      const isStablecoin = isStablecoinAddress(first.chainId as UniverseChainId, addr)
+      const rawAddrFirst = currencyAddress(first.currencyInfo.currency).toLowerCase()
+      const addrFirst = first.currencyInfo.currency.isNative ? DEFAULT_NATIVE_ADDRESS : rawAddrFirst
+      const isStablecoin = isStablecoinAddress(first.chainId as UniverseChainId, addrFirst)
+
+      const aggregatedPnl = resolveAggregatedPnlForChainTokens(chainTokensForRow, aggregatedJoinByLegKey)
+
+      const parentAvgCost = aggregatedPnl?.avgCost ?? first.avgCost
+      const parentUnrealizedPnl = isStablecoin ? undefined : (aggregatedPnl?.unrealizedPnl ?? first.unrealizedPnl)
+      const parentUnrealizedPnlPercent = isStablecoin
+        ? undefined
+        : (aggregatedPnl?.unrealizedPnlPercent ?? first.unrealizedPnlPercent)
 
       return {
         id: balance.id,
@@ -289,13 +330,16 @@ export function useTransformTokenTableData({
         quantity,
         price,
         tokens,
+        isMultichainAsset: isMultichainAssetOverride ?? balance.tokens.length > 1,
         totalValue,
         allocation: allocationFromTotal ?? 0,
         change1d: balance.pricePercentChange1d ?? undefined,
-        avgCost: pnl?.avgCost,
-        unrealizedPnl: pnl?.unrealizedPnl,
-        unrealizedPnlPercent: pnl?.unrealizedPnlPercent,
+        avgCost: parentAvgCost,
+        unrealizedPnl: parentUnrealizedPnl,
+        unrealizedPnlPercent: parentUnrealizedPnlPercent,
         isStablecoin,
+        // Hidden rows are single-chain, so `first` is the row's chain token
+        isSpamHidden: isHiddenRow && !!first.currencyInfo.isSpam,
       }
     }
 
@@ -314,17 +358,20 @@ export function useTransformTokenTableData({
       })
       .filter((d): d is TokenData => d !== null)
 
-    const hiddenFromFullyHidden = hiddenBalancesFiltered.flatMap((b) =>
-      flattenPortfolioMultichainBalanceToSingleChainRows(b)
+    const hiddenFromFullyHidden = hiddenBalancesFiltered.flatMap((b) => {
+      const parentWasMultichain = b.tokens.length > 1
+      return flattenPortfolioMultichainBalanceToSingleChainRows(b)
         .map((flatBalance) =>
           mapBalanceToTokenData({
             balance: flatBalance,
             chainTokensForRow: flatBalance.tokens,
             allocationFromTotal: 0,
+            isMultichainAssetOverride: parentWasMultichain,
+            isHiddenRow: true,
           }),
         )
-        .filter((d): d is TokenData => d !== null),
-    )
+        .filter((d): d is TokenData => d !== null)
+    })
 
     const hiddenFromPartialVisible = visibleBalancePartitions.flatMap(({ balance, hiddenChainTokens }) =>
       hiddenChainTokens
@@ -333,6 +380,7 @@ export function useTransformTokenTableData({
             balance,
             chainTokensForRow: [ht],
             allocationFromTotal: 0,
+            isHiddenRow: true,
           }),
         )
         .filter((d): d is TokenData => d !== null),
@@ -352,7 +400,6 @@ export function useTransformTokenTableData({
       loading,
       refetching: isRefetching,
       refetch,
-      networkStatus,
       error,
     }
   }, [
@@ -360,12 +407,14 @@ export function useTransformTokenTableData({
     sortedBalances,
     error,
     refetch,
-    networkStatus,
     limit,
     tokenProfitLossData,
     isTestnetModeEnabled,
     currencyIdToTokenVisibility,
     hyperliquidUsdcBalance,
     chainIds,
+    isLoadingVaults,
+    vaultShareCurrencyIds,
+    isPending,
   ])
 }

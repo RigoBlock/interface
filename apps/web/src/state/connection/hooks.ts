@@ -1,5 +1,5 @@
 export {
-  default as useCurrencyBalance,
+  useCurrencyBalance,
   useCurrencyBalances,
   useCurrencyBalancesMultipleAccounts,
   useTokenBalance,

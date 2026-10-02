@@ -1,16 +1,22 @@
-import { ContentStyle } from '@shopify/flash-list'
 import { EffectCallback, MutableRefObject } from 'react'
+import type { StyleProp, ViewStyle } from 'react-native'
 import { FocusedRowControl } from 'uniswap/src/components/lists/items/OptionItem'
 import { OnchainItemListOption } from 'uniswap/src/components/lists/items/types'
 import type { OnchainItemSection } from 'uniswap/src/components/lists/OnchainItemList/types'
-import { SectionHeaderProps } from 'uniswap/src/components/lists/SectionHeader'
+import type { SectionHeaderProps } from 'uniswap/src/components/lists/SectionHeader'
 import { PlatformSplitStubError } from 'utilities/src/errors'
 
 export interface OnchainItemListRef {
   scrollToLocation: (params: { itemIndex: number; sectionIndex: number; animated: boolean }) => void
 }
 
-export type SectionRowInfo = { section: SectionHeaderProps }
+export type SectionRowInfo = {
+  section: SectionHeaderProps & {
+    /** Always resolved for list-rendered headers (see `toSectionHeaderProps`). */
+    sectionRowId: string
+    sectionHeaderHeight?: number
+  }
+}
 
 export interface ItemRowInfo<T extends OnchainItemListOption> {
   item: T
@@ -31,7 +37,9 @@ export interface OnchainItemListProps<T extends OnchainItemListOption> {
   expandedItems?: string[]
   renderedInModal: boolean
   focusedRowControl?: Omit<FocusedRowControl, 'rowIndex'>
-  contentContainerStyle?: ContentStyle
+  /** Web: focuses the first focusable row once per key value (e.g. the search context). Requires `focusedRowControl`. */
+  autoFocusFirstRowKey?: string
+  contentContainerStyle?: StyleProp<ViewStyle>
 }
 
 export function OnchainItemList<T extends OnchainItemListOption>(_props: OnchainItemListProps<T>): JSX.Element {

@@ -1,4 +1,4 @@
-import { Flex, Text } from 'ui/src'
+import { Flex, Text } from '@universe/mycelium'
 
 export const TextElement = ({ text }: { text: string }): JSX.Element => {
   return (

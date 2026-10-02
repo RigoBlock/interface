@@ -1,4 +1,4 @@
-import { Flex } from 'ui/src'
+import { Flex } from '@universe/mycelium'
 import type { AdjustedChartItem } from '~/components/PercentageAllocationChart/types'
 
 function getBarSegmentVisual({

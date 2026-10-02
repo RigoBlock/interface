@@ -2,7 +2,8 @@
 #
 .DS_Store
 
-.tamagui
+# uniwind (regenerated on every metro/expo start)
+uniwind-types.d.ts
 
 # Xcode
 #
@@ -107,14 +108,8 @@ storybook-static/*
 ios/assets/
 ./lib/
 
-# Jest
+# Test coverage
 coverage/
-
-# Swift GraphQL codegen
-# Ignores everything inside the schema folder except the README.md
-!ios/WidgetsCore/MobileSchema/
-ios/WidgetsCore/MobileSchema/*
-!ios/WidgetsCore/MobileSchema/README.md
 
 # Swift env
 ios/WidgetsCore/Env.swift
@@ -134,3 +129,5 @@ web-build/
 
 coverage/
 
+# C++ build artifacts (new arch)
+.cxx

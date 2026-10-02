@@ -17,10 +17,9 @@ import {
 } from '@uniswap/uniswapx-sdk'
 import { Pair, Route as V2Route } from '@uniswap/v2-sdk'
 import { FeeAmount, Pool, Route as V3Route } from '@uniswap/v3-sdk'
+import { UniverseChainId, isEVMChain } from '@universe/chains'
 import { BIPS_BASE } from 'uniswap/src/constants/misc'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { isEVMChain } from 'uniswap/src/features/platforms/utils/chains'
 import { logger } from 'utilities/src/logger/logger'
 import { getApproveInfo } from '~/state/routing/gas'
 import {
@@ -174,7 +173,7 @@ function toUnsignedV3DutchOrderInfo(orderInfoJSON: UnsignedV3DutchOrderInfoJSON)
       adjustmentPerGweiBaseFee: BigNumber.from(input.adjustmentPerGweiBaseFee),
       curve: {
         relativeBlocks: input.curve.relativeBlocks,
-        relativeAmounts: input.curve.relativeAmounts.map((amount) => BigNumber.from(amount).toBigInt()),
+        relativeAmounts: input.curve.relativeAmounts.map((amount) => BigInt(amount)),
       },
     },
     outputs: outputs.map((output: V3DutchOutputJSON) => ({
@@ -184,7 +183,7 @@ function toUnsignedV3DutchOrderInfo(orderInfoJSON: UnsignedV3DutchOrderInfoJSON)
       adjustmentPerGweiBaseFee: BigNumber.from(output.adjustmentPerGweiBaseFee),
       curve: {
         relativeBlocks: output.curve.relativeBlocks,
-        relativeAmounts: output.curve.relativeAmounts.map((amount) => BigNumber.from(amount).toBigInt()),
+        relativeAmounts: output.curve.relativeAmounts.map((amount) => BigInt(amount)),
       },
     })),
   }

@@ -1,12 +1,13 @@
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
 import { Currency } from '@uniswap/sdk-core'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { UniswapEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { TransactionDetails } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { NATIVE_ANALYTICS_ADDRESS_VALUE } from 'uniswap/src/utils/currencyId'
 
 export enum TokenReportOption {
+  CantSellOrTransfer = 'cant_sell_or_transfer',
   Spam = 'spam',
   Imposter = 'imposter',
   HiddenFees = 'hidden_fees',
@@ -31,6 +32,8 @@ export enum PoolDataReportOption {
 }
 
 export enum PortfolioDataReportOption {
+  Tokens = 'tokens',
+  Pools = 'pools',
   Performance = 'performance',
   Other = 'other',
 }
@@ -41,6 +44,7 @@ export function submitTokenIssueReport({
   tokenAddress,
   tokenName,
   isMarkedSpam,
+  isMultichainAsset = false,
   reportOptions,
   reportTexts,
 }: {
@@ -49,6 +53,7 @@ export function submitTokenIssueReport({
   tokenAddress?: string
   tokenName?: string
   isMarkedSpam?: Maybe<boolean>
+  isMultichainAsset?: boolean
   reportOptions: TokenReportOption[]
   reportTexts: Map<TokenReportOption, string>
 }): void {
@@ -59,6 +64,8 @@ export function submitTokenIssueReport({
     token_contract_address: tokenAddress ?? NATIVE_ANALYTICS_ADDRESS_VALUE,
     chain_id: chainId,
     is_marked_spam: isMarkedSpam,
+    is_multichain_asset: isMultichainAsset,
+    cant_sell_or_transfer: reportOptions.includes(TokenReportOption.CantSellOrTransfer),
     spam_token: reportOptions.includes(TokenReportOption.Spam),
     imposter_token: reportOptions.includes(TokenReportOption.Imposter),
     hidden_fees: reportOptions.includes(TokenReportOption.HiddenFees),
@@ -75,6 +82,7 @@ export function submitTokenDataReport({
   walletAddress,
   reportOptions,
   reportTexts,
+  reportMultichainAsset = false,
 }: {
   chainId: UniverseChainId
   tokenAddress?: string
@@ -83,6 +91,7 @@ export function submitTokenDataReport({
   walletAddress?: string
   reportOptions: TokenDataReportOption[]
   reportTexts: Map<TokenDataReportOption, string>
+  reportMultichainAsset?: boolean
 }): void {
   sendAnalyticsEvent(UniswapEventName.DataReportSubmitted, {
     type: 'data',
@@ -99,6 +108,7 @@ export function submitTokenDataReport({
     performance_text: reportTexts.get(TokenDataReportOption.Performance),
     something_else: reportOptions.includes(TokenDataReportOption.Other),
     text: reportTexts.get(TokenDataReportOption.Other),
+    report_multichain_asset: reportMultichainAsset,
   })
 }
 
@@ -108,12 +118,14 @@ export function submitTokenWarningDataReport({
   tokenName,
   isMarkedSpam,
   reportText,
+  reportMultichainAsset = false,
 }: {
   chainId: UniverseChainId
   tokenAddress?: string
   tokenName?: string
   isMarkedSpam?: Maybe<boolean>
   reportText: string
+  reportMultichainAsset?: boolean
 }): void {
   sendAnalyticsEvent(UniswapEventName.DataReportSubmitted, {
     type: 'token_warning',
@@ -122,6 +134,7 @@ export function submitTokenWarningDataReport({
     chain_id: chainId,
     text: reportText,
     is_marked_spam: isMarkedSpam,
+    report_multichain_asset: reportMultichainAsset,
   })
 }
 
@@ -218,6 +231,10 @@ export function submitPortfolioDataReport({
   sendAnalyticsEvent(UniswapEventName.DataReportSubmitted, {
     type: 'portfolio',
     wallet_address: walletAddress,
+    tokens: reportOptions.includes(PortfolioDataReportOption.Tokens),
+    tokens_text: reportTexts.get(PortfolioDataReportOption.Tokens),
+    pools: reportOptions.includes(PortfolioDataReportOption.Pools),
+    pools_text: reportTexts.get(PortfolioDataReportOption.Pools),
     performance: reportOptions.includes(PortfolioDataReportOption.Performance),
     performance_text: reportTexts.get(PortfolioDataReportOption.Performance),
     something_else: reportOptions.includes(PortfolioDataReportOption.Other),

@@ -1,12 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
+import { Flex, iconSizes, Loader } from '@universe/mycelium'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useBiometricUnlockSetupMutation } from 'src/app/features/biometricUnlock/useBiometricUnlockSetupMutation'
 import { OnboardingScreen } from 'src/app/features/onboarding/OnboardingScreen'
 import { SettingsToggleRow } from 'src/app/features/settings/components/SettingsToggleRow'
 import { builtInBiometricCapabilitiesQuery } from 'src/app/utils/device/builtInBiometricCapabilitiesQuery'
-import { Flex, Loader, Square } from 'ui/src'
-import { iconSizes } from 'ui/src/theme'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { ExtensionOnboardingFlow, ExtensionOnboardingScreens } from 'uniswap/src/types/screens/extension'
 import { logger } from 'utilities/src/logger/logger'
@@ -63,9 +62,20 @@ export function BiometricUnlockSetUp({
     <Trace logImpression properties={{ flow }} screen={ExtensionOnboardingScreens.SetUpBiometricUnlock}>
       <OnboardingScreen
         Icon={
-          <Square backgroundColor="$surface2" borderRadius="$rounded12" size={iconSizes.icon48}>
+          // Legacy Square's `size` variant maps one value onto width/height and their min/max twins.
+          <Flex
+            centered
+            backgroundColor="$surface2"
+            borderRadius="$rounded12"
+            width={iconSizes.icon48}
+            height={iconSizes.icon48}
+            minWidth={iconSizes.icon48}
+            maxWidth={iconSizes.icon48}
+            minHeight={iconSizes.icon48}
+            maxHeight={iconSizes.icon48}
+          >
             {icon}
-          </Square>
+          </Flex>
         }
         nextButtonEnabled
         nextButtonText={t('common.button.continue')}

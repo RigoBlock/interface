@@ -1,40 +1,50 @@
 import { GraphQLApi } from '@universe/api'
+import { Flex, type FlexCompatProps, Text } from '@universe/mycelium'
 import { UTCTimestamp } from 'lightweight-charts'
 import { ReactElement, ReactNode } from 'react'
-import { Flex, LinearGradient, styled, Text, useSporeColors } from 'ui/src'
-import { zIndexes } from 'ui/src/theme'
+import AnimatedNumber from 'uniswap/src/components/AnimatedNumber/AnimatedNumber'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { FiatNumberType, NumberType } from 'utilities/src/format/types'
-import { getProtocolColor, getProtocolName } from '~/appGraphql/data/util'
 import { useHeaderDateFormatter } from '~/components/Charts/hooks/useHeaderDateFormatter'
 import { PROTOCOL_LEGEND_ELEMENT_ID } from '~/components/Charts/types'
+import { getProtocolColor, getProtocolName } from '~/data/util'
 import { EllipsisTamaguiStyle } from '~/theme/components/styles'
 
 type ChartHeaderProtocolInfo = { protocol: GraphQLApi.PriceSource; value?: number }
 
-const ProtocolLegendWrapper = styled(Flex, {
-  position: 'absolute',
-  right: 0,
-  py: '$spacing4',
-  px: '$spacing12',
-  gap: '$gap12',
-  pointerEvents: 'none',
-  variants: {
-    hover: {
-      true: {
-        right: 'unset',
-        p: '$spacing8',
-        gap: '$gap6',
-        borderRadius: '$rounded12',
-        border: '1px solid',
-        borderColor: '$surface3',
-        backgroundColor: '$surface2',
-        boxShadow: '0px 1px 2px 0px rgba(0, 0, 0, 0.02), 0px 1px 6px 2px rgba(0, 0, 0, 0.03)',
-        zIndex: '$tooltip',
-      },
-    },
-  },
-})
+type ProtocolLegendWrapperProps = FlexCompatProps & {
+  hover?: boolean
+}
+
+// borderWidth must be paired with borderColor (mycelium/Tailwind convention) —
+// width alone with no color class renders a black ring, per checkbox-compat/compile.ts.
+const HOVER_STYLES: FlexCompatProps = {
+  right: 'unset',
+  gap: '$spacing6',
+  borderRadius: '$rounded12',
+  borderWidth: 1,
+  borderColor: '$surface3',
+  backgroundColor: '$surface1',
+  boxShadow: '0px 1px 2px 0px rgba(0, 0, 0, 0.02), 0px 1px 6px 2px rgba(0, 0, 0, 0.03)',
+  zIndex: '$tooltip',
+}
+
+function ProtocolLegendWrapper({ hover, ...rest }: ProtocolLegendWrapperProps): JSX.Element {
+  return (
+    <Flex
+      position="absolute"
+      right={0}
+      // One padding granularity on both branches: the compat cascade resolves
+      // longhands over shorthands, so a hover-side `p` could not beat base `px`/`py`.
+      py={hover ? '$spacing8' : '$spacing4'}
+      px={hover ? '$spacing8' : '$spacing12'}
+      gap="$gap12"
+      pointerEvents="none"
+      {...(hover ? HOVER_STYLES : undefined)}
+      {...rest}
+    />
+  )
+}
 
 function ProtocolLegend({ protocolData }: { protocolData?: ChartHeaderProtocolInfo[] }) {
   const { convertFiatAmountFormatted } = useLocalizationContext()
@@ -69,9 +79,15 @@ interface HeaderValueDisplayProps {
   value?: number | ReactElement
   /** Used to override default format NumberType (FiatTokenStats) */
   valueFormatterType?: FiatNumberType
+  /** When true (crosshair hover), suppresses animation so rapid price updates don't trigger slots */
+  isHovered?: boolean
 }
 
-function HeaderValueDisplay({ value, valueFormatterType = NumberType.FiatTokenStats }: HeaderValueDisplayProps) {
+function HeaderValueDisplay({
+  value,
+  valueFormatterType = NumberType.FiatTokenStats,
+  isHovered,
+}: HeaderValueDisplayProps) {
   const { convertFiatAmountFormatted } = useLocalizationContext()
 
   if (typeof value !== 'number' && typeof value !== 'undefined') {
@@ -79,9 +95,12 @@ function HeaderValueDisplay({ value, valueFormatterType = NumberType.FiatTokenSt
   }
 
   return (
-    <Text variant="heading2" {...EllipsisTamaguiStyle}>
-      {convertFiatAmountFormatted(value, valueFormatterType)}
-    </Text>
+    <AnimatedNumber
+      value={convertFiatAmountFormatted(value, valueFormatterType)}
+      numericValue={isHovered ? undefined : value}
+      disableAnimations={isHovered}
+      textVariant="$heading2"
+    />
   )
 }
 
@@ -94,26 +113,9 @@ interface HeaderTimeDisplayProps {
 function HeaderTimeDisplay({ time, timePlaceholder }: HeaderTimeDisplayProps) {
   const headerDateFormatter = useHeaderDateFormatter()
   return (
-    <Text variant="subheading2" display="flex" alignItems="center" color="neutral2">
+    <Text variant="subheading2" display="flex" alignItems="center" color="$neutral2">
       {time ? headerDateFormatter(time) : timePlaceholder}
     </Text>
-  )
-}
-
-function ChartBackgroundGradient() {
-  const colors = useSporeColors()
-
-  return (
-    <LinearGradient
-      position="absolute"
-      colors={[colors.surface1.val, colors.surface1.val, 'transparent']}
-      locations={[0, 0.7, 1]}
-      start={{ x: 0, y: 1 }}
-      end={{ x: 1, y: 0 }}
-      width="100%"
-      height="100%"
-      zIndex={zIndexes.negative}
-    />
   )
 }
 
@@ -135,8 +137,7 @@ export function ChartHeader({
   return (
     <Flex row position="absolute" width="100%" gap="$gap8" alignItems="flex-start" zIndex="$mask" id="chart-header">
       <Flex position="absolute" gap="$gap4" pb="$padding8" pr="$padding8" pointerEvents="none">
-        <ChartBackgroundGradient />
-        <HeaderValueDisplay value={value} valueFormatterType={valueFormatterType} />
+        <HeaderValueDisplay value={value} valueFormatterType={valueFormatterType} isHovered={isHovered} />
         <Flex row gap="$gap8" $sm={{ flexDirection: 'column' }} {...EllipsisTamaguiStyle}>
           {additionalFields}
           <HeaderTimeDisplay time={time} timePlaceholder={timePlaceholder} />

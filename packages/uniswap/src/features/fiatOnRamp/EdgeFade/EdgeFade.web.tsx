@@ -1,7 +1,7 @@
-import { Flex, FlexProps, useSporeColors } from 'ui/src'
-import { opacify } from 'ui/src/theme'
+import { Flex, type FlexCompatProps } from '@universe/mycelium'
+import { opacify, useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 
-export function EdgeFade({ side, ...rest }: { side: 'left' | 'right' } & FlexProps): JSX.Element {
+export function EdgeFade({ side, ...rest }: { side: 'left' | 'right' } & FlexCompatProps): JSX.Element {
   const colors = useSporeColors()
   return (
     <Flex

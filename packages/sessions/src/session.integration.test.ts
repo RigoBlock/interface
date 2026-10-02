@@ -78,21 +78,14 @@ describe('Real Backend Integration - Web (Turnstile + Hashcash)', () => {
   })
 
   it('initializes session with cookie, empty response sessionId', { timeout: 30000, retry: 5 }, async () => {
-    const manualInitService = createSessionInitializationService({
-      getSessionService: () => sessionService,
-      challengeSolverService,
-      performanceTracker: createMockPerformanceTracker(),
-      getIsSessionUpgradeAutoEnabled: () => false,
-    })
-
-    const result = await manualInitService.initialize()
+    const result = await sessionService.initSession()
 
     // Web: Session ID is in the cookie, not in response body
     expect(cookieJar.has('x-session-id')).toBe(true)
     expect(cookieJar.get('x-session-id')).toBeTruthy()
 
-    // Web platform: sessionId is null (stored in cookie, not response body)
-    expect(result.sessionId).toBeNull()
+    // Web platform: no sessionId in the response body (stored in cookie)
+    expect(result.sessionId).toBeUndefined()
 
     // Session is NOT stored locally yet because challenge is needed
     const sessionState = await sessionService.getSessionState()
@@ -100,14 +93,7 @@ describe('Real Backend Integration - Web (Turnstile + Hashcash)', () => {
   })
 
   it('receives Turnstile challenge first', { timeout: 30000, retry: 5 }, async () => {
-    const manualInitService = createSessionInitializationService({
-      getSessionService: () => sessionService,
-      challengeSolverService,
-      performanceTracker: createMockPerformanceTracker(),
-      getIsSessionUpgradeAutoEnabled: () => false,
-    })
-
-    await manualInitService.initialize()
+    await sessionService.initSession()
 
     const challenge = await sessionService.requestChallenge()
 
@@ -117,14 +103,7 @@ describe('Real Backend Integration - Web (Turnstile + Hashcash)', () => {
   })
 
   it('falls back to Hashcash after Turnstile fails', { timeout: 30000, retry: 5 }, async () => {
-    const manualInitService = createSessionInitializationService({
-      getSessionService: () => sessionService,
-      challengeSolverService,
-      performanceTracker: createMockPerformanceTracker(),
-      getIsSessionUpgradeAutoEnabled: () => false,
-    })
-
-    await manualInitService.initialize()
+    await sessionService.initSession()
 
     // Get Turnstile challenge
     const turnstileChallenge = await sessionService.requestChallenge()
@@ -161,14 +140,7 @@ describe('Real Backend Integration - Web (Turnstile + Hashcash)', () => {
     // Retry the full flow from a clean state so we don't carry over a broken session cookie.
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        const manualInitService = createSessionInitializationService({
-          getSessionService: () => sessionService,
-          challengeSolverService,
-          performanceTracker: createMockPerformanceTracker(),
-          getIsSessionUpgradeAutoEnabled: () => false,
-        })
-
-        await manualInitService.initialize()
+        await sessionService.initSession()
 
         // Turnstile attempt (fails)
         const turnstileChallenge = await sessionService.requestChallenge()
@@ -222,7 +194,6 @@ describe('Real Backend Integration - Web (Turnstile + Hashcash)', () => {
       getSessionService: () => sessionService,
       challengeSolverService,
       performanceTracker: createMockPerformanceTracker(),
-      getIsSessionUpgradeAutoEnabled: () => true,
     })
 
     const result = await autoInitService.initialize()
@@ -251,7 +222,6 @@ describe('Real Backend Integration - Web (Turnstile + Hashcash)', () => {
             getSessionService: () => sessionService,
             challengeSolverService,
             performanceTracker: createMockPerformanceTracker(),
-            getIsSessionUpgradeAutoEnabled: () => true,
           })
 
           await autoInitService.initialize()
@@ -266,7 +236,6 @@ describe('Real Backend Integration - Web (Turnstile + Hashcash)', () => {
             getSessionService: () => sessionService,
             challengeSolverService,
             performanceTracker: createMockPerformanceTracker(),
-            getIsSessionUpgradeAutoEnabled: () => true,
           })
 
           await reinitService.initialize()
@@ -298,7 +267,6 @@ describe('Real Backend Integration - Web (Turnstile + Hashcash)', () => {
       getSessionService: () => sessionService,
       challengeSolverService,
       performanceTracker: createMockPerformanceTracker(),
-      getIsSessionUpgradeAutoEnabled: () => true,
       analytics,
     })
 
@@ -388,14 +356,7 @@ describe.each(NON_WEB_PLATFORMS)(
     })
 
     it('initializes session with session ID and device ID stored locally', { timeout: 30000, retry: 5 }, async () => {
-      const manualInitService = createSessionInitializationService({
-        getSessionService: () => sessionService,
-        challengeSolverService,
-        performanceTracker: createMockPerformanceTracker(),
-        getIsSessionUpgradeAutoEnabled: () => false,
-      })
-
-      const result = await manualInitService.initialize()
+      const result = await sessionService.initSession()
 
       // Non-web: Backend returns session ID in response, which gets stored locally
       // sessionId is returned regardless of challenge status
@@ -411,14 +372,7 @@ describe.each(NON_WEB_PLATFORMS)(
     })
 
     it('receives Hashcash challenge directly (no Turnstile)', { timeout: 30000, retry: 5 }, async () => {
-      const manualInitService = createSessionInitializationService({
-        getSessionService: () => sessionService,
-        challengeSolverService,
-        performanceTracker: createMockPerformanceTracker(),
-        getIsSessionUpgradeAutoEnabled: () => false,
-      })
-
-      await manualInitService.initialize()
+      await sessionService.initSession()
 
       const challenge = await sessionService.requestChallenge()
 
@@ -428,14 +382,7 @@ describe.each(NON_WEB_PLATFORMS)(
     })
 
     it('successfully upgrades session with Hashcash', { timeout: 60000, retry: 5 }, async () => {
-      const manualInitService = createSessionInitializationService({
-        getSessionService: () => sessionService,
-        challengeSolverService,
-        performanceTracker: createMockPerformanceTracker(),
-        getIsSessionUpgradeAutoEnabled: () => false,
-      })
-
-      await manualInitService.initialize()
+      await sessionService.initSession()
 
       // Get Hashcash challenge directly
       const hashcashChallenge = await sessionService.requestChallenge()
@@ -463,7 +410,6 @@ describe.each(NON_WEB_PLATFORMS)(
         getSessionService: () => sessionService,
         challengeSolverService,
         performanceTracker: createMockPerformanceTracker(),
-        getIsSessionUpgradeAutoEnabled: () => true,
       })
 
       const result = await autoInitService.initialize()
@@ -483,7 +429,6 @@ describe.each(NON_WEB_PLATFORMS)(
           getSessionService: () => sessionService,
           challengeSolverService,
           performanceTracker: createMockPerformanceTracker(),
-          getIsSessionUpgradeAutoEnabled: () => true,
         })
 
         const firstResult = await autoInitService.initialize()
@@ -496,7 +441,6 @@ describe.each(NON_WEB_PLATFORMS)(
           getSessionService: () => sessionService,
           challengeSolverService,
           performanceTracker: createMockPerformanceTracker(),
-          getIsSessionUpgradeAutoEnabled: () => true,
         })
 
         const secondResult = await reinitService.initialize()

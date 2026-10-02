@@ -1,51 +1,34 @@
-import type { TextStyle, ViewStyle } from 'react-native'
-
-export const BALANCE_CHANGE_INDICATION_DURATION = 500
-export const NUMBER_ARRAY = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
-export const NUMBER_WIDTH_ARRAY = [29, 20, 29, 29, 29, 29, 29, 29, 29, 29]
-export const DIGIT_HEIGHT = 40
-export const DIGIT_MAX_WIDTH = 29
-export const ADDITIONAL_WIDTH_FOR_ANIMATIONS = 8
+import type { ColorTokens, FontVariantToken } from '@universe/mycelium'
+import type { AnimatedNumberDirection } from 'uniswap/src/components/AnimatedNumber/types'
+export type { AnimatedCharStylesType, AnimatedFontStylesType } from 'uniswap/src/components/AnimatedNumber/styles'
+export { AnimatedCharStyles, AnimatedFontStyles } from 'uniswap/src/components/AnimatedNumber/styles'
 
 export type AnimatedNumberProps = {
-  loadingPlaceholderText: string
-  loading: boolean | 'no-shimmer'
+  loadingPlaceholderText?: string
+  loading?: boolean | 'no-shimmer'
   value?: string
-  balance?: number
-  colorIndicationDuration: number
-  shouldFadeDecimals: boolean
-  warmLoading: boolean
+  numericValue?: number
+  colorIndicationDuration?: number
+  shouldFadeDecimals?: boolean
+  warmLoading?: boolean
   disableAnimations?: boolean
-  isRightToLeft: boolean
+  /**
+   * Skip all animation work without changing layout: ticks apply statically and are consumed, so
+   * un-suspending never replays a stale roll. For list rows outside the viewport, where animating
+   * every mounted row exhausted native memory. Unlike `disableAnimations` nothing remounts. Native-only.
+   */
+  suspendAnimations?: boolean
+  /** Overrides the computed up/down change direction (and its color) — e.g. for values like elapsed time that should always read as increasing. */
+  forceDirection?: AnimatedNumberDirection
+  /** Override text direction for digit stagger. Defaults to `i18next.dir() === 'rtl'`. */
+  isRightToLeft?: boolean
+  textVariant?: FontVariantToken
+  color?: ColorTokens
   EndElement?: JSX.Element
-}
-
-export interface AnimatedCharStylesType {
-  wrapperStyle: ViewStyle
-}
-
-export interface AnimatedFontStylesType {
-  fontStyle: TextStyle
-  invisible: TextStyle
-}
-
-export const AnimatedCharStyles: AnimatedCharStylesType = {
-  wrapperStyle: {
-    overflow: 'hidden',
-  },
-}
-
-export const AnimatedFontStyles: AnimatedFontStylesType = {
-  fontStyle: {
-    fontSize: 28,
-    fontWeight: '500',
-    lineHeight: 40,
-    top: 1,
-  },
-  invisible: {
-    opacity: 0,
-    position: 'absolute',
-  },
+  endElementGap?: number
+  alignRight?: boolean
+  containerTestID?: string
+  ellipsis?: boolean
 }
 
 export default function AnimatedNumber(_props: AnimatedNumberProps): JSX.Element {

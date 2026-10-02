@@ -1,31 +1,41 @@
+import { BackupMethodSummary, type EncryptedRecoveryState, IconBox } from '@universe/embedded-wallet'
+import { Button, Flex, ModalCloseIcon, Text } from '@universe/mycelium'
+import { Lock } from '@universe/mycelium/icons/Lock'
+import { Passkey } from '@universe/mycelium/icons/Passkey'
+import { ShieldCheck } from '@universe/mycelium/icons/ShieldCheck'
 import type { TFunction } from 'i18next'
-import { Button, Flex, SpinningLoader, Text, TouchableArea } from 'ui/src'
-import { Lock } from 'ui/src/components/icons/Lock'
-import { ShieldCheck } from 'ui/src/components/icons/ShieldCheck'
-import { X } from 'ui/src/components/icons/X'
-import type { EncryptedRecoveryState } from 'uniswap/src/features/passkey/embeddedWallet'
 import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { BackupMethodSummary, IconBox } from '~/components/Passkey/BackupLoginComponents'
-
 export function ConfirmPasscodeExtra({
   cryptoResult,
   handleSignInWithPasskey,
+  isEncrypting,
   isSigningIn,
   t,
 }: {
   cryptoResult: EncryptedRecoveryState | null
   handleSignInWithPasskey: () => void
+  isEncrypting: boolean
   isSigningIn: boolean
   t: TFunction
 }) {
-  if (!cryptoResult) {
+  const isReady = cryptoResult !== null
+  // Hidden until the user has submitted their passcode (encryption starts or has completed).
+  if (!isEncrypting && !isReady) {
     return null
   }
   return (
-    <Flex row alignSelf="stretch" pt="$spacing4">
-      <Button variant="branded" size="medium" onPress={handleSignInWithPasskey} isDisabled={isSigningIn}>
-        {isSigningIn ? <SpinningLoader size={20} /> : t('account.passkey.verify.button')}
+    <Flex row alignSelf="stretch">
+      <Button
+        variant="branded"
+        size="medium"
+        icon={<Passkey />}
+        loading={isSigningIn}
+        shouldAnimateBetweenLoadingStates={false}
+        onPress={handleSignInWithPasskey}
+        disabled={!isReady || isSigningIn}
+      >
+        {t('swap.button.submitting.passkey')}
       </Button>
     </Flex>
   )
@@ -38,6 +48,8 @@ export function SuccessStep({
   oauthEmail,
   oauthProvider,
   t,
+  title,
+  description,
 }: {
   email: string
   handleClose: () => void
@@ -45,28 +57,30 @@ export function SuccessStep({
   oauthEmail: string | undefined
   oauthProvider: 'google' | 'apple' | null
   t: TFunction
+  // Reconnect (rotation) overrides; default to the add-backup-login copy.
+  title?: string
+  description?: string
 }) {
   return (
     <Trace logImpression modal={ModalName.AddBackupLogin}>
       <Flex width="100%" alignItems="flex-end">
-        <TouchableArea variant="unstyled" onPress={handleClose}>
-          <X size="$icon.20" color="$neutral2" />
-        </TouchableArea>
+        <ModalCloseIcon size="$icon.20" onClose={handleClose} />
       </Flex>
-      <Flex gap="$gap16" alignItems="center" width="100%" px="$padding4">
+      <Flex gap="$gap16" alignItems="center" width="100%" px="$spacing4">
         <IconBox background="$statusSuccess2">
           <ShieldCheck size="$icon.24" color="$statusSuccess" />
         </IconBox>
         <Flex gap="$gap8" alignItems="center" maxWidth={360}>
           <Text variant="subheading1" textAlign="center">
-            {t('account.passkey.backupLogin.success.title')}
+            {title ?? t('account.passkey.backupLogin.success.title')}
           </Text>
           <Text variant="body2" textAlign="center" color="$neutral2">
-            {oauthProvider
-              ? t('account.passkey.backupLogin.success.description.oauth', {
-                  provider: oauthProvider === 'google' ? 'Google' : 'Apple',
-                })
-              : t('account.passkey.backupLogin.success.description')}
+            {description ??
+              (oauthProvider
+                ? t('account.passkey.backupLogin.success.description.oauth', {
+                    provider: oauthProvider === 'google' ? 'Google' : 'Apple',
+                  })
+                : t('account.passkey.backupLogin.success.description'))}
           </Text>
         </Flex>
       </Flex>

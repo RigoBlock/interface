@@ -1,6 +1,6 @@
 import { Currency, Token, TradeType } from '@uniswap/sdk-core'
+import { UniverseChainId } from '@universe/chains'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { GetQuoteArgs, PoolType, RouterPreference, TokenInRoute, URAQuoteType } from '~/state/routing/types'
 import { computeRoutes } from '~/state/routing/utils'
 

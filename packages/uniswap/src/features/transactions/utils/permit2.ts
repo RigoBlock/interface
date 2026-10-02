@@ -1,8 +1,8 @@
 import { PERMIT2_ADDRESS, permit2Address } from '@uniswap/permit2-sdk'
+import { UniverseChainId } from '@universe/chains'
 import { Contract, providers } from 'ethers/lib/ethers'
 import PERMIT2_ABI from 'uniswap/src/abis/permit2.json'
 import { Permit2 } from 'uniswap/src/abis/types'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 
 /**
  * Factory function to create a Permit2 contract instance

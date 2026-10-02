@@ -1,25 +1,31 @@
+import { Flex } from '@universe/mycelium'
+import { SegmentedControl } from '@universe/mycelium/segmented-control-compat'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
 import { useAtomValue } from 'jotai/utils'
-import { Flex, SegmentedControl, useMedia } from 'ui/src'
+import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
+import { InterfaceEventName, InterfacePageName } from 'uniswap/src/features/telemetry/constants'
+import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { refitChartContentAtom } from '~/components/Charts/ChartModel'
 import { ChartType, PriceChartType } from '~/components/Charts/utils'
-import { ChartActionsContainer } from '~/components/Explore/chart/ChartActionsContainer'
-import { ChartTypeToggle } from '~/components/Explore/chart/ChartTypeToggle'
-import {
-  DEFAULT_PILL_TIME_SELECTOR_OPTIONS,
-  DISPLAYS,
-  getTimePeriodFromDisplay,
-  TimePeriodDisplay,
-} from '~/components/Explore/constants'
+import { TimePeriod } from '~/data/util'
+import { ChartActionsContainer } from '~/features/Explore/chart/ChartActionsContainer'
+import { ChartTypeToggle } from '~/features/Explore/chart/ChartTypeToggle'
+import { getPillTimeSelectorOptions } from '~/features/Explore/timeLabels'
 import { AdvancedPriceChartToggle } from '~/pages/TokenDetails/components/chart/AdvancedPriceChartToggle'
+import { usePrefetchTDPChartHistory } from '~/pages/TokenDetails/components/chart/hooks/usePrefetchTDPChartHistory'
 import {
   getDisplayPriceChartType,
+  type TDPChartQueryVariables,
   type TokenDetailsChartType,
 } from '~/pages/TokenDetails/components/chart/TDPChartState'
 import { useTDPChartStateContext } from '~/pages/TokenDetails/components/chart/TDPChartStateContext'
+import { useTDPStore } from '~/pages/TokenDetails/context/useTDPStore'
 
 const TOKEN_DETAILS_CHART_OPTIONS: TokenDetailsChartType[] = [ChartType.PRICE, ChartType.VOLUME, ChartType.TVL]
 
-export function ChartControls() {
+export function ChartControls({ variables }: { variables: TDPChartQueryVariables }) {
+  const { t } = useTranslation()
   const {
     chartType,
     timePeriod,
@@ -29,11 +35,17 @@ export function ChartControls() {
     setPriceChartType,
     disableCandlestickUI,
   } = useTDPChartStateContext()
+  const { address, currencyChainId } = useTDPStore((s) => ({
+    address: s.address,
+    currencyChainId: s.currencyChainId,
+  }))
   const refitChartContent = useAtomValue(refitChartContentAtom)
   const media = useMedia()
   const isMediumScreen = media.lg
+  const timeSelectorOptions = useMemo(() => getPillTimeSelectorOptions(t), [t])
   const showAdvancedPriceChartToggle = chartType === ChartType.PRICE
   const displayPriceChartType = getDisplayPriceChartType(priceChartType, disableCandlestickUI)
+  const prefetchTimePeriod = usePrefetchTDPChartHistory({ variables, chartType, displayPriceChartType })
 
   return (
     <ChartActionsContainer>
@@ -61,6 +73,17 @@ export function ChartControls() {
             availableOptions={TOKEN_DETAILS_CHART_OPTIONS}
             currentChartType={chartType}
             onChartTypeChange={(c: ChartType) => {
+              if (c !== chartType) {
+                sendAnalyticsEvent(InterfaceEventName.ChartSettingSelected, {
+                  page: InterfacePageName.TokenDetailsPage,
+                  selection: 'chart_type',
+                  chart_type: c,
+                  time_period: timePeriod,
+                  previous_value: chartType,
+                  chain_id: currencyChainId,
+                  token_address: address,
+                })
+              }
               setChartType(c as TokenDetailsChartType)
               if (c === ChartType.PRICE) {
                 setPriceChartType(PriceChartType.LINE)
@@ -72,14 +95,23 @@ export function ChartControls() {
       <Flex $md={{ width: '100%' }}>
         <SegmentedControl
           fullWidth={isMediumScreen}
-          options={DEFAULT_PILL_TIME_SELECTOR_OPTIONS}
-          selectedOption={DISPLAYS[timePeriod]}
-          onSelectOption={(option) => {
-            const time = getTimePeriodFromDisplay(option as TimePeriodDisplay)
-            if (time === timePeriod) {
+          options={timeSelectorOptions}
+          selectedOption={timePeriod}
+          onHoverOption={prefetchTimePeriod}
+          onSelectOption={(option: TimePeriod) => {
+            if (option === timePeriod) {
               refitChartContent?.()
             } else {
-              setTimePeriod(time)
+              sendAnalyticsEvent(InterfaceEventName.ChartSettingSelected, {
+                page: InterfacePageName.TokenDetailsPage,
+                selection: 'time_period',
+                chart_type: chartType,
+                time_period: option,
+                previous_value: timePeriod,
+                chain_id: currencyChainId,
+                token_address: address,
+              })
+              setTimePeriod(option)
             }
           }}
         />

@@ -1,12 +1,13 @@
 import { GraphQLApi } from '@universe/api'
+import { UniverseChainId, Platform } from '@universe/chains'
 import { SOLANA_LOGO } from 'ui/src/assets'
+import { WEB_ONLY_CHAIN_SUPPORTED_APPS } from 'uniswap/src/features/chains/chainAppSupport'
 import { CHAIN_ID_TO_URL_PARAM } from 'uniswap/src/features/chains/chainUrlParam'
 import { getQuicknodeEndpointUrl } from 'uniswap/src/features/chains/evm/rpc'
 import { buildChainTokens } from 'uniswap/src/features/chains/evm/tokens'
 import { SOLANA_GAS_CONFIG } from 'uniswap/src/features/chains/gasDefaults'
 import { DEFAULT_NATIVE_ADDRESS_SOLANA, WRAPPED_SOL_ADDRESS_SOLANA } from 'uniswap/src/features/chains/svm/defaults'
-import { NetworkLayer, RPCType, UniverseChainId, UniverseChainInfo } from 'uniswap/src/features/chains/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
+import { NetworkLayer, RPCType, UniverseChainInfo } from 'uniswap/src/features/chains/types'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { SolanaToken } from 'uniswap/src/features/tokens/SolanaToken'
 
@@ -25,6 +26,7 @@ const tokens = buildChainTokens({
 export const SOLANA_CHAIN_INFO = {
   id: UniverseChainId.Solana,
   platform: Platform.SVM,
+  supportedApps: WEB_ONLY_CHAIN_SUPPORTED_APPS,
   assetRepoNetworkName: 'solana',
   blockPerMainnetEpochForChainId: 1,
   urlParam: CHAIN_ID_TO_URL_PARAM[UniverseChainId.Solana],
@@ -40,7 +42,6 @@ export const SOLANA_CHAIN_INFO = {
   explorer: {
     name: 'Solscan',
     url: 'https://solscan.io/',
-    apiURL: 'https://api.explorer.solana.com',
   },
   interfaceName: 'solana',
   label: 'Solana',

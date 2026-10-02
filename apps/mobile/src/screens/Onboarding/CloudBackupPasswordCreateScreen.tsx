@@ -1,11 +1,11 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
+import { Flex } from '@universe/mycelium'
+import { Cloud } from '@universe/mycelium/icons/Cloud'
 import React, { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { OnboardingStackParamList } from 'src/app/navigation/types'
 import { CloudBackupPassword } from 'src/features/CloudBackup/CloudBackupForm/CloudBackupPassword'
 import { SafeKeyboardOnboardingScreen } from 'src/features/onboarding/SafeKeyboardOnboardingScreen'
-import { Flex } from 'ui/src'
-import { Cloud } from 'ui/src/components/icons'
 import { OnboardingScreens } from 'uniswap/src/types/screens/mobile'
 
 export function CloudBackupPasswordCreateScreen({

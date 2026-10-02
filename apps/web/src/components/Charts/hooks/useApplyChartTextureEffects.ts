@@ -1,12 +1,13 @@
+import { assertWebElement, type MyceliumElement } from '@universe/mycelium'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { useEffect } from 'react'
-import { assertWebElement, TamaguiElement, useSporeColors } from 'ui/src'
 
 export function useApplyChartTextureEffects({
   chartDivElement,
   showDottedBackground,
   showLeftFadeOverlay,
 }: {
-  chartDivElement: TamaguiElement | null
+  chartDivElement: MyceliumElement | null
   showDottedBackground: boolean
   showLeftFadeOverlay: boolean
 }) {

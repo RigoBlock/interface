@@ -1,11 +1,11 @@
 // TODO(WEB-4448): for multichain, refactored our custom useBlockNumber in favor of wagmi's hook. Remove this provider
 
+import { UniverseChainId } from '@universe/chains'
 import { atom } from 'jotai'
 import { useAtomValue } from 'jotai/utils'
 import { createContext, PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useIsWindowVisible } from 'utilities/src/react/useIsWindowVisible'
-import { RPC_PROVIDERS } from '~/constants/providers'
+import { getRpcProvider } from '~/constants/providers'
 import { useAccount } from '~/hooks/useAccount'
 import { useEthersProvider } from '~/hooks/useEthersProvider'
 
@@ -16,7 +16,7 @@ const MISSING_PROVIDER = Symbol()
 
 export const BlockNumberContext = createContext<
   | {
-      fastForward(block: number): void
+      fastForward: (block: number) => void
       block?: number
       mainnetBlock?: number
     }
@@ -33,7 +33,7 @@ export function useFastForwardBlockNumber(): (block: number) => void {
   return useBlockNumberContext().fastForward
 }
 /** Requires that BlockUpdater be installed in the DOM tree. */
-export default function useBlockNumber(): number | undefined {
+export function useBlockNumber(): number | undefined {
   return useBlockNumberContext().block
 }
 export function useMainnetBlockNumber(): number | undefined {
@@ -89,7 +89,7 @@ export function BlockNumberProvider({ children }: PropsWithChildren) {
   }, [provider, windowVisible, onChainBlock, multicallChainId])
   // Poll once for the mainnet block number using the network provider.
   useEffect(() => {
-    RPC_PROVIDERS[UniverseChainId.Mainnet]
+    getRpcProvider(UniverseChainId.Mainnet)
       .getBlockNumber()
       // oxlint-disable-next-line no-shadow
       .then((block) => onChainBlock(UniverseChainId.Mainnet, block))

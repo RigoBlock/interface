@@ -1,8 +1,8 @@
-import { NetworkStatus, QueryHookOptions } from '@apollo/client'
 import { PartialMessage } from '@bufbuild/protobuf'
 import { FiatOnRampParams } from '@uniswap/client-data-api/dist/data/v1/api_pb'
 import { TransactionTypeFilter } from '@uniswap/client-data-api/dist/data/v1/types_pb'
-import { GraphQLApi } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
+import { isAndroid } from '@universe/environment'
 import isEqual from 'lodash/isEqual'
 import { useCallback, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -12,32 +12,31 @@ import { isLoadingItem, isSectionHeader, LoadingItem } from 'uniswap/src/compone
 import { formatTransactionsByDate } from 'uniswap/src/features/activity/formatTransactionsByDate'
 import { useMergeLocalAndRemoteTransactions } from 'uniswap/src/features/activity/hooks/useMergeLocalAndRemoteTransactions'
 import { useSyncRemotePlans } from 'uniswap/src/features/activity/hooks/useSyncRemotePlans'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { useListTransactions } from 'uniswap/src/features/dataApi/listTransactions/listTransactions'
+import {
+  normalizeTransactionSearchText,
+  useListTransactions,
+} from 'uniswap/src/features/dataApi/listTransactions/listTransactions'
 import { PaginationControls } from 'uniswap/src/features/dataApi/types'
 import { useLocalizedDayjs } from 'uniswap/src/features/language/localizedDayjs'
 import { useCurrencyIdToVisibility } from 'uniswap/src/features/transactions/selectors'
 import { TransactionDetails } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { isLimitOrder } from 'uniswap/src/features/transactions/utils/uniswapX.utils'
 import { selectNftsVisibility } from 'uniswap/src/features/visibility/selectors'
-import { isAndroid } from 'utilities/src/platform'
 
 const LOADING_ITEM = (index: number): LoadingItem => ({ itemType: 'LOADING', id: index })
 const LOADING_DATA = [LOADING_ITEM(1), LOADING_ITEM(2), LOADING_ITEM(3), LOADING_ITEM(4)]
 
-const MAX_ACTIVITY_ITEMS = isAndroid ? 100 : 250
+// Native FlatList performance degrades with large lists; callers that don't have this constraint
+// (e.g. web) can pass a higher maxItems value
+const MOBILE_MAX_ACTIVITY_ITEMS = isAndroid ? 100 : 200
 
-function hasReachedLimit(transactions: TransactionDetails[] | undefined): boolean {
+function hasReachedLimit(transactions: TransactionDetails[] | undefined, maxItems: number): boolean {
   const currentTransactionCount = transactions?.length ?? 0
-  return currentTransactionCount >= MAX_ACTIVITY_ITEMS
+  return currentTransactionCount >= maxItems
 }
 
 // Contract for returning Transaction data
 
-type TransactionListQueryArgs = QueryHookOptions<
-  GraphQLApi.TransactionListQuery,
-  GraphQLApi.TransactionListQueryVariables
->
 interface UseFormattedTransactionDataOptions {
   evmAddress?: Address
   svmAddress?: Address
@@ -49,17 +48,18 @@ interface UseFormattedTransactionDataOptions {
   chainIds?: UniverseChainId[]
   filterTransactionTypes?: TransactionTypeFilter[]
   searchText?: string
+  maxItems?: number
 }
 
-type FormattedTransactionInputs = UseFormattedTransactionDataOptions &
-  TransactionListQueryArgs & {
-    showLoadingOnRefetch?: boolean
-  }
+type FormattedTransactionInputs = UseFormattedTransactionDataOptions & {
+  showLoadingOnRefetch?: boolean
+}
 
 export interface FormattedTransactionDataResult extends PaginationControls {
   hasData: boolean
   isLoading: boolean
   isFetching: boolean
+  isFetchNextPageError: boolean
   error: Error | undefined
   sectionData: ActivityItem[] | undefined
   keyExtractor: (item: ActivityItem) => string
@@ -82,6 +82,7 @@ export function useFormattedTransactionDataForActivity({
   chainIds,
   filterTransactionTypes,
   searchText,
+  maxItems = MOBILE_MAX_ACTIVITY_ITEMS,
   showLoadingOnRefetch = false,
   ...queryOptions
 }: FormattedTransactionInputs): FormattedTransactionDataResult {
@@ -93,13 +94,14 @@ export function useFormattedTransactionDataForActivity({
   const {
     data: formattedTransactions,
     loading,
+    isPending,
     isFetching,
     error,
     refetch,
-    networkStatus,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    isFetchNextPageError,
     dataUpdatedAt,
   } = useListTransactions({
     evmAddress,
@@ -126,7 +128,8 @@ export function useFormattedTransactionDataForActivity({
     evmAddress,
     svmAddress,
     remoteTransactions: formattedTransactions,
-    skipLocalTransactions: !!searchText,
+    // Local transactions aren't searchable, so they're only dropped when the remote results are actually filtered
+    skipLocalTransactions: !!normalizeTransactionSearchText(searchText),
   })
 
   // TODO(CONS-722): update to only TradingApi.Routing.DUTCH_V2 once limit orders can be excluded from REST query
@@ -159,8 +162,8 @@ export function useFormattedTransactionDataForActivity({
   // 3. Error with a retry in progress (for UX when "retry" is clicked)
   // 4. Explicitly showing loading on refetch
   const showLoading =
-    (!hasData && (loading || (!skip && networkStatus === NetworkStatus.loading))) ||
-    (Boolean(error) && networkStatus === NetworkStatus.loading) ||
+    (!hasData && (loading || (!skip && isPending))) ||
+    (Boolean(error) && isPending) ||
     (showLoadingOnRefetch && isFetching && !isFetchingNextPage)
 
   const sectionData = useMemo(
@@ -202,8 +205,9 @@ export function useFormattedTransactionDataForActivity({
     isFetching,
     keyExtractor,
     fetchNextPage,
-    hasNextPage: hasNextPage && !hasReachedLimit(transactions),
+    hasNextPage: hasNextPage && !hasReachedLimit(transactions, maxItems),
     isFetchingNextPage,
+    isFetchNextPageError,
     dataUpdatedAt,
   }
 }

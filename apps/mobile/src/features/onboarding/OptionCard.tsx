@@ -1,9 +1,9 @@
+import { Flex, Text, TouchableArea, iconSizes } from '@universe/mycelium'
+import { useIsDarkMode } from '@universe/mycelium/theme-hooks-compat'
+import { TestIDType } from '@universe/test'
 import React from 'react'
-import { Flex, Text, TouchableArea, useIsDarkMode } from 'ui/src'
-import { iconSizes } from 'ui/src/theme'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { TestIDType } from 'uniswap/src/test/fixtures/testIDs'
 
 export function OptionCard({
   title,
@@ -62,9 +62,10 @@ export function OptionCard({
                   </Text>
                 </Flex>
                 {badgeText && (
+                  // $DEP_magentaDark is deprecated; do not reintroduce it here.
                   <Flex
                     centered
-                    backgroundColor="$DEP_magentaDark"
+                    backgroundColor="$accent2"
                     borderRadius="$rounded8"
                     py="$spacing2"
                     px="$spacing6"

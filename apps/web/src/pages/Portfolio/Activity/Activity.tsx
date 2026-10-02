@@ -1,26 +1,27 @@
 import { Row } from '@tanstack/react-table'
 import { SharedEventName } from '@uniswap/analytics-events'
+import { Flex, TouchableArea } from '@universe/mycelium'
+import { TestID } from '@universe/test'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Flex, TouchableArea } from 'ui/src'
 import { ElementName, InterfacePageName, SectionName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { TransactionDetails } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { useEvent } from 'utilities/src/react/hooks'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
-import { useOpenTransactionDetailsModal } from '~/components/TopLevelModals/TransactionDetailsModalDispatcher'
 import { ActivityFilters } from '~/pages/Portfolio/Activity/ActivityFilters'
 import { ActivityTable } from '~/pages/Portfolio/Activity/ActivityTable/ActivityTable'
-import { ActivityFilterType, TimePeriod } from '~/pages/Portfolio/Activity/Filters/utils'
+import { ActivityFilterType } from '~/pages/Portfolio/Activity/Filters/activityFilterTypes'
+import { TimePeriod } from '~/pages/Portfolio/Activity/Filters/utils'
 import { useActivityEmptyState } from '~/pages/Portfolio/Activity/hooks/useActivityEmptyState'
 import { useActivityFiltering } from '~/pages/Portfolio/Activity/hooks/useActivityFiltering'
 import { PaginationSkeletonRow } from '~/pages/Portfolio/Activity/PaginationSkeletonRow'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
 import { usePortfolioOutageContext } from '~/pages/Portfolio/PortfolioOutageContext'
+import { useOpenTransactionDetailsModal } from '~/state/transactionDetailsModalStore'
 
-export default function PortfolioActivity() {
+export function PortfolioActivity() {
   const trace = useTrace()
   const [selectedTransactionType, setSelectedTransactionType] = useState<string>(ActivityFilterType.All)
   const [selectedTimePeriod, setSelectedTimePeriod] = useState<string>(TimePeriod.All)
@@ -80,7 +81,9 @@ export default function PortfolioActivity() {
       section: SectionName.PortfolioActivityTab,
       ...trace,
     })
-    openTransactionDetailsModal(transaction, { isExternalProfile: isExternalWallet })
+    openTransactionDetailsModal(transaction, {
+      isExternalProfile: isExternalWallet,
+    })
   })
 
   const rowWrapper = useEvent((row: Row<TransactionDetails>, content: JSX.Element) => {

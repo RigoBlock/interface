@@ -1,3 +1,6 @@
+import { Platform, areAddressesEqual } from '@universe/chains'
+import { Flex } from '@universe/mycelium'
+import { Eye } from '@universe/mycelium/icons/Eye'
 import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
@@ -13,13 +16,9 @@ import {
   WalletConnectSigningRequest,
 } from 'src/features/walletConnect/walletConnectSlice'
 import { useAppStateTrigger } from 'src/utils/useAppStateTrigger'
-import { Flex } from 'ui/src'
-import { Eye } from 'ui/src/components/icons'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import { WarningModal } from 'uniswap/src/components/modals/WarningModal/WarningModal'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 import { AccountDetails } from 'wallet/src/components/accounts/AccountDetails'
 import { ErrorBoundary } from 'wallet/src/components/ErrorBoundary/ErrorBoundary'
 import { useActiveAccount, useActiveAccountAddressWithThrow, useSignerAccounts } from 'wallet/src/features/wallet/hooks'
@@ -101,7 +100,10 @@ export function WalletConnectModals(): JSX.Element {
             dispatch(removeRequest({ requestInternalId: currRequest.internalId, account: currRequest.account }))
           }
         >
-          <RequestModal currRequest={currRequest} />
+          {/* Key by request id so switching requests remounts the modal: per-request acknowledgement
+              state (confirmedRisk) must not carry over to the next request, even one with an identical
+              banner (e.g. two duplicate permanent scan failures). */}
+          <RequestModal key={currRequest.internalId} currRequest={currRequest} />
         </ErrorBoundary>
       ) : null}
     </>

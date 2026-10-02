@@ -1,6 +1,6 @@
+import { iconSizes } from '@universe/mycelium'
 import { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
-import { iconSizes } from 'ui/src/theme'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
 import { NotificationToast } from 'uniswap/src/components/notifications/NotificationToast'
 import { getChainLabel } from 'uniswap/src/features/chains/utils'

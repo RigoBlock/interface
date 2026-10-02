@@ -1,10 +1,13 @@
+import type { ColorTokens } from '@universe/mycelium'
+import { borderRadii, Flex, iconSizes, Text, TouchableArea } from '@universe/mycelium'
+import type { IconProps } from '@universe/mycelium/icons'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
+import type { TFunction } from 'i18next'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { ColorTokens, IconProps } from 'ui/src'
-import { Flex, Popover, Text, TouchableArea, useSporeColors } from 'ui/src'
+import { Popover } from 'ui/src'
 import { ExternalLink, InfoCircleFilled } from 'ui/src/components/icons'
-import { borderRadii, iconSizes } from 'ui/src/theme'
 import type { LocalizationContextState } from 'uniswap/src/features/language/LocalizationContext'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { ExplorerDataType, getExplorerLink, openUri } from 'uniswap/src/utils/linking'
@@ -114,12 +117,18 @@ function ApprovalAddressesPopover({ assets, formatAmount }: ApprovalAddressesPop
  * @param formatNumberOrString - Locale formatter function
  * @returns Formatted amount with symbol
  */
-function formatAmountWithLocale(
-  asset: TransactionAsset,
-  formatNumberOrString: LocalizationContextState['formatNumberOrString'],
-): string {
+function formatAmountWithLocale({
+  asset,
+  formatNumberOrString,
+  t,
+}: {
+  asset: TransactionAsset
+  formatNumberOrString: LocalizationContextState['formatNumberOrString']
+  t: TFunction
+}): string {
+  const assetName = asset.symbol || asset.name || shortenAddress({ address: asset.address }) || t('common.unknown')
   if (!asset.amount) {
-    return asset.symbol ?? asset.name ?? ''
+    return assetName
   }
 
   const formattedAmount = formatNumberOrString({
@@ -127,7 +136,7 @@ function formatAmountWithLocale(
     type: NumberType.TokenNonTx,
   })
 
-  return `${formattedAmount} ${asset.symbol ?? ''}`
+  return `${formattedAmount} ${assetName}`
 }
 
 const getBorderRadius = (type: TransactionAsset['type']): number => {
@@ -141,6 +150,7 @@ interface TransactionAssetListProps {
   assets: TransactionAsset[]
   icon: React.ComponentType<IconProps>
   iconColor: ColorTokens
+  iconRotation?: string
   titleText: string
   formatAmount?: (asset: TransactionAsset) => string
   showUsdValue?: boolean
@@ -156,16 +166,22 @@ export function TransactionAssetList({
   assets,
   icon: Icon,
   iconColor,
+  iconRotation,
   titleText,
   formatAmount,
   showUsdValue = false,
   groupedAssets,
 }: TransactionAssetListProps): JSX.Element | null {
+  const { t } = useTranslation()
   const { convertFiatAmountFormatted, formatNumberOrString } = useLocalizationContext()
 
   const renderAssetDetails = (asset: TransactionAsset, groupedAsset?: GroupedApprovalAsset): ReactNode => {
-    const amountText = formatAmount ? formatAmount(asset) : formatAmountWithLocale(asset, formatNumberOrString)
-    const hasMultipleAddresses = groupedAsset && groupedAsset.allAssets.length > 1
+    const amountText = formatAmount ? formatAmount(asset) : formatAmountWithLocale({ asset, formatNumberOrString, t })
+    const shouldShowApprovalAddresses =
+      groupedAsset !== undefined &&
+      groupedAsset.allAssets.some((grouped) => Boolean(grouped.spenderAddress)) &&
+      (groupedAsset.allAssets.length > 1 ||
+        groupedAsset.allAssets.some((grouped) => Boolean(grouped.approvalScope) || grouped.type === 'NONERC'))
 
     return (
       <Flex gap="$spacing4">
@@ -179,7 +195,12 @@ export function TransactionAssetList({
             </Text>
           )}
         </Flex>
-        {hasMultipleAddresses && formatAmount && (
+        {asset.type === 'NONERC' && !asset.amount && (
+          <Text color="$neutral2" variant="body4">
+            {t('dapp.request.amountUnavailable')}
+          </Text>
+        )}
+        {groupedAsset && shouldShowApprovalAddresses && formatAmount && (
           <ApprovalAddressesPopover assets={groupedAsset.allAssets} formatAmount={formatAmount} />
         )}
       </Flex>
@@ -198,7 +219,7 @@ export function TransactionAssetList({
         <Flex row gap="$spacing12" alignItems="center" justifyContent="space-between">
           <Flex flex={1} gap="$spacing4">
             <Flex row gap="$spacing8" height={20} alignItems="center">
-              <Icon color={iconColor} size="$icon.16" />
+              <Icon color={iconColor} rotate={iconRotation} size="$icon.16" />
               <Text color="$neutral2" variant="body3">
                 {titleText}
               </Text>
@@ -220,7 +241,7 @@ export function TransactionAssetList({
   return (
     <Flex gap="$spacing4">
       <Flex row gap="$spacing8" height="$spacing20" alignItems="center">
-        <Icon color={iconColor} size="$icon.16" />
+        <Icon color={iconColor} rotate={iconRotation} size="$icon.16" />
         <Text color="$neutral2" variant="body3">
           {titleText}
         </Text>

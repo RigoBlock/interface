@@ -1,17 +1,14 @@
+import { UniverseChainId, Platform, getValidAddress } from '@universe/chains'
+import { isWebApp } from '@universe/environment'
 import { useMemo } from 'react'
 import { OnchainItemListOptionType, WalletOption } from 'uniswap/src/components/lists/items/types'
 import { useUnitagsAddressQuery } from 'uniswap/src/data/apiClients/unitagsApi/useUnitagsAddressQuery'
 import { useUnitagsUsernameQuery } from 'uniswap/src/data/apiClients/unitagsApi/useUnitagsUsernameQuery'
 import { useIsSmartContractAddress } from 'uniswap/src/features/address/useIsSmartContractAddress'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { ENS_SUFFIX } from 'uniswap/src/features/ens/constants'
 import { useENS } from 'uniswap/src/features/ens/useENS'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { UNITAG_SUFFIX } from 'uniswap/src/features/unitags/constants'
-import { getValidAddress } from 'uniswap/src/utils/addresses'
-import { isWebApp } from 'utilities/src/platform'
-
 // oxlint-disable-next-line complexity
 export function useWalletSearchResults(
   query: string,

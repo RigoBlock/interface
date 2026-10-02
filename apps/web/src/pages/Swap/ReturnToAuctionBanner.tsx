@@ -1,7 +1,7 @@
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
+import { ArrowBack } from '@universe/mycelium/icons/ArrowBack'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router'
-import { Flex, Text, TouchableArea } from 'ui/src'
-import { ArrowBack } from 'ui/src/components/icons/ArrowBack'
 
 const VALID_RETURN_PATH_PREFIX = '/explore/auctions/'
 

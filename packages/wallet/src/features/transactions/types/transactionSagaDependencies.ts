@@ -1,12 +1,11 @@
 import type { TransactionRequest } from '@ethersproject/providers'
+import type { ViemClientManager, UniverseChainId } from '@universe/chains'
 import type { SignerMnemonicAccountMeta } from 'uniswap/src/features/accounts/types'
-import type { UniverseChainId } from 'uniswap/src/features/chains/types'
 import type { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import type { makeSelectAddressTransactions } from 'uniswap/src/features/transactions/selectors'
 import type { transactionActions } from 'uniswap/src/features/transactions/slice'
 import type { Logger } from 'utilities/src/logger/logger'
 import type { PublicClient } from 'viem'
-import type { ViemClientManager } from 'wallet/src/features/providers/ViemClientManager'
 import type { DelegationCheckResult } from 'wallet/src/features/smartWallet/delegation/types'
 import type { AnalyticsService } from 'wallet/src/features/transactions/executeTransaction/services/analyticsService'
 import type { FeatureFlagService } from 'wallet/src/features/transactions/executeTransaction/services/featureFlagService'
@@ -18,6 +17,8 @@ import type { TransactionConfigService } from 'wallet/src/features/transactions/
 import type { TransactionRepository } from 'wallet/src/features/transactions/executeTransaction/services/TransactionRepository/transactionRepository'
 import type { TransactionService } from 'wallet/src/features/transactions/executeTransaction/services/TransactionService/transactionService'
 import type { TransactionSigner } from 'wallet/src/features/transactions/executeTransaction/services/TransactionSignerService/transactionSignerService'
+import type { PaymasterClient } from 'wallet/src/features/transactions/executeTransaction/services/UserOpSignerService/paymasterClient'
+import type { UserOpSigner } from 'wallet/src/features/transactions/executeTransaction/services/UserOpSignerService/userOpSignerService'
 import type { TransactionExecutor } from 'wallet/src/features/transactions/swap/services/transactionExecutor'
 import type { TransactionParamsFactory } from 'wallet/src/features/transactions/swap/services/transactionParamsFactory'
 import type { BaseTransactionContext } from 'wallet/src/features/transactions/swap/types/transactionExecutor'
@@ -44,10 +45,7 @@ export enum DelegationType {
 export interface TransactionSagaDependencies {
   // Core service factories
   createProviderService: (params: { getSignerManager: () => SignerManager }) => ProviderService
-  createTransactionConfigService: (params: {
-    featureFlagService: FeatureFlagService
-    logger: Logger
-  }) => TransactionConfigService
+  createTransactionConfigService: () => TransactionConfigService
   createTransactionSignerService: (params: {
     getAccount: () => SignerMnemonicAccountMeta
     getProvider: () => Promise<Provider>
@@ -60,6 +58,14 @@ export interface TransactionSagaDependencies {
     getViemClient: () => Promise<PublicClient>
     getSignerManager: () => SignerManager
   }) => TransactionSigner
+  createBundledDelegationUserOpSignerService: (params: {
+    delegationInfo: DelegationCheckResult
+    getAccount: () => SignerMnemonicAccountMeta
+    getProvider: () => Promise<Provider>
+    getViemClient: () => Promise<PublicClient>
+    getSignerManager: () => SignerManager
+    getPaymasterClient: () => PaymasterClient
+  }) => UserOpSigner
   createTransactionService: (params: {
     transactionRepository: TransactionRepository
     transactionSigner: TransactionSigner
@@ -67,6 +73,7 @@ export interface TransactionSagaDependencies {
     analyticsService: AnalyticsService
     logger: Logger
     getProvider: () => Promise<Provider>
+    userOpSigner?: UserOpSigner
   }) => TransactionService
   createAnalyticsService: (params: {
     sendAnalyticsEvent: typeof sendAnalyticsEvent

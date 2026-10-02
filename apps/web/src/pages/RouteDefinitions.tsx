@@ -1,17 +1,19 @@
 /* oxlint-disable max-lines */
+import { EXTENSION_PASSKEY_AUTH_PATH } from '@universe/embedded-wallet'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useAtom } from 'jotai'
-//import Stake from '~/pages/Stake'
-import { lazy, ReactNode, Suspense, useMemo } from 'react'
+import { lazy, Suspense, useMemo } from 'react'
 import { matchPath, Navigate, useLocation } from 'react-router'
-import { WRAPPED_PATH } from 'uniswap/src/components/banners/shared/utils'
+import { USDC_ARC } from 'uniswap/src/constants/tokens'
 import { CHROME_EXTENSION_UNINSTALL_URL_PATH } from 'uniswap/src/constants/urls'
 import { WRAPPED_SOL_ADDRESS_SOLANA } from 'uniswap/src/features/chains/svm/defaults'
-import { EXTENSION_PASSKEY_AUTH_PATH } from 'uniswap/src/features/passkey/constants'
 import i18n from 'uniswap/src/i18n'
 //import CreatePool from '~/pages/CreatePool'
 import Earn from '~/pages/Earn'
-import { getExploreDescription, getExploreTitle } from '~/pages/getExploreTitle'
+import { NATIVE_CHAIN_ID } from '~/constants/tokens'
+import { isEmbedPath } from '~/pages/embedPaths'
+import { EMBED_ENTRY_ROUTES } from '~/pages/embedRoutes'
+import { getCategoryDetailsTitle, getExploreDescription, getExploreTitle } from '~/pages/getExploreTitle'
 import { getPortfolioDescription, getPortfolioTitle } from '~/pages/getPortfolioTitle'
 import {
   getAddLiquidityPageTitle,
@@ -19,62 +21,47 @@ import {
   getPositionPageTitle,
 } from '~/pages/getPositionPageTitle'
 // High-traffic pages (index and /swap) should not be lazy-loaded.
-import Swap from '~/pages/Swap'
+import {
+  createRouteDefinition,
+  type RouteDefinition,
+  type RouterConfig,
+  StaticTitlesAndDescriptions,
+} from '~/pages/routeDefinition'
+import { SwapPage } from '~/pages/Swap'
 import { shouldDisableExploreRoutesAtom } from '~/state/application/atoms'
 import { isBrowserRouterEnabled } from '~/utils/env'
+import { createLazy } from '~/utils/lazyWithRetry'
 
-const CreatePosition = lazy(() => import('~/pages/CreatePosition/CreatePosition'))
-const AddLiquidityV3WithTokenRedirects = lazy(() => import('~/pages/AddLiquidityV3/redirects'))
-const AddLiquidityV2WithTokenRedirects = lazy(() => import('~/pages/AddLiquidityV2/redirects'))
-const RedirectExplore = lazy(() => import('~/pages/Explore/redirects'))
-const MigrateV3 = lazy(() => import('~/pages/Migrate'))
-const NotFound = lazy(() => import('~/pages/NotFound'))
-const Pool = lazy(() => import('~/pages/Positions'))
-const LegacyPoolRedirects = lazy(() =>
-  import('~/pages/LegacyPool/redirects').then((module) => ({
-    default: module.LegacyPoolRedirects,
-  })),
+const AddLiquidity = createLazy(() => import('~/pages/AddLiquidity/AddLiquidity'))
+const CreatePosition = createLazy(() => import('~/pages/CreatePosition/CreatePosition'))
+const AddLiquidityV3WithTokenRedirects = createLazy(() => import('~/pages/AddLiquidityV3/redirects'))
+const AddLiquidityV2WithTokenRedirects = createLazy(() => import('~/pages/AddLiquidityV2/redirects'))
+const CreatePositionRedirects = createLazy(() => import('~/pages/CreatePosition/redirects'))
+const RedirectExplore = createLazy(() => import('~/pages/Explore/redirects'))
+const MigrateV3 = createLazy(() => import('~/pages/Migrate'))
+const NotFound = createLazy(() => import('~/pages/NotFound'))
+const Pool = createLazy(() => import('~/pages/Positions'))
+const LegacyPoolRedirects = createLazy(() =>
+  import('~/pages/LegacyPool/redirects').then((module) => ({ default: module.LegacyPoolRedirects })),
 )
-const PoolFinderRedirects = lazy(() =>
-  import('~/pages/LegacyPool/redirects').then((module) => ({
-    default: module.PoolFinderRedirects,
-  })),
+const LegacyPositionPageRedirects = createLazy(() =>
+  import('~/pages/LegacyPool/redirects').then((module) => ({ default: module.LegacyPositionPageRedirects })),
 )
-const LegacyPositionPageRedirects = lazy(() =>
-  import('~/pages/LegacyPool/redirects').then((module) => ({
-    default: module.LegacyPositionPageRedirects,
-  })),
+const RemoveLiquidityV2WithTokenRedirects = createLazy(() =>
+  import('~/pages/LegacyPool/redirects').then((module) => ({ default: module.RemoveLiquidityV2WithTokenRedirects })),
 )
-const RemoveLiquidityV2WithTokenRedirects = lazy(() =>
-  import('~/pages/LegacyPool/redirects').then((module) => ({
-    default: module.RemoveLiquidityV2WithTokenRedirects,
-  })),
-)
-const PositionPage = lazy(() => import('~/pages/Positions/PositionPage'))
-const V2PositionPage = lazy(() => import('~/pages/Positions/V2PositionPage'))
-const PoolDetails = lazy(() => import('~/pages/PoolDetails'))
-const TokenDetails = lazy(() => import('~/pages/TokenDetails/TokenDetailsPage'))
-const ExtensionPasskeyAuthPopUp = lazy(() => import('~/pages/ExtensionPasskeyAuthPopUp'))
-const PasskeyManagement = lazy(() => import('~/pages/PasskeyManagement'))
-const ExtensionUninstall = lazy(() => import('~/pages/ExtensionUninstall/ExtensionUninstall'))
-const Portfolio = lazy(() => import('~/pages/Portfolio/Portfolio'))
-const ToucanToken = lazy(() => import('~/pages/Explore/ToucanToken'))
+const PositionPage = createLazy(() => import('~/pages/Positions/PositionPage'))
+const V2PositionPage = createLazy(() => import('~/pages/Positions/V2PositionPage'))
+const PoolDetails = createLazy(() => import('~/pages/PoolDetails'))
+const TokenDetails = createLazy(() => import('~/pages/TokenDetails/TokenDetailsPage'))
+const CategoryDetails = createLazy(() => import('~/pages/Explore/CategoryDetails'))
+const ExtensionPasskeyAuthPopUp = createLazy(() => import('~/pages/ExtensionPasskeyAuthPopUp'))
+const PasskeyManagement = createLazy(() => import('~/pages/PasskeyManagement'))
+const ExtensionUninstall = createLazy(() => import('~/pages/ExtensionUninstall/ExtensionUninstall'))
+const Portfolio = createLazy(() => import('~/pages/Portfolio/Portfolio'))
+const BetaPage = createLazy(() => import('~/pages/Beta'))
 const Vote = lazy(() => import('~/pages/Vote'))
-const CreateAuction = lazy(() => import('~/pages/Liquidity/CreateAuction/CreateAuction'))
-const XOAuthCallbackPage = lazy(() => import('~/pages/Liquidity/CreateAuction/XOAuthCallbackPage'))
-const BetaPage = lazy(() => import('~/pages/Beta'))
-const Wrapped = lazy(() => import('~/pages/Wrapped'))
 const PoolPositionPage = lazy(() => import('~/pages/CreatePool/PoolPositionPage'))
-
-interface RouterConfig {
-  browserRouterEnabled?: boolean
-  hash?: string
-  isEmbeddedWalletEnabled?: boolean
-  isWrappedEnabled?: boolean
-  isToucanLaunchAuctionEnabled?: boolean
-  shouldDisableNFTRoutes?: boolean
-  shouldDisableExploreRoutes?: boolean
-}
 
 /**
  * Convenience hook which organizes the router configuration into a single object.
@@ -83,8 +70,6 @@ export function useRouterConfig(): RouterConfig {
   const browserRouterEnabled = isBrowserRouterEnabled()
   const { hash } = useLocation()
   const isEmbeddedWalletEnabled = useFeatureFlag(FeatureFlags.EmbeddedWallet)
-  const isWrappedEnabled = useFeatureFlag(FeatureFlags.UniswapWrapped2025)
-  const isToucanLaunchAuctionEnabled = useFeatureFlag(FeatureFlags.ToucanLaunchAuction)
   const [shouldDisableExploreRoutes] = useAtom(shouldDisableExploreRoutesAtom)
 
   return useMemo(
@@ -92,61 +77,10 @@ export function useRouterConfig(): RouterConfig {
       browserRouterEnabled,
       hash,
       isEmbeddedWalletEnabled,
-      isWrappedEnabled,
-      isToucanLaunchAuctionEnabled,
       shouldDisableExploreRoutes: Boolean(shouldDisableExploreRoutes),
     }),
-    [
-      browserRouterEnabled,
-      hash,
-      isEmbeddedWalletEnabled,
-      isWrappedEnabled,
-      isToucanLaunchAuctionEnabled,
-      shouldDisableExploreRoutes,
-    ],
+    [browserRouterEnabled, hash, isEmbeddedWalletEnabled, shouldDisableExploreRoutes],
   )
-}
-
-// SEO titles and descriptions sourced from https://docs.google.com/spreadsheets/d/1_6vSxGgmsx6QGEZ4mdHppv1VkuiJEro3Y_IopxUHGB4/edit#gid=0
-// getTitle and getDescription are used as static metatags for SEO. Dynamic metatags should be set in the page component itself
-const StaticTitlesAndDescriptions = {
-  RigoblockTitle: i18n.t('title.rigoblockTradeCrypto'),
-  SwapTitle: i18n.t('title.buySellTradeEthereum'),
-  SwapDescription: i18n.t('title.swappingMadeSimple'),
-  DetailsPageBaseTitle: i18n.t('common.buyAndSell'),
-  TDPDescription: i18n.t('title.realTime'),
-  PDPDescription: i18n.t('title.tradeTokens'),
-  MigrateTitle: i18n.t('title.migratev2'),
-  MigrateTitleV3: i18n.t('title.migratev3'),
-  MigrateDescription: i18n.t('title.easilyRemove'),
-  MigrateDescriptionV4: i18n.t('title.easilyRemoveV4'),
-  AddLiquidityDescription: i18n.t('title.earnFees'),
-  PasskeyManagementTitle: i18n.t('title.managePasskeys'),
-  // TODO(LP-295): Update after launch
-  ToucanPlaceholderDescription: 'Placeholder description for Toucan page',
-}
-
-export interface RouteDefinition {
-  path: string
-  nestedPaths: string[]
-  getTitle: (path?: string) => string
-  getDescription: (path?: string) => string
-  enabled: (args: RouterConfig) => boolean
-  getElement: (args: RouterConfig) => ReactNode
-}
-
-// Assigns the defaults to the route definition.
-function createRouteDefinition(route: Partial<RouteDefinition>): RouteDefinition {
-  return {
-    getElement: () => null,
-    getTitle: () => StaticTitlesAndDescriptions.RigoblockTitle,
-    getDescription: () => StaticTitlesAndDescriptions.SwapDescription,
-    enabled: () => true,
-    path: '/',
-    nestedPaths: [],
-    // overwrite the defaults
-    ...route,
-  }
 }
 
 export const routes: RouteDefinition[] = [
@@ -162,6 +96,17 @@ export const routes: RouteDefinition[] = [
       )
     },
   }),
+  // Must precede /explore: findRouteByPath is first-match and /explore's :tab/:chainName nested path also matches this URL.
+  createRouteDefinition({
+    path: '/explore/category/:categorySlug',
+    getTitle: getCategoryDetailsTitle,
+    getDescription: getExploreDescription,
+    getElement: () => (
+      <Suspense fallback={null}>
+        <CategoryDetails />
+      </Suspense>
+    ),
+  }),
   createRouteDefinition({
     path: '/explore',
     enabled: (args) => !args.shouldDisableExploreRoutes,
@@ -176,6 +121,13 @@ export const routes: RouteDefinition[] = [
     getTitle: () => i18n.t('common.buyAndSell'),
     getDescription: () => StaticTitlesAndDescriptions.TDPDescription,
     getElement: () => <Navigate to="/explore/tokens/solana/NATIVE" replace />,
+  }),
+  // Arc's native USDC is indexed and traded through its canonical ERC-20 precompile.
+  createRouteDefinition({
+    path: `/explore/tokens/arc/${NATIVE_CHAIN_ID}`,
+    getTitle: () => i18n.t('common.buyAndSell'),
+    getDescription: () => StaticTitlesAndDescriptions.TDPDescription,
+    getElement: () => <Navigate to={`/explore/tokens/arc/${USDC_ARC.address}`} replace />,
   }),
   createRouteDefinition({
     path: '/explore/tokens/:chainName/:tokenAddress',
@@ -218,37 +170,6 @@ export const routes: RouteDefinition[] = [
     ),
   }),
   createRouteDefinition({
-    path: '/explore/auctions/:chainName/:auctionAddress',
-    getTitle: () => StaticTitlesAndDescriptions.DetailsPageBaseTitle,
-    getDescription: () => StaticTitlesAndDescriptions.ToucanPlaceholderDescription,
-    getElement: () => (
-      <Suspense fallback={null}>
-        <ToucanToken />
-      </Suspense>
-    ),
-  }),
-  createRouteDefinition({
-    path: '/liquidity/launch-auction',
-    getTitle: () => i18n.t('toucan.createAuction.title'),
-    getDescription: () => StaticTitlesAndDescriptions.ToucanPlaceholderDescription,
-    enabled: (args) => args.isToucanLaunchAuctionEnabled ?? false,
-    getElement: () => (
-      <Suspense fallback={null}>
-        <CreateAuction />
-      </Suspense>
-    ),
-  }),
-  createRouteDefinition({
-    path: '/liquidity/launch-auction/x/callback',
-    getTitle: () => 'X Verification',
-    getDescription: () => StaticTitlesAndDescriptions.ToucanPlaceholderDescription,
-    getElement: () => (
-      <Suspense fallback={null}>
-        <XOAuthCallbackPage />
-      </Suspense>
-    ),
-  }),
-  createRouteDefinition({
     path: '/vote/*',
     getTitle: () => i18n.t('title.voteOnGov'),
     getDescription: () => i18n.t('title.uniToken'),
@@ -266,45 +187,66 @@ export const routes: RouteDefinition[] = [
   }),
   createRouteDefinition({
     path: '/buy',
-    getElement: () => <Swap />,
+    getElement: () => <SwapPage />,
     getTitle: () => StaticTitlesAndDescriptions.SwapTitle,
   }),
   createRouteDefinition({
     path: '/sell',
-    getElement: () => <Swap />,
+    getElement: () => <SwapPage />,
     getTitle: () => StaticTitlesAndDescriptions.SwapTitle,
   }),
   createRouteDefinition({
     path: '/send',
-    getElement: () => <Swap />,
+    getElement: () => <SwapPage />,
     getTitle: () => i18n.t('title.sendTokens'),
   }),
   //createRouteDefinition({
   //  path: '/limits',
   //  getElement: () => <Navigate to="/limit" replace />,
-  //  getTitle: () => t('title.placeLimit'),
+  //  getTitle: () => i18n.t('title.placeLimit'),
   //}),
   //createRouteDefinition({
   //  path: '/limit',
-  //  getElement: () => <Swap />,
-  //  getTitle: () => t('title.placeLimit'),
+  //  getElement: () => <SwapPage />,
+  //  getTitle: () => i18n.t('title.placeLimit'),
   //}),
   //createRouteDefinition({
   //  path: '/buy',
-  //  getElement: () => <Swap />,
+  //  getElement: () => <SwapPage />,
+  //  getTitle: () => StaticTitlesAndDescriptions.SwapTitle,
+  //}),
+  //createRouteDefinition({
+  //  path: ON_RAMP_RETURN_PATH,
+  //  getElement: () => <OnRampReturn />,
   //  getTitle: () => StaticTitlesAndDescriptions.SwapTitle,
   //}),
   createRouteDefinition({
     path: '/swap',
-    getElement: () => <Swap />,
+    getElement: () => <SwapPage />,
     getTitle: () => StaticTitlesAndDescriptions.SwapTitle,
   }),
   // Refreshed pool routes
   createRouteDefinition({
-    path: '/positions/create',
+    path: '/positions/add/new',
     getElement: () => <CreatePosition />,
     getTitle: getPositionPageTitle,
-    getDescription: getPositionPageDescription,
+    getDescription: () => StaticTitlesAndDescriptions.AddLiquidityDescription,
+  }),
+  createRouteDefinition({
+    path: '/positions/add',
+    // Nested path is optional: bare `/positions/add` browses pools; AddLiquidity reads the
+    // optional `:chainName/:poolAddress` segments from `useParams`, so one definition covers both.
+    nestedPaths: [':chainName/:poolAddress'],
+    getElement: () => <AddLiquidity />,
+    getTitle: getPositionPageTitle,
+    getDescription: () => StaticTitlesAndDescriptions.AddLiquidityDescription,
+  }),
+  // Retired: the create form now lives at `/positions/add/new`. Kept as a redirect because these
+  // URLs are externally linkable — the `/add` and `/add/v2` legacy routes point here, and they are
+  // bookmarked and shared.
+  createRouteDefinition({
+    path: '/positions/create',
+    getElement: () => <CreatePositionRedirects />,
     nestedPaths: [':protocolVersion'],
   }),
   createRouteDefinition({
@@ -352,7 +294,7 @@ export const routes: RouteDefinition[] = [
   }),
   createRouteDefinition({
     path: '/pool/v2/find',
-    getElement: () => <PoolFinderRedirects />,
+    getElement: () => <LegacyPoolRedirects />,
     getTitle: getPositionPageDescription,
     getDescription: getPositionPageDescription,
   }),
@@ -370,7 +312,7 @@ export const routes: RouteDefinition[] = [
   }),
   createRouteDefinition({
     path: '/pools/v2/find',
-    getElement: () => <PoolFinderRedirects />,
+    getElement: () => <LegacyPoolRedirects />,
     getTitle: getPositionPageTitle,
     getDescription: getPositionPageDescription,
   }),
@@ -437,6 +379,7 @@ export const routes: RouteDefinition[] = [
     nestedPaths: [
       'tokens',
       'staking',
+      'pools',
       'defi',
       'perps',
       'nfts',
@@ -444,6 +387,7 @@ export const routes: RouteDefinition[] = [
       ':walletAddress',
       ':walletAddress/tokens',
       ':walletAddress/staking',
+      ':walletAddress/pools',
       ':walletAddress/defi',
       ':walletAddress/perps',
       ':walletAddress/nfts',
@@ -455,13 +399,6 @@ export const routes: RouteDefinition[] = [
     path: CHROME_EXTENSION_UNINSTALL_URL_PATH,
     getElement: () => <ExtensionUninstall />,
     getTitle: () => i18n.t('title.extension.uninstall'),
-  }),
-  // Uniswap Wrapped
-  createRouteDefinition({
-    path: WRAPPED_PATH,
-    getElement: () => <Wrapped />,
-    getTitle: () => 'Uniswap Wrapped',
-    enabled: (args) => args.isWrappedEnabled ?? false,
   }),
   createRouteDefinition({
     path: '/preview',
@@ -520,8 +457,16 @@ export const routes: RouteDefinition[] = [
   createRouteDefinition({ path: '/not-found', getElement: () => <NotFound /> }),
 ]
 
+// Route primitives live in a sibling module (routeDefinition.tsx) to keep this file
+// within the max-lines limit; re-exported here so consumers keep a single import.
+export type { RouteDefinition } from '~/pages/routeDefinition'
+// Re-exported here so consumers keep a single import (see embedRoutes.tsx / Body.tsx).
+export { EMBED_ENTRY_ROUTES } from '~/pages/embedRoutes'
+
 export const findRouteByPath = (pathname: string) => {
-  for (const route of routes) {
+  // Search /embed entry routes first so /embed and /embed/* resolve before the `*` catch-all.
+  const searchSpace = isEmbedPath(pathname) ? [...EMBED_ENTRY_ROUTES, ...routes] : routes
+  for (const route of searchSpace) {
     const match = matchPath(route.path, pathname)
     if (match) {
       return route

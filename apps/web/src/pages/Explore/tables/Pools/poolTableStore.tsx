@@ -1,13 +1,13 @@
+import { isDevEnv } from '@universe/environment'
 import { createContext, useContext, useState } from 'react'
-import { isDevEnv } from 'utilities/src/environment/env'
 import type { StoreApi, UseBoundStore } from 'zustand'
 import { create, useStore } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { useShallow } from 'zustand/react/shallow'
-import { PoolSortFields } from '~/appGraphql/data/pools/useTopPools'
+import { PoolSortFields } from '~/data/pools/poolStats'
 
 interface PoolTableActions {
-  setSort: (category: PoolSortFields) => void
+  setSort: (category: PoolSortFields) => boolean
   resetSort: () => void
 }
 
@@ -19,7 +19,7 @@ interface PoolTableState {
 
 type PoolTableStore = UseBoundStore<StoreApi<PoolTableState>>
 
-const INITIAL_SORT_METHOD = PoolSortFields.TVL
+const INITIAL_SORT_METHOD = PoolSortFields.Volume24h
 const INITIAL_SORT_ASCENDING = false
 
 export function createPoolTableStore(): PoolTableStore {
@@ -29,13 +29,14 @@ export function createPoolTableStore(): PoolTableStore {
         sortMethod: INITIAL_SORT_METHOD,
         sortAscending: INITIAL_SORT_ASCENDING,
         actions: {
-          setSort: (category) =>
+          setSort: (category) => {
+            let newSortAscending = false
             set((state) => {
-              if (state.sortMethod === category) {
-                return { sortAscending: !state.sortAscending }
-              }
-              return { sortMethod: category, sortAscending: false }
-            }),
+              newSortAscending = state.sortMethod === category ? !state.sortAscending : false
+              return { sortMethod: category, sortAscending: newSortAscending }
+            })
+            return newSortAscending
+          },
           resetSort: () =>
             set({
               sortMethod: INITIAL_SORT_METHOD,

@@ -1,6 +1,6 @@
+import { Button, Flex } from '@universe/mycelium'
+import { ArrowRight } from '@universe/mycelium/icons/ArrowRight'
 import { useTranslation } from 'react-i18next'
-import { Button, Flex } from 'ui/src'
-import { ArrowRight } from 'ui/src/components/icons/ArrowRight'
 
 export function OpenSidebarButton({
   openedSideBar,
@@ -15,7 +15,9 @@ export function OpenSidebarButton({
   return (
     <Flex row alignSelf="stretch">
       <Button
-        icon={openedSideBar ? <ArrowRight /> : undefined}
+        // Explicit size/color (20.7px white = legacy large-button icon slot): the web Button styles
+        // icons via descendant classes that the icon's inline defaults beat — remove once INFRA-3474 lands
+        icon={openedSideBar ? <ArrowRight color="$white" size={20.7} /> : undefined}
         iconPosition="after"
         size="large"
         variant={openedSideBar ? 'branded' : 'default'}

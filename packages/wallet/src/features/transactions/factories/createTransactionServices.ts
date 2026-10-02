@@ -1,12 +1,15 @@
 import type { TransactionRequest } from '@ethersproject/providers'
+import { getEntryGatewayUrl } from '@universe/api'
+import type { UniverseChainId } from '@universe/chains'
 import type { SagaIterator } from 'redux-saga'
 import { call, select } from 'typed-redux-saga'
 import type { SignerMnemonicAccountMeta } from 'uniswap/src/features/accounts/types'
-import type { UniverseChainId } from 'uniswap/src/features/chains/types'
 import type { PublicClient } from 'viem'
 import type { Provider } from 'wallet/src/features/transactions/executeTransaction/services/providerService'
 import type { TransactionService } from 'wallet/src/features/transactions/executeTransaction/services/TransactionService/transactionService'
 import type { TransactionSigner } from 'wallet/src/features/transactions/executeTransaction/services/TransactionSignerService/transactionSignerService'
+import { createAlchemyPaymasterClient } from 'wallet/src/features/transactions/executeTransaction/services/UserOpSignerService/paymasterClient'
+import type { UserOpSigner } from 'wallet/src/features/transactions/executeTransaction/services/UserOpSignerService/userOpSignerService'
 import type {
   DelegationType,
   TransactionSagaDependencies,
@@ -17,6 +20,7 @@ import { selectSortedSignerMnemonicAccounts } from 'wallet/src/features/wallet/s
 export type CreateTransactionServicesResult = {
   transactionSigner: TransactionSigner
   transactionService: TransactionService
+  userOpSigner?: UserOpSigner
 }
 
 /**
@@ -31,6 +35,7 @@ export function* createTransactionServices(
     submitViaPrivateRpc: boolean
     delegationType: DelegationType
     request?: TransactionRequest
+    includeUserOpServices?: boolean
   },
 ): SagaIterator<CreateTransactionServicesResult> {
   const signerManager = yield* call(getSignerManager)
@@ -54,10 +59,7 @@ export function* createTransactionServices(
         })
       : providerService.getProvider({ chainId: input.chainId })
 
-  const transactionConfigService = dependencies.createTransactionConfigService({
-    featureFlagService: dependencies.createFeatureFlagService(),
-    logger: dependencies.logger,
-  })
+  const transactionConfigService = dependencies.createTransactionConfigService()
 
   const getViemClient = async (): Promise<PublicClient> => {
     const viemClients = dependencies.getViemClients()
@@ -101,6 +103,23 @@ export function* createTransactionServices(
     logger: dependencies.logger,
   })
 
+  let userOpSigner: UserOpSigner | undefined
+
+  if (input.includeUserOpServices) {
+    const paymasterClient = createAlchemyPaymasterClient({
+      getPaymasterUrl: () => `${getEntryGatewayUrl()}/paymaster`,
+    })
+
+    userOpSigner = dependencies.createBundledDelegationUserOpSignerService({
+      delegationInfo,
+      getAccount: () => input.account,
+      getProvider,
+      getViemClient,
+      getSignerManager: () => signerManager,
+      getPaymasterClient: () => paymasterClient,
+    })
+  }
+
   const transactionService = dependencies.createTransactionService({
     transactionRepository,
     transactionSigner,
@@ -108,7 +127,9 @@ export function* createTransactionServices(
     analyticsService,
     logger: dependencies.logger,
     getProvider,
+    // Enables `transactionService.executeUserOp` for the 4337 path.
+    userOpSigner,
   })
 
-  return { transactionSigner, transactionService }
+  return { transactionSigner, transactionService, userOpSigner }
 }

@@ -41,7 +41,7 @@ export function testMigratePendingDappRequestsToRecord(migration: (state: any) =
 
   // Test: sets sequential timestamps
   const mockTime = 1000
-  jest.spyOn(Date, 'now').mockReturnValue(mockTime)
+  vi.spyOn(Date, 'now').mockReturnValue(mockTime)
 
   const timestampResult = migration({
     dappRequests: {
@@ -53,7 +53,7 @@ export function testMigratePendingDappRequestsToRecord(migration: (state: any) =
   expect(timestampResult.dappRequests.requests.r1.createdAt).toBe(mockTime + 1000)
   expect(timestampResult.dappRequests.requests.r2.createdAt).toBe(mockTime + 2000)
 
-  jest.restoreAllMocks()
+  vi.restoreAllMocks()
 
   // Test: preserves data and handles missing IDs
   const mockData = {
@@ -144,6 +144,16 @@ export function testMigrateUnknownBackupAccountsToMaybeManualBackup(
 
   expect(migration3.wallet.accounts['0x1'].backups).toEqual(['cloud'])
   expect(migration3.wallet.accounts['0x2'].backups).toEqual(['cloud'])
+}
+
+export function testRemovePersistedApolloCache(migration: (state: any) => any, prevSchema: any): void {
+  // oxlint-disable-next-line typescript/unbound-method
+  const remove = vi.mocked(chrome.storage.local.remove).mockImplementation(() => Promise.resolve())
+
+  // The migration only touches chrome.storage.local; redux state must pass through untouched.
+  const result = migration(prevSchema)
+  expect(result).toEqual(prevSchema)
+  expect(remove).toHaveBeenCalledWith('apollo-cache-persist')
 }
 
 export function testSetLanguageToNavigatorLanguage(migration: (state: any) => any, _prevSchema: any): void {

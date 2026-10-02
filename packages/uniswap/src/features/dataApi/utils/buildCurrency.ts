@@ -1,12 +1,10 @@
 import { BigNumber } from '@ethersproject/bignumber'
 import { type NativeCurrency, Token } from '@uniswap/sdk-core'
+import { UniverseChainId, areAddressesEqual, normalizeTokenAddressForCache } from '@universe/chains'
 import { nativeOnChain, WRAPPED_NATIVE_CURRENCY } from 'uniswap/src/constants/tokens'
-import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
 import { WRAPPED_SOL_ADDRESS_SOLANA } from 'uniswap/src/features/chains/svm/defaults'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import type { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { SolanaToken } from 'uniswap/src/features/tokens/SolanaToken'
-import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 import { isNativeCurrencyAddress } from 'uniswap/src/utils/currencyId'
 import { logger } from 'utilities/src/logger/logger'
 import { sortKeysRecursively } from 'utilities/src/primitives/objects'
@@ -90,6 +88,7 @@ export function buildCurrency(args: BuildCurrencyParams): Token | NativeCurrency
       }
     } catch (error) {
       // TODO(SWAP-262): Investigate remaining source of lowercased SPL token addresses
+      // oxlint-disable-next-line universe-custom/no-tolowercase-address-currencyid -- detecting whether the address is already lowercased, not normalizing
       const isLowercasedAddress = address.toLowerCase() === address
       const displayError = isLowercasedAddress ? new Error(`Invalid lowercased SPL token address: ${address}`) : error
 

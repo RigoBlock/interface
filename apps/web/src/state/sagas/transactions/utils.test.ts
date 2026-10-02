@@ -1,5 +1,5 @@
+import { UniverseChainId } from '@universe/chains'
 import { runSaga } from 'redux-saga'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { addTransaction } from 'uniswap/src/features/transactions/slice'
 import type { HandleOnChainStepParams, OnChainTransactionStep } from 'uniswap/src/features/transactions/steps/types'
 import { TransactionStepType } from 'uniswap/src/features/transactions/steps/types'
@@ -12,7 +12,7 @@ vi.mock('wagmi/actions', () => ({
   getTransaction: vi.fn(),
 }))
 
-vi.mock('~/components/Web3Provider/wagmiConfig', () => ({
+vi.mock('~/connection/wagmiConfig', () => ({
   wagmiConfig: {},
 }))
 
@@ -28,11 +28,11 @@ vi.mock('~/utils/signing', () => ({
   signTypedData: vi.fn(),
 }))
 
-vi.mock('~/components/Popups/registry', () => ({
+vi.mock('~/state/popups/registry', () => ({
   popupRegistry: { addPopup: vi.fn() },
 }))
 
-vi.mock('~/components/Popups/types', () => ({
+vi.mock('~/state/popups/types', () => ({
   PopupType: { Plan: 'Plan' },
 }))
 

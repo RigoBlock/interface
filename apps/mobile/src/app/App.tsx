@@ -1,28 +1,22 @@
-import { ApolloProvider } from '@apollo/client'
-import { loadDevMessages, loadErrorMessages } from '@apollo/client/dev'
+import 'src/global.css'
 import { DdRum, RumActionType } from '@datadog/mobile-react-native'
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet'
 import { PerformanceProfiler, type RenderPassReport } from '@shopify/react-native-performance'
 import { ApiInit, getEntryGatewayUrl, provideSessionService } from '@universe/api'
+import { isIOS, isTestEnv, isDatadogEnabled, isE2eTestEnv } from '@universe/environment'
 import {
   DatadogSessionSampleRateKey,
   DynamicConfigs,
   Experiments,
-  FeatureFlags,
   getDynamicConfigValue,
   getIsHashcashSolverEnabled,
-  getIsSessionServiceEnabled,
-  getIsSessionsPerformanceTrackingEnabled,
-  getIsSessionUpgradeAutoEnabled,
-  getIsTurnstileSolverEnabled,
   getStatsigClient,
   StatsigCustomAppValue,
   type StatsigUser,
   Storage,
-  useFeatureFlag,
-  useIsSessionServiceEnabled,
   WALLET_FEATURE_FLAG_NAMES,
 } from '@universe/gating'
+import { FloatingOverlayProvider } from '@universe/mycelium/floating-overlay'
 import {
   type ChallengeSolver,
   ChallengeType,
@@ -34,7 +28,6 @@ import {
   createTurnstileMockSolver,
   type SessionInitializationService,
 } from '@universe/sessions'
-import { MMKVWrapper } from 'apollo3-cache-persist'
 import { default as React, StrictMode, useCallback, useEffect, useMemo, useRef } from 'react'
 import { I18nextProvider } from 'react-i18next'
 import { NativeModules, StatusBar } from 'react-native'
@@ -42,19 +35,20 @@ import appsFlyer from 'react-native-appsflyer'
 import DeviceInfo, { getUniqueIdSync } from 'react-native-device-info'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { KeyboardProvider } from 'react-native-keyboard-controller'
-import { MMKV } from 'react-native-mmkv'
 import { OneSignal } from 'react-native-onesignal'
 import { configureReanimatedLogger } from 'react-native-reanimated'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { enableFreeze } from 'react-native-screens'
 import { useDispatch, useSelector } from 'react-redux'
 import { PersistGate } from 'redux-persist/integration/react'
+import { ignoreFabricMountStateErrors } from 'src/app/ignoreFabricMountStateErrors'
 import { MobileWalletNavigationProvider } from 'src/app/MobileWalletNavigationProvider'
 import { AppModals } from 'src/app/modals/AppModals'
 import { useIsPartOfNavigationTree } from 'src/app/navigation/hooks'
 import { AppStackNavigator } from 'src/app/navigation/navigation'
 import { NavigationContainer } from 'src/app/navigation/NavigationContainer'
 import { store } from 'src/app/store'
+import { installUniwindClassMapMissDevWarning } from 'src/app/uniwindClassMapMissDevWarning'
 import { TraceUserProperties } from 'src/components/Trace/TraceUserProperties'
 import { initAppsFlyer } from 'src/features/analytics/appsflyer'
 import { useLogMissingMnemonic } from 'src/features/analytics/useLogMissingMnemonic'
@@ -64,54 +58,45 @@ import {
   DatadogProviderWrapper,
   MOBILE_DEFAULT_DATADOG_SESSION_SAMPLE_RATE,
 } from 'src/features/datadog/DatadogProviderWrapper'
+import { useDatadogWalletContext } from 'src/features/datadog/useDatadogWalletContext'
 import { setDatadogUserWithUniqueId } from 'src/features/datadog/user'
+import { setupExpoImageMemoryWatcher } from 'src/features/images/expoImageCacheSetup'
 import { OneSignalUserTagField } from 'src/features/notifications/constants'
 import { NotificationToastWrapper } from 'src/features/notifications/NotificationToastWrapper'
 import { initOneSignal } from 'src/features/notifications/Onesignal'
+import { PrivyProviderWrapper } from 'src/features/passkey/PrivyProviderWrapper'
 import { createHashcashWorkerChannel } from 'src/features/sessions/createHashcashWorkerChannel'
 import { statsigMMKVStorageProvider } from 'src/features/statsig/statsigMMKVStorageProvider'
 import { shouldLogScreen } from 'src/features/telemetry/directLogScreens'
-import { selectCustomEndpoint } from 'src/features/tweaks/selectors'
-import {
-  processWidgetEvents,
-  setAccountAddressesUserDefaults,
-  setFavoritesUserDefaults,
-  setI18NUserDefaults,
-} from 'src/features/widgets/widgets'
+import { useSyncWidgetUserDefaults } from 'src/features/widgets/useSyncWidgetUserDefaults'
 import { SystemBannerPortalProvider } from 'src/notification-service/notification-renderer/SystemBannerPortal'
-import { initDynamicIntlPolyfills } from 'src/polyfills/intl-delayed'
+import { initDynamicIntlPolyfills, loadIntlPolyfillsForLocale } from 'src/polyfills/intl-delayed'
 import { useDatadogUserAttributesTracking } from 'src/screens/HomeScreen/useDatadogUserAttributesTracking'
-import { useAppStateTrigger } from 'src/utils/useAppStateTrigger'
-import { flexStyles, ImageSettingsProvider, useIsDarkMode } from 'ui/src'
+import { flexStyles, useIsDarkMode } from 'ui/src'
 import { TestnetModeBanner } from 'uniswap/src/components/banners/TestnetModeBanner'
 import { BlankUrlProvider } from 'uniswap/src/contexts/UrlContext'
-import { initializePortfolioQueryOverrides } from 'uniswap/src/data/rest/portfolioBalanceOverrides'
-import { useCurrentAppearanceSetting } from 'uniswap/src/features/appearance/hooks'
-import { selectFavoriteTokens } from 'uniswap/src/features/favorites/selectors'
-import { useAppFiatCurrencyInfo } from 'uniswap/src/features/fiatCurrency/hooks'
+import { initializePortfolioQueryOverrides } from 'uniswap/src/data/apiClients/dataApiService/balances/portfolioBalanceOverrides'
+import { useCurrentAppearanceSetting, useSelectedColorScheme } from 'uniswap/src/features/appearance/hooks'
+import { AppearanceSettingType } from 'uniswap/src/features/appearance/slice'
 import { StatsigProviderWrapper } from 'uniswap/src/features/gating/StatsigProviderWrapper'
 import { mapLanguageToLocale } from 'uniswap/src/features/language/constants'
-import { useCurrentLanguageInfo } from 'uniswap/src/features/language/hooks'
 import { LocalizationContextProvider } from 'uniswap/src/features/language/LocalizationContext'
 import { clearNotificationQueue } from 'uniswap/src/features/notifications/slice/slice'
-import { TokenPriceProvider } from 'uniswap/src/features/prices/TokenPriceContext'
+import { usePoolsBalanceCoachmarkStateInit } from 'uniswap/src/features/portfolio/PortfolioBalance/usePoolsBalanceCoachmarkStateInit'
+import { RemotePriceProvider } from 'uniswap/src/features/prices/RemotePriceProvider'
 import { selectCurrentLanguage } from 'uniswap/src/features/settings/selectors'
 import { MobileEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import i18n, { changeLanguage } from 'uniswap/src/i18n'
-import { type CurrencyId } from 'uniswap/src/types/currency'
-import { datadogEnabledBuild } from 'utilities/src/environment/constants'
-import { isTestEnv } from 'utilities/src/environment/env'
+import { Uniwind } from 'uniwind'
 import { registerConsoleOverrides } from 'utilities/src/logger/console'
 import { attachUnhandledRejectionHandler, setAttributesToDatadog } from 'utilities/src/logger/datadog/Datadog'
 import { DDRumAction, DDRumTiming } from 'utilities/src/logger/datadog/datadogEvents'
+import { reportAppStartTiming } from 'utilities/src/logger/datadog/reportAppStartTiming'
 import { getLogger, logger } from 'utilities/src/logger/logger'
-import { isIOS } from 'utilities/src/platform'
 import { AnalyticsNavigationContextProvider } from 'utilities/src/telemetry/trace/AnalyticsNavigationContext'
 import { ErrorBoundary } from 'wallet/src/components/ErrorBoundary/ErrorBoundary'
-// oxlint-disable-next-line no-restricted-imports -- Required for Apollo client initialization at app root
-import { usePersistedApolloClient } from 'wallet/src/data/apollo/usePersistedApolloClient'
 import { AccountsStoreContextProvider } from 'wallet/src/features/accounts/store/provider'
 import { StatsigUserIdentifiersUpdater } from 'wallet/src/features/gating/StatsigUserIdentifiersUpdater'
 import { useHeartbeatReporter } from 'wallet/src/features/telemetry/hooks/useHeartbeatReporter'
@@ -120,9 +105,7 @@ import { selectAllowAnalytics } from 'wallet/src/features/telemetry/selectors'
 import { useTestnetModeForLoggingAndAnalytics } from 'wallet/src/features/testnetMode/hooks/useTestnetModeForLoggingAndAnalytics'
 import { WalletUniswapProvider } from 'wallet/src/features/transactions/contexts/WalletUniswapContext'
 import { TransactionHistoryUpdater } from 'wallet/src/features/transactions/TransactionHistoryUpdater'
-import { type Account } from 'wallet/src/features/wallet/accounts/types'
 import { WalletContextProvider } from 'wallet/src/features/wallet/context'
-import { useAccounts } from 'wallet/src/features/wallet/hooks'
 import { NativeWalletProvider } from 'wallet/src/features/wallet/providers/NativeWalletProvider'
 import { selectFinishedOnboarding } from 'wallet/src/features/wallet/selectors'
 import { SharedWalletProvider as SharedWalletReduxProvider } from 'wallet/src/providers/SharedWalletProvider'
@@ -137,8 +120,11 @@ if (__DEV__ && !isTestEnv()) {
   configureReanimatedLogger({
     strict: false,
   })
-  loadDevMessages()
-  loadErrorMessages()
+  // Surface uniwind class-map misses, which the store otherwise skips
+  // silently. Module scope (uniwind's store is hydrated by the global.css
+  // import above) so renders during the PersistGate loading phase are
+  // covered too — an effect inside the tree would miss them.
+  installUniwindClassMapMissDevWarning()
 }
 
 initDynamicIntlPolyfills()
@@ -147,6 +133,8 @@ initOneSignal()
 initAppsFlyer()
 
 initializePortfolioQueryOverrides({ store })
+
+setupExpoImageMemoryWatcher()
 
 /**
  * Wrapper component that provides the app state resetter to ErrorBoundary.
@@ -158,25 +146,18 @@ function ErrorBoundaryWrapper({ children }: { children: React.ReactNode }): JSX.
 }
 
 const provideSessionInitializationService = (): SessionInitializationService => {
-  // Create performance tracker with feature flag control
   // Platform-specific: uses React Native's performance.now() API
   const performanceTracker = createPerformanceTracker({
-    getIsPerformanceTrackingEnabled: getIsSessionsPerformanceTrackingEnabled,
     getNow: () => performance.now(),
   })
 
-  // Build solvers map based on feature flags
   const solvers = new Map<ChallengeType, ChallengeSolver>()
 
-  if (getIsTurnstileSolverEnabled()) {
-    // Turnstile not supported on mobile - use mock
-    solvers.set(ChallengeType.TURNSTILE, createTurnstileMockSolver())
-  } else {
-    solvers.set(ChallengeType.TURNSTILE, createTurnstileMockSolver())
-  }
+  // Turnstile is web-only; mobile stubs it with a mock.
+  solvers.set(ChallengeType.TURNSTILE, createTurnstileMockSolver())
+
   if (getIsHashcashSolverEnabled()) {
-    // Use real hashcash solver with native Nitro module
-    // The native implementation runs on background threads via platform-native APIs
+    // The native implementation runs on background threads via platform-native APIs.
     solvers.set(
       ChallengeType.HASHCASH,
       createHashcashSolver({
@@ -193,7 +174,6 @@ const provideSessionInitializationService = (): SessionInitializationService => 
     getSessionService: () =>
       provideSessionService({
         getBaseUrl: getEntryGatewayUrl,
-        getIsSessionServiceEnabled,
         getLogger,
       }),
     challengeSolverService: createChallengeSolverService({
@@ -201,7 +181,6 @@ const provideSessionInitializationService = (): SessionInitializationService => 
       getLogger,
     }),
     performanceTracker,
-    getIsSessionUpgradeAutoEnabled,
     getLogger,
   })
 }
@@ -241,32 +220,34 @@ function App(): JSX.Element | null {
   }
 
   return (
-    <StatsigProviderWrapper user={statsigUser} storageProvider={statsigMMKVStorageProvider} onInit={onStatsigInit}>
-      <DatadogProviderWrapper sessionSampleRate={datadogSessionSampleRate}>
-        <Trace>
-          <StrictMode>
-            <I18nextProvider i18n={i18n}>
-              <SafeAreaProvider>
-                <KeyboardProvider navigationBarTranslucent>
-                  <SharedWalletReduxProvider reduxStore={store}>
-                    <AnalyticsNavigationContextProvider
-                      shouldLogScreen={shouldLogScreen}
-                      useIsPartOfNavigationTree={useIsPartOfNavigationTree}
-                    >
-                      <AppOuter />
-                    </AnalyticsNavigationContextProvider>
-                  </SharedWalletReduxProvider>
-                </KeyboardProvider>
-              </SafeAreaProvider>
-            </I18nextProvider>
-          </StrictMode>
-        </Trace>
-      </DatadogProviderWrapper>
-    </StatsigProviderWrapper>
+    // Must wrap AppPortalProvider (inside SharedWalletReduxProvider): its root PortalHost needs the
+    // gesture root's context or portaled content (Popover, ActionSheetDropdown) throws under RNGH 3.
+    <GestureHandlerRootView style={flexStyles.fill}>
+      <StatsigProviderWrapper user={statsigUser} storageProvider={statsigMMKVStorageProvider} onInit={onStatsigInit}>
+        <DatadogProviderWrapper sessionSampleRate={datadogSessionSampleRate}>
+          <Trace>
+            <StrictMode>
+              <I18nextProvider i18n={i18n}>
+                <SafeAreaProvider>
+                  <KeyboardProvider navigationBarTranslucent>
+                    <SharedWalletReduxProvider reduxStore={store}>
+                      <AnalyticsNavigationContextProvider
+                        shouldLogScreen={shouldLogScreen}
+                        useIsPartOfNavigationTree={useIsPartOfNavigationTree}
+                      >
+                        <AppOuter />
+                      </AnalyticsNavigationContextProvider>
+                    </SharedWalletReduxProvider>
+                  </KeyboardProvider>
+                </SafeAreaProvider>
+              </I18nextProvider>
+            </StrictMode>
+          </Trace>
+        </DatadogProviderWrapper>
+      </StatsigProviderWrapper>
+    </GestureHandlerRootView>
   )
 }
-
-const MAX_CACHE_SIZE_IN_BYTES = 1024 * 1024 * 25 // 25 MB
 
 /**
  * Applies the persisted language from Redux to i18n on app launch.
@@ -276,7 +257,11 @@ function ApplyPersistedLanguage(): null {
   const currentLanguage = useSelector(selectCurrentLanguage)
 
   useEffect(() => {
-    changeLanguage(mapLanguageToLocale[currentLanguage]).catch(() => undefined)
+    const locale = mapLanguageToLocale[currentLanguage]
+    // Ensure the Intl locale data for the persisted language is loaded (it may differ
+    // from the device locale loaded at startup) so number formatting is localized correctly.
+    loadIntlPolyfillsForLocale(locale)
+    changeLanguage(locale).catch(() => undefined)
   }, [currentLanguage])
 
   return null
@@ -284,13 +269,6 @@ function ApplyPersistedLanguage(): null {
 
 // Ensures redux state is available inside usePersistedApolloClient for the custom endpoint
 function AppOuter(): JSX.Element | null {
-  const customEndpoint = useSelector(selectCustomEndpoint)
-  const client = usePersistedApolloClient({
-    storageWrapper: new MMKVWrapper(new MMKV()),
-    maxCacheSizeInBytes: MAX_CACHE_SIZE_IN_BYTES,
-    customEndpoint,
-    reduxStore: store,
-  })
   const jsBundleLoadedRef = useRef(false)
 
   /**
@@ -298,7 +276,7 @@ function AppOuter(): JSX.Element | null {
    * RenderPassReport. We then forward this report to Datadog, Amplitude, etc.
    */
   const onReportPrepared = useCallback(async (report: RenderPassReport) => {
-    if (datadogEnabledBuild) {
+    if (isDatadogEnabled() || isE2eTestEnv()) {
       const shouldLogJsBundleLoaded = report.timeToBootJsMillis && !jsBundleLoadedRef.current
       if (shouldLogJsBundleLoaded) {
         await DdRum.addAction(RumActionType.CUSTOM, DDRumAction.ApplicationStartJs, {
@@ -308,12 +286,15 @@ function AppOuter(): JSX.Element | null {
         // Note that we are not checking report.interactive here because it's not consistently reported.
         // Additionally, we are not tracking interactive the same way @shopify/react-native-performance does.
         await DdRum.addTiming(DDRumTiming.ScreenInteractive)
+        // Durable cold-start TTI signal we own (SDK v3 dropped auto application_start); fire-and-forget so a RUM rejection can't drop the Amplitude report below.
+        reportAppStartTiming({
+          ttiMillis: report.timeToBootJsMillis + (report.timeToRenderMillis ?? 0),
+          jsBootTimeMillis: report.timeToBootJsMillis,
+        }).catch(() => undefined)
       }
     }
     sendAnalyticsEvent(MobileEventName.PerformanceReport, report)
   }, [])
-
-  const enableExpoImage = useFeatureFlag(FeatureFlags.ExpoImage)
 
   useEffect(() => {
     for (const [_, flagKey] of WALLET_FEATURE_FLAG_NAMES.entries()) {
@@ -341,48 +322,45 @@ function AppOuter(): JSX.Element | null {
     }
   }, [])
 
-  if (!client) {
-    return null
-  }
-
   return (
-    <ApolloProvider client={client}>
-      <PersistGate loading={null} persistor={getReduxPersistor()}>
-        <ErrorBoundaryWrapper>
-          <ApplyPersistedLanguage />
-          <BlankUrlProvider>
-            <LocalizationContextProvider>
-              <ImageSettingsProvider enableExpoImage={enableExpoImage}>
-                <GestureHandlerRootView style={flexStyles.fill}>
-                  <WalletContextProvider>
-                    <NavigationContainer>
-                      <MobileWalletNavigationProvider>
-                        <NativeWalletProvider>
-                          <TokenPriceProvider>
-                            <WalletUniswapProvider>
-                              <AccountsStoreContextProvider>
-                                <DataUpdaters />
-                                <BottomSheetModalProvider>
-                                  <AppModals />
-                                  <PerformanceProfiler onReportPrepared={onReportPrepared}>
-                                    <AppInner />
-                                  </PerformanceProfiler>
-                                </BottomSheetModalProvider>
-                                <NotificationToastWrapper />
-                              </AccountsStoreContextProvider>
-                            </WalletUniswapProvider>
-                          </TokenPriceProvider>
-                        </NativeWalletProvider>
-                      </MobileWalletNavigationProvider>
-                    </NavigationContainer>
-                  </WalletContextProvider>
-                </GestureHandlerRootView>
-              </ImageSettingsProvider>
-            </LocalizationContextProvider>
-          </BlankUrlProvider>
-        </ErrorBoundaryWrapper>
-      </PersistGate>
-    </ApolloProvider>
+    <PersistGate loading={null} persistor={getReduxPersistor()}>
+      <ErrorBoundaryWrapper>
+        <ApplyPersistedLanguage />
+        <BlankUrlProvider>
+          <LocalizationContextProvider>
+            <WalletContextProvider>
+              <PrivyProviderWrapper>
+                <NavigationContainer>
+                  <MobileWalletNavigationProvider>
+                    <NativeWalletProvider>
+                      <RemotePriceProvider>
+                        <WalletUniswapProvider>
+                          <AccountsStoreContextProvider>
+                            <DataUpdaters />
+                            <FloatingOverlayProvider>
+                              <BottomSheetModalProvider>
+                                <AppModals />
+                                <PerformanceProfiler
+                                  errorHandler={ignoreFabricMountStateErrors}
+                                  onReportPrepared={onReportPrepared}
+                                >
+                                  <AppInner />
+                                </PerformanceProfiler>
+                              </BottomSheetModalProvider>
+                            </FloatingOverlayProvider>
+                            <NotificationToastWrapper />
+                          </AccountsStoreContextProvider>
+                        </WalletUniswapProvider>
+                      </RemotePriceProvider>
+                    </NativeWalletProvider>
+                  </MobileWalletNavigationProvider>
+                </NavigationContainer>
+              </PrivyProviderWrapper>
+            </WalletContextProvider>
+          </LocalizationContextProvider>
+        </BlankUrlProvider>
+      </ErrorBoundaryWrapper>
+    </PersistGate>
   )
 }
 
@@ -390,6 +368,7 @@ function AppInner(): JSX.Element {
   const dispatch = useDispatch()
   const isDarkMode = useIsDarkMode()
   const themeSetting = useCurrentAppearanceSetting()
+  const selectedColorScheme = useSelectedColorScheme()
   const allowAnalytics = useSelector(selectAllowAnalytics)
 
   // handles AppsFlyer enable/disable based on the allow analytics toggle
@@ -413,10 +392,17 @@ function AppInner(): JSX.Element {
   }, [dispatch])
 
   useEffect(() => {
-    // TODO: This is a temporary solution (it should be replaced with Appearance.setColorScheme
-    // after updating RN to 0.72.0 or higher)
+    // Re-fire on resolved scheme too: when the setting is "system", an OS theme flip
+    // changes selectedColorScheme but not themeSetting, and the native side must re-sync.
     NativeModules['ThemeModule'].setColorScheme(themeSetting)
-  }, [themeSetting])
+  }, [themeSetting, selectedColorScheme])
+
+  useEffect(() => {
+    // Sync uniwind's theme (Tailwind tokens from @universe/tailwind/native) with the appearance setting; no DOM, so switched imperatively.
+    // A resolved 'light'/'dark' pins native Appearance (Android AppCompat night mode), detaching the app from OS
+    // theme changes — pass 'system' so uniwind stays adaptive when the user follows the OS.
+    Uniwind.setTheme(themeSetting === AppearanceSettingType.System ? 'system' : selectedColorScheme)
+  }, [themeSetting, selectedColorScheme])
 
   useLogMissingMnemonic()
   useLogUnexpectedOnboardingReset()
@@ -436,41 +422,21 @@ function AppInner(): JSX.Element {
  * these services are running.
  */
 function DataUpdaters(): JSX.Element {
-  const favoriteTokens: CurrencyId[] = useSelector(selectFavoriteTokens)
-  const accountsMap: Record<string, Account> = useAccounts()
-  const { locale } = useCurrentLanguageInfo()
-  const { code } = useAppFiatCurrencyInfo()
   const finishedOnboarding = useSelector(selectFinishedOnboarding)
-  const isSessionServiceEnabled = useIsSessionServiceEnabled()
 
   useDatadogUserAttributesTracking({ isOnboarded: !!finishedOnboarding })
+  useDatadogWalletContext()
   useHeartbeatReporter({ isOnboarded: !!finishedOnboarding })
   useLastBalancesReporter({ isOnboarded: !!finishedOnboarding })
   useTestnetModeForLoggingAndAnalytics()
-
-  // Refreshes widgets when bringing app to foreground
-  useAppStateTrigger({ from: 'background', to: 'active', callback: processWidgetEvents })
-
-  useEffect(() => {
-    setFavoritesUserDefaults(favoriteTokens)
-  }, [favoriteTokens])
-
-  useEffect(() => {
-    setAccountAddressesUserDefaults(Object.values(accountsMap))
-  }, [accountsMap])
-
-  useEffect(() => {
-    setI18NUserDefaults({ locale, currency: code })
-  }, [code, locale])
+  useSyncWidgetUserDefaults()
+  usePoolsBalanceCoachmarkStateInit()
 
   return (
     <>
       <TraceUserProperties />
       <StatsigUserIdentifiersUpdater />
-      <ApiInit
-        getSessionInitService={provideSessionInitializationService}
-        isSessionServiceEnabled={isSessionServiceEnabled}
-      />
+      <ApiInit getSessionInitService={provideSessionInitializationService} />
       <TransactionHistoryUpdater />
     </>
   )

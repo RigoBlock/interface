@@ -24,6 +24,7 @@ export enum ValueType {
  */
 export function getCurrencyAmount<T extends Currency>({
   value,
+  // oxlint-disable-next-line typescript/no-useless-default-assignment -- defensive default
   valueType = ValueType.Raw,
   currency,
 }: {

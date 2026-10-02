@@ -1,9 +1,9 @@
+import { Flex, iconSizes, Text, TouchableArea } from '@universe/mycelium'
+import { CheckboxCompat as Checkbox } from '@universe/mycelium/checkbox-compat'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
-import { Checkbox, Flex, Text, TouchableArea } from 'ui/src'
 import { Shuffle } from 'ui/src/components/icons/Shuffle'
-import { iconSizes } from 'ui/src/theme'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import { WarningModal } from 'uniswap/src/components/modals/WarningModal/WarningModal'
@@ -70,12 +70,7 @@ export function BridgingModal({
     >
       <TouchableArea onPress={toggleDoNotShowAgain}>
         <Flex row alignItems="center" gap="$spacing4">
-          <Checkbox
-            size="$icon.20"
-            borderColor="$neutral2"
-            checked={doNotShowAgainSelected}
-            onPress={toggleDoNotShowAgain}
-          />
+          <Checkbox size="$icon.20" checked={doNotShowAgainSelected} onPress={toggleDoNotShowAgain} />
           <Text variant="body3" color="$neutral2" py="$spacing8">
             {t('common.dontShowAgain')}
           </Text>

@@ -1,121 +1,186 @@
-import { GraphQLApi } from '@universe/api'
-import { useCallback, useState } from 'react'
+import { UniverseChainId, Platform, getValidAddress } from '@universe/chains'
+import {
+  Anchor,
+  Flex,
+  type FlexCompatProps,
+  Text,
+  type TextCompatProps,
+  TouchableArea,
+  type TouchableAreaCompatProps,
+  View,
+  type ViewCompatProps,
+} from '@universe/mycelium'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
+import { forwardRef, useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
-import { Flex, styled, Text, TouchableArea, useSporeColors, View } from 'ui/src'
 import { CopySheets } from 'ui/src/components/icons/CopySheets'
 import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
+import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
-import { getValidAddress } from 'uniswap/src/utils/addresses'
+import { useBlockExplorerLogo } from 'uniswap/src/features/chains/logos'
+import type { ParsedToken } from 'uniswap/src/features/dataApi/utils/parsedToken'
+import { isNativeParsedToken, v2TokenToCurrency } from 'uniswap/src/features/dataApi/utils/parsedToken'
+import { InterfaceEventName } from 'uniswap/src/features/telemetry/constants'
+import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
+import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
+import { currencyId } from 'uniswap/src/utils/currencyId'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
 import { shortenAddress } from 'utilities/src/addresses'
-import { getTokenDetailsURL, gqlToCurrency } from '~/appGraphql/data/util'
-import { EtherscanLogo } from '~/components/Icons/Etherscan'
-import { ExplorerIcon } from '~/components/Icons/ExplorerIcon'
-import CurrencyLogo from '~/components/Logo/CurrencyLogo'
+import { useCopyClipboard } from 'utilities/src/react/useCopyClipboard'
 import { DoubleCurrencyLogo } from '~/components/Logo/DoubleLogo'
 import { LoadingBubble } from '~/components/Tokens/loading'
 import { MouseoverTooltip, TooltipSize } from '~/components/Tooltip'
 import { NATIVE_CHAIN_ID } from '~/constants/tokens'
-import { getChainUrlParam } from '~/features/params/chainParams'
-import useCopyClipboard from '~/hooks/useCopyClipboard'
-import { ExternalLink } from '~/theme/components/Links'
+import { getTokenDetailsURL } from '~/data/util'
 import { ClickableTamaguiStyle, EllipsisTamaguiStyle } from '~/theme/components/styles'
+import { anonymizeLink } from '~/utils/anonymizeLink'
+import { getChainUrlParam } from '~/utils/params/chainParams'
 
-const TokenName = styled(Text, {
-  display: 'none',
-  minWidth: 0,
-  ...EllipsisTamaguiStyle,
-  $xl: {
-    display: 'block',
+// `transition-opacity`, not `all`: `all` animates theme tokens and flashes on a light/dark toggle.
+const CLICKABLE_STYLE = { ...ClickableTamaguiStyle, style: { transition: 'opacity 100ms' } }
+
+const TokenName = forwardRef<HTMLElement, TextCompatProps>(function TokenName(
+  { $xl: xl, $sm: sm, '$platform-web': platformWeb, ...props },
+  ref,
+) {
+  return (
+    <Text
+      ref={ref}
+      display="none"
+      minWidth={0}
+      // Merge, don't spread: Tamagui deep-merged a caller's object-valued prop into the config's value for the same key.
+      $platform-web={{ ...EllipsisTamaguiStyle['$platform-web'], ...platformWeb }}
+      $xl={{ display: 'block', ...xl }}
+      $sm={{ display: 'none', ...sm }}
+      {...props}
+    />
+  )
+})
+
+const TokenTextWrapper = forwardRef<HTMLDivElement, FlexCompatProps & { isClickable?: boolean }>(
+  function TokenTextWrapper(
+    { isClickable, hoverStyle, pressStyle, style, '$platform-web': platformWeb, ...props },
+    ref,
+  ) {
+    // Merge, don't spread: Tamagui deep-merged a caller's object-valued prop into the config's value for the same key.
+    // `style` is listed too: it carries the opacity transition, which a replacing spread would drop.
+    const clickable = isClickable === true ? CLICKABLE_STYLE : undefined
+    return (
+      <Flex
+        ref={ref}
+        row
+        gap="$gap8"
+        mr="$spacing12"
+        minWidth={0}
+        flex={1}
+        overflow="hidden"
+        {...clickable}
+        {...(clickable === undefined
+          ? { hoverStyle, pressStyle, style, '$platform-web': platformWeb }
+          : {
+              hoverStyle: { ...clickable.hoverStyle, ...hoverStyle },
+              pressStyle: { ...clickable.pressStyle, ...pressStyle },
+              style: { ...clickable.style, ...style },
+              '$platform-web': { ...clickable['$platform-web'], ...platformWeb },
+            })}
+        {...props}
+      />
+    )
   },
-  $xs: {
-    display: 'none',
+)
+
+const TokenTextContent = forwardRef<HTMLDivElement, FlexCompatProps>(function TokenTextContent(props, ref) {
+  return <Flex ref={ref} row gap="$gap8" flex={1} minWidth={0} overflow="hidden" {...props} />
+})
+
+const SymbolText = forwardRef<HTMLElement, TextCompatProps>(function SymbolText(
+  { $xl: xl, $sm: sm, '$platform-web': platformWeb, ...props },
+  ref,
+) {
+  return (
+    <Text
+      ref={ref}
+      minWidth={0}
+      // Merge, don't spread: Tamagui deep-merged a caller's object-valued prop into the config's value for the same key.
+      $platform-web={{ ...EllipsisTamaguiStyle['$platform-web'], ...platformWeb }}
+      $xl={{ color: '$neutral2', ...xl }}
+      $sm={{ color: '$neutral1', ...sm }}
+      {...props}
+    />
+  )
+})
+
+const CopyAddressContainer = forwardRef<HTMLElement, TouchableAreaCompatProps>(
+  function CopyAddressContainer(props, ref) {
+    return (
+      <TouchableArea
+        ref={ref}
+        flexDirection="row"
+        alignItems="center"
+        gap="$gap8"
+        py="$padding8"
+        px="$padding12"
+        borderRadius={20}
+        backgroundColor="$surface3"
+        width="max-content"
+        flexShrink={0}
+        {...props}
+      />
+    )
   },
+)
+
+const ExplorerWrapper = forwardRef<HTMLDivElement, ViewCompatProps>(function ExplorerWrapper(
+  { hoverStyle, pressStyle, style, '$platform-web': platformWeb, ...props },
+  ref,
+) {
+  return (
+    <View
+      ref={ref}
+      p="$padding8"
+      borderRadius={20}
+      backgroundColor="$surface3"
+      display="flex"
+      {...CLICKABLE_STYLE}
+      // Merge, don't spread: Tamagui deep-merged a caller's object-valued prop into the config's value for the same key.
+      // `style` is listed too: it carries the opacity transition, which a replacing spread would drop.
+      hoverStyle={{ ...CLICKABLE_STYLE.hoverStyle, ...hoverStyle }}
+      pressStyle={{ ...CLICKABLE_STYLE.pressStyle, ...pressStyle }}
+      style={{ ...CLICKABLE_STYLE.style, ...style }}
+      $platform-web={{ ...CLICKABLE_STYLE['$platform-web'], ...platformWeb }}
+      {...props}
+    />
+  )
 })
 
-const TokenTextWrapper = styled(Flex, {
-  row: true,
-  gap: '$gap8',
-  mr: '$spacing12',
-  minWidth: 0,
-  flex: 1,
-  overflow: 'hidden',
-  variants: {
-    isClickable: {
-      true: ClickableTamaguiStyle,
-    },
-  },
-})
-
-const TokenTextContent = styled(Flex, {
-  row: true,
-  gap: '$gap8',
-  flex: 1,
-  minWidth: 0,
-  overflow: 'hidden',
-})
-
-const SymbolText = styled(Text, {
-  minWidth: 0,
-  ...EllipsisTamaguiStyle,
-  $xl: {
-    color: '$neutral2',
-  },
-  $xs: {
-    color: '$neutral1',
-  },
-})
-
-const CopyAddressContainer = styled(TouchableArea, {
-  flexDirection: 'row',
-  alignItems: 'center',
-  gap: '$gap8',
-  py: '$padding8',
-  px: '$padding12',
-  borderRadius: 20,
-  backgroundColor: '$surface3',
-  width: 'max-content',
-  flexShrink: 0,
-})
-
-const ExplorerWrapper = styled(View, {
-  p: '$padding8',
-  borderRadius: 20,
-  backgroundColor: '$surface3',
-  display: 'flex',
-  ...ClickableTamaguiStyle,
-})
-
-const ButtonsRow = styled(Flex, {
-  row: true,
-  gap: '$gap8',
-  flexShrink: 0,
-  width: 'max-content',
+const ButtonsRow = forwardRef<HTMLDivElement, FlexCompatProps>(function ButtonsRow(props, ref) {
+  return <Flex ref={ref} row gap="$gap8" flexShrink={0} width="max-content" {...props} />
 })
 
 interface PoolDetailsLinkProps {
   address?: string
   chainId?: UniverseChainId
-  tokens: (GraphQLApi.Token | undefined)[]
+  tokens: (ParsedToken | undefined)[]
   loading?: boolean
 }
 
 export function PoolDetailsLink({ address, chainId, tokens, loading }: PoolDetailsLinkProps) {
   const colors = useSporeColors()
+  const ExplorerLogo = useBlockExplorerLogo(chainId)
   const { t } = useTranslation()
-  const currency = tokens[0] && gqlToCurrency(tokens[0])
+  const currency = tokens[0] && v2TokenToCurrency(tokens[0])
+  const currencyInfo = useCurrencyInfo(currencyId(currency))
   const [isCopied, setCopied] = useCopyClipboard()
   const copy = useCallback(() => {
     const checksummedAddress = getValidAddress({ address, platform: Platform.EVM, withEVMChecksum: true })
     checksummedAddress && setCopied(checksummedAddress)
   }, [address, setCopied])
   const isPool = tokens.length === 2
-  const isNative =
-    address === NATIVE_CHAIN_ID || (tokens[0] && !isPool && tokens[0].standard === GraphQLApi.TokenStandard.Native)
-  const currencies = isPool && tokens[1] ? [currency, gqlToCurrency(tokens[1])] : [currency]
+  const isNative = address === NATIVE_CHAIN_ID || Boolean(!isPool && tokens[0] && isNativeParsedToken(tokens[0]))
+  const currencies = isPool && tokens[1] ? [currency, v2TokenToCurrency(tokens[1])] : [currency]
+  // The page's GetPool row already carries both logos; see AnimatedDoubleLogo for why the pair logo wants them.
+  const servedLogos = isPool ? currencies.map((leg, i) => ({ currency: leg, logoUrl: tokens[i]?.logoUrl })) : undefined
   const explorerUrl =
     chainId &&
     getExplorerLink({
@@ -123,6 +188,15 @@ export function PoolDetailsLink({ address, chainId, tokens, loading }: PoolDetai
       data: address ?? '',
       type: isNative ? ExplorerDataType.NATIVE : isPool ? ExplorerDataType.ADDRESS : ExplorerDataType.TOKEN,
     })
+
+  const handleExplorerLinkPress = useCallback(() => {
+    if (!explorerUrl) {
+      return
+    }
+    sendAnalyticsEvent(InterfaceEventName.ExternalLinkClicked, {
+      label: anonymizeLink(explorerUrl),
+    })
+  }, [explorerUrl])
 
   const navigate = useNavigate()
   const { defaultChainId } = useEnabledChains()
@@ -159,7 +233,7 @@ export function PoolDetailsLink({ address, chainId, tokens, loading }: PoolDetai
   }
 
   return (
-    <Flex row justifyContent="space-between">
+    <Flex row alignItems="center" justifyContent="space-between">
       <TokenTextWrapper
         data-testid={
           isPool ? `pdp-pool-logo-${tokens[0]?.symbol}-${tokens[1]?.symbol}` : `pdp-token-logo-${tokens[0]?.symbol}`
@@ -169,9 +243,9 @@ export function PoolDetailsLink({ address, chainId, tokens, loading }: PoolDetai
         ref={onTextRender}
       >
         {isPool ? (
-          <DoubleCurrencyLogo currencies={currencies} size={20} />
+          <DoubleCurrencyLogo currencies={currencies} servedLogos={servedLogos} size={20} />
         ) : (
-          <CurrencyLogo currency={currency} size={20} />
+          <CurrencyLogo currencyInfo={currencyInfo} size={20} />
         )}
         <TokenTextContent>
           <TokenName>{isPool ? t('common.pool') : tokens[0]?.name}</TokenName>
@@ -196,7 +270,12 @@ export function PoolDetailsLink({ address, chainId, tokens, loading }: PoolDetai
             text={t('common.copied')}
           >
             <CopyAddressContainer data-testid={`copy-address-${address}`} onPress={copy}>
-              <Text variant="buttonLabel3">
+              {/* Source class, not a Tamagui group-hover prop: new Tamagui styling is banned here. */}
+              <Text
+                variant="buttonLabel3"
+                color="$neutral1"
+                className="group-hover:[color:var(--stext-neutral1Hovered)]"
+              >
                 {shortenAddress({
                   address,
                   chars: truncateAddress ? 2 : undefined,
@@ -208,15 +287,19 @@ export function PoolDetailsLink({ address, chainId, tokens, loading }: PoolDetai
           </MouseoverTooltip>
         )}
         {explorerUrl && (
-          <ExternalLink href={explorerUrl} data-testid={`explorer-url-${explorerUrl}`}>
+          <Anchor
+            color={colors.neutral1.val}
+            data-testid={`explorer-url-${explorerUrl}`}
+            href={explorerUrl}
+            rel="noopener noreferrer"
+            target="_blank"
+            textDecorationLine="none"
+            onPress={handleExplorerLinkPress}
+          >
             <ExplorerWrapper>
-              {chainId === UniverseChainId.Mainnet ? (
-                <EtherscanLogo width="16px" height="16px" fill={colors.neutral1.val} />
-              ) : (
-                <ExplorerIcon width="16px" height="16px" fill={colors.neutral1.val} />
-              )}
+              <ExplorerLogo size="$icon.16" color={colors.neutral1.val} />
             </ExplorerWrapper>
-          </ExternalLink>
+          </Anchor>
         )}
       </ButtonsRow>
     </Flex>

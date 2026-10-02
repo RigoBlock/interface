@@ -1,3 +1,5 @@
+import { CurrencyAmount } from '@uniswap/sdk-core'
+import { UniverseChainId } from '@universe/chains'
 import { DappRequestContent } from 'src/app/features/dappRequests/DappRequestContent'
 import { REQUEST_EXPIRY_TIME_MS } from 'src/app/features/dappRequests/hooks/useIsRequestStale'
 import type { DappRequestStoreItem } from 'src/app/features/dappRequests/shared'
@@ -6,46 +8,45 @@ import type { WithMetadata } from 'src/app/features/dappRequests/slice'
 import { render, screen } from 'src/test/test-utils'
 import { AccountType } from 'uniswap/src/features/accounts/types'
 import { DappRequestType } from 'uniswap/src/features/dappRequests/types'
+import { getChainGasToken, useChainGasToken } from 'uniswap/src/features/gas/hooks/useChainGasToken'
+import { hasSufficientGasBalance } from 'uniswap/src/features/gas/utils'
 
 // Mock wagmi to avoid ESM import issues
-jest.mock('wagmi', () => ({
-  useAccountEffect: jest.fn(),
+vi.mock('wagmi', () => ({
+  useAccountEffect: vi.fn(),
 }))
 
 // Mock the useIsRequestStale hook to control output
-const mockUseIsRequestStale = jest.fn()
-jest.mock('src/app/features/dappRequests/hooks/useIsRequestStale', () => ({
-  ...jest.requireActual('src/app/features/dappRequests/hooks/useIsRequestStale'),
+const mockUseIsRequestStale = vi.fn()
+vi.mock('src/app/features/dappRequests/hooks/useIsRequestStale', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('src/app/features/dappRequests/hooks/useIsRequestStale')>()),
   useIsRequestStale: (createdAt: number) => mockUseIsRequestStale(createdAt),
 }))
 
 // Mock the context hook to return our mock value
 let mockContextValue: any = null
-jest.mock('src/app/features/dappRequests/DappRequestQueueContext', () => ({
+vi.mock('src/app/features/dappRequests/DappRequestQueueContext', () => ({
   useDappRequestQueueContext: () => mockContextValue,
 }))
 
 // Mock hooks used by DappRequestFooter
-jest.mock('src/app/features/dapp/hooks', () => ({
-  useDappLastChainId: jest.fn(() => 1),
+vi.mock('src/app/features/dapp/hooks', () => ({
+  useDappLastChainId: vi.fn(() => 1),
 }))
 
-jest.mock('uniswap/src/features/gas/hooks/useChainGasToken', () => ({
-  useChainGasToken: jest.fn(() => ({
-    gasToken: { symbol: 'ETH' },
-    gasBalance: { value: '1000000000000000000', currency: { symbol: 'ETH' }, equalTo: () => false },
-    isLoading: false,
-  })),
+vi.mock('uniswap/src/features/gas/hooks/useChainGasToken', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('uniswap/src/features/gas/hooks/useChainGasToken')>()),
+  useChainGasToken: vi.fn(),
 }))
 
-jest.mock('uniswap/src/features/gas/utils', () => ({
-  ...jest.requireActual('uniswap/src/features/gas/utils'),
-  hasSufficientGasBalance: jest.fn(() => true),
-  hasGasEstimationFailed: jest.fn(() => false),
+vi.mock('uniswap/src/features/gas/utils', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('uniswap/src/features/gas/utils')>()),
+  hasSufficientGasBalance: vi.fn(() => true),
+  hasGasEstimationFailed: vi.fn(() => false),
 }))
 
-jest.mock('wallet/src/features/wallet/hooks', () => ({
-  useActiveAccountWithThrow: jest.fn(() => ({
+vi.mock('wallet/src/features/wallet/hooks', () => ({
+  useActiveAccountWithThrow: vi.fn(() => ({
     address: '0x123',
     type: 'readonly',
     timeImportedMs: Date.now(),
@@ -53,28 +54,28 @@ jest.mock('wallet/src/features/wallet/hooks', () => ({
   })),
 }))
 
-jest.mock('uniswap/src/features/chains/hooks/useEnabledChains', () => ({
-  useEnabledChains: jest.fn(() => ({
+vi.mock('uniswap/src/features/chains/hooks/useEnabledChains', () => ({
+  useEnabledChains: vi.fn(() => ({
     defaultChainId: 1,
   })),
 }))
 
-jest.mock('src/app/features/dappRequests/hooks', () => ({
-  useIsDappRequestConfirming: jest.fn(() => false),
+vi.mock('src/app/features/dappRequests/hooks', () => ({
+  useIsDappRequestConfirming: vi.fn(() => false),
 }))
 
 // Mock the NetworkFeeFooter to avoid complex currency parsing
-jest.mock('wallet/src/features/transactions/TransactionRequest/NetworkFeeFooter', () => ({
+vi.mock('wallet/src/features/transactions/TransactionRequest/NetworkFeeFooter', () => ({
   NetworkFeeFooter: () => null,
 }))
 
-jest.mock('wallet/src/features/transactions/TransactionRequest/AddressFooter', () => ({
+vi.mock('wallet/src/features/transactions/TransactionRequest/AddressFooter', () => ({
   AddressFooter: () => null,
 }))
 
 // Mock currency hooks that parse transaction data
-jest.mock('uniswap/src/data/apiClients/tradingApi/useTradingApiSwapQuery', () => ({
-  useTradingApiSwapQuery: jest.fn(() => ({
+vi.mock('uniswap/src/data/apiClients/tradingApi/useTradingApiSwapQuery', () => ({
+  useTradingApiSwapQuery: vi.fn(() => ({
     data: undefined,
     isLoading: false,
   })),
@@ -129,10 +130,10 @@ function setupMockRequestAndContext(createdAt: number, options?: { frameUrl?: st
     dappIconUrl: '',
     currentIndex: 0,
     totalRequestCount: 1,
-    onPressNext: jest.fn(),
-    onPressPrevious: jest.fn(),
-    onConfirm: jest.fn(),
-    onCancel: jest.fn(),
+    onPressNext: vi.fn(),
+    onPressPrevious: vi.fn(),
+    onConfirm: vi.fn(),
+    onCancel: vi.fn(),
   }
 }
 
@@ -142,16 +143,143 @@ function renderDappRequestContent(options: { createdAt: number; isRequestStale: 
   return render(<DappRequestContent title="Transaction request" confirmText="Confirm" />)
 }
 
+beforeEach(() => {
+  const gasToken = getChainGasToken(UniverseChainId.Mainnet)
+  vi.mocked(useChainGasToken).mockReturnValue({
+    gasToken,
+    gasBalance: CurrencyAmount.fromRawAmount(gasToken, '1000000000000000000'),
+    isLoading: false,
+  })
+  vi.mocked(hasSufficientGasBalance).mockReturnValue(true)
+})
+
+describe('DappRequestContent - Payment and Gas Balance', () => {
+  beforeEach(async () => {
+    const actual = await vi.importActual<typeof import('uniswap/src/features/gas/utils')>(
+      'uniswap/src/features/gas/utils',
+    )
+    vi.mocked(hasSufficientGasBalance).mockImplementation(actual.hasSufficientGasBalance)
+    mockUseIsRequestStale.mockReturnValue(false)
+    setupMockRequestAndContext(Date.now())
+  })
+
+  it.each([
+    { chainId: UniverseChainId.Arc, balance: '1000000', value: '0xde0b6b3a7640000', disabled: true },
+    { chainId: UniverseChainId.Arc, balance: '1001000', value: '0xde0b6b3a7640000', disabled: false },
+    { chainId: UniverseChainId.Mainnet, balance: '1000000000000000000', value: '1000000000000000000', disabled: true },
+    { chainId: UniverseChainId.Mainnet, balance: '1001000000000000000', value: '1000000000000000000', disabled: false },
+    { chainId: UniverseChainId.Arc, balance: '1000', value: undefined, disabled: false },
+  ])('checks payment plus gas on $chainId with balance $balance', ({ chainId, balance, value, disabled }) => {
+    const gasToken = getChainGasToken(chainId)
+    vi.mocked(useChainGasToken).mockReturnValue({
+      gasToken,
+      gasBalance: CurrencyAmount.fromRawAmount(gasToken, balance),
+      isLoading: false,
+    })
+    mockContextValue.request.dappRequest.transaction = { chainId, value }
+
+    render(
+      <DappRequestContent
+        title="Transaction request"
+        confirmText="Confirm"
+        transactionGasFeeResult={{ value: '1000000000000000', isLoading: false, error: null }}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: 'Confirm' })).toHaveProperty('disabled', disabled)
+  })
+
+  it.each([
+    { callCount: 1, balance: '10000000000000000', disabled: true },
+    { callCount: 1, balance: '1000000000000000000', disabled: false },
+    { callCount: 2, balance: '10000000000000000', disabled: true },
+    { callCount: 2, balance: '1000000000000000000', disabled: false },
+    { callCount: 1, balance: '0', value: '0x', disabled: false },
+    { callCount: 2, balance: '0', value: '0x', disabled: false },
+  ])(
+    'checks first of $callCount sponsored calls with balance $balance',
+    ({ callCount, balance, value = '0xde0b6b3a7640000', disabled }) => {
+      const chainId = UniverseChainId.Mainnet
+      const gasToken = getChainGasToken(chainId)
+      vi.mocked(useChainGasToken).mockReturnValue({
+        gasToken,
+        gasBalance: CurrencyAmount.fromRawAmount(gasToken, balance),
+        isLoading: false,
+      })
+      mockContextValue.request.dappRequest = {
+        type: DappRequestType.SendCalls,
+        requestId: 'test-request-id',
+        version: '2.0.0',
+        chainId: `0x${chainId.toString(16)}`,
+        calls: Array.from({ length: callCount }, (_, index) => ({
+          to: '0x1234567890123456789012345678901234567890',
+          value: index === 0 ? value : '0x0',
+        })),
+      }
+
+      render(
+        <DappRequestContent
+          chainId={chainId}
+          title="Transaction request"
+          confirmText="Confirm"
+          transactionGasFeeResult={{ value: '0', isLoading: false, error: null }}
+        />,
+      )
+
+      expect(screen.getByRole('button', { name: 'Confirm' })).toHaveProperty('disabled', disabled)
+    },
+  )
+
+  it('allows a sponsored batch to unwrap WETH before sending the ETH', () => {
+    const chainId = UniverseChainId.Mainnet
+    const gasToken = getChainGasToken(chainId)
+    vi.mocked(useChainGasToken).mockReturnValue({
+      gasToken,
+      gasBalance: CurrencyAmount.fromRawAmount(gasToken, '10000000000000000'), // 0.01 ETH initially
+      isLoading: false,
+    })
+    mockContextValue.request.dappRequest = {
+      type: DappRequestType.SendCalls,
+      requestId: 'test-request-id',
+      version: '2.0.0',
+      chainId: `0x${chainId.toString(16)}`,
+      calls: [
+        {
+          to: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+          // WETH.withdraw(1 ETH), funded by the wallet's existing WETH balance.
+          data: '0x2e1a7d4d0000000000000000000000000000000000000000000000000de0b6b3a7640000',
+          value: '0x0',
+        },
+        {
+          to: '0x1234567890123456789012345678901234567890',
+          value: '0xde0b6b3a7640000',
+        },
+      ],
+    }
+
+    render(
+      <DappRequestContent
+        chainId={chainId}
+        title="Transaction request"
+        confirmText="Confirm"
+        transactionGasFeeResult={{ value: '0', isLoading: false, error: null }}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: 'Confirm' })).toHaveProperty('disabled', false)
+  })
+})
+
 describe('DappRequestContent - Stale Request Rendering', () => {
   beforeEach(() => {
-    jest.useFakeTimers()
-    jest.setSystemTime(new Date('2024-01-01T12:00:00.000Z'))
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2024-01-01T12:00:00.000Z'))
     mockUseIsRequestStale.mockClear()
   })
 
   afterEach(() => {
-    jest.runOnlyPendingTimers()
-    jest.useRealTimers()
+    vi.runOnlyPendingTimers()
+    vi.useRealTimers()
   })
 
   it('should render Cancel and Confirm buttons for fresh requests', async () => {

@@ -2,36 +2,28 @@
 
 exports[`ContextMenu > renders without error 1`] = `
 <DocumentFragment>
-  <span
-    class=""
-    style="display: contents;"
+  <div
+    aria-expanded="true"
+    aria-haspopup="dialog"
+    data-base-ui-click-trigger=""
+    data-popup-open=""
+    data-slot="ui-popover-trigger"
+    id="base-ui-_r_1_"
+    role="button"
+    style="align-items: stretch; box-sizing: border-box; display: flex; flex-basis: auto; flex-direction: column; flex-shrink: 0; margin: 0px; min-height: 0; min-width: 0; padding: 0px; position: relative;"
+    tabindex="0"
   >
-    <div
-      aria-controls=":r4:"
-      aria-expanded="true"
-      aria-haspopup="dialog"
-      class="_display-flex _alignItems-stretch _flexDirection-column _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0"
-    >
+    <div>
       <div
-        aria-expanded="true"
-        class="_display-flex _alignItems-stretch _flexDirection-column _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0"
-        data-state="open"
+        class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0"
       >
-        <div>
-          <div
-            class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column"
-          >
-            Trigger
-          </div>
-        </div>
+        Trigger
       </div>
     </div>
-    <div
-      style="display: contents;"
-    />
-    <div
-      style="display: contents;"
-    />
-  </span>
+  </div>
+  <div
+    aria-hidden="true"
+    style="display: contents;"
+  />
 </DocumentFragment>
 `;

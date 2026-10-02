@@ -1,4 +1,4 @@
-import { colorsLight } from 'ui/src/theme'
+import { LIGHT_THEME_COLORS } from '@universe/mycelium/theme-hooks-compat'
 import { AdjustmentType, adjustColorVariant, findNearestThemeColor, getColorDiffScore } from 'uniswap/src/utils/colors'
 
 describe('adjustColorVariant', () => {
@@ -17,7 +17,7 @@ describe('adjustColorVariant', () => {
 
 describe('findNearestThemeColor', () => {
   it('Finds correct theme color for color in theme', () => {
-    expect(findNearestThemeColor(colorsLight.statusSuccess)).toEqual('greenBase')
+    expect(findNearestThemeColor(LIGHT_THEME_COLORS.statusSuccess)).toEqual('greenBase')
   })
 })
 

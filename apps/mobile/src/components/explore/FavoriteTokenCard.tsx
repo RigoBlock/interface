@@ -1,5 +1,8 @@
-import { GraphQLApi, isNonPollingRequestInFlight } from '@universe/api'
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { useIsFocused } from '@react-navigation/core'
+import { isIOS } from '@universe/environment'
+import { AnimatedTouchableArea, borderRadii, Flex, imageSizes, Text } from '@universe/mycelium'
+import { useIsDarkMode, useShadowPropsShort } from '@universe/mycelium/theme-hooks-compat'
+import { TestID } from '@universe/test'
 import React, { memo, useMemo } from 'react'
 import type { StyleProp, ViewProps, ViewStyle } from 'react-native'
 import ContextMenu from 'react-native-context-menu-view'
@@ -8,24 +11,24 @@ import { useExploreTokenContextMenu } from 'src/components/explore/hooks'
 import RemoveButton from 'src/components/explore/RemoveButton'
 import { Loader } from 'src/components/loading/loaders'
 import { useTokenDetailsNavigation } from 'src/components/TokenDetails/hooks'
-import { usePollOnFocusOnly } from 'src/utils/hooks'
-import { AnimatedTouchableArea, Flex, Text, useIsDarkMode, useShadowPropsShort, useSporeColors } from 'ui/src'
-import { borderRadii, fonts, imageSizes } from 'ui/src/theme'
+// fonts stays on ui/src: its values are device-adaptive (adjustedSize) while mycelium's are
+// static, and the loaders below must size to the exact rendered $heading3/$subheading2 text.
+import { fonts } from 'ui/src/theme'
+import AnimatedNumber from 'uniswap/src/components/AnimatedNumber/AnimatedNumber'
 import { TokenLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
+import { useContextMenuPressGate } from 'uniswap/src/components/menus/hooks/useContextMenuPressGate'
 import { RelativeChange } from 'uniswap/src/components/RelativeChange/RelativeChange'
 import { PollingInterval } from 'uniswap/src/constants/misc'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { fromGraphQLChain } from 'uniswap/src/features/chains/utils'
-import { currencyIdToContractInput } from 'uniswap/src/features/dataApi/utils/currencyIdToContractInput'
+import { useTokenPriceChange, useTokenSpotPrice } from 'uniswap/src/features/dataApi/tokenDetails/useTokenDetailsData'
 import { removeFavoriteToken } from 'uniswap/src/features/favorites/slice'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { SectionName } from 'uniswap/src/features/telemetry/constants'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
+import { useCurrencyInfoWithLoading } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { getSymbolDisplayText } from 'uniswap/src/utils/currency'
+import { currencyIdToChain } from 'uniswap/src/utils/currencyId'
 import { NumberType } from 'utilities/src/format/types'
-import { isIOS } from 'utilities/src/platform'
 import { useEvent } from 'utilities/src/react/hooks'
-import { noop } from 'utilities/src/react/noop'
 
 const ESTIMATED_FAVORITE_TOKEN_CARD_LOADER_HEIGHT = 116
 
@@ -50,31 +53,20 @@ function FavoriteTokenCard({
   ...rest
 }: FavoriteTokenCardProps): JSX.Element {
   const dispatch = useDispatch()
-  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
+  const isDarkMode = useIsDarkMode()
+  const isFocused = useIsFocused()
+
   const { defaultChainId } = useEnabledChains()
   const tokenDetailsNavigation = useTokenDetailsNavigation()
   const { convertFiatAmountFormatted } = useLocalizationContext()
 
-  const colors = useSporeColors()
-  const isDarkMode = useIsDarkMode()
+  const { data: token, isLoading: tokenLoading } = useCurrencyInfoWithLoading(currencyId)
+  const refetchInterval = useMemo(() => (isFocused ? PollingInterval.KindaFast : undefined), [isFocused])
+  const price = useTokenSpotPrice(currencyId, { refetchInterval })
+  const pricePercentChange = useTokenPriceChange(currencyId, { refetchInterval })
 
-  const { data, loading, networkStatus, startPolling, stopPolling } = GraphQLApi.useFavoriteTokenCardQuery({
-    variables: currencyIdToContractInput(currencyId),
-    // Rely on cache for fast favoriting UX, and poll for updates.
-    fetchPolicy: 'cache-and-network',
-    returnPartialData: true,
-  })
+  const chainId = currencyIdToChain(currencyId) ?? defaultChainId
 
-  usePollOnFocusOnly({ startPolling, stopPolling, pollingInterval: PollingInterval.Fast })
-
-  const token = data?.token
-
-  // Mirror behavior in top tokens list, use first chain the token is on for the symbol
-  const chainId = fromGraphQLChain(token?.chain) ?? defaultChainId
-
-  // Coingecko price is more accurate but lacks long tail tokens
-  // Uniswap price comes from Uniswap pools, which may be updated less frequently
-  const { price, pricePercentChange } = getCoingeckoPrice(token) ?? getUniswapPrice(token)
   const priceFormatted = useMemo(
     () => convertFiatAmountFormatted(price, NumberType.FiatTokenPrice),
     [convertFiatAmountFormatted, price],
@@ -95,7 +87,7 @@ function FavoriteTokenCard({
     currencyId,
     analyticsSection: SectionName.ExploreFavoriteTokensSection,
     onEditFavorites,
-    tokenName: token?.name,
+    tokenName: token?.currency.name,
   })
 
   const onPress = useEvent(() => {
@@ -106,11 +98,12 @@ function FavoriteTokenCard({
     tokenDetailsNavigation.navigate(currencyId)
   })
 
+  const { onPressIn, onPressOut, handlePress } = useContextMenuPressGate({ onPress })
+
   const shadowProps = useShadowPropsShort()
 
-  const priceLoading = isNonPollingRequestInFlight(networkStatus)
-
-  const symbolDisplayText = useMemo(() => getSymbolDisplayText(token?.symbol), [token?.symbol])
+  const symbol = token?.currency.symbol
+  const symbolDisplayText = useMemo(() => getSymbolDisplayText(symbol), [symbol])
 
   if (showLoading) {
     return (
@@ -123,98 +116,82 @@ function FavoriteTokenCard({
     )
   }
 
-  return (
-    <ContextMenu
-      actions={menuActions}
-      disabled={isEditing}
-      style={contextMenuStyle}
-      onPress={onContextMenuPress}
-      {...rest}
+  const card = (
+    <AnimatedTouchableArea
+      activeOpacity={isEditing ? 1 : undefined}
+      borderRadius="$rounded16"
+      overflow={isIOS ? 'hidden' : 'visible'}
+      testID={`${TestID.FavoriteTokenCardPrefix}${symbol}`}
+      onPress={handlePress}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      {...shadowProps}
     >
-      <AnimatedTouchableArea
-        activeOpacity={isEditing ? 1 : undefined}
+      <Flex
+        alignItems="flex-start"
+        gap="$spacing8"
+        p="$spacing12"
         backgroundColor={isDarkMode ? '$surface2' : '$surface1'}
-        borderColor={isDarkMode ? '$transparent' : colors.surface3.val}
+        borderColor={isDarkMode ? '$transparent' : '$surface3'}
+        borderWidth="$spacing1"
         borderRadius="$rounded16"
-        overflow={isIOS ? 'hidden' : 'visible'}
-        borderWidth={isDarkMode ? '$none' : '$spacing1'}
-        testID={`${TestID.FavoriteTokenCardPrefix}${token?.symbol}`}
-        onLongPress={noop}
-        onPress={onPress}
-        {...shadowProps}
       >
-        <Flex alignItems="flex-start" gap="$spacing8" p="$spacing12">
-          <Flex row gap="$spacing4" justifyContent="space-between">
-            <Flex grow row alignItems="center" gap="$spacing8">
-              <TokenLogo
-                loading={loading}
-                chainId={chainId}
-                hideNetworkLogo={multichainTokenUxEnabled && (networkCount ?? 0) > 1}
-                name={token?.name ?? undefined}
-                size={imageSizes.image20}
-                symbol={token?.symbol ?? undefined}
-                url={token?.project?.logoUrl ?? undefined}
-              />
-              <Text variant="body1">{symbolDisplayText}</Text>
-            </Flex>
-            <RemoveButton visible={isEditing} onPress={onRemove} />
+        <Flex row gap="$spacing4" justifyContent="space-between">
+          <Flex grow row alignItems="center" gap="$spacing8">
+            <TokenLogo
+              loading={tokenLoading}
+              chainId={chainId}
+              hideNetworkLogo={(networkCount ?? 0) > 1}
+              name={token?.currency.name}
+              size={imageSizes.image20}
+              symbol={symbol}
+              url={token?.logoUrl ?? undefined}
+            />
+            <Text variant="body1">{symbolDisplayText}</Text>
           </Flex>
-          <Flex gap="$spacing2">
-            {priceLoading ? (
-              <Loader.Box
-                height={fonts.heading3.lineHeight}
-                width={fonts.heading3.lineHeight * 3}
-                testID="loader/favorite/price"
-              />
-            ) : (
-              <Text adjustsFontSizeToFit numberOfLines={1} variant="heading3">
-                {priceFormatted}
-              </Text>
-            )}
-            {priceLoading ? (
-              <Loader.Box
-                height={fonts.subheading2.lineHeight}
-                width={fonts.subheading2.lineHeight * 3}
-                testID="loader/favorite/priceChange"
-              />
-            ) : (
-              <RelativeChange
-                arrowSize="$icon.16"
-                change={pricePercentChange ?? undefined}
-                semanticColor={true}
-                variant="subheading2"
-              />
-            )}
-          </Flex>
+          <RemoveButton visible={isEditing} onPress={onRemove} />
         </Flex>
-      </AnimatedTouchableArea>
+        <Flex gap="$spacing2">
+          {price !== undefined ? (
+            <AnimatedNumber numericValue={price} value={priceFormatted} textVariant="$heading3" />
+          ) : (
+            <Loader.Box
+              height={fonts.heading3.lineHeight}
+              width={fonts.heading3.lineHeight * 3}
+              testID="loader/favorite/price"
+            />
+          )}
+          {pricePercentChange !== undefined ? (
+            <RelativeChange
+              shouldAnimate
+              arrowSize="$icon.16"
+              change={pricePercentChange}
+              semanticColor={true}
+              variant="subheading2"
+            />
+          ) : (
+            <Loader.Box
+              height={fonts.subheading2.lineHeight}
+              width={fonts.subheading2.lineHeight * 3}
+              testID="loader/favorite/priceChange"
+            />
+          )}
+        </Flex>
+      </Flex>
+    </AnimatedTouchableArea>
+  )
+
+  // Unmount ContextMenu while editing — a disabled native context menu can still interrupt
+  // Sortable's Manual gesture on New Architecture and leave per-item drag state stuck.
+  if (isEditing) {
+    return card
+  }
+
+  return (
+    <ContextMenu actions={menuActions} style={contextMenuStyle} onPress={onContextMenuPress} {...rest}>
+      {card}
     </ContextMenu>
   )
-}
-
-function getCoingeckoPrice(token?: GraphQLApi.FavoriteTokenCardQuery['token']): {
-  price: number | undefined
-  pricePercentChange: number | undefined
-} | null {
-  const market = token?.project?.markets?.[0]
-  if (!market?.price?.value || !market.pricePercentChange24h?.value) {
-    return null
-  }
-
-  return {
-    price: market.price.value,
-    pricePercentChange: market.pricePercentChange24h.value,
-  }
-}
-
-function getUniswapPrice(token?: GraphQLApi.FavoriteTokenCardQuery['token']): {
-  price: number | undefined
-  pricePercentChange: number | undefined
-} {
-  return {
-    price: token?.market?.price?.value,
-    pricePercentChange: token?.market?.pricePercentChange?.value,
-  }
 }
 
 export default memo(FavoriteTokenCard)

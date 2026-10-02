@@ -1,6 +1,6 @@
+import { UniverseChainId } from '@universe/chains'
 import { useMemo } from 'react'
 import { useSelector } from 'react-redux'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { makeSelectTransaction } from 'uniswap/src/features/transactions/selectors'
 import {
   InterfaceTransactionDetails,

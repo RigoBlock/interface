@@ -2,6 +2,7 @@ import { dirname, join, resolve } from 'path'
 import type { StorybookConfig } from '@storybook/react-webpack5'
 import TerserPlugin from 'terser-webpack-plugin'
 import { DefinePlugin } from 'webpack'
+import { globals as testEnvGlobals } from '../../../config/vitest-presets/vitest/globals.js'
 
 /**
  * This function is used to resolve the absolute path of a package.
@@ -39,8 +40,14 @@ const config: StorybookConfig = {
 
     config.plugins.push(
       new DefinePlugin({
+        // Inject the shared test/dev config placeholders so getConfig() resolves in the
+        // Storybook bundle. Mirrors the vitest test env (config/vitest-presets/vitest/globals.js).
+        ...Object.fromEntries(
+          Object.entries(testEnvGlobals).map(([key, value]) => [`process.env.${key}`, JSON.stringify(String(value))]),
+        ),
         __DEV__: process.env.NODE_ENV === 'development',
-        'process.env.IS_UNISWAP_EXTENSION': JSON.stringify(process.env.STORYBOOK_EXTENSION || 'false'),
+        // Keep the explicit APP_ID after the spread so the extension/web toggle wins.
+        'process.env.APP_ID': JSON.stringify(process.env.STORYBOOK_EXTENSION === 'true' ? 'extension' : 'web'),
       }),
     )
 
@@ -125,6 +132,36 @@ const config: StorybookConfig = {
         },
       })
 
+    // @rn-primitives/* packages publish raw JSX inside their dist .js/.mjs files (tsup with JSX
+    // preserved — Metro transpiles node_modules, so this is normal for RN-ecosystem packages).
+    // Webpack has no loader configured for node_modules JS, so transform them here, mirroring
+    // the vitest esbuild transform in config/vitest-presets/vitest/rn-primitives.js.
+    config?.module?.rules &&
+      config.module.rules.push({
+        test: /\.(mjs|jsx?)$/,
+        include: [/node_modules\/@rn-primitives\//],
+        resolve: {
+          // The packages' internal ESM imports are extensionless; don't let webpack enforce
+          // fully-specified ESM resolution inside them.
+          fullySpecified: false,
+          // Serve the pure-ESM `.web.mjs`/`.mjs` legs for those internal imports (the global
+          // extension list would pick the CJS `.web.js` twins, mixing module systems inside
+          // one package).
+          extensions: ['.web.mjs', '.mjs', '.web.js', '.js', '.jsx'],
+        },
+        use: {
+          loader: 'babel-loader',
+          options: {
+            presets: [['@babel/preset-react', { runtime: 'automatic' }]],
+            // Detect the CJS legs (module.exports) as scripts so the injected jsx-runtime
+            // helper is a require() there, not an ESM import webpack then rejects at runtime
+            // ("ES Modules may not assign module.exports").
+            sourceType: 'unambiguous',
+            cacheDirectory: true,
+          },
+        },
+      })
+
     config.resolve ??= {}
 
     // Configure resolve extensions to prefer .web files
@@ -134,10 +171,21 @@ const config: StorybookConfig = {
     config.resolve.fallback = {
       ...(config.resolve.fallback || {}),
       os: false,
+      // @hpke/common (via @universe/embedded-wallet's seed-phrase export) references the
+      // Node crypto builtin behind a runtime guard; browsers use WebCrypto. Webpack 5 has
+      // no automatic node polyfills, so map it to an empty module like the others.
+      crypto: false,
       tty: require.resolve('./__mocks__/tty.js'),
       fs: false,
       path: false,
       util: false,
+      // wagmi v3's @wagmi/core and @wagmi/connectors reference optional peer deps we don't install
+      // (porto / Base account / account-abstraction / MetaMask Connect). Vite skips these optional
+      // imports, but Storybook's webpack resolves them eagerly and errors. Map them to empty modules.
+      '@metamask/connect-evm': false,
+      '@base-org/account': false,
+      accounts: false,
+      porto: false,
     }
 
     // Configure webpack aliases for React Native and compatibility
@@ -183,11 +231,6 @@ const config: StorybookConfig = {
               name: 'vendors',
               priority: 10,
             },
-            tamagui: {
-              test: /[\\/]node_modules[\\/]tamagui[\\/]/,
-              name: 'tamagui',
-              priority: 20,
-            },
             reactNative: {
               test: /[\\/]node_modules[\\/]react-native/,
               name: 'react-native',
@@ -210,11 +253,6 @@ const config: StorybookConfig = {
               test: /[\\/]node_modules[\\/]/,
               name: 'vendors',
               priority: 10,
-            },
-            tamagui: {
-              test: /[\\/]node_modules[\\/]tamagui[\\/]/,
-              name: 'tamagui',
-              priority: 20,
             },
             reactNative: {
               test: /[\\/]node_modules[\\/]react-native/,

@@ -1,13 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
+import { Flex, Separator, spacing, Text } from '@universe/mycelium'
 import { useEffect, useState } from 'react'
 import { LayoutChangeEvent } from 'react-native'
 import { CopyButton } from 'src/app/components/buttons/CopyButton'
-import { Flex, Separator, Text } from 'ui/src'
-import { spacing } from 'ui/src/theme'
 import { WalletEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { setClipboard } from 'utilities/src/clipboard/clipboard'
 import { logger } from 'utilities/src/logger/logger'
+import { MNEMONIC_LENGTH_HD } from 'wallet/src/constants/accounts'
 import { mnemonicUnlockedQuery } from 'wallet/src/features/wallet/Keyring/queries'
 
 function SeedPhraseColumnGroup({ recoveryPhraseArray }: { recoveryPhraseArray: string[] }): JSX.Element {
@@ -92,11 +92,15 @@ function SeedPhraseWord({
   )
 }
 
-export function SeedPhraseDisplay({ mnemonicId }: { mnemonicId: string }): JSX.Element {
-  const placeholderWordArrayLength = 12
-
+export function SeedPhraseDisplay({
+  mnemonicId,
+  expectedWordCount = MNEMONIC_LENGTH_HD,
+}: {
+  mnemonicId: string
+  expectedWordCount?: number
+}): JSX.Element {
   const { data: recoveryPhraseString } = useQuery(mnemonicUnlockedQuery(mnemonicId))
-  const recoveryPhraseArray = recoveryPhraseString?.split(' ') ?? Array(placeholderWordArrayLength).fill('')
+  const recoveryPhraseArray = recoveryPhraseString?.split(' ') ?? Array(expectedWordCount).fill('')
 
   const onCopyPress = async (): Promise<void> => {
     try {

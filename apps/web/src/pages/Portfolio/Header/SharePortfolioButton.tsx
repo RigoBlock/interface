@@ -1,20 +1,18 @@
+import { UniverseChainId, Platform } from '@universe/chains'
+import { AnimatableCopyIcon, Flex, iconSizes, Text } from '@universe/mycelium'
+import { ShareArrow } from '@universe/mycelium/icons/ShareArrow'
+import { XTwitter } from '@universe/mycelium/icons/XTwitter'
+import { TestID } from '@universe/test'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AnimatableCopyIcon, Flex, FlexProps, Text } from 'ui/src'
-import { ShareArrow } from 'ui/src/components/icons/ShareArrow'
-import { XTwitter } from 'ui/src/components/icons/XTwitter'
-import { iconSizes } from 'ui/src/theme'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { useEvent } from 'utilities/src/react/hooks'
+import { useCopyClipboard } from 'utilities/src/react/useCopyClipboard'
 import { ONE_SECOND_MS } from 'utilities/src/time/time'
 import { Dropdown, InternalMenuItem } from '~/components/Dropdowns/Dropdown'
 import { useActiveAddresses } from '~/features/accounts/store/hooks'
-import useCopyClipboard from '~/hooks/useCopyClipboard'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { buildPortfolioUrl } from '~/pages/Portfolio/utils/portfolioUrls'
 import { openTwitterShareWindow } from '~/utils/sharing'
@@ -26,7 +24,7 @@ type ShareAccountItem = {
 
 interface SharePortfolioButtonProps {
   size?: 'small' | 'medium'
-  transition?: FlexProps['transition']
+  transition?: string
   showLabel?: boolean
 }
 
@@ -102,7 +100,7 @@ export function SharePortfolioButton({
         toggleOpen={setIsOpen}
         menuLabel={
           <Flex testID={TestID.PortfolioShareButton} row alignItems="center" gap="$gap8">
-            <ShareArrow size={iconSize} color="$neutral1" transition={transition} />
+            <ShareArrow size={iconSize} color="$neutral1" style={{ transition }} />
             {showLabel && (
               <Text variant={textVariant} color="$neutral1" transition={transition}>
                 {t('common.button.share')}
@@ -113,7 +111,7 @@ export function SharePortfolioButton({
         hideChevron
         buttonStyle={{
           height: size === 'small' ? 32 : 40,
-          gap: size === 'small' ? '$gap6' : '$gap8',
+          gap: size === 'small' ? '$spacing6' : '$gap8',
           px: '$spacing12',
         }}
         dropdownStyle={{ minWidth: 220 }}
@@ -123,7 +121,12 @@ export function SharePortfolioButton({
         {hasMultipleConnectedWallets ? (
           <>
             {connectedAccounts.map((account) => (
-              <InternalMenuItem key={account.address} onPress={() => handleCopyLink(account.address)}>
+              <InternalMenuItem
+                key={account.address}
+                userSelect="none"
+                onPressIn={(e) => e.preventDefault()}
+                onPress={() => handleCopyLink(account.address)}
+              >
                 <Flex row alignItems="center" gap="$gap12">
                   {isCopiedAddress(account.address) ? (
                     <AnimatableCopyIcon isCopied size={iconSizes.icon16} textColor="$neutral1" />
@@ -142,7 +145,11 @@ export function SharePortfolioButton({
           </>
         ) : (
           /* Single wallet or external wallet: show copy link with copy icon */
-          <InternalMenuItem onPress={() => primaryAddress && handleCopyLink(primaryAddress)}>
+          <InternalMenuItem
+            userSelect="none"
+            onPressIn={(e) => e.preventDefault()}
+            onPress={() => primaryAddress && handleCopyLink(primaryAddress)}
+          >
             <Flex row alignItems="center" gap="$gap12">
               <AnimatableCopyIcon
                 isCopied={primaryAddress ? isCopiedAddress(primaryAddress) : false}
@@ -159,7 +166,7 @@ export function SharePortfolioButton({
         {/* Share to X button */}
         <InternalMenuItem onPress={handleShareToX}>
           <Flex row alignItems="center" gap="$gap12">
-            <XTwitter size="$icon.16" color="$neutral1" />
+            <XTwitter size={iconSizes.icon16} color="$neutral1" />
             <Text variant="buttonLabel3" color="$neutral1">
               {t('common.share.shareToTwitter')}
             </Text>

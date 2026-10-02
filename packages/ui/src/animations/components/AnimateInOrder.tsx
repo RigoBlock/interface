@@ -1,39 +1,27 @@
-import { PropsWithChildren, useEffect, useState } from 'react'
-import { Flex, FlexProps } from 'ui/src/components/layout'
+import { FlexProps } from '@universe/mycelium'
+import { PropsWithChildren } from 'react'
+import { EnterFromStyle } from 'ui/src/animations/components/AnimateInOrder.constants'
+import { PlatformSplitStubError } from 'utilities/src/errors'
 
-export const AnimateInOrder = ({
-  children,
-  index,
-  animation = 'bouncy',
-  enterStyle = { opacity: 0, scale: 0.8 },
-  exitStyle = { opacity: 0, scale: 0.8 },
-  delayMs = 150,
-  ...rest
-}: PropsWithChildren<
+export { ANIMATE_IN_ORDER_DELAY_MS } from 'ui/src/animations/components/AnimateInOrder.constants'
+
+export type AnimateInOrderProps = PropsWithChildren<
   {
     index: number
     delayMs?: number
-  } & Pick<FlexProps, 'animation' | 'enterStyle' | 'exitStyle'> &
-    FlexProps
->): JSX.Element => {
-  return (
-    <Delay by={index * delayMs}>
-      <Flex key={`animate-${index}`} animation={animation} enterStyle={enterStyle} exitStyle={exitStyle} {...rest}>
-        {children}
-      </Flex>
-    </Delay>
-  )
-}
+    /** Values the child animates *from*. */
+    enterStyle?: EnterFromStyle
+  } & Omit<FlexProps, 'animation' | 'enterStyle' | 'exitStyle' | 'opacity' | 'scale'>
+>
 
-const Delay = ({ children, by }: PropsWithChildren<{ by: number }>): JSX.Element | null => {
-  const [done, setDone] = useState(false)
-
-  useEffect(() => {
-    const showTimer = setTimeout(async () => {
-      setDone(true)
-    }, by)
-    return () => clearTimeout(showTimer)
-  }, [by])
-
-  return done ? <>{children}</> : null
+/**
+ * Reveals children one after another, `index * delayMs` apart.
+ * Children mount with the rest of the tree and are revealed by animating opacity/scale.
+ *
+ * The reveal curve is owned by the component and not overridable: web transitions with the
+ * `bouncy` Tamagui preset, native runs a Reanimated spring with the same values. There is no
+ * exit animation on either platform.
+ */
+export function AnimateInOrder(_props: AnimateInOrderProps): JSX.Element {
+  throw new PlatformSplitStubError('AnimateInOrder')
 }

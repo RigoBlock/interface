@@ -1,5 +1,5 @@
+import { Text } from '@universe/mycelium'
 import { Trans } from 'react-i18next'
-import { Text } from 'ui/src'
 import { deprecatedStyled } from '~/lib/deprecated-styled'
 import { ExternalLink } from '~/theme/components/Links'
 
@@ -8,7 +8,7 @@ const StyledLink = deprecatedStyled(ExternalLink)`
   color: ${({ theme }) => theme.neutral3};
 `
 
-export default function PrivacyPolicyNotice() {
+export function PrivacyPolicyNotice() {
   return (
     <Text variant="body4" color="$neutral3" textAlign="center">
       <Trans

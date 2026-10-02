@@ -1,6 +1,7 @@
+import { isHoverable } from '@universe/environment'
+import { Flex, TouchableArea } from '@universe/mycelium'
 import { memo, useMemo } from 'react'
 import type { GestureResponderEvent } from 'react-native'
-import { Flex, TouchableArea } from 'ui/src'
 import { logoSize, WEB_HOVER_SCALE } from 'uniswap/src/components/CurrencyInputPanel/DefaultTokenOptions/constants'
 import { useSendSelectCurrencyEvent } from 'uniswap/src/components/CurrencyInputPanel/DefaultTokenOptions/TokenOptions/useSendSelectCurrencyEvent'
 import {
@@ -14,7 +15,6 @@ import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { useOnSelectCurrency } from 'uniswap/src/features/transactions/swap/form/hooks/useOnSelectCurrency'
 import { CurrencyField } from 'uniswap/src/types/currency'
-import { isHoverable } from 'utilities/src/platform'
 import { useEvent } from 'utilities/src/react/hooks'
 
 const TOUCHABLE_HOVER_STYLE = { backgroundColor: '$surface3Hovered', scale: WEB_HOVER_SCALE } as const
@@ -73,7 +73,7 @@ export const TokenIcon = memo(
             borderRadius="$roundedFull"
             backgroundColor="$surface3"
             hoverStyle={isHoverable ? TOUCHABLE_HOVER_STYLE : undefined}
-            animation={isHoverable ? 'simple' : undefined}
+            transition={isHoverable ? 'transform 80ms ease-in-out' : undefined}
             onPress={handleOnPress}
           >
             <TokenLogo url={logoUrl} symbol={currency.symbol} chainId={currency.chainId} size={logoSize} />

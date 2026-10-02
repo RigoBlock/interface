@@ -1,5 +1,5 @@
+import { Flex, Text, TouchableArea, type ColorTokens } from '@universe/mycelium'
 import { memo, useState } from 'react'
-import { Flex, Text, TouchableArea, type ColorTokens } from 'ui/src'
 import type { CapturedAnalyticsEvent } from 'uniswap/src/features/telemetry/debug/analyticsDebugStore'
 import { useEvent } from 'utilities/src/react/hooks'
 
@@ -56,7 +56,7 @@ export const AnalyticsDebugEventRow = memo(function AnalyticsDebugEventRow({
     <TouchableArea onPress={toggleExpanded}>
       <Flex
         borderBottomWidth={1}
-        borderBottomColor="$surface3"
+        borderColor="$surface3"
         py="$spacing4"
         px="$spacing8"
         hoverStyle={{ backgroundColor: '$surface2' }}

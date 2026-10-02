@@ -1,19 +1,34 @@
+import { _getStorageKey } from '@statsig/client-core'
 import { LocalOverrideAdapter } from '@statsig/js-local-overrides'
-import { getStatsigClient } from '@universe/gating/src/sdk/statsig'
+import type { StatsigClient } from '@statsig/react-bindings'
+
+/**
+ * localStorage key under which `LocalOverrideAdapter` persists its overrides for the given SDK key
+ * (mirrors the private `LocalOverrideAdapter._getLocalOverridesStorageKey`). Lets e2e tests seed
+ * gate overrides into localStorage before the app boots, so pinned flag values apply from the very
+ * first gate evaluation instead of depending on live Statsig.
+ */
+export function getLocalOverridesStorageKey(sdkKey: string): string {
+  return `statsig.local-overrides.${_getStorageKey(sdkKey)}`
+}
 
 // Workaround for @statsig 3.x.x refreshing client after applying overrides to get the result without reloading
 // Should be removed after statsig add real time override apply functionality
 // Adds refresh only to used LocalOverrideAdapter methods. Other methods need to be added if refresh is required.
 export class LocalOverrideAdapterWrapper extends LocalOverrideAdapter {
-  constructor(sdkKey: string) {
+  constructor(
+    sdkKey: string,
+    private readonly getClient: () => StatsigClient,
+  ) {
     super(sdkKey)
   }
 
   refreshStatsig(): void {
-    const statsigClient = getStatsigClient()
+    const statsigClient = this.getClient()
     const statsigUser = statsigClient.getContext().user
-    // oxlint-disable-next-line typescript/no-floating-promises
-    statsigClient.updateUserAsync(statsigUser)
+    // Overrides are local, so a sync re-evaluation from cached values surfaces them
+    // immediately; updateUserAsync gated the UI update on a network round-trip.
+    statsigClient.updateUserSync(statsigUser)
   }
 
   overrideGate(name: string, value: boolean): void {

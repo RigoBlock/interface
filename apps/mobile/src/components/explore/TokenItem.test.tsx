@@ -1,34 +1,59 @@
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { TestID } from '@universe/test'
 import * as exploreHooks from 'src/components/explore/hooks'
 import { TokenItem } from 'src/components/explore/TokenItem'
 import * as tokenDetailsHooks from 'src/components/TokenDetails/hooks'
-import { TOKEN_ITEM_DATA, tokenItemData } from 'src/test/fixtures'
 import { fireEvent, render, within } from 'src/test/test-utils'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { MobileEventName } from 'uniswap/src/features/telemetry/constants'
 import { ON_PRESS_EVENT_PAYLOAD } from 'uniswap/src/test/fixtures'
+import { asTextMatch, withVisibleText } from 'uniswap/src/test/matchers'
+
+const arbitrumNetworkLogoTestID = `${TestID.NetworkLogoPrefix}${UniverseChainId.ArbitrumOne}`
+const mainnetNetworkLogoTestID = `${TestID.NetworkLogoPrefix}${UniverseChainId.Mainnet}`
+import { UniverseChainId } from '@universe/chains'
+import type { TokenItemData } from 'src/components/explore/TokenItemData'
 import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
 import { TokenMetadataDisplayType } from 'wallet/src/features/wallet/types'
 
-jest.mock('@universe/gating', () => ({
-  ...jest.requireActual('@universe/gating'),
-  useFeatureFlag: jest.fn().mockReturnValue(false),
-  useFeatureFlagWithLoading: jest.fn().mockReturnValue({ value: false, isLoading: false }),
-  useFeatureFlagWithExposureLoggingDisabled: jest.fn().mockReturnValue(false),
+vi.mock('@universe/gating', async () => ({
+  ...(await vi.importActual('@universe/gating')),
+  useFeatureFlag: vi.fn().mockReturnValue(false),
+  useFeatureFlagWithLoading: vi.fn().mockReturnValue({ value: false, isLoading: false }),
+  useFeatureFlagWithExposureLoggingDisabled: vi.fn().mockReturnValue(false),
 }))
+
+// `TokenItemData` is a plain view model the explore list builds before render, so these tests
+// construct it directly instead of deriving it from a backend-shaped fixture. Values are fixed
+// rather than randomized so the snapshot stays stable.
+// `address` is narrowed to non-null: the factory always supplies one, so tests can pass it
+// straight to `buildCurrencyId` without a null check.
+type TokenItemDataOverrides = Partial<Omit<TokenItemData, 'address'>> & { address?: Address }
+
+function tokenItemData(overrides: TokenItemDataOverrides = {}): TokenItemData & { address: Address } {
+  return {
+    name: 'tkn',
+    logoUrl: 'https://loremflickr.com/640/480',
+    chainId: UniverseChainId.Mainnet,
+    address: '0x0000000000000000000000000000000000000001',
+    symbol: 'TKN',
+    ...overrides,
+  }
+}
+
+const TOKEN_ITEM_DATA = tokenItemData()
 
 describe('TokenItem', () => {
   const mockedTokenDetailsNavigation = {
-    navigate: jest.fn(),
-    navigateWithPop: jest.fn(),
-    preload: jest.fn(),
+    navigate: vi.fn(),
+    navigateWithPop: vi.fn(),
+    push: vi.fn(),
+    preload: vi.fn(),
   }
 
   beforeAll(() => {
-    jest.spyOn(tokenDetailsHooks, 'useTokenDetailsNavigation').mockReturnValue(mockedTokenDetailsNavigation)
-    jest.spyOn(exploreHooks, 'useExploreTokenContextMenu').mockReturnValue({
+    vi.spyOn(tokenDetailsHooks, 'useTokenDetailsNavigation').mockReturnValue(mockedTokenDetailsNavigation)
+    vi.spyOn(exploreHooks, 'useExploreTokenContextMenu').mockReturnValue({
       menuActions: [],
-      onContextMenuPress: jest.fn(),
+      onContextMenuPress: vi.fn(),
     })
   })
 
@@ -79,7 +104,7 @@ describe('TokenItem', () => {
       const tokenPrice = getByTestId('token-item/price')
 
       expect(within(tokenPrice).queryByText('$123.45')).toBeTruthy()
-      expect(within(tokenPrice).queryByText('-')).toBeFalsy()
+      expect(within(tokenPrice).queryByText(asTextMatch(withVisibleText('-')))).toBeFalsy()
     })
 
     it('renders price placeholder if token price is not provided', () => {
@@ -90,7 +115,7 @@ describe('TokenItem', () => {
 
       const tokenPrice = getByTestId('token-item/price')
 
-      expect(within(tokenPrice).queryByText('-')).toBeTruthy()
+      expect(within(tokenPrice).queryByText(asTextMatch(withVisibleText('-')))).toBeTruthy()
     })
   })
 
@@ -119,72 +144,40 @@ describe('TokenItem', () => {
   })
 
   describe('multichain network logo', () => {
-    const mockedUseFeatureFlag = useFeatureFlag as jest.Mock
-
-    function enableMultichainFlag(): void {
-      mockedUseFeatureFlag.mockImplementation((flag: FeatureFlags) => flag === FeatureFlags.MultichainTokenUx)
-    }
-
-    afterEach(() => {
-      mockedUseFeatureFlag.mockReturnValue(false)
-    })
-
-    it('should hide network logo when flag is on and networkCount > 1', () => {
-      enableMultichainFlag()
+    it('should hide network logo when networkCount > 1', () => {
       const data = tokenItemData({ chainId: UniverseChainId.ArbitrumOne, networkCount: 5 })
       const { queryByTestId } = render(
         <TokenItem eventName={MobileEventName.ExploreTokenItemSelected} index={0} tokenItemData={data} />,
       )
 
-      expect(queryByTestId('network-logo')).toBeFalsy()
+      expect(queryByTestId(arbitrumNetworkLogoTestID)).toBeFalsy()
     })
 
-    it('should show network logo when flag is off even with networkCount > 1', () => {
-      const data = tokenItemData({ chainId: UniverseChainId.ArbitrumOne, networkCount: 5 })
-      const { queryByTestId } = render(
-        <TokenItem eventName={MobileEventName.ExploreTokenItemSelected} index={0} tokenItemData={data} />,
-      )
-
-      expect(queryByTestId('network-logo')).toBeTruthy()
-    })
-
-    it('should show network logo when flag is on but no networkCount', () => {
-      enableMultichainFlag()
+    it('should show network logo when no networkCount', () => {
       const data = tokenItemData({ chainId: UniverseChainId.ArbitrumOne })
       const { queryByTestId } = render(
         <TokenItem eventName={MobileEventName.ExploreTokenItemSelected} index={0} tokenItemData={data} />,
       )
 
-      expect(queryByTestId('network-logo')).toBeTruthy()
+      expect(queryByTestId(arbitrumNetworkLogoTestID)).toBeTruthy()
     })
 
-    it('should show network logo when flag is on but networkCount is 1', () => {
-      enableMultichainFlag()
+    it('should show network logo when networkCount is 1', () => {
       const data = tokenItemData({ chainId: UniverseChainId.ArbitrumOne, networkCount: 1 })
       const { queryByTestId } = render(
         <TokenItem eventName={MobileEventName.ExploreTokenItemSelected} index={0} tokenItemData={data} />,
       )
 
-      expect(queryByTestId('network-logo')).toBeTruthy()
+      expect(queryByTestId(arbitrumNetworkLogoTestID)).toBeTruthy()
     })
 
-    it('should show mainnet network logo when flag is on for single-chain mainnet asset', () => {
-      enableMultichainFlag()
+    it('should show mainnet network logo for single-chain mainnet asset', () => {
       const data = tokenItemData({ chainId: UniverseChainId.Mainnet, networkCount: 1 })
       const { queryByTestId } = render(
         <TokenItem eventName={MobileEventName.ExploreTokenItemSelected} index={0} tokenItemData={data} />,
       )
 
-      expect(queryByTestId('network-logo')).toBeTruthy()
-    })
-
-    it('should hide mainnet network logo when flag is off for mainnet asset', () => {
-      const data = tokenItemData({ chainId: UniverseChainId.Mainnet, networkCount: 1 })
-      const { queryByTestId } = render(
-        <TokenItem eventName={MobileEventName.ExploreTokenItemSelected} index={0} tokenItemData={data} />,
-      )
-
-      expect(queryByTestId('network-logo')).toBeFalsy()
+      expect(queryByTestId(mainnetNetworkLogoTestID)).toBeTruthy()
     })
   })
 
@@ -196,9 +189,13 @@ describe('TokenItem', () => {
     })
 
     const cases = [
-      { test: 'market cap', type: TokenMetadataDisplayType.MarketCap, expected: '$123.45 MCap' },
-      { test: 'volume', type: TokenMetadataDisplayType.Volume, expected: '$234.56 Vol' },
-      { test: 'total value locked', type: TokenMetadataDisplayType.TVL, expected: '$345.67 TVL' },
+      { test: 'market cap', type: TokenMetadataDisplayType.MarketCap, expected: 'explore.tokens.metadata.marketCap' },
+      { test: 'volume', type: TokenMetadataDisplayType.Volume, expected: 'explore.tokens.metadata.volume' },
+      {
+        test: 'total value locked',
+        type: TokenMetadataDisplayType.TVL,
+        expected: 'explore.tokens.metadata.totalValueLocked',
+      },
       { test: 'symbol', type: TokenMetadataDisplayType.Symbol, expected: data.symbol },
     ]
 

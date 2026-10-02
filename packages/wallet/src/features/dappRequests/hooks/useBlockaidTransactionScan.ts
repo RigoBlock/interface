@@ -2,12 +2,16 @@ import { hashKey, useQuery } from '@tanstack/react-query'
 import { BlockaidScanTransactionRequest, BlockaidScanTransactionResponse } from '@universe/api'
 import { BlockaidApiClient } from 'uniswap/src/data/apiClients/blockaidApi/BlockaidApiClient'
 import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
-import { ONE_MINUTE_MS } from 'utilities/src/time/time'
+import { useBlockaidScanFailureState } from 'wallet/src/features/dappRequests/hooks/useBlockaidScanFailureState'
+import {
+  BLOCKAID_SCAN_QUERY_OPTIONS,
+  type BlockaidScanFailureState,
+  getScanFailureState,
+  requireUsableScan,
+} from 'wallet/src/features/dappRequests/utils/blockaidScanQuery'
 
-const FIVE_MINUTES_MS = 5 * ONE_MINUTE_MS
-
-interface UseBlockaidTransactionScanResult {
-  scanResult?: BlockaidScanTransactionResponse | null
+interface UseBlockaidTransactionScanResult extends BlockaidScanFailureState {
+  scanResult?: BlockaidScanTransactionResponse
   isLoading: boolean
 }
 
@@ -30,24 +34,40 @@ function createTransactionScanCacheKey(request: BlockaidScanTransactionRequest |
 /**
  * Hook to scan a transaction using Blockaid's API
  * @param request The transaction scan request parameters
- * @param enabled Whether the query should be enabled
  * @returns Transaction scan result and loading state
  */
 export function useBlockaidTransactionScan(
   request: BlockaidScanTransactionRequest | null,
-  enabled = true,
 ): UseBlockaidTransactionScanResult {
-  const { data: scanResult, isLoading } = useQuery({
-    queryKey: [ReactQueryCacheKey.BlockaidTransactionScan, ...createTransactionScanCacheKey(request)],
-    queryFn: () => BlockaidApiClient.scanTransaction(request),
-    staleTime: FIVE_MINUTES_MS,
-    enabled: enabled && Boolean(request),
-    // Don't retry on failures - we want to fail fast and show null
-    retry: false,
+  const isScanEnabled = Boolean(request)
+  const queryKey = [ReactQueryCacheKey.BlockaidTransactionScan, ...createTransactionScanCacheKey(request)]
+  const requestKey = hashKey(queryKey)
+
+  const {
+    data: scanResult,
+    isLoading,
+    isPaused,
+    error,
+  } = useQuery({
+    queryKey,
+    queryFn: () =>
+      requireUsableScan({ scan: () => BlockaidApiClient.scanTransaction(request), scanType: 'transaction' }),
+    enabled: isScanEnabled,
+    ...BLOCKAID_SCAN_QUERY_OPTIONS,
+  })
+
+  const failureState = useBlockaidScanFailureState({
+    requestKey,
+    failureState: getScanFailureState({ error, hasUsableScan: scanResult !== undefined, isScanEnabled, isPaused }),
+    scanType: 'transaction',
+    dappUrl: request?.metadata.domain,
+    chain: request?.chain,
+    error,
   })
 
   return {
     scanResult,
     isLoading,
+    ...failureState,
   }
 }

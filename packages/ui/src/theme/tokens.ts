@@ -1,9 +1,8 @@
-// until the web app needs all of tamagui, avoid heavy imports there
-// oxlint-disable-next-line no-restricted-imports -- until the web app needs all of tamagui, avoid heavy imports there
-import { type ColorTokens, createTokens } from '@tamagui/core'
+import { isProdEnv } from '@universe/environment'
 import type { DynamicColor } from 'ui/src/hooks/useSporeColors'
 import { borderRadii } from 'ui/src/theme/borderRadii'
 import { colors as color } from 'ui/src/theme/color/colors'
+import type { SporeColorToken } from 'ui/src/theme/color/types'
 import { fonts } from 'ui/src/theme/fonts'
 import { iconSizes } from 'ui/src/theme/iconSizes'
 import { imageSizes } from 'ui/src/theme/imageSizes'
@@ -19,6 +18,7 @@ const iconSize = {
   true: iconSizes.icon40,
   8: iconSizes.icon8,
   12: iconSizes.icon12,
+  14: iconSizes.icon14,
   16: iconSizes.icon16,
   18: iconSizes.icon18,
   20: iconSizes.icon20,
@@ -66,7 +66,8 @@ const zIndex = { ...zIndexes, true: zIndexes.default }
 
 const imageSize = { ...imageSizes, true: imageSizes.image40 }
 
-export const tokens = createTokens({
+/** Raw token maps. */
+export const tokens = {
   color,
   space,
   size,
@@ -75,7 +76,7 @@ export const tokens = createTokens({
   image: imageSize,
   zIndex,
   radius,
-})
+}
 
 /**
  * We have enabled allowedStyleValues: 'somewhat-strict-web' on createTamagui
@@ -156,8 +157,8 @@ export const validateColorValue = (value: ColorValue): { isValid: boolean; error
   }
 }
 
-export const validColor = (value: ColorValue): ColorTokens | undefined => {
-  if (process.env.NODE_ENV !== 'production') {
+export const validColor = (value: ColorValue): SporeColorToken | undefined => {
+  if (!isProdEnv()) {
     const { isValid, error } = validateColorValue(value)
 
     if (!isValid) {
@@ -169,27 +170,27 @@ export const validColor = (value: ColorValue): ColorTokens | undefined => {
     return undefined
   }
 
-  return value as ColorTokens
+  return value as SporeColorToken
 }
 
 /**
  * Returns the hover color token if it exists, otherwise returns the original color token passed in.
  *
  * @param {ColorValue} nonHoveredColor - The original color token.
- * @returns {ColorTokens} The hover color token if it exists, otherwise the original color token.
+ * @returns {SporeColorToken} The hover color token if it exists, otherwise the original color token.
  */
-export const getMaybeHoverColor = (nonHoveredColor: ColorValue): ColorTokens => {
+export const getMaybeHoverColor = (nonHoveredColor: ColorValue): SporeColorToken => {
   if (typeof nonHoveredColor === 'string' && getIsValidSporeColor(nonHoveredColor)) {
     const maybeHoveredColor = `${nonHoveredColor}Hovered`
 
     const isValidToken = getIsValidSporeColor(maybeHoveredColor)
 
     if (!isValidToken) {
-      return nonHoveredColor as ColorTokens
+      return nonHoveredColor as SporeColorToken
     }
 
-    return maybeHoveredColor as ColorTokens
+    return maybeHoveredColor as SporeColorToken
   }
 
-  return nonHoveredColor as unknown as ColorTokens
+  return nonHoveredColor as unknown as SporeColorToken
 }

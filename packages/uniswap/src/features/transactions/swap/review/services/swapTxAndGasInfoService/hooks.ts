@@ -1,14 +1,18 @@
 import type { UseQueryResult } from '@tanstack/react-query'
 import { queryOptions, useQuery } from '@tanstack/react-query'
-import { GasStrategy, TradingApi } from '@universe/api'
-import { SharedQueryClient } from '@universe/api/src/clients/base/SharedQueryClient'
+import { GasStrategy, SharedQueryClient, TradingApi } from '@universe/api'
+import type { UniverseChainId } from '@universe/chains'
 import { DynamicConfigs, SwapConfigKey, useDynamicConfigValue } from '@universe/gating'
 import { useMemo } from 'react'
 import { useUniswapContext } from 'uniswap/src/contexts/UniswapContext'
 import { useActiveAddress } from 'uniswap/src/features/accounts/store/hooks'
-import type { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useActiveGasStrategy } from 'uniswap/src/features/gas/hooks'
-import type { SwapDelegationInfo } from 'uniswap/src/features/smartWallet/delegation/types'
+import { useTradingApiGasOverrides } from 'uniswap/src/features/gas/hooks/useTradingApiGasOverrides'
+import { useActiveSwapPermissionedState } from 'uniswap/src/features/permissionedTokens/useActiveSwapPermissionedState'
+import type {
+  SignDelegationAuthorizationFn,
+  SwapDelegationInfo,
+} from 'uniswap/src/features/smartWallet/delegation/types'
 import { useAllTransactionSettings } from 'uniswap/src/features/transactions/components/settings/stores/transactionSettingsStore/useTransactionSettingsStore'
 import { useV4SwapEnabled } from 'uniswap/src/features/transactions/swap/hooks/useV4SwapEnabled'
 import type { ApprovalTxInfo } from 'uniswap/src/features/transactions/swap/review/hooks/useTokenApprovalInfo'
@@ -27,6 +31,7 @@ import type {
   SwapTxAndGasInfoService,
 } from 'uniswap/src/features/transactions/swap/review/services/swapTxAndGasInfoService/swapTxAndGasInfoService'
 import { createSwapTxAndGasInfoService } from 'uniswap/src/features/transactions/swap/review/services/swapTxAndGasInfoService/swapTxAndGasInfoService'
+import { createUniswapXSponsoredApprovalStrategy } from 'uniswap/src/features/transactions/swap/review/services/swapTxAndGasInfoService/uniswapx/sponsoredApproval'
 import { createUniswapXSwapTxAndGasInfoService } from 'uniswap/src/features/transactions/swap/review/services/swapTxAndGasInfoService/uniswapx/uniswapXSwapTxAndGasInfoService'
 import { createWrapTxAndGasInfoService } from 'uniswap/src/features/transactions/swap/review/services/swapTxAndGasInfoService/wrap/wrapTxAndGasInfoService'
 import {
@@ -54,7 +59,7 @@ const EMPTY_SWAP_TX_AND_GAS_INFO: SwapTxAndGasInfo = {
   trade: undefined,
   permit: undefined,
   swapRequestArgs: undefined,
-  unsigned: false,
+  hasUnsignedPermit: false,
   includesDelegation: false,
 } satisfies SwapTxAndGasInfo
 
@@ -64,19 +69,31 @@ function useSwapConfig(): {
   gasStrategy: GasStrategy
   getCanBatchTransactions?: (chainId: UniverseChainId | undefined) => boolean
   getSwapDelegationInfo?: (chainId: UniverseChainId | undefined) => SwapDelegationInfo
+  signDelegationAuthorization?: SignDelegationAuthorizationFn
+  supportsUserOpSwaps?: boolean
 } {
   const chainId = useSwapFormStoreDerivedSwapInfo((s) => s.chainId)
   const gasStrategy = useActiveGasStrategy(chainId, 'general')
   const v4SwapEnabled = useV4SwapEnabled(chainId)
-  const { getCanBatchTransactions, getSwapDelegationInfo } = useUniswapContext()
+  const { getCanBatchTransactions, getSwapDelegationInfo, signDelegationAuthorization, supportsUserOpSwaps } =
+    useUniswapContext()
   return useMemo(
     () => ({
       v4SwapEnabled,
       gasStrategy,
       getCanBatchTransactions,
       getSwapDelegationInfo,
+      signDelegationAuthorization,
+      supportsUserOpSwaps,
     }),
-    [v4SwapEnabled, gasStrategy, getCanBatchTransactions, getSwapDelegationInfo],
+    [
+      v4SwapEnabled,
+      gasStrategy,
+      getCanBatchTransactions,
+      getSwapDelegationInfo,
+      signDelegationAuthorization,
+      supportsUserOpSwaps,
+    ],
   )
 }
 
@@ -85,12 +102,24 @@ export function useSwapTxAndGasInfoService(): SwapTxAndGasInfoService {
   const presignPermit = usePresignPermit()
   const trace = useTrace()
   const transactionSettings = useAllTransactionSettings()
+  // tx is unavailable here; this service-level hook runs before individual
+  // tx requests are resolved. Recommended falls back to undefined for full overrides.
+  const gasOverrides = useTradingApiGasOverrides({ tx: undefined })
+  // Any user gas override → display the tx max cost (matches the editor's "Max cost").
+  const hasOverrides = gasOverrides !== undefined
+  // Permissioned swaps route through a different Universal Router version. Resolve it here
+  // (where the underlying currencies are known) and thread it into the swap request; the
+  // request's embedded quote only references v4-adapter addresses, so the trading API client
+  // can't detect it on its own.
+  const { isPermissioned: isPermissionedToken } = useActiveSwapPermissionedState()
   const instructionService = useMemo(() => {
     return createEVMSwapInstructionsService({
       ...swapConfig,
+      gasOverrides,
       presignPermit,
+      isPermissionedToken,
     })
-  }, [swapConfig, presignPermit])
+  }, [swapConfig, gasOverrides, presignPermit, isPermissionedToken])
 
   const decorateWithEVMLogging = useEvent(
     createDecorateSwapTxInfoServiceWithEVMLogging({
@@ -104,23 +133,42 @@ export function useSwapTxAndGasInfoService(): SwapTxAndGasInfoService {
       ...swapConfig,
       transactionSettings,
       instructionService,
+      hasOverrides,
     })
     return decorateWithEVMLogging(classicService)
-  }, [swapConfig, transactionSettings, instructionService, decorateWithEVMLogging])
+  }, [swapConfig, transactionSettings, instructionService, hasOverrides, decorateWithEVMLogging])
 
   const bridgeSwapTxInfoService = useMemo(() => {
     const bridgeService = createBridgeSwapTxAndGasInfoService({
       ...swapConfig,
       transactionSettings,
       instructionService,
+      hasOverrides,
     })
     return decorateWithEVMLogging(bridgeService)
-  }, [swapConfig, transactionSettings, instructionService, decorateWithEVMLogging])
+  }, [swapConfig, transactionSettings, instructionService, hasOverrides, decorateWithEVMLogging])
 
+  // Sponsored approval: 5792 wallet-call on web, 4337 userOp on wallet.
   const uniswapXSwapTxInfoService = useMemo(() => {
-    return createUniswapXSwapTxAndGasInfoService()
-  }, [])
+    return createUniswapXSwapTxAndGasInfoService({
+      fetchSponsoredApproval: createUniswapXSponsoredApprovalStrategy({
+        getCanBatchTransactions: swapConfig.getCanBatchTransactions,
+        getSwapDelegationInfo: swapConfig.getSwapDelegationInfo,
+        signDelegationAuthorization: swapConfig.signDelegationAuthorization,
+        gasOverrides,
+      }),
+    })
+  }, [
+    swapConfig.getCanBatchTransactions,
+    swapConfig.getSwapDelegationInfo,
+    swapConfig.signDelegationAuthorization,
+    gasOverrides,
+  ])
 
+  // isPermissionedToken is intentionally not threaded into the chained-action (/plan) service:
+  // its createOrGetPlan call is commented out, so no /plan swap request is issued today. When /plan
+  // is re-enabled, forward isPermissionedToken here (or guard that a permissioned pair can't route
+  // CHAINED), otherwise permissioned swaps on that path would ship the default UR version and 400.
   const chainedSwapTxInfoService = useMemo(() => {
     return createChainedActionSwapTxAndGasInfoService({
       getSwapDelegationInfo: swapConfig.getSwapDelegationInfo,
@@ -132,9 +180,10 @@ export function useSwapTxAndGasInfoService(): SwapTxAndGasInfoService {
       ...swapConfig,
       transactionSettings,
       instructionService,
+      hasOverrides,
     })
     return decorateWithEVMLogging(wrapService)
-  }, [swapConfig, transactionSettings, instructionService, decorateWithEVMLogging])
+  }, [swapConfig, transactionSettings, instructionService, hasOverrides, decorateWithEVMLogging])
 
   const solanaSwapTxInfoService = useMemo(() => {
     return createSolanaSwapTxAndGasInfoService()
@@ -260,6 +309,14 @@ function createGetQueryOptions(ctx: {
   }
 }
 
+/** Reads the quote's `isTokenApprovalApplicable` off EVM trades; Solana quotes don't carry it (undefined ⇒ assume applicable). */
+function getIsTokenApprovalApplicable(trade: Trade | null): boolean | undefined {
+  if (!trade || trade.routing === TradingApi.Routing.JUPITER) {
+    return undefined
+  }
+  return trade.quote.isTokenApprovalApplicable
+}
+
 export function useSwapParams(): {
   approvalTxInfo: ApprovalTxInfo
   derivedSwapInfo: DerivedSwapInfo
@@ -285,12 +342,14 @@ export function useSwapParams(): {
     currencyOutAmount: currencyAmounts[CurrencyField.OUTPUT],
     routing: trade?.routing,
     smartPoolAddress,
+    isTokenApprovalApplicable: getIsTokenApprovalApplicable(trade),
   })
 
   return {
     approvalTxInfo,
     derivedSwapInfo,
-    trade: trade ?? undefined,
+    // Swap tx data is useless without a connected wallet — suppress trade to prevent /swap polling
+    trade: address ? (trade ?? undefined) : undefined,
   }
 }
 

@@ -1,10 +1,9 @@
-import { LegendList } from '@legendapp/list'
+import { Flex, Text, TouchableArea, UniversalList } from '@universe/mycelium'
 import React, { memo, useCallback, useMemo } from 'react'
 import { useAppStackNavigation } from 'src/app/navigation/types'
 import { ScreenWithHeader } from 'src/components/layout/screens/ScreenWithHeader'
-import { Flex, Text, TouchableArea } from 'ui/src'
-import { Clock, Wrench } from 'ui/src/components/icons'
-import { iconSizes } from 'ui/src/theme'
+import { BookOpen, Clock, TrendUp, Wrench } from 'ui/src/components/icons'
+import { iconSizes } from 'ui/src/theme/iconSizes'
 import { MobileScreens } from 'uniswap/src/types/screens/mobile'
 
 interface DebugScreenItem {
@@ -12,12 +11,32 @@ interface DebugScreenItem {
   title: string
   description: string
   icon: JSX.Element
-  screen: MobileScreens.HashcashBenchmark | MobileScreens.SessionsDebug
+  screen:
+    | MobileScreens.AnimatedNumberDebug
+    | MobileScreens.HashcashBenchmark
+    | MobileScreens.SessionsDebug
+    | MobileScreens.UniversalListDebug
+    | MobileScreens.Storybook
 }
 
 const ICON_SIZE = iconSizes.icon24
 
+const STORYBOOK_ROW: DebugScreenItem = {
+  id: 'storybook',
+  title: 'Storybook',
+  description: 'On-device component stories (mycelium migration workbench)',
+  icon: <BookOpen color="$neutral2" size={ICON_SIZE} />,
+  screen: MobileScreens.Storybook,
+}
+
 const DEBUG_SCREENS: DebugScreenItem[] = [
+  {
+    id: 'animated-number',
+    title: 'Animated Number',
+    description: 'Explore-style token list with fake prices that tick every 5s',
+    icon: <TrendUp color="$neutral2" size={ICON_SIZE} />,
+    screen: MobileScreens.AnimatedNumberDebug,
+  },
   {
     id: 'hashcash',
     title: 'Hashcash Benchmark',
@@ -32,6 +51,18 @@ const DEBUG_SCREENS: DebugScreenItem[] = [
     icon: <Wrench color="$neutral2" size={ICON_SIZE} />,
     screen: MobileScreens.SessionsDebug,
   },
+  {
+    id: 'universal-list',
+    title: 'Universal List',
+    description: 'Legend List via UniversalList (native)',
+    icon: <Wrench color="$neutral2" size={ICON_SIZE} />,
+    screen: MobileScreens.UniversalListDebug,
+  },
+  // Storybook is registered in navigation.tsx under __DEV__ (or in the device-farm storybook
+  // artifacts, which boot into it directly and never reach this screen), so gate the row on
+  // __DEV__: this screen is isDevEnv()-gated, and in a dev-flavor release build the tap would
+  // be a silent no-op.
+  ...(__DEV__ ? [STORYBOOK_ROW] : []),
 ]
 
 const ESTIMATED_ITEM_SIZE = 72
@@ -103,13 +134,13 @@ export function DebugScreensScreen(): JSX.Element {
 
   return (
     <ScreenWithHeader centerElement={<Text variant="body1">Debug Screens</Text>}>
-      <LegendList
+      <UniversalList
+        contentContainerStyle={{ className: 'pt-4' }}
         data={data}
         estimatedItemSize={ESTIMATED_ITEM_SIZE}
+        ItemSeparatorComponent={ItemSeparator}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
-        ItemSeparatorComponent={ItemSeparator}
-        contentContainerStyle={contentContainerStyle}
       />
     </ScreenWithHeader>
   )
@@ -118,5 +149,3 @@ export function DebugScreensScreen(): JSX.Element {
 function ItemSeparator(): JSX.Element {
   return <Flex height="$spacing8" />
 }
-
-const contentContainerStyle = { paddingTop: 16 }

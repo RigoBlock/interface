@@ -1,56 +1,86 @@
-import { GraphQLApi } from '@universe/api'
+import type { UniverseChainId } from '@universe/chains'
+import { Flex } from '@universe/mycelium'
+import { styled } from '@universe/mycelium/styled'
+import { type ComponentPropsWithoutRef, type ComponentRef, forwardRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
-import { Flex, styled } from 'ui/src/index'
 import { TokenLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
-import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { fromGraphQLChain } from 'uniswap/src/features/chains/utils'
-import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
-import { currencyId as toCurrencyId } from 'uniswap/src/utils/currencyId'
-import { getTokenDetailsURL, gqlToCurrency, unwrapToken } from '~/appGraphql/data/util'
+import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
+import { toGraphQLChain } from 'uniswap/src/features/chains/utils'
+import { type ParsedToken } from 'uniswap/src/features/dataApi/utils/parsedToken'
+import { TokenHoverCard, type TokenHoverCardToken } from '~/components/HoverCard/TokenHoverCard/TokenHoverCard'
 import { EllipsisText } from '~/components/Table/shared/TableText'
-import { ClickableTamaguiStyle } from '~/theme/components/styles'
+import { NATIVE_CHAIN_ID } from '~/constants/tokens'
+import { getTokenDetailsURL, unwrapToken } from '~/data/util'
 
-const StyledInternalLink = styled(Link, {
-  ...ClickableTamaguiStyle,
-  color: '$neutral1',
-  '$platform-web': {
-    textDecoration: 'none',
-  },
+// Bundled native-currency logo (e.g. ETH for an unwrapped WETH row) — no request needed.
+// Cast because the source type is RN's ImageSourcePropType, not a plain URL string.
+function getNativeLogoUrl(chainId: UniverseChainId): string {
+  return getChainInfo(chainId).nativeCurrency.logo as unknown as string
+}
+
+// `Link` (react-router) has no compat primitive, so the clickable chrome rebuilds on the house
+// styled() factory rather than a compat prop spread. Never rides a native bundle (apps/web only),
+// so `platform: 'web'` legalizes the literal hover:/active: classes directly.
+const StyledInternalLinkBase = styled(Link, {
+  platform: 'web',
+  base: 'cursor-pointer no-underline text-neutral1 transition-opacity duration-100 hover:opacity-80 active:opacity-60',
 })
 
-/**
- * Given a token displays the Token's Logo and Symbol with a link to its TDP
- * @param token
- * @returns JSX.Element showing the Token's Logo, Chain logo if non-mainnet, and Token Symbol
- */
-export const TokenLinkCell = ({ token, hideLogo }: { token: GraphQLApi.Token; hideLogo?: boolean }) => {
+// This link renders as a direct child of TokenHoverCard's legacy `TouchableArea` trigger, which
+// clones non-icon, non-mycelium-primitive children and injects `color`/`backgroundColor` (the same
+// hazard documented for icons under TouchableArea, generalized: WithInjectedColors in
+// TouchableArea.tsx) — the styled() factory carries no primitive marker to make the injector skip
+// it, so the un-consumed props land as unrecognized DOM attributes. Both are fixed by the classes
+// above regardless of caller, so drop them here. Remove this widening once INFRA-3823 gives
+// TouchableArea a way to skip non-primitive children, since it also swallows any legitimate
+// future `color`/`backgroundColor` caller.
+const StyledInternalLink = forwardRef<
+  ComponentRef<typeof StyledInternalLinkBase>,
+  ComponentPropsWithoutRef<typeof StyledInternalLinkBase> & { color?: unknown; backgroundColor?: unknown }
+>(function StyledInternalLink({ color: _injectedColor, backgroundColor: _injectedBackgroundColor, ...rest }, ref) {
+  return <StyledInternalLinkBase ref={ref} {...rest} />
+})
+
+// Renders from the row's own token data (no request); TokenHoverCard fetches richer
+// CurrencyInfo lazily on hover.
+export const TokenLinkCell = ({ token, hideLogo }: { token: ParsedToken; hideLogo?: boolean }) => {
   const { t } = useTranslation()
-  const { defaultChainId } = useEnabledChains()
-  const chainId = fromGraphQLChain(token.chain) ?? defaultChainId
+  const { chainId } = token
   const unwrappedToken = unwrapToken(chainId, token)
-  const currency = gqlToCurrency(unwrappedToken)
-  const currencyInfo = useCurrencyInfo(currency ? toCurrencyId(currency) : undefined)
+
+  const hoverCardToken: TokenHoverCardToken = {
+    chain: toGraphQLChain(chainId),
+    address: unwrappedToken.address ?? NATIVE_CHAIN_ID,
+  }
 
   return (
-    <StyledInternalLink
-      to={getTokenDetailsURL({
-        address: unwrappedToken.address,
-        chain: token.chain,
-      })}
-    >
-      <Flex row gap="$gap8" maxWidth="100px" alignItems="center">
-        <EllipsisText>{unwrappedToken.symbol ?? t('common.unknown').toUpperCase()}</EllipsisText>
-        {!hideLogo && (
-          <TokenLogo
-            chainId={chainId}
-            size={22}
-            url={currencyInfo?.logoUrl ?? token.project?.logo?.url}
-            symbol={currencyInfo?.currency.symbol ?? token.symbol}
-            name={currencyInfo?.currency.name}
-          />
-        )}
-      </Flex>
-    </StyledInternalLink>
+    <TokenHoverCard token={hoverCardToken}>
+      <StyledInternalLink
+        to={getTokenDetailsURL({
+          address: unwrappedToken.address,
+          chain: toGraphQLChain(chainId),
+        })}
+      >
+        <Flex row gap="$gap8" maxWidth="100px" alignItems="center">
+          <EllipsisText>{unwrappedToken.symbol ?? t('common.unknown').toUpperCase()}</EllipsisText>
+          {!hideLogo && (
+            // unwrapToken doesn't rewrite logoUrl, so native rows (no address, or unwrapped to
+            // NATIVE_CHAIN_ID) fall back to the bundled native logo instead of the raw payload.
+            <TokenLogo
+              chainId={chainId}
+              size={22}
+              url={
+                !unwrappedToken.address || unwrappedToken.address === NATIVE_CHAIN_ID
+                  ? getNativeLogoUrl(chainId)
+                  : token.logoUrl
+              }
+              symbol={unwrappedToken.symbol ?? token.symbol}
+              name={unwrappedToken.name}
+            />
+          )}
+        </Flex>
+      </StyledInternalLink>
+    </TokenHoverCard>
   )
 }

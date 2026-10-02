@@ -1,5 +1,5 @@
+import { Flex } from '@universe/mycelium'
 import { useState } from 'react'
-import { Flex } from 'ui/src'
 import {
   TransactionModalContextProvider,
   TransactionScreen,
@@ -10,6 +10,7 @@ import {
   TransactionModalProps,
 } from 'uniswap/src/features/transactions/components/TransactionModal/TransactionModalProps'
 import { TransactionModalUpdateLogger } from 'uniswap/src/features/transactions/components/TransactionModal/TransactionModalUpdateLogger'
+import { SwapFlowTimerContext } from 'uniswap/src/features/transactions/swap/utils/SwapFlowTimerContext'
 
 export function TransactionModal({
   children,
@@ -20,6 +21,8 @@ export function TransactionModal({
   swapRedirectCallback,
   passkeyAuthStatus,
   modalName,
+  swapFlowTimer,
+  tdpCurrency,
 }: TransactionModalProps): JSX.Element {
   const [screen, setScreen] = useState<TransactionScreen>(TransactionScreen.Form)
 
@@ -32,11 +35,16 @@ export function TransactionModal({
         screen={screen}
         passkeyAuthStatus={passkeyAuthStatus}
         setScreen={setScreen}
+        tdpCurrency={tdpCurrency}
         swapRedirectCallback={swapRedirectCallback}
         onClose={onClose}
         onCurrencyChange={onCurrencyChange}
       >
-        {children}
+        {swapFlowTimer ? (
+          <SwapFlowTimerContext.Provider value={swapFlowTimer}>{children}</SwapFlowTimerContext.Provider>
+        ) : (
+          children
+        )}
         <TransactionModalUpdateLogger modalName={modalName} />
       </TransactionModalContextProvider>
     </Flex>

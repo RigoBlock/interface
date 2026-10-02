@@ -1,9 +1,9 @@
+import { UniverseChainId } from '@universe/chains'
+import { Flex, iconSizes, Text, TouchableArea, type SpaceTokens } from '@universe/mycelium'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
 import { ReactNode } from 'react'
-import { Flex, Text, TouchableArea, useMedia } from 'ui/src'
-import { iconSizes } from 'ui/src/theme'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 
 interface MultichainOptionRowProps {
   chainId: UniverseChainId
@@ -15,6 +15,7 @@ interface MultichainOptionRowProps {
   tag?: string
   target?: string
   rel?: string
+  addressMenuPadding?: SpaceTokens | number
 }
 
 /**
@@ -31,6 +32,7 @@ export function MultichainOptionRow({
   tag,
   target,
   rel,
+  addressMenuPadding = '$spacing8',
 }: MultichainOptionRowProps): JSX.Element {
   const chainName = getChainInfo(chainId).label
   const media = useMedia()
@@ -44,13 +46,15 @@ export function MultichainOptionRow({
       alignItems="center"
       borderRadius="$rounded16"
       gap="$spacing8"
-      px="$spacing8"
+      px={addressMenuPadding}
       py="$spacing8"
       width="100%"
       $md={{ gap: '$spacing12', px: 0, height: '$spacing48' }}
     >
       <NetworkLogo borderRadius={logoBorderRadius} chainId={chainId} size={logoSize} />
-      <Text color="$neutral1" flex={1} numberOfLines={1} variant={isMobileLayout ? 'body1' : 'body2'}>
+      {/* flexBasis 0: on web, flex={1} expands to flex-basis auto, which makes this Text share
+          shrink space with rightContent and clip it when the chain name is long */}
+      <Text color="$neutral1" flex={1} flexBasis={0} numberOfLines={1} variant={isMobileLayout ? 'body1' : 'body2'}>
         {chainName}
       </Text>
       {rightContent}
@@ -60,7 +64,7 @@ export function MultichainOptionRow({
   if (onPress || href) {
     return (
       <TouchableArea
-        $platform-web={{ textDecorationLine: 'none' }}
+        $platform-web={{ textDecoration: 'none' }}
         href={href}
         tag={tag}
         target={target}

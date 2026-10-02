@@ -1,5 +1,5 @@
+import { Flex, Text } from '@universe/mycelium'
 import { SCREEN_ITEM_HORIZONTAL_PAD } from 'src/app/constants'
-import { Flex, Text } from 'ui/src'
 
 export function SettingsSection({
   title,

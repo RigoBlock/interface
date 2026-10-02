@@ -1,11 +1,14 @@
 import type { BottomSheetView } from '@gorhom/bottom-sheet'
 import { Currency } from '@uniswap/sdk-core'
+import { UniverseChainId } from '@universe/chains'
+import { isExtensionApp, isMobileApp, isMobileWeb, isWebApp, isWebIOS, isWebPlatform } from '@universe/environment'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Flex, ModalCloseIcon, spacing, Text, zIndexes } from '@universe/mycelium'
+import { InfoCircleFilled } from '@universe/mycelium/icons/InfoCircleFilled'
+import { useMedia, useScrollbarStyles, useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { ComponentProps, memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, ModalCloseIcon, Text, useMedia, useScrollbarStyles, useSporeColors } from 'ui/src'
-import { InfoCircleFilled } from 'ui/src/components/icons/InfoCircleFilled'
-import { spacing, zIndexes } from 'ui/src/theme'
+import { useWindowDimensions } from 'react-native'
 import PasteButton from 'uniswap/src/components/buttons/PasteButton'
 import { SelectorBaseListSkeleton } from 'uniswap/src/components/lists/SelectorBaseList'
 import { useBottomSheetContext } from 'uniswap/src/components/modals/BottomSheetContext'
@@ -14,18 +17,24 @@ import { NetworkFilter } from 'uniswap/src/components/network/NetworkFilter'
 import { NetworkFilterV2 } from 'uniswap/src/components/network/NetworkFilterV2/NetworkFilterV2'
 import type { TieredNetworkOptions } from 'uniswap/src/components/network/NetworkFilterV2/types'
 import { useNetworkSelectorOptions } from 'uniswap/src/components/network/NetworkFilterV2/useNetworkSelectorOptions'
+import { TOKEN_SELECTOR_LOADING_ROWS } from 'uniswap/src/components/TokenSelector/constants'
 import { CrosschainSwapsPromoBanner } from 'uniswap/src/components/TokenSelector/CrosschainSwapsPromoBanner'
 import { useClipboardCheck } from 'uniswap/src/components/TokenSelector/hooks/useClipboardCheck'
 import { useTokenSelectionHandler } from 'uniswap/src/components/TokenSelector/hooks/useTokenSelectionHandler'
 import { TokenSelectorListSwitch } from 'uniswap/src/components/TokenSelector/TokenSelectorListSwitch'
+import type { OnSelectRwaToken } from 'uniswap/src/components/TokenSelector/types'
 import { TokenSelectorFlow, TokenSelectorVariation } from 'uniswap/src/components/TokenSelector/types'
 import { UnsupportedChainedActionsBanner } from 'uniswap/src/components/TokenSelector/UnsupportedChainedActionsBanner'
 import { flowToModalName } from 'uniswap/src/components/TokenSelector/utils'
+import {
+  TOKEN_SELECTOR_V2_WEB_MAX_HEIGHT,
+  TOKEN_SELECTOR_V2_WEB_MAX_WIDTH,
+} from 'uniswap/src/components/TokenSelectorV2/constants'
+import { TokenSelectorV2Content } from 'uniswap/src/components/TokenSelectorV2/TokenSelectorV2Content'
 import { useUniswapContext } from 'uniswap/src/contexts/UniswapContext'
 import { TradeableAsset } from 'uniswap/src/entities/assets'
 import type { AddressGroup } from 'uniswap/src/features/accounts/store/types/AccountsState'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useFilterCallbacks } from 'uniswap/src/features/search/SearchModal/hooks/useFilterCallbacks'
 import { SearchTextInput } from 'uniswap/src/features/search/SearchTextInput'
 import { InterfaceEventName, ModalName, SectionName } from 'uniswap/src/features/telemetry/constants'
@@ -34,13 +43,14 @@ import { isChainSupportedForChainedActions } from 'uniswap/src/features/transact
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { getClipboard } from 'utilities/src/clipboard/clipboard'
 import { dismissNativeKeyboard } from 'utilities/src/device/keyboard/dismissNativeKeyboard'
-import { isExtensionApp, isMobileApp, isMobileWeb, isWebApp, isWebPlatform } from 'utilities/src/platform'
 import { useDebounce } from 'utilities/src/time/timing'
 
 export const TOKEN_SELECTOR_WEB_MAX_WIDTH = 400
 export const TOKEN_SELECTOR_WEB_MAX_HEIGHT = 700
 
-export const SNAP_POINTS = ['65%', '100%']
+// Half-open snap ratio; web uses the '%' string, mobile multiplies by windowHeight (concrete px).
+export const HALF_SNAP_POINT_RATIO = 0.65
+export const SNAP_POINTS = [`${HALF_SNAP_POINT_RATIO * 100}%`, '100%']
 
 export interface TokenSelectorProps {
   variation: TokenSelectorVariation
@@ -69,6 +79,7 @@ export interface TokenSelectorProps {
     allowCrossChainPair: boolean
     isPreselectedAsset: boolean
   }) => void
+  onSelectRwaToken?: OnSelectRwaToken
 }
 
 function TokenSelectorNetworkFilter({
@@ -87,7 +98,35 @@ function TokenSelectorNetworkFilter({
   return <NetworkFilter {...props} styles={styles} />
 }
 
-export function TokenSelectorContent({
+/**
+ * Root V2 gate (SWAP-3038): flag on renders the net-new TokenSelectorV2 tree, flag off renders
+ * the untouched legacy selector. Covers every variation, including BalancesOnly (send).
+ */
+export function TokenSelectorContent(
+  props: Omit<TokenSelectorProps, 'isModalOpen'> & {
+    renderedInModal: boolean
+  },
+): JSX.Element {
+  const isUxRevampEnabled = useFeatureFlag(FeatureFlags.TokenSelectorUxRevamp)
+
+  if (isUxRevampEnabled) {
+    return <TokenSelectorV2Content {...props} />
+  }
+
+  return <LegacyTokenSelectorContent {...props} />
+}
+
+/** Web modal sizing for both flag states: legacy 400×700, V2 640×536 (Figma 750:13014). */
+export function useTokenSelectorWebModalDimensions(): { maxWidth: number; maxHeight: number } {
+  const isUxRevampEnabled = useFeatureFlag(FeatureFlags.TokenSelectorUxRevamp)
+
+  return {
+    maxWidth: isUxRevampEnabled ? TOKEN_SELECTOR_V2_WEB_MAX_WIDTH : TOKEN_SELECTOR_WEB_MAX_WIDTH,
+    maxHeight: isUxRevampEnabled ? TOKEN_SELECTOR_V2_WEB_MAX_HEIGHT : TOKEN_SELECTOR_WEB_MAX_HEIGHT,
+  }
+}
+
+function LegacyTokenSelectorContent({
   currencyField,
   flow,
   variation,
@@ -101,6 +140,7 @@ export function TokenSelectorContent({
   onClose,
   onSelectChain,
   onSelectCurrency,
+  onSelectRwaToken,
   renderedInModal,
 }: Omit<TokenSelectorProps, 'isModalOpen'> & {
   renderedInModal: boolean
@@ -171,6 +211,14 @@ export function TokenSelectorContent({
 
   const shouldAutoFocusSearch = isWebPlatform && !media.sm
 
+  // Mounting SearchTextInput on the same render that modal opens caused jitter on Safari mWeb.
+  // Defer one render so the modal paints first.
+  const [searchInputMounted, setSearchInputMounted] = useState(!isWebIOS)
+
+  useEffect(() => {
+    setSearchInputMounted(true)
+  }, [])
+
   const shouldShowCrosschainPromoBanner = useMemo(
     () => flow === TokenSelectorFlow.Swap && (!chainFilter || isChainSupportedForChainedActions(chainFilter)),
     [flow, chainFilter],
@@ -190,36 +238,38 @@ export function TokenSelectorContent({
               <ModalCloseIcon onClose={onClose} />
             </Flex>
           )}
-          <SearchTextInput
-            autoFocus={shouldAutoFocusSearch}
-            backgroundColor="$surface2"
-            endAdornment={
-              <Flex row alignItems="center">
-                {hasClipboardString && <PasteButton inline textVariant="buttonLabel3" onPress={handlePaste} />}
-                <TokenSelectorNetworkFilter
-                  tieredOptions={tieredNetworkOptions}
-                  networkFilterV2Enabled={networkFilterV2Enabled}
-                  includeAllNetworks={!isTestnetModeEnabled && effectiveChainIds.length > 1}
-                  chainIds={effectiveChainIds}
-                  selectedChain={chainFilter}
-                  styles={isExtensionApp || media.md ? { dropdownZIndex: zIndexes.overlay } : undefined}
-                  onPressChain={(newChainId) => {
-                    onChangeChainFilter(newChainId)
-                    onSelectChain?.(newChainId)
-                  }}
-                />
-              </Flex>
-            }
-            placeholder={t('tokens.selector.search.placeholder')}
-            px="$spacing16"
-            py="$none"
-            mx={spacing.spacing16}
-            my="$spacing4"
-            value={searchFilter ?? ''}
-            onCancel={isWebPlatform ? undefined : onCancel}
-            onChangeText={onChangeText}
-            onFocus={onFocus}
-          />
+          {searchInputMounted && (
+            <SearchTextInput
+              autoFocus={shouldAutoFocusSearch}
+              backgroundColor="$surface2"
+              endAdornment={
+                <Flex row alignItems="center">
+                  {hasClipboardString && <PasteButton inline textVariant="buttonLabel3" onPress={handlePaste} />}
+                  <TokenSelectorNetworkFilter
+                    tieredOptions={tieredNetworkOptions}
+                    networkFilterV2Enabled={networkFilterV2Enabled}
+                    includeAllNetworks={!isTestnetModeEnabled && effectiveChainIds.length > 1}
+                    chainIds={effectiveChainIds}
+                    selectedChain={chainFilter}
+                    styles={isExtensionApp || media.md ? { dropdownZIndex: zIndexes.overlay } : undefined}
+                    onPressChain={(newChainId) => {
+                      onChangeChainFilter(newChainId)
+                      onSelectChain?.(newChainId)
+                    }}
+                  />
+                </Flex>
+              }
+              placeholder={t('tokens.selector.search.placeholder')}
+              px="$spacing16"
+              py="$none"
+              mx={spacing.spacing16}
+              my="$spacing4"
+              value={searchFilter ?? ''}
+              onCancel={isWebPlatform ? undefined : onCancel}
+              onChangeText={onChangeText}
+              onFocus={onFocus}
+            />
+          )}
           {flow === TokenSelectorFlow.Limit && (
             <Flex
               row
@@ -244,8 +294,10 @@ export function TokenSelectorContent({
                   searchFilter={searchFilter}
                   isTestnetModeEnabled={isTestnetModeEnabled}
                   variation={variation}
+                  flow={flow}
                   addresses={addresses}
                   chainFilter={chainFilter}
+                  chainIds={effectiveChainIds}
                   input={input}
                   output={output}
                   renderedInModal={renderedInModal}
@@ -253,11 +305,12 @@ export function TokenSelectorContent({
                   debouncedSearchFilter={debouncedSearchFilter}
                   parsedChainFilter={parsedChainFilter}
                   onSelectCurrency={onSelectCurrencyCallback}
+                  onSelectRwaToken={onSelectRwaToken}
                   onSendEmptyActionPress={onSendEmptyActionPress}
                 />
               </>
             ) : (
-              <SelectorBaseListSkeleton />
+              <SelectorBaseListSkeleton repeat={TOKEN_SELECTOR_LOADING_ROWS} />
             )}
           </Flex>
         </Flex>
@@ -283,6 +336,9 @@ function TokenSelectorModalContent(props: TokenSelectorProps): JSX.Element {
 function TokenSelectorModalInner(props: TokenSelectorProps): JSX.Element {
   const colors = useSporeColors()
   const { isModalOpen, onClose, focusHook } = props
+  // Fabric collapses flex/percentage height inside a nested bottom-sheet portal; pin a concrete height on native.
+  const { height: windowHeight } = useWindowDimensions()
+  const { maxWidth: webMaxWidth, maxHeight: webMaxHeight } = useTokenSelectorWebModalDimensions()
 
   return (
     <Modal
@@ -293,16 +349,23 @@ function TokenSelectorModalInner(props: TokenSelectorProps): JSX.Element {
       renderBehindBottomInset
       backgroundColor={colors.surface1.val}
       isModalOpen={isModalOpen}
-      maxWidth={isWebPlatform ? TOKEN_SELECTOR_WEB_MAX_WIDTH : undefined}
-      maxHeight={isWebApp ? TOKEN_SELECTOR_WEB_MAX_HEIGHT : undefined}
+      maxWidth={isWebPlatform ? webMaxWidth : undefined}
+      maxHeight={isWebApp ? webMaxHeight : undefined}
       name={ModalName.TokenSelector}
       padding="$none"
-      snapPoints={SNAP_POINTS}
+      // Open at half and allow expanding to full, matching SNAP_POINTS. Concrete px (not '%')
+      // because Fabric doesn't reliably normalize percentage snap points in the nested portal.
+      snapPoints={isMobileApp ? [windowHeight * HALF_SNAP_POINT_RATIO, windowHeight] : SNAP_POINTS}
+      // The mobile-web sheet must take its height from the snap point, not content-fit: the
+      // virtualized token list sizes itself to its container (AutoSizer) so it has no intrinsic
+      // height, and a fit-mode sheet opened with cached data freezes at chrome height with an
+      // empty list (SWAP-3250). Native ignores this prop.
+      snapPointsMode={isMobileApp ? undefined : 'percent'}
       height={isWebApp ? '100vh' : undefined}
       focusHook={focusHook}
       onClose={onClose}
     >
-      <Flex grow maxHeight="100%" overflow="hidden">
+      <Flex grow={!isMobileApp} height={isMobileApp ? windowHeight : undefined} maxHeight="100%" overflow="hidden">
         <TokenSelectorModalContent {...props} />
       </Flex>
     </Modal>

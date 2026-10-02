@@ -2,16 +2,6 @@
   "$schema": "https://json.schemastore.org/swcrc",
   "jsc": {
     "keepClassNames": true,
-    "experimental": {
-      "plugins": [
-        [
-          "@swc/plugin-styled-components",
-          {
-            "displayName": true
-          }
-        ]
-      ]
-    },
     "parser": {
       "syntax": "typescript",
       "tsx": true

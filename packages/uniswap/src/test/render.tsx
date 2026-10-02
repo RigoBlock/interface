@@ -1,5 +1,4 @@
 import 'uniswap/src/i18n'
-import { InMemoryCache, Resolvers } from '@apollo/client'
 import type { EnhancedStore, PreloadedState } from '@reduxjs/toolkit'
 import { configureStore } from '@reduxjs/toolkit'
 import {
@@ -10,17 +9,16 @@ import {
   render as RNRender,
   renderHook as RNRenderHook,
 } from '@testing-library/react-native'
+import { SharedQueryClient } from '@universe/api'
+import { PriceServiceProvider } from '@universe/prices'
 import { ParsedQs } from 'qs'
-import { PropsWithChildren } from 'react'
+import { PropsWithChildren, useEffect } from 'react'
 import { Provider as ReduxProvider } from 'react-redux'
-import { TamaguiProvider as OGTamaguiProvider, TamaguiProviderProps } from 'ui/src'
-import { config } from 'ui/src/tamagui.config'
 import { UniswapProvider } from 'uniswap/src/contexts/UniswapContext'
 import { UrlContext } from 'uniswap/src/contexts/UrlContext'
-import { SharedPersistQueryClientProvider } from 'uniswap/src/data/apiClients/SharedPersistQueryClientProvider'
+import { SharedPersistQueryClientProvider } from 'uniswap/src/data/reactQuery/SharedPersistQueryClientProvider'
 import { UniswapState, uniswapReducer } from 'uniswap/src/state/uniswapReducer'
 import { createMockFn } from 'uniswap/src/test/mockFn'
-import { AutoMockedApolloProvider } from 'uniswap/src/test/mocks'
 
 export const mockUniswapContext = {
   navigateToBuyOrReceiveWithEmptyWallet: createMockFn(),
@@ -29,6 +27,7 @@ export const mockUniswapContext = {
   navigateToSendFlow: createMockFn(),
   navigateToReceive: createMockFn(),
   navigateToTokenDetails: createMockFn(),
+  navigateToCategoryDetails: createMockFn(),
   navigateToExternalProfile: createMockFn(),
   navigateToNftDetails: createMockFn(),
   navigateToPoolDetails: createMockFn(),
@@ -48,8 +47,6 @@ export const mockUniswapContext = {
 // This type extends the default options for render from RTL, as well
 // as allows the user to specify other things such as initialState, store.
 type ExtendedRenderOptions = RenderOptions & {
-  cache?: InMemoryCache
-  resolvers?: Resolvers
   preloadedState?: PreloadedState<UniswapState>
   store?: EnhancedStore<UniswapState>
 }
@@ -64,8 +61,6 @@ type ExtendedRenderOptions = RenderOptions & {
 export function renderWithProviders(
   ui: React.ReactElement,
   {
-    cache,
-    resolvers,
     preloadedState = {},
     // Automatically create a store instance if no store was passed in
     store = configureStore({
@@ -80,11 +75,9 @@ export function renderWithProviders(
 } {
   function Wrapper({ children }: PropsWithChildren<unknown>): JSX.Element {
     return (
-      <AutoMockedApolloProvider cache={cache} resolvers={resolvers}>
-        <ReduxProvider store={store}>
-          <SharedUniswapProvider>{children}</SharedUniswapProvider>
-        </ReduxProvider>
-      </AutoMockedApolloProvider>
+      <ReduxProvider store={store}>
+        <SharedUniswapProvider>{children}</SharedUniswapProvider>
+      </ReduxProvider>
     )
   }
 
@@ -95,8 +88,6 @@ export function renderWithProviders(
 // This type extends the default options for render from RTL, as well
 // as allows the user to specify other things such as initialState, store.
 type ExtendedRenderHookOptions<P> = RenderHookOptions<P> & {
-  cache?: InMemoryCache
-  resolvers?: Resolvers
   preloadedState?: PreloadedState<UniswapState>
   store?: EnhancedStore<UniswapState>
 }
@@ -133,8 +124,6 @@ export function renderHookWithProviders<P extends any[], R>(
   hookOptions?: ExtendedRenderHookOptions<P>,
 ): RenderHookWithProvidersResult<R, P> {
   const {
-    cache,
-    resolvers,
     preloadedState = {},
     // Automatically create a store instance if no store was passed in
     store = configureStore({
@@ -147,11 +136,9 @@ export function renderHookWithProviders<P extends any[], R>(
 
   function Wrapper({ children }: PropsWithChildren<unknown>): JSX.Element {
     return (
-      <AutoMockedApolloProvider cache={cache} resolvers={resolvers}>
-        <ReduxProvider store={store}>
-          <SharedUniswapProvider>{children}</SharedUniswapProvider>
-        </ReduxProvider>
-      </AutoMockedApolloProvider>
+      <ReduxProvider store={store}>
+        <SharedUniswapProvider>{children}</SharedUniswapProvider>
+      </ReduxProvider>
     )
   }
 
@@ -171,14 +158,35 @@ export function renderHookWithProviders<P extends any[], R>(
   }
 }
 
-function SharedUniswapProvider({ children }: Pick<TamaguiProviderProps, 'children'>): JSX.Element {
+// Ref-count concurrent dark-harness mounts so unmounting one tree doesn't strip the class from
+// another that is still mounted.
+let darkHarnessMounts = 0
+
+function SharedUniswapProvider({ children }: PropsWithChildren): JSX.Element {
+  // The ui/src theme hooks read the root `dark` class (the app providers keep it in lockstep with
+  // the selected color scheme), so the harness pins it dark while mounted.
+  // Set during render — children's initial render already reads it (idempotent, so
+  // re-renders are safe) — and scoped to mounts of this harness: a module-scope set would leak
+  // into other packages' suites, which import mockUniswapContext from this module but mount
+  // light harnesses.
+  if (typeof document !== 'undefined') {
+    document.documentElement.classList.add('dark')
+  }
+  useEffect(() => {
+    darkHarnessMounts += 1
+    return () => {
+      darkHarnessMounts -= 1
+      if (darkHarnessMounts === 0 && typeof document !== 'undefined') {
+        document.documentElement.classList.remove('dark')
+      }
+    }
+  }, [])
+
   return (
     <UniswapProvider {...mockUniswapContext}>
       <UrlContext.Provider value={{ useParsedQueryString: () => ({}) as ParsedQs, usePathname: () => '' }}>
         <SharedPersistQueryClientProvider>
-          <OGTamaguiProvider config={config} defaultTheme="dark">
-            {children}
-          </OGTamaguiProvider>
+          <PriceServiceProvider queryClient={SharedQueryClient}>{children}</PriceServiceProvider>
         </SharedPersistQueryClientProvider>
       </UrlContext.Provider>
     </UniswapProvider>

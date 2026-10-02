@@ -1,6 +1,6 @@
 import { flush, getUserId, Identify, identify, init, setDeviceId, track } from '@amplitude/analytics-browser'
 import { ANONYMOUS_DEVICE_ID } from '@uniswap/analytics'
-import { getChromeWithThrow } from 'utilities/src/chrome/chrome'
+import { getChromeWithThrow } from '@universe/environment'
 // oxlint-disable-next-line no-restricted-imports -- platform implementation file
 import {
   Analytics,
@@ -26,6 +26,7 @@ let allowAnalytics: boolean = true
 let testnetMode: boolean = false
 let testnetModeConfig: TestnetModeConfig | undefined
 let commitHash: Maybe<string>
+let buildType: Maybe<string>
 let userId: Maybe<string>
 let debugBridge: AnalyticsDebugBridge | undefined
 
@@ -73,11 +74,13 @@ export const analytics: Analytics = {
     transportProvider,
     allowed,
     initHash,
+    buildType: initBuildType,
     userIdGetter,
     debugBridge: bridge,
   }: AnalyticsInitConfig): Promise<void> {
     // Set properties
     commitHash = initHash
+    buildType = initBuildType
     debugBridge = bridge
     await setAnalyticsAtomDirect(allowed)
 
@@ -128,6 +131,7 @@ export const analytics: Analytics = {
     const propertiesWithHash: Record<string, unknown> = {
       ...eventProperties,
       ...(commitHash ? { git_commit_hash: commitHash } : {}),
+      ...(buildType ? { buildType } : {}),
     }
 
     const processedTestnetEvent = getProcessedEvent({
@@ -153,8 +157,11 @@ export const analytics: Analytics = {
     flush()
   },
   // oxlint-disable-next-line max-params
-  async setUserProperty(property: string, value: UserPropertyValue, insert?: boolean): Promise<void> {
-    if (!(await getAnalyticsAtomDirect())) {
+  setUserProperty(property: string, value: UserPropertyValue, insert?: boolean): void {
+    // Read the cached flag synchronously, as sendEvent does. Amplitude queues $identify and track()
+    // in call order, so an `await` here would let a track() issued right after this call jump ahead
+    // of the identify and carry a stale user-property snapshot.
+    if (!allowAnalytics) {
       return
     }
 

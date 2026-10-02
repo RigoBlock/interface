@@ -1,5 +1,5 @@
+import { isBetaEnv, isDevEnv } from '@universe/environment'
 import DeviceInfo from 'react-native-device-info'
-import { isBetaEnv, isDevEnv } from 'utilities/src/environment/env'
 
 /**
  * Returns a string with the app version and build number in the format:
@@ -32,4 +32,9 @@ export function getBuildVariant(): BuildVariant {
   } else {
     return BuildVariant.Production
   }
+}
+
+// The Fabric UIManager global is registered only under the New Architecture.
+export function isNewArchEnabled(): boolean {
+  return (globalThis as { nativeFabricUIManager?: unknown }).nativeFabricUIManager != null
 }

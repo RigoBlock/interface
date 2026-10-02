@@ -1,3 +1,4 @@
+import { isWebApp } from '@universe/environment'
 import { useCallback } from 'react'
 import { useDispatch } from 'react-redux'
 import {
@@ -6,7 +7,6 @@ import {
 } from 'uniswap/src/features/transactions/components/TransactionModal/TransactionModalContext'
 import { useSwapFormStore } from 'uniswap/src/features/transactions/swap/stores/swapFormStore/useSwapFormStore'
 import { interruptTransactionFlow } from 'uniswap/src/utils/saga'
-import { isWebApp } from 'utilities/src/platform'
 
 export function useSwapOnPrevious(): {
   onPrev: () => void
@@ -32,7 +32,7 @@ export function useSwapOnPrevious(): {
     // and remove submitting UI. Plans do not stop on this signal as it can continue
     // while backgrounded.
     if (isWebApp) {
-      updateSwapForm({ isSubmitting: false })
+      updateSwapForm({ isSubmitting: false, isEarnFlow: false })
       dispatch(interruptTransactionFlow())
     }
 

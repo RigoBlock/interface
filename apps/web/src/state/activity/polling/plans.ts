@@ -80,7 +80,7 @@ export function usePollPendingPlanTransactions(onActivityUpdate: OnActivityUpdat
       return undefined
     }
 
-    let timeout: NodeJS.Timeout
+    let timeout: ReturnType<typeof setTimeout>
     const isActiveRef: { current: boolean } = { current: true }
 
     async function poll(): Promise<void> {

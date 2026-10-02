@@ -1,14 +1,16 @@
 import { CompositeScreenProps } from '@react-navigation/core'
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
+import { Button, Flex, fonts, iconSizes, Text } from '@universe/mycelium'
+import { opacify, useMedia, useSporeColors } from '@universe/mycelium/theme-hooks-compat'
+import { TestID } from '@universe/test'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { AppStackParamList, OnboardingStackParamList } from 'src/app/navigation/types'
 import { Screen } from 'src/components/layout/Screen'
 import { useNavigationHeader } from 'src/utils/useNavigationHeader'
-import { Button, Flex, Loader, Text, useMedia, useSporeColors } from 'ui/src'
+import { Loader } from 'ui/src'
 import { Arrow } from 'ui/src/components/arrow/Arrow'
 import { Lock } from 'ui/src/components/icons'
-import { fonts, iconSizes, opacify } from 'ui/src/theme'
 import { DisplayNameText } from 'uniswap/src/components/accounts/DisplayNameText'
 import AnimatedNumber from 'uniswap/src/components/AnimatedNumber/AnimatedNumber'
 import { AccountIcon } from 'uniswap/src/features/accounts/AccountIcon'
@@ -16,8 +18,6 @@ import { DisplayNameType } from 'uniswap/src/features/accounts/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import i18next from 'uniswap/src/i18n'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { MobileScreens, OnboardingScreens } from 'uniswap/src/types/screens/mobile'
 import { NumberType } from 'utilities/src/format/types'
 import {
@@ -29,7 +29,7 @@ import { useDisplayName } from 'wallet/src/features/wallet/hooks'
 
 type Props = CompositeScreenProps<
   NativeStackScreenProps<OnboardingStackParamList, OnboardingScreens.WelcomeWallet>,
-  NativeStackScreenProps<AppStackParamList, MobileScreens.Home, undefined>
+  NativeStackScreenProps<AppStackParamList, MobileScreens.OnboardingStack, undefined>
 >
 
 export function WelcomeWalletScreen({ navigation, route: { params } }: Props): JSX.Element {
@@ -43,7 +43,6 @@ export function WelcomeWalletScreen({ navigation, route: { params } }: Props): J
   const { t } = useTranslation()
   const { convertFiatAmountFormatted } = useLocalizationContext()
   const media = useMedia()
-  const isRightToLeft = i18next.dir() === 'rtl'
 
   const walletName = useDisplayName(onboardingAccountAddress)
 
@@ -80,14 +79,11 @@ export function WelcomeWalletScreen({ navigation, route: { params } }: Props): J
           )}
           <DisplayNameText displayName={displayName} justifyContent="flex-start" textProps={{ variant: 'body1' }} />
           <AnimatedNumber
-            balance={0}
+            numericValue={0}
             colorIndicationDuration={0}
-            isRightToLeft={isRightToLeft}
-            loading={false}
             loadingPlaceholderText="0.00"
             shouldFadeDecimals={true}
             value={zeroBalance}
-            warmLoading={false}
           />
           <Loader.Token repeat={2} />
         </Flex>
@@ -116,7 +112,7 @@ export function WelcomeWalletScreen({ navigation, route: { params } }: Props): J
           <Button
             variant="branded"
             size="large"
-            isDisabled={!onboardingAccountAddress}
+            disabled={!onboardingAccountAddress}
             icon={<NextButtonIcon />}
             testID={TestID.Next}
             onPress={onPressNext}

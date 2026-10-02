@@ -1,4 +1,4 @@
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 
 export interface BuyNativeTokenModalState {
   chainId: UniverseChainId

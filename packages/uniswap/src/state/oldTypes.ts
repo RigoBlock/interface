@@ -1,6 +1,5 @@
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
-import { GraphQLApi } from '@universe/api'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { SafetyInfo } from 'uniswap/src/features/dataApi/types'
 import { CurrencyId } from 'uniswap/src/types/currency'
 
@@ -28,6 +27,18 @@ export enum PreV55SearchResultType {
   Pool = 6,
 }
 
+/**
+ * Snapshot of the GraphQL FeeData shape as persisted pre-v55 — inlined so migration types don't
+ * depend on the generated (and soon-removed) GraphQL schema types.
+ */
+interface PreV55FeeData {
+  buyFeeBps?: string | null
+  sellFeeBps?: string | null
+  feeTakenOnTransfer?: boolean | null
+  externalTransferFailed?: boolean | null
+  sellReverted?: boolean | null
+}
+
 interface SearchResultBase {
   type: PreV55SearchResultType
   searchId?: string
@@ -41,7 +52,7 @@ export interface TokenSearchResult extends SearchResultBase {
   name: string | null
   logoUrl: string | null
   safetyInfo?: SafetyInfo | null
-  feeData?: GraphQLApi.FeeData | null
+  feeData?: PreV55FeeData | null
 }
 
 interface PoolSearchResult extends SearchResultBase {

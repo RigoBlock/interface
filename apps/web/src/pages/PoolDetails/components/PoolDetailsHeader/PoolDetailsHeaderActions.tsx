@@ -1,18 +1,19 @@
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
-import { GraphQLApi, parseRestProtocolVersion } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
+import { Flex } from '@universe/mycelium'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
 import { useTranslation } from 'react-i18next'
-import { Flex, useMedia } from 'ui/src'
 import { ReportPoolDataModal } from 'uniswap/src/components/reporting/ReportPoolDataModal'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import type { ParsedToken } from 'uniswap/src/features/dataApi/utils/parsedToken'
+import { v2TokenToCurrency } from 'uniswap/src/features/dataApi/utils/parsedToken'
 import { useEvent } from 'utilities/src/react/hooks'
 import { useBooleanState } from 'utilities/src/react/useBooleanState'
-import { gqlToCurrency } from '~/appGraphql/data/util'
-import { DesktopHeaderActions } from '~/components/Explore/stickyHeader/HeaderActions/DesktopHeaderActions'
-import { MobileHeaderActions } from '~/components/Explore/stickyHeader/HeaderActions/MobileHeaderActions'
 import { POPUP_MEDIUM_DISMISS_MS } from '~/components/Popups/constants'
-import { popupRegistry } from '~/components/Popups/registry'
-import { PopupType } from '~/components/Popups/types'
+import { DesktopHeaderActions } from '~/components/StickyCollapsibleHeader/HeaderActions/DesktopHeaderActions'
+import { MobileHeaderActions } from '~/components/StickyCollapsibleHeader/HeaderActions/MobileHeaderActions'
 import { usePoolDetailsHeaderActions } from '~/pages/PoolDetails/components/PoolDetailsHeader/usePoolDetailsHeaderActions'
+import { popupRegistry } from '~/state/popups/registry'
+import { PopupType } from '~/state/popups/types'
 
 export function PoolDetailsHeaderActions({
   chainId,
@@ -25,16 +26,16 @@ export function PoolDetailsHeaderActions({
   chainId?: UniverseChainId
   poolAddress?: string
   poolName: string
-  token0?: GraphQLApi.Token
-  token1?: GraphQLApi.Token
-  protocolVersion?: GraphQLApi.ProtocolVersion
+  token0?: ParsedToken
+  token1?: ParsedToken
+  protocolVersion?: ProtocolVersion
 }): JSX.Element {
   const { t } = useTranslation()
   const media = useMedia()
   const isMobileScreen = media.md
 
-  const currency0 = token0 && gqlToCurrency(token0)
-  const currency1 = token1 && gqlToCurrency(token1)
+  const currency0 = token0 && v2TokenToCurrency(token0)
+  const currency1 = token1 && v2TokenToCurrency(token1)
 
   const {
     value: reportDataIssueModalIsOpen,
@@ -73,7 +74,7 @@ export function PoolDetailsHeaderActions({
           poolInfo={{
             poolId: poolAddress,
             chainId,
-            version: parseRestProtocolVersion(protocolVersion) ?? ProtocolVersion.UNSPECIFIED,
+            version: protocolVersion,
             token0: currency0,
             token1: currency1,
           }}

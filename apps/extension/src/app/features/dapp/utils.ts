@@ -1,3 +1,4 @@
+import { impersonatedSigningError, isImpersonatedAccount } from 'src/app/features/accounts/impersonation'
 import { AccountType } from 'uniswap/src/features/accounts/types'
 import { extractNameFromUrl } from 'utilities/src/format/extractNameFromUrl'
 import { bubbleToTop } from 'utilities/src/primitives/array'
@@ -27,6 +28,11 @@ export function getActiveSignerConnectedAccount(
 ): SignerMnemonicAccount {
   const activeConnectedAccount = getActiveConnectedAccount(connectedAccounts, activeConnectedAddress)
   if (activeConnectedAccount.type !== AccountType.SignerMnemonic) {
+    // Dev impersonation intentionally runs the full dapp flow on a view-only account. It ends here —
+    // the first point a private key is required — rather than being rejected when the request arrives.
+    if (isImpersonatedAccount(activeConnectedAccount)) {
+      throw impersonatedSigningError()
+    }
     throw new Error('The active connected address must be a signer mnemonic account.')
   }
   return activeConnectedAccount

@@ -1,5 +1,6 @@
+import { Faceid } from '@universe/mycelium/icons/Faceid'
+import { Fingerprint } from '@universe/mycelium/icons/Fingerprint'
 import { useDeviceSupportsBiometricAuth } from 'src/features/biometrics/useDeviceSupportsBiometricAuth'
-import { Faceid, Fingerprint } from 'ui/src/components/icons'
 
 export type BiometricsIconProps = {
   color?: string

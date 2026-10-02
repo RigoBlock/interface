@@ -1,12 +1,12 @@
 import { SharedEventName } from '@uniswap/analytics-events'
+import { TouchableArea } from '@universe/mycelium'
+import { Ellipsis } from '@universe/mycelium/icons/Ellipsis'
 import React, { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NativeSyntheticEvent, Share } from 'react-native'
 import ContextMenu, { ContextMenuOnPressNativeEvent } from 'react-native-context-menu-view'
 import { useDispatch } from 'react-redux'
-import { TouchableArea } from 'ui/src'
-import { Ellipsis } from 'ui/src/components/icons'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { useUnitagsAddressQuery } from 'uniswap/src/data/apiClients/unitagsApi/useUnitagsAddressQuery'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
@@ -19,7 +19,6 @@ import { ShareableEntity } from 'uniswap/src/types/sharing'
 import { ExplorerDataType, getExplorerLink, getPortfolioUrl, openUri } from 'uniswap/src/utils/linking'
 import { setClipboard } from 'utilities/src/clipboard/clipboard'
 import { logger } from 'utilities/src/logger/logger'
-import { noop } from 'utilities/src/react/noop'
 
 type MenuAction = {
   title: string
@@ -58,7 +57,7 @@ export function ProfileContextMenu({ address }: { address: Address }): JSX.Eleme
     const params = new URLSearchParams()
     params.append('tf_11041337007757', address) // Wallet Address
     params.append('tf_7005922218125', 'report_unitag') // Report Type Dropdown
-    const prefilledRequestUrl = uniswapUrls.helpRequestUrl + '?' + params.toString()
+    const prefilledRequestUrl = UniswapHelpUrls.requestUrl + '?' + params.toString()
     openUri({ uri: prefilledRequestUrl }).catch((e) =>
       logger.error(e, { tags: { file: 'ProfileContextMenu', function: 'reportProfileLink' } }),
     )
@@ -121,7 +120,7 @@ export function ProfileContextMenu({ address }: { address: Address }): JSX.Eleme
         await menuActions[e.nativeEvent.index]?.action()
       }}
     >
-      <TouchableArea centered backgroundColor="$surface4" borderRadius="$roundedFull" p="$spacing8" onLongPress={noop}>
+      <TouchableArea centered backgroundColor="$surface4" borderRadius="$roundedFull" p="$spacing8">
         <Ellipsis color="$neutral2" size="$icon.16" />
       </TouchableArea>
     </ContextMenu>

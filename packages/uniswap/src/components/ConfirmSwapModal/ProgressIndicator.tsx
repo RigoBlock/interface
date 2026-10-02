@@ -1,12 +1,18 @@
 import { TradingApi } from '@universe/api'
+import { isWebPlatform } from '@universe/environment'
+import { AnimatedFlex, Flex, getTokenValue, Separator, Text, useSporeColors } from '@universe/mycelium'
+import { SPORE_ANIMATION_CURVE_CSS } from '@universe/tailwind/animations'
+import { withSporeCurve } from '@universe/tailwind/animations/reanimated'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, getTokenValue, Separator, Text, useSporeColors, VerticalDottedLineSeparator } from 'ui/src'
+import type { EntryExitAnimationFunction } from 'react-native-reanimated'
+import { VerticalDottedLineSeparator } from 'ui/src'
 import { zIndexes } from 'ui/src/theme'
 import {
   TokenApprovalTransactionStepRow,
   TokenRevocationTransactionStepRow,
 } from 'uniswap/src/components/ConfirmSwapModal/steps/Approve'
+import { EarnPlanStepRow, isEarnPlanStep } from 'uniswap/src/components/ConfirmSwapModal/steps/EarnPlanStepRow'
 import { LPTransactionStepRow } from 'uniswap/src/components/ConfirmSwapModal/steps/LP'
 import {
   Permit2SignatureStepRow,
@@ -23,6 +29,17 @@ interface ProgressIndicatorProps {
   steps: TransactionStep[]
   currentStep?: { step: TransactionStep; accepted: boolean }
   isChainedAction?: boolean
+}
+
+// Reanimated leg (native) of the legacy Tamagui 'quicker' mount-in fade (enterStyle opacity 0 -> rest).
+// On web, the enterStyle mount-flip plus the scoped opacity transition below drives the same fade;
+// `entering` is ignored on web, so the two mechanisms cover one platform each.
+const fadeInQuicker: EntryExitAnimationFunction = () => {
+  'worklet'
+  return {
+    initialValues: { opacity: 0 },
+    animations: { opacity: withSporeCurve('quicker', 1) },
+  }
 }
 
 // TODO(SWAP-838): Remove implicit chained actions patterns
@@ -54,6 +71,38 @@ function createIsCurrentStep(currentStep: TransactionStep | undefined): (step: T
   }
 }
 
+export function computeStepStatus({
+  steps,
+  currentStep,
+  targetStep,
+}: {
+  steps: TransactionStep[]
+  currentStep: { step: TransactionStep; accepted: boolean } | undefined
+  targetStep: TransactionStep
+}): StepStatus {
+  // Resolve the current step by object identity first: duplicate chained-action rows (e.g. a
+  // failed attempt and its retry) share the same type and stepIndex, so a field match would pick
+  // the first row instead of the actual current one. Fall back to field matching when the
+  // reference isn't in the array (non-chained flows, undefined current step).
+  const currentStepRef = currentStep?.step
+  const refIndex = currentStepRef ? steps.indexOf(currentStepRef) : -1
+  const currentIndex = refIndex !== -1 ? refIndex : steps.findIndex(createIsCurrentStep(currentStepRef))
+  const targetIndex = steps.indexOf(targetStep)
+
+  const isCurrent = currentIndex === targetIndex
+
+  if (isFailedChainedActionStep(targetStep)) {
+    return isCurrent ? StepStatus.Failed : StepStatus.Replaced
+  }
+  if (currentIndex < targetIndex) {
+    return StepStatus.Preview
+  } else if (isCurrent) {
+    return currentStep?.accepted ? StepStatus.InProgress : StepStatus.Active
+  } else {
+    return StepStatus.Complete
+  }
+}
+
 export function ProgressIndicator({
   currentStep,
   steps,
@@ -61,22 +110,7 @@ export function ProgressIndicator({
 }: ProgressIndicatorProps): JSX.Element | null {
   const { t } = useTranslation()
   function getStatus(targetStep: TransactionStep): StepStatus {
-    const isCurrentStep = createIsCurrentStep(currentStep?.step)
-    const currentIndex = steps.findIndex(isCurrentStep)
-    const targetIndex = steps.indexOf(targetStep)
-
-    const isCurrent = currentIndex === targetIndex
-
-    if (isFailedChainedActionStep(targetStep)) {
-      return isCurrent ? StepStatus.Failed : StepStatus.Replaced
-    }
-    if (currentIndex < targetIndex) {
-      return StepStatus.Preview
-    } else if (isCurrent) {
-      return currentStep?.accepted ? StepStatus.InProgress : StepStatus.Active
-    } else {
-      return StepStatus.Complete
-    }
+    return computeStepStatus({ steps, currentStep, targetStep })
   }
 
   const counts = useMemo(() => {
@@ -103,7 +137,14 @@ export function ProgressIndicator({
   }
 
   return (
-    <Flex enterStyle={{ opacity: 0 }} animation="quicker" gap="$spacing16">
+    <AnimatedFlex
+      entering={fadeInQuicker}
+      gap="$spacing16"
+      {...(isWebPlatform && {
+        enterStyle: { opacity: 0 },
+        transition: `opacity ${SPORE_ANIMATION_CURVE_CSS.quicker}`,
+      })}
+    >
       <Flex row gap="$spacing12" alignItems="center">
         <Separator my="$spacing12" />
         <Text color="$neutral2" variant="body3">
@@ -134,7 +175,7 @@ export function ProgressIndicator({
           )
         })}
       </Flex>
-    </Flex>
+    </AnimatedFlex>
   )
 }
 
@@ -207,13 +248,16 @@ function Step({
           {...commonProps}
         />
       )
-    // TODO SWAP-433: Add support for TransactionStepType.SwapTransactionBatched
+    // TODO SWAP-433: Add support for TransactionStepType.SwapTransactionWalletCall
     case TransactionStepType.SwapTransaction:
     case TransactionStepType.SwapTransactionAsync:
     case TransactionStepType.UniswapXSignature:
     case TransactionStepType.UniswapXPlanSignature:
-    case TransactionStepType.SwapTransactionBatched:
+    case TransactionStepType.SwapTransactionWalletCall:
       if (isPlanStep) {
+        if (isEarnPlanStep(step)) {
+          return <EarnPlanStepRow step={step} {...commonProps} />
+        }
         return <SwapTransactionPlanStepRow step={step as SwapSteps} {...commonProps} />
       }
       return <SwapTransactionStepRow step={step} {...commonProps} />

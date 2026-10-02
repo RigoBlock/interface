@@ -1,21 +1,25 @@
 import { useFocusEffect } from '@react-navigation/core'
+import { UniverseChainId } from '@universe/chains'
+import { Flex } from '@universe/mycelium'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { TouchableWithoutFeedback } from 'react-native'
 import Animated from 'react-native-reanimated'
 import { RecipientSelect } from 'src/components/RecipientSelect/RecipientSelect'
+import type { EIP681URI } from 'src/components/Requests/ScanSheet/util'
 import { SEND_CONTENT_RENDER_DELAY_MS } from 'src/features/send/constants'
+import type { QrCodeSelection } from 'src/features/send/qrCodeSelection'
+import { QrCodeSelectionHandler } from 'src/features/send/QrCodeSelectionHandler'
 import { SendFormButton } from 'src/features/send/SendFormButton'
 import { SendHeader } from 'src/features/send/SendHeader'
 import { SendTokenForm } from 'src/features/send/SendTokenForm'
-import { Flex, useSporeColors } from 'ui/src'
 import { Eye } from 'ui/src/components/icons'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import { WarningModal } from 'uniswap/src/components/modals/WarningModal/WarningModal'
 import { TokenSelectorModal } from 'uniswap/src/components/TokenSelector/TokenSelector'
 import { TokenSelectorFlow, TokenSelectorVariation } from 'uniswap/src/components/TokenSelector/types'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import {
   TransactionModalFooterContainer,
@@ -42,16 +46,38 @@ function useGoToReviewScreen(): () => void {
   }, [setScreen, updateSendForm])
 }
 
-export function SendFormScreen(): JSX.Element {
+type SendFormScreenProps = {
+  pendingQrCodeSelection?: QrCodeSelection
+  onClearQrCodeSelection: () => void
+  onQrCodeSelectionChange: (paymentRequest?: EIP681URI) => void
+}
+
+export function SendFormScreen({
+  pendingQrCodeSelection,
+  onClearQrCodeSelection,
+  onQrCodeSelectionChange,
+}: SendFormScreenProps): JSX.Element {
   const [hideContent, setHideContent] = useState(true)
   useEffect(() => {
     setTimeout(() => setHideContent(false), SEND_CONTENT_RENDER_DELAY_MS)
   }, [])
 
-  return <SendFormScreenContent hideContent={hideContent} />
+  return (
+    <SendFormScreenContent
+      hideContent={hideContent}
+      pendingQrCodeSelection={pendingQrCodeSelection}
+      onClearQrCodeSelection={onClearQrCodeSelection}
+      onQrCodeSelectionChange={onQrCodeSelectionChange}
+    />
+  )
 }
 
-function SendFormScreenContent({ hideContent }: { hideContent: boolean }): JSX.Element {
+function SendFormScreenContent({
+  hideContent,
+  pendingQrCodeSelection,
+  onClearQrCodeSelection,
+  onQrCodeSelectionChange,
+}: SendFormScreenProps & { hideContent: boolean }): JSX.Element {
   const { t } = useTranslation()
   const colors = useSporeColors()
   const { bottomSheetViewStyles } = useTransactionModalContext()
@@ -61,10 +87,11 @@ function SendFormScreenContent({ hideContent }: { hideContent: boolean }): JSX.E
   const [showCompatibleAddressModal, setShowCompatibleAddressModal] = useState(false)
 
   const onSelectRecipient = useCallback(
-    (newRecipient: string) => {
+    (newRecipient: string, paymentRequest?: EIP681URI) => {
+      onQrCodeSelectionChange(paymentRequest)
       updateSendForm({ recipient: newRecipient, showRecipientSelector: false })
     },
-    [updateSendForm],
+    [onQrCodeSelectionChange, updateSendForm],
   )
 
   const onHideRecipientSelector = useCallback(() => {
@@ -136,6 +163,9 @@ function SendFormScreenContent({ hideContent }: { hideContent: boolean }): JSX.E
           setShowCompatibleAddressModal={setShowCompatibleAddressModal}
         />
       </TransactionModalFooterContainer>
+      {pendingQrCodeSelection && (
+        <QrCodeSelectionHandler selection={pendingQrCodeSelection} onClose={onClearQrCodeSelection} />
+      )}
     </>
   )
 }

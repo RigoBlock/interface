@@ -1,10 +1,11 @@
 import { Navigate, useParams } from 'react-router'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { areCurrencyIdsEqual } from 'uniswap/src/utils/currencyId'
-import { getChainUrlParam } from '~/features/params/chainParams'
 import { useAccount } from '~/hooks/useAccount'
+import { CREATE_POOL_PATH } from '~/pages/AddLiquidity/poolLinkParams'
+import { getChainUrlParam } from '~/utils/params/chainParams'
 
-export default function AddLiquidityV3WithTokenRedirects() {
+export function AddLiquidityV3WithTokenRedirects() {
   const { currencyIdA, currencyIdB, tokenId } = useParams<{
     currencyIdA: string
     currencyIdB: string
@@ -19,7 +20,8 @@ export default function AddLiquidityV3WithTokenRedirects() {
     return <Navigate to={`/positions/v3/${chainUrlParam}/${tokenId}`} replace />
   }
 
-  const url = new URL('/positions/create/v3', window.location.origin)
+  const url = new URL(CREATE_POOL_PATH, window.location.origin)
+  url.searchParams.append('protocolVersion', 'v3')
   if (currencyIdA) {
     url.searchParams.append('currencyA', currencyIdA)
   }
@@ -28,3 +30,5 @@ export default function AddLiquidityV3WithTokenRedirects() {
   }
   return <Navigate to={url.pathname + url.search} replace />
 }
+
+export default AddLiquidityV3WithTokenRedirects

@@ -1,15 +1,15 @@
 import { TradeType } from '@uniswap/sdk-core'
+import { isMobileApp, isWebPlatform } from '@universe/environment'
+import { Flex, Text } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text } from 'ui/src'
 import { AlertTriangleFilled } from 'ui/src/components/icons/AlertTriangleFilled'
 import { LearnMoreLink } from 'uniswap/src/components/text/LearnMoreLink'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { SlippageInfoProps } from 'uniswap/src/features/transactions/swap/components/MaxSlippageRow/SlippageInfo/types'
 import { useFormatSlippageAmount } from 'uniswap/src/features/transactions/swap/components/MaxSlippageRow/SlippageInfo/useFormatSlippageAmount'
 import { TradeWithSlippage } from 'uniswap/src/features/transactions/swap/types/trade'
 import { isChained } from 'uniswap/src/features/transactions/swap/utils/routing'
-import { isMobileApp, isWebPlatform } from 'utilities/src/platform'
 
 function SlippageWarningText(): JSX.Element {
   const { t } = useTranslation()
@@ -94,7 +94,7 @@ export function SlippageInfoCaption({
           : t('swap.settings.slippage.output.message')}{' '}
         {isWebPlatform && (
           <Flex display="inline-flex">
-            <LearnMoreLink url={uniswapUrls.helpArticleUrls.swapSlippage} textVariant="body4" textColor="$neutral1" />
+            <LearnMoreLink url={UniswapHelpUrls.articles.swapSlippage} textVariant="body4" textColor="$neutral1" />
           </Flex>
         )}
       </Text>

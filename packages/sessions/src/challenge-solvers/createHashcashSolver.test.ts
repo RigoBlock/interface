@@ -50,7 +50,7 @@ describe('createHashcashSolver', () => {
     expect(parts.length).toBe(3)
     expect(parts[0]).toBe('Uniswap')
     expect(parts[1]).toBe(backendExample.nonce)
-    expect(Number.parseInt(parts[2], 10)).toBeGreaterThanOrEqual(0)
+    expect(Number.parseInt(parts[2] ?? '', 10)).toBeGreaterThanOrEqual(0)
   })
 
   it('throws error when challengeData is missing', async () => {
@@ -164,8 +164,8 @@ describe('createHashcashSolver', () => {
           usedWorker: false,
         }),
       )
-      expect(onSolveCompleted.mock.calls[0][0].iterationCount).toBeGreaterThan(0)
-      expect(onSolveCompleted.mock.calls[0][0].durationMs).toBeGreaterThanOrEqual(0)
+      expect(onSolveCompleted.mock.calls[0]?.[0].iterationCount).toBeGreaterThan(0)
+      expect(onSolveCompleted.mock.calls[0]?.[0].durationMs).toBeGreaterThanOrEqual(0)
     })
 
     it('reports failure with validation error type', async () => {

@@ -1,8 +1,10 @@
+import { Flex, iconSizes, Text, TouchableArea, zIndexes } from '@universe/mycelium'
+import { ENTER_EXIT_PRESET_CLASSES } from '@universe/mycelium/compat'
+import { Check } from '@universe/mycelium/icons/Check'
+import { CopySheets } from '@universe/mycelium/icons/CopySheets'
+import { Presence } from '@universe/mycelium/presence'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AnimatePresence, Flex, Text, TouchableArea } from 'ui/src'
-import { Check, CopySheets } from 'ui/src/components/icons'
-import { iconSizes, zIndexes } from 'ui/src/theme'
 
 export function CopyButton({ onCopyPress }: { onCopyPress: () => Promise<void> }): JSX.Element {
   const { t } = useTranslation()
@@ -37,22 +39,24 @@ export function CopyButton({ onCopyPress }: { onCopyPress: () => Promise<void> }
           width={84}
           onPress={onPress}
         >
-          <AnimatePresence exitBeforeEnter initial={false}>
+          <Presence exitBeforeEnter initial={false}>
             {/* note there's various x/y adjustments here due to visual imbalance of icons/text */}
             <Flex
               key={valueCopied ? 'copy' : 'copied'}
               row
               alignItems="center"
-              animateEnterExit="fadeInDownOutDown"
-              animation="100ms"
+              className={ENTER_EXIT_PRESET_CLASSES.fadeInDownOutDown}
               gap="$spacing8"
               justifyContent="center"
               // copied check icon is less wide, content needs to move left to balance
               x={valueCopied ? -1 : 0}
             >
               {valueCopied ? (
-                // check icon is a bit smaller and to the right
-                <Check color="$statusSuccess" size={iconSizes.icon12 + 2} x={2} />
+                // check icon is a bit smaller and to the right; `x` is not on the icon's
+                // supported style surface, so the offset moves onto a wrapping Flex.
+                <Flex x={2}>
+                  <Check color="$statusSuccess" size={iconSizes.icon12 + 2} />
+                </Flex>
               ) : (
                 <CopySheets color="$neutral2" size="$icon.12" />
               )}
@@ -67,7 +71,7 @@ export function CopyButton({ onCopyPress }: { onCopyPress: () => Promise<void> }
                 {valueCopied ? t('common.button.copied') : t('common.button.copy')}
               </Text>
             </Flex>
-          </AnimatePresence>
+          </Presence>
         </Flex>
       </TouchableArea>
     </Flex>

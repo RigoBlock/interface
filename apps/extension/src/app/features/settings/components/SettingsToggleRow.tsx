@@ -1,5 +1,6 @@
+import { Flex, Switch, Text } from '@universe/mycelium'
+import type { GeneratedIcon } from '@universe/mycelium/icons'
 import { SCREEN_ITEM_HORIZONTAL_PAD } from 'src/app/constants'
-import { Flex, GeneratedIcon, Switch, Text } from 'ui/src'
 
 export function SettingsToggleRow({
   Icon,

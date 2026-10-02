@@ -1,20 +1,31 @@
+import {
+  Button,
+  Flex,
+  fonts,
+  iconSizes,
+  Text,
+  TouchableArea,
+  type FlexCompatProps as FlexProps,
+} from '@universe/mycelium'
 import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ViewProps } from 'react-native'
 import { RecoveryWalletInfo, useOnDeviceRecoveryData } from 'src/screens/Import/useOnDeviceRecoveryData'
-import { Button, Flex, FlexProps, Loader, Text, TouchableArea } from 'ui/src'
-import { fonts, iconSizes } from 'ui/src/theme'
+import { Loader } from 'ui/src'
 import { AddressDisplay } from 'uniswap/src/components/accounts/AddressDisplay'
 import { AccountIcon } from 'uniswap/src/features/accounts/AccountIcon'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { NumberType } from 'utilities/src/format/types'
 
-const cardProps: FlexProps & ViewProps = {
+// Plain object literal, not typed as FlexProps: it's spread onto both the mycelium Flex below
+// and the still-ui/src Loader.Box (kept on ui/src since packages/ui/src/loading/** is
+// Tamagui-free), so each spread site's own prop type validates its own shape.
+const cardProps = {
   borderRadius: '$rounded20',
   shadowColor: '$surface3',
   shadowOpacity: 0.04,
   shadowRadius: 10,
-}
+} satisfies FlexProps & ViewProps
 
 export function OnDeviceRecoveryWalletCard({
   mnemonicId,
@@ -68,6 +79,7 @@ export function OnDeviceRecoveryWalletCard({
           <Flex fill py={!remainingWalletCount ? fonts.body3.lineHeight / 2 : undefined}>
             <AddressDisplay
               address={firstWalletInfo.address}
+              disableAutoFontSizing={true}
               hideAddressInSubtitle={true}
               showAccountIcon={false}
               size={iconSizes.icon36}

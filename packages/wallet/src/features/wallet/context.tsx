@@ -1,14 +1,22 @@
-/* oxlint-disable typescript/no-unnecessary-condition typescript/explicit-function-return-type */
+/* oxlint-disable typescript/no-unnecessary-condition typescript/explicit-function-return-type typescript/unbound-method */
+import { tryProvideSession } from '@universe/api'
+import { type ViemClientManager, UniverseChainId } from '@universe/chains'
 import { Signer } from 'ethers'
 import { createContext, PropsWithChildren, useCallback, useContext, useEffect, useState } from 'react'
 import { call, getContext } from 'typed-redux-saga'
 import { SignerMnemonicAccountMeta } from 'uniswap/src/features/accounts/types'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { createEthersProviderFactory } from 'uniswap/src/features/providers/createEthersProvider'
+import { defaultResolveRpcConfig } from 'uniswap/src/features/providers/resolveRpcConfig'
+import { viemClients } from 'uniswap/src/features/providers/viemClients'
 import { logger } from 'utilities/src/logger/logger'
 import { ContractManager } from 'wallet/src/features/contracts/ContractManager'
 import { ProviderManager } from 'wallet/src/features/providers/ProviderManager'
-import { ViemClientManager } from 'wallet/src/features/providers/ViemClientManager'
 import { SignerManager } from 'wallet/src/features/wallet/signing/SignerManager'
+
+const createProvider = createEthersProviderFactory({
+  resolveRpcConfig: defaultResolveRpcConfig,
+  getSessionGate: tryProvideSession,
+})
 
 interface WalletContextValue {
   // Manages contracts
@@ -23,8 +31,8 @@ interface WalletContextValue {
 
 export const walletContextValue: WalletContextValue = {
   contracts: new ContractManager(),
-  providers: new ProviderManager(),
-  viemClients: new ViemClientManager(),
+  providers: new ProviderManager(createProvider, defaultResolveRpcConfig),
+  viemClients,
   signers: new SignerManager(),
 }
 

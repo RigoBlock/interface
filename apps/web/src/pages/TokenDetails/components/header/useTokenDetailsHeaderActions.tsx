@@ -1,23 +1,17 @@
 import { Currency } from '@uniswap/sdk-core'
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { ChartBarCrossed } from '@universe/mycelium/icons/ChartBarCrossed'
+import { Ellipsis } from '@universe/mycelium/icons/Ellipsis'
+import { Flag } from '@universe/mycelium/icons/Flag'
+import { XTwitter } from '@universe/mycelium/icons/XTwitter'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChartBarCrossed } from 'ui/src/components/icons/ChartBarCrossed'
-import { Ellipsis } from 'ui/src/components/icons/Ellipsis'
-import { Flag } from 'ui/src/components/icons/Flag'
-import { GlobeFilled } from 'ui/src/components/icons/GlobeFilled'
-import { XTwitter } from 'ui/src/components/icons/XTwitter'
-import { getBlockExplorerIcon } from 'uniswap/src/components/chains/BlockExplorerIcon'
-import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
-import { deriveFromSections } from '~/components/Explore/stickyHeader/HeaderActions/deriveHeaderActions'
+import { deriveFromSections } from '~/components/StickyCollapsibleHeader/HeaderActions/deriveHeaderActions'
 import {
   type HeaderAction,
   type HeaderActionDropdownItem,
   type HeaderActionSection,
-} from '~/components/Explore/stickyHeader/HeaderActions/types'
-import { useShareAction } from '~/components/Explore/stickyHeader/HeaderActions/useShareAction'
-import { NATIVE_CHAIN_ID } from '~/constants/tokens'
+} from '~/components/StickyCollapsibleHeader/HeaderActions/types'
+import { useShareAction } from '~/components/StickyCollapsibleHeader/HeaderActions/useShareAction'
 
 type TokenDetailsHeaderActionsParams = {
   currency: Currency
@@ -38,7 +32,6 @@ export function useTokenDetailsHeaderActions({
   mobileHeaderActionSections: HeaderActionSection[]
 } {
   const { t } = useTranslation()
-  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
 
   const twitterShareName =
     currency.name && currency.symbol ? `${currency.name} (${currency.symbol})` : currency.name || currency.symbol || ''
@@ -48,15 +41,7 @@ export function useTokenDetailsHeaderActions({
     isMobileScreen,
   })
 
-  const explorerUrl = getExplorerLink({
-    chainId: currency.chainId,
-    data: currency.isNative ? NATIVE_CHAIN_ID : currency.address,
-    type: currency.isNative ? ExplorerDataType.NATIVE : ExplorerDataType.TOKEN,
-  })
-  const BlockExplorerIcon = getBlockExplorerIcon(currency.chainId)
-  const explorerName = getChainInfo(currency.chainId).explorer.name
-
-  const { homepageUrl, twitterName } = project ?? {}
+  const { twitterName } = project ?? {}
   const twitterUrl = twitterName ? `https://x.com/${twitterName}` : undefined
 
   const reportActions: HeaderActionDropdownItem[] = useMemo(
@@ -78,38 +63,23 @@ export function useTokenDetailsHeaderActions({
     [t, openReportDataIssueModal, openReportTokenModal, currency.isNative],
   )
 
-  const sections: HeaderActionSection[] = useMemo(
-    () => [
+  const sections: HeaderActionSection[] = useMemo(() => {
+    const detailsActions: HeaderAction[] = [
       {
-        title: t('common.details'),
-        actions: [
-          ...(!multichainTokenUxEnabled
-            ? [
-                {
-                  title: explorerName,
-                  icon: <BlockExplorerIcon size="$icon.18" color="$neutral2" />,
-                  href: explorerUrl,
-                  onPress: () => {},
-                  show: !!explorerUrl,
-                },
-                {
-                  title: t('common.website'),
-                  icon: <GlobeFilled size="$icon.18" color="$neutral2" />,
-                  href: homepageUrl,
-                  onPress: () => {},
-                  show: !!homepageUrl,
-                },
-              ]
-            : []),
-          {
-            title: t('common.twitter'),
-            icon: <XTwitter size="$icon.18" color="$neutral2" />,
-            href: twitterUrl,
-            onPress: () => {},
-            show: !!twitterUrl,
-          },
-        ],
+        title: t('common.twitter'),
+        icon: <XTwitter size="$icon.18" color="$neutral2" />,
+        href: twitterUrl,
+        onPress: () => {},
+        show: !!twitterUrl,
       },
+    ]
+
+    const detailsSection: HeaderActionSection | null = detailsActions.some((a) => a.show)
+      ? { title: t('common.details'), actions: detailsActions }
+      : null
+
+    return [
+      ...(detailsSection ? [detailsSection] : []),
       {
         title: t('common.share'),
         actions: [shareAction],
@@ -125,19 +95,8 @@ export function useTokenDetailsHeaderActions({
           },
         ],
       },
-    ],
-    [
-      t,
-      shareAction,
-      explorerName,
-      BlockExplorerIcon,
-      explorerUrl,
-      homepageUrl,
-      twitterUrl,
-      reportActions,
-      multichainTokenUxEnabled,
-    ],
-  )
+    ]
+  }, [t, shareAction, twitterUrl, reportActions])
 
   return useMemo(() => deriveFromSections(sections), [sections])
 }

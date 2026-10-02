@@ -5,14 +5,15 @@ interface UseTypedDataWarningConfirmationParams {
   isNonStandard: boolean
   riskLevel: TransactionRiskLevel
   confirmedRisk: boolean
-  onConfirmRisk: (confirmed: boolean) => void
+  /** Omitted when the request can't be acknowledged through; no confirmation is then published. */
+  onConfirmRisk?: (confirmed: boolean) => void
 }
 
 interface UseTypedDataWarningConfirmationReturn {
   confirmedNonStandard: boolean
   confirmedRiskWarning: boolean
-  handleNonStandardConfirm: (confirmed: boolean) => void
-  handleRiskConfirm: (confirmed: boolean) => void
+  handleNonStandardConfirm?: (confirmed: boolean) => void
+  handleRiskConfirm?: (confirmed: boolean) => void
 }
 
 /**
@@ -47,6 +48,9 @@ export function useTypedDataWarningConfirmation({
 
   // Merge confirmations: when non-standard, both warnings must be confirmed if applicable
   useEffect(() => {
+    if (!onConfirmRisk) {
+      return
+    }
     if (isNonStandard) {
       // For non-standard, we need both confirmations if there's a critical risk
       const allConfirmed = confirmedNonStandard && (!needsRiskConfirmation || confirmedRiskWarning)
@@ -70,7 +74,7 @@ export function useTypedDataWarningConfirmation({
   return {
     confirmedNonStandard,
     confirmedRiskWarning,
-    handleNonStandardConfirm,
-    handleRiskConfirm,
+    handleNonStandardConfirm: onConfirmRisk ? handleNonStandardConfirm : undefined,
+    handleRiskConfirm: onConfirmRisk ? handleRiskConfirm : undefined,
   }
 }

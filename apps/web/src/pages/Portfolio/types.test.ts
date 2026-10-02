@@ -4,6 +4,7 @@ describe('PortfolioTab', () => {
   it('should have correct enum values', () => {
     expect(PortfolioTab.Overview).toBe('overview')
     expect(PortfolioTab.Tokens).toBe('tokens')
+    expect(PortfolioTab.Pools).toBe('pools')
     expect(PortfolioTab.Defi).toBe('defi')
     expect(PortfolioTab.Perps).toBe('perps')
     expect(PortfolioTab.Nfts).toBe('nfts')
@@ -15,6 +16,7 @@ describe('isPortfolioTab', () => {
   it('should return true for valid portfolio tabs', () => {
     expect(isPortfolioTab('overview')).toBe(true)
     expect(isPortfolioTab('tokens')).toBe(true)
+    expect(isPortfolioTab('pools')).toBe(true)
     expect(isPortfolioTab('defi')).toBe(true)
     expect(isPortfolioTab('perps')).toBe(true)
     expect(isPortfolioTab('nfts')).toBe(true)

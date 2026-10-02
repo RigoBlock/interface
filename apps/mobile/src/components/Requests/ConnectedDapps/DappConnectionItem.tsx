@@ -1,13 +1,12 @@
 import 'react-native-reanimated'
+import { isIOS } from '@universe/environment'
+import { AnimatedTouchableArea, Flex, iconSizes, spacing, Text } from '@universe/mycelium'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { NativeSyntheticEvent, StyleSheet } from 'react-native'
 import ContextMenu, { ContextMenuOnPressNativeEvent } from 'react-native-context-menu-view'
 import { FadeIn, FadeOut } from 'react-native-reanimated'
 import { WalletConnectSession } from 'src/features/walletConnect/walletConnectSlice'
-import { AnimatedTouchableArea, Flex, Text } from 'ui/src'
-import { iconSizes, spacing } from 'ui/src/theme'
-import { noop } from 'utilities/src/react/noop'
 import { DappHeaderIcon } from 'wallet/src/components/dappRequests/DappHeaderIcon'
 
 export function DappConnectionItem({
@@ -22,7 +21,13 @@ export function DappConnectionItem({
   const { t } = useTranslation()
   const { dappRequestInfo } = session
 
-  const menuActions = [{ title: t('common.button.disconnect'), systemIcon: 'trash', destructive: true }]
+  const menuActions = [
+    {
+      title: t('common.button.disconnect'),
+      destructive: true,
+      ...(isIOS ? { systemIcon: 'trash' } : { icon: 'uniswap_icon_trash' }),
+    },
+  ]
 
   const onPress = async (e: NativeSyntheticEvent<ContextMenuOnPressNativeEvent>): Promise<void> => {
     if (e.nativeEvent.index === 0) {
@@ -38,6 +43,8 @@ export function DappConnectionItem({
     <ContextMenu actions={menuActions} style={styles.container} onPress={onPress}>
       <Flex
         grow
+        // Keep a native host so iOS can snapshot this tile for the context-menu preview.
+        collapsable={false}
         backgroundColor="$surface2"
         borderRadius="$rounded16"
         gap="$spacing12"
@@ -64,7 +71,6 @@ export function DappConnectionItem({
               justifyContent="center"
               width={iconSizes.icon28}
               zIndex="$tooltip"
-              onLongPress={noop}
               onPress={onDisconnectSession}
             >
               <Flex backgroundColor="$surface1" borderRadius="$rounded12" height={2} width={14} />

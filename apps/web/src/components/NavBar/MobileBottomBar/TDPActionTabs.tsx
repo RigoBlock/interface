@@ -1,14 +1,19 @@
+import { isEVMChain } from '@universe/chains'
+import { Button, Flex } from '@universe/mycelium'
+import { ArrowDownCircle } from '@universe/mycelium/icons/ArrowDownCircle'
+import { ArrowUpCircle } from '@universe/mycelium/icons/ArrowUpCircle'
+import { UserCheck } from '@universe/mycelium/icons/UserCheck'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
 import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
-import { Button, Flex, useMedia } from 'ui/src'
-import { ArrowDownCircle } from 'ui/src/components/icons/ArrowDownCircle'
-import { ArrowUpCircle } from 'ui/src/components/icons/ArrowUpCircle'
-import { isEVMChain } from 'uniswap/src/features/platforms/utils/chains'
+import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { NATIVE_CHAIN_ID } from '~/constants/tokens'
 import { useActiveAccount } from '~/features/accounts/store/hooks'
-import useSelectChain from '~/hooks/useSelectChain'
+import { useModalState } from '~/hooks/useModalState'
+import { useSelectChain } from '~/hooks/useSelectChain'
 import { useTDPStore } from '~/pages/TokenDetails/context/useTDPStore'
+import { useTDPPermissionedState } from '~/pages/TokenDetails/hooks/useTDPPermissionedState'
 
 const TDP_ACTION_TABS_MAX_WIDTH = 780
 
@@ -20,20 +25,31 @@ type TabItem = {
 
 export function TDPActionTabs() {
   const { t } = useTranslation()
-  const { currencyChain, currencyChainId, address, tokenColor, multiChainMap } = useTDPStore((s) => ({
+  const { currencyChain, currencyChainId, address, tokenColor, multiChainMap, currency } = useTDPStore((s) => ({
     currencyChain: s.currencyChain,
     currencyChainId: s.currencyChainId,
     address: s.address,
     tokenColor: s.tokenColor,
     multiChainMap: s.multiChainMap,
+    currency: s.currency,
   }))
   const selectChain = useSelectChain()
   const navigate = useNavigate()
 
   const currentConnectedChainId = useActiveAccount(currencyChainId)?.chainId
 
-  const hasBalance = Boolean(multiChainMap[currencyChain]?.balance)
+  // VerifyIdentityModal mounts in TDPSwapComponent (shared via redux modal state); only
+  // render the CTA here to avoid double-mounting portals when both are in the tree.
+  const tokenAddressForPermissions = currency && !currency.isNative ? currency.address : undefined
+  const { isBlocked: isPermissionedBlocked } = useTDPPermissionedState({
+    tokenAddress: tokenAddressForPermissions,
+    chainId: currencyChainId,
+  })
+  const { openModal: openVerifyIdentityModal } = useModalState(ModalName.VerifyIdentity)
 
+  const hasBalance = Boolean(multiChainMap[currencyChainId]?.balance)
+
+  // oxlint-disable-next-line universe-custom/no-tolowercase-address-currencyid -- chain name URL slug, not an address
   const chainUrlParam = currencyChain.toLowerCase()
   const addressUrlParam = address === NATIVE_CHAIN_ID ? 'ETH' : address
   const media = useMedia()
@@ -68,6 +84,22 @@ export function TDPActionTabs() {
     ],
     [t, chainUrlParam, addressUrlParam, hasBalance],
   )
+
+  if (isPermissionedBlocked) {
+    return (
+      <Flex row justifyContent="center" gap="$spacing8" width="100%" mx="auto" maxWidth={TDP_ACTION_TABS_MAX_WIDTH}>
+        <Button
+          onPress={openVerifyIdentityModal}
+          backgroundColor={tokenColor}
+          size="medium"
+          icon={showIcons ? <UserCheck /> : undefined}
+        >
+          {t('permissionedPool.verifyIdentity.cta')}
+        </Button>
+      </Flex>
+    )
+  }
+
   return (
     <Flex row justifyContent="center" gap="$spacing8" width="100%" mx="auto" maxWidth={TDP_ACTION_TABS_MAX_WIDTH}>
       {tabs.map((tab) => (

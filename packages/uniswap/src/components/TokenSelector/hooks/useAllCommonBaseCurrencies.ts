@@ -1,12 +1,12 @@
-import { GqlResult } from '@universe/api'
-import { useCurrencies } from 'uniswap/src/components/TokenSelector/hooks/useCurrencies'
+import type { UseQueryResult } from '@tanstack/react-query'
+import { UniverseChainId } from '@universe/chains'
 import { USDC, USDT, WBTC } from 'uniswap/src/constants/tokens'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
+import { useMultichainCurrencyInfosWithoutBridgedNatives } from 'uniswap/src/features/tokens/useMultichainCurrencyInfos'
 import { buildNativeCurrencyId, buildWrappedNativeCurrencyIdWithThrow, currencyId } from 'uniswap/src/utils/currencyId'
 
-// Use Mainnet base token addresses since TokenProjects query returns each token
+// Use Mainnet base token addresses since the multichain lookup returns each token
 // on each network
 const baseCurrencyIds = [
   buildNativeCurrencyId(UniverseChainId.Mainnet),
@@ -22,7 +22,7 @@ const baseCurrencyIds = [
   buildWrappedNativeCurrencyIdWithThrow(UniverseChainId.Mainnet),
 ]
 
-export function useAllCommonBaseCurrencies(): GqlResult<CurrencyInfo[]> {
+export function useAllCommonBaseCurrencies(): UseQueryResult<CurrencyInfo[]> {
   const { isTestnetModeEnabled } = useEnabledChains()
-  return useCurrencies(isTestnetModeEnabled ? [] : baseCurrencyIds)
+  return useMultichainCurrencyInfosWithoutBridgedNatives(isTestnetModeEnabled ? [] : baseCurrencyIds)
 }

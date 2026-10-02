@@ -14,6 +14,7 @@ export function useFiatOnRampTransactions() {
   const fiatOnRampTransactions = useAppSelector((state) => state.fiatOnRampTransactions)
   return useMemo(() => {
     // Only compute the transactions if there's a valid account address
+    // oxlint-disable-next-line typescript/no-unnecessary-condition
     if (!account.address || !fiatOnRampTransactions[account.address]) {
       return {}
     }

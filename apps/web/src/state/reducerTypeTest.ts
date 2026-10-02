@@ -1,9 +1,9 @@
 import { type TokenList } from '@uniswap/token-lists'
+import type { UniverseChainId } from '@universe/chains'
 import { type CombinedState } from 'redux'
 import { assert, type Equals } from 'tsafe'
 import { AppearanceSettingsState } from 'uniswap/src/features/appearance/slice'
 import { type UniswapBehaviorHistoryState } from 'uniswap/src/features/behaviorHistory/slice'
-import { type UniverseChainId } from 'uniswap/src/features/chains/types'
 import { type FavoritesState } from 'uniswap/src/features/favorites/slice'
 import { type NotificationState } from 'uniswap/src/features/notifications/slice/slice'
 import { type PortfolioState } from 'uniswap/src/features/portfolio/slice/slice'
@@ -20,19 +20,16 @@ import {
 } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { type VisibilityState } from 'uniswap/src/features/visibility/slice'
 import { type SagaState } from 'uniswap/src/utils/saga'
-import { type PopupType } from '~/components/Popups/types'
 import { type ApplicationState, type OpenModalParams } from '~/state/application/reducer'
 import { type FiatOnRampTransactionsState } from '~/state/fiatOnRampTransactions/reducer'
 import { type PoolsListsState } from '~/state/lists/poolsList/reducer'
 import { type ListsState } from '~/state/lists/types'
-import { type LogsState } from '~/state/logs/slice'
-import { type Log } from '~/state/logs/utils'
 import { type MintState } from '~/state/mint/v3/reducer'
 import { type PortfolioStakingState } from '~/state/portfolio/stakingSlice'
-import { type routingApi } from '~/state/routing/slice'
+import { type PopupType } from '~/state/popups/types'
 import { type RouterPreference } from '~/state/routing/types'
 import { type UserState } from '~/state/user/reducer'
-import { type SerializedPair, type SlippageTolerance } from '~/state/user/types'
+import { type SlippageTolerance } from '~/state/user/types'
 import { type WalletCapabilitiesState } from '~/state/walletCapabilities/types'
 import { type InterfaceState } from '~/state/webReducer'
 
@@ -62,11 +59,9 @@ type ExpectedAppState = CombinedState<{
   readonly lists: ListsState
   readonly poolsList: PoolsListsState
   readonly application: ApplicationState
-  readonly logs: LogsState
   readonly mintV3: MintState
   readonly saga: Record<string, SagaState>
   readonly portfolioStaking: PortfolioStakingState
-  readonly [routingApi.reducerPath]: ReturnType<typeof routingApi.reducer>
 
   // Uniswap State
   readonly appearanceSettings: AppearanceSettingsState
@@ -94,11 +89,6 @@ interface ExpectedUserState {
   userSlippageTolerance: number | SlippageTolerance.Auto
   userSlippageToleranceHasBeenMigratedToAuto: boolean
   userDeadline: number
-  pairs: {
-    [chainId: number]: {
-      [key: string]: SerializedPair
-    }
-  }
   timestamp: number
   showSurveyPopup?: boolean
   originCountry?: string
@@ -135,29 +125,6 @@ interface ExpectedApplicationState {
   readonly openModal: OpenModalParams | null
   readonly smartPool: { address?: string | null; name: string | null }
   readonly suppressedPopups: PopupType[]
-  readonly downloadGraduatedWalletCardsDismissed: string[]
 }
 
 assert<Equals<ApplicationState, ExpectedApplicationState>>()
-
-interface ExpectedLogsState {
-  [chainId: number]: {
-    [filterKey: string]: {
-      listeners: number
-      fetchingBlockNumber?: number
-      results?:
-        | {
-            blockNumber: number
-            logs: Log[]
-            error?: undefined
-          }
-        | {
-            blockNumber: number
-            logs?: undefined
-            error: true
-          }
-    }
-  }
-}
-
-assert<Equals<LogsState, ExpectedLogsState>>()

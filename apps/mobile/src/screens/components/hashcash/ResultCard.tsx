@@ -1,6 +1,6 @@
+import { Flex, Text } from '@universe/mycelium'
 import React, { memo } from 'react'
 import type { BenchmarkResult } from 'src/screens/stores/hashcashBenchmarkStore'
-import { Flex, Text } from 'ui/src'
 
 function formatDuration(ms: number): string {
   if (ms < 1000) {

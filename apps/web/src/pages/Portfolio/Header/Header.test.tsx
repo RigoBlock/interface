@@ -1,5 +1,5 @@
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
-import { SAMPLE_SEED_ADDRESS_1 } from 'uniswap/src/test/fixtures/gql/assets/constants'
+import { Platform } from '@universe/chains'
+import { SAMPLE_SEED_ADDRESS_1 } from 'uniswap/src/test/fixtures/assets/constants'
 import { PortfolioHeader } from '~/pages/Portfolio/Header/Header'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { PortfolioTab } from '~/pages/Portfolio/types'
@@ -35,10 +35,6 @@ vi.mock('~/hooks/useAppHeaderHeight', () => ({
   useAppHeaderHeight: vi.fn().mockReturnValue(72),
 }))
 
-vi.mock('~/pages/Portfolio/Header/useShouldHeaderBeCompact', () => ({
-  useShouldHeaderBeCompact: vi.fn().mockReturnValue(false),
-}))
-
 vi.mock('~/pages/Portfolio/Header/PortfolioAddressDisplay/PortfolioAddressDisplay', () => ({
   PortfolioAddressDisplay: ({ isCompact }: { isCompact: boolean }) => (
     <div data-testid="address-display" data-compact={isCompact}>
@@ -53,6 +49,10 @@ vi.mock('~/pages/Portfolio/Header/Tabs', () => ({
 
 vi.mock('~/pages/Portfolio/Header/SharePortfolioButton', () => ({
   SharePortfolioButton: () => <div data-testid="share-button">Share Button Mock</div>,
+}))
+
+vi.mock('~/pages/Portfolio/Header/PortfolioMoreMenu', () => ({
+  PortfolioMoreMenu: () => <div data-testid="more-menu">More Menu Mock</div>,
 }))
 
 vi.mock('~/components/NetworkFilter/NetworkFilter', () => ({
@@ -81,11 +81,11 @@ describe('PortfolioHeader', () => {
         hasExplicitUrlAddress: false,
       })
 
-      const { container } = render(<PortfolioHeader />)
+      const { container } = render(<PortfolioHeader isCompact />)
       expect(container).toMatchSnapshot()
     })
 
-    it('should render header with scroll position', () => {
+    it('should render header in expanded state', () => {
       mocked(usePortfolioRoutes).mockReturnValue({
         tab: PortfolioTab.Tokens,
         chainId: undefined,
@@ -94,7 +94,7 @@ describe('PortfolioHeader', () => {
         hasExplicitUrlAddress: false,
       })
 
-      const { container } = render(<PortfolioHeader scrollY={150} />)
+      const { container } = render(<PortfolioHeader isCompact={false} />)
       expect(container).toMatchSnapshot()
     })
   })
@@ -116,7 +116,7 @@ describe('PortfolioHeader', () => {
         hasExplicitUrlAddress: true,
       })
 
-      const { container } = render(<PortfolioHeader />)
+      const { container } = render(<PortfolioHeader isCompact={false} />)
       expect(container).toMatchSnapshot()
     })
   })

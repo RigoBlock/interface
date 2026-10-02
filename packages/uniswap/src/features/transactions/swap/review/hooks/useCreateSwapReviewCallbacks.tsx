@@ -1,3 +1,4 @@
+import { isWebApp } from '@universe/environment'
 import { useCallback } from 'react'
 // oxlint-disable-next-line no-restricted-imports -- only using to keep a consistent timing on interface
 import { ADAPTIVE_MODAL_ANIMATION_DURATION } from 'ui/src/components/modal/AdaptiveWebModal'
@@ -17,7 +18,6 @@ import type { SetCurrentStepFn } from 'uniswap/src/features/transactions/swap/ty
 import { createTransactionId } from 'uniswap/src/utils/createTransactionId'
 import { tryCatch } from 'utilities/src/errors'
 import { logger } from 'utilities/src/logger/logger'
-import { isWebApp } from 'utilities/src/platform'
 import { useEvent } from 'utilities/src/react/hooks'
 
 interface SwapReviewCallbacks {
@@ -91,6 +91,7 @@ export function useCreateSwapReviewCallbacks(ctx: {
       exactAmountToken: '',
       txHash: undefined,
       txHashReceivedTime: undefined,
+      isEarnFlow: false,
     })
   }, [updateSwapForm])
 
@@ -101,6 +102,7 @@ export function useCreateSwapReviewCallbacks(ctx: {
       updateSwapForm({
         exactAmountFiat: undefined,
         exactAmountToken: '',
+        isEarnFlow: false,
         showPendingUI: false,
         isConfirmed: false,
         txHash: undefined,

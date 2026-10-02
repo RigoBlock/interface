@@ -1,19 +1,22 @@
+import { Flex, FlexCompatProps, Text, TouchableArea } from '@universe/mycelium'
+import type { GeneratedIconProps } from '@universe/mycelium/icons'
+import { Eye } from '@universe/mycelium/icons/Eye'
+import { EyeOff } from '@universe/mycelium/icons/EyeOff'
+import { Fingerprint } from '@universe/mycelium/icons/Fingerprint'
 import { forwardRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { TextInput } from 'react-native'
 import { Input, InputProps } from 'src/app/components/Input'
 import { useShouldShowBiometricUnlock } from 'src/app/features/biometricUnlock/useShouldShowBiometricUnlock'
-import { Flex, FlexProps, IconProps, Text, TouchableArea } from 'ui/src'
-import { Eye, EyeOff, Fingerprint } from 'ui/src/components/icons'
 import { getPasswordStrengthTextAndColor, PasswordStrength } from 'wallet/src/utils/password'
 
 export const PADDING_STRENGTH_INDICATOR = 76
 
-const iconProps: IconProps = {
+const iconProps: GeneratedIconProps = {
   color: '$neutral3',
   size: '$icon.20',
 }
-const hoverStyle: FlexProps = {
+const hoverStyle: FlexCompatProps = {
   backgroundColor: 'transparent',
 }
 

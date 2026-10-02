@@ -1,298 +1,78 @@
-import type { UseMutationResult } from '@tanstack/react-query'
+import { BackupMethodSummary, IconBox } from '@universe/embedded-wallet'
+import { Button, Flex, ModalCloseIcon, Text, TouchableArea } from '@universe/mycelium'
+import { AlertTriangleFilled } from '@universe/mycelium/icons/AlertTriangleFilled'
+import { Person } from '@universe/mycelium/icons/Person'
+import { Shield } from '@universe/mycelium/icons/Shield'
+import { WalletFilled } from '@universe/mycelium/icons/WalletFilled'
+import { TestID } from '@universe/test'
 import type { TFunction } from 'i18next'
-import { Button, Flex, Input, SpinningLoader, Text, TouchableArea } from 'ui/src'
-import { Envelope } from 'ui/src/components/icons/Envelope'
-import { Eye } from 'ui/src/components/icons/Eye'
-import { EyeOff } from 'ui/src/components/icons/EyeOff'
-import { Person } from 'ui/src/components/icons/Person'
-import { AccountIcon } from 'uniswap/src/features/accounts/AccountIcon'
+import { AddressDisplay } from 'uniswap/src/components/accounts/AddressDisplay'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { DigitInputRow, type DigitInputState, IconBox, StepHeader } from '~/components/Passkey/BackupLoginComponents'
+import { OverflowMenu } from '~/components/Passkey/OverflowMenu'
 
-export function OAuthLoadingStep({
-  oauthError,
-  handleClose,
-}: {
-  oauthError: string | undefined
-  handleClose: () => void
-}) {
-  return (
-    <Flex gap="$gap24" alignItems="center" py="$padding32" width="100%">
-      {oauthError ? (
-        <>
-          <StepHeader onBack={handleClose} onClose={handleClose} />
-          <Text variant="body2" color="$statusCritical" textAlign="center">
-            {oauthError}
-          </Text>
-        </>
-      ) : (
-        <SpinningLoader size={32} />
-      )}
-    </Flex>
-  )
-}
+// The shared recovery steps (EmailCodeStep, EnterPinStep, ...) live in
+// @universe/embedded-wallet. This file keeps only the web-only steps below.
 
-export function EmailEntryStep({
-  email,
-  setEmail,
-  isValidEmail,
-  isLoading,
-  errorMessage,
-  sendCodeMutation,
-  handleBack,
-  handleClose,
-  t,
-}: {
-  email: string
-  setEmail: (v: string) => void
-  isValidEmail: boolean
-  isLoading: boolean
-  errorMessage: string | undefined
-  sendCodeMutation: UseMutationResult<void, Error, void>
-  handleBack: () => void
-  handleClose: () => void
-  t: TFunction
-}) {
-  return (
-    <Trace logImpression modal={ModalName.RecoverWallet}>
-      <StepHeader onBack={handleBack} onClose={handleClose} />
-      <Flex gap="$gap16" alignItems="center" width="100%" px="$padding4">
-        <IconBox>
-          <Person size="$icon.24" color="$neutral1" />
-        </IconBox>
-        <Flex gap="$gap8" alignItems="center" maxWidth={360}>
-          <Text variant="subheading1" textAlign="center">
-            {t('account.passkey.recovery.email.title')}
-          </Text>
-          <Text variant="body2" textAlign="center" color="$neutral2">
-            {t('account.passkey.recovery.email.description')}
-          </Text>
-        </Flex>
-      </Flex>
-      <Flex width="100%" gap="$gap16">
-        <Input
-          placeholder={t('account.passkey.recovery.email.title')}
-          placeholderTextColor="$neutral3"
-          value={email}
-          onChangeText={(v) => setEmail(v.trim())}
-          onSubmitEditing={() => {
-            if (isValidEmail && !isLoading) {
-              sendCodeMutation.mutate()
-            }
-          }}
-          keyboardType="email-address"
-          autoComplete="email"
-          autoFocus
-          height={60}
-          backgroundColor="$surface2"
-          borderWidth={1}
-          borderColor="$surface3"
-          borderRadius="$rounded20"
-          px="$padding20"
-          color="$neutral1"
-          fontSize={18}
-          fontWeight="$book"
-        />
-        {errorMessage && (
-          <Text variant="body3" color="$statusCritical" textAlign="center">
-            {errorMessage}
-          </Text>
-        )}
-        <Trace logPress element={ElementName.RecoverWalletEmail}>
-          <Flex row alignSelf="stretch">
-            <Button
-              variant={isValidEmail ? 'branded' : 'default'}
-              size="large"
-              onPress={() => sendCodeMutation.mutate()}
-              isDisabled={!isValidEmail || isLoading}
-            >
-              {t('common.button.continue')}
-            </Button>
-          </Flex>
-        </Trace>
-      </Flex>
-    </Trace>
-  )
-}
-
-export function EmailCodeStep({
-  email,
-  otpInput,
-  submitCodeMutation,
-  resendCodeMutation,
-  errorMessage,
-  handleBack,
-  handleClose,
-  t,
-}: {
-  email: string
-  otpInput: DigitInputState
-  submitCodeMutation: UseMutationResult<void, Error, string>
-  resendCodeMutation: UseMutationResult<void, Error, void>
-  errorMessage: string | undefined
-  handleBack: () => void
-  handleClose: () => void
-  t: TFunction
-}) {
-  return (
-    <Trace logImpression modal={ModalName.RecoverWallet}>
-      <StepHeader onBack={handleBack} onClose={handleClose} />
-      <Flex gap="$gap16" alignItems="center" width="100%">
-        <IconBox>
-          <Envelope size="$icon.24" color="$neutral1" />
-        </IconBox>
-        <Flex gap="$gap8" alignItems="center" maxWidth={360}>
-          <Text variant="subheading1" textAlign="center">
-            {t('account.passkey.backupLogin.code.title')}
-          </Text>
-          <Text variant="body2" textAlign="center" color="$neutral2">
-            {t('account.passkey.backupLogin.code.description', { email })}
-          </Text>
-        </Flex>
-      </Flex>
-      <DigitInputRow
-        digits={otpInput.digits}
-        refs={otpInput.refs}
-        onChange={otpInput.handleChange}
-        onKeyDown={otpInput.handleKeyDown}
-        onPaste={otpInput.handlePaste}
-        autoFocus
-        disabled={submitCodeMutation.isPending}
-      />
-      {submitCodeMutation.isPending && (
-        <Flex row gap="$gap8" alignItems="center" justifyContent="center">
-          <SpinningLoader size={16} />
-          <Text variant="body3" color="$neutral2">
-            {t('account.passkey.backupLogin.code.verifying')}
-          </Text>
-        </Flex>
-      )}
-      {errorMessage && (
-        <Text variant="body3" color="$statusCritical" textAlign="center">
-          {errorMessage}
-        </Text>
-      )}
-      <Trace logPress element={ElementName.RecoverWalletResendCode}>
-        <TouchableArea
-          variant="unstyled"
-          onPress={() => {
-            otpInput.reset()
-            resendCodeMutation.mutate()
-          }}
-          disabled={submitCodeMutation.isPending}
-        >
-          <Text variant="buttonLabel3" color="$accent1">
-            {t('account.passkey.backupLogin.code.resend')}
-          </Text>
-        </TouchableArea>
-      </Trace>
-    </Trace>
-  )
-}
-
-export function EnterPinStep({
-  recoveryWalletAddress,
-  passcodeInput,
-  showPasscode,
-  setShowPasscode,
-  pinError,
-  cooldown,
-  isDecrypting,
-  handleBack,
-  handleClose,
-  t,
-}: {
-  recoveryWalletAddress: string | undefined
-  passcodeInput: DigitInputState
-  showPasscode: boolean
-  setShowPasscode: (v: boolean) => void
-  pinError: string | undefined
-  cooldown: { isActive: boolean; formattedTime: string }
-  isDecrypting: boolean
-  handleBack: () => void
-  handleClose: () => void
-  t: TFunction
-}) {
-  return (
-    <Trace logImpression modal={ModalName.RecoverWallet}>
-      <StepHeader onBack={handleBack} onClose={handleClose} />
-      <Flex gap="$gap16" alignItems="center" width="100%" px="$padding4">
-        <AccountIcon address={recoveryWalletAddress} size={48} />
-        <Flex gap="$gap8" alignItems="center" maxWidth={360}>
-          <Text variant="subheading1" textAlign="center">
-            {t('account.passkey.recovery.pin.title')}
-          </Text>
-          <Text variant="body2" textAlign="center" color="$neutral2">
-            {t('account.passkey.recovery.pin.description')}
-          </Text>
-        </Flex>
-      </Flex>
-      <Flex gap="$gap12" alignSelf="stretch">
-        <DigitInputRow
-          digits={passcodeInput.digits}
-          refs={passcodeInput.refs}
-          onChange={passcodeInput.handleChange}
-          onKeyDown={passcodeInput.handleKeyDown}
-          onPaste={passcodeInput.handlePaste}
-          inputType={showPasscode ? 'text' : 'password'}
-          autoFocus
-          disabled={cooldown.isActive || isDecrypting}
-        />
-        {pinError && !cooldown.isActive && (
-          <Text variant="body3" color="$statusCritical" textAlign="center">
-            {pinError}
-          </Text>
-        )}
-        {cooldown.isActive && (
-          <Text variant="body3" color="$neutral2" textAlign="center">
-            {t('account.passkey.recovery.cooldown', { time: cooldown.formattedTime })}
-          </Text>
-        )}
-        {isDecrypting && (
-          <Flex alignItems="center">
-            <SpinningLoader size={16} />
-          </Flex>
-        )}
-        <Flex alignItems="center">
-          <TouchableArea variant="unstyled" onPress={() => setShowPasscode(!showPasscode)}>
-            <Flex row gap="$gap4" alignItems="center">
-              {showPasscode ? <EyeOff size="$icon.16" color="$neutral2" /> : <Eye size="$icon.16" color="$neutral2" />}
-              <Text variant="buttonLabel3" color="$neutral2">
-                {showPasscode ? t('common.hide.button') : t('common.show.button')}
-              </Text>
-            </Flex>
-          </TouchableArea>
-        </Flex>
-      </Flex>
-    </Trace>
-  )
-}
-
+// AddPasskeyStep stays web-only — it is the "register new passkey" confirmation step,
+// used by the add-passkey recovery flow (not by the seed-phrase export flow). `isRotation`
+// switches to the post-rotation styling (Figma 12482-89550): the recovered wallet's
+// AddressDisplay, dark CTA, and "add a passkey for this device" copy. Normal v2 recovery
+// keeps the default look.
 export function AddPasskeyStep({
   addPasskeyError,
   handleAddPasskey,
   handleClose,
+  isRotation,
+  walletAddress,
   t,
 }: {
   addPasskeyError: string | undefined
   handleAddPasskey: () => void
   handleClose: () => void
+  isRotation?: boolean
+  walletAddress?: string
   t: TFunction
-}) {
+}): JSX.Element {
   return (
     <Trace logImpression modal={ModalName.RecoverWallet}>
       <Flex height={28} />
-      <Flex gap="$gap16" alignItems="center" width="100%" px="$padding4">
-        <IconBox background="$accent2">
-          <Person size="$icon.24" color="$accent1" />
-        </IconBox>
+      <Flex gap="$gap16" alignItems="center" width="100%" px="$spacing4">
+        {isRotation && walletAddress ? (
+          // Give AddressDisplay a definite full width so the wallet name + unitag icon stay on one
+          // line (a shrink-to-content parent collapses to the name word and wraps the icon below).
+          <Flex row width="100%" justifyContent="center">
+            <Flex flex={1} justifyContent="center">
+              <AddressDisplay
+                address={walletAddress}
+                size={48}
+                direction="column"
+                centered
+                variant="body1"
+                captionVariant="body3"
+              />
+            </Flex>
+          </Flex>
+        ) : (
+          <IconBox background="$accent2">
+            {isRotation ? (
+              <WalletFilled size="$icon.24" color="$accent1" />
+            ) : (
+              <Person size="$icon.24" color="$accent1" />
+            )}
+          </IconBox>
+        )}
         <Flex gap="$gap8" alignItems="center" maxWidth={360}>
           <Text variant="subheading1" textAlign="center">
-            {t('account.passkey.recovery.addPasskey.title')}
+            {isRotation
+              ? t('account.passkey.recovery.addPasskey.rotation.title')
+              : t('account.passkey.recovery.addPasskey.title')}
           </Text>
           <Text variant="body2" textAlign="center" color="$neutral2">
-            {t('account.passkey.recovery.addPasskey.description')}
+            {isRotation
+              ? t('account.passkey.recovery.addPasskey.rotation.description')
+              : t('account.passkey.recovery.addPasskey.description')}
           </Text>
         </Flex>
       </Flex>
@@ -304,7 +84,7 @@ export function AddPasskeyStep({
         )}
         <Trace logPress element={ElementName.RecoverWalletAddPasskey}>
           <Flex row alignSelf="stretch">
-            <Button variant="branded" size="medium" onPress={handleAddPasskey}>
+            <Button variant={isRotation ? 'default' : 'branded'} size="medium" onPress={handleAddPasskey}>
               {t('account.passkey.recovery.addPasskey.button')}
             </Button>
           </Flex>
@@ -321,14 +101,120 @@ export function AddPasskeyStep({
   )
 }
 
-export function RecoveringStep({ t }: { t: TFunction }) {
+// --- Passkey-less rotation steps (recover-with-email on a v1 backup login) ---
+
+// "Update your passcode" alert (Figma 12482-89035): explains the security upgrade, links the
+// passkey help article, and shows the affected method with an overflow menu (delete via passkey)
+// plus a "new passcode required" badge. "Update passcode" continues into the set-new-passcode flow.
+export function RotationIntroStep({
+  provider,
+  email,
+  onContinue,
+  onRemove,
+  handleClose,
+  t,
+}: {
+  provider: 'google' | 'apple' | null
+  email: string
+  onContinue: () => void
+  onRemove: () => void
+  handleClose: () => void
+  t: TFunction
+}): JSX.Element {
   return (
     <Trace logImpression modal={ModalName.RecoverWallet}>
-      <Flex gap="$gap24" alignItems="center" py="$padding32">
-        <SpinningLoader size={32} />
-        <Text variant="body2" color="$neutral2" textAlign="center">
-          {t('account.passkey.recovery.recovering')}
-        </Text>
+      <Flex width="100%" alignItems="flex-end">
+        <ModalCloseIcon size="$icon.20" onClose={handleClose} />
+      </Flex>
+      <Flex gap="$gap16" alignItems="center" width="100%" px="$spacing4">
+        <IconBox>
+          <Shield size="$icon.24" color="$neutral1" />
+        </IconBox>
+        <Flex gap="$gap8" alignItems="center" maxWidth={360}>
+          <Text variant="subheading1" textAlign="center">
+            {t('account.passkey.reconnect.passcodeIntro.title')}
+          </Text>
+          <Text variant="body2" textAlign="center" color="$neutral2">
+            {t('account.passkey.recovery.updatePasscode.description')}
+          </Text>
+          <Text
+            tag="a"
+            href={UniswapHelpUrls.articles.passkeysInfo}
+            target="_blank"
+            rel="noopener noreferrer"
+            textDecorationLine="none"
+          >
+            <Text variant="buttonLabel3" color="$neutral1">
+              {t('account.passkey.reconnect.learnMore')}
+            </Text>
+          </Text>
+        </Flex>
+      </Flex>
+
+      <Flex
+        width="100%"
+        gap="$gap12"
+        borderWidth={1}
+        borderColor="$surface3"
+        borderRadius="$rounded20"
+        backgroundColor="$surface2"
+        p="$padding16"
+      >
+        <Flex row alignItems="center" width="100%">
+          <BackupMethodSummary provider={provider} email={email} size="lg" iconOpacity={0.5} />
+          <OverflowMenu onRemove={onRemove} testID={TestID.RemoveBackupLoginOverflow} />
+        </Flex>
+
+        <Flex row gap="$gap8" alignItems="center" p="$padding12" backgroundColor="$surface3" borderRadius="$rounded12">
+          <AlertTriangleFilled size="$icon.16" color="$neutral1" />
+          <Text variant="body3" color="$neutral1" flex={1}>
+            {t('account.passkey.recovery.newPasscodeRequired')}
+          </Text>
+        </Flex>
+      </Flex>
+
+      <Flex row alignSelf="stretch">
+        <Button variant="default" size="medium" onPress={onContinue}>
+          {t('account.passkey.recovery.updatePasscode.cta')}
+        </Button>
+      </Flex>
+    </Trace>
+  )
+}
+
+// "Backup login expired" (Figma 12482-24302): shown when v1 recovery rotation is disabled
+// (the disable_v1_ew_rotation flag). Rotation is no longer offered; the user is routed to passkey sign-in.
+export function RotationExpiredStep({
+  onContinueWithPasskey,
+  handleClose,
+  t,
+}: {
+  onContinueWithPasskey: () => void
+  handleClose: () => void
+  t: TFunction
+}): JSX.Element {
+  return (
+    <Trace logImpression modal={ModalName.RecoverWallet}>
+      <Flex width="100%" alignItems="flex-end">
+        <ModalCloseIcon size="$icon.20" onClose={handleClose} />
+      </Flex>
+      <Flex gap="$gap16" alignItems="center" width="100%" px="$spacing4">
+        <IconBox background="$statusWarning2">
+          <AlertTriangleFilled size="$icon.24" color="$statusWarning" />
+        </IconBox>
+        <Flex gap="$gap8" alignItems="center" maxWidth={360}>
+          <Text variant="subheading1" textAlign="center">
+            {t('account.passkey.recovery.expired.title')}
+          </Text>
+          <Text variant="body2" textAlign="center" color="$neutral2">
+            {t('account.passkey.recovery.expired.description')}
+          </Text>
+        </Flex>
+      </Flex>
+      <Flex row alignSelf="stretch">
+        <Button variant="default" size="medium" onPress={onContinueWithPasskey}>
+          {t('account.passkey.login.continueWithPasskey')}
+        </Button>
       </Flex>
     </Trace>
   )

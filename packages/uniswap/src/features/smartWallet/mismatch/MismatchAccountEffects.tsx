@@ -1,11 +1,11 @@
+import { isTestEnv } from '@universe/environment'
 import React from 'react'
 import {
   useCurrentAccountChainMismatchEffect,
   useOnConnectCheckAllAccountChainMismatchEffect,
 } from 'uniswap/src/features/smartWallet/mismatch/hooks'
-import { useMismatchContext } from 'uniswap/src/features/smartWallet/mismatch/MismatchContext'
+import { useMismatchContext } from 'uniswap/src/features/smartWallet/mismatch/MismatchContextValue'
 import { useOnDisconnectEffect } from 'uniswap/src/features/smartWallet/mismatch/useOnDisconnectEffect'
-import { isTestEnv } from 'utilities/src/environment/env'
 
 /**
  * MismatchAccountEffects -- handles the effects of the mismatch account

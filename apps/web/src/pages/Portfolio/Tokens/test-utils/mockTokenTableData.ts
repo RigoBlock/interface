@@ -1,6 +1,6 @@
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
+import { TestID } from '@universe/test'
 import type { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import type { TokenData } from '~/pages/Portfolio/Tokens/hooks/useTransformTokenTableData'
 import { TEST_TOKEN_1, TEST_TOKEN_1_INFO } from '~/test-utils/constants'
 
@@ -48,6 +48,7 @@ export function createMockTokenTableData(overrides: Partial<TokenData> = {}): To
       totalValue: 0,
       allocation: 0,
       isStablecoin: false,
+      isMultichainAsset: false,
       ...restOverrides,
       tokens: [],
     }
@@ -66,6 +67,7 @@ export function createMockTokenTableData(overrides: Partial<TokenData> = {}): To
     totalValue: 100,
     allocation: 1,
     isStablecoin: false,
+    isMultichainAsset: tokens.length > 1,
     ...restOverrides,
     tokens,
   }

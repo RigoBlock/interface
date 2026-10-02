@@ -1,4 +1,5 @@
-import { Flex, Image } from 'ui/src'
+import { Flex } from '@universe/mycelium'
+import { Image } from 'ui/src'
 import { FROGGY } from 'ui/src/assets'
 import { imageSizes } from 'ui/src/theme'
 

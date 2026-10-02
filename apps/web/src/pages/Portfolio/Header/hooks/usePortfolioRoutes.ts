@@ -1,22 +1,22 @@
+import { UniverseChainId, PlatformAddress, areEvmAddressesEqual, getPlatformAddress } from '@universe/chains'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useEffect, useMemo } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { PlatformAddress } from 'uniswap/src/features/platforms/types/PlatformSpecificAddress'
-import { getPlatformAddress } from 'uniswap/src/features/platforms/utils/addresses'
 import { useActiveAddresses } from '~/features/accounts/store/hooks'
-import { getChainFilterFromSearchParams } from '~/features/params/chainQueryParam'
 import { PageType } from '~/hooks/useIsPage'
 import { isPortfolioTab, PortfolioTab } from '~/pages/Portfolio/types'
 import { buildPortfolioUrl, pathToPortfolioTab } from '~/pages/Portfolio/utils/portfolioUrls'
+import { getChainFilterFromSearchParams } from '~/utils/params/chainQueryParam'
 
 /**
  * Parses portfolio URL segments to extract wallet address and tab
  * URL formats:
  * - /portfolio -> Overview tab, no external wallet
  * - /portfolio/tokens -> Tokens tab, no external wallet
+ * - /portfolio/pools -> Pools tab, no external wallet
  * - /portfolio/0x123... -> Overview tab, external wallet 0x123...
  * - /portfolio/0x123.../tokens -> Tokens tab, external wallet 0x123...
+ * - /portfolio/0x123.../pools -> Pools tab, external wallet 0x123...
  */
 function parsePortfolioPath(pathname: string): {
   potentialAddress: string | undefined
@@ -57,6 +57,7 @@ export function usePortfolioRoutes(): {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const isPortfolioDefiTabEnabled = useFeatureFlag(FeatureFlags.PortfolioDefiTab)
+  const portfolioPoolsBalancesEnabled = useFeatureFlag(FeatureFlags.PortfolioPoolsBalances)
 
   const { potentialAddress: pathAddress, tabSegment } = useMemo(() => parsePortfolioPath(pathname), [pathname])
 
@@ -67,7 +68,7 @@ export function usePortfolioRoutes(): {
   const { evmAddress, svmAddress } = useActiveAddresses()
 
   const externalAddress = getPlatformAddress(potentialAddress)
-  const isOwnEvmAddress = evmAddress?.toLowerCase() === potentialAddress?.toLowerCase()
+  const isOwnEvmAddress = areEvmAddressesEqual(evmAddress, potentialAddress)
   const isOwnSvmAddress = svmAddress === potentialAddress
   const isExternalWallet = Boolean(externalAddress) && !isOwnEvmAddress && !isOwnSvmAddress
 
@@ -105,19 +106,21 @@ export function usePortfolioRoutes(): {
 
     // Redirect to overview if trying to access DeFi tab when feature flag is disabled
     if (tab === PortfolioTab.Defi && !isPortfolioDefiTabEnabled) {
-      navigate(
-        buildPortfolioUrl({
-          chainId,
-          externalAddress: externalAddress?.address,
-        }),
-        { replace: true },
-      )
+      navigate(buildPortfolioUrl({ chainId, externalAddress: externalAddress?.address }), { replace: true })
+      return
+    }
+
+    // Redirect to overview if trying to access Pools tab when feature flag is disabled
+    if (tab === PortfolioTab.Pools && !portfolioPoolsBalancesEnabled) {
+      navigate(buildPortfolioUrl({ chainId, externalAddress: externalAddress?.address }), { replace: true })
+      return
     }
   }, [
     potentialAddress,
     externalAddress,
     tab,
     isPortfolioDefiTabEnabled,
+    portfolioPoolsBalancesEnabled,
     navigate,
     chainId,
     queryAddress,

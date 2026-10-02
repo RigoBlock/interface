@@ -1,18 +1,19 @@
 import { Currency } from '@uniswap/sdk-core'
 import { GasFeeResult } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
+import { isExtensionApp, isWebPlatform } from '@universe/environment'
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text, TouchableArea } from 'ui/src'
 import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
 import { Warning } from 'uniswap/src/components/modals/WarningModal/types'
 import { WarningModal } from 'uniswap/src/components/modals/WarningModal/WarningModal'
 import { LearnMoreLink } from 'uniswap/src/components/text/LearnMoreLink'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { useActiveAddresses } from 'uniswap/src/features/accounts/store/hooks'
 import type { AddressGroup } from 'uniswap/src/features/accounts/store/types/AccountsState'
 import { useBridgingTokenWithHighestBalance } from 'uniswap/src/features/bridging/hooks/tokens'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { BridgeTokenButton } from 'uniswap/src/features/transactions/components/InsufficientNativeTokenWarning/BridgeTokenButton'
@@ -21,7 +22,6 @@ import { InsufficientNativeTokenBaseComponent } from 'uniswap/src/features/trans
 import { useInsufficientNativeTokenWarning } from 'uniswap/src/features/transactions/components/InsufficientNativeTokenWarning/useInsufficientNativeTokenWarning'
 import { currencyIdToAddress } from 'uniswap/src/utils/currencyId'
 import { logger } from 'utilities/src/logger/logger'
-import { isExtensionApp, isWebPlatform } from 'utilities/src/platform'
 
 export function InsufficientNativeTokenWarning({
   warnings,
@@ -29,7 +29,7 @@ export function InsufficientNativeTokenWarning({
   gasFee,
 }: {
   warnings: Warning[]
-  flow: 'send' | 'swap'
+  flow: 'deposit' | 'send' | 'swap' | 'withdraw'
   gasFee: GasFeeResult
 }): JSX.Element | null {
   const parsedInsufficientNativeTokenWarning = useInsufficientNativeTokenWarning({
@@ -136,7 +136,7 @@ function InsufficientNativeTokenWarningContent({
             <LearnMoreLink
               textColor="$accent3"
               textVariant="buttonLabel3"
-              url={uniswapUrls.helpArticleUrls.networkFeeInfo}
+              url={UniswapHelpUrls.articles.networkFeeInfo}
             />
           </Flex>
 

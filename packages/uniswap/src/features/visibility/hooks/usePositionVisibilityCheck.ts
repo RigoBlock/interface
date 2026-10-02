@@ -1,6 +1,6 @@
+import { UniverseChainId } from '@universe/chains'
 import { useCallback } from 'react'
 import { useSelector } from 'react-redux'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { selectPositionsVisibility } from 'uniswap/src/features/visibility/selectors'
 import { getUniquePositionId } from 'uniswap/src/features/visibility/utils'
 import { UniswapRootState } from 'uniswap/src/state'

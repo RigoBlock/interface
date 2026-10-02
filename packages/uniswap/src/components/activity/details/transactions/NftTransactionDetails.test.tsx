@@ -40,8 +40,17 @@ const mockTransaction = {
   },
 } as TransactionDetails
 
-// Mock the UniversalImage component
-vi.mock('ui/src/components/UniversalImage/UniversalImage', () => ({
+// Mock the UniversalImage component. It is exported from BOTH the barrel and the
+// `/universal-image` subpath, and vitest keys a mock to the resolved module — so
+// mocking one leaves the other rendering the real component. Nothing in this tree
+// reaches the subpath today; both are mocked so that stays true when something does.
+vi.mock('@universe/mycelium', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@universe/mycelium')>()),
+  UniversalImage: vi.fn(() => null),
+}))
+
+vi.mock('@universe/mycelium/universal-image', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@universe/mycelium/universal-image')>()),
   UniversalImage: vi.fn(() => null),
 }))
 

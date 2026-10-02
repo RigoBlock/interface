@@ -1,17 +1,19 @@
+import { isMobileApp, isWebPlatform } from '@universe/environment'
+import { Button, Flex, iconSizes, Separator, spacing, Text, TouchableArea, zIndexes } from '@universe/mycelium'
+import { GlobeFilled } from '@universe/mycelium/icons/GlobeFilled'
+import { InfoCircle } from '@universe/mycelium/icons/InfoCircle'
+import { RotatableChevron } from '@universe/mycelium/icons/RotatableChevron'
+import { X } from '@universe/mycelium/icons/X'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Flex, Separator, Text, TouchableArea } from 'ui/src'
-import { GlobeFilled, InfoCircle, RotatableChevron, X } from 'ui/src/components/icons'
-import { iconSizes, spacing, zIndexes } from 'ui/src/theme'
 import { DisplayNameText } from 'uniswap/src/components/accounts/DisplayNameText'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import { WarningInfo } from 'uniswap/src/components/modals/WarningModal/WarningInfo'
 import { LearnMoreLink } from 'uniswap/src/components/text/LearnMoreLink'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { AccountIcon } from 'uniswap/src/features/accounts/AccountIcon'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { isMobileApp, isWebPlatform } from 'utilities/src/platform'
 import { useBooleanState } from 'utilities/src/react/useBooleanState'
 import { ActiveNetworkExpando } from 'wallet/src/features/smartWallet/ActiveNetworkExpando/ActiveNetworkExpando'
 import { useEnabledActiveNetworkDelegations } from 'wallet/src/features/smartWallet/hooks/useEnabledActiveNetworkDelegations'
@@ -75,15 +77,17 @@ export function SmartWalletStatusModal({
         maxHeight="100%"
         {...(isWebPlatform && { flex: 1, overflowY: 'hidden' })}
       >
-        <TouchableArea
-          position="absolute"
-          top="$spacing2"
-          right="$spacing2"
-          zIndex={zIndexes.default}
-          onPress={onClose}
-        >
-          <X size="$icon.16" color="$neutral2" />
-        </TouchableArea>
+        {!isMobileApp && (
+          <TouchableArea
+            position="absolute"
+            top="$spacing2"
+            right="$spacing2"
+            zIndex={zIndexes.default}
+            onPress={onClose}
+          >
+            <X size="$icon.16" color="$neutral2" />
+          </TouchableArea>
+        )}
         <Flex row alignItems="center" gap="$spacing12">
           <AccountIcon address={walletAddress} size={iconSizes.icon40} />
           <Flex>
@@ -103,7 +107,7 @@ export function SmartWalletStatusModal({
                 <LearnMoreLink
                   textVariant="buttonLabel4"
                   textColor={isWebPlatform ? '$accent1' : '$accent3'}
-                  url={uniswapUrls.helpArticleUrls.multichainDelegation}
+                  url={UniswapHelpUrls.articles.multichainDelegation}
                 />
               }
               trigger={<InfoCircle alignSelf="flex-start" color="$neutral3" size="$icon.16" />}

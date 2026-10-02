@@ -1,9 +1,9 @@
+import { ColorTokens, Flex, fonts, Text } from '@universe/mycelium'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 // oxlint-disable-next-line no-restricted-imports -- Keyboard addListener is allowed for this use case
 import { Keyboard, TextInput as NativeTextInput } from 'react-native'
 import InputWithSuffix from 'src/features/import/InputWithSuffix'
-import { ColorTokens, Flex, Text, useMedia } from 'ui/src'
-import { fonts } from 'ui/src/theme'
 import PasteButton from 'uniswap/src/components/buttons/PasteButton'
 import { SectionName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'

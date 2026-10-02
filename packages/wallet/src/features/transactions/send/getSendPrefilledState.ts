@@ -1,6 +1,6 @@
+import { UniverseChainId } from '@universe/chains'
 import { getNativeAddress } from 'uniswap/src/constants/addresses'
 import { AssetType, CurrencyAsset } from 'uniswap/src/entities/assets'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { TransactionState } from 'uniswap/src/features/transactions/types/transactionState'
 import { CurrencyField } from 'uniswap/src/types/currency'
 

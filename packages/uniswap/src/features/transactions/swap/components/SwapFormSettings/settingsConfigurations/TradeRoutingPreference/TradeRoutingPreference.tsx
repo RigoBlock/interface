@@ -1,4 +1,4 @@
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
+import { Platform } from '@universe/chains'
 import type { TransactionSettingConfig } from 'uniswap/src/features/transactions/components/settings/types'
 import { TradeRoutingPreferenceControl } from 'uniswap/src/features/transactions/swap/components/SwapFormSettings/settingsConfigurations/TradeRoutingPreference/TradeRoutingPreferenceControl'
 import { TradeRoutingPreferenceScreen } from 'uniswap/src/features/transactions/swap/components/SwapFormSettings/settingsConfigurations/TradeRoutingPreference/TradeRoutingPreferenceScreen'

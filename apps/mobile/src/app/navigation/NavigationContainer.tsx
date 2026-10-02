@@ -6,6 +6,8 @@ import {
 } from '@react-navigation/native'
 import { useMutation } from '@tanstack/react-query'
 import { SharedEventName } from '@uniswap/analytics-events'
+import { isDatadogEnabled } from '@universe/environment'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import React, { FC, PropsWithChildren, useEffect, useRef, useState } from 'react'
 import { EmitterSubscription, Linking } from 'react-native'
 import { useDispatch } from 'react-redux'
@@ -15,11 +17,9 @@ import { openDeepLink } from 'src/features/deepLinking/handleDeepLinkSaga'
 import { DIRECT_LOG_ONLY_SCREENS } from 'src/features/telemetry/directLogScreens'
 import { getEventParams } from 'src/features/telemetry/utils'
 import { processWidgetEvents } from 'src/features/widgets/widgets'
-import { useSporeColors } from 'ui/src'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { MobileNavScreen } from 'uniswap/src/types/screens/mobile'
-import { datadogEnabledBuild } from 'utilities/src/environment/constants'
 import { logger } from 'utilities/src/logger/logger'
 import { useEvent } from 'utilities/src/react/hooks'
 import { sleep } from 'utilities/src/time/timing'
@@ -43,7 +43,15 @@ export const NavigationContainer: FC<PropsWithChildren<Props>> = ({ children, on
       // avoid white flickering background on screen navigation
       theme={{
         ...DefaultTheme,
-        colors: { ...DefaultTheme.colors, background: colors.surface1.val },
+        colors: {
+          ...DefaultTheme.colors,
+          primary: colors.accent1.val,
+          background: colors.surface1.val,
+          card: colors.surface1.val,
+          text: colors.neutral1.val,
+          border: colors.surface3.val,
+          notification: colors.statusCritical.val,
+        },
       }}
       onReady={(): void => {
         onReady?.(navigationRef)
@@ -55,7 +63,7 @@ export const NavigationContainer: FC<PropsWithChildren<Props>> = ({ children, on
         const initialRoute = navigationRef.getCurrentRoute()?.name as MobileNavScreen
         setRouteName(initialRoute)
 
-        if (datadogEnabledBuild) {
+        if (isDatadogEnabled()) {
           DdRumReactNavigationTracking.startTrackingViews(navigationRef.current)
         }
       }}

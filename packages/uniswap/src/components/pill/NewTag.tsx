@@ -1,11 +1,11 @@
+import { ColorTokens, Flex, type FlexCompatProps, Text } from '@universe/mycelium'
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ColorTokens, Flex, FlexProps, Text } from 'ui/src'
 
 interface NewTagProps {
   backgroundColor?: ColorTokens
   textColor?: ColorTokens
-  ml?: FlexProps['ml']
+  ml?: FlexCompatProps['ml']
   exclamation?: boolean
 }
 
@@ -17,21 +17,18 @@ function NewTagInner({
 }: NewTagProps): JSX.Element {
   const { t } = useTranslation()
   return (
-    <Flex shrink pt="$spacing2" display="inline-flex">
-      <Flex
-        shrink
-        ml={ml}
-        px="$spacing4"
-        pb="$spacing2"
-        pt={3} // hack to make box look visually more vertically centered with text
-        backgroundColor={backgroundColor}
-        borderRadius="$rounded6"
-        alignItems="center"
-      >
-        <Text variant="buttonLabel4" color={textColor}>
-          {exclamation ? t('common.new.exclamation') : t('common.new')}
-        </Text>
-      </Flex>
+    <Flex
+      shrink
+      centered
+      ml={ml}
+      px="$spacing4"
+      py="$spacing2"
+      backgroundColor={backgroundColor}
+      borderRadius="$rounded6"
+    >
+      <Text variant="buttonLabel4" color={textColor}>
+        {exclamation ? t('common.new.exclamation') : t('common.new')}
+      </Text>
     </Flex>
   )
 }

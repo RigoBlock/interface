@@ -1,3 +1,4 @@
+// oxlint-disable import/no-cycle -- sagas and redux store have many cycles, deep refactoring is needed
 import { combineReducers } from '@reduxjs/toolkit'
 import { uniswapPersistedStateList, uniswapReducers } from 'uniswap/src/state/uniswapReducer'
 import application from '~/state/application/reducer'
@@ -7,7 +8,6 @@ import lists from '~/state/lists/reducer'
 import logs from '~/state/logs/slice'
 import mintV3 from '~/state/mint/v3/reducer'
 import { portfolioStakingReducer } from '~/state/portfolio/stakingSlice'
-import { routingApi } from '~/state/routing/slice'
 import { monitoredSagaReducers } from '~/state/sagas/root'
 import user from '~/state/user/reducer'
 import walletCapabilities from '~/state/walletCapabilities/reducer'
@@ -17,14 +17,13 @@ const interfaceReducers = {
   user,
   lists,
   poolsList,
+  logs,
   fiatOnRampTransactions,
   application,
   walletCapabilities,
-  logs,
   mintV3,
   saga: monitoredSagaReducers,
   portfolioStaking: portfolioStakingReducer,
-  [routingApi.reducerPath]: routingApi.reducer,
 } as const
 
 export const interfaceReducer = combineReducers(interfaceReducers)

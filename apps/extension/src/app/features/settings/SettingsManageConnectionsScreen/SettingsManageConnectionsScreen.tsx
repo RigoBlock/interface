@@ -1,3 +1,4 @@
+import { UniversalImage, Flex, Text, TouchableArea } from '@universe/mycelium'
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
@@ -7,7 +8,6 @@ import { removeAllDappConnectionsForAccount, removeDappConnection } from 'src/ap
 import { useAllDappConnectionsForAccount } from 'src/app/features/dapp/hooks'
 import { dappStore } from 'src/app/features/dapp/store'
 import { NoDappConnections } from 'src/app/features/settings/SettingsManageConnectionsScreen/internal/NoDappConnections'
-import { Flex, Text, TouchableArea, UniversalImage } from 'ui/src'
 import { MinusCircle } from 'ui/src/components/icons'
 import { borderRadii, breakpoints, fonts, gap, iconSizes } from 'ui/src/theme'
 import { DappIconPlaceholder } from 'uniswap/src/components/dapps/DappIconPlaceholder'
@@ -83,7 +83,6 @@ export function SettingsManageConnectionsScreen(): JSX.Element {
 
         const DeleteDappButton = (
           <TouchableArea
-            animation={null}
             $group-hover={{ display: 'flex' }}
             display="none"
             p="$spacing2"

@@ -1,4 +1,4 @@
-import { Flex, Text } from 'ui/src'
+import { Flex, Text } from '@universe/mycelium'
 import { GeneratedIcon } from 'ui/src/components/factories/createIcon'
 import { Check } from 'ui/src/components/icons/Check'
 import { Dropdown, DropdownProps, InternalMenuItem } from '~/components/Dropdowns/Dropdown'
@@ -35,6 +35,8 @@ export function DropdownSelector({
   containerStyle,
   alignRight = false,
   allowFlip,
+  forceFlipUp,
+  matchTriggerWidth,
   positionFixed,
   buttonStyle,
 }: DropdownSelectorProps) {
@@ -46,7 +48,7 @@ export function DropdownSelector({
       toggleOpen={toggleOpen}
       dataTestId={dataTestId}
       menuLabel={
-        <Flex row alignItems="center" gap="$gap8">
+        <Flex row alignItems="center" gap="$gap8" width="max-content">
           <ButtonIcon size="$icon.20" color="$neutral1" />
           <Text variant="buttonLabel3">{selectedOption.label}</Text>
         </Flex>
@@ -65,6 +67,8 @@ export function DropdownSelector({
       tooltipText={tooltipText}
       containerStyle={containerStyle}
       allowFlip={allowFlip}
+      forceFlipUp={forceFlipUp}
+      matchTriggerWidth={matchTriggerWidth}
       positionFixed={positionFixed}
       dropdownStyle={{ minWidth: 200, ...dropdownStyle }}
     >

@@ -1,53 +1,36 @@
-import type { WatchQueryFetchPolicy } from '@apollo/client'
-import type { PartialMessage } from '@bufbuild/protobuf'
-import { useQueryClient } from '@tanstack/react-query'
+import { type PlainMessage } from '@bufbuild/protobuf'
 import type { GetPortfolioResponse } from '@uniswap/client-data-api/dist/data/v1/api_pb.d'
-import type { Balance } from '@uniswap/client-data-api/dist/data/v1/types_pb'
-import type { PortfolioValueModifier as RestPortfolioValueModifier } from '@uniswap/client-data-api/dist/data/v1/types_pb.d'
-import type { Currency } from '@uniswap/sdk-core'
-import { useMemo } from 'react'
+import { normalizeTokenAddressForCache, UniverseChainId } from '@universe/chains'
 import { RIGOBLOCK_LOGO } from 'ui/src/assets'
-import { PollingInterval } from 'uniswap/src/constants/misc'
+import type { PollingInterval } from 'uniswap/src/constants/misc'
 import { GRG } from 'uniswap/src/constants/tokens'
-import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
-import { getPortfolioQuery, useGetPortfolioQuery } from 'uniswap/src/data/rest/getPortfolio'
-import type { GetPortfolioInput } from 'uniswap/src/data/rest/getPortfolio'
+import { useGetPortfolioQuery } from 'uniswap/src/data/apiClients/dataApiService/balances/getPortfolio'
+import type { GetPortfolioInput } from 'uniswap/src/data/apiClients/dataApiService/balances/getPortfolio'
 import {
   shouldTransformToMultichain,
   transformPortfolioToMultichain,
-} from 'uniswap/src/data/rest/transformPortfolioToMultichain'
+} from 'uniswap/src/data/apiClients/dataApiService/balances/transformPortfolioToMultichain'
+import { calculateTotalBalancesUsdPerChainRest } from 'uniswap/src/data/apiClients/dataApiService/balances/utils'
+import { normalizeBackendNativeAddress } from 'uniswap/src/data/apiClients/dataApiService/utils/dataApiMultichainToken'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import {
-  buildPortfolioBalance,
-  PortfolioCacheUpdater,
-  PortfolioTotalValueResult,
-} from 'uniswap/src/features/dataApi/balances/buildPortfolioBalance'
+import { buildPortfolioBalance } from 'uniswap/src/features/dataApi/balances/buildPortfolioBalance'
 import { getPortfolioMultichainBalancesById } from 'uniswap/src/features/dataApi/balances/toPortfolioMultichainBalance'
-import { mapRestStatusToNetworkStatus, matchesCurrency } from 'uniswap/src/features/dataApi/balances/utils'
-import type {
-  BaseResult,
-  PortfolioBalance,
-  PortfolioMultichainBalance,
-  RestContract,
-} from 'uniswap/src/features/dataApi/types'
+import {
+  useRestPortfolioValueModifier,
+  useRestPortfolioValueModifiers,
+} from 'uniswap/src/features/dataApi/balances/useRestPortfolioValueModifier'
+import type { BaseResult, PortfolioBalance, PortfolioMultichainBalance } from 'uniswap/src/features/dataApi/types'
 import { buildCurrency, buildCurrencyInfo } from 'uniswap/src/features/dataApi/utils/buildCurrency'
-import { currencyIdToRestContractInput } from 'uniswap/src/features/dataApi/utils/currencyIdToContractInput'
 import {
   getRestCurrencySafetyInfo,
   getRestTokenSafetyInfo,
 } from 'uniswap/src/features/dataApi/utils/getCurrencySafetyInfo'
-import { useHideSmallBalancesSetting, useHideSpamTokensSetting } from 'uniswap/src/features/settings/hooks'
-import { useCurrencyIdToVisibility } from 'uniswap/src/features/transactions/selectors'
 import type { CurrencyId } from 'uniswap/src/types/currency'
 import { currencyId } from 'uniswap/src/utils/currencyId'
-import { usePlatformBasedFetchPolicy } from 'uniswap/src/utils/usePlatformBasedFetchPolicy'
+import { FetchPolicy, usePlatformBasedFetchPolicy } from 'uniswap/src/utils/usePlatformBasedFetchPolicy'
 import { useEvent } from 'utilities/src/react/hooks'
 
-export type RestTokenOverrides = {
-  includeOverrides: RestContract[]
-  excludeOverrides: RestContract[]
-}
+export { useRestPortfolioValueModifier, useRestPortfolioValueModifiers }
 
 /** Return type for portfolio data (Record<CurrencyId, PortfolioBalance>). data is undefined while loading. */
 export type PortfolioDataResult = BaseResult<Record<CurrencyId, PortfolioBalance> | undefined>
@@ -63,7 +46,7 @@ export function formatPortfolioResponseToMap({
   ownerAddress,
   useMultichainFormat,
 }: {
-  portfolioData: GetPortfolioResponse | undefined
+  portfolioData: PlainMessage<GetPortfolioResponse> | undefined
   ownerAddress: string | undefined
   useMultichainFormat: false
 }): Record<CurrencyId, PortfolioBalance> | undefined
@@ -73,7 +56,7 @@ export function formatPortfolioResponseToMap({
   useMultichainFormat,
   requestedMultichainFromBackend,
 }: {
-  portfolioData: GetPortfolioResponse | undefined
+  portfolioData: PlainMessage<GetPortfolioResponse> | undefined
   ownerAddress: string | undefined
   useMultichainFormat: true
   /** When true, only use response.multichainBalances; do not fall back to transforming legacy. */
@@ -85,7 +68,7 @@ export function formatPortfolioResponseToMap({
   useMultichainFormat,
   requestedMultichainFromBackend,
 }: {
-  portfolioData: GetPortfolioResponse | undefined
+  portfolioData: PlainMessage<GetPortfolioResponse> | undefined
   ownerAddress: string | undefined
   useMultichainFormat: boolean
   requestedMultichainFromBackend?: boolean
@@ -100,9 +83,9 @@ export function formatPortfolioResponseToMap({
     if (requestedMultichainFromBackend === true && !hasMultichainFromBackend) {
       return {}
     }
-    const transformed = shouldTransformToMultichain(portfolioData)
-      ? transformPortfolioToMultichain(portfolioData)
-      : portfolioData
+    // transformPortfolioToMultichain constructs real Message instances; the plain cache value is structurally compatible.
+    const response = portfolioData as GetPortfolioResponse
+    const transformed = shouldTransformToMultichain(response) ? transformPortfolioToMultichain(response) : response
     const multichainMap = getPortfolioMultichainBalancesById(transformed, ownerAddress)
     const byCurrencyId: Record<CurrencyId, PortfolioMultichainBalance> = {}
     if (!multichainMap) {
@@ -133,8 +116,10 @@ export function formatPortfolioResponseToMap({
 
 export type UsePortfolioDataQueryOptions = {
   skip?: boolean
+  /** Cache-only read: never fetches, but still re-renders when another observer updates the cached data. */
+  cacheOnly?: boolean
   pollInterval?: PollingInterval
-  fetchPolicy?: WatchQueryFetchPolicy
+  fetchPolicy?: FetchPolicy
   /**
    * When true, request portfolio.multichainBalances from backend (mock/dummy data).
    * When false or omitted, request legacy portfolio.balances and transform to multichain shape on client.
@@ -143,13 +128,13 @@ export type UsePortfolioDataQueryOptions = {
   requestMultichainFromBackend?: boolean
 } & GetPortfolioInput['input']
 
-/** Internal: runs the portfolio query with a select that determines the result data type. No cast needed. */
+/** Internal: runs the portfolio query with a select that determines the result data type. */
 function usePortfolioDataQueryWithSelect<T>(
   options: UsePortfolioDataQueryOptions & {
-    select: (portfolioData: GetPortfolioResponse | undefined) => T
+    select: (portfolioData: PlainMessage<GetPortfolioResponse> | undefined) => T
   },
 ): BaseResult<T> {
-  const { evmAddress, svmAddress, select, requestMultichainFromBackend, ...queryOptions } = options
+  const { evmAddress, svmAddress, select, requestMultichainFromBackend, cacheOnly, ...queryOptions } = options
   const { chains: defaultChainIds } = useEnabledChains()
   const chainIds = queryOptions.chainIds || defaultChainIds
 
@@ -169,7 +154,8 @@ function usePortfolioDataQueryWithSelect<T>(
     isFetching: restLoading,
     refetch: restRefetch,
     error: restError,
-    status: restStatus,
+    isPending: restPending,
+    isError: restIsError,
     dataUpdatedAt,
   } = useGetPortfolioQuery({
     input: {
@@ -178,8 +164,10 @@ function usePortfolioDataQueryWithSelect<T>(
       chainIds,
       modifier,
       multichain,
+      useSubstreamData: true,
     },
     enabled: !!(evmAddress ?? svmAddress) && !queryOptions.skip,
+    cacheOnly,
     refetchInterval: internalPollInterval,
     select,
   })
@@ -187,7 +175,8 @@ function usePortfolioDataQueryWithSelect<T>(
   return {
     data: formattedData,
     loading: restLoading,
-    networkStatus: mapRestStatusToNetworkStatus(restStatus),
+    isPending: restPending,
+    isError: restIsError,
     refetch: restRefetch,
     error: restError || undefined,
     dataUpdatedAt: dataUpdatedAt || undefined,
@@ -199,9 +188,9 @@ function usePortfolioDataQueryWithSelect<T>(
  */
 export function usePortfolioData(options: UsePortfolioDataQueryOptions): PortfolioDataResult {
   const ownerAddress = options.evmAddress ?? options.svmAddress
-  const select = useEvent((portfolioData: GetPortfolioResponse | undefined) =>
+  const select = useEvent((data: PlainMessage<GetPortfolioResponse> | undefined) =>
     formatPortfolioResponseToMap({
-      portfolioData,
+      portfolioData: data,
       ownerAddress,
       useMultichainFormat: false,
     }),
@@ -221,9 +210,9 @@ export function usePortfolioData(options: UsePortfolioDataQueryOptions): Portfol
 export function usePortfolioDataMultichain(options: UsePortfolioDataQueryOptions): PortfolioDataResultMultichain {
   const ownerAddress = options.evmAddress ?? options.svmAddress
   const requestedMultichainFromBackend = options.requestMultichainFromBackend
-  const select = useEvent((portfolioData: GetPortfolioResponse | undefined) =>
+  const select = useEvent((data: PlainMessage<GetPortfolioResponse> | undefined) =>
     formatPortfolioResponseToMap({
-      portfolioData,
+      portfolioData: data,
       ownerAddress,
       useMultichainFormat: true,
       requestedMultichainFromBackend,
@@ -233,60 +222,29 @@ export function usePortfolioDataMultichain(options: UsePortfolioDataQueryOptions
 }
 
 /**
- * Helps generate modifiers when requesting a portfolio for one or more addresses with our REST endpoint.
- * These modifiers control manual overrides for tokens that are included or excluded from portfolio calculations,
- * and whether to include small balances and spam tokens.
- * @param addresses single address or array of addresses
- * @returns Array of REST portfolio value modifiers to be passed into useGetPortfolioQuery
+ * Cache-only read of total balances USD per chain, for telemetry.
+ * Built on the same query plumbing as `usePortfolioData` so its cache key always matches the
+ * queries that actually fetch portfolio data (never fetches on its own).
  */
-
-export function useRestPortfolioValueModifiers(
-  addresses?: Address[],
-): PartialMessage<RestPortfolioValueModifier>[] | undefined {
-  const addressArray = useMemo(() => addresses ?? [], [addresses])
-  const currencyIdToTokenVisibility = useCurrencyIdToVisibility(addressArray)
-  const includeSpamTokens = !useHideSpamTokensSetting()
-  const includeSmallBalances = !useHideSmallBalancesSetting()
-
-  const modifiers = useMemo(() => {
-    const { includeOverrides, excludeOverrides } = Object.entries(currencyIdToTokenVisibility).reduce(
-      (acc: RestTokenOverrides, [key, tokenVisibility]) => {
-        const contractInput = currencyIdToRestContractInput(key)
-        tokenVisibility.isVisible ? acc.includeOverrides.push(contractInput) : acc.excludeOverrides.push(contractInput)
-
-        return acc
-      },
-      {
-        includeOverrides: [],
-        excludeOverrides: [],
-      },
-    )
-
-    return addressArray.map((addr) => ({
-      address: addr,
-      includeOverrides,
-      excludeOverrides,
-      includeSmallBalances,
-      includeSpamTokens,
-    }))
-  }, [currencyIdToTokenVisibility, addressArray, includeSmallBalances, includeSpamTokens])
-
-  return modifiers.length > 0 ? modifiers : undefined
-}
-
-/**
- * Uses useRestPortfolioValueModifiers to return a single REST portfolio value modifier for a single address.
- */
-export function useRestPortfolioValueModifier(
-  address?: Address,
-): PartialMessage<RestPortfolioValueModifier> | undefined {
-  const addressArray = useMemo(() => (address ? [address] : undefined), [address])
-  const modifiers = useRestPortfolioValueModifiers(addressArray)
-  return modifiers?.[0] ?? undefined
+export function usePortfolioTotalBalancesUsdPerChain({
+  evmAddress,
+  svmAddress,
+}: {
+  evmAddress?: Address
+  svmAddress?: Address
+}): Record<string, number> | undefined {
+  const { data } = usePortfolioDataQueryWithSelect({
+    evmAddress,
+    svmAddress,
+    select: calculateTotalBalancesUsdPerChainRest,
+    requestMultichainFromBackend: false,
+    cacheOnly: true,
+  })
+  return data
 }
 
 export function convertRestBalanceToPortfolioBalance(
-  balance: NonNullable<NonNullable<GetPortfolioResponse['portfolio']>['balances'][0]>,
+  balance: NonNullable<NonNullable<PlainMessage<GetPortfolioResponse>['portfolio']>['balances'][0]>,
   address?: Address,
 ): PortfolioBalance | undefined {
   const { token, amount, pricePercentChange1d, valueUsd, isHidden } = balance
@@ -300,7 +258,7 @@ export function convertRestBalanceToPortfolioBalance(
 
   const currency = buildCurrency({
     chainId,
-    address: tokenAddress,
+    address: normalizeBackendNativeAddress({ chainId, address: tokenAddress }),
     decimals,
     symbol,
     name,
@@ -342,6 +300,8 @@ export function convertRestBalanceToPortfolioBalance(
     id: tokenBalanceId,
     cacheId: `TokenBalance:${tokenBalanceId}`,
     quantity: amount.amount,
+    // Protobuf string fields default to '' — normalize to undefined so consumers can fall back.
+    quantityRaw: amount.raw || undefined,
     balanceUSD: valueUsd,
     currencyInfo,
     relativeChange24: pricePercentChange1d,
@@ -349,175 +309,8 @@ export function convertRestBalanceToPortfolioBalance(
   })
 }
 
-function updateBalanceVisibility({
-  balances,
-  targetCurrency,
-  isHidden,
-}: {
-  balances: Balance[]
-  targetCurrency: Currency
-  isHidden: boolean
-}): Pick<Balance, 'token' | 'amount' | 'priceUsd' | 'pricePercentChange1d' | 'valueUsd' | 'isHidden'>[] {
-  return balances.map((balance) => {
-    const token = balance.token
-    if (!token) {
-      return balance
-    }
-
-    const matches = matchesCurrency(token, targetCurrency)
-    // oxlint-disable-next-line typescript/no-misused-spread -- biome-parity: oxlint is stricter here
-    return matches ? { ...balance, isHidden } : balance
-  })
-}
-
-function calculateNewTotalValue({
-  currentTotal,
-  balanceValue,
-  isHiding,
-}: {
-  currentTotal: number
-  balanceValue: number
-  isHiding: boolean
-}): number {
-  return isHiding ? currentTotal - balanceValue : currentTotal + balanceValue
-}
-
-export const createPortfolioCacheUpdater =
-  (ctx: {
-    updateData: (
-      input: GetPortfolioInput['input'],
-      updater: (old?: GetPortfolioResponse) => GetPortfolioResponse,
-    ) => void
-    getCurrentData: (input: GetPortfolioInput['input']) => GetPortfolioResponse | undefined
-  }) =>
-  (input: GetPortfolioInput['input']) => {
-    return (updateInput: { hidden: boolean; portfolioBalance?: PortfolioBalance }): void => {
-      if (!updateInput.portfolioBalance) {
-        return
-      }
-
-      const currentData = ctx.getCurrentData(input)
-
-      if (!currentData?.portfolio?.balances) {
-        return
-      }
-
-      const updatedBalances = updateBalanceVisibility({
-        balances: currentData.portfolio.balances,
-        targetCurrency: updateInput.portfolioBalance.currencyInfo.currency,
-        isHidden: updateInput.hidden,
-      })
-
-      const newTotal = calculateNewTotalValue({
-        currentTotal: currentData.portfolio.totalValueUsd || 0,
-        balanceValue: updateInput.portfolioBalance.balanceUSD || 0,
-        isHiding: updateInput.hidden,
-      })
-
-      ctx.updateData(
-        input,
-        (old) =>
-          ({
-            // oxlint-disable-next-line typescript/no-misused-spread -- biome-parity: oxlint is stricter here
-            ...(old || currentData),
-            portfolio: {
-              // oxlint-disable-next-line typescript/no-misused-spread -- biome-parity: oxlint is stricter here
-              ...currentData.portfolio,
-              balances: updatedBalances,
-              totalValueUsd: newTotal,
-            },
-          }) as GetPortfolioResponse,
-      )
-    }
-  }
-
-export function usePortfolioCacheUpdater(evmAddress?: string, svmAddress?: string): PortfolioCacheUpdater {
-  const { chains: chainIds } = useEnabledChains()
-  const queryClient = useQueryClient()
-
-  // TODO(SWAP-388): GetPortfolio REST endpoint does not yet support modifier array; it will take 1 evm/svm address, but will apply the modifications across the board
-  const modifier = useRestPortfolioValueModifier(evmAddress ?? svmAddress)
-
-  const cacheUpdater = useMemo(() => {
-    return createPortfolioCacheUpdater({
-      getCurrentData: (input) => queryClient.getQueryData(getPortfolioQuery({ input }).queryKey),
-      updateData: (input, dataUpdater) => {
-        queryClient.setQueryData(getPortfolioQuery({ input }).queryKey, dataUpdater)
-      },
-    })
-  }, [queryClient])
-
-  return useEvent((hidden: boolean, portfolioBalance?: PortfolioBalance) =>
-    cacheUpdater({ evmAddress, svmAddress, chainIds, modifier })({
-      hidden,
-      portfolioBalance,
-    }),
-  )
-}
-
-export function usePortfolioTotalValue({
-  evmAddress,
-  svmAddress,
-  pollInterval,
-  fetchPolicy,
-  enabled = true,
-  chainIds,
-  useMultichainFormat: _useMultichainFormat,
-}: {
-  evmAddress?: Address
-  svmAddress?: Address
-  pollInterval?: PollingInterval
-  fetchPolicy?: WatchQueryFetchPolicy
-  enabled?: boolean
-  chainIds?: UniverseChainId[]
-  /** Pass through for consistency with usePortfolioBalances; no effect on total value select. */
-  useMultichainFormat?: boolean
-}): PortfolioTotalValueResult {
-  const { chains: defaultChainIds } = useEnabledChains()
-  const effectiveChainIds = chainIds || defaultChainIds
-
-  const { pollInterval: internalPollInterval } = usePlatformBasedFetchPolicy({
-    fetchPolicy,
-    pollInterval,
-  })
-
-  const selectFormattedData = useEvent((portfolioData: GetPortfolioResponse | undefined) => {
-    if (!portfolioData?.portfolio) {
-      return undefined
-    }
-
-    const portfolio = portfolioData.portfolio
-
-    return {
-      balanceUSD: portfolio.totalValueUsd,
-      percentChange: portfolio.totalValuePercentChange1d,
-      absoluteChangeUSD: portfolio.totalValueAbsoluteChange1d,
-    }
-  })
-
-  // TODO(SWAP-388): GetPortfolio REST endpoint does not yet support modifier array; it will take 1 evm/svm address, but will apply the modifications across the board
-  const modifier = useRestPortfolioValueModifier(enabled ? (evmAddress ?? svmAddress) : undefined)
-
-  const {
-    data: formattedData,
-    isFetching: loading,
-    refetch,
-    error: restError,
-    status: restStatus,
-    dataUpdatedAt,
-  } = useGetPortfolioQuery({
-    input: { evmAddress, svmAddress, chainIds: effectiveChainIds, modifier },
-    enabled: !!(evmAddress ?? svmAddress) && enabled,
-    refetchInterval: internalPollInterval,
-    select: selectFormattedData,
-  })
-
-  return {
-    data: formattedData,
-    loading,
-    networkStatus: mapRestStatusToNetworkStatus(restStatus),
-    refetch,
-    error: restError || undefined,
-    dataUpdatedAt: dataUpdatedAt || undefined,
-  }
-}
+export {
+  usePortfolioBalanceBreakdown,
+  usePortfolioBalancePart,
+  usePortfolioTotalValue,
+} from './usePortfolioBalancePart'

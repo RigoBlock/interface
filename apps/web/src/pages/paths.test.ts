@@ -1,5 +1,6 @@
 import React from 'react'
 import { WRAPPED_SOL_ADDRESS_SOLANA } from 'uniswap/src/features/chains/svm/defaults'
+import { NATIVE_CHAIN_ID } from '~/constants/tokens'
 import { getExploreTitle } from '~/pages/getExploreTitle'
 import {
   getAddLiquidityPageTitle,
@@ -11,7 +12,8 @@ import { routes } from '~/pages/RouteDefinitions'
 
 // Mock the actual components since they're not needed to test route definitions.
 vi.mock('~/pages/Swap', () => ({
-  default: () => React.createElement(React.Fragment),
+  SwapPage: () => React.createElement(React.Fragment),
+  Swap: () => React.createElement(React.Fragment),
 }))
 
 describe('Paths', () => {
@@ -24,6 +26,14 @@ describe('Paths', () => {
       }
       if (path === `/explore/tokens/solana/${WRAPPED_SOL_ADDRESS_SOLANA}`) {
         // Special case: WSOL is redirected to SOL TDP, so we don't want to expose it to the Cloudflare function.
+        return
+      }
+      if (path === `/explore/tokens/arc/${NATIVE_CHAIN_ID}`) {
+        // Special case: Arc NATIVE is redirected to its canonical USDC TDP, so don't expose it to Cloudflare.
+        return
+      }
+      if (path === '/positions/create') {
+        // Special case: retired in favour of /positions/add/new, which it redirects to, so don't expose it to Cloudflare.
         return
       }
       expect(paths).toContain(path)

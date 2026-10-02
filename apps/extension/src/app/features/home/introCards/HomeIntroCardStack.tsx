@@ -1,7 +1,7 @@
+import { Flex } from '@universe/mycelium'
 import { useCallback } from 'react'
 import { AppRoutes, SettingsRoutes, UnitagClaimRoutes } from 'src/app/navigation/constants'
 import { focusOrCreateUnitagTab, useExtensionNavigation } from 'src/app/navigation/utils'
-import { Flex } from 'ui/src'
 import { AccountType } from 'uniswap/src/features/accounts/types'
 import { IntroCardStack } from 'wallet/src/components/introCards/IntroCardStack'
 import { useSharedIntroCards } from 'wallet/src/components/introCards/useSharedIntroCards'

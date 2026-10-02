@@ -1,8 +1,10 @@
+import { isWebAppDesktop, isWebPlatform } from '@universe/environment'
+import { AnimatedFlex, Flex, Text, TouchableArea, type FlexProps } from '@universe/mycelium'
+import { TestID } from '@universe/test'
 import { forwardRef, memo, useCallback, useImperativeHandle, useRef } from 'react'
 import type { NativeSyntheticEvent, TextInput, TextInputSelectionChangeEventData } from 'react-native'
-import { Flex, FlexProps, Text, TouchableArea, useSporeColors } from 'ui/src'
+import { useSporeColors } from 'ui/src'
 import type { ShakeAnimation } from 'ui/src/animations/hooks/useShakeAnimation'
-import { AnimatedFlex } from 'ui/src/components/layout/AnimatedFlex'
 import { FontSizeOptions } from 'ui/src/hooks/useDynamicFontSizing'
 import { fonts, spacing } from 'ui/src/theme'
 import { AmountInput } from 'uniswap/src/components/AmountInput/AmountInput'
@@ -18,9 +20,7 @@ import { SelectTokenButton } from 'uniswap/src/components/CurrencyInputPanel/Sel
 import type { CurrencyInputPanelProps, CurrencyInputPanelRef } from 'uniswap/src/components/CurrencyInputPanel/types'
 import { MAX_FIAT_INPUT_DECIMALS } from 'uniswap/src/constants/transactions'
 import { useAppFiatCurrencyInfo } from 'uniswap/src/features/fiatCurrency/hooks'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { CurrencyField } from 'uniswap/src/types/currency'
-import { isWebAppDesktop, isWebPlatform } from 'utilities/src/platform'
 
 type CurrencyInputPanelInputProps = {
   shakeAnimation: ShakeAnimation
@@ -90,6 +90,9 @@ export const CurrencyInputPanelInput = memo(
       const colors = useSporeColors()
       const { symbol: fiatCurrencySymbol } = useAppFiatCurrencyInfo()
 
+      const currencySymbolMargin =
+        fiatCurrencySymbol.length > 1 ? (isWebPlatform ? '$spacing2' : '$spacing4') : undefined
+
       const { value, color } = indicativeQuoteTextDisplay
 
       const inputRef = useRef<TextInput | null>(null)
@@ -139,7 +142,7 @@ export const CurrencyInputPanelInput = memo(
               color={showInsufficientBalanceWarning ? '$statusCritical' : color}
               fontSize={inputFontSize.fontSize}
               lineHeight={inputFontSize.lineHeight}
-              mr={isWebPlatform ? '$spacing2' : undefined}
+              mr={currencySymbolMargin}
             >
               {fiatCurrencySymbol}
             </Text>
@@ -155,7 +158,7 @@ export const CurrencyInputPanelInput = memo(
             onLayout={inputFontSize.onLayout}
           >
             {currencyInfo ? (
-              <Flex row flexShrink={isWebPlatform ? 1 : 0}>
+              <Flex fill row flexShrink={isWebPlatform ? 1 : 0}>
                 {disabled && (
                   // Invisible TouchableArea overlay to capture onPress events and trigger the shake animation when the input is disabled
                   <TouchableArea
@@ -218,7 +221,7 @@ export const CurrencyInputPanelInput = memo(
                   color="$neutral3"
                   fontSize={inputFontSize.fontSize}
                   variant="heading2"
-                  style={{ lineHeight: inputFontSize.fontSize }}
+                  lineHeight={inputFontSize.fontSize}
                 >
                   0
                 </Text>

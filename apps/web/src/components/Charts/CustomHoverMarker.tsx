@@ -1,5 +1,5 @@
-import { Flex, useSporeColors } from 'ui/src'
-import { opacify } from 'ui/src/theme'
+import { Flex } from '@universe/mycelium'
+import { opacify, useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 
 interface CustomHoverMarkerProps {
   coordinates: { x: number; y: number }

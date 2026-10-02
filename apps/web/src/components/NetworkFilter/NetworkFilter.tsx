@@ -1,36 +1,44 @@
-import { memo, useCallback, useState } from 'react'
+import { UniverseChainId } from '@universe/chains'
+import { isWebApp } from '@universe/environment'
+import {
+  Flex as MyceliumFlex,
+  type FlexCompatProps,
+  type TextCompatProps,
+  Flex,
+  Text,
+  type TextProps,
+} from '@universe/mycelium'
+import { styled } from '@universe/mycelium/styled'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
+import { TestID } from '@universe/test'
 import type { Dispatch, SetStateAction } from 'react'
+import { memo, useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ElementAfterText, Flex, ScrollView, styled, Text } from 'ui/src'
-import type { FlexProps, TextProps } from 'ui/src'
-import { Check } from 'ui/src/components/icons/Check'
 import { iconSizes } from 'ui/src/theme'
 import Badge from 'uniswap/src/components/badge/Badge'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
-import { NewTag } from 'uniswap/src/components/pill/NewTag'
+import { NetworkFilterDropdownContent } from 'uniswap/src/components/network/NetworkFilterV2/NetworkFilterDropdownContent'
+import type { TieredNetworkOptions } from 'uniswap/src/components/network/NetworkFilterV2/types'
+import { NetworkOption } from 'uniswap/src/components/network/NetworkOption'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { useNewChainIds } from 'uniswap/src/features/chains/hooks/useNewChainIds'
 import { useIsSupportedChainIdCallback } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import type { UniverseChainInfo } from 'uniswap/src/features/chains/types'
 import { isBackendSupportedChainId, toGraphQLChain } from 'uniswap/src/features/chains/utils'
 import { InterfacePageName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
-import { Dropdown, InternalMenuItem } from '~/components/Dropdowns/Dropdown'
+import { ALL_NETWORKS_LABEL } from 'uniswap/src/features/telemetry/types'
+import { Dropdown } from '~/components/Dropdowns/Dropdown'
 import { ChainLogo } from '~/components/Logo/ChainLogo'
 import { useFilteredChainIds } from '~/components/NetworkFilter/useFilteredChains'
-import { ExploreTab } from '~/pages/Explore/constants'
-import { EllipsisTamaguiStyle } from '~/theme/components/styles'
+import { ExploreTab } from '~/types/explore'
 
-const NetworkLabel = styled(Flex, {
-  flexDirection: 'row',
-  alignItems: 'center',
-  gap: '$gap8',
+const NetworkLabel = styled(MyceliumFlex, {
+  base: 'flex-row items-center gap-[8px]',
 })
 
 // dropdown sizes per design
-enum DropdownSizeVariants {
+export enum DropdownSizeVariants {
   Large = 'large',
   Medium = 'medium',
   Small = 'small',
@@ -39,14 +47,21 @@ enum DropdownSizeVariants {
 
 type DropdownSize = DropdownSizeVariants | 'large' | 'medium' | 'small' | 'xsmall'
 
-const StyledDropdown = {
+// Exported so sibling filters (e.g. the Launches launchpad selector) reuse the exact chrome.
+export const NETWORK_FILTER_DROPDOWN_STYLE = {
   maxHeight: 350,
-  minWidth: 256,
+  minWidth: 272,
   px: 0,
   py: 0,
-} satisfies FlexProps
+  flexDirection: 'column',
+  minHeight: 0,
+  paddingTop: '$spacing4',
+  borderRadius: '$rounded20',
+} satisfies FlexCompatProps
+const StyledDropdown = NETWORK_FILTER_DROPDOWN_STYLE
 
-const ButtonStyles: Record<DropdownSizeVariants, FlexProps> = {
+// Exported so sibling filters (e.g. the Launches launchpad selector) reuse the exact chrome.
+export const NETWORK_FILTER_BUTTON_STYLES: Record<DropdownSizeVariants, TextCompatProps> = {
   [DropdownSizeVariants.Large]: {
     height: 48,
     pl: '$spacing16',
@@ -60,7 +75,7 @@ const ButtonStyles: Record<DropdownSizeVariants, FlexProps> = {
     height: 32,
     borderRadius: '$rounded12',
     pl: '$spacing12',
-    gap: '$gap6',
+    gap: '$spacing6',
   },
   [DropdownSizeVariants.XSmall]: {
     height: 28,
@@ -70,6 +85,8 @@ const ButtonStyles: Record<DropdownSizeVariants, FlexProps> = {
     gap: '$gap4',
   },
 }
+
+const ButtonStyles = NETWORK_FILTER_BUTTON_STYLES
 
 const NetworkLogoSizes: Record<DropdownSizeVariants, number> = {
   [DropdownSizeVariants.Large]: iconSizes.icon24,
@@ -95,7 +112,18 @@ export function NetworkFilter({
   transition,
   networks,
   customTrigger,
+  dropdownStyle,
+  buttonStyle,
   isTriggerStyled = true,
+  tracePage,
+  tab,
+  forceFlipUp,
+  positionFixed,
+  showSearch = false,
+  showSearchInput = true,
+  tieredOptions,
+  forceAllNetworksLabel = false,
+  showComingSoonOption = false,
 }: {
   showMultichainOption?: boolean
   showDisplayName?: boolean
@@ -103,17 +131,40 @@ export function NetworkFilter({
   position?: 'left' | 'right'
   onPress: (chainId: UniverseChainId | undefined) => void
   currentChainId: UniverseChainId | undefined
-  transition?: FlexProps['transition']
+  // CSS transition string, forwarded to raw <img>/CSS consumers (same narrowing as NetworkLogo)
+  transition?: string
   networks?: UniverseChainId[]
   customTrigger?: JSX.Element | string
+  dropdownStyle?: FlexCompatProps
+  /** Overrides the `size` preset. */
+  buttonStyle?: TextCompatProps
   isTriggerStyled?: boolean
+  tracePage?: InterfacePageName
+  tab?: ExploreTab
+  forceFlipUp?: boolean
+  positionFixed?: boolean
+  showSearch?: boolean
+  showSearchInput?: boolean
+  tieredOptions?: TieredNetworkOptions
+  forceAllNetworksLabel?: boolean
+  /** Appends a disabled multichain "Coming soon" row after the selectable networks (list menu only). */
+  showComingSoonOption?: boolean
 }) {
   const { t } = useTranslation()
+  const media = useMedia()
   const [isMenuOpen, toggleMenu] = useState(false)
   const isSupportedChainCallback = useIsSupportedChainIdCallback()
   const filteredChainIds = useFilteredChainIds(networks)
+  const allSupportedChainIds = useFilteredChainIds()
+  const isNetworkSubset = filteredChainIds.length < allSupportedChainIds.length
+  const allNetworksDisplayChainIds = isNetworkSubset ? filteredChainIds : undefined
+  // With a single selectable network the "All networks" option is meaningless: drop the multichain
+  // row and show that one chain's logo in the trigger instead of the default multi-network image.
+  const singleChainId = filteredChainIds.length === 1 ? filteredChainIds[0] : undefined
+  const showMultichain = showMultichainOption && singleChainId === undefined
   const chainInfo = currentChainId ? getChainInfo(currentChainId) : null
   const isAllNetworks = chainInfo === null
+  const isMobileSheet = isWebApp && media.sm
 
   const tableNetworkItemRenderer = useCallback(
     (chainId: UniverseChainId) => {
@@ -128,14 +179,16 @@ export function NetworkFilter({
         <TableNetworkItem
           key={chainId}
           chainInfo={chainInfo}
+          tab={tab}
           toggleMenu={toggleMenu}
+          tracePage={tracePage}
           unsupported={!supported}
           onPress={onPress}
           currentChainId={currentChainId}
         />
       )
     },
-    [isSupportedChainCallback, onPress, currentChainId],
+    [currentChainId, isSupportedChainCallback, onPress, tab, toggleMenu, tracePage],
   )
 
   return (
@@ -147,11 +200,11 @@ export function NetworkFilter({
           menuLabel={
             customTrigger ?? (
               <NetworkLabel testID={TestID.TokensNetworkFilterTrigger}>
-                {(!currentChainId || !isSupportedChainCallback(currentChainId)) && showMultichainOption ? (
+                {(!currentChainId || !isSupportedChainCallback(currentChainId)) && showMultichain ? (
                   <NetworkLogo size={NetworkLogoSizes[size]} chainId={null} transition={transition} />
                 ) : (
                   <ChainLogo
-                    chainId={currentChainId ?? UniverseChainId.Mainnet}
+                    chainId={currentChainId ?? singleChainId ?? UniverseChainId.Mainnet}
                     size={NetworkLogoSizes[size]}
                     testId={TestID.TokensNetworkFilterSelected}
                     transition={transition}
@@ -166,25 +219,64 @@ export function NetworkFilter({
             )
           }
           isTriggerStyled={isTriggerStyled}
-          buttonStyle={ButtonStyles[size]}
-          dropdownStyle={StyledDropdown}
+          buttonStyle={{ ...ButtonStyles[size], ...buttonStyle }}
+          dropdownStyle={{ ...StyledDropdown, ...dropdownStyle, ...(showSearch ? { overflow: 'hidden' } : {}) }}
           adaptToSheet
           allowFlip
+          forceFlipUp={forceFlipUp}
+          positionFixed={positionFixed}
           alignRight={position === 'right'}
         >
-          <ScrollView>
+          {showSearch ? (
+            <Flex flex={1} minHeight={0} p="$spacing4">
+              <NetworkFilterDropdownContent
+                autoFocus={!isMobileSheet}
+                chainIds={filteredChainIds}
+                fillAvailableHeight
+                includeAllNetworks={showMultichain}
+                allNetworksChainIds={showMultichain ? allNetworksDisplayChainIds : undefined}
+                isOpen={isMenuOpen}
+                selectedChain={currentChainId ?? null}
+                tieredOptions={tieredOptions}
+                forceAllNetworksLabel={forceAllNetworksLabel}
+                showSearchInput={showSearchInput}
+                onPressChain={(chainId) => {
+                  onPress(chainId ?? undefined)
+                  toggleMenu(false)
+                }}
+              />
+            </Flex>
+          ) : (
             <Flex p="$spacing8">
-              {showMultichainOption && (
+              {showMultichain && (
                 <TableNetworkItem
+                  forceAllNetworksLabel={forceAllNetworksLabel}
                   chainInfo={null}
+                  chainIds={allNetworksDisplayChainIds}
+                  tab={tab}
                   toggleMenu={toggleMenu}
+                  tracePage={tracePage}
                   onPress={onPress}
                   currentChainId={currentChainId}
                 />
               )}
               {filteredChainIds.map(tableNetworkItemRenderer)}
+              {showComingSoonOption && (
+                <Flex
+                  data-testid={`${TestID.TokensNetworkFilterOptionPrefix}coming-soon`}
+                  cursor="default"
+                  opacity={0.6}
+                >
+                  <NetworkOption
+                    chainId={null}
+                    isNew={false}
+                    customLogo={<NetworkLogo chainId={null} size={iconSizes.icon24} />}
+                    customLabel={t('common.comingSoon')}
+                  />
+                </Flex>
+              )}
             </Flex>
-          </ScrollView>
+          )}
         </Dropdown>
       </Trace>
     </Flex>
@@ -193,34 +285,39 @@ export function NetworkFilter({
 
 const TableNetworkItem = memo(function TableNetworkItem({
   chainInfo,
-  toggleMenu,
+  chainIds,
   tab,
+  toggleMenu,
+  tracePage,
   unsupported,
   onPress,
   currentChainId,
+  forceAllNetworksLabel,
 }: {
   chainInfo: UniverseChainInfo | null
-  toggleMenu: Dispatch<SetStateAction<boolean>>
-  onPress: (chainId: UniverseChainId | undefined) => void
+  chainIds?: UniverseChainId[]
   tab?: ExploreTab
+  toggleMenu: Dispatch<SetStateAction<boolean>>
+  tracePage?: InterfacePageName
+  onPress: (chainId: UniverseChainId | undefined) => void
   unsupported?: boolean
   currentChainId?: UniverseChainId | undefined
+  forceAllNetworksLabel?: boolean
 }) {
   const { t } = useTranslation()
   const currentChainInfo = currentChainId ? getChainInfo(currentChainId) : undefined
   const newChains = useNewChainIds()
 
   const isAllNetworks = chainInfo === null
-  const chainId = isAllNetworks ? undefined : chainInfo.id
-  const isNew = chainId && newChains.includes(chainId)
+  const chainId = isAllNetworks ? null : chainInfo.id
+  const isNew = chainId !== null && newChains.includes(chainId)
 
   const chainName = chainId ? toGraphQLChain(chainId) : t('transaction.network.all')
-
   const isCurrentChain = isAllNetworks ? !currentChainInfo : currentChainInfo?.id === chainId
 
   const handlePress = () => {
     if (!unsupported) {
-      onPress(chainId)
+      onPress(chainId ?? undefined)
     }
     toggleMenu(false)
   }
@@ -228,39 +325,34 @@ const TableNetworkItem = memo(function TableNetworkItem({
   return (
     <Trace
       logPress
-      page={InterfacePageName.ExplorePage}
+      {...(tracePage !== undefined ? { page: tracePage } : {})}
       properties={{
-        tab,
+        ...(tab !== undefined ? { tab } : {}),
         chain: chainName.toString(),
-        previousConnectedChain: currentChainInfo?.id
+        chain_id: chainId ?? ALL_NETWORKS_LABEL,
+        chain_name: isAllNetworks ? ALL_NETWORKS_LABEL : chainInfo.label,
+        previous_connected_chain: currentChainInfo?.id
           ? toGraphQLChain(currentChainInfo.id)
           : t('transaction.network.all'),
+        previous_chain_id: currentChainInfo?.id ?? ALL_NETWORKS_LABEL,
+        previous_chain_name: currentChainInfo ? currentChainInfo.label : ALL_NETWORKS_LABEL,
       }}
     >
-      <InternalMenuItem
+      <Flex
         data-testid={`${TestID.TokensNetworkFilterOptionPrefix}${chainName.toLowerCase()}`}
-        disabled={unsupported}
+        cursor={unsupported ? 'default' : 'pointer'}
+        opacity={unsupported ? 0.6 : undefined}
         onPress={handlePress}
       >
-        <NetworkLabel>
-          {isAllNetworks ? (
-            <NetworkLogo chainId={null} />
-          ) : (
-            <ChainLogo chainId={chainId ?? UniverseChainId.Mainnet} size={20} />
-          )}
-          <ElementAfterText
-            text={isAllNetworks ? t('transaction.network.all') : chainInfo.label}
-            textProps={{ variant: 'body2', ...EllipsisTamaguiStyle }}
-            element={isNew && !unsupported ? <NewTag /> : undefined}
-          />
-        </NetworkLabel>
-        {/* separate from ElementAfterText as this is placed at the far right of the row, not next to the text */}
-        {unsupported ? (
-          <Badge fontSize={10}>{t('settings.setting.beta.tooltip')}</Badge>
-        ) : isCurrentChain ? (
-          <Check size="$icon.16" color="$accent1" />
-        ) : null}
-      </InternalMenuItem>
+        <NetworkOption
+          chainId={chainId}
+          chainIds={chainId === null ? chainIds : undefined}
+          currentlySelected={isCurrentChain}
+          isNew={isNew}
+          forceAllNetworksLabel={forceAllNetworksLabel}
+          trailingElement={unsupported ? <Badge fontSize={10}>{t('settings.setting.beta.tooltip')}</Badge> : undefined}
+        />
+      </Flex>
     </Trace>
   )
 })

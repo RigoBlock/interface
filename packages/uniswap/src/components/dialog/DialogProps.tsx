@@ -1,5 +1,5 @@
+import { type FlexProps, type TextProps } from '@universe/mycelium'
 import type { ReactNode } from 'react'
-import type { FlexProps, TextProps } from 'ui/src'
 import type { ButtonConfig } from 'uniswap/src/components/dialog/DialogButtons'
 import type { DialogPreferencesService } from 'uniswap/src/dialog-preferences'
 import type { DialogVisibilityId } from 'uniswap/src/dialog-preferences/types'

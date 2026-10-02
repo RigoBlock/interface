@@ -1,4 +1,5 @@
-import { Flex, GeneratedIcon } from 'ui/src'
+import { Flex } from '@universe/mycelium'
+import type { GeneratedIcon } from '@universe/mycelium/icons'
 import { useBooleanState } from 'utilities/src/react/useBooleanState'
 import { ActionTile, ActionTileProps } from '~/components/AccountDrawer/ActionTile'
 import { Wiggle } from '~/components/animations/Wiggle'

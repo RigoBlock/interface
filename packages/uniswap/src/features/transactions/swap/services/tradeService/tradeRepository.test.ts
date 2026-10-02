@@ -1,6 +1,6 @@
 import type { DiscriminatedQuoteResponse } from '@universe/api'
 import { TradingApi } from '@universe/api'
-import { logSwapQuoteFetch } from 'uniswap/src/features/transactions/swap/analytics'
+import { logSwapQuoteFetch } from 'uniswap/src/features/transactions/swap/logSwapQuoteFetch'
 import {
   createTradeRepository,
   type TradeRepository,
@@ -8,7 +8,7 @@ import {
 import type { Logger } from 'utilities/src/logger/logger'
 
 // Mock dependencies
-vi.mock('uniswap/src/features/transactions/swap/analytics')
+vi.mock('uniswap/src/features/transactions/swap/logSwapQuoteFetch')
 
 describe('TradeRepository', () => {
   // Minimal test params
@@ -61,11 +61,14 @@ describe('TradeRepository', () => {
     })
 
     describe('analytics', () => {
-      it('logs swap quote fetch with chainId, isUSDQuote, and quoteSource', async () => {
+      it('logs swap quote fetch with chainId, tokens, isUSDQuote, and quoteSource', async () => {
         const repository = createTestRepo()
         await repository.fetchQuote(mockParams)
         expect(logSwapQuoteFetch).toHaveBeenCalledWith({
           chainId: mockParams.tokenInChainId,
+          tokenOutChainId: mockParams.tokenOutChainId,
+          tokenIn: mockParams.tokenIn,
+          tokenOut: mockParams.tokenOut,
           isUSDQuote: undefined,
           quoteSource: 'trading_api',
         })
@@ -76,6 +79,9 @@ describe('TradeRepository', () => {
         await repository.fetchQuote({ ...mockParams, isUSDQuote: true })
         expect(logSwapQuoteFetch).toHaveBeenCalledWith({
           chainId: mockParams.tokenInChainId,
+          tokenOutChainId: mockParams.tokenOutChainId,
+          tokenIn: mockParams.tokenIn,
+          tokenOut: mockParams.tokenOut,
           isUSDQuote: true,
           quoteSource: 'trading_api',
         })
@@ -189,6 +195,9 @@ describe('TradeRepository', () => {
       await repository.fetchIndicativeQuote(indicativeParams)
       expect(logSwapQuoteFetch).toHaveBeenCalledWith({
         chainId: indicativeParams.tokenInChainId,
+        tokenOutChainId: indicativeParams.tokenOutChainId,
+        tokenIn: indicativeParams.tokenIn,
+        tokenOut: indicativeParams.tokenOut,
         isQuickRoute: true,
       })
     })

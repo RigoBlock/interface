@@ -1,4 +1,8 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
+import { Button, Flex, MobileDeviceHeight, Text, TouchableArea, useIsShortMobileDevice } from '@universe/mycelium'
+import { PapersText } from '@universe/mycelium/icons/PapersText'
+import { QuestionInCircleFilled } from '@universe/mycelium/icons/QuestionInCircleFilled'
+import { TestID } from '@universe/test'
 import React, { useCallback, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
@@ -14,13 +18,10 @@ import {
 } from 'src/screens/Import/SeedPhraseInputScreen/SeedPhraseInput/types'
 import { useFunctionAfterNavigationTransitionEndWithDelay } from 'src/utils/hooks'
 import { useNavigationHeader } from 'src/utils/useNavigationHeader'
-import { Button, Flex, MobileDeviceHeight, Text, TouchableArea, useIsShortMobileDevice } from 'ui/src'
-import { PapersText, QuestionInCircleFilled } from 'ui/src/components/icons'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { ElementName, MobileEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { ImportType } from 'uniswap/src/types/onboarding'
 import { OnboardingScreens } from 'uniswap/src/types/screens/mobile'
 import { openUri } from 'uniswap/src/utils/linking'
@@ -98,7 +99,7 @@ export function SeedPhraseInputScreen({ navigation, route: { params } }: SeedPhr
   )
 
   const onPressRecoveryHelpButton = useCallback(
-    () => openUri({ uri: uniswapUrls.helpArticleUrls.recoveryPhraseHowToImport }),
+    () => openUri({ uri: UniswapHelpUrls.articles.recoveryPhraseHowToImport }),
     [],
   )
 
@@ -121,7 +122,7 @@ export function SeedPhraseInputScreen({ navigation, route: { params } }: SeedPhr
         <Trace logPress element={ElementName.Next}>
           <Flex row>
             <Button
-              isDisabled={!isSubmitEnabled}
+              disabled={!isSubmitEnabled}
               mx="$spacing16"
               my="$spacing12"
               size="large"

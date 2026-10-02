@@ -1,4 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
+import { Flex } from '@universe/mycelium'
+import { Key } from '@universe/mycelium/icons/Key'
+import { Stopwatch } from '@universe/mycelium/icons/Stopwatch'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { ScreenHeader } from 'src/app/components/layout/ScreenHeader'
@@ -13,9 +16,6 @@ import { PasswordResetFlowState, usePasswordResetFlow } from 'src/app/features/s
 import { SettingsItemWithDropdown } from 'src/app/features/settings/SettingsItemWithDropdown'
 import { builtInBiometricCapabilitiesQuery } from 'src/app/utils/device/builtInBiometricCapabilitiesQuery'
 import { ExtensionState } from 'src/store/extensionReducer'
-import { Flex, ScrollView } from 'ui/src'
-import { Stopwatch } from 'ui/src/components/icons'
-import { Key } from 'ui/src/components/icons/Key'
 import { DeviceAccessTimeout, ORDERED_DEVICE_ACCESS_TIMEOUTS } from 'uniswap/src/features/settings/constants'
 import { setDeviceAccessTimeout } from 'uniswap/src/features/settings/slice'
 
@@ -60,7 +60,7 @@ export function DeviceAccessScreen(): JSX.Element {
     <>
       <Flex fill backgroundColor="$surface1" gap="$spacing8">
         <ScreenHeader title={t('settings.setting.deviceAccess.title')} />
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <Flex grow shrink overflowX="hidden" overflowY="auto" scrollbarWidth="none">
           <Flex gap="$spacing16">
             {(hasBiometricUnlockCredential || showBiometricUnlockEnrollment) && <BiometricUnlockSettingsToggleRow />}
             <SettingsItemWithDropdown
@@ -80,7 +80,7 @@ export function DeviceAccessScreen(): JSX.Element {
             />
             <SettingsItem Icon={Key} title={t('settings.setting.password.title')} onPress={startPasswordReset} />
           </Flex>
-        </ScrollView>
+        </Flex>
       </Flex>
 
       {(() => {

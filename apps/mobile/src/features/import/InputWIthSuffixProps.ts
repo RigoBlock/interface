@@ -1,5 +1,5 @@
+import { ColorTokens } from '@universe/mycelium'
 import { TextInput as NativeTextInput } from 'react-native'
-import { ColorTokens } from 'ui/src'
 
 export interface InputWithSuffixProps {
   alwaysShowInputSuffix?: boolean

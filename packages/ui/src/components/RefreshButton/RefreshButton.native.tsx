@@ -18,9 +18,10 @@ import { RefreshButtonIcon } from 'ui/src/components/RefreshButton/RefreshButton
  *
  * @param {() => void} onPress - Callback function to execute when the refresh button is pressed
  * @param {boolean} isLoading - Indicates whether a refresh operation is in progress
+ * @param {boolean} disabled - Blocks the press handler
  *
  * @returns {JSX.Element} An animated refresh icon button
  */
-export function RefreshButton({ onPress, isLoading }: RefreshButtonProps): JSX.Element {
-  return <RefreshButtonIcon isLoading={isLoading} onPress={onPress} />
+export function RefreshButton({ onPress, isLoading, disabled }: RefreshButtonProps): JSX.Element {
+  return <RefreshButtonIcon disabled={disabled} isLoading={isLoading} onPress={onPress} />
 }

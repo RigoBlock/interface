@@ -1,20 +1,26 @@
 import '~/test-utils/tokens/mocks'
 import userEvent from '@testing-library/user-event'
+import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
 import { GraphQLApi } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
+import { TestID } from '@universe/test'
 import { useUniswapContext } from 'uniswap/src/contexts/UniswapContext'
 import { AccountsStore } from 'uniswap/src/features/accounts/store/types/AccountsState'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { dismissTokenWarning } from 'uniswap/src/features/tokens/warnings/slice/slice'
 import { TokenProtectionWarning } from 'uniswap/src/features/tokens/warnings/types'
 import * as useSwapFormStoreModule from 'uniswap/src/features/transactions/swap/stores/swapFormStore/useSwapFormStore'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
+import { useLPGeoRestriction } from '~/features/Liquidity/useLPGeoRestriction'
 import { useAccount } from '~/hooks/useAccount'
 import { PoolDetailsStatsButtons } from '~/pages/PoolDetails/components/PoolDetailsStatsButtons'
-import useMultiChainPositions from '~/pages/PoolDetails/Pools/hooks/useMultiChainPositions'
+import { useMultiChainPositions } from '~/pages/PoolDetails/Pools/hooks/useMultiChainPositions'
 import store from '~/state'
 import { USE_DISCONNECTED_ACCOUNT } from '~/test-utils/constants'
 import { mocked } from '~/test-utils/mocked'
-import { useMultiChainPositionsReturnValue, validBEPoolToken0, validBEPoolToken1 } from '~/test-utils/pools/fixtures'
+import {
+  useMultiChainPositionsReturnValue,
+  validParsedPoolToken0,
+  validParsedPoolToken1,
+} from '~/test-utils/pools/fixtures'
 import { act, render, screen } from '~/test-utils/render'
 
 vi.mock('~/pages/PoolDetails/Pools/hooks/useMultiChainPositions')
@@ -31,19 +37,25 @@ vi.mock('~/pages/Swap', () => {
   }
 })
 
+// These cases are about URL construction, so the geo gate is pinned to "confirmed clean" to keep them
+// independent of compliance query timing. The gate's own behaviour is covered in
+// PoolDetailsAddLiquidityGeoSeam.test.tsx.
+vi.mock('~/features/Liquidity/useLPGeoRestriction', () => ({ useLPGeoRestriction: vi.fn() }))
+
 describe('PoolDetailsStatsButton', () => {
   const mockProps = {
     chainId: UniverseChainId.Mainnet,
-    token0: validBEPoolToken0,
-    token1: validBEPoolToken1,
+    poolIdOrAddress: '0xpool',
+    token0: validParsedPoolToken0,
+    token1: validParsedPoolToken1,
     feeTier: 500,
-    protocolVersion: GraphQLApi.ProtocolVersion.V3,
+    protocolVersion: ProtocolVersion.V3,
   } as const
 
   const mockPropsTokensReversed = {
     ...mockProps,
-    token0: validBEPoolToken1,
-    token1: validBEPoolToken0,
+    token0: validParsedPoolToken1,
+    token1: validParsedPoolToken0,
   }
 
   const useUniswapContextReturnValue = {
@@ -96,6 +108,11 @@ describe('PoolDetailsStatsButton', () => {
       }),
     )
 
+    mocked(useLPGeoRestriction).mockReturnValue({
+      isGeoRestricted: false,
+      restrictedTokenSymbol: undefined,
+      unavailableLabel: 'Not available in your region',
+    })
     mocked(useAccount).mockReturnValue(USE_DISCONNECTED_ACCOUNT)
     mocked(useMultiChainPositions).mockReturnValue(useMultiChainPositionsReturnValue)
     mocked(useUniswapContext).mockReturnValue(useUniswapContextReturnValue)
@@ -158,7 +175,7 @@ describe('PoolDetailsStatsButton', () => {
 
     await userEvent.click(screen.getByTestId(TestID.PoolDetailsAddLiquidityButton))
     expect(globalThis.window.location.href).toContain(
-      '/positions/create/v3?currencyA=0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2&currencyB=0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48&chain=ethereum',
+      '/positions/add/ethereum/0xpool?currencyA=0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2&currencyB=0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48&chain=ethereum&fee=%7B%22feeAmount%22%3A500%2C%22tickSpacing%22%3A0%2C%22isDynamic%22%3Afalse%7D&protocolVersion=v3&step=1',
     )
   })
 
@@ -166,7 +183,7 @@ describe('PoolDetailsStatsButton', () => {
     render(<PoolDetailsStatsButtons {...mockPropsTokensReversed} feeTier={6200} tickSpacing={11} isDynamic={true} />)
     await userEvent.click(screen.getByTestId(TestID.PoolDetailsAddLiquidityButton))
     expect(globalThis.window.location.href).toContain(
-      '/positions/create/v3?currencyA=0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2&currencyB=0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48&chain=ethereum&fee=%7B%22feeAmount%22%3A6200%2C%22tickSpacing%22%3A11%2C%22isDynamic%22%3Atrue%7D',
+      '/positions/add/ethereum/0xpool?currencyA=0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2&currencyB=0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48&chain=ethereum&fee=%7B%22feeAmount%22%3A6200%2C%22tickSpacing%22%3A11%2C%22isDynamic%22%3Atrue%7D&protocolVersion=v3&step=1',
     )
   })
 })

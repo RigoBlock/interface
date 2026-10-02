@@ -1,5 +1,7 @@
+import { isWebPlatform } from '@universe/environment'
+import { Flex } from '@universe/mycelium'
+import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex } from 'ui/src'
 import { CurrencyInputPanel } from 'uniswap/src/components/CurrencyInputPanel/CurrencyInputPanel'
 import { SectionName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
@@ -8,9 +10,8 @@ import { useCurrencyInputFocusedStyle } from 'uniswap/src/features/transactions/
 import { WalletRestoreButton } from 'uniswap/src/features/transactions/swap/form/SwapFormScreen/WalletRestoreButton'
 import { useSwapFormStore } from 'uniswap/src/features/transactions/swap/stores/swapFormStore/useSwapFormStore'
 import { CurrencyField } from 'uniswap/src/types/currency'
-import { isWebPlatform } from 'utilities/src/platform'
 
-export function SwapFormCurrencyOutputPanel(): JSX.Element {
+export const SwapFormCurrencyOutputPanel = memo(function SwapFormCurrencyOutputPanel(): JSX.Element {
   const { t } = useTranslation()
   const smartPoolAddress = useSwapFormStore((s) => s.smartPoolAddress)
 
@@ -100,4 +101,4 @@ export function SwapFormCurrencyOutputPanel(): JSX.Element {
       </Flex>
     </Trace>
   )
-}
+})

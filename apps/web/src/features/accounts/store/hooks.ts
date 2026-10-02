@@ -1,3 +1,4 @@
+import { Platform } from '@universe/chains'
 import { useMemo } from 'react'
 import { AccessPattern } from 'uniswap/src/features/accounts/store/types/Connector'
 import { createUseActiveAccount } from 'uniswap/src/features/accounts/store/utils/accounts'
@@ -8,7 +9,6 @@ import {
 } from 'uniswap/src/features/accounts/store/utils/connection'
 import { createUseAccountsStore } from 'uniswap/src/features/accounts/store/utils/createUseAccountsStore'
 import { createUseActiveWallet, createUseWalletWithId } from 'uniswap/src/features/accounts/store/utils/wallets'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { useAccountsStoreContext } from '~/features/accounts/store/provider'
 
 export const useAccountsStore = createUseAccountsStore(useAccountsStoreContext)

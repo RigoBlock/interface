@@ -1,9 +1,11 @@
-import React, { useRef } from 'react'
+import { AnimatedTouchableArea } from '@universe/mycelium'
+import React, { useEffect, useRef } from 'react'
+import type { StyleProp, ViewStyle } from 'react-native'
 import { cancelAnimation, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
 import { useSelector } from 'react-redux'
 import { useAppStackNavigation } from 'src/app/navigation/types'
-import { AnimatedTouchableArea, useSporeColors } from 'ui/src'
-import { SwapDotted } from 'ui/src/components/icons'
+import { useSporeColors } from 'ui/src'
+import { CoinConvert } from 'ui/src/components/icons'
 import { iconSizes, spacing } from 'ui/src/theme'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { useHighestBalanceNativeCurrencyId } from 'uniswap/src/features/portfolio/balances/hooks'
@@ -17,8 +19,9 @@ import { useEvent } from 'utilities/src/react/hooks'
 import { useActiveAccountAddressWithThrow } from 'wallet/src/features/wallet/hooks'
 
 const ACTIVE_SCALE = 0.96
-const LONG_PRESS_HAPTIC_DELAY = 200 // ms - faster than default long press (usually 500ms)
+const LONG_PRESS_HAPTIC_DELAY = 200 // ms - lands before onLongPress, which uses the 500ms default
 
+const springConfig = { damping: 15, stiffness: 300 }
 const shadowOffset = { width: 0, height: 6 }
 
 interface SwapButtonProps {
@@ -32,8 +35,8 @@ export function SwapButton({ onLongPress, onClose }: SwapButtonProps): JSX.Eleme
   const { hapticFeedback } = useHapticFeedback()
   const { navigate } = useAppStackNavigation()
 
-  const longPressTimerRef = useRef<NodeJS.Timeout | number | null>(null)
   const hasTriggeredLongPressHaptic = useRef(false)
+  const didLongPress = useRef(false)
 
   const activeAccountAddress = useActiveAccountAddressWithThrow()
   const persistedFilteredChainIds = useSelector(selectFilteredChainIds)
@@ -43,7 +46,11 @@ export function SwapButton({ onLongPress, onClose }: SwapButtonProps): JSX.Eleme
   })
 
   const onPress = useEvent(async () => {
-    // Close modal if onClose is provided
+    // A completed long-press already opened the radial menu; don't also navigate to Swap.
+    if (didLongPress.current) {
+      return
+    }
+
     onClose?.()
 
     navigate(
@@ -55,47 +62,50 @@ export function SwapButton({ onLongPress, onClose }: SwapButtonProps): JSX.Eleme
       }),
     )
 
-    // Only trigger light haptic if we haven't already triggered long press haptic
     if (!hasTriggeredLongPressHaptic.current) {
       await hapticFeedback.light()
     }
   })
 
-  const clearLongPressTimer = useEvent(() => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current)
-      longPressTimerRef.current = null
+  const scale = useSharedValue(1)
+  // reanimated 4 returns an AnimatedStyleHandle, accepted by the animated component at runtime.
+  const animatedStyle = useAnimatedStyle(
+    () => ({ transform: [{ scale: scale.value }] }),
+    [scale],
+  ) as unknown as StyleProp<ViewStyle>
+
+  const hapticTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  const clearHapticTimeout = useEvent(() => {
+    if (hapticTimeout.current !== undefined) {
+      clearTimeout(hapticTimeout.current)
+      hapticTimeout.current = undefined
     }
-    hasTriggeredLongPressHaptic.current = false
   })
 
-  const scale = useSharedValue(1)
-  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }), [scale])
+  useEffect(() => clearHapticTimeout, [clearHapticTimeout])
 
-  const onPressIn = useEvent(() => {
+  const handlePressIn = useEvent(() => {
+    didLongPress.current = false
+    hasTriggeredLongPressHaptic.current = false
     cancelAnimation(scale)
-    scale.value = withSpring(ACTIVE_SCALE, {
-      damping: 15,
-      stiffness: 300,
-    })
-
-    // Use a timer to trigger haptic feedback so that it activates faster than the default long press
-    longPressTimerRef.current = setTimeout(async () => {
-      if (!hasTriggeredLongPressHaptic.current) {
-        await hapticFeedback.success()
-        hasTriggeredLongPressHaptic.current = true
-      }
+    scale.value = withSpring(ACTIVE_SCALE, springConfig)
+    // Confirms the hold mid-way, before onLongPress opens the menu.
+    hapticTimeout.current = setTimeout(() => {
+      hapticTimeout.current = undefined
+      hasTriggeredLongPressHaptic.current = true
+      void hapticFeedback.success()
     }, LONG_PRESS_HAPTIC_DELAY)
   })
 
-  const onPressOut = useEvent(() => {
-    scale.value = withSpring(1, {
-      damping: 15,
-      stiffness: 300,
-    })
+  const handlePressOut = useEvent(() => {
+    clearHapticTimeout()
+    scale.value = withSpring(1, springConfig)
+  })
 
-    // Clear the timer when press ends
-    clearLongPressTimer()
+  const handleLongPress = useEvent(() => {
+    didLongPress.current = true
+    onLongPress()
   })
 
   return (
@@ -113,12 +123,12 @@ export function SwapButton({ onLongPress, onClose }: SwapButtonProps): JSX.Eleme
         shadowColor="$shadowColor"
         shadowOffset={shadowOffset}
         shadowRadius={spacing.spacing12}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        onLongPress={handleLongPress}
         onPress={onPress}
-        onLongPress={onLongPress}
-        onPressIn={onPressIn}
-        onPressOut={onPressOut}
       >
-        <SwapDotted size={iconSizes.icon28} color={colors.white.val} />
+        <CoinConvert size={iconSizes.icon28} color={colors.white.val} />
       </AnimatedTouchableArea>
     </Trace>
   )

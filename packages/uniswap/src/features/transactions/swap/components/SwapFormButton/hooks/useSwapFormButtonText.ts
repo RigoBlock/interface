@@ -1,14 +1,17 @@
+import { isSVMChain } from '@universe/chains'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useTranslation } from 'react-i18next'
+import { WarningLabel } from 'uniswap/src/components/modals/WarningModal/types'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
+import { useShowGetStarted } from 'uniswap/src/contexts/ShowGetStartedContext'
 import { useConnectionStatus } from 'uniswap/src/features/accounts/store/hooks'
-import { isSVMChain } from 'uniswap/src/features/platforms/utils/chains'
 import { useIsWebFORNudgeEnabled } from 'uniswap/src/features/providers/webForNudgeProvider'
 import { useTransactionModalContext } from 'uniswap/src/features/transactions/components/TransactionModal/TransactionModalContext'
 import { useIsAmountSelectionInvalid } from 'uniswap/src/features/transactions/swap/components/SwapFormButton/hooks/useIsAmountSelectionInvalid'
 import { useIsMissingPlatformWallet } from 'uniswap/src/features/transactions/swap/components/SwapFormButton/hooks/useIsMissingPlatformWallet'
 import { useIsTokenSelectionInvalid } from 'uniswap/src/features/transactions/swap/components/SwapFormButton/hooks/useIsTokenSelectionInvalid'
 import { useIsTradeIndicative } from 'uniswap/src/features/transactions/swap/components/SwapFormButton/hooks/useIsTradeIndicative'
+import { useNeedsGeoAcknowledgment } from 'uniswap/src/features/transactions/swap/hooks/useGeoRestrictionAcknowledgment'
 import { useParsedSwapWarnings } from 'uniswap/src/features/transactions/swap/hooks/useSwapWarnings/useSwapWarnings'
 import { getActionText } from 'uniswap/src/features/transactions/swap/review/SwapReviewScreen/SwapReviewFooter/SubmitSwapButton'
 import { useSwapFormStoreDerivedSwapInfo } from 'uniswap/src/features/transactions/swap/stores/swapFormStore/useSwapFormStore'
@@ -31,8 +34,9 @@ export const useSwapFormButtonText = (): string => {
 
   const isEmbeddedWalletEnabled = useFeatureFlag(FeatureFlags.EmbeddedWallet)
   const { insufficientBalanceWarning, blockingWarning, insufficientGasFundsWarning } = useParsedSwapWarnings()
+  const needsGeoAcknowledgment = useNeedsGeoAcknowledgment()
 
-  const isLogIn = isEmbeddedWalletEnabled
+  const showGetStarted = useShowGetStarted()
 
   const nativeCurrency = nativeOnChain(chainId)
 
@@ -40,12 +44,24 @@ export const useSwapFormButtonText = (): string => {
   const isWebFORNudgeEnabled = useIsWebFORNudgeEnabled()
   const isWrap = wrapType !== WrapType.NotApplicable
 
+  // Permissioned-pool gating runs before the generic swapRedirectCallback path so the
+  // button reads "Verify identity" instead of the default "Get started" copy.
+  if (blockingWarning?.type === WarningLabel.PermissionedPool) {
+    return t('permissionedPool.verifyIdentity.cta')
+  }
+
   if (swapRedirectCallback) {
     return t('common.getStarted')
   }
 
-  if (isWebFORNudgeEnabled) {
-    return t('empty.swap.button.text')
+  // Geo acknowledgement overrides the blocked-token CTA: prompt the user to Review,
+  // which opens the attestation modal instead of showing a blocking message.
+  if (needsGeoAcknowledgment) {
+    return t('swap.button.review')
+  }
+
+  if (blockingWarning?.buttonText) {
+    return blockingWarning.buttonText
   }
 
   if (isIndicative) {
@@ -53,15 +69,18 @@ export const useSwapFormButtonText = (): string => {
   }
 
   if (isDisconnected) {
-    return isLogIn ? t('nav.logIn.button') : t('common.connectWallet.button')
+    if (showGetStarted) {
+      return t('common.getStarted')
+    }
+    return isEmbeddedWalletEnabled ? t('common.connect.button') : t('common.connectWallet.button')
+  }
+
+  if (isWebFORNudgeEnabled) {
+    return t('empty.swap.button.text')
   }
 
   if (isMissingPlatformWallet) {
     return t('common.connectTo', { platform: isSVMChain(chainId) ? 'Solana' : 'Ethereum' })
-  }
-
-  if (blockingWarning?.buttonText) {
-    return blockingWarning.buttonText
   }
 
   if (isTokenSelectionInvalid) {

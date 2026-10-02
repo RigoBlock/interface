@@ -1,15 +1,16 @@
+import { UniverseChainId } from '@universe/chains'
 import { providers } from 'ethers'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import {
   OnChainTransactionDetails,
   TransactionStatus,
 } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { ONE_MINUTE_MS } from 'utilities/src/time/time'
+import type { PrivateRpcProviderType } from 'wallet/src/features/transactions/executeTransaction/services/transactionConfigService'
 import { getSerializableTransactionRequest } from 'wallet/src/features/transactions/utils'
 
 export function createGetUpdatedTransactionDetails(ctx: {
   getBlockNumber: () => Promise<number>
-  isPrivateRpc: boolean
+  privateRpcProviderType: PrivateRpcProviderType
 }): (input: {
   transaction: OnChainTransactionDetails
   hash: string
@@ -30,11 +31,7 @@ export function createGetUpdatedTransactionDetails(ctx: {
     const currentBlockFetchDelayMs = Date.now() - timestampAfterSend
     const request = getSerializableTransactionRequest(populatedRequest, transaction.chainId)
     const timeoutTimestampMs = timestampAfterSend + getTransactionTimeoutMs(transaction.chainId)
-    const privateRpcProvider = ctx.isPrivateRpc
-      ? 'flashbots'
-      : transaction.options.submitViaPrivateRpc
-        ? 'mevblocker'
-        : undefined
+    const privateRpcProvider = transaction.options.submitViaPrivateRpc ? ctx.privateRpcProviderType : undefined
 
     const updatedTransaction: OnChainTransactionDetails & { hash: string } = {
       ...transaction,

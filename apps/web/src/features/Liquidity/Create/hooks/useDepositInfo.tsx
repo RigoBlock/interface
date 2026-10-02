@@ -1,0 +1,265 @@
+import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
+import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
+import { Pair } from '@uniswap/v2-sdk'
+import { Pool as V3Pool } from '@uniswap/v3-sdk'
+import { Pool as V4Pool } from '@uniswap/v4-sdk'
+import { parseUnits } from 'ethers/lib/utils'
+import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
+import { NATIVE_TOKEN_PLACEHOLDER } from 'uniswap/src/constants/addresses'
+import type { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
+import { useMaxAmountSpend } from 'uniswap/src/features/gas/hooks/useMaxAmountSpend'
+import { applyNativeTokenPercentageBuffer } from 'uniswap/src/features/gas/utils'
+import { useOnChainCurrencyBalance } from 'uniswap/src/features/portfolio/api'
+import { usePortfolioBalances } from 'uniswap/src/features/portfolio/balances/hooks'
+import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'
+import { currencyId, normalizeCurrencyIdForMapLookup } from 'uniswap/src/utils/currencyId'
+import { isValidHexString } from '@universe/encoding'
+import { useNativeTokenPercentageBufferExperiment } from '~/features/Liquidity/Create/hooks/useNativeTokenPercentageBufferExperiment'
+import {
+  getDependentAmountFromV2Pair,
+  getDependentAmountFromV3Position,
+  getDependentAmountFromV4Position,
+} from '~/features/Liquidity/utils/getDependentAmount'
+import { tryParseCurrencyAmount } from '~/lib/utils/tryParseCurrencyAmount'
+import { DepositInfo } from '~/types/liquidity'
+import { PositionField } from '~/types/position'
+
+type UseDepositInfoProps = {
+  protocolVersion: ProtocolVersion
+  poolOrPair?: V3Pool | V4Pool | Pair | undefined
+  address?: string
+  token0?: Maybe<Currency>
+  token1?: Maybe<Currency>
+  tickLower?: number
+  tickUpper?: number
+  exactField: PositionField
+  exactAmounts: {
+    [field in PositionField]?: string
+  }
+  skipDependentAmount?: boolean
+  /** Gas fee in wei from backend simulation. When provided, used instead of static gas reservation for native tokens. */
+  actualGasFee?: string
+  /** Whether the deposit is for a smart pool (Rigoblock vault) */
+  isSmartPool?: boolean
+}
+
+export function useTokenBalanceWithBuffer(currencyBalance: Maybe<CurrencyAmount<Currency>>, bufferPercentage: number) {
+  return useMemo(() => {
+    if (!currencyBalance) {
+      return undefined
+    }
+
+    return applyNativeTokenPercentageBuffer(currencyBalance, bufferPercentage)
+  }, [currencyBalance, bufferPercentage])
+}
+
+export function useDepositInfo(state: UseDepositInfoProps): DepositInfo {
+  const bufferPercentage = useNativeTokenPercentageBufferExperiment()
+  const { protocolVersion, address, token0, token1, exactField, exactAmounts, actualGasFee } = state
+
+  const { balance: token0OnChainBalance } = useOnChainCurrencyBalance(token0, address)
+  const { balance: token1OnChainBalance } = useOnChainCurrencyBalance(token1, address)
+
+  // For smart pools, also pull balances from the portfolio API (the same source used by the
+  // token selector and web useTokenBalances). This is more reliable than direct RPC when the
+  // wallet is disconnected or not on the pool's chain. Prefer portfolio, fall back to on-chain.
+  const { data: smartPoolPortfolioBalances } = usePortfolioBalances({
+    evmAddress: state.isSmartPool && address && isValidHexString(address) ? address : undefined,
+    fetchPolicy: 'cache-and-network',
+  })
+
+  const getSmartPoolPortfolioBalance = (currency: Maybe<Currency>): CurrencyAmount<Currency> | undefined => {
+    if (!currency || !smartPoolPortfolioBalances) {
+      return undefined
+    }
+
+    const key = normalizeCurrencyIdForMapLookup(currencyId(currency))
+    if (!key) {
+      return undefined
+    }
+
+    let portfolioBalance = smartPoolPortfolioBalances[key] as PortfolioBalance | undefined
+    // The portfolio API keys native balances by the placeholder address `NATIVE` for some
+    // chains, while the pool's native currency resolves to the canonical native address.
+    // Fallback to the placeholder key when the canonical lookup misses.
+    if (!portfolioBalance && currency.isNative) {
+      portfolioBalance = smartPoolPortfolioBalances[`${currency.chainId}-${NATIVE_TOKEN_PLACEHOLDER}`] as
+        | PortfolioBalance
+        | undefined
+    }
+    if (portfolioBalance === undefined) {
+      return undefined
+    }
+
+    try {
+      const rawAmount = parseUnits(portfolioBalance.quantity.toString(), currency.decimals).toString()
+      return CurrencyAmount.fromRawAmount(currency, rawAmount)
+    } catch {
+      return undefined
+    }
+  }
+
+  const token0Balance = state.isSmartPool
+    ? (getSmartPoolPortfolioBalance(token0) ?? token0OnChainBalance)
+    : token0OnChainBalance
+  const token1Balance = state.isSmartPool
+    ? (getSmartPoolPortfolioBalance(token1) ?? token1OnChainBalance)
+    : token1OnChainBalance
+
+  // For smart pool operations, the pool's ETH is spent, not the user's — no gas buffer needed
+  const effectiveBuffer = state.isSmartPool ? 0 : bufferPercentage
+  const token0BalanceWithBuffer = useTokenBalanceWithBuffer(token0Balance, effectiveBuffer)
+  const token1BalanceWithBuffer = useTokenBalanceWithBuffer(token1Balance, effectiveBuffer)
+
+  const token0MaxAmount = useMaxAmountSpend({
+    currencyAmount: token0BalanceWithBuffer,
+    actualGasFee: token0?.isNative ? actualGasFee : undefined,
+  })
+  const token1MaxAmount = useMaxAmountSpend({
+    currencyAmount: token1BalanceWithBuffer,
+    actualGasFee: token1?.isNative ? actualGasFee : undefined,
+  })
+
+  const [independentToken, dependentToken] = exactField === PositionField.TOKEN0 ? [token0, token1] : [token1, token0]
+  const independentAmount = tryParseCurrencyAmount(exactAmounts[exactField], independentToken)
+  const otherAmount = tryParseCurrencyAmount(
+    exactAmounts[exactField === PositionField.TOKEN0 ? PositionField.TOKEN1 : PositionField.TOKEN0],
+    dependentToken,
+  )
+
+  const dependentAmount: CurrencyAmount<Currency> | undefined | null = useMemo(() => {
+    const shouldSkip = state.skipDependentAmount || protocolVersion === ProtocolVersion.UNSPECIFIED
+    if (shouldSkip) {
+      return dependentToken && CurrencyAmount.fromRawAmount(dependentToken, 0)
+    }
+
+    if (protocolVersion === ProtocolVersion.V2) {
+      return getDependentAmountFromV2Pair({
+        independentAmount,
+        otherAmount,
+        pair: state.poolOrPair as Pair,
+        exactField,
+        token0,
+        token1,
+        dependentToken,
+      })
+    }
+
+    const { tickLower, tickUpper } = state
+    if (tickLower === undefined || tickUpper === undefined || !state.poolOrPair || !independentAmount) {
+      return undefined
+    }
+
+    const dependentTokenAmount =
+      protocolVersion === ProtocolVersion.V3
+        ? getDependentAmountFromV3Position({
+            independentAmount,
+            pool: state.poolOrPair as V3Pool,
+            tickLower,
+            tickUpper,
+          })
+        : getDependentAmountFromV4Position({
+            independentAmount,
+            pool: state.poolOrPair as V4Pool,
+            tickLower,
+            tickUpper,
+          })
+    if (!dependentTokenAmount) {
+      return undefined
+    }
+    return dependentToken && CurrencyAmount.fromRawAmount(dependentToken, dependentTokenAmount.quotient)
+  }, [state, protocolVersion, independentAmount, otherAmount, dependentToken, exactField, token0, token1])
+
+  const independentTokenUSDValue = useUSDCValue(independentAmount)
+  const dependentTokenUSDValue = useUSDCValue(dependentAmount)
+
+  const dependentField = exactField === PositionField.TOKEN0 ? PositionField.TOKEN1 : PositionField.TOKEN0
+
+  const parsedAmounts: {
+    [field in PositionField]: CurrencyAmount<Currency> | undefined | null
+  } = useMemo(() => {
+    return {
+      [PositionField.TOKEN0]: exactField === PositionField.TOKEN0 ? independentAmount : dependentAmount,
+      [PositionField.TOKEN1]: exactField === PositionField.TOKEN0 ? dependentAmount : independentAmount,
+    }
+  }, [dependentAmount, independentAmount, exactField])
+  const { [PositionField.TOKEN0]: currency0Amount, [PositionField.TOKEN1]: currency1Amount } = parsedAmounts
+
+  const { t } = useTranslation()
+  const error = useMemo(() => {
+    if (!parsedAmounts[PositionField.TOKEN0] || !parsedAmounts[PositionField.TOKEN1]) {
+      return t('common.noAmount.error')
+    }
+
+    const insufficientToken0Balance = currency0Amount && token0MaxAmount?.lessThan(currency0Amount)
+    const insufficientToken1Balance = currency1Amount && token1MaxAmount?.lessThan(currency1Amount)
+
+    if (insufficientToken0Balance && insufficientToken1Balance) {
+      return t('common.insufficientBalance.error')
+    }
+
+    if (insufficientToken0Balance) {
+      return t('common.insufficientTokenBalance.error', {
+        tokenSymbol: token0?.symbol ?? t('common.token'),
+      })
+    }
+
+    if (insufficientToken1Balance) {
+      return t('common.insufficientTokenBalance.error', {
+        tokenSymbol: token1?.symbol ?? t('common.token'),
+      })
+    }
+
+    return undefined
+  }, [
+    parsedAmounts,
+    currency0Amount,
+    token0MaxAmount,
+    currency1Amount,
+    token1MaxAmount,
+    t,
+    token0?.symbol,
+    token1?.symbol,
+  ])
+
+  return useMemo(
+    () => ({
+      currencyMaxAmounts: {
+        [PositionField.TOKEN0]: token0MaxAmount,
+        [PositionField.TOKEN1]: token1MaxAmount,
+      },
+      currencyBalances: {
+        [PositionField.TOKEN0]: token0Balance,
+        [PositionField.TOKEN1]: token1Balance,
+      },
+      formattedAmounts: {
+        [exactField]: exactAmounts[exactField],
+        [dependentField]: dependentAmount?.toExact(),
+      },
+      currencyAmounts: {
+        [exactField]: independentAmount,
+        [dependentField]: dependentAmount,
+      },
+      currencyAmountsUSDValue: {
+        [exactField]: independentTokenUSDValue,
+        [dependentField]: dependentTokenUSDValue,
+      },
+      error,
+    }),
+    [
+      token0MaxAmount,
+      token1MaxAmount,
+      token0Balance,
+      token1Balance,
+      exactField,
+      exactAmounts,
+      dependentField,
+      dependentAmount,
+      independentAmount,
+      independentTokenUSDValue,
+      dependentTokenUSDValue,
+      error,
+    ],
+  )
+}

@@ -1,5 +1,5 @@
+import { Platform, getValidAddress } from '@universe/chains'
 import { FiatCurrency } from 'uniswap/src/features/fiatCurrency/constants'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import {
   SearchHistoryResultType,
   type WalletByAddressSearchHistoryResult,
@@ -13,8 +13,6 @@ import {
 import { TokenProtectionWarning } from 'uniswap/src/features/tokens/warnings/types'
 import { createSafeMigrationFactory } from 'uniswap/src/state/createSafeMigration'
 import { PreV55SearchResultType } from 'uniswap/src/state/oldTypes'
-import { getValidAddress } from 'uniswap/src/utils/addresses'
-
 const createSafeMigration = createSafeMigrationFactory('uniswapMigrations')
 
 // Mobile: 82
@@ -262,3 +260,53 @@ export const migrateDismissedTokenWarnings = createSafeMigration({
     tokens: { ...state.tokens, dismissedTokenWarnings: {} },
   }),
 })
+
+// Mobile: 98
+// Extension: 32
+// Web: 62
+export function addEnableCustomGasFeeEntry(state: any): any {
+  if (!state?.userSettings) {
+    return state
+  }
+  return {
+    ...state,
+    userSettings: {
+      ...state.userSettings,
+      enableCustomGasFeeEntry: false,
+    },
+  }
+}
+
+// Mobile: 99
+// Extension: 33
+// Web: 63
+export function removeUniswapWrapped2025BehaviorHistory(state: any): any {
+  if (!state?.uniswapBehaviorHistory) {
+    return state
+  }
+  const newState = {
+    ...state,
+    uniswapBehaviorHistory: { ...state.uniswapBehaviorHistory },
+  }
+  delete newState.uniswapBehaviorHistory.hasDismissedUniswapWrapped2025Banner
+  return newState
+}
+
+// Mobile: 100
+// Extension: 34
+// Web: 64
+// Marks installs that predate the pools-balances launch as coachmark-eligible (`false`), overwriting
+// the old always-`true` default. Fresh state created after this version has no value and is instead
+// classified at startup by `initializePoolsBalanceCoachmarkDismissed` from the flag.
+export function markPoolsBalanceCoachmarkEligible(state: any): any {
+  if (!state?.uniswapBehaviorHistory) {
+    return state
+  }
+  return {
+    ...state,
+    uniswapBehaviorHistory: {
+      ...state.uniswapBehaviorHistory,
+      hasDismissedPoolsBalanceCoachmark: false,
+    },
+  }
+}

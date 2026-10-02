@@ -1,4 +1,4 @@
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { UniswapXOrderDetails } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { hasEncodedOrder } from 'uniswap/src/features/transactions/utils/uniswapX.utils'
 

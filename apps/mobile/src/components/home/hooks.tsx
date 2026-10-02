@@ -1,8 +1,8 @@
+import { useDeviceDimensions } from '@universe/mycelium/theme-hooks-compat'
 import { useCallback, useEffect, useMemo } from 'react'
 import { StyleProp, ViewStyle } from 'react-native'
 import Animated, { SharedValue, useAnimatedStyle, useSharedValue } from 'react-native-reanimated'
 import { ESTIMATED_BOTTOM_TABS_HEIGHT } from 'src/app/navigation/tabs/CustomTabBar/constants'
-import { useDeviceDimensions } from 'ui/src/hooks/useDeviceDimensions'
 import { useAppInsets } from 'uniswap/src/hooks/useAppInsets'
 import { useActiveAccount } from 'wallet/src/features/wallet/hooks'
 

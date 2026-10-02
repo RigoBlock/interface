@@ -1,8 +1,8 @@
 import { capitalize } from 'tsafe/capitalize'
 import i18n from 'uniswap/src/i18n'
 import { logger } from 'utilities/src/logger/logger'
-import { isChainUrlParam } from '~/features/params/chainParams'
-import { ExploreTab } from '~/pages/Explore/constants'
+import { ExploreTab } from '~/types/explore'
+import { isChainUrlParam } from '~/utils/params/chainParams'
 
 export const getExploreTitle = (path?: string) => {
   const parts = path?.split('/').filter((part) => part !== '')
@@ -34,6 +34,17 @@ export const getExploreTitle = (path?: string) => {
       })
       return ''
   }
+}
+
+export const getCategoryDetailsTitle = (path?: string) => {
+  const slug = path
+    ?.split('/')
+    .filter((part) => part !== '')
+    .at(-1)
+  if (!slug || slug.startsWith(':')) {
+    return i18n.t('categoryDetails.pageTitle')
+  }
+  return i18n.t('categoryDetails.pageTitle.withCategory', { category: capitalize(slug.replace(/-/g, ' ')) })
 }
 
 export const getExploreDescription = (path?: string) => {

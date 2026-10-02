@@ -1,10 +1,9 @@
+import { Platform, PlatformSpecificAddress } from '@universe/chains'
 import { Account } from 'uniswap/src/features/accounts/store/types/Account'
 import type { AccountsData } from 'uniswap/src/features/accounts/store/types/AccountsState'
 import type { Connector, ConnectorStatus } from 'uniswap/src/features/accounts/store/types/Connector'
 import { MultiChainScope, Session } from 'uniswap/src/features/accounts/store/types/Session'
 import type { SigningCapability, Wallet } from 'uniswap/src/features/accounts/store/types/Wallet'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
-import { PlatformSpecificAddress } from 'uniswap/src/features/platforms/types/PlatformSpecificAddress'
 
 export type DerivedAddresses = {
   derivationIndex: number

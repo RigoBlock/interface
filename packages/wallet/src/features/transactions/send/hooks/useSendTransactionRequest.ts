@@ -1,4 +1,5 @@
 import { UseQueryResult, useQuery } from '@tanstack/react-query'
+import { UniverseChainId } from '@universe/chains'
 import { providers } from 'ethers'
 import { useCallback } from 'react'
 import ERC20_ABI from 'uniswap/src/abis/erc20.json'
@@ -8,7 +9,6 @@ import { Erc20, Erc721, Erc1155 } from 'uniswap/src/abis/types'
 import { AssetType } from 'uniswap/src/entities/assets'
 import { SignerMnemonicAccountMeta } from 'uniswap/src/features/accounts/types'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { toSupportedChainId } from 'uniswap/src/features/chains/utils'
 import { DerivedSendInfo } from 'uniswap/src/features/transactions/send/types'
 import { CurrencyField } from 'uniswap/src/types/currency'
@@ -83,7 +83,7 @@ function getSendParams(
   derivedSendInfo: DerivedSendInfo,
 ): SendTokenParams | undefined {
   const { currencyAmounts, currencyTypes, chainId, recipient, currencyInInfo, nftIn } = derivedSendInfo
-  const tokenAddress = currencyInInfo ? currencyAddress(currencyInInfo.currency) : nftIn?.nftContract?.address
+  const tokenAddress = currencyInInfo ? currencyAddress(currencyInInfo.currency) : nftIn?.contractAddress
   const amount = currencyAmounts[CurrencyField.INPUT]?.quotient.toString()
   const assetType = currencyTypes[CurrencyField.INPUT]
 
@@ -104,7 +104,7 @@ function getSendParams(
         toAddress: recipient,
         tokenAddress,
         type: assetType,
-        tokenId: nftIn.tokenId,
+        tokenId: nftIn.tokenId ?? '',
       }
     }
 

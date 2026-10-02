@@ -1,5 +1,7 @@
+import { Flex, Text } from '@universe/mycelium'
 import { ReactNode } from 'react'
-import { Flex, Switch, Text } from 'ui/src'
+// Switch stays on ui/src: already Tamagui-free (INFRA-3285 rebuild lane), no mycelium counterpart yet.
+import { Switch } from 'ui/src'
 
 interface SettingsToggleProps {
   title: string | ReactNode

@@ -1,93 +1,17 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`RemoveButton renders without error 1`] = `
-<View
-  collapsable={false}
-  focusVisibleStyle={{}}
-  forwardedRef={[Function]}
-  jestAnimatedProps={
-    {
-      "value": {},
-    }
-  }
-  jestAnimatedStyle={
-    {
-      "value": {},
-    }
-  }
-  jestInlineStyle={
-    [
-      {
-        "alignItems": "center",
-        "backgroundColor": "rgba(19, 19, 19, 0.35)",
-        "borderBottomLeftRadius": 999999,
-        "borderBottomRightRadius": 999999,
-        "borderTopLeftRadius": 999999,
-        "borderTopRightRadius": 999999,
-        "flexDirection": "column",
-        "height": 24,
-        "justifyContent": "center",
-        "opacity": 1,
-        "transform": [
-          {
-            "scale": 1,
-          },
-        ],
-        "width": 24,
-        "zIndex": 1080,
-      },
-    ]
-  }
-  onBlur={[Function]}
-  onClick={[Function]}
-  onFocus={[Function]}
-  onLayout={[Function]}
-  onResponderGrant={[Function]}
-  onResponderMove={[Function]}
-  onResponderRelease={[Function]}
-  onResponderTerminate={[Function]}
-  onResponderTerminationRequest={[Function]}
-  onStartShouldSetResponder={[Function]}
-  role="button"
-  style={
-    [
-      {
-        "alignItems": "center",
-        "backgroundColor": "rgba(19, 19, 19, 0.35)",
-        "borderBottomLeftRadius": 999999,
-        "borderBottomRightRadius": 999999,
-        "borderTopLeftRadius": 999999,
-        "borderTopRightRadius": 999999,
-        "flexDirection": "column",
-        "height": 24,
-        "justifyContent": "center",
-        "opacity": 1,
-        "transform": [
-          {
-            "scale": 1,
-          },
-        ],
-        "width": 24,
-        "zIndex": 1080,
-      },
-      {},
-    ]
-  }
-  testID="explore/remove-button"
->
-  <View
-    style={
-      {
-        "backgroundColor": "#FFFFFF",
-        "borderBottomLeftRadius": 12,
-        "borderBottomRightRadius": 12,
-        "borderTopLeftRadius": 12,
-        "borderTopRightRadius": 12,
-        "flexDirection": "column",
-        "height": 2,
-        "width": 10,
-      }
-    }
-  />
-</View>
+exports[`RemoveButton > renders without error 1`] = `
+<DocumentFragment>
+  <button
+    android_ripple="[object Object]"
+    data-testid="explore/remove-button"
+    role="button"
+    style="width: 24px; height: 24px; border-radius: 999999px; opacity: 1; z-index: 1080;"
+  >
+    <div
+      class="css-view-175oi2r"
+      style="width: 10px; height: 2px; border-top-left-radius: 12px; border-top-right-radius: 12px; border-bottom-right-radius: 12px; border-bottom-left-radius: 12px;"
+    />
+  </button>
+</DocumentFragment>
 `;

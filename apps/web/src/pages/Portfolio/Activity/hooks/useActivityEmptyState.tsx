@@ -1,16 +1,16 @@
+import { UniverseChainId } from '@universe/chains'
+import { Flex } from '@universe/mycelium'
+import { NoTransactions } from '@universe/mycelium/icons/NoTransactions'
+import { TestID } from '@universe/test'
 import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { ActivityListEmptyState } from 'uniswap/src/components/activity/ActivityListEmptyState'
 import { ActivityItem } from 'uniswap/src/components/activity/generateActivityItemRenderer'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { BaseCard } from 'uniswap/src/components/BaseCard/BaseCard'
 import { getChainLabel } from 'uniswap/src/features/chains/utils'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
-import {
-  ActivityFilterType,
-  filterTransactionDetailsFromActivityItems,
-  TimePeriod,
-} from '~/pages/Portfolio/Activity/Filters/utils'
+import { ActivityFilterType } from '~/pages/Portfolio/Activity/Filters/activityFilterTypes'
+import { filterTransactionDetailsFromActivityItems, TimePeriod } from '~/pages/Portfolio/Activity/Filters/utils'
 
 interface UseActivityEmptyStateParams {
   chainId: UniverseChainId | undefined
@@ -88,13 +88,15 @@ export function useActivityEmptyState({
   // Custom empty state for type/time filtering
   const filterEmptyState = useMemo(() => {
     return (
-      <ActivityListEmptyState
-        description={null}
-        buttonLabel={t('activity.list.noFilterResults.button')}
-        onPress={onClearFilters}
-        title={t('activity.list.noFilterResults.title')}
-        dataTestId={TestID.PortfolioActivityEmptyState}
-      />
+      <Flex py="$spacing40">
+        <BaseCard.EmptyState
+          icon={<NoTransactions size="$icon.64" color="$neutral3" />}
+          description={t('common.filters.noResults')}
+          buttonLabel={t('common.filters.clear')}
+          dataTestId={TestID.PortfolioActivityEmptyState}
+          onPress={onClearFilters}
+        />
+      </Flex>
     )
   }, [onClearFilters, t])
 

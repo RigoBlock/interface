@@ -1,34 +1,34 @@
 /* oxlint-disable complexity */
-import { useTheme } from 'tamagui'
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import { Pair } from '@uniswap/v2-sdk'
 import { darken } from 'polished'
-import { ReactNode, useCallback, useState } from 'react'
+import { HTMLProps, ReactNode, useCallback, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { breakpoints } from 'ui/src/theme'
+import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
 import { useIsSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
+import { Locale } from 'uniswap/src/features/language/constants'
+import { useCurrentLocale } from 'uniswap/src/features/language/hooks'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { ElementName, SwapEventName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
+import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { CurrencyField } from 'uniswap/src/types/currency'
+import { currencyId } from 'uniswap/src/utils/currencyId'
 import { NumberType } from 'utilities/src/format/types'
-import { PrefetchBalancesWrapper } from '~/appGraphql/data/apollo/AdaptiveTokenBalancesProvider'
 import { ReactComponent as DropDown } from '~/assets/images/dropdown.svg'
 import { ButtonGray } from '~/components/Button/buttons'
-import { FiatValue } from '~/components/CurrencyInputPanel/FiatValue'
-import { RowBetween, RowFixed } from '~/components/deprecated/Row'
+import { FiatValue } from '~/features/Swap/CurrencyInputPanel/FiatValue'
 import { LoadingOpacityContainer, loadingOpacityMixin } from '~/components/Loader/styled'
-import CurrencyLogo from '~/components/Logo/CurrencyLogo'
 import { DoubleCurrencyLogo } from '~/components/Logo/DoubleLogo'
-import { Input as NumericalInput } from '~/components/NumericalInput'
 import { SwitchNetworkAction } from '~/components/Popups/types'
 import CurrencySearchModal from '~/components/SearchModal/CurrencySearchModal'
 import { useAccount } from '~/hooks/useAccount'
 import styled from '~/lib/deprecated-styled'
 import { useActiveSmartPool } from '~/state/application/hooks'
 import { useCurrencyBalance } from '~/state/connection/hooks'
-import { ThemedText } from '~/theme/components'
 import { flexColumnNoWrap, flexRowNoWrap } from '~/theme/styles'
+import { escapeRegExp } from '~/utils/escapeRegExp'
 
 const InputPanel = styled.div<{ $hideInput?: boolean }>`
   ${flexColumnNoWrap};
@@ -167,15 +167,153 @@ const StyledBalanceMax = styled.button<{ disabled?: boolean }>`
   }
 `
 
+const DeprecatedRow = styled.div<{ align?: string; justify?: string }>`
+  width: 100%;
+  display: flex;
+  padding: 0;
+  align-items: ${({ align }) => align ?? 'center'};
+  justify-content: ${({ justify }) => justify ?? 'flex-start'};
+`
+
+/** @deprecated Please use `Flex` from `ui/src` going forward */
+const RowBetween = styled(DeprecatedRow)`
+  justify-content: space-between;
+`
+
+/** @deprecated Please use `Flex` from `ui/src` going forward */
+const RowFixed = styled(DeprecatedRow)`
+  position: relative;
+  width: fit-content;
+`
+
+const BalanceLabel = styled.span`
+  color: ${({ theme }) => theme.neutral3};
+  font-weight: 535;
+  font-size: 14px;
+  display: inline;
+  cursor: pointer;
+`
+
+// Apollo-backed balance prefetching was removed upstream with the appGraphql layer; the wrapper is
+// kept as a plain styled container so the currency select keeps its original layout behavior.
+const StyledSelectWrapper = styled.div<{ $fullWidth: boolean }>`
+  width: ${({ $fullWidth }) => ($fullWidth ? '100%' : 'auto')};
+`
+
+const DeprecatedStyledInput = styled.input<{
+  error?: boolean
+  fontSize?: string
+  align?: string
+  disabled?: boolean
+}>`
+  color: ${({ error, theme }) => (error ? theme.critical : theme.neutral1)};
+  pointer-events: ${({ disabled }) => (disabled ? 'none' : 'auto')};
+  width: 0;
+  position: relative;
+  font-weight: 485;
+  outline: none;
+  border: none;
+  flex: 1 1 auto;
+  background-color: transparent;
+  font-size: ${({ fontSize }) => fontSize ?? '28px'};
+  text-align: ${({ align }) => align && align};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0px;
+  -webkit-appearance: textfield;
+  text-align: right;
+
+  ::placeholder {
+    color: ${({ theme }) => theme.neutral3};
+  }
+`
+
+const inputRegex = RegExp(`^\\d*(?:\\\\[.])?\\d*$`) // match escaped "." characters via in a non-capturing group
+
+function isInputGreaterThanDecimals(value: string, maxDecimals?: number): boolean {
+  const decimalGroups = value.split('.')
+  return !!maxDecimals && decimalGroups.length > 1 && decimalGroups[1].length > maxDecimals
+}
+
+interface NumericalInputProps extends Omit<HTMLProps<HTMLInputElement>, 'ref' | 'onChange' | 'as'> {
+  value: string | number
+  onUserInput: (input: string) => void
+  error?: boolean
+  fontSize?: string
+  align?: 'right' | 'left'
+  prependSymbol?: string
+  maxDecimals?: number
+  testId?: string
+}
+
+// Local copy of the deprecated web NumericalInput: upstream replaced the web input with a
+// cross-platform component (onChangeText/editable), while this panel still needs the raw DOM input.
+const NumericalInput = function NumericalInput({
+  value,
+  onUserInput,
+  placeholder,
+  prependSymbol,
+  maxDecimals,
+  testId,
+  ...rest
+}: NumericalInputProps) {
+  const locale = useCurrentLocale()
+
+  const enforcer = (nextUserInput: string) => {
+    if (nextUserInput === '' || inputRegex.test(escapeRegExp(nextUserInput))) {
+      if (isInputGreaterThanDecimals(nextUserInput, maxDecimals)) {
+        return
+      }
+
+      onUserInput(nextUserInput)
+    }
+  }
+
+  const formatValueWithLocale = (val: string | number) => {
+    const [searchValue, replaceValue] = localeUsesComma(locale) ? [/\./g, ','] : [/,/g, '.']
+    return val.toString().replace(searchValue, replaceValue)
+  }
+
+  const valueFormattedWithLocale = formatValueWithLocale(value)
+
+  return (
+    <DeprecatedStyledInput
+      {...rest}
+      value={prependSymbol && value ? prependSymbol + valueFormattedWithLocale : valueFormattedWithLocale}
+      data-testid={testId}
+      onChange={(event) => {
+        if (prependSymbol) {
+          const rawValue = event.target.value
+          const formattedValue = rawValue.toString().includes(prependSymbol)
+            ? rawValue.toString().slice(prependSymbol.length, rawValue.toString().length + 1)
+            : rawValue
+          enforcer(formattedValue.replace(/,/g, '.'))
+        } else {
+          enforcer(event.target.value.replace(/,/g, '.'))
+        }
+      }}
+      inputMode="decimal"
+      autoComplete="off"
+      autoCorrect="off"
+      type="text"
+      pattern="^[0-9]*[.,]?[0-9]*$"
+      placeholder={placeholder || '0'}
+      minLength={1}
+      maxLength={79}
+      spellCheck="false"
+    />
+  )
+}
+
+function localeUsesComma(locale: Locale): boolean {
+  const decimalSeparator = new Intl.NumberFormat(locale).format(1.1)[1]
+  return decimalSeparator === ','
+}
+
 const StyledNumericalInput = styled(NumericalInput)<{ $loading: boolean }>`
   ${loadingOpacityMixin};
   text-align: left;
-`
-
-const StyledPrefetchBalancesWrapper = styled(PrefetchBalancesWrapper)<{
-  $fullWidth: boolean
-}>`
-  width: ${({ $fullWidth }) => ($fullWidth ? '100%' : 'auto')};
 `
 
 interface CurrencyInputPanelProps {
@@ -231,8 +369,8 @@ export default function CurrencyInputPanel({
     !isAccount ? (smartPoolAddress ?? undefined) : account.address,
     currency ?? undefined,
   )
-  const theme = useTheme()
   const { formatCurrencyAmount } = useLocalizationContext()
+  const currencyLogoInfo = useCurrencyInfo(currency ? currencyId(currency) : undefined)
 
   const handleDismissSearch = useCallback(() => {
     setModalOpen(false)
@@ -255,7 +393,7 @@ export default function CurrencyInputPanel({
                 />
               )}
 
-              <StyledPrefetchBalancesWrapper $fullWidth={hideInput}>
+              <StyledSelectWrapper $fullWidth={hideInput}>
                 <CurrencySelect
                   disabled={!chainAllowed}
                   $visible={currency !== undefined}
@@ -276,7 +414,11 @@ export default function CurrencyInputPanel({
                           <DoubleCurrencyLogo currencies={[pair.token0, pair.token1]} size={24} />
                         </span>
                       ) : (
-                        currency && <CurrencyLogo style={{ marginRight: '0.5rem' }} currency={currency} size={24} />
+                        currencyLogoInfo && (
+                          <span style={{ marginRight: '0.5rem' }}>
+                            <CurrencyLogo currencyInfo={currencyLogoInfo} size={24} />
+                          </span>
+                        )
                       )}
                       {pair ? (
                         <StyledTokenName className="pair-name-container">
@@ -298,7 +440,7 @@ export default function CurrencyInputPanel({
                     {onCurrencySelect && <StyledDropDown $selected={!!currency} />}
                   </Aligner>
                 </CurrencySelect>
-              </StyledPrefetchBalancesWrapper>
+              </StyledSelectWrapper>
             </InputRow>
             {Boolean(!hideInput && !hideBalance && currency) && (
               <FiatRow>
@@ -307,13 +449,7 @@ export default function CurrencyInputPanel({
                     {fiatValue && <FiatValue fiatValue={fiatValue} />}
                   </LoadingOpacityContainer>
                   <RowFixed style={{ height: '17px' }}>
-                    <ThemedText.DeprecatedBody
-                      onClick={onMax}
-                      color={theme.neutral3.get()}
-                      fontWeight={535}
-                      fontSize={14}
-                      style={{ display: 'inline', cursor: 'pointer' }}
-                    >
+                    <BalanceLabel onClick={onMax}>
                       {Boolean(!hideBalance && currency && selectedCurrencyBalance) &&
                         (renderBalance?.(selectedCurrencyBalance as CurrencyAmount<Currency>) || (
                           <Trans
@@ -327,7 +463,7 @@ export default function CurrencyInputPanel({
                             }}
                           />
                         ))}
-                    </ThemedText.DeprecatedBody>
+                    </BalanceLabel>
                     {Boolean(showMaxButton && selectedCurrencyBalance) && (
                       <Trace
                         logPress

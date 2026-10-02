@@ -1,5 +1,5 @@
-import { Flex, TouchableArea } from 'ui/src'
-import { ArrowRight } from 'ui/src/components/icons/ArrowRight'
+import { Flex, TouchableArea } from '@universe/mycelium'
+import { ArrowRight } from '@universe/mycelium/icons/ArrowRight'
 
 type ScrollButtonDirection = 'left' | 'right'
 

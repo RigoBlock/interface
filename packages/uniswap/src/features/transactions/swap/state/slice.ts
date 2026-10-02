@@ -1,6 +1,6 @@
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { createSlice } from '@reduxjs/toolkit'
-import type { UniverseChainId } from 'uniswap/src/features/chains/types'
+import type { UniverseChainId } from '@universe/chains'
 import type { CurrencyField } from 'uniswap/src/types/currency'
 
 export interface SwapSettingsState {

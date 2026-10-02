@@ -1,9 +1,14 @@
+import type { GasFeeResult } from '@universe/api'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { memo, useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Flex, Switch, Text } from 'ui/src'
 import { InfoCircleFilled } from 'ui/src/components/icons/InfoCircleFilled'
 import { zIndexes } from 'ui/src/theme'
 import { WarningInfo } from 'uniswap/src/components/modals/WarningModal/WarningInfo'
+import { QuoteRefreshErrorRow } from 'uniswap/src/features/earn/QuoteRefreshErrorRow'
+import { useEnableCustomGasFeeEntry } from 'uniswap/src/features/gas/hooks/useEnableCustomGasFeeEntry'
+import { useIsCustomGasFlowAvailable } from 'uniswap/src/features/gas/hooks/useIsCustomGasFlowAvailable'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import {
   useTransactionSettingsAutoSlippageToleranceStore,
@@ -16,11 +21,35 @@ import {
   useSwapReviewWarningStore,
 } from 'uniswap/src/features/transactions/swap/review/stores/swapReviewWarningStore/useSwapReviewWarningStore'
 import { SwapDetails } from 'uniswap/src/features/transactions/swap/review/SwapDetails/SwapDetails'
+import { resolveSponsorshipInfo } from 'uniswap/src/features/transactions/swap/review/SwapReviewScreen/resolveSponsorshipInfo'
+import { ReviewNetworkCostRowSlot } from 'uniswap/src/features/transactions/swap/review/SwapReviewScreen/ReviewNetworkCostRowSlot'
 import { setBridgeSyncMode } from 'uniswap/src/features/transactions/swap/utils/bridgeSyncMode'
-import { isBridge } from 'uniswap/src/features/transactions/swap/utils/routing'
+import { getEVMTxRequest, isBridge } from 'uniswap/src/features/transactions/swap/utils/routing'
+import { CurrencyField } from 'uniswap/src/types/currency'
 import { isWebApp } from 'utilities/src/platform'
 
-export const SwapReviewSwapDetails = memo(function SwapReviewSwapDetails(): JSX.Element | null {
+const QUOTE_REFRESH_GAS_FEE: GasFeeResult = {
+  value: undefined,
+  displayValue: undefined,
+  isLoading: true,
+  error: null,
+}
+
+// A settled refresh error has no live quote to price gas against — show the placeholder, not a spinner.
+const QUOTE_REFRESH_ERROR_GAS_FEE: GasFeeResult = {
+  value: undefined,
+  displayValue: undefined,
+  isLoading: false,
+  error: null,
+}
+
+export const SwapReviewSwapDetails = memo(function SwapReviewSwapDetails({
+  isQuoteRefreshLoading = false,
+  hasQuoteRefreshError = false,
+}: {
+  isQuoteRefreshLoading?: boolean
+  hasQuoteRefreshError?: boolean
+}): JSX.Element | null {
   const { t } = useTranslation()
   const {
     acceptedDerivedSwapInfo,
@@ -63,6 +92,10 @@ export const SwapReviewSwapDetails = memo(function SwapReviewSwapDetails(): JSX.
     }
   }, [swapTxContext.includesDelegation])
 
+  const isGasFeeOverridesEnabled = useFeatureFlag(FeatureFlags.GasFeeOverrides)
+  const enableCustomGasFeeEntry = useEnableCustomGasFeeEntry()
+  const isCustomGasFlowAvailable = useIsCustomGasFlowAvailable()
+
   // Bridge sync mode toggle state (web-only, for RigoBlock smart pools)
   const [bridgeSyncEnabled, setBridgeSyncEnabled] = useState(false)
 
@@ -87,6 +120,36 @@ export const SwapReviewSwapDetails = memo(function SwapReviewSwapDetails(): JSX.
   if (!acceptedDerivedSwapInfo) {
     return null
   }
+
+  const inputChainId = acceptedDerivedSwapInfo.currencyAmounts[CurrencyField.INPUT]?.currency.chainId
+  const displayGasFee = isQuoteRefreshLoading
+    ? QUOTE_REFRESH_GAS_FEE
+    : hasQuoteRefreshError
+      ? QUOTE_REFRESH_ERROR_GAS_FEE
+      : gasFee
+  const displayDerivedSwapInfo =
+    isQuoteRefreshLoading || hasQuoteRefreshError ? acceptedDerivedSwapInfo : derivedSwapInfo
+
+  // Pull the primary EVM tx from the swapTxContext for the warning-state
+  // derivation. Returns undefined for UniswapX / Jupiter, which is what we
+  // want — those routings have no editable EVM gas.
+  const txRequest = getEVMTxRequest(swapTxContext)
+  const sponsorshipInfo = resolveSponsorshipInfo(swapTxContext)
+  const sponsorMetadata = sponsorshipInfo?.sponsorMetadata
+
+  const NetworkCostRowSlot =
+    !sponsorMetadata &&
+    isGasFeeOverridesEnabled &&
+    isCustomGasFlowAvailable &&
+    enableCustomGasFeeEntry &&
+    inputChainId !== undefined ? (
+      <ReviewNetworkCostRowSlot
+        chainId={inputChainId}
+        gasFee={displayGasFee}
+        tx={txRequest}
+        includesDelegation={stableIncludesDelegation}
+      />
+    ) : undefined
 
   // Bridge sync toggle component for RigoBlock smart pools
   const bridgeSyncToggle = showBridgeSyncToggle ? (
@@ -118,18 +181,21 @@ export const SwapReviewSwapDetails = memo(function SwapReviewSwapDetails(): JSX.
       acceptedDerivedSwapInfo={acceptedDerivedSwapInfo}
       autoSlippageTolerance={autoSlippageTolerance}
       customSlippageTolerance={customSlippageTolerance}
-      derivedSwapInfo={derivedSwapInfo}
+      derivedSwapInfo={displayDerivedSwapInfo}
       feeOnTransferProps={feeOnTransferProps}
       tokenWarningProps={tokenWarningProps}
       tokenWarningChecked={tokenWarningChecked}
       setTokenWarningChecked={setTokenWarningChecked}
-      gasFee={gasFee}
+      gasFee={displayGasFee}
       newTradeRequiresAcceptance={newTradeRequiresAcceptance}
       uniswapXGasBreakdown={uniswapXGasBreakdown}
       warning={reviewScreenWarning?.warning}
       txSimulationErrors={txSimulationErrors}
       includesDelegation={stableIncludesDelegation}
       additionalDetailsContent={bridgeSyncToggle}
+      BannerSlot={hasQuoteRefreshError ? <QuoteRefreshErrorRow /> : undefined}
+      NetworkCostRowSlot={NetworkCostRowSlot}
+      sponsorshipInfo={sponsorshipInfo}
       onAcceptTrade={onAcceptTrade}
       onShowWarning={onShowWarning}
     />

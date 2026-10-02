@@ -6,24 +6,28 @@ import {
   // oxlint-disable-next-line no-restricted-imports -- legacy import will be migrated
   BottomSheetTextInput as GorhomBottomSheetTextInput,
 } from '@gorhom/bottom-sheet'
+import { isIOS } from '@universe/environment'
+import { borderRadii, Flex, spacing, zIndexes } from '@universe/mycelium'
+import { useDeviceDimensions, useIsDarkMode, useMedia, useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { BlurView } from 'expo-blur'
 import type { ComponentProps } from 'react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { StyleProp, ViewStyle } from 'react-native'
 import { BackHandler, StyleSheet } from 'react-native'
 import Animated, { Extrapolate, interpolate, useAnimatedStyle, useSharedValue } from 'react-native-reanimated'
-import { Flex, useIsDarkMode, useMedia, useSporeColors } from 'ui/src'
-import { useDeviceDimensions } from 'ui/src/hooks/useDeviceDimensions'
-import { borderRadii, spacing, zIndexes } from 'ui/src/theme'
 import { BottomSheetContextProvider } from 'uniswap/src/components/modals/BottomSheetContext'
 import { HandleBar } from 'uniswap/src/components/modals/HandleBar'
-import { BSM_ANIMATION_CONFIGS, IS_SHEET_READY_DELAY } from 'uniswap/src/components/modals/modalConstants'
+import {
+  BSM_ANIMATION_CONFIGS,
+  IS_SHEET_READY_DELAY,
+  IS_SHEET_READY_FALLBACK_TIMEOUT,
+} from 'uniswap/src/components/modals/modalConstants'
 import type { ModalProps } from 'uniswap/src/components/modals/ModalProps'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { useAppInsets } from 'uniswap/src/hooks/useAppInsets'
 import { useKeyboardLayout } from 'uniswap/src/utils/useKeyboardLayout'
 import { dismissNativeKeyboard } from 'utilities/src/device/keyboard/dismissNativeKeyboard'
-import { isIOS } from 'utilities/src/platform'
+import { logger } from 'utilities/src/logger/logger'
 
 /**
  * (android only)
@@ -40,7 +44,7 @@ function useModalBackHandler(modalRef: React.RefObject<BaseModal | null>, enable
         return true
       })
 
-      return subscription.remove
+      return () => subscription.remove()
     }
 
     return undefined
@@ -49,6 +53,9 @@ function useModalBackHandler(modalRef: React.RefObject<BaseModal | null>, enable
 
 const BACKDROP_APPEARS_ON_INDEX = 0
 const DISAPPEARS_ON_INDEX = -1
+// HandleBar total height: top/bottom padding + indicator (+ android top margin). Subtracted from the
+// fullScreen content height so the sheet's bottom content (e.g. a footer toggle) isn't clipped.
+const FULLSCREEN_HANDLE_HEIGHT = spacing.spacing16 + spacing.spacing12 + spacing.spacing4 * 2
 
 function ModalBackdrop({
   fullScreen,
@@ -90,6 +97,11 @@ function DetachedModalBackdrop(props: BottomSheetBackdropProps): JSX.Element {
   )
 }
 
+function hasMultipleDetents(snapPoints: ModalProps['snapPoints']): boolean {
+  // `length > 1`, not truthiness: a single-detent array is a fixed height, with nowhere to drag to.
+  return (snapPoints?.length ?? 0) > 1
+}
+
 export function Modal({ isModalOpen = true, ...props }: ModalProps): JSX.Element | null {
   if (!isModalOpen) {
     return null
@@ -117,11 +129,15 @@ function BottomSheetModalContents({
   blurredBackground = false,
   dismissOnBackPress = true,
   isDismissible = true,
+  enableContentPanningGesture,
   overrideInnerContainer = false,
   renderBehindTopInset = false,
   renderBehindBottomInset = false,
   hideKeyboardOnDismiss = false,
   hideKeyboardOnSwipeDown = false,
+  keyboardBlurBehavior,
+  keyboardBehavior,
+  enableBlurKeyboardOnGesture,
   forceRoundedCorners = false,
   // keyboardBehavior="extend" does not work and it's hard to figure why,
   // probably it requires usage of <BottomSheetTextInput>
@@ -132,6 +148,7 @@ function BottomSheetModalContents({
   zIndex,
 }: ModalProps): JSX.Element {
   const insets = useAppInsets()
+  const dimensions = useDeviceDimensions()
   const media = useMedia()
   const keyboard = useKeyboardLayout()
   const colors = useSporeColors()
@@ -145,6 +162,28 @@ function BottomSheetModalContents({
     () => providedSnapPoints ?? (fullScreen ? ['100%'] : undefined),
     [providedSnapPoints, fullScreen],
   )
+
+  // `renderBehindTopInset && hideHandlebar` is the branch that nulls the handle in renderHandleBar.
+  const hasNoHandle = Boolean(renderBehindTopInset && hideHandlebar)
+  // fullScreen also leaves no backdrop to press, so there the content pan is the last affordance standing.
+  const hasNoDismissAffordance = hasNoHandle && Boolean(fullScreen)
+  // The multi-detent half is deliberately ungated by `isDismissible`: dragging between detents is not a
+  // dismissal, and `enablePanDownToClose` below is what keeps that drag from closing the sheet.
+  const contentPanningGesture =
+    enableContentPanningGesture ?? (hasMultipleDetents(snapPoints) || (isDismissible && hasNoDismissAffordance))
+
+  // Keyed to the handle-nulling shape, not `hasNoDismissAffordance`, so a non-fullScreen sheet left
+  // with only its backdrop is flagged too.
+  useEffect(() => {
+    if (__DEV__ && hasNoHandle && !contentPanningGesture) {
+      logger.warn(
+        'Modal.native',
+        'BottomSheetModalContents',
+        'A sheet with renderBehindTopInset and hideHandlebar renders no handle, and content panning resolved to false, so the only way out is a backdrop press — which fullScreen covers over entirely — or the Android hardware back button, and not even that when isDismissible or dismissOnBackPress is false.',
+        { modalName: name },
+      )
+    }
+  }, [hasNoHandle, contentPanningGesture, name])
 
   useModalBackHandler(modalRef, isDismissible && dismissOnBackPress)
 
@@ -160,6 +199,12 @@ function BottomSheetModalContents({
       modalRef.current?.expand()
     }
   }, [extendOnKeyboardVisible, keyboard.isVisible])
+
+  // Fallback for onAnimate never reporting the open animation: gated content must always render eventually.
+  useEffect(() => {
+    const fallbackTimer = setTimeout(() => setIsSheetReady(true), IS_SHEET_READY_FALLBACK_TIMEOUT)
+    return () => clearTimeout(fallbackTimer)
+  }, [])
 
   const animatedPosition = providedAnimatedPosition ?? internalAnimatedPosition
 
@@ -202,6 +247,9 @@ function BottomSheetModalContents({
     [backgroundColorValue, handlebarColor, hideHandlebar, renderBehindTopInset],
   )
 
+  // on screens < xs (iPhone SE), assume no rounded corners on screen and remove rounded corners from fullscreen modal
+  const borderRadius = media.short ? borderRadii.none : borderRadii.rounded24
+
   const animatedBorderRadius = useAnimatedStyle(() => {
     const interpolatedRadius = interpolate(
       animatedPosition.value,
@@ -229,7 +277,6 @@ function BottomSheetModalContents({
   // `About to` is crucial here, because we want to trigger these actions as soon as possible.
   // See here: https://gorhom.github.io/react-native-bottom-sheet/props#onanimate
   const onAnimate = useCallback(
-    // We want to start hiding the keyboard during the process of hiding the sheet.
     (fromIndex: number, toIndex: number): void => {
       if (
         (hideKeyboardOnDismiss && toIndex === DISAPPEARS_ON_INDEX) ||
@@ -238,20 +285,13 @@ function BottomSheetModalContents({
         dismissNativeKeyboard()
       }
 
-      // When a sheet has too much content it can lag and take a while to begin opening, so we want to delay rendering some of the content until the sheet is ready.
-      // We consider the sheet to be "ready" as soon as it starts animating from the bottom to the top.
-      // We add a short delay given that this callback is called when the sheet is "about to" animate.
-      // Note: We tried to use BottomSheet.onChange but this caused some issues with the sheet not being
-      // scrollable sometimes.
+      // Delay rendering some of the content until the sheet has begun opening.
       if (!isSheetReady && fromIndex === -1 && toIndex === 0) {
         setTimeout(() => setIsSheetReady(true), IS_SHEET_READY_DELAY)
       }
     },
     [hideKeyboardOnDismiss, hideKeyboardOnSwipeDown, isSheetReady],
   )
-
-  // on screens < xs (iPhone SE), assume no rounded corners on screen and remove rounded corners from fullscreen modal
-  const borderRadius = media.short ? borderRadii.none : borderRadii.rounded24
 
   const backgroundStyle = useMemo(
     () => ({
@@ -261,39 +301,40 @@ function BottomSheetModalContents({
   )
 
   const bottomSheetViewStyles: StyleProp<ViewStyle> = useMemo(() => {
-    const styles: StyleProp<ViewStyle> = [
-      { backgroundColor: renderBehindTopInset ? 'transparent' : backgroundColorValue },
-    ]
+    // gorhom v5 flattens this prop via StyleSheet.compose(...style), which only keeps the first two
+    // entries — so merge all static rules into one object and append at most the animated style.
+    const base: ViewStyle = { backgroundColor: renderBehindTopInset ? 'transparent' : backgroundColorValue }
+    let animated: StyleProp<ViewStyle>
 
-    const hiddenHandlebarStyle = {
-      borderTopLeftRadius: borderRadius,
-      borderTopRightRadius: borderRadius,
-    }
+    const roundedCorners = { borderTopLeftRadius: borderRadius, borderTopRightRadius: borderRadius }
 
     if (renderBehindTopInset) {
-      styles.push(bottomSheetStyle.behindInset)
+      Object.assign(base, bottomSheetStyle.behindInset)
 
       if (hideHandlebar) {
         if (forceRoundedCorners) {
-          styles.push(hiddenHandlebarStyle)
+          Object.assign(base, roundedCorners)
         } else {
-          styles.push(animatedBorderRadius)
+          // reanimated 4 returns an AnimatedStyleHandle, accepted by Animated.View at runtime.
+          animated = animatedBorderRadius as unknown as StyleProp<ViewStyle>
         }
       }
     } else if (hideHandlebar) {
-      styles.push(hiddenHandlebarStyle)
+      Object.assign(base, roundedCorners)
     }
 
     if (!renderBehindBottomInset) {
-      styles.push({ paddingBottom: insets.bottom })
+      base.paddingBottom = insets.bottom
     }
-    // When in fullScreen mode, set a fixed height to fill the available space
-    // (when not in fullScreen, we use dynamic sizing based on content)
     if (fullScreen) {
-      styles.push({ height: '100%' })
+      // gorhom v5's content container is position:absolute with no resolved height, so a percentage height
+      // collapses grow children to 0. Give it a concrete dp height spanning the sheet below the handle.
+      const topInsetUsed = renderBehindTopInset ? 0 : insets.top
+      const handleHeight = renderBehindTopInset && hideHandlebar ? 0 : FULLSCREEN_HANDLE_HEIGHT
+      base.height = dimensions.fullHeight - topInsetUsed - handleHeight
     }
 
-    return styles
+    return animated ? [base, animated] : base
   }, [
     backgroundColorValue,
     borderRadius,
@@ -304,6 +345,8 @@ function BottomSheetModalContents({
     forceRoundedCorners,
     animatedBorderRadius,
     insets.bottom,
+    insets.top,
+    dimensions.fullHeight,
   ])
 
   const containerStyle = useMemo(() => {
@@ -320,11 +363,16 @@ function BottomSheetModalContents({
       backgroundStyle={backgroundStyle}
       containerComponent={containerComponent}
       containerStyle={containerStyle}
-      enableContentPanningGesture={isDismissible}
-      enableDynamicSizing={!snapPoints || enableDynamicSizing}
+      enableBlurKeyboardOnGesture={enableBlurKeyboardOnGesture}
+      enableContentPanningGesture={contentPanningGesture}
+      enableDynamicSizing={enableDynamicSizing ?? !snapPoints}
       enableHandlePanningGesture={isDismissible}
+      // gorhom defaults this to true, so without it a drag could close a sheet the caller marked non-dismissible.
+      enablePanDownToClose={isDismissible}
       footerComponent={footerComponent}
       handleComponent={renderHandleBar}
+      keyboardBehavior={keyboardBehavior}
+      keyboardBlurBehavior={keyboardBlurBehavior}
       snapPoints={snapPoints}
       stackBehavior={stackBehavior}
       topInset={renderBehindTopInset ? 0 : insets.top}
@@ -355,6 +403,7 @@ export function BottomSheetDetachedModal({
   stackBehavior = 'push',
   isDismissible = true,
   dismissOnBackPress = true,
+  enableContentPanningGesture,
   fullScreen,
   hideHandlebar,
   backgroundColor,
@@ -397,8 +446,11 @@ export function BottomSheetDetachedModal({
       bottomInset={insets.bottom}
       containerStyle={bottomSheetStyle.detachedContainer}
       detached={true}
-      enableContentPanningGesture={isDismissible}
+      enableContentPanningGesture={enableContentPanningGesture ?? hasMultipleDetents(snapPoints)}
       enableDynamicSizing={!snapPoints}
+      // gorhom's BottomSheetModal defaults this to true, so without it a content drag could close a
+      // sheet the caller marked non-dismissible.
+      enablePanDownToClose={isDismissible}
       handleComponent={renderHandleBar}
       snapPoints={snapPoints}
       stackBehavior={stackBehavior}
@@ -431,8 +483,7 @@ const bottomSheetStyle = StyleSheet.create({
 
 const blurViewStyle = StyleSheet.create({
   base: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: 'hidden',
+    ...StyleSheet.absoluteFill,
   },
 })
 

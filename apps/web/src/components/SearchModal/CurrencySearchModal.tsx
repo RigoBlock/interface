@@ -1,16 +1,17 @@
 import { Currency } from '@uniswap/sdk-core'
+import { UniverseChainId } from '@universe/chains'
 import { memo } from 'react'
 import { Modal } from 'uniswap/src/components/modals/Modal'
-import { TOKEN_SELECTOR_WEB_MAX_WIDTH } from 'uniswap/src/components/TokenSelector/TokenSelector'
+import { SNAP_POINTS, useTokenSelectorWebModalDimensions } from 'uniswap/src/components/TokenSelector/TokenSelector'
 import { TokenSelectorFlow, TokenSelectorVariation } from 'uniswap/src/components/TokenSelector/types'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { CurrencyField } from 'uniswap/src/types/currency'
-import { SwitchNetworkAction } from '~/components/Popups/types'
-import { CurrencyRow } from '~/components/SearchModal//CurrencyList'
+import { SwapTab } from 'uniswap/src/types/screens/interface'
+import { CurrencyRow } from '~/components/SearchModal/CurrencyList'
 import { CurrencySearch } from '~/components/SearchModal/CurrencySearch'
 import styled from '~/lib/deprecated-styled'
+import { SwitchNetworkAction } from '~/state/popups/types'
 
 const PoolListWrapper = styled.div`
   width: 100%;
@@ -37,35 +38,52 @@ interface CurrencySearchModalProps {
   otherSelectedCurrency?: Currency | null
   showCurrencyAmount?: boolean
   currencyField?: CurrencyField
+  /**
+   * Parent-controlled initial network filter. Pass a chain to pin the selector's default network,
+   * `null` to default to All Networks, or omit (`undefined`) to fall back to the default
+   * account/multichain resolution.
+   */
+  chainId?: UniverseChainId | null
   chainIds?: UniverseChainId[]
   variation?: TokenSelectorVariation
   flow?: TokenSelectorFlow
   operatedPools?: CurrencyInfo[]
   shouldDisplayPoolsOnly?: boolean
+  swapTab?: SwapTab
 }
 
-export default memo(function CurrencySearchModal({
+export const CurrencySearchModal = memo(function CurrencySearchModal({
   isOpen,
   onDismiss,
   onCurrencySelect,
   currencyField = CurrencyField.INPUT,
   switchNetworkAction,
+  chainId,
   chainIds,
   variation,
   flow,
   operatedPools,
   shouldDisplayPoolsOnly,
+  swapTab,
 }: CurrencySearchModalProps) {
+  const { maxWidth, maxHeight } = useTokenSelectorWebModalDimensions()
+
   return (
     <Modal
       isModalOpen={isOpen}
       onClose={onDismiss}
-      maxHeight={700}
+      maxHeight={maxHeight}
       height="100vh"
-      maxWidth={TOKEN_SELECTOR_WEB_MAX_WIDTH}
+      maxWidth={maxWidth}
       padding={0}
       flex={1}
       name={ModalName.CurrencySearch}
+      // The mobile-web sheet must take its height from the snap point, not content-fit: the
+      // virtualized token list sizes itself to its container (AutoSizer) so it has no intrinsic
+      // height, and a fit-mode sheet opened with cached data freezes at chrome height with an
+      // empty list (SWAP-3250).
+      snapPoints={SNAP_POINTS}
+      snapPointsMode="percent"
     >
       {!shouldDisplayPoolsOnly ? (
         <CurrencySearch
@@ -73,9 +91,11 @@ export default memo(function CurrencySearchModal({
           onCurrencySelect={onCurrencySelect}
           switchNetworkAction={switchNetworkAction}
           onDismiss={onDismiss}
+          chainId={chainId}
           chainIds={chainIds}
           variation={variation}
           flow={flow}
+          swapTab={swapTab}
         />
       ) : (
         <PoolListWrapper>
@@ -101,3 +121,5 @@ export default memo(function CurrencySearchModal({
     </Modal>
   )
 })
+
+export default CurrencySearchModal

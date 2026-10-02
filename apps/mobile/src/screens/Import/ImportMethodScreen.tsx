@@ -1,8 +1,12 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-import React, { useState } from 'react'
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
+import { Eye } from '@universe/mycelium/icons/Eye'
+import { WalletFilled } from '@universe/mycelium/icons/WalletFilled'
+import { useIsDarkMode } from '@universe/mycelium/theme-hooks-compat'
+import { TestID } from '@universe/test'
+import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { navigate } from 'src/app/navigation/rootNavigation'
 import { OnboardingStackParamList } from 'src/app/navigation/types'
 import { checkCloudBackupOrShowAlert } from 'src/components/mnemonic/cloudImportUtils'
 import { useRegionalizedLineHeight } from 'src/components/text/useRegionalizedLineHeight'
@@ -14,20 +18,12 @@ import {
   passKeySignInOption,
   seedPhraseImportOption,
 } from 'src/screens/Import/constants'
-import { useNavigationHeader } from 'src/utils/useNavigationHeader'
-import { Flex, SpinningLoader, Text, TouchableArea } from 'ui/src'
-import { Eye, WalletFilled } from 'ui/src/components/icons'
-import { useIsDarkMode } from 'ui/src/hooks/useIsDarkMode'
-import { iconSizes } from 'ui/src/theme'
-import { authenticateWithPasskeyForSeedPhraseExport } from 'uniswap/src/features/passkey/embeddedWallet'
-import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
+import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { ImportType, OnboardingEntryPoint } from 'uniswap/src/types/onboarding'
 import { OnboardingScreens } from 'uniswap/src/types/screens/mobile'
-import { logger } from 'utilities/src/logger/logger'
 
-const options: ImportMethodOption[] = [seedPhraseImportOption, importFromCloudBackupOption, passKeySignInOption]
+const options: ImportMethodOption[] = [passKeySignInOption, importFromCloudBackupOption, seedPhraseImportOption]
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, OnboardingScreens.ImportMethod>
 
@@ -35,9 +31,6 @@ export function ImportMethodScreen({ navigation, route: { params } }: Props): JS
   const { t } = useTranslation()
   const isDarkMode = useIsDarkMode()
   const entryPoint = params.entryPoint
-  const [isLoadingPasskey, setIsLoadingPasskey] = useState(false)
-
-  useNavigationHeader(navigation)
 
   const handleOnPressRestoreBackup = async (): Promise<void> => {
     const hasCloudBackup = await checkCloudBackupOrShowAlert(t)
@@ -53,42 +46,20 @@ export function ImportMethodScreen({ navigation, route: { params } }: Props): JS
   }
 
   const handleOnPress = async (nav: OnboardingScreens, importType: ImportType): Promise<void> => {
-    if (isLoadingPasskey) {
-      return
-    }
-
     if (importType === ImportType.Restore) {
       await handleOnPressRestoreBackup()
       return
     }
 
-    // We check against nav instead of importType to satisfy typescript
-    // This screen requires passkeyCredential as a param
+    // Passkey now defers to RecoveryFlowScreen so the Continue-with-passkey button is the
+    // single place where the ceremony spins. `initialMethod: 'passkey'` tells that screen
+    // to auto-trigger the prompt on mount; failure falls back to email/OAuth tiles there.
     if (importType === ImportType.Passkey) {
-      setIsLoadingPasskey(true)
-      let credential: string | undefined
-      try {
-        credential = await authenticateWithPasskeyForSeedPhraseExport()
-      } catch (error) {
-        logger.warn('ImportMethodScreen', 'handleOnPress', 'Error authenticating with passkey', { error })
-      }
-
-      if (!credential) {
-        navigate(ModalName.PasskeysHelp)
-        setIsLoadingPasskey(false)
-        return
-      }
-
       navigation.navigate({
-        name: OnboardingScreens.PasskeyImport,
-        params: {
-          importType,
-          entryPoint,
-          passkeyCredential: credential,
-        },
+        name: OnboardingScreens.RecoveryFlow,
+        params: { importType, entryPoint, initialMethod: 'passkey' },
         merge: true,
       })
-      setIsLoadingPasskey(false)
       return
     }
     if (nav === OnboardingScreens.SeedPhraseInput || nav === OnboardingScreens.WatchWallet) {
@@ -129,13 +100,7 @@ export function ImportMethodScreen({ navigation, route: { params } }: Props): JS
             key={'connection-option-' + name + i}
             blurb={blurb(t)}
             elementName={name}
-            icon={
-              isLoadingPasskey && name === ElementName.OnboardingPasskey ? (
-                <SpinningLoader size={iconSizes.icon32} />
-              ) : (
-                icon
-              )
-            }
+            icon={icon}
             testID={testID}
             title={title(t)}
             onPress={(): Promise<void> => handleOnPress(nav, importType)}
@@ -143,16 +108,16 @@ export function ImportMethodScreen({ navigation, route: { params } }: Props): JS
         ))}
       </Flex>
       <Trace logPress element={ElementName.OnboardingImportBackup}>
-        <TouchableArea alignItems="center" hitSlop={16} mb="$spacing12" testID={TestID.WatchWallet}>
+        <TouchableArea
+          alignItems="center"
+          hitSlop={16}
+          mb="$spacing12"
+          testID={TestID.WatchWallet}
+          onPress={(): Promise<void> => handleOnPress(OnboardingScreens.WatchWallet, ImportType.Watch)}
+        >
           <Flex row alignItems="center" gap="$spacing8">
             <Eye color="$accent1" size="$icon.20" />
-            <Text
-              numberOfLines={1}
-              color="$accent1"
-              variant="buttonLabel1"
-              lineHeight={regionalizedLineHeight}
-              onPress={(): Promise<void> => handleOnPress(OnboardingScreens.WatchWallet, ImportType.Watch)}
-            >
+            <Text numberOfLines={1} color="$accent1" variant="buttonLabel1" lineHeight={regionalizedLineHeight}>
               {t('account.wallet.button.watch')}
             </Text>
           </Flex>

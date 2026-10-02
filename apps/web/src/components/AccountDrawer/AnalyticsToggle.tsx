@@ -1,8 +1,9 @@
+import { Flex, Text } from '@universe/mycelium'
+import { InfoCircle } from '@universe/mycelium/icons/InfoCircle'
+import { LineChartDots } from '@universe/mycelium/icons/LineChartDots'
+import { TooltipCompat as Tooltip } from '@universe/mycelium/tooltip-compat'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { InfoCircle } from 'ui/src/components/icons/InfoCircle'
-import { LineChartDots } from 'ui/src/components/icons/LineChartDots'
-import { Flex, Text, Tooltip } from 'ui/src/index'
 // oxlint-disable-next-line no-restricted-imports -- Direct analytics import needed for toggling analytics settings
 import { analytics, getAnalyticsAtomDirect } from 'utilities/src/telemetry/analytics/analytics'
 import { SettingsToggle } from '~/components/AccountDrawer/SettingsToggle'
@@ -40,7 +41,7 @@ export function AnalyticsToggle() {
             <Tooltip.Trigger>
               <InfoCircle size="$icon.16" color="$neutral3" />
             </Tooltip.Trigger>
-            <Tooltip.Content zIndex="$tooltip" maxWidth="290px">
+            <Tooltip.Content maxWidth="290px">
               <Text variant="body3" color="$neutral2">
                 {t('analytics.allow.message')}
               </Text>

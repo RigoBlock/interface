@@ -1,4 +1,4 @@
-import { Flex, ScrollView, Text } from 'ui/src'
+import { Flex, ScrollView, Text } from '@universe/mycelium'
 import { AnalyticsDebugEventRow } from 'uniswap/src/features/telemetry/debug/AnalyticsDebugEventRow'
 import type { CapturedAnalyticsEvent } from 'uniswap/src/features/telemetry/debug/analyticsDebugStore'
 

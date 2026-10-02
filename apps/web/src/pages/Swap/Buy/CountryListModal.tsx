@@ -1,25 +1,38 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { Flex, type FlexCompatProps, Text, useMedia } from '@universe/mycelium'
+import { TestID } from '@universe/test'
+import {
+  forwardRef,
+  type ForwardRefExoticComponent,
+  type RefAttributes,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import AutoSizer from 'react-virtualized-auto-sizer'
 import { FixedSizeList } from 'react-window'
-import { Flex, ModalCloseIcon, styled, useMedia, useScrollbarStyles, useSporeColors } from 'ui/src'
-import { Text } from 'ui/src/components/text/Text'
-import { iconSizes } from 'ui/src/theme'
+import { ModalCloseIcon, useScrollbarStyles } from 'ui/src'
+import { Search } from 'ui/src/components/icons/Search'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { FORCountry } from 'uniswap/src/features/fiatOnRamp/types'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { bubbleToTop } from 'utilities/src/primitives/array'
-import { ReactComponent as SearchIcon } from '~/assets/svg/search.svg'
 import { SearchInput } from '~/components/SearchModal/styled'
 import { CountryListRow } from '~/pages/Swap/Buy/CountryListRow'
 import { ContentWrapper } from '~/pages/Swap/Buy/shared'
 
 const ROW_ITEM_SIZE = 56
-export const HeaderContent = styled(Flex, {
-  flexShrink: 1,
-  $sm: { pt: '$none' },
-  p: '$spacing20',
-  gap: '$spacing12',
+// Same ratio as the token selector sheet; only index 0 is read on web.
+const SNAP_POINTS = ['65%', '100%']
+
+// Explicit return type: forwardRef's inferred type isn't nameable under declaration emit (TS2883).
+export const HeaderContent: ForwardRefExoticComponent<FlexCompatProps & RefAttributes<HTMLDivElement>> = forwardRef<
+  HTMLDivElement,
+  FlexCompatProps
+>(function HeaderContent({ $sm: sm, ...props }, ref) {
+  // Merged explicitly, not spread: a plain spread would replace this base wholesale.
+  return <Flex ref={ref} flexShrink={1} $sm={{ pt: '$none', ...sm }} p="$spacing20" gap="$spacing12" {...props} />
 })
 
 interface CountryListModalProps {
@@ -39,7 +52,6 @@ export function CountryListModal({
 }: CountryListModalProps) {
   const [searchQuery, setSearchQuery] = useState<string>('')
   const { t } = useTranslation()
-  const colors = useSporeColors()
   const media = useMedia()
   const scrollbarStyles = useScrollbarStyles()
 
@@ -69,6 +81,10 @@ export function CountryListModal({
       maxWidth={420}
       height={media.sm ? '100vh' : '100%'}
       maxHeight={700}
+      // The mWeb sheet must take its height from the snap point, not content-fit: the virtualized
+      // list sizes itself to its container, so a fit-mode sheet collapses to chrome height with an empty list.
+      snapPoints={SNAP_POINTS}
+      snapPointsMode="percent"
       isModalOpen={isOpen}
       onClose={onDismiss}
       padding={0}
@@ -77,16 +93,20 @@ export function CountryListModal({
         <HeaderContent>
           <Flex width="100%" row justifyContent="space-between">
             <Text variant="body2">{t('common.selectRegion.label')}</Text>
-            <ModalCloseIcon testId="CountryListModal-close" onClose={closeModal} />
+            <ModalCloseIcon testId={TestID.CountryListModalClose} onClose={closeModal} />
           </Flex>
-          <Flex position="relative" height="100%" flex={1}>
-            <SearchIcon
-              fill={colors.neutral3.val}
-              style={{ position: 'absolute', left: '12px', top: '10px' }}
-              width={iconSizes.icon20}
-              height={iconSizes.icon20}
+          <Flex position="relative" width="100%" height="$spacing40">
+            <Flex
+              position="absolute"
+              left="$spacing12"
+              top={0}
+              bottom={0}
+              alignItems="center"
+              justifyContent="center"
               pointerEvents="none"
-            />
+            >
+              <Search size="$icon.20" color="$neutral3" />
+            </Flex>
             <SearchInput
               placeholder={t`swap.buy.countryModal.placeholder`}
               value={searchQuery}

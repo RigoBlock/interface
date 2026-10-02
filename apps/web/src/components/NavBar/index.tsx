@@ -6,6 +6,7 @@ import { Flex, styled, Nav as TamaguiNav, useMedia } from 'ui/src'
 import { breakpoints, INTERFACE_NAV_HEIGHT, zIndexes } from 'ui/src/theme'
 import { useConnectionStatus } from 'uniswap/src/features/accounts/store/hooks'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
+import { normalizeTokenAddressForCache } from 'uniswap/src/utils/currencyId'
 import Row from '~/components/deprecated/Row'
 import { ChainSelector } from '~/components/NavBar/ChainSelector'
 import { CompanyMenu } from '~/components/NavBar/CompanyMenu'
@@ -15,24 +16,24 @@ import { PreferenceMenu } from '~/components/NavBar/PreferencesMenu'
 import { useTabsVisible } from '~/components/NavBar/ScreenSizes'
 import { useIsSearchBarVisible } from '~/components/NavBar/SearchBar/useIsSearchBarVisible'
 import { Tabs } from '~/components/NavBar/Tabs/Tabs'
-import TestnetModeTooltip from '~/components/NavBar/TestnetMode/TestnetModeTooltip'
-import { UniswapWrappedEntry } from '~/components/NavBar/UniswapWrappedEntry'
-import Web3Status from '~/components/Web3Status'
+import { TestnetModeTooltip } from '~/components/NavBar/TestnetMode/TestnetModeTooltip'
+import { Web3Status } from '~/components/Web3Status'
 import { RIGOBLOCK_SUPPORTED_CHAINS, RIGOBLOCK_TESTNET_CHAINS } from '~/constants/addresses'
 import { useAccount } from '~/hooks/useAccount'
 import { PageType, useIsPage } from '~/hooks/useIsPage'
-import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import usePrevious from '~/hooks/usePrevious'
 import { css, deprecatedStyled } from '~/lib/deprecated-styled'
+import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { useActiveSmartPool, useSelectActiveSmartPool } from '~/state/application/hooks'
 import { useMultiChainAllPoolsData, useMultiChainStakingPools } from '~/state/pool/multichain'
-import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
 
 // Flex is position relative by default, we must unset the position on every Flex
 // between the body and search component
+
 const UnpositionedFlex = styled(Flex, {
   position: 'unset',
 })
+
 const Nav = styled(TamaguiNav, {
   position: 'unset',
   px: '$padding12',
@@ -141,7 +142,7 @@ function useShouldHidePoolSelector() {
   return isEarnPage || isPoolPositionPage || isExplicitPortfolioAddress
 }
 
-export default function Navbar() {
+export function Navbar() {
   const isLandingPage = useIsPage(PageType.LANDING)
 
   const media = useMedia()
@@ -149,8 +150,6 @@ export default function Navbar() {
   const areTabsVisible = useTabsVisible()
   const isSearchBarVisible = useIsSearchBarVisible()
   const { isConnected } = useConnectionStatus()
-  //const collapseSearchBar = media.xl
-  //const NAV_SEARCH_MAX_HEIGHT = 'calc(100vh - 30px)'
 
   const account = useAccount()
   const { address } = account
@@ -275,22 +274,15 @@ export default function Navbar() {
               <PoolSelect operatedPools={operatedPools} />
             </SelectedPoolContainer>
           )}
-          {/*isSearchBarVisible && (
-            <UnpositionedFlex flex={1} flexShrink={1} ml="$spacing16">
-              <SearchBar />
-            </UnpositionedFlex>
-          )*/}
         </SearchContainer>
 
         <Right>
-          <UniswapWrappedEntry />
           {!hideChainSelector && <ChainSelector />}
           {!isSearchBarVisible && userIsOperator && !hidePoolSelector && (
             <Flex mt={8}>
               <PoolSelect operatedPools={operatedPools} />
             </Flex>
           )}
-          {/*!isSearchBarVisible && <SearchBar />*/}
           {!isEmbeddedWalletEnabled && isLandingPage && !isSmallScreen && <NewUserCTAButton />}
           {!isConnected && <PreferenceMenu />}
           {isTestnetModeEnabled && <TestnetModeTooltip />}

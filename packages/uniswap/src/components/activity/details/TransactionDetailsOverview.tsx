@@ -1,24 +1,24 @@
+import { isWebPlatform } from '@universe/environment'
+import { Button, Flex, Separator, Text, TouchableArea } from '@universe/mycelium'
+import { ChevronsIn } from '@universe/mycelium/icons/ChevronsIn'
+import { ChevronsOut } from '@universe/mycelium/icons/ChevronsOut'
 import dayjs from 'dayjs'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Flex, Separator, Text, TouchableArea } from 'ui/src'
-import { ChevronsIn } from 'ui/src/components/icons/ChevronsIn'
-import { ChevronsOut } from 'ui/src/components/icons/ChevronsOut'
+import { useTransactionDetailSeparatorsRenderState } from 'uniswap/src/components/activity/details/getTransactionDetailSeparatorsRenderState'
 import { ResumePlanButton } from 'uniswap/src/components/activity/details/plan/ResumePlanButton'
 import { TransactionDetailsContent } from 'uniswap/src/components/activity/details/TransactionDetailsContent'
 import { TransactionDetailsHeader } from 'uniswap/src/components/activity/details/TransactionDetailsHeader'
 import { TransactionDetailsInfoRows } from 'uniswap/src/components/activity/details/TransactionDetailsInfoRows'
 import type { TransactionDetailsModalProps } from 'uniswap/src/components/activity/details/TransactionDetailsModal'
 import { OffRampPendingSupportCard } from 'uniswap/src/components/activity/details/transactions/OffRampPendingSupportCard'
-import { isOffRampSaleTransactionInfo, isUnknownTransactionInfo } from 'uniswap/src/components/activity/details/types'
-import { isNFTActivity } from 'uniswap/src/components/activity/utils'
+import { isOffRampSaleTransactionInfo } from 'uniswap/src/components/activity/details/types'
 import { MenuOptionItem } from 'uniswap/src/components/menus/ContextMenu'
 import { AccountType } from 'uniswap/src/features/accounts/types'
 import { useIsCancelable } from 'uniswap/src/features/transactions/hooks/useIsCancelable'
 import { useCanResumePlan } from 'uniswap/src/features/transactions/swap/plan/intermediaryState/useCanResumePlan'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { useWallet } from 'uniswap/src/features/wallet/hooks/useWallet'
-import { isWebPlatform } from 'utilities/src/platform'
 
 export type TransactionDetailsOverviewProps = TransactionDetailsModalProps & {
   openPlanView: () => void
@@ -39,10 +39,7 @@ export function TransactionDetailsOverview({
   const [isShowingMore, setIsShowingMore] = useState(false)
   const hasMoreInfoRows = [TransactionType.Swap, TransactionType.Bridge].includes(transactionDetails.typeInfo.type)
 
-  // Hide both separators if it's an Nft transaction. Hide top separator if it's an unknown type transaction.
-  const isNftTransaction = isNFTActivity(typeInfo)
-  const hideTopSeparator = isNftTransaction || isUnknownTransactionInfo(typeInfo)
-  const hideBottomSeparator = isNftTransaction
+  const { hideTopSeparator, hideBottomSeparator } = useTransactionDetailSeparatorsRenderState(transactionDetails)
 
   const { evmAccount } = useWallet()
   const readonly = evmAccount?.accountType === AccountType.Readonly
@@ -93,12 +90,12 @@ export function TransactionDetailsOverview({
         transactionActions={menuItems}
         transactionDetails={transactionDetails}
       />
-      {!hideTopSeparator && <Separator />}
+      {!hideTopSeparator && <Separator testID="transaction-details-separator" />}
       {detailsContent}
       {!hideBottomSeparator && detailsContent !== null && hasMoreInfoRows && (
         <ShowMoreSeparator isShowingMore={isShowingMore} setIsShowingMore={setIsShowingMore} />
       )}
-      {!hideBottomSeparator && !hasMoreInfoRows && <Separator />}
+      {!hideBottomSeparator && !hasMoreInfoRows && <Separator testID="transaction-details-separator" />}
       <TransactionDetailsInfoRows
         isShowingMore={isShowingMore}
         transactionDetails={transactionDetails}

@@ -1,4 +1,4 @@
-import { Text } from 'ui/src'
+import { Text } from '@universe/mycelium'
 import { Pill } from 'uniswap/src/components/pill/Pill'
 import { render } from 'uniswap/src/test/test-utils'
 

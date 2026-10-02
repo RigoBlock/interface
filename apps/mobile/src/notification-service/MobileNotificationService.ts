@@ -1,13 +1,14 @@
 import { queryOptions } from '@tanstack/react-query'
 import { PlatformType } from '@uniswap/client-notification-service/dist/uniswap/notificationservice/v1/api_pb'
 import {
+  ContentStyle,
   createFetchClient,
   createNotificationsApiClient,
   getEntryGatewayUrl,
   provideSessionService,
   SharedQueryClient,
 } from '@universe/api'
-import { getIsSessionServiceEnabled } from '@universe/gating'
+import { isDevEnv, REQUEST_SOURCE } from '@universe/environment'
 import {
   createApiNotificationTracker,
   createBaseNotificationProcessor,
@@ -17,7 +18,6 @@ import {
   getNotificationQueryOptions,
   type NotificationService,
 } from '@universe/notifications'
-import { Appearance } from 'react-native'
 import DeviceInfo from 'react-native-device-info'
 import { MobileState } from 'src/app/mobileReducer'
 import { store } from 'src/app/store'
@@ -30,17 +30,13 @@ import { createMobileNotificationRenderer } from 'src/notification-service/notif
 import { mobileNotificationStore } from 'src/notification-service/notification-renderer/notificationStore'
 import { getNotificationTelemetry } from 'src/notification-service/notification-telemetry/getNotificationTelemetry'
 import { createMobileLocalTriggerDataSource } from 'src/notification-service/triggers/createMobileLocalTriggerDataSource'
-import { getPortfolioQuery } from 'uniswap/src/data/rest/getPortfolio'
-import { AppearanceSettingType } from 'uniswap/src/features/appearance/slice'
 import { mapLocaleToBackendLocale } from 'uniswap/src/features/language/constants'
 import { getLocale } from 'uniswap/src/features/language/navigatorLocale'
 import { selectCurrentLanguage } from 'uniswap/src/features/settings/selectors'
-import { isDevEnv } from 'utilities/src/environment/env'
-import { REQUEST_SOURCE } from 'utilities/src/platform/requestSource'
 import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
 import { type QueryOptionsResult } from 'utilities/src/reactQuery/queryOptions'
 import { ONE_MINUTE_MS, ONE_SECOND_MS } from 'utilities/src/time/time'
-import { selectActiveAccountAddress } from 'wallet/src/features/wallet/selectors'
+import { getBackupReminderPortfolioValue } from 'wallet/src/features/behaviorHistory/getBackupReminderPortfolioValue'
 
 /**
  * Creates the notification service with all necessary dependencies
@@ -65,8 +61,7 @@ function provideMobileNotificationService(ctx: { getIsApiDataSourceEnabled: () =
         'x-app-version': semver,
       }
     },
-    getSessionService: () =>
-      provideSessionService({ getBaseUrl: () => getEntryGatewayUrl(), getIsSessionServiceEnabled }),
+    getSessionService: () => provideSessionService({ getBaseUrl: () => getEntryGatewayUrl() }),
   })
 
   const apiClient = createNotificationsApiClient({
@@ -96,21 +91,14 @@ function provideMobileNotificationService(ctx: { getIsApiDataSourceEnabled: () =
     pollIntervalMs: 10 * ONE_SECOND_MS,
     // oxlint-disable-next-line typescript/no-unsafe-return
     getState: (): MobileState => store.getState(),
-    getIsDarkMode: (): boolean => {
-      const state = store.getState()
-      const appearanceSetting = state.appearanceSettings?.selectedAppearanceSettings ?? AppearanceSettingType.System
-      if (appearanceSetting === AppearanceSettingType.Dark) {
-        return true
-      }
-      if (appearanceSetting === AppearanceSettingType.Light) {
-        return false
-      }
-      // System theme - check device appearance
-      return Appearance.getColorScheme() === 'dark'
-    },
   })
 
-  const processor = createBaseNotificationProcessor(tracker)
+  // Mobile emits up to 4 LOWER_LEFT_BANNER notifications from the legacy source
+  // (FundWallet, RecoveryBackup, UnitagClaim, PushNotifications). Raise the
+  // per-style cap so lower-priority banners like UnitagClaim aren't silently dropped.
+  const processor = createBaseNotificationProcessor(tracker, {
+    notificationTypeLimits: { [ContentStyle.LOWER_LEFT_BANNER]: 4 },
+  })
 
   const renderer = createMobileNotificationRenderer({
     store: mobileNotificationStore,
@@ -127,22 +115,12 @@ function provideMobileNotificationService(ctx: { getIsApiDataSourceEnabled: () =
    * Used by local triggers that need to check portfolio-based conditions.
    */
   const getPortfolioValue = async (): Promise<number> => {
-    const state = store.getState()
-    const evmAddress = selectActiveAccountAddress(state)
-
-    if (!evmAddress) {
-      return 0
-    }
-
-    const queryOpts = getPortfolioQuery({ input: { evmAddress } })
-    const portfolioData = await SharedQueryClient.fetchQuery(queryOpts)
-    return portfolioData?.portfolio?.totalValueUsd ?? 0
+    return getBackupReminderPortfolioValue(store.getState())
   }
 
   const localTriggersDataSource = createMobileLocalTriggerDataSource({
     // oxlint-disable-next-line typescript/no-unsafe-return
     getState: (): MobileState => store.getState(),
-    dispatch: store.dispatch,
     tracker,
     getPortfolioValue,
     pollIntervalMs: 5000,

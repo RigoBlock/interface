@@ -1,5 +1,5 @@
 import { TradingApi } from '@universe/api'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { finalizeTransaction, updateTransaction } from 'uniswap/src/features/transactions/slice'
 import {
   TransactionOriginType,
@@ -8,10 +8,10 @@ import {
   type UniswapXOrderDetails,
 } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { isFinalizedTx } from 'uniswap/src/features/transactions/types/utils'
-import { popupRegistry } from '~/components/Popups/registry'
-import { PopupType } from '~/components/Popups/types'
 import { useHandleUniswapXActivityUpdate } from '~/hooks/useHandleUniswapXActivityUpdate'
 import { ActivityUpdateTransactionType, type UniswapXOrderUpdate } from '~/state/activity/types'
+import { popupRegistry } from '~/state/popups/registry'
+import { PopupType } from '~/state/popups/types'
 import { mocked } from '~/test-utils/mocked'
 import { renderHook } from '~/test-utils/render'
 import { logUniswapXSwapFinalized } from '~/tracing/swapFlowLoggers'
@@ -29,9 +29,11 @@ vi.mock('@uniswap/analytics', () => ({
   useTrace: vi.fn(() => ({ trace: 'mock-trace' })),
 }))
 
-vi.mock('~/components/Popups/registry', () => ({
+vi.mock('~/state/popups/registry', () => ({
   popupRegistry: {
     addPopup: vi.fn(),
+    hasPopup: vi.fn(() => false),
+    onPopupRemoved: vi.fn(),
   },
 }))
 
@@ -280,6 +282,12 @@ describe('useHandleUniswapXActivityUpdate', () => {
           stepType: 'SwapTransaction',
         },
         transactedUSDValue: undefined,
+        rwaAnalytics: {
+          market_closed: undefined,
+          price_warning: undefined,
+          token_in_stocks: undefined,
+          token_out_stocks: undefined,
+        },
       })
     })
 
@@ -336,6 +344,12 @@ describe('useHandleUniswapXActivityUpdate', () => {
           stepType: 'SwapTransaction',
         },
         transactedUSDValue: undefined,
+        rwaAnalytics: {
+          market_closed: undefined,
+          price_warning: undefined,
+          token_in_stocks: undefined,
+          token_out_stocks: undefined,
+        },
       })
     })
 
@@ -373,6 +387,12 @@ describe('useHandleUniswapXActivityUpdate', () => {
           stepType: 'SwapTransaction',
         },
         transactedUSDValue: undefined,
+        rwaAnalytics: {
+          market_closed: undefined,
+          price_warning: undefined,
+          token_in_stocks: undefined,
+          token_out_stocks: undefined,
+        },
       })
     })
 

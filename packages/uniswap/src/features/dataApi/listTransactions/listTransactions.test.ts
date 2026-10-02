@@ -14,7 +14,7 @@ vi.mock('uniswap/src/features/chains/hooks/useEnabledChains', () => ({
 }))
 
 // Mock the REST hook with hoisted mock function
-vi.mock('uniswap/src/data/rest/listTransactions', () => ({
+vi.mock('uniswap/src/data/apiClients/dataApiService/activity/listTransactions', () => ({
   useListTransactionsQuery: mockUseListTransactionsQuery,
 }))
 
@@ -37,6 +37,7 @@ describe('useListTransactions', () => {
       fetchNextPage: vi.fn(),
       hasNextPage: false,
       isFetchingNextPage: false,
+      isFetchNextPageError: false,
     })
   })
 
@@ -51,12 +52,14 @@ describe('useListTransactions', () => {
     expect(result.current).toHaveProperty('data')
     expect(result.current).toHaveProperty('loading')
     expect(result.current).toHaveProperty('isFetching')
-    expect(result.current).toHaveProperty('networkStatus')
+    expect(result.current).toHaveProperty('isPending')
+    expect(result.current).toHaveProperty('isError')
     expect(result.current).toHaveProperty('refetch')
     expect(result.current).toHaveProperty('error')
     expect(result.current).toHaveProperty('fetchNextPage')
     expect(result.current).toHaveProperty('hasNextPage')
     expect(result.current).toHaveProperty('isFetchingNextPage')
+    expect(result.current).toHaveProperty('isFetchNextPageError', false)
 
     // Verify REST hook was called with correct parameters
     expect(mockUseListTransactionsQuery).toHaveBeenCalledWith({
@@ -70,6 +73,30 @@ describe('useListTransactions', () => {
     })
   })
 
+  it('should return whether fetching the next page failed', () => {
+    mockUseListTransactionsQuery.mockReturnValue({
+      data: { pages: [{ transactions: [] }] },
+      isLoading: false,
+      isFetching: false,
+      error: new Error('Next page failed'),
+      refetch: vi.fn(),
+      status: 'error',
+      fetchNextPage: vi.fn(),
+      hasNextPage: true,
+      isFetchingNextPage: false,
+      isFetchNextPageError: true,
+    })
+
+    const { result } = renderHookWithProviders(() =>
+      useListTransactions({
+        evmAddress: mockAddress,
+        pageSize: mockPageSize,
+      }),
+    )
+
+    expect(result.current.isFetchNextPageError).toBe(true)
+  })
+
   it('should skip REST API when address is not provided', () => {
     const { result } = renderHookWithProviders(() =>
       useListTransactions({
@@ -79,7 +106,9 @@ describe('useListTransactions', () => {
 
     expect(result.current).toHaveProperty('data')
     expect(result.current).toHaveProperty('loading')
-    expect(result.current).toHaveProperty('networkStatus')
+    expect(result.current).toHaveProperty('isFetching')
+    expect(result.current).toHaveProperty('isPending')
+    expect(result.current).toHaveProperty('isError')
     expect(result.current).toHaveProperty('refetch')
     expect(result.current).toHaveProperty('error')
 
@@ -178,6 +207,44 @@ describe('useListTransactions', () => {
         fiatOnRampParams: undefined,
       },
       enabled: true,
+    })
+  })
+
+  describe('searchText', () => {
+    const expectSearchTextSentToApi = (searchText: string | undefined, expected: string | undefined): void => {
+      renderHookWithProviders(() =>
+        useListTransactions({
+          evmAddress: mockAddress,
+          pageSize: mockPageSize,
+          searchText,
+        }),
+      )
+
+      expect(mockUseListTransactionsQuery).toHaveBeenCalledWith(
+        expect.objectContaining({
+          input: expect.objectContaining({ searchText: expected }),
+        }),
+      )
+    }
+
+    it('should send search text that the API accepts', () => {
+      expectSearchTextSentToApi('usdc', 'usdc')
+    })
+
+    it('should trim surrounding whitespace', () => {
+      expectSearchTextSentToApi('  usdc  ', 'usdc')
+    })
+
+    // The API rejects search text shorter than 2 characters, which would surface as a request error
+    it('should drop search text that is too short to be searchable', () => {
+      expectSearchTextSentToApi('a', undefined)
+      expectSearchTextSentToApi(' ', undefined)
+      expectSearchTextSentToApi('', undefined)
+    })
+
+    // The API also rejects search text longer than 64 characters
+    it('should truncate search text that exceeds the maximum length', () => {
+      expectSearchTextSentToApi('a'.repeat(100), 'a'.repeat(64))
     })
   })
 

@@ -1,7 +1,7 @@
 import '@react-native-firebase/auth'
 import type { ReactNativeFirebase } from '@react-native-firebase/app'
 import firestore, { FirebaseFirestoreTypes } from '@react-native-firebase/firestore'
-import { isBetaEnv, isDevEnv } from 'utilities/src/environment/env'
+import { isBetaEnv, isDevEnv } from '@universe/environment'
 
 const ADDRESS_DATA_COLLECTION = 'address_data'
 const DEV_ADDRESS_DATA_COLLECTION = 'dev_address_data'
@@ -22,6 +22,7 @@ export const getFirestoreUidRef = (
   firestore(firebaseApp)
     .collection(getAddressDataCollectionFromBundleId())
     .doc('address_uid_mapping')
+    // oxlint-disable-next-line universe-custom/no-tolowercase-address-currencyid -- Firestore doc paths are keyed by lowercased addresses; changing normalization would orphan existing user data
     .collection(address.toLowerCase())
     .doc('firebase')
 
@@ -37,6 +38,7 @@ export const getFirestoreMetadataRef = ({
   firestore(firebaseApp)
     .collection(getAddressDataCollectionFromBundleId())
     .doc('metadata')
+    // oxlint-disable-next-line universe-custom/no-tolowercase-address-currencyid -- Firestore doc paths are keyed by lowercased addresses; changing normalization would orphan existing user data
     .collection(address.toLowerCase())
     .doc('onesignal_uids')
     .collection(pushId)

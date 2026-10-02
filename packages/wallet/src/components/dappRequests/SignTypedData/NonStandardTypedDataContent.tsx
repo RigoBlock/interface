@@ -1,13 +1,15 @@
+import { Flex, Separator, Text } from '@universe/mycelium'
+import { Clear } from '@universe/mycelium/icons/Clear'
+import { Signature } from '@universe/mycelium/icons/Signature'
 import { useTranslation } from 'react-i18next'
-import { Flex, Separator, Text } from 'ui/src'
-import { Clear, Signature } from 'ui/src/components/icons'
 import { InlineWarningCard } from 'uniswap/src/components/InlineWarningCard/InlineWarningCard'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 
 interface NonStandardTypedDataContentProps {
   typedData: string
   checked: boolean
-  onCheckedChange: (checked: boolean) => void
+  /** Omitted when the request can't be acknowledged through, which hides the checkbox. */
+  onCheckedChange?: (checked: boolean) => void
 }
 
 /**
@@ -58,7 +60,7 @@ export function NonStandardTypedDataContent({
         severity={WarningSeverity.Medium}
         heading={t('dapp.request.signature.irregular')}
         description={t('dapp.request.signature.irregular.description')}
-        checkboxLabel={t('dapp.request.signature.irregular.understand')}
+        checkboxLabel={onCheckedChange ? t('dapp.request.signature.irregular.understand') : undefined}
         checked={checked}
         setChecked={onCheckedChange}
       />

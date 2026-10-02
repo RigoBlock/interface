@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { Fingerprint } from '@universe/mycelium/icons/Fingerprint'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useBiometricUnlockDisableMutation } from 'src/app/features/biometricUnlock/useBiometricUnlockDisableMutation'
@@ -9,7 +10,6 @@ import { BiometricAuthModal } from 'src/app/features/settings/BiometricUnlock/Bi
 import { SettingsToggleRow } from 'src/app/features/settings/components/SettingsToggleRow'
 import { EnterPasswordModal } from 'src/app/features/settings/password/EnterPasswordModal'
 import { builtInBiometricCapabilitiesQuery } from 'src/app/utils/device/builtInBiometricCapabilitiesQuery'
-import { Fingerprint } from 'ui/src/components/icons'
 import { useEvent } from 'utilities/src/react/hooks'
 
 enum ShowModal {

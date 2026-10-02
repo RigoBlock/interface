@@ -1,5 +1,5 @@
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { TradeWithStatus } from 'uniswap/src/features/transactions/swap/types/trade'
 import { BaseDerivedInfo } from 'uniswap/src/features/transactions/types/baseDerivedInfo'
@@ -28,7 +28,6 @@ export type DerivedSwapInfo<
   focusOnCurrencyField: CurrencyField | null
   trade: TradeWithStatus
   wrapType: WrapType
-  selectingCurrencyField?: CurrencyField
   txId?: string
   smartPoolAddress?: string
 }

@@ -1,9 +1,10 @@
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
+import { UniverseChainId } from '@universe/chains'
 import { DynamicConfigs, SwapConfigKey, useDynamicConfigValue } from '@universe/gating'
 import JSBI from 'jsbi'
+import { useUniswapContextSelector } from 'uniswap/src/contexts/UniswapContext'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { GENERIC_L2_GAS_CONFIG } from 'uniswap/src/features/chains/gasDefaults'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { getChainGasToken } from 'uniswap/src/features/gas/hooks/useChainGasToken'
 import { getCurrencyAmount, ValueType } from 'uniswap/src/features/tokens/getCurrencyAmount'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
@@ -17,6 +18,7 @@ const ACTUAL_GAS_FEE_BUFFER_PERCENT = 10
  * @param transactionType to determine cost of transaction
  * @param isExtraTx adds a gas buffer to cover one additional transaction
  * @param actualGasFee optional gas fee in wei from backend simulation, used instead of static reservation
+ * @param isGasCovered when gas is sponsored/paid via a paymaster, skip the reservation and return the full balance
  */
 export function useMaxAmountSpend({
   currencyAmount,
@@ -24,12 +26,14 @@ export function useMaxAmountSpend({
   isExtraTx = false,
   actualGasFee,
   isSmartPool = false,
+  isGasCovered = false,
 }: {
   currencyAmount: Maybe<CurrencyAmount<Currency>>
   txType?: TransactionType
   isExtraTx?: boolean
   actualGasFee?: string
   isSmartPool?: boolean
+  isGasCovered?: boolean
 }): Maybe<CurrencyAmount<Currency>> {
   const chainId = currencyAmount?.currency.chainId
   const gasToken = chainId !== undefined ? getChainGasToken(chainId) : undefined
@@ -40,6 +44,8 @@ export function useMaxAmountSpend({
     isSmartPool,
   })
   const multiplierAsPercent = useLowBalanceWarningGasPercentage()
+  // Wallets that pay gas via a non-native method don't need a native reservation.
+  const hasAlternateGasFees = useUniswapContextSelector((ctx) => ctx.getHasAlternateGasFees?.(chainId)) ?? false
 
   if (!currencyAmount) {
     return undefined
@@ -55,6 +61,11 @@ export function useMaxAmountSpend({
   }
 
   if (!gasToken || chainId === undefined || !currencyAmount.currency.equals(gasToken)) {
+    return currencyAmount
+  }
+
+  // Gas won't come out of the native balance — let the user spend all of it.
+  if (isGasCovered || hasAlternateGasFees) {
     return currencyAmount
   }
 

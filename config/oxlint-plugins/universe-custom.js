@@ -6,6 +6,13 @@
  * oxlint supports type-aware JS plugins.
  */
 
+import { readFileSync } from 'node:fs'
+import { dirname, join, relative, sep } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import noThrowingStubImports from './no-throwing-stub-imports.js'
+import preferUseIsMounted from './prefer-use-is-mounted.js'
+import styledFactoryLiteralClasses from './styled-factory-literal-classes.js'
+
 // ── Utilities ──────────────────────────────────────────────────────────
 
 function isHook(node) {
@@ -82,12 +89,18 @@ const noUnwrappedT = {
 
     return {
       JSXExpressionContainer(node) {
-        if (node.expression?.callee?.name !== 't') return
-        if (node.parent.type === 'JSXAttribute') return
+        if (node.expression?.callee?.name !== 't') {
+          return
+        }
+        if (node.parent.type === 'JSXAttribute') {
+          return
+        }
         reportIfBlocked({ node, childName: 't()' })
       },
       JSXIdentifier(node) {
-        if (node.name !== TRANSLATION_COMPONENT_NAME) return
+        if (node.name !== TRANSLATION_COMPONENT_NAME) {
+          return
+        }
         reportIfBlocked({ node, childName: TRANSLATION_COMPONENT_NAME })
       },
     }
@@ -123,9 +136,13 @@ const customMapSort = {
 
     return {
       NewExpression(node) {
-        if (node.callee.name !== 'Map') return
+        if (node.callee.name !== 'Map') {
+          return
+        }
         const keys = getMapKeys(node)
-        if (!Array.isArray(keys)) return
+        if (!Array.isArray(keys)) {
+          return
+        }
         const sortedKeys = [...keys].sort()
         if (keys.join(',') !== sortedKeys.join(',')) {
           context.report({
@@ -200,7 +217,9 @@ const noTransformPercentageStrings = {
     }
 
     function isPercentageTemplateLiteral(node) {
-      if (node.type !== 'TemplateLiteral') return false
+      if (node.type !== 'TemplateLiteral') {
+        return false
+      }
       const lastQuasi = node.quasis[node.quasis.length - 1]
       return lastQuasi && lastQuasi.value.raw.endsWith('%')
     }
@@ -214,13 +233,19 @@ const noTransformPercentageStrings = {
     }
 
     function getValueString(node) {
-      if (node.type === 'Literal') return String(node.value)
-      if (node.type === 'TemplateLiteral') return '<template>%'
+      if (node.type === 'Literal') {
+        return String(node.value)
+      }
+      if (node.type === 'TemplateLiteral') {
+        return '<template>%'
+      }
       return '<unknown>%'
     }
 
     function checkTransformObject(node) {
-      if (node.type !== 'ObjectExpression') return
+      if (node.type !== 'ObjectExpression') {
+        return
+      }
       for (const property of node.properties) {
         if (isTransformProperty(property)) {
           const value = property.value
@@ -236,16 +261,22 @@ const noTransformPercentageStrings = {
     }
 
     function checkTransformArray(node) {
-      if (node.type !== 'ArrayExpression') return
+      if (node.type !== 'ArrayExpression') {
+        return
+      }
       for (const element of node.elements) {
-        if (element) checkTransformObject(element)
+        if (element) {
+          checkTransformObject(element)
+        }
       }
     }
 
     function isInJSXContext(node) {
       let parent = node.parent
       while (parent) {
-        if (parent.type === 'JSXExpressionContainer') return true
+        if (parent.type === 'JSXExpressionContainer') {
+          return true
+        }
         parent = parent.parent
       }
       return false
@@ -253,7 +284,9 @@ const noTransformPercentageStrings = {
 
     return {
       Property(node) {
-        if (isInJSXContext(node)) return
+        if (isInJSXContext(node)) {
+          return
+        }
         if (node.key.type === 'Identifier' && node.key.name === 'transform' && node.value.type === 'ArrayExpression') {
           checkTransformArray(node.value)
         }
@@ -332,13 +365,21 @@ const enforceQueryOptionsResult = {
     const prohibitedTypes = new Set(['UseQueryOptions', 'UseQueryResult', 'QueryOptions'])
 
     function checkFunctionReturnType(node) {
-      if (processedFunctions.has(node)) return
+      if (processedFunctions.has(node)) {
+        return
+      }
       processedFunctions.add(node)
-      if (!node.returnType?.typeAnnotation) return
-      if (isHook(node)) return
+      if (!node.returnType?.typeAnnotation) {
+        return
+      }
+      if (isHook(node)) {
+        return
+      }
 
       const typeAnnotation = node.returnType.typeAnnotation
-      if (typeAnnotation.type !== 'TSTypeReference' || !typeAnnotation.typeName) return
+      if (typeAnnotation.type !== 'TSTypeReference' || !typeAnnotation.typeName) {
+        return
+      }
 
       const typeName =
         typeAnnotation.typeName.type === 'Identifier'
@@ -375,7 +416,9 @@ const enforceQueryOptionsResult = {
     return {
       ImportDeclaration(node) {
         const importValue = node.source?.value
-        if (!importValue) return
+        if (!importValue) {
+          return
+        }
         if (
           importValue.includes('reactQuery/queryOptions') ||
           importValue.includes('utilities/src/reactQuery') ||
@@ -395,7 +438,9 @@ const enforceQueryOptionsResult = {
       FunctionExpression: checkFunctionReturnType,
       ArrowFunctionExpression: checkFunctionReturnType,
       ExportNamedDeclaration(node) {
-        if (!node.declaration) return
+        if (!node.declaration) {
+          return
+        }
         if (node.declaration.type === 'FunctionDeclaration') {
           checkFunctionReturnType(node.declaration)
         } else if (node.declaration.type === 'VariableDeclaration') {
@@ -460,8 +505,6 @@ const noReduxModals = {
 // ── no-relative-import-paths ───────────────────────────────────────────
 // Ported from eslint-plugin-no-relative-import-paths (original lacks schema)
 
-import { join, sep, relative, dirname } from 'node:path'
-
 const noRelativeImportPaths = {
   meta: {
     type: 'layout',
@@ -484,8 +527,12 @@ const noRelativeImportPaths = {
     const prefix = context.options[0]?.prefix || ''
 
     function isParentFolder(relPath) {
-      if (!relPath.startsWith('../')) return false
-      if (rootDir === '') return true
+      if (!relPath.startsWith('../')) {
+        return false
+      }
+      if (rootDir === '') {
+        return true
+      }
       const absoluteRootPath = context.getCwd() + sep + rootDir
       const absoluteFilePath = join(dirname(context.getFilename()), relPath)
       return absoluteFilePath.startsWith(absoluteRootPath) && context.getFilename().startsWith(absoluteRootPath)
@@ -544,7 +591,9 @@ function isComponentName(name) {
 }
 
 function getFunctionName(node) {
-  if (node.id?.name) return node.id.name
+  if (node.id?.name) {
+    return node.id.name
+  }
   const parent = node.parent
   if (parent?.type === 'VariableDeclarator' && parent.id?.type === 'Identifier') {
     return parent.id.name
@@ -554,8 +603,12 @@ function getFunctionName(node) {
 
 function returnsJSX(node) {
   const body = node.body
-  if (!body) return false
-  if (body.type === 'JSXElement' || body.type === 'JSXFragment') return true
+  if (!body) {
+    return false
+  }
+  if (body.type === 'JSXElement' || body.type === 'JSXFragment') {
+    return true
+  }
   if (body.type === 'BlockStatement') {
     return containsJSXReturn(body)
   }
@@ -566,17 +619,27 @@ function containsJSXReturn(block) {
   for (const stmt of block.body) {
     if (stmt.type === 'ReturnStatement' && stmt.argument) {
       const arg = stmt.argument
-      if (arg.type === 'JSXElement' || arg.type === 'JSXFragment') return true
+      if (arg.type === 'JSXElement' || arg.type === 'JSXFragment') {
+        return true
+      }
       if (arg.type === 'ConditionalExpression') {
-        if (arg.consequent.type === 'JSXElement' || arg.alternate.type === 'JSXElement') return true
+        if (arg.consequent.type === 'JSXElement' || arg.alternate.type === 'JSXElement') {
+          return true
+        }
       }
       if (arg.type === 'LogicalExpression') {
-        if (arg.right.type === 'JSXElement') return true
+        if (arg.right.type === 'JSXElement') {
+          return true
+        }
       }
     }
     if (stmt.type === 'IfStatement') {
-      if (stmt.consequent.type === 'BlockStatement' && containsJSXReturn(stmt.consequent)) return true
-      if (stmt.alternate?.type === 'BlockStatement' && containsJSXReturn(stmt.alternate)) return true
+      if (stmt.consequent.type === 'BlockStatement' && containsJSXReturn(stmt.consequent)) {
+        return true
+      }
+      if (stmt.alternate?.type === 'BlockStatement' && containsJSXReturn(stmt.alternate)) {
+        return true
+      }
     }
   }
   return false
@@ -592,7 +655,9 @@ function isRenderPropValue(node) {
     node.parent.parent.parent?.type === 'CallExpression'
   ) {
     const callee = node.parent.parent.parent.callee
-    if (callee?.property?.name === 'createElement') return true
+    if (callee?.property?.name === 'createElement') {
+      return true
+    }
   }
   return false
 }
@@ -628,11 +693,17 @@ const noNestedComponentDefinitions = {
       // Only flag named functions with uppercase component names.
       // Anonymous arrows in .map(), useCallback, useMemo etc. are
       // render callbacks, not component definitions.
-      if (!name || !isComponentName(name)) return
-      if (!returnsJSX(node)) return
+      if (!name || !isComponentName(name)) {
+        return
+      }
+      if (!returnsJSX(node)) {
+        return
+      }
 
       const parentComponent = findParentComponent(node)
-      if (!parentComponent) return
+      if (!parentComponent) {
+        return
+      }
 
       context.report({ node: node.id || node, messageId: 'nested', data: { name } })
     }
@@ -676,20 +747,30 @@ const jsxPropOrder = {
     const callbackRe = new RegExp(options.callbackPattern || '^on[A-Z].+')
 
     function getGroup(attr) {
-      if (attr.type === 'JSXSpreadAttribute') return null // skip spreads — can't know their group
+      if (attr.type === 'JSXSpreadAttribute') {
+        return null
+      } // skip spreads — can't know their group
       const name =
-        attr.name?.type === 'JSXNamespacedName'
-          ? `${attr.name.namespace.name}:${attr.name.name.name}`
-          : attr.name?.name
-      if (!name) return 'unknown'
-      if (reservedRe.test(name)) return 'reserved'
-      if (callbackRe.test(name)) return 'callback'
-      if (attr.value === null) return 'shorthand-prop'
+        attr.name?.type === 'JSXNamespacedName' ? `${attr.name.namespace.name}:${attr.name.name.name}` : attr.name?.name
+      if (!name) {
+        return 'unknown'
+      }
+      if (reservedRe.test(name)) {
+        return 'reserved'
+      }
+      if (callbackRe.test(name)) {
+        return 'callback'
+      }
+      if (attr.value === null) {
+        return 'shorthand-prop'
+      }
       return 'unknown'
     }
 
     function getAttrName(attr) {
-      if (attr.type === 'JSXSpreadAttribute') return '{...spread}'
+      if (attr.type === 'JSXSpreadAttribute') {
+        return '{...spread}'
+      }
       if (attr.name?.type === 'JSXNamespacedName') {
         return `${attr.name.namespace.name}:${attr.name.name.name}`
       }
@@ -699,7 +780,9 @@ const jsxPropOrder = {
     return {
       JSXOpeningElement(node) {
         const attrs = node.attributes
-        if (attrs.length < 2) return
+        if (attrs.length < 2) {
+          return
+        }
 
         let maxGroupIndex = -1
         let maxGroupName = ''
@@ -708,7 +791,9 @@ const jsxPropOrder = {
         for (const attr of attrs) {
           const group = getGroup(attr)
           const groupIndex = groups.indexOf(group)
-          if (groupIndex === -1) continue
+          if (groupIndex === -1) {
+            continue
+          }
 
           if (groupIndex < maxGroupIndex) {
             context.report({
@@ -754,11 +839,7 @@ const enumMemberNaming = {
     return {
       TSEnumMember(node) {
         const name =
-          node.id.type === 'Identifier'
-            ? node.id.name
-            : node.id.type === 'Literal'
-              ? String(node.id.value)
-              : null
+          node.id.type === 'Identifier' ? node.id.name : node.id.type === 'Literal' ? String(node.id.value) : null
         if (name && !PASCAL_CASE_RE.test(name)) {
           context.report({ node: node.id, messageId: 'notPascalCase', data: { name } })
         }
@@ -798,7 +879,7 @@ const noToLowerCaseAddressCurrencyId = {
     schema: [],
     messages: {
       noToLowerCaseAddress:
-        'Do not use .toLowerCase() on addresses. Use areAddressesEqual() or normalizeTokenAddressForCache() from packages/uniswap instead.',
+        'Do not use .toLowerCase() on addresses. Use areAddressesEqual(), normalizeAddress, or normalizeTokenAddressForCache() from @universe/chains instead.',
       noToLowerCaseCurrencyId:
         'Do not use .toLowerCase() on currencyIds. Use areCurrencyIdsEqual() or normalizeCurrencyIdForMapLookup() from packages/uniswap instead.',
     },
@@ -808,13 +889,347 @@ const noToLowerCaseAddressCurrencyId = {
       'CallExpression[callee.property.name="toLowerCase"][arguments.length=0]'(node) {
         const objectNode = node.callee.object
         const variableName = getVariableName(objectNode)
-        if (!variableName) return
+        if (!variableName) {
+          return
+        }
 
         if (CURRENCY_NAME_RE.test(variableName)) {
           context.report({ node, messageId: 'noToLowerCaseCurrencyId' })
         } else if (ADDRESS_NAME_RE.test(variableName)) {
           context.report({ node, messageId: 'noToLowerCaseAddress' })
         }
+      },
+    }
+  },
+}
+
+// ── no-platform-gate-in-chain-flags ──────────────────────────────────
+// Platform restrictions belong in chain metadata (supportedApps), not feature flags.
+
+const CHAIN_FLAGS_FILE = 'useFeatureFlaggedChainIds.ts'
+const PLATFORM_GATE_IMPORTS = new Set(['isWebApp', 'isMobileApp', 'isExtensionApp'])
+
+const noPlatformGateInChainFlags = {
+  meta: {
+    type: 'problem',
+    docs: {
+      description:
+        'Disallow platform booleans in useFeatureFlaggedChainIds — gate chains by app using supportedApps on chain info.',
+    },
+    schema: [],
+    messages: {
+      noPlatformGate:
+        'Do not use {{name}} as a chain gate in useFeatureFlaggedChainIds. Set supportedApps on the chain info instead.',
+    },
+  },
+  create(context) {
+    const filename = (context.filename ?? context.getFilename?.() ?? '').split(/[/\\]/).join('/')
+    if (!filename.endsWith(CHAIN_FLAGS_FILE)) {
+      return {}
+    }
+
+    return {
+      ImportDeclaration(node) {
+        if (node.source?.value !== '@universe/environment') {
+          return
+        }
+        for (const specifier of node.specifiers) {
+          if (specifier.type !== 'ImportSpecifier' || specifier.imported.type !== 'Identifier') {
+            continue
+          }
+          const name = specifier.imported.name
+          if (PLATFORM_GATE_IMPORTS.has(name)) {
+            context.report({ node: specifier, messageId: 'noPlatformGate', data: { name } })
+          }
+        }
+      },
+    }
+  },
+}
+
+// ── import-boundary (JSON) ─────────────────────────────────────────────
+// Modes:
+//   importerAllowlist — only paths matching allowedImporterPathMarkers may import
+//     modules matching importPrefixes; imports from within importerInternalPathMarkers are always allowed.
+//   importerDenylist — if a module matches importPrefixes and the importer path matches
+//     deniedImporterPathMarkers, the import is forbidden (no allowlist).
+// A path marker is a substring, or an array of substrings that must ALL be present
+// (e.g. ["/features/transactions/swap/", "/views/"] marks views/ dirs inside the swap tree only).
+
+const __importBoundaryDir = dirname(fileURLToPath(import.meta.url))
+
+function getPhysicalFilenameForBoundary(context) {
+  const fn = context.filename ?? context.getFilename?.()
+  if (typeof fn !== 'string' || fn === '<input>' || fn === '<text>') {
+    return ''
+  }
+  return fn.split('\\').join('/')
+}
+
+function physicalPathHasMarker(physicalPath, markers) {
+  return markers.some((m) =>
+    Array.isArray(m) ? m.every((part) => physicalPath.includes(part)) : physicalPath.includes(m),
+  )
+}
+
+function validatePathMarkers(id, key, markers) {
+  const isValidMarker = (m) =>
+    Array.isArray(m)
+      ? m.length > 0 && m.every((part) => typeof part === 'string' && part.length > 0)
+      : typeof m === 'string' && m.length > 0
+  if (!Array.isArray(markers) || !markers.every(isValidMarker)) {
+    throw new Error(
+      `import-boundaries.json: boundary "${id}": every "${key}" entry must be a non-empty string or a non-empty array of non-empty strings (array = all substrings must match)`,
+    )
+  }
+}
+
+function moduleImportSuffixForBoundary(source, boundary) {
+  if (typeof source !== 'string') {
+    return null
+  }
+  for (const prefix of boundary.importPrefixes) {
+    if (source.startsWith(prefix)) {
+      return source.slice(prefix.length)
+    }
+  }
+  if (boundary.bareModuleSources.includes(source)) {
+    return ''
+  }
+  return null
+}
+
+function loadImportBoundaries() {
+  const configPath = join(__importBoundaryDir, 'import-boundaries.json')
+  const raw = readFileSync(configPath, 'utf8')
+  const { boundaries } = JSON.parse(raw)
+  if (!Array.isArray(boundaries) || boundaries.length === 0) {
+    throw new Error(`import-boundaries.json must define a non-empty "boundaries" array (${configPath})`)
+  }
+  return boundaries.map((b, i) => {
+    const id = b.id ?? `boundary[${i}]`
+    const mode = b.mode ?? 'importerAllowlist'
+    if (mode !== 'importerAllowlist' && mode !== 'importerDenylist') {
+      throw new Error(
+        `import-boundaries.json: boundary "${id}" has unknown "mode" "${mode}" (use "importerAllowlist" or "importerDenylist")`,
+      )
+    }
+    if (typeof b.message !== 'string' || !b.message.trim()) {
+      throw new Error(`import-boundaries.json: boundary "${id}" needs a non-empty "message" string`)
+    }
+    if (!Array.isArray(b.importPrefixes) || b.importPrefixes.length === 0) {
+      throw new Error(`import-boundaries.json: boundary "${id}" needs a non-empty "importPrefixes"`)
+    }
+    if (!Array.isArray(b.bareModuleSources)) {
+      throw new Error(`import-boundaries.json: boundary "${id}" must set "bareModuleSources" (array, may be empty)`)
+    }
+
+    if (mode === 'importerDenylist') {
+      if (!Array.isArray(b.deniedImporterPathMarkers) || b.deniedImporterPathMarkers.length === 0) {
+        throw new Error(
+          `import-boundaries.json: boundary "${id}" (importerDenylist) needs non-empty "deniedImporterPathMarkers"`,
+        )
+      }
+      validatePathMarkers(id, 'deniedImporterPathMarkers', b.deniedImporterPathMarkers)
+      return {
+        id,
+        mode,
+        message: b.message,
+        deniedImporterPathMarkers: b.deniedImporterPathMarkers,
+        importPrefixes: b.importPrefixes,
+        bareModuleSources: b.bareModuleSources,
+      }
+    }
+
+    for (const key of ['importerInternalPathMarkers', 'allowedImporterPathMarkers']) {
+      if (b[key] == null || (Array.isArray(b[key]) && b[key].length === 0)) {
+        throw new Error(`import-boundaries.json: boundary "${id}" needs a non-empty "${key}"`)
+      }
+      validatePathMarkers(id, key, b[key])
+    }
+    return {
+      id,
+      mode,
+      message: b.message,
+      importerInternalPathMarkers: b.importerInternalPathMarkers,
+      allowedImporterPathMarkers: b.allowedImporterPathMarkers,
+      importPrefixes: b.importPrefixes,
+      bareModuleSources: b.bareModuleSources,
+    }
+  })
+}
+
+const importBoundaryBoundaries = loadImportBoundaries()
+
+const importBoundary = {
+  meta: {
+    type: 'problem',
+    docs: {
+      description: 'Enforce import boundaries from config/oxlint-plugins/import-boundaries.json.',
+    },
+    schema: [],
+    messages: {},
+  },
+  create(context) {
+    const physicalPath = getPhysicalFilenameForBoundary(context)
+
+    function reportIfDisallowedImport(node, sourceValue) {
+      if (sourceValue === undefined || sourceValue === null) {
+        return
+      }
+      for (const boundary of importBoundaryBoundaries) {
+        const suffix = moduleImportSuffixForBoundary(sourceValue, boundary)
+        if (suffix === null) {
+          continue
+        }
+        if (boundary.mode === 'importerDenylist') {
+          if (physicalPathHasMarker(physicalPath, boundary.deniedImporterPathMarkers)) {
+            context.report({ node, message: boundary.message })
+          }
+          continue
+        }
+        // importerAllowlist: imports of this feature are only allowed from internal + allowlisted paths.
+        if (physicalPathHasMarker(physicalPath, boundary.importerInternalPathMarkers)) {
+          continue
+        }
+        if (physicalPathHasMarker(physicalPath, boundary.allowedImporterPathMarkers)) {
+          return
+        }
+        context.report({ node, message: boundary.message })
+        return
+      }
+    }
+
+    return {
+      ImportDeclaration(node) {
+        reportIfDisallowedImport(node, node.source?.value)
+      },
+      ImportExpression(node) {
+        if (node.source?.type !== 'Literal' || typeof node.source.value !== 'string') {
+          return
+        }
+        reportIfDisallowedImport(node.source, node.source.value)
+      },
+    }
+  },
+}
+
+// ── no-direct-viem-ethers-import ───────────────────────────────────────
+// Routes viem/ethers/@ethersproject consumers through `@universe/chains`.
+// Allowlist below names every file that imports these directly today.
+// It's ok to update the allowlist if you're unable to use chains.
+
+const DIRECT_VIEM_ETHERS_IMPORT_ALLOWLIST = new Set([
+  'apps/web/src/connection/bundlerClient.ts',
+  'apps/web/src/connection/EmbeddedWalletConnector.ts',
+  'apps/web/src/connection/EmbeddedWalletProvider.ts',
+  'apps/web/src/connection/sendCalls.ts',
+  'apps/web/src/connection/userOpSigning.ts',
+  'apps/web/src/connection/rejectableConnector.ts',
+  'apps/web/src/connection/wagmiConfig.ts',
+  'apps/web/src/constants/providers.ts',
+  'apps/web/src/features/accounts/store/updater.tsx',
+  'apps/web/src/features/Swap/hooks/useSendCallback.ts',
+  'apps/web/src/pages/Swap/Send/state/hooks.tsx',
+  'apps/web/src/features/Toucan/Auction/BidForm/BidReviewModal/useBidPermit2Flow.ts',
+  'apps/web/src/hooks/useContract.ts',
+  'apps/web/src/hooks/useEthersProvider.ts',
+  'apps/web/src/hooks/useEthersSigner.ts',
+  'apps/web/src/hooks/useSelectChain.ts',
+  'apps/web/src/hooks/useTransactionGasFee.ts',
+  'apps/web/src/hooks/useUniswapXSwapCallback.ts',
+  'apps/web/src/lib/utils/resolveENSContentHash.ts',
+  'apps/web/src/pages/PoolDetails/Pools/hooks/useContractMultichain.tsx',
+  'apps/web/src/pages/PoolDetails/Pools/hooks/useMultiChainPositions.tsx',
+  'apps/web/src/playwright/anvil/anvil-manager.ts',
+  'apps/web/src/playwright/anvil/utils.ts',
+  'apps/web/src/playwright/fixtures/anvil.ts',
+  'apps/web/src/rpc/AppJsonRpcProvider.ts',
+  'apps/web/src/rpc/ConfiguredJsonRpcProvider.ts',
+  'apps/web/src/state/activity/polling/batch.ts',
+  'apps/web/src/features/claim/hooks.ts',
+  'apps/web/src/state/routing/types.ts',
+  'apps/web/src/state/routing/utils.ts',
+  'apps/web/src/state/sagas/transactions/5792.ts',
+  'apps/web/src/state/sagas/transactions/cancelOrderSaga.ts',
+  'apps/web/src/state/sagas/transactions/cancelPlanStepSaga.ts',
+  'apps/web/src/state/sagas/transactions/utils.ts',
+  'apps/web/src/state/transactions/hooks.tsx',
+  'apps/web/src/state/transactions/types.ts',
+  'apps/web/src/utils/transfer.ts',
+  'apps/web/src/utils/walletMeta.ts',
+])
+
+/**
+ * Checks if an import is directly viem/ethers.
+ * Matching what we consider to be a banned source.
+ */
+function isDirectViemEthersSource(source) {
+  if (typeof source !== 'string') {
+    return false
+  }
+  return (
+    source === 'viem' ||
+    source.startsWith('viem/') ||
+    source === 'ethers' ||
+    source.startsWith('ethers/') ||
+    source.startsWith('@ethersproject/')
+  )
+}
+
+/**
+ * Checks if a path is in the direct viem/ethers allow
+ * list. We only allow what's currently existing.
+ */
+function isDirectViemEthersAllowlisted(physicalPath) {
+  for (const allowed of DIRECT_VIEM_ETHERS_IMPORT_ALLOWLIST) {
+    if (physicalPath === allowed || physicalPath.endsWith('/' + allowed)) {
+      return true
+    }
+  }
+  return false
+}
+
+// TODO: Replace this custom rule with `no-restricted-imports`
+// when most of the remaining exceptions have been migrated.
+// We can use that rule w/ single-line disabling comments.
+const noDirectViemEthersImport = {
+  meta: {
+    type: 'problem',
+    docs: { description: 'Disallow direct viem/ethers imports; route through @universe/chains.' },
+    schema: [],
+    messages: {},
+  },
+  create(context) {
+    const fn = context.filename ?? context.getFilename?.()
+    if (typeof fn !== 'string' || fn === '<input>' || fn === '<text>') {
+      return {}
+    }
+    const physicalPath = fn.split('\\').join('/')
+    if (isDirectViemEthersAllowlisted(physicalPath)) {
+      return {}
+    }
+    function reportIfDirect(node, source) {
+      if (isDirectViemEthersSource(source)) {
+        context.report({
+          node,
+          message: [
+            'Import from `@universe/chains` instead, not viem/ethers directly.',
+            "If what you need isn't there, update the allowlist in `universe-custom.js`.",
+            'Entries in `DIRECT_VIEM_ETHERS_IMPORT_ALLOWLIST` are exempt.',
+          ].join(' '),
+        })
+      }
+    }
+    return {
+      ImportDeclaration(node) {
+        reportIfDirect(node, node.source?.value)
+      },
+      ImportExpression(node) {
+        if (node.source?.type !== 'Literal' || typeof node.source.value !== 'string') {
+          return
+        }
+        reportIfDirect(node.source, node.source.value)
       },
     }
   },
@@ -832,10 +1247,16 @@ const plugin = {
     'enforce-query-options-result': enforceQueryOptionsResult,
     'no-redux-modals': noReduxModals,
     'no-relative-import-paths': noRelativeImportPaths,
+    'import-boundary': importBoundary,
+    'no-direct-viem-ethers-import': noDirectViemEthersImport,
     'no-nested-component-definitions': noNestedComponentDefinitions,
     'jsx-prop-order': jsxPropOrder,
     'enum-member-naming': enumMemberNaming,
     'no-tolowercase-address-currencyid': noToLowerCaseAddressCurrencyId,
+    'no-platform-gate-in-chain-flags': noPlatformGateInChainFlags,
+    'no-throwing-stub-imports': noThrowingStubImports,
+    'styled-factory-literal-classes': styledFactoryLiteralClasses,
+    'prefer-use-is-mounted': preferUseIsMounted,
   },
 }
 

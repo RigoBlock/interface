@@ -1,4 +1,5 @@
-import { UniswapState } from 'uniswap/src/state/uniswapReducer'
+import { AddressStringFormat, normalizeAddress } from '@universe/chains'
+import type { UniswapState } from 'uniswap/src/state/uniswapReducer'
 
 export const selectHasViewedBridgingBanner = (state: UniswapState): boolean =>
   state.uniswapBehaviorHistory.hasViewedBridgingBanner === true
@@ -21,10 +22,22 @@ export const selectHasSeenToucanIntroModal = (state: UniswapState): boolean =>
 
 /** Returns true if user has seen the modal for a specific wallet */
 export const selectHasSeenToucanIntroModalForWallet = (state: UniswapState, walletAddress: string): boolean =>
-  state.uniswapBehaviorHistory.toucanIntroModalSeenByWallet?.[walletAddress.toLowerCase()] === true
-
-export const selectHasDismissedUniswapWrapped2025Banner = (state: UniswapState): boolean =>
-  state.uniswapBehaviorHistory.hasDismissedUniswapWrapped2025Banner === true
+  state.uniswapBehaviorHistory.toucanIntroModalSeenByWallet?.[
+    normalizeAddress(walletAddress, AddressStringFormat.Lowercase)
+  ] === true
 
 export const selectHasDismissedCrosschainSwapsPromoBanner = (state: UniswapState): boolean =>
   state.uniswapBehaviorHistory.hasDismissedCrosschainSwapsPromoBanner === true
+
+/** Tri-state: `undefined` = fresh state awaiting startup init, `false` = eligible, `true` = never show. */
+export const selectPoolsBalanceCoachmarkDismissed = (state: UniswapState): boolean | undefined =>
+  state.uniswapBehaviorHistory.hasDismissedPoolsBalanceCoachmark
+
+export const selectHasDismissedExploreEarnCoachmark = (state: UniswapState): boolean =>
+  state.uniswapBehaviorHistory.hasDismissedExploreEarnCoachmark === true
+
+export const selectHasDismissedPoolsOutageBanner = (state: UniswapState): boolean =>
+  state.uniswapBehaviorHistory.hasDismissedPoolsOutageBanner === true
+
+export const selectHasAcknowledgedEarnHowItWorks = (state: UniswapState): boolean =>
+  Object.keys(state.uniswapBehaviorHistory.earnHowItWorksAcknowledgedByVaultId ?? {}).length > 0

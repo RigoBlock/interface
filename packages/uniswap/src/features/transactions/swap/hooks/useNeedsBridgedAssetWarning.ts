@@ -1,10 +1,10 @@
+import { isWebApp } from '@universe/environment'
 import { useMemo } from 'react'
 import { TradeableAsset } from 'uniswap/src/entities/assets'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { useDismissedBridgedAssetWarnings } from 'uniswap/src/features/tokens/warnings/slice/hooks'
 import { DerivedSwapInfo } from 'uniswap/src/features/transactions/swap/types/derivedSwapInfo'
-import { currencyId } from 'uniswap/src/utils/currencyId'
-import { isWebApp } from 'utilities/src/platform'
+import { areCurrencyIdsEqual, currencyId } from 'uniswap/src/utils/currencyId'
 
 export function useNeedsBridgedAssetWarning(
   derivedSwapInfo: DerivedSwapInfo,
@@ -31,10 +31,10 @@ export function useNeedsBridgedAssetWarning(
     const outputCurrencyId = outputCurrencyInfo && currencyId(outputCurrencyInfo.currency)
     const isInputPrefilled =
       inputCurrencyId &&
-      prefilledCurrencies?.some((currency) => currencyId(currency).toLowerCase() === inputCurrencyId.toLowerCase())
+      prefilledCurrencies?.some((currency) => areCurrencyIdsEqual(currencyId(currency), inputCurrencyId))
     const isOutputPrefilled =
       outputCurrencyId &&
-      prefilledCurrencies?.some((currency) => currencyId(currency).toLowerCase() === outputCurrencyId.toLowerCase())
+      prefilledCurrencies?.some((currency) => areCurrencyIdsEqual(currencyId(currency), outputCurrencyId))
 
     if (inputCurrencyInfo && !inputTokenWarningPreviouslyDismissed && isInputPrefilled && inputCurrencyInfo.isBridged) {
       tokens.push(inputCurrencyInfo)

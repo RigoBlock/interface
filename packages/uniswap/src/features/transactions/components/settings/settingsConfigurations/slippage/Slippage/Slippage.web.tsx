@@ -1,5 +1,5 @@
 import { TradingApi } from '@universe/api'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
+import { Platform } from '@universe/chains'
 import { SlippageControl } from 'uniswap/src/features/transactions/components/settings/settingsConfigurations/slippage/SlippageControl/SlippageControl.web'
 import { SlippageWarning } from 'uniswap/src/features/transactions/components/settings/settingsConfigurations/slippage/SlippageWarning'
 import {

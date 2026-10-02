@@ -1,8 +1,8 @@
+import { heights } from '@universe/mycelium'
 import { useSyncExternalStore } from 'react'
-import { INTERFACE_NAV_HEIGHT } from 'ui/src/theme/heights'
 
 // Singleton to share observation across all consumers
-let headerHeight = INTERFACE_NAV_HEIGHT
+let headerHeight: number = heights['interface-nav']
 const listeners: Set<() => void> = new Set()
 let resizeObserver: ResizeObserver | null = null
 

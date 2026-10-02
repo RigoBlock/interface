@@ -1,3 +1,5 @@
+import type { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
+import { multichainChainTokenRowSuffix } from 'uniswap/src/features/portfolio/balances/flattenMultichainToSingleChainRows'
 import { CurrencyId } from 'uniswap/src/types/currency'
 
 export const HIDDEN_TOKEN_BALANCES_ROW = 'HIDDEN_TOKEN_BALANCES_ROW' as const
@@ -14,18 +16,24 @@ export function isChainRowId(row: string): boolean {
 
 /**
  * Parses `makeChainRowId` strings. Uses the last `:` as delimiter so `currencyId`
- * (e.g. `1-0x…`) may contain hyphens but must not contain `:`.
+ * (e.g. `1-0x…`) may contain hyphens but must not contain `:`. `chainCurrencyId`
+ * is the per-chain currency id (`<chainId>-<address>`), used to disambiguate
+ * same-chain balances under one multichain parent (e.g. bridged USDC.e + native
+ * USDC on OP Mainnet).
  */
-export function parseChainRowId(row: string): { currencyId: CurrencyId; chainId: number } {
+export function parseChainRowId(row: string): { currencyId: CurrencyId; chainCurrencyId: string } {
   const rest = row.slice(CHAIN_ROW_PREFIX.length)
   const lastColon = rest.lastIndexOf(':')
   const currencyId = rest.slice(0, lastColon) as CurrencyId
-  const chainId = Number.parseInt(rest.slice(lastColon + 1), 10)
-  return { currencyId, chainId }
+  const chainCurrencyId = rest.slice(lastColon + 1)
+  return { currencyId, chainCurrencyId }
 }
 
-export function makeChainRowId(currencyId: CurrencyId, chainId: number): string {
-  return `${CHAIN_ROW_PREFIX}${currencyId}:${chainId}`
+export function makeChainRowId(
+  currencyId: CurrencyId,
+  chainToken: { chainId: number; currencyInfo: CurrencyInfo },
+): string {
+  return `${CHAIN_ROW_PREFIX}${currencyId}:${multichainChainTokenRowSuffix(chainToken)}`
 }
 
 export type TokenBalanceListRow = CurrencyId | typeof HIDDEN_TOKEN_BALANCES_ROW

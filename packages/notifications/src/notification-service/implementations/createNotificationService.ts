@@ -1,4 +1,4 @@
-import { type InAppNotification, OnClickAction } from '@universe/api'
+import { type InAppNotification, OnClickAction, parseNotificationExtra } from '@universe/api'
 import {
   type NotificationClickTarget,
   type NotificationService,
@@ -66,18 +66,24 @@ export function createNotificationService(config: NotificationServiceConfig): No
 
     const newIds = new Set(result.primary.map((n) => n.id))
 
-    // Clean up stale renders from this source
+    // Build next render set — keep existing renders, including notifications that must remain
+    // visible until an explicit interaction, and add new ones.
     const prev = renderedBySource.get(source) ?? new Map<string, () => void>()
+    const next = new Map<string, () => void>()
     for (const [id, cleanup] of prev) {
       if (!newIds.has(id)) {
+        const activeNotification = activeNotifications.get(id)
+        if (activeNotification && shouldPersistUntilInteraction(activeNotification)) {
+          next.set(id, cleanup)
+          continue
+        }
+
         cleanup()
         activeNotifications.delete(id)
         shownNotifications.delete(id)
       }
     }
 
-    // Build next render set — keep existing renders, add new ones
-    const next = new Map<string, () => void>()
     for (const notification of result.primary) {
       const existingCleanup = prev.get(notification.id)
       if (existingCleanup) {
@@ -369,7 +375,7 @@ export function createNotificationService(config: NotificationServiceConfig): No
     },
 
     async refresh(): Promise<void> {
-      await Promise.all(dataSources.map((dataSource) => dataSource.refresh?.()))
+      await Promise.all(dataSources.map((dataSource) => dataSource.refresh?.() ?? Promise.resolve()))
     },
 
     destroy(): void {
@@ -406,4 +412,8 @@ export function createNotificationService(config: NotificationServiceConfig): No
       // to prevent duplicate telemetry events.
     },
   }
+}
+
+function shouldPersistUntilInteraction(notification: InAppNotification): boolean {
+  return parseNotificationExtra(notification.content?.extra)?.persistUntilInteraction === true
 }

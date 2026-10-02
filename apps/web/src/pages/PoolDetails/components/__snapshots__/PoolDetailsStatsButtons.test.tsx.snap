@@ -2,90 +2,60 @@
 
 exports[`PoolDetailsStatsButton > loading skeleton shown correctly 1`] = `
 <DocumentFragment>
-  <span
-    class=""
-    style="display: contents;"
+  <div
+    class="flex items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row justify-between mb-[12px]"
+    data-testid="pdp-buttons-loading-skeleton"
   >
     <div
-      class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-row _justifyContent-space-betwe3241 _mb-t-space-spa1360334080"
-      data-testid="pdp-buttons-loading-skeleton"
+      class="flex items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row w-[var(--c-w)]"
+      style="--c-w: 50%; animation-name: shine; animation-duration: 1s; animation-timing-function: linear; animation-iteration-count: infinite;"
     >
-      <style>
-        
-  @keyframes shine {
-    from {
-      -webkit-mask-position: 150%;
-    }
-    to {
-      -webkit-mask-position: -50%;
-    }
-  }
-
-      </style>
       <div
-        class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-row _width-5037"
-        style="animation-name: shine; animation-duration: 1s; animation-timing-function: linear; animation-iteration-count: infinite;"
-      >
-        <div
-          class="_background-_platformweb_linear-grad2073760604 _display-flex _alignItems-stretch _flexDirection-column _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _borderTopLeftRadius-t-radius-ro291586453 _borderTopRightRadius-t-radius-ro291586453 _borderBottomRightRadius-t-radius-ro291586453 _borderBottomLeftRadius-t-radius-ro291586453 _height-t-size-spac100347300 _width-9537"
-        />
-      </div>
-      <span
-        class="is_Spacer _display-flex _alignItems-stretch _flexDirection-column _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-t-space-spa94665591 _minWidth-t-space-spa94665591 _flexShrink-0 _pointerEvents-none _width-t-space-spa94665591 _height-t-space-spa94665591"
+        class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 w-[var(--c-w)] h-[24px] rounded-[12px] [background:var(--c-b)]"
+        style="--c-w: 95%; --c-b: linear-gradient(to left, rgba(19, 19, 19, 0.08) 25%, rgba(38,38,38,0.08) 50%, rgba(19, 19, 19, 0.08) 75%);"
       />
-      <style>
-        
-  @keyframes shine {
-    from {
-      -webkit-mask-position: 150%;
-    }
-    to {
-      -webkit-mask-position: -50%;
-    }
-  }
-
-      </style>
-      <div
-        class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-row _width-5037"
-        style="animation-name: shine; animation-duration: 1s; animation-timing-function: linear; animation-iteration-count: infinite;"
-      >
-        <div
-          class="_background-_platformweb_linear-grad2073760604 _display-flex _alignItems-stretch _flexDirection-column _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _borderTopLeftRadius-t-radius-ro291586453 _borderTopRightRadius-t-radius-ro291586453 _borderBottomRightRadius-t-radius-ro291586453 _borderBottomLeftRadius-t-radius-ro291586453 _height-t-size-spac100347300 _width-9537"
-        />
-      </div>
     </div>
-    <div
-      style="display: contents;"
+    <span
+      class="flex flex-col items-stretch basis-auto box-border relative shrink-0 w-[6px] h-[6px] min-w-[6px] min-h-[6px] [pointer-events:none]"
     />
-  </span>
+    <div
+      class="flex items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row w-[var(--c-w)]"
+      style="--c-w: 50%; animation-name: shine; animation-duration: 1s; animation-timing-function: linear; animation-iteration-count: infinite;"
+    >
+      <div
+        class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 w-[var(--c-w)] h-[24px] rounded-[12px] [background:var(--c-b)]"
+        style="--c-w: 95%; --c-b: linear-gradient(to left, rgba(19, 19, 19, 0.08) 25%, rgba(38,38,38,0.08) 50%, rgba(19, 19, 19, 0.08) 75%);"
+      />
+    </div>
+  </div>
 </DocumentFragment>
 `;
 
 exports[`PoolDetailsStatsButton > renders both buttons correctly 1`] = `
 <DocumentFragment>
-  <span
-    class=""
-    style="display: contents;"
+  <div
+    class="flex items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-col gap-[24px]"
   >
     <div
-      class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _gap-t-space-gap1602"
+      class="flex items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row gap-[12px] z-[var(--c-z)] media-xl:gap-[var(--cC-gap)] media-xl:p-[var(--cC-p)] media-xl:w-[var(--cC-w)] media-xl:[position:var(--cC-po)] media-xl:right-[var(--cC-right)] media-xl:bottom-[var(--cC-bottom)] media-xl:left-[var(--cC-left)] media-xl:z-[var(--cC-z)]"
+      style="--c-z: 1; --cC-gap: 8px; --cC-p: 16px; --cC-w: 100%; --cC-po: fixed; --cC-right: 0px; --cC-bottom: 0px; --cC-left: 0px; --cC-z: 1020;"
     >
       <div
-        class="_gap-_xl_t-space-gap56 _bottom-_xl_0px _left-_xl_0px _right-_xl_0px _width-_xl_10037 _pt-_xl_t-space-pad1331704925 _pr-_xl_t-space-pad1331704925 _pb-_xl_t-space-pad1331704925 _pl-_xl_t-space-pad1331704925 _zIndex-_xl_1020 _position-_xl_fixed _display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-row _gap-t-space-gap1569 _zIndex-1 _mb-t-space-spa1360334047"
+        class="flex items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row justify-center gap-[12px] w-[100%]"
       >
-        <div
-          class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-row _justifyContent-center _gap-t-space-spa1360334080 _width-10037"
+        <button
+          class="group/sbtn relative box-border flex min-h-0 min-w-0 cursor-pointer items-center justify-center border border-solid border-transparent select-none [transition:transform_100ms_cubic-bezier(0.17,0.67,0.45,1),filter_100ms_cubic-bezier(0.17,0.67,0.45,1)] active:scale-[0.98] focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-solid gap-2 rounded-16 px-4 py-3 flex-row flex-1 basis-0 self-stretch focus-visible:scale-x-[0.98] focus-visible:scale-y-[0.905] bg-accent2 hover:bg-accent2-hovered active:bg-accent2-hovered focus-visible:bg-accent2-hovered focus-visible:outline-accent1-hovered"
+          data-testid="pool-details-swap-button"
+          dd-action-name="Swap"
+          type="button"
         >
-          <button
-            class="is_Button  t_group_item"
-            data-testid="pool-details-swap-button"
-            dd-action-name="Swap"
-            style="display: flex; flex-basis: 0px; box-sizing: border-box; position: relative; min-height: 0px; min-width: 0px; flex-shrink: 1; flex-direction: row; border-top-width: 1px; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px; align-items: center; justify-content: center; cursor: pointer; height: auto; align-self: stretch; flex-grow: 1; outline-color: rgba(0, 0, 0, 0); border-top-left-radius: var(--t-radius-rounded16); border-top-right-radius: var(--t-radius-rounded16); border-bottom-right-radius: var(--t-radius-rounded16); border-bottom-left-radius: var(--t-radius-rounded16); gap: var(--t-space-spacing8); border-bottom-style: solid; border-top-style: solid; border-left-style: solid; border-right-style: solid; transform: scale(1); transition: transform 100ms cubic-bezier(0.17, 0.67, 0.45, 1);"
+          <span
+            class="inline-flex shrink-0 items-center justify-center [&_svg]:shrink-0 [&_svg]:size-[20.7px] text-accent1 group-hover/sbtn:text-accent1-hovered"
           >
             <svg
               fill="none"
               stroke-width="8"
-              style="width: 20.7px; height: 20.7px;"
+              style="width: 20.7px; height: 20.7px; color: currentColor;"
               viewBox="0 0 24 24"
             >
               <path
@@ -93,23 +63,26 @@ exports[`PoolDetailsStatsButton > renders both buttons correctly 1`] = `
                 fill="currentColor"
               />
             </svg>
-            <span
-              class="font_button _color-_groupitem-hover_accent1Hove112785 _display-inline _boxSizing-border-box _wordWrap-break-word _whiteSpace-nowrap _mt-0px _mr-0px _mb-0px _ml-0px _color-accent1 _fontFamily-f-family _maxWidth-10037 _overflowX-hidden _overflowY-hidden _textOverflow-ellipsis _textAlign-center _fontSize-f-size-medi3736 _fontWeight-f-weight-me3083741 _lineHeight-f-lineHeigh1262266530"
-              line-height-disabled="false"
-            >
-              Swap
-            </span>
-          </button>
-          <button
-            class="is_Button  t_group_item"
-            data-testid="pool-details-add-liquidity-button"
-            dd-action-name="Add liquidity"
-            style="display: flex; flex-basis: 0px; box-sizing: border-box; position: relative; min-height: 0px; min-width: 0px; flex-shrink: 1; flex-direction: row; border-top-width: 1px; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px; align-items: center; justify-content: center; cursor: pointer; height: auto; align-self: stretch; flex-grow: 1; outline-color: rgba(0, 0, 0, 0); border-top-left-radius: var(--t-radius-rounded16); border-top-right-radius: var(--t-radius-rounded16); border-bottom-right-radius: var(--t-radius-rounded16); border-bottom-left-radius: var(--t-radius-rounded16); gap: var(--t-space-spacing8); border-bottom-style: solid; border-top-style: solid; border-left-style: solid; border-right-style: solid; transform: scale(1); transition: transform 100ms cubic-bezier(0.17, 0.67, 0.45, 1);"
+          </span>
+          <span
+            class="text-center font-medium whitespace-nowrap [font-family:var(--sbtn-font-button)] [transition:color_100ms_cubic-bezier(0.17,0.67,0.45,1)] text-[16px] leading-[20.7px] text-accent1 group-hover/sbtn:text-accent1-hovered"
+          >
+            Swap
+          </span>
+        </button>
+        <button
+          class="group/sbtn relative box-border flex min-h-0 min-w-0 cursor-pointer items-center justify-center border border-solid border-transparent select-none [transition:transform_100ms_cubic-bezier(0.17,0.67,0.45,1),filter_100ms_cubic-bezier(0.17,0.67,0.45,1)] active:scale-[0.98] focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-solid gap-2 rounded-16 px-4 py-3 flex-row flex-1 basis-0 self-stretch focus-visible:scale-x-[0.98] focus-visible:scale-y-[0.905] bg-accent2 hover:bg-accent2-hovered active:bg-accent2-hovered focus-visible:bg-accent2-hovered focus-visible:outline-accent1-hovered"
+          data-testid="pool-details-add-liquidity-button"
+          dd-action-name="Add liquidity"
+          type="button"
+        >
+          <span
+            class="inline-flex shrink-0 items-center justify-center [&_svg]:shrink-0 [&_svg]:size-[20.7px] text-accent1 group-hover/sbtn:text-accent1-hovered"
           >
             <svg
               fill="none"
               stroke-width="8"
-              style="width: 20.7px; height: 20.7px;"
+              style="width: 20.7px; height: 20.7px; color: currentColor;"
               viewBox="0 0 24 24"
             >
               <path
@@ -117,43 +90,15 @@ exports[`PoolDetailsStatsButton > renders both buttons correctly 1`] = `
                 fill="currentColor"
               />
             </svg>
-            <span
-              class="font_button _color-_groupitem-hover_accent1Hove112785 _display-inline _boxSizing-border-box _wordWrap-break-word _whiteSpace-nowrap _mt-0px _mr-0px _mb-0px _ml-0px _color-accent1 _fontFamily-f-family _maxWidth-10037 _overflowX-hidden _overflowY-hidden _textOverflow-ellipsis _textAlign-center _fontSize-f-size-medi3736 _fontWeight-f-weight-me3083741 _lineHeight-f-lineHeigh1262266530"
-              line-height-disabled="false"
-            >
-              Add liquidity
-            </span>
-          </button>
-        </div>
-      </div>
-      <div>
-        <span
-          class="font_unset _display-inline _boxSizing-border-box _wordWrap-break-word _whiteSpace-pre-wrap _position-absolute _width-1px _height-1px _mt--1px _mr--1px _mb--1px _ml--1px _zIndex--10000 _overflowX-hidden _overflowY-hidden _opacity-1e-8 _pointerEvents-none"
-        >
-          <div />
-        </span>
-        <div>
-          <div />
-          <div
-            class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _flexGrow-1 _maxHeight-calc100vh-32087695319 _borderTopLeftRadius-t-radius-ro291586449 _borderTopRightRadius-t-radius-ro291586449 _borderBottomRightRadius-t-radius-ro291586449 _borderBottomLeftRadius-t-radius-ro291586449 _justifyContent-center _overflowX-hidden _overflowY-hidden"
+          </span>
+          <span
+            class="text-center font-medium whitespace-nowrap [font-family:var(--sbtn-font-button)] [transition:color_100ms_cubic-bezier(0.17,0.67,0.45,1)] text-[16px] leading-[20.7px] text-accent1 group-hover/sbtn:text-accent1-hovered"
           >
-            <div>
-              <div
-                class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _gap-t-space-gap1602"
-                data-testid="pool-details-swap-modal"
-              >
-                <div>
-                  Swap Component
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+            Add liquidity
+          </span>
+        </button>
       </div>
     </div>
-    <div
-      style="display: contents;"
-    />
-  </span>
+  </div>
 </DocumentFragment>
 `;

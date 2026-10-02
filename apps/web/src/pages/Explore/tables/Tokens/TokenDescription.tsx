@@ -1,127 +1,157 @@
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { UniverseChainId } from '@universe/chains'
+import { Flex, Text, View } from '@universe/mycelium'
+import { styled } from '@universe/mycelium/styled'
+import { TestID } from '@universe/test'
+import { useContext, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, styled, Text, View } from 'ui/src'
 import { iconSizes } from 'ui/src/theme'
+import { CopyHelper } from 'uniswap/src/components/CopyHelper/CopyHelper'
 import { TokenLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
 import { GroupHoverTransition } from 'uniswap/src/components/GroupHoverTransition'
 import { NetworkIconList } from 'uniswap/src/components/network/NetworkIconList/NetworkIconList'
 import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
+import { useResolveTokenCategories } from 'uniswap/src/data/apiClients/dataApiService/categories/useResolveTokenCategories'
+import { RWAIssuerTag } from 'uniswap/src/features/rwa/RWAIssuerTag'
+import type { RWAIssuer } from 'uniswap/src/features/rwa/types'
+import { selectTokenRowCategoryTag } from 'uniswap/src/features/tokenCategories/selectTokenRowCategoryTag'
+import { TokenCategoryTag } from 'uniswap/src/features/tokenCategories/TokenCategoryTag'
+import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
+import { buildNativeCurrencyId } from 'uniswap/src/utils/currencyId'
 import { shortenAddress } from 'utilities/src/addresses'
-import { EllipsisText, TableText } from '~/components/Table/shared/TableText'
+import { EllipsisText } from '~/components/Table/shared/TableText'
+import { TableRowHoverContext } from '~/components/Table/TableRowHoverContext'
 import { NATIVE_CHAIN_ID } from '~/constants/tokens'
-import { getChainIdFromChainUrlParam } from '~/features/params/chainParams'
-import type { TokenStat } from '~/state/explore/types'
-import { CopyHelper } from '~/theme/components/CopyHelper'
 
 const TokenDetailsContainer = styled(Flex, {
-  flex: 1,
-  minWidth: 0,
-  width: '100%',
-  variants: {
-    multichainUx: {
-      true: {
-        flexDirection: 'column',
-      },
-      false: {
-        flexDirection: 'row',
-        gap: '$gap8',
-        alignItems: 'center',
-        justifyContent: 'flex-start',
-      },
-    },
-  } as const,
+  base: 'grow-[1] shrink w-[100%] min-w-[0px]',
 })
 
 const SYMBOL_SLOT_HEIGHT = 20
 
 interface TokenDescriptionProps {
-  token: TokenStat
+  name: string
+  symbol: string
+  address: string
+  /** Undefined only for tokens on chains without a UniverseChainId (no network badge / native lookup). */
+  chainId: UniverseChainId | undefined
+  logoUrl?: string
   /** Chain IDs for this token sorted by volume (desc) for the table's time period. From multichain list data. */
   chainIdsByVolume?: UniverseChainId[]
-  /** Current explore chain filter from route (e.g. "ethereum"). Passed from table to avoid useParams in every row. */
-  chainFilter?: string | undefined
+  /** Chain the explore route is filtered to, if any. Passed from table to avoid useParams in every row. */
+  chainFilterId?: UniverseChainId | undefined
+  /** BE order; the first one not equal to `scopedCategoryId` becomes the row tag. */
+  categoryIds?: string[]
+  /** Category the hosting table is filtered to, if any; its own tag is suppressed on the row. */
+  scopedCategoryId?: string
+  /** Matched RWA issuer slug; adds the issuer tag after the name. */
+  issuer?: RWAIssuer
 }
 
-export function TokenDescription({ token, chainIdsByVolume = [], chainFilter }: TokenDescriptionProps) {
+export function TokenDescription({
+  name,
+  symbol,
+  address,
+  chainId,
+  logoUrl,
+  chainIdsByVolume = [],
+  chainFilterId,
+  categoryIds,
+  scopedCategoryId,
+  issuer,
+}: TokenDescriptionProps) {
   const { t } = useTranslation()
-  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
-  const isMultiNetworkRow = multichainTokenUxEnabled && chainIdsByVolume.length > 1
+  const rowHovered = useContext(TableRowHoverContext)
+  const { categories } = useResolveTokenCategories({ categoryIds })
+  const categoryTag = useMemo(
+    () => selectTokenRowCategoryTag({ categoryIds, categories, scopedCategoryId }),
+    [categoryIds, categories, scopedCategoryId],
+  )
+  // A chain-filtered page's row is that chain's deployment only (its address, link and stats all
+  // come from that leg), so it gets the same single-network treatment even for a multichain token.
+  const isMultiNetworkRow = chainFilterId === undefined && chainIdsByVolume.length > 1
   /** Omit chain badge on the logo when volume spans multiple networks — row uses NetworkIconList on hover instead. */
-  const logoChainId = isMultiNetworkRow ? undefined : getChainIdFromChainUrlParam(token.chain.toLowerCase())
-  const logoSize = multichainTokenUxEnabled ? iconSizes.icon32 : iconSizes.icon24
-  const disableHoverTransition =
-    chainIdsByVolume.length === 1 && (token.address === NATIVE_CHAIN_ID || token.address === ZERO_ADDRESS)
+  const logoChainId = isMultiNetworkRow ? undefined : chainId
+  const isNative = address === NATIVE_CHAIN_ID
+  const disableHoverTransition = !isMultiNetworkRow && (isNative || address === ZERO_ADDRESS)
+
+  // The project logo URL returns the WETH logo for native ETH — use useCurrencyInfo to get the correct logo
+  const nativeCurrencyInfo = useCurrencyInfo(
+    isNative && chainId !== undefined ? buildNativeCurrencyId(chainId) : undefined,
+  )
+  const resolvedLogoUrl = isNative ? nativeCurrencyInfo?.logoUrl : logoUrl
 
   return (
     <Flex row gap="$gap8" alignItems="center" justifyContent="flex-start" width="100%">
       <View pr="$spacing4">
         <TokenLogo
           chainId={logoChainId}
-          name={token.name}
-          size={logoSize}
-          symbol={token.symbol}
-          url={token.logo}
-          alwaysShowNetworkLogo={multichainTokenUxEnabled && !!chainFilter}
+          name={name}
+          size={iconSizes.icon32}
+          symbol={symbol}
+          url={resolvedLogoUrl}
+          alwaysShowNetworkLogo={chainFilterId !== undefined}
         />
       </View>
-      <TokenDetailsContainer multichainUx={multichainTokenUxEnabled}>
-        <EllipsisText variant={multichainTokenUxEnabled ? 'body2' : undefined} data-testid={TestID.TokenName}>
-          {token.name ?? token.project?.name}
-        </EllipsisText>
-        {multichainTokenUxEnabled ? (
-          <GroupHoverTransition
-            height={SYMBOL_SLOT_HEIGHT}
-            showTransition={!disableHoverTransition}
-            defaultContent={
-              <Text
-                variant="body3"
-                $platform-web={{ minWidth: 'fit-content' }}
+      <TokenDetailsContainer>
+        <Flex row alignItems="center" gap="$spacing6" minWidth={0}>
+          <EllipsisText variant="body2" flexShrink={1} minWidth={0} data-testid={TestID.TokenName}>
+            {name}
+          </EllipsisText>
+          {issuer && (
+            <Flex testID={TestID.TokenRowIssuerTag}>
+              <RWAIssuerTag issuer={issuer} />
+            </Flex>
+          )}
+          {categoryTag && (
+            <Flex testID={TestID.TokenRowCategoryTag}>
+              <TokenCategoryTag category={categoryTag} />
+            </Flex>
+          )}
+        </Flex>
+        <GroupHoverTransition
+          height={SYMBOL_SLOT_HEIGHT}
+          showTransition={!disableHoverTransition}
+          isHovered={rowHovered}
+          defaultContent={
+            <Text
+              variant="body3"
+              $platform-web={{ minWidth: 'fit-content' }}
+              color="$neutral2"
+              height={SYMBOL_SLOT_HEIGHT}
+              width="100%"
+            >
+              {symbol}
+            </Text>
+          }
+          hoverContent={
+            isMultiNetworkRow ? (
+              <Flex row height={SYMBOL_SLOT_HEIGHT} alignItems="center" gap="$gap8" minWidth="100%">
+                <Text variant="body3" color="$neutral2" numberOfLines={1}>
+                  {t('explore.tokens.table.networks', { count: chainIdsByVolume.length })}
+                </Text>
+                <NetworkIconList chainIds={chainIdsByVolume} size={12} />
+              </Flex>
+            ) : (
+              <CopyHelper
+                toCopy={address}
+                iconPosition="right"
+                iconSize={iconSizes.icon12}
+                iconColor="$neutral2"
                 color="$neutral2"
-                height={SYMBOL_SLOT_HEIGHT}
-                width="100%"
+                alwaysShowIcon
               >
-                {token.symbol}
-              </Text>
-            }
-            hoverContent={
-              chainIdsByVolume.length > 1 ? (
-                <Flex row height={SYMBOL_SLOT_HEIGHT} alignItems="center" gap="$gap8" minWidth="100%">
-                  <Text variant="body3" color="$neutral2" numberOfLines={1}>
-                    {t('explore.tokens.table.networks', { count: chainIdsByVolume.length })}
-                  </Text>
-                  <NetworkIconList chainIds={chainIdsByVolume} size={12} />
-                </Flex>
-              ) : (
-                <CopyHelper
-                  toCopy={token.address}
-                  iconPosition="right"
-                  iconSize={iconSizes.icon12}
-                  iconColor="$neutral2"
-                  color="$neutral2"
-                  alwaysShowIcon
-                >
-                  <Text variant="body3" color="$neutral2">
-                    {shortenAddress({ address: token.address, chars: 4, charsEnd: 4 })}
-                  </Text>
-                </CopyHelper>
-              )
-            }
-          />
-        ) : (
-          <TableText $platform-web={{ minWidth: 'fit-content' }} $lg={{ display: 'none' }} color="$neutral2">
-            {token.symbol}
-          </TableText>
-        )}
+                <Text variant="body3" color="$neutral2">
+                  {shortenAddress({ address, chars: 4, charsEnd: 4 })}
+                </Text>
+              </CopyHelper>
+            )
+          }
+        />
       </TokenDetailsContainer>
     </Flex>
   )
 }
 
-export function getTokenDescriptionColumnSize(isLgBreakpoint: boolean, multichainTokenUxEnabled: boolean): number {
-  if (!isLgBreakpoint) {
-    return 300
-  }
-  return multichainTokenUxEnabled ? 225 : 150
+export function getTokenDescriptionColumnSize(isLgBreakpoint: boolean): number {
+  return isLgBreakpoint ? 225 : 300
 }

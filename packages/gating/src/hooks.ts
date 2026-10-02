@@ -1,4 +1,3 @@
-import { StatsigClientEventCallback, StatsigLoadingStatus } from '@statsig/client-core'
 import { DynamicConfigKeys } from '@universe/gating/src/configs'
 import { ExperimentProperties, Experiments } from '@universe/gating/src/experiments'
 import { FeatureFlags, getFeatureFlagName } from '@universe/gating/src/flags'
@@ -12,7 +11,7 @@ import {
   useLayer,
   useStatsigClient,
 } from '@universe/gating/src/sdk/statsig'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useSyncExternalStore } from 'react'
 import { logger } from 'utilities/src/logger/logger'
 
 export function useFeatureFlag(flag: FeatureFlags): boolean {
@@ -206,13 +205,16 @@ export function checkTypeGuard<ValType>({
   defaultValue: ValType
   customTypeGuard?: (x: unknown) => x is ValType
 }): ValType {
+  // A supplied guard is authoritative: `typeof` can't tell an array from `null` or `{}`, so falling
+  // back to it would let a config the guard rejected through to callers that then treat it as the
+  // shape it isn't. Only configs without a guard get the loose `typeof` check.
+  if (customTypeGuard) {
+    return customTypeGuard(value) ? value : defaultValue
+  }
+
   const isOfDefaultValueType = (val: unknown): val is ValType => typeof val === typeof defaultValue
 
-  if (customTypeGuard?.(value) || isOfDefaultValueType(value)) {
-    return value
-  } else {
-    return defaultValue
-  }
+  return isOfDefaultValueType(value) ? value : defaultValue
 }
 
 export function useStatsigClientStatus(): {
@@ -221,17 +223,20 @@ export function useStatsigClientStatus(): {
   isStatsigUninitialized: boolean
 } {
   const { client } = useStatsigClient()
-  const [statsigStatus, setStatsigStatus] = useState<StatsigLoadingStatus>(client.loadingStatus)
-
-  useEffect(() => {
-    const handler: StatsigClientEventCallback<'values_updated'> = (event) => {
-      setStatsigStatus(event.status)
-    }
-    client.on('values_updated', handler)
-    return () => {
-      client.off('values_updated', handler)
-    }
-  }, [client])
+  const subscribe = useCallback(
+    (onStatusChange: () => void) => {
+      client.on('values_updated', onStatusChange)
+      return () => {
+        client.off('values_updated', onStatusChange)
+      }
+    },
+    [client],
+  )
+  // useSyncExternalStore re-reads the snapshot after subscribing, so a Loading -> Ready transition that
+  // lands between this component's render and its effects (e.g. a lazy route committing while the init
+  // request resolves) is picked up instead of leaving a stale Loading for the life of the mount.
+  const getStatus = useCallback(() => client.loadingStatus, [client])
+  const statsigStatus = useSyncExternalStore(subscribe, getStatus, getStatus)
 
   return useMemo(
     () => ({

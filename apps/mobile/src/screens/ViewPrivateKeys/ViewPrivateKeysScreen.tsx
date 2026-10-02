@@ -1,6 +1,8 @@
 import { CommonActions } from '@react-navigation/core'
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Flex, Text, Spacer } from '@universe/mycelium'
+import { TestID } from '@universe/test'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ScrollView } from 'react-native-gesture-handler'
@@ -12,7 +14,7 @@ import { Screen } from 'src/components/layout/Screen'
 import { useBiometricAppSpeedBump } from 'src/features/biometrics/useBiometricAppSpeedBump'
 import { useLockScreenOnBlur } from 'src/features/lockScreen/hooks/useLockScreenOnBlur'
 import { PrivateKeyDisplay } from 'src/screens/ViewPrivateKeys/PrivateKeyView/PrivateKeyDisplay'
-import { Button, Flex, GeneratedIcon, IconButton, Spacer, Text } from 'ui/src'
+import { Button, GeneratedIcon, IconButton } from 'ui/src'
 import { Eye, Key, Laptop } from 'ui/src/components/icons'
 import { AlertTriangleFilled } from 'ui/src/components/icons/AlertTriangleFilled'
 import { HiddenWordView } from 'ui/src/components/placeholders/HiddenWordView'
@@ -20,7 +22,6 @@ import { AddressDisplay } from 'uniswap/src/components/accounts/AddressDisplay'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import { Trace } from 'uniswap/src/features/telemetry/Trace'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { MobileScreens } from 'uniswap/src/types/screens/mobile'
 import { logger } from 'utilities/src/logger/logger'
 import { setHasCopiedPrivateKeys } from 'wallet/src/features/behaviorHistory/slice'
@@ -66,7 +67,7 @@ export function ViewPrivateKeysScreen({ navigation, route }: Props): JSX.Element
     dispatchNavigationAction(
       CommonActions.reset({
         index: 0,
-        routes: [{ name: MobileScreens.Home }],
+        routes: [{ name: MobileScreens.MainTabs, params: { screen: MobileScreens.Home } }],
       }),
     )
   }, [dispatch])

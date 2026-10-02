@@ -1,12 +1,12 @@
+import { Flex } from '@universe/mycelium'
 import { useCallback, useEffect, useState } from 'react'
-import { Flex } from 'ui/src/components/layout'
 import { SWIPEABLE_CARD_Y_OFFSET } from 'ui/src/components/swipeablecards/BaseCard'
 import { PickedCardProps, SwipeableCardStackProps } from 'ui/src/components/swipeablecards/props'
 import { SwipeableCard } from 'ui/src/components/swipeablecards/SwipeableCard'
 import { usePrevious } from 'utilities/src/react/hooks'
 
 // Extra padding at the bottom of the container to prevent card shadows from being clipped
-const SHADOW_OVERFLOW_PADDING = 8
+const SHADOW_OVERFLOW_PADDING = 2
 
 export function BaseSwipeableCardStack<T extends PickedCardProps>({
   cards,

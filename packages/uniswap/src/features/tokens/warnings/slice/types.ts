@@ -1,4 +1,4 @@
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { TokenProtectionWarning } from 'uniswap/src/features/tokens/warnings/types'
 
 export type SerializedTokenMap<T> = {

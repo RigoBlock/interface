@@ -1,8 +1,9 @@
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
+import { TestID } from '@universe/test'
 import JSBI from 'jsbi'
 import { memo, useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, TouchableAreaEvent } from 'ui/src'
+import { Button } from 'ui/src'
 import { ButtonProps } from 'ui/src/components/buttons/Button/types'
 import type {
   PresetPercentage,
@@ -15,9 +16,10 @@ import Trace from 'uniswap/src/features/telemetry/Trace'
 import { getCurrencyAmount, ValueType } from 'uniswap/src/features/tokens/getCurrencyAmount'
 import { MaxBalanceInfoModal } from 'uniswap/src/features/transactions/modals/MaxBalanceInfoModal'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { useEvent } from 'utilities/src/react/hooks'
+
+type ButtonPressEvent = Parameters<NonNullable<ButtonProps['onPress']>>[0]
 
 /**
  * Returns the currency amount for the specified percentage of the passed in raw value.
@@ -60,6 +62,8 @@ interface PresetAmountButtonProps {
   transactionType?: TransactionType
   buttonProps?: ButtonProps
   isSmartPool?: boolean
+  actualGasFee?: string
+  isGasCovered?: boolean
 }
 
 export function PresetAmountButton({
@@ -72,6 +76,8 @@ export function PresetAmountButton({
   transactionType,
   buttonProps,
   isSmartPool,
+  actualGasFee,
+  isGasCovered,
 }: PresetAmountButtonProps): JSX.Element {
   const isNativeAsset = !!currencyBalance?.currency.isNative
   const [isShowingMaxNativeBalanceModal, setIsShowingMaxNativeBalanceModal] = useState(false)
@@ -80,6 +86,8 @@ export function PresetAmountButton({
     currencyAmount: currencyBalance,
     txType: transactionType,
     isSmartPool,
+    actualGasFee,
+    isGasCovered,
   })
   const presetValueAmount = useMemo(() => {
     if (isMaxPercentage(percentage)) {
@@ -103,7 +111,7 @@ export function PresetAmountButton({
   const presetValueAmountRef = useRef(presetValueAmount)
   presetValueAmountRef.current = presetValueAmount
 
-  const onPress = useEvent((event: TouchableAreaEvent): void => {
+  const onPress = useEvent((event: ButtonPressEvent): void => {
     event.stopPropagation()
 
     if (presetValueAmountRef.current) {
@@ -114,7 +122,7 @@ export function PresetAmountButton({
     }
   })
 
-  const onDisabledPress = useEvent((event: TouchableAreaEvent): void => {
+  const onDisabledPress = useEvent((event: ButtonPressEvent): void => {
     event.stopPropagation()
     if (isNativeAsset) {
       setIsShowingMaxNativeBalanceModal(true)
@@ -158,8 +166,8 @@ const PresetButtonContent = memo(function PresetButtonContentInner({
 }: {
   percentage: PresetPercentage
   disabled: boolean
-  onPress: (event: TouchableAreaEvent) => void
-  onDisabledPress: (event: TouchableAreaEvent) => void
+  onPress: NonNullable<ButtonProps['onPress']>
+  onDisabledPress: NonNullable<ButtonProps['onDisabledPress']>
   currencyField: CurrencyField
   isShowingMaxNativeBalanceModal: boolean
   isNativeAsset: boolean
@@ -198,7 +206,7 @@ const PresetButtonContent = memo(function PresetButtonContentInner({
           variant={variant}
           emphasis={emphasis}
           size={size}
-          isDisabled={disabled}
+          disabled={disabled}
           testID={currencyField === CurrencyField.INPUT ? TestID.SetMaxInput : TestID.SetMaxOutput}
           borderColor="$surface3"
           pressStyle={{

@@ -4,12 +4,13 @@ import type { TransactionResponse } from '@ethersproject/abstract-provider'
 import type { JsonRpcSigner, Web3Provider } from '@ethersproject/providers'
 import { TradeType } from '@uniswap/sdk-core'
 import { FetchError, TradingApi } from '@universe/api'
+import { UniverseChainId, areAddressesEqual } from '@universe/chains'
+import { HexString, isValidHexString } from '@universe/encoding'
 import { BlockedAsyncSubmissionChainIdsConfigKey, DynamicConfigs, getDynamicConfigValue } from '@universe/gating'
 import ms from 'ms'
 import type { Action } from 'redux'
 import type { SagaGenerator } from 'typed-redux-saga'
 import { call, cancel, delay, fork, put, race, select, spawn, take } from 'typed-redux-saga'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { isL2ChainId, isUniverseChainId } from 'uniswap/src/features/chains/utils'
 import { AppNotification, AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
 import {
@@ -26,7 +27,10 @@ import {
   interfaceUpdateTransactionInfo,
   type TransactionsState,
 } from 'uniswap/src/features/transactions/slice'
-import { TokenApprovalTransactionStep } from 'uniswap/src/features/transactions/steps/approve'
+import {
+  TokenApprovalTransactionStep,
+  TokenApprovalWalletCallStep,
+} from 'uniswap/src/features/transactions/steps/approve'
 import type { Permit2TransactionStep } from 'uniswap/src/features/transactions/steps/permit2Transaction'
 import { TokenRevocationTransactionStep } from 'uniswap/src/features/transactions/steps/revoke'
 import type {
@@ -45,8 +49,8 @@ import {
   ClassicTrade,
   UniswapXTrade,
 } from 'uniswap/src/features/transactions/swap/types/trade'
-import { isUniswapX } from 'uniswap/src/features/transactions/swap/utils/routing'
-import {
+import { isGasSponsoredTradeExecution, isUniswapX } from 'uniswap/src/features/transactions/swap/utils/routing'
+import type {
   ApproveTransactionInfo,
   BridgeTransactionInfo,
   ExactInputSwapTransactionInfo,
@@ -54,30 +58,30 @@ import {
   InterfaceTransactionDetails,
   Permit2ApproveTransactionInfo,
   PlanSwapTransactionInfoFields,
+  RwaSwapAnalytics,
 } from 'uniswap/src/features/transactions/types/transactionDetails'
 import {
   TransactionOriginType,
   TransactionStatus,
   TransactionType,
 } from 'uniswap/src/features/transactions/types/transactionDetails'
+import type { TransactionTypeInfo } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { getInterfaceTransaction, isInterfaceTransaction } from 'uniswap/src/features/transactions/types/utils'
-import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 import { parseERC20ApproveCalldata } from 'uniswap/src/utils/approvals'
 import { currencyId } from 'uniswap/src/utils/currencyId'
 import { interruptTransactionFlow } from 'uniswap/src/utils/saga'
-import { HexString, isValidHexString } from 'utilities/src/addresses/hex'
 import { logger } from 'utilities/src/logger/logger'
 import { noop } from 'utilities/src/react/noop'
 import { hexlifyTransaction } from 'utilities/src/transactions/hexlifyTransaction'
 import type { Transaction } from 'viem'
 import { getConnectorClient, getTransaction } from 'wagmi/actions'
-import { popupRegistry } from '~/components/Popups/registry'
-import { PopupType } from '~/components/Popups/types'
-import { wagmiConfig } from '~/components/Web3Provider/wagmiConfig'
+import { wagmiConfig } from '~/connection/wagmiConfig'
 import { DEFAULT_TXN_DISMISS_MS } from '~/constants/misc'
 import { clientToProvider } from '~/hooks/useEthersProvider'
 import { getRoutingForTransaction } from '~/state/activity/utils'
-import type { TransactionDetails, TransactionInfo, VitalTxFields } from '~/state/transactions/types'
+import { popupRegistry } from '~/state/popups/registry'
+import { PopupType } from '~/state/popups/types'
+import type { TransactionDetails, VitalTxFields } from '~/state/transactions/types'
 import { isPendingTx } from '~/state/transactions/utils'
 import { signTypedData } from '~/utils/signing'
 import { didUserReject } from '~/utils/swapErrorToUserReadableMessage'
@@ -121,7 +125,6 @@ export function* handleSignatureStep({ setCurrentStep, step, ignoreInterrupt, ad
     status: TransactionBreadcrumbStatus.Complete,
   })
 
-  // oxlint-disable-next-line typescript/no-unsafe-return -- biome-parity: oxlint is stricter here
   return signature
 }
 
@@ -413,14 +416,23 @@ export function* handleApprovalTransactionStep(params: HandleApprovalStepParams)
   })
 }
 
-function getApprovalTransactionInfo(
-  approvalStep: TokenApprovalTransactionStep | TokenRevocationTransactionStep | Permit2TransactionStep,
+export function getApprovalTransactionInfo(
+  approvalStep:
+    | TokenApprovalTransactionStep
+    | TokenApprovalWalletCallStep
+    | TokenRevocationTransactionStep
+    | Permit2TransactionStep,
 ): ApproveTransactionInfo {
+  const pair = 'pair' in approvalStep ? approvalStep.pair : undefined
+  const explicitTokenSymbol = 'tokenSymbol' in approvalStep ? approvalStep.tokenSymbol : undefined
+  const tokenSymbol = explicitTokenSymbol ?? (pair ? `${pair[0].symbol}-${pair[1].symbol}` : undefined)
+
   return {
     type: TransactionType.Approve,
     tokenAddress: approvalStep.tokenAddress,
     spender: approvalStep.spender,
     approvalAmount: approvalStep.amount,
+    tokenSymbol,
   }
 }
 
@@ -458,7 +470,7 @@ function* findDuplicativeTx({
   chainId,
   allowDuplicativeTx,
 }: {
-  info: TransactionInfo
+  info: TransactionTypeInfo
   address: Address
   chainId: number
   allowDuplicativeTx?: boolean
@@ -556,6 +568,20 @@ export function* waitForBatch(batchId: string, step: TransactionStep): SagaGener
   return finalized?.hash
 }
 
+// waitForBatch that also races a flow interrupt.
+export function* waitForBatchInterruptible(batchId: string, step: TransactionStep): SagaGenerator<string | undefined> {
+  const { interrupt, batchResult } = yield* race({
+    batchResult: call(waitForBatch, batchId, step),
+    interrupt: take(interruptTransactionFlow.type),
+  })
+
+  if (interrupt) {
+    throw new HandledTransactionInterrupt('Transaction flow was interrupted')
+  }
+
+  return batchResult
+}
+
 async function getProvider(): Promise<Web3Provider> {
   const client = await getConnectorClient(wagmiConfig)
   const provider = clientToProvider(client)
@@ -577,29 +603,45 @@ export function getSwapTransactionInfo(params: {
   swapStartTimestamp?: number
   planAnalytics?: PlanSwapTransactionInfoFields
   transactedUSDValue?: number
+  rwaAnalytics?: RwaSwapAnalytics
+  executedWithPaymaster?: boolean
 }): SwapInfo | BridgeTransactionInfo
 export function getSwapTransactionInfo(params: {
   trade: UniswapXTrade
   swapStartTimestamp?: number
   planAnalytics?: PlanSwapTransactionInfoFields
   transactedUSDValue?: number
+  rwaAnalytics?: RwaSwapAnalytics
+  executedWithPaymaster?: boolean
 }): SwapInfo & { isUniswapXOrder: true }
 export function getSwapTransactionInfo({
   trade,
   swapStartTimestamp,
   planAnalytics,
   transactedUSDValue,
+  rwaAnalytics,
+  executedWithPaymaster,
 }: {
   trade: ClassicTrade | BridgeTrade | UniswapXTrade | SolanaTrade | ChainedActionTrade
   swapStartTimestamp?: number
   planAnalytics?: PlanSwapTransactionInfoFields
   transactedUSDValue?: number
+  rwaAnalytics?: RwaSwapAnalytics
+  /** Whether this execution actually routes gas through our paymaster (e.g. a walletCall step carrying
+   *  paymasterService). isSponsored means "paymaster actually paid", not the quote's sponsorship offer. */
+  executedWithPaymaster?: boolean
 }): SwapInfo | BridgeTransactionInfo {
+  const isSponsored = isGasSponsoredTradeExecution({ trade, executesViaPaymaster: Boolean(executedWithPaymaster) })
+  const sponsorshipCampaignId =
+    isSponsored && 'sponsorshipInfo' in trade.quote ? trade.quote.sponsorshipInfo?.campaign?.name : undefined
   const commonAttributes = {
     inputCurrencyId: currencyId(trade.inputAmount.currency),
     outputCurrencyId: currencyId(trade.outputAmount.currency),
     swapStartTimestamp,
     transactedUSDValue,
+    isSponsored,
+    sponsorshipCampaignId,
+    ...rwaAnalytics,
     ...planAnalytics,
   }
 

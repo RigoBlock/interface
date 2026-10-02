@@ -1,6 +1,7 @@
 import { useTrace } from '@uniswap/analytics'
-import { TradingApi } from '@universe/api'
+import { SharedQueryClient, TradingApi } from '@universe/api'
 import { useCallback } from 'react'
+import { getDisplayedPriceSource } from 'uniswap/src/features/prices/getDisplayedPriceSource'
 import { finalizeTransaction, updateTransaction } from 'uniswap/src/features/transactions/slice'
 import {
   extractPlanFieldsFromTypeInfo,
@@ -8,10 +9,12 @@ import {
   TransactionStatus,
 } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { isFinalizedTx } from 'uniswap/src/features/transactions/types/utils'
-import { popupRegistry } from '~/components/Popups/registry'
-import { PopupType } from '~/components/Popups/types'
+import { currencyIdToAddress } from 'uniswap/src/utils/currencyId'
 import type { UniswapXOrderUpdate } from '~/state/activity/types'
 import { useAppDispatch } from '~/state/hooks'
+import { maybeAddEarnSwapUpsellPopup } from '~/state/popups/earnSwapUpsell'
+import { popupRegistry } from '~/state/popups/registry'
+import { PopupType } from '~/state/popups/types'
 import { logUniswapXSwapFinalized } from '~/tracing/swapFlowLoggers'
 
 interface HandleUniswapXActivityUpdateParams {
@@ -45,6 +48,13 @@ export function useHandleUniswapXActivityUpdate(): (params: HandleUniswapXActivi
           update.hash,
           popupDismissalTime,
         )
+
+        maybeAddEarnSwapUpsellPopup({
+          status: update.status,
+          typeInfo: update.typeInfo,
+          transactionId: update.id,
+          swapPopupKey: update.hash,
+        })
       } else if (original.status !== update.status && original.orderHash) {
         popupRegistry.addPopup(
           {
@@ -64,6 +74,8 @@ export function useHandleUniswapXActivityUpdate(): (params: HandleUniswapXActivi
           update.status === TransactionStatus.Expired)
       ) {
         // Log successful non-limit orders (for swap metrics) and all cancelled/expired orders
+        const inputCurrencyId = extractTransactionTypeInfoAttribute(original.typeInfo, 'inputCurrencyId')
+        const inputAddress = inputCurrencyId?.includes('-') ? currencyIdToAddress(inputCurrencyId) : undefined
         logUniswapXSwapFinalized({
           id: original.id,
           hash: update.hash,
@@ -75,6 +87,19 @@ export function useHandleUniswapXActivityUpdate(): (params: HandleUniswapXActivi
           swapStartTimestamp: extractTransactionTypeInfoAttribute(original.typeInfo, 'swapStartTimestamp'),
           planAnalytics: extractPlanFieldsFromTypeInfo(original.typeInfo),
           transactedUSDValue: extractTransactionTypeInfoAttribute(original.typeInfo, 'transactedUSDValue'),
+          rwaAnalytics: {
+            market_closed: extractTransactionTypeInfoAttribute(original.typeInfo, 'marketClosed'),
+            price_warning: extractTransactionTypeInfoAttribute(original.typeInfo, 'priceWarning'),
+            token_in_stocks: extractTransactionTypeInfoAttribute(original.typeInfo, 'tokenInStocks'),
+            token_out_stocks: extractTransactionTypeInfoAttribute(original.typeInfo, 'tokenOutStocks'),
+          },
+          priceSource: inputAddress
+            ? getDisplayedPriceSource({
+                chainId: activity.chainId,
+                address: inputAddress,
+                queryClient: SharedQueryClient,
+              })
+            : undefined,
         })
       }
     },

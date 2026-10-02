@@ -1,12 +1,10 @@
-import Animated from 'react-native-reanimated'
-import { Flex } from 'ui/src/components/layout/Flex'
-
 /**
- * @deprecated  Prefer `<Flex animation="" />`
+ * @deprecated Import `AnimatedFlex` from `@universe/mycelium` (or
+ * `@universe/mycelium/animated-flex-compat`) instead of `ui/src`.
  *
- *    See: https://tamagui.dev/docs/core/animations
- *
- * TODO(MOB-1948): Remove this
+ * Native re-export of the mycelium implementation — both were
+ * `createAnimatedComponent` over the same mycelium Flex native leg. The web
+ * leg is NOT a re-export: it still renders the Tamagui Flex, so web call
+ * sites keep their Tamagui styling until they convert.
  */
-export const AnimatedFlex = Animated.createAnimatedComponent(Flex)
-AnimatedFlex.displayName = 'AnimatedFlex'
+export { AnimatedFlexCompat as AnimatedFlex } from '@universe/mycelium/animated-flex-compat'

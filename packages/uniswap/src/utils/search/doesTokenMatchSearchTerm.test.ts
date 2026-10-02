@@ -1,6 +1,6 @@
 import { Currency } from '@uniswap/sdk-core'
+import { UniverseChainId } from '@universe/chains'
 import { DAI, nativeOnChain, USDC, WBTC } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { doesTokenMatchSearchTerm } from 'uniswap/src/utils/search/doesTokenMatchSearchTerm'
 
 // Test data factory functions using real tokens

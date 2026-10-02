@@ -1,14 +1,14 @@
+import { isWebPlatform } from '@universe/environment'
+import { Text, TouchableArea, zIndexes } from '@universe/mycelium'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { PropsWithChildren } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Text, TouchableArea, useSporeColors } from 'ui/src'
 import { AlertCircleFilled } from 'ui/src/components/icons/AlertCircleFilled'
-import { zIndexes } from 'ui/src/theme'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import { WarningInfo } from 'uniswap/src/components/modals/WarningModal/WarningInfo'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { openUri } from 'uniswap/src/utils/linking'
-import { isWebPlatform } from 'utilities/src/platform'
 
 export function SwapFeeWarning({
   noUniswapInterfaceFees,
@@ -20,7 +20,7 @@ export function SwapFeeWarning({
   const { t } = useTranslation()
 
   const onPressLearnMore = async (): Promise<void> => {
-    await openUri({ uri: uniswapUrls.helpArticleUrls.swapFeeInfo })
+    await openUri({ uri: UniswapHelpUrls.articles.swapFeeInfo })
   }
 
   const caption =

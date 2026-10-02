@@ -1,8 +1,10 @@
+import { isWebPlatform } from '@universe/environment'
+import { Flex, Text } from '@universe/mycelium'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
+import type { PopoverCompatPlacement as TooltipPlacement } from '@universe/mycelium/tooltip-compat'
+import { TooltipCompat as Tooltip } from '@universe/mycelium/tooltip-compat'
 import { PropsWithChildren } from 'react'
-import { Flex, type PopperProps, Text, Tooltip, useMedia } from 'ui/src'
-import { zIndexes } from 'ui/src/theme'
 import { InfoTooltipProps } from 'uniswap/src/components/tooltip/InfoTooltipProps'
-import { isWebPlatform } from 'utilities/src/platform'
 
 const TOOLTIP_REST_MS = 20
 const TOOLTIP_CLOSE_MS = 100
@@ -24,7 +26,7 @@ export function InfoTooltip({
   // On xsmall screens, if tooltip placement is right or left
   // Override b/c the tooltip will overflow off the screen
   const media = useMedia()
-  const alignmentsToOverride = ['left', 'right'] as PopperProps['placement'][]
+  const alignmentsToOverride = ['left', 'right'] as TooltipPlacement[]
 
   if (placement && alignmentsToOverride.includes(placement) && media.xs) {
     placement = 'top'
@@ -42,13 +44,8 @@ export function InfoTooltip({
       >
         <Flex shrink>
           <Tooltip.Trigger>{trigger}</Tooltip.Trigger>
-          {text && (
-            <Tooltip.Content
-              zIndex={zIndexes.overlay}
-              pointerEvents="auto"
-              maxWidth={maxWidth ?? (isWebPlatform ? 280 : '100%')}
-              mx="$spacing24"
-            >
+          {(text || button) && (
+            <Tooltip.Content pointerEvents="auto" maxWidth={maxWidth ?? (isWebPlatform ? 280 : '100%')} mx="$spacing24">
               <Flex row alignItems="center" gap="$spacing8">
                 {icon && <Flex grow>{icon}</Flex>}
                 <Flex shrink gap="$spacing4">
@@ -57,9 +54,11 @@ export function InfoTooltip({
                       {title}
                     </Text>
                   )}
-                  <Text color="$neutral2" variant="body4">
-                    {text}
-                  </Text>
+                  {text && (
+                    <Text color="$neutral2" variant="body4">
+                      {text}
+                    </Text>
+                  )}
                   {button && (
                     <Flex alignSelf="flex-start" width="100%">
                       {button}

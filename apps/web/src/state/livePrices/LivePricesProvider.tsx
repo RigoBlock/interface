@@ -1,30 +1,20 @@
-import {
-  createFetchClient,
-  getEntryGatewayUrl,
-  getWebSocketUrl,
-  provideSessionService,
-  SharedQueryClient,
-} from '@universe/api'
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { getEntryGatewayUrl, getWebSocketUrl, SharedQueryClient } from '@universe/api'
+import { isDevEnv } from '@universe/environment'
 import type { TokenPriceMessage, TokenSubscriptionParams } from '@universe/prices'
 import {
   createPriceKey,
   createPriceSubscriptionHandler,
-  PriceServiceProvider,
   parseConnectionMessage,
   parseTokenPriceMessage,
   priceKeys,
-  RestPriceBatcher,
 } from '@universe/prices'
 import type { WebSocketClient } from '@universe/websocket'
 import { createWebSocketClient, createZustandConnectionStore } from '@universe/websocket'
 import type { ReactElement, ReactNode } from 'react'
 import { useState } from 'react'
-import { isDevEnv } from 'utilities/src/environment/env'
+import { RemotePriceProvider } from 'uniswap/src/features/prices/RemotePriceProvider'
 import { logger } from 'utilities/src/logger/logger'
-import { REQUEST_SOURCE } from 'utilities/src/platform/requestSource'
-import { createRestPriceClient } from '~/state/livePrices/createRestPriceClient'
-import { getIsSessionServiceEnabledOnWeb } from '~/utils/sessionService'
+import { createLivePricesFetchClient } from '~/state/livePrices/createLivePricesFetchClient'
 
 function createLivePricesClient(): WebSocketClient<TokenSubscriptionParams, TokenPriceMessage['data']> | null {
   const wsUrl = getWebSocketUrl()
@@ -44,19 +34,7 @@ function createLivePricesClient(): WebSocketClient<TokenSubscriptionParams, Toke
     devtoolsName: 'livePricesConnection',
   })
 
-  const fetchClient = createFetchClient({
-    baseUrl: subscriptionApiUrl,
-    getHeaders: () => ({
-      'Content-Type': 'application/json',
-      'x-request-source': REQUEST_SOURCE,
-    }),
-    getSessionService: () =>
-      provideSessionService({
-        getBaseUrl: () => getEntryGatewayUrl(),
-        getIsSessionServiceEnabled: getIsSessionServiceEnabledOnWeb,
-      }),
-    defaultOptions: { credentials: 'include' },
-  })
+  const fetchClient = createLivePricesFetchClient({ subscriptionApiUrl })
 
   const subscriptionHandler = createPriceSubscriptionHandler({
     client: fetchClient,
@@ -83,32 +61,17 @@ function createLivePricesClient(): WebSocketClient<TokenSubscriptionParams, Toke
         SharedQueryClient.setQueryData(priceKeys.token(chainId, tokenAddress), {
           price: priceUsd,
           timestamp,
+          source: 'aurora_ws',
         })
       }
     },
   })
 }
 
+/** Provides remote price fetching backed by the Aurora live-price websocket. */
 export function LivePricesProvider({ children }: { children: ReactNode }): ReactElement {
-  const useCentralized = useFeatureFlag(FeatureFlags.CentralizedPrices)
+  // Created once and kept for the session; `null` means no live-price transport is available.
+  const [wsClient] = useState(createLivePricesClient)
 
-  if (!useCentralized) {
-    return <>{children}</>
-  }
-
-  return <LivePricesProviderInner>{children}</LivePricesProviderInner>
-}
-
-function LivePricesProviderInner({ children }: { children: ReactNode }): ReactElement {
-  const useWs = useFeatureFlag(FeatureFlags.CentralizedPricesWs)
-  const [wsClient] = useState(() => (useWs ? createLivePricesClient() : null))
-  // Metrics phase (useWs=false): tell the backend to return TAPI quote prices and
-  // log the Aurora comparison. Full rollout (useWs=true): use Aurora prices directly.
-  const [restBatcher] = useState(() => new RestPriceBatcher(createRestPriceClient({ preferQuotePrices: !useWs })))
-
-  return (
-    <PriceServiceProvider wsClient={wsClient ?? undefined} queryClient={SharedQueryClient} restBatcher={restBatcher}>
-      {children}
-    </PriceServiceProvider>
-  )
+  return <RemotePriceProvider wsClient={wsClient ?? undefined}>{children}</RemotePriceProvider>
 }

@@ -1,3 +1,4 @@
+import { isWebPlatform } from '@universe/environment'
 import { providers } from 'ethers/lib/ethers'
 import { useCallback, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -11,7 +12,7 @@ import { MenuOptionItem } from 'uniswap/src/components/menus/ContextMenu'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import { WarningModal } from 'uniswap/src/components/modals/WarningModal/WarningModal'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { AccountType } from 'uniswap/src/features/accounts/types'
 import { AuthTrigger } from 'uniswap/src/features/auth/types'
 import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
@@ -44,7 +45,6 @@ import { useWallet } from 'uniswap/src/features/wallet/hooks/useWallet'
 import { openFORSupportLink, openUri } from 'uniswap/src/utils/linking'
 import { setClipboard } from 'utilities/src/clipboard/clipboard'
 import { logger } from 'utilities/src/logger/logger'
-import { isWebPlatform } from 'utilities/src/platform'
 import { useEvent } from 'utilities/src/react/hooks'
 import { useBooleanState } from 'utilities/src/react/useBooleanState'
 import { ONE_SECOND_MS } from 'utilities/src/time/time'
@@ -362,7 +362,7 @@ async function openSupportLink(transactionDetails: TransactionDetails): Promise<
       params.append(SupportLinkParams.ReportType, isWebPlatform ? 'uniswap_extension_issue' : 'uw_ios_app') // Report Type Dropdown
       params.append(SupportLinkParams.IssueType, 'uw_transaction_details_page_submission') // Issue type Dropdown
       params.append(SupportLinkParams.TransactionId, transactionDetails.hash ?? 'N/A') // Transaction id
-      return openUri({ uri: uniswapUrls.helpRequestUrl + '?' + params.toString() }).catch((e) =>
+      return openUri({ uri: UniswapHelpUrls.requestUrl + '?' + params.toString() }).catch((e) =>
         logger.error(e, { tags: { file: 'TransactionActionsModal', function: 'getHelpLink' } }),
       )
   }

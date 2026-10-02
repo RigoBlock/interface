@@ -1,10 +1,10 @@
 import { Protocol } from '@uniswap/router-sdk'
 import { TradeType } from '@uniswap/sdk-core'
 import { TradingApi } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
 import { testSaga } from 'redux-saga-test-plan'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
 import { TradingApiClient } from 'uniswap/src/data/apiClients/tradingApi/TradingApiClient'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
 import { AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
 import { WalletEventName } from 'uniswap/src/features/telemetry/constants'
@@ -32,7 +32,7 @@ import { signerMnemonicAccount } from 'wallet/src/test/fixtures'
 const mockSignature = '0xMockSignature'
 const mockSigner = {}
 const mockSignerManager = {
-  getSignerForAccount: jest.fn(),
+  getSignerForAccount: vi.fn(),
 }
 
 const baseSubmitOrderParams = {
@@ -51,10 +51,11 @@ const baseSubmitOrderParams = {
   analytics: {
     routing: 'uniswap_x_v2',
     transactionOriginType: TransactionOriginType.Internal,
+    is_permissioned: undefined,
   },
   txId: '1',
-  onSuccess: jest.fn(),
-  onFailure: jest.fn(),
+  onSuccess: vi.fn(),
+  onFailure: vi.fn(),
   routing: TradingApi.Routing.DUTCH_V2,
   quote: {
     orderId: '0xMockOrderHash',
@@ -86,11 +87,10 @@ const expectedOrderRequest: TradingApi.OrderRequest = {
 describe(submitUniswapXOrder, () => {
   beforeEach(() => {
     let mockTimestamp = 1
-    Date.now = jest.fn(() => mockTimestamp++)
+    Date.now = vi.fn(() => mockTimestamp++)
   })
 
   describe('with ValidatedPermit', () => {
-    // oxlint-disable-next-line jest/expect-expect -- suppressed
     it('sends a uniswapx order', async () => {
       const expectedSubmittedOrderDetails = {
         ...baseExpectedInitialOrderDetails,
@@ -119,6 +119,7 @@ describe(submitUniswapXOrder, () => {
         .next()
         .call(sendAnalyticsEvent, WalletEventName.SwapSubmitted, {
           routing: 'uniswap_x_v2',
+          is_permissioned: undefined,
           order_hash: baseExpectedInitialOrderDetails.orderHash,
           transactionOriginType: TransactionOriginType.Internal,
           v2Used: false,
@@ -135,7 +136,6 @@ describe(submitUniswapXOrder, () => {
         .isDone()
     })
 
-    // oxlint-disable-next-line jest/expect-expect -- suppressed
     it('updates an order properly if order submission fails', async () => {
       const expectedSubmittedOrderDetails = {
         ...baseExpectedInitialOrderDetails,
@@ -187,7 +187,6 @@ describe(submitUniswapXOrder, () => {
       permit: mockSignedPermit,
     }
 
-    // oxlint-disable-next-line jest/expect-expect -- suppressed
     it('sends a uniswapx order without calling signer', async () => {
       const expectedSubmittedOrderDetails = {
         ...baseExpectedInitialOrderDetails,
@@ -207,6 +206,7 @@ describe(submitUniswapXOrder, () => {
         .next()
         .call(sendAnalyticsEvent, WalletEventName.SwapSubmitted, {
           routing: 'uniswap_x_v2',
+          is_permissioned: undefined,
           order_hash: baseExpectedInitialOrderDetails.orderHash,
           transactionOriginType: TransactionOriginType.Internal,
           v2Used: false,
@@ -223,7 +223,6 @@ describe(submitUniswapXOrder, () => {
         .isDone()
     })
 
-    // oxlint-disable-next-line jest/expect-expect -- suppressed
     it('updates an order properly if order submission fails', async () => {
       const expectedSubmittedOrderDetails = {
         ...baseExpectedInitialOrderDetails,
@@ -256,7 +255,6 @@ describe(submitUniswapXOrder, () => {
   describe('blocking tx edge cases', () => {
     const approveTxHash = '0xMockApprovalTxHash'
 
-    // oxlint-disable-next-line jest/expect-expect -- suppressed
     it('waits for approval and then sends a uniswapx order', async () => {
       const expectedSubmittedOrderDetails = {
         ...baseExpectedInitialOrderDetails,
@@ -289,6 +287,7 @@ describe(submitUniswapXOrder, () => {
         .next()
         .call(sendAnalyticsEvent, WalletEventName.SwapSubmitted, {
           routing: 'uniswap_x_v2',
+          is_permissioned: undefined,
           order_hash: baseExpectedInitialOrderDetails.orderHash,
           transactionOriginType: TransactionOriginType.Internal,
           v2Used: false,
@@ -305,7 +304,6 @@ describe(submitUniswapXOrder, () => {
         .isDone()
     })
 
-    // oxlint-disable-next-line jest/expect-expect -- suppressed
     it('updates state if an approval fails', async () => {
       testSaga(submitUniswapXOrder, { ...baseSubmitOrderParams, approveTxHash })
         .next()
@@ -326,11 +324,10 @@ describe(submitUniswapXOrder, () => {
         .isDone()
     })
 
-    // oxlint-disable-next-line jest/expect-expect -- suppressed
     it('updates state if order becomes stale after waiting too long', async () => {
       let nextTimestampReturnValue = 1
       // Mock more than ORDER_STALENESS_THRESHOLD seconds passing between saga start & wrap finish
-      Date.now = jest.fn(() => {
+      Date.now = vi.fn(() => {
         const timestamp = nextTimestampReturnValue
         nextTimestampReturnValue += ORDER_STALENESS_THRESHOLD + 1
         return timestamp

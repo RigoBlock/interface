@@ -1,6 +1,9 @@
-import { danger, fail, markdown, message, warn } from 'danger'
 import * as fs from 'fs'
-import { dirname } from 'path'
+import { danger, fail, markdown, message, warn } from 'danger'
+
+// Danger runs from the repo root. Resolve file checks against it instead of
+// `__dirname`/`__filename`, which are undefined now that this file loads as an ES module.
+const repoRoot = process.cwd()
 
 function getIndicesOf(searchStr: string, str: string): number[] {
   const searchStrLen = searchStr.length
@@ -74,7 +77,20 @@ function checkGeneralizedHookFiles() {
 }
 
 // Put any files here that we explicitly want to ignore!
-const IGNORED_SPLIT_RULE_FILES: string[] = ['packages/gating/src/sdk/statsig.native.ts']
+const IGNORED_SPLIT_RULE_FILES: string[] = [
+  'packages/gating/src/sdk/statsig.native.ts',
+  // Mycelium icon factory legs: the base file IS the web implementation (the
+  // `./icons/*` exports map resolves deep icon imports to exact base files),
+  // so no `.web` twin exists by design — see
+  // packages/mycelium/src/components/factories/platform-legs.test.ts.
+  'packages/mycelium/src/components/factories/createIcon.native.tsx',
+  'packages/mycelium/src/components/factories/svg-elements.native.ts',
+  // UniswapXText/GradientText: the base file IS the web implementation, matching the
+  // existing HiddenFromScreenReaders/useEnableFontScaling pattern in the same directory,
+  // so no `.web` twin exists by design.
+  'packages/ui/src/components/text/UniswapXText.native.tsx',
+  'packages/ui/src/components/text/GradientText.native.tsx',
+]
 
 function checkSplitFiles() {
   const touchedFiles = danger.git.modified_files.concat(danger.git.created_files)
@@ -90,15 +106,15 @@ function checkSplitFiles() {
     const baseFile = file.substring(0, file.indexOf(isWebFile ? '.web.ts' : '.native.ts'))
     const extension = file.indexOf('.tsx') !== -1 ? 'tsx' : 'ts'
 
-    if (isWebFile && !fs.existsSync(`${dirname(__filename)}/${baseFile}.native.${extension}`)) {
+    if (isWebFile && !fs.existsSync(`${repoRoot}/${baseFile}.native.${extension}`)) {
       fail(`\`${baseFile}.web.${extension}\` must also have a \`${baseFile}.native.${extension}\` file.`)
     }
 
-    if (isNativeFile && !fs.existsSync(`${dirname(__filename)}/${baseFile}.web.${extension}`)) {
+    if (isNativeFile && !fs.existsSync(`${repoRoot}/${baseFile}.web.${extension}`)) {
       fail(`\`${baseFile}.native.${extension}\` must also have a \`${baseFile}.web.${extension}\` file.`)
     }
 
-    if (!fs.existsSync(`${dirname(__filename)}/${baseFile}.${extension}`)) {
+    if (!fs.existsSync(`${repoRoot}/${baseFile}.${extension}`)) {
       fail(`\`${file}\` must have base stub file \`${baseFile}.${extension}\``)
     }
   })
@@ -121,7 +137,7 @@ function checkHookFilesHaveTests() {
     const baseFile = file.substring(0, file.indexOf('.ts'))
     const extension = file.indexOf('.tsx') !== -1 ? 'tsx' : 'ts'
 
-    const assumedTestFile = `${dirname(__filename)}/${baseFile}.test.${extension}`
+    const assumedTestFile = `${repoRoot}/${baseFile}.test.${extension}`
 
     if (!fs.existsSync(assumedTestFile)) {
       warn(
@@ -141,16 +157,8 @@ async function processAddChanges() {
   const linesAddedByFile = await getLinesAddedByFile(updatedTsFiles)
   const allLinesAdded = linesAddedByFile.flatMap((x) => x)
 
-  // Check for non-UI package lines for tamagui imports
-  const allNonUILinesAddedByFile = await getLinesAddedByFile(updatedNonUITsFiles, {
-    exclude: ['env.d.ts', 'tamaguiProvider.tsx', 'setupTests.ts', 'oxlint.config.ts'],
-  })
+  const allNonUILinesAddedByFile = await getLinesAddedByFile(updatedNonUITsFiles)
   const allNonUILinesAdded = allNonUILinesAddedByFile.flatMap((x) => x)
-  allNonUILinesAdded.forEach((change) => {
-    if (change.content.includes(`from 'tamagui`)) {
-      fail(`Please import any tamagui exports via the ui package. Found an import at ${change.content}`)
-    }
-  })
 
   // Checks for any logging and reminds the developer not to log sensitive data
   if (allLinesAdded.some((change) => change.content.includes('logMessage') || change.content.includes('logger.'))) {
@@ -190,6 +198,7 @@ async function processAddChanges() {
     `'ui/src'`,
     `'ui/src/storybook'`,
     `'ui/src/theme'`,
+    `'ui/src/theme/sizing'`,
     `'ui/src/loading'`,
     `'ui/src/assets'`,
     `'ui/src/components/icons'`,
@@ -199,7 +208,6 @@ async function processAddChanges() {
     `'ui/src/hooks/useDeviceInsets'`,
     `'ui/src/components/layout/AnimatedFlex'`,
     `'ui/src/components/text/AnimatedText'`,
-    `'ui/src/components/AnimatedFlashList/AnimatedFlashList'`,
   ]
   const longestImportLength = Math.max(...validLongerImports.map((i) => i.length))
   allNonUILinesAdded.forEach((change) => {
@@ -253,34 +261,18 @@ async function processAddChanges() {
       )
     }
 
-    // Check for direct string cache key usage with react query (skip mission-control app)
-    if (concatenatedAddedLines.includes(`queryKey: ['`) && !filePath?.startsWith('apps/mission-control/')) {
+    // Check for direct string cache key usage with react query (skip mission-control app and test files, where fixture keys are arbitrary)
+    if (
+      concatenatedAddedLines.includes(`queryKey: ['`) &&
+      !filePath?.startsWith('apps/mission-control/') &&
+      !filePath?.endsWith('.test.ts') &&
+      !filePath?.endsWith('.test.tsx')
+    ) {
       fail(
         `It appears you're using a direct string cache key with react query. Please use the ReactQueryCacheKey enum instead!`,
       )
     }
   })
-
-  // Warn if any changed file contains TouchableArea (entire file, not just diff)
-  const changedFiles = danger.git.modified_files
-    .concat(danger.git.created_files)
-    .filter((file) => file.endsWith('.ts') || file.endsWith('.tsx'))
-  const filesWithTouchableArea: string[] = []
-  for (const file of changedFiles) {
-    try {
-      const fileContent = fs.readFileSync(file, 'utf8')
-      if (fileContent.includes('TouchableArea')) {
-        filesWithTouchableArea.push(file)
-      }
-    } catch {
-      // Ignore files that can't be read (e.g., deleted or binary)
-    }
-  }
-  if (filesWithTouchableArea.length > 0) {
-    warn(
-      `Detected usage of \`TouchableArea\` in the following file(s):\n\n${filesWithTouchableArea.map((f) => `- ${f}`).join('\n')}\n\nIn each of these files, please audit the usage of \`TouchableArea\` and consider migrating to the new implementation! Examples of new variants and API usage can be found in the \`TouchableArea.stories.tsx\` file.`,
-    )
-  }
 }
 
 async function checkCocoaPodsVersion() {
@@ -332,11 +324,12 @@ async function checkPRSize() {
   }
 }
 
-/* Warn about storing credentials in GH and uploading env.local to 1Password */
-const envChanged = danger.git.modified_files.includes('.env.defaults')
+/* Warn about storing credentials in GH  */
+const modified_files = danger.git.modified_files.concat(danger.git.created_files)
+const envChanged = modified_files.includes('.env')
 if (envChanged) {
   warn(
-    'Changes were made to .env.defaults. Confirm that no sensitive data is in the .env.defaults file. Sensitive data must go in .env (web) or .env.defaults.local (mobile) and then run `bun upload-env-local` to store it in 1Password.',
+    'No .env files should be committed to the repo. Store configs in the backend Config Service via the parameter manager in Mission Control',
   )
 }
 
@@ -374,16 +367,6 @@ if (danger.github.pr.body.length < 50) {
 // Congratulate when code was deleted
 if (danger.github.pr.additions < danger.github.pr.deletions) {
   message(`✂️ Thanks for removing  ${danger.github.pr.deletions - danger.github.pr.additions} lines!`)
-}
-
-// GraphQL update warnings
-const updatedGraphQLfile = danger.git.modified_files.find((file) => file.endsWith('.graphql'))
-
-if (updatedGraphQLfile) {
-  warn(
-    'You have updated the GraphQL schema. Please ensure that the Swift GraphQL Schema generation is valid by running `bun mobile ios` and rebuilding for iOS. ' +
-      'You may need to add or remove generated files to the project.pbxproj. For more information see `apps/mobile/ios/WidgetsCore/MobileSchema/README.md`',
-  )
 }
 
 // Migrations + schema warnings

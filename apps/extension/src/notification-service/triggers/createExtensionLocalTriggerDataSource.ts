@@ -1,12 +1,15 @@
 import {
   createLocalTriggerDataSource,
+  type NotificationDataSource,
+  type NotificationTracker,
   type TriggerCondition,
-} from '@universe/notifications/src/notification-data-source/implementations/createLocalTriggerDataSource'
-import { type NotificationDataSource } from '@universe/notifications/src/notification-data-source/NotificationDataSource'
-import { type NotificationTracker } from '@universe/notifications/src/notification-tracker/NotificationTracker'
+} from '@universe/notifications'
 import { createAppRatingTrigger } from 'src/notification-service/triggers/appRatingTrigger'
 import { type ExtensionState } from 'src/store/extensionReducer'
+import { createBackupReminderTrigger } from 'wallet/src/features/behaviorHistory/backupReminderTrigger'
 import { setAppRating } from 'wallet/src/features/wallet/slice'
+
+type ExtensionTriggerDispatch = (action: ReturnType<typeof setAppRating>) => void
 
 /**
  * Context required to create the extension local trigger data source.
@@ -15,9 +18,11 @@ interface CreateExtensionLocalTriggerDataSourceContext {
   /** Function to get the current Redux state */
   getState: () => ExtensionState
   /** Redux dispatch function */
-  dispatch: (action: ReturnType<typeof setAppRating>) => void
+  dispatch: ExtensionTriggerDispatch
   /** Notification tracker for checking processed state */
   tracker: NotificationTracker
+  /** Function to get current portfolio value in USD for the active account */
+  getPortfolioValue: () => Promise<number>
   /** How often to check triggers in milliseconds (default: 5000ms) */
   pollIntervalMs?: number
 }
@@ -28,10 +33,12 @@ interface CreateExtensionLocalTriggerDataSourceContext {
  */
 function getExtensionTriggers(ctx: {
   getState: () => ExtensionState
-  dispatch: (action: ReturnType<typeof setAppRating>) => void
+  dispatch: ExtensionTriggerDispatch
+  getPortfolioValue: () => Promise<number>
 }): TriggerCondition[] {
   return [
     createAppRatingTrigger(ctx),
+    createBackupReminderTrigger({ getState: ctx.getState, getPortfolioValue: ctx.getPortfolioValue }),
     // Future triggers can be added here:
     // createSmartWalletCreatedTrigger(ctx),
     // createSmartWalletNudgeTrigger(ctx),
@@ -48,9 +55,9 @@ function getExtensionTriggers(ctx: {
 export function createExtensionLocalTriggerDataSource(
   ctx: CreateExtensionLocalTriggerDataSourceContext,
 ): NotificationDataSource {
-  const { getState, dispatch, tracker, pollIntervalMs = 5000 } = ctx
+  const { getState, dispatch, tracker, getPortfolioValue, pollIntervalMs = 5000 } = ctx
 
-  const triggers = getExtensionTriggers({ getState, dispatch })
+  const triggers = getExtensionTriggers({ getState, dispatch, getPortfolioValue })
 
   return createLocalTriggerDataSource({
     triggers,

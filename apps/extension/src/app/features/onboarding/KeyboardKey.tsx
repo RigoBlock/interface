@@ -1,4 +1,4 @@
-import { Flex, Text } from 'ui/src'
+import { Flex, Text } from '@universe/mycelium'
 
 const SHADOW_OFFSET = { width: 0, height: 7 }
 const MAC_OS_COMMAND_SYMBOL = '⌘'

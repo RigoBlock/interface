@@ -1,12 +1,14 @@
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
-import { useCallback, useLayoutEffect, useState } from 'react'
-import { NativeSyntheticEvent, TextInputSelectionChangeEventData } from 'react-native'
-import { Flex, FlexProps, Text, TouchableArea } from 'ui/src'
+import { Flex, type FlexCompatProps as FlexProps, Text, TouchableArea } from '@universe/mycelium'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
+import { LayoutChangeEvent, NativeSyntheticEvent, TextInputSelectionChangeEventData } from 'react-native'
+import { Input } from 'ui/src'
 import { ArrowDownArrowUp } from 'ui/src/components/icons'
 import { useDynamicFontSizing } from 'ui/src/hooks/useDynamicFontSizing'
 import { fonts } from 'ui/src/theme'
 import { AmountInput } from 'uniswap/src/components/AmountInput/AmountInput'
 import { ParsedWarnings, WarningLabel } from 'uniswap/src/components/modals/WarningModal/types'
+import { MAX_FIAT_INPUT_DECIMALS } from 'uniswap/src/constants/transactions'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { useAppFiatCurrencyInfo } from 'uniswap/src/features/fiatCurrency/hooks'
@@ -44,6 +46,7 @@ export function SendAmountInput({
 }: SendAmountInputProps): JSX.Element {
   const { symbol } = useAppFiatCurrencyInfo()
   const { isTestnetModeEnabled } = useEnabledChains()
+  const amountInputRef = useRef<Input>(null)
 
   const onSelectionChange = useCallback(
     ({
@@ -65,6 +68,11 @@ export function SendAmountInput({
 
   const _onToggleIsFiatMode = useCallback(() => {
     onToggleIsFiatMode(!isFiatInput)
+    // Refocus after mode switch. The toggle steals focus, and the symbol slot appearing/disappearing
+    // used to remount the input; keep the slot mounted (hidden in crypto mode) and restore focus here.
+    setTimeout(() => {
+      amountInputRef.current?.focus()
+    }, 0)
   }, [isFiatInput, onToggleIsFiatMode])
 
   const { onLayout, fontSize, onSetFontSize } = useDynamicFontSizing({
@@ -99,7 +107,7 @@ export function SendAmountInput({
     <Flex
       centered
       gap="$spacing16"
-      onLayout={(e): void => {
+      onLayout={(e: LayoutChangeEvent): void => {
         onLayout(e)
         setContainerWidth(e.nativeEvent.layout.width)
         // Avoid case where onSetFontSize is called before onLayout, resulting in incorrect sizing if view is re-mounted
@@ -108,13 +116,21 @@ export function SendAmountInput({
       {...rest}
     >
       <Flex row alignItems="center" height={MAX_INPUT_FONT_SIZE} justifyContent="center" overflow="hidden">
-        {isFiatInput && (
-          <Text allowFontScaling color={inputColor} fontSize={fontSize} height={fontSize} lineHeight={fontSize}>
-            {symbol}
-          </Text>
-        )}
+        <Text
+          allowFontScaling
+          color={inputColor}
+          fontSize={fontSize}
+          height={fontSize}
+          lineHeight={fontSize}
+          opacity={isFiatInput ? 1 : 0}
+          overflow="hidden"
+          width={isFiatInput ? undefined : 0}
+        >
+          {symbol}
+        </Text>
         {currencyInfo ? (
           <AmountInput
+            ref={amountInputRef}
             adjustWidthToContent={isFiatInput}
             backgroundColor="$transparent"
             borderWidth="$none"
@@ -122,10 +138,12 @@ export function SendAmountInput({
             focusable={Boolean(currencyInfo)}
             fontFamily="$heading"
             fontSize={fontSize}
-            maxDecimals={currencyInfo.currency.decimals}
+            maxDecimals={isFiatInput ? MAX_FIAT_INPUT_DECIMALS : currencyInfo.currency.decimals}
             maxFontSizeMultiplier={fonts.heading2.maxFontSizeMultiplier}
-            // x0.5 is to mimic the behavior for non-fiat input
-            maxWidth={isFiatInput ? containerWidth * 0.5 : undefined}
+            // Font is auto-scaled so the "symbol + value" pair fits the full container width, so the
+            // input only needs the remaining space next to the symbol. Cap at the container width to
+            // avoid the number overflowing the card while keeping it adjacent to the fiat symbol.
+            maxWidth={isFiatInput ? containerWidth : undefined}
             minHeight={2 * MAX_INPUT_FONT_SIZE}
             overflow="visible"
             placeholder="0"

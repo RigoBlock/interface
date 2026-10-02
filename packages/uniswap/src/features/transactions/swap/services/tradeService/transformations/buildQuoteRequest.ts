@@ -1,5 +1,6 @@
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
-import { GasStrategy, TradingApi } from '@universe/api'
+import { GasStrategy, TradingApi, UNCONNECTED_ADDRESS } from '@universe/api'
+import { FeatureFlags, getFeatureFlag } from '@universe/gating'
 import { getActiveGasStrategy } from 'uniswap/src/features/gas/utils'
 import {
   isZeroAmount,
@@ -7,23 +8,22 @@ import {
 } from 'uniswap/src/features/transactions/swap/hooks/useTrade/parseQuoteCurrencies'
 import type { UseTradeArgs } from 'uniswap/src/features/transactions/swap/types/trade'
 import {
+  buildUrgency,
+  DEFAULT_URGENCY_LEVEL,
   GetQuoteRoutingParams,
   GetQuoteSlippageParams,
   getTokenAddressForApi,
   QuoteRoutingParamsResult,
   QuoteSlippageParamsResult,
-  SWAP_GAS_URGENCY_OVERRIDE,
   toTradingApiSupportedChainId,
 } from 'uniswap/src/features/transactions/swap/utils/tradingApi'
-
-// The TradingAPI requires an address for the swapper field; we supply a placeholder address if no account is connected.
-// Note: This address was randomly generated.
-export const UNCONNECTED_ADDRESS = '0xAAAA44272dc658575Ba38f43C438447dDED45358'
 
 export interface QuoteRequestResult {
   amount: string
   generatePermitAsTransaction?: boolean
-  gasStrategies: GasStrategy[]
+  earnIntent?: TradingApi.EarnIntent
+  // Flag-off path: legacy `gasStrategies` array. Omitted on the flag-on path.
+  gasStrategies?: GasStrategy[]
   isUSDQuote?: boolean
   swapper: string
   tokenIn: string
@@ -32,6 +32,7 @@ export interface QuoteRequestResult {
   tokenOutChainId: number
   type: TradingApi.TradeType
   urgency?: TradingApi.Urgency
+  walletExecutionContext?: TradingApi.WalletExecutionContext
   routingParams: QuoteRoutingParamsResult
   slippageParams: QuoteSlippageParamsResult
 }
@@ -49,7 +50,10 @@ export interface ValidatedTradeInput {
   tokenInAddress: string
   tokenOutAddress: string
   generatePermitAsTransaction?: boolean
+  earnIntent?: TradingApi.EarnIntent
   isUSDQuote?: boolean
+  walletExecutionContext?: TradingApi.WalletExecutionContext
+  gasOverrides?: TradingApi.UrgencyOverrides
 }
 
 interface BuildQuoteRequestContext {
@@ -73,15 +77,13 @@ export function createBuildQuoteRequest(
       isUSDQuote: validatedInput.isUSDQuote,
     })
 
-    return {
+    // TODO(GasFeeOverrides): remove flag gate once the new urgency-based payload ships fully.
+    const shouldUseUrgency = getFeatureFlag(FeatureFlags.GasFeeOverrides)
+
+    const base = {
       amount: validatedInput.amount.quotient.toString(),
       generatePermitAsTransaction: validatedInput.generatePermitAsTransaction,
-      gasStrategies: [
-        getActiveGasStrategy({
-          chainId: validatedInput.tokenInChainId,
-          type: 'swap',
-        }),
-      ],
+      earnIntent: validatedInput.earnIntent,
       isUSDQuote: validatedInput.isUSDQuote,
       // Use the connected account address for gas estimation — the RPC node checks ETH balance before estimating.
       // For RigoBlock pools, the vault is MSG_SENDER at execution time, so tokens are pulled from the vault.
@@ -92,9 +94,22 @@ export function createBuildQuoteRequest(
       tokenOut: validatedInput.tokenOutAddress,
       tokenOutChainId: validatedInput.tokenOutChainId,
       type: validatedInput.requestTradeType,
-      urgency: SWAP_GAS_URGENCY_OVERRIDE,
+      walletExecutionContext: validatedInput.walletExecutionContext,
       routingParams,
       slippageParams,
+    }
+
+    if (shouldUseUrgency) {
+      return {
+        ...base,
+        urgency: buildUrgency(validatedInput.gasOverrides),
+      }
+    }
+
+    return {
+      ...base,
+      gasStrategies: [getActiveGasStrategy({ chainId: validatedInput.tokenInChainId, type: 'swap' })],
+      urgency: DEFAULT_URGENCY_LEVEL,
     }
   }
 }
@@ -126,11 +141,15 @@ export interface ParsedTradeInput {
   tokenInAddress?: string
   tokenOutAddress?: string
   generatePermitAsTransaction?: boolean
+  earnIntent?: TradingApi.EarnIntent
   isUSDQuote?: boolean
+  walletExecutionContext?: TradingApi.WalletExecutionContext
+  gasOverrides?: TradingApi.UrgencyOverrides
 }
 
 export function parseTradeInputForTradingApiQuote(input: UseTradeArgs): ParsedTradeInput {
   const { currencyIn, currencyOut, requestTradeType } = parseQuoteCurrencies(input)
+
   return {
     currencyIn,
     currencyOut,
@@ -139,11 +158,14 @@ export function parseTradeInputForTradingApiQuote(input: UseTradeArgs): ParsedTr
     activeAccountAddress: input.account?.address,
     activeSmartPoolAddress: input.smartPoolAddress,
     tokenInChainId: toTradingApiSupportedChainId(currencyIn?.chainId),
-    tokenOutChainId: toTradingApiSupportedChainId(currencyOut?.chainId),
+    tokenOutChainId: input.quoteOutputOverride?.tokenOutChainId ?? toTradingApiSupportedChainId(currencyOut?.chainId),
     tokenInAddress: getTokenAddressForApi(currencyIn),
-    tokenOutAddress: getTokenAddressForApi(currencyOut),
+    tokenOutAddress: input.quoteOutputOverride?.tokenOutAddress ?? getTokenAddressForApi(currencyOut),
     generatePermitAsTransaction: input.generatePermitAsTransaction,
+    earnIntent: input.earnIntent,
     isUSDQuote: input.isUSDQuote ?? false,
+    walletExecutionContext: input.walletExecutionContext,
+    gasOverrides: input.gasOverrides,
   }
 }
 
@@ -160,7 +182,7 @@ export function validateParsedInput(input: ParsedTradeInput): ValidatedTradeInpu
     !input.currencyIn ||
     !input.currencyOut ||
     isZeroAmount(input.amount) ||
-    areCurrenciesEqual(input.currencyIn, input.currencyOut)
+    (!input.earnIntent && areCurrenciesEqual(input.currencyIn, input.currencyOut))
   ) {
     return undefined
   }
@@ -179,7 +201,10 @@ export function validateParsedInput(input: ParsedTradeInput): ValidatedTradeInpu
     tokenInAddress: input.tokenInAddress,
     tokenOutAddress: input.tokenOutAddress,
     generatePermitAsTransaction: input.generatePermitAsTransaction,
+    earnIntent: input.earnIntent,
     isUSDQuote: input.isUSDQuote,
+    walletExecutionContext: input.walletExecutionContext,
+    gasOverrides: input.gasOverrides,
   }
 }
 

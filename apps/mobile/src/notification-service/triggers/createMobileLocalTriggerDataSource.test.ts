@@ -1,45 +1,44 @@
 import { createLocalTriggerDataSource } from '@universe/notifications/src/notification-data-source/implementations/createLocalTriggerDataSource'
 import { type NotificationTracker } from '@universe/notifications/src/notification-tracker/NotificationTracker'
 import { type MobileState } from 'src/app/mobileReducer'
-import { createBackupReminderTrigger } from 'src/notification-service/triggers/backupReminderTrigger'
 import {
   createMobileLocalTriggerDataSource,
   isLocalTriggerNotification,
 } from 'src/notification-service/triggers/createMobileLocalTriggerDataSource'
+import type { MockedFunction } from 'vitest'
+import { createBackupReminderTrigger } from 'wallet/src/features/behaviorHistory/backupReminderTrigger'
 
-jest.mock('@universe/notifications/src/notification-data-source/implementations/createLocalTriggerDataSource')
-jest.mock('src/notification-service/triggers/backupReminderTrigger')
+vi.mock('@universe/notifications/src/notification-data-source/implementations/createLocalTriggerDataSource')
+vi.mock('wallet/src/features/behaviorHistory/backupReminderTrigger')
 
-const mockCreateLocalTriggerDataSource = createLocalTriggerDataSource as jest.MockedFunction<
+const mockCreateLocalTriggerDataSource = createLocalTriggerDataSource as MockedFunction<
   typeof createLocalTriggerDataSource
 >
-const mockCreateBackupReminderTrigger = createBackupReminderTrigger as jest.MockedFunction<
+const mockCreateBackupReminderTrigger = createBackupReminderTrigger as MockedFunction<
   typeof createBackupReminderTrigger
 >
 
 describe('createMobileLocalTriggerDataSource', () => {
-  const mockDispatch = jest.fn()
-  const mockGetState = jest.fn<MobileState, []>()
-  const mockGetPortfolioValue = jest.fn<Promise<number>, []>()
+  const mockGetState = vi.fn<() => MobileState>()
+  const mockGetPortfolioValue = vi.fn<() => Promise<number>>()
   const mockTracker = {
-    isProcessed: jest.fn(),
-    markProcessed: jest.fn(),
-    markNotProcessed: jest.fn(),
+    isProcessed: vi.fn(),
+    markProcessed: vi.fn(),
+    markNotProcessed: vi.fn(),
   } as unknown as NotificationTracker
 
   const mockBackupReminderTrigger = {
     id: 'local:backup_reminder_modal',
-    shouldShow: jest.fn().mockResolvedValue(true),
-    createNotification: jest.fn(),
-    onAcknowledge: jest.fn(),
+    shouldShow: vi.fn().mockResolvedValue(true),
+    createNotification: vi.fn(),
   }
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockCreateBackupReminderTrigger.mockReturnValue(mockBackupReminderTrigger)
     mockCreateLocalTriggerDataSource.mockReturnValue({
-      start: jest.fn(),
-      stop: jest.fn(),
+      start: vi.fn(),
+      stop: vi.fn(),
     })
   })
 
@@ -47,14 +46,12 @@ describe('createMobileLocalTriggerDataSource', () => {
     it('creates a data source with backup reminder trigger', () => {
       createMobileLocalTriggerDataSource({
         getState: mockGetState,
-        dispatch: mockDispatch,
         tracker: mockTracker,
         getPortfolioValue: mockGetPortfolioValue,
       })
 
       expect(mockCreateBackupReminderTrigger).toHaveBeenCalledWith({
         getState: mockGetState,
-        dispatch: mockDispatch,
         getPortfolioValue: mockGetPortfolioValue,
       })
     })
@@ -62,7 +59,6 @@ describe('createMobileLocalTriggerDataSource', () => {
     it('passes triggers to createLocalTriggerDataSource', () => {
       createMobileLocalTriggerDataSource({
         getState: mockGetState,
-        dispatch: mockDispatch,
         tracker: mockTracker,
         getPortfolioValue: mockGetPortfolioValue,
       })
@@ -79,7 +75,6 @@ describe('createMobileLocalTriggerDataSource', () => {
     it('uses custom poll interval when provided', () => {
       createMobileLocalTriggerDataSource({
         getState: mockGetState,
-        dispatch: mockDispatch,
         tracker: mockTracker,
         getPortfolioValue: mockGetPortfolioValue,
         pollIntervalMs: 10000,
@@ -94,14 +89,13 @@ describe('createMobileLocalTriggerDataSource', () => {
 
     it('returns the data source from createLocalTriggerDataSource', () => {
       const mockDataSource = {
-        start: jest.fn(),
-        stop: jest.fn(),
+        start: vi.fn(),
+        stop: vi.fn(),
       }
       mockCreateLocalTriggerDataSource.mockReturnValue(mockDataSource)
 
       const result = createMobileLocalTriggerDataSource({
         getState: mockGetState,
-        dispatch: mockDispatch,
         tracker: mockTracker,
         getPortfolioValue: mockGetPortfolioValue,
       })

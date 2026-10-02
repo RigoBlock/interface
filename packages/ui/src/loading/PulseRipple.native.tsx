@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Animated } from 'react-native'
 
+// oxlint-disable-next-line typescript/no-useless-default-assignment -- defensive default
 export const PulseRipple = ({ rippleColor, size = 24 }: { rippleColor?: string; size: number }): JSX.Element | null => {
   const scaleAnimation = useRef(new Animated.Value(1)).current
   const opacityAnimation = useRef(new Animated.Value(1)).current

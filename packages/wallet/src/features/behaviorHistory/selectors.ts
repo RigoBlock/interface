@@ -12,9 +12,6 @@ export const selectBackupReminderLastSeenTs = (state: WalletState): number | und
 
 export const selectHasUsedExplore = (state: WalletState): boolean => state.behaviorHistory.hasUsedExplore
 
-export const selectHasViewedOffRampTooltip = (state: WalletState): boolean =>
-  state.behaviorHistory.hasViewedOffRampTooltip
-
 export const selectHasViewedNotificationsCard = (state: WalletState): boolean =>
   state.behaviorHistory.hasViewedNotificationsCard ?? false
 
@@ -73,5 +70,5 @@ export const selectShouldShowPostSwapNudge = (state: WalletState, walletAddress:
 export const selectHasSeenCreatedSmartWalletModal = (state: WalletState): boolean =>
   state.behaviorHistory.hasSeenSmartWalletCreatedWalletModal ?? false
 
-export const selectHasDismissedNoAppFeesAnnouncement = (state: WalletState): boolean =>
-  state.behaviorHistory.hasDismissedNoAppFeesAnnouncement ?? false
+export const selectHasSeenUnfundedEarnCardReveal = (state: WalletState): boolean =>
+  state.behaviorHistory.hasSeenUnfundedEarnCardReveal ?? false

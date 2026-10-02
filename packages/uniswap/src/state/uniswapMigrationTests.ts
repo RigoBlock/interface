@@ -70,3 +70,40 @@ export function testMigrateDismissedTokenWarnings(migration: (state: any) => any
     }
   }
 }
+
+// Mobile: 98
+// Extension: 32
+// Web: 62
+export function testAddEnableCustomGasFeeEntry(migration: (state: any) => any, prevSchema: any): void {
+  const result = migration(prevSchema)
+  expect(result.userSettings.enableCustomGasFeeEntry).toBe(false)
+}
+
+// Mobile: 99
+// Extension: 33
+// Web: 63
+export function testRemoveUniswapWrapped2025BehaviorHistory(migration: (state: any) => any, prevSchema: any): void {
+  const result = migration({
+    ...prevSchema,
+    uniswapBehaviorHistory: {
+      ...prevSchema?.uniswapBehaviorHistory,
+      hasDismissedUniswapWrapped2025Banner: true,
+    },
+  })
+  expect(result.uniswapBehaviorHistory).not.toHaveProperty('hasDismissedUniswapWrapped2025Banner')
+}
+
+// Mobile: 100
+// Extension: 34
+// Web: 64
+export function testMarkPoolsBalanceCoachmarkEligible(migration: (state: any) => any, prevSchema: any): void {
+  // Overwrites the old always-`true` default so existing installs become eligible.
+  const result = migration({
+    ...prevSchema,
+    uniswapBehaviorHistory: {
+      ...prevSchema?.uniswapBehaviorHistory,
+      hasDismissedPoolsBalanceCoachmark: true,
+    },
+  })
+  expect(result.uniswapBehaviorHistory.hasDismissedPoolsBalanceCoachmark).toBe(false)
+}

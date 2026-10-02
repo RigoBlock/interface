@@ -3,10 +3,16 @@ jsEngine: graaljs
 env:
   E2E_RECOVERY_PHRASE: ${E2E_RECOVERY_PHRASE}
   DATADOG_API_KEY: ${DATADOG_API_KEY}
+  PLATFORM: ${PLATFORM}
+  GITHUB_REF_NAME: ${GITHUB_REF_NAME}
+  GITHUB_SHA: ${GITHUB_SHA}
+  GITHUB_RUN_ID: ${GITHUB_RUN_ID}
 ---
 # Initialize Performance Tracking
 - runScript:
     file: ../../scripts/performance/dist/actions/init-tracking.js
+    env:
+      PLATFORM: ${PLATFORM}
 
 # Start Flow Tracking
 - runScript:
@@ -49,8 +55,10 @@ env:
     id: ${output.testIds.TokenDetailsHeaderText}
 
 # Assert expected action buttons are shown for a native token
+# Note: under the multichain UX flag, the single Swap button is replaced by Buy/Sell.
+# We assert Buy here (Sell is also present); see TokenDetailsActionButtonsWrapper.
 - assertVisible:
-    id: ${output.testIds.TokenDetailsSwapButton}
+    id: ${output.testIds.TokenDetailsBuyButton}
 
 # Note: Copy address button is present but disabled for native tokens
 
@@ -58,6 +66,13 @@ env:
 # Could be re-enabled if test wallet has multi-chain balances
 
 - waitForAnimationToEnd
+
+# RN 0.81 timing: wait for the back button's testID to settle in the
+# accessibility tree before tapping.
+- extendedWaitUntil:
+    visible:
+      id: ${output.testIds.Back}
+    timeout: 15000
 
 # Go back to portfolio
 - tapOn:
@@ -100,9 +115,9 @@ env:
 - assertVisible:
     id: ${output.testIds.TokenDetailsHeaderText}
 
-# Assert expected action buttons are shown for a standard token
+# Assert expected action buttons are shown for a standard token (multichain UX: Buy/Sell)
 - assertVisible:
-    id: ${output.testIds.TokenDetailsSwapButton}
+    id: ${output.testIds.TokenDetailsBuyButton}
 
 # Standard tokens have a contract address to copy
 - assertVisible:
@@ -137,6 +152,13 @@ env:
     timeout: 2000
     optional: true
 
+# Dismiss the MultichainAddressSheet opened by CopyAddress before
+# tapping the screen-level back button.
+- swipe:
+    direction: DOWN
+    duration: 300
+- waitForAnimationToEnd
+
 # Go back to portfolio
 - tapOn:
     id: ${output.testIds.Back}
@@ -151,4 +173,7 @@ env:
     file: ../../scripts/performance/upload-metrics.js
     env:
       DATADOG_API_KEY: ${DATADOG_API_KEY}
+      GITHUB_REF_NAME: ${GITHUB_REF_NAME}
+      GITHUB_SHA: ${GITHUB_SHA}
+      GITHUB_RUN_ID: ${GITHUB_RUN_ID}
       ENVIRONMENT: 'maestro_cloud'

@@ -15,15 +15,13 @@ import Foundation
 
 @objc(RNWalletConnect)
 class RNWalletConnect: NSObject {
-  
   /*
    * Open the previously opened app that deep linked to Uniswap app
    * (eg. Dapp website in Safari -> Wallet -> Dapp website in Safari).
-   * Returns false and does nothing if there is no previous opened app to link back to.
-   * Returns true if successfully opened previous app
+   * Does nothing if there is no previous opened app to link back to.
    */
   @objc
-  func returnToPreviousApp() -> Bool {
+  func returnToPreviousApp() {
     let sys = "_system"
     let nav = "Navigation"
     let action = "Action"
@@ -33,13 +31,12 @@ class RNWalletConnect: NSObject {
       let destinations = action.perform(#selector(getter: PrivateSelectors.destinations)).takeUnretainedValue() as? [NSNumber],
       let firstDestination = destinations.first
     else {
-      return false
+      return
     }
-    
+
     action.perform(#selector(PrivateSelectors.sendResponseForDestination), with: firstDestination)
-    return true
   }
-  
+
   @objc static func requiresMainQueueSetup() -> Bool {
     return false
   }

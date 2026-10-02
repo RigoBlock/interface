@@ -1,8 +1,9 @@
+import { Flex, Text } from '@universe/mycelium'
+import { TestID } from '@universe/test'
 import { Link } from 'react-router'
-import { Flex, Separator, Text } from 'ui/src'
+import { Separator } from 'ui/src'
 import { ElementName, InterfacePageName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { PortfolioTabInfo, usePortfolioTabs } from '~/pages/Portfolio/Header/hooks/usePortfolioTabs'
 import { PortfolioTab } from '~/pages/Portfolio/types'
@@ -12,6 +13,7 @@ const PORTFOLIO_TAB_TEST_IDS: Record<PortfolioTab, string> = {
   [PortfolioTab.Overview]: TestID.PortfolioTabOverview,
   [PortfolioTab.Tokens]: TestID.PortfolioTabTokens,
   [PortfolioTab.Staking]: TestID.PortfolioTabOverview,
+  [PortfolioTab.Pools]: TestID.PortfolioTabPools,
   [PortfolioTab.Defi]: TestID.PortfolioTabDefi,
   [PortfolioTab.Perps]: TestID.PortfolioTabPerps,
   [PortfolioTab.Nfts]: TestID.PortfolioTabNfts,
@@ -26,6 +28,8 @@ function getTabElementName(pageName: InterfacePageName): ElementName {
       return ElementName.PortfolioTokensTab
     case InterfacePageName.PortfolioStakingPage:
       return ElementName.PortfolioStakingTab
+    case InterfacePageName.PortfolioPoolsPage:
+      return ElementName.PortfolioPoolsTab
     case InterfacePageName.PortfolioDefiPage:
       return ElementName.PortfolioDefiTab
     case InterfacePageName.PortfolioPerpsPage:

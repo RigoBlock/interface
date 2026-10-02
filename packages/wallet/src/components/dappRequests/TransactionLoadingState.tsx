@@ -1,6 +1,6 @@
+import { Flex, iconSizes, Text } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
-import { Flex, SpinningLoader, Text } from 'ui/src'
-import { iconSizes } from 'ui/src/theme'
+import { SpinningLoader } from 'ui/src'
 
 const LOADING_STATE_HEIGHT = 116
 

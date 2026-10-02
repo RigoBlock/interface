@@ -1,4 +1,6 @@
-import type { UniverseChainId } from 'uniswap/src/features/chains/types'
+import type { UniverseChainId } from '@universe/chains'
+
+export type PrivateRpcProviderType = 'flashbots' | 'unirpc' | 'mevblocker'
 
 /**
  * Service for transaction-related configuration
@@ -32,4 +34,12 @@ export interface TransactionConfigService {
    * @returns True if private RPC should be used
    */
   shouldUsePrivateRpc(input: { chainId: UniverseChainId; submitViaPrivateRpc?: boolean }): boolean
+
+  /**
+   * Which provider actually serves the chain's private (swap protection) RPC:
+   * UniRPC v2 with the swap-protection header, Flashbots directly, or the
+   * chain-info MEV-blocker fallback. Derived from the same resolver that builds
+   * the provider, so labeling and routing can't disagree.
+   */
+  getPrivateRpcProviderType(input: { chainId: UniverseChainId }): PrivateRpcProviderType
 }

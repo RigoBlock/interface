@@ -9,8 +9,10 @@ export enum WalletEventName {
   AppRating = 'App Rating',
   BackupMethodAdded = 'Backup Method Added',
   BackupMethodRemoved = 'Backup Method Removed',
+  CustomGasOverridesApplied = 'Custom Gas Overrides Applied',
   DappRequestCardClosed = 'DappRequestCardClosed',
   DappRequestCardPressed = 'DappRequestCardPressed',
+  DappRequestScanFailed = 'Dapp Request Scan Failed',
   ExploreSearchCancel = 'Explore Search Cancel',
   ExternalLinkOpened = 'External Link Opened',
   GasEstimateAccuracy = 'Gas Estimate Accuracy',
@@ -39,6 +41,11 @@ export enum WalletEventName {
   ViewRecoveryPhrase = 'View Recovery Phrase',
   WalletAdded = 'Wallet Added',
   WalletRemoved = 'Wallet Removed',
+  NonceCalculated = 'Nonce Calculated',
+  OnchainTransactionSubmissionError = 'Onchain Transaction Submission Error',
+  PendingTransactionBacklogOnStartup = 'Pending Transaction Backlog On Startup',
+  PendingTransactionStuck = 'Pending Transaction Stuck',
+  SwapExecutionWindow = 'Swap Execution Window',
   // alphabetize additional values.
 }
 

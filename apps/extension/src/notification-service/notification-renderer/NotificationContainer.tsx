@@ -1,6 +1,5 @@
 import { ContentStyle, type InAppNotification } from '@universe/api'
-import { type NotificationClickTarget } from '@universe/notifications'
-import { InlineBannerNotification } from '@universe/notifications/src/notification-renderer/components/InlineBannerNotification'
+import { InlineBannerNotification, type NotificationClickTarget } from '@universe/notifications'
 import { memo, useEffect, useMemo } from 'react'
 import { isStorageWarningNotification } from 'src/notification-service/data-sources/reactive/storageWarningCondition'
 import {
@@ -8,6 +7,7 @@ import {
   type NotificationState,
 } from 'src/notification-service/notification-renderer/notificationStore'
 import { AppRatingModalRenderer } from 'src/notification-service/renderers/AppRatingModalRenderer'
+import { BackupReminderModalRenderer } from 'src/notification-service/renderers/BackupReminderModalRenderer'
 import { StorageWarningModalRenderer } from 'src/notification-service/renderers/StorageWarningModalRenderer'
 import { isAppRatingNotification } from 'src/notification-service/triggers/appRatingTrigger'
 import { isLocalTriggerNotification } from 'src/notification-service/triggers/createExtensionLocalTriggerDataSource'
@@ -16,6 +16,7 @@ import { getLogger } from 'utilities/src/logger/logger'
 import { useEvent } from 'utilities/src/react/hooks'
 import { type IntroCardProps } from 'wallet/src/components/introCards/IntroCard'
 import { IntroCardStack } from 'wallet/src/components/introCards/IntroCardStack'
+import { isBackupReminderNotification } from 'wallet/src/features/behaviorHistory/backupReminderTrigger'
 import {
   convertNotificationToIntroCard,
   shouldRenderAsIntroCard,
@@ -175,6 +176,16 @@ export const NotificationContainer = memo(function NotificationContainer({
         if (isAppRatingNotification(notification)) {
           return (
             <AppRatingModalRenderer
+              key={notification.id}
+              notification={notification}
+              onNotificationClick={onNotificationClick}
+              onNotificationShown={onNotificationShown}
+            />
+          )
+        }
+        if (isBackupReminderNotification(notification)) {
+          return (
+            <BackupReminderModalRenderer
               key={notification.id}
               notification={notification}
               onNotificationClick={onNotificationClick}

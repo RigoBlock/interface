@@ -7,12 +7,12 @@ import {
   CandlestickData,
   ICustomSeriesPaneRenderer,
   PaneRendererCustomData,
+  IRange,
   PriceToCoordinateConverter,
-  Range,
   Time,
   UTCTimestamp,
 } from 'lightweight-charts'
-import { RoundedCandleSeriesOptions } from '~/components/Charts/PriceChart/RoundedCandlestickSeries/rounded-candles-series'
+import type { RoundedCandleSeriesOptions } from '~/components/Charts/PriceChart/RoundedCandlestickSeries/rounded-candles-series'
 import { roundRect } from '~/components/Charts/utils'
 import { positionsLine } from '~/components/Charts/VolumeChart/CrosshairHighlightPrimitive'
 import { positionsBox } from '~/components/Charts/VolumeChart/utils'
@@ -90,7 +90,7 @@ export class RoundedCandleSeriesRenderer<
   }: {
     renderingScope: BitmapCoordinatesRenderingScope
     bars: readonly BarItem[]
-    visibleRange: Range<number>
+    visibleRange: IRange<number>
   }): void {
     if (this._data === null || this._options === null) {
       return
@@ -126,7 +126,7 @@ export class RoundedCandleSeriesRenderer<
   }: {
     renderingScope: BitmapCoordinatesRenderingScope
     bars: readonly BarItem[]
-    visibleRange: Range<number>
+    visibleRange: IRange<number>
     radius: number
   }): void {
     if (this._data === null || this._options === null) {

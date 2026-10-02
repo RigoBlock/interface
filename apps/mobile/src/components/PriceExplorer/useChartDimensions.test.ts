@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react-native'
+import { HEIGHT_BREAKPOINT_PX } from '@universe/mycelium/theme-hooks-compat'
 import { Dimensions } from 'react-native'
 import { useChartDimensions } from 'src/components/PriceExplorer/useChartDimensions'
-import { heightBreakpoints } from 'ui/src/theme'
 
 const sharedDimensions = {
   height: 1000,
@@ -12,26 +12,22 @@ const sharedDimensions = {
 
 describe(useChartDimensions, () => {
   it('returns small chart height for small screens', () => {
-    jest.spyOn(Dimensions, 'get').mockReturnValue({ ...sharedDimensions, height: heightBreakpoints.short - 1 })
+    vi.spyOn(Dimensions, 'get').mockReturnValue({ ...sharedDimensions, height: HEIGHT_BREAKPOINT_PX.short - 1 })
     const { result } = renderHook(() => useChartDimensions())
 
     expect(result.current).toEqual({
       chartHeight: 130,
       chartWidth: 1000,
-      buttonWidth: expect.any(Number),
-      labelWidth: expect.any(Number),
     })
   })
 
   it('returns large chart height for large screens', () => {
-    jest.spyOn(Dimensions, 'get').mockReturnValue({ ...sharedDimensions, height: heightBreakpoints.short })
+    vi.spyOn(Dimensions, 'get').mockReturnValue({ ...sharedDimensions, height: HEIGHT_BREAKPOINT_PX.short })
     const { result } = renderHook(() => useChartDimensions())
 
     expect(result.current).toEqual({
       chartHeight: 215,
       chartWidth: 1000,
-      buttonWidth: expect.any(Number),
-      labelWidth: expect.any(Number),
     })
   })
 })

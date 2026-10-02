@@ -1,5 +1,5 @@
 import { Currency } from '@uniswap/sdk-core'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { WrapType } from 'uniswap/src/features/transactions/types/wrap'
 import { areCurrencyIdsEqual, buildWrappedNativeCurrencyId, currencyId } from 'uniswap/src/utils/currencyId'
 

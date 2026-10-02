@@ -1,10 +1,13 @@
-// oxlint-disable-next-line no-restricted-imports -- until the web app needs all of tamagui, avoid heavy imports there
-import { SpaceTokens } from '@tamagui/core'
+import type { SpaceTokens } from '@universe/mycelium'
+import { Flex } from '@universe/mycelium'
 import { PropsWithChildren } from 'react'
-import { Flex } from 'ui/src/components/layout/Flex'
-
 interface InsetProps {
-  /** applies consistent padding to each side */
+  /**
+   * applies consistent padding to each side
+   *
+   * `$`-tokens only. Mycelium's SpaceTokens is the `$`-token half of tamagui's, which also
+   * admitted raw numbers, so `all={12}` is rejected by design rather than by oversight.
+   */
   all?: SpaceTokens
 }
 

@@ -1,10 +1,11 @@
 import { useMutation } from '@tanstack/react-query'
+import { Button, Flex, inputStyles, Text } from '@universe/mycelium'
+import { Lock } from '@universe/mycelium/icons/Lock'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PasswordInputWithBiometrics } from 'src/app/components/PasswordInput'
 import { reauthenticateWithBiometricCredential } from 'src/app/features/biometricUnlock/useUnlockWithBiometricCredentialMutation'
-import { Button, Flex, inputStyles, Square, Text, useSporeColors } from 'ui/src'
-import { Lock } from 'ui/src/components/icons'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { Keyring } from 'wallet/src/features/wallet/Keyring/Keyring'
@@ -63,9 +64,20 @@ export function EnterPasswordModal({
       onClose={onClose}
     >
       <Flex centered gap="$spacing12" pt="$spacing20">
-        <Square backgroundColor="$surface2" borderRadius="$rounded12" size="$spacing48">
+        {/* Legacy Square's `size` variant maps one value onto width/height and their min/max twins. */}
+        <Flex
+          centered
+          backgroundColor="$surface2"
+          borderRadius="$rounded12"
+          width="$spacing48"
+          height="$spacing48"
+          minWidth="$spacing48"
+          maxWidth="$spacing48"
+          minHeight="$spacing48"
+          maxHeight="$spacing48"
+        >
           <Lock color="$neutral1" size="$icon.24" />
-        </Square>
+        </Flex>
 
         <Text py="$spacing4" textAlign="center" variant="subheading2">
           {t('extension.passwordPrompt.title')}
@@ -91,7 +103,7 @@ export function EnterPasswordModal({
         </Text>
 
         <Flex row width="100%">
-          <Button size="medium" isDisabled={!password.length} emphasis="primary" onPress={checkPassword}>
+          <Button size="medium" disabled={!password.length} emphasis="primary" onPress={checkPassword}>
             {t('common.button.continue')}
           </Button>
         </Flex>
