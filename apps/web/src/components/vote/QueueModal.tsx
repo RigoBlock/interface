@@ -1,8 +1,8 @@
-import { useTheme } from 'tamagui'
+import { Flex } from '@universe/mycelium'
 import { useState } from 'react'
 import { ArrowUpCircle, X } from 'react-feather'
 import { Trans } from 'react-i18next'
-import { Flex } from 'ui/src'
+import { useSporeColors } from 'ui/src'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
@@ -53,7 +53,7 @@ export default function QueueModal({ isOpen, onDismiss, proposalId }: QueueModal
   const [attempting, setAttempting] = useState<boolean>(false)
 
   // get theme for colors
-  const theme = useTheme()
+  const colors = useSporeColors()
 
   // wrapper to reset state on modal close
   function wrappedOnDismiss() {
@@ -128,7 +128,7 @@ export default function QueueModal({ isOpen, onDismiss, proposalId }: QueueModal
             <StyledClosed onClick={wrappedOnDismiss} />
           </RowBetween>
           <ConfirmedIcon>
-            <ArrowUpCircle strokeWidth={0.5} size={90} color={theme.accent1.get()} />
+            <ArrowUpCircle strokeWidth={0.5} size={90} color={colors.accent1.val} />
           </ConfirmedIcon>
           <AutoColumn gap="100px" justify="center">
             <AutoColumn gap="md" justify="center">

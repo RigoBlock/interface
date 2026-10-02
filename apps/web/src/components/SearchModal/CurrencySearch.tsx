@@ -17,7 +17,7 @@ import { useActiveSmartPool } from '~/state/application/hooks'
 import { useMultichainContext } from '~/state/multichain/useMultichainContext'
 import { SwitchNetworkAction } from '~/state/popups/types'
 import { showSwitchNetworkNotification } from '~/utils/showSwitchNetworkNotification'
-import { assume0xAddress } from '~/utils/wagmi'
+import { assume0xAddress } from '~/chains'
 
 interface CurrencySearchProps {
   currencyField: CurrencyField

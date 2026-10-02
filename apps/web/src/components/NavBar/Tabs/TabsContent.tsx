@@ -1,5 +1,4 @@
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-import { ChartBar } from '@universe/mycelium/icons/ChartBar'
 import { CoinConvert } from '@universe/mycelium/icons/CoinConvert'
 import { Compass } from '@universe/mycelium/icons/Compass'
 import { CreditCard } from '@universe/mycelium/icons/CreditCard'
@@ -7,10 +6,10 @@ import { Pools } from '@universe/mycelium/icons/Pools'
 import { ReceiveAlt } from '@universe/mycelium/icons/ReceiveAlt'
 import { Wallet } from '@universe/mycelium/icons/Wallet'
 import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
+import { Swap } from '@universe/mycelium/icons'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
-import { SwapV2 } from '~/components/Icons/SwapV2'
 import { MenuItem } from '~/components/NavBar/CompanyMenu/Content'
 import { PageType } from '~/hooks/useIsPage'
 import { ADD_LIQUIDITY_PATH } from '~/pages/AddLiquidity/poolLinkParams'
@@ -79,7 +78,7 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
           ? [
               {
                 label: t('common.swap'),
-                icon: <SwapV2 fill={colors.neutral2.val} />,
+                icon: <Swap fill={colors.neutral2.val} />,
                 href: '/swap',
                 internal: true,
                 elementName: ElementName.NavbarTradeDropdownSwap,

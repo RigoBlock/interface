@@ -1,9 +1,8 @@
 import { useCallback, useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { Button, Flex, Text } from 'ui/src'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { areAddressesEqual } from 'uniswap/src/utils/addresses'
-import Loader from '~/components/Icons/LoadingSpinner'
+import { Button, SpinningLoader } from 'ui/src'
+import { Flex, Text } from '@universe/mycelium'
+import { UniverseChainId, areAddressesEqual } from '@universe/chains'
 import { ChainLogo } from '~/components/Logo/ChainLogo'
 import { useAccount } from '~/hooks/useAccount'
 import { useSmartPoolFromAddress } from '~/hooks/useSmartPools'
@@ -197,7 +196,7 @@ export function HyperliquidPerpsSection(): JSX.Element {
 
       {isLoading ? (
         <Flex centered padding="$spacing24">
-          <Loader />
+          <SpinningLoader size={16} color="$accent1" />
         </Flex>
       ) : isError ? (
         <Flex

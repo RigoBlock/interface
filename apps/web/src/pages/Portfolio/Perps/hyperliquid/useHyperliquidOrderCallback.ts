@@ -4,14 +4,14 @@ import { Contract } from '@ethersproject/contracts'
 import { TransactionResponse } from '@ethersproject/providers'
 import { useCallback, useMemo } from 'react'
 import { HL_MIN_ORDER_USD, HL_SPOT_USDC_SYSTEM_ADDRESS, HL_USDC_TOKEN_INDEX } from 'uniswap/src/features/chains/evm/info/hyperevm'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { logger } from 'utilities/src/logger/logger'
 import { getConnectorClient } from 'wagmi/actions'
-import { wagmiConfig } from '~/components/Web3Provider/wagmiConfig'
+import { wagmiConfig } from '~/connection/wagmiConfig'
 import { useAccount } from '~/hooks/useAccount'
 import { clientToProvider } from '~/hooks/useEthersProvider'
-import useSelectChain from '~/hooks/useSelectChain'
+import { useSelectChain } from '~/hooks/useSelectChain'
 import { fetchHlAllMids } from '~/pages/Portfolio/Perps/hyperliquid/hyperliquidApi'
 import {
   buildLimitOrderAction,
@@ -111,7 +111,7 @@ export function useHyperliquidOrderCallback(poolAddress?: string): {
 
       const estimatedGasLimit = (await hyperliquidContract.estimateGas[functionName](...args)) as BigNumber
       const response = (await hyperliquidContract[functionName](...args, {
-        gasLimit: calculateGasMargin(estimatedGasLimit),
+        gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
       })) as TransactionResponse
 
       addTransaction(response, {

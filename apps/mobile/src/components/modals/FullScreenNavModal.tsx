@@ -2,7 +2,6 @@ import React, { PropsWithChildren } from 'react'
 import { useDispatch } from 'react-redux'
 import { closeModal } from 'src/features/modals/modalSlice'
 import { ModalsState } from 'src/features/modals/ModalsState'
-import { useSporeColors } from 'ui/src'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalProps } from 'uniswap/src/components/modals/ModalProps'
 
@@ -19,7 +18,6 @@ export function FullScreenNavModal({
     name: keyof ModalsState
   } & ModalProps
 >): JSX.Element {
-  const colors = useSporeColors()
   const dispatch = useDispatch()
 
   const onClose = (): void => {
@@ -33,7 +31,6 @@ export function FullScreenNavModal({
       hideKeyboardOnDismiss
       renderBehindBottomInset
       renderBehindTopInset
-      backgroundColor={colors.surface1.val}
       hideHandlebar={true}
       name={name}
       onClose={onClose}

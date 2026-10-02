@@ -1,6 +1,6 @@
 import { CurrencyAmount } from '@uniswap/sdk-core'
 import { createContext, useContext } from 'react'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { usePortfolioStaking, StakingData } from '~/pages/Portfolio/hooks/usePortfolioStaking'
 
 export interface PortfolioStakingContextValue {

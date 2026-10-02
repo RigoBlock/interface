@@ -12,7 +12,9 @@ import { ORDERED_EVM_CHAINS } from 'uniswap/src/features/chains/chainInfo'
 const HIDDEN_LAUNCH_CHAINS: UniverseChainId[] = [UniverseChainId.XLayer]
 
 const launchSupportedChains: UniverseChainId[] = ORDERED_EVM_CHAINS.map((chain) => chain.id).filter(
-  (id) => isLaunchSupportedChain(id) && !HIDDEN_LAUNCH_CHAINS.includes(id),
+  // Order matters: `isLaunchSupportedChain` narrows `id` to the SDK's nominal `SupportedChainId`
+  // enum, which `UniverseChainId[].includes` won't accept — check the hidden list first.
+  (id) => !HIDDEN_LAUNCH_CHAINS.includes(id) && isLaunchSupportedChain(id),
 )
 
 /**

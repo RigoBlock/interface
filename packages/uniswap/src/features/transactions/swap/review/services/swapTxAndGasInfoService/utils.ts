@@ -320,7 +320,7 @@ export function createProcessSwapResponse({
         response,
         swapRequestParams,
         permitsDontNeedSignature,
-        originalTxCount: response?.transactions.length,
+        originalTxCount: response?.transactions?.length,
         filteredTxCount: finalTxRequests?.length,
       })
     }

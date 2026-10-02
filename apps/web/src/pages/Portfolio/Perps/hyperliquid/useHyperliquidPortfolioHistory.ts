@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { ChartPeriod } from '@uniswap/client-data-api/dist/data/v1/api_pb'
 import { useMemo } from 'react'
-import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
+import { normalizeTokenAddressForCache } from 'uniswap/src/utils/currencyId'
 import {
   fetchHlCandles,
   hlInfoApi,

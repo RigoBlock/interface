@@ -344,7 +344,7 @@ describe('queryAcrossRelayerGasFee', () => {
 
     await queryAcrossRelayerGasFee({ originChainId: 42161, calldata })
 
-    const fetchUrl = new URL((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0])
+    const fetchUrl = new URL(vi.mocked(globalThis.fetch).mock.calls[0][0])
     expect(fetchUrl.searchParams.get('inputToken')).toBe('0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9')
     expect(fetchUrl.searchParams.get('outputToken')).toBe('0x55d398326f99059fF775485246999027B3197955')
     expect(fetchUrl.searchParams.get('originChainId')).toBe('42161')
@@ -373,7 +373,7 @@ describe('queryAcrossRelayerGasFee', () => {
       recipient: '0xAC537C12FE8F544D712D71ED4376A502EEA944D7',
     })
 
-    const fetchUrl = new URL((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0])
+    const fetchUrl = new URL(vi.mocked(globalThis.fetch).mock.calls[0][0])
     expect(fetchUrl.searchParams.get('message')).toBe('0xexpandedmessage')
     expect(fetchUrl.searchParams.get('recipient')).toBe('0xAC537C12FE8F544D712D71ED4376A502EEA944D7')
   })

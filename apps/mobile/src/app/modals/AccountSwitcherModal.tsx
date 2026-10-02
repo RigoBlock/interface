@@ -12,7 +12,7 @@ import { checkCloudBackupOrShowAlert } from 'src/components/mnemonic/cloudImport
 import { useReactNavigationModal } from 'src/components/modals/useReactNavigationModal'
 import { WalletRestoreType } from 'src/components/RestoreWalletModal/RestoreWalletModalState'
 import { useWalletRestore } from 'src/features/wallet/useWalletRestore'
-import { Button, useSporeColors } from 'ui/src'
+import { Button } from 'ui/src'
 import { useDeviceDimensions } from 'ui/src/hooks/useDeviceDimensions'
 import { spacing } from 'ui/src/theme'
 import { AddressDisplay } from 'uniswap/src/components/accounts/AddressDisplay'
@@ -35,11 +35,10 @@ import { selectAllAccountsSorted, selectSortedSignerMnemonicAccounts } from 'wal
 import { setAccountAsActive } from 'wallet/src/features/wallet/slice'
 
 export function AccountSwitcherModal(): JSX.Element {
-  const colors = useSporeColors()
   const { onClose } = useReactNavigationModal()
 
   return (
-    <Modal backgroundColor={colors.surface1.val} name={ModalName.AccountSwitcher} onClose={onClose}>
+    <Modal name={ModalName.AccountSwitcher} onClose={onClose}>
       <Flex backgroundColor="$surface1">
         <AccountSwitcher onClose={onClose} />
       </Flex>

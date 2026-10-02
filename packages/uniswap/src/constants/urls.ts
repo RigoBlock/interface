@@ -2,6 +2,7 @@ import {
   createHelpArticleUrl,
   DEV_ENTRY_GATEWAY_API_BASE_URL,
   getCloudflareApiBaseUrl,
+  getCloudflarePrefix,
   getRbCloudflareApiBaseUrl,
   helpUrl,
   PROD_ENTRY_GATEWAY_API_BASE_URL,
@@ -286,6 +287,10 @@ export function getUniswapServiceUrls(overrides: UniswapUrlOverrides): UniswapSe
       (isWebApp ? '/config' : getCloudflareApiBaseUrl({ flow: TrafficFlows.Gating, postfix: 'v1/statsig-proxy' })),
 
     // Trading traffic routes through the RigoBlock gateway; x-api-key still applies and is forwarded through.
-    tradingApiUrl: overrides.tradingApiUrlOverride || getRbCloudflareApiBaseUrl(TrafficFlows.TradingApi),
+    // RigoBlock: `TrafficFlows.TradingApi` was dropped from @universe/api in the upstream sync; this is the
+    // previous `getRbCloudflareApiBaseUrl(TrafficFlows.TradingApi)` expanded — the flow only prefixes the host.
+    tradingApiUrl:
+      overrides.tradingApiUrlOverride ||
+      `https://trading-api-labs.${getCloudflarePrefix()}.gateway.rigoblock.com`,
   }
 }

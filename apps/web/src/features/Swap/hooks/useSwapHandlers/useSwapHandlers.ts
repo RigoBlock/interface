@@ -15,8 +15,8 @@ import {
 import type { WrapSwapTxAndGasInfo } from 'uniswap/src/features/transactions/swap/types/swapTxAndGasInfo'
 import { isWrap } from 'uniswap/src/features/transactions/swap/utils/routing'
 import { WrapType } from 'uniswap/src/features/transactions/types/wrap'
+import { useSwapCallback } from '~/features/Swap/hooks/useSwapHandlers/useSwapSagaCallback'
 import { useActiveSmartPool } from '~/state/application/hooks'
-import { useSwapCallback } from '~/state/sagas/transactions/swapSaga'
 import { useWrapCallback } from '~/state/sagas/transactions/wrapSaga'
 
 /**

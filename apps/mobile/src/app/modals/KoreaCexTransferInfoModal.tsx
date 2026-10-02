@@ -3,7 +3,7 @@ import React, { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useReactNavigationModal } from 'src/components/modals/useReactNavigationModal'
 import { useOpenReceiveModal } from 'src/features/modals/hooks/useOpenReceiveModal'
-import { Button, Image, useIsDarkMode, useSporeColors } from 'ui/src'
+import { Button, Image, useIsDarkMode } from 'ui/src'
 import { CEX_TRANSFER_MODAL_BG_DARK, CEX_TRANSFER_MODAL_BG_LIGHT } from 'ui/src/assets'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
@@ -13,7 +13,6 @@ import { openUri } from 'uniswap/src/utils/linking'
 const BG_IMAGE_MAX_HEIGHT = 80
 
 export function KoreaCexTransferInfoModal(): JSX.Element {
-  const color = useSporeColors()
   const { t } = useTranslation()
   const isDarkMode = useIsDarkMode()
   const { onClose } = useReactNavigationModal()
@@ -25,7 +24,7 @@ export function KoreaCexTransferInfoModal(): JSX.Element {
   }, [onClose, openReceiveModal])
 
   return (
-    <Modal backgroundColor={color.surface1.val} name={ModalName.KoreaCexTransferInfoModal} onClose={onClose}>
+    <Modal name={ModalName.KoreaCexTransferInfoModal} onClose={onClose}>
       <Flex gap="$spacing16" p="$spacing24">
         <Flex alignItems="center" maxHeight={BG_IMAGE_MAX_HEIGHT}>
           <Image

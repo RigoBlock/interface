@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { BigNumber } from '@ethersproject/bignumber'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { logger } from 'utilities/src/logger/logger'
 import { HYPERLIQUID_BRIDGE_USDC } from '~/pages/Portfolio/Perps/hyperliquid/hyperliquidBridgeConfig'
 

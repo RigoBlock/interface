@@ -208,6 +208,7 @@ describe('PortfolioPools', () => {
       chainId: undefined,
       externalAddress: undefined,
       isExternalWallet: false,
+      hasExplicitUrlAddress: false,
     })
     mocked(useFeatureFlag).mockReturnValue(false)
     mocked(useFeatureFlagWithExposureLoggingDisabled).mockReturnValue(false)
@@ -314,6 +315,7 @@ describe('PortfolioPools', () => {
       chainId: UniverseChainId.Base,
       externalAddress: undefined,
       isExternalWallet: false,
+      hasExplicitUrlAddress: false,
     })
 
     render(<PortfolioPools />)
@@ -336,6 +338,7 @@ describe('PortfolioPools', () => {
       chainId: UniverseChainId.Base,
       externalAddress: undefined,
       isExternalWallet: false,
+      hasExplicitUrlAddress: false,
     })
     mocked(useWalletPositionsWeb).mockReturnValue(createWalletPositionsResult({ visiblePositions: [MOCK_POSITION] }))
     mockTotalPoolsCount(1)
@@ -399,6 +402,7 @@ describe('PortfolioPools', () => {
         chainId: UniverseChainId.Base,
         externalAddress: undefined,
         isExternalWallet: false,
+        hasExplicitUrlAddress: false,
       })
       mocked(useWalletPositionsWeb).mockReturnValue(
         createWalletPositionsResult({ visiblePositions: [], hiddenPositions: [] }),

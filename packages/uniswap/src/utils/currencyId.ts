@@ -19,6 +19,7 @@ import { DEFAULT_NATIVE_ADDRESS, DEFAULT_NATIVE_ADDRESS_LEGACY } from 'uniswap/s
 import { DEFAULT_NATIVE_ADDRESS_SOLANA } from 'uniswap/src/features/chains/svm/defaults'
 import { isUniverseChainId, toSupportedChainId } from 'uniswap/src/features/chains/utils'
 import { CurrencyId } from 'uniswap/src/types/currency'
+export { normalizeTokenAddressForCache } from '@universe/chains'
 export function currencyId(tradeableAsset: TradeableAsset): CurrencyId
 export function currencyId(currency: Currency): CurrencyId
 export function currencyId(currency: Currency | undefined): CurrencyId | undefined

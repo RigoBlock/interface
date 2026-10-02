@@ -1,11 +1,11 @@
 import { Trans } from 'react-i18next'
-import { Checkmark } from 'ui/src/components/icons/Checkmark'
+import { Check } from 'ui/src/components/icons/Check'
 import { CopySheets } from 'ui/src/components/icons/CopySheets'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
 import { shortenAddress } from 'utilities/src/addresses'
+import { useCopyClipboard } from 'utilities/src/react/useCopyClipboard'
 import { LightCard } from '~/components/Card/cards'
 import { AutoColumn } from '~/components/deprecated/Column'
-import useCopyClipboard from '~/hooks/useCopyClipboard'
 import styled from '~/lib/deprecated-styled'
 import { ExternalLink } from '~/theme/components/Links'
 
@@ -54,7 +54,7 @@ function AddressCard({
   }
 
   return (
-    <LightCard padding="12px ">
+    <LightCard padding="12px">
       <AutoColumn gap="md">
         <ExtentsText>
           <Trans>{label}</Trans>
@@ -70,7 +70,7 @@ function AddressCard({
               </ExternalLink>
               <CopyButton onClick={() => copy(address)} aria-label="Copy address">
                 {isCopied ? (
-                  <Checkmark size="$icon.16" color="$statusSuccess" />
+                  <Check size="$icon.16" color="$statusSuccess" />
                 ) : (
                   <CopySheets size="$icon.16" color="$neutral2" />
                 )}

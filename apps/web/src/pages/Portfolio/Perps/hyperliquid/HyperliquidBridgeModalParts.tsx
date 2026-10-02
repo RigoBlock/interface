@@ -1,14 +1,14 @@
 import { BigNumber } from '@ethersproject/bignumber'
 import { formatUnits } from '@ethersproject/units'
 import { Trans, useTranslation } from 'react-i18next'
-import { Flex, Text } from 'ui/src'
+import { Flex, Text } from '@universe/mycelium'
 import { LoadingView, SubmittedView } from '~/components/ModalViews'
 import { ChainPill } from '~/components/ChainPill'
 import { ChainLogo } from '~/components/Logo/ChainLogo'
 import { HYPERLIQUID_BRIDGE_EVM_CHAINS } from '~/pages/Portfolio/Perps/hyperliquid/hyperliquidBridgeConfig'
 import type { HyperliquidBridgeQuote } from '~/pages/Portfolio/Perps/hyperliquid/useHyperliquidBridgeQuote'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { ON_CHAIN_MAX_BRIDGE_FEE_BPS } from '~/state/sagas/transactions/bridgeCalldata'
 
 /** Safety margin under the on-chain 2% cap: fees above 1.5% leave no room for solver compensation. */

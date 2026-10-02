@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { Button, Flex, Input, SegmentedControl, Text } from 'ui/src'
+import { Button, Input } from 'ui/src'
+import { Flex, Text } from '@universe/mycelium'
+import { SegmentedControl } from '@universe/mycelium/segmented-control-compat'
 import { HL_MIN_ORDER_USD } from 'uniswap/src/features/chains/evm/info/hyperevm'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
@@ -231,7 +233,7 @@ export function HyperliquidOrderModal({
           <Button
             variant="branded"
             size="medium"
-            isDisabled={!canSubmit}
+            disabled={!canSubmit}
             onPress={() => {
               setErrorReason(undefined)
               onSubmit()

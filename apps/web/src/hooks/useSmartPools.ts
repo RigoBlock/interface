@@ -7,7 +7,7 @@ import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
 import { useReadContract, useReadContracts } from 'wagmi'
 // TODO: remove duplicate method definition and reorg code
 import { usePoolExtendedContract, usePoolFactoryContract } from '~/state/pool/hooks'
-import { assume0xAddress } from '~/utils/wagmi'
+import { assume0xAddress } from '~/chains'
 
 interface PoolInitParams {
   name: string

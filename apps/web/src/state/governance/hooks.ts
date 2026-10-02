@@ -15,7 +15,7 @@ import STAKING_ABI from 'uniswap/src/abis/staking-impl.json'
 import STAKING_PROXY_ABI from 'uniswap/src/abis/staking-proxy.json'
 import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
 import { GRG } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import type { Abi } from 'viem'
 import { useReadContract, useReadContracts } from 'wagmi'
@@ -27,7 +27,7 @@ import { VoteOption } from '~/state/governance/types'
 import { useLogs } from '~/state/logs/hooks'
 import { useTransactionAdder } from '~/state/transactions/hooks'
 import { calculateGasMargin } from '~/utils/calculateGasMargin'
-import { assume0xAddress } from '~/utils/wagmi'
+import { assume0xAddress } from '~/chains'
 
 function useGovernanceProxyContract(): Contract | null {
   const { chainId } = useAccount()
@@ -781,7 +781,7 @@ export function useDelegateCallback(): (stakeData: StakeData | undefined) => und
         return stakingProxy
           .batchExecute(...args, {
             value: null,
-            gasLimit: calculateGasMargin(estimatedGasLimit),
+            gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
           })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
@@ -822,7 +822,7 @@ export function useDelegatePoolCallback(): (stakeData: StakeData | undefined) =>
         return poolInstance
           .stake(...args, {
             value: null,
-            gasLimit: calculateGasMargin(estimatedGasLimit),
+            gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
           })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
@@ -906,7 +906,7 @@ export function useMoveStakeCallback(): (stakeData: StakeData | undefined) => un
         return stakingProxy
           .batchExecute(...args, {
             value: null,
-            gasLimit: calculateGasMargin(estimatedGasLimit),
+            gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
           })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
@@ -967,7 +967,7 @@ export function useDeactivateStakeCallback(): (stakeData: StakeData | undefined)
           return poolInstance
             .undelegateStake(...args, {
               value: null,
-              gasLimit: calculateGasMargin(estimatedGasLimit),
+              gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
             })
             .then((response: TransactionResponse) => {
               // TODO: add more transaction types in store
@@ -983,7 +983,7 @@ export function useDeactivateStakeCallback(): (stakeData: StakeData | undefined)
         return stakingProxy
           .batchExecute(...args, {
             value: null,
-            gasLimit: calculateGasMargin(estimatedGasLimit),
+            gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
           })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
@@ -1016,7 +1016,7 @@ export function useVoteCallback(): (
         return latestGovernanceContract
           .castVote(...args, {
             value: null,
-            gasLimit: calculateGasMargin(estimatedGasLimit),
+            gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
           })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
@@ -1046,7 +1046,7 @@ export function useQueueCallback(): (proposalId: string | undefined) => undefine
         return latestGovernanceContract
           .queue(...args, {
             value: null,
-            gasLimit: calculateGasMargin(estimatedGasLimit),
+            gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
           })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
@@ -1076,7 +1076,7 @@ export function useExecuteCallback(): (proposalId: string | undefined) => undefi
         return latestGovernanceContract
           .execute(...args, {
             value: null,
-            gasLimit: calculateGasMargin(estimatedGasLimit),
+            gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
           })
           .then((response: TransactionResponse) => {
             addTransaction(response, {
@@ -1115,7 +1115,7 @@ export function useCreateProposalCallback(): (
       return latestGovernanceContract.estimateGas.propose(...args).then((estimatedGasLimit) => {
         return latestGovernanceContract
           .propose(...args, {
-            gasLimit: calculateGasMargin(estimatedGasLimit),
+            gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
           })
           .then((response: TransactionResponse) => {
             addTransaction(response, {

@@ -20,7 +20,7 @@ import { StakeStatus, useStakingContract, useStakingProxyContract } from '~/stat
 import { usePoolExtendedContract } from '~/state/pool/hooks'
 import { useTransactionAdder } from '~/state/transactions/hooks'
 import { calculateGasMargin } from '~/utils/calculateGasMargin'
-import { assume0xAddress } from '~/utils/wagmi'
+import { assume0xAddress } from '~/chains'
 
 export function useFreeStakeBalance(isDelegateFreeStake?: boolean, chainId?: number): CurrencyAmount<Token> | undefined {
   const account = useAccount()
@@ -296,7 +296,7 @@ export function useUnstakeCallback(chainId?: number): (amount: CurrencyAmount<To
           const estimatedGasLimit = await stakingContract.estimateGas.unstake(amount.quotient.toString(), {}) as BigNumber
           const response = await stakingContract.unstake(amount.quotient.toString(), {
             value: null,
-            gasLimit: calculateGasMargin(estimatedGasLimit),
+            gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
           }) as TransactionResponse
           addTransaction(response, {
             type: TransactionType.ClaimUni,
@@ -312,7 +312,7 @@ export function useUnstakeCallback(chainId?: number): (amount: CurrencyAmount<To
           const estimatedGasLimit = await poolContract.estimateGas.unstake(amount.quotient.toString(), {}) as BigNumber
           const response = await poolContract.unstake(amount.quotient.toString(), {
             value: null,
-            gasLimit: calculateGasMargin(estimatedGasLimit),
+            gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
           }) as TransactionResponse
           addTransaction(response, {
             type: TransactionType.ClaimUni,
@@ -374,7 +374,7 @@ export function useHarvestCallback({
             const estimatedGasLimit = await stakingProxy.estimateGas.batchExecute(harvestCalls, {}) as BigNumber
             const response = await stakingProxy.batchExecute(harvestCalls, {
               value: null,
-              gasLimit: calculateGasMargin(estimatedGasLimit),
+              gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
             }) as TransactionResponse
             addTransaction(response, {
               type: TransactionType.ClaimUni,
@@ -390,7 +390,7 @@ export function useHarvestCallback({
             const estimatedGasLimit = await poolContract.estimateGas.withdrawDelegatorRewards({}) as BigNumber
             const response = await poolContract.withdrawDelegatorRewards({
               value: null,
-              gasLimit: calculateGasMargin(estimatedGasLimit),
+              gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
             }) as TransactionResponse
             addTransaction(response, {
               type: TransactionType.ClaimUni,
@@ -434,7 +434,7 @@ export function useRaceCallback(): (poolAddress: string | undefined) => undefine
         const estimatedGasLimit = await popContract.estimateGas.creditPopRewardToStakingProxy(poolAddress, {}) as BigNumber
         const response = await popContract.creditPopRewardToStakingProxy(poolAddress, {
           value: null,
-          gasLimit: calculateGasMargin(estimatedGasLimit),
+          gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
         }) as TransactionResponse
         addTransaction(response, {
           type: TransactionType.ClaimUni,

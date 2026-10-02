@@ -5,8 +5,13 @@ import i18n from 'uniswap/src/i18n'
 import { AutoColumn } from '~/components/deprecated/Column'
 import { RowBetween } from '~/components/deprecated/Row'
 import styled from '~/lib/deprecated-styled'
-import { ThemedText } from '~/theme/components/text'
 import { flexColumnNoWrap } from '~/theme/styles'
+
+// Local replacement for the deleted ThemedText.DeprecatedBlack (rebass-based) preset.
+const StyledLabel = styled.span`
+  font-weight: 485;
+  letter-spacing: -0.01em;
+`
 
 const InputPanel = styled.div`
   ${flexColumnNoWrap};
@@ -105,9 +110,9 @@ export default function NameInputPanel({
         <InputContainer>
           <AutoColumn gap="md">
             <RowBetween>
-              <ThemedText.DeprecatedBlack color={theme.neutral2.get()} fontWeight={500} fontSize={14}>
+              <StyledLabel style={{ color: theme.neutral2?.get(), fontWeight: 500, fontSize: 14 }}>
                 {label ?? <Trans>Pool Name</Trans>}
-              </ThemedText.DeprecatedBlack>
+              </StyledLabel>
             </RowBetween>
             <Input
               className={className}

@@ -1,9 +1,9 @@
 import { useMemo } from 'react'
 import { USDC_HYPEREVM } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { erc20Abi } from 'viem'
 import { useReadContract } from 'wagmi'
-import { assume0xAddress } from '~/utils/wagmi'
+import { assume0xAddress } from '~/chains'
 
 const HL_USDC_BALANCE_POLLING_INTERVAL_MS = 15_000
 /** Native USDC on HyperEVM has 6 decimals. */

@@ -1,6 +1,7 @@
 import '~/components/Loader/Loader.css'
 import { styled, type StyledComponent } from '@universe/mycelium/styled'
 import type { ComponentPropsWithoutRef } from 'react'
+import { css } from '~/lib/deprecated-styled'
 
 const LOADING_ROWS_VARIANTS = {} as const
 
@@ -35,6 +36,15 @@ export const LoadingOpacityContainer: StyledComponent<'div', typeof LOADING_OPAC
   platform: 'web',
   variants: LOADING_OPACITY_VARIANTS,
 })
+
+// styled-components variant of the $loading opacity treatment above, for
+// wrapping legacy styled-components inputs that cannot use the mycelium container.
+export const loadingOpacityMixin = css<{ $loading: boolean }>`
+  filter: ${({ $loading }) => ($loading ? 'grayscale(1)' : 'none')};
+  opacity: ${({ $loading }) => ($loading ? '0.6' : '1')};
+  transition: ${({ $loading, theme }) =>
+    $loading ? 'none' : `opacity ${theme.transition.duration.medium} ${theme.transition.timing.inOut}`};
+`
 
 const LOADING_FULLSCREEN_VARIANTS = {} as const
 

@@ -169,15 +169,11 @@ export function SendReviewModalInner({ onConfirm, isConfirming, hasError }: Send
                   </DynamicSizeText>
                 </Flex>
               ) : (
-                <ThemedText.HeadlineLarge>
-                  {shortenAddress({ address: recipientData?.address })}
-                </ThemedText.HeadlineLarge>
+                shortenAddress({ address: recipientData?.address })
               )
             }
             subheader={
-              (recipientData?.unitag || recipientData?.ensName) && (
-                <ThemedText.BodySmall>{shortenAddress({ address: recipientData.address })}</ThemedText.BodySmall>
-              )
+              (recipientData?.unitag || recipientData?.ensName) && shortenAddress({ address: recipientData.address })
             }
             image={<AccountIcon address={recipientData?.address} size={36} />}
           />

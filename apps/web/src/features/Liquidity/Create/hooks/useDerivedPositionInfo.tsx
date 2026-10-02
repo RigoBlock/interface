@@ -5,10 +5,10 @@ import { PoolInfoRequest } from '@uniswap/client-liquidity/dist/uniswap/liquidit
 import { PoolParameters } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v1/types_pb'
 import { Currency } from '@uniswap/sdk-core'
 import { FeeAmount } from '@uniswap/v3-sdk'
+import { EVMUniverseChainId } from '@universe/chains'
 import { useEffect, useMemo } from 'react'
 import { PollingInterval } from 'uniswap/src/constants/misc'
 import { liquidityQueries } from 'uniswap/src/data/apiClients/liquidityService/liquidityQueries'
-import { EVMUniverseChainId } from 'uniswap/src/features/chains/types'
 import { getSDKPoolFromPoolInformation } from 'uniswap/src/features/positions/getSDKPoolFromPoolInformation'
 import { DYNAMIC_FEE_DATA } from 'uniswap/src/features/positions/types'
 import { getWrappedTokenIfExists } from 'uniswap/src/utils/currency'
@@ -206,7 +206,7 @@ export function useDerivedPositionInfo(
     if (poolOrPair) {
       return getSDKPoolFromPoolInformation({ poolOrPair, token0: wrappedToken0, token1: wrappedToken1, protocolVersion })
     }
-    return v3PoolExistsOnChain ? v3OnChainPool?.[1] : undefined
+    return v3PoolExistsOnChain ? (v3OnChainPool?.[1] ?? undefined) : undefined
   }, [protocolVersion, poolOrPair, wrappedToken0, wrappedToken1, v3PoolExistsOnChain, v3OnChainPool])
   // v4 holds native and wrapped native as distinct currencies, so its pool follows the displayed legs.
   const v4Pool = useMemo(

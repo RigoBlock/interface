@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
-import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { normalizeTokenAddressForCache } from 'uniswap/src/utils/currencyId'
+import { UniverseChainId } from '@universe/chains'
 
 /** GMX v2 is only deployed on Arbitrum */
 export const GMX_CHAIN_ID = UniverseChainId.ArbitrumOne

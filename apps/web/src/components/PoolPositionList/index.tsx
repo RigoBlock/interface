@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Trans } from 'react-i18next'
 import InfiniteScroll from 'react-infinite-scroll-component'
-import { Flex, Text } from 'ui/src'
+import { Flex, Text } from '@universe/mycelium'
 import Loader from '~/components/Icons/LoadingSpinner'
 import PoolPositionGroupedListItem from '~/components/PoolPositionGroupedListItem'
 import { useAccount } from '~/hooks/useAccount'
@@ -130,7 +130,7 @@ export default function PoolPositionList({
       return null
     }
 
-    const groups = new Map<string, any[]>()
+    const groups = new Map<string, (typeof displayPools)[number][]>()
     for (const p of displayPools) {
       // Group by pool address to match the pagination grouping above.
       const key = (p.pool || '').toLowerCase()

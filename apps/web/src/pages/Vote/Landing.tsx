@@ -1,10 +1,10 @@
-import { useTheme } from 'tamagui'
 import JSBI from 'jsbi'
 import { darken } from 'polished'
 import { useState } from 'react'
 import { Trans } from 'react-i18next'
 import { Link } from 'react-router'
 import { Button } from 'rebass/styled-components'
+import { useSporeColors } from 'ui/src'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { InterfacePageName, ModalName } from 'uniswap/src/features/telemetry/constants'
@@ -100,7 +100,7 @@ const Header = styled(ThemedText.H1Small)`
 
 export default function Landing() {
   const { isOpen, closeModal, toggleModal: toggleDelegateModal } = useModalState(ModalName.Delegate)
-  const theme = useTheme()
+  const colors = useSporeColors()
   const account = useAccount()
 
   const [hideCancelled, setHideCancelled] = useState(true)
@@ -159,7 +159,7 @@ export default function Landing() {
                   </RowBetween>
                   <ExternalLink
                     style={{
-                      color: theme.white.get(),
+                      color: colors.white.val,
                       textDecoration: 'underline',
                     }}
                     href="https://docs.rigoblock.com/governance/rigoblock-governance"
@@ -232,10 +232,7 @@ export default function Landing() {
                   <ThemedText.DeprecatedMain>
                     <Trans i18nKey="vote.landing.showCancelled" />
                   </ThemedText.DeprecatedMain>
-                  <Toggle
-                    isActive={!hideCancelled}
-                    toggle={() => setHideCancelled((prev) => !prev)}
-                  />
+                  <Toggle isActive={!hideCancelled} toggle={() => setHideCancelled((prev) => !prev)} />
                 </RowBetween>
               </AutoColumn>
             )}
@@ -258,7 +255,7 @@ export default function Landing() {
           </TopSection>
 
           {formattedProposalThreshold && (
-            <ThemedText.DeprecatedSubHeader color="text3">
+            <ThemedText.DeprecatedSubHeader>
               <Trans
                 i18nKey="vote.landing.minThresholdRequired.error"
                 values={{

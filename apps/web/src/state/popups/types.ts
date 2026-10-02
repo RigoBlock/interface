@@ -24,6 +24,7 @@ export enum SwitchNetworkAction {
   Sell = 'sell',
   Limit = 'limit',
   LP = 'lp',
+  PoolFinder = 'poolFinder',
 }
 
 export type PopupContent =

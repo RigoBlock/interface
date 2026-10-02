@@ -3,7 +3,6 @@ import type { NotificationClickTarget } from '@universe/notifications'
 import { memo, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SeedPhraseModalContent } from 'src/components/forceUpgrade/ForceUpgradeModal'
-import { useSporeColors } from 'ui/src'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { useEvent } from 'utilities/src/react/hooks'
@@ -48,7 +47,6 @@ export const ForceUpgradeNotification = memo(function ForceUpgradeNotification({
   onNotificationShown,
 }: ForceUpgradeNotificationProps): JSX.Element {
   const { t } = useTranslation()
-  const colors = useSporeColors()
   const isRequired = isRequiredUpgrade(notification)
 
   const [showSeedPhrase, setShowSeedPhrase] = useState(false)
@@ -101,7 +99,6 @@ export const ForceUpgradeNotification = memo(function ForceUpgradeNotification({
     <>
       <Modal
         alignment="top"
-        backgroundColor={colors.surface1.val}
         hideHandlebar={isRequired}
         isDismissible={!isRequired}
         isModalOpen={!showSeedPhrase}
@@ -124,7 +121,6 @@ export const ForceUpgradeNotification = memo(function ForceUpgradeNotification({
           fullScreen
           isDismissible
           alignment="top"
-          backgroundColor={colors.surface1.val}
           name={ModalName.ForceUpgradeModal}
           onClose={onDismissSeedPhrase}
         >

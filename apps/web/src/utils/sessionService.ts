@@ -1,4 +1,4 @@
-import { getIsSessionServiceEnabled, useIsSessionServiceEnabled } from '@universe/gating'
+import { FeatureFlags, getFeatureFlag, useFeatureFlag } from '@universe/gating'
 import { useMemo } from 'react'
 import { isAppRigoblockCom, isAppRigoblockStagingCom } from '~/utils/env'
 
@@ -20,17 +20,17 @@ export function getIsSessionServiceEnabledOnWeb(): boolean {
     return false
   }
 
-  return getIsSessionServiceEnabled()
+  return !getFeatureFlag(FeatureFlags.DisableSessionsForPlan)
 }
 
 export function useIsSessionServiceEnabledOnWeb(): boolean {
-  const featureEnabled = useIsSessionServiceEnabled()
+  const disableSessionsForPlan = useFeatureFlag(FeatureFlags.DisableSessionsForPlan)
 
   return useMemo(() => {
     if (isRigoblockHostname()) {
       return false
     }
 
-    return featureEnabled
-  }, [featureEnabled])
+    return !disableSessionsForPlan
+  }, [disableSessionsForPlan])
 }

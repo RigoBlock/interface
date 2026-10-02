@@ -3,6 +3,7 @@ import { useCallback } from 'react'
 import { addSuppressedPopups, removeSuppressedPopups, setSmartPoolValue } from '~/state/application/reducer'
 import { useAppDispatch, useAppSelector } from '~/state/hooks'
 import { PopupType } from '~/state/popups/types'
+import type { InterfaceState } from '~/state/webReducer'
 
 export function useSelectActiveSmartPool(): (smartPoolValue?: Currency) => void {
   const dispatch = useAppDispatch()

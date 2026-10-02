@@ -3,7 +3,7 @@ import STAKING_ABI from 'uniswap/src/abis/staking-impl.json'
 import type { Abi } from 'viem'
 import { useReadContracts } from 'wagmi'
 import { STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
-import { assume0xAddress } from '~/utils/wagmi'
+import { assume0xAddress } from '~/chains'
 
 export interface StakingEpochInfo {
   /** Current epoch index */

@@ -22,7 +22,6 @@ describe('application reducer', () => {
         openModal: null,
         smartPool: { address: null, name: '' },
         suppressedPopups: [],
-        downloadGraduatedWalletCardsDismissed: [],
       },
     })
   })

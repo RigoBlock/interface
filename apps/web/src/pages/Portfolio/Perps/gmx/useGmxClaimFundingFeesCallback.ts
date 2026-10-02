@@ -3,14 +3,14 @@ import { getAddress } from '@ethersproject/address'
 import { Contract } from '@ethersproject/contracts'
 import { TransactionResponse } from '@ethersproject/providers'
 import { useCallback, useMemo } from 'react'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { logger } from 'utilities/src/logger/logger'
 import { getConnectorClient } from 'wagmi/actions'
-import { wagmiConfig } from '~/components/Web3Provider/wagmiConfig'
+import { wagmiConfig } from '~/connection/wagmiConfig'
 import { useAccount } from '~/hooks/useAccount'
 import { clientToProvider } from '~/hooks/useEthersProvider'
-import useSelectChain from '~/hooks/useSelectChain'
+import { useSelectChain } from '~/hooks/useSelectChain'
 import { RIGOBLOCK_GMX_ABI } from '~/pages/Portfolio/Perps/gmx/abi'
 import { GmxClaimableFunding } from '~/pages/Portfolio/Perps/gmx/useGmxClaimableFundingFees'
 import { useTransactionAdder } from '~/state/transactions/hooks'
@@ -79,7 +79,7 @@ export function useGmxClaimFundingFeesCallback(poolAddress?: string): {
         receiver,
       )) as BigNumber
       const response = (await gmxContract.claimFundingFees(markets, tokens, receiver, {
-        gasLimit: calculateGasMargin(estimatedGasLimit),
+        gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
       })) as TransactionResponse
 
       addTransaction(response, {

@@ -5,7 +5,6 @@ import { SpeechBubbles } from '@universe/mycelium/icons/SpeechBubbles'
 import { X } from '@universe/mycelium/icons/X'
 import { TestID } from '@universe/test'
 import { useTranslation } from 'react-i18next'
-import { useTranslation } from 'react-i18next'
 import { UniswapHelpUrls, UniswapStaticUrls } from 'uniswap/src/constants/urls'
 
 interface HelpContentProps {

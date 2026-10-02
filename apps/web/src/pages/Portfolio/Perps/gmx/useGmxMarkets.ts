@@ -1,4 +1,4 @@
-import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
+import { normalizeTokenAddressForCache } from 'uniswap/src/utils/currencyId'
 import { PollingInterval } from 'uniswap/src/constants/misc'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'

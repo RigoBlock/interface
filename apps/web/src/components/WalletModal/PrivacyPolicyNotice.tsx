@@ -1,11 +1,11 @@
 import { Text } from '@universe/mycelium'
 import { Trans } from 'react-i18next'
-import { deprecatedStyled } from '~/lib/deprecated-styled'
+import { deprecatedStyled, type DefaultTheme } from '~/lib/deprecated-styled'
 import { ExternalLink } from '~/theme/components/Links'
 
 const StyledLink = deprecatedStyled(ExternalLink)`
   font-weight: 535;
-  color: ${({ theme }) => theme.neutral3};
+  color: ${({ theme }: { theme: DefaultTheme }) => theme.neutral3};
 `
 
 export function PrivacyPolicyNotice() {

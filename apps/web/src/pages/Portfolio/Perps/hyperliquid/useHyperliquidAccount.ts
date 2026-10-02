@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
-import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
+import { normalizeTokenAddressForCache } from 'uniswap/src/utils/currencyId'
 import {
   buildHyperliquidAccount,
   fetchHlAccountState,

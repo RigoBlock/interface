@@ -1,45 +1,13 @@
 import { Currency, Token } from '@uniswap/sdk-core'
+import { normalizeTokenAddressForCache } from '@universe/chains'
+import { Flex, Text } from '@universe/mycelium'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
-import { styled, Flex, Text } from 'ui/src'
 import { Caret } from 'ui/src/components/icons/Caret'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
-import { SwitchNetworkAction } from '~/components/Popups/types'
 import CurrencySearchModal from '~/components/SearchModal/CurrencySearchModal'
+import { SwitchNetworkAction } from '~/state/popups/types'
 import { useActiveSmartPool, useSelectActiveSmartPool } from '~/state/application/hooks'
-import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
-
-const PoolSelectButton = styled(Flex, {
-  row: true,
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  gap: '$spacing8',
-  backgroundColor: '$surface3',
-  borderRadius: '$roundedFull',
-  paddingVertical: '$spacing8',
-  paddingHorizontal: '$spacing12',
-  height: 40,
-  maxWidth: 240,
-  cursor: 'pointer',
-  borderWidth: 1,
-  borderColor: '$surface3',
-  borderStyle: 'solid',
-  hoverStyle: {
-    backgroundColor: '$surface3Hovered',
-    borderColor: '$surface3Hovered',
-  },
-  pressStyle: {
-    backgroundColor: '$surface1Pressed',
-    borderColor: '$surface3',
-  },
-
-  // On small screens, allow the name to wrap and grow slightly
-  $md: {
-    height: 'auto',
-    minHeight: 40,
-    maxWidth: 160,
-  },
-})
 
 interface PoolSelectProps {
   operatedPools: Token[]
@@ -116,12 +84,33 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
 
   return (
     <>
-      <PoolSelectButton className="operated-pool-select-button" onPress={() => setShowModal(true)}>
+      <Flex
+        className="operated-pool-select-button"
+        row
+        alignItems="center"
+        justifyContent="space-between"
+        gap="$spacing8"
+        backgroundColor="$surface3"
+        borderRadius="$roundedFull"
+        py="$spacing8"
+        px="$spacing12"
+        height={40}
+        maxWidth={240}
+        cursor="pointer"
+        borderWidth={1}
+        borderColor="$surface3"
+        borderStyle="solid"
+        hoverStyle={{ backgroundColor: '$surface3Hovered', borderColor: '$surface3Hovered' }}
+        pressStyle={{ backgroundColor: '$surface1Pressed', borderColor: '$surface3' }}
+        // On small screens, allow the name to wrap and grow slightly
+        $md={{ height: 'auto', minHeight: 40, maxWidth: 160 }}
+        onPress={() => setShowModal(true)}
+      >
         <Text variant="buttonLabel3" color="$neutral1" numberOfLines={1} flexShrink={1} minWidth={0}>
           {selectorLabel}
         </Text>
         <Caret color="$neutral2" direction="s" size="$icon.16" />
-      </PoolSelectButton>
+      </Flex>
 
       <CurrencySearchModal
         isOpen={showModal}

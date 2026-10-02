@@ -1,7 +1,7 @@
-import { useTheme } from 'tamagui'
 import { Trans } from 'react-i18next'
 import { Link } from 'react-router'
 import { Text } from 'rebass'
+import { useSporeColors } from 'ui/src'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
@@ -23,7 +23,7 @@ export const ProposalSubmissionModal = ({
   hash?: string
   onDismiss: () => void
 }) => {
-  const theme = useTheme()
+  const colors = useSporeColors()
   const account = useAccount()
 
   const transaction = useTransaction(hash)
@@ -68,7 +68,7 @@ export const ProposalSubmissionModal = ({
                   type: ExplorerDataType.TRANSACTION,
                 })}
               >
-                <Text fontWeight={535} fontSize={14} color={theme.accent1.get()}>
+                <Text fontWeight={535} fontSize={14} color={colors.accent1.val}>
                   <Trans i18nKey="common.etherscan.link" />
                 </Text>
               </ExternalLink>

@@ -38,9 +38,12 @@ function getPositionManagerAddress(version: ProtocolVersion, chainId?: EVMUniver
   if (!chainId) {
     return undefined
   }
+  // sdk-core's address maps are keyed by its own ChainId union (no HyperEvm/Solana); a plain
+  // number index matches the sibling lookup hooks — unknown chains resolve to undefined via `?.`.
+  const numericChainId: number = chainId
   return version === ProtocolVersion.V3
-    ? NONFUNGIBLE_POSITION_MANAGER_ADDRESSES[chainId]
-    : CHAIN_TO_ADDRESSES_MAP[chainId]?.v4PositionManagerAddress
+    ? NONFUNGIBLE_POSITION_MANAGER_ADDRESSES[numericChainId]
+    : CHAIN_TO_ADDRESSES_MAP[numericChainId as keyof typeof CHAIN_TO_ADDRESSES_MAP]?.v4PositionManagerAddress
 }
 
 export function usePositionTokenURI({

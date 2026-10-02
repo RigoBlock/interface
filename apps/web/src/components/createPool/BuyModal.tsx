@@ -162,7 +162,7 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
           (estimatedGasLimit) => {
             return poolContract['mint(address,uint256,uint256)'](...args, {
               value,
-              gasLimit: calculateGasMargin(estimatedGasLimit),
+              gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
             })
               .then((response: TransactionResponse) => {
                 addTransaction(response, {

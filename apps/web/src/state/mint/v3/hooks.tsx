@@ -17,12 +17,12 @@ import JSBI from 'jsbi'
 import { ReactNode, useCallback, useMemo } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
-import { FeeData } from '~/components/Liquidity/Create/types'
+import type { FeeData } from 'uniswap/src/features/positions/types'
 import { BIG_INT_ZERO } from '~/constants/misc'
 import { useAccount } from '~/hooks/useAccount'
 import { PoolState, usePool } from '~/hooks/usePools'
 import { useSwapTaxes } from '~/hooks/useSwapTaxes'
-import tryParseCurrencyAmount from '~/lib/utils/tryParseCurrencyAmount'
+import { tryParseCurrencyAmount } from '~/lib/utils/tryParseCurrencyAmount'
 import { useActiveSmartPool } from '~/state/application/hooks'
 import { useCurrencyBalances } from '~/state/connection/hooks'
 import { useAppDispatch, useAppSelector } from '~/state/hooks'
@@ -37,7 +37,7 @@ import {
 } from '~/state/mint/v3/actions'
 import { tryParseTick } from '~/state/mint/v3/utils'
 import { InterfaceState } from '~/state/webReducer'
-import { getTickToPrice } from '~/utils/getTickToPrice'
+import { getTickToPrice } from '~/features/Liquidity/utils/getTickToPrice'
 
 function useV3MintState(): InterfaceState['mintV3'] {
   return useAppSelector((state) => state.mintV3)

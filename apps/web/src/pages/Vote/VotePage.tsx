@@ -3,6 +3,7 @@
 
 import { BigNumber } from '@ethersproject/bignumber'
 import { CurrencyAmount, Fraction, Token } from '@uniswap/sdk-core'
+import { Flex, Text } from '@universe/mycelium'
 import JSBI from 'jsbi'
 import ms from 'ms'
 import { useState } from 'react'
@@ -10,7 +11,6 @@ import { ArrowLeft } from 'react-feather'
 import { Trans, useTranslation } from 'react-i18next'
 import ReactMarkdown from 'react-markdown'
 import { useParams } from 'react-router'
-import { Flex, Text } from 'ui/src'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { useCurrentLocale } from 'uniswap/src/features/language/hooks'
 import { InterfacePageName, ModalName } from 'uniswap/src/features/telemetry/constants'
@@ -33,10 +33,10 @@ import {
   DEFAULT_AVERAGE_BLOCK_TIME_IN_SECS,
 } from '~/constants/governance'
 import { useAccount } from '~/hooks/useAccount'
-import useCurrentBlockTimestamp from '~/hooks/useCurrentBlockTimestamp'
+import { useCurrentBlockTimestamp } from '~/hooks/useCurrentBlockTimestamp'
 import { useModalState } from '~/hooks/useModalState'
 import styled from '~/lib/deprecated-styled'
-import useBlockNumber from '~/lib/hooks/useBlockNumber'
+import { useBlockNumber } from '~/lib/hooks/useBlockNumber'
 import { ProposalStatus } from '~/pages/Vote/styled'
 import { useTokenBalance } from '~/state/connection/hooks'
 import { ProposalState, useProposalData, useUserVotes } from '~/state/governance/hooks'
@@ -201,7 +201,7 @@ export default function VotePage() {
 
   // get data for this specific proposal
   const { data: proposalData, quorumAmount } = useProposalData(parsedGovernorIndex, id)
-  const currentTimestamp = useCurrentBlockTimestamp({ refetchInterval: false })
+  const { blockTimestamp } = useCurrentBlockTimestamp({ refetchInterval: false })
   const currentBlock = useBlockNumber()
 
   // update vote option based on button interactions
@@ -212,7 +212,7 @@ export default function VotePage() {
       currentBlock,
       averageBlockTimeInSeconds:
         (account.chainId && AVERAGE_BLOCK_TIME_IN_SECS[account.chainId]) ?? DEFAULT_AVERAGE_BLOCK_TIME_IN_SECS,
-      currentTimestamp: BigNumber.from(currentTimestamp),
+      currentTimestamp: blockTimestamp ? BigNumber.from(blockTimestamp) : undefined,
       isTimestamp: true,
     })
   const endDate =
@@ -222,7 +222,7 @@ export default function VotePage() {
       currentBlock,
       averageBlockTimeInSeconds:
         (account.chainId && AVERAGE_BLOCK_TIME_IN_SECS[account.chainId]) ?? DEFAULT_AVERAGE_BLOCK_TIME_IN_SECS,
-      currentTimestamp: BigNumber.from(currentTimestamp),
+      currentTimestamp: blockTimestamp ? BigNumber.from(blockTimestamp) : undefined,
       isTimestamp: true,
     })
   const now = new Date()

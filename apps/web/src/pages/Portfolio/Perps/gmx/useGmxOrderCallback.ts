@@ -3,15 +3,15 @@ import { getAddress } from '@ethersproject/address'
 import { Contract } from '@ethersproject/contracts'
 import { TransactionResponse } from '@ethersproject/providers'
 import { useCallback, useMemo } from 'react'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { logger } from 'utilities/src/logger/logger'
 import { parseUnits } from 'viem'
 import { getConnectorClient } from 'wagmi/actions'
-import { wagmiConfig } from '~/components/Web3Provider/wagmiConfig'
+import { wagmiConfig } from '~/connection/wagmiConfig'
 import { useAccount } from '~/hooks/useAccount'
 import { clientToProvider } from '~/hooks/useEthersProvider'
-import useSelectChain from '~/hooks/useSelectChain'
+import { useSelectChain } from '~/hooks/useSelectChain'
 import { GmxPosition } from '~/pages/Portfolio/hooks/useGmxPositions'
 import {
   buildGmxOrderParams,
@@ -263,7 +263,7 @@ export function useGmxOrderCallback(poolAddress?: string): {
 
       const estimatedGasLimit = (await gmxContract.estimateGas[functionName](params)) as BigNumber
       const response = (await gmxContract[functionName](params, {
-        gasLimit: calculateGasMargin(estimatedGasLimit),
+        gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
       })) as TransactionResponse
 
       addTransaction(response, {

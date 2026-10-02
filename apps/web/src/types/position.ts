@@ -1,3 +1,5 @@
+import { BigNumber } from '@ethersproject/bignumber'
+
 export interface PositionDetails {
   nonce: bigint
   tokenId: bigint

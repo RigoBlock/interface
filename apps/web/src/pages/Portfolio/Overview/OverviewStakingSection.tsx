@@ -1,7 +1,6 @@
 import { Box, ChevronRight } from 'react-feather'
 import { Trans } from 'react-i18next'
-import { Flex } from 'ui/src/components/layout'
-import { Text } from 'ui/src/components/text'
+import { Flex, Text } from '@universe/mycelium'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { NumberType } from 'utilities/src/format/types'
 import { LoadingBubble } from '~/components/Tokens/loading'

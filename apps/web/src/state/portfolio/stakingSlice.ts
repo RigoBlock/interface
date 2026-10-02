@@ -1,8 +1,8 @@
 /* oxlint-disable typescript/no-unnecessary-condition */
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { Address } from 'viem'
-import { assume0xAddress } from '~/utils/wagmi'
+import { assume0xAddress } from '~/chains'
 
 // Serializable interface for Redux store (no CurrencyAmount objects)
 export interface ChainStakingData {

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Trans } from 'react-i18next'
-import { Button, Flex, Text } from 'ui/src'
+import { Button } from 'ui/src'
+import { Flex, Text } from '@universe/mycelium'
 import { TokenLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'

@@ -12,12 +12,12 @@ import {
   MultichainToken,
 } from '@uniswap/client-data-api/dist/data/v1/searchTypes_pb'
 import { parseRestProtocolVersion, SharedQueryClient } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
 import { RIGOBLOCK_LOGO } from 'ui/src/assets'
 import { getNativeAddress } from 'uniswap/src/constants/addresses'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { normalizeBackendNativeAddress } from 'uniswap/src/data/apiClients/dataApiService/utils/dataApiMultichainToken'
 import { entryGatewayProdPostTransport } from 'uniswap/src/data/transport'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { type CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { buildCurrency, buildCurrencyInfo } from 'uniswap/src/features/dataApi/utils/buildCurrency'
 import { parseCurrencySafetyInfo } from 'uniswap/src/features/dataApi/utils/getCurrencySafetyInfo'

@@ -1,7 +1,12 @@
 import { useTheme } from 'tamagui'
 import { AutoColumn } from '~/components/deprecated/Column'
 import styled from '~/lib/deprecated-styled'
-import { ThemedText } from '~/theme/components/text'
+
+// Local replacement for the deleted ThemedText.DeprecatedMain (rebass-based) preset.
+const StyledStepText = styled.span`
+  font-weight: 485;
+  letter-spacing: -0.01em;
+`
 
 const Wrapper = styled(AutoColumn)`
   margin-right: 8px;
@@ -63,7 +68,7 @@ export default function ProgressCircles({ steps, disabled = false, ...rest }: Pr
               <Circle $confirmed={step} $disabled={disabled || (!steps[i - 1] && i !== 0)}>
                 {step ? '✓' : i + 1 + '.'}
               </Circle>
-              <ThemedText.DeprecatedMain color={theme.neutral3.get()}>|</ThemedText.DeprecatedMain>
+              <StyledStepText style={{ color: theme.neutral3?.get() }}>|</StyledStepText>
             </CircleRow>
           )
         })}

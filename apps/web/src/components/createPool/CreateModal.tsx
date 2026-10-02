@@ -1,4 +1,5 @@
 import { Currency } from '@uniswap/sdk-core'
+import { UniverseChainId } from '@universe/chains'
 import { darken } from 'polished'
 import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 import { X } from 'react-feather'
@@ -7,18 +8,19 @@ import { Modal } from 'uniswap/src/components/modals/Modal'
 import { nativeOnChain, USDC_HYPEREVM } from 'uniswap/src/constants/tokens'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { useIsSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { logger } from 'utilities/src/logger/logger'
+import { currencyId } from 'uniswap/src/utils/currencyId'
 import { ReactComponent as DropDown } from '~/assets/images/dropdown.svg'
 import { ButtonGray, ButtonPrimary } from '~/components/Button/buttons'
 import { AutoColumn } from '~/components/deprecated/Column'
 import { RowBetween, RowFixed } from '~/components/deprecated/Row'
-import CurrencyLogo from '~/components/Logo/CurrencyLogo'
+import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
 import { LoadingView, SubmittedView } from '~/components/ModalViews'
 import NameInputPanel from '~/components/NameInputPanel'
-import { SwitchNetworkAction } from '~/components/Popups/types'
+import { SwitchNetworkAction } from '~/state/popups/types'
 import CurrencySearchModal from '~/components/SearchModal/CurrencySearchModal'
 import { useAccount } from '~/hooks/useAccount'
 import styled from '~/lib/deprecated-styled'
@@ -119,6 +121,7 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
     [account.chainId, isHyperEvm],
   )
   const chainLabel = account.chainId ? getChainInfo(account.chainId).label : undefined
+  const currencyLogoInfo = useCurrencyInfo(currencyValue ? currencyId(currencyValue) : undefined)
 
   // TODO: as native is memoized now, we can simply set currency value, probably not needed to
   // update currency at initialization or on chain switch
@@ -242,7 +245,9 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
                   <Aligner>
                     <RowFixed>
                       {currencyValue ? (
-                        <CurrencyLogo style={{ marginRight: '0.5rem' }} currency={currencyValue} size={24} />
+                        <span style={{ marginRight: '0.5rem', display: 'flex' }}>
+                          <CurrencyLogo currencyInfo={currencyLogoInfo} size={24} />
+                        </span>
                       ) : null}
                       <StyledTokenName
                         className="token-symbol-container"

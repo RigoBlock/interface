@@ -1,16 +1,18 @@
 import { formatUnits, parseUnits } from '@ethersproject/units'
 import { useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { Button, Flex, Input, SegmentedControl, Text } from 'ui/src'
+import { Button, Input } from 'ui/src'
+import { Flex, Text } from '@universe/mycelium'
+import { SegmentedControl } from '@universe/mycelium/segmented-control-compat'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { logger } from 'utilities/src/logger/logger'
 import { erc20Abi } from 'viem'
 import { useReadContract } from 'wagmi'
-import { wagmiConfig } from '~/components/Web3Provider/wagmiConfig'
+import { wagmiConfig } from '~/connection/wagmiConfig'
 import { HYPERLIQUID_BRIDGE_USDC } from '~/pages/Portfolio/Perps/hyperliquid/hyperliquidBridgeConfig'
 import { onNumericInput } from '~/pages/Portfolio/Perps/gmx/gmxOpenPositionUtils'
 import {
@@ -28,7 +30,7 @@ import {
 import { useHyperliquidBridgeQuote } from '~/pages/Portfolio/Perps/hyperliquid/useHyperliquidBridgeQuote'
 import { checkSmartPoolBridgeFeasibility, modifyAcrossDepositV3ForSmartPool, OpType } from '~/state/sagas/transactions/bridgeCalldata'
 import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
-import { assume0xAddress } from '~/utils/wagmi'
+import { assume0xAddress } from '~/chains'
 
 const MODAL_TRANSITION_DURATION = 200
 
@@ -288,7 +290,7 @@ export function HyperliquidBridgeModal({ isOpen, poolAddress, onDismiss }: Hyper
           <Button
             variant="branded"
             size="medium"
-            isDisabled={!canSubmit}
+            disabled={!canSubmit}
             onPress={() => {
               setErrorReason(undefined)
               onSubmit()

@@ -19,10 +19,7 @@ import { MAX_WIDTH_MEDIA_BREAKPOINT } from '~/constants/breakpoints'
 import { getTokenExploreURL } from '~/data/util'
 import { ExploreContextProvider } from '~/features/Explore/state'
 import { ExploreTablesFilterStoreContextProvider } from '~/features/Explore/state/exploreTablesFilterStore'
-import { useToucanAuctionSupportedChains } from '~/features/Toucan/supportedChains'
 import { ADD_LIQUIDITY_PATH } from '~/pages/AddLiquidity/poolLinkParams'
-import { AuctionQuickFilters } from '~/pages/Explore/AuctionQuickFilters'
-import { AuctionStatusFilter as AuctionStatusFilterComponent } from '~/pages/Explore/AuctionStatusFilter'
 import {
   EXPLORE_STICKY_SCROLL_OFFSET_PX,
   EXPLORE_TOKEN_SECTION_ID,
@@ -35,13 +32,10 @@ import {
 } from '~/pages/Explore/ExploreAssetsIntegration'
 import { ExploreStatsSection } from '~/pages/Explore/ExploreStatsSection'
 import { ExploreTableFilters } from '~/pages/Explore/ExploreTableFilters'
-import { AUCTION_FILTER_PARAM, auctionQuickFilterFromParam } from '~/pages/Explore/hooks/useAuctionQuickFilterParam'
 import { useExploreHeartbeatCoordinator } from '~/pages/Explore/hooks/useExploreHeartbeatCoordinator'
 import { TableNetworkFilter } from '~/pages/Explore/NetworkFilter'
 import { useExploreParams } from '~/pages/Explore/redirects'
 import { SearchBar } from '~/pages/Explore/SearchBar'
-import { ToucanTable } from '~/pages/Explore/tables/Auctions/TopAuctionsTable'
-import { TopVerifiedAuctionsSection } from '~/pages/Explore/tables/Auctions/TopVerifiedAuctionsSection'
 import { ExploreTopPoolTable } from '~/pages/Explore/tables/Pools/PoolTable'
 import { RecentTransactionsTable } from '~/pages/Explore/tables/RecentTransactions/RecentTransactions'
 import { TopTokensTable } from '~/pages/Explore/tables/Tokens/TopTokensTable'
@@ -74,12 +68,6 @@ function usePages(): Array<Page> {
       key: ExploreTab.Tokens,
       component: TopTokensTable,
       loggingElementName: ElementName.ExploreTokensTab,
-    },
-    {
-      title: t('common.auctions'),
-      key: ExploreTab.Toucan,
-      component: ToucanTable,
-      loggingElementName: ElementName.ExploreAuctionsTab,
     },
     {
       title: t('common.pools'),
@@ -146,13 +134,6 @@ const Explore = ({ initialTab }: { initialTab?: ExploreTab }) => {
   const { tab: tabName } = useExploreParams()
   const tab = tabName ?? ExploreTab.Tokens
 
-  // Deep links like /explore/auctions?filter=verified seed the filter store at creation.
-  // Keyed off the same route param the active tab resolves from, not the initialTab prop.
-  const [initialQuickFilter] = useState(() =>
-    tabName === ExploreTab.Toucan ? auctionQuickFilterFromParam(params.get(AUCTION_FILTER_PARAM)) : undefined,
-  )
-
-  const auctionSupportedChains = useToucanAuctionSupportedChains()
 
   // Featured RWA carousel renders unless the caller's region blocks RWA.
   const isExploreCarouselEnabled = !useIsFeatureGated(GatedFeature.ISSUER_SPECIFIC_RWA, { pendingValue: true })
@@ -234,7 +215,7 @@ const Explore = ({ initialTab }: { initialTab?: ExploreTab }) => {
       }}
     >
       <ExploreContextProvider chainId={chainInfo?.id}>
-        <ExploreTablesFilterStoreContextProvider initialQuickFilter={initialQuickFilter}>
+        <ExploreTablesFilterStoreContextProvider>
           <Flex width="100%" minWidth={320} pt="$spacing24" pb="$spacing48" px="$spacing40" $md={{ p: '$spacing16' }}>
             <ExploreStatsSection shouldHideStats={isSolanaChain} />
             {showTrendingShelf && <ExploreTrendingShelfSection />}
@@ -339,61 +320,6 @@ const Explore = ({ initialTab }: { initialTab?: ExploreTab }) => {
                 </Flex>
               )}
             </Flex>
-            {currentKey === ExploreTab.Toucan && <TopVerifiedAuctionsSection />}
-            {currentKey === ExploreTab.Toucan && (
-              <Flex
-                row
-                maxWidth={MAX_WIDTH_MEDIA_BREAKPOINT}
-                mx="auto"
-                alignItems="center"
-                justifyContent="space-between"
-                width="100%"
-                paddingTop="$spacing24"
-                $lg={{
-                  row: false,
-                  flexDirection: 'column',
-                  mx: 'unset',
-                  alignItems: 'flex-start',
-                  gap: '$spacing16',
-                }}
-              >
-                <Text variant="subheading1" color="$neutral1">
-                  {t('toucan.auctions')}
-                </Text>
-                {/* Actions can exceed small viewports — scroll the whole row in place instead of stacking or widening the page. */}
-                <Flex
-                  row
-                  gap="$spacing8"
-                  justifyContent="flex-start"
-                  alignItems="center"
-                  className="scrollbar-hidden"
-                  $md={{ width: '100%', '$platform-web': { overflowX: 'auto' } }}
-                >
-                  <Button
-                    size="small"
-                    icon={<Plus />}
-                    fill={false}
-                    onPress={() => navigate('/liquidity/launch-auction')}
-                  >
-                    {t('toucan.createAuction.launchAuction')}
-                  </Button>
-                  <TableNetworkFilter networks={auctionSupportedChains} />
-                  <AuctionStatusFilterComponent />
-                  <SearchBar tab={currentKey} />
-                </Flex>
-              </Flex>
-            )}
-            {currentKey === ExploreTab.Toucan && (
-              <Flex
-                maxWidth={MAX_WIDTH_MEDIA_BREAKPOINT}
-                mx="auto"
-                width="100%"
-                paddingTop="$spacing16"
-                $lg={{ mx: 'unset' }}
-              >
-                <AuctionQuickFilters />
-              </Flex>
-            )}
             <ExploreCategoryTablesOrPage showExploreCategoryTables={showExploreCategoryTables} page={<Page />} />
           </Flex>
         </ExploreTablesFilterStoreContextProvider>

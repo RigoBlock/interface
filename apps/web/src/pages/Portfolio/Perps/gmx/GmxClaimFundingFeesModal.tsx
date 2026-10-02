@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { Button, Flex, Text } from 'ui/src'
+import { Button } from 'ui/src'
+import { Flex, Text } from '@universe/mycelium'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
@@ -101,7 +102,7 @@ export function GmxClaimFundingFeesModal({
           <Button
             variant="branded"
             size="medium"
-            isDisabled={claims.length === 0}
+            disabled={claims.length === 0}
             onPress={() => {
               setErrorReason(undefined)
               onSubmit()

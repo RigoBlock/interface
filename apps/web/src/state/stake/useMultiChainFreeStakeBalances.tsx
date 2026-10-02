@@ -9,7 +9,7 @@ import { useReadContracts } from 'wagmi'
 import { STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
 import { useAccount } from '~/hooks/useAccount'
 import { StakeStatus } from '~/state/governance/hooks'
-import { assume0xAddress } from '~/utils/wagmi'
+import { assume0xAddress } from '~/chains'
 
 export interface FreeStakeBalanceByChain {
   chainId: number

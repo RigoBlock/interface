@@ -2,11 +2,13 @@ import { MaxUint256 } from '@ethersproject/constants'
 import type { TransactionResponse } from '@ethersproject/providers'
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { useCallback, useMemo } from 'react'
+import ERC20_ABI from 'uniswap/src/abis/erc20.json'
+import { Erc20 } from 'uniswap/src/abis/types'
 import { InterfaceEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { logger } from 'utilities/src/logger/logger'
 import { useAccount } from '~/hooks/useAccount'
-import { useTokenContract } from '~/hooks/useContract'
+import { useContract } from '~/hooks/useContract'
 import { useTokenAllowance } from '~/hooks/useTokenAllowance'
 import { getTokenAddress } from '~/lib/utils/analytics'
 import { calculateGasMargin } from '~/utils/calculateGasMargin'
@@ -98,8 +100,9 @@ export function useApproval({
     isRbPool,
   })
 
-  const tokenContract = useTokenContract({
-    tokenAddress: token?.address,
+  const tokenContract = useContract<Erc20>({
+    address: token?.address,
+    ABI: ERC20_ABI,
     withSignerIfPossible: true,
     chainId: token?.chainId,
   })
@@ -147,7 +150,7 @@ export function useApproval({
       tokenContract
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         .approve(spender, useExact ? amountToApprove.quotient.toString() : MaxUint256, {
-          gasLimit: calculateGasMargin(estimatedGas),
+          gasLimit: calculateGasMargin(estimatedGas.toBigInt()),
         })
         .then((response) => {
           const eventProperties = {

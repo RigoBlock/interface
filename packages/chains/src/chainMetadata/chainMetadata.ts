@@ -84,6 +84,13 @@ export const CHAIN_METADATA: Record<UniverseChainId, ChainMetadata> = {
     testnet: false,
     explorer: { name: 'CeloScan', url: 'https://celoscan.io' },
   },
+  [UniverseChainId.HyperEvm]: {
+    id: UniverseChainId.HyperEvm,
+    label: 'HyperEVM',
+    urlParam: 'hyperliquid',
+    testnet: false,
+    explorer: { name: 'HyperEVM Explorer', url: 'https://hyperevmscan.io' },
+  },
   [UniverseChainId.Ink]: {
     id: UniverseChainId.Ink,
     label: 'Ink',

@@ -2,23 +2,23 @@
 
 import { Currency, CurrencyAmount, Percent, Token } from '@uniswap/sdk-core'
 import { BigNumber } from '@ethersproject/bignumber'
+import { EVMUniverseChainId, UniverseChainId, areAddressesEqual, normalizeTokenAddressForCache } from '@universe/chains'
+import { Flex, Text } from '@universe/mycelium'
+import { styled } from '@universe/mycelium/styled'
 // TODO: this import is from node modules
 import JSBI from 'jsbi'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Trans } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router'
-import { Button, Flex, FlexLoader, Skeleton, styled, Text } from 'ui/src'
+import { Button, FlexLoader, Skeleton } from 'ui/src'
 import { Edit } from 'ui/src/components/icons/Edit'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
 import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
 import { GRG, nativeOnChain } from 'uniswap/src/constants/tokens'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId, EVMUniverseChainId } from 'uniswap/src/features/chains/types'
 import { getChainLabel, getPrimaryStablecoin, isBackendSupportedChainId } from 'uniswap/src/features/chains/utils'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { NumberType } from 'utilities/src/format/types'
-import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
-import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 // TODO: check if should refactor AddressCard
 import { AddressCard } from '~/components/AddressCard'
 import BuyModal from '~/components/createPool/BuyModal'
@@ -40,7 +40,7 @@ import { RPC_PROVIDERS } from '~/constants/providers'
 import { useCurrency } from '~/hooks/Tokens'
 import { useAccount } from '~/hooks/useAccount'
 import { useIsUserWhitelisted } from '~/hooks/useKycWhitelist'
-import useSelectChain from '~/hooks/useSelectChain'
+import { useSelectChain } from '~/hooks/useSelectChain'
 import { UserAccount, useImplementation, useSmartPoolFromAddress, useUserPoolBalance } from '~/hooks/useSmartPools'
 import { PoolInfo } from '~/state/buy/hooks'
 import { useCurrencyBalancesMultipleAccounts } from '~/state/connection/hooks'
@@ -50,7 +50,7 @@ import { StakingPoolData, useMultiChainAllPoolsData, useMultiChainStakingPools }
 import { useUnclaimedRewards } from '~/state/stake/hooks'
 import { useMultiChainFreeStakeBalances, type FreeStakeBalanceByChain } from '~/state/stake/useMultiChainFreeStakeBalances'
 import { useStakingEpochInfo } from '~/state/stake/useStakingEpochInfo'
-import { assume0xAddress } from '~/utils/wagmi'
+import { assume0xAddress } from '~/chains'
 
 const NAV_SIMULATE_DEPLOYMENT_BYTECODE =
   '0x608060405234801561000f575f5ffd5b5060405161017738038061017783398101604081905261002e916100ef565b806001600160a01b031663e7d8724e6040518163ffffffff1660e01b81526004015f604051808303815f87803b158015610066575f5ffd5b505af1158015610078573d5f5f3e3d5ffd5b505050505f816001600160a01b03166389c065686040518163ffffffff1660e01b81526004016040805180830381865afa1580156100b8573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906100dc919061011c565b80515f8181524260205291925090604090f35b5f602082840312156100ff575f5ffd5b81516001600160a01b0381168114610115575f5ffd5b9392505050565b5f604082840312801561012d575f5ffd5b50604080519081016001600160401b038111828210171561015c57634e487b7160e01b5f52604160045260245ffd5b60405282518152602092830151928101929092525091905056fe'
@@ -60,44 +60,21 @@ const NAV_SIMULATE_DEPLOYMENT_BYTECODE =
 const HL_NAV_DATA_VIEW_SELECTOR = '0x5d7d86de'
 
 const PageWrapper = styled(Flex, {
-  width: '100%',
-  maxWidth: 960,
-  mx: 'auto',
-  paddingTop: 68,
-  paddingBottom: '$spacing24',
-  paddingHorizontal: '$spacing12',
-
-  $md: {
-    paddingTop: 48,
-  },
-
-  $sm: {
-    paddingTop: '$spacing20',
-  },
+  base: 'w-[100%] max-w-[960px] mx-auto pt-[68px] pb-[24px] px-[12px] media-md:pt-[48px] media-sm:pt-[20px]',
 })
 
 const DataCard = styled(Flex, {
-  backgroundColor: '$surface2',
-  borderRadius: '$rounded20',
-  padding: '$spacing16',
-  gap: '$spacing16',
-  width: '100%',
-  height: '100%',
+  base: 'bg-surface2 rounded-[20px] p-[16px] gap-[16px] w-[100%] h-[100%]',
 })
 
 const DataRow = styled(Flex, {
-  row: true,
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  gap: '$spacing12',
-  width: '100%',
+  base: 'flex-row justify-between items-center gap-[12px] w-[100%]',
 })
 
 const BackLink = styled(Text, {
-  color: '$neutral2',
-  hoverStyle: {
-    color: '$neutral1',
-  },
+  variants: {},
+  base: 'no-underline text-neutral2',
+  hover: [{ class: 'text-neutral1' }],
 })
 
 /**

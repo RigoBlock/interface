@@ -1,4 +1,4 @@
-import { AnimatedFlex, type ColorTokens, Flex } from '@universe/mycelium'
+import { AnimatedFlex, Flex } from '@universe/mycelium'
 import type { GeneratedIcon } from '@universe/mycelium/icons'
 import { withSporeCurve } from '@universe/tailwind/animations/reanimated'
 import { TestID, TestIDType } from '@universe/test'
@@ -10,7 +10,7 @@ import { useTokenDetailsContext } from 'src/components/TokenDetails/TokenDetails
 import { Button, getContrastPassingTextColor, useDynamicFontSizing } from 'ui/src'
 import { IconButton } from 'ui/src/components/buttons/IconButton/IconButton'
 import { GridView, X } from 'ui/src/components/icons'
-import { opacify, validColor, fonts } from 'ui/src/theme'
+import { type SporeColorToken, fonts, opacify, validColor } from 'ui/src/theme'
 import { ContextMenu, MenuOptionItem } from 'uniswap/src/components/menus/ContextMenu'
 import { ContextMenuTriggerMode } from 'uniswap/src/components/menus/types'
 import { TokenList } from 'uniswap/src/features/dataApi/types'
@@ -103,8 +103,8 @@ function CTAButton({
 interface ActionButtonState {
   tokenColor: string | null
   disabled: boolean
-  validTokenColor: ColorTokens | undefined
-  lightTokenColor: ColorTokens | undefined
+  validTokenColor: SporeColorToken | undefined
+  lightTokenColor: SporeColorToken | undefined
   actionsWithIcons: MenuOptionItem[]
   actionMenuOpen: boolean
   closeActionMenu: () => void

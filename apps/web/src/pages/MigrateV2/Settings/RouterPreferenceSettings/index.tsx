@@ -1,14 +1,14 @@
+import { Text } from '@universe/mycelium'
 import { Trans } from 'react-i18next'
-import { Text, Switch } from 'ui/src'
+import { Switch } from 'ui/src'
 import Column from '~/components/deprecated/Column'
 import { RowBetween, RowFixed } from '~/components/deprecated/Row'
 import { deprecatedStyled as styled } from '~/lib/deprecated-styled'
 import { RouterPreference } from '~/state/routing/types'
 import { useRouterPreference } from '~/state/user/hooks'
-import { ThemedText } from '~/theme/components'
 import { ExternalLink } from '~/theme/components/Links'
 
-const InlineLink = styled(ThemedText.BodySmall)`
+const InlineLink = styled.span`
   color: ${({ theme }) => theme.accent1};
   display: inline;
   cursor: pointer;
@@ -21,18 +21,16 @@ export default function RouterPreferenceSettings() {
   const [routerPreference, setRouterPreference] = useRouterPreference()
 
   return (
-    <RowBetween gap="sm">
+    <RowBetween>
       <RowFixed>
         <Column gap="xs">
-          <ThemedText.BodySecondary>
-            <Text variant="body2">UniswapX</Text>
-          </ThemedText.BodySecondary>
-          <ThemedText.BodySmall color="neutral2">
+          <Text variant="body2">UniswapX</Text>
+          <Text variant="body3" color="$neutral2">
             <Trans i18nKey="routing.aggregateLiquidity" />{' '}
             <ExternalLink href="https://support.uniswap.org/hc/en-us/articles/17515415311501">
               <InlineLink>Learn more</InlineLink>
             </ExternalLink>
-          </ThemedText.BodySmall>
+          </Text>
         </Column>
       </RowFixed>
       <Switch

@@ -1,7 +1,7 @@
 import { darken } from 'polished'
 import { ChevronDown } from 'react-feather'
 import { ButtonProps as ButtonPropsOriginal, Button as RebassButton } from 'rebass/styled-components'
-import { Flex } from 'ui/src'
+import { Flex } from '@universe/mycelium'
 import { RowBetween } from '~/components/deprecated/Row'
 import styled from '~/lib/deprecated-styled'
 

@@ -1,6 +1,7 @@
 import { Interface } from '@ethersproject/abi'
 import { getAddress, isAddress } from '@ethersproject/address'
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core'
+import { UniverseChainId } from '@universe/chains'
 import JSBI from 'jsbi'
 import { useCallback, useMemo, useState } from 'react'
 import { ArrowLeft, X } from 'react-feather'
@@ -12,7 +13,6 @@ import GOVERNANCE_RB_ABI from 'uniswap/src/abis/governance.json'
 import RB_POOL_FACTORY_ABI from 'uniswap/src/abis/rb-pool-factory.json'
 import STAKING_PROXY_ABI from 'uniswap/src/abis/staking-proxy.json'
 import { GRG } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { InterfacePageName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { ButtonError } from '~/components/Button/buttons'
@@ -26,8 +26,7 @@ import {
 } from '~/constants/addresses'
 import { useAccount } from '~/hooks/useAccount'
 import styled from '~/lib/deprecated-styled'
-import tryParseCurrencyAmount from '~/lib/utils/tryParseCurrencyAmount'
-import { BodyWrapper } from '~/pages/App/AppBody'
+import { tryParseCurrencyAmount } from '~/lib/utils/tryParseCurrencyAmount'
 import { ProposalActionDetail } from '~/pages/CreateProposal/ProposalActionDetail'
 import {
   ProposalAction,
@@ -121,6 +120,26 @@ const CreateProposalButton = ({
 const Wrapper = styled.div`
   position: relative;
   padding: 20px;
+`
+
+// Local replacement for the deleted `~/pages/App/AppBody` BodyWrapper, kept for the
+// create-proposal page layout.
+const BodyWrapper = styled.div<{ $maxWidth?: string }>`
+  max-width: ${({ $maxWidth }) => $maxWidth ?? '480px'};
+  width: 100%;
+  background-color: ${({ theme }) => theme.surface1};
+  border-radius: 16px;
+  border: 1px solid ${({ theme }) => theme.surface3};
+  box-shadow:
+    0px 0px 1px rgba(0, 0, 0, 0.01),
+    0px 4px 8px rgba(0, 0, 0, 0.04),
+    0px 16px 24px rgba(0, 0, 0, 0.04),
+    0px 24px 32px rgba(0, 0, 0, 0.01);
+  margin-top: 1rem;
+  margin-left: auto;
+  margin-right: auto;
+  z-index: 1;
+  padding: 1px;
 `
 
 const CreateProposalWrapper = styled(Wrapper)`

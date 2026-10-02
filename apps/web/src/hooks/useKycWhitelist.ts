@@ -1,7 +1,7 @@
 import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
 import { logger } from 'utilities/src/logger/logger'
 import { useReadContract } from 'wagmi'
-import { assume0xAddress } from '~/utils/wagmi'
+import { assume0xAddress } from '~/chains'
 
 const KYC_PROVIDER_ABI = [
   {

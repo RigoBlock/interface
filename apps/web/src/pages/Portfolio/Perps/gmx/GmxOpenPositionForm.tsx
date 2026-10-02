@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react'
+import type { ComponentPropsWithoutRef, PropsWithChildren } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { Button, Flex, Input, Popover, ScrollView, SegmentedControl, Text, TouchableArea, styled } from 'ui/src'
+import { Button, Input, Popover } from 'ui/src'
+import { Flex, ScrollView, Text, TouchableArea } from '@universe/mycelium'
+import { SegmentedControl } from '@universe/mycelium/segmented-control-compat'
 import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
 import { zIndexes } from 'ui/src/theme'
-import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
+import { normalizeTokenAddressForCache } from 'uniswap/src/utils/currencyId'
 import { GmxPosition } from '~/pages/Portfolio/hooks/useGmxPositions'
 import {
   formatGmxAnnualizedRate,
@@ -18,53 +21,80 @@ import {
 
 const DROPDOWN_MAX_HEIGHT = 240
 
-const DropdownTrigger = styled(Flex, {
-  position: 'relative',
-  height: 44,
-  borderRadius: '$rounded12',
-  backgroundColor: '$surface2',
-  borderColor: '$surface3',
-  borderWidth: 1,
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  flexDirection: 'row',
-  paddingHorizontal: '$spacing12',
-  paddingRight: 28,
-  gap: '$spacing8',
-  cursor: 'pointer',
-})
+// Wrapper components carry the dropdown styles inline; the mycelium compat
+// primitives resolve the $ tokens at runtime (the old ui/src styled() is gone).
+function DropdownTrigger({ children }: PropsWithChildren): JSX.Element {
+  return (
+    <Flex
+      position="relative"
+      height={44}
+      borderRadius="$rounded12"
+      backgroundColor="$surface2"
+      borderColor="$surface3"
+      borderWidth={1}
+      alignItems="center"
+      justifyContent="space-between"
+      flexDirection="row"
+      paddingHorizontal="$spacing12"
+      paddingRight={28}
+      gap="$spacing8"
+      cursor="pointer"
+    >
+      {children}
+    </Flex>
+  )
+}
 
-const DropdownTriggerText = styled(Text, {
-  color: '$neutral1',
-  flexShrink: 0,
-})
+function DropdownTriggerText({ children }: PropsWithChildren): JSX.Element {
+  return (
+    <Text color="$neutral1" flexShrink={0}>
+      {children}
+    </Text>
+  )
+}
 
-const DropdownIcon = styled(Flex, {
-  position: 'absolute',
-  right: '$spacing12',
-  pointerEvents: 'none',
-})
+function DropdownIcon({ children }: PropsWithChildren): JSX.Element {
+  return (
+    <Flex position="absolute" right="$spacing12" pointerEvents="none">
+      {children}
+    </Flex>
+  )
+}
 
-const DropdownContent = styled(Popover.Content, {
-  backgroundColor: '$surface1',
-  borderRadius: '$rounded16',
-  borderWidth: 1,
-  borderColor: '$surface3',
-  padding: '$spacing8',
-  width: '100%',
-  maxWidth: 360,
-  minWidth: 240,
-  elevate: true,
-})
+function DropdownContent({
+  children,
+  zIndex,
+}: PropsWithChildren<{ zIndex?: ComponentPropsWithoutRef<typeof Popover.Content>['zIndex'] }>): JSX.Element {
+  return (
+    <Popover.Content
+      backgroundColor="$surface1"
+      borderRadius="$rounded16"
+      borderWidth={1}
+      borderColor="$surface3"
+      padding="$spacing8"
+      width="100%"
+      maxWidth={360}
+      minWidth={240}
+      elevate
+      zIndex={zIndex}
+    >
+      {children}
+    </Popover.Content>
+  )
+}
 
-const DropdownItem = styled(TouchableArea, {
-  paddingHorizontal: '$spacing12',
-  paddingVertical: '$spacing10',
-  borderRadius: '$rounded12',
-  hoverStyle: {
-    backgroundColor: '$surface2',
-  },
-})
+function DropdownItem({ children, ...rest }: PropsWithChildren<ComponentPropsWithoutRef<typeof TouchableArea>>): JSX.Element {
+  return (
+    <TouchableArea
+      paddingHorizontal="$spacing12"
+      borderRadius="$rounded12"
+      hoverStyle={{ backgroundColor: '$surface2' }}
+      {...rest}
+    >
+      {children}
+    </TouchableArea>
+  )
+}
 
 interface GmxOpenPositionFormProps {
   marketIndexNames: string[]
@@ -357,7 +387,7 @@ export function GmxOpenPositionForm(props: GmxOpenPositionFormProps): JSX.Elemen
         </Text>
       )}
 
-      <Button variant="branded" size="medium" isDisabled={!canSubmit} onPress={onSubmit}>
+      <Button variant="branded" size="medium" disabled={!canSubmit} onPress={onSubmit}>
         {submitButtonLabel}
       </Button>
     </Flex>

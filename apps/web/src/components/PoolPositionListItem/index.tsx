@@ -1,3 +1,5 @@
+import { UniverseChainId } from '@universe/chains'
+import { Flex } from '@universe/mycelium'
 import { useTheme } from 'tamagui'
 import { useCallback, useState } from 'react'
 //import RangeBadge from '~/components/Badge/RangeBadge'
@@ -5,10 +7,9 @@ import { useCallback, useState } from 'react'
 //import { useToken } from '~/hooks/Tokens'
 import { Trans } from 'react-i18next'
 import { Link } from 'react-router'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 //import Badge from '~/components/Badge'
 import { ButtonPrimary } from '~/components/Button/buttons'
-import Row, { RowBetween, RowFixed } from '~/components/deprecated/Row'
+import { RowBetween, RowFixed } from '~/components/deprecated/Row'
 import RaceModal from '~/components/earn/RaceModal'
 import { ChainLogo } from '~/components/Logo/ChainLogo'
 import styled from '~/lib/deprecated-styled'
@@ -162,7 +163,7 @@ export default function PoolPositionListItem({
       <LinkRow to={positionSummaryLink}>
         <RowBetween>
           <PrimaryPositionIdData>
-            <Row gap="sm" justify="flex-end">
+            <Flex row gap="$gap8" justifyContent="flex-end">
               {chainId && <ChainLogo chainId={chainId as UniverseChainId} size={16} />}
               {!isSubRow && <DataText>{name}</DataText>}
               {userHasStake && (
@@ -197,10 +198,10 @@ export default function PoolPositionListItem({
                     <ActiveDot />
                   </LabelText>
                 )}
-            </Row>
+            </Flex>
           </PrimaryPositionIdData>
           {showOperatorView && shouldDisplayRaceButton ? (
-            <ResponsiveRowFixed gap="24px">
+            <ResponsiveRowFixed style={{ gap: '24px' }}>
               <ButtonPrimary
                 style={{ width: 'fit-content', height: '40px' }}
                 padding="8px"

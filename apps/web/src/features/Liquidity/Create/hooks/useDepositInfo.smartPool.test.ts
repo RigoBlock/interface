@@ -5,7 +5,7 @@ import { Pool as V4Pool } from '@uniswap/v4-sdk'
 import { useDynamicConfigValue } from '@universe/gating'
 import JSBI from 'jsbi'
 import { USDT } from 'uniswap/src/constants/tokens'
-import { normalizeCurrencyIdForMapLookup } from 'uniswap/src/data/cache'
+import { normalizeCurrencyIdForMapLookup } from 'uniswap/src/utils/currencyId'
 import { useMaxAmountSpend } from 'uniswap/src/features/gas/hooks/useMaxAmountSpend'
 import { useOnChainCurrencyBalance } from 'uniswap/src/features/portfolio/api'
 import { usePortfolioBalances } from 'uniswap/src/features/portfolio/balances/hooks'
@@ -106,7 +106,6 @@ describe('useDepositInfo smart pool balances', () => {
       loading: false,
       error: undefined,
       refetch: () => {},
-      networkStatus: 7,
       dataUpdatedAt: 0,
     })
 
@@ -152,7 +151,6 @@ describe('useDepositInfo smart pool balances', () => {
       loading: false,
       error: undefined,
       refetch: () => {},
-      networkStatus: 7,
       dataUpdatedAt: 0,
     })
 
@@ -194,7 +192,6 @@ describe('useDepositInfo smart pool balances', () => {
       loading: false,
       error: undefined,
       refetch: () => {},
-      networkStatus: 7,
       dataUpdatedAt: 0,
     })
     useOnChainCurrencyBalanceMock.mockImplementation((currency) => {

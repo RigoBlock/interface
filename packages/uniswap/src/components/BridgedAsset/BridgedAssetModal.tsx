@@ -1,5 +1,6 @@
 import { isWebAppDesktop } from '@universe/environment'
 import { Flex, Text, TouchableArea } from '@universe/mycelium'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { atom } from 'jotai'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -9,7 +10,6 @@ import {
   ModalCloseIcon,
   useColorsFromTokenColor,
   useExtractedTokenColor,
-  useSporeColors,
 } from 'ui/src'
 import { ArrowUpCircle } from 'ui/src/components/icons/ArrowUpCircle'
 import { EnvelopeHeart } from 'ui/src/components/icons/EnvelopeHeart'

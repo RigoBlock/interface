@@ -3,7 +3,7 @@
  * fixed column widths, header/data cell components, and USD/price formatting.
  * Extracted from Perps.tsx so both sections render identically aligned tables.
  */
-import { Flex, Text } from 'ui/src'
+import { Flex, Text } from '@universe/mycelium'
 
 const usdFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',

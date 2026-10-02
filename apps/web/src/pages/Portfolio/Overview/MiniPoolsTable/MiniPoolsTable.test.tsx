@@ -80,6 +80,7 @@ describe('MiniPoolsTable', () => {
       chainId: undefined,
       externalAddress: undefined,
       isExternalWallet: false,
+      hasExplicitUrlAddress: false,
     })
     mocked(useMiniPoolsTableColumns).mockReturnValue([])
     mocked(useMiniPoolsTableData).mockReturnValue({
@@ -117,6 +118,7 @@ describe('MiniPoolsTable', () => {
       chainId: UniverseChainId.Base,
       externalAddress: undefined,
       isExternalWallet: false,
+      hasExplicitUrlAddress: false,
     })
 
     render(<MiniPoolsTable account={SAMPLE_SEED_ADDRESS_1} chainId={UniverseChainId.Base} />)
@@ -133,6 +135,7 @@ describe('MiniPoolsTable', () => {
       chainId: undefined,
       externalAddress: { address: SAMPLE_SEED_ADDRESS_1, platform: Platform.EVM },
       isExternalWallet: true,
+      hasExplicitUrlAddress: true,
     })
 
     render(<MiniPoolsTable account={SAMPLE_SEED_ADDRESS_1} />)
@@ -149,6 +152,7 @@ describe('MiniPoolsTable', () => {
       chainId: undefined,
       externalAddress: { address: SAMPLE_SEED_ADDRESS_1, platform: Platform.EVM },
       isExternalWallet: true,
+      hasExplicitUrlAddress: true,
     })
 
     render(<MiniPoolsTable account={SAMPLE_SEED_ADDRESS_1} />)

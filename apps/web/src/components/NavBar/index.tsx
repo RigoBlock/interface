@@ -1,12 +1,12 @@
 import { Token } from '@uniswap/sdk-core'
+import { normalizeTokenAddressForCache } from '@universe/chains'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Flex, useMedia } from '@universe/mycelium'
 import { useEffect, useMemo, useRef } from 'react'
 import { useLocation } from 'react-router'
-import { Flex, styled, Nav as TamaguiNav, useMedia } from 'ui/src'
 import { breakpoints, INTERFACE_NAV_HEIGHT, zIndexes } from 'ui/src/theme'
 import { useConnectionStatus } from 'uniswap/src/features/accounts/store/hooks'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { normalizeTokenAddressForCache } from 'uniswap/src/utils/currencyId'
 import Row from '~/components/deprecated/Row'
 import { ChainSelector } from '~/components/NavBar/ChainSelector'
 import { CompanyMenu } from '~/components/NavBar/CompanyMenu'
@@ -21,7 +21,7 @@ import { Web3Status } from '~/components/Web3Status'
 import { RIGOBLOCK_SUPPORTED_CHAINS, RIGOBLOCK_TESTNET_CHAINS } from '~/constants/addresses'
 import { useAccount } from '~/hooks/useAccount'
 import { PageType, useIsPage } from '~/hooks/useIsPage'
-import usePrevious from '~/hooks/usePrevious'
+import { usePrevious } from '~/hooks/usePrevious'
 import { css, deprecatedStyled } from '~/lib/deprecated-styled'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { useActiveSmartPool, useSelectActiveSmartPool } from '~/state/application/hooks'
@@ -29,19 +29,19 @@ import { useMultiChainAllPoolsData, useMultiChainStakingPools } from '~/state/po
 
 // Flex is position relative by default, we must unset the position on every Flex
 // between the body and search component
+const UnpositionedFlex = deprecatedStyled(Flex)`
+  position: unset;
+`
 
-const UnpositionedFlex = styled(Flex, {
-  position: 'unset',
-})
-
-const Nav = styled(TamaguiNav, {
-  position: 'unset',
-  px: '$padding12',
-  width: '100%',
-  height: INTERFACE_NAV_HEIGHT,
-  zIndex: zIndexes.sticky,
-  justifyContent: 'center',
-})
+const Nav = deprecatedStyled.nav`
+  display: flex;
+  position: unset;
+  padding: 0 12px;
+  width: 100%;
+  height: ${INTERFACE_NAV_HEIGHT}px;
+  z-index: ${zIndexes.sticky};
+  justify-content: center;
+`
 const NavItems = css`
   gap: 12px;
   @media screen and (max-width: ${breakpoints.md}px) {
@@ -58,44 +58,45 @@ const Right = deprecatedStyled(Row)`
   justify-content: flex-end;
   ${NavItems}
 `
-const SearchContainer = styled(UnpositionedFlex, {
-  position: 'absolute',
-  left: '50%',
-  transform: 'translateX(-50%)',
-  width: 'max-content',
-  maxWidth: '50%',
-  minWidth: 0,
-  flexDirection: 'row',
-  justifyContent: 'center',
-  alignSelf: 'center',
-  alignItems: 'flex-start',
-  height: 42,
-  gap: 12,
-})
+const SearchContainer = deprecatedStyled(UnpositionedFlex)`
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 50%;
+  min-width: 0;
+  flex-direction: row;
+  justify-content: center;
+  align-self: center;
+  align-items: flex-start;
+  height: 42px;
+  gap: 12px;
+`
 
-const SelectedPoolContainer = styled(UnpositionedFlex, {
-  width: 'max-content',
-  maxWidth: '40%',
-  minWidth: 200,
-  height: 42,
-  flexShrink: 0,
-  flexDirection: 'row',
-  justifyContent: 'center',
-  alignSelf: 'center',
-  alignItems: 'center',
-  overflow: 'hidden',
-  mt: 8,
-  $md: {
-    position: 'absolute',
-    left: -100,
-    transform: 'translateX(0)',
-    minWidth: 150,
-    maxWidth: 'calc(40% - 200px)',
-    height: 42,
-    overflow: 'hidden',
-    mt: 8,
-  },
-})
+const SelectedPoolContainer = deprecatedStyled(UnpositionedFlex)`
+  width: max-content;
+  max-width: 40%;
+  min-width: 200px;
+  height: 42px;
+  flex-shrink: 0;
+  flex-direction: row;
+  justify-content: center;
+  align-self: center;
+  align-items: center;
+  overflow: hidden;
+  margin-top: 8px;
+
+  @media screen and (max-width: ${breakpoints.md}px) {
+    position: absolute;
+    left: -100px;
+    transform: translateX(0);
+    min-width: 150px;
+    max-width: calc(40% - 200px);
+    height: 42px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+`
 
 function useShouldHideChainSelector() {
   const isLandingPage = useIsPage(PageType.LANDING)

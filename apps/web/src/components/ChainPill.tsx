@@ -1,29 +1,37 @@
-import { Flex, styled } from 'ui/src'
+import { Flex } from '@universe/mycelium'
+import type { FlexCompatProps } from '@universe/mycelium'
+import { forwardRef, type PropsWithChildren } from 'react'
+
+interface ChainPillProps extends PropsWithChildren<FlexCompatProps> {
+  active?: boolean
+}
 
 /**
  * Selectable chain chip used for chain selection across the app
  * (smart pool chain pills, bridge source-chain selection, ...).
  * Selected state uses accent border/fill matching the app theme.
  */
-export const ChainPill = styled(Flex, {
-  row: true,
-  alignItems: 'center',
-  gap: '$spacing4',
-  paddingHorizontal: '$spacing6',
-  paddingVertical: '$spacing2',
-  borderRadius: '$rounded8',
-  borderWidth: 1,
-  borderColor: '$surface3',
-  cursor: 'pointer',
-  hoverStyle: {
-    backgroundColor: '$surface2',
-  },
-  variants: {
-    active: {
-      true: {
-        borderColor: '$accent1',
-        backgroundColor: '$accent2',
-      },
-    },
-  } as const,
+export const ChainPill = forwardRef<HTMLDivElement, ChainPillProps>(function ChainPill(
+  { active, children, ...rest },
+  ref,
+) {
+  return (
+    <Flex
+      ref={ref}
+      row
+      alignItems="center"
+      gap="$spacing4"
+      px="$spacing6"
+      py="$spacing2"
+      borderRadius="$rounded8"
+      borderWidth={1}
+      borderColor={active ? '$accent1' : '$surface3'}
+      backgroundColor={active ? '$accent2' : undefined}
+      cursor="pointer"
+      hoverStyle={{ backgroundColor: '$surface2' }}
+      {...rest}
+    >
+      {children}
+    </Flex>
+  )
 })

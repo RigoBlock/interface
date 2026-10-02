@@ -5,8 +5,8 @@ import { ReactNode } from 'react'
 import { Trans } from 'react-i18next'
 import { parseUnits } from 'viem'
 import { useAccount } from '~/hooks/useAccount'
-import useCurrentBlockTimestamp from '~/hooks/useCurrentBlockTimestamp'
-import tryParseCurrencyAmount from '~/lib/utils/tryParseCurrencyAmount'
+import { useCurrentBlockTimestamp } from '~/hooks/useCurrentBlockTimestamp'
+import { tryParseCurrencyAmount } from '~/lib/utils/tryParseCurrencyAmount'
 
 // TODO: check if should batch userPoolBalance and activation in UserAccount, transform user tokens after
 export interface PoolInfo {

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
-import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
+import { normalizeTokenAddressForCache } from 'uniswap/src/utils/currencyId'
 
 /** GMX team's Subsquid indexer (same source as the official gmx-interface account PnL chart) */
 const GMX_SUBSQUID_API_URL = 'https://gmx.squids.live/gmx-synthetics-arbitrum:prod/api/graphql'

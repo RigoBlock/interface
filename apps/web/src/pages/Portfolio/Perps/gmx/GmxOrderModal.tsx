@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { Button, Flex, Input, SegmentedControl, Text } from 'ui/src'
+import { Button, Input } from 'ui/src'
+import { Flex, Text } from '@universe/mycelium'
+import { SegmentedControl } from '@universe/mycelium/segmented-control-compat'
 import { Modal } from 'uniswap/src/components/modals/Modal'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { logger } from 'utilities/src/logger/logger'
@@ -266,7 +268,7 @@ function GmxOrderForm({
       <Button
         variant="branded"
         size="medium"
-        isDisabled={!canSubmit}
+        disabled={!canSubmit}
         onPress={() => {
           setErrorReason(undefined)
           onSubmit({ sizeUsd, collateralAmount })

@@ -14,7 +14,7 @@ import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import { Pair } from '@uniswap/v2-sdk'
 import { NormalizedApprovalData } from 'uniswap/src/data/apiClients/liquidityService/normalizeApprovalResponse'
 import { CreatePositionTxAndGasInfo, LiquidityTransactionType } from 'uniswap/src/features/transactions/liquidity/types'
-import { PermitMethod } from 'uniswap/src/features/transactions/swap/types/swapTxAndGasInfo'
+import { PermitMethod } from 'uniswap/src/features/transactions/swap/types/permitMethod'
 import { validatePermit, validateTransactionRequest } from 'uniswap/src/features/transactions/swap/utils/trade'
 import { PositionField } from '~/types/position'
 
@@ -125,7 +125,9 @@ export function generateCreatePositionTxRequest({
     canBatchTransactions,
     delegatedAddress,
     unsigned: Boolean(validatedPermitRequest),
-    createPositionRequestArgs: updatedCreateCalldataQueryParams,
+    // The v1 LP flow passes a CreateLPPositionRequest through a v2-typed slot (rigoblock's
+    // batch-permit async re-submission); the cast preserves the existing runtime behavior.
+    createPositionRequestArgs: updatedCreateCalldataQueryParams as CreatePositionRequest | undefined,
     action: {
       type: LiquidityTransactionType.Create,
       currency0Amount: currencyAmounts.TOKEN0,

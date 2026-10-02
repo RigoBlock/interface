@@ -14,9 +14,9 @@ import RB_POOL_FACTORY_ABI from 'uniswap/src/abis/rb-pool-factory.json'
 import RB_REGISTRY_ABI from 'uniswap/src/abis/rb-registry.json'
 import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
 import { GRG } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { isValidHexString } from 'utilities/src/addresses/hex'
+import { isValidHexString } from '@universe/encoding'
 import { useEvent } from 'utilities/src/react/hooks'
 import type { Abi } from 'viem'
 import { useReadContracts } from 'wagmi'
@@ -28,8 +28,8 @@ import { useStakingContract } from '~/state/governance/hooks'
 import { useLogs } from '~/state/logs/hooks'
 import { useTransactionAdder } from '~/state/transactions/hooks'
 import { calculateGasMargin } from '~/utils/calculateGasMargin'
-import { assume0xAddress } from '~/utils/wagmi'
-import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
+import { assume0xAddress } from '~/chains'
+import { normalizeTokenAddressForCache } from 'uniswap/src/utils/currencyId'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { useMultiChainAllPoolsData, useMultiChainStakingPools } from '~/state/pool/multichain'
 
@@ -182,7 +182,7 @@ export function useCreateCallback(): (options: {
         (estimatedGasLimit): Promise<string> => {
           return (factoryContract.createPool(name, symbol, parsedAddress, {
             value: null,
-            gasLimit: calculateGasMargin(estimatedGasLimit),
+            gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
           }) as Promise<TransactionResponse>).then((response: TransactionResponse): string => {
             addTransaction(response, {
               type: TransactionType.Deploy,
@@ -271,7 +271,7 @@ export function useSetLockupCallback(): (lockup: string | undefined) => undefine
           (estimatedGasLimit): Promise<string> => {
             return (poolContract.changeMinPeriod(lockup, {
               value: null,
-              gasLimit: calculateGasMargin(estimatedGasLimit),
+              gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
             }) as Promise<TransactionResponse>).then((response: TransactionResponse): string => {
               addTransaction(response, {
                 type: TransactionType.SetLockup,
@@ -313,7 +313,7 @@ export function useSetSpreadCallback(): (spread: string | undefined) => undefine
           (estimatedGasLimit): Promise<string> => {
             return (poolContract.changeSpread(spread, {
               value: null,
-              gasLimit: calculateGasMargin(estimatedGasLimit),
+              gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
             }) as Promise<TransactionResponse>).then((response: TransactionResponse): string => {
               addTransaction(response, {
                 type: TransactionType.SetSpread,
@@ -354,7 +354,7 @@ export function useSetValueCallback(): () => undefined | Promise<string> {
         (estimatedGasLimit): Promise<string> => {
           return (poolContract.updateUnitaryValue({
             value: null,
-            gasLimit: calculateGasMargin(estimatedGasLimit),
+            gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
           }) as Promise<TransactionResponse>).then((response: TransactionResponse): string => {
             addTransaction(response, {
               type: TransactionType.SetValue,
@@ -392,7 +392,7 @@ export function useUpgradeCallback(): () => undefined | Promise<string> {
         (estimatedGasLimit): Promise<string> => {
           return (poolContract.upgradeImplementation({
             value: null,
-            gasLimit: calculateGasMargin(estimatedGasLimit),
+            gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
           }) as Promise<TransactionResponse>).then((response: TransactionResponse): string => {
             addTransaction(response, {
               type: TransactionType.Upgrade,

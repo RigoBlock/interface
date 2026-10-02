@@ -24,6 +24,7 @@ import { type ApplicationState, type OpenModalParams } from '~/state/application
 import { type FiatOnRampTransactionsState } from '~/state/fiatOnRampTransactions/reducer'
 import { type PoolsListsState } from '~/state/lists/poolsList/reducer'
 import { type ListsState } from '~/state/lists/types'
+import { type LogsState } from '~/state/logs/slice'
 import { type MintState } from '~/state/mint/v3/reducer'
 import { type PortfolioStakingState } from '~/state/portfolio/stakingSlice'
 import { type PopupType } from '~/state/popups/types'
@@ -60,6 +61,7 @@ type ExpectedAppState = CombinedState<{
   readonly poolsList: PoolsListsState
   readonly application: ApplicationState
   readonly mintV3: MintState
+  readonly logs: LogsState
   readonly saga: Record<string, SagaState>
   readonly portfolioStaking: PortfolioStakingState
 

@@ -1,7 +1,8 @@
 import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
-import { Button, Flex, Text } from 'ui/src'
+import { Flex, Text } from '@universe/mycelium'
+import { Button } from 'ui/src'
 import { ArrowRight } from 'ui/src/components/icons/ArrowRight'
 import { iconSizes } from 'ui/src/theme'
 import { ActivityItem } from 'uniswap/src/components/activity/generateActivityItemRenderer'
@@ -67,7 +68,7 @@ export default function MiniPortfolioV2({ evmAddress, svmAddress }: { evmAddress
         <Text variant="subheading2" color="$neutral1" p="$spacing8">
           {t('activity.recentActivity')}
         </Text>
-        <Flex gap="$spacing0">{recentActivityItems}</Flex>
+        <Flex gap="$none">{recentActivityItems}</Flex>
       </Flex>
 
       {/* Temporarily hidden - Activity API doesn't support smart pools properly

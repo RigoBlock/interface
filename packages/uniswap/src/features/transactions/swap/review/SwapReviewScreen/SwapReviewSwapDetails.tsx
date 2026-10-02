@@ -1,8 +1,9 @@
 import type { GasFeeResult } from '@universe/api'
+import { isWebApp } from '@universe/environment'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Flex, Switch, Text } from '@universe/mycelium'
 import { memo, useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, Switch, Text } from 'ui/src'
 import { InfoCircleFilled } from 'ui/src/components/icons/InfoCircleFilled'
 import { zIndexes } from 'ui/src/theme'
 import { WarningInfo } from 'uniswap/src/components/modals/WarningModal/WarningInfo'
@@ -26,7 +27,6 @@ import { ReviewNetworkCostRowSlot } from 'uniswap/src/features/transactions/swap
 import { setBridgeSyncMode } from 'uniswap/src/features/transactions/swap/utils/bridgeSyncMode'
 import { getEVMTxRequest, isBridge } from 'uniswap/src/features/transactions/swap/utils/routing'
 import { CurrencyField } from 'uniswap/src/types/currency'
-import { isWebApp } from 'utilities/src/platform'
 
 const QUOTE_REFRESH_GAS_FEE: GasFeeResult = {
   value: undefined,

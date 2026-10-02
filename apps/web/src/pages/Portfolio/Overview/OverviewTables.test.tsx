@@ -59,6 +59,7 @@ function mockPortfolioRoutes({ isExternalWallet }: { isExternalWallet: boolean }
     chainId: undefined,
     externalAddress: isExternalWallet ? { address: SAMPLE_SEED_ADDRESS_1, platform: Platform.EVM } : undefined,
     isExternalWallet,
+    hasExplicitUrlAddress: isExternalWallet,
   })
 }
 

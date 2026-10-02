@@ -6,7 +6,7 @@ import { GRG, USDC_MAINNET } from 'uniswap/src/constants/tokens'
 import { usePortfolioDataMultichain } from 'uniswap/src/features/dataApi/balances/balancesRest'
 import { PortfolioMultichainBalance } from 'uniswap/src/features/dataApi/types'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { isTestnetChain } from 'uniswap/src/features/chains/utils'
 import { STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
 import { useActiveAddresses } from '~/features/accounts/store/hooks'
@@ -19,10 +19,9 @@ import {
 } from '~/state/portfolio/stakingSlice'
 import { useTotalStakeBalances } from '~/state/stake/hooks'
 import { InterfaceState } from '~/state/webReducer'
-import { assume0xAddress } from '~/utils/wagmi'
-import { isValidHexString } from 'utilities/src/addresses/hex'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
-import { areAddressesEqual } from 'uniswap/src/utils/addresses'
+import { assume0xAddress } from '~/chains'
+import { isValidHexString } from '@universe/encoding'
+import { Platform, areAddressesEqual } from '@universe/chains'
 
 // Serializable interface for Redux store
 export interface SerializableStakingData {
@@ -377,7 +376,7 @@ export function usePortfolioStaking({
 
   // Check if any data is loading
   const isLoading = useMemo(() => {
-    return Object.values(stakingData).some((data) => data.isLoading)
+    return Object.values(stakingData).some((data) => data?.isLoading)
   }, [stakingData])
 
   return {

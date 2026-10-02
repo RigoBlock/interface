@@ -1,6 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
-import { FOR_API_HEADERS } from 'uniswap/src/features/fiatOnRamp/constants'
+import { config } from 'uniswap/src/config'
+import { getUniswapServiceUrls } from 'uniswap/src/constants/urls'
+import { getForApiHeaders } from 'uniswap/src/features/fiatOnRamp/constants'
 import {
   FORGetCountryResponse,
   FORQuoteRequest,
@@ -26,8 +27,8 @@ import { transformPaymentMethods } from 'uniswap/src/features/fiatOnRamp/utils'
 export const fiatOnRampAggregatorApi = createApi({
   reducerPath: 'fiatOnRampAggregatorApi-uniswap',
   baseQuery: fetchBaseQuery({
-    baseUrl: uniswapUrls.forApiUrl,
-    headers: FOR_API_HEADERS,
+    baseUrl: getUniswapServiceUrls(config).forApiUrl,
+    headers: getForApiHeaders(),
   }),
   endpoints: (builder) => ({
     fiatOnRampAggregatorCountryList: builder.query<FORSupportedCountriesResponse, FORSupportedCountriesRequest>({

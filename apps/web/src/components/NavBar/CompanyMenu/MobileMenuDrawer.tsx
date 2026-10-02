@@ -1,4 +1,3 @@
-HEAD
 /* oxlint-disable typescript/no-unnecessary-condition */
 import { Accordion, Flex, Square, Text } from '@universe/mycelium'
 import { AnimateTransition } from '@universe/mycelium/animate-presence-pager'
@@ -20,7 +19,6 @@ import { PreferencesView } from '~/components/NavBar/PreferencesMenu/shared'
 import { useTabsContent } from '~/components/NavBar/Tabs/TabsContent'
 import { IN_APP_BROWSER_CHROME_PX } from '~/constants/inAppBrowser'
 import { Socials } from '~/pages/Landing/sections/Footer'
-HEAD
 import { useActiveSmartPool } from '~/state/application/hooks'
 import { isInAppBrowser } from '~/utils/isInAppBrowser'
 

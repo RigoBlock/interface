@@ -1,21 +1,20 @@
 /* oxlint-disable complexity */
 import { isAddress } from '@ethersproject/address'
-import { useTheme } from 'tamagui'
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
+import { UniverseChainId } from '@universe/chains'
+import { Flex, Text } from '@universe/mycelium'
 import JSBI from 'jsbi'
 import { ReactNode, useCallback, useMemo, useState } from 'react'
 import { X } from 'react-feather'
 import { Trans, useTranslation } from 'react-i18next'
-import { Button, ButtonProps, Flex, Text, useSporeColors } from 'ui/src'
+import { Button, ButtonProps, useSporeColors } from 'ui/src'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { GRG } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useENS } from 'uniswap/src/features/ens/useENS'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { logger } from 'utilities/src/logger/logger'
-import AddressInputPanel from '~/components/AddressInputPanel'
 import { ButtonConfirmed, ButtonPrimary } from '~/components/Button/buttons'
 import { LightCard } from '~/components/Card/cards'
 import { AutoColumn } from '~/components/deprecated/Column'
@@ -23,6 +22,7 @@ import { RowBetween } from '~/components/deprecated/Row'
 import { LoadingView, SubmittedView } from '~/components/ModalViews'
 import Slider from '~/components/Slider'
 import { GRG_TRANSFER_PROXY_ADDRESSES } from '~/constants/addresses'
+import { AddressInputPanel } from '~/features/claim/AddressInputPanel'
 import { useAccount } from '~/hooks/useAccount'
 import { ApprovalState, useApproveCallback } from '~/hooks/useApproveCallback'
 import useDebouncedChangeHandler from '~/hooks/useDebouncedChangeHandler'
@@ -82,7 +82,6 @@ interface VoteModalProps {
 
 export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: VoteModalProps) {
   const account = useAccount()
-  const theme = useTheme()
   const { t } = useTranslation()
   const colors = useSporeColors()
 
@@ -325,7 +324,7 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
             </ButtonPrimary>
             {poolInfo?.owner === account.address && (
               <TextButton onClick={() => setUsingDelegate(!usingDelegate)}>
-                <Text color={theme.accent1}>
+                <Text color={colors.accent1.val}>
                   {usingDelegate ? <Trans i18nKey="grg.stakeFromWallet" /> : <Trans i18nKey="grg.stakeFromPool" />}
                 </Text>
               </TextButton>

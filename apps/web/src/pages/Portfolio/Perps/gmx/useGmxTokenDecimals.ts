@@ -1,9 +1,9 @@
 import { Contract } from '@ethersproject/contracts'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
-import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
+import { normalizeTokenAddressForCache } from 'uniswap/src/utils/currencyId'
 import { RPC_PROVIDERS } from '~/constants/providers'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { logger } from 'utilities/src/logger/logger'
 
 const ERC20_DECIMALS_ABI = ['function decimals() view returns (uint8)']

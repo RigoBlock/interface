@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { Button, Flex, Input, SegmentedControl, Text } from 'ui/src'
+import { Button, Input } from 'ui/src'
+import { Flex, Text } from '@universe/mycelium'
+import { SegmentedControl } from '@universe/mycelium/segmented-control-compat'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
@@ -226,7 +228,7 @@ export function HyperliquidTransferModal({
               <Button
                 variant="branded"
                 size="medium"
-                isDisabled={!!depositError || !poolAddress}
+                disabled={!!depositError || !poolAddress}
                 onPress={() => submit(() => sendHlDeposit(Number(depositAmount)))}
               >
                 {depositError ?? t('perps.hyperliquid.transfer.deposit.submit')}
@@ -254,7 +256,7 @@ export function HyperliquidTransferModal({
                   <Button
                     variant="branded"
                     size="medium"
-                    isDisabled={!!step1Error || !poolAddress}
+                    disabled={!!step1Error || !poolAddress}
                     onPress={() =>
                       submit(() => sendHlUsdClassTransfer(Number(step1Amount)), (txHash) => setStep1Hash(txHash))
                     }
@@ -293,7 +295,7 @@ export function HyperliquidTransferModal({
                   <Button
                     variant="branded"
                     size="medium"
-                    isDisabled={!!step2Error || !poolAddress}
+                    disabled={!!step2Error || !poolAddress}
                     onPress={() => submit(() => sendHlSpotSend(Number(step2Amount)))}
                   >
                     {step2Error ?? t('perps.hyperliquid.transfer.withdraw.step2Submit')}

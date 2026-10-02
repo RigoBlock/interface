@@ -158,7 +158,7 @@ export default function SellModal({
       return poolContract.estimateGas['burn(uint256,uint256)'](...args, {}).then((estimatedGasLimit) => {
         return poolContract['burn(uint256,uint256)'](...args, {
           value: null,
-          gasLimit: calculateGasMargin(estimatedGasLimit),
+          gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
         })
           .then((response: TransactionResponse) => {
             addTransaction(response, {

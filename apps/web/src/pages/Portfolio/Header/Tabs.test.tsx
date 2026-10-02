@@ -16,6 +16,7 @@ describe('PortfolioTabs', () => {
       chainId: undefined,
       externalAddress: undefined,
       isExternalWallet: false,
+      hasExplicitUrlAddress: false,
     })
   })
 

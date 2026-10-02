@@ -2,7 +2,7 @@ import { cn, Flex } from '@universe/mycelium'
 import type { FlexCompatProps as FlexProps } from '@universe/mycelium'
 import { PropsWithChildren } from 'react'
 import { useSporeColors } from 'ui/src'
-import styled from '~/lib/deprecated-styled'
+import styled, { DefaultTheme } from '~/lib/deprecated-styled'
 
 export const Card = ({ children, className, ...rest }: PropsWithChildren<FlexProps>) => {
   return (
@@ -29,8 +29,8 @@ export const DarkGrayCard = ({ children, ...rest }: PropsWithChildren<FlexProps>
 }
 
 export const DarkCard = styled(Card)`
-  background-color: ${({ theme }) => theme.surface1};
-  border: 1px solid ${({ theme }) => theme.surface3};
+  background-color: ${({ theme }: { theme: DefaultTheme }) => theme.surface1};
+  border: 1px solid ${({ theme }: { theme: DefaultTheme }) => theme.surface3};
 `
 
 export const OutlineCard = ({ children, ...rest }: PropsWithChildren<FlexProps>) => {

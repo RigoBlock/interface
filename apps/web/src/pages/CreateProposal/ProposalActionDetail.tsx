@@ -1,8 +1,8 @@
 /* oxlint-disable typescript/no-unnecessary-condition */
 import { Currency } from '@uniswap/sdk-core'
 import { Trans } from 'react-i18next'
-import AddressInputPanel from '~/components/AddressInputPanel'
 import CurrencyInputPanel from '~/components/CurrencyInputPanel'
+import { AddressInputPanel } from '~/features/claim/AddressInputPanel'
 import styled from '~/lib/deprecated-styled'
 import { ProposalAction } from '~/pages/CreateProposal/ProposalActionSelector'
 
