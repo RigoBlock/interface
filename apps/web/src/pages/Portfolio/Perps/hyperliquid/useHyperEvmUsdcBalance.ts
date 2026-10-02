@@ -1,6 +1,6 @@
+import { UniverseChainId } from '@universe/chains'
 import { useMemo } from 'react'
 import { USDC_HYPEREVM } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from '@universe/chains'
 import { erc20Abi } from 'viem'
 import { useReadContract } from 'wagmi'
 import { assume0xAddress } from '~/chains'

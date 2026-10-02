@@ -4,6 +4,7 @@ import { TokenOption } from 'uniswap/src/components/lists/items/types'
 import { filter } from 'uniswap/src/components/TokenSelector/filter'
 import { useAllCommonBaseCurrencies } from 'uniswap/src/components/TokenSelector/hooks/useAllCommonBaseCurrencies'
 import { useCurrencyInfosToTokenOptions } from 'uniswap/src/components/TokenSelector/hooks/useCurrencyInfosToTokenOptions'
+import { useLocalChainTokens } from 'uniswap/src/components/TokenSelector/hooks/useLocalChainTokens'
 import { type PortfolioBalancesResult } from 'uniswap/src/components/TokenSelector/hooks/usePortfolioBalancesForAddressById'
 import {
   BTC_B_MEGAETH,
@@ -23,7 +24,6 @@ import {
   WETH_ARC,
 } from 'uniswap/src/constants/tokens'
 import { useCurrencyInfosWithLoading } from 'uniswap/src/features/tokens/useCurrencyInfo'
-import { useLocalChainTokens } from 'uniswap/src/components/TokenSelector/hooks/useLocalChainTokens'
 import { buildCurrencyId, buildNativeCurrencyId } from 'uniswap/src/utils/currencyId'
 import { noop } from 'utilities/src/react/noop'
 import type { DerivedQueryResult } from 'utilities/src/reactQuery/types'

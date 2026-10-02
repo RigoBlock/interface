@@ -7,7 +7,6 @@ import { useLocalizationContext } from 'uniswap/src/features/language/Localizati
 import { NumberType } from 'utilities/src/format/types'
 import { useConnectionStatus } from '~/features/accounts/store/hooks'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
-import { usePortfolioStakingContext } from '~/pages/Portfolio/PortfolioStakingContext'
 import {
   MAX_ACTIVITY_ROWS,
   MAX_POOLS_ROWS,
@@ -19,6 +18,7 @@ import { MiniPoolsTable } from '~/pages/Portfolio/Overview/MiniPoolsTable/MiniPo
 import { MiniTokensTable } from '~/pages/Portfolio/Overview/MiniTokensTable'
 import { OpenLimitsTable } from '~/pages/Portfolio/Overview/OpenLimitsTable'
 import { PortfolioEarnSection } from '~/pages/Portfolio/Overview/PortfolioEarnSection'
+import { usePortfolioStakingContext } from '~/pages/Portfolio/PortfolioStakingContext'
 
 interface PortfolioOverviewTablesProps {
   activityData: ActivityRenderData

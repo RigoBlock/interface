@@ -1,8 +1,8 @@
+import { UniverseChainId } from '@universe/chains'
+import { Flex, Text } from '@universe/mycelium'
 import { useMemo } from 'react'
 import { Trans } from 'react-i18next'
 import { useNavigate } from 'react-router'
-import { Flex, Text } from '@universe/mycelium'
-import { UniverseChainId } from '@universe/chains'
 import { ChainLogo } from '~/components/Logo/ChainLogo'
 import { useAccount } from '~/hooks/useAccount'
 import styled from '~/lib/deprecated-styled'
@@ -159,9 +159,10 @@ export default function PoolPositionGroupedListItem({
   const { rateString, rateLabel } = useMemo(() => {
     const operated = positions.filter((p) => p.userIsOwner)
     const isOperator = operated.length > 0
-    const rateValue = isOperator && isMyPools
-      ? Math.max(0, ...operated.map((p) => Number(p.irr ?? 0)))
-      : Math.max(0, ...positions.map((p) => Number(p.apr ?? 0)))
+    const rateValue =
+      isOperator && isMyPools
+        ? Math.max(0, ...operated.map((p) => Number(p.irr ?? 0)))
+        : Math.max(0, ...positions.map((p) => Number(p.apr ?? 0)))
     return {
       rateString: rateValue > 0 ? `${(rateValue * 100).toFixed(1)}%` : '—',
       rateLabel: isOperator && isMyPools ? 'IRR' : 'APR',
@@ -177,10 +178,7 @@ export default function PoolPositionGroupedListItem({
   }/${defaultPosition.address ?? defaultPosition.pool}/${returnPage}`
 
   return (
-    <RowWrapper
-      row
-      onPress={() => navigate(link)}
-    >
+    <RowWrapper row onPress={() => navigate(link)}>
       <Flex row alignItems="center" gap="$spacing8" style={{ minWidth: 0, flex: 1 }}>
         <Flex style={{ minWidth: 0 }}>
           <Flex row alignItems="center" gap="$spacing8" flexWrap="wrap">

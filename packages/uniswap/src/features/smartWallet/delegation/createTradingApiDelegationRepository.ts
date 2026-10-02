@@ -28,9 +28,7 @@ export function createTradingApiDelegationRepository(ctx: {
     const result: ChainDelegationDetails = {}
     // The TradingApi rejects unsupported chain ids (e.g. HyperEVM) with a 400 for the entire
     // request — only query supported chains and report the rest as not delegated.
-    const supportedChainIds = input.chainIds.filter(
-      (chainId) => toTradingApiSupportedChainId(chainId) !== undefined,
-    )
+    const supportedChainIds = input.chainIds.filter((chainId) => toTradingApiSupportedChainId(chainId) !== undefined)
     for (const chainId of input.chainIds) {
       if (toTradingApiSupportedChainId(chainId) === undefined) {
         result[String(chainId)] = null

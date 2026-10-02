@@ -226,6 +226,62 @@ export function getSimulationError({
   return null
 }
 
+const ERC20_APPROVE_SELECTOR = '0x095ea7b3'
+
+/** Returns an error when gas sponsorship was expected but not delivered by the backend response. */
+function getSponsorshipError({
+  response,
+  sponsorshipExpected,
+}: {
+  response: SwapData | undefined
+  sponsorshipExpected: boolean | undefined
+}): GasSponsorshipNotAppliedError | null {
+  const sponsorshipDelivered =
+    response?.requestUniswapGasSponsorship === true || Boolean(response?.paymasterService?.url)
+  return sponsorshipExpected && response && !sponsorshipDelivered ? new GasSponsorshipNotAppliedError() : null
+}
+
+// Filter out approval transactions for smart pools (RigoBlock)
+// The Trading API may still return approval transactions in batched responses even when alreadyApproved=true
+// We need to filter them out since smart pools handle approvals internally
+function getSmartPoolTxRequests({
+  response,
+  permitsDontNeedSignature,
+  swapRequestParams,
+}: {
+  response: SwapData | undefined
+  permitsDontNeedSignature: boolean | undefined
+  swapRequestParams: TradingApi.CreateSwapRequest | undefined
+}): providers.TransactionRequest[] | undefined {
+  if (!permitsDontNeedSignature) {
+    return response?.transactions
+  }
+
+  let finalTxRequests = response?.transactions
+  if (finalTxRequests && finalTxRequests.length > 1) {
+    // Filter out any transactions that start with ERC20 approve selector
+    finalTxRequests = finalTxRequests.filter((tx) => {
+      const data = tx.data?.toString()
+      return !data || !data.startsWith(ERC20_APPROVE_SELECTOR)
+    })
+  }
+
+  if (!finalTxRequests || finalTxRequests.length === 0) {
+    logger.error(new Error('RigoBlock pool has no txRequests after filtering! This will cause validation to fail.'), {
+      tags: { file: 'swapTxAndGasInfoService/utils', function: 'getSmartPoolTxRequests' },
+      extra: {
+        response,
+        swapRequestParams,
+        permitsDontNeedSignature,
+        originalTxCount: response?.transactions?.length,
+        filteredTxCount: finalTxRequests?.length,
+      },
+    })
+  }
+
+  return finalTxRequests
+}
+
 export function createProcessSwapResponse({
   gasStrategy,
   hasOverrides,
@@ -266,23 +322,31 @@ export function createProcessSwapResponse({
     // stays in sync. Falls back to the estimate below when it has no gas fields.
     const swapTx = response?.transactions?.[0]
     const maxCostDisplayValue = hasOverrides
-      ? computeMaxCostFromTx({ maxFeePerGas: swapTx?.maxFeePerGas, gasLimit: swapTx?.gasLimit })
+      ? computeMaxCostFromTx({
+          maxFeePerGas: swapTx?.maxFeePerGas,
+          gasLimit: swapTx?.gasLimit,
+        })
       : undefined
 
     // We use the gasFee estimate from quote, as its more accurate
     const swapGasFee = {
       value: swapQuote?.gasFee,
       displayValue:
-        maxCostDisplayValue ?? convertGasFeeToDisplayValue({ gasFee: swapQuote?.gasFee, gasStrategy, hasOverrides }),
+        maxCostDisplayValue ??
+        convertGasFeeToDisplayValue({
+          gasFee: swapQuote?.gasFee,
+          gasStrategy,
+          hasOverrides,
+        }),
     }
 
     // This is a case where simulation fails on backend, meaning txn is expected to fail
     const simulationError = getSimulationError({ swapQuote, isRevokeNeeded })
 
-    const sponsorshipDelivered =
-      response?.requestUniswapGasSponsorship === true || Boolean(response?.paymasterService?.url)
-    const sponsorshipError =
-      sponsorshipExpected && response && !sponsorshipDelivered ? new GasSponsorshipNotAppliedError() : null
+    const sponsorshipError = getSponsorshipError({
+      response,
+      sponsorshipExpected,
+    })
 
     const gasEstimateError = simulationError ?? error ?? sponsorshipError
 
@@ -300,30 +364,13 @@ export function createProcessSwapResponse({
     // For RigoBlock pools, exclude permitData but keep swapRequestArgs and txRequests
     const finalPermitData = permitsDontNeedSignature ? undefined : permitData
 
-    // Filter out approval transactions for smart pools (RigoBlock)
-    // The Trading API may still return approval transactions in batched responses even when alreadyApproved=true
-    // We need to filter them out since smart pools handle approvals internally
-    const ERC20_APPROVE_SELECTOR = '0x095ea7b3'
-    let finalTxRequests = response?.transactions
-    if (permitsDontNeedSignature && finalTxRequests && finalTxRequests.length > 1) {
-      // Filter out any transactions that start with ERC20 approve selector
-      finalTxRequests = finalTxRequests.filter((tx) => {
-        const data = tx.data?.toString()
-        return !data || !data.startsWith(ERC20_APPROVE_SELECTOR)
-      })
-    }
+    const finalTxRequests = getSmartPoolTxRequests({
+      response,
+      permitsDontNeedSignature,
+      swapRequestParams,
+    })
 
     const finalSwapRequestArgs = swapRequestParams // Always keep swapRequestArgs
-
-    if (permitsDontNeedSignature && (!finalTxRequests || finalTxRequests.length === 0)) {
-      console.error('🚨 RigoBlock pool has no txRequests after filtering! This will cause validation to fail.', {
-        response,
-        swapRequestParams,
-        permitsDontNeedSignature,
-        originalTxCount: response?.transactions?.length,
-        filteredTxCount: finalTxRequests?.length,
-      })
-    }
 
     return {
       gasFeeResult,
@@ -604,7 +651,10 @@ export function createGetPermitTxInfo({ gasStrategy }: { gasStrategy: GasStrateg
       permitTxRequest,
       gasFeeResult: {
         value: quote.permitGasFee,
-        displayValue: convertGasFeeToDisplayValue({ gasFee: quote.permitGasFee, gasStrategy }),
+        displayValue: convertGasFeeToDisplayValue({
+          gasFee: quote.permitGasFee,
+          gasStrategy,
+        }),
         isLoading: false,
         error: null,
       },

@@ -1,19 +1,19 @@
+import { areAddressesEqual, normalizeTokenAddressForCache } from '@universe/chains'
+import { Flex, Text } from '@universe/mycelium'
 import { useCallback, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Button, SpinningLoader } from 'ui/src'
-import { Flex, Text } from '@universe/mycelium'
-import { areAddressesEqual, normalizeTokenAddressForCache } from '@universe/chains'
 import { ChainLogo } from '~/components/Logo/ChainLogo'
-import { useAccount } from '~/hooks/useAccount'
 import { useSmartPoolFromAddress } from '~/hooks/useSmartPools'
 import { GMX_CHAIN_ID, GmxPosition, useGmxPositions } from '~/pages/Portfolio/hooks/useGmxPositions'
+import { usePortfolioAddress } from '~/pages/Portfolio/hooks/usePortfolioAddress'
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
-import { GmxOrderModal } from '~/pages/Portfolio/Perps/gmx/GmxOrderModal'
-import { GmxOpenPositionModal } from '~/pages/Portfolio/Perps/gmx/GmxOpenPositionModal'
 import {
   GmxClaimFundingFeesButton,
   GmxClaimFundingFeesModal,
 } from '~/pages/Portfolio/Perps/gmx/GmxClaimFundingFeesModal'
+import { GmxOpenPositionModal } from '~/pages/Portfolio/Perps/gmx/GmxOpenPositionModal'
+import { GmxOrderModal } from '~/pages/Portfolio/Perps/gmx/GmxOrderModal'
 import { GmxPositionActionsMenu } from '~/pages/Portfolio/Perps/gmx/GmxPositionActionsMenu'
 import { useGmxClaimableFundingFees } from '~/pages/Portfolio/Perps/gmx/useGmxClaimableFundingFees'
 import { useGmxMarkets } from '~/pages/Portfolio/Perps/gmx/useGmxMarkets'
@@ -95,7 +95,7 @@ function PositionRow({
 
 export function GmxPerpsSection(): JSX.Element {
   const { t } = useTranslation()
-  const account = useAccount()
+  const account = usePortfolioAddress()
   const { evmAddress } = usePortfolioAddresses()
   const { positions, totalNetValueUsd, totalUnrealizedPnlUsd, isLoading, isError } = useGmxPositions(evmAddress)
 

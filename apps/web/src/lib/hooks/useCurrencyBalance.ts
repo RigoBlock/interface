@@ -1,4 +1,4 @@
-/* oxlint-disable max-params typescript/no-unsafe-return typescript/no-unnecessary-condition */
+/* oxlint-disable max-params typescript/no-unnecessary-condition */
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core'
 import JSBI from 'jsbi'
 import { useMemo } from 'react'
@@ -19,7 +19,7 @@ import { currencyKey } from '~/utils/currencyKey'
  */
 export function useCurrencyBalancesMultipleAccounts(
   uncheckedAddresses?: (string | undefined)[],
-  currency?: Currency  ,
+  currency?: Currency,
 ): [{ [address: string]: CurrencyAmount<Currency> | undefined }, boolean] {
   const { chainId } = useAccount()
   const multicallContract = useInterfaceMulticall()

@@ -1,5 +1,6 @@
 import { Currency, Token } from '@uniswap/sdk-core'
 import { Tags, TokenInfo, TokenList } from '@uniswap/token-lists'
+import { AddressStringFormat, Platform, areAddressesEqual, normalizeAddress } from '@universe/chains'
 import { isAddress } from 'viem'
 
 type TagDetails = Tags[keyof Tags]
@@ -73,14 +74,24 @@ export class WrappedTokenInfo implements Token {
   }
 
   equals(other: Currency): boolean {
-    return other.chainId === this.chainId && other.isToken && other.address.toLowerCase() === this.address.toLowerCase()
+    return (
+      other.chainId === this.chainId &&
+      other.isToken &&
+      areAddressesEqual({
+        addressInput1: { address: other.address, platform: Platform.EVM },
+        addressInput2: { address: this.address, platform: Platform.EVM },
+      })
+    )
   }
 
   sortsBefore(other: Token): boolean {
     if (this.equals(other)) {
       throw new Error('Addresses should not be equal')
     }
-    return this.address.toLowerCase() < other.address.toLowerCase()
+    return (
+      normalizeAddress(this.address, AddressStringFormat.Lowercase) <
+      normalizeAddress(other.address, AddressStringFormat.Lowercase)
+    )
   }
 
   public get wrapped(): Token {

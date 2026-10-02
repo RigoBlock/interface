@@ -30,7 +30,9 @@ describe('trackedMarketWordToAddress', () => {
   })
 
   it('returns undefined for the zero word', () => {
-    expect(trackedMarketWordToAddress('0x0000000000000000000000000000000000000000000000000000000000000000')).toBeUndefined()
+    expect(
+      trackedMarketWordToAddress('0x0000000000000000000000000000000000000000000000000000000000000000'),
+    ).toBeUndefined()
   })
 
   it('returns undefined for malformed words', () => {
@@ -40,9 +42,7 @@ describe('trackedMarketWordToAddress', () => {
 
 describe('computeClaimableFundingAmountKey', () => {
   it('derives the CLAIMABLE_FUNDING_AMOUNT constant as keccak256(abi.encode("CLAIMABLE_FUNDING_AMOUNT"))', () => {
-    expect(CLAIMABLE_FUNDING_AMOUNT_KEY).toBe(
-      '0x06fc3f5466c175728538f97bb3af89978c1db23c9c7f107930c4bb1b84305a1d',
-    )
+    expect(CLAIMABLE_FUNDING_AMOUNT_KEY).toBe('0x06fc3f5466c175728538f97bb3af89978c1db23c9c7f107930c4bb1b84305a1d')
   })
 
   it('computes the DataStore key for (market, token, account) as keccak256 over abi.encode (32-byte padded)', () => {

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { useMemo } from 'react'
 import { UniverseChainId, normalizeTokenAddressForCache } from '@universe/chains'
+import { useMemo } from 'react'
 
 /** GMX v2 is only deployed on Arbitrum */
 export const GMX_CHAIN_ID = UniverseChainId.ArbitrumOne

@@ -209,9 +209,7 @@ describe('useCurrencyValidation', () => {
 
       // currencyA loading, currencyB loaded (by address, robust to re-renders)
       useCurrencyWithLoadingMock.mockImplementation(({ address }: { address?: string }) =>
-        address === mockTokenAddressA
-          ? { currency: undefined, loading: true }
-          : { currency: USDC, loading: false },
+        address === mockTokenAddressA ? { currency: undefined, loading: true } : { currency: USDC, loading: false },
       )
 
       const { result } = renderHook(() =>

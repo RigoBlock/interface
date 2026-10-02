@@ -1,9 +1,9 @@
 import { BigNumber } from '@ethersproject/bignumber'
 import { Contract } from '@ethersproject/contracts'
 import { useQuery } from '@tanstack/react-query'
+import { UniverseChainId, normalizeTokenAddressForCache } from '@universe/chains'
 import { useMemo } from 'react'
 import { PollingInterval } from 'uniswap/src/constants/misc'
-import { UniverseChainId, normalizeTokenAddressForCache } from '@universe/chains'
 import { encodeAbiParameters, getAddress, keccak256, parseAbiParameters } from 'viem'
 import { RPC_PROVIDERS } from '~/constants/providers'
 import { useGmxMarkets } from '~/pages/Portfolio/Perps/gmx/useGmxMarkets'
@@ -22,8 +22,7 @@ import { getStaticTokenDecimals } from '~/pages/Portfolio/Perps/gmx/useGmxTokenD
  */
 
 /** GmxCallbackLib.GMX_CALLBACK_DATA_SLOT */
-export const GMX_CALLBACK_DATA_SLOT =
-  '0xef0ce2d52a301ad6c6e80df0060b9ecd4dec1ba111fe46b11bf9055649205071'
+export const GMX_CALLBACK_DATA_SLOT = '0xef0ce2d52a301ad6c6e80df0060b9ecd4dec1ba111fe46b11bf9055649205071'
 
 /**
  * GMX v2 DataStore on Arbitrum (current deployment — the original Aug-2023
@@ -125,13 +124,9 @@ async function fetchTrackedGmxMarkets(poolAddress: string): Promise<string[]> {
   const countWord = await provider.getStorageAt(poolAddress, GMX_CALLBACK_DATA_SLOT)
   const count = Math.min(Number(BigInt(countWord)), MAX_TRACKED_MARKETS)
   const words = await Promise.all(
-    Array.from({ length: count }, (_, index) =>
-      provider.getStorageAt(poolAddress, computeTrackedMarketSlot(index)),
-    ),
+    Array.from({ length: count }, (_, index) => provider.getStorageAt(poolAddress, computeTrackedMarketSlot(index))),
   )
-  return words
-    .map(trackedMarketWordToAddress)
-    .filter((address): address is string => address !== undefined)
+  return words.map(trackedMarketWordToAddress).filter((address): address is string => address !== undefined)
 }
 
 interface GmxClaimTarget {
@@ -179,8 +174,11 @@ export function useGmxClaimableFundingFees(
   const normalizedPoolAddress = poolAddress ? normalizeTokenAddressForCache(poolAddress) : undefined
 
   const { marketsByAddressIncludingUnlisted, isLoading: isLoadingMarkets } = useGmxMarkets()
-  const { pricesByTokenAddress, tokensByAddress, isLoading: isLoadingMarketData } =
-    useGmxOpenPositionMarketData({ enabled })
+  const {
+    pricesByTokenAddress,
+    tokensByAddress,
+    isLoading: isLoadingMarketData,
+  } = useGmxOpenPositionMarketData({ enabled })
 
   const {
     data: trackedMarkets,
@@ -268,10 +266,7 @@ export function useGmxClaimableFundingFees(
     })
   }, [claimTargets, amountsByTarget, tokensByAddress, pricesByTokenAddress])
 
-  const totalClaimableUsd = useMemo(
-    () => claims.reduce((acc, claim) => acc + claim.amountUsd, 0),
-    [claims],
-  )
+  const totalClaimableUsd = useMemo(() => claims.reduce((acc, claim) => acc + claim.amountUsd, 0), [claims])
 
   return {
     claims,

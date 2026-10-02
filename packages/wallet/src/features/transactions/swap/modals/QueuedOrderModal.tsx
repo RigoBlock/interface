@@ -66,6 +66,7 @@ export function QueuedOrderModal(): JSX.Element | null {
   }, [transactionState, navigateToSwapFlow, onCancel])
 
   // If there are no failed orders tracked in state, return nothing.
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- UniswapX is disabled in this fork, so `uniswapXEnabled` is a constant; guard kept for upstream parity
   if (!uniswapXEnabled || !currentFailedOrder || !isSwapTransactionInfo(currentFailedOrder.typeInfo)) {
     return null
   }

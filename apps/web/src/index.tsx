@@ -46,7 +46,7 @@ import { App } from '~/App'
 import { WebUniswapProvider } from '~/app/WebUniswapContext'
 import { QueryClientPersistProvider } from '~/components/PersistQueryClient'
 import { createWeb3Provider, WalletCapabilitiesEffects } from '~/components/Web3Provider/createWeb3Provider'
-import { getConfig, getPrivyConfig } from '~/config'
+import { getConfig, getPrivyAppId, getPrivyConfig } from '~/config'
 import { wagmiConfig } from '~/connection/wagmiConfig'
 import { AccountsStoreDevTool } from '~/features/accounts/store/devtools'
 import { WebAccountsStoreProvider } from '~/features/accounts/store/provider'
@@ -219,8 +219,7 @@ function StatsigProvider({ children }: PropsWithChildren) {
 // When running on app.rigoblock.com the iframe is blocked, producing a CSP console error and
 // ERR_FAILED for the auth resource. Only enable Privy on the Uniswap domain so the error
 // is suppressed on RigoBlock without requiring a separate Privy app configuration.
-const PRIVY_APP_ID =
-  process.env.PRIVY_APP_ID && window.location.hostname === 'app.uniswap.org' ? process.env.PRIVY_APP_ID : undefined
+const PRIVY_APP_ID = window.location.hostname === 'app.uniswap.org' ? getPrivyAppId() : undefined
 
 function MaybePrivyProvider({ children }: { children: ReactNode }) {
   if (!isPrivyConfigured() || !PRIVY_APP_ID) {

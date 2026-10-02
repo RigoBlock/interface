@@ -5,7 +5,8 @@ import { logger } from 'utilities/src/logger/logger'
 export function getDeviceLocales(): DeviceLocale[] {
   try {
     const chrome = getChrome()
-    const language = chrome?.i18n?.getUILanguage?.()
+    // `chrome.i18n` and `getUILanguage` are always defined when the `chrome` global exists.
+    const language = chrome?.i18n.getUILanguage()
     if (language) {
       return [{ languageCode: language, languageTag: language }]
     }

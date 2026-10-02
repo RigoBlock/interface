@@ -1,19 +1,19 @@
+import { Text } from '@universe/mycelium'
 import { useEffect, useMemo, useState } from 'react'
 import { Trans } from 'react-i18next'
-import { Text } from '@universe/mycelium'
-import { HL_MIN_ORDER_USD } from 'uniswap/src/features/chains/evm/info/hyperevm'
 import { Modal } from 'uniswap/src/components/modals/Modal'
+import { HL_MIN_ORDER_USD } from 'uniswap/src/features/chains/evm/info/hyperevm'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { logger } from 'utilities/src/logger/logger'
 import { LoadingView, SubmittedView } from '~/components/ModalViews'
+import { PositionSide } from '~/pages/Portfolio/Perps/gmx/gmxOpenPositionUtils'
 import {
   HyperliquidOpenInputError,
   HyperliquidOpenPositionForm,
 } from '~/pages/Portfolio/Perps/hyperliquid/HyperliquidOpenPositionForm'
 import { useHyperliquidMeta, useHyperliquidMids } from '~/pages/Portfolio/Perps/hyperliquid/useHyperliquidAccount'
 import { useHyperliquidOrderCallback } from '~/pages/Portfolio/Perps/hyperliquid/useHyperliquidOrderCallback'
-import { PositionSide } from '~/pages/Portfolio/Perps/gmx/gmxOpenPositionUtils'
 import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
 
 const MODAL_TRANSITION_DURATION = 200
@@ -56,10 +56,7 @@ export function HyperliquidOpenPositionModal({
     }
   }, [universe, selectedCoin])
 
-  const selectedAsset = useMemo(
-    () => universe.find((asset) => asset.name === selectedCoin),
-    [universe, selectedCoin],
-  )
+  const selectedAsset = useMemo(() => universe.find((asset) => asset.name === selectedCoin), [universe, selectedCoin])
   const markPrice = useMemo(() => {
     const mid = Number(mids[selectedCoin])
     return Number.isFinite(mid) && mid > 0 ? mid : undefined

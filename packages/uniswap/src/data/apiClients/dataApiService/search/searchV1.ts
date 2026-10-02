@@ -12,7 +12,7 @@ import {
   MultichainToken,
 } from '@uniswap/client-data-api/dist/data/v1/searchTypes_pb'
 import { parseRestProtocolVersion, SharedQueryClient } from '@universe/api'
-import { UniverseChainId } from '@universe/chains'
+import { areEvmAddressesEqual, UniverseChainId } from '@universe/chains'
 import { RIGOBLOCK_LOGO } from 'ui/src/assets'
 import { getNativeAddress } from 'uniswap/src/constants/addresses'
 import { GRG } from 'uniswap/src/constants/tokens'
@@ -92,7 +92,10 @@ export function chainTokenToCurrencyInfo(
 
   const currency = buildCurrency({
     chainId: chainToken.chainId,
-    address: normalizeBackendNativeAddress({ chainId: chainToken.chainId, address: chainToken.address }),
+    address: normalizeBackendNativeAddress({
+      chainId: chainToken.chainId,
+      address: chainToken.address,
+    }),
     decimals: chainToken.decimals,
     symbol: multichainToken.symbol,
     name: multichainToken.name,
@@ -114,8 +117,7 @@ export function chainTokenToCurrencyInfo(
   let finalLogoUrl = multichainToken.logoUrl || undefined
   if (!currency.isNative && currency.address && currency.chainId === UniverseChainId.Unichain) {
     const isGrgToken = Object.values(GRG).some(
-      (grgToken) =>
-        grgToken.chainId === currency.chainId && grgToken.address.toLowerCase() === currency.address.toLowerCase(),
+      (grgToken) => grgToken.chainId === currency.chainId && areEvmAddressesEqual(grgToken.address, currency.address),
     )
 
     if (isGrgToken) {
@@ -144,7 +146,10 @@ export function multichainTokenToCurrencyInfos(multichainToken: MultichainToken)
   }
 
   const tokenCurrencyIds = infos.map((i) => i.currencyId) as CurrencyId[]
-  const searchMultichainParent = { id: multichainToken.multichainId, tokenCurrencyIds }
+  const searchMultichainParent = {
+    id: multichainToken.multichainId,
+    tokenCurrencyIds,
+  }
 
   return infos.map((info) => ({
     ...info,

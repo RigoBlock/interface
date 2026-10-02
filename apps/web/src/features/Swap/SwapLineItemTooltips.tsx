@@ -35,9 +35,5 @@ export function SlippageTooltipContent() {
 export function SwapFeeTooltipContent({ hasFee }: { hasFee: boolean }) {
   const { t } = useTranslation()
   const message = hasFee ? t('swap.fees.experience') : t('swap.fees.noFee')
-  return (
-    <BaseTooltipContent url="https://docs.rigoblock.com/introduction-to-rigoblock">
-      {message}
-    </BaseTooltipContent>
-  )
+  return <BaseTooltipContent url="https://docs.rigoblock.com/introduction-to-rigoblock">{message}</BaseTooltipContent>
 }

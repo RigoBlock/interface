@@ -132,7 +132,7 @@ describe('buildLimitOrderAction', () => {
         { type: 'uint8' },
         { type: 'uint128' },
       ],
-      (`0x${payload.slice(10)}`) as `0x${string}`,
+      `0x${payload.slice(10)}` as `0x${string}`,
     )
     expect(decoded[0]).toBe(0)
     expect(decoded[1]).toBe(true)
@@ -165,7 +165,7 @@ describe('buildUsdClassTransferAction', () => {
 
     const decoded = decodeAbiParameters(
       [{ type: 'uint64' }, { type: 'bool' }],
-      (`0x${payload.slice(10)}`) as `0x${string}`,
+      `0x${payload.slice(10)}` as `0x${string}`,
     )
     expect(decoded[0]).toBe(25000000n)
     expect(decoded[1]).toBe(false)
@@ -179,7 +179,7 @@ describe('buildSpotSendAction', () => {
 
     const decoded = decodeAbiParameters(
       [{ type: 'address' }, { type: 'uint64' }, { type: 'uint64' }],
-      (`0x${payload.slice(10)}`) as `0x${string}`,
+      `0x${payload.slice(10)}` as `0x${string}`,
     )
     expect(decoded[0]).toBe(HL_USDC_SYSTEM_ADDRESS)
     expect(decoded[1]).toBe(0n)

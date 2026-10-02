@@ -6,8 +6,8 @@ import { useLocation, useNavigate } from 'react-router'
 import { Caret } from 'ui/src/components/icons/Caret'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import CurrencySearchModal from '~/components/SearchModal/CurrencySearchModal'
-import { SwitchNetworkAction } from '~/state/popups/types'
 import { useActiveSmartPool, useSelectActiveSmartPool } from '~/state/application/hooks'
+import { SwitchNetworkAction } from '~/state/popups/types'
 
 interface PoolSelectProps {
   operatedPools: Token[]
@@ -31,7 +31,8 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
   }, [isPortfolio, pathname])
 
   const activePoolExists = operatedPools.some(
-    (pool) => normalizeTokenAddressForCache(pool.address) === normalizeTokenAddressForCache(activeSmartPool.address ?? null),
+    (pool) =>
+      normalizeTokenAddressForCache(pool.address) === normalizeTokenAddressForCache(activeSmartPool.address ?? null),
   )
 
   useEffect(() => {

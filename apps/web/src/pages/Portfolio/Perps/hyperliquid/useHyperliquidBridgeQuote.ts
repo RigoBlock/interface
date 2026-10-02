@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
 import { BigNumber } from '@ethersproject/bignumber'
+import { useQuery } from '@tanstack/react-query'
 import { UniverseChainId } from '@universe/chains'
 import { logger } from 'utilities/src/logger/logger'
 import { HYPERLIQUID_BRIDGE_USDC } from '~/pages/Portfolio/Perps/hyperliquid/hyperliquidBridgeConfig'
@@ -43,12 +43,7 @@ export function useHyperliquidBridgeQuote(params: {
   const { sourceChainId, destinationChainId, inputAmountRaw, enabled } = params
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: [
-      'hyperliquidBridgeQuote',
-      sourceChainId,
-      destinationChainId,
-      inputAmountRaw?.toString(),
-    ],
+    queryKey: ['hyperliquidBridgeQuote', sourceChainId, destinationChainId, inputAmountRaw?.toString()],
     queryFn: async (): Promise<HyperliquidBridgeQuote> => {
       const inputToken = HYPERLIQUID_BRIDGE_USDC[sourceChainId]
       const outputToken = HYPERLIQUID_BRIDGE_USDC[destinationChainId]

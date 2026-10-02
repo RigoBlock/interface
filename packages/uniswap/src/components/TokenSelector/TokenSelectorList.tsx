@@ -1,4 +1,4 @@
-import { UniverseChainId } from '@universe/chains'
+import { areEvmAddressesEqual, UniverseChainId } from '@universe/chains'
 import { useIsTokenCategoriesEnabled } from '@universe/gating'
 import { Flex, Text } from '@universe/mycelium'
 import { memo, useCallback, useMemo, useState } from 'react'
@@ -71,7 +71,7 @@ const TokenOptionItem = memo(function TokenOptionItemInner({
     currencyInfo.currency.chainId === UniverseChainId.Unichain &&
     GRG[UniverseChainId.Unichain] &&
     currencyInfo.currency.isToken &&
-    currencyInfo.currency.address.toLowerCase() === GRG[UniverseChainId.Unichain].address.toLowerCase()
+    areEvmAddressesEqual(currencyInfo.currency.address, GRG[UniverseChainId.Unichain].address)
 
   if (isGrgOnUnichain && GRG[UniverseChainId.Unichain] && GRG[UniverseChainId.Mainnet]) {
     // Get the proper logo URL using the exported getTokenLogoURI function
@@ -167,7 +167,10 @@ const TokenOptionItem = memo(function TokenOptionItemInner({
   }, [onPress, showWarningModal, showBridgedAssetWarningModal, shouldShowBridgedAssetWarningModalOnPress])
 
   const hasBalance = Boolean(tokenOption.quantity && tokenOption.quantity !== 0)
-  const categoryTag = useRowCategoryTag({ rwaCategory: tokenOption.rwaCategory, categoryIds: currencyInfo.categoryIds })
+  const categoryTag = useRowCategoryTag({
+    rwaCategory: tokenOption.rwaCategory,
+    categoryIds: currencyInfo.categoryIds,
+  })
 
   // Stable identities so SharedTokenOptionItem's React.memo holds — otherwise every row re-renders on each list commit.
   const rightElement = useMemo(

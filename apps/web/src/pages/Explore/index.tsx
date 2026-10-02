@@ -2,11 +2,11 @@ import { SharedEventName } from '@uniswap/analytics-events'
 import { isSVMChain } from '@universe/chains'
 import { GatedFeature, useIsFeatureGated } from '@universe/compliance'
 import { useIsTokenCategoriesEnabled } from '@universe/gating'
-import { Button, Flex, Text, useMedia } from '@universe/mycelium'
+import { Button, Flex, useMedia } from '@universe/mycelium'
 import { styled } from '@universe/mycelium/styled'
 import { memo, NamedExoticComponent, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useSearchParams } from 'react-router'
+import { useNavigate } from 'react-router'
 import { Plus } from 'ui/src/components/icons/Plus'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
@@ -33,9 +33,7 @@ import {
 import { ExploreStatsSection } from '~/pages/Explore/ExploreStatsSection'
 import { ExploreTableFilters } from '~/pages/Explore/ExploreTableFilters'
 import { useExploreHeartbeatCoordinator } from '~/pages/Explore/hooks/useExploreHeartbeatCoordinator'
-import { TableNetworkFilter } from '~/pages/Explore/NetworkFilter'
 import { useExploreParams } from '~/pages/Explore/redirects'
-import { SearchBar } from '~/pages/Explore/SearchBar'
 import { ExploreTopPoolTable } from '~/pages/Explore/tables/Pools/PoolTable'
 import { RecentTransactionsTable } from '~/pages/Explore/tables/RecentTransactions/RecentTransactions'
 import { TopTokensTable } from '~/pages/Explore/tables/Tokens/TopTokensTable'
@@ -119,7 +117,6 @@ const Explore = ({ initialTab }: { initialTab?: ExploreTab }) => {
   const media = useMedia()
   const tabNavRef = useRef<HTMLDivElement>(null)
   const Pages = usePages()
-  const [params] = useSearchParams()
   const navigate = useNavigate()
   const initialKey: number = useMemo(() => {
     const key = initialTab && Pages.findIndex((page) => page.key === initialTab)
@@ -133,7 +130,6 @@ const Explore = ({ initialTab }: { initialTab?: ExploreTab }) => {
   // to allow backward navigation between tabs
   const { tab: tabName } = useExploreParams()
   const tab = tabName ?? ExploreTab.Tokens
-
 
   // Featured RWA carousel renders unless the caller's region blocks RWA.
   const isExploreCarouselEnabled = !useIsFeatureGated(GatedFeature.ISSUER_SPECIFIC_RWA, { pendingValue: true })

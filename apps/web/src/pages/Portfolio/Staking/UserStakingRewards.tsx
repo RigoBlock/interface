@@ -1,20 +1,20 @@
+import { Flex, Text } from '@universe/mycelium'
 import { useMemo, useState } from 'react'
 import { Trans } from 'react-i18next'
 import { Button } from 'ui/src'
-import { Flex, Text } from '@universe/mycelium'
 import { TokenLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import HarvestYieldModal from '~/components/earn/HarvestYieldModal'
-import { useAccount } from '~/hooks/useAccount'
 import { RIGOBLOCK_SUPPORTED_CHAINS, RIGOBLOCK_TESTNET_CHAINS } from '~/constants/addresses'
+import { usePortfolioAddress } from '~/pages/Portfolio/hooks/usePortfolioAddress'
 import { useMultiChainAllPoolsData } from '~/state/pool/multichain'
 import { useUnclaimedRewards, type UnclaimedReward } from '~/state/stake/hooks'
 
 function UserRewardRow({ reward }: { reward: UnclaimedReward }) {
   const [showHarvestModal, setShowHarvestModal] = useState(false)
-  const account = useAccount()
+  const account = usePortfolioAddress()
   const chainInfo = getChainInfo(reward.chainId)
   const { formatCurrencyAmount } = useLocalizationContext()
 
@@ -77,9 +77,7 @@ export function UserStakingRewards({ farmer }: UserStakingRewardsProps) {
   const { data: allPools } = useMultiChainAllPoolsData(chains)
   const poolEntries = useMemo(
     () =>
-      allPools
-        ?.map((pool) => ({ poolId: pool.id, chainId: pool.chainId ?? 0 }))
-        .filter((entry) => entry.chainId !== 0),
+      allPools?.map((pool) => ({ poolId: pool.id, chainId: pool.chainId ?? 0 })).filter((entry) => entry.chainId !== 0),
     [allPools],
   )
   const unclaimedRewards = useUnclaimedRewards({ farmer, pools: poolEntries })

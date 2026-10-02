@@ -290,7 +290,6 @@ export function getUniswapServiceUrls(overrides: UniswapUrlOverrides): UniswapSe
     // RigoBlock: `TrafficFlows.TradingApi` was dropped from @universe/api in the upstream sync; this is the
     // previous `getRbCloudflareApiBaseUrl(TrafficFlows.TradingApi)` expanded — the flow only prefixes the host.
     tradingApiUrl:
-      overrides.tradingApiUrlOverride ||
-      `https://trading-api-labs.${getCloudflarePrefix()}.gateway.rigoblock.com`,
+      overrides.tradingApiUrlOverride || `https://trading-api-labs.${getCloudflarePrefix()}.gateway.rigoblock.com`,
   }
 }

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { useMemo } from 'react'
 import { normalizeTokenAddressForCache } from '@universe/chains'
+import { useMemo } from 'react'
 import { PollingInterval } from 'uniswap/src/constants/misc'
 
 const GMX_MARKET_INFO_URL = 'https://arbitrum-api.gmxinfra.io/markets/info'
@@ -104,7 +104,11 @@ export function useGmxOpenPositionMarketData({ enabled }: { enabled: boolean }):
   isLoading: boolean
   isError: boolean
 } {
-  const { data: marketInfo, isLoading: isLoadingMarketInfo, isError: isErrorMarketInfo } = useQuery({
+  const {
+    data: marketInfo,
+    isLoading: isLoadingMarketInfo,
+    isError: isErrorMarketInfo,
+  } = useQuery({
     queryKey: ['gmxMarketInfo'],
     queryFn: fetchMarketInfo,
     enabled,
@@ -113,7 +117,11 @@ export function useGmxOpenPositionMarketData({ enabled }: { enabled: boolean }):
     retry: 2,
   })
 
-  const { data: prices, isLoading: isLoadingPrices, isError: isErrorPrices } = useQuery({
+  const {
+    data: prices,
+    isLoading: isLoadingPrices,
+    isError: isErrorPrices,
+  } = useQuery({
     queryKey: ['gmxPrices'],
     queryFn: fetchPrices,
     enabled,
@@ -122,7 +130,11 @@ export function useGmxOpenPositionMarketData({ enabled }: { enabled: boolean }):
     retry: 2,
   })
 
-  const { data: tokens, isLoading: isLoadingTokens, isError: isErrorTokens } = useQuery({
+  const {
+    data: tokens,
+    isLoading: isLoadingTokens,
+    isError: isErrorTokens,
+  } = useQuery({
     queryKey: ['gmxTokens'],
     queryFn: fetchTokens,
     enabled,

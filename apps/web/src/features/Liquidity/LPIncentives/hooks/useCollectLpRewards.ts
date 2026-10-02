@@ -48,7 +48,7 @@ export function lpRewardsCollectKey(chainId: number, tokenAddresses: string[]): 
 export function useCollectLpRewards(): UseCollectLpRewardsResult {
   const account = useAccount()
   const activeSmartPool = useActiveSmartPool()
-  const isSmartPool = !!activeSmartPool?.address
+  const isSmartPool = !!activeSmartPool.address
   const dispatch = useDispatch()
   const selectChain = useSelectChain()
   const queryClient = useQueryClient()
@@ -57,7 +57,7 @@ export function useCollectLpRewards(): UseCollectLpRewardsResult {
   const [error, setError] = useState<string | undefined>()
 
   const collect = useEvent(async ({ chainId, tokenAddresses }: CollectArgs): Promise<void> => {
-    const walletAddress = activeSmartPool?.address ?? account.address
+    const walletAddress = activeSmartPool.address ?? account.address
     if (!walletAddress || activeKey) {
       return
     }

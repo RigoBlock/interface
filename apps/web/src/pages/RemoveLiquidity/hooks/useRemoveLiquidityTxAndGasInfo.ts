@@ -134,7 +134,7 @@ export function useRemoveLiquidityTxAndGasInfo({ account }: { account?: string }
 
     return new DecreasePositionRequest({
       // Use smart pool address so the API resolves the NFT position owner correctly
-      walletAddress: activeSmartPool?.address ?? account,
+      walletAddress: activeSmartPool.address ?? account,
       chainId: currency0.chainId,
       protocol: getProtocols(positionInfo.version),
       token0Address: getTokenOrZeroAddress(currency0),
@@ -146,7 +146,7 @@ export function useRemoveLiquidityTxAndGasInfo({ account }: { account?: string }
       deadline: getTradeSettingsDeadline(customDeadline),
       // Smart pool transactions always revert server-side simulation (vault routing);
       // skip it and override from/to client-side after receiving calldata
-      simulateTransaction: activeSmartPool?.address ? false : !approvalsNeeded,
+      simulateTransaction: activeSmartPool.address ? false : !approvalsNeeded,
       withdrawAsWeth: !unwrapNativeCurrency,
     })
   }, [

@@ -1,6 +1,6 @@
 import { type PlainMessage } from '@bufbuild/protobuf'
 import type { GetPortfolioResponse } from '@uniswap/client-data-api/dist/data/v1/api_pb.d'
-import { normalizeTokenAddressForCache, UniverseChainId } from '@universe/chains'
+import { areEvmAddressesEqual, normalizeTokenAddressForCache, UniverseChainId } from '@universe/chains'
 import { RIGOBLOCK_LOGO } from 'ui/src/assets'
 import type { PollingInterval } from 'uniswap/src/constants/misc'
 import { GRG } from 'uniswap/src/constants/tokens'
@@ -278,8 +278,7 @@ export function convertRestBalanceToPortfolioBalance(
   let finalLogoUrl = logoUrl
   if (!currency.isNative && currency.address && currency.chainId === UniverseChainId.Unichain) {
     const isGrgToken = Object.values(GRG).some(
-      (grgToken) =>
-        grgToken.chainId === currency.chainId && grgToken.address.toLowerCase() === currency.address.toLowerCase(),
+      (grgToken) => grgToken.chainId === currency.chainId && areEvmAddressesEqual(grgToken.address, currency.address),
     )
 
     if (isGrgToken) {

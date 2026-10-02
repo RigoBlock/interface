@@ -35,6 +35,7 @@ export const rootIgnorePatterns = [
   '**/webpack.*',
   '**/webpack-plugins/**',
   '**/.wxt/**',
+  '**/.tamagui/**',
   '**/wxt.config.*',
   '**/tailwind-config.*',
   // -- shared configs --

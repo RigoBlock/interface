@@ -46,7 +46,16 @@ function useApprovalWillBeBatchedWithSwap(chainId: UniverseChainId, routing: Tra
 }
 
 export function useTokenApprovalInfo(params: TokenApprovalInfoParams): ApprovalTxInfo {
-  const { address, chainId, wrapType, currencyInAmount, currencyOutAmount, routing, smartPoolAddress, isTokenApprovalApplicable } = params
+  const {
+    address,
+    chainId,
+    wrapType,
+    currencyInAmount,
+    currencyOutAmount,
+    routing,
+    smartPoolAddress,
+    isTokenApprovalApplicable,
+  } = params
 
   const isWrap = wrapType !== WrapType.NotApplicable
   /** Approval is included elsewhere for Chained Actions so it can be skipped */

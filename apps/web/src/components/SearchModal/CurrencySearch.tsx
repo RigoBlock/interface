@@ -11,13 +11,13 @@ import Trace from 'uniswap/src/features/telemetry/Trace'
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { SwapTab } from 'uniswap/src/types/screens/interface'
 import { usePrevious } from 'utilities/src/react/hooks'
+import { assume0xAddress } from '~/chains'
 import { RIGOBLOCK_BRIDGE_SUPPORTED_CHAINS } from '~/constants/addresses'
 import { useSelectChain } from '~/hooks/useSelectChain'
 import { useActiveSmartPool } from '~/state/application/hooks'
 import { useMultichainContext } from '~/state/multichain/useMultichainContext'
 import { SwitchNetworkAction } from '~/state/popups/types'
 import { showSwitchNetworkNotification } from '~/utils/showSwitchNetworkNotification'
-import { assume0xAddress } from '~/chains'
 
 interface CurrencySearchProps {
   currencyField: CurrencyField

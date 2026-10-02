@@ -199,9 +199,17 @@ export const selectStakingDataNeedsFetch = (
   params: { userAddress: Address; chainId: UniverseChainId },
 ) => {
   const data = selectChainStakingData(state, params)
-  if (!data) {return true}
-  if (data.isLoading) {return false}
-  if (data.error) {return true}
-  if (!data.lastUpdated) {return true}
+  if (!data) {
+    return true
+  }
+  if (data.isLoading) {
+    return false
+  }
+  if (data.error) {
+    return true
+  }
+  if (!data.lastUpdated) {
+    return true
+  }
   return Date.now() - data.lastUpdated > STAKING_DATA_MAX_AGE
 }

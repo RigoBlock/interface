@@ -1,14 +1,14 @@
 import { BigNumber } from '@ethersproject/bignumber'
 import { formatUnits } from '@ethersproject/units'
-import { Trans, useTranslation } from 'react-i18next'
+import { UniverseChainId } from '@universe/chains'
 import { Flex, Text } from '@universe/mycelium'
-import { LoadingView, SubmittedView } from '~/components/ModalViews'
+import { Trans, useTranslation } from 'react-i18next'
+import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { ChainPill } from '~/components/ChainPill'
 import { ChainLogo } from '~/components/Logo/ChainLogo'
+import { LoadingView, SubmittedView } from '~/components/ModalViews'
 import { HYPERLIQUID_BRIDGE_EVM_CHAINS } from '~/pages/Portfolio/Perps/hyperliquid/hyperliquidBridgeConfig'
 import type { HyperliquidBridgeQuote } from '~/pages/Portfolio/Perps/hyperliquid/useHyperliquidBridgeQuote'
-import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { UniverseChainId } from '@universe/chains'
 import { ON_CHAIN_MAX_BRIDGE_FEE_BPS } from '~/state/sagas/transactions/bridgeCalldata'
 
 /** Safety margin under the on-chain 2% cap: fees above 1.5% leave no room for solver compensation. */
@@ -34,7 +34,12 @@ export function scaleRawDecimals(params: {
   return value.div(BigNumber.from(10).pow(sourceDecimals - destinationDecimals))
 }
 
-export type BridgeInputErrorKey = 'enter-amount' | 'exceeds-balance' | 'amount-too-low' | 'fee-too-high' | 'not-feasible'
+export type BridgeInputErrorKey =
+  | 'enter-amount'
+  | 'exceeds-balance'
+  | 'amount-too-low'
+  | 'fee-too-high'
+  | 'not-feasible'
 
 export function getBridgeInputErrorKey(params: {
   amount: string

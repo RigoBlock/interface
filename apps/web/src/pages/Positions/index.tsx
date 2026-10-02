@@ -22,8 +22,8 @@ import {
 } from '~/features/Liquidity/PositionsTableControlBar'
 import { useAccount } from '~/hooks/useAccount'
 import { EmptyPositionsDiscoveryView } from '~/pages/Positions/components/EmptyPositionsDiscoveryView'
-import { useActiveSmartPool } from '~/state/application/hooks'
 import { usePositionFilters } from '~/pages/Positions/hooks/usePositionFilters'
+import { useActiveSmartPool } from '~/state/application/hooks'
 
 function getPositionsViewState({
   isConnected,

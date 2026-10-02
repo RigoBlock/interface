@@ -1,11 +1,11 @@
+import { UniverseChainId, areAddressesEqual } from '@universe/chains'
+import { Flex, Text } from '@universe/mycelium'
 import { useCallback, useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Button, SpinningLoader } from 'ui/src'
-import { Flex, Text } from '@universe/mycelium'
-import { UniverseChainId, areAddressesEqual } from '@universe/chains'
 import { ChainLogo } from '~/components/Logo/ChainLogo'
-import { useAccount } from '~/hooks/useAccount'
 import { useSmartPoolFromAddress } from '~/hooks/useSmartPools'
+import { usePortfolioAddress } from '~/pages/Portfolio/hooks/usePortfolioAddress'
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
 import { HyperliquidPosition } from '~/pages/Portfolio/Perps/hyperliquid/hyperliquidApi'
 import { HyperliquidBridgeModal } from '~/pages/Portfolio/Perps/hyperliquid/HyperliquidBridgeModal'
@@ -102,16 +102,10 @@ function PositionRow({
 
 export function HyperliquidPerpsSection(): JSX.Element {
   const { t } = useTranslation()
-  const account = useAccount()
+  const account = usePortfolioAddress()
   const { evmAddress } = usePortfolioAddresses()
-  const {
-    perpsAccountValueUsd,
-    spotUsdcBalanceUsd,
-    withdrawableUsd,
-    positions,
-    isLoading,
-    isError,
-  } = useHyperliquidAccount(evmAddress)
+  const { perpsAccountValueUsd, spotUsdcBalanceUsd, withdrawableUsd, positions, isLoading, isError } =
+    useHyperliquidAccount(evmAddress)
 
   // Order actions are only available to the pool operator (the adapter rejects anyone else)
   const poolStorage = useSmartPoolFromAddress(evmAddress, UniverseChainId.HyperEvm)
@@ -192,7 +186,11 @@ export function HyperliquidPerpsSection(): JSX.Element {
         onDismiss={() => setIsTransferModalOpen(false)}
       />
 
-      <HyperliquidBridgeModal isOpen={isBridgeModalOpen} poolAddress={evmAddress} onDismiss={() => setIsBridgeModalOpen(false)} />
+      <HyperliquidBridgeModal
+        isOpen={isBridgeModalOpen}
+        poolAddress={evmAddress}
+        onDismiss={() => setIsBridgeModalOpen(false)}
+      />
 
       {isLoading ? (
         <Flex centered padding="$spacing24">

@@ -1,16 +1,16 @@
-import { BigNumber } from '@ethersproject/bignumber'
 import { getAddress } from '@ethersproject/address'
+import { BigNumber } from '@ethersproject/bignumber'
 import { Contract } from '@ethersproject/contracts'
 import { TransactionResponse } from '@ethersproject/providers'
-import { useCallback, useMemo } from 'react'
 import { UniverseChainId } from '@universe/chains'
+import { useCallback, useMemo } from 'react'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { logger } from 'utilities/src/logger/logger'
 import { getConnectorClient } from 'wagmi/actions'
 import { wagmiConfig } from '~/connection/wagmiConfig'
-import { useAccount } from '~/hooks/useAccount'
 import { clientToProvider } from '~/hooks/useEthersProvider'
 import { useSelectChain } from '~/hooks/useSelectChain'
+import { usePortfolioAddress } from '~/pages/Portfolio/hooks/usePortfolioAddress'
 import { RIGOBLOCK_GMX_ABI } from '~/pages/Portfolio/Perps/gmx/abi'
 import { GmxClaimableFunding } from '~/pages/Portfolio/Perps/gmx/useGmxClaimableFundingFees'
 import { useTransactionAdder } from '~/state/transactions/hooks'
@@ -27,7 +27,7 @@ import { WrongChainError } from '~/utils/errors'
 export function useGmxClaimFundingFeesCallback(poolAddress?: string): {
   sendGmxClaimFundingFees: (claims: GmxClaimableFunding[]) => Promise<string>
 } {
-  const account = useAccount()
+  const account = usePortfolioAddress()
   const addTransaction = useTransactionAdder()
   const selectChain = useSelectChain()
 
@@ -73,11 +73,7 @@ export function useGmxClaimFundingFeesCallback(poolAddress?: string): {
         { tags: { file: 'useGmxClaimFundingFeesCallback', function: 'sendGmxClaimFundingFees' } },
       )
 
-      const estimatedGasLimit = (await gmxContract.estimateGas.claimFundingFees(
-        markets,
-        tokens,
-        receiver,
-      )) as BigNumber
+      const estimatedGasLimit = (await gmxContract.estimateGas.claimFundingFees(markets, tokens, receiver)) as BigNumber
       const response = (await gmxContract.claimFundingFees(markets, tokens, receiver, {
         gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
       })) as TransactionResponse

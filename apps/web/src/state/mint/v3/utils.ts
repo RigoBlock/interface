@@ -1,5 +1,5 @@
 import { Currency, Price, Token } from '@uniswap/sdk-core'
-import { encodeSqrtRatioX96, FeeAmount, nearestUsableTick, TICK_SPACINGS, TickMath } from '@uniswap/v3-sdk'
+import { encodeSqrtRatioX96, FeeAmount, nearestUsableTick, tickToPrice, TICK_SPACINGS, TickMath } from '@uniswap/v3-sdk'
 import JSBI from 'jsbi'
 import { convertScientificNotationToNumber } from 'utilities/src/format/convertScientificNotation'
 
@@ -73,4 +73,21 @@ export function tryParseTick({
   }
 
   return nearestUsableTick(tick, TICK_SPACINGS[feeAmount])
+}
+
+/** Converts a tick to a Price, returning undefined when inputs are missing. */
+export function getTickToPrice({
+  baseToken,
+  quoteToken,
+  tick,
+}: {
+  baseToken?: Maybe<Token>
+  quoteToken?: Maybe<Token>
+  tick?: Maybe<number>
+}): Price<Token, Token> | undefined {
+  if (!baseToken || !quoteToken || typeof tick !== 'number') {
+    return undefined
+  }
+
+  return tickToPrice(baseToken, quoteToken, tick)
 }

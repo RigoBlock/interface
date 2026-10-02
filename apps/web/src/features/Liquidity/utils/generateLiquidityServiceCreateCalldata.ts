@@ -195,9 +195,7 @@ function validateCreatePositionInput(input: RawCreatePositionInput): ValidatedCr
   )
   // Smart pool (Rigoblock vault) routes skip ERC20 approvals/permit entirely, so the
   // calldata is built without simulating the approval transactions.
-  const simulateTransaction = input.isSmartPool
-    ? false
-    : !needsApprovals || (input.isApprovalSimEnabled ?? false)
+  const simulateTransaction = input.isSmartPool ? false : !needsApprovals || (input.isApprovalSimEnabled ?? false)
 
   const baseInput: BaseValidatedInput = {
     address,

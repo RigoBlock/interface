@@ -1,6 +1,6 @@
 import type { Filter } from '@ethersproject/providers'
-import { useEffect, useMemo } from 'react'
 import { UniverseChainId } from '@universe/chains'
+import { useEffect, useMemo } from 'react'
 import { logger } from 'utilities/src/logger/logger'
 import { getBackupRpcProvider, RPC_PROVIDERS } from '~/constants/providers'
 import { useAccount } from '~/hooks/useAccount'

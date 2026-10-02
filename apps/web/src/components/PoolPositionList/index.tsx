@@ -1,7 +1,7 @@
+import { Flex, Text } from '@universe/mycelium'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Trans } from 'react-i18next'
 import InfiniteScroll from 'react-infinite-scroll-component'
-import { Flex, Text } from '@universe/mycelium'
 import Loader from '~/components/Icons/LoadingSpinner'
 import PoolPositionGroupedListItem from '~/components/PoolPositionGroupedListItem'
 import { useAccount } from '~/hooks/useAccount'

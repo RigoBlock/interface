@@ -1,13 +1,16 @@
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
+import { UniverseChainId } from '@universe/chains'
+import { Platform, areAddressesEqual } from '@universe/chains'
+import { isValidHexString } from '@universe/encoding'
 import JSBI from 'jsbi'
 import { useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { GRG, USDC_MAINNET } from 'uniswap/src/constants/tokens'
+import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
+import { isTestnetChain } from 'uniswap/src/features/chains/utils'
 import { usePortfolioDataMultichain } from 'uniswap/src/features/dataApi/balances/balancesRest'
 import { PortfolioMultichainBalance } from 'uniswap/src/features/dataApi/types'
-import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from '@universe/chains'
-import { isTestnetChain } from 'uniswap/src/features/chains/utils'
+import { assume0xAddress } from '~/chains'
 import { STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
 import { useActiveAddresses } from '~/features/accounts/store/hooks'
 import {
@@ -19,9 +22,6 @@ import {
 } from '~/state/portfolio/stakingSlice'
 import { useTotalStakeBalances } from '~/state/stake/hooks'
 import { InterfaceState } from '~/state/webReducer'
-import { assume0xAddress } from '~/chains'
-import { isValidHexString } from '@universe/encoding'
-import { Platform, areAddressesEqual } from '@universe/chains'
 
 // Serializable interface for Redux store
 export interface SerializableStakingData {
@@ -52,7 +52,9 @@ function serializeStakingAmount(amount?: CurrencyAmount<Token>): string | undefi
 }
 
 function deserializeStakingAmount(amountStr?: string, chainId?: UniverseChainId): CurrencyAmount<Token> | undefined {
-  if (!amountStr || !chainId) {return undefined}
+  if (!amountStr || !chainId) {
+    return undefined
+  }
   const token = GRG[chainId]
   try {
     return CurrencyAmount.fromRawAmount(token, JSBI.BigInt(amountStr))
@@ -77,8 +79,7 @@ function useGrgPriceFromPortfolio(address?: string): number | undefined {
 
     const grg = Object.values(portfolioData).find(
       (balance): balance is PortfolioMultichainBalance =>
-        balance.symbol === 'GRG' ||
-        balance.tokens.some((token) => token.currencyInfo.currency.symbol === 'GRG'),
+        balance.symbol === 'GRG' || balance.tokens.some((token) => token.currencyInfo.currency.symbol === 'GRG'),
     )
 
     return grg?.priceUsd ?? undefined
@@ -143,7 +144,9 @@ function useChainStakingData({
   const serializedSmartPoolDelegatedStake = serializeStakingAmount(smartPoolDelegatedStake)
 
   useEffect(() => {
-    if (!userAddress) {return}
+    if (!userAddress) {
+      return
+    }
 
     // Only set loading state if we need to fetch and aren't already loading
     if (needsFetch && !cachedData?.isLoading) {
@@ -164,11 +167,23 @@ function useChainStakingData({
         }),
       )
     }
-  }, [dispatch, userAddress, chainId, needsFetch, cachedData?.isLoading, cachedData?.userFreeStake, cachedData?.userDelegatedStake, cachedData?.smartPoolFreeStake, cachedData?.smartPoolDelegatedStake])
+  }, [
+    dispatch,
+    userAddress,
+    chainId,
+    needsFetch,
+    cachedData?.isLoading,
+    cachedData?.userFreeStake,
+    cachedData?.userDelegatedStake,
+    cachedData?.smartPoolFreeStake,
+    cachedData?.smartPoolDelegatedStake,
+  ])
 
   useEffect(() => {
     // Process data when we have valid stake information
-    if (!userAddress) {return}
+    if (!userAddress) {
+      return
+    }
 
     // If we have data from useTotalStakeBalances, serialize and save it to store
     if (
@@ -376,7 +391,7 @@ export function usePortfolioStaking({
 
   // Check if any data is loading
   const isLoading = useMemo(() => {
-    return Object.values(stakingData).some((data) => data?.isLoading)
+    return Object.values(stakingData).some((data) => data.isLoading)
   }, [stakingData])
 
   return {

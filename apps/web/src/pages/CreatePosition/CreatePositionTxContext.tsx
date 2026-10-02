@@ -86,7 +86,7 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
   } = useCreateLiquidityContext()
   const evmAddress = useActiveAddress(Platform.EVM)
   const smartPoolAddress = useActiveSmartPool().address
-  const account = evmAddress ? { address: evmAddress } : undefined
+  const account = useMemo(() => (evmAddress ? { address: evmAddress } : undefined), [evmAddress])
 
   const {
     currencyMaxAmounts,

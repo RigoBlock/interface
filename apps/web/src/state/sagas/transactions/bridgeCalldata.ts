@@ -216,7 +216,9 @@ export function findExpandedMessageInTrace(trace: CallTrace): string | undefined
   if (Array.isArray(trace.calls)) {
     for (const child of trace.calls) {
       const result = findExpandedMessageInTrace(child)
-      if (result) {return result}
+      if (result) {
+        return result
+      }
     }
   }
   return undefined

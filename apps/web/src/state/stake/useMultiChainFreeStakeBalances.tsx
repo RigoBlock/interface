@@ -6,10 +6,10 @@ import STAKING_ABI from 'uniswap/src/abis/staking-impl.json'
 import { GRG } from 'uniswap/src/constants/tokens'
 import type { Abi } from 'viem'
 import { useReadContracts } from 'wagmi'
+import { assume0xAddress } from '~/chains'
 import { STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
 import { useAccount } from '~/hooks/useAccount'
 import { StakeStatus } from '~/state/governance/hooks'
-import { assume0xAddress } from '~/chains'
 
 export interface FreeStakeBalanceByChain {
   chainId: number

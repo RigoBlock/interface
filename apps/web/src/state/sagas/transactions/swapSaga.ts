@@ -7,6 +7,10 @@ import { normalizeTokenAddressForCache } from '@universe/chains'
 import ms from 'ms'
 import { call, put, type SagaGenerator } from 'typed-redux-saga'
 import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
+import { isL2ChainId } from 'uniswap/src/features/chains/utils'
+import { SwapEventName } from 'uniswap/src/features/telemetry/constants'
+import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
+import type { SwapTradeBaseProperties } from 'uniswap/src/features/telemetry/types'
 import {
   HandledTransactionInterrupt,
   SmartPoolBridgeError,
@@ -42,13 +46,10 @@ import {
   requireRouting,
   UNISWAPX_ROUTING_VARIANTS,
 } from 'uniswap/src/features/transactions/swap/utils/routing'
+import { type ValidatedTransactionRequest } from 'uniswap/src/features/transactions/types/transactionRequests'
 import { createMonitoredSaga } from 'uniswap/src/utils/saga'
 import { getContract } from 'utilities/src/contracts/getContract'
 import { logger } from 'utilities/src/logger/logger'
-import { SwapEventName } from 'uniswap/src/features/telemetry/constants'
-import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
-import type { SwapTradeBaseProperties } from 'uniswap/src/features/telemetry/types'
-import { isL2ChainId } from 'uniswap/src/features/chains/utils'
 import { DEFAULT_TXN_DISMISS_MS, L2_TXN_DISMISS_MS, ZERO_PERCENT } from '~/constants/misc'
 import { RPC_PROVIDERS } from '~/constants/providers'
 import { formatSwapSignedAnalyticsEventProperties } from '~/lib/utils/analytics'
@@ -80,11 +81,9 @@ import {
   handleApprovalTransactionStep,
   handleOnChainStep,
   //handlePermitTransactionStep,
-  handleSignatureStep,
   waitForBatch,
   waitForBatchInterruptible,
 } from '~/state/sagas/transactions/utils'
-import { type ValidatedTransactionRequest } from 'uniswap/src/features/transactions/types/transactionRequests'
 import { type VitalTxFields } from '~/state/transactions/types'
 
 interface ResolveOutputTokenPriceUSDParams {
@@ -93,9 +92,7 @@ interface ResolveOutputTokenPriceUSDParams {
   outputToken: string
 }
 
-function* resolveOutputTokenPriceUSD(
-  params: ResolveOutputTokenPriceUSDParams,
-): SagaGenerator<number | undefined> {
+function* resolveOutputTokenPriceUSD(params: ResolveOutputTokenPriceUSDParams): SagaGenerator<number | undefined> {
   const { outputTokenPriceUSD, destinationChainId, outputToken } = params
   if (outputTokenPriceUSD) {
     return outputTokenPriceUSD
@@ -179,8 +176,7 @@ function* computeTraceMessageOverheadCompensation(
     bridgeOpType,
     originalValue,
   } = params
-  const sourceProvider =
-    chainId in RPC_PROVIDERS ? RPC_PROVIDERS[chainId as keyof typeof RPC_PROVIDERS] : undefined
+  const sourceProvider = chainId in RPC_PROVIDERS ? RPC_PROVIDERS[chainId as keyof typeof RPC_PROVIDERS] : undefined
   if (!sourceProvider || !acrossFeeResult) {
     return undefined
   }
@@ -252,9 +248,7 @@ function* tryDestinationSimulationCompensation(
     return undefined
   }
   const destProvider =
-    destinationChainId in RPC_PROVIDERS
-      ? RPC_PROVIDERS[destinationChainId as keyof typeof RPC_PROVIDERS]
-      : undefined
+    destinationChainId in RPC_PROVIDERS ? RPC_PROVIDERS[destinationChainId as keyof typeof RPC_PROVIDERS] : undefined
   if (!destProvider) {
     return undefined
   }
@@ -286,14 +280,10 @@ interface CheckBridgeDestinationPoolHealthParams {
   smartPoolAddress: string
 }
 
-function* checkBridgeDestinationPoolHealth(
-  params: CheckBridgeDestinationPoolHealthParams,
-): SagaGenerator<void> {
+function* checkBridgeDestinationPoolHealth(params: CheckBridgeDestinationPoolHealthParams): SagaGenerator<void> {
   const { destinationChainId, smartPoolAddress } = params
   const destProvider =
-    destinationChainId in RPC_PROVIDERS
-      ? RPC_PROVIDERS[destinationChainId as keyof typeof RPC_PROVIDERS]
-      : undefined
+    destinationChainId in RPC_PROVIDERS ? RPC_PROVIDERS[destinationChainId as keyof typeof RPC_PROVIDERS] : undefined
   if (!destProvider) {
     return
   }
@@ -316,8 +306,7 @@ interface EstimateBridgeGasParams {
 
 function* estimateBridgeGas(params: EstimateBridgeGasParams): SagaGenerator<void> {
   const { txRequest, address, smartPoolAddress, chainId, calldata } = params
-  const provider =
-    chainId in RPC_PROVIDERS ? RPC_PROVIDERS[chainId as keyof typeof RPC_PROVIDERS] : undefined
+  const provider = chainId in RPC_PROVIDERS ? RPC_PROVIDERS[chainId as keyof typeof RPC_PROVIDERS] : undefined
   if (!provider) {
     return
   }
@@ -406,14 +395,9 @@ function* estimateNonBridgeGas(params: EstimateNonBridgeGasParams): SagaGenerato
           `is missing. Details: ${gasErrorMsg}`,
       )
     }
-    logger.warn(
-      'swapSaga',
-      'handleSwapTransactionStep',
-      'Swap gas estimation failed (network error), using fallback',
-      {
-        error: gasError,
-      },
-    )
+    logger.warn('swapSaga', 'handleSwapTransactionStep', 'Swap gas estimation failed (network error), using fallback', {
+      error: gasError,
+    })
   }
 }
 
@@ -425,9 +409,7 @@ interface NonBridgeTransactionModificationParams {
   address: string
 }
 
-function* handleNonBridgeTransactionModifications(
-  params: NonBridgeTransactionModificationParams,
-): SagaGenerator<void> {
+function* handleNonBridgeTransactionModifications(params: NonBridgeTransactionModificationParams): SagaGenerator<void> {
   const { txRequest, smartPoolAddress, calldata, trade, address } = params
   try {
     const parametersOnly = calldata.slice(10)
@@ -470,15 +452,12 @@ interface BridgeTransactionModificationParams {
   analytics: SwapTradeBaseProperties & PlanAnalyticsFields
 }
 
-function* handleBridgeTransactionModifications(
-  params: BridgeTransactionModificationParams,
-): SagaGenerator<void> {
+function* handleBridgeTransactionModifications(params: BridgeTransactionModificationParams): SagaGenerator<void> {
   const { txRequest, address, smartPoolAddress, trade, calldata, originalValue, analytics } = params
   try {
     const tokenOutAmountUSD = analytics.token_out_amount_usd
     const tokenOutAmount = parseFloat(trade.outputAmount.toExact())
-    const outputTokenPriceUSD =
-      tokenOutAmountUSD && tokenOutAmount > 0 ? tokenOutAmountUSD / tokenOutAmount : undefined
+    const outputTokenPriceUSD = tokenOutAmountUSD && tokenOutAmount > 0 ? tokenOutAmountUSD / tokenOutAmount : undefined
     const outputTokenDecimals = trade.outputAmount.currency.decimals
     const inputTokenDecimals = trade.inputAmount.currency.decimals
     const chainId = trade.inputAmount.currency.chainId

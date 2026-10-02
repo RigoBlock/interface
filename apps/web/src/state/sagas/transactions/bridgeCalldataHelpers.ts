@@ -1,6 +1,7 @@
 /* oxlint-disable no-unused-vars */
 import { AbiCoder } from '@ethersproject/abi'
 import { BigNumber } from '@ethersproject/bignumber'
+import { AddressStringFormat, normalizeAddress } from '@universe/chains'
 import { logger } from 'utilities/src/logger/logger'
 
 // Across SpokePool depositV3 function selector
@@ -193,7 +194,7 @@ export async function fetchTokenPriceUSD(chainId: number, tokenAddress: string):
     return undefined
   }
   try {
-    const addr = tokenAddress.toLowerCase()
+    const addr = normalizeAddress(tokenAddress, AddressStringFormat.Lowercase)
     const response = await fetch(
       `${COINGECKO_API}/simple/token_price/${platform}?contract_addresses=${addr}&vs_currencies=usd`,
     )

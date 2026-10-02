@@ -6,6 +6,8 @@ import { Contract } from '@ethersproject/contracts'
 import type { TransactionResponse } from '@ethersproject/providers'
 import { parseBytes32String } from '@ethersproject/strings'
 import { Currency } from '@uniswap/sdk-core'
+import { UniverseChainId, normalizeTokenAddressForCache } from '@universe/chains'
+import { isValidHexString } from '@universe/encoding'
 import { useWeb3React } from '@web3-react/core'
 import { useCallback, useMemo } from 'react'
 import { useParams } from 'react-router'
@@ -14,23 +16,26 @@ import RB_POOL_FACTORY_ABI from 'uniswap/src/abis/rb-pool-factory.json'
 import RB_REGISTRY_ABI from 'uniswap/src/abis/rb-registry.json'
 import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
 import { GRG } from 'uniswap/src/constants/tokens'
-import { UniverseChainId, normalizeTokenAddressForCache } from '@universe/chains'
+import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { isValidHexString } from '@universe/encoding'
 import { useEvent } from 'utilities/src/react/hooks'
 import type { Abi } from 'viem'
 import { useReadContracts } from 'wagmi'
-import { RIGOBLOCK_SUPPORTED_CHAINS, RIGOBLOCK_TESTNET_CHAINS, RB_FACTORY_ADDRESSES, RB_REGISTRY_ADDRESSES } from '~/constants/addresses'
+import { assume0xAddress } from '~/chains'
+import {
+  RIGOBLOCK_SUPPORTED_CHAINS,
+  RIGOBLOCK_TESTNET_CHAINS,
+  RB_FACTORY_ADDRESSES,
+  RB_REGISTRY_ADDRESSES,
+} from '~/constants/addresses'
 import { useAccount } from '~/hooks/useAccount'
 import { useContract } from '~/hooks/useContract'
 import { useTotalSupply } from '~/hooks/useTotalSupply'
 import { useStakingContract } from '~/state/governance/hooks'
 import { useLogs } from '~/state/logs/hooks'
+import { useMultiChainAllPoolsData, useMultiChainStakingPools } from '~/state/pool/multichain'
 import { useTransactionAdder } from '~/state/transactions/hooks'
 import { calculateGasMargin } from '~/utils/calculateGasMargin'
-import { assume0xAddress } from '~/chains'
-import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { useMultiChainAllPoolsData, useMultiChainStakingPools } from '~/state/pool/multichain'
 
 export const PoolInterface = new Interface(POOL_EXTENDED_ABI)
 const RegistryInterface = new Interface(RB_REGISTRY_ABI)
@@ -179,10 +184,12 @@ export function useCreateCallback(): (options: {
       }
       return (factoryContract.estimateGas.createPool(name, symbol, parsedAddress, {}) as Promise<BigNumber>).then(
         (estimatedGasLimit): Promise<string> => {
-          return (factoryContract.createPool(name, symbol, parsedAddress, {
-            value: null,
-            gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
-          }) as Promise<TransactionResponse>).then((response: TransactionResponse): string => {
+          return (
+            factoryContract.createPool(name, symbol, parsedAddress, {
+              value: null,
+              gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
+            }) as Promise<TransactionResponse>
+          ).then((response: TransactionResponse): string => {
             addTransaction(response, {
               type: TransactionType.Deploy,
               name: `${name} (${symbol})`,
@@ -268,10 +275,12 @@ export function useSetLockupCallback(): (lockup: string | undefined) => undefine
         }
         return (poolContract.estimateGas.changeMinPeriod(lockup, {}) as Promise<BigNumber>).then(
           (estimatedGasLimit): Promise<string> => {
-            return (poolContract.changeMinPeriod(lockup, {
-              value: null,
-              gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
-            }) as Promise<TransactionResponse>).then((response: TransactionResponse): string => {
+            return (
+              poolContract.changeMinPeriod(lockup, {
+                value: null,
+                gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
+              }) as Promise<TransactionResponse>
+            ).then((response: TransactionResponse): string => {
               addTransaction(response, {
                 type: TransactionType.SetLockup,
                 vaultAddress: poolContract.address,
@@ -310,10 +319,12 @@ export function useSetSpreadCallback(): (spread: string | undefined) => undefine
         }
         return (poolContract.estimateGas.changeSpread(spread, {}) as Promise<BigNumber>).then(
           (estimatedGasLimit): Promise<string> => {
-            return (poolContract.changeSpread(spread, {
-              value: null,
-              gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
-            }) as Promise<TransactionResponse>).then((response: TransactionResponse): string => {
+            return (
+              poolContract.changeSpread(spread, {
+                value: null,
+                gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
+              }) as Promise<TransactionResponse>
+            ).then((response: TransactionResponse): string => {
               addTransaction(response, {
                 type: TransactionType.SetSpread,
                 vaultAddress: poolContract.address,
@@ -351,10 +362,12 @@ export function useSetValueCallback(): () => undefined | Promise<string> {
       }
       return (poolContract.estimateGas.updateUnitaryValue() as Promise<BigNumber>).then(
         (estimatedGasLimit): Promise<string> => {
-          return (poolContract.updateUnitaryValue({
-            value: null,
-            gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
-          }) as Promise<TransactionResponse>).then((response: TransactionResponse): string => {
+          return (
+            poolContract.updateUnitaryValue({
+              value: null,
+              gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
+            }) as Promise<TransactionResponse>
+          ).then((response: TransactionResponse): string => {
             addTransaction(response, {
               type: TransactionType.SetValue,
               vaultAddress: poolContract.address,
@@ -389,10 +402,12 @@ export function useUpgradeCallback(): () => undefined | Promise<string> {
       }
       return (poolContract.estimateGas.upgradeImplementation() as Promise<BigNumber>).then(
         (estimatedGasLimit): Promise<string> => {
-          return (poolContract.upgradeImplementation({
-            value: null,
-            gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
-          }) as Promise<TransactionResponse>).then((response: TransactionResponse): string => {
+          return (
+            poolContract.upgradeImplementation({
+              value: null,
+              gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
+            }) as Promise<TransactionResponse>
+          ).then((response: TransactionResponse): string => {
             addTransaction(response, {
               type: TransactionType.Upgrade,
               vaultAddress: poolContract.address,

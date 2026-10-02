@@ -11,7 +11,6 @@ import {
   DEFAULT_MS_BEFORE_WARNING,
   DEFAULT_NATIVE_ADDRESS_LEGACY,
   getPlaywrightRpcUrls,
-  getQuicknodeEndpointUrl,
   getUniRpcEndpointUrl,
 } from 'uniswap/src/features/chains/evm/rpc'
 import { buildChainTokens } from 'uniswap/src/features/chains/evm/tokens'

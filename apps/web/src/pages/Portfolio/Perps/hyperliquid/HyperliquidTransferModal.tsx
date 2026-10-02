@@ -1,17 +1,17 @@
+import { Flex, Text } from '@universe/mycelium'
+import { SegmentedControl } from '@universe/mycelium/segmented-control-compat'
 import { useEffect, useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Button, Input } from 'ui/src'
-import { Flex, Text } from '@universe/mycelium'
-import { SegmentedControl } from '@universe/mycelium/segmented-control-compat'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { logger } from 'utilities/src/logger/logger'
 import { LoadingView, SubmittedView } from '~/components/ModalViews'
+import { onNumericInput } from '~/pages/Portfolio/Perps/gmx/gmxOpenPositionUtils'
 import { SPOT_SEND_GAS_USDC } from '~/pages/Portfolio/Perps/hyperliquid/hlAdapterAbi'
 import { useHyperEvmUsdcBalance } from '~/pages/Portfolio/Perps/hyperliquid/useHyperEvmUsdcBalance'
 import { useHyperliquidOrderCallback } from '~/pages/Portfolio/Perps/hyperliquid/useHyperliquidOrderCallback'
-import { onNumericInput } from '~/pages/Portfolio/Perps/gmx/gmxOpenPositionUtils'
 import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
 
 const MODAL_TRANSITION_DURATION = 200
@@ -30,7 +30,15 @@ interface HyperliquidTransferModalProps {
   onDismiss: () => void
 }
 
-function AmountInput({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }): JSX.Element {
+function AmountInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+}): JSX.Element {
   return (
     <Flex gap="$spacing4">
       <Text variant="body3" color="$neutral2">
@@ -183,7 +191,10 @@ export function HyperliquidTransferModal({
           <SegmentedControl
             options={[
               { value: 'deposit' as TransferTab, display: <Trans i18nKey="perps.hyperliquid.transfer.deposit.tab" /> },
-              { value: 'withdraw' as TransferTab, display: <Trans i18nKey="perps.hyperliquid.transfer.withdraw.tab" /> },
+              {
+                value: 'withdraw' as TransferTab,
+                display: <Trans i18nKey="perps.hyperliquid.transfer.withdraw.tab" />,
+              },
             ]}
             selectedOption={tab}
             onSelectOption={(value) => {
@@ -194,19 +205,31 @@ export function HyperliquidTransferModal({
           />
 
           <Flex gap="$spacing12" padding="$spacing16" borderRadius="$rounded12" backgroundColor="$surface2">
-            <LiveBalanceRow label={t('perps.hyperliquid.transfer.perpsAccountValue')} value={formattedUsd(perpsAccountValueUsd)} />
-            <LiveBalanceRow label={t('perps.hyperliquid.transfer.coreSpotBalance')} value={formattedUsd(spotUsdcBalanceUsd)} />
+            <LiveBalanceRow
+              label={t('perps.hyperliquid.transfer.perpsAccountValue')}
+              value={formattedUsd(perpsAccountValueUsd)}
+            />
+            <LiveBalanceRow
+              label={t('perps.hyperliquid.transfer.coreSpotBalance')}
+              value={formattedUsd(spotUsdcBalanceUsd)}
+            />
           </Flex>
 
           {tab === 'deposit' ? (
             <>
-              <AmountInput label={t('perps.hyperliquid.transfer.deposit.amount')} value={depositAmount} onChange={setDepositAmount} />
+              <AmountInput
+                label={t('perps.hyperliquid.transfer.deposit.amount')}
+                value={depositAmount}
+                onChange={setDepositAmount}
+              />
               <Flex row justifyContent="space-between">
                 <Text variant="body3" color="$neutral2">
                   {t('perps.hyperliquid.transfer.deposit.evmBalance')}
                 </Text>
                 <Flex row gap="$spacing8" alignItems="center">
-                  <Text variant="body3">{isLoadingBalance ? t('perps.modal.loading') : formattedUsd(evmUsdcBalanceUsd)}</Text>
+                  <Text variant="body3">
+                    {isLoadingBalance ? t('perps.modal.loading') : formattedUsd(evmUsdcBalanceUsd)}
+                  </Text>
                   <Text
                     variant="body3"
                     color="$accent1"
@@ -241,7 +264,11 @@ export function HyperliquidTransferModal({
                   <Text variant="body3" fontWeight="600">
                     {t('perps.hyperliquid.transfer.withdraw.step1')}
                   </Text>
-                  <AmountInput label={t('perps.hyperliquid.transfer.withdraw.amount')} value={step1Amount} onChange={setStep1Amount} />
+                  <AmountInput
+                    label={t('perps.hyperliquid.transfer.withdraw.amount')}
+                    value={step1Amount}
+                    onChange={setStep1Amount}
+                  />
                   <Flex row justifyContent="space-between">
                     <Text variant="body3" color="$neutral2">
                       {t('perps.hyperliquid.transfer.withdraw.available')}
@@ -258,7 +285,10 @@ export function HyperliquidTransferModal({
                     size="medium"
                     disabled={!!step1Error || !poolAddress}
                     onPress={() =>
-                      submit(() => sendHlUsdClassTransfer(Number(step1Amount)), (txHash) => setStep1Hash(txHash))
+                      submit(
+                        () => sendHlUsdClassTransfer(Number(step1Amount)),
+                        (txHash) => setStep1Hash(txHash),
+                      )
                     }
                   >
                     {step1Error ?? t('perps.hyperliquid.transfer.withdraw.step1Submit')}
@@ -283,7 +313,11 @@ export function HyperliquidTransferModal({
                   <Text variant="body3" fontWeight="600">
                     {t('perps.hyperliquid.transfer.withdraw.step2')}
                   </Text>
-                  <AmountInput label={t('perps.hyperliquid.transfer.withdraw.amount')} value={step2Amount} onChange={setStep2Amount} />
+                  <AmountInput
+                    label={t('perps.hyperliquid.transfer.withdraw.amount')}
+                    value={step2Amount}
+                    onChange={setStep2Amount}
+                  />
                   <Text variant="body4" color="$neutral2">
                     {t('perps.hyperliquid.transfer.withdraw.activationNote')}
                   </Text>

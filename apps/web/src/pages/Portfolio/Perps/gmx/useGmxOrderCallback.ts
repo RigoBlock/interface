@@ -1,18 +1,18 @@
-import { BigNumber } from '@ethersproject/bignumber'
 import { getAddress } from '@ethersproject/address'
+import { BigNumber } from '@ethersproject/bignumber'
 import { Contract } from '@ethersproject/contracts'
 import { TransactionResponse } from '@ethersproject/providers'
-import { useCallback, useMemo } from 'react'
 import { UniverseChainId } from '@universe/chains'
+import { useCallback, useMemo } from 'react'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { logger } from 'utilities/src/logger/logger'
 import { parseUnits } from 'viem'
 import { getConnectorClient } from 'wagmi/actions'
 import { wagmiConfig } from '~/connection/wagmiConfig'
-import { useAccount } from '~/hooks/useAccount'
 import { clientToProvider } from '~/hooks/useEthersProvider'
 import { useSelectChain } from '~/hooks/useSelectChain'
 import { GmxPosition } from '~/pages/Portfolio/hooks/useGmxPositions'
+import { usePortfolioAddress } from '~/pages/Portfolio/hooks/usePortfolioAddress'
 import {
   buildGmxOrderParams,
   GmxCreateOrderParams,
@@ -34,10 +34,7 @@ export enum GmxOrderAction {
 }
 
 /** Maps the unified collateral action to a concrete direction; passes everything else through. */
-export function resolveCollateralDirection(
-  action: GmxOrderAction,
-  direction: 'increase' | 'decrease',
-): GmxOrderAction {
+export function resolveCollateralDirection(action: GmxOrderAction, direction: 'increase' | 'decrease'): GmxOrderAction {
   if (action === GmxOrderAction.DeltaCollateral) {
     return direction === 'increase' ? GmxOrderAction.IncreaseCollateral : GmxOrderAction.DecreaseCollateral
   }
@@ -218,7 +215,7 @@ export function useGmxOrderCallback(poolAddress?: string): {
   }) => Promise<string> | undefined
   sendGmxOpenPosition: (input: GmxOpenPositionInput) => Promise<string> | undefined
 } {
-  const account = useAccount()
+  const account = usePortfolioAddress()
   const addTransaction = useTransactionAdder()
   const selectChain = useSelectChain()
 
@@ -320,8 +317,5 @@ export function useGmxOrderCallback(poolAddress?: string): {
     [executeOrder, poolAddress],
   )
 
-  return useMemo(
-    () => ({ sendGmxOrder, sendGmxOpenPosition }),
-    [sendGmxOrder, sendGmxOpenPosition],
-  )
+  return useMemo(() => ({ sendGmxOrder, sendGmxOpenPosition }), [sendGmxOrder, sendGmxOpenPosition])
 }

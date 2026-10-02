@@ -1,6 +1,6 @@
-import { useTheme } from 'tamagui'
 import { ChangeEvent, ReactNode, useCallback } from 'react'
 import { Trans } from 'react-i18next'
+import { useTheme } from 'tamagui'
 import i18n from 'uniswap/src/i18n'
 import { AutoColumn } from '~/components/deprecated/Column'
 import { RowBetween } from '~/components/deprecated/Row'

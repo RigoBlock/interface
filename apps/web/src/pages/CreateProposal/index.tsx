@@ -1,5 +1,4 @@
-import { Interface } from '@ethersproject/abi'
-import { getAddress, isAddress } from '@ethersproject/address'
+import { isAddress } from '@ethersproject/address'
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { UniverseChainId } from '@universe/chains'
 import JSBI from 'jsbi'
@@ -7,26 +6,15 @@ import { useCallback, useMemo, useState } from 'react'
 import { ArrowLeft, X } from 'react-feather'
 import { Trans } from 'react-i18next'
 import { Link } from 'react-router'
-import AUTHORITY_ABI from 'uniswap/src/abis/authority.json'
-import TOKEN_ABI from 'uniswap/src/abis/erc20.json'
-import GOVERNANCE_RB_ABI from 'uniswap/src/abis/governance.json'
-import RB_POOL_FACTORY_ABI from 'uniswap/src/abis/rb-pool-factory.json'
-import STAKING_PROXY_ABI from 'uniswap/src/abis/staking-proxy.json'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { InterfacePageName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { ButtonError } from '~/components/Button/buttons'
 import { BlueCard } from '~/components/Card/cards'
 import { AutoColumn } from '~/components/deprecated/Column'
-import {
-  AUTHORITY_ADDRESSES,
-  GOVERNANCE_PROXY_ADDRESSES,
-  RB_FACTORY_ADDRESSES,
-  STAKING_PROXY_ADDRESSES,
-} from '~/constants/addresses'
 import { useAccount } from '~/hooks/useAccount'
 import styled from '~/lib/deprecated-styled'
-import { tryParseCurrencyAmount } from '~/lib/utils/tryParseCurrencyAmount'
+import { ActionData, buildCreateProposalData } from '~/pages/CreateProposal/buildCreateProposalData'
 import { ProposalActionDetail } from '~/pages/CreateProposal/ProposalActionDetail'
 import {
   ProposalAction,
@@ -35,7 +23,7 @@ import {
 } from '~/pages/CreateProposal/ProposalActionSelector'
 import { ProposalEditor } from '~/pages/CreateProposal/ProposalEditor'
 import { ProposalSubmissionModal } from '~/pages/CreateProposal/ProposalSubmissionModal'
-import { CreateProposalData, useCreateProposalCallback, useVotingParams } from '~/state/governance/hooks'
+import { useCreateProposalCallback, useVotingParams } from '~/state/governance/hooks'
 import { ThemedText } from '~/theme/components'
 import { ExternalLink, StyledInternalLink } from '~/theme/components/Links'
 
@@ -185,19 +173,6 @@ const RemoveActionButton = styled(X)`
   }
 `
 
-// TODO: verify which params to make optional
-interface ActionData {
-  id: number
-  proposalAction: ProposalAction
-  toAddress: string
-  // Undefined on chains without GRG (e.g. HyperEVM), where governance is not deployed.
-  currency: Currency | undefined
-  amount: string
-  methods?: string[]
-  values?: (string | boolean)[][]
-  target?: string
-}
-
 export default function CreateProposal() {
   const account = useAccount()
   const { userVotingPower: availableVotes, proposalThreshold } = useVotingParams(account.address)
@@ -303,114 +278,21 @@ export default function CreateProposal() {
   const handleCreateProposal = async () => {
     setAttempting(true)
 
-    const createProposalData: CreateProposalData = {} as CreateProposalData
-
     if (typeof createProposalCallback !== 'function') {
       setAttempting(false)
       return
     }
 
-    createProposalData.description = `# ${titleValue}\n\n${bodyValue}`
-    createProposalData.actions = []
+    const createProposalData = buildCreateProposalData({
+      actions,
+      titleValue,
+      bodyValue,
+      chainId: account.chainId ?? UniverseChainId.Mainnet,
+    })
 
-    for (const action of actions) {
-      // TODO: verify action.currency.isToken
-      if (!action.currency || !action.currency.isToken) {
-        setAttempting(false)
-        return
-      }
-      const tokenAmount = tryParseCurrencyAmount(action.amount, action.currency)
-
-      let values: (string | boolean)[][]
-      let methods: string[] = []
-      let target: string = ''
-      let interfaces: Interface[] = []
-
-      // TODO: add all governance owned methods
-      switch (action.proposalAction) {
-        case ProposalAction.TRANSFER_TOKEN: {
-          if (!tokenAmount) {
-            setAttempting(false)
-            return
-          }
-          values = [[getAddress(action.toAddress), tokenAmount.quotient.toString()]]
-          interfaces = [new Interface(TOKEN_ABI)]
-          target = action.currency.address
-          methods = ['transfer']
-          break
-        }
-
-        case ProposalAction.APPROVE_TOKEN: {
-          if (!tokenAmount) {
-            return
-          }
-          values = [[getAddress(action.toAddress), tokenAmount.quotient.toString()]]
-          interfaces = [new Interface(TOKEN_ABI)]
-          target = action.currency.address
-          methods = ['approve']
-          break
-        }
-
-        case ProposalAction.UPGRADE_IMPLEMENTATION: {
-          values = [[getAddress(action.toAddress)]]
-          interfaces = [new Interface(RB_POOL_FACTORY_ABI)]
-          target = RB_FACTORY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet]
-          methods = ['setImplementation']
-          break
-        }
-
-        case ProposalAction.UPGRADE_GOVERNANCE: {
-          values = [[getAddress(action.toAddress)]]
-          interfaces = [new Interface(GOVERNANCE_RB_ABI)]
-          target = GOVERNANCE_PROXY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet]
-          methods = ['upgradeImplementation']
-          break
-        }
-
-        case ProposalAction.UPGRADE_STAKING: {
-          values = [
-            [STAKING_PROXY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet]],
-            [],
-            [getAddress(action.toAddress)],
-            [STAKING_PROXY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet]],
-          ]
-          interfaces = [new Interface(STAKING_PROXY_ABI)]
-          target = STAKING_PROXY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet]
-          methods = [
-            'addAuthorizedAddress',
-            'detachStakingContract',
-            'attachStakingContract',
-            'removeAuthorizedAddress',
-          ]
-          break
-        }
-
-        // any non-empty string for the boolean value will result in adding an adapter
-        case ProposalAction.ADD_ADAPTER: {
-          values = [[getAddress(action.toAddress), true]]
-          interfaces = [new Interface(AUTHORITY_ABI)]
-          target = AUTHORITY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet]
-          methods = ['setAdapter']
-          break
-        }
-
-        // an empty string for the boolean value will result in removing an adapter
-        case ProposalAction.REMOVE_ADAPTER: {
-          values = [[getAddress(action.toAddress), false]]
-          interfaces = [new Interface(AUTHORITY_ABI)]
-          target = AUTHORITY_ADDRESSES[account.chainId ?? UniverseChainId.Mainnet]
-          methods = ['setAdapter']
-          break
-        }
-      }
-
-      for (let i = 0; i < values.length; i++) {
-        createProposalData.actions.push({
-          target,
-          value: 0,
-          data: interfaces[0].encodeFunctionData(methods[i], values[i]),
-        })
-      }
+    if (!createProposalData) {
+      setAttempting(false)
+      return
     }
 
     const txHash = await createProposalCallback(createProposalData)?.catch(() => {

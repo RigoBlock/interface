@@ -35,9 +35,9 @@ type Mutable<T> = {
 const initialState: PoolsListsState = {
   lastInitializedPoolsList: POOLS_LIST,
   byUrl: POOLS_LIST.reduce<Mutable<PoolsListsState['byUrl']>>((memo, listUrl) => {
-      memo[listUrl] = NEW_LIST_STATE
-      return memo
-    }, {}),
+    memo[listUrl] = NEW_LIST_STATE
+    return memo
+  }, {}),
 }
 
 export default createReducer(initialState, (builder) =>

@@ -1,5 +1,5 @@
-import { HL_USDC_ADDRESS } from 'uniswap/src/features/chains/evm/info/hyperevm'
 import { UniverseChainId } from '@universe/chains'
+import { HL_USDC_ADDRESS } from 'uniswap/src/features/chains/evm/info/hyperevm'
 
 /** EVM chains offered as the non-HyperEVM endpoint of the pool USDC bridge.
  *  Mirrors the on-chain CrosschainTokens allowlist (USDC on all Rigoblock chains). */

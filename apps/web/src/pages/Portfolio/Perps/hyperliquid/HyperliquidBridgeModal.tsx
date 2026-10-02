@@ -1,20 +1,21 @@
 import { formatUnits, parseUnits } from '@ethersproject/units'
+import { UniverseChainId } from '@universe/chains'
+import { Flex, Text } from '@universe/mycelium'
+import { SegmentedControl } from '@universe/mycelium/segmented-control-compat'
 import { useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Button, Input } from 'ui/src'
-import { Flex, Text } from '@universe/mycelium'
-import { SegmentedControl } from '@universe/mycelium/segmented-control-compat'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { UniverseChainId } from '@universe/chains'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { logger } from 'utilities/src/logger/logger'
 import { erc20Abi } from 'viem'
 import { useReadContract } from 'wagmi'
+import { assume0xAddress } from '~/chains'
 import { wagmiConfig } from '~/connection/wagmiConfig'
-import { HYPERLIQUID_BRIDGE_USDC } from '~/pages/Portfolio/Perps/hyperliquid/hyperliquidBridgeConfig'
 import { onNumericInput } from '~/pages/Portfolio/Perps/gmx/gmxOpenPositionUtils'
+import { HYPERLIQUID_BRIDGE_USDC } from '~/pages/Portfolio/Perps/hyperliquid/hyperliquidBridgeConfig'
 import {
   BridgeChainChips,
   BridgePoolBalanceRow,
@@ -28,9 +29,12 @@ import {
   useHyperliquidBridgeCallback,
 } from '~/pages/Portfolio/Perps/hyperliquid/useHyperliquidBridgeCallback'
 import { useHyperliquidBridgeQuote } from '~/pages/Portfolio/Perps/hyperliquid/useHyperliquidBridgeQuote'
-import { checkSmartPoolBridgeFeasibility, modifyAcrossDepositV3ForSmartPool, OpType } from '~/state/sagas/transactions/bridgeCalldata'
+import {
+  checkSmartPoolBridgeFeasibility,
+  modifyAcrossDepositV3ForSmartPool,
+  OpType,
+} from '~/state/sagas/transactions/bridgeCalldata'
 import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
-import { assume0xAddress } from '~/chains'
 
 const MODAL_TRANSITION_DURATION = 200
 
@@ -91,7 +95,11 @@ export function HyperliquidBridgeModal({ isOpen, poolAddress, onDismiss }: Hyper
 
   const balanceUsd = balanceLabel !== undefined ? Number(balanceLabel) : 0
 
-  const { quote, isLoading: isLoadingQuote, isError: isQuoteError } = useHyperliquidBridgeQuote({
+  const {
+    quote,
+    isLoading: isLoadingQuote,
+    isError: isQuoteError,
+  } = useHyperliquidBridgeQuote({
     sourceChainId,
     destinationChainId,
     inputAmountRaw,
@@ -111,14 +119,13 @@ export function HyperliquidBridgeModal({ isOpen, poolAddress, onDismiss }: Hyper
         inputAmount: inputAmountRaw,
         // Across returns the solver-delivered amount in OUTPUT token raw units; fall back to
         // input − fee scaled across decimals when the field is missing.
-        outputAmount:
-          quote.outputAmountRaw.gt(0)
-            ? quote.outputAmountRaw
-            : scaleRawDecimals({
-                value: inputAmountRaw.sub(quote.totalRelayFeeRaw),
-                sourceDecimals,
-                destinationDecimals,
-              }),
+        outputAmount: quote.outputAmountRaw.gt(0)
+          ? quote.outputAmountRaw
+          : scaleRawDecimals({
+              value: inputAmountRaw.sub(quote.totalRelayFeeRaw),
+              sourceDecimals,
+              destinationDecimals,
+            }),
         destinationChainId,
         quoteTimestamp: quote.quoteTimestamp,
       })
@@ -126,7 +133,16 @@ export function HyperliquidBridgeModal({ isOpen, poolAddress, onDismiss }: Hyper
       logger.warn('HyperliquidBridgeModal', 'standardCalldata', 'Failed to build depositV3 calldata', { error })
       return undefined
     }
-  }, [destinationChainId, destinationDecimals, destinationUsdc, inputAmountRaw, poolAddress, quote, sourceDecimals, sourceUsdc])
+  }, [
+    destinationChainId,
+    destinationDecimals,
+    destinationUsdc,
+    inputAmountRaw,
+    poolAddress,
+    quote,
+    sourceDecimals,
+    sourceUsdc,
+  ])
 
   const isFeasible = useMemo(() => {
     if (!standardCalldata) {
@@ -163,8 +179,7 @@ export function HyperliquidBridgeModal({ isOpen, poolAddress, onDismiss }: Hyper
     }
   }, [inputErrorKey, sourceChainId, t])
 
-  const canSubmit =
-    !!poolAddress && !!standardCalldata && !!quote && !inputErrorKey && !isLoadingQuote && !isQuoteError
+  const canSubmit = !!poolAddress && !!standardCalldata && !!quote && !inputErrorKey && !isLoadingQuote && !isQuoteError
 
   const chainPickerLabel =
     direction === 'toHyperEvm'
@@ -231,8 +246,14 @@ export function HyperliquidBridgeModal({ isOpen, poolAddress, onDismiss }: Hyper
 
           <SegmentedControl
             options={[
-              { value: 'toHyperEvm' as BridgeDirection, display: <Trans i18nKey="perps.hyperliquid.bridge.toHyperEvm" /> },
-              { value: 'fromHyperEvm' as BridgeDirection, display: <Trans i18nKey="perps.hyperliquid.bridge.fromHyperEvm" /> },
+              {
+                value: 'toHyperEvm' as BridgeDirection,
+                display: <Trans i18nKey="perps.hyperliquid.bridge.toHyperEvm" />,
+              },
+              {
+                value: 'fromHyperEvm' as BridgeDirection,
+                display: <Trans i18nKey="perps.hyperliquid.bridge.fromHyperEvm" />,
+              },
             ]}
             selectedOption={direction}
             onSelectOption={(value) => {

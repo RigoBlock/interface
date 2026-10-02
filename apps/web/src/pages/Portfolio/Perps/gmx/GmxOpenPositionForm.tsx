@@ -1,23 +1,20 @@
+import { normalizeTokenAddressForCache } from '@universe/chains'
+import { Flex, ScrollView, Text, TouchableArea } from '@universe/mycelium'
+import { SegmentedControl } from '@universe/mycelium/segmented-control-compat'
 import { useMemo, useState } from 'react'
 import type { ComponentPropsWithoutRef, PropsWithChildren } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Button, Input, Popover } from 'ui/src'
-import { Flex, ScrollView, Text, TouchableArea } from '@universe/mycelium'
-import { SegmentedControl } from '@universe/mycelium/segmented-control-compat'
 import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
 import { zIndexes } from 'ui/src/theme'
-import { normalizeTokenAddressForCache } from '@universe/chains'
 import { GmxPosition } from '~/pages/Portfolio/hooks/useGmxPositions'
-import {
-  formatGmxAnnualizedRate,
-  GmxTokenInfo,
-} from '~/pages/Portfolio/Perps/gmx/useGmxOpenPositionMarketData'
 import {
   formatUsdPrice,
   InputError,
   onNumericInput,
   PositionSide,
 } from '~/pages/Portfolio/Perps/gmx/gmxOpenPositionUtils'
+import { formatGmxAnnualizedRate, GmxTokenInfo } from '~/pages/Portfolio/Perps/gmx/useGmxOpenPositionMarketData'
 
 const DROPDOWN_MAX_HEIGHT = 240
 
@@ -83,7 +80,10 @@ function DropdownContent({
   )
 }
 
-function DropdownItem({ children, ...rest }: PropsWithChildren<ComponentPropsWithoutRef<typeof TouchableArea>>): JSX.Element {
+function DropdownItem({
+  children,
+  ...rest
+}: PropsWithChildren<ComponentPropsWithoutRef<typeof TouchableArea>>): JSX.Element {
   return (
     <TouchableArea
       paddingHorizontal="$spacing12"
@@ -204,8 +204,7 @@ export function GmxOpenPositionForm(props: GmxOpenPositionFormProps): JSX.Elemen
   const selectedMarketLabel = selectedMarketIndexName || t('perps.open.selectMarket')
 
   const selectedCollateralSymbol = selectedCollateralToken
-    ? (tokensByAddress.get(normalizeTokenAddressForCache(selectedCollateralToken))?.symbol ??
-        selectedCollateralToken)
+    ? (tokensByAddress.get(normalizeTokenAddressForCache(selectedCollateralToken))?.symbol ?? selectedCollateralToken)
     : t('perps.open.selectCollateral')
 
   const submitButtonLabel = getSubmitButtonLabel({ inputError, existingPosition, t })

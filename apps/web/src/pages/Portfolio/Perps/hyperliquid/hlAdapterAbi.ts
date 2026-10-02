@@ -214,7 +214,7 @@ export function encodeHlAction(actionId: number, params: Hex): Hex {
   actionBytes[1] = (actionId >> 16) & 0xff
   actionBytes[2] = (actionId >> 8) & 0xff
   actionBytes[3] = actionId & 0xff
-  return (`0x${Array.from(actionBytes, (b) => b.toString(16).padStart(2, '0')).join('')}${params.slice(2)}`) as Hex
+  return `0x${Array.from(actionBytes, (b) => b.toString(16).padStart(2, '0')).join('')}${params.slice(2)}` as Hex
 }
 
 export interface HlLimitOrderParams {
@@ -258,7 +258,10 @@ export function buildLimitOrderAction({ asset, isBuy, limitPx, sz, reduceOnly, t
  * perp USDC units.
  */
 export function buildUsdClassTransferAction(ntl: bigint): Hex {
-  return encodeHlAction(HL_ACTION_USD_CLASS_TRANSFER, encodeAbiParameters([{ type: 'uint64' }, { type: 'bool' }], [ntl, false]))
+  return encodeHlAction(
+    HL_ACTION_USD_CLASS_TRANSFER,
+    encodeAbiParameters([{ type: 'uint64' }, { type: 'bool' }], [ntl, false]),
+  )
 }
 
 /**

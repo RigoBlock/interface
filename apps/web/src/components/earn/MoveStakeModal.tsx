@@ -15,7 +15,6 @@ import { useLocalizationContext } from 'uniswap/src/features/language/Localizati
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { logger } from 'utilities/src/logger/logger'
-import { AddressInputPanel } from '~/features/claim/AddressInputPanel'
 import { /*ButtonConfirmed,*/ ButtonPrimary } from '~/components/Button/buttons'
 //import { ButtonError } from '../Button'
 import { LightCard } from '~/components/Card/cards'
@@ -24,6 +23,7 @@ import { RowBetween } from '~/components/deprecated/Row'
 import { LoadingView, SubmittedView } from '~/components/ModalViews'
 import Slider from '~/components/Slider'
 import { ResponsiveHeaderText, TextButton } from '~/components/vote/DelegateModal'
+import { AddressInputPanel } from '~/features/claim/AddressInputPanel'
 import { useAccount } from '~/hooks/useAccount'
 import useDebouncedChangeHandler from '~/hooks/useDebouncedChangeHandler'
 import styled from '~/lib/deprecated-styled'
@@ -96,7 +96,13 @@ function useParsedMoveAmount({
   )
 }
 
-function MoveButtonLabel({ isDeactivate, isPoolMoving }: { isDeactivate?: boolean; isPoolMoving: boolean }): JSX.Element {
+function MoveButtonLabel({
+  isDeactivate,
+  isPoolMoving,
+}: {
+  isDeactivate?: boolean
+  isPoolMoving: boolean
+}): JSX.Element {
   return !isDeactivate ? (
     <Trans>Move Stake</Trans>
   ) : !isPoolMoving ? (
@@ -106,7 +112,13 @@ function MoveButtonLabel({ isDeactivate, isPoolMoving }: { isDeactivate?: boolea
   )
 }
 
-function MovePendingTitle({ isDeactivate, isPoolMoving }: { isDeactivate?: boolean; isPoolMoving: boolean }): JSX.Element {
+function MovePendingTitle({
+  isDeactivate,
+  isPoolMoving,
+}: {
+  isDeactivate?: boolean
+  isPoolMoving: boolean
+}): JSX.Element {
   return !isDeactivate ? (
     <Trans>Moving Stake</Trans>
   ) : isPoolMoving ? (

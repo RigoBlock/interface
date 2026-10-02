@@ -5,9 +5,9 @@ import { keepPreviousData } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
 import { useReadContract, useReadContracts } from 'wagmi'
+import { assume0xAddress } from '~/chains'
 // TODO: remove duplicate method definition and reorg code
 import { usePoolExtendedContract, usePoolFactoryContract } from '~/state/pool/hooks'
-import { assume0xAddress } from '~/chains'
 
 interface PoolInitParams {
   name: string

@@ -240,22 +240,11 @@ export default function Earn() {
   const headerAction = account.isConnected ? (
     <Flex row gap="$spacing8" alignItems="center">
       {harvestChains.length > 0 && (
-        <Button
-          size="xsmall"
-          variant="branded"
-          fill={false}
-          onPress={() => setShowHarvestYieldModal(true)}
-        >
+        <Button size="xsmall" variant="branded" fill={false} onPress={() => setShowHarvestYieldModal(true)}>
           <Trans>Harvest</Trans>
         </Button>
       )}
-      <Button
-        size="xsmall"
-        variant="branded"
-        fill={false}
-        icon={<Plus />}
-        onPress={toggleCreateModal}
-      >
+      <Button size="xsmall" variant="branded" fill={false} icon={<Plus />} onPress={toggleCreateModal}>
         <Trans i18nKey="earn.create" />
       </Button>
     </Flex>

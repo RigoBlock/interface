@@ -91,11 +91,10 @@ function SwapFormDecimalPadContent({
   decimalPadValueRef,
   onDecimalPadTriggerInputShake,
 }: SwapFormDecimalPadProps): JSX.Element {
-  const { isFiatMode, exactCurrencyField, updateSwapForm, smartPoolAddress } = useSwapFormStore((s) => ({
+  const { isFiatMode, exactCurrencyField, updateSwapForm } = useSwapFormStore((s) => ({
     isFiatMode: s.isFiatMode,
     exactCurrencyField: s.exactCurrencyField,
     updateSwapForm: s.updateSwapForm,
-    smartPoolAddress: s.smartPoolAddress,
   }))
 
   const { currencyAmounts, currencyBalances, currencies } = useSwapFormStoreDerivedSwapInfo((s) => ({
@@ -110,7 +109,9 @@ function SwapFormDecimalPadContent({
   // Reanimated leg of the legacy quick-preset opacity fade: the pad renders at opacity 0
   // and fades in once ready, driven from the same handler that flips the ready state.
   const decimalPadOpacity = useSharedValue(0)
-  const decimalPadAnimatedStyle = useAnimatedStyle(() => ({ opacity: decimalPadOpacity.value }))
+  const decimalPadAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: decimalPadOpacity.value,
+  }))
 
   const handleDecimalPadReady = useCallback(() => {
     decimalPadOpacity.value = withSporeCurve('quick', 1)

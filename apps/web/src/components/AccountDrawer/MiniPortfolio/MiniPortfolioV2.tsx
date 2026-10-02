@@ -1,7 +1,7 @@
+import { Flex, Text } from '@universe/mycelium'
 import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
-import { Flex, Text } from '@universe/mycelium'
 import { Button } from 'ui/src'
 import { ArrowRight } from 'ui/src/components/icons/ArrowRight'
 import { iconSizes } from 'ui/src/theme'

@@ -31,9 +31,9 @@ import { CurrencySearchModal } from '~/components/SearchModal/CurrencySearchModa
 import { formatCurrencySymbol } from '~/features/Swap/CurrencyInputPanel/utils'
 import { useSwapAndLimitContext } from '~/features/Swap/state/useSwapContext'
 import { useAccount } from '~/hooks/useAccount'
+import { useActiveSmartPool } from '~/state/application/hooks'
 import { useCurrencyBalance } from '~/state/connection/hooks'
 import { useMultichainContext } from '~/state/multichain/useMultichainContext'
-import { useActiveSmartPool } from '~/state/application/hooks'
 import { SwitchNetworkAction } from '~/state/popups/types'
 
 // Explicit return type: forwardRef's inferred type isn't nameable under declaration emit (TS2883).

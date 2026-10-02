@@ -14,6 +14,4 @@ const DesktopRowContainer = ({ children, ...rest }: FlexProps) => (
 
 // Explicit annotation (not just a cast): the union's inferred type isn't nameable under
 // declaration emit (TS2883), and callers use the Flex prop surface both legs accept.
-export const MobileTouchableArea: FC<FlexProps> = (
-  isMobileWeb ? TouchableArea : DesktopRowContainer
-) as FC<FlexProps>
+export const MobileTouchableArea: FC<FlexProps> = (isMobileWeb ? TouchableArea : DesktopRowContainer) as FC<FlexProps>

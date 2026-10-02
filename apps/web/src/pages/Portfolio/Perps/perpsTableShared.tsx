@@ -84,7 +84,13 @@ export function HeaderCell({ label, alignLeft }: { label: React.ReactNode; align
   )
 }
 
-export function CellText({ children, color = '$neutral1' }: { children: React.ReactNode; color?: PnlColor }): JSX.Element {
+export function CellText({
+  children,
+  color = '$neutral1',
+}: {
+  children: React.ReactNode
+  color?: PnlColor
+}): JSX.Element {
   return (
     <Text variant="body3" color={color} textAlign="right" numberOfLines={1}>
       {children}

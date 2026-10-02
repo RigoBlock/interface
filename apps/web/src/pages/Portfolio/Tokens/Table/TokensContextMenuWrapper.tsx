@@ -18,8 +18,8 @@ import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioR
 import { useShowDemoView } from '~/pages/Portfolio/hooks/useShowDemoView'
 import { useNavigateToTokenDetails } from '~/pages/Portfolio/Tokens/hooks/useNavigateToTokenDetails'
 import { TokenData } from '~/pages/Portfolio/Tokens/hooks/useTransformTokenTableData'
-import { shouldDisableExploreRoutesAtom } from '~/state/application/atoms'
 import { TokensMultichainParentContextMenu } from '~/pages/Portfolio/Tokens/Table/TokensMultichainParentContextMenu'
+import { shouldDisableExploreRoutesAtom } from '~/state/application/atoms'
 import { popupRegistry } from '~/state/popups/registry'
 import { PopupType } from '~/state/popups/types'
 

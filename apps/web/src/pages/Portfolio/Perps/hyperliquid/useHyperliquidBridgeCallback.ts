@@ -3,15 +3,15 @@ import { getAddress } from '@ethersproject/address'
 import { BigNumber } from '@ethersproject/bignumber'
 import { Contract } from '@ethersproject/contracts'
 import { TransactionResponse } from '@ethersproject/providers'
-import { useCallback } from 'react'
 import { UniverseChainId } from '@universe/chains'
+import { useCallback } from 'react'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { logger } from 'utilities/src/logger/logger'
 import { getConnectorClient } from 'wagmi/actions'
 import { wagmiConfig } from '~/connection/wagmiConfig'
-import { useAccount } from '~/hooks/useAccount'
 import { clientToProvider } from '~/hooks/useEthersProvider'
 import { useSelectChain } from '~/hooks/useSelectChain'
+import { usePortfolioAddress } from '~/pages/Portfolio/hooks/usePortfolioAddress'
 import { HYPERLIQUID_BRIDGE_USDC } from '~/pages/Portfolio/Perps/hyperliquid/hyperliquidBridgeConfig'
 import { useTransactionAdder } from '~/state/transactions/hooks'
 import { calculateGasMargin } from '~/utils/calculateGasMargin'
@@ -97,7 +97,7 @@ export function buildStandardAcrossDepositV3Calldata(params: {
 export function useHyperliquidBridgeCallback(poolAddress?: string): {
   sendBridgeTransaction: (input: { sourceChainId: UniverseChainId; calldata: string }) => Promise<string | undefined>
 } {
-  const account = useAccount()
+  const account = usePortfolioAddress()
   const addTransaction = useTransactionAdder()
   const selectChain = useSelectChain()
 

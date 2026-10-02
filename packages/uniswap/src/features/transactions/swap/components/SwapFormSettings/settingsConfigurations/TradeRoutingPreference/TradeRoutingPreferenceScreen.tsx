@@ -45,7 +45,7 @@ export function TradeRoutingPreferenceScreen(): JSX.Element {
 
   const chainId = useSwapFormStoreDerivedSwapInfo((s) => s.chainId)
   // UniswapX is disabled for Rigoblock pools - always return false
-  const uniswapXEnabled = false // uniswapXEnabledFlag && chainId !== UniverseChainId.MonadTestnet
+  const uniswapXEnabled: boolean = false // uniswapXEnabledFlag && chainId !== UniverseChainId.MonadTestnet
   const v4SwapEnabled = useV4SwapEnabled(chainId)
   const chainName = getChainInfo(chainId).name
   const restrictionDescription = t('swap.settings.protection.subtitle.unavailable', { chainName })
@@ -97,15 +97,18 @@ export function TradeRoutingPreferenceScreen(): JSX.Element {
       />
       <HeightAnimator open={!isDefault} animationDisabled={isMobileApp || isMobileWeb}>
         {/* UniswapX is disabled for Rigoblock pools */}
-        {false && uniswapXEnabledFlag && (
-          <OptionRow
-            active={selectedProtocols.includes(TradingApi.ProtocolItems.UNISWAPX_LATEST)}
-            elementName={ElementName.SwapRoutingPreferenceUniswapX}
-            title={getProtocolTitle(TradingApi.ProtocolItems.UNISWAPX_LATEST)}
-            cantDisable={onlyOneProtocolSelected}
-            onSelect={() => toggleProtocol(TradingApi.ProtocolItems.UNISWAPX_LATEST)}
-          />
-        )}
+        {
+          // oxlint-disable-next-line typescript/no-unnecessary-condition -- UniswapX routing is disabled for RigoBlock smart pools by design (uniswapXEnabled is intentionally false); flip it above to re-enable
+          uniswapXEnabled && uniswapXEnabledFlag && (
+            <OptionRow
+              active={selectedProtocols.includes(TradingApi.ProtocolItems.UNISWAPX_LATEST)}
+              elementName={ElementName.SwapRoutingPreferenceUniswapX}
+              title={getProtocolTitle(TradingApi.ProtocolItems.UNISWAPX_LATEST)}
+              cantDisable={onlyOneProtocolSelected}
+              onSelect={() => toggleProtocol(TradingApi.ProtocolItems.UNISWAPX_LATEST)}
+            />
+          )
+        }
         <OptionRow
           active={v4SwapEnabled && selectedProtocols.includes(TradingApi.ProtocolItems.V4)}
           elementName={ElementName.SwapRoutingPreferenceV4}

@@ -7,7 +7,6 @@
  * tag, or we can add on any one-off CSS by either inlining a style tag in the
  * component itself, or importing it via CSS modules.
  */
-// oxlint-disable-next-line no-restricted-imports -- biome-parity: oxlint is stricter here
 import styledFn, {
   createGlobalStyle as createGlobalStyleSC,
   css as cssSC,

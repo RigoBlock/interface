@@ -8,7 +8,7 @@ import {
   TokenRankingsResponse,
   TokenRankingsStat,
 } from '@uniswap/client-explore/dist/uniswap/explore/v1/service_pb'
-import { UniverseChainId } from '@universe/chains'
+import { areEvmAddressesEqual, UniverseChainId } from '@universe/chains'
 import { RIGOBLOCK_LOGO } from 'ui/src/assets'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { uniswapGetTransport } from 'uniswap/src/data/transport'
@@ -31,7 +31,11 @@ export function useTokenRankingsQuery<TData = TokenRankingsResponse>(
   input?: PartialMessage<TokenRankingsRequest>,
   { enabled = true, select }: { enabled?: boolean; select?: (data: TokenRankingsResponse) => TData } = {},
 ): UseQueryResult<TData, ConnectError> {
-  return useQuery(tokenRankings, input, { transport: uniswapGetTransport, enabled, select })
+  return useQuery(tokenRankings, input, {
+    transport: uniswapGetTransport,
+    enabled,
+    select,
+  })
 }
 
 export function tokenRankingsStatToCurrencyInfo(tokenRankingsStat: TokenRankingsStat): CurrencyInfo | null {
@@ -60,8 +64,7 @@ export function tokenRankingsStatToCurrencyInfo(tokenRankingsStat: TokenRankings
   let finalLogoUrl = logo
   if (!currency.isNative && currency.address && currency.chainId === UniverseChainId.Unichain) {
     const isGrgToken = Object.values(GRG).some(
-      (grgToken) =>
-        grgToken.chainId === currency.chainId && grgToken.address.toLowerCase() === currency.address.toLowerCase(),
+      (grgToken) => grgToken.chainId === currency.chainId && areEvmAddressesEqual(grgToken.address, currency.address),
     )
 
     if (isGrgToken) {

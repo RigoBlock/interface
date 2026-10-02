@@ -1,5 +1,6 @@
 /* oxlint-disable typescript/consistent-return */
 import { Currency, NativeCurrency } from '@uniswap/sdk-core'
+import { areEvmAddressesEqual } from '@universe/chains'
 import { isWebApp } from '@universe/environment'
 import { ColorTokens } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
@@ -9,12 +10,16 @@ import { GRG } from 'uniswap/src/constants/tokens'
 import { ProtectionResult } from 'uniswap/src/features/dataApi/safety'
 import { AttackType, CurrencyInfo, TokenList } from 'uniswap/src/features/dataApi/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import {
+  getFeeWarning,
+  TOKEN_PROTECTION_FOT_FEE_BREAKPOINT,
+  TOKEN_PROTECTION_FOT_HIGH_FEE_BREAKPOINT,
+  TOKEN_PROTECTION_FOT_HONEYPOT_BREAKPOINT,
+} from 'uniswap/src/features/tokens/warnings/feeWarning'
 import { TokenProtectionWarning } from 'uniswap/src/features/tokens/warnings/types'
 import { logger } from 'utilities/src/logger/logger'
 
-export const TOKEN_PROTECTION_FOT_HONEYPOT_BREAKPOINT = 100
-export const TOKEN_PROTECTION_FOT_HIGH_FEE_BREAKPOINT = 80
-export const TOKEN_PROTECTION_FOT_FEE_BREAKPOINT = 15
+export { getFeeWarning } from 'uniswap/src/features/tokens/warnings/feeWarning'
 
 // Gets the FoT percentages from Currency, populated by our internal fees DB
 export function getCurrencyFeeOnTransfer(currency?: Currency): {
@@ -113,10 +118,7 @@ export function getTokenProtectionWarning(currencyInfo?: Maybe<CurrencyInfo>): T
   } else if (safetyInfo.tokenList === TokenList.NonDefault) {
     // Override for GRG tokens - treat them as default tokens instead of non-default
     const isGrgToken = Object.values(GRG).some(
-      (grgToken) =>
-        currency.isToken &&
-        grgToken.chainId === currency.chainId &&
-        grgToken.address.toLowerCase() === currency.address.toLowerCase(),
+      (grgToken) => grgToken.chainId === currency.chainId && areEvmAddressesEqual(grgToken.address, currency.address),
     )
 
     if (isGrgToken) {
@@ -136,22 +138,6 @@ export function getIsFeeRelatedWarning(tokenProtectionWarning?: TokenProtectionW
     tokenProtectionWarning === TokenProtectionWarning.FotHigh ||
     tokenProtectionWarning === TokenProtectionWarning.FotLow
   )
-}
-
-export function getFeeWarning(feePercent: number): TokenProtectionWarning {
-  // WarningSeverity for styling. Same logic as getTokenWarningSeverity but without non-fee-related cases.
-  // If fee >= 5% then HIGH, else 0% < fee < 5% then MEDIUM, else NONE
-  let tokenProtectionWarning = TokenProtectionWarning.None
-  if (feePercent >= TOKEN_PROTECTION_FOT_HONEYPOT_BREAKPOINT) {
-    tokenProtectionWarning = TokenProtectionWarning.MaliciousHoneypot
-  } else if (feePercent >= TOKEN_PROTECTION_FOT_HIGH_FEE_BREAKPOINT) {
-    tokenProtectionWarning = TokenProtectionWarning.FotVeryHigh
-  } else if (feePercent >= TOKEN_PROTECTION_FOT_FEE_BREAKPOINT) {
-    tokenProtectionWarning = TokenProtectionWarning.FotHigh
-  } else if (feePercent > 0) {
-    tokenProtectionWarning = TokenProtectionWarning.FotLow
-  }
-  return tokenProtectionWarning
 }
 
 export function getTokenWarningSeverity(currencyInfo: Maybe<CurrencyInfo>): WarningSeverity {
@@ -304,9 +290,13 @@ export function useModalSubtitleText({
         tokenSymbol: tokenSymbolWithFallback,
       })
     case TokenProtectionWarning.PotentialHoneypot:
-      return t('token.safety.warning.potentialHoneypot.modal.message', { tokenSymbol: tokenSymbolWithFallback })
+      return t('token.safety.warning.potentialHoneypot.modal.message', {
+        tokenSymbol: tokenSymbolWithFallback,
+      })
     case TokenProtectionWarning.ExitScamRisk:
-      return t('token.safety.warning.exitScamRisk.modal.message', { tokenSymbol: tokenSymbolWithFallback })
+      return t('token.safety.warning.exitScamRisk.modal.message', {
+        tokenSymbol: tokenSymbolWithFallback,
+      })
     case TokenProtectionWarning.SpamAirdrop:
       return (
         t('token.safety.warning.spam.message', {
@@ -450,9 +440,13 @@ export function useCardSubtitleText({
         tokenSymbol: tokenSymbolWithFallback,
       })
     case TokenProtectionWarning.PotentialHoneypot:
-      return t('token.safety.warning.potentialHoneypot.card.message', { tokenSymbol: tokenSymbolWithFallback })
+      return t('token.safety.warning.potentialHoneypot.card.message', {
+        tokenSymbol: tokenSymbolWithFallback,
+      })
     case TokenProtectionWarning.ExitScamRisk:
-      return t('token.safety.warning.exitScamRisk.card.message', { tokenSymbol: tokenSymbolWithFallback })
+      return t('token.safety.warning.exitScamRisk.card.message', {
+        tokenSymbol: tokenSymbolWithFallback,
+      })
     case TokenProtectionWarning.SpamAirdrop:
       return t('token.safety.warning.spam.message', {
         tokenSymbol: tokenSymbolWithFallback,

@@ -12,6 +12,7 @@ import { TransactionType } from 'uniswap/src/features/transactions/types/transac
 import { useEvent } from 'utilities/src/react/hooks'
 import type { Abi } from 'viem'
 import { useReadContract, useReadContracts } from 'wagmi'
+import { assume0xAddress } from '~/chains'
 import { POP_ADDRESSES, STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
 import { useAccount } from '~/hooks/useAccount'
 import { useContract } from '~/hooks/useContract'
@@ -20,9 +21,11 @@ import { StakeStatus, useStakingContract, useStakingProxyContract } from '~/stat
 import { usePoolExtendedContract } from '~/state/pool/hooks'
 import { useTransactionAdder } from '~/state/transactions/hooks'
 import { calculateGasMargin } from '~/utils/calculateGasMargin'
-import { assume0xAddress } from '~/chains'
 
-export function useFreeStakeBalance(isDelegateFreeStake?: boolean, chainId?: number): CurrencyAmount<Token> | undefined {
+export function useFreeStakeBalance(
+  isDelegateFreeStake?: boolean,
+  chainId?: number,
+): CurrencyAmount<Token> | undefined {
   const account = useAccount()
   const resolvedChainId = chainId ?? account.chainId
   const grg = useMemo(() => (resolvedChainId ? GRG[resolvedChainId] : undefined), [resolvedChainId])
@@ -129,9 +132,7 @@ export function useTotalStakeBalances({ address, smartPoolAddress, chainId }: St
     if (current === undefined || next === undefined) {
       return undefined
     }
-    return JSBI.greaterThan(JSBI.BigInt(String(current)), JSBI.BigInt(String(next)))
-      ? String(next)
-      : String(current)
+    return JSBI.greaterThan(JSBI.BigInt(String(current)), JSBI.BigInt(String(next))) ? String(next) : String(current)
   }
 
   const userFreeStakeRaw = getStakeAmount(0)
@@ -142,8 +143,12 @@ export function useTotalStakeBalances({ address, smartPoolAddress, chainId }: St
   return data && grg
     ? {
         userFreeStake: userFreeStakeRaw ? CurrencyAmount.fromRawAmount(grg, userFreeStakeRaw) : undefined,
-        userDelegatedStake: userDelegatedStakeRaw ? CurrencyAmount.fromRawAmount(grg, userDelegatedStakeRaw) : undefined,
-        smartPoolFreeStake: smartPoolFreeStakeRaw ? CurrencyAmount.fromRawAmount(grg, smartPoolFreeStakeRaw) : undefined,
+        userDelegatedStake: userDelegatedStakeRaw
+          ? CurrencyAmount.fromRawAmount(grg, userDelegatedStakeRaw)
+          : undefined,
+        smartPoolFreeStake: smartPoolFreeStakeRaw
+          ? CurrencyAmount.fromRawAmount(grg, smartPoolFreeStakeRaw)
+          : undefined,
         smartPoolDelegatedStake: smartPoolDelegatedStakeRaw
           ? CurrencyAmount.fromRawAmount(grg, smartPoolDelegatedStakeRaw)
           : undefined,
@@ -268,7 +273,9 @@ export function useUserStakeBalances(poolIds: string[]): UserStakeData[] | undef
   }, [grg, userStakeBalances])
 }
 
-export function useUnstakeCallback(chainId?: number): (amount: CurrencyAmount<Token>, isPool?: boolean) => undefined | Promise<string> {
+export function useUnstakeCallback(
+  chainId?: number,
+): (amount: CurrencyAmount<Token>, isPool?: boolean) => undefined | Promise<string> {
   const account = useAccount()
   const provider = useEthersWeb3Provider({ chainId })
   const stakingContract = useStakingContract(chainId)
@@ -293,11 +300,14 @@ export function useUnstakeCallback(chainId?: number): (amount: CurrencyAmount<To
       }
       if (!isPool) {
         return (async (): Promise<string> => {
-          const estimatedGasLimit = await stakingContract.estimateGas.unstake(amount.quotient.toString(), {}) as BigNumber
-          const response = await stakingContract.unstake(amount.quotient.toString(), {
+          const estimatedGasLimit = (await stakingContract.estimateGas.unstake(
+            amount.quotient.toString(),
+            {},
+          )) as BigNumber
+          const response = (await stakingContract.unstake(amount.quotient.toString(), {
             value: null,
             gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
-          }) as TransactionResponse
+          })) as TransactionResponse
           addTransaction(response, {
             type: TransactionType.ClaimUni,
             recipient: account.address ?? '',
@@ -309,11 +319,14 @@ export function useUnstakeCallback(chainId?: number): (amount: CurrencyAmount<To
           if (!poolContract) {
             throw new Error('No Pool Contract!')
           }
-          const estimatedGasLimit = await poolContract.estimateGas.unstake(amount.quotient.toString(), {}) as BigNumber
-          const response = await poolContract.unstake(amount.quotient.toString(), {
+          const estimatedGasLimit = (await poolContract.estimateGas.unstake(
+            amount.quotient.toString(),
+            {},
+          )) as BigNumber
+          const response = (await poolContract.unstake(amount.quotient.toString(), {
             value: null,
             gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
-          }) as TransactionResponse
+          })) as TransactionResponse
           addTransaction(response, {
             type: TransactionType.ClaimUni,
             recipient: poolContract.address,
@@ -371,11 +384,11 @@ export function useHarvestCallback({
         }
         if (!isPool) {
           return (async (): Promise<string> => {
-            const estimatedGasLimit = await stakingProxy.estimateGas.batchExecute(harvestCalls, {}) as BigNumber
-            const response = await stakingProxy.batchExecute(harvestCalls, {
+            const estimatedGasLimit = (await stakingProxy.estimateGas.batchExecute(harvestCalls, {})) as BigNumber
+            const response = (await stakingProxy.batchExecute(harvestCalls, {
               value: null,
               gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
-            }) as TransactionResponse
+            })) as TransactionResponse
             addTransaction(response, {
               type: TransactionType.ClaimUni,
               recipient: account.address ?? '',
@@ -387,11 +400,11 @@ export function useHarvestCallback({
             if (!poolContract) {
               throw new Error('No Pool Contract!')
             }
-            const estimatedGasLimit = await poolContract.estimateGas.withdrawDelegatorRewards({}) as BigNumber
-            const response = await poolContract.withdrawDelegatorRewards({
+            const estimatedGasLimit = (await poolContract.estimateGas.withdrawDelegatorRewards({})) as BigNumber
+            const response = (await poolContract.withdrawDelegatorRewards({
               value: null,
               gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
-            }) as TransactionResponse
+            })) as TransactionResponse
             addTransaction(response, {
               type: TransactionType.ClaimUni,
               recipient: poolContract.address,
@@ -431,11 +444,14 @@ export function useRaceCallback(): (poolAddress: string | undefined) => undefine
         throw new Error('No PoP Contract!')
       }
       return (async (): Promise<string> => {
-        const estimatedGasLimit = await popContract.estimateGas.creditPopRewardToStakingProxy(poolAddress, {}) as BigNumber
-        const response = await popContract.creditPopRewardToStakingProxy(poolAddress, {
+        const estimatedGasLimit = (await popContract.estimateGas.creditPopRewardToStakingProxy(
+          poolAddress,
+          {},
+        )) as BigNumber
+        const response = (await popContract.creditPopRewardToStakingProxy(poolAddress, {
           value: null,
           gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
-        }) as TransactionResponse
+        })) as TransactionResponse
         addTransaction(response, {
           type: TransactionType.ClaimUni,
           recipient: account.address ?? '',

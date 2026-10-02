@@ -1,21 +1,21 @@
+import { Flex, Text } from '@universe/mycelium'
+import { SegmentedControl } from '@universe/mycelium/segmented-control-compat'
 import { useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Button, Input } from 'ui/src'
-import { Flex, Text } from '@universe/mycelium'
-import { SegmentedControl } from '@universe/mycelium/segmented-control-compat'
-import { HL_MIN_ORDER_USD } from 'uniswap/src/features/chains/evm/info/hyperevm'
 import { Modal } from 'uniswap/src/components/modals/Modal'
+import { HL_MIN_ORDER_USD } from 'uniswap/src/features/chains/evm/info/hyperevm'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { logger } from 'utilities/src/logger/logger'
 import { LoadingView, SubmittedView } from '~/components/ModalViews'
+import { onNumericInput } from '~/pages/Portfolio/Perps/gmx/gmxOpenPositionUtils'
 import { HyperliquidPosition } from '~/pages/Portfolio/Perps/hyperliquid/hyperliquidApi'
 import { useHyperliquidMeta } from '~/pages/Portfolio/Perps/hyperliquid/useHyperliquidAccount'
 import {
   HyperliquidOrderAction,
   useHyperliquidOrderCallback,
 } from '~/pages/Portfolio/Perps/hyperliquid/useHyperliquidOrderCallback'
-import { onNumericInput } from '~/pages/Portfolio/Perps/gmx/gmxOpenPositionUtils'
 import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
 
 const MODAL_TRANSITION_DURATION = 200
@@ -67,7 +67,11 @@ export function HyperliquidOrderModal({
   const { sendHlOrder } = useHyperliquidOrderCallback(poolAddress)
 
   const isClose = action === 'close'
-  const isBuy = position ? (isClose || action === 'decrease' ? position.side === 'short' : position.side === 'long') : false
+  const isBuy = position
+    ? isClose || action === 'decrease'
+      ? position.side === 'short'
+      : position.side === 'long'
+    : false
 
   const inputErrorKey = useMemo(() => {
     if (!action || !position) {

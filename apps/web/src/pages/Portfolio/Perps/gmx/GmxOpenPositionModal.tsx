@@ -1,17 +1,14 @@
+import { normalizeTokenAddressForCache } from '@universe/chains'
+import { Text } from '@universe/mycelium'
 import { useEffect, useMemo, useState } from 'react'
 import { Trans } from 'react-i18next'
-import { Text } from '@universe/mycelium'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { logger } from 'utilities/src/logger/logger'
-import { normalizeTokenAddressForCache } from '@universe/chains'
 import { LoadingView, SubmittedView } from '~/components/ModalViews'
 import { GmxPosition } from '~/pages/Portfolio/hooks/useGmxPositions'
-import { GmxMarketInfo } from '~/pages/Portfolio/Perps/gmx/useGmxMarkets'
-import { useGmxOpenPositionMarketData } from '~/pages/Portfolio/Perps/gmx/useGmxOpenPositionMarketData'
 import { GmxOpenPositionForm } from '~/pages/Portfolio/Perps/gmx/GmxOpenPositionForm'
-import { useGmxOrderCallback } from '~/pages/Portfolio/Perps/gmx/useGmxOrderCallback'
 import {
   computeGmxHumanPrice,
   computeGmxMarkPriceRaw,
@@ -22,6 +19,9 @@ import {
   PositionSide,
   validateOpenPositionInputs,
 } from '~/pages/Portfolio/Perps/gmx/gmxOpenPositionUtils'
+import { GmxMarketInfo } from '~/pages/Portfolio/Perps/gmx/useGmxMarkets'
+import { useGmxOpenPositionMarketData } from '~/pages/Portfolio/Perps/gmx/useGmxOpenPositionMarketData'
+import { useGmxOrderCallback } from '~/pages/Portfolio/Perps/gmx/useGmxOrderCallback'
 import { useIsTransactionConfirmed, useTransaction } from '~/state/transactions/hooks'
 
 const MODAL_TRANSITION_DURATION = 200
@@ -64,15 +64,11 @@ export function GmxOpenPositionModal({
     () => getGmxMarketsByIndexName(markets, tokensByAddress),
     [markets, tokensByAddress],
   )
-  const marketIndexNames = useMemo(
-    () => Array.from(marketsByIndexName.keys()),
-    [marketsByIndexName],
-  )
+  const marketIndexNames = useMemo(() => Array.from(marketsByIndexName.keys()), [marketsByIndexName])
 
   useEffect(() => {
     if (marketIndexNames.length > 0 && !selectedMarketIndexName) {
-      const defaultMarket =
-        marketIndexNames.find((name) => name === DEFAULT_INDEX_MARKET) ?? marketIndexNames[0]
+      const defaultMarket = marketIndexNames.find((name) => name === DEFAULT_INDEX_MARKET) ?? marketIndexNames[0]
       setSelectedMarketIndexName(defaultMarket)
     }
   }, [marketIndexNames, selectedMarketIndexName])
@@ -104,25 +100,15 @@ export function GmxOpenPositionModal({
   }, [collateralOptions, isLong, selectedCollateralToken])
 
   const indexToken = selectedMarket?.indexToken
-  const indexTokenInfo = indexToken
-    ? tokensByAddress.get(normalizeTokenAddressForCache(indexToken))
-    : undefined
+  const indexTokenInfo = indexToken ? tokensByAddress.get(normalizeTokenAddressForCache(indexToken)) : undefined
   const collateralTokenInfo = selectedCollateralToken
     ? tokensByAddress.get(normalizeTokenAddressForCache(selectedCollateralToken))
     : undefined
 
-  const priceTicker = indexToken
-    ? pricesByTokenAddress.get(normalizeTokenAddressForCache(indexToken))
-    : undefined
-  const markPriceRaw = useMemo(
-    () => computeGmxMarkPriceRaw(priceTicker, indexTokenInfo),
-    [priceTicker, indexTokenInfo],
-  )
+  const priceTicker = indexToken ? pricesByTokenAddress.get(normalizeTokenAddressForCache(indexToken)) : undefined
+  const markPriceRaw = useMemo(() => computeGmxMarkPriceRaw(priceTicker, indexTokenInfo), [priceTicker, indexTokenInfo])
 
-  const humanPrice = useMemo(
-    () => computeGmxHumanPrice(priceTicker, indexTokenInfo),
-    [priceTicker, indexTokenInfo],
-  )
+  const humanPrice = useMemo(() => computeGmxHumanPrice(priceTicker, indexTokenInfo), [priceTicker, indexTokenInfo])
 
   const marketInfo = selectedMarket
     ? marketInfoByAddress.get(normalizeTokenAddressForCache(selectedMarket.marketToken))
@@ -133,10 +119,8 @@ export function GmxOpenPositionModal({
     [isLong, selectedMarket, positions, selectedCollateralToken],
   )
 
-  const fundingRate =
-    isLong === 'long' ? marketInfo?.fundingRateLong : marketInfo?.fundingRateShort
-  const borrowingRate =
-    isLong === 'long' ? marketInfo?.borrowingRateLong : marketInfo?.borrowingRateShort
+  const fundingRate = isLong === 'long' ? marketInfo?.fundingRateLong : marketInfo?.fundingRateShort
+  const borrowingRate = isLong === 'long' ? marketInfo?.borrowingRateLong : marketInfo?.borrowingRateShort
 
   const inputError = useMemo(
     () =>
@@ -149,15 +133,7 @@ export function GmxOpenPositionModal({
         indexTokenInfo,
         collateralTokenInfo,
       }),
-    [
-      collateralTokenInfo,
-      indexTokenInfo,
-      margin,
-      markPriceRaw,
-      selectedCollateralToken,
-      selectedMarket,
-      sizeUsd,
-    ],
+    [collateralTokenInfo, indexTokenInfo, margin, markPriceRaw, selectedCollateralToken, selectedMarket, sizeUsd],
   )
 
   const canSubmit = !inputError && !isLoading && !isError && !!sendGmxOpenPosition

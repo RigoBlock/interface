@@ -107,38 +107,39 @@ export function UniswapWalletOptions() {
           </Flex>
         </OptionContainer>
 
-        {isMobileWeb && !showHideDownloadWalletOption && (
-          // If on a mobile web browser show the relevant app store download link
-          <OptionContainer
-            onPress={() => {
-              setPersistHideMobileAppPromoBanner(true)
-              openDownloadApp({
-                element: ElementName.UniswapWalletModalDownloadButton,
-              })
-            }}
-          >
-            <Flex minWidth={40} backgroundColor="$accent2" borderRadius={8}>
-              <PhoneDownload size="$icon.40" color="$accent1" />
-            </Flex>
-            <Flex row grow alignItems="center">
-              <Flex grow>
-                <Text variant="buttonLabel3" color="$neutral1" whiteSpace="nowrap">
-                  {t('common.getUniswapWallet')}
-                </Text>
-                <Text variant="body4" color="$neutral2" whiteSpace="nowrap">
-                  {isWebIOS ? t('common.downloadAppStore') : t('common.downloadPlayStore')}
-                </Text>
+        {isMobileWeb &&
+          !showHideDownloadWalletOption && (
+            // If on a mobile web browser show the relevant app store download link
+            <OptionContainer
+              onPress={() => {
+                setPersistHideMobileAppPromoBanner(true)
+                openDownloadApp({
+                  element: ElementName.UniswapWalletModalDownloadButton,
+                })
+              }}
+            >
+              <Flex minWidth={40} backgroundColor="$accent2" borderRadius={8}>
+                <PhoneDownload size="$icon.40" color="$accent1" />
               </Flex>
-              {isWebIOS ? (
-                <AppStoreLogo size="$icon.24" />
-              ) : (
-                <Flex p="$padding6" borderRadius="$rounded8" backgroundColor="$neutral1">
-                  <GooglePlayStoreLogo />
+              <Flex row grow alignItems="center">
+                <Flex grow>
+                  <Text variant="buttonLabel3" color="$neutral1" whiteSpace="nowrap">
+                    {t('common.getUniswapWallet')}
+                  </Text>
+                  <Text variant="body4" color="$neutral2" whiteSpace="nowrap">
+                    {isWebIOS ? t('common.downloadAppStore') : t('common.downloadPlayStore')}
+                  </Text>
                 </Flex>
-              )}
-            </Flex>
-          </OptionContainer>
-        )}
+                {isWebIOS ? (
+                  <AppStoreLogo size="$icon.24" />
+                ) : (
+                  <Flex p="$padding6" borderRadius="$rounded8" backgroundColor="$neutral1">
+                    <GooglePlayStoreLogo />
+                  </Flex>
+                )}
+              </Flex>
+            </OptionContainer>
+          )}
       </Flex>
     </Flex>
   )

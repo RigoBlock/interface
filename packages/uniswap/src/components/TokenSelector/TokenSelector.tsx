@@ -117,7 +117,10 @@ export function TokenSelectorContent(
 }
 
 /** Web modal sizing for both flag states: legacy 400×700, V2 640×536 (Figma 750:13014). */
-export function useTokenSelectorWebModalDimensions(): { maxWidth: number; maxHeight: number } {
+export function useTokenSelectorWebModalDimensions(): {
+  maxWidth: number
+  maxHeight: number
+} {
   const isUxRevampEnabled = useFeatureFlag(FeatureFlags.TokenSelectorUxRevamp)
 
   return {
@@ -135,7 +138,6 @@ function LegacyTokenSelectorContent({
   addresses,
   chainId,
   chainIds,
-  supportedBridgingChains,
   isSurfaceReady = true,
   onClose,
   onSelectChain,

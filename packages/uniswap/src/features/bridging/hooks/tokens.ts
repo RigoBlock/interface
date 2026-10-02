@@ -172,11 +172,11 @@ export function useBridgingTokensOptions({
     isLoading: loadingPorfolioBalancesById,
   } = portfolioData
 
-  const tokenOptions = useBridgingTokensToTokenOptions(
-    bridgingTokens?.tokens,
+  const tokenOptions = useBridgingTokensToTokenOptions({
+    bridgingTokens: bridgingTokens?.tokens,
     portfolioBalancesById,
     supportedBridgingChains,
-  )
+  })
   // Filter out tokens that are not on the current chain, unless the input token is the same as the current chain
   const isSameChain = oppositeSelectedToken?.chainId === chainFilter
   const shouldFilterByChain = chainFilter !== null && !isSameChain
@@ -206,11 +206,15 @@ export function useBridgingTokensOptions({
   }
 }
 
-function useBridgingTokensToTokenOptions(
-  bridgingTokens: TradingApi.GetSwappableTokensResponse['tokens'] | undefined,
-  portfolioBalancesById?: Record<string, PortfolioBalance>,
-  supportedBridgingChains?: UniverseChainId[],
-): TokenOption[] | undefined {
+function useBridgingTokensToTokenOptions({
+  bridgingTokens,
+  portfolioBalancesById,
+  supportedBridgingChains,
+}: {
+  bridgingTokens: TradingApi.GetSwappableTokensResponse['tokens'] | undefined
+  portfolioBalancesById?: Record<string, PortfolioBalance>
+  supportedBridgingChains?: UniverseChainId[]
+}): TokenOption[] | undefined {
   const { chains: enabledChainIds } = useEnabledChains()
 
   // Use provided supported chains if available, otherwise use enabled chains from context
@@ -231,7 +235,7 @@ function useBridgingTokensToTokenOptions(
 
       // Unichain only supports ETH bridging via Across - filter out non-ETH tokens on Unichain
       if (chainId === UniverseChainId.Unichain) {
-        const symbol = token.symbol?.toUpperCase()
+        const symbol = token.symbol.toUpperCase()
         const isEthOrWeth = token.address === NATIVE_ADDRESS_FOR_TRADING_API || symbol === 'ETH' || symbol === 'WETH'
         if (!isEthOrWeth) {
           return false
@@ -289,5 +293,5 @@ function useBridgingTokensToTokenOptions(
         }
         return enabledChainIds.includes(tokenOption.currencyInfo.currency.chainId)
       })
-  }, [bridgingTokens, portfolioBalancesById, enabledChainIds, supportedBridgingChains])
+  }, [bridgingTokens, portfolioBalancesById, effectiveChainIds, enabledChainIds])
 }

@@ -218,7 +218,11 @@ export function IncreaseLiquidityTxContextProvider({ children }: PropsWithChildr
       deadline: getTradeSettingsDeadline(customDeadline),
       // Smart pool transactions always revert server-side simulation (vault routing);
       // skip it and override from/to/gasLimit client-side after receiving calldata
+      // RigoBlock: approval steps are skipped by design, so `approvalsNeeded` is hardcoded false
+      // above; the conditions below are kept in upstream shape for future syncs.
+      // oxlint-disable-next-line typescript/no-unnecessary-condition -- approvalsNeeded is disabled in this fork
       simulateTransaction: smartPoolAddress ? false : !approvalsNeeded || isApprovalSimEnabled,
+      // oxlint-disable-next-line typescript/no-unnecessary-condition -- approvalsNeeded is disabled in this fork
       includeApprovalSimulation: approvalsNeeded && isApprovalSimEnabled,
       nativeTokenBalance,
     })

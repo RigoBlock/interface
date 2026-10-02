@@ -220,7 +220,11 @@ export function Navbar() {
     const rawAddresses = new Set(rawOperatedPools.map((pool) => normalizeTokenAddressForCache(pool.address)))
 
     if (rawOperatedPools.length === 0) {
-      return { operatedPools: cachedPoolsRef.current, newDefaultVaultLoaded: hasNewDefaultVault, rawOperatedAddresses: rawAddresses }
+      return {
+        operatedPools: cachedPoolsRef.current,
+        newDefaultVaultLoaded: hasNewDefaultVault,
+        rawOperatedAddresses: rawAddresses,
+      }
     }
 
     if (activeSmartVault.address && !rawAddresses.has(normalizeTokenAddressForCache(activeSmartVault.address))) {
@@ -230,7 +234,11 @@ export function Navbar() {
       }
     }
 
-    return { operatedPools: rawOperatedPools, newDefaultVaultLoaded: hasNewDefaultVault, rawOperatedAddresses: rawAddresses }
+    return {
+      operatedPools: rawOperatedPools,
+      newDefaultVaultLoaded: hasNewDefaultVault,
+      rawOperatedAddresses: rawAddresses,
+    }
   }, [rawOperatedPools, activeSmartVault.address])
 
   const defaultPool = operatedPools[0] as Token | undefined

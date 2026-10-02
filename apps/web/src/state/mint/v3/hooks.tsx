@@ -35,9 +35,8 @@ import {
   typeRightRangeInput,
   typeStartPriceInput,
 } from '~/state/mint/v3/actions'
-import { tryParseTick } from '~/state/mint/v3/utils'
+import { tryParseTick, getTickToPrice } from '~/state/mint/v3/utils'
 import { InterfaceState } from '~/state/webReducer'
-import { getTickToPrice } from '~/features/Liquidity/utils/getTickToPrice'
 
 function useV3MintState(): InterfaceState['mintV3'] {
   return useAppSelector((state) => state.mintV3)

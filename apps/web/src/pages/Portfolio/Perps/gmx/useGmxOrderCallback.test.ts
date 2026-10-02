@@ -2,13 +2,13 @@ import { parseUnits } from 'viem'
 import { GmxPosition } from '~/pages/Portfolio/hooks/useGmxPositions'
 import { GmxOrderType } from '~/pages/Portfolio/Perps/gmx/abi'
 import { GMX_NO_SWAP, GMX_ZERO_ADDRESS, GMX_ZERO_BYTES32 } from '~/pages/Portfolio/Perps/gmx/abi'
-import { getStaticTokenDecimals } from '~/pages/Portfolio/Perps/gmx/useGmxTokenDecimals'
 import {
   buildParamsForAction,
   computeAcceptablePrice,
   GmxOrderAction,
   resolveCollateralDirection,
 } from '~/pages/Portfolio/Perps/gmx/useGmxOrderCallback'
+import { getStaticTokenDecimals } from '~/pages/Portfolio/Perps/gmx/useGmxTokenDecimals'
 
 const WETH = '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1'
 const MARKET = '0x70d95587d40A2caf56bd97485aB3Eec10Bee6336'

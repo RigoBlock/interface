@@ -8,21 +8,26 @@ import { keepPreviousData } from '@tanstack/react-query'
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { areAddressesEqual } from '@universe/chains'
 import { Platform } from '@universe/chains'
-import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
+import { UniverseChainId } from '@universe/chains'
 import JSBI from 'jsbi'
 import { useEffect, useMemo, useState } from 'react'
-import { logger } from 'utilities/src/logger/logger'
 import RB_REGISTRY_ABI from 'uniswap/src/abis/rb-registry.json'
 import STAKING_ABI from 'uniswap/src/abis/staking-impl.json'
 import { GRG } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from '@universe/chains'
+import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
+import { logger } from 'utilities/src/logger/logger'
 import type { Abi } from 'viem'
 import { useReadContracts } from 'wagmi'
-import { RB_REGISTRY_ADDRESSES, RIGOBLOCK_SUPPORTED_CHAINS, RIGOBLOCK_TESTNET_CHAINS, STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
+import { assume0xAddress } from '~/chains'
+import {
+  RB_REGISTRY_ADDRESSES,
+  RIGOBLOCK_SUPPORTED_CHAINS,
+  RIGOBLOCK_TESTNET_CHAINS,
+  STAKING_PROXY_ADDRESSES,
+} from '~/constants/addresses'
 import { getBackupRpcProvider } from '~/constants/providers'
 import { useAccount } from '~/hooks/useAccount'
-import { PoolRegisteredLog } from '~/state/pool/hooks'
-import { assume0xAddress } from '~/chains'
+import type { PoolRegisteredLog } from '~/state/pool/hooks'
 
 const RegistryInterface = new Interface(RB_REGISTRY_ABI)
 
@@ -52,7 +57,7 @@ function getRegistryStartBlock(chainId: number): number {
 // ─── Multi-chain Pool Discovery ────────────────────────────────────────────
 
 /** Module-level cache to persist across component mounts */
-let multiChainPoolsCache: PoolRegisteredLog[] | undefined = undefined
+let multiChainPoolsCache: PoolRegisteredLog[] | undefined
 let fetchingPromise: Promise<PoolRegisteredLog[]> | null = null
 let cachedChainsKey = ''
 

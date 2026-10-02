@@ -1,5 +1,5 @@
-import { Trans } from 'react-i18next'
 import { UniverseChainId, areAddressesEqual, normalizeTokenAddressForCache } from '@universe/chains'
+import { Trans } from 'react-i18next'
 import { GmxPosition } from '~/pages/Portfolio/hooks/useGmxPositions'
 import { GmxMarketInfo } from '~/pages/Portfolio/Perps/gmx/useGmxMarkets'
 import { GmxPriceTicker, GmxTokenInfo } from '~/pages/Portfolio/Perps/gmx/useGmxOpenPositionMarketData'
@@ -156,10 +156,7 @@ export function getGmxCollateralOptionsForMarkets(markets: GmxMarketInfo[]): str
   return Array.from(addrs)
 }
 
-export function getGmxMarketIndexName(
-  market: GmxMarketInfo,
-  tokensByAddress: Map<string, GmxTokenInfo>,
-): string {
+export function getGmxMarketIndexName(market: GmxMarketInfo, tokensByAddress: Map<string, GmxTokenInfo>): string {
   const indexToken = tokensByAddress.get(normalizeTokenAddressForCache(market.indexToken))
   if (indexToken) {
     return `${indexToken.symbol}/USD`
@@ -182,14 +179,13 @@ export function getGmxMarketsByIndexName(
   return map
 }
 
-export function findMarketByCollateral(
-  markets: GmxMarketInfo[],
-  collateralToken: string,
-): GmxMarketInfo | undefined {
+export function findMarketByCollateral(markets: GmxMarketInfo[], collateralToken: string): GmxMarketInfo | undefined {
   const normalizedCollateral = normalizeTokenAddressForCache(collateralToken)
-  return markets.find((market) => {
-    const long = market.longToken ? normalizeTokenAddressForCache(market.longToken) : undefined
-    const short = market.shortToken ? normalizeTokenAddressForCache(market.shortToken) : undefined
-    return long === normalizedCollateral || short === normalizedCollateral
-  }) ?? markets[0]
+  return (
+    markets.find((market) => {
+      const long = market.longToken ? normalizeTokenAddressForCache(market.longToken) : undefined
+      const short = market.shortToken ? normalizeTokenAddressForCache(market.shortToken) : undefined
+      return long === normalizedCollateral || short === normalizedCollateral
+    }) ?? markets[0]
+  )
 }

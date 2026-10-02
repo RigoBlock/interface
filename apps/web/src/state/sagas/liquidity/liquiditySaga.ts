@@ -1,4 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber'
+import { normalizeTokenAddressForCache } from '@universe/chains'
 import invariant from 'tiny-invariant'
 import { call } from 'typed-redux-saga'
 import { InterfaceEventName, LiquidityEventName } from 'uniswap/src/features/telemetry/constants'
@@ -32,7 +33,6 @@ import {
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { SignerMnemonicAccountDetails } from 'uniswap/src/features/wallet/types/AccountDetails'
 import { currencyId } from 'uniswap/src/utils/currencyId'
-import { normalizeTokenAddressForCache } from '@universe/chains'
 import { createSaga } from 'uniswap/src/utils/saga'
 import { logger } from 'utilities/src/logger/logger'
 import { popupRegistry } from '~/state/popups/registry'
@@ -131,7 +131,10 @@ function* handlePositionTransactionStep(params: HandlePositionStepParams) {
   // Now that we have the txRequest, we can create a definitive LiquidityTransactionStep, incase we started with an async step.
   // Add gas overhead for RigoBlock smart pool transactions (remove liquidity, collect fees)
   // Smart pool routing adds gas overhead for the pool contract execution
-  const isSmartPoolTx = txRequest.to && params.address && normalizeTokenAddressForCache(txRequest.to) !== normalizeTokenAddressForCache(params.address)
+  const isSmartPoolTx =
+    txRequest.to &&
+    params.address &&
+    normalizeTokenAddressForCache(txRequest.to) !== normalizeTokenAddressForCache(params.address)
   if (isSmartPoolTx && txRequest.gasLimit) {
     const RIGOBLOCK_LIQUIDITY_GAS_OVERHEAD = 250000
     txRequest.gasLimit = BigNumber.from(txRequest.gasLimit).add(RIGOBLOCK_LIQUIDITY_GAS_OVERHEAD).toString()

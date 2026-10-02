@@ -204,7 +204,12 @@ export function useDerivedPositionInfo(
     }
     // Use API pool data if available; fall back to on-chain pool data if API didn't find the pool
     if (poolOrPair) {
-      return getSDKPoolFromPoolInformation({ poolOrPair, token0: wrappedToken0, token1: wrappedToken1, protocolVersion })
+      return getSDKPoolFromPoolInformation({
+        poolOrPair,
+        token0: wrappedToken0,
+        token1: wrappedToken1,
+        protocolVersion,
+      })
     }
     return v3PoolExistsOnChain ? (v3OnChainPool?.[1] ?? undefined) : undefined
   }, [protocolVersion, poolOrPair, wrappedToken0, wrappedToken1, v3PoolExistsOnChain, v3OnChainPool])

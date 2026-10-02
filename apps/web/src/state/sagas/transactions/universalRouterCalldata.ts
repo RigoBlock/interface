@@ -81,10 +81,7 @@ function shouldReplaceRecipient(recipient: string, smartPoolAddress: string): bo
     return false
   }
   // Don't replace ActionConstants (MSG_SENDER, ADDRESS_THIS)
-  if (
-    normalizedRecipient === ACTION_CONSTANTS.MSG_SENDER ||
-    normalizedRecipient === ACTION_CONSTANTS.ADDRESS_THIS
-  ) {
+  if (normalizedRecipient === ACTION_CONSTANTS.MSG_SENDER || normalizedRecipient === ACTION_CONSTANTS.ADDRESS_THIS) {
     return false
   }
   // Replace all other recipients (including Trading API fee recipients)
@@ -109,10 +106,7 @@ function handleSweepCommand(input: string, ctx: CommandHandlerContext): CommandH
       return undefined
     }
     return {
-      modifiedInput: abiCoder.encode(
-        ['address', 'address', 'uint256'],
-        [token, smartPoolAddress, amountMinimum],
-      ),
+      modifiedInput: abiCoder.encode(['address', 'address', 'uint256'], [token, smartPoolAddress, amountMinimum]),
     }
   } catch (error) {
     logCommandDecodeWarning({ commandName: 'SWEEP', commandIndex: i, error })
@@ -310,30 +304,18 @@ function processV4Action(actionType: number, ctx: V4ActionContext): string | und
   const { paramCalldata, abiCoder, smartPoolAddress, actionIndex, commandIndex } = ctx
   try {
     if (actionType === V4_ACTIONS.TAKE) {
-      const [currency, recipient, amount] = abiCoder.decode(
-        ['address', 'address', 'uint256'],
-        paramCalldata,
-      )
+      const [currency, recipient, amount] = abiCoder.decode(['address', 'address', 'uint256'], paramCalldata)
       if (!shouldReplaceRecipient(recipient, smartPoolAddress)) {
         return undefined
       }
-      return abiCoder.encode(
-        ['address', 'address', 'uint256'],
-        [currency, smartPoolAddress, amount],
-      )
+      return abiCoder.encode(['address', 'address', 'uint256'], [currency, smartPoolAddress, amount])
     }
     if (actionType === V4_ACTIONS.TAKE_PORTION) {
-      const [currency, recipient, bips] = abiCoder.decode(
-        ['address', 'address', 'uint256'],
-        paramCalldata,
-      )
+      const [currency, recipient, bips] = abiCoder.decode(['address', 'address', 'uint256'], paramCalldata)
       if (!shouldReplaceRecipient(recipient, smartPoolAddress)) {
         return undefined
       }
-      return abiCoder.encode(
-        ['address', 'address', 'uint256'],
-        [currency, smartPoolAddress, bips],
-      )
+      return abiCoder.encode(['address', 'address', 'uint256'], [currency, smartPoolAddress, bips])
     }
     return undefined
   } catch (error) {
@@ -479,9 +461,14 @@ export function stripBalanceCheckERC20(calldata: string): string {
     const newCalldata = abiCoder.encode(['bytes', 'bytes[]', 'uint256'], [newCommandsHex, filteredInputs, deadline])
     return functionSelector ? functionSelector + newCalldata.slice(2) : newCalldata
   } catch (error) {
-    logger.warn('universalRouterCalldata', 'stripBalanceCheckERC20', 'Failed to strip BALANCE_CHECK_ERC20 from calldata:', {
-      error,
-    })
+    logger.warn(
+      'universalRouterCalldata',
+      'stripBalanceCheckERC20',
+      'Failed to strip BALANCE_CHECK_ERC20 from calldata:',
+      {
+        error,
+      },
+    )
     return calldata
   }
 }

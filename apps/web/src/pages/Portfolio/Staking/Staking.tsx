@@ -1,24 +1,24 @@
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
+import { UniverseChainId } from '@universe/chains'
+import { Flex, Text, useMedia } from '@universe/mycelium'
 import JSBI from 'jsbi'
 import { useMemo, useRef, useState } from 'react'
 import { Trans } from 'react-i18next'
 import { Button, Shine } from 'ui/src'
-import { Flex, Text, useMedia } from '@universe/mycelium'
 import { TokenLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { UniverseChainId } from '@universe/chains'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { NumberType } from 'utilities/src/format/types'
-import { usePortfolioStakingContext } from '~/pages/Portfolio/PortfolioStakingContext'
+import UnstakeModal from '~/components/earn/UnstakeModal'
 import { useGrgFiatValue } from '~/pages/Portfolio/hooks/usePortfolioStaking'
+import { usePortfolioStakingContext } from '~/pages/Portfolio/PortfolioStakingContext'
 import { PoolStakingInfo } from '~/pages/Portfolio/Staking/PoolStakingInfo'
 import { UserStakingRewards } from '~/pages/Portfolio/Staking/UserStakingRewards'
 import { RemoveLiquidityModalContextProvider } from '~/pages/RemoveLiquidity/RemoveLiquidityModalContext'
 import { usePoolIdByAddress } from '~/state/governance/hooks'
 import { usePoolIdsByAddressAcrossChains } from '~/state/pool/multichain'
 import { useTotalStakeBalances } from '~/state/stake/hooks'
-import UnstakeModal from '~/components/earn/UnstakeModal'
 import { FreeStakeBalanceByChain } from '~/state/stake/useMultiChainFreeStakeBalances'
 
 interface ChainStakingRowProps {
@@ -43,16 +43,26 @@ function ChainStakingRow({
 
   // Calculate total stake for this chain
   const totalStake = useMemo(() => {
-    if (!userFreeStake && !userDelegatedStake && !smartPoolTotalStake) {return undefined}
+    if (!userFreeStake && !userDelegatedStake && !smartPoolTotalStake) {
+      return undefined
+    }
 
     const grg = GRG[chainId]
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (!grg) {return undefined}
+    if (!grg) {
+      return undefined
+    }
 
     let total = JSBI.BigInt(0)
-    if (userFreeStake) {total = JSBI.add(total, userFreeStake.quotient)}
-    if (userDelegatedStake) {total = JSBI.add(total, userDelegatedStake.quotient)}
-    if (smartPoolTotalStake) {total = JSBI.add(total, smartPoolTotalStake.quotient)}
+    if (userFreeStake) {
+      total = JSBI.add(total, userFreeStake.quotient)
+    }
+    if (userDelegatedStake) {
+      total = JSBI.add(total, userDelegatedStake.quotient)
+    }
+    if (smartPoolTotalStake) {
+      total = JSBI.add(total, smartPoolTotalStake.quotient)
+    }
 
     return CurrencyAmount.fromRawAmount(grg, total)
   }, [chainId, userFreeStake, userDelegatedStake, smartPoolTotalStake])
@@ -69,7 +79,9 @@ function ChainStakingRow({
     (userDelegatedStake && userDelegatedStake.greaterThan(0)) ||
     (smartPoolTotalStake && smartPoolTotalStake.greaterThan(0))
 
-  if (!hasAnyStake) {return null}
+  if (!hasAnyStake) {
+    return null
+  }
 
   const formatAmount = (amount?: CurrencyAmount<Token>) => {
     return amount && amount.greaterThan(0) ? formatNumberOrString({ value: amount.toSignificant(6) }) : '—'
@@ -206,15 +218,8 @@ function ChainStakingRowWithData({
 }
 
 function MultiChainStakingInfo() {
-  const {
-    stakingData,
-    stakingChains,
-    hasAnyStake,
-    isLoading,
-    totalStakeUSD,
-    isViewingOwnStakes,
-    targetAddress,
-  } = usePortfolioStakingContext()
+  const { stakingData, stakingChains, hasAnyStake, isLoading, totalStakeUSD, isViewingOwnStakes, targetAddress } =
+    usePortfolioStakingContext()
   const { convertFiatAmountFormatted } = useLocalizationContext()
   const [showUnstakeModal, setShowUnstakeModal] = useState(false)
 
@@ -299,12 +304,7 @@ function MultiChainStakingInfo() {
           </Text>
         </Flex>
         {isViewingOwnStakes && freeStakeChains.length > 0 && (
-          <Button
-            size="xsmall"
-            variant="branded"
-            fill={false}
-            onPress={() => setShowUnstakeModal(true)}
-          >
+          <Button size="xsmall" variant="branded" fill={false} onPress={() => setShowUnstakeModal(true)}>
             <Trans>Withdraw</Trans>
           </Button>
         )}
@@ -390,8 +390,8 @@ export function PortfolioStaking() {
               <UserStakingRewards farmer={targetAddress} />
               <Flex p="$spacing16" borderRadius="$rounded16" backgroundColor="$surface3">
                 <Text variant="body2" color="$neutral2" textAlign="center">
-                  Navigate to a smart pool to see pool-specific staking information, or view your general staking overview
-                  above.
+                  Navigate to a smart pool to see pool-specific staking information, or view your general staking
+                  overview above.
                 </Text>
               </Flex>
             </>

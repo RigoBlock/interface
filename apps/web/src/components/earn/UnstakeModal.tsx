@@ -22,8 +22,8 @@ import { LoadingView, SubmittedView } from '~/components/ModalViews'
 import Slider from '~/components/Slider'
 import { ResponsiveHeaderText } from '~/components/vote/DelegateModal'
 import { useAccount } from '~/hooks/useAccount'
-import { useSelectChain } from '~/hooks/useSelectChain'
 import useDebouncedChangeHandler from '~/hooks/useDebouncedChangeHandler'
+import { useSelectChain } from '~/hooks/useSelectChain'
 import styled from '~/lib/deprecated-styled'
 import { useRemoveLiquidityModalContext } from '~/pages/RemoveLiquidity/RemoveLiquidityModalContext'
 import { ClickablePill } from '~/pages/Swap/Buy/PredefinedAmount'
@@ -88,10 +88,7 @@ export default function UnstakeModal({ isOpen, isPool, chains, onDismiss, title 
     setSelectedChainId(connectedOption?.chainId ?? chains[0].chainId)
   }, [chains, account.chainId, isOpen])
 
-  const selectedChain = useMemo(
-    () => chains.find((c) => c.chainId === selectedChainId),
-    [chains, selectedChainId],
-  )
+  const selectedChain = useMemo(() => chains.find((c) => c.chainId === selectedChainId), [chains, selectedChainId])
 
   const unstakeChainId = selectedChain?.chainId ?? account.chainId ?? UniverseChainId.Mainnet
   const chainInfo = getChainInfo(unstakeChainId)

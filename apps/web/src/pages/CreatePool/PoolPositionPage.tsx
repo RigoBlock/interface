@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 
-import { Currency, CurrencyAmount, Percent, Token } from '@uniswap/sdk-core'
 import { BigNumber } from '@ethersproject/bignumber'
+import { Currency, CurrencyAmount, Percent, Token } from '@uniswap/sdk-core'
 import { EVMUniverseChainId, UniverseChainId, areAddressesEqual, normalizeTokenAddressForCache } from '@universe/chains'
 import { Flex, Text } from '@universe/mycelium'
 import { styled } from '@universe/mycelium/styled'
@@ -19,8 +19,10 @@ import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledCh
 import { getChainLabel, getPrimaryStablecoin, isBackendSupportedChainId } from 'uniswap/src/features/chains/utils'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { NumberType } from 'utilities/src/format/types'
+import { assume0xAddress } from '~/chains'
 // TODO: check if should refactor AddressCard
 import { AddressCard } from '~/components/AddressCard'
+import { ChainPill } from '~/components/ChainPill'
 import BuyModal from '~/components/createPool/BuyModal'
 import SellModal from '~/components/createPool/SellModal'
 import SetLockupModal from '~/components/createPool/SetLockupModal'
@@ -31,7 +33,6 @@ import HarvestYieldModal, { HarvestChainOption } from '~/components/earn/Harvest
 import MoveStakeModal from '~/components/earn/MoveStakeModal'
 import RaceModal from '~/components/earn/RaceModal'
 import UnstakeModal from '~/components/earn/UnstakeModal'
-import { ChainPill } from '~/components/ChainPill'
 import { ChainLogo } from '~/components/Logo/ChainLogo'
 import { SwitchLocaleLink } from '~/components/SwitchLocaleLink'
 import DelegateModal from '~/components/vote/DelegateModal'
@@ -48,9 +49,11 @@ import { usePoolIdByAddress } from '~/state/governance/hooks'
 import { PoolRegisteredLog } from '~/state/pool/hooks'
 import { StakingPoolData, useMultiChainAllPoolsData, useMultiChainStakingPools } from '~/state/pool/multichain'
 import { useUnclaimedRewards } from '~/state/stake/hooks'
-import { useMultiChainFreeStakeBalances, type FreeStakeBalanceByChain } from '~/state/stake/useMultiChainFreeStakeBalances'
+import {
+  useMultiChainFreeStakeBalances,
+  type FreeStakeBalanceByChain,
+} from '~/state/stake/useMultiChainFreeStakeBalances'
 import { useStakingEpochInfo } from '~/state/stake/useStakingEpochInfo'
-import { assume0xAddress } from '~/chains'
 
 const NAV_SIMULATE_DEPLOYMENT_BYTECODE =
   '0x608060405234801561000f575f5ffd5b5060405161017738038061017783398101604081905261002e916100ef565b806001600160a01b031663e7d8724e6040518163ffffffff1660e01b81526004015f604051808303815f87803b158015610066575f5ffd5b505af1158015610078573d5f5f3e3d5ffd5b505050505f816001600160a01b03166389c065686040518163ffffffff1660e01b81526004016040805180830381865afa1580156100b8573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906100dc919061011c565b80515f8181524260205291925090604090f35b5f602082840312156100ff575f5ffd5b81516001600160a01b0381168114610115575f5ffd5b9392505050565b5f604082840312801561012d575f5ffd5b50604080519081016001600160401b038111828210171561015c57634e487b7160e01b5f52604160045260245ffd5b60405282518152602092830151928101929092525091905056fe'
@@ -247,8 +250,7 @@ function usePoolChainEntries(
         staking: stakingPools[index] as StakingPoolData | undefined,
       }))
       .filter(
-        ({ pool }) =>
-          normalizeTokenAddressForCache(pool.pool) === normalizeTokenAddressForCache(poolAddressFromUrl),
+        ({ pool }) => normalizeTokenAddressForCache(pool.pool) === normalizeTokenAddressForCache(poolAddressFromUrl),
       )
     if (entries.length > 0) {
       cachedEntriesRef.current = entries
@@ -706,7 +708,10 @@ function usePoolPageData(): PoolPageContextValue {
       const grg = GRG[reward.chainId]
       const existing = byChain.get(reward.chainId)
       if (existing) {
-        existing.yieldAmount = CurrencyAmount.fromRawAmount(grg, JSBI.add(existing.yieldAmount.quotient, reward.yieldAmount.quotient))
+        existing.yieldAmount = CurrencyAmount.fromRawAmount(
+          grg,
+          JSBI.add(existing.yieldAmount.quotient, reward.yieldAmount.quotient),
+        )
         existing.poolIds.push(reward.poolId)
       } else {
         byChain.set(reward.chainId, {
@@ -796,7 +801,13 @@ function usePoolPageData(): PoolPageContextValue {
   // to be on 999, and hijacking the wallet chain app-wide breaks other flows (e.g. Create Pool).
   const selectChain = useSelectChain()
   useEffect(() => {
-    if (chainId && chainId !== UniverseChainId.HyperEvm && account.chainId && account.chainId !== chainId && account.isConnected) {
+    if (
+      chainId &&
+      chainId !== UniverseChainId.HyperEvm &&
+      account.chainId &&
+      account.chainId !== chainId &&
+      account.isConnected
+    ) {
       // Auto-switch to the correct chain
       selectChain(chainId)
     }
@@ -1075,13 +1086,7 @@ function PoolHeader(): JSX.Element {
           {harvestChains.length > 0 && (
             <Button size="small" variant="branded" fill={false} onPress={() => setShowHarvestYieldModal(true)}>
               <Text>
-                {harvestChains.length === 1 ? (
-                  <Trans>
-                    Harvest {harvestYieldString} GRG
-                  </Trans>
-                ) : (
-                  <Trans>Harvest</Trans>
-                )}
+                {harvestChains.length === 1 ? <Trans>Harvest {harvestYieldString} GRG</Trans> : <Trans>Harvest</Trans>}
               </Text>
             </Button>
           )}
@@ -1136,9 +1141,7 @@ function PoolHeader(): JSX.Element {
           {chainEntries.map(({ pool: chainPool, staking: chainStaking }) => {
             const entryChainId = chainPool.chainId as UniverseChainId
             const entryAprString =
-              chainStaking && Number(chainStaking.apr) > 0
-                ? `${(Number(chainStaking.apr) * 100).toFixed(1)}%`
-                : '—'
+              chainStaking && Number(chainStaking.apr) > 0 ? `${(Number(chainStaking.apr) * 100).toFixed(1)}%` : '—'
             return (
               <ChainPill
                 key={entryChainId}
@@ -1146,9 +1149,7 @@ function PoolHeader(): JSX.Element {
                 onPress={() =>
                   entryChainId !== chainId &&
                   navigate(
-                    `/smart-pool/${entryChainId}/${poolAddressFromUrl}${
-                      originFromUrl ? `/${originFromUrl}` : ''
-                    }`,
+                    `/smart-pool/${entryChainId}/${poolAddressFromUrl}${originFromUrl ? `/${originFromUrl}` : ''}`,
                   )
                 }
               >
@@ -1268,11 +1269,7 @@ function PoolDataCards(): JSX.Element {
             </Text>
             {poolStorageLoaded ? (
               <Text variant="body3" color="$neutral1">
-                {transactionFee ? (
-                  <Trans>{new Percent(String(transactionFee), 10_000).toSignificant()}%</Trans>
-                ) : (
-                  '0%'
-                )}
+                {transactionFee ? <Trans>{new Percent(String(transactionFee), 10_000).toSignificant()}%</Trans> : '0%'}
               </Text>
             ) : (
               <LoadingValue width={48} />
@@ -1467,22 +1464,22 @@ function PoolStakingSection(): JSX.Element {
             deployed on every chain (e.g. HyperEVM), where these actions are unavailable. */}
         {account.chainId && account.chainId in GRG && (
           <Flex centered paddingTop="$spacing12">
-          <Flex row gap="$spacing8" flexWrap="wrap" justifyContent="center">
-            <Button size="small" variant="branded" fill={false} onPress={() => setShowStakeModal(true)}>
-              <Trans>Stake</Trans>
-            </Button>
-            <Button size="small" variant="branded" fill={false} onPress={() => setShowMoveStakeModal(true)}>
-              <Trans>Switch</Trans>
-            </Button>
-            <Button size="small" variant="branded" fill={false} onPress={handleDeactivateStakeClick}>
-              <Trans>Disable</Trans>
-            </Button>
-            {owner === account.address && hasFreeStake && (
-              <Button size="small" variant="branded" fill={false} onPress={() => setShowUnstakeModal(true)}>
-                <Trans>Unstake</Trans>
+            <Flex row gap="$spacing8" flexWrap="wrap" justifyContent="center">
+              <Button size="small" variant="branded" fill={false} onPress={() => setShowStakeModal(true)}>
+                <Trans>Stake</Trans>
               </Button>
-            )}
-          </Flex>
+              <Button size="small" variant="branded" fill={false} onPress={() => setShowMoveStakeModal(true)}>
+                <Trans>Switch</Trans>
+              </Button>
+              <Button size="small" variant="branded" fill={false} onPress={handleDeactivateStakeClick}>
+                <Trans>Disable</Trans>
+              </Button>
+              {owner === account.address && hasFreeStake && (
+                <Button size="small" variant="branded" fill={false} onPress={() => setShowUnstakeModal(true)}>
+                  <Trans>Unstake</Trans>
+                </Button>
+              )}
+            </Flex>
           </Flex>
         )}
       </Flex>

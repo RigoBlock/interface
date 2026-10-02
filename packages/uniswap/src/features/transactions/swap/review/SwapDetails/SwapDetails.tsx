@@ -71,7 +71,6 @@ export function SwapDetails({
   setTokenWarningChecked,
   txSimulationErrors,
   includesDelegation,
-  additionalDetailsContent,
   BannerSlot,
   NetworkCostRowSlot,
   sponsorshipInfo,

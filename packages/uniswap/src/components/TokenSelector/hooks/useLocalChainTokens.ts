@@ -17,6 +17,7 @@ export function useLocalChainTokens(chainFilter: Maybe<UniverseChainId>): Curren
       return []
     }
     const stablecoin = getPrimaryStablecoin(chainFilter)
+    // oxlint-disable-next-line typescript/no-unnecessary-condition -- getPrimaryStablecoin is typed non-nullable but returns stablecoins[0], which can be undefined at runtime for chains without stablecoin config
     if (!stablecoin) {
       return []
     }

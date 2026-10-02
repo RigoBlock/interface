@@ -212,11 +212,7 @@ export function AuthenticatedHeader({
             </Flex>
           </Flex>
           <AddBackupLoginCard />
-          <MiniPortfolio
-            evmAddress={evmAddress}
-            svmAddress={svmAddress}
-            onActivityOutageChange={setActivityOutage}
-          />
+          <MiniPortfolio evmAddress={evmAddress} svmAddress={svmAddress} onActivityOutageChange={setActivityOutage} />
           {isUnclaimed && (
             <Trace logPress element={ElementName.AccountDrawerClaimReward}>
               <Button

@@ -34,11 +34,7 @@ export const BreadcrumbNavContainer: ForwardRefExoticComponent<FlexCompatProps &
   })
 
 // Explicit type: the inferred arrow-function type isn't nameable under declaration emit (TS2883).
-export const BreadcrumbNavLink: FC<{ to: string; children: ReactNode } & TextProps> = ({
-  to,
-  children,
-  ...rest
-}) => {
+export const BreadcrumbNavLink: FC<{ to: string; children: ReactNode } & TextProps> = ({ to, children, ...rest }) => {
   return (
     <Link to={to} style={{ textDecoration: 'none' }}>
       <Text

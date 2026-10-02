@@ -1,10 +1,10 @@
+import { UniverseChainId } from '@universe/chains'
+import { Flex, Text } from '@universe/mycelium'
+import { SegmentedControl } from '@universe/mycelium/segmented-control-compat'
 import { useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Button, Input } from 'ui/src'
-import { Flex, Text } from '@universe/mycelium'
-import { SegmentedControl } from '@universe/mycelium/segmented-control-compat'
 import { Modal } from 'uniswap/src/components/modals/Modal'
-import { UniverseChainId } from '@universe/chains'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { logger } from 'utilities/src/logger/logger'
@@ -108,7 +108,9 @@ function useOrderInputValidation({
   }, [effectiveAction, position, needsSize, isCollateralOnlyAction, sizeUsd, collateralAmount])
 }
 
-function useOrderInputErrorLabel(inputErrorKey: 'size' | 'collateral' | 'size-exceeds' | undefined): JSX.Element | undefined {
+function useOrderInputErrorLabel(
+  inputErrorKey: 'size' | 'collateral' | 'size-exceeds' | undefined,
+): JSX.Element | undefined {
   return useMemo(() => {
     switch (inputErrorKey) {
       case 'size':

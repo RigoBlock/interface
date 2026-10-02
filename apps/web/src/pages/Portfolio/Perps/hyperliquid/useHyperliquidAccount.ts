@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { useMemo } from 'react'
 import { normalizeTokenAddressForCache } from '@universe/chains'
+import { useMemo } from 'react'
 import {
   buildHyperliquidAccount,
   fetchHlAccountState,
@@ -57,7 +57,12 @@ export function useHyperliquidAccount(address?: string): UseHyperliquidAccountRe
       return { ...EMPTY_ACCOUNT, isLoading, isError }
     }
     return {
-      ...buildHyperliquidAccount({ clearinghouse: data.clearinghouse, spotUsdcBalanceUsd: data.spotUsdcBalanceUsd, meta, mids }),
+      ...buildHyperliquidAccount({
+        clearinghouse: data.clearinghouse,
+        spotUsdcBalanceUsd: data.spotUsdcBalanceUsd,
+        meta,
+        mids,
+      }),
       // Positions need meta (asset index / size decimals) — stay in loading state until it resolves.
       isLoading: isLoadingMeta,
       isError,
@@ -84,10 +89,7 @@ export function useHyperliquidMeta(): {
     retry: 2,
   })
 
-  return useMemo(
-    () => ({ universe: data?.universe ?? [], isLoading, isError, data }),
-    [data, isError, isLoading],
-  )
+  return useMemo(() => ({ universe: data?.universe ?? [], isLoading, isError, data }), [data, isError, isLoading])
 }
 
 /** Current mid prices keyed by coin; refreshes every 5s. */

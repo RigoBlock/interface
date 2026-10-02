@@ -1,7 +1,7 @@
 import { nanoid } from '@reduxjs/toolkit'
 import { TokenList } from '@uniswap/token-lists'
-import { useCallback } from 'react'
 import { UniverseChainId } from '@universe/chains'
+import { useCallback } from 'react'
 import { logger } from 'utilities/src/logger/logger'
 import { RPC_PROVIDERS } from '~/constants/providers'
 import { fetchTokenList as getTokenList } from '~/lib/hooks/useTokenList/fetchTokenList'

@@ -1,7 +1,7 @@
-import { normalizeTokenAddressForCache } from '@universe/chains'
-import { PollingInterval } from 'uniswap/src/constants/misc'
 import { useQuery } from '@tanstack/react-query'
+import { normalizeTokenAddressForCache } from '@universe/chains'
 import { useMemo } from 'react'
+import { PollingInterval } from 'uniswap/src/constants/misc'
 
 const GMX_MARKETS_API_URL = 'https://arbitrum-api.gmxinfra.io/markets'
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'

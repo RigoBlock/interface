@@ -51,7 +51,7 @@ export const fiatOnRampAggregatorApi = createApi({
       transformResponse: (response: FORQuoteResponse): FORQuoteResponse =>
         ({
           ...response,
-          quotes: response.quotes?.map((quote) => ({
+          quotes: response.quotes.map((quote) => ({
             ...quote,
             ...(quote.serviceProviderDetails && {
               serviceProviderDetails: {

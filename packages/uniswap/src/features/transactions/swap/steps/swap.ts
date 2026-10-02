@@ -67,6 +67,7 @@ export function createSwapTransactionStepWalletCall(
   }
 }
 
+// oxlint-disable-next-line max-params -- positional signature is required by the RigoBlock swapSaga caller in apps/web; converting to an options object would need a coordinated change there
 export async function getSwapTxRequest(
   step: SwapTransactionStep | SwapTransactionStepAsync,
   signature: string | undefined,

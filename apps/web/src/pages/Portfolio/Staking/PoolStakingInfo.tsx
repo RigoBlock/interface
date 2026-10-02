@@ -1,14 +1,14 @@
+import { Platform, areAddressesEqual } from '@universe/chains'
+import { Flex, Text } from '@universe/mycelium'
 import { useMemo, useState } from 'react'
 import { Trans } from 'react-i18next'
 import { Button } from 'ui/src'
-import { Flex, Text } from '@universe/mycelium'
 import { TokenLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { Platform, areAddressesEqual } from '@universe/chains'
 import HarvestYieldModal from '~/components/earn/HarvestYieldModal'
-import { useAccount } from '~/hooks/useAccount'
 import { useSmartPoolFromAddress } from '~/hooks/useSmartPools'
+import { usePortfolioAddress } from '~/pages/Portfolio/hooks/usePortfolioAddress'
 import { usePoolIdsByAddressAcrossChains } from '~/state/pool/multichain'
 import { useUnclaimedRewards, type UnclaimedReward } from '~/state/stake/hooks'
 
@@ -22,7 +22,7 @@ function PoolRewardRow({
   isOperator: boolean
 }) {
   const [showHarvestModal, setShowHarvestModal] = useState(false)
-  const account = useAccount()
+  const account = usePortfolioAddress()
   const chainInfo = getChainInfo(reward.chainId)
   const { formatCurrencyAmount } = useLocalizationContext()
 
@@ -82,7 +82,7 @@ interface PoolStakingInfoProps {
 export function PoolStakingInfo({ poolAddress, stakingPoolExists }: PoolStakingInfoProps) {
   const poolEntries = usePoolIdsByAddressAcrossChains(poolAddress)
   const unclaimedRewards = useUnclaimedRewards({ farmer: poolAddress, pools: poolEntries })
-  const account = useAccount()
+  const account = usePortfolioAddress()
   const poolStorage = useSmartPoolFromAddress(poolAddress, account.chainId)
   const isOperator = useMemo(
     () =>
@@ -149,12 +149,7 @@ export function PoolStakingInfo({ poolAddress, stakingPoolExists }: PoolStakingI
           <Flex width={80} />
         </Flex>
         {unclaimedRewards.map((reward) => (
-          <PoolRewardRow
-            key={reward.chainId}
-            reward={reward}
-            poolAddress={poolAddress}
-            isOperator={isOperator}
-          />
+          <PoolRewardRow key={reward.chainId} reward={reward} poolAddress={poolAddress} isOperator={isOperator} />
         ))}
       </Flex>
     </Flex>

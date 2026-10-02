@@ -1,4 +1,5 @@
 import { Token } from '@uniswap/sdk-core'
+import { UniverseChainId } from '@universe/chains'
 import {
   BTC_BSC,
   BUSD_BSC,
@@ -16,7 +17,6 @@ import {
   WETH_AVALANCHE,
   WRAPPED_NATIVE_CURRENCY,
 } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from '@universe/chains'
 
 type ChainTokenList = {
   readonly [chainId: number]: Token[]

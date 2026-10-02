@@ -89,10 +89,7 @@ export default function HarvestYieldModal({
     setSelectedChainId(connectedOption?.chainId ?? chains[0].chainId)
   }, [chains, account.chainId, isOpen])
 
-  const selectedChain = useMemo(
-    () => chains.find((c) => c.chainId === selectedChainId),
-    [chains, selectedChainId],
-  )
+  const selectedChain = useMemo(() => chains.find((c) => c.chainId === selectedChainId), [chains, selectedChainId])
 
   const harvestChainId = selectedChain?.chainId ?? account.chainId ?? UniverseChainId.Mainnet
   const chainInfo = getChainInfo(harvestChainId)
