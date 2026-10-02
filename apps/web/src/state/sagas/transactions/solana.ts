@@ -1,9 +1,10 @@
 import { VersionedTransaction } from '@solana/web3.js'
 import { JupiterExecuteResponse, TradingApi } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
+import { base64ToUint8, uint8ToBase64 } from '@universe/encoding'
 import { call, delay, spawn } from 'typed-redux-saga'
 import { JupiterApiClient } from 'uniswap/src/data/apiClients/jupiterApi/JupiterFetchClient'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { refetchRestQueriesViaOnchainOverrideVariant } from 'uniswap/src/features/portfolio/portfolioUpdates/rest/refetchRestQueriesViaOnchainOverrideVariantSaga'
+import { refetchQueriesViaOnchainOverrideVariant } from 'uniswap/src/features/portfolio/portfolioUpdates/refetchQueriesViaOnchainOverrideVariantSaga'
 import { SwapEventName } from 'uniswap/src/features/telemetry/constants/features'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { JupiterExecuteError } from 'uniswap/src/features/transactions/errors'
@@ -20,10 +21,10 @@ import {
 } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { tryCatch } from 'utilities/src/errors'
 import { ONE_SECOND_MS } from 'utilities/src/time/time'
-import { popupRegistry } from '~/components/Popups/registry'
-import { PopupType } from '~/components/Popups/types'
-import { signSolanaTransactionWithCurrentWallet } from '~/components/Web3Provider/signSolanaTransaction'
+import { signSolanaTransactionWithCurrentWallet } from '~/connection/signSolanaTransaction'
 import store from '~/state'
+import { popupRegistry } from '~/state/popups/registry'
+import { PopupType } from '~/state/popups/types'
 import { getSwapTransactionInfo } from '~/state/sagas/transactions/utils'
 
 type JupiterSwapParams = {
@@ -46,7 +47,7 @@ async function signAndSendJupiterSwap({
   onSwapSigned?: () => void
 }): Promise<JupiterExecuteResponse> {
   const signedTransactionObj = await signSolanaTransaction(transaction)
-  const signedTransaction = Buffer.from(signedTransactionObj.serialize()).toString('base64')
+  const signedTransaction = uint8ToBase64(signedTransactionObj.serialize())
 
   onSwapSigned?.()
 
@@ -67,7 +68,7 @@ function* refetchBalancesWithDelay({
   // and it should take 1-2 seconds for the balance to update onchain.
   yield* delay(3 * ONE_SECOND_MS)
 
-  yield* call(refetchRestQueriesViaOnchainOverrideVariant, {
+  yield* call(refetchQueriesViaOnchainOverrideVariant, {
     transaction,
     activeAddress,
     apolloClient: null,
@@ -119,7 +120,7 @@ function createJupiterSwap(signSolanaTransaction: (tx: VersionedTransaction) => 
     const { trade, transactionBase64 } = swapTxContext
     const { requestId } = trade.quote.quote
 
-    const transaction = VersionedTransaction.deserialize(Buffer.from(transactionBase64, 'base64'))
+    const transaction = VersionedTransaction.deserialize(base64ToUint8(transactionBase64))
 
     const { data, error } = yield* call(() =>
       tryCatch(signAndSendJupiterSwap({ transaction, requestId, signSolanaTransaction, onSwapSigned })),

@@ -6,6 +6,11 @@
 //
 
 import Foundation
+import React
+
+// Mnemonic length bounds: HD wallets are 12 words, embedded wallets are 24.
+fileprivate let mnemonicLengthHD = 12
+fileprivate let mnemonicLengthEW = 24
 
 class SeedPhraseInputViewModel: ObservableObject {
 
@@ -85,8 +90,8 @@ class SeedPhraseInputViewModel: ObservableObject {
   @Published var status: Status = .none
   @Published var error: MnemonicError? = nil
 
-  private let minCount = 12
-  private let maxCount = 24
+  private let minCount = mnemonicLengthHD
+  private let maxCount = mnemonicLengthEW
 
   func handleSubmit() {
     lastWordValidationTimer?.invalidate()

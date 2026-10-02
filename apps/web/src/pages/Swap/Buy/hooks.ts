@@ -1,4 +1,3 @@
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
@@ -20,7 +19,7 @@ import {
 } from 'uniswap/src/features/fiatOnRamp/types'
 // oxlint-disable-next-line no-restricted-imports -- Buy hooks need direct SDK imports
 import { getFiatCurrencyComponents } from 'utilities/src/format/localeBased'
-import { useMeldSupportedCurrencyToCurrencyInfo } from '~/appGraphql/data/types'
+import { useMeldSupportedCurrencyToCurrencyInfo } from '~/data/types'
 
 type FiatOnRampCurrencyInfo = {
   meldSupportedFiatCurrency: FiatCurrencyInfo
@@ -51,6 +50,7 @@ export function useMeldFiatCurrencyInfo(selectedCountry?: FORCountry): FiatOnRam
   const appFiatCurrencySupported =
     supportedFiatCurrencies &&
     supportedFiatCurrencies.fiatCurrencies.some(
+      // oxlint-disable-next-line universe-custom/no-tolowercase-address-currencyid -- fiat currency codes, not addresses
       (currency): boolean => activeLocalCurrency.toLowerCase() === currency.fiatCurrencyCode.toLowerCase(),
     )
   const meldSupportedFiatCurrency: FiatCurrencyInfo = useMemo(() => {
@@ -74,12 +74,11 @@ export function useFiatOnRampSupportedTokens(
   fiatCurrency: FiatCurrencyInfo,
   countryCode?: string,
 ): FiatOnRampCurrency[] {
-  const isSolanaEnabled = useFeatureFlag(FeatureFlags.Solana)
   const { data: quoteCurrencyOptions } = useFiatOnRampAggregatorSupportedTokensQuery({
     fiatCurrency: fiatCurrency.code,
     countryCode: countryCode ?? 'US',
-    isSolanaEnabled,
     rampDirection: RampDirection.ON_RAMP,
+    isSolanaEnabled: true,
   })
   const { meldSupportedCurrencyToCurrencyInfo } = useMeldSupportedCurrencyToCurrencyInfo()
 

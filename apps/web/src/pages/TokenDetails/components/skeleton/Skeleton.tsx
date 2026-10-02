@@ -1,82 +1,75 @@
 import { Currency } from '@uniswap/sdk-core'
-import { ComponentProps, useMemo } from 'react'
+import { UniverseChainId } from '@universe/chains'
+import { Anchor, type AnchorProps, Flex, Text, TextProps, useMedia } from '@universe/mycelium'
+import { styled, type StyledComponent } from '@universe/mycelium/styled'
+import { ComponentProps, forwardRef, useMemo } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { useParams } from 'react-router'
 import { capitalize } from 'tsafe'
-import { Anchor, Flex, styled, Text, TextProps, useMedia } from 'ui/src'
 import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
 import { zIndexes } from 'ui/src/theme'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
 import { BreadcrumbNavContainer, BreadcrumbNavLink } from '~/components/BreadcrumbNav'
-import { LoadingChart } from '~/components/Explore/chart/LoadingChart'
-import { ACTION_BUBBLE_SIZE } from '~/components/Explore/stickyHeader/constants'
-import { DetailsHeaderContainer } from '~/components/Explore/stickyHeader/DetailsHeaderContainer'
-import { getHeaderLogoSize, getHeaderTitleLineHeight } from '~/components/Explore/stickyHeader/getHeaderLogoSize'
-import { SwapSkeleton } from '~/components/swap/SwapSkeleton'
+import { ACTION_BUBBLE_SIZE } from '~/components/StickyCollapsibleHeader/constants'
+import { getHeaderLogoSize, getHeaderTitleLineHeight } from '~/components/StickyCollapsibleHeader/getHeaderLogoSize'
+import { StickyCollapsibleHeader } from '~/components/StickyCollapsibleHeader/StickyCollapsibleHeader'
 import { LoadingBubble } from '~/components/Tokens/loading'
 import { NATIVE_CHAIN_ID } from '~/constants/tokens'
-import { useChainIdFromUrlParam } from '~/features/params/chainParams'
+import { LoadingChart } from '~/features/Explore/chart/LoadingChart'
+import { SwapSkeleton } from '~/features/Swap/SwapSkeleton'
 import { useCurrency } from '~/hooks/Tokens'
-import { StatsWrapper, StatWrapper } from '~/pages/TokenDetails/components/info/StatsSection'
+import { LoadingStats } from '~/pages/TokenDetails/components/info/StatsSection'
 import { ClickableTamaguiStyle } from '~/theme/components/styles'
+import { useChainIdFromUrlParam } from '~/utils/params/chainParams'
 
-const SWAP_COMPONENT_WIDTH = 360
+const TOKEN_DETAILS_LAYOUT_VARIANTS = {
+  // The Toucan auction page's shape: it provides its own gutters (no horizontal padding at any
+  // width), left-justifies, and tightens the panel gap.
+  toucan: { true: 'justify-start gap-[46px] px-[0px] media-xxl:px-[0px] media-lg:px-[0px]', false: '' },
+  topSpacing: { '16': 'mt-[16px]', '24': 'mt-[24px]' },
+} as const
 
-export const TokenDetailsLayout = styled(Flex, {
-  row: true,
-  justifyContent: 'center',
-  width: '100%',
-  gap: 80,
-  mt: '$spacing32',
-  pb: '$spacing48',
-  px: '$spacing40',
-
-  $lg: {
-    pt: 0,
-    px: '$padding20',
-    pb: 52,
-  },
-  $xl: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '$none',
-  },
+// No horizontal padding above $xxl — AppBody's 1200px cap provides the page margins there,
+// so the TDP body gets the full expected content width
+export const TokenDetailsLayout: StyledComponent<typeof Flex, typeof TOKEN_DETAILS_LAYOUT_VARIANTS> = styled(Flex, {
+  platform: 'web',
+  base: 'flex-row justify-center gap-[80px] mt-[32px] pb-[48px] w-[100%] media-xxl:px-[40px] media-xl:flex-col media-xl:items-center media-xl:gap-[0px] media-lg:px-[20px] media-lg:pt-[0px] media-lg:pb-[52px]',
+  variants: TOKEN_DETAILS_LAYOUT_VARIANTS,
 })
 
-export const LeftPanel = styled(Flex, {
-  width: '100%',
-  flexGrow: 1,
-  flexShrink: 1,
+const LEFT_PANEL_VARIANTS = {
+  // The Toucan auction page clamps the panel (full-width again below $lg).
+  clamped: { true: 'max-w-[744px] media-lg:max-w-[100%]', false: '' },
+} as const
+
+export const LeftPanel: StyledComponent<typeof Flex, typeof LEFT_PANEL_VARIANTS> = styled(Flex, {
+  platform: 'web',
+  base: 'grow-[1] shrink-[1] gap-[40px] w-[100%] media-lg:gap-[32px]',
+  variants: LEFT_PANEL_VARIANTS,
 })
 
-export const RightPanel = styled(Flex, {
-  gap: 40,
-  width: SWAP_COMPONENT_WIDTH,
+const RIGHT_PANEL_VARIANTS = {
+  // The Toucan auction page's aside: narrower (390px), top-aligned, hidden below $xl (its content
+  // renders inline in the left column there).
+  toucan: { true: 'self-start gap-[24px] w-[390px] media-xl:hidden', false: '' },
+} as const
 
-  $xl: {
-    width: '100%',
-    maxWidth: 780,
-    py: 40,
-  },
+// 360px = the swap component width.
+export const RightPanel: StyledComponent<typeof Flex, typeof RIGHT_PANEL_VARIANTS> = styled(Flex, {
+  platform: 'web',
+  base: 'gap-[40px] w-[360px] media-xl:py-[40px] media-xl:w-[100%] media-xl:max-w-[780px]',
+  variants: RIGHT_PANEL_VARIANTS,
 })
 
+// The legacy animation:'quick' never animated anything (no style on this row ever changes), so no
+// transition is carried over.
 const TokenInfoRow = styled(Flex, {
-  row: true,
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  width: '100%',
-  animation: 'quick',
-  zIndex: '$default',
+  base: 'flex-row items-center justify-between w-[100%] z-default',
 })
 
 const TokenNameCell = styled(Flex, {
-  row: true,
-  flex: 1,
-  gap: '$gap12',
-  alignItems: 'center',
-  minWidth: 32,
+  base: 'flex-row items-center gap-[12px] grow-[1] shrink min-w-[32px]',
 })
 
 /* Loading state bubbles */
@@ -96,7 +89,7 @@ function NavBubble(props: LoadingBubbleProps) {
 
 function TokenLogoBubble({ isCompact, ...props }: LoadingBubbleProps & { isCompact: boolean }) {
   const media = useMedia()
-  const size = getHeaderLogoSize({ isCompact, media })
+  const size = getHeaderLogoSize({ isCompact, media, scaleMobileOnScroll: true })
   return <DetailBubble width={size} height={size} round containerProps={{ maxWidth: size }} {...props} />
 }
 
@@ -108,14 +101,6 @@ function TitleBubble({ isCompact, ...props }: LoadingBubbleProps & { isCompact: 
 
 function SectionBubble(props: LoadingBubbleProps) {
   return <SquaredBubble width={120} {...props} />
-}
-
-function StatTitleBubble(props: LoadingBubbleProps) {
-  return <DetailBubble width={80} containerProps={{ mb: '$spacing4' }} {...props} />
-}
-
-function StatBubble(props: LoadingBubbleProps) {
-  return <SquaredBubble width={116} {...props} />
 }
 
 function WideBubble(props: LoadingBubbleProps) {
@@ -130,15 +115,8 @@ function HalfWideBubble(props: LoadingBubbleProps) {
   return <WideBubble width="50%" {...props} />
 }
 
-const StatsLoadingContainer = styled(Flex, {
-  row: true,
-  flexWrap: 'wrap',
-  width: '100%',
-})
-
 const ExtraDetailsContainer = styled(Flex, {
-  row: true,
-  pt: '$spacing24',
+  base: 'flex-row pt-[24px]',
 })
 
 const loadingFooterTextStyle = {
@@ -152,29 +130,15 @@ const loadingFooterTextStyle = {
 } satisfies TextProps
 
 const LoadingFooterHeaderContainer = styled(Flex, {
-  row: true,
-  alignItems: 'center',
-  pt: '$padding16',
-  pr: 90,
-  pb: '$padding8',
-  pl: 0,
-  bottom: 0,
-  right: 0,
-  justifyContent: 'flex-end',
-  '$platform-web': {
-    position: 'fixed',
-  },
-  $xl: {
-    pr: '$none',
-    width: '100%',
-    justifyContent: 'center',
-  },
+  platform: 'web',
+  base: 'flex-row items-center justify-end pt-[16px] pb-[8px] pl-[0px] pr-[90px] right-[0px] bottom-[0px] fixed media-xl:justify-center media-xl:pr-[0px] media-xl:w-[100%]',
 })
 
-const LoadingFooterLink = styled(Anchor, {
-  fontFamily: '$body',
-  ...loadingFooterTextStyle,
-  ...ClickableTamaguiStyle,
+// forwardRef is load-bearing: react-i18next's <Trans> keeps a mapped component's own children only
+// for exotic element types — a plain function component gets its children replaced by the (empty)
+// `<tokenLink />` translation node.
+const LoadingFooterLink = forwardRef<HTMLElement, AnchorProps>(function LoadingFooterLink(props, ref) {
+  return <Anchor ref={ref} fontFamily="$body" {...loadingFooterTextStyle} {...ClickableTamaguiStyle} {...props} />
 })
 
 // exported for testing
@@ -222,40 +186,6 @@ export function LoadingTitle({
   )
 }
 
-function LoadingStats() {
-  return (
-    <StatsWrapper>
-      <SectionBubble />
-      <StatsLoadingContainer>
-        <StatWrapper>
-          <StatTitleBubble />
-          <StatBubble />
-        </StatWrapper>
-        <StatWrapper>
-          <StatTitleBubble />
-          <StatBubble />
-        </StatWrapper>
-        <StatWrapper>
-          <StatTitleBubble />
-          <StatBubble />
-        </StatWrapper>
-        <StatWrapper>
-          <StatTitleBubble />
-          <StatBubble />
-        </StatWrapper>
-        <StatWrapper>
-          <StatTitleBubble />
-          <StatBubble />
-        </StatWrapper>
-        <StatWrapper>
-          <StatTitleBubble />
-          <StatBubble />
-        </StatWrapper>
-      </StatsLoadingContainer>
-    </StatsWrapper>
-  )
-}
-
 const ChevronRight = (): JSX.Element => <RotatableChevron direction="right" size="$icon.16" />
 
 /* Loading State: row component with loading bubbles */
@@ -278,7 +208,7 @@ function TokenDetailsSkeleton() {
 
       <Flex height="$spacing40" />
 
-      <Flex gap="$gap16" py="$spacing24" animation="quick">
+      <Flex gap="$gap16" py="$spacing24">
         <Text variant="heading2">
           <SectionBubble />
         </Text>
@@ -309,10 +239,8 @@ function TokenDetailsSkeleton() {
 }
 
 const BreadcrumbWrapper = styled(Flex, {
-  width: '100%',
-  px: '$spacing40',
-  pt: '$spacing48',
-  $lg: { px: '$padding20' },
+  platform: 'web',
+  base: 'pt-[48px] w-[100%] media-xxl:px-[40px] media-lg:px-[20px]',
 })
 
 export function TokenDetailsPageSkeleton({ isCompact }: { isCompact: boolean }) {
@@ -325,12 +253,12 @@ export function TokenDetailsPageSkeleton({ isCompact }: { isCompact: boolean }) 
       <BreadcrumbWrapper>
         <BreadcrumbNavContainer aria-label="breadcrumb-nav">
           <BreadcrumbNavLink to={`/explore/tokens/${urlParam}`}>
-            {t('common.tokens')} <ChevronRight />
+            {t('common.token.plural')} <ChevronRight />
           </BreadcrumbNavLink>
           <NavBubble />
         </BreadcrumbNavContainer>
       </BreadcrumbWrapper>
-      <DetailsHeaderContainer isCompact={isCompact}>
+      <StickyCollapsibleHeader isCompact={isCompact} px="$none" $xxl={{ px: '$spacing40' }}>
         <TokenInfoRow>
           <TokenNameCell>
             <TokenLogoBubble isCompact={isCompact} />
@@ -358,9 +286,9 @@ export function TokenDetailsPageSkeleton({ isCompact }: { isCompact: boolean }) 
             )}
           </Flex>
         </TokenInfoRow>
-      </DetailsHeaderContainer>
+      </StickyCollapsibleHeader>
       <TokenDetailsLayout>
-        <LeftPanel gap="$spacing40" $lg={{ gap: '$gap32' }}>
+        <LeftPanel>
           <TokenDetailsSkeleton />
         </LeftPanel>
         <RightPanel>

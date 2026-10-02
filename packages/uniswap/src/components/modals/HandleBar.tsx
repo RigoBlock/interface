@@ -1,5 +1,5 @@
+import type { FlexCompatProps as FlexProps } from '@universe/mycelium'
 import type { ColorValue, FlexStyle } from 'react-native'
-import type { FlexProps } from 'ui/src'
 import { PlatformSplitStubError } from 'utilities/src/errors'
 
 export type HandleBarProps = {

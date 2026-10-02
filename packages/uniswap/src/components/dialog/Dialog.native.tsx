@@ -1,6 +1,7 @@
+import { Flex, Text } from '@universe/mycelium'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, LabeledCheckbox, Text } from 'ui/src'
+import { LabeledCheckbox } from 'ui/src'
 import { DialogButtons } from 'uniswap/src/components/dialog/DialogButtons'
 import { DialogContent } from 'uniswap/src/components/dialog/DialogContent'
 import type { DialogProps } from 'uniswap/src/components/dialog/DialogProps'

@@ -8,6 +8,20 @@ import {
   devPortalAuthMonitors,
   devPortalGatewayMonitors,
   devPortalLogMonitors,
+  liquidityFeErrorTrackingMonitors,
+  swapFeApiMonitors,
+  swapFeCiMonitors,
+  swapFeOnChainMonitors,
+  swapFeSolanaMonitors,
+  swapFeUniswapXMonitors,
+  privyEmbeddedWalletLatencyMonitors,
+  privyEmbeddedWalletErrorMonitors,
+  privyEmbeddedWalletAvailabilityMonitors,
+  privyEmbeddedWalletEndpointMonitors,
+  privyEmbeddedWalletSecurityMonitors,
+  privyEmbeddedWalletBusinessMonitors,
+  privyEmbeddedWalletDepsMonitors,
+  privyEmbeddedWalletKillSwitchMonitors,
 } from './monitors'
 import { MonitorDefinition } from './types'
 
@@ -32,6 +46,24 @@ const teamMonitors: Record<string, { monitors: MonitorDefinition[]; category: st
     { monitors: devPortalGatewayMonitors, category: 'gateway' },
     { monitors: devPortalLogMonitors, category: 'logs' },
   ],
+  'apps-pod-swap-fe': [
+    { monitors: swapFeApiMonitors, category: 'swap-api' },
+    { monitors: swapFeUniswapXMonitors, category: 'uniswap-x' },
+    { monitors: swapFeOnChainMonitors, category: 'on-chain' },
+    { monitors: swapFeSolanaMonitors, category: 'solana' },
+    { monitors: swapFeCiMonitors, category: 'ci' },
+  ],
+  'privy-embedded-wallet': [
+    { monitors: privyEmbeddedWalletLatencyMonitors, category: 'latency' },
+    { monitors: privyEmbeddedWalletErrorMonitors, category: 'errors' },
+    { monitors: privyEmbeddedWalletAvailabilityMonitors, category: 'availability' },
+    { monitors: privyEmbeddedWalletEndpointMonitors, category: 'endpoints' },
+    { monitors: privyEmbeddedWalletSecurityMonitors, category: 'security' },
+    { monitors: privyEmbeddedWalletBusinessMonitors, category: 'business' },
+    { monitors: privyEmbeddedWalletDepsMonitors, category: 'deps' },
+    { monitors: privyEmbeddedWalletKillSwitchMonitors, category: 'killswitch' },
+  ],
+  'liquidity-fe': [{ monitors: liquidityFeErrorTrackingMonitors, category: 'error-tracking' }],
 }
 
 // Get monitors for current team

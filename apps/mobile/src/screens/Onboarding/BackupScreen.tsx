@@ -1,6 +1,13 @@
 import { CompositeScreenProps } from '@react-navigation/native'
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { StackScreenProps } from '@react-navigation/stack'
+import { Flex, ScrollView, Text, TouchableArea } from '@universe/mycelium'
+import { Cloud } from '@universe/mycelium/icons/Cloud'
+import { PenLine } from '@universe/mycelium/icons/PenLine'
+import { QuestionInCircleFilled } from '@universe/mycelium/icons/QuestionInCircleFilled'
+import { ShieldCheck } from '@universe/mycelium/icons/ShieldCheck'
+import { useShadowPropsShort } from '@universe/mycelium/theme-hooks-compat'
+import { TestID } from '@universe/test'
 import React, { useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -13,10 +20,7 @@ import { BackButton } from 'src/components/buttons/BackButton'
 import { checkCloudBackupOrShowAlert } from 'src/components/mnemonic/cloudImportUtils'
 import { OnboardingScreen } from 'src/features/onboarding/OnboardingScreen'
 import { OptionCard } from 'src/features/onboarding/OptionCard'
-import { Flex, ScrollView, Text, TouchableArea, useShadowPropsShort } from 'ui/src'
-import { Cloud, PenLine, QuestionInCircleFilled, ShieldCheck } from 'ui/src/components/icons'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { ImportType, OnboardingEntryPoint } from 'uniswap/src/types/onboarding'
 import { MobileScreens, OnboardingScreens } from 'uniswap/src/types/screens/mobile'
 import { getCloudProviderName } from 'uniswap/src/utils/cloud-backup/getCloudProviderName'
@@ -24,6 +28,7 @@ import { useOnboardingContext } from 'wallet/src/features/onboarding/OnboardingC
 import { BackupType } from 'wallet/src/features/wallet/accounts/types'
 import { hasBackup, hasExternalBackup } from 'wallet/src/features/wallet/accounts/utils'
 import { useActiveAccount } from 'wallet/src/features/wallet/hooks'
+import { getExpectedMnemonicLength } from 'wallet/src/utils/mnemonics'
 
 type Props = CompositeScreenProps<
   StackScreenProps<OnboardingStackParamList, OnboardingScreens.Backup>,
@@ -73,7 +78,7 @@ export function BackupScreen({ navigation, route: { params } }: Props): JSX.Elem
 
   const onPressNext = (): void => {
     if (fromBackupCard) {
-      navigation.navigate(MobileScreens.Home)
+      navigation.navigate(MobileScreens.MainTabs, { screen: MobileScreens.Home })
     } else {
       navigation.navigate({
         name: OnboardingScreens.Notifications,
@@ -133,7 +138,7 @@ export function BackupScreen({ navigation, route: { params } }: Props): JSX.Elem
     options.push(
       <OptionCard
         key={ElementName.AddManualBackup}
-        blurb={t('onboarding.backup.option.manual.description')}
+        blurb={t('onboarding.backup.option.manual.description', { count: getExpectedMnemonicLength(account) })}
         disabled={hasManualBackup}
         elementName={ElementName.AddManualBackup}
         icon={<PenLine color="$accent1" size="$icon.12" />}

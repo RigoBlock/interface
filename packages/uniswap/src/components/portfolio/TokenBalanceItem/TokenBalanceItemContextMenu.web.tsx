@@ -1,17 +1,18 @@
+import { isExtensionApp } from '@universe/environment'
+import { TouchableArea } from '@universe/mycelium'
 import { memo, PropsWithChildren, useCallback, useMemo } from 'react'
-import { TouchableArea } from 'ui/src'
 import { ContextMenu } from 'uniswap/src/components/menus/ContextMenu'
 import { ContextMenuTriggerMode } from 'uniswap/src/components/menus/types'
 import { TokenBalanceItemContextMenuProps } from 'uniswap/src/components/portfolio/TokenBalanceItem/TokenBalanceItemContextMenu'
 import { TokenList } from 'uniswap/src/features/dataApi/types'
 import { useTokenContextMenuOptions } from 'uniswap/src/features/portfolio/balances/hooks/useTokenContextMenuOptions'
 import { ElementName, SectionName } from 'uniswap/src/features/telemetry/constants'
-import { isExtensionApp } from 'utilities/src/platform'
 import { useBooleanState } from 'utilities/src/react/useBooleanState'
 
 export const TokenBalanceItemContextMenu = memo(function TokenBalanceItemContextMenu({
   children,
   portfolioBalance,
+  isMultichainAsset,
   excludedActions,
   openContractAddressExplainerModal,
   openReportTokenModal,
@@ -38,6 +39,7 @@ export const TokenBalanceItemContextMenu = memo(function TokenBalanceItemContext
     isBlocked: portfolioBalance.currencyInfo.safetyInfo?.tokenList === TokenList.Blocked,
     tokenSymbolForNotification: portfolioBalance.currencyInfo.currency.symbol,
     portfolioBalance,
+    isMultichainAsset,
     openContractAddressExplainerModal,
     openReportTokenModal,
     openReportDataIssueModal,

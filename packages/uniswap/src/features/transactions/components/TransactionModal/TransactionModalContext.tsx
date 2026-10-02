@@ -1,8 +1,8 @@
 import { Currency } from '@uniswap/sdk-core'
+import { UniverseChainId } from '@universe/chains'
 import { createContext, PropsWithChildren, useContext, useMemo } from 'react'
 import type { StyleProp, ViewStyle } from 'react-native'
 import { AuthTrigger } from 'uniswap/src/features/auth/types'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { CurrencyField } from 'uniswap/src/types/currency'
 
 export enum TransactionScreen {
@@ -39,13 +39,18 @@ export type TransactionModalContextState = {
   openWalletRestoreModal?: () => void
   walletNeedsRestore?: boolean
   onClose: () => void
-  onCurrencyChange?: (selected: { inputCurrency?: Currency; outputCurrency?: Currency }, isBridgePair?: boolean) => void
+  onCurrencyChange?: (
+    selected: { inputCurrency?: Currency; outputCurrency?: Currency },
+    selectedCurrency?: Currency,
+  ) => void
   renderBiometricsIcon?: (({ color }: BiometricsIconProps) => JSX.Element) | null
   authTrigger?: AuthTrigger
   screen: TransactionScreen
   setScreen: (newScreen: TransactionScreen) => void
   swapRedirectCallback?: SwapRedirectFn
   passkeyAuthStatus?: PasskeyAuthStatus
+  /** Set when the swap flow is embedded in a token details page; selecting over it keeps it in the pair. */
+  tdpCurrency?: Currency
 }
 
 export const TransactionModalContext = createContext<TransactionModalContextState | undefined>(undefined)
@@ -63,6 +68,7 @@ export function TransactionModalContextProvider({
   setScreen,
   swapRedirectCallback,
   passkeyAuthStatus,
+  tdpCurrency,
 }: PropsWithChildren<TransactionModalContextState>): JSX.Element {
   const state = useMemo<TransactionModalContextState>(
     (): TransactionModalContextState => ({
@@ -77,6 +83,7 @@ export function TransactionModalContextProvider({
       swapRedirectCallback,
       walletNeedsRestore,
       passkeyAuthStatus,
+      tdpCurrency,
     }),
     [
       renderBiometricsIcon,
@@ -90,6 +97,7 @@ export function TransactionModalContextProvider({
       swapRedirectCallback,
       walletNeedsRestore,
       passkeyAuthStatus,
+      tdpCurrency,
     ],
   )
 

@@ -1,3 +1,4 @@
+import { UniverseChainId } from '@universe/chains'
 import { utils } from 'ethers'
 import {
   convertCapabilitiesToScopedProperties,
@@ -5,14 +6,14 @@ import {
   getAccountAddressFromEIP155String,
   getChainIdFromEIP155String,
   getSupportedWalletConnectChains,
+  getTypedDataDomainChainId,
   parseGetCallsStatusRequest,
   parseGetCapabilitiesRequest,
   parseSendCallsRequest,
   parseSignRequest,
   parseTransactionRequest,
 } from 'src/features/walletConnect/utils'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { EthMethod } from 'uniswap/src/features/dappRequests/types'
+import { EthMethod, type EthSignMethod } from 'uniswap/src/features/dappRequests/types'
 import { DappRequestType } from 'uniswap/src/types/walletConnect'
 
 const EIP155_MAINNET = 'eip155:1'
@@ -162,6 +163,7 @@ describe(parseGetCapabilitiesRequest, () => {
 })
 
 describe(parseSignRequest, () => {
+  const typedDataMethods: EthSignMethod[] = [EthMethod.SignTypedData, EthMethod.SignTypedDataV4]
   const mockTopic = 'test-topic'
   const mockInternalId = 123
   const mockChainId = UniverseChainId.Mainnet
@@ -234,12 +236,20 @@ describe(parseSignRequest, () => {
     })
   })
 
-  it('parses eth_signTypedData request correctly', () => {
-    const typedData = '{"types":{"EIP712Domain":[]},"domain":{},"primaryType":"Mail","message":{}}'
+  it.each(typedDataMethods)('canonicalizes %s request correctly', (method) => {
+    const typedData = JSON.stringify({
+      types: {
+        EIP712Domain: [{ name: 'chainId', type: 'uint256' }],
+        Mail: [{ name: 'amount', type: 'uint256' }],
+      },
+      domain: { chainId: 1 },
+      primaryType: 'Mail',
+      message: { amount: [0] },
+    })
     const params = [TEST_ADDRESS, typedData]
 
     const result = parseSignRequest({
-      method: EthMethod.SignTypedData,
+      method,
       topic: mockTopic,
       internalId: mockInternalId,
       chainId: mockChainId,
@@ -247,13 +257,12 @@ describe(parseSignRequest, () => {
       requestParams: params,
     })
 
-    expect(result).toEqual({
-      type: EthMethod.SignTypedData,
+    expect(result).toMatchObject({
+      type: method,
       sessionId: mockTopic,
       internalId: String(mockInternalId),
       account: TEST_ADDRESS,
       chainId: mockChainId,
-      rawMessage: typedData,
       message: null,
       isLinkModeSupported: false,
       dappRequestInfo: {
@@ -263,6 +272,36 @@ describe(parseSignRequest, () => {
         requestType: DappRequestType.WalletConnectSessionRequest,
       },
     })
+    expect(JSON.parse(result.rawMessage)).toMatchObject({
+      domain: { chainId: '1' },
+      primaryType: 'Mail',
+      message: { amount: '0' },
+    })
+  })
+
+  it('preserves a multi-digit domain chain ID through canonicalization and validation', () => {
+    const result = parseSignRequest({
+      method: EthMethod.SignTypedDataV4,
+      topic: mockTopic,
+      internalId: mockInternalId,
+      chainId: UniverseChainId.Polygon,
+      dapp: mockDapp,
+      requestParams: [
+        TEST_ADDRESS,
+        JSON.stringify({
+          types: {
+            EIP712Domain: [{ name: 'chainId', type: 'uint256' }],
+            Mail: [{ name: 'amount', type: 'uint256' }],
+          },
+          domain: { chainId: '0x89' },
+          primaryType: 'Mail',
+          message: { amount: '1' },
+        }),
+      ],
+    })
+
+    expect(JSON.parse(result.rawMessage).domain.chainId).toBe('137')
+    expect(getTypedDataDomainChainId(result.rawMessage)).toBe(UniverseChainId.Polygon)
   })
 })
 
@@ -309,7 +348,7 @@ describe(parseTransactionRequest, () => {
         to: '0x1234567890123456789012345678901234567890',
         data: '0x',
         gasLimit: '0x5208',
-        value: '0x0',
+        value: '0x00',
         // gasPrice and nonce should be omitted
       },
       dappRequestInfo: {
@@ -319,6 +358,56 @@ describe(parseTransactionRequest, () => {
         requestType: DappRequestType.WalletConnectSessionRequest,
       },
     })
+  })
+
+  it('canonicalizes JSON-serializable byte arrays before storing the request', () => {
+    const result = parseTransactionRequest({
+      method: EthMethod.EthSendTransaction,
+      topic: mockTopic,
+      internalId: mockInternalId,
+      chainId: mockChainId,
+      dapp: mockDapp,
+      requestParams: [
+        {
+          from: TEST_ADDRESS,
+          to: '0x1234567890123456789012345678901234567890',
+          data: '0x',
+          gasLimit: [0x52, 0x08],
+          value: [13, 224, 182, 179, 167, 100, 0, 0],
+        },
+      ],
+    })
+
+    expect(result.transaction).toMatchObject({
+      gasLimit: '0x5208',
+      value: '0x0de0b6b3a7640000',
+    })
+  })
+
+  it('canonicalizes byte-array calldata before storing the request', () => {
+    const approveCalldata =
+      '0x095ea7b30000000000000000000000001234567890123456789012345678901234567890ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
+    const calldataBytes = approveCalldata
+      .slice(2)
+      .match(/.{2}/g)!
+      .map((byte) => Number.parseInt(byte, 16))
+
+    const result = parseTransactionRequest({
+      method: EthMethod.EthSendTransaction,
+      topic: mockTopic,
+      internalId: mockInternalId,
+      chainId: mockChainId,
+      dapp: mockDapp,
+      requestParams: [
+        {
+          from: TEST_ADDRESS,
+          to: '0x1234567890123456789012345678901234567890',
+          data: calldataBytes,
+        },
+      ],
+    })
+
+    expect(result.transaction.data).toBe(approveCalldata)
   })
 })
 
@@ -344,7 +433,7 @@ describe(parseSendCallsRequest, () => {
         },
       ],
       chainId: '0x01',
-      id: 'test-batch-id',
+      id: `0x${'12'.repeat(32)}`,
       version: '2.0.0',
       capabilities: {
         eip155: {
@@ -407,6 +496,61 @@ describe(parseSendCallsRequest, () => {
 
     expect(result.account).toBe(fallbackAddress)
     expect(result.id).toBeTruthy() // Should generate a mock ID
+  })
+
+  it('normalizes value-only calls without dropping them', () => {
+    const sendCallsParams = {
+      chainId: '0x01',
+      calls: [
+        {
+          to: '0x1234567890123456789012345678901234567890',
+          value: '0x1',
+        },
+      ],
+      version: '2.0.0',
+    }
+
+    const result = parseSendCallsRequest({
+      topic: mockTopic,
+      internalId: mockInternalId,
+      chainId: mockChainId,
+      dapp: mockDapp,
+      requestParams: [sendCallsParams],
+      account: TEST_ADDRESS,
+    })
+
+    expect(result.calls).toEqual([
+      {
+        to: sendCallsParams.calls[0]?.to,
+        data: '0x',
+        value: '0x1',
+      },
+    ])
+  })
+
+  it('rejects the entire batch when one call has an unsupported recipient', () => {
+    expect(() =>
+      parseSendCallsRequest({
+        topic: mockTopic,
+        internalId: mockInternalId,
+        chainId: mockChainId,
+        dapp: mockDapp,
+        requestParams: [
+          {
+            chainId: '0x01',
+            calls: [
+              { to: '0x1234', data: '0xabcdef' },
+              {
+                to: '0x1234567890123456789012345678901234567890',
+                data: '0xabcdef',
+              },
+            ],
+            version: '2.0.0',
+          },
+        ],
+        account: TEST_ADDRESS,
+      }),
+    ).toThrow('call 0 has an unsupported recipient')
   })
 })
 

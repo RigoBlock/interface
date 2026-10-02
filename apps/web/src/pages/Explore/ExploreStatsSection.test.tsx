@@ -1,11 +1,11 @@
 import type { Mock } from 'vitest'
 import { vi } from 'vitest'
+import { use24hProtocolVolume, useDailyTVLWithChange } from '~/features/Explore/state/protocolStats'
 import { ExploreStatsSection } from '~/pages/Explore/ExploreStatsSection'
-import { use24hProtocolVolume, useDailyTVLWithChange } from '~/state/explore/protocolStats'
 import { render, screen } from '~/test-utils/render'
 
 // Mock the protocol stats hooks
-vi.mock('~/state/explore/protocolStats', () => ({
+vi.mock('~/features/Explore/state/protocolStats', () => ({
   use24hProtocolVolume: vi.fn(),
   useDailyTVLWithChange: vi.fn(),
 }))
@@ -51,7 +51,7 @@ describe('ExploreStatsSection', () => {
     const { container } = render(<ExploreStatsSection />)
 
     // Should show loading bubbles instead of actual values
-    const loadingBubbles = container.querySelectorAll('[style*="animation-name: shine"]')
+    const loadingBubbles = container.querySelectorAll('[style*="animation-name: myc-shimmer"]')
     expect(loadingBubbles.length).toBeGreaterThan(0)
 
     // Should not show actual data values
@@ -65,9 +65,11 @@ describe('ExploreStatsSection', () => {
     // Should show formatted volume and TVL values
     expect(screen.getByText(/1D volume/i)).toBeInTheDocument()
     expect(screen.getByText(/Total Uniswap TVL/i)).toBeInTheDocument()
+    expect(screen.queryByText(/today/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/5\.2/)).not.toBeInTheDocument()
 
     // Should not show loading bubbles
-    const loadingBubbles = container.querySelectorAll('[style*="animation-name: shine"]')
+    const loadingBubbles = container.querySelectorAll('[style*="animation-name: myc-shimmer"]')
     expect(loadingBubbles.length).toBe(0)
   })
 
@@ -85,7 +87,7 @@ describe('ExploreStatsSection', () => {
     const { rerender, container } = render(<ExploreStatsSection />)
 
     // Initially loading
-    const loadingBubbles = container.querySelectorAll('[style*="animation-name: shine"]')
+    const loadingBubbles = container.querySelectorAll('[style*="animation-name: myc-shimmer"]')
     expect(loadingBubbles.length).toBeGreaterThan(0)
 
     // Transition to loaded
@@ -95,7 +97,7 @@ describe('ExploreStatsSection', () => {
     rerender(<ExploreStatsSection />)
 
     // Loading bubbles should be gone
-    const loadedBubbles = container.querySelectorAll('[style*="animation-name: shine"]')
+    const loadedBubbles = container.querySelectorAll('[style*="animation-name: myc-shimmer"]')
     expect(loadedBubbles.length).toBe(0)
 
     // Data should appear
@@ -138,7 +140,7 @@ describe('ExploreStatsSection', () => {
     const { container } = render(<ExploreStatsSection />)
 
     // Should show loading bubbles for volume data
-    const loadingBubbles = container.querySelectorAll('[style*="animation-name: shine"]')
+    const loadingBubbles = container.querySelectorAll('[style*="animation-name: myc-shimmer"]')
     expect(loadingBubbles.length).toBeGreaterThan(0)
 
     // TVL data should still be visible
@@ -155,7 +157,7 @@ describe('ExploreStatsSection', () => {
     const { container } = render(<ExploreStatsSection />)
 
     // Should show loading bubbles for TVL data
-    const loadingBubbles = container.querySelectorAll('[style*="animation-name: shine"]')
+    const loadingBubbles = container.querySelectorAll('[style*="animation-name: myc-shimmer"]')
     expect(loadingBubbles.length).toBeGreaterThan(0)
 
     // Volume data should still be visible
@@ -175,7 +177,7 @@ describe('ExploreStatsSection', () => {
     const { rerender, container } = render(<ExploreStatsSection />)
 
     // Verify loading state
-    const loadingBubbles = container.querySelectorAll('[style*="animation-name: shine"]')
+    const loadingBubbles = container.querySelectorAll('[style*="animation-name: myc-shimmer"]')
     expect(loadingBubbles.length).toBeGreaterThan(0)
 
     // Transition to loaded state
@@ -185,13 +187,13 @@ describe('ExploreStatsSection', () => {
     rerender(<ExploreStatsSection />)
 
     // Verify loaded state and cleanup
-    const loadedBubbles = container.querySelectorAll('[style*="animation-name: shine"]')
+    const loadedBubbles = container.querySelectorAll('[style*="animation-name: myc-shimmer"]')
     expect(loadedBubbles.length).toBe(0)
     expect(screen.getByText(/1D volume/i)).toBeInTheDocument()
     expect(screen.getByText(/Total Uniswap TVL/i)).toBeInTheDocument()
 
     // Ensure no leftover loading artifacts
-    const remainingLoadingElements = container.querySelectorAll('[style*="animation-name: shine"]')
+    const remainingLoadingElements = container.querySelectorAll('[style*="animation-name: myc-shimmer"]')
     expect(remainingLoadingElements).toHaveLength(0)
   })
 })

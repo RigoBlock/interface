@@ -1,7 +1,7 @@
+import { UniverseChainId } from '@universe/chains'
 import type { MultichainTokenEntry } from 'uniswap/src/components/MultichainTokenDetails/useOrderedMultichainEntries'
 import { useOrderedMultichainEntries } from 'uniswap/src/components/MultichainTokenDetails/useOrderedMultichainEntries'
 import { useOrderedChainIds } from 'uniswap/src/features/chains/hooks/useOrderedChainIds'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { renderHook } from 'uniswap/src/test/test-utils'
 
 vi.mock('uniswap/src/features/chains/hooks/useOrderedChainIds', () => ({

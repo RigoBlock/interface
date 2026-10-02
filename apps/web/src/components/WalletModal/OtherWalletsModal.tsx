@@ -1,22 +1,29 @@
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
+import { BackArrow } from '@universe/mycelium/icons/BackArrow'
 import React from 'react'
-import { Trans } from 'react-i18next'
-import { Flex, Separator, Text, TouchableArea } from 'ui/src'
-import { BackArrow } from 'ui/src/components/icons/BackArrow'
+import { useTranslation } from 'react-i18next'
+import { Separator } from 'ui/src'
 import { CONNECTION_PROVIDER_IDS } from 'uniswap/src/constants/web3'
-import { MenuStateVariant, useSetMenu } from '~/components/AccountDrawer/menuState'
+import { MenuStateVariant, useMenuState, useSetMenu } from '~/components/AccountDrawer/menuState'
 import { useShowMoonpayText } from '~/components/AccountDrawer/MiniPortfolio/hooks'
-import ConnectionErrorView from '~/components/WalletModal/ConnectionErrorView'
-import PrivacyPolicyNotice from '~/components/WalletModal/PrivacyPolicyNotice'
+import { ConnectionErrorView } from '~/components/WalletModal/ConnectionErrorView'
+import { PrivacyPolicyNotice } from '~/components/WalletModal/PrivacyPolicyNotice'
 import { UniswapMobileWalletConnectorOption } from '~/components/WalletModal/UniswapMobileWalletConnectorOption'
 import { WalletConnectorOption } from '~/components/WalletModal/WalletConnectorOption'
-import { useRecentConnectorId } from '~/components/Web3Provider/constants'
+import { useRecentConnectorId } from '~/connection/constants'
 import { useOrderedWallets } from '~/features/wallet/connection/hooks/useOrderedWalletConnectors'
 import { transitions } from '~/theme/styles'
 
 export function OtherWalletsModal() {
+  const { t } = useTranslation()
   const showMoonpayText = useShowMoonpayText()
   const setMenu = useSetMenu()
+  const { menuState } = useMenuState()
+  const returnTo =
+    menuState.variant === MenuStateVariant.OTHER_WALLETS
+      ? (menuState.returnTo ?? MenuStateVariant.MAIN)
+      : MenuStateVariant.MAIN
   const isEmbeddedWalletEnabled = useFeatureFlag(FeatureFlags.EmbeddedWallet)
   const wallets = useOrderedWallets({ showSecondaryConnectors: true })
   const recentConnectorId = useRecentConnectorId()
@@ -29,15 +36,17 @@ export function OtherWalletsModal() {
       pb="$spacing20"
       flex={1}
       gap="$gap16"
-      data-testid="other-wallet-modal"
+      testID="other-wallet-modal"
     >
       <ConnectionErrorView />
       <Flex row justifyContent="center" width="100%">
-        <TouchableArea onPress={() => setMenu({ variant: MenuStateVariant.MAIN })} mr="auto">
+        <TouchableArea testID="wallet-back" onPress={() => setMenu({ variant: returnTo })} mr="auto">
           <BackArrow color="$neutral2" size={20} />
         </TouchableArea>
         <Text variant="subheading2" mr="auto" ml={-20}>
-          <Trans i18nKey="common.connectAWallet.button" />
+          {returnTo === MenuStateVariant.SWITCH
+            ? t('common.connectAWallet.button.switch')
+            : t('common.connectAWallet.button')}
         </Text>
       </Flex>
 
@@ -48,7 +57,7 @@ export function OtherWalletsModal() {
             overflow="hidden"
             width="100%"
             transition={`${transitions.duration.fast} ${transitions.timing.inOut}`}
-            data-testid="option-grid"
+            testID="option-grid"
           >
             {/* If uniswap mobile was the last used connector it will be show on the primary window */}
             {/* If Embedded Wallet is enabled, it will be shown on the primary window */}
@@ -75,7 +84,7 @@ export function OtherWalletsModal() {
           {showMoonpayText && (
             <Flex borderTopWidth={1} pt="$spacing8" borderColor="$surface3" px="$spacing4">
               <Text variant="body4" color="$neutral3">
-                <Trans i18nKey="moonpay.poweredBy" />
+                {t('moonpay.poweredBy')}
               </Text>
             </Flex>
           )}

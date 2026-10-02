@@ -1,13 +1,20 @@
 import { useBottomSheetInternal } from '@gorhom/bottom-sheet'
 import { type GasFeeResult } from '@universe/api'
+import {
+  Flex,
+  iconSizes,
+  spacing,
+  SpinningLoader,
+  Text,
+  UniversalImage,
+  UniversalImageResizeMode,
+} from '@universe/mycelium'
+import { useIsDarkMode } from '@universe/mycelium/theme-hooks-compat'
 import { formatUnits } from 'ethers/lib/utils'
 import { useTranslation } from 'react-i18next'
 import Animated, { useAnimatedStyle } from 'react-native-reanimated'
 import { ModalWithOverlay } from 'src/components/Requests/ModalWithOverlay/ModalWithOverlay'
 import { type UwuLinkErc20Request } from 'src/features/walletConnect/walletConnectSlice'
-import { Flex, SpinningLoader, Text, UniversalImage, useIsDarkMode } from 'ui/src'
-import { UniversalImageResizeMode } from 'ui/src/components/UniversalImage/types'
-import { iconSizes, spacing } from 'ui/src/theme'
 import { TokenLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
 import { NetworkFee } from 'uniswap/src/components/gas/NetworkFee'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
@@ -92,9 +99,9 @@ function UwULinkErc20SendModalContent({
 }): JSX.Element {
   const { t } = useTranslation()
   const isDarkMode = useIsDarkMode()
-  const { animatedFooterHeight } = useBottomSheetInternal()
+  const { animatedLayoutState } = useBottomSheetInternal()
   const bottomSpacerStyle = useAnimatedStyle(() => ({
-    height: animatedFooterHeight.value,
+    height: animatedLayoutState.value.footerHeight,
   }))
   const { convertFiatAmountFormatted } = useLocalizationContext()
 
@@ -150,7 +157,7 @@ function UwULinkErc20SendModalContent({
           </Text>
         </Flex>
       </Flex>
-      <Flex alignSelf="stretch" borderTopColor="$surface3" borderTopWidth={1} pt="$spacing16">
+      <Flex alignSelf="stretch" borderColor="$surface3" borderTopWidth={1} pt="$spacing16">
         <NetworkFee chainId={chainId} gasFee={gasFee} />
       </Flex>
       {!hasSufficientGasFunds && (

@@ -1,78 +1,33 @@
+import '~/components/Popover.css'
 import { Options, Placement } from '@popperjs/core'
 import Portal from '@reach/portal'
+import { zIndexes } from '@universe/mycelium'
+import { styled } from '@universe/mycelium/styled'
 import React, { CSSProperties, memo, useCallback, useMemo, useState } from 'react'
 import { usePopper } from 'react-popper'
-import { zIndexes } from 'ui/src/theme'
-import { deprecatedStyled } from '~/lib/deprecated-styled'
-import useInterval from '~/lib/hooks/useInterval'
+import { useInterval } from '~/lib/hooks/useInterval'
 
-const PopoverContainer = deprecatedStyled.div<{ show: boolean }>`
-  z-index: ${zIndexes.popover};
-  pointer-events: none;
-  visibility: ${(props) => (props.show ? 'visible' : 'hidden')};
-  opacity: ${(props) => (props.show ? 1 : 0)};
-  transition:
-    visibility 150ms linear,
-    opacity 150ms linear;
-  color: ${({ theme }) => theme.neutral2};
-`
+const PopoverContainer = styled('div', {
+  platform: 'web',
+  base: 'pointer-events-none [transition:visibility_150ms_linear,opacity_150ms_linear] text-neutral2',
+  variants: {
+    show: {
+      true: 'visible opacity-100',
+      false: 'invisible opacity-0',
+    },
+  },
+  inlineStyle: () => ({ zIndex: zIndexes.popover }),
+})
 
-const ReferenceElement = deprecatedStyled.div`
-  display: inline-block;
-  height: inherit;
-`
+const ReferenceElement = styled('div', {
+  platform: 'web',
+  base: 'inline-block h-[inherit]',
+})
 
-const Arrow = deprecatedStyled.div`
-  width: 8px;
-  height: 8px;
-  z-index: 9998;
-
-  ::before {
-    position: absolute;
-    width: 8px;
-    height: 8px;
-    box-sizing: border-box;
-    z-index: 9998;
-
-    content: '';
-    border: 1px solid ${({ theme }) => theme.surface3};
-    transform: rotate(45deg);
-    background: ${({ theme }) => theme.surface1};
-  }
-
-  &.arrow-top {
-    bottom: -4px;
-    ::before {
-      border-top: none;
-      border-left: none;
-    }
-  }
-
-  &.arrow-bottom {
-    top: -4px;
-    ::before {
-      border-bottom: none;
-      border-right: none;
-    }
-  }
-
-  &.arrow-left {
-    right: -4px;
-
-    ::before {
-      border-bottom: none;
-      border-left: none;
-    }
-  }
-
-  &.arrow-right {
-    left: -4px;
-    ::before {
-      border-right: none;
-      border-top: none;
-    }
-  }
-`
+const Arrow = styled('div', {
+  platform: 'web',
+  base: 'popover-arrow',
+})
 
 export interface PopoverProps {
   content: React.ReactNode
@@ -86,7 +41,7 @@ export interface PopoverProps {
   style?: CSSProperties
 }
 
-const Popover = memo(function Popover({
+export const Popover = memo(function Popover({
   content,
   show,
   children,
@@ -108,7 +63,8 @@ const Popover = memo(function Popover({
       modifiers: [
         { name: 'offset', options: { offset: [offsetX, offsetY] } },
         { name: 'arrow', options: { element: arrowElement } },
-        { name: 'preventOverflow', options: { padding: 8 } },
+        // altAxis keeps side placements (left/right) from overflowing the viewport horizontally on narrow screens
+        { name: 'preventOverflow', options: { padding: 8, altAxis: true } },
       ],
     }),
     [placement, offsetX, offsetY, arrowElement],
@@ -144,5 +100,3 @@ const Popover = memo(function Popover({
     </>
   )
 })
-
-export default Popover

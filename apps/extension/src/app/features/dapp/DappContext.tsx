@@ -1,3 +1,4 @@
+import { UniverseChainId } from '@universe/chains'
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { updateDisplayNameFromTab } from 'src/app/features/dapp/actions'
@@ -7,7 +8,6 @@ import { isConnectedAccount } from 'src/app/features/dapp/utils'
 import { closePopup, PopupName } from 'src/app/features/popups/slice'
 import { backgroundToSidePanelMessageChannel } from 'src/background/messagePassing/messageChannels'
 import { BackgroundToSidePanelRequestType } from 'src/background/messagePassing/types/requests'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { extractBaseUrl } from 'utilities/src/format/urls'
 import { useActiveAccountAddress } from 'wallet/src/features/wallet/hooks'
 

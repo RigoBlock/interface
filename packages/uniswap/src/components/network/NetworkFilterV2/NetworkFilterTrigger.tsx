@@ -1,9 +1,10 @@
-import { Flex, Text, Tooltip, TouchableArea } from 'ui/src'
+import { UniverseChainId } from '@universe/chains'
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
+import { iconSizes } from '@universe/mycelium/tokens'
+import { TestID } from '@universe/test'
+import { Tooltip } from 'ui/src'
 import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
-import { iconSizes, zIndexes } from 'ui/src/theme'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 
 const NETWORK_ICON_SIZE = iconSizes.icon20
 const TOOLTIP_DELAY = { close: 0, open: 0 }
@@ -34,7 +35,7 @@ export function NetworkFilterTrigger({
         {tooltipLabel ? (
           <Tooltip delay={TOOLTIP_DELAY} restMs={0} placement="top">
             <Tooltip.Trigger>{networkLogo}</Tooltip.Trigger>
-            <Tooltip.Content zIndex={zIndexes.overlay}>
+            <Tooltip.Content>
               <Text variant="body4">{tooltipLabel}</Text>
               <Tooltip.Arrow />
             </Tooltip.Content>

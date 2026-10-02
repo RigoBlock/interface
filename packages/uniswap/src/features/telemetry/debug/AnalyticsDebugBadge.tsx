@@ -1,5 +1,5 @@
+import { Flex, Text } from '@universe/mycelium'
 import { useEffect, useRef } from 'react'
-import { Flex, Text } from 'ui/src'
 
 interface AnalyticsDebugBadgeProps {
   newEventCount: number
@@ -76,7 +76,7 @@ export function AnalyticsDebugBadge({
   }, [])
 
   return (
-    // oxlint-disable-next-line react/forbid-elements: Native DOM element needed for pointer capture drag + event isolation
+    // oxlint-disable-next-line react/forbid-elements -- Native DOM element needed for pointer capture drag + event isolation
     <div
       ref={badgeRef}
       style={{

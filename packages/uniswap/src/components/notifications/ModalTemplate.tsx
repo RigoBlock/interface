@@ -1,26 +1,17 @@
+import { isMobileApp, isWebApp } from '@universe/environment'
+import { borderRadii, Button, Flex, type FlexCompatProps, Text, LinearGradient } from '@universe/mycelium'
+import { useIsDarkMode, useMedia } from '@universe/mycelium/theme-hooks-compat'
 import { ReactNode } from 'react'
-import {
-  Button,
-  Flex,
-  FlexProps,
-  IconButton,
-  Image,
-  LinearGradient,
-  styled,
-  Text,
-  useIsDarkMode,
-  useMedia,
-} from 'ui/src'
+import { IconButton, Image, type ImageProps } from 'ui/src'
 import { X } from 'ui/src/components/icons/X'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { parseCustomIconLink } from 'uniswap/src/components/notifications/iconUtils'
 import { ElementName, type ModalNameType } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { isMobileApp, isWebApp } from 'utilities/src/platform'
 
 const MODAL_MAX_WIDTH = 440
 
-const GradientStyles: FlexProps = {
+const GradientStyles = {
   position: 'absolute',
   top: 0,
   left: 0,
@@ -29,20 +20,44 @@ const GradientStyles: FlexProps = {
   backgroundSize: 'cover',
   backgroundPosition: 'center',
   backgroundRepeat: 'no-repeat',
-} satisfies FlexProps
+} satisfies FlexCompatProps
 
-const GradientContainer = styled(Flex, {
-  ...GradientStyles,
-  mask: 'linear-gradient(180deg, rgba(0,0,0,0.48) 0%, rgba(0,0,0,0) 100%)',
-  overflow: 'hidden',
-})
+function GradientContainer({ children, ...rest }: FlexCompatProps): JSX.Element {
+  return (
+    <Flex
+      {...GradientStyles}
+      mask="linear-gradient(180deg, rgba(0,0,0,0.48) 0%, rgba(0,0,0,0) 100%)"
+      overflow="hidden"
+      {...rest}
+    >
+      {children}
+    </Flex>
+  )
+}
 
-export const GradientImage = styled(Image, {
-  ...GradientStyles,
-  borderTopLeftRadius: '$rounded16',
-  borderTopRightRadius: '$rounded16',
-  opacity: 0.48,
-})
+// Renders only on native (the isMobileApp branch): the legacy styled(Image)'s background*
+// declarations never applied there, so only the layout/radius/opacity styles carry over.
+export function GradientImage({ style, ...rest }: ImageProps): JSX.Element {
+  return (
+    <Image
+      position="absolute"
+      top={0}
+      left={0}
+      right={0}
+      opacity={0.48}
+      // Array entry keeps a caller's style merging per-key over the base, as legacy styled(Image) did.
+      style={[
+        {
+          minHeight: 120,
+          borderTopLeftRadius: borderRadii.rounded16,
+          borderTopRightRadius: borderRadii.rounded16,
+        },
+        style,
+      ]}
+      {...rest}
+    />
+  )
+}
 
 const IconStyles = {
   width: 40,
@@ -51,23 +66,36 @@ const IconStyles = {
   backgroundPosition: 'center',
   backgroundRepeat: 'no-repeat',
   borderRadius: '$rounded6',
-} satisfies FlexProps
+} satisfies FlexCompatProps
 
-const IconContainer = styled(Flex, IconStyles)
-const IconImage = styled(Image, IconStyles)
+function IconContainer({ children, ...rest }: FlexCompatProps): JSX.Element {
+  return (
+    <Flex {...IconStyles} {...rest}>
+      {children}
+    </Flex>
+  )
+}
 
-const FeatureRow = styled(Flex, {
-  flexDirection: 'row',
-  alignItems: 'center',
-  gap: '$spacing12',
-})
+// Native-only render (isMobileApp branch), same background* carve-out as GradientImage.
+function IconImage(props: ImageProps): JSX.Element {
+  return <Image width={40} height={40} borderRadius="$rounded6" {...props} />
+}
 
-const FeatureIcon = styled(Flex, {
-  width: 24,
-  height: 24,
-  alignItems: 'center',
-  justifyContent: 'center',
-})
+function FeatureRow({ children }: { children: ReactNode }): JSX.Element {
+  return (
+    <Flex flexDirection="row" alignItems="center" gap="$spacing12">
+      {children}
+    </Flex>
+  )
+}
+
+function FeatureIcon({ children }: { children: ReactNode }): JSX.Element {
+  return (
+    <Flex width={24} height={24} alignItems="center" justifyContent="center">
+      {children}
+    </Flex>
+  )
+}
 
 export interface ModalFeatureItem {
   icon?: ReactNode
@@ -122,7 +150,6 @@ interface ModalTemplateProps {
  * ModalTemplate component
  *
  * A reusable template for rendering modal notifications.
- * Extracted from SolanaPromoModal to be shared across the notification system.
  *
  * Features:
  * - Centered modal with gradient background
@@ -132,9 +159,7 @@ interface ModalTemplateProps {
  * - Close button in top-right corner
  * - Fully customizable layout via children prop
  *
- * Used by:
- * - ModalNotification (notification API-driven modals)
- * - SolanaPromoModal (hardcoded promotional modal)
+ * Used by ModalNotification (notification API-driven modals).
  */
 export function ModalTemplate({
   isOpen,
@@ -165,6 +190,9 @@ export function ModalTemplate({
     <Modal
       hideHandlebar
       renderBehindTopInset
+      // hideHandlebar + renderBehindTopInset nulls the handle and hideCloseButton hides the X on
+      // mobile, so the content pan is this card's only swipe-to-dismiss.
+      enableContentPanningGesture
       isModalOpen={isOpen}
       name={name as ModalNameType}
       maxWidth={maxWidth}
@@ -272,7 +300,6 @@ export function ModalTemplate({
                       <Button
                         size="medium"
                         emphasis={button.emphasis ?? (button.isPrimary ? 'primary' : 'secondary')}
-                        width="100%"
                         minHeight="$spacing48"
                         onPress={button.onPress}
                       >

@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('createFetcher', () => {
   const mockClient: FetchClient = {
-    fetch: vi.fn().mockResolvedValue({ data: 'fetch' }),
+    context: vi.fn(),
+    fetch: vi.fn(),
     get: vi.fn().mockResolvedValue({ data: 'get' }),
     post: vi.fn().mockResolvedValue({ data: 'post' }),
     put: vi.fn().mockResolvedValue({ data: 'put' }),
@@ -14,16 +15,6 @@ describe('createFetcher', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-  })
-
-  it('should create a fetcher for FETCH requests', async () => {
-    const fetcher = createFetcher<{ id: string }, { data: string }>({
-      client: mockClient,
-      method: 'fetch',
-      url: '/api/test',
-    })
-    const result = await fetcher({ id: '123' })
-    expect(result).toEqual({ data: 'fetch' })
   })
 
   it('should create a fetcher for GET requests', async () => {

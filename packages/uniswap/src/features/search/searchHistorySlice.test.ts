@@ -1,4 +1,4 @@
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { SearchHistoryResultType } from 'uniswap/src/features/search/SearchHistoryResult'
 import {
   addToSearchHistory,
@@ -7,7 +7,7 @@ import {
   searchHistoryReducer,
   searchResultId,
 } from 'uniswap/src/features/search/searchHistorySlice'
-import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
+import { buildCurrencyId, buildNativeCurrencyId } from 'uniswap/src/utils/currencyId'
 
 describe('searchHistorySlice', () => {
   describe('searchResultId', () => {
@@ -37,7 +37,24 @@ describe('searchHistorySlice', () => {
         symbol: 'USDC',
         tokenCurrencyIds: [buildCurrencyId(UniverseChainId.Mainnet, '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48')],
       })
-      expect(result).toBe('multichain-token-mc:usdc')
+      expect(result).toBe('multichain-token-mc:usdc-all')
+    })
+
+    it('generates distinct ids for multichain token with and without TDP chain filter', () => {
+      const base = {
+        type: SearchHistoryResultType.MultichainToken as const,
+        multichainId: 'mc:eth',
+        name: 'Ether',
+        symbol: 'ETH',
+        tokenCurrencyIds: [buildNativeCurrencyId(UniverseChainId.Mainnet)],
+      }
+      expect(searchResultId(base)).toBe('multichain-token-mc:eth-all')
+      expect(
+        searchResultId({
+          ...base,
+          tdpChainFilter: UniverseChainId.Unichain,
+        }),
+      ).toBe(`multichain-token-mc:eth-${UniverseChainId.Unichain}`)
     })
   })
 

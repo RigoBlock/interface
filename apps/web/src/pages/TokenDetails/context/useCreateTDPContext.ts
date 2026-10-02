@@ -1,23 +1,46 @@
-import { GraphQLApi } from '@universe/api'
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-import { useMemo } from 'react'
+import type { PlainMessage } from '@bufbuild/protobuf'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import type { MultichainToken } from '@uniswap/client-data-api/dist/data/v2/types_pb'
+import { UniverseChainId } from '@universe/chains'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
+import { useCallback, useMemo } from 'react'
 import { useLocation, useParams } from 'react-router'
-import { useSporeColors } from 'ui/src'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
+import { deriveTokenFromMultichainToken } from 'uniswap/src/data/apiClients/dataApiService/tokens/utils'
+import { normalizeBackendNativeAddress } from 'uniswap/src/data/apiClients/dataApiService/utils/dataApiMultichainToken'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { fromGraphQLChain } from 'uniswap/src/features/chains/utils'
+import { isUniverseChainId } from 'uniswap/src/features/chains/utils'
+import { restV2TokenToCurrencyInfo } from 'uniswap/src/features/dataApi/utils/restV2TokenToCurrencyInfo'
 import { usePortfolioBalances } from 'uniswap/src/features/portfolio/balances/hooks'
-import { buildCurrencyId, buildNativeCurrencyId, isNativeCurrencyAddress } from 'uniswap/src/utils/currencyId'
-import { gqlToCurrency } from '~/appGraphql/data/util'
+import {
+  buildCurrencyId,
+  buildNativeCurrencyId,
+  isNativeCurrencyAddress,
+  normalizeCurrencyIdForMapLookup,
+} from 'uniswap/src/utils/currencyId'
+import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
 import { NATIVE_CHAIN_ID } from '~/constants/tokens'
 import { useActiveAddresses } from '~/features/accounts/store/hooks'
-import { useChainIdFromUrlParam } from '~/features/params/chainParams'
 import { useSrcColor } from '~/hooks/useColor'
 import type { LoadedTDPContext, MultiChainMap, PendingTDPContext } from '~/pages/TokenDetails/context/TDPContext'
+import { useTokenDetailsAuction } from '~/pages/TokenDetails/hooks/useTokenDetailsAuction'
+import { getTdpTokenMultiChainQueryOptions } from '~/pages/TokenDetails/tdpTokenQueryOptions'
 import { getNativeTokenDBAddress } from '~/utils/nativeTokens'
+import { useChainIdFromUrlParam } from '~/utils/params/chainParams'
 
-export function useCreateTDPContext(): PendingTDPContext | LoadedTDPContext {
+/** React Query names refetched by the TDP heartbeat's full tick. Price-bearing queries are owned by the price tick instead (see useTDPHeartbeatCoordinator). */
+const TDP_DATA_API_QUERY_NAMES = [
+  'getTokenMarkets',
+  'getTokenMarketsMultiChain',
+  'getTokenHistoryVolume',
+  'getTokenHistoryTVL',
+]
+
+export function useCreateTDPContext(): {
+  state: PendingTDPContext | LoadedTDPContext
+  balancesRefetch: () => void
+  tokenRefetch: () => Promise<unknown>
+} {
   const { tokenAddress } = useParams<{ tokenAddress: string; chainName: string }>()
   if (!tokenAddress) {
     throw new Error('Invalid token details route: token address URL param is undefined')
@@ -26,40 +49,55 @@ export function useCreateTDPContext(): PendingTDPContext | LoadedTDPContext {
   const currencyChainInfo = getChainInfo(useChainIdFromUrlParam() ?? UniverseChainId.Mainnet)
 
   const isNative = tokenAddress === NATIVE_CHAIN_ID
+  const auctionSource = useTokenDetailsAuction({ chainId: currencyChainInfo.id, tokenAddress, isNative })
 
   const tokenDBAddress = isNative ? getNativeTokenDBAddress(currencyChainInfo.backendChain.chain) : tokenAddress
-  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
 
-  const tokenQuery = GraphQLApi.useTokenWebQuery({
-    variables: {
-      address: tokenDBAddress,
-      chain: currencyChainInfo.backendChain.chain,
-      multichain: multichainTokenUxEnabled,
-    },
-    errorPolicy: 'all',
-  })
+  // getTdpTokenMultiChainQueryOptions cache-normalizes the address, so this query key matches the ones
+  // the shared token hooks (and the Launches hover-prefetch) build — GetTokenMultiChain never double-fetches.
+  const getTokenMultiChainQuery = useQuery(
+    getTdpTokenMultiChainQueryOptions({
+      chainId: currencyChainInfo.id,
+      address: tokenAddress,
+      isNative,
+    }),
+  )
+
+  const token = useMemo(
+    () =>
+      deriveTokenFromMultichainToken({
+        multichainToken: getTokenMultiChainQuery.data?.token,
+        chainId: currencyChainInfo.id,
+      }),
+    [getTokenMultiChainQuery.data?.token, currencyChainInfo.id],
+  )
+
+  const nativeCurrency = useMemo(() => {
+    if (!isNative) {
+      return undefined
+    }
+    // Tempo has a virtual "USD" native currency placeholder that is not a real token
+    // and must not be displayed on the token details page.
+    if (currencyChainInfo.id === UniverseChainId.Tempo) {
+      return undefined
+    }
+    return nativeOnChain(currencyChainInfo.id)
+  }, [isNative, currencyChainInfo.id])
+  const restCurrency = useMemo(() => (token ? restV2TokenToCurrencyInfo(token)?.currency : undefined), [token])
+
+  const multichainToken = getTokenMultiChainQuery.data?.token
+
   const currency = useMemo(() => {
-    if (isNative) {
-      // Tempo has a virtual "USD" native currency placeholder that is not a real token
-      // and must not be displayed on the token details page.
-      if (currencyChainInfo.id === UniverseChainId.Tempo) {
-        return undefined
-      }
-      return nativeOnChain(currencyChainInfo.id)
-    }
-    if (tokenQuery.data?.token) {
-      return gqlToCurrency(tokenQuery.data.token)
-    }
-    return undefined
-  }, [tokenQuery.data?.token, isNative, currencyChainInfo.id])
+    return isNative ? nativeCurrency : restCurrency
+  }, [isNative, nativeCurrency, restCurrency])
 
-  const { multiChainMap, balanceError } = useMultiChainMap(tokenQuery)
+  const { multiChainMap, balanceError, balancesRefetch } = useMultiChainMap(multichainToken)
 
   // Extract color for page usage
   const colors = useSporeColors()
   // oxlint-disable-next-line typescript/no-unnecessary-condition
   const { preloadedLogoSrc } = (useLocation().state as { preloadedLogoSrc?: string }) ?? {}
-  const extractedColorSrc = tokenQuery.data?.token?.project?.logoUrl ?? preloadedLogoSrc
+  const extractedColorSrc = token?.project?.logoUrl ?? preloadedLogoSrc
   const tokenColor =
     useSrcColor({
       src: extractedColorSrc,
@@ -67,78 +105,138 @@ export function useCreateTDPContext(): PendingTDPContext | LoadedTDPContext {
       backgroundColor: colors.surface2.val,
     }).tokenColor ?? undefined
 
-  return useMemo(() => {
+  const { pageQueryLoading, chainDataLoading, multichainTokenLoaded } = useMemo(() => {
+    // keepPreviousData can serve a stale, chain-mismatched token with isLoading: false during a nav,
+    // so isPlaceholderData must count as unsettled too — it's false again on a same-key refetch.
+    const isRestTokenUnsettled = getTokenMultiChainQuery.isLoading || getTokenMultiChainQuery.isPlaceholderData
+    return {
+      pageQueryLoading: isRestTokenUnsettled,
+      chainDataLoading: isRestTokenUnsettled,
+      multichainTokenLoaded: getTokenMultiChainQuery.isSuccess || getTokenMultiChainQuery.isError,
+    }
+  }, [
+    getTokenMultiChainQuery.isLoading,
+    getTokenMultiChainQuery.isPlaceholderData,
+    getTokenMultiChainQuery.isSuccess,
+    getTokenMultiChainQuery.isError,
+  ])
+
+  const queryClient = useQueryClient()
+  const tokenRefetch = useCallback(async () => {
+    const tasks: Promise<unknown>[] = TDP_DATA_API_QUERY_NAMES.map((name) =>
+      queryClient.refetchQueries({ queryKey: [ReactQueryCacheKey.DataApiService, name], type: 'active' }),
+    )
+    return Promise.allSettled(tasks)
+  }, [queryClient])
+
+  const state = useMemo(() => {
     return {
       currency,
       currencyChain: currencyChainInfo.backendChain.chain,
       currencyChainId: currencyChainInfo.id,
       // `currency.address` is checksummed, whereas the `tokenAddress` url param may not be
       address: (currency?.isNative ? NATIVE_CHAIN_ID : currency?.address) ?? tokenAddress,
-      tokenQuery,
       multiChainMap,
       balanceError,
       selectedMultichainChainId: undefined,
       tokenColor,
+      pathTokenDbAddress: tokenDBAddress,
+      token,
+      multichainToken,
+      multichainTokenLoaded,
+      pageQueryLoading,
+      auctionSource,
+      chainDataLoading,
     }
   }, [
     currency,
     currencyChainInfo.backendChain.chain,
     currencyChainInfo.id,
     tokenAddress,
-    tokenQuery,
     multiChainMap,
     balanceError,
     tokenColor,
+    tokenDBAddress,
+    token,
+    multichainToken,
+    multichainTokenLoaded,
+    pageQueryLoading,
+    auctionSource,
+    chainDataLoading,
   ])
+  return { state, balancesRefetch, tokenRefetch }
 }
 
 /** Returns a map to store addresses and balances of the TDP token on other chains */
-function useMultiChainMap(tokenQuery: ReturnType<typeof GraphQLApi.useTokenWebQuery>): {
+function useMultiChainMap(multichainToken: PlainMessage<MultichainToken> | undefined): {
   multiChainMap: MultiChainMap
   balanceError?: Error
+  balancesRefetch: () => void
 } {
   const activeAddresses = useActiveAddresses()
   const evmAddress = activeAddresses.evmAddress
   const svmAddress = activeAddresses.svmAddress
 
-  const { data: balancesById, error: balanceError } = usePortfolioBalances({
+  const {
+    data: balancesById,
+    error: balanceError,
+    refetch: balancesRefetchRaw,
+  } = usePortfolioBalances({
     evmAddress,
     svmAddress,
     skip: !evmAddress && !svmAddress,
   })
 
+  // A loaded-but-empty portfolio has nothing to go stale, and swap confirmations invalidate these
+  // queries directly (see refetchQueriesViaOnchainOverrideVariantSaga) — skip heartbeat refetches.
+  const isPortfolioEmpty = balancesById !== undefined && Object.keys(balancesById).length === 0
+  const balancesRefetch = useCallback(() => {
+    if (!isPortfolioEmpty) {
+      balancesRefetchRaw()
+    }
+  }, [isPortfolioEmpty, balancesRefetchRaw])
+
   const multiChainMap = useMemo(() => {
-    const tokensAcrossChains = tokenQuery.data?.token?.project?.tokens
-    if (!tokensAcrossChains) {
+    const addresses = multichainToken?.addresses
+    if (!addresses) {
       return {}
     }
 
-    return tokensAcrossChains.reduce<MultiChainMap>((map, current) => {
-      if (!map[current.chain]) {
-        map[current.chain] = {}
-      }
-      const update = map[current.chain] ?? {}
-      update.address = current.address
+    // GetTokenMultiChain returns checksummed addresses while portfolio balance ids are built from
+    // REST portfolio casing (typically lowercase); legacy GraphQL rows are lowercase. Normalize
+    // both sides of the lookup so balances never miss on address case.
+    const balancesByNormalizedId =
+      balancesById &&
+      Object.fromEntries(
+        Object.entries(balancesById).map(([id, balance]) => [normalizeCurrencyIdForMapLookup(id), balance]),
+      )
 
-      // Find the balance for this token using the balancesById map
-      if (balancesById) {
-        // Convert GraphQL chain to UniverseChainId and construct currency ID
-        const chainId = fromGraphQLChain(current.chain)
-        if (chainId) {
-          // For native tokens (no address or NATIVE_CHAIN_ID), use the native address
-          // For non-native tokens, use the token address
-          const currencyId =
-            !current.address || isNativeCurrencyAddress(chainId, current.address)
-              ? buildNativeCurrencyId(chainId)
-              : buildCurrencyId(chainId, current.address)
-          update.balance = balancesById[currencyId]
-        }
+    return Object.entries(addresses).reduce<MultiChainMap>((map, [chainIdKey, deploymentAddress]) => {
+      const chainId = Number(chainIdKey)
+      if (!isUniverseChainId(chainId)) {
+        return map
+      }
+      // The backend's v2 endpoints serve native tokens under placeholder addresses ('ETH', the legacy
+      // 0xeee… sentinel, or the zero address) that don't match chains like Polygon/Celo whose canonical
+      // native address is a real contract address — normalize before checking/building the currency id.
+      const normalizedAddress = normalizeBackendNativeAddress({ chainId, address: deploymentAddress })
+      const isNativeDeployment = isNativeCurrencyAddress(chainId, normalizedAddress)
+
+      const update = map[chainId] ?? {}
+      // Native deployments keep an undefined address (parity with GraphQL's null-address rows)
+      update.address = isNativeDeployment ? undefined : deploymentAddress
+
+      if (balancesByNormalizedId) {
+        const currencyId = isNativeDeployment
+          ? buildNativeCurrencyId(chainId)
+          : buildCurrencyId(chainId, deploymentAddress)
+        update.balance = balancesByNormalizedId[normalizeCurrencyIdForMapLookup(currencyId)]
       }
 
-      map[current.chain] = update
+      map[chainId] = update
       return map
     }, {})
-  }, [balancesById, tokenQuery.data?.token?.project?.tokens])
+  }, [balancesById, multichainToken?.addresses])
 
-  return { multiChainMap, balanceError }
+  return { multiChainMap, balanceError, balancesRefetch }
 }

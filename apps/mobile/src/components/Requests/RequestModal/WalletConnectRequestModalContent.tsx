@@ -1,19 +1,21 @@
 import { useBottomSheetInternal } from '@gorhom/bottom-sheet'
 import { useNetInfo } from '@react-native-community/netinfo'
 import { GasFeeResult } from '@universe/api'
+import { Flex, Text } from '@universe/mycelium'
+import { AlertTriangleFilled } from '@universe/mycelium/icons/AlertTriangleFilled'
 import { useTranslation } from 'react-i18next'
 import Animated, { useAnimatedStyle } from 'react-native-reanimated'
 import { ClientDetails, PermitInfo } from 'src/components/Requests/RequestModal/ClientDetails'
 import {
   isBatchedTransactionRequest,
   isTransactionRequest,
+  isUserOpRequest,
   WalletConnectSigningRequest,
 } from 'src/features/walletConnect/walletConnectSlice'
-import { Flex, Text } from 'ui/src'
-import { AlertTriangleFilled } from 'ui/src/components/icons'
 import { BaseCard } from 'uniswap/src/components/BaseCard/BaseCard'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { EthMethod } from 'uniswap/src/features/dappRequests/types'
+import type { GasFeeOverrides } from 'uniswap/src/features/gas/types'
 import { hasGasEstimationFailed } from 'uniswap/src/features/gas/utils'
 import { isPrimaryTypePermit, UwULinkMethod } from 'uniswap/src/types/walletConnect'
 import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
@@ -24,10 +26,19 @@ import { DappSendCallsScanningContent } from 'wallet/src/components/dappRequests
 import { DappSignTypedDataContent } from 'wallet/src/components/dappRequests/DappSignTypedDataContent'
 import { DappTransactionScanningContent } from 'wallet/src/components/dappRequests/DappTransactionScanningContent'
 import { WarningBox } from 'wallet/src/components/WarningBox/WarningBox'
-import { TransactionRiskLevel } from 'wallet/src/features/dappRequests/types'
+import { useBlockaidVerification } from 'wallet/src/features/dappRequests/hooks/useBlockaidVerification'
+import { type DappVerificationStatus, TransactionRiskLevel } from 'wallet/src/features/dappRequests/types'
+import {
+  applyFirstPartyOverride,
+  isFirstPartyDapp,
+  mergeVerificationStatuses,
+} from 'wallet/src/features/dappRequests/verification'
 
 const isPotentiallyUnsafe = (request: WalletConnectSigningRequest): boolean => request.type !== EthMethod.PersonalSign
 
+// Erc20Send is deliberately excluded: gas is re-estimated by the wallet at send time, so gating
+// Confirm on the scan-time gas estimate would let a transient gas-fee error permanently disable the
+// pay flow with no retry. The scan-based fail-closed gate still applies to non-wallet-built sends.
 export const getDoesMethodCostGas = (request: WalletConnectSigningRequest): boolean =>
   request.type === EthMethod.EthSendTransaction || request.type === EthMethod.WalletSendCalls
 
@@ -62,8 +73,11 @@ type WalletConnectRequestModalContentProps = {
   request: WalletConnectSigningRequest
   showSmartWalletActivation?: boolean
   confirmedRisk: boolean
+  gasOverrides?: GasFeeOverrides
   onConfirmRisk: (confirmed: boolean) => void
-  onRiskLevelChange: (riskLevel: TransactionRiskLevel) => void
+  onChangeGasOverrides?: (overrides: GasFeeOverrides | undefined) => void
+  onRiskLevelChange: (riskLevel: TransactionRiskLevel | null) => void
+  onCriticalRiskChange: (isCriticalRisk: boolean) => void
 }
 
 export function WalletConnectRequestModalContent({
@@ -72,19 +86,33 @@ export function WalletConnectRequestModalContent({
   gasFee,
   showSmartWalletActivation,
   confirmedRisk,
+  gasOverrides,
   onConfirmRisk,
+  onChangeGasOverrides,
   onRiskLevelChange,
+  onCriticalRiskChange,
 }: WalletConnectRequestModalContentProps): JSX.Element {
   const chainId = request.chainId
   const permitInfo = getPermitInfo(request)
   const nativeCurrency = getChainInfo(chainId).nativeCurrency
 
-  const { animatedFooterHeight } = useBottomSheetInternal()
+  const { verificationStatus: blockaidStatus, isLoading: isVerificationLoading } = useBlockaidVerification(
+    request.dappRequestInfo.url,
+  )
+  // Merge WC Verify + Blockaid; only apply the first-party override against the WC Verify
+  // trusted origin — never the dapp-supplied metadata URL. Undefined while loading so the
+  // badge/alert don't flash an intermediate state.
+  const verificationStatus: DappVerificationStatus | undefined = isVerificationLoading
+    ? undefined
+    : applyFirstPartyOverride(mergeVerificationStatuses(request.verifyStatus, blockaidStatus), request.trustedOriginUrl)
+  const isFirstParty = isFirstPartyDapp(request.trustedOriginUrl)
+
+  const { animatedLayoutState } = useBottomSheetInternal()
 
   const netInfo = useNetInfo()
 
   const bottomSpacerStyle = useAnimatedStyle(() => ({
-    height: animatedFooterHeight.value,
+    height: animatedLayoutState.value.footerHeight,
   }))
 
   // If link mode is supported, we can sign messages through universal links on device
@@ -93,18 +121,27 @@ export function WalletConnectRequestModalContent({
   return (
     <>
       <Flex px="$spacing24" mb="$spacing24">
-        <ClientDetails permitInfo={permitInfo} request={request} />
+        <ClientDetails
+          permitInfo={permitInfo}
+          request={request}
+          verificationStatus={verificationStatus}
+          isFirstParty={isFirstParty}
+        />
       </Flex>
 
       <Flex px="$spacing16">
         <ScanningContent
           request={request}
           chainId={chainId}
+          siteVerificationStatus={verificationStatus}
           gasFee={gasFee}
           showSmartWalletActivation={showSmartWalletActivation}
           confirmedRisk={confirmedRisk}
+          gasOverrides={gasOverrides}
           onConfirmRisk={onConfirmRisk}
+          onChangeGasOverrides={onChangeGasOverrides}
           onRiskLevelChange={onRiskLevelChange}
+          onCriticalRiskChange={onCriticalRiskChange}
         />
 
         <RequestWarnings
@@ -210,19 +247,27 @@ function WarningSection({
 function ScanningContent({
   request,
   chainId,
+  siteVerificationStatus,
   gasFee,
   showSmartWalletActivation,
   confirmedRisk,
+  gasOverrides,
   onConfirmRisk,
+  onChangeGasOverrides,
   onRiskLevelChange,
+  onCriticalRiskChange,
 }: {
   request: WalletConnectSigningRequest
   chainId: number
+  siteVerificationStatus?: DappVerificationStatus
   gasFee: GasFeeResult
   showSmartWalletActivation?: boolean
   confirmedRisk: boolean
+  gasOverrides?: GasFeeOverrides
   onConfirmRisk: (confirmed: boolean) => void
-  onRiskLevelChange: (riskLevel: TransactionRiskLevel) => void
+  onChangeGasOverrides?: (overrides: GasFeeOverrides | undefined) => void
+  onRiskLevelChange: (riskLevel: TransactionRiskLevel | null) => void
+  onCriticalRiskChange: (isCriticalRisk: boolean) => void
 }): JSX.Element {
   switch (request.type) {
     case EthMethod.EthSendTransaction:
@@ -233,12 +278,16 @@ function ScanningContent({
           chainId={chainId}
           account={request.account}
           dappUrl={request.dappRequestInfo.url}
+          siteVerificationStatus={siteVerificationStatus}
           gasFee={gasFee}
-          requestMethod={request.type}
+          requestMethod={request.type === UwULinkMethod.Erc20Send ? EthMethod.EthSendTransaction : request.type}
           showSmartWalletActivation={showSmartWalletActivation}
           confirmedRisk={confirmedRisk}
+          gasOverrides={gasOverrides}
           onConfirmRisk={onConfirmRisk}
+          onChangeGasOverrides={onChangeGasOverrides}
           onRiskLevelChange={onRiskLevelChange}
+          onCriticalRiskChange={onCriticalRiskChange}
         />
       )
 
@@ -259,22 +308,29 @@ function ScanningContent({
           confirmedRisk={confirmedRisk}
           onConfirmRisk={onConfirmRisk}
           onRiskLevelChange={onRiskLevelChange}
+          onCriticalRiskChange={onCriticalRiskChange}
         />
       )
 
     case EthMethod.WalletSendCalls:
       return (
         <DappSendCallsScanningContent
-          calls={request.calls}
+          request={request}
           chainId={chainId}
           account={request.account}
           dappUrl={request.dappRequestInfo.url}
+          siteVerificationStatus={siteVerificationStatus}
           gasFee={gasFee}
           requestMethod={request.type}
           showSmartWalletActivation={showSmartWalletActivation}
           confirmedRisk={confirmedRisk}
+          tx={isBatchedTransactionRequest(request) ? { ...request.encodedTransaction, chainId } : undefined}
+          gasOverrides={gasOverrides}
+          sponsorMetadata={isUserOpRequest(request) && request.gasSponsored ? request.sponsorMetadata : undefined}
           onConfirmRisk={onConfirmRisk}
+          onChangeGasOverrides={onChangeGasOverrides}
           onRiskLevelChange={onRiskLevelChange}
+          onCriticalRiskChange={onCriticalRiskChange}
         />
       )
 
@@ -285,16 +341,16 @@ function ScanningContent({
           chainId={chainId}
           account={request.account}
           method={request.type}
-          params={
-            request.type === EthMethod.SignTypedDataV4
-              ? [request.account, request.rawMessage]
-              : [request.rawMessage, request.account]
-          }
+          // Both legacy eth_signTypedData and _v4 are parsed and signed as [account, typedData]
+          // (see getAddressAndMessageToSign), so the Blockaid scan must use the same order — otherwise
+          // legacy requests scan reversed params and silently lose malicious-request detection.
+          params={[request.account, request.rawMessage]}
           dappUrl={request.dappRequestInfo.url}
           confirmedRisk={confirmedRisk}
           typedData={request.rawMessage}
           onConfirmRisk={onConfirmRisk}
           onRiskLevelChange={onRiskLevelChange}
+          onCriticalRiskChange={onCriticalRiskChange}
         />
       )
   }

@@ -1,4 +1,4 @@
-import { IconSizeTokens } from 'ui/src/theme'
+import { IconSizeTokens } from '@universe/mycelium'
 import { DisplayName } from 'uniswap/src/features/accounts/types'
 import { PlatformSplitStubError } from 'utilities/src/errors'
 

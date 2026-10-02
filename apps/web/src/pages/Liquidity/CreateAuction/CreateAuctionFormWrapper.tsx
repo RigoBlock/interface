@@ -1,17 +1,19 @@
+import { Flex, Text } from '@universe/mycelium'
+import { RotatableChevron } from '@universe/mycelium/icons/RotatableChevron'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text, useMedia } from 'ui/src'
-import { Chevron } from 'ui/src/components/icons/Chevron'
 import { BreadcrumbNavContainer, BreadcrumbNavLink } from '~/components/BreadcrumbNav'
 import {
   PoolProgressIndicator,
   PoolProgressIndicatorHeader,
   SIDEBAR_WIDTH,
-} from '~/components/PoolProgressIndicator/PoolProgressIndicator'
+} from '~/features/Liquidity/PoolProgressIndicator/PoolProgressIndicator'
 import {
   useCreateAuctionStore,
   useCreateAuctionStoreActions,
 } from '~/pages/Liquidity/CreateAuction/CreateAuctionContext'
+import { useIsQuickLaunchMode } from '~/pages/Liquidity/CreateAuction/hooks/useIsQuickLaunchMode'
 import { useIsStepValid } from '~/pages/Liquidity/CreateAuction/hooks/useIsStepValid'
 import { CreateAuctionStep } from '~/pages/Liquidity/CreateAuction/types'
 
@@ -27,8 +29,20 @@ export function CreateAuctionFormWrapper({ children }: { children: React.ReactNo
   const { setStep } = useCreateAuctionStoreActions()
   const isStep0Valid = useIsStepValid(CreateAuctionStep.ADD_TOKEN_INFO)
   const isStep1Valid = useIsStepValid(CreateAuctionStep.CONFIGURE_AUCTION)
+  const isQuickLaunchMode = useIsQuickLaunchMode()
 
   const progressSteps = useMemo(() => {
+    // Quick launch collapses the wizard to a single configure step (Review stays excluded, as below).
+    if (isQuickLaunchMode) {
+      return [
+        {
+          label: t('toucan.createAuction.quickLaunch.step.title'),
+          caption: t('toucan.createAuction.quickLaunch.title'),
+          active: step === CreateAuctionStep.ADD_TOKEN_INFO,
+        },
+      ]
+    }
+
     const stepValidities = [isStep0Valid, isStep1Valid]
 
     const createStep = ({ label, stepEnum }: { label: string; stepEnum: CreateAuctionStep }) => {
@@ -49,7 +63,7 @@ export function CreateAuctionFormWrapper({ children }: { children: React.ReactNo
       createStep({ label: t('toucan.createAuction.step.customizePool'), stepEnum: CreateAuctionStep.CUSTOMIZE_POOL }),
       // Review step intentionally excluded - shown inline without step navigation
     ]
-  }, [step, setStep, t, isStep0Valid, isStep1Valid])
+  }, [step, setStep, t, isStep0Valid, isStep1Valid, isQuickLaunchMode])
 
   return (
     <Flex
@@ -63,12 +77,13 @@ export function CreateAuctionFormWrapper({ children }: { children: React.ReactNo
         mx: 'auto',
       }}
       $sm={{
-        px: '$spacing8',
+        px: '$spacing20',
       }}
     >
       <BreadcrumbNavContainer aria-label="breadcrumb-nav">
         <BreadcrumbNavLink to="/positions">
-          {t('pool.positions.title')} <Chevron size="$icon.16" color="$neutral2" rotate="180deg" />
+          {/* direction="right" is unconditionally 180deg, matching the legacy direction-blind rotate="180deg" ("end" would flip in RTL) */}
+          {t('pool.positions.title')} <RotatableChevron size="$icon.16" color="$neutral2" direction="right" />
         </BreadcrumbNavLink>
       </BreadcrumbNavContainer>
       <Flex
@@ -81,9 +96,15 @@ export function CreateAuctionFormWrapper({ children }: { children: React.ReactNo
         mr="auto"
         mb={media.xl ? '$spacing16' : '$spacing32'}
       >
-        <Text variant="heading2">{t('toucan.createAuction.title')}</Text>
+        <Text variant="heading2">
+          {step === CreateAuctionStep.REVIEW_LAUNCH
+            ? t('toucan.createAuction.review.title')
+            : t('toucan.createAuction.title')}
+        </Text>
       </Flex>
-      {media.xl && step !== CreateAuctionStep.REVIEW_LAUNCH && <PoolProgressIndicatorHeader steps={progressSteps} />}
+      {media.xl && step !== CreateAuctionStep.REVIEW_LAUNCH && (
+        <PoolProgressIndicatorHeader flush steps={progressSteps} />
+      )}
       <Flex
         row
         gap="$spacing20"

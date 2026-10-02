@@ -1,11 +1,11 @@
-import { GraphQLApi } from '@universe/api'
+import { normalizeTokenAddressForCache } from '@universe/chains'
 import { useMemo } from 'react'
-import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
 import { normalizeTextInput } from 'utilities/src/primitives/string'
-import { useExploreTablesFilterStore } from '~/pages/Explore/exploreTablesFilterStore'
+import type { PoolTransaction } from '~/data/transactions/poolTransaction'
+import { useExploreTablesFilterStore } from '~/features/Explore/state/exploreTablesFilterStore'
 
 // Filters transactions in Explore by hash, token symbol, or token address
-export function useFilteredTransactions(transactions: GraphQLApi.PoolTxFragment[]) {
+export function useFilteredTransactions(transactions: PoolTransaction[]) {
   const filterString = useExploreTablesFilterStore((s) => s.filterString)
 
   const lowercaseFilterString = useMemo(() => normalizeTextInput(filterString, true), [filterString])

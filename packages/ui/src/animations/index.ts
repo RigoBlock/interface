@@ -1,6 +1,5 @@
 export * from './animationModifiers'
 export * from './components/AnimateInOrder'
-export * from './components/AnimatePresencePager'
 export * from './components/HeightAnimator'
 export * from './components/Jiggly'
 export * from './components/WidthAnimator'

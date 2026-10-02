@@ -1,155 +1,16 @@
 import { type BlockaidScanTransactionResponse } from '@universe/api'
-import { getNativeAddress } from 'uniswap/src/constants/addresses'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { AddressStringFormat, normalizeAddress } from 'uniswap/src/utils/addresses'
-import { formatUnits } from 'viem'
-import { TransactionErrorType } from 'wallet/src/components/dappRequests/TransactionErrorSection'
+import { UniverseChainId, AddressStringFormat, normalizeAddress } from '@universe/chains'
 import {
+  type DappRequestCall,
   type ParsedTransactionData,
   type TransactionAsset,
+  TransactionErrorType,
   TransactionRiskLevel,
   type TransactionSection,
   TransactionSectionType,
 } from 'wallet/src/features/dappRequests/types'
-
-/**
- * Special marker for unlimited approvals to be localized in the UI
- */
-export const UNLIMITED_APPROVAL_AMOUNT = 'UNLIMITED'
-
-/**
- * Maximum number of decimal places to display for amounts
- */
-const MAX_DECIMAL_PLACES = 6
-
-/**
- * Rounds a numeric value to a maximum of 6 decimal places.
- * If a non-zero value would round to 0, the original value is preserved
- * so downstream formatters can apply appropriate "<X" treatments (e.g. "<0.001").
- * @param value - The value to round (number or string)
- * @returns Rounded value as string
- */
-export function roundToDecimals(value: number | string): string {
-  const numValue = typeof value === 'string' ? parseFloat(value) : value
-
-  if (isNaN(numValue)) {
-    return String(value)
-  }
-
-  // Round to 6 decimal places and remove trailing zeros
-  const rounded = parseFloat(numValue.toFixed(MAX_DECIMAL_PLACES))
-
-  // Preserve non-zero values — toFixed avoids scientific notation from String()
-  if (rounded === 0 && numValue !== 0) {
-    return numValue.toFixed(MAX_DECIMAL_PLACES + 14).replace(/\.?0+$/, '')
-  }
-
-  return String(rounded)
-}
-
-/**
- * Threshold for treating large approval amounts as unlimited
- * Any approval amount >= this value is considered effectively unlimited
- * 1e24 is roughly 1 septillion tokens, far exceeding any realistic supply
- */
-const LARGE_APPROVAL_THRESHOLD = 1e24
-
-/**
- * Checks if an approval amount represents an unlimited/max approval
- * Detects several patterns of unlimited approvals:
- * - 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff (max uint256)
- * - 0xffffffffffffffffffffffffffffffffffffffff (max uint128/160 - shorter but all f's)
- * - Values very close to max (e.g., 0xfff...ffe17b7 with >90% f's)
- * - Extremely large numeric values (>= 1e24) when converted to decimal
- *
- * @param approval - The hex approval amount (e.g., "0xffffffffffffffff...")
- * @param decimals - The token decimals, used for numeric value checking
- * @returns true if the approval should be treated as unlimited
- */
-function isUnlimitedApproval(approval: string | undefined, decimals: number = 18): boolean {
-  if (!approval) {
-    return false
-  }
-
-  const lowerApproval = approval.toLowerCase()
-
-  // Remove '0x' prefix for analysis
-  const hexDigits = lowerApproval.startsWith('0x') ? lowerApproval.slice(2) : lowerApproval
-
-  // Check if it's all f's (any length) - covers max uint256, uint128, uint160, etc.
-  if (/^f+$/.test(hexDigits)) {
-    return true
-  }
-
-  // Check if it's a very large number with mostly f's
-  // This catches cases like 0xfff...ffe17b7 which are effectively unlimited
-  if (hexDigits.length >= 40) {
-    // At least 160 bits
-    const fCount = hexDigits.match(/^f+/)?.[0]?.length || 0
-    // If more than 90% of the leading digits are 'f', consider it unlimited
-    if (fCount / hexDigits.length > 0.9) {
-      return true
-    }
-  }
-
-  // Check if the numeric value is extremely large (effectively unlimited)
-  // This catches cases that don't match the hex patterns above but are still impractically large
-  const formattedAmount = formatApprovalAmount(approval, decimals)
-  if (formattedAmount) {
-    const numericValue = parseFloat(formattedAmount)
-    if (!isNaN(numericValue) && numericValue >= LARGE_APPROVAL_THRESHOLD) {
-      return true
-    }
-  }
-
-  return false
-}
-
-/**
- * Gets the appropriate address for an asset
- * For native assets, returns the native address for the chain
- * For other assets (ERC20, NFT, etc.), returns the contract address
- */
-function getAssetAddress(asset: { type: string; chain_id?: number; address?: string }): string {
-  if (asset.type === 'NATIVE' && asset.chain_id !== undefined) {
-    return getNativeAddress(asset.chain_id)
-  }
-  return asset.address || ''
-}
-
-/**
- * Converts a hex approval amount to a human-readable decimal string
- * Handles very large numbers that would overflow JavaScript's number precision
- */
-function formatApprovalAmount(approval: string | undefined, decimals: number): string | undefined {
-  if (!approval) {
-    return undefined
-  }
-
-  try {
-    // Convert hex to BigInt and format with viem
-    const hexValue = approval.startsWith('0x') ? approval : `0x${approval}`
-    const bigIntValue = BigInt(hexValue)
-    const formatted = formatUnits(bigIntValue, decimals)
-
-    // For very large numbers, just return the whole part
-    const [wholePart = '0', fractionalPart] = formatted.split('.')
-    if (wholePart.length > 15) {
-      // Number too large to be meaningful, likely unlimited
-      return wholePart
-    }
-
-    // Truncate to MAX_DECIMAL_PLACES
-    if (!fractionalPart) {
-      return wholePart
-    }
-
-    const trimmedFractional = fractionalPart.slice(0, MAX_DECIMAL_PLACES).replace(/0+$/, '')
-    return trimmedFractional ? `${wholePart}.${trimmedFractional}` : wholePart
-  } catch {
-    return undefined
-  }
-}
+import { parseApprovals } from 'wallet/src/features/dappRequests/utils/blockaidApprovalUtils'
+import { getAssetAddress, roundToDecimals } from 'wallet/src/features/dappRequests/utils/blockaidAssetUtils'
 
 interface DetermineTransactionErrorTypeParams {
   sections: TransactionSection[]
@@ -185,7 +46,7 @@ export function determineTransactionErrorType({
   rawData,
 }: DetermineTransactionErrorTypeParams): TransactionErrorType | undefined {
   const showContractInteractionFallback = sections.length === 0 && !providedErrorType && rawData
-  return showContractInteractionFallback ? 'contract_interaction' : providedErrorType
+  return showContractInteractionFallback ? TransactionErrorType.ContractInteraction : providedErrorType
 }
 
 /**
@@ -211,19 +72,70 @@ export function getRiskLevelFromClassification(classification?: string): Transac
   return TransactionRiskLevel.None
 }
 
+// Rank levels numerically so multiple Blockaid signals can be combined by taking the highest.
+const RISK_SEVERITY: Record<TransactionRiskLevel, number> = {
+  [TransactionRiskLevel.None]: 0,
+  [TransactionRiskLevel.Warning]: 1,
+  [TransactionRiskLevel.Critical]: 2,
+}
+
+function maxRiskLevel(levels: TransactionRiskLevel[]): TransactionRiskLevel {
+  return levels.reduce(
+    (highest, level) => (RISK_SEVERITY[level] > RISK_SEVERITY[highest] ? level : highest),
+    TransactionRiskLevel.None,
+  )
+}
+
+// `result_type` is Blockaid's authoritative verdict, matched case-insensitively. Benign/Spam/unknown -> None.
+export function getRiskLevelFromResultType(resultType?: string): TransactionRiskLevel {
+  switch (resultType?.toLowerCase()) {
+    case 'malicious':
+      return TransactionRiskLevel.Critical
+    case 'warning':
+      return TransactionRiskLevel.Warning
+    default:
+      return TransactionRiskLevel.None
+  }
+}
+
+// Defense-in-depth: a Malicious feature (e.g. HIGH_RISK_SPENDER) -> Critical, a Warning feature -> Warning.
+// `type` is a validated enum (unlike result_type), so exact match is intentional — a casing drift fails Zod upstream.
+function getRiskLevelFromFeatures(features?: { type: string }[]): TransactionRiskLevel {
+  if (!features?.length) {
+    return TransactionRiskLevel.None
+  }
+  if (features.some((feature) => feature.type === 'Malicious')) {
+    return TransactionRiskLevel.Critical
+  }
+  if (features.some((feature) => feature.type === 'Warning')) {
+    return TransactionRiskLevel.Warning
+  }
+  return TransactionRiskLevel.None
+}
+
+/**
+ * Risk level from a Blockaid validation result: the highest severity across `result_type`
+ * (authoritative verdict), `features[].type` (defense-in-depth), and a `classification` substring match.
+ */
+export function getRiskLevelFromValidation(
+  validation?: BlockaidScanTransactionResponse['validation'],
+): TransactionRiskLevel {
+  if (!validation) {
+    return TransactionRiskLevel.None
+  }
+  return maxRiskLevel([
+    getRiskLevelFromResultType(validation.result_type),
+    getRiskLevelFromFeatures(validation.features),
+    getRiskLevelFromClassification(validation.classification),
+  ])
+}
+
 /**
  * Type alias for asset diffs array from successful simulation
  */
 type AssetDiffs = NonNullable<
   Extract<BlockaidScanTransactionResponse['simulation'], { status: 'Success' }>['account_summary']
 >['assets_diffs']
-
-/**
- * Type alias for exposures array from successful simulation
- */
-type Exposures = NonNullable<
-  Extract<BlockaidScanTransactionResponse['simulation'], { status: 'Success' }>['account_summary']
->['exposures']
 
 /**
  * Parses sending assets from Blockaid asset diffs
@@ -299,71 +211,22 @@ export function parseReceivingAssets(assetsDiffs: AssetDiffs, chainId: UniverseC
   }
 }
 
-/**
- * Parses approval exposures from Blockaid exposures
- */
-export function parseApprovals(exposures: Exposures, chainId: UniverseChainId): TransactionSection | null {
-  const exposureAssets: TransactionAsset[] = []
-
-  exposures.forEach((exposure: (typeof exposures)[number]) => {
-    const asset = exposure.asset
-    // Spenders is a record keyed by address
-    Object.entries(exposure.spenders).forEach(([spenderAddress, spenderData]) => {
-      // Get the asset decimals for unlimited approval detection
-      const decimals = asset.type === 'ERC20' && 'decimals' in asset ? asset.decimals : 18
-      const unlimited = isUnlimitedApproval(spenderData.approval, decimals)
-
-      // Determine the amount to display
-      let amount: string | undefined
-      if (unlimited) {
-        amount = UNLIMITED_APPROVAL_AMOUNT
-      } else if (spenderData.approval) {
-        // Format the approval amount from hex, using asset decimals if available
-        const formattedAmount = formatApprovalAmount(spenderData.approval, decimals)
-        if (formattedAmount) {
-          // Round it to avoid excessive decimals
-          amount = roundToDecimals(formattedAmount)
-        }
-      }
-
-      // Only add if we have an amount to display
-      if (amount) {
-        exposureAssets.push({
-          type: asset.type,
-          symbol: asset.symbol,
-          name: asset.type === 'ERC20' ? asset.name || asset.symbol : asset.name,
-          amount,
-          // USD value is not shown for approvals - only the approval amount
-          usdValue: undefined,
-          logoUrl: asset.logo_url,
-          address: getAssetAddress(asset),
-          chainId,
-          spenderAddress,
-        })
-      }
-    })
-  })
-
-  if (exposureAssets.length === 0) {
-    return null
-  }
-
-  return {
-    type: TransactionSectionType.Approving,
-    assets: exposureAssets,
-  }
+interface ParseTransactionSectionsParams {
+  scanResult: BlockaidScanTransactionResponse | null
+  chainId: UniverseChainId
+  calls?: readonly DappRequestCall[]
 }
 
 /**
  * Parses Blockaid scan result into transaction sections for UI display
  */
-export function parseTransactionSections(
-  scanResult: BlockaidScanTransactionResponse | null,
-  chainId: UniverseChainId,
-): ParsedTransactionData {
-  // Always check validation classification first (critical for signature requests that lack simulation)
-  const classification = scanResult?.validation?.classification
-  const riskLevel = getRiskLevelFromClassification(classification)
+export function parseTransactionSections({
+  scanResult,
+  chainId,
+  calls = [],
+}: ParseTransactionSectionsParams): ParsedTransactionData {
+  // Derive risk from validation signals; works even without a simulation (signature requests).
+  const riskLevel = getRiskLevelFromValidation(scanResult?.validation)
 
   if (!scanResult?.simulation || scanResult.simulation.status !== 'Success') {
     return {
@@ -378,7 +241,7 @@ export function parseTransactionSections(
     sections: [
       parseSendingAssets(assets_diffs, chainId),
       parseReceivingAssets(assets_diffs, chainId),
-      parseApprovals(exposures, chainId),
+      parseApprovals({ exposures, chainId, calls }),
     ].filter((section): section is TransactionSection => section !== null),
     riskLevel,
   }

@@ -1,21 +1,24 @@
+import { UniverseChainId } from '@universe/chains'
+import { isIOS } from '@universe/environment'
+import { AnimatedFlex, Flex, Text, TouchableArea } from '@universe/mycelium'
+import { fadeInQuick } from '@universe/tailwind/animations/reanimated'
+import { TestID } from '@universe/test'
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { TextInput } from 'react-native'
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller'
 import { RecipientScanModal } from 'src/components/RecipientSelect/RecipientScanModal'
-import { Flex, flexStyles, Loader, Text, TouchableArea } from 'ui/src'
+import type { EIP681URI } from 'src/components/Requests/ScanSheet/util'
+import { flexStyles, Loader } from 'ui/src'
 import { Scan, UserSearch } from 'ui/src/components/icons'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { dismissNativeKeyboard } from 'utilities/src/device/keyboard/dismissNativeKeyboard'
-import { isIOS } from 'utilities/src/platform'
 import { useFilteredRecipientSections } from 'wallet/src/components/RecipientSearch/hooks'
 import { RecipientList } from 'wallet/src/components/RecipientSearch/RecipientList'
 import { RecipientSelectSpeedBumps } from 'wallet/src/components/RecipientSearch/RecipientSelectSpeedBumps'
 import { SearchBar } from 'wallet/src/features/search/SearchBar'
 
 interface RecipientSelectProps {
-  onSelectRecipient: (newRecipientAddress: string) => void
+  onSelectRecipient: (newRecipientAddress: string, paymentRequest?: EIP681URI) => void
   onHideRecipientSelector: () => void
   recipient?: string
   focusInput?: boolean
@@ -48,6 +51,7 @@ function RecipientSelectInner({
   const [showQRScanner, setShowQRScanner] = useState(false)
   const [checkSpeedBumps, setCheckSpeedBumps] = useState(false)
   const [selectedRecipient, setSelectedRecipient] = useState(recipient)
+  const [selectedPaymentRequest, setSelectedPaymentRequest] = useState<EIP681URI>()
   const { sections, loading } = useFilteredRecipientSections(pattern)
 
   useEffect(() => {
@@ -67,29 +71,23 @@ function RecipientSelectInner({
     setShowQRScanner(false)
   }, [])
 
-  const onSelect = useCallback((newRecipient: string) => {
+  const onSelect = useCallback((newRecipient: string, paymentRequest?: EIP681URI) => {
     setSelectedRecipient(newRecipient)
+    setSelectedPaymentRequest(paymentRequest)
     setCheckSpeedBumps(true)
   }, [])
 
   const onSpeedBumpConfirm = useCallback(() => {
     if (selectedRecipient) {
-      onSelectRecipient(selectedRecipient)
+      onSelectRecipient(selectedRecipient, selectedPaymentRequest)
     }
-  }, [onSelectRecipient, selectedRecipient])
+  }, [onSelectRecipient, selectedPaymentRequest, selectedRecipient])
 
   return (
     <>
       <KeyboardAvoidingView behavior={isIOS ? 'padding' : 'height'} style={flexStyles.fill}>
-        <Flex
-          animation="quick"
-          enterStyle={{ opacity: 0 }}
-          exitStyle={{ opacity: 0 }}
-          flex={1}
-          gap="$spacing16"
-          pt="$spacing12"
-          pb="$spacing60"
-        >
+        {/* fadeInQuick is the legacy 'quick' enter fade; the exit style was dead (no AnimatePresence above). */}
+        <AnimatedFlex entering={fadeInQuick} flex={1} gap="$spacing16" pt="$spacing12" pb="$spacing60">
           {!renderedInModal && (
             <Flex row>
               <Text testID={TestID.SendModalHeaderLabel} variant="subheading1">
@@ -140,7 +138,7 @@ function RecipientSelectInner({
           ) : (
             <RecipientList renderedInModal={renderedInModal} sections={sections} onPress={onSelect} />
           )}
-        </Flex>
+        </AnimatedFlex>
       </KeyboardAvoidingView>
       {showQRScanner && <RecipientScanModal onClose={onCloseQRScanner} onSelectRecipient={onSelect} />}
       <RecipientSelectSpeedBumps

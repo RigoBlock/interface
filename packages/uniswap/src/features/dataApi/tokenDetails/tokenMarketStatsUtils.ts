@@ -9,22 +9,18 @@ export interface TokenMarketStats {
   volume: number | undefined
   high52w: number | undefined
   low52w: number | undefined
+  tvl: number | undefined
 }
 
-export interface MarketDataInput {
-  price?: { value?: number }
-  volume?: { value?: number }
-  volume24H?: { value?: number }
-  priceHigh52W?: { value?: number }
-  priceLow52W?: { value?: number }
-}
-
-export interface ProjectMarketDataInput {
-  price?: { value?: number }
-  marketCap?: { value?: number }
-  fullyDilutedValuation?: { value?: number }
-  priceHigh52W?: { value?: number }
-  priceLow52W?: { value?: number }
+/** Canonical market-stats shape, adapted from either V2 REST or legacy GraphQL data (see legacyMarketDataAdapters.ts). */
+export interface MarketStatsData {
+  priceUsd?: number
+  volumeUsd?: number
+  priceHigh52wUsd?: number
+  priceLow52wUsd?: number
+  marketCapUsd?: number
+  fullyDilutedValuationUsd?: number
+  totalValueLockedUsd?: number
 }
 
 export function clamp52wWithCurrentPrice(params: {
@@ -38,23 +34,19 @@ export function clamp52wWithCurrentPrice(params: {
   return { high52w, low52w }
 }
 
-// oxlint-disable-next-line complexity
-export function computeTokenMarketStats(params: {
-  market?: MarketDataInput
-  projectMarket?: ProjectMarketDataInput
-  currentPrice?: number
-}): TokenMarketStats {
-  const { market, projectMarket, currentPrice } = params
-  const resolvedPrice = currentPrice ?? projectMarket?.price?.value ?? market?.price?.value ?? undefined
-  const marketCap = projectMarket?.marketCap?.value ?? undefined
-  const fdv = projectMarket?.fullyDilutedValuation?.value ?? undefined
-  const volume = market?.volume24H?.value ?? market?.volume?.value ?? undefined
-  const rawHigh52w = projectMarket?.priceHigh52W?.value ?? market?.priceHigh52W?.value ?? undefined
-  const rawLow52w = projectMarket?.priceLow52W?.value ?? market?.priceLow52W?.value ?? undefined
+export function computeTokenMarketStats(params: { market?: MarketStatsData; currentPrice?: number }): TokenMarketStats {
+  const { market, currentPrice } = params
+  const resolvedPrice = currentPrice ?? market?.priceUsd
+  const marketCap = market?.marketCapUsd
+  const fdv = market?.fullyDilutedValuationUsd
+  const tvl = market?.totalValueLockedUsd
+  const volume = market?.volumeUsd
+  const rawHigh52w = market?.priceHigh52wUsd
+  const rawLow52w = market?.priceLow52wUsd ?? undefined
   const { high52w, low52w } = clamp52wWithCurrentPrice({
     currentPrice: resolvedPrice,
     rawHigh: rawHigh52w,
     rawLow: rawLow52w,
   })
-  return { marketCap, fdv, volume, high52w, low52w }
+  return { marketCap, fdv, volume, high52w, low52w, tvl }
 }

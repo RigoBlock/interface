@@ -1,18 +1,19 @@
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
 import { CurrencyAmount } from '@uniswap/sdk-core'
+import { useGetPasskeyAuthStatus } from '@universe/embedded-wallet'
+import { Flex, Text } from '@universe/mycelium'
 import { useMemo, useState } from 'react'
-import { Trans, useTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
-import { Button, Flex, Separator, Text } from 'ui/src'
+import { Button, Separator } from 'ui/src'
 import { Passkey } from 'ui/src/components/icons/Passkey'
-import { iconSizes } from 'ui/src/theme'
+import { iconSizes } from 'ui/src/theme/iconSizes'
 import { ProgressIndicator } from 'uniswap/src/components/ConfirmSwapModal/ProgressIndicator'
 import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
 import { PollingInterval } from 'uniswap/src/constants/misc'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { useGetPasskeyAuthStatus } from 'uniswap/src/features/passkey/hooks/useGetPasskeyAuthStatus'
-import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPriceWrapper'
+import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'
 import { isValidLiquidityTxContext } from 'uniswap/src/features/transactions/liquidity/types'
 import { TransactionStep } from 'uniswap/src/features/transactions/steps/types'
 import { useWallet } from 'uniswap/src/features/wallet/hooks/useWallet'
@@ -20,13 +21,13 @@ import { isSignerMnemonicAccountDetails } from 'uniswap/src/features/wallet/type
 import { getSymbolDisplayText } from 'uniswap/src/utils/currency'
 import { NumberType } from 'utilities/src/format/types'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
-import { getLPBaseAnalyticsProperties } from '~/components/Liquidity/analytics'
-import { useGetPoolTokenPercentage } from '~/components/Liquidity/hooks/useGetPoolTokenPercentage'
-import { TokenInfo } from '~/components/Liquidity/TokenInfo'
-import { DetailLineItem } from '~/components/swap/DetailLineItem'
+import { DetailLineItem } from '~/components/DetailLineItem'
+import { getLPBaseAnalyticsProperties } from '~/features/Liquidity/analytics'
+import { useGetPoolTokenPercentage } from '~/features/Liquidity/hooks/useGetPoolTokenPercentage'
+import { TokenInfo } from '~/features/Liquidity/TokenInfo'
 import { useCurrencyInfo } from '~/hooks/Tokens'
 import { useAccount } from '~/hooks/useAccount'
-import useSelectChain from '~/hooks/useSelectChain'
+import { useSelectChain } from '~/hooks/useSelectChain'
 import { useRemoveLiquidityModalContext } from '~/pages/RemoveLiquidity/RemoveLiquidityModalContext'
 import { useRemoveLiquidityTxContext } from '~/pages/RemoveLiquidity/RemoveLiquidityTxContext'
 import { liquiditySaga } from '~/state/sagas/liquidity/liquiditySaga'
@@ -161,6 +162,10 @@ export function RemoveLiquidityReview({ onClose }: { onClose: () => void }) {
           expectedAmountBaseRaw: unwrappedCurrency0AmountToRemove.quotient.toString(),
           expectedAmountQuoteRaw: unwrappedCurrency1AmountToRemove.quotient.toString(),
           closePosition: percent === '100',
+          feeToken0AmountRaw: fee0Amount?.quotient.toString(),
+          feeToken1AmountRaw: fee1Amount?.quotient.toString(),
+          feeToken0AmountUSD: fiatFeeValue0 ? parseFloat(fiatFeeValue0.toExact()) : undefined,
+          feeToken1AmountUSD: fiatFeeValue1 ? parseFloat(fiatFeeValue1.toExact()) : undefined,
         },
       }),
     )
@@ -236,7 +241,7 @@ export function RemoveLiquidityReview({ onClose }: { onClose: () => void }) {
               LineItem={{
                 Label: () => (
                   <Text variant="body3" color="$neutral2">
-                    <Trans i18nKey="pool.newSpecificPosition" values={{ symbol: currency0Amount.currency.symbol }} />
+                    {t('pool.newSpecificPosition', { symbol: currency0Amount.currency.symbol ?? t('common.token') })}
                   </Text>
                 ),
                 Value: () => (
@@ -256,7 +261,7 @@ export function RemoveLiquidityReview({ onClose }: { onClose: () => void }) {
               LineItem={{
                 Label: () => (
                   <Text variant="body3" color="$neutral2">
-                    <Trans i18nKey="pool.newSpecificPosition" values={{ symbol: currency1Amount.currency.symbol }} />
+                    {t('pool.newSpecificPosition', { symbol: currency1Amount.currency.symbol ?? t('common.token') })}
                   </Text>
                 ),
                 Value: () => (

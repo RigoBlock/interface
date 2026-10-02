@@ -1,19 +1,22 @@
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { cn, Flex, FlexProps, Text } from '@universe/mycelium'
+import { curveToAnimationTiming, ENTER_PRESET_CLASSES } from '@universe/mycelium/compat'
+import { styled } from '@universe/mycelium/styled'
+import { SPORE_ANIMATION_CURVE_CSS } from '@universe/tailwind/animations'
+import { TestID } from '@universe/test'
 import { ReactNode, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, FlexProps, Text } from 'ui/src'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { useTokenMarketStats } from 'uniswap/src/features/dataApi/tokenDetails/useTokenDetailsData'
-import { useTokenSpotPrice } from 'uniswap/src/features/dataApi/tokenDetails/useTokenSpotPriceWrapper'
+import AnimatedNumber from 'uniswap/src/components/AnimatedNumber/AnimatedNumber'
+import { getChainLabel } from 'uniswap/src/features/chains/utils'
+import { useTokenMarketStats, useTokenSpotPrice } from 'uniswap/src/features/dataApi/tokenDetails/useTokenDetailsData'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { currencyId } from 'uniswap/src/utils/currencyId'
 import { FiatNumberType, NumberType } from 'utilities/src/format/types'
-import { TokenQueryData } from '~/appGraphql/data/Token'
 import { getHeaderDescription, TokenSortMethod } from '~/components/Tokens/constants'
+import { LoadingBubble } from '~/components/Tokens/loading'
 import { MouseoverTooltip } from '~/components/Tooltip'
+import { useTDPStore } from '~/pages/TokenDetails/context/useTDPStore'
 import { useTDPEffectiveCurrency } from '~/pages/TokenDetails/hooks/useTDPEffectiveCurrency'
-import { useTDPStatsMarketSource } from '~/pages/TokenDetails/hooks/useTDPStatsMarketSource'
+import { useTDPMultichainAggregate } from '~/pages/TokenDetails/hooks/useTDPMultichainAggregate'
 
 const STATS_GAP = '$gap20'
 
@@ -35,8 +38,17 @@ export const StatWrapper = ({
   </Flex>
 )
 
-export const StatsWrapper = ({ children, ...props }: { children: ReactNode } & FlexProps) => (
-  <Flex animation="200ms" animateEnter="fadeIn" gap={STATS_GAP} {...props}>
+// Timing of the legacy 200ms Tamagui curve, applied so the enter keyframe below runs on it
+// instead of the preset's pinned default.
+const STATS_ENTER_TIMING = curveToAnimationTiming(SPORE_ANIMATION_CURVE_CSS['200ms'])
+
+export const StatsWrapper = ({ children, className, style, ...props }: { children: ReactNode } & FlexProps) => (
+  <Flex
+    className={cn(ENTER_PRESET_CLASSES.fadeIn, className)}
+    style={style ? [STATS_ENTER_TIMING, style] : STATS_ENTER_TIMING}
+    gap={STATS_GAP}
+    {...props}
+  >
     {children}
   </Flex>
 )
@@ -46,6 +58,39 @@ const TokenStatsSection = ({ children }: { children: ReactNode }) => (
     {children}
   </Flex>
 )
+
+const StatsLoadingContainer = styled(Flex, {
+  base: 'flex-row flex-wrap gap-y-[24px] w-[100%]',
+})
+
+function LoadingStatTile() {
+  return (
+    <StatWrapper>
+      <LoadingBubble height={16} width={80} containerProps={{ mb: '$spacing4' }} />
+      <LoadingBubble height={32} width={116} skeletonProps={{ borderRadius: '$rounded8' }} />
+    </StatWrapper>
+  )
+}
+
+// Loading state for the stats section, reused by the full-page TDP skeleton so the placeholder is
+// identical in both. It lives here next to StatWrapper/StatsWrapper (which it reuses for dimensional
+// parity) and is built on the cycle-safe LoadingBubble primitive, so the section owns its own loading
+// UI without a Skeleton <-> StatsSection import cycle.
+export function LoadingStats() {
+  return (
+    <StatsWrapper data-testid="token-details-stats-loading">
+      <LoadingBubble height={32} width={120} skeletonProps={{ borderRadius: '$rounded8' }} />
+      <StatsLoadingContainer>
+        <LoadingStatTile />
+        <LoadingStatTile />
+        <LoadingStatTile />
+        <LoadingStatTile />
+        <LoadingStatTile />
+        <LoadingStatTile />
+      </StatsLoadingContainer>
+    </StatsWrapper>
+  )
+}
 
 type NumericStat = number | undefined | null
 
@@ -63,59 +108,51 @@ function Stat({
   numberType?: FiatNumberType
 }) {
   const { convertFiatAmountFormatted } = useLocalizationContext()
+  const formattedValue = convertFiatAmountFormatted(value, numberType)
 
   return (
     <StatWrapper tableRow data-cy={`${testID}`} data-testid={`${testID}`}>
       <Text variant="body3" color="$neutral2" tag="td">
         <MouseoverTooltip disabled={!description} text={description}>
-          {title}
+          {/* Wrap in a colored Text: MouseoverTooltip re-wraps string children in its own uncolored Text, which would otherwise default the label to $neutral1. */}
+          <Text variant="body3" color="$neutral2">
+            {title}
+          </Text>
         </MouseoverTooltip>
       </Text>
-      <Text
-        tag="td"
-        mt="$spacing8"
-        fontSize={28}
-        color="$neutral1"
-        fontWeight="$book"
-        $platform-web={{
-          overflowWrap: 'break-word',
-        }}
-      >
-        {convertFiatAmountFormatted(value, numberType)}
-      </Text>
+      <Flex tag="td" mt="$spacing8" data-testid={`${testID}-value`} $platform-web={{ overflowWrap: 'break-word' }}>
+        <AnimatedNumber numericValue={value ?? undefined} textVariant="$heading3" value={formattedValue} />
+      </Flex>
     </StatWrapper>
   )
 }
 
-type StatsSectionProps = {
-  tokenQueryData: TokenQueryData | undefined
-}
-
-export function StatsSection({ tokenQueryData }: StatsSectionProps) {
+export function StatsSection() {
   const { t } = useTranslation()
-  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
   const effectiveCurrency = useTDPEffectiveCurrency()
 
-  const { showAggregatedStats, filteredDeploymentMarket, networkFilterName, marketStatsInput } =
-    useTDPStatsMarketSource(tokenQueryData)
+  const selectedMultichainChainId = useTDPStore((s) => s.selectedMultichainChainId)
+  const { isMultichainAggregateView } = useTDPMultichainAggregate()
+
+  const networkFilterName = selectedMultichainChainId !== undefined ? getChainLabel(selectedMultichainChainId) : ''
 
   const currencyIdValue = useMemo(() => currencyId(effectiveCurrency), [effectiveCurrency])
-  const spotPrice = useTokenSpotPrice(currencyIdValue)
-
-  const stats = useTokenMarketStats(currencyIdValue, {
-    aggregatedData: marketStatsInput,
-    currentPriceOverride: spotPrice,
+  // Same call shape as the chart header's currentPriceOverride so both surfaces always agree.
+  const currentPriceOverride = useTokenSpotPrice(currencyIdValue, {
+    isMultichainAggregateView,
   })
 
-  const volume =
-    (showAggregatedStats ? tokenQueryData?.market?.volume24H?.value : filteredDeploymentMarket?.volume24H?.value) ??
-    stats.volume
-  const tvl = showAggregatedStats
-    ? tokenQueryData?.market?.totalValueLocked?.value
-    : filteredDeploymentMarket?.totalValueLocked?.value
-  const { marketCap, fdv, high52w, low52w } = stats
+  const stats = useTokenMarketStats(currencyIdValue, {
+    currentPriceOverride,
+    isMultichainAggregateView,
+  })
 
+  const { volume, tvl, high52w, low52w, marketCap, fdv } = stats
   const hasStats = tvl || fdv || marketCap || volume || high52w || low52w
+
+  if (stats.isLoading) {
+    return <LoadingStats />
+  }
 
   if (hasStats) {
     return (
@@ -126,12 +163,12 @@ export function StatsSection({ tokenQueryData }: StatsSectionProps) {
             testID={TestID.TokenDetailsStatsTvl}
             value={tvl}
             description={
-              multichainTokenUxEnabled && networkFilterName
+              networkFilterName
                 ? t('stats.tvl.description.network', {
-                    symbol: effectiveCurrency.symbol,
+                    symbol: effectiveCurrency.symbol ?? t('common.token'),
                     network: networkFilterName,
                   })
-                : t('stats.tvl.description', { symbol: effectiveCurrency.symbol })
+                : t('stats.tvl.description', { symbol: effectiveCurrency.symbol ?? t('common.token') })
             }
             title={t('common.totalValueLocked')}
           />
@@ -150,11 +187,7 @@ export function StatsSection({ tokenQueryData }: StatsSectionProps) {
           <Stat
             testID={TestID.TokenDetailsStatsVolume24h}
             value={volume}
-            description={
-              effectiveCurrency.chainId === UniverseChainId.Tempo
-                ? t('stats.volume.1d.description.tempo')
-                : t('stats.volume.1d.description')
-            }
+            description={t('stats.volume.1d.description')}
             title={t('stats.volume.1d')}
           />
           <Stat

@@ -1,19 +1,9 @@
-import { FlashList, FlashListProps } from '@shopify/flash-list'
-import React, { RefObject, useCallback, useMemo } from 'react'
-import {
-  FlatList,
-  FlatListProps,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  StyleProp,
-  StyleSheet,
-  ViewStyle,
-} from 'react-native'
-import Animated, { SharedValue } from 'react-native-reanimated'
+import { Flex, Text } from '@universe/mycelium'
+import { TestIDType } from '@universe/test'
+import React from 'react'
+import { StyleProp, StyleSheet, ViewStyle } from 'react-native'
 import { Route } from 'react-native-tab-view'
-import { Flex, Text } from 'ui/src'
 import { colorsLight, spacing } from 'ui/src/theme'
-import { TestIDType } from 'uniswap/src/test/fixtures/testIDs'
 
 export const TAB_VIEW_SCROLL_THROTTLE = 16
 export const TAB_BAR_HEIGHT = 48
@@ -24,10 +14,6 @@ export const TAB_STYLES = StyleSheet.create({
     bottom: 0,
     height: 0,
     position: 'absolute',
-  },
-  container: {
-    flex: 1,
-    overflow: 'hidden',
   },
   header: {
     marginBottom: 0,
@@ -68,32 +54,20 @@ export type HeaderConfig = {
   heightCollapsed: number
 }
 
-export type ScrollPair = {
-  list: RefObject<FlatList | null> | RefObject<FlashList<unknown> | null>
-  position: Animated.SharedValue<number>
-  index: number
-}
-
 export type TabProps = {
   owner: string
   containerProps?: TabContentProps
-  scrollHandler?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void
   isExternalProfile?: boolean
   renderedInModal?: boolean
   refreshing?: boolean
   onRefresh?: () => void
   isActiveTab?: boolean
-  headerHeight?: number
   testID?: TestIDType
 }
 
-export type TabContentProps = Partial<FlatListProps<unknown>> & {
+export type TabContentProps = {
   contentContainerStyle: StyleProp<ViewStyle>
   emptyComponentStyle?: StyleProp<ViewStyle>
-  estimatedItemSize?: number
-  onMomentumScrollEnd?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void
-  onScrollEndDrag?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void
-  scrollEventThrottle?: number
 }
 
 export type TabLabelProps = {
@@ -121,47 +95,4 @@ export const TabLabel = ({ route, focused, textStyleType = 'primary' }: TabLabel
       </Text>
     </Flex>
   )
-}
-
-/**
- * Keeps tab content in sync, by scrolling content in case collapsing header height has changed between tabs
- */
-export const useScrollSync = ({
-  currentTabIndex,
-  scrollPairs,
-  headerConfig,
-}: {
-  currentTabIndex: SharedValue<number>
-  scrollPairs: ScrollPair[]
-  headerConfig: HeaderConfig
-}): { sync: (event: NativeSyntheticEvent<NativeScrollEvent>) => void } => {
-  // oxlint-disable-next-line typescript/no-duplicate-type-constituents -- biome-parity: oxlint is stricter here
-  const sync: FlatListProps<unknown>['onMomentumScrollEnd'] | FlashListProps<unknown>['onMomentumScrollEnd'] =
-    useCallback(
-      (event: { nativeEvent: NativeScrollEvent }) => {
-        const { y } = event.nativeEvent.contentOffset
-
-        const { heightCollapsed, heightExpanded } = headerConfig
-
-        const headerDiff = heightExpanded - heightCollapsed
-
-        for (const { list, position, index } of scrollPairs) {
-          const scrollPosition = position.value
-
-          if (scrollPosition > headerDiff && y > headerDiff) {
-            continue
-          }
-
-          if (index !== currentTabIndex.value) {
-            list.current?.scrollToOffset({
-              offset: Math.min(y, headerDiff),
-              animated: false,
-            })
-          }
-        }
-      },
-      [currentTabIndex, scrollPairs, headerConfig],
-    )
-
-  return useMemo(() => ({ sync }), [sync])
 }

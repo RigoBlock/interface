@@ -1,6 +1,7 @@
 import { type BlockaidScanTransactionRequest } from '@universe/api'
-import type { UniverseChainId } from 'uniswap/src/features/chains/types'
+import type { UniverseChainId } from '@universe/chains'
 import type { EthTransaction } from 'uniswap/src/types/walletConnect'
+import { hexlifyTransaction } from 'utilities/src/transactions/hexlifyTransaction'
 
 interface TransactionRequestData {
   chainId: UniverseChainId
@@ -16,6 +17,13 @@ interface TransactionRequestData {
  */
 export function buildBlockaidScanTransactionRequest(request: TransactionRequestData): BlockaidScanTransactionRequest {
   const { transaction, chainId, account, dappUrl } = request
+  // Gas fields and nonce are assigned by the wallet before signing, so including values supplied
+  // by the dapp would let Blockaid simulate a transaction different from the one we execute.
+  const canonicalTransaction = hexlifyTransaction({
+    to: transaction.to,
+    value: transaction.value,
+    data: transaction.data,
+  })
 
   return {
     chain: chainId.toString(),
@@ -24,12 +32,11 @@ export function buildBlockaidScanTransactionRequest(request: TransactionRequestD
       domain: dappUrl,
     },
     data: {
-      from: transaction.from || account,
-      to: transaction.to,
-      value: transaction.value,
-      data: transaction.data,
-      gas: transaction.gasLimit,
-      gasPrice: transaction.gasPrice,
+      // The wallet signs with `account`; never let a dapp-supplied `from` change simulation semantics.
+      from: account,
+      to: canonicalTransaction.to,
+      value: canonicalTransaction.value,
+      data: canonicalTransaction.data,
     },
     options: ['validation', 'simulation'],
   }

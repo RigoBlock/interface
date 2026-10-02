@@ -1,6 +1,8 @@
-import { Flex, Loader, UniversalImage, useSporeColors } from 'ui/src'
+import { UniverseChainId } from '@universe/chains'
+import { Flex, UniversalImage } from '@universe/mycelium'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
+import { Loader } from 'ui/src'
 import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useCurrencyInfoWithLoading } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
 
@@ -23,7 +25,7 @@ interface AssetLogoProps {
 export function AssetLogo({ address, chainId, logoUrl, borderRadius }: AssetLogoProps): JSX.Element | null {
   const colors = useSporeColors()
   const currencyId = buildCurrencyId(chainId, address)
-  const { currencyInfo, loading } = useCurrencyInfoWithLoading(currencyId)
+  const { data: currencyInfo, isLoading } = useCurrencyInfoWithLoading(currencyId)
 
   // Use CurrencyLogo if we have currency info
   if (currencyInfo) {
@@ -31,7 +33,7 @@ export function AssetLogo({ address, chainId, logoUrl, borderRadius }: AssetLogo
   }
 
   // Show loading state while fetching currency info
-  if (loading) {
+  if (isLoading) {
     return <Loader.Box borderRadius={borderRadius} height={DAPP_REQUEST_LOGO_SIZE} width={DAPP_REQUEST_LOGO_SIZE} />
   }
 

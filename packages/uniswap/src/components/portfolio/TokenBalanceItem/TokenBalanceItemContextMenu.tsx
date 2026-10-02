@@ -6,6 +6,7 @@ import { PlatformSplitStubError } from 'utilities/src/errors'
 
 export interface TokenBalanceItemContextMenuProps {
   portfolioBalance: PortfolioBalance
+  isMultichainAsset?: boolean
   excludedActions?: TokenMenuActionType[]
   openContractAddressExplainerModal?: () => void
   openReportTokenModal: () => void

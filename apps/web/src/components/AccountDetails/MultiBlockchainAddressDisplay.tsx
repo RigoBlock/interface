@@ -1,23 +1,20 @@
+import { UniverseChainId, Platform, PlatformAddress } from '@universe/chains'
+import { Flex, iconSizes, Text } from '@universe/mycelium'
+import { Unitag } from '@universe/mycelium/icons/Unitag'
+import { TestID } from '@universe/test'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text } from 'ui/src'
-import { Unitag } from 'ui/src/components/icons/Unitag'
-import { iconSizes } from 'ui/src/theme'
+import { CopyHelper } from 'uniswap/src/components/CopyHelper/CopyHelper'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
 import { InfoTooltip } from 'uniswap/src/components/tooltip/InfoTooltip'
 import { useUnitagsAddressQuery } from 'uniswap/src/data/apiClients/unitagsApi/useUnitagsAddressQuery'
 import { MAINNET_CHAIN_INFO } from 'uniswap/src/features/chains/evm/info/mainnet'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { SOLANA_CHAIN_INFO } from 'uniswap/src/features/chains/svm/info/solana'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useENSName } from 'uniswap/src/features/ens/api'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
-import { PlatformAddress } from 'uniswap/src/features/platforms/types/PlatformSpecificAddress'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { shortenAddress } from 'utilities/src/addresses'
-import StatusIcon from '~/components/StatusIcon'
+import { StatusIcon } from '~/components/StatusIcon'
 import { useAccountsStore, useActiveAddresses } from '~/features/accounts/store/hooks'
-import { CopyHelper } from '~/theme/components/CopyHelper'
 import { EllipsisTamaguiStyle } from '~/theme/components/styles'
 
 function AddressDisplay({
@@ -106,9 +103,7 @@ function TooltipAccountRow({ account }: { account: AccountItem }) {
   const numberOfSupportedEVMChains = evmChains.length
 
   const multipleWalletsConnected = useAccountsStore((state) => {
-    // oxlint-disable-next-line typescript/no-unnecessary-condition -- biome-parity: oxlint is stricter here
     const evmWalletId = state.activeConnectors.evm?.session?.walletId
-    // oxlint-disable-next-line typescript/no-unnecessary-condition -- biome-parity: oxlint is stricter here
     const svmWalletId = state.activeConnectors.svm?.session?.walletId
     return Boolean(evmWalletId && svmWalletId && evmWalletId !== svmWalletId)
   })
@@ -135,9 +130,7 @@ function TooltipAccountRow({ account }: { account: AccountItem }) {
           </Text>
         </Flex>
       </Flex>
-      <CopyHelper alwaysShowIcon iconSize={iconSizes.icon16} iconPosition="right" toCopy={account.address}>
-        <></>
-      </CopyHelper>
+      <CopyHelper iconSize={iconSizes.icon16} iconPosition="right" toCopy={account.address} />
     </Flex>
   )
 }

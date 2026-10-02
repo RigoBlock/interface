@@ -1,27 +1,28 @@
+import { Flex, Text } from '@universe/mycelium'
+import type { FlexCompatProps as FlexProps } from '@universe/mycelium'
+import { ArrowDownCircleFilled } from '@universe/mycelium/icons/ArrowDownCircleFilled'
+import { ChartBar } from '@universe/mycelium/icons/ChartBar'
+import { CoinConvert } from '@universe/mycelium/icons/CoinConvert'
+import { MoreHorizontal } from '@universe/mycelium/icons/MoreHorizontal'
+import { Plus } from '@universe/mycelium/icons/Plus'
+import { TestID } from '@universe/test'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
-import { Flex, FlexProps, Text, useSporeColors } from 'ui/src'
-import { ArrowDownCircleFilled } from 'ui/src/components/icons/ArrowDownCircleFilled'
-import { CoinConvert } from 'ui/src/components/icons/CoinConvert'
-import { MoreHorizontal } from 'ui/src/components/icons/MoreHorizontal'
-import { Plus } from 'ui/src/components/icons/Plus'
-import { iconSizes } from 'ui/src/theme'
 import { useUniswapContext } from 'uniswap/src/contexts/UniswapContext'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { useEvent } from 'utilities/src/react/hooks'
 import { useBooleanState } from 'utilities/src/react/useBooleanState'
 import { ActionTileWithIconAnimation } from '~/components/ActionTiles/ActionTileWithIconAnimation'
 import { AdaptiveDropdown } from '~/components/Dropdowns/AdaptiveDropdown'
 import { InternalMenuItem } from '~/components/Dropdowns/Dropdown'
-import { Limit } from '~/components/Icons/Limit'
+import { buildCreatePositionHref } from '~/utils/createPositionRoute'
 
 export function MoreActionTile({ padding = '$spacing12' }: { padding?: FlexProps['p'] }) {
   const { t } = useTranslation()
-  const colors = useSporeColors()
   const { navigateToSwapFlow } = useUniswapContext()
   const navigate = useNavigate()
+  const newPositionHref = buildCreatePositionHref()
   const { value: isDropdownOpen, setFalse: closeDropdown, toggle: toggleDropdown } = useBooleanState(false)
 
   const onPressSwap = useEvent(() => {
@@ -40,7 +41,7 @@ export function MoreActionTile({ padding = '$spacing12' }: { padding?: FlexProps
   })
 
   const onPressCreatePool = useEvent(() => {
-    navigate('/positions/create')
+    navigate(newPositionHref)
     closeDropdown()
   })
 
@@ -83,7 +84,7 @@ export function MoreActionTile({ padding = '$spacing12' }: { padding?: FlexProps
       <Trace logPress element={ElementName.PortfolioActionLimit}>
         <InternalMenuItem onPress={onPressLimit}>
           <Flex row alignItems="center" gap="$gap8">
-            <Limit width={iconSizes.icon16} height={iconSizes.icon16} fill={colors.neutral2.val} />
+            <ChartBar size="$icon.16" color="$neutral2" />
             <Text variant="buttonLabel3">{t('swap.limit')}</Text>
           </Flex>
         </InternalMenuItem>

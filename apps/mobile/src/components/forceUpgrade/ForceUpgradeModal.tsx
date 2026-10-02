@@ -1,10 +1,10 @@
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
 import { getIsNotificationServiceLocalOverrideEnabled } from '@universe/notifications'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { BackButtonView } from 'src/components/layout/BackButtonView'
 import { SeedPhraseDisplay } from 'src/components/mnemonic/SeedPhraseDisplay'
-import { Flex, Text, TouchableArea } from 'ui/src'
 import { ForceUpgrade } from 'wallet/src/features/forceUpgrade/ForceUpgrade'
 
 const BACK_BUTTON_SIZE = 24

@@ -1,19 +1,6 @@
-import { FlexProps } from 'ui/src'
-import { css } from '~/lib/deprecated-styled'
-
-/** @deprecated use tamagui and ClickableTamaguiStyle instead */
-export const ClickableStyle = css`
-  text-decoration: none;
-  cursor: pointer;
-  transition-duration: ${({ theme }) => theme.transition.duration.fast};
-
-  :hover {
-    opacity: ${({ theme }) => theme.opacity.hover};
-  }
-  :active {
-    opacity: ${({ theme }) => theme.opacity.click};
-  }
-`
+// `as const` on purpose: the legacy `FlexProps` this satisfied is deleted with the tamagui
+// barrel cleanup, and the compat props don't declare this `$platform-web` slice; the literal
+// types keep every spread site checking exactly as before.
 export const ClickableTamaguiStyle = {
   cursor: 'pointer',
   '$platform-web': {
@@ -29,4 +16,4 @@ export const ClickableTamaguiStyle = {
   },
   // Tamagui bug. Animation property breaks theme value transition, must use style instead
   style: { transition: '100ms' },
-} satisfies FlexProps
+} as const

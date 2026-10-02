@@ -2,7 +2,6 @@ import { CurrencyAmount, NativeCurrency } from '@uniswap/sdk-core'
 import { TradingApi } from '@universe/api'
 import { WarningLabel } from 'uniswap/src/components/modals/WarningModal/types'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useParsedActivePlanWarnings } from 'uniswap/src/features/transactions/swap/hooks/useSwapWarnings/useParsedActivePlanWarnings'
 import { activePlanStore } from 'uniswap/src/features/transactions/swap/review/stores/activePlan/activePlanStore'
 import { renderHookWithProviders } from 'uniswap/src/test/render'
@@ -25,6 +24,7 @@ vi.mock('uniswap/src/features/transactions/swap/stores/swapFormStore/useSwapForm
   useSwapFormStore: vi.fn((selector: (s: { isSubmitting: boolean }) => unknown) => selector({ isSubmitting: false })),
 }))
 
+import { UniverseChainId } from '@universe/chains'
 import { useOnChainCurrencyBalance, useOnChainNativeCurrencyBalance } from 'uniswap/src/features/portfolio/api'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import type { Mock } from 'vitest'

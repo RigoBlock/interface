@@ -1,5 +1,6 @@
+import { Flex } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
-import { Button, Flex } from 'ui/src'
+import { Button } from 'ui/src'
 import { validColor } from 'ui/src/theme'
 import { useUniswapContext } from 'uniswap/src/contexts/UniswapContext'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'

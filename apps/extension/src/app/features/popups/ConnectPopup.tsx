@@ -1,3 +1,4 @@
+import { Anchor, Button, Flex, Text, TouchableArea, UniversalImage, UniversalImageResizeMode } from '@universe/mycelium'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
@@ -8,22 +9,12 @@ import { SwitchNetworksModal } from 'src/app/features/home/SwitchNetworksModal'
 import { closePopup, PopupName } from 'src/app/features/popups/slice'
 import { AppRoutes, SettingsRoutes } from 'src/app/navigation/constants'
 import { useExtensionNavigation } from 'src/app/navigation/utils'
-import {
-  Anchor,
-  Button,
-  Circle,
-  Flex,
-  Popover,
-  Text,
-  TouchableArea,
-  UniversalImage,
-  UniversalImageResizeMode,
-} from 'ui/src'
+import { Popover } from 'ui/src'
 import { Power, RotatableChevron, X } from 'ui/src/components/icons'
 import { borderRadii, iconSizes } from 'ui/src/theme'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
 import { DappIconPlaceholder } from 'uniswap/src/components/dapps/DappIconPlaceholder'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { getChainLabel } from 'uniswap/src/features/chains/utils'
 import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
 import { AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
@@ -126,8 +117,9 @@ export function ConnectPopupContent({
           <Flex row pt="$padding16" justifyContent="space-between" alignItems="center">
             <Flex row gap="$gap8">
               <Flex borderRadius="$roundedFull" alignItems="center" justifyContent="center">
-                <Circle
+                <Flex
                   backgroundColor={isConnected ? '$statusSuccess' : '$neutral3'}
+                  borderRadius="$roundedFull"
                   height={iconSizes.icon8}
                   width={iconSizes.icon8}
                 />
@@ -167,7 +159,7 @@ export function ConnectPopupContent({
               <Link
                 style={{ textDecoration: 'none' }}
                 target="_blank"
-                to={uniswapUrls.helpArticleUrls.extensionDappTroubleshooting}
+                to={UniswapHelpUrls.articles.extensionDappTroubleshooting}
                 onClick={() =>
                   sendAnalyticsEvent(ExtensionEventName.DappTroubleConnecting, {
                     dappUrl,

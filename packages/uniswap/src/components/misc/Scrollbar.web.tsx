@@ -1,6 +1,7 @@
+import { Flex, type FlexProps } from '@universe/mycelium'
+import { SPORE_ANIMATION_CURVE_CSS } from '@universe/tailwind/animations'
 import { useState, useSyncExternalStore } from 'react'
-import { Flex, FlexProps } from 'ui/src'
-import type { SharedValue } from 'ui/src/animations'
+import type { SharedValue } from 'react-native-reanimated'
 
 type ScrollbarProps = FlexProps & {
   visibleHeight: number
@@ -64,7 +65,7 @@ export function Scrollbar({ visibleHeight, contentHeight, scrollOffset, ...rest 
 
   return (
     <Flex
-      animation="quicker"
+      transition={`opacity ${SPORE_ANIMATION_CURVE_CSS.quicker}, width ${SPORE_ANIMATION_CURVE_CSS.quicker}`}
       enterStyle={{
         opacity: 0,
         width: 0,

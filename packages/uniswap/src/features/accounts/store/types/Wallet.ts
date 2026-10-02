@@ -1,5 +1,4 @@
-import type { Platform } from 'uniswap/src/features/platforms/types/Platform'
-import type { PlatformSpecificAddress } from 'uniswap/src/features/platforms/types/PlatformSpecificAddress'
+import type { Platform, PlatformSpecificAddress } from '@universe/chains'
 
 /**
  * Defines how a wallet signs transactions, informing UX and business logic around signing.

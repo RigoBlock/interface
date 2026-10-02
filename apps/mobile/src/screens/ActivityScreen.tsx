@@ -1,11 +1,12 @@
+import { useIsFocused } from '@react-navigation/native'
+import { spacing, Text } from '@universe/mycelium'
 import { useEffect, useMemo, useState } from 'react'
+import { Freeze } from 'react-freeze'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { ESTIMATED_BOTTOM_TABS_HEIGHT } from 'src/app/navigation/tabs/CustomTabBar/constants'
 import { ActivityContent } from 'src/components/activity/ActivityContent'
 import { Screen } from 'src/components/layout/Screen'
-import { Text } from 'ui/src'
-import { spacing } from 'ui/src/theme'
 import { AccountType } from 'uniswap/src/features/accounts/types'
 import { DataApiOutageBanner } from 'uniswap/src/features/dataApi/outage/DataApiOutageBanner'
 import { DataApiOutageModalContent } from 'uniswap/src/features/dataApi/outage/DataApiOutageModalContent'
@@ -21,6 +22,9 @@ export function ActivityScreen(): JSX.Element {
   const activeAccount = useActiveAccountWithThrow()
   const dispatch = useDispatch()
   const insets = useAppInsets()
+  // Tabs run with freezeOnBlur:false, so this list keeps re-rendering on every portfolio poll while blurred.
+  // Freeze it manually while off-screen.
+  const isFocused = useIsFocused()
 
   const containerProps = useMemo(
     () => ({
@@ -35,10 +39,12 @@ export function ActivityScreen(): JSX.Element {
   const hasNotifications = useSelectAddressHasNotifications(activeAccount.address)
 
   useEffect(() => {
-    if (hasNotifications) {
+    // this screen stays mounted while blurred (freezeOnBlur:false), so without the focus check it would
+    // clear the indicator the moment it is set, while the user is looking at another tab
+    if (isFocused && hasNotifications) {
       dispatch(setNotificationStatus({ address: activeAccount.address, hasNotifications: false }))
     }
-  }, [hasNotifications, activeAccount.address, dispatch])
+  }, [isFocused, hasNotifications, activeAccount.address, dispatch])
 
   const [activityError, setActivityError] = useState<Error | undefined>()
   const [dataUpdatedAt, setDataUpdatedAt] = useState<number | undefined>()
@@ -65,12 +71,14 @@ export function ActivityScreen(): JSX.Element {
       <Text variant="heading3" py="$padding16" px="$spacing24">
         {t('common.activity')}
       </Text>
-      <ActivityContent
-        isExternalProfile={activeAccount.type === AccountType.Readonly}
-        containerProps={containerProps}
-        owner={activeAccount.address}
-        onErrorStateChange={handleErrorStateChange}
-      />
+      <Freeze freeze={!isFocused}>
+        <ActivityContent
+          isExternalProfile={activeAccount.type === AccountType.Readonly}
+          containerProps={containerProps}
+          owner={activeAccount.address}
+          onErrorStateChange={handleErrorStateChange}
+        />
+      </Freeze>
     </Screen>
   )
 }

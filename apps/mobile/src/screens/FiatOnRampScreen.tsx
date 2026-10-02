@@ -1,7 +1,8 @@
-/* oxlint-disable max-lines */
-/* oxlint-disable complexity */
+/* oxlint-disable max-lines complexity */
 import { type NativeStackScreenProps } from '@react-navigation/native-stack'
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { isWebPlatform } from '@universe/environment'
+import { Flex } from '@universe/mycelium'
+import { useIsDarkMode } from '@universe/mycelium/theme-hooks-compat'
 import { Image } from 'expo-image'
 import React, { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -18,8 +19,7 @@ import {
 import { useFiatOnRampContext } from 'src/features/fiatOnRamp/FiatOnRampContext'
 import { FiatOnRampCountryListModal } from 'src/features/fiatOnRamp/FiatOnRampCountryListModal'
 import { FiatOnRampTokenSelectorModal } from 'src/features/fiatOnRamp/FiatOnRampTokenSelector'
-import { OffRampPopover } from 'src/features/fiatOnRamp/OffRampPopover'
-import { Flex, useIsDarkMode, useIsShortMobileDevice } from 'ui/src'
+import { useIsShortMobileDevice } from 'ui/src'
 import { AnimatedFlex } from 'ui/src/components/layout/AnimatedFlex'
 import { useBottomSheetContext } from 'uniswap/src/components/modals/BottomSheetContext'
 import { HandleBar } from 'uniswap/src/components/modals/HandleBar'
@@ -61,12 +61,12 @@ import {
   type DecimalPadInputRef,
 } from 'uniswap/src/features/transactions/components/DecimalPadInput/DecimalPadInput'
 import { useUSDTokenUpdater } from 'uniswap/src/features/transactions/hooks/useUSDTokenUpdater'
+import { useBottomScreenGap } from 'uniswap/src/hooks/useBottomScreenGap'
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { FiatOnRampScreens } from 'uniswap/src/types/screens/mobile'
 import { currencyIdToAddress } from 'uniswap/src/utils/currencyId'
 import { truncateToMaxDecimals } from 'utilities/src/format/truncateToMaxDecimals'
 import { logger } from 'utilities/src/logger/logger'
-import { isIOS, isWebPlatform } from 'utilities/src/platform'
 import { usePrevious } from 'utilities/src/react/hooks'
 import { DEFAULT_DELAY, useDebounce } from 'utilities/src/time/timing'
 import { useWalletNavigation } from 'wallet/src/contexts/WalletNavigationContext'
@@ -146,6 +146,7 @@ export function FiatOnRampScreen({ navigation }: Props): JSX.Element {
   }, [isTokenInputMode, tokenAmount, fiatAmount])
 
   const isShortMobileDevice = useIsShortMobileDevice()
+  const { bottomScreenExtraGap } = useBottomScreenGap()
   const { isSheetReady } = useBottomSheetContext()
 
   // passed to memo(...) component
@@ -263,15 +264,14 @@ export function FiatOnRampScreen({ navigation }: Props): JSX.Element {
   }, [ipCountryData, setCountryCode, setCountryState])
 
   // preload service provider logos for given quotes for the next screen
-  const isExpoImageEnabled = useFeatureFlag(FeatureFlags.ExpoImage)
   useEffect(() => {
-    if (isExpoImageEnabled && quotes) {
+    if (quotes) {
       preloadServiceProviderLogos(
         quotes.map((q) => q.serviceProviderDetails),
         isDarkMode,
       )
     }
-  }, [isExpoImageEnabled, quotes, isDarkMode])
+  }, [quotes, isDarkMode])
 
   const filteredQuotes = useMemo(() => {
     if (!quotes) {
@@ -421,6 +421,7 @@ export function FiatOnRampScreen({ navigation }: Props): JSX.Element {
     }
 
     const matchingCurrency = supportedTokensList.find(
+      // oxlint-disable-next-line universe-custom/no-tolowercase-address-currencyid -- Meld currency codes, not addresses
       (token) => token.meldCurrencyCode?.toLowerCase() === currencyCode.toLowerCase(),
     )
 
@@ -538,17 +539,13 @@ export function FiatOnRampScreen({ navigation }: Props): JSX.Element {
         {isSheetReady && (
           <AnimatedFlex entering={FadeIn} exiting={FadeOut} gap="$spacing16" px="$spacing24" width="100%">
             <Flex row justifyContent="center" mt={isShortMobileDevice ? 0 : '$spacing6'}>
-              <OffRampPopover
-                triggerContent={
-                  <PillMultiToggle
-                    defaultOption={isOffRamp ? RampToggle.SELL : RampToggle.BUY}
-                    options={[
-                      { value: RampToggle.BUY, display: t('common.button.buy') },
-                      { value: RampToggle.SELL, display: t('common.button.sell') },
-                    ]}
-                    onSelectOption={onPillToggle}
-                  />
-                }
+              <PillMultiToggle
+                defaultOption={isOffRamp ? RampToggle.SELL : RampToggle.BUY}
+                options={[
+                  { value: RampToggle.BUY, display: t('common.button.buy') },
+                  { value: RampToggle.SELL, display: t('common.button.sell') },
+                ]}
+                onSelectOption={onPillToggle}
               />
               <Flex position="absolute" right={0} top="$spacing6">
                 <FiatOnRampCountryPicker
@@ -603,8 +600,7 @@ export function FiatOnRampScreen({ navigation }: Props): JSX.Element {
               gap={isShortMobileDevice ? 0 : '$spacing8'}
               left={0}
               opacity={decimalPadReady ? 1 : 0}
-              // android devices require more bottom padding
-              pb={isShortMobileDevice && isIOS ? '$spacing4' : '$spacing24'}
+              pb={bottomScreenExtraGap}
               position="absolute"
               px="$spacing24"
               right={0}

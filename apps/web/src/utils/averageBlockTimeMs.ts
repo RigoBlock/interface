@@ -1,5 +1,5 @@
+import { UniverseChainId } from '@universe/chains'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { isL2ChainId } from 'uniswap/src/features/chains/utils'
 import {
   AVERAGE_L1_BLOCK_TIME_MS,

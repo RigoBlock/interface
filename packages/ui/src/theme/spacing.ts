@@ -31,10 +31,12 @@ export const padding = {
   padding12: spacing.spacing12,
   padding16: spacing.spacing16,
   padding20: spacing.spacing20,
+  padding24: spacing.spacing24,
   padding36: spacing.spacing36,
 }
 
 export const gap = {
+  gap2: spacing.spacing2,
   gap4: spacing.spacing4,
   gap8: spacing.spacing8,
   gap12: spacing.spacing12,

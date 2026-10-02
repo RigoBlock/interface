@@ -14,16 +14,7 @@ function flushMicrotasks(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0))
 }
 
-function createTestManager(
-  overrides?: Partial<{
-    subscribe: (connectionId: string, params: TestParams) => Promise<void>
-    unsubscribe: (connectionId: string, params: TestParams) => Promise<void>
-    subscribeBatch: (connectionId: string, params: TestParams[]) => Promise<void>
-    unsubscribeBatch: (connectionId: string, params: TestParams[]) => Promise<void>
-    refreshSession: (connectionId: string) => Promise<void>
-    onSubscriptionCountChange: (count: number) => void
-  }>,
-): {
+function createTestManager(options?: { onSubscriptionCountChange?: (count: number) => void }): {
   manager: SubscriptionManager<TestParams, TestMessage>
   handler: {
     subscribe: ReturnType<typeof vi.fn>
@@ -39,13 +30,12 @@ function createTestManager(
     subscribeBatch: vi.fn().mockResolvedValue(undefined),
     unsubscribeBatch: vi.fn().mockResolvedValue(undefined),
     refreshSession: vi.fn().mockResolvedValue(undefined),
-    ...overrides,
   }
 
   const manager = new SubscriptionManager<TestParams, TestMessage>({
     handler,
     createKey: (channel, params): string => `${channel}:${params.id}`,
-    onSubscriptionCountChange: overrides?.onSubscriptionCountChange,
+    onSubscriptionCountChange: options?.onSubscriptionCountChange,
   })
 
   return { manager, handler }

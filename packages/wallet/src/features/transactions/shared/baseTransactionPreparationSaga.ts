@@ -1,6 +1,6 @@
+import type { UniverseChainId } from '@universe/chains'
 import { call, type SagaGenerator } from 'typed-redux-saga'
 import type { SignerMnemonicAccountMeta } from 'uniswap/src/features/accounts/types'
-import type { UniverseChainId } from 'uniswap/src/features/chains/types'
 import type { ValidatedTransactionRequest } from 'uniswap/src/features/transactions/types/transactionRequests'
 import type {
   PrepareTransactionParams,

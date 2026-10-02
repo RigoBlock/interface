@@ -1,6 +1,6 @@
+import { Flex, type FlexProps } from '@universe/mycelium'
 import React, { PropsWithChildren } from 'react'
 import { BackButton } from 'src/components/buttons/BackButton'
-import { Flex, FlexProps } from 'ui/src'
 
 const BACK_BUTTON_SIZE = 24
 const BACK_BUTTON_SIZE_TOKEN = '$icon.24'

@@ -1,3 +1,18 @@
+import {
+  AnimatedFlex,
+  Button,
+  Flex,
+  iconSizes,
+  spacing,
+  SpinningLoader,
+  Text,
+  ThemeName,
+  useSporeColorsForTheme,
+} from '@universe/mycelium'
+import { CameraScan } from '@universe/mycelium/icons/CameraScan'
+import { Global } from '@universe/mycelium/icons/Global'
+import { PhotoStacked } from '@universe/mycelium/icons/PhotoStacked'
+import { useDeviceDimensions } from '@universe/mycelium/theme-hooks-compat'
 import { BarcodeScanningResult, CameraView, CameraViewProps } from 'expo-camera'
 import { memo, useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -9,13 +24,8 @@ import { Defs, LinearGradient, Path, Rect, Stop, Svg } from 'react-native-svg'
 import RNQRGenerator from 'rn-qr-generator'
 import { useCameraPermissionQuery } from 'src/components/QRCodeScanner/hooks/useCameraPermissionQuery'
 import { useRequestCameraPermissionOnMountEffect } from 'src/components/QRCodeScanner/hooks/useRequestCameraPermissionOnMountEffect'
-import { Button, Flex, SpinningLoader, Text, ThemeName, useSporeColors } from 'ui/src'
-import { CameraScan, Global, PhotoStacked } from 'ui/src/components/icons'
-import { AnimatedFlex } from 'ui/src/components/layout/AnimatedFlex'
-import { useDeviceDimensions } from 'ui/src/hooks/useDeviceDimensions'
-import { useSporeColorsForTheme } from 'ui/src/hooks/useSporeColors'
-import { iconSizes, spacing } from 'ui/src/theme'
 import PasteButton from 'uniswap/src/components/buttons/PasteButton'
+import { ScopedTheme } from 'uniwind'
 import { logger } from 'utilities/src/logger/logger'
 
 enum BarcodeType {
@@ -127,8 +137,8 @@ export function QRCodeScanner(props: QRCodeScannerProps | WCScannerProps): JSX.E
     mute: true,
     mode: 'picture',
   }
-  return (
-    <AnimatedFlex grow theme={theme} borderRadius="$rounded12" entering={FadeIn} exiting={FadeOut} overflow="hidden">
+  const scanner = (
+    <AnimatedFlex grow borderRadius="$rounded12" entering={FadeIn} exiting={FadeOut} overflow="hidden">
       <Flex justifyContent="center" style={StyleSheet.absoluteFill}>
         <Flex height={cameraHeight} overflow="hidden" width={cameraWidth}>
           {permission.data?.granted && !isReadingImageFile && (
@@ -138,18 +148,23 @@ export function QRCodeScanner(props: QRCodeScannerProps | WCScannerProps): JSX.E
                 barcodeTypes: [BarcodeType.QR],
               }}
               facing={CameraType.Back}
-              style={StyleSheet.absoluteFillObject}
+              style={StyleSheet.absoluteFill}
               onBarcodeScanned={handleBarcodeScanned}
             />
           )}
         </Flex>
       </Flex>
-      <GradientOverlay overlayWidth={overlayWidth} scannerSize={scannerSize} shouldFreezeCamera={shouldFreezeCamera} />
+      <GradientOverlay
+        overlayWidth={overlayWidth}
+        scannerSize={scannerSize}
+        shouldFreezeCamera={shouldFreezeCamera}
+        theme={theme}
+      />
       <Flex
         centered
         alignItems="center"
         gap="$spacing48"
-        style={{ ...StyleSheet.absoluteFillObject, bottom: BOTTOM_PADDING }}
+        style={{ ...StyleSheet.absoluteFill, bottom: BOTTOM_PADDING }}
         onLayout={(event: LayoutChangeEvent): void => setOverlayLayout(event.nativeEvent.layout)}
       >
         <Flex alignItems="center">
@@ -185,10 +200,10 @@ export function QRCodeScanner(props: QRCodeScannerProps | WCScannerProps): JSX.E
                   position="absolute"
                   top={scannerSize / 2 - LOADER_SIZE / 2}
                 >
-                  <SpinningLoader color="$neutral1" size={iconSizes.icon40} />
+                  <SpinningLoader color={colors.neutral1.val} size={iconSizes.icon40} />
                 </Flex>
                 <Flex style={{ marginTop: LOADER_SIZE + spacing.spacing24 }} />
-                <Text color="$neutral1" textAlign="center" variant="body1">
+                <Text color={colors.neutral1.val} textAlign="center" variant="body1">
                   {isWalletConnectModal ? t('qrScanner.status.connecting') : t('qrScanner.status.loading')}
                 </Text>
               </Flex>
@@ -197,14 +212,14 @@ export function QRCodeScanner(props: QRCodeScannerProps | WCScannerProps): JSX.E
           {DeviceInfo.isEmulatorSync() && !shouldFreezeCamera && (
             <Flex centered height={scannerSize} style={[StyleSheet.absoluteFill]} width={scannerSize}>
               <Flex
-                backgroundColor="$surface2"
+                backgroundColor={colors.surface2.val}
                 borderRadius="$rounded16"
                 gap="$spacing24"
                 m="$spacing12"
                 opacity={0.6}
                 p="$spacing12"
               >
-                <Text color="$neutral1" textAlign="center" variant="body1">
+                <Text color={colors.neutral1.val} textAlign="center" variant="body1">
                   This paste button will only show up in development mode
                 </Text>
                 <PasteButton onPress={onScanCode} />
@@ -233,9 +248,9 @@ export function QRCodeScanner(props: QRCodeScannerProps | WCScannerProps): JSX.E
               onPress={onPickImageFilePress}
             >
               {isReadingImageFile ? (
-                <SpinningLoader size={iconSizes.icon28} />
+                <SpinningLoader color={colors.neutral1.val} size={iconSizes.icon28} />
               ) : (
-                <PhotoStacked color="$neutral1" size={iconSizes.icon28} />
+                <PhotoStacked color={colors.neutral1.val} size={iconSizes.icon28} />
               )}
             </Flex>
 
@@ -249,20 +264,26 @@ export function QRCodeScanner(props: QRCodeScannerProps | WCScannerProps): JSX.E
       </Flex>
     </AnimatedFlex>
   )
+
+  // Class-driven descendants (the connections-chip Button) resolve their theme
+  // through uniwind, so the forced theme must be scoped, not just read per-site.
+  return theme ? <ScopedTheme theme={theme}>{scanner}</ScopedTheme> : scanner
 }
 
 type GradientOverlayProps = {
   shouldFreezeCamera: boolean
   overlayWidth: number
   scannerSize: number
+  theme?: ThemeName
 }
 
 const GradientOverlay = memo(function GradientOverlay({
   shouldFreezeCamera,
   overlayWidth,
   scannerSize,
+  theme,
 }: GradientOverlayProps): JSX.Element {
-  const colors = useSporeColors()
+  const colors = useSporeColorsForTheme(theme)
   const dimensions = useDeviceDimensions()
   const [size, setSize] = useState<{ width: number; height: number } | null>(null)
 
@@ -301,7 +322,7 @@ const GradientOverlay = memo(function GradientOverlay({
       alignItems="center"
       justifyContent="center"
       position="absolute"
-      style={{ ...StyleSheet.absoluteFillObject, bottom: BOTTOM_PADDING }}
+      style={{ ...StyleSheet.absoluteFill, bottom: BOTTOM_PADDING }}
       onLayout={onLayout}
     >
       <Svg height="100%" width="100%">

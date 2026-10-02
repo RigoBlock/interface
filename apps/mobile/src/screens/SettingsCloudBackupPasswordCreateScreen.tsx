@@ -1,11 +1,11 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
+import { Button, Flex, Text, useSporeColors } from '@universe/mycelium'
 import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SettingsStackParamList } from 'src/app/navigation/types'
 import { BackHeader } from 'src/components/layout/BackHeader'
 import { SafeKeyboardScreen } from 'src/components/layout/SafeKeyboardScreen'
 import { CloudBackupPassword } from 'src/features/CloudBackup/CloudBackupForm/CloudBackupPassword'
-import { Button, Flex, Text, useSporeColors } from 'ui/src'
 import { OSDynamicCloudIcon } from 'ui/src/components/icons'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
@@ -71,7 +71,8 @@ export function SettingsCloudBackupPasswordCreateScreen({
           >
             <Flex px="$spacing16" py="$spacing12">
               <Flex centered gap="$spacing16">
-                <Flex backgroundColor="$DEP_accentSoft" borderRadius="$rounded12" p="$spacing12">
+                {/* $DEP_accentSoft is off the compat class map; the theme hook resolves the same value. */}
+                <Flex backgroundColor={colors.DEP_accentSoft.val} borderRadius="$rounded12" p="$spacing12">
                   <OSDynamicCloudIcon color="$accent1" size="$icon.24" />
                 </Flex>
                 <Text textAlign="center" variant="subheading1">

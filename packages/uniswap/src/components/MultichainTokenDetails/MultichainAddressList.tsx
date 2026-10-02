@@ -1,12 +1,12 @@
+import { UniverseChainId } from '@universe/chains'
+import { iconSizes, Text, type SpaceTokens } from '@universe/mycelium'
+import { TestID } from '@universe/test'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AnimatedCopyLabel, Text } from 'ui/src'
-import { iconSizes } from 'ui/src/theme'
+import { AnimatedCopyLabel } from 'ui/src'
 import { MultichainOptionRow } from 'uniswap/src/components/MultichainTokenDetails/MultichainOptionRow'
 import { MultichainScrollableList } from 'uniswap/src/components/MultichainTokenDetails/MultichainScrollableList'
 import type { MultichainTokenEntry } from 'uniswap/src/components/MultichainTokenDetails/useOrderedMultichainEntries'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { shortenAddress } from 'utilities/src/addresses'
 
 export const COPY_FEEDBACK_RESET_MS = 750
@@ -17,6 +17,7 @@ interface MultichainAddressListProps {
   showInlineFeedback?: boolean
   /** Pass true when rendered inside a Modal to enable BottomSheetScrollView on native. */
   renderedInModal?: boolean
+  padding?: SpaceTokens | number
 }
 
 /**
@@ -29,6 +30,7 @@ export function MultichainAddressList({
   onCopyAddress,
   showInlineFeedback = true,
   renderedInModal,
+  padding,
 }: MultichainAddressListProps): JSX.Element {
   const { t } = useTranslation()
   const [copiedChainId, setCopiedChainId] = useState<UniverseChainId | null>(null)
@@ -59,6 +61,7 @@ export function MultichainAddressList({
         return (
           <MultichainOptionRow
             chainId={entry.chainId}
+            addressMenuPadding={padding}
             rightContent={
               <Text color="$neutral3" variant="body2">
                 {t('common.unavailable')}
@@ -75,6 +78,7 @@ export function MultichainAddressList({
         <MultichainOptionRow
           chainId={entry.chainId}
           testID={TestID.MultichainCopyAddress}
+          addressMenuPadding={padding}
           rightContent={
             <AnimatedCopyLabel
               isCopied={isCopied}
@@ -88,8 +92,15 @@ export function MultichainAddressList({
         />
       )
     },
-    [copiedChainId, handleCopy, showInlineFeedback, t],
+    [padding, copiedChainId, handleCopy, showInlineFeedback, t],
   )
 
-  return <MultichainScrollableList data={chains} renderItem={renderAddressRow} renderedInModal={renderedInModal} />
+  return (
+    <MultichainScrollableList
+      data={chains}
+      renderItem={renderAddressRow}
+      renderedInModal={renderedInModal}
+      padding={padding}
+    />
+  )
 }

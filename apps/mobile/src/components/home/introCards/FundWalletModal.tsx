@@ -1,4 +1,7 @@
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { AnimatedFlex, Flex, UniversalImage, UniversalImageResizeMode } from '@universe/mycelium'
+import { useShadowPropsShort } from '@universe/mycelium/theme-hooks-compat'
+import { fadeInQuick } from '@universe/tailwind/animations/reanimated'
 import React, { type PropsWithChildren, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FlatList } from 'react-native'
@@ -7,9 +10,7 @@ import { navigate } from 'src/app/navigation/rootNavigation'
 import { useReactNavigationModal } from 'src/components/modals/useReactNavigationModal'
 import { useOpenReceiveModal } from 'src/features/modals/hooks/useOpenReceiveModal'
 import { openModal } from 'src/features/modals/modalSlice'
-import { Flex, UniversalImage, useShadowPropsShort } from 'ui/src'
 import { ArrowDownCircle, Buy } from 'ui/src/components/icons'
-import { UniversalImageResizeMode } from 'ui/src/components/UniversalImage/types'
 import { borderRadii, iconSizes, spacing } from 'ui/src/theme'
 import { ActionCard, type ActionCardItem } from 'uniswap/src/components/misc/ActionCard'
 import { Modal } from 'uniswap/src/components/modals/Modal'
@@ -130,16 +131,9 @@ const LogoRendererComponent = ({
   index: number
 }>): JSX.Element => {
   return (
-    <Flex
-      centered
-      animation="quick"
-      enterStyle={{ opacity: 0 }}
-      exitStyle={{ opacity: 0 }}
-      marginEnd={-ICON_SHIFT}
-      zIndex={-index}
-    >
+    <AnimatedFlex centered entering={fadeInQuick} marginEnd={-ICON_SHIFT} zIndex={-index}>
       {children}
-    </Flex>
+    </AnimatedFlex>
   )
 }
 

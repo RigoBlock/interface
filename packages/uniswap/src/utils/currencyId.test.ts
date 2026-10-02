@@ -1,9 +1,8 @@
+import { normalizeTokenAddressForCache, Platform, UniverseChainId } from '@universe/chains'
 import { getNativeAddress } from 'uniswap/src/constants/addresses'
 import { DAI, nativeOnChain } from 'uniswap/src/constants/tokens'
-import { normalizeTokenAddressForCache } from 'uniswap/src/data/cache'
 import { DEFAULT_NATIVE_ADDRESS } from 'uniswap/src/features/chains/evm/rpc'
 import { DEFAULT_NATIVE_ADDRESS_SOLANA } from 'uniswap/src/features/chains/svm/defaults'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import {
   areCurrencyIdsEqual,
   buildCurrencyId,
@@ -17,6 +16,7 @@ import {
   currencyIdToGraphQLAddress,
   getCurrencyAddressForAnalytics,
   isCurrencyIdValid,
+  isDefaultNativeAddress,
   isNativeCurrencyAddress,
   NATIVE_ANALYTICS_ADDRESS_VALUE,
 } from 'uniswap/src/utils/currencyId'
@@ -118,6 +118,18 @@ describe('currencyId', () => {
       expect(isNativeCurrencyAddress(chainId, address)).toEqual(expected)
     },
   )
+
+  it.each([
+    ['0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', true],
+    ['0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE', true],
+    ['0x0000000000000000000000000000000000000000', true],
+    [DAI.address, false],
+    // Polygon's real native contract address is NOT a placeholder
+    ['0x0000000000000000000000000000000000001010', false],
+    ['ETH', false],
+  ])('isDefaultNativeAddress recognizes both placeholder formats: %s = %s', (address, expected) => {
+    expect(isDefaultNativeAddress({ address, platform: Platform.EVM })).toEqual(expected)
+  })
 
   it.each([
     [`1-${DAI.address}`, DAI.address],

@@ -23,7 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 
-.tamagui
 .output
 .wxt
 

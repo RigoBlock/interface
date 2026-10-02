@@ -21,6 +21,14 @@ function createMockClient(loadingStatus: string): {
   }
 }
 
+function getValuesUpdatedHandler(client: { on: Mock }): EventHandler {
+  const [firstCall] = client.on.mock.calls
+  if (!firstCall) {
+    throw new Error('expected waitForStatsigReady to register a values_updated listener')
+  }
+  return firstCall[1] as EventHandler
+}
+
 describe('waitForStatsigReady', () => {
   beforeEach(() => {
     vi.useFakeTimers()
@@ -48,7 +56,7 @@ describe('waitForStatsigReady', () => {
 
     // Capture the handler registered via client.on
     expect(client.on).toHaveBeenCalledWith('values_updated', expect.any(Function))
-    const handler = client.on.mock.calls[0][1] as EventHandler
+    const handler = getValuesUpdatedHandler(client)
 
     // Fire the event
     handler({ status: 'Ready' })
@@ -65,7 +73,7 @@ describe('waitForStatsigReady', () => {
 
     const promise = waitForStatsigReady()
 
-    const handler = client.on.mock.calls[0][1] as EventHandler
+    const handler = getValuesUpdatedHandler(client)
 
     // Fire a non-Ready event — should not resolve
     handler({ status: 'Loading' })
@@ -85,7 +93,7 @@ describe('waitForStatsigReady', () => {
 
     const promise = waitForStatsigReady(1000)
 
-    const handler = client.on.mock.calls[0][1] as EventHandler
+    const handler = getValuesUpdatedHandler(client)
 
     // Advance past timeout
     vi.advanceTimersByTime(1000)

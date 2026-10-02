@@ -1,6 +1,6 @@
+import { UniverseChainId } from '@universe/chains'
 import { useMemo } from 'react'
 import { DEFAULT_NATIVE_ADDRESS, DEFAULT_NATIVE_ADDRESS_LEGACY } from 'uniswap/src/features/chains/evm/defaults'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useCurrencyInfoWithLoading } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
 import { formatUnits } from 'viem'
@@ -12,7 +12,7 @@ import {
   TransactionSection,
   TransactionSectionType,
 } from 'wallet/src/features/dappRequests/types'
-import { roundToDecimals } from 'wallet/src/features/dappRequests/utils/blockaidUtils'
+import { roundToDecimals } from 'wallet/src/features/dappRequests/utils/blockaidAssetUtils'
 
 interface UseParseUniswapXSwapResult extends ParsedTransactionData {
   /** Whether the hook is still loading currency info */
@@ -44,8 +44,8 @@ export function useParseUniswapXSwap(
   const inputCurrencyId = inputToken ? buildCurrencyId(chainId, inputToken) : undefined
   const outputCurrencyId = normalizedOutputToken ? buildCurrencyId(chainId, normalizedOutputToken) : undefined
 
-  const { currencyInfo: inputCurrencyInfo, loading: inputLoading } = useCurrencyInfoWithLoading(inputCurrencyId)
-  const { currencyInfo: outputCurrencyInfo, loading: outputLoading } = useCurrencyInfoWithLoading(outputCurrencyId)
+  const { data: inputCurrencyInfo, isLoading: inputLoading } = useCurrencyInfoWithLoading(inputCurrencyId)
+  const { data: outputCurrencyInfo, isLoading: outputLoading } = useCurrencyInfoWithLoading(outputCurrencyId)
 
   // Determine loading state - only loading if we have typed data and either currency query is still loading
   const isLoading = typedData !== null && (inputLoading || outputLoading)

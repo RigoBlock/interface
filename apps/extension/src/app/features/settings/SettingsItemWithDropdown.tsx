@@ -1,6 +1,7 @@
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
+import type { GeneratedIcon } from '@universe/mycelium/icons'
 import { SCREEN_ITEM_HORIZONTAL_PAD } from 'src/app/constants'
 import { SettingsDropdown, SettingsDropdownProps } from 'src/app/features/settings/SettingsDropdown'
-import { Flex, GeneratedIcon, Text, TouchableArea } from 'ui/src'
 
 type SettingsItemWithDropdownProps = {
   Icon: GeneratedIcon

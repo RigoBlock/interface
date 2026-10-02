@@ -1,7 +1,7 @@
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { ExploreStackNavigator } from 'src/app/navigation/ExploreStackNavigator'
 import { AppStackScreenProp } from 'src/app/navigation/types'
 import { useReactNavigationModal } from 'src/components/modals/useReactNavigationModal'
-import { useSporeColors } from 'ui/src'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { MobileScreens } from 'uniswap/src/types/screens/mobile'

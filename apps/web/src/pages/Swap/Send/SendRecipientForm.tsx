@@ -1,120 +1,81 @@
-import { ChangeEvent, ForwardedRef, forwardRef, KeyboardEvent, useCallback, useRef, useState } from 'react'
+import { Platform, areAddressesEqual } from '@universe/chains'
+import { Flex, type FlexCompatProps, Text, TouchableArea, type TouchableAreaCompatProps } from '@universe/mycelium'
+import { Unitag } from '@universe/mycelium/icons/Unitag'
+import { X } from '@universe/mycelium/icons/X'
+import { useShadowPropsMedium } from '@universe/mycelium/theme-hooks-compat'
+import { type TouchableAreaCompatEvent } from '@universe/mycelium/touchable-area'
+import { type ElementRef, forwardRef, useCallback, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { capitalize } from 'tsafe'
-import { Flex, Popover, Text, Tooltip, TouchableArea, TouchableAreaEvent, styled as UIStyled } from 'ui/src'
-import { Unitag } from 'ui/src/components/icons/Unitag'
-import { X } from 'ui/src/components/icons/X'
-import { zIndexes } from 'ui/src/theme'
+import { AdaptiveWebPopoverContent, Input, type InputProps, Popover, Tooltip } from 'ui/src'
 import { useUnitagsAddressQuery } from 'uniswap/src/data/apiClients/unitagsApi/useUnitagsAddressQuery'
 import { AccountIcon } from 'uniswap/src/features/accounts/AccountIcon'
 import { useENSName } from 'uniswap/src/features/ens/api'
+import { useRecentTransfersByAddress, TransferCount } from 'uniswap/src/features/send/useRecentTransfersByAddress'
 import { shortenAddress } from 'utilities/src/addresses'
-import Column, { AutoColumn } from '~/components/deprecated/Column'
-import Row from '~/components/deprecated/Row'
 import { useAccount } from '~/hooks/useAccount'
-import { useGroupedRecentTransfers } from '~/hooks/useGroupedRecentTransfers'
 import { useOnClickOutside } from '~/hooks/useOnClickOutside'
-import { useUnmountingAnimation } from '~/hooks/useUnmountingAnimation'
-import { css, deprecatedStyled, keyframes } from '~/lib/deprecated-styled'
-import { RecipientData } from '~/state/send/hooks'
-import { useSendContext } from '~/state/send/SendContext'
-import { ThemedText } from '~/theme/components'
-import { AnimationType } from '~/theme/components/FadePresence'
-import { ClickableStyle } from '~/theme/components/styles'
+import { RecipientData } from '~/pages/Swap/Send/state/hooks'
+import { useSendContext } from '~/pages/Swap/Send/state/SendContext'
 
-const StyledConfirmedRecipientRow = deprecatedStyled(Row)`
-  padding: 6px 0px;
-  justify-content: space-between;
-`
+const SEND_RECIPIENT_INPUT_PADDING = 16
 
-const StyledConfirmedRecipientDisplayRow = deprecatedStyled(Row)`
-  ${ClickableStyle}
-`
+const RecipientWrapper = ({
+  isDisabled,
+  isFocused,
+  ...props
+}: TouchableAreaCompatProps & { isDisabled?: boolean; isFocused?: boolean }): JSX.Element => (
+  <TouchableArea
+    backgroundColor={isFocused ? '$surface1' : '$surface2'}
+    borderRadius="$rounded16"
+    padding={SEND_RECIPIENT_INPUT_PADDING}
+    gap="$spacing4"
+    opacity={isDisabled ? 0.4 : 1}
+    pointerEvents={isDisabled ? 'none' : undefined}
+    borderColor={isFocused ? '$surface3' : '$transparent'}
+    borderWidth="$spacing1"
+    {...props}
+  />
+)
 
-const RecipientWrapper = UIStyled(Flex, {
-  position: 'relative',
-  backgroundColor: '$surface2',
-  borderRadius: '$rounded16',
-  padding: '$spacing16',
-  gap: '$spacing4',
-  opacity: 1,
-  borderColor: '$transparent',
-  borderWidth: '$spacing1',
-
-  variants: {
-    isDisabled: {
-      true: {
-        opacity: 0.4,
-        pointerEvents: 'none',
-      },
-    },
-    isFocused: {
-      true: {
-        borderColor: '$surface3',
-        backgroundColor: '$surface1',
-      },
-    },
-  } as const,
+const SendRecipientInput = forwardRef<ElementRef<typeof Input>, InputProps>(function SendRecipientInput(props, ref) {
+  return (
+    <Input
+      ref={ref}
+      unstyled
+      width="100%"
+      backgroundColor="transparent"
+      borderWidth={0}
+      outlineWidth={0}
+      padding={0}
+      fontSize={16}
+      fontWeight="500"
+      lineHeight={24}
+      color="$neutral1"
+      placeholderTextColor="$neutral3"
+      focusStyle={{ outlineWidth: 0, outlineStyle: 'none', borderWidth: 0 }}
+      focusVisibleStyle={{ outlineWidth: 0, outlineStyle: 'none', borderWidth: 0 }}
+      $platform-web={{ outlineStyle: 'none', outlineWidth: 0 }}
+      {...props}
+    />
+  )
 })
 
-const StyledRecipientInput = deprecatedStyled.input`
-  background: none;
-  width: 100%;
-  color: ${({ theme }) => theme.neutral1};
-  outline: none;
-  border: none;
-  font-size: 16px;
-  font-weight: 500;
-  line-height: 24px;
+type SendRecipientInputRef = ElementRef<typeof SendRecipientInput>
 
-  ::placeholder {
-    color: ${({ theme }) => theme.neutral3};
-  }
-`
-
-const slideIn = keyframes`
-  from { opacity: 0; transform: translateY(-40px) }
-  to { opacity: 1; transform: translateY(0px) }
-`
-const slideInAnimation = css`
-  animation: ${slideIn} ${({ theme }) => `${theme.transition.duration.medium} ${theme.transition.timing.inOut}`};
-`
-
-const slideOut = keyframes`
-  from { opacity: 1; transform: translateY(0px) }
-  to { opacity: 0; transform: translateY(-40px) }
-`
-const slideOutAnimation = css`
-  animation: ${slideOut} ${({ theme }) => `${theme.transition.duration.medium} ${theme.transition.timing.inOut}`};
-`
-
-const MenuFlyout = deprecatedStyled(AutoColumn)`
-  width: 100%;
-  background-color: ${({ theme }) => theme.surface1};
-  border: 1px solid ${({ theme }) => theme.surface3};
-  box-shadow:
-    0px 0px 1px rgba(0, 0, 0, 0.01),
-    0px 4px 8px rgba(0, 0, 0, 0.04),
-    0px 16px 24px rgba(0, 0, 0, 0.04),
-    0px 24px 32px rgba(0, 0, 0, 0.01);
-  border-radius: 12px;
-  position: absolute;
-  z-index: 100;
-  padding: 16px;
-  transition: display ${({ theme }) => `${theme.transition.duration.fast} ${theme.transition.timing.inOut}`};
-  ${slideInAnimation}
-  &.${AnimationType.EXITING} {
-    ${slideOutAnimation}
-  }
-`
-
-const StyledTransferText = deprecatedStyled(ThemedText.BodySecondary)`
-  flex-shrink: 0;
-`
-
-const StyledAutocompleteRow = deprecatedStyled(Row)`
-  ${ClickableStyle}
-`
+const AutocompletePanel = (props: FlexCompatProps): JSX.Element => (
+  <Flex
+    width="100%"
+    backgroundColor="$surface1"
+    borderWidth={1}
+    borderColor="$surface3"
+    borderRadius="$rounded12"
+    padding="$spacing16"
+    flexDirection="column"
+    gap="$spacing4"
+    {...props}
+  />
+)
 
 const AutocompleteRow = ({
   address,
@@ -148,143 +109,166 @@ const AutocompleteRow = ({
   )
 
   return (
-    <StyledAutocompleteRow justify="space-between" padding="8px 0px" onClick={boundSelectRecipient}>
-      <Row gap="sm">
-        <AccountIcon address={address} size={36} />
-        <Column>
-          <Row gap="xs">
-            {shouldShowAddress ? (
+    <Popover.Close asChild>
+      <TouchableArea
+        row
+        width="100%"
+        alignItems="center"
+        justifyContent="space-between"
+        p="$spacing8"
+        hoverStyle={{ backgroundColor: '$surface1Hovered' }}
+        onMouseDown={(e) => e.preventDefault()}
+        onPress={boundSelectRecipient}
+      >
+        <Flex row gap="$gap8" alignItems="center">
+          <AccountIcon address={address} size={36} />
+          <Flex gap="$gap4">
+            <Flex row gap="$gap4" alignItems="center">
+              {shouldShowAddress ? (
+                <Tooltip placement="top-start">
+                  <Tooltip.Trigger>
+                    <Text variant="subheading2">{formattedAddress}</Text>
+                  </Tooltip.Trigger>
+                  <Tooltip.Content maxWidth="fit-content">
+                    <Text variant="body4">{address}</Text>
+                  </Tooltip.Content>
+                </Tooltip>
+              ) : (
+                <Text variant="body2">{unitag?.username ?? cachedEnsName}</Text>
+              )}
+              {unitag?.username && (
+                <Flex pt="$spacing2">
+                  <Unitag size={18} />
+                </Flex>
+              )}
+            </Flex>
+            {!shouldShowAddress && (
               <Tooltip placement="top-start">
                 <Tooltip.Trigger>
-                  <Text variant="subheading2">{formattedAddress}</Text>
+                  <Text variant="body3" color="$neutral2">
+                    {formattedAddress}
+                  </Text>
                 </Tooltip.Trigger>
-                <Tooltip.Content zIndex={zIndexes.overlay} maxWidth="fit-content">
+                <Tooltip.Content maxWidth="fit-content">
                   <Text variant="body4">{address}</Text>
                 </Tooltip.Content>
               </Tooltip>
-            ) : (
-              <ThemedText.BodyPrimary lineHeight="24px">{unitag?.username ?? cachedEnsName}</ThemedText.BodyPrimary>
             )}
-            {unitag?.username && (
-              <Flex pt="$spacing2">
-                <Unitag size={18} />
-              </Flex>
-            )}
-          </Row>
-          {!shouldShowAddress && (
-            <Tooltip placement="top-start">
-              <Tooltip.Trigger>
-                <Text variant="body3" color="$neutral2">
-                  {formattedAddress}
-                </Text>
-              </Tooltip.Trigger>
-              <Tooltip.Content zIndex={zIndexes.overlay} maxWidth="fit-content">
-                <Text variant="body4">{address}</Text>
-              </Tooltip.Content>
-            </Tooltip>
-          )}
-        </Column>
-      </Row>
-      {account.isConnected && (
-        <StyledTransferText>
-          {numberOfTransfers} {t('common.transfer', { count: numberOfTransfers })}
-        </StyledTransferText>
-      )}
-    </StyledAutocompleteRow>
+          </Flex>
+        </Flex>
+        {account.isConnected && (
+          <Text variant="body2" color="$neutral2" flexShrink={0}>
+            {numberOfTransfers} {t('common.transfer', { count: numberOfTransfers })}
+          </Text>
+        )}
+      </TouchableArea>
+    </Popover.Close>
   )
 }
 
 interface AutocompleteFlyoutProps {
-  transfers?: { [address: string]: number }
+  transfers: TransferCount[]
   validatedRecipientData?: RecipientData
   selectRecipient: (recipient: RecipientData) => void
 }
 
-const AutocompleteFlyout = forwardRef((props: AutocompleteFlyoutProps, ref: ForwardedRef<HTMLDivElement>) => {
+function AutocompleteFlyout(props: AutocompleteFlyoutProps) {
   const { transfers, validatedRecipientData, selectRecipient } = props
   const { t } = useTranslation()
+  const shadowProps = useShadowPropsMedium()
 
   if (validatedRecipientData) {
     return (
-      <MenuFlyout ref={ref}>
+      <AutocompletePanel {...shadowProps} onPointerDown={(e) => e.preventDefault()}>
         <AutocompleteRow
           address={validatedRecipientData.address}
           validatedEnsName={validatedRecipientData.ensName}
-          numberOfTransfers={transfers?.[validatedRecipientData.address] ?? 0}
+          numberOfTransfers={
+            transfers.find((transfer) =>
+              areAddressesEqual({
+                addressInput1: { address: transfer.address, platform: Platform.EVM },
+                addressInput2: { address: validatedRecipientData.address, platform: Platform.EVM },
+              }),
+            )?.count ?? 0
+          }
           selectRecipient={selectRecipient}
         />
-      </MenuFlyout>
+      </AutocompletePanel>
     )
   }
 
-  if (!transfers) {
+  if (transfers.length === 0) {
     return null
   }
 
   return (
-    <MenuFlyout ref={ref}>
-      <ThemedText.SubHeaderSmall>{t('sendRecipientForm.recentAddresses.label')}</ThemedText.SubHeaderSmall>
-      {Object.keys(transfers)
-        .slice(0, 3)
-        .map((address) => (
-          <AutocompleteRow
-            key={address}
-            address={address}
-            numberOfTransfers={transfers[address]}
-            selectRecipient={selectRecipient}
-          />
-        ))}
-    </MenuFlyout>
+    <AutocompletePanel {...shadowProps} onPointerDown={(e) => e.preventDefault()}>
+      <Text variant="body3" color="$neutral2">
+        {t('sendRecipientForm.recentAddresses.label')}
+      </Text>
+      {transfers.slice(0, 3).map((transfer) => (
+        <AutocompleteRow
+          key={transfer.address}
+          address={transfer.address}
+          numberOfTransfers={transfer.count}
+          selectRecipient={selectRecipient}
+        />
+      ))}
+    </AutocompletePanel>
   )
-})
-
-AutocompleteFlyout.displayName = 'AutocompleteFlyout'
+}
 
 export function SendRecipientForm({ disabled }: { disabled?: boolean }) {
   const { t } = useTranslation()
   const account = useAccount()
   const { sendState, setSendState, derivedSendInfo } = useSendContext()
-  const { recipient } = sendState
+  const { recipient, validatedRecipientData } = sendState
   const { recipientData } = derivedSendInfo
 
-  const { transfers: recentTransfers } = useGroupedRecentTransfers(account.address)
+  const { transfers: recentTransfers } = useRecentTransfersByAddress(account.address)
 
   const [[isFocusing, isForcingFocus], setFocus] = useState([false, false])
   const handleFocus = useCallback((focus: boolean) => setFocus([focus, false]), [])
   const handleForceFocus = useCallback((focus: boolean) => setFocus([focus, true]), [])
 
-  const inputNode = useRef<HTMLInputElement | null>(null)
   const inputWrapperNode = useRef<HTMLDivElement | null>(null)
+  const inputNode = useRef<SendRecipientInputRef | null>(null)
   const popoverContentRef = useRef<HTMLDivElement | null>(null)
+  /** When true, ignore blur-driven commit — `blur()` runs before validatedRecipientData flushes from select/Enter. */
+  const skipBlurRecipientCommitRef = useRef(false)
   useOnClickOutside({
     node: inputWrapperNode,
-    handler: isFocusing ? () => handleFocus(false) : undefined,
+    handler: isFocusing
+      ? () => {
+          inputNode.current?.blur()
+          handleFocus(false)
+        }
+      : undefined,
     ignoredNodes: [popoverContentRef],
   })
 
+  /** When to render flyout body: focused + resolved match and/or recents shell. Popover `open` uses `isFocusing` so Enter/blur matches main. */
   const showFlyout = isFocusing && (!!recipientData || !recipient)
-  const flyoutRef = useRef<HTMLDivElement>(null)
-  useUnmountingAnimation({ node: flyoutRef, getAnimatingClass: () => AnimationType.EXITING })
+  const showInputField = !validatedRecipientData || isFocusing || isForcingFocus
 
   const handleInputValidatedRecipient = useCallback(
     (value?: RecipientData) => {
       setSendState((prev) => ({
         ...prev,
         recipient: value?.address ?? '',
-        validatedRecipient: value,
+        validatedRecipientData: value,
       }))
     },
     [setSendState],
   )
 
-  const handleInput = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const input = event.target.value
-      const inputWithoutSpaces = input.replace(/\s+/g, '')
+  const handleRecipientChangeText = useCallback(
+    (text: string) => {
+      const inputWithoutSpaces = text.replace(/\s+/g, '')
       setSendState((prev) => ({
         ...prev,
         recipient: inputWithoutSpaces,
-        validatedRecipient: undefined,
+        validatedRecipientData: undefined,
       }))
     },
     [setSendState],
@@ -292,18 +276,19 @@ export function SendRecipientForm({ disabled }: { disabled?: boolean }) {
 
   const selectValidatedRecipient = useCallback(
     (value: RecipientData) => {
-      if (!recipientData) {
-        handleInputValidatedRecipient(value)
-      }
-
-      handleFocus(false)
+      skipBlurRecipientCommitRef.current = true
+      handleInputValidatedRecipient(value)
       inputNode.current?.blur()
+      handleFocus(false)
+      queueMicrotask(() => {
+        skipBlurRecipientCommitRef.current = false
+      })
     },
-    [handleFocus, handleInputValidatedRecipient, recipientData],
+    [handleFocus, handleInputValidatedRecipient],
   )
 
   const clearValidatedRecipient = useCallback(
-    (e: TouchableAreaEvent) => {
+    (e: TouchableAreaCompatEvent) => {
       e.preventDefault()
       e.stopPropagation()
       handleForceFocus(true)
@@ -316,91 +301,116 @@ export function SendRecipientForm({ disabled }: { disabled?: boolean }) {
     handleForceFocus(true)
   }, [handleForceFocus])
 
-  const handleEnter = useCallback(
-    (e: KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === 'Enter') {
-        if (recipientData) {
-          inputNode.current?.blur()
-          handleFocus(false)
-        }
-      }
-    },
-    [handleFocus, recipientData],
-  )
+  /** Tamagui `Input` is RN `TextInput`; Enter is `onSubmitEditing`, not reliably `onKeyDown` like a native `<input>`. */
+  const handleRecipientSubmitEditing = useCallback(() => {
+    if (!recipientData) {
+      return
+    }
+    selectValidatedRecipient(recipientData)
+  }, [recipientData, selectValidatedRecipient])
 
-  const showInputField = !recipientData || isFocusing || isForcingFocus
+  const handleRecipientInputBlur = useCallback(() => {
+    if (!skipBlurRecipientCommitRef.current && !validatedRecipientData && recipientData) {
+      handleInputValidatedRecipient(recipientData)
+    }
+    handleFocus(false)
+  }, [handleFocus, handleInputValidatedRecipient, recipientData, validatedRecipientData])
+
+  const focusRecipientInput = useCallback(() => {
+    if (disabled) {
+      return
+    }
+    handleFocus(true)
+    inputNode.current?.focus()
+  }, [disabled, handleFocus])
 
   return (
-    <RecipientWrapper isDisabled={disabled} isFocused={isFocusing}>
-      <Popover open={isFocusing} placement="bottom-start" offset={{ crossAxis: -16 }}>
-        <Popover.Trigger>
+    <Popover open={isFocusing} placement="bottom" allowFlip stayInFrame>
+      <Popover.Anchor ref={inputWrapperNode}>
+        <RecipientWrapper
+          isDisabled={disabled}
+          isFocused={isFocusing}
+          cursor={showInputField && !disabled ? 'text' : undefined}
+          onPress={() => showInputField && focusRecipientInput()}
+        >
           {showInputField ? (
-            <Flex ref={inputWrapperNode}>
+            <Flex>
               <Text variant="body3" userSelect="none" color="$neutral2">
                 {capitalize(t('common.to'))}
               </Text>
-              <StyledRecipientInput
+              <SendRecipientInput
                 ref={inputNode}
-                type="text"
                 autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
+                autoCorrect={false}
+                autoCapitalize="none"
+                spellCheck={false}
+                returnKeyType="done"
                 placeholder={recipientData ? '' : t('common.addressOrENS')}
+                // @ts-expect-error Web-only `<input pattern>`; Tamagui `Input` typings omit it (RN `TextInput`).
                 pattern="^(0x[a-fA-F0-9]{40})$"
-                onChange={handleInput}
-                onFocus={() => handleFocus(true)}
                 value={recipient}
-                onKeyDown={handleEnter}
+                onChangeText={handleRecipientChangeText}
+                onBlur={handleRecipientInputBlur}
+                onFocus={() => handleFocus(true)}
+                onSubmitEditing={handleRecipientSubmitEditing}
                 autoFocus={isForcingFocus}
               />
             </Flex>
           ) : (
-            <StyledConfirmedRecipientRow>
-              <StyledConfirmedRecipientDisplayRow gap="md" onClick={editValidatedRecipient}>
-                <AccountIcon address={recipientData.address} size={36} />
-                <Column>
-                  <Row gap="xs">
-                    <ThemedText.BodyPrimary lineHeight="24px">
-                      {recipientData.unitag ??
-                        recipientData.ensName ??
-                        shortenAddress({ address: recipientData.address })}
-                    </ThemedText.BodyPrimary>
-                    {recipientData.unitag && (
+            <Flex row py="$spacing6" justifyContent="space-between" alignItems="center">
+              <TouchableArea row alignItems="center" gap="$spacing12" onPress={editValidatedRecipient}>
+                <AccountIcon address={validatedRecipientData.address} size={36} />
+                <Flex gap="$spacing4">
+                  <Flex row alignItems="center" gap="$spacing4">
+                    <Text variant="body2">
+                      {validatedRecipientData.unitag ??
+                        validatedRecipientData.ensName ??
+                        shortenAddress({ address: validatedRecipientData.address })}
+                    </Text>
+                    {validatedRecipientData.unitag && (
                       <Flex pt="$spacing2">
                         <Unitag size={18} />
                       </Flex>
                     )}
-                  </Row>
-                  {Boolean(recipientData.ensName) && (
-                    <ThemedText.LabelMicro lineHeight="16px">
-                      {shortenAddress({ address: recipientData.address })}
-                    </ThemedText.LabelMicro>
+                  </Flex>
+                  {Boolean(validatedRecipientData.ensName) && (
+                    <Text variant="body4" color="$neutral2">
+                      {shortenAddress({ address: validatedRecipientData.address })}
+                    </Text>
                   )}
-                </Column>
-              </StyledConfirmedRecipientDisplayRow>
+                </Flex>
+              </TouchableArea>
               <TouchableArea onPress={clearValidatedRecipient}>
                 <X size="$icon.20" color="$neutral3" />
               </TouchableArea>
-            </StyledConfirmedRecipientRow>
+            </Flex>
           )}
-        </Popover.Trigger>
-        <Popover.Content
-          zIndex={zIndexes.overlay}
-          background="transparent"
-          width={(inputNode.current?.clientWidth ?? 0) + 32}
-          ref={popoverContentRef}
-        >
-          {showFlyout && (
-            <AutocompleteFlyout
-              ref={flyoutRef}
-              transfers={recentTransfers}
-              validatedRecipientData={recipientData}
-              selectRecipient={selectValidatedRecipient}
-            />
-          )}
-        </Popover.Content>
-      </Popover>
-    </RecipientWrapper>
+        </RecipientWrapper>
+      </Popover.Anchor>
+      <AdaptiveWebPopoverContent
+        adaptWhen={false}
+        isOpen={isFocusing}
+        placement="bottom"
+        disableFocusScope
+        background="transparent"
+        animation="quick"
+        animateOnly={['transform', 'opacity']}
+        enterStyle={{ y: -12, opacity: 0 }}
+        exitStyle={{ y: -12, opacity: 0 }}
+        width={(inputWrapperNode.current?.getBoundingClientRect().width ?? 0) + SEND_RECIPIENT_INPUT_PADDING * 2}
+        ref={popoverContentRef}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault()
+        }}
+      >
+        {showFlyout ? (
+          <AutocompleteFlyout
+            transfers={recentTransfers}
+            validatedRecipientData={recipientData}
+            selectRecipient={selectValidatedRecipient}
+          />
+        ) : null}
+      </AdaptiveWebPopoverContent>
+    </Popover>
   )
 }

@@ -1,4 +1,4 @@
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import { validateOrdersForCancellation } from 'uniswap/src/features/transactions/cancel/validation'
 import { UniswapXOrderDetails } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { uniswapXOrderDetails } from 'uniswap/src/test/fixtures'

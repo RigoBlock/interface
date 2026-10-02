@@ -1,15 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
-import { ensureNewErrorCode, UnitagErrorCode } from '@universe/api'
+import { UnitagErrorCode } from '@universe/api'
+import { isExtensionApp, isMobileApp } from '@universe/environment'
+import { Button, Flex, fonts, Text } from '@universe/mycelium'
+import { AlertTriangleFilled } from '@universe/mycelium/icons/AlertTriangleFilled'
+import { Person } from '@universe/mycelium/icons/Person'
+import { TestID } from '@universe/test'
 import { useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller'
 import { useDispatch } from 'react-redux'
-import { Button, Flex, Text } from 'ui/src'
-import { AlertTriangleFilled, Person } from 'ui/src/components/icons'
-import { fonts, spacing } from 'ui/src/theme'
-import { TextInput } from 'uniswap/src/components/input/TextInput'
 import { Modal } from 'uniswap/src/components/modals/Modal'
-import { useUnitagsApiClient } from 'uniswap/src/data/apiClients/unitagsApi/UnitagsApiClient'
+import { unitagsApiClient } from 'uniswap/src/data/apiClients/unitagsApi/UnitagsApiClient'
 import { useResetUnitagsQueries } from 'uniswap/src/data/apiClients/unitagsApi/useResetUnitagsQueries'
 import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
 import { AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
@@ -18,14 +18,13 @@ import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { UNITAG_SUFFIX } from 'uniswap/src/features/unitags/constants'
 import { useCanClaimUnitagName } from 'uniswap/src/features/unitags/hooks/useCanClaimUnitagName'
 import { UnitagName } from 'uniswap/src/features/unitags/UnitagName'
-import { parseUnitagErrorCode } from 'uniswap/src/features/unitags/utils'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
+import { parseUnitagErrorCode, normalizeUnitagUsernameInput } from 'uniswap/src/features/unitags/utils'
 import { dismissNativeKeyboard } from 'utilities/src/device/keyboard/dismissNativeKeyboard'
 import { uniqueIdQuery } from 'utilities/src/device/uniqueIdQuery'
 import { logger } from 'utilities/src/logger/logger'
-import { isAndroid, isExtensionApp, isMobileApp } from 'utilities/src/platform'
 import { ModalBackButton } from 'wallet/src/components/modals/ModalBackButton'
 import { ChangeUnitagConfirmButton } from 'wallet/src/features/unitags/ChangeUnitagConfirmButton'
+import { ChangeUnitagTextInput } from 'wallet/src/features/unitags/ChangeUnitagTextInput'
 import { useCanAddressClaimUnitag } from 'wallet/src/features/unitags/hooks/useCanAddressClaimUnitag'
 import { useWalletSigners } from 'wallet/src/features/wallet/context'
 import { useAccount } from 'wallet/src/features/wallet/hooks'
@@ -34,13 +33,11 @@ import { generateSignerFunc } from 'wallet/src/features/wallet/signing/utils'
 export function ChangeUnitagModal({
   unitag,
   address,
-  keyboardHeight = 0,
   onClose,
   onSuccess,
 }: {
   unitag: string
   address: Address
-  keyboardHeight?: number
   onClose: () => void
   onSuccess?: () => void
 }): JSX.Element {
@@ -49,18 +46,25 @@ export function ChangeUnitagModal({
   const { data: deviceId } = useQuery(uniqueIdQuery())
   const account = useAccount(address)
   const signerManager = useWalletSigners()
-  const unitagsApiClient = useUnitagsApiClient()
 
-  const [newUnitag, setNewUnitag] = useState(unitag)
+  const [newUnitag, setNewUnitag] = useState(() => normalizeUnitagUsernameInput(unitag))
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [isChangeResponseLoading, setIsChangeResponseLoading] = useState(false)
 
-  const { error: canClaimUnitagNameError, loading: canClaimUnitagLoading } = useCanClaimUnitagName(newUnitag)
+  const {
+    error: canClaimUnitagNameError,
+    loading: canClaimUnitagLoading,
+    isDebouncing: isDebouncingUnitag,
+  } = useCanClaimUnitagName({
+    unitag: newUnitag,
+    claimerAddress: address,
+  })
   const { errorCode } = useCanAddressClaimUnitag(address, true)
   const resetUnitagsQueries = useResetUnitagsQueries()
 
   const isUnitagEdited = unitag !== newUnitag
-  const isUnitagValid = !!newUnitag && isUnitagEdited && !canClaimUnitagNameError && !canClaimUnitagLoading
+  const isCheckingUnitag = isUnitagEdited && !canClaimUnitagNameError && (canClaimUnitagLoading || isDebouncingUnitag)
+  const isUnitagValid = !!newUnitag && isUnitagEdited && !canClaimUnitagNameError && !isCheckingUnitag
   const hasReachedAddressLimit = errorCode === UnitagErrorCode.UNITAG_ERROR_ADDRESS_LIMIT_REACHED
   const isSubmitButtonDisabled = !deviceId || hasReachedAddressLimit || !isUnitagValid
 
@@ -108,7 +112,7 @@ export function ChangeUnitagModal({
         dispatch(
           pushNotification({
             type: AppNotificationType.Error,
-            errorMessage: parseUnitagErrorCode(t, ensureNewErrorCode(changeResponse.errorCode)),
+            errorMessage: parseUnitagErrorCode(t, changeResponse.errorCode),
           }),
         )
         return
@@ -143,113 +147,92 @@ export function ChangeUnitagModal({
     }
   }
 
-  // Position correctly modal and confirm button, depending on platform
-  const modalKeyboardOffset = keyboardHeight + (isAndroid ? spacing.spacing20 : -spacing.spacing20)
-
   return (
     <>
       {showConfirmModal && (
         <ChangeUnitagConfirmModal unitag={newUnitag} onChangeSubmit={onChangeSubmit} onClose={onCloseConfirmModal} />
       )}
-      <Modal isDismissible name={ModalName.UnitagsChange} onClose={onClose}>
+      <Modal
+        enableBlurKeyboardOnGesture
+        isDismissible
+        keyboardBlurBehavior="restore"
+        name={ModalName.UnitagsChange}
+        onClose={onClose}
+      >
         {isExtensionApp && <ModalBackButton onBack={onClose} />}
-        <KeyboardAvoidingView>
-          <Flex
-            px={isExtensionApp ? undefined : '$spacing24'}
-            // Since BottomSheetTextInput doesnt work, dynamically set bottom padding based on keyboard height to get a keyboard avoiding view
-            pb={keyboardHeight > 0 ? modalKeyboardOffset : '$spacing12'}
-          >
-            <Flex centered gap="$spacing12" pt={isExtensionApp ? '$spacing24' : '$spacing12'}>
-              <Flex
-                centered
-                backgroundColor="$surface2"
-                borderRadius="$rounded12"
-                height="$spacing48"
-                minWidth="$spacing48"
-              >
-                <Person color="$neutral1" size="$icon.24" />
-              </Flex>
-              <Text textAlign="center" variant="subheading1">
-                {t('unitags.editUsername.title')}
-              </Text>
-              <Flex
-                row
-                alignItems="center"
-                borderColor="$surface3"
-                borderRadius="$rounded16"
-                borderWidth="$spacing1"
-                px="$spacing24"
-                mt="$spacing12"
-                width="100%"
-              >
-                <TextInput
-                  autoFocus
-                  autoCapitalize="none"
-                  color="$neutral1"
-                  fontFamily="$subHeading"
-                  fontSize={fonts.subheading1.fontSize}
-                  fontWeight="$book"
-                  m="$none"
-                  maxLength={20}
-                  numberOfLines={1}
-                  px="$none"
-                  py="$spacing20"
-                  returnKeyType="done"
-                  defaultValue={newUnitag}
-                  width="100%"
-                  onChangeText={(text: string) => setNewUnitag(text.trim().toLowerCase())}
-                  onSubmitEditing={onFinishEditing}
-                />
-                <Flex position="absolute" right="$spacing20" top="$spacing20">
-                  <Text color="$neutral3" variant="subheading1">
-                    {UNITAG_SUFFIX}
-                  </Text>
-                </Flex>
-              </Flex>
-              {hasReachedAddressLimit ? (
-                <Flex
-                  backgroundColor="$statusCritical2"
-                  borderRadius="$rounded16"
-                  px="$spacing16"
-                  py="$spacing12"
-                  width="100%"
-                >
-                  <Text color="$statusCritical" variant="body3">
-                    {t('unitags.editUsername.warning.max')}
-                  </Text>
-                </Flex>
-              ) : (
-                <Flex
-                  backgroundColor="$surface2"
-                  borderRadius="$rounded16"
-                  px="$spacing16"
-                  py="$spacing12"
-                  width="100%"
-                >
-                  <Text color="$neutral2" variant="body3">
-                    <Trans
-                      components={{ highlight: <Text color="$statusCritical" variant="body3" /> }}
-                      i18nKey="unitags.editUsername.warning.default"
-                    />
-                  </Text>
-                </Flex>
-              )}
-              <Flex centered row gap="$spacing8" minHeight={fonts.body3.lineHeight}>
-                {isUnitagEdited && canClaimUnitagNameError && (
-                  <Text color="$statusCritical" textAlign="center" variant="body3">
-                    {canClaimUnitagNameError}
-                  </Text>
-                )}
+        <Flex px={isExtensionApp ? undefined : '$spacing24'} pb="$spacing12">
+          <Flex centered gap="$spacing12" pt={isExtensionApp ? '$spacing24' : '$spacing12'}>
+            <Flex
+              centered
+              backgroundColor="$surface2"
+              borderRadius="$rounded12"
+              height="$spacing48"
+              minWidth="$spacing48"
+            >
+              <Person color="$neutral1" size="$icon.24" />
+            </Flex>
+            <Text textAlign="center" variant="subheading1">
+              {t('unitags.editUsername.title')}
+            </Text>
+            <Flex
+              row
+              alignItems="center"
+              borderColor="$surface3"
+              borderRadius="$rounded16"
+              borderWidth="$spacing1"
+              px="$spacing24"
+              mt="$spacing12"
+              width="100%"
+            >
+              <ChangeUnitagTextInput
+                autoFocus
+                value={newUnitag}
+                onChangeText={(text: string) => setNewUnitag(normalizeUnitagUsernameInput(text))}
+                onSubmitEditing={onFinishEditing}
+              />
+              <Flex position="absolute" right="$spacing20" top="$spacing20">
+                <Text color="$neutral3" variant="subheading1">
+                  {UNITAG_SUFFIX}
+                </Text>
               </Flex>
             </Flex>
-            <ChangeUnitagConfirmButton
-              isSubmitButtonDisabled={isSubmitButtonDisabled}
-              isCheckingUnitag={canClaimUnitagLoading}
-              isChangeResponseLoading={isChangeResponseLoading}
-              onPressSaveChanges={onPressSaveChanges}
-            />
+            {hasReachedAddressLimit ? (
+              <Flex
+                backgroundColor="$statusCritical2"
+                borderRadius="$rounded16"
+                px="$spacing16"
+                py="$spacing12"
+                width="100%"
+              >
+                <Text color="$statusCritical" variant="body3">
+                  {t('unitags.editUsername.warning.max')}
+                </Text>
+              </Flex>
+            ) : (
+              <Flex backgroundColor="$surface2" borderRadius="$rounded16" px="$spacing16" py="$spacing12" width="100%">
+                <Text color="$neutral2" variant="body3">
+                  <Trans
+                    components={{ highlight: <Text color="$statusCritical" variant="body3" /> }}
+                    i18nKey="unitags.editUsername.warning.default"
+                  />
+                </Text>
+              </Flex>
+            )}
+            <Flex centered row gap="$spacing8" minHeight={fonts.body3.lineHeight}>
+              {isUnitagEdited && canClaimUnitagNameError && (
+                <Text color="$statusCritical" textAlign="center" variant="body3">
+                  {canClaimUnitagNameError}
+                </Text>
+              )}
+            </Flex>
           </Flex>
-        </KeyboardAvoidingView>
+          <ChangeUnitagConfirmButton
+            isSubmitButtonDisabled={isSubmitButtonDisabled}
+            isCheckingUnitag={isCheckingUnitag}
+            isChangeResponseLoading={isChangeResponseLoading}
+            onPressSaveChanges={onPressSaveChanges}
+          />
+        </Flex>
       </Modal>
     </>
   )

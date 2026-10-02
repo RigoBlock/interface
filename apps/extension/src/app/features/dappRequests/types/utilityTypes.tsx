@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const HexadecimalNumberSchema = z.union([z.number(), z.string()]).transform((value, ctx): number => {
+export const NumberLikeSchema = z.union([z.number(), z.string()]).transform((value, ctx): number => {
   if (typeof value === 'number') {
     return value
   }
@@ -8,6 +8,6 @@ export const HexadecimalNumberSchema = z.union([z.number(), z.string()]).transfo
   if (!isNaN(possibleNumber)) {
     return possibleNumber
   }
-  ctx.addIssue({ code: 'custom', message: 'Not a hexadecimal number' })
+  ctx.addIssue({ code: 'custom', message: 'Not a numeric value' })
   return z.NEVER
 })

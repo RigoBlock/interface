@@ -34,6 +34,7 @@ export enum DeepLinkAction {
   Unknown = 'unknown',
   TokenDetails = 'tokenDetails',
   FiatOnRampScreen = 'fiatOnRampScreen',
+  EarnScreen = 'earnScreen',
 }
 
 /**
@@ -100,6 +101,7 @@ export type DeepLinkActionResult =
   | { action: DeepLinkAction.WalletConnect; data: BasePayload & { wcUri: string } }
   | { action: DeepLinkAction.TokenDetails; data: BasePayload & { currencyId: string } }
   | { action: DeepLinkAction.FiatOnRampScreen; data: PayloadWithFiatOnRampParams }
+  | { action: DeepLinkAction.EarnScreen; data: BasePayload }
   | {
       action: DeepLinkAction.E2EOverrideGates
       data: BasePayload & { enable: string[] }
@@ -177,6 +179,9 @@ export function parseDeepLinkUrl(urlString: string): DeepLinkActionResult {
         action: DeepLinkAction.FiatOnRampScreen,
         data: { ...data, userAddress, moonpayOnly, moonpayCurrencyCode, amount },
       }
+    }
+    case '/earn': {
+      return { action: DeepLinkAction.EarnScreen, data }
     }
   }
 

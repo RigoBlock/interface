@@ -1,17 +1,17 @@
+import { Flex, iconSizes, ModalCloseIcon, Text } from '@universe/mycelium'
+import { GraduationCap } from '@universe/mycelium/icons/GraduationCap'
+import { useIsDarkMode, useMedia, useScrollbarStyles } from '@universe/mycelium/theme-hooks-compat'
 import { CSSProperties, useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import AutoSizer from 'react-virtualized-auto-sizer'
 import { VariableSizeList as List } from 'react-window'
-import { Flex, ModalCloseIcon, useIsDarkMode, useMedia, useScrollbarStyles } from 'ui/src'
-import { GraduationCap } from 'ui/src/components/icons/GraduationCap'
-import { Text } from 'ui/src/components/text/Text'
-import { iconSizes } from 'ui/src/theme'
 import { Modal } from 'uniswap/src/components/modals/Modal'
+import { SNAP_POINTS } from 'uniswap/src/components/TokenSelector/TokenSelector'
 import { FiatOnRampCurrency } from 'uniswap/src/features/fiatOnRamp/types'
 import { useIsWebFORNudgeEnabled } from 'uniswap/src/features/providers/webForNudgeProvider'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { CurrencyRow } from '~/components/SearchModal/CurrencyList'
-import { DropdownController } from '~/components/swap/SwapDetails'
+import { DropdownController } from '~/features/Swap/DropdownController'
 import { useBuyFormContext } from '~/pages/Swap/Buy/BuyFormContext'
 import { HeaderContent } from '~/pages/Swap/Buy/CountryListModal'
 import { ContentWrapper } from '~/pages/Swap/Buy/shared'
@@ -29,7 +29,7 @@ function FiatOnRampInfo() {
       mx="$spacing16"
       p="$spacing12"
       gap="$spacing12"
-      backgroundColor={isDarkMode ? '$cyanDark' : '$cyan'}
+      backgroundColor={isDarkMode ? '$cyanDark' : '$cyanLight'}
       borderRadius="$rounded12"
     >
       <Flex>
@@ -108,6 +108,11 @@ export function FiatOnRampCurrencyModal({
       maxWidth={420}
       height={media.sm ? '100vh' : '100%'}
       maxHeight={700}
+      // The mobile-web sheet must take its height from the snap point, not content-fit: the
+      // virtualized currency list sizes itself to its container (AutoSizer) so it has no intrinsic
+      // height, and a fit-mode sheet freezes at chrome height with an empty list. See (SWAP-3250)
+      snapPoints={SNAP_POINTS}
+      snapPointsMode="percent"
       isModalOpen={isOpen}
       onClose={onDismiss}
       padding={0}

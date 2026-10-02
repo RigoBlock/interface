@@ -1,12 +1,12 @@
+import { isWebPlatform } from '@universe/environment'
+import { Flex, fonts, spacing, Text, TouchableArea } from '@universe/mycelium'
+import { Signature } from '@universe/mycelium/icons/Signature'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { TextInput } from 'react-native'
 import { ScrollView } from 'react-native-gesture-handler'
-import { Flex, Text, TouchableArea, useSporeColors } from 'ui/src'
-import { Signature } from 'ui/src/components/icons'
-import { fonts, spacing } from 'ui/src/theme'
 import { CopyNotificationType } from 'uniswap/src/features/notifications/slice/types'
-import { isWebPlatform } from 'utilities/src/platform'
 import { useCopyToClipboard } from 'wallet/src/components/copy/useCopyToClipboard'
 
 interface SignatureMessageSectionProps {

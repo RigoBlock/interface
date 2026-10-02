@@ -1,5 +1,7 @@
+/* oxlint-disable eslint-js/no-restricted-syntax */
 import { isHexString } from 'ethers/lib/utils'
-import { HexadecimalNumberSchema } from 'src/app/features/dappRequests/types/utilityTypes'
+import { NumberLikeSchema } from 'src/app/features/dappRequests/types/utilityTypes'
+import { hexlifyTransaction } from 'utilities/src/transactions/hexlifyTransaction'
 import { z } from 'zod'
 
 /**
@@ -27,6 +29,16 @@ const BigNumberishSchema = z.union([
 
 const BytesLikeSchema = z.string().refine((data) => isHexString(data))
 
+// JSON-RPC transaction quantities are 0x-prefixed. Preserve numeric inputs used by Ethers and
+// internal callers, but do not reinterpret an unprefixed dapp string as a decimal chain ID.
+const DappTransactionChainIdSchema = z.union([
+  z.number(),
+  z
+    .string()
+    .regex(/^0x[0-9a-fA-F]+$/, 'Transaction chainId must be a 0x-prefixed hexadecimal quantity')
+    .transform((value) => Number(value)),
+])
+
 // https://docs.ethers.org/v5/api/providers/types/#types--access-lists
 const AccessListishSchema = z.union([
   AccessListSchema,
@@ -34,19 +46,31 @@ const AccessListishSchema = z.union([
   z.record(z.string(), z.array(z.string())), // Object with addresses as keys and arrays of storage keys as values
 ])
 
-export const EthersTransactionRequestSchema = z.object({
-  to: z.string().optional(),
-  from: z.string().optional(),
-  nonce: BigNumberishSchema.optional(),
-  gasLimit: BigNumberishSchema.optional(),
-  gasPrice: BigNumberishSchema.optional(),
-  data: BytesLikeSchema.optional(),
-  value: BigNumberishSchema.optional(),
-  chainId: HexadecimalNumberSchema.optional(),
-  type: z.union([z.number(), HexadecimalNumberSchema]).optional(),
-  accessList: AccessListishSchema.optional(),
-  maxPriorityFeePerGas: BigNumberishSchema.optional(),
-  maxFeePerGas: BigNumberishSchema.optional(),
-  customData: z.record(z.string(), z.any()).optional(),
-  ccipReadEnabled: z.boolean().optional(),
-})
+export const EthersTransactionRequestSchema = z
+  .object({
+    to: z.string().optional(),
+    from: z.string().optional(),
+    nonce: BigNumberishSchema.optional(),
+    gasLimit: BigNumberishSchema.optional(),
+    gasPrice: BigNumberishSchema.optional(),
+    data: BytesLikeSchema.optional(),
+    value: BigNumberishSchema.optional(),
+    chainId: DappTransactionChainIdSchema.optional(),
+    type: NumberLikeSchema.optional(),
+    accessList: AccessListishSchema.optional(),
+    maxPriorityFeePerGas: BigNumberishSchema.optional(),
+    maxFeePerGas: BigNumberishSchema.optional(),
+    customData: z.record(z.string(), z.any()).optional(),
+    ccipReadEnabled: z.boolean().optional(),
+  })
+  .transform((transaction, ctx) => {
+    try {
+      return hexlifyTransaction(transaction)
+    } catch {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Transaction quantity and data fields must be valid',
+      })
+      return z.NEVER
+    }
+  })

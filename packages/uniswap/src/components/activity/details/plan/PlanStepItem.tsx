@@ -1,13 +1,12 @@
+import { UniverseChainId } from '@universe/chains'
+import { AnimatedFlex, getTokenValue, SpinningLoader, Text, TouchableArea } from '@universe/mycelium'
+import { CheckCircleFilled } from '@universe/mycelium/icons/CheckCircleFilled'
+import { ExternalLink } from '@universe/mycelium/icons/ExternalLink'
+import { RoundExclamation } from '@universe/mycelium/icons/RoundExclamation'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getTokenValue, SpinningLoader, Text, TouchableArea } from 'ui/src'
-import { CheckCircleFilled } from 'ui/src/components/icons/CheckCircleFilled'
-import { ExternalLink } from 'ui/src/components/icons/ExternalLink'
-import { RoundExclamation } from 'ui/src/components/icons/RoundExclamation'
-import { Flex } from 'ui/src/components/layout/Flex'
 import { SwapTypeTransactionInfo } from 'uniswap/src/components/activity/details/types'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { getCurrencyAmount, ValueType } from 'uniswap/src/features/tokens/getCurrencyAmount'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
@@ -15,10 +14,12 @@ import { getAmountsFromTrade } from 'uniswap/src/features/transactions/swap/util
 import {
   ApproveTransactionInfo,
   BridgeTransactionInfo,
+  DepositTransactionInfo,
   TransactionDetails,
   TransactionStatus,
   TransactionType,
   TransactionTypeInfo,
+  WithdrawTransactionInfo,
   WrapTransactionInfo,
 } from 'uniswap/src/features/transactions/types/transactionDetails'
 import {
@@ -36,22 +37,22 @@ export function PlanStepItem({ transactionDetails }: { transactionDetails: Trans
   const { typeInfo } = transactionDetails
 
   return (
-    <Flex row centered justifyContent="space-between" gap="$spacing12" width="100%">
+    <AnimatedFlex row centered justifyContent="space-between" gap="$spacing12" width="100%">
       {StepStatusIconMap[transactionDetails.status] ? (
-        <Flex centered width={getTokenValue(PLAN_STEP_ITEM_WIDTH)}>
+        <AnimatedFlex centered width={getTokenValue(PLAN_STEP_ITEM_WIDTH)}>
           {StepStatusIconMap[transactionDetails.status]}
-        </Flex>
+        </AnimatedFlex>
       ) : null}
-      <Flex row grow flexShrink={1} minWidth={0} alignItems="center" gap="$spacing8">
+      <AnimatedFlex row grow flexShrink={1} minWidth={0} alignItems="center" gap="$spacing8">
         <StepDescriptor info={typeInfo} chainId={transactionDetails.chainId} />
         <StepStatusBadge status={transactionDetails.status} />
-      </Flex>
+      </AnimatedFlex>
       {transactionDetails.hash && (
         <TouchableArea onPress={() => openTransactionLink(transactionDetails.hash, transactionDetails.chainId)}>
           <ExternalLink color="$neutral3" size={14} />
         </TouchableArea>
       )}
-    </Flex>
+    </AnimatedFlex>
   )
 }
 
@@ -61,7 +62,7 @@ const StepStatusIconMap: { [key in TransactionStatus]?: React.ReactNode } = {
   [TransactionStatus.AwaitingAction]: <RoundExclamation size="$icon.18" color="$statusCritical" />,
   [TransactionStatus.Pending]: <SpinningLoader unstyled size={16} />,
   [TransactionStatus.Queued]: (
-    <Flex
+    <AnimatedFlex
       width={15}
       height={15}
       borderRadius="$roundedFull"
@@ -87,11 +88,11 @@ function StepStatusBadge({ status }: { status: TransactionStatus }): JSX.Element
   const badgeContent = badgeTextMap[status]
 
   return (
-    <Flex flexShrink={0} borderRadius="$rounded6" backgroundColor="$statusCritical2" p="$spacing4">
+    <AnimatedFlex flexShrink={0} borderRadius="$rounded6" backgroundColor="$statusCritical2" p="$spacing4">
       <Text variant="buttonLabel4" color="$statusCritical">
         {badgeContent}
       </Text>
-    </Flex>
+    </AnimatedFlex>
   )
 }
 
@@ -145,6 +146,9 @@ function StepDescriptor({ info, chainId }: { info: TransactionTypeInfo; chainId:
       return <SwapStepDescriptor info={info} />
     case TransactionType.Bridge:
       return <BridgeStepDescriptor info={info} />
+    case TransactionType.Deposit:
+    case TransactionType.Withdraw:
+      return <EarnVaultStepDescriptor info={info} chainId={chainId} />
     case TransactionType.Wrap:
       return <WrapStepDescriptor info={info} chainId={chainId} />
     default:
@@ -165,6 +169,44 @@ function ApproveStepDescriptor({
   return (
     <Text variant="body3" flexShrink={1} numberOfLines={1}>
       {t('common.approveSpend', { symbol })}
+    </Text>
+  )
+}
+
+function EarnVaultStepDescriptor({
+  info,
+  chainId,
+}: {
+  info: DepositTransactionInfo | WithdrawTransactionInfo
+  chainId: UniverseChainId
+}): JSX.Element {
+  const { t } = useTranslation()
+  const currencyInfo = useCurrencyInfo(buildCurrencyId(chainId, info.tokenAddress))
+  const { formatCurrencyAmount } = useLocalizationContext()
+
+  const text = useMemo(() => {
+    const currencyAmount =
+      currencyInfo?.currency && info.currencyAmountRaw
+        ? getCurrencyAmount({
+            value: info.currencyAmountRaw,
+            valueType: ValueType.Raw,
+            currency: currencyInfo.currency,
+          })
+        : null
+
+    const params = {
+      amount: formatCurrencyAmount({ value: currencyAmount, type: NumberType.TokenTx }),
+      symbol: currencyAmount?.currency.symbol ?? '',
+    }
+
+    return info.type === TransactionType.Withdraw
+      ? t('transaction.status.plan.step.withdraw', params)
+      : t('transaction.status.plan.step.deposit', params)
+  }, [currencyInfo?.currency, formatCurrencyAmount, info.currencyAmountRaw, info.type, t])
+
+  return (
+    <Text variant="body3" flexShrink={1} numberOfLines={1}>
+      {text}
     </Text>
   )
 }

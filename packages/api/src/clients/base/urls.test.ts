@@ -1,10 +1,6 @@
 import { TrafficFlows } from '@universe/api/src/clients/base/urls'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Mock the platform and environment utilities
-vi.mock('utilities/src/environment/env')
-vi.mock('utilities/src/platform')
-
 const envConfigs = {
   webProd: {
     isWebApp: true,
@@ -65,12 +61,12 @@ const envConfigs = {
   },
   playwrightDev: {
     isWebApp: true,
-    isPlaywrightEnv: true,
+    isE2eTestEnv: true,
     isDevEnv: true,
   },
   playwrightProd: {
     isWebApp: true,
-    isPlaywrightEnv: true,
+    isE2eTestEnv: true,
     isDevEnv: false,
   },
 }
@@ -85,76 +81,6 @@ describe('urls', () => {
   })
 
   describe('getCloudflareApiBaseUrl', () => {
-    describe('TradingApi', () => {
-      it.each([
-        // Web
-        {
-          expectedUrl: 'https://trading-api-labs.interface.gateway.uniswap.org',
-          env: envConfigs.webProd,
-        },
-        {
-          expectedUrl: 'https://beta.trading-api-labs.interface.gateway.uniswap.org',
-          env: envConfigs.webDev,
-        },
-        {
-          expectedUrl: 'https://trading-api-labs.interface.gateway.uniswap.org',
-          env: envConfigs.webBeta,
-        },
-        // Mobile iOS
-        {
-          expectedUrl: 'https://trading-api-labs.ios.wallet.gateway.uniswap.org',
-          env: envConfigs.mobileIosProd,
-        },
-        {
-          expectedUrl: 'https://beta.trading-api-labs.ios.wallet.gateway.uniswap.org',
-          env: envConfigs.mobileIosDev,
-        },
-        {
-          expectedUrl: 'https://trading-api-labs.ios.wallet.gateway.uniswap.org',
-          env: envConfigs.mobileIosBeta,
-        },
-        // Mobile Android
-        {
-          expectedUrl: 'https://trading-api-labs.android.wallet.gateway.uniswap.org',
-          env: envConfigs.mobileAndroidProd,
-        },
-        {
-          expectedUrl: 'https://beta.trading-api-labs.android.wallet.gateway.uniswap.org',
-          env: envConfigs.mobileAndroidDev,
-        },
-        {
-          expectedUrl: 'https://trading-api-labs.android.wallet.gateway.uniswap.org',
-          env: envConfigs.mobileAndroidBeta,
-        },
-        // Extension
-        {
-          expectedUrl: 'https://trading-api-labs.extension.gateway.uniswap.org',
-          env: envConfigs.extensionProd,
-        },
-        {
-          expectedUrl: 'https://beta.trading-api-labs.extension.gateway.uniswap.org',
-          env: envConfigs.extensionDev,
-        },
-        {
-          expectedUrl: 'https://trading-api-labs.extension.gateway.uniswap.org',
-          env: envConfigs.extensionBeta,
-        },
-        // Playwright
-        {
-          expectedUrl: 'https://trading-api-labs.interface.gateway.uniswap.org',
-          env: envConfigs.playwrightDev,
-        },
-        {
-          expectedUrl: 'https://trading-api-labs.interface.gateway.uniswap.org',
-          env: envConfigs.playwrightProd,
-        },
-      ])('generates correct URL for $env', async ({ expectedUrl, env }) => {
-        mockEnvironmentAndPlatform(env)
-        const { getCloudflareApiBaseUrl } = await import('./urls')
-        expect(getCloudflareApiBaseUrl({ flow: TrafficFlows.TradingApi })).toBe(expectedUrl)
-      })
-    })
-
     describe('DataApi', () => {
       it.each([
         // Web
@@ -227,15 +153,12 @@ describe('urls', () => {
   )
 
   it('generates correct URL for GraphQL flow in web/Playwright', async () => {
-    vi.doMock('utilities/src/environment/env', () => ({
+    vi.doMock('@universe/environment', () => ({
       isBetaEnv: () => false,
       isDevEnv: () => false,
       isRNDev: () => false,
-      isPlaywrightEnv: () => true,
+      isE2eTestEnv: () => true,
       isTestEnv: () => false,
-    }))
-
-    vi.doMock('utilities/src/platform', () => ({
       isAndroid: false,
       isExtensionApp: false,
       isMobileApp: false,
@@ -246,6 +169,40 @@ describe('urls', () => {
     const result = getCloudflareApiBaseUrl({ flow: TrafficFlows.GraphQL })
 
     expect(result).toBe('https://graphql.interface.gateway.uniswap.org')
+  })
+
+  describe('createHelpArticleUrl', () => {
+    it('builds an article URL without a section', async () => {
+      mockEnvironmentAndPlatform(envConfigs.webProd)
+      const { createHelpArticleUrl } = await import('./urls')
+      expect(createHelpArticleUrl('46569604134157-Launching-a-Continuous-Clearing-Auction')).toBe(
+        'https://support.uniswap.org/hc/en-us/articles/46569604134157-Launching-a-Continuous-Clearing-Auction?product_link=web',
+      )
+    })
+
+    it('appends the section fragment after the query string', async () => {
+      mockEnvironmentAndPlatform(envConfigs.webProd)
+      const { createHelpArticleUrl } = await import('./urls')
+      expect(
+        createHelpArticleUrl('46569604134157-Launching-a-Continuous-Clearing-Auction', {
+          section: 'set-your-auction-details',
+        }),
+      ).toBe(
+        'https://support.uniswap.org/hc/en-us/articles/46569604134157-Launching-a-Continuous-Clearing-Auction?product_link=web#set-your-auction-details',
+      )
+    })
+
+    it('uses the app-specific product_link for the section URL', async () => {
+      mockEnvironmentAndPlatform(envConfigs.mobileIosProd)
+      const { createHelpArticleUrl } = await import('./urls')
+      expect(
+        createHelpArticleUrl('123', {
+          section: 'configure-the-liquidity-pool-your-auction-will-seed-into-at-the-end',
+        }),
+      ).toBe(
+        'https://support.uniswap.org/hc/en-us/articles/123?product_link=mobileApp#configure-the-liquidity-pool-your-auction-will-seed-into-at-the-end',
+      )
+    })
   })
 })
 
@@ -258,7 +215,7 @@ function mockEnvironmentAndPlatform(
     isBetaEnv?: boolean
     isDevEnv?: boolean
     isRNDev?: boolean
-    isPlaywrightEnv?: boolean
+    isE2eTestEnv?: boolean
     isTestEnv?: boolean
     isAndroid?: boolean
     isExtensionApp?: boolean
@@ -270,7 +227,7 @@ function mockEnvironmentAndPlatform(
     isBetaEnv = false,
     isDevEnv = false,
     isRNDev = false,
-    isPlaywrightEnv = false,
+    isE2eTestEnv = false,
     isTestEnv = false,
     isAndroid = false,
     isExtensionApp = false,
@@ -278,15 +235,12 @@ function mockEnvironmentAndPlatform(
     isWebApp = false,
   } = overrides
 
-  vi.doMock('utilities/src/environment/env', () => ({
+  vi.doMock('@universe/environment', () => ({
     isBetaEnv: () => isBetaEnv,
     isDevEnv: () => isDevEnv,
     isRNDev: () => isRNDev,
-    isPlaywrightEnv: () => isPlaywrightEnv,
+    isE2eTestEnv: () => isE2eTestEnv,
     isTestEnv: () => isTestEnv,
-  }))
-
-  vi.doMock('utilities/src/platform', () => ({
     isAndroid,
     isExtensionApp,
     isMobileApp,

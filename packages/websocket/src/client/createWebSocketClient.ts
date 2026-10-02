@@ -7,7 +7,7 @@ import type {
   WebSocketClient,
   WebSocketLike,
 } from '@universe/websocket/src/types'
-import { getDefaultJitteredDelay } from '@universe/websocket/src/utils/backoff'
+import { addJitter, getDefaultJitteredDelay } from '@universe/websocket/src/utils/backoff'
 import { WebSocket as PartySocket } from 'partysocket'
 
 /** Default socket factory using PartySocket */
@@ -27,6 +27,10 @@ const DEFAULT_CONFIG = {
   maxRetries: 5,
   // Enable debug logging for connection events
   debug: false,
+  // Close codes meaning the server shed this connection on purpose (1013 = try again later)
+  overloadCloseCodes: [1013],
+  // Base hold-off before the single retry after an overload close (+50% jitter)
+  overloadRetryDelayMs: 60_000,
 }
 
 /**
@@ -66,6 +70,8 @@ export function createWebSocketClient<TParams, TMessage>(
     connectionTimeout = DEFAULT_CONFIG.connectionTimeout,
     maxRetries = DEFAULT_CONFIG.maxRetries,
     debug = DEFAULT_CONFIG.debug,
+    overloadCloseCodes = DEFAULT_CONFIG.overloadCloseCodes,
+    overloadRetryDelayMs = DEFAULT_CONFIG.overloadRetryDelayMs,
   } = config
 
   // Internal state
@@ -74,6 +80,158 @@ export function createWebSocketClient<TParams, TMessage>(
   let wasConnected = false
   let sessionRefreshTimer: ReturnType<typeof setInterval> | null = null
   let disconnectTimer: ReturnType<typeof setTimeout> | null = null
+  let overloadRetryTimer: ReturnType<typeof setTimeout> | null = null
+
+  // An overload close (1013) means the server shed us deliberately — the
+  // seconds-scale retry loop would just re-trigger the shed. Park the socket
+  // (close() cancels PartySocket's auto-retry) and re-arm once after a long
+  // jittered hold; the REST poller covers price freshness in the meantime.
+  function holdReconnectForOverload(closedSocket: WebSocketLike): void {
+    if (typeof closedSocket.reconnect !== 'function' || overloadRetryTimer !== null) {
+      return
+    }
+    closedSocket.close()
+    overloadRetryTimer = setTimeout(
+      () => {
+        overloadRetryTimer = null
+        if (socket === closedSocket) {
+          closedSocket.reconnect?.()
+        }
+      },
+      addJitter(overloadRetryDelayMs, overloadRetryDelayMs / 2),
+    )
+  }
+
+  function stopOverloadRetryTimer(): void {
+    if (overloadRetryTimer !== null) {
+      clearTimeout(overloadRetryTimer)
+      overloadRetryTimer = null
+    }
+  }
+
+  /**
+   * `maxRetries` is a budget against hammering an unreachable gateway, but it
+   * is spent in well under a minute, and the events that spend it are exactly
+   * the ones a backgrounded tab produces: the OS suspends the page, the socket
+   * closes, the retries all fail offline. The tab comes back to a socket that
+   * has permanently given up. A page becoming visible, or the browser
+   * reporting `online`, is new information the budget was never meant to veto.
+   *
+   * A fresh socket rather than `socket.reconnect()`: partysocket (1.1.10)
+   * leaves its `_connectLock` set when `_connect` bails on the exhausted
+   * budget, so `reconnect()` there is silently a no-op — the one case this
+   * exists for.
+   *
+   * REVIVE_COOLDOWN_MS is what keeps the budget a budget. A fresh socket
+   * starts at `_retryCount` 0, and partysocket's first attempt at 0 is
+   * IMMEDIATE (the jittered delay only seeds the gaps between retries) — so
+   * without a floor, a flapping `online` or a user cycling tabs buys an
+   * unbounded stream of immediate connects, and a hard outage (1006, refused
+   * TCP, an LB 502) never arms the 1013 hold that would otherwise absorb it.
+   * The floor is one ladder long, which also stops a revive from tearing down
+   * a retry sequence still in progress: a socket waiting between retries reads
+   * CLOSED, so `readyState` alone cannot tell "given up" from "backing off".
+   *
+   * The swap itself is jittered because the triggering events are shared — one
+   * network coming back fires `online` in every tab at once.
+   */
+  const REVIVE_COOLDOWN_MS = 30_000
+  const REVIVE_JITTER_MS = 2_000
+  let lastReviveAt = 0
+  let reviveTimer: ReturnType<typeof setTimeout> | null = null
+
+  /** Connected, or still trying. A socket waiting between partysocket retries
+   * reads CLOSED, so this is "do not touch it", not "it is healthy". */
+  function isLive(candidate: WebSocketLike): boolean {
+    return candidate.readyState === WebSocket.OPEN || candidate.readyState === WebSocket.CONNECTING
+  }
+
+  function swapInFreshSocket(): void {
+    // Re-check, with the SAME liveness test reviveConnection used: the jitter
+    // window is long enough for partysocket's own retry timer to move the
+    // socket CLOSED -> CONNECTING, and tearing down a handshake in flight is
+    // the "recovery inside the gap" this re-check exists to avoid.
+    if (!socket || overloadRetryTimer !== null || isLive(socket)) {
+      return
+    }
+    const dead = socket
+    stopSessionRefreshTimer()
+    // Null first: the handlers registered on `dead` gate on `socket ===
+    // thisSocket`, so its close event lands after the swap and is ignored.
+    socket = null
+    wasConnected = false
+    dead.close()
+    // The subscription REGISTRY has to survive — the React effects that own
+    // these subscriptions won't re-run, so `resubscribeAll` on the new
+    // connection message is the only thing that restores them. Just retire the
+    // dead connection id, so a batch flush in the gap can't address it.
+    subscriptionManager.setConnectionId(null)
+    connectionStore.reset()
+    connect()
+  }
+
+  function reviveConnection(): void {
+    // No socket = no subscribers (or a deliberate disconnect): nothing to hold
+    // open. An overload hold is the server's own instruction to stay away.
+    if (!socket || overloadRetryTimer !== null || reviveTimer !== null) {
+      return
+    }
+    if (isLive(socket)) {
+      return
+    }
+    const now = Date.now()
+    if (now - lastReviveAt < REVIVE_COOLDOWN_MS) {
+      return
+    }
+    lastReviveAt = now
+    reviveTimer = setTimeout(
+      () => {
+        reviveTimer = null
+        swapInFreshSocket()
+      },
+      addJitter(0, REVIVE_JITTER_MS),
+    )
+  }
+
+  function stopReviveTimer(): void {
+    if (reviveTimer !== null) {
+      clearTimeout(reviveTimer)
+      reviveTimer = null
+    }
+  }
+
+  /** `pageshow` as well as `visibilitychange`, for the reason lib/pulse.ts
+   * binds both: Safari misses `visibilitychange` across a bfcache round trip,
+   * which is every app switch on mobile web — and a bfcache restore always
+   * hands back a closed socket. `pageshow` also fires for a tab opened in the
+   * background, so this re-checks visibility rather than trusting the event. */
+  function handleVisibilityChange(): void {
+    if (document.visibilityState !== 'hidden') {
+      reviveConnection()
+    }
+  }
+
+  let lifecycleBound = false
+
+  function bindLifecycle(): void {
+    if (lifecycleBound || typeof document === 'undefined' || typeof window === 'undefined') {
+      return
+    }
+    lifecycleBound = true
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('pageshow', handleVisibilityChange)
+    window.addEventListener('online', reviveConnection)
+  }
+
+  function unbindLifecycle(): void {
+    if (!lifecycleBound) {
+      return
+    }
+    lifecycleBound = false
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+    window.removeEventListener('pageshow', handleVisibilityChange)
+    window.removeEventListener('online', reviveConnection)
+  }
 
   function startSessionRefreshTimer(): void {
     stopSessionRefreshTimer()
@@ -134,6 +292,10 @@ export function createWebSocketClient<TParams, TMessage>(
 
     notifyStatusChange('connecting')
 
+    // Bound to the socket's lifetime, not the client's: nothing to revive
+    // before the first connect, and `disconnect` unbinds.
+    bindLifecycle()
+
     // Add jitter to prevent thundering herd on reconnect
     const jitteredMinDelay = getDefaultJitteredDelay()
 
@@ -160,7 +322,7 @@ export function createWebSocketClient<TParams, TMessage>(
       notifyStatusChange('connected')
     })
 
-    socket.addEventListener('close', () => {
+    socket.addEventListener('close', (event) => {
       if (socket !== thisSocket) {
         return
       }
@@ -169,6 +331,10 @@ export function createWebSocketClient<TParams, TMessage>(
       // oxlint-disable-next-line typescript/no-unnecessary-condition
       if (!socket) {
         return
+      }
+      const code = (event as { code?: number } | undefined)?.code
+      if (code !== undefined && overloadCloseCodes.includes(code)) {
+        holdReconnectForOverload(thisSocket)
       }
       if (wasConnected) {
         notifyStatusChange('reconnecting')
@@ -227,6 +393,9 @@ export function createWebSocketClient<TParams, TMessage>(
     if (pendingTimer !== null) {
       clearTimeout(pendingTimer)
     }
+    stopOverloadRetryTimer()
+    stopReviveTimer()
+    unbindLifecycle()
     if (socket) {
       stopSessionRefreshTimer()
       const s = socket

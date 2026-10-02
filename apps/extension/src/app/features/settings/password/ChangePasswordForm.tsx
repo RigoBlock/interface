@@ -1,7 +1,7 @@
+import { Button, Flex, Text } from '@universe/mycelium'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PADDING_STRENGTH_INDICATOR, PasswordInput } from 'src/app/components/PasswordInput'
-import { Button, Flex, Text } from 'ui/src'
 import { ExtensionEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { Keyring } from 'wallet/src/features/wallet/Keyring/Keyring'
@@ -103,7 +103,7 @@ export function ChangePasswordForm({
         </Text>
       </Flex>
       <Flex row width="100%">
-        <Button size="medium" isDisabled={!enableNext || isSamePassword} emphasis="primary" onPress={onSubmit}>
+        <Button size="medium" disabled={!enableNext || isSamePassword} emphasis="primary" onPress={onSubmit}>
           {t('common.button.continue')}
         </Button>
       </Flex>

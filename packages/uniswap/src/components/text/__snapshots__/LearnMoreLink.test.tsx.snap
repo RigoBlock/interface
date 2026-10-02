@@ -2,28 +2,22 @@
 
 exports[`LearnMoreLink > renders without error 1`] = `
 <DocumentFragment>
-  <span
-    class=""
-    style="display: contents;"
+  <div
+    class="[container-name:true] flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 [container-type:normal] [cursor:pointer] bg-transparent rounded-[0px] [outline-style:none] [transition:transform_80ms_ease-in-out,_opacity_80ms_ease-in-out] active:[transform:var(--ca-tr)] focus-visible:bg-transparent focus-visible:border-transparent focus-visible:[transform:scaleX(1)_scaleY(1)] focus-visible:[outline-offset:1px] focus-visible:[outline-style:solid] focus-visible:[outline-width:1px] focus-visible:[outline-color:var(--neutral3)] group"
+    role="button"
+    style="--ca-tr: scale(1);"
+    tabindex="-1"
   >
-    <div
-      class="is_TouchableTextLink _transform-0active-scale11281 _containerType-_platformweb_normal _outlineColor-0focus-visible-neutral3 _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _backgroundColor-transparent _cursor-pointer _outlineStyle-none _borderTopLeftRadius-t-radius-no3511 _borderTopRightRadius-t-radius-no3511 _borderBottomRightRadius-t-radius-no3511 _borderBottomLeftRadius-t-radius-no3511 t_group_item"
-      role="button"
-      tabindex="-1"
+    <a
+      class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-medium)] text-[16px] [line-height:18.4px] [font-weight:535] [color:var(--stext-accent1)] no-underline [outline-style:none] hover:[color:var(--ch-col)] focus:[color:var(--cf-col)] focus:[text-decoration-line:var(--cf-tdl)] focus:[text-decoration-color:var(--cf-tdc)] focus-visible:[color:var(--cv-col)] focus-visible:[text-decoration-line:var(--cv-tdl)] focus-visible:[text-decoration-color:var(--cv-tdc)] [text-underline-position:from-font]"
+      data-stext-anchor="h f v"
+      href="https://example.com"
+      role="link"
+      style="--ch-col: var(--stext-accent1Hovered); --cf-col: var(--stext-accent1Hovered); --cf-tdl: underline; --cf-tdc: var(--stext-accent1Hovered); --cv-col: var(--stext-accent1Hovered); --cv-tdl: underline; --cv-tdc: var(--stext-accent1Hovered); --stext-a-col: var(--stext-accent1); --stext-a-col-h: var(--stext-accent1Hovered); --stext-a-col-f: var(--stext-accent1Hovered); --stext-a-col-v: var(--stext-accent1Hovered);"
+      target="_blank"
     >
-      <a
-        class="font_button _color-0focus-accent1Hove112785 _textDecorationColor-0focus-accent1Hove112785 _textDecorationLine-0focus-underline _textDecorationDistance-0focus-1px _color-_groupitem-focusVisible_accent1Hove112785 _textDecorationColor-_groupitem-focusVisible_accent1Hove112785 _textDecorationLine-_groupitem-focusVisible_underline _textDecorationDistance-_groupitem-focusVisible_1px _color-_groupitem-hover_accent1Hove112785 _textUnderlinePosition-_platformweb_from-font _display-inline _boxSizing-border-box _whiteSpace-pre-wrap _mt-0px _mr-0px _mb-0px _ml-0px _color-accent1 _fontFamily-f-family _wordWrap-break-word _textDecorationLine-none _fontSize-f-size-medi3736 _fontWeight-f-weight-me3083741 _lineHeight-f-lineHeigh507465454 _outlineStyle-none"
-        data-disable-theme="true"
-        href="https://example.com"
-        role="link"
-        target="_blank"
-      >
-        Learn more
-      </a>
-    </div>
-    <div
-      style="display: contents;"
-    />
-  </span>
+      Learn more
+    </a>
+  </div>
 </DocumentFragment>
 `;

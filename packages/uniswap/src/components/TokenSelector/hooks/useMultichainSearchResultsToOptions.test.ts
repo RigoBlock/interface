@@ -1,7 +1,7 @@
 import { NativeCurrency, Token } from '@uniswap/sdk-core'
+import { UniverseChainId } from '@universe/chains'
 import { OnchainItemListOptionType } from 'uniswap/src/components/lists/items/types'
 import { multichainSearchResultsToOptions } from 'uniswap/src/components/TokenSelector/hooks/useMultichainSearchResultsToOptions'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { CurrencyInfo, MultichainSearchResult } from 'uniswap/src/features/dataApi/types'
 
 function createCurrencyInfo(overrides?: Partial<CurrencyInfo>): CurrencyInfo {

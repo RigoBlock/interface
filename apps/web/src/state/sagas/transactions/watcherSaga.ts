@@ -1,9 +1,8 @@
-import { ApolloClient, NormalizedCacheObject } from '@apollo/client'
 import { QueryClient } from '@tanstack/react-query'
+import { UniverseChainId } from '@universe/chains'
 import { useCallback } from 'react'
 import { useDispatch } from 'react-redux'
 import { call } from 'typed-redux-saga'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { refetchQueries } from 'uniswap/src/features/portfolio/portfolioUpdates/refetchQueriesSaga'
 import { createSaga } from 'uniswap/src/utils/saga'
 import { createUniverseTransaction } from '~/state/sagas/utils/transaction'
@@ -13,19 +12,18 @@ type WatchTransactionsCallbackParams = {
   pendingDiff: PendingTransactionDetails[]
   address: string
   chainId: UniverseChainId
-  apolloClient: ApolloClient<NormalizedCacheObject>
   queryClient: QueryClient
 }
 
 type WatchTransactionsCallback = (params: WatchTransactionsCallbackParams) => void
 
 function* watchTransactions(params: WatchTransactionsCallbackParams) {
-  const { address, chainId, pendingDiff, apolloClient } = params
+  const { address, chainId, pendingDiff } = params
 
   const info = pendingDiff[0].typeInfo
   const transaction = createUniverseTransaction({ info, chainId, address })
 
-  yield* call(refetchQueries, { transaction, apolloClient, activeAddress: address })
+  yield* call(refetchQueries, { transaction, activeAddress: address })
 }
 
 export const watchTransactionsSaga = createSaga(watchTransactions, 'watchTransactions')

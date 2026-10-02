@@ -1,8 +1,8 @@
+import { Platform } from '@universe/chains'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { CONNECTION_PROVIDER_IDS } from 'uniswap/src/constants/web3'
 import { SigningCapability } from 'uniswap/src/features/accounts/store/types/Wallet'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
-import { useRecentConnectorId } from '~/components/Web3Provider/constants'
+import { useRecentConnectorId } from '~/connection/constants'
 import { createAccountsStoreGetters } from '~/features/accounts/store/getters'
 import { useAccountsStore } from '~/features/accounts/store/hooks'
 import { ExternalWallet } from '~/features/accounts/store/types'
@@ -12,8 +12,8 @@ import { renderHook } from '~/test-utils/render'
 
 // oxlint-disable-next-line no-var -- Testing variable hoisting behavior requires var
 var mockIsMobileWeb = false
-vi.mock('utilities/src/platform', async () => {
-  const actual = await vi.importActual('utilities/src/platform')
+vi.mock('@universe/environment', async () => {
+  const actual = await vi.importActual('@universe/environment')
   return {
     ...actual,
     get isMobileWeb() {
@@ -29,8 +29,8 @@ vi.mock('~/features/accounts/store/hooks', () => ({
   useConnectionStatus: vi.fn(() => ({ isConnected: false, isConnecting: false, isDisconnected: true })),
 }))
 
-vi.mock('~/components/Web3Provider/constants', async () => {
-  const actual = await vi.importActual('~/components/Web3Provider/constants')
+vi.mock('~/connection/constants', async () => {
+  const actual = await vi.importActual('~/connection/constants')
   return {
     ...actual,
     useRecentConnectorId: vi.fn(),
@@ -44,6 +44,12 @@ vi.mock('@universe/gating', async (importOriginal) => {
     getFeatureFlag: vi.fn(),
   }
 })
+
+// oxlint-disable-next-line no-var -- Testing variable hoisting behavior requires var
+var mockMetaMaskExtensionDetected = true
+vi.mock('~/features/wallet/connection/hooks/useIsMetaMaskExtensionDetected', () => ({
+  useIsMetaMaskExtensionDetected: () => mockMetaMaskExtensionDetected,
+}))
 
 const createExternalWallet = (overrides: Partial<ExternalWallet> = {}): ExternalWallet => ({
   id: 'test-wallet-id',
@@ -86,7 +92,6 @@ const createMockAccountsState = (wallets: ExternalWallet[]) => {
           id: evmConnectorId,
           platform: Platform.EVM,
           access:
-            wallet.id === CONNECTION_PROVIDER_IDS.METAMASK_RDNS ||
             wallet.id === CONNECTION_PROVIDER_IDS.BINANCE_WALLET_RDNS ||
             wallet.id === CONNECTION_PROVIDER_IDS.COINBASE_RDNS ||
             wallet.id === CONNECTION_PROVIDER_IDS.UNISWAP_EXTENSION_RDNS
@@ -119,10 +124,10 @@ const createMockAccountsState = (wallets: ExternalWallet[]) => {
 
 const DEFAULT_WALLETS: ExternalWallet[] = [
   createExternalWallet({
-    id: CONNECTION_PROVIDER_IDS.METAMASK_RDNS,
+    id: CONNECTION_PROVIDER_IDS.METAMASK_SDK_CONNECTOR_ID,
     name: 'MetaMask',
     connectorIds: {
-      [Platform.EVM]: `WagmiConnector_${CONNECTION_PROVIDER_IDS.METAMASK_RDNS}`,
+      [Platform.EVM]: `WagmiConnector_${CONNECTION_PROVIDER_IDS.METAMASK_SDK_CONNECTOR_ID}`,
     },
     analyticsWalletType: 'Browser Extension',
   }),
@@ -159,6 +164,7 @@ const DEFAULT_WALLETS: ExternalWallet[] = [
 describe('useOrderedWallets', () => {
   beforeEach(() => {
     mockIsMobileWeb = false
+    mockMetaMaskExtensionDetected = true
     mocked(useAccountsStore).mockImplementation((selector) => {
       const mockState = createMockAccountsState(DEFAULT_WALLETS)
       return selector(mockState)
@@ -167,12 +173,49 @@ describe('useOrderedWallets', () => {
       if (flag === FeatureFlags.EmbeddedWallet) {
         return false
       }
-      if (flag === FeatureFlags.Solana) {
-        return false
-      }
       return false
     })
     mocked(useRecentConnectorId).mockReturnValue(undefined)
+  })
+
+  it('shows MetaMask in the primary list when the extension is detected', () => {
+    mockMetaMaskExtensionDetected = true
+    const { result } = renderHook(() => useOrderedWallets({ showSecondaryConnectors: false }))
+    expect(result.current.find((w) => w.id === CONNECTION_PROVIDER_IDS.METAMASK_SDK_CONNECTOR_ID)).toBeDefined()
+  })
+
+  it('shows MetaMask after WalletConnect (not as an injected wallet) when the extension is not detected', () => {
+    mockMetaMaskExtensionDetected = false
+    const { result } = renderHook(() => useOrderedWallets({ showSecondaryConnectors: false }))
+
+    const expectedWalletIds = [
+      CONNECTION_PROVIDER_IDS.WALLET_CONNECT_CONNECTOR_ID,
+      CONNECTION_PROVIDER_IDS.METAMASK_SDK_CONNECTOR_ID,
+      CONNECTION_PROVIDER_IDS.COINBASE_SDK_CONNECTOR_ID,
+      CONNECTION_PROVIDER_IDS.BINANCE_WALLET_CONNECTOR_ID,
+    ]
+
+    result.current.forEach((wallet, index) => {
+      expect(wallet.id).toEqual(expectedWalletIds[index])
+    })
+    expect(result.current.length).toEqual(expectedWalletIds.length)
+  })
+
+  it('shows MetaMask after WalletConnect in the secondary list when the extension is not detected', () => {
+    mockMetaMaskExtensionDetected = false
+    const { result } = renderHook(() => useOrderedWallets({ showSecondaryConnectors: true }))
+
+    const expectedWalletIds = [
+      CONNECTION_PROVIDER_IDS.WALLET_CONNECT_CONNECTOR_ID,
+      CONNECTION_PROVIDER_IDS.METAMASK_SDK_CONNECTOR_ID,
+      CONNECTION_PROVIDER_IDS.COINBASE_SDK_CONNECTOR_ID,
+      CONNECTION_PROVIDER_IDS.BINANCE_WALLET_CONNECTOR_ID,
+    ]
+
+    result.current.forEach((wallet, index) => {
+      expect(wallet.id).toEqual(expectedWalletIds[index])
+    })
+    expect(result.current.length).toEqual(expectedWalletIds.length)
   })
 
   it('should return ordered wallets', () => {
@@ -180,7 +223,7 @@ describe('useOrderedWallets', () => {
 
     // The new behavior returns injected wallets first, then mobile wallets
     const expectedWalletIds = [
-      CONNECTION_PROVIDER_IDS.METAMASK_RDNS, // Injected wallet
+      CONNECTION_PROVIDER_IDS.METAMASK_SDK_CONNECTOR_ID, // MetaMask Connect SDK wallet
       CONNECTION_PROVIDER_IDS.WALLET_CONNECT_CONNECTOR_ID,
       CONNECTION_PROVIDER_IDS.COINBASE_SDK_CONNECTOR_ID,
       CONNECTION_PROVIDER_IDS.BINANCE_WALLET_CONNECTOR_ID,
@@ -198,7 +241,7 @@ describe('useOrderedWallets', () => {
 
     const expectedWalletIds = [
       CONNECTION_PROVIDER_IDS.WALLET_CONNECT_CONNECTOR_ID, // Recent wallet moved to top
-      CONNECTION_PROVIDER_IDS.METAMASK_RDNS, // Injected wallet
+      CONNECTION_PROVIDER_IDS.METAMASK_SDK_CONNECTOR_ID, // MetaMask Connect SDK wallet
       CONNECTION_PROVIDER_IDS.COINBASE_SDK_CONNECTOR_ID,
       CONNECTION_PROVIDER_IDS.BINANCE_WALLET_CONNECTOR_ID,
     ]
@@ -214,7 +257,7 @@ describe('useOrderedWallets', () => {
     const { result } = renderHook(() => useOrderedWallets({ showSecondaryConnectors: false }))
     // When mobile web and only one injected wallet, should return only injected wallets
     expect(result.current.length).toEqual(1)
-    expect(result.current[0].id).toEqual(CONNECTION_PROVIDER_IDS.METAMASK_RDNS)
+    expect(result.current[0].id).toEqual(CONNECTION_PROVIDER_IDS.METAMASK_SDK_CONNECTOR_ID)
   })
 
   it('should return only the Coinbase wallet in the Coinbase Wallet', () => {
@@ -243,10 +286,10 @@ describe('useOrderedWallets', () => {
     mockIsMobileWeb = true
     const binanceWallets = [
       createExternalWallet({
-        id: CONNECTION_PROVIDER_IDS.METAMASK_RDNS,
+        id: CONNECTION_PROVIDER_IDS.METAMASK_SDK_CONNECTOR_ID,
         name: 'MetaMask',
         connectorIds: {
-          [Platform.EVM]: `WagmiConnector_${CONNECTION_PROVIDER_IDS.METAMASK_RDNS}`,
+          [Platform.EVM]: `WagmiConnector_${CONNECTION_PROVIDER_IDS.METAMASK_SDK_CONNECTOR_ID}`,
         },
         analyticsWalletType: 'Browser Extension',
       }),
@@ -296,7 +339,7 @@ describe('useOrderedWallets', () => {
     expect(binanceInjectedWallet).toBeDefined()
 
     // Should include other wallets like MetaMask
-    const metamaskWallet = result.current.find((w) => w.id === CONNECTION_PROVIDER_IDS.METAMASK_RDNS)
+    const metamaskWallet = result.current.find((w) => w.id === CONNECTION_PROVIDER_IDS.METAMASK_SDK_CONNECTOR_ID)
     expect(metamaskWallet).toBeDefined()
   })
 
@@ -305,10 +348,10 @@ describe('useOrderedWallets', () => {
     mockIsMobileWeb = true // This makes isBinanceWalletBrowser return true
     const binanceWallets = [
       createExternalWallet({
-        id: CONNECTION_PROVIDER_IDS.METAMASK_RDNS,
+        id: CONNECTION_PROVIDER_IDS.METAMASK_SDK_CONNECTOR_ID,
         name: 'MetaMask',
         connectorIds: {
-          [Platform.EVM]: `WagmiConnector_${CONNECTION_PROVIDER_IDS.METAMASK_RDNS}`,
+          [Platform.EVM]: `WagmiConnector_${CONNECTION_PROVIDER_IDS.METAMASK_SDK_CONNECTOR_ID}`,
         },
         analyticsWalletType: 'Browser Extension',
       }),
@@ -357,7 +400,7 @@ describe('useOrderedWallets', () => {
     expect(binanceInjectedWallet).toBeDefined()
 
     // Should include other wallets like MetaMask
-    const metamaskWallet = result.current.find((w) => w.id === CONNECTION_PROVIDER_IDS.METAMASK_RDNS)
+    const metamaskWallet = result.current.find((w) => w.id === CONNECTION_PROVIDER_IDS.METAMASK_SDK_CONNECTOR_ID)
     expect(metamaskWallet).toBeDefined()
 
     // Should include mobile wallets like WalletConnect
@@ -370,10 +413,10 @@ describe('useOrderedWallets', () => {
     mockIsMobileWeb = true
     const binanceWallets = [
       createExternalWallet({
-        id: CONNECTION_PROVIDER_IDS.METAMASK_RDNS,
+        id: CONNECTION_PROVIDER_IDS.METAMASK_SDK_CONNECTOR_ID,
         name: 'MetaMask',
         connectorIds: {
-          [Platform.EVM]: `WagmiConnector_${CONNECTION_PROVIDER_IDS.METAMASK_RDNS}`,
+          [Platform.EVM]: `WagmiConnector_${CONNECTION_PROVIDER_IDS.METAMASK_SDK_CONNECTOR_ID}`,
         },
         analyticsWalletType: 'Browser Extension',
       }),
@@ -446,7 +489,7 @@ describe('useOrderedWallets', () => {
     const { result } = renderHook(() => useOrderedWallets({ showSecondaryConnectors: false }))
 
     const expectedWalletIds = [
-      CONNECTION_PROVIDER_IDS.METAMASK_RDNS, // Injected wallet
+      CONNECTION_PROVIDER_IDS.METAMASK_SDK_CONNECTOR_ID, // MetaMask Connect SDK wallet
       CONNECTION_PROVIDER_IDS.WALLET_CONNECT_CONNECTOR_ID,
       CONNECTION_PROVIDER_IDS.COINBASE_SDK_CONNECTOR_ID,
       CONNECTION_PROVIDER_IDS.BINANCE_WALLET_CONNECTOR_ID,
@@ -464,9 +507,6 @@ describe('useOrderedWallets', () => {
         if (flag === FeatureFlags.EmbeddedWallet) {
           return true
         }
-        if (flag === FeatureFlags.Solana) {
-          return false
-        }
         return false
       })
     })
@@ -475,7 +515,7 @@ describe('useOrderedWallets', () => {
       const { result } = renderHook(() => useOrderedWallets({ showSecondaryConnectors: false }))
 
       const expectedWalletIds = [
-        CONNECTION_PROVIDER_IDS.METAMASK_RDNS, // Injected wallet
+        CONNECTION_PROVIDER_IDS.METAMASK_SDK_CONNECTOR_ID, // MetaMask Connect SDK wallet
       ]
 
       result.current.forEach((wallet, index) => {
@@ -491,7 +531,7 @@ describe('useOrderedWallets', () => {
 
       const expectedWalletIds = [
         CONNECTION_PROVIDER_IDS.WALLET_CONNECT_CONNECTOR_ID, // Recent wallet moved to top
-        CONNECTION_PROVIDER_IDS.METAMASK_RDNS, // Injected wallet
+        CONNECTION_PROVIDER_IDS.METAMASK_SDK_CONNECTOR_ID, // MetaMask Connect SDK wallet
       ]
 
       result.current.forEach((wallet, index) => {
@@ -507,9 +547,6 @@ describe('useOrderedWallets', () => {
       mocked(useFeatureFlag).mockImplementation((flag) => {
         if (flag === FeatureFlags.EmbeddedWallet) {
           return true
-        }
-        if (flag === FeatureFlags.Solana) {
-          return false
         }
         return false
       })

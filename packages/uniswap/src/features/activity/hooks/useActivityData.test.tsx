@@ -69,6 +69,7 @@ describe('useActivityData', () => {
       fetchNextPage: mockFetchNextPage,
       hasNextPage: false,
       isFetchingNextPage: false,
+      isFetchNextPageError: false,
     })
   })
 
@@ -101,6 +102,7 @@ describe('useActivityData', () => {
       expect(result.current.refetch).toBe(mockOnRetry)
       expect(result.current.hasNextPage).toBe(false)
       expect(result.current.isFetchingNextPage).toBe(false)
+      expect(result.current.isFetchNextPageError).toBe(false)
       expect(result.current.isLoading).toBe(false)
     })
 
@@ -128,6 +130,7 @@ describe('useActivityData', () => {
         fetchNextPage: mockFetchNextPage,
         hasNextPage: false,
         isFetchingNextPage: false,
+        isFetchNextPageError: false,
       })
 
       const { result } = renderHookWithProviders(useActivityData, {
@@ -151,6 +154,7 @@ describe('useActivityData', () => {
         fetchNextPage: mockFetchNextPage,
         hasNextPage: true,
         isFetchingNextPage: true,
+        isFetchNextPageError: false,
       })
 
       const { result } = renderHookWithProviders(useActivityData, {
@@ -176,6 +180,7 @@ describe('useActivityData', () => {
         fetchNextPage: mockFetchNextPage,
         hasNextPage: false,
         isFetchingNextPage: false,
+        isFetchNextPageError: false,
       })
 
       const { result } = renderHookWithProviders(useActivityData, {
@@ -200,6 +205,7 @@ describe('useActivityData', () => {
         fetchNextPage: mockFetchNextPage,
         hasNextPage: false,
         isFetchingNextPage: false,
+        isFetchNextPageError: false,
       })
 
       const { result } = renderHookWithProviders(useActivityData, {
@@ -226,6 +232,7 @@ describe('useActivityData', () => {
         fetchNextPage: mockFetchNextPage,
         hasNextPage: false,
         isFetchingNextPage: false,
+        isFetchNextPageError: false,
       })
 
       const { result } = renderHookWithProviders(useActivityData, {
@@ -249,6 +256,7 @@ describe('useActivityData', () => {
         fetchNextPage: mockFetchNextPage,
         hasNextPage: false,
         isFetchingNextPage: false,
+        isFetchNextPageError: false,
       })
 
       const { result } = renderHookWithProviders(useActivityData, {
@@ -290,6 +298,7 @@ describe('useActivityData', () => {
         fetchNextPage: mockFetchNextPage,
         hasNextPage: false,
         isFetchingNextPage: false,
+        isFetchNextPageError: false,
       })
 
       const { result } = renderHookWithProviders(useActivityData, {
@@ -396,6 +405,7 @@ describe('useActivityData', () => {
         fetchNextPage: mockFetchNextPage,
         hasNextPage: false,
         isFetchingNextPage: false,
+        isFetchNextPageError: false,
         skip: true,
       })
 
@@ -444,6 +454,7 @@ describe('useActivityData', () => {
         fetchNextPage: mockFetchNextPage,
         hasNextPage: false,
         isFetchingNextPage: false,
+        isFetchNextPageError: false,
       })
 
       const { result } = renderHookWithProviders(useActivityData, {
@@ -502,6 +513,7 @@ describe('useActivityData', () => {
         fetchNextPage: mockFetchNextPage,
         hasNextPage: true,
         isFetchingNextPage: false,
+        isFetchNextPageError: false,
       })
 
       const { result } = renderHookWithProviders(useActivityData, {

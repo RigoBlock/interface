@@ -1,4 +1,5 @@
-import { EM_DASH, Text } from 'ui/src'
+import { Text } from '@universe/mycelium'
+import { EM_DASH } from 'ui/src'
 
 export function EmptyCell(): JSX.Element {
   return (

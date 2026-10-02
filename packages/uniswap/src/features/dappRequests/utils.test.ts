@@ -1,5 +1,21 @@
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { isSelfCallWithData } from 'uniswap/src/features/dappRequests/utils'
+import { UniverseChainId } from '@universe/chains'
+import { EthMethod } from 'uniswap/src/features/dappRequests/types'
+import {
+  isSelfCallWithData,
+  isSignTypedDataMethod,
+  isSignTypedDataRequest,
+} from 'uniswap/src/features/dappRequests/utils'
+
+describe('typed-data request guards', () => {
+  it.each([
+    [EthMethod.SignTypedData, true],
+    [EthMethod.SignTypedDataV4, true],
+    [EthMethod.PersonalSign, false],
+  ])('classifies %s', (method, expected) => {
+    expect(isSignTypedDataMethod(method)).toBe(expected)
+    expect(isSignTypedDataRequest({ type: method })).toBe(expected)
+  })
+})
 
 describe('isSelfCallWithData', () => {
   const ADDRESS_A = '0x1A34567890123456789012345678901234567890'

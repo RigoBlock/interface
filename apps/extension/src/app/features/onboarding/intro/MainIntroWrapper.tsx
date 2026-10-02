@@ -1,6 +1,6 @@
+import { Flex } from '@universe/mycelium'
 import { PropsWithChildren, ReactNode } from 'react'
 import { ONBOARDING_CONTENT_WIDTH } from 'src/app/features/onboarding/utils'
-import { Flex } from 'ui/src'
 import { LandingBackground } from 'wallet/src/components/landing/LandingBackground'
 
 // Fixed padding value to align content with a certain point on the background

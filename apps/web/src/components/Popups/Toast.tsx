@@ -1,5 +1,6 @@
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
 import * as React from 'react'
-import { Flex, Text, TouchableArea, useShadowPropsMedium } from 'ui/src'
+import { useShadowPropsMedium } from 'ui/src'
 import { X } from 'ui/src/components/icons/X'
 import { POPUP_MAX_WIDTH } from '~/components/Popups/constants'
 
@@ -44,12 +45,14 @@ export const Toast = Object.assign(ToastRoot, {
 })
 
 function ToastRoot({ children, onPress, className }: ToastProps): JSX.Element {
-  const shadowProps = useShadowPropsMedium()
+  // On web the hook only ever returns a `$platform-web` boxShadow; unwrap it for the web-only compat Flex.
+  const { '$platform-web': shadowStyle } = useShadowPropsMedium()
   return (
     <Flex
       row
       alignItems="flex-start"
-      animation="300ms"
+      // Scoped to opacity/transform (never color properties) so theme toggling doesn't animate token colors.
+      transition="opacity 300ms ease-in-out, transform 300ms ease-in-out"
       backgroundColor="$surface1"
       borderColor="$surface3"
       borderRadius="$rounded16"
@@ -57,7 +60,7 @@ function ToastRoot({ children, onPress, className }: ToastProps): JSX.Element {
       justifyContent="space-between"
       left={0}
       mx={0}
-      {...shadowProps}
+      boxShadow={shadowStyle?.boxShadow}
       position="relative"
       width="100%"
       maxWidth={POPUP_MAX_WIDTH}

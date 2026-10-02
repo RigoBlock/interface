@@ -1,5 +1,5 @@
+import { type FlexCompatProps as FlexProps } from '@universe/mycelium'
 import { ReactNode } from 'react'
-import { FlexProps } from 'ui/src'
 import { NotImplementedError } from 'utilities/src/errors'
 
 export type GetHelpHeaderProps = {

@@ -1,20 +1,23 @@
 import { FormattedUniswapXGasFeeInfo } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
+import { isAndroid, isMobileApp, isWebApp, isWebPlatform } from '@universe/environment'
+import { fonts, Text, zIndexes } from '@universe/mycelium'
+import { AlertTriangleFilled } from '@universe/mycelium/icons/AlertTriangleFilled'
+import { Gas } from '@universe/mycelium/icons/Gas'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { PropsWithChildren } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { Text, UniswapXText, useSporeColors } from 'ui/src'
-import { AlertTriangleFilled } from 'ui/src/components/icons/AlertTriangleFilled'
-import { Gas } from 'ui/src/components/icons/Gas'
-import { fonts, NATIVE_LINE_HEIGHT_SCALE, zIndexes } from 'ui/src/theme'
+import { UniswapXText } from 'ui/src'
+import { NATIVE_LINE_HEIGHT_SCALE } from 'ui/src/theme'
 import { NetworkCostTooltip, NetworkCostTooltipUniswapX } from 'uniswap/src/components/gas/NetworkCostTooltip'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import { WarningInfo } from 'uniswap/src/components/modals/WarningModal/WarningInfo'
+import { InlineGradient } from 'uniswap/src/components/text/InlineGradient'
 import { InfoTooltipProps } from 'uniswap/src/components/tooltip/InfoTooltipProps'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { NetworkCostBanner } from 'uniswap/src/features/smartWallet/banner/NetworkCostBanner'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { isMobileApp, isWebApp, isWebPlatform } from 'utilities/src/platform'
 
 export function NetworkFeeWarning({
   gasFeeHighRelativeToValue,
@@ -25,6 +28,7 @@ export function NetworkFeeWarning({
   uniswapXGasFeeInfo,
   chainId,
   includesDelegation,
+  includesDelegationUpgrade,
 }: PropsWithChildren<{
   gasFeeHighRelativeToValue?: boolean
   disabled?: boolean
@@ -33,6 +37,8 @@ export function NetworkFeeWarning({
   uniswapXGasFeeInfo?: FormattedUniswapXGasFeeInfo
   chainId: UniverseChainId
   includesDelegation?: boolean
+  /** The included delegation is a smart wallet update (Calibur re-delegation) rather than a first-time activation */
+  includesDelegationUpgrade?: boolean
 }>): JSX.Element {
   const colors = useSporeColors()
   const { t } = useTranslation()
@@ -43,18 +49,25 @@ export function NetworkFeeWarning({
     <WarningInfo
       mobileBanner={
         includesDelegation &&
-        isMobileApp && (
+        isMobileApp &&
+        (includesDelegationUpgrade ? (
+          <NetworkCostBanner
+            bannerText={t('transaction.networkCost.includesSmartWalletUpdate')}
+            url={UniswapHelpUrls.articles.caliburUpgrades}
+          />
+        ) : (
           <NetworkCostBanner
             bannerText={t('smartWallet.banner.networkCost', { chainName: getChainInfo(chainId).label })}
-            url={uniswapUrls.helpArticleUrls.smartWalletDelegation}
+            url={UniswapHelpUrls.articles.smartWalletDelegation}
           />
-        )
+        ))
       }
       modalProps={{
         backgroundIconColor: showHighGasFeeUI ? colors.statusCritical2.get() : colors.surface2.get(),
         captionComponent: (
           <NetworkFeeText
             includesDelegation={includesDelegation}
+            includesDelegationUpgrade={includesDelegationUpgrade}
             showHighGasFeeUI={showHighGasFeeUI}
             uniswapXGasFeeInfo={uniswapXGasFeeInfo}
             chainId={chainId}
@@ -75,7 +88,11 @@ export function NetworkFeeWarning({
         text: uniswapXGasFeeInfo ? (
           <NetworkCostTooltipUniswapX uniswapXGasFeeInfo={uniswapXGasFeeInfo} />
         ) : (
-          <NetworkCostTooltip chainId={chainId} includesDelegation={includesDelegation ?? false} />
+          <NetworkCostTooltip
+            chainId={chainId}
+            includesDelegation={includesDelegation ?? false}
+            includesDelegationUpgrade={includesDelegationUpgrade ?? false}
+          />
         ),
         placement,
         icon: null,
@@ -92,11 +109,13 @@ export function NetworkFeeWarning({
 
 function NetworkFeeText({
   includesDelegation,
+  includesDelegationUpgrade,
   showHighGasFeeUI,
   uniswapXGasFeeInfo,
   chainId,
 }: {
   includesDelegation?: boolean
+  includesDelegationUpgrade?: boolean
   showHighGasFeeUI?: boolean
   uniswapXGasFeeInfo?: FormattedUniswapXGasFeeInfo
   chainId: UniverseChainId
@@ -109,21 +128,39 @@ function NetworkFeeText({
 
   if (uniswapXGasFeeInfo) {
     // TODO(WEB-4313): Remove need to manually adjust the height of the UniswapXText component for mobile.
-    const components = { gradient: <UniswapXText height={lineHeight} variant={variant} /> }
+    const gradient = <UniswapXText height={lineHeight} variant={variant} />
+
+    // Android: MaskedView inside <Text>/<Trans> misaligns (WALL-5311)
+    if (isAndroid) {
+      return chainId === UniverseChainId.Unichain ? (
+        <InlineGradient
+          i18nKey="swap.warning.networkFee.message.uniswapX.unichain"
+          component={gradient}
+          textProps={{ color: '$neutral2', variant }}
+        />
+      ) : (
+        <InlineGradient
+          i18nKey="swap.warning.networkFee.message.uniswapX"
+          component={gradient}
+          textProps={{ color: '$neutral2', variant }}
+        />
+      )
+    }
 
     return (
       <Text color="$neutral2" textAlign={isWebPlatform ? 'left' : 'center'} variant={variant}>
-        {/* TODO(WALL-5311): Investigate Trans component vertical alignment on android */}
         {chainId === UniverseChainId.Unichain ? (
-          <Trans components={components} i18nKey="swap.warning.networkFee.message.uniswapX.unichain" />
+          <Trans components={{ gradient }} i18nKey="swap.warning.networkFee.message.uniswapX.unichain" />
         ) : (
-          <Trans components={components} i18nKey="swap.warning.networkFee.message.uniswapX" />
+          <Trans components={{ gradient }} i18nKey="swap.warning.networkFee.message.uniswapX" />
         )}
       </Text>
     )
   }
 
-  if (includesDelegation) {
+  // The activation-specific caption doesn't apply to smart wallet updates — those keep the
+  // generic caption and disclose the update via the banner card instead.
+  if (includesDelegation && !includesDelegationUpgrade) {
     return (
       <Text color="$neutral2" textAlign={isWebPlatform ? 'left' : 'center'} variant="body3">
         {t('swap.warning.networkFee.delegation.message')}

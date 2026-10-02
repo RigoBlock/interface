@@ -1,5 +1,7 @@
+import { type PartialMessage } from '@bufbuild/protobuf'
+import { Level, type Urgency } from '@uniswap/client-unirpc-v2/dist/uniswap/unirpc/v2/service_pb'
 import type { GasStrategy } from '@universe/api'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 
 // Normal speed strategy - Lower multipliers for economical transactions
 export const NORMAL_GAS_STRATEGY: GasStrategy = {
@@ -46,6 +48,8 @@ export const URGENT_GAS_STRATEGY: GasStrategy = {
 // The default "Urgent" strategy that was previously hardcoded in the gas service
 export const DEFAULT_GAS_STRATEGY: GasStrategy = URGENT_GAS_STRATEGY
 
+export const DEFAULT_GAS_URGENCY: PartialMessage<Urgency> = { level: Level.URGENT }
+
 // Per-chain gas strategy field overrides. Merged on top of the resolved strategy.
 export const CHAIN_GAS_STRATEGY_OVERRIDES: Record<number, Partial<GasStrategy>> = {
   // https://docs.arbitrum.io/learn-more/faq#do-i-need-to-pay-a-tip-or-priority-fee-for-my-arbitrum-transactions
@@ -64,6 +68,13 @@ export const CHAIN_GAS_STRATEGY_OVERRIDES: Record<number, Partial<GasStrategy>> 
   // https://docs.tempo.xyz/protocol/blockspace/payment-lane-specification
   [UniverseChainId.Tempo]: {
     priceInflationFactor: 1,
+    minPriorityFeeGwei: 0,
+    maxPriorityFeeGwei: 0,
+  },
+  // Arc uses EIP-1559 with EWMA-smoothed base fees; maxPriorityFeePerGas of 0 is accepted.
+  // Zero out priority-fee bidding to keep gas (paid in USDC) minimal — tune via Statsig if
+  // inclusion suffers under high utilization. https://docs.arc.network/arc/references/gas-and-fees
+  [UniverseChainId.Arc]: {
     minPriorityFeeGwei: 0,
     maxPriorityFeeGwei: 0,
   },

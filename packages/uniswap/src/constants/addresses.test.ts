@@ -1,5 +1,5 @@
+import { UniverseChainId } from '@universe/chains'
 import { getWrappedNativeAddress, getWrappedNativeAddressWithThrow } from 'uniswap/src/constants/addresses'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 
 describe('getWrappedNativeAddress', () => {
   it('returns WETH address for Mainnet', () => {

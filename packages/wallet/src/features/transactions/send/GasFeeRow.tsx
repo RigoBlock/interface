@@ -1,14 +1,13 @@
 import { GasFeeResult } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
+import { isWebPlatform } from '@universe/environment'
+import { Flex, iconSizes, SpinningLoader, Text } from '@universe/mycelium'
+import { Gas } from '@universe/mycelium/icons/Gas'
 import { useTranslation } from 'react-i18next'
 import { FadeIn } from 'react-native-reanimated'
-import { Flex, SpinningLoader, Text } from 'ui/src'
-import { Gas } from 'ui/src/components/icons'
 import { AnimatedFlex } from 'ui/src/components/layout/AnimatedFlex'
-import { iconSizes } from 'ui/src/theme'
 import { NetworkFeeWarning } from 'uniswap/src/components/gas/NetworkFeeWarning'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useGasFeeFormattedDisplayAmounts } from 'uniswap/src/features/gas/hooks'
-import { isWebPlatform } from 'utilities/src/platform'
 
 type GasFeeRowProps = {
   gasFee: GasFeeResult

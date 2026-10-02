@@ -1,17 +1,14 @@
 import { createColumnHelper } from '@tanstack/react-table'
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Flex, iconSizes, Text } from '@universe/mycelium'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text, TouchableArea } from 'ui/src'
-import { ChevronsIn } from 'ui/src/components/icons/ChevronsIn'
-import { ChevronsOut } from 'ui/src/components/icons/ChevronsOut'
-import { iconSizes } from 'ui/src/theme'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
+import { ViewDetailsTrailingArrow } from 'uniswap/src/components/portfolio/TokenBalanceItem/ViewDetailsTrailingArrow'
 import { getChainLabel } from 'uniswap/src/features/chains/utils'
-import { OrderDirection } from '~/appGraphql/data/util'
 import { Cell } from '~/components/Table/Cell'
 import { HeaderCell } from '~/components/Table/styled'
 import { hasRow } from '~/components/Table/utils/hasRow'
+import { OrderDirection } from '~/data/util'
 import { EmptyTableCell } from '~/pages/Portfolio/EmptyTableCell'
 import { TokenData } from '~/pages/Portfolio/Tokens/hooks/useTransformTokenTableData'
 import { Allocation } from '~/pages/Portfolio/Tokens/Table/columns/Allocation'
@@ -31,8 +28,11 @@ import {
   PortfolioTokenSortMethod,
   usePortfolioTokenTableSortStore,
 } from '~/pages/Portfolio/Tokens/Table/portfolioTokenTableSortStore'
-import { getTokenDataForRow } from '~/pages/Portfolio/Tokens/Table/tokenTableRowUtils'
-import type { TokenTableRow } from '~/pages/Portfolio/Tokens/Table/tokenTableRowUtils'
+import {
+  type TokenTableRow,
+  getTokenDataForRow,
+  isStablecoinForChainToken,
+} from '~/pages/Portfolio/Tokens/Table/tokenTableRowUtils'
 
 export enum TokenColumns {
   Token = 'token',
@@ -52,20 +52,27 @@ export enum TokenColumns {
   Actions = 'actions',
 }
 
+const EMPTY_HIDDEN_COLUMNS: TokenColumns[] = []
+
 export function useTokenColumns({
-  hiddenColumns = [],
+  hiddenColumns = EMPTY_HIDDEN_COLUMNS,
   showLoadingSkeleton,
   showUnrealizedPnlPercent = false,
   columnSortEnabled = true,
+  hasPinnedColumns = false,
+  unifiedExpandableRows = false,
+  onTokenNameClick,
 }: {
   hiddenColumns?: TokenColumns[]
   showLoadingSkeleton: boolean
   showUnrealizedPnlPercent?: boolean
   /** When false, column headers are non-interactive (e.g. overview mini table). */
   columnSortEnabled?: boolean
+  hasPinnedColumns?: boolean
+  unifiedExpandableRows?: boolean
+  onTokenNameClick?: (row: Extract<TokenTableRow, { type: 'parent' }>) => void
 }) {
   const { t } = useTranslation()
-  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
 
   const { sortMethod, sortAscending } = usePortfolioTokenTableSortStore((s) => ({
     sortMethod: s.sortMethod,
@@ -82,7 +89,7 @@ export function useTokenColumns({
       columns.push(
         columnHelper.accessor((row) => (row.type === 'parent' ? row.tokenData.currencyInfo : row.chainToken.chainId), {
           id: 'currencyInfo',
-          size: 180,
+          size: hasPinnedColumns ? 180 : 196,
           header: () => (
             <HeaderCell justifyContent="flex-start">
               <Text variant="body3" color="$neutral2">
@@ -111,11 +118,14 @@ export function useTokenColumns({
                     // oxlint-disable-next-line no-shadow
                     chainIds={row.tokenData.tokens.map((t) => t.chainId)}
                     isExpanded={isExpanded}
+                    unifiedExpandableRows={unifiedExpandableRows}
+                    onNameClick={onTokenNameClick ? () => onTokenNameClick(row) : undefined}
                   />
                 ) : (
-                  <Flex row alignItems="center" gap="$spacing8" ml="$spacing40">
+                  <Flex row alignItems="center" gap={14} ml="$spacing6">
                     <NetworkLogo chainId={row.chainToken.chainId} size={iconSizes.icon20} />
                     <Text variant="body3">{getChainLabel(row.chainToken.chainId)}</Text>
+                    {!unifiedExpandableRows && <ViewDetailsTrailingArrow />}
                   </Flex>
                 )}
               </Cell>
@@ -159,33 +169,44 @@ export function useTokenColumns({
 
     if (!isHidden(TokenColumns.AvgCost)) {
       columns.push(
-        columnHelper.accessor((row) => (row.type === 'parent' ? row.tokenData.avgCost : null), {
-          id: 'avgCost',
-          size: 120,
-          header: () => (
-            <HeaderCell justifyContent="flex-end">
-              {columnSortEnabled ? (
-                <PortfolioTokenTableHeader
-                  category={PortfolioTokenSortMethod.AVG_COST}
-                  isCurrentSortMethod={sortMethod === PortfolioTokenSortMethod.AVG_COST}
-                  direction={orderDirection}
-                />
-              ) : (
-                <Text variant="body3" color="$neutral2">
-                  {getPortfolioTokenColumnHeaderLabel(t, PortfolioTokenSortMethod.AVG_COST)}
-                </Text>
-              )}
-            </HeaderCell>
-          ),
-          cell: (info) => {
-            const row = hasRow<TokenTableRow>(info) ? info.row.original : null
-            return (
-              <Cell loading={showLoadingSkeleton} justifyContent="flex-end">
-                {row && row.type === 'parent' && <AvgCost value={row.tokenData.avgCost} />}
-              </Cell>
-            )
+        columnHelper.accessor(
+          (row) => (row.type === 'parent' ? row.tokenData.avgCost : (row.chainToken.avgCost ?? null)),
+          {
+            id: 'avgCost',
+            size: 120,
+            header: () => (
+              <HeaderCell justifyContent="flex-end">
+                {columnSortEnabled ? (
+                  <PortfolioTokenTableHeader
+                    category={PortfolioTokenSortMethod.AVG_COST}
+                    isCurrentSortMethod={sortMethod === PortfolioTokenSortMethod.AVG_COST}
+                    direction={orderDirection}
+                  />
+                ) : (
+                  <Text variant="body3" color="$neutral2">
+                    {getPortfolioTokenColumnHeaderLabel(t, PortfolioTokenSortMethod.AVG_COST)}
+                  </Text>
+                )}
+              </HeaderCell>
+            ),
+            cell: (info) => {
+              const row = hasRow<TokenTableRow>(info) ? info.row.original : null
+              if (!row) {
+                return (
+                  <Cell loading={showLoadingSkeleton} justifyContent="flex-end">
+                    <EmptyTableCell />
+                  </Cell>
+                )
+              }
+              const value = row.type === 'parent' ? row.tokenData.avgCost : row.chainToken.avgCost
+              return (
+                <Cell loading={showLoadingSkeleton} justifyContent="flex-end">
+                  <AvgCost value={value} />
+                </Cell>
+              )
+            },
           },
-        }),
+        ),
       )
     }
 
@@ -295,7 +316,7 @@ export function useTokenColumns({
 
             // oxlint-disable-next-line typescript/no-unnecessary-condition -- biome-parity: oxlint is stricter here
             const value = info.getValue?.()
-            if (!row) {
+            if (!row || row.tokenData.isSpamHidden) {
               return (
                 <Cell loading={showLoadingSkeleton} justifyContent="flex-end">
                   <EmptyTableCell />
@@ -321,40 +342,63 @@ export function useTokenColumns({
 
     if (!isHidden(TokenColumns.UnrealizedPnl)) {
       columns.push(
-        columnHelper.accessor((row) => (row.type === 'parent' ? row.tokenData.unrealizedPnl : null), {
-          id: 'unrealizedPnl',
-          size: 160,
-          header: () => (
-            <HeaderCell justifyContent="flex-end">
-              {columnSortEnabled ? (
-                <PortfolioTokenTableHeader
-                  category={PortfolioTokenSortMethod.UNREALIZED_PNL}
-                  isCurrentSortMethod={sortMethod === PortfolioTokenSortMethod.UNREALIZED_PNL}
-                  direction={orderDirection}
-                />
-              ) : (
-                <Text variant="body3" color="$neutral2">
-                  {getPortfolioTokenColumnHeaderLabel(t, PortfolioTokenSortMethod.UNREALIZED_PNL)}
-                </Text>
-              )}
-            </HeaderCell>
-          ),
-          cell: (info) => {
-            const row = hasRow<TokenTableRow>(info) ? info.row.original : null
-            return (
-              <Cell loading={showLoadingSkeleton} justifyContent="flex-end">
-                {row && row.type === 'parent' && (
+        columnHelper.accessor(
+          (row) => (row.type === 'parent' ? row.tokenData.unrealizedPnl : (row.chainToken.unrealizedPnl ?? null)),
+          {
+            id: 'unrealizedPnl',
+            size: 144,
+            header: () => (
+              <HeaderCell justifyContent="flex-end">
+                {columnSortEnabled ? (
+                  <PortfolioTokenTableHeader
+                    category={PortfolioTokenSortMethod.UNREALIZED_PNL}
+                    isCurrentSortMethod={sortMethod === PortfolioTokenSortMethod.UNREALIZED_PNL}
+                    direction={orderDirection}
+                  />
+                ) : (
+                  <Text variant="body3" color="$neutral2">
+                    {getPortfolioTokenColumnHeaderLabel(t, PortfolioTokenSortMethod.UNREALIZED_PNL)}
+                  </Text>
+                )}
+              </HeaderCell>
+            ),
+            cell: (info) => {
+              const row = hasRow<TokenTableRow>(info) ? info.row.original : null
+              if (!row || row.tokenData.isSpamHidden) {
+                return (
+                  <Cell loading={showLoadingSkeleton} justifyContent="flex-end">
+                    <EmptyTableCell />
+                  </Cell>
+                )
+              }
+              if (row.type === 'parent') {
+                return (
+                  <Cell loading={showLoadingSkeleton} justifyContent="flex-end">
+                    <UnrealizedPnl
+                      value={row.tokenData.unrealizedPnl}
+                      percent={row.tokenData.unrealizedPnlPercent}
+                      isStablecoin={row.tokenData.isStablecoin}
+                      showPercent={showUnrealizedPnlPercent}
+                    />
+                  </Cell>
+                )
+              }
+              if (row.chainToken.unrealizedPnl === undefined) {
+                return <Cell loading={showLoadingSkeleton} py="$spacing8" />
+              }
+              return (
+                <Cell loading={showLoadingSkeleton} justifyContent="flex-end" py="$spacing8">
                   <UnrealizedPnl
-                    value={row.tokenData.unrealizedPnl}
-                    percent={row.tokenData.unrealizedPnlPercent}
-                    isStablecoin={row.tokenData.isStablecoin}
+                    value={row.chainToken.unrealizedPnl}
+                    percent={row.chainToken.unrealizedPnlPercent}
+                    isStablecoin={isStablecoinForChainToken(row.chainToken)}
                     showPercent={showUnrealizedPnlPercent}
                   />
-                )}
-              </Cell>
-            )
+                </Cell>
+              )
+            },
           },
-        }),
+        ),
       )
     }
 
@@ -398,7 +442,6 @@ export function useTokenColumns({
           header: () => <HeaderCell />,
           cell: (info) => {
             const row = hasRow<TokenTableRow>(info) ? info.row.original : null
-            const tableRow = hasRow<TokenTableRow>(info) ? info.row : null
             if (!row) {
               return (
                 <Cell loading={showLoadingSkeleton} justifyContent="center">
@@ -406,34 +449,16 @@ export function useTokenColumns({
                 </Cell>
               )
             }
-            const canExpand = multichainTokenUxEnabled && tableRow?.getCanExpand()
-            if (row.type === 'parent' && canExpand) {
-              const isExpanded = tableRow?.getIsExpanded() ?? false
+            if (row.type === 'parent') {
               return (
-                <Cell
-                  key={`expand-${tableRow?.id ?? row.tokenData.id}`}
-                  loading={showLoadingSkeleton}
-                  justifyContent="center"
-                >
-                  <TouchableArea
-                    onPress={(e) => {
-                      e.stopPropagation()
-                      tableRow?.toggleExpanded()
-                    }}
-                    hitSlop={8}
-                  >
-                    {isExpanded ? (
-                      <ChevronsIn color="$neutral2" size="$icon.16" />
-                    ) : (
-                      <ChevronsOut color="$neutral2" size="$icon.16" />
-                    )}
-                  </TouchableArea>
+                <Cell loading={showLoadingSkeleton} justifyContent="center">
+                  <ContextMenuButton key={row.tokenData.id} tokenData={row.tokenData} />
                 </Cell>
               )
             }
             const tokenDataForMenu = getTokenDataForRow(row)
             return (
-              <Cell loading={showLoadingSkeleton} justifyContent="center">
+              <Cell loading={showLoadingSkeleton} justifyContent="center" mr="$spacing6">
                 <ContextMenuButton key={tokenDataForMenu.id} tokenData={tokenDataForMenu} />
               </Cell>
             )
@@ -447,10 +472,12 @@ export function useTokenColumns({
     t,
     showLoadingSkeleton,
     hiddenColumns,
-    multichainTokenUxEnabled,
     showUnrealizedPnlPercent,
-    columnSortEnabled,
     sortMethod,
     orderDirection,
+    columnSortEnabled,
+    hasPinnedColumns,
+    unifiedExpandableRows,
+    onTokenNameClick,
   ])
 }

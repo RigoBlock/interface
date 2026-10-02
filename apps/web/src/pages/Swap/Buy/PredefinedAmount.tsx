@@ -1,4 +1,4 @@
-import { useSporeColors } from 'ui/src'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { Pill, PillProps } from 'uniswap/src/components/pill/Pill'
 
 interface PredefinedAmountProps {

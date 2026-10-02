@@ -1,7 +1,6 @@
 import { TFunction } from 'i18next'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ColorTokens } from 'ui/src'
 import { useDebounce } from 'utilities/src/time/timing'
 import zxcvbn from 'zxcvbn'
 
@@ -51,7 +50,7 @@ export function getPasswordStrengthTextAndColor(
   strength: PasswordStrength,
 ): {
   text: string
-  color: ColorTokens
+  color: '$statusCritical' | '$statusWarning' | '$statusSuccess' | '$neutral1'
 } {
   switch (strength) {
     case PasswordStrength.WEAK:

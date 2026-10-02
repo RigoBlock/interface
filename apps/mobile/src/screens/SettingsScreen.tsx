@@ -1,8 +1,11 @@
 import { useNavigation } from '@react-navigation/core'
+import { isAndroid, isDevEnv } from '@universe/environment'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Flex, Text, iconSizes } from '@universe/mycelium'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
+import { TestID } from '@universe/test'
 import { default as React, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ListRenderItemInfo } from 'react-native'
 import { useSelector } from 'react-redux'
 import { OnboardingStackNavigationProp, SettingsStackNavigationProp } from 'src/app/navigation/types'
 import { ScreenWithHeader } from 'src/components/layout/screens/ScreenWithHeader'
@@ -11,7 +14,6 @@ import { WalletRestoreType } from 'src/components/RestoreWalletModal/RestoreWall
 import { FooterSettings } from 'src/components/Settings/FooterSettings'
 import { ForceReduxDataLossRow } from 'src/components/Settings/ForceReduxDataLossRow'
 import { SettingsList } from 'src/components/Settings/lists/SettingsList'
-import { SectionData } from 'src/components/Settings/lists/types'
 import { OnboardingRow } from 'src/components/Settings/OnboardingRow'
 import { ResetBehaviorHistoryRow } from 'src/components/Settings/ResetBehaviorHistoryRow'
 import {
@@ -29,13 +31,13 @@ import {
   NotificationPermission,
   useNotificationOSPermissionsEnabled,
 } from 'src/features/notifications/hooks/useNotificationOSPermissionsEnabled'
+import { useAboutModalState } from 'src/features/settings/hooks/useAboutModalState'
 import { useAdvancedSettingsMenuState } from 'src/features/settings/hooks/useAdvancedSettingsMenuState'
 import { useWalletRestore } from 'src/features/wallet/useWalletRestore'
 import { importFromCloudBackupOption, restoreFromCloudBackupOption } from 'src/screens/Import/constants'
-import { Flex, IconProps, Text, useSporeColors } from 'ui/src'
+import type { IconProps } from 'ui/src'
 import {
   Bell,
-  BookOpen,
   Chart,
   Cloud,
   Coins,
@@ -43,33 +45,29 @@ import {
   Faceid,
   FileListLock,
   Fingerprint,
+  InfoCircle,
   Key,
   Language,
   LikeSquare,
   LineChartDots,
-  Lock,
   MessageQuestion,
-  Passkey,
+  ShieldCheck,
   Sliders,
   TouchId,
   UniswapLogo,
   WavePulse,
   Wrench,
 } from 'ui/src/components/icons'
-import { iconSizes } from 'ui/src/theme'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapHelpUrls, UniswapStaticUrls } from 'uniswap/src/constants/urls'
 import { useCurrentAppearanceSetting } from 'uniswap/src/features/appearance/hooks'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { useAppFiatCurrencyInfo } from 'uniswap/src/features/fiatCurrency/hooks'
 import { useCurrentLanguageInfo } from 'uniswap/src/features/language/hooks'
 import { useHapticFeedback } from 'uniswap/src/features/settings/useHapticFeedback/useHapticFeedback'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { OnboardingEntryPoint } from 'uniswap/src/types/onboarding'
 import { MobileScreens } from 'uniswap/src/types/screens/mobile'
 import { getCloudProviderName } from 'uniswap/src/utils/cloud-backup/getCloudProviderName'
-import { isDevEnv } from 'utilities/src/environment/env'
-import { isAndroid } from 'utilities/src/platform'
 import { selectHasCopiedPrivateKeys } from 'wallet/src/features/behaviorHistory/selectors'
 import { BackupType } from 'wallet/src/features/wallet/accounts/types'
 import { hasBackup } from 'wallet/src/features/wallet/accounts/utils'
@@ -97,6 +95,7 @@ export function SettingsScreen(): JSX.Element {
   const currentFiatCurrencyInfo = useAppFiatCurrencyInfo()
   const { originName: currentLanguage } = useCurrentLanguageInfo()
   const isSmartWalletSettingsEnabled = useFeatureFlag(FeatureFlags.SmartWalletSettings)
+  const aboutModalState = useAboutModalState()
 
   const { hapticsEnabled, setHapticsEnabled } = useHapticFeedback()
 
@@ -124,7 +123,7 @@ export function SettingsScreen(): JSX.Element {
   const { walletNeedsRestore, walletRestoreType } = useWalletRestore()
 
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<SettingsSectionItem | SettingsSectionItemComponent>): JSX.Element | null => {
+    ({ item }: { item: SettingsSectionItem | SettingsSectionItemComponent }): JSX.Element | null => {
       if (item.isHidden) {
         return null
       }
@@ -304,8 +303,8 @@ export function SettingsScreen(): JSX.Element {
           {
             navigationModal: ModalName.PasskeyManagement,
             isHidden: !hasPasskeyBackup,
-            text: t('common.passkeys'),
-            icon: <Passkey {...iconProps} />,
+            text: t('settings.setting.loginMethods'),
+            icon: <ShieldCheck {...iconProps} />,
             navigationProps: { address: signerAccount?.address },
           },
           {
@@ -321,7 +320,7 @@ export function SettingsScreen(): JSX.Element {
           {
             screen: MobileScreens.WebView,
             screenProps: {
-              uriLink: uniswapUrls.walletFeedbackForm,
+              uriLink: UniswapStaticUrls.walletFeedbackForm,
               headerTitle: t('settings.action.feedback'),
             },
             text: t('settings.action.feedback'),
@@ -330,34 +329,17 @@ export function SettingsScreen(): JSX.Element {
           {
             screen: MobileScreens.WebView,
             screenProps: {
-              uriLink: uniswapUrls.helpArticleUrls.mobileWalletHelp,
+              uriLink: UniswapHelpUrls.articles.mobileWalletHelp,
               headerTitle: t('settings.action.help'),
             },
             text: t('settings.action.help'),
             icon: <MessageQuestion {...svgProps} />,
           },
-        ],
-      },
-      {
-        subTitle: t('settings.section.about'),
-        data: [
           {
-            screen: MobileScreens.WebView,
-            screenProps: {
-              uriLink: uniswapUrls.privacyPolicyUrl,
-              headerTitle: t('settings.action.privacy'),
-            },
-            text: t('settings.action.privacy'),
-            icon: <Lock {...svgProps} />,
-          },
-          {
-            screen: MobileScreens.WebView,
-            screenProps: {
-              uriLink: uniswapUrls.termsOfServiceUrl,
-              headerTitle: t('settings.action.terms'),
-            },
-            text: t('settings.action.terms'),
-            icon: <BookOpen {...svgProps} />,
+            navigationModal: ModalName.About,
+            navigationProps: aboutModalState,
+            text: t('settings.section.about'),
+            icon: <InfoCircle {...svgProps} />,
           },
         ],
       },
@@ -406,6 +388,7 @@ export function SettingsScreen(): JSX.Element {
     isTestnetModeEnabled,
     isSmartWalletSettingsEnabled,
     advancedSettingsState,
+    aboutModalState,
     notificationOSPermission,
     navigation,
     hasCopiedPrivateKeys,
@@ -421,7 +404,6 @@ export function SettingsScreen(): JSX.Element {
       edges={isAndroid ? ['top', 'left', 'right', 'bottom'] : undefined}
     >
       <SettingsList
-        keyExtractor={keyExtractor}
         sections={sections}
         ItemSeparatorComponent={renderItemSeparator}
         ListFooterComponent={<FooterSettings />}
@@ -433,10 +415,6 @@ export function SettingsScreen(): JSX.Element {
       />
     </ScreenWithHeader>
   )
-}
-
-function keyExtractor(_item: SectionData, index: number): string {
-  return 'settings' + index
 }
 
 function renderSectionFooter(): JSX.Element {

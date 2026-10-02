@@ -1,4 +1,7 @@
 import { useNavigation } from '@react-navigation/core'
+import { Button, Flex, iconSizes, spacing } from '@universe/mycelium'
+import type { IconProps } from '@universe/mycelium/icons'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { default as React, useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ListRenderItemInfo, SectionList } from 'react-native'
@@ -18,11 +21,10 @@ import {
 } from 'src/components/Settings/SettingsRow'
 import { UnitagBanner } from 'src/components/unitags/UnitagBanner'
 import { useWalletConnect } from 'src/features/walletConnect/useWalletConnect'
-import { Button, Flex, IconProps, useSporeColors } from 'ui/src'
 import { Edit, Global } from 'ui/src/components/icons'
 import { Person } from 'ui/src/components/icons/Person'
-import { iconSizes, spacing } from 'ui/src/theme'
 import { AddressDisplay } from 'uniswap/src/components/accounts/AddressDisplay'
+import { BottomScreenFooter } from 'uniswap/src/components/layout/BottomScreenFooter'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { useUnitagsAddressQuery } from 'uniswap/src/data/apiClients/unitagsApi/useUnitagsAddressQuery'
 import { AccountType } from 'uniswap/src/features/accounts/types'
@@ -100,7 +102,7 @@ export function ManageWalletsModal({ route }: AppStackScreenProp<typeof ModalNam
       text: t('settings.setting.wallet.action.editLabel'),
       icon: <Edit color="$neutral2" size="$icon.24" />,
       screenProps: { address },
-      isHidden: !!ensName || !!unitag?.username,
+      isHidden: currentAccount?.type === AccountType.Readonly || !!ensName || !!unitag?.username,
       checkIfCanProceed: (): boolean => {
         navigate(ModalName.EditLabelSettingsModal, {
           address,
@@ -162,7 +164,7 @@ export function ManageWalletsModal({ route }: AppStackScreenProp<typeof ModalNam
         {isRemoveWalletOpen ? (
           <RemoveWalletContent address={address} onClose={onClose} />
         ) : (
-          <Flex gap="$spacing12" px="$spacing24" pb="$spacing24" pt="$spacing20">
+          <Flex gap="$spacing12" px="$spacing24" pt="$spacing20">
             <Flex>
               <AddressDisplay
                 showCopy
@@ -189,11 +191,11 @@ export function ManageWalletsModal({ route }: AppStackScreenProp<typeof ModalNam
                 stickySectionHeadersEnabled={false}
               />
             </Flex>
-            <Flex row pb="$padding20" pt="$padding12">
+            <BottomScreenFooter row insetMode="none" pt="$padding12">
               <Button lineHeightDisabled variant="critical" emphasis="secondary" onPress={onRemoveWallet}>
                 {t('settings.setting.wallet.action.remove')}
               </Button>
-            </Flex>
+            </BottomScreenFooter>
           </Flex>
         )}
       </Flex>

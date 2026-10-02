@@ -14,9 +14,15 @@ const app = createApp({
     const origin = new URL(c.req.url).origin
     return fetch(`${origin}/index.html`)
   },
-  getEntryGatewayUrl: () => process.env.ENTRY_GATEWAY_API_URL || ENTRY_GATEWAY_URLS.staging,
+  getEntryGatewayUrl: (_c, env) => {
+    if (env) {
+      return ENTRY_GATEWAY_URLS[env]
+    }
+    return process.env.ENTRY_GATEWAY_API_URL || ENTRY_GATEWAY_URLS.staging
+  },
   getWebSocketUrl: () => process.env.WEBSOCKET_URL || WEBSOCKET_URLS.staging,
   getTrustedClientIp: (c) => c.req.header('x-real-ip'),
+  getEmbedFrameAncestors: () => process.env.EMBED_FRAME_ANCESTORS,
 })
 
 export default handle(app)

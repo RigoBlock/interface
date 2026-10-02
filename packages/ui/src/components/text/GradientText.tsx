@@ -1,11 +1,11 @@
+import type { LinearGradientCompatProps } from '@universe/mycelium/linear-gradient-compat'
+import { TextCompat, type TextCompatProps } from '@universe/mycelium/text-compat'
 import { PropsWithChildren } from 'react'
-import { GetProps } from 'tamagui'
-import { LinearGradientProps } from 'tamagui/linear-gradient'
-import { Text } from 'ui/src/components/text'
 
-export type GradientTextProps = PropsWithChildren<GetProps<typeof Text> & { gradient: LinearGradientProps }>
+export type GradientTextProps = PropsWithChildren<TextCompatProps & { gradient: LinearGradientCompatProps }>
 
 // TODO(WEB-4313): Implement GradientText for web
-export function GradientText({ children, ...props }: GradientTextProps): JSX.Element {
-  return <Text {...props}>{children}</Text>
+// `gradient` is destructured out (unused) so it doesn't spread onto TextCompat as an unknown prop.
+export function GradientText({ children, gradient: _gradient, ...props }: GradientTextProps): JSX.Element {
+  return <TextCompat {...props}>{children}</TextCompat>
 }

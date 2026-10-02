@@ -1,11 +1,12 @@
+import { Flex } from '@universe/mycelium'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
+import { TestID } from '@universe/test'
 import { memo, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, useMedia } from 'ui/src'
 import { Calendar } from 'ui/src/components/icons/Calendar'
 import { Filter } from 'ui/src/components/icons/Filter'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { DropdownSelector } from '~/components/Dropdowns/DropdownSelector'
 import { getTimePeriodFilterOptions, getTransactionTypeFilterOptions } from '~/pages/Portfolio/Activity/Filters/utils'
 import { SearchInput } from '~/pages/Portfolio/components/SearchInput'
@@ -64,6 +65,8 @@ function ActivityFiltersInner({
             ButtonIcon={Filter}
             dataTestId={TestID.PortfolioActivityTransactionTypeFilter}
             optionTestIdPrefix={TestID.PortfolioActivityFilterOptionPrefix}
+            // buttonStyle crosses into DropdownSelector, which is still Tamagui, so this $md is Tamagui's, not mycelium's.
+            // Both resolve to 640px — they must stay equal or the container stacks at a different width than the buttons.
             buttonStyle={{ minWidth: 140, $md: { width: '100%' } }}
             dropdownStyle={{ minWidth: DROPDOWN_MIN_WIDTH.transactionType }}
           />

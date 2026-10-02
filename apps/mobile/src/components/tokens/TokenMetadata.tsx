@@ -1,6 +1,6 @@
+import { Flex } from '@universe/mycelium'
 import React, { PropsWithChildren } from 'react'
 import { FlexAlignType } from 'react-native'
-import { Flex } from 'ui/src'
 
 type TokenMetadataProps = PropsWithChildren<{
   align?: FlexAlignType

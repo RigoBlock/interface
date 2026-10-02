@@ -1,6 +1,6 @@
 import type { TransactionRequest } from '@ethersproject/abstract-provider'
+import { UniverseChainId } from '@universe/chains'
 import { call, take } from 'typed-redux-saga'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { CancelableStepInfo } from 'uniswap/src/features/transactions/hooks/useIsCancelable'
 import { cancelPlanStep } from 'uniswap/src/features/transactions/slice'
 import { activePlanStore } from 'uniswap/src/features/transactions/swap/review/stores/activePlan/activePlanStore'

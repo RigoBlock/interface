@@ -1,161 +1,56 @@
-import { useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { type QueryClient } from '@tanstack/react-query'
+import type { RecoveryMethod } from '@universe/embedded-wallet'
+import { Anchor, Button, Flex, Text, TouchableArea } from '@universe/mycelium'
+import { AlertTriangleFilled } from '@universe/mycelium/icons/AlertTriangleFilled'
+import { AppleLogo } from '@universe/mycelium/icons/AppleLogo'
+import { Buoy } from '@universe/mycelium/icons/Buoy'
+import { Envelope } from '@universe/mycelium/icons/Envelope'
+import { GoogleLogoGradient } from '@universe/mycelium/icons/GoogleLogoGradient'
+import { RotatableChevron } from '@universe/mycelium/icons/RotatableChevron'
+import { TestID } from '@universe/test'
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Anchor, Button, Flex, Loader, Text, TouchableArea, useSporeColors } from 'ui/src'
-import { Buoy } from 'ui/src/components/icons/Buoy'
-import { Envelope } from 'ui/src/components/icons/Envelope'
-import { GoogleLogoGradient } from 'ui/src/components/icons/GoogleLogoGradient'
-import { IcloudPasswordLogo } from 'ui/src/components/icons/IcloudPasswordLogo'
-import { MoreHorizontal } from 'ui/src/components/icons/MoreHorizontal'
-import { Passkey } from 'ui/src/components/icons/Passkey'
-import { Trash } from 'ui/src/components/icons/Trash'
-import { Windows } from 'ui/src/components/icons/Windows'
-import { UseSporeColorsReturn } from 'ui/src/hooks/useSporeColors'
-import { iconSizes } from 'ui/src/theme'
-import { ContextMenu } from 'uniswap/src/components/menus/ContextMenu'
-import { ContextMenuTriggerMode } from 'uniswap/src/components/menus/types'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
-import type { Authenticator, RecoveryMethod } from 'uniswap/src/features/passkey/embeddedWallet'
-import { AuthenticatorNameType, listAuthenticators } from 'uniswap/src/features/passkey/embeddedWallet'
+import { Loader } from 'ui/src'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import i18n from 'uniswap/src/i18n'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { logger } from 'utilities/src/logger/logger'
 import { useEvent } from 'utilities/src/react/hooks'
+import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
+import {
+  type AuthenticatorDisplay,
+  getListAuthenticatorsStorageKey,
+  useListAuthenticatorsQuery,
+} from '~/components/AccountDrawer/PasskeyMenu/hooks/useListAuthenticatorsQuery'
 import { MenuColumn } from '~/components/AccountDrawer/shared'
 import { SlideOutMenu } from '~/components/AccountDrawer/SlideOutMenu'
-import { AndroidLogo } from '~/components/Icons/AndroidLogo'
-import { AppleLogo } from '~/components/Icons/AppleLogo'
+import { getProviderIcon } from '~/components/Passkey/authenticatorProvider'
+import { OverflowMenu } from '~/components/Passkey/OverflowMenu'
+import { getPrivyAppId } from '~/config'
 import { setOpenModal } from '~/state/application/reducer'
-import { useEmbeddedWalletState } from '~/state/embeddedWallet/store'
 import { useAppDispatch } from '~/state/hooks'
 import { ClickableTamaguiStyle } from '~/theme/components/styles'
 
-function getPrivyAppId(): string | undefined {
-  return process.env.PRIVY_APP_ID
-}
-
-export const LIST_AUTHENTICATORS_QUERY_KEY = 'listAuthenticators'
-
-enum AuthenticatorProvider {
-  Google = 'Chrome',
-  Apple = 'iCloud',
-  Microsoft = 'Windows',
-  Android = 'Android',
-  Other = 'Other',
-}
-
-type AuthenticatorDisplay = Pick<Authenticator, 'credentialId' | 'providerName' | 'createdAt' | 'aaguid'> & {
-  provider: AuthenticatorProvider
-  label: string
-}
-
-function getProviderIcon(provider: AuthenticatorProvider) {
-  switch (provider) {
-    case AuthenticatorProvider.Google:
-      return <GoogleLogoGradient size={iconSizes.icon20} />
-    case AuthenticatorProvider.Apple:
-      return <IcloudPasswordLogo size={iconSizes.icon20} />
-    case AuthenticatorProvider.Android:
-      return <AndroidLogo height={iconSizes.icon20} width={iconSizes.icon20} />
-    case AuthenticatorProvider.Microsoft:
-      return <Windows size="$icon.20" color="$neutral1" />
-    default:
-      return <Passkey size="$icon.20" color="$neutral1" />
-  }
-}
-
-function getProviderLabel(provider: AuthenticatorProvider, count?: number) {
-  switch (provider) {
-    case AuthenticatorProvider.Android:
-    case AuthenticatorProvider.Microsoft:
-    case AuthenticatorProvider.Apple:
-    case AuthenticatorProvider.Google: {
-      return provider
-    }
-    default: {
-      return i18n.t('common.passkey.count', { number: count })
-    }
-  }
-}
-
-function getProvider(
-  providerName: AuthenticatorNameType,
-  nameType: typeof AuthenticatorNameType,
-): AuthenticatorProvider {
-  switch (providerName) {
-    case nameType.GOOGLE_PASSWORD_MANAGER:
-      return AuthenticatorProvider.Android
-    case nameType.CHROME_MAC:
-      return AuthenticatorProvider.Google
-    case nameType.ICLOUD_KEYCHAIN:
-    case nameType.ICLOUD_KEYCHAIN_MANAGED:
-      return AuthenticatorProvider.Apple
-    case nameType.WINDOWS_HELLO:
-      return AuthenticatorProvider.Microsoft
-    default:
-      return AuthenticatorProvider.Other
-  }
-}
-
-function convertAuthenticatorsToDisplay(
-  authenticators: Authenticator[],
-  nameType: typeof AuthenticatorNameType,
-): AuthenticatorDisplay[] {
-  let otherPasskeyCount = 1
-  return authenticators.map((authenticator) => {
-    const provider = getProvider(authenticator.providerName, nameType)
-    const isOtherPasskey = provider === AuthenticatorProvider.Other
-    const label = getProviderLabel(provider, otherPasskeyCount)
-    isOtherPasskey && otherPasskeyCount++
-    return {
-      // oxlint-disable-next-line typescript/no-misused-spread -- biome-parity: oxlint is stricter here
-      ...authenticator,
-      provider,
-      label,
-    }
+// Use resetQueries (not invalidateQueries) and manually clear the sessionStorage
+// mirror: the mirror's subscription only writes for active observers, so when
+// PasskeyMenu is unmounted a plain invalidate leaves stale sessionStorage that
+// rehydrates back into the cache on re-mount and masks the invalidation.
+export function resetListAuthenticators(queryClient: QueryClient, walletId: string | null | undefined): Promise<void> {
+  sessionStorage.removeItem(getListAuthenticatorsStorageKey(walletId))
+  return queryClient.resetQueries({
+    queryKey: [ReactQueryCacheKey.ListAuthenticators],
   })
-}
-
-const OverflowMenu = ({ onRemove, testID }: { onRemove: () => void; testID?: string }) => {
-  const { t } = useTranslation()
-  const [isOpen, setIsOpen] = useState(false)
-
-  return (
-    <Flex ml="auto">
-      <ContextMenu
-        menuItems={[
-          {
-            label: t('common.button.remove'),
-            onPress: onRemove,
-            destructive: true,
-            Icon: Trash,
-            iconColor: '$statusCritical',
-          },
-        ]}
-        isOpen={isOpen}
-        closeMenu={() => setIsOpen(false)}
-        openMenu={() => setIsOpen(true)}
-        triggerMode={ContextMenuTriggerMode.Primary}
-        isPlacementRight
-        offsetY={4}
-        adaptToSheet={false}
-      >
-        <TouchableArea testID={testID}>
-          <MoreHorizontal size={20} color="$neutral2" />
-        </TouchableArea>
-      </ContextMenu>
-    </Flex>
-  )
 }
 
 const AuthenticatorRow = ({
   authenticator,
   handleDeletePasskey,
+  isOnlyPasskey,
 }: {
   authenticator: AuthenticatorDisplay
   handleDeletePasskey: (authenticator: AuthenticatorDisplay) => void
+  isOnlyPasskey: boolean
 }) => {
   const createdAtDate = authenticator.createdAt ? new Date(Number(authenticator.createdAt)) : undefined
   const isValidDate = createdAtDate instanceof Date && !isNaN(createdAtDate.getTime())
@@ -166,7 +61,7 @@ const AuthenticatorRow = ({
   })
 
   return (
-    <Flex row gap="$gap12" alignItems="center" pb="$padding16">
+    <Flex row gap="$gap12" alignItems="center">
       <Flex
         height={40}
         width={40}
@@ -181,18 +76,20 @@ const AuthenticatorRow = ({
         <Text variant="body2">{authenticator.label}</Text>
         {isValidDate && (
           <Text variant="body3" color="$neutral2">
-            {i18n.t('common.created.date', { date: formattedDate })}
+            {i18n.t('common.created.date', { date: formattedDate ?? i18n.t('common.unknown') })}
           </Text>
         )}
       </Flex>
-      <OverflowMenu testID={TestID.DeletePasskey} onRemove={() => handleDeletePasskey(authenticator)} />
+      {!isOnlyPasskey && (
+        <OverflowMenu testID={TestID.DeletePasskey} onRemove={() => handleDeletePasskey(authenticator)} />
+      )}
     </Flex>
   )
 }
 
 function LoadingPasskeyRow() {
   return (
-    <Flex row gap="$gap12" alignItems="center" pb="$padding16">
+    <Flex row gap="$gap12" alignItems="center" testID={TestID.PasskeyLoadingRow}>
       <Loader.Box borderRadius="$roundedFull" height={40} width={40} opacity={0.5} />
       <Flex gap="$gap8">
         <Loader.Box borderRadius="$rounded12" height={14} width={72} opacity={0.5} />
@@ -202,12 +99,12 @@ function LoadingPasskeyRow() {
   )
 }
 
-function getRecoveryMethodIcon(type: string, colors: UseSporeColorsReturn) {
+function getRecoveryMethodIcon(type: string) {
   switch (type.toLowerCase()) {
     case 'google':
-      return <GoogleLogoGradient size={iconSizes.icon20} />
+      return <GoogleLogoGradient size="$icon.20" />
     case 'apple':
-      return <AppleLogo height={iconSizes.icon20} width={iconSizes.icon20} fill={colors.neutral1.val} />
+      return <AppleLogo color="$neutral1" size="$icon.20" />
     default:
       return <Envelope size="$icon.20" color="$neutral1" />
   }
@@ -224,11 +121,17 @@ export function getRecoveryMethodLabel(type: string): string {
   }
 }
 
-const RecoveryMethodRow = ({ method, onRemove }: { method: RecoveryMethod; onRemove: () => void }) => {
-  const colors = useSporeColors()
-
+const RecoveryMethodRow = ({
+  method,
+  onRemove,
+  actionRequired,
+}: {
+  method: RecoveryMethod
+  onRemove: () => void
+  actionRequired?: boolean
+}) => {
   return (
-    <Flex row gap="$gap12" alignItems="center" pb="$padding16">
+    <Flex row gap="$gap12" alignItems="center">
       <Flex
         height={40}
         width={40}
@@ -236,8 +139,9 @@ const RecoveryMethodRow = ({ method, onRemove }: { method: RecoveryMethod; onRem
         borderRadius="$rounded12"
         alignItems="center"
         justifyContent="center"
+        opacity={actionRequired ? 0.5 : undefined}
       >
-        {getRecoveryMethodIcon(method.type, colors)}
+        {getRecoveryMethodIcon(method.type)}
       </Flex>
       <Flex flex={1} minWidth={0}>
         <Text variant="body2">{getRecoveryMethodLabel(method.type)}</Text>
@@ -252,26 +156,55 @@ const RecoveryMethodRow = ({ method, onRemove }: { method: RecoveryMethod; onRem
   )
 }
 
-export default function PasskeyMenu({ onClose }: { onClose: () => void }) {
+const ActionRequiredRow = ({ onPress }: { onPress: () => void }) => {
+  const { t } = useTranslation()
+  return (
+    <TouchableArea
+      row
+      alignItems="center"
+      gap="$gap8"
+      p="$padding12"
+      backgroundColor="$surface3"
+      borderRadius="$rounded12"
+      hoverStyle={{ opacity: 0.8 }}
+      onPress={onPress}
+      testID={TestID.ReconnectBackupLogin}
+    >
+      <AlertTriangleFilled size="$icon.20" color="$neutral1" />
+      <Text variant="body3" color="$neutral1" flex={1}>
+        {t('account.passkey.reconnect.actionRequired')}
+      </Text>
+      <RotatableChevron color="$neutral2" direction="right" size="$icon.20" />
+    </TouchableArea>
+  )
+}
+
+export function PasskeyMenu({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
-  const { walletId } = useEmbeddedWalletState()
-  const { data, isLoading } = useQuery({
-    queryKey: [LIST_AUTHENTICATORS_QUERY_KEY, walletId],
-    queryFn: async () => {
-      const result = await listAuthenticators(walletId ?? undefined)
-      const display = convertAuthenticatorsToDisplay(result.authenticators, AuthenticatorNameType)
-      display.sort((a, b) => {
-        const aTime = Number(a.createdAt) || 0
-        const bTime = Number(b.createdAt) || 0
-        return aTime - bTime
-      })
-      return { authenticators: display, recoveryMethods: result.recoveryMethods }
-    },
-    enabled: !!walletId,
-  })
+  const { data, isLoading, isError } = useListAuthenticatorsQuery()
   const authenticators = data?.authenticators ?? []
   const recoveryMethods = data?.recoveryMethods ?? []
+  const lastExportedMs = data?.lastExportedMs
+
+  // Bail back to Settings if the listAuthenticators query errors or returns an
+  // empty response (no authenticators and no recovery methods). The passkey menu
+  // should never render with zero login methods, so empty == malformed here.
+  useEffect(() => {
+    if (isError) {
+      logger.error(new Error('PasskeyMenu: listAuthenticators query failed'), {
+        tags: { file: 'PasskeyMenu.tsx', function: 'PasskeyMenu' },
+      })
+      onClose()
+      return
+    }
+    if (!isLoading && data && authenticators.length + recoveryMethods.length === 0) {
+      logger.error(new Error('PasskeyMenu: malformed response with 0 authenticators and 0 recovery methods'), {
+        tags: { file: 'PasskeyMenu.tsx', function: 'PasskeyMenu' },
+      })
+      onClose()
+    }
+  }, [isError, isLoading, data, authenticators.length, recoveryMethods.length, onClose])
 
   const handleAddPasskey = useEvent(() => {
     dispatch(setOpenModal({ name: ModalName.AddPasskey }))
@@ -283,7 +216,10 @@ export default function PasskeyMenu({ onClose }: { onClose: () => void }) {
         name: ModalName.DeletePasskey,
         initialState: {
           authenticatorId: authenticator.credentialId,
+          authenticatorLabel: authenticator.label,
+          authenticatorProvider: authenticator.provider,
           isLastAuthenticator: authenticators.length === 1,
+          lastExportedMs,
         },
       }),
     )
@@ -299,6 +235,10 @@ export default function PasskeyMenu({ onClose }: { onClose: () => void }) {
         },
       }),
     )
+  })
+
+  const handleReconnectBackupLogin = useEvent(() => {
+    dispatch(setOpenModal({ name: ModalName.ReconnectBackupLogin }))
   })
 
   const handleAddBackupLogin = useEvent(() => {
@@ -323,7 +263,8 @@ export default function PasskeyMenu({ onClose }: { onClose: () => void }) {
             <Anchor
               target="_blank"
               rel="noreferrer"
-              href={uniswapUrls.helpArticleUrls.passkeysInfo}
+              href={UniswapHelpUrls.articles.passkeysInfo}
+              height="$padding20"
               {...ClickableTamaguiStyle}
             >
               <Buoy size="$icon.20" color="$neutral2" />
@@ -331,48 +272,52 @@ export default function PasskeyMenu({ onClose }: { onClose: () => void }) {
           </Trace>
         }
       >
-        <MenuColumn gap="12px">
-          <Text variant="subheading2" color="$neutral1">
-            {t('common.passkeys')}
-          </Text>
-          {isLoading ? (
-            Array.from({ length: 3 }).map((_, index) => <LoadingPasskeyRow key={index} />)
-          ) : authenticators.length ? (
-            <>
-              {authenticators.map((authenticator) => (
-                <AuthenticatorRow
-                  key={authenticator.credentialId}
-                  authenticator={authenticator}
-                  handleDeletePasskey={handleDeletePasskey}
-                />
-              ))}
-              <Flex row alignSelf="stretch">
-                <Trace logPress element={ElementName.AddPasskey}>
-                  <Button variant="default" emphasis="secondary" size="medium" onPress={handleAddPasskey}>
-                    <Text variant="buttonLabel2">{t('common.passkeys.add')}</Text>
-                  </Button>
-                </Trace>
-              </Flex>
-            </>
-          ) : null}
+        <MenuColumn px="$padding8" pb="$padding8" gap="$spacing24">
+          <Flex gap="$spacing16">
+            <Text variant="subheading2" color="$neutral1">
+              {t('common.passkeys')}
+            </Text>
+            {isLoading ? (
+              Array.from({ length: 3 }).map((_, index) => <LoadingPasskeyRow key={index} />)
+            ) : authenticators.length ? (
+              <>
+                {authenticators.map((authenticator) => (
+                  <AuthenticatorRow
+                    key={authenticator.credentialId}
+                    authenticator={authenticator}
+                    handleDeletePasskey={handleDeletePasskey}
+                    isOnlyPasskey={authenticators.length === 1}
+                  />
+                ))}
+                <Flex row alignSelf="stretch" mt="$spacing4">
+                  <Trace logPress element={ElementName.AddPasskey}>
+                    <Button variant="default" emphasis="secondary" size="medium" onPress={handleAddPasskey}>
+                      <Text variant="buttonLabel2">{t('common.passkeys.add')}</Text>
+                    </Button>
+                  </Trace>
+                </Flex>
+              </>
+            ) : null}
+          </Flex>
 
           {getPrivyAppId() ? (
-            <>
-              <Flex row alignItems="center" gap="$gap4" pt="$padding8">
-                <Text variant="subheading2" color="$neutral1">
-                  {t('account.passkey.sections.backupLogin')}
-                </Text>
-              </Flex>
+            <Flex gap="$spacing16">
+              <Text variant="subheading2" color="$neutral1">
+                {t('account.passkey.sections.backupLogin')}
+              </Text>
               {recoveryMethods.length > 0 ? (
                 recoveryMethods.map((method, index) => (
-                  <RecoveryMethodRow
-                    key={`${method.type}-${method.identifier}-${index}`}
-                    method={method}
-                    onRemove={() => handleRemoveBackupLogin(method)}
-                  />
+                  <Flex key={`${method.type}-${method.identifier}-${index}`} gap="$gap12">
+                    <RecoveryMethodRow
+                      method={method}
+                      onRemove={() => handleRemoveBackupLogin(method)}
+                      actionRequired={method.shouldRotate}
+                    />
+                    {method.shouldRotate ? <ActionRequiredRow onPress={handleReconnectBackupLogin} /> : null}
+                  </Flex>
                 ))
               ) : (
-                <Flex row alignSelf="stretch">
+                <Flex row alignSelf="stretch" mt="$spacing4">
                   <Trace logPress element={ElementName.AddBackupLogin}>
                     <Button variant="default" emphasis="secondary" size="medium" onPress={handleAddBackupLogin}>
                       <Text variant="buttonLabel2">{t('account.passkey.backupLogin.addButton')}</Text>
@@ -380,7 +325,7 @@ export default function PasskeyMenu({ onClose }: { onClose: () => void }) {
                   </Trace>
                 </Flex>
               )}
-            </>
+            </Flex>
           ) : null}
         </MenuColumn>
       </SlideOutMenu>

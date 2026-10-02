@@ -1,7 +1,8 @@
+import { Flex } from '@universe/mycelium'
+import { Check } from '@universe/mycelium/icons/Check'
+import { Laptop } from '@universe/mycelium/icons/Laptop'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex } from 'ui/src'
-import { Check, Laptop } from 'ui/src/components/icons'
 import { NotificationToast } from 'uniswap/src/components/notifications/NotificationToast'
 import { ScantasticCompleteNotification as ScantasticCompleteNotificationType } from 'uniswap/src/features/notifications/slice/types'
 

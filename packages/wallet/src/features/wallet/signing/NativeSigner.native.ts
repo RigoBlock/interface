@@ -1,12 +1,11 @@
 /* oxlint-disable max-params */
 import { TypedDataDomain, TypedDataField } from '@ethersproject/abstract-signer'
 import { _TypedDataEncoder } from '@ethersproject/hash'
+import { UniverseChainId, areAddressesEqual } from '@universe/chains'
+import { HexString, isValidHexString, ensure0xHex } from '@universe/encoding'
 import { Bytes, providers, Signer, UnsignedTransaction, utils } from 'ethers'
 import { hexlify } from 'ethers/lib/utils'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { toSupportedChainId } from 'uniswap/src/features/chains/utils'
-import { areAddressesEqual, ensureLeading0x } from 'uniswap/src/utils/addresses'
-import { HexString, isValidHexString } from 'utilities/src/addresses/hex'
 import { Keyring } from 'wallet/src/features/wallet/Keyring/Keyring.native'
 
 // A signer that uses native keystore to access keys
@@ -35,12 +34,12 @@ export class NativeSigner extends Signer {
         ? Keyring.signMessageForAddress(this.address, message)
         : // chainID isn't available here, but is not needed for signing hashes so just default to Mainnet
           Keyring.signHashForAddress(this.address, hexlify(message).slice(2), UniverseChainId.Mainnet)
-    return signaturePromise.then((signature) => ensureLeading0x(signature))
+    return signaturePromise.then((signature) => ensure0xHex(signature))
   }
 
   signHashForAddress(address: string, hash: string | Bytes, chainId: number): Promise<string> {
     return Keyring.signHashForAddress(address, hexlify(hash).slice(2), chainId).then((signature) => {
-      return ensureLeading0x(signature)
+      return ensure0xHex(signature)
     })
   }
 

@@ -1,9 +1,9 @@
+import type { UniverseChainId } from '@universe/chains'
 import { useMemo } from 'react'
 import type { NetworkSelectorOption, TieredNetworkOptions } from 'uniswap/src/components/network/NetworkFilterV2/types'
 import { usePortfolioBalancesForAddressById } from 'uniswap/src/components/TokenSelector/hooks/usePortfolioBalancesForAddressById'
 import type { AddressGroup } from 'uniswap/src/features/accounts/store/types/AccountsState'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import type { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { toSupportedChainId } from 'uniswap/src/features/chains/utils'
 import type { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
 

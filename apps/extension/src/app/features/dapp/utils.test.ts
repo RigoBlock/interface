@@ -1,3 +1,5 @@
+import { isDevEnv } from '@universe/environment'
+import { IMPERSONATION_SIGNING_ERROR_MESSAGE } from 'src/app/features/accounts/impersonation'
 import {
   getActiveSignerConnectedAccount,
   getCapitalizedDisplayNameFromTab,
@@ -7,18 +9,24 @@ import {
 import { SAMPLE_SEED_ADDRESS_1, SAMPLE_SEED_ADDRESS_2, SAMPLE_SEED_ADDRESS_3 } from 'uniswap/src/test/fixtures'
 import { extractNameFromUrl } from 'utilities/src/format/extractNameFromUrl'
 import { promiseTimeout } from 'utilities/src/time/timing'
+import type { Mock } from 'vitest'
 import { Account } from 'wallet/src/features/wallet/accounts/types'
 import { ACCOUNT, ACCOUNT2, ACCOUNT3, readOnlyAccount } from 'wallet/src/test/fixtures'
 
-jest.mock('utilities/src/format/extractNameFromUrl', () => ({
-  extractNameFromUrl: jest.fn(),
+vi.mock('@universe/environment', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@universe/environment')>()),
+  isDevEnv: vi.fn(() => false),
 }))
 
-jest.mock('utilities/src/time/timing', () => ({
-  promiseTimeout: jest.fn(),
+vi.mock('utilities/src/format/extractNameFromUrl', () => ({
+  extractNameFromUrl: vi.fn(),
 }))
 
-const mockChromeTabsQuery = jest.fn()
+vi.mock('utilities/src/time/timing', () => ({
+  promiseTimeout: vi.fn(),
+}))
+
+const mockChromeTabsQuery = vi.fn()
 
 global.chrome = {
   tabs: {
@@ -28,8 +36,8 @@ global.chrome = {
 } as unknown as typeof global.chrome
 
 const mockFunctions = {
-  extractNameFromUrl: extractNameFromUrl as jest.Mock,
-  promiseTimeout: promiseTimeout as jest.Mock,
+  extractNameFromUrl: extractNameFromUrl as Mock,
+  promiseTimeout: promiseTimeout as Mock,
 }
 
 describe('isConnectedAccount', () => {
@@ -65,6 +73,20 @@ describe('getActiveConnectedAccount', () => {
       getActiveSignerConnectedAccount(accounts, readOnlyAccount1.address!)
     }).toThrow('The active connected address must be a signer mnemonic account.')
   })
+
+  it('reports a view-only account as an impersonated wallet in a dev build', () => {
+    vi.mocked(isDevEnv).mockReturnValue(true)
+    const readOnlyAccount1 = readOnlyAccount()
+    const accounts: Account[] = [ACCOUNT, ACCOUNT2, readOnlyAccount1]
+
+    try {
+      expect(() => {
+        getActiveSignerConnectedAccount(accounts, readOnlyAccount1.address!)
+      }).toThrow(IMPERSONATION_SIGNING_ERROR_MESSAGE)
+    } finally {
+      vi.mocked(isDevEnv).mockReturnValue(false)
+    }
+  })
 })
 
 describe('getOrderedConnectedAddresses', () => {
@@ -94,7 +116,7 @@ describe('getOrderedConnectedAddresses', () => {
 
 describe('getCapitalizedDisplayNameFromTab', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('should return the capitalized display name when the title contains the dapp name', async () => {

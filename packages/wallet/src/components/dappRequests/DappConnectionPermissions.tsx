@@ -1,15 +1,14 @@
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
+import { LabeledCheckboxCompat as LabeledCheckbox } from '@universe/mycelium/checkbox-compat'
+import { AlertCircleFilled } from '@universe/mycelium/icons/AlertCircleFilled'
+import { AlertTriangleFilled } from '@universe/mycelium/icons/AlertTriangleFilled'
+import { CheckCircleFilled } from '@universe/mycelium/icons/CheckCircleFilled'
+import { Clear } from '@universe/mycelium/icons/Clear'
+import { GlobeFilled } from '@universe/mycelium/icons/GlobeFilled'
+import { OctagonExclamation } from '@universe/mycelium/icons/OctagonExclamation'
+import { RotatableChevron } from '@universe/mycelium/icons/RotatableChevron'
 import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, LabeledCheckbox, Text, TouchableArea } from 'ui/src'
-import {
-  AlertCircleFilled,
-  AlertTriangleFilled,
-  CheckCircleFilled,
-  Clear,
-  GlobeFilled,
-  OctagonExclamation,
-  RotatableChevron,
-} from 'ui/src/components/icons'
 import { defaultHitslop } from 'ui/src/theme'
 import { useBooleanState } from 'utilities/src/react/useBooleanState'
 import { DappScanInfoModal } from 'wallet/src/components/dappRequests/DappScanInfoModal'

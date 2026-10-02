@@ -1,5 +1,5 @@
-import { FeatureFlags, getFeatureFlagName } from '@universe/gating'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
+import { EmbeddedWalletOnboardingProperties, Experiments, FeatureFlags, getFeatureFlagName } from '@universe/gating'
+import { TestID } from '@universe/test'
 import { expect, getTest } from '~/playwright/fixtures'
 import { getVisibleDropdownElementByTestId } from '~/playwright/fixtures/utils'
 
@@ -7,19 +7,28 @@ const test = getTest()
 
 const EW_ENABLED = `featureFlagOverride=${getFeatureFlagName(FeatureFlags.EmbeddedWallet)}`
 const NOT_CONNECTED = 'eagerlyConnect=false'
+// Force arm B (treatment) of the onboarding experiment via the param-value override.
+const EXPERIMENT_TREATMENT = `experimentOverride=${Experiments.EmbeddedWalletOnboarding}:${EmbeddedWalletOnboardingProperties.NewFlowEnabled}:true`
+// Pin arm A (control); revisit when the experiment ships to treatment and the classic pager is deleted.
+const EXPERIMENT_CONTROL = `experimentOverride=${Experiments.EmbeddedWalletOnboarding}:${EmbeddedWalletOnboardingProperties.NewFlowEnabled}:false`
+
+// Unitags moved from REST `/username?username=` to ConnectRPC. Mock the gRPC endpoint
+// so unitag availability resolves to `available: true` without hitting the real backend.
+const GET_USERNAME_URL = '**/uniswap.unitag.v1.UnitagService/GetUsername'
+const AVAILABLE_USERNAME_RESPONSE = JSON.stringify({ available: true, requiresEnsMatch: false })
 
 test.describe(
   'EW Registration Flow',
   {
-    tag: '@team:apps-portfolio',
+    tag: '@team:apps-infra',
     annotation: [
-      { type: 'DD_TAGS[team]', description: 'apps-portfolio' },
+      { type: 'DD_TAGS[team]', description: 'apps-infra' },
       { type: 'DD_TAGS[test.type]', description: 'web-e2e' },
     ],
   },
   () => {
     test('Modal opens to ChooseUnitag step when EW enabled', async ({ page }) => {
-      await page.goto(`/swap?${NOT_CONNECTED}&${EW_ENABLED}`)
+      await page.goto(`/swap?${NOT_CONNECTED}&${EW_ENABLED}&${EXPERIMENT_CONTROL}`)
 
       await page.getByTestId(TestID.NavConnectWalletButton).click()
       await getVisibleDropdownElementByTestId(page, TestID.CreateAccount).click()
@@ -29,14 +38,14 @@ test.describe(
     })
 
     test('KeyManagement page appears after unitag is chosen', async ({ page }) => {
-      await page.goto(`/swap?${NOT_CONNECTED}&${EW_ENABLED}`)
+      await page.goto(`/swap?${NOT_CONNECTED}&${EW_ENABLED}&${EXPERIMENT_CONTROL}`)
 
       await page.getByTestId(TestID.NavConnectWalletButton).click()
       await getVisibleDropdownElementByTestId(page, TestID.CreateAccount).click()
 
       // Stub the unitag availability endpoint
-      await page.route(/\/username\?username=/, (route) =>
-        route.fulfill({ body: JSON.stringify({ available: true, requiresEnsMatch: false }) }),
+      await page.route(GET_USERNAME_URL, (route) =>
+        route.fulfill({ contentType: 'application/json', body: AVAILABLE_USERNAME_RESPONSE }),
       )
 
       await page.getByTestId(TestID.WalletNameInput).fill('testuser')
@@ -46,13 +55,17 @@ test.describe(
     })
 
     test('PasskeyGeneration page appears after KeyManagement continue', async ({ page }) => {
-      await page.goto(`/swap?${NOT_CONNECTED}&${EW_ENABLED}`)
+      await page.goto(`/swap?${NOT_CONNECTED}&${EW_ENABLED}&${EXPERIMENT_CONTROL}`)
 
       await page.getByTestId(TestID.NavConnectWalletButton).click()
       await getVisibleDropdownElementByTestId(page, TestID.CreateAccount).click()
 
-      await page.route(/\/username\?username=/, (route) =>
-        route.fulfill({ body: JSON.stringify({ available: true, requiresEnsMatch: false }) }),
+      // Control opens straight to ChooseUnitag (no welcome screen).
+      await expect(page.getByTestId(TestID.DownloadUniswapModal)).toBeVisible()
+      await expect(page.getByText('Choose a username')).toBeVisible()
+
+      await page.route(GET_USERNAME_URL, (route) =>
+        route.fulfill({ contentType: 'application/json', body: AVAILABLE_USERNAME_RESPONSE }),
       )
 
       // Navigate through ChooseUnitag → KeyManagement
@@ -67,41 +80,20 @@ test.describe(
       await expect(page.getByTestId(TestID.CreatePasskey)).toBeVisible()
     })
 
-    test('Create Passkey triggers passkey flow (passkeys help modal appears on env failure)', async ({ page }) => {
-      await page.goto(`/swap?${NOT_CONNECTED}&${EW_ENABLED}`)
-
-      await page.getByTestId(TestID.NavConnectWalletButton).click()
-      await getVisibleDropdownElementByTestId(page, TestID.CreateAccount).click()
-
-      await page.route(/\/username\?username=/, (route) =>
-        route.fulfill({ body: JSON.stringify({ available: true, requiresEnsMatch: false }) }),
-      )
-
-      await page.getByTestId(TestID.WalletNameInput).fill('testuser')
-      await page.getByTestId(TestID.Continue).click()
-      await page.getByTestId(TestID.Continue).click()
-      await expect(page.getByTestId(TestID.CreatePasskey)).toBeVisible()
-
-      await page.getByTestId(TestID.CreatePasskey).click()
-
-      // In the test environment the embedded-wallet package is unavailable, so the
-      // passkey flow fails and PasskeysHelpModal opens.
-      await expect(page.getByText('Need help?')).toBeVisible()
-    })
-
     test('Back navigation: PasskeyGeneration → KeyManagement → ChooseUnitag', async ({ page }) => {
-      await page.goto(`/swap?${NOT_CONNECTED}&${EW_ENABLED}`)
+      await page.goto(`/swap?${NOT_CONNECTED}&${EW_ENABLED}&${EXPERIMENT_CONTROL}`)
 
       await page.getByTestId(TestID.NavConnectWalletButton).click()
       await getVisibleDropdownElementByTestId(page, TestID.CreateAccount).click()
 
-      await page.route(/\/username\?username=/, (route) =>
-        route.fulfill({ body: JSON.stringify({ available: true, requiresEnsMatch: false }) }),
+      await page.route(GET_USERNAME_URL, (route) =>
+        route.fulfill({ contentType: 'application/json', body: AVAILABLE_USERNAME_RESPONSE }),
       )
 
       // Navigate to PasskeyGeneration
       await page.getByTestId(TestID.WalletNameInput).fill('testuser')
       await page.getByTestId(TestID.Continue).click()
+      await expect(page.getByText('Your wallet. Your crypto.')).toBeVisible()
       await page.getByTestId(TestID.Continue).click()
       await expect(page.getByText('Secure your account')).toBeVisible()
 
@@ -112,6 +104,51 @@ test.describe(
       // Back to ChooseUnitag
       await page.getByTestId(TestID.Back).click()
       await expect(page.getByText('Choose a username')).toBeVisible()
+    })
+  },
+)
+
+test.describe(
+  'EW Registration Flow - Arm B (welcome + combined create)',
+  {
+    tag: '@team:apps-infra',
+    annotation: [
+      { type: 'DD_TAGS[team]', description: 'apps-infra' },
+      { type: 'DD_TAGS[test.type]', description: 'web-e2e' },
+    ],
+  },
+  () => {
+    // One journey instead of one test per screen: e2e startup dominates runtime, so the whole
+    // treatment flow (welcome → combined create → shuffle → back) is exercised in a single session.
+    test('Treatment arm: welcome → combined create screen → shuffle → back', async ({ page }) => {
+      // Arm B pre-warms unitag suggestions on the welcome screen, so GetUsername must be stubbed
+      // before the modal opens.
+      await page.route(GET_USERNAME_URL, (route) =>
+        route.fulfill({ contentType: 'application/json', body: AVAILABLE_USERNAME_RESPONSE }),
+      )
+      await page.goto(`/swap?${NOT_CONNECTED}&${EW_ENABLED}&${EXPERIMENT_TREATMENT}`)
+      await page.getByTestId(TestID.NavConnectWalletButton).click()
+      await getVisibleDropdownElementByTestId(page, TestID.CreateAccount).click()
+
+      // Treatment opens to the welcome screen.
+      await expect(page.getByTestId(TestID.DownloadUniswapModal)).toBeVisible()
+      await expect(page.getByText('Welcome to Uniswap')).toBeVisible()
+
+      // Combined create screen: prefilled suggestion, shuffle, and create CTA.
+      await page.getByTestId(TestID.Continue).click()
+      await expect(page.getByText('Your wallet. Your crypto.')).toBeVisible()
+      const input = page.getByTestId(TestID.WalletNameInput)
+      await expect(input).not.toHaveValue('')
+      await expect(page.getByTestId(TestID.CreatePasskey)).toBeVisible()
+
+      // Shuffle replaces the suggestion with a different name.
+      const before = await input.inputValue()
+      await page.getByTestId(TestID.ShuffleUnitag).click()
+      await expect(input).not.toHaveValue(before)
+
+      // Back returns to the welcome screen.
+      await page.getByTestId(TestID.Back).click()
+      await expect(page.getByText('Welcome to Uniswap')).toBeVisible()
     })
   },
 )

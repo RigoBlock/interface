@@ -1,12 +1,14 @@
+import { UniverseChainId } from '@universe/chains'
+import { TestID } from '@universe/test'
 import { DEFAULT_NATIVE_ADDRESS } from 'uniswap/src/features/chains/evm/rpc'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { getPrimaryStablecoin, isStablecoinAddress } from 'uniswap/src/features/chains/utils'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { currencyAddress, currencyId } from 'uniswap/src/utils/currencyId'
 import { describe, expect, it } from 'vitest'
 import {
   buildTokenTableRows,
   flattenTokenDataToSingleChainRows,
+  getPortfolioMultichainExpandRowMetrics,
+  getPortfolioMultichainExpandRowMetricsIdentityKey,
   getSubRows,
   getTokenDataForRow,
   getTokenTableRowId,
@@ -24,6 +26,75 @@ import {
   TEST_TOKEN_2_INFO,
   USDC_INFO,
 } from '~/test-utils/constants'
+
+describe('getPortfolioMultichainExpandRowMetrics', () => {
+  it('returns zeros for an empty list', () => {
+    expect(getPortfolioMultichainExpandRowMetrics([])).toEqual({
+      totalTokenRowCount: 0,
+      multichainRowReductionCount: 0,
+      multichainAssetCount: 0,
+    })
+  })
+
+  it('counts only single-chain assets as one row with no reduction', () => {
+    const a = createMockTokenTableData({ id: 'a' })
+    const b = createMockTokenTableData({ id: 'b' })
+    expect(getPortfolioMultichainExpandRowMetrics([a, b])).toEqual({
+      totalTokenRowCount: 2,
+      multichainRowReductionCount: 0,
+      multichainAssetCount: 0,
+    })
+  })
+
+  it('adds one reduction per extra chain on multichain assets', () => {
+    const multi = createMockTokenTableData({
+      id: 'mc',
+      tokens: [
+        createMockTokenTableChainToken({ chainId: 1, currencyInfo: TEST_TOKEN_1_INFO }),
+        createMockTokenTableChainToken({ chainId: 42161, currencyInfo: TEST_TOKEN_2_INFO }),
+        createMockTokenTableChainToken({ chainId: 10, currencyInfo: TEST_TOKEN_1_INFO }),
+      ],
+    })
+    const single = createMockTokenTableData({ id: 'one' })
+    expect(getPortfolioMultichainExpandRowMetrics([multi, single])).toEqual({
+      totalTokenRowCount: 4,
+      multichainRowReductionCount: 2,
+      multichainAssetCount: 1,
+    })
+  })
+})
+
+describe('getPortfolioMultichainExpandRowMetricsIdentityKey', () => {
+  it('matches for the same rows in different order', () => {
+    const a = createMockTokenTableData({ id: 'a' })
+    const b = createMockTokenTableData({ id: 'b' })
+    expect(getPortfolioMultichainExpandRowMetricsIdentityKey([a, b])).toBe(
+      getPortfolioMultichainExpandRowMetricsIdentityKey([b, a]),
+    )
+  })
+
+  it('changes when a row gains or loses chain entries', () => {
+    const single = createMockTokenTableData({ id: 'mc' })
+    const multi = createMockTokenTableData({
+      id: 'mc',
+      tokens: [
+        createMockTokenTableChainToken({ chainId: 1, currencyInfo: TEST_TOKEN_1_INFO }),
+        createMockTokenTableChainToken({ chainId: 42161, currencyInfo: TEST_TOKEN_2_INFO }),
+      ],
+    })
+    expect(getPortfolioMultichainExpandRowMetricsIdentityKey([single])).not.toBe(
+      getPortfolioMultichainExpandRowMetricsIdentityKey([multi]),
+    )
+  })
+
+  it('is stable when only price or aggregate fields on the row change', () => {
+    const base = createMockTokenTableData({ id: 'x' })
+    const refreshed = { ...base, price: 999, totalValue: 1e9 }
+    expect(getPortfolioMultichainExpandRowMetricsIdentityKey([base])).toBe(
+      getPortfolioMultichainExpandRowMetricsIdentityKey([refreshed]),
+    )
+  })
+})
 
 describe('buildTokenTableRows', () => {
   it('returns parent rows without subRows when multichainExpandable is false', () => {
@@ -70,11 +141,21 @@ describe('getTokenTableRowId', () => {
     expect(getTokenTableRowId(row)).toBe('parent-1')
   })
 
-  it('returns id with chain suffix for child rows', () => {
+  it('returns id with per-chain currency suffix for child rows', () => {
     const tokenData = createMockTokenTableData({ id: 'mc' })
-    const chainToken = createMockTokenTableChainToken({ chainId: 10, currencyInfo: TEST_TOKEN_1_INFO })
+    const chainToken = createMockTokenTableChainToken({ chainId: 1, currencyInfo: TEST_TOKEN_1_INFO })
     const child = { type: 'child' as const, tokenData, chainToken }
-    expect(getTokenTableRowId(child)).toBe('mc-chain-10')
+    const suffix = currencyId(TEST_TOKEN_1)!
+    expect(getTokenTableRowId(child)).toBe(`mc-${suffix}`)
+  })
+
+  it('returns distinct ids for child rows on the same chain with different addresses', () => {
+    const tokenData = createMockTokenTableData({ id: 'mc' })
+    const chainTokenA = createMockTokenTableChainToken({ chainId: 1, currencyInfo: TEST_TOKEN_1_INFO })
+    const chainTokenB = createMockTokenTableChainToken({ chainId: 1, currencyInfo: TEST_TOKEN_2_INFO })
+    const childA = { type: 'child' as const, tokenData, chainToken: chainTokenA }
+    const childB = { type: 'child' as const, tokenData, chainToken: chainTokenB }
+    expect(getTokenTableRowId(childA)).not.toBe(getTokenTableRowId(childB))
   })
 })
 
@@ -123,6 +204,9 @@ describe('getTokenDataForRow', () => {
           quantity: 2,
           valueUsd: 50,
           symbol: 'DEF',
+          avgCost: 1.5,
+          unrealizedPnl: 12,
+          unrealizedPnlPercent: 0.08,
         }),
         createMockTokenTableChainToken({ chainId: 1, currencyInfo: TEST_TOKEN_1_INFO }),
       ],
@@ -136,7 +220,11 @@ describe('getTokenDataForRow', () => {
     expect(view.symbol).toBe('DEF')
     expect(view.name).toBe(TEST_TOKEN_2.name)
     expect(view.totalValue).toBe(50)
-    expect(view.tokens).toEqual(tokenData.tokens)
+    expect(view.avgCost).toBe(1.5)
+    expect(view.unrealizedPnl).toBe(12)
+    expect(view.unrealizedPnlPercent).toBe(0.08)
+    expect(view.isStablecoin).toBe(isStablecoinForChainToken(chainToken))
+    expect(view.tokens).toEqual([chainToken])
   })
 })
 
@@ -200,6 +288,9 @@ describe('flattenTokenDataToSingleChainRows', () => {
           quantity: 2,
           valueUsd: 10,
           symbol: 'A',
+          avgCost: 3,
+          unrealizedPnl: 4,
+          unrealizedPnlPercent: 0.1,
         }),
         createMockTokenTableChainToken({
           chainId: 42161,
@@ -207,6 +298,9 @@ describe('flattenTokenDataToSingleChainRows', () => {
           quantity: 0,
           valueUsd: 0,
           symbol: 'B',
+          avgCost: 7,
+          unrealizedPnl: 8,
+          unrealizedPnlPercent: 0.2,
         }),
       ],
     })
@@ -223,9 +317,9 @@ describe('flattenTokenDataToSingleChainRows', () => {
       price: 5,
       totalValue: 10,
       tokens: [tokenData.tokens[0]],
-      avgCost: undefined,
-      unrealizedPnl: undefined,
-      unrealizedPnlPercent: undefined,
+      avgCost: 3,
+      unrealizedPnl: 4,
+      unrealizedPnlPercent: 0.1,
     })
 
     expect(out[1]).toMatchObject({
@@ -234,6 +328,9 @@ describe('flattenTokenDataToSingleChainRows', () => {
       chainId: 42161,
       price: 5,
       tokens: [tokenData.tokens[1]],
+      avgCost: 7,
+      unrealizedPnl: 8,
+      unrealizedPnlPercent: 0.2,
     })
   })
 

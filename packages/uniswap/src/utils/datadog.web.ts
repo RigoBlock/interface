@@ -1,6 +1,14 @@
 import { datadogLogs } from '@datadog/browser-logs'
 import { datadogRum, RumEvent, RumEventDomainContext, RumFetchResourceEventDomainContext } from '@datadog/browser-rum'
 import {
+  isExtensionApp,
+  isWebApp,
+  isBetaEnv,
+  isDevEnv,
+  isDatadogEnabled,
+  localDevDatadogEnabled,
+} from '@universe/environment'
+import {
   DatadogIgnoredErrorsConfigKey,
   DatadogIgnoredErrorsValType,
   DatadogSessionSampleRateKey,
@@ -15,11 +23,8 @@ import {
 import { config } from 'uniswap/src/config'
 import { TradingApiHeaders } from 'uniswap/src/data/apiClients/tradingApi/TradingApiClient'
 import { getUniqueId } from 'utilities/src/device/uniqueId'
-import { datadogEnabledBuild, localDevDatadogEnabled } from 'utilities/src/environment/constants'
-import { isBetaEnv } from 'utilities/src/environment/env'
 import { getDatadogEnvironment } from 'utilities/src/logger/datadog/env'
 import { logger } from 'utilities/src/logger/logger'
-import { isExtensionApp, isWebApp } from 'utilities/src/platform'
 
 // In case Statsig is not available
 const EXTENSION_DEFAULT_DATADOG_SESSION_SAMPLE_RATE = 10 // percent
@@ -94,8 +99,15 @@ function beforeSend(event: RumEvent, context: RumEventDomainContext): boolean {
   return true
 }
 
-export async function initializeDatadog(appName: string): Promise<void> {
-  if (!datadogEnabledBuild) {
+export async function initializeDatadog({
+  appName,
+  buildType,
+}: {
+  appName: string
+  /** Serving-stack cohort marker ('workers' | 'ecs' | ...); web only. */
+  buildType?: string
+}): Promise<void> {
+  if (!isDatadogEnabled()) {
     return
   }
 
@@ -115,23 +127,30 @@ export async function initializeDatadog(appName: string): Promise<void> {
     clientToken: config.datadogClientToken,
     service: isWebApp ? `web-${getDatadogEnvironment()}` : `extension-${getDatadogEnvironment()}`,
     env: getDatadogEnvironment(),
-    version: isExtensionApp ? process.env.VERSION : process.env.REACT_APP_VERSION_TAG,
+    version: config.appVersion,
     trackingConsent: undefined,
   }
 
+  // Dev + beta builds (extension and web) sample at 100% so internal testers produce
+  // full-fidelity RUM + logs for debugging. Prod keeps the configurable rate (default 10%).
   // oxlint-disable-next-line typescript/no-unnecessary-condition
-  const shouldUseFullSampleRate = localDevDatadogEnabled || (isWebApp && isBetaEnv())
+  const shouldUseFullSampleRate = localDevDatadogEnabled || isBetaEnv() || isDevEnv()
 
   datadogRum.init({
     ...sharedDatadogConfig,
     applicationId: config.datadogProjectId,
     sessionSampleRate: shouldUseFullSampleRate ? 100 : sessionSampleRate,
     sessionReplaySampleRate: 0,
+    traceSampleRate: 100,
     trackResources: true,
     trackLongTasks: true,
     trackUserInteractions: true,
     enablePrivacyForActionName: true,
     beforeSend,
+    allowedTracingUrls: [
+      { match: /gateway\.uniswap\.org/, propagatorTypes: ['datadog', 'tracecontext'] },
+      { match: /api\.uniswap\.org/, propagatorTypes: ['datadog', 'tracecontext'] },
+    ],
   })
 
   // According to the Datadog RUM documentation:
@@ -163,13 +182,17 @@ export async function initializeDatadog(appName: string): Promise<void> {
   }
 
   datadogRum.setGlobalContextProperty('app', appName)
-  datadogRum.setGlobalContextProperty('buildType', process.env.REACT_APP_WEB_BUILD_TYPE)
+
+  if (buildType) {
+    datadogRum.setGlobalContextProperty('buildType', buildType)
+    datadogLogs.setGlobalContextProperty('buildType', buildType)
+  }
 
   for (const [_, flagKey] of [...WEB_FEATURE_FLAG_NAMES.entries(), ...WALLET_FEATURE_FLAG_NAMES.entries()]) {
     datadogRum.addFeatureFlagEvaluation(
       // Datadog has a limited set of accepted symbols in feature flags
       // https://docs.datadoghq.com/real_user_monitoring/guide/setup-feature-flag-data-collection/?tab=reactnative#feature-flag-naming
-      flagKey.replaceAll('-', '_'),
+      flagKey.replaceAll('-', '_').replaceAll('.', '_'),
       getStatsigClient().checkGate(flagKey),
     )
   }
@@ -178,7 +201,7 @@ export async function initializeDatadog(appName: string): Promise<void> {
     datadogRum.addFeatureFlagEvaluation(
       // Datadog has a limited set of accepted symbols in feature flags
       // https://docs.datadoghq.com/real_user_monitoring/guide/setup-feature-flag-data-collection/?tab=reactnative#feature-flag-naming
-      `experiment_${experiment.replaceAll('-', '_')}`,
+      `experiment_${experiment.replaceAll('-', '_').replaceAll('.', '_')}`,
       getStatsigClient().getExperiment(experiment).groupName,
     )
   }

@@ -1,4 +1,4 @@
-import { type AnimationType } from 'ui/src/animations'
+import { type AnimationType } from '@universe/mycelium/animate-presence-pager'
 import { usePrevious } from 'utilities/src/react/hooks'
 import { usePortfolioTabs } from '~/pages/Portfolio/Header/hooks/usePortfolioTabs'
 import { getCurrentPageFromLocation } from '~/utils/urlRoutes'

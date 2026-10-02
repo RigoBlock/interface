@@ -1,7 +1,7 @@
 import { fireEvent as rtlFireEvent } from '@testing-library/react'
 import { act } from '@testing-library/react-native'
+import { Flex } from '@universe/mycelium'
 import { View } from 'react-native'
-import { Flex } from 'ui/src'
 import { MenuOptionItem } from 'uniswap/src/components/menus/ContextMenu'
 import { ContextMenu } from 'uniswap/src/components/menus/ContextMenu.web'
 import { ContextMenuTriggerMode } from 'uniswap/src/components/menus/types'

@@ -1,5 +1,5 @@
+import { Flex, Text } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text } from 'ui/src'
 import { InterfacePageName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 

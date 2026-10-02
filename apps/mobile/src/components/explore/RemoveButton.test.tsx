@@ -1,5 +1,5 @@
 import RemoveButton from 'src/components/explore/RemoveButton'
-import { fireEvent, render } from 'src/test/test-utils'
+import { fireEvent, getNearestFiberProp, render } from 'src/test/test-utils'
 import { ON_PRESS_EVENT_PAYLOAD } from 'uniswap/src/test/fixtures'
 
 describe(RemoveButton, () => {
@@ -10,7 +10,7 @@ describe(RemoveButton, () => {
   })
 
   it('calls onPress when pressed', () => {
-    const onPress = jest.fn()
+    const onPress = vi.fn()
     const { getByTestId } = render(<RemoveButton onPress={onPress} />)
 
     const button = getByTestId('explore/remove-button')
@@ -19,21 +19,26 @@ describe(RemoveButton, () => {
     expect(onPress).toHaveBeenCalledTimes(1)
   })
 
+  // Compat styles resolve through uniwind at runtime and never appear as jsdom
+  // inline styles, so assert the opacity prop on the primitive plus the
+  // disabled contract on the host.
   describe('visibility', () => {
-    it('renders with opacity 1 when visible', () => {
+    it('is opaque and pressable when visible', () => {
       const { getByTestId } = render(<RemoveButton visible />)
 
-      const button = getByTestId('explore/remove-button')
+      const button = getByTestId('explore/remove-button') as unknown as HTMLElement
 
-      expect(button).toHaveAnimatedStyle({ opacity: 1 })
+      expect(getNearestFiberProp(button, 'opacity')).toBe(1)
+      expect(button.getAttribute('aria-disabled')).toBeNull()
     })
 
-    it('renders with opacity 0 when not visible', () => {
+    it('is transparent and disabled when not visible', () => {
       const { getByTestId } = render(<RemoveButton visible={false} />)
 
-      const button = getByTestId('explore/remove-button')
+      const button = getByTestId('explore/remove-button') as unknown as HTMLElement
 
-      expect(button).toHaveAnimatedStyle({ opacity: 0 })
+      expect(getNearestFiberProp(button, 'opacity')).toBe(0)
+      expect(button.getAttribute('aria-disabled')).toBe('true')
     })
   })
 })

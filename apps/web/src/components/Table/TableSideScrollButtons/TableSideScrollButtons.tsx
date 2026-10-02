@@ -1,6 +1,8 @@
 import { RowData, Table as TanstackTable } from '@tanstack/react-table'
-import { AnimatePresence, Flex } from 'ui/src'
-import { zIndexes } from 'ui/src/theme'
+import { Flex, zIndexes } from '@universe/mycelium'
+import { ENTER_EXIT_PRESET_CLASSES } from '@universe/mycelium/compat'
+import { Presence } from '@universe/mycelium/presence'
+import { SPORE_ANIMATION_CURVE_CSS } from '@universe/tailwind/animations'
 import { TableScrollMask } from '~/components/Table/TableScrollMask'
 import { TableScrollButton } from '~/components/Table/TableSideScrollButtons/TableScrollButton'
 
@@ -11,8 +13,9 @@ type TableSideScrollButtonsProps<T extends RowData> = {
   scrollButtonTop: number
   onScrollButtonPress: (direction: 'left' | 'right') => () => void
   table: TanstackTable<T>
-  v2: boolean
   isSticky: boolean
+  /** CSS width expression tracking an overridden pinned-region width (see TableProps.pinnedWidthOverride). */
+  pinnedWidthOverride?: string
 }
 
 export function TableSideScrollButtons<T extends RowData>({
@@ -22,28 +25,28 @@ export function TableSideScrollButtons<T extends RowData>({
   scrollButtonTop,
   onScrollButtonPress,
   table,
-  v2,
   isSticky,
+  pinnedWidthOverride,
 }: TableSideScrollButtonsProps<T>): JSX.Element {
   return (
     <>
-      <AnimatePresence>
+      <Presence>
         {showScrollLeftButton && (
           <Flex
             position="absolute"
             top={scrollButtonTop}
-            left={table.getLeftTotalSize()}
+            left={pinnedWidthOverride ? `calc(${pinnedWidthOverride})` : table.getLeftTotalSize()}
             pl="$spacing12"
             zIndex={zIndexes.mask}
-            animateEnter="fadeIn"
-            animateExit="fadeOut"
-            animation="200ms"
+            className={ENTER_EXIT_PRESET_CLASSES.fadeInOut}
+            // the legacy 200ms animation preset also glided mounted top/left repositions; scoped to geometry (not `all`) per the color-flash rule
+            transition={`top ${SPORE_ANIMATION_CURVE_CSS['200ms']}, left ${SPORE_ANIMATION_CURVE_CSS['200ms']}`}
           >
             <TableScrollButton onPress={onScrollButtonPress('left')} direction="left" />
           </Flex>
         )}
-      </AnimatePresence>
-      <AnimatePresence>
+      </Presence>
+      <Presence>
         {showScrollRightButton && (
           <Flex
             position="absolute"
@@ -51,20 +54,20 @@ export function TableSideScrollButtons<T extends RowData>({
             right={0}
             pr="$spacing12"
             zIndex={zIndexes.mask}
-            animateEnter="fadeIn"
-            animateExit="fadeOut"
-            animation="200ms"
+            className={ENTER_EXIT_PRESET_CLASSES.fadeInOut}
+            // the legacy 200ms preset also glided mounted top repositions (right is fixed at 0)
+            transition={`top ${SPORE_ANIMATION_CURVE_CSS['200ms']}`}
           >
             <TableScrollButton onPress={onScrollButtonPress('right')} direction="right" />
           </Flex>
         )}
-      </AnimatePresence>
-      {(!v2 || showRightFadeOverlay) && (
+      </Presence>
+      {showRightFadeOverlay && (
         <TableScrollMask
           top={isSticky ? '$spacing12' : 0}
           zIndex={zIndexes.dropdown - 1}
-          right={v2 ? 0 : 1}
-          borderTopRightRadius={v2 ? '$rounded12' : '$rounded20'}
+          right={0}
+          borderTopRightRadius="$rounded12"
         />
       )}
     </>

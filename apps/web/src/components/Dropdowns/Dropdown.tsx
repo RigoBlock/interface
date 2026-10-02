@@ -1,33 +1,33 @@
+import { Flex, Text, type TextCompatProps } from '@universe/mycelium'
+import { RotatableChevron } from '@universe/mycelium/icons/RotatableChevron'
+import { SPORE_ANIMATION_CURVE_CSS } from '@universe/tailwind/animations'
 import { useMemo } from 'react'
-import { Flex, FlexProps, styled, Text } from 'ui/src'
-import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
 import { AdaptiveDropdown, SharedDropdownProps } from '~/components/Dropdowns/AdaptiveDropdown'
 import { TriggerButton } from '~/components/Dropdowns/TriggerButton'
 
-export const InternalMenuItem = styled(Text, {
-  display: 'flex',
-  flex: 1,
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  px: '$spacing8',
-  py: '$spacing12',
-  gap: '$gap12',
-  color: '$neutral1',
-  textDecorationLine: 'none',
-  cursor: 'pointer',
-  borderRadius: '$rounded8',
-  hoverStyle: {
-    backgroundColor: '$surface3',
-  },
-  variants: {
-    disabled: {
-      true: {
-        opacity: 0.6,
-        cursor: 'default',
-      },
-    },
-  } as const,
-})
+export type InternalMenuItemProps = TextCompatProps & { disabled?: boolean }
+
+export function InternalMenuItem({ disabled, ...rest }: InternalMenuItemProps): JSX.Element {
+  return (
+    <Text
+      display="flex"
+      flex={1}
+      alignItems="center"
+      justifyContent="space-between"
+      px="$spacing8"
+      py="$spacing12"
+      gap="$gap12"
+      color="$neutral1"
+      textDecorationLine="none"
+      cursor="pointer"
+      userSelect="none"
+      borderRadius="$rounded8"
+      hoverStyle={{ backgroundColor: '$surface3' }}
+      {...(disabled === true ? { opacity: 0.6, cursor: 'default' } : {})}
+      {...rest}
+    />
+  )
+}
 
 export type DropdownProps = SharedDropdownProps & {
   menuLabel: JSX.Element | string
@@ -35,8 +35,8 @@ export type DropdownProps = SharedDropdownProps & {
   hideChevron?: boolean
   chevronSize?: '$icon.16' | '$icon.20'
   isTriggerStyled?: boolean
-  buttonStyle?: FlexProps
-  transition?: FlexProps['transition']
+  buttonStyle?: TextCompatProps
+  transition?: TextCompatProps['transition']
 }
 
 export function Dropdown({
@@ -66,10 +66,11 @@ export function Dropdown({
           {typeof menuLabel === 'string' ? <Text>{menuLabel}</Text> : menuLabel}
           {!hideChevron && (
             <RotatableChevron
-              animation="200ms"
               color="$neutral2"
               direction={isOpen ? 'up' : 'down'}
               size={chevronSize}
+              // Replaces the legacy 200ms Tamagui transition; scoped to transform so theme-token colors never transition
+              style={{ transition: `transform ${SPORE_ANIMATION_CURVE_CSS['200ms']}` }}
             />
           )}
         </Flex>

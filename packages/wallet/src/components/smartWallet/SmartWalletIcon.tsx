@@ -1,6 +1,5 @@
-import { Flex } from 'ui/src'
-import { SmartWallet } from 'ui/src/components/icons'
-
+import { Flex } from '@universe/mycelium'
+import { SmartWallet } from '@universe/mycelium/icons/SmartWallet'
 const IMAGE_SIZE: number = 48
 
 export interface SmartWalletIconProps {

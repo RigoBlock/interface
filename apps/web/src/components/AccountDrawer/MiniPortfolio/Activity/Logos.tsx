@@ -1,15 +1,15 @@
-import { Flex, styled, useSporeColors } from 'ui/src'
-import { iconSizes } from 'ui/src/theme'
+import { Flex } from '@universe/mycelium'
+import { styled, type StyledComponent } from '@universe/mycelium/styled'
+import { useSporeColors } from 'ui/src'
 import { FadePresence, FadePresenceAnimationType } from '~/theme/components/FadePresence'
 
-const LOGO_SIZE = iconSizes.icon64
-export const LogoContainer = styled(Flex, {
-  height: LOGO_SIZE,
-  width: LOGO_SIZE,
-  position: 'relative',
-  justifyContent: 'center',
-  borderRadius: '$roundedFull',
-  overflow: 'visible',
+const LOGO_CONTAINER_VARIANTS = {} as const
+
+// Empty variants table + explicit annotation: the inferred styled() type isn't
+// portable under declaration emit (TS2883). 64px = iconSizes.icon64.
+export const LogoContainer: StyledComponent<typeof Flex, typeof LOGO_CONTAINER_VARIANTS> = styled(Flex, {
+  variants: LOGO_CONTAINER_VARIANTS,
+  base: 'justify-center w-[64px] h-[64px] rounded-[999999px] overflow-visible relative',
 })
 
 export function ConfirmedIcon({ className }: { className?: string }) {

@@ -1,11 +1,15 @@
 import { useLoginWithEmail, useLoginWithOAuth, usePrivy } from '@privy-io/react-auth'
 import { fireEvent, waitFor } from '@testing-library/react'
-import { authorizeAndCompleteRecovery, encryptAndStoreRecovery } from 'uniswap/src/features/passkey/embeddedWallet'
+import {
+  authorizeAndCompleteRecovery,
+  checkRecoveryAvailability,
+  encryptAndStoreRecovery,
+  useEmbeddedWalletState,
+} from '@universe/embedded-wallet'
+import { TestID } from '@universe/test'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { AddBackupLoginModal } from '~/components/Passkey/AddBackupLoginModal'
 import { useModalState } from '~/hooks/useModalState'
-import { useEmbeddedWalletState } from '~/state/embeddedWallet/store'
 import { render, screen } from '~/test-utils/render'
 
 vi.mock('@privy-io/react-auth', () => ({
@@ -18,14 +22,27 @@ vi.mock('~/hooks/useModalState', () => ({
   useModalState: vi.fn(),
 }))
 
-vi.mock('~/state/embeddedWallet/store', () => ({
+vi.mock('@universe/embedded-wallet/src/state/embeddedWalletStore', () => ({
   useEmbeddedWalletState: vi.fn(),
   getEmbeddedWalletState: vi.fn().mockReturnValue({ chainId: 1 }),
+  setChainId: vi.fn(),
 }))
 
-vi.mock('uniswap/src/features/passkey/embeddedWallet', () => ({
+vi.mock('@universe/embedded-wallet/src/features/passkey/embeddedWallet', () => ({
   encryptAndStoreRecovery: vi.fn(),
   authorizeAndCompleteRecovery: vi.fn(),
+  RecoveryMethod: vi.fn().mockImplementation((args: Record<string, unknown>) => args),
+  toRecoveryAuthMethodType: (provider: 'google' | 'apple' | null) =>
+    provider === 'google' ? 'GOOGLE' : provider === 'apple' ? 'APPLE' : 'EMAIL',
+}))
+
+vi.mock('@universe/embedded-wallet/src/features/passkey/checkRecoveryAvailability', () => ({
+  checkRecoveryAvailability: vi.fn(),
+}))
+
+vi.mock('~/config', () => ({
+  getConfig: vi.fn(() => ({ privyAppId: 'test-privy-app-id', privyClientId: 'test-privy-client-id' })),
+  getPrivyConfig: vi.fn(() => ({ appId: 'test-privy-app-id', clientId: 'test-privy-client-id' })),
 }))
 
 const mockOnClose = vi.fn()
@@ -47,6 +64,9 @@ function setupMocks({ oauthLoading = false }: { oauthLoading?: boolean } = {}) {
     user: { id: 'privy-user-123' },
     ready: true,
     authenticated: false,
+    // `ensureLoggedOut` (called before sendCode / resendCode / initOAuth) awaits `logout()`
+    // when `user` is truthy; tests need this to resolve or the mutation path short-circuits.
+    logout: vi.fn().mockResolvedValue(undefined),
   } as unknown as ReturnType<typeof usePrivy>)
   vi.mocked(useLoginWithOAuth).mockReturnValue({
     initOAuth: mockInitOAuth,
@@ -59,6 +79,9 @@ function setupMocks({ oauthLoading = false }: { oauthLoading?: boolean } = {}) {
   // Crypto phase runs eagerly when passcode is submitted
   mockGetAccessToken.mockResolvedValue('access-token')
   vi.mocked(encryptAndStoreRecovery).mockResolvedValue({ publicKey: 'pk', authMethodId: 'am', encryptedKeyId: 'ek' })
+  // Availability check is invoked after OAuth / OTP verification; default to "available"
+  // so legacy tests that expect the passcode-intro path still pass.
+  vi.mocked(checkRecoveryAvailability).mockResolvedValue({ available: true })
 }
 
 function goToEmailStep() {
@@ -279,18 +302,22 @@ describe('AddBackupLoginModal', () => {
   })
 
   describe('OAuth flow', () => {
-    it('calls initOAuth with google when Google is clicked', () => {
+    it('calls initOAuth with google when Google is clicked', async () => {
       setupMocks()
       render(<AddBackupLoginModal />)
       fireEvent.click(screen.getByText('Google'))
-      expect(mockInitOAuth).toHaveBeenCalledWith({ provider: 'google' })
+      await waitFor(() => {
+        expect(mockInitOAuth).toHaveBeenCalledWith({ provider: 'google' })
+      })
     })
 
-    it('calls initOAuth with apple when Apple is clicked', () => {
+    it('calls initOAuth with apple when Apple is clicked', async () => {
       setupMocks()
       render(<AddBackupLoginModal />)
       fireEvent.click(screen.getByText('Apple'))
-      expect(mockInitOAuth).toHaveBeenCalledWith({ provider: 'apple' })
+      await waitFor(() => {
+        expect(mockInitOAuth).toHaveBeenCalledWith({ provider: 'apple' })
+      })
     })
 
     it('navigates to passcode intro on OAuth completion with Google', async () => {
@@ -301,6 +328,8 @@ describe('AddBackupLoginModal', () => {
         ready: true,
         authenticated: true,
         user: { google: { email: 'user@gmail.com' } },
+        getAccessToken: mockGetAccessToken,
+        logout: vi.fn().mockResolvedValue(undefined),
       } as unknown as ReturnType<typeof usePrivy>)
 
       render(<AddBackupLoginModal />)
@@ -319,6 +348,7 @@ describe('AddBackupLoginModal', () => {
         ready: true,
         authenticated: true,
         user: { apple: { email: 'user@icloud.com' } },
+        getAccessToken: mockGetAccessToken,
       } as unknown as ReturnType<typeof usePrivy>)
 
       render(<AddBackupLoginModal />)
@@ -329,31 +359,38 @@ describe('AddBackupLoginModal', () => {
       expect(screen.getByText('user@icloud.com')).toBeInTheDocument()
     })
 
-    it('stores provider in sessionStorage when initiating Google OAuth', () => {
+    it('stores provider in sessionStorage when initiating Google OAuth', async () => {
       setupMocks()
       render(<AddBackupLoginModal />)
       fireEvent.click(screen.getByText('Google'))
 
-      expect(sessionStorage.getItem('addBackupLogin:oauthProvider')).toBe('google')
+      // `ensureLoggedOut()` runs before `sessionStorage.setItem` + `initOAuth`.
+      await waitFor(() => {
+        expect(sessionStorage.getItem('addBackupLogin:oauthProvider')).toBe('google')
+      })
       expect(mockInitOAuth).toHaveBeenCalledWith({ provider: 'google' })
     })
 
-    it('stores provider in sessionStorage when initiating Apple OAuth', () => {
+    it('stores provider in sessionStorage when initiating Apple OAuth', async () => {
       setupMocks()
       render(<AddBackupLoginModal />)
       fireEvent.click(screen.getByText('Apple'))
 
-      expect(sessionStorage.getItem('addBackupLogin:oauthProvider')).toBe('apple')
+      await waitFor(() => {
+        expect(sessionStorage.getItem('addBackupLogin:oauthProvider')).toBe('apple')
+      })
       expect(mockInitOAuth).toHaveBeenCalledWith({ provider: 'apple' })
     })
 
-    it('handleClose resets OAuth sessionStorage', () => {
+    it('handleClose resets OAuth sessionStorage', async () => {
       setupMocks()
       render(<AddBackupLoginModal />)
 
       // Start OAuth flow to set sessionStorage
       fireEvent.click(screen.getByText('Google'))
-      expect(sessionStorage.getItem('addBackupLogin:oauthProvider')).toBe('google')
+      await waitFor(() => {
+        expect(sessionStorage.getItem('addBackupLogin:oauthProvider')).toBe('google')
+      })
 
       // Navigate to email step (which has a StepHeader with back + close buttons)
       fireEvent.click(screen.getByText('Email'))
@@ -446,8 +483,8 @@ describe('AddBackupLoginModal', () => {
       await goToSetPasscodeStep()
 
       expect(screen.getByText('Set your passcode')).toBeInTheDocument()
-      const inputs = document.querySelectorAll('input[inputmode="numeric"]')
-      expect(inputs).toHaveLength(4)
+      const cells = document.querySelectorAll('.digit-input-cell')
+      expect(cells).toHaveLength(4)
     })
 
     it('advances to confirm passcode step when valid PIN entered', async () => {
@@ -493,14 +530,14 @@ describe('AddBackupLoginModal', () => {
         expect(screen.getByText('Confirm your passcode')).toBeInTheDocument()
       })
 
-      // Paste matching PIN — auto-submits, crypto runs, "Sign in with passkey" appears
+      // Paste matching PIN — auto-submits, crypto runs, "Confirm with passkey" appears
       pasteIntoFirstInput('5937')
 
       await waitFor(() => {
-        expect(screen.getByText('Sign in with passkey')).toBeInTheDocument()
+        expect(screen.getByText('Confirm with passkey')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByText('Sign in with passkey'))
+      fireEvent.click(screen.getByText('Confirm with passkey'))
 
       await waitFor(() => {
         expect(screen.getByText('Backup login added')).toBeInTheDocument()
@@ -523,16 +560,21 @@ describe('AddBackupLoginModal', () => {
       render(<AddBackupLoginModal />)
       await goToSetPasscodeStep()
 
-      const inputs = document.querySelectorAll('input[inputmode="numeric"]')
-      expect(inputs[0]).toHaveAttribute('type', 'password')
+      // The real input stays type="text" so Android keeps the numeric keypad on toggle
+      // (INFRA-1912); masking is purely visual in the digit cells (• vs the digit).
+      const input = document.querySelector<HTMLInputElement>('input[inputmode="numeric"]')!
+      expect(input).toHaveAttribute('type', 'text')
+
+      fireEvent.change(input, { target: { value: '5' } })
+      expect(document.querySelectorAll('.digit-input-cell')[0]).toHaveTextContent('•')
 
       fireEvent.click(screen.getByText('Show'))
-      const updatedInputs = document.querySelectorAll('input[inputmode="numeric"]')
-      expect(updatedInputs[0]).toHaveAttribute('type', 'text')
+      expect(document.querySelector('input[inputmode="numeric"]')).toHaveAttribute('type', 'text')
+      expect(document.querySelectorAll('.digit-input-cell')[0]).toHaveTextContent('5')
 
       fireEvent.click(screen.getByText('Hide'))
-      const hiddenInputs = document.querySelectorAll('input[inputmode="numeric"]')
-      expect(hiddenInputs[0]).toHaveAttribute('type', 'password')
+      expect(document.querySelector('input[inputmode="numeric"]')).toHaveAttribute('type', 'text')
+      expect(document.querySelectorAll('.digit-input-cell')[0]).toHaveTextContent('•')
     })
 
     it('navigates back from set passcode to passcode intro', async () => {
@@ -559,10 +601,10 @@ describe('AddBackupLoginModal', () => {
       pasteIntoFirstInput('5937')
 
       await waitFor(() => {
-        expect(screen.getByText('Sign in with passkey')).toBeInTheDocument()
+        expect(screen.getByText('Confirm with passkey')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByText('Sign in with passkey'))
+      fireEvent.click(screen.getByText('Confirm with passkey'))
 
       await waitFor(() => {
         expect(screen.getByText('Backup login added')).toBeInTheDocument()
@@ -687,5 +729,86 @@ describe('AddBackupLoginModal', () => {
     fireEvent.click(screen.getByTestId(TestID.StepHeaderBack))
 
     expect(screen.getByText('Email address')).toBeInTheDocument()
+  })
+
+  describe('recovery availability check', () => {
+    it('renders Login method already in use after email OTP when availability returns false', async () => {
+      setupMocks()
+      vi.mocked(checkRecoveryAvailability).mockResolvedValue({ available: false })
+      mockLoginWithCode.mockResolvedValue(undefined)
+      render(<AddBackupLoginModal />)
+      await goToOtpStep()
+
+      pasteIntoFirstInput('123456')
+
+      await waitFor(() => {
+        expect(screen.getByText('Login method already in use')).toBeInTheDocument()
+      })
+      expect(screen.queryByText('One last step')).not.toBeInTheDocument()
+      expect(checkRecoveryAvailability).toHaveBeenCalledWith({
+        identifier: 'test@example.com',
+        accessToken: 'access-token',
+      })
+    })
+
+    it('falls through to passcode intro when availability check throws', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {})
+      setupMocks()
+      vi.mocked(checkRecoveryAvailability).mockRejectedValue(new Error('network'))
+      mockLoginWithCode.mockResolvedValue(undefined)
+      render(<AddBackupLoginModal />)
+      await goToOtpStep()
+
+      pasteIntoFirstInput('123456')
+
+      await waitFor(() => {
+        expect(screen.getByText('One last step')).toBeInTheDocument()
+      })
+    })
+
+    it('signs out of Privy and closes the modal when Sign out is pressed', async () => {
+      setupMocks()
+      const logoutSpy = vi.fn().mockResolvedValue(undefined)
+      vi.mocked(usePrivy).mockReturnValue({
+        getAccessToken: mockGetAccessToken,
+        user: { id: 'privy-user-123' },
+        ready: true,
+        authenticated: false,
+        logout: logoutSpy,
+      } as unknown as ReturnType<typeof usePrivy>)
+      vi.mocked(checkRecoveryAvailability).mockResolvedValue({ available: false })
+      mockLoginWithCode.mockResolvedValue(undefined)
+      render(<AddBackupLoginModal />)
+      await goToOtpStep()
+      pasteIntoFirstInput('123456')
+
+      await waitFor(() => {
+        expect(screen.getByText('Login method already in use')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByText('Sign out'))
+
+      await waitFor(() => {
+        expect(logoutSpy).toHaveBeenCalled()
+      })
+      expect(mockOnClose).toHaveBeenCalled()
+    })
+
+    it('returns to method select when Try again is pressed', async () => {
+      setupMocks()
+      vi.mocked(checkRecoveryAvailability).mockResolvedValue({ available: false })
+      mockLoginWithCode.mockResolvedValue(undefined)
+      render(<AddBackupLoginModal />)
+      await goToOtpStep()
+      pasteIntoFirstInput('123456')
+
+      await waitFor(() => {
+        expect(screen.getByText('Login method already in use')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByText('Try again'))
+
+      expect(screen.getByText('Add a backup login')).toBeInTheDocument()
+    })
   })
 })

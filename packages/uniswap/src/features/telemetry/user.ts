@@ -69,6 +69,8 @@ export enum InterfaceUserPropertyName {
   DarkMode = 'is_dark_mode',
   ExpertMode = 'is_expert_mode',
   GitCommitHash = 'git_commit_hash',
+  IframeParentOrigin = 'iframe_parent_origin',
+  IsIframed = 'is_iframed',
   PeerWalletAgent = 'peer_wallet_agent',
   RouterPreference = 'router_preference',
   ScreenResolutionHeight = 'screen_resolution_height',

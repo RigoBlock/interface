@@ -1,57 +1,45 @@
-import { css, deprecatedStyled, keyframes } from '~/lib/deprecated-styled'
+import '~/components/Loader/Loader.css'
+import { styled, type StyledComponent } from '@universe/mycelium/styled'
+import type { ComponentPropsWithoutRef } from 'react'
 
-const loadingAnimation = keyframes`
-  0% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-`
+const LOADING_ROWS_VARIANTS = {} as const
 
-const shimmerMixin = css`
-  animation: ${loadingAnimation} 1.5s infinite;
-  animation-fill-mode: both;
-  background: linear-gradient(
-    to left,
-    ${({ theme }) => theme.surface1} 25%,
-    ${({ theme }) => theme.surface3} 50%,
-    ${({ theme }) => theme.surface1} 75%
-  );
-  background-size: 400%;
-  will-change: background-position;
-`
+export const LoadingRows: StyledComponent<'div', typeof LOADING_ROWS_VARIANTS> = styled('div', {
+  platform: 'web',
+  variants: LOADING_ROWS_VARIANTS,
+  base: 'grid web-loading-rows',
+})
 
-export const LoadingRows = deprecatedStyled.div`
-  display: grid;
+const LoadingRowFrame = styled('div', {
+  platform: 'web',
+  base: 'web-shimmer rounded-[12px]',
+})
 
-  & > div {
-    ${shimmerMixin}
-    border-radius: 12px;
-    height: 2.4em;
-  }
-`
+export function LoadingRow({
+  height,
+  width,
+  style,
+  ...rest
+}: { height: number; width: number } & ComponentPropsWithoutRef<typeof LoadingRowFrame>): JSX.Element {
+  return <LoadingRowFrame style={{ height, width, ...style }} {...rest} />
+}
 
-export const LoadingRow = deprecatedStyled.div<{ height: number; width: number }>`
-  ${shimmerMixin}
-  border-radius: 12px;
-  height: ${({ height }) => height}px;
-  width: ${({ width }) => width}px;
-`
+const LOADING_OPACITY_VARIANTS = {
+  $loading: {
+    true: '[filter:grayscale(1)] opacity-60 transition-none',
+    false: '[filter:none] opacity-100 [transition:opacity_250ms_ease-in-out]',
+  },
+} as const
 
-export const loadingOpacityMixin = css<{ $loading: boolean }>`
-  filter: ${({ $loading }) => ($loading ? 'grayscale(1)' : 'none')};
-  opacity: ${({ $loading }) => ($loading ? '0.6' : '1')};
-  transition: ${({ $loading, theme }) =>
-    $loading ? 'none' : `opacity ${theme.transition.duration.medium} ${theme.transition.timing.inOut}`};
-`
+export const LoadingOpacityContainer: StyledComponent<'div', typeof LOADING_OPACITY_VARIANTS> = styled('div', {
+  platform: 'web',
+  variants: LOADING_OPACITY_VARIANTS,
+})
 
-export const LoadingOpacityContainer = deprecatedStyled.div<{ $loading: boolean }>`
-  ${loadingOpacityMixin}
-`
+const LOADING_FULLSCREEN_VARIANTS = {} as const
 
-export const LoadingFullscreen = deprecatedStyled.div`
-  ${shimmerMixin}
-  inset: 0;
-  position: absolute;
-`
+export const LoadingFullscreen: StyledComponent<'div', typeof LOADING_FULLSCREEN_VARIANTS> = styled('div', {
+  platform: 'web',
+  variants: LOADING_FULLSCREEN_VARIANTS,
+  base: 'web-shimmer inset-0 absolute',
+})

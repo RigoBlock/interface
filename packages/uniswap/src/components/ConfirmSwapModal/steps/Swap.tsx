@@ -1,10 +1,10 @@
+import { Flex } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
-import { Flex } from 'ui/src'
 import { Swap } from 'ui/src/components/icons/Swap'
 import { StepRowProps, StepRowSkeleton } from 'uniswap/src/components/ConfirmSwapModal/steps/StepRowSkeleton'
 import { StepStatus } from 'uniswap/src/components/ConfirmSwapModal/types'
 import { useSecondsUntilDeadline } from 'uniswap/src/components/ConfirmSwapModal/useSecondsUntilDeadline'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { TransactionStepType } from 'uniswap/src/features/transactions/steps/types'
 import {
   UniswapXPlanSignatureStep,
@@ -13,11 +13,11 @@ import {
 import {
   SwapTransactionStep,
   SwapTransactionStepAsync,
-  SwapTransactionStepBatched,
+  SwapTransactionStepWalletCall,
 } from 'uniswap/src/features/transactions/swap/steps/swap'
 
 const SwapIcon = (): JSX.Element => (
-  <Flex centered width="$spacing24" height="$spacing24" borderRadius="$roundedFull" backgroundColor="$DEP_blue400">
+  <Flex centered width="$spacing24" height="$spacing24" borderRadius="$roundedFull" backgroundColor="#4C82FB">
     <Swap color="$white" size="$icon.12" />
   </Flex>
 )
@@ -27,7 +27,7 @@ type SwapSteps =
   | SwapTransactionStepAsync
   | UniswapXSignatureStep
   | UniswapXPlanSignatureStep
-  | SwapTransactionStepBatched
+  | SwapTransactionStepWalletCall
 
 /**
  * UI component used to display a swap transaction step in the Swap Confirmation Modal
@@ -64,9 +64,9 @@ export function SwapTransactionStepRow({
       icon={<SwapIcon />}
       learnMore={{
         url:
-          step.type === TransactionStepType.SwapTransactionBatched
-            ? uniswapUrls.helpArticleUrls.batchedSwaps
-            : uniswapUrls.helpArticleUrls.howToSwapTokens,
+          step.type === TransactionStepType.SwapTransactionWalletCall
+            ? UniswapHelpUrls.articles.batchedSwaps
+            : UniswapHelpUrls.articles.howToSwapTokens,
         text: t('common.learnMoreSwap'),
       }}
       status={status}

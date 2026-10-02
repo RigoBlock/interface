@@ -26,18 +26,18 @@ describe(generateBatchId, () => {
 
 describe(transformCallsToTransactionRequests, () => {
   const mockChainId = 1
-  const mockAccountAddress: Address = '0x123'
+  const mockAccountAddress: Address = '0x1234567890123456789012345678901234567890'
 
   const validCall1: EthTransaction = {
-    to: '0xdef',
-    data: '0xabc',
+    to: '0x1111111111111111111111111111111111111111',
+    data: '0xabcd',
     value: '0x1',
     from: '0x789', // This should be overwritten
   }
 
   const validCall2: EthTransaction = {
-    to: '0xghi',
-    data: '0x123',
+    to: '0x2222222222222222222222222222222222222222',
+    data: '0x1234',
     value: '0x2',
     // `from` is optional in EthTransaction, should still work
   }
@@ -47,8 +47,8 @@ describe(transformCallsToTransactionRequests, () => {
     value: '0x3',
   }
 
-  const invalidCallMissingData: EthTransaction = {
-    to: '0xjkl',
+  const validCallMissingData: EthTransaction = {
+    to: '0x3333333333333333333333333333333333333333',
     value: '0x4',
   }
 
@@ -79,50 +79,67 @@ describe(transformCallsToTransactionRequests, () => {
     expect(result).toEqual(expected)
   })
 
-  it('should filter out invalid calls', () => {
-    const calls = [validCall1, invalidCallMissingTo, validCall2, invalidCallMissingData]
-    const expected: TradingApi.TransactionRequest[] = [
-      {
-        to: validCall1.to!,
-        data: validCall1.data!,
-        value: validCall1.value!,
-        from: mockAccountAddress,
+  it('rejects the whole batch when any call has no executable recipient', () => {
+    expect(() =>
+      transformCallsToTransactionRequests({
+        calls: [validCall1, invalidCallMissingTo, validCall2],
         chainId: mockChainId,
-      },
-      {
-        to: validCall2.to!,
-        data: validCall2.data!,
-        value: validCall2.value!,
-        from: mockAccountAddress,
-        chainId: mockChainId,
-      },
-    ]
+        accountAddress: mockAccountAddress,
+      }),
+    ).toThrow('call 1 has an unsupported recipient')
+  })
 
+  it('preserves a value-only call by normalizing empty calldata', () => {
     const result = transformCallsToTransactionRequests({
-      calls,
+      calls: [validCallMissingData],
       chainId: mockChainId,
       accountAddress: mockAccountAddress,
     })
-    expect(result).toEqual(expected)
+
+    expect(result).toEqual([
+      {
+        to: validCallMissingData.to,
+        data: '0x',
+        value: validCallMissingData.value,
+        from: mockAccountAddress,
+        chainId: mockChainId,
+      },
+    ])
   })
 
-  it('should return an empty array if all calls are invalid', () => {
-    const calls = [invalidCallMissingTo, invalidCallMissingData]
-    const result = transformCallsToTransactionRequests({
-      calls,
-      chainId: mockChainId,
-      accountAddress: mockAccountAddress,
-    })
-    expect(result).toEqual([])
-  })
-
-  it('should return an empty array if input calls array is empty', () => {
+  it('rejects an empty batch', () => {
     const calls: EthTransaction[] = []
+    expect(() =>
+      transformCallsToTransactionRequests({
+        calls,
+        chainId: mockChainId,
+        accountAddress: mockAccountAddress,
+      }),
+    ).toThrow('must contain at least one call')
+  })
+
+  it('strips preview-only metadata before execution', () => {
+    const decoratedCall = {
+      ...validCall1,
+      functionSignature: 'transfer(address,uint256)',
+      contractInteractions: 'Transfer',
+      parsedCalldata: { attackerControlled: true },
+    }
+
     const result = transformCallsToTransactionRequests({
-      calls,
+      calls: [decoratedCall],
       chainId: mockChainId,
       accountAddress: mockAccountAddress,
     })
-    expect(result).toEqual([])
+
+    expect(result).toEqual([
+      {
+        to: validCall1.to,
+        data: validCall1.data,
+        value: validCall1.value,
+        from: mockAccountAddress,
+        chainId: mockChainId,
+      },
+    ])
   })
 })

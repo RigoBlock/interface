@@ -1,7 +1,9 @@
+import { Flex, type IconSizeTokens } from '@universe/mycelium'
+import { CandlestickChart } from '@universe/mycelium/icons/CandlestickChart'
+import { LineChartDots } from '@universe/mycelium/icons/LineChartDots'
+import { SegmentedControl } from '@universe/mycelium/segmented-control-compat'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
 import { useTranslation } from 'react-i18next'
-import { ColorTokens, Flex, SegmentedControl, useMedia, useSporeColors } from 'ui/src'
-import { ReactComponent as CandlestickChartIcon } from '~/assets/svg/candlestick-chart-icon.svg'
-import { ReactComponent as LineChartIcon } from '~/assets/svg/line-chart-icon.svg'
 import { PriceChartType } from '~/components/Charts/utils'
 import { MouseoverTooltip } from '~/components/Tooltip'
 
@@ -16,17 +18,15 @@ export function AdvancedPriceChartToggle({
 }): JSX.Element {
   const { t } = useTranslation()
   const media = useMedia()
-  const colors = useSporeColors()
-  const iconColor = colors.neutral1.val
 
   const options = [
     {
       value: PriceChartType.LINE,
-      display: <LineChartIcon color={iconColor} width={18} height={18} />,
+      display: <LineChartDots color="$neutral1" size="$icon.18" />,
     },
     {
       value: PriceChartType.CANDLESTICK,
-      display: <CandlestickIcon color={iconColor} isDisabled={disableCandlestickUI} />,
+      display: <CandlestickIcon isDisabled={disableCandlestickUI} size="$icon.16" />,
       disabled: disableCandlestickUI,
       wrapper: disableCandlestickUI ? (
         <MouseoverTooltip
@@ -55,15 +55,16 @@ export function AdvancedPriceChartToggle({
   )
 }
 
-const CandlestickIcon = ({ color, isDisabled }: { color: ColorTokens; isDisabled?: boolean }) => {
+const CandlestickIcon = ({ isDisabled, size }: { isDisabled?: boolean; size: IconSizeTokens }): JSX.Element => {
   return (
-    <Flex row centered width="$spacing.18">
-      <CandlestickChartIcon
-        color={color}
-        width={14}
-        height={14}
-        style={isDisabled ? { opacity: 0.2, cursor: 'not-allowed' } : {}}
-      />
+    <Flex
+      row
+      centered
+      width="$spacing18"
+      opacity={isDisabled ? 0.2 : 1}
+      style={isDisabled ? { cursor: 'not-allowed' } : undefined}
+    >
+      <CandlestickChart color="$neutral1" size={size} />
     </Flex>
   )
 }

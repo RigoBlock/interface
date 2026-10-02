@@ -1,4 +1,5 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
+import { Text } from '@universe/mycelium'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { OnboardingStackParamList } from 'src/app/navigation/types'
@@ -6,7 +7,6 @@ import { BackHeader } from 'src/components/layout/BackHeader'
 import { Screen } from 'src/components/layout/Screen'
 import { SeedPhraseDisplay } from 'src/components/mnemonic/SeedPhraseDisplay'
 import { useLockScreenOnBlur } from 'src/features/lockScreen/hooks/useLockScreenOnBlur'
-import { Text } from 'ui/src'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { OnboardingScreens } from 'uniswap/src/types/screens/mobile'
 

@@ -1,9 +1,8 @@
+import { type Platform, PlatformSpecificAddress } from '@universe/chains'
 import type { Account } from 'uniswap/src/features/accounts/store/types/Account'
 import { ConnectionStatusInfo, Connector } from 'uniswap/src/features/accounts/store/types/Connector'
 import type { Wallet } from 'uniswap/src/features/accounts/store/types/Wallet'
 import { FlexiblePlatformInput } from 'uniswap/src/features/accounts/store/utils/flexibleInput'
-import type { Platform } from 'uniswap/src/features/platforms/types/Platform'
-import { PlatformSpecificAddress } from 'uniswap/src/features/platforms/types/PlatformSpecificAddress'
 import type { StoreApi, UseBoundStore } from 'zustand'
 
 /**

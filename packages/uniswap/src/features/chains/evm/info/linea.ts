@@ -1,22 +1,18 @@
 import { Token } from '@uniswap/sdk-core'
 import { GraphQLApi, TradingApi } from '@universe/api'
+import { UniverseChainId, Platform } from '@universe/chains'
 import { ETH_LOGO, LINEA_LOGO } from 'ui/src/assets'
+import { ALL_APPS_CHAIN_SUPPORTED_APPS } from 'uniswap/src/features/chains/chainAppSupport'
 import {
   DEFAULT_MS_BEFORE_WARNING,
   DEFAULT_NATIVE_ADDRESS_LEGACY,
   DEFAULT_RETRY_OPTIONS,
   getQuicknodeEndpointUrl,
+  getUniRpcEndpointUrl,
 } from 'uniswap/src/features/chains/evm/rpc'
 import { buildChainTokens } from 'uniswap/src/features/chains/evm/tokens'
 import { GENERIC_L2_GAS_CONFIG } from 'uniswap/src/features/chains/gasDefaults'
-import {
-  GqlChainId,
-  NetworkLayer,
-  RPCType,
-  UniverseChainId,
-  UniverseChainInfo,
-} from 'uniswap/src/features/chains/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
+import { GqlChainId, NetworkLayer, RPCType, UniverseChainInfo } from 'uniswap/src/features/chains/types'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { linea } from 'wagmi/chains'
 
@@ -31,6 +27,7 @@ export const LINEA_CHAIN_INFO = {
   ...linea,
   id: UniverseChainId.Linea,
   platform: Platform.EVM,
+  supportedApps: ALL_APPS_CHAIN_SUPPORTED_APPS,
   assetRepoNetworkName: 'linea',
   backendChain: {
     chain: GraphQLApi.Chain.Linea as GqlChainId,
@@ -45,7 +42,6 @@ export const LINEA_CHAIN_INFO = {
   explorer: {
     name: 'Lineascan',
     url: 'https://lineascan.build/',
-    apiURL: 'https://api.lineascan.build/api',
   },
   interfaceName: 'linea',
   label: 'Linea',
@@ -61,7 +57,7 @@ export const LINEA_CHAIN_INFO = {
   blockTimeMs: 2000,
   pendingTransactionsRetryOptions: DEFAULT_RETRY_OPTIONS,
   rpcUrls: {
-    [RPCType.Public]: { http: [getQuicknodeEndpointUrl(UniverseChainId.Linea)] },
+    [RPCType.Public]: { http: [getUniRpcEndpointUrl(UniverseChainId.Linea)] },
     [RPCType.Default]: { http: ['https://rpc.linea.build'] },
     [RPCType.Interface]: {
       http: [getQuicknodeEndpointUrl(UniverseChainId.Linea)],

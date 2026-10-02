@@ -2,23 +2,31 @@ import type { ExtensionOnboardingFlow, ExtensionScreens } from 'uniswap/src/type
 
 export enum MobileScreens {
   Activity = 'Activity',
+  AnimatedNumberDebug = 'AnimatedNumberDebug',
+  CategoryDetails = 'CategoryDetails',
+  Collections = 'Collections',
   DebugScreens = 'DebugScreens',
   Dev = 'Dev',
   HashcashBenchmark = 'HashcashBenchmark',
   SessionsDebug = 'SessionsDebug',
+  UniversalListDebug = 'UniversalListDebug',
   Storybook = 'Storybook',
   Education = 'Education',
   ConnectionsDappListModal = 'connections-dapp-list-modal',
   Explore = 'Explore',
+  // `Home` remains for legacy `mobile://Home` URLs; `MainTabs` is the outer route that owns the tab navigator.
   Home = 'Home',
+  MainTabs = 'MainTabs',
   OnboardingStack = 'OnboardingStack',
   PortfolioChartDetails = 'PortfolioChartDetails',
+  PositionDetails = 'PositionDetails',
   UnitagStack = 'UnitagStack',
   Settings = 'Settings',
   SettingsCloudBackupPasswordCreate = 'SettingsCloudBackupPasswordCreate',
   SettingsCloudBackupPasswordConfirm = 'SettingsCloudBackupPasswordConfirm',
   SettingsCloudBackupProcessing = 'SettingsCloudBackupProcessing',
   SettingsCloudBackupStatus = 'SettingsCloudBackupStatus',
+  SettingsDisclosures = 'SettingsDisclosures',
   SettingsLanguage = 'SettingsLanguage',
   SettingsNotifications = 'SettingsNotifications',
   SettingsPrivacy = 'SettingsPrivacy',
@@ -47,6 +55,9 @@ export enum OnboardingScreens {
   Notifications = 'OnboardingNotifications',
   WelcomeWallet = 'WelcomeWallet',
   PasskeyImport = 'PasskeyImport',
+  // Recovery-based graduation (email/OAuth + PIN). Shown when the user lacks a passkey
+  // on this device; rejoins the standard import flow after decrypting the seed phrase.
+  RecoveryFlow = 'OnboardingRecoveryFlow',
   Security = 'OnboardingSecurity',
 
   // import

@@ -1,25 +1,22 @@
 /* oxlint-disable typescript/no-unnecessary-condition */
 
-import { ApolloError } from '@apollo/client'
 import { createColumnHelper } from '@tanstack/react-table'
-import { GraphQLApi } from '@universe/api'
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { TransactionEventType } from '@uniswap/client-data-api/dist/data/v2/types_pb'
+import { UniverseChainId } from '@universe/chains'
+import { Flex, Text, useMedia } from '@universe/mycelium'
+import { styled } from '@universe/mycelium/styled'
 import { memo, useMemo, useReducer, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, styled, Text, useMedia } from 'ui/src'
+import AnimatedNumber from 'uniswap/src/components/AnimatedNumber/AnimatedNumber'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useAppFiatCurrency } from 'uniswap/src/features/fiatCurrency/hooks'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { SectionName } from 'uniswap/src/features/telemetry/constants'
+import { Trace } from 'uniswap/src/features/telemetry/Trace'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
 import { shortenAddress } from 'utilities/src/addresses'
 import { NumberType } from 'utilities/src/format/types'
-import {
-  BETypeToTransactionType,
-  getTransactionTypeTranslation,
-  TransactionType,
-  useAllTransactions,
-} from '~/appGraphql/data/useAllTransactions'
+import { useEvent } from 'utilities/src/react/hooks'
 import { PortfolioLogo } from '~/components/AccountDrawer/MiniPortfolio/PortfolioLogo'
 import { AddressHoverCard } from '~/components/AddressHoverCard/AddressHoverCard'
 import { InternalLink } from '~/components/InternalLink'
@@ -30,21 +27,23 @@ import { TableText } from '~/components/Table/shared/TableText'
 import { TimestampCell } from '~/components/Table/shared/TimestampCell'
 import { TokenLinkCell } from '~/components/Table/shared/TokenLinkCell'
 import { FilterHeaderRow, HeaderCell } from '~/components/Table/styled'
-import { useChainIdFromUrlParam } from '~/features/params/chainParams'
-import { useUpdateManualOutage } from '~/hooks/useUpdateManualOutage'
+import type { PoolTransaction } from '~/data/transactions/poolTransaction'
+import {
+  BETypeToTransactionType,
+  TransactionType,
+  useAllTransactions,
+} from '~/features/Explore/state/transactions/useAllTransactions'
 import { useFilteredTransactions } from '~/pages/Explore/tables/RecentTransactions/useFilterTransaction'
 import { buildPortfolioUrl } from '~/pages/Portfolio/utils/portfolioUrls'
+import { useChainIdFromUrlParam } from '~/utils/params/chainParams'
 
 const TableRow = styled(Flex, {
-  row: true,
-  gap: '$gap4',
-  alignItems: 'center',
+  base: 'flex-row items-center gap-[4px]',
 })
 
-type RecentTransactionType = GraphQLApi.PoolTransaction & { usdValueFormatted: string }
+type RecentTransactionType = PoolTransaction & { usdValueFormatted: string }
 
 export const RecentTransactionsTable = memo(function RecentTransactions() {
-  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
   const activeLocalCurrency = useAppFiatCurrency()
   const { convertFiatAmountFormatted, formatNumberOrString } = useLocalizationContext()
   const [filterModalIsOpen, toggleFilterModal] = useReducer((s) => !s, false)
@@ -56,7 +55,8 @@ export const RecentTransactionsTable = memo(function RecentTransactions() {
   ])
   const chainInfo = getChainInfo(useChainIdFromUrlParam() ?? UniverseChainId.Mainnet)
   const { t } = useTranslation()
-  const { transactions, loading, loadMore, errorV2, errorV3 } = useAllTransactions(chainInfo.backendChain.chain, filter)
+  const media = useMedia()
+  const { transactions, loading, loadMore, error } = useAllTransactions(chainInfo.id, filter)
 
   const filteredTransactions = useFilteredTransactions(transactions)
   const filteredTransactionsWithFiat = useMemo(() => {
@@ -64,20 +64,28 @@ export const RecentTransactionsTable = memo(function RecentTransactions() {
       return {
         ...transaction,
         // We have to format the fiat value in object, as cells are not reactive.
-        usdValueFormatted: convertFiatAmountFormatted(transaction.usdValue.value, NumberType.FiatTokenPrice),
+        usdValueFormatted: convertFiatAmountFormatted(transaction.usdValue, NumberType.FiatTokenPrice),
       }
     })
   }, [filteredTransactions, convertFiatAmountFormatted])
 
-  const combinedError =
-    errorV2 && errorV3
-      ? new ApolloError({ errorMessage: `Could not retrieve V2 and V3 Transactions for chain: ${chainInfo.id}` })
-      : undefined
+  const getTransactionTypeTranslation = useEvent((type: TransactionType): string => {
+    switch (type) {
+      case TransactionType.SWAP:
+        return t('common.swap')
+      case TransactionType.ADD:
+        return t('common.add.label')
+      case TransactionType.REMOVE:
+        return t('common.remove.label')
+      default:
+        return ''
+    }
+  })
+
+  const hasError = Boolean(error)
   const allDataStillLoading = loading && !transactions.length
-  const showLoadingSkeleton = allDataStillLoading || !!combinedError
-  useUpdateManualOutage({ chainId: chainInfo.id, errorV3, errorV2, trigger: transactions })
-  // TODO(WEB-3236): once GQL BE Transaction query is supported add usd, token0 amount, and token1 amount sort support
-  const media = useMedia()
+  const showLoadingSkeleton = allDataStillLoading || hasError
+
   const columns = useMemo(() => {
     const columnHelper = createColumnHelper<RecentTransactionType>()
     const filteredColumns = [
@@ -99,7 +107,7 @@ export const RecentTransactionsTable = memo(function RecentTransactions() {
                 <TimestampCell
                   timestamp={Number(transaction.getValue?.().timestamp)}
                   link={getExplorerLink({
-                    chainId: chainInfo.id,
+                    chainId: transaction.getValue?.().chainId ?? chainInfo.id,
                     data: transaction.getValue?.().hash,
                     type: ExplorerDataType.TRANSACTION,
                   })}
@@ -113,11 +121,7 @@ export const RecentTransactionsTable = memo(function RecentTransactions() {
         size: media.lg ? 180 : 320,
         header: () => (
           <HeaderCell justifyContent="flex-start">
-            <FilterHeaderRow
-              clickable={filterModalIsOpen}
-              onPress={() => !filterModalIsOpen && toggleFilterModal()}
-              ref={filterAnchorRef}
-            >
+            <FilterHeaderRow onPress={() => !filterModalIsOpen && toggleFilterModal()} ref={filterAnchorRef}>
               <Filter
                 allFilters={Object.values(TransactionType).map((type) => ({
                   value: type,
@@ -142,20 +146,17 @@ export const RecentTransactionsTable = memo(function RecentTransactions() {
               {media.lg && (
                 <PortfolioLogo
                   chainId={chainInfo.id}
-                  images={[
-                    transaction.getValue?.().token0.project?.logo?.url,
-                    transaction.getValue?.().token1.project?.logo?.url,
-                  ]}
+                  images={[transaction.getValue?.().token0.logoUrl, transaction.getValue?.().token1.logoUrl]}
                   fallbackSymbols={[transaction.getValue?.().token0.symbol, transaction.getValue?.().token1.symbol]}
                   size={22}
                 />
               )}
               <TableText color="$neutral2" $lg={{ display: 'none' }}>
-                {BETypeToTransactionType[transaction.getValue?.().type]}
+                {BETypeToTransactionType[transaction.getValue?.().eventType]}
               </TableText>
               <TokenLinkCell token={transaction.getValue?.().token0} hideLogo={media.lg} />
               <Text color="$neutral2">
-                {transaction.getValue?.().type === GraphQLApi.PoolTransactionType.Swap
+                {transaction.getValue?.().eventType === TransactionEventType.SWAP
                   ? t('common.for').toLowerCase()
                   : t('common.and').toLowerCase()}
               </Text>
@@ -164,7 +165,7 @@ export const RecentTransactionsTable = memo(function RecentTransactions() {
           </Cell>
         ),
       }),
-      columnHelper.accessor((transaction) => transaction.usdValueFormatted, {
+      columnHelper.accessor((transaction) => transaction, {
         id: 'fiat-value',
         maxSize: 125,
         header: () => (
@@ -174,9 +175,13 @@ export const RecentTransactionsTable = memo(function RecentTransactions() {
             </Text>
           </HeaderCell>
         ),
-        cell: (fiat) => (
+        cell: (transaction) => (
           <Cell loading={showLoadingSkeleton}>
-            <TableText>{fiat.getValue?.()}</TableText>
+            <AnimatedNumber
+              numericValue={transaction.getValue?.().usdValue}
+              textVariant="$body2"
+              value={transaction.getValue?.().usdValueFormatted}
+            />
           </Cell>
         ),
       }),
@@ -228,7 +233,7 @@ export const RecentTransactionsTable = memo(function RecentTransactions() {
           </Cell>
         ),
       }),
-      columnHelper.accessor((transaction) => transaction.account, {
+      columnHelper.accessor((transaction) => transaction, {
         id: 'maker-address',
         maxSize: 150,
         header: () => (
@@ -238,13 +243,14 @@ export const RecentTransactionsTable = memo(function RecentTransactions() {
             </Text>
           </HeaderCell>
         ),
-        cell: (makerAddress) => {
-          const address = makerAddress.getValue?.()
+        cell: (transaction) => {
+          const row = transaction.getValue?.()
+          const address = row?.account
           const shortenedAddress = shortenAddress({ address })
 
           return (
             <Cell loading={showLoadingSkeleton}>
-              <AddressHoverCard address={address} platform={chainInfo.platform}>
+              <AddressHoverCard address={address} chainId={row?.chainId ?? chainInfo.id}>
                 <InternalLink to={buildPortfolioUrl({ externalAddress: address })}>
                   <TableText>{shortenedAddress}</TableText>
                 </InternalLink>
@@ -258,9 +264,9 @@ export const RecentTransactionsTable = memo(function RecentTransactions() {
   }, [
     activeLocalCurrency,
     chainInfo.id,
-    chainInfo.platform,
     media.lg,
     filter,
+    getTransactionTypeTranslation,
     filterModalIsOpen,
     formatNumberOrString,
     showLoadingSkeleton,
@@ -268,15 +274,18 @@ export const RecentTransactionsTable = memo(function RecentTransactions() {
   ])
 
   return (
-    <Table
-      columns={columns}
-      data={filteredTransactionsWithFiat}
-      loading={allDataStillLoading}
-      error={combinedError}
-      v2={multichainTokenUxEnabled}
-      loadMore={loadMore}
-      maxWidth={1200}
-      defaultPinnedColumns={['timestamp', 'swap-type']}
-    />
+    <Trace section={SectionName.ExploreRecentTransactions}>
+      <Table
+        virtualized
+        columns={columns}
+        data={filteredTransactionsWithFiat}
+        loading={allDataStillLoading}
+        error={hasError}
+        loadMore={loadMore}
+        maxWidth={1200}
+        defaultPinnedColumns={['timestamp', 'swap-type']}
+        getRowId={(row) => row.id}
+      />
+    </Trace>
   )
 })

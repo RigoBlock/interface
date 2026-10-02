@@ -1,14 +1,15 @@
+import { AnimatableCopyIcon, Flex } from '@universe/mycelium'
+import type { FlexCompatProps as FlexProps } from '@universe/mycelium'
+import { TestID } from '@universe/test'
 import { useTranslation } from 'react-i18next'
-import { AnimatableCopyIcon, Flex, FlexProps } from 'ui/src'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { useEvent } from 'utilities/src/react/hooks'
 import { useBooleanState } from 'utilities/src/react/useBooleanState'
+import { useCopyClipboard } from 'utilities/src/react/useCopyClipboard'
 import { ONE_SECOND_MS } from 'utilities/src/time/time'
 import { ActionTile } from '~/components/AccountDrawer/ActionTile'
 import { Wiggle } from '~/components/animations/Wiggle'
-import useCopyClipboard from '~/hooks/useCopyClipboard'
 
 interface CopyAddressActionTileProps {
   address: string

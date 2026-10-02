@@ -1,6 +1,6 @@
 import { fireEvent, waitFor } from '@testing-library/react-native'
 import { SharedQueryClient } from '@universe/api'
-import { Flex, Text } from 'ui/src'
+import { Flex, Text } from '@universe/mycelium'
 import { Dialog } from 'uniswap/src/components/dialog/Dialog.web'
 import type { DialogPreferencesService } from 'uniswap/src/dialog-preferences'
 import { DialogVisibilityId } from 'uniswap/src/dialog-preferences/types'

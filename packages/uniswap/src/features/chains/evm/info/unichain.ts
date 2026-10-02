@@ -1,17 +1,16 @@
 import { GraphQLApi, TradingApi } from '@universe/api'
-import { ETH_LOGO, ETHEREUM_LOGO, UNICHAIN_LOGO, UNICHAIN_SEPOLIA_LOGO } from 'ui/src/assets'
+import { UniverseChainId, Platform } from '@universe/chains'
+import { ETH_LOGO, UNICHAIN_LOGO, UNICHAIN_SEPOLIA_LOGO } from 'ui/src/assets'
+import { ALL_APPS_CHAIN_SUPPORTED_APPS } from 'uniswap/src/features/chains/chainAppSupport'
 import { CHAIN_ID_TO_URL_PARAM } from 'uniswap/src/features/chains/chainUrlParam'
-import { DEFAULT_NATIVE_ADDRESS_LEGACY, getQuicknodeEndpointUrl } from 'uniswap/src/features/chains/evm/rpc'
+import {
+  DEFAULT_NATIVE_ADDRESS_LEGACY,
+  getQuicknodeEndpointUrl,
+  getUniRpcEndpointUrl,
+} from 'uniswap/src/features/chains/evm/rpc'
 import { buildChainTokens } from 'uniswap/src/features/chains/evm/tokens'
 import { GENERIC_L2_GAS_CONFIG } from 'uniswap/src/features/chains/gasDefaults'
-import {
-  GqlChainId,
-  NetworkLayer,
-  RPCType,
-  UniverseChainId,
-  UniverseChainInfo,
-} from 'uniswap/src/features/chains/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
+import { GqlChainId, NetworkLayer, RPCType, UniverseChainInfo } from 'uniswap/src/features/chains/types'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { buildUSDC } from 'uniswap/src/features/tokens/stablecoin'
 import { unichainSepolia } from 'wagmi/chains'
@@ -27,6 +26,7 @@ export const UNICHAIN_CHAIN_INFO = {
   name: 'Unichain',
   id: UniverseChainId.Unichain,
   platform: Platform.EVM,
+  supportedApps: ALL_APPS_CHAIN_SUPPORTED_APPS,
   assetRepoNetworkName: 'unichain',
   backendChain: {
     chain: GraphQLApi.Chain.Unichain as GqlChainId,
@@ -52,13 +52,13 @@ export const UNICHAIN_CHAIN_INFO = {
     symbol: 'ETH',
     decimals: 18,
     address: DEFAULT_NATIVE_ADDRESS_LEGACY,
-    logo: ETHEREUM_LOGO,
+    logo: ETH_LOGO,
   },
   networkLayer: NetworkLayer.L2,
   blockTimeMs: 1000,
   pendingTransactionsRetryOptions: undefined,
   rpcUrls: {
-    [RPCType.Public]: { http: [getQuicknodeEndpointUrl(UniverseChainId.Unichain)] },
+    [RPCType.Public]: { http: [getUniRpcEndpointUrl(UniverseChainId.Unichain)] },
     [RPCType.Default]: { http: ['https://mainnet.unichain.org'] },
     [RPCType.Interface]: { http: [getQuicknodeEndpointUrl(UniverseChainId.Unichain)] },
   },
@@ -93,6 +93,7 @@ export const UNICHAIN_SEPOLIA_CHAIN_INFO = {
   testnet: true,
   id: UniverseChainId.UnichainSepolia,
   platform: Platform.EVM,
+  supportedApps: ALL_APPS_CHAIN_SUPPORTED_APPS,
   assetRepoNetworkName: undefined,
   backendChain: {
     chain: GraphQLApi.Chain.AstrochainSepolia as GqlChainId,
@@ -123,10 +124,11 @@ export const UNICHAIN_SEPOLIA_CHAIN_INFO = {
   pendingTransactionsRetryOptions: undefined,
   rpcUrls: {
     [RPCType.Public]: {
-      http: [getQuicknodeEndpointUrl(UniverseChainId.UnichainSepolia)],
+      http: [getUniRpcEndpointUrl(UniverseChainId.UnichainSepolia)],
     },
+    // Default feeds wallet-connector rpc maps (cookieless). Unkeyed, CSP-allowed public endpoint.
     [RPCType.Default]: {
-      http: [getQuicknodeEndpointUrl(UniverseChainId.UnichainSepolia)],
+      http: ['https://unichain-sepolia.drpc.org'],
     },
     [RPCType.Interface]: {
       http: [getQuicknodeEndpointUrl(UniverseChainId.UnichainSepolia)],

@@ -1,4 +1,5 @@
-import { Flex, Text, useIsDarkMode } from 'ui/src'
+import { isAndroid } from '@universe/environment'
+import { Flex, Text, useIsDarkMode } from '@universe/mycelium'
 import { imageSizes } from 'ui/src/theme'
 import { UNITAG_SUFFIX } from 'uniswap/src/features/unitags/constants'
 import { UnitagProfilePicture } from 'wallet/src/features/unitags/UnitagProfilePicture'
@@ -26,7 +27,9 @@ export const UnitagWithProfilePicture = ({
         px="$spacing12"
         py="$spacing12"
         shadowColor="$neutral3"
-        elevationAndroid={isDarkMode ? 1.5 : 6}
+        // elevationAndroid is a deliberate compat exclusion (deprecated RN key); the Android
+        // elevation carries through the native style instead.
+        style={isAndroid ? { elevation: isDarkMode ? 1.5 : 6 } : undefined}
         shadowOpacity={0.25}
         shadowRadius="$spacing4"
         transform={[{ rotateZ: '-2deg' }]}

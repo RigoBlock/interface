@@ -1,11 +1,14 @@
+import { isAndroid } from '@universe/environment'
+import { PaperStack } from '@universe/mycelium/icons/PaperStack'
+import { Passkey } from '@universe/mycelium/icons/Passkey'
+import { TestID, TestIDType } from '@universe/test'
 import React from 'react'
-import { OSDynamicCloudIcon, PaperStack, Passkey } from 'ui/src/components/icons'
-import { AppTFunction } from 'ui/src/i18n/types'
+import { OSDynamicCloudIcon } from 'ui/src/components/icons'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
-import { TestID, TestIDType } from 'uniswap/src/test/fixtures/testIDs'
 import { ImportType } from 'uniswap/src/types/onboarding'
 import { OnboardingScreens } from 'uniswap/src/types/screens/mobile'
-import { isAndroid } from 'utilities/src/platform'
+import { AppTFunction } from 'utilities/src/i18n/types'
+import { MNEMONIC_LENGTH_HD } from 'wallet/src/constants/accounts'
 
 type ImportMethodScreens =
   | OnboardingScreens.SeedPhraseInput
@@ -28,7 +31,7 @@ export interface ImportMethodOption<T extends ImportMethodScreens = ImportMethod
  * Sign in with Passkey
  */
 export const passKeySignInOption: ImportMethodOption<OnboardingScreens.PasskeyImport> = {
-  title: (t: AppTFunction) => t('onboarding.import.selectMethod.passkey.title'),
+  title: (t: AppTFunction) => t('nav.logIn.button'),
   blurb: (t: AppTFunction) => t('onboarding.import.selectMethod.passkey.subtitle'),
   icon: <Passkey color="$accent1" size="$icon.18" />,
   nav: OnboardingScreens.PasskeyImport,
@@ -57,7 +60,8 @@ export const seedPhraseImportOption: ImportMethodOption<OnboardingScreens.SeedPh
  */
 export const restoreWalletWithSeedPhraseOption: ImportMethodOption<OnboardingScreens.SeedPhraseInput> = {
   title: (t: AppTFunction) => t('onboarding.import.method.restoreSeedPhrase.wallet.title'),
-  blurb: (t: AppTFunction) => t('onboarding.import.method.restoreSeedPhrase.wallet.desc'),
+  blurb: (t: AppTFunction) =>
+    t('onboarding.import.method.restoreSeedPhrase.wallet.desc', { count: MNEMONIC_LENGTH_HD }),
   icon: <PaperStack color="$accent1" size="$icon.18" strokeWidth={1.5} />,
   nav: OnboardingScreens.SeedPhraseInput,
   importType: ImportType.RestoreMnemonic,

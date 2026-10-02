@@ -1,19 +1,22 @@
-import { BottomSheetSectionList } from '@gorhom/bottom-sheet'
-import React, { memo, useCallback, useMemo, useRef, useState } from 'react'
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet'
+import { Flex, Inset, Loader, UniversalList, type UniversalListRenderItemInfo } from '@universe/mycelium'
+import React, { memo, useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ListRenderItemInfo } from 'react-native'
-import { Flex, Inset, Loader } from 'ui/src'
+import {
+  buildFiatOnRampRows,
+  type FiatOnRampRow,
+  FiatOnRampRowType,
+} from 'src/components/TokenSelector/buildFiatOnRampRows'
 import { BaseCard } from 'uniswap/src/components/BaseCard/BaseCard'
-import { TokenOptionItem } from 'uniswap/src/components/lists/items/tokens/TokenOptionItem'
+import { TokenOptionItem } from 'uniswap/src/components/lists/items/tokens/TokenOptionItem/TokenOptionItem'
 import { OnchainItemListOptionType, TokenOption } from 'uniswap/src/components/lists/items/types'
 import { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
 import { FiatOnRampCurrency, FORCurrencyOrBalance } from 'uniswap/src/features/fiatOnRamp/types'
-import { getUnsupportedFORTokensWithBalance, isSupportedFORCurrency } from 'uniswap/src/features/fiatOnRamp/utils'
+import { isSupportedFORCurrency } from 'uniswap/src/features/fiatOnRamp/utils'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { getTokenProtectionWarning } from 'uniswap/src/features/tokens/warnings/safetyUtils'
 import { useDismissedTokenWarnings } from 'uniswap/src/features/tokens/warnings/slice/hooks'
 import { ListSeparatorToggle } from 'uniswap/src/features/transactions/TransactionDetails/ListSeparatorToggle'
-import { CurrencyId } from 'uniswap/src/types/currency'
 import { NumberType } from 'utilities/src/format/types'
 
 interface Props {
@@ -32,13 +35,11 @@ function TokenOptionItemWrapper({
   onSelectCurrency,
   currencyBalance,
   isSelected,
-  showUnsupported,
 }: {
   currency: FORCurrencyOrBalance
   onSelectCurrency: (currency: FiatOnRampCurrency) => void
   currencyBalance: Maybe<PortfolioBalance>
   isSelected?: boolean
-  showUnsupported?: boolean
 }): JSX.Element | null {
   const { currencyInfo } = currency
   const { quantity, balanceUSD } = currencyBalance || {}
@@ -57,10 +58,6 @@ function TokenOptionItemWrapper({
   const { convertFiatAmountFormatted, formatNumberOrString } = useLocalizationContext()
 
   if (!option) {
-    return null
-  }
-
-  if (!showUnsupported && isUnsupported) {
     return null
   }
 
@@ -91,41 +88,29 @@ function TokenFiatOnRampListInner({
   const { t } = useTranslation()
   const [showMore, setShowMore] = useState(true)
 
-  enum ListSection {
-    SUPPORTED = 'SUPPORTED',
-    UNSUPPORTED = 'UNSUPPORTED',
-  }
+  const rows = useMemo(
+    () => buildFiatOnRampRows({ list, balancesById, isOffRamp, showMore }),
+    [list, balancesById, isOffRamp, showMore],
+  )
 
-  const sortedSupportedAssetsWithBalance = list
-    .filter((c) => {
-      if (!c.currencyInfo) {
-        return false
-      }
-
-      const quantity = balancesById?.[c.currencyInfo.currencyId]?.quantity ?? 0
-      return quantity > 0
-    })
-    .sort((a, b) => {
-      if (!a.currencyInfo || !b.currencyInfo) {
-        return 0
-      }
-
-      const aQuantity = balancesById?.[a.currencyInfo.currencyId]?.balanceUSD ?? 0
-      const bQuantity = balancesById?.[b.currencyInfo.currencyId]?.balanceUSD ?? 0
-      return bQuantity - aQuantity
-    })
-  const supportedAssetsWithoutBalance = list.filter((c) => c.currencyInfo && !balancesById?.[c.currencyInfo.currencyId])
-  const unsupportedAssetsWithBalance = getUnsupportedFORTokensWithBalance(list, balancesById)
-
-  const tokenList = isOffRamp
-    ? [
-        { title: ListSection.SUPPORTED, data: [...sortedSupportedAssetsWithBalance, ...supportedAssetsWithoutBalance] },
-        { title: ListSection.UNSUPPORTED, data: unsupportedAssetsWithBalance },
-      ]
-    : [{ title: ListSection.SUPPORTED, data: list }]
-  const flatListRef = useRef(null)
   const renderItem = useCallback(
-    ({ item: currency }: ListRenderItemInfo<FORCurrencyOrBalance>) => {
+    ({ item }: UniversalListRenderItemInfo<FiatOnRampRow>): JSX.Element => {
+      if (item.type === FiatOnRampRowType.UnsupportedToggle) {
+        return (
+          <Flex mt="$spacing12">
+            <ListSeparatorToggle
+              closedText={t('fiatOffRamp.unsupportedToken.divider')}
+              isOpen={showMore}
+              openText={t('fiatOffRamp.unsupportedToken.divider')}
+              onPress={(): void => {
+                setShowMore(!showMore)
+              }}
+            />
+          </Flex>
+        )
+      }
+
+      const { currency } = item
       const { currencyInfo } = currency
       const currencyBalance = currencyInfo && balancesById?.[currencyInfo.currencyId]
 
@@ -134,12 +119,11 @@ function TokenFiatOnRampListInner({
           currency={currency}
           currencyBalance={currencyBalance}
           isSelected={currency.currencyInfo?.currencyId === selectedCurrency?.currencyInfo?.currencyId}
-          showUnsupported={showMore}
           onSelectCurrency={onSelectCurrency}
         />
       )
     },
-    [onSelectCurrency, balancesById, selectedCurrency, showMore],
+    [onSelectCurrency, balancesById, selectedCurrency, showMore, t],
   )
 
   if (error) {
@@ -159,46 +143,30 @@ function TokenFiatOnRampListInner({
   }
 
   return (
-    <BottomSheetSectionList
-      ref={flatListRef}
-      ListEmptyComponent={<Flex />}
-      ListFooterComponent={<Inset all="$spacing36" />}
-      keyExtractor={key}
+    <UniversalList
+      data={rows}
+      getItemType={rowType}
       keyboardDismissMode="on-drag"
       keyboardShouldPersistTaps="always"
+      keyExtractor={rowKey}
+      ListEmptyComponent={<Flex />}
+      ListFooterComponent={<Inset all="$spacing36" />}
       renderItem={renderItem}
-      renderSectionHeader={({ section }) => {
-        if (section.title !== ListSection.UNSUPPORTED) {
-          return <></>
-        }
-
-        if (section.data.length === 0) {
-          return <></>
-        }
-
-        return (
-          <Flex mt="$spacing12">
-            <ListSeparatorToggle
-              closedText={t('fiatOffRamp.unsupportedToken.divider')}
-              isOpen={showMore}
-              openText={t('fiatOffRamp.unsupportedToken.divider')}
-              onPress={(): void => {
-                setShowMore(!showMore)
-              }}
-            />
-          </Flex>
-        )
-      }}
-      sections={tokenList}
+      // Always rendered inside a bottom sheet, so scroll gestures route through the sheet's scrollable.
+      renderScrollComponent={BottomSheetScrollView}
       showsVerticalScrollIndicator={false}
-      stickySectionHeadersEnabled={false}
-      windowSize={5}
     />
   )
 }
 
-function key(item: FiatOnRampCurrency): CurrencyId {
-  return item.currencyInfo?.currencyId ?? ''
+// Module scope rather than inline: the engine keys an internal memo on `keyExtractor` identity, and
+// `getItemType` is documented as needing a stable reference.
+function rowKey(item: FiatOnRampRow): string {
+  return item.key
+}
+
+function rowType(item: FiatOnRampRow): FiatOnRampRowType {
+  return item.type
 }
 
 export const TokenFiatOnRampList = memo(TokenFiatOnRampListInner)

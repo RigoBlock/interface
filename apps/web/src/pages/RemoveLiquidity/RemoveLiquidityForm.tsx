@@ -1,20 +1,25 @@
+import { Flex, Text } from '@universe/mycelium'
 import { useMemo } from 'react'
-import { Trans, useTranslation } from 'react-i18next'
-import { Button, Flex, Switch, Text } from 'ui/src'
+import { useTranslation } from 'react-i18next'
+import { Button, Switch } from 'ui/src'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
-import useResizeObserver from 'use-resize-observer'
 import { ErrorCallout } from '~/components/ErrorCallout'
-import { LiquidityModalDetailRows } from '~/components/Liquidity/LiquidityModalDetailRows'
-import { LiquidityPositionInfo } from '~/components/Liquidity/LiquidityPositionInfo'
-import { canUnwrapCurrency } from '~/components/Liquidity/utils/currency'
+import {
+  NumericalInputMimic,
+  NumericalInputSymbolContainer,
+  NumericalInputWrapper,
+  useMeasuredFieldWidth,
+} from '~/components/NumericalInput/LargeAmountInput'
 import { StyledPercentInput } from '~/components/PercentInput'
+import { LiquidityModalDetailRows } from '~/features/Liquidity/LiquidityModalDetailRows'
+import { LiquidityPositionInfo } from '~/features/Liquidity/LiquidityPositionInfo'
+import { canUnwrapCurrency } from '~/features/Liquidity/utils/currency'
 import {
   DecreaseLiquidityStep,
   useRemoveLiquidityModalContext,
 } from '~/pages/RemoveLiquidity/RemoveLiquidityModalContext'
 import { useRemoveLiquidityTxContext } from '~/pages/RemoveLiquidity/RemoveLiquidityTxContext'
 import { PredefinedAmount } from '~/pages/Swap/Buy/PredefinedAmount'
-import { NumericalInputMimic, NumericalInputSymbolContainer, NumericalInputWrapper } from '~/pages/Swap/common/shared'
 
 const isValidPercentageInput = (value: string): boolean => {
   const numValue = Number(value)
@@ -22,12 +27,12 @@ const isValidPercentageInput = (value: string): boolean => {
 }
 
 export function RemoveLiquidityForm() {
-  const hiddenObserver = useResizeObserver<HTMLElement>()
   const { t } = useTranslation()
 
   const { percent, positionInfo, setPercent, setStep, percentInvalid, unwrapNativeCurrency, setUnwrapNativeCurrency } =
     useRemoveLiquidityModalContext()
   const { gasFeeEstimateUSD, txContext, error, refetch } = useRemoveLiquidityTxContext()
+  const { ref: hiddenObserverRef, fieldWidth: percentFieldWidth } = useMeasuredFieldWidth(percent)
 
   if (!positionInfo) {
     throw new Error('RemoveLiquidityModal must have an initial state when opening')
@@ -57,7 +62,7 @@ export function RemoveLiquidityForm() {
         px="$padding16"
       >
         <Text variant="body3" color="$neutral2">
-          <Trans i18nKey="pool.withdrawAs" values={{ nativeWrappedSymbol: nativeCurrency.symbol }} />
+          {t('pool.withdrawAs', { nativeWrappedSymbol: nativeCurrency.symbol ?? t('common.token') })}
         </Text>
         <Switch
           id="add-as-weth"
@@ -68,7 +73,7 @@ export function RemoveLiquidityForm() {
         />
       </Flex>
     )
-  }, [canUnwrap, nativeCurrency, unwrapNativeCurrency, setUnwrapNativeCurrency])
+  }, [canUnwrap, nativeCurrency, t, unwrapNativeCurrency, setUnwrapNativeCurrency])
 
   return (
     <Flex gap="$gap24">
@@ -82,16 +87,16 @@ export function RemoveLiquidityForm() {
           backgroundColor="$surface2"
           borderTopLeftRadius="$rounded12"
           borderTopRightRadius="$rounded12"
-          borderBottomLeftRadius={canUnwrap ? '$rounded0' : '$rounded12'}
-          borderBottomRightRadius={canUnwrap ? '$rounded0' : '$rounded12'}
+          borderBottomLeftRadius={canUnwrap ? '$none' : '$rounded12'}
+          borderBottomRightRadius={canUnwrap ? '$none' : '$rounded12'}
           p="$padding16"
           gap="$gap12"
         >
           <Text variant="body3" color="$neutral2">
-            <Trans i18nKey="common.withdrawal.amount" />
+            {t('common.withdrawal.amount')}
           </Text>
           <Flex row alignItems="center" justifyContent="center" width="100%">
-            <NumericalInputWrapper width="100%">
+            <NumericalInputWrapper>
               <StyledPercentInput
                 value={percent}
                 onUserInput={(value: string) => {
@@ -100,12 +105,12 @@ export function RemoveLiquidityForm() {
                   }
                 }}
                 placeholder="0"
-                $width={percent && hiddenObserver.width ? hiddenObserver.width + 1 : undefined}
+                fieldWidth={percentFieldWidth}
                 maxDecimals={0}
                 maxLength={3}
               />
               <NumericalInputSymbolContainer showPlaceholder={!percent}>%</NumericalInputSymbolContainer>
-              <NumericalInputMimic ref={hiddenObserver.ref}>{percent}</NumericalInputMimic>
+              <NumericalInputMimic ref={hiddenObserverRef}>{percent}</NumericalInputMimic>
             </NumericalInputWrapper>
           </Flex>
           <Flex row gap="$gap8" width="100%" justifyContent="center">
@@ -131,7 +136,7 @@ export function RemoveLiquidityForm() {
       <ErrorCallout errorMessage={error} onPress={refetch} />
       <Flex row>
         <Button
-          isDisabled={percentInvalid || !txContext?.txRequest}
+          disabled={percentInvalid || !txContext?.txRequest}
           onPress={() => setStep(DecreaseLiquidityStep.Review)}
           loading={!error && !percentInvalid && !txContext?.txRequest}
           variant="branded"

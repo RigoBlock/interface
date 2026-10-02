@@ -35,13 +35,20 @@ yarn-error.log*
 # local env files
 .env
 .env.local
+/.env.defaults
 .env.defaults.local
+.env.override
+.env.new
+.env.new.override
 
 # turbo
 .turbo
 
 # nx
-.nx/
+# `.nx/*` (not `.nx/`) so the activation key in .nx/key/ can be re-included
+# — git cannot un-exclude a path under a directory-excluded parent.
+.nx/*
+!.nx/key/
 graph.json
 
 # .yarn files
@@ -85,6 +92,8 @@ claude.local.md
 CLAUDE.local.md
 .claude/settings.local.json
 .claude/local/
+.claude/worktrees/
+.claude/skills/*-workspace/
 **/*/.claude/user/*
 **/*/.claude/local/
 
@@ -92,6 +101,11 @@ CLAUDE.local.md
 .cursor/mcp.json
 .cursor/rules/local-workflow.mdc
 .cursor/*.log
+
+# argent — skills-lock.json carries per-user absolute paths; the .agents/skills/ tree itself is committed (editor-side .claude/skills/argent-* are symlinks into it)
+skills-lock.json
+# Literal "~" dir created when a tool fails to expand $HOME (e.g. argent mcp-calls.log)
+/~/
 
 # lefthook
 .lefthook/
@@ -107,3 +121,17 @@ CLAUDE.local.md
 # temporary files
 /tmp/
 .env*.local
+
+# i18n AI-pipeline artifacts (i18n_generate_translations.yml)
+# `.i18n/*` (not `.i18n/`) so committed pipeline state can be re-included —
+# git cannot un-exclude a path under a directory-excluded parent. Everything
+# else the CLI writes here stays ignored by default: run artifacts
+# (`.i18n/runs/`, uploaded as a workflow artifact) and audit reports
+# (`.i18n/reports/`, discarded with the runner today). The memory re-include
+# is coupled to I18N_MEMORY_DIR in i18n_generate_translations.yml — an
+# ignored path there fails the pipeline's commit staging — and the coupling
+# is asserted semantically (git check-ignore) by
+# scripts/i18n-compose-pr-body.test.ts.
+.i18n/*
+!.i18n/glossary/
+!.i18n/memory/

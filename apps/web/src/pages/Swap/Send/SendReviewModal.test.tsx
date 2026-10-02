@@ -1,13 +1,16 @@
 import '~/test-utils/tokens/mocks'
+import { useDynamicConfigValue } from '@universe/gating'
 import { DAI } from 'uniswap/src/constants/tokens'
 import { SwapTab } from 'uniswap/src/types/screens/interface'
 import { shortenAddress } from 'utilities/src/addresses'
-import tryParseCurrencyAmount from '~/lib/utils/tryParseCurrencyAmount'
+import { SwapAndLimitContext } from '~/features/Swap/state/types'
+import { tryParseCurrencyAmount } from '~/lib/utils/tryParseCurrencyAmount'
 import { SendReviewModalInner } from '~/pages/Swap/Send/SendReviewModal'
+import { SendContext, SendContextType } from '~/pages/Swap/Send/state/SendContext'
 import { MultichainContext } from '~/state/multichain/types'
-import { SendContext, SendContextType } from '~/state/send/SendContext'
-import { SwapAndLimitContext } from '~/state/swap/types'
 import { render, screen } from '~/test-utils/render'
+
+const useDynamicConfigValueMock = vi.mocked(useDynamicConfigValue)
 
 const mockMultichainContextValue = {
   reset: vi.fn(),
@@ -67,12 +70,21 @@ const mockedSendContextTokenInput: SendContextType = {
 }
 
 describe('SendReviewModal', () => {
+  beforeEach(() => {
+    useDynamicConfigValueMock.mockImplementation((opts: { defaultValue?: unknown }) => {
+      if (opts.defaultValue !== undefined && opts.defaultValue !== null) {
+        return opts.defaultValue
+      }
+      return 100
+    })
+  })
+
   it('should render input in fiat correctly', () => {
     render(
       <MultichainContext.Provider value={mockMultichainContextValue}>
         <SwapAndLimitContext.Provider value={mockSwapAndLimitContextValue}>
           <SendContext.Provider value={mockedSendContextFiatInput}>
-            <SendReviewModalInner onDismiss={vi.fn()} onConfirm={vi.fn()} />
+            <SendReviewModalInner onDismiss={vi.fn()} onConfirm={vi.fn()} hasError={false} />
           </SendContext.Provider>
         </SwapAndLimitContext.Provider>
       </MultichainContext.Provider>,
@@ -90,7 +102,7 @@ describe('SendReviewModal', () => {
       <MultichainContext.Provider value={mockMultichainContextValue}>
         <SwapAndLimitContext.Provider value={mockSwapAndLimitContextValue}>
           <SendContext.Provider value={mockedSendContextTokenInput}>
-            <SendReviewModalInner onDismiss={vi.fn()} onConfirm={vi.fn()} />
+            <SendReviewModalInner onDismiss={vi.fn()} onConfirm={vi.fn()} hasError={false} />
           </SendContext.Provider>
         </SwapAndLimitContext.Provider>
       </MultichainContext.Provider>,
@@ -101,5 +113,31 @@ describe('SendReviewModal', () => {
     expect(screen.getByText(shortenAddress({ address: '0x9984b4b4E408e8D618A879e5315BD30952c89103' }))).toBeVisible()
     const modalComponent = screen.getByTestId('send-review-modal')
     expect(modalComponent).toMatchSnapshot()
+  })
+
+  it('renders the inline error text when a send error is present', () => {
+    render(
+      <MultichainContext.Provider value={mockMultichainContextValue}>
+        <SwapAndLimitContext.Provider value={mockSwapAndLimitContextValue}>
+          <SendContext.Provider value={mockedSendContextTokenInput}>
+            <SendReviewModalInner onDismiss={vi.fn()} onConfirm={vi.fn()} hasError={true} />
+          </SendContext.Provider>
+        </SwapAndLimitContext.Provider>
+      </MultichainContext.Provider>,
+    )
+    expect(screen.getByText('Transfer failed. Please try again.')).toBeVisible()
+  })
+
+  it('does not render the error text in the non-error state', () => {
+    render(
+      <MultichainContext.Provider value={mockMultichainContextValue}>
+        <SwapAndLimitContext.Provider value={mockSwapAndLimitContextValue}>
+          <SendContext.Provider value={mockedSendContextTokenInput}>
+            <SendReviewModalInner onDismiss={vi.fn()} onConfirm={vi.fn()} hasError={false} />
+          </SendContext.Provider>
+        </SwapAndLimitContext.Provider>
+      </MultichainContext.Provider>,
+    )
+    expect(screen.queryByText('Transfer failed. Please try again.')).not.toBeInTheDocument()
   })
 })

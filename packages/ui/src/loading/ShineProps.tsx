@@ -1,5 +1,4 @@
-import type { FlexProps } from 'ui/src/components/layout'
-
+import type { FlexProps } from '@universe/mycelium'
 export type ShineProps = {
   shimmerDurationSeconds?: number
   disabled?: boolean

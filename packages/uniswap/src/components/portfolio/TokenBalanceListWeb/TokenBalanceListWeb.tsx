@@ -1,8 +1,8 @@
-import { NetworkStatus } from '@apollo/client'
 import { Currency } from '@uniswap/sdk-core'
+import { Flex } from '@universe/mycelium'
+import { Presence } from '@universe/mycelium/presence'
 import { memo, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AnimatePresence, Flex } from 'ui/src'
 import { BaseCard } from 'uniswap/src/components/BaseCard/BaseCard'
 import { EmptyTokensList } from 'uniswap/src/components/portfolio/EmptyTokensList'
 import { PortfolioEmptyState } from 'uniswap/src/components/portfolio/PortfolioEmptyState'
@@ -61,7 +61,7 @@ function TokenBalanceListInner({
 }: Omit<TokenBalanceListProps, 'svmOwner' | 'evmOwner' | 'onPressToken'>): JSX.Element {
   const { t } = useTranslation()
 
-  const { rows, balancesById, networkStatus, refetch, hiddenTokensExpanded } = useTokenBalanceListContext()
+  const { rows, balancesById, refetch, hiddenTokensExpanded, isError } = useTokenBalanceListContext()
   const hiddenTokensRowRef = useRef<HTMLDivElement | null>(null)
   const previousHiddenTokensExpanded = usePrevious(hiddenTokensExpanded)
 
@@ -100,7 +100,7 @@ function TokenBalanceListInner({
 
   const hasData = !!balancesById
   const hasTokens = balancesById && Object.keys(balancesById).length > 0
-  const hasErrorWithCachedValues = hasData && networkStatus === NetworkStatus.error
+  const hasErrorWithCachedValues = hasData && isError
 
   if (!hasData) {
     return (
@@ -142,11 +142,11 @@ function TokenBalanceListInner({
         openReportTokenModal={openReportTokenModal}
         hiddenTokensRowRef={hiddenTokensRowRef}
       />
-      <AnimatePresence initial={false}>
+      <Presence initial={false}>
         {hiddenTokensExpanded && (
           <TokenBalanceItems animated rows={hidden} openReportTokenModal={openReportTokenModal} />
         )}
-      </AnimatePresence>
+      </Presence>
     </>
   )
 }

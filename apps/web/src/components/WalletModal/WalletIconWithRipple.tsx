@@ -1,5 +1,7 @@
+import { Flex } from '@universe/mycelium'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import React from 'react'
-import { Flex, Image, PulseRipple, useSporeColors } from 'ui/src'
+import { Image, PulseRipple } from 'ui/src'
 
 interface WalletIconWithRippleProps {
   src?: string

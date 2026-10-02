@@ -63,7 +63,6 @@ describe('createSessionInitializationService', () => {
           getSessionService: () => sessionService,
           challengeSolverService,
           performanceTracker: mockPerformanceTracker,
-          getIsSessionUpgradeAutoEnabled: () => true,
         })
 
         // Execute
@@ -91,7 +90,6 @@ describe('createSessionInitializationService', () => {
           getSessionService: () => sessionService,
           challengeSolverService,
           performanceTracker: mockPerformanceTracker,
-          getIsSessionUpgradeAutoEnabled: () => true,
         })
 
         // Execute
@@ -114,7 +112,6 @@ describe('createSessionInitializationService', () => {
           getSessionService: () => sessionService,
           challengeSolverService,
           performanceTracker: mockPerformanceTracker,
-          getIsSessionUpgradeAutoEnabled: () => true,
         })
 
         // Execute
@@ -139,7 +136,6 @@ describe('createSessionInitializationService', () => {
           getSessionService: () => sessionService,
           challengeSolverService,
           performanceTracker: mockPerformanceTracker,
-          getIsSessionUpgradeAutoEnabled: () => true,
         })
 
         // Execute
@@ -162,7 +158,6 @@ describe('createSessionInitializationService', () => {
           getSessionService: () => sessionService,
           challengeSolverService,
           performanceTracker: mockPerformanceTracker,
-          getIsSessionUpgradeAutoEnabled: () => true,
           maxChallengeRetries: 2,
         })
 
@@ -184,7 +179,6 @@ describe('createSessionInitializationService', () => {
           getSessionService: () => sessionService,
           challengeSolverService,
           performanceTracker: mockPerformanceTracker,
-          getIsSessionUpgradeAutoEnabled: () => true,
           maxChallengeRetries: 3,
         })
 
@@ -207,7 +201,6 @@ describe('createSessionInitializationService', () => {
           getSessionService: () => sessionService,
           challengeSolverService,
           performanceTracker: mockPerformanceTracker,
-          getIsSessionUpgradeAutoEnabled: () => true,
         })
 
         // Execute and verify
@@ -241,7 +234,6 @@ describe('createSessionInitializationService', () => {
           getSessionService: () => sessionService,
           challengeSolverService,
           performanceTracker: mockPerformanceTracker,
-          getIsSessionUpgradeAutoEnabled: () => true,
         })
 
         // Execute — should NOT throw; empty solution is submitted instead
@@ -289,7 +281,6 @@ describe('createSessionInitializationService', () => {
           getSessionService: () => sessionService,
           challengeSolverService,
           performanceTracker: mockPerformanceTracker,
-          getIsSessionUpgradeAutoEnabled: () => true,
         })
 
         await service.initialize()
@@ -320,7 +311,6 @@ describe('createSessionInitializationService', () => {
           getSessionService: () => sessionService,
           challengeSolverService,
           performanceTracker: mockPerformanceTracker,
-          getIsSessionUpgradeAutoEnabled: () => true,
           maxChallengeRetries: 2,
         })
 
@@ -391,7 +381,6 @@ describe('createSessionInitializationService', () => {
           getSessionService: () => sessionService,
           challengeSolverService,
           performanceTracker: mockPerformanceTracker,
-          getIsSessionUpgradeAutoEnabled: () => true,
           analytics,
         })
 
@@ -411,7 +400,6 @@ describe('createSessionInitializationService', () => {
           getSessionService: () => sessionService,
           challengeSolverService,
           performanceTracker: mockPerformanceTracker,
-          getIsSessionUpgradeAutoEnabled: () => true,
           analytics,
         })
 
@@ -431,7 +419,6 @@ describe('createSessionInitializationService', () => {
           getSessionService: () => sessionService,
           challengeSolverService,
           performanceTracker: mockPerformanceTracker,
-          getIsSessionUpgradeAutoEnabled: () => true,
           analytics,
         })
 
@@ -490,7 +477,6 @@ describe('createSessionInitializationService', () => {
           getSessionService: () => sessionService,
           challengeSolverService,
           performanceTracker: mockPerformanceTracker,
-          getIsSessionUpgradeAutoEnabled: () => true,
         })
 
         // Execute
@@ -499,58 +485,6 @@ describe('createSessionInitializationService', () => {
         // Verify None type was handled
         expect(challengeSolverService.getSolver).toHaveBeenCalledWith(ChallengeType.UNSPECIFIED)
         expect(noneSolver.solve).toHaveBeenCalled()
-      })
-
-      it('does not complete challenge flow when auto-upgrade is disabled', async () => {
-        // Setup
-        TestScenarios.withChallengeRequired(sessionService)
-
-        const service = createSessionInitializationService({
-          getSessionService: () => sessionService,
-          challengeSolverService,
-          performanceTracker: mockPerformanceTracker,
-          getIsSessionUpgradeAutoEnabled: () => false,
-        })
-
-        // Execute
-        const result = await service.initialize()
-
-        // Verify behavior - session initialized but challenge not handled
-        // sessionId is returned regardless of challenge status (null if not provided by backend)
-        expect(result).toEqual({
-          sessionId: 'new-session-222',
-        })
-
-        // Verify challenge flow was NOT executed
-        expect(sessionService.initSession).toHaveBeenCalled()
-        expect(sessionService.requestChallenge).not.toHaveBeenCalled()
-        expect(sessionService.verifySession).not.toHaveBeenCalled()
-      })
-
-      it('defaults to disabled when callback is not provided', async () => {
-        // Setup
-        TestScenarios.withChallengeRequired(sessionService)
-
-        const service = createSessionInitializationService({
-          getSessionService: () => sessionService,
-          challengeSolverService,
-          performanceTracker: mockPerformanceTracker,
-          // No getIsSessionUpgradeAutoEnabled callback provided
-        })
-
-        // Execute
-        const result = await service.initialize()
-
-        // Verify behavior - defaults to disabled (opt-in)
-        // sessionId is returned regardless of challenge status
-        expect(result).toEqual({
-          sessionId: 'new-session-222',
-        })
-
-        // Verify challenge flow was NOT executed (default disabled)
-        expect(sessionService.initSession).toHaveBeenCalled()
-        expect(sessionService.requestChallenge).not.toHaveBeenCalled()
-        expect(sessionService.verifySession).not.toHaveBeenCalled()
       })
     })
   })

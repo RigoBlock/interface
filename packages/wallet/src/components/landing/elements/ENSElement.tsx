@@ -1,4 +1,5 @@
-import { Flex, Image, useIsDarkMode } from 'ui/src'
+import { Flex } from '@universe/mycelium'
+import { Image, useIsDarkMode } from 'ui/src'
 import { ENS_LOGO } from 'ui/src/assets'
 import { imageSizes, opacify } from 'ui/src/theme'
 

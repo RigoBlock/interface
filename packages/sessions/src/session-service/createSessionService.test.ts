@@ -62,6 +62,7 @@ describe('createSessionService', () => {
       challenge: vi.fn(),
       verifySession: vi.fn(),
       deleteSession: vi.fn(),
+      getChallengeTypes: vi.fn(),
     }
 
     service = createSessionService({

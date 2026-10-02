@@ -1,60 +1,77 @@
-import { GraphQLApi } from '@universe/api'
-import { ReactNode, useCallback, useState } from 'react'
+import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
+import { UniverseChainId, Platform, areAddressesEqual } from '@universe/chains'
+import { Button, Flex, Flex as FlexCompat, type FlexCompatProps, Spacer } from '@universe/mycelium'
+import { useIsTouchDevice, useMedia } from '@universe/mycelium/theme-hooks-compat'
+import { TestID } from '@universe/test'
+import { forwardRef, type ForwardRefExoticComponent, ReactNode, type RefAttributes, useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router'
-import { Button, Flex, Spacer, styled, useIsTouchDevice, useMedia } from 'ui/src'
 import { CoinConvert } from 'ui/src/components/icons/CoinConvert'
 import { Plus } from 'ui/src/components/icons/Plus'
 import { X } from 'ui/src/components/icons/X'
-import { zIndexes } from 'ui/src/theme'
+import { zIndexes } from 'ui/src/theme/zIndexes'
 import { Modal } from 'uniswap/src/components/modals/Modal'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
+import type { ParsedToken } from 'uniswap/src/features/dataApi/utils/parsedToken'
+import { v2TokenToCurrency } from 'uniswap/src/features/dataApi/utils/parsedToken'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { TokenWarningCard } from 'uniswap/src/features/tokens/warnings/TokenWarningCard'
 import TokenWarningModal from 'uniswap/src/features/tokens/warnings/TokenWarningModal'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
-import { areAddressesEqual } from 'uniswap/src/utils/addresses'
 import { currencyId } from 'uniswap/src/utils/currencyId'
-import { gqlToCurrency } from '~/appGraphql/data/util'
+import { LPGeoRestrictionBanner } from '~/components/GeoRestriction/LPGeoRestrictionBanner'
 import { MobileBottomBar } from '~/components/NavBar/MobileBottomBar'
 import { LoadingBubble } from '~/components/Tokens/loading'
 import { NATIVE_CHAIN_ID } from '~/constants/tokens'
-import { getChainUrlParam } from '~/features/params/chainParams'
+import { getNextFlowStep } from '~/features/Liquidity/Create/flowSteps'
+import { PositionFlowStep } from '~/features/Liquidity/Create/types'
+import { useLPGeoRestriction } from '~/features/Liquidity/useLPGeoRestriction'
+import { getProtocolVersionLabel } from '~/features/Liquidity/utils/protocolVersion'
 import { useAccount } from '~/hooks/useAccount'
 import { ScrollDirection, useScroll } from '~/hooks/useScroll'
+import { buildPoolSearchParams } from '~/pages/AddLiquidity/poolLinkParams'
 import { PositionInfo } from '~/pages/PoolDetails/Pools/cache'
-import useMultiChainPositions from '~/pages/PoolDetails/Pools/hooks/useMultiChainPositions'
+import { useMultiChainPositions } from '~/pages/PoolDetails/Pools/hooks/useMultiChainPositions'
 import { Swap } from '~/pages/Swap'
+import { getChainUrlParam } from '~/utils/params/chainParams'
 
-const PoolDetailsStatsButtonsRow = styled(Flex, {
-  row: true,
-  gap: '$gap12',
-  zIndex: 1,
-  mb: '$spacing24',
-  $xl: {
-    gap: '$gap8',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    width: '100%',
-    p: '$padding16',
-    zIndex: zIndexes.sticky,
-    '$platform-web': { position: 'fixed' },
-  },
-})
+// `$xl` stays `$xl`: mycelium's `media-xl` is `(max-width: 1024px)`; Tailwind's stock `xl:` is the inversion.
+// Explicit return type: forwardRef's inferred type isn't nameable under declaration emit (TS2883).
+const PoolDetailsStatsButtonsRow: ForwardRefExoticComponent<FlexCompatProps & RefAttributes<HTMLDivElement>> =
+  forwardRef<HTMLDivElement, FlexCompatProps>(function PoolDetailsStatsButtonsRow({ $xl: xl, ...props }, ref) {
+    return (
+      <FlexCompat
+        ref={ref}
+        row
+        gap="$gap12"
+        zIndex={1}
+        // Merge, don't spread: Tamagui deep-merged a caller's object-valued prop into the config's value for the same key.
+        $xl={{
+          gap: '$gap8',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          width: '100%',
+          p: '$padding16',
+          zIndex: zIndexes.sticky,
+          position: 'fixed',
+          ...xl,
+        }}
+        {...props}
+      />
+    )
+  })
 
 interface PoolDetailsStatsButtonsProps {
   chainId?: UniverseChainId
-  token0?: GraphQLApi.Token
-  token1?: GraphQLApi.Token
+  poolIdOrAddress: string
+  token0?: ParsedToken
+  token1?: ParsedToken
   feeTier?: number
   tickSpacing?: number
   hookAddress?: string
   isDynamic?: boolean
-  protocolVersion?: GraphQLApi.ProtocolVersion
+  protocolVersion?: ProtocolVersion
   loading?: boolean
 }
 
@@ -89,8 +106,8 @@ function findMatchingPosition({
   feeTier,
 }: {
   positions: PositionInfo[]
-  token0?: GraphQLApi.Token
-  token1?: GraphQLApi.Token
+  token0?: ParsedToken
+  token1?: ParsedToken
   feeTier?: number
 }) {
   return positions.find(
@@ -118,6 +135,7 @@ function findMatchingPosition({
 
 export function PoolDetailsStatsButtons({
   chainId,
+  poolIdOrAddress,
   token0,
   token1,
   feeTier,
@@ -136,10 +154,18 @@ export function PoolDetailsStatsButtons({
 
   const navigate = useNavigate()
   const location = useLocation()
-  const currency0 = token0 && gqlToCurrency(token0)
-  const currency1 = token1 && gqlToCurrency(token1)
+  const protocolVersionLabel = protocolVersion !== undefined ? getProtocolVersionLabel(protocolVersion) : undefined
+  const currency0 = token0 && v2TokenToCurrency(token0)
+  const currency1 = token1 && v2TokenToCurrency(token1)
   const currencyInfo0 = useCurrencyInfo(currency0 && currencyId(currency0))
   const currencyInfo1 = useCurrencyInfo(currency1 && currencyId(currency1))
+
+  // Fails open while the check is in flight, as swap does: this CTA only navigates, and the
+  // add-liquidity flow it lands in gates again on the same hook before anything is signed.
+  const { isGeoRestricted, restrictedTokenSymbol } = useLPGeoRestriction({
+    token0: currency0,
+    token1: currency1,
+  })
 
   const handleAddLiquidity = async () => {
     if (currency0 && currency1) {
@@ -148,21 +174,31 @@ export function PoolDetailsStatsButtons({
       const chainUrlParam = getChainUrlParam(chainId ?? currency0.chainId)
 
       if (tokenId) {
-        navigate(`/positions/${protocolVersion?.toLowerCase()}/${chainUrlParam}/${tokenId}`, {
+        navigate(`/positions/${protocolVersionLabel}/${chainUrlParam}/${tokenId}`, {
           state: { from: location.pathname },
         })
       } else {
-        const queryParams = new URLSearchParams()
-        queryParams.set('currencyA', currency0Address)
-        queryParams.set('currencyB', currency1Address)
-        queryParams.set('chain', chainUrlParam)
-        queryParams.set('fee', JSON.stringify({ feeAmount: feeTier, tickSpacing, isDynamic }))
-        if (hookAddress) {
-          queryParams.set('hook', hookAddress)
-        }
-        const url = `/positions/create/${protocolVersion?.toLowerCase()}?${queryParams.toString()}`
-        navigate(url, {
-          state: { from: location.pathname },
+        const params = buildPoolSearchParams({
+          currencyA: currency0Address,
+          currencyB: currency1Address,
+          chain: chainUrlParam,
+          fee:
+            feeTier !== undefined
+              ? { feeAmount: feeTier, tickSpacing: tickSpacing ?? 0, isDynamic: isDynamic ?? false }
+              : undefined,
+          hookAddress,
+          protocolVersion: protocolVersionLabel,
+        })
+        // The pool already exists here, so creatingPoolOrPair is false.
+        const nextStep = getNextFlowStep({
+          currentStep: PositionFlowStep.SELECT_TOKENS_AND_FEE_TIER,
+          protocolVersion: protocolVersion ?? ProtocolVersion.V4,
+          creatingPoolOrPair: false,
+        })
+        params.set('step', String(nextStep))
+        const search = params.toString()
+        navigate(`/positions/add/${chainUrlParam}/${poolIdOrAddress}${search ? `?${search}` : ''}`, {
+          state: { from: location.pathname, entryPoint: location.pathname },
         })
       }
     }
@@ -193,6 +229,9 @@ export function PoolDetailsStatsButtons({
 
   return (
     <Flex flexDirection="column" gap="$gap24">
+      {/* The banner renders in the column rather than inside PoolButtonsWrapper because on mobile that
+          wrapper is MobileBottomBar — a fixed 100px-max strip that translates away on scroll. */}
+      {isGeoRestricted && <LPGeoRestrictionBanner tokenSymbol={restrictedTokenSymbol} />}
       <PoolButtonsWrapper isMobile={isMobile}>
         <Flex
           row
@@ -208,13 +247,17 @@ export function PoolDetailsStatsButtons({
           >
             {swapModalOpen ? t('common.close') : t('common.swap')}
           </PoolButton>
-          <PoolButton
-            icon={<Plus size="$icon.20" />}
-            onPress={handleAddLiquidity}
-            data-testid={TestID.PoolDetailsAddLiquidityButton}
-          >
-            {t('common.addLiquidity')}
-          </PoolButton>
+          {/* Dropped rather than disabled — the banner above already states the restriction, so a
+              dead half of the row would only repeat it. */}
+          {!isGeoRestricted && (
+            <PoolButton
+              icon={<Plus size="$icon.20" />}
+              onPress={handleAddLiquidity}
+              data-testid={TestID.PoolDetailsAddLiquidityButton}
+            >
+              {t('common.addLiquidity')}
+            </PoolButton>
+          )}
         </Flex>
       </PoolButtonsWrapper>
       <Modal
@@ -258,9 +301,12 @@ function PoolButtonsWrapper({ children, isMobile }: PoolButtonsWrapperProps) {
   const isTouchDevice = useIsTouchDevice()
   const { direction: scrollDirection } = useScroll()
 
-  // Determine wrapper component for pool buttons based on viewport size
-  const Wrapper = isMobile ? MobileBottomBar : PoolDetailsStatsButtonsRow
-  const wrapperProps = isMobile ? { hide: isTouchDevice && scrollDirection === ScrollDirection.DOWN } : {}
+  // The two wrappers no longer share a prop type, so they cannot be aliased into one variable.
+  if (isMobile) {
+    return (
+      <MobileBottomBar hide={isTouchDevice && scrollDirection === ScrollDirection.DOWN}>{children}</MobileBottomBar>
+    )
+  }
 
-  return <Wrapper {...wrapperProps}>{children}</Wrapper>
+  return <PoolDetailsStatsButtonsRow>{children}</PoolDetailsStatsButtonsRow>
 }

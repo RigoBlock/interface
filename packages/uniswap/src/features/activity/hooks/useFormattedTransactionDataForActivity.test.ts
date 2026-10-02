@@ -1,8 +1,7 @@
-import { NetworkStatus } from '@apollo/client'
+import { QueryStatus } from '@tanstack/react-query'
 import { TradingApi } from '@universe/api'
 import dayjs from 'dayjs'
 import { useFormattedTransactionDataForActivity } from 'uniswap/src/features/activity/hooks/useFormattedTransactionDataForActivity'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { transactionDetails, uniswapXOrderDetails } from 'uniswap/src/test/fixtures/wallet/transactions'
 import { renderHook } from 'uniswap/src/test/test-utils'
@@ -22,6 +21,7 @@ vi.mock('react-redux', async (importOriginal) => {
   }
 })
 
+import { UniverseChainId } from '@universe/chains'
 import { useSelector } from 'react-redux'
 import { formatTransactionsByDate } from 'uniswap/src/features/activity/formatTransactionsByDate'
 import { useMergeLocalAndRemoteTransactions } from 'uniswap/src/features/activity/hooks/useMergeLocalAndRemoteTransactions'
@@ -63,10 +63,12 @@ describe('useFormattedTransactionDataForActivity', () => {
       isFetching: false,
       error: undefined,
       refetch: mockRefetch,
-      networkStatus: NetworkStatus.ready,
+      isPending: false,
+      isError: false,
       fetchNextPage: mockFetchNextPage,
       hasNextPage: false,
       isFetchingNextPage: false,
+      isFetchNextPageError: false,
     })
   })
 
@@ -85,10 +87,12 @@ describe('useFormattedTransactionDataForActivity', () => {
       isFetching: false,
       error: undefined,
       refetch: mockRefetch,
-      networkStatus: NetworkStatus.ready,
+      isPending: false,
+      isError: false,
       fetchNextPage: mockFetchNextPage,
       hasNextPage: false,
       isFetchingNextPage: false,
+      isFetchNextPageError: false,
       ...overrides,
     })
   }
@@ -116,7 +120,7 @@ describe('useFormattedTransactionDataForActivity', () => {
 
   describe('loading states', () => {
     it('should show loading data when no data and loading', () => {
-      mockListTransactions({ data: undefined, loading: true, networkStatus: NetworkStatus.loading })
+      mockListTransactions({ data: undefined, loading: true, isPending: true })
       const { result } = renderFormattedHook()
 
       expect(result.current.isLoading).toBe(true)
@@ -139,16 +143,17 @@ describe('useFormattedTransactionDataForActivity', () => {
   describe('error states', () => {
     it('should handle error from useListTransactions', () => {
       const mockError = new Error('API error')
-      mockListTransactions({ data: undefined, error: mockError, networkStatus: NetworkStatus.error })
+      mockListTransactions({ data: undefined, error: mockError, isError: true, isFetchNextPageError: true })
 
       const { result } = renderFormattedHook()
 
       expect(result.current.error).toBe(mockError)
+      expect(result.current.isFetchNextPageError).toBe(true)
       expect(result.current.hasData).toBe(false)
     })
 
     it('should provide retry functionality', async () => {
-      mockListTransactions({ data: undefined, error: new Error('Test error'), networkStatus: NetworkStatus.error })
+      mockListTransactions({ data: undefined, error: new Error('Test error'), isError: true })
 
       const { result } = renderFormattedHook()
 
@@ -270,6 +275,18 @@ describe('useFormattedTransactionDataForActivity', () => {
 
       // Should be false despite API returning hasNextPage=true because limit reached
       expect(result.current.hasNextPage).toBe(false)
+    })
+
+    it('should continue paginating beyond 250 items when maxItems is Infinity', () => {
+      // Simulate a web Activity page with 500+ transactions — should never hit the cap
+      const transactions = Array.from({ length: 500 }, (_, i) => createTestTransaction({ id: `tx-${i}` }))
+
+      mockListTransactions({ data: transactions, hasNextPage: true })
+      mockUseMergeLocalAndRemoteTransactions.mockReturnValue(transactions)
+
+      const { result } = renderFormattedHook({ maxItems: Infinity })
+
+      expect(result.current.hasNextPage).toBe(true)
     })
   })
 

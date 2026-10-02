@@ -1,12 +1,15 @@
 import { TradingApi } from '@universe/api'
+import { isWebPlatform } from '@universe/environment'
+import { Button, Flex, IconButton, Text } from '@universe/mycelium'
+import { createSlideFadePresence } from '@universe/tailwind/animations/slide-fade-presence'
 import { useTranslation } from 'react-i18next'
-import { Button, Flex, IconButton, Text } from 'ui/src'
 import { HelpCenter } from 'ui/src/components/icons/HelpCenter'
 import { X } from 'ui/src/components/icons/X'
+import { AnimatedFlex } from 'ui/src/components/layout/AnimatedFlex'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import { WarningModalContent } from 'uniswap/src/components/modals/WarningModal/WarningModal'
 import { LearnMoreLink } from 'uniswap/src/components/text/LearnMoreLink'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import {
   useTransactionSettingsActions,
@@ -17,7 +20,11 @@ import { useTransactionModalContext } from 'uniswap/src/features/transactions/co
 import { getErrorContent, TransactionStepFailedError } from 'uniswap/src/features/transactions/errors'
 import { TransactionStepType } from 'uniswap/src/features/transactions/steps/types'
 import { openUri } from 'uniswap/src/utils/linking'
-import { isWebPlatform } from 'utilities/src/platform'
+
+// Native (Reanimated) and web (Tamagui CSS transition) legs of the legacy Tamagui 'quick'
+// mount-in/out fade (enterStyle/exitStyle opacity 0), bundled by the shared helper so the two
+// platforms can't drift apart.
+const fadeQuickProps = createSlideFadePresence('quick', { axis: 'translateY', offset: 0 })
 
 export function SwapErrorScreen({
   submissionError,
@@ -52,7 +59,9 @@ export function SwapErrorScreen({
     } else if (isUniswapXBackendError) {
       // TODO(WEB-7668): move this into onPressRetry logic.
       // Update swap preferences for this session to exclude UniswapX if Uniswap x failed
-      const updatedProtocols = selectedProtocols.filter((protocol) => protocol !== TradingApi.ProtocolItems.UNISWAPX_V2)
+      const updatedProtocols = selectedProtocols.filter(
+        (protocol) => protocol !== TradingApi.ProtocolItems.UNISWAPX_LATEST,
+      )
       setSelectedProtocols(updatedProtocols)
     } else {
       resubmitSwap()
@@ -61,7 +70,7 @@ export function SwapErrorScreen({
   }
 
   const onPressGetHelp = async (): Promise<void> => {
-    await openUri({ uri: supportArticleURL ?? uniswapUrls.helpUrl })
+    await openUri({ uri: supportArticleURL ?? UniswapHelpUrls.baseUrl })
   }
 
   const caption = supportArticleURL ? (
@@ -88,7 +97,7 @@ export function SwapErrorScreen({
             <IconButton size="xxsmall" variant="default" emphasis="text-only" icon={<X />} onPress={onClose} />
           </Flex>
         )}
-        <Flex animation="quick" enterStyle={{ opacity: 0 }} exitStyle={{ opacity: 0 }}>
+        <AnimatedFlex {...fadeQuickProps}>
           <WarningModalContent
             modalName={ModalName.SwapError}
             title={title}
@@ -97,7 +106,7 @@ export function SwapErrorScreen({
             rejectText={buttonText ?? t('common.button.tryAgain')}
             onReject={handleTryAgain}
           />
-        </Flex>
+        </AnimatedFlex>
       </Flex>
     </TransactionModalInnerContainer>
   )

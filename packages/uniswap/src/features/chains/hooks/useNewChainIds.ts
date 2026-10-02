@@ -1,6 +1,6 @@
+import { UniverseChainId } from '@universe/chains'
 import { ChainsConfigKey, DynamicConfigs, useDynamicConfigValue } from '@universe/gating'
 import { useMemo } from 'react'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { isUniverseChainId } from 'uniswap/src/features/chains/utils'
 import { isUniverseChainIdArrayType } from 'uniswap/src/features/gating/typeGuards'
 

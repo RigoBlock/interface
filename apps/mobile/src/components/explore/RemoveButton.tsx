@@ -1,5 +1,4 @@
-import { AnimatedTouchableArea, Flex, TouchableAreaProps } from 'ui/src'
-import { imageSizes } from 'ui/src/theme'
+import { AnimatedTouchableArea, Flex, imageSizes, TouchableAreaProps } from '@universe/mycelium'
 
 type RemoveButtonProps = TouchableAreaProps & {
   visible?: boolean

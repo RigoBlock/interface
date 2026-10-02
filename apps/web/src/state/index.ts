@@ -1,15 +1,14 @@
+// oxlint-disable import/no-cycle -- sagas and redux store have many cycles, deep refactoring is needed
 import { configureStore } from '@reduxjs/toolkit'
-import { setupListeners } from '@reduxjs/toolkit/query/react'
+import { isDevEnv, isTestEnv } from '@universe/environment'
 import localForage from 'localforage'
 import { type PersistConfig, persistReducer, persistStore } from 'redux-persist'
 import createSagaMiddleware from 'redux-saga'
 import { delegationListenerMiddleware } from 'uniswap/src/features/smartWallet/delegation/slice'
-import { isDevEnv, isTestEnv } from 'utilities/src/environment/env'
 import { createDatadogReduxEnhancer } from 'utilities/src/logger/datadog/Datadog'
 import { ALLOW_ANALYTICS_ATOM_KEY } from 'utilities/src/telemetry/analytics/constants'
 import { updateVersion } from '~/state/global/actions'
 import { customCreateMigrate, INDEXED_DB_REDUX_TABLE_NAME, migrations, PERSIST_VERSION } from '~/state/migrations'
-import { routingApi } from '~/state/routing/slice'
 import { rootWebSaga, sagaTriggerActions } from '~/state/sagas/root'
 import { walletCapabilitiesListenerMiddleware } from '~/state/walletCapabilities/reducer'
 import { type InterfaceState, interfacePersistedStateList, interfaceReducer } from '~/state/webReducer'
@@ -54,7 +53,7 @@ export function createDefaultStore() {
         immutableCheck: isTestEnv()
           ? false
           : {
-              ignoredPaths: [routingApi.reducerPath, 'logs', 'lists'],
+              ignoredPaths: ['logs', 'lists'],
             },
         serializableCheck: isTestEnv()
           ? false
@@ -63,7 +62,6 @@ export function createDefaultStore() {
               // meta.arg and meta.baseQueryMeta are defaults. payload.trade is a nonserializable return value, but that's ok
               // because we are not adding it into any persisted store that requires serialization (e.g. localStorage)
               ignoredActionPaths: ['meta.arg', 'meta.baseQueryMeta', 'payload.trade'],
-              ignoredPaths: [routingApi.reducerPath],
               ignoredActions: [
                 // ignore saga trigger actions
                 ...sagaTriggerActions,
@@ -75,7 +73,6 @@ export function createDefaultStore() {
               ],
             },
       })
-        .concat(routingApi.middleware)
         .concat(sagaMiddleware)
         .concat(walletCapabilitiesListenerMiddleware.middleware)
         .concat(delegationListenerMiddleware.middleware),
@@ -87,8 +84,6 @@ export function createDefaultStore() {
 
 const store = createDefaultStore()
 export const persistor = persistStore(store)
-
-setupListeners(store.dispatch)
 
 store.dispatch(updateVersion())
 

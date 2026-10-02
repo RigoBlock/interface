@@ -1,16 +1,14 @@
+import { Flex, Text } from '@universe/mycelium'
+import { Ellipsis } from '@universe/mycelium/icons/Ellipsis'
 import { default as React, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { StyleSheet } from 'react-native'
 import ContextMenu from 'react-native-context-menu-view'
-import { navigate } from 'src/app/navigation/rootNavigation'
 import type { AppStackScreenProp } from 'src/app/navigation/types'
 import { BackHeader } from 'src/components/layout/BackHeader'
 import { useReactNavigationModal } from 'src/components/modals/useReactNavigationModal'
 import { navigateBackFromEditingWallet } from 'src/components/Settings/EditWalletModal/EditWalletNavigation'
-import { Flex, Text } from 'ui/src'
-import { Ellipsis } from 'ui/src/components/icons'
 import { Modal } from 'uniswap/src/components/modals/Modal'
-import { useBottomSheetSafeKeyboard } from 'uniswap/src/components/modals/useBottomSheetSafeKeyboard'
 import { useUnitagsAddressQuery } from 'uniswap/src/data/apiClients/unitagsApi/useUnitagsAddressQuery'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { MobileScreens } from 'uniswap/src/types/screens/mobile'
@@ -32,7 +30,6 @@ export function EditProfileSettingsModal({
   const unitag = retrievedUnitag?.username
 
   const { t } = useTranslation()
-  const { keyboardHeight } = useBottomSheetSafeKeyboard()
 
   const [showDeleteUnitagModal, setShowDeleteUnitagModal] = useState(false)
   const [showChangeUnitagModal, setShowChangeUnitagModal] = useState(false)
@@ -43,7 +40,7 @@ export function EditProfileSettingsModal({
   }
 
   const onNavigate = (): void => {
-    navigate(MobileScreens.Home)
+    onClose()
   }
 
   const onBack = (): void => {
@@ -122,13 +119,7 @@ export function EditProfileSettingsModal({
         <DeleteUnitagModal address={address} unitag={unitag} onSuccess={onBack} onClose={onCloseDeleteModal} />
       )}
       {showChangeUnitagModal && unitag && (
-        <ChangeUnitagModal
-          address={address}
-          unitag={unitag}
-          keyboardHeight={keyboardHeight}
-          onSuccess={onBack}
-          onClose={onCloseChangeModal}
-        />
+        <ChangeUnitagModal address={address} unitag={unitag} onSuccess={onBack} onClose={onCloseChangeModal} />
       )}
     </Modal>
   )

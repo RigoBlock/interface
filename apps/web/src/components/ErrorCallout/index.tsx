@@ -1,7 +1,7 @@
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
+import { AlertTriangleFilled } from '@universe/mycelium/icons/AlertTriangleFilled'
+import { RotateLeft } from '@universe/mycelium/icons/RotateLeft'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text, TouchableArea } from 'ui/src'
-import { AlertTriangleFilled } from 'ui/src/components/icons/AlertTriangleFilled'
-import { RotateLeft } from 'ui/src/components/icons/RotateLeft'
 import { ClickableTamaguiStyle } from '~/theme/components/styles'
 
 export function ErrorCallout({
@@ -15,7 +15,7 @@ export function ErrorCallout({
 }: {
   action?: string
   errorMessage: boolean | string
-  description?: string
+  description?: React.ReactNode
   title?: string
   isWarning?: boolean
   pressIcon?: React.ReactNode

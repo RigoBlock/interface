@@ -1,5 +1,5 @@
+import { Loader } from '@universe/mycelium'
 import { ReactNode, Suspense } from 'react'
-import { Loader } from 'ui/src/loading/Loader'
 import { FiatCurrency } from 'uniswap/src/features/fiatCurrency/constants'
 import {
   ARS_ICON,
@@ -21,6 +21,7 @@ import {
   PKR_ICON,
   RUB_ICON,
   SGD_ICON,
+  SEK_ICON,
   TRY_ICON,
   UAH_ICON,
   USD_ICON,
@@ -165,6 +166,12 @@ export function getLocalCurrencyIcon(localCurrency: FiatCurrency, size = 20): Re
       return (
         <Suspense fallback={<Loader.Box borderRadius="$roundedFull" width={size} height={size} />}>
           <MXN_ICON width={size} height={size} />
+        </Suspense>
+      )
+    case FiatCurrency.SwedishKrona:
+      return (
+        <Suspense fallback={<Loader.Box borderRadius="$roundedFull" width={size} height={size} />}>
+          <SEK_ICON width={size} height={size} />
         </Suspense>
       )
     default:

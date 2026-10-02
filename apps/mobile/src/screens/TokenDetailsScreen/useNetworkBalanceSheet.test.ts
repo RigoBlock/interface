@@ -1,22 +1,40 @@
 import { act, renderHook } from '@testing-library/react'
+import { GraphQLApi } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
+import { useTokenDetailsContext } from 'src/components/TokenDetails/TokenDetailsContext'
 import { useNetworkBalanceSheet } from 'src/screens/TokenDetailsScreen/useNetworkBalanceSheet'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
 import { CurrencyField } from 'uniswap/src/types/currency'
+import type { MockedFunction } from 'vitest'
 
-const mockNavigateToSwapFlow = jest.fn()
-const mockNavigateToSend = jest.fn()
+const mockNavigateToSwapFlow = vi.fn()
+const mockNavigateToSend = vi.fn()
 
-jest.mock('wallet/src/contexts/WalletNavigationContext', () => ({
+vi.mock('wallet/src/contexts/WalletNavigationContext', () => ({
   useWalletNavigation: () => ({
     navigateToSwapFlow: mockNavigateToSwapFlow,
     navigateToSend: mockNavigateToSend,
   }),
 }))
 
-jest.mock('wallet/src/features/wallet/hooks', () => ({
+vi.mock('wallet/src/features/wallet/hooks', () => ({
   useActiveAccountAddressWithThrow: () => '0xTestAddress',
 }))
+
+vi.mock('src/components/TokenDetails/TokenDetailsContext', () => ({
+  useTokenDetailsContext: vi.fn(),
+}))
+
+const mockUseTokenDetailsContext = useTokenDetailsContext as MockedFunction<typeof useTokenDetailsContext>
+
+const MAINNET_TOKEN_ADDRESS = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+const BASE_TOKEN_ADDRESS = '0xBaseTokenAddress'
+
+type MultichainTokens = ReturnType<typeof useTokenDetailsContext>['multichainTokens']
+
+function mockMultichainTokens(multichainTokens: MultichainTokens): void {
+  mockUseTokenDetailsContext.mockReturnValue({ multichainTokens } as ReturnType<typeof useTokenDetailsContext>)
+}
 
 const mockCurrentChainBalance: PortfolioBalance = {
   id: 'balance-mainnet',
@@ -29,7 +47,7 @@ const mockCurrentChainBalance: PortfolioBalance = {
     currencyId: `${UniverseChainId.Mainnet}-0xtoken`,
     currency: {
       chainId: UniverseChainId.Mainnet,
-      address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+      address: MAINNET_TOKEN_ADDRESS,
       decimals: 6,
       symbol: 'USDC',
       name: 'USD Coin',
@@ -54,7 +72,7 @@ const mockOtherChainBalance: PortfolioBalance = {
     currencyId: `${UniverseChainId.Base}-0xtoken`,
     currency: {
       chainId: UniverseChainId.Base,
-      address: '0xBaseTokenAddress',
+      address: BASE_TOKEN_ADDRESS,
       decimals: 6,
       symbol: 'USDC',
       name: 'USD Coin',
@@ -68,20 +86,21 @@ const mockOtherChainBalance: PortfolioBalance = {
   },
 } as unknown as PortfolioBalance
 
-let mockCrossChainResult = {
-  currentChainBalance: null as PortfolioBalance | null,
-  otherChainBalances: null as PortfolioBalance[] | null,
+const { mockUseCrossChainBalances } = vi.hoisted(() => ({ mockUseCrossChainBalances: vi.fn() }))
+
+vi.mock('uniswap/src/data/apiClients/dataApiService/balances/hooks/useCrossChainBalances', () => ({
+  useCrossChainBalances: mockUseCrossChainBalances,
+}))
+
+function mockCrossChainBalances({
+  currentChainBalance = null,
+  otherChainBalances = null,
+}: {
+  currentChainBalance?: PortfolioBalance | null
+  otherChainBalances?: PortfolioBalance[] | null
+}): void {
+  mockUseCrossChainBalances.mockReturnValue({ currentChainBalance, otherChainBalances })
 }
-
-jest.mock('uniswap/src/data/balances/hooks/useCrossChainBalances', () => ({
-  useCrossChainBalances: () => mockCrossChainResult,
-}))
-
-jest.mock('uniswap/src/data/graphql/uniswap-data-api/fragments', () => ({
-  useTokenBasicProjectPartsFragment: () => ({
-    data: { project: { tokens: [] } },
-  }),
-}))
 
 const defaultArgs = {
   currencyId: `${UniverseChainId.Mainnet}-0xtoken`,
@@ -90,11 +109,26 @@ const defaultArgs = {
 
 describe(useNetworkBalanceSheet, () => {
   beforeEach(() => {
-    jest.clearAllMocks()
-    mockCrossChainResult = {
-      currentChainBalance: null,
-      otherChainBalances: null,
-    }
+    vi.clearAllMocks()
+    mockCrossChainBalances({})
+    mockMultichainTokens([])
+  })
+
+  describe('crossChainTokens', () => {
+    it('queries the deployments from the token details context, excluding the current chain', () => {
+      mockMultichainTokens([
+        { chainId: UniverseChainId.Mainnet, address: MAINNET_TOKEN_ADDRESS },
+        { chainId: UniverseChainId.Base, address: BASE_TOKEN_ADDRESS },
+      ])
+
+      renderHook(() => useNetworkBalanceSheet(defaultArgs))
+
+      expect(mockUseCrossChainBalances).toHaveBeenCalledWith({
+        evmAddress: '0xTestAddress',
+        currencyId: defaultArgs.currencyId,
+        crossChainTokens: [{ address: BASE_TOKEN_ADDRESS, chain: GraphQLApi.Chain.Base }],
+      })
+    })
   })
 
   describe('allChainBalances', () => {
@@ -104,19 +138,16 @@ describe(useNetworkBalanceSheet, () => {
     })
 
     it('returns current chain balance when only one chain has balance', () => {
-      mockCrossChainResult = {
-        currentChainBalance: mockCurrentChainBalance,
-        otherChainBalances: null,
-      }
+      mockCrossChainBalances({ currentChainBalance: mockCurrentChainBalance })
       const { result } = renderHook(() => useNetworkBalanceSheet(defaultArgs))
       expect(result.current.allChainBalances).toEqual([mockCurrentChainBalance])
     })
 
     it('combines current and other chain balances', () => {
-      mockCrossChainResult = {
+      mockCrossChainBalances({
         currentChainBalance: mockCurrentChainBalance,
         otherChainBalances: [mockOtherChainBalance],
-      }
+      })
       const { result } = renderHook(() => useNetworkBalanceSheet(defaultArgs))
       expect(result.current.allChainBalances).toEqual([mockCurrentChainBalance, mockOtherChainBalance])
     })
@@ -124,19 +155,16 @@ describe(useNetworkBalanceSheet, () => {
 
   describe('hasMultiChainBalances', () => {
     it('returns false when only one chain balance exists', () => {
-      mockCrossChainResult = {
-        currentChainBalance: mockCurrentChainBalance,
-        otherChainBalances: null,
-      }
+      mockCrossChainBalances({ currentChainBalance: mockCurrentChainBalance })
       const { result } = renderHook(() => useNetworkBalanceSheet(defaultArgs))
       expect(result.current.hasMultiChainBalances).toBe(false)
     })
 
     it('returns true when multiple chain balances exist', () => {
-      mockCrossChainResult = {
+      mockCrossChainBalances({
         currentChainBalance: mockCurrentChainBalance,
         otherChainBalances: [mockOtherChainBalance],
-      }
+      })
       const { result } = renderHook(() => useNetworkBalanceSheet(defaultArgs))
       expect(result.current.hasMultiChainBalances).toBe(true)
     })
@@ -177,7 +205,7 @@ describe(useNetworkBalanceSheet, () => {
       act(() => result.current.onSelectNetwork(mockOtherChainBalance))
 
       expect(mockNavigateToSend).toHaveBeenCalledWith({
-        currencyAddress: '0xBaseTokenAddress',
+        currencyAddress: BASE_TOKEN_ADDRESS,
         chainId: UniverseChainId.Base,
       })
       expect(mockNavigateToSwapFlow).not.toHaveBeenCalled()
@@ -191,7 +219,7 @@ describe(useNetworkBalanceSheet, () => {
 
       expect(mockNavigateToSwapFlow).toHaveBeenCalledWith({
         currencyField: CurrencyField.INPUT,
-        currencyAddress: '0xBaseTokenAddress',
+        currencyAddress: BASE_TOKEN_ADDRESS,
         currencyChainId: UniverseChainId.Base,
       })
       expect(mockNavigateToSend).not.toHaveBeenCalled()

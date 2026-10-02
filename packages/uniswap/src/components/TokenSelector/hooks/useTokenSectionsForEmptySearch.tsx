@@ -1,4 +1,3 @@
-import { GqlResult } from '@universe/api'
 import { useMemo } from 'react'
 import { TokenOption } from 'uniswap/src/components/lists/items/types'
 import { type OnchainItemSection, OnchainItemSectionName } from 'uniswap/src/components/lists/OnchainItemList/types'
@@ -9,15 +8,24 @@ import { useRecentlySearchedTokens } from 'uniswap/src/components/TokenSelector/
 import { useTrendingTokensOptions } from 'uniswap/src/components/TokenSelector/hooks/useTrendingTokensOptions'
 import { TokenSectionsHookProps } from 'uniswap/src/components/TokenSelector/types'
 import { ClearRecentSearchesButton } from 'uniswap/src/features/search/ClearRecentSearchesButton'
+import type { DerivedQueryResult } from 'utilities/src/reactQuery/types'
 
 export function useTokenSectionsForEmptySearch({
   addresses,
   chainFilter,
-}: Omit<TokenSectionsHookProps, 'oppositeSelectedToken'>): GqlResult<OnchainItemSection<TokenOption>[]> {
+  chainIds,
+}: Omit<TokenSectionsHookProps, 'oppositeSelectedToken' | 'variation'>): DerivedQueryResult<
+  OnchainItemSection<TokenOption>[]
+> {
   const portfolioData = usePortfolioBalancesForAddressById(addresses)
-  const { data: trendingTokenOptions, loading } = useTrendingTokensOptions({ chainFilter, portfolioData })
+  const {
+    data: trendingTokenOptions,
+    isLoading,
+    error,
+    refetch,
+  } = useTrendingTokensOptions({ chainFilter, chainIds, portfolioData })
 
-  const recentlySearchedTokenOptions = useRecentlySearchedTokens(chainFilter)
+  const recentlySearchedTokenOptions = useRecentlySearchedTokens(chainFilter, { chainIds })
 
   const recentSection = useOnchainItemListSection({
     sectionKey: OnchainItemSectionName.RecentSearches,
@@ -34,11 +42,14 @@ export function useTokenSectionsForEmptySearch({
     [trendingSection, recentSection],
   )
 
+  // Recent searches are local, so only the trending fetch can fail; its refetch drives the error pane's retry.
   return useMemo(
     () => ({
       data: sections,
-      loading,
+      isLoading,
+      error,
+      refetch,
     }),
-    [loading, sections],
+    [isLoading, sections, error, refetch],
   )
 }

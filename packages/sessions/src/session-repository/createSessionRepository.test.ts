@@ -7,6 +7,9 @@ import {
   GetChallengeTypesResponse,
   InitSessionResponse,
   SignoutResponse,
+  VerifyFailure,
+  VerifyFailure_Reason,
+  VerifyResponse,
 } from '@uniswap/client-platform-service/dist/uniswap/platformservice/v1/sessionService_pb'
 import { createSessionRepository } from '@universe/sessions/src/session-repository/createSessionRepository'
 import { ChallengeRejectedError } from '@universe/sessions/src/session-repository/errors'
@@ -36,9 +39,8 @@ describe('createSessionRepository', () => {
       outcome: { case: 'success' as const, value: {} },
     }),
     updateSession: vi.fn().mockResolvedValue({}),
-    deleteSession: vi.fn().mockResolvedValue({}),
     introspectSession: vi.fn().mockResolvedValue({}), // Required by proto but not used
-    getChallengeTypes: vi.fn().mockResolvedValue(new GetChallengeTypesResponse({ challengeTypes: [] })),
+    getChallengeTypes: vi.fn().mockResolvedValue(new GetChallengeTypesResponse({ challengeTypeConfig: [] })),
     signout: vi.fn().mockResolvedValue(new SignoutResponse({})),
   })
 
@@ -212,10 +214,12 @@ describe('createSessionRepository', () => {
 
     it('treats undefined outcome with retry=false as success (proto3 dropped empty VerifySuccess)', async () => {
       const mockClient = createMockClient()
-      mockClient.verify.mockResolvedValue({
-        retry: false,
-        outcome: { case: undefined, value: undefined },
-      })
+      mockClient.verify.mockResolvedValue(
+        new VerifyResponse({
+          retry: false,
+          outcome: { case: undefined, value: undefined },
+        }),
+      )
 
       const repository = createSessionRepository({ client: mockClient })
 
@@ -231,10 +235,12 @@ describe('createSessionRepository', () => {
 
     it('allows undefined outcome when retry is true (valid retry-only response)', async () => {
       const mockClient = createMockClient()
-      mockClient.verify.mockResolvedValue({
-        retry: true,
-        outcome: { case: undefined, value: undefined },
-      })
+      mockClient.verify.mockResolvedValue(
+        new VerifyResponse({
+          retry: true,
+          outcome: { case: undefined, value: undefined },
+        }),
+      )
 
       const repository = createSessionRepository({ client: mockClient })
 
@@ -249,17 +255,19 @@ describe('createSessionRepository', () => {
 
     it('returns failure info from verify failure outcome', async () => {
       const mockClient = createMockClient()
-      mockClient.verify.mockResolvedValue({
-        retry: true,
-        outcome: {
-          case: 'failure' as const,
-          value: {
-            reason: 1, // INVALID_SOLUTION
-            message: 'Bad code',
-            waitSeconds: 30,
+      mockClient.verify.mockResolvedValue(
+        new VerifyResponse({
+          retry: true,
+          outcome: {
+            case: 'failure',
+            value: new VerifyFailure({
+              reason: VerifyFailure_Reason.INVALID_SOLUTION,
+              message: 'Bad code',
+              waitSeconds: 30,
+            }),
           },
-        },
-      })
+        }),
+      )
 
       const repository = createSessionRepository({ client: mockClient })
 

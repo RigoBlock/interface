@@ -1,3 +1,8 @@
+import { Flex } from '@universe/mycelium'
+import { Edit } from '@universe/mycelium/icons/Edit'
+import { Ellipsis } from '@universe/mycelium/icons/Ellipsis'
+import { Trash } from '@universe/mycelium/icons/Trash'
+import { Presence } from '@universe/mycelium/presence'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { OnboardingScreen } from 'src/app/features/onboarding/OnboardingScreen'
@@ -6,8 +11,6 @@ import { UnitagClaimRoutes } from 'src/app/navigation/constants'
 import { navigate } from 'src/app/navigation/state'
 import { backgroundToSidePanelMessageChannel } from 'src/background/messagePassing/messageChannels'
 import { BackgroundToSidePanelRequestType } from 'src/background/messagePassing/types/requests'
-import { AnimatePresence, Flex } from 'ui/src'
-import { Edit, Ellipsis, Trash } from 'ui/src/components/icons'
 import { ContextMenu, MenuOptionItem } from 'uniswap/src/components/menus/ContextMenu'
 import { ContextMenuTriggerMode } from 'uniswap/src/components/menus/types'
 import { useUnitagsAddressQuery } from 'uniswap/src/data/apiClients/unitagsApi/useUnitagsAddressQuery'
@@ -94,7 +97,7 @@ export function EditUnitagProfileScreen({ enableBack = false }: { enableBack?: b
                 entryPoint={UnitagScreens.EditProfile}
                 onSave={refreshUnitags}
               />
-              <AnimatePresence>
+              <Presence>
                 {showDeleteUnitagModal && (
                   <DeleteUnitagModal
                     address={address}
@@ -111,7 +114,7 @@ export function EditUnitagProfileScreen({ enableBack = false }: { enableBack?: b
                     onClose={(): void => setShowChangeUnitagModal(false)}
                   />
                 )}
-              </AnimatePresence>
+              </Presence>
             </>
           )}
         </Flex>

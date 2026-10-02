@@ -1,7 +1,6 @@
+import { AnimatedTouchableArea } from '@universe/mycelium'
 import { PropsWithChildren } from 'react'
 import { useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated'
-import { AnimatedTouchableArea } from 'ui/src/components/touchable'
-
 export const Jiggly = ({
   children,
   offset = 8,

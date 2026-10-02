@@ -1,17 +1,16 @@
-import { SpamCode } from '@universe/api'
+import { isMobileApp } from '@universe/environment'
 import type {
   PortfolioBalance,
   PortfolioChainBalance,
   PortfolioMultichainBalance,
 } from 'uniswap/src/features/dataApi/types'
 import type { CurrencyIdToVisibility } from 'uniswap/src/features/visibility/slice'
-import { isMobileApp } from 'utilities/src/platform'
 
 /**
  * Determines whether a portfolio balance should be hidden from the user interface.
  *
  * The hiding logic varies based on testnet mode and token type:
- * - **Testnet mode**: Hides tokens with high spam codes (>= SpamCode.HIGH)
+ * - **Testnet mode**: Never hide balances from the main list — Data API spam/heuristics are unreliable on testnets.
  * - **Normal mode**:
  *   - Native tokens: Hidden if the user marked the token not visible; on mobile, API `isHidden` is also respected
  *   - Non-native tokens: Hidden based on the `isHidden` flag from the API when there is no explicit visibility override
@@ -28,7 +27,7 @@ function shouldHideTokenByVisibility({
   currencyIdToTokenVisibility: CurrencyIdToVisibility
 }): boolean {
   if (isTestnetModeEnabled) {
-    return (currencyInfo.spamCode || SpamCode.LOW) >= SpamCode.HIGH
+    return false
   }
   const tokenVisibility = currencyIdToTokenVisibility[currencyInfo.currencyId]
   if (currencyInfo.currency.isNative) {

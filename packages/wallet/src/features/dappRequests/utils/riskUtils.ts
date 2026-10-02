@@ -2,8 +2,9 @@ import { TransactionRiskLevel } from 'wallet/src/features/dappRequests/types'
 
 interface ShouldDisableConfirmParams {
   /**
-   * The current risk level from the Blockaid scan.
-   * `null` indicates scan hasn't completed yet.
+   * The current usable risk result.
+   * `null` indicates that no confirmable result is available, including while a scan is pending or
+   * when local validation cannot produce a safe scan request.
    */
   riskLevel: TransactionRiskLevel | null
   /**
@@ -21,7 +22,7 @@ interface ShouldDisableConfirmParams {
  * Determines if the confirm button should be disabled based on risk scanning state.
  *
  * Disable confirm if:
- * - Risk scan hasn't completed (riskLevel is null)
+ * - No confirmable risk result is available (riskLevel is null)
  * - There's a critical risk that hasn't been confirmed
  * - (For transactions) Gas fee is not available
  *
@@ -34,7 +35,7 @@ export function shouldDisableConfirm({ riskLevel, confirmedRisk, hasGasFee }: Sh
     return true
   }
 
-  // Disable confirm if scan hasn't completed yet
+  // Disable confirm while there is no usable risk result.
   if (riskLevel === null) {
     return true
   }

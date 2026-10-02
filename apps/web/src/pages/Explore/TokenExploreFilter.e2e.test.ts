@@ -1,4 +1,4 @@
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
+import { TestID } from '@universe/test'
 import { expect, getTest } from '~/playwright/fixtures'
 
 const test = getTest()
@@ -13,30 +13,27 @@ test.describe(
     ],
   },
   () => {
-    test('should filter correctly by search term', async ({ page }) => {
-      await page.goto('/explore/tokens')
+    // Explore search is server-side: the box's value is sent as
+    // `filter.searchQuery` (a case-insensitive prefix on name or symbol) and the table shows the
+    // served page, so the assertions are on the request and the served rows — not on a client-side
+    // subset of the rows that were loaded before typing.
+    test('should search tokens through the backend', async ({ page }) => {
       const searchTerm = 'dai'
-      const tokenNamesBeforeFilter = await page.getByTestId(TestID.TokenName).allTextContents()
-      const matchingTokensBeforeFilter = tokenNamesBeforeFilter.filter((name) =>
-        name.toLowerCase().includes(searchTerm.toLowerCase()),
-      )
+      await page.goto('/explore/tokens')
+      await expect(page.getByTestId(TestID.TokenName).first()).toBeVisible()
 
+      const searchedRequest = page.waitForRequest((request) => {
+        if (!request.url().includes('ListTokens')) {
+          return false
+        }
+        const body = request.postDataJSON() as { filter?: { searchQuery?: string } } | null
+        return body?.filter?.searchQuery === searchTerm
+      })
       await page.getByTestId(TestID.ExploreTokensSearchInput).click()
       await page.getByTestId(TestID.ExploreTokensSearchInput).fill(searchTerm)
-      await page.getByTestId(TestID.ExploreTokensSearchInput).press('Enter')
+      await searchedRequest
 
-      await page.waitForTimeout(500)
-
-      const firstTokenAfterFilter = await page.getByTestId(TestID.TokenName).first().textContent()
-
-      expect(firstTokenAfterFilter?.toLowerCase()).toContain(searchTerm.toLowerCase())
-
-      if (matchingTokensBeforeFilter.length > 0 && firstTokenAfterFilter) {
-        const foundInOriginalMatches = matchingTokensBeforeFilter.some((token) =>
-          token.toLowerCase().includes(firstTokenAfterFilter.toLowerCase()),
-        )
-        expect(foundInOriginalMatches).toBeTruthy()
-      }
+      await expect(page.getByTestId(TestID.TokenName).first()).toContainText(searchTerm, { ignoreCase: true })
     })
   },
 )

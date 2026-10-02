@@ -55,7 +55,6 @@ function createSessionInitializationService(ctx: {
    * Must be injected - no implicit dependency on globalThis.performance.
    */
   performanceTracker: PerformanceTracker
-  getIsSessionUpgradeAutoEnabled?: () => boolean
   maxChallengeRetries?: number
   getLogger?: () => Logger
   /** Analytics callbacks for tracking session initialization lifecycle */
@@ -166,8 +165,8 @@ function createSessionInitializationService(ctx: {
       log?.info('sessions', 'initCompleted', 'Session init completed', data)
     }
 
-    // Handle challenge if required and enabled
-    if (needChallenge && ctx.getIsSessionUpgradeAutoEnabled?.()) {
+    // Handle challenge if required
+    if (needChallenge) {
       await handleChallengeFlow()
     }
 

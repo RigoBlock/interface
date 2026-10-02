@@ -1,13 +1,15 @@
+import { Button, Flex, IconButton, InlineCard, Text } from '@universe/mycelium'
+import { AlertTriangleFilled } from '@universe/mycelium/icons/AlertTriangleFilled'
+import { Key } from '@universe/mycelium/icons/Key'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
+import { TestID } from '@universe/test'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { AppStackScreenProp } from 'src/app/navigation/types'
 import { useReactNavigationModal } from 'src/components/modals/useReactNavigationModal'
-import { Button, Flex, IconButton, InlineCard, Text, useSporeColors } from 'ui/src'
-import { AlertTriangleFilled, Key } from 'ui/src/components/icons'
 import { Modal } from 'uniswap/src/components/modals/Modal'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { MobileScreens } from 'uniswap/src/types/screens/mobile'
 import { openUri } from 'uniswap/src/utils/linking'
 import { SPACE_STRING } from 'utilities/src/primitives/string'
@@ -82,5 +84,5 @@ const PrivateKeySpeedBumpModalContent = ({
 }
 
 const openLearnMore = async (): Promise<void> => {
-  await openUri({ uri: uniswapUrls.helpArticleUrls.whatIsPrivateKey })
+  await openUri({ uri: UniswapHelpUrls.articles.whatIsPrivateKey })
 }

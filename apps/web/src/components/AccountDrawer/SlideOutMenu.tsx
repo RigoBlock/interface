@@ -1,5 +1,5 @@
-import { Flex, FlexProps, Text, TouchableArea, useScrollbarStyles } from 'ui/src'
-import { ArrowLeft } from 'ui/src/components/icons/ArrowLeft'
+import { Flex, type FlexCompatProps as FlexProps, Text, TouchableArea } from '@universe/mycelium'
+import { ArrowLeft } from '@universe/mycelium/icons/ArrowLeft'
 
 type SlideOutMenuProps = {
   children: React.ReactNode
@@ -9,37 +9,21 @@ type SlideOutMenuProps = {
 } & FlexProps
 
 export const SlideOutMenu = ({ children, onClose, title, rightIcon, ...flexProps }: SlideOutMenuProps) => {
-  const scrollbarStyles = useScrollbarStyles()
-
-  const updatedScrollbarStyles = {
-    ...scrollbarStyles,
-    '::-webkit-scrollbar-track': {
-      marginTop: '40px',
-    },
-  }
-
   return (
     <>
-      <Flex
-        $platform-web={{
-          overflow: 'auto',
-        }}
-        style={updatedScrollbarStyles}
-        mt="$spacing4"
-        py="$padding12"
-        px="$padding12"
-        {...flexProps}
-      >
+      <Flex mt="$spacing4" py="$padding12" px="$padding12" {...flexProps}>
         <Flex grow justifyContent="space-between">
           <Flex grow>
             <Flex row mb="$spacing24" justifyContent="space-between" width="100%" alignItems="center">
-              <TouchableArea width="15%" data-testid="wallet-back" onPress={onClose}>
+              <TouchableArea width="15%" testID="wallet-back" onPress={onClose}>
                 <ArrowLeft color="$neutral2" size="$icon.24" />
               </TouchableArea>
               <Text color="$neutral1" variant="subheading1">
                 {title}
               </Text>
-              <Flex width="15%">{rightIcon}</Flex>
+              <Flex width="15%" alignItems="flex-end" justifyContent="center">
+                {rightIcon}
+              </Flex>
             </Flex>
             {children}
           </Flex>

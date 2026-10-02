@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react'
+import { UniverseChainId } from '@universe/chains'
 import { act } from 'react'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import {
   TokenMenuActionType,
   useTokenContextMenuOptions,
@@ -36,7 +36,7 @@ vi.mock('uniswap/src/features/chains/hooks/useEnabledChains', () => ({
   }),
 }))
 
-vi.mock('uniswap/src/features/dataApi/balances/balancesRest', () => ({
+vi.mock('uniswap/src/features/dataApi/balances/portfolioCacheUpdater', () => ({
   usePortfolioCacheUpdater: () => vi.fn(),
 }))
 
@@ -48,25 +48,28 @@ vi.mock('uniswap/src/features/telemetry/send', () => ({
   sendAnalyticsEvent: vi.fn(),
 }))
 
-vi.mock('utilities/src/platform', () => ({
-  isMobileApp: true,
-  isWebPlatform: false,
-  isExtensionApp: false,
-  isMobileWeb: false,
-  isWebApp: false,
-  isWebAppDesktop: false,
-  isAndroid: false,
-  isIOS: false,
-  isWebIOS: false,
-  isWebAndroid: false,
-  isTouchable: false,
-  isHoverable: false,
-  isChrome: false,
-  isSafari: false,
-  isMobileWebSafari: false,
-  isMobileWebAndroid: false,
-  isBrowser: false,
-}))
+vi.mock('@universe/environment', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@universe/environment')>()
+  return {
+    ...actual,
+    isMobileApp: true,
+    isWebPlatform: false,
+    isExtensionApp: false,
+    isMobileWeb: false,
+    isWebApp: false,
+    isWebAppDesktop: false,
+    isAndroid: false,
+    isIOS: false,
+    isWebIOS: false,
+    isWebAndroid: false,
+    isTouchable: false,
+    isHoverable: false,
+    isChrome: false,
+    isSafari: false,
+    isMobileWebSafari: false,
+    isMobileWebAndroid: false,
+  }
+})
 
 const ERC20_CURRENCY_ID = `${UniverseChainId.Mainnet}-0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`
 
@@ -106,7 +109,7 @@ describe(useTokenContextMenuOptions, () => {
     const copyAction = findCopyAction(result.current)
 
     await act(async () => {
-      await copyAction?.onPress()
+      copyAction?.onPress()
     })
 
     expect(onPressCopyAddressOverride).toHaveBeenCalledTimes(1)
@@ -121,7 +124,7 @@ describe(useTokenContextMenuOptions, () => {
     const copyAction = findCopyAction(result.current)
 
     await act(async () => {
-      await copyAction?.onPress()
+      copyAction?.onPress()
     })
 
     expect(copyAddressToClipboard).toHaveBeenCalledTimes(1)
@@ -146,7 +149,7 @@ describe(useTokenContextMenuOptions, () => {
     const copyAction = findCopyAction(result.current)
 
     await act(async () => {
-      await copyAction?.onPress()
+      copyAction?.onPress()
     })
 
     expect(openContractAddressExplainerModal).toHaveBeenCalledTimes(1)
@@ -168,7 +171,7 @@ describe(useTokenContextMenuOptions, () => {
     const copyAction = findCopyAction(result.current)
 
     await act(async () => {
-      await copyAction?.onPress()
+      copyAction?.onPress()
     })
 
     expect(openContractAddressExplainerModal).not.toHaveBeenCalled()

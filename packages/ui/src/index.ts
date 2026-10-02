@@ -1,67 +1,3 @@
-export { PortalProvider } from '@tamagui/portal'
-export type {
-  Adapt,
-  AnchorProps,
-  CircleProps,
-  ColorTokens,
-  GetProps,
-  GetRef,
-  GetThemeValueForKey,
-  ImageProps,
-  InputProps,
-  MediaQueryState,
-  PopperProps,
-  SpaceTokens,
-  TabLayout,
-  TabsTabProps,
-  TamaguiElement,
-  TamaguiProviderProps,
-  TextStyle,
-  ThemeKeys,
-  ThemeName,
-  Tokens,
-  ViewProps,
-} from 'tamagui'
-export {
-  Accordion,
-  Anchor,
-  AnimatePresence,
-  Avatar,
-  Circle,
-  createTamagui,
-  getToken,
-  getTokenValue,
-  Image,
-  Input,
-  isTouchable,
-  ListItem,
-  Main,
-  Nav,
-  Paragraph,
-  Popover,
-  Portal,
-  Progress,
-  RadioGroup,
-  ScrollView,
-  Select,
-  Sheet,
-  Slider,
-  Spacer,
-  Square,
-  styled,
-  Tabs,
-  TamaguiProvider,
-  Theme,
-  useComposedRefs,
-  useIsTouchDevice,
-  useMedia,
-  usePropsAndStyle,
-  useWindowDimensions,
-  View,
-  VisuallyHidden,
-  YGroup,
-} from 'tamagui'
-export { LinearGradient, type LinearGradientProps } from 'tamagui/linear-gradient'
 export * from 'ui/src/animations'
 export * from './components/AnimatableCopyIcon/AnimatableCopyIcon'
 export * from './components/AnimatedCopyLabel/AnimatedCopyLabel'
@@ -77,39 +13,38 @@ export * from './components/checkbox'
 export * from './components/dropdownMenuSheet/DropdownMenuSheetItem'
 export { getMenuItemColor } from './components/dropdownMenuSheet/utils'
 export type { GeneratedIcon, IconProps } from './components/factories/createIcon'
+export { Image, type ImageProps } from './components/Image/Image'
 export * from './components/InlineCard/InlineCard'
+export { Input, type InputProps, type InputStyleProps } from './components/input/Input'
 export * from './components/input/utils'
-export { type AnimatedScrollView, Flex, type FlexProps, flexStyles, Inset, Separator } from './components/layout'
+export { type AnimatedScrollView, flexStyles, Inset, Separator } from './components/layout'
 export { HorizontalDottedLineSeparator } from './components/lines/HorizontalDottedLineSeparator'
 export { VerticalDottedLineSeparator } from './components/lines/VerticalDottedLineSeparator'
 export {
   EffectiveModalOrSheetZIndexContext,
   ModalCloseIcon,
+  stackingLayerAbove,
   useEffectiveModalOrSheetZIndex,
   WebBottomSheet,
 } from './components/modal/AdaptiveWebModal'
 export * from './components/OverKeyboardContent/OverKeyboardContent'
 export { AdaptiveWebPopoverContent } from './components/popover/AdaptiveWebPopoverContent'
+export { Popover } from './components/popover/Popover'
 export { QRCodeDisplay } from './components/QRCode/QRCodeDisplay'
 export { RefreshButton } from './components/RefreshButton/RefreshButton'
 export type { RemoveScrollProps } from './components/RemoveScroll/RemoveScroll'
 export * from './components/RemoveScroll/RemoveScroll'
-export * from './components/radio/Radio'
-export * from './components/SegmentedControl/SegmentedControl'
 export { ClickableWithinGesture } from './components/swipeablecards/ClickableWithinGesture'
 export { SwipeableCardStack } from './components/swipeablecards/SwipeableCardStack'
 export { Switch } from './components/switch/Switch'
 export { type SwitchProps } from './components/switch/types'
 export * from './components/text'
+export { Coachmark, type CoachmarkProps } from './components/coachmark/Coachmark'
 export { Tooltip } from './components/tooltip/Tooltip'
-export * from './components/touchable'
 export { Unicon } from './components/Unicon'
 export * from './components/Unicon/utils'
-export * from './components/UniversalImage/ImageSettingsContext'
-export * from './components/UniversalImage/types'
-export * from './components/UniversalImage/UniversalImage'
-export * from './components/UniversalImage/utils'
 export { MobileDeviceHeight } from './hooks/constants'
+export { type FontSizeOptions, useDynamicFontSizing } from './hooks/useDynamicFontSizing'
 export { useIsDarkMode } from './hooks/useIsDarkMode'
 export { useIsShortMobileDevice } from './hooks/useIsShortMobileDevice'
 export { type DynamicColor, useSporeColors } from './hooks/useSporeColors'
@@ -123,6 +58,8 @@ export * from './loading/Shine'
 export * from './loading/Skeleton'
 export * from './loading/SpinningLoader'
 export * from './loading/TransactionLoader'
+export { WaveLoader, type WaveLoaderProps } from './loading/WaveLoader/WaveLoader'
+export type { ResolvedWaveLoader, WaveLoaderVariant } from './loading/WaveLoader/shared'
 // Theme
 export * from './styles/ScrollbarStyles'
 export * from './theme/shadows'

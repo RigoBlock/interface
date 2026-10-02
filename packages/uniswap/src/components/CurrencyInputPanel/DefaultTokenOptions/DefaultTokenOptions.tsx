@@ -1,15 +1,21 @@
 // TODO: Move this to `packages/uniswap/src/components/CurrencyInputPanel/CurrencyInputPanel.tsx`
 
+import { isHoverable, isWebAppDesktop } from '@universe/environment'
+import { Flex, ScrollView } from '@universe/mycelium'
 import { memo } from 'react'
-import { Flex, ScrollView } from 'ui/src'
 import { extraMarginForHoverAnimation } from 'uniswap/src/components/CurrencyInputPanel/DefaultTokenOptions/constants'
 import { TokenOptions } from 'uniswap/src/components/CurrencyInputPanel/DefaultTokenOptions/TokenOptions/TokenOptions'
 import { CurrencyField } from 'uniswap/src/types/currency'
-import { isHoverable, isWebAppDesktop } from 'utilities/src/platform'
 
-function DefaultTokenOptionsInner({ currencyField }: { currencyField: CurrencyField }): JSX.Element {
+export interface DefaultTokenOptionsProps {
+  currencyField: CurrencyField
+  maxTokens?: number
+  alignEnd?: boolean
+}
+
+function DefaultTokenOptionsInner({ currencyField, maxTokens, alignEnd }: DefaultTokenOptionsProps): JSX.Element {
   return (
-    <ScrollView horizontal showsVerticalScrollIndicator={false}>
+    <ScrollView horizontal justifyContent={alignEnd ? 'flex-end' : undefined} showsVerticalScrollIndicator={false}>
       <Flex
         row
         m={extraMarginForHoverAnimation}
@@ -26,7 +32,7 @@ function DefaultTokenOptionsInner({ currencyField }: { currencyField: CurrencyFi
             }
           : {})}
       >
-        <TokenOptions currencyField={currencyField} />
+        <TokenOptions currencyField={currencyField} maxTokens={maxTokens} />
       </Flex>
     </ScrollView>
   )

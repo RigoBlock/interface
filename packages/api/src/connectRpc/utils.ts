@@ -1,80 +1,6 @@
 import { type PlainMessage } from '@bufbuild/protobuf'
 import { Platform, type PlatformAddress, type WalletAccount } from '@uniswap/client-data-api/dist/data/v1/api_pb'
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
-import { type ProtectionInfo as ProtectionInfoProtobuf } from '@uniswap/client-explore/dist/uniswap/explore/v1/service_pb'
-import {
-  ProtectionAttackType,
-  type ProtectionInfo,
-  ProtectionResult,
-  SafetyLevel,
-} from '@universe/api/src/clients/graphql/__generated__/schema-types'
-import { logger } from 'utilities/src/logger/logger'
-
-/**
- * Helper functions to parse string enum fields from REST API responses.
- *
- * Note: The Protobuf types use string enums instead of strictly typed enums because
- * Protobuf does not allow defining two of the same enum name in the same proto file. (i.e. both ProtectionAttackType and
- * ProtectionResult contain 'UNKNOWN')
- *
- * Since the Explore service just calls GraphQL, we have confidence the string values will match the GraphQL enums.
- * Just validating here!
- */
-export function parseSafetyLevel(safetyLevel?: string): SafetyLevel | undefined {
-  if (!safetyLevel) {
-    return undefined
-  }
-  const validSafetyLevels: SafetyLevel[] = Object.values(SafetyLevel)
-  if (validSafetyLevels.includes(safetyLevel as SafetyLevel)) {
-    return safetyLevel as SafetyLevel
-  } else {
-    logger.warn(
-      'api/clients/connectRpc/utils.ts',
-      'parseSafetyLevel',
-      `Invalid safetyLevel from REST TokenRankings query: ${safetyLevel}`,
-    )
-    return undefined
-  }
-}
-
-export function parseProtectionInfo(protectionInfo?: ProtectionInfoProtobuf): ProtectionInfo | undefined {
-  if (!protectionInfo) {
-    return undefined
-  }
-
-  let protectionResult: ProtectionResult | undefined
-  // protectionInfo.result and protectionInfo.attackTypes are a string instead of an enum
-  // message TokenProtectionInfo {
-  //   string result = 1;
-  //   ...
-  // }
-  // So result and attackTypes are a capitalized string instead of an uppercase enum value
-  const validProtectionResults: string[] = Object.values(ProtectionResult)
-  if (validProtectionResults.includes(protectionInfo.result.toUpperCase())) {
-    protectionResult = protectionInfo.result.toUpperCase() as ProtectionResult
-  } else {
-    logger.warn(
-      'api/clients/connectRpc/utils.ts',
-      'parseProtectionInfo',
-      `Invalid protectionResult from REST TokenRankings query: ${protectionInfo.result}`,
-    )
-    return undefined
-  }
-
-  const validAttackTypes: string[] = Object.values(ProtectionAttackType)
-  const attackTypes = protectionInfo.attackTypes
-    .filter((at) => validAttackTypes.includes(at.toUpperCase()))
-    .map((at) => at.toUpperCase() as ProtectionAttackType)
-  if (attackTypes.length !== protectionInfo.attackTypes.length) {
-    logger.warn(
-      'api/clients/connectRpc/utils.ts',
-      'parseProtectionInfo',
-      `Invalid attackTypes in REST TokenRankings query: ${protectionInfo.attackTypes}`,
-    )
-  }
-
-  return { attackTypes, result: protectionResult }
-}
 
 export function parseRestProtocolVersion(version: string | undefined): ProtocolVersion | undefined {
   switch (version?.toLowerCase()) {
@@ -132,5 +58,26 @@ export function transformInput<T extends Record<string, unknown> & { walletAccou
   return {
     ...restInput,
     ...createWalletAccount({ evmAddress, svmAddress }),
+  }
+}
+
+export type WithoutWalletAccounts<T> = Omit<T, 'walletAccounts'>
+
+/**
+ * Multi-wallet variant of {@link transformInput}: transforms input that includes a `wallets`
+ * address list to use `walletAccounts` instead
+ */
+export function transformWalletsInput<T extends Record<string, unknown> & { walletAccounts?: never }>(
+  input: (T & { wallets?: { evmAddress?: string; svmAddress?: string }[] }) | undefined,
+): (Omit<T, 'wallets' | 'walletAccounts'> & { walletAccounts: PlainMessage<WalletAccount>[] }) | undefined {
+  if (!input) {
+    return undefined
+  }
+
+  const { wallets, walletAccounts: _walletAccounts, ...restInput } = input
+
+  return {
+    ...restInput,
+    walletAccounts: (wallets ?? []).map((wallet) => createWalletAccount(wallet).walletAccount),
   }
 }

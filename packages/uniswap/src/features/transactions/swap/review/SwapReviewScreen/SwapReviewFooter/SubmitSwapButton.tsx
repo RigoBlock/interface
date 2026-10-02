@@ -1,9 +1,10 @@
+import { isWebApp, isWebPlatform } from '@universe/environment'
+import { Button, type ButtonVariant, Flex } from '@universe/mycelium'
+import { TestID } from '@universe/test'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { ButtonVariant } from 'ui/src'
-import { AnimatePresence, Button, Flex, useIsShortMobileDevice } from 'ui/src'
+import { useIsShortMobileDevice } from 'ui/src'
 import { Passkey } from 'ui/src/components/icons/Passkey'
-import type { AppTFunction } from 'ui/src/i18n/types'
 import type { Warning } from 'uniswap/src/components/modals/WarningModal/types'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import type { PasskeyAuthStatus } from 'uniswap/src/features/transactions/components/TransactionModal/TransactionModalContext'
@@ -16,21 +17,33 @@ import {
   useSwapFormStoreDerivedSwapInfo,
 } from 'uniswap/src/features/transactions/swap/stores/swapFormStore/useSwapFormStore'
 import { useSwapTxStore } from 'uniswap/src/features/transactions/swap/stores/swapTxStore/useSwapTxStore'
+import { PermitMethod } from 'uniswap/src/features/transactions/swap/types/permitMethod'
 import type { SwapTxAndGasInfo } from 'uniswap/src/features/transactions/swap/types/swapTxAndGasInfo'
-import { PermitMethod } from 'uniswap/src/features/transactions/swap/types/swapTxAndGasInfo'
 import { isChained, isClassic } from 'uniswap/src/features/transactions/swap/utils/routing'
 import { WrapType } from 'uniswap/src/features/transactions/types/wrap'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
-import { isWebApp } from 'utilities/src/platform'
+import type { AppTFunction } from 'utilities/src/i18n/types'
 
 interface SubmitSwapButtonProps {
   disabled: boolean
   onSubmit: () => void
   showPendingUI: boolean
   warning?: Warning
+  /**
+   * When true, force the button into the amber `warning` variant regardless of
+   * `warning?.severity`. Set by the gas-overrides flow when saved network-cost
+   * overrides trigger a non-blocking validation warning (e.g. priority fee
+   * underpriced). The user can still submit — the amber color flags risk.
+   */
+  gasOverrideWarning?: boolean
 }
 
-export function SubmitSwapButton({ disabled, onSubmit, showPendingUI, warning }: SubmitSwapButtonProps): JSX.Element {
+export function SubmitSwapButton({
+  disabled,
+  onSubmit,
+  showPendingUI,
+  warning,
+  gasOverrideWarning,
+}: SubmitSwapButtonProps): JSX.Element {
   const { t } = useTranslation()
   const { renderBiometricsIcon, passkeyAuthStatus } = useTransactionModalContext()
 
@@ -75,7 +88,9 @@ export function SubmitSwapButton({ disabled, onSubmit, showPendingUI, warning }:
       ? 'critical'
       : warning?.severity === WarningSeverity.Medium
         ? 'warning'
-        : undefined
+        : gasOverrideWarning
+          ? 'warning'
+          : undefined
 
   switch (true) {
     case indicative: {
@@ -91,7 +106,7 @@ export function SubmitSwapButton({ disabled, onSubmit, showPendingUI, warning }:
       }
       return (
         <Button loading variant="branded" emphasis="primary" size={size}>
-          <DelayedSubmissionText />
+          <DelayedSubmissionText TextComponent={Button.Text} />
         </Button>
       )
     }
@@ -107,7 +122,7 @@ export function SubmitSwapButton({ disabled, onSubmit, showPendingUI, warning }:
         <Button
           variant={warningVariant}
           emphasis="primary"
-          isDisabled={disabled}
+          disabled={disabled}
           icon={icon}
           size={size}
           testID={TestID.Swap}
@@ -122,7 +137,7 @@ export function SubmitSwapButton({ disabled, onSubmit, showPendingUI, warning }:
         <Button
           variant={disabled ? 'default' : 'branded'}
           emphasis={disabled ? 'secondary' : 'primary'}
-          isDisabled={disabled}
+          disabled={disabled}
           icon={icon}
           size={size}
           testID={TestID.Swap}
@@ -139,6 +154,7 @@ export enum SwapAction {
   Wrap = 'WRAP',
   Unwrap = 'UNWRAP',
   Swap = 'SWAP',
+  SwapAndDeposit = 'SWAP_AND_DEPOSIT',
   SwapAnyway = 'SWAP_ANYWAY',
   ApproveAndSwap = 'APPROVE_AND_SWAP',
   SignAndSwap = 'SIGN_AND_SWAP',
@@ -191,6 +207,10 @@ export const getActionText = ({
       default: t('swap.button.swap'),
       authenticated: t('swap.confirmSwap'),
     },
+    [SwapAction.SwapAndDeposit]: {
+      default: t('swap.button.swapAndDeposit'),
+      authenticated: t('swap.button.swapAndDeposit'),
+    },
     [SwapAction.RetryPlan]: {
       default: t('common.button.retry'),
       authenticated: t('common.button.retry'),
@@ -214,12 +234,21 @@ function ConfirmInWalletText({ passkeyAuthStatus }: { passkeyAuthStatus?: Passke
     text = t('swap.button.submitting.passkey')
   }
 
+  // `AnimatePresence` dropped: it wrapped this node directly (not a conditional ancestor), so it
+  // never got a chance to delay removal on unmount -- the exit half of `fadeInDownOutDown` never
+  // fired even under Tamagui. `animateEnterExit`'s enter half fires on mount with no wrapper needed.
+  // Web-gated spread (same idiom as DelayedSubmissionText): this component only renders under
+  // `isWebApp`, and gating keeps mycelium's native compat layer from dev-warning on the props.
   return (
-    <AnimatePresence>
-      <Flex animateEnterExit="fadeInDownOutDown" animation="quicker">
-        <Button.Text>{text}</Button.Text>
-      </Flex>
-    </AnimatePresence>
+    <Flex
+      {...(isWebPlatform && {
+        animateEnterExit: 'fadeInDownOutDown' as const,
+        animation: 'quicker' as const,
+        animateOnly: ['opacity', 'transform'],
+      })}
+    >
+      <Button.Text>{text}</Button.Text>
+    </Flex>
   )
 }
 
@@ -250,7 +279,7 @@ const getSwapAction = ({
   if (isWebApp && (hasPermitTx || hasApproveTx)) {
     return SwapAction.ApproveAndSwap
   }
-  if (isWebApp && swapTxContext && isClassic(swapTxContext) && swapTxContext.unsigned) {
+  if (isWebApp && swapTxContext && isClassic(swapTxContext) && swapTxContext.hasUnsignedPermit) {
     return SwapAction.SignAndSwap
   }
   if (hasActivePlan) {
@@ -262,6 +291,11 @@ const getSwapAction = ({
 
   if (warning?.severity === WarningSeverity.High || warning?.severity === WarningSeverity.Medium) {
     return SwapAction.SwapAnyway
+  }
+
+  // Earn toggle flow: the chained trade ends in a vault deposit, so the CTA should say so.
+  if (swapTxContext && isChained(swapTxContext) && swapTxContext.trade.earnIntent !== undefined) {
+    return SwapAction.SwapAndDeposit
   }
 
   return SwapAction.Swap

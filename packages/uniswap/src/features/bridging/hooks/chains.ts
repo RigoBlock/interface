@@ -1,7 +1,7 @@
 import { TradingApi } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
 import { useMemo } from 'react'
 import { useTradingApiSwappableTokensQuery } from 'uniswap/src/data/apiClients/tradingApi/useTradingApiSwappableTokensQuery'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { toSupportedChainId } from 'uniswap/src/features/chains/utils'
 import {
   NATIVE_ADDRESS_FOR_TRADING_API,

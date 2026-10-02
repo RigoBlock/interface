@@ -22,6 +22,13 @@
         "--autoConnect",
         "--channel=beta"
       ]
+    },
+    "argent": {
+      "type": "stdio",
+      "command": "argent",
+      "args": [
+        "mcp"
+      ]
     }
   }
 }

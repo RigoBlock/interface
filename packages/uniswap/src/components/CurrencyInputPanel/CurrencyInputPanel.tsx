@@ -1,8 +1,7 @@
-//! tamagui-ignore
-// tamagui-ignore
-/* oxlint-disable complexity */
+import { isExtensionApp, isMobileWeb, isWebAppDesktop } from '@universe/environment'
+import { Flex, TouchableArea } from '@universe/mycelium'
 import { forwardRef, memo, useCallback } from 'react'
-import { Flex, TouchableArea, useIsShortMobileDevice, useShakeAnimation } from 'ui/src'
+import { useIsShortMobileDevice, useShakeAnimation } from 'ui/src'
 import {
   AmountInputPresets,
   PRESET_BUTTON_PROPS,
@@ -19,10 +18,10 @@ import type { CurrencyInputPanelProps, CurrencyInputPanelRef } from 'uniswap/src
 import { useMaxAmountSpend } from 'uniswap/src/features/gas/hooks/useMaxAmountSpend'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { CurrencyField } from 'uniswap/src/types/currency'
-import { isExtensionApp, isMobileWeb, isWebAppDesktop } from 'utilities/src/platform'
 
 export const CurrencyInputPanel = memo(
   forwardRef<CurrencyInputPanelRef, CurrencyInputPanelProps>(
+    // oxlint-disable-next-line complexity -- long-lived component covering many input modes
     function CurrencyInputPanelInner(props, forwardedRef): JSX.Element {
       const {
         autoFocus,
@@ -62,6 +61,8 @@ export const CurrencyInputPanel = memo(
         inputSuffix,
         allowOverflow,
         balanceVariant,
+        actualGasFee,
+        isGasCovered,
       } = props
 
       const isShortMobileDevice = useIsShortMobileDevice()
@@ -101,6 +102,7 @@ export const CurrencyInputPanel = memo(
       const maxInputAmount = useMaxAmountSpend({
         currencyAmount: currencyBalance,
         txType: transactionType,
+        isGasCovered,
       })
 
       const handlePressBalance = useCallback(() => {
@@ -127,10 +129,20 @@ export const CurrencyInputPanel = memo(
             transactionType={transactionType}
             elementName={ElementName.PresetPercentage}
             buttonProps={PRESET_BUTTON_PROPS}
+            actualGasFee={actualGasFee}
+            isGasCovered={isGasCovered}
             onSetPresetValue={handleSetPresetValue}
           />
         ),
-        [currencyAmount, currencyBalance, currencyField, handleSetPresetValue, transactionType],
+        [
+          currencyAmount,
+          currencyBalance,
+          currencyField,
+          handleSetPresetValue,
+          transactionType,
+          actualGasFee,
+          isGasCovered,
+        ],
       )
 
       return (
@@ -156,6 +168,8 @@ export const CurrencyInputPanel = memo(
               currencyInfo={currencyInfo}
               showDefaultTokenOptions={showDefaultTokenOptions}
               hidePresets={hidePresets}
+              actualGasFee={actualGasFee}
+              isGasCovered={isGasCovered}
               onSetPresetValue={handleSetPresetValue}
             />
             <CurrencyInputPanelInput
@@ -228,7 +242,9 @@ export const CurrencyInputPanel = memo(
                     hideBalance={!!hidePresets}
                     variant={balanceVariant}
                     onPressBalance={
-                      (isOutput || onSetPresetValue) && currencyBalance?.greaterThan(0) ? handlePressBalance : undefined
+                      !disabled && (isOutput || onSetPresetValue) && currencyBalance?.greaterThan(0)
+                        ? handlePressBalance
+                        : undefined
                     }
                   />
                   {/* Max button */}
@@ -242,6 +258,8 @@ export const CurrencyInputPanel = memo(
                       buttonProps={{
                         borderWidth: 0,
                       }}
+                      actualGasFee={actualGasFee}
+                      isGasCovered={isGasCovered}
                       onSetPresetValue={handleSetPresetValue}
                     />
                   )}

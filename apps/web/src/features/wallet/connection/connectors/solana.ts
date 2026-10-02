@@ -1,7 +1,7 @@
 import { WalletError } from '@solana/wallet-adapter-base'
 import { useWallet as useSolanaWalletContext } from '@solana/wallet-adapter-react'
+import { Platform } from '@universe/chains'
 import { useMemo } from 'react'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { useEvent } from 'utilities/src/react/hooks'
 import { sleep } from 'utilities/src/time/timing'
 import type { ExternalConnector } from '~/features/accounts/store/types'

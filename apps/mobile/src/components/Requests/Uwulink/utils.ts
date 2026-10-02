@@ -1,3 +1,4 @@
+import { areAddressesEqual } from '@universe/chains'
 import {
   DynamicConfigs,
   UwULinkAllowlist,
@@ -19,7 +20,7 @@ import {
   UwULinkRequest,
   UwULinkRequestInfo,
 } from 'uniswap/src/types/walletConnect'
-import { areAddressesEqual } from 'uniswap/src/utils/addresses'
+import { hexlifyTransaction } from 'utilities/src/transactions/hexlifyTransaction'
 import { ContractManager } from 'wallet/src/features/contracts/ContractManager'
 import { ProviderManager } from 'wallet/src/features/providers/ProviderManager'
 import { getTokenSendRequest } from 'wallet/src/features/transactions/send/hooks/useSendTransactionRequest'
@@ -202,10 +203,11 @@ export async function getFormattedUwuLinkTxnRequest({
     request: {
       ...newRequest,
       type: EthMethod.EthSendTransaction,
-      transaction: {
-        from: activeAccount.address,
+      transaction: hexlifyTransaction({
         ...request.value,
-      },
+        // The wallet signs with the active account; a deep link cannot override the sender.
+        from: activeAccount.address,
+      }),
     },
   }
 }

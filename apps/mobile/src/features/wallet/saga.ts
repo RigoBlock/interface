@@ -25,7 +25,7 @@ function* onRestoreMnemonicComplete() {
     dispatchNavigationAction,
     CommonActions.reset({
       index: 0,
-      routes: [{ name: MobileScreens.Home }],
+      routes: [{ name: MobileScreens.MainTabs, params: { screen: MobileScreens.Home } }],
     }),
   )
 }

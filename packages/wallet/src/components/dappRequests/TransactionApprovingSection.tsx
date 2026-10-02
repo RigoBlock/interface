@@ -1,14 +1,21 @@
+import { type ColorTokens, Flex } from '@universe/mycelium'
+import { ApproveAlt } from '@universe/mycelium/icons/ApproveAlt'
+import { Clear } from '@universe/mycelium/icons/Clear'
 import type { TFunction } from 'i18next'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { type ColorTokens, Flex } from 'ui/src'
-import { ApproveAlt, Clear } from 'ui/src/components/icons'
 import type { LocalizationContextState } from 'uniswap/src/features/language/LocalizationContext'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { shortenAddress } from 'utilities/src/addresses'
 import { NumberType } from 'utilities/src/format/types'
 import { TransactionAssetList } from 'wallet/src/components/dappRequests/TransactionAssetList'
-import { type TransactionAsset, TransactionRiskLevel } from 'wallet/src/features/dappRequests/types'
-import { UNLIMITED_APPROVAL_AMOUNT } from 'wallet/src/features/dappRequests/utils/blockaidUtils'
+import {
+  TransactionApprovalAction,
+  TransactionApprovalScope,
+  type TransactionAsset,
+  TransactionRiskLevel,
+} from 'wallet/src/features/dappRequests/types'
+import { UNLIMITED_APPROVAL_AMOUNT } from 'wallet/src/features/dappRequests/utils/blockaidApprovalUtils'
 
 interface TransactionApprovingSectionProps {
   assets: TransactionAsset[]
@@ -36,10 +43,25 @@ interface FormatAssetDisplayParams {
  * @returns Formatted asset display string
  */
 export function formatAssetDisplay({ asset, t, formatNumberOrString }: FormatAssetDisplayParams): string {
-  // Handle special cases: unlimited or zero (revoke)
-  if (asset.amount === UNLIMITED_APPROVAL_AMOUNT || asset.amount === '0') {
+  const assetName = asset.symbol || asset.name || shortenAddress({ address: asset.address }) || t('common.unknown')
+
+  if (asset.approvalScope === TransactionApprovalScope.Collection) {
+    return t('dapp.request.approve.allItems', { assetName })
+  }
+
+  if (asset.approvalScope === TransactionApprovalScope.SingleToken && asset.tokenId) {
+    return t('dapp.request.approve.token', { assetName, tokenId: asset.tokenId })
+  }
+
+  if (asset.amount === UNLIMITED_APPROVAL_AMOUNT) {
     const displayAmount = t('transaction.amount.unlimited')
-    return `${displayAmount} ${asset.symbol ?? asset.name ?? ''}`
+    return `${displayAmount} ${assetName}`
+  }
+
+  // The section title already communicates that a zero allowance is being revoked. Do not hide an
+  // explicitly granted amount if malformed or older persisted data reports it as zero.
+  if (asset.amount === '0' && getApprovalAction(asset) === TransactionApprovalAction.Revoke) {
+    return assetName
   }
 
   // Format with locale if amount exists
@@ -48,11 +70,11 @@ export function formatAssetDisplay({ asset, t, formatNumberOrString }: FormatAss
       value: asset.amount,
       type: NumberType.TokenNonTx,
     })
-    return `${formattedAmount} ${asset.symbol ?? asset.name ?? ''}`
+    return `${formattedAmount} ${assetName}`
   }
 
   // Fallback to symbol/name only
-  return asset.symbol ?? asset.name ?? ''
+  return assetName
 }
 
 /**
@@ -73,9 +95,9 @@ export interface GroupedApprovalAsset {
 function groupApprovalAssets(assets: TransactionAsset[]): GroupedApprovalAsset[] {
   const groups: Record<string, TransactionAsset[]> = {}
 
-  // Group by token (address + chainId)
+  // Keep distinct NFT scopes, token IDs, and actions from collapsing into one row.
   assets.forEach((asset) => {
-    const key = `${asset.address}-${asset.chainId}`
+    const key = [asset.address, asset.chainId, asset.approvalScope, asset.tokenId, asset.approvalAction].join('-')
     const existing = groups[key]
     if (existing) {
       existing.push(asset)
@@ -119,20 +141,55 @@ function groupApprovalAssets(assets: TransactionAsset[]): GroupedApprovalAsset[]
   })
 }
 
+function getApprovalAction(asset: TransactionAsset): TransactionApprovalAction {
+  if (!asset.approvalAction) {
+    return asset.amount === '0' ? TransactionApprovalAction.Revoke : TransactionApprovalAction.Grant
+  }
+
+  switch (asset.approvalAction) {
+    case TransactionApprovalAction.Revoke:
+    case TransactionApprovalAction.Grant:
+    case TransactionApprovalAction.Change:
+      return asset.approvalAction
+    default:
+      return getFallbackApprovalAction(asset.approvalAction)
+  }
+}
+
+// The `never` parameter makes a new enum member a compile error while retaining a neutral runtime
+// fallback for data produced by a newer client or API version.
+function getFallbackApprovalAction(_action: never): TransactionApprovalAction {
+  return TransactionApprovalAction.Change
+}
+
 export function TransactionApprovingSection({ assets, riskLevel }: TransactionApprovingSectionProps): JSX.Element {
   const { t } = useTranslation()
   const { formatNumberOrString } = useLocalizationContext()
   const iconColor = getRiskIconColor(riskLevel)
 
-  // Group assets by revoking vs approving
-  const revokingAssets = assets.filter((asset) => asset.amount === '0')
-  const approvingAssets = assets.filter((asset) => asset.amount !== '0')
+  // NFT responses do not encode the grant/revoke argument. Keep those visible under a neutral
+  // permission-change heading unless the original calldata resolves it. Partition in one pass so
+  // every action is routed exactly once; the Record also makes new enum members fail typecheck.
+  const groupedAssetsByAction = useMemo(() => {
+    const assetsByAction: Record<TransactionApprovalAction, TransactionAsset[]> = {
+      [TransactionApprovalAction.Revoke]: [],
+      [TransactionApprovalAction.Grant]: [],
+      [TransactionApprovalAction.Change]: [],
+    }
 
-  // Group revoking assets by token to handle multiple spenders
-  const groupedRevokingAssets = useMemo(() => groupApprovalAssets(revokingAssets), [revokingAssets])
+    assets.forEach((asset) => {
+      assetsByAction[getApprovalAction(asset)].push(asset)
+    })
 
-  // Group approving assets by token to handle multiple spenders
-  const groupedApprovingAssets = useMemo(() => groupApprovalAssets(approvingAssets), [approvingAssets])
+    return {
+      [TransactionApprovalAction.Revoke]: groupApprovalAssets(assetsByAction[TransactionApprovalAction.Revoke]),
+      [TransactionApprovalAction.Grant]: groupApprovalAssets(assetsByAction[TransactionApprovalAction.Grant]),
+      [TransactionApprovalAction.Change]: groupApprovalAssets(assetsByAction[TransactionApprovalAction.Change]),
+    }
+  }, [assets])
+  const groupedRevokingAssets = groupedAssetsByAction[TransactionApprovalAction.Revoke]
+  const groupedApprovingAssets = groupedAssetsByAction[TransactionApprovalAction.Grant]
+  const groupedChangingAssets = groupedAssetsByAction[TransactionApprovalAction.Change]
 
   return (
     <Flex gap="$spacing12" px="$spacing16">
@@ -153,6 +210,16 @@ export function TransactionApprovingSection({ assets, riskLevel }: TransactionAp
           icon={ApproveAlt}
           iconColor={iconColor}
           titleText={t('common.approving')}
+          formatAmount={(asset) => formatAssetDisplay({ asset, t, formatNumberOrString })}
+        />
+      )}
+      {groupedChangingAssets.length > 0 && (
+        <TransactionAssetList
+          assets={groupedChangingAssets.map((g) => g.primaryAsset)}
+          groupedAssets={groupedChangingAssets}
+          icon={ApproveAlt}
+          iconColor={iconColor}
+          titleText={t('dapp.request.approve.permissionChange')}
           formatAmount={(asset) => formatAssetDisplay({ asset, t, formatNumberOrString })}
         />
       )}

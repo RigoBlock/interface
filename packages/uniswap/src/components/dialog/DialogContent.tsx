@@ -1,5 +1,5 @@
+import { Flex, type FlexProps, Text, type TextProps } from '@universe/mycelium'
 import type { ReactNode } from 'react'
-import { Flex, type FlexProps, Text, type TextProps } from 'ui/src'
 import { LearnMoreLink } from 'uniswap/src/components/text/LearnMoreLink'
 
 export interface DialogContentProps {

@@ -1,6 +1,5 @@
+import type { Platform, UniverseChainIdByPlatform } from '@universe/chains'
 import { CAIP25Session } from 'uniswap/src/features/capabilities/caip25/types'
-import type { UniverseChainIdByPlatform } from 'uniswap/src/features/chains/types'
-import type { Platform } from 'uniswap/src/features/platforms/types/Platform'
 
 /**
  * Defines the chain context scope for a wallet session.

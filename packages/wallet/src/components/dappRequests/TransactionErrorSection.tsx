@@ -1,8 +1,16 @@
+import { Flex, Text } from '@universe/mycelium'
+import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text } from 'ui/src'
 import { Clear } from 'ui/src/components/icons'
+import { TransactionErrorType } from 'wallet/src/features/dappRequests/types'
 
-export type TransactionErrorType = 'decode_message' | 'decode_transaction' | 'contract_interaction'
+const ERROR_MESSAGE_BY_TYPE: Partial<Record<TransactionErrorType, (t: TFunction) => string>> = {
+  [TransactionErrorType.DecodeMessage]: (t) => t('dapp.request.signature.decodeError'),
+  [TransactionErrorType.DecodeTransaction]: (t) => t('dapp.transaction.error.decodeTransaction'),
+  [TransactionErrorType.ContractInteraction]: (t) => t('dapp.transaction.contractInteraction'),
+  [TransactionErrorType.UnverifiedRecipient]: (t) => t('dapp.transaction.error.unverifiedRecipient'),
+  [TransactionErrorType.ScanUnavailable]: (t) => t('dapp.transaction.error.scanUnavailable'),
+}
 
 interface TransactionErrorSectionProps {
   errorType: TransactionErrorType
@@ -12,21 +20,18 @@ interface TransactionErrorSectionProps {
  * Displays error/warning states for transaction and signature requests
  * Shows appropriate message based on error type with red X icon
  */
-export function TransactionErrorSection({ errorType }: TransactionErrorSectionProps): JSX.Element {
+export function TransactionErrorSection({ errorType }: TransactionErrorSectionProps): JSX.Element | null {
   const { t } = useTranslation()
-
-  const errorMessage =
-    errorType === 'decode_message'
-      ? t('dapp.request.signature.decodeError')
-      : errorType === 'decode_transaction'
-        ? t('dapp.transaction.error.decodeTransaction')
-        : t('dapp.transaction.contractInteraction')
+  const getErrorMessage = ERROR_MESSAGE_BY_TYPE[errorType]
+  if (!getErrorMessage) {
+    return null
+  }
 
   return (
     <Flex row gap="$spacing8" px="$spacing16" alignItems="center">
       <Clear color="$statusCritical" size="$icon.16" flexShrink={0} />
       <Text color="$neutral2" variant="body3">
-        {errorMessage}
+        {getErrorMessage(t)}
       </Text>
     </Flex>
   )

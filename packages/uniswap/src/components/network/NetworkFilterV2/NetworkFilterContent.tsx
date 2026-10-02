@@ -1,12 +1,13 @@
+import type { UniverseChainId } from '@universe/chains'
+import { isExtensionApp, isWebApp } from '@universe/environment'
+import { Flex, Text, TouchableArea, zIndexes } from '@universe/mycelium'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text, TouchableArea, useMedia } from 'ui/src'
-import { zIndexes } from 'ui/src/theme'
 import { NoResultsFound } from 'uniswap/src/components/lists/NoResultsFound'
 import type { TieredNetworkOptions } from 'uniswap/src/components/network/NetworkFilterV2/types'
 import { NetworkOption } from 'uniswap/src/components/network/NetworkOption'
 import { useNewChainIds } from 'uniswap/src/features/chains/hooks/useNewChainIds'
-import type { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { isExtensionApp, isWebApp } from 'utilities/src/platform'
+import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { useEvent } from 'utilities/src/react/hooks'
 
 interface NetworkFilterContentProps {
@@ -16,6 +17,8 @@ interface NetworkFilterContentProps {
   onPressChain: (chainId: UniverseChainId | null) => void
   chainIds: UniverseChainId[]
   showAllNetworks: boolean
+  allNetworksChainIds?: UniverseChainId[]
+  forceAllNetworksLabel?: boolean
 }
 
 interface SelectableNetworkOptionProps {
@@ -23,6 +26,8 @@ interface SelectableNetworkOptionProps {
   selectedChain: UniverseChainId | null
   newChains: UniverseChainId[]
   onPressChain: (chainId: UniverseChainId | null) => void
+  allNetworksChainIds?: UniverseChainId[]
+  forceAllNetworksLabel?: boolean
 }
 
 function SectionHeader({ title }: { title: string }): JSX.Element {
@@ -49,15 +54,24 @@ function SelectableNetworkOption({
   selectedChain,
   newChains,
   onPressChain,
+  allNetworksChainIds,
+  forceAllNetworksLabel,
 }: SelectableNetworkOptionProps): JSX.Element {
   const handlePress = useEvent((): void => {
     onPressChain(chainId)
   })
 
   return (
-    <TouchableArea hoverable borderRadius="$rounded8" onPress={handlePress}>
+    <TouchableArea
+      hoverable
+      borderRadius="$rounded8"
+      testID={`${ElementName.NetworkButton}-${chainId ?? 'all'}`}
+      onPress={handlePress}
+    >
       <NetworkOption
+        forceAllNetworksLabel={forceAllNetworksLabel}
         chainId={chainId}
+        chainIds={chainId === null ? allNetworksChainIds : undefined}
         currentlySelected={selectedChain === chainId}
         isNew={chainId !== null && newChains.includes(chainId)}
         borderRadius="$rounded16"
@@ -73,6 +87,8 @@ export function NetworkFilterContent({
   onPressChain,
   chainIds,
   showAllNetworks,
+  allNetworksChainIds,
+  forceAllNetworksLabel,
 }: NetworkFilterContentProps): JSX.Element {
   const { t } = useTranslation()
   const newChains = useNewChainIds()
@@ -94,6 +110,8 @@ export function NetworkFilterContent({
             chainId={null}
             selectedChain={selectedChain}
             newChains={newChains}
+            allNetworksChainIds={allNetworksChainIds}
+            forceAllNetworksLabel={forceAllNetworksLabel}
             onPressChain={onPressChain}
           />
         )}
@@ -122,6 +140,8 @@ export function NetworkFilterContent({
           chainId={null}
           selectedChain={selectedChain}
           newChains={newChains}
+          allNetworksChainIds={allNetworksChainIds}
+          forceAllNetworksLabel={forceAllNetworksLabel}
           onPressChain={onPressChain}
         />
       )}

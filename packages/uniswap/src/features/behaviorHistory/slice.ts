@@ -1,4 +1,10 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { AddressStringFormat, normalizeAddress } from '@universe/chains'
+import {
+  EARN_SWAP_UPSELL_MAX_DISPLAYS,
+  getOrCreateEarnSwapUpsellTokenHistory,
+  type EarnSwapUpsellHistory,
+} from 'uniswap/src/features/behaviorHistory/earn/swapUpsell'
 
 /**
  * Used to store persisted info about a users interactions with UI.
@@ -21,10 +27,6 @@ export interface UniswapBehaviorHistoryState {
   }
   // whether we have shown the mismatch toast (related to wallet capabilities & wallet bytecode)
   hasShownMismatchToast?: boolean
-  /** Wallet addresses with timestamps that have dismissed the graduate wallet card for 30 days. The same property in the application reducer is a list of wallet addresses that have dismissed the graduated wallet card for this session. */
-  embeddedWalletGraduateCardDismissed?: {
-    [walletAddress: string]: number
-  }
   hasShownSmartWalletNudge?: boolean
   /** Global flag for when user sees modal without wallet connected */
   hasSeenToucanIntroModal?: boolean
@@ -32,8 +34,22 @@ export interface UniswapBehaviorHistoryState {
   toucanIntroModalSeenByWallet?: {
     [walletAddress: string]: boolean
   }
-  hasDismissedUniswapWrapped2025Banner?: boolean
   hasDismissedCrosschainSwapsPromoBanner?: boolean
+  /**
+   * Per-user tri-state for the pools-balance coachmark on the Portfolio Overview.
+   * `undefined` = fresh state not yet classified; `false` = eligible (state existed before the
+   * pools-balances launch, not yet dismissed); `true` = never show (dismissed, had no pools when
+   * first evaluated, or state was created after launch).
+   * A migration marks existing installs `false`; `initializePoolsBalanceCoachmarkDismissed` classifies
+   * fresh state from the flag at startup.
+   */
+  hasDismissedPoolsBalanceCoachmark?: boolean
+  /** Per-user dismissal flag for the one-time Explore Earn deep-link coachmark. */
+  hasDismissedExploreEarnCoachmark?: boolean
+  hasDismissedPoolsOutageBanner?: boolean
+  /** Vault acknowledgements; any entry suppresses the Earn deposit explainer globally. */
+  earnHowItWorksAcknowledgedByVaultId?: Record<string, true>
+  earnSwapUpsell?: EarnSwapUpsellHistory
 }
 
 export const initialUniswapBehaviorHistoryState: UniswapBehaviorHistoryState = {
@@ -54,8 +70,10 @@ export const initialUniswapBehaviorHistoryState: UniswapBehaviorHistoryState = {
   hasShownMismatchToast: false,
   hasShownSmartWalletNudge: false,
   hasSeenToucanIntroModal: false,
-  hasDismissedUniswapWrapped2025Banner: false,
   hasDismissedCrosschainSwapsPromoBanner: false,
+  hasDismissedExploreEarnCoachmark: false,
+  hasDismissedPoolsOutageBanner: false,
+  earnHowItWorksAcknowledgedByVaultId: {},
 }
 
 const slice = createSlice({
@@ -109,10 +127,6 @@ const slice = createSlice({
     setHasShownMismatchToast: (state, action: PayloadAction<boolean>) => {
       state.hasShownMismatchToast = action.payload
     },
-    setEmbeddedWalletGraduateCardDismissed: (state, action: PayloadAction<{ walletAddress: string }>) => {
-      state.embeddedWalletGraduateCardDismissed ??= {}
-      state.embeddedWalletGraduateCardDismissed[action.payload.walletAddress] = new Date().getTime()
-    },
     setHasShownSmartWalletNudge: (state, action: PayloadAction<boolean>) => {
       state.hasShownSmartWalletNudge = action.payload
     },
@@ -121,16 +135,66 @@ const slice = createSlice({
     },
     setToucanIntroModalSeenByWallet: (state, action: PayloadAction<{ walletAddress: string }>) => {
       state.toucanIntroModalSeenByWallet ??= {}
-      state.toucanIntroModalSeenByWallet[action.payload.walletAddress.toLowerCase()] = true
+      state.toucanIntroModalSeenByWallet[
+        normalizeAddress(action.payload.walletAddress, AddressStringFormat.Lowercase)
+      ] = true
     },
     setHasDismissedBridgedAssetsBannerV2: (state, action: PayloadAction<boolean>) => {
       state.hasDismissedBridgedAssetsBannerV2 = action.payload
     },
-    setHasDismissedUniswapWrapped2025Banner: (state, action: PayloadAction<boolean>) => {
-      state.hasDismissedUniswapWrapped2025Banner = action.payload
-    },
     setHasDismissedCrosschainSwapsPromoBanner: (state, action: PayloadAction<boolean>) => {
       state.hasDismissedCrosschainSwapsPromoBanner = action.payload
+    },
+    // Payload defaults to `true` (dismiss). Pass `false` to re-show the coachmark, e.g. from a dev tool.
+    setPoolsBalanceCoachmarkDismissed: (state, action: PayloadAction<boolean | undefined>) => {
+      state.hasDismissedPoolsBalanceCoachmark = action.payload ?? true
+    },
+    // Write-once startup init for fresh state: flag already on → suppressed forever; flag still off →
+    // eligible (pre-launch cohort). No-op once any value exists (migrated installs, dismissals).
+    initializePoolsBalanceCoachmarkDismissed: (state, action: PayloadAction<boolean>) => {
+      state.hasDismissedPoolsBalanceCoachmark ??= action.payload
+    },
+    // Payload defaults to `true` (dismiss). Pass `false` to re-show the coachmark from a dev tool.
+    setExploreEarnCoachmarkDismissed: (state, action: PayloadAction<boolean | undefined>) => {
+      state.hasDismissedExploreEarnCoachmark = action.payload ?? true
+    },
+    setHasDismissedPoolsOutageBanner: (state, action: PayloadAction<boolean>) => {
+      state.hasDismissedPoolsOutageBanner = action.payload
+    },
+    setHasAcknowledgedEarnHowItWorks: (state, action: PayloadAction<{ vaultId: string }>) => {
+      state.earnHowItWorksAcknowledgedByVaultId ??= {}
+      state.earnHowItWorksAcknowledgedByVaultId[action.payload.vaultId] = true
+    },
+    recordEarnSwapUpsellQualifyingSwap: (
+      state,
+      action: PayloadAction<{ tokenCurrencyId: string; transactionId: string }>,
+    ) => {
+      const tokenHistory = getOrCreateEarnSwapUpsellTokenHistory(state, action.payload.tokenCurrencyId)
+
+      tokenHistory.countedTransactionIds ??= {}
+      if (tokenHistory.countedTransactionIds[action.payload.transactionId]) {
+        return
+      }
+
+      tokenHistory.countedTransactionIds[action.payload.transactionId] = true
+      tokenHistory.qualifyingSwapCount = (tokenHistory.qualifyingSwapCount ?? 0) + 1
+    },
+    recordEarnSwapUpsellInteraction: (
+      state,
+      action: PayloadAction<{ tokenCurrencyId: string; timestampMs: number }>,
+    ) => {
+      const tokenHistory = getOrCreateEarnSwapUpsellTokenHistory(state, action.payload.tokenCurrencyId)
+
+      const interactionCount = (tokenHistory.interactionCount ?? 0) + 1
+      tokenHistory.interactionCount = interactionCount
+      tokenHistory.lastInteractionAtMs = action.payload.timestampMs
+      tokenHistory.permanentlyDismissed =
+        tokenHistory.permanentlyDismissed === true || interactionCount >= EARN_SWAP_UPSELL_MAX_DISPLAYS
+    },
+    permanentlyDismissEarnSwapUpsell: (state, action: PayloadAction<{ tokenCurrencyId: string }>) => {
+      const tokenHistory = getOrCreateEarnSwapUpsellTokenHistory(state, action.payload.tokenCurrencyId)
+
+      tokenHistory.permanentlyDismissed = true
     },
   },
 })
@@ -149,13 +213,19 @@ export const {
   resetUniswapBehaviorHistory,
   setHasViewedContractAddressExplainer,
   setHasShownMismatchToast,
-  setEmbeddedWalletGraduateCardDismissed,
   setHasShownSmartWalletNudge,
   setHasSeenToucanIntroModal,
   setToucanIntroModalSeenByWallet,
   setHasDismissedBridgedAssetsBannerV2,
-  setHasDismissedUniswapWrapped2025Banner,
   setHasDismissedCrosschainSwapsPromoBanner,
+  setPoolsBalanceCoachmarkDismissed,
+  initializePoolsBalanceCoachmarkDismissed,
+  setExploreEarnCoachmarkDismissed,
+  setHasDismissedPoolsOutageBanner,
+  setHasAcknowledgedEarnHowItWorks,
+  recordEarnSwapUpsellQualifyingSwap,
+  recordEarnSwapUpsellInteraction,
+  permanentlyDismissEarnSwapUpsell,
 } = slice.actions
 
 export const uniswapBehaviorHistoryReducer = slice.reducer

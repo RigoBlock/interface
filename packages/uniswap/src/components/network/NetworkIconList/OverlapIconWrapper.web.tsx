@@ -1,5 +1,5 @@
+import { Flex } from '@universe/mycelium'
 import { useId } from 'react'
-import { Flex } from 'ui/src'
 import type { OverlapIconWrapperProps } from 'uniswap/src/components/network/NetworkIconList/OverlapIconWrapper'
 
 /**

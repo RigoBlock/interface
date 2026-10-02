@@ -1,6 +1,5 @@
-import { ColorTokens, Flex, Text } from 'ui/src'
+import { ColorTokens, Flex, iconSizes, Text } from '@universe/mycelium'
 import { RotatableChevron } from 'ui/src/components/icons'
-import { iconSizes } from 'ui/src/theme'
 import { AddressDisplay } from 'uniswap/src/components/accounts/AddressDisplay'
 import { shortenAddress } from 'utilities/src/addresses'
 

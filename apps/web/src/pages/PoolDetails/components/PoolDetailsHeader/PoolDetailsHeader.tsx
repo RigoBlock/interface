@@ -1,28 +1,31 @@
-import { Percent } from '@uniswap/sdk-core'
-import { GraphQLApi } from '@universe/api'
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-import { Flex, Text } from 'ui/src'
+import type { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
+import type { UniverseChainId } from '@universe/chains'
+import { Flex, Text } from '@universe/mycelium'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
+import { CopyHelper } from 'uniswap/src/components/CopyHelper/CopyHelper'
+import type { ParsedToken } from 'uniswap/src/features/dataApi/utils/parsedToken'
+import type { FeeData } from 'uniswap/src/features/positions/types'
 import { shortenHash } from 'utilities/src/addresses'
-import { FeeData } from '~/components/Liquidity/Create/types'
-import { LpIncentivesAprDisplay } from '~/components/LpIncentives/LpIncentivesAprDisplay'
+import { getPoolHeaderColumnGapProps } from '~/components/StickyCollapsibleHeader/getHeaderLogoSize'
+import { HeaderNetworkPill } from '~/components/StickyCollapsibleHeader/HeaderNetworkPill'
+import { LiquidityPositionInfoBadges } from '~/features/Liquidity/LiquidityPositionInfoBadges'
 import { AnimatedDoubleLogo } from '~/pages/PoolDetails/components/PoolDetailsHeader/AnimatedDoubleLogo'
 import { PoolDetailsHeaderActions } from '~/pages/PoolDetails/components/PoolDetailsHeader/PoolDetailsHeaderActions'
 import { PoolDetailsHeaderSkeleton } from '~/pages/PoolDetails/components/PoolDetailsHeader/PoolDetailsHeaderSkeleton'
 import { PoolDetailsTitle } from '~/pages/PoolDetails/components/PoolDetailsHeader/PoolDetailsTitle'
-import { CopyHelper } from '~/theme/components/CopyHelper'
 
 interface PoolDetailsHeaderProps {
   chainId?: number
   poolAddress?: string
-  token0?: GraphQLApi.Token
-  token1?: GraphQLApi.Token
+  token0?: ParsedToken
+  token1?: ParsedToken
   feeTier?: FeeData
-  protocolVersion?: GraphQLApi.ProtocolVersion
+  /** Integer pips, served alongside the fee tier by the page's `GetPool` row. */
+  protocolFeePips?: number
+  protocolVersion?: ProtocolVersion
   toggleReversed: React.DispatchWithoutAction
   loading?: boolean
   hookAddress?: string
-  poolApr?: Percent
-  rewardsApr?: number
   isCompact: boolean
 }
 
@@ -32,51 +35,78 @@ function PoolDetailsHeaderContent({
   token0,
   token1,
   feeTier,
+  protocolFeePips,
   protocolVersion,
   hookAddress,
   toggleReversed,
-  rewardsApr,
   isCompact,
 }: Omit<PoolDetailsHeaderProps, 'loading'>): JSX.Element {
+  const media = useMedia()
   const poolName = `${token0?.symbol} / ${token1?.symbol}`
-  const isLPIncentivesEnabled = useFeatureFlag(FeatureFlags.LpIncentives)
-  const showRewards = isLPIncentivesEnabled && rewardsApr && rewardsApr > 0
+  const poolChainId = chainId as UniverseChainId | undefined
+
+  const badges = (
+    // The hook badge is the only variable-width child, so it is the one that has to give: tamagui wrappers
+    // default to flexShrink 0, which would push the row past its container instead.
+    <Flex row gap="$spacing2" alignItems="center" minWidth={0} shrink>
+      <LiquidityPositionInfoBadges
+        version={protocolVersion}
+        v4hook={hookAddress}
+        chainId={poolChainId}
+        feeTier={feeTier}
+        protocolFeePips={protocolFeePips}
+        size={media.md ? 'compact' : 'default'}
+      />
+    </Flex>
+  )
 
   return (
-    <Flex row alignItems="center" justifyContent="space-between" width="100%">
-      <Flex row flex={1} alignItems="center" gap="$gap12">
-        <AnimatedDoubleLogo token0={token0} token1={token1} isCompact={isCompact} />
-        <Flex gap={isCompact ? '$gap4' : '$gap8'} $md={{ gap: '$none' }}>
-          <Flex row flex={1} alignItems="flex-end" gap="$gap8" $sm={{ width: '100%' }}>
+    <Flex row alignItems="center" justifyContent="space-between" width="100%" gap="$gap8">
+      <Flex row flex={1} minWidth={0} alignItems="center" gap="$gap12">
+        {/* Desktop shows the network on row 2, so the logo badge is redundant; mobile hides that row and keeps the badge. */}
+        <AnimatedDoubleLogo token0={token0} token1={token1} isCompact={isCompact} stacked includeNetwork={media.md} />
+        <Flex minWidth={0} shrink {...getPoolHeaderColumnGapProps(isCompact)}>
+          <Flex row flex={1} minWidth={0} alignItems="flex-end" gap="$gap8" $md={{ width: '100%' }}>
             <PoolDetailsTitle
               token0={token0}
               token1={token1}
-              chainId={chainId}
-              feeTier={feeTier}
-              protocolVersion={protocolVersion}
+              chainId={poolChainId}
               toggleReversed={toggleReversed}
-              hookAddress={hookAddress}
+              poolAddress={poolAddress}
               isCompact={isCompact}
             />
           </Flex>
-          <Flex row alignItems="center" gap="$gap8">
-            {showRewards && <LpIncentivesAprDisplay lpIncentiveRewardApr={rewardsApr} hideBackground />}
-            {poolAddress && (
-              <CopyHelper
-                toCopy={poolAddress}
-                iconPosition="right"
-                iconSize={16}
-                iconColor="$neutral2"
-                color="$neutral2"
-              >
-                <Text color="$neutral2">{shortenHash(poolAddress)}</Text>
-              </CopyHelper>
+          {/* Second row mirrors the TDP: network name, then badges, then a divider before the copyable address. */}
+          {/* Row gap is the sole spacer around the dividers, so each divider sits 12px from its neighbors. */}
+          {/* Wraps rather than overflows: just above the 640px switch this row holds five children and a
+              registry-named hook badge can outgrow the remaining width. */}
+          <Flex row alignItems="center" gap="$gap12" flexWrap="wrap" minWidth={0}>
+            {!media.md && poolChainId && (
+              <>
+                <HeaderNetworkPill chainId={poolChainId} />
+                <Flex width={1} alignSelf="stretch" backgroundColor="$surface3" />
+              </>
+            )}
+            {badges}
+            {!media.md && poolAddress && (
+              <>
+                <Flex width={1} alignSelf="stretch" backgroundColor="$surface3" />
+                <CopyHelper
+                  toCopy={poolAddress}
+                  iconPosition="right"
+                  iconSize={16}
+                  iconColor="$neutral2"
+                  color="$neutral2"
+                >
+                  <Text color="$neutral2">{shortenHash(poolAddress)}</Text>
+                </CopyHelper>
+              </>
             )}
           </Flex>
         </Flex>
       </Flex>
       <PoolDetailsHeaderActions
-        chainId={chainId}
+        chainId={poolChainId}
         poolAddress={poolAddress}
         poolName={poolName}
         token0={token0}

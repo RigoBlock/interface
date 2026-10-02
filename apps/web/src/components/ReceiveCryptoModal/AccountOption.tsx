@@ -1,31 +1,24 @@
+import { Platform } from '@universe/chains'
+import { Text } from '@universe/mycelium'
+import { styled } from '@universe/mycelium/styled'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Text } from 'ui/src'
 import { MAINNET_CHAIN_INFO } from 'uniswap/src/features/chains/evm/info/mainnet'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { SOLANA_CHAIN_INFO } from 'uniswap/src/features/chains/svm/info/solana'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { shortenAddress } from 'utilities/src/addresses'
 import { isEVMAddress } from 'utilities/src/addresses/evm/evm'
 import { AddressDisplay } from '~/components/AccountDetails/AddressDisplay'
-import StatusIcon from '~/components/StatusIcon'
-import { deprecatedStyled } from '~/lib/deprecated-styled'
-import { ThemedText } from '~/theme/components'
+import { StatusIcon } from '~/components/StatusIcon'
 
-const Container = deprecatedStyled.div`
-  display: flex;
-  padding-right: 8px;
-`
-const Identifiers = deprecatedStyled.div`
-  white-space: nowrap;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  margin-left: 8px;
-  user-select: none;
-  overflow: hidden;
-  flex: 1 1 auto;
-`
+const Container = styled('div', {
+  platform: 'web',
+  base: 'flex pr-[8px]',
+})
+const Identifiers = styled('div', {
+  platform: 'web',
+  base: 'whitespace-nowrap flex flex-col justify-center ml-[8px] select-none overflow-hidden flex-[1_1_auto]',
+})
 
 export function AccountOption({
   account,
@@ -48,15 +41,15 @@ export function AccountOption({
     <Container onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
       <StatusIcon address={account} size={40} />
       <Identifiers>
-        <ThemedText.SubHeader>
+        <Text variant="body2">
           <AddressDisplay address={account} />
-        </ThemedText.SubHeader>
+        </Text>
         {uniswapUsername || ensUsername ? (
-          <Text variant="body4" color="neutral2">
+          <Text variant="body4" color="$neutral2">
             {isHovered ? platformAddressDisplay : shortenAddress({ address: account })}
           </Text>
         ) : (
-          <Text variant="body4" color="neutral2">
+          <Text variant="body4" color="$neutral2">
             {platformAddressDisplay}
           </Text>
         )}

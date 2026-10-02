@@ -1,5 +1,5 @@
+import { Flex } from '@universe/mycelium'
 import React from 'react'
-import { Flex } from 'ui/src'
 import { useDeviceDimensions } from 'ui/src/hooks/useDeviceDimensions'
 
 /**

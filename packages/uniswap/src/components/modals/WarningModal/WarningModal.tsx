@@ -1,12 +1,20 @@
+import { isMobileApp, isWebPlatform } from '@universe/environment'
+import { Flex, type FlexProps, Text, TouchableArea } from '@universe/mycelium'
+import { useShadowPropsShort } from '@universe/mycelium/theme-hooks-compat'
+import { TestID } from '@universe/test'
 import { type PropsWithChildren, type ReactNode, useContext, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ColorValue } from 'react-native'
-import { Button, Flex, FlexProps, Text, TouchableArea, useSporeColors } from 'ui/src'
+import { Button, useSporeColors } from 'ui/src'
 import type { ButtonEmphasis, ButtonProps, ButtonVariant } from 'ui/src/components/buttons/Button/types'
 import { AlertTriangleFilled } from 'ui/src/components/icons/AlertTriangleFilled'
 import { ShieldMagnifyingGlass } from 'ui/src/components/icons/ShieldMagnifyingGlass'
 import { X } from 'ui/src/components/icons/X'
 import { opacify, zIndexes } from 'ui/src/theme'
+import { ContextMenu, type MenuOptionItem } from 'uniswap/src/components/menus/ContextMenu'
+import { MenuContent } from 'uniswap/src/components/menus/ContextMenuContent'
+import { ContextMenuTriggerButton } from 'uniswap/src/components/menus/ContextMenuTriggerButton'
+import { ContextMenuTriggerMode } from 'uniswap/src/components/menus/types'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { useBottomSheetSafeKeyboard } from 'uniswap/src/components/modals/useBottomSheetSafeKeyboard'
 import { getAlertColor } from 'uniswap/src/components/modals/WarningModal/getAlertColor'
@@ -17,8 +25,6 @@ import { ElementName, SectionName } from 'uniswap/src/features/telemetry/constan
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import type { SwapFormStore } from 'uniswap/src/features/transactions/swap/stores/swapFormStore/createSwapFormStore'
 import { SwapFormStoreContext } from 'uniswap/src/features/transactions/swap/stores/swapFormStore/SwapFormStoreContext'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
-import { isMobileApp, isWebPlatform } from 'utilities/src/platform'
 import { useEvent } from 'utilities/src/react/hooks'
 import { useBooleanState } from 'utilities/src/react/useBooleanState'
 
@@ -116,7 +122,7 @@ function ReportWarningModalContent({
 
   return (
     <Trace logPress section={SectionName.DisputeTokenWarning}>
-      <Flex {...wrapperProps} pb={keyboardHeight}>
+      <Flex {...wrapperProps}>
         <WarningModalIcon
           icon={<ShieldMagnifyingGlass color="$neutral1" size="$icon.24" />}
           backgroundIconColor={colors.surface3.val}
@@ -170,7 +176,7 @@ export function WarningModalContent({
   sendReport,
   ...props
 }: PropsWithChildren<WarningModalContentProps>): JSX.Element {
-  const { t } = useTranslation()
+  const colors = useSporeColors()
   const { headerText: alertHeaderTextColor } = getAlertColor(severity)
 
   const defaultButtonSize = isMobileApp ? 'medium' : 'small'
@@ -193,75 +199,134 @@ export function WarningModalContent({
     ...props,
   }
 
-  if (shouldShowReportUI) {
-    return (
-      <ReportWarningModalContent wrapperProps={wrapperProps} onBack={hideReportUI} onSendReport={onSendReport}>
+  return (
+    <>
+      <Flex {...wrapperProps}>
+        {!closeHeaderComponent && (showCloseButton || sendReport) && (
+          <Flex
+            row
+            centered
+            gap="$spacing4"
+            position="absolute"
+            right={isWebPlatform ? '$none' : '$spacing24'}
+            top={0}
+            zIndex={zIndexes.default}
+          >
+            {sendReport && <ReportWarningContextMenu onPressReport={showReportUI} />}
+            {showCloseButton && onClose && (
+              <TouchableArea onPress={onClose}>
+                <X color="$neutral2" size="$icon.24" />
+              </TouchableArea>
+            )}
+          </Flex>
+        )}
+
+        {closeHeaderComponent}
+
+        <WarningModalIcon
+          hideIcon={hideIcon}
+          icon={icon}
+          backgroundIconColor={backgroundIconColor}
+          alertHeaderTextColor={alertHeaderTextColor}
+        />
+        {title && (
+          <Text textAlign="center" variant={isWebPlatform ? 'subheading2' : 'body1'}>
+            {title}
+          </Text>
+        )}
+        {titleComponent}
+        {caption && (
+          <Text color="$neutral2" textAlign="center" variant="body3">
+            {caption}
+          </Text>
+        )}
+        {captionComponent}
         {children}
-      </ReportWarningModalContent>
-    )
-  }
+        {(rejectText || acknowledgeText) && (
+          <Flex row alignSelf="stretch" gap="$spacing12" pt={children ? '$spacing12' : '$spacing24'}>
+            {rejectText && (
+              <Trace logPress element={ElementName.BackButton} modal={modalName} properties={analyticsProperties}>
+                <Button size={buttonSize} emphasis="secondary" onPress={onReject ?? onClose}>
+                  {rejectText}
+                </Button>
+              </Trace>
+            )}
+            {acknowledgeText && (
+              <Trace logPress element={ElementName.Confirm} modal={modalName} properties={analyticsProperties}>
+                <Button
+                  size={buttonSize}
+                  variant={acknowledgeButtonVariant}
+                  emphasis={acknowledgeButtonEmphasis}
+                  testID={TestID.Confirm}
+                  onPress={onAcknowledge}
+                >
+                  {acknowledgeText}
+                </Button>
+              </Trace>
+            )}
+          </Flex>
+        )}
+      </Flex>
+
+      {sendReport && (
+        <Modal
+          isDismissible
+          enableBlurKeyboardOnGesture
+          keyboardBlurBehavior="restore"
+          backgroundColor={colors.surface1.val}
+          hideHandlebar={hideHandlebar}
+          isModalOpen={shouldShowReportUI}
+          maxWidth={maxWidth}
+          name={modalName}
+          stackBehavior="push"
+          onClose={hideReportUI}
+        >
+          <ReportWarningModalContent wrapperProps={wrapperProps} onBack={hideReportUI} onSendReport={onSendReport}>
+            {children}
+          </ReportWarningModalContent>
+        </Modal>
+      )}
+    </>
+  )
+}
+
+function ReportWarningContextMenu({ onPressReport }: { onPressReport: () => void }): JSX.Element {
+  const { t } = useTranslation()
+  const { value: isOpen, setTrue: openMenu, setFalse: closeMenu } = useBooleanState(false)
+  const shadowProps = useShadowPropsShort()
+
+  const menuItems: MenuOptionItem[] = [
+    {
+      label: t('reporting.token.warning.button'),
+      onPress: onPressReport,
+      Icon: ShieldMagnifyingGlass,
+    },
+  ]
 
   return (
-    <Flex {...wrapperProps}>
-      {showCloseButton && onClose && !closeHeaderComponent && (
-        <TouchableArea position="absolute" right={0} top={0} zIndex={zIndexes.default} onPress={onClose}>
-          <X color="$neutral2" size="$icon.24" />
-        </TouchableArea>
-      )}
-
-      {closeHeaderComponent}
-
-      <WarningModalIcon
-        hideIcon={hideIcon}
-        icon={icon}
-        backgroundIconColor={backgroundIconColor}
-        alertHeaderTextColor={alertHeaderTextColor}
-      />
-      {title && (
-        <Text textAlign="center" variant={isWebPlatform ? 'subheading2' : 'body1'}>
-          {title}
-        </Text>
-      )}
-      {titleComponent}
-      {caption && (
-        <Text color="$neutral2" textAlign="center" variant="body3">
-          {caption}
-        </Text>
-      )}
-      {captionComponent}
-      {children}
-      {(rejectText || acknowledgeText) && (
-        <Flex row alignSelf="stretch" gap="$spacing12" pt={children ? '$spacing12' : '$spacing24'}>
-          {rejectText && (
-            <Trace logPress element={ElementName.BackButton} modal={modalName} properties={analyticsProperties}>
-              <Button size={buttonSize} emphasis="secondary" onPress={onReject ?? onClose}>
-                {rejectText}
-              </Button>
-            </Trace>
-          )}
-          {acknowledgeText && (
-            <Trace logPress element={ElementName.Confirm} modal={modalName} properties={analyticsProperties}>
-              <Button
-                size={buttonSize}
-                variant={acknowledgeButtonVariant}
-                emphasis={acknowledgeButtonEmphasis}
-                testID={TestID.Confirm}
-                onPress={onAcknowledge}
-              >
-                {acknowledgeText}
-              </Button>
-            </Trace>
-          )}
-        </Flex>
-      )}
-      {sendReport && (
-        <TouchableArea onPress={showReportUI}>
-          <Text color="$neutral2" variant="buttonLabel3">
-            {t('reporting.token.warning.button')}
-          </Text>
-        </TouchableArea>
-      )}
-    </Flex>
+    <ContextMenu
+      menuItems={menuItems}
+      contentOverride={
+        isWebPlatform ? (
+          <MenuContent
+            trackItemClicks
+            items={menuItems}
+            handleCloseMenu={closeMenu}
+            elementName={ElementName.TokenWarningReportContextMenu}
+            sectionName={SectionName.DisputeTokenWarning}
+            containerStyles={shadowProps}
+          />
+        ) : null
+      }
+      triggerMode={ContextMenuTriggerMode.Primary}
+      isOpen={isOpen}
+      openMenu={openMenu}
+      closeMenu={closeMenu}
+      elementName={ElementName.TokenWarningReportContextMenu}
+      sectionName={SectionName.DisputeTokenWarning}
+    >
+      <ContextMenuTriggerButton />
+    </ContextMenu>
   )
 }
 

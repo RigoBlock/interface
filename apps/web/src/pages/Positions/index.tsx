@@ -1,445 +1,149 @@
-/* oxlint-disable max-lines */
-import { PositionStatus, ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-import { atom, useAtom } from 'jotai'
-import { useMemo, useState } from 'react'
+import { Platform } from '@universe/chains'
+import { Flex, Text } from '@universe/mycelium'
+import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router'
-import { FixedSizeList } from 'react-window'
-import { Anchor, Button, Flex, Text, useMedia } from 'ui/src'
-import { AlertTriangleFilled } from 'ui/src/components/icons/AlertTriangleFilled'
-import { CloseIconWithHover } from 'ui/src/components/icons/CloseIconWithHover'
-import { InfoCircleFilled } from 'ui/src/components/icons/InfoCircleFilled'
-import { Pools } from 'ui/src/components/icons/Pools'
-import { Wallet } from 'ui/src/components/icons/Wallet'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
-import { useGetPositionsInfiniteQuery } from 'uniswap/src/data/rest/getPositions'
-import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
-import { InterfacePageName, UniswapEventName } from 'uniswap/src/features/telemetry/constants'
-import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
+import { spacing } from 'ui/src/theme/spacing'
+import { InterfacePageName, SectionName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { useIsMissingPlatformWallet } from 'uniswap/src/features/transactions/swap/components/SwapFormButton/hooks/useIsMissingPlatformWallet'
-import { usePositionVisibilityCheck } from 'uniswap/src/features/visibility/hooks/usePositionVisibilityCheck'
-import { useInfiniteScroll } from 'utilities/src/react/useInfiniteScroll'
-import PROVIDE_LIQUIDITY from '~/assets/images/provideLiquidity.png'
-import tokenLogo from '~/assets/images/token-logo.png'
-import V4_HOOK from '~/assets/images/v4Hooks.png'
-import { MenuStateVariant, useSetMenu } from '~/components/AccountDrawer/menuState'
-import { useAccountDrawer } from '~/components/AccountDrawer/MiniPortfolio/hooks'
-import { ExternalArrowLink } from '~/components/Liquidity/ExternalArrowLink'
-import { LiquidityPositionCard, LiquidityPositionCardLoader } from '~/components/Liquidity/LiquidityPositionCard'
-import { LpIncentiveClaimModal } from '~/components/Liquidity/LPIncentives/LpIncentiveClaimModal'
-import LpIncentiveRewardsCard from '~/components/Liquidity/LPIncentives/LpIncentiveRewardsCard'
-import { PositionsHeader } from '~/components/Liquidity/PositionsHeader'
-import { PositionInfo } from '~/components/Liquidity/types'
-import { getPositionUrl } from '~/components/Liquidity/utils/getPositionUrl'
-import { parseRestPosition } from '~/components/Liquidity/utils/parseFromRest'
+import { APP_BODY_MOBILE_GUTTER_PX } from '~/app/layout/constants'
+import { PoolsUnavailableOnSolanaView } from '~/features/Liquidity/components/emptyStates/PoolsUnavailableOnSolanaView'
+import { LiquidityLearnMoreTiles } from '~/features/Liquidity/components/LearnMoreTiles'
+import { usePositionSort } from '~/features/Liquidity/hooks/usePositionSort'
+import { useShowHiddenPositions } from '~/features/Liquidity/hooks/useShowHiddenPositions'
+import { useV2StatusFilter } from '~/features/Liquidity/hooks/useV2StatusFilter'
+import { useWalletPositionsWeb } from '~/features/Liquidity/hooks/useWalletPositionsWeb'
+import { PositionsHeroHeader } from '~/features/Liquidity/PositionsHeroHeader'
+import { PositionsSummaryChips } from '~/features/Liquidity/PositionsSummaryChips'
+import { PositionsTable, PositionsTableError, PositionsTableLoader } from '~/features/Liquidity/PositionsTable'
+import {
+  hasActiveControlBarFilter,
+  type PositionsTableControlBarProps,
+} from '~/features/Liquidity/PositionsTableControlBar'
 import { useAccount } from '~/hooks/useAccount'
-import { useLpIncentives } from '~/hooks/useLpIncentives'
-import { ExpandoRow } from '~/pages/Positions/ExpandoRow'
-import { TopPools } from '~/pages/Positions/TopPools'
-import { usePendingLPTransactionsChangeListener } from '~/state/transactions/hooks'
-import { useRequestPositionsForSavedPairs } from '~/state/user/hooks'
-import { ClickableTamaguiStyle } from '~/theme/components/styles'
+import { EmptyPositionsDiscoveryView } from '~/pages/Positions/components/EmptyPositionsDiscoveryView'
+import { usePositionFilters } from '~/pages/Positions/hooks/usePositionFilters'
 
-// The BE limits the number of positions by chain and protocol version.
-// PAGE_SIZE=25 means the limit is at most 25 positions * x chains * y protocol versions.
-// TODO: LP-4: Improve performance by loading pageSize limit positions at a time.
-const PAGE_SIZE = 25
-// Reserve about 160px for each button
-const BUTTON_AREA_WIDTH = 160 * 2
-
-function DisconnectedWalletView() {
-  const { t } = useTranslation()
-  const accountDrawer = useAccountDrawer()
-  const setMenu = useSetMenu()
-  const connectedWithoutEVM = useIsMissingPlatformWallet(Platform.EVM)
-
-  const handleConnectWallet = () => {
-    if (connectedWithoutEVM) {
-      setMenu({ variant: MenuStateVariant.CONNECT_PLATFORM, platform: Platform.EVM })
-    }
-    accountDrawer.open()
-  }
-
-  return (
-    <Flex gap="$spacing12">
-      <Flex
-        padding="$spacing24"
-        centered
-        gap="$gap16"
-        borderRadius="$rounded20"
-        borderColor="$surface3"
-        borderWidth="$spacing1"
-        borderStyle="solid"
-      >
-        <Flex padding="$padding12" borderRadius="$rounded12" backgroundColor="$surface3">
-          <Wallet size="$icon.24" color="$neutral1" />
-        </Flex>
-        <Flex gap="$gap4" centered>
-          <Text variant="subheading1">
-            {connectedWithoutEVM ? t('pool.notAvailableOnSolana') : t('positions.welcome.connect.wallet')}
-          </Text>
-          <Text variant="body2" color="$neutral2">
-            {connectedWithoutEVM ? t('pool.connectEthereumToView') : t('positions.welcome.connect.description')}
-          </Text>
-        </Flex>
-        <Flex row gap="$gap8" $md={{ flexDirection: 'column', width: '100%' }} width={BUTTON_AREA_WIDTH}>
-          {!connectedWithoutEVM && (
-            <Button
-              $md={{
-                py: '$spacing16',
-              }}
-              variant="default"
-              size="small"
-              emphasis="secondary"
-              tag="a"
-              href="/positions/create/v4"
-              $platform-web={{
-                textDecoration: 'none',
-              }}
-            >
-              {t('position.new')}
-            </Button>
-          )}
-          <Button
-            $md={{
-              py: '$spacing16',
-            }}
-            variant="default"
-            size="small"
-            borderRadius="$rounded12"
-            onPress={handleConnectWallet}
-          >
-            {connectedWithoutEVM ? t('common.connectAWallet.button.evm') : t('common.connectWallet.button')}
-          </Button>
-        </Flex>
-      </Flex>
-      <Flex gap="$gap20" mb="$spacing24">
-        <Flex row gap="$gap12" $sm={{ flexDirection: 'column' }}>
-          <LearnMoreTile
-            width="100%"
-            img={PROVIDE_LIQUIDITY}
-            text={t('liquidity.provideOnProtocols')}
-            link={uniswapUrls.helpArticleUrls.providingLiquidityInfo}
-          />
-          <LearnMoreTile
-            width="100%"
-            img={V4_HOOK}
-            text={t('liquidity.hooks')}
-            link={uniswapUrls.helpArticleUrls.v4HooksInfo}
-          />
-        </Flex>
-      </Flex>
-    </Flex>
-  )
-}
-
-function EmptyPositionsView() {
-  const { t } = useTranslation()
-  return (
-    <Flex gap="$spacing12">
-      <Flex
-        padding="$spacing24"
-        centered
-        gap="$gap16"
-        borderRadius="$rounded12"
-        borderColor="$surface3"
-        borderWidth="$spacing1"
-        borderStyle="solid"
-        $platform-web={{
-          textAlign: 'center',
-        }}
-      >
-        <Flex padding="$padding12" borderRadius="$rounded12" backgroundColor="$surface3">
-          <Pools size="$icon.24" color="$neutral1" />
-        </Flex>
-        <Text variant="subheading1">{t('positions.noPositions.title')}</Text>
-        <Text variant="body2" color="$neutral2" maxWidth={420}>
-          {t('positions.noPositions.description')}
-        </Text>
-        <Flex row gap="$gap8" $md={{ flexDirection: 'column', width: '100%' }} width={BUTTON_AREA_WIDTH}>
-          <Button
-            $md={{
-              py: '$spacing16',
-            }}
-            variant="default"
-            size="small"
-            emphasis="secondary"
-            tag="a"
-            href="/explore/pools"
-            $platform-web={{
-              textDecoration: 'none',
-            }}
-          >
-            {t('pools.explore')}
-          </Button>
-          <Button
-            $md={{
-              py: '$spacing16',
-            }}
-            variant="default"
-            size="small"
-            tag="a"
-            href="/positions/create/v4"
-            $platform-web={{
-              textDecoration: 'none',
-            }}
-          >
-            {t('position.new')}
-          </Button>
-        </Flex>
-      </Flex>
-    </Flex>
-  )
-}
-
-function ErrorPositionsView({ onRetry }: { onRetry: () => void }) {
-  const { t } = useTranslation()
-  return (
-    <Flex gap="$spacing12">
-      <Flex
-        padding="$spacing24"
-        centered
-        gap="$gap16"
-        borderRadius="$rounded12"
-        borderColor="$surface3"
-        borderWidth="$spacing1"
-        borderStyle="solid"
-        $platform-web={{
-          textAlign: 'center',
-        }}
-      >
-        <Flex padding="$padding12" borderRadius="$rounded12" backgroundColor="$statusCritical2">
-          <AlertTriangleFilled size="$icon.24" color="$statusCritical" />
-        </Flex>
-        <Text variant="subheading1">{t('common.error.general')}</Text>
-        <Text variant="body2" color="$neutral2" maxWidth={420}>
-          {t('positions.error.loading')}
-        </Text>
-        <Button variant="default" size="small" onPress={onRetry}>
-          {t('common.button.retry')}
-        </Button>
-      </Flex>
-    </Flex>
-  )
-}
-
-function LearnMoreTile({
-  img,
-  text,
-  link,
-  width = 344,
+function getPositionsViewState({
+  isConnected,
+  isLoadingPositions,
+  hasErrorWithoutData,
+  connectedWithoutEVM,
+  hasPositions,
+  hasActiveV2Filter,
+  showHiddenPositions,
 }: {
-  img: string
-  text: string
-  link?: string
-  width?: number | string
-}) {
-  return (
-    <Anchor
-      href={link}
-      textDecorationLine="none"
-      target="_blank"
-      rel="noopener noreferrer"
-      width={width}
-      {...ClickableTamaguiStyle}
-      hoverStyle={{ backgroundColor: '$surface1Hovered', borderColor: '$surface3Hovered' }}
-    >
-      <Flex
-        row
-        borderRadius="$rounded20"
-        borderColor="$surface3"
-        borderWidth="$spacing1"
-        borderStyle="solid"
-        alignItems="center"
-        gap="$gap16"
-        overflow="hidden"
-      >
-        <img src={img} style={{ objectFit: 'cover', width: '72px', height: '72px' }} />
-        <Text variant="subheading2">{text}</Text>
-      </Flex>
-    </Anchor>
-  )
+  isConnected: boolean
+  isLoadingPositions: boolean
+  hasErrorWithoutData: boolean
+  connectedWithoutEVM: boolean
+  hasPositions: boolean
+  hasActiveV2Filter: boolean
+  showHiddenPositions: boolean
+}): { showDiscoveryEmptyState: boolean } {
+  const hasNoPositionsToShow = !isLoadingPositions && !connectedWithoutEVM && !hasPositions
+  // With server-side filtering, an empty result under a non-default filter must NOT swap in the
+  // discovery view (which hosts no control bar) — otherwise the filter deletes its own UI and the
+  // only recovery is a reload. The Hidden toggle is the same trap: flipping it on with no hidden
+  // positions empties the list, so keep the table (and its control bar) mounted in that case too.
+  const showDiscoveryEmptyState =
+    hasNoPositionsToShow && !hasActiveV2Filter && !showHiddenPositions && !(isConnected && hasErrorWithoutData)
+  return { showDiscoveryEmptyState }
 }
 
-const chainFilterAtom = atom<UniverseChainId | null>(null)
-const versionFilterAtom = atom<ProtocolVersion[]>([ProtocolVersion.V4, ProtocolVersion.V3, ProtocolVersion.V2])
-const statusFilterAtom = atom<PositionStatus[]>([PositionStatus.IN_RANGE, PositionStatus.OUT_OF_RANGE])
+// Right gutter the summary carousel cancels to bleed to the viewport edge on mWeb: the page's
+// $lg px + AppBody's gutter below the md breakpoint.
+const SUMMARY_CHIPS_BLEED_GUTTERS = { md: spacing.spacing20 + APP_BODY_MOBILE_GUTTER_PX }
 
-function VirtualizedPositionsList({
-  positions,
-  onLoadMore,
-  hasNextPage,
-  isFetching,
-}: {
-  positions: PositionInfo[]
-  onLoadMore: () => void
-  hasNextPage: boolean
-  isFetching: boolean
-}) {
-  const { t } = useTranslation()
-  const media = useMedia()
-  const positionItemHeight = useMemo(() => {
-    return media.sm ? 360 : media.md ? 290 : 200
-  }, [media])
-
-  const listHeight = useMemo(() => {
-    return positions.length * positionItemHeight
-  }, [positionItemHeight, positions.length])
-
-  const { sentinelRef } = useInfiniteScroll({ onLoadMore, hasNextPage, isFetching })
-
-  return (
-    <Flex grow>
-      <FixedSizeList
-        height={listHeight}
-        width="100%"
-        itemCount={positions.length}
-        itemSize={positionItemHeight}
-        itemData={positions}
-        itemKey={(index) => `${positions[index].poolId}-${positions[index].tokenId}-${positions[index].chainId}`}
-      >
-        {({ index, style, data }) => {
-          const position = data[index]
-          return (
-            <Flex style={style}>
-              <Link
-                key={`${position.poolId}-${position.tokenId}-${position.chainId}`}
-                style={{ textDecoration: 'none' }}
-                to={getPositionUrl(position)}
-              >
-                <LiquidityPositionCard showVisibilityOption liquidityPosition={position} showMigrateButton />
-              </Link>
-            </Flex>
-          )
-        }}
-      </FixedSizeList>
-
-      {/* Sentinel element to trigger loading more when it comes into view */}
-      {hasNextPage && (
-        <Flex ref={sentinelRef} height={20} justifyContent="center" alignItems="center">
-          {isFetching && (
-            <Text variant="body3" color="$neutral2">
-              {t('liquidityPool.positions.loadingMore')}
-            </Text>
-          )}
-        </Flex>
-      )}
-    </Flex>
-  )
-}
-
-export default function Pool() {
+export function Pool() {
   const account = useAccount()
   const { t } = useTranslation()
   const { address, isConnected } = account
 
-  const isLPIncentivesEnabled = useFeatureFlag(FeatureFlags.LpIncentives) && isConnected
-
-  const [chainFilter, setChainFilter] = useAtom(chainFilterAtom)
-  const { chains: currentModeChains } = useEnabledChains({ platform: Platform.EVM })
-  const [versionFilter, setVersionFilter] = useAtom(versionFilterAtom)
-  const [statusFilter, setStatusFilter] = useAtom(statusFilterAtom)
-  const [closedCTADismissed, setClosedCTADismissed] = useState(false)
-
-  const isPositionVisible = usePositionVisibilityCheck()
-  const [showHiddenPositions, setShowHiddenPositions] = useState(false)
+  const connectedWithoutEVM = useIsMissingPlatformWallet(Platform.EVM)
 
   const {
-    isPendingTransaction,
-    isModalOpen,
-    tokenRewards,
-    openModal,
-    closeModal,
-    setTokenRewards,
-    onTransactionSuccess,
-    hasCollectedRewards,
-  } = useLpIncentives()
+    chainFilter,
+    setChainFilter,
+    versionFilter,
+    toggleVersion,
+    statusFilter,
+    setStatusFilter,
+    search,
+    setSearch,
+    resetFilters,
+  } = usePositionFilters()
+  const { showHiddenPositions, setShowHiddenPositions } = useShowHiddenPositions(account.address)
+  const { v2StatusFilter, toggleV2Status, resetV2Status } = useV2StatusFilter()
+  // Resets chain/version/search, the lifecycle filter, and the Hidden toggle. The range tab
+  // selection survives — navigation, not a filter (mirrors Portfolio Pools).
+  const handleClearFilters = useCallback(() => {
+    resetFilters()
+    resetV2Status()
+    setShowHiddenPositions(false)
+  }, [resetFilters, resetV2Status, setShowHiddenPositions])
+  const { sort, onSort } = usePositionSort()
 
-  const { data, isPlaceholderData, refetch, isLoading, fetchNextPage, hasNextPage, isFetching, error } =
-    useGetPositionsInfiniteQuery(
-      {
-        address,
-        chainIds: chainFilter ? [chainFilter] : currentModeChains,
-        positionStatuses: statusFilter,
-        protocolVersions: versionFilter,
-        pageSize: PAGE_SIZE,
-        pageToken: '',
-        includeHidden: true,
-      },
-      !isConnected,
-    )
-
-  const loadedPositions = useMemo(() => {
-    return data?.pages.flatMap((positionsResponse) => positionsResponse.positions) || []
-  }, [data])
-
-  const savedPositions = useRequestPositionsForSavedPairs()
-
-  const isLoadingPositions = !!account.address && (isLoading || !data) && !error
-  const hasErrorWithoutData = !!error && !data
-  const combinedPositions = useMemo(() => {
-    return [
-      ...loadedPositions,
-      ...savedPositions
-        .filter((position) => {
-          const matchesChain = !chainFilter || position.data?.position?.chainId === chainFilter
-          const matchesStatus = position.data?.position?.status && statusFilter.includes(position.data.position.status)
-          const matchesVersion =
-            position.data?.position?.protocolVersion && versionFilter.includes(position.data.position.protocolVersion)
-          return matchesChain && matchesStatus && matchesVersion
-        })
-        .map((p) => p.data?.position),
-    ]
-      .map(parseRestPosition)
-      .filter((position): position is PositionInfo => !!position)
-      .reduce<PositionInfo[]>((unique, position) => {
-        const positionId = `${position.poolId}-${position.tokenId}-${position.chainId}`
-        const exists = unique.some((p) => `${p.poolId}-${p.tokenId}-${p.chainId}` === positionId)
-        if (!exists) {
-          unique.push(position)
-        }
-        return unique
-      }, [])
-  }, [loadedPositions, savedPositions, chainFilter, statusFilter, versionFilter])
-
-  const { visiblePositions, hiddenPositions } = useMemo(() => {
-    // oxlint-disable-next-line no-shadow
-    const visiblePositions: PositionInfo[] = []
-    // oxlint-disable-next-line no-shadow
-    const hiddenPositions: PositionInfo[] = []
-
-    combinedPositions.forEach((position) => {
-      const isVisible = isPositionVisible({
-        poolId: position.poolId,
-        tokenId: position.tokenId,
-        chainId: position.chainId,
-        isFlaggedSpam: position.isHidden,
-      })
-
-      if (isVisible) {
-        visiblePositions.push(position)
-      } else {
-        hiddenPositions.push(position)
-      }
-    })
-
-    return { visiblePositions, hiddenPositions }
-  }, [combinedPositions, isPositionVisible])
-
-  usePendingLPTransactionsChangeListener(refetch)
-
-  const loadMorePositions = () => {
-    if (hasNextPage && !isFetching) {
-      fetchNextPage()
-    }
+  // Single source for the control-bar prop bundle, spread into the table, its loader, and its error
+  // surface so a prop change lands in one place (mirrors the sibling Portfolio Pools page).
+  const controlBarProps: PositionsTableControlBarProps = {
+    statusFilter: v2StatusFilter,
+    onToggleStatus: toggleV2Status,
+    rangeFilter: statusFilter,
+    setRangeFilter: setStatusFilter,
+    versionFilter,
+    toggleVersion,
+    chainFilter,
+    setChainFilter,
+    showHiddenPositions,
+    setShowHiddenPositions,
+    search,
+    onSearchChange: setSearch,
+    onClearFilters: handleClearFilters,
   }
+  // A non-default selection on any control-bar dimension means an empty result is "nothing matches
+  // this filter" rather than "wallet has no positions" — keep the control bar (and show a
+  // filter-aware empty prompt) so the user can change it back instead of being stranded in discovery.
+  const hasActiveV2Filter = hasActiveControlBarFilter(controlBarProps)
+
+  const {
+    visiblePositions,
+    hiddenPositions,
+    isFetching,
+    isPlaceholderData,
+    hasNextPage,
+    isLoadingPositions,
+    hasErrorWithoutData,
+    refetch,
+    loadMorePositions,
+  } = useWalletPositionsWeb({
+    address,
+    chainFilter,
+    versionFilter,
+    statusFilter,
+    v2StatusFilter,
+    sort,
+    searchText: search,
+  })
+
+  const hasPositions = visiblePositions.length > 0 || hiddenPositions.length > 0
+  const { showDiscoveryEmptyState } = getPositionsViewState({
+    isConnected,
+    isLoadingPositions,
+    hasErrorWithoutData,
+    connectedWithoutEVM,
+    hasPositions,
+    hasActiveV2Filter,
+    showHiddenPositions,
+  })
+  // Wallet-wide totals stand on their own regardless of what the table shows: an empty result —
+  // filtered, or a wallet holding nothing — reads $0.00 instead of the chips disappearing, which is
+  // what made switching to a quiet network look like the summary broke.
+  const showSummaryChips = isConnected
 
   return (
-    <Trace logImpression page={InterfacePageName.Positions}>
+    <Trace logImpression page={InterfacePageName.Positions} section={SectionName.PositionsList}>
+      <PositionsHeroHeader />
       <Flex
         row
         justifyContent="space-between"
@@ -450,184 +154,44 @@ export default function Pool() {
         px="$spacing40"
         $lg={{ px: '$spacing20' }}
       >
-        <Flex grow shrink gap="$spacing24" maxWidth={740} $xl={{ maxWidth: '100%' }}>
-          {isLPIncentivesEnabled && (
-            <LpIncentiveRewardsCard
-              walletAddress={account.address}
-              onCollectRewards={() => {
-                sendAnalyticsEvent(UniswapEventName.LpIncentiveCollectRewardsButtonClicked)
-                openModal()
-              }}
-              setTokenRewards={setTokenRewards}
-              initialHasCollectedRewards={hasCollectedRewards}
-            />
+        <Flex grow shrink gap="$spacing24" maxWidth="100%" $xl={{ maxWidth: '100%' }}>
+          {showSummaryChips && (
+            <PositionsSummaryChips walletAddress={account.address} bleedGutters={SUMMARY_CHIPS_BLEED_GUTTERS} />
           )}
-          <Flex row justifyContent="space-between" alignItems="center" mt={isLPIncentivesEnabled ? '$spacing28' : 0}>
-            <PositionsHeader
-              showFilters={account.isConnected}
-              selectedChain={chainFilter}
-              selectedVersions={versionFilter}
-              selectedStatus={statusFilter}
-              onChainChange={(selectedChain) => {
-                setChainFilter(selectedChain ?? null)
-              }}
-              onVersionChange={(toggledVersion) => {
-                setVersionFilter((prevVersionFilter) => {
-                  if (prevVersionFilter.includes(toggledVersion)) {
-                    return prevVersionFilter.filter((v) => v !== toggledVersion)
-                  } else {
-                    return [...prevVersionFilter, toggledVersion]
-                  }
-                })
-              }}
-              onStatusChange={(toggledStatus) => {
-                setStatusFilter((prevStatusFilter) => {
-                  if (prevStatusFilter.includes(toggledStatus)) {
-                    return prevStatusFilter.filter((s) => s !== toggledStatus)
-                  } else {
-                    return [...prevStatusFilter, toggledStatus]
-                  }
-                })
-              }}
-            />
-          </Flex>
-          {hasErrorWithoutData && isConnected ? (
-            <ErrorPositionsView onRetry={refetch} />
+          {!showDiscoveryEmptyState && <Text variant="heading3">{t('pool.positions.title')}</Text>}
+          {connectedWithoutEVM ? (
+            <>
+              <PoolsUnavailableOnSolanaView withBorder />
+              <LiquidityLearnMoreTiles />
+            </>
+          ) : hasErrorWithoutData && isConnected ? (
+            <PositionsTableError {...controlBarProps} onRetry={refetch} />
           ) : !isLoadingPositions ? (
-            combinedPositions.length > 0 ? (
-              <Flex gap="$gap16" mb="$spacing16" opacity={isPlaceholderData ? 0.6 : 1}>
-                <VirtualizedPositionsList
-                  positions={visiblePositions}
-                  onLoadMore={loadMorePositions}
-                  hasNextPage={hasNextPage}
-                  isFetching={isFetching}
-                />
-                <HiddenPositions
-                  showHiddenPositions={showHiddenPositions}
-                  setShowHiddenPositions={setShowHiddenPositions}
-                  hiddenPositions={hiddenPositions}
-                />
-              </Flex>
-            ) : isConnected ? (
-              <EmptyPositionsView />
+            // Same predicate as the title above, so the two never desync: the discovery view shows
+            // only for a genuinely empty wallet, so an active filter or the Hidden toggle keeps the
+            // (possibly empty) table — and its control bar — mounted instead of trapping the user.
+            showDiscoveryEmptyState ? (
+              <EmptyPositionsDiscoveryView />
             ) : (
-              <DisconnectedWalletView />
+              <PositionsTable
+                visiblePositions={visiblePositions}
+                hiddenPositions={hiddenPositions}
+                hasNextPage={hasNextPage}
+                isFetching={isFetching}
+                isPlaceholderData={isPlaceholderData}
+                loadMorePositions={loadMorePositions}
+                sort={sort}
+                onSort={onSort}
+                {...controlBarProps}
+              />
             )
           ) : (
-            <Flex gap="$gap16">
-              {Array.from({ length: 5 }, (_, index) => (
-                <LiquidityPositionCardLoader key={index} />
-              ))}
-            </Flex>
-          )}
-          {!statusFilter.includes(PositionStatus.CLOSED) && !closedCTADismissed && account.address && (
-            <Flex
-              borderWidth="$spacing1"
-              borderColor="$surface3"
-              borderRadius="$rounded12"
-              mb="$spacing24"
-              p="$padding12"
-              gap="$gap12"
-              row
-              centered
-            >
-              <Flex height="100%">
-                <InfoCircleFilled color="$neutral2" size="$icon.20" />
-              </Flex>
-              <Flex grow flexBasis={0}>
-                <Text variant="body3" color="$neutral1">
-                  {t('pool.closedCTA.title')}
-                </Text>
-                <Text variant="body3" color="$neutral2">
-                  {t('pool.closedCTA.description')}
-                </Text>
-              </Flex>
-              <CloseIconWithHover onClose={() => setClosedCTADismissed(true)} size="$icon.20" />
-            </Flex>
-          )}
-          {isConnected && (
-            <Flex row centered $sm={{ flexDirection: 'column', alignItems: 'flex-start' }} mb="$spacing24" gap="$gap4">
-              <Text variant="body3" color="$neutral2">
-                {t('pool.import.link.description')}
-              </Text>
-              <Anchor href="/pools/v2/find" textDecorationLine="none">
-                <Text variant="body3" color="$neutral1" {...ClickableTamaguiStyle}>
-                  {t('pool.import.positions.v2')}
-                </Text>
-              </Anchor>
-            </Flex>
-          )}
-        </Flex>
-        <Flex gap="$gap32">
-          <TopPools chainId={chainFilter} />
-          {isConnected && (
-            <Flex gap="$gap20" mb="$spacing24">
-              <Text variant="subheading1">{t('liquidity.learnMoreLabel')}</Text>
-              <Flex gap="$gap12">
-                <LearnMoreTile
-                  img={PROVIDE_LIQUIDITY}
-                  text={t('liquidity.provideOnProtocols')}
-                  link={uniswapUrls.helpArticleUrls.providingLiquidityInfo}
-                />
-                <LearnMoreTile
-                  img={V4_HOOK}
-                  text={t('liquidity.hooks')}
-                  link={uniswapUrls.helpArticleUrls.v4HooksInfo}
-                />
-              </Flex>
-              <ExternalArrowLink href={uniswapUrls.helpArticleUrls.positionsLearnMore}>
-                {t('common.button.learn')}
-              </ExternalArrowLink>
-            </Flex>
+            <PositionsTableLoader {...controlBarProps} />
           )}
         </Flex>
       </Flex>
-      {isLPIncentivesEnabled && (
-        <LpIncentiveClaimModal
-          isOpen={isModalOpen}
-          onClose={() => closeModal()}
-          onSuccess={() => {
-            sendAnalyticsEvent(UniswapEventName.LpIncentiveCollectRewardsSuccess, {
-              token_rewards: tokenRewards,
-            })
-            onTransactionSuccess()
-          }}
-          tokenRewards={tokenRewards}
-          isPendingTransaction={isPendingTransaction}
-          iconUrl={tokenLogo}
-        />
-      )}
     </Trace>
   )
 }
 
-interface HiddenPositionsProps {
-  showHiddenPositions: boolean
-  setShowHiddenPositions: (showHiddenPositions: boolean) => void
-  hiddenPositions: PositionInfo[]
-}
-
-function HiddenPositions({ showHiddenPositions, setShowHiddenPositions, hiddenPositions }: HiddenPositionsProps) {
-  const { t } = useTranslation()
-  return (
-    <ExpandoRow
-      isExpanded={showHiddenPositions}
-      toggle={() => setShowHiddenPositions(!showHiddenPositions)}
-      numItems={hiddenPositions.length}
-      title={t('common.hidden')}
-      enableOverflow
-    >
-      <Flex gap="$gap16">
-        {hiddenPositions.map((position) => (
-          <Link
-            key={`${position.poolId}-${position.tokenId}-${position.chainId}`}
-            style={{ textDecoration: 'none' }}
-            to={getPositionUrl(position)}
-          >
-            <LiquidityPositionCard showVisibilityOption liquidityPosition={position} isVisible={false} />
-          </Link>
-        ))}
-      </Flex>
-    </ExpandoRow>
-  )
-}
+export default Pool

@@ -1,6 +1,6 @@
+import { Flex } from '@universe/mycelium'
 import PoissonDiskSampling from 'poisson-disk-sampling'
 import { useMemo, useRef } from 'react'
-import { Flex } from 'ui/src'
 import { CloudItem } from 'uniswap/src/components/IconCloud/CloudItem'
 import { randomFloat, randomInt } from 'uniswap/src/components/IconCloud/utils'
 import { useIsWindowVisible } from 'utilities/src/react/useIsWindowVisible'

@@ -1,11 +1,18 @@
-import { Pool, SearchTokensResponse, SearchType } from '@uniswap/client-search/dist/search/v1/api_pb'
-import { GqlResult } from '@universe/api'
+import type { ConnectError } from '@connectrpc/connect'
+import type { UseQueryResult } from '@tanstack/react-query'
+import { SearchTokensResponse } from '@uniswap/client-data-api/dist/data/v1/search_pb'
+import { SearchType as SearchTypeV1, Pool } from '@uniswap/client-data-api/dist/data/v1/searchTypes_pb'
+import { SearchResponse, SearchType } from '@uniswap/client-data-api/dist/data/v2/search_pb'
+import { UniverseChainId, Platform } from '@universe/chains'
+import { useIsV2EndpointsSearchEnabled } from '@universe/gating'
 import { useMemo } from 'react'
-import { searchPoolToPoolSearchResult, useSearchTokensAndPoolsQuery } from 'uniswap/src/data/rest/searchTokensAndPools'
+import { rankedPoolToPoolSearchResult, useSearchQuery } from 'uniswap/src/data/apiClients/dataApiService/search/search'
+import {
+  searchPoolToPoolSearchResult,
+  useSearchV1Query,
+} from 'uniswap/src/data/apiClients/dataApiService/search/searchV1'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
-import { PoolSearchHistoryResult } from 'uniswap/src/features/search/SearchHistoryResult'
+import { PoolSearchResult } from 'uniswap/src/features/dataApi/types'
 import { NUMBER_OF_RESULTS_LONG } from 'uniswap/src/features/search/SearchModal/constants'
 import { useEvent } from 'utilities/src/react/hooks'
 
@@ -19,40 +26,55 @@ export function useSearchPools({
   chainFilter: UniverseChainId | null
   skip: boolean
   size?: number
-}): GqlResult<PoolSearchHistoryResult[]> {
+}): UseQueryResult<PoolSearchResult[], ConnectError> {
   const { chains: enabledChainIds } = useEnabledChains({ platform: Platform.EVM })
+  const isSearchV2Enabled = useIsV2EndpointsSearchEnabled()
+
+  const chainIds = useMemo(() => (chainFilter ? [chainFilter] : enabledChainIds), [chainFilter, enabledChainIds])
+
+  const variablesV1 = useMemo(
+    () => ({
+      searchQuery: searchQuery ?? undefined,
+      chainIds,
+      searchType: SearchTypeV1.POOL,
+      page: 1,
+      size,
+    }),
+    [searchQuery, chainIds, size],
+  )
+
+  const poolSelectV1 = useEvent((response: SearchTokensResponse): PoolSearchResult[] => {
+    const responsePools: Pool[] = response.pools
+    return responsePools
+      .map(searchPoolToPoolSearchResult)
+      .filter((pool): pool is PoolSearchResult => pool !== undefined)
+  })
+
+  const v1Result = useSearchV1Query<PoolSearchResult[]>({
+    input: variablesV1,
+    enabled: !skip && !isSearchV2Enabled,
+    select: poolSelectV1,
+  })
 
   const variables = useMemo(
     () => ({
       searchQuery: searchQuery ?? undefined,
-      chainIds: chainFilter ? [chainFilter] : enabledChainIds,
-      searchType: SearchType.POOL,
-      page: 1,
-      size,
+      chainIds,
+      types: [SearchType.POOL],
+      maxResults: size,
     }),
-    [searchQuery, chainFilter, size, enabledChainIds],
+    [searchQuery, chainIds, size],
   )
 
-  const poolSelect = useEvent((response: SearchTokensResponse): PoolSearchHistoryResult[] => {
-    const responsePools: Pool[] = response.pools
-    return responsePools
-      .map(searchPoolToPoolSearchResult)
-      .filter((pool): pool is PoolSearchHistoryResult => pool !== undefined)
-  })
+  const poolSelect = useEvent((response: SearchResponse): PoolSearchResult[] =>
+    response.pools.map(rankedPoolToPoolSearchResult).filter((pool): pool is PoolSearchResult => pool !== undefined),
+  )
 
-  const {
-    data: pools,
-    error,
-    isPending,
-    refetch,
-  } = useSearchTokensAndPoolsQuery<PoolSearchHistoryResult[]>({
+  const v2Result = useSearchQuery<PoolSearchResult[]>({
     input: variables,
-    enabled: !skip,
+    enabled: !skip && isSearchV2Enabled,
     select: poolSelect,
   })
 
-  return useMemo(
-    () => ({ data: pools, loading: isPending, error: error ?? undefined, refetch }),
-    [pools, isPending, error, refetch],
-  )
+  return isSearchV2Enabled ? v2Result : v1Result
 }

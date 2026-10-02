@@ -1,7 +1,8 @@
+import { cn, Flex, FlexCompatProps, Text } from '@universe/mycelium'
 import { useNavigate } from 'react-router'
-import { Flex, FlexProps, Text } from 'ui/src'
 
-type ValuePropCardProps = FlexProps & {
+// `title` here is the card's ReactNode slot, not the HTML title attribute FlexCompatProps declares
+type ValuePropCardProps = Omit<FlexCompatProps, 'title'> & {
   smaller?: boolean
   children?: React.ReactNode
   title?: React.ReactNode
@@ -14,8 +15,8 @@ type ValuePropCardProps = FlexProps & {
   color?: string
 }
 
-export default function ValuePropCard(props: ValuePropCardProps) {
-  const { color, alignTextToBottom, href, to, title, children, bodyText, button, subtitle, ...rest } = props
+export function ValuePropCard(props: ValuePropCardProps) {
+  const { color, alignTextToBottom, href, to, title, children, bodyText, button, subtitle, className, ...rest } = props
   const navigate = useNavigate()
 
   const handleClick = () => {
@@ -43,9 +44,9 @@ export default function ValuePropCard(props: ValuePropCardProps) {
       cursor="pointer"
       rel="noreferrer noopener"
       onPress={handleClick}
-      $platform-web={{
-        textDecoration: 'none',
-      }}
+      // textDecoration has no FlexCompat prop equivalent; className is the sanctioned long-tail fallback.
+      // Merged with the consumer's className so a passed-in one doesn't replace it via {...rest}.
+      className={cn('no-underline', className)}
       $lg={{
         maxWidth: '100%',
         height: 'auto',

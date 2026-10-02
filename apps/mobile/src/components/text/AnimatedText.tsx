@@ -1,19 +1,23 @@
+import { Flex, type TextProps as TamaTextProps, TextLoaderWrapper, useSporeColors } from '@universe/mycelium'
+import type { SporeColor } from '@universe/mycelium/theme-hooks-compat'
 import React from 'react'
 import { TextProps as RNTextProps, StyleSheet, TextInput, TextInputProps, useWindowDimensions } from 'react-native'
-import Animated, { createAnimatedPropAdapter, useAnimatedProps } from 'react-native-reanimated'
-import { Flex, TextProps as TamaTextProps, TextFrame, TextLoaderWrapper, usePropsAndStyle } from 'ui/src'
+import Animated, {
+  AnimatedProps,
+  createAnimatedPropAdapter,
+  SharedValue,
+  useAnimatedProps,
+} from 'react-native-reanimated'
 import { fonts } from 'ui/src/theme'
-
 // base animated text component using a TextInput
 // forked from https://github.com/wcandillon/react-native-redash/blob/master/src/ReText.tsx
 // and modified to support the loading state
-Animated.addWhitelistedNativeProps({ text: true })
 
 type TextPropsBase = TamaTextProps & Omit<TextInputProps, 'value' | 'style'>
 
 type TextProps = TextPropsBase & {
-  text?: Animated.SharedValue<string>
-  style?: Animated.AnimateProps<RNTextProps>['style']
+  text?: SharedValue<string>
+  style?: AnimatedProps<RNTextProps>['style']
   loading?: boolean | 'no-shimmer'
   loadingPlaceholderText?: string
 }
@@ -97,29 +101,39 @@ const BaseAnimatedText = ({
  *
  * TODO(MOB-1948): Remove this
  * */
-export const AnimatedText = ({ style, ...propsIn }: TextProps): JSX.Element => {
-  const variant = propsIn.variant ?? 'body2'
-  const [props, textStyles] = usePropsAndStyle(
-    {
-      variant,
-      ...propsIn,
-    },
-    {
-      forComponent: TextFrame,
-    },
-  )
+export const AnimatedText = ({ style, variant = 'body2', color = '$neutral1', ...rest }: TextProps): JSX.Element => {
+  const colors = useSporeColors()
+  // Legacy resolved the variant through the Tamagui Text frame; the fonts table is that
+  // frame's own metrics source, so reading it directly renders identically.
+  const font = fonts[variant]
+  // The spore map is keyed by the $-prefixed token itself; the partial widening turns an
+  // unknown token into the neutral1 default instead of a throw.
+  const sporeColors = colors as Partial<Record<string, SporeColor>>
+  const resolvedColor =
+    typeof color === 'string' && color.startsWith('$')
+      ? (sporeColors[color]?.val ?? colors.neutral1.val)
+      : (color as string)
 
   const { fontScale } = useWindowDimensions()
   const enableFontScaling = fontScale > 1
-  const multiplier = fonts[variant].maxFontSizeMultiplier
+  const multiplier = font.maxFontSizeMultiplier
 
   return (
     <BaseAnimatedText
-      // oxlint-disable-next-line typescript/no-explicit-any -- Ambigous to type
-      {...(props as any)}
+      {...rest}
       allowFontScaling={enableFontScaling}
       maxFontSizeMultiplier={multiplier}
-      style={[styles.input, textStyles, style]}
+      style={[
+        styles.input,
+        {
+          color: resolvedColor,
+          fontFamily: font.family,
+          fontSize: font.fontSize,
+          fontWeight: 'fontWeight' in font ? font.fontWeight : undefined,
+          lineHeight: font.lineHeight,
+        },
+        style,
+      ]}
     />
   )
 }

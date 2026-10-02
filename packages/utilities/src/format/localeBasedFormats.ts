@@ -30,6 +30,20 @@ function getNumberFormat({
   return format
 }
 
+/**
+ * Clears the cached Intl.NumberFormat instances.
+ *
+ * Needed on mobile where Intl locale data is loaded lazily (see the mobile
+ * `intl-delayed` polyfill): a formatter created before its locale data was
+ * available is cached using the English fallback, so once new locale data is
+ * loaded the cache must be invalidated to pick up the correct separators.
+ */
+export function clearNumberFormatCache(): void {
+  for (const key of Object.keys(numberFormatCache)) {
+    delete numberFormatCache[key]
+  }
+}
+
 export const StandardCurrency: FormatCreator = {
   createFormat(locale, currencyCode) {
     return getNumberFormat({
@@ -155,6 +169,22 @@ export const TwoDecimalsCurrency: FormatCreator = {
         notation: 'standard',
         maximumFractionDigits: 2,
         minimumFractionDigits: 2,
+        currency: currencyCode,
+        style: 'currency',
+      },
+    })
+  },
+}
+
+export const SixDecimalsCurrency: FormatCreator = {
+  createFormat: (locale: string, currencyCode: string): Intl.NumberFormat => {
+    return getNumberFormat({
+      name: 'SixDecimalsCurrency',
+      locale,
+      props: {
+        notation: 'standard',
+        maximumFractionDigits: 6,
+        minimumFractionDigits: 6,
         currency: currencyCode,
         style: 'currency',
       },
@@ -392,6 +422,32 @@ const TwoDecimalsPercentages: FormatCreator = {
   },
 }
 
+function isWholePercentValue(value: number, twoDecimals: Intl.NumberFormat): boolean {
+  const fraction = twoDecimals.formatToParts(value).find((part) => part.type === 'fraction')
+  return fraction === undefined || /^0+$/.test(fraction.value)
+}
+
+/** Shows whole percentages without decimals but keeps two decimals otherwise. */
+const WholeOrTwoDecimalsPercentages: FormatCreator = {
+  createFormat: (locale, _currencyCode): Intl.NumberFormat => {
+    const noDecimals = getNumberFormat({
+      name: 'NoDecimalPercentages',
+      locale,
+      props: { notation: 'standard', style: 'percent', minimumFractionDigits: 0, maximumFractionDigits: 0 },
+    })
+    const twoDecimals = getNumberFormat({
+      name: 'TwoDecimalsPercentages',
+      locale,
+      props: { notation: 'standard', style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 },
+    })
+    return {
+      format(value: number): string {
+        return isWholePercentValue(value, twoDecimals) ? noDecimals.format(value) : twoDecimals.format(value)
+      },
+    } as Intl.NumberFormat
+  },
+}
+
 export interface FormatCreator {
   /**
    * Creates a Intl.NumberFormat based off of locale and currency
@@ -608,17 +664,19 @@ export const portfolioBalanceFormatter: Formatter = {
   defaultFormat: TwoDecimalsCurrency,
 }
 
+const percentagesFormatter: Formatter = {
+  rules: [{ upperBound: Infinity, formatter: WholeOrTwoDecimalsPercentages }],
+  defaultFormat: WholeOrTwoDecimalsPercentages,
+}
+
+const percentagesTwoDecimalsFormatter: Formatter = {
+  rules: [{ upperBound: Infinity, formatter: TwoDecimalsPercentages }],
+  defaultFormat: TwoDecimalsPercentages,
+}
+
 const percentagesOneDecimalFormatter: Formatter = {
   rules: [{ upperBound: Infinity, formatter: OneDecimalPercentages }],
   defaultFormat: OneDecimalPercentages,
-}
-
-const percentagesFormatter: Formatter = {
-  rules: [
-    { upperBound: 0.01, formatter: TwoDecimalsPercentages },
-    { upperBound: Infinity, formatter: NoTrailingTwoDecimalsPercentages },
-  ],
-  defaultFormat: NoTrailingTwoDecimalsPercentages,
 }
 
 const percentagesThreeDecimalsFormatter: Formatter = {
@@ -652,6 +710,12 @@ const fiatRewardsFormatter: Formatter = {
   defaultFormat: SevenSigFigsSciNotationCurrency,
 }
 
+// Fixed six decimals so a live-ticking rewards value keeps a stable shape between ticks.
+const fiatRewardsPreciseFormatter: Formatter = {
+  rules: [{ upperBound: Infinity, formatter: SixDecimalsCurrency }],
+  defaultFormat: SixDecimalsCurrency,
+}
+
 export const TYPE_TO_FORMATTER_RULES = {
   [NumberType.TokenNonTx]: tokenNonTxFormatter,
   [NumberType.TokenTx]: tokenTxFormatter,
@@ -664,9 +728,11 @@ export const TYPE_TO_FORMATTER_RULES = {
   [NumberType.FiatTokenPrice]: fiatTokenPricesFormatter,
   [NumberType.FiatTokenStats]: fiatTokenStatsFormatter,
   [NumberType.FiatRewards]: fiatRewardsFormatter,
+  [NumberType.FiatRewardsPrecise]: fiatRewardsPreciseFormatter,
   [NumberType.FiatGasPrice]: fiatGasPriceFormatter,
   [NumberType.PortfolioBalance]: portfolioBalanceFormatter,
   [NumberType.Percentage]: percentagesFormatter,
+  [NumberType.PercentageTwoDecimals]: percentagesTwoDecimalsFormatter,
   [NumberType.PercentageOneDecimal]: percentagesOneDecimalFormatter,
   [NumberType.PercentageThreeDecimals]: percentagesThreeDecimalsFormatter,
   [NumberType.PercentageFourDecimals]: percentagesFourDecimalsFormatter, // update to use 4 decimals

@@ -1,10 +1,14 @@
 import { TradingApi } from '@universe/api'
+import { generateRandomBytes } from '@universe/cryptography'
+import { ensure0xHex, numberToHex, uint8ToHex } from '@universe/encoding'
+import { FeatureFlags, getFeatureFlag } from '@universe/gating'
 import { checkWalletDelegation } from 'uniswap/src/data/apiClients/tradingApi/TradingApiClient'
 import { DappResponseType } from 'uniswap/src/features/dappRequests/types'
 import { EthTransaction } from 'uniswap/src/types/walletConnect'
-import { numberToHex } from 'utilities/src/addresses/hex'
 import { logger } from 'utilities/src/logger/logger'
+import { normalizeSendCalls } from 'wallet/src/features/batchedTransactions/normalizeSendCalls'
 import { Capability } from 'wallet/src/features/dappRequests/types'
+import type { SmartWalletCapabilityStatus } from 'wallet/src/features/smartWallet/delegation/types'
 import { isFreshDelegation } from 'wallet/src/features/smartWallet/delegation/utils'
 
 /**
@@ -12,16 +16,12 @@ import { isFreshDelegation } from 'wallet/src/features/smartWallet/delegation/ut
  * @returns A string in the format of 0x followed by 64 hex characters
  */
 export function generateBatchId(): string {
-  const randomBytes = crypto.getRandomValues(new Uint8Array(32))
-  const hexBytes = Array.from(randomBytes).map((byte) => {
-    return byte.toString(16).padStart(2, '0')
-  })
-  return `0x${hexBytes.join('')}`
+  return ensure0xHex(uint8ToHex(generateRandomBytes(32)))
 }
 
 /**
  * Transforms an array of EIP-1193 calls into TransactionRequest format for the Trading API.
- * Filters out any calls missing required fields.
+ * Invalid or unsupported calls reject the whole batch so execution cannot diverge from scanning.
  */
 export function transformCallsToTransactionRequests({
   calls,
@@ -32,20 +32,34 @@ export function transformCallsToTransactionRequests({
   chainId: number
   accountAddress: Address
 }): TradingApi.TransactionRequest[] {
-  return calls
-    .map((call): TradingApi.TransactionRequest | undefined => {
-      if (call.to === undefined || call.data === undefined || !chainId) {
-        return undefined
-      }
-      return {
-        to: call.to,
-        data: call.data,
-        value: call.value ?? '0x0',
-        from: accountAddress,
-        chainId: chainId.valueOf(),
-      }
-    })
-    .filter((call): call is TradingApi.TransactionRequest => !!call)
+  if (!chainId) {
+    throw new Error('wallet_sendCalls requires a chain ID')
+  }
+
+  return normalizeSendCalls(calls).map((call) => ({
+    to: call.to,
+    data: call.data,
+    value: call.value ?? '0x0',
+    from: accountAddress,
+    chainId: chainId.valueOf(),
+  }))
+}
+
+export function buildSmartWalletCapabilities({
+  status,
+  is7677GasSponsorshipEnabled,
+}: {
+  status: SmartWalletCapabilityStatus
+  is7677GasSponsorshipEnabled: boolean
+}): Capability {
+  const chainCapability: Capability = { atomic: { status } }
+
+  // TODO(SWAP-2460): ensure delegation is included in userOp when isFreshDelegation
+  if (is7677GasSponsorshipEnabled && status !== 'unsupported') {
+    chainCapability['paymasterService'] = { supported: true }
+  }
+
+  return chainCapability
 }
 
 export function getCapabilitiesForDelegationStatus(
@@ -55,23 +69,27 @@ export function getCapabilitiesForDelegationStatus(
   if (!delegationStatus) {
     return {}
   }
+  const is7677GasSponsorshipEnabled = getFeatureFlag(FeatureFlags.Support7677GasSponsorship)
   const capabilities: Record<string, Capability> = {}
   for (const [chainId, delegationStatusForChain] of Object.entries(delegationStatus)) {
-    let status = 'unsupported'
+    const isDelegated = delegationStatusForChain.isWalletDelegatedToUniswap
+    const isFresh = isFreshDelegation(delegationStatusForChain)
 
-    // If the user has consented to smart wallets, we can use the delegation status to determine the capabilities
+    let status: SmartWalletCapabilityStatus = 'unsupported'
     if (hasSmartWalletConsent) {
-      // If the wallet is delegated to Uniswap, it's supported, even if the delegation address is outdated
-      if (delegationStatusForChain.isWalletDelegatedToUniswap) {
+      // If the user has consented to smart wallets, we can use the delegation status to determine the capabilities
+      // & if the wallet is delegated to Uniswap, it's supported, even if the delegation address is outdated
+      if (isDelegated) {
         status = 'supported'
-      } else if (isFreshDelegation(delegationStatusForChain)) {
+      } else if (isFresh) {
         status = 'ready'
       }
     }
 
-    capabilities[numberToHex(parseInt(chainId, 10))] = {
-      atomic: { status },
-    }
+    capabilities[numberToHex(parseInt(chainId, 10))] = buildSmartWalletCapabilities({
+      status,
+      is7677GasSponsorshipEnabled,
+    })
   }
   return capabilities
 }

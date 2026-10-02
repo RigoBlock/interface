@@ -1,13 +1,9 @@
-import { SharedEventName } from '@uniswap/analytics-events'
+import { Flex, iconSizes, Text } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text, TouchableArea } from 'ui/src'
-import { iconSizes } from 'ui/src/theme'
+import { TransactionTokenContextMenu } from 'uniswap/src/components/activity/details/transactions/TransactionTokenContextMenu'
 import { formatApprovalAmount } from 'uniswap/src/components/activity/utils'
 import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
-import { useUniswapContext } from 'uniswap/src/contexts/UniswapContext'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
-import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import {
   ApproveTransactionInfo,
@@ -17,7 +13,6 @@ import {
 } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { getSymbolDisplayText } from 'uniswap/src/utils/currency'
 import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
-import { isWebPlatform } from 'utilities/src/platform'
 
 export function ApproveTransactionDetails({
   transactionDetails,
@@ -30,8 +25,12 @@ export function ApproveTransactionDetails({
 }): JSX.Element | null {
   const { t } = useTranslation()
   const { formatNumberOrString } = useLocalizationContext()
-  const { navigateToTokenDetails } = useUniswapContext()
-  const currencyInfo = useCurrencyInfo(buildCurrencyId(transactionDetails.chainId, typeInfo.tokenAddress ?? ''))
+  // tokenAddress is optional on Permit2ApproveTransactionInfo (unresolved metadata case) — treat a
+  // missing address as unresolved rather than building a malformed `${chainId}-` currency id.
+  const currencyId = typeInfo.tokenAddress
+    ? buildCurrencyId(transactionDetails.chainId, typeInfo.tokenAddress)
+    : undefined
+  const currencyInfo = useCurrencyInfo(currencyId)
 
   if (!currencyInfo && typeInfo.type === TransactionType.Permit2Approve) {
     return null
@@ -47,23 +46,9 @@ export function ApproveTransactionDetails({
 
   const symbol = getSymbolDisplayText(currencyInfo?.currency.symbol)
 
-  const onPressToken = (): void => {
-    if (currencyInfo) {
-      sendAnalyticsEvent(SharedEventName.ELEMENT_CLICKED, {
-        element: ElementName.TokenItem,
-        modal: ModalName.TransactionDetails,
-      })
-
-      navigateToTokenDetails(currencyInfo.currencyId)
-      if (!isWebPlatform) {
-        onClose()
-      }
-    }
-  }
-
   return (
-    <TouchableArea onPress={onPressToken}>
-      <Flex centered gap="$spacing8" p="$spacing32">
+    <Flex centered gap="$spacing8" p="$spacing32">
+      <TransactionTokenContextMenu currencyInfo={currencyInfo} onClose={onClose}>
         <Text variant="heading3">{amount}</Text>
         <Flex centered row gap="$spacing8">
           <CurrencyLogo currencyInfo={currencyInfo} size={iconSizes.icon20} />
@@ -71,7 +56,7 @@ export function ApproveTransactionDetails({
             {symbol}
           </Text>
         </Flex>
-      </Flex>
-    </TouchableArea>
+      </TransactionTokenContextMenu>
+    </Flex>
   )
 }

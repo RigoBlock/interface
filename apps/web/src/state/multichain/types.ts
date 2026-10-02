@@ -1,5 +1,5 @@
+import { UniverseChainId } from '@universe/chains'
 import { createContext, Dispatch, SetStateAction } from 'react'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 
 type MultichainContextType = {
   reset: () => void

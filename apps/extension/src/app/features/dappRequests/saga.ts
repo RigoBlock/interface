@@ -1,6 +1,7 @@
 /* oxlint-disable max-lines */
 import { type Provider } from '@ethersproject/providers'
 import { providerErrors, rpcErrors, serializeError } from '@metamask/rpc-errors'
+import { Platform, UniverseChainId } from '@universe/chains'
 import { FeatureFlags, getFeatureFlag } from '@universe/gating'
 import { createSearchParams } from 'react-router'
 import { changeChain } from 'src/app/features/dapp/changeChain'
@@ -37,18 +38,17 @@ import {
   type UniswapOpenSidebarRequest,
   type UniswapOpenSidebarResponse,
 } from 'src/app/features/dappRequests/types/DappRequestTypes'
-import { HexadecimalNumberSchema } from 'src/app/features/dappRequests/types/utilityTypes'
+import { NumberLikeSchema } from 'src/app/features/dappRequests/types/utilityTypes'
 import { isWalletUnlocked } from 'src/app/hooks/useIsWalletUnlocked'
 import { AppRoutes, HomeQueryParams } from 'src/app/navigation/constants'
 import { navigate } from 'src/app/navigation/state'
 import { dappResponseMessageChannel } from 'src/background/messagePassing/messageChannels'
 import getCalldataInfoFromTransaction from 'src/background/utils/getCalldataInfoFromTransaction'
 import { call, put, select, take } from 'typed-redux-saga'
-import { hexadecimalStringToInt, toSupportedChainId } from 'uniswap/src/features/chains/utils'
+import { hexadecimalStringToInt, toSupportedChainId, toSupportedDappChainId } from 'uniswap/src/features/chains/utils'
 import { DappRequestType, DappResponseType } from 'uniswap/src/features/dappRequests/types'
 import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
 import { AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { getEnabledChainIdsSaga } from 'uniswap/src/features/settings/saga'
 import { ExtensionEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
@@ -60,14 +60,18 @@ import {
 import { extractBaseUrl } from 'utilities/src/format/urls'
 import { logger } from 'utilities/src/logger/logger'
 import { getCallsStatusHelper } from 'wallet/src/features/batchedTransactions/eip5792Utils'
-import { addBatchedTransaction } from 'wallet/src/features/batchedTransactions/slice'
+import { addWalletCallTransaction } from 'wallet/src/features/batchedTransactions/slice'
 import { generateBatchId, getCapabilitiesResponse } from 'wallet/src/features/batchedTransactions/utils'
 import { type Call } from 'wallet/src/features/dappRequests/types'
 import {
   type ExecuteTransactionParams,
   executeTransaction,
 } from 'wallet/src/features/transactions/executeTransaction/executeTransactionSaga'
+import type { ExecuteUserOpParams } from 'wallet/src/features/transactions/executeTransaction/services/TransactionService/transactionService'
 import { type SignedTransactionRequest } from 'wallet/src/features/transactions/executeTransaction/types'
+import { createTransactionSagaDependencies } from 'wallet/src/features/transactions/factories/createTransactionSagaDependencies'
+import { createTransactionServices } from 'wallet/src/features/transactions/factories/createTransactionServices'
+import { DelegationType } from 'wallet/src/features/transactions/types/transactionSagaDependencies'
 import { getProvider, getSignerManager } from 'wallet/src/features/wallet/context'
 import { selectActiveAccount, selectHasSmartWalletConsent } from 'wallet/src/features/wallet/selectors'
 import { signMessage, signTypedDataMessage } from 'wallet/src/features/wallet/signing/signing'
@@ -125,6 +129,21 @@ function* handleRequest(requestParams: DappRequestNoDappInfo) {
       yield* put(rejectRequest(response))
       return
     }
+  }
+
+  // ProviderDirect reads are answered by the background worker and have no sidebar UI.
+  // Reject defensively so one can never queue as an empty confirmable request.
+  if (requestParams.dappRequest.type === DappRequestType.ProviderDirect) {
+    const response: DappRequestRejectParams = {
+      errorResponse: {
+        type: DappResponseType.ErrorResponse,
+        error: serializeError(rpcErrors.methodNotSupported()),
+        requestId: requestParams.dappRequest.requestId,
+      },
+      senderTabInfo: requestParams.senderTabInfo,
+    }
+    yield* put(rejectRequest(response))
+    return
   }
 
   if (requestParams.dappRequest.type === DappRequestType.UniswapOpenSidebar) {
@@ -220,7 +239,7 @@ function* handleRequest(requestParams: DappRequestNoDappInfo) {
     try {
       const typedData = requestParams.dappRequest.typedData
       const parsedChainId = JSON.parse(typedData)?.domain?.chainId
-      const formattedChainId = HexadecimalNumberSchema.parse(parsedChainId)
+      const formattedChainId = NumberLikeSchema.parse(parsedChainId)
       const chainId = toSupportedChainId(formattedChainId)
 
       if (dappInfo?.lastChainId !== chainId) {
@@ -245,14 +264,13 @@ function* handleRequest(requestParams: DappRequestNoDappInfo) {
         senderTabInfo: requestParams.senderTabInfo,
       }
       yield* put(rejectRequest(response))
+      return
     }
   }
 
   if (requestParams.dappRequest.type === DappRequestType.SendCalls) {
     try {
-      const parsedChainId = requestParams.dappRequest.chainId
-      const formattedChainId = HexadecimalNumberSchema.parse(parsedChainId)
-      const chainId = toSupportedChainId(formattedChainId)
+      const chainId = toSupportedChainId(hexadecimalStringToInt(requestParams.dappRequest.chainId))
 
       if (dappInfo?.lastChainId !== chainId) {
         throw new Error('Chain ID on message does not match the chain ID set on the extension.')
@@ -295,6 +313,68 @@ function* handleRequest(requestParams: DappRequestNoDappInfo) {
         senderTabInfo: requestParams.senderTabInfo,
       }
       yield* put(rejectRequest(response))
+      return
+    }
+  }
+
+  if (requestParams.dappRequest.type === DappRequestType.SendTransaction) {
+    // Separate from the chain checks below: 4902 is "unrecognized chain", this is authorization.
+    if (!dappInfo) {
+      const response: DappRequestRejectParams = {
+        errorResponse: {
+          type: DappResponseType.ErrorResponse,
+          error: serializeError(providerErrors.unauthorized()),
+          requestId: requestParams.dappRequest.requestId,
+        },
+        senderTabInfo: requestParams.senderTabInfo,
+      }
+      yield* put(rejectRequest(response))
+      return
+    }
+
+    try {
+      const { transaction } = requestParams.dappRequest
+      const connectedChainId = dappInfo.lastChainId
+
+      if (transaction.chainId !== undefined && toSupportedDappChainId(transaction.chainId) !== connectedChainId) {
+        throw new Error('Chain ID on transaction does not match the chain ID set on the extension.')
+      }
+
+      // chainId is optional on eth_sendTransaction. Pin it to the chain the request arrived on so
+      // review and signing cannot diverge: otherwise the UI falls back to the dapp's live chain,
+      // which an auto-confirmed wallet_switchEthereumChain can move mid-prompt. Also lets the
+      // request pass isValidTransactionRequest, so it pre-signs on the reviewed chain.
+      yield* put(
+        dappRequestActions.add({
+          ...requestParams,
+          dappRequest: {
+            ...requestParams.dappRequest,
+            transaction: { ...transaction, chainId: connectedChainId },
+          },
+          dappInfo,
+        }),
+      )
+      return
+    } catch (error) {
+      logger.error(error, { tags: { file: 'saga.ts', function: 'handleRequest' } })
+      const response: DappRequestRejectParams = {
+        errorResponse: {
+          type: DappResponseType.ErrorResponse,
+          error: serializeError(
+            providerErrors.custom({
+              code: 4902,
+              message:
+                error instanceof Error
+                  ? error.message
+                  : 'Chain ID on transaction from dApp does not match the chain ID set on the extension.',
+            }),
+          ),
+          requestId: requestParams.dappRequest.requestId,
+        },
+        senderTabInfo: requestParams.senderTabInfo,
+      }
+      yield* put(rejectRequest(response))
+      return
     }
   }
 
@@ -334,9 +414,26 @@ function* handleRequest(requestParams: DappRequestNoDappInfo) {
   }
 }
 
+/**
+ * Refuses to act on a queued request if the dapp moved since it was reviewed. The dappInfo
+ * snapshot can be stale by confirm time: wallet_switchEthereumChain is auto-confirmed, so a dapp
+ * can change its connection while a prompt sits open.
+ */
+function* assertDappChainUnchanged({ url, reviewedChainId }: { url: string; reviewedChainId: UniverseChainId }) {
+  const currentDappInfo = yield* call(dappStore.getDappInfo, extractBaseUrl(url))
+  if (!currentDappInfo) {
+    throw new Error('Dapp disconnected while this request was pending')
+  }
+  if (currentDappInfo.lastChainId !== reviewedChainId) {
+    throw new Error(
+      `Dapp changed chains while this request was pending - reviewed on: ${reviewedChainId}, now connected to: ${currentDappInfo.lastChainId}`,
+    )
+  }
+}
+
 export function* handleSendTransaction({
   request,
-  senderTabInfo: { id },
+  senderTabInfo: { id, url },
   dappInfo,
   transactionTypeInfo,
   preSignedTransaction,
@@ -356,6 +453,8 @@ export function* handleSendTransaction({
       throw new Error(`Mismatched chainId - expected active chain: ${lastChainId}, received: ${chainId}`)
     }
   }
+
+  yield* call(assertDappChainUnchanged, { url, reviewedChainId: lastChainId })
 
   const provider = yield* call(getProvider, lastChainId)
 
@@ -470,7 +569,7 @@ export function* handleSignTypedData({
 
     // This should already be handled when request is received, but extra check here
     const parsedChainId = JSON.parse(typedData)?.domain?.chainId
-    const formattedChainId = HexadecimalNumberSchema.parse(parsedChainId)
+    const formattedChainId = NumberLikeSchema.parse(parsedChainId)
     const chainId = toSupportedChainId(formattedChainId)
     if (!chainId) {
       throw new Error(!parsedChainId ? 'Missing domain chainId' : 'Unsupported chainId')
@@ -482,6 +581,8 @@ export function* handleSignTypedData({
       throw new Error(`Mismatched chainId - expected active chain: ${lastChainId}, received: ${chainId}`)
     }
 
+    yield* call(assertDappChainUnchanged, { url: senderTabInfo.url, reviewedChainId: lastChainId })
+
     const currentAccount = getActiveSignerConnectedAccount(connectedAccounts, activeConnectedAddress)
     const signerManager = yield* call(getSignerManager)
     const provider = yield* call(getProvider, lastChainId)
@@ -491,6 +592,7 @@ export function* handleSignTypedData({
       account: currentAccount,
       signerManager,
       provider,
+      expectedChainId: lastChainId,
     })
 
     const response: SignTypedDataResponse = {
@@ -564,7 +666,7 @@ export function* handleGetCapabilities(request: GetCapabilitiesRequest, senderTa
  */
 export function* handleSendCalls({
   request,
-  senderTabInfo: { id },
+  senderTabInfo: { id, url },
   dappInfo,
   transactionTypeInfo,
   preSignedTransaction,
@@ -576,7 +678,21 @@ export function* handleSendCalls({
   preSignedTransaction?: SignedTransactionRequest
 }) {
   const isSendCallTransaction = transactionTypeInfo?.type === TransactionType.SendCalls
-  if (!isSendCallTransaction || !transactionTypeInfo.encodedTransaction || !transactionTypeInfo.encodedRequestId) {
+  if (!isSendCallTransaction) {
+    const errorResponse: ErrorResponse = {
+      type: DappResponseType.ErrorResponse,
+      error: serializeError(rpcErrors.invalidInput()),
+      requestId: request.requestId,
+    }
+    yield* call(dappResponseMessageChannel.sendMessageToTab, id, errorResponse)
+    return
+  }
+
+  const { unsignedUserOperation, encodedTransaction, encodedRequestId } = transactionTypeInfo
+  const is4337 = !!unsignedUserOperation
+  const is7702 = !!encodedTransaction && !!encodedRequestId
+
+  if (!is4337 && !is7702) {
     const errorResponse: ErrorResponse = {
       type: DappResponseType.ErrorResponse,
       error: serializeError(rpcErrors.invalidInput()),
@@ -598,53 +714,114 @@ export function* handleSendCalls({
       return
     }
 
-    const activeAccount = getActiveSignerConnectedAccount(dappInfo.connectedAccounts, dappInfo.activeConnectedAddress)
+    // The prompt prepared and scanned on the queued snapshot chain. Refuse to sign on anything
+    // else: an unsigned UserOperation carries no chain, so the signer would otherwise stamp a
+    // different EIP-712 domain onto fields the user never reviewed for it.
+    if (dappInfo.lastChainId !== chainId) {
+      throw new Error(`Mismatched chainId - expected active chain: ${dappInfo.lastChainId}, received: ${chainId}`)
+    }
+    yield* call(assertDappChainUnchanged, { url, reviewedChainId: chainId })
 
-    // Generate or use provided batch ID
+    const activeAccount = getActiveSignerConnectedAccount(dappInfo.connectedAccounts, dappInfo.activeConnectedAddress)
     const batchId = request.id || generateBatchId()
 
-    const { encodedTransaction, encodedRequestId } = transactionTypeInfo
-    const sendTransactionParams: ExecuteTransactionParams = {
-      chainId,
-      account: activeAccount,
-      typeInfo: {
+    if (is4337) {
+      // 4337 UserOp path — gas-sponsored dapp request
+      const typeInfo: TransactionTypeInfo = {
         type: TransactionType.SendCalls,
-        encodedTransaction,
-        encodedRequestId,
+        unsignedUserOperation,
         dappInfo: {
           name: dappInfo.displayName,
-          address: encodedTransaction.to,
           icon: dappInfo.iconUrl,
         },
-      },
-      options: {
-        request: encodedTransaction,
-      },
-      transactionOriginType: TransactionOriginType.External,
-      preSignedTransaction,
-    }
-
-    const { transactionHash } = yield* call(executeTransaction, sendTransactionParams)
-
-    yield* put(
-      addBatchedTransaction({
-        batchId,
-        txHashes: [transactionHash], // Assuming single tx for now, might need update if batching changes
-        requestId: encodedRequestId,
+      }
+      // TransactionService.executeUserOp registers the pending tx, submits the userOp, persists the
+      // userOpHash, and finalizes on failure — no manual addTransaction needed. addWalletCallTransaction
+      // stays below: it tracks the EIP-5792 batchId → userOpHash mapping, which is dapp-specific.
+      const { transactionService } = yield* call(createTransactionServices, createTransactionSagaDependencies(), {
+        account: activeAccount,
         chainId,
-      }),
-    )
+        submitViaPrivateRpc: false,
+        delegationType: DelegationType.Auto,
+        includeUserOpServices: true,
+      })
 
-    const response: SendCallsResponse = {
-      type: DappResponseType.SendCallsResponse,
-      requestId: request.requestId,
-      response: {
-        id: batchId,
-        capabilities: request.capabilities || {},
-      },
+      const executeUserOpParams: ExecuteUserOpParams = {
+        userOp: unsignedUserOperation,
+        account: activeAccount,
+        chainId,
+        typeInfo,
+        transactionOriginType: TransactionOriginType.External,
+        options: { userSubmissionTimestampMs: Date.now(), isSmartWalletTransaction: true },
+        requestUniswapGasSponsorship: false,
+      }
+      const { userOpHash } = yield* call([transactionService, transactionService.executeUserOp], executeUserOpParams)
+
+      yield* put(
+        addWalletCallTransaction({
+          batchId,
+          userOpHash,
+          requestId: batchId,
+          chainId,
+        }),
+      )
+
+      const response: SendCallsResponse = {
+        type: DappResponseType.SendCallsResponse,
+        requestId: request.requestId,
+        response: { id: batchId },
+      }
+
+      yield* call(dappResponseMessageChannel.sendMessageToTab, id, response)
+    } else if (is7702) {
+      // 7702 encoded transaction path
+      const sendTransactionParams: ExecuteTransactionParams = {
+        chainId,
+        account: activeAccount,
+        typeInfo: {
+          type: TransactionType.SendCalls,
+          encodedTransaction,
+          encodedRequestId,
+          dappInfo: {
+            name: dappInfo.displayName,
+            address: encodedTransaction.to,
+            icon: dappInfo.iconUrl,
+          },
+        },
+        options: {
+          request: encodedTransaction,
+        },
+        transactionOriginType: TransactionOriginType.External,
+        preSignedTransaction,
+      }
+
+      const { transactionHash } = yield* call(executeTransaction, sendTransactionParams)
+
+      yield* put(
+        addWalletCallTransaction({
+          batchId,
+          txHashes: [transactionHash], // Assuming single tx for now, might need update if batching changes
+          requestId: encodedRequestId,
+          chainId,
+        }),
+      )
+
+      const response: SendCallsResponse = {
+        type: DappResponseType.SendCallsResponse,
+        requestId: request.requestId,
+        response: {
+          id: batchId,
+          capabilities: {
+            caip345: {
+              caip2: `eip155:${chainId}`,
+              transactionHashes: [transactionHash],
+            },
+          },
+        },
+      }
+
+      yield* call(dappResponseMessageChannel.sendMessageToTab, id, response)
     }
-
-    yield* call(dappResponseMessageChannel.sendMessageToTab, id, response)
   } catch (error) {
     logger.error(error, {
       tags: { file: 'dappRequestSaga', function: 'handleSendCalls' },

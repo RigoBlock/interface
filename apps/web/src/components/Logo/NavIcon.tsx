@@ -1,6 +1,7 @@
-import { SVGProps, useMemo } from 'react'
+import { Flex, type FlexCompatProps } from '@universe/mycelium'
+import { forwardRef, type ForwardRefExoticComponent, type RefAttributes, SVGProps, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, styled, useSporeColors } from 'ui/src'
+import { useSporeColors } from 'ui/src'
 
 function Logo({ color, onClick }: { color: string; onClick?: () => void }) {
   return (
@@ -129,16 +130,27 @@ function HolidayLogo({ color, onClick }: { color: string; onClick?: () => void }
   )
 }
 
-const Container = styled(Flex, {
-  position: 'relative',
-  justifyContent: 'center',
-  alignItems: 'center',
-  cursor: 'auto',
-  variants: {
-    clickable: {
-      true: { cursor: 'pointer' },
-    },
-  },
+type ContainerProps = FlexCompatProps & { clickable?: boolean }
+
+// Explicit return type: forwardRef's inferred type isn't nameable under declaration emit
+// (TS2883) — its structural expansion reaches mycelium-internal prop-composition types.
+const Container: ForwardRefExoticComponent<ContainerProps & RefAttributes<HTMLDivElement>> = forwardRef<
+  HTMLDivElement,
+  ContainerProps
+>(function Container({ clickable, ...rest }, ref) {
+  return (
+    <Flex
+      ref={ref}
+      position="relative"
+      justifyContent="center"
+      alignItems="center"
+      cursor="auto"
+      // Legacy `clickable` variant was `true`-only, so `false`/undefined is a no-op. Applied
+      // after the base and before the caller's props to keep the legacy factory's precedence.
+      {...(clickable ? { cursor: 'pointer' as const } : {})}
+      {...rest}
+    />
+  )
 })
 
 type NavIconProps = SVGProps<SVGSVGElement> & {

@@ -1,6 +1,5 @@
+import { borderRadii, iconSizes, UniversalImage } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
-import { UniversalImage } from 'ui/src'
-import { borderRadii, iconSizes } from 'ui/src/theme'
 import { NotificationToast } from 'uniswap/src/components/notifications/NotificationToast'
 import { DappDisconnectedNotification as DappDisconnectedNotificationType } from 'uniswap/src/features/notifications/slice/types'
 

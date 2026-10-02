@@ -1,5 +1,5 @@
+import { UniverseChainId } from '@universe/chains'
 import { NetworkFee } from 'uniswap/src/components/gas/NetworkFee'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { render } from 'uniswap/src/test/test-utils'
 
 vi.mock('uniswap/src/features/gas/hooks', () => {

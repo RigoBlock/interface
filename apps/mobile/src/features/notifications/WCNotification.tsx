@@ -1,7 +1,7 @@
+import { iconSizes } from '@universe/mycelium'
 import React from 'react'
 import { useDispatch } from 'react-redux'
 import { openModal } from 'src/features/modals/modalSlice'
-import { iconSizes } from 'ui/src/theme'
 import { DappLogoWithTxStatus } from 'uniswap/src/components/CurrencyLogo/LogoWithTxStatus'
 import { NotificationToast } from 'uniswap/src/components/notifications/NotificationToast'
 import { ScannerModalState } from 'uniswap/src/components/ReceiveQRCode/constants'

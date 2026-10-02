@@ -1,9 +1,5 @@
-import {
-  Language,
-  Locale,
-  mapLanguageToLocale,
-  PLATFORM_SUPPORTED_LANGUAGES,
-} from 'uniswap/src/features/language/constants'
+import { Language, Locale, mapLanguageToLocale } from 'uniswap/src/features/language/constants'
+import { PLATFORM_SUPPORTED_LANGUAGES } from 'uniswap/src/features/language/platformSupportedLanguages'
 
 /**
  * Helper function used get the locale from the language. They're strongly associated,

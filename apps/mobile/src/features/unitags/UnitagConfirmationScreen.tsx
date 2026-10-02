@@ -1,14 +1,16 @@
+import { Flex, Text } from '@universe/mycelium'
 import React, { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { navigate } from 'src/app/navigation/rootNavigation'
 import { UnitagStackScreenProp } from 'src/app/navigation/types'
 import { Screen } from 'src/components/layout/Screen'
-import { AnimatePresence, Button, Flex, Text } from 'ui/src'
-import { AnimateInOrder } from 'ui/src/animations'
+import { Button } from 'ui/src'
+import { ANIMATE_IN_ORDER_DELAY_MS, AnimateInOrder } from 'ui/src/animations'
 import { useDeviceDimensions } from 'ui/src/hooks/useDeviceDimensions'
 import { spacing } from 'ui/src/theme'
 import { UNITAG_SUFFIX } from 'uniswap/src/features/unitags/constants'
 import { useAppInsets } from 'uniswap/src/hooks/useAppInsets'
+import { useBottomScreenGap } from 'uniswap/src/hooks/useBottomScreenGap'
 import { MobileScreens, UnitagScreens } from 'uniswap/src/types/screens/mobile'
 import {
   EmojiElement,
@@ -23,6 +25,9 @@ import {
 } from 'wallet/src/components/landing/elements'
 import { AnimatedArcCircle } from 'wallet/src/components/landing/shapes/AnimatedArcCircle'
 import { UnitagWithProfilePicture } from 'wallet/src/features/unitags/UnitagWithProfilePicture'
+
+const OUTER_CIRCLE_INDEX = 1
+const INNER_CIRCLE_INDEX = 2
 
 const OUTER_CIRCLE_ARCS = [
   { startAngle: -130, endAngle: -50 }, // Upper arc
@@ -40,6 +45,7 @@ export function UnitagConfirmationScreen({
   const { unitag, address, profilePictureUri } = route.params
   const dimensions = useDeviceDimensions()
   const insets = useAppInsets()
+  const { bottomScreenExtraGap } = useBottomScreenGap()
   const { t } = useTranslation()
 
   const boxWidth = dimensions.fullWidth - insets.left - insets.right - spacing.spacing32
@@ -56,7 +62,7 @@ export function UnitagConfirmationScreen({
   }
 
   const onPressDone = (): void => {
-    navigate(MobileScreens.Home)
+    navigate(MobileScreens.MainTabs, { screen: MobileScreens.Home })
   }
 
   const elementsToAnimate = useMemo(
@@ -79,51 +85,49 @@ export function UnitagConfirmationScreen({
 
   return (
     <Screen edges={['right', 'left', 'bottom']} pt="$spacing60">
-      <Flex grow gap="$spacing16" justifyContent="space-between" pb="$spacing16" px="$spacing16">
+      <Flex grow gap="$spacing16" justifyContent="space-between" pb={bottomScreenExtraGap} px="$spacing16">
         <Flex centered grow>
-          <AnimatePresence exitBeforeEnter>
+          <AnimateInOrder
+            key="outerCircle"
+            enterStyle={{ opacity: 0, scale: 0.5 }}
+            index={OUTER_CIRCLE_INDEX}
+            position="absolute"
+          >
+            <AnimatedArcCircle
+              size={boxWidth}
+              strokeWidth={spacing.spacing1}
+              arcs={OUTER_CIRCLE_ARCS}
+              fadeEnds={true}
+              delay={OUTER_CIRCLE_INDEX * ANIMATE_IN_ORDER_DELAY_MS}
+            />
+          </AnimateInOrder>
+          <AnimateInOrder
+            key="innerCircle"
+            enterStyle={{ opacity: 0, scale: 0.5 }}
+            index={INNER_CIRCLE_INDEX}
+            position="absolute"
+          >
+            <AnimatedArcCircle
+              size={boxWidth * 0.6}
+              strokeWidth={spacing.spacing1}
+              arcs={INNER_CIRCLE_ARCS}
+              fadeEnds={true}
+              delay={INNER_CIRCLE_INDEX * ANIMATE_IN_ORDER_DELAY_MS}
+            />
+          </AnimateInOrder>
+          {elementsToAnimate.map(({ element, coordinates }, index) => (
             <AnimateInOrder
-              key="outerCircle"
-              enterStyle={{ opacity: 0, scale: 0.5 }}
-              exitStyle={{ opacity: 0, scale: 0.5 }}
-              index={1}
+              key={index}
+              index={index + 3}
               position="absolute"
+              {...getInsetPropsForCoordinates({ boxWidth, x: coordinates.x, y: coordinates.y })}
             >
-              <AnimatedArcCircle
-                size={boxWidth}
-                strokeWidth={spacing.spacing1}
-                arcs={OUTER_CIRCLE_ARCS}
-                fadeEnds={true}
-              />
+              {element}
             </AnimateInOrder>
-            <AnimateInOrder
-              key="innerCircle"
-              enterStyle={{ opacity: 0, scale: 0.5 }}
-              exitStyle={{ opacity: 0, scale: 0.5 }}
-              index={2}
-              position="absolute"
-            >
-              <AnimatedArcCircle
-                size={boxWidth * 0.6}
-                strokeWidth={spacing.spacing1}
-                arcs={INNER_CIRCLE_ARCS}
-                fadeEnds={true}
-              />
-            </AnimateInOrder>
-            {elementsToAnimate.map(({ element, coordinates }, index) => (
-              <AnimateInOrder
-                key={index}
-                index={index + 3}
-                position="absolute"
-                {...getInsetPropsForCoordinates({ boxWidth, x: coordinates.x, y: coordinates.y })}
-              >
-                {element}
-              </AnimateInOrder>
-            ))}
-            <AnimateInOrder key="unitag" index={12}>
-              <UnitagWithProfilePicture address={address} profilePictureUri={profilePictureUri} unitag={unitag} />
-            </AnimateInOrder>
-          </AnimatePresence>
+          ))}
+          <AnimateInOrder key="unitag" index={12}>
+            <UnitagWithProfilePicture address={address} profilePictureUri={profilePictureUri} unitag={unitag} />
+          </AnimateInOrder>
         </Flex>
         <Flex centered gap="$spacing16" pb="$spacing16" px="$spacing24">
           <Text color="$neutral1" textAlign="center" variant="heading3">

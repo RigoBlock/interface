@@ -1,14 +1,22 @@
 import path from 'path'
 import react from '@vitejs/plugin-react'
+import { withRnPrimitives } from 'vitest-presets/vitest/rn-primitives.js'
 import { defineConfig } from 'vitest/config'
+import vitestGlobals from '../../config/vitest-presets/vitest/globals.js'
 
-export default defineConfig({
+const config = defineConfig({
   test: {
     pool: 'threads',
     globals: true,
     environment: 'jsdom',
+    // Unit tests don't run config:pull, so the app config is sourced from the shared
+    // test-env placeholders (Vitest injects these into process.env; getConfig() reads them).
+    env: {
+      ...vitestGlobals.globals,
+      NODE_ENV: 'test',
+    },
     setupFiles: ['./src/setupTests.ts', './vite/mockAssets.tsx'],
-    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'vite/**/*.test.ts'],
     exclude: [
       'e2e',
       '**/*.e2e.test.ts',
@@ -70,6 +78,14 @@ export default defineConfig({
       { find: 'd3-array', replacement: path.resolve(__dirname, '../../node_modules/d3-array/dist/d3-array.min.js') },
       { find: 'react-native', replacement: 'react-native-web' },
       { find: 'react-native-gesture-handler', replacement: require.resolve('react-native-gesture-handler') },
+      // resolve.extensions omits `.web.js`, so the bare specifier would land on the native
+      // leg's Fabric internals; the app build resolves the web leg the same way.
+      {
+        find: /^react-native-svg$/,
+        replacement: path.resolve(__dirname, '../../node_modules/react-native-svg/lib/module/elements.web.js'),
+      },
     ],
   },
 })
+
+export default withRnPrimitives(config, 'web')

@@ -1,34 +1,36 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { Flex, type FlexCompatProps, fonts, Text } from '@universe/mycelium'
+import { TestID } from '@universe/test'
+import { type ComponentRef, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router'
-import { Flex, styled, Text } from 'ui/src'
 import { useDynamicFontSizing } from 'ui/src/hooks/useDynamicFontSizing'
-import { nativeOnChain } from 'uniswap/src/constants/tokens'
 import { useUrlContext } from 'uniswap/src/contexts/UrlContext'
-import { normalizeCurrencyIdForMapLookup } from 'uniswap/src/data/cache'
 import { TradeableAsset } from 'uniswap/src/entities/assets'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useAppFiatCurrency, useFiatCurrencyComponents } from 'uniswap/src/features/fiatCurrency/hooks'
 import { FiatOnRampCountryPicker } from 'uniswap/src/features/fiatOnRamp/FiatOnRampCountryPicker'
 import { useFiatOnRampAggregatorGetCountryQuery } from 'uniswap/src/features/fiatOnRamp/hooks/useFiatOnRampQueries'
-import { FiatOnRampCurrency, RampDirection } from 'uniswap/src/features/fiatOnRamp/types'
+import { RampDirection } from 'uniswap/src/features/fiatOnRamp/types'
 import UnsupportedTokenModal from 'uniswap/src/features/fiatOnRamp/UnsupportedTokenModal'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { usePortfolioBalances } from 'uniswap/src/features/portfolio/balances/hooks'
 import { FiatOffRampEventName, FiatOnRampEventName, InterfacePageName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
+import { normalizeCurrencyIdForMapLookup } from 'uniswap/src/utils/currencyId'
 import { currencyId } from 'uniswap/src/utils/currencyId'
-import useResizeObserver from 'use-resize-observer'
 import { isSafeNumber } from 'utilities/src/primitives/integer'
 import { usePrevious } from 'utilities/src/react/hooks'
-import { popupRegistry } from '~/components/Popups/registry'
-import { SwitchNetworkAction } from '~/components/Popups/types'
-import { PAGE_WRAPPER_MAX_WIDTH } from '~/components/swap/styled'
+import { AlternateCurrencyDisplay } from '~/components/AlternateCurrencyDisplay/AlternateCurrencyDisplay'
+import {
+  NumericalInputMimic,
+  NumericalInputSymbolContainer,
+  NumericalInputWrapper,
+  StyledNumericalInput,
+  useMeasuredFieldWidth,
+} from '~/components/NumericalInput/LargeAmountInput'
 import { NATIVE_CHAIN_ID } from '~/constants/tokens'
 import { useActiveAddresses } from '~/features/accounts/store/hooks'
-import { getChainUrlParam } from '~/features/params/chainParams'
+import { PAGE_WRAPPER_MAX_WIDTH } from '~/features/Swap/styled'
 import { useAccount } from '~/hooks/useAccount'
 import { BuyFormButton } from '~/pages/Swap/Buy/BuyFormButton'
 import { BuyFormContextProvider, useBuyFormContext } from '~/pages/Swap/Buy/BuyFormContext'
@@ -38,38 +40,35 @@ import { FiatOnRampCurrencyModal } from '~/pages/Swap/Buy/FiatOnRampCurrencyModa
 import { fallbackCurrencyInfo, useOffRampTransferDetailsRequest } from '~/pages/Swap/Buy/hooks'
 import { OffRampConfirmTransferModal } from '~/pages/Swap/Buy/OffRampConfirmTransferModal'
 import { PredefinedAmount } from '~/pages/Swap/Buy/PredefinedAmount'
+import { resolveInitialBuyFormToken } from '~/pages/Swap/Buy/resolveInitialBuyFormToken'
+import { SelectTokenPanel } from '~/pages/Swap/Buy/SelectTokenPanel'
 import { formatFiatOnRampFiatAmount, getCountryFromLocale } from '~/pages/Swap/Buy/shared'
-import { AlternateCurrencyDisplay } from '~/pages/Swap/common/AlternateCurrencyDisplay'
-import { SelectTokenPanel } from '~/pages/Swap/common/SelectTokenPanel'
-import {
-  NumericalInputMimic,
-  NumericalInputSymbolContainer,
-  NumericalInputWrapper,
-  StyledNumericalInput,
-} from '~/pages/Swap/common/shared'
+import { popupRegistry } from '~/state/popups/registry'
+import { SwitchNetworkAction } from '~/state/popups/types'
+import { getChainUrlParam } from '~/utils/params/chainParams'
 import { showSwitchNetworkNotification } from '~/utils/showSwitchNetworkNotification'
 
-const InputWrapper = styled(Flex, {
-  backgroundColor: '$surface1',
-  p: '$spacing16',
-  pt: '$spacing12',
-  pb: 52,
-  height: 264,
-  alignItems: 'center',
-  borderRadius: '$rounded20',
-  justifyContent: 'space-between',
-  overflow: 'hidden',
-  gap: '$spacing8',
-  borderWidth: 1,
-  borderColor: '$surface3',
-})
+const InputWrapper = (props: FlexCompatProps): JSX.Element => (
+  <Flex
+    backgroundColor="$surface1"
+    p="$spacing16"
+    pt="$spacing12"
+    pb={52}
+    height={264}
+    alignItems="center"
+    borderRadius="$rounded20"
+    justifyContent="space-between"
+    overflow="hidden"
+    gap="$spacing8"
+    borderWidth={1}
+    borderColor="$surface3"
+    {...props}
+  />
+)
 
-const HeaderRow = styled(Flex, {
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  width: '100%',
-})
+const HeaderRow = (props: FlexCompatProps): JSX.Element => (
+  <Flex flexDirection="row" alignItems="center" justifyContent="space-between" width="100%" {...props} />
+)
 
 const DEFAULT_FIAT_DECIMALS = 2
 const PREDEFINED_AMOUNTS = [100, 300, 1000]
@@ -93,7 +92,7 @@ function BuyFormInner({ disabled, initialCurrency }: BuyFormProps) {
   const { symbol: fiatSymbol } = useFiatCurrencyComponents(fiatCurrency)
   const [, setSearchParams] = useSearchParams()
 
-  const { buyFormState, setBuyFormState, derivedBuyFormInfo } = useBuyFormContext()
+  const { buyFormState, setBuyFormState, derivedBuyFormInfo, externalTransactionIdSuffix } = useBuyFormContext()
   const {
     inputAmount,
     inputInFiat,
@@ -109,26 +108,48 @@ function BuyFormInner({ disabled, initialCurrency }: BuyFormProps) {
   const navigate = useNavigate()
 
   const prevQuoteCurrency = usePrevious(quoteCurrency)
-  const hiddenObserver = useResizeObserver<HTMLElement>()
-  const inputRef = useRef<HTMLInputElement>(null)
+  const { ref: hiddenObserverRef, fieldWidth: scaledInputWidth } = useMeasuredFieldWidth(inputAmount)
+  const inputRef = useRef<ComponentRef<typeof StyledNumericalInput>>(null)
 
   useEffect(() => {
-    const fiatValue = inputInFiat ? inputAmount : derivedBuyFormInfo.amountOut
+    const fiatValue = inputInFiat ? inputAmount : amountOut
 
     if (!fiatValue) {
       return
     }
 
-    sendAnalyticsEvent(FiatOnRampEventName.FiatOnRampAmountEntered, {
-      amountUSD: convertFiatAmount(Number(fiatValue)).amount,
-      source: 'textInput',
-    })
-  }, [inputAmount, derivedBuyFormInfo.amountOut, inputInFiat, convertFiatAmount])
+    sendAnalyticsEvent(
+      rampDirection === RampDirection.ON_RAMP
+        ? FiatOnRampEventName.FiatOnRampAmountEntered
+        : FiatOffRampEventName.FiatOffRampAmountEntered,
+      {
+        amountUSD: convertFiatAmount(Number(fiatValue)).amount,
+        chainId: quoteCurrency?.currencyInfo?.currency.chainId,
+        cryptoCurrency: quoteCurrency?.meldCurrencyCode ?? quoteCurrency?.currencyInfo?.currency.symbol,
+        externalTransactionIdSuffix,
+        fiatCurrency: meldSupportedFiatCurrency?.code,
+        isTokenInputMode: !inputInFiat,
+        source: 'textInput',
+      },
+    )
+  }, [
+    inputAmount,
+    amountOut,
+    inputInFiat,
+    convertFiatAmount,
+    rampDirection,
+    quoteCurrency?.currencyInfo?.currency.chainId,
+    quoteCurrency?.currencyInfo?.currency.symbol,
+    quoteCurrency?.meldCurrencyCode,
+    externalTransactionIdSuffix,
+    meldSupportedFiatCurrency?.code,
+  ])
 
-  const { fontSize, onLayout, onSetFontSize } = useDynamicFontSizing({
+  const { fontSize, onLayout, onSetFontSize, onExtraElementLayout } = useDynamicFontSizing({
     maxCharWidthAtMaxFontSize: CHAR_WIDTH,
     maxFontSize: MAX_FONT_SIZE,
     minFontSize: MIN_FONT_SIZE,
+    maxWidth: PAGE_WRAPPER_MAX_WIDTH * 0.85,
   })
 
   const handleUserInput = useCallback(
@@ -161,47 +182,13 @@ function BuyFormInner({ disabled, initialCurrency }: BuyFormProps) {
 
   const { useParsedQueryString } = useUrlContext()
   const parsedQs = useParsedQueryString()
-  useEffect(() => {
-    let supportedToken: Maybe<FiatOnRampCurrency>
-    const currencyCode = parsedQs.currencyCode as string | undefined
-    const providers = (parsedQs.providers as string | undefined)?.split(',')
-    const hasProviders = providers && providers.length > 0
-    const currencyAmount = parsedQs.value as string | undefined
-    const isTokenInputMode = (parsedQs.isTokenInputMode as string | undefined) === 'true'
 
-    if (initialCurrency) {
-      const supportedNativeToken = supportedTokens?.find(
-        (meldToken) =>
-          meldToken.currencyInfo?.currency.chainId === initialCurrency.chainId &&
-          meldToken.currencyInfo.currency.isNative,
-      )
-      // Defaults the quote currency to the initial currency if supported
-      supportedToken =
-        supportedTokens?.find(
-          (meldToken) =>
-            meldToken.currencyInfo?.currency.chainId === initialCurrency.chainId &&
-            meldToken.currencyInfo.currency.isToken &&
-            meldToken.currencyInfo.currency.address === initialCurrency.address,
-        ) || supportedNativeToken
-    } else if (hasProviders && currencyCode) {
-      // We are using melds currency code here because the chain id will not be set because this is coming from an ad
-      supportedToken = supportedTokens?.find(
-        (meldToken) => meldToken.meldCurrencyCode?.toLowerCase() === currencyCode.toLowerCase(),
-      )
-    } else if (currencyCode) {
-      // Defaults the quote currency to the initial currency (from query params) if supported
-      const chainId = parsedQs.chainId ? Number(parsedQs.chainId) : UniverseChainId.Mainnet
-      supportedToken = supportedTokens?.find(
-        (meldToken) =>
-          meldToken.currencyInfo?.currency.symbol === currencyCode &&
-          meldToken.currencyInfo.currency.chainId === chainId,
-      )
-    } else {
-      supportedToken =
-        supportedTokens?.find((meldToken) =>
-          meldToken.currencyInfo?.currency.equals(nativeOnChain(UniverseChainId.Mainnet)),
-        ) ?? supportedTokens?.[0]
-    }
+  useEffect(() => {
+    const supportedToken = resolveInitialBuyFormToken({ parsedQs, supportedTokens, initialCurrency })
+    const isTokenInputMode = (parsedQs.isTokenInputMode as string | undefined) === 'true'
+    const providers = (parsedQs.providers as string | undefined)?.split(',')
+    const hasProviders = !!providers && providers.length > 0
+    const currencyAmount = parsedQs.value as string | undefined
 
     if (supportedToken) {
       const providerState: Partial<{ inputAmount: string; providers: string[] }> = {}
@@ -218,9 +205,10 @@ function BuyFormInner({ disabled, initialCurrency }: BuyFormProps) {
       return
     }
     // If connected to a non-mainnet chain, default to the native chain of that token if supported.
-    const supportedNativeToken = supportedTokens?.find((meldToken) => {
-      return meldToken.currencyInfo?.currency.chainId === account.chainId && meldToken.currencyInfo?.currency.isNative
-    })
+    const supportedNativeToken = supportedTokens?.find(
+      (meldToken) =>
+        meldToken.currencyInfo?.currency.chainId === account.chainId && meldToken.currencyInfo?.currency.isNative,
+    )
     if (supportedNativeToken) {
       setBuyFormState((state) => ({
         ...state,
@@ -248,12 +236,6 @@ function BuyFormInner({ disabled, initialCurrency }: BuyFormProps) {
     return currentCurrencyId ? balancesById?.[normalizeCurrencyIdForMapLookup(currentCurrencyId)] : undefined
   }, [balancesById, quoteCurrency?.currencyInfo?.currency])
 
-  const maxContainerWidth = PAGE_WRAPPER_MAX_WIDTH * 0.8
-  const scaledInputWidth = useMemo(
-    () => (inputAmount && hiddenObserver.width ? Math.min(hiddenObserver.width + 1, maxContainerWidth) : undefined),
-    [inputAmount, hiddenObserver.width, maxContainerWidth],
-  )
-
   const offRampRequest = useOffRampTransferDetailsRequest()
 
   useEffect(() => {
@@ -273,7 +255,7 @@ function BuyFormInner({ disabled, initialCurrency }: BuyFormProps) {
 
   return (
     <Trace page={InterfacePageName.Buy} logImpression>
-      <Flex gap="$spacing4" onLayout={onLayout}>
+      <Flex gap="$spacing4">
         <InputWrapper>
           <HeaderRow>
             <Text variant="body3" userSelect="none" color="$neutral2">
@@ -294,25 +276,30 @@ function BuyFormInner({ disabled, initialCurrency }: BuyFormProps) {
             width="100%"
             cursor="text"
             onPress={() => inputRef.current?.focus()}
+            onLayout={onLayout}
           >
-            {error && (
-              <Text variant="body3" userSelect="none" color="$statusCritical">
-                {error.message}
-              </Text>
-            )}
-            <NumericalInputWrapper>
-              {inputInFiat && (
-                <NumericalInputSymbolContainer showPlaceholder={!inputAmount} $fontSize={fontSize}>
-                  {fiatSymbol}
-                </NumericalInputSymbolContainer>
+            <Flex height={fonts.body3.lineHeight}>
+              {error && (
+                <Text variant="body3" userSelect="none" color="$statusCritical">
+                  {error.message}
+                </Text>
               )}
+            </Flex>
+            <NumericalInputWrapper>
+              <Flex onLayout={onExtraElementLayout}>
+                {inputInFiat && (
+                  <NumericalInputSymbolContainer showPlaceholder={!inputAmount} numericalFontSize={fontSize}>
+                    {fiatSymbol}
+                  </NumericalInputSymbolContainer>
+                )}
+              </Flex>
               <StyledNumericalInput
                 value={inputAmount}
                 disabled={disabled}
                 onUserInput={handleUserInput}
                 placeholder="0"
-                $width={scaledInputWidth}
-                $fontSize={fontSize}
+                fieldWidth={scaledInputWidth}
+                numericalFontSize={fontSize}
                 maxDecimals={
                   inputInFiat
                     ? DEFAULT_FIAT_DECIMALS
@@ -321,7 +308,9 @@ function BuyFormInner({ disabled, initialCurrency }: BuyFormProps) {
                 testId={TestID.BuyFormAmountInput}
                 ref={inputRef}
               />
-              <NumericalInputMimic ref={hiddenObserver.ref}>{inputAmount}</NumericalInputMimic>
+              <NumericalInputMimic ref={hiddenObserverRef} numericalFontSize={fontSize}>
+                {inputAmount}
+              </NumericalInputMimic>
             </NumericalInputWrapper>
             {quoteCurrency?.currencyInfo?.currency && inputAmount && (
               <Flex height={36} justifyContent="center">
@@ -331,6 +320,7 @@ function BuyFormInner({ disabled, initialCurrency }: BuyFormProps) {
                   inputInFiat={inputInFiat}
                   exactAmountOut={amountOut}
                   onToggle={() => {
+                    onSetFontSize(amountOut || '0')
                     setBuyFormState((state) => ({
                       ...state,
                       inputInFiat: !state.inputInFiat,
@@ -352,6 +342,11 @@ function BuyFormInner({ disabled, initialCurrency }: BuyFormProps) {
                       }))
                       sendAnalyticsEvent(FiatOnRampEventName.FiatOnRampAmountEntered, {
                         amountUSD: convertFiatAmount(amount).amount,
+                        chainId: quoteCurrency?.currencyInfo?.currency.chainId,
+                        cryptoCurrency: quoteCurrency?.meldCurrencyCode ?? quoteCurrency?.currencyInfo?.currency.symbol,
+                        externalTransactionIdSuffix,
+                        fiatCurrency: meldSupportedFiatCurrency?.code,
+                        isTokenInputMode: false,
                         source: 'chip',
                       })
                     }}
@@ -381,6 +376,11 @@ function BuyFormInner({ disabled, initialCurrency }: BuyFormProps) {
                       }))
                       sendAnalyticsEvent(FiatOffRampEventName.FiatOffRampAmountEntered, {
                         amountUSD: convertFiatAmount(newInputAmount).amount,
+                        chainId: quoteCurrency?.currencyInfo?.currency.chainId,
+                        cryptoCurrency: quoteCurrency?.meldCurrencyCode ?? quoteCurrency?.currencyInfo?.currency.symbol,
+                        externalTransactionIdSuffix,
+                        fiatCurrency: meldSupportedFiatCurrency?.code,
+                        isTokenInputMode: true,
                         source: 'chip',
                       })
                     }}
@@ -411,13 +411,20 @@ function BuyFormInner({ disabled, initialCurrency }: BuyFormProps) {
           }}
           onSelectCurrency={(currency) => {
             setBuyFormState((state) => ({ ...state, quoteCurrency: currency }))
-            sendAnalyticsEvent(FiatOnRampEventName.FiatOnRampTokenSelected, {
-              token:
-                currency.meldCurrencyCode ??
-                currency.moonpayCurrencyCode ??
-                currency.currencyInfo?.currency.symbol ??
-                '',
-            })
+            sendAnalyticsEvent(
+              rampDirection === RampDirection.ON_RAMP
+                ? FiatOnRampEventName.FiatOnRampTokenSelected
+                : FiatOffRampEventName.FiatOffRampTokenSelected,
+              {
+                chainId: currency.currencyInfo?.currency.chainId,
+                externalTransactionIdSuffix,
+                token:
+                  currency.meldCurrencyCode ??
+                  currency.moonpayCurrencyCode ??
+                  currency.currencyInfo?.currency.symbol ??
+                  '',
+              },
+            )
           }}
           currencies={supportedTokens}
           unsupportedCurrencies={unsupportedCurrencies}
@@ -437,7 +444,7 @@ function BuyFormInner({ disabled, initialCurrency }: BuyFormProps) {
             chain: getChainUrlParam(currencyInfo.currency.chainId),
             outputCurrency: NATIVE_CHAIN_ID,
           })
-          navigate(`/swap?${params.toString()}`)
+          Promise.resolve(navigate(`/swap?${params.toString()}`)).catch(() => {})
         }}
         onClose={() => {
           setBuyFormState((state) => ({ ...state, selectedUnsupportedCurrency: undefined }))

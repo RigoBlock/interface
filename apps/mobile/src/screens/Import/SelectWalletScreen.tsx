@@ -1,5 +1,8 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Button, Flex, Loader, spacing, Text, TouchableArea } from '@universe/mycelium'
+import { WalletFilled } from '@universe/mycelium/icons/WalletFilled'
+import { TestID } from '@universe/test'
 import React, { ComponentProps, useCallback } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { ScrollView } from 'react-native'
@@ -7,13 +10,10 @@ import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated'
 import { navigate } from 'src/app/navigation/rootNavigation'
 import { OnboardingStackParamList } from 'src/app/navigation/types'
 import { OnboardingScreen } from 'src/features/onboarding/OnboardingScreen'
-import { Button, Flex, Loader, Text, TouchableArea, useLayoutAnimationOnChange } from 'ui/src'
-import { WalletFilled } from 'ui/src/components/icons'
-import { spacing } from 'ui/src/theme'
+import { useLayoutAnimationOnChange } from 'ui/src'
 import { BaseCard } from 'uniswap/src/components/BaseCard/BaseCard'
 import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { ImportType } from 'uniswap/src/types/onboarding'
 import { OnboardingScreens } from 'uniswap/src/types/screens/mobile'
 import WalletPreviewCard from 'wallet/src/components/WalletPreviewCard/WalletPreviewCard'
@@ -155,7 +155,7 @@ export function SelectWalletScreen({ navigation, route: { params } }: Props): JS
         <Flex opacity={showError ? 0 : 1} px="$spacing16">
           <Flex row>
             <Button
-              isDisabled={isContinueButtonDisabled}
+              disabled={isContinueButtonDisabled}
               variant="branded"
               size="large"
               testID={TestID.Continue}

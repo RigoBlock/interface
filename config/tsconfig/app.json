@@ -9,6 +9,6 @@
     "lib": ["es2021", "dom", "esnext"],
     "noEmit": false,
     "resolveJsonModule": true,
-    "target": "es2019"
+    "target": "es2020"
   }
 }

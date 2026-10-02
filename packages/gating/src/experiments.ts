@@ -4,15 +4,16 @@
  * These must match parameter names on Statsig within an experiment
  */
 export enum Experiments {
+  EmbeddedWalletOnboarding = 'embedded_wallet_onboarding',
   EthAsErc20UniswapX = 'eth_as_erc20_uniswapx_experiment',
-  ExploreBackendSorting = 'explore_backend_sorting',
   NativeTokenPercentageBuffer = 'lp_native_buffer',
-  PrivateRpc = 'private_rpc',
   SwapConfirmation = 'swap-confirmation',
+  V2EndpointsSearch = 'v2_endpoints_search_experiment',
 }
 
 export enum Layers {
-  ExplorePage = 'explore-page',
+  // Explore, token details, and search surfaces (web + mobile)
+  Discovery = 'discovery',
   SwapPage = 'swap-page',
 }
 
@@ -29,9 +30,8 @@ export enum ArbitrumXV2SamplingProperties {
   RoutingType = 'routingType',
 }
 
-export enum PrivateRpcProperties {
-  FlashbotsEnabled = 'flashbots_enabled',
-  RefundPercent = 'refund_percent',
+export enum EmbeddedWalletOnboardingProperties {
+  NewFlowEnabled = 'newFlowEnabled',
 }
 
 export enum NativeTokenPercentageBufferProperties {
@@ -42,8 +42,14 @@ export enum SwapConfirmationProperties {
   WaitTimes = 'wait_times',
 }
 
-export enum ExploreBackendSortingProperties {
-  BackendSortingEnabled = 'backendSortingEnabled',
+// Discovery Layer experiment properties
+
+export enum DiscoveryLayerProperties {
+  V2EndpointsSearchEnabled = 'v2EndpointsSearchEnabled',
+}
+
+export enum V2EndpointsSearchProperties {
+  V2EndpointsSearchEnabled = DiscoveryLayerProperties.V2EndpointsSearchEnabled,
 }
 
 // Swap Layer experiment properties
@@ -60,17 +66,15 @@ export enum EthAsErc20UniswapXProperties {
 
 // Ordered alphabetically.
 export type ExperimentProperties = {
+  [Experiments.EmbeddedWalletOnboarding]: EmbeddedWalletOnboardingProperties
   [Experiments.EthAsErc20UniswapX]: EthAsErc20UniswapXProperties
-  [Experiments.ExploreBackendSorting]: ExploreBackendSortingProperties
   [Experiments.NativeTokenPercentageBuffer]: NativeTokenPercentageBufferProperties
-  [Experiments.PrivateRpc]: PrivateRpcProperties
   [Experiments.SwapConfirmation]: SwapConfirmationProperties
+  [Experiments.V2EndpointsSearch]: V2EndpointsSearchProperties
 }
 
 // will be a spread of all experiment properties in that layer
 export const LayerProperties: Record<Layers, string[]> = {
-  [Layers.ExplorePage]: Object.values({
-    ...ExploreBackendSortingProperties,
-  }),
+  [Layers.Discovery]: Object.values(DiscoveryLayerProperties),
   [Layers.SwapPage]: Object.values(SwapLayerProperties),
 }

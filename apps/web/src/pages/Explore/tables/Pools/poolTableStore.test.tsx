@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { PoolSortFields } from '~/appGraphql/data/pools/useTopPools'
+import { PoolSortFields } from '~/data/pools/poolStats'
 import { createPoolTableStore } from '~/pages/Explore/tables/Pools/poolTableStore'
 
 describe('poolTableStore', () => {
-  it('starts with TVL and sortAscending false', () => {
+  it('starts with 1 day volume and sortAscending false', () => {
     const store = createPoolTableStore()
     const state = store.getState()
 
-    expect(state.sortMethod).toBe(PoolSortFields.TVL)
+    expect(state.sortMethod).toBe(PoolSortFields.Volume24h)
     expect(state.sortAscending).toBe(false)
   })
 
@@ -23,10 +23,10 @@ describe('poolTableStore', () => {
   it('setSort with the same category toggles sortAscending', () => {
     const store = createPoolTableStore()
 
-    store.getState().actions.setSort(PoolSortFields.TVL)
+    store.getState().actions.setSort(PoolSortFields.Volume24h)
     expect(store.getState().sortAscending).toBe(true)
 
-    store.getState().actions.setSort(PoolSortFields.TVL)
+    store.getState().actions.setSort(PoolSortFields.Volume24h)
     expect(store.getState().sortAscending).toBe(false)
   })
 
@@ -40,7 +40,7 @@ describe('poolTableStore', () => {
 
     store.getState().actions.resetSort()
 
-    expect(store.getState().sortMethod).toBe(PoolSortFields.TVL)
+    expect(store.getState().sortMethod).toBe(PoolSortFields.Volume24h)
     expect(store.getState().sortAscending).toBe(false)
   })
 })

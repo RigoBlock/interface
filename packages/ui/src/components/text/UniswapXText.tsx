@@ -1,5 +1,4 @@
-import { GetProps } from 'tamagui'
-import { Text } from 'ui/src/components/text'
+import { TextCompat, type TextCompatProps } from '@universe/mycelium/text-compat'
 
 const gradientStyle = `
   .uniswapx-gradient {
@@ -14,14 +13,14 @@ const gradientStyle = `
 `
 
 // TODO(WEB-4313): Wrap GradientText once it works for web.
-export function UniswapXText({ children, ...props }: GetProps<typeof Text>): JSX.Element {
+export function UniswapXText({ children, ...props }: TextCompatProps): JSX.Element {
   return (
     <>
       <style>{gradientStyle}</style>
       {/* Do not use gradient color if a color prop override is defined */}
-      <Text {...props} className={!props.color ? 'uniswapx-gradient' : ''}>
+      <TextCompat {...props} className={!props.color ? 'uniswapx-gradient' : ''}>
         {children}
-      </Text>
+      </TextCompat>
     </>
   )
 }

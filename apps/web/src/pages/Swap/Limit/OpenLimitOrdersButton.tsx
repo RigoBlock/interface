@@ -1,18 +1,34 @@
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { clickableStyle, Flex, iconSizes, Text, TouchableArea } from '@universe/mycelium'
+import { Clock } from '@universe/mycelium/icons/Clock'
+import type { TFunction } from 'i18next'
 import { ReactNode } from 'react'
-import { Trans, useTranslation } from 'react-i18next'
-import { Flex, Text, TouchableArea } from 'ui/src'
+import { useTranslation } from 'react-i18next'
 import { Arrow } from 'ui/src/components/arrow/Arrow'
-import { Clock } from 'ui/src/components/icons/Clock'
-import { iconSizes } from 'ui/src/theme'
+import { isCancelTimedOut } from 'uniswap/src/features/transactions/cancel/cancelTimeoutStateMachine'
+import type { UniswapXOrderDetails } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { useOpenLimitOrders } from '~/components/AccountDrawer/MiniPortfolio/Activity/hooks'
-import { ClickableTamaguiStyle } from '~/theme/components/styles'
 
-function getExtraWarning(openLimitOrders: any[]) {
+function getExtraWarning({
+  openLimitOrders,
+  isCancelTimeoutEnabled,
+  t,
+}: {
+  openLimitOrders: UniswapXOrderDetails[]
+  isCancelTimeoutEnabled: boolean
+  t: TFunction
+}) {
+  if (isCancelTimeoutEnabled) {
+    const timedOutCount = openLimitOrders.filter((order) => isCancelTimedOut(order)).length
+    if (timedOutCount > 0) {
+      return t('limits.cancel.mayFail', { count: timedOutCount })
+    }
+  }
   if (openLimitOrders.length >= 100) {
-    return <Trans i18nKey="common.limits.cancelProceed" />
+    return t('common.limits.cancelProceed')
   }
   if (openLimitOrders.length >= 90) {
-    return <Trans i18nKey="common.limits.approachMax" />
+    return t('common.limits.approachMax')
   }
   return undefined
 }
@@ -38,7 +54,7 @@ function TabButton({ text, icon, extraWarning, onClick, disabled }: TabButtonPro
       justifyContent="space-between"
       alignItems="center"
       mt="$spacing12"
-      {...ClickableTamaguiStyle}
+      {...clickableStyle}
     >
       <Flex row justifyContent="space-between" alignItems="center" gap="$spacing12" width="100%">
         <Flex row gap="$spacing8">
@@ -66,8 +82,9 @@ export function OpenLimitOrdersButton({
   disabled?: boolean
 }) {
   const { t } = useTranslation()
+  const isCancelTimeoutEnabled = useFeatureFlag(FeatureFlags.LimitCancelTimeout)
   const { openLimitOrders, loading } = useOpenLimitOrders(account)
-  const extraWarning = getExtraWarning(openLimitOrders)
+  const extraWarning = getExtraWarning({ openLimitOrders, isCancelTimeoutEnabled, t })
 
   if (openLimitOrders.length < 1) {
     return null

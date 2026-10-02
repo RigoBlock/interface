@@ -1,16 +1,15 @@
+import { Flex, iconSizes, Text } from '@universe/mycelium'
+import { ChartBarCrossed } from '@universe/mycelium/icons/ChartBarCrossed'
+import { Ellipsis } from '@universe/mycelium/icons/Ellipsis'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, FlexProps, Text } from 'ui/src'
-import { ChartBarCrossed } from 'ui/src/components/icons/ChartBarCrossed'
-import { Ellipsis } from 'ui/src/components/icons/Ellipsis'
-import { iconSizes } from 'ui/src/theme'
 import { ReportPortfolioDataModal } from 'uniswap/src/components/reporting/ReportPortfolioDataModal'
 import { useEvent } from 'utilities/src/react/hooks'
 import { useBooleanState } from 'utilities/src/react/useBooleanState'
 import { Dropdown, InternalMenuItem } from '~/components/Dropdowns/Dropdown'
 import { POPUP_MEDIUM_DISMISS_MS } from '~/components/Popups/constants'
-import { popupRegistry } from '~/components/Popups/registry'
-import { PopupType } from '~/components/Popups/types'
+import { popupRegistry } from '~/state/popups/registry'
+import { PopupType } from '~/state/popups/types'
 
 const DROPDOWN_MIN_WIDTH = 200
 
@@ -21,7 +20,7 @@ const moreMenuButtonStyle = {
 
 interface PortfolioMoreMenuProps {
   size?: 'small' | 'medium'
-  transition?: FlexProps['transition']
+  transition?: string
 }
 
 export function PortfolioMoreMenu({ size = 'medium', transition }: PortfolioMoreMenuProps): JSX.Element {
@@ -51,7 +50,7 @@ export function PortfolioMoreMenu({ size = 'medium', transition }: PortfolioMore
         toggleOpen={setIsOpen}
         menuLabel={
           <Flex>
-            <Ellipsis size={iconSize} color="$neutral1" transition={transition} />
+            <Ellipsis size={iconSize} color="$neutral1" style={{ transition }} />
           </Flex>
         }
         hideChevron

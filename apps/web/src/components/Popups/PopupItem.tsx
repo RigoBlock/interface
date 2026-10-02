@@ -1,14 +1,15 @@
+import { UniverseChainId } from '@universe/chains'
+import { Flex, Text } from '@universe/mycelium'
 import { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text } from 'ui/src'
 import { AlertTriangleFilled } from 'ui/src/components/icons/AlertTriangleFilled'
 import { CheckCircleFilled } from 'ui/src/components/icons/CheckCircleFilled'
 import { Eye } from 'ui/src/components/icons/Eye'
 import { Shuffle } from 'ui/src/components/icons/Shuffle'
-import { spacing } from 'ui/src/theme'
+import { spacing } from 'ui/src/theme/spacing'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { EarnSwapUpsellToast } from '~/components/Popups/EarnSwapUpsellToast'
 import { MismatchToastItem } from '~/components/Popups/MismatchToastItem'
 import {
   FailedNetworkSwitchPopup,
@@ -18,7 +19,7 @@ import {
   UniswapXOrderPopupContent,
 } from '~/components/Popups/PopupContent'
 import { ToastRegularSimple } from '~/components/Popups/ToastRegularSimple'
-import { PopupContent, PopupType, SwitchNetworkAction } from '~/components/Popups/types'
+import { PopupContent, PopupType, SwitchNetworkAction } from '~/state/popups/types'
 
 // oxlint-disable-next-line typescript/consistent-return -- biome-parity: oxlint is stricter here
 export function PopupItem({ content, onClose }: { content: PopupContent; popKey: string; onClose: () => void }) {
@@ -74,6 +75,16 @@ export function PopupItem({ content, onClose }: { content: PopupContent; popKey:
         />
       )
     }
+    case PopupType.EarnSwapUpsell: {
+      return (
+        <EarnSwapUpsellToast
+          outputCurrencyId={content.outputCurrencyId}
+          swapAmountUsd={content.swapAmountUsd}
+          transactionId={content.transactionId}
+          onDismiss={onClose}
+        />
+      )
+    }
     case PopupType.Success: {
       return (
         <ToastRegularSimple
@@ -119,8 +130,6 @@ function getSwitchNetworkTitle({
       return t('notification.lp.network', { network: label })
     case SwitchNetworkAction.Limit:
       return t('notification.limit.network', { network: label })
-    case SwitchNetworkAction.PoolFinder:
-      return t('notification.poolFinder.network', { network: label })
     default:
       return ''
   }

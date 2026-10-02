@@ -12,7 +12,9 @@ export function createRevocationTransactionStep({
   chainId,
 }: {
   txRequest: ValidatedTransactionRequest | undefined
-  tokenAddress: TokenRevocationTransactionStep['tokenAddress']
+  // Optional to match the `!tokenAddress` guard below, and the sibling approval step creator:
+  // a native currency has no token address to revoke (and none to wrap on Arc/Tempo).
+  tokenAddress: TokenRevocationTransactionStep['tokenAddress'] | undefined
   chainId: TokenRevocationTransactionStep['chainId']
 }): TokenRevocationTransactionStep | undefined {
   if (!txRequest?.data || !tokenAddress) {

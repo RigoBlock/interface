@@ -40,7 +40,7 @@ class NativeKeyring implements IKeyring {
     throw new NotImplementedError('removePassword')
   }
 
-  unlock(): Promise<boolean> {
+  unlock(_password: string): Promise<boolean> {
     return Promise.resolve(true)
   }
 

@@ -1,4 +1,3 @@
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { getPossibleChainMatchFromSearch } from 'uniswap/src/utils/search/getPossibleChainMatchFromSearch'
 
 vi.mock('uniswap/src/features/chains/chainInfo', () => ({
@@ -9,6 +8,7 @@ vi.mock('uniswap/src/features/chains/utils', () => ({
   isTestnetChain: vi.fn(),
 }))
 
+import { UniverseChainId } from '@universe/chains'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { isTestnetChain } from 'uniswap/src/features/chains/utils'
 

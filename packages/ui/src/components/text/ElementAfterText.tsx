@@ -1,7 +1,7 @@
-import { Flex, FlexProps } from 'ui/src/components/layout/Flex'
-import { Text, TextProps } from 'ui/src/components/text/Text'
+import { isAndroid, isWebAppDesktop } from '@universe/environment'
+import { Flex, FlexProps } from '@universe/mycelium'
+import { Text, TextProps } from '@universe/mycelium'
 import { usePostTextElementPositionProps } from 'ui/src/utils/layout'
-import { isWebAppDesktop } from 'utilities/src/platform'
 
 type ElementAfterTextProps = {
   element?: JSX.Element
@@ -18,7 +18,9 @@ const DEFAULT_TEXT_PROPS: TextProps = {
 export function ElementAfterText({ element, text, wrapperProps, textProps }: ElementAfterTextProps): JSX.Element {
   const { postTextElementPositionProps, onTextLayout } = usePostTextElementPositionProps()
 
-  if (isWebAppDesktop) {
+  // Android: render the element inline. The absolute-position-after-last-line path below relies on
+  // onTextLayout line metrics that are unreliable under Fabric, mispositioning/collapsing the element.
+  if (isWebAppDesktop || isAndroid) {
     return (
       <Flex row alignItems="center" {...wrapperProps}>
         <Text {...DEFAULT_TEXT_PROPS} {...textProps}>

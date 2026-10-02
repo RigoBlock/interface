@@ -8,7 +8,7 @@ import {
 } from 'src/contentScript/types'
 import { WindowEthereumProxy } from 'src/contentScript/WindowEthereumProxy'
 import { logger } from 'utilities/src/logger/logger'
-import { v4 as uuid } from 'uuid'
+import { uuid } from 'utilities/src/primitives/uuid'
 import { defineContentScript } from 'wxt/utils/define-content-script'
 
 declare global {
@@ -156,10 +156,7 @@ function makeEthereum(): void {
 }
 
 export default defineContentScript({
-  matches:
-    __DEV__ || process.env.BUILD_ENV === 'dev'
-      ? ['http://127.0.0.1/*', 'http://localhost/*', 'https://*/*']
-      : ['https://*/*'],
+  matches: ['http://127.0.0.1/*', 'http://localhost/*', 'https://*/*'],
   runAt: 'document_start',
   // TODO(INFRA-1010): not supported by firefox
   world: 'MAIN',

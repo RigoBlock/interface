@@ -1,6 +1,6 @@
+import { EVMUniverseChainId } from '@universe/chains'
 import { useMemo } from 'react'
 import { useSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
-import { EVMUniverseChainId } from 'uniswap/src/features/chains/types'
 import {
   type Register,
   type UseAccountReturnType as UseAccountReturnTypeWagmi,

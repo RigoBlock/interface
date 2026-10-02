@@ -1,10 +1,13 @@
+import { Button, Flex, Text, useIsDarkMode, useSporeColors } from '@universe/mycelium'
+import { styled } from '@universe/mycelium/styled'
+import { SPORE_ANIMATION_CURVE_CSS } from '@universe/tailwind/animations'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Flex, styled, Text, useIsDarkMode, useSporeColors } from 'ui/src'
-import { opacify, zIndexes } from 'ui/src/theme'
+import { opacify } from 'ui/src/theme'
 import { ElementName, InterfaceEventName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { useAccountDrawer } from '~/components/AccountDrawer/MiniPortfolio/hooks'
+import { useScrollCompact } from '~/hooks/useScrollCompact'
 import { CONNECT_WALLET_FIXED_BOTTOM_SECTION_HEIGHT } from '~/pages/Portfolio/constants'
 
 function useBackgroundGradient() {
@@ -20,42 +23,42 @@ function useBackgroundGradient() {
   return `linear-gradient(to top, ${gradientColors[0]} 0%, ${gradientColors[70]} 70%, ${gradientColors[80]} 80%, ${gradientColors[100]} 100%)`
 }
 
-// z-index needs to be hight than content buy below the sidebar
-const zIndex = zIndexes.header
+// The legacy animation:'300ms' only ever moved opacity and transform, so the transition is
+// scoped to them (never `transition: all`).
+const VISIBILITY_TRANSITION_STYLE = {
+  willChange: 'transform, opacity',
+  transition: `transform ${SPORE_ANIMATION_CURVE_CSS['300ms']}, opacity ${SPORE_ANIMATION_CURVE_CSS['300ms']}`,
+} as const
 
-const FixedBottomButton = styled(Flex, {
-  '$platform-web': {
-    position: 'fixed',
-    bottom: '$spacing40',
-    left: 0,
-    right: 0,
-    willChange: 'transform, opacity',
+const FADE_OVERLAY_VARIANTS = {
+  visible: {
+    true: 'opacity-[1] [transform:translateY(0px)]',
+    false: 'opacity-[0] [transform:translateY(30px)]',
   },
-  zIndex,
-  width: '100%',
-  centered: true,
-  animation: '300ms',
-  variants: {
-    visible: {
-      true: {
-        opacity: 1,
-        y: 0,
-        scale: 1,
-      },
-      false: {
-        opacity: 0,
-        y: 10,
-        scale: 0.8,
-      },
-    },
-  },
+} as const
+
+// z-header sits above the page content but below the sidebar.
+const FadeOverlay = styled(Flex, {
+  base: 'items-center justify-center w-[100%] z-header fixed bottom-[0px] right-[0px] left-[0px]',
+  variants: FADE_OVERLAY_VARIANTS,
+  inlineStyle: () => VISIBILITY_TRANSITION_STYLE,
 })
 
-interface ConnectWalletBottomOverlayProps {
-  shouldShow?: boolean
-}
+const FIXED_BOTTOM_BUTTON_VARIANTS = {
+  visible: {
+    true: 'opacity-[1] [transform:translateY(0px)_scale(1)]',
+    false: 'opacity-[0] [transform:translateY(10px)_scale(0.8)]',
+  },
+} as const
 
-export function ConnectWalletFixedBottomButton({ shouldShow = false }: ConnectWalletBottomOverlayProps): JSX.Element {
+const FixedBottomButton = styled(Flex, {
+  base: 'items-center justify-center w-[100%] z-header fixed right-[0px] bottom-[40px] left-[0px]',
+  variants: FIXED_BOTTOM_BUTTON_VARIANTS,
+  inlineStyle: () => VISIBILITY_TRANSITION_STYLE,
+})
+
+export function ConnectWalletFixedBottomButton(): JSX.Element {
+  const shouldShow = useScrollCompact({})
   const accountDrawer = useAccountDrawer()
   const { t } = useTranslation()
   const backgroundGradient = useBackgroundGradient()
@@ -79,18 +82,11 @@ export function ConnectWalletFixedBottomButton({ shouldShow = false }: ConnectWa
   return (
     <>
       {/* Bottom fade overlay */}
-      <Flex
-        $platform-web={{ position: 'fixed', bottom: 0, left: 0, right: 0, willChange: 'transform, opacity' }}
-        zIndex={zIndex}
+      <FadeOverlay
+        visible={showAfterMount}
         height={CONNECT_WALLET_FIXED_BOTTOM_SECTION_HEIGHT}
-        width="100%"
         background={backgroundGradient}
-        justifyContent="center"
-        alignItems="center"
         cursor="not-allowed"
-        opacity={showAfterMount ? 1 : 0}
-        y={showAfterMount ? 0 : 30}
-        animation="300ms"
         pointerEvents={showAfterMount ? 'auto' : 'none'}
       />
       <FixedBottomButton visible={showAfterMount} pointerEvents={showAfterMount ? 'auto' : 'none'}>

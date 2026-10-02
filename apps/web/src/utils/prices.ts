@@ -106,16 +106,29 @@ export function warningSeverity(priceImpact: Percent | undefined): WarningSeveri
 }
 
 /**
- * Removes outliers from price data using the Interquartile Range (IQR) method
- * @param entries Array of price data points
+ * Removes outliers from price data using the Interquartile Range (IQR) method.
+ *
+ * With `keepLatest`, the most recent entry is kept and excluded from the quartiles: it is the price
+ * the headline reads, and the bound is computed over the selected window only, so a real, recent
+ * move looks like an outlier on a short timeframe and normal on a long one. Filtering it would make
+ * the same pool report a different current price per timeframe.
+ *
+ * Pass `keepLatest` only where a live price is appended over that entry. Exempting it without one
+ * leaves a bad backend point as the headline price with nothing to supersede it.
+ *
+ * @param entries Array of price data points, oldest first
  * @returns Filtered array with outliers removed
  */
-export function removeOutliers(entries: PriceChartData[]): PriceChartData[] {
+export function removeOutliers(entries: PriceChartData[], { keepLatest = false } = {}): PriceChartData[] {
   if (entries.length < 4) {
     return entries
   }
 
-  const values = entries.map((entry) => entry.value).sort((a, b) => a - b)
+  const latestIndex = keepLatest ? entries.length - 1 : -1
+  const values = entries
+    .filter((_entry, index) => index !== latestIndex)
+    .map((entry) => entry.value)
+    .sort((a, b) => a - b)
 
   const q1Index = Math.floor(values.length * 0.25)
   const q3Index = Math.floor(values.length * 0.75)
@@ -126,7 +139,10 @@ export function removeOutliers(entries: PriceChartData[]): PriceChartData[] {
   const lowerBound = q1 - 1.5 * iqr
   const upperBound = q3 + 1.5 * iqr
 
-  return entries.filter((entry) => {
+  return entries.filter((entry, index) => {
+    if (index === latestIndex) {
+      return true
+    }
     const value = entry.value
     return value >= lowerBound && value <= upperBound
   })

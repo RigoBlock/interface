@@ -1,7 +1,8 @@
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet'
+import { UniverseChainId } from '@universe/chains'
+import { Flex, spacing } from '@universe/mycelium'
 import { useState } from 'react'
-import { Flex } from 'ui/src'
-import { spacing } from 'ui/src/theme'
+import { easeInEaseOutLayoutAnimation } from 'ui/src/animations/layout/layoutAnimation'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { NetworkFilterContent } from 'uniswap/src/components/network/NetworkFilterV2/NetworkFilterContent'
 import { NetworkFilterTrigger } from 'uniswap/src/components/network/NetworkFilterV2/NetworkFilterTrigger'
@@ -9,7 +10,6 @@ import type { NetworkFilterV2Props } from 'uniswap/src/components/network/Networ
 import { NetworkSearchBar } from 'uniswap/src/components/network/NetworkFilterV2/NetworkSearchBar'
 import { useNetworkFilterSearch } from 'uniswap/src/components/network/NetworkFilterV2/useNetworkFilterSearch'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { dismissNativeKeyboard } from 'utilities/src/device/keyboard/dismissNativeKeyboard'
 import { useEvent } from 'utilities/src/react/hooks'
@@ -47,6 +47,8 @@ export function NetworkFilterV2({
 
   const handlePressChain = useEvent((chainId: UniverseChainId | null): void => {
     handleCloseSheet()
+    // Matches legacy NetworkFilter so the re-filtered list eases instead of snapping
+    easeInEaseOutLayoutAnimation()
     onPressChain(chainId)
   })
 

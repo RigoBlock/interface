@@ -1,4 +1,4 @@
-import { LineChartDots } from 'ui/src/components/icons/LineChartDots'
+import { LineChartDots } from '@universe/mycelium/icons/LineChartDots'
 import { SettingsToggle } from '~/components/AccountDrawer/SettingsToggle'
 import { act, render } from '~/test-utils/render'
 

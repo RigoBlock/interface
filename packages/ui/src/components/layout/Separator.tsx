@@ -1,37 +1,47 @@
-import { Stack, styled } from 'tamagui'
-import { isWebPlatform } from 'utilities/src/platform'
+/**
+ * Platform-split base stub — bundlers resolve `Separator.web` /
+ * `Separator.native`. Shared types live here; the shared prop-resolution
+ * helpers live in ./separatorStyles.
+ */
+import type { ReactNode } from 'react'
+import type { DimensionValue, StyleProp, ViewStyle } from 'react-native'
+import type { ColorTokenValue, InsetValue, SpacingTokenValue } from 'ui/src/components/layout/separatorStyles'
+import { PlatformSplitStubError } from 'utilities/src/errors'
 
-export const Separator = styled(Stack, {
-  name: 'Separator',
-  borderColor: '$surface3',
-  flexShrink: 0,
-  borderWidth: 0,
-  flex: 1,
-  height: 0,
-  maxHeight: 0,
-  borderBottomWidth: 1,
+export type SeparatorProps = {
+  vertical?: boolean
+  my?: SpacingTokenValue
+  mx?: SpacingTokenValue
+  mt?: SpacingTokenValue
+  mb?: SpacingTokenValue
+  width?: DimensionValue
+  backgroundColor?: ColorTokenValue
+  borderColor?: ColorTokenValue
+  borderBottomWidth?: number
+  position?: ViewStyle['position']
+  top?: InsetValue
+  left?: InsetValue
+  right?: InsetValue
+  /**
+   * Style overrides applied at or below the `$md` breakpoint (max-width 640px),
+   * matching the legacy Tamagui media prop's boundary behavior.
+   */
+  $md?: { display?: 'none' | 'flex' }
+  testID?: string
+  /** Tamagui `styled(Separator, ...)` wrappers forward testID as data-testid on web. */
+  'data-testid'?: string
+  style?: StyleProp<ViewStyle>
+  children?: ReactNode
+}
 
-  variants: {
-    test: {
-      ok: {},
-    },
-
-    vertical: {
-      true: {
-        y: 0,
-        // `as any` because its valid only on web
-        // oxlint-disable-next-line typescript/no-explicit-any -- Web-specific CSS value requires type override
-        height: isWebPlatform ? ('initial' as any) : 'auto',
-        // `as any` because its valid only on web
-        // oxlint-disable-next-line typescript/no-explicit-any -- Web-specific CSS value requires type override
-        maxHeight: isWebPlatform ? ('initial' as any) : 'auto',
-        width: 0,
-        maxWidth: 0,
-        borderBottomWidth: 0,
-        borderRightWidth: 0.25,
-      },
-    },
-  } as const,
-})
+/**
+ * Thin divider line, horizontal by default, `vertical` to flip.
+ * Hand-rolled off Tamagui — a plain `div` on web (inline styles only, mirroring
+ * the legacy Tamagui cascade output exactly; Separator.web.tsx) and a React
+ * Native `View` on native (Separator.native.tsx).
+ */
+export function Separator(_props: SeparatorProps): JSX.Element {
+  throw new PlatformSplitStubError('Separator')
+}
 
 Separator.displayName = 'Separator'

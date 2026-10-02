@@ -1,10 +1,10 @@
 import { ColumnDef, createColumnHelper, Row } from '@tanstack/react-table'
+import { Flex, Text, useIsTouchDevice } from '@universe/mycelium'
+import { ArrowRight } from '@universe/mycelium/icons/ArrowRight'
+import { TestID } from '@universe/test'
 import { memo, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text, useIsTouchDevice } from 'ui/src'
-import { ArrowRight } from 'ui/src/components/icons/ArrowRight'
 import { TransactionDetails } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { Table } from '~/components/Table'
 import { Cell } from '~/components/Table/Cell'
 import { HeaderCell } from '~/components/Table/styled'
@@ -22,7 +22,11 @@ interface ActivityTableProps {
   rowWrapper?: (row: Row<TransactionDetails>, content: JSX.Element) => JSX.Element
 }
 
-export function useActivityTableColumns(showLoadingSkeleton: boolean): ColumnDef<TransactionDetails, any>[] {
+export function useActivityTableColumns({
+  showLoadingSkeleton,
+}: {
+  showLoadingSkeleton: boolean
+}): ColumnDef<TransactionDetails, any>[] {
   const { t } = useTranslation()
   const isTouchDevice = useIsTouchDevice()
   const columnHelper = useMemo(() => createColumnHelper<TransactionDetails>(), [])
@@ -166,7 +170,9 @@ function ActivityTableInner({ data, loading = false, error = false, rowWrapper }
   // Initialize address lookup for batch fetching
   useActivityAddressLookup(data)
 
-  const columns = useActivityTableColumns(showLoadingSkeleton)
+  const columns = useActivityTableColumns({
+    showLoadingSkeleton,
+  })
 
   return (
     <Table
@@ -174,13 +180,13 @@ function ActivityTableInner({ data, loading = false, error = false, rowWrapper }
       data={data}
       loading={loading}
       error={error}
-      v2={true}
       rowWrapper={rowWrapper}
       rowHeight={PORTFOLIO_TABLE_ROW_HEIGHT}
       compactRowHeight={PORTFOLIO_TABLE_ROW_HEIGHT}
       defaultPinnedColumns={['addedTime']}
       maxWidth={1200}
       headerTestId={TestID.PortfolioActivityTableHeader}
+      virtualized={true}
     />
   )
 }

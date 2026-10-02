@@ -1,6 +1,5 @@
+import { Flex, iconSizes, UniversalImage } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
-import { Flex, UniversalImage } from 'ui/src'
-import { iconSizes } from 'ui/src/theme'
 import { NotificationToast } from 'uniswap/src/components/notifications/NotificationToast'
 import { getCountryFlagSvgUrl } from 'uniswap/src/features/fiatOnRamp/utils'
 import { ChooseCountryNotification as ChooseCountryNotificationType } from 'uniswap/src/features/notifications/slice/types'

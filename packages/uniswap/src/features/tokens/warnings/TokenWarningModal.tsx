@@ -1,7 +1,10 @@
+import { Flex, Text } from '@universe/mycelium'
+import { AnimateTransition } from '@universe/mycelium/animate-presence-pager'
+import { LabeledCheckboxCompat as LabeledCheckbox } from '@universe/mycelium/checkbox-compat'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { TFunction } from 'i18next'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AnimateTransition, Flex, LabeledCheckbox, Text, useSporeColors } from 'ui/src'
 import { PoweredByBlockaid } from 'uniswap/src/components/logos/PoweredByBlockaid'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { getAlertColor } from 'uniswap/src/components/modals/WarningModal/getAlertColor'
@@ -9,7 +12,7 @@ import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/type
 import { WarningModalContent } from 'uniswap/src/components/modals/WarningModal/WarningModal'
 import { LearnMoreLink } from 'uniswap/src/components/text/LearnMoreLink'
 import WarningIcon from 'uniswap/src/components/warnings/WarningIcon'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { submitTokenWarningDataReport } from 'uniswap/src/features/reporting/reports'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
@@ -17,9 +20,7 @@ import Trace from 'uniswap/src/features/telemetry/Trace'
 import { useBlockaidFeeComparisonAnalytics } from 'uniswap/src/features/tokens/warnings/hooks/useBlockaidFeeComparisonAnalytics'
 import { useWarningModalCurrenciesDismissed } from 'uniswap/src/features/tokens/warnings/hooks/useWarningModalCurrenciesDismissed'
 import {
-  getCurrencyFeeOnTransfer,
   getFeeWarning,
-  getIsFeeRelatedWarning,
   getSeverityFromTokenProtectionWarning,
   getShouldHaveCombinedPluralTreatment,
   getTokenProtectionFeeOnTransfer,
@@ -77,7 +78,6 @@ function allowsDismissWarning(tokenProtectionWarning: TokenProtectionWarning): b
   return WARNINGS_ALLOWING_DISMISSAL.includes(tokenProtectionWarning)
 }
 
-// oxlint-disable-next-line complexity
 function TokenWarningModalContent({
   currencyInfo0,
   currencyInfo1,
@@ -102,26 +102,13 @@ function TokenWarningModalContent({
   const severity = getSeverityFromTokenProtectionWarning(tokenProtectionWarning)
   const tokenSymbol = currencyInfo0.currency.symbol
 
-  // If Blockaid marks the token as having high fees, but we don't have data on token fees, show Blockaid's fees data
-  const isFeeRelatedWarning = getIsFeeRelatedWarning(tokenProtectionWarning)
-  const { buyFeePercent: currencyBuyFeePercent, sellFeePercent: currencySellFeePercent } = getCurrencyFeeOnTransfer(
-    currencyInfo0.currency,
-  )
   const { buyFeePercent, sellFeePercent } = getTokenProtectionFeeOnTransfer(currencyInfo0)
-  const blockaidFeesData = currencyInfo0.safetyInfo?.blockaidFees
-  const showBlockaidFeesData =
-    isFeeRelatedWarning &&
-    blockaidFeesData &&
-    ((blockaidFeesData.buyFeePercent &&
-      (feeOnTransferOverride?.buyFeePercent ?? currencyBuyFeePercent) === undefined) ||
-      (blockaidFeesData.sellFeePercent &&
-        (feeOnTransferOverride?.sellFeePercent ?? currencySellFeePercent) === undefined))
   const displayedBuyFeePercent = feeOnTransferOverride?.buyFeePercent ?? buyFeePercent
   const displayedSellFeePercent = feeOnTransferOverride?.sellFeePercent ?? sellFeePercent
+  const hasDisplayedFee = Boolean(displayedBuyFeePercent || displayedSellFeePercent)
 
-  const showBlockaidLogo =
-    (!isFeeRelatedWarning && severity !== WarningSeverity.Low && severity !== WarningSeverity.Blocked) ||
-    showBlockaidFeesData
+  // Fee data is sourced from Blockaid, so any displayed fee gets the attribution alongside the other scanned warnings
+  const showBlockaidLogo = severity !== WarningSeverity.Blocked && (hasDisplayedFee || severity !== WarningSeverity.Low)
 
   const titleText = useModalHeaderText({
     tokenSymbol0: tokenSymbol,
@@ -161,6 +148,7 @@ function TokenWarningModalContent({
       tokenAddress: currencyIdToAddress(currencyInfo0.currencyId),
       tokenName: currencyInfo0.currency.name,
       reportText,
+      reportMultichainAsset: Boolean(currencyInfo0.searchMultichainParent),
     })
 
     // report success for the given case
@@ -209,7 +197,7 @@ function TokenWarningModalContent({
                 display="inline"
                 textColor="$neutral1"
                 textVariant="buttonLabel3"
-                url={uniswapUrls.helpArticleUrls.tokenWarning}
+                url={UniswapHelpUrls.articles.tokenWarning}
               />
             </Text>
           }

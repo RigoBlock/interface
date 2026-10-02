@@ -1,8 +1,9 @@
-import { memo, useMemo } from 'react'
-import { Flex, Text, TextProps } from 'ui/src'
+import { Flex, Text, TextCompatProps } from '@universe/mycelium'
+import { memo, useContext, useMemo } from 'react'
 import { useFormattedTimeForActivity } from 'uniswap/src/components/activity/hooks/useFormattedTime'
 import { GroupHoverTransition } from 'uniswap/src/components/GroupHoverTransition'
 import { FORMAT_TIME_SHORT, useLocalizedDayjs } from 'uniswap/src/features/language/localizedDayjs'
+import { TableRowHoverContext } from '~/components/Table/TableRowHoverContext'
 
 const FORMAT_DATE_WITH_WEEKDAY = 'ddd MMM D, YYYY'
 const CELL_HEIGHT = 36
@@ -10,12 +11,13 @@ const CELL_HEIGHT = 36
 interface TimeCellProps {
   timestamp: number
   showFullDateOnHover?: boolean
-  textAlign?: TextProps['textAlign']
+  textAlign?: TextCompatProps['textAlign']
 }
 
 function TimeCellInner({ timestamp, showFullDateOnHover = false, textAlign = 'left' }: TimeCellProps) {
   const formattedTime = useFormattedTimeForActivity(timestamp)
   const localizedDayjs = useLocalizedDayjs()
+  const rowHovered = useContext(TableRowHoverContext)
 
   const { dateLine, timeLine } = useMemo(() => {
     const date = localizedDayjs(timestamp)
@@ -28,6 +30,7 @@ function TimeCellInner({ timestamp, showFullDateOnHover = false, textAlign = 'le
   return (
     <GroupHoverTransition
       showTransition={showFullDateOnHover}
+      isHovered={rowHovered}
       height={CELL_HEIGHT}
       defaultContent={
         <Flex
@@ -41,9 +44,16 @@ function TimeCellInner({ timestamp, showFullDateOnHover = false, textAlign = 'le
         </Flex>
       }
       hoverContent={
-        <Flex height={CELL_HEIGHT} justifyContent="center" alignItems="center">
+        <Flex
+          height={CELL_HEIGHT}
+          justifyContent="center"
+          alignItems={textAlign === 'right' ? 'flex-end' : 'flex-start'}
+        >
           <Text variant="body3" color="$neutral2" textAlign={textAlign} width="100%">
-            {dateLine} {timeLine}
+            {dateLine}
+          </Text>
+          <Text variant="body3" color="$neutral2" textAlign={textAlign} width="100%">
+            {timeLine}
           </Text>
         </Flex>
       }

@@ -1,15 +1,18 @@
+import { UniverseChainId } from '@universe/chains'
+import { isMobileWeb } from '@universe/environment'
+import { Flex, type FlexProps } from '@universe/mycelium'
 import React from 'react'
 import type { ImageSourcePropType } from 'react-native'
-import { Flex, FlexProps, Image, Loader, useSporeColors } from 'ui/src'
+import { Image, Loader, useSporeColors } from 'ui/src'
 import { ALL_NETWORKS_LOGO } from 'ui/src/assets'
 import { iconSizes, zIndexes } from 'ui/src/theme'
 import { getBadgeBorderRadius, getBadgeOuterSize } from 'uniswap/src/components/CurrencyLogo/badgeSizeUtils'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { isMobileWeb } from 'utilities/src/platform'
 
 type NetworkLogoProps = FlexProps & {
   chainId: UniverseChainId | null // null signifies this is the AllNetworks logo
+  // string only: forwarded to a raw <img> style and the legacy Image, which take CSS strings
+  transition?: string
   size?: number
   shape?: 'circle' | 'square'
   borderWidth?: number
@@ -64,7 +67,7 @@ function NetworkLogoInner({
   const imageSize = size + SUBPIXEL_COMPENSATION - borderWidth * 2 // this prevents the border from cutting off the logo
 
   return logo ? (
-    <Flex centered testID="network-logo" overflow="hidden" style={imageStyle} zIndex={zIndexes.mask}>
+    <Flex centered testID={`network-logo-${chainId}`} overflow="hidden" style={imageStyle} zIndex={zIndexes.mask}>
       <NetworkImage logo={logo} imageSize={imageSize} transition={transition} />
     </Flex>
   ) : null
@@ -77,7 +80,7 @@ function NetworkImage({
 }: {
   logo: ImageSourcePropType
   imageSize: number
-  transition?: FlexProps['transition']
+  transition?: string
 }): JSX.Element {
   // As of iOS 18.3 network logos are no longer displaying because react-native-web-lite
   // adds z-index: -1 to the image. This is a workaround to display the logos on mobile web.

@@ -1,22 +1,36 @@
 import { BigNumber } from '@ethersproject/bignumber'
 import { permit2Address } from '@uniswap/permit2-sdk'
 import { TradeType } from '@uniswap/sdk-core'
-import { USDC_MAINNET } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { TradingApi } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
+import { DAI, USDC_MAINNET } from 'uniswap/src/constants/tokens'
+import { ValueType } from 'uniswap/src/features/tokens/getCurrencyAmount'
+import {
+  addTransaction,
+  interfaceApplyTransactionHashToBatch,
+  interfaceConfirmBridgeDeposit,
+} from 'uniswap/src/features/transactions/slice'
 import {
   ApproveTransactionInfo,
+  BridgeTransactionInfo,
   InterfaceTransactionDetails,
+  TransactionOriginType,
   TransactionStatus,
   TransactionType,
 } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { useWallet } from 'uniswap/src/features/wallet/hooks/useWallet'
+import { currencyId } from 'uniswap/src/utils/currencyId'
 import { vi } from 'vitest'
 import { useAccount } from '~/hooks/useAccount'
+import { useTransactionAdderFromHash } from '~/state/transactions/adder'
 import {
   useHasPendingApproval,
   useHasPendingRevocation,
+  useMultichainTransactions,
+  usePendingLPTransactionsChangeListener,
   usePendingTransactions,
   useTransactionAdder,
+  useTransactionByHashOrBatchId,
   useTransactionCanceller,
   useTransactionRemover,
 } from '~/state/transactions/hooks'
@@ -88,6 +102,91 @@ describe('Transactions hooks', () => {
 
       const state = store.getState()
       expect(state.transactions[address][UniverseChainId.Mainnet]?.[transactionId]).toBeDefined()
+    })
+  })
+
+  describe('useTransactionAdderFromHash', () => {
+    it('adds a pending transaction from a bare hash', () => {
+      const { result, store } = renderHookWithProviders(() => useTransactionAdderFromHash())
+      act(() => {
+        result.current({ hash: transactionHash, chainId: UniverseChainId.Mainnet }, mockTransactionInfo)
+      })
+      const transaction = store.getState().transactions[address][UniverseChainId.Mainnet]?.[transactionId]
+      expect(transaction).toBeDefined()
+      expect(transaction.status).toBe(TransactionStatus.Pending)
+      expect(transaction.hash).toBe(transactionHash)
+      expect(transaction.typeInfo).toEqual(mockTransactionInfo)
+      // The request snapshot is reduced to the fields known at submission
+      expect((transaction as { options?: { request?: unknown } }).options?.request).toEqual({
+        from: address,
+        chainId: UniverseChainId.Mainnet,
+      })
+    })
+
+    it('does not add a transaction when the account is disconnected', () => {
+      mocked(useAccount).mockReturnValue({
+        chainId: undefined,
+        address: undefined,
+        status: 'disconnected',
+      } as unknown as ReturnType<typeof useAccount>)
+      const { result, store } = renderHookWithProviders(() => useTransactionAdderFromHash())
+      act(() => {
+        result.current({ hash: transactionHash, chainId: UniverseChainId.Mainnet }, mockTransactionInfo)
+      })
+      expect(store.getState().transactions[address]?.[UniverseChainId.Mainnet]?.[transactionId]).toBeUndefined()
+    })
+  })
+
+  describe('useTransactionByHashOrBatchId', () => {
+    const batchId = '0xe2171d07cbd863e0fd83f9b6e356027cbf1ba57edc4c1c00265fdf4b34ede2b8'
+    const onChainHash = '0x193acd50c25089f7cb69c383db1c2d4d3b4a53b1f5c9a3f7f00fce54f5e4b18a'
+
+    const batchTransaction: InterfaceTransactionDetails = {
+      id: batchId,
+      hash: batchId,
+      from: address,
+      chainId: UniverseChainId.Mainnet,
+      typeInfo: mockTransactionInfo,
+      routing: TradingApi.Routing.CLASSIC,
+      transactionOriginType: TransactionOriginType.Internal,
+      status: TransactionStatus.Pending,
+      addedTime: Date.now(),
+      batchInfo: { connectorId: 'io.metamask', batchId, chainId: UniverseChainId.Mainnet },
+      options: { request: { from: address, chainId: UniverseChainId.Mainnet } },
+    }
+
+    it('resolves a pending batch by its batch id key', () => {
+      const { result, store } = renderHookWithProviders(() => useTransactionByHashOrBatchId(batchId))
+      act(() => {
+        store.dispatch(addTransaction(batchTransaction))
+      })
+      expect(result.current?.id).toBe(batchId)
+    })
+
+    it('still resolves by batch id after confirmation rekeys the record to the on-chain hash', () => {
+      const { result, store } = renderHookWithProviders(() => useTransactionByHashOrBatchId(batchId))
+      act(() => {
+        store.dispatch(addTransaction(batchTransaction))
+        store.dispatch(
+          interfaceApplyTransactionHashToBatch({
+            batchId,
+            chainId: UniverseChainId.Mainnet,
+            hash: onChainHash,
+            address,
+          }),
+        )
+      })
+      expect(result.current?.id).toBe(onChainHash)
+      expect(result.current?.hash).toBe(onChainHash)
+    })
+
+    it('returns undefined when nothing matches', () => {
+      const { result, store } = renderHookWithProviders(() => useTransactionByHashOrBatchId(onChainHash))
+      act(() => {
+        store.dispatch(addTransaction(batchTransaction))
+      })
+      // hash: batchId record neither is keyed by nor references onChainHash
+      expect(result.current).toBeUndefined()
     })
   })
 
@@ -521,6 +620,102 @@ describe('Transactions hooks', () => {
       })
 
       expect(result.current).toHaveLength(0)
+    })
+  })
+
+  describe('usePendingLPTransactionsChangeListener', () => {
+    const pendingLPTransaction: InterfaceTransactionDetails = {
+      id: transactionId,
+      hash: transactionHash,
+      from: address,
+      chainId: UniverseChainId.Mainnet,
+      typeInfo: {
+        type: TransactionType.LiquidityIncrease,
+        currency0Id: currencyId(USDC_MAINNET),
+        currency1Id: currencyId(DAI),
+        currency0AmountRaw: '1000000',
+        currency1AmountRaw: '1000000000000000000',
+      },
+      routing: TradingApi.Routing.CLASSIC,
+      transactionOriginType: TransactionOriginType.Internal,
+      status: TransactionStatus.Pending,
+      addedTime: Date.now(),
+      options: { request: { from: address, chainId: UniverseChainId.Mainnet } },
+    }
+
+    it('does not fire on mount when there are no pending LP transactions', () => {
+      const callback = vi.fn()
+
+      renderHookWithProviders(() => usePendingLPTransactionsChangeListener(callback))
+
+      expect(callback).not.toHaveBeenCalled()
+    })
+
+    // Pairs with the mount case above: skipping the first render must not also swallow a real
+    // 0 -> 1 transition, which is what over-gating on `previousPendingCount === undefined` would do.
+    it('fires once when a pending LP transaction is added after mount', () => {
+      const callback = vi.fn()
+      const { store } = renderHookWithProviders(() => usePendingLPTransactionsChangeListener(callback))
+
+      expect(callback).not.toHaveBeenCalled()
+
+      act(() => {
+        store.dispatch(addTransaction(pendingLPTransaction))
+      })
+
+      expect(callback).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('useMultichainTransactions', () => {
+    const pendingBridgeTransaction: InterfaceTransactionDetails = {
+      id: transactionId,
+      hash: transactionHash,
+      from: address,
+      chainId: UniverseChainId.Mainnet,
+      typeInfo: {
+        type: TransactionType.Bridge,
+        inputCurrencyId: currencyId(USDC_MAINNET),
+        inputCurrencyAmountRaw: '1000000',
+        outputCurrencyId: currencyId(DAI),
+        outputCurrencyAmountRaw: '1000000000000000000',
+      },
+      routing: TradingApi.Routing.BRIDGE,
+      transactionOriginType: TransactionOriginType.Internal,
+      status: TransactionStatus.Pending,
+      addedTime: Date.now(),
+      options: { request: { from: address, chainId: UniverseChainId.Mainnet } },
+    }
+
+    // The bridge status poller reads pending deposit-confirmed bridge txs through this hook;
+    // if confirming the deposit (which also persists the deposit's networkFee) made the tx
+    // invisible here, the cross-chain leg would never be polled and the tx would stay pending forever.
+    it('still returns a bridge transaction after its deposit is confirmed with a network fee', () => {
+      const { result, store } = renderHookWithProviders(() => useMultichainTransactions())
+
+      act(() => {
+        store.dispatch(addTransaction(pendingBridgeTransaction))
+        store.dispatch(
+          interfaceConfirmBridgeDeposit({
+            chainId: UniverseChainId.Mainnet,
+            id: transactionId,
+            address,
+            networkFee: {
+              quantity: '0.000042',
+              tokenSymbol: 'ETH',
+              tokenAddress: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+              chainId: UniverseChainId.Mainnet,
+              valueType: ValueType.Exact,
+            },
+          }),
+        )
+      })
+
+      expect(result.current).toHaveLength(1)
+      const [tx, chainId] = result.current[0]!
+      expect(chainId).toBe(UniverseChainId.Mainnet)
+      expect(tx.status).toBe(TransactionStatus.Pending)
+      expect((tx.typeInfo as BridgeTransactionInfo).depositConfirmed).toBe(true)
     })
   })
 })

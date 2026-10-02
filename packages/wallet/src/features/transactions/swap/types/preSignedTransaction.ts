@@ -1,5 +1,5 @@
+import { UniverseChainId } from '@universe/chains'
 import { SignerMnemonicAccountMeta } from 'uniswap/src/features/accounts/types'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import {
   ValidatedSwapTxContext,
   ValidatedUniswapXSwapTxAndGasInfo,

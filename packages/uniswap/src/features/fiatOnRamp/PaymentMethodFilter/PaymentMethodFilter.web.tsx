@@ -1,4 +1,4 @@
-import { Flex, FlexProps } from 'ui/src'
+import { Flex, type FlexCompatProps } from '@universe/mycelium'
 import {
   PaymentMethodFilterProps,
   PaymentMethodItem,
@@ -15,7 +15,7 @@ export function PaymentMethodFilter({
   isOffRamp,
   quotes,
   ...rest
-}: PaymentMethodFilterProps & FlexProps): JSX.Element {
+}: PaymentMethodFilterProps & FlexCompatProps): JSX.Element {
   const enabledPaymentMethodFilters = useEnabledPaymentMethodFilters(quotes)
   const handleTogglePaymentMethod: (method: FORFilters) => void = useTogglePaymentMethod(
     paymentMethod,

@@ -1,14 +1,18 @@
-import { Flex, styled, Text, type TextProps, TouchableArea } from 'ui/src'
-import { CheckCircleFilled } from 'ui/src/components/icons/CheckCircleFilled'
+import { Flex, Text, type TextCompatProps as TextProps, TouchableArea } from '@universe/mycelium'
+import { CheckCircleFilled } from '@universe/mycelium/icons/CheckCircleFilled'
+import { styled, type StyledComponent } from '@universe/mycelium/styled'
 
-export const HookTileContainer = styled(TouchableArea, {
-  flex: 1,
-  p: '$spacing16',
-  gap: '$spacing8',
-  borderRadius: '$rounded12',
-  borderWidth: 1,
-  borderColor: '$surface3',
-})
+const HOOK_TILE_VARIANTS = {} as const
+
+// Empty variants table + explicit annotation: the inferred styled() type isn't
+// portable under declaration emit (TS2883).
+export const HookTileContainer: StyledComponent<typeof TouchableArea, typeof HOOK_TILE_VARIANTS> = styled(
+  TouchableArea,
+  {
+    variants: HOOK_TILE_VARIANTS,
+    base: 'flex-1 p-4 gap-2 rounded-12 border border-surface3',
+  },
+)
 
 export function HookTile({
   selected,
@@ -26,7 +30,7 @@ export function HookTile({
   onPress: () => void
 }) {
   return (
-    <HookTileContainer onPress={onPress} background={selected ? '$surface3' : '$surface1'}>
+    <HookTileContainer onPress={onPress} backgroundColor={selected ? '$surface3' : '$surface1'}>
       <Flex row gap="$spacing8" justifyContent="space-between" alignItems="center">
         <Text variant={titleVariant}>{title}</Text>
         {selected && <CheckCircleFilled size="$icon.16" />}

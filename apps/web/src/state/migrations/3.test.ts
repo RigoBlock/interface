@@ -1,6 +1,6 @@
 import { Token } from '@uniswap/sdk-core'
+import { UniverseChainId } from '@universe/chains'
 import { createMigrate } from 'redux-persist'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { createThrowingProxy } from 'utilities/src/test/utils'
 import { vi } from 'vitest'
 import { migration1 } from '~/state/migrations/1'

@@ -1,6 +1,6 @@
 import { Canvas, Circle, Group, Path } from '@shopify/react-native-skia'
+import { Flex } from '@universe/mycelium'
 import { memo } from 'react'
-import { Flex } from 'ui/src/components/layout'
 import { UniconProps } from 'ui/src/components/Unicon/types'
 import { IconPaths, Icons } from 'ui/src/components/Unicon/UniconSVGs'
 import { getUniconColors, getUniconsDeterministicHash } from 'ui/src/components/Unicon/utils'

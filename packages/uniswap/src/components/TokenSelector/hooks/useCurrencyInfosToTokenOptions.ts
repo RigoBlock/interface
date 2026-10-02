@@ -1,44 +1,7 @@
-import { ApolloError } from '@apollo/client'
-import { GqlResult } from '@universe/api'
 import { useMemo } from 'react'
 import { OnchainItemListOptionType, TokenOption } from 'uniswap/src/components/lists/items/types'
-import { BRIDGED_BASE_ADDRESSES } from 'uniswap/src/constants/addresses'
-import { normalizeCurrencyIdForMapLookup } from 'uniswap/src/data/cache'
-import { useTokenProjects } from 'uniswap/src/features/dataApi/tokenProjects/tokenProjects'
 import { CurrencyInfo, PortfolioBalance } from 'uniswap/src/features/dataApi/types'
-import { usePersistedError } from 'uniswap/src/features/dataApi/utils/usePersistedError'
-import { areAddressesEqual } from 'uniswap/src/utils/addresses'
-
-export function useCurrencies(currencyIds: string[]): GqlResult<CurrencyInfo[]> {
-  const { data: baseCurrencyInfos, loading, error, refetch } = useTokenProjects(currencyIds)
-  const persistedError = usePersistedError(loading, error instanceof ApolloError ? error : undefined)
-
-  // TokenProjects returns tokens on every network, so filter out native assets that have a
-  // bridged version on other networks
-  const filteredBaseCurrencyInfos = useMemo(() => {
-    return baseCurrencyInfos?.filter((currencyInfo) => {
-      if (currencyInfo.currency.isNative) {
-        return true
-      }
-
-      const { address, chainId } = currencyInfo.currency
-      const bridgedAsset = BRIDGED_BASE_ADDRESSES.find((bridgedAddress) =>
-        areAddressesEqual({
-          addressInput1: { address: bridgedAddress, chainId },
-          addressInput2: { address, chainId },
-        }),
-      )
-
-      if (!bridgedAsset) {
-        return true
-      }
-
-      return false
-    })
-  }, [baseCurrencyInfos])
-
-  return { data: filteredBaseCurrencyInfos, loading, error: persistedError, refetch }
-}
+import { normalizeCurrencyIdForMapLookup } from 'uniswap/src/utils/currencyId'
 
 export function currencyInfosToTokenOptions(currencyInfos?: Maybe<CurrencyInfo>[]): TokenOption[] | undefined {
   return currencyInfos
@@ -84,11 +47,28 @@ export function useCurrencyInfosToTokenOptions({
         })
       : currencyInfos
 
-    return sortedCurrencyInfos.map((currencyInfo) => {
-      const portfolioBalance = portfolioBalancesById?.[normalizeCurrencyIdForMapLookup(currencyInfo.currencyId)]
-      return portfolioBalance
-        ? { type: OnchainItemListOptionType.Token, ...portfolioBalance }
-        : createEmptyBalanceOption(currencyInfo)
-    })
+    return mergeCurrencyInfosWithBalances({ currencyInfos: sortedCurrencyInfos, portfolioBalancesById })
   }, [currencyInfos, portfolioBalancesById, sortAlphabetically])
+}
+
+export function mergeCurrencyInfosWithBalances({
+  currencyInfos,
+  portfolioBalancesById,
+}: {
+  currencyInfos: CurrencyInfo[]
+  portfolioBalancesById?: Record<string, PortfolioBalance>
+}): TokenOption[] {
+  return currencyInfos.map((currencyInfo) => {
+    const portfolioBalance = portfolioBalancesById?.[normalizeCurrencyIdForMapLookup(currencyInfo.currencyId)]
+    if (!portfolioBalance) {
+      return createEmptyBalanceOption(currencyInfo)
+    }
+    // The balance's currencyInfo wins, but only search results carry categoryIds, so keep those.
+    // Lookups always send the field (often empty), so only a non-empty list is worth carrying over.
+    const mergedCurrencyInfo =
+      currencyInfo.categoryIds?.length && !portfolioBalance.currencyInfo.categoryIds?.length
+        ? { ...portfolioBalance.currencyInfo, categoryIds: currencyInfo.categoryIds }
+        : portfolioBalance.currencyInfo
+    return { type: OnchainItemListOptionType.Token, ...portfolioBalance, currencyInfo: mergedCurrencyInfo }
+  })
 }

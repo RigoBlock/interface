@@ -1,12 +1,12 @@
-import { useCallback, useState } from 'react'
+import { Button, Flex, Text, iconSizes } from '@universe/mycelium'
+import { Person } from '@universe/mycelium/icons/Person'
+import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
+import { useWalletLabelField } from 'src/app/features/accounts/useWalletLabelField'
+import { WalletLabelInput } from 'src/app/features/accounts/WalletLabelInput'
 import { UnitagClaimRoutes } from 'src/app/navigation/constants'
 import { focusOrCreateUnitagTab } from 'src/app/navigation/utils'
-import { Button, Flex, Text } from 'ui/src'
-import { Person } from 'ui/src/components/icons'
-import { iconSizes } from 'ui/src/theme'
-import { TextInput } from 'uniswap/src/components/input/TextInput'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { AccountIcon } from 'uniswap/src/features/accounts/AccountIcon'
 import { DisplayNameType } from 'uniswap/src/features/accounts/types'
@@ -31,11 +31,18 @@ export function EditLabelModal({ isOpen, address, onClose }: EditLabelModalProps
 
   const displayName = useDisplayName(address)
   const defaultText = displayName?.type === DisplayNameType.Local ? displayName.name : ''
-
-  const [inputText, setInputText] = useState<string>(defaultText)
-  const [isfocused, setIsFocused] = useState(false)
+  const { value, setValue, error } = useWalletLabelField()
 
   const { canClaimUnitag } = useCanActiveAddressClaimUnitag(address)
+
+  // Seed from the stored name only on open; `defaultText` can change mid-edit and would clobber input.
+  const defaultTextRef = useRef(defaultText)
+  defaultTextRef.current = defaultText
+  useEffect(() => {
+    if (isOpen) {
+      setValue(defaultTextRef.current)
+    }
+  }, [isOpen, setValue])
 
   const onConfirm = useCallback(async () => {
     // oxlint-disable-next-line typescript/await-thenable -- biome-parity: oxlint is stricter here
@@ -43,11 +50,11 @@ export function EditLabelModal({ isOpen, address, onClose }: EditLabelModalProps
       editAccountActions.trigger({
         type: EditAccountAction.Rename,
         address,
-        newName: inputText,
+        newName: value,
       }),
     )
     onClose()
-  }, [address, dispatch, inputText, onClose])
+  }, [address, dispatch, onClose, value])
 
   const navigateToUnitagClaim = useCallback(async () => {
     await focusOrCreateUnitagTab(address, UnitagClaimRoutes.ClaimIntro)
@@ -80,19 +87,12 @@ export function EditLabelModal({ isOpen, address, onClose }: EditLabelModalProps
       <Flex centered fill borderRadius="$rounded16" gap="$spacing24" mt="$spacing16">
         <Flex centered gap="$spacing12" width="100%">
           <AccountIcon address={address} size={iconSizes.icon48} />
-          <Flex borderColor="$surface3" borderRadius="$rounded16" borderWidth="$spacing1" width="100%">
-            <TextInput
-              autoFocus
-              borderRadius="$rounded16"
-              placeholder={isfocused ? '' : t('account.wallet.edit.label.input.placeholder')}
-              textAlign="center"
-              value={inputText}
-              width="100%"
-              onBlur={() => setIsFocused(false)}
-              onChangeText={setInputText}
-              onFocus={() => setIsFocused(true)}
-            />
-          </Flex>
+          <WalletLabelInput
+            value={value}
+            error={error}
+            placeholder={t('account.wallet.edit.label.input.placeholder')}
+            onChangeText={setValue}
+          />
           <Text color="$neutral3" variant="body2">
             {shortenAddress({ address })}
           </Text>
@@ -101,7 +101,14 @@ export function EditLabelModal({ isOpen, address, onClose }: EditLabelModalProps
           <Button flexBasis={1} size="small" emphasis="secondary" onPress={onClose}>
             {t('common.button.cancel')}
           </Button>
-          <Button flexBasis={1} size="small" variant="branded" emphasis="secondary" onPress={onConfirm}>
+          <Button
+            flexBasis={1}
+            size="small"
+            variant="branded"
+            emphasis="secondary"
+            disabled={Boolean(error)}
+            onPress={onConfirm}
+          >
             {t('common.button.save')}
           </Button>
         </Flex>

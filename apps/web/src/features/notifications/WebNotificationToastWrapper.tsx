@@ -1,9 +1,9 @@
+import { Platform } from '@universe/chains'
 import { ChangeAssetVisibilityNotification } from 'uniswap/src/components/notifications/notifications/ChangeAssetVisibilityNotification'
 import { CopiedNotification } from 'uniswap/src/components/notifications/notifications/CopiedNotification'
 import { SuccessNotification } from 'uniswap/src/components/notifications/notifications/SuccessNotification'
 import { useSelectAddressNotifications } from 'uniswap/src/features/notifications/slice/hooks'
 import { AppNotification, AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { useActiveAddress } from '~/features/accounts/store/hooks'
 
 export function WebNotificationToastWrapper(): JSX.Element | null {

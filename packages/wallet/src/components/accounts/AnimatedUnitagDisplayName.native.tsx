@@ -1,8 +1,13 @@
 import { SharedEventName } from '@uniswap/analytics-events'
-import { BaseSyntheticEvent, memo, useCallback, useMemo, useState } from 'react'
+import { sanitizeAddressText } from '@universe/chains'
+import { isExtensionApp, isMobileApp } from '@universe/environment'
+import { AnimatedFlex, Flex, getTokenValue, Text, TouchableArea, useIsDarkMode } from '@universe/mycelium'
+import { withSporeCurve } from '@universe/tailwind/animations/reanimated'
+import { TestID } from '@universe/test'
+import { BaseSyntheticEvent, memo, useCallback, useEffect, useState } from 'react'
 import { LayoutChangeEvent } from 'react-native'
+import { useAnimatedStyle, useSharedValue } from 'react-native-reanimated'
 import { useDispatch } from 'react-redux'
-import { AnimatePresence, Flex, getTokenValue, Text, TouchableArea, useIsDarkMode } from 'ui/src'
 import { CopyAlt, Unitag } from 'ui/src/components/icons'
 import { DisplayNameType } from 'uniswap/src/features/accounts/types'
 import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
@@ -10,13 +15,10 @@ import { AppNotificationType, CopyNotificationType } from 'uniswap/src/features/
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { UNITAG_SUFFIX } from 'uniswap/src/features/unitags/constants'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { ExtensionScreens } from 'uniswap/src/types/screens/extension'
 import { MobileScreens } from 'uniswap/src/types/screens/mobile'
-import { sanitizeAddressText } from 'uniswap/src/utils/addresses'
 import { shortenAddress } from 'utilities/src/addresses'
 import { setClipboard } from 'utilities/src/clipboard/clipboard'
-import { isExtensionApp, isMobileApp } from 'utilities/src/platform'
 import { AnimatedUnitagDisplayNameProps } from 'wallet/src/components/accounts/AnimatedUnitagDisplayName'
 
 /**
@@ -70,70 +72,73 @@ function AnimatedUnitagDisplayNameInner({
    * tail of the name with the unitag suffix. Otherwise it slides extends the unitag suffix.
    **/
   const shouldAnimateSlide = nameTextWidth + unitagSuffixTextWidth + getTokenValue(unitagIconSize) < viewWidth
-  const slideConfig = useMemo(() => {
-    return shouldAnimateSlide
-      ? {
-          paddingRight: 0,
-          widthAdjust: 0,
-          unitagOffset: -unitagSuffixTextWidth,
-          unitagSlideX: showUnitagSuffix ? unitagSuffixTextWidth : 0,
-        }
-      : {
-          paddingRight: 0,
-          widthAdjust: showUnitagSuffix ? unitagSuffixTextWidth : 0,
-          unitagOffset: showUnitagSuffix ? 0 : -unitagSuffixTextWidth,
-          unitagSlideX: 0,
-        }
-  }, [shouldAnimateSlide, unitagSuffixTextWidth, showUnitagSuffix])
+
+  // Reanimated legs of the legacy 'semiBouncy' suffix slide and fade.
+  const { unitagOffset, unitagSlideX } = getUnitagSlideConfig({
+    shouldAnimateSlide,
+    unitagSuffixTextWidth,
+    showUnitagSuffix,
+  })
+  const slideStyle = useAnimatedStyle(
+    () => ({
+      marginLeft: withSporeCurve('semiBouncy', unitagOffset),
+      transform: [{ translateX: withSporeCurve('semiBouncy', unitagSlideX) }],
+    }),
+    [unitagOffset, unitagSlideX],
+  )
+  // Seeded so mount does not animate.
+  const suffixOpacity = useSharedValue(showUnitagSuffix ? 1 : 0)
+  useEffect(() => {
+    suffixOpacity.value = withSporeCurve('semiBouncy', showUnitagSuffix ? 1 : 0)
+  }, [showUnitagSuffix, suffixOpacity])
+  const suffixOpacityStyle = useAnimatedStyle(() => ({ opacity: suffixOpacity.value }))
+
+  const nameRow = (
+    <Flex row width={viewWidth} opacity={isLayoutReady ? 1 : 0}>
+      <Text
+        zIndex={2}
+        flexShrink={1}
+        backgroundColor="$background"
+        color="$neutral1"
+        numberOfLines={1}
+        variant="subheading1"
+        onLayout={onNameTextLayout}
+      >
+        {displayName.name}
+      </Text>
+
+      {isUnitag && (
+        <AnimatedFlex row zIndex={1} style={slideStyle}>
+          {/*
+            We need to calculate this width in order to animate the suffix in and out,
+            but we don't want the initial render to show the suffix nor use the space and push other elements to the right.
+            So we set it to `position: absolute` on first render and then switch it to `relative` once we have the width.
+            */}
+          <Flex position={isLayoutReady ? 'relative' : 'absolute'} onLayout={onUnitagSuffixTextLayout}>
+            <AnimatedFlex style={suffixOpacityStyle}>
+              <Text color="$neutral3" variant="subheading1">
+                {UNITAG_SUFFIX}
+              </Text>
+            </AnimatedFlex>
+          </Flex>
+          <Flex zIndex={2} alignSelf="center" backgroundColor="$background" pl="$spacing4" pt="$spacing1">
+            <Unitag size={unitagIconSize} />
+          </Flex>
+        </AnimatedFlex>
+      )}
+    </Flex>
+  )
 
   return (
-    <Flex flexGrow={1} cursor="pointer" onPress={isUnitag ? onPressUnitag : undefined} onLayout={onViewWidthLayout}>
-      <Flex
-        row
-        width={viewWidth}
-        opacity={isLayoutReady ? 1 : 0}
-        enterStyle={{ opacity: 0 }}
-        exitStyle={{ opacity: 0 }}
-      >
-        <Text
-          zIndex={2}
-          flexShrink={1}
-          backgroundColor="$background"
-          color="$neutral1"
-          numberOfLines={1}
-          variant="subheading1"
-          onLayout={onNameTextLayout}
-        >
-          {displayName.name}
-        </Text>
-
-        {isUnitag && (
-          <AnimatePresence>
-            <Flex row zIndex={1} animation="semiBouncy" ml={slideConfig.unitagOffset} x={slideConfig.unitagSlideX}>
-              {/*
-              We need to calculate this width in order to animate the suffix in and out,
-              but we don't want the initial render to show the suffix nor use the space and push other elements to the right.
-              So we set it to `position: absolute` on first render and then switch it to `relative` once we have the width.
-              */}
-              <Flex position={isLayoutReady ? 'relative' : 'absolute'} onLayout={onUnitagSuffixTextLayout}>
-                <Text animation="semiBouncy" color="$neutral3" opacity={showUnitagSuffix ? 1 : 0} variant="subheading1">
-                  {UNITAG_SUFFIX}
-                </Text>
-              </Flex>
-              <Flex
-                zIndex={2}
-                alignSelf="center"
-                backgroundColor="$background"
-                animation="semiBouncy"
-                pl="$spacing4"
-                pt="$spacing1"
-              >
-                <Unitag size={unitagIconSize} />
-              </Flex>
-            </Flex>
-          </AnimatePresence>
-        )}
-      </Flex>
+    <Flex flexGrow={1} onLayout={onViewWidthLayout}>
+      {isUnitag ? (
+        // Needs a gesture-handler host of its own, or the press is lost to the header's outer gesture.
+        <TouchableArea testID={TestID.AccountHeaderUnitagDisplayName} onPress={onPressUnitag}>
+          {nameRow}
+        </TouchableArea>
+      ) : (
+        nameRow
+      )}
 
       {address && (
         <TouchableArea testID={TestID.AccountHeaderCopyAddress} onPress={onPressCopyAddress}>
@@ -147,6 +152,30 @@ function AnimatedUnitagDisplayNameInner({
       )}
     </Flex>
   )
+}
+
+/**
+ * Geometry of the two reveal modes: a short name slides the suffix out (`unitagSlideX`); a long one
+ * pins `unitagSlideX` at 0 and moves `unitagOffset` (a margin) instead.
+ */
+export function getUnitagSlideConfig({
+  shouldAnimateSlide,
+  unitagSuffixTextWidth,
+  showUnitagSuffix,
+}: {
+  shouldAnimateSlide: boolean
+  unitagSuffixTextWidth: number
+  showUnitagSuffix: boolean
+}): { unitagOffset: number; unitagSlideX: number } {
+  return shouldAnimateSlide
+    ? {
+        unitagOffset: -unitagSuffixTextWidth,
+        unitagSlideX: showUnitagSuffix ? unitagSuffixTextWidth : 0,
+      }
+    : {
+        unitagOffset: showUnitagSuffix ? 0 : -unitagSuffixTextWidth,
+        unitagSlideX: 0,
+      }
 }
 
 /**

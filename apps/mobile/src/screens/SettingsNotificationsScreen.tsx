@@ -1,5 +1,13 @@
-import { FlashList, ListRenderItem } from '@shopify/flash-list'
-import React, { memo, useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  Flex,
+  Switch,
+  Text,
+  UniversalList,
+  iconSizes,
+  type UniversalListRenderItemInfo,
+  type UniversalListStyle,
+} from '@universe/mycelium'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ScreenWithHeader } from 'src/components/layout/screens/ScreenWithHeader'
 import { NotifSettingType } from 'src/features/notifications/constants'
@@ -7,18 +15,13 @@ import {
   useAddressNotificationToggle,
   useSettingNotificationToggle,
 } from 'src/features/notifications/hooks/useNotificationsToggle'
-import { Flex, Switch, Text } from 'ui/src'
-import { useDeviceDimensions } from 'ui/src/hooks/useDeviceDimensions'
-import { iconSizes, spacing } from 'ui/src/theme'
 import { AddressDisplay } from 'uniswap/src/components/accounts/AddressDisplay'
 import { AccountType } from 'uniswap/src/features/accounts/types'
 import { MobileEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { NotificationToggleLoggingType } from 'uniswap/src/features/telemetry/types'
-import { useAppInsets } from 'uniswap/src/hooks/useAppInsets'
+import { useBottomScreenGap } from 'uniswap/src/hooks/useBottomScreenGap'
 import { useAccountsList } from 'wallet/src/features/wallet/hooks'
-
-const ROW_ITEM_HEIGHT = 40
 
 enum NotificationItemType {
   Setting = 'setting',
@@ -33,6 +36,8 @@ type AccountItem = {
 
 type SettingItem = {
   type: NotificationItemType.Setting
+  /** Stable, translation-independent row id. */
+  id: 'updates' | 'activity'
   title: string
   description: string
   checked?: boolean
@@ -43,8 +48,7 @@ type NotificationItem = SettingItem | AccountItem
 
 function SettingsNotificationsScreenInner(): JSX.Element {
   const { t } = useTranslation()
-  const insets = useAppInsets()
-  const { fullWidth, fullHeight } = useDeviceDimensions()
+  const { bottomScreenTotalGap } = useBottomScreenGap()
   const accounts = useAccountsList()
 
   const onGeneralUpdatesToggle = useCallback(
@@ -61,6 +65,7 @@ function SettingsNotificationsScreenInner(): JSX.Element {
     const items: NotificationItem[] = [
       {
         type: NotificationItemType.Setting,
+        id: 'updates',
         title: t('settings.setting.notifications.row.updates.title'),
         description: t('settings.setting.notifications.row.updates.description'),
         checked: updatesNotifEnabled,
@@ -71,6 +76,7 @@ function SettingsNotificationsScreenInner(): JSX.Element {
     // Add a title item for the accounts section
     items.push({
       type: NotificationItemType.Setting,
+      id: 'activity',
       title: t('settings.setting.notifications.row.activity.title'),
       description: t('settings.setting.notifications.row.activity.description'),
     })
@@ -87,31 +93,20 @@ function SettingsNotificationsScreenInner(): JSX.Element {
     return items
   }, [t, updatesNotifEnabled, toggleUpdatesNotif, accounts])
 
-  const estimatedListSize = useMemo(() => {
-    return {
-      height: fullHeight,
-      width: fullWidth,
-    }
-  }, [fullHeight, fullWidth])
-
-  const contentContainerStyle = useMemo(() => {
-    return {
-      paddingBottom: insets.bottom - spacing.spacing16,
-      paddingTop: spacing.spacing12,
-      paddingHorizontal: spacing.spacing24,
-    }
-  }, [insets])
+  const contentContainerStyle = useMemo<UniversalListStyle>(
+    () => ({ className: 'pt-3 px-6', style: { paddingBottom: bottomScreenTotalGap } }),
+    [bottomScreenTotalGap],
+  )
 
   return (
     <ScreenWithHeader centerElement={<Text variant="body1">{t('settings.setting.notifications.title')}</Text>}>
-      <FlashList
-        data={data}
-        renderItem={renderItem}
-        estimatedItemSize={ROW_ITEM_HEIGHT}
-        showsVerticalScrollIndicator={false}
+      <UniversalList
         contentContainerStyle={contentContainerStyle}
-        estimatedListSize={estimatedListSize}
+        data={data}
+        getItemType={getItemType}
         keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        showsVerticalScrollIndicator={false}
       />
     </ScreenWithHeader>
   )
@@ -121,9 +116,15 @@ export const SettingsNotificationsScreen = memo(SettingsNotificationsScreenInner
 
 SettingsNotificationsScreen.displayName = 'SettingsNotificationsScreen'
 
-const keyExtractor = (_item: NotificationItem, index: number): string => 'notification' + index
+function keyExtractor(item: NotificationItem): string {
+  return item.type === NotificationItemType.Account ? `account-${item.address}` : `setting-${item.id}`
+}
 
-const renderItem: ListRenderItem<NotificationItem> = ({ item }) => {
+function getItemType(item: NotificationItem): string {
+  return item.type
+}
+
+const renderItem = ({ item }: UniversalListRenderItemInfo<NotificationItem>): JSX.Element | null => {
   switch (item.type) {
     case NotificationItemType.Setting:
       return (

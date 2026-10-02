@@ -1,15 +1,17 @@
 import { CurrencyAmount, TradeType } from '@uniswap/sdk-core'
+import { isMobileApp, isWebPlatform } from '@universe/environment'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Button, Flex, Separator, Text } from '@universe/mycelium'
+import { AlertTriangleFilled } from '@universe/mycelium/icons/AlertTriangleFilled'
 import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
-import { Button, Flex, Separator, Text, useIsShortMobileDevice } from 'ui/src'
-import { AlertTriangleFilled } from 'ui/src/components/icons'
+import { useIsShortMobileDevice } from 'ui/src'
 import { SwapTransactionDetails } from 'uniswap/src/components/activity/details/transactions/SwapTransactionDetails'
 import { isSwapTransactionInfo } from 'uniswap/src/components/activity/details/types'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { LearnMoreLink } from 'uniswap/src/components/text/LearnMoreLink'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { AssetType, TradeableAsset } from 'uniswap/src/entities/assets'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
@@ -26,7 +28,6 @@ import {
 import { TransactionState } from 'uniswap/src/features/transactions/types/transactionState'
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { currencyAddress } from 'uniswap/src/utils/currencyId'
-import { isMobileApp, isWebPlatform } from 'utilities/src/platform'
 import { ErrorBoundary } from 'wallet/src/components/ErrorBoundary/ErrorBoundary'
 import { useWalletNavigation } from 'wallet/src/contexts/WalletNavigationContext'
 import { useActiveSignerAccount } from 'wallet/src/features/wallet/hooks'
@@ -92,7 +93,7 @@ export function QueuedOrderModal(): JSX.Element | null {
             <LearnMoreLink
               textColor="$neutral1"
               textVariant="buttonLabel2"
-              url={uniswapUrls.helpArticleUrls.uniswapXFailure}
+              url={UniswapHelpUrls.articles.uniswapXFailure}
             />
           </Flex>
           <Separator />
@@ -100,7 +101,7 @@ export function QueuedOrderModal(): JSX.Element | null {
           <Flex gap="$spacing8" row={isWebPlatform}>
             <Flex row>
               <Button
-                isDisabled={!transactionState}
+                disabled={!transactionState}
                 variant="branded"
                 {...platformButtonStyling}
                 size={buttonSize}

@@ -1,10 +1,10 @@
+import { UniverseChainId } from '@universe/chains'
 import {
   createSwapTransactionState,
   parseSwapLinkMobileFormatOrThrow,
   parseSwapLinkWebFormatOrThrow,
 } from 'src/features/deepLinking/parseSwapLink'
 import { AssetType } from 'uniswap/src/entities/assets'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { CurrencyField } from 'uniswap/src/types/currency'
 
 describe('parseSwapLink', () => {

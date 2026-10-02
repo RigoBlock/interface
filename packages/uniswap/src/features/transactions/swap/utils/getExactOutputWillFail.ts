@@ -1,7 +1,7 @@
 import { Token } from '@uniswap/sdk-core'
+import { isSVMChain } from '@universe/chains'
 import { toSupportedChainId } from 'uniswap/src/features/chains/utils'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
-import { isSVMChain } from 'uniswap/src/features/platforms/utils/chains'
 import { CurrencyField } from 'uniswap/src/types/currency'
 
 function getHasTokenFee(currencyInfo: Maybe<CurrencyInfo>): {

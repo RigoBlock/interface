@@ -1,5 +1,5 @@
 import type { GasFeeResult } from '@universe/api'
-import type { UniverseChainId } from 'uniswap/src/features/chains/types'
+import type { UniverseChainId } from '@universe/chains'
 import { AcrossRoutingInfo } from 'uniswap/src/features/transactions/swap/components/RoutingInfo/AcrossRoutingInfo'
 import { PlanRoutingInfo } from 'uniswap/src/features/transactions/swap/components/RoutingInfo/ChainedRoutingInfo'
 import { RoutingHopInfo } from 'uniswap/src/features/transactions/swap/components/RoutingInfo/RoutingHopInfo'

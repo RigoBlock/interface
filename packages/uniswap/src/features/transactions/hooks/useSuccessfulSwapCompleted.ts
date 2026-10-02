@@ -1,7 +1,7 @@
+import { Platform } from '@universe/chains'
 import { useEffect, useMemo, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { useActiveAddress } from 'uniswap/src/features/accounts/store/hooks'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { selectTransactions } from 'uniswap/src/features/transactions/selectors'
 import {
   TransactionDetails,

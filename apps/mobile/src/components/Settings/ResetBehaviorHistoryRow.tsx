@@ -1,5 +1,6 @@
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
 import { useDispatch } from 'react-redux'
-import { Flex, IconProps, Text, TouchableArea } from 'ui/src'
+import { type IconProps } from 'ui/src'
 import { UniswapLogo } from 'ui/src/components/icons'
 import { resetUniswapBehaviorHistory } from 'uniswap/src/features/behaviorHistory/slice'
 import { resetWalletBehaviorHistory } from 'wallet/src/features/behaviorHistory/slice'

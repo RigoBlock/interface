@@ -1,13 +1,14 @@
+import { isExtensionApp } from '@universe/environment'
+import { Flex, Text } from '@universe/mycelium'
+import { LabeledCheckboxCompat as LabeledCheckbox } from '@universe/mycelium/checkbox-compat'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, LabeledCheckbox, Text } from 'ui/src'
 import { DialogButtons } from 'uniswap/src/components/dialog/DialogButtons'
 import { DialogContent } from 'uniswap/src/components/dialog/DialogContent'
 import type { DialogProps } from 'uniswap/src/components/dialog/DialogProps'
 import { GetHelpHeader } from 'uniswap/src/components/dialog/GetHelpHeader'
 import { BehaviorType, useDialogVisibility } from 'uniswap/src/components/dialog/hooks/useDialogVisibility'
 import { Modal } from 'uniswap/src/components/modals/Modal'
-import { isExtensionApp } from 'utilities/src/platform'
 import { useHasValueBecomeTruthy } from 'utilities/src/react/useHasValueBecomeTruthy'
 
 export function Dialog({

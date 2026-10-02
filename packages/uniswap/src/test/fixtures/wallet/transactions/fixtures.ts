@@ -1,10 +1,10 @@
 import { TransactionRequest } from '@ethersproject/providers'
 import { TradeType } from '@uniswap/sdk-core'
 import { TradingApi } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
 import { DAI, USDC_MAINNET } from 'uniswap/src/constants/tokens'
 import { AssetType } from 'uniswap/src/entities/assets'
 import { ALL_EVM_CHAIN_IDS } from 'uniswap/src/features/chains/chainInfo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { finalizeTransaction } from 'uniswap/src/features/transactions/slice'
 import {
   ApproveTransactionInfo,

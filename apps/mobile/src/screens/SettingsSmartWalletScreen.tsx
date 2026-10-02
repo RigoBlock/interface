@@ -1,6 +1,6 @@
+import { Flex, Text } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
 import { ScreenWithHeader } from 'src/components/layout/screens/ScreenWithHeader'
-import { Flex, Text } from 'ui/src'
 import {
   SmartWalletHelpIcon,
   SmartWalletSettingsContent,

@@ -1,3 +1,4 @@
+import { areEvmAddressesEqual } from '@universe/chains'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 
 /**
@@ -15,5 +16,5 @@ export function isMaybeBridge(toAddress?: string, chainId?: number): boolean {
     return false
   }
   const chainInfo = getChainInfo(chainId)
-  return chainInfo.acrossProtocolAddress?.toLowerCase() === toAddress.toLowerCase()
+  return areEvmAddressesEqual(chainInfo.acrossProtocolAddress, toAddress)
 }

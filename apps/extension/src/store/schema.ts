@@ -282,6 +282,20 @@ export const v29Schema = { ...v27Schema, visibility: { ...v27Schema.visibility, 
 
 export const v30Schema = { ...v29Schema }
 
-const v31Schema = { ...v30Schema }
+export const v31Schema = { ...v30Schema }
 
-export const getSchema = (): typeof v31Schema => v31Schema
+export const v32Schema = {
+  ...v31Schema,
+  userSettings: {
+    ...v31Schema.userSettings,
+    enableCustomGasFeeEntry: false,
+  },
+}
+
+export const v33Schema = { ...v32Schema }
+
+export const v34Schema = { ...v33Schema }
+
+export const v35Schema = { ...v34Schema }
+
+export const getSchema = (): typeof v35Schema => v35Schema

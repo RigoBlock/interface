@@ -10,8 +10,10 @@ describe(handleTransactionLink, () => {
     return expectSaga(handleTransactionLink)
       .provide([
         [put(closeAllModals()), undefined],
-        [call(navigate, MobileScreens.Activity), undefined],
+        [call(navigate, MobileScreens.MainTabs, { screen: MobileScreens.Activity }), undefined],
       ])
+      .put(closeAllModals())
+      .call(navigate, MobileScreens.MainTabs, { screen: MobileScreens.Activity })
       .silentRun()
   })
 })

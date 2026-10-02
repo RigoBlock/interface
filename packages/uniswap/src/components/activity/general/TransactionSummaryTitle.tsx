@@ -1,5 +1,5 @@
+import { Flex, Text, UniversalImage, useIsDarkMode } from '@universe/mycelium'
 import React from 'react'
-import { Flex, Text, UniversalImage, useIsDarkMode } from 'ui/src'
 import { TransactionDetails, TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 
 interface TransactionSummaryTitleProps {

@@ -1,6 +1,10 @@
+import { isWebPlatform } from '@universe/environment'
+import { AnimatedFlex } from '@universe/mycelium'
+import { cn } from '@universe/mycelium/cn'
+import { withSporeCurve } from '@universe/tailwind/animations/reanimated'
 import type { PropsWithChildren, ReactNode } from 'react'
-import { memo } from 'react'
-import { Flex } from 'ui/src'
+import { memo, useEffect } from 'react'
+import { useAnimatedStyle, useSharedValue } from 'react-native-reanimated'
 import { ProgressIndicator } from 'uniswap/src/components/ConfirmSwapModal/ProgressIndicator'
 import { TransactionModalInnerContainer } from 'uniswap/src/features/transactions/components/TransactionModal/TransactionModal'
 import {
@@ -8,6 +12,7 @@ import {
   useTransactionModalContext,
 } from 'uniswap/src/features/transactions/components/TransactionModal/TransactionModalContext'
 import { usePrepareSwapTransactionEffect } from 'uniswap/src/features/transactions/swap/review/hooks/usePrepareSwapTransactionEffect'
+import { useResetEarnFlowOnQuoteError } from 'uniswap/src/features/transactions/swap/review/hooks/useResetEarnFlowOnQuoteError'
 import { useSwapOnPrevious } from 'uniswap/src/features/transactions/swap/review/hooks/useSwapOnPrevious'
 import { SwapReviewCallbacksContextProvider } from 'uniswap/src/features/transactions/swap/review/stores/swapReviewCallbacksStore/SwapReviewCallbacksStoreContextProvider'
 import { useSwapReviewCallbacksStore } from 'uniswap/src/features/transactions/swap/review/stores/swapReviewCallbacksStore/useSwapReviewCallbacksStore'
@@ -19,6 +24,8 @@ import {
 } from 'uniswap/src/features/transactions/swap/review/stores/swapReviewStore/useSwapReviewStore'
 import { SwapReviewTransactionStoreContextProvider } from 'uniswap/src/features/transactions/swap/review/stores/swapReviewTransactionStore/SwapReviewTransactionStoreContextProvider'
 import {
+  useEarnQuoteRefreshField,
+  useHasSettledEarnQuoteRefreshError,
   useIsSwapMissingParams,
   useIsSwapReviewLoading,
   useSwapReviewError,
@@ -36,8 +43,9 @@ import { useSwapDependenciesStore } from 'uniswap/src/features/transactions/swap
 import { useSwapTxStore } from 'uniswap/src/features/transactions/swap/stores/swapTxStore/useSwapTxStore'
 import { isChained } from 'uniswap/src/features/transactions/swap/utils/routing'
 import { TransactionWarning } from 'uniswap/src/features/transactions/TransactionDetails/TransactionWarning'
+import { DDRumManualTiming } from 'utilities/src/logger/datadog/datadogEvents'
 import { logger } from 'utilities/src/logger/logger'
-import { isWebPlatform } from 'utilities/src/platform'
+import { usePerformanceLogger } from 'utilities/src/logger/usePerformanceLogger'
 
 interface SwapReviewScreenProps {
   hideContent: boolean
@@ -81,6 +89,9 @@ export function SwapReviewScreenProviders({
 }
 
 export function SwapReviewScreen(): JSX.Element | null {
+  usePerformanceLogger(DDRumManualTiming.SwapReviewScreenRender, [])
+  useResetEarnFlowOnQuoteError()
+
   const { acceptedDerivedSwapInfo, isWrap, newTradeRequiresAcceptance } = useSwapReviewTransactionStore((s) => ({
     acceptedDerivedSwapInfo: s.acceptedDerivedSwapInfo,
     isWrap: s.isWrap,
@@ -101,10 +112,28 @@ export function SwapReviewScreen(): JSX.Element | null {
   const { onPrev } = useSwapOnPrevious()
 
   const isLoading = useIsSwapReviewLoading()
+  const earnQuoteRefreshField = useEarnQuoteRefreshField()
+  const hasSettledEarnQuoteRefreshError = useHasSettledEarnQuoteRefreshError()
   const isSwapMissingParams = useIsSwapMissingParams()
   const error = useSwapReviewError()
 
   usePrepareSwapTransactionEffect()
+
+  const targetOpacity = hideContent ? 0 : 1
+  const opacity = useSharedValue(targetOpacity)
+  useEffect(() => {
+    opacity.value = withSporeCurve('quick', targetOpacity)
+  }, [targetOpacity, opacity])
+  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }), [opacity])
+
+  const opacityProps = isWebPlatform
+    ? {
+        className: cn(
+          'transition-opacity duration-200 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]',
+          hideContent ? 'opacity-0' : 'opacity-100',
+        ),
+      }
+    : { style: animatedStyle }
 
   if (isLoading) {
     return <SwapReviewLoadingView />
@@ -138,15 +167,11 @@ export function SwapReviewScreen(): JSX.Element | null {
       <SwapReviewContentWrapper>
         <SwapReviewWarningModal />
         {/* We hide the content via `hideContent` to allow the bottom sheet to animate properly while still rendering the components to allow the sheet to calculate its height. */}
-        <Flex
-          animation="quick"
-          opacity={hideContent ? 0 : 1}
-          gap="$spacing16"
-          pt={isWebPlatform ? '$spacing8' : undefined}
-        >
+        <AnimatedFlex gap="$spacing16" pt={isWebPlatform ? '$spacing8' : undefined} {...opacityProps}>
           {acceptedDerivedSwapInfo && (
             <TransactionAmountsReview
               acceptedDerivedSwapInfo={acceptedDerivedSwapInfo}
+              quoteRefreshField={earnQuoteRefreshField}
               newTradeRequiresAcceptance={newTradeRequiresAcceptance}
               onClose={onPrev}
             />
@@ -159,11 +184,14 @@ export function SwapReviewScreen(): JSX.Element | null {
           ) : isWrap ? (
             <SwapReviewWrapTransactionDetails />
           ) : (
-            <SwapReviewSwapDetails />
+            <SwapReviewSwapDetails
+              isQuoteRefreshLoading={earnQuoteRefreshField !== undefined}
+              hasQuoteRefreshError={hasSettledEarnQuoteRefreshError}
+            />
           )}
-        </Flex>
+        </AnimatedFlex>
       </SwapReviewContentWrapper>
-      <SwapReviewFooter />
+      {!hideContent && <SwapReviewFooter />}
     </>
   )
 }

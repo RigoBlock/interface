@@ -1,23 +1,18 @@
 // Ordering is intentional and must be preserved: sideEffects followed by functionality.
 import '~/sideEffects'
-import { getDeviceId } from '@amplitude/analytics-browser'
-import { ApolloProvider } from '@apollo/client'
 import { datadogRum } from '@datadog/browser-rum'
 import { PrivyProvider } from '@privy-io/react-auth'
 import { ApiInit, getEntryGatewayUrl, provideSessionService } from '@universe/api'
+import { ComplianceClientProvider } from '@universe/compliance'
+import { isDevEnv, isE2eTestEnv, isTestEnv, localDevDatadogEnabled } from '@universe/environment'
 import type { StatsigUser } from '@universe/gating'
-import {
-  getIsHashcashSolverEnabled,
-  getIsSessionServiceEnabled,
-  getIsSessionsPerformanceTrackingEnabled,
-  getIsSessionUpgradeAutoEnabled,
-  getIsTurnstileSolverEnabled,
-  useIsSessionServiceEnabled,
-} from '@universe/gating'
+import { getIsHashcashSolverEnabled, getIsTurnstileSolverEnabled } from '@universe/gating'
+import { PortalProvider } from '@universe/mycelium/portal'
 import {
   type ChallengeSolver,
   ChallengeType,
   createChallengeSolverService,
+  createCrossOriginWorker,
   createHashcashMockSolver,
   createHashcashSolver,
   createHashcashWorkerChannel,
@@ -26,49 +21,50 @@ import {
   createTurnstileMockSolver,
   createTurnstileSolver,
 } from '@universe/sessions'
+// Must stay a plain `?worker&url` import statement — Vite's worker detection is
+// syntactic (vitejs/vite#13680).
+// oxlint-disable-next-line import/default, no-restricted-imports -- Vite ?worker&url virtual module; linter can't resolve the default export
+import hashcashWorkerUrl from '@universe/sessions/src/challenge-solvers/hashcash/worker/hashcash.worker.ts?worker&url'
 import { NuqsAdapter } from 'nuqs/adapters/react-router/v7'
 import type { PropsWithChildren, ReactNode } from 'react'
-import { StrictMode, useEffect, useMemo } from 'react'
+import { lazy, StrictMode, Suspense, useEffect, useMemo } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Helmet, HelmetProvider } from 'react-helmet-async/lib/index'
 import { I18nextProvider } from 'react-i18next'
 import { configureReanimatedLogger } from 'react-native-reanimated'
 import { Provider } from 'react-redux'
 import { BrowserRouter, HashRouter, useLocation } from 'react-router'
-import { PortalProvider } from 'ui/src'
 import { ReactRouterUrlProvider } from 'uniswap/src/contexts/UrlContext'
-import { initializePortfolioQueryOverrides } from 'uniswap/src/data/rest/portfolioBalanceOverrides'
+import { initializePortfolioQueryOverrides } from 'uniswap/src/data/apiClients/dataApiService/balances/portfolioBalanceOverrides'
 import { StatsigProviderWrapper } from 'uniswap/src/features/gating/StatsigProviderWrapper'
 import { LocalizationContextProvider } from 'uniswap/src/features/language/LocalizationContext'
-import { TokenPriceProvider } from 'uniswap/src/features/prices/TokenPriceContext'
 import i18n from 'uniswap/src/i18n'
 import { initializeDatadog } from 'uniswap/src/utils/datadog'
-import { localDevDatadogEnabled } from 'utilities/src/environment/constants'
-import { isDevEnv, isTestEnv } from 'utilities/src/environment/env'
 import { getLogger } from 'utilities/src/logger/logger'
+import { useEvent } from 'utilities/src/react/hooks'
 // oxlint-disable-next-line no-restricted-imports -- custom useAccount hook requires statsig
 import { useAccount } from 'wagmi'
-import { AssetActivityProvider } from '~/appGraphql/data/apollo/AssetActivityProvider'
-import { apolloClient } from '~/appGraphql/data/apollo/client'
-import { TokenBalancesProvider } from '~/appGraphql/data/apollo/TokenBalancesProvider'
+import { App } from '~/App'
+import { WebUniswapProvider } from '~/app/WebUniswapContext'
 import { QueryClientPersistProvider } from '~/components/PersistQueryClient'
 import { createWeb3Provider, WalletCapabilitiesEffects } from '~/components/Web3Provider/createWeb3Provider'
-import { wagmiConfig } from '~/components/Web3Provider/wagmiConfig'
-import { WebUniswapProvider } from '~/components/Web3Provider/WebUniswapContext'
+import { getConfig, getPrivyConfig } from '~/config'
+import { wagmiConfig } from '~/connection/wagmiConfig'
 import { AccountsStoreDevTool } from '~/features/accounts/store/devtools'
 import { WebAccountsStoreProvider } from '~/features/accounts/store/provider'
+import { TransactionWatcherProvider } from '~/features/transactions/TransactionWatcherProvider'
 import { ConnectWalletMutationProvider } from '~/features/wallet/connection/hooks/useConnectWalletMutation'
 import { ExternalWalletProvider } from '~/features/wallet/providers/ExternalWalletProvider'
+import { useAmplitudeDeviceId } from '~/hooks/useAmplitudeDeviceId'
 import { useDeferredComponent } from '~/hooks/useDeferredComponent'
+import { isPrivyConfigured } from '~/hooks/useMaybePrivy'
 import { LanguageProvider } from '~/i18n/LanguageProvider'
 import { BlockNumberProvider } from '~/lib/hooks/useBlockNumber'
 import { WebNotificationServiceManager } from '~/notification-service/WebNotificationService'
-import App from '~/pages/App'
 import { onHashcashSolveCompleted, onTurnstileSolveCompleted, sessionInitAnalytics } from '~/sessions/analytics'
 import store from '~/state'
 import { LivePricesProvider } from '~/state/livePrices/LivePricesProvider'
-import { ThemedGlobalStyle, ThemeProvider } from '~/theme'
-import { TamaguiProvider } from '~/theme/tamaguiProvider'
+import { ColorSchemeProvider } from '~/theme/colorSchemeProvider'
 import { isBrowserRouterEnabled } from '~/utils/env'
 import { unregister as unregisterServiceWorker } from '~/utils/serviceWorker'
 import { getCanonicalUrl } from '~/utils/urlRoutes'
@@ -87,32 +83,32 @@ initializePortfolioQueryOverrides({ store })
 
 const loadListsUpdater = () => import('~/state/lists/updater')
 const loadApplicationUpdater = () => import('~/state/application/updater')
-const loadActivityStateUpdater = () =>
-  import('~/state/activity/updater').then((m) => ({ default: m.ActivityStateUpdater }))
-const loadLogsUpdater = () => import('~/state/logs/updater')
+const loadActivityStateUpdater = () => import('~/state/activity/updater')
 const loadFiatOnRampTransactionsUpdater = () => import('~/state/fiatOnRampTransactions/updater')
-const loadWebAccountsStoreUpdater = () =>
-  import('~/features/accounts/store/updater').then((m) => ({ default: m.WebAccountsStoreUpdater }))
+const loadWebAccountsStoreUpdater = () => import('~/features/accounts/store/updater')
 
 const provideSessionInitService = () => {
-  // Create performance tracker with feature flag control
   // Platform-specific: uses web's performance.now() API
   const performanceTracker = createPerformanceTracker({
-    getIsPerformanceTrackingEnabled: getIsSessionsPerformanceTrackingEnabled,
     getNow: () => performance.now(),
   })
 
-  // Build solvers map based on feature flags
+  // Turnstile runs on web only; hashcash runs on all platforms.
   const solvers = new Map<ChallengeType, ChallengeSolver>()
 
   if (getIsTurnstileSolverEnabled()) {
     solvers.set(
       ChallengeType.TURNSTILE,
-      createTurnstileSolver({ performanceTracker, getLogger, onSolveCompleted: onTurnstileSolveCompleted }),
+      createTurnstileSolver({
+        performanceTracker,
+        getLogger,
+        onSolveCompleted: onTurnstileSolveCompleted,
+      }),
     )
   } else {
     solvers.set(ChallengeType.TURNSTILE, createTurnstileMockSolver())
   }
+
   if (getIsHashcashSolverEnabled()) {
     solvers.set(
       ChallengeType.HASHCASH,
@@ -120,12 +116,7 @@ const provideSessionInitService = () => {
         performanceTracker,
         getWorkerChannel: () =>
           createHashcashWorkerChannel({
-            getWorker: () => {
-              return new Worker(
-                new URL('@universe/sessions/src/challenge-solvers/hashcash/worker/hashcash.worker.ts', import.meta.url),
-                { type: 'module' },
-              )
-            },
+            getWorker: () => createCrossOriginWorker(hashcashWorkerUrl),
           }),
         onSolveCompleted: onHashcashSolveCompleted,
         getLogger,
@@ -140,14 +131,13 @@ const provideSessionInitService = () => {
     getSessionService: () =>
       provideSessionService({
         getBaseUrl: getEntryGatewayUrl,
-        getIsSessionServiceEnabled,
+        getIsSessionServiceEnabled: () => !isE2eTestEnv(),
         getLogger,
       }),
     challengeSolverService: createChallengeSolverService({
       solvers,
       getLogger,
     }),
-    getIsSessionUpgradeAutoEnabled,
     getLogger,
     analytics: sessionInitAnalytics,
   })
@@ -155,28 +145,25 @@ const provideSessionInitService = () => {
 
 function Updaters() {
   const location = useLocation()
-  const isSessionServiceEnabled = useIsSessionServiceEnabled()
 
   const ListsUpdater = useDeferredComponent(loadListsUpdater)
   const ApplicationUpdater = useDeferredComponent(loadApplicationUpdater)
   const ActivityStateUpdater = useDeferredComponent(loadActivityStateUpdater)
-  const LogsUpdater = useDeferredComponent(loadLogsUpdater)
   const FiatOnRampTransactionsUpdater = useDeferredComponent(loadFiatOnRampTransactionsUpdater)
   const WebAccountsStoreUpdater = useDeferredComponent(loadWebAccountsStoreUpdater)
 
   return (
     <>
       <Helmet>
-        <link rel="canonical" href={getCanonicalUrl(location.pathname)} />
+        <link rel="canonical" href={getCanonicalUrl(location.pathname, location.search)} />
       </Helmet>
       {ListsUpdater && <ListsUpdater />}
       {ApplicationUpdater && <ApplicationUpdater />}
       {ActivityStateUpdater && <ActivityStateUpdater />}
-      {LogsUpdater && <LogsUpdater />}
       {FiatOnRampTransactionsUpdater && <FiatOnRampTransactionsUpdater />}
       {WebAccountsStoreUpdater && <WebAccountsStoreUpdater />}
       <AccountsStoreDevTool />
-      <ApiInit getSessionInitService={provideSessionInitService} isSessionServiceEnabled={isSessionServiceEnabled} />
+      <ApiInit getSessionInitService={provideSessionInitService} />
     </>
   )
 }
@@ -184,27 +171,21 @@ function Updaters() {
 // Production Web3Provider – always reconnects on mount and runs capability effects.
 const Web3Provider = createWeb3Provider({ wagmiConfig })
 
-function GraphqlProviders({ children }: { children: React.ReactNode }) {
-  return (
-    <ApolloProvider client={apolloClient}>
-      <AssetActivityProvider>
-        <TokenBalancesProvider>{children}</TokenBalancesProvider>
-      </AssetActivityProvider>
-    </ApolloProvider>
-  )
-}
 function StatsigProvider({ children }: PropsWithChildren) {
   const account = useAccount()
+  const { deviceId, isDeviceIdPending, didTimeOut } = useAmplitudeDeviceId()
 
+  // `useClientAsyncInit` captures the user once at client construction — later changes to
+  // deviceId/address never reach Statsig. The deps here only matter for pre-init renders.
   const statsigUser: StatsigUser = useMemo(
     () => ({
-      userID: getDeviceId(),
+      userID: deviceId,
       customIDs: { address: account.address ?? '' },
       custom: {
-        appVersion: process.env.REACT_APP_VERSION_TAG ?? 'unknown',
+        appVersion: getConfig().appVersion || 'unknown',
       },
     }),
-    [account.address],
+    [deviceId, account.address],
   )
 
   useEffect(() => {
@@ -217,11 +198,34 @@ function StatsigProvider({ children }: PropsWithChildren) {
     })
   }, [account])
 
-  const onStatsigInit = () => {
+  // Stable identity: `StatsigProviderWrapper` lists `onInit` in its effect deps, so a fresh
+  // function every render re-runs the effect — and re-initializes Datadog — on every re-render.
+  const onStatsigInit = useEvent(() => {
     // oxlint-disable-next-line typescript/no-unnecessary-condition
     if (!isDevEnv() || localDevDatadogEnabled) {
-      initializeDatadog('web').catch(() => undefined)
+      initializeDatadog({ appName: 'web', buildType: getConfig().webBuildType })
+        .then(() => {
+          // `logger` drops warnings emitted before `initializeDatadog` enables Datadog, and
+          // this callback is the only place it runs — so the device-id timeout has to be
+          // reported here rather than where it happens. If Datadog init ever moves ahead of
+          // Statsig, this warning has to move with it: nothing breaks the build or a test
+          // when it stops being reached.
+          if (didTimeOut) {
+            getLogger().warn(
+              'index.tsx',
+              'StatsigProvider',
+              'Timed out waiting for Amplitude device id; Statsig initialized without a userID',
+            )
+          }
+        })
+        .catch(() => undefined)
     }
+  })
+
+  // Don't initialize Statsig until the device id is available (bounded) — the SDK keeps the
+  // first user it sees, so an undefined userID would persist for the whole session
+  if (isDeviceIdPending) {
+    return null
   }
 
   return (
@@ -231,18 +235,21 @@ function StatsigProvider({ children }: PropsWithChildren) {
   )
 }
 
-const PRIVY_APP_ID = process.env.PRIVY_APP_ID
-
 function MaybePrivyProvider({ children }: { children: ReactNode }) {
-  if (!PRIVY_APP_ID) {
+  if (!isPrivyConfigured()) {
     return <>{children}</>
   }
+  const { appId, clientId } = getPrivyConfig(false)
   return (
-    <PrivyProvider appId={PRIVY_APP_ID} config={{ loginMethods: ['email', 'google', 'apple'] }}>
+    <PrivyProvider appId={appId} clientId={clientId} config={{ loginMethods: ['email', 'google', 'apple'] }}>
       {children}
     </PrivyProvider>
   )
 }
+
+// Gated by `__DEV__` (Vite build-time constant) so Rollup DCE's the `import('agentation')`
+// call in production builds and no chunk is emitted.
+const AgentationLazy = __DEV__ ? lazy(() => import('agentation').then((m) => ({ default: m.Agentation }))) : null
 
 const container = document.getElementById('root') as HTMLElement
 
@@ -255,49 +262,51 @@ const RootApp = (): JSX.Element => {
         <ReactRouterUrlProvider>
           <Provider store={store}>
             <QueryClientPersistProvider>
-              <NuqsAdapter>
-                <Router>
-                  <MaybePrivyProvider>
-                    <I18nextProvider i18n={i18n}>
-                      <LanguageProvider>
-                        <Web3Provider>
-                          <StatsigProvider>
-                            <WalletCapabilitiesEffects />
-                            <ExternalWalletProvider>
-                              <ConnectWalletMutationProvider>
-                                <WebAccountsStoreProvider>
-                                  <WebUniswapProvider>
-                                    <TokenPriceProvider>
-                                      <GraphqlProviders>
+              <ComplianceClientProvider>
+                <NuqsAdapter>
+                  <Router>
+                    <MaybePrivyProvider>
+                      <I18nextProvider i18n={i18n}>
+                        <LanguageProvider>
+                          <Web3Provider>
+                            <StatsigProvider>
+                              <WalletCapabilitiesEffects />
+                              <ExternalWalletProvider>
+                                <ConnectWalletMutationProvider>
+                                  <WebAccountsStoreProvider>
+                                    <WebUniswapProvider>
+                                      <TransactionWatcherProvider>
                                         <LivePricesProvider>
                                           <LocalizationContextProvider>
                                             <BlockNumberProvider>
                                               <Updaters />
-                                              <ThemeProvider>
-                                                <TamaguiProvider>
-                                                  <PortalProvider>
-                                                    <WebNotificationServiceManager />
-                                                    <ThemedGlobalStyle />
-                                                    <App />
-                                                  </PortalProvider>
-                                                </TamaguiProvider>
-                                              </ThemeProvider>
+                                              <ColorSchemeProvider>
+                                                <PortalProvider>
+                                                  <WebNotificationServiceManager />
+                                                  <App />
+                                                  {AgentationLazy && isDevEnv() && (
+                                                    <Suspense fallback={null}>
+                                                      <AgentationLazy />
+                                                    </Suspense>
+                                                  )}
+                                                </PortalProvider>
+                                              </ColorSchemeProvider>
                                             </BlockNumberProvider>
                                           </LocalizationContextProvider>
                                         </LivePricesProvider>
-                                      </GraphqlProviders>
-                                    </TokenPriceProvider>
-                                  </WebUniswapProvider>
-                                </WebAccountsStoreProvider>
-                              </ConnectWalletMutationProvider>
-                            </ExternalWalletProvider>
-                          </StatsigProvider>
-                        </Web3Provider>
-                      </LanguageProvider>
-                    </I18nextProvider>
-                  </MaybePrivyProvider>
-                </Router>
-              </NuqsAdapter>
+                                      </TransactionWatcherProvider>
+                                    </WebUniswapProvider>
+                                  </WebAccountsStoreProvider>
+                                </ConnectWalletMutationProvider>
+                              </ExternalWalletProvider>
+                            </StatsigProvider>
+                          </Web3Provider>
+                        </LanguageProvider>
+                      </I18nextProvider>
+                    </MaybePrivyProvider>
+                  </Router>
+                </NuqsAdapter>
+              </ComplianceClientProvider>
             </QueryClientPersistProvider>
           </Provider>
         </ReactRouterUrlProvider>

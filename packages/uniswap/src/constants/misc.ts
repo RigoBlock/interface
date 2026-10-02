@@ -12,3 +12,9 @@ export enum PollingInterval {
 export const BIPS_BASE = 10_000
 
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+
+/** Delay before closing a menu/popover after a copy-address action, so the "Copied" feedback is visible first. */
+export const COPY_CLOSE_DELAY = 500
+
+/** Duration of the web modal's enter/exit animation; consumers that wait for the modal to settle key off this. */
+export const WEB_MODAL_ANIMATION_MS = 200

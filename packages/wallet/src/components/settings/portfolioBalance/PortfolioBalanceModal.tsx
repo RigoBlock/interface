@@ -1,9 +1,9 @@
+import { isExtensionApp } from '@universe/environment'
+import { Flex, Text } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text } from 'ui/src'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { PortfolioBalanceSettingsContent } from 'uniswap/src/features/settings/balances/PortfolioBalanceSettingsContent'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { isExtensionApp } from 'utilities/src/platform'
 
 type PortfolioBalanceModalProps = {
   isOpen: boolean
@@ -18,7 +18,6 @@ export function PortfolioBalanceModal({ isOpen, onClose }: PortfolioBalanceModal
   return (
     <Modal isModalOpen={isOpen} name={ModalName.PortfolioBalanceModal} onClose={onClose}>
       <Flex
-        animation="fast"
         gap="$spacing16"
         pb={isExtensionApp ? undefined : '$spacing24'}
         py={isExtensionApp ? '$spacing16' : undefined}

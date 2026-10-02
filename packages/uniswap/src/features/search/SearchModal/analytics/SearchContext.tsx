@@ -1,5 +1,5 @@
+import { UniverseChainId } from '@universe/chains'
 import { OnchainItemSectionName } from 'uniswap/src/components/lists/OnchainItemList/types'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { SearchTab } from 'uniswap/src/features/search/SearchModal/types'
 
 export type SearchFilterContext = {

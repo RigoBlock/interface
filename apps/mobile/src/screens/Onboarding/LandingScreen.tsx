@@ -1,30 +1,32 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { ReactNavigationPerformanceView } from '@shopify/react-native-performance-navigation'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-import React, { useCallback, useEffect } from 'react'
+import { Button, Flex, Text, TouchableArea } from '@universe/mycelium'
+import { TestID } from '@universe/test'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated'
 import { useDispatch } from 'react-redux'
-import { navigate } from 'src/app/navigation/rootNavigation'
 import { OnboardingStackParamList } from 'src/app/navigation/types'
 import { Screen } from 'src/components/layout/Screen'
 import { useHideSplashScreen } from 'src/features/splashScreen/useHideSplashScreen'
+import {
+  resolveUnitagEligibility,
+  UNITAG_ELIGIBILITY_TIMEOUT_MS,
+} from 'src/screens/Onboarding/resolveUnitagEligibility'
 import { TermsOfService } from 'src/screens/Onboarding/TermsOfService'
-import { Button, Flex, Text, TouchableArea } from 'ui/src'
 import { AnimatedFlex } from 'ui/src/components/layout/AnimatedFlex'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { setIsTestnetModeEnabled } from 'uniswap/src/features/settings/slice'
-import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
+import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { ImportType, OnboardingEntryPoint } from 'uniswap/src/types/onboarding'
 import { OnboardingScreens, UnitagScreens } from 'uniswap/src/types/screens/mobile'
-import { isDevEnv } from 'utilities/src/environment/env'
 import { logger } from 'utilities/src/logger/logger'
 import { ONE_SECOND_MS } from 'utilities/src/time/time'
 import { LANDING_ANIMATION_DURATION, LandingBackground } from 'wallet/src/components/landing/LandingBackground'
 import { useOnboardingContext } from 'wallet/src/features/onboarding/OnboardingContext'
-import { useCanAddressClaimUnitag } from 'wallet/src/features/unitags/hooks/useCanAddressClaimUnitag'
+import { useResolveCanAddressClaimUnitag } from 'wallet/src/features/unitags/hooks/useCanAddressClaimUnitag'
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, OnboardingScreens.Landing>
 
@@ -49,32 +51,104 @@ export function LandingScreen({ navigation }: Props): JSX.Element {
     }
   }, [dispatch, isTestnetModeEnabled])
 
-  const { canClaimUnitag } = useCanAddressClaimUnitag()
+  const resolveCanClaimUnitag = useResolveCanAddressClaimUnitag()
   const { getOnboardingAccount, generateOnboardingAccount } = useOnboardingContext()
+  const [isResolvingCreateWallet, setIsResolvingCreateWallet] = useState(false)
+  const pendingAccountGeneration = useRef<Promise<void> | null>(null)
+
+  // A blur releases the CTA mid-generation, so a retry can overlap the first run. Each call
+  // stores a fresh mnemonic in the keychain; share the in-flight promise so none are orphaned.
+  const generateOnboardingAccountOnce = useCallback(async (): Promise<void> => {
+    pendingAccountGeneration.current ??= generateOnboardingAccount().finally(() => {
+      pendingAccountGeneration.current = null
+    })
+
+    await pendingAccountGeneration.current
+  }, [generateOnboardingAccount])
 
   const onPressCreateWallet = useCallback(async (): Promise<void> => {
-    if (canClaimUnitag) {
-      navigation.navigate(UnitagScreens.ClaimUnitag, {
-        entryPoint: OnboardingScreens.Landing,
-      })
-    } else {
+    setIsResolvingCreateWallet(true)
+    const eligibilityAbortController = new AbortController()
+
+    // Watch for blur, not `isFocused()`: Create -> Import -> back re-focuses this screen while the
+    // resolve is still pending, so a focus check afterwards would navigate with no tap.
+    let navigatedAway = false
+    const unsubscribeFromBlur = navigation.addListener('blur', () => {
+      navigatedAway = true
+      eligibilityAbortController.abort()
+      // Landing stays mounted behind Import; release the CTA now rather than spinning until `finally`.
+      setIsResolvingCreateWallet(false)
+    })
+    const hasNavigatedAway = (): boolean => navigatedAway
+
+    try {
+      // On a fresh install eligibility may still be in flight; reading it as `false` before the
+      // answer arrives is the CONS-2926 bug.
+      const eligibilityResolution = await resolveUnitagEligibility(() =>
+        resolveCanClaimUnitag(eligibilityAbortController.signal),
+      )
+
+      if (hasNavigatedAway()) {
+        return
+      }
+
+      // A timeout is an unknown result, not ineligibility — release the CTA and let the user retry.
+      if (eligibilityResolution.status === 'timeout') {
+        // Cancel the still-running query so the next tap starts fresh instead of rejoining it.
+        eligibilityAbortController.abort()
+        logger.warn(
+          'LandingScreen.tsx',
+          'onPressCreateWallet',
+          `Unitag eligibility unresolved after ${UNITAG_ELIGIBILITY_TIMEOUT_MS}ms`,
+        )
+        return
+      }
+
+      if (eligibilityResolution.status === 'error') {
+        logger.error(eligibilityResolution.error, {
+          tags: { file: 'LandingScreen.tsx', function: 'onPressCreateWallet' },
+        })
+        return
+      }
+
+      const { canClaim: canClaimUnitag } = eligibilityResolution
+
+      if (canClaimUnitag) {
+        navigation.navigate(UnitagScreens.ClaimUnitag, {
+          entryPoint: OnboardingScreens.Landing,
+        })
+        return
+      }
+
       const onboardingAccount = getOnboardingAccount()
       if (!onboardingAccount) {
         try {
-          await generateOnboardingAccount()
+          await generateOnboardingAccountOnce()
         } catch (e) {
           logger.error(e, {
             tags: { file: 'LandingScreen.tsx', function: 'onPressCreateWallet' },
           })
+          return
         }
+      }
+
+      // Account generation is a second await window, so re-check before navigating.
+      if (hasNavigatedAway()) {
+        return
       }
 
       navigation.navigate(OnboardingScreens.Notifications, {
         importType: ImportType.CreateNew,
         entryPoint: OnboardingEntryPoint.FreshInstallOrReplace,
       })
+    } finally {
+      unsubscribeFromBlur()
+      // The blur already released the CTA, and a later tap may own it by now.
+      if (!hasNavigatedAway()) {
+        setIsResolvingCreateWallet(false)
+      }
     }
-  }, [canClaimUnitag, generateOnboardingAccount, getOnboardingAccount, navigation])
+  }, [resolveCanClaimUnitag, generateOnboardingAccountOnce, getOnboardingAccount, navigation])
 
   const onPressImportWallet = (): void => {
     navigation.navigate(OnboardingScreens.ImportMethod, {
@@ -101,6 +175,7 @@ export function LandingScreen({ navigation }: Props): JSX.Element {
                     variant="branded"
                     flexShrink={1}
                     hitSlop={16}
+                    loading={isResolvingCreateWallet}
                     shadowColor="$accent1"
                     shadowOpacity={0.4}
                     shadowRadius="$spacing8"
@@ -119,11 +194,6 @@ export function LandingScreen({ navigation }: Props): JSX.Element {
                   alignItems="center"
                   hitSlop={16}
                   testID={TestID.ImportAccount}
-                  onLongPress={async (): Promise<void> => {
-                    if (isDevEnv()) {
-                      navigate(ModalName.Experiments)
-                    }
-                  }}
                   onPress={onPressImportWallet}
                 >
                   <Text

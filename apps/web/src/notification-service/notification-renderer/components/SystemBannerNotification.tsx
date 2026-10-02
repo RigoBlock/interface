@@ -1,27 +1,32 @@
 import type { InAppNotification } from '@universe/api'
+import { clickableStyle, Flex, type FlexCompatProps, iconSizes, Text, zIndexes } from '@universe/mycelium'
+import type { GeneratedIcon } from '@universe/mycelium/icons'
+import { X } from '@universe/mycelium/icons/X'
+import { useShadowPropsShort, useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { type NotificationClickTarget } from '@universe/notifications'
 import { memo, useEffect, useMemo } from 'react'
-import { Flex, styled, Text, useSporeColors } from 'ui/src'
-import type { GeneratedIcon } from 'ui/src/components/factories/createIcon'
 import { Globe } from 'ui/src/components/icons/Globe'
-import { X } from 'ui/src/components/icons/X'
-import { iconSizes, zIndexes } from 'ui/src/theme'
-import { useShadowPropsShort } from 'ui/src/theme/shadows'
 import { getCustomIconComponent } from 'uniswap/src/components/notifications/iconUtils'
 import { ExternalLink } from '~/theme/components/Links'
-import { ClickableTamaguiStyle } from '~/theme/components/styles'
 
 // Close button container - Flex handles onPress→onClick on web, unlike raw SVG icons
-const CloseButtonContainer = styled(Flex, {
-  ...ClickableTamaguiStyle,
-  centered: true,
-  p: '$spacing4',
-  right: 6,
-  top: 8,
-  borderRadius: '$roundedFull',
-  backgroundColor: '$surface5',
-  position: 'absolute',
-})
+function CloseButtonContainer({ children, ...props }: FlexCompatProps): JSX.Element {
+  return (
+    <Flex
+      {...clickableStyle}
+      centered
+      p="$spacing4"
+      right={6}
+      top={8}
+      borderRadius="$roundedFull"
+      backgroundColor="$surface5"
+      position="absolute"
+      {...props}
+    >
+      {children}
+    </Flex>
+  )
+}
 
 /**
  * Gets the icon component for a notification based on its iconLink.
@@ -52,7 +57,6 @@ interface SystemBannerNotificationProps {
  * - Outage banners
  * - Limited data warnings
  *
- * Styling matches the existing OutageBanner design with Tamagui.
  */
 export const SystemBannerNotification = memo(function SystemBannerNotification({
   notification,
@@ -156,7 +160,7 @@ export const SystemBannerNotification = memo(function SystemBannerNotification({
         </Flex>
 
         {/* Close button */}
-        <CloseButtonContainer data-testid="system-banner-close" onPress={handleDismiss}>
+        <CloseButtonContainer testID="system-banner-close" onPress={handleDismiss}>
           <X size={iconSizes.icon16} color="$neutral2" />
         </CloseButtonContainer>
       </Flex>

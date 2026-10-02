@@ -1,42 +1,64 @@
 import { Currency } from '@uniswap/sdk-core'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useTranslation } from 'react-i18next'
+import { areAddressesEqual, type UniverseChainId } from '@universe/chains'
+import { Flex } from '@universe/mycelium'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
+import { useCallback, useMemo, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
-import { Flex } from 'ui/src'
 import { getNativeAddress } from 'uniswap/src/constants/addresses'
+import { UniswapContext, useUniswapContext } from 'uniswap/src/contexts/UniswapContext'
 import { useUrlContext } from 'uniswap/src/contexts/UrlContext'
 import { isUniverseChainId, toGraphQLChain } from 'uniswap/src/features/chains/utils'
-import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
-import { TokenWarningCard } from 'uniswap/src/features/tokens/warnings/TokenWarningCard'
-import TokenWarningModal from 'uniswap/src/features/tokens/warnings/TokenWarningModal'
-import { areAddressesEqual } from 'uniswap/src/utils/addresses'
-import { areCurrenciesEqual, currencyId } from 'uniswap/src/utils/currencyId'
-import { useEvent } from 'utilities/src/react/hooks'
-import { getTokenDetailsURL } from '~/appGraphql/data/util'
-import { POPUP_MEDIUM_DISMISS_MS } from '~/components/Popups/constants'
-import { popupRegistry } from '~/components/Popups/registry'
-import { PopupType } from '~/components/Popups/types'
+import { getChainGasToken } from 'uniswap/src/features/gas/hooks/useChainGasToken'
+import { areCurrenciesEqual, currencyAddress } from 'uniswap/src/utils/currencyId'
+import { VerifyIdentityModal } from '~/components/PermissionedPool/VerifyIdentityModal'
 import { NATIVE_CHAIN_ID } from '~/constants/tokens'
+import { getTokenDetailsURL } from '~/data/util'
+import type { CurrencyState } from '~/features/Swap/state/types'
 import { useCurrency } from '~/hooks/Tokens'
 import { Swap } from '~/pages/Swap'
+import { useTDPSelectedMultichainChain } from '~/pages/TokenDetails/context/useTDPSelectedMultichainChain'
 import { useTDPStore } from '~/pages/TokenDetails/context/useTDPStore'
+import { useMultichainTokenEntries } from '~/pages/TokenDetails/hooks/useMultichainTokenEntries'
+import { useTDPPermissionedState } from '~/pages/TokenDetails/hooks/useTDPPermissionedState'
 import { useTDPSwapCurrency } from '~/pages/TokenDetails/hooks/useTDPSwapCurrency'
 import { useUserPreservedCurrencies } from '~/pages/TokenDetails/hooks/useUserPreservedCurrencies'
-import { CurrencyState } from '~/state/swap/types'
 import { getInitialLogoUrl } from '~/utils/getInitialLogoURL'
 
-export function TDPSwapComponent() {
-  const { t } = useTranslation()
-  const { address, currency, currencyChainId, tokenColor } = useTDPStore((s) => ({
+// The token warning card is owned by TokenDetailsContent, which renders it here on desktop and in
+// the left panel below xl — this widget stays mounted-but-hidden there, so a card of its own would
+// be a second live mount duplicating the warning's Blockaid fee-comparison analytics.
+export function TDPSwapComponent({ warningCard }: { warningCard?: ReactNode }) {
+  const { address, currency, currencyChainId, tokenColor, multiChainMap } = useTDPStore((s) => ({
     address: s.address,
     currency: s.currency!,
     currencyChainId: s.currencyChainId,
     tokenColor: s.tokenColor,
+    multiChainMap: s.multiChainMap,
   }))
   const navigate = useNavigate()
   const swapCurrency = useTDPSwapCurrency()
+  const multichainEntries = useMultichainTokenEntries(multiChainMap)
+  const { setSelectedMultichainChainId } = useTDPSelectedMultichainChain()
 
-  const currencyInfo = useCurrencyInfo(currencyId(currency))
+  // Widget mounts-but-hidden at ≤xl, so chain-filter churn fires a ghost toast.
+  // Silence onSwapChainsChanged only when hidden; passthrough when visible (iPad landscape, desktop).
+  const media = useMedia()
+  const parentUniswapContext = useUniswapContext()
+  const uniswapContextOverride = useMemo(
+    () => (media.xl ? { ...parentUniswapContext, onSwapChainsChanged: () => {} } : parentUniswapContext),
+    [parentUniswapContext, media.xl],
+  )
+
+  const tokenAddress = currency.isNative ? undefined : currency.address
+  const tokenChainId = currency.chainId
+  const {
+    isBlocked: isPermissionedBlocked,
+    kycUrl: permissionedRegistrationUrl,
+    issuer: permissionedIssuer,
+  } = useTDPPermissionedState({
+    tokenAddress,
+    chainId: tokenChainId,
+  })
 
   const { inputCurrency, outputCurrency } = useSwapInitialCurrencies(swapCurrency)
 
@@ -64,107 +86,101 @@ export function TDPSwapComponent() {
     markInteracted,
   } = useUserPreservedCurrencies(inputCurrency, computedOutputCurrency)
 
-  const [prevTokens, setPrevTokens] = useState<CurrencyState>({
-    inputCurrency: initialInputCurrency,
-    outputCurrency: initialOutputCurrency,
-  })
+  // Chain of the given currency if it is a deployment of the page token, else undefined.
+  const getPageTokenDeploymentChainId = useCallback(
+    (candidate: Currency | undefined): UniverseChainId | undefined => {
+      if (!candidate || !isUniverseChainId(candidate.chainId)) {
+        return undefined
+      }
 
-  // Keep prevTokens in sync when auto-fill currencies change (e.g., network filter change).
-  // Without this, handleCurrencyChange compares against stale old-chain tokens and navigates unexpectedly.
-  useEffect(() => {
-    setPrevTokens({ inputCurrency: initialInputCurrency, outputCurrency: initialOutputCurrency })
-  }, [initialInputCurrency, initialOutputCurrency])
+      const isPageToken =
+        candidate.chainId === currencyChainId &&
+        areAddressesEqual({
+          addressInput1: { address: getCurrencyURLAddress(candidate), chainId: candidate.chainId },
+          addressInput2: { address, chainId: currencyChainId },
+        })
+      if (isPageToken) {
+        return candidate.chainId
+      }
+
+      const candidateAddress = candidate.isNative ? getNativeAddress(candidate.chainId) : candidate.address
+      return multichainEntries.find(
+        (entry) =>
+          entry.chainId === candidate.chainId &&
+          areAddressesEqual({
+            addressInput1: { address: entry.address, chainId: entry.chainId },
+            addressInput2: { address: candidateAddress, chainId: candidate.chainId },
+          }),
+      )?.chainId
+    },
+    [address, currencyChainId, multichainEntries],
+  )
 
   const handleCurrencyChange = useCallback(
-    (tokens: CurrencyState, isBridgePair?: boolean) => {
-      const inputCurrencyURLAddress = getCurrencyURLAddress(tokens.inputCurrency)
-      const outputCurrencyURLAddress = getCurrencyURLAddress(tokens.outputCurrency)
+    (tokens: CurrencyState, selectedCurrency?: Currency) => {
+      const inputDeploymentChainId = getPageTokenDeploymentChainId(tokens.inputCurrency)
+      const outputDeploymentChainId = getPageTokenDeploymentChainId(tokens.outputCurrency)
 
-      const inputEquivalent =
-        tokens.inputCurrency &&
-        areAddressesEqual({
-          addressInput1: { address: inputCurrencyURLAddress, chainId: tokens.inputCurrency.chainId },
-          addressInput2: { address, chainId: currencyChainId },
-        }) &&
-        tokens.inputCurrency.chainId === currencyChainId
-      const outputEquivalent =
-        tokens.outputCurrency &&
-        areAddressesEqual({
-          addressInput1: { address: outputCurrencyURLAddress, chainId: tokens.outputCurrency.chainId },
-          addressInput2: { address, chainId: currencyChainId },
-        }) &&
-        tokens.outputCurrency.chainId === currencyChainId
-
-      if (inputEquivalent || outputEquivalent || isBridgePair) {
-        setPrevTokens(tokens)
+      // Page token still in the pair on the widget's current chain — nothing to sync.
+      if (inputDeploymentChainId === swapCurrency.chainId || outputDeploymentChainId === swapCurrency.chainId) {
         return
       }
 
-      // If the user replaced the default token, we will hit this path.
-      // In this case, we want to navigate to the token that replaced it,
-      // which is the token that was not in the previous state.
-      const newDefaultToken = includesToken(prevTokens, tokens.inputCurrency)
-        ? tokens.outputCurrency
-        : tokens.inputCurrency
-
-      setPrevTokens(tokens)
-
-      if (!newDefaultToken) {
+      // Page token moved to another of its deployments — follow it with the network filter instead of
+      // navigating (shallow URL replace, same as the header network selector).
+      const deploymentChainId = inputDeploymentChainId ?? outputDeploymentChainId
+      if (deploymentChainId !== undefined) {
+        setSelectedMultichainChainId(deploymentChainId)
         return
       }
 
+      // Page token left the pair entirely — the selection had no route to it, so the widget dropped
+      // it (Swap clears the opposite token here). The TDP parallel: go to the new token's page.
+      if (!selectedCurrency || !isUniverseChainId(selectedCurrency.chainId)) {
+        return
+      }
       const preloadedLogoSrc = getInitialLogoUrl({
-        address: newDefaultToken.wrapped.address,
-        chainId: newDefaultToken.chainId,
+        address: selectedCurrency.wrapped.address,
+        chainId: selectedCurrency.chainId,
       })
       const url = getTokenDetailsURL({
-        // The function falls back to "NATIVE" if the address is null
-        address: newDefaultToken.isNative ? null : newDefaultToken.address,
-        chain: toGraphQLChain(isUniverseChainId(newDefaultToken.chainId) ? newDefaultToken.chainId : currencyChainId),
-        inputAddress: inputCurrencyURLAddress,
-        outputAddress: outputCurrencyURLAddress,
+        address: selectedCurrency.isNative ? null : selectedCurrency.address,
+        chain: toGraphQLChain(selectedCurrency.chainId),
+        inputAddress: getCurrencyURLAddress(tokens.inputCurrency),
+        outputAddress: getCurrencyURLAddress(tokens.outputCurrency),
       })
       navigate(url, { state: { preloadedLogoSrc } })
     },
-    [address, currencyChainId, navigate, prevTokens],
+    [getPageTokenDeploymentChainId, swapCurrency.chainId, setSelectedMultichainChainId, navigate],
   )
-
-  const [showWarningModal, setShowWarningModal] = useState(false)
-  const closeWarningModal = useCallback(() => setShowWarningModal(false), [])
-
-  const onTokenWarningReportSuccess = useEvent(() => {
-    popupRegistry.addPopup(
-      { type: PopupType.Success, message: t('common.reported') },
-      'report-token-warning-success',
-      POPUP_MEDIUM_DISMISS_MS,
-    )
-  })
 
   return (
     <Flex gap="$gap12">
       {/* TODO(SWAP-2334): Update interaction detection after swap flow refactor */}
       {/* oxlint-disable-next-line react/forbid-elements -- raw div needed for onPointerDownCapture */}
       <div onPointerDownCapture={markInteracted}>
-        <Swap
-          syncTabToUrl={false}
-          initialInputChainId={swapCurrency.chainId}
-          initialInputCurrency={initialInputCurrency}
-          initialOutputCurrency={initialOutputCurrency}
-          onCurrencyChange={handleCurrencyChange}
-          tokenColor={tokenColor}
-          tdpCurrency={swapCurrency}
-        />
+        <UniswapContext.Provider value={uniswapContextOverride}>
+          <Swap
+            syncTabToUrl={false}
+            hideChart={true}
+            initialInputChainId={swapCurrency.chainId}
+            initialInputCurrency={initialInputCurrency}
+            initialOutputCurrency={initialOutputCurrency}
+            onCurrencyChange={handleCurrencyChange}
+            tokenColor={tokenColor}
+            tdpCurrency={swapCurrency}
+          />
+        </UniswapContext.Provider>
       </div>
-      <TokenWarningCard currencyInfo={currencyInfo} onPress={() => setShowWarningModal(true)} />
-      {currencyInfo && (
-        // Intentionally duplicative with the TokenWarningModal in the swap component; this one only displays when user clicks "i" Info button on the TokenWarningCard
-        <TokenWarningModal
-          currencyInfo0={currencyInfo}
-          isInfoOnlyWarning
-          isVisible={showWarningModal}
-          closeModalOnly={closeWarningModal}
-          onReportSuccess={onTokenWarningReportSuccess}
-          onAcknowledge={closeWarningModal}
+      {warningCard}
+      {isPermissionedBlocked && permissionedRegistrationUrl && (
+        <VerifyIdentityModal
+          tokenSymbol={currency.symbol ?? ''}
+          registrationUrl={permissionedRegistrationUrl}
+          // Pass the raw issuer (no `?? ''` fallback): an empty issuer must reach the modal's
+          // missing-config guard so it renders the "verification temporarily unavailable" copy
+          // instead of interpolating a blank provider name (matches the LP/swap guard).
+          issuer={permissionedIssuer}
         />
       )}
     </Flex>
@@ -182,27 +198,21 @@ function getCurrencyURLAddress(currency?: Currency): string {
   return NATIVE_CHAIN_ID
 }
 
-// Defaults the input currency to the swap currency's native currency or undefined if the swap currency is already the chain's native currency
+// Defaults to the chain's gas token, or undefined if the page token is itself the gas token.
 // Note: Query string input currency takes precedence if it's set
 function useSwapInitialCurrencies(swapCurrency: Currency) {
   const { useParsedQueryString } = useUrlContext()
   const parsedQs = useParsedQueryString()
+  const gasToken = getChainGasToken(swapCurrency.chainId)
+  const defaultCurrencyAddress = areCurrenciesEqual(gasToken, swapCurrency) ? undefined : currencyAddress(gasToken)
 
   const inputTokenAddress = useMemo(() => {
-    return typeof parsedQs.inputCurrency === 'string'
-      ? parsedQs.inputCurrency
-      : swapCurrency.isNative
-        ? undefined
-        : getNativeAddress(swapCurrency.chainId)
-  }, [swapCurrency.chainId, swapCurrency.isNative, parsedQs.inputCurrency])
+    return typeof parsedQs.inputCurrency === 'string' ? parsedQs.inputCurrency : defaultCurrencyAddress
+  }, [defaultCurrencyAddress, parsedQs.inputCurrency])
 
   const outputTokenAddress = useMemo(() => {
-    return typeof parsedQs.outputCurrency === 'string'
-      ? parsedQs.outputCurrency
-      : swapCurrency.isNative
-        ? undefined
-        : getNativeAddress(swapCurrency.chainId)
-  }, [swapCurrency.chainId, swapCurrency.isNative, parsedQs.outputCurrency])
+    return typeof parsedQs.outputCurrency === 'string' ? parsedQs.outputCurrency : defaultCurrencyAddress
+  }, [defaultCurrencyAddress, parsedQs.outputCurrency])
 
   return {
     inputCurrency: useCurrency({
@@ -214,11 +224,4 @@ function useSwapInitialCurrencies(swapCurrency: Currency) {
       chainId: swapCurrency.chainId,
     }),
   }
-}
-
-function includesToken(tokens: CurrencyState | undefined, token: Currency | undefined): boolean {
-  if (!tokens || !token) {
-    return false
-  }
-  return areCurrenciesEqual(tokens.inputCurrency, token) || areCurrenciesEqual(tokens.outputCurrency, token)
 }

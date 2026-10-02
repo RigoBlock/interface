@@ -1,8 +1,8 @@
-import { NetworkStatus } from '@apollo/client'
 import { renderHook } from '@testing-library/react'
+import { SpamCode } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
 import { nativeOnChain } from 'uniswap/src/constants/tokens'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { usePortfolioData, usePortfolioDataMultichain } from 'uniswap/src/features/dataApi/balances/balancesRest'
 import { buildPortfolioBalance } from 'uniswap/src/features/dataApi/balances/buildPortfolioBalance'
 import type {
@@ -11,6 +11,7 @@ import type {
   PortfolioMultichainBalance,
 } from 'uniswap/src/features/dataApi/types'
 import { currencyIdToContractInput } from 'uniswap/src/features/dataApi/utils/currencyIdToContractInput'
+import { getChainGasToken } from 'uniswap/src/features/gas/hooks/useChainGasToken'
 import {
   useHighestBalanceNativeCurrencyId,
   usePortfolioBalances,
@@ -183,6 +184,27 @@ describe(partitionMultichainTokensByVisibility, () => {
       chainTokens: [chainWithNullHidden],
       multichainIsHidden: false,
       isTestnetModeEnabled: false,
+      currencyIdToTokenVisibility: {},
+    })
+    expect(visible).toHaveLength(1)
+    expect(hidden).toHaveLength(0)
+  })
+
+  it('in testnet mode keeps all per-chain tokens visible regardless of isHidden and spamCode', () => {
+    const base = createMultichainBalance().tokens[0]!
+    const hiddenByApi = {
+      ...base,
+      chainId: 1,
+      isHidden: true,
+      currencyInfo: {
+        ...base.currencyInfo,
+        spamCode: SpamCode.HIGH,
+      },
+    } as PortfolioChainBalance
+    const { visible, hidden } = partitionMultichainTokensByVisibility({
+      chainTokens: [hiddenByApi],
+      multichainIsHidden: true,
+      isTestnetModeEnabled: true,
       currencyIdToTokenVisibility: {},
     })
     expect(visible).toHaveLength(1)
@@ -367,7 +389,8 @@ describe(useSortedPortfolioBalances, () => {
     mockUsePortfolioData.mockReturnValue({
       data: map,
       loading: false,
-      networkStatus: NetworkStatus.ready,
+      isPending: false,
+      isError: false,
       refetch: vi.fn(),
       error: undefined,
     } as ReturnType<typeof usePortfolioData>)
@@ -388,7 +411,8 @@ describe(useSortedPortfolioBalances, () => {
     mockUsePortfolioData.mockReturnValue({
       data: undefined,
       loading: true,
-      networkStatus: NetworkStatus.loading,
+      isPending: true,
+      isError: false,
       refetch: vi.fn(),
       error: undefined,
     } as ReturnType<typeof usePortfolioData>)
@@ -406,7 +430,8 @@ describe(useSortedPortfolioBalances, () => {
     mockUsePortfolioData.mockReturnValue({
       data: undefined,
       loading: false,
-      networkStatus: NetworkStatus.ready,
+      isPending: false,
+      isError: false,
       refetch: vi.fn(),
       error: undefined,
     } as ReturnType<typeof usePortfolioData>)
@@ -433,7 +458,8 @@ describe(useSortedPortfolioBalancesMultichain, () => {
     mockUsePortfolioDataMultichain.mockReturnValue({
       data: multichainMap,
       loading: false,
-      networkStatus: NetworkStatus.ready,
+      isPending: false,
+      isError: false,
       refetch: vi.fn(),
       error: undefined,
     } as ReturnType<typeof usePortfolioDataMultichain>)
@@ -459,7 +485,8 @@ describe(useSortedPortfolioBalancesMultichain, () => {
     mockUsePortfolioDataMultichain.mockReturnValue({
       data: undefined,
       loading: false,
-      networkStatus: NetworkStatus.error,
+      isPending: false,
+      isError: true,
       refetch: vi.fn(),
       error,
       dataUpdatedAt,
@@ -486,7 +513,8 @@ describe(useSortedPortfolioBalancesMultichain, () => {
     mockUsePortfolioDataMultichain.mockReturnValue({
       data: multichainMap,
       loading: false,
-      networkStatus: NetworkStatus.ready,
+      isPending: false,
+      isError: false,
       refetch: vi.fn(),
       error: undefined,
     } as ReturnType<typeof usePortfolioDataMultichain>)
@@ -504,7 +532,8 @@ describe(usePortfolioBalances, () => {
     mockUsePortfolioData.mockReturnValue({
       data: undefined,
       loading: false,
-      networkStatus: NetworkStatus.ready,
+      isPending: false,
+      isError: false,
       refetch: vi.fn(),
       error: undefined,
     } as ReturnType<typeof usePortfolioData>)
@@ -530,7 +559,8 @@ describe(usePortfolioBalances, () => {
     mockUsePortfolioData.mockReturnValue({
       data: undefined,
       loading: false,
-      networkStatus: NetworkStatus.ready,
+      isPending: false,
+      isError: false,
       refetch: vi.fn(),
       error: undefined,
     } as ReturnType<typeof usePortfolioData>)
@@ -545,7 +575,8 @@ describe(usePortfolioBalancesMultichain, () => {
     mockUsePortfolioDataMultichain.mockReturnValue({
       data: undefined,
       loading: false,
-      networkStatus: NetworkStatus.ready,
+      isPending: false,
+      isError: false,
       refetch: vi.fn(),
       error: undefined,
     } as ReturnType<typeof usePortfolioDataMultichain>)
@@ -604,6 +635,40 @@ describe(useTokenBalancesGroupedByVisibility, () => {
     expect(result.current.shownTokens?.map((b) => b.id)).toEqual(['shown'])
     expect(result.current.hiddenTokens?.map((b) => b.id)).toEqual(['hidden'])
   })
+
+  describe('testnet mode', () => {
+    beforeEach(() => {
+      vi.mocked(useEnabledChains).mockReturnValue({ isTestnetModeEnabled: true } as ReturnType<typeof useEnabledChains>)
+    })
+
+    it('keeps API-hidden balances in shownTokens', () => {
+      const shown = createBalance({ id: 'shown', isHidden: false })
+      const apiHidden = createBalance({
+        id: 'apiHidden',
+        isHidden: true,
+        currencyInfo: {
+          ...createBalance().currencyInfo,
+          currencyId: 'hidden-id',
+          spamCode: SpamCode.HIGH,
+          currency: {
+            chainId: 1,
+            address: '0xhidden',
+            isToken: true,
+            symbol: 'H',
+            name: 'Hidden',
+            isNative: false,
+          } as PortfolioBalance['currencyInfo']['currency'],
+        } as PortfolioBalance['currencyInfo'],
+      })
+      const { result } = renderHook(() =>
+        useTokenBalancesGroupedByVisibility({
+          balancesById: { shown, apiHidden },
+        }),
+      )
+      expect(result.current.shownTokens?.map((b) => b.id).sort()).toEqual(['apiHidden', 'shown'])
+      expect(result.current.hiddenTokens).toBeUndefined()
+    })
+  })
 })
 
 describe(usePortfolioValueModifiers, () => {
@@ -611,6 +676,7 @@ describe(usePortfolioValueModifiers, () => {
     vi.mocked(useHideSmallBalancesSetting).mockReturnValue(false)
     vi.mocked(useHideSpamTokensSetting).mockReturnValue(false)
     vi.mocked(useCurrencyIdToVisibility).mockReturnValue({})
+    vi.mocked(useEnabledChains).mockReturnValue({ isTestnetModeEnabled: false } as ReturnType<typeof useEnabledChains>)
   })
 
   it('returns undefined when no addresses are provided', () => {
@@ -638,6 +704,20 @@ describe(usePortfolioValueModifiers, () => {
     })
     expect(result.current?.[0]?.tokenIncludeOverrides).toContainEqual(currencyIdToContractInput(visibleCid))
     expect(result.current?.[0]?.tokenExcludeOverrides).toContainEqual(currencyIdToContractInput(hiddenCid))
+  })
+
+  it('forces includeSpamTokens when testnet mode is enabled', () => {
+    vi.mocked(useEnabledChains).mockReturnValue({ isTestnetModeEnabled: true } as ReturnType<typeof useEnabledChains>)
+    vi.mocked(useCurrencyIdToVisibility).mockReturnValue({})
+    vi.mocked(useHideSmallBalancesSetting).mockReturnValue(true)
+    vi.mocked(useHideSpamTokensSetting).mockReturnValue(true)
+
+    const { result } = renderHook(() => usePortfolioValueModifiers('0xOwner'))
+
+    expect(result.current?.[0]).toMatchObject({
+      ownerAddress: '0xOwner',
+      includeSpamTokens: true,
+    })
   })
 })
 
@@ -674,7 +754,8 @@ describe(useHighestBalanceNativeCurrencyId, () => {
     mockUsePortfolioData.mockReturnValue({
       data: { [mainnetNativeId]: nativeBal },
       loading: false,
-      networkStatus: NetworkStatus.ready,
+      isPending: false,
+      isError: false,
       refetch: vi.fn(),
       error: undefined,
     } as ReturnType<typeof usePortfolioData>)
@@ -706,7 +787,8 @@ describe(useHighestBalanceNativeCurrencyId, () => {
     mockUsePortfolioData.mockReturnValue({
       data: { '1-0xtokenonly': erc20Only },
       loading: false,
-      networkStatus: NetworkStatus.ready,
+      isPending: false,
+      isError: false,
       refetch: vi.fn(),
       error: undefined,
     } as ReturnType<typeof usePortfolioData>)
@@ -714,5 +796,62 @@ describe(useHighestBalanceNativeCurrencyId, () => {
     const { result } = renderHook(() => useHighestBalanceNativeCurrencyId({ evmAddress: '0xuser' }))
 
     expect(result.current).toBe(currencyId(nativeOnChain(UniverseChainId.Mainnet)))
+  })
+
+  const createGasTokenBalance = (chainId: UniverseChainId, balanceUSD: number): PortfolioBalance => {
+    const gasToken = getChainGasToken(chainId)
+    return createBalance({
+      id: `${chainId}-gas`,
+      cacheId: `cache-${chainId}-gas`,
+      balanceUSD,
+      currencyInfo: {
+        currencyId: currencyId(gasToken),
+        currency: {
+          chainId,
+          address: gasToken.isNative ? undefined : gasToken.address,
+          isToken: !gasToken.isNative,
+          symbol: gasToken.symbol,
+          name: gasToken.name,
+          isNative: gasToken.isNative,
+        } as PortfolioBalance['currencyInfo']['currency'],
+        logoUrl: undefined,
+      } as PortfolioBalance['currencyInfo'],
+    })
+  }
+
+  it.each([
+    { chain: UniverseChainId.Tempo, label: 'pathUSD on Tempo' },
+    { chain: UniverseChainId.Arc, label: 'USDC on Arc' },
+  ])('returns the gas token balance when wallet holds $label', ({ chain }) => {
+    const gasTokenId = currencyId(getChainGasToken(chain))
+    mockUsePortfolioData.mockReturnValue({
+      data: { [gasTokenId]: createGasTokenBalance(chain, 100) },
+      loading: false,
+      isPending: false,
+      isError: false,
+      refetch: vi.fn(),
+      error: undefined,
+    } as ReturnType<typeof usePortfolioData>)
+
+    const { result } = renderHook(() => useHighestBalanceNativeCurrencyId({ evmAddress: '0xuser', chainId: chain }))
+
+    expect(result.current).toBe(gasTokenId)
+  })
+
+  it('falls back to the requested chain gas token when portfolio has no balances', () => {
+    mockUsePortfolioData.mockReturnValue({
+      data: {},
+      loading: false,
+      isPending: false,
+      isError: false,
+      refetch: vi.fn(),
+      error: undefined,
+    } as ReturnType<typeof usePortfolioData>)
+
+    const { result } = renderHook(() =>
+      useHighestBalanceNativeCurrencyId({ evmAddress: '0xuser', chainId: UniverseChainId.Tempo }),
+    )
+
+    expect(result.current).toBe(currencyId(getChainGasToken(UniverseChainId.Tempo)))
   })
 })

@@ -1,26 +1,33 @@
-import { Flex, Text, TouchableArea } from 'ui/src'
+import { UniverseChainId } from '@universe/chains'
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
+import { useTranslation } from 'react-i18next'
 import { Arrow } from 'ui/src/components/arrow/Arrow'
-import { iconSizes, validColor } from 'ui/src/theme'
+import { validColor } from 'ui/src/theme'
+import { iconSizes } from 'ui/src/theme/iconSizes'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
-import { getCanonicalBridgingDappUrls } from 'uniswap/src/features/bridging/constants'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { getChainLabel } from 'uniswap/src/features/chains/utils'
 import { useNetworkColors } from 'uniswap/src/utils/colors'
 import { openUri } from 'uniswap/src/utils/linking'
 
-export function CanonicalBridgeLinkBanner({ chainId }: { chainId: UniverseChainId }): JSX.Element {
+export function CanonicalBridgeLinkBanner({ chainId }: { chainId: UniverseChainId }): JSX.Element | null {
+  const { t } = useTranslation()
   const { foreground } = useNetworkColors(chainId)
+  const canonicalBridgeUrl = getChainInfo(chainId).bridge
+
+  if (!canonicalBridgeUrl) {
+    return null
+  }
 
   const networkLabel = getChainLabel(chainId)
   const networkColor = validColor(foreground)
-  const canonicalBridgeUrl = getCanonicalBridgingDappUrls([chainId])[0]
 
   return (
-    <TouchableArea onPress={() => canonicalBridgeUrl && openUri({ uri: canonicalBridgeUrl })}>
+    <TouchableArea onPress={() => openUri({ uri: canonicalBridgeUrl })}>
       <Flex row gap="$spacing8" alignItems="center">
         <NetworkLogo chainId={chainId} size={iconSizes.icon20} />
         <Text color={networkColor} variant="buttonLabel3">
-          {networkLabel} Bridge
+          {t('swap.warning.noQuotesFound.bridgeLink', { network: networkLabel })}
         </Text>
         <Arrow color={networkColor} direction="ne" size={iconSizes.icon20} />
       </Flex>

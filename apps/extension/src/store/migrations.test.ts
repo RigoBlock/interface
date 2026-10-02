@@ -1,10 +1,12 @@
 /* oxlint-disable jest/expect-expect */
 import { BigNumber } from '@ethersproject/bignumber'
+import { UniverseChainId } from '@universe/chains'
 import { toIncludeSameMembers } from 'jest-extended'
 import {
   testMigratePendingDappRequestsToRecord,
   testMigrateUnknownBackupAccountsToMaybeManualBackup,
   testRemoveDappInfoToChromeLocalStorage,
+  testRemovePersistedApolloCache,
   testSetLanguageToNavigatorLanguage,
 } from 'src/store/extensionMigrationsTests'
 import { EXTENSION_STATE_VERSION, migrations } from 'src/store/migrations'
@@ -41,11 +43,14 @@ import {
   v27Schema,
   v29Schema,
   v30Schema,
+  v31Schema,
+  v32Schema,
+  v33Schema,
+  v34Schema,
 } from 'src/store/schema'
 import { USDC } from 'uniswap/src/constants/tokens'
 import { initialAppearanceSettingsState } from 'uniswap/src/features/appearance/slice'
 import { initialUniswapBehaviorHistoryState } from 'uniswap/src/features/behaviorHistory/slice'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { initialFavoritesState } from 'uniswap/src/features/favorites/slice'
 import { FiatCurrency } from 'uniswap/src/features/fiatCurrency/constants'
 import { initialNotificationsState } from 'uniswap/src/features/notifications/slice/slice'
@@ -57,12 +62,15 @@ import { TransactionStatus, TransactionType } from 'uniswap/src/features/transac
 import { initialVisibilityState } from 'uniswap/src/features/visibility/slice'
 import {
   testAddActivityVisibility,
+  testAddEnableCustomGasFeeEntry,
+  testMarkPoolsBalanceCoachmarkEligible,
   testMigrateDismissedTokenWarnings,
   testMigrateSearchHistory,
   testRemoveTHBFromCurrency,
+  testRemoveUniswapWrapped2025BehaviorHistory,
 } from 'uniswap/src/state/uniswapMigrationTests'
 import { getAllKeysOfNestedObject } from 'utilities/src/primitives/objects'
-import { initialBatchedTransactionsState } from 'wallet/src/features/batchedTransactions/slice'
+import { initialWalletCallTransactionsState } from 'wallet/src/features/batchedTransactions/slice'
 import { initialBehaviorHistoryState } from 'wallet/src/features/behaviorHistory/slice'
 import { initialWalletState } from 'wallet/src/features/wallet/slice'
 import { createMigrate } from 'wallet/src/state/createMigrate'
@@ -116,7 +124,7 @@ describe('Redux state migrations', () => {
       dappRequests: {
         requests: {},
       },
-      batchedTransactions: initialBatchedTransactionsState,
+      batchedTransactions: initialWalletCallTransactionsState,
       blocks: { byChainId: {} },
       chains: {
         byChainId: {
@@ -379,5 +387,21 @@ describe('Redux state migrations', () => {
 
   it('migrates from v30 to v31', () => {
     testSetLanguageToNavigatorLanguage(migrations[31], v30Schema)
+  })
+
+  it('migrates from v31 to v32', () => {
+    testAddEnableCustomGasFeeEntry(migrations[32], v31Schema)
+  })
+
+  it('migrates from v32 to v33', () => {
+    testRemoveUniswapWrapped2025BehaviorHistory(migrations[33], v32Schema)
+  })
+
+  it('migrates from v33 to v34', () => {
+    testMarkPoolsBalanceCoachmarkEligible(migrations[34], v33Schema)
+  })
+
+  it('migrates from v34 to v35', () => {
+    testRemovePersistedApolloCache(migrations[35], v34Schema)
   })
 })

@@ -30,12 +30,15 @@ vi.mock('ui/src/assets/logos/png/eth-logo.png', () => createAssetModuleMock('png
 vi.mock('ui/src/assets/logos/png/ethereum-logo.png', () => createAssetModuleMock('png'))
 vi.mock('ui/src/assets/graphics/unitag-light-small.png', () => createAssetModuleMock('png'))
 vi.mock('ui/src/assets/logos/png/uniswap-logo-large.png', () => createAssetModuleMock('png'))
-vi.mock('~/assets/images/dropdown.svg', () => createAssetModuleMock('svg'))
-vi.mock('~/assets/svg/search.svg', () => createAssetModuleMock('svg'))
-vi.mock('~/assets/svg/expando-icon-closed.svg', () => createAssetModuleMock('svg'))
-vi.mock('~/assets/svg/expando-icon-opened.svg', () => createAssetModuleMock('svg'))
-
 vi.mock('ui/src/components/Unicon', () => ({
+  Unicon: ({ ..._props }: any) => {
+    return React.createElement('span', { 'data-testid': 'unicon' }, '🔵')
+  },
+}))
+// The mycelium Unicon gets the same placeholder: converted call sites otherwise render the real
+// SVG (address-derived paths), which is avatar noise in web snapshots exactly like the legacy one.
+vi.mock('@universe/mycelium', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
   Unicon: ({ ..._props }: any) => {
     return React.createElement('span', { 'data-testid': 'unicon' }, '🔵')
   },
@@ -57,7 +60,11 @@ vi.mock('ui/src/assets', () => ({
   ZORA_LOGO: 'zora-logo.png',
   ZKSYNC_LOGO: 'zksync-logo.png',
   SOLANA_LOGO: 'solana-logo.png',
+  ARC_LOGO: 'arc-logo.png',
+  INK_LOGO: 'ink-logo.png',
   LINEA_LOGO: 'linea-logo.png',
+  MEGAETH_LOGO: 'megaeth-logo.png',
+  ROBINHOOD_LOGO: 'robinhood-logo.png',
   SONEIUM_LOGO: 'soneium-logo.png',
   TEMPO_LOGO: 'tempo-logo.png',
   XLAYER_LOGO: 'xlayer-logo.png',

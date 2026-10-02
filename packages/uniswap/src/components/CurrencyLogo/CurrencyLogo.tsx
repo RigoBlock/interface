@@ -1,4 +1,4 @@
-import { iconSizes } from 'ui/src/theme'
+import { iconSizes } from '@universe/mycelium'
 import { TokenLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 
@@ -8,8 +8,6 @@ interface CurrencyLogoProps {
   hideNetworkLogo?: boolean
   networkLogoBorderWidth?: number
 }
-
-export const STATUS_RATIO = 0.4
 
 export function CurrencyLogo({
   currencyInfo,

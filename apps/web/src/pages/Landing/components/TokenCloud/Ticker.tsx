@@ -1,5 +1,5 @@
+import { Flex, Text } from '@universe/mycelium'
 import { useMemo } from 'react'
-import { Flex, Text } from 'ui/src'
 import { ItemPoint } from 'uniswap/src/components/IconCloud/IconCloud'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { DeltaArrow } from '~/components/DeltaArrow/DeltaArrow'

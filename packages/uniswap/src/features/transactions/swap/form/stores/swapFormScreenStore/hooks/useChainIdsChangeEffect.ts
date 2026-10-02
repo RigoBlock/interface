@@ -1,5 +1,5 @@
+import type { UniverseChainId } from '@universe/chains'
 import { useEffect, useRef } from 'react'
-import type { UniverseChainId } from 'uniswap/src/features/chains/types'
 
 /**
  * Hook that detects changes to chainIds and fires a callback when changes occur.

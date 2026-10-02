@@ -1,5 +1,18 @@
-import { DeltaArrow } from '~/components/DeltaArrow/DeltaArrow'
+import { DeltaArrow, isDeltaZero } from '~/components/DeltaArrow/DeltaArrow'
 import { render } from '~/test-utils/render'
+
+describe('isDeltaZero', () => {
+  it.each([
+    ['0.00%', true],
+    ['0,00 %', true], // comma-decimal zero (e.g. fr-FR)
+    ['%0', true], // tr-TR formats with a leading percent sign
+    ['0,50 %', false], // sub-1% move in a comma-decimal locale (CONS-3128 follow-up bug)
+    ['1.23%', false],
+    ['-', false], // placeholder
+  ])('isDeltaZero(%s) → %s', (formattedDelta, expected) => {
+    expect(isDeltaZero(formattedDelta)).toBe(expected)
+  })
+})
 
 describe('Delta', () => {
   it('should render correctly', () => {

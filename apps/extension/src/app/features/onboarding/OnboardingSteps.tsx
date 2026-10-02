@@ -1,6 +1,10 @@
+import { Flex } from '@universe/mycelium'
+import { TransitionItem } from '@universe/mycelium/animate-presence-pager'
+import { useDeviceDimensions } from '@universe/mycelium/theme-hooks-compat'
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { LayoutChangeEvent } from 'react-native'
 import { useSelector } from 'react-redux'
-import { OnboardingPaneAnimatedContents } from 'src/app/features/onboarding/OnboardingPaneAnimatedContents'
+import { ONBOARDING_PANE_CURVE } from 'src/app/features/onboarding/OnboardingPaneAnimatedContents'
 import { OnboardingScreenFrame } from 'src/app/features/onboarding/OnboardingScreenFrame'
 import { OnboardingScreenProps } from 'src/app/features/onboarding/OnboardingScreenProps'
 import {
@@ -12,7 +16,6 @@ import { ONBOARDING_CONTENT_WIDTH, ONBOARDING_INITIAL_FRAME_HEIGHT } from 'src/a
 import { TopLevelRoutes } from 'src/app/navigation/constants'
 import { navigate } from 'src/app/navigation/state'
 import { isOnboardedSelector } from 'src/app/utils/isOnboardedSelector'
-import { AnimatePresence, Flex, styled, useWindowDimensions } from 'ui/src'
 
 export * from './OnboardingStepsContext'
 
@@ -42,7 +45,7 @@ type MaybeOnboardingProps = OnboardingScreenProps | null
 let currentOnboardingScreen: MaybeOnboardingProps = null
 const onboardingScreenListen = new Set<(step: Step, val: MaybeOnboardingProps) => void>()
 
-let clearScreenTimeout: NodeJS.Timeout
+let clearScreenTimeout: ReturnType<typeof setTimeout>
 
 export function OnboardingStepsProvider({
   steps,
@@ -145,7 +148,7 @@ export function OnboardingStepsProvider({
         }
         return prev
       })
-    })
+    }, 0)
   }, [])
 
   const onboardingScreenKey = (props?: MaybeOnboardingProps): string => {
@@ -199,8 +202,8 @@ export function OnboardingStepsProvider({
 
   const stepContents = steps[step]
   const [frameHeight, setFrameHeight] = useState(ONBOARDING_INITIAL_FRAME_HEIGHT)
-  const windowDimensions = useWindowDimensions()
-  const modalY = windowDimensions.height / 2 - frameHeight / 2
+  const { fullHeight } = useDeviceDimensions()
+  const modalY = fullHeight / 2 - frameHeight / 2
   const hasBelowFrameContent = Boolean(onboardingScreen?.belowFrameContent)
   const [belowFrameHeight, setBelowFrameHeight] = useState(-1)
   const y =
@@ -229,27 +232,25 @@ export function OnboardingStepsProvider({
             {/* oxlint-disable-next-line react/forbid-elements -- probably we can replace it here */}
             <div style={{ height: 0, opacity: 0, pointerEvents: 'none' }}>{stepContents}</div>
             <Frame
-              animation="stiff"
               y={y}
               onLayout={(e) => {
                 setFrameHeight(e.nativeEvent.layout.height)
               }}
             >
-              <FrameBackground height={frameHeight} />
+              <FrameBackground />
 
               {/**
                * animate the inner contents of the onboarding steps modal
-               * exitBeforeEnter because we are keeping things simpler and having the inner contents
-               * not be absolutely positioned, which would let us do overlapping animations but we'd have
-               * to measure dimensions and do some delicate state management around that.
+               * the pager is exit-before-enter sequenced because we are keeping things simpler and
+               * having the inner contents not be absolutely positioned, which would let us do
+               * overlapping animations but we'd have to measure dimensions and do some delicate
+               * state management around that.
                */}
               <FrameInner>
-                {/* note: the exitBeforeEnter here affects the constant ONBOARDING_PANE_TRANSITION_DURATION in OnboardingPaneAnimatedContents.tsx */}
-                <AnimatePresence exitBeforeEnter custom={{ going }} initial={false}>
-                  <OnboardingPaneAnimatedContents key={step}>
-                    <OnboardingScreenDisplay step={step} />
-                  </OnboardingPaneAnimatedContents>
-                </AnimatePresence>
+                {/* note: the pager's exit-then-enter sequencing affects the constant ONBOARDING_PANE_TRANSITION_DURATION in OnboardingPaneAnimatedContents.tsx */}
+                <TransitionItem childKey={step} curve={ONBOARDING_PANE_CURVE}>
+                  <OnboardingScreenDisplay step={step} />
+                </TransitionItem>
               </FrameInner>
 
               {hasBelowFrameContent && (
@@ -294,43 +295,75 @@ const OnboardingScreenDisplay = memo(function OnboardingScreenDisplay(props: { s
 })
 
 // containing frame just for positioning
-const Frame = styled(Flex, {
-  position: 'absolute',
-  top: 0,
-  left: '50%',
-  x: -ONBOARDING_CONTENT_WIDTH * 0.5,
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: ONBOARDING_CONTENT_WIDTH,
-})
+// the "quickLong" curve (300ms, cubic-bezier(0.25, 0.46, 0.45, 0.94)) is scoped to `transform`
+// only, since `y` is the only prop that changes after mount — this avoids the light/dark
+// color-flash a `transition-all`-style scope would cause on `FrameBackground`'s color tokens
+function Frame({
+  children,
+  y,
+  onLayout,
+}: {
+  children: React.ReactNode
+  y: number
+  onLayout: (event: LayoutChangeEvent) => void
+}): JSX.Element {
+  return (
+    <Flex
+      position="absolute"
+      top={0}
+      left="50%"
+      x={-ONBOARDING_CONTENT_WIDTH * 0.5}
+      alignItems="center"
+      justifyContent="center"
+      width={ONBOARDING_CONTENT_WIDTH}
+      y={y}
+      transition="transform 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94)"
+      onLayout={onLayout}
+    >
+      {children}
+    </Flex>
+  )
+}
 
 // separate frame background so we can animate
-const FrameBackground = styled(Flex, {
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  width: '100%',
-  backgroundColor: '$surface1',
-  borderColor: '$surface3',
-  borderRadius: '$rounded32',
-  borderWidth: '$spacing1',
-  shadowRadius: 4,
-  shadowColor: '$shadowColor',
-  shadowOffset: {
-    height: 2,
-    width: 0,
-  },
-  shadowOpacity: 0.25,
-})
+function FrameBackground(): JSX.Element {
+  return (
+    <Flex
+      position="absolute"
+      top={0}
+      left={0}
+      right={0}
+      bottom={0}
+      width="100%"
+      backgroundColor="$surface1"
+      borderColor="$surface3"
+      borderRadius="$rounded32"
+      borderWidth="$spacing1"
+      shadowRadius={4}
+      shadowColor="$shadowColor"
+      shadowOffset={{
+        height: 2,
+        width: 0,
+      }}
+      shadowOpacity={0.25}
+    />
+  )
+}
 
 // inner frame to prevent overflow of outer frame
-const FrameInner = styled(Flex, {
-  height: '100%',
-  overflow: 'hidden',
-  width: '100%',
-  borderRadius: '$rounded32',
-  gap: '$spacing12',
-  pb: '$spacing24',
-  pt: '$spacing24',
-  px: '$spacing24',
-})
+function FrameInner({ children }: { children: React.ReactNode }): JSX.Element {
+  return (
+    <Flex
+      height="100%"
+      overflow="hidden"
+      width="100%"
+      borderRadius="$rounded32"
+      gap="$spacing12"
+      pb="$spacing24"
+      pt="$spacing24"
+      px="$spacing24"
+    >
+      {children}
+    </Flex>
+  )
+}

@@ -1,7 +1,7 @@
-import { getCapabilities as wagmi_getCapabilities } from '@wagmi/core/experimental'
-import { ensure0xHex, numberToHex } from 'utilities/src/addresses/hex'
+import { ensure0xHex, hexToNumber, numberToHex } from '@universe/encoding'
+import { getCapabilities as wagmi_getCapabilities } from '@wagmi/core'
 import { getLogger } from 'utilities/src/logger/logger'
-import { wagmiConfig } from '~/components/Web3Provider/wagmiConfig'
+import { wagmiConfig } from '~/connection/wagmiConfig'
 import { ensureValidatedCapabilities } from '~/state/walletCapabilities/lib/ensureValidatedCapabilities'
 import { ChainCapabilities, GetCapabilitiesResult } from '~/state/walletCapabilities/lib/types'
 
@@ -70,6 +70,23 @@ export function isAtomicBatchingSupportedByChainId(
   return isAtomicBatchingSupported(chainCapabilities)
 }
 
+export function isAlternateGasFeesSupported(chainCapabilities: ChainCapabilities): boolean {
+  return chainCapabilities.alternateGasFees?.supported === true
+}
+
+export function isAlternateGasFeesSupportedByChainId(
+  chainCapabilitiesResult: GetCapabilitiesResult,
+  chainId: number,
+): boolean {
+  const key = ensure0xHex(numberToHex(chainId))
+  const chainCapabilities = chainCapabilitiesResult[key]
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
+  if (!chainCapabilities) {
+    return false
+  }
+  return isAlternateGasFeesSupported(chainCapabilities)
+}
+
 /**
  * Gets an array of chain IDs that support atomic batching
  * @param chainCapabilitiesResult The result from handleGetCapabilities
@@ -82,5 +99,5 @@ export function getAtomicSupportedChainIds(chainCapabilitiesResult: GetCapabilit
 
   return Object.entries(chainCapabilitiesResult)
     .filter(([_, capabilities]) => isAtomicBatchingSupported(capabilities))
-    .map(([chainIdHex]) => parseInt(chainIdHex, 16))
+    .map(([chainIdHex]) => hexToNumber(chainIdHex))
 }

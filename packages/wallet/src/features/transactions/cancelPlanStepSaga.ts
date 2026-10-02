@@ -1,3 +1,4 @@
+import { getValidAddress } from '@universe/chains'
 import { providers } from 'ethers'
 import { call, put, type SagaGenerator, select } from 'typed-redux-saga'
 import { AccountType } from 'uniswap/src/features/accounts/types'
@@ -9,7 +10,6 @@ import {
   TransactionDetails,
   TransactionOriginType,
 } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { getValidAddress } from 'uniswap/src/utils/addresses'
 import { signalPlanCancellation } from 'uniswap/src/utils/saga'
 import { logger } from 'utilities/src/logger/logger'
 import {

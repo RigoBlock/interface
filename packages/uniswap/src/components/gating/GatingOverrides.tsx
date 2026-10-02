@@ -1,3 +1,5 @@
+import { clearComplianceOverrides } from '@universe/compliance'
+import { isExtensionApp, isMobileApp } from '@universe/environment'
 import {
   DynamicConfigs,
   EmbeddedWalletConfigKey,
@@ -8,12 +10,16 @@ import {
   getFeatureFlagName,
   getOverrideAdapter,
   Layers,
+  useDynamicConfigValue,
   useFeatureFlagWithExposureLoggingDisabled,
   WALLET_FEATURE_FLAG_NAMES,
 } from '@universe/gating'
+import { Flex, Text } from '@universe/mycelium'
+import { Accordion } from '@universe/mycelium'
 import React, { PropsWithChildren, useCallback } from 'react'
-import { Accordion, Flex, Separator, Switch, Text } from 'ui/src'
+import { Separator, Switch } from 'ui/src'
 import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
+import { ComplianceOverrides } from 'uniswap/src/components/gating/ComplianceOverrides'
 import {
   DynamicConfigDropdown,
   DynamicConfigDropdownBoolean,
@@ -25,10 +31,9 @@ import {
 } from 'uniswap/src/components/gating/dynamicConfigOverrides'
 import { GatingButton } from 'uniswap/src/components/gating/GatingButton'
 import { ExperimentRow, LayerRow } from 'uniswap/src/components/gating/Rows'
+import { UNISWAP_WEB_URL } from 'uniswap/src/constants/urls'
 import { useForceUpgradeStatus } from 'uniswap/src/features/forceUpgrade/hooks/useForceUpgradeStatus'
 import { useForceUpgradeTranslations } from 'uniswap/src/features/forceUpgrade/hooks/useForceUpgradeTranslations'
-import { useEmbeddedWalletBaseUrl } from 'uniswap/src/features/passkey/hooks/useEmbeddedWalletBaseUrl'
-import { isExtensionApp, isMobileApp } from 'utilities/src/platform'
 import { useEvent } from 'utilities/src/react/hooks'
 
 export function GatingOverrides(): JSX.Element {
@@ -90,6 +95,7 @@ export function GatingOverrides(): JSX.Element {
 
   const onClearAllGatingOverrides = useEvent(() => {
     getOverrideAdapter().removeAllOverrides()
+    clearComplianceOverrides()
   })
 
   return (
@@ -171,7 +177,11 @@ export function GatingOverrides(): JSX.Element {
                   configKey={EmbeddedWalletConfigKey.BaseUrl}
                   label="Base URL"
                   options={EMBEDDED_WALLET_BASE_URL_OPTIONS}
-                  selected={useEmbeddedWalletBaseUrl()}
+                  selected={useDynamicConfigValue({
+                    config: DynamicConfigs.EmbeddedWalletConfig,
+                    key: EmbeddedWalletConfigKey.BaseUrl,
+                    defaultValue: UNISWAP_WEB_URL,
+                  })}
                 />
               </DynamicConfigGroup>
 
@@ -192,6 +202,16 @@ export function GatingOverrides(): JSX.Element {
                   selected={JSON.stringify(useForceUpgradeTranslations())}
                 />
               </DynamicConfigGroup>
+            </Flex>
+          </Accordion.Content>
+        </Accordion.Item>
+
+        <Accordion.Item value="compliance">
+          <AccordionHeader title="🌍 Compliance / Geo" />
+
+          <Accordion.Content>
+            <Flex gap="$spacing12" mt="$spacing12">
+              <ComplianceOverrides />
             </Flex>
           </Accordion.Content>
         </Accordion.Item>

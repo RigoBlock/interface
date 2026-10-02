@@ -1,4 +1,10 @@
 import { BigNumber } from '@ethersproject/bignumber'
+import { UniverseChainId } from '@universe/chains'
+import { isExtensionApp, isMobileApp } from '@universe/environment'
+import { Flex, iconSizes, spacing, Text, TouchableArea } from '@universe/mycelium'
+import { CopySheets } from '@universe/mycelium/icons/CopySheets'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
+import { TestID } from '@universe/test'
 import { forwardRef, useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -11,16 +17,10 @@ import {
   ViewStyle,
 } from 'react-native'
 import { FlatList } from 'react-native-gesture-handler'
-import { Flex, Text, TouchableArea, useSporeColors } from 'ui/src'
-import { CopySheets } from 'ui/src/components/icons'
-import { iconSizes, spacing } from 'ui/src/theme'
 import { GradientOverlay, ScrollArrow } from 'uniswap/src/components/BatchedTransactions/CarouselControls'
 import { ExpandoRow } from 'uniswap/src/components/ExpandoRow/ExpandoRow'
 import { ContentRow } from 'uniswap/src/components/transactions/requests/ContentRow'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { CopyNotificationType } from 'uniswap/src/features/notifications/slice/types'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
-import { isExtensionApp, isMobileApp } from 'utilities/src/platform'
 import { trimToLength } from 'utilities/src/primitives/string'
 import { useEvent } from 'utilities/src/react/hooks'
 import { AddressButton } from 'wallet/src/components/buttons/AddressButton'
@@ -142,60 +142,57 @@ export function BatchedTransactionDetails({
   const keyExtractor = (_: Call, index: number): string => `call-${index}`
 
   // Scroll handler for both mobile (NativeSyntheticEvent) and web (React.UIEvent)
-  const handleScroll = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent> | React.UIEvent<HTMLDivElement>): void => {
-      const getScrollMetrics = (
-        evt: NativeSyntheticEvent<NativeScrollEvent> | React.UIEvent<HTMLDivElement>,
-      ): { scrollX: number; contentWidth: number; containerWidth: number } | null => {
-        if ('nativeEvent' in evt && 'contentOffset' in evt.nativeEvent) {
-          // React Native event
-          const nativeEvent = evt.nativeEvent as NativeScrollEvent
-          return {
-            scrollX: nativeEvent.contentOffset.x,
-            contentWidth: nativeEvent.contentSize.width,
-            containerWidth: nativeEvent.layoutMeasurement.width,
-          }
-        } else {
-          // Web event
-          const target = evt.currentTarget as HTMLDivElement
-          return {
-            scrollX: target.scrollLeft,
-            contentWidth: target.scrollWidth,
-            containerWidth: target.clientWidth,
-          }
+  const handleScroll = useEvent((event: NativeSyntheticEvent<NativeScrollEvent> | React.UIEvent<HTMLElement>): void => {
+    const getScrollMetrics = (
+      evt: NativeSyntheticEvent<NativeScrollEvent> | React.UIEvent<HTMLElement>,
+    ): { scrollX: number; contentWidth: number; containerWidth: number } | null => {
+      if ('nativeEvent' in evt && 'contentOffset' in evt.nativeEvent) {
+        // React Native event
+        const nativeEvent = evt.nativeEvent as NativeScrollEvent
+        return {
+          scrollX: nativeEvent.contentOffset.x,
+          contentWidth: nativeEvent.contentSize.width,
+          containerWidth: nativeEvent.layoutMeasurement.width,
+        }
+      } else {
+        // Web event
+        const target = evt.currentTarget
+        return {
+          scrollX: target.scrollLeft,
+          contentWidth: target.scrollWidth,
+          containerWidth: target.clientWidth,
         }
       }
+    }
 
-      const metrics = getScrollMetrics(event)
-      if (!metrics) {
-        return
-      }
+    const metrics = getScrollMetrics(event)
+    if (!metrics) {
+      return
+    }
 
-      const { scrollX, contentWidth, containerWidth } = metrics
-      const thresholdDistance = containerWidth * GRADIENT_THRESHOLD_RATIO
+    const { scrollX, contentWidth, containerWidth } = metrics
+    const thresholdDistance = containerWidth * GRADIENT_THRESHOLD_RATIO
 
-      // Update current index based on scroll position
-      const calculatedIndex = Math.round(scrollX / layoutMeasurements.snapToInterval)
-      const newIndex = Math.max(0, Math.min(calls.length - 1, calculatedIndex))
-      if (currentIndex !== newIndex) {
-        setCurrentIndex(newIndex)
-      }
+    // Update current index based on scroll position
+    const calculatedIndex = Math.round(scrollX / layoutMeasurements.snapToInterval)
+    const newIndex = Math.max(0, Math.min(calls.length - 1, calculatedIndex))
+    if (currentIndex !== newIndex) {
+      setCurrentIndex(newIndex)
+    }
 
-      // Update gradient visibility states
-      const distanceFromEnd = contentWidth - (scrollX + containerWidth)
-      const shouldShowRightGradient = distanceFromEnd > thresholdDistance
-      const shouldShowLeftGradient = scrollX > thresholdDistance
+    // Update gradient visibility states
+    const distanceFromEnd = contentWidth - (scrollX + containerWidth)
+    const shouldShowRightGradient = distanceFromEnd > thresholdDistance
+    const shouldShowLeftGradient = scrollX > thresholdDistance
 
-      if (showRightGradient !== shouldShowRightGradient) {
-        setShowRightGradient(shouldShowRightGradient)
-      }
+    if (showRightGradient !== shouldShowRightGradient) {
+      setShowRightGradient(shouldShowRightGradient)
+    }
 
-      if (showLeftGradient !== shouldShowLeftGradient) {
-        setShowLeftGradient(shouldShowLeftGradient)
-      }
-    },
-    [layoutMeasurements.snapToInterval, calls.length, showRightGradient, showLeftGradient, currentIndex],
-  )
+    if (showLeftGradient !== shouldShowLeftGradient) {
+      setShowLeftGradient(shouldShowLeftGradient)
+    }
+  })
 
   const scrollToIndex = useCallback(
     (index: number) => {
@@ -247,12 +244,12 @@ export function BatchedTransactionDetails({
                 display: 'none',
               },
             },
-            onScroll: handleScroll as (event: React.UIEvent<HTMLDivElement>) => void,
           }}
           row
           flex={1}
           px={spacing.spacing12}
           gap={cardGap}
+          onScroll={handleScroll}
         >
           {calls.map((call, index) => (
             <CallCard

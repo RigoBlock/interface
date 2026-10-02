@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { provideUniswapIdentifierService } from '@universe/api'
+import { isAndroid } from '@universe/environment'
+import { useIsDarkMode } from '@universe/mycelium/theme-hooks-compat'
 import { uniswapIdentifierQuery } from '@universe/sessions'
 import { useEffect, useMemo } from 'react'
 import { NativeModules, useWindowDimensions } from 'react-native'
@@ -11,14 +13,12 @@ import { setDatadogUserWithUniqueId } from 'src/features/datadog/user'
 import { OneSignalUserTagField } from 'src/features/notifications/constants'
 import { getAuthMethod } from 'src/features/telemetry/utils'
 import { getFullAppVersion } from 'src/utils/version'
-import { useIsDarkMode } from 'ui/src'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { useAppFiatCurrency } from 'uniswap/src/features/fiatCurrency/hooks'
 import { useCurrentLanguageInfo } from 'uniswap/src/features/language/hooks'
 import { useHideSmallBalancesSetting, useHideSpamTokensSetting } from 'uniswap/src/features/settings/hooks'
 import { MobileUserPropertyName, setUserProperty } from 'uniswap/src/features/telemetry/user'
 import { logger } from 'utilities/src/logger/logger'
-import { isAndroid } from 'utilities/src/platform'
 // oxlint-disable-next-line no-restricted-imports -- Required for analytics user properties
 import { analytics } from 'utilities/src/telemetry/analytics/analytics'
 import { useAccountBalances } from 'wallet/src/features/accounts/useAccountListData'
@@ -55,7 +55,6 @@ export function TraceUserProperties(): null {
   const signerAccountAddresses = useMemo(() => signerAccounts.map((account) => account.address), [signerAccounts])
   const { totalBalance: signerAccountsTotalBalance } = useAccountBalances({
     addresses: signerAccountAddresses,
-    fetchPolicy: 'cache-first',
   })
 
   // Effects must check this and ensure they are setting properties for when analytics is reenabled

@@ -1,5 +1,4 @@
-import { Flex } from 'ui/src'
-import { iconSizes } from 'ui/src/theme'
+import { Flex, iconSizes } from '@universe/mycelium'
 import { AddressDisplay } from 'uniswap/src/components/accounts/AddressDisplay'
 
 export function TransactionParticipantDisplay({ address }: { address: string }): JSX.Element {

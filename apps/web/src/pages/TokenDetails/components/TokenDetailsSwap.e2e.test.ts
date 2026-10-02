@@ -1,7 +1,6 @@
+import { UniverseChainId, AddressStringFormat, normalizeAddress } from '@universe/chains'
+import { TestID } from '@universe/test'
 import { UNI, USDT } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
-import { AddressStringFormat, normalizeAddress } from 'uniswap/src/utils/addresses'
 import { expect, getTest } from '~/playwright/fixtures'
 
 const test = getTest()
@@ -38,28 +37,41 @@ test.describe(
       await expect(page.getByTestId(OUTPUT_TOKEN_LABEL)).toContainText('UNI')
     })
 
-    test('should automatically navigate to the new TDP (erc20)', async ({ page }) => {
+    test('should keep the page token in the pair when the output token is replaced', async ({ page }) => {
       await page.getByTestId(OUTPUT_TOKEN_LABEL).click()
+      // oxlint-disable-next-line eslint-js/no-restricted-syntax
       await page.getByTestId('token-option-1-USDT').first().click()
 
-      expect(page.url()).toContain(normalizeAddress(USDT.address, AddressStringFormat.Lowercase))
-      expect(page.url()).not.toContain(normalizeAddress(UNI_MAINNET.address, AddressStringFormat.Lowercase))
+      await expect(page.getByTestId(INPUT_TOKEN_LABEL)).toContainText('UNI')
+      await expect(page.getByTestId(OUTPUT_TOKEN_LABEL)).toContainText('USDT')
+      expect(page.url().toLowerCase()).toContain(normalizeAddress(UNI_MAINNET.address, AddressStringFormat.Lowercase))
+      expect(page.url().toLowerCase()).not.toContain(normalizeAddress(USDT.address, AddressStringFormat.Lowercase))
     })
 
-    test('should navigate to the new TDP with correct tokens selected', async ({ page }) => {
+    test('should keep the page token in the pair across consecutive selections', async ({ page }) => {
       await page.getByTestId(INPUT_TOKEN_LABEL).click()
+      // oxlint-disable-next-line eslint-js/no-restricted-syntax
       await page.getByTestId('token-option-1-USDT').first().click()
 
+      await expect(page.getByTestId(INPUT_TOKEN_LABEL)).toContainText('USDT')
+      await expect(page.getByTestId(OUTPUT_TOKEN_LABEL)).toContainText('UNI')
+
       await page.getByTestId(OUTPUT_TOKEN_LABEL).click()
+      // necessary to guarantee token option shows up in DOM bc of virtualized token selector list
+      // scoped by placeholder: the selector's network filter search shares this test ID
+      await page.getByTestId(TestID.ExploreSearchInput).and(page.getByPlaceholder('Search tokens')).fill('WBTC')
+      // oxlint-disable-next-line eslint-js/no-restricted-syntax
       await page.getByTestId('token-option-1-WBTC').first().click()
 
-      await expect(page.getByTestId(INPUT_TOKEN_LABEL)).toContainText('USDT')
+      await expect(page.getByTestId(INPUT_TOKEN_LABEL)).toContainText('UNI')
       await expect(page.getByTestId(OUTPUT_TOKEN_LABEL)).toContainText('WBTC')
+      expect(page.url().toLowerCase()).toContain(normalizeAddress(UNI_MAINNET.address, AddressStringFormat.Lowercase))
     })
 
     test('should not share swap state with the main swap page', async ({ page }) => {
       await expect(page.getByTestId(OUTPUT_TOKEN_LABEL)).toContainText('UNI')
       await page.getByTestId(INPUT_TOKEN_LABEL).click()
+      // oxlint-disable-next-line eslint-js/no-restricted-syntax
       await page.getByTestId('token-option-1-USDT').first().click()
       await page.goto('/swap')
 
@@ -88,6 +100,7 @@ test.describe(
     test.describe('swap input', () => {
       test('should handle amount into input', async ({ page }) => {
         await page.getByTestId(INPUT_TOKEN_LABEL).click()
+        // oxlint-disable-next-line eslint-js/no-restricted-syntax
         await page.getByTestId('token-option-1-USDT').first().click()
 
         await page.getByTestId(TestID.AmountInputIn).clear()

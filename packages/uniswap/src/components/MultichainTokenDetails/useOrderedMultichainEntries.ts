@@ -1,7 +1,7 @@
+import { type UniverseChainId, normalizeTokenAddressForCache } from '@universe/chains'
 import { useMemo } from 'react'
 // oxlint-disable-next-line no-restricted-imports -- we need raw chain ordering without enabled filtering
 import { useOrderedChainIds } from 'uniswap/src/features/chains/hooks/useOrderedChainIds'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 
 export interface MultichainTokenEntry {
   chainId: UniverseChainId
@@ -12,7 +12,7 @@ export interface MultichainTokenEntry {
 /** Stable key for deployment identity (ignores array reference and `isNative` — derived from chain + address). */
 function multichainFingerprint(entries: MultichainTokenEntry[]): string {
   return entries
-    .map((e) => `${e.chainId}:${e.address.toLowerCase()}`)
+    .map((e) => `${e.chainId}:${normalizeTokenAddressForCache(e.address)}`)
     .sort((a, b) => a.localeCompare(b))
     .join('|')
 }

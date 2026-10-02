@@ -1,6 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber'
 import { CurrencyAmount, Percent, Token, TradeType, WETH9 } from '@uniswap/sdk-core'
 import { FeeAmount, Pool, Route } from '@uniswap/v3-sdk'
+import { UniverseChainId } from '@universe/chains'
 import JSBI from 'jsbi'
 import {
   DAI,
@@ -11,13 +12,12 @@ import {
   USDT,
   WBTC,
 } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { FORCountry } from 'uniswap/src/features/fiatOnRamp/types'
 import { benignSafetyInfo } from 'uniswap/src/test/fixtures/wallet/currencies'
 import { LimitsExpiry } from 'uniswap/src/types/limits'
 import { UseAccountReturnType, type Register as WagmiRegister } from 'wagmi'
-import { expiryToDeadlineSeconds } from '~/state/limit/expiryToDeadlineSeconds'
+import { expiryToDeadlineSeconds } from '~/pages/Swap/Limit/state/expiryToDeadlineSeconds'
 import {
   ClassicTrade,
   DutchOrderTrade,

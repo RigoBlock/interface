@@ -1,9 +1,9 @@
+import { UniverseChainId } from '@universe/chains'
 import {
   CAIP25Namespace,
   MultipleChainsNamespaceScopeKey,
   SingleChainNamespaceScopeKey,
 } from 'uniswap/src/features/capabilities/caip25/types'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 
 export function getScopeKey(params: {
   namespace: CAIP25Namespace

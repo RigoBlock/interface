@@ -1,13 +1,18 @@
 import { hashKey, useQuery } from '@tanstack/react-query'
 import type { BlockaidScanJsonRpcRequest, BlockaidScanTransactionResponse } from '@universe/api'
 import { BlockaidApiClient } from 'uniswap/src/data/apiClients/blockaidApi/BlockaidApiClient'
+import type { BlockaidScanType } from 'uniswap/src/features/dappRequests/types'
 import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
-import { ONE_MINUTE_MS } from 'utilities/src/time/time'
+import { useBlockaidScanFailureState } from 'wallet/src/features/dappRequests/hooks/useBlockaidScanFailureState'
+import {
+  BLOCKAID_SCAN_QUERY_OPTIONS,
+  type BlockaidScanFailureState,
+  getScanFailureState,
+  requireUsableScan,
+} from 'wallet/src/features/dappRequests/utils/blockaidScanQuery'
 
-const FIVE_MINUTES_MS = 5 * ONE_MINUTE_MS
-
-interface UseBlockaidJsonRpcScanResult {
-  scanResult?: BlockaidScanTransactionResponse | null
+interface UseBlockaidJsonRpcScanResult extends BlockaidScanFailureState {
+  scanResult?: BlockaidScanTransactionResponse
   isLoading: boolean
 }
 
@@ -27,27 +32,62 @@ function createJsonRpcScanCacheKey(request: BlockaidScanJsonRpcRequest | null): 
   return [request.chain, request.account_address, request.metadata.domain, request.data.method, paramsHash]
 }
 
+function getJsonRpcScanType(method: BlockaidScanJsonRpcRequest['data']['method'] | undefined): BlockaidScanType {
+  switch (method) {
+    case 'eth_sign':
+    case 'personal_sign':
+    case 'eth_signTypedData':
+    case 'eth_signTypedData_v1':
+    case 'eth_signTypedData_v2':
+    case 'eth_signTypedData_v3':
+    case 'eth_signTypedData_v4':
+      return 'signature'
+    case 'wallet_sendCalls':
+      return 'send-calls'
+    default:
+      // Any current or future execution-style JSON-RPC method must prove successful simulation.
+      return 'transaction'
+  }
+}
+
 /**
- * Hook to scan a signature request using Blockaid's JSON-RPC scan API
+ * Hook to scan a signature or wallet_sendCalls request using Blockaid's JSON-RPC scan API
  * @param request The JSON-RPC scan request parameters
- * @param enabled Whether the query should be enabled
  * @returns Signature scan result and loading state
  */
-export function useBlockaidJsonRpcScan(
-  request: BlockaidScanJsonRpcRequest | null,
-  enabled = true,
-): UseBlockaidJsonRpcScanResult {
-  const { data: scanResult, isLoading } = useQuery({
-    queryKey: [ReactQueryCacheKey.BlockaidJsonRpcScan, ...createJsonRpcScanCacheKey(request)],
-    queryFn: () => BlockaidApiClient.scanJsonRpc(request),
-    staleTime: FIVE_MINUTES_MS,
-    enabled: enabled && Boolean(request),
-    // Don't retry on failures - we want to fail fast and show null
-    retry: false,
+export function useBlockaidJsonRpcScan(request: BlockaidScanJsonRpcRequest | null): UseBlockaidJsonRpcScanResult {
+  const isScanEnabled = Boolean(request)
+  // Signature scans have no execution simulation, while wallet_sendCalls previews and signing
+  // depend on the simulated batch. Infer this here so callers cannot accidentally weaken the gate.
+  const scanType = getJsonRpcScanType(request?.data.method)
+  const queryKey = [ReactQueryCacheKey.BlockaidJsonRpcScan, ...createJsonRpcScanCacheKey(request)]
+  const requestKey = hashKey(queryKey)
+
+  const {
+    data: scanResult,
+    isLoading,
+    isPaused,
+    error,
+  } = useQuery({
+    queryKey,
+    queryFn: () => requireUsableScan({ scan: () => BlockaidApiClient.scanJsonRpc(request), scanType }),
+    enabled: isScanEnabled,
+    ...BLOCKAID_SCAN_QUERY_OPTIONS,
+  })
+
+  const failureState = useBlockaidScanFailureState({
+    requestKey,
+    failureState: getScanFailureState({ error, hasUsableScan: scanResult !== undefined, isScanEnabled, isPaused }),
+    scanType,
+    dappUrl: request?.metadata.domain,
+    chain: request?.chain,
+    requestMethod: request?.data.method,
+    error,
   })
 
   return {
     scanResult,
     isLoading,
+    ...failureState,
   }
 }

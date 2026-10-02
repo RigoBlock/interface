@@ -1,14 +1,19 @@
+import { isAndroid, isIOS, isMobileApp, isMobileWeb, isWebPlatform } from '@universe/environment'
+import { Button, Flex, Text, TouchableArea } from '@universe/mycelium'
+import { CheckboxCompat as Checkbox } from '@universe/mycelium/checkbox-compat'
+import type { GeneratedIcon } from '@universe/mycelium/icons'
+import { X } from '@universe/mycelium/icons/X'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Checkbox, Flex, GeneratedIcon, Text, TouchableArea } from 'ui/src'
-import { X } from 'ui/src/components/icons/X'
-import { BaseModalProps } from 'uniswap/src/components/BridgedAsset/BridgedAssetModal'
 import { Modal } from 'uniswap/src/components/modals/Modal'
+import type { BaseModalProps } from 'uniswap/src/components/modals/ModalProps'
 import { useBottomSheetSafeKeyboard } from 'uniswap/src/components/modals/useBottomSheetSafeKeyboard'
 import { ReportInput } from 'uniswap/src/components/reporting/input'
+import { ReportModalContent } from 'uniswap/src/components/reporting/ReportModalContent'
 import { ModalNameType } from 'uniswap/src/features/telemetry/constants'
-import { isMobileApp, isMobileWeb, isWebPlatform } from 'utilities/src/platform'
 import { useEvent } from 'utilities/src/react/hooks'
+
+const ANDROID_SNAP_POINTS = ['70%', '100%']
 
 export type ReportOption<T extends string> = {
   title: string
@@ -23,17 +28,21 @@ export type ReportOption<T extends string> = {
 export type ReportModalProps<T extends string> = {
   modalName: ModalNameType
   modalTitle: string
+  modalSubtitle?: string
   icon: GeneratedIcon
   reportOptions: ReportOption<T>[]
+  submitButtonText?: string
   submitReport: ({ checkedItems, reportTexts }: { checkedItems: Set<T>; reportTexts: Map<T, string> }) => void
 }
 
 export function ReportModal<T extends string>({
   modalName,
   modalTitle,
+  modalSubtitle,
   icon: Icon,
   reportOptions,
   isOpen,
+  submitButtonText,
   submitReport,
   onClose,
 }: ReportModalProps<T> & BaseModalProps): JSX.Element {
@@ -71,8 +80,17 @@ export function ReportModal<T extends string>({
   })
 
   return (
-    <Modal name={modalName} isModalOpen={isOpen} onClose={onClose}>
-      <Flex p={isMobileApp ? '$spacing12' : undefined} pb={keyboardHeight}>
+    <Modal
+      enableBlurKeyboardOnGesture
+      keyboardBehavior={isIOS ? 'fillParent' : undefined}
+      keyboardBlurBehavior="restore"
+      name={modalName}
+      isModalOpen={isOpen}
+      overrideInnerContainer={isMobileApp}
+      snapPoints={isAndroid ? ANDROID_SNAP_POINTS : undefined}
+      onClose={onClose}
+    >
+      <ReportModalContent>
         {isWebPlatform && !isMobileWeb && (
           <TouchableArea alignItems="flex-end" role="none" onPress={onClose}>
             <X size="$icon.20" color="$neutral3" />
@@ -85,6 +103,11 @@ export function ReportModal<T extends string>({
             </Flex>
             <Text variant="subheading1">{modalTitle}</Text>
           </Flex>
+          {modalSubtitle && (
+            <Text variant="body3" color="$neutral2">
+              {modalSubtitle}
+            </Text>
+          )}
           <Flex gap="$spacing16">
             {reportOptions.map((option: ReportOption<T>) => {
               if (keyboardHeight > 0 && !(option.additionalTextInput && checkedItems.has(option.value))) {
@@ -131,7 +154,7 @@ export function ReportModal<T extends string>({
             <Button
               size="medium"
               emphasis="primary"
-              isDisabled={checkedItems.size === 0}
+              disabled={checkedItems.size === 0}
               onPress={() => {
                 const sanitizedTexts = new Map<T, string>()
                 for (const [key, value] of reportTexts) {
@@ -143,11 +166,12 @@ export function ReportModal<T extends string>({
                 submitReport({ checkedItems, reportTexts: sanitizedTexts })
               }}
             >
-              {checkedItems.size > 0 ? t('common.submit') : t('reporting.token.report.button.disabled')}
+              {submitButtonText ??
+                (checkedItems.size > 0 ? t('common.submit') : t('reporting.token.report.button.disabled'))}
             </Button>
           </Flex>
         </Flex>
-      </Flex>
+      </ReportModalContent>
     </Modal>
   )
 }

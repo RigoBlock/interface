@@ -1,8 +1,22 @@
-import type { InAppNotification } from '@universe/api'
+import { ContentStyle, type InAppNotification } from '@universe/api'
 import { createNotificationProcessor } from '@universe/notifications/src/notification-processor/implementations/createNotificationProcessor'
+import type { NotificationProcessorResult } from '@universe/notifications/src/notification-processor/NotificationProcessor'
 import { describe, expect, it, vi } from 'vitest'
 
 describe('createNotificationProcessor', () => {
+  const createMockNotification = (id: string, style: ContentStyle = ContentStyle.MODAL): InAppNotification => ({
+    id,
+    content: {
+      version: 0,
+      title: `${id}-title`,
+      subtitle: '',
+      style,
+      buttons: [],
+    },
+  })
+
+  const emptyResult = (): NotificationProcessorResult => ({ primary: [], chained: new Map() })
+
   it('creates a notification processor with process method', () => {
     const mockProcess = vi.fn()
     const processor = createNotificationProcessor({
@@ -14,26 +28,11 @@ describe('createNotificationProcessor', () => {
   })
 
   it('delegates process call to injected process function', async () => {
-    const mockNotifications: InAppNotification[] = [
-      {
-        id: 'test-notif-1-id',
-        metaData: {},
-        notificationName: 'test-notif-1',
-        timestamp: 1000,
-        content: { style: 'CONTENT_STYLE_MODAL', title: 'test-notif-1-title' },
-        userId: 'user-1',
-      } as InAppNotification,
-    ]
-    const mockResult: InAppNotification[] = [
-      {
-        id: 'result-notif-id',
-        metaData: {},
-        notificationName: 'result-notif',
-        timestamp: 2000,
-        content: { style: 'CONTENT_STYLE_MODAL', title: 'result-notif-title' },
-        userId: 'user-1',
-      } as InAppNotification,
-    ]
+    const mockNotifications = [createMockNotification('test-notif-1-id')]
+    const mockResult: NotificationProcessorResult = {
+      primary: [createMockNotification('result-notif-id')],
+      chained: new Map(),
+    }
 
     const mockProcess = vi.fn().mockResolvedValue(mockResult)
     const processor = createNotificationProcessor({
@@ -47,30 +46,16 @@ describe('createNotificationProcessor', () => {
   })
 
   it('preserves the exact arguments passed to process method', async () => {
-    const notifications: InAppNotification[] = [
-      {
-        id: 'notif-1-id',
-        metaData: {},
-        notificationName: 'notif-1',
-        timestamp: 1000,
-        content: { style: 'CONTENT_STYLE_MODAL', title: 'notif-1-title' },
-        userId: 'user-1',
-      } as InAppNotification,
-      {
-        id: 'notif-2-id',
-        metaData: {},
-        notificationName: 'notif-2',
-        timestamp: 2000,
-        content: { style: 'CONTENT_STYLE_BANNER', title: 'notif-2-title' },
-        userId: 'user-1',
-      } as InAppNotification,
+    const notifications = [
+      createMockNotification('notif-1-id'),
+      createMockNotification('notif-2-id', ContentStyle.LOWER_LEFT_BANNER),
     ]
 
     let capturedNotifications: InAppNotification[] | undefined
 
-    const mockProcess = vi.fn(async (notifs) => {
+    const mockProcess = vi.fn(async (notifs: InAppNotification[]): Promise<NotificationProcessorResult> => {
       capturedNotifications = notifs
-      return []
+      return emptyResult()
     })
 
     const processor = createNotificationProcessor({
@@ -82,49 +67,37 @@ describe('createNotificationProcessor', () => {
     expect(capturedNotifications).toBe(notifications)
   })
 
-  it('returns empty array when injected process returns empty array', async () => {
-    const mockProcess = vi.fn().mockResolvedValue([])
+  it('returns an empty result when injected process returns an empty result', async () => {
+    const mockProcess = vi.fn().mockResolvedValue(emptyResult())
     const processor = createNotificationProcessor({
       process: mockProcess,
     })
 
     const result = await processor.process([])
 
-    expect(result).toEqual([])
+    expect(result.primary).toEqual([])
+    expect(result.chained.size).toBe(0)
   })
 
   it('handles multiple calls with different arguments', async () => {
-    const mockProcess = vi.fn(async (notifications) => notifications)
+    const mockProcess = vi.fn(
+      async (notifications: InAppNotification[]): Promise<NotificationProcessorResult> => ({
+        primary: notifications,
+        chained: new Map(),
+      }),
+    )
     const processor = createNotificationProcessor({
       process: mockProcess,
     })
 
-    const notifs1: InAppNotification[] = [
-      {
-        id: 'notif-1-id',
-        metaData: {},
-        notificationName: 'notif-1',
-        timestamp: 1000,
-        content: { style: 'CONTENT_STYLE_MODAL', title: 'notif-1-title' },
-        userId: 'user-1',
-      } as InAppNotification,
-    ]
-    const notifs2: InAppNotification[] = [
-      {
-        id: 'notif-2-id',
-        metaData: {},
-        notificationName: 'notif-2',
-        timestamp: 2000,
-        content: { style: 'CONTENT_STYLE_BANNER', title: 'notif-2-title' },
-        userId: 'user-1',
-      } as InAppNotification,
-    ]
+    const notifs1 = [createMockNotification('notif-1-id')]
+    const notifs2 = [createMockNotification('notif-2-id', ContentStyle.LOWER_LEFT_BANNER)]
 
     const result1 = await processor.process(notifs1)
     const result2 = await processor.process(notifs2)
 
     expect(mockProcess).toHaveBeenCalledTimes(2)
-    expect(result1).toEqual(notifs1)
-    expect(result2).toEqual(notifs2)
+    expect(result1.primary).toEqual(notifs1)
+    expect(result2.primary).toEqual(notifs2)
   })
 })

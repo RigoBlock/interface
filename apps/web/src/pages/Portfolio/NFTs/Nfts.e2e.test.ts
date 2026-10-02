@@ -1,11 +1,12 @@
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
+import { getWalletNfts } from '@uniswap/client-data-api/dist/data/v2/api-DataApiService_connectquery'
+import { TestID } from '@universe/test'
 import { expect, getTest } from '~/playwright/fixtures'
 import { HAYDEN_ADDRESS } from '~/playwright/fixtures/wallets'
 import { Mocks } from '~/playwright/mocks/mocks'
 
 const test = getTest()
 
-/** Unique card test IDs from mock data (nfts.json). Format: PortfolioNftCardPrefix + getNFTAssetKey(contract, tokenId). */
+/** Unique card test IDs from mock data (get_wallet_nfts.json). Format: PortfolioNftCardPrefix + getNFTAssetKey(contract, tokenId). */
 const MOCK_NFT_CARD_IDS = {
   iGotPlenty: `${TestID.PortfolioNftCardPrefix}nftItem.0x3c90502f0cb0ad0a48c51357e65ff15247a1d88e.21`,
   mi: `${TestID.PortfolioNftCardPrefix}nftItem.0x495f947276749ce646f68ac8c248420045cb7b5e.49573910948929644057320032930374483793648558152449286445567646333571629580294`,
@@ -24,8 +25,8 @@ test.describe(
   },
   () => {
     test.describe('NFT Grid Display', () => {
-      test.beforeEach(async ({ page, graphql }) => {
-        await graphql.intercept('NftsTab', Mocks.Account.nfts)
+      test.beforeEach(async ({ page, dataApi }) => {
+        await dataApi.intercept(getWalletNfts, Mocks.DataApiService.get_wallet_nfts)
         await page.goto(`/portfolio/nfts?eagerlyConnectAddress=${HAYDEN_ADDRESS}`)
       })
 
@@ -47,8 +48,8 @@ test.describe(
     })
 
     test.describe('Search Functionality', () => {
-      test.beforeEach(async ({ page, graphql }) => {
-        await graphql.intercept('NftsTab', Mocks.Account.nfts)
+      test.beforeEach(async ({ page, dataApi }) => {
+        await dataApi.intercept(getWalletNfts, Mocks.DataApiService.get_wallet_nfts)
         await page.goto(`/portfolio/nfts?eagerlyConnectAddress=${HAYDEN_ADDRESS}`)
       })
 
@@ -84,21 +85,21 @@ test.describe(
     })
 
     test.describe('Empty States', () => {
-      test('should show empty state when wallet has no NFTs', async ({ page, graphql }) => {
-        await graphql.intercept('NftsTab', Mocks.Account.nfts_empty)
+      test('should show empty state when wallet has no NFTs', async ({ page, dataApi }) => {
+        await dataApi.intercept(getWalletNfts, Mocks.DataApiService.get_wallet_nfts_empty)
         await page.goto(`/portfolio/nfts?eagerlyConnectAddress=${HAYDEN_ADDRESS}`)
         await expect(page.getByTestId(TestID.PortfolioNftsEmptyState)).toBeVisible()
       })
 
-      test('should show chain-specific empty state with filter', async ({ page, graphql }) => {
-        await graphql.intercept('NftsTab', Mocks.Account.nfts_empty)
+      test('should show chain-specific empty state with filter', async ({ page, dataApi }) => {
+        await dataApi.intercept(getWalletNfts, Mocks.DataApiService.get_wallet_nfts_empty)
         await page.goto(`/portfolio/nfts?eagerlyConnectAddress=${HAYDEN_ADDRESS}&chain=optimism`)
         await expect(page.getByTestId(TestID.PortfolioNftsEmptyState)).toBeVisible()
         await expect(page.getByTestId(TestID.PortfolioNftsSeeAllNetworksButton)).toBeVisible()
       })
 
-      test('should navigate to all NFTs when clicking "See all networks"', async ({ page, graphql }) => {
-        await graphql.intercept('NftsTab', Mocks.Account.nfts_empty)
+      test('should navigate to all NFTs when clicking "See all networks"', async ({ page, dataApi }) => {
+        await dataApi.intercept(getWalletNfts, Mocks.DataApiService.get_wallet_nfts_empty)
         await page.goto(`/portfolio/nfts?eagerlyConnectAddress=${HAYDEN_ADDRESS}&chain=optimism`)
         await page.getByTestId(TestID.PortfolioNftsSeeAllNetworksButton).click()
         await expect(page).toHaveURL(/\/portfolio\/nfts/)
@@ -119,8 +120,8 @@ test.describe(
     })
 
     test.describe('External Wallet View', () => {
-      test.beforeEach(async ({ graphql }) => {
-        await graphql.intercept('NftsTab', Mocks.Account.nfts)
+      test.beforeEach(async ({ dataApi }) => {
+        await dataApi.intercept(getWalletNfts, Mocks.DataApiService.get_wallet_nfts)
       })
 
       test('should show NFTs for external wallet', async ({ page }) => {
@@ -142,8 +143,8 @@ test.describe(
     test.describe('Responsive Behavior', () => {
       const MOBILE_VIEWPORT = { width: 375, height: 667 }
 
-      test.beforeEach(async ({ page, graphql }) => {
-        await graphql.intercept('NftsTab', Mocks.Account.nfts)
+      test.beforeEach(async ({ page, dataApi }) => {
+        await dataApi.intercept(getWalletNfts, Mocks.DataApiService.get_wallet_nfts)
       })
 
       test('should display NFTs on mobile', async ({ page }) => {
@@ -163,8 +164,8 @@ test.describe(
     })
 
     test.describe('NFT Card Interactions', () => {
-      test.beforeEach(async ({ page, graphql }) => {
-        await graphql.intercept('NftsTab', Mocks.Account.nfts)
+      test.beforeEach(async ({ page, dataApi }) => {
+        await dataApi.intercept(getWalletNfts, Mocks.DataApiService.get_wallet_nfts)
         await page.goto(`/portfolio/nfts?eagerlyConnectAddress=${HAYDEN_ADDRESS}`)
       })
 
@@ -180,6 +181,27 @@ test.describe(
         await expect(miCard).toBeVisible()
         await miCard.hover()
         await expect(page.getByTestId(TestID.PortfolioNftCardViewOnLink).first()).toBeVisible()
+      })
+
+      test('should open OpenSea when clicking the NFT image', async ({ page }) => {
+        const card = page.getByTestId(MOCK_NFT_CARD_IDS.iGotPlenty)
+        await expect(card).toBeVisible()
+
+        await page.evaluate(() => {
+          const openedUrls: string[] = []
+          const windowWithSpy = window as Window & { __openedUrls?: string[] }
+          windowWithSpy.__openedUrls = openedUrls
+          window.open = (url?: string | URL): Window | null => {
+            openedUrls.push(String(url))
+            return null
+          }
+        })
+
+        await card.locator(`[data-testid^="${TestID.NftsListItemPrefix}"]`).click()
+
+        await expect
+          .poll(async () => page.evaluate(() => (window as Window & { __openedUrls?: string[] }).__openedUrls ?? []))
+          .toEqual(['https://opensea.io/item/ethereum/0x3C90502f0CB0ad0A48c51357E65Ff15247A1D88E/21'])
       })
     })
   },

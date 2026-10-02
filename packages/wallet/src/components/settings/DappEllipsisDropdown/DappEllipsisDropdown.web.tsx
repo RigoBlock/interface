@@ -1,6 +1,6 @@
+import { Flex } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
-import { Flex } from 'ui/src'
 import { Power } from 'ui/src/components/icons'
 import { ContextMenu, MenuOptionItem } from 'uniswap/src/components/menus/ContextMenu'
 import { ContextMenuTriggerMode } from 'uniswap/src/components/menus/types'

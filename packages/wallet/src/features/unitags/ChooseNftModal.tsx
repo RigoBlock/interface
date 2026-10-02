@@ -1,7 +1,10 @@
+import { isMobileApp, isWebPlatform } from '@universe/environment'
+import { Flex, FlexCompatProps, SpaceTokens, spacing, Text, TouchableArea } from '@universe/mycelium'
+import type { UniversalListStyle } from '@universe/mycelium'
+import { X } from '@universe/mycelium/icons/X'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, FlexProps, SpaceTokens, Text, useSporeColors } from 'ui/src'
-import { X } from 'ui/src/components/icons'
-import { spacing } from 'ui/src/theme'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalProps } from 'uniswap/src/components/modals/ModalProps'
 // This is intentionally imported from the native file as only the web app requires a web specific implementation
@@ -11,8 +14,7 @@ import { NftViewWithContextMenu } from 'uniswap/src/components/nfts/NftViewWithC
 import { NFTItem } from 'uniswap/src/features/nfts/types'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { useAppInsets } from 'uniswap/src/hooks/useAppInsets'
-import { isMobileApp, isWebPlatform } from 'utilities/src/platform'
-import { ChoosePhotoOptionsProps } from 'wallet/src/features/unitags/ChoosePhotoOptionsModal'
+import type { ChoosePhotoOptionsProps } from 'wallet/src/features/unitags/ChoosePhotoOptionsModal'
 import { useAccounts } from 'wallet/src/features/wallet/hooks'
 
 export const NFT_MODAL_MAX_WIDTH = 610
@@ -30,7 +32,7 @@ export type ChooseNftModalProps = {
   includeContextMenu?: boolean
   itemMargin?: SpaceTokens
   numColumns?: number
-  containerProps?: FlexProps
+  containerProps?: FlexCompatProps
   modalMaxWidth?: ModalProps['maxWidth']
   setPhotoUri: (uri?: string) => void
   onClose: () => void
@@ -72,6 +74,14 @@ export const ChooseNftModal = ({
 
   const renderedInBottomSheet = isMobileApp
 
+  const contentContainerStyle = useMemo<UniversalListStyle>(
+    () => ({
+      className: 'px-3 pt-3',
+      style: renderedInBottomSheet ? { paddingBottom: insets.bottom + spacing.spacing12 } : undefined,
+    }),
+    [renderedInBottomSheet, insets.bottom],
+  )
+
   return (
     <Modal
       overrideInnerContainer
@@ -91,7 +101,11 @@ export const ChooseNftModal = ({
                 {t('unitags.choosePhoto.option.nft')}
               </Text>
             </Flex>
-            <X position="absolute" left={0} size="$icon.24" cursor="pointer" color="$neutral2" onPress={onClose} />
+            {/* position/left and onPress belong on the wrapper: mycelium icons don't carry
+            layout-positioning or press-handler props on the SVG itself (INFRA-3320 style surface). */}
+            <TouchableArea position="absolute" left={0} onPress={onClose}>
+              <X size="$icon.24" color="$neutral2" />
+            </TouchableArea>
           </Flex>
         ) : undefined}
         <Flex fill {...containerProps}>
@@ -99,11 +113,7 @@ export const ChooseNftModal = ({
             renderedInModal={renderedInBottomSheet}
             owner={address}
             renderNFTItem={renderNFT}
-            contentContainerStyle={{
-              paddingHorizontal: spacing.spacing12,
-              paddingTop: spacing.spacing12,
-              paddingBottom: renderedInBottomSheet ? insets.bottom + spacing.spacing12 : undefined,
-            }}
+            contentContainerStyle={contentContainerStyle}
             numColumns={numColumns}
           />
         </Flex>

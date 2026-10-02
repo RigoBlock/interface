@@ -1,7 +1,6 @@
-import { GqlResult } from '@universe/api'
+import { Flex } from '@universe/mycelium'
 import { memo, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex } from 'ui/src'
 import { BaseCard } from 'uniswap/src/components/BaseCard/BaseCard'
 import { ExpandoRow } from 'uniswap/src/components/ExpandoRow/ExpandoRow'
 import { TokenOption } from 'uniswap/src/components/lists/items/types'
@@ -12,11 +11,13 @@ import { usePortfolioBalancesForAddressById } from 'uniswap/src/components/Token
 import { usePortfolioTokenOptions } from 'uniswap/src/components/TokenSelector/hooks/usePortfolioTokenOptions'
 import { TokenSelectorList } from 'uniswap/src/components/TokenSelector/TokenSelectorList'
 import { OnSelectCurrency, TokenSectionsHookProps } from 'uniswap/src/components/TokenSelector/types'
+import type { DerivedQueryResult } from 'utilities/src/reactQuery/types'
 
 function useTokenSectionsForSend({
   addresses,
   chainFilter,
-}: TokenSectionsHookProps): GqlResult<OnchainItemSection<TokenOption>[]> {
+  chainIds,
+}: Omit<TokenSectionsHookProps, 'variation'>): DerivedQueryResult<OnchainItemSection<TokenOption>[]> {
   const { t } = useTranslation()
   const portfolioData = usePortfolioBalancesForAddressById(addresses)
   const {
@@ -24,8 +25,8 @@ function useTokenSectionsForSend({
     hiddenTokens: hiddenPortfolioTokenOptions,
     error: portfolioTokenOptionsError,
     refetch: refetchPortfolioTokenOptions,
-    loading: portfolioTokenOptionsLoading,
-  } = usePortfolioTokenOptions({ chainFilter, includeHidden: true, portfolioData })
+    isLoading: portfolioTokenOptionsLoading,
+  } = usePortfolioTokenOptions({ chainFilter, chainIds, includeHidden: true, portfolioData })
   const [hiddenTokensExpanded, setHiddenTokensExpanded] = useState(false)
   const expandoElement = useMemo(() => {
     const hiddenTokensCount = hiddenPortfolioTokenOptions?.length ?? 0
@@ -33,14 +34,16 @@ function useTokenSectionsForSend({
       return undefined
     }
     return (
-      <ExpandoRow
-        isExpanded={hiddenTokensExpanded}
-        label={t('hidden.tokens.info.text.button', { numHidden: hiddenTokensCount })}
-        mx="$spacing20"
-        onPress={(): void => {
-          setHiddenTokensExpanded(!hiddenTokensExpanded)
-        }}
-      />
+      <Flex backgroundColor="$surface1">
+        <ExpandoRow
+          isExpanded={hiddenTokensExpanded}
+          label={t('hidden.tokens.info.text.button', { numHidden: hiddenTokensCount })}
+          mx="$spacing20"
+          onPress={(): void => {
+            setHiddenTokensExpanded(!hiddenTokensExpanded)
+          }}
+        />
+      </Flex>
     )
   }, [hiddenTokensExpanded, hiddenPortfolioTokenOptions?.length, t])
 
@@ -82,8 +85,8 @@ function useTokenSectionsForSend({
   return useMemo(
     () => ({
       data: sections,
-      loading,
-      error: error || undefined,
+      isLoading: loading,
+      error: error || null,
       refetch: refetchPortfolioTokenOptions,
     }),
     [error, loading, refetchPortfolioTokenOptions, sections],
@@ -113,22 +116,24 @@ function EmptyList({ onEmptyActionPress }: { onEmptyActionPress?: () => void }):
 function TokenSelectorSendListInner({
   addresses,
   chainFilter,
+  chainIds,
   onSelectCurrency,
   onEmptyActionPress,
   renderedInModal,
-}: TokenSectionsHookProps & {
+}: Omit<TokenSectionsHookProps, 'variation'> & {
   onSelectCurrency: OnSelectCurrency
   onEmptyActionPress: () => void
   renderedInModal: boolean
 }): JSX.Element {
   const {
     data: sections,
-    loading,
+    isLoading,
     error,
     refetch,
   } = useTokenSectionsForSend({
     addresses,
     chainFilter,
+    chainIds,
   })
   const emptyElement = useMemo(() => <EmptyList onEmptyActionPress={onEmptyActionPress} />, [onEmptyActionPress])
 
@@ -138,7 +143,7 @@ function TokenSelectorSendListInner({
       chainFilter={chainFilter}
       emptyElement={emptyElement}
       hasError={Boolean(error)}
-      loading={loading}
+      loading={isLoading}
       refetch={refetch}
       sections={sections}
       showTokenWarnings={false}

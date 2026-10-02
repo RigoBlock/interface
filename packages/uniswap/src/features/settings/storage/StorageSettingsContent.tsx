@@ -1,9 +1,15 @@
+import { isMobileApp, isWebApp } from '@universe/environment'
+import { Button, Flex, iconSizes, Text, TouchableArea } from '@universe/mycelium'
+import { Box } from '@universe/mycelium/icons/Box'
+import { LayerGroup } from '@universe/mycelium/icons/LayerGroup'
+import { Person } from '@universe/mycelium/icons/Person'
+import { QuestionInCircleFilled } from '@universe/mycelium/icons/QuestionInCircleFilled'
+import { TimePast } from '@universe/mycelium/icons/TimePast'
+import { TrashFilled } from '@universe/mycelium/icons/TrashFilled'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
-import { Button, Flex, Text, TouchableArea, useSporeColors } from 'ui/src'
-import { Box, LayerGroup, Person, QuestionInCircleFilled, TimePast, TrashFilled } from 'ui/src/components/icons'
-import { iconSizes } from 'ui/src/theme'
 import { InfoLinkModal } from 'uniswap/src/components/modals/InfoLinkModal'
 import { WarningModal } from 'uniswap/src/components/modals/WarningModal/WarningModal'
 import { InfoTooltip } from 'uniswap/src/components/tooltip/InfoTooltip'
@@ -11,7 +17,6 @@ import { pushNotification } from 'uniswap/src/features/notifications/slice/slice
 import { AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { logger } from 'utilities/src/logger/logger'
-import { isMobileApp, isWebApp } from 'utilities/src/platform'
 import { useEvent } from 'utilities/src/react/hooks'
 import { useBooleanState } from 'utilities/src/react/useBooleanState'
 
@@ -146,7 +151,10 @@ export function StorageSettingsContent({
             size="large"
             emphasis="secondary"
             variant="default"
-            icon={<TrashFilled />}
+            // TODO(INFRA-3474): interim — ButtonCompat's icon-slot size/color classes lose to
+            // TrashFilled's own inline defaults (8px, defaultFill red), so both are set explicitly
+            // here; 20.7 = legacy large-button icon size, matching the pre-conversion render.
+            icon={<TrashFilled color={colors.neutral1.val} size={20.7} />}
             onPress={() => setPendingAction(ClearAction.AllData)}
           >
             {t('settings.setting.storage.clearAllData.title')}

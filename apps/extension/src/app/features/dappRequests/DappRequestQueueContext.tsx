@@ -1,5 +1,5 @@
 import { providerErrors, serializeError } from '@metamask/rpc-errors'
-import { createContext, type PropsWithChildren, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, type PropsWithChildren, useContext, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { confirmRequest, confirmRequestNoDappInfo, rejectRequest } from 'src/app/features/dappRequests/actions'
 import { useTransactionConfirmationTracker } from 'src/app/features/dappRequests/context/TransactionConfirmationTracker'
@@ -34,7 +34,8 @@ interface DappRequestQueueContextValue {
     transactionTypeInfo?: TransactionTypeInfo
     preSignedTransaction?: SignedTransactionRequest
   }) => Promise<void>
-  onCancel: (request: WithMetadata<DappRequestStoreItem>) => Promise<void>
+  /** `rejectionError` overrides the default user-rejected response sent to the dapp. */
+  onCancel: (request: WithMetadata<DappRequestStoreItem>, rejectionError?: unknown) => Promise<void>
 }
 
 const DappRequestQueueContext = createContext<DappRequestQueueContextValue | undefined>(undefined)
@@ -54,20 +55,18 @@ export function DappRequestQueueProvider({ children }: PropsWithChildren): JSX.E
 
   // values to help with animations
   const [forwards, setForwards] = useState(true)
+  // Derived during render (adjust-state-on-change), NOT in an effect: Presence
+  // arms the outgoing count pane's exit in the same commit that changes the
+  // count and re-resolves exit props on every render while the clone animates.
+  // An effect-set direction is one commit stale there — it arms the wrong exit
+  // and then rewrites the mid-flight clone's classes (`animationcancel`),
+  // stalling the pager on Presence's fallback unmount deadline.
   const [increasing, setIncreasing] = useState(true)
-  const prevTotalRequestCountRef = useRef(totalRequestCount)
-
-  useEffect(() => {
-    if (totalRequestCount > prevTotalRequestCountRef.current) {
-      setIncreasing(true)
-    }
-
-    if (totalRequestCount < prevTotalRequestCountRef.current) {
-      setIncreasing(false)
-    }
-
-    prevTotalRequestCountRef.current = totalRequestCount
-  }, [totalRequestCount])
+  const [prevTotalRequestCount, setPrevTotalRequestCount] = useState(totalRequestCount)
+  if (totalRequestCount !== prevTotalRequestCount) {
+    setIncreasing(totalRequestCount > prevTotalRequestCount)
+    setPrevTotalRequestCount(totalRequestCount)
+  }
 
   const dappUrl = extractBaseUrl(request?.senderTabInfo.url) || ''
   const frameUrl = extractBaseUrl(request?.senderTabInfo.frameUrl) || undefined
@@ -127,33 +126,35 @@ export function DappRequestQueueProvider({ children }: PropsWithChildren): JSX.E
     },
   )
 
-  const onCancel = useEvent(async (requestToCancel: WithMetadata<DappRequestStoreItem>): Promise<void> => {
-    if (requestToCancel.dappInfo) {
-      const { activeConnectedAddress, lastChainId } = requestToCancel.dappInfo
-      const connectedAddresses = requestToCancel.dappInfo.connectedAccounts.map((account) => account.address)
-      sendAnalyticsEvent(ExtensionEventName.DappRequest, {
-        action: DappRequestAction.Reject,
-        requestType: requestToCancel.dappRequest.type,
-        dappUrl: extractBaseUrl(requestToCancel.senderTabInfo.url),
-        chainId: lastChainId,
-        activeConnectedAddress,
-        connectedAddresses,
-      })
-    }
-    // oxlint-disable-next-line typescript/await-thenable -- biome-parity: oxlint is stricter here
-    await dispatch(
-      rejectRequest({
-        senderTabInfo: requestToCancel.senderTabInfo,
-        errorResponse: {
-          requestId: requestToCancel.dappRequest.requestId,
-          type: DappResponseType.ErrorResponse,
-          error: serializeError(providerErrors.userRejectedRequest()),
-        },
-      }),
-    )
+  const onCancel = useEvent(
+    async (requestToCancel: WithMetadata<DappRequestStoreItem>, rejectionError?: unknown): Promise<void> => {
+      if (requestToCancel.dappInfo) {
+        const { activeConnectedAddress, lastChainId } = requestToCancel.dappInfo
+        const connectedAddresses = requestToCancel.dappInfo.connectedAccounts.map((account) => account.address)
+        sendAnalyticsEvent(ExtensionEventName.DappRequest, {
+          action: DappRequestAction.Reject,
+          requestType: requestToCancel.dappRequest.type,
+          dappUrl: extractBaseUrl(requestToCancel.senderTabInfo.url),
+          chainId: lastChainId,
+          activeConnectedAddress,
+          connectedAddresses,
+        })
+      }
+      // oxlint-disable-next-line typescript/await-thenable -- biome-parity: oxlint is stricter here
+      await dispatch(
+        rejectRequest({
+          senderTabInfo: requestToCancel.senderTabInfo,
+          errorResponse: {
+            requestId: requestToCancel.dappRequest.requestId,
+            type: DappResponseType.ErrorResponse,
+            error: serializeError(rejectionError ?? providerErrors.userRejectedRequest()),
+          },
+        }),
+      )
 
-    setCurrentIndex((prev) => Math.max(0, prev - 1))
-  })
+      setCurrentIndex((prev) => Math.max(0, prev - 1))
+    },
+  )
 
   const onPressNext = (): void => {
     setForwards(true)

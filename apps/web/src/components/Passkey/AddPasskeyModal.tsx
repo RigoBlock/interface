@@ -1,84 +1,105 @@
-import { useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { Button, Flex, Loader, Text, TouchableArea } from 'ui/src'
-import { Chevron } from 'ui/src/components/icons/Chevron'
-import { Cloud } from 'ui/src/components/icons/Cloud'
-import { Mobile } from 'ui/src/components/icons/Mobile'
-import { Passkey } from 'ui/src/components/icons/Passkey'
-import { ShieldCheck } from 'ui/src/components/icons/ShieldCheck'
-import { colors } from 'ui/src/theme'
-import { Modal } from 'uniswap/src/components/modals/Modal'
-import { useUnitagsAddressQuery } from 'uniswap/src/data/apiClients/unitagsApi/useUnitagsAddressQuery'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Platform } from '@universe/chains'
 import {
   AuthenticatorAttachment,
-  listAuthenticators,
   registerNewAuthenticator,
   startAddAuthenticatorSession,
-} from 'uniswap/src/features/passkey/embeddedWallet'
+  useEmbeddedWalletState,
+} from '@universe/embedded-wallet'
+import { Button, Flex, Text, TouchableArea } from '@universe/mycelium'
+import { Chevron } from '@universe/mycelium/icons/Chevron'
+import { Cloud } from '@universe/mycelium/icons/Cloud'
+import { Mobile } from '@universe/mycelium/icons/Mobile'
+import { Passkey } from '@universe/mycelium/icons/Passkey'
+import { ShieldCheck } from '@universe/mycelium/icons/ShieldCheck'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
+import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Loader } from 'ui/src'
+import { Modal } from 'uniswap/src/components/modals/Modal'
+import { useUnitagsAddressQuery } from 'uniswap/src/data/apiClients/unitagsApi/useUnitagsAddressQuery'
 import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { LIST_AUTHENTICATORS_QUERY_KEY } from '~/components/AccountDrawer/PasskeyMenu/PasskeyMenu'
-import { useAccount } from '~/hooks/useAccount'
+import { logger } from 'utilities/src/logger/logger'
+import { useListAuthenticatorsQuery } from '~/components/AccountDrawer/PasskeyMenu/hooks/useListAuthenticatorsQuery'
+import { resetListAuthenticators } from '~/components/AccountDrawer/PasskeyMenu/PasskeyMenu'
+import { POPUP_MEDIUM_DISMISS_MS } from '~/components/Popups/constants'
+import { useActiveAddress } from '~/features/accounts/store/hooks'
 import { useModalState } from '~/hooks/useModalState'
-import { usePasskeyAuthWithHelpModal } from '~/hooks/usePasskeyAuthWithHelpModal'
-import { useEmbeddedWalletState } from '~/state/embeddedWallet/store'
+import { popupRegistry } from '~/state/popups/registry'
+import { PopupType } from '~/state/popups/types'
 
 type AddPasskeyStep = 'verify' | 'choose'
 
 export function AddPasskeyModal() {
   const { t } = useTranslation()
+  const colors = useSporeColors()
   const queryClient = useQueryClient()
   const { isOpen, onClose } = useModalState(ModalName.AddPasskey)
   const { walletId } = useEmbeddedWalletState()
-  const account = useAccount()
+  const evmAddress = useActiveAddress(Platform.EVM)
   const [step, setStep] = useState<AddPasskeyStep>('verify')
 
   const { data: unitag, isLoading: unitagLoading } = useUnitagsAddressQuery({
-    params: account.address ? { address: account.address } : undefined,
+    params: evmAddress ? { address: evmAddress } : undefined,
   })
+
+  const { data: listAuthenticatorsData } = useListAuthenticatorsQuery()
 
   const handleClose = () => {
     setStep('verify')
     onClose()
   }
 
-  const { mutate: verifyPasskey } = usePasskeyAuthWithHelpModal(
-    async () => {
+  const { mutate: verifyPasskey } = useMutation({
+    mutationFn: async () => {
       return await startAddAuthenticatorSession(walletId ?? undefined)
     },
-    {
-      onSuccess: () => setStep('choose'),
+    onSuccess: () => setStep('choose'),
+    onError: (error) => {
+      logger.error(error, { tags: { file: 'AddPasskeyModal', function: 'verifyPasskey' } })
     },
-  )
+  })
 
-  const { mutate: registerAuthenticator } = usePasskeyAuthWithHelpModal(
-    async (authenticatorAttachment: AuthenticatorAttachment) => {
-      const { authenticators } = await listAuthenticators(walletId ?? undefined)
+  const { mutate: registerAuthenticator } = useMutation({
+    mutationFn: async (authenticatorAttachment: AuthenticatorAttachment) => {
+      const existingCount = listAuthenticatorsData?.authenticators.length ?? 0
       const displayName =
-        unitag?.username ??
-        (account.address ? `${account.address.slice(0, 6)}...${account.address.slice(-4)}` : undefined)
-      const newPasskeyUsername = displayName ? `${displayName} (${authenticators.length + 1})` : undefined
+        unitag?.username ?? (evmAddress ? `${evmAddress.slice(0, 6)}...${evmAddress.slice(-4)}` : undefined)
+      const newPasskeyUsername = displayName ? `${displayName} (${existingCount + 1})` : undefined
       return await registerNewAuthenticator({
         authenticatorAttachment,
         username: newPasskeyUsername,
         walletId: walletId ?? undefined,
       })
     },
-    {
-      onSettled: () => {
-        queryClient.invalidateQueries({ queryKey: [LIST_AUTHENTICATORS_QUERY_KEY] })
-        handleClose()
-      },
+    onSuccess: () => {
+      popupRegistry.addPopup(
+        { type: PopupType.Success, message: t('notification.passkey.added') },
+        'passkey-added-success',
+        POPUP_MEDIUM_DISMISS_MS,
+      )
     },
-  )
+    onError: (error) => {
+      logger.error(error, { tags: { file: 'AddPasskeyModal', function: 'registerAuthenticator' } })
+      popupRegistry.addPopup(
+        { type: PopupType.Error, error: t('notification.passkey.add.failed') },
+        'passkey-add-error',
+        POPUP_MEDIUM_DISMISS_MS,
+      )
+    },
+    onSettled: () => {
+      resetListAuthenticators(queryClient, walletId)
+      handleClose()
+    },
+  })
 
   return (
     <Modal name={ModalName.AddPasskey} isModalOpen={isOpen} onClose={handleClose} maxWidth={420}>
       <Flex gap="$gap16" alignItems="center" width="100%">
         {step === 'verify' ? (
           <Trace logImpression modal={ModalName.AddPasskey}>
-            <Flex gap="$gap16" alignItems="center" px="$padding4" width="100%">
+            <Flex gap="$gap16" alignItems="center" px="$spacing4" width="100%">
               <Flex
                 p="$spacing12"
                 backgroundColor="$surface2"
@@ -98,10 +119,10 @@ export function AddPasskeyModal() {
                 </Text>
               </Flex>
 
-              <Flex row alignSelf="stretch">
+              <Flex row alignSelf="stretch" mt="$spacing8">
                 <Trace logPress element={ElementName.Confirm}>
                   {/* Arrow wrapper needed: onPress passes GestureResponderEvent, but verifyPasskey expects void */}
-                  <Button variant="default" size="medium" onPress={() => verifyPasskey()} mt="$spacing8">
+                  <Button variant="default" size="medium" onPress={() => verifyPasskey()}>
                     {t('account.passkey.verify.button')}
                   </Button>
                 </Trace>
@@ -113,7 +134,7 @@ export function AddPasskeyModal() {
             <Flex
               alignItems="center"
               justifyContent="center"
-              background="$surface2"
+              backgroundColor="$surface2"
               borderRadius="$rounded12"
               p="$padding12"
               width="min-content"
@@ -138,7 +159,7 @@ export function AddPasskeyModal() {
                   <Loader.Box height={40} width={250} />
                 ) : (
                   <Flex row gap="$gap12" justifyContent="center" alignItems="center" width="100%">
-                    <Flex p="$padding6" background={colors.pinkLight} borderRadius="$rounded6" height="min-content">
+                    <Flex p="$padding6" background={colors.pinkLight.val} borderRadius="$rounded6" height="min-content">
                       <Cloud size="$icon.20" color="$accent1" />
                     </Flex>
                     <Flex>
@@ -162,7 +183,7 @@ export function AddPasskeyModal() {
                   <Loader.Box height={40} width={250} />
                 ) : (
                   <Flex row gap="$gap12" justifyContent="center" alignItems="center" width="100%">
-                    <Flex p="$padding6" background={colors.pinkLight} borderRadius="$rounded6" height="min-content">
+                    <Flex p="$padding6" background={colors.pinkLight.val} borderRadius="$rounded6" height="min-content">
                       <Mobile size="$icon.20" color="$accent1" />
                     </Flex>
                     <Flex>
@@ -182,3 +203,5 @@ export function AddPasskeyModal() {
     </Modal>
   )
 }
+
+export default AddPasskeyModal

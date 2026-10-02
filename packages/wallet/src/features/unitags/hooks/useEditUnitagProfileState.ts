@@ -1,8 +1,8 @@
-import { ProfileMetadata } from '@universe/api/src/clients/unitags/types'
+import type { ProfileMetadata } from '@universe/api'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
-import { useUnitagsApiClient } from 'uniswap/src/data/apiClients/unitagsApi/UnitagsApiClient'
+import { unitagsApiClient } from 'uniswap/src/data/apiClients/unitagsApi/UnitagsApiClient'
 import { useInvalidateUnitagsQueries } from 'uniswap/src/data/apiClients/unitagsApi/useInvalidateUnitagsQueries'
 import { useUnitagsAddressQuery } from 'uniswap/src/data/apiClients/unitagsApi/useUnitagsAddressQuery'
 import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
@@ -59,7 +59,6 @@ export function useEditUnitagProfileState({
   const dispatch = useDispatch()
   const account = useAccount(address)
   const signerManager = useWalletSigners()
-  const unitagsApiClient = useUnitagsApiClient()
   const invalidateUnitagsQueries = useInvalidateUnitagsQueries()
 
   const { data: retrievedUnitag, isLoading: loading } = useUnitagsAddressQuery({
@@ -114,14 +113,12 @@ export function useEditUnitagProfileState({
   }
 
   const updateProfileMetadata = async (uploadedNewAvatar: boolean): Promise<void> => {
-    // If new avatar was uploaded, update metadata.avatar to be the S3 file location
-    const metadata = uploadedNewAvatar
-      ? {
-          ...updatedMetadata,
-          // Add Date.now() to the end to ensure the resulting URL is not cached by devices
-          avatar: avatarUploadUrlResponse?.avatarUrl ? `${avatarUploadUrlResponse.avatarUrl}?${Date.now()}` : undefined,
-        }
-      : updatedMetadata
+    // If new avatar was uploaded, update metadata.avatar to be the S3 file location.
+    // Add Date.now() to the end to ensure the resulting URL is not cached by devices.
+    const newAvatarUrl = avatarUploadUrlResponse?.avatarUrl
+      ? `${avatarUploadUrlResponse.avatarUrl}?${Date.now()}`
+      : undefined
+    const metadata = uploadedNewAvatar ? { ...updatedMetadata, avatar: newAvatarUrl } : updatedMetadata
 
     const updateResponse = await unitagsApiClient.updateUnitagMetadata({
       data: {
@@ -153,7 +150,8 @@ export function useEditUnitagProfileState({
     invalidateUnitagsQueries()
 
     if (uploadedNewAvatar) {
-      setAvatarImageUri(avatarUploadUrlResponse?.avatarUrl)
+      // Match the suffixed URL stored in metadata so the dirty-check doesn't keep the Save button enabled
+      setAvatarImageUri(newAvatarUrl)
     }
 
     // If entered from claim flow confirmation screen, navigate back to home on update success

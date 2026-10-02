@@ -1,4 +1,4 @@
-import { Flex, Text } from 'ui/src'
+import { Flex, Text } from '@universe/mycelium'
 import { NFTViewer } from 'uniswap/src/components/nfts/NFTViewer'
 import {
   NFTApproveTransactionInfo,

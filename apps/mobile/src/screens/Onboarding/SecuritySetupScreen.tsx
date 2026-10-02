@@ -1,4 +1,8 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
+import { isIOS } from '@universe/environment'
+import { Button, Flex } from '@universe/mycelium'
+import { Lock } from '@universe/mycelium/icons/Lock'
+import { useIsDarkMode, useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ActivityIndicator, Image, Platform, StyleSheet } from 'react-native'
@@ -13,14 +17,11 @@ import { checkOsBiometricAuthEnabled, useBiometricName } from 'src/features/biom
 import { setRequiredForTransactions } from 'src/features/biometricsSettings/slice'
 import { useCompleteOnboardingCallback } from 'src/features/onboarding/hooks'
 import { OnboardingScreen } from 'src/features/onboarding/OnboardingScreen'
-import { Button, Flex, useIsDarkMode, useSporeColors } from 'ui/src'
 import { SECURITY_SCREEN_BACKGROUND_DARK, SECURITY_SCREEN_BACKGROUND_LIGHT } from 'ui/src/assets'
-import { Lock } from 'ui/src/components/icons'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { ImportType } from 'uniswap/src/types/onboarding'
 import { OnboardingScreens } from 'uniswap/src/types/screens/mobile'
-import { isIOS } from 'utilities/src/platform'
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, OnboardingScreens.Security>
 

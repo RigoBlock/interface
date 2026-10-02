@@ -1,14 +1,22 @@
 /* oxlint-disable typescript/explicit-function-return-type */
 import { skipToken, useQuery } from '@tanstack/react-query'
+import { tryProvideSession } from '@universe/api'
+import { UniverseChainId, Platform, areAddressesEqual } from '@universe/chains'
 import { providers } from 'ethers/lib/ethers'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
-import { createEthersProvider } from 'uniswap/src/features/providers/createEthersProvider'
-import { areAddressesEqual } from 'uniswap/src/utils/addresses'
+import { RPCType } from 'uniswap/src/features/chains/types'
+import { ENS_TUNNELING_BATCH_GATEWAY } from 'uniswap/src/features/ens/constants'
+import { createEthersProviderFactory } from 'uniswap/src/features/providers/createEthersProvider'
+import { defaultResolveRpcConfig } from 'uniswap/src/features/providers/resolveRpcConfig'
 import { isEVMAddress } from 'utilities/src/addresses/evm/evm'
-import { sanitizeAvatarUrl } from 'utilities/src/format/urls'
+import { sanitizeUrl } from 'utilities/src/format/urls'
 import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
+import { persistableQueryOptions } from 'utilities/src/reactQuery/persistableQueryOptions'
 import { ONE_MINUTE_MS } from 'utilities/src/time/time'
+
+const createProvider = createEthersProviderFactory({
+  resolveRpcConfig: defaultResolveRpcConfig,
+  getSessionGate: tryProvideSession,
+})
 
 export enum EnsLookupType {
   Name = 'name',
@@ -55,7 +63,7 @@ async function getAvatarFetch(address: string, provider: providers.JsonRpcProvid
     ? name
     : null
   const avatarUrl = checkedName ? await provider.getAvatar(checkedName) : null
-  return sanitizeAvatarUrl(avatarUrl)
+  return sanitizeUrl({ url: avatarUrl, allowedProtocols: ['http:', 'https:'], callerName: 'getAvatarFetch' }) ?? null
 }
 
 async function getTextFetch({
@@ -75,11 +83,17 @@ async function getTextFetch({
 async function getOnChainEnsFetch(params: EnsLookupParams): Promise<string | null> {
   const { type, nameOrAddress } = params
 
-  const provider = createEthersProvider({ chainId: UniverseChainId.Mainnet })
+  const provider = createProvider({ chainId: UniverseChainId.Mainnet, rpcType: RPCType.Public })
 
   if (!provider) {
     return null
   }
+
+  // Set ENS V2 tunneling batch gateway for CCIP-read tunneling for universal resolver
+  const withTunnel = provider as providers.JsonRpcProvider & {
+    setTunnelingBatchGateways?: (urls: string[]) => void
+  }
+  withTunnel.setTunnelingBatchGateways?.([ENS_TUNNELING_BATCH_GATEWAY])
 
   switch (type) {
     case EnsLookupType.Name:
@@ -98,14 +112,16 @@ async function getOnChainEnsFetch(params: EnsLookupParams): Promise<string | nul
 }
 
 function useEnsQuery(type: EnsLookupType, nameOrAddress?: string | null) {
-  return useQuery<string | null>({
-    queryKey: [ReactQueryCacheKey.OnchainENS, type, nameOrAddress],
-    queryFn: nameOrAddress
-      ? async (): ReturnType<typeof getOnChainEnsFetch> =>
-          await getOnChainEnsFetch({ type, nameOrAddress, chainId: UniverseChainId.Mainnet })
-      : skipToken,
-    staleTime: 5 * ONE_MINUTE_MS,
-  })
+  return useQuery(
+    persistableQueryOptions<string | null>({
+      queryKey: [ReactQueryCacheKey.OnchainENS, type, nameOrAddress],
+      queryFn: nameOrAddress
+        ? async (): ReturnType<typeof getOnChainEnsFetch> =>
+            await getOnChainEnsFetch({ type, nameOrAddress, chainId: UniverseChainId.Mainnet })
+        : skipToken,
+      staleTime: 5 * ONE_MINUTE_MS,
+    }),
+  )
 }
 
 export function useENSName(address?: Address) {

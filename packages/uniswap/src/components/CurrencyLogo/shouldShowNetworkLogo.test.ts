@@ -1,5 +1,5 @@
+import { UniverseChainId } from '@universe/chains'
 import { shouldShowNetworkLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 
 describe('shouldShowNetworkLogo', () => {
   it('returns false when chainId is missing', () => {

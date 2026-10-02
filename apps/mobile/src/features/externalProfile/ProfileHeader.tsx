@@ -1,3 +1,15 @@
+import {
+  Flex,
+  iconSizes,
+  LinearGradient,
+  ScrollView,
+  spacing,
+  Text,
+  TouchableArea,
+  validColor,
+} from '@universe/mycelium'
+import { useIsDarkMode, useSporeColors } from '@universe/mycelium/theme-hooks-compat'
+import { TestID } from '@universe/test'
 import React, { memo, useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { StatusBar, StyleSheet } from 'react-native'
@@ -8,31 +20,19 @@ import { Favorite } from 'src/components/icons/Favorite'
 import { LongText } from 'src/components/text/LongText'
 import { ProfileContextMenu } from 'src/features/externalProfile/ProfileContextMenu'
 import { openModal } from 'src/features/modals/modalSlice'
-import {
-  Flex,
-  getUniconColors,
-  Image,
-  LinearGradient,
-  ScrollView,
-  Text,
-  TouchableArea,
-  useExtractedColors,
-  useIsDarkMode,
-  useSporeColors,
-} from 'ui/src'
+import { getUniconColors, Image, useExtractedColors } from 'ui/src'
 import { ENS_LOGO } from 'ui/src/assets'
 import { SendAction, XTwitter } from 'ui/src/components/icons'
 import { AnimatedFlex } from 'ui/src/components/layout/AnimatedFlex'
-import { DEP_accentColors, iconSizes, imageSizes, spacing, validColor } from 'ui/src/theme'
+import { DEP_accentColors, imageSizes } from 'ui/src/theme'
 import { AddressDisplay } from 'uniswap/src/components/accounts/AddressDisplay'
 import { DisplayNameType } from 'uniswap/src/features/accounts/types'
 import { useAvatar } from 'uniswap/src/features/address/avatar'
 import { useENSDescription, useENSName, useENSTwitterUsername } from 'uniswap/src/features/ens/api'
+import { useToggleWatchedWalletCallback } from 'uniswap/src/features/favorites/hooks/useToggleWatchedWalletCallback'
 import { selectWatchedAddressSet } from 'uniswap/src/features/favorites/selectors'
-import { useToggleWatchedWalletCallback } from 'uniswap/src/features/favorites/useToggleWatchedWalletCallback'
 import { useTestnetModeBannerHeight } from 'uniswap/src/features/settings/hooks'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { openUri } from 'uniswap/src/utils/linking'
 import { RecipientSelectSpeedBumps } from 'wallet/src/components/RecipientSearch/RecipientSelectSpeedBumps'
@@ -219,8 +219,7 @@ export const ProfileHeader = memo(function ProfileHeader({ address }: ProfileHea
               borderWidth="$spacing1"
               height={46}
               p="$spacing12"
-              shadowColor="$neutral1"
-              style={styles.buttonShadow}
+              style={[styles.buttonShadow, { shadowColor: colors.neutral1.val }]}
               testID={TestID.Favorite}
               onPress={onPressFavorite}
             >
@@ -235,8 +234,7 @@ export const ProfileHeader = memo(function ProfileHeader({ address }: ProfileHea
               height={46}
               justifyContent="center"
               px="$spacing12"
-              shadowColor={isDarkMode ? '$surface2' : '$neutral3'}
-              style={styles.buttonShadow}
+              style={[styles.buttonShadow, { shadowColor: isDarkMode ? colors.surface2.val : colors.neutral3.val }]}
               testID={TestID.Send}
               onPress={onPressSend}
             >
@@ -261,6 +259,7 @@ export const ProfileHeader = memo(function ProfileHeader({ address }: ProfileHea
 })
 
 const styles = StyleSheet.create({
+  // shadowColor is resolved at the call sites: the compat native leg drops semantic $ tokens passed as a shadowColor prop
   buttonShadow: {
     elevation: 2,
     shadowOffset: {

@@ -11,6 +11,12 @@ import { HomeScreenTabIndex } from 'src/screens/HomeScreen/HomeScreenTabIndex'
 import { ScannerModalState } from 'uniswap/src/components/ReceiveQRCode/constants'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import {
+  EarnAnalyticsSurface,
+  EarnEntryPoint,
+  getEarnVaultAnalyticsProperties,
+  logEarnVaultSelected,
+} from 'uniswap/src/features/earn/analytics'
+import {
   useFiatOnRampAggregatorCountryListQuery,
   useFiatOnRampAggregatorGetCountryQuery,
 } from 'uniswap/src/features/fiatOnRamp/hooks/useFiatOnRampQueries'
@@ -30,6 +36,8 @@ import {
   getNavigateToSendFlowArgsInitialState,
   getNavigateToSwapFlowArgsInitialState,
   isNavigateToSwapFlowArgsPartialState,
+  NavigateToCategoryDetailsArgs,
+  NavigateToEarnVaultArgs,
   NavigateToExternalProfileArgs,
   NavigateToFiatOnRampArgs,
   NavigateToSendFlowArgs,
@@ -37,6 +45,7 @@ import {
   ShareTokenArgs,
   WalletNavigationProvider,
 } from 'wallet/src/contexts/WalletNavigationContext'
+import { useIsViewOnlyWallet } from 'wallet/src/features/wallet/hooks'
 
 export function MobileWalletNavigationProvider({ children }: PropsWithChildren): JSX.Element {
   const handleShareToken = useHandleShareToken()
@@ -51,13 +60,17 @@ export function MobileWalletNavigationProvider({ children }: PropsWithChildren):
   const navigateToFiatOnRamp = useNavigateToFiatOnRamp()
   const navigateToExternalProfile = useNavigateToExternalProfile()
   const navigateToAdvancedSettings = useNavigateToAdvancedSettings()
+  const navigateToEarnVault = useNavigateToEarnVault()
+  const navigateToCategoryDetails = useNavigateToCategoryDetails()
 
   return (
     <WalletNavigationProvider
+      navigateToCategoryDetails={navigateToCategoryDetails}
       handleShareToken={handleShareToken}
       navigateToAccountActivityList={navigateToAccountActivityList}
       navigateToAccountTokenList={navigateToAccountTokenList}
       navigateToBuyOrReceiveWithEmptyWallet={navigateToBuyOrReceiveWithEmptyWallet}
+      navigateToEarnVault={navigateToEarnVault}
       navigateToExternalProfile={navigateToExternalProfile}
       navigateToFiatOnRamp={navigateToFiatOnRamp}
       navigateToNftDetails={navigateToNftDetails}
@@ -75,7 +88,7 @@ export function MobileWalletNavigationProvider({ children }: PropsWithChildren):
 
 function useHandleShareToken(): (args: ShareTokenArgs) => Promise<void> {
   return useCallback(async ({ currencyId }: ShareTokenArgs): Promise<void> => {
-    const url = getTokenUrl(currencyId, true)
+    const url = getTokenUrl(currencyId, { addMobileUTMTags: true })
 
     if (!url) {
       logger.error(new Error('Failed to get token URL'), {
@@ -104,7 +117,7 @@ function useNavigateToActivity(): () => void {
   const { navigate } = useAppStackNavigation()
 
   return useCallback((): void => {
-    navigate(MobileScreens.Activity)
+    navigate(MobileScreens.MainTabs, { screen: MobileScreens.Activity })
   }, [navigate])
 }
 
@@ -113,7 +126,10 @@ function useNavigateToHomepageTab(tab: HomeScreenTabIndex): () => void {
 
   return useCallback((): void => {
     closeKeyboardBeforeCallback(() => {
-      navigate(MobileScreens.Home, { tab })
+      navigate(MobileScreens.MainTabs, {
+        screen: MobileScreens.Home,
+        params: { tab },
+      })
     })
   }, [navigate, tab])
 }
@@ -253,12 +269,36 @@ function useNavigateToTokenDetails(): (currencyId: string) => void {
         if (isSwap) {
           appNavigation.reset({
             index: 1,
-            routes: [{ name: MobileScreens.Home }, { name: MobileScreens.TokenDetails, params: { currencyId } }],
+            routes: [
+              { name: MobileScreens.MainTabs, params: { screen: MobileScreens.Home } },
+              { name: MobileScreens.TokenDetails, params: { currencyId } },
+            ],
           })
           return
         }
 
         appNavigation.navigate(MobileScreens.TokenDetails, { currencyId })
+      })
+    },
+    [appNavigation, dispatch, onClose],
+  )
+}
+
+/** Search-modal category rows: dismiss the modal (and keyboard) like token rows do, then push the screen. */
+function useNavigateToCategoryDetails(): (args: NavigateToCategoryDetailsArgs) => void {
+  const appNavigation = useAppStackNavigation()
+  const { onClose } = useReactNavigationModal()
+  const dispatch = useDispatch()
+
+  return useCallback(
+    ({ categoryId }: NavigateToCategoryDetailsArgs): void => {
+      closeKeyboardBeforeCallback(() => {
+        const isExploreScreen = navigationRef.getCurrentRoute()?.name === MobileScreens.Explore
+        dispatch(closeAllModals())
+        if (!isExploreScreen) {
+          onClose()
+        }
+        appNavigation.navigate(MobileScreens.CategoryDetails, { categoryId })
       })
     },
     [appNavigation, dispatch, onClose],
@@ -333,4 +373,47 @@ function useNavigateToAdvancedSettings(): () => void {
       navigation.navigate(ModalName.SmartWalletAdvancedSettingsModal, advancedSettingsState)
     })
   }, [navigation, advancedSettingsState])
+}
+
+function useNavigateToEarnVault(): (args: NavigateToEarnVaultArgs) => void {
+  const navigation = useAppStackNavigation()
+  const isViewOnlyWallet = useIsViewOnlyWallet()
+
+  return useCallback(
+    ({
+      analyticsEntryPoint = EarnEntryPoint.GlobalModal,
+      vault,
+      position,
+      initialAction,
+      minimumBalanceDataUpdatedAtMs,
+    }: NavigateToEarnVaultArgs): void => {
+      closeKeyboardBeforeCallback(() => {
+        logEarnVaultSelected(
+          getEarnVaultAnalyticsProperties({
+            entryPoint: analyticsEntryPoint,
+            position,
+            surface: EarnAnalyticsSurface.Mobile,
+            vault,
+          }),
+        )
+
+        // With an explicit action, skip the vault overview and land directly in the
+        // deposit/withdraw amount sheet — matches the in-overview "Deposit"/"Withdraw"
+        // buttons' end state. View-only wallets always land on the overview instead;
+        // its action buttons surface the view-only explainer.
+        if (initialAction && !isViewOnlyWallet) {
+          navigation.navigate(ModalName.EarnDepositAmount, {
+            vault,
+            position,
+            initialAction,
+            analyticsEntryPoint,
+            minimumBalanceDataUpdatedAtMs,
+          })
+          return
+        }
+        navigation.navigate(ModalName.EarnVault, { vault, position, analyticsEntryPoint })
+      })
+    },
+    [navigation, isViewOnlyWallet],
+  )
 }

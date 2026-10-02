@@ -1,7 +1,6 @@
+import { UniverseChainId } from '@universe/chains'
 import { CSSProperties } from 'react'
-import { FlexProps } from 'ui/src/components/layout'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { isUniverseChainId } from 'uniswap/src/features/chains/utils'
 
 const getDefaultBorderRadius = (size: number) => size / 2 - 4
@@ -14,7 +13,8 @@ type ChainLogoProps = {
   style?: CSSProperties
   testId?: string
   fillContainer?: boolean
-  transition?: FlexProps['transition']
+  // Bare string until mycelium ships a typed transition prop.
+  transition?: string
 }
 export function ChainLogo({
   chainId,

@@ -1,6 +1,15 @@
+import { Flex } from '@universe/mycelium'
+import type { FlexCompatProps as FlexProps, MyceliumElement } from '@universe/mycelium'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { forwardRef, PropsWithChildren } from 'react'
-import { Flex, FlexProps, useSporeColors } from 'ui/src'
+import type { ForwardRefExoticComponent, RefAttributes } from 'react'
 import { useBooleanState } from 'utilities/src/react/useBooleanState'
+
+type WiggleProps = PropsWithChildren<FlexProps> & {
+  wiggleAmount?: number
+  iconColor?: string
+  isAnimating?: boolean
+}
 
 const getWiggleKeyframe = ({ wiggleAmount = 20 }: { wiggleAmount?: number }) => {
   return `
@@ -21,9 +30,9 @@ const getWiggleKeyframe = ({ wiggleAmount = 20 }: { wiggleAmount?: number }) => 
 `
 }
 
-export const Wiggle = forwardRef<
-  any,
-  PropsWithChildren<FlexProps> & { wiggleAmount?: number; iconColor?: string; isAnimating?: boolean }
+export const Wiggle: ForwardRefExoticComponent<WiggleProps & RefAttributes<MyceliumElement>> = forwardRef<
+  MyceliumElement,
+  WiggleProps
 >(({ wiggleAmount = 20, iconColor, children, isAnimating, ...props }, ref) => {
   const { value: isHovering, setTrue: setIsHovering, setFalse: setIsHoveringFalse } = useBooleanState(false)
   const colors = useSporeColors()

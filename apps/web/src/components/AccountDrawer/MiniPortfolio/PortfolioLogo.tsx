@@ -1,14 +1,15 @@
 import { Currency } from '@uniswap/sdk-core'
+import { UniverseChainId } from '@universe/chains'
+import { Flex } from '@universe/mycelium'
+import { ContractInteraction } from '@universe/mycelium/icons/ContractInteraction'
 import React, { memo } from 'react'
-import { Flex, useSporeColors } from 'ui/src'
-import { UseSporeColorsReturn } from 'ui/src/hooks/useSporeColors'
+import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
 import { SplitLogo } from 'uniswap/src/components/CurrencyLogo/SplitLogo'
 import { TokenLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
 import { AccountIcon } from 'uniswap/src/features/accounts/AccountIcon'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { isTestnetChain } from 'uniswap/src/features/chains/utils'
-import { ReactComponent as UnknownStatus } from '~/assets/svg/contract-interaction.svg'
-import CurrencyLogo from '~/components/Logo/CurrencyLogo'
+import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
+import { currencyId } from 'uniswap/src/utils/currencyId'
 import { DoubleCurrencyLogo } from '~/components/Logo/DoubleLogo'
 
 interface PortfolioLogoProps {
@@ -22,34 +23,37 @@ interface PortfolioLogoProps {
   customIcon?: React.ReactNode
 }
 
-const LOGO_DEFAULT_SIZE = 40
+export const PORTFOLIO_LOGO_DEFAULT_SIZE = 40
 
 export const PortfolioLogo = memo(function PortfolioLogo(props: PortfolioLogoProps) {
-  const colors = useSporeColors()
+  // On testnets, currency-based activities resolve their logo through CurrencyLogo (useCurrencyInfo).
+  // But activities that carry raw image URLs instead of a Currency — e.g. a just-launched token that
+  // isn't indexed yet — have nothing for CurrencyLogo to resolve, so it would render blank. Let those
+  // fall through to getLogo (TokenLogo already applies testnet styling) instead of swallowing them.
+  const showTestnetCurrencyLogo = isTestnetChain(props.chainId) && !props.images?.length
+  // Only the testnet branch consumes this, so skip the token lookup everywhere else.
+  const currencyInfo = useCurrencyInfo(showTestnetCurrencyLogo ? currencyId(props.currencies?.[0]) : undefined)
 
-  if (isTestnetChain(props.chainId)) {
-    return <CurrencyLogo currency={props.currencies?.[0]} size={props.size} />
+  if (showTestnetCurrencyLogo) {
+    return <CurrencyLogo currencyInfo={currencyInfo} size={props.size} />
   }
 
   return (
     <Flex alignItems="center" top={0} left={0} style={props.style}>
-      <Flex position="relative">{getLogo(props, colors)}</Flex>
+      <Flex position="relative">{getLogo(props)}</Flex>
     </Flex>
   )
 })
 
-function getLogo(
-  {
-    accountAddress,
-    currencies,
-    images,
-    fallbackSymbols,
-    chainId,
-    customIcon,
-    size = LOGO_DEFAULT_SIZE,
-  }: PortfolioLogoProps,
-  colors: UseSporeColorsReturn,
-) {
+function getLogo({
+  accountAddress,
+  currencies,
+  images,
+  fallbackSymbols,
+  chainId,
+  customIcon,
+  size = PORTFOLIO_LOGO_DEFAULT_SIZE,
+}: PortfolioLogoProps) {
   if (accountAddress) {
     return <AccountIcon address={accountAddress} size={size} />
   }
@@ -74,5 +78,12 @@ function getLogo(
   if (images && images.length === 1) {
     return <TokenLogo url={images[0]} size={size} chainId={chainId} symbol={fallbackSymbols?.[0]} />
   }
-  return <UnknownStatus width={size} height={size} color={colors.neutral2.val} />
+  if (customIcon && !accountAddress && !currencies?.length && !images?.length) {
+    return (
+      <Flex alignItems="center" height={size} justifyContent="center" width={size}>
+        {customIcon}
+      </Flex>
+    )
+  }
+  return <ContractInteraction size={size} color="$neutral2" />
 }

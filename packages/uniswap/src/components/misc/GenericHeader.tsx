@@ -1,6 +1,7 @@
-import { Flex, FlexProps, GeneratedIcon, getTokenValue, SpaceTokens, Text, useMedia } from 'ui/src'
+import { Flex, type FlexProps, type SpaceTokens, Text, getTokenValue } from '@universe/mycelium'
+import type { GeneratedIcon } from '@universe/mycelium/icons'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
 import { fonts, IconSizeTokens, TextVariantTokens } from 'ui/src/theme'
-
 type GenericHeaderProps = {
   Icon?: GeneratedIcon
   /* Size of the icon itself.*/

@@ -1,5 +1,5 @@
+import { UniverseChainId } from '@universe/chains'
 import { createMigrate } from 'redux-persist'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { migration1 } from '~/state/migrations/1'
 import { migration2 } from '~/state/migrations/2'
 import { migration3 } from '~/state/migrations/3'

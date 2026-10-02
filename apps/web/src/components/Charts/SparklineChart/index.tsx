@@ -1,24 +1,46 @@
+import { Flex } from '@universe/mycelium'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { curveCardinal, scaleLinear } from 'd3'
 import { memo } from 'react'
-import { Flex, useSporeColors } from 'ui/src'
-import { SparklineMap } from '~/appGraphql/data/types'
-import { PricePoint } from '~/appGraphql/data/util'
+import { ChartModelWithLiveDot, LiveDotRenderer } from '~/components/Charts/LiveDotRenderer'
 import { getPriceBounds } from '~/components/Charts/PriceChart/utils'
-import LineChart from '~/components/Charts/SparklineChart/LineChart'
+import { LineChart } from '~/components/Charts/SparklineChart/LineChart'
 import { LoadingBubble } from '~/components/Tokens/loading'
-import { TokenStat } from '~/state/explore/types'
+import { SparklineMap } from '~/data/types'
+import { PricePoint } from '~/data/util'
 
 interface SparklineChartProps {
   width: number
   height: number
-  tokenData: TokenStat
+  multichainId: string | undefined
   pricePercentChange?: number | null
   sparklineMap: SparklineMap
+  /** Overrides the price-direction color (e.g. an extracted token accent). */
+  color?: string
+  /** Fade the stroke in left-to-right; see LineChart. */
+  strokeFadeIn?: boolean
+  /** Fill under the line with a fade to transparent; see LineChart. */
+  showGradientFill?: boolean
+  /** Mark the last point with the pulsing live dot the TDP chart uses. */
+  showLiveDot?: boolean
 }
 
-function SparklineChartInner({ width, height, tokenData, pricePercentChange, sparklineMap }: SparklineChartProps) {
+// LiveDotRenderer reads the last point from a chart model; the sparkline has none and passes coordinates directly.
+const NO_CHART_MODEL: ChartModelWithLiveDot = {}
+
+function SparklineChartInner({
+  width,
+  height,
+  multichainId,
+  pricePercentChange,
+  sparklineMap,
+  color,
+  strokeFadeIn = false,
+  showGradientFill = false,
+  showLiveDot = false,
+}: SparklineChartProps) {
   const colors = useSporeColors()
-  const pricePoints = tokenData.id ? sparklineMap[tokenData.id] : null
+  const pricePoints = multichainId ? sparklineMap[multichainId] : null
 
   // Don't display if there's one or less pricepoints
   if (!pricePoints || pricePoints.length <= 1) {
@@ -31,32 +53,55 @@ function SparklineChartInner({ width, height, tokenData, pricePercentChange, spa
 
   const startingPrice = pricePoints[0]
   const endingPrice = pricePoints[pricePoints.length - 1]
-  const widthScale = scaleLinear()
-    .domain(
-      // the range of possible input values
-      [startingPrice.timestamp, endingPrice.timestamp],
-    )
-    .range(
-      // the range of possible output values that the inputs should be transformed to (see https://www.d3indepth.com/scales/ for details)
-      [0, 110],
-    )
-
   const { min, max } = getPriceBounds(pricePoints)
-  const rdScale = scaleLinear().domain([min, max]).range([height, 0])
+
+  // A stroke is centered on its path, so a point at the very edge of a scale's range leaves
+  // half the stroke outside the SVG, which has no viewBox and so clips at its own bounds.
+  // Both axes put points exactly on their edges — min/max come from the data itself, and the
+  // first/last timestamps bound the domain — so inset both ranges by half a stroke.
+  const strokeWidth = 1.5
+  const padding = strokeWidth / 2
+  const widthScale = scaleLinear()
+    .domain([startingPrice.timestamp, endingPrice.timestamp])
+    .range([padding, width - padding])
+  const rdScale = scaleLinear()
+    .domain([min, max])
+    .range([height - padding, padding])
   const curveTension = 0.9
 
-  return (
+  const lineColor =
+    color ?? (pricePercentChange && pricePercentChange < 0 ? colors.statusCritical.val : colors.statusSuccess.val)
+  const lineChart = (
     <LineChart
       data={pricePoints}
       getX={(p: PricePoint) => widthScale(p.timestamp)}
       getY={(p: PricePoint) => rdScale(p.value)}
+      yScale={rdScale}
       curve={curveCardinal.tension(curveTension)}
-      color={pricePercentChange && pricePercentChange < 0 ? colors.statusCritical.val : colors.statusSuccess.val}
-      strokeWidth={1.5}
+      color={lineColor}
+      strokeWidth={strokeWidth}
+      strokeFadeIn={strokeFadeIn}
+      showGradientFill={showGradientFill}
       width={width}
       height={height}
     />
   )
+
+  if (!showLiveDot) {
+    return lineChart
+  }
+
+  return (
+    <Flex width={width} height={height}>
+      {lineChart}
+      <LiveDotRenderer
+        chartModel={NO_CHART_MODEL}
+        isHovering={false}
+        overrideColor={lineColor}
+        coordinateOverride={{ x: widthScale(endingPrice.timestamp), y: rdScale(endingPrice.value) }}
+      />
+    </Flex>
+  )
 }
 
-export default memo(SparklineChartInner)
+export const SparklineChart = memo(SparklineChartInner)

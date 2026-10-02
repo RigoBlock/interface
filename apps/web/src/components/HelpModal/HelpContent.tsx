@@ -1,12 +1,12 @@
+import { Anchor, Flex, Text, TouchableArea } from '@universe/mycelium'
+import { BookOpen } from '@universe/mycelium/icons/BookOpen'
+import { ExternalLink } from '@universe/mycelium/icons/ExternalLink'
+import { GraduationCap } from '@universe/mycelium/icons/GraduationCap'
+import { SpeechBubbles } from '@universe/mycelium/icons/SpeechBubbles'
+import { X } from '@universe/mycelium/icons/X'
+import { TestID } from '@universe/test'
 import { useTranslation } from 'react-i18next'
-import { Anchor, Flex, Text, TouchableArea } from 'ui/src'
-import { BookOpen } from 'ui/src/components/icons/BookOpen'
-import { ExternalLink } from 'ui/src/components/icons/ExternalLink'
-import { GraduationCap } from 'ui/src/components/icons/GraduationCap'
-import { SpeechBubbles } from 'ui/src/components/icons/SpeechBubbles'
-import { X } from 'ui/src/components/icons/X'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
+import { UniswapHelpUrls, UniswapStaticUrls } from 'uniswap/src/constants/urls'
 
 interface HelpContentProps {
   onClose?: () => void
@@ -42,7 +42,6 @@ export function HelpContent({ onClose }: HelpContentProps) {
       borderColor="$surface3"
       backgroundColor="$surface2"
       userSelect="none"
-      boxShadow="$shadow.1"
       data-testid={TestID.HelpModal}
     >
       <Flex row justifyContent="space-between" alignItems="center">
@@ -56,17 +55,17 @@ export function HelpContent({ onClose }: HelpContentProps) {
       <HelpItem
         icon={<GraduationCap size="$icon.20" color="$neutral2" />}
         title={t('settings.action.help')}
-        href={uniswapUrls.helpUrl}
+        href={UniswapHelpUrls.baseUrl}
       />
       <HelpItem
         icon={<BookOpen size="$icon.20" color="$neutral2" />}
         title={t('common.docs')}
-        href={uniswapUrls.docsUrl}
+        href={UniswapStaticUrls.docsUrl}
       />
       <HelpItem
         icon={<SpeechBubbles size="$icon.20" color="$neutral2" />}
         title={t('common.contactUs.button')}
-        href={uniswapUrls.helpRequestUrl}
+        href={UniswapHelpUrls.requestUrl}
       />
     </Flex>
   )

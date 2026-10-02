@@ -1,7 +1,7 @@
 import { TradeType } from '@uniswap/sdk-core'
 import { FetchError, type JupiterOrderUrlParams } from '@universe/api'
+import { isSVMChain } from '@universe/chains'
 import { JupiterApiClient } from 'uniswap/src/data/apiClients/jupiterApi/JupiterFetchClient'
-import { isSVMChain } from 'uniswap/src/features/platforms/utils/chains'
 import {
   areCurrenciesEqual,
   isZeroAmount,

@@ -1,5 +1,4 @@
 import 'utilities/src/logger/mocks'
-import { ApolloClient, InMemoryCache } from '@apollo/client'
 import { configureStore } from '@reduxjs/toolkit'
 import { QueryClient } from '@tanstack/react-query'
 import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
@@ -9,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { setOpenModal } from '~/state/application/reducer'
 import { addList } from '~/state/lists/actions'
 import { createWebAppStateResetter } from '~/state/reset/appResetter'
-import { type InterfaceState, interfaceReducer } from '~/state/webReducer'
+import { interfaceReducer } from '~/state/webReducer'
 
 // Mock the sagas module to prevent saga initialization during tests
 vi.mock('~/state/sagas/root', () => ({
@@ -18,35 +17,31 @@ vi.mock('~/state/sagas/root', () => ({
   rootWebSaga: vi.fn(function* () {}),
 }))
 
-const createMockApolloClient = (): ApolloClient<unknown> => {
-  const client = new ApolloClient({
-    cache: new InMemoryCache(),
-  })
-  vi.spyOn(client, 'resetStore').mockResolvedValue([])
-  return client
-}
-
 const createMockQueryClient = (): QueryClient => {
   const client = new QueryClient()
   vi.spyOn(client, 'resetQueries').mockResolvedValue()
   return client
 }
 
+// Disable dev-mode state checks: under CI load the immutable-check middleware
+// exceeds its 32ms warning threshold and the console.warn fails the test
+// via the fail-on-console setup in setupTests.ts.
+const createTestStore = () =>
+  configureStore({
+    reducer: interfaceReducer,
+    middleware: (getDefaultMiddleware) => getDefaultMiddleware({ immutableCheck: false, serializableCheck: false }),
+  })
+
 describe('createWebAppStateResetter', () => {
-  let store: ReturnType<typeof configureStore<InterfaceState>>
-  let apolloClient: ApolloClient<unknown>
+  let store: ReturnType<typeof createTestStore>
   let queryClient: QueryClient
   let resetter: ReturnType<typeof createWebAppStateResetter>
 
   beforeEach(() => {
-    store = configureStore({
-      reducer: interfaceReducer,
-    })
-    apolloClient = createMockApolloClient()
+    store = createTestStore()
     queryClient = createMockQueryClient()
     resetter = createWebAppStateResetter({
       dispatch: store.dispatch,
-      apolloClient,
       queryClient,
     })
     vi.clearAllMocks()
@@ -89,7 +84,6 @@ describe('createWebAppStateResetter', () => {
       await resetter.resetQueryCaches()
 
       // Verify cache clearing methods were called
-      expect(apolloClient.resetStore).toHaveBeenCalledTimes(1)
       expect(queryClient.resetQueries).toHaveBeenCalledTimes(1)
     })
   })
@@ -112,7 +106,6 @@ describe('createWebAppStateResetter', () => {
       // Verify all resets worked
       const state = store.getState()
       expect(state.notifications.notificationQueue).toEqual([])
-      expect(apolloClient.resetStore).toHaveBeenCalledTimes(1)
       expect(queryClient.resetQueries).toHaveBeenCalledTimes(1)
     })
   })

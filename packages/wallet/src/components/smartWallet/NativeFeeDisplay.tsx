@@ -1,4 +1,4 @@
-import { Flex } from 'ui/src'
+import { Flex } from '@universe/mycelium'
 import { NetworkFeeDisplay } from 'wallet/src/components/smartWallet/NetworkFeeDisplay'
 import { GroupedGasFee } from 'wallet/src/features/smartWallet/utils/gasFeeUtils'
 

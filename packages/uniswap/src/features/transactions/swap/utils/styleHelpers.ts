@@ -1,4 +1,4 @@
-import { ColorTokens } from 'ui/src'
+import { ColorTokens } from '@universe/mycelium'
 import { SLIPPAGE_CRITICAL_TOLERANCE } from 'uniswap/src/constants/transactions'
 import { SLIPPAGE_LOW_TOLERANCE_LP } from 'uniswap/src/features/transactions/components/settings/settingsConfigurations/slippage/SlippageLPWarning'
 

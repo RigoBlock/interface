@@ -1,4 +1,5 @@
-import { Flex, Unicon } from 'ui/src'
+import { Flex } from '@universe/mycelium'
+import { Unicon } from 'ui/src'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 

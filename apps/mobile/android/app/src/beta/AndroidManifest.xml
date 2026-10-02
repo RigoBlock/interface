@@ -9,7 +9,7 @@
     tools:ignore="GoogleAppIndexingWarning"
     tools:targetApi="28">
     <activity
-      android:name=".MainActivity"
+      android:name="com.uniswap.MainActivity"
       android:exported="true">
       <intent-filter android:autoVerify="true" android:priority="1">
         <action android:name="android.intent.action.VIEW" />

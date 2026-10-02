@@ -1,28 +1,30 @@
 import { SharedEventName } from '@uniswap/analytics-events'
-import { memo, useEffect, useState } from 'react'
+import { UniverseChainId, sanitizeAddressText } from '@universe/chains'
+import { Flex, TouchableArea, UniversalImage } from '@universe/mycelium'
+import { TestID } from '@universe/test'
+import { memo, useEffect, useRef, useState } from 'react'
 import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated'
 import { useDispatch, useSelector } from 'react-redux'
 import { useDappContext } from 'src/app/features/dapp/DappContext'
 import { ConnectPopupContent } from 'src/app/features/popups/ConnectPopup'
 import { selectPopupState } from 'src/app/features/popups/selectors'
 import { closePopup, openPopup, PopupName } from 'src/app/features/popups/slice'
+import { useLockScroll } from 'src/app/hooks/useLockScroll'
 import { AppRoutes } from 'src/app/navigation/constants'
 import { navigate } from 'src/app/navigation/state'
-import { Circle, Flex, Popover, Text, TouchableArea, UniversalImage } from 'ui/src'
+import { Popover } from 'ui/src'
 import { animationPresets } from 'ui/src/animations'
 import { CopyAlt, Globe, RotatableChevron, Settings } from 'ui/src/components/icons'
+import { DynamicSizeText } from 'ui/src/components/text/DynamicSizeText/DynamicSizeText'
 import { borderRadii, iconSizes } from 'ui/src/theme'
 import { DappIconPlaceholder } from 'uniswap/src/components/dapps/DappIconPlaceholder'
 import { AccountIcon } from 'uniswap/src/features/accounts/AccountIcon'
 import { DisplayNameType } from 'uniswap/src/features/accounts/types'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
 import { AppNotificationType, CopyNotificationType } from 'uniswap/src/features/notifications/slice/types'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { ExtensionScreens } from 'uniswap/src/types/screens/extension'
-import { sanitizeAddressText } from 'uniswap/src/utils/addresses'
 import { shortenAddress } from 'utilities/src/addresses'
 import { setClipboard } from 'utilities/src/clipboard/clipboard'
 import { extractNameFromUrl } from 'utilities/src/format/extractNameFromUrl'
@@ -41,7 +43,7 @@ type PortfolioHeaderProps = {
 // it's not in any kind of Context because it's only animation variable and it shouldn't trigger rerenders
 let shouldEnableAnimationNextEnter = false
 
-const RotatingSettingsIcon = ({ onPressSettings }: { onPressSettings(): void }): JSX.Element => {
+const RotatingSettingsIcon = ({ onPressSettings }: { onPressSettings: () => void }): JSX.Element => {
   const isScreenFocused = useIsFocused()
   const pressProgress = useSharedValue(0)
 
@@ -102,6 +104,7 @@ export const PortfolioHeader = memo(function PortfolioHeaderInner({ address }: P
   const walletHasName = displayName && displayName.type !== DisplayNameType.Address
   const formattedAddress = sanitizeAddressText(shortenAddress({ address }))
   const { isOpen: isPopupOpen } = useSelector(selectPopupState(PopupName.Connect))
+  const containerRef = useRef(null)
 
   // Used to delay popup showing on initial render, which leads to improper anchoring
   const [initialized, setInitialized] = useState(false)
@@ -149,8 +152,10 @@ export const PortfolioHeader = memo(function PortfolioHeaderInner({ address }: P
     navigate('/settings')
   }
 
+  useLockScroll({ ref: containerRef, enabled: initialized && isPopupOpen })
+
   return (
-    <Flex gap="$spacing8">
+    <Flex ref={containerRef} gap="$spacing8">
       <Flex row justifyContent="space-between" alignItems="flex-start">
         <TouchableArea pressStyle={{ scale: 0.95 }} onPress={onPressAccount}>
           <Flex row alignItems="center" gap="$spacing4">
@@ -190,7 +195,6 @@ export const PortfolioHeader = memo(function PortfolioHeaderInner({ address }: P
                 borderColor="$surface2"
                 borderRadius="$rounded20"
                 borderWidth="$spacing1"
-                enableRemoveScroll={true}
                 zIndex="$default"
                 {...animationPresets.fadeInDownOutUp}
                 shadowColor="$shadowColor"
@@ -208,13 +212,14 @@ export const PortfolioHeader = memo(function PortfolioHeaderInner({ address }: P
         {walletHasName ? (
           <AnimatedUnitagDisplayName address={address} displayName={displayName} />
         ) : (
-          <TouchableArea testID="account-header/address-only" onPress={onPressCopyAddress}>
-            <Flex centered row shrink gap="$spacing4">
-              <Text adjustsFontSizeToFit color="$neutral1" numberOfLines={1} variant="subheading1">
-                {formattedAddress}
-              </Text>
-              <CopyAlt color="$neutral3" size="$icon.16" />
-            </Flex>
+          <TouchableArea testID="account-header/address-only" onPress={onPressCopyAddress} width="100%">
+            <DynamicSizeText
+              variant="subheading1"
+              gap="$spacing4"
+              floatingSuffix={<CopyAlt color="$neutral3" size="$icon.16" />}
+            >
+              {formattedAddress}
+            </DynamicSizeText>
           </TouchableArea>
         )}
       </Flex>
@@ -244,9 +249,11 @@ function ConnectionStatusIcon({
         uri={dappIconUrl}
       />
       <Flex backgroundColor="$surface2" borderRadius="$roundedFull" position="absolute" right={8} top={-3}>
-        <Circle
+        {/* The radius must live here: an absolutely positioned child is not clipped by the parent's radius. */}
+        <Flex
           backgroundColor="$statusSuccess"
           borderColor="$surface1"
+          borderRadius="$roundedFull"
           borderWidth="$spacing2"
           height={iconSizes.icon12}
           mr="$spacing8"

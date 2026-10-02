@@ -1,28 +1,23 @@
 import { CurrencyAmount } from '@uniswap/sdk-core'
 import { GraphQLApi, TradingApi } from '@universe/api'
+import { UniverseChainId, Platform } from '@universe/chains'
+import { isWebApp, isE2eTestEnv } from '@universe/environment'
 import { SwapConfigKey } from '@universe/gating'
 import { ETH_LOGO, ETHEREUM_LOGO } from 'ui/src/assets'
 import { config } from 'uniswap/src/config'
+import { ALL_APPS_CHAIN_SUPPORTED_APPS } from 'uniswap/src/features/chains/chainAppSupport'
 import { CHAIN_ID_TO_URL_PARAM } from 'uniswap/src/features/chains/chainUrlParam'
 import {
   DEFAULT_MS_BEFORE_WARNING,
   DEFAULT_NATIVE_ADDRESS_LEGACY,
   getPlaywrightRpcUrls,
   getQuicknodeEndpointUrl,
+  getUniRpcEndpointUrl,
 } from 'uniswap/src/features/chains/evm/rpc'
 import { buildChainTokens } from 'uniswap/src/features/chains/evm/tokens'
-import {
-  GqlChainId,
-  NetworkLayer,
-  RPCType,
-  UniverseChainId,
-  UniverseChainInfo,
-} from 'uniswap/src/features/chains/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
+import { GqlChainId, NetworkLayer, RPCType, UniverseChainInfo } from 'uniswap/src/features/chains/types'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
-import { buildDAI, buildUSDC, buildUSDT } from 'uniswap/src/features/tokens/stablecoin'
-import { isPlaywrightEnv } from 'utilities/src/environment/env'
-import { isWebApp } from 'utilities/src/platform'
+import { buildDAI, buildUSDC, buildUSDG, buildUSDT } from 'uniswap/src/features/tokens/stablecoin'
 import { ONE_MINUTE_MS } from 'utilities/src/time/time'
 import { mainnet, sepolia } from 'wagmi/chains'
 
@@ -31,6 +26,7 @@ const tokens = buildChainTokens({
     USDC: buildUSDC('0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', UniverseChainId.Mainnet),
     USDT: buildUSDT('0xdAC17F958D2ee523a2206206994597C13D831ec7', UniverseChainId.Mainnet),
     DAI: buildDAI('0x6B175474E89094C44Da98b954EedeAC495271d0F', UniverseChainId.Mainnet),
+    USDG: buildUSDG('0xe343167631d89B6Ffc58B88d6b7fB0228795491D', UniverseChainId.Mainnet),
   },
 })
 
@@ -40,6 +36,7 @@ export const MAINNET_CHAIN_INFO = {
   ...mainnet,
   id: UniverseChainId.Mainnet,
   platform: Platform.EVM,
+  supportedApps: ALL_APPS_CHAIN_SUPPORTED_APPS,
   assetRepoNetworkName: 'ethereum',
   backendChain: {
     chain: GraphQLApi.Chain.Ethereum as GqlChainId,
@@ -54,7 +51,6 @@ export const MAINNET_CHAIN_INFO = {
   explorer: {
     name: 'Etherscan',
     url: 'https://etherscan.io/',
-    apiURL: 'https://api.etherscan.io',
   },
   openseaName: 'ethereum',
   interfaceName: 'mainnet',
@@ -71,20 +67,28 @@ export const MAINNET_CHAIN_INFO = {
   networkLayer: NetworkLayer.L1,
   blockTimeMs: 12000,
   pendingTransactionsRetryOptions: undefined,
-  rpcUrls: isPlaywrightEnv()
+  rpcUrls: isE2eTestEnv()
     ? getPlaywrightRpcUrls(LOCAL_MAINNET_PLAYWRIGHT_RPC_URL)
     : {
         [RPCType.Private]: {
           http: ['https://rpc.mevblocker.io/?referrer=uniswapwallet'],
         },
         [RPCType.Public]: {
-          http: [getQuicknodeEndpointUrl(UniverseChainId.Mainnet)],
+          http: [getUniRpcEndpointUrl(UniverseChainId.Mainnet)],
         },
+        // Default feeds the wallet-connector rpc maps (WalletConnect/Binance read
+        // rpcUrls.default.http[0] from a cookieless in-page client), so it must be an
+        // unkeyed endpoint that is CORS- and CSP-allowed. Keyed QuickNode/Infura URLs
+        // leak the key into third-party traffic. rpc.ankr.com now returns "Unauthorized"
+        // for anonymous reads, and eth.drpc.org's free tier sheds sustained load
+        // (steady 408/429 on real-user reads), so drpc is demoted to Fallback in
+        // favor of publicnode + tenderly, both verified for browser CORS and the
+        // connector method mix (eth_call/estimateGas/getLogs/batch).
         [RPCType.Default]: {
-          http: [getQuicknodeEndpointUrl(UniverseChainId.Mainnet)],
+          http: ['https://ethereum-rpc.publicnode.com', 'https://mainnet.gateway.tenderly.co'],
         },
         [RPCType.Fallback]: {
-          http: ['https://rpc.ankr.com/eth', 'https://eth-mainnet.public.blastapi.io'],
+          http: ['https://eth.drpc.org', 'https://eth-mainnet.public.blastapi.io'],
         },
         [RPCType.Interface]: {
           http: [`https://mainnet.infura.io/v3/${config.infuraKey}`, getQuicknodeEndpointUrl(UniverseChainId.Mainnet)],
@@ -127,6 +131,7 @@ export const SEPOLIA_CHAIN_INFO = {
   ...sepolia,
   id: UniverseChainId.Sepolia,
   platform: Platform.EVM,
+  supportedApps: ALL_APPS_CHAIN_SUPPORTED_APPS,
   assetRepoNetworkName: undefined,
   backendChain: {
     chain: GraphQLApi.Chain.EthereumSepolia as GqlChainId,
@@ -141,7 +146,6 @@ export const SEPOLIA_CHAIN_INFO = {
   explorer: {
     name: 'Etherscan',
     url: 'https://sepolia.etherscan.io/',
-    apiURL: 'https://api-sepolia.etherscan.io',
   },
   interfaceName: 'sepolia',
   label: 'Sepolia',
@@ -159,7 +163,7 @@ export const SEPOLIA_CHAIN_INFO = {
   pendingTransactionsRetryOptions: undefined,
   rpcUrls: {
     [RPCType.Public]: {
-      http: [getQuicknodeEndpointUrl(UniverseChainId.Sepolia)],
+      http: [getUniRpcEndpointUrl(UniverseChainId.Sepolia)],
     },
     [RPCType.Default]: {
       http: ['https://sepolia.gateway.tenderly.co'],

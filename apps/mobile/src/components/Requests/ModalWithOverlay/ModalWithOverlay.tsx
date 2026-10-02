@@ -1,5 +1,7 @@
 import { BottomSheetFooter, BottomSheetScrollView, useBottomSheetInternal } from '@gorhom/bottom-sheet'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Button, ButtonProps, Flex, spacing } from '@universe/mycelium'
+import { TestID } from '@universe/test'
 import { PropsWithChildren, useCallback, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -14,12 +16,9 @@ import {
 } from 'react-native'
 import { AnimatedStyle, useDerivedValue } from 'react-native-reanimated'
 import { ScrollDownOverlay } from 'src/components/Requests/ModalWithOverlay/ScrollDownOverlay'
-import { Button, ButtonProps, Flex } from 'ui/src'
-import { spacing } from 'ui/src/theme'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalProps } from 'uniswap/src/components/modals/ModalProps'
 import { useAppInsets } from 'uniswap/src/hooks/useAppInsets'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 
 const MEASURE_LAYOUT_TIMEOUT = 100
 
@@ -35,6 +34,12 @@ export type ModalWithOverlayProps = PropsWithChildren<
     contentContainerStyle?: StyleProp<AnimatedStyle<StyleProp<ViewStyle>>>
     cancelButtonProps?: ButtonProps
     confirmationButtonProps?: ButtonProps
+    /**
+     * Malicious (critical Blockaid risk) requests reorder and restyle the footer
+     * buttons: reject becomes the recommended primary action and confirm is
+     * demoted to critical theming, placed first to add friction.
+     */
+    isCriticalRisk?: boolean
   }
 >
 
@@ -54,6 +59,7 @@ export function ModalWithOverlay({
   contentContainerStyle,
   cancelButtonProps,
   confirmationButtonProps,
+  isCriticalRisk,
   ...bottomSheetModalProps
 }: ModalWithOverlayProps): JSX.Element {
   const scrollViewRef = useRef<ScrollView>(null)
@@ -144,6 +150,7 @@ export function ModalWithOverlay({
         showScrollDownOverlay={showOverlay && !eip5792MethodsEnabled}
         cancelButtonProps={cancelButtonProps}
         confirmationButtonProps={confirmationButtonProps}
+        isCriticalRisk={isCriticalRisk}
         onConfirm={onConfirm}
         onReject={onReject}
         onScrollDownPress={handleScrollDown}
@@ -161,6 +168,7 @@ type ModalFooterProps = {
   scrollDownButtonText?: string
   cancelButtonProps?: ButtonProps
   confirmationButtonProps?: ButtonProps
+  isCriticalRisk?: boolean
   onScrollDownPress: () => void
   onReject: () => void
   onConfirm?: () => void
@@ -175,23 +183,50 @@ function ModalFooter({
   confirmationButtonText,
   cancelButtonProps,
   confirmationButtonProps,
+  isCriticalRisk,
   onScrollDownPress,
   onReject,
   onConfirm,
 }: ModalFooterProps): JSX.Element {
   const { t } = useTranslation()
   const insets = useAppInsets()
-  const { animatedPosition, animatedHandleHeight, animatedFooterHeight, animatedContainerHeight } =
-    useBottomSheetInternal()
+  const { animatedPosition, animatedLayoutState } = useBottomSheetInternal()
 
   // Calculate position of the modal footer to ensure it stays at the bottom of the screen
   // when the modal content is scrolled
-  const animatedFooterPosition = useDerivedValue(
-    () =>
-      Math.max(0, animatedContainerHeight.value - animatedPosition.value) -
-      animatedFooterHeight.value -
-      animatedHandleHeight.value,
+  const animatedFooterPosition = useDerivedValue(() => {
+    const { containerHeight, footerHeight, handleHeight } = animatedLayoutState.value
+    return Math.max(0, containerHeight - animatedPosition.value) - footerHeight - handleHeight
+  })
+
+  const cancelButton = (
+    <Button
+      key="cancel"
+      size="large"
+      testID={TestID.Cancel}
+      emphasis={isCriticalRisk ? 'primary' : 'tertiary'}
+      onPress={onReject}
+      {...cancelButtonProps}
+    >
+      {cancelButtonText ?? (isCriticalRisk ? t('common.button.reject') : t('common.button.cancel'))}
+    </Button>
   )
+
+  const confirmButton = confirmationButtonText ? (
+    <Button
+      key="confirm"
+      variant={isCriticalRisk ? 'critical' : 'branded'}
+      emphasis={isCriticalRisk ? 'secondary' : 'primary'}
+      disabled={!confirmationEnabled}
+      loading={confirmationLoading}
+      size="large"
+      testID={TestID.Confirm}
+      onPress={onConfirm}
+      {...confirmationButtonProps}
+    >
+      {confirmationButtonText}
+    </Button>
+  ) : null
 
   return (
     <BottomSheetFooter animatedFooterPosition={animatedFooterPosition}>
@@ -207,23 +242,7 @@ function ModalFooter({
         pt="$spacing12"
         px="$spacing24"
       >
-        <Button size="large" testID={TestID.Cancel} emphasis="tertiary" onPress={onReject} {...cancelButtonProps}>
-          {cancelButtonText ?? t('common.button.cancel')}
-        </Button>
-
-        {confirmationButtonText && (
-          <Button
-            variant="branded"
-            isDisabled={!confirmationEnabled}
-            loading={confirmationLoading}
-            size="large"
-            testID={TestID.Confirm}
-            onPress={onConfirm}
-            {...confirmationButtonProps}
-          >
-            {confirmationButtonText}
-          </Button>
-        )}
+        {isCriticalRisk ? [confirmButton, cancelButton] : [cancelButton, confirmButton]}
       </Flex>
     </BottomSheetFooter>
   )

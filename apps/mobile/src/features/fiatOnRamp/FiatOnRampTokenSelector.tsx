@@ -1,8 +1,9 @@
+import { Flex, Text } from '@universe/mycelium'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { FadeIn, FadeOut } from 'react-native-reanimated'
 import { TokenFiatOnRampList } from 'src/components/TokenSelector/TokenFiatOnRampList'
-import { Flex, Text, useSporeColors } from 'ui/src'
 import { AnimatedFlex } from 'ui/src/components/layout/AnimatedFlex'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
@@ -56,16 +57,20 @@ export function FiatOnRampTokenSelectorModal({
             {t('fiatOnRamp.button.chooseToken')}
           </Text>
           <AnimatedFlex grow entering={FadeIn} exiting={FadeOut}>
-            <TokenFiatOnRampList
-              balancesById={balancesById}
-              error={error}
-              isOffRamp={isOffRamp}
-              list={list}
-              loading={loading}
-              selectedCurrency={selectedCurrency}
-              onRetry={onRetry}
-              onSelectCurrency={onSelectCurrency}
-            />
+            {/* `fill` (flex:1) not `grow`: Legend List needs a parent with a definite height, else it sizes to
+                its content and pushes the title out of place (same trap as FiatOnRampCountryListModal). */}
+            <Flex fill>
+              <TokenFiatOnRampList
+                balancesById={balancesById}
+                error={error}
+                isOffRamp={isOffRamp}
+                list={list}
+                loading={loading}
+                selectedCurrency={selectedCurrency}
+                onRetry={onRetry}
+                onSelectCurrency={onSelectCurrency}
+              />
+            </Flex>
           </AnimatedFlex>
         </Flex>
       </Trace>

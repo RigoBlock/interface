@@ -1,13 +1,18 @@
 import { SharedEventName } from '@uniswap/analytics-events'
+import { sanitizeAddressText } from '@universe/chains'
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
+import { CopyAlt } from '@universe/mycelium/icons/CopyAlt'
+import { ScanHome } from '@universe/mycelium/icons/ScanHome'
+import { SettingsHome } from '@universe/mycelium/icons/SettingsHome'
+import { TestID } from '@universe/test'
 import React, { useCallback, useEffect } from 'react'
 import { Gesture, GestureDetector, State } from 'react-native-gesture-handler'
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated'
+import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated'
+import { scheduleOnRN } from 'react-native-worklets'
 import { useDispatch } from 'react-redux'
 import { navigate } from 'src/app/navigation/rootNavigation'
 import { openModal } from 'src/features/modals/modalSlice'
 import { removePendingSession } from 'src/features/walletConnect/walletConnectSlice'
-import { Flex, Text, TouchableArea } from 'ui/src'
-import { CopyAlt, ScanHome, SettingsHome } from 'ui/src/components/icons'
 import { ScannerModalState } from 'uniswap/src/components/ReceiveQRCode/constants'
 import { AccountIcon } from 'uniswap/src/features/accounts/AccountIcon'
 import { AccountType, DisplayNameType } from 'uniswap/src/features/accounts/types'
@@ -16,12 +21,9 @@ import { AppNotificationType, CopyNotificationType } from 'uniswap/src/features/
 import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { MobileUserPropertyName, setUserProperty } from 'uniswap/src/features/telemetry/user'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { MobileScreens } from 'uniswap/src/types/screens/mobile'
-import { sanitizeAddressText } from 'uniswap/src/utils/addresses'
 import { shortenAddress } from 'utilities/src/addresses'
 import { setClipboard } from 'utilities/src/clipboard/clipboard'
-import { isDevEnv } from 'utilities/src/environment/env'
 import { AnimatedUnitagDisplayName } from 'wallet/src/components/accounts/AnimatedUnitagDisplayName'
 import useIsFocused from 'wallet/src/features/focus/useIsFocused'
 import { useActiveAccount, useActiveAccountAddress, useDisplayName } from 'wallet/src/features/wallet/hooks'
@@ -29,7 +31,7 @@ import { useActiveAccount, useActiveAccountAddress, useDisplayName } from 'walle
 // Value comes from https://uniswapteam.slack.com/archives/C083LU9SD9T/p1733425965373019?thread_ts=1733362029.171999&cid=C083LU9SD9T
 const SCAN_ICON_ACTIVE_SCALE = 0.72
 
-const RotatingSettingsIcon = ({ onPressSettings }: { onPressSettings(): void }): JSX.Element => {
+const RotatingSettingsIcon = ({ onPressSettings }: { onPressSettings: () => void }): JSX.Element => {
   const isScreenFocused = useIsFocused()
   const pressProgress = useSharedValue(0)
 
@@ -42,7 +44,7 @@ const RotatingSettingsIcon = ({ onPressSettings }: { onPressSettings(): void }):
 
   const tap = Gesture.Tap()
     .withTestId(TestID.AccountHeaderSettings)
-    .hitSlop(20)
+    .hitSlop(5)
     .shouldCancelWhenOutside(true)
     .onBegin(() => {
       pressProgress.value = withTiming(1)
@@ -51,7 +53,7 @@ const RotatingSettingsIcon = ({ onPressSettings }: { onPressSettings(): void }):
       if (state === State.FAILED) {
         pressProgress.value = withTiming(0)
       } else if (state === State.END) {
-        runOnJS(onPressSettings)()
+        scheduleOnRN(onPressSettings)
       }
     })
 
@@ -137,11 +139,6 @@ export function AccountHeader(): JSX.Element {
                 hitSlop={20}
                 testID={TestID.AccountHeaderAvatar}
                 dd-action-name={TestID.AccountHeaderAvatar}
-                onLongPress={async (): Promise<void> => {
-                  if (isDevEnv()) {
-                    navigate(ModalName.Experiments)
-                  }
-                }}
                 onPress={onPressAccountHeader}
               >
                 <AccountIcon
@@ -180,6 +177,7 @@ export function AccountHeader(): JSX.Element {
             </Flex>
             <Flex row alignItems="flex-start" gap="$spacing12">
               <TouchableArea
+                hitSlop={5}
                 scaleTo={SCAN_ICON_ACTIVE_SCALE}
                 activeOpacity={1}
                 dd-action-name="Scan"

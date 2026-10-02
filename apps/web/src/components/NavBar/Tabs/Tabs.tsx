@@ -1,26 +1,27 @@
+import { Flex, Text, type TextCompatProps } from '@universe/mycelium'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router'
-import { Flex, Popover, styled, Text } from 'ui/src'
+import { Popover } from 'ui/src'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { NavDropdown, NavDropdownTabWrapper } from '~/components/NavBar/NavDropdown/index'
 import { TabsItem, TabsSection, useTabsContent } from '~/components/NavBar/Tabs/TabsContent'
 
-const TabText = styled(Text, {
-  justifyContent: 'center',
-  alignItems: 'center',
-  m: '$padding8',
-  gap: '$gap4',
-  cursor: 'pointer',
-  userSelect: 'none',
-  color: '$neutral2',
-  hoverStyle: { color: '$neutral1' },
-  variants: {
-    isActive: {
-      true: { color: '$neutral1' },
-    },
-  },
-})
+function TabText({ isActive, hoverStyle, ...rest }: TextCompatProps & { isActive?: boolean }): JSX.Element {
+  return (
+    <Text
+      justifyContent="center"
+      alignItems="center"
+      m="$padding8"
+      gap="$gap4"
+      cursor="pointer"
+      userSelect="none"
+      color={isActive ? '$neutral1' : '$neutral2'}
+      hoverStyle={{ color: '$neutral1', ...hoverStyle }}
+      {...rest}
+    />
+  )
+}
 
 interface TItemProps {
   icon?: JSX.Element
@@ -59,12 +60,14 @@ const Tab = ({
   isActive,
   path,
   items,
+  badge,
   elementName,
 }: {
   label: string
   isActive?: boolean
   path: string
   items?: TabsItem[]
+  badge?: JSX.Element
   elementName: ElementName
 }) => {
   const [isOpen, setIsOpen] = useState(false)
@@ -79,9 +82,12 @@ const Tab = ({
   const Label = (
     <Trace logPress element={elementName}>
       <NavLink to={path} style={{ textDecoration: 'none' }}>
-        <TabText variant="subheading1" isActive={isActive || isOpen}>
-          {label}
-        </TabText>
+        <Flex row alignItems="center">
+          <TabText variant="subheading1" isActive={isActive || isOpen}>
+            {label}
+          </TabText>
+          {badge}
+        </Flex>
       </NavLink>
     </Trace>
   )
@@ -126,13 +132,14 @@ export function Tabs() {
   const tabsContent: TabsSection[] = useTabsContent()
   return (
     <>
-      {tabsContent.map(({ title, isActive, href, items, elementName }, index) => (
+      {tabsContent.map(({ title, isActive, href, items, badge, elementName }, index) => (
         <Tab
           key={`${title}_${index}`}
           label={title}
           isActive={isActive}
           path={href}
           items={items}
+          badge={badge}
           elementName={elementName}
         />
       ))}

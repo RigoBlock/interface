@@ -1,16 +1,13 @@
 import { getPortfolio } from '@uniswap/client-data-api/dist/data/v1/api-DataApiService_connectquery'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
+import { UnitagService } from '@universe/api'
+import { TestID } from '@universe/test'
+import { CONNECTION_PROVIDER_IDS } from 'uniswap/src/constants/web3'
 import { shortenAddress } from 'utilities/src/addresses'
 import { expect, type Page } from '~/playwright/fixtures'
 import { Mocks } from '~/playwright/mocks/mocks'
 
 /**
  * Mocks the Unitag API response for a specific address
- * @param page The Playwright page
- * @param address The wallet address to mock unitag data for
-
- * @param unitag The unitag data to return (null for no unitag)
  */
 export async function mockUnitagResponse({
   page,
@@ -21,18 +18,29 @@ export async function mockUnitagResponse({
   address: string
   unitag: string | null
 }) {
-  await page.route(
-    // oxlint-disable-next-line security/detect-non-literal-regexp -- test fixture using known-safe URL constant
-    new RegExp(`${uniswapUrls.unitagsApiUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/address\\?address=${address}`),
-    async (route) => {
-      await route.fulfill({
-        body: JSON.stringify({
-          username: unitag,
-          address,
-        }),
-      })
-    },
-  )
+  await page.route(`**/${UnitagService.typeName}/${UnitagService.methods.getAddress.name}`, async (route) => {
+    const postData = route.request().postData()
+    try {
+      const requestedAddress = postData ? (JSON.parse(postData) as { address?: string }).address : undefined
+
+      // oxlint-disable-next-line universe-custom/no-tolowercase-address-currencyid
+      if (!requestedAddress || requestedAddress.toLowerCase() !== address.toLowerCase()) {
+        await route.continue()
+        return
+      }
+    } catch {
+      await route.continue()
+      return
+    }
+
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        ...(unitag ? { username: unitag } : {}),
+        address,
+      }),
+    })
+  })
 }
 
 /**
@@ -50,6 +58,51 @@ export async function mockGetPortfolioResponse({
   await page.route(`**/${getPortfolio.service.typeName}/${getPortfolio.name}`, async (route) => {
     await route.fulfill({ path: mockPath })
   })
+}
+
+/**
+ * Seeds localStorage so the app boots as if an embedded wallet is already connected.
+ *
+ * Also seeds `recentConnectorId` (the app-owned record the mount-reconnect gate in
+ * mountReconnect.ts checks, see getConnectorsToReconnect / INFRA-2902) with the embedded
+ * wallet connector id. Without it, wagmi never reconnects the embedded wallet connector
+ * on mount, `useIsEmbeddedWallet()` stays false, and any UI gated on it never renders.
+ *
+ * @param page The Playwright page
+ * @param walletId The embedded wallet id to store
+ * @param walletAddress The embedded wallet address to store
+ * @param chainId The chain id to store (default: 1)
+ * @param embeddedWalletConnectorId The connector id to seed into recentConnectorId
+ *   (default: CONNECTION_PROVIDER_IDS.EMBEDDED_WALLET_CONNECTOR_ID)
+ */
+export async function seedEmbeddedWalletState({
+  page,
+  walletId,
+  walletAddress,
+  chainId = 1,
+  embeddedWalletConnectorId = CONNECTION_PROVIDER_IDS.EMBEDDED_WALLET_CONNECTOR_ID,
+}: {
+  page: Page
+  walletId: string
+  walletAddress: string
+  chainId?: number
+  embeddedWalletConnectorId?: string
+}) {
+  await page.addInitScript(
+    ({ walletId: id, walletAddress: address, chainId: chain, embeddedWalletConnectorId: connectorId }) => {
+      localStorage.setItem(
+        'embedded-wallet',
+        JSON.stringify({
+          walletId: id,
+          walletAddress: address,
+          chainId: chain,
+          isConnected: true,
+        }),
+      )
+      localStorage.setItem('recentConnectorId', JSON.stringify(connectorId))
+    },
+    { walletId, walletAddress, chainId, embeddedWalletConnectorId },
+  )
 }
 
 /**

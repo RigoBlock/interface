@@ -1,3 +1,4 @@
+// oxlint-disable eslint-js/no-restricted-syntax
 import { z } from 'zod'
 
 export enum ETH_PROVIDER_CONFIG {

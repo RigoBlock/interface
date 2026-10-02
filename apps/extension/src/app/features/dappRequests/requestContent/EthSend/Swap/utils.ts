@@ -349,7 +349,7 @@ function getFallbackInputValue(command: UniversalRouterCommand): string {
   return settleAmountValue?.value || '0'
 }
 
-export function isNonZeroBigNumber(value: string | undefined): boolean {
+export function isNonZeroBigNumber(value: string | undefined): value is string {
   if (!value) {
     return false
   }

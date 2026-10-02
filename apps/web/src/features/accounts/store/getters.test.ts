@@ -1,9 +1,9 @@
+import { Platform } from '@universe/chains'
 import { Account } from 'uniswap/src/features/accounts/store/types/Account'
 import { AccessPattern, ConnectorStatus } from 'uniswap/src/features/accounts/store/types/Connector'
 import { ChainScopeType } from 'uniswap/src/features/accounts/store/types/Session'
 import { SigningCapability } from 'uniswap/src/features/accounts/store/types/Wallet'
 import { CAIP25Session } from 'uniswap/src/features/capabilities/caip25/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { createAccountsStoreGetters } from '~/features/accounts/store/getters'
 import type { ExternalConnector, ExternalWallet, WebAccountsData } from '~/features/accounts/store/types'
 

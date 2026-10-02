@@ -1,4 +1,4 @@
-import { GqlResult } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
 import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { TokenOption } from 'uniswap/src/components/lists/items/types'
@@ -11,24 +11,27 @@ import { mergeSearchResultsWithBridgingTokens } from 'uniswap/src/components/Tok
 import { TradeableAsset } from 'uniswap/src/entities/assets'
 import type { AddressGroup } from 'uniswap/src/features/accounts/store/types/AccountsState'
 import { useBridgingTokensOptions } from 'uniswap/src/features/bridging/hooks/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { getChainLabel } from 'uniswap/src/features/chains/utils'
-import { useSearchTokens } from 'uniswap/src/features/dataApi/searchTokens'
+import { useMultichainSearchTokens } from 'uniswap/src/features/dataApi/searchTokens'
 import type { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
+import { isWSOL } from 'uniswap/src/utils/isWSOL'
+import type { DerivedQueryResult } from 'utilities/src/reactQuery/types'
 
 export function useTokenSectionsForSearchResults({
   addresses,
   chainFilter,
+  chainIds,
   searchFilter,
   isBalancesOnlySearch,
   input,
 }: {
   addresses: AddressGroup
   chainFilter: UniverseChainId | null
+  chainIds: UniverseChainId[]
   searchFilter: string | null
   isBalancesOnlySearch: boolean
   input?: TradeableAsset
-}): GqlResult<OnchainItemSection<TokenOption>[]> {
+}): DerivedQueryResult<OnchainItemSection<TokenOption>[]> {
   const { t } = useTranslation()
 
   const portfolioData = usePortfolioBalancesForAddressById(addresses)
@@ -36,36 +39,41 @@ export function useTokenSectionsForSearchResults({
     data: portfolioBalancesById,
     error: portfolioBalancesByIdError,
     refetch: refetchPortfolioBalances,
-    loading: portfolioBalancesByIdLoading,
+    isLoading: portfolioBalancesByIdLoading,
   } = portfolioData
 
   const {
     data: portfolioTokenOptions,
     error: portfolioTokenOptionsError,
     refetch: refetchPortfolioTokenOptions,
-    loading: portfolioTokenOptionsLoading,
-  } = usePortfolioTokenOptions({ chainFilter, searchFilter: searchFilter ?? undefined, portfolioData })
+    isLoading: portfolioTokenOptionsLoading,
+  } = usePortfolioTokenOptions({ chainFilter, chainIds, searchFilter: searchFilter ?? undefined, portfolioData })
 
   // Bridging tokens are only shown if input is provided
   const {
     data: bridgingTokenOptions,
     error: bridgingTokenOptionsError,
     refetch: refetchBridgingTokenOptions,
-    loading: bridgingTokenOptionsLoading,
-  } = useBridgingTokensOptions({ oppositeSelectedToken: input, chainFilter, portfolioData })
+    isLoading: bridgingTokenOptionsLoading,
+  } = useBridgingTokensOptions({ oppositeSelectedToken: input, chainFilter, chainIds, portfolioData })
 
   // Only call search endpoint if isBalancesOnlySearch is false
   const {
-    data: searchResultCurrencies,
+    data: searchResultsMultichain,
     error: searchTokensError,
     refetch: refetchSearchTokens,
-    loading: searchTokensLoading,
-  } = useSearchTokens({
+    isLoading: searchTokensLoading,
+  } = useMultichainSearchTokens({
     searchQuery: searchFilter,
     chainFilter,
+    chainIds,
     skip: isBalancesOnlySearch,
-    hideWSOL: true, // Hide WSOL in token selector
   })
+
+  const searchResultCurrencies = useMemo(
+    () => searchResultsMultichain?.flatMap((r) => r.tokens).filter((c) => !isWSOL(c.currency)),
+    [searchResultsMultichain],
+  )
 
   const [selectedNetworkResults, otherNetworksSearchResults] = useMemo((): [CurrencyInfo[], CurrencyInfo[]] => {
     if (!searchResultCurrencies) {
@@ -139,7 +147,7 @@ export function useTokenSectionsForSearchResults({
 
   const refetchAll = useCallback(() => {
     refetchPortfolioBalances?.()
-    refetchSearchTokens?.()
+    void refetchSearchTokens()
     refetchPortfolioTokenOptions?.()
     refetchBridgingTokenOptions?.()
   }, [refetchBridgingTokenOptions, refetchPortfolioBalances, refetchPortfolioTokenOptions, refetchSearchTokens])
@@ -147,8 +155,8 @@ export function useTokenSectionsForSearchResults({
   return useMemo(
     () => ({
       data: allSections,
-      loading,
-      error: error || undefined,
+      isLoading: loading,
+      error: error || null,
       refetch: refetchAll,
     }),
     [error, loading, refetchAll, allSections],

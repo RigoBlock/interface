@@ -1,3 +1,4 @@
+import { Code, ConnectError } from '@connectrpc/connect'
 import { WalletSignTransactionError } from '@solana/wallet-adapter-base'
 import { TFunction } from 'i18next'
 import { logger } from 'utilities/src/logger/logger'
@@ -24,37 +25,127 @@ function getReason(error: any): string | undefined {
   return reason
 }
 
-export function didUserReject(error: any): boolean {
-  const reason = getReason(error)
+/** Text segments from a structured error (Rainbow-style checks use each part separately so /request/ + /reject/ cannot match across fields). */
+function rejectionParts(error: any): string[] {
+  if (typeof error === 'string') {
+    return error ? [error] : []
+  }
+  if (!error || typeof error !== 'object') {
+    return []
+  }
+  const shortMessage = 'shortMessage' in error && typeof error.shortMessage === 'string' ? error.shortMessage : ''
+  const message = typeof error.message === 'string' ? error.message : ''
+  const reason = typeof error.reason === 'string' ? error.reason : ''
+  return [shortMessage, message, reason].filter((s): s is string => s.length > 0)
+}
+
+function isWalletRejectionRpcCode(code: unknown): boolean {
+  if (code === 4001 || code === 5750) {
+    return true
+  }
+  if (code === 'ACTION_REJECTED') {
+    return true
+  }
+  // Some providers stringify JSON-RPC codes; viem may surface bigint.
+  if (typeof code === 'string' && (code === '4001' || Number(code) === 4001)) {
+    return true
+  }
+  if (typeof code === 'bigint' && code === 4001n) {
+    return true
+  }
+  return false
+}
+
+function didUserRejectOneLevel(error: any): boolean {
+  const parts = rejectionParts(error)
+  const reason = parts.join(' ')
+  const isRainbowStyleRejection = parts.some((part) => part.match(/request/i) && part.match(/reject/i))
   if (
-    error?.code === 4001 ||
-    // eip-5792 upgrade rejected error https://eips.ethereum.org/EIPS/eip-5792#error-codes
-    error?.code === 5750 ||
-    // ethers v5.7.0 wrapped error
-    error?.code === 'ACTION_REJECTED' ||
-    // For Rainbow :
-    (reason?.match(/request/i) && reason.match(/reject/i)) ||
+    isWalletRejectionRpcCode(error?.code) ||
+    // For Rainbow (both patterns must appear in the same segment):
+    isRainbowStyleRejection ||
     // For Frame:
-    reason?.match(/declined/i) ||
+    reason.match(/declined/i) ||
     // For SafePal:
-    reason?.match(/cancell?ed by user/i) ||
+    reason.match(/cancell?ed by user/i) ||
     // For Trust:
-    reason?.match(/user cancell?ed/i) ||
+    reason.match(/user cancell?ed/i) ||
     // For Coinbase:
-    reason?.match(/user denied/i) ||
+    reason.match(/user denied/i) ||
     // For Fireblocks
-    reason?.match(/user rejected/i) ||
+    reason.match(/user rejected/i) ||
     // For Binance:
-    reason?.match(/closed modal/i) ||
+    reason.match(/closed modal/i) ||
     // For Solflare connection:
-    reason?.match(/connection rejected/i) ||
+    reason.match(/connection rejected/i) ||
     // For Solflare transaction rejection:
-    reason?.match(/transaction cancelled/i) ||
+    reason.match(/transaction cancelled/i) ||
     error instanceof UserRejectedRequestError
   ) {
     return true
   }
   return false
+}
+
+/** Walks `cause`, `originalError`, and legacy `error` / `data.originalError` chains (wallets + viem + our transaction wrappers). */
+function someInErrorChain(error: any, predicate: (error: any) => boolean): boolean {
+  const visited = new WeakSet<object>()
+  const queue: any[] = [error]
+  while (queue.length > 0) {
+    const current = queue.pop()
+    if (!current) {
+      continue
+    }
+    if (typeof current === 'object') {
+      if (visited.has(current)) {
+        continue
+      }
+      visited.add(current)
+    }
+    if (predicate(current)) {
+      return true
+    }
+    const next: unknown[] = []
+    if (typeof current === 'object' && current !== null) {
+      if ('cause' in current && current.cause) {
+        next.push(current.cause)
+      }
+      if ('originalError' in current && current.originalError) {
+        next.push(current.originalError)
+      }
+      if ('error' in current && current.error) {
+        next.push(current.error)
+      }
+      if ('data' in current && current.data && typeof current.data === 'object' && 'originalError' in current.data) {
+        next.push(current.data.originalError)
+      }
+      if ('details' in current && Array.isArray(current.details)) {
+        for (const detail of current.details) {
+          next.push(detail)
+        }
+      }
+    }
+    for (const n of next) {
+      queue.push(n)
+    }
+  }
+  return false
+}
+
+export function didUserReject(error: any): boolean {
+  return someInErrorChain(error, didUserRejectOneLevel)
+}
+
+function isBlockedAccountOneLevel(error: any): boolean {
+  if (error instanceof ConnectError && error.code === Code.Unauthenticated) {
+    return true
+  }
+  return rejectionParts(error).some((part) => part.match(/account is blocked/i))
+}
+
+/** A backend UnauthorizedError for a sanctioned/blocked wallet (ConnectRPC `Code.Unauthenticated` or an "account is blocked" reason anywhere in the chain). */
+export function isBlockedAccountError(error: any): boolean {
+  return someInErrorChain(error, isBlockedAccountOneLevel)
 }
 
 // oxlint-disable-next-line no-unused-expressions -- biome-parity: oxlint is stricter here
@@ -67,6 +158,10 @@ WalletSignTransactionError
 export function swapErrorToUserReadableMessage(t: TFunction, error: any): string {
   if (didUserReject(error)) {
     return t('swap.error.rejected')
+  }
+
+  if (isBlockedAccountError(error)) {
+    return t('swap.error.accountBlocked')
   }
 
   let reason = getReason(error)

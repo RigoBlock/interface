@@ -1,5 +1,5 @@
 import { DynamicConfigKeys, DynamicConfigs, getOverrideAdapter, useDynamicConfigValue } from '@universe/gating'
-import { Flex, Text } from 'ui/src'
+import { Flex, Text } from '@universe/mycelium'
 import { ActionSheetDropdown } from 'uniswap/src/components/dropdowns/ActionSheetDropdown'
 
 export function DynamicConfigDropdown({

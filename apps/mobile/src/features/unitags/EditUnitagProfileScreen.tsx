@@ -1,4 +1,6 @@
 import { useNavigation } from '@react-navigation/native'
+import { Flex, Text } from '@universe/mycelium'
+import { Ellipsis } from '@universe/mycelium/icons/Ellipsis'
 import React, { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { StyleSheet } from 'react-native'
@@ -7,9 +9,6 @@ import { navigate } from 'src/app/navigation/rootNavigation'
 import type { UnitagStackScreenProp } from 'src/app/navigation/types'
 import { BackHeader } from 'src/components/layout/BackHeader'
 import { Screen } from 'src/components/layout/Screen'
-import { Flex, Text } from 'ui/src'
-import { Ellipsis } from 'ui/src/components/icons'
-import { useBottomSheetSafeKeyboard } from 'uniswap/src/components/modals/useBottomSheetSafeKeyboard'
 import { MobileScreens, UnitagScreens } from 'uniswap/src/types/screens/mobile'
 import { dismissNativeKeyboard } from 'utilities/src/device/keyboard/dismissNativeKeyboard'
 import { ChangeUnitagModal } from 'wallet/src/features/unitags/ChangeUnitagModal'
@@ -20,13 +19,12 @@ export function EditUnitagProfileScreen({ route }: UnitagStackScreenProp<UnitagS
   const { address, unitag, entryPoint } = route.params
   const { t } = useTranslation()
   const navigation = useNavigation()
-  const { keyboardHeight } = useBottomSheetSafeKeyboard()
 
   const [showDeleteUnitagModal, setShowDeleteUnitagModal] = useState(false)
   const [showChangeUnitagModal, setShowChangeUnitagModal] = useState(false)
 
   const onNavigate = (): void => {
-    navigate(MobileScreens.Home)
+    navigate(MobileScreens.MainTabs, { screen: MobileScreens.Home })
   }
 
   const onBack = (): void => {
@@ -85,7 +83,9 @@ export function EditUnitagProfileScreen({ route }: UnitagStackScreenProp<UnitagS
           p="$spacing16"
           onPressBack={
             // If entering from confirmation screen, back btn navigates to home
-            entryPoint === UnitagScreens.UnitagConfirmation ? (): void => navigate(MobileScreens.Home) : undefined
+            entryPoint === UnitagScreens.UnitagConfirmation
+              ? (): void => navigate(MobileScreens.MainTabs, { screen: MobileScreens.Home })
+              : undefined
           }
         >
           <Text variant="body1">{t('settings.setting.wallet.action.editProfile')}</Text>
@@ -96,13 +96,7 @@ export function EditUnitagProfileScreen({ route }: UnitagStackScreenProp<UnitagS
         <DeleteUnitagModal address={address} unitag={unitag} onSuccess={onBack} onClose={onCloseDeleteModal} />
       )}
       {showChangeUnitagModal && (
-        <ChangeUnitagModal
-          address={address}
-          unitag={unitag}
-          keyboardHeight={keyboardHeight}
-          onSuccess={onBack}
-          onClose={onCloseChangeModal}
-        />
+        <ChangeUnitagModal address={address} unitag={unitag} onSuccess={onBack} onClose={onCloseChangeModal} />
       )}
     </Screen>
   )

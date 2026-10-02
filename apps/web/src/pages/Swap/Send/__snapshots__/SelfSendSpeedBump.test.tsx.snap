@@ -1,106 +1,119 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`SelfSendSpeedBumpModal > should render correctly 1`] = `
-.c0 {
-  height: 28px;
-  width: 28px;
-}
-
-.c0 path {
-  background: rgba(19, 19, 19, 0.63);
-  fill: #E10F0F;
-}
-
-<body>
-  <div>
-    <span
-      class=""
-      style="display: contents;"
+<body
+  style="pointer-events: none;"
+>
+  <span
+    aria-hidden="true"
+    data-aria-hidden="true"
+    data-radix-focus-guard=""
+    style="outline: none; opacity: 0; position: fixed; pointer-events: none;"
+    tabindex="0"
+  />
+  <div
+    aria-hidden="true"
+    data-aria-hidden="true"
+  />
+  <div
+    aria-hidden="true"
+    class="flex flex-col items-stretch basis-auto box-border min-h-[0px] min-w-[0px] shrink-0 bg-scrim opacity-[0.5] top-[0px] right-[0px] bottom-[0px] left-[0px] z-[var(--c-z)] [pointer-events:auto] fixed uw-modal-overlay"
+    data-aria-hidden="true"
+    data-state="open"
+    style="--c-z: 1060;"
+  />
+  <div
+    class="flex flex-col basis-auto box-border min-h-[0px] min-w-[0px] shrink-0 items-center justify-center top-[0px] right-[0px] bottom-[0px] left-[0px] z-[var(--c-z)] [pointer-events:auto] fixed uw-modal-positioner"
+    data-state="open"
+    style="--c-z: 1060;"
+  >
+    <div
+      class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 grow justify-center max-h-[var(--c-max-h)] rounded-[16px] overflow-hidden"
+      style="--c-max-h: calc(100vh - 32px);"
     >
-      <div>
-        <span
-          class="font_unset _display-inline _boxSizing-border-box _wordWrap-break-word _whiteSpace-pre-wrap _position-absolute _width-1px _height-1px _mt--1px _mr--1px _mb--1px _ml--1px _zIndex--10000 _overflowX-hidden _overflowY-hidden _opacity-1e-8 _pointerEvents-none"
+      <div
+        aria-labelledby="radix-_r_1_"
+        class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 gap-[16px] m-[16px] mx-[0px] my-[0px] px-[24px] py-[24px] pt-[16px] w-[var(--c-w)] max-w-[var(--c-max-w)] max-h-[var(--c-max-h)] bg-surface1 border-surface3 border-[1px] rounded-[16px] overflow-auto media-md:p-[var(--cE-p)] media-md:h-[var(--cE-h)] media-md:max-h-[var(--cE-max-h)] uw-modal-content-center"
+        data-overlay-portal-container=""
+        data-state="open"
+        id="radix-_r_0_"
+        role="dialog"
+        style="--c-w: calc(100vw - 32px); --c-max-w: 420px; --c-max-h: calc(100vh - 32px); --cE-p: 12px; --cE-h: max-content; --cE-max-h: calc(100dvh - 72px); pointer-events: auto;"
+        tabindex="-1"
+      >
+        <h2
+          id="radix-_r_1_"
+          style="position: absolute; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border-width: 0px;"
+        />
+        <div
+          class="flex basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-col items-center gap-[16px] py-[8px]"
         >
-          <div />
-        </span>
-        <div>
-          <div />
           <div
-            class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _flexGrow-1 _maxHeight-calc100vh-32087695319 _borderTopLeftRadius-t-radius-ro291586449 _borderTopRightRadius-t-radius-ro291586449 _borderBottomRightRadius-t-radius-ro291586449 _borderBottomLeftRadius-t-radius-ro291586449 _justifyContent-center _overflowX-hidden _overflowY-hidden"
+            class="flex flex-col basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 items-center justify-center w-[48px] h-[48px] bg-critical-secondary rounded-[12px]"
+            data-testid="dialog-icon"
           >
-            <div>
-              <div
-                class="_display-flex _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _alignItems-center _gap-t-space-spa1360334076 _pt-t-space-pad95589114 _pb-t-space-pad95589114"
-              >
-                <div
-                  class="_display-flex _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _backgroundColor-statusCriti3045924 _borderTopLeftRadius-t-radius-ro291586453 _borderTopRightRadius-t-radius-ro291586453 _borderBottomRightRadius-t-radius-ro291586453 _borderBottomLeftRadius-t-radius-ro291586453 _height-t-size-spac100347366 _width-t-size-spac100347366 _alignItems-center _justifyContent-center"
-                  data-testid="dialog-icon"
-                >
-                  <svg
-                    class="c0"
-                    fill="#E10F0F"
-                    viewBox="0 0 28 28"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="m25.2086 20.0103-7.7081-14.41555c-1.4933-2.793-5.5055-2.793-7 0l-7.70806 14.41555c-1.36966 2.562.49005 5.6559 3.40088 5.6559h15.61438c2.9097 0 4.7706-3.095 3.4009-5.6559zm-12.0831-8.3441c0-.483.392-.875.875-.875s.875.392.875.875v4.6667c0 .483-.392.875-.875.875s-.875-.392-.875-.875zm.8984 9.3333c-.644 0-1.1727-.5226-1.1727-1.1666s.517-1.1667 1.161-1.1667h.0117c.6452 0 1.1667.5227 1.1667 1.1667s-.5227 1.1666-1.1667 1.1666z"
-                      fill="#9b9b9b"
-                    />
-                  </svg>
-                </div>
-                <div
-                  class="_display-flex _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-column _gap-t-space-spa94665593 _alignItems-center"
-                >
-                  <span
-                    class="font_subHeading _display-inline _boxSizing-border-box _whiteSpace-pre-wrap _mt-0px _mr-0px _mb-0px _ml-0px _color-neutral1 _fontFamily-f-family _wordWrap-break-word _fontSize-f-size-larg101 _fontWeight-f-weight-bo3548 _lineHeight-f-lineHeigh1262266530"
-                    data-disable-theme="true"
-                  >
-                    This is your current wallet
-                  </span>
-                  <span
-                    class="font_body _display-inline _boxSizing-border-box _whiteSpace-pre-wrap _mt-0px _mr-0px _mb-0px _ml-0px _color-neutral2 _fontFamily-f-family _wordWrap-break-word _fontSize-f-size-smal108 _fontWeight-f-weight-bo3548 _lineHeight-f-lineHeigh1269072494 _textAlign-center"
-                    data-disable-theme="true"
-                  >
-                    You are attempting to send funds to your current wallet. Sending crypto to this address will incur unnecessary network costs.
-                  </span>
-                </div>
-              </div>
-              <div
-                class="_display-flex _alignItems-stretch _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-row _gap-t-space-spa94665593 _width-10037"
-              >
-                <button
-                  class="is_Button  t_group_item"
-                  dd-action-name="Cancel"
-                  style="display: flex; flex-basis: 0px; box-sizing: border-box; position: relative; min-width: 0px; flex-shrink: 1; flex-direction: row; border-top-width: 1px; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px; align-items: center; justify-content: center; cursor: pointer; height: auto; align-self: stretch; flex-grow: 1; outline-color: rgba(0, 0, 0, 0); border-top-left-radius: var(--t-radius-rounded12); border-top-right-radius: var(--t-radius-rounded12); border-bottom-right-radius: var(--t-radius-rounded12); border-bottom-left-radius: var(--t-radius-rounded12); gap: var(--t-space-spacing8); min-height: var(--t-size-spacing36); border-bottom-style: solid; border-top-style: solid; border-left-style: solid; border-right-style: solid; transform: scale(1); transition: transform 100ms cubic-bezier(0.17, 0.67, 0.45, 1);"
-                >
-                  <span
-                    class="font_button _color-_groupitem-hover_neutral1Hov3121676 _display-inline _boxSizing-border-box _wordWrap-break-word _whiteSpace-nowrap _mt-0px _mr-0px _mb-0px _ml-0px _color-neutral1 _fontFamily-f-family _maxWidth-10037 _overflowX-hidden _overflowY-hidden _textOverflow-ellipsis _textAlign-center _fontSize-f-size-smal108 _fontWeight-f-weight-me3083741 _lineHeight-f-lineHeigh1269072494"
-                    line-height-disabled="false"
-                  >
-                    Cancel
-                  </span>
-                </button>
-                <button
-                  class="is_Button  t_group_item"
-                  dd-action-name="Continue"
-                  style="display: flex; flex-basis: 0px; box-sizing: border-box; position: relative; min-width: 0px; flex-shrink: 1; flex-direction: row; border-top-width: 1px; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px; align-items: center; justify-content: center; cursor: pointer; height: auto; align-self: stretch; flex-grow: 1; outline-color: rgba(0, 0, 0, 0); border-top-left-radius: var(--t-radius-rounded12); border-top-right-radius: var(--t-radius-rounded12); border-bottom-right-radius: var(--t-radius-rounded12); border-bottom-left-radius: var(--t-radius-rounded12); gap: var(--t-space-spacing8); min-height: var(--t-size-spacing36); border-bottom-style: solid; border-top-style: solid; border-left-style: solid; border-right-style: solid; transform: scale(1); transition: transform 100ms cubic-bezier(0.17, 0.67, 0.45, 1);"
-                >
-                  <span
-                    class="font_button _display-inline _boxSizing-border-box _wordWrap-break-word _whiteSpace-nowrap _mt-0px _mr-0px _mb-0px _ml-0px _color-white _fontFamily-f-family _maxWidth-10037 _overflowX-hidden _overflowY-hidden _textOverflow-ellipsis _textAlign-center _fontSize-f-size-smal108 _fontWeight-f-weight-me3083741 _lineHeight-f-lineHeigh1269072494"
-                    line-height-disabled="false"
-                  >
-                    Continue
-                  </span>
-                </button>
-              </div>
-            </div>
+            <svg
+              fill="currentColor"
+              stroke-width="8"
+              style="width: 28px; height: 28px;"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M21.6074 17.1522L15.0004 4.79599C13.7204 2.40199 10.2814 2.40199 9.00042 4.79599L2.39349 17.1522C1.21949 19.3482 2.81353 22.0001 5.30853 22.0001H18.6923C21.1863 22.0001 22.7814 19.3472 21.6074 17.1522ZM11.2504 10.0001C11.2504 9.58609 11.5864 9.25009 12.0004 9.25009C12.4144 9.25009 12.7504 9.58609 12.7504 10.0001V14.0001C12.7504 14.4141 12.4144 14.7501 12.0004 14.7501C11.5864 14.7501 11.2504 14.4141 11.2504 14.0001V10.0001ZM12.0204 18.0001C11.4684 18.0001 11.0153 17.5521 11.0153 17.0001C11.0153 16.4481 11.4584 16.0001 12.0104 16.0001H12.0204C12.5734 16.0001 13.0204 16.4481 13.0204 17.0001C13.0204 17.5521 12.5724 18.0001 12.0204 18.0001Z"
+                fill="currentColor"
+              />
+            </svg>
+          </div>
+          <div
+            class="flex flex-col basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 items-center gap-[8px]"
+          >
+            <span
+              class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[18px] [line-height:24px] [font-weight:485] [color:var(--stext-neutral1)]"
+            >
+              This is your current wallet
+            </span>
+            <span
+              class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[14px] [line-height:18px] [font-weight:485] [color:var(--stext-neutral2)] text-center"
+            >
+              You are attempting to send funds to your current wallet. Sending crypto to this address will incur unnecessary network costs.
+            </span>
           </div>
         </div>
+        <div
+          class="flex items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row gap-[8px] w-[100%]"
+        >
+          <button
+            class="group/sbtn relative box-border flex min-w-0 cursor-pointer items-center justify-center border border-solid border-transparent select-none [transition:transform_100ms_cubic-bezier(0.17,0.67,0.45,1),filter_100ms_cubic-bezier(0.17,0.67,0.45,1)] active:scale-[0.98] focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-solid gap-2 rounded-12 px-3 py-2 flex-row flex-1 basis-0 self-stretch focus-visible:scale-x-[0.98] focus-visible:scale-y-[0.905] bg-surface3 hover:bg-surface3-hovered active:bg-surface3-hovered focus-visible:bg-surface3-hovered focus-visible:outline-neutral3-hovered min-h-[36px]"
+            dd-action-name="Cancel"
+            type="button"
+          >
+            <span
+              class="text-center font-medium [font-family:var(--sbtn-font-button)] [transition:color_100ms_cubic-bezier(0.17,0.67,0.45,1)] text-[14px] leading-[16.1px] text-neutral1 group-hover/sbtn:text-neutral1-hovered max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
+            >
+              Cancel
+            </span>
+          </button>
+          <button
+            class="group/sbtn relative box-border flex min-w-0 cursor-pointer items-center justify-center border border-solid border-transparent select-none [transition:transform_100ms_cubic-bezier(0.17,0.67,0.45,1),filter_100ms_cubic-bezier(0.17,0.67,0.45,1)] active:scale-[0.98] focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-solid gap-2 rounded-12 px-3 py-2 flex-row flex-1 basis-0 self-stretch focus-visible:scale-x-[0.98] focus-visible:scale-y-[0.905] bg-critical hover:bg-critical-hovered active:bg-critical-hovered focus-visible:bg-critical-hovered focus-visible:outline-critical-hovered min-h-[36px]"
+            dd-action-name="Continue"
+            type="button"
+          >
+            <span
+              class="text-center font-medium [font-family:var(--sbtn-font-button)] [transition:color_100ms_cubic-bezier(0.17,0.67,0.45,1)] text-[14px] leading-[16.1px] text-white max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
+            >
+              Continue
+            </span>
+          </button>
+        </div>
       </div>
-      <div
-        style="display: contents;"
-      />
-    </span>
+    </div>
   </div>
+  <span
+    aria-hidden="true"
+    data-aria-hidden="true"
+    data-radix-focus-guard=""
+    style="outline: none; opacity: 0; position: fixed; pointer-events: none;"
+    tabindex="0"
+  />
 </body>
 `;

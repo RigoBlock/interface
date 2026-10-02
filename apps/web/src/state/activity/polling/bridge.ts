@@ -1,8 +1,8 @@
 import { TradingApi } from '@universe/api'
+import type { UniverseChainId } from '@universe/chains'
 import ms from 'ms'
 import { useCallback, useEffect, useMemo } from 'react'
 import { TradingApiClient } from 'uniswap/src/data/apiClients/tradingApi/TradingApiClient'
-import type { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { toTradingApiSupportedChainId } from 'uniswap/src/features/transactions/swap/utils/tradingApi'
 import type {
   BridgeTransactionInfo,
@@ -99,7 +99,7 @@ export function usePollPendingBridgeTransactions(onActivityUpdate: OnActivityUpd
   useEffect(() => {
     let attempts = 0
     let interval = 500
-    let timeoutId: NodeJS.Timeout
+    let timeoutId: ReturnType<typeof setTimeout>
     let isPolling = true
 
     const poll = async () => {

@@ -1,3 +1,5 @@
+import { sanitizeAddressText } from '@universe/chains'
+import { Button, Flex, fonts, Text } from '@universe/mycelium'
 import { default as React, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { TextInput as NativeTextInput, StyleSheet } from 'react-native'
@@ -8,14 +10,12 @@ import { AppStackScreenProp } from 'src/app/navigation/types'
 import { BackHeader } from 'src/components/layout/BackHeader'
 import { useReactNavigationModal } from 'src/components/modals/useReactNavigationModal'
 import { navigateBackFromEditingWallet } from 'src/components/Settings/EditWalletModal/EditWalletNavigation'
-import { Button, Flex, Text } from 'ui/src'
-import { fonts } from 'ui/src/theme'
 import { TextInput } from 'uniswap/src/components/input/TextInput'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { DisplayNameType } from 'uniswap/src/features/accounts/types'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { useBottomScreenGap } from 'uniswap/src/hooks/useBottomScreenGap'
 import { MobileScreens } from 'uniswap/src/types/screens/mobile'
-import { sanitizeAddressText } from 'uniswap/src/utils/addresses'
 import { shortenAddress } from 'utilities/src/addresses'
 import { dismissNativeKeyboard } from 'utilities/src/device/keyboard/dismissNativeKeyboard'
 import { NICKNAME_MAX_LENGTH } from 'wallet/src/constants/accounts'
@@ -27,6 +27,7 @@ export function EditLabelSettingsModal({
 }: AppStackScreenProp<typeof ModalName.EditLabelSettingsModal>): JSX.Element {
   const dispatch = useDispatch()
   const { t } = useTranslation()
+  const { bottomScreenExtraGap } = useBottomScreenGap()
   const { onClose } = useReactNavigationModal()
 
   const { address, accessPoint } = route.params
@@ -40,6 +41,10 @@ export function EditLabelSettingsModal({
     displayName?.type === DisplayNameType.Local || displayName?.type === DisplayNameType.Address
 
   const inputRef = useRef<NativeTextInput>(null)
+
+  const onPressInputContainer = (): void => {
+    inputRef.current?.focus()
+  }
 
   const onFinishEditing = (): void => {
     dismissNativeKeyboard()
@@ -76,7 +81,14 @@ export function EditLabelSettingsModal({
           <BackHeader alignment="center" mx="$spacing16" pt="$spacing16" onPressBack={onPressBack}>
             <Text variant="body1">{t('settings.setting.wallet.action.editLabel')}</Text>
           </BackHeader>
-          <Flex grow gap="$spacing36" justifyContent="space-between" pb="$spacing16" pt="$spacing24" px="$spacing24">
+          <Flex
+            grow
+            gap="$spacing36"
+            justifyContent="space-between"
+            pb={bottomScreenExtraGap}
+            pt="$spacing24"
+            px="$spacing24"
+          >
             <Flex>
               <Flex
                 grow
@@ -88,6 +100,7 @@ export function EditLabelSettingsModal({
                 justifyContent="space-between"
                 px="$spacing24"
                 py="$spacing12"
+                onPress={accountNameIsEditable ? onPressInputContainer : undefined}
               >
                 <TextInput
                   ref={inputRef}

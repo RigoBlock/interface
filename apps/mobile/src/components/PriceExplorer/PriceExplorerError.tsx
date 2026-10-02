@@ -1,15 +1,12 @@
+import { Flex, Text } from '@universe/mycelium'
 import React, { ComponentProps } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useChartDimensions } from 'src/components/PriceExplorer/useChartDimensions'
-import { Flex, Text } from 'ui/src'
 import { BaseCard } from 'uniswap/src/components/BaseCard/BaseCard'
 
 export function PriceExplorerError({
-  showRetry,
   onRetry,
-}: Pick<ComponentProps<typeof BaseCard.ErrorState>, 'onRetry'> & {
-  showRetry: boolean
-}): JSX.Element {
+}: Pick<ComponentProps<typeof BaseCard.ErrorState>, 'onRetry'>): JSX.Element {
   const { t } = useTranslation()
   const { chartHeight } = useChartDimensions()
 
@@ -31,7 +28,6 @@ export function PriceExplorerError({
       >
         <BaseCard.ErrorState
           description={t('token.priceExplorer.error.description')}
-          retryButtonLabel={showRetry ? t('common.button.retry') : undefined}
           title={t('token.priceExplorer.error.title')}
           onRetry={onRetry}
         />

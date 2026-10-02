@@ -1,12 +1,13 @@
+import { Flex } from '@universe/mycelium'
+import { TestIDType } from '@universe/test'
 import React, { memo, useMemo } from 'react'
 import { useWindowDimensions } from 'react-native'
 import { useAnimatedStyle, useDerivedValue } from 'react-native-reanimated'
 import { ValueAndFormatted } from 'src/components/PriceExplorer/usePrice'
 import { AnimatedText } from 'src/components/text/AnimatedText'
-import { Flex, useSporeColors } from 'ui/src'
+import { useSporeColors } from 'ui/src'
 import { useDeviceDimensions } from 'ui/src/hooks/useDeviceDimensions'
 import { fonts, TextVariantTokens } from 'ui/src/theme'
-import { TestIDType } from 'uniswap/src/test/fixtures/testIDs'
 
 type AnimatedDecimalNumberProps = {
   number: ValueAndFormatted

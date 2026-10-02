@@ -9,6 +9,9 @@ type EventHandler = (event: unknown) => void
 export class MockWebSocket implements WebSocketLike {
   readyState: number = WebSocket.CONNECTING
 
+  closeCalls = 0
+  reconnectCalls = 0
+
   private listeners = new Map<string, Set<EventHandler>>()
 
   addEventListener(event: string, handler: EventHandler): void {
@@ -19,8 +22,15 @@ export class MockWebSocket implements WebSocketLike {
   }
 
   close(): void {
+    this.closeCalls++
     this.readyState = WebSocket.CLOSED
     this.emit('close', { code: 1000, reason: 'Normal closure' })
+  }
+
+  /** Mirrors PartySocket's reconnect(): re-arms after an explicit close(). */
+  reconnect(): void {
+    this.reconnectCalls++
+    this.readyState = WebSocket.CONNECTING
   }
 
   // Test helpers - simulate server behavior

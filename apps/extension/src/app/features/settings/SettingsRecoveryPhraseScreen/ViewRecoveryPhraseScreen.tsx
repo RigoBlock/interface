@@ -1,3 +1,8 @@
+import { Button, Flex, Text } from '@universe/mycelium'
+import { AlertTriangleFilled } from '@universe/mycelium/icons/AlertTriangleFilled'
+import { Eye } from '@universe/mycelium/icons/Eye'
+import { Key } from '@universe/mycelium/icons/Key'
+import { Laptop } from '@universe/mycelium/icons/Laptop'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ScreenHeader } from 'src/app/components/layout/ScreenHeader'
@@ -6,12 +11,11 @@ import { SeedPhraseDisplay } from 'src/app/features/settings/SettingsRecoveryPhr
 import { SettingsRecoveryPhrase } from 'src/app/features/settings/SettingsRecoveryPhraseScreen/SettingsRecoveryPhrase'
 import { AppRoutes, RemoveRecoveryPhraseRoutes, SettingsRoutes } from 'src/app/navigation/constants'
 import { navigate } from 'src/app/navigation/state'
-import { Button, Flex, Text } from 'ui/src'
-import { AlertTriangleFilled, Eye, Key, Laptop } from 'ui/src/components/icons'
 import { useEvent } from 'utilities/src/react/hooks'
 import { ONE_MINUTE_MS } from 'utilities/src/time/time'
 import { useTimeout } from 'utilities/src/time/timing'
 import { useSignerAccounts } from 'wallet/src/features/wallet/hooks'
+import { getExpectedMnemonicLength } from 'wallet/src/utils/mnemonics'
 
 const HIDE_PHRASE_TIMEOUT_MS = ONE_MINUTE_MS * 2
 
@@ -117,7 +121,7 @@ export function ViewRecoveryPhraseScreen({
         </SettingsRecoveryPhrase>
       ) : (
         <Flex fill gap="$spacing24" pt="$spacing36">
-          <SeedPhraseDisplay mnemonicId={mnemonicId} />
+          <SeedPhraseDisplay mnemonicId={mnemonicId} expectedWordCount={getExpectedMnemonicLength(mnemonicAccount)} />
 
           <Flex alignItems="center" gap="$spacing8">
             <Text color="$neutral2" textAlign="center" variant="body3">

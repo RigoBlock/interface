@@ -1,5 +1,5 @@
 import { Token } from '@uniswap/sdk-core'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 
 function createTokenFactory(defaults: { decimals: number; name: string; symbol: string }) {
   return function createToken<A extends string>(address: A, chainId: UniverseChainId): Token {
@@ -26,4 +26,11 @@ export const buildUSDT = createTokenFactory({
   decimals: 6,
   name: 'Tether USD',
   symbol: 'USDT',
+})
+
+/** Builds a metadata object representing USDG (Global Dollar) with default values; do not use for chains that have non-standard USDG fields. */
+export const buildUSDG = createTokenFactory({
+  decimals: 6,
+  name: 'Global Dollar',
+  symbol: 'USDG',
 })

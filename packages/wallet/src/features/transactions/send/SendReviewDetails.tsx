@@ -1,12 +1,14 @@
-/* oxlint-disable complexity */
+import { UniverseChainId } from '@universe/chains'
+import { isWebPlatform } from '@universe/environment'
+import { Button, Flex, IconButton, iconSizes, Separator, Text, TouchableArea } from '@universe/mycelium'
+import { X } from '@universe/mycelium/icons/X'
+import { useDeviceDimensions, useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
-import { Button, Flex, IconButton, Separator, Text, TouchableArea, useSporeColors } from 'ui/src'
 import { Arrow } from 'ui/src/components/arrow/Arrow'
-import { AlertTriangleFilled, BackArrow, X } from 'ui/src/components/icons'
-import { useDeviceDimensions } from 'ui/src/hooks/useDeviceDimensions'
-import { iconSizes } from 'ui/src/theme'
+import { AlertTriangleFilled } from 'ui/src/components/icons/AlertTriangleFilled'
+import { BackArrow } from 'ui/src/components/icons/BackArrow'
 import { AddressDisplay } from 'uniswap/src/components/accounts/AddressDisplay'
 import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
 import { InlineWarningCard } from 'uniswap/src/components/InlineWarningCard/InlineWarningCard'
@@ -16,7 +18,6 @@ import { NFTTransfer } from 'uniswap/src/components/nfts/NFTTransfer'
 import { AccountIcon } from 'uniswap/src/features/accounts/AccountIcon'
 import { AccountType } from 'uniswap/src/features/accounts/types'
 import { AuthTrigger } from 'uniswap/src/features/auth/types'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useAppFiatCurrencyInfo } from 'uniswap/src/features/fiatCurrency/hooks'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
@@ -28,20 +29,20 @@ import {
   TransactionScreen,
   useTransactionModalContext,
 } from 'uniswap/src/features/transactions/components/TransactionModal/TransactionModalContext'
-import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPriceWrapper'
+import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'
 import { TransactionDetails } from 'uniswap/src/features/transactions/TransactionDetails/TransactionDetails'
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { currencyAddress } from 'uniswap/src/utils/currencyId'
 import { shortenAddress } from 'utilities/src/addresses'
 import { NumberType } from 'utilities/src/format/types'
 import { logger } from 'utilities/src/logger/logger'
-import { isWebPlatform } from 'utilities/src/platform'
 import { useWalletNavigation } from 'wallet/src/contexts/WalletNavigationContext'
 import { useIsErc20Contract } from 'wallet/src/features/contracts/hooks'
 import { useSendContext } from 'wallet/src/features/transactions/contexts/SendContext'
 import { useSendERC20Callback, useSendNFTCallback } from 'wallet/src/features/transactions/send/hooks/useSendCallback'
 import { useActiveAccountWithThrow } from 'wallet/src/features/wallet/hooks'
 
+// oxlint-disable-next-line complexity -- multi-mode review screen
 export function SendReviewDetails({
   authTrigger,
   ButtonAuthIcon,
@@ -115,7 +116,7 @@ export function SendReviewDetails({
     txId,
     chainId: chainId as UniverseChainId,
     toAddress: recipient,
-    tokenAddress: nftIn?.nftContract?.address,
+    tokenAddress: nftIn?.contractAddress,
     tokenId: nftIn?.tokenId,
     txRequest,
     onSubmit: onNext,
@@ -311,6 +312,7 @@ export function SendReviewDetails({
         }
         chainId={chainId as UniverseChainId}
         gasFee={gasFee}
+        isSwap={false}
         showWarning={Boolean(transferWarning)}
         warning={transferWarning}
         onShowWarning={onShowWarning}
@@ -335,7 +337,7 @@ export function SendReviewDetails({
         <Flex row gap="$spacing8">
           {!isWebPlatform && <IconButton icon={<BackArrow />} emphasis="secondary" size="large" onPress={onPrev} />}
           <Button
-            isDisabled={actionButtonProps.disabled}
+            disabled={actionButtonProps.disabled}
             icon={ButtonAuthIcon ?? undefined}
             size="medium"
             testID={actionButtonProps.name}

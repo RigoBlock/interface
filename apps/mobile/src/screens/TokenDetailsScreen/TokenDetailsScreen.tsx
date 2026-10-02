@@ -1,107 +1,116 @@
-import { useApolloClient } from '@apollo/client'
 import { ReactNavigationPerformanceView } from '@shopify/react-native-performance-navigation'
-import { GQLQueries, GraphQLApi } from '@universe/api'
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-import React, { memo, useEffect, useMemo } from 'react'
-import { FadeInDown, FadeOutDown } from 'react-native-reanimated'
+import { AddressStringFormat, normalizeAddress } from '@universe/chains'
+import { useIsTokenCategoriesEnabled } from '@universe/gating'
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
+import React, { memo, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { AppStackScreenProp } from 'src/app/navigation/types'
 import { HeaderScrollScreen } from 'src/components/layout/screens/HeaderScrollScreen'
 import { useIsInModal } from 'src/components/modals/useIsInModal'
 import { PriceExplorer } from 'src/components/PriceExplorer/PriceExplorer'
+import { RelatedTokens } from 'src/components/TokenDetails/relatedTokens/RelatedTokens'
+import { MoreRwaTokens } from 'src/components/TokenDetails/rwa/MoreRwaTokens'
+import { OffHoursMarketWarning } from 'src/components/TokenDetails/rwa/OffHoursMarketWarning'
+import { OtherStocks } from 'src/components/TokenDetails/rwa/OtherStocks'
 import { TokenBalances } from 'src/components/TokenDetails/TokenBalances'
 import { TokenDetailsBridgedAssetSection } from 'src/components/TokenDetails/TokenDetailsBridgedAssetSection'
+import { TokenDetailsCollections } from 'src/components/TokenDetails/TokenDetailsCollections'
 import { TokenDetailsContextProvider, useTokenDetailsContext } from 'src/components/TokenDetails/TokenDetailsContext'
+import { TokenDetailsEarnBanner } from 'src/components/TokenDetails/TokenDetailsEarnBanner'
+import { TokenDetailsEarnSection } from 'src/components/TokenDetails/TokenDetailsEarnSection'
 import { TokenDetailsHeader } from 'src/components/TokenDetails/TokenDetailsHeader'
 import { TokenDetailsLinks } from 'src/components/TokenDetails/TokenDetailsLinks'
-import { TokenDetailsStats } from 'src/components/TokenDetails/TokenDetailsStats'
+import { TokenDetailsAbout } from 'src/components/TokenDetails/TokenDetailsStats/TokenDetailsAbout'
+import { TokenDetailsStats } from 'src/components/TokenDetails/TokenDetailsStats/TokenDetailsStats'
+import { TokenDetailsVaultShareBanner } from 'src/components/TokenDetails/TokenDetailsVaultShareBanner'
 import { TokenPerformance } from 'src/components/TokenDetails/TokenPerformance'
+import { useMobileTokenDetailsEarnData } from 'src/components/TokenDetails/useMobileTokenDetailsEarnData'
+import { useMobileTokenDetailsVaultShareData } from 'src/components/TokenDetails/useMobileTokenDetailsVaultShareData'
+import { useTokenDetailsCrossChainBalances } from 'src/components/TokenDetails/useTokenDetailsCrossChainBalances'
+import { useTokenDetailsRWAMatch } from 'src/components/TokenDetails/useTokenDetailsRWAMatch'
 import { TokenDetailsActionButtonsWrapper } from 'src/screens/TokenDetailsScreen/TokenDetailsActionButtonsWrapper'
 import { HeaderRightElement, HeaderTitleElement } from 'src/screens/TokenDetailsScreen/TokenDetailsHeaders'
 import { TokenDetailsModals } from 'src/screens/TokenDetailsScreen/TokenDetailsModals'
-import { Flex, Separator } from 'ui/src'
-import { AnimatedFlex } from 'ui/src/components/layout/AnimatedFlex'
-import { BaseCard } from 'uniswap/src/components/BaseCard/BaseCard'
-import { PollingInterval } from 'uniswap/src/constants/misc'
-import { useCrossChainBalances } from 'uniswap/src/data/balances/hooks/useCrossChainBalances'
-import {
-  useTokenBasicInfoPartsFragment,
-  useTokenBasicProjectPartsFragment,
-} from 'uniswap/src/data/graphql/uniswap-data-api/fragments'
-import { isMultichainProjectTokens } from 'uniswap/src/features/dataApi/tokenProjects/utils/isMultichainProjectTokens'
-import { currencyIdToContractInput } from 'uniswap/src/features/dataApi/utils/currencyIdToContractInput'
+import { useMobileTDPHeartbeatCoordinator } from 'src/screens/TokenDetailsScreen/useMobileTDPHeartbeatCoordinator'
+import { Lock } from 'ui/src/components/icons/Lock'
+import { useTokenCategories } from 'uniswap/src/data/apiClients/dataApiService/categories/useTokenCategories'
+import { useTokenMetadata } from 'uniswap/src/features/dataApi/tokenDetails/useTokenDetailsData'
+import { PermissionedTokenInfoBottomSheet } from 'uniswap/src/features/permissionedTokens/PermissionedTokenInfoBottomSheet'
+import { useLogRWATokenDetailsViewed } from 'uniswap/src/features/rwa/useLogRWATokenDetailsViewed'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { TokenWarningCard } from 'uniswap/src/features/tokens/warnings/TokenWarningCard'
 import { MobileScreens } from 'uniswap/src/types/screens/mobile'
-import { AddressStringFormat, normalizeAddress } from 'uniswap/src/utils/addresses'
-import { useEvent } from 'utilities/src/react/hooks'
+import { useBooleanState } from 'utilities/src/react/useBooleanState'
 import { useDelayedRender } from 'utilities/src/react/useDelayedRender'
 import { useActiveAccountAddressWithThrow } from 'wallet/src/features/wallet/hooks'
 
 const CONTEXT_MENU_RENDER_DELAY_MS = 1000
 
 export function TokenDetailsScreen({ route, navigation }: AppStackScreenProp<MobileScreens.TokenDetails>): JSX.Element {
-  const { currencyId } = route.params
+  const { currencyId, isMultichainAsset } = route.params
   const normalizedCurrencyId = normalizeAddress(currencyId, AddressStringFormat.Lowercase)
 
   return (
-    <TokenDetailsContextProvider currencyId={normalizedCurrencyId} navigation={navigation}>
+    <TokenDetailsContextProvider
+      currencyId={normalizedCurrencyId}
+      navigation={navigation}
+      initialIsMultichainAsset={isMultichainAsset}
+    >
       <TokenDetailsWrapper />
     </TokenDetailsContextProvider>
   )
 }
 
 function TokenDetailsWrapper(): JSX.Element {
-  const { chainId, address, currencyId } = useTokenDetailsContext()
-  const { data: token } = useTokenBasicInfoPartsFragment({ currencyId })
-  const { data: projectParts } = useTokenBasicProjectPartsFragment({ currencyId })
-  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
-  const isMultichainAsset = isMultichainProjectTokens(projectParts.project?.tokens)
+  const { chainId, address, currencyId, initialIsMultichainAsset } = useTokenDetailsContext()
+  const metadata = useTokenMetadata(currencyId)
 
   const traceProperties = useMemo(
     () => ({
       chain: chainId,
       address,
-      currencyName: token.name,
-      ...(multichainTokenUxEnabled ? { multichain: isMultichainAsset } : {}),
+      currencyName: metadata.name,
+      multichain: initialIsMultichainAsset,
     }),
-    [address, chainId, isMultichainAsset, multichainTokenUxEnabled, token.name],
+    [address, chainId, initialIsMultichainAsset, metadata.name],
   )
+
+  const rwaMatch = useTokenDetailsRWAMatch()
+  useLogRWATokenDetailsViewed({
+    rwaMatch,
+    tokenAddress: address,
+    tokenSymbol: metadata.symbol,
+    chainId,
+  })
+
+  // The TDP heartbeat coordinator owns refreshing this screen's queries — none poll on their own.
+  // Balances (GetPortfolio, Zerion-backed) are intentionally off the tick; transaction sagas refetch them on change.
+  useMobileTDPHeartbeatCoordinator(Boolean(rwaMatch))
 
   return (
     <ReactNavigationPerformanceView interactive screenName={MobileScreens.TokenDetails}>
       <Trace directFromPage logImpression properties={traceProperties} screen={MobileScreens.TokenDetails}>
-        <TokenDetailsQuery />
+        <TokenDetails />
       </Trace>
     </ReactNavigationPerformanceView>
   )
 }
 
-const TokenDetailsQuery = memo(function TokenDetailsQueryInner(): JSX.Element {
-  const { currencyId, setError } = useTokenDetailsContext()
-  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
-
-  const { error } = GraphQLApi.useTokenDetailsScreenQuery({
-    variables: {
-      ...currencyIdToContractInput(currencyId),
-      multichain: multichainTokenUxEnabled,
-    },
-    pollInterval: PollingInterval.Normal,
-    notifyOnNetworkStatusChange: true,
-    returnPartialData: true,
-  })
-
-  useEffect(() => setError(error), [error, setError])
-
-  return <TokenDetails />
-})
-
 const TokenDetails = memo(function TokenDetailsInner(): JSX.Element {
   const centerElement = useMemo(() => <HeaderTitleElement />, [])
   const rightElement = useMemo(() => <HeaderRightElement />, [])
   const { isContentHidden } = useDelayedRender(CONTEXT_MENU_RENDER_DELAY_MS)
-  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
 
   const inModal = useIsInModal(MobileScreens.Explore, true)
+  const { currencyId } = useTokenDetailsContext()
+
+  const { enabled: showEarn, activeAddress, earnData } = useMobileTokenDetailsEarnData()
+  const { enabled: showVaultShare, vaultShareData } = useMobileTokenDetailsVaultShareData()
+  const tokenCategoriesEnabled = useIsTokenCategoriesEnabled()
+  const { categories, isLoading: isCategoriesLoading } = useTokenCategories(currencyId)
+  // Tags aren't served for RWA tokens yet, so an untagged stock keeps its shelf in place instead of
+  // losing both sections. OtherStocks goes at flag cleanup.
+  const showOtherStocks = !tokenCategoriesEnabled || (!isCategoriesLoading && categories.length === 0)
 
   return (
     <>
@@ -115,10 +124,10 @@ const TokenDetails = memo(function TokenDetailsInner(): JSX.Element {
         <Flex gap="$spacing16" pb="$spacing16">
           <Flex gap="$spacing16">
             <TokenDetailsHeader />
+            {showVaultShare && <TokenDetailsVaultShareBanner vaultShareData={vaultShareData} />}
             <PriceExplorer />
+            <OffHoursMarketWarning />
           </Flex>
-
-          <TokenDetailsErrorCard />
 
           <Flex gap="$spacing16" mb="$spacing8" px="$spacing16">
             <TokenWarningCardWrapper />
@@ -127,14 +136,24 @@ const TokenDetails = memo(function TokenDetailsInner(): JSX.Element {
 
             <TokenDetailsBridgedAssetSection />
 
-            {!multichainTokenUxEnabled && <Separator />}
+            {showEarn && <TokenDetailsEarnSection activeAddress={activeAddress} earnData={earnData} />}
+
+            {showEarn && <TokenDetailsEarnBanner activeAddress={activeAddress} earnData={earnData} />}
           </Flex>
+          {tokenCategoriesEnabled && <TokenDetailsCollections />}
           <Flex gap="$spacing24">
             <TokenPerformance />
-            <Flex px="$spacing16">
-              <TokenDetailsStats />
+            <Flex gap="$spacing16">
+              <PermissionedPillRow />
+              <Flex gap="$spacing24">
+                <TokenDetailsAbout />
+                {tokenCategoriesEnabled && <RelatedTokens />}
+                <TokenDetailsStats />
+              </Flex>
             </Flex>
             <TokenDetailsLinks />
+            <MoreRwaTokens />
+            {showOtherStocks && <OtherStocks />}
           </Flex>
         </Flex>
       </HeaderScrollScreen>
@@ -146,56 +165,16 @@ const TokenDetails = memo(function TokenDetailsInner(): JSX.Element {
   )
 })
 
-const TokenDetailsErrorCard = memo(function TokenDetailsErrorCardInner(): JSX.Element | null {
-  const apolloClient = useApolloClient()
-  const { error, setError } = useTokenDetailsContext()
-
-  const onRetry = useEvent(() => {
-    setError(undefined)
-    apolloClient
-      .refetchQueries({ include: [GQLQueries.TokenDetailsScreen, GQLQueries.TokenPriceHistory] })
-      .catch((e) => setError(e))
-  })
-
-  return error ? (
-    <AnimatedFlex entering={FadeInDown} exiting={FadeOutDown} px="$spacing24">
-      <BaseCard.InlineErrorState onRetry={onRetry} />
-    </AnimatedFlex>
-  ) : null
-})
-
 const TokenBalancesWrapper = memo(function TokenBalancesWrapperInner(): JSX.Element | null {
   const activeAddress = useActiveAccountAddressWithThrow()
-  const { currencyId, isChainEnabled } = useTokenDetailsContext()
-
-  const projectTokens = useTokenBasicProjectPartsFragment({ currencyId }).data.project?.tokens
-
-  const crossChainTokens: Array<{
-    address: string | null
-    chain: GraphQLApi.Chain
-  }> = []
-
-  for (const token of projectTokens ?? []) {
-    if (!token || !token.chain || token.address === undefined) {
-      continue
-    }
-
-    crossChainTokens.push({
-      address: token.address,
-      chain: token.chain,
-    })
-  }
+  const { isChainEnabled } = useTokenDetailsContext()
 
   const {
     currentChainBalance,
     otherChainBalances,
     error: balanceError,
     dataUpdatedAt,
-  } = useCrossChainBalances({
-    evmAddress: activeAddress,
-    currencyId,
-    crossChainTokens,
-  })
+  } = useTokenDetailsCrossChainBalances({ evmAddress: activeAddress })
 
   return isChainEnabled ? (
     <TokenBalances
@@ -211,4 +190,43 @@ const TokenWarningCardWrapper = memo(function TokenWarningCardWrapperInner(): JS
   const { currencyInfo, openTokenWarningModal } = useTokenDetailsContext()
 
   return <TokenWarningCard currencyInfo={currencyInfo} onPress={openTokenWarningModal} />
+})
+
+// Allowlisted-only "Permissioned" pill, shown as its own row just above the stats section.
+// Figma places it in the About section, but not every token has one, so it lives as an
+// independent piece of UI here. Mirrors the web TDP `isVerified` predicate
+// (isPermissioned && isAllowlisted); never shown to a non-allowlisted wallet.
+const PermissionedPillRow = memo(function PermissionedPillRowInner(): JSX.Element | null {
+  const { t } = useTranslation()
+  const { currencyInfo, isPermissioned, isAllowlisted, permissionedIssuer } = useTokenDetailsContext()
+  const { value: isInfoOpen, setTrue: openInfo, setFalse: closeInfo } = useBooleanState(false)
+  const tokenSymbol = currencyInfo?.currency.symbol ?? ''
+
+  if (!isPermissioned || !isAllowlisted) {
+    return null
+  }
+
+  return (
+    <Flex row px="$spacing16">
+      <TouchableArea onPress={openInfo}>
+        <Flex
+          row
+          alignItems="center"
+          gap="$spacing4"
+          backgroundColor="$surface3"
+          borderRadius="$rounded12"
+          px="$spacing12"
+          py="$spacing6"
+        >
+          <Lock size="$icon.16" color="$neutral2" />
+          <Text variant="buttonLabel3" color="$neutral1">
+            {permissionedIssuer
+              ? t('permissionedPool.tooltip.lockIcon.verifiedSuffix', { issuer: permissionedIssuer })
+              : t('permissionedPool.tdp.permissioned')}
+          </Text>
+        </Flex>
+      </TouchableArea>
+      <PermissionedTokenInfoBottomSheet isOpen={isInfoOpen} tokenSymbol={tokenSymbol} onClose={closeInfo} />
+    </Flex>
+  )
 })

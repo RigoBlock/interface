@@ -1,9 +1,9 @@
 import { TradingApi } from '@universe/api'
+import { Platform } from '@universe/chains'
 import { useEffect, useState } from 'react'
 import { useActiveConnector } from 'uniswap/src/features/accounts/store/hooks'
 import { AccessPattern } from 'uniswap/src/features/accounts/store/types/Connector'
 import { isL2ChainId } from 'uniswap/src/features/chains/utils'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import {
   isBridge,
   isChained,
@@ -119,7 +119,7 @@ export function useIsCancelable(tx: TransactionDetails): boolean {
   // Non-plan logic
   const isSentBridge = isBridge(tx) && tx.sendConfirmed
   const isPending = tx.status === TransactionStatus.Pending
-  const wasSubmitted = isUniswapX(tx) || isChained(tx) || Object.keys(tx.options.request).length > 0
+  const wasSubmitted = isUniswapX(tx) || isChained(tx) || Object.keys(tx.options.request ?? {}).length > 0
 
   // Non-native connectors can only cancel UniswapX orders
   if (!isNativeAccess) {

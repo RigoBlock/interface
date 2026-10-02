@@ -1,31 +1,29 @@
 import { SharedEventName } from '@uniswap/analytics-events'
+import { isMobileWeb } from '@universe/environment'
+import { Flex, iconSizes, Text, TouchableArea, zIndexes } from '@universe/mycelium'
+import { ArrowUpRight } from '@universe/mycelium/icons/ArrowUpRight'
+import { MoreHorizontal } from '@universe/mycelium/icons/MoreHorizontal'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
+import { TestID } from '@universe/test'
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text, TouchableArea, useSporeColors } from 'ui/src'
-import { ArrowUpRight } from 'ui/src/components/icons/ArrowUpRight'
-import { MoreHorizontal } from 'ui/src/components/icons/MoreHorizontal'
-import { zIndexes } from 'ui/src/theme'
-import { iconSizes } from 'ui/src/theme/iconSizes'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
 import { GroupHoverTransition } from 'uniswap/src/components/GroupHoverTransition'
 import { ContextMenu } from 'uniswap/src/components/menus/ContextMenu'
 import { ContextMenuTriggerMode } from 'uniswap/src/components/menus/types'
 import { NftView, NftViewProps } from 'uniswap/src/components/nfts/NftView'
 import { useActiveAddresses } from 'uniswap/src/features/accounts/store/hooks'
-import { fromGraphQLChain } from 'uniswap/src/features/chains/utils'
 import { useNFTContextMenuItems } from 'uniswap/src/features/nfts/hooks/useNftContextMenuItems'
 import { getNFTAssetKey } from 'uniswap/src/features/nfts/utils'
 import { ElementName, SectionName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { getNftExplorerLink, getOpenseaLink, openUri } from 'uniswap/src/utils/linking'
-import { isMobileWeb } from 'utilities/src/platform'
 import { useBooleanState } from 'utilities/src/react/useBooleanState'
 import { POPUP_MEDIUM_DISMISS_MS } from '~/components/Popups/constants'
-import { popupRegistry } from '~/components/Popups/registry'
-import { PopupType } from '~/components/Popups/types'
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
 import { generateRotationStyle } from '~/pages/Portfolio/NFTs/generateRotationStyle'
+import { popupRegistry } from '~/state/popups/registry'
+import { PopupType } from '~/state/popups/types'
 import { filterDefinedWalletAddresses } from '~/utils/filterDefinedWalletAddresses'
 
 const FLOAT_UP_ON_HOVER_OFFSET = -4
@@ -58,6 +56,7 @@ function NFTCardInner(props: NftCardProps): JSX.Element {
     () => getNFTAssetKey(props.item.contractAddress ?? '', props.item.tokenId ?? ''),
     [props.item.contractAddress, props.item.tokenId],
   )
+  const chainId = props.item.chainId
 
   const [openPopoverId, setOpenPopoverId] = useState<string | null>(() => getOpenNftPopoverId())
   const isPopoverOpen = openPopoverId === nftUniqueId
@@ -94,14 +93,6 @@ function NFTCardInner(props: NftCardProps): JSX.Element {
     [props.id, colors.surface3.val],
   )
 
-  // Generate chainId for the NFT
-  const chainId = useMemo(() => {
-    if (props.item.chain) {
-      return fromGraphQLChain(props.item.chain) ?? undefined
-    }
-    return undefined
-  }, [props.item.chain])
-
   // Generate OpenSea URL for the NFT
   const openseaUrl = useMemo(() => {
     if (chainId && props.item.contractAddress && props.item.tokenId) {
@@ -134,6 +125,14 @@ function NFTCardInner(props: NftCardProps): JSX.Element {
     )
   }, [t, props.item.contractAddress])
 
+  const onReportSuccess = useCallback(() => {
+    popupRegistry.addPopup(
+      { type: PopupType.Success, message: t('common.reported') },
+      `report-nft-spam-${nftUniqueId}`,
+      POPUP_MEDIUM_DISMISS_MS,
+    )
+  }, [t, nftUniqueId])
+
   // Generate context menu items
   // When viewing an external wallet, pass empty walletAddresses to hide "hide" and "report spam" options
   const menuItems = useNFTContextMenuItems({
@@ -147,6 +146,7 @@ function NFTCardInner(props: NftCardProps): JSX.Element {
     showNotification: false,
     chainId,
     onCopySuccess,
+    onReportSuccess,
   })
 
   // Prevents press events from bubbling to parent touchable areas
@@ -184,10 +184,12 @@ function NFTCardInner(props: NftCardProps): JSX.Element {
     [openseaUrl, explorerUrl, props.item.collectionName, props.item.contractAddress, props.item.tokenId, props.onPress],
   )
 
+  const viewOnLinkLabel: string = openseaUrl ? t('common.opensea.link') : t('common.viewOnExplorer')
+
   const cardTestId = `${TestID.PortfolioNftCardPrefix}${nftUniqueId}`
 
   return (
-    <Flex group="item" testID={cardTestId} data-testid={cardTestId}>
+    <Flex testID={cardTestId} data-testid={cardTestId}>
       <TouchableArea
         p="$spacing4"
         borderRadius="$rounded16"
@@ -242,9 +244,11 @@ function NFTCardInner(props: NftCardProps): JSX.Element {
           </Text>
           <GroupHoverTransition
             height={SUBTITLE_HEIGHT}
-            useGroupItemHover
+            // Driven explicitly: the slide must stay off on mobile web (touch, no hover), which the group path cannot express.
+            isHovered={isHovered && !isMobileWeb}
+            widthMode="container"
             defaultContent={
-              <Flex row alignItems="center" gap="$spacing4" justifyContent="space-between" height={SUBTITLE_HEIGHT}>
+              <Flex width="100%" row alignItems="center" gap="$spacing4" height={SUBTITLE_HEIGHT}>
                 <Text
                   variant="body4"
                   color="$neutral2"
@@ -253,7 +257,7 @@ function NFTCardInner(props: NftCardProps): JSX.Element {
                 >
                   {props.item.collectionName}
                 </Text>
-                {props.item.chain && chainId && <NetworkLogo chainId={chainId} size={iconSizes.icon12} />}
+                {chainId && <NetworkLogo chainId={chainId} size={iconSizes.icon12} />}
               </Flex>
             }
             hoverContent={
@@ -265,7 +269,7 @@ function NFTCardInner(props: NftCardProps): JSX.Element {
                 testID={TestID.PortfolioNftCardViewOnLink}
               >
                 <Text variant="body4" color="$neutral2">
-                  {openseaUrl ? t('common.opensea.link') : t('common.viewOnExplorer')}
+                  {viewOnLinkLabel}
                 </Text>
                 <ArrowUpRight size="$icon.12" color="$neutral2" />
               </Flex>

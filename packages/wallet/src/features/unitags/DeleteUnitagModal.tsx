@@ -1,20 +1,19 @@
+import { isExtensionApp } from '@universe/environment'
+import { Button, Flex, fonts, Text } from '@universe/mycelium'
+import { AlertTriangleFilled } from '@universe/mycelium/icons/AlertTriangleFilled'
+import { TestID } from '@universe/test'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
-import { Button, Flex, Text } from 'ui/src'
-import { AlertTriangleFilled } from 'ui/src/components/icons'
-import { fonts } from 'ui/src/theme'
 import { Modal } from 'uniswap/src/components/modals/Modal'
-import { useUnitagsApiClient } from 'uniswap/src/data/apiClients/unitagsApi/UnitagsApiClient'
+import { unitagsApiClient } from 'uniswap/src/data/apiClients/unitagsApi/UnitagsApiClient'
 import { useResetUnitagsQueries } from 'uniswap/src/data/apiClients/unitagsApi/useResetUnitagsQueries'
 import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
 import { AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
 import { ModalName, UnitagEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { UnitagName } from 'uniswap/src/features/unitags/UnitagName'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { logger } from 'utilities/src/logger/logger'
-import { isExtensionApp } from 'utilities/src/platform'
 import { ModalBackButton } from 'wallet/src/components/modals/ModalBackButton'
 import { useWalletSigners } from 'wallet/src/features/wallet/context'
 import { useAccount } from 'wallet/src/features/wallet/hooks'
@@ -34,7 +33,6 @@ export function DeleteUnitagModal({
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const resetUnitagsQueries = useResetUnitagsQueries()
-  const unitagsApiClient = useUnitagsApiClient()
   const account = useAccount(address)
   const signerManager = useWalletSigners()
   const [isDeleting, setIsDeleting] = useState(false)
@@ -110,7 +108,7 @@ export function DeleteUnitagModal({
         <Flex row width="100%">
           <Button
             loading={isDeleting}
-            isDisabled={isDeleting}
+            disabled={isDeleting}
             testID={TestID.Remove}
             variant="critical"
             emphasis="secondary"

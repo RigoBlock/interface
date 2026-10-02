@@ -1,8 +1,9 @@
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
+import { Ellipsis } from '@universe/mycelium/icons/Ellipsis'
+import { TestID } from '@universe/test'
 import { default as React } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text, TouchableArea } from 'ui/src'
-import { Ellipsis } from 'ui/src/components/icons'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
+import { useExploreSectionTitleProps } from 'src/components/explore/ExploreSections/useExploreSectionTitleProps'
 
 export function FavoriteHeaderRow({
   title,
@@ -18,6 +19,7 @@ export function FavoriteHeaderRow({
   onPress: () => void
 }): JSX.Element {
   const { t } = useTranslation()
+  const titleProps = useExploreSectionTitleProps()
   return (
     <Flex
       row
@@ -28,9 +30,7 @@ export function FavoriteHeaderRow({
       mx="$spacing8"
       testID={TestID.FavoriteTokensHeader}
     >
-      <Text color="$neutral2" variant="subheading2">
-        {isEditing ? editingTitle : title}
-      </Text>
+      <Text {...titleProps}>{isEditing ? editingTitle : title}</Text>
       {!isEditing ? (
         <TouchableArea hitSlop={16} testID={TestID.Edit} disabled={disabled} onPress={onPress}>
           <Ellipsis color="$neutral2" size="$icon.20" strokeLinecap="round" strokeWidth={1} />

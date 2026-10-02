@@ -1,5 +1,6 @@
+import { DEFAULT_BOTTOM_INSET } from '@universe/mycelium/theme-hooks-compat'
 import { useSafeAreaFrame } from 'react-native-safe-area-context'
-import { DEFAULT_BOTTOM_INSET, MobileDeviceHeight } from 'ui/src/hooks/constants'
+import { MobileDeviceHeight } from 'ui/src/hooks/constants'
 // oxlint-disable-next-line no-restricted-imports -- Use `useAppInsets` instead
 import { useDeviceInsets } from 'ui/src/hooks/useDeviceInsets'
 

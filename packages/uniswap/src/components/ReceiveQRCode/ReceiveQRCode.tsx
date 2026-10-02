@@ -1,10 +1,15 @@
+import { UniverseChainId, Platform } from '@universe/chains'
+import { isExtensionApp, isWebApp, isWebPlatform } from '@universe/environment'
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
+import { useMedia, useSporeColors } from '@universe/mycelium/theme-hooks-compat'
+import { iconSizes, spacing } from '@universe/mycelium/tokens'
+import { TestID } from '@universe/test'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
-import { Flex, QRCodeDisplay, Text, TouchableArea, useIsShortMobileDevice, useMedia, useSporeColors } from 'ui/src'
+import { QRCodeDisplay, useIsShortMobileDevice } from 'ui/src'
 import { CheckmarkCircle } from 'ui/src/components/icons/CheckmarkCircle'
 import { CopySheets } from 'ui/src/components/icons/CopySheets'
 import { InfoCircleFilled } from 'ui/src/components/icons/InfoCircleFilled'
-import { iconSizes, spacing } from 'ui/src/theme'
 import { AddressDisplay } from 'uniswap/src/components/accounts/AddressDisplay'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
 import { SupportedNetworkLogosModal } from 'uniswap/src/components/network/SupportedNetworkLogosModal'
@@ -15,14 +20,10 @@ import { useAddressColorProps } from 'uniswap/src/features/address/color'
 import { MAINNET_CHAIN_INFO } from 'uniswap/src/features/chains/evm/info/mainnet'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { SOLANA_CHAIN_INFO } from 'uniswap/src/features/chains/svm/info/solana'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
 import { AppNotificationType, CopyNotificationType } from 'uniswap/src/features/notifications/slice/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { isEVMAddress } from 'utilities/src/addresses/evm/evm'
 import { setClipboard } from 'utilities/src/clipboard/clipboard'
-import { isExtensionApp, isWebApp, isWebPlatform } from 'utilities/src/platform'
 import { useEvent } from 'utilities/src/react/hooks'
 import { useBooleanState } from 'utilities/src/react/useBooleanState'
 
@@ -74,13 +75,14 @@ export function ReceiveQRCode({ address }: { address: Address }): JSX.Element | 
 
   return (
     <>
+      {/* `$short` is the web and extension leg, `isShortMobileDevice` the native one;
+          it returns false on web, so the two never double-apply. */}
       <Flex
         grow
         $short={{ mb: spacing.none }}
-        animation="quick"
         gap="$spacing12"
         justifyContent={isWebPlatform ? 'flex-start' : 'center'}
-        mb="$spacing8"
+        mb={isShortMobileDevice ? spacing.none : '$spacing8'}
         px={isWebPlatform || isShortMobileDevice ? '$spacing16' : '$spacing60'}
         py={isExtensionApp ? '$spacing60' : '$spacing24'}
       >

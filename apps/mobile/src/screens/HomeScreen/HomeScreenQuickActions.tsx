@@ -1,5 +1,13 @@
 // oxlint-disable typescript/no-duplicate-type-constituents
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
+import { ArrowDownCircle } from '@universe/mycelium/icons/ArrowDownCircle'
+import { CoinConvert } from '@universe/mycelium/icons/CoinConvert'
+import { MinusCircle } from '@universe/mycelium/icons/MinusCircle'
+import { PlusCircle } from '@universe/mycelium/icons/PlusCircle'
+import { SendAction } from '@universe/mycelium/icons/SendAction'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
+import { iconSizes, spacing } from '@universe/mycelium/tokens'
 import React, { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FlatList, ListRenderItemInfo } from 'react-native'
@@ -7,9 +15,6 @@ import { useDispatch, useSelector } from 'react-redux'
 import { navigate } from 'src/app/navigation/rootNavigation'
 import { useOpenReceiveModal } from 'src/features/modals/hooks/useOpenReceiveModal'
 import { openModal } from 'src/features/modals/modalSlice'
-import { Flex, Text, TouchableArea, useSporeColors } from 'ui/src'
-import { ArrowDownCircle, Bank, MinusCircle, PlusCircle, SendAction, SwapDotted } from 'ui/src/components/icons'
-import { iconSizes, spacing } from 'ui/src/theme'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { useHighestBalanceNativeCurrencyId } from 'uniswap/src/features/portfolio/balances/hooks'
 import { useHapticFeedback } from 'uniswap/src/features/settings/useHapticFeedback/useHapticFeedback'
@@ -24,8 +29,7 @@ import { useActiveAccountAddressWithThrow } from 'wallet/src/features/wallet/hoo
 const MIN_BUTTON_WIDTH = 102
 
 type IconComponent =
-  | typeof SwapDotted
-  | typeof Bank
+  | typeof CoinConvert
   | typeof PlusCircle
   | typeof MinusCircle
   | typeof SendAction
@@ -59,7 +63,6 @@ export function HomeScreenQuickActions(): JSX.Element {
   const openReceiveModal = useOpenReceiveModal()
   const { isTestnetModeEnabled, defaultChainId } = useEnabledChains()
   const disableForKorea = useFeatureFlag(FeatureFlags.DisableFiatOnRampKorea)
-  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
   const isPortfolioZero = useIsPortfolioZero()
 
   const activeAccountAddress = useActiveAccountAddressWithThrow()
@@ -103,10 +106,7 @@ export function HomeScreenQuickActions(): JSX.Element {
         })
         return
       }
-      // When multichain UX is enabled, show the interstitial sheet unless
-      // the user has zero balance (in which case go straight to FOR).
-      // Korea check is handled inside the modal and below for the direct path.
-      if (multichainTokenUxEnabled && !isPortfolioZero) {
+      if (!isPortfolioZero) {
         navigate(ModalName.FiatOnRampAction, { entry })
         return
       }
@@ -121,12 +121,11 @@ export function HomeScreenQuickActions(): JSX.Element {
         }),
       )
     },
-    [triggerHaptics, isTestnetModeEnabled, disableForKorea, multichainTokenUxEnabled, isPortfolioZero, dispatch, t],
+    [triggerHaptics, isTestnetModeEnabled, disableForKorea, isPortfolioZero, dispatch, t],
   )
 
   // PR #4621 Necessary to declare these as direct dependencies due to race
   // condition with initializing react-i18next and useMemo
-  const forLabel = t('home.label.for')
   const sendLabel = t('home.label.send')
   const receiveLabel = t('home.label.receive')
   const buyLabel = t('common.buy.label')
@@ -134,15 +133,15 @@ export function HomeScreenQuickActions(): JSX.Element {
   const actions = useMemo(
     () => [
       {
-        Icon: SwapDotted,
+        Icon: CoinConvert,
         label: 'Swap',
         name: ElementName.Swap,
         onPress: onPressSwap,
       },
       {
-        Icon: multichainTokenUxEnabled ? PlusCircle : Bank,
+        Icon: PlusCircle,
         eventName: MobileEventName.FiatOnRampQuickActionButtonPressed,
-        label: multichainTokenUxEnabled ? buyLabel : forLabel,
+        label: buyLabel,
         name: ElementName.Buy,
         onPress: () => onPressFORAction('onramp'),
       },
@@ -158,30 +157,15 @@ export function HomeScreenQuickActions(): JSX.Element {
         name: ElementName.Receive,
         onPress: onPressReceive,
       },
-      ...(multichainTokenUxEnabled
-        ? [
-            {
-              Icon: MinusCircle,
-              eventName: MobileEventName.FiatOnRampQuickActionButtonPressed,
-              label: sellLabel,
-              name: ElementName.Sell,
-              onPress: () => onPressFORAction('offramp'),
-            },
-          ]
-        : []),
+      {
+        Icon: MinusCircle,
+        eventName: MobileEventName.FiatOnRampQuickActionButtonPressed,
+        label: sellLabel,
+        name: ElementName.Sell,
+        onPress: () => onPressFORAction('offramp'),
+      },
     ],
-    [
-      onPressSwap,
-      multichainTokenUxEnabled,
-      buyLabel,
-      forLabel,
-      onPressFORAction,
-      sendLabel,
-      onPressSend,
-      receiveLabel,
-      onPressReceive,
-      sellLabel,
-    ],
+    [onPressSwap, buyLabel, onPressFORAction, sendLabel, onPressSend, receiveLabel, onPressReceive, sellLabel],
   )
 
   const renderItem = useCallback(
@@ -195,16 +179,9 @@ export function HomeScreenQuickActions(): JSX.Element {
           testID={name}
           onPress={onPress}
         >
-          <Flex
-            fill
-            backgroundColor="$accent2"
-            borderRadius="$rounded20"
-            py="$spacing16"
-            px="$spacing12"
-            gap="$spacing12"
-            justifyContent="space-between"
-            height="100%"
-          >
+          {/* Content-sized cell: percentage/fill heights resolve to 0 inside an
+              auto-height horizontal FlatList row under the mycelium compat primitives. */}
+          <Flex backgroundColor="$accent2" borderRadius="$rounded20" py="$spacing16" px="$spacing12" gap="$spacing12">
             <Icon color={contentColor} size={iconSize} strokeWidth={2} />
             <Text color={contentColor} variant="buttonLabel2">
               {label}

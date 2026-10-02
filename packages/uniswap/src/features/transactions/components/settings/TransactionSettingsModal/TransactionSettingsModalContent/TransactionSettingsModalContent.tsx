@@ -1,12 +1,13 @@
+import { isExtensionApp, isMobileApp, isMobileWeb, isWebAppDesktop, isWebPlatform } from '@universe/environment'
+import { Button, Flex, iconSizes, Text, TouchableArea } from '@universe/mycelium'
+import { AnimatedPager } from '@universe/mycelium/animate-presence-pager'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
 import { PropsWithChildren, useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AnimatedPager, Button, Flex, Text, TouchableArea, useMedia } from 'ui/src'
 import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
-import { iconSizes } from 'ui/src/theme'
 import { TransactionSettingRow } from 'uniswap/src/features/transactions/components/settings/TransactionSettingsModal/TransactionSettingsModalContent/TransactionSettingsRow'
 import type { TransactionSettingsModalProps } from 'uniswap/src/features/transactions/components/settings/TransactionSettingsModal/types'
 import { type TransactionSettingConfig } from 'uniswap/src/features/transactions/components/settings/types'
-import { isExtensionApp, isMobileApp, isMobileWeb, isWebAppDesktop, isWebPlatform } from 'utilities/src/platform'
 
 const TopLevelSettings = ({
   settings,
@@ -130,7 +131,7 @@ export const TransactionSettingsModalContent = ({
         <SettingsPageLayout {...layoutProps}>{renderContent()}</SettingsPageLayout>
       ) : (
         // Desktop: Animated pager with two pages
-        <AnimatedPager currentIndex={SelectedSetting?.Screen ? 1 : 0} animation="fast">
+        <AnimatedPager currentIndex={SelectedSetting?.Screen ? 1 : 0} curve="fast">
           <SettingsPageLayout {...layoutProps}>
             <TopLevelSettings settings={settings} setSelectedSetting={setSelectedSetting} />
           </SettingsPageLayout>

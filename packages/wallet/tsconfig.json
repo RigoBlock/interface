@@ -3,6 +3,9 @@
   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.json", "env.d.ts"],
   "references": [
     {
+      "path": "../chains"
+    },
+    {
       "path": "../ui"
     },
     {
@@ -12,16 +15,40 @@
       "path": "../gating"
     },
     {
+      "path": "../encoding"
+    },
+    {
+      "path": "../cryptography"
+    },
+    {
+      "path": "../compliance"
+    },
+    {
       "path": "../api"
+    },
+    {
+      "path": "../utilities"
+    },
+    {
+      "path": "../environment"
     },
     {
       "path": "../uniswap"
     },
     {
-      "path": "../utilities"
+      "path": "../../config/vitest-presets"
+    },
+    {
+      "path": "../mycelium"
+    },
+    {
+      "path": "../tailwind"
+    },
+    {
+      "path": "../test"
     }
   ],
   "compilerOptions": {
-    "types": ["chrome", "jest"]
+    "types": ["chrome", "vitest/globals"]
   }
 }

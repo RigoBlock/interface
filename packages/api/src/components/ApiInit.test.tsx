@@ -22,7 +22,7 @@ import { sleep } from 'utilities/src/time/timing'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock platform detection - we're testing as extension by default
-vi.mock('utilities/src/platform', () => ({
+vi.mock('@universe/environment', () => ({
   isWeb: false,
   isExtension: true,
   isInterface: false,
@@ -42,12 +42,9 @@ describe('ApiInit Integration', () => {
   let uniswapIdentifierService: UniswapIdentifierService
   let sessionService: SessionService
   let initService: SessionInitializationService
-  let isSessionServiceEnabled: boolean
 
   beforeEach(() => {
     vi.clearAllMocks()
-    // Default to enabled
-    isSessionServiceEnabled = true
 
     // Mock only the boundaries (storage and network)
     mockStorage = new Map()
@@ -120,7 +117,6 @@ describe('ApiInit Integration', () => {
       getSessionService: () => sessionService,
       challengeSolverService,
       performanceTracker: createNoopPerformanceTracker(),
-      getIsSessionUpgradeAutoEnabled: () => true,
     })
 
     // Fresh query client for each test
@@ -142,7 +138,7 @@ describe('ApiInit Integration', () => {
     // Act: Render the component
     render(
       <QueryClientProvider client={queryClient}>
-        <ApiInit getSessionInitService={() => initService} isSessionServiceEnabled={isSessionServiceEnabled} />
+        <ApiInit getSessionInitService={() => initService} />
       </QueryClientProvider>,
     )
 
@@ -173,7 +169,7 @@ describe('ApiInit Integration', () => {
     // Act
     render(
       <QueryClientProvider client={queryClient}>
-        <ApiInit getSessionInitService={() => initService} isSessionServiceEnabled={isSessionServiceEnabled} />
+        <ApiInit getSessionInitService={() => initService} />
       </QueryClientProvider>,
     )
 
@@ -203,7 +199,7 @@ describe('ApiInit Integration', () => {
     // Act
     render(
       <QueryClientProvider client={queryClient}>
-        <ApiInit getSessionInitService={() => initService} isSessionServiceEnabled={isSessionServiceEnabled} />
+        <ApiInit getSessionInitService={() => initService} />
       </QueryClientProvider>,
     )
 
@@ -250,7 +246,7 @@ describe('ApiInit Integration', () => {
     // Act
     render(
       <QueryClientProvider client={retryClient}>
-        <ApiInit getSessionInitService={() => initService} isSessionServiceEnabled={isSessionServiceEnabled} />
+        <ApiInit getSessionInitService={() => initService} />
       </QueryClientProvider>,
     )
 
@@ -275,7 +271,7 @@ describe('ApiInit Integration', () => {
   it('prevents duplicate initialization on re-renders', async () => {
     const { rerender } = render(
       <QueryClientProvider client={queryClient}>
-        <ApiInit getSessionInitService={() => initService} isSessionServiceEnabled={isSessionServiceEnabled} />
+        <ApiInit getSessionInitService={() => initService} />
       </QueryClientProvider>,
     )
 
@@ -286,13 +282,13 @@ describe('ApiInit Integration', () => {
     // Re-render multiple times
     rerender(
       <QueryClientProvider client={queryClient}>
-        <ApiInit getSessionInitService={() => initService} isSessionServiceEnabled={isSessionServiceEnabled} />
+        <ApiInit getSessionInitService={() => initService} />
       </QueryClientProvider>,
     )
 
     rerender(
       <QueryClientProvider client={queryClient}>
-        <ApiInit getSessionInitService={() => initService} isSessionServiceEnabled={isSessionServiceEnabled} />
+        <ApiInit getSessionInitService={() => initService} />
       </QueryClientProvider>,
     )
 
@@ -301,64 +297,5 @@ describe('ApiInit Integration', () => {
 
     // Assert: Still only initialized once due to React Query caching
     expect(mockApiClient.initSession).toHaveBeenCalledTimes(1)
-  })
-
-  it('should not initialize session when feature flag is disabled', async () => {
-    // Set feature flag as disabled
-    isSessionServiceEnabled = false
-
-    render(
-      <QueryClientProvider client={queryClient}>
-        <ApiInit getSessionInitService={() => initService} isSessionServiceEnabled={isSessionServiceEnabled} />
-      </QueryClientProvider>,
-    )
-
-    // Wait to ensure no calls are made
-    await new Promise((resolve) => setTimeout(resolve, 100))
-
-    // Assert: No session initialization should occur
-    expect(mockApiClient.initSession).not.toHaveBeenCalled()
-    expect(mockApiClient.challenge).not.toHaveBeenCalled()
-    expect(mockApiClient.verify).not.toHaveBeenCalled()
-  })
-
-  it('should wait for feature flag to be enabled before initializing session', async () => {
-    // Start with feature flag disabled (simulating Statsig loading)
-    isSessionServiceEnabled = false
-
-    const { rerender } = render(
-      <QueryClientProvider client={queryClient}>
-        <ApiInit getSessionInitService={() => initService} isSessionServiceEnabled={isSessionServiceEnabled} />
-      </QueryClientProvider>,
-    )
-
-    // Assert that initialization does not happen while flag is disabled
-    // Use a try/catch with waitFor to verify the call never happens
-    await expect(
-      waitFor(
-        () => {
-          expect(mockApiClient.initSession).toHaveBeenCalled()
-        },
-        { timeout: 100 },
-      ),
-    ).rejects.toThrow('expected "spy" to be called at least once')
-
-    // Verify it still hasn't been called
-    expect(mockApiClient.initSession).not.toHaveBeenCalled()
-
-    // Now simulate feature flag becoming enabled (Statsig loaded)
-    isSessionServiceEnabled = true
-
-    // Trigger a re-render
-    rerender(
-      <QueryClientProvider client={queryClient}>
-        <ApiInit getSessionInitService={() => initService} isSessionServiceEnabled={isSessionServiceEnabled} />
-      </QueryClientProvider>,
-    )
-
-    // Now session initialization should occur
-    await waitFor(() => {
-      expect(mockApiClient.initSession).toHaveBeenCalled()
-    })
   })
 })

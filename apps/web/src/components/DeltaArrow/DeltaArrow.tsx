@@ -1,29 +1,15 @@
-import { colorsDark, colorsLight } from 'ui/src/theme'
-import { ArrowChangeDown } from '~/components/Icons/ArrowChangeDown'
-import { ArrowChangeUp } from '~/components/Icons/ArrowChangeUp'
-import { deprecatedStyled } from '~/lib/deprecated-styled'
+import { ArrowChange } from '@universe/mycelium/icons/ArrowChange'
+import { isValidDelta } from 'uniswap/src/utils/calculateDelta'
 
-const StyledUpArrow = deprecatedStyled(ArrowChangeUp)<{ $noColor?: boolean }>`
-  color: ${({ theme, $noColor }) =>
-    $noColor ? theme.neutral3 : theme.darkMode ? colorsDark.statusSuccess : colorsLight.statusSuccess};
-`
-const StyledDownArrow = deprecatedStyled(ArrowChangeDown)<{ $noColor?: boolean }>`
-  color: ${({ theme, $noColor }) =>
-    $noColor ? theme.neutral3 : theme.darkMode ? colorsDark.statusCritical : colorsLight.statusCritical};
-`
+export { calculateDelta } from 'uniswap/src/utils/calculateDelta'
+export { DEFAULT_DELTA_COLOR, getDeltaTextColor } from 'uniswap/src/utils/getDeltaTextColor'
 
-export function calculateDelta(start: number, current: number): number | undefined {
-  const delta = (current / start - 1) * 100
-  return isValidDelta(delta) ? delta : undefined
-}
-
-function isValidDelta(delta: number | null | undefined): delta is number {
-  // Null-check not including zero
-  return delta !== null && delta !== undefined && delta !== Infinity && !isNaN(delta)
-}
-
-function isDeltaZero(delta: string): boolean {
-  return parseFloat(delta) === 0
+/** True when a formatted delta string (e.g. "0.00%") displays as zero, even if the raw delta is a tiny non-zero value. */
+export function isDeltaZero(delta: string): boolean {
+  // Check digits instead of parseFloat: comma-decimal locales format 0.5% as "0,50 %", which
+  // parseFloat truncates to 0. A formatted zero contains only '0' digits regardless of locale.
+  const digits = delta.match(/\d/g)
+  return digits !== null && digits.every((digit) => digit === '0')
 }
 
 interface DeltaArrowProps {
@@ -41,8 +27,14 @@ export function DeltaArrow({ delta, formattedDelta, noColor = false, size = 16 }
   const isZero = isDeltaZero(formattedDelta)
 
   return Math.sign(delta) < 0 && !isZero ? (
-    <StyledDownArrow width={size} height={size} key="arrow-down" aria-label="down" $noColor={noColor} />
+    <ArrowChange aria-label="down" color={noColor ? '$neutral3' : '$statusCritical'} key="arrow-down" size={size} />
   ) : (
-    <StyledUpArrow width={size} height={size} key="arrow-up" aria-label="up" $noColor={isZero || noColor} />
+    <ArrowChange
+      aria-label="up"
+      color={isZero || noColor ? '$neutral3' : '$statusSuccess'}
+      key="arrow-up"
+      rotate="180deg"
+      size={size}
+    />
   )
 }

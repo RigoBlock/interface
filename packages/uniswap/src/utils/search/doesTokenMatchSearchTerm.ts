@@ -31,6 +31,7 @@ export function doesTokenMatchSearchTerm(
 
   // Search by token address (normalized for consistency with explore page)
   const addressIncludesSearch =
+    // oxlint-disable-next-line universe-custom/no-tolowercase-address-currencyid -- case-insensitive address substring search, not a cache-key lookup
     currency instanceof Token ? currency.address.toLowerCase().includes(lowercaseSearch) : false
 
   return Boolean(nameIncludesSearch || symbolIncludesSearch || addressIncludesSearch)

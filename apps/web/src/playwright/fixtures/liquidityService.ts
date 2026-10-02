@@ -2,7 +2,10 @@ import type { MethodInfo, ServiceType } from '@bufbuild/protobuf'
 // oxlint-disable-next-line no-restricted-imports -- Liquidity Service fixtures need direct Playwright imports
 import { type Page } from '@playwright/test'
 import { LiquidityService } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v1/api_connect'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { LiquidityService as LiquidityServiceV2 } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v2/api_connect'
+import { getUniswapServiceUrls } from '~/config'
+import { parseConnectRequestBody } from '~/playwright/fixtures/dataApi'
+import { TEST_WALLET_ADDRESS } from '~/playwright/fixtures/wallets'
 
 /**
  * Helper to construct the Connect/gRPC-web endpoint path from a service method
@@ -43,19 +46,21 @@ const shouldIgnorePageError = (error: Error): { ignored: boolean } => {
 export async function stubLiquidityServiceEndpoint({
   page,
   endpoint,
+  service = LiquidityService,
   modifyRequestData,
   modifyResponseData,
 }: {
   page: Page
   endpoint: MethodInfo
+  service?: ServiceType
   modifyRequestData?: (data: any) => any
   modifyResponseData?: (data: any) => any
 }) {
-  const endpointPath = getServiceMethodPath(LiquidityService, endpoint)
+  const endpointPath = getServiceMethodPath(service, endpoint)
 
   // Liquidity service uses Connect/gRPC-web protocol with specific path structure
   // The endpoint will be something like: uniswap.liquidity.v1.LiquidityService/MigrateV3ToV4LPPosition
-  await page.route(`${uniswapUrls.liquidityServiceUrl}/${endpointPath}*`, async (route) => {
+  await page.route(`${getUniswapServiceUrls().liquidityServiceUrl}/${endpointPath}*`, async (route) => {
     try {
       const request = route.request()
 
@@ -108,5 +113,93 @@ export async function stubLiquidityServiceEndpoint({
 
       throw error
     }
+  })
+}
+
+/** Anchored to the path end so `GetWalletPositions` does not also match `GetWalletPositionsBalance`. */
+function matchesLiquidityServiceMethod(service: ServiceType, method: MethodInfo): (url: URL) => boolean {
+  const methodPath = `/${getServiceMethodPath(service, method)}`
+  return (url) => url.pathname.endsWith(methodPath)
+}
+
+export async function mockLiquidityServiceEndpoint({
+  page,
+  service,
+  endpoint,
+  mockPath,
+}: {
+  page: Page
+  service: ServiceType
+  endpoint: MethodInfo
+  mockPath: string
+}): Promise<void> {
+  await page.route(matchesLiquidityServiceMethod(service, endpoint), async (route) => {
+    await route.fulfill({ path: mockPath })
+  })
+}
+
+/**
+ * Serves a single-position `GetPosition` read from a static fixture (test wallet as owner, known
+ * liquidity/fees). The live read returns the position's real mainnet owner and current on-chain
+ * state, so ownership-gated UI stays hidden and reads like uncollected fees or liquidity drift to
+ * zero as positions are closed onchain — the fixture pins them so the flows are deterministic.
+ */
+export async function mockGetPosition({ page, mockPath }: { page: Page; mockPath: string }): Promise<void> {
+  await mockLiquidityServiceEndpoint({
+    page,
+    service: LiquidityServiceV2,
+    endpoint: LiquidityServiceV2.methods.getPosition,
+    mockPath,
+  })
+}
+
+/**
+ * Passes the live `GetPosition` response through, overriding only the given fields (owner by
+ * default). Used where the on-chain position is still live and its real data is wanted, but the
+ * UI's ownership gate needs the test wallet as owner. No fields are fabricated beyond the overrides.
+ */
+export async function stubGetPositionFields({
+  page,
+  overrides = { owner: TEST_WALLET_ADDRESS },
+}: {
+  page: Page
+  overrides?: Record<string, unknown>
+}): Promise<void> {
+  await page.route(
+    matchesLiquidityServiceMethod(LiquidityServiceV2, LiquidityServiceV2.methods.getPosition),
+    async (route) => {
+      try {
+        const request = route.request()
+        const response = await route.fetch({ headers: { ...request.headers(), 'content-type': 'application/json' } })
+        const responseJson = JSON.parse(await response.text())
+        const modified = responseJson?.position
+          ? { ...responseJson, position: { ...responseJson.position, ...overrides } }
+          : responseJson
+        await route.fulfill({
+          status: response.status(),
+          headers: { ...response.headers(), 'content-type': 'application/json' },
+          body: JSON.stringify(modified),
+        })
+      } catch (error) {
+        const { ignored } = shouldIgnorePageError(error instanceof Error ? error : new Error(String(error)))
+        if (ignored) {
+          return
+        }
+        throw error
+      }
+    },
+  )
+}
+
+/** GetWalletPositions is requested twice per view; the `modifier.hiddenOnly` complement is answered empty. */
+export async function mockGetWalletPositions({ page, mockPath }: { page: Page; mockPath: string }): Promise<void> {
+  const matcher = matchesLiquidityServiceMethod(LiquidityServiceV2, LiquidityServiceV2.methods.getWalletPositions)
+  await page.route(matcher, async (route) => {
+    const body = parseConnectRequestBody(route.request()) as { modifier?: { hiddenOnly?: boolean } } | null
+    if (body?.modifier?.hiddenOnly) {
+      await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ positions: [] }) })
+      return
+    }
+    await route.fulfill({ path: mockPath })
   })
 }

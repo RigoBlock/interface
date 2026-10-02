@@ -5,8 +5,16 @@ import * as React from 'react'
 import { cn } from '../cn'
 import { Spinner } from './spinner'
 
+/**
+ * @deprecated The canonical mycelium Button is the parity-verified Tamagui
+ * port exported from the package root — `import { Button } from
+ * '@universe/mycelium'` (INFRA-2955, FlexCompat precedent #36905). This cva
+ * vocabulary stays exported from '@universe/mycelium/components' for its
+ * existing consumers (dev-portal / mission-control shims); don't add new
+ * usages.
+ */
 const buttonVariants = cva(
-  'relative inline-flex items-center justify-center gap-3 whitespace-nowrap text-button-1 font-baselMedium transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:[&_*]:text-inherit cursor-pointer [&_svg]:pointer-events-none [&_svg]:size-6 [&_svg]:shrink-0',
+  'relative inline-flex items-center justify-center gap-3 whitespace-nowrap text-button-1 font-basel-medium transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:[&_*]:text-inherit cursor-pointer [&_svg]:pointer-events-none [&_svg]:size-6 [&_svg]:shrink-0',
   {
     variants: {
       variant: {
@@ -45,6 +53,11 @@ const buttonVariants = cva(
 
 export type ButtonState = 'idle' | 'loading' | 'success'
 
+/**
+ * @deprecated Props of the deprecated cva Button on the
+ * '@universe/mycelium/components' entry point — the root-barrel `ButtonProps`
+ * ('@universe/mycelium') is the Tamagui-compatible surface (INFRA-2955).
+ */
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
   asChild?: boolean
@@ -52,6 +65,12 @@ export interface ButtonProps
   state?: ButtonState
 }
 
+/**
+ * @deprecated Use the root-barrel Button — `import { Button } from
+ * '@universe/mycelium'` — the parity-verified port of the legacy `ui/src`
+ * Button (INFRA-2955). Kept exported here, unchanged, for existing
+ * '@universe/mycelium/components' consumers.
+ */
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, state = 'idle', children, ...props }, ref) => {
     const isLoading = state === 'loading'

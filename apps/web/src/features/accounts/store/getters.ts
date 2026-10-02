@@ -1,3 +1,4 @@
+import { Platform } from '@universe/chains'
 import { Account } from 'uniswap/src/features/accounts/store/types/Account'
 import { AccountsGetters } from 'uniswap/src/features/accounts/store/types/AccountsState'
 import { ConnectorStatus } from 'uniswap/src/features/accounts/store/types/Connector'
@@ -7,7 +8,6 @@ import {
   FlexiblePlatformInput as Flexible,
   resolvePlatform,
 } from 'uniswap/src/features/accounts/store/utils/flexibleInput'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import type { WebAccountsData } from '~/features/accounts/store/types'
 
 export function createAccountsStoreGetters(getState: () => WebAccountsData) {

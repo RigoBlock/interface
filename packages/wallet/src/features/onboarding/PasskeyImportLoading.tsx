@@ -1,6 +1,5 @@
+import { Flex, iconSizes, SpinningLoader, Text } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
-import { Flex, SpinningLoader, Text } from 'ui/src'
-import { iconSizes } from 'ui/src/theme'
 
 export function PasskeyImportLoading({ pb }: { pb?: number }): JSX.Element {
   const { t } = useTranslation()

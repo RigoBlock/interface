@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/core'
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useDispatch } from 'react-redux'
 import { OnboardingStackNavigationProp, SettingsStackNavigationProp } from 'src/app/navigation/types'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
@@ -32,6 +32,7 @@ export function useAdvancedSettingsMenuState(options?: UseAdvancedSettingsMenuSt
   const navigation = useNavigation<SettingsStackNavigationProp & OnboardingStackNavigationProp>()
   const dispatch = useDispatch()
   const { isTestnetModeEnabled } = useEnabledChains()
+  const onCloseOption = options?.onClose
 
   const handleTestnetModeToggleInternal = useCallback(
     (newIsTestnetMode: boolean): void => {
@@ -42,8 +43,8 @@ export function useAdvancedSettingsMenuState(options?: UseAdvancedSettingsMenuSt
         })
 
       // Close the advanced settings modal first
-      if (options?.onClose) {
-        options.onClose()
+      if (onCloseOption) {
+        onCloseOption()
       } else {
         navigation.goBack()
       }
@@ -63,7 +64,7 @@ export function useAdvancedSettingsMenuState(options?: UseAdvancedSettingsMenuSt
         }
       }, AVOID_RENDER_DURING_ANIMATION_MS)
     },
-    [dispatch, navigation, options],
+    [dispatch, navigation, onCloseOption],
   )
 
   // Handler for modal switch (receives isChecked from switch component)
@@ -87,11 +88,28 @@ export function useAdvancedSettingsMenuState(options?: UseAdvancedSettingsMenuSt
     navigation.navigate(MobileScreens.SettingsStorage)
   }, [navigation])
 
-  return {
-    isTestnetEnabled: isTestnetModeEnabled,
-    onTestnetModeToggled,
-    onPressSmartWallet,
-    onPressStorage,
-    handleTestnetModeToggle,
-  }
+  const onPressNetworkCost = useCallback((): void => {
+    navigation.navigate(ModalName.NetworkCostPicker)
+  }, [navigation])
+
+  // Kept referentially stable: this feeds `navigateToAdvancedSettings` in the app-wide
+  // WalletNavigationProvider, so a fresh object here re-renders every navigation consumer.
+  return useMemo(
+    () => ({
+      isTestnetEnabled: isTestnetModeEnabled,
+      onTestnetModeToggled,
+      onPressSmartWallet,
+      onPressStorage,
+      onPressNetworkCost,
+      handleTestnetModeToggle,
+    }),
+    [
+      isTestnetModeEnabled,
+      onTestnetModeToggled,
+      onPressSmartWallet,
+      onPressStorage,
+      onPressNetworkCost,
+      handleTestnetModeToggle,
+    ],
+  )
 }

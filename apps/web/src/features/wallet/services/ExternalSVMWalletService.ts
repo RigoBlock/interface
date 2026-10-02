@@ -1,7 +1,7 @@
 import { useWallet as useSolanaWalletContext } from '@solana/wallet-adapter-react'
+import { Platform } from '@universe/chains'
 import { useMemo } from 'react'
 import { AccountType } from 'uniswap/src/features/accounts/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import type { WalletService } from 'uniswap/src/features/wallet/services/IWalletService'
 import { WalletMeta } from 'uniswap/src/features/wallet/types/WalletMeta'
 

@@ -1,17 +1,21 @@
+import { UniverseChainId } from '@universe/chains'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Flex } from '@universe/mycelium'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
+import { TestID } from '@universe/test'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
-import { Flex, useMedia } from 'ui/src'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { useNetworkSelectorOptions } from 'uniswap/src/components/network/NetworkFilterV2/useNetworkSelectorOptions'
+import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { usePortfolioData } from 'uniswap/src/features/dataApi/balances/balancesRest'
 import { DataApiOutageBanner } from 'uniswap/src/features/dataApi/outage/DataApiOutageBanner'
 import type { DataApiOutageState } from 'uniswap/src/features/dataApi/types'
 import { ElementName, InterfacePageName, UniswapEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
+import { buildNetworkFilterSelectedChainFields } from 'uniswap/src/features/telemetry/utils/buildNetworkFilterSelectedChainFields'
 import { useEvent } from 'utilities/src/react/hooks'
-import { HEADER_TRANSITION } from '~/components/Explore/stickyHeader/constants'
 import { NetworkFilter } from '~/components/NetworkFilter/NetworkFilter'
+import { HEADER_TRANSITION } from '~/components/StickyCollapsibleHeader/constants'
 import { useActiveAddresses } from '~/features/accounts/store/hooks'
 import { useAppHeaderHeight } from '~/hooks/useAppHeaderHeight'
 import { useDataApiOutageModal } from '~/hooks/useDataApiOutageModal'
@@ -32,6 +36,8 @@ function getPageNameFromTab(tab: PortfolioTab | undefined): InterfacePageName {
       return InterfacePageName.PortfolioPage
     case PortfolioTab.Tokens:
       return InterfacePageName.PortfolioTokensPage
+    case PortfolioTab.Pools:
+      return InterfacePageName.PortfolioPoolsPage
     case PortfolioTab.Defi:
       return InterfacePageName.PortfolioDefiPage
     case PortfolioTab.Nfts:
@@ -67,23 +73,32 @@ function getOutageState({
 }
 
 interface PortfolioHeaderProps {
-  scrollY?: number
+  enableScrollCompact?: boolean
+  isCompact?: boolean
 }
 
-export function PortfolioHeader({ scrollY }: PortfolioHeaderProps) {
+export function PortfolioHeader({ enableScrollCompact = false, isCompact: isCompactProp }: PortfolioHeaderProps) {
+  const scrollCompact = useScrollCompact({})
+  const isCompact = isCompactProp ?? (enableScrollCompact && scrollCompact)
   const { t } = useTranslation()
   const navigate = useNavigate()
   const media = useMedia()
   const { tab, chainId: currentChainId, externalAddress, isExternalWallet } = usePortfolioRoutes()
   const activeAddresses = useActiveAddresses()
   const showDemoView = useShowDemoView()
-  const isPnLEnabled = useFeatureFlag(FeatureFlags.ProfitLoss)
-  const isCompact = useScrollCompact({ scrollY })
   const headerHeight = useAppHeaderHeight()
   const buttonSize = media.md || isCompact ? 'small' : 'medium'
 
   const hasConnectedAddresses = Boolean(activeAddresses.evmAddress || activeAddresses.svmAddress)
   const showShareButton = !showDemoView && (isExternalWallet || hasConnectedAddresses)
+
+  const isNetworkFilterV2Enabled = useFeatureFlag(FeatureFlags.NetworkFilterV2)
+  const { chains: enabledChains } = useEnabledChains()
+  const tieredNetworkOptions = useNetworkSelectorOptions({
+    addresses: activeAddresses,
+    chainIds: enabledChains,
+    enabled: isNetworkFilterV2Enabled,
+  })
 
   const { error: portfolioError, dataUpdatedAt: portfolioDataUpdatedAt } = usePortfolioData({
     evmAddress: activeAddresses.evmAddress,
@@ -110,12 +125,12 @@ export function PortfolioHeader({ scrollY }: PortfolioHeaderProps) {
 
   const onNetworkPress = useEvent((chainId: UniverseChainId | undefined) => {
     const currentPageName = getPageNameFromTab(tab)
-    const selectedChain = chainId ?? ('All' as const)
+    const networkFilterChainFields = buildNetworkFilterSelectedChainFields(chainId)
 
     sendAnalyticsEvent(UniswapEventName.NetworkFilterSelected, {
       element: ElementName.PortfolioNetworkFilter,
       page: currentPageName,
-      chain: selectedChain,
+      ...networkFilterChainFields,
     })
 
     navigate(buildPortfolioUrl({ tab, chainId, externalAddress: externalAddress?.address }))
@@ -123,10 +138,10 @@ export function PortfolioHeader({ scrollY }: PortfolioHeaderProps) {
 
   return (
     <Flex
-      data-testid={TestID.PortfolioHeader}
+      testID={TestID.PortfolioHeader}
       backgroundColor="$surface1"
-      marginTop="$spacing8"
-      paddingTop="$spacing16"
+      mt="$spacing8"
+      pt="$spacing16"
       zIndex="$header"
       $platform-web={{
         position: 'sticky',
@@ -140,18 +155,21 @@ export function PortfolioHeader({ scrollY }: PortfolioHeaderProps) {
           <PortfolioAddressDisplay isCompact={isCompact} />
 
           <Flex row gap="$spacing8" alignItems="center">
-            {!showDemoView && isPnLEnabled && <PortfolioMoreMenu size={buttonSize} transition={HEADER_TRANSITION} />}
+            {!showDemoView && <PortfolioMoreMenu size={buttonSize} transition={HEADER_TRANSITION} />}
             {showShareButton && (
               <SharePortfolioButton size={buttonSize} showLabel={!media.sm} transition={HEADER_TRANSITION} />
             )}
             <NetworkFilter
               showMultichainOption
-              showDisplayName={!media.sm}
+              showDisplayName={!media.md}
               position="right"
               onPress={onNetworkPress}
               currentChainId={currentChainId}
               size={buttonSize}
+              tracePage={getPageNameFromTab(tab)}
               transition={HEADER_TRANSITION}
+              showSearch={isNetworkFilterV2Enabled}
+              tieredOptions={isNetworkFilterV2Enabled ? tieredNetworkOptions : undefined}
             />
           </Flex>
         </Flex>

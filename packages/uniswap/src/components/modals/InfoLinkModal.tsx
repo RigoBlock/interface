@@ -1,13 +1,13 @@
+import { isMobileWeb, isWebPlatform } from '@universe/environment'
+import { Button, Flex, Text, TouchableArea, zIndexes } from '@universe/mycelium'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { ReactNode } from 'react'
-import { Button, Flex, Text, TouchableArea, useSporeColors } from 'ui/src'
 import { X } from 'ui/src/components/icons/X'
-import { zIndexes } from 'ui/src/theme'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalProps } from 'uniswap/src/components/modals/ModalProps'
 import { ModalNameType } from 'uniswap/src/features/telemetry/constants'
 import { openUri } from 'uniswap/src/utils/linking'
 import { logger } from 'utilities/src/logger/logger'
-import { isMobileWeb, isWebPlatform } from 'utilities/src/platform'
 
 interface InfoModalProps {
   name: ModalNameType

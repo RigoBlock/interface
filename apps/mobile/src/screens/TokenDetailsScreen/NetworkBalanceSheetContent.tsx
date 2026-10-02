@@ -1,12 +1,12 @@
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet'
+import { Flex, Text } from '@universe/mycelium'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NetworkBalanceList } from 'src/components/TokenDetails/NetworkBalanceList'
-import { Flex, Text } from 'ui/src'
-import { spacing } from 'ui/src/theme'
 import { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
+import { useBottomScreenGap } from 'uniswap/src/hooks/useBottomScreenGap'
 
 const STICKY_HEADER_INDICES = [0]
-const NETWORK_SHEET_CONTENT_STYLE = { paddingBottom: spacing.spacing48 }
 
 interface NetworkBalanceSheetContentProps {
   allChainBalances: PortfolioBalance[]
@@ -18,11 +18,13 @@ export function NetworkBalanceSheetContent({
   onSelectBalance,
 }: NetworkBalanceSheetContentProps): JSX.Element {
   const { t } = useTranslation()
+  const { bottomScreenTotalGap } = useBottomScreenGap()
+  const contentContainerStyle = useMemo(() => ({ paddingBottom: bottomScreenTotalGap }), [bottomScreenTotalGap])
 
   return (
     <BottomSheetScrollView
       stickyHeaderIndices={STICKY_HEADER_INDICES}
-      contentContainerStyle={NETWORK_SHEET_CONTENT_STYLE}
+      contentContainerStyle={contentContainerStyle}
       showsVerticalScrollIndicator={false}
     >
       <Flex backgroundColor="$surface1" px="$spacing24" py="$spacing12">

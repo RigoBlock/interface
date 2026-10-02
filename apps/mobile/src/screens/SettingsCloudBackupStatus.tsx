@@ -1,4 +1,7 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
+import { Button, Flex, Text, spacing } from '@universe/mycelium'
+import { useDeviceDimensions } from '@universe/mycelium/theme-hooks-compat'
+import { TestID } from '@universe/test'
 import React, { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Alert } from 'react-native'
@@ -10,10 +13,7 @@ import { Screen } from 'src/components/layout/Screen'
 import { useBiometricAppSettings } from 'src/features/biometrics/useBiometricAppSettings'
 import { useBiometricPrompt } from 'src/features/biometricsSettings/hooks'
 import { deleteCloudStorageMnemonicBackup } from 'src/features/CloudBackup/RNCloudStorageBackupsManager'
-import { Button, Flex, Text } from 'ui/src'
 import { Check } from 'ui/src/components/icons'
-import { useDeviceDimensions } from 'ui/src/hooks/useDeviceDimensions'
-import { spacing } from 'ui/src/theme'
 import { AddressDisplay } from 'uniswap/src/components/accounts/AddressDisplay'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import { WarningModal } from 'uniswap/src/components/modals/WarningModal/WarningModal'
@@ -21,7 +21,6 @@ import { AccountType } from 'uniswap/src/features/accounts/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { useAppInsets } from 'uniswap/src/hooks/useAppInsets'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { MobileScreens } from 'uniswap/src/types/screens/mobile'
 import { getCloudProviderName } from 'uniswap/src/utils/cloud-backup/getCloudProviderName'
 import { NumberType } from 'utilities/src/format/types'
@@ -54,21 +53,17 @@ export function SettingsCloudBackupStatus({
 
   // Fetch balance data for associated accounts
   const accountAddresses = useMemo(() => associatedAccounts.map((account) => account.address), [associatedAccounts])
-  const { data: accountBalanceData, loading } = useAccountListData({
+  const { balancesByAddress, loading } = useAccountListData({
     addresses: accountAddresses,
   })
 
-  // Create balance mapping
-  const balanceRecord: Record<string, number> = useMemo(() => {
-    if (!accountBalanceData?.portfolios) {
-      return {}
-    }
-    return Object.fromEntries(
-      accountBalanceData.portfolios
-        .filter((portfolio): portfolio is NonNullable<typeof portfolio> => Boolean(portfolio))
-        .map((portfolio) => [portfolio.ownerAddress, portfolio.tokensTotalDenominatedValue?.value ?? 0]),
-    )
-  }, [accountBalanceData])
+  const balanceRecord: Record<string, number> = useMemo(
+    () =>
+      Object.fromEntries(
+        accountAddresses.map((accountAddress) => [accountAddress, balancesByAddress?.[accountAddress] ?? 0]),
+      ),
+    [accountAddresses, balancesByAddress],
+  )
 
   const [showBackupDeleteWarning, setShowBackupDeleteWarning] = useState(false)
   const onConfirmDeleteBackup = async (): Promise<void> => {

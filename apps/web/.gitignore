@@ -1,7 +1,5 @@
 # See https://help.github.com/ignore-files/ for more about ignoring files.
 
-.tamagui
-
 # generated contract types
 /src/i18n/locales/translations
 /src/i18n/locales/source/en-US_old.json
@@ -34,12 +32,12 @@ bundlemeta.json
 
 tsconfig.tsbuildinfo
 
-!.env
-
 .env.local
 .env.development.local
 .env.test.local
+.env.production
 .env.production.local
+.env.staging
 
 instrumented
 .nyc_output

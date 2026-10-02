@@ -1,8 +1,8 @@
 import { BigNumber } from '@ethersproject/bignumber'
 import { TradeType } from '@uniswap/sdk-core'
 import { GasFeeResult, TradingApi } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
 import { providers } from 'ethers/lib/ethers'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import {
   CancellationType,
   calculateCancellationGasFee,

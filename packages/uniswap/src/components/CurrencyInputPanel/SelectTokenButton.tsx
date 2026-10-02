@@ -1,14 +1,15 @@
+import { isMobileWeb, isWebApp, isWebPlatform } from '@universe/environment'
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
+import { TestIDType } from '@universe/test'
 import { ComponentProps, memo, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, getContrastPassingTextColor, getHoverCssFilter, Text, TouchableArea, useIsDarkMode } from 'ui/src'
+import { getContrastPassingTextColor, getHoverCssFilter, useIsDarkMode } from 'ui/src'
 import { PRESS_SCALE } from 'ui/src/components/buttons/Button/components/CustomButtonFrame/constants'
 import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
 import { iconSizes, spacing, validColor } from 'ui/src/theme'
 import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
-import { TestIDType } from 'uniswap/src/test/fixtures/testIDs'
 import { getSymbolDisplayText } from 'uniswap/src/utils/currency'
-import { isMobileWeb, isWebApp, isWebPlatform } from 'utilities/src/platform'
 
 interface SelectTokenButtonProps {
   onPress?: () => void

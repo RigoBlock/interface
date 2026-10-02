@@ -1,9 +1,12 @@
+import { Platform } from '@universe/chains'
+import { isMobileWeb } from '@universe/environment'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
+import { ArrowLeft } from '@universe/mycelium/icons/ArrowLeft'
 import { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text, TouchableArea } from 'ui/src'
-import { ArrowLeft } from 'ui/src/components/icons/ArrowLeft'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
-import { isMobileWeb } from 'utilities/src/platform'
+import { useEvent } from 'utilities/src/react/hooks'
+import { MenuStateVariant, useSetMenu } from '~/components/AccountDrawer/menuState'
 import { UniswapWalletOptions } from '~/components/WalletModal/UniswapWalletOptions'
 import { WalletModalLayout } from '~/components/WalletModal/WalletModalLayout'
 import { WalletOptionsGrid } from '~/components/WalletModal/WalletOptionsGrid'
@@ -30,11 +33,16 @@ export function SwitchWalletModal({
 }): JSX.Element {
   const { t } = useTranslation()
   const wallets = useOrderedWallets({ showSecondaryConnectors: isMobileWeb, platformFilter: connectOnPlatform })
+  const isEmbeddedWalletEnabled = useFeatureFlag(FeatureFlags.EmbeddedWallet)
+  const setMenu = useSetMenu()
+  const openOtherWallets = useEvent(() =>
+    setMenu({ variant: MenuStateVariant.OTHER_WALLETS, returnTo: MenuStateVariant.SWITCH }),
+  )
 
   const header = (
     <Flex row justifyContent="flex-start" alignItems="center" width="100%" gap="$gap8">
-      <TouchableArea data-testid="wallet-back" onPress={onClose}>
-        <ArrowLeft size="$icon.24" />
+      <TouchableArea testID="wallet-back" onPress={onClose}>
+        <ArrowLeft size="$icon.24" color="$neutral1" />
       </TouchableArea>
       <Text variant="subheading1">{getTitle(t, connectOnPlatform)}</Text>
     </Flex>
@@ -46,7 +54,8 @@ export function SwitchWalletModal({
     <WalletOptionsGrid
       connectOnPlatform={connectOnPlatform}
       showMobileConnector={false}
-      showOtherWallets={false}
+      showOtherWallets={isEmbeddedWalletEnabled && connectOnPlatform === 'any'}
+      onShowOtherWallets={openOtherWallets}
       maxHeight="100vh"
       opacity={1}
     />

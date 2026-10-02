@@ -3,12 +3,12 @@ import { useMemo } from 'react'
 import { OnchainItemListOptionType, PoolOption } from 'uniswap/src/components/lists/items/types'
 import { ZERO_ADDRESS } from 'uniswap/src/constants/misc'
 import { V2_DEFAULT_FEE_TIER } from 'uniswap/src/constants/pools'
-import { normalizeCurrencyIdForMapLookup } from 'uniswap/src/data/cache'
-import { PoolSearchHistoryResult } from 'uniswap/src/features/search/SearchHistoryResult'
+import { PoolSearchResult } from 'uniswap/src/features/dataApi/types'
 import { useCurrencyInfos } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { CurrencyId } from 'uniswap/src/types/currency'
+import { normalizeCurrencyIdForMapLookup } from 'uniswap/src/utils/currencyId'
 
-export function usePoolSearchResultsToPoolOptions(searchResults: PoolSearchHistoryResult[]): PoolOption[] {
+export function usePoolSearchResultsToPoolOptions(searchResults: PoolSearchResult[]): PoolOption[] {
   // combine all pool search results' tokens' currencyIds in an array of de-duped currencyIds
   // & then fetch currencyInfos for all
   const currencyIds: CurrencyId[] = useMemo(
@@ -35,7 +35,7 @@ export function usePoolSearchResultsToPoolOptions(searchResults: PoolSearchHisto
     // build PoolOptions
     return searchResults
       .map((searchResult): PoolOption | undefined => {
-        const { chainId, poolId, protocolVersion, hookAddress, feeTier, token0CurrencyId, token1CurrencyId } =
+        const { chainId, poolId, protocolVersion, hookAddress, feeTier, token0CurrencyId, token1CurrencyId, stats } =
           searchResult
         const token0CurrencyInfo = currencyIdToCurrencyInfo[normalizeCurrencyIdForMapLookup(token0CurrencyId)]
         const token1CurrencyInfo = currencyIdToCurrencyInfo[normalizeCurrencyIdForMapLookup(token1CurrencyId)]
@@ -53,6 +53,8 @@ export function usePoolSearchResultsToPoolOptions(searchResults: PoolSearchHisto
           feeTier: protocolVersion === ProtocolVersion.V2 ? V2_DEFAULT_FEE_TIER : feeTier,
           token0CurrencyInfo,
           token1CurrencyInfo,
+          volume1dUsd: stats?.volume1dUsd,
+          apr: stats?.apr,
         }
       })
       .filter((option): option is PoolOption => option !== undefined)

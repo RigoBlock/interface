@@ -1,12 +1,12 @@
+import { getValidAddress } from '@universe/chains'
+import { iconSizes } from '@universe/mycelium'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { useMemo } from 'react'
-import { useSporeColors } from 'ui/src'
 import { ContractInteraction } from 'ui/src/components/icons/ContractInteraction'
-import { iconSizes } from 'ui/src/theme'
 import { TransactionSummaryLayout } from 'uniswap/src/components/activity/summaries/TransactionSummaryLayout'
 import { SummaryItemProps } from 'uniswap/src/components/activity/types'
 import { DappLogoWithWCBadge } from 'uniswap/src/components/CurrencyLogo/LogoWithTxStatus'
 import { TransactionDetails, UnknownTransactionInfo } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { getValidAddress } from 'uniswap/src/utils/addresses'
 import { shortenAddress } from 'utilities/src/addresses'
 
 export function UnknownSummaryItem({

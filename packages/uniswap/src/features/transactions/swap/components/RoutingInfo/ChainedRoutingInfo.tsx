@@ -1,7 +1,8 @@
 import { TradingApi } from '@universe/api'
+import { Flex, Text } from '@universe/mycelium'
 import { Fragment, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, HorizontalDottedLineSeparator, Text, useSporeColors } from 'ui/src'
+import { HorizontalDottedLineSeparator, useSporeColors } from 'ui/src'
 import { CheckCircleFilled, Shuffle } from 'ui/src/components/icons'
 import { iconSizes, zIndexes } from 'ui/src/theme'
 import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
@@ -12,7 +13,7 @@ import { RoutingLabel } from 'uniswap/src/components/RoutingDiagram/RoutingLabel
 import { toSupportedChainId } from 'uniswap/src/features/chains/utils'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
-import { ChainedActionTrade } from 'uniswap/src/features/transactions/swap/types/trade'
+import type { ChainedActionTrade } from 'uniswap/src/features/transactions/swap/types/trade'
 import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
 
 const STEPS_TO_HIDE = [TradingApi.PlanStepType.APPROVAL_PERMIT]
@@ -102,6 +103,8 @@ const StepLogo = ({ step }: { step: TradingApi.TruncatedPlanStep }): JSX.Element
     case TradingApi.PlanStepType.DUTCH_V2:
     case TradingApi.PlanStepType.DUTCH_V3:
     case TradingApi.PlanStepType.PRIORITY:
+    case TradingApi.PlanStepType.VAULT_DEPOSIT:
+    case TradingApi.PlanStepType.VAULT_WITHDRAW:
       return (
         <SplitLogo
           chainId={chainIdIn}

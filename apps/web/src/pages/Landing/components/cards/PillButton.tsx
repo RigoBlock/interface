@@ -1,5 +1,6 @@
-import { Flex, Text } from 'ui/src'
-import { ArrowRight } from 'ui/src/components/icons/ArrowRight'
+import { Flex, Text } from '@universe/mycelium'
+import { ArrowRight } from '@universe/mycelium/icons/ArrowRight'
+import { SPORE_ANIMATION_CURVE_CSS } from '@universe/tailwind/animations'
 
 type PillButtonProps = {
   label: string
@@ -26,7 +27,13 @@ export function PillButton({ label, icon, color, onClick, cursor, backgroundColo
       userSelect="none"
       backgroundColor={backgroundColor}
     >
-      <Flex animation="quick" row centered gap="$gap8">
+      <Flex
+        // scoped to non-color properties: `transition: all` would animate theme-token colors on light/dark toggle
+        transition={`transform ${SPORE_ANIMATION_CURVE_CSS.quick}, opacity ${SPORE_ANIMATION_CURVE_CSS.quick}`}
+        row
+        centered
+        gap="$gap8"
+      >
         {icon && <Flex>{icon}</Flex>}
         <Text variant="buttonLabel1" color={color}>
           {label}

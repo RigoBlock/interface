@@ -1,6 +1,6 @@
+import { Flex, Text } from '@universe/mycelium'
+import { Wallet } from '@universe/mycelium/icons/Wallet'
 import { useTranslation } from 'react-i18next'
-import { Wallet } from 'ui/src/components/icons/Wallet'
-import { Flex, Text } from 'ui/src/index'
 
 export function NoSolanaWalletConnectedView() {
   const { t } = useTranslation()

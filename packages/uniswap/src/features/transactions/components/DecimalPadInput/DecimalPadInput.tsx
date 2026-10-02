@@ -1,3 +1,4 @@
+import { Flex } from '@universe/mycelium'
 import {
   forwardRef,
   memo,
@@ -11,7 +12,7 @@ import {
   useState,
 } from 'react'
 import type { LayoutChangeEvent } from 'react-native'
-import { Flex, useIsShortMobileDevice } from 'ui/src'
+import { useIsShortMobileDevice } from 'ui/src'
 import { type TextInputProps } from 'uniswap/src/components/input/TextInput'
 import { DecimalPad } from 'uniswap/src/features/transactions/components/DecimalPadInput/DecimalPad'
 import { KeyAction, type KeyLabel } from 'uniswap/src/features/transactions/components/DecimalPadInput/types'
@@ -45,8 +46,12 @@ export enum DecimalPadCalculatedSpaceId {
   Swap = 0,
   Send = 1,
   FiatOnRamp = 2,
+  EarnDeposit = 3,
 }
 
+// Cache the raw space available to the screen, not the already-adjusted keypad height. Consumers
+// can change their accessory rows while mounted (for example, Earn Deposit -> Withdraw), so the
+// current additionalElementsHeight must be applied every time.
 const precalculatedSpace: Partial<Record<DecimalPadCalculatedSpaceId, number | undefined>> = {}
 
 function hasDecimalSeparator(v: string): boolean {
@@ -72,20 +77,20 @@ export function DecimalPadCalculateSpace({
   isDecimalPadReady?: boolean
 }): JSX.Element {
   const isShortMobileDevice = useIsShortMobileDevice()
-  const precalculatedHeight = precalculatedSpace[id]
+  const precalculatedBottomScreenHeight = precalculatedSpace[id]
 
-  const [bottomScreenHeight, setBottomScreenHeight] = useState<number | null>(precalculatedHeight ?? null)
+  const [bottomScreenHeight, setBottomScreenHeight] = useState<number | null>(precalculatedBottomScreenHeight ?? null)
 
   useLayoutEffect(() => {
-    if (precalculatedHeight !== undefined) {
-      decimalPadRef.current?.setMaxHeight(precalculatedHeight)
+    if (precalculatedBottomScreenHeight !== undefined) {
+      decimalPadRef.current?.setMaxHeight(precalculatedBottomScreenHeight - additionalElementsHeight)
     }
-  }, [precalculatedHeight, decimalPadRef])
+  }, [additionalElementsHeight, precalculatedBottomScreenHeight, decimalPadRef])
 
   const onBottomScreenLayout = useEvent((event: LayoutChangeEvent): void => {
-    if (precalculatedHeight !== undefined) {
-      setBottomScreenHeight(precalculatedHeight)
-      decimalPadRef.current?.setMaxHeight(precalculatedHeight)
+    if (precalculatedBottomScreenHeight !== undefined) {
+      setBottomScreenHeight(precalculatedBottomScreenHeight)
+      decimalPadRef.current?.setMaxHeight(precalculatedBottomScreenHeight - additionalElementsHeight)
       return
     }
 
@@ -98,9 +103,6 @@ export function DecimalPadCalculateSpace({
   })
 
   useEffect(() => {
-    if (precalculatedHeight !== undefined) {
-      return
-    }
     if (!bottomScreenHeight) {
       // There can be a race condition where either `bottomScreenHeight` or `additionalElementsHeight`
       // could be ready first. If `bottomScreenHeight` is not ready yet, we skip this and
@@ -112,16 +114,23 @@ export function DecimalPadCalculateSpace({
   }, [additionalElementsHeight])
 
   useEffect(() => {
-    if (isDecimalPadReady === true && bottomScreenHeight && precalculatedHeight === undefined) {
+    if (isDecimalPadReady === true && bottomScreenHeight && precalculatedBottomScreenHeight === undefined) {
       // If we have already rendered this screen, we already know how much space this phone has,
       // so we optimistically set the height instead of waiting for the layout event.
       // This improves the perceived loading time of the `DecimalPad`,
       // given that it fades in only after the height is known.
       const height = bottomScreenHeight - additionalElementsHeight
       decimalPadRef.current?.setMaxHeight(height)
-      precalculatedSpace[id] = height
+      precalculatedSpace[id] = bottomScreenHeight
     }
-  }, [isDecimalPadReady, bottomScreenHeight, id, additionalElementsHeight, precalculatedHeight, decimalPadRef])
+  }, [
+    isDecimalPadReady,
+    bottomScreenHeight,
+    id,
+    additionalElementsHeight,
+    precalculatedBottomScreenHeight,
+    decimalPadRef,
+  ])
 
   return <Flex fill mt={isShortMobileDevice ? '$spacing2' : '$spacing8'} onLayout={onBottomScreenLayout} />
 }
@@ -217,7 +226,7 @@ export const DecimalPadInput = memo(
           let isUpdated = false
           const newDisabledKeys = Object.fromEntries(
             // oxlint-disable-next-line max-nested-callbacks
-            Object.entries(disableKeysConditions).map(([key, condition]) => {
+            Object.entries(disableKeysConditions).map(([key, condition]): [string, boolean] => {
               const isDisabled = condition(value)
               if (isDisabled !== prevDisabledKeys[key as KeyLabel]) {
                 isUpdated = true

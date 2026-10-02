@@ -1,6 +1,6 @@
 import { Currency, Token } from '@uniswap/sdk-core'
+import type { UniverseChainId } from '@universe/chains'
 import invariant from 'tiny-invariant'
-import type { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { isSVMAddress } from 'utilities/src/addresses/svm/svm'
 
 export class SolanaToken implements Token {

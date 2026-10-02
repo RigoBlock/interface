@@ -1,16 +1,18 @@
+import { isMobileWeb } from '@universe/environment'
 import {
   DynamicConfigs,
   EmbeddedWalletBetaPassphrasesKey,
   getDynamicConfigValue,
   getOverrideAdapter,
 } from '@universe/gating'
+import { Flex, Text } from '@universe/mycelium'
+import { TestID } from '@universe/test'
 import { useCallback, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Flex, Image, Input, Text } from 'ui/src'
+import { Button, Image, Input } from 'ui/src'
 import { BETA_LOGO } from 'ui/src/assets'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { useTimeout } from 'utilities/src/time/timing'
 
 export function BetaPasscodeModal(): JSX.Element {
@@ -51,7 +53,7 @@ export function BetaPasscodeModal(): JSX.Element {
       name={ModalName.EmbeddedWalletBeta}
       isModalOpen={true}
       onClose={() => {}}
-      isDismissible={false}
+      isDismissible={isMobileWeb}
       overlayOpacity={0.8}
       maxWidth={420}
     >
@@ -117,7 +119,7 @@ export function BetaPasscodeModal(): JSX.Element {
             size="large"
             width="100%"
             onPress={validate}
-            isDisabled={!passphrase}
+            disabled={!passphrase}
           >
             {t('beta.preview.submit')}
           </Button>

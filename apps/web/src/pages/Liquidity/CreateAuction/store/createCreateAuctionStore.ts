@@ -1,75 +1,98 @@
-import { AddressZero } from '@ethersproject/constants'
-import { type Currency, CurrencyAmount, Percent, Token } from '@uniswap/sdk-core'
+import { CurrencyAmount, Token } from '@uniswap/sdk-core'
+import { isDevEnv } from '@universe/environment'
+import type { FeeData } from 'uniswap/src/features/positions/types'
 import type { StoreApi, UseBoundStore } from 'zustand'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import type { FeeData } from '~/components/Liquidity/Create/types'
+import { zeroAddress } from '~/chains'
+import { stripZeroPercentCustomPriceRangeEntries } from '~/pages/Liquidity/CreateAuction/customPriceRanges'
+import { applyNewTokenTotalSupply } from '~/pages/Liquidity/CreateAuction/store/applyNewTokenTotalSupply'
 import {
-  type AuctionTokenAmounts,
-  AuctionType,
+  buildAuctionAmountsFromLiquidityPreview,
+  getPostAuctionLiquidityAmountFromAllocation,
+  normalizePostAuctionLiquidityAllocation,
+  updateCommittedPostAuctionLiquidity,
+} from '~/pages/Liquidity/CreateAuction/store/postAuctionLiquidityAllocationState'
+import { rebaseAuctionTokenAmounts } from '~/pages/Liquidity/CreateAuction/store/rebaseAuctionTokenAmounts'
+import { revokeCreateNewTokenBlobPreviewIfNeeded } from '~/pages/Liquidity/CreateAuction/store/revokeCreateNewTokenBlobPreviewIfNeeded'
+import {
+  type CustomPriceRangePreset,
   CreateAuctionStep,
   type CreateAuctionStoreState,
   DEFAULT_CREATE_AUCTION_STATE,
+  DEFAULT_EXISTING_TOKEN_AUCTION_SUPPLY_PERCENT,
   DEFAULT_EXISTING_TOKEN_FORM,
+  DEFAULT_POST_AUCTION_LIQUIDITY_PERCENT,
+  MAX_POST_AUCTION_LIQUIDITY_TIERS,
   NEW_TOKEN_DECIMALS,
-  type PriceRangeStrategy,
+  PostAuctionLiquidityAllocationType,
+  PriceRangeStrategy,
+  type ConfigureAuctionFormState,
+  TimeLockPreset,
+  TIMELOCK_PRESET_DURATION_DAYS,
   type TokenFormState,
   TokenMode,
 } from '~/pages/Liquidity/CreateAuction/types'
-import { getRecommendedStrategy } from '~/pages/Liquidity/CreateAuction/utils'
-
-const DEFAULT_AUCTION_SUPPLY_PERCENT = new Percent(25, 100)
-// 100% means all auctioned tokens go to LP (50% token-side kept, 50% sold for raise-side)
-export const BOOTSTRAP_POST_LIQUIDITY_PERCENT = new Percent(100, 100)
-// 50% means half go to LP (25% token-side kept, 25% sold); the other 50% are the fundraise
-export const FUNDRAISE_POST_LIQUIDITY_PERCENT = new Percent(50, 100)
-
-/**
- * Re-wrap existing committed amounts with a new token, preserving raw values.
- * Used when only the token metadata (name/symbol) changed but the supply didn't.
- */
-function rebaseAmounts(committed: AuctionTokenAmounts, newToken: Currency): AuctionTokenAmounts {
-  return {
-    totalSupply: CurrencyAmount.fromRawAmount(newToken, committed.totalSupply.quotient),
-    auctionSupplyAmount: CurrencyAmount.fromRawAmount(newToken, committed.auctionSupplyAmount.quotient),
-    postAuctionLiquidityAmount: CurrencyAmount.fromRawAmount(newToken, committed.postAuctionLiquidityAmount.quotient),
-  }
-}
-
-function buildDefaultAmounts(totalSupply: CurrencyAmount<Currency>, auctionType: AuctionType): AuctionTokenAmounts {
-  const auctionSupplyAmount = totalSupply.multiply(DEFAULT_AUCTION_SUPPLY_PERCENT)
-  const lpPercent =
-    auctionType === AuctionType.BOOTSTRAP_LIQUIDITY
-      ? BOOTSTRAP_POST_LIQUIDITY_PERCENT
-      : FUNDRAISE_POST_LIQUIDITY_PERCENT
-  return {
-    totalSupply,
-    auctionSupplyAmount,
-    postAuctionLiquidityAmount: auctionSupplyAmount.multiply(lpPercent),
-  }
-}
+import {
+  addCustomPriceRangePreset,
+  createNextBoundedTier,
+  createSinglePostAuctionLiquidityAllocation,
+  createTieredPostAuctionLiquidityAllocation,
+  getPostAuctionLiquidityPreviewPercent,
+  isUnboundedTier,
+  removeCustomPriceRangeEntry,
+  updateCustomPriceRangeBounds,
+  updateCustomPriceRangeLiquidityPercent,
+} from '~/pages/Liquidity/CreateAuction/utils'
 
 export type CreateAuctionStore = UseBoundStore<StoreApi<CreateAuctionStoreState>>
+
+/** Merges a patch into `configureAuction`, leaving the rest of the store untouched. */
+function patchConfigureAuction(
+  patch: Partial<ConfigureAuctionFormState>,
+): (state: CreateAuctionStoreState) => Partial<CreateAuctionStoreState> {
+  return (state) => ({ configureAuction: { ...state.configureAuction, ...patch } })
+}
 
 export const createCreateAuctionStore = (): CreateAuctionStore =>
   create<CreateAuctionStoreState>()(
     devtools(
       (set) => ({
-        step: DEFAULT_CREATE_AUCTION_STATE.step,
-        tokenForm: DEFAULT_CREATE_AUCTION_STATE.tokenForm,
-        tokenColor: DEFAULT_CREATE_AUCTION_STATE.tokenColor,
-        configureAuction: DEFAULT_CREATE_AUCTION_STATE.configureAuction,
-        customizePool: DEFAULT_CREATE_AUCTION_STATE.customizePool,
-        xVerification: DEFAULT_CREATE_AUCTION_STATE.xVerification,
+        ...DEFAULT_CREATE_AUCTION_STATE,
 
         actions: {
-          setStep: (step) => {
-            set({ step })
-          },
+          setStep: (step) => set({ step }),
+          // Clears any stale graduation pin (see buildCreateAuctionRequest — field 8 must not leak to a manual auction).
+          // Clears both mode-specific fields: the graduation pin (quick-launch only, must not leak
+          // onto a manual auction) and the pre-bid window (manual only, must not leak into a quick
+          // launch that never showed one). See buildCreateAuctionRequest.
+          setQuickLaunch: (quickLaunch) =>
+            set(({ configureAuction: c }) => ({
+              quickLaunch,
+              configureAuction: { ...c, graduationPrice: undefined, preBidStartTime: undefined },
+            })),
           goToNextStep: () => {
-            set((state) => ({
-              step: Math.min(state.step + 1, CreateAuctionStep.REVIEW_LAUNCH) as CreateAuctionStep,
-            }))
+            set((state) => {
+              const nextStep = Math.min(state.step + 1, CreateAuctionStep.REVIEW_LAUNCH) as CreateAuctionStep
+
+              if (
+                state.step === CreateAuctionStep.CUSTOMIZE_POOL &&
+                state.customizePool.priceRangeStrategy === PriceRangeStrategy.CUSTOM_RANGE
+              ) {
+                const nextRanges = stripZeroPercentCustomPriceRangeEntries(state.customizePool.customPriceRanges)
+                if (nextRanges !== state.customizePool.customPriceRanges) {
+                  return {
+                    step: nextStep,
+                    customizePool: {
+                      ...state.customizePool,
+                      customPriceRanges: nextRanges,
+                    },
+                  }
+                }
+              }
+
+              return { step: nextStep }
+            })
           },
           goToPreviousStep: () => {
             set((state) => ({
@@ -77,11 +100,11 @@ export const createCreateAuctionStore = (): CreateAuctionStore =>
             }))
           },
           setTokenMode: (mode) => {
-            set(() => {
-              if (mode === TokenMode.CREATE_NEW) {
-                return { tokenForm: DEFAULT_CREATE_AUCTION_STATE.tokenForm }
-              }
-              return { tokenForm: DEFAULT_EXISTING_TOKEN_FORM }
+            set((state) => {
+              revokeCreateNewTokenBlobPreviewIfNeeded(state.tokenForm)
+              const tokenForm =
+                mode === TokenMode.CREATE_NEW ? DEFAULT_CREATE_AUCTION_STATE.tokenForm : DEFAULT_EXISTING_TOKEN_FORM
+              return { tokenForm, configureAuction: { ...state.configureAuction, graduationPrice: undefined } }
             })
           },
           updateCreateNewTokenField: (key, value) => {
@@ -100,60 +123,157 @@ export const createCreateAuctionStore = (): CreateAuctionStore =>
               return { tokenForm: { ...state.tokenForm, [key]: value } }
             })
           },
-          setTokenForm: (tokenForm: TokenFormState) => {
-            set({ tokenForm })
-          },
-          setXVerification: (value) => {
-            set({ xVerification: value })
-          },
-          setAuctionType: (activeAuctionType) => {
+          setTokenForm: (tokenForm: TokenFormState) => set({ tokenForm }),
+          setXVerification: (value) => set({ xVerification: value }),
+          setPostAuctionLiquidityAllocationType: (type) => {
             set((state) => {
-              const { committed } = state.configureAuction
-              if (!committed) {
-                return {}
-              }
-              const lpPercent =
-                activeAuctionType === AuctionType.BOOTSTRAP_LIQUIDITY
-                  ? BOOTSTRAP_POST_LIQUIDITY_PERCENT
-                  : FUNDRAISE_POST_LIQUIDITY_PERCENT
+              const { committed, postAuctionLiquidityAllocation } = state.configureAuction
+              const previewPercent = getPostAuctionLiquidityPreviewPercent(postAuctionLiquidityAllocation)
+              const nextAllocation =
+                type === PostAuctionLiquidityAllocationType.SINGLE
+                  ? createSinglePostAuctionLiquidityAllocation(previewPercent)
+                  : postAuctionLiquidityAllocation.type === PostAuctionLiquidityAllocationType.TIERED
+                    ? postAuctionLiquidityAllocation
+                    : createTieredPostAuctionLiquidityAllocation(previewPercent)
+
               return {
                 configureAuction: {
                   ...state.configureAuction,
-                  activeAuctionType,
-                  committed: {
-                    ...committed,
-                    postAuctionLiquidityAmount: committed.auctionSupplyAmount.multiply(lpPercent),
-                  },
+                  postAuctionLiquidityAllocation: nextAllocation,
+                  committed: updateCommittedPostAuctionLiquidity(committed, nextAllocation),
                 },
-                customizePool: {
-                  ...state.customizePool,
-                  priceRangeStrategy: getRecommendedStrategy(activeAuctionType),
+              }
+            })
+          },
+          setSinglePostAuctionLiquidityPercent: (percent) => {
+            set((state) => {
+              const nextAllocation = createSinglePostAuctionLiquidityAllocation(percent)
+              return {
+                configureAuction: {
+                  ...state.configureAuction,
+                  postAuctionLiquidityAllocation: nextAllocation,
+                  committed: updateCommittedPostAuctionLiquidity(state.configureAuction.committed, nextAllocation),
+                },
+              }
+            })
+          },
+          addPostAuctionLiquidityTier: (options) => {
+            set((state) => {
+              const { committed, postAuctionLiquidityAllocation } = state.configureAuction
+              if (postAuctionLiquidityAllocation.type !== PostAuctionLiquidityAllocationType.TIERED) {
+                return {}
+              }
+              if (postAuctionLiquidityAllocation.tiers.length >= MAX_POST_AUCTION_LIQUIDITY_TIERS) {
+                return {}
+              }
+
+              const { tiers } = postAuctionLiquidityAllocation
+              const newBoundedTier = createNextBoundedTier(tiers, options)
+              const unboundedTier = tiers.find(isUnboundedTier)
+              const boundedTiers = tiers.filter((t) => !isUnboundedTier(t))
+
+              const nextAllocation = normalizePostAuctionLiquidityAllocation({
+                ...postAuctionLiquidityAllocation,
+                tiers: [...boundedTiers, newBoundedTier, ...(unboundedTier ? [unboundedTier] : [])],
+              })
+
+              return {
+                configureAuction: {
+                  ...state.configureAuction,
+                  postAuctionLiquidityAllocation: nextAllocation,
+                  committed: updateCommittedPostAuctionLiquidity(committed, nextAllocation),
+                },
+              }
+            })
+          },
+          updatePostAuctionLiquidityTier: (tierId, config) => {
+            set((state) => {
+              const { committed, postAuctionLiquidityAllocation } = state.configureAuction
+              if (postAuctionLiquidityAllocation.type !== PostAuctionLiquidityAllocationType.TIERED) {
+                return {}
+              }
+
+              const nextAllocation = normalizePostAuctionLiquidityAllocation({
+                ...postAuctionLiquidityAllocation,
+                tiers: postAuctionLiquidityAllocation.tiers.map((tier) =>
+                  tier.id !== tierId
+                    ? tier
+                    : {
+                        ...tier,
+                        raiseMilestone: config.raiseMilestone ?? tier.raiseMilestone,
+                        percent: config.percent !== undefined ? config.percent : tier.percent,
+                      },
+                ),
+              })
+
+              return {
+                configureAuction: {
+                  ...state.configureAuction,
+                  postAuctionLiquidityAllocation: nextAllocation,
+                  committed: updateCommittedPostAuctionLiquidity(committed, nextAllocation),
+                },
+              }
+            })
+          },
+          removePostAuctionLiquidityTier: (tierId) => {
+            set((state) => {
+              const { committed, postAuctionLiquidityAllocation } = state.configureAuction
+              if (postAuctionLiquidityAllocation.type !== PostAuctionLiquidityAllocationType.TIERED) {
+                return {}
+              }
+
+              const tier = postAuctionLiquidityAllocation.tiers.find((t) => t.id === tierId)
+              if (!tier || isUnboundedTier(tier)) {
+                return {}
+              }
+
+              const nextAllocation = {
+                ...postAuctionLiquidityAllocation,
+                tiers: postAuctionLiquidityAllocation.tiers.filter((t) => t.id !== tierId),
+              }
+
+              return {
+                configureAuction: {
+                  ...state.configureAuction,
+                  postAuctionLiquidityAllocation: nextAllocation,
+                  committed: updateCommittedPostAuctionLiquidity(committed, nextAllocation),
                 },
               }
             })
           },
           setAuctionConfig: (config) => {
             set((state) => {
-              const { committed } = state.configureAuction
+              const { committed, postAuctionLiquidityAllocation } = state.configureAuction
               if (!committed) {
                 return {}
               }
+
+              const nextAuctionSupply = config.auctionSupplyAmount
               return {
                 configureAuction: {
                   ...state.configureAuction,
-                  committed: { ...committed, ...config },
+                  committed: {
+                    ...committed,
+                    auctionSupplyAmount: nextAuctionSupply,
+                    postAuctionLiquidityAmount: getPostAuctionLiquidityAmountFromAllocation(
+                      nextAuctionSupply,
+                      postAuctionLiquidityAllocation,
+                    ),
+                  },
                 },
               }
             })
           },
-          setStartTime: (startTime) => {
-            set((state) => ({ configureAuction: { ...state.configureAuction, startTime } }))
-          },
-          setMaxDurationDays: (maxDurationDays) => {
-            set((state) => ({ configureAuction: { ...state.configureAuction, maxDurationDays } }))
-          },
+          setNewTokenTotalSupply: (totalSupply) => set(applyNewTokenTotalSupply(totalSupply)),
+          // The three duration inputs are plain field writes. The ordering rules between them
+          // (pre-bid start < start < end) are wizard validation, not store invariants — the
+          // pickers can legitimately hold a half-edited range mid-interaction.
+          setStartTime: (startTime) => set(patchConfigureAuction({ startTime })),
+          setEndTime: (endTime) => set(patchConfigureAuction({ endTime })),
+          setPreBidStartTime: (preBidStartTime) => set(patchConfigureAuction({ preBidStartTime })),
           setRaiseCurrency: (raiseCurrency) => {
             set((state) => {
+              const { committed, postAuctionLiquidityAllocation } = state.configureAuction
               if (state.configureAuction.raiseCurrency === raiseCurrency) {
                 return {}
               }
@@ -162,36 +282,164 @@ export const createCreateAuctionStore = (): CreateAuctionStore =>
                   ...state.configureAuction,
                   raiseCurrency,
                   floorPrice: '',
+                  floorPriceInput: undefined,
+                  graduationPrice: undefined,
+                  committed: updateCommittedPostAuctionLiquidity(committed, postAuctionLiquidityAllocation),
                 },
               }
             })
           },
-          setFloorPrice: (floorPrice) => {
-            set((state) => ({ configureAuction: { ...state.configureAuction, floorPrice } }))
+          setFloorPrice: (floorPrice, input) => {
+            set((state) => {
+              const { committed, postAuctionLiquidityAllocation } = state.configureAuction
+              const floorPriceInput = input && input.rawValue.trim() !== '' ? { ...input, floorPrice } : undefined
+              if (
+                state.configureAuction.floorPrice === floorPrice &&
+                state.configureAuction.floorPriceInput?.floorPrice === floorPriceInput?.floorPrice &&
+                state.configureAuction.floorPriceInput?.rawValue === floorPriceInput?.rawValue &&
+                state.configureAuction.floorPriceInput?.denomination === floorPriceInput?.denomination &&
+                state.configureAuction.floorPriceInput?.inputCurrency === floorPriceInput?.inputCurrency
+              ) {
+                return {}
+              }
+              return {
+                configureAuction: {
+                  ...state.configureAuction,
+                  floorPrice,
+                  floorPriceInput,
+                  // Clears the quick-launch graduation pin (handoff re-sets it right after via setGraduationPrice).
+                  graduationPrice: undefined,
+                  committed: updateCommittedPostAuctionLiquidity(committed, postAuctionLiquidityAllocation),
+                },
+              }
+            })
           },
+          setGraduationPrice: (graduationPrice) => set(patchConfigureAuction({ graduationPrice })),
+          setKycValidationHookAddress: (kycValidationHookAddress) =>
+            set(patchConfigureAuction({ kycValidationHookAddress })),
           setFee: (fee: FeeData) => {
-            set((state) => ({ customizePool: { ...state.customizePool, fee } }))
+            set((state) => ({
+              customizePool: { ...state.customizePool, fee },
+            }))
           },
           setPriceRangeStrategy: (priceRangeStrategy: PriceRangeStrategy) => {
-            set((state) => ({ customizePool: { ...state.customizePool, priceRangeStrategy } }))
+            set((state) => ({
+              customizePool: {
+                ...state.customizePool,
+                priceRangeStrategy,
+              },
+            }))
+          },
+          addCustomPriceRangePreset: (preset: CustomPriceRangePreset) => {
+            set((state) => ({
+              customizePool: {
+                ...state.customizePool,
+                customPriceRanges: addCustomPriceRangePreset(state.customizePool.customPriceRanges, preset),
+              },
+            }))
+          },
+          updateCustomPriceRangeLiquidityPercent: (entryId: string, percent: number) => {
+            set((state) => ({
+              customizePool: {
+                ...state.customizePool,
+                customPriceRanges: updateCustomPriceRangeLiquidityPercent({
+                  entries: state.customizePool.customPriceRanges,
+                  entryId,
+                  percent,
+                }),
+              },
+            }))
+          },
+          updateCustomPriceRangeBounds: (entryId, bounds) => {
+            set((state) => ({
+              customizePool: {
+                ...state.customizePool,
+                customPriceRanges: updateCustomPriceRangeBounds({
+                  entries: state.customizePool.customPriceRanges,
+                  entryId,
+                  bounds,
+                }),
+              },
+            }))
+          },
+          removeCustomPriceRange: (entryId: string) => {
+            set((state) => ({
+              customizePool: {
+                ...state.customizePool,
+                customPriceRanges: removeCustomPriceRangeEntry(state.customizePool.customPriceRanges, entryId),
+              },
+            }))
           },
           setPoolOwner: (poolOwner: string) => {
-            set((state) => ({ customizePool: { ...state.customizePool, poolOwner } }))
+            set((state) => ({
+              customizePool: { ...state.customizePool, poolOwner },
+            }))
           },
           setTimeLockEnabled: (timeLockEnabled: boolean) => {
-            set((state) => ({ customizePool: { ...state.customizePool, timeLockEnabled } }))
+            set((state) => ({
+              customizePool: { ...state.customizePool, timeLockEnabled },
+            }))
+          },
+          setTimeLockPreset: (timeLockPreset: TimeLockPreset) => {
+            set((state) => {
+              const { customizePool } = state
+              if (timeLockPreset === TimeLockPreset.Custom) {
+                const permanentDays = TIMELOCK_PRESET_DURATION_DAYS[TimeLockPreset.Permanent]
+                const leavingPermanentDuration = customizePool.timeLockDurationDays === permanentDays
+                return {
+                  customizePool: {
+                    ...customizePool,
+                    timeLockPreset,
+                    ...(leavingPermanentDuration
+                      ? {
+                          timeLockDurationDays: TIMELOCK_PRESET_DURATION_DAYS[TimeLockPreset.OneYear],
+                        }
+                      : {}),
+                  },
+                }
+              }
+              return {
+                customizePool: {
+                  ...customizePool,
+                  timeLockPreset,
+                  timeLockDurationDays: TIMELOCK_PRESET_DURATION_DAYS[timeLockPreset],
+                },
+              }
+            })
           },
           setTimeLockDurationDays: (timeLockDurationDays: number) => {
-            set((state) => ({ customizePool: { ...state.customizePool, timeLockDurationDays } }))
+            set((state) => ({
+              customizePool: { ...state.customizePool, timeLockDurationDays },
+            }))
           },
           setSendFeesEnabled: (sendFeesEnabled: boolean) => {
-            set((state) => ({ customizePool: { ...state.customizePool, sendFeesEnabled } }))
+            set((state) => ({
+              customizePool: { ...state.customizePool, sendFeesEnabled },
+            }))
           },
           setFeesRecipientAddress: (feesRecipientAddress: string) => {
-            set((state) => ({ customizePool: { ...state.customizePool, feesRecipientAddress } }))
+            set((state) => {
+              const { customizePool } = state
+              const hasFeeClaim = feesRecipientAddress.trim().length > 0
+              return {
+                customizePool: {
+                  ...customizePool,
+                  feesRecipientAddress,
+                  sendFeesEnabled: hasFeeClaim,
+                  ...(hasFeeClaim ? { buybackAndBurnEnabled: false } : {}),
+                },
+              }
+            })
           },
           setBuybackAndBurnEnabled: (buybackAndBurnEnabled: boolean) => {
-            set((state) => ({ customizePool: { ...state.customizePool, buybackAndBurnEnabled } }))
+            // Buyback and fee-forwarding are mutually exclusive (proto oneof); clear the other side's state.
+            set((state) => ({
+              customizePool: {
+                ...state.customizePool,
+                buybackAndBurnEnabled,
+                ...(buybackAndBurnEnabled ? { feesRecipientAddress: '', sendFeesEnabled: false } : {}),
+              },
+            }))
           },
           commitTokenFormAndAdvance: () => {
             set((state) => {
@@ -200,7 +448,7 @@ export const createCreateAuctionStore = (): CreateAuctionStore =>
 
               if (tokenForm.mode === TokenMode.CREATE_NEW) {
                 const { network, symbol, name, totalSupply: formSupply } = tokenForm
-                const token = new Token(network, AddressZero, NEW_TOKEN_DECIMALS, symbol, name)
+                const token = new Token(network, zeroAddress, NEW_TOKEN_DECIMALS, symbol, name)
                 totalSupply = CurrencyAmount.fromRawAmount(token, formSupply.quotient)
               } else {
                 totalSupply = tokenForm.totalSupply
@@ -210,45 +458,43 @@ export const createCreateAuctionStore = (): CreateAuctionStore =>
                 return {}
               }
 
-              const { activeAuctionType, committed: existingCommitted } = state.configureAuction
+              const { committed: existingCommitted, postAuctionLiquidityAllocation } = state.configureAuction
               const isSameSupply =
                 existingCommitted !== undefined &&
                 existingCommitted.totalSupply.currency.equals(totalSupply.currency) &&
                 existingCommitted.totalSupply.equalTo(totalSupply)
-              // When supply changes, slider percentages derived from the old supply become stale,
-              // so we intentionally reset amounts to defaults rather than carry them forward.
-              // When supply is unchanged, rebase with the new token to pick up name/symbol edits
-              const committed = isSameSupply
-                ? rebaseAmounts(existingCommitted, totalSupply.currency)
-                : buildDefaultAmounts(totalSupply, activeAuctionType)
+              const previewPercent = existingCommitted
+                ? getPostAuctionLiquidityPreviewPercent(postAuctionLiquidityAllocation)
+                : DEFAULT_POST_AUCTION_LIQUIDITY_PERCENT
+              const nextAllocation = existingCommitted
+                ? postAuctionLiquidityAllocation
+                : createSinglePostAuctionLiquidityAllocation(previewPercent)
+              const auctionSupplyPercent =
+                tokenForm.mode === TokenMode.EXISTING ? DEFAULT_EXISTING_TOKEN_AUCTION_SUPPLY_PERCENT : undefined
+              const committedBase = isSameSupply
+                ? rebaseAuctionTokenAmounts(existingCommitted, totalSupply.currency)
+                : buildAuctionAmountsFromLiquidityPreview(totalSupply, { previewPercent, auctionSupplyPercent })
+              const committed = updateCommittedPostAuctionLiquidity(committedBase, nextAllocation)
 
               return {
                 configureAuction: {
                   ...state.configureAuction,
                   committed,
+                  postAuctionLiquidityAllocation: nextAllocation,
                 },
                 step: Math.min(state.step + 1, CreateAuctionStep.REVIEW_LAUNCH) as CreateAuctionStep,
               }
             })
           },
-          setTokenColor: (tokenColor) => {
-            set({ tokenColor })
-          },
+          setTokenColor: (tokenColor) => set({ tokenColor }),
           reset: () => {
-            set({
-              step: DEFAULT_CREATE_AUCTION_STATE.step,
-              tokenForm: DEFAULT_CREATE_AUCTION_STATE.tokenForm,
-              tokenColor: DEFAULT_CREATE_AUCTION_STATE.tokenColor,
-              configureAuction: DEFAULT_CREATE_AUCTION_STATE.configureAuction,
-              customizePool: DEFAULT_CREATE_AUCTION_STATE.customizePool,
-              xVerification: DEFAULT_CREATE_AUCTION_STATE.xVerification,
+            set((state) => {
+              revokeCreateNewTokenBlobPreviewIfNeeded(state.tokenForm)
+              return DEFAULT_CREATE_AUCTION_STATE
             })
           },
         },
       }),
-      {
-        name: 'createAuctionStore',
-        enabled: process.env.NODE_ENV === 'development',
-      },
+      { name: 'createAuctionStore', enabled: isDevEnv() },
     ),
   )

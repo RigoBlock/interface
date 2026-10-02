@@ -1,3 +1,4 @@
+import { normalizeTokenAddressForCache } from '@universe/chains'
 import { BATCH_DELAY_MS, MAX_BATCH_SIZE } from '@universe/prices/src/sources/rest/constants'
 import type { RestPriceClient } from '@universe/prices/src/sources/rest/types'
 import type { TokenIdentifier, TokenPriceData } from '@universe/prices/src/types'
@@ -36,7 +37,7 @@ export class RestPriceBatcher {
   fetch(token: TokenIdentifier): Promise<TokenPriceData | undefined> {
     return new Promise<TokenPriceData | undefined>((resolve, reject) => {
       this.pending.push({
-        token: { chainId: token.chainId, address: token.address.toLowerCase() },
+        token: { chainId: token.chainId, address: normalizeTokenAddressForCache(token.address) },
         resolve,
         reject,
       })

@@ -1,13 +1,17 @@
+import { isMobileApp, isWebPlatform } from '@universe/environment'
+import { AnimatedFlex, Flex, type FlexProps, Separator, Text, TouchableArea, useSporeColors } from '@universe/mycelium'
+import { SPORE_ANIMATION_CURVE_CSS } from '@universe/tailwind/animations'
+import { withSporeCurve } from '@universe/tailwind/animations/reanimated'
 import { useCallback } from 'react'
 import { FlatList } from 'react-native-gesture-handler'
-import { Flex, GetThemeValueForKey, HeightAnimator, Separator, Text, TouchableArea, useSporeColors } from 'ui/src'
+import type { EntryExitAnimationFunction } from 'react-native-reanimated'
+import { HeightAnimator } from 'ui/src'
 import { ExternalLink } from 'ui/src/components/icons'
 import { iconSizes, padding, spacing } from 'ui/src/theme'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { ExplorerDataType, getExplorerLink, openUri } from 'uniswap/src/utils/linking'
 import { shortenAddress } from 'utilities/src/addresses'
-import { isMobileApp } from 'utilities/src/platform'
 import {
   ITEM_PADDING,
   MAX_VISIBLE_HEIGHT_MOBILE,
@@ -17,6 +21,19 @@ import {
 import { useVisibleDelegations } from 'wallet/src/features/smartWallet/ActiveNetworkExpando/useVisibleDelegations'
 import { ActiveDelegation } from 'wallet/src/features/smartWallet/types'
 
+// Reanimated leg (native) of the legacy '300ms' enter fade+scale; on web the enterStyle
+// mount-flip plus the scoped transition below drives it, and `entering` is ignored.
+const expandoEntering: EntryExitAnimationFunction = () => {
+  'worklet'
+  return {
+    initialValues: { opacity: 0, transform: [{ scale: 0.95 }] },
+    animations: {
+      opacity: withSporeCurve('300ms', 1),
+      transform: [{ scale: withSporeCurve('300ms', 1) }],
+    },
+  }
+}
+
 export function ActiveNetworkExpando({
   isOpen,
   activeDelegations,
@@ -24,7 +41,7 @@ export function ActiveNetworkExpando({
 }: {
   isOpen: boolean
   activeDelegations: ActiveDelegation[]
-  mt?: number | GetThemeValueForKey<'marginTop'>
+  mt?: FlexProps['mt']
 }): JSX.Element | null {
   const colors = useSporeColors()
 
@@ -50,12 +67,14 @@ export function ActiveNetworkExpando({
   return (
     <HeightAnimator useInitialHeight open={isOpen} animation="300ms" mt={mt}>
       {isOpen && (
-        <Flex
+        <AnimatedFlex
           key="active-network-expando-container"
           py="$spacing4"
-          animation="300ms"
-          enterStyle={{ opacity: 0, scale: 0.95 }}
-          exitStyle={{ opacity: 0, scale: 0.95 }}
+          entering={expandoEntering}
+          {...(isWebPlatform && {
+            enterStyle: { opacity: 0, scale: 0.95 },
+            transition: `opacity ${SPORE_ANIMATION_CURVE_CSS['300ms']}, transform ${SPORE_ANIMATION_CURVE_CSS['300ms']}`,
+          })}
         >
           <FlatList
             data={displayData}
@@ -71,7 +90,7 @@ export function ActiveNetworkExpando({
             }}
             ItemSeparatorComponent={Separator}
           />
-        </Flex>
+        </AnimatedFlex>
       )}
     </HeightAnimator>
   )

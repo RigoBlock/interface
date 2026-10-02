@@ -1,8 +1,8 @@
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
+import { ScanQr } from '@universe/mycelium/icons/ScanQr'
 import { useTranslation } from 'react-i18next'
 import { OnboardingRoutes, TopLevelRoutes } from 'src/app/navigation/constants'
 import { navigate } from 'src/app/navigation/state'
-import { Flex, Text, TouchableArea } from 'ui/src'
-import { ScanQr } from 'ui/src/components/icons'
 
 export function SyncFromPhoneButton({
   isResetting,

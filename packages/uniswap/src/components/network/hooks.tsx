@@ -1,7 +1,7 @@
+import { UniverseChainId } from '@universe/chains'
 import { useMemo } from 'react'
 import { NetworkOption } from 'uniswap/src/components/network/NetworkOption'
 import { useNewChainIds } from 'uniswap/src/features/chains/hooks/useNewChainIds'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 
 export function useNetworkOptions({

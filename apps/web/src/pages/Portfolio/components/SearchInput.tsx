@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react'
-import { Flex, Input } from 'ui/src'
-import { Search } from 'ui/src/components/icons/Search'
+import { isMobileWebAndroid } from '@universe/environment'
+import { Flex, fonts } from '@universe/mycelium'
+import { Search } from '@universe/mycelium/icons/Search'
+import { useEffect, useRef, useState } from 'react'
+import { Input } from 'ui/src'
 import { SearchInputProps } from 'uniswap/src/components/nfts/types'
 import { useDebouncedCallback } from 'utilities/src/react/useDebouncedCallback'
+import { useScrollInputIntoView } from '~/hooks/useScrollInputIntoView'
 
 const DEFAULT_SEARCH_INPUT_WIDTH = 280
 const DEBOUNCE_DELAY_MS = 300
@@ -14,10 +17,12 @@ export function SearchInput({
   placeholder = 'Search',
   width = DEFAULT_SEARCH_INPUT_WIDTH,
 }: SearchInputProps) {
+  const inputRef = useRef<Input>(null)
   const [internalValue, setInternalValue] = useState(value)
   const [debouncedOnChangeText] = useDebouncedCallback((...args: unknown[]) => {
     onChangeText(args[0] as string)
   }, DEBOUNCE_DELAY_MS)
+  useScrollInputIntoView({ inputRef, enabled: isMobileWebAndroid })
 
   // Sync internal value with external value prop (e.g., when parent clears the input)
   useEffect(() => {
@@ -32,6 +37,7 @@ export function SearchInput({
   return (
     <Flex position="relative" width={width}>
       <Input
+        ref={inputRef}
         placeholder={placeholder}
         value={internalValue}
         onChangeText={handleChangeText}
@@ -44,7 +50,7 @@ export function SearchInput({
         padding="$spacing12"
         paddingLeft="$spacing40"
         placeholderTextColor="$neutral2"
-        fontSize="$body3"
+        fontSize={fonts.body3.fontSize}
         borderColor="$surface3"
         fontWeight="500"
         lineHeight="130%"

@@ -1,8 +1,8 @@
+import { opacify } from '@universe/mycelium/theme-hooks-compat'
 import { useTranslation } from 'react-i18next'
-import { opacify } from 'ui/src/theme'
 import { CardContents } from '~/pages/Landing/components/cards/CardContents'
 import { PillButton } from '~/pages/Landing/components/cards/PillButton'
-import ValuePropCard from '~/pages/Landing/components/cards/ValuePropCard'
+import { ValuePropCard } from '~/pages/Landing/components/cards/ValuePropCard'
 import { Bars } from '~/pages/Landing/components/Icons'
 
 const primary = '#00C3A0'
@@ -27,7 +27,7 @@ export function LiquidityCard() {
       button={<PillButton color={primary} label={t('pools.explore')} backgroundColor="$surface1" />}
       alignTextToBottom
     >
-      <CardContents pr="$padding16">
+      <CardContents className="pr-[16px]">
         <img
           src="/images/landing_page/LiquidityProvisions.svg"
           width="35%"

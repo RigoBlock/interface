@@ -96,6 +96,7 @@ export const handleExternallySubmittedUniswapXOrder = (address: string, dispatch
     // oxlint-disable-next-line no-shadow
     fetchLatestOpenOrder: (address) =>
       TradingApiClient.fetchOrdersWithoutIds({ swapper: address, limit: 1, orderStatus: TradingApi.OrderStatus.OPEN }),
+    // oxlint-disable-next-line typescript/no-useless-default-assignment -- defensive default
     waitForOrder: async (ms: number = ONE_SECOND_MS * 2): Promise<void> => {
       await sleep(ms)
     },

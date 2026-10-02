@@ -1,20 +1,19 @@
 import { Currency } from '@uniswap/sdk-core'
+import { UniverseChainId } from '@universe/chains'
+import { Flex } from '@universe/mycelium'
 import { useCallback, useEffect } from 'react'
-import { Flex } from 'ui/src'
 import { TokenSelectorContent } from 'uniswap/src/components/TokenSelector/TokenSelector'
 import { TokenSelectorFlow, TokenSelectorVariation } from 'uniswap/src/components/TokenSelector/types'
 import { useActiveAddresses } from 'uniswap/src/features/accounts/store/hooks'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { InterfaceEventName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { SwapTab } from 'uniswap/src/types/screens/interface'
 import { usePrevious } from 'utilities/src/react/hooks'
-import { SwitchNetworkAction } from '~/components/Popups/types'
-import useSelectChain from '~/hooks/useSelectChain'
+import { useSelectChain } from '~/hooks/useSelectChain'
 import { useMultichainContext } from '~/state/multichain/useMultichainContext'
-import { useSwapAndLimitContext } from '~/state/swap/useSwapContext'
+import { SwitchNetworkAction } from '~/state/popups/types'
 import { showSwitchNetworkNotification } from '~/utils/showSwitchNetworkNotification'
 
 interface CurrencySearchProps {
@@ -22,9 +21,16 @@ interface CurrencySearchProps {
   switchNetworkAction: SwitchNetworkAction
   onCurrencySelect: (currency: Currency) => void
   onDismiss: () => void
+  /**
+   * Parent-controlled initial network filter. Pass a chain to pin the selector's default network,
+   * `null` to default to All Networks, or omit (`undefined`) to fall back to the default
+   * account/multichain resolution.
+   */
+  chainId?: UniverseChainId | null
   chainIds?: UniverseChainId[]
   variation?: TokenSelectorVariation
   flow?: TokenSelectorFlow
+  swapTab?: SwapTab
 }
 
 export function CurrencySearch({
@@ -32,15 +38,16 @@ export function CurrencySearch({
   switchNetworkAction,
   onCurrencySelect,
   onDismiss,
+  chainId: controlledChainId,
   chainIds,
   variation,
   flow = TokenSelectorFlow.Swap,
+  swapTab = SwapTab.Swap,
 }: CurrencySearchProps) {
   const addresses = useActiveAddresses()
 
   const { chainId, setSelectedChainId, isUserSelectedToken, setIsUserSelectedToken, isMultichainContext } =
     useMultichainContext()
-  const { currentTab } = useSwapAndLimitContext()
   const prevChainId = usePrevious(chainId)
 
   const selectChain = useSelectChain()
@@ -64,19 +71,25 @@ export function CurrencySearch({
   )
 
   useEffect(() => {
-    if ((currentTab !== SwapTab.Swap && currentTab !== SwapTab.Send) || !isMultichainContext) {
+    if ((swapTab !== SwapTab.Swap && swapTab !== SwapTab.Send) || !isMultichainContext) {
       return
     }
 
     showSwitchNetworkNotification({ chainId, prevChainId, action: switchNetworkAction })
-  }, [currentTab, chainId, prevChainId, isMultichainContext, switchNetworkAction])
+  }, [swapTab, chainId, prevChainId, isMultichainContext, switchNetworkAction])
 
   const isSingleChainContext = chainIds?.length === 1
+  // When the parent controls the network filter (e.g. the pool browser's chain selector), use that
+  // value directly — `null` means All Networks. Only fall back to the account/multichain chain when
+  // the prop is omitted entirely.
+  const isChainControlled = controlledChainId !== undefined
   const resolvedChainId = isSingleChainContext
     ? chainIds[0]
-    : !isMultichainContext || isUserSelectedToken
-      ? chainId
-      : undefined
+    : isChainControlled
+      ? (controlledChainId ?? undefined)
+      : !isMultichainContext || isUserSelectedToken
+        ? chainId
+        : undefined
 
   return (
     <Trace logImpression eventOnTrigger={InterfaceEventName.TokenSelectorOpened} modal={ModalName.TokenSelectorWeb}>
@@ -87,7 +100,7 @@ export function CurrencySearch({
           chainId={resolvedChainId}
           chainIds={chainIds ?? chains}
           currencyField={currencyField}
-          flow={currentTab === SwapTab.Limit ? TokenSelectorFlow.Limit : flow}
+          flow={swapTab === SwapTab.Limit ? TokenSelectorFlow.Limit : flow}
           isSurfaceReady={true}
           variation={
             variation ??

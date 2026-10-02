@@ -1,5 +1,5 @@
+import { UniverseChainId } from '@universe/chains'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useHasAccountMismatchCallback } from 'uniswap/src/features/smartWallet/mismatch/hooks'
 import { useEvent } from 'utilities/src/react/hooks'
 

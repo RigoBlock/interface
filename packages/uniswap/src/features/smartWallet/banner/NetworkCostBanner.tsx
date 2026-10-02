@@ -1,8 +1,8 @@
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
+import { ExternalLink } from '@universe/mycelium/icons/ExternalLink'
+import { SmartWallet } from '@universe/mycelium/icons/SmartWallet'
 import { useCallback } from 'react'
 import { Trans } from 'react-i18next'
-import { Flex, Text, TouchableArea } from 'ui/src'
-import { ExternalLink } from 'ui/src/components/icons/ExternalLink'
-import { SmartWallet } from 'ui/src/components/icons/SmartWallet'
 import { openUri } from 'uniswap/src/utils/linking'
 
 const onPressLearnMore = (uri: string): Promise<void> => openUri({ uri })

@@ -1,10 +1,12 @@
+import { Platform } from '@universe/chains'
+import { Button, Flex, Text } from '@universe/mycelium'
+import { HeightAnimator } from '@universe/mycelium/height-animator'
+import { CloseIconWithHover } from '@universe/mycelium/icons/CloseIconWithHover'
+import { Presence } from '@universe/mycelium/presence'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AnimatePresence, Button, Flex, HeightAnimator, Text } from 'ui/src'
 import SOLANA_ICON from 'ui/src/assets/logos/png/solana-logo.png'
-import { CloseIconWithHover } from 'ui/src/components/icons/CloseIconWithHover'
 import { Modal } from 'uniswap/src/components/modals/Modal'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { useEvent } from 'utilities/src/react/hooks'
 import { useDebounce } from 'utilities/src/time/timing'
@@ -53,7 +55,6 @@ function useSolanaWalletToPrompt(applicablePendingWallet: ExternalWallet | undef
 
   const [solanaWalletToPrompt, setSolanaWalletToPrompt] = useState<ExternalWallet>()
 
-  // oxlint-disable-next-line typescript/no-unnecessary-condition -- biome-parity: oxlint is stricter here
   const isMultiPlatformConnection = !useConnectWallet().variables?.individualPlatform
 
   // Set a flag to keep the modal open if the solana prompt should be shown
@@ -71,7 +72,7 @@ function useSolanaWalletToPrompt(applicablePendingWallet: ExternalWallet | undef
 }
 
 /** Modal for dual-VM wallets (MetaMask) that shows connection status and prompts for Solana opt-in. */
-export default function PendingWalletConnectionModal() {
+export function PendingWalletConnectionModal() {
   const applicablePendingWallet = useApplicablePendingWallet()
   const { reset: resetConnectionQuery } = useConnectWallet()
 
@@ -100,7 +101,7 @@ export default function PendingWalletConnectionModal() {
             showRipple={modalContent?.animate}
           />
           <Flex width="100%" fill position="relative" minHeight={60}>
-            <AnimatePresence initial={false}>
+            <Presence initial={false}>
               <Flex
                 width="100%"
                 position="absolute"
@@ -109,9 +110,7 @@ export default function PendingWalletConnectionModal() {
                 right={0}
                 alignItems="center"
                 key={modalContent?.key}
-                animation="200ms"
-                enterStyle={{ opacity: 0 }}
-                exitStyle={{ opacity: 0 }}
+                className="animate-spore-enter-fade-in data-exiting:animate-spore-exit-fade-out opacity-[1]"
                 gap="$spacing8"
               >
                 <Text variant="subheading1" color="$neutral1">
@@ -121,7 +120,7 @@ export default function PendingWalletConnectionModal() {
                   {modalContent?.description}
                 </Text>
               </Flex>
-            </AnimatePresence>
+            </Presence>
           </Flex>
           <UserInput solanaWalletToPrompt={solanaWalletToPrompt} resetModalState={resetSolanaWalletToPrompt} />
         </Flex>
@@ -143,7 +142,7 @@ function useModalContent(params: { showSolanaPrompt: boolean }) {
     if (evmConnecting) {
       return {
         key: 'evm-connecting',
-        title: t('wallet.connecting.title.evm', { walletName: pendingWallet?.name }),
+        title: t('wallet.connecting.title.evm', { walletName: pendingWallet?.name ?? t('common.wallet.label') }),
         description: t('wallet.connecting.description'),
         icon: pendingWallet?.icon,
         animate: true,
@@ -153,7 +152,7 @@ function useModalContent(params: { showSolanaPrompt: boolean }) {
     if (showSolanaPrompt) {
       return {
         key: 'solana-prompt',
-        title: t('wallet.connecting.solanaPrompt', { walletName: pendingWallet?.name }),
+        title: t('wallet.connecting.solanaPrompt', { walletName: pendingWallet?.name ?? t('common.wallet.label') }),
         description: t('wallet.connecting.solanaPrompt.description'),
         icon: SOLANA_ICON,
         animate: false,
@@ -163,7 +162,7 @@ function useModalContent(params: { showSolanaPrompt: boolean }) {
     if (svmConnecting) {
       return {
         key: 'svm-connecting',
-        title: t('wallet.connecting.title.svm', { walletName: pendingWallet?.name }),
+        title: t('wallet.connecting.title.svm', { walletName: pendingWallet?.name ?? t('common.wallet.label') }),
         description: t('wallet.connecting.description'),
         icon: SOLANA_ICON,
         animate: true,
@@ -191,9 +190,12 @@ function UserInput(props: { solanaWalletToPrompt: ExternalWallet | undefined; re
   })
 
   return (
-    <AnimatePresence>
+    <Presence>
       {solanaWalletToPrompt && !isConnecting && (
-        <Flex width="100%" animation="200ms" enterStyle={{ opacity: 0, y: 10 }} exitStyle={{ opacity: 0, y: 10 }}>
+        <Flex
+          width="100%"
+          className="animate-spore-enter-fade-in data-exiting:animate-spore-exit-fade-out-down opacity-[1]"
+        >
           <Flex width="100%" row gap="$spacing8">
             <Button fill size="small" emphasis="secondary" onPress={resetModalState}>
               {t('common.button.skip')}
@@ -204,6 +206,8 @@ function UserInput(props: { solanaWalletToPrompt: ExternalWallet | undefined; re
           </Flex>
         </Flex>
       )}
-    </AnimatePresence>
+    </Presence>
   )
 }
+
+export default PendingWalletConnectionModal

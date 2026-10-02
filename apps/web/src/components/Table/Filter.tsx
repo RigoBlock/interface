@@ -1,40 +1,52 @@
-import { RefObject, useCallback, useRef } from 'react'
-import { Checkbox, Flex, styled, Text, useMedia } from 'ui/src'
-import { ChevronsOut } from 'ui/src/components/icons/ChevronsOut'
+import { Flex, type FlexCompatProps, Text } from '@universe/mycelium'
+import { CheckboxCompat } from '@universe/mycelium/checkbox-compat'
+import { ChevronsOut } from '@universe/mycelium/icons/ChevronsOut'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
+import { forwardRef, RefObject, useCallback, useRef } from 'react'
 import { Portal } from '~/components/Popups/Portal'
 import { useOnClickOutside } from '~/hooks/useOnClickOutside'
 
-const FilterDropdown = styled(Flex, {
-  position: 'absolute',
-  p: '$padding8',
-  borderRadius: '$rounded12',
-  backgroundColor: '$surface2',
-  gap: '$gap8',
-  width: 240,
-  borderWidth: 1,
-  borderColor: '$surface3',
-  borderStyle: 'solid',
-  shadowColor: '$shadow',
-  opacity: 1,
-  zIndex: '$modal',
-  $md: {
-    position: 'fixed' as any,
-    bottom: 0,
-    left: 0,
-    top: 'unset',
-    width: '100vw',
-  },
+const FilterDropdown = forwardRef<HTMLDivElement, FlexCompatProps>(function FilterDropdown(props, ref) {
+  return (
+    <Flex
+      ref={ref}
+      position="absolute"
+      p="$padding8"
+      borderRadius="$rounded12"
+      backgroundColor="$surface2"
+      gap="$gap8"
+      width={240}
+      borderWidth={1}
+      borderColor="$surface3"
+      borderStyle="solid"
+      shadowColor="$shadowColor"
+      opacity={1}
+      zIndex="$modal"
+      $md={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        top: 'unset',
+        width: '100vw',
+      }}
+      {...props}
+    />
+  )
 })
 
-const FilterRow = styled(Flex, {
-  row: true,
-  py: 10,
-  px: '$padding8',
-  justifyContent: 'space-between',
-  borderRadius: '$rounded8',
-  hoverStyle: {
-    backgroundColor: '$surface3',
-  },
+const FilterRow = forwardRef<HTMLDivElement, FlexCompatProps>(function FilterRow(props, ref) {
+  return (
+    <Flex
+      ref={ref}
+      row
+      py={10}
+      px="$padding8"
+      justifyContent="space-between"
+      borderRadius="$rounded8"
+      hoverStyle={{ backgroundColor: '$surface3' }}
+      {...props}
+    />
+  )
 })
 
 interface FilterProps<T extends string> {
@@ -98,7 +110,7 @@ export function Filter<T extends string>({
                 <Text $short={{ variant: 'buttonLabel4' }} variant="subheading2">
                   {filter.label}
                 </Text>
-                <Checkbox checked={activeFilter.includes(filter.value)} variant="branded" />
+                <CheckboxCompat checked={activeFilter.includes(filter.value)} variant="branded" />
               </FilterRow>
             ))}
           </FilterDropdown>

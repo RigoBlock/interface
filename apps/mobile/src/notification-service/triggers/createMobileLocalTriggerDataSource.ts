@@ -1,12 +1,11 @@
 import {
   createLocalTriggerDataSource,
+  type NotificationDataSource,
+  type NotificationTracker,
   type TriggerCondition,
-} from '@universe/notifications/src/notification-data-source/implementations/createLocalTriggerDataSource'
-import { type NotificationDataSource } from '@universe/notifications/src/notification-data-source/NotificationDataSource'
-import { type NotificationTracker } from '@universe/notifications/src/notification-tracker/NotificationTracker'
+} from '@universe/notifications'
 import { type MobileState } from 'src/app/mobileReducer'
-import { createBackupReminderTrigger } from 'src/notification-service/triggers/backupReminderTrigger'
-import { setBackupReminderLastSeenTs } from 'wallet/src/features/behaviorHistory/slice'
+import { createBackupReminderTrigger } from 'wallet/src/features/behaviorHistory/backupReminderTrigger'
 
 /**
  * Context required to create the mobile local trigger data source.
@@ -14,8 +13,6 @@ import { setBackupReminderLastSeenTs } from 'wallet/src/features/behaviorHistory
 interface CreateMobileLocalTriggerDataSourceContext {
   /** Function to get the current Redux state */
   getState: () => MobileState
-  /** Redux dispatch function */
-  dispatch: (action: ReturnType<typeof setBackupReminderLastSeenTs>) => void
   /** Notification tracker for checking processed state */
   tracker: NotificationTracker
   /** Function to get current portfolio value in USD for the active account */
@@ -30,7 +27,6 @@ interface CreateMobileLocalTriggerDataSourceContext {
  */
 function getMobileTriggers(ctx: {
   getState: () => MobileState
-  dispatch: (action: ReturnType<typeof setBackupReminderLastSeenTs>) => void
   getPortfolioValue: () => Promise<number>
 }): TriggerCondition[] {
   return [
@@ -50,9 +46,9 @@ function getMobileTriggers(ctx: {
 export function createMobileLocalTriggerDataSource(
   ctx: CreateMobileLocalTriggerDataSourceContext,
 ): NotificationDataSource {
-  const { getState, dispatch, tracker, getPortfolioValue, pollIntervalMs = 5000 } = ctx
+  const { getState, tracker, getPortfolioValue, pollIntervalMs = 5000 } = ctx
 
-  const triggers = getMobileTriggers({ getState, dispatch, getPortfolioValue })
+  const triggers = getMobileTriggers({ getState, getPortfolioValue })
 
   return createLocalTriggerDataSource({
     triggers,

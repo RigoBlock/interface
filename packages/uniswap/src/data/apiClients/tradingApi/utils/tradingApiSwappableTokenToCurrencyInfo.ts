@@ -1,10 +1,10 @@
 import { TradingApi } from '@universe/api'
-import { toGqlSafetyLevel } from 'uniswap/src/components/TokenSelector/utils'
 import { getNativeAddress } from 'uniswap/src/constants/addresses'
 import { toSupportedChainId } from 'uniswap/src/features/chains/utils'
+import { fromTradingApiSafetyLevel } from 'uniswap/src/features/dataApi/safety'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { buildCurrency } from 'uniswap/src/features/dataApi/utils/buildCurrency'
-import { getCurrencySafetyInfo } from 'uniswap/src/features/dataApi/utils/getCurrencySafetyInfo'
+import { getRestCurrencySafetyInfo } from 'uniswap/src/features/dataApi/utils/getCurrencySafetyInfo'
 import { NATIVE_ADDRESS_FOR_TRADING_API } from 'uniswap/src/features/transactions/swap/utils/tradingApi'
 import { currencyId } from 'uniswap/src/utils/currencyId'
 
@@ -30,14 +30,14 @@ export function tradingApiSwappableTokenToCurrencyInfo(
     return undefined
   }
 
-  const safetyLevel = toGqlSafetyLevel(token.project.safetyLevel)
+  const safetyLevel = fromTradingApiSafetyLevel(token.project.safetyLevel)
 
   const currencyInfo: CurrencyInfo = {
     currency,
     currencyId: currencyId(currency),
     logoUrl: token.project.logo?.url,
     isSpam: token.project.isSpam,
-    safetyInfo: getCurrencySafetyInfo(safetyLevel ?? undefined),
+    safetyInfo: getRestCurrencySafetyInfo(safetyLevel),
   }
 
   return currencyInfo

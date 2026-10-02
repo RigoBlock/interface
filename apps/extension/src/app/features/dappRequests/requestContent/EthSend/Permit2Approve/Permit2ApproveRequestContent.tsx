@@ -1,8 +1,8 @@
 import { GasFeeResult } from '@universe/api'
+import { Flex, Text } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
 import { DappRequestContent } from 'src/app/features/dappRequests/DappRequestContent'
 import { Permit2ApproveSendTransactionRequest } from 'src/app/features/dappRequests/types/DappRequestTypes'
-import { Flex, Text } from 'ui/src'
 import { TransactionType, TransactionTypeInfo } from 'uniswap/src/features/transactions/types/transactionDetails'
 
 interface Permit2ApproveRequestContentProps {

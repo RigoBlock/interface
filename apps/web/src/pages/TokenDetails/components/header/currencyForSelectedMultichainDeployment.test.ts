@@ -1,7 +1,7 @@
 import { Token } from '@uniswap/sdk-core'
+import { UniverseChainId, areEvmAddressesEqual } from '@universe/chains'
 import type { MultichainTokenEntry } from 'uniswap/src/components/MultichainTokenDetails/useOrderedMultichainEntries'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { currencyForSelectedMultichainDeployment } from '~/pages/TokenDetails/components/header/currencyForSelectedMultichainDeployment'
 
 /** Mainnet USDC — used as the “page” currency while selecting another deployment */
@@ -50,6 +50,6 @@ describe('currencyForSelectedMultichainDeployment', () => {
     expect(result.decimals).toBe(mainnetUsdc.decimals)
     expect(result.symbol).toBe(mainnetUsdc.symbol)
     expect(result.name).toBe(mainnetUsdc.name)
-    expect(result.address.toLowerCase()).toBe(baseUsdcOnBase.toLowerCase())
+    expect(areEvmAddressesEqual(result.address, baseUsdcOnBase)).toBe(true)
   })
 })

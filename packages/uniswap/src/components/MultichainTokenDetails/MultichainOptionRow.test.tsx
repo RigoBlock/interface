@@ -1,6 +1,6 @@
-import { Flex } from 'ui/src'
+import { UniverseChainId } from '@universe/chains'
+import { Flex } from '@universe/mycelium'
 import { MultichainOptionRow } from 'uniswap/src/components/MultichainTokenDetails/MultichainOptionRow'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { ON_PRESS_EVENT_PAYLOAD } from 'uniswap/src/test/fixtures'
 import { fireEvent, render } from 'uniswap/src/test/test-utils'
 

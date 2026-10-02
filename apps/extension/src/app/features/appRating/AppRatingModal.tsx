@@ -1,11 +1,13 @@
+import { Button, Flex, Text, TouchableArea, zIndexes, type IconSizeTokens } from '@universe/mycelium'
+import { Feedback } from '@universe/mycelium/icons/Feedback'
+import { LikeSquare } from '@universe/mycelium/icons/LikeSquare'
+import { MessageText } from '@universe/mycelium/icons/MessageText'
+import { X } from '@universe/mycelium/icons/X'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { Button, Flex, Text, TouchableArea } from 'ui/src'
-import { Feedback, LikeSquare, MessageText, X } from 'ui/src/components/icons'
-import { IconSizeTokens, zIndexes } from 'ui/src/theme'
 import { Modal } from 'uniswap/src/components/modals/Modal'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapStaticUrls } from 'uniswap/src/constants/urls'
 import { ModalName, WalletEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { appRatingPromptedMsSelector, appRatingProvidedMsSelector } from 'wallet/src/features/wallet/selectors'
@@ -66,7 +68,7 @@ export default function AppRatingModal({ onClose }: AppRatingModalProps): JSX.El
       iconSize: '$icon.18' as IconSizeTokens,
       onSecondaryButtonPress: onRemindLater,
       onPrimaryButtonPress: (): void => {
-        window.open(uniswapUrls.walletFeedbackForm)
+        window.open(UniswapStaticUrls.walletFeedbackForm)
         dispatch(setAppRating({ feedbackProvided: true }))
         sendAnalyticsEvent(WalletEventName.AppRating, {
           type: 'feedback-form',

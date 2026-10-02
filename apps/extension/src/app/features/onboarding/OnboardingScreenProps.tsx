@@ -1,4 +1,4 @@
-import { ButtonEmphasis, ButtonVariant } from 'ui/src'
+import { ButtonEmphasis, ButtonVariant } from '@universe/mycelium'
 
 export type OnboardingScreenProps = {
   Icon?: JSX.Element

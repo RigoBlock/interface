@@ -1,5 +1,7 @@
+import { Flex } from '@universe/mycelium'
+import type { FlexCompatProps as FlexProps, MyceliumElement } from '@universe/mycelium'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
 import { ForwardedRef, forwardRef, PropsWithChildren } from 'react'
-import { Flex, FlexProps, TamaguiElement, useMedia } from 'ui/src'
 import { LoadingBubble } from '~/components/Tokens/loading'
 
 export const Cell = forwardRef(
@@ -8,9 +10,10 @@ export const Cell = forwardRef(
       loading,
       children,
       testId,
+      style,
       ...rest
     }: PropsWithChildren<{ loading?: boolean; testId?: string } & Partial<FlexProps>>,
-    ref: ForwardedRef<TamaguiElement>,
+    ref: ForwardedRef<MyceliumElement>,
   ) => {
     const media = useMedia()
     const paddingY = rest.py ?? (media.lg ? '$spacing12' : '$spacing16')
@@ -22,9 +25,6 @@ export const Cell = forwardRef(
       <Flex
         row
         overflow="hidden"
-        $platform-web={{
-          fontVariantNumeric: 'lining-nums tabular-nums',
-        }}
         data-testid={testId}
         justifyContent={justifyContent}
         px={rest.px ?? '$spacing12'}
@@ -32,6 +32,7 @@ export const Cell = forwardRef(
         alignItems={rest.alignItems ?? 'center'}
         ref={ref}
         {...rest}
+        style={{ fontVariantNumeric: 'lining-nums tabular-nums', ...style }}
       >
         {loading ? (
           <LoadingBubble

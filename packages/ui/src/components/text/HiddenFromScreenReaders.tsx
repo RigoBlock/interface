@@ -1,7 +1,6 @@
+import { Flex } from '@universe/mycelium'
 import { PropsWithChildren } from 'react'
 import type { ViewStyle } from 'react-native'
-import { Flex } from 'ui/src/components/layout'
-
 export type HiddenFromScreenReadersProps = PropsWithChildren<{
   style?: ViewStyle
 }>

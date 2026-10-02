@@ -1,6 +1,10 @@
 /* oxlint-disable max-lines */
-import { createHashcashMultiWorkerChannel, createHashcashWorkerChannel } from '@universe/sessions'
-import { findProof as jsFindProof } from '@universe/sessions/src/challenge-solvers/hashcash/core'
+import { Button, Flex, Text, TouchableArea } from '@universe/mycelium'
+import {
+  createHashcashMultiWorkerChannel,
+  createHashcashWorkerChannel,
+  findProof as jsFindProof,
+} from '@universe/sessions'
 import { memo, useCallback, useEffect, useMemo } from 'react'
 import { ScreenHeader } from 'src/app/components/layout/ScreenHeader'
 import {
@@ -9,7 +13,7 @@ import {
   type LogEntry,
   useHashcashBenchmarkStore,
 } from 'src/app/features/settings/stores/hashcashBenchmarkStore'
-import { Button, Flex, ScrollView, Text, TouchableArea } from 'ui/src'
+import { createHashcashWorker } from 'src/workers/hashcashWorker'
 import { logger } from 'utilities/src/logger/logger'
 import { useShallow } from 'zustand/shallow'
 
@@ -425,11 +429,7 @@ export function HashcashBenchmarkScreen(): JSX.Element {
     }
 
     const channel = createHashcashWorkerChannel({
-      getWorker: () =>
-        new Worker(
-          new URL('@universe/sessions/src/challenge-solvers/hashcash/worker/hashcash.worker.ts', import.meta.url),
-          { type: 'module' },
-        ),
+      getWorker: createHashcashWorker,
     })
 
     try {
@@ -516,11 +516,7 @@ export function HashcashBenchmarkScreen(): JSX.Element {
     const workerCount = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 4 : 4
     const channel = createHashcashMultiWorkerChannel({
       workerCount,
-      getWorker: () =>
-        new Worker(
-          new URL('@universe/sessions/src/challenge-solvers/hashcash/worker/hashcash.worker.ts', import.meta.url),
-          { type: 'module' },
-        ),
+      getWorker: createHashcashWorker,
     })
 
     try {
@@ -658,7 +654,7 @@ export function HashcashBenchmarkScreen(): JSX.Element {
   }, [results])
 
   return (
-    <ScrollView>
+    <Flex grow shrink overflowX="hidden" overflowY="auto">
       <ScreenHeader title="Hashcash Benchmark" />
 
       <Flex p="$spacing16" gap="$spacing16">
@@ -708,7 +704,7 @@ export function HashcashBenchmarkScreen(): JSX.Element {
 
           {/* Action Buttons */}
           <Flex row gap="$spacing8" flexWrap="wrap">
-            <Button size="small" emphasis="primary" isDisabled={isRunning} onPress={runBenchmark}>
+            <Button size="small" emphasis="primary" disabled={isRunning} onPress={runBenchmark}>
               Run Benchmark
             </Button>
             {isRunning && (
@@ -716,7 +712,7 @@ export function HashcashBenchmarkScreen(): JSX.Element {
                 Cancel
               </Button>
             )}
-            <Button size="small" emphasis="secondary" isDisabled={isRunning} onPress={handleClearResults}>
+            <Button size="small" emphasis="secondary" disabled={isRunning} onPress={handleClearResults}>
               Clear Results
             </Button>
           </Flex>
@@ -748,6 +744,6 @@ export function HashcashBenchmarkScreen(): JSX.Element {
         {/* Operation Log */}
         <LogSection />
       </Flex>
-    </ScrollView>
+    </Flex>
   )
 }

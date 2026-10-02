@@ -1,4 +1,4 @@
-import type { UniverseChainId } from 'uniswap/src/features/chains/types'
+import type { UniverseChainId } from '@universe/chains'
 
 export interface NetworkSelectorOption {
   chainId: UniverseChainId

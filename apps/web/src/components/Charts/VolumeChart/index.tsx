@@ -1,12 +1,12 @@
-import { GraphQLApi } from '@universe/api'
+import { Text } from '@universe/mycelium'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { TFunction } from 'i18next'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSporeColors } from 'ui/src'
 import { BIPS_BASE } from 'uniswap/src/constants/misc'
+import { HistoryDuration } from 'uniswap/src/features/dataApi/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { NumberType } from 'utilities/src/format/types'
-import { TimePeriod, toHistoryDuration } from '~/appGraphql/data/util'
 import { ChartHeader } from '~/components/Charts/ChartHeader'
 import { Chart, ChartModelParams } from '~/components/Charts/ChartModel'
 import { useHeaderDateFormatter } from '~/components/Charts/hooks/useHeaderDateFormatter'
@@ -15,7 +15,7 @@ import {
   CustomVolumeChartModelParams,
 } from '~/components/Charts/VolumeChart/CustomVolumeChartModel'
 import { getCumulativeVolume, SingleHistogramData } from '~/components/Charts/VolumeChart/utils'
-import { ThemedText } from '~/theme/components'
+import { TimePeriod, toHistoryDuration } from '~/data/util'
 
 interface VolumeChartModelParams extends ChartModelParams<SingleHistogramData>, CustomVolumeChartModelParams {
   TooltipBody?: React.FunctionComponent<{ data: SingleHistogramData }>
@@ -49,21 +49,19 @@ class VolumeChartModel extends CustomVolumeChartModel<SingleHistogramData> {
 }
 
 // oxlint-disable-next-line typescript/consistent-return
-function formatHistoryDuration(t: TFunction, duration: GraphQLApi.HistoryDuration): string {
+function formatHistoryDuration(t: TFunction, duration: HistoryDuration): string {
   switch (duration) {
-    case GraphQLApi.HistoryDuration.FiveMinute:
-      return t('common.pastFiveMinutes')
-    case GraphQLApi.HistoryDuration.Hour:
+    case HistoryDuration.Hour:
       return t('common.pastHour')
-    case GraphQLApi.HistoryDuration.Day:
+    case HistoryDuration.Day:
       return t('common.pastDay')
-    case GraphQLApi.HistoryDuration.Week:
+    case HistoryDuration.Week:
       return t('common.pastWeek')
-    case GraphQLApi.HistoryDuration.Month:
+    case HistoryDuration.Month:
       return t('common.pastMonth')
-    case GraphQLApi.HistoryDuration.Year:
+    case HistoryDuration.Year:
       return t('common.pastYear')
-    case GraphQLApi.HistoryDuration.Max:
+    case HistoryDuration.Max:
       return t('common.allTime')
   }
 }
@@ -100,7 +98,11 @@ function VolumeChartHeader({
 
   return (
     <ChartHeader
-      value={<ThemedText.HeadlineLarge color="inherit">{display.volume}</ThemedText.HeadlineLarge>}
+      value={
+        <Text variant="heading3" color="inherit">
+          {display.volume}
+        </Text>
+      }
       time={crosshairData?.time}
       timePlaceholder={formatHistoryDuration(t, toHistoryDuration(timePeriod))}
     />
@@ -114,11 +116,11 @@ function FeesTooltipDisplay({ data, feeTier }: { data: SingleHistogramData; feeT
 
   return (
     <>
-      <ThemedText.BodySmall>
+      <Text variant="body3">
         {t(`token.chart.tooltip`, {
           amount: convertFiatAmountFormatted(fees, NumberType.FiatTokenStats),
         })}
-      </ThemedText.BodySmall>
+      </Text>
     </>
   )
 }

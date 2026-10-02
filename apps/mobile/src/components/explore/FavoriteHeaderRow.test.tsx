@@ -1,13 +1,13 @@
+import { TestID } from '@universe/test'
 import { FavoriteHeaderRow } from 'src/components/explore/FavoriteHeaderRow'
 import { fireEvent, render } from 'src/test/test-utils'
 import { ON_PRESS_EVENT_PAYLOAD } from 'uniswap/src/test/fixtures'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 
 const defaultProps = {
   title: 'Title',
   editingTitle: 'Editing Title',
   isEditing: false,
-  onPress: jest.fn(),
+  onPress: vi.fn(),
 }
 
 describe(FavoriteHeaderRow, () => {

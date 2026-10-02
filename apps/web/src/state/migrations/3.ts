@@ -1,7 +1,7 @@
 /* oxlint-disable typescript/no-unnecessary-condition */
 import { Token } from '@uniswap/sdk-core'
+import { UniverseChainId } from '@universe/chains'
 import { type PersistState } from 'redux-persist'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { createPersistState, createSafeMigration } from 'uniswap/src/state/createSafeMigration'
 import { serializeToken } from 'uniswap/src/utils/currency'
 import { type PreV16UserState } from '~/state/migrations/oldTypes'

@@ -1,5 +1,5 @@
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
 import { Trans } from 'react-i18next'
-import { Flex, Text, TouchableArea } from 'ui/src'
 import { Sparkle } from 'ui/src/components/icons'
 
 type EnableSmartWalletBannerProps = {

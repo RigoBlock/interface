@@ -1,6 +1,6 @@
+import { UniverseChainId } from '@universe/chains'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { useMemo } from 'react'
-import { useSporeColors } from 'ui/src'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useSrcColor } from '~/hooks/useColor'
 import { getChainLogoUrl } from '~/pages/Explore/tables/Tokens/VolumeByNetworkPopover/utils'
 

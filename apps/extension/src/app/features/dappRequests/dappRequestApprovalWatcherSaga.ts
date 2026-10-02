@@ -1,6 +1,11 @@
 /* oxlint-disable complexity */
 import { providerErrors, serializeError } from '@metamask/rpc-errors'
 import { PayloadAction } from '@reduxjs/toolkit'
+import { Platform } from '@universe/chains'
+import {
+  IMPERSONATION_SIGNING_ERROR_MESSAGE,
+  isImpersonatedSigningError,
+} from 'src/app/features/accounts/impersonation'
 import { getAccount, getAccountRequest } from 'src/app/features/dappRequests/accounts'
 import {
   confirmRequest,
@@ -64,7 +69,8 @@ import {
 import { dappResponseMessageChannel } from 'src/background/messagePassing/messageChannels'
 import { call, put, select, takeEvery } from 'typed-redux-saga'
 import { DappRequestType, DappResponseType } from 'uniswap/src/features/dappRequests/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
+import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
+import { AppNotificationType } from 'uniswap/src/features/notifications/slice/types'
 import { getEnabledChainIdsSaga } from 'uniswap/src/features/settings/saga'
 import { logger } from 'utilities/src/logger/logger'
 
@@ -295,9 +301,19 @@ function* dappRequestApproval({
       yield* call(dappResponseMessageChannel.sendMessageToTab, rejectedRequest.senderTabInfo.id, errorResponse)
     }
   } catch (error) {
-    logger.error(error, {
-      tags: { file: 'dappRequestApprovalWatcherSaga', function: 'dappRequestApprovalWatcher' },
-    })
+    if (isImpersonatedSigningError(error)) {
+      // Expected outcome of dev impersonation, not a fault worth an error report.
+      yield* put(
+        pushNotification({
+          type: AppNotificationType.Error,
+          errorMessage: IMPERSONATION_SIGNING_ERROR_MESSAGE,
+        }),
+      )
+    } else {
+      logger.error(error, {
+        tags: { file: 'dappRequestApprovalWatcherSaga', function: 'dappRequestApprovalWatcher' },
+      })
+    }
 
     const errorResponse: ErrorResponse = {
       type: DappResponseType.ErrorResponse,

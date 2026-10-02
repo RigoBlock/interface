@@ -14,6 +14,9 @@ export enum DappRequestType {
   SendCalls = 'SendCalls',
   GetCallsStatus = 'GetCallsStatus',
   GetCapabilities = 'GetCapabilities',
+  // Read-only JSON-RPC (eth_call, eth_blockNumber, …) proxied to the background SW so the
+  // fetch runs in an extension-privileged context, not the dapp page's CORS-bound context.
+  ProviderDirect = 'ProviderDirect',
 }
 
 export enum DappResponseType {
@@ -32,6 +35,7 @@ export enum DappResponseType {
   SendCallsResponse = 'SendCallsResponse',
   GetCallsStatusResponse = 'GetCallsStatusResponse',
   GetCapabilitiesResponse = 'GetCapabilitiesResponse',
+  ProviderDirectResponse = 'ProviderDirectResponse',
 }
 
 export enum EthMethod {
@@ -85,3 +89,26 @@ export type EthSignMethod =
   | EthMethod.SignTypedData
   | EthMethod.SignTypedDataV4
   | EthMethod.EthSign
+
+/** Request surface used for Blockaid scan policy and failure telemetry. */
+export type BlockaidScanType = 'send-calls' | 'signature' | 'transaction'
+/**
+ * Coarse scan stage for operational rollups. `validation` also includes request-shaped HTTP
+ * rejections that prevented Blockaid from returning a validation result; use `reason` for the
+ * precise cause. `unknown` is reserved for wallet/query failures outside the Blockaid boundary.
+ */
+export type BlockaidScanFailureKind = 'simulation' | 'transport' | 'unknown' | 'validation'
+/** Bounded, wallet-owned cause used as the stable analytics grouping key. */
+export type BlockaidScanFailureReason =
+  | 'missing_simulation'
+  | 'missing_validation'
+  | 'no_response'
+  | 'rate_limited'
+  | 'request_rejected'
+  | 'request_too_large'
+  | 'server_error'
+  | 'simulation_error'
+  | 'timeout'
+  | 'transport_error'
+  | 'unknown'
+  | 'validation_error'

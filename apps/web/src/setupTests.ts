@@ -1,11 +1,32 @@
 /* oxlint-disable max-lines */
 import '@testing-library/jest-dom' // jest custom assertions
-import 'jest-styled-components' // adds style diffs to snapshot tests
 import '~/polyfills' // add polyfills
+
+// ResizeObserver is not available in jsdom — provide a minimal stub for tests
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe(): void {}
+    unobserve(): void {}
+    disconnect(): void {}
+  }
+}
+
+// Element.getAnimations is not available in jsdom — real unmounts (post-provider removal) reach it
+if (typeof Element.prototype.getAnimations === 'undefined') {
+  Element.prototype.getAnimations = () => []
+}
+
+// Deterministic crypto.randomUUID for snapshot stability
+let _testUuidCounter = 0
+crypto.randomUUID = (() => `test-uuid-${_testUuidCounter++}`) as typeof crypto.randomUUID
+// Reset counter between tests so snapshots are stable
+beforeEach(() => {
+  _testUuidCounter = 0
+  crypto.randomUUID = (() => `test-uuid-${_testUuidCounter++}`) as typeof crypto.randomUUID
+})
 // oxlint-disable-next-line
-import './test-utils/mockTamagui' // mock problematic Tamagui components
 import { Readable } from 'stream'
-import { TextDecoder, TextEncoder } from 'util'
+import { format, TextDecoder, TextEncoder } from 'util'
 import { type createPopper } from '@popperjs/core'
 import {
   BaseWalletAdapter,
@@ -13,13 +34,12 @@ import {
   type WalletName,
   WalletReadyState,
 } from '@solana/wallet-adapter-base'
-import { useFeatureFlag } from '@universe/gating'
+import type { UniverseChainId } from '@universe/chains'
+import { useFeatureFlag, useStatsigClientStatus } from '@universe/gating'
 import { useWeb3React } from '@web3-react/core'
 import { config as loadEnv } from 'dotenv'
-import failOnConsole from 'jest-fail-on-console'
 import { disableNetConnect, restore as restoreNetConnect } from 'nock'
 import React from 'react'
-import { type UniverseChainId } from 'uniswap/src/features/chains/types'
 import { setupi18n } from 'uniswap/src/i18n/i18n-setup-interface'
 import { mockLocalizationContext } from 'uniswap/src/test/mocks/locale'
 import { toBeVisible } from '~/test-utils/matchers'
@@ -93,10 +113,14 @@ vi.mock('react-native-reanimated', async () => {
   }
 })
 
+// reanimated 4 pulls in react-native-worklets, whose lib/module build uses extensionless
+// ESM imports vitest can't resolve. Its src mock loads cleanly and covers what RNGH v3 needs.
+vi.mock('react-native-worklets', async () => vi.importActual('react-native-worklets/src/mock'))
+
 // Mock environment variables
 process.env.EXPO_OS = 'web'
-process.env.REACT_APP_ANALYTICS_REQUEST_TIMEOUT_MS = '10000'
-process.env.REACT_APP_ANALYTICS_FLUSH_TIMEOUT_MS = '5000'
+process.env.ANALYTICS_REQUEST_TIMEOUT_MS = '10000'
+process.env.ANALYTICS_FLUSH_TIMEOUT_MS = '5000'
 
 setupi18n()
 
@@ -108,7 +132,10 @@ globalThis.origin = 'https://app.uniswap.org'
 // oxlint-disable-next-line no-lone-blocks -- block used to scope polyfill assignments
 {
   window.open = vi.fn()
-  window.getComputedStyle = vi.fn()
+  window.scrollTo = vi.fn()
+  // Implementation lives here, not just in the `beforeEach` below, so a test's `vi.restoreAllMocks()`
+  // resets to it rather than to `undefined` — floating-ui destructures the result outside any test.
+  window.getComputedStyle = vi.fn(() => new CSSStyleDeclaration())
 
   if (typeof globalThis.TextEncoder === 'undefined') {
     globalThis.ReadableStream = Readable as unknown as typeof globalThis.ReadableStream
@@ -135,6 +162,35 @@ globalThis.origin = 'https://app.uniswap.org'
   globalThis.performance.measure = vi.fn()
   globalThis.performance.mark = vi.fn()
 
+  // jsdom does not implement Canvas 2D (getContext('2d') logs console.error).
+  // DynamicSizeText and similar code need a minimal context with measureText.
+  const canvasProto = HTMLCanvasElement.prototype
+  const originalGetContext = canvasProto.getContext
+  const patchedGetContext = function (
+    this: HTMLCanvasElement,
+    contextId: string,
+    ...args: unknown[]
+  ): RenderingContext | null {
+    if (contextId === '2d') {
+      let font = ''
+      return {
+        get font(): string {
+          return font
+        },
+        set font(value: string) {
+          font = value
+        },
+        measureText(text: string): TextMetrics {
+          const match = /^(\d+)px/.exec(font)
+          const px = match ? Number.parseInt(match[1], 10) : 16
+          return { width: Math.max(1, text.length * px * 0.52) } as TextMetrics
+        },
+      } as unknown as CanvasRenderingContext2D
+    }
+    return originalGetContext.call(this, contextId, ...args) as RenderingContext | null
+  }
+  canvasProto.getContext = patchedGetContext as typeof originalGetContext
+
   globalThis.React = React
 }
 
@@ -147,7 +203,24 @@ const IntersectionObserverMock = vi.fn(() => ({
 
 vi.stubGlobal('IntersectionObserver', IntersectionObserverMock)
 
-vi.mock('react-native-svg', () => require('@tamagui/react-native-svg'))
+// `resolve.extensions` puts `.web.ts` ahead of `.js`, so importing this package resolves its
+// untransformed TS source (src/module.web.ts) instead of its dist build and throws a SyntaxError,
+// making anything that reaches AmountInput untestable on web. Mirrors the mock the uniswap package
+// already uses (vitest-package-mocks.ts) so the two stay interchangeable.
+vi.mock('react-native-localize', () => ({
+  findBestLanguageTag: () => ({ languageTag: 'en-US', isRTL: false }),
+  getLocales: () => [{ countryCode: 'US', languageTag: 'en-US', languageCode: 'en', isRTL: false }],
+  getNumberFormatSettings: () => ({ decimalSeparator: '.', groupingSeparator: ',' }),
+  getCalendar: () => 'gregorian',
+  getCountry: () => 'US',
+  getCurrencies: () => ['USD'],
+  getTemperatureUnit: () => 'celsius',
+  getTimeZone: () => 'America/New_York',
+  uses24HourClock: () => true,
+  usesMetricSystem: () => true,
+  addEventListener: vi.fn(),
+  removeEventListener: vi.fn(),
+}))
 
 vi.mock('expo-blur', () => ({
   BlurView: ({ children }: any) => {
@@ -177,26 +250,6 @@ vi.mock('@uniswap/analytics-events', () => {
   }
 })
 
-vi.mock('@tamagui/animations-moti', () => ({
-  createAnimations: () => ({
-    '100ms': {
-      type: 'timing',
-      duration: 100,
-    },
-    fast: {
-      type: 'timing',
-      duration: 100,
-    },
-    slow: {
-      type: 'timing',
-      duration: 100,
-    },
-  }),
-  MotiView: ({ children }: any) => {
-    return React.createElement(React.Fragment, {}, children)
-  },
-}))
-
 vi.mock('@uniswap/analytics', () => ({
   Trace: ({ children }: any) => {
     return React.createElement(React.Fragment, {}, children)
@@ -223,8 +276,8 @@ vi.mock('utilities/src/telemetry/analytics/constants', () => ({
   __esModule: true,
 }))
 
-vi.mock('utilities/src/platform', async () => {
-  const actual = await vi.importActual('utilities/src/platform')
+vi.mock('@universe/environment', async () => {
+  const actual = await vi.importActual('@universe/environment')
   return {
     ...actual,
     isWebPlatform: true,
@@ -343,20 +396,6 @@ vi.mock('@web3-react/core', async () => {
   }
 })
 
-vi.mock('~/state/routing/slice', async () => {
-  const routingSlice = await vi.importActual('~/state/routing/slice')
-  return {
-    ...routingSlice,
-    // Prevents unit tests from logging errors from failed getQuote queries
-    useGetQuoteQuery: () => ({
-      isError: false,
-      data: undefined,
-      error: undefined,
-      currentData: undefined,
-    }),
-  }
-})
-
 /**
  * Fail tests if anything is logged to the console. This keeps the console clean and ensures test output stays readable.
  * If something should log to the console, it should be stubbed and asserted:
@@ -368,55 +407,106 @@ vi.mock('~/state/routing/slice', async () => {
  * })
  */
 
-failOnConsole({
-  shouldFailOnAssert: true,
-  shouldFailOnDebug: true,
-  shouldFailOnError: true,
-  shouldFailOnInfo: true,
-  shouldFailOnLog: true,
-  shouldFailOnWarn: true,
-  allowMessage: (message, type) => {
-    if (type === 'error') {
-      // TODO(TAM-47): remove this allowed warning once Tamagui is upgraded >= 1.100
-      if (message.startsWith('[moti]: Invalid transform value.')) {
-        return true
-      }
-      // Allow React key warnings from Trans component (react-i18next v14 issue)
-      if (
-        message.includes('Each child in a list should have a unique') &&
-        (message.includes('Trans') ||
-          message.includes('UniswapXDescription') ||
-          message.includes('SwapPreview') ||
-          message.includes('LimitPriceInputLabel'))
-      ) {
-        return true
-      }
-      // Nuances from tamagui causing issues with React 19
-      if (message.includes('React does not recognize the') && message.includes('prop on a DOM element')) {
-        // This is coming from tamagui passing through props to the DOM element
-        return true
-      }
+const FAIL_ON_CONSOLE_METHODS = ['assert', 'debug', 'error', 'info', 'log', 'warn'] as const
+type FailOnConsoleMethod = (typeof FAIL_ON_CONSOLE_METHODS)[number]
 
-      if (message.includes('Received') && message.includes('for a non-boolean attribute')) {
-        return true
-      }
-
-      if (message.includes('Invalid attribute name')) {
-        return true
-      }
-
-      if (message.includes('Unknown event handler property')) {
-        return true
-      }
+const allowMessage = (message: string, type: FailOnConsoleMethod): boolean => {
+  if (type === 'error') {
+    // TODO(TAM-47): remove this allowed warning once Tamagui is upgraded >= 1.100
+    if (message.startsWith('[moti]: Invalid transform value.')) {
+      return true
     }
-    if (type === 'warn') {
-      // Allow UniversalImage warnings about not being able to retrieve remote images in test environment
-      if (message.includes('Could not retrieve and format remote image for uri')) {
-        return true
-      }
+    // Allow React key warnings from Trans component (react-i18next v14 issue)
+    if (
+      message.includes('Each child in a list should have a unique') &&
+      (message.includes('Trans') ||
+        message.includes('UniswapXDescription') ||
+        message.includes('SwapPreview') ||
+        message.includes('LimitOrderPreview') ||
+        message.includes('LimitPriceInputLabel'))
+    ) {
+      return true
     }
-    return false
-  },
+    // Nuances from tamagui causing issues with React 19
+    if (message.includes('React does not recognize the') && message.includes('prop on a DOM element')) {
+      // This is coming from tamagui passing through props to the DOM element
+      return true
+    }
+
+    if (message.includes('Received') && message.includes('for a non-boolean attribute')) {
+      return true
+    }
+
+    if (message.includes('Invalid attribute name')) {
+      return true
+    }
+
+    if (message.includes('Unknown event handler property')) {
+      return true
+    }
+  }
+  if (type === 'warn') {
+    // Allow UniversalImage warnings about not being able to retrieve remote images in test environment
+    if (message.includes('Could not retrieve and format remote image for uri')) {
+      return true
+    }
+    // Allow RTK dev-check middleware perf warnings — CI-load-dependent, not correctness signals (real violations throw)
+    if (message.includes('Middleware took') && message.includes('warning threshold')) {
+      return true
+    }
+  }
+  return false
+}
+
+// Hand-rolled replacement for jest-fail-on-console, mirroring its behavior:
+// each console method is patched in beforeEach and restored in afterEach; disallowed calls are
+// captured (with their stacks) rather than thrown immediately — so accidental try/catch can't
+// suppress them — and the test is failed in afterEach.
+const originalConsoleMethods = Object.fromEntries(
+  FAIL_ON_CONSOLE_METHODS.map((method) => [method, console[method]]),
+) as Record<FailOnConsoleMethod, (...args: unknown[]) => void>
+
+let unexpectedConsoleCalls: Array<{ method: FailOnConsoleMethod; message: string; stack: string }> = []
+
+beforeEach(() => {
+  unexpectedConsoleCalls = []
+  for (const method of FAIL_ON_CONSOLE_METHODS) {
+    const originalMethod = originalConsoleMethods[method]
+    console[method] = (...args: unknown[]): void => {
+      // console.assert only logs when the assertion is falsy
+      if (method === 'assert') {
+        const [assertion, ...rest] = args
+        if (assertion) {
+          return
+        }
+        args = rest
+      }
+      const message = format(...args)
+      if (allowMessage(message, method)) {
+        originalMethod(...args)
+        return
+      }
+      const { stack } = new Error()
+      unexpectedConsoleCalls.push({ method, message, stack: stack?.slice(stack.indexOf('\n') + 1) ?? '' })
+    }
+  }
+})
+
+afterEach(() => {
+  for (const method of FAIL_ON_CONSOLE_METHODS) {
+    console[method] = originalConsoleMethods[method]
+  }
+  if (unexpectedConsoleCalls.length > 0) {
+    const calls = unexpectedConsoleCalls
+    unexpectedConsoleCalls = []
+    const details = calls.map(({ method, message, stack }) => `console.${method}: ${message}\n${stack}`).join('\n\n')
+    const methods = [...new Set(calls.map(({ method }) => method))]
+    throw new Error(
+      `Expected test not to call ${methods.map((method) => `console.${method}()`).join(', ')}.\n\n` +
+        `If the call is expected, test for it explicitly by mocking it out using ` +
+        `vi.spyOn(console, '${methods[0]}').mockImplementation() and asserting that it occurs.\n\n${details}`,
+    )
+  }
 })
 
 vi.mock('@universe/gating', async (importOriginal) => {
@@ -424,6 +514,7 @@ vi.mock('@universe/gating', async (importOriginal) => {
     ...(await importOriginal()),
     useFeatureFlag: vi.fn(),
     useFeatureFlagWithLoading: vi.fn(),
+    useFeatureFlagWithExposureLoggingDisabled: vi.fn(),
     getFeatureFlag: vi.fn(),
     getFeatureFlagWithExposureLoggingDisabled: vi.fn(),
     useExperimentGroupNameWithLoading: vi.fn(),
@@ -431,16 +522,19 @@ vi.mock('@universe/gating', async (importOriginal) => {
     useExperimentValue: vi.fn(),
     getExperimentValue: vi.fn(),
     useExperimentValueWithExposureLoggingDisabled: vi.fn(),
-    useDynamicConfigValue: vi.fn(),
-    getDynamicConfigValue: vi.fn(),
+    useDynamicConfigValue: vi.fn((args) => args?.defaultValue),
+    getDynamicConfigValue: vi.fn((args) => args?.defaultValue),
     getExperimentValueFromLayer: vi.fn(),
     useExperimentValueFromLayer: vi.fn(),
+    useIsTokenCategoriesEnabled: vi.fn(() => false),
+    useIsTokenCategoriesEnabledWithLoading: vi.fn(() => ({ value: false, isLoading: false })),
+    useIsV2EndpointsSearchEnabled: vi.fn(() => false),
     checkTypeGuard: vi.fn(),
-    useStatsigClientStatus: () => ({
+    useStatsigClientStatus: vi.fn(() => ({
       isStatsigLoading: false,
       isStatsigReady: true,
       isStatsigUninitialized: false,
-    }), // Specific custom mock for useStatsigClientStatus
+    })),
   }
 })
 
@@ -483,6 +577,11 @@ beforeEach(() => {
 
   // Mock feature flags
   mocked(useFeatureFlag).mockReturnValue(false)
+  mocked(useStatsigClientStatus).mockReturnValue({
+    isStatsigLoading: false,
+    isStatsigReady: true,
+    isStatsigUninitialized: false,
+  })
 
   // Prevent amplitude debugs from triggering failOnConsole
   console.debug = vi.fn((...args) => {
@@ -505,14 +604,12 @@ expect.extend({
   toBeVisible,
 })
 
-vi.mock('./components/Table/TableSizeProvider', () => ({
+vi.mock('./components/Table/TableSizeProvider', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./components/Table/TableSizeProvider')>()),
   useTableSize: vi.fn(() => ({
     width: 1024,
     height: 768,
     top: 0,
     left: 0,
   })),
-  TableSizeProvider: ({ children }: { children: JSX.Element }) => {
-    return React.createElement(React.Fragment, {}, children)
-  },
 }))

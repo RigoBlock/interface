@@ -1,5 +1,6 @@
 import type { Currency, CurrencyAmount } from '@uniswap/sdk-core'
-import { Flex, Text, type TextProps, TouchableArea, type TouchableAreaEvent } from 'ui/src'
+import { Flex, Text, type TextCompatProps, TouchableArea } from '@universe/mycelium'
+import type { TouchableAreaCompatEvent } from '@universe/mycelium/touchable-area'
 import { useConnectionStatus } from 'uniswap/src/features/accounts/store/hooks'
 import type { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
@@ -14,7 +15,7 @@ interface CurrencyInputBalanceProps {
   showInsufficientBalanceWarning: boolean
   currencyField: CurrencyField
   hideBalance: boolean
-  variant?: TextProps['variant']
+  variant?: TextCompatProps['variant']
   onPressBalance?: () => void
 }
 export function CurrencyInputPanelBalance({
@@ -36,7 +37,7 @@ export function CurrencyInputPanelBalance({
   const color = showInsufficientBalanceWarning ? '$statusCritical' : '$neutral2'
   const hoverColor = showInsufficientBalanceWarning ? '$statusCriticalHovered' : '$neutral2Hovered'
 
-  const handlePress = useEvent((event: TouchableAreaEvent) => {
+  const handlePress = useEvent((event: TouchableAreaCompatEvent) => {
     event.stopPropagation()
     onPressBalance?.()
   })
@@ -64,7 +65,7 @@ export function CurrencyInputPanelBalance({
   if (onPressBalance) {
     return (
       <TouchableArea group="item" cursor="pointer" onPress={handlePress}>
-        <Flex row width="max-content">
+        <Flex row maxContent>
           {balanceText}
         </Flex>
       </TouchableArea>

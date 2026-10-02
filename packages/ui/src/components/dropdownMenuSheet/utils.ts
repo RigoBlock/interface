@@ -1,4 +1,4 @@
-import { ColorTokens } from 'tamagui'
+import type { ColorTokens } from '@universe/mycelium'
 
 export function getMenuItemColor<T>({
   overrideColor,

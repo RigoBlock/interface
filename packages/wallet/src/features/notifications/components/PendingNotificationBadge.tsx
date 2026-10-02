@@ -1,6 +1,5 @@
-import { Flex, SpinningLoader } from 'ui/src'
+import { Flex, iconSizes, SpinningLoader } from '@universe/mycelium'
 import { AlertCircle, CheckmarkCircle } from 'ui/src/components/icons'
-import { iconSizes } from 'ui/src/theme'
 import {
   useSelectAddressHasNotifications,
   useSelectAddressNotifications,

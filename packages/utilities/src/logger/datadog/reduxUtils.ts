@@ -1,32 +1,60 @@
+import { createScrubber, DEFAULT_REDACT_PATHS, DEFAULT_SCRUB_PATTERNS } from '@universe/privacy'
 import { Action } from 'redux'
 
 type GenericReduxState = Record<string, unknown>
 
-export function handleReduxAction({
-  newState,
-  shouldLogState,
-  action,
-}: {
-  shouldLogState: boolean
-  newState: unknown
-  action: Action<unknown>
-}): { isAction: boolean; reduxStateToLog: GenericReduxState | undefined } {
-  const isAction = typeof action !== 'undefined'
+// The remaining DEFAULT_SCRUB_PATTERNS either rewrite ordinary swap data or backtrack on calldata hex.
+export const ACTION_SCRUB_PATTERNS = DEFAULT_SCRUB_PATTERNS.filter((p) => p.name === 'jwt' || p.name === 'api_key')
 
-  if (shouldLogState) {
-    const stateIsObject = typeof newState === 'object' && newState !== null
-    const allObjectKeysString = stateIsObject && Object.keys(newState).every((k) => typeof k === 'string')
-    const validState = stateIsObject && allObjectKeysString
+// Wallet secrets, absent from DEFAULT_REDACT_PATHS and worse to leak than a password.
+const ACTION_REDACT_PATHS = [
+  ...DEFAULT_REDACT_PATHS,
+  '**.mnemonic',
+  '**.seedPhrase',
+  '**.seed_phrase',
+  '**.recoveryPhrase',
+  '**.privateKey',
+]
 
-    return {
-      reduxStateToLog: validState ? filterReduxState(newState as GenericReduxState) : undefined,
-      isAction,
-    }
-  } else {
-    return {
-      reduxStateToLog: undefined,
-      isAction,
-    }
+// Module scope: createScrubber precomputes its matchers, and this runs on every dispatch.
+const scrubActionPayload = createScrubber({ patterns: ACTION_SCRUB_PATTERNS, redactPaths: ACTION_REDACT_PATHS })
+
+/** `type` and `payload` keep the raw action's field names so existing RUM facets keep resolving. */
+export function getRedactedReduxActionContext(action: Action<unknown> & { payload?: unknown }): {
+  type: string
+  payload?: unknown
+  payloadScrubFailed?: true
+} {
+  const type = String(action.type)
+
+  try {
+    const { payload } = scrubActionPayload({ payload: action.payload })
+
+    return { type, payload }
+  } catch {
+    // A throw here escapes the reducer and fails the dispatch, not just the telemetry.
+    return { type, payloadScrubFailed: true }
+  }
+}
+
+export function handleReduxAction({ newState, shouldLogState }: { shouldLogState: boolean; newState: unknown }): {
+  shouldLogAction: boolean
+  reduxStateToLog: GenericReduxState | undefined
+} {
+  // The consent result gates the action event, not just the state blob.
+  const shouldLogAction = shouldLogState
+
+  if (!shouldLogState) {
+    return { shouldLogAction, reduxStateToLog: undefined }
+  }
+
+  const stateIsObject = typeof newState === 'object' && newState !== null
+  const allObjectKeysString = stateIsObject && Object.keys(newState).every((k) => typeof k === 'string')
+  const validState = stateIsObject && allObjectKeysString
+
+  return {
+    reduxStateToLog: validState ? filterReduxState(newState as GenericReduxState) : undefined,
+    shouldLogAction,
   }
 }
 

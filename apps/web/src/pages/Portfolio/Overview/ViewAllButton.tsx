@@ -1,7 +1,7 @@
+import { Button, Flex } from '@universe/mycelium'
+import { ArrowRight } from '@universe/mycelium/icons/ArrowRight'
 import { memo } from 'react'
 import { Link } from 'react-router'
-import { Button, Flex } from 'ui/src'
-import { ArrowRight } from 'ui/src/components/icons/ArrowRight'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 

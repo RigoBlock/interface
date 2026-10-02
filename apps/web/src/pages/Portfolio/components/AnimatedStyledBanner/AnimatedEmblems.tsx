@@ -1,6 +1,6 @@
+import { Flex, zIndexes } from '@universe/mycelium'
+import { useIsDarkMode, useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { ReactElement } from 'react'
-import { Flex, useIsDarkMode, useSporeColors } from 'ui/src'
-import { zIndexes } from 'ui/src/theme'
 import {
   EmblemA,
   EmblemB,
@@ -57,7 +57,12 @@ function AnimatedEmblem({
 
   return (
     <Flex
-      $platform-web={{
+      // Inline style, not $platform-web: the compat style surface has no
+      // animation-* longhands (animation rides the animateEnter/animateExit
+      // presets), so these per-instance values cannot ride the class pools.
+      // Durable even after INFRA-3330 adds the longhands: its scope excludes
+      // dynamic-valued sites, and name/duration/delay here are render-interpolated.
+      style={{
         animationName,
         animationDuration: duration,
         animationDelay: delay,

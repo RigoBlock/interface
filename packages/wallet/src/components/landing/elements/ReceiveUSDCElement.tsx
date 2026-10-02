@@ -1,4 +1,5 @@
-import { Flex, Image, Text, useIsDarkMode } from 'ui/src'
+import { Flex, Text } from '@universe/mycelium'
+import { Image, useIsDarkMode } from 'ui/src'
 import { USDC_LOGO } from 'ui/src/assets'
 import { colors, imageSizes, opacify, validColor } from 'ui/src/theme'
 

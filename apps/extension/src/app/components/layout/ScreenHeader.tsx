@@ -1,7 +1,7 @@
+import { Flex, iconSizes, Text, TouchableArea } from '@universe/mycelium'
+import type { GeneratedIcon, IconProps } from '@universe/mycelium/icons'
+import { BackArrow } from '@universe/mycelium/icons/BackArrow'
 import { useExtensionNavigation } from 'src/app/navigation/utils'
-import { Flex, GeneratedIcon, IconProps, Text, TouchableArea } from 'ui/src'
-import { BackArrow } from 'ui/src/components/icons'
-import { iconSizes } from 'ui/src/theme'
 
 export function ScreenHeader({
   onBackClick,

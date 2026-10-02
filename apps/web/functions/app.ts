@@ -1,8 +1,16 @@
+import {
+  DEV_ENTRY_GATEWAY_API_BASE_URL,
+  PROD_ENTRY_GATEWAY_API_BASE_URL,
+  STAGING_ENTRY_GATEWAY_API_BASE_URL,
+} from '@universe/api'
+import { Environment } from '@universe/config'
+import { auctionImageHandler } from 'functions/api/image/auctions'
 import { poolImageHandler } from 'functions/api/image/pools'
 import { positionImageHandler } from 'functions/api/image/positions'
 import { tokenImageHandler } from 'functions/api/image/tokens'
 import { metaTagInjectionMiddleware } from 'functions/components/metaTagInjector'
 import { rewriteProxiedCookies } from 'functions/cookie-utils'
+import { resolveFramePolicy } from 'functions/frameProtection'
 import { Context, Hono } from 'hono'
 import { proxy } from 'hono/proxy'
 
@@ -10,41 +18,73 @@ type Bindings = {
   ASSETS?: { fetch: typeof fetch } // Only present on Cloudflare Workers
 }
 
+/**
+ * URL segment -> upstream env. The segment values match
+ * `ENTRY_GATEWAY_PROXY_ENV_SEGMENT` exported from @universe/api.
+ *
+ * The mapping is the proxy's only piece of "knowledge" about envs — there is
+ * no feature registry, just a path-segment match. Callers that need to pin
+ * a request to a specific env declare it at their call site (e.g.
+ * `getEntryGatewayUrl({ env: Environment.Production })` produces `/entry-gateway/prod`).
+ */
+const ENTRY_GATEWAY_ENV_BY_SEGMENT: Record<string, Environment> = {
+  dev: Environment.Development,
+  staging: Environment.Staging,
+  prod: Environment.Production,
+}
+
 /** Platform-specific dependencies injected by each entry point. */
 interface AppConfig {
   fetchSpaHtml: (c: Context) => Promise<Response>
-  getEntryGatewayUrl: (c: Context) => string
+  /**
+   * Resolves the upstream Entry Gateway URL. When `env` is provided, the
+   * proxy is requesting the URL for that specific backend environment
+   * regardless of the deployment default.
+   */
+  getEntryGatewayUrl: (c: Context, env?: Environment) => string
   getWebSocketUrl: (c: Context) => string
   getTrustedClientIp: (c: Context) => string | undefined
-}
-
-// ── Frame protection ─────────────────────────────────────────────────
-// frame-ancestors cannot be enforced via <meta> CSP tags (W3C spec) — it
-// must be an HTTP response header. Cloudflare Workers returns responses
-// with immutable headers, so we clone into a mutable Response.
-function withFrameProtection(res: Response): Response {
-  const headers = new Headers(res.headers)
-  headers.set('Content-Security-Policy', "frame-ancestors 'self' https://app.safe.global")
-  headers.set('X-Frame-Options', 'SAMEORIGIN')
-  return new Response(res.body, { status: res.status, statusText: res.statusText, headers })
+  /**
+   * Space-separated CSP source list allowed to frame documents under
+   * /embed, e.g. `https://partner.com https://*.partner.com`. The literal
+   * `*` opens the embed surface to any ancestor. Empty/undefined keeps the
+   * embed surface on the same strict frame policy as every other route.
+   */
+  getEmbedFrameAncestors: (c: Context) => string | undefined
 }
 
 // ── Shared constants ─────────────────────────────────────────────────
 export const ENTRY_GATEWAY_URLS = {
-  development: 'https://entry-gateway.backend-staging.api.uniswap.org',
-  staging: 'https://entry-gateway.backend-staging.api.uniswap.org',
-  production: 'https://entry-gateway.backend-prod.api.uniswap.org',
+  development: DEV_ENTRY_GATEWAY_API_BASE_URL,
+  staging: STAGING_ENTRY_GATEWAY_API_BASE_URL,
+  production: PROD_ENTRY_GATEWAY_API_BASE_URL,
 } as const
 
 // Statsig proxy via Cloudflare gateway — the URL is constant for the web app
 // (platform prefix "interface", service prefix "gating")
 const STATSIG_PROXY_TARGET = 'https://gating.interface.gateway.uniswap.org'
 
+// Drops edge hop headers before re-proxying: a CloudFront-backed upstream 403s requests
+// that already carry a CloudFront `Via`, and x-origin-verify is our edge secret.
+function upstreamHeaders(c: Context): Record<string, string | undefined> {
+  return {
+    ...c.req.header(),
+    host: undefined,
+    via: undefined,
+    'x-amz-cf-id': undefined,
+    'x-origin-verify': undefined,
+  }
+}
+
+// Development targets the staging WS host until a dev websockets deployment exists
+// (keep in sync with DEV_WEBSOCKET_BASE_URL in @universe/api).
 export const WEBSOCKET_URLS = {
   development: 'https://websockets.backend-staging.api.uniswap.org',
   staging: 'https://websockets.backend-staging.api.uniswap.org',
   production: 'https://websockets.backend-prod.api.uniswap.org',
 } as const
+
+export const CLIENT_IP_HEADERS = ['cf-connecting-ip', 'cloudfront-viewer-address', 'x-forwarded-for', 'x-real-ip']
 
 // ── Cache-Control middleware for image routes ───────────────────────────
 function cacheControl(maxAge: number) {
@@ -56,7 +96,27 @@ function cacheControl(maxAge: number) {
   }
 }
 
-export function createApp({ fetchSpaHtml, getEntryGatewayUrl, getWebSocketUrl, getTrustedClientIp }: AppConfig) {
+/**
+ * If the path starts with an env segment (`/prod`, `/staging`, `/dev`),
+ * returns the matching upstream env and the remaining path; otherwise
+ * returns `undefined` env and the original path so the deployment default
+ * is used.
+ */
+function resolveEnvFromPath(path: string): { env: Environment | undefined; remainingPath: string } {
+  const match = path.match(/^\/(prod|staging|dev)(?=\/|$)(.*)$/)
+  if (!match) {
+    return { env: undefined, remainingPath: path }
+  }
+  return { env: ENTRY_GATEWAY_ENV_BY_SEGMENT[match[1]], remainingPath: match[2] || '/' }
+}
+
+export function createApp({
+  fetchSpaHtml,
+  getEntryGatewayUrl,
+  getWebSocketUrl,
+  getTrustedClientIp,
+  getEmbedFrameAncestors,
+}: AppConfig) {
   const app = new Hono<{ Bindings: Bindings }>()
 
   // ── OG image routes ────────────────────────────────────────────────────
@@ -64,12 +124,20 @@ export function createApp({ fetchSpaHtml, getEntryGatewayUrl, getWebSocketUrl, g
 
   app.get('/api/image/pools/:networkName/:poolAddress', cacheControl(604800), poolImageHandler)
 
+  app.get('/api/image/auctions/:chainName/:auctionAddress', cacheControl(604800), auctionImageHandler)
+
   app.get('/api/image/positions/:version/:chainName/:identifier', cacheControl(604800), positionImageHandler)
 
   // ── BFF proxy: entry-gateway ─────────────────────────────────────────
   app.all('/entry-gateway/*', async (c) => {
-    const backendUrl = getEntryGatewayUrl(c)
-    const path = c.req.path.slice('/entry-gateway'.length) || '/'
+    const initialPath = c.req.path.slice('/entry-gateway'.length) || '/'
+
+    // Env-pinned proxy paths (e.g. `/entry-gateway/prod/<service>`) force
+    // the request onto a specific backend env regardless of the deployment.
+    // Used by services that have a fixed env requirement (see
+    // `getEntryGatewayUrl({ env })` in @universe/api).
+    const { env, remainingPath } = resolveEnvFromPath(initialPath)
+    const backendUrl = getEntryGatewayUrl(c, env)
     const query = new URL(c.req.url).search
 
     // Forward the real client IP so the EGW authorizer (and downstream
@@ -81,13 +149,12 @@ export function createApp({ fetchSpaHtml, getEntryGatewayUrl, getWebSocketUrl, g
     // there's no Cloudflare to sanitize headers).
     const clientIp = getTrustedClientIp(c)
 
-    const targetUrl = `${backendUrl}${path}${query}`
+    const targetUrl = `${backendUrl}${remainingPath}${query}`
     // redirect:'manual' prevents SSRF via 3xx redirects to internal services
     const response = await proxy(targetUrl, {
       ...c.req,
       headers: {
-        ...c.req.header(),
-        host: undefined,
+        ...upstreamHeaders(c),
         ...(clientIp ? { 'cf-connecting-ip': clientIp } : {}),
       },
       redirect: 'manual',
@@ -105,10 +172,7 @@ export function createApp({ fetchSpaHtml, getEntryGatewayUrl, getWebSocketUrl, g
 
     return proxy(`${STATSIG_PROXY_TARGET}${path}${query}`, {
       ...c.req,
-      headers: {
-        ...c.req.header(),
-        host: undefined,
-      },
+      headers: upstreamHeaders(c),
       redirect: 'manual',
     })
   })
@@ -133,9 +197,30 @@ export function createApp({ fetchSpaHtml, getEntryGatewayUrl, getWebSocketUrl, g
     }
   })
 
+  // ── Debug: client IP discovery (non-prod only) ──────────────────────
+  // Set by each bundler via scripts/debug-routes.ts. Keep the read inline:
+  // hoisting it to a `const` stops the bundlers folding the block out.
+  if (process.env.ENABLE_DEBUG_ROUTES === 'true') {
+    app.get('/debug/my-ip-address', (c) =>
+      c.text(
+        [
+          // `||` matches the truthiness check the proxy forwards the IP on.
+          `resolved: ${getTrustedClientIp(c) || 'unknown'}`,
+          // The candidates every resolver in the repo reads, so the resolved
+          // value above can be attributed to one of them.
+          ...CLIENT_IP_HEADERS.map((name) => `${name}: ${c.req.header(name) ?? '-'}`),
+        ].join('\n'),
+        200,
+        { 'cache-control': 'no-store' },
+      ),
+    )
+  }
+
   // ── Catch-all: SPA serving + meta tag injection ────────────────────────
   app.all('*', async (c: Context) => {
     const url = new URL(c.req.url)
+
+    const applyFramePolicy = resolveFramePolicy(url.pathname, () => getEmbedFrameAncestors(c))
 
     const next = async () => {
       const response = await fetchSpaHtml(c)
@@ -145,11 +230,11 @@ export function createApp({ fetchSpaHtml, getEntryGatewayUrl, getWebSocketUrl, g
     // API routes should not be processed by meta tag injection
     if (url.pathname.startsWith('/api/')) {
       await next()
-      return withFrameProtection(c.res)
+      return applyFramePolicy(c.res)
     }
 
     // For non-API routes, use meta tag injection middleware
-    return withFrameProtection(await metaTagInjectionMiddleware(c, next))
+    return applyFramePolicy(await metaTagInjectionMiddleware(c, next))
   })
 
   return app

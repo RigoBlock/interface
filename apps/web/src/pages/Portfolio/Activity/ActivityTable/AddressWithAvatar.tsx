@@ -1,7 +1,6 @@
+import { Flex, iconSizes, Text } from '@universe/mycelium'
+import { Unitag } from '@universe/mycelium/icons/Unitag'
 import { memo } from 'react'
-import { Flex, Text } from 'ui/src'
-import { Unitag } from 'ui/src/components/icons/Unitag'
-import { iconSizes } from 'ui/src/theme'
 import { useUnitagsAddressQuery } from 'uniswap/src/data/apiClients/unitagsApi/useUnitagsAddressQuery'
 import { AccountIcon } from 'uniswap/src/features/accounts/AccountIcon'
 import { useENSName } from 'uniswap/src/features/ens/api'
@@ -39,7 +38,7 @@ function AddressWithAvatarInner({ address, showAvatar = true }: AddressWithAvata
         {displayName}
       </Text>
       {hasUnitag && (
-        <Flex pt="$spacing1">
+        <Flex flexShrink={0}>
           <Unitag size={16} />
         </Flex>
       )}

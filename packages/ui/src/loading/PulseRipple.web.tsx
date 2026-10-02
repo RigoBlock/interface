@@ -1,5 +1,4 @@
-import { Flex } from 'ui/src/components/layout'
-
+import { Flex } from '@universe/mycelium'
 const pulseKeyframe = `
   @keyframes pulse {
     0% {

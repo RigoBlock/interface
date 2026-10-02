@@ -1,28 +1,20 @@
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { UniverseChainId, isSVMChain } from '@universe/chains'
+import { Flex, Text, type TextCompatProps } from '@universe/mycelium'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, styled, Text } from 'ui/src'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { isSVMChain } from 'uniswap/src/features/platforms/utils/chains'
 import { TokenDetailsPoolsTable } from '~/pages/TokenDetails/components/activity/TokenDetailsPoolsTable'
 import { TransactionsTable } from '~/pages/TokenDetails/components/activity/TransactionsTable'
 import { useTDPStore } from '~/pages/TokenDetails/context/useTDPStore'
+import { useMultichainTokenEntries } from '~/pages/TokenDetails/hooks/useMultichainTokenEntries'
 import { useTDPEffectiveCurrency } from '~/pages/TokenDetails/hooks/useTDPEffectiveCurrency'
 import { ClickableTamaguiStyle } from '~/theme/components/styles'
 
-const Tab = styled(Text, {
-  color: '$neutral1',
-  variant: 'heading3',
-  variants: {
-    clickable: {
-      true: ClickableTamaguiStyle,
-      false: {},
-    },
-  },
-  defaultVariants: {
-    clickable: true,
-  },
-})
+// The clickable chrome (cursor / hover / press / transition) applies only while `clickable`, as in
+// the legacy variant; the compat prop surface resolves every ClickableTamaguiStyle member. Caller
+// props spread last so the per-site `color` token still wins, like legacy.
+function Tab({ clickable = true, ...rest }: TextCompatProps & { clickable?: boolean }): JSX.Element {
+  return <Text color="$neutral1" variant="heading3" {...(clickable ? ClickableTamaguiStyle : {})} {...rest} />
+}
 
 // if you add a new tab, you must update the logic to disable the tab if the token is on a solana chain
 enum ActivityTab {
@@ -33,12 +25,16 @@ enum ActivityTab {
 export function ActivitySection() {
   const { t } = useTranslation()
   const referenceCurrency = useTDPEffectiveCurrency()
-  const { currencyChainId, selectedMultichainChainId } = useTDPStore((s) => ({
+  const { currencyChainId, selectedMultichainChainId, multiChainMap } = useTDPStore((s) => ({
     currencyChainId: s.currencyChainId,
     selectedMultichainChainId: s.selectedMultichainChainId,
+    multiChainMap: s.multiChainMap,
   }))
-  const multichainTokenUxEnabled = useFeatureFlag(FeatureFlags.MultichainTokenUx)
-  const isMultichainView = multichainTokenUxEnabled && selectedMultichainChainId === undefined
+  const multichainEntries = useMultichainTokenEntries(multiChainMap)
+  // A single-chain token has no chain selector, so `selectedMultichainChainId` is always undefined
+  // for it too — only treat this as the aggregate "All networks" view when there's actually more
+  // than one chain to aggregate across (matches `isMultiChainAsset` in TDPChainSearchParamSync).
+  const isMultichainView = multichainEntries.length > 1 && selectedMultichainChainId === undefined
 
   const [activityInView, setActivityInView] = useState(ActivityTab.Txs)
 

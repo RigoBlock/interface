@@ -1,10 +1,11 @@
 import { SharedEventName } from '@uniswap/analytics-events'
+import { Flex, Text } from '@universe/mycelium'
+import { Blocked } from '@universe/mycelium/icons/Blocked'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text, useSporeColors } from 'ui/src'
-import { Blocked } from 'ui/src/components/icons/Blocked'
 import { Dialog } from 'uniswap/src/components/dialog/Dialog'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { Trace } from 'uniswap/src/features/telemetry/Trace'
@@ -18,7 +19,7 @@ interface DelegationMismatchModalProps {
   onClose: () => void
 }
 
-function DelegationMismatchModal({ onClose }: DelegationMismatchModalProps) {
+export function DelegationMismatchModal({ onClose }: DelegationMismatchModalProps) {
   const { t } = useTranslation()
   const account = useAccount()
   const { displayName } = useWalletDisplay(account.address)
@@ -99,7 +100,7 @@ function DelegationMismatchModal({ onClose }: DelegationMismatchModalProps) {
         icon={<WalletAlertBadge walletIcon={iconSrc} />}
         primaryButton={primaryButton}
         secondaryButton={secondaryButton}
-        learnMoreUrl={uniswapUrls.helpArticleUrls.mismatchedImports}
+        learnMoreUrl={UniswapHelpUrls.articles.mismatchedImports}
         learnMoreTextColor="$accent1"
         learnMoreTextVariant="buttonLabel3"
         onClose={onClose}

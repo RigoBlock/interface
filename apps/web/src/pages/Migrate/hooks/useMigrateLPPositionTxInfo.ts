@@ -1,17 +1,17 @@
 import { useQuery } from '@tanstack/react-query'
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
-import type {
-  MigrateV2ToV3LPPositionRequest,
-  MigrateV3ToV4LPPositionRequest,
-} from '@uniswap/client-liquidity/dist/uniswap/liquidity/v1/api_pb'
-import { type Currency, CurrencyAmount } from '@uniswap/sdk-core'
+import type { MigrateV3ToV4LPPositionRequest } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v1/api_pb'
+import type { MigrateV2ToV3LPPositionRequest } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v2/api_pb'
+import { type Currency, CurrencyAmount, NONFUNGIBLE_POSITION_MANAGER_ADDRESSES } from '@uniswap/sdk-core'
+import { UniverseChainId, Platform } from '@universe/chains'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { type Dispatch, type SetStateAction, useEffect, useMemo, useState } from 'react'
 import { useSelector } from 'react-redux'
+import { useUniswapContextSelector } from 'uniswap/src/contexts/UniswapContext'
 import { liquidityQueries } from 'uniswap/src/data/apiClients/liquidityService/liquidityQueries'
 import { useCheckLPApprovalQuery } from 'uniswap/src/data/apiClients/liquidityService/useCheckLPApprovalQuery'
 import { useActiveAddress } from 'uniswap/src/features/accounts/store/hooks'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
+import type { V2PairInfo, V3PositionInfo } from 'uniswap/src/features/positions/types'
 import type { DelegatedState } from 'uniswap/src/features/smartWallet/delegation/types'
 import { InterfaceEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
@@ -21,14 +21,13 @@ import {
 } from 'uniswap/src/features/transactions/liquidity/types'
 import { getErrorMessageToDisplay, parseErrorMessageTitle } from 'uniswap/src/features/transactions/liquidity/utils'
 import { TransactionStepType } from 'uniswap/src/features/transactions/steps/types'
-import { PermitMethod } from 'uniswap/src/features/transactions/swap/types/swapTxAndGasInfo'
+import { PermitMethod } from 'uniswap/src/features/transactions/swap/types/permitMethod'
 import { validatePermit, validateTransactionRequest } from 'uniswap/src/features/transactions/swap/utils/trade'
 import { logger } from 'utilities/src/logger/logger'
 import { ONE_SECOND_MS } from 'utilities/src/time/time'
-import { PositionFlowStep } from '~/components/Liquidity/Create/types'
-import type { V2PairInfo, V3PositionInfo } from '~/components/Liquidity/types'
-import { getCurrencyForProtocol } from '~/components/Liquidity/utils/currency'
-import { isInvalidPrice, isInvalidRange } from '~/components/Liquidity/utils/priceRangeInfo'
+import { PositionFlowStep } from '~/features/Liquidity/Create/types'
+import { getCurrencyForProtocol } from '~/features/Liquidity/utils/currency'
+import { isInvalidPrice, isInvalidRange } from '~/features/Liquidity/utils/priceRangeInfo'
 import { useCreateLiquidityContext } from '~/pages/CreatePosition/CreateLiquidityContextProvider'
 import {
   buildCheckLPApprovalRequestParams,
@@ -45,6 +44,18 @@ export interface MigratePositionTxContextType {
   transactionError: boolean | string
   refetch?: () => void
   setTransactionError: Dispatch<SetStateAction<string | boolean>>
+}
+
+function getPositionTokenAddress(positionInfo: V2PairInfo | V3PositionInfo | undefined): string | undefined {
+  if (positionInfo && 'liquidityToken' in positionInfo) {
+    return positionInfo.liquidityToken?.address
+  }
+
+  if (positionInfo?.version === ProtocolVersion.V3) {
+    return NONFUNGIBLE_POSITION_MANAGER_ADDRESSES[positionInfo.chainId]
+  }
+
+  return undefined
 }
 
 /**
@@ -64,10 +75,14 @@ export function useMigrateLPPositionTxInfo({
     positionInfo?.chainId ? state.delegation.delegations[String(positionInfo.chainId)] : null,
   )
   const [transactionError, setTransactionError] = useState<string | boolean>(false)
-  const isCheckApprovalV2 = useFeatureFlag(FeatureFlags.CheckApprovalV2)
-
   const { creatingPoolOrPair, protocolVersion, positionState, currentTransactionStep, poolOrPair, ticks, price, step } =
     useCreateLiquidityContext()
+
+  const isLiquidityBatchedTransactionsEnabled = useFeatureFlag(FeatureFlags.LiquidityBatchedTransactions)
+  const canBatchTransactions =
+    (useUniswapContextSelector((ctx) => ctx.getCanBatchTransactions?.(positionInfo?.chainId)) ?? false) &&
+    positionInfo?.chainId !== UniverseChainId.Monad &&
+    isLiquidityBatchedTransactionsEnabled
 
   const invalidPrice = isInvalidPrice(price)
   const invalidRange = isInvalidRange(ticks[0], ticks[1])
@@ -81,9 +96,9 @@ export function useMigrateLPPositionTxInfo({
     return buildCheckLPApprovalRequestParams({
       positionInfo,
       address,
-      isCheckApprovalV2,
+      canBatchTransactions,
     })
-  }, [positionInfo, address, isCheckApprovalV2])
+  }, [positionInfo, address, canBatchTransactions])
 
   const {
     approvalData: migrateTokenApprovals,
@@ -93,8 +108,7 @@ export function useMigrateLPPositionTxInfo({
   } = useCheckLPApprovalQuery({
     approvalQueryParams: liquidityServiceApprovalParams,
     isQueryEnabled: Boolean(liquidityServiceApprovalParams),
-    positionTokenAddress:
-      positionInfo && 'liquidityToken' in positionInfo ? positionInfo.liquidityToken?.address : undefined,
+    positionTokenAddress: getPositionTokenAddress(positionInfo),
   })
 
   if (approvalError) {
@@ -135,7 +149,8 @@ export function useMigrateLPPositionTxInfo({
 
   const isUserCommitedToMigrate =
     currentTransactionStep?.step.type === TransactionStepType.MigratePositionTransaction ||
-    currentTransactionStep?.step.type === TransactionStepType.MigratePositionTransactionAsync
+    currentTransactionStep?.step.type === TransactionStepType.MigratePositionTransactionAsync ||
+    currentTransactionStep?.step.type === TransactionStepType.MigratePositionTransactionWalletCall
 
   const isQueryEnabled =
     !isUserCommitedToMigrate &&
@@ -238,22 +253,25 @@ export function useMigrateLPPositionTxInfo({
       return undefined
     }
 
-    const outputAmount0 = CurrencyAmount.fromRawAmount(
-      isV3ToV4Migration
-        ? getCurrencyForProtocol(positionInfo.currency0Amount.currency, ProtocolVersion.V4)
-        : getCurrencyForProtocol(positionInfo.currency0Amount.currency, ProtocolVersion.V3),
-      positionInfo.currency0Amount.quotient,
-    )
-    const outputAmount1 = CurrencyAmount.fromRawAmount(
-      isV3ToV4Migration
-        ? getCurrencyForProtocol(positionInfo.currency1Amount.currency, ProtocolVersion.V4)
-        : getCurrencyForProtocol(positionInfo.currency1Amount.currency, ProtocolVersion.V3),
-      positionInfo.currency1Amount.quotient,
-    )
+    // Native has no v3 form on chains without a wrapped native (Arc, Tempo), so the output can't be
+    // denominated there. Unreachable today — those chains have no native v2/v3 position to migrate
+    // from — but bail like the guards above rather than build an amount on an undefined currency.
+    const outputCurrency0 = isV3ToV4Migration
+      ? getCurrencyForProtocol(positionInfo.currency0Amount.currency, ProtocolVersion.V4)
+      : getCurrencyForProtocol(positionInfo.currency0Amount.currency, ProtocolVersion.V3)
+    const outputCurrency1 = isV3ToV4Migration
+      ? getCurrencyForProtocol(positionInfo.currency1Amount.currency, ProtocolVersion.V4)
+      : getCurrencyForProtocol(positionInfo.currency1Amount.currency, ProtocolVersion.V3)
+    if (!outputCurrency0 || !outputCurrency1) {
+      return undefined
+    }
+
+    const outputAmount0 = CurrencyAmount.fromRawAmount(outputCurrency0, positionInfo.currency0Amount.quotient)
+    const outputAmount1 = CurrencyAmount.fromRawAmount(outputCurrency1, positionInfo.currency1Amount.quotient)
 
     return {
       type: LiquidityTransactionType.Migrate,
-      canBatchTransactions: false, // when batching is supported check canBatchTransactions
+      canBatchTransactions,
       delegatedAddress,
       migratePositionRequestArgs: isV3ToV4Migration
         ? (migratePositionRequestArgs as MigrateV3ToV4LPPositionRequest)
@@ -288,6 +306,7 @@ export function useMigrateLPPositionTxInfo({
     migratePositionRequestArgs,
     isV3ToV4Migration,
     delegatedAddress,
+    canBatchTransactions,
   ])
 
   return {

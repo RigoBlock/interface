@@ -1,7 +1,7 @@
 /* oxlint-disable typescript/no-explicit-any -- Third-party types not available */
-import { StoreEnhancerStoreCreator } from 'redux'
+import type { StoreEnhancerStoreCreator } from 'redux'
 import { PlatformSplitStubError } from 'utilities/src/errors'
-import { LoggerErrorContext, LogLevel } from 'utilities/src/logger/types'
+import type { LoggerErrorContext, LogLevel } from 'utilities/src/logger/types'
 
 export interface ReduxEnhancerConfig {
   // oxlint-disable-next-line typescript/no-explicit-any -- biome-parity: oxlint is stricter here

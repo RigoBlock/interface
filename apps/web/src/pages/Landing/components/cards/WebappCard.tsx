@@ -1,21 +1,23 @@
-import { GraphQLApi } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Flex, Text } from '@universe/mycelium'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
-import { Flex, Text, useMedia } from 'ui/src'
 import { UNI, USDC_BASE } from 'uniswap/src/constants/tokens'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { toGraphQLChain } from 'uniswap/src/features/chains/utils'
+import { useTokenPriceChange, useTokenSpotPrice } from 'uniswap/src/features/dataApi/tokenDetails/useTokenDetailsData'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
+import { buildCurrencyId, buildNativeCurrencyId } from 'uniswap/src/utils/currencyId'
 import { NumberType } from 'utilities/src/format/types'
-import { getTokenDetailsURL } from '~/appGraphql/data/util'
 import { PortfolioLogo } from '~/components/AccountDrawer/MiniPortfolio/PortfolioLogo'
-import { DeltaArrow } from '~/components/DeltaArrow/DeltaArrow'
+import { DEFAULT_DELTA_COLOR, DeltaArrow, isDeltaZero } from '~/components/DeltaArrow/DeltaArrow'
 import { NATIVE_CHAIN_ID } from '~/constants/tokens'
+import { getTokenDetailsURL } from '~/data/util'
 import { useCurrency } from '~/hooks/Tokens'
 import { PillButton } from '~/pages/Landing/components/cards/PillButton'
-import ValuePropCard from '~/pages/Landing/components/cards/ValuePropCard'
+import { ValuePropCard } from '~/pages/Landing/components/cards/ValuePropCard'
 import { Computer } from '~/pages/Landing/components/Icons'
 
 const primary = '#2ABDFF'
@@ -49,14 +51,15 @@ function Token({ chainId, address }: { chainId: UniverseChainId; address: string
     address,
     chainId,
   })
-  const tokenPromoQuery = GraphQLApi.useTokenPromoQuery({
-    variables: {
-      address: currency?.wrapped.address,
-      chain: toGraphQLChain(chainId),
-    },
-  })
-  const price = tokenPromoQuery.data?.token?.market?.price?.value ?? 0
-  const pricePercentChange = tokenPromoQuery.data?.token?.market?.pricePercentChange?.value ?? 0
+  const currencyId =
+    address === 'ETH' || address === NATIVE_CHAIN_ID
+      ? buildNativeCurrencyId(chainId)
+      : buildCurrencyId(chainId, address)
+  const price = useTokenSpotPrice(currencyId) ?? 0
+  const pricePercentChange = useTokenPriceChange(currencyId) ?? 0
+  // Use the formatted (displayed) value to decide zero-ness, not the raw delta — a stablecoin can have
+  // a tiny non-zero raw change that still rounds to "0.00%", and should render neutral like DeltaArrow does.
+  const formattedPricePercentChange = formatPercent(Math.abs(pricePercentChange))
 
   return (
     <Flex
@@ -172,12 +175,18 @@ function Token({ chainId, address }: { chainId: UniverseChainId; address: string
               display: 'none',
             }}
           >
-            <DeltaArrow delta={pricePercentChange} formattedDelta={formatPercent(Math.abs(pricePercentChange))} />
+            <DeltaArrow delta={pricePercentChange} formattedDelta={formattedPricePercentChange} />
             <Text
               textAlign="right"
               variant="heading3"
               fontWeight="$medium"
-              color={pricePercentChange < 0 ? '$statusCritical' : '$statusSuccess'}
+              color={
+                isDeltaZero(formattedPricePercentChange)
+                  ? DEFAULT_DELTA_COLOR
+                  : pricePercentChange < 0
+                    ? '$statusCritical'
+                    : '$statusSuccess'
+              }
               $xl={{
                 fontSize: 18,
                 lineHeight: 24,
@@ -187,7 +196,7 @@ function Token({ chainId, address }: { chainId: UniverseChainId; address: string
                 lineHeight: 20,
               }}
             >
-              {formatPercent(Math.abs(pricePercentChange))}
+              {formattedPricePercentChange}
             </Text>
           </Flex>
         </Flex>
@@ -216,7 +225,7 @@ export function WebappCard() {
       subtitle={t('landing.swapSubtitle')}
       bodyText={
         isUnificationCopyEnabled
-          ? t('landing.swapBody', { amount: chains.length })
+          ? t('landing.swapBody.earn', { amount: chains.length })
           : t('landing.swapBody.old', { amount: chains.length })
       }
       button={<PillButton color={primary} label={t('common.exploreTokens')} backgroundColor="$surface1" />}

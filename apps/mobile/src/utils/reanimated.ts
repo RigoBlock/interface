@@ -455,6 +455,7 @@ export function numberToLocaleStringWorklet({
 
   if (options.currency && options.style === 'currency') {
     const format = currencyFormats[<string>mapMatch(currencyFormatMap, locale)]
+    // oxlint-disable-next-line universe-custom/no-tolowercase-address-currencyid -- fiat currency code key, not an address
     const targetSymbol = symbol ?? currencySymbols[options.currency.toLowerCase()]
     if (format) {
       sNum = renderFormat(format, {

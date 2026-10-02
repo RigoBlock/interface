@@ -1,6 +1,6 @@
 import { ContentStyle, type InAppNotification } from '@universe/api'
-import type { NotificationClickTarget } from '@universe/notifications'
-import { InlineBannerNotification } from '@universe/notifications/src/notification-renderer/components/InlineBannerNotification'
+import { Flex } from '@universe/mycelium'
+import { InlineBannerNotification, type NotificationClickTarget } from '@universe/notifications'
 import { Fragment, memo, useEffect, useMemo } from 'react'
 import { isOfflineBannerNotification } from 'src/notification-service/data-sources/reactive/offlineCondition'
 import {
@@ -14,14 +14,13 @@ import {
 import { useSystemBannerPortal } from 'src/notification-service/notification-renderer/SystemBannerPortal'
 import { BackupReminderModalRenderer } from 'src/notification-service/renderers/BackupReminderModalRenderer'
 import { OfflineBannerRenderer } from 'src/notification-service/renderers/OfflineBannerRenderer'
-import { isBackupReminderNotification } from 'src/notification-service/triggers/backupReminderTrigger'
 import { isLocalTriggerNotification } from 'src/notification-service/triggers/createMobileLocalTriggerDataSource'
-import { Flex } from 'ui/src'
 import { ModalNotification } from 'uniswap/src/components/notifications/ModalNotification'
 import { getLogger } from 'utilities/src/logger/logger'
 import { useEvent } from 'utilities/src/react/hooks'
 import { type IntroCardProps } from 'wallet/src/components/introCards/IntroCard'
 import { IntroCardStack } from 'wallet/src/components/introCards/IntroCardStack'
+import { isBackupReminderNotification } from 'wallet/src/features/behaviorHistory/backupReminderTrigger'
 import {
   convertNotificationToIntroCard,
   shouldRenderAsIntroCard,
@@ -109,11 +108,13 @@ export const NotificationContainer = memo(function NotificationContainer({
   onRenderFailed,
   onNotificationClick,
   onNotificationShown,
+  onCardsChange,
   store = mobileNotificationStore,
 }: {
   onRenderFailed?: (notificationId: string) => void
   onNotificationClick?: (notificationId: string, target: NotificationClickTarget) => void
   onNotificationShown?: (notificationId: string) => void
+  onCardsChange?: (hasCards: boolean) => void
   store?: UseBoundStore<StoreApi<NotificationState>>
 }): JSX.Element {
   const activeNotifications = store((state) => state.activeNotifications)
@@ -219,6 +220,11 @@ export const NotificationContainer = memo(function NotificationContainer({
       })
       .filter((card): card is IntroCardProps => card !== null)
   }, [introCardNotifications, handleIntroCardPress, handleIntroCardClose])
+
+  // Report whether the intro card stack is showing so the home header can collapse its bottom padding
+  useEffect(() => {
+    onCardsChange?.(introCards.length > 0)
+  }, [introCards.length, onCardsChange])
 
   return (
     <>

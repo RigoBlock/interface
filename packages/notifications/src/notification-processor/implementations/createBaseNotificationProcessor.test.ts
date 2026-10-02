@@ -6,36 +6,30 @@ import { describe, expect, it } from 'vitest'
 describe('createBaseNotificationProcessor', () => {
   const createMockNotification = (params: {
     name: string
-    timestamp: number
     style: ContentStyle
     id?: string
     includeDismiss?: boolean
-  }): InAppNotification =>
-    ({
-      id: params.id ?? `${params.name}-id`,
-      notificationName: params.name,
-      timestamp: params.timestamp,
-      content: {
-        style: params.style,
-        title: `${params.name}-title`,
-        subtitle: '',
-        version: 0,
-        buttons:
-          params.includeDismiss !== false
-            ? [
-                {
-                  text: 'Dismiss',
-                  isPrimary: false,
-                  onClick: {
-                    onClick: [OnClickAction.DISMISS],
-                  },
+  }): InAppNotification => ({
+    id: params.id ?? `${params.name}-id`,
+    content: {
+      style: params.style,
+      title: `${params.name}-title`,
+      subtitle: '',
+      version: 0,
+      buttons:
+        params.includeDismiss !== false
+          ? [
+              {
+                text: 'Dismiss',
+                isPrimary: false,
+                onClick: {
+                  onClick: [OnClickAction.DISMISS],
                 },
-              ]
-            : [],
-      },
-      metaData: {},
-      userId: 'user-1',
-    }) as unknown as InAppNotification
+              },
+            ]
+          : [],
+    },
+  })
 
   const createMockTracker = (processedIds: Set<string> = new Set()): NotificationTracker => ({
     getProcessedIds: async () => processedIds,
@@ -58,58 +52,84 @@ describe('createBaseNotificationProcessor', () => {
       const tracker = createMockTracker()
       const processor = createBaseNotificationProcessor(tracker)
       const notifications: InAppNotification[] = [
-        createMockNotification({ name: 'modal-1', timestamp: 1000, style: ContentStyle.MODAL }),
-        createMockNotification({ name: 'modal-2', timestamp: 2000, style: ContentStyle.MODAL }),
-        createMockNotification({ name: 'modal-3', timestamp: 3000, style: ContentStyle.MODAL }),
+        createMockNotification({ name: 'modal-1', style: ContentStyle.MODAL }),
+        createMockNotification({ name: 'modal-2', style: ContentStyle.MODAL }),
+        createMockNotification({ name: 'modal-3', style: ContentStyle.MODAL }),
       ]
 
       const result = await processor.process(notifications)
 
       expect(result.primary).toHaveLength(1)
-      expect(result.primary[0].id).toBe('modal-1-id')
+      expect(result.primary[0]?.id).toBe('modal-1-id')
     })
 
     it('limits UNSPECIFIED notifications to 1', async () => {
       const tracker = createMockTracker()
       const processor = createBaseNotificationProcessor(tracker)
       const notifications: InAppNotification[] = [
-        createMockNotification({ name: 'unspec-1', timestamp: 1000, style: ContentStyle.UNSPECIFIED }),
-        createMockNotification({ name: 'unspec-2', timestamp: 2000, style: ContentStyle.UNSPECIFIED }),
+        createMockNotification({ name: 'unspec-1', style: ContentStyle.UNSPECIFIED }),
+        createMockNotification({ name: 'unspec-2', style: ContentStyle.UNSPECIFIED }),
       ]
 
       const result = await processor.process(notifications)
 
       expect(result.primary).toHaveLength(1)
-      expect(result.primary[0].id).toBe('unspec-1-id')
+      expect(result.primary[0]?.id).toBe('unspec-1-id')
     })
 
     it('allows up to 3 LOWER_LEFT_BANNER notifications', async () => {
       const tracker = createMockTracker()
       const processor = createBaseNotificationProcessor(tracker)
       const notifications: InAppNotification[] = [
-        createMockNotification({ name: 'banner-1', timestamp: 1000, style: ContentStyle.LOWER_LEFT_BANNER }),
-        createMockNotification({ name: 'banner-2', timestamp: 2000, style: ContentStyle.LOWER_LEFT_BANNER }),
-        createMockNotification({ name: 'banner-3', timestamp: 3000, style: ContentStyle.LOWER_LEFT_BANNER }),
-        createMockNotification({ name: 'banner-4', timestamp: 4000, style: ContentStyle.LOWER_LEFT_BANNER }),
+        createMockNotification({ name: 'banner-1', style: ContentStyle.LOWER_LEFT_BANNER }),
+        createMockNotification({ name: 'banner-2', style: ContentStyle.LOWER_LEFT_BANNER }),
+        createMockNotification({ name: 'banner-3', style: ContentStyle.LOWER_LEFT_BANNER }),
+        createMockNotification({ name: 'banner-4', style: ContentStyle.LOWER_LEFT_BANNER }),
       ]
 
       const result = await processor.process(notifications)
 
       expect(result.primary).toHaveLength(3)
-      expect(result.primary[0].id).toBe('banner-1-id')
-      expect(result.primary[1].id).toBe('banner-2-id')
-      expect(result.primary[2].id).toBe('banner-3-id')
+      expect(result.primary[0]?.id).toBe('banner-1-id')
+      expect(result.primary[1]?.id).toBe('banner-2-id')
+      expect(result.primary[2]?.id).toBe('banner-3-id')
+    })
+
+    it('honors notificationTypeLimits override to raise the LOWER_LEFT_BANNER cap', async () => {
+      const tracker = createMockTracker()
+      const processor = createBaseNotificationProcessor(tracker, {
+        notificationTypeLimits: { [ContentStyle.LOWER_LEFT_BANNER]: 5 },
+      })
+      const notifications: InAppNotification[] = [
+        createMockNotification({ name: 'banner-1', style: ContentStyle.LOWER_LEFT_BANNER }),
+        createMockNotification({ name: 'banner-2', style: ContentStyle.LOWER_LEFT_BANNER }),
+        createMockNotification({ name: 'banner-3', style: ContentStyle.LOWER_LEFT_BANNER }),
+        createMockNotification({ name: 'banner-4', style: ContentStyle.LOWER_LEFT_BANNER }),
+        createMockNotification({ name: 'banner-5', style: ContentStyle.LOWER_LEFT_BANNER }),
+        createMockNotification({ name: 'banner-6', style: ContentStyle.LOWER_LEFT_BANNER }),
+      ]
+
+      const result = await processor.process(notifications)
+
+      expect(result.primary).toHaveLength(5)
+      expect(result.primary.map((n) => n.id)).toEqual([
+        'banner-1-id',
+        'banner-2-id',
+        'banner-3-id',
+        'banner-4-id',
+        'banner-5-id',
+      ])
     })
 
     it('limits each style independently', async () => {
       const tracker = createMockTracker()
       const processor = createBaseNotificationProcessor(tracker)
       const notifications: InAppNotification[] = [
-        createMockNotification({ name: 'modal-1', timestamp: 1000, style: ContentStyle.MODAL }),
-        createMockNotification({ name: 'modal-2', timestamp: 2000, style: ContentStyle.MODAL }),
-        createMockNotification({ name: 'banner-1', timestamp: 3000, style: ContentStyle.LOWER_LEFT_BANNER }),
-        createMockNotification({ name: 'banner-2', timestamp: 4000, style: ContentStyle.LOWER_LEFT_BANNER }),
-        createMockNotification({ name: 'banner-3', timestamp: 5000, style: ContentStyle.LOWER_LEFT_BANNER }),
+        createMockNotification({ name: 'modal-1', style: ContentStyle.MODAL }),
+        createMockNotification({ name: 'modal-2', style: ContentStyle.MODAL }),
+        createMockNotification({ name: 'banner-1', style: ContentStyle.LOWER_LEFT_BANNER }),
+        createMockNotification({ name: 'banner-2', style: ContentStyle.LOWER_LEFT_BANNER }),
+        createMockNotification({ name: 'banner-3', style: ContentStyle.LOWER_LEFT_BANNER }),
       ]
 
       const result = await processor.process(notifications)
@@ -120,45 +140,6 @@ describe('createBaseNotificationProcessor', () => {
       const bannerResults = result.primary.filter((n) => n.content?.style === ContentStyle.LOWER_LEFT_BANNER)
       expect(modalResults).toHaveLength(1)
       expect(bannerResults).toHaveLength(3)
-    })
-
-    it('handles notifications without content style as UNSPECIFIED and limits to 1', async () => {
-      const tracker = createMockTracker()
-      const processor = createBaseNotificationProcessor(tracker)
-      const notifWithoutStyle: InAppNotification = {
-        id: 'notif-no-style-1',
-        content: {
-          title: 'notif-no-style-title',
-          subtitle: '',
-          version: 0,
-          buttons: [
-            {
-              text: 'Dismiss',
-              onClick: { onClick: [OnClickAction.DISMISS] },
-            },
-          ],
-        },
-      } as unknown as InAppNotification
-      const notifWithoutStyle2: InAppNotification = {
-        id: 'notif-no-style-2',
-        content: {
-          title: 'notif-no-style-title',
-          subtitle: '',
-          version: 0,
-          buttons: [
-            {
-              text: 'Dismiss',
-              onClick: { onClick: [OnClickAction.DISMISS] },
-            },
-          ],
-        },
-      } as unknown as InAppNotification
-      const notifications: InAppNotification[] = [notifWithoutStyle, notifWithoutStyle2]
-
-      const result = await processor.process(notifications)
-
-      expect(result.primary).toHaveLength(1)
-      expect(result.primary[0].id).toBe('notif-no-style-1')
     })
 
     it('handles empty notifications array', async () => {
@@ -173,13 +154,13 @@ describe('createBaseNotificationProcessor', () => {
       const tracker = createMockTracker()
       const processor = createBaseNotificationProcessor(tracker)
       const notifications: InAppNotification[] = [
-        createMockNotification({ name: 'notif-1', timestamp: 1000, style: ContentStyle.MODAL }),
+        createMockNotification({ name: 'notif-1', style: ContentStyle.MODAL }),
       ]
 
       const result = await processor.process(notifications)
 
       expect(result.primary).toHaveLength(1)
-      expect(result.primary[0].id).toBe('notif-1-id')
+      expect(result.primary[0]?.id).toBe('notif-1-id')
     })
   })
 
@@ -189,16 +170,16 @@ describe('createBaseNotificationProcessor', () => {
       const tracker = createMockTracker(processedIds)
       const processor = createBaseNotificationProcessor(tracker)
       const notifications: InAppNotification[] = [
-        createMockNotification({ name: 'notif-1', timestamp: 1000, style: ContentStyle.MODAL, id: 'id-1' }),
-        createMockNotification({ name: 'notif-2', timestamp: 2000, style: ContentStyle.LOWER_LEFT_BANNER, id: 'id-2' }),
-        createMockNotification({ name: 'notif-3', timestamp: 3000, style: ContentStyle.MODAL, id: 'id-3' }),
+        createMockNotification({ name: 'notif-1', style: ContentStyle.MODAL, id: 'id-1' }),
+        createMockNotification({ name: 'notif-2', style: ContentStyle.LOWER_LEFT_BANNER, id: 'id-2' }),
+        createMockNotification({ name: 'notif-3', style: ContentStyle.MODAL, id: 'id-3' }),
       ]
 
       const result = await processor.process(notifications)
 
       // Since both remaining notifications are MODAL style, only 1 should be returned
       expect(result.primary).toHaveLength(1)
-      expect(result.primary[0].id).toBe('id-1')
+      expect(result.primary[0]?.id).toBe('id-1')
     })
 
     it('filters out multiple processed notifications', async () => {
@@ -206,10 +187,10 @@ describe('createBaseNotificationProcessor', () => {
       const tracker = createMockTracker(processedIds)
       const processor = createBaseNotificationProcessor(tracker)
       const notifications: InAppNotification[] = [
-        createMockNotification({ name: 'notif-1', timestamp: 1000, style: ContentStyle.MODAL, id: 'id-1' }),
-        createMockNotification({ name: 'notif-2', timestamp: 2000, style: ContentStyle.LOWER_LEFT_BANNER, id: 'id-2' }),
-        createMockNotification({ name: 'notif-3', timestamp: 3000, style: ContentStyle.MODAL, id: 'id-3' }),
-        createMockNotification({ name: 'notif-4', timestamp: 4000, style: ContentStyle.MODAL, id: 'id-4' }),
+        createMockNotification({ name: 'notif-1', style: ContentStyle.MODAL, id: 'id-1' }),
+        createMockNotification({ name: 'notif-2', style: ContentStyle.LOWER_LEFT_BANNER, id: 'id-2' }),
+        createMockNotification({ name: 'notif-3', style: ContentStyle.MODAL, id: 'id-3' }),
+        createMockNotification({ name: 'notif-4', style: ContentStyle.MODAL, id: 'id-4' }),
       ]
 
       const result = await processor.process(notifications)
@@ -225,8 +206,8 @@ describe('createBaseNotificationProcessor', () => {
       const tracker = createMockTracker()
       const processor = createBaseNotificationProcessor(tracker)
       const notifications: InAppNotification[] = [
-        createMockNotification({ name: 'notif-1', timestamp: 1000, style: ContentStyle.MODAL }),
-        createMockNotification({ name: 'notif-2', timestamp: 2000, style: ContentStyle.LOWER_LEFT_BANNER }),
+        createMockNotification({ name: 'notif-1', style: ContentStyle.MODAL }),
+        createMockNotification({ name: 'notif-2', style: ContentStyle.LOWER_LEFT_BANNER }),
       ]
 
       const result = await processor.process(notifications)
@@ -238,16 +219,16 @@ describe('createBaseNotificationProcessor', () => {
       const tracker = createMockTracker()
       const processor = createBaseNotificationProcessor(tracker)
       const notifications: InAppNotification[] = [
-        createMockNotification({ name: 'notif-1', timestamp: 1000, style: ContentStyle.MODAL }),
-        createMockNotification({ name: 'notif-2', timestamp: 2000, style: ContentStyle.MODAL, includeDismiss: false }),
-        createMockNotification({ name: 'notif-3', timestamp: 3000, style: ContentStyle.MODAL }),
+        createMockNotification({ name: 'notif-1', style: ContentStyle.MODAL }),
+        createMockNotification({ name: 'notif-2', style: ContentStyle.MODAL, includeDismiss: false }),
+        createMockNotification({ name: 'notif-3', style: ContentStyle.MODAL }),
       ]
 
       const result = await processor.process(notifications)
 
       // notif-2 should be filtered out because it has no DISMISS action
       expect(result.primary).toHaveLength(1)
-      expect(result.primary[0].id).toBe('notif-1-id')
+      expect(result.primary[0]?.id).toBe('notif-1-id')
     })
 
     it('allows notifications with DISMISS in background click', async () => {
@@ -267,7 +248,7 @@ describe('createBaseNotificationProcessor', () => {
             },
           },
         },
-      } as unknown as InAppNotification
+      }
 
       const result = await processor.process([notificationWithBgDismiss])
 
@@ -289,12 +270,12 @@ describe('createBaseNotificationProcessor', () => {
             onClick: [OnClickAction.DISMISS],
           },
         },
-      } as unknown as InAppNotification
+      }
 
       const result = await processor.process([notificationWithOnDismissClick])
 
       expect(result.primary).toHaveLength(1)
-      expect(result.primary[0].id).toBe('dismiss-click-id')
+      expect(result.primary[0]?.id).toBe('dismiss-click-id')
     })
 
     it('returns empty array when all notifications are processed', async () => {
@@ -302,8 +283,8 @@ describe('createBaseNotificationProcessor', () => {
       const tracker = createMockTracker(processedIds)
       const processor = createBaseNotificationProcessor(tracker)
       const notifications: InAppNotification[] = [
-        createMockNotification({ name: 'notif-1', timestamp: 1000, style: ContentStyle.MODAL, id: 'id-1' }),
-        createMockNotification({ name: 'notif-2', timestamp: 2000, style: ContentStyle.LOWER_LEFT_BANNER, id: 'id-2' }),
+        createMockNotification({ name: 'notif-1', style: ContentStyle.MODAL, id: 'id-1' }),
+        createMockNotification({ name: 'notif-2', style: ContentStyle.LOWER_LEFT_BANNER, id: 'id-2' }),
       ]
 
       const result = await processor.process(notifications)
@@ -316,10 +297,10 @@ describe('createBaseNotificationProcessor', () => {
       const tracker = createMockTracker(processedIds)
       const processor = createBaseNotificationProcessor(tracker)
       const notifications: InAppNotification[] = [
-        createMockNotification({ name: 'notif-3', timestamp: 3000, style: ContentStyle.MODAL, id: 'id-3' }),
-        createMockNotification({ name: 'notif-1', timestamp: 1000, style: ContentStyle.LOWER_LEFT_BANNER, id: 'id-1' }),
-        createMockNotification({ name: 'notif-4', timestamp: 4000, style: ContentStyle.MODAL, id: 'id-4' }),
-        createMockNotification({ name: 'notif-2', timestamp: 2000, style: ContentStyle.MODAL, id: 'id-2' }),
+        createMockNotification({ name: 'notif-3', style: ContentStyle.MODAL, id: 'id-3' }),
+        createMockNotification({ name: 'notif-1', style: ContentStyle.LOWER_LEFT_BANNER, id: 'id-1' }),
+        createMockNotification({ name: 'notif-4', style: ContentStyle.MODAL, id: 'id-4' }),
+        createMockNotification({ name: 'notif-2', style: ContentStyle.MODAL, id: 'id-2' }),
       ]
 
       const result = await processor.process(notifications)
@@ -337,8 +318,8 @@ describe('createBaseNotificationProcessor', () => {
       const tracker = createMockTracker()
       const processor = createBaseNotificationProcessor(tracker)
       const originalNotifications: InAppNotification[] = [
-        createMockNotification({ name: 'notif-1', timestamp: 1000, style: ContentStyle.MODAL }),
-        createMockNotification({ name: 'notif-2', timestamp: 2000, style: ContentStyle.LOWER_LEFT_BANNER }),
+        createMockNotification({ name: 'notif-1', style: ContentStyle.MODAL }),
+        createMockNotification({ name: 'notif-2', style: ContentStyle.LOWER_LEFT_BANNER }),
       ]
       const originalNotificationsCopy = JSON.parse(JSON.stringify(originalNotifications))
 
@@ -351,10 +332,10 @@ describe('createBaseNotificationProcessor', () => {
       const tracker = createMockTracker()
       const processor = createBaseNotificationProcessor(tracker)
       const notifications: InAppNotification[] = [
-        createMockNotification({ name: 'modal-1', timestamp: 3000, style: ContentStyle.MODAL }),
-        createMockNotification({ name: 'banner-1', timestamp: 1000, style: ContentStyle.LOWER_LEFT_BANNER }),
-        createMockNotification({ name: 'modal-2', timestamp: 4000, style: ContentStyle.MODAL }),
-        createMockNotification({ name: 'banner-2', timestamp: 2000, style: ContentStyle.LOWER_LEFT_BANNER }),
+        createMockNotification({ name: 'modal-1', style: ContentStyle.MODAL }),
+        createMockNotification({ name: 'banner-1', style: ContentStyle.LOWER_LEFT_BANNER }),
+        createMockNotification({ name: 'modal-2', style: ContentStyle.MODAL }),
+        createMockNotification({ name: 'banner-2', style: ContentStyle.LOWER_LEFT_BANNER }),
       ]
 
       const result = await processor.process(notifications)
@@ -372,18 +353,18 @@ describe('createBaseNotificationProcessor', () => {
       const processor = createBaseNotificationProcessor(tracker)
       const notificationWithoutContent: InAppNotification = {
         id: 'notif-null-id',
-      } as unknown as InAppNotification
+      }
 
       const notifications: InAppNotification[] = [
         notificationWithoutContent,
-        createMockNotification({ name: 'notif-valid', timestamp: 2000, style: ContentStyle.MODAL }),
+        createMockNotification({ name: 'notif-valid', style: ContentStyle.MODAL }),
       ]
 
       // Should not throw, but notif-null-id should be filtered out (no DISMISS action)
       const result = await processor.process(notifications)
 
       expect(result.primary).toHaveLength(1)
-      expect(result.primary[0].id).toBe('notif-valid-id')
+      expect(result.primary[0]?.id).toBe('notif-valid-id')
     })
 
     it('limits notifications correctly with large lists', async () => {
@@ -393,12 +374,8 @@ describe('createBaseNotificationProcessor', () => {
 
       // Create 50 modal and 50 banner notifications
       for (let i = 0; i < 50; i++) {
-        notifications.push(
-          createMockNotification({ name: `modal-${i}`, timestamp: i * 1000, style: ContentStyle.MODAL }),
-        )
-        notifications.push(
-          createMockNotification({ name: `banner-${i}`, timestamp: i * 1000, style: ContentStyle.LOWER_LEFT_BANNER }),
-        )
+        notifications.push(createMockNotification({ name: `modal-${i}`, style: ContentStyle.MODAL }))
+        notifications.push(createMockNotification({ name: `banner-${i}`, style: ContentStyle.LOWER_LEFT_BANNER }))
       }
 
       const result = await processor.process(notifications)
@@ -419,15 +396,12 @@ describe('createBaseNotificationProcessor', () => {
 
       const notificationB = createMockNotification({
         name: 'notif-B',
-        timestamp: 2000,
         style: ContentStyle.MODAL,
         id: 'notif-B',
       })
 
       const notificationA: InAppNotification = {
         id: 'notif-A',
-        notificationName: 'notif-A',
-        timestamp: 1000,
         content: {
           style: ContentStyle.MODAL,
           title: 'notif-A-title',
@@ -435,7 +409,7 @@ describe('createBaseNotificationProcessor', () => {
           version: 0,
           buttons: [
             {
-              label: 'Show B',
+              text: 'Show B',
               onClick: {
                 onClick: [OnClickAction.POPUP, OnClickAction.DISMISS],
                 onClickLink: 'notif-B',
@@ -443,16 +417,14 @@ describe('createBaseNotificationProcessor', () => {
             },
           ],
         },
-        metaData: {},
-        userId: 'user-1',
-      } as unknown as InAppNotification
+      }
 
       const notifications = [notificationA, notificationB]
       const result = await processor.process(notifications)
 
       // A should be primary (no incoming edges)
       expect(result.primary).toHaveLength(1)
-      expect(result.primary[0].id).toBe('notif-A')
+      expect(result.primary[0]?.id).toBe('notif-A')
 
       // B should be chained (has incoming edge from A)
       expect(result.chained.size).toBe(1)
@@ -465,15 +437,12 @@ describe('createBaseNotificationProcessor', () => {
 
       const notificationC = createMockNotification({
         name: 'notif-C',
-        timestamp: 3000,
         style: ContentStyle.MODAL,
         id: 'notif-C',
       })
 
       const notificationB: InAppNotification = {
         id: 'notif-B',
-        notificationName: 'notif-B',
-        timestamp: 2000,
         content: {
           style: ContentStyle.MODAL,
           title: 'notif-B-title',
@@ -481,7 +450,7 @@ describe('createBaseNotificationProcessor', () => {
           version: 0,
           buttons: [
             {
-              label: 'Show C',
+              text: 'Show C',
               onClick: {
                 onClick: [OnClickAction.POPUP, OnClickAction.DISMISS],
                 onClickLink: 'notif-C',
@@ -489,14 +458,10 @@ describe('createBaseNotificationProcessor', () => {
             },
           ],
         },
-        metaData: {},
-        userId: 'user-1',
-      } as unknown as InAppNotification
+      }
 
       const notificationA: InAppNotification = {
         id: 'notif-A',
-        notificationName: 'notif-A',
-        timestamp: 1000,
         content: {
           style: ContentStyle.MODAL,
           title: 'notif-A-title',
@@ -504,7 +469,7 @@ describe('createBaseNotificationProcessor', () => {
           version: 0,
           buttons: [
             {
-              label: 'Show B',
+              text: 'Show B',
               onClick: {
                 onClick: [OnClickAction.POPUP, OnClickAction.DISMISS],
                 onClickLink: 'notif-B',
@@ -512,16 +477,14 @@ describe('createBaseNotificationProcessor', () => {
             },
           ],
         },
-        metaData: {},
-        userId: 'user-1',
-      } as unknown as InAppNotification
+      }
 
       const notifications = [notificationA, notificationB, notificationC]
       const result = await processor.process(notifications)
 
       // Only A should be primary (no incoming edges)
       expect(result.primary).toHaveLength(1)
-      expect(result.primary[0].id).toBe('notif-A')
+      expect(result.primary[0]?.id).toBe('notif-A')
 
       // B and C should be chained (have incoming edges)
       expect(result.chained.size).toBe(2)
@@ -533,38 +496,33 @@ describe('createBaseNotificationProcessor', () => {
       const tracker = createMockTracker()
       const processor = createBaseNotificationProcessor(tracker)
 
-      const createChainNotification = (id: string, nextId?: string): InAppNotification =>
-        ({
-          id,
-          notificationName: id,
-          timestamp: 1000,
-          content: {
-            style: ContentStyle.MODAL,
-            title: `${id}-title`,
-            subtitle: '',
-            version: 0,
-            buttons: nextId
-              ? [
-                  {
-                    label: `Show ${nextId}`,
-                    onClick: {
-                      onClick: [OnClickAction.POPUP, OnClickAction.DISMISS],
-                      onClickLink: nextId,
-                    },
+      const createChainNotification = (id: string, nextId?: string): InAppNotification => ({
+        id,
+        content: {
+          style: ContentStyle.MODAL,
+          title: `${id}-title`,
+          subtitle: '',
+          version: 0,
+          buttons: nextId
+            ? [
+                {
+                  text: `Show ${nextId}`,
+                  onClick: {
+                    onClick: [OnClickAction.POPUP, OnClickAction.DISMISS],
+                    onClickLink: nextId,
                   },
-                ]
-              : [
-                  {
-                    label: 'Dismiss',
-                    onClick: {
-                      onClick: [OnClickAction.DISMISS],
-                    },
+                },
+              ]
+            : [
+                {
+                  text: 'Dismiss',
+                  onClick: {
+                    onClick: [OnClickAction.DISMISS],
                   },
-                ],
-          },
-          metaData: {},
-          userId: 'user-1',
-        }) as unknown as InAppNotification
+                },
+              ],
+        },
+      })
 
       const notificationE = createChainNotification('notif-E')
       const notificationD = createChainNotification('notif-D', 'notif-E')
@@ -577,7 +535,7 @@ describe('createBaseNotificationProcessor', () => {
 
       // Only A should be primary (no incoming edges)
       expect(result.primary).toHaveLength(1)
-      expect(result.primary[0].id).toBe('notif-A')
+      expect(result.primary[0]?.id).toBe('notif-A')
 
       // B, C, D, E should all be chained
       expect(result.chained.size).toBe(4)
@@ -599,38 +557,33 @@ describe('createBaseNotificationProcessor', () => {
         id: string
         style: ContentStyle
         nextId?: string
-      }): InAppNotification =>
-        ({
-          id,
-          notificationName: id,
-          timestamp: 1000,
-          content: {
-            style,
-            title: `${id}-title`,
-            subtitle: '',
-            version: 0,
-            buttons: nextId
-              ? [
-                  {
-                    label: `Show ${nextId}`,
-                    onClick: {
-                      onClick: [OnClickAction.POPUP, OnClickAction.DISMISS],
-                      onClickLink: nextId,
-                    },
+      }): InAppNotification => ({
+        id,
+        content: {
+          style,
+          title: `${id}-title`,
+          subtitle: '',
+          version: 0,
+          buttons: nextId
+            ? [
+                {
+                  text: `Show ${nextId}`,
+                  onClick: {
+                    onClick: [OnClickAction.POPUP, OnClickAction.DISMISS],
+                    onClickLink: nextId,
                   },
-                ]
-              : [
-                  {
-                    label: 'Dismiss',
-                    onClick: {
-                      onClick: [OnClickAction.DISMISS],
-                    },
+                },
+              ]
+            : [
+                {
+                  text: 'Dismiss',
+                  onClick: {
+                    onClick: [OnClickAction.DISMISS],
                   },
-                ],
-          },
-          metaData: {},
-          userId: 'user-1',
-        }) as unknown as InAppNotification
+                },
+              ],
+        },
+      })
 
       // Chain 1: A → B → C (use MODAL style)
       const notificationC = createChainNotification({ id: 'notif-C', style: ContentStyle.MODAL })
@@ -667,7 +620,6 @@ describe('createBaseNotificationProcessor', () => {
 
       const notificationD = createMockNotification({
         name: 'notif-D',
-        timestamp: 4000,
         style: ContentStyle.MODAL,
         id: 'notif-D',
       })
@@ -675,8 +627,6 @@ describe('createBaseNotificationProcessor', () => {
       // B and C both point to D
       const notificationC: InAppNotification = {
         id: 'notif-C',
-        notificationName: 'notif-C',
-        timestamp: 3000,
         content: {
           style: ContentStyle.MODAL,
           title: 'notif-C-title',
@@ -684,7 +634,7 @@ describe('createBaseNotificationProcessor', () => {
           version: 0,
           buttons: [
             {
-              label: 'Show D',
+              text: 'Show D',
               onClick: {
                 onClick: [OnClickAction.POPUP, OnClickAction.DISMISS],
                 onClickLink: 'notif-D',
@@ -692,14 +642,10 @@ describe('createBaseNotificationProcessor', () => {
             },
           ],
         },
-        metaData: {},
-        userId: 'user-1',
-      } as unknown as InAppNotification
+      }
 
       const notificationB: InAppNotification = {
         id: 'notif-B',
-        notificationName: 'notif-B',
-        timestamp: 2000,
         content: {
           style: ContentStyle.MODAL,
           title: 'notif-B-title',
@@ -707,7 +653,7 @@ describe('createBaseNotificationProcessor', () => {
           version: 0,
           buttons: [
             {
-              label: 'Show D',
+              text: 'Show D',
               onClick: {
                 onClick: [OnClickAction.POPUP, OnClickAction.DISMISS],
                 onClickLink: 'notif-D',
@@ -715,15 +661,11 @@ describe('createBaseNotificationProcessor', () => {
             },
           ],
         },
-        metaData: {},
-        userId: 'user-1',
-      } as unknown as InAppNotification
+      }
 
       // A points to both B and C
       const notificationA: InAppNotification = {
         id: 'notif-A',
-        notificationName: 'notif-A',
-        timestamp: 1000,
         content: {
           style: ContentStyle.MODAL,
           title: 'notif-A-title',
@@ -731,14 +673,14 @@ describe('createBaseNotificationProcessor', () => {
           version: 0,
           buttons: [
             {
-              label: 'Show B',
+              text: 'Show B',
               onClick: {
                 onClick: [OnClickAction.POPUP, OnClickAction.DISMISS],
                 onClickLink: 'notif-B',
               },
             },
             {
-              label: 'Show C',
+              text: 'Show C',
               onClick: {
                 onClick: [OnClickAction.POPUP, OnClickAction.DISMISS],
                 onClickLink: 'notif-C',
@@ -746,16 +688,14 @@ describe('createBaseNotificationProcessor', () => {
             },
           ],
         },
-        metaData: {},
-        userId: 'user-1',
-      } as unknown as InAppNotification
+      }
 
       const notifications = [notificationA, notificationB, notificationC, notificationD]
       const result = await processor.process(notifications)
 
       // Only A should be primary (has no incoming edges)
       expect(result.primary).toHaveLength(1)
-      expect(result.primary[0].id).toBe('notif-A')
+      expect(result.primary[0]?.id).toBe('notif-A')
 
       // B, C, D should all be chained (all have incoming edges)
       expect(result.chained.size).toBe(3)
@@ -770,15 +710,12 @@ describe('createBaseNotificationProcessor', () => {
 
       const notificationB = createMockNotification({
         name: 'notif-B',
-        timestamp: 2000,
         style: ContentStyle.MODAL,
         id: 'notif-B',
       })
 
       const notificationA: InAppNotification = {
         id: 'notif-A',
-        notificationName: 'notif-A',
-        timestamp: 1000,
         content: {
           style: ContentStyle.MODAL,
           title: 'notif-A-title',
@@ -797,16 +734,14 @@ describe('createBaseNotificationProcessor', () => {
             },
           },
         },
-        metaData: {},
-        userId: 'user-1',
-      } as unknown as InAppNotification
+      }
 
       const notifications = [notificationA, notificationB]
       const result = await processor.process(notifications)
 
       // A should be primary
       expect(result.primary).toHaveLength(1)
-      expect(result.primary[0].id).toBe('notif-A')
+      expect(result.primary[0]?.id).toBe('notif-A')
 
       // B should be chained (referenced by A's background onClick)
       expect(result.chained.size).toBe(1)
@@ -819,8 +754,6 @@ describe('createBaseNotificationProcessor', () => {
 
       const notificationA: InAppNotification = {
         id: 'notif-A',
-        notificationName: 'notif-A',
-        timestamp: 1000,
         content: {
           style: ContentStyle.MODAL,
           title: 'notif-A-title',
@@ -828,7 +761,7 @@ describe('createBaseNotificationProcessor', () => {
           version: 0,
           buttons: [
             {
-              label: 'Show B',
+              text: 'Show B',
               onClick: {
                 onClick: [OnClickAction.POPUP, OnClickAction.DISMISS],
                 onClickLink: 'notif-B-not-in-batch',
@@ -836,16 +769,14 @@ describe('createBaseNotificationProcessor', () => {
             },
           ],
         },
-        metaData: {},
-        userId: 'user-1',
-      } as unknown as InAppNotification
+      }
 
       const notifications = [notificationA]
       const result = await processor.process(notifications)
 
       // A should still be primary (references notification not in batch)
       expect(result.primary).toHaveLength(1)
-      expect(result.primary[0].id).toBe('notif-A')
+      expect(result.primary[0]?.id).toBe('notif-A')
 
       // No chained notifications
       expect(result.chained.size).toBe(0)

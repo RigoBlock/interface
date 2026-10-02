@@ -1,11 +1,10 @@
+import { AnimatedFlex, Flex, Text, TouchableArea } from '@universe/mycelium'
+import { ArrowDown } from '@universe/mycelium/icons/ArrowDown'
+import { useDeviceDimensions, useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { useTranslation } from 'react-i18next'
 import { StyleSheet } from 'react-native'
 import { FadeInDown, FadeOut } from 'react-native-reanimated'
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg'
-import { Flex, Text, TouchableArea, useSporeColors } from 'ui/src'
-import { ArrowDown } from 'ui/src/components/icons'
-import { AnimatedFlex } from 'ui/src/components/layout/AnimatedFlex'
-import { useDeviceDimensions } from 'ui/src/hooks/useDeviceDimensions'
 
 type ScrollDownOverlayProps = {
   scrollDownButonText?: string

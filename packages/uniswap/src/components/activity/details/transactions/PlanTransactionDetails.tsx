@@ -1,17 +1,23 @@
+import { Flex, type FlexCompatProps, iconSizes, Text } from '@universe/mycelium'
+import { AlertTriangleFilled } from '@universe/mycelium/icons/AlertTriangleFilled'
+import { ArrowDown } from '@universe/mycelium/icons/ArrowDown'
+import { InfoCircle } from '@universe/mycelium/icons/InfoCircle'
 import { useTranslation } from 'react-i18next'
-import { Flex, styled, Text } from 'ui/src'
-import { AlertTriangleFilled, ArrowDown, InfoCircle } from 'ui/src/components/icons'
-import { iconSizes } from 'ui/src/theme'
+import { CurrencyTransferContent } from 'uniswap/src/components/activity/details/transactions/TransferTransactionDetails'
 import {
   TwoTokenDetails,
   useTokenAmountInfo,
 } from 'uniswap/src/components/activity/details/transactions/utilityComponents'
+import { useFormattedCurrencyAmountAndUSDValue } from 'uniswap/src/components/activity/hooks/useFormattedCurrencyAmountAndUSDValue'
 import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
+import { getEarnPlanDisplayInfo } from 'uniswap/src/features/activity/utils/getEarnPlanDisplayInfo'
+import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { useIntermediaryPlanState } from 'uniswap/src/features/transactions/swap/plan/intermediaryState/useIntermediaryPlanState'
 import { useIntermediaryPlanStateDescriptor } from 'uniswap/src/features/transactions/swap/plan/intermediaryState/useIntermediaryPlanStateDescriptor'
 import { useIsPriceChangeInterrupted } from 'uniswap/src/features/transactions/swap/plan/intermediaryState/useIsPriceChangeInterrupted'
 import { PlanTransactionInfo, TransactionStatus } from 'uniswap/src/features/transactions/types/transactionDetails'
+import { getSymbolDisplayText } from 'uniswap/src/utils/currency'
 import { currencyId } from 'uniswap/src/utils/currencyId'
 
 /**
@@ -23,6 +29,33 @@ import { currencyId } from 'uniswap/src/utils/currencyId'
  * @returns
  */
 export function PlanTransactionDetails({
+  status,
+  typeInfo,
+  onClose,
+  disableClick,
+}: {
+  status: TransactionStatus
+  typeInfo: PlanTransactionInfo
+  onClose?: () => void
+  disableClick?: boolean
+}): JSX.Element {
+  const earnDisplayInfo = getEarnPlanDisplayInfo(typeInfo)
+
+  if (earnDisplayInfo) {
+    return (
+      <>
+        <EarnPlanCurrencyTransferDetails displayInfo={earnDisplayInfo} onClose={onClose} />
+        <IntermediaryStateCard typeInfo={typeInfo} status={status} />
+      </>
+    )
+  }
+
+  return (
+    <GenericPlanTransactionDetails status={status} typeInfo={typeInfo} disableClick={disableClick} onClose={onClose} />
+  )
+}
+
+function GenericPlanTransactionDetails({
   status,
   typeInfo,
   onClose,
@@ -76,16 +109,54 @@ export function PlanTransactionDetails({
   )
 }
 
-const IntermediaryStateCardContainer = styled(Flex, {
-  row: true,
-  justifyContent: 'space-between',
-  backgroundColor: '$surface2',
-  borderRadius: '$rounded12',
-  p: '$spacing12',
-  mx: '$spacing4',
-  alignItems: 'center',
-  gap: '$spacing12',
-})
+function EarnPlanCurrencyTransferDetails({
+  displayInfo,
+  onClose,
+}: {
+  displayInfo: NonNullable<ReturnType<typeof getEarnPlanDisplayInfo>>
+  onClose?: () => void
+}): JSX.Element {
+  const formatter = useLocalizationContext()
+  const currencyInfo = useCurrencyInfo(displayInfo.currencyId)
+  const { amount, value, isLoading } = useFormattedCurrencyAmountAndUSDValue({
+    currency: currencyInfo?.currency,
+    currencyAmountRaw: displayInfo.amountRaw,
+    formatter,
+    isApproximateAmount: false,
+  })
+  const symbol = getSymbolDisplayText(currencyInfo?.currency.symbol)
+  const tokenAmountWithSymbol = displayInfo.amountRaw ? (symbol ? `${amount} ${symbol}` : amount) : undefined
+
+  return (
+    <CurrencyTransferContent
+      currencyInfo={currencyInfo}
+      isLoading={isLoading}
+      tokenAmountWithSymbol={tokenAmountWithSymbol}
+      value={value}
+      onClose={onClose ?? noop}
+    />
+  )
+}
+
+function noop(): void {}
+
+function IntermediaryStateCardContainer({ children, ...rest }: FlexCompatProps): JSX.Element {
+  return (
+    <Flex
+      row
+      justifyContent="space-between"
+      backgroundColor="$surface2"
+      borderRadius="$rounded12"
+      p="$spacing12"
+      mx="$spacing4"
+      alignItems="center"
+      gap="$spacing12"
+      {...rest}
+    >
+      {children}
+    </Flex>
+  )
+}
 
 /**
  * In the case that the plan is interrupted and the user is left with an intermediary token,

@@ -1,5 +1,5 @@
+import { Flex, Text } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text } from 'ui/src'
 import WarningIcon from 'uniswap/src/components/warnings/WarningIcon'
 import { FeeOnTransferWarning } from 'uniswap/src/features/transactions/TransactionDetails/modals/FeeOnTransferWarning'
 import {

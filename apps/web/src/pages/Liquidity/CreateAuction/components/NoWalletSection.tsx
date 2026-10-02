@@ -1,6 +1,6 @@
+import { Button, Flex, Text } from '@universe/mycelium'
+import { WalletFilled } from '@universe/mycelium/icons/WalletFilled'
 import { useTranslation } from 'react-i18next'
-import { Button, Flex, Text } from 'ui/src'
-import { WalletFilled } from 'ui/src/components/icons/WalletFilled'
 import { useAccountDrawer } from '~/components/AccountDrawer/MiniPortfolio/hooks'
 
 export function NoWalletSection({ subtitle, alertDescription }: { subtitle: string; alertDescription: string }) {

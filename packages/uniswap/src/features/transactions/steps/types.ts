@@ -1,23 +1,27 @@
 import type { TransactionResponse } from '@ethersproject/abstract-provider'
 import type { Currency } from '@uniswap/sdk-core'
-import type { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { TradingApi } from '@universe/api'
+import type { UniverseChainId } from '@universe/chains'
 import type { CollectFeesSteps } from 'uniswap/src/features/transactions/liquidity/steps/collectFeesSteps'
 import type { CollectLpIncentiveRewardsSteps } from 'uniswap/src/features/transactions/liquidity/steps/collectIncentiveRewardsSteps'
 import type { DecreaseLiquiditySteps } from 'uniswap/src/features/transactions/liquidity/steps/decreaseLiquiditySteps'
 import type { IncreaseLiquiditySteps } from 'uniswap/src/features/transactions/liquidity/steps/increaseLiquiditySteps'
 import type { MigrationSteps } from 'uniswap/src/features/transactions/liquidity/steps/migrationSteps'
-import type { TokenApprovalTransactionStep } from 'uniswap/src/features/transactions/steps/approve'
+import type {
+  TokenApprovalTransactionStep,
+  TokenApprovalWalletCallStep,
+} from 'uniswap/src/features/transactions/steps/approve'
 import type { SignTypedDataStepFields } from 'uniswap/src/features/transactions/steps/permit2Signature'
 import type { Permit2TransactionStep } from 'uniswap/src/features/transactions/steps/permit2Transaction'
 import type { TokenRevocationTransactionStep } from 'uniswap/src/features/transactions/steps/revoke'
-import type { WrapTransactionStep } from 'uniswap/src/features/transactions/steps/wrap'
+import type { WrapTransactionStep, WrapTransactionStepWalletCall } from 'uniswap/src/features/transactions/steps/wrap'
 import type { PlanSagaAnalytics } from 'uniswap/src/features/transactions/swap/plan/types'
 import type { ClassicSwapSteps } from 'uniswap/src/features/transactions/swap/steps/classicSteps'
 import type { UniswapXPlanSignatureStep } from 'uniswap/src/features/transactions/swap/steps/signOrder'
 import type {
   SwapTransactionStep,
   SwapTransactionStepAsync,
-  SwapTransactionStepBatched,
+  SwapTransactionStepWalletCall,
 } from 'uniswap/src/features/transactions/swap/steps/swap'
 import type { UniswapXSwapSteps } from 'uniswap/src/features/transactions/swap/steps/uniswapxSteps'
 import type { SetCurrentStepFn } from 'uniswap/src/features/transactions/swap/types/swapCallback'
@@ -29,11 +33,14 @@ import type { ValidatedTransactionRequest } from 'uniswap/src/features/transacti
 
 export enum TransactionStepType {
   TokenApprovalTransaction = 'TokenApproval',
+  TokenApprovalWalletCall = 'TokenApprovalWalletCall', // web (5792)
+  TokenApprovalUserOp = 'TokenApprovalUserOp', // wallet (4337)
   TokenRevocationTransaction = 'TokenRevocation',
   SwapTransaction = 'SwapTransaction',
   SwapTransactionAsync = 'SwapTransactionAsync',
-  SwapTransactionBatched = 'SwapTransactionBatched',
+  SwapTransactionWalletCall = 'SwapTransactionWalletCall',
   WrapTransaction = 'WrapTransaction',
+  WrapTransactionWalletCall = 'WrapTransactionWalletCall',
   Permit2Signature = 'Permit2Signature',
   Permit2Transaction = 'Permit2Transaction',
   UniswapXSignature = 'UniswapXSignature',
@@ -45,10 +52,11 @@ export enum TransactionStepType {
   UniswapXPlanSignature = 'UniswapXPlanSignature',
   IncreasePositionTransaction = 'IncreasePositionTransaction',
   IncreasePositionTransactionAsync = 'IncreasePositionTransactionAsync',
-  IncreasePositionTransactionBatched = 'IncreasePositionTransactionBatched',
+  IncreasePositionTransactionWalletCall = 'IncreasePositionTransactionWalletCall',
   DecreasePositionTransaction = 'DecreasePositionTransaction',
   MigratePositionTransaction = 'MigratePositionTransaction',
   MigratePositionTransactionAsync = 'MigratePositionTransactionAsync',
+  MigratePositionTransactionWalletCall = 'MigratePositionTransactionWalletCall',
   CollectFeesTransactionStep = 'CollectFeesTransaction',
   CollectLpIncentiveRewardsTransactionStep = 'CollectLpIncentiveRewardsTransactionStep',
   ToucanBidTransactionStep = 'ToucanBidTransactionStep',
@@ -66,18 +74,20 @@ export type TransactionStep =
   | CollectFeesSteps
   | CollectLpIncentiveRewardsSteps
   | WrapTransactionStep
+  | WrapTransactionStepWalletCall
   | ToucanBidTransactionStep
   | ToucanWithdrawBidAndClaimTokensTransactionStep
 export type OnChainTransactionStep = TransactionStep & OnChainTransactionFields
-export type OnChainTransactionStepBatched = TransactionStep & OnChainTransactionFieldsBatched
+export type OnChainTransactionStepWalletCall = TransactionStep & OnChainTransactionFieldsWalletCall
 export type SignatureTransactionStep = TransactionStep & SignTypedDataStepFields
 
 export interface OnChainTransactionFields {
   txRequest: ValidatedTransactionRequest
 }
 
-export interface OnChainTransactionFieldsBatched {
-  batchedTxRequests: ValidatedTransactionRequest[]
+export interface OnChainTransactionFieldsWalletCall {
+  walletCallTxRequests: ValidatedTransactionRequest[]
+  paymasterService?: TradingApi.PaymasterServiceCapability
 }
 
 export interface RevokeApproveFields extends OnChainTransactionFields {
@@ -87,6 +97,8 @@ export interface RevokeApproveFields extends OnChainTransactionFields {
   amount: string
   pair?: [Currency, Currency]
   spender: string
+  // Symbol override for tokens the token service can't resolve (e.g. unindexed tokens).
+  tokenSymbol?: string
 }
 
 export interface HandleOnChainStepParams<
@@ -145,11 +157,17 @@ export interface HandleSwapStepSyncParams<TExtra extends object = object> extend
   step: SwapTransactionStep & TExtra
 }
 
-export interface HandleSwapBatchedStepParams extends Omit<HandleOnChainStepParams, 'step' | 'info'> {
-  step: SwapTransactionStepBatched
+export interface HandleSwapWalletCallStepParams extends Omit<HandleOnChainStepParams, 'step' | 'info'> {
+  step: SwapTransactionStepWalletCall
   trade: ClassicTrade | BridgeTrade | ChainedActionTrade
   analytics: PlanSagaAnalytics
   disableOneClickSwap: () => void
+}
+
+// Sponsored approval over 5792 (web)
+export interface HandleApprovalWalletCallStepParams extends Omit<HandleOnChainStepParams, 'step' | 'info'> {
+  step: TokenApprovalWalletCallStep
+  disableOneClickSwap?: () => void
 }
 export interface HandleUniswapXPlanSignatureStepParams extends HandleSignatureStepParams<UniswapXPlanSignatureStep> {
   analytics: PlanSagaAnalytics

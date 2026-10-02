@@ -1,6 +1,6 @@
+import { Flex, Text } from '@universe/mycelium'
 import { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text } from 'ui/src'
 import type { ActivityItem } from 'uniswap/src/components/activity/generateActivityItemRenderer'
 import { useActivityData } from 'uniswap/src/features/activity/hooks/useActivityData'
 import type { DataApiOutageState } from 'uniswap/src/features/dataApi/types'
@@ -12,7 +12,7 @@ import { filterDefinedWalletAddresses } from '~/utils/filterDefinedWalletAddress
 
 const MAX_RECENT_ACTIVITY_ITEMS = 3
 
-export default function MiniPortfolio({
+export function MiniPortfolio({
   evmAddress,
   svmAddress,
   onActivityOutageChange,
@@ -65,7 +65,7 @@ export default function MiniPortfolio({
         <Text variant="subheading2" color="$neutral1" p="$spacing8">
           {t('activity.recentActivity')}
         </Text>
-        <Flex gap="$spacing0">{recentActivityItems}</Flex>
+        <Flex gap="$none">{recentActivityItems}</Flex>
       </Flex>
 
       <ViewAllButton

@@ -1,6 +1,6 @@
 import { TradeType } from '@uniswap/sdk-core'
+import { TradingApi } from '@universe/api'
 import { useMergeLocalAndRemoteTransactions } from 'uniswap/src/features/activity/hooks/useMergeLocalAndRemoteTransactions'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { ValueType } from 'uniswap/src/features/tokens/getCurrencyAmount'
 import { activePlanStore } from 'uniswap/src/features/transactions/swap/review/stores/activePlan/activePlanStore'
 import {
@@ -11,11 +11,13 @@ import {
 } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { TEST_WALLET } from 'uniswap/src/test/fixtures/wallet/addresses'
 import {
+  approveTransactionInfo,
   extractInputSwapTransactionInfo,
   transactionDetails,
   uniswapXOrderDetails,
 } from 'uniswap/src/test/fixtures/wallet/transactions'
 import { act, renderHook } from 'uniswap/src/test/test-utils'
+import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
 import type { Mock } from 'vitest'
 
 // Mock dependencies
@@ -23,6 +25,13 @@ vi.mock('uniswap/src/features/chains/hooks/useEnabledChains', () => ({
   useEnabledChains: vi.fn(),
 }))
 
+vi.mock('@universe/gating', async () => ({
+  ...(await vi.importActual('@universe/gating')),
+  useFeatureFlag: vi.fn(() => false),
+}))
+
+import { UniverseChainId } from '@universe/chains'
+import { useFeatureFlag } from '@universe/gating'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 
 describe('useMergeLocalAndRemoteTransactions', () => {
@@ -57,6 +66,7 @@ describe('useMergeLocalAndRemoteTransactions', () => {
   const renderMergeHook = (
     remoteTransactions: TransactionDetails[] | undefined,
     localTransactions: TransactionDetails[] = [],
+    skipLocalTransactions = false,
   ) => {
     const preloadedState = localTransactions.length
       ? {
@@ -81,6 +91,7 @@ describe('useMergeLocalAndRemoteTransactions', () => {
         useMergeLocalAndRemoteTransactions({
           evmAddress: TEST_WALLET,
           remoteTransactions,
+          skipLocalTransactions,
         }),
       { preloadedState },
     )
@@ -93,14 +104,96 @@ describe('useMergeLocalAndRemoteTransactions', () => {
 
       expect(result.current).toEqual([remoteTx])
     })
+
+    it.each([
+      { skipLocalTransactions: false, state: 'no local transactions exist' },
+      { skipLocalTransactions: true, state: 'local transactions are skipped' },
+    ])('sorts remote transactions newest first when $state', ({ skipLocalTransactions }) => {
+      const olderTx = createTestTransaction({
+        id: 'older-remote',
+        hash: '0xolderremote',
+        status: TransactionStatus.Success,
+        addedTime: 1,
+      })
+      const newerTx = createTestTransaction({
+        id: 'newer-remote',
+        hash: '0xnewerremote',
+        status: TransactionStatus.Success,
+        addedTime: 2,
+      })
+      const { result } = renderMergeHook([olderTx, newerTx], [], skipLocalTransactions)
+
+      expect(result.current?.map((tx) => tx.id)).toEqual([newerTx.id, olderTx.id])
+    })
+
+    it.each([
+      { inputOrder: ['approval', 'unrelated', 'swap'], state: 'the approval is received first' },
+      { inputOrder: ['swap', 'unrelated', 'approval'], state: 'the swap is received first' },
+    ])('keeps a matching swap ahead of its equal-time approval when $state', ({ inputOrder }) => {
+      const addedTime = 1
+      const tokenAddress = '0x0000000000000000000000000000000000000001'
+      const approval = createTestTransaction({
+        id: 'approval',
+        hash: '0xapproval',
+        addedTime,
+        typeInfo: approveTransactionInfo({ tokenAddress }),
+      })
+      const unrelated = createTestTransaction({
+        id: 'unrelated',
+        hash: '0xunrelated',
+        addedTime,
+      })
+      const swap = createTestTransaction({
+        id: 'swap',
+        hash: '0xswap',
+        addedTime,
+        typeInfo: extractInputSwapTransactionInfo({
+          inputCurrencyId: buildCurrencyId(UniverseChainId.Mainnet, tokenAddress),
+        }),
+      })
+      const transactionsById: Record<string, TransactionDetails> = { approval, unrelated, swap }
+      const transactions = inputOrder.map((id) => transactionsById[id]!)
+      const { result } = renderMergeHook(transactions)
+      const resultIds = result.current?.map((tx) => tx.id) ?? []
+
+      expect(resultIds.indexOf(swap.id)).toBeLessThan(resultIds.indexOf(approval.id))
+      expect(resultIds.filter((id) => id !== swap.id)).toEqual(inputOrder.filter((id) => id !== swap.id))
+    })
   })
 
   describe('when only local transactions exist', () => {
+    it('returns undefined when both transaction sources are unavailable', () => {
+      const { result } = renderMergeHook(undefined)
+
+      expect(result.current).toBeUndefined()
+    })
+
     it('should return local transactions', () => {
       const localTx = createTestTransaction({ status: TransactionStatus.Pending, hash: '0xlocal123' })
       const { result } = renderMergeHook(undefined, [localTx])
 
       expect(result.current).toEqual([localTx])
+    })
+
+    it.each([
+      { remoteTransactions: undefined, state: 'unavailable' },
+      { remoteTransactions: [], state: 'empty' },
+    ])('sorts local transactions newest first when remote transactions are $state', ({ remoteTransactions }) => {
+      const olderTx = createTestTransaction({
+        id: 'older-local',
+        hash: '0xolderlocal',
+        status: TransactionStatus.Success,
+        addedTime: 1,
+      })
+      const newerTx = createTestTransaction({
+        id: 'newer-local',
+        hash: '0xnewerlocal',
+        status: TransactionStatus.Success,
+        addedTime: 2,
+      })
+      const { result } = renderMergeHook(remoteTransactions, [olderTx, newerTx])
+
+      expect(result.current?.map((tx) => tx.id)).toEqual([newerTx.id, olderTx.id])
     })
   })
 
@@ -176,6 +269,55 @@ describe('useMergeLocalAndRemoteTransactions', () => {
       expect(chainTransactions).toBeDefined()
       const finalizedTx = chainTransactions?.[UniverseChainId.Mainnet]?.[localTx.id]
       expect(finalizedTx?.status).toBe(TransactionStatus.Success)
+    })
+
+    it('keeps a pending bridge pending when remote success should be handled by bridge resumption', () => {
+      ;(useEnabledChains as Mock).mockReturnValue({
+        chains: [UniverseChainId.Mainnet, UniverseChainId.ArbitrumOne],
+      })
+
+      const SHARED_HASH = '0xbridgehash'
+      const networkFee = {
+        quantity: '0.001',
+        tokenSymbol: 'ETH',
+        tokenAddress: '0xnative',
+        chainId: UniverseChainId.Mainnet,
+        valueType: ValueType.Exact,
+      }
+      const bridgeTypeInfo = {
+        type: TransactionType.Bridge,
+        inputCurrencyId: '42161-0x82af49447d8a07e3bd95bd0d56f35241523fbab1',
+        inputCurrencyAmountRaw: '1000000000000000000',
+        outputCurrencyId: '1-0xc02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+        outputCurrencyAmountRaw: '990000000000000000',
+        // Preserve the bridge even if depositConfirmed has not rehydrated yet.
+        depositConfirmed: false,
+      }
+      const localTx = createTestTransaction({
+        chainId: UniverseChainId.ArbitrumOne,
+        hash: SHARED_HASH,
+        status: TransactionStatus.Pending,
+        typeInfo: bridgeTypeInfo,
+      })
+      const remoteTx = createTestTransaction({
+        chainId: UniverseChainId.ArbitrumOne,
+        hash: SHARED_HASH,
+        status: TransactionStatus.Success,
+        typeInfo: bridgeTypeInfo,
+        networkFee,
+      })
+
+      const { result, store } = renderMergeHook([remoteTx], [localTx])
+
+      expect(result.current).toHaveLength(1)
+      expect(result.current?.[0]).toEqual({
+        ...localTx,
+        networkFee,
+      })
+
+      const state = store.getState()
+      const preservedTx = state.transactions[TEST_WALLET]?.[UniverseChainId.ArbitrumOne]?.[localTx.id]
+      expect(preservedTx?.status).toBe(TransactionStatus.Pending)
     })
   })
 
@@ -255,6 +397,152 @@ describe('useMergeLocalAndRemoteTransactions', () => {
       const { result } = renderMergeHook([remoteOrder], [localOrder])
 
       // Should deduplicate and return only the filled order
+      expect(result.current).toHaveLength(1)
+      expect(result.current?.[0]?.status).toBe(TransactionStatus.Success)
+      expect(result.current?.[0]?.hash).toBe(FILL_HASH)
+    })
+  })
+
+  describe('UniswapX order finalize guard', () => {
+    it('does NOT finalize a local pending UniswapX (market) order when remote reports Failed', () => {
+      const ORDER_HASH = '0xmarketfailed'
+      const localOrder = createTestOrder({
+        id: ORDER_HASH,
+        orderHash: ORDER_HASH,
+        hash: undefined,
+        status: TransactionStatus.Pending,
+      })
+      const remoteOrder = createTestOrder({
+        id: ORDER_HASH,
+        orderHash: ORDER_HASH,
+        hash: undefined,
+        status: TransactionStatus.Failed,
+      })
+
+      const { result, store } = renderMergeHook([remoteOrder], [localOrder])
+
+      expect(result.current).toHaveLength(1)
+      expect(result.current?.[0]?.status).toBe(TransactionStatus.Pending)
+      const stored = store.getState().transactions[TEST_WALLET]?.[UniverseChainId.Mainnet]?.[ORDER_HASH]
+      expect(stored?.status).toBe(TransactionStatus.Pending)
+    })
+
+    it('does NOT finalize a local pending UniswapX (market) order when remote reports Canceled', () => {
+      const ORDER_HASH = '0xmarketcanceled'
+      const localOrder = createTestOrder({
+        id: ORDER_HASH,
+        orderHash: ORDER_HASH,
+        hash: undefined,
+        status: TransactionStatus.Pending,
+      })
+      const remoteOrder = createTestOrder({
+        id: ORDER_HASH,
+        orderHash: ORDER_HASH,
+        hash: undefined,
+        status: TransactionStatus.Canceled,
+      })
+
+      const { result, store } = renderMergeHook([remoteOrder], [localOrder])
+
+      expect(result.current).toHaveLength(1)
+      expect(result.current?.[0]?.status).toBe(TransactionStatus.Pending)
+      const stored = store.getState().transactions[TEST_WALLET]?.[UniverseChainId.Mainnet]?.[ORDER_HASH]
+      expect(stored?.status).toBe(TransactionStatus.Pending)
+    })
+
+    it('still finalizes a non-UniswapX (classic) local tx from a terminal remote status', () => {
+      const SHARED_HASH = '0xclassicfailed'
+      const localTx = createTestTransaction({ hash: SHARED_HASH, status: TransactionStatus.Pending })
+      const remoteTx = createTestTransaction({ hash: SHARED_HASH, status: TransactionStatus.Failed })
+
+      const { store } = renderMergeHook([remoteTx], [localTx])
+
+      const stored = store.getState().transactions[TEST_WALLET]?.[UniverseChainId.Mainnet]?.[localTx.id]
+      expect(stored?.status).toBe(TransactionStatus.Failed)
+    })
+  })
+
+  describe('limit order local fallback', () => {
+    const createLimitOrder = (overrides = {}) =>
+      createTestOrder({ routing: TradingApi.Routing.DUTCH_LIMIT, ...overrides })
+
+    it('shows a locally-stored pending limit order even when the remote feed omits it', () => {
+      const ORDER_HASH = '0xlimitlocalonly'
+      const localOrder = createLimitOrder({
+        id: ORDER_HASH,
+        orderHash: ORDER_HASH,
+        hash: undefined,
+        status: TransactionStatus.Pending,
+      })
+
+      // Remote feed omits this order (not yet indexed, or dropped)
+      const { result } = renderMergeHook([], [localOrder])
+
+      expect(result.current?.some((tx) => tx.id === ORDER_HASH && tx.status === TransactionStatus.Pending)).toBe(true)
+    })
+
+    it('keeps a local pending limit order pending when the remote feed reports it terminal', () => {
+      const ORDER_HASH = '0xlimitterminal'
+      const localOrder = createLimitOrder({
+        id: ORDER_HASH,
+        orderHash: ORDER_HASH,
+        hash: undefined,
+        status: TransactionStatus.Pending,
+      })
+      const remoteOrder = createLimitOrder({
+        id: ORDER_HASH,
+        orderHash: ORDER_HASH,
+        hash: undefined,
+        status: TransactionStatus.Failed,
+      })
+
+      const { result, store } = renderMergeHook([remoteOrder], [localOrder])
+
+      expect(result.current?.find((tx) => tx.id === ORDER_HASH)?.status).toBe(TransactionStatus.Pending)
+      const stored = store.getState().transactions[TEST_WALLET]?.[UniverseChainId.Mainnet]?.[ORDER_HASH]
+      expect(stored?.status).toBe(TransactionStatus.Pending)
+    })
+
+    it('keeps a local pending limit order pending when the remote feed reports it expired', () => {
+      const ORDER_HASH = '0xlimitexpired'
+      const localOrder = createLimitOrder({
+        id: ORDER_HASH,
+        orderHash: ORDER_HASH,
+        hash: undefined,
+        status: TransactionStatus.Pending,
+      })
+      const remoteOrder = createLimitOrder({
+        id: ORDER_HASH,
+        orderHash: ORDER_HASH,
+        hash: undefined,
+        status: TransactionStatus.Expired,
+      })
+
+      const { result, store } = renderMergeHook([remoteOrder], [localOrder])
+
+      expect(result.current?.find((tx) => tx.id === ORDER_HASH)?.status).toBe(TransactionStatus.Pending)
+      const stored = store.getState().transactions[TEST_WALLET]?.[UniverseChainId.Mainnet]?.[ORDER_HASH]
+      expect(stored?.status).toBe(TransactionStatus.Pending)
+    })
+
+    it('deduplicates a filled limit order so it is not shown twice', () => {
+      const ORDER_HASH = '0xlimitfilled'
+      const FILL_HASH = '0xlimitfillhash'
+      const localOrder = createLimitOrder({
+        id: ORDER_HASH,
+        orderHash: ORDER_HASH,
+        hash: undefined,
+        status: TransactionStatus.Pending,
+      })
+      const remoteOrder = createLimitOrder({
+        id: ORDER_HASH,
+        orderHash: ORDER_HASH,
+        hash: FILL_HASH,
+        status: TransactionStatus.Success,
+      })
+
+      const { result } = renderMergeHook([remoteOrder], [localOrder])
+
       expect(result.current).toHaveLength(1)
       expect(result.current?.[0]?.status).toBe(TransactionStatus.Success)
       expect(result.current?.[0]?.hash).toBe(FILL_HASH)
@@ -451,7 +739,7 @@ describe('useMergeLocalAndRemoteTransactions', () => {
         status: TransactionStatus.Pending,
       })
 
-      const { result } = renderMergeHook([plan1, plan2])
+      const { result } = renderMergeHook([plan2, plan1])
 
       // Should be sorted by updatedTime (newest first), not addedTime
       expect(result.current).toHaveLength(2)
@@ -557,6 +845,77 @@ describe('useMergeLocalAndRemoteTransactions', () => {
 
       // After clearing, the real AwaitingAction status should flow through
       expect(result.current?.[0]?.status).toBe(TransactionStatus.AwaitingAction)
+    })
+  })
+
+  describe('tracked UniswapX cancel tx rows', () => {
+    const CANCEL_TX_HASH = '0xcanceltxhash'
+
+    const createCancelTx = (overrides = {}) =>
+      createTestTransaction({
+        hash: CANCEL_TX_HASH,
+        status: TransactionStatus.Cancelling,
+        typeInfo: { type: TransactionType.UniswapXCancel, orderHashes: ['0xorderhash'] },
+        ...overrides,
+      })
+
+    describe('suppression (flag on)', () => {
+      beforeEach(() => {
+        ;(useFeatureFlag as Mock).mockReturnValue(true)
+      })
+
+      it('hides the local cancel row, drops the remote twin by hash, and keeps the order row', () => {
+        const localCancelTx = createCancelTx()
+        const remoteTwin = createTestTransaction({
+          hash: CANCEL_TX_HASH,
+          status: TransactionStatus.Success,
+          typeInfo: { type: TransactionType.Unknown },
+        })
+        const orderRow = createTestOrder({ orderHash: '0xorderhash', status: TransactionStatus.Cancelling })
+
+        const { result } = renderMergeHook([remoteTwin], [localCancelTx, orderRow])
+
+        expect(result.current).toHaveLength(1)
+        expect(result.current?.[0]?.id).toBe(orderRow.id)
+      })
+
+      it('hides local cancel rows when there are no remote transactions', () => {
+        const localCancelTx = createCancelTx()
+        const orderRow = createTestOrder({ orderHash: '0xorderhash', status: TransactionStatus.Cancelling })
+
+        const { result } = renderMergeHook(undefined, [localCancelTx, orderRow])
+
+        expect(result.current).toHaveLength(1)
+        expect(result.current?.[0]?.id).toBe(orderRow.id)
+      })
+
+      it('keeps an external remote-only Permit2 invalidation visible (no local twin)', () => {
+        const externalRemoteTx = createTestTransaction({
+          hash: '0xexternalinvalidation',
+          status: TransactionStatus.Success,
+          typeInfo: { type: TransactionType.Unknown },
+        })
+
+        const { result } = renderMergeHook([externalRemoteTx], [createTestTransaction({ hash: '0xother' })])
+
+        expect(result.current?.some((tx) => tx.hash === '0xexternalinvalidation')).toBe(true)
+      })
+    })
+
+    describe('auto-finalize exclusion (applies regardless of flag)', () => {
+      it('never auto-finalizes a cancel tx from a remote Success row (Canceled remap owns finalization)', () => {
+        const localCancelTx = createCancelTx({ status: TransactionStatus.Pending })
+        const remoteTwin = createTestTransaction({
+          hash: CANCEL_TX_HASH,
+          status: TransactionStatus.Success,
+          typeInfo: { type: TransactionType.Unknown },
+        })
+
+        const { store } = renderMergeHook([remoteTwin], [localCancelTx])
+
+        const storedTx = store.getState().transactions[TEST_WALLET]?.[UniverseChainId.Mainnet]?.[localCancelTx.id]
+        expect(storedTx?.status).toBe(TransactionStatus.Pending)
+      })
     })
   })
 })

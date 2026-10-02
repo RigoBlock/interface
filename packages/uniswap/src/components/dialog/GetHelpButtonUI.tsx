@@ -1,8 +1,8 @@
+import { Flex, Text } from '@universe/mycelium'
+import type { FlexCompatProps as FlexProps } from '@universe/mycelium'
+import { EnvelopeHeart } from '@universe/mycelium/icons/EnvelopeHeart'
 import { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, FlexProps } from 'ui/src'
-import { EnvelopeHeart } from 'ui/src/components/icons/EnvelopeHeart'
-import { Text } from 'ui/src/components/text/Text'
 
 /**
  * Shared UI for the GetHelpButton used by both web and native implementations.

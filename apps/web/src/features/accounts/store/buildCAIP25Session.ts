@@ -1,10 +1,10 @@
+import { UniverseChainId } from '@universe/chains'
 import { DEFAULT_EVM_METHODS, EVM_NAMESPACE_IDENTIFIER } from 'uniswap/src/features/capabilities/caip25/constants'
 import {
   CAIP25Session,
   CAIP372WalletInfo,
   SingleChainNamespaceScopeKey,
 } from 'uniswap/src/features/capabilities/caip25/types'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { Connector } from 'wagmi'
 
 function getConnectorRdns(connector: Connector): string | undefined {

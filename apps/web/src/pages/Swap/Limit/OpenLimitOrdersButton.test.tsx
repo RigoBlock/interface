@@ -1,5 +1,5 @@
 import { TradingApi } from '@universe/api'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import {
   TransactionOriginType,
   TransactionStatus,
@@ -46,7 +46,7 @@ describe('OpenLimitOrdersButton', () => {
   it('should not render if there are no open limit orders', () => {
     mocked(useOpenLimitOrders).mockReturnValue({ openLimitOrders: [], loading: false })
     const { container } = render(<OpenLimitOrdersButton account="0x123" openLimitsMenu={vi.fn()} />)
-    expect(container.firstChild?.firstChild?.firstChild).toBeNull()
+    expect(container).toBeEmptyDOMElement()
   })
   it('should render if there are open limit orders', () => {
     mocked(useOpenLimitOrders).mockReturnValue({

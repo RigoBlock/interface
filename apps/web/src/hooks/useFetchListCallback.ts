@@ -1,11 +1,11 @@
 import { nanoid } from '@reduxjs/toolkit'
 import { TokenList } from '@uniswap/token-lists'
+import { UniverseChainId } from '@universe/chains'
 import { useCallback } from 'react'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { logger } from 'utilities/src/logger/logger'
-import { RPC_PROVIDERS } from '~/constants/providers'
-import getTokenList from '~/lib/hooks/useTokenList/fetchTokenList'
-import resolveENSContentHash from '~/lib/utils/resolveENSContentHash'
+import { getRpcProvider } from '~/constants/providers'
+import { fetchTokenList as getTokenList } from '~/lib/hooks/useTokenList/fetchTokenList'
+import { resolveENSContentHash } from '~/lib/utils/resolveENSContentHash'
 import { useAppDispatch } from '~/state/hooks'
 import { fetchTokenList } from '~/state/lists/actions'
 
@@ -19,7 +19,7 @@ export function useFetchListCallback(): (listUrl: string, skipValidation?: boole
       return getTokenList({
         listUrl,
         resolveENSContentHash: (ensName: string) =>
-          resolveENSContentHash(ensName, RPC_PROVIDERS[UniverseChainId.Mainnet]),
+          resolveENSContentHash(ensName, getRpcProvider(UniverseChainId.Mainnet)),
         skipValidation,
       })
         .then((tokenList) => {

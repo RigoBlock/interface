@@ -1,10 +1,16 @@
 import { useScrollToTop } from '@react-navigation/native'
+import { type ColorTokens, Flex } from '@universe/mycelium'
 import React, { ReactElement, useMemo } from 'react'
 import { StyleProp, ViewStyle } from 'react-native'
-import Animated, { Extrapolate, interpolate, SharedValue, useAnimatedStyle } from 'react-native-reanimated'
+import {
+  type AnimatedStyle,
+  Extrapolate,
+  interpolate,
+  type SharedValue,
+  useAnimatedStyle,
+} from 'react-native-reanimated'
 import { BackButton } from 'src/components/buttons/BackButton'
 import { WithScrollToTop } from 'src/components/layout/screens/WithScrollToTop'
-import { ColorTokens, Flex } from 'ui/src'
 import { AnimatedFlex } from 'ui/src/components/layout/AnimatedFlex'
 import { iconSizes, zIndexes } from 'ui/src/theme'
 import { useAppInsets } from 'uniswap/src/hooks/useAppInsets'
@@ -76,8 +82,8 @@ export function ScrollHeader({
           {rightElement}
         </Flex>
         <AnimatedFlex
-          borderBottomColor={backgroundColor ?? '$surface3'}
           borderBottomWidth={0.25}
+          borderColor="$surface3"
           height={1}
           overflow="visible"
           style={visibleOnScrollStyle}
@@ -96,7 +102,7 @@ function HeaderWrapper({
 }: {
   fullScreen: boolean
   children: ReactElement
-  style?: StyleProp<Animated.AnimateStyle<StyleProp<ViewStyle>>>
+  style?: StyleProp<AnimatedStyle<StyleProp<ViewStyle>>>
   backgroundColor?: ColorTokens
 }): JSX.Element {
   if (!fullScreen) {

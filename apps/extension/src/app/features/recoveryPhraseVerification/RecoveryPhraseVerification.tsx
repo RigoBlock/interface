@@ -1,10 +1,9 @@
+import { Flex, Text, zIndexes } from '@universe/mycelium'
+import { Check } from '@universe/mycelium/icons/Check'
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { TextInput } from 'react-native'
 import { Input } from 'src/app/components/Input'
-import { Flex, Text } from 'ui/src'
-import { Check } from 'ui/src/components/icons'
-import { zIndexes } from 'ui/src/theme'
 import { useDebounce } from 'utilities/src/time/timing'
 import { PASSWORD_VALIDATION_DEBOUNCE_MS } from 'wallet/src/utils/password'
 
@@ -12,6 +11,15 @@ type InputStackBaseProps = {
   value?: string
   onChangeText: (word: string) => void
 }
+
+// Legacy 'stiff' / 'quickishDelayed' spring presets as scoped CSS transitions,
+// curves from SPORE_ANIMATION_CURVE_CSS (@universe/tailwind/animations).
+// Hoisted into named constants (rather than an inline ternary) so tests can
+// pin against these exact values without regex-parsing this file's source text.
+export const HIDDEN_ROW_TRANSITION_CLASSES =
+  'transition-[transform,opacity] duration-150 ease-[cubic-bezier(0.17,0.67,0.45,1)]'
+export const ACTIVE_ROW_TRANSITION_CLASSES =
+  'transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] delay-[70ms]'
 
 export function RecoveryPhraseVerification({
   mnemonic,
@@ -176,7 +184,7 @@ function InputStack({ onChangeText, total, value, current, prefixText }: InputSt
         return (
           <Flex
             key={i}
-            animation={isHidden ? 'stiff' : 'quickishDelayed'}
+            className={isHidden ? HIDDEN_ROW_TRANSITION_CLASSES : ACTIVE_ROW_TRANSITION_CLASSES}
             bottom={0}
             left={0}
             opacity={1}

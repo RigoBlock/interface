@@ -2,191 +2,88 @@
 
 exports[`OffchainOrderLineItem > should render type EXCHANGE_RATE 1`] = `
 <DocumentFragment>
-  .c0 {
-  color: #131313;
-  letter-spacing: -0.01em;
-}
-
-.c4 {
-  color: rgba(19, 19, 19, 0.63);
-  letter-spacing: -0.01em;
-}
-
-.c1 {
-  cursor: auto;
-  color: rgba(19, 19, 19, 0.63);
-}
-
-.c2 {
-  text-align: right;
-  overflow-wrap: break-word;
-}
-
-.c3 {
-  background-color: transparent;
-  border: none;
-  cursor: pointer;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 0;
-  grid-template-columns: 1fr auto;
-  grid-gap: 0.25rem;
-  display: flex;
-  flex-direction: row;
-  text-align: left;
-  flex-wrap: wrap;
-  user-select: text;
-}
-
-<span
-    class=""
-    style="display: contents;"
+  <div
+    class="flex basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row items-center justify-between w-[100%]"
   >
-    <div
-      class="_display-flex _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-row _alignItems-center _justifyContent-space-betwe3241 _width-10037"
+    <span
+      class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[14px] [line-height:18px] [font-weight:485] [color:var(--stext-neutral2)] [user-select:text] [cursor:auto]"
+      data-testid="swap-li-label"
+    >
+      Rate
+    </span>
+    <span
+      class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[14px] [line-height:18px] [font-weight:485] [color:var(--stext-neutral1)] text-right"
     >
       <div
-        class="c0 c1 css-142zc9n"
-        data-testid="swap-li-label"
+        aria-label="1 USDC = <0.00001 DAI "
+        class="[container-name:true] flex basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 [container-type:normal] rounded-[12px] bg-transparent flex-row items-center justify-start flex-wrap gap-[4px] max-w-[100%] [cursor:pointer] [transition:transform_80ms_ease-in-out,_opacity_80ms_ease-in-out] [user-select:text] active:opacity-[0.75] active:[transform:scale(0.98)] focus-visible:[transform:scaleX(0.98)_scaleY(0.98)] focus-visible:[outline-offset:1px] focus-visible:[outline-style:solid] focus-visible:[outline-width:1px] focus-visible:[outline-color:var(--neutral3)] group"
+        data-testid="trade-price-toggle"
+        role="button"
+        tabindex="0"
       >
-        Rate
-      </div>
-      <div
-        class="c0 c2 css-142zc9n"
-      >
-        <button
-          class="c3"
-          title="1 USDC = <0.00001 DAI "
+        <span
+          class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[14px] [line-height:18px] [font-weight:485] [color:var(--stext-neutral1)] text-left"
         >
-          <div
-            class="c0 css-142zc9n"
-          >
-            1 USDC = &lt;0.00001 DAI 
-          </div>
-           
-          <div
-            class="c4 css-142zc9n"
-          >
-            ($1.00)
-          </div>
-        </button>
+          1 USDC = &lt;0.00001 DAI 
+        </span>
+        <span
+          class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[14px] [line-height:18px] [font-weight:485] [color:var(--stext-neutral2)] text-left"
+        >
+          ($1.00)
+        </span>
       </div>
-    </div>
-    <div
-      style="display: contents;"
-    />
-  </span>
+    </span>
+  </div>
 </DocumentFragment>
 `;
 
 exports[`OffchainOrderLineItem > should render type NETWORK_COST 1`] = `
 <DocumentFragment>
-  .c0 {
-  color: #131313;
-  letter-spacing: -0.01em;
-}
-
-.c1 {
-  cursor: auto;
-  color: rgba(19, 19, 19, 0.63);
-}
-
-.c2 {
-  text-align: right;
-  overflow-wrap: break-word;
-}
-
-<span
-    class=""
-    style="display: contents;"
+  <div
+    class="flex basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row items-center justify-between w-[100%]"
   >
-    <div
-      class="_display-flex _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-row _alignItems-center _justifyContent-space-betwe3241 _width-10037"
+    <span
+      class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[14px] [line-height:18px] [font-weight:485] [color:var(--stext-neutral2)] [user-select:text] [cursor:auto]"
+      data-testid="swap-li-label"
     >
-      <div
-        class="c0 c1 css-142zc9n"
-        data-testid="swap-li-label"
-      >
-        Network cost
-      </div>
-      <div
-        class="c0 c2 css-142zc9n"
-      >
-        <span>
-          $0
-        </span>
-      </div>
-    </div>
-    <div
-      style="display: contents;"
-    />
-  </span>
+      Network cost
+    </span>
+    <span
+      class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[14px] [line-height:18px] [font-weight:485] [color:var(--stext-neutral1)] text-right"
+    >
+      <span>
+        $0
+      </span>
+    </span>
+  </div>
 </DocumentFragment>
 `;
 
 exports[`OffchainOrderLineItem > should render type TRANSACTION_ID 1`] = `
 <DocumentFragment>
-  .c0 {
-  color: #131313;
-  letter-spacing: -0.01em;
-}
-
-.c1 {
-  cursor: auto;
-  color: rgba(19, 19, 19, 0.63);
-}
-
-.c2 {
-  text-align: right;
-  overflow-wrap: break-word;
-}
-
-.c3 {
-  text-decoration: none;
-  cursor: pointer;
-  transition-duration: 125ms;
-  color: #FF37C7;
-  stroke: #FF37C7;
-  font-weight: 500;
-}
-
-.c3 :hover {
-  opacity: 0.6;
-}
-
-.c3 :active {
-  opacity: 0.4;
-}
-
-<span
-    class=""
-    style="display: contents;"
+  <div
+    class="flex basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row items-center justify-between w-[100%]"
   >
-    <div
-      class="_display-flex _flexBasis-auto _boxSizing-border-box _position-relative _minHeight-0px _minWidth-0px _flexShrink-0 _flexDirection-row _alignItems-center _justifyContent-space-betwe3241 _width-10037"
+    <span
+      class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[14px] [line-height:18px] [font-weight:485] [color:var(--stext-neutral2)] [user-select:text] [cursor:auto]"
+      data-testid="swap-li-label"
     >
-      <div
-        class="c0 c1 css-142zc9n"
-        data-testid="swap-li-label"
+      Transaction ID
+    </span>
+    <span
+      class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[14px] [line-height:18px] [font-weight:485] [color:var(--stext-neutral1)] text-right"
+    >
+      <a
+        class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[16px] [line-height:22px] [font-weight:535] [color:var(--stext-accent1)] no-underline [cursor:pointer] hover:opacity-[var(--ch-opacity)] active:opacity-[var(--ca-opacity)]"
+        href="https://etherscan.io/tx/0x123"
+        rel="noopener noreferrer"
+        role="link"
+        style="--ch-opacity: 0.6; --ca-opacity: 0.4; transition: opacity 100ms cubic-bezier(0.17, 0.67, 0.45, 1);"
+        target="_blank"
       >
-        Transaction ID
-      </div>
-      <div
-        class="c0 c2 css-142zc9n"
-      >
-        <a
-          class="c3"
-          href="https://etherscan.io/tx/0x123"
-          rel="noopener noreferrer"
-          target="_blank"
-        >
-          0x12...x123
-        </a>
-      </div>
-    </div>
-    <div
-      style="display: contents;"
-    />
-  </span>
+        0x12...x123
+      </a>
+    </span>
+  </div>
 </DocumentFragment>
 `;

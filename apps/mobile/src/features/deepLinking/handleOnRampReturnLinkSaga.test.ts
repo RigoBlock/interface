@@ -11,9 +11,12 @@ describe(handleOnRampReturnLink, () => {
     return expectSaga(handleOnRampReturnLink)
       .provide([
         [put(forceFetchFiatOnRampTransactions), undefined],
-        [call(navigate, MobileScreens.Activity), undefined],
+        [call(navigate, MobileScreens.MainTabs, { screen: MobileScreens.Activity }), undefined],
         [call(dismissInAppBrowser), undefined],
       ])
+      .put(forceFetchFiatOnRampTransactions())
+      .call(navigate, MobileScreens.MainTabs, { screen: MobileScreens.Activity })
+      .call(dismissInAppBrowser)
       .silentRun()
   })
 })

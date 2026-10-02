@@ -2,13 +2,15 @@
 
 import { ProtocolVersion } from '@universe/api/src/clients/graphql/__generated__/schema-types'
 import { ImageResponse } from '@vercel/og'
-import { WATERMARK_URL } from 'functions/constants'
+import { IMAGE_DATA_FETCH_TIMEOUT_MS, WATERMARK_URL } from 'functions/constants'
 import { Data, PositionStatus } from 'functions/utils/cache'
 import getFont from 'functions/utils/getFont'
 import getNetworkLogoUrl from 'functions/utils/getNetworkLogoURL'
 import getPool from 'functions/utils/getPool'
 import { getRequest } from 'functions/utils/getRequest'
 import { type Context } from 'hono'
+import { URL_PARAM_TO_CHAIN_ID } from 'uniswap/src/features/chains/chainUrlParam'
+import { withTimeout } from 'uniswap/src/utils/polling'
 
 function UnknownTokenImage({ symbol }: { symbol?: string }) {
   const ticker = symbol?.slice(0, 3)
@@ -115,7 +117,7 @@ export async function renderPoolOgImage({
 }): Promise<Response> {
   const origin = new URL(c.req.url).origin
   const [fontData] = await Promise.all([getFont(origin, c.env)])
-  const networkLogo = getNetworkLogoUrl(networkName.toUpperCase(), origin)
+  const networkLogo = getNetworkLogoUrl(URL_PARAM_TO_CHAIN_ID[networkName.toLowerCase()], origin)
 
   return new ImageResponse(
     <div
@@ -162,6 +164,8 @@ export async function renderPoolOgImage({
                   position: 'absolute',
                   right: '2px',
                   bottom: '0px',
+                  borderRadius: '12px',
+                  objectFit: 'cover',
                 }}
               />
             )}
@@ -273,11 +277,16 @@ export async function poolImageHandler(c: Context) {
     const origin = new URL(c.req.url).origin
 
     const cacheUrl = origin + '/pools/' + networkName + '/' + poolAddress
-    const data = await getRequest({
-      url: cacheUrl,
-      getData: () => getPool({ networkName, poolAddress, url: cacheUrl }),
-      validateData: (data): data is NonNullable<Awaited<ReturnType<typeof getPool>>> => Boolean(data.title),
-    })
+    // See tokenImageHandler / metaTagInjector for full context: cap upstream
+    // hangs to avoid a CF Worker Error 1101 (500). Falls through to 404.
+    const data = await withTimeout(
+      getRequest({
+        url: cacheUrl,
+        getData: () => getPool({ networkName, poolAddress, url: cacheUrl }),
+        validateData: (data): data is NonNullable<Awaited<ReturnType<typeof getPool>>> => Boolean(data.title),
+      }),
+      { timeoutMs: IMAGE_DATA_FETCH_TIMEOUT_MS, errorMsg: 'poolImageHandler getPool timeout' },
+    ).catch(() => null)
 
     if (!data) {
       return new Response('Pool not found.', { status: 404 })

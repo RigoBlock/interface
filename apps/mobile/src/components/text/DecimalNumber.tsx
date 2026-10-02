@@ -1,12 +1,12 @@
+import { Text } from '@universe/mycelium'
+import type { TextCompatProps, TextVariant } from '@universe/mycelium/text-compat'
 import React from 'react'
-import { Text, TextProps } from 'ui/src'
-import { TextVariantTokens } from 'ui/src/theme'
 
-type DecimalNumberProps = TextProps & {
+type DecimalNumberProps = TextCompatProps & {
   number?: number
   formattedNumber: string
   separator?: string
-  variant: TextVariantTokens
+  variant: TextVariant
   loading?: boolean
   decimalThreshold?: number // below this value (not including) decimal part would have wholePartColor too
 }

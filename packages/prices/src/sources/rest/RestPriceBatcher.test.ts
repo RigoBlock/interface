@@ -11,8 +11,12 @@ function createMockClient(
 }
 
 function priceData(price: number, timestamp = Date.now()): TokenPriceData {
-  return { price, timestamp }
+  return { price, timestamp, source: 'aurora_rest_fallback' }
 }
+
+// Full-length so it passes EVM address validation in the cache-key normalizer
+const TOKEN_ADDRESS = `0x${'A'.repeat(40)}`
+const TOKEN_ADDRESS_LOWERCASE = `0x${'a'.repeat(40)}`
 
 describe('RestPriceBatcher', () => {
   beforeEach(() => {
@@ -63,8 +67,8 @@ describe('RestPriceBatcher', () => {
 
     const batcher = new RestPriceBatcher(client)
 
-    const p1 = batcher.fetch({ chainId: 1, address: '0xAAA' })
-    const p2 = batcher.fetch({ chainId: 1, address: '0xaaa' }) // Same after lowercase
+    const p1 = batcher.fetch({ chainId: 1, address: TOKEN_ADDRESS })
+    const p2 = batcher.fetch({ chainId: 1, address: TOKEN_ADDRESS_LOWERCASE }) // Same after lowercase
 
     vi.advanceTimersByTime(BATCH_DELAY_MS)
 
@@ -73,7 +77,7 @@ describe('RestPriceBatcher', () => {
     expect(r1).toEqual(priceData(50, r1!.timestamp))
     expect(r2).toEqual(priceData(50, r2!.timestamp))
     // Only 1 unique token sent to the client
-    expect(client.getTokenPrices).toHaveBeenCalledWith([{ chainId: 1, address: '0xaaa' }])
+    expect(client.getTokenPrices).toHaveBeenCalledWith([{ chainId: 1, address: TOKEN_ADDRESS_LOWERCASE }])
   })
 
   it('chunks large batches to respect MAX_BATCH_SIZE', async () => {
@@ -176,14 +180,14 @@ describe('RestPriceBatcher', () => {
 
     const batcher = new RestPriceBatcher(client)
 
-    const promise = batcher.fetch({ chainId: 1, address: '0xAbCdEf' })
+    const promise = batcher.fetch({ chainId: 1, address: TOKEN_ADDRESS })
 
     vi.advanceTimersByTime(BATCH_DELAY_MS)
 
     const result = await promise
 
     expect(result?.price).toBe(42)
-    expect(client.getTokenPrices).toHaveBeenCalledWith([{ chainId: 1, address: '0xabcdef' }])
+    expect(client.getTokenPrices).toHaveBeenCalledWith([{ chainId: 1, address: TOKEN_ADDRESS_LOWERCASE }])
   })
 
   it('batches requests arriving in separate macrotasks within the delay window', async () => {

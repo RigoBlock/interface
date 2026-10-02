@@ -7,10 +7,10 @@ const debug = (...args: unknown[]) => {
 const path = './src/clients/trading/__generated__/models'
 
 // Request types
-const requestFileNames = ['ApprovalRequest', 'CreateSendRequest', 'CreateSwapRequest', 'QuoteRequest']
+const requestFileNames = ['ApprovalRequest', 'CreateSwapRequest', 'QuoteRequest']
 
 // Response types
-const responseFileNames = ['ApprovalResponse', 'CreateSwapResponse', 'CreateSendResponse', 'ClassicQuote']
+const responseFileNames = ['ApprovalResponse', 'CreateSwapResponse', 'ClassicQuote']
 
 // ------------------------------------------------------------------
 // Helpers
@@ -354,6 +354,58 @@ async function main(): Promise<void> {
     let source = await readFile(filePath)
     source = addEnumMember(source, 'OrderStatus', { name: 'UNVERIFIED', value: 'unverified' }, true)
     await writeFile(filePath, source)
+  }
+
+  // Margin plan surface — TEMPORARY.
+  // The margin endpoints have not merged to the Trading API's main branch yet, so `api.json` (a
+  // verbatim sync of the published spec) does not carry them and these members are injected ahead
+  // of it. Remove this block once the backend margin surface merges and `api.json` is re-synced:
+  // run with DEBUG=1 and confirm every injection below logs "already exists", then diff the
+  // regenerated models against this block before deleting it. The existence checks match on name
+  // only and the debug lines print only the name, so the log alone cannot prove a value or type
+  // agrees — the diff is what closes that gap.
+  {
+    const stepTypePath = `${path}/PlanStepType.ts`
+    let stepTypeSource = await readFile(stepTypePath)
+    for (const name of [
+      'MARGIN_PRE_SWAP',
+      'MARGIN_OPEN',
+      'MARGIN_CLOSE',
+      'MARGIN_BRIDGE',
+      'MARGIN_ADJUST',
+      'MARGIN_RECOVER',
+    ]) {
+      stepTypeSource = addEnumMember(stepTypeSource, 'PlanStepType', { name, value: name })
+    }
+    await writeFile(stepTypePath, stepTypeSource)
+
+    const statusPath = `${path}/PlanStatus.ts`
+    let statusSource = await readFile(statusPath)
+    statusSource = addEnumMember(statusSource, 'PlanStatus', { name: 'CANCELLED', value: 'CANCELLED' })
+    await writeFile(statusPath, statusSource)
+
+    const stepPath = `${path}/PlanStep.ts`
+    let stepSource = await readFile(stepPath)
+    stepSource = modifyType(stepSource, 'PlanStep', [
+      { name: 'errorCode', type: 'string', isOptional: true },
+      { name: 'errorDetail', type: 'string', isOptional: true },
+      { name: 'estFillTimeSec', type: 'number', isOptional: true },
+      { name: 'fillDeadline', type: 'string', isOptional: true },
+    ])
+    await writeFile(stepPath, stepSource)
+
+    // Margin plan identity projection; present only on margin plans. `intent` is a string enum on
+    // the wire, typed here as a string the margin client reinterprets at its adapter boundary.
+    const planResponsePath = `${path}/PlanResponse.ts`
+    let planResponseSource = await readFile(planResponsePath)
+    planResponseSource = modifyType(planResponseSource, 'PlanResponse', [
+      {
+        name: 'marginIntent',
+        type: '{ intent?: string; subId?: string; marketKey?: string; collateralToken?: string; debtToken?: string; venue?: string; }',
+        isOptional: true,
+      },
+    ])
+    await writeFile(planResponsePath, planResponseSource)
   }
 
   console.log('✓ Trading API types updated')

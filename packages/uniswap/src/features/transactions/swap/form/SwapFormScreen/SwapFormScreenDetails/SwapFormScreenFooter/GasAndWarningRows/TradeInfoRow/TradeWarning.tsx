@@ -1,6 +1,8 @@
+import { AnimatedFlex, Flex, Text } from '@universe/mycelium'
+import { ENTER_PRESET_CLASSES } from '@universe/mycelium/compat'
+import { fadeInQuick } from '@universe/tailwind/animations/reanimated'
 import { PropsWithChildren } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text } from 'ui/src'
 import { AlertTriangleFilled } from 'ui/src/components/icons/AlertTriangleFilled'
 import { Warning, WarningLabel } from 'uniswap/src/components/modals/WarningModal/types'
 import { WarningInfo } from 'uniswap/src/components/modals/WarningModal/WarningInfo'
@@ -11,7 +13,7 @@ export function TradeWarning({ children, warning }: PropsWithChildren<{ warning:
   const { t } = useTranslation()
 
   const isPriceImpactWarning =
-    warning.type === WarningLabel.PriceImpactMedium || warning.type === WarningLabel.PriceImpactHigh
+    warning.type === WarningLabel.PriceDifferenceMedium || warning.type === WarningLabel.PriceDifferenceHigh
   const infoCaption = isPriceImpactWarning ? t('swap.warning.priceImpact.tooltip') : warning.message
 
   const captionComponent = warning.link ? (
@@ -28,7 +30,7 @@ export function TradeWarning({ children, warning }: PropsWithChildren<{ warning:
   ) : undefined
 
   return (
-    <Flex animation="quick" enterStyle={{ opacity: 0 }}>
+    <AnimatedFlex className={ENTER_PRESET_CLASSES.fadeIn} entering={fadeInQuick}>
       <WarningInfo
         modalProps={{
           caption: infoCaption,
@@ -41,6 +43,6 @@ export function TradeWarning({ children, warning }: PropsWithChildren<{ warning:
         tooltipProps={{ text: captionComponent ?? '', placement: 'bottom' }}
         trigger={children}
       />
-    </Flex>
+    </AnimatedFlex>
   )
 }

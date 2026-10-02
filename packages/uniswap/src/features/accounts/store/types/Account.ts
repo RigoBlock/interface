@@ -1,5 +1,4 @@
-import type { Platform } from 'uniswap/src/features/platforms/types/Platform'
-import type { PlatformSpecificAddress } from 'uniswap/src/features/platforms/types/PlatformSpecificAddress'
+import type { Platform, PlatformSpecificAddress } from '@universe/chains'
 
 /**
  * Represents a platform-specific address paired with metadata about its originating wallet.

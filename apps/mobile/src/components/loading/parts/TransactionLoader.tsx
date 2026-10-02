@@ -1,5 +1,5 @@
+import { Flex, Text } from '@universe/mycelium'
 import React from 'react'
-import { Flex, Text } from 'ui/src'
 import { TXN_HISTORY_ICON_SIZE } from 'uniswap/src/components/activity/utils'
 
 interface TransactionLoaderProps {

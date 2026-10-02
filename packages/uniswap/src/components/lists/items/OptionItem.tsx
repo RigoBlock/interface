@@ -1,10 +1,17 @@
-import { memo, useCallback } from 'react'
-import { Flex, FlexProps, Text, TextProps, TouchableArea } from 'ui/src'
+import { isWebApp, isWebPlatform } from '@universe/environment'
+import {
+  Flex,
+  type FlexCompatProps as FlexProps,
+  type ModifierPressProps,
+  Text,
+  type TextCompatProps as TextProps,
+} from '@universe/mycelium'
+import { memo, ReactNode, useCallback } from 'react'
+import { OptionItemPressableArea } from 'uniswap/src/components/lists/items/OptionItemPressableArea'
 import { dismissNativeKeyboard } from 'utilities/src/device/keyboard/dismissNativeKeyboard'
 import { KeyAction } from 'utilities/src/device/keyboard/types'
 import { useIsKeyboardOpen } from 'utilities/src/device/keyboard/useIsKeyboardOpen'
 import { useKeyDown } from 'utilities/src/device/keyboard/useKeyDown'
-import { isWebApp, isWebPlatform } from 'utilities/src/platform'
 import { noop } from 'utilities/src/react/noop'
 
 // Props for manually managing the focused row index of a list
@@ -15,11 +22,16 @@ export interface FocusedRowControl {
   setFocusedRowIndex: (index: number | undefined) => void
 }
 
-export interface OptionItemProps {
+export interface OptionItemProps extends ModifierPressProps {
   image: JSX.Element
   title: string | JSX.Element
   subtitle?: JSX.Element
   rightElement?: JSX.Element
+  /** Persistent category pill (e.g. "Stocks") rendered before `rightElement`, independent of hover. */
+  categoryTag?: ReactNode
+  /** Rendered immediately after the title on the same baseline (e.g. a dimmed RWA issuer label). When present,
+   *  the title shrinks/ellipsizes and the suffix holds its width. Absent → title renders exactly as before. */
+  titleSuffix?: ReactNode
   badge?: JSX.Element
   titleProps?: TextProps
   onPress: () => void
@@ -39,6 +51,8 @@ function OptionItemInner({
   title,
   subtitle,
   rightElement,
+  categoryTag,
+  titleSuffix,
   badge,
   titleProps,
   onPress,
@@ -47,6 +61,8 @@ function OptionItemInner({
   testID,
   modalInfo,
   focusedRowControl,
+  modifierPressHref,
+  onModifierPress,
 }: OptionItemProps): JSX.Element {
   const isKeyboardOpen = useIsKeyboardOpen()
 
@@ -99,13 +115,12 @@ function OptionItemInner({
 
   return (
     <>
-      <TouchableArea
-        animation="300ms"
-        opacity={disabled ? 0.5 : 1}
-        width="100%"
-        px="$spacing12"
+      <OptionItemPressableArea
+        disabled={disabled}
+        modifierPressHref={modifierPressHref}
         onPress={onPressOption}
         onLongPress={onLongPress}
+        onModifierPress={onModifierPress}
       >
         <Flex
           row
@@ -124,7 +139,27 @@ function OptionItemInner({
             {image}
             <Flex shrink>
               <Flex row alignItems="center" gap="$spacing8">
-                {typeof title === 'string' ? (
+                {titleSuffix ? (
+                  <Flex row shrink alignItems="baseline" gap="$spacing6" minWidth={0}>
+                    {typeof title === 'string' ? (
+                      <Text
+                        color="$neutral1"
+                        variant="body1"
+                        whiteSpace="nowrap"
+                        overflow="hidden"
+                        textOverflow="ellipsis"
+                        numberOfLines={1}
+                        flexShrink={1}
+                        {...titleProps}
+                      >
+                        {title}
+                      </Text>
+                    ) : (
+                      title
+                    )}
+                    {titleSuffix}
+                  </Flex>
+                ) : typeof title === 'string' ? (
                   <Text
                     color="$neutral1"
                     variant="body1"
@@ -132,6 +167,7 @@ function OptionItemInner({
                     overflow="hidden"
                     textOverflow="ellipsis"
                     numberOfLines={1}
+                    flexShrink={1}
                     {...titleProps}
                   >
                     {title}
@@ -145,13 +181,14 @@ function OptionItemInner({
             </Flex>
           </Flex>
 
-          {rightElement && (
-            <Flex grow alignItems="flex-end" justifyContent="center">
+          {(categoryTag || rightElement) && (
+            <Flex row grow alignItems="center" justifyContent="flex-end" gap="$spacing8">
+              {categoryTag}
               {rightElement}
             </Flex>
           )}
         </Flex>
-      </TouchableArea>
+      </OptionItemPressableArea>
 
       {modal}
     </>

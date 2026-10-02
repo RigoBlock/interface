@@ -1,9 +1,7 @@
-import { GraphQLApi } from '@universe/api'
+import { Flex, spacing, Text } from '@universe/mycelium'
 import React, { useMemo } from 'react'
 import { StyleSheet } from 'react-native'
 import { FlatList } from 'react-native-gesture-handler'
-import { Flex, Text } from 'ui/src'
-import { spacing } from 'ui/src/theme'
 import { AddressDisplay } from 'uniswap/src/components/accounts/AddressDisplay'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { NumberType } from 'utilities/src/format/types'
@@ -15,20 +13,16 @@ interface SortedAddressData {
   balance: number
 }
 
-type Portfolio = NonNullable<NonNullable<NonNullable<GraphQLApi.AccountListQuery['portfolios']>[0]>>
-
 function AssociatedAccountsListInner({ accounts }: { accounts: Account[] }): JSX.Element {
   const addresses = useMemo(() => accounts.map((account) => account.address), [accounts])
-  const { data, loading } = useAccountListData({
+  const { balancesByAddress, loading } = useAccountListData({
     addresses,
-    notifyOnNetworkStatusChange: true,
   })
 
-  const sortedAddressesByBalance = (data?.portfolios ?? [])
-    .filter((portfolio): portfolio is Portfolio => Boolean(portfolio))
-    .map((portfolio) => ({
-      address: portfolio.ownerAddress,
-      balance: portfolio.tokensTotalDenominatedValue?.value ?? 0,
+  const sortedAddressesByBalance = addresses
+    .map((address) => ({
+      address,
+      balance: balancesByAddress?.[address] ?? 0,
     }))
     .sort((a, b) => b.balance - a.balance)
 

@@ -1,10 +1,10 @@
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import {
   SAMPLE_SEED_ADDRESS_1,
   SAMPLE_SEED_ADDRESS_2,
   SAMPLE_SEED_ADDRESS_3,
   SAMPLE_SEED_ADDRESS_4,
-} from 'uniswap/src/test/fixtures/gql/assets/constants'
+} from 'uniswap/src/test/fixtures/assets/constants'
 import { PortfolioTab } from '~/pages/Portfolio/types'
 import { buildPortfolioUrl, pathToPortfolioTab } from '~/pages/Portfolio/utils/portfolioUrls'
 
@@ -26,6 +26,10 @@ describe('buildPortfolioUrl', () => {
 
     it('should return tokens path for Tokens tab', () => {
       expect(buildPortfolioUrl({ tab: PortfolioTab.Tokens })).toBe('/portfolio/tokens')
+    })
+
+    it('should return pools path for Pools tab', () => {
+      expect(buildPortfolioUrl({ tab: PortfolioTab.Pools })).toBe('/portfolio/pools')
     })
 
     it('should return defi path for Defi tab', () => {
@@ -89,6 +93,12 @@ describe('buildPortfolioUrl', () => {
     it('should return external wallet tokens path', () => {
       expect(buildPortfolioUrl({ tab: PortfolioTab.Tokens, externalAddress: SAMPLE_SEED_ADDRESS_2 })).toBe(
         `/portfolio/${SAMPLE_SEED_ADDRESS_2}/tokens`,
+      )
+    })
+
+    it('should return external wallet pools path', () => {
+      expect(buildPortfolioUrl({ tab: PortfolioTab.Pools, externalAddress: SAMPLE_SEED_ADDRESS_2 })).toBe(
+        `/portfolio/${SAMPLE_SEED_ADDRESS_2}/pools`,
       )
     })
 
@@ -162,6 +172,10 @@ describe('pathToPortfolioTab', () => {
       expect(pathToPortfolioTab('/portfolio/tokens')).toBe(PortfolioTab.Tokens)
     })
 
+    it('should return Pools for /portfolio/pools', () => {
+      expect(pathToPortfolioTab('/portfolio/pools')).toBe(PortfolioTab.Pools)
+    })
+
     it('should return Defi for /portfolio/defi', () => {
       expect(pathToPortfolioTab('/portfolio/defi')).toBe(PortfolioTab.Defi)
     })
@@ -182,6 +196,10 @@ describe('pathToPortfolioTab', () => {
 
     it('should return Tokens for external wallet tokens path', () => {
       expect(pathToPortfolioTab(`/portfolio/${SAMPLE_SEED_ADDRESS_1}/tokens`)).toBe(PortfolioTab.Tokens)
+    })
+
+    it('should return Pools for external wallet pools path', () => {
+      expect(pathToPortfolioTab(`/portfolio/${SAMPLE_SEED_ADDRESS_1}/pools`)).toBe(PortfolioTab.Pools)
     })
 
     it('should return Defi for external wallet defi path', () => {

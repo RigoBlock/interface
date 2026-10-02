@@ -1,13 +1,16 @@
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import { GasFeeResult, TradingApi } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
+import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useMemo } from 'react'
 import { useUniswapContextSelector } from 'uniswap/src/contexts/UniswapContext'
 import { useCheckApprovalQuery } from 'uniswap/src/data/apiClients/tradingApi/useCheckApprovalQuery'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { convertGasFeeToDisplayValue, useActiveGasStrategy } from 'uniswap/src/features/gas/hooks'
+import { convertGasFeeToDisplayValue } from 'uniswap/src/features/gas/convertGasFeeToDisplayValue'
+import { useActiveGasStrategy } from 'uniswap/src/features/gas/hooks'
 import { ApprovalAction, TokenApprovalInfo } from 'uniswap/src/features/transactions/swap/types/trade'
 import { isUniswapX } from 'uniswap/src/features/transactions/swap/utils/routing'
 import {
+  DEFAULT_URGENCY_LEVEL,
   getTokenAddressForApi,
   toTradingApiSupportedChainId,
 } from 'uniswap/src/features/transactions/swap/utils/tradingApi'
@@ -22,6 +25,8 @@ export interface TokenApprovalInfoParams {
   currencyOutAmount?: Maybe<CurrencyAmount<Currency>>
   routing: TradingApi.Routing | undefined
   address?: string
+  /** From the quote response — `false` means the route never needs an ERC-20 approval, so `/check_approval` is skipped. Absent ⇒ assume applicable. */
+  isTokenApprovalApplicable?: boolean
 }
 
 export type ApprovalTxInfo = {
@@ -40,11 +45,12 @@ function useApprovalWillBeBatchedWithSwap(chainId: UniverseChainId, routing: Tra
 }
 
 export function useTokenApprovalInfo(params: TokenApprovalInfoParams): ApprovalTxInfo {
-  const { address, chainId, wrapType, currencyInAmount, currencyOutAmount, routing } = params
+  const { address, chainId, wrapType, currencyInAmount, currencyOutAmount, routing, isTokenApprovalApplicable } = params
 
   const isWrap = wrapType !== WrapType.NotApplicable
   /** Approval is included elsewhere for Chained Actions so it can be skipped */
   const isChained = routing === TradingApi.Routing.CHAINED
+  const approvalNotApplicable = isTokenApprovalApplicable === false
 
   const currencyIn = currencyInAmount?.currency
   const amount = currencyInAmount?.quotient.toString()
@@ -58,6 +64,8 @@ export function useTokenApprovalInfo(params: TokenApprovalInfoParams): ApprovalT
 
   const gasStrategy = useActiveGasStrategy(chainId, 'general')
 
+  const isGasFeeOverridesEnabled = useFeatureFlag(FeatureFlags.GasFeeOverrides)
+
   const approvalRequestArgs: TradingApi.ApprovalRequest | undefined = useMemo(() => {
     const tokenInChainId = toTradingApiSupportedChainId(chainId)
     const tokenOutChainId = toTradingApiSupportedChainId(currencyOut?.chainId)
@@ -69,7 +77,7 @@ export function useTokenApprovalInfo(params: TokenApprovalInfoParams): ApprovalT
       return undefined
     }
 
-    return {
+    const base: TradingApi.ApprovalRequest = {
       walletAddress: address,
       token: tokenInAddress,
       amount,
@@ -77,9 +85,16 @@ export function useTokenApprovalInfo(params: TokenApprovalInfoParams): ApprovalT
       includeGasInfo: true,
       tokenOut: tokenOutAddress,
       tokenOutChainId,
-      gasStrategies: [gasStrategy],
     }
+
+    if (isGasFeeOverridesEnabled) {
+      // Approval requests never carry user overrides — always send a bare level.
+      return { ...base, urgency: DEFAULT_URGENCY_LEVEL }
+    }
+
+    return { ...base, gasStrategies: [gasStrategy] }
   }, [
+    isGasFeeOverridesEnabled,
     gasStrategy,
     address,
     amount,
@@ -92,7 +107,8 @@ export function useTokenApprovalInfo(params: TokenApprovalInfoParams): ApprovalT
   ])
 
   const approvalWillBeBatchedWithSwap = useApprovalWillBeBatchedWithSwap(chainId, routing)
-  const shouldSkip = !approvalRequestArgs || isWrap || !address || approvalWillBeBatchedWithSwap || isChained
+  const shouldSkip =
+    !approvalRequestArgs || isWrap || !address || approvalWillBeBatchedWithSwap || isChained || approvalNotApplicable
 
   const { data, isLoading, error } = useCheckApprovalQuery({
     params: shouldSkip ? undefined : approvalRequestArgs,
@@ -110,8 +126,8 @@ export function useTokenApprovalInfo(params: TokenApprovalInfoParams): ApprovalT
       })
     }
 
-    // Approval is N/A for wrap transactions or unconnected state.
-    if (isWrap || !address || approvalWillBeBatchedWithSwap || isChained) {
+    // Approval is N/A for wrap transactions, unconnected state, or routes the quote marks as never needing approval.
+    if (isWrap || !address || approvalWillBeBatchedWithSwap || isChained || approvalNotApplicable) {
       return {
         action: ApprovalAction.None,
         txRequest: null,
@@ -156,7 +172,16 @@ export function useTokenApprovalInfo(params: TokenApprovalInfoParams): ApprovalT
       txRequest: null,
       cancelTxRequest: null,
     }
-  }, [address, approvalRequestArgs, approvalWillBeBatchedWithSwap, data, error, isWrap, isChained])
+  }, [
+    address,
+    approvalRequestArgs,
+    approvalWillBeBatchedWithSwap,
+    data,
+    error,
+    isWrap,
+    isChained,
+    approvalNotApplicable,
+  ])
 
   return useMemo(() => {
     const gasEstimate = data?.gasEstimates?.[0]
@@ -174,14 +199,14 @@ export function useTokenApprovalInfo(params: TokenApprovalInfoParams): ApprovalT
       tokenApprovalInfo,
       approvalGasFeeResult: {
         value: approvalFee,
-        displayValue: convertGasFeeToDisplayValue(approvalFee, gasStrategy),
+        displayValue: convertGasFeeToDisplayValue({ gasFee: approvalFee, gasStrategy }),
         isLoading: isGasLoading,
         error: approvalGasError,
         gasEstimate,
       },
       revokeGasFeeResult: {
         value: revokeFee,
-        displayValue: convertGasFeeToDisplayValue(revokeFee, gasStrategy),
+        displayValue: convertGasFeeToDisplayValue({ gasFee: revokeFee, gasStrategy }),
         isLoading: isGasLoading,
         error: approvalGasError,
       },

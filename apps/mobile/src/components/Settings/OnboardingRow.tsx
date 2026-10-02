@@ -1,9 +1,10 @@
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
 import { useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { useSettingsStackNavigation } from 'src/app/navigation/types'
 import { clearOnboardingTimestamp } from 'src/features/analytics/onboardingTimestamp'
 import { useAppStateResetter } from 'src/features/appState/appStateResetter'
-import { Flex, type IconProps, Text, TouchableArea } from 'ui/src'
+import { type IconProps } from 'ui/src'
 import { RotatableChevron, UniswapLogo } from 'ui/src/components/icons'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import { WarningModal } from 'uniswap/src/components/modals/WarningModal/WarningModal'
@@ -23,9 +24,9 @@ export function OnboardingRow({ iconProps }: { iconProps: IconProps }): JSX.Elem
   const onPressReset = (): void => {
     setShowConfirmModal(false)
     const uniqueMnemonicIds = new Set(associatedAccounts.map((a) => a.mnemonicId))
-    const mnemonicPromises = [...uniqueMnemonicIds].map(Keyring.removeMnemonic)
+    const mnemonicPromises = [...uniqueMnemonicIds].map((id) => Keyring.removeMnemonic(id))
     const accountAddresses = associatedAccounts.map((a) => a.address)
-    const keyPromises = accountAddresses.map(Keyring.removePrivateKey)
+    const keyPromises = accountAddresses.map((address) => Keyring.removePrivateKey(address))
     Promise.all([...mnemonicPromises, ...keyPromises])
       .then(() => appStateResetter.resetAll())
       .then(() => {

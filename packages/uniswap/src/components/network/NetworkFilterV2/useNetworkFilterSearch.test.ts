@@ -1,9 +1,9 @@
+import { UniverseChainId } from '@universe/chains'
 import {
   filterNetworkOptions,
   normalizeNetworkSearchQuery,
   useNetworkFilterSearch,
 } from 'uniswap/src/components/network/NetworkFilterV2/useNetworkFilterSearch'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import i18next from 'uniswap/src/i18n'
 import { renderHookWithProviders } from 'uniswap/src/test/render'
 import { act } from 'uniswap/src/test/test-utils'

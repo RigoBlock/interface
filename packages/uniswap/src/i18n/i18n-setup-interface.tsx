@@ -1,9 +1,8 @@
 import i18n from 'i18next'
 import resourcesToBackend from 'i18next-resources-to-backend'
 import { initReactI18next } from 'react-i18next'
-import { Locale } from 'uniswap/src/features/language/constants'
+import { getLocaleTranslationKey, Locale } from 'uniswap/src/features/language/constants'
 import enUsLocale from 'uniswap/src/i18n/locales/source/en-US.json'
-import { getLocaleTranslationKey } from 'uniswap/src/i18n/utils'
 import { logger } from 'utilities/src/logger/logger'
 
 let isSetup = false

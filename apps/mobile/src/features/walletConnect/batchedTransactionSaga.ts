@@ -1,16 +1,21 @@
 import { TradingApi } from '@universe/api'
+import { UniverseChainId, Platform, areEvmAddressesEqual } from '@universe/chains'
 import { FeatureFlags, getFeatureFlag } from '@universe/gating'
 import { getInternalError, getSdkError } from '@walletconnect/utils'
 import { navigate } from 'src/app/navigation/rootNavigation'
 import { wcWeb3Wallet } from 'src/features/walletConnect/walletConnectClient'
-import { addRequest, WalletSendCallsRequest } from 'src/features/walletConnect/walletConnectSlice'
+import {
+  addRequest,
+  WalletSendCallsRequest,
+  WalletSendCallsUserOperationRequest,
+} from 'src/features/walletConnect/walletConnectSlice'
 import { call, put, select } from 'typed-redux-saga'
-import { UNISWAP_DELEGATION_ADDRESS } from 'uniswap/src/constants/addresses'
 import { checkWalletDelegation, TradingApiClient } from 'uniswap/src/data/apiClients/tradingApi/TradingApiClient'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
+import { AccountType } from 'uniswap/src/features/accounts/types'
 import { getEnabledChainIdsSaga } from 'uniswap/src/features/settings/saga'
+import { transformTradingApiUserOpToRpcUserOp } from 'uniswap/src/features/smartWallet/userOp/transformTradingApiUserOp'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { toTradingApiSupportedChainId } from 'uniswap/src/features/transactions/swap/utils/tradingApi'
 import { logger } from 'utilities/src/logger/logger'
 import { getCallsStatusHelper } from 'wallet/src/features/batchedTransactions/eip5792Utils'
 import {
@@ -19,6 +24,9 @@ import {
 } from 'wallet/src/features/batchedTransactions/utils'
 import { selectHasShownEip5792Nudge } from 'wallet/src/features/behaviorHistory/selectors'
 import { setHasShown5792Nudge } from 'wallet/src/features/behaviorHistory/slice'
+import { getAccountDelegationDetails } from 'wallet/src/features/smartWallet/delegation/utils'
+import { prepareDelegationAuthorization } from 'wallet/src/features/transactions/executeTransaction/eip7702Utils'
+import { getProvider, getSignerManager } from 'wallet/src/features/wallet/context'
 import { selectHasSmartWalletConsent } from 'wallet/src/features/wallet/selectors'
 
 /**
@@ -97,6 +105,40 @@ export function* handleGetCallsStatus({
 }
 
 /**
+ * Signs the 7702 delegation authorization for a sponsored sendCalls userOp when
+ * the wallet isn't yet delegated to Uniswap on `chainId`, so it can be bundled into the
+ * encode_4337 request. The backend runs paymaster + bundler simulation server-side, so the
+ * account must already appear delegated there. Returns undefined when no delegation is needed.
+ */
+export function* getSendCallsDelegationAuth({
+  accountAddress,
+  chainId,
+}: {
+  accountAddress: string
+  chainId: UniverseChainId
+}) {
+  const delegationDetails = yield* call(getAccountDelegationDetails, accountAddress, chainId)
+  if (!delegationDetails.needsDelegation || !delegationDetails.contractAddress) {
+    return undefined
+  }
+
+  const signerManager = yield* call(getSignerManager)
+  const signer = yield* call([signerManager, signerManager.getSignerForAccount], {
+    address: accountAddress,
+    type: AccountType.SignerMnemonic,
+  })
+  const provider = yield* call(getProvider, chainId)
+
+  return yield* call(prepareDelegationAuthorization, {
+    signer,
+    provider,
+    walletAddress: accountAddress,
+    chainId,
+    contractAddress: delegationDetails.contractAddress,
+  })
+}
+
+/**
  * Handles the WalletConnect request to send a batch of calls
  * @param topic WalletConnect session topic
  * @param requestId ID of the request
@@ -119,26 +161,98 @@ export function* handleSendCalls({
   }
 
   try {
-    const { requestId: encodedRequestId, encoded: encodedTransaction } = yield* call(
-      TradingApiClient.fetchWalletEncoding7702,
-      {
+    const paymasterCapability = request.capabilities['paymasterService']
+    const paymasterUrl = paymasterCapability?.['url']
+    const shouldUse4337 =
+      paymasterCapability && typeof paymasterUrl === 'string' && getFeatureFlag(FeatureFlags.Support7677GasSponsorship)
+
+    if (shouldUse4337) {
+      const rawPaymasterContext: unknown = paymasterCapability['context']
+      if (
+        rawPaymasterContext !== undefined &&
+        (typeof rawPaymasterContext !== 'object' || rawPaymasterContext === null || Array.isArray(rawPaymasterContext))
+      ) {
+        yield* respondWithError({
+          topic,
+          requestId,
+          error: getInternalError('MISSING_OR_INVALID', 'paymasterCapability.context must be a record or undefined'),
+        })
+        return
+      }
+      const paymasterServiceContext = rawPaymasterContext as Record<string, unknown> | undefined
+      const chainId = toTradingApiSupportedChainId(request.chainId)
+      if (!chainId) {
+        yield* respondWithError({
+          topic,
+          requestId,
+          error: getInternalError('MISSING_OR_INVALID', 'chainId is missing or unsupported'),
+        })
+        return
+      }
+
+      // Bundle the 7702 delegation auth into encode_4337 (signed up front) so the
+      // backend's server-side paymaster + bundler simulation runs against a delegated account.
+      const eip7702Auth = yield* call(getSendCallsDelegationAuth, {
+        accountAddress: request.account,
+        chainId: request.chainId,
+      })
+
+      const {
+        requestId: encode4337RequestId,
+        userOperation,
+        gasSponsored,
+        sponsorMetadata,
+      } = yield* call(TradingApiClient.fetchWalletEncoding4337, {
         calls: transformCallsToTransactionRequests({
           calls: request.calls,
           chainId: request.chainId,
           accountAddress: request.account,
         }),
-        smartContractDelegationAddress: UNISWAP_DELEGATION_ADDRESS,
-        walletAddress: request.account,
-      },
-    )
+        sender: request.account,
+        chainId,
+        paymasterUrl,
+        paymasterServiceContext,
+        eip7702Auth,
+      })
 
-    const requestWithEncodedTransaction = {
-      ...request,
-      encodedRequestId,
-      encodedTransaction,
+      const requestWithEncodedUserOp: WalletSendCallsUserOperationRequest = {
+        ...request,
+        unsignedUserOperation: transformTradingApiUserOpToRpcUserOp(userOperation),
+        requestId: encode4337RequestId,
+        gasSponsored,
+        sponsorMetadata,
+        paymasterServiceUrl: paymasterUrl,
+        paymasterServiceContext,
+      }
+      yield* put(addRequest(requestWithEncodedUserOp))
+    } else {
+      // The delegation address comes from check_delegation for this wallet + chain.
+      const delegationDetails = yield* call(getAccountDelegationDetails, request.account, request.chainId)
+      const delegationAddress = delegationDetails.contractAddress
+      if (!delegationAddress) {
+        throw new Error(`No delegation address available for wallet on chain ${request.chainId}`)
+      }
+
+      const { requestId: encodedRequestId, encoded: encodedTransaction } = yield* call(
+        TradingApiClient.fetchWalletEncoding7702,
+        {
+          calls: transformCallsToTransactionRequests({
+            calls: request.calls,
+            chainId: request.chainId,
+            accountAddress: request.account,
+          }),
+          smartContractDelegationAddress: delegationAddress,
+          walletAddress: request.account,
+        },
+      )
+
+      const requestWithEncodedTransaction = {
+        ...request,
+        encodedRequestId,
+        encodedTransaction,
+      }
+      yield* put(addRequest(requestWithEncodedTransaction))
     }
-
-    yield* put(addRequest(requestWithEncodedTransaction))
   } catch (error) {
     logger.error(error, {
       tags: { file: 'batchTransactionSaga', function: 'handleSendCalls' },
@@ -177,13 +291,12 @@ export function* handleGetCapabilities({
   dappIconUrl?: string
 }) {
   const eip5792MethodsEnabled = isEip5792MethodsEnabled()
-
   if (!eip5792MethodsEnabled) {
     yield* respondWithError({ topic, requestId, error: getSdkError('WC_METHOD_UNSUPPORTED') })
     return
   }
 
-  if (requestedAccount.toLowerCase() !== accountAddress.toLowerCase()) {
+  if (!areEvmAddressesEqual(requestedAccount, accountAddress)) {
     yield* respondWithError({ topic, requestId, error: getSdkError('UNAUTHORIZED_METHOD') })
     return
   }

@@ -1,8 +1,8 @@
 import type { TransactionRequest } from '@ethersproject/providers'
 import { TradingApi } from '@universe/api'
+import { type UniverseChainId, areEvmAddressesEqual } from '@universe/chains'
 import { checkWalletDelegation } from 'uniswap/src/data/apiClients/tradingApi/TradingApiClient'
 import { DEFAULT_NATIVE_ADDRESS } from 'uniswap/src/features/chains/evm/defaults'
-import type { UniverseChainId } from 'uniswap/src/features/chains/types'
 import type { Logger } from 'utilities/src/logger/logger'
 import type { DelegationCheckResult } from 'wallet/src/features/smartWallet/delegation/types'
 import { DelegationType } from 'wallet/src/features/transactions/types/transactionSagaDependencies'
@@ -55,7 +55,7 @@ export async function getDelegationInfoForTransaction(params: {
   const { delegationType, activeAccount, chainId, transactionRequest, logger } = params
 
   const isSelfTransaction = (): boolean => {
-    return transactionRequest?.to?.toLowerCase() === activeAccount.address.toLowerCase()
+    return areEvmAddressesEqual(transactionRequest?.to, activeAccount.address)
   }
 
   switch (delegationType) {

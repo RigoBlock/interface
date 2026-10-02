@@ -1,12 +1,11 @@
+import { Flex, iconSizes } from '@universe/mycelium'
+import { Person } from '@universe/mycelium/icons/Person'
 import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { OnboardingScreen } from 'src/app/features/onboarding/OnboardingScreen'
 import { useOnboardingSteps } from 'src/app/features/onboarding/OnboardingStepsContext'
 import { TopLevelRoutes } from 'src/app/navigation/constants'
 import { navigate } from 'src/app/navigation/state'
-import { Flex, Square } from 'ui/src'
-import { Person } from 'ui/src/components/icons'
-import { iconSizes } from 'ui/src/theme'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { ClaimUnitagContent } from 'uniswap/src/features/unitags/ClaimUnitagContent'
 import { ExtensionOnboardingFlow, ExtensionOnboardingScreens } from 'uniswap/src/types/screens/extension'
@@ -41,9 +40,16 @@ export function ClaimUnitagScreen(): JSX.Element {
     >
       <OnboardingScreen
         Icon={
-          <Square backgroundColor="$surface2" borderRadius="$rounded12" size={iconSizes.icon48}>
+          <Flex
+            alignItems="center"
+            backgroundColor="$surface2"
+            borderRadius="$rounded12"
+            height={iconSizes.icon48}
+            justifyContent="center"
+            width={iconSizes.icon48}
+          >
             <Person color="$neutral1" size="$icon.24" />
-          </Square>
+          </Flex>
         }
         subtitle={t('unitags.onboarding.claim.subtitle')}
         title={t('unitags.onboarding.claim.title.choose')}

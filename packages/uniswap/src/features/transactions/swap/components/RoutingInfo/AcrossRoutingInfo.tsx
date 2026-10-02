@@ -1,16 +1,15 @@
+import { isMobileApp } from '@universe/environment'
+import { Flex, Text, zIndexes } from '@universe/mycelium'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text } from 'ui/src'
 import AcrossLogoFull from 'ui/src/assets/logos/svg/across-logo-full.svg'
 import { OrderRouting } from 'ui/src/components/icons/OrderRouting'
 import { AcrossLogo } from 'ui/src/components/logos/AcrossLogo'
-import { zIndexes } from 'ui/src/theme'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import { WarningInfo } from 'uniswap/src/components/modals/WarningModal/WarningInfo'
 import { LearnMoreLink } from 'uniswap/src/components/text/LearnMoreLink'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { isMobileApp } from 'utilities/src/platform'
 
 export function AcrossRoutingInfo(): JSX.Element {
   const { t } = useTranslation()
@@ -21,7 +20,7 @@ export function AcrossRoutingInfo(): JSX.Element {
       rejectText: t('common.button.close'),
       modalName: ModalName.AcrossRoutingInfo,
       severity: WarningSeverity.None,
-      title: t('swap.details.orderRouting'),
+      title: t('common.bestRoute'),
       icon: <OrderRouting color="$neutral2" size="$icon.24" />,
       zIndex: zIndexes.popover,
     }),
@@ -44,7 +43,7 @@ export function AcrossRoutingInfo(): JSX.Element {
     () =>
       isMobileApp ? (
         <Flex centered gap="$spacing16">
-          <LearnMoreLink textVariant="buttonLabel3" url={uniswapUrls.helpArticleUrls.acrossRoutingInfo} />
+          <LearnMoreLink textVariant="buttonLabel3" url={UniswapHelpUrls.articles.acrossRoutingInfo} />
           <Flex row alignItems="center" gap="$spacing6" justifyContent="center">
             <Text color="$neutral3" variant="buttonLabel4">
               {t('swap.details.poweredBy')}
@@ -68,7 +67,7 @@ export function AcrossRoutingInfo(): JSX.Element {
         analyticsTitle="Across order routing"
       >
         <Text color="$neutral2" variant="body3">
-          {t('swap.details.orderRouting')}
+          {t('common.bestRoute')}
         </Text>
       </WarningInfo>
 

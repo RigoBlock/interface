@@ -1,57 +1,59 @@
+import { UniverseChainId } from '@universe/chains'
 import { FeatureFlags, getFeatureFlag, useFeatureFlag } from '@universe/gating'
 import { useMemo } from 'react'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { CHAIN_ROLLOUT_FLAGS } from 'uniswap/src/features/chains/chainFeatureFlags'
 import { filterChainIdsByFeatureFlag } from 'uniswap/src/features/chains/utils'
 
-export const getFeatureFlaggedChainIds = createGetFeatureFlaggedChainIds({
-  getLineaStatus: () => getFeatureFlag(FeatureFlags.Linea),
-  getMonadStatus: () => getFeatureFlag(FeatureFlags.Monad),
-  getSoneiumStatus: () => getFeatureFlag(FeatureFlags.Soneium),
-  getSolanaStatus: () => getFeatureFlag(FeatureFlags.Solana),
-  getTempoStatus: () => getFeatureFlag(FeatureFlags.Tempo),
-  getXLayerStatus: () => getFeatureFlag(FeatureFlags.XLayer),
-})
+function buildChainRolloutFlagMap(getFlagStatus: (flag: FeatureFlags) => boolean): {
+  [key in UniverseChainId]?: boolean
+} {
+  const result: { [key in UniverseChainId]?: boolean } = {}
+  for (const [chainId, flag] of Object.entries(CHAIN_ROLLOUT_FLAGS)) {
+    result[Number(chainId) as UniverseChainId] = getFlagStatus(flag)
+  }
+  return result
+}
+
+export const getFeatureFlaggedChainIds = createGetFeatureFlaggedChainIds((flag) => getFeatureFlag(flag))
 
 // Used to feature flag chains. If a chain is not included in the object, it is considered enabled by default.
 export function useFeatureFlaggedChainIds(): UniverseChainId[] {
+  const arcStatus = useFeatureFlag(FeatureFlags.Arc)
+  const inkStatus = useFeatureFlag(FeatureFlags.Ink)
   const lineaStatus = useFeatureFlag(FeatureFlags.Linea)
-  const monadStatus = useFeatureFlag(FeatureFlags.Monad)
-  const soneiumStatus = useFeatureFlag(FeatureFlags.Soneium)
-  const solanaStatus = useFeatureFlag(FeatureFlags.Solana)
+  const megaETHStatus = useFeatureFlag(FeatureFlags.MegaETH)
+  const robinhoodStatus = useFeatureFlag(FeatureFlags.Robinhood)
   const tempoStatus = useFeatureFlag(FeatureFlags.Tempo)
   const xLayerStatus = useFeatureFlag(FeatureFlags.XLayer)
 
   return useMemo(
     () =>
-      createGetFeatureFlaggedChainIds({
-        getLineaStatus: () => lineaStatus,
-        getMonadStatus: () => monadStatus,
-        getSoneiumStatus: () => soneiumStatus,
-        getSolanaStatus: () => solanaStatus,
-        getTempoStatus: () => tempoStatus,
-        getXLayerStatus: () => xLayerStatus,
+      createGetFeatureFlaggedChainIds((flag) => {
+        switch (flag) {
+          case FeatureFlags.Arc:
+            return arcStatus
+          case FeatureFlags.Ink:
+            return inkStatus
+          case FeatureFlags.Linea:
+            return lineaStatus
+          case FeatureFlags.MegaETH:
+            return megaETHStatus
+          case FeatureFlags.Robinhood:
+            return robinhoodStatus
+          case FeatureFlags.Tempo:
+            return tempoStatus
+          case FeatureFlags.XLayer:
+            return xLayerStatus
+          default:
+            return false
+        }
       })(),
-    [lineaStatus, monadStatus, soneiumStatus, solanaStatus, tempoStatus, xLayerStatus],
+    [arcStatus, inkStatus, lineaStatus, megaETHStatus, robinhoodStatus, tempoStatus, xLayerStatus],
   )
 }
 
-export function createGetFeatureFlaggedChainIds(ctx: {
-  getLineaStatus: () => boolean
-  getMonadStatus: () => boolean
-  getSoneiumStatus: () => boolean
-  getSolanaStatus: () => boolean
-  getTempoStatus: () => boolean
-  getXLayerStatus: () => boolean
-}): () => UniverseChainId[] {
-  return () =>
-    // You can use the useFeatureFlag hook here to enable/disable chains based on feature flags.
-    // Example: [ChainId.BLAST]: useFeatureFlag(FeatureFlags.BLAST)
-    filterChainIdsByFeatureFlag({
-      [UniverseChainId.Linea]: ctx.getLineaStatus(),
-      [UniverseChainId.Monad]: ctx.getMonadStatus(),
-      [UniverseChainId.Soneium]: ctx.getSoneiumStatus(),
-      [UniverseChainId.Solana]: ctx.getSolanaStatus(),
-      [UniverseChainId.Tempo]: ctx.getTempoStatus(),
-      [UniverseChainId.XLayer]: ctx.getXLayerStatus(),
-    })
+export function createGetFeatureFlaggedChainIds(
+  getFlagStatus: (flag: FeatureFlags) => boolean,
+): () => UniverseChainId[] {
+  return () => filterChainIdsByFeatureFlag(buildChainRolloutFlagMap(getFlagStatus))
 }

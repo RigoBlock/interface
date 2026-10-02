@@ -1,3 +1,4 @@
+import { TestID } from '@universe/test'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { Language, WEB_SUPPORTED_LANGUAGES } from 'uniswap/src/features/language/constants'
@@ -28,7 +29,7 @@ function LanguageMenuItem({ language }: { language: Language }) {
       }}
       isActive={language === currentLanguage}
       to={to}
-      testId="wallet-language-item"
+      testId={TestID.WalletLanguageItem}
     />
   )
 }
@@ -43,7 +44,7 @@ export function LanguageMenuItems() {
   )
 }
 
-export default function LanguageMenu({ onClose }: { onClose: () => void }) {
+export function LanguageMenu({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation()
 
   return (

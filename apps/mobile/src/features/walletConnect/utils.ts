@@ -1,4 +1,6 @@
 import { WalletKitTypes } from '@reown/walletkit'
+import { UniverseChainId } from '@universe/chains'
+import { hexToNumber } from '@universe/encoding'
 import { PairingTypes, ProposalTypes, SessionTypes, SignClientTypes, Verify } from '@walletconnect/types'
 import { utils } from 'ethers'
 import { wcWeb3Wallet } from 'src/features/walletConnect/walletConnectClient'
@@ -9,19 +11,22 @@ import {
   WalletGetCapabilitiesRequest,
   WalletSendCallsRequest,
 } from 'src/features/walletConnect/walletConnectSlice'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { toSupportedChainId } from 'uniswap/src/features/chains/utils'
+import { toSupportedChainId, toSupportedDappChainId } from 'uniswap/src/features/chains/utils'
 import { EthMethod, EthSignMethod, WalletConnectEthMethod } from 'uniswap/src/features/dappRequests/types'
+import { isSignTypedDataMethod } from 'uniswap/src/features/dappRequests/utils'
 import { DappRequestInfo, DappRequestType } from 'uniswap/src/types/walletConnect'
-import { hexToNumber } from 'utilities/src/addresses/hex'
 import { logger } from 'utilities/src/logger/logger'
+import { hexlifyTransaction } from 'utilities/src/transactions/hexlifyTransaction'
+import { normalizeSendCalls } from 'wallet/src/features/batchedTransactions/normalizeSendCalls'
 import { generateBatchId } from 'wallet/src/features/batchedTransactions/utils'
 import {
   Capability,
   DappVerificationStatus,
   GetCallsStatusParams,
+  SendCallsParamsSchema,
   SendCallsParams,
 } from 'wallet/src/features/dappRequests/types'
+import { canonicalizeTypedData } from 'wallet/src/features/wallet/signing/canonicalizeTypedData'
 
 /**
  * Construct WalletConnect 2.0 session namespaces to complete a new pairing. Used when approving a new pairing request.
@@ -163,10 +168,11 @@ export function parseSignRequest({
   requestParams: WalletKitTypes.SessionRequest['params']['request']['params']
 }): SignRequest {
   const { address, rawMessage, message } = getAddressAndMessageToSign(method, requestParams)
+  const canonicalRawMessage = isSignTypedDataMethod(method) ? canonicalizeTypedData(rawMessage) : rawMessage
   return {
     ...createBaseRequest({ method, topic, internalId, account: address, dapp }),
     chainId,
-    rawMessage,
+    rawMessage: canonicalRawMessage,
     message,
   }
 }
@@ -202,16 +208,18 @@ export function parseTransactionRequest({
   // Omit gasPrice and nonce in tx sent from dapp since it is calculated later
   const { from, to, data, gasLimit, value } = requestParams[0]
 
+  const transaction = hexlifyTransaction({
+    to,
+    from,
+    value,
+    data,
+    gasLimit,
+  })
+
   return {
     ...createBaseRequest({ method, topic, internalId, account: from, dapp }),
     chainId,
-    transaction: {
-      to,
-      from,
-      value,
-      data,
-      gasLimit,
-    },
+    transaction,
   }
 }
 
@@ -265,7 +273,7 @@ export function parseSendCallsRequest({
   requestParams: [SendCallsParams]
   account: Address
 }): WalletSendCallsRequest {
-  const sendCallsParam = requestParams[0]
+  const sendCallsParam = SendCallsParamsSchema.parse(requestParams[0])
   const requestId = sendCallsParam.id || generateBatchId()
   return {
     ...createBaseRequest({
@@ -276,7 +284,7 @@ export function parseSendCallsRequest({
       dapp,
     }),
     chainId,
-    calls: sendCallsParam.calls,
+    calls: normalizeSendCalls(sendCallsParam.calls),
     capabilities: sendCallsParam.capabilities || {},
     account: sendCallsParam.from ?? account,
     id: requestId,
@@ -342,6 +350,18 @@ function getAddressAndMessageToSign(
     case EthMethod.SignTypedData:
     case EthMethod.SignTypedDataV4:
       return { address: params[0], rawMessage: params[1], message: null }
+  }
+}
+
+/**
+ * The chain an EIP-712 signature will be bound to, which is not necessarily the envelope chain
+ * the request arrived on. Returns null on unparseable or unsupported input, so callers fail closed.
+ */
+export function getTypedDataDomainChainId(rawMessage: string): UniverseChainId | null {
+  try {
+    return toSupportedDappChainId(JSON.parse(rawMessage)?.domain?.chainId)
+  } catch {
+    return null
   }
 }
 

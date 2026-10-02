@@ -1,6 +1,6 @@
+import { Flex, type FlexProps } from '@universe/mycelium'
 import React, { memo, useMemo } from 'react'
-import { getToken, SpaceTokens } from 'tamagui'
-import { Flex, Separator } from 'ui/src/components/layout'
+import { Separator } from 'ui/src/components/layout'
 import { useDeviceDimensions } from 'ui/src/hooks/useDeviceDimensions/useDeviceDimensions'
 import { FlexLoader, FlexLoaderProps } from 'ui/src/loading/FlexLoader'
 import { InsufficientFundsNetworkRowLoader } from 'ui/src/loading/InsufficientFundsNetworkRowLoader'
@@ -57,9 +57,9 @@ const TransferInstitution = memo(function TransferInstitutionIcon({
   )
 })
 
-function Box(props: FlexLoaderProps): JSX.Element {
+function Box({ disableShimmer, ...props }: FlexLoaderProps & { disableShimmer?: boolean }): JSX.Element {
   return (
-    <Skeleton>
+    <Skeleton disabled={disableShimmer}>
       <FlexLoader {...props} />
     </Skeleton>
   )
@@ -74,7 +74,9 @@ function Token({
   repeat?: number
   contrast?: boolean
   withPrice?: boolean
-  gap?: SpaceTokens
+  // Typed off the Flex prop the value lands on, so it tracks the layout primitive's own
+  // rebuild instead of pinning the legacy Tamagui SpaceTokens union here.
+  gap?: FlexProps['gap']
 }): JSX.Element {
   return (
     <Skeleton contrast={contrast}>
@@ -133,7 +135,9 @@ function NFT({ repeat = 1 }: { repeat?: number }): JSX.Element {
 function Image(): JSX.Element {
   return (
     <Skeleton>
-      <FlexLoader aspectRatio={1} borderRadius={getToken('$none', 'radius')} />
+      {/* 0 is the exact value the legacy getToken('$none', 'radius') resolved to; the $none
+          token spelling resolves to a CSS var on web instead of the literal the old code set. */}
+      <FlexLoader aspectRatio={1} borderRadius={0} />
     </Skeleton>
   )
 }

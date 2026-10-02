@@ -1,11 +1,12 @@
+import { Platform, getValidAddress } from '@universe/chains'
+import { HexString } from '@universe/encoding'
 import { SignerMnemonicAccountMeta } from 'uniswap/src/features/accounts/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { signTypedData as signTypedDataFunction } from 'uniswap/src/features/transactions/signing'
-import { getValidAddress } from 'uniswap/src/utils/addresses'
-import { HexString } from 'utilities/src/addresses/hex'
+import { logger } from 'utilities/src/logger/logger'
 import { PublicClient } from 'viem'
 import { DelegationCheckResult } from 'wallet/src/features/smartWallet/delegation/types'
 import {
+  AuthorizationNoncePath,
   convertToEIP7702,
   createSignedAuthorization,
   signAndSerializeEIP7702Transaction,
@@ -127,6 +128,13 @@ export function createBundledDelegationTransactionSignerService(ctx: {
 
     // Authorization nonce needs to be +1 of the nonce of the transaction
     const authorizationNonce = Number(input.nonce) + 1
+    // SWAP-2471: verify the EIP-7702 authorization-nonce == txNonce + 1 invariant holds in prod.
+    logger.info('transactionSignerServiceImpl', 'signTransaction', '7702 auth nonce', {
+      txNonce: Number(input.nonce),
+      authNonce: authorizationNonce,
+      chainId,
+      path: AuthorizationNoncePath.BundledDelegation,
+    })
     const signedAuthorization = await createSignedAuthorization({
       signer,
       walletAddress,

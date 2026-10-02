@@ -1,8 +1,8 @@
+import { ColorTokens } from '@universe/mycelium'
 import { Group } from '@visx/group'
-import { LinePath } from '@visx/shape'
-import { CurveFactory } from 'd3'
-import React, { ReactNode } from 'react'
-import { ColorTokens } from 'ui/src'
+import { AreaClosed, LinePath } from '@visx/shape'
+import { CurveFactory, ScaleLinear } from 'd3'
+import React, { ReactNode, useId } from 'react'
 
 interface LineChartProps<T> {
   data: T[]
@@ -10,14 +10,18 @@ interface LineChartProps<T> {
   getY: (t: T) => number
   marginTop?: number
   curve: CurveFactory
-  color: ColorTokens
+  color: ColorTokens | string
   strokeWidth: number
   children?: ReactNode
   width: number
   height: number
+  showGradientFill?: boolean
+  /** Fade the stroke in left-to-right (0% -> 100% opacity), e.g. so text under the chart's left edge stays legible. */
+  strokeFadeIn?: boolean
+  yScale?: ScaleLinear<number, number>
 }
 
-function LineChart<T>({
+function LineChartInner<T>({
   data,
   getX,
   getY,
@@ -28,15 +32,55 @@ function LineChart<T>({
   width,
   height,
   children,
+  showGradientFill = false,
+  strokeFadeIn = false,
+  yScale,
 }: LineChartProps<T>) {
+  const gradientId = useId().replace(/:/g, '')
+  const chartBottom = height - (marginTop ?? 0)
+
   return (
     <svg width={width} height={height}>
+      {showGradientFill ? (
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity={0.16} />
+            <stop offset="100%" stopColor={color} stopOpacity={0} />
+          </linearGradient>
+        </defs>
+      ) : null}
+      {strokeFadeIn ? (
+        <defs>
+          <linearGradient id={`${gradientId}-stroke`} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor={color} stopOpacity={0} />
+            <stop offset="100%" stopColor={color} stopOpacity={1} />
+          </linearGradient>
+        </defs>
+      ) : null}
       <Group top={marginTop}>
-        <LinePath curve={curve} stroke={color} strokeWidth={strokeWidth} data={data} x={getX} y={getY} />
+        {showGradientFill && yScale ? (
+          <AreaClosed
+            curve={curve}
+            data={data}
+            fill={`url(#${gradientId})`}
+            x={getX}
+            y={getY}
+            y0={() => chartBottom}
+            yScale={yScale}
+          />
+        ) : null}
+        <LinePath
+          curve={curve}
+          stroke={strokeFadeIn ? `url(#${gradientId}-stroke)` : color}
+          strokeWidth={strokeWidth}
+          data={data}
+          x={getX}
+          y={getY}
+        />
       </Group>
       {children}
     </svg>
   )
 }
 
-export default React.memo(LineChart) as typeof LineChart
+export const LineChart = React.memo(LineChartInner) as typeof LineChartInner

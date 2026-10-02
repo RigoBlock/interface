@@ -1,7 +1,7 @@
+import { Platform } from '@universe/chains'
 import { AccessPattern, ConnectorStatus } from 'uniswap/src/features/accounts/store/types/Connector'
 import { ChainScopeType } from 'uniswap/src/features/accounts/store/types/Session'
 import { SigningCapability } from 'uniswap/src/features/accounts/store/types/Wallet'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { createAccountsStoreGetters } from 'wallet/src/features/accounts/store/getters'
 import { WalletAppsAccountsData } from 'wallet/src/features/accounts/store/types'
 

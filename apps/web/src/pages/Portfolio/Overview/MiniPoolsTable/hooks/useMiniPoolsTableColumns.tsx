@@ -1,17 +1,16 @@
 import { createColumnHelper } from '@tanstack/react-table'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { LiquidityPositionDropdownMenu } from '~/components/Liquidity/LiquidityPositionDropdownMenu'
-import { PositionInfo } from '~/components/Liquidity/types'
+import { PositionInfo } from 'uniswap/src/features/positions/types'
 import { HeaderCell } from '~/components/Table/styled'
-import { PoolBalanceCell } from '~/pages/Portfolio/Overview/MiniPoolsTable/columns/Balance'
+import { LiquidityPositionDropdownMenu } from '~/features/Liquidity/LiquidityPositionDropdownMenu'
 import { ColumnHeader } from '~/pages/Portfolio/Overview/MiniPoolsTable/columns/ColumnHeader'
-import { PoolFeesCell } from '~/pages/Portfolio/Overview/MiniPoolsTable/columns/Fees'
+import { PoolFiatValueCell } from '~/pages/Portfolio/Overview/MiniPoolsTable/columns/FiatValue'
 import { PoolInfoCell } from '~/pages/Portfolio/Overview/MiniPoolsTable/columns/Info'
 import { PositionCell } from '~/pages/Portfolio/Overview/MiniPoolsTable/columns/PositionCell'
 import { PoolStatusCell } from '~/pages/Portfolio/Overview/MiniPoolsTable/columns/Status'
 
-export const useMiniPoolsTableColumns = ({ isLoading }: { isLoading: boolean }) => {
+export const useMiniPoolsTableColumns = ({ isLoading, readOnly }: { isLoading: boolean; readOnly?: boolean }) => {
   const { t } = useTranslation()
 
   const columns = useMemo(() => {
@@ -48,18 +47,22 @@ export const useMiniPoolsTableColumns = ({ isLoading }: { isLoading: boolean }) 
         id: 'fees',
         header: () => <ColumnHeader label={t('common.fees')} />,
         cell: (info) => (
-          <PositionCell info={info} render={(position) => <PoolFeesCell position={position} />} loading={isLoading} />
+          <PositionCell
+            info={info}
+            render={(position) => <PoolFiatValueCell value={position.uncollectedFeesUsd} />}
+            loading={isLoading}
+          />
         ),
       }),
 
-      // Fourth Column - Balance
+      // Fourth Column - Value
       columnHelper.display({
         id: 'balance',
-        header: () => <ColumnHeader label={t('portfolio.overview.pools.column.balance')} />,
+        header: () => <ColumnHeader label={t('common.value')} />,
         cell: (info) => (
           <PositionCell
             info={info}
-            render={(position) => <PoolBalanceCell position={position} />}
+            render={(position) => <PoolFiatValueCell value={position.totalValueUsd} />}
             loading={isLoading}
           />
         ),
@@ -73,14 +76,14 @@ export const useMiniPoolsTableColumns = ({ isLoading }: { isLoading: boolean }) 
         cell: (info) => (
           <PositionCell
             info={info}
-            render={(position) => <LiquidityPositionDropdownMenu liquidityPosition={position} />}
+            render={(position) => <LiquidityPositionDropdownMenu liquidityPosition={position} readOnly={readOnly} />}
             justifyContent="center"
             loading={isLoading}
           />
         ),
       }),
     ]
-  }, [isLoading, t])
+  }, [isLoading, readOnly, t])
 
   return columns
 }

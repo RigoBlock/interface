@@ -1,6 +1,6 @@
+import { Flex, type FlexProps } from '@universe/mycelium'
 import React, { useMemo } from 'react'
 import { Edge, NativeSafeAreaViewProps } from 'react-native-safe-area-context'
-import { Flex, FlexProps } from 'ui/src'
 import { useAppInsets } from 'uniswap/src/hooks/useAppInsets'
 
 // Used to determine amount of top padding for short screens

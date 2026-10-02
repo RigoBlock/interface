@@ -1,7 +1,6 @@
+import { Platform, getValidAddress } from '@universe/chains'
 import dayjs from 'dayjs'
 import { AccountType } from 'uniswap/src/features/accounts/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
-import { getValidAddress } from 'uniswap/src/utils/addresses'
 import { ReadOnlyAccount } from 'wallet/src/features/wallet/accounts/types'
 
 export const createViewOnlyAccount = (address: string): ReadOnlyAccount => {

@@ -1,4 +1,4 @@
-import { Wallet } from 'ui/src/components/icons'
+import { Wallet } from '@universe/mycelium/icons/Wallet'
 import { OnboardingCardLoggingName } from 'uniswap/src/features/telemetry/types'
 import { CardType, IntroCard, IntroCardGraphicType, IntroCardProps } from 'wallet/src/components/introCards/IntroCard'
 import { render, screen } from 'wallet/src/test/test-utils'

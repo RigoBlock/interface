@@ -1,3 +1,7 @@
+import { Button, Flex, InputProps, spacing, Text, zIndexes } from '@universe/mycelium'
+import { AlertTriangleFilled } from '@universe/mycelium/icons/AlertTriangleFilled'
+import { Lock } from '@universe/mycelium/icons/Lock'
+import { TestID } from '@universe/test'
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
@@ -9,20 +13,15 @@ import { useUnlockWithBiometricCredentialMutation } from 'src/app/features/biome
 import { useUnlockWithPassword } from 'src/app/features/lockScreen/useUnlockWithPassword'
 import { OnboardingRoutes, TopLevelRoutes } from 'src/app/navigation/constants'
 import { focusOrCreateOnboardingTab } from 'src/app/navigation/focusOrCreateOnboardingTab'
-import { ExtensionState } from 'src/store/extensionReducer'
-import { Button, Flex, InputProps, Text } from 'ui/src'
-import { AlertTriangleFilled, Lock } from 'ui/src/components/icons'
-import { spacing, zIndexes } from 'ui/src/theme'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import { UniswapHelpUrls } from 'uniswap/src/constants/urls'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { SagaStatus, useMonitoredSagaStatus } from 'uniswap/src/utils/saga'
 import { useEvent } from 'utilities/src/react/hooks'
 import { LandingBackground } from 'wallet/src/components/landing/LandingBackground'
-import { authSagaName } from 'wallet/src/features/auth/saga'
-import { AuthSagaError } from 'wallet/src/features/auth/types'
+import { InvalidPasswordError } from 'wallet/src/features/auth/unlockWallet'
 import { EditAccountAction, editAccountActions } from 'wallet/src/features/wallet/accounts/editAccountSaga'
 import { useSignerAccounts } from 'wallet/src/features/wallet/hooks'
 import { Keyring } from 'wallet/src/features/wallet/Keyring/Keyring'
+import { getExpectedMnemonicLength } from 'wallet/src/utils/mnemonics'
 
 function usePasswordInput(defaultValue = ''): Pick<InputProps, 'onChangeText' | 'disabled'> & { value: string } {
   const [value, setValue] = useState(defaultValue)
@@ -63,10 +62,11 @@ export function Locked(): JSX.Element {
     [onChangePasswordText],
   )
 
-  const { status, error } = useMonitoredSagaStatus<ExtensionState>(authSagaName)
+  const { mutate: unlockWithPassword, error: unlockError } = useUnlockWithPassword(enteredPassword)
+  const onPressUnlockWithPassword = useEvent(() => unlockWithPassword())
 
-  const unlockWithPassword = useUnlockWithPassword()
-  const onPressUnlockWithPassword = useEvent(() => unlockWithPassword({ password: enteredPassword }))
+  const { mutate: unlockWithBiometricCredential, error: biometricUnlockError } =
+    useUnlockWithBiometricCredentialMutation()
 
   const [forgotPasswordModalOpen, setForgotPasswordModalOpen] = useState(false)
   const [modalStep, setModalStep] = useState(ForgotPasswordModalStep.Initial)
@@ -95,7 +95,10 @@ export function Locked(): JSX.Element {
     )
   }
 
-  const isIncorrectPassword = status === SagaStatus.Failure && error === AuthSagaError.InvalidPassword
+  const isIncorrectPassword =
+    unlockError instanceof InvalidPasswordError || biometricUnlockError instanceof InvalidPasswordError
+
+  const recoveryPhraseWordCount = getExpectedMnemonicLength(associatedAccounts[0])
 
   const inputRef = useRef<Input>(null)
   const [hideInput, setHideInput] = useState(true)
@@ -110,9 +113,9 @@ export function Locked(): JSX.Element {
   const modalProps: Record<ForgotPasswordModalStep, ModalProps> = {
     [ForgotPasswordModalStep.Initial]: {
       buttonText: t('extension.lock.button.reset'),
-      description: t('extension.lock.password.reset.initial.description'),
+      description: t('extension.lock.password.reset.initial.description', { count: recoveryPhraseWordCount }),
       linkText: t('extension.lock.password.reset.initial.help'),
-      linkUrl: uniswapUrls.helpArticleUrls.recoveryPhraseHowToFind,
+      linkUrl: UniswapHelpUrls.articles.recoveryPhraseHowToFind,
       icon: (
         <Flex backgroundColor="$surface2" borderRadius="$rounded12" p="$spacing12">
           <Lock color="$neutral1" size="$icon.24" />
@@ -125,9 +128,9 @@ export function Locked(): JSX.Element {
     },
     [ForgotPasswordModalStep.Speedbump]: {
       buttonText: t('common.button.continue'),
-      description: t('extension.lock.password.reset.speedbump.description'),
+      description: t('extension.lock.password.reset.speedbump.description', { count: recoveryPhraseWordCount }),
       linkText: t('extension.lock.password.reset.speedbump.help'),
-      linkUrl: uniswapUrls.helpArticleUrls.recoveryPhraseForgotten,
+      linkUrl: UniswapHelpUrls.articles.recoveryPhraseForgotten,
       icon: (
         <Flex backgroundColor="$statusCritical2" borderRadius="$rounded12" p="$spacing12">
           <AlertTriangleFilled color="$statusCritical" size="$icon.24" />
@@ -155,8 +158,6 @@ export function Locked(): JSX.Element {
       setContainerPaddingTop(newPaddingTop)
     }
   }, [availableHeight, inputHeight])
-
-  const { mutate: unlockWithBiometricCredential } = useUnlockWithBiometricCredentialMutation()
 
   return (
     <>
@@ -213,7 +214,7 @@ export function Locked(): JSX.Element {
 
         <Flex gap="$spacing12" justifyContent="flex-end" zIndex={zIndexes.sticky}>
           <Flex row>
-            <Button size="large" variant="branded" onPress={onPressUnlockWithPassword}>
+            <Button size="large" testID={TestID.Submit} variant="branded" onPress={onPressUnlockWithPassword}>
               {t('extension.lock.button.submit')}
             </Button>
           </Flex>

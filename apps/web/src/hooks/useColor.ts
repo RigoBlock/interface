@@ -1,6 +1,7 @@
 import { Currency } from '@uniswap/sdk-core'
+import { useExtractedTokenColor } from '@universe/mycelium'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { useMemo } from 'react'
-import { useExtractedTokenColor, useSporeColors } from 'ui/src'
 import { useCurrencyInfo } from '~/hooks/Tokens'
 
 type ContrastSettings = { backgroundColor: string; darkMode: boolean }

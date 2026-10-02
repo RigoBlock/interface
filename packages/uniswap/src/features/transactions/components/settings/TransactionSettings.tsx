@@ -1,5 +1,10 @@
-import type { ColorTokens, FlexProps, GeneratedIcon } from 'ui/src'
-import { Flex, Popover, TouchableArea } from 'ui/src'
+import { isMobileApp, isWebApp } from '@universe/environment'
+import type { ColorTokens, FlexProps } from '@universe/mycelium'
+import { Flex, TouchableArea } from '@universe/mycelium'
+import { TestID } from '@universe/test'
+import type { ReactNode } from 'react'
+import type { GeneratedIcon } from 'ui/src'
+import { Popover } from 'ui/src'
 import { Settings } from 'ui/src/components/icons/Settings'
 import type { IconSizeTokens } from 'ui/src/theme'
 import { AccountType } from 'uniswap/src/features/accounts/types'
@@ -15,9 +20,7 @@ import type { TransactionSettingConfig } from 'uniswap/src/features/transactions
 import { ViewOnlyButton } from 'uniswap/src/features/transactions/components/settings/ViewOnlyButton'
 import { ViewOnlyModal } from 'uniswap/src/features/transactions/modals/ViewOnlyModal'
 import { useWallet } from 'uniswap/src/features/wallet/hooks/useWallet'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { dismissNativeKeyboard } from 'utilities/src/device/keyboard/dismissNativeKeyboard'
-import { isMobileApp, isWebApp } from 'utilities/src/platform'
 import { useEvent } from 'utilities/src/react/hooks'
 
 export interface TransactionSettingsProps {
@@ -30,10 +33,10 @@ export interface TransactionSettingsProps {
   iconSize?: IconSizeTokens
   defaultTitle?: string
   shouldShowSettingsIconTooltip?: boolean
-  IconLabel?: React.ReactNode
+  IconLabel?: ReactNode
   CustomIconComponent?: GeneratedIcon
   testID?: string
-  CustomSettingsButton?: React.ReactNode
+  CustomSettingsButton?: ReactNode
   onClose?: () => void
 }
 

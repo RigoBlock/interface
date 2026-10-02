@@ -1,8 +1,7 @@
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
+import { Flex, iconSizes, Text, TouchableArea } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text, TouchableArea } from 'ui/src'
 import { RotatableChevron } from 'ui/src/components/icons'
-import { iconSizes } from 'ui/src/theme'
 import { PresetAmountButton } from 'uniswap/src/components/CurrencyInputPanel/AmountInputPresets/PresetAmountButton'
 import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
 import { TokenSelectorModal } from 'uniswap/src/components/TokenSelector/TokenSelector'
@@ -77,12 +76,11 @@ export function TokenSelectorPanel({
               </Text>
               {currencyInfo && (
                 <Text color="$neutral2" variant="body3">
-                  {/* oxlint-disable typescript/no-unnecessary-condition -- biome-parity: oxlint is stricter here */}
                   {t('send.input.token.balance.title', {
+                    // oxlint-disable-next-line typescript/no-unnecessary-condition -- biome-parity: oxlint is stricter here
                     balance: formattedCurrencyBalance ?? '',
                     symbol: currencyInfo.currency.symbol ?? '',
                   })}
-                  {/* oxlint-enable typescript/no-unnecessary-condition */}
                 </Text>
               )}
             </Flex>

@@ -1,67 +1,87 @@
-import { Flex, styled } from 'ui/src'
+import { clickableStyle, Flex, type FlexCompatProps } from '@universe/mycelium'
+import {
+  type ComponentPropsWithoutRef,
+  type ComponentRef,
+  forwardRef,
+  type ForwardRefExoticComponent,
+  type RefAttributes,
+} from 'react'
 import { Cell } from '~/components/Table/Cell'
-import { ClickableTamaguiStyle } from '~/theme/components/styles'
 
-export const TableRowBase = styled(Flex, {
-  row: true,
-  alignItems: 'center',
-  width: 'fit-content',
-  minWidth: '100%',
-  height: '100%',
-  transition: 'background-color 0.1s ease-in-out',
-  variants: {
-    v2: {
-      true: {
-        borderRadius: '$rounded12',
-      },
-      false: {
-        borderRadius: '$rounded20',
-      },
-    },
-  },
+export type TableRowBaseProps = FlexCompatProps
+
+// Explicit return types throughout this file: forwardRef's inferred type isn't nameable under
+// declaration emit (TS2883) — its structural expansion reaches mycelium-internal prop-composition
+// types that aren't exported.
+export const TableRowBase: ForwardRefExoticComponent<TableRowBaseProps & RefAttributes<HTMLDivElement>> = forwardRef<
+  HTMLDivElement,
+  TableRowBaseProps
+>(function TableRowBase(props, ref) {
+  return (
+    <Flex
+      ref={ref}
+      row
+      alignItems="center"
+      width="fit-content"
+      minWidth="100%"
+      height="100%"
+      transition="background-color 0.1s ease-in-out"
+      borderRadius="$rounded12"
+      {...props}
+    />
+  )
 })
 
-export const DataRow = styled(TableRowBase, {
-  variants: {
-    v2: {
-      true: {
-        hoverStyle: {
-          backgroundColor: '$surface1Hovered',
-          transition: 'background-color 0ms',
-        },
-      },
-      false: {
-        hoverStyle: { backgroundColor: '$surface1Hovered' },
-      },
-    },
-    dimmed: {
-      true: {
-        opacity: 0.6,
-      },
-    },
-  },
+export type DataRowProps = TableRowBaseProps & {
+  dimmed?: boolean
+  embeddedInExpandableGroup?: boolean
+  embeddedInIssuerPanel?: boolean
+  selected?: boolean
+}
+
+export const DataRow: ForwardRefExoticComponent<DataRowProps & RefAttributes<HTMLDivElement>> = forwardRef<
+  HTMLDivElement,
+  DataRowProps
+>(function DataRow({ dimmed, embeddedInExpandableGroup, embeddedInIssuerPanel, selected, ...rest }, ref) {
+  return (
+    <TableRowBase
+      ref={ref}
+      // Hover-in and hover-out share the row's base 0.1s transition (no separate instant hover-in edge).
+      hoverStyle={{ backgroundColor: '$surface1Hovered' }}
+      {...(dimmed ? { opacity: 0.6 } : {})}
+      {...(embeddedInExpandableGroup
+        ? { backgroundColor: 'transparent', hoverStyle: { backgroundColor: 'transparent' } }
+        : {})}
+      {...(embeddedInIssuerPanel
+        ? { backgroundColor: 'transparent', hoverStyle: { backgroundColor: 'transparent' } }
+        : {})}
+      // Defined last so the selected fill wins over embedded hover backgrounds when both apply.
+      {...(selected ? { backgroundColor: '$surface3', hoverStyle: { backgroundColor: '$surface3' } } : {})}
+      {...rest}
+    />
+  )
 })
 
-export const CellContainer = styled(Flex, {
-  grow: true,
-  className: 'first-child-flex-grow-0 last-child-justify-end',
+export const CellContainer: ForwardRefExoticComponent<FlexCompatProps & RefAttributes<HTMLDivElement>> = forwardRef<
+  HTMLDivElement,
+  FlexCompatProps
+>(function CellContainer(props, ref) {
+  return <Flex ref={ref} grow className="first-child-flex-grow-0 last-child-justify-end" {...props} />
 })
 
-export const FilterHeaderRow = styled(Flex, {
-  row: true,
-  alignItems: 'center',
-  userSelect: 'none',
-  gap: '$gap4',
-  transition: 'all 0.1s ease-in-out',
-  ...ClickableTamaguiStyle,
+export type FilterHeaderRowProps = FlexCompatProps
 
-  variants: {
-    clickable: {
-      true: ClickableTamaguiStyle,
-    },
-  } as const,
-})
+// `clickableStyle` is unconditional here (matches the original styled() config, which spread it in
+// the base object too, so the base already carried it regardless of any `clickable` variant) —
+// there is no `clickable` prop on this component; HeaderCell below is the one that gates on it.
+export const FilterHeaderRow: ForwardRefExoticComponent<FilterHeaderRowProps & RefAttributes<HTMLDivElement>> =
+  forwardRef<HTMLDivElement, FilterHeaderRowProps>(function FilterHeaderRow(props, ref) {
+    return <Flex ref={ref} row alignItems="center" userSelect="none" gap="$gap4" {...clickableStyle} {...props} />
+  })
 
-export const HeaderCell = styled(Cell, {
-  py: '$spacing12',
-})
+export type HeaderCellProps = ComponentPropsWithoutRef<typeof Cell> & { clickable?: boolean }
+
+export const HeaderCell: ForwardRefExoticComponent<HeaderCellProps & RefAttributes<ComponentRef<typeof Cell>>> =
+  forwardRef<ComponentRef<typeof Cell>, HeaderCellProps>(function HeaderCell({ clickable, ...rest }, ref) {
+    return <Cell ref={ref} py="$spacing12" {...(clickable ? { cursor: 'pointer' } : {})} {...rest} />
+  })

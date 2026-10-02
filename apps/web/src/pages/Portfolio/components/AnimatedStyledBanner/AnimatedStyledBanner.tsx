@@ -1,5 +1,5 @@
-import { Flex, useIsDarkMode, useMedia } from 'ui/src'
-import { zIndexes } from 'ui/src/theme'
+import { Flex, zIndexes } from '@universe/mycelium'
+import { useIsDarkMode, useMedia } from '@universe/mycelium/theme-hooks-compat'
 import gridDarkSvg from '~/assets/images/portfolio-connect-wallet-banner-grid/dark.svg'
 import gridLightSvg from '~/assets/images/portfolio-connect-wallet-banner-grid/light.svg'
 import { AnimatedEmblems } from '~/pages/Portfolio/components/AnimatedStyledBanner/AnimatedEmblems'

@@ -1,21 +1,19 @@
 import '~/test-utils/tokens/mocks'
-import { ApolloError } from '@apollo/client'
-import { type Currency, Percent, Token } from '@uniswap/sdk-core'
+import { type Currency, Token } from '@uniswap/sdk-core'
 import { GraphQLApi } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
 import { DEFAULT_TICK_SPACING } from 'uniswap/src/constants/pools'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
-import { usePoolsFromTokenAddress } from '~/appGraphql/data/pools/usePoolsFromTokenAddress'
-import { ExploreTablesFilterStoreContextProvider } from '~/pages/Explore/exploreTablesFilterStore'
+import { usePoolsFromTokenAddress } from '~/data/pools/usePoolsFromTokenAddress'
 import { TokenDetailsPoolsTable } from '~/pages/TokenDetails/components/activity/TokenDetailsPoolsTable'
 import { mocked } from '~/test-utils/mocked'
-import { validBEPoolToken0, validBEPoolToken1 } from '~/test-utils/pools/fixtures'
+import { validBEPoolToken0, validRestPoolToken0, validRestPoolToken1 } from '~/test-utils/pools/fixtures'
 import { render, screen } from '~/test-utils/render'
+import type { PoolStat } from '~/types/explore'
 
-function renderWithProvider(ui: React.ReactElement) {
-  return render(<ExploreTablesFilterStoreContextProvider>{ui}</ExploreTablesFilterStoreContextProvider>)
-}
-
-vi.mock('~/appGraphql/data/pools/usePoolsFromTokenAddress')
+vi.mock('~/data/pools/usePoolsFromTokenAddress')
+vi.mock('~/pages/TokenDetails/context/useTDPStore', () => ({
+  useTDPStore: (selector: (s: { multiChainMap: Record<string, never> }) => unknown) => selector({ multiChainMap: {} }),
+}))
 vi.mock('react-router', async () => {
   const actual = await vi.importActual('react-router')
   return {
@@ -40,16 +38,12 @@ describe('TDPPoolTable', () => {
   it('renders loading state', () => {
     mocked(usePoolsFromTokenAddress).mockReturnValue({
       loading: true,
-      errorV4: undefined,
-      errorV3: undefined,
-      errorV2: undefined,
+      isError: false,
       pools: [],
       loadMore: vi.fn(),
     })
 
-    const { asFragment } = renderWithProvider(
-      <TokenDetailsPoolsTable referenceCurrency={mockCurrency} isMultichainView={false} />,
-    )
+    const { asFragment } = render(<TokenDetailsPoolsTable referenceCurrency={mockCurrency} isMultichainView={false} />)
     expect(screen.getAllByTestId('cell-loading-bubble')).not.toBeNull()
     expect(asFragment()).toMatchSnapshot()
   })
@@ -57,16 +51,12 @@ describe('TDPPoolTable', () => {
   it('renders error state', () => {
     mocked(usePoolsFromTokenAddress).mockReturnValue({
       loading: false,
-      errorV4: new ApolloError({ errorMessage: 'error fetching data' }),
-      errorV3: new ApolloError({ errorMessage: 'error fetching data' }),
-      errorV2: new ApolloError({ errorMessage: 'error fetching data' }),
+      isError: true,
       pools: [],
       loadMore: vi.fn(),
     })
 
-    const { asFragment } = renderWithProvider(
-      <TokenDetailsPoolsTable referenceCurrency={mockCurrency} isMultichainView={false} />,
-    )
+    const { asFragment } = render(<TokenDetailsPoolsTable referenceCurrency={mockCurrency} isMultichainView={false} />)
     expect(screen.getByTestId('table-error-modal')).not.toBeNull()
     expect(asFragment()).toMatchSnapshot()
   })
@@ -74,35 +64,32 @@ describe('TDPPoolTable', () => {
   it('renders data filled state', () => {
     const mockData = [
       {
-        token0: validBEPoolToken0,
-        token1: validBEPoolToken1,
+        id: '0x123',
+        chain: 'mainnet',
+        token0: validRestPoolToken0,
+        token1: validRestPoolToken1,
         feeTier: {
           feeAmount: 10000,
           tickSpacing: DEFAULT_TICK_SPACING,
           isDynamic: false,
         },
-        hash: '0x123',
         txCount: 200,
-        tvl: 300,
-        volume24h: 400,
-        volume30d: 500,
+        totalLiquidity: { value: 300 },
+        volume1Day: { value: 400 },
+        volume30Day: { value: 500 },
         volOverTvl: 1.84,
-        apr: new Percent(6, 100),
+        apr: 6,
         protocolVersion: GraphQLApi.ProtocolVersion.V3,
       },
-    ]
+    ] as unknown as PoolStat[]
     mocked(usePoolsFromTokenAddress).mockReturnValue({
       pools: mockData,
       loading: false,
-      errorV4: undefined,
-      errorV3: undefined,
-      errorV2: undefined,
+      isError: false,
       loadMore: vi.fn(),
     })
 
-    const { asFragment } = renderWithProvider(
-      <TokenDetailsPoolsTable referenceCurrency={mockCurrency} isMultichainView={false} />,
-    )
+    const { asFragment } = render(<TokenDetailsPoolsTable referenceCurrency={mockCurrency} isMultichainView={false} />)
     expect(screen.getByTestId(`tdp-pools-table-${validBEPoolToken0.id}`)).not.toBeNull()
     expect(asFragment()).toMatchSnapshot()
   })

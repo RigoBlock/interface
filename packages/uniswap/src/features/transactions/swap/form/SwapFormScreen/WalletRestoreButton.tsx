@@ -1,5 +1,5 @@
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
-import { Flex, Text, TouchableArea } from 'ui/src'
 import { InfoCircleFilled } from 'ui/src/components/icons/InfoCircleFilled'
 import { useTransactionModalContext } from 'uniswap/src/features/transactions/components/TransactionModal/TransactionModalContext'
 import { useEvent } from 'utilities/src/react/hooks'
@@ -25,7 +25,7 @@ export const WalletRestoreButton = (): JSX.Element => {
         backgroundColor="$surface2"
         borderBottomLeftRadius="$rounded16"
         borderBottomRightRadius="$rounded16"
-        borderTopColor="$surface1"
+        borderColor="$surface1"
         borderTopWidth={1}
         gap="$spacing8"
         px="$spacing12"

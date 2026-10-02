@@ -1,7 +1,10 @@
+import { isWebPlatform } from '@universe/environment'
+import { Button, Flex, getTokenValue, Text } from '@universe/mycelium'
+import { ArrowRight } from '@universe/mycelium/icons/ArrowRight'
+import { ArrowRightDashed } from '@universe/mycelium/icons/ArrowRightDashed'
 import { Fragment, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Flex, getTokenValue, Text, VerticalDottedLineSeparator } from 'ui/src'
-import { ArrowRight, ArrowRightDashed } from 'ui/src/components/icons'
+import { VerticalDottedLineSeparator } from 'ui/src'
 import { getVisiblePlanSteps } from 'uniswap/src/components/activity/details/plan/getVisiblePlanSteps'
 import { PLAN_STEP_ITEM_WIDTH, PlanStepItem } from 'uniswap/src/components/activity/details/plan/PlanStepItem'
 import { ResumePlanButton } from 'uniswap/src/components/activity/details/plan/ResumePlanButton'
@@ -17,8 +20,7 @@ import {
   TransactionStatus,
   TransactionType,
 } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { buildNativeCurrencyId, buildWrappedNativeCurrencyId } from 'uniswap/src/utils/currencyId'
-import { isWebPlatform } from 'utilities/src/platform'
+import { buildCurrencyId, buildNativeCurrencyId, buildWrappedNativeCurrencyId } from 'uniswap/src/utils/currencyId'
 
 interface PlanDetailsViewProps {
   isExternalProfile?: boolean
@@ -139,11 +141,20 @@ function PlanDetailsHeaderIcon({
 function PlanDetailsStatus({ typeInfo, status }: Pick<PlanDetailsViewProps, 'typeInfo' | 'status'>): JSX.Element {
   const { t } = useTranslation()
   const intermediaryState = useIntermediaryPlanState({ typeInfo, status })
-  const descriptor = useIntermediaryPlanStateDescriptor({ intermediaryState, status, long: true })
+  const descriptor = useIntermediaryPlanStateDescriptor({
+    intermediaryState,
+    status,
+    long: true,
+  })
 
   return (
     <Flex centered gap="$spacing8">
-      <Text variant="subheading2">{getTransactionSummaryTitle({ typeInfo, status }, t)}</Text>
+      <Text variant="subheading2">
+        {getTransactionSummaryTitle({
+          tx: { typeInfo, status },
+          t,
+        })}
+      </Text>
       <Text variant="body3" color="$neutral2">
         {descriptor}
       </Text>
@@ -191,6 +202,10 @@ function extractSwapCurrencyId(transactionDetails: TransactionDetails, mode: 'in
       return undefined
     case TransactionType.Swap:
       return mode === 'input' ? typeInfo.inputCurrencyId : typeInfo.outputCurrencyId
+    case TransactionType.Deposit:
+      return mode === 'input' ? buildCurrencyId(chainId, typeInfo.tokenAddress) : undefined
+    case TransactionType.Withdraw:
+      return mode === 'output' ? buildCurrencyId(chainId, typeInfo.tokenAddress) : undefined
     case TransactionType.Wrap: {
       const wrappedId = buildWrappedNativeCurrencyId(chainId)
       if (!wrappedId) {

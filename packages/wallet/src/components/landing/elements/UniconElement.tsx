@@ -1,13 +1,15 @@
-import { Flex, useIsDarkMode } from 'ui/src'
-import { OnboardingUnicon } from 'ui/src/components/icons'
-import { DEP_accentColors, opacify, validColor } from 'ui/src/theme'
-
+import { Flex, validColor } from '@universe/mycelium'
+import { OnboardingUnicon } from '@universe/mycelium/icons/OnboardingUnicon'
+import { opacify, useIsDarkMode } from '@universe/mycelium/theme-hooks-compat'
+import { colors, DEP_accentColors } from 'ui/src/theme'
 export const UniconElement = (): JSX.Element => {
   const isDarkMode = useIsDarkMode()
 
   return (
     <Flex
-      backgroundColor={isDarkMode ? validColor('$purpleDark') : opacify(20, DEP_accentColors.violet200)}
+      // The literal, not `$purpleDark`: mycelium's class lane maps only semantic
+      // tokens, so a raw Spore palette token throws at compile time.
+      backgroundColor={isDarkMode ? validColor(colors.purpleDark) : opacify(20, DEP_accentColors.violet200)}
       borderRadius="$roundedFull"
       p="$spacing8"
       transform={[{ rotateZ: '-4deg' }]}

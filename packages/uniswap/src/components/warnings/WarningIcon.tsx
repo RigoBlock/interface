@@ -1,32 +1,26 @@
-import { GraphQLApi } from '@universe/api'
-import { ColorTokens, Flex, IconProps } from 'ui/src'
+import { Flex, type ColorTokens } from '@universe/mycelium'
+import { IconProps } from 'ui/src'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
-import {
-  getWarningIcon,
-  getWarningIconColors,
-  safetyLevelToWarningSeverity,
-} from 'uniswap/src/components/warnings/utils'
+import { getWarningIcon, getWarningIconColors } from 'uniswap/src/components/warnings/utils'
 
 interface Props {
-  // TODO (WALL-4626): remove GraphQLApi.SafetyLevel entirely
-  /** @deprecated use severity instead */
-  safetyLevel?: Maybe<GraphQLApi.SafetyLevel>
   severity?: WarningSeverity
-  // To override the normally associated safetyLevel<->color mapping
+  // To override the normally associated severity<->color mapping
   strokeColorOverride?: ColorTokens
   heroIcon?: boolean
   inModal?: boolean
 }
 
 export default function WarningIcon({
-  safetyLevel,
   severity,
   strokeColorOverride,
   heroIcon,
   inModal,
   ...rest
 }: Props & IconProps): JSX.Element | null {
-  const severityToUse = severity ?? safetyLevelToWarningSeverity(safetyLevel)
+  // Medium matches the implicit fallback the removed `safetyLevel` prop fed through
+  // safetyLevelToWarningSeverity — severity-less callers still expect a visible icon.
+  const severityToUse = severity ?? WarningSeverity.Medium
   const { color: defaultIconColor, backgroundColor, inModalColor } = getWarningIconColors(severityToUse)
   const color = strokeColorOverride ?? defaultIconColor
   const Icon = getWarningIcon(severityToUse)

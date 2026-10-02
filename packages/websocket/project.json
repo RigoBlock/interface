@@ -6,14 +6,12 @@
   "tags": ["scope:websocket", "type:lib"],
   "targets": {
     "test": {
-      "command": "vitest run --passWithNoTests",
+      "command": "vitest run",
       "options": {
         "cwd": "{projectRoot}"
       }
     },
     "typecheck": {},
-    "typecheck:tsc": {},
-    "typecheck:tsgo": {},
     "format": {},
     "format:check": {},
     "lint:oxlint": {},

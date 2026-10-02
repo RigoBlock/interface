@@ -1,5 +1,4 @@
-import { Flex, FlexProps } from 'ui/src/components/layout'
-
+import { Flex, FlexProps } from '@universe/mycelium'
 export function NftCardLoader(props: FlexProps): JSX.Element {
   return (
     <Flex fill justifyContent="flex-start" m="$spacing4" {...props}>

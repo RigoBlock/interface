@@ -1,6 +1,7 @@
-import { Flex, Image } from 'ui/src'
+import { Flex } from '@universe/mycelium'
+import { Image } from 'ui/src'
 import { WalletAlert } from 'ui/src/components/icons/WalletAlert'
-import { BorderedAlertTriangle } from '~/components/Icons/BorderedAlertTriangle'
+import { BorderedAlertTriangle } from '~/components/Badge/BorderedAlertTriangle'
 import { normalizeBase64Image } from '~/utils/images'
 
 type WalletBadgeProps = {

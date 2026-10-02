@@ -1,4 +1,4 @@
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
+import { UniverseChainId } from '@universe/chains'
 import {
   TransactionDetails,
   TransactionStatus,
@@ -152,11 +152,11 @@ describe('consecutiveSwapsSelector', () => {
 
 describe('appRatingStateSelector', () => {
   beforeEach(() => {
-    jest.spyOn(Date, 'now').mockImplementation(() => MOCK_DATE_PROMPTED)
+    vi.spyOn(Date, 'now').mockImplementation(() => MOCK_DATE_PROMPTED)
   })
 
   afterEach(() => {
-    jest.restoreAllMocks()
+    vi.restoreAllMocks()
   })
 
   it('returns correct state when never prompted before', () => {

@@ -1,10 +1,14 @@
 import { createSlice } from '@reduxjs/toolkit'
 import { DEFAULT_DEADLINE_FROM_NOW } from '~/constants/misc'
 import { RouterPreference } from '~/state/routing/types'
-import { SerializedPair, SlippageTolerance } from '~/state/user/types'
+import { SlippageTolerance } from '~/state/user/types'
 
 const currentTimestamp = () => new Date().getTime()
 
+// `user.pairs` (the retired V2 saved-pairs import) is deliberately NOT declared here and NOT
+// cleared by a migration: autoMergeLevel1 rehydrates the persisted slice as-is, so the key keeps
+// round-tripping through storage and the flow can be restored if the v2 wallet-positions endpoint
+// turns out not to cover those positions. Drop it with a migration once that is confirmed.
 export interface UserState {
   // the timestamp of the last updateVersion action
   lastUpdateVersionTimestamp?: number
@@ -24,13 +28,6 @@ export interface UserState {
   // deadline set by user in minutes, used in all txns
   userDeadline: number
 
-  pairs: {
-    [chainId: number]: {
-      // keyed by token0Address:token1Address
-      [key: string]: SerializedPair
-    }
-  }
-
   timestamp: number
 
   // undefined means has not gone through A/B split yet
@@ -41,17 +38,12 @@ export interface UserState {
   isEmbeddedWalletBackedUp?: boolean
 }
 
-function pairKey(token0Address: string, token1Address: string) {
-  return `${token0Address};${token1Address}`
-}
-
 export const initialState: UserState = {
   userRouterPreference: RouterPreference.X,
   userHideClosedPositions: false,
   userSlippageTolerance: SlippageTolerance.Auto,
   userSlippageToleranceHasBeenMigratedToAuto: true,
   userDeadline: DEFAULT_DEADLINE_FROM_NOW,
-  pairs: {},
   timestamp: currentTimestamp(),
   showSurveyPopup: undefined,
   originCountry: undefined,
@@ -79,18 +71,6 @@ const userSlice = createSlice({
     updateHideClosedPositions(state, action) {
       state.userHideClosedPositions = action.payload.userHideClosedPositions
     },
-    addSerializedPair(state, { payload: { serializedPair } }) {
-      if (
-        serializedPair.token0.chainId === serializedPair.token1.chainId &&
-        serializedPair.token0.address !== serializedPair.token1.address
-      ) {
-        const chainId = serializedPair.token0.chainId
-        // oxlint-disable-next-line typescript/no-unnecessary-condition
-        state.pairs[chainId] = state.pairs[chainId] || {}
-        state.pairs[chainId][pairKey(serializedPair.token0.address, serializedPair.token1.address)] = serializedPair
-      }
-      state.timestamp = currentTimestamp()
-    },
     setOriginCountry(state, { payload: country }) {
       state.originCountry = country
     },
@@ -99,7 +79,6 @@ const userSlice = createSlice({
 })
 
 export const {
-  addSerializedPair,
   setOriginCountry,
   updateHideClosedPositions,
   updateUserRouterPreference,

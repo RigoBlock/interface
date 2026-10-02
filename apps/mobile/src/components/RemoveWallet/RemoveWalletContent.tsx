@@ -1,3 +1,5 @@
+import { Button, Flex, spacing, Text, ThemeKeys } from '@universe/mycelium'
+import { useDeviceDimensions, useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
@@ -10,9 +12,6 @@ import { navigateToOnboardingImportMethod } from 'src/components/RemoveWallet/ut
 import { clearOnboardingTimestamp } from 'src/features/analytics/onboardingTimestamp'
 import { useBiometricAppSettings } from 'src/features/biometrics/useBiometricAppSettings'
 import { useBiometricPrompt } from 'src/features/biometricsSettings/hooks'
-import { Button, Flex, Text, ThemeKeys, useSporeColors } from 'ui/src'
-import { useDeviceDimensions } from 'ui/src/hooks/useDeviceDimensions'
-import { spacing } from 'ui/src/theme'
 import { ElementName, WalletEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { useAppInsets } from 'uniswap/src/hooks/useAppInsets'
@@ -205,7 +204,7 @@ export const RemoveWalletContent = ({
           </>
         ) : (
           <Flex row gap={inProgress ? '$none' : '$spacing12'} pt="$spacing12">
-            <Button size="large" emphasis="tertiary" isDisabled={inProgress} onPress={handleOnClose}>
+            <Button size="large" emphasis="tertiary" disabled={inProgress} onPress={handleOnClose}>
               {t('common.button.cancel')}
             </Button>
 

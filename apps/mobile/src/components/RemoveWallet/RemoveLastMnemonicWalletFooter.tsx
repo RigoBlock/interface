@@ -1,7 +1,8 @@
+import { Button, Flex, SpinningLoader, Text } from '@universe/mycelium'
+import { LabeledCheckboxCompat as LabeledCheckbox } from '@universe/mycelium/checkbox-compat'
+import { TestID } from '@universe/test'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Flex, LabeledCheckbox, SpinningLoader, Text } from 'ui/src'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 
 export function RemoveLastMnemonicWalletFooter({
   onPress,
@@ -35,7 +36,7 @@ export function RemoveLastMnemonicWalletFooter({
           fill
           lineHeightDisabled
           size="large"
-          isDisabled={!checkBoxAccepted}
+          disabled={!checkBoxAccepted}
           icon={inProgress ? <SpinningLoader color="$statusCritical" /> : undefined}
           testID={TestID.Confirm}
           variant="critical"

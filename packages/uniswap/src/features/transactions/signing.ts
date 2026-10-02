@@ -1,5 +1,5 @@
+import { ensure0xHex } from '@universe/encoding'
 import { Signer, TypedDataDomain, TypedDataField, Wallet } from 'ethers/lib/ethers'
-import { ensureLeading0x } from 'uniswap/src/utils/addresses'
 
 export interface SignsTypedData {
   _signTypedData: Wallet['_signTypedData']
@@ -25,5 +25,5 @@ export async function signTypedData({
   }
 
   const signature = await signer._signTypedData(domain, types, value)
-  return ensureLeading0x(signature)
+  return ensure0xHex(signature)
 }

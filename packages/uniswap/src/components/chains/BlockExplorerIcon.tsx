@@ -1,9 +1,9 @@
+import { UniverseChainId } from '@universe/chains'
+import type { IconSizeTokens } from '@universe/mycelium'
 import React from 'react'
 import type { SvgProps } from 'react-native-svg'
-import { IconSizeTokens } from 'ui/src/theme'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { useBlockExplorerLogo } from 'uniswap/src/features/chains/logos'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 
 type IconComponentProps = SvgProps & { size?: IconSizeTokens | number | { width: number; height: number } }
 

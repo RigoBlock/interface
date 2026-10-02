@@ -1,10 +1,12 @@
+import { Button, Flex, Text } from '@universe/mycelium'
+import { LabeledCheckboxCompat as LabeledCheckbox } from '@universe/mycelium/checkbox-compat'
+import { useIsDarkMode, useShadowPropsShort } from '@universe/mycelium/theme-hooks-compat'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { LockPreviewImage } from 'src/features/onboarding/LockPreviewImage'
-import { Button, Flex, LabeledCheckbox, Text, useIsDarkMode, useShadowPropsShort } from 'ui/src'
 import { CheckCircleFilled } from 'ui/src/components/icons'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { LockPreviewImage } from 'wallet/src/components/backup/LockPreviewImage'
 import { BackupType } from 'wallet/src/features/wallet/accounts/types'
 
 const PREVIEW_BOX_HEIGHT = 122
@@ -77,7 +79,7 @@ export function BackupSpeedBumpModal({ backupType, onContinue, onClose }: Backup
           <Button size="large" emphasis="secondary" onPress={() => onClose()}>
             {t('common.button.back')}
           </Button>
-          <Button isDisabled={!checked} size="large" variant="branded" onPress={() => onContinue()}>
+          <Button disabled={!checked} size="large" variant="branded" onPress={() => onContinue()}>
             {t('common.button.continue')}
           </Button>
         </Flex>

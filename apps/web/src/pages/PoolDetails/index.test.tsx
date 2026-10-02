@@ -2,8 +2,8 @@ import React from 'react'
 import { useParams } from 'react-router'
 import { dismissTokenWarning } from 'uniswap/src/features/tokens/warnings/slice/slice'
 import { TokenProtectionWarning } from 'uniswap/src/features/tokens/warnings/types'
-import { usePoolData } from '~/appGraphql/data/pools/usePoolData'
-import PoolDetails from '~/pages/PoolDetails'
+import { useLiquidityServicePoolData } from '~/data/pools/useLiquidityServicePoolData'
+import { PoolDetailsPage as PoolDetails } from '~/pages/PoolDetails'
 import store from '~/state'
 import { mocked } from '~/test-utils/mocked'
 import { validParams, validPoolDataResponse } from '~/test-utils/pools/fixtures'
@@ -22,11 +22,11 @@ vi.mock('react-router', async () => {
   }
 })
 
-vi.mock('~/appGraphql/data/pools/usePoolData', async () => {
-  const actual = await vi.importActual('~/appGraphql/data/pools/usePoolData')
+vi.mock('~/data/pools/useLiquidityServicePoolData', async () => {
+  const actual = await vi.importActual('~/data/pools/useLiquidityServicePoolData')
   return {
     ...actual,
-    usePoolData: vi.fn(),
+    useLiquidityServicePoolData: vi.fn(),
   }
 })
 
@@ -38,8 +38,17 @@ vi.mock('~/hooks/useColor', async () => {
   }
 })
 
+vi.mock('nuqs', async () => {
+  const actual = await vi.importActual('nuqs')
+  return {
+    ...actual,
+    useQueryState: vi.fn().mockReturnValue([null, vi.fn()]),
+  }
+})
+
 vi.mock('~/pages/Swap', () => ({
-  default: () => React.createElement(React.Fragment),
+  SwapPage: () => React.createElement(React.Fragment),
+  Swap: () => React.createElement(React.Fragment),
 }))
 
 describe('PoolDetailsPage', () => {
@@ -48,7 +57,7 @@ describe('PoolDetailsPage', () => {
     vi.clearAllMocks()
 
     mocked(useParams).mockReturnValue(validParams)
-    mocked(usePoolData).mockReturnValue(validPoolDataResponse)
+    mocked(useLiquidityServicePoolData).mockReturnValue(validPoolDataResponse)
     store.dispatch(
       dismissTokenWarning({
         token: {
@@ -84,7 +93,7 @@ describe('PoolDetailsPage', () => {
     })
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/explore/pools?type=pools&result=not-found')
+      expect(mockNavigate).toHaveBeenCalledWith('/explore/pools?type=pools&result=not-found', { replace: true })
     })
   })
 
@@ -97,7 +106,7 @@ describe('PoolDetailsPage', () => {
     })
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/explore/pools?type=pools&result=not-found')
+      expect(mockNavigate).toHaveBeenCalledWith('/explore/pools?type=pools&result=not-found', { replace: true })
     })
   })
 
@@ -110,12 +119,12 @@ describe('PoolDetailsPage', () => {
     })
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/explore/pools?type=pools&result=not-found')
+      expect(mockNavigate).toHaveBeenCalledWith('/explore/pools?type=pools&result=not-found', { replace: true })
     })
   })
 
   it('navigates to not found page when no data is received from backend', async () => {
-    mocked(usePoolData).mockReturnValue({
+    mocked(useLiquidityServicePoolData).mockReturnValue({
       data: undefined,
       loading: false,
       error: false,
@@ -127,7 +136,7 @@ describe('PoolDetailsPage', () => {
     })
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/explore/pools?type=pools&result=not-found')
+      expect(mockNavigate).toHaveBeenCalledWith('/explore/pools?type=pools&result=not-found', { replace: true })
     })
   })
 })

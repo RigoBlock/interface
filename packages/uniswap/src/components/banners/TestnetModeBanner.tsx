@@ -1,13 +1,12 @@
+import { isMobileApp, isWebApp, isWebPlatform } from '@universe/environment'
+import { Flex, type FlexCompatProps as FlexProps, Text, TouchableArea, zIndexes } from '@universe/mycelium'
+import { Wrench } from '@universe/mycelium/icons/Wrench'
 import { useTranslation } from 'react-i18next'
-import { Flex, FlexProps, Text, TouchableArea } from 'ui/src'
-import { Wrench } from 'ui/src/components/icons/Wrench'
 // oxlint-disable-next-line no-restricted-imports -- legacy import will be migrated
 import { useDeviceInsets } from 'ui/src/hooks/useDeviceInsets'
-import { zIndexes } from 'ui/src/theme'
 import { useUniswapContext } from 'uniswap/src/contexts/UniswapContext'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { TESTNET_MODE_BANNER_HEIGHT } from 'uniswap/src/features/settings/hooks'
-import { isMobileApp, isWebApp, isWebPlatform } from 'utilities/src/platform'
 
 export function TestnetModeBanner(props: FlexProps): JSX.Element | null {
   const { isTestnetModeEnabled } = useEnabledChains()

@@ -2,6 +2,14 @@ import { UnitagErrorCode } from '@universe/api'
 import { TFunction } from 'i18next'
 import { UNITAG_VALID_REGEX } from 'uniswap/src/features/unitags/constants'
 
+export function isUnitagRateLimitError(errorCode: UnitagErrorCode): boolean {
+  return (
+    errorCode === UnitagErrorCode.UNITAG_ERROR_IP_LIMIT_REACHED ||
+    errorCode === UnitagErrorCode.UNITAG_ERROR_ADDRESS_LIMIT_REACHED ||
+    errorCode === UnitagErrorCode.UNITAG_ERROR_DEVICE_LIMIT_REACHED
+  )
+}
+
 export function parseUnitagErrorCode(t: TFunction, errorCode: UnitagErrorCode): string {
   switch (errorCode) {
     case UnitagErrorCode.UNITAG_ERROR_NOT_AVAILABLE:
@@ -28,4 +36,9 @@ export const getYourNameString = (yourname: string): string => {
     return noSpacesLowercase
   }
   return 'yourname'
+}
+
+/** Normalizes user input for unitag username fields. */
+export function normalizeUnitagUsernameInput(text: string): string {
+  return text.toLowerCase().trim()
 }

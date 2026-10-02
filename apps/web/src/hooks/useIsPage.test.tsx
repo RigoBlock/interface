@@ -9,7 +9,6 @@ describe('useIsPage', () => {
     [PageType.LANDING, '/'],
     [PageType.LIMIT, '/limit'],
     [PageType.MIGRATE_V3, '/migrate/v3/info'],
-    [PageType.CREATE_POSITION, '/positions/create'],
     [PageType.SEND, '/path/to/send'],
     [PageType.SWAP, '/swap/'],
     [PageType.SWAP, '/swap//'],

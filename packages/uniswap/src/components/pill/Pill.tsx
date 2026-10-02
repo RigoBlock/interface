@@ -1,6 +1,5 @@
+import { Flex, type FlexCompatProps, Text, type TextVariantKey } from '@universe/mycelium'
 import { ReactNode } from 'react'
-import { Flex, FlexProps, Text } from 'ui/src'
-import { TextVariantTokens } from 'ui/src/theme'
 
 export type PillProps = {
   customBackgroundColor?: string
@@ -8,8 +7,8 @@ export type PillProps = {
   foregroundColor?: string
   icon?: ReactNode
   label?: ReactNode
-  textVariant?: TextVariantTokens
-} & FlexProps
+  textVariant?: TextVariantKey
+} & FlexCompatProps
 
 export function Pill({
   borderRadius = '$roundedFull',

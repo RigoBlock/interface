@@ -1,6 +1,6 @@
 import { Experiments, getOverrideAdapter, LayerProperties, Layers, useExperiment, useLayer } from '@universe/gating'
+import { Flex, Input, Switch, Text } from '@universe/mycelium'
 import { useCallback } from 'react'
-import { Flex, Input, Switch, Text } from 'ui/src'
 
 export function useLayerValue(
   layerName: Layers,

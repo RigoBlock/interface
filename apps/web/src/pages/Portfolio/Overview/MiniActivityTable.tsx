@@ -1,23 +1,22 @@
 import { createColumnHelper, Row } from '@tanstack/react-table'
 import { SharedEventName } from '@uniswap/analytics-events'
+import { Flex, Text, TouchableArea } from '@universe/mycelium'
+import { InfoCircleFilled } from '@universe/mycelium/icons/InfoCircleFilled'
+import { RotateRight } from '@universe/mycelium/icons/RotateRight'
+import { TestID } from '@universe/test'
 import { memo, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
-import { Flex, Text, TouchableArea } from 'ui/src'
-import { InfoCircleFilled } from 'ui/src/components/icons/InfoCircleFilled'
-import { RotateRight } from 'ui/src/components/icons/RotateRight'
 import { isLoadingItem } from 'uniswap/src/components/activity/utils'
 import { ActivityRenderData } from 'uniswap/src/features/activity/hooks/useActivityData'
 import { ElementName, SectionName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { TransactionDetails } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
 import { ONE_DAY_MS } from 'utilities/src/time/time'
 import { Table } from '~/components/Table'
 import { Cell } from '~/components/Table/Cell'
 import { hasRow } from '~/components/Table/utils/hasRow'
-import { useOpenTransactionDetailsModal } from '~/components/TopLevelModals/TransactionDetailsModalDispatcher'
 import { ActivityAmountCell } from '~/pages/Portfolio/Activity/ActivityTable/ActivityAmountCell/ActivityAmountCell'
 import { TimeCell } from '~/pages/Portfolio/Activity/ActivityTable/TimeCell'
 import { filterTransactionDetailsFromActivityItems } from '~/pages/Portfolio/Activity/Filters/utils'
@@ -28,6 +27,7 @@ import { TableSectionHeader } from '~/pages/Portfolio/Overview/TableSectionHeade
 import { ViewAllButton } from '~/pages/Portfolio/Overview/ViewAllButton'
 import { PortfolioTab } from '~/pages/Portfolio/types'
 import { buildPortfolioUrl } from '~/pages/Portfolio/utils/portfolioUrls'
+import { useOpenTransactionDetailsModal } from '~/state/transactionDetailsModalStore'
 
 interface MiniActivityTableProps {
   maxActivities?: number
@@ -125,7 +125,9 @@ export const MiniActivityTable = memo(function MiniActivityTable({
         section: SectionName.PortfolioOverviewTab,
         ...trace,
       })
-      openTransactionDetailsModal(transaction, { isExternalProfile: isExternalWallet })
+      openTransactionDetailsModal(transaction, {
+        isExternalProfile: isExternalWallet,
+      })
     },
     [trace, openTransactionDetailsModal, isExternalWallet],
   )
@@ -153,9 +155,13 @@ export const MiniActivityTable = memo(function MiniActivityTable({
 
   const subtitle = useMemo(() => {
     if (showingPastWeek) {
-      return t('portfolio.overview.activity.table.subtitle', { count: transactionData.length })
+      return t('portfolio.overview.activity.table.subtitle', {
+        count: transactionData.length,
+      })
     }
-    return t('portfolio.overview.activity.table.subtitle_most_recent', { count: transactionData.length })
+    return t('portfolio.overview.activity.table.subtitle_most_recent', {
+      count: transactionData.length,
+    })
   }, [showingPastWeek, transactionData.length, t])
 
   return (
@@ -178,7 +184,6 @@ export const MiniActivityTable = memo(function MiniActivityTable({
             data={transactionData.slice(0, maxActivities)}
             loading={tableLoading}
             error={false}
-            v2={true}
             rowWrapper={rowWrapper}
             loadingRowsCount={MAX_ACTIVITY_ROWS}
             rowHeight={PORTFOLIO_TABLE_ROW_HEIGHT}
@@ -188,7 +193,9 @@ export const MiniActivityTable = memo(function MiniActivityTable({
           <Flex row alignItems="center" height={PORTFOLIO_TABLE_ROW_HEIGHT} gap="$gap8" p="$spacing8">
             <InfoCircleFilled color="$neutral2" size="$icon.20" />
             <Text variant="buttonLabel3" color="$neutral1">
-              {t('portfolio.overview.activity.table.empty', { count: transactionData.length })}
+              {t('portfolio.overview.activity.table.empty', {
+                count: transactionData.length,
+              })}
             </Text>
           </Flex>
         )}
@@ -199,9 +206,10 @@ export const MiniActivityTable = memo(function MiniActivityTable({
           alignItems="center"
           gap="$gap8"
           onPress={handleSeeAllActivity}
-          data-testid={TestID.PortfolioOverviewViewAllActivity}
+          testID={TestID.PortfolioOverviewViewAllActivity}
         >
-          <Text variant="body3" color="$neutral2">
+          {/* hoverStyle replaces the legacy TouchableArea hover-color injection, which skips mycelium children */}
+          <Text variant="body3" color="$neutral2" hoverStyle={{ color: '$neutral2Hovered' }}>
             {t('portfolio.overview.activity.seeAllActivity')}
           </Text>
           <RotateRight color="$neutral1" size="$icon.16" />

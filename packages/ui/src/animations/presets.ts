@@ -1,8 +1,10 @@
-import type { ViewStyle } from 'tamagui'
-
 // for now only enter/exit though we can change this in the future to support
 // any type of animation, likely we'd want to split that into multiple files
-type EnterExitStyles = Record<string, Pick<ViewStyle, 'enterStyle' | 'exitStyle'>>
+
+/** `x`/`y` are the legacy transform shorthands, not CSS properties. */
+type EnterExitStyle = { opacity?: number; x?: number; y?: number }
+
+type EnterExitStyles = Record<string, { enterStyle?: EnterExitStyle; exitStyle?: EnterExitStyle }>
 
 export const animationsEnter = {
   fadeIn: {
@@ -13,6 +15,27 @@ export const animationsEnter = {
   fadeInDown: {
     enterStyle: {
       y: -10,
+      opacity: 0,
+    },
+  },
+  // The directional presets below are named for the enter ORIGIN (from the
+  // left / right / below), mirroring their spore-enter-fade-in-* keyframe
+  // names — unlike fadeInDown, which is named for the motion direction.
+  fadeInLeft: {
+    enterStyle: {
+      x: -10,
+      opacity: 0,
+    },
+  },
+  fadeInRight: {
+    enterStyle: {
+      x: 10,
+      opacity: 0,
+    },
+  },
+  fadeInBelow: {
+    enterStyle: {
+      y: 10,
       opacity: 0,
     },
   },

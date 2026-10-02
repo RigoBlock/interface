@@ -1,11 +1,10 @@
+import { UniverseChainId, areAddressesEqual, getValidAddress } from '@universe/chains'
 import { getNativeAddress } from 'uniswap/src/constants/addresses'
 import { AssetType, CurrencyAsset } from 'uniswap/src/entities/assets'
 import { ALL_CHAIN_IDS } from 'uniswap/src/features/chains/chainInfo'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { fromUniswapWebAppLink, isTestnetChain } from 'uniswap/src/features/chains/utils'
 import { TransactionState } from 'uniswap/src/features/transactions/types/transactionState'
 import { CurrencyField } from 'uniswap/src/types/currency'
-import { areAddressesEqual, getValidAddress } from 'uniswap/src/utils/addresses'
 import { currencyIdToAddress, currencyIdToChain } from 'uniswap/src/utils/currencyId'
 
 /**
@@ -104,6 +103,7 @@ export function parseSwapLinkMobileFormatOrThrow(url: URL): ParsedSwapLinkParams
   }
 
   // Validate currency field
+  // oxlint-disable-next-line universe-custom/no-tolowercase-address-currencyid -- currencyField query param ('input'/'output'), not an address
   if (!currencyField || (currencyField.toLowerCase() !== 'input' && currencyField.toLowerCase() !== 'output')) {
     throw new Error('Invalid currencyField. Must be either `input` or `output`')
   }
@@ -111,6 +111,7 @@ export function parseSwapLinkMobileFormatOrThrow(url: URL): ParsedSwapLinkParams
   // Validate chain compatibility
   validateSwapChainCompatibility(inputChain, outputChain)
 
+  // oxlint-disable-next-line universe-custom/no-tolowercase-address-currencyid -- currencyField query param ('input'/'output'), not an address
   const exactCurrencyField = currencyField.toLowerCase() === 'output' ? CurrencyField.OUTPUT : CurrencyField.INPUT
 
   const inputAsset: CurrencyAsset = {

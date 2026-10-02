@@ -1,5 +1,5 @@
 import { useActiveAddresses } from 'uniswap/src/features/accounts/store/hooks'
-import { SAMPLE_SEED_ADDRESS_1 } from 'uniswap/src/test/fixtures/gql/assets/constants'
+import { SAMPLE_SEED_ADDRESS_1 } from 'uniswap/src/test/fixtures/assets/constants'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { PortfolioPageInner } from '~/pages/Portfolio/PortfolioPageInner'
 import { PortfolioTab } from '~/pages/Portfolio/types'
@@ -19,11 +19,7 @@ vi.mock('~/pages/Portfolio/Header/hooks/usePortfolioRoutes', () => ({
 }))
 
 vi.mock('~/pages/Portfolio/Header/Header', () => ({
-  PortfolioHeader: ({ scrollY }: { scrollY?: number }) => (
-    <div data-testid="portfolio-header" data-scroll-y={scrollY}>
-      Portfolio Header Mock
-    </div>
-  ),
+  PortfolioHeader: () => <div data-testid="portfolio-header">Portfolio Header Mock</div>,
 }))
 
 vi.mock('~/pages/Portfolio/PortfolioContent', () => ({
@@ -39,11 +35,7 @@ vi.mock('~/pages/Portfolio/ConnectWalletBanner', () => ({
 }))
 
 vi.mock('~/pages/Portfolio/ConnectWalletFixedBottomButton', () => ({
-  ConnectWalletFixedBottomButton: ({ shouldShow }: { shouldShow: boolean }) => (
-    <div data-testid="connect-wallet-button" data-should-show={shouldShow}>
-      Connect Wallet Button Mock
-    </div>
-  ),
+  ConnectWalletFixedBottomButton: () => <div data-testid="connect-wallet-button">Connect Wallet Button Mock</div>,
 }))
 
 describe('PortfolioPageInner', () => {
@@ -65,12 +57,12 @@ describe('PortfolioPageInner', () => {
     })
 
     it('should render correctly with banner visible', () => {
-      const { container } = render(<PortfolioPageInner scrollY={0} isBannerVisible={true} />)
+      const { container } = render(<PortfolioPageInner />)
       expect(container).toMatchSnapshot()
     })
 
     it('should render correctly with banner hidden', () => {
-      const { container } = render(<PortfolioPageInner scrollY={200} isBannerVisible={false} />)
+      const { container } = render(<PortfolioPageInner />)
       expect(container).toMatchSnapshot()
     })
   })
@@ -89,12 +81,12 @@ describe('PortfolioPageInner', () => {
     })
 
     it('should render demo view with connect wallet banner', () => {
-      const { container } = render(<PortfolioPageInner scrollY={0} isBannerVisible={true} />)
+      const { container } = render(<PortfolioPageInner />)
       expect(container).toMatchSnapshot()
     })
 
     it('should render demo view with bottom margin', () => {
-      const { container } = render(<PortfolioPageInner scrollY={0} isBannerVisible={false} mb={100} />)
+      const { container } = render(<PortfolioPageInner mb={100} />)
       expect(container).toMatchSnapshot()
     })
   })

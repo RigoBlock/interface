@@ -1,9 +1,10 @@
+import { isWebPlatform } from '@universe/environment'
+import { Button, Flex, FlexLoader, fonts, Separator, Skeleton, Text } from '@universe/mycelium'
+import { SlashCircle } from '@universe/mycelium/icons/SlashCircle'
+import { TestID } from '@universe/test'
 import { providers } from 'ethers/lib/ethers'
 import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Flex, FlexLoader, Separator, Skeleton, Text } from 'ui/src'
-import { SlashCircle } from 'ui/src/components/icons/SlashCircle'
-import { fonts } from 'ui/src/theme'
 import { AuthTrigger } from 'uniswap/src/features/auth/types'
 import { useUSDValueOfGasFee } from 'uniswap/src/features/gas/hooks'
 import { useCancellationGasFeeInfo } from 'uniswap/src/features/gas/hooks/useCancellationGasFeeInfo'
@@ -19,9 +20,7 @@ import {
   TransactionStatus,
   TransactionType,
 } from 'uniswap/src/features/transactions/types/transactionDetails'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { NumberType } from 'utilities/src/format/types'
-import { isWebPlatform } from 'utilities/src/platform'
 
 export interface PlanCancellationInfo {
   isPlanCancellation: true
@@ -163,7 +162,7 @@ export function CancelConfirmationView({
           }}
         >
           <Button
-            isDisabled={disableConfirmationButton}
+            disabled={disableConfirmationButton}
             testID={TestID.Cancel}
             variant="critical"
             emphasis="secondary"

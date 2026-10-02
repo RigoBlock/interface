@@ -1,3 +1,4 @@
+// oxlint-disable eslint-js/no-restricted-syntax -- allow process.env access here
 /* oxlint-disable max-params */
 /**
  * Structured JSON Logger Implementation
@@ -138,5 +139,3 @@ export function createStructuredJsonLoggerFactory(minLevel: LogLevel = 'info'): 
     },
   }
 }
-
-export const structuredJsonLoggerFactory: LoggerFactory = createStructuredJsonLoggerFactory('info')

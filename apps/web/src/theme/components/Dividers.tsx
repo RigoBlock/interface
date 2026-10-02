@@ -1,9 +1,9 @@
-import { deprecatedStyled } from '~/lib/deprecated-styled'
+import { styled, type StyledComponent } from '@universe/mycelium/styled'
 
-export const Divider = deprecatedStyled.div`
-  width: 100%;
-  height: 1px;
-  border-width: 0;
-  margin: 0;
-  background-color: ${({ theme }) => theme.surface3};
-`
+const DIVIDER_VARIANTS = {} as const
+
+export const Divider: StyledComponent<'div', typeof DIVIDER_VARIANTS> = styled('div', {
+  platform: 'web',
+  variants: DIVIDER_VARIANTS,
+  base: 'w-full h-[1px] border-0 m-0 bg-surface3',
+})

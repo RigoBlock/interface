@@ -1,64 +1,46 @@
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Flex, Text } from '@universe/mycelium'
+import { styled } from '@universe/mycelium/styled'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { parseToRgb } from 'polished'
+import { type ComponentPropsWithoutRef, forwardRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Flex, styled, Text, useSporeColors } from 'ui/src'
 import { ArrowRight } from 'ui/src/components/icons/ArrowRight'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { NumberType } from 'utilities/src/format/types'
+import { use24hProtocolVolume, useDailyTVLWithChange } from '~/features/Explore/state/protocolStats'
 import { LiveIcon, StatCard } from '~/pages/Landing/components/StatCard'
 import { useInView } from '~/pages/Landing/sections/useInView'
-import { use24hProtocolVolume, useDailyTVLWithChange } from '~/state/explore/protocolStats'
 import { ExternalLink } from '~/theme/components/Links'
 
-const Container = styled(Flex, {
-  width: '100%',
-  maxWidth: 1360,
-  alignItems: 'center',
-  p: 40,
-
-  $lg: {
-    p: 48,
-  },
-
-  $sm: {
-    p: 24,
-  },
+// Class universes parity-pinned against the legacy styled() configs in
+// packages/tailwind/src/parity/styled-factory (buildStatsContainer / buildStatsGridArea).
+const Container = styled('div', {
+  platform: 'web',
+  base: 'flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 w-full max-w-[1360px] items-center p-[40px] media-lg:p-[48px] media-sm:px-[24px] media-sm:pt-[24px] media-sm:pb-0',
 })
 
-const SectionLayout = styled(Flex, {
-  width: '100%',
-  maxWidth: 1280,
+const SectionLayout = styled('div', {
+  platform: 'web',
+  base: 'flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 w-full max-w-[1280px]',
 })
 
-const GridArea = styled(Flex, {
-  className: 'grid-area',
-
-  '$platform-web': {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gridTemplateRows: 'repeat(4, 1fr)',
-    gridColumnGap: '12px',
-    gridRowGap: '12px',
-  },
-
-  $xs: {
-    height: 320,
-  },
-
-  $xxs: {
-    '$platform-web': {
-      gridColumnGap: '8px',
-      gridRowGap: '8px',
-    },
-  },
+const GridArea = styled('div', {
+  platform: 'web',
+  base: 'flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 grid [grid-template-columns:repeat(4,1fr)] [grid-template-rows:repeat(4,1fr)] [grid-column-gap:12px] [grid-row-gap:12px] media-xs:h-[320px] media-xxs:[grid-column-gap:8px] media-xxs:[grid-row-gap:8px]',
 })
 
-const LearnMoreButton = styled(Flex, {
-  p: 12,
-  px: 16,
-  borderRadius: 24,
-  backgroundColor: '$surface2',
-  alignSelf: 'flex-start',
+const LearnMoreButtonBase = styled('div', {
+  platform: 'web',
+  base: 'flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 p-[12px] px-[16px] rounded-[24px] bg-surface2 self-start',
+})
+
+// The legacy Flex forwarded its (inert) `href` straight to the div; keep the attribute.
+const LearnMoreButton = forwardRef<
+  HTMLDivElement,
+  ComponentPropsWithoutRef<typeof LearnMoreButtonBase> & { href?: string }
+>(function LearnMoreButton(props, ref) {
+  return <LearnMoreButtonBase ref={ref} {...props} />
 })
 
 function GetStarted() {
@@ -133,40 +115,24 @@ export function Stats() {
   )
 }
 
-const LeftTop = styled(Flex, {
-  '$platform-web': {
-    gridColumnStart: 1,
-    gridColumnEnd: 3,
-    gridRowStart: 1,
-    gridRowEnd: 3,
-  },
+const LeftTop = styled('div', {
+  platform: 'web',
+  base: 'flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 col-start-1 col-end-3 row-start-1 row-end-3',
 })
 
-const RightTop = styled(Flex, {
-  '$platform-web': {
-    gridColumnStart: 3,
-    gridColumnEnd: 5,
-    gridRowStart: 1,
-    gridRowEnd: 3,
-  },
+const RightTop = styled('div', {
+  platform: 'web',
+  base: 'flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 col-start-3 col-end-5 row-start-1 row-end-3',
 })
 
-const LeftBottom = styled(Flex, {
-  '$platform-web': {
-    gridColumnStart: 1,
-    gridColumnEnd: 3,
-    gridRowStart: 3,
-    gridRowEnd: 5,
-  },
+const LeftBottom = styled('div', {
+  platform: 'web',
+  base: 'flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 col-start-1 col-end-3 row-start-3 row-end-5',
 })
 
-const RightBottom = styled(Flex, {
-  '$platform-web': {
-    gridColumnStart: 3,
-    gridColumnEnd: 5,
-    gridRowStart: 3,
-    gridRowEnd: 5,
-  },
+const RightBottom = styled('div', {
+  platform: 'web',
+  base: 'flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 col-start-3 col-end-5 row-start-3 row-end-5',
 })
 
 function Cards({ inView }: { inView: boolean }) {
@@ -179,7 +145,7 @@ function Cards({ inView }: { inView: boolean }) {
   const allTimeSwappers = 119 * 10 ** 6
 
   return (
-    <GridArea>
+    <GridArea className="grid-area">
       <LeftTop>
         <StatCard
           title={t('stats.allTimeVolume')}

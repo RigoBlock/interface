@@ -1,5 +1,5 @@
+import { UniverseChainId } from '@universe/chains'
 import { AssetType, TradeableAsset } from 'uniswap/src/entities/assets'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { FiatOffRampMetaData } from 'uniswap/src/features/fiatOnRamp/types'
 import { FrontendSupportedProtocol } from 'uniswap/src/features/transactions/swap/utils/protocols'
 import { CurrencyField, CurrencyId } from 'uniswap/src/types/currency'

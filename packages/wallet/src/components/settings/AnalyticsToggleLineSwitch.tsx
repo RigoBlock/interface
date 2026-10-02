@@ -1,6 +1,7 @@
+import { Flex, type FlexProps, Text } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { Flex, FlexProps, Switch, Text } from 'ui/src'
+import { Switch } from 'ui/src'
 import { selectAllowAnalytics } from 'wallet/src/features/telemetry/selectors'
 import { setAllowAnalytics } from 'wallet/src/features/telemetry/slice'
 

@@ -1,31 +1,40 @@
-import { useEffect, useState } from 'react'
+import { Platform } from '@universe/chains'
+import { Button, Flex, iconSizes, Shine, Text, TouchableArea } from '@universe/mycelium'
+import { RotatableChevron } from '@universe/mycelium/icons/RotatableChevron'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Flex, Shine, Text, TouchableArea } from 'ui/src'
-import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
-import { iconSizes } from 'ui/src/theme'
 import { TokenLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
 import { TokenSelectorFlow } from 'uniswap/src/components/TokenSelector/types'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
+import { useTokenMetadata } from 'uniswap/src/features/dataApi/tokenDetails/useTokenDetailsData'
+import { AuctionEventName, ElementName } from 'uniswap/src/features/telemetry/constants'
+import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
+import Trace from 'uniswap/src/features/telemetry/Trace'
 import { useCurrencyInfoWithLoading } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
 import { logger } from 'utilities/src/logger/logger'
-import { SwitchNetworkAction } from '~/components/Popups/types'
-import CurrencySearchModal from '~/components/SearchModal/CurrencySearchModal'
+import { useEvent } from 'utilities/src/react/hooks'
+import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
+import { ToucanGeoRestrictionCard } from '~/components/GeoRestriction/ToucanGeoRestrictionCard'
+import { useToucanGeoRestriction } from '~/components/GeoRestriction/useToucanGeoRestriction'
+import { CurrencySearchModal } from '~/components/SearchModal/CurrencySearchModal'
 import { useActiveAddress } from '~/features/accounts/store/hooks'
 import { useTotalSupply } from '~/hooks/useTotalSupply'
+import { getAuctionTokenInfoEnteredProperties } from '~/pages/Liquidity/CreateAuction/analytics'
+import { ExistingTokenInfoDisplay } from '~/pages/Liquidity/CreateAuction/components/ExistingTokenInfoDisplay'
 import { NoWalletSection } from '~/pages/Liquidity/CreateAuction/components/NoWalletSection'
-import { TokenAdditionalInfoSection } from '~/pages/Liquidity/CreateAuction/components/TokenAdditionalInfoSection'
 import { useCreateAuctionStoreActions } from '~/pages/Liquidity/CreateAuction/CreateAuctionContext'
-import { useCreateAuctionAllowedNetworks } from '~/pages/Liquidity/CreateAuction/hooks/useCreateAuctionAllowedNetworks'
+import { useCreateAuctionAllowedNetworks } from '~/pages/Liquidity/CreateAuction/hooks/useAllowedNetworks'
 import { useCreateAuctionTokenColor } from '~/pages/Liquidity/CreateAuction/hooks/useCreateAuctionTokenColor'
 import { useIsStepValid } from '~/pages/Liquidity/CreateAuction/hooks/useIsStepValid'
 import { CreateAuctionStep, type ExistingTokenFormState } from '~/pages/Liquidity/CreateAuction/types'
+import { SwitchNetworkAction } from '~/state/popups/types'
 
 export function ExistingTokenForm({ existing }: { existing: ExistingTokenFormState }) {
   const { t } = useTranslation()
   const tokenColor = useCreateAuctionTokenColor()
   const { updateExistingTokenField, commitTokenFormAndAdvance } = useCreateAuctionStoreActions()
   const address = useActiveAddress(Platform.EVM)
+  const trace = useTrace()
 
   const [showCurrencySearch, setShowCurrencySearch] = useState(false)
   const [lookupCurrencyId, setLookupCurrencyId] = useState<string | undefined>()
@@ -33,17 +42,38 @@ export function ExistingTokenForm({ existing }: { existing: ExistingTokenFormSta
   const allowedNetworks = useCreateAuctionAllowedNetworks()
 
   const {
-    currencyInfo: resolvedCurrencyInfo,
-    loading: currencyLoading,
+    data: resolvedCurrencyInfo,
+    isLoading: currencyLoading,
     error: currencyError,
   } = useCurrencyInfoWithLoading(lookupCurrencyId, { skip: !lookupCurrencyId })
 
   const selectedCurrencyInfo = existing.existingTokenCurrencyInfo
   const selectedCurrency = selectedCurrencyInfo?.currency
   const { totalSupply, isLoading: totalSupplyLoading, isError: totalSupplyError } = useTotalSupply(selectedCurrency)
+  const projectMetadata = useTokenMetadata(selectedCurrencyInfo?.currencyId)
+  const { isGeoRestricted, isGeoRestrictionPending, unavailableLabel } = useToucanGeoRestriction(selectedCurrency)
 
   const hasFetchError = (!!currencyError && !!lookupCurrencyId) || (totalSupplyError && !!selectedCurrencyInfo)
-  const canContinue = useIsStepValid(CreateAuctionStep.ADD_TOKEN_INFO) && !totalSupplyLoading && !hasFetchError
+  const canContinue =
+    useIsStepValid(CreateAuctionStep.ADD_TOKEN_INFO) &&
+    !totalSupplyLoading &&
+    !projectMetadata.isLoading &&
+    !hasFetchError
+  // Fail closed while the geo-restriction check is pending: keep the CTA disabled until the token is
+  // confirmed clean, so a restricted token never briefly shows an enabled Continue button.
+  const continueDisabled = !canContinue || isGeoRestricted || isGeoRestrictionPending
+
+  const handleDisabledContinuePress = useCallback(() => {
+    setShowCurrencySearch(true)
+  }, [])
+
+  const handleContinue = useEvent(() => {
+    sendAnalyticsEvent(
+      AuctionEventName.AuctionTokenInfoEntered,
+      getAuctionTokenInfoEnteredProperties({ trace, tokenForm: existing }),
+    )
+    commitTokenFormAndAdvance()
+  })
 
   // Auto-populate currencyInfo when address resolves
   useEffect(() => {
@@ -65,6 +95,21 @@ export function ExistingTokenForm({ existing }: { existing: ExistingTokenFormSta
       updateExistingTokenField('totalSupply', resolved)
     }
   }, [totalSupply, existing.totalSupply, updateExistingTokenField])
+
+  useEffect(() => {
+    if (projectMetadata.isLoading) {
+      return
+    }
+    if ((projectMetadata.description ?? '') !== existing.description) {
+      updateExistingTokenField('description', projectMetadata.description ?? '')
+    }
+    if ((projectMetadata.homepageUrl ?? '') !== existing.websiteLink) {
+      updateExistingTokenField('websiteLink', projectMetadata.homepageUrl ?? '')
+    }
+    if ((projectMetadata.twitterName ?? '') !== existing.xProfile) {
+      updateExistingTokenField('xProfile', projectMetadata.twitterName ?? '')
+    }
+  }, [projectMetadata, existing.description, existing.websiteLink, existing.xProfile, updateExistingTokenField])
 
   const [loggedErrorKey, setLoggedErrorKey] = useState<string | undefined>(undefined)
   useEffect(() => {
@@ -103,47 +148,49 @@ export function ExistingTokenForm({ existing }: { existing: ExistingTokenFormSta
         </Text>
       </Flex>
       {currencyLoading ? (
-        <Shine width="100%">
+        <Shine className="w-full">
           <Flex backgroundColor="$surface3" borderRadius="$rounded12" height={50} />
         </Shine>
       ) : (
-        <TouchableArea
-          row
-          alignItems="center"
-          gap="$spacing16"
-          justifyContent="space-between"
-          p="$spacing16"
-          borderRadius="$rounded12"
-          borderWidth="$spacing1"
-          borderColor="$surface3"
-          backgroundColor="$surface1"
-          onPress={() => setShowCurrencySearch(true)}
-        >
-          {selectedCurrencyInfo ? (
-            <>
-              <Flex width={iconSizes.icon64} height={iconSizes.icon64}>
-                <TokenLogo
-                  size={iconSizes.icon64}
-                  chainId={selectedCurrencyInfo.currency.chainId}
-                  name={selectedCurrencyInfo.currency.name}
-                  symbol={selectedCurrencyInfo.currency.symbol}
-                  url={selectedCurrencyInfo.logoUrl ?? undefined}
-                />
-              </Flex>
-              <Flex flex={1}>
-                <Text variant="heading3">{selectedCurrencyInfo.currency.name}</Text>
-                <Text variant="body2" color="$neutral2">
-                  {selectedCurrencyInfo.currency.symbol}
-                </Text>
-              </Flex>
-            </>
-          ) : (
-            <Text variant="buttonLabel3" color="$neutral1" flex={1}>
-              {t('toucan.createAuction.step.tokenInfo.selectToken')}
-            </Text>
-          )}
-          <RotatableChevron direction="down" color="$neutral1" size="$icon.24" />
-        </TouchableArea>
+        <Trace logPress element={ElementName.AuctionTokenSearch}>
+          <TouchableArea
+            row
+            alignItems="center"
+            gap="$spacing16"
+            justifyContent="space-between"
+            p="$spacing16"
+            borderRadius="$rounded12"
+            borderWidth="$spacing1"
+            borderColor="$surface3"
+            backgroundColor="$surface1"
+            onPress={() => setShowCurrencySearch(true)}
+          >
+            {selectedCurrencyInfo ? (
+              <>
+                <Flex width={iconSizes.icon64} height={iconSizes.icon64}>
+                  <TokenLogo
+                    size={iconSizes.icon64}
+                    chainId={selectedCurrencyInfo.currency.chainId}
+                    name={selectedCurrencyInfo.currency.name}
+                    symbol={selectedCurrencyInfo.currency.symbol}
+                    url={selectedCurrencyInfo.logoUrl ?? undefined}
+                  />
+                </Flex>
+                <Flex flex={1}>
+                  <Text variant="heading3">{selectedCurrencyInfo.currency.name}</Text>
+                  <Text variant="body2" color="$neutral2">
+                    {selectedCurrencyInfo.currency.symbol}
+                  </Text>
+                </Flex>
+              </>
+            ) : (
+              <Text variant="buttonLabel3" color="$neutral1" flex={1}>
+                {t('toucan.createAuction.step.tokenInfo.selectToken')}
+              </Text>
+            )}
+            <RotatableChevron direction="down" color="$neutral1" size="$icon.24" />
+          </TouchableArea>
+        </Trace>
       )}
 
       {invalidTokenSelected && (
@@ -159,24 +206,30 @@ export function ExistingTokenForm({ existing }: { existing: ExistingTokenFormSta
       )}
 
       {selectedCurrencyInfo && (
-        <TokenAdditionalInfoSection
+        <ExistingTokenInfoDisplay
           description={existing.description}
-          onDescriptionChange={(v) => updateExistingTokenField('description', v)}
+          websiteLink={existing.websiteLink}
+          xHandle={existing.xProfile}
         />
       )}
 
       <Flex row>
-        <Button
-          size="large"
-          emphasis="primary"
-          onPress={commitTokenFormAndAdvance}
-          isDisabled={!canContinue}
-          fill
-          backgroundColor={tokenColor}
-        >
-          {t('common.button.continue')}
-        </Button>
+        <Trace logPress element={ElementName.Continue} properties={{ token_source: 'existing' }}>
+          <Button
+            size="large"
+            emphasis="primary"
+            onPress={handleContinue}
+            disabled={continueDisabled}
+            onDisabledPress={continueDisabled ? handleDisabledContinuePress : undefined}
+            fill
+            backgroundColor={continueDisabled ? undefined : tokenColor}
+          >
+            {isGeoRestricted ? unavailableLabel : t('common.button.continue')}
+          </Button>
+        </Trace>
       </Flex>
+
+      {isGeoRestricted && <ToucanGeoRestrictionCard tokenSymbol={selectedCurrency?.symbol} />}
 
       <CurrencySearchModal
         isOpen={showCurrencySearch}

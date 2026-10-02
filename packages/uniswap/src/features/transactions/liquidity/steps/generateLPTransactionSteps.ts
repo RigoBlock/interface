@@ -11,13 +11,17 @@ import {
   createCreatePositionAsyncStep,
   createIncreasePositionAsyncStep,
   createIncreasePositionStep,
-  createIncreasePositionStepBatched,
+  createIncreasePositionStepWalletCall,
 } from 'uniswap/src/features/transactions/liquidity/steps/increasePosition'
 import {
   createMigratePositionAsyncStep,
   createMigratePositionStep,
+  createMigratePositionStepWalletCall,
 } from 'uniswap/src/features/transactions/liquidity/steps/migrate'
-import { orderMigrateLiquiditySteps } from 'uniswap/src/features/transactions/liquidity/steps/migrationSteps'
+import {
+  MigrationSteps,
+  orderMigrateLiquiditySteps,
+} from 'uniswap/src/features/transactions/liquidity/steps/migrationSteps'
 import {
   isValidLiquidityTxContext,
   LiquidityTransactionType,
@@ -28,6 +32,7 @@ import { createPermit2SignatureStep } from 'uniswap/src/features/transactions/st
 import { createPermit2TransactionStep } from 'uniswap/src/features/transactions/steps/permit2Transaction'
 import { createRevocationTransactionStep } from 'uniswap/src/features/transactions/steps/revoke'
 import { OnChainTransactionFields, TransactionStep } from 'uniswap/src/features/transactions/steps/types'
+import { getWrappedTokenIfExists } from 'uniswap/src/utils/currency'
 
 export function generateLPTransactionSteps(txContext: LiquidityTxAndGasInfo): TransactionStep[] {
   const isValidLP = isValidLiquidityTxContext(txContext)
@@ -51,14 +56,14 @@ export function generateLPTransactionSteps(txContext: LiquidityTxAndGasInfo): Tr
 
     const token0Fields = {
       txRequest: txContext.revokeToken0Request,
-      tokenAddress: action.currency0Amount.currency.wrapped.address,
+      tokenAddress: getWrappedTokenIfExists(action.currency0Amount.currency)?.address,
       chainId: action.currency0Amount.currency.chainId,
       amount: action.currency0Amount.quotient.toString(),
     }
 
     const token1Fields = {
       txRequest: txContext.revokeToken1Request,
-      tokenAddress: action.currency1Amount.currency.wrapped.address,
+      tokenAddress: getWrappedTokenIfExists(action.currency1Amount.currency)?.address,
       chainId: action.currency1Amount.currency.chainId,
       amount: action.currency1Amount.quotient.toString(),
     }
@@ -81,9 +86,9 @@ export function generateLPTransactionSteps(txContext: LiquidityTxAndGasInfo): Tr
     })
 
     const approvalPositionToken = createApprovalTransactionStep({
-      amount: action.liquidityToken ? CurrencyAmount.fromRawAmount(action.liquidityToken, 1).quotient.toString() : '0',
-      tokenAddress: action.liquidityToken?.wrapped.address,
-      chainId: action.liquidityToken?.chainId,
+      amount: action.liquidityToken ? CurrencyAmount.fromRawAmount(action.liquidityToken, 1).quotient.toString() : '1',
+      tokenAddress: getWrappedTokenIfExists(action.liquidityToken)?.address ?? approvePositionTokenRequest?.to,
+      chainId: action.liquidityToken?.chainId ?? action.currency0Amount.currency.chainId,
       txRequest: approvePositionTokenRequest,
       pair: [action.currency0Amount.currency, action.currency1Amount.currency],
     })
@@ -124,12 +129,23 @@ export function generateLPTransactionSteps(txContext: LiquidityTxAndGasInfo): Tr
             approvalPositionToken: undefined,
           })
         } else {
-          return orderMigrateLiquiditySteps({
+          const migrateSteps = orderMigrateLiquiditySteps({
             permit: undefined,
             positionTokenPermitTransaction: positionTokenPermitTransactionStep,
             approvalPositionToken,
             migrate: createMigratePositionStep(txContext.txRequest),
           })
+
+          if (txContext.canBatchTransactions) {
+            const txRequests = migrateSteps
+              .filter(
+                (step): step is MigrationSteps & OnChainTransactionFields => 'txRequest' in step && !!step.txRequest,
+              )
+              .map((step) => step.txRequest)
+            return [createMigratePositionStepWalletCall(txRequests)]
+          }
+
+          return migrateSteps
         }
       case 'create':
       case 'increase':
@@ -166,7 +182,7 @@ export function generateLPTransactionSteps(txContext: LiquidityTxAndGasInfo): Tr
             const txRequests = steps
               .filter((step): step is IncreaseLiquiditySteps & OnChainTransactionFields => 'txRequest' in step)
               .map((step) => step.txRequest)
-            return [createIncreasePositionStepBatched(txRequests)]
+            return [createIncreasePositionStepWalletCall(txRequests)]
           }
 
           return steps

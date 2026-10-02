@@ -1,17 +1,17 @@
 import { type QueryClient, type QueryKey, skipToken, type UseQueryResult, useQuery } from '@tanstack/react-query'
-import { is404Error, SharedQueryClient, TradingApi, type UseQueryApiHelperHookArgs } from '@universe/api'
-import { uniswapUrls } from 'uniswap/src/constants/urls'
+import {
+  SharedQueryClient,
+  TradingApi,
+  V1_TRADING_API_PATHS,
+  is404Error,
+  type UseQueryApiHelperHookArgs,
+} from '@universe/api'
 import { TradingApiClient } from 'uniswap/src/data/apiClients/tradingApi/TradingApiClient'
-import { logSwapQuoteFetch } from 'uniswap/src/features/transactions/swap/analytics'
+import { logSwapQuoteFetch } from 'uniswap/src/features/transactions/swap/logSwapQuoteFetch'
 import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
 
 function getTradingApiIndicativeQuoteQueryKey(params: TradingApi.QuoteRequest | undefined): QueryKey {
-  return [
-    ReactQueryCacheKey.TradingApi,
-    uniswapUrls.tradingApiPaths.quote,
-    TradingApi.RoutingPreference.FASTEST,
-    params,
-  ]
+  return [ReactQueryCacheKey.TradingApi, V1_TRADING_API_PATHS.quote, TradingApi.RoutingPreference.FASTEST, params]
 }
 
 /**
@@ -31,7 +31,13 @@ export function useTradingApiIndicativeQuoteQuery({
     queryKey,
     queryFn: params
       ? async (): ReturnType<typeof TradingApiClient.fetchQuote> => {
-          logSwapQuoteFetch({ chainId: params.tokenInChainId, isQuickRoute: true })
+          logSwapQuoteFetch({
+            chainId: params.tokenInChainId,
+            tokenOutChainId: params.tokenOutChainId,
+            tokenIn: params.tokenIn,
+            tokenOut: params.tokenOut,
+            isQuickRoute: true,
+          })
           return await TradingApiClient.fetchQuote({
             ...params,
             routingPreference: TradingApi.RoutingPreference.FASTEST,

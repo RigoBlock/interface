@@ -1,7 +1,9 @@
-import { Trans } from 'react-i18next'
-import { Flex, Text, useMedia } from 'ui/src'
+import { Flex, Text } from '@universe/mycelium'
+import { useMedia } from '@universe/mycelium/theme-hooks-compat'
+import { useTranslation } from 'react-i18next'
 
 export const DetectedBadge = () => {
+  const { t } = useTranslation()
   const media = useMedia()
 
   return (
@@ -11,7 +13,7 @@ export const DetectedBadge = () => {
       })}
     >
       <Text lineHeight={16} fontSize={12} color="$neutral2">
-        <Trans i18nKey="common.detected" />
+        {t('common.detected')}
       </Text>
     </Flex>
   )

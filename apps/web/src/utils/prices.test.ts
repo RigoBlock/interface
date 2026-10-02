@@ -145,15 +145,15 @@ describe('removeOutliers', () => {
 
   it('removes outliers using IQR method', () => {
     const data: PriceChartData[] = [
-      { time: 1 as UTCTimestamp, open: 100, high: 100, low: 100, close: 100, value: 100 }, // Q1
-      { time: 2 as UTCTimestamp, open: 150, high: 150, low: 150, close: 150, value: 150 },
-      { time: 3 as UTCTimestamp, open: 200, high: 200, low: 200, close: 200, value: 200 }, // Q3
-      { time: 4 as UTCTimestamp, open: 250, high: 250, low: 250, close: 250, value: 250 },
-      { time: 5 as UTCTimestamp, open: 1000, high: 1000, low: 1000, close: 1000, value: 1000 }, // outlier
+      { time: 1 as UTCTimestamp, open: 100, high: 100, low: 100, close: 100, value: 100 },
+      { time: 2 as UTCTimestamp, open: 150, high: 150, low: 150, close: 150, value: 150 }, // Q1
+      { time: 3 as UTCTimestamp, open: 200, high: 200, low: 200, close: 200, value: 200 },
+      { time: 4 as UTCTimestamp, open: 1000, high: 1000, low: 1000, close: 1000, value: 1000 }, // outlier
+      { time: 5 as UTCTimestamp, open: 250, high: 250, low: 250, close: 250, value: 250 }, // Q3
+      { time: 6 as UTCTimestamp, open: 300, high: 300, low: 300, close: 300, value: 300 },
     ]
     const result = removeOutliers(data)
-    expect(result).toHaveLength(4)
-    expect(result).not.toContainEqual({ time: 5, value: 1000 })
+    expect(result.map((entry) => entry.value)).toEqual([100, 150, 200, 250, 300])
   })
 
   it('handles negative outliers', () => {
@@ -179,5 +179,45 @@ describe('removeOutliers', () => {
     ]
     const result = removeOutliers(data)
     expect(result).toEqual(data)
+  })
+
+  it('keeps a spike in the most recent entry', () => {
+    const data: PriceChartData[] = [
+      { time: 1 as UTCTimestamp, open: 100, high: 100, low: 100, close: 100, value: 100 },
+      { time: 2 as UTCTimestamp, open: 150, high: 150, low: 150, close: 150, value: 150 },
+      { time: 3 as UTCTimestamp, open: 200, high: 200, low: 200, close: 200, value: 200 },
+      { time: 4 as UTCTimestamp, open: 250, high: 250, low: 250, close: 250, value: 250 },
+      { time: 5 as UTCTimestamp, open: 300, high: 300, low: 300, close: 300, value: 300 },
+      { time: 6 as UTCTimestamp, open: 5000, high: 5000, low: 5000, close: 5000, value: 5000 }, // live spike
+    ]
+    const result = removeOutliers(data, { keepLatest: true })
+    expect(result).toEqual(data)
+  })
+
+  it('filters a spike in the most recent entry without keepLatest', () => {
+    const data: PriceChartData[] = [
+      { time: 1 as UTCTimestamp, open: 100, high: 100, low: 100, close: 100, value: 100 },
+      { time: 2 as UTCTimestamp, open: 150, high: 150, low: 150, close: 150, value: 150 },
+      { time: 3 as UTCTimestamp, open: 200, high: 200, low: 200, close: 200, value: 200 },
+      { time: 4 as UTCTimestamp, open: 250, high: 250, low: 250, close: 250, value: 250 },
+      { time: 5 as UTCTimestamp, open: 300, high: 300, low: 300, close: 300, value: 300 },
+      { time: 6 as UTCTimestamp, open: 5000, high: 5000, low: 5000, close: 5000, value: 5000 }, // bad backend point
+    ]
+    const result = removeOutliers(data)
+    expect(result.map((entry) => entry.value)).toEqual([100, 150, 200, 250, 300])
+  })
+
+  it('excludes the most recent entry from the IQR bounds', () => {
+    // A trailing spike must not widen the bounds far enough to rescue an earlier outlier.
+    const data: PriceChartData[] = [
+      { time: 1 as UTCTimestamp, open: 100, high: 100, low: 100, close: 100, value: 100 },
+      { time: 2 as UTCTimestamp, open: 150, high: 150, low: 150, close: 150, value: 150 },
+      { time: 3 as UTCTimestamp, open: 5000, high: 5000, low: 5000, close: 5000, value: 5000 }, // outlier
+      { time: 4 as UTCTimestamp, open: 200, high: 200, low: 200, close: 200, value: 200 },
+      { time: 5 as UTCTimestamp, open: 250, high: 250, low: 250, close: 250, value: 250 },
+      { time: 6 as UTCTimestamp, open: 5000, high: 5000, low: 5000, close: 5000, value: 5000 }, // live spike
+    ]
+    const result = removeOutliers(data, { keepLatest: true })
+    expect(result.map((entry) => entry.value)).toEqual([100, 150, 200, 250, 5000])
   })
 })

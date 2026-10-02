@@ -1,7 +1,7 @@
+import { Flex } from '@universe/mycelium'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useExtensionNavigation } from 'src/app/navigation/utils'
-import { Flex } from 'ui/src'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { clearNotificationsByType } from 'uniswap/src/features/notifications/slice/slice'
 import { AppNotificationType } from 'uniswap/src/features/notifications/slice/types'

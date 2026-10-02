@@ -1,81 +1,87 @@
-import { TFunction } from 'i18next'
-import { useRef } from 'react'
+import { areAddressesEqual, Platform } from '@universe/chains'
 import { useTranslation } from 'react-i18next'
 import { useUnitagsUsernameQuery } from 'uniswap/src/data/apiClients/unitagsApi/useUnitagsUsernameQuery'
 import { useENS } from 'uniswap/src/features/ens/useENS'
-import { UNITAG_VALID_REGEX } from 'uniswap/src/features/unitags/constants'
+import { UNITAG_VERIFICATION_DEBOUNCE_MS } from 'uniswap/src/features/unitags/constants'
+import { getUnitagFormatError } from 'uniswap/src/features/unitags/getUnitagFormatError'
 import { ONE_MINUTE_MS } from 'utilities/src/time/time'
+import { useDebounceWithStatus } from 'utilities/src/time/timing'
 
-const MIN_UNITAG_LENGTH = 3
-const MAX_UNITAG_LENGTH = 20
-
-// Helper function to enforce unitag length and alphanumeric characters
-export const getUnitagFormatError = (unitag: string, t: TFunction): string | undefined => {
-  if (unitag.length < MIN_UNITAG_LENGTH) {
-    return t('unitags.username.error.min', {
-      number: MIN_UNITAG_LENGTH,
-    })
-  }
-
-  if (unitag.length > MAX_UNITAG_LENGTH) {
-    return t('unitags.username.error.max', {
-      number: MAX_UNITAG_LENGTH,
-    })
-  }
-
-  if (unitag !== unitag.toLowerCase()) {
-    return t('unitags.username.error.uppercase')
-  }
-
-  if (!UNITAG_VALID_REGEX.test(unitag)) {
-    return t('unitags.username.error.chars')
-  }
-
-  return undefined
-}
-
-export const useCanClaimUnitagName = (unitag: string | undefined): { error: string | undefined; loading: boolean } => {
+/**
+ * @param claimerAddress When set, a username that is "unavailable" only because it is already
+ *   registered to this address is treated as valid (avoids false errors after a successful claim
+ *   when the availability query refetches).
+ * @param unavailableErrorMessage Overrides the default error copy for a taken username
+ *   (format errors keep their standard messages).
+ */
+export const useCanClaimUnitagName = ({
+  unitag,
+  claimerAddress,
+  unavailableErrorMessage,
+}: {
+  unitag: string | undefined
+  claimerAddress?: string
+  unavailableErrorMessage?: string
+}): { error: string | undefined; loading: boolean; isDebouncing: boolean } => {
   const { t } = useTranslation()
 
-  const errorMessageRef = useRef<string | undefined>(undefined)
-
-  // Check for length and alphanumeric characters
+  // Format errors are local, so they surface from the raw input without waiting for the debounce
   const formatError = unitag ? getUnitagFormatError(unitag, t) : undefined
 
-  // Skip the backend calls if we found an error
-  const unitagToSearch = formatError ? undefined : unitag
+  // Derive debouncing status directly from value equality rather than the hook's
+  // internal `isDebouncing` flag: that flag flips inside a useEffect, so it lags
+  // one render behind a value change. During that lagging render this hook would
+  // otherwise read the *previous* debounced value's already-resolved query data as
+  // if it applied to the newly-typed username — letting a taken username flash as
+  // available before its own availability check has even started.
+  const [debouncedUnitag] = useDebounceWithStatus({
+    value: unitag,
+    delay: UNITAG_VERIFICATION_DEBOUNCE_MS,
+  })
+  const isDebouncing = debouncedUnitag !== unitag
 
-  const { isLoading: unitagLoading, data } = useUnitagsUsernameQuery({
+  const debouncedFormatError = debouncedUnitag ? getUnitagFormatError(debouncedUnitag, t) : undefined
+  const unitagToSearch = debouncedFormatError ? undefined : debouncedUnitag
+
+  const {
+    isLoading: unitagLoading,
+    isError: unitagQueryFailed,
+    data,
+  } = useUnitagsUsernameQuery({
     params: unitagToSearch ? { username: unitagToSearch } : undefined,
     staleTime: 2 * ONE_MINUTE_MS,
   })
 
-  const { loading: ensLoading } = useENS({ nameOrAddress: unitagToSearch, autocompleteDomain: true })
+  const { loading: ensLoading } = useENS({
+    nameOrAddress: unitagToSearch,
+    autocompleteDomain: true,
+    skipDebounce: true,
+  })
   const loading = unitagLoading || ensLoading
-  const unitagAvailable = !loading && data?.available
 
-  // Check for local error, if it exists
   if (formatError) {
-    errorMessageRef.current = formatError
-    return { error: errorMessageRef.current, loading }
+    return { error: formatError, loading, isDebouncing }
   }
 
-  const shouldClearError = unitag === undefined || loading || unitagAvailable
-
-  // This check removes the error when:
-  // 1. The unitag input is empty
-  // 2. The unitag is being loaded (either from the backend or ENS)
-  // 3. The unitag is available (meaning it can be claimed)
-  if (shouldClearError) {
-    errorMessageRef.current = undefined
-    return { error: errorMessageRef.current, loading }
+  if (!unitag || isDebouncing || loading) {
+    return { error: undefined, loading, isDebouncing }
   }
 
-  // If nothing is loading, and we're told the unitag is unavailable, change the error message to the default remote error message
-  if (data?.available === false) {
-    errorMessageRef.current = t('unitags.claim.error.unavailable')
-    return { error: errorMessageRef.current, loading }
+  if (unitagQueryFailed) {
+    return { error: t('unitags.claim.error.general'), loading, isDebouncing }
   }
 
-  return { error: errorMessageRef.current, loading }
+  const usernameOwnedByClaimer =
+    !!claimerAddress &&
+    !!data?.address &&
+    areAddressesEqual({
+      addressInput1: { address: data.address, platform: Platform.EVM },
+      addressInput2: { address: claimerAddress, platform: Platform.EVM },
+    })
+
+  if (data?.available === false && !usernameOwnedByClaimer) {
+    return { error: unavailableErrorMessage ?? t('unitags.claim.error.unavailable'), loading, isDebouncing }
+  }
+
+  return { error: undefined, loading, isDebouncing }
 }

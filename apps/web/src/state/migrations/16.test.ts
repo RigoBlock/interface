@@ -1,6 +1,6 @@
+import { UniverseChainId } from '@universe/chains'
 import { createMigrate } from 'redux-persist'
 import { DAI_ARBITRUM_ONE, USDC } from 'uniswap/src/constants/tokens'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { serializeToken } from 'uniswap/src/utils/currency'
 import { migration1 } from '~/state/migrations/1'
 import { migration2 } from '~/state/migrations/2'

@@ -1,15 +1,16 @@
-import { NetworkStatus } from '@apollo/client'
 import type { CurrencyAmount, Token } from '@uniswap/sdk-core'
+import { Platform } from '@universe/chains'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { Flex } from '@universe/mycelium'
+import { TestID } from '@universe/test'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Flex, IconButton, Image, useSporeColors } from 'ui/src'
+import { Button, IconButton, Image } from 'ui/src'
 import { UNISWAP_LOGO } from 'ui/src/assets'
+import { Settings } from 'ui/src/components/icons/Settings'
 import { Shine } from 'ui/src/loading/Shine'
 import { iconSizes } from 'ui/src/theme'
-import AnimatedNumber, {
-  BALANCE_CHANGE_INDICATION_DURATION,
-} from 'uniswap/src/components/AnimatedNumber/AnimatedNumber'
+import AnimatedNumber from 'uniswap/src/components/AnimatedNumber/AnimatedNumber'
 import { TestnetModeBanner } from 'uniswap/src/components/banners/TestnetModeBanner'
 import { RelativeChange } from 'uniswap/src/components/RelativeChange/RelativeChange'
 import { useConnectionStatus } from 'uniswap/src/features/accounts/store/hooks'
@@ -19,34 +20,30 @@ import type { DataApiOutageState } from 'uniswap/src/features/dataApi/types'
 import { FiatCurrency } from 'uniswap/src/features/fiatCurrency/constants'
 import { useAppFiatCurrency, useAppFiatCurrencyInfo } from 'uniswap/src/features/fiatCurrency/hooks'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { useHasAccountMismatchOnAnyChain } from 'uniswap/src/features/smartWallet/mismatch/hooks'
 import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import i18next from 'uniswap/src/i18n'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { NumberType } from 'utilities/src/format/types'
 import { MultiBlockchainAddressDisplay } from '~/components/AccountDetails/MultiBlockchainAddressDisplay'
+import { AddBackupLoginCard } from '~/components/AccountDrawer/AddBackupLoginCard'
 import { DisconnectButton } from '~/components/AccountDrawer/DisconnectButton'
-import { DownloadGraduatedWalletCard } from '~/components/AccountDrawer/DownloadGraduatedWalletCard'
 import { EmptyWallet } from '~/components/AccountDrawer/MiniPortfolio/EmptyWallet'
 import { useAccountDrawer } from '~/components/AccountDrawer/MiniPortfolio/hooks'
-import MiniPortfolio from '~/components/AccountDrawer/MiniPortfolio/MiniPortfolio'
+import { MiniPortfolio } from '~/components/AccountDrawer/MiniPortfolio/MiniPortfolio'
 import { ReceiveActionTile } from '~/components/ActionTiles/ReceiveActionTile'
 import { SendActionTile } from '~/components/ActionTiles/SendActionTile/SendActionTile'
 import { LimitedSupportBanner } from '~/components/Banner/LimitedSupportBanner'
-import DelegationMismatchModal from '~/components/delegation/DelegationMismatchModal'
-import { Settings } from '~/components/Icons/Settings'
-import StatusIcon from '~/components/StatusIcon'
+import { DelegationMismatchModal } from '~/components/delegation/DelegationMismatchModal'
+import { StatusIcon } from '~/components/StatusIcon'
 import { ExtensionRequestMethods, useUniswapExtensionRequest } from '~/components/WalletModal/useWagmiConnectorWithId'
 import { useAccountsStore } from '~/features/accounts/store/hooks'
+import { useUserHasAvailableClaim, useUserUnclaimedAmount } from '~/features/claim/hooks'
 import { useDataApiOutageModal } from '~/hooks/useDataApiOutageModal'
 import { useIsUniswapExtensionConnected } from '~/hooks/useIsUniswapExtensionConnected'
 import { useModalState } from '~/hooks/useModalState'
 import { useIsPortfolioZero } from '~/pages/Portfolio/Overview/hooks/useIsPortfolioZero'
-import { useUserHasAvailableClaim, useUserUnclaimedAmount } from '~/state/claim/hooks'
 
-export default function AuthenticatedHeader({
+export function AuthenticatedHeader({
   evmAddress,
   svmAddress,
   openSettings,
@@ -59,9 +56,7 @@ export default function AuthenticatedHeader({
 
   const isSolanaConnected = useConnectionStatus(Platform.SVM).isConnected
   const multipleWalletsConnected = useAccountsStore((state) => {
-    // oxlint-disable-next-line typescript/no-unnecessary-condition -- biome-parity: oxlint is stricter here
     const evmWalletId = state.activeConnectors.evm?.session?.walletId
-    // oxlint-disable-next-line typescript/no-unnecessary-condition -- biome-parity: oxlint is stricter here
     const svmWalletId = state.activeConnectors.svm?.session?.walletId
     return Boolean(evmWalletId && svmWalletId && evmWalletId !== svmWalletId)
   }) // if different wallets are connected, do not show mini wallet icon
@@ -69,7 +64,6 @@ export default function AuthenticatedHeader({
   const isUniswapExtensionConnected = useIsUniswapExtensionConnected()
   const uniswapExtensionRequest = useUniswapExtensionRequest()
   const shouldShowExtensionButton = isUniswapExtensionConnected && !isSolanaConnected
-  const isRightToLeft = i18next.dir() === 'rtl'
 
   const unclaimedAmount: CurrencyAmount<Token> | undefined = useUserUnclaimedAmount(evmAddress)
   const isUnclaimed = useUserHasAvailableClaim(evmAddress)
@@ -80,7 +74,7 @@ export default function AuthenticatedHeader({
   const {
     data: portfolioData,
     error: portfolioError,
-    networkStatus: portfolioNetworkStatus,
+    isPending: portfolioPending,
     loading: portfolioLoading,
     dataUpdatedAt: portfolioDataUpdatedAt,
   } = usePortfolioTotalValue({
@@ -91,8 +85,8 @@ export default function AuthenticatedHeader({
   const { percentChange, absoluteChangeUSD, balanceUSD } = portfolioData || {}
 
   // Treat error-before-first-data as loading so the skeleton stays visible
-  const isLoading = !portfolioData && (portfolioLoading || !!portfolioError)
-  const isWarmLoading = !!portfolioData && portfolioNetworkStatus === NetworkStatus.loading
+  const isLoading = !portfolioData && (portfolioPending || !!portfolioError)
+  const isWarmLoading = !!portfolioData && portfolioLoading
 
   const [activityOutage, setActivityOutage] = useState<DataApiOutageState>({
     error: undefined,
@@ -118,7 +112,6 @@ export default function AuthenticatedHeader({
   const isPermitMismatchUxEnabled = useFeatureFlag(FeatureFlags.EnablePermitMismatchUX)
   const shouldShowDelegationMismatch = isPermitMismatchUxEnabled && isDelegationMismatch
   const [displayDelegationMismatchModal, setDisplayDelegationMismatchModal] = useState(false)
-  const colors = useSporeColors()
 
   const amount = unclaimedAmount?.toFixed(0, { groupSeparator: ',' }) ?? '-'
 
@@ -166,7 +159,7 @@ export default function AuthenticatedHeader({
                 size="small"
                 emphasis="text-only"
                 data-testid={TestID.WalletSettings}
-                icon={<Settings height={24} width={24} color={colors.neutral2.val} />}
+                icon={<Settings size="$icon.24" color="$neutral2" />}
                 borderRadius="$rounded32"
                 hoverStyle={{
                   backgroundColor: '$surface2',
@@ -184,9 +177,7 @@ export default function AuthenticatedHeader({
         <Flex flex={1} mt="$spacing16">
           <Flex gap="$spacing4" mb="$spacing16" data-testid={TestID.MiniPortfolioTotalBalance}>
             <AnimatedNumber
-              balance={balanceUSD}
-              isRightToLeft={isRightToLeft}
-              colorIndicationDuration={BALANCE_CHANGE_INDICATION_DURATION}
+              numericValue={balanceUSD}
               loading={isLoading}
               loadingPlaceholderText="000000.00"
               shouldFadeDecimals={shouldFadePortfolioDecimals}
@@ -222,7 +213,7 @@ export default function AuthenticatedHeader({
                   <ReceiveActionTile />
                 </Flex>
               </Flex>
-              <DownloadGraduatedWalletCard />
+              <AddBackupLoginCard />
               <MiniPortfolio
                 evmAddress={evmAddress}
                 svmAddress={svmAddress}

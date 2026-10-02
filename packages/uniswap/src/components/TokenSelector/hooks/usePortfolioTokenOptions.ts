@@ -1,25 +1,27 @@
-import { GqlResult } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
 import { useMemo } from 'react'
 import { OnchainItemListOptionType, TokenOption } from 'uniswap/src/components/lists/items/types'
 import { filter } from 'uniswap/src/components/TokenSelector/filter'
 import { type PortfolioBalancesResult } from 'uniswap/src/components/TokenSelector/hooks/usePortfolioBalancesForAddressById'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { useTokenBalancesGroupedByVisibility } from 'uniswap/src/features/portfolio/balances/hooks'
 import { sortPortfolioBalances } from 'uniswap/src/features/portfolio/balances/sortPortfolioBalances'
+import type { DerivedQueryResult } from 'utilities/src/reactQuery/types'
 
 export function usePortfolioTokenOptions({
   chainFilter,
+  chainIds,
   searchFilter,
   includeHidden = false,
   portfolioData,
 }: {
   chainFilter: UniverseChainId | null
+  chainIds?: UniverseChainId[]
   searchFilter?: string
   includeHidden?: boolean
   portfolioData: PortfolioBalancesResult
-}): GqlResult<TokenOption[] | undefined> & { hiddenTokens?: TokenOption[] } {
-  const { data: portfolioBalancesById, error, refetch, loading } = portfolioData
+}): DerivedQueryResult<TokenOption[] | undefined> & { hiddenTokens?: TokenOption[] } {
+  const { data: portfolioBalancesById, error, refetch, isLoading } = portfolioData
   const { isTestnetModeEnabled } = useEnabledChains()
 
   const { shownTokens, hiddenTokens } = useTokenBalancesGroupedByVisibility({
@@ -49,16 +51,18 @@ export function usePortfolioTokenOptions({
   )
 
   const filteredPortfolioBalances = useMemo(
-    () => portfolioBalances && filter({ tokenOptions: portfolioBalances, chainFilter, searchFilter, hideWSOL: true }),
-    [chainFilter, portfolioBalances, searchFilter],
+    () =>
+      portfolioBalances &&
+      filter({ tokenOptions: portfolioBalances, chainFilter, chainIds, searchFilter, hideWSOL: true }),
+    [chainFilter, chainIds, portfolioBalances, searchFilter],
   )
 
   const filteredHiddenPortfolioBalances = useMemo(
     () =>
       includeHidden && hiddenPortfolioBalances
-        ? filter({ tokenOptions: hiddenPortfolioBalances, chainFilter, searchFilter, hideWSOL: true })
+        ? filter({ tokenOptions: hiddenPortfolioBalances, chainFilter, chainIds, searchFilter, hideWSOL: true })
         : undefined,
-    [chainFilter, hiddenPortfolioBalances, includeHidden, searchFilter],
+    [chainFilter, chainIds, hiddenPortfolioBalances, includeHidden, searchFilter],
   )
 
   return {
@@ -66,6 +70,6 @@ export function usePortfolioTokenOptions({
     hiddenTokens: filteredHiddenPortfolioBalances,
     error,
     refetch,
-    loading,
+    isLoading,
   }
 }

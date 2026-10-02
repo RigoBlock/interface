@@ -1,11 +1,14 @@
 import { PartialMessage } from '@bufbuild/protobuf'
 import { FiatOnRampParams } from '@uniswap/client-data-api/dist/data/v1/api_pb'
 import { TransactionTypeFilter } from '@uniswap/client-data-api/dist/data/v1/types_pb'
+import { UniverseChainId } from '@universe/chains'
+import { isWebPlatform } from '@universe/environment'
+import { Flex, Text } from '@universe/mycelium'
+import { NoTransactions } from '@universe/mycelium/icons/NoTransactions'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { StyleProp, ViewStyle } from 'react-native'
-import { Flex, Loader, Text } from 'ui/src'
-import { NoTransactions } from 'ui/src/components/icons/NoTransactions'
+import { Loader } from 'ui/src'
 import {
   ActivityItem,
   ActivityItemRenderer,
@@ -15,10 +18,8 @@ import { SwapSummaryCallbacks } from 'uniswap/src/components/activity/types'
 import { BaseCard } from 'uniswap/src/components/BaseCard/BaseCard'
 import { useFormattedTransactionDataForActivity } from 'uniswap/src/features/activity/hooks/useFormattedTransactionDataForActivity'
 import { AuthTrigger } from 'uniswap/src/features/auth/types'
-import { UniverseChainId } from 'uniswap/src/features/chains/types'
 import { PaginationControls } from 'uniswap/src/features/dataApi/types'
 import { useHideSpamTokensSetting } from 'uniswap/src/features/settings/hooks'
-import { isWebPlatform } from 'utilities/src/platform'
 
 export type UseActivityDataProps = {
   evmOwner?: Address
@@ -36,6 +37,7 @@ export type UseActivityDataProps = {
   showLoadingOnRefetch?: boolean
   filterTransactionTypes?: TransactionTypeFilter[]
   searchText?: string
+  maxItems?: number
 }
 
 export type ActivityRenderData = PaginationControls & {
@@ -45,6 +47,7 @@ export type ActivityRenderData = PaginationControls & {
   keyExtractor: (item: ActivityItem) => string
   isLoading: boolean
   isFetching: boolean
+  isFetchNextPageError: boolean
   refetch: () => Promise<void>
   /** Epoch ms when activity data was last successfully fetched. */
   dataUpdatedAt?: number
@@ -67,6 +70,7 @@ export function useActivityData({
   showLoadingOnRefetch = false,
   filterTransactionTypes,
   searchText,
+  maxItems,
 }: UseActivityDataProps): ActivityRenderData {
   const { t } = useTranslation()
 
@@ -93,6 +97,7 @@ export function useActivityData({
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    isFetchNextPageError,
     dataUpdatedAt,
   } = useFormattedTransactionDataForActivity({
     evmAddress: evmOwner,
@@ -105,6 +110,7 @@ export function useActivityData({
     showLoadingOnRefetch,
     filterTransactionTypes,
     searchText,
+    maxItems,
   })
 
   const sectionDataWithExtra: ActivityItem[] | undefined = useMemo(() => {
@@ -158,6 +164,7 @@ export function useActivityData({
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    isFetchNextPageError,
     isLoading,
     isFetching,
     refetch: onRetry,

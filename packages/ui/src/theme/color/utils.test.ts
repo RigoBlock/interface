@@ -21,19 +21,24 @@ describe(opacifyRaw, () => {
   })
 
   it.each`
-    amount       | color                   | expected
-    ${1}         | ${'#ffffff'}            | ${'#ffffff03'}
-    ${10}        | ${'#aaaaaa'}            | ${'#aaaaaa1a'}
-    ${100}       | ${'#000000'}            | ${'#000000ff'}
-    ${50}        | ${'#123456'}            | ${'#12345680'}
-    ${25}        | ${'#abcdef'}            | ${'#abcdef40'}
-    ${75}        | ${'#fedcba'}            | ${'#fedcbabf'}
-    ${0}         | ${'#333333'}            | ${'#33333300'}
-    ${100}       | ${'#888888'}            | ${'#888888ff'}
-    ${22.22}     | ${'#888888'}            | ${'#88888839'}
-    ${22.22}     | ${'#8888'}              | ${'#88888839'}
-    ${33.111111} | ${'rgb(255, 255, 255)'} | ${'rgba(255, 255, 255, 0.33)'}
-    ${0.01}      | ${'rgb(255, 255, 255)'} | ${'rgba(255, 255, 255, 0.00)'}
+    amount       | color                         | expected
+    ${1}         | ${'#ffffff'}                  | ${'#ffffff03'}
+    ${10}        | ${'#aaaaaa'}                  | ${'#aaaaaa1a'}
+    ${100}       | ${'#000000'}                  | ${'#000000ff'}
+    ${50}        | ${'#123456'}                  | ${'#12345680'}
+    ${25}        | ${'#abcdef'}                  | ${'#abcdef40'}
+    ${75}        | ${'#fedcba'}                  | ${'#fedcbabf'}
+    ${0}         | ${'#333333'}                  | ${'#33333300'}
+    ${100}       | ${'#888888'}                  | ${'#888888ff'}
+    ${22.22}     | ${'#888888'}                  | ${'#88888839'}
+    ${22.22}     | ${'#8888'}                    | ${'#88888839'}
+    ${33.111111} | ${'rgb(255, 255, 255)'}       | ${'rgba(255, 255, 255, 0.33)'}
+    ${0.01}      | ${'rgb(255, 255, 255)'}       | ${'rgba(255, 255, 255, 0.00)'}
+    ${40}        | ${'rgb(0,0,0)'}               | ${'rgba(0, 0, 0, 0.40)'}
+    ${10}        | ${'rgba(255,255,255,0.12)'}   | ${'rgba(255, 255, 255, 0.10)'}
+    ${50}        | ${'rgba(255, 255, 255, 0.5)'} | ${'rgba(255, 255, 255, 0.50)'}
+    ${100}       | ${'rgba(0, 0, 0, 0.05)'}      | ${'rgba(0, 0, 0, 1.00)'}
+    ${60}        | ${'#FC72FF33'}                | ${'#FC72FF99'}
   `('(amount=$amount, color=$color) should be expected=$expected', async ({ amount, color, expected }) => {
     expect(opacifyRaw(amount, color).toLowerCase()).toEqual(expected.toLowerCase())
   })
@@ -52,9 +57,10 @@ describe(opacifyRaw, () => {
     ${50}        | ${'rgb(1,1,'}                 | ${'Error: provided color rgb(1,1, is invalid rgb format'}
     ${50}        | ${'rgb(1,1)'}                 | ${'Error: provided color rgb(1,1) does not have enough components'}
     ${50}        | ${'rgbv(1,1,1,1)'}            | ${'Error: provided color rgbv(1,1,1,1) is neither a hex nor an rgb color'}
-    ${100}       | ${'rgba(255, 255, 255, 0.5)'} | ${'Error: provided color rgba(255, 255, 255, 0.5) is neither a hex nor an rgb color'}
-    ${30}        | ${'rgba(255, 255, 255, 0.5)'} | ${'Error: provided color rgba(255, 255, 255, 0.5) is neither a hex nor an rgb color'}
-    ${33.111111} | ${'rgba(255, 255, 255, 0.5)'} | ${'Error: provided color rgba(255, 255, 255, 0.5) is neither a hex nor an rgb color'}
+    ${50}        | ${'red'}                      | ${'Error: provided color red is neither a hex nor an rgb color'}
+    ${50}        | ${'rgba(1,1,'}                | ${'Error: provided color rgba(1,1, is invalid rgb format'}
+    ${50}        | ${'rgba(1,1)'}                | ${'Error: provided color rgba(1,1) does not have enough components'}
+    ${110}       | ${'rgba(255, 255, 255, 0.5)'} | ${'Error: provided opacity 110 should be between 0 and 100'}
   `('should throw an error when (amount=$amount, color=$color)', async ({ amount, color, expectedError }) => {
     opacifyRaw(amount, color)
     expect(mockLogger.warn).toHaveBeenCalledWith(

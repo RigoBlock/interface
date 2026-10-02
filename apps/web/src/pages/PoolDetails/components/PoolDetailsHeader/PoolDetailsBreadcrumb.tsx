@@ -1,13 +1,13 @@
-import { GraphQLApi } from '@universe/api'
+import { Flex, Shine } from '@universe/mycelium'
+import { RotatableChevron } from '@universe/mycelium/icons/RotatableChevron'
 import { useTranslation } from 'react-i18next'
-import { Flex, Shine } from 'ui/src'
-import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
+import type { ParsedToken } from 'uniswap/src/features/dataApi/utils/parsedToken'
 import { BreadcrumbNavContainer, BreadcrumbNavLink, CurrentPageBreadcrumb } from '~/components/BreadcrumbNav'
 
 interface PoolDetailsBreadcrumbProps {
   poolAddress?: string
-  token0?: GraphQLApi.Token
-  token1?: GraphQLApi.Token
+  token0?: ParsedToken
+  token1?: ParsedToken
   loading?: boolean
 }
 

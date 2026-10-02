@@ -1,5 +1,5 @@
 import { TradingApi } from '@universe/api'
-import type { Platform } from 'uniswap/src/features/platforms/types/Platform'
+import type { Platform } from '@universe/chains'
 import type { TransactionSettingConfig } from 'uniswap/src/features/transactions/components/settings/types'
 
 // Returns true if the setting is applicable to the trade routing, false otherwise

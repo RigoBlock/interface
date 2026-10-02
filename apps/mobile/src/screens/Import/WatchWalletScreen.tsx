@@ -1,5 +1,10 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { SharedEventName } from '@uniswap/analytics-events'
+import { Platform, areAddressesEqual, getValidAddress } from '@universe/chains'
+import { Button, Flex, Text } from '@universe/mycelium'
+import { Eye } from '@universe/mycelium/icons/Eye'
+import { GraduationCap } from '@universe/mycelium/icons/GraduationCap'
+import { TestID } from '@universe/test'
 import { TFunction } from 'i18next'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -9,19 +14,14 @@ import { GenericImportForm } from 'src/features/import/GenericImportForm'
 import { useCompleteOnboardingCallback } from 'src/features/onboarding/hooks'
 import { SafeKeyboardOnboardingScreen } from 'src/features/onboarding/SafeKeyboardOnboardingScreen'
 import { useNavigationHeader } from 'src/utils/useNavigationHeader'
-import { Button, Flex, Text } from 'ui/src'
-import { Eye, GraduationCap } from 'ui/src/components/icons'
 import { useIsSmartContractAddress } from 'uniswap/src/features/address/useIsSmartContractAddress'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { ENS_SUFFIX } from 'uniswap/src/features/ens/constants'
 import { useENS } from 'uniswap/src/features/ens/useENS'
-import { Platform } from 'uniswap/src/features/platforms/types/Platform'
 import { usePortfolioBalances } from 'uniswap/src/features/portfolio/balances/hooks'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
-import { TestID } from 'uniswap/src/test/fixtures/testIDs'
 import { OnboardingScreens } from 'uniswap/src/types/screens/mobile'
-import { areAddressesEqual, getValidAddress } from 'uniswap/src/utils/addresses'
 import { dismissNativeKeyboard } from 'utilities/src/device/keyboard/dismissNativeKeyboard'
 import { normalizeTextInput } from 'utilities/src/primitives/string'
 import { createViewOnlyAccount } from 'wallet/src/features/onboarding/createViewOnlyAccount'
@@ -212,7 +212,7 @@ export function WatchWalletScreen({ navigation, route: { params } }: Props): JSX
         <Button
           testID={TestID.Next}
           mt="$spacing24"
-          isDisabled={!isValid}
+          disabled={!isValid}
           variant="branded"
           size="large"
           onPress={onSubmit}
