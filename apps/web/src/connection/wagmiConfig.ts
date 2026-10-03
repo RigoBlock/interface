@@ -128,31 +128,12 @@ function createWagmiConnectors(params: {
 
 const WAGMI_CHAINS = getNonEmptyArrayOrThrow(ORDERED_EVM_CHAINS)
 
-// Cookie-session UniRPC transport factory (upstream web's session strategy).
+// Cookie-session UniRPC transport factory (web's injected session strategy).
 // The gating decision lives in the shared `defaultResolveRpcConfig` resolver;
 // this only constructs the UniRPC transport once that resolver says to use it.
 const buildWebUniRpcTransport = createUniRpcTransportFactory({
   session: { type: 'cookies' },
 })
-
-/**
- * RigoBlock fork: pick the UniRPC session strategy for a resolved RPC config.
- * The RigoBlock web resolver supplies header-based session auth
- * (X-Session-ID/X-Device-ID) via `getRequestHeaders` — the gateway rejects
- * unauthenticated /rpc/* calls with 401 and can't use cookies (wildcard
- * ACAO). Upstream web used cookie auth. Configs without `getRequestHeaders`
- * keep the upstream cookies strategy.
- */
-export const buildUniRpcTransportFactoryForConfig = (rpcConfig: {
-  rpcUrl: string
-  headers?: Record<string, string>
-  getRequestHeaders?: () => Promise<Record<string, string>>
-}): ReturnType<typeof createUniRpcTransportFactory> =>
-  rpcConfig.getRequestHeaders
-    ? createUniRpcTransportFactory({
-        session: { type: 'headers', getSessionHeaders: rpcConfig.getRequestHeaders },
-      })
-    : buildWebUniRpcTransport
 
 function createWagmiConfig(params: {
   /** The connector list to use. */
@@ -188,7 +169,7 @@ function createWagmiConfig(params: {
               // Applied inside the per-request-resolved factory so the gate rides along when
               // the routed transport self-heals onto UniRPC after the flag resolves.
               baseTransportFactory: createSessionGatedTransport({
-                baseTransportFactory: buildUniRpcTransportFactoryForConfig(rpcConfig)({
+                baseTransportFactory: buildWebUniRpcTransport({
                   config: { rpcUrl: rpcConfig.rpcUrl, headers: rpcConfig.headers ?? {} },
                 }),
                 getSession: tryProvideSession,

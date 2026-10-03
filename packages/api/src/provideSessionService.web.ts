@@ -4,7 +4,6 @@ import { provideSessionStorage } from '@universe/api/src/provideSessionStorage'
 import { provideUniswapIdentifierService } from '@universe/api/src/provideUniswapIdentifierService'
 import { getTransport, type Interceptors } from '@universe/api/src/transport'
 import { isE2eTestEnv, isWebApp, REQUEST_SOURCE } from '@universe/environment'
-import type { Interceptor } from '@connectrpc/connect'
 import {
   createNoopSessionService,
   createSessionClient,
@@ -49,27 +48,6 @@ function provideSessionService(ctx: {
  *
  * When more services are added to the Entry Gateway, we can remove this and rely on those typical requests to instantiate the cookie.
  */
-/**
- * RigoBlock fork: the backend returns the session id and device id in
- * `Set-Cookie` for web-classified clients ("for web, it is in the cookie" —
- * see InitSessionResponse). The rigoblock web app cannot use cookies against
- * the gateway (wildcard CORS), so the API proxy reflects those cookie values
- * as response headers; this interceptor persists them into the same storage
- * the X-Session-ID / X-Device-ID header resolver reads.
- */
-const reflectSessionHeadersInterceptor: Interceptor = (next) => async (request) => {
-  const response = await next(request)
-  const sessionId = response.header.get('x-rigoblock-session-id')
-  const deviceId = response.header.get('x-rigoblock-device-id')
-  if (sessionId) {
-    await provideSessionStorage().set({ sessionId })
-  }
-  if (deviceId) {
-    await provideDeviceIdService().setDeviceId(deviceId)
-  }
-  return response
-}
-
 function getWebAppSessionService(ctx: {
   getBaseUrl: () => string
   getLogger?: () => Logger
@@ -80,20 +58,14 @@ function getWebAppSessionService(ctx: {
     transport: getTransport({
       getBaseUrl: ctx.getBaseUrl,
       getHeaders: () => ({ 'x-request-source': REQUEST_SOURCE }),
-      interceptors: [reflectSessionHeadersInterceptor, ...(ctx.interceptors ?? [])],
+      interceptors: ctx.interceptors,
       options: {
-        // RigoBlock: The CF gateway returns Access-Control-Allow-Origin: * which is incompatible
-        // with credentials: 'include'. Since RigoBlock does not use Uniswap session cookies,
-        // omit credentials so the CORS preflight is accepted by the wildcard origin header.
-        credentials: 'omit',
+        credentials: 'include',
       },
     }),
   })
 
-  const sessionRepository = createSessionRepository({
-    client: sessionClient,
-    getLogger: ctx.getLogger,
-  })
+  const sessionRepository = createSessionRepository({ client: sessionClient, getLogger: ctx.getLogger })
 
   return createSessionService({
     sessionStorage: provideSessionStorage(),
@@ -115,10 +87,7 @@ function getExtensionSessionService(ctx: {
     }),
   })
 
-  const sessionRepository = createSessionRepository({
-    client: sessionClient,
-    getLogger: ctx.getLogger,
-  })
+  const sessionRepository = createSessionRepository({ client: sessionClient, getLogger: ctx.getLogger })
 
   return createSessionService({
     sessionStorage: provideSessionStorage(),

@@ -18,9 +18,8 @@ export interface RpcConfig {
   headers?: Record<string, string>
   /** Async callback resolved per-request for dynamic headers (e.g., session auth) */
   getRequestHeaders?: () => Promise<Record<string, string>>
-  /** Fetch credentials mode — 'include' for upstream cookie-based session auth on web;
-   * the RigoBlock fork resolves UniRPC with 'omit' (no session cookies; gateway ACAO: *) */
-  credentials?: 'include' | 'omit'
+  /** Fetch credentials mode — 'include' for cookie-based session auth on web */
+  credentials?: 'include'
 }
 
 export interface FlashbotsConfig {

@@ -12,8 +12,7 @@ export interface UniRpcConfig {
   rpcUrl: string
   headers: Record<string, string>
   getRequestHeaders?: () => Promise<Record<string, string>>
-  /** 'include' upstream (cookie session auth); the RigoBlock fork uses 'omit' (no session cookies) */
-  credentials?: 'include' | 'omit'
+  credentials?: 'include'
 }
 
 interface UniRpcConfigResolverCtx {
@@ -24,7 +23,7 @@ interface UniRpcConfigResolverCtx {
   getEntryGatewayUrl: () => string
   requestSource: string
   getRequestHeaders?: () => Promise<Record<string, string>>
-  credentials?: 'include' | 'omit'
+  credentials?: 'include'
 }
 
 interface UniRpcConfigResolverInput {

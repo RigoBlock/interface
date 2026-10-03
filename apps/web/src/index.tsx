@@ -3,7 +3,7 @@ import '~/sideEffects'
 import { PrivyProvider } from '@privy-io/react-auth'
 import { ApiInit, getEntryGatewayUrl, provideSessionService } from '@universe/api'
 import { ComplianceClientProvider } from '@universe/compliance'
-import { isDevEnv, isTestEnv } from '@universe/environment'
+import { isDevEnv, isE2eTestEnv, isTestEnv } from '@universe/environment'
 import type { StatsigUser } from '@universe/gating'
 import { getIsHashcashSolverEnabled, getIsTurnstileSolverEnabled } from '@universe/gating'
 import { PortalProvider } from '@universe/mycelium/portal'
@@ -66,7 +66,7 @@ import { ColorSchemeProvider } from '~/theme/colorSchemeProvider'
 import { DeprecatedThemeProvider } from '~/theme/index'
 import { isBrowserRouterEnabled } from '~/utils/env'
 import { unregister as unregisterServiceWorker } from '~/utils/serviceWorker'
-import { getIsSessionServiceEnabledOnWeb, isRigoblockHostname } from '~/utils/sessionService'
+import { isRigoblockHostname } from '~/utils/sessionService'
 import { getCanonicalUrl } from '~/utils/urlRoutes'
 
 if (window.ethereum) {
@@ -136,7 +136,7 @@ const provideSessionInitService = () => {
     getSessionService: () =>
       provideSessionService({
         getBaseUrl: getEntryGatewayUrl,
-        getIsSessionServiceEnabled: getIsSessionServiceEnabledOnWeb,
+        getIsSessionServiceEnabled: () => !isE2eTestEnv(),
         getLogger,
       }),
     challengeSolverService: createChallengeSolverService({

@@ -16,14 +16,8 @@ vi.mock('@universe/environment', async (importOriginal) => {
   return {
     ...actual,
     getCurrentEnv: vi.fn(),
-    get isWebApp() {
-      return mockPlatformFlags.isWebApp
-    },
-    isE2eTestEnv: () => mockPlatformFlags.isE2eTestEnv,
   }
 })
-
-const mockPlatformFlags = { isWebApp: false, isE2eTestEnv: false }
 
 const mockGetConfig = vi.mocked(getConfig)
 const mockGetCurrentEnv = vi.mocked(getCurrentEnv)
@@ -65,10 +59,5 @@ describe('getWebSocketUrl', () => {
   it('bypasses the proxy path on Vercel, which cannot forward a socket', () => {
     setConfig({ enableEntryGatewayProxy: true, isVercelEnvironment: true })
     expect(getWebSocketUrl()).toBe('wss://entry-gateway.backend-staging.api.uniswap.org/ws')
-  })
-
-  it('RigoBlock fork: opens against the RigoBlock API proxy on web', () => {
-    mockPlatformFlags.isWebApp = true
-    expect(getWebSocketUrl()).toBe('wss://interface.gateway.rigoblock.com/v2/entry-gateway/ws')
   })
 })

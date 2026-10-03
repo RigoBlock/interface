@@ -11,22 +11,17 @@ export type TradingApiFetchClientContext = Omit<FetchClientContext, 'baseUrl' | 
   Required<Pick<FetchClientContext, 'getBaseUrl' | 'getHeaders' | 'getSession' | 'source'>>
 
 /**
- * Builds the `FetchClient` used by every trading API client. Upstream sets
+ * Builds the `FetchClient` used by every trading API client. Sets
  * `credentials: 'include'` so web requests carry the HttpOnly session cookie
  * (scoped to `uniswap.org`) to the cross-origin trading backend; mobile and
- * extension authenticate via the `x-session-id` header.
- *
- * RigoBlock fork: the CF gateway returns Access-Control-Allow-Origin: *, which
- * browsers reject for credentialed requests, and RigoBlock does not use Uniswap
- * session cookies — so credentials are omitted (same rationale as
- * provideSessionService.web.ts).
+ * extension authenticate via the `x-session-id` header. Mirrors the Plan /
+ * Chained Actions client.
  */
 export function createTradingApiFetchClient(ctx: TradingApiFetchClientContext): FetchClient {
   return createFetchClient({
     ...ctx,
     defaultOptions: {
-      // RigoBlock fork: see doc comment above — omit credentials (gateway ACAO: *).
-      credentials: 'omit',
+      credentials: 'include',
     },
   })
 }

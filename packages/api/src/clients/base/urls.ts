@@ -91,20 +91,6 @@ export function getRbCloudflareApiBaseUrl(flow?: TrafficFlows): string {
   return `https://${getServicePrefix(flow)}${getCloudflarePrefix(flow)}.gateway.rigoblock.com`
 }
 
-/**
- * RigoBlock fork: the entry gateway is served by the RigoBlock API proxy
- * (Cloudflare worker), not by Uniswap's backend host directly — the browser
- * cannot call `entry-gateway.backend-prod.api.uniswap.org` cross-origin.
- *
- * The call shape is IDENTICAL to upstream: clients append paths such as
- * `/rpc/{chainId}` or `/uniswap.platformservice.v1.SessionService/InitSession`
- * to this base, exactly as upstream appends them to
- * `https://entry-gateway.backend-prod.api.uniswap.org`. Only the base differs.
- * The worker strips the `/v2/entry-gateway` prefix and forwards the rest of
- * the path untouched to the Uniswap entry-gateway backend.
- */
-export const RIGOBLOCK_ENTRY_GATEWAY_BASE_URL = 'https://interface.gateway.rigoblock.com/v2/entry-gateway'
-
 export function createHelpArticleUrl(resourceId: string, options?: { path?: string; section?: string }): string {
   const { path = 'articles', section } = options ?? {}
   const product = isMobileApp ? 'mobileApp' : isExtensionApp ? 'extension' : 'web'

@@ -42,7 +42,6 @@ import { useNotificationStore } from '~/notification-service/notification-render
 import { getNotificationTelemetry } from '~/notification-service/telemetry/getNotificationTelemetry'
 import { getInAppDestination } from '~/notification-service/utils/getNotificationDestination'
 import store from '~/state'
-import { getIsSessionServiceEnabledOnWeb } from '~/utils/sessionService'
 
 /**
  * Creates the notification service with all necessary dependencies
@@ -72,11 +71,7 @@ function provideWebNotificationService(ctx: {
         'x-app-version': getConfig().appVersion,
       }
     },
-    getSessionService: () =>
-      provideSessionService({
-        getBaseUrl: () => getEntryGatewayUrl(),
-        getIsSessionServiceEnabled: getIsSessionServiceEnabledOnWeb,
-      }),
+    getSessionService: () => provideSessionService({ getBaseUrl: () => getEntryGatewayUrl() }),
     defaultOptions: {
       credentials: 'include',
     },

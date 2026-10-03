@@ -57,8 +57,7 @@ export interface UniRpcTransportInput {
  * Creates a factory that builds viem HTTP transports configured for UniRPC.
  *
  * Session auth is explicit — the caller declares the strategy at the boundary:
- * - Web: `{ type: 'cookies' }` — upstream sends session cookies via credentials: 'include';
- *   the RigoBlock fork omits credentials (no session cookies; gateway ACAO is *)
+ * - Web: `{ type: 'cookies' }` — browser sends session cookies via credentials: 'include'
  * - Ext/Mobile: `{ type: 'headers', getSessionHeaders }` — resolves x-session-id per-request
  *
  * @example
@@ -119,10 +118,7 @@ export function createUniRpcTransportFactory(ctx: UniRpcTransportFactoryCtx) {
     return http(config.rpcUrl, {
       fetchOptions: {
         headers: config.headers,
-        // RigoBlock fork: the CF gateway responds with Access-Control-Allow-Origin: *,
-        // which browsers reject when credentials are included. RigoBlock has no session
-        // cookies, so omit credentials (see provideSessionService.web.ts).
-        credentials: 'omit',
+        credentials: 'include',
       },
       onFetchRequest: (_request, init) => {
         throwIfRateLimited(config.rpcUrl)

@@ -1,6 +1,4 @@
-import { mainnet } from 'viem/chains'
-import { afterEach, beforeEach, vi } from 'vitest'
-import { orderedTransportUrls, SAFE_ALLOWED_ORIGIN, buildUniRpcTransportFactoryForConfig } from '~/connection/wagmiConfig'
+import { orderedTransportUrls, SAFE_ALLOWED_ORIGIN } from '~/connection/wagmiConfig'
 
 // A minimal type that matches the structure returned by getChainInfo().
 type MockChain = {
@@ -100,6 +98,7 @@ describe('SAFE_ALLOWED_ORIGIN', () => {
   it('matches the canonical Safe web app origin', () => {
     expect(SAFE_ALLOWED_ORIGIN.test('https://app.safe.global')).toBe(true)
   })
+
   it('rejects subdomain spoofing', () => {
     expect(SAFE_ALLOWED_ORIGIN.test('https://evil.app.safe.global')).toBe(false)
   })
@@ -130,76 +129,5 @@ describe('SAFE_ALLOWED_ORIGIN', () => {
 
   it('rejects null origin', () => {
     expect(SAFE_ALLOWED_ORIGIN.test('null')).toBe(false)
-  })
-})
-
-
-describe('buildUniRpcTransportFactoryForConfig — RigoBlock header session auth', () => {
-  // Unique origins: the rate-limit gate keeps module-scoped state and these
-  // tests must not interfere with each other.
-  let originCounter = 0
-  function uniqueRpcUrl(): string {
-    originCounter += 1
-    return `https://wagmi-header-auth-test-${originCounter}.invalid/rpc/1`
-  }
-
-  let lastInit: RequestInit | undefined
-  let lastUrl: string | undefined
-
-  beforeEach(() => {
-    lastInit = undefined
-    lastUrl = undefined
-    globalThis.fetch = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
-      lastUrl = String(url)
-      lastInit = init
-      return new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, result: '0x2328' }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      })
-    }) as unknown as typeof fetch
-  })
-
-  afterEach(() => {
-    vi.restoreAllMocks()
-  })
-
-  async function sendRequest(rpcConfig: {
-    rpcUrl: string
-    headers?: Record<string, string>
-    getRequestHeaders?: () => Promise<Record<string, string>>
-  }): Promise<unknown> {
-    const factory = buildUniRpcTransportFactoryForConfig(rpcConfig)
-    const transport = factory({ config: { rpcUrl: rpcConfig.rpcUrl, headers: rpcConfig.headers ?? {} } })
-    return transport({ chain: mainnet, retryCount: 0 }).request({ method: 'eth_blockNumber', params: [] })
-  }
-
-  it('attaches X-Session-ID per request when getRequestHeaders is set', async () => {
-    const rpcUrl = uniqueRpcUrl()
-    const getRequestHeaders = vi.fn().mockResolvedValue({ 'x-session-id': 'sess-1', 'x-device-id': 'dev-1' })
-
-    await sendRequest({ rpcUrl, headers: { 'x-request-source': 'uniswap-web' }, getRequestHeaders })
-
-    const headers = new Headers(lastInit?.headers as HeadersInit)
-    expect(headers.get('x-session-id')).toBe('sess-1')
-    expect(headers.get('x-device-id')).toBe('dev-1')
-    expect(headers.get('x-request-source')).toBe('uniswap-web')
-  })
-
-  it('resolves headers per request (not once at construction)', async () => {
-    const rpcUrl = uniqueRpcUrl()
-    const getRequestHeaders = vi.fn().mockResolvedValue({ 'x-session-id': 'sess' })
-
-    await sendRequest({ rpcUrl, getRequestHeaders })
-    await sendRequest({ rpcUrl, getRequestHeaders })
-
-    expect(getRequestHeaders).toHaveBeenCalledTimes(2)
-  })
-
-  it('keeps the cookies strategy (credentials omit) when no getRequestHeaders', async () => {
-    const rpcUrl = uniqueRpcUrl()
-
-    await sendRequest({ rpcUrl, headers: { 'x-request-source': 'uniswap-web' } })
-
-    expect(lastInit?.credentials).toBe('omit')
   })
 })

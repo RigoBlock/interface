@@ -81,8 +81,7 @@ describe('createViemClientFactory — branching contract', () => {
 
     await client.getBlockNumber()
 
-    // RigoBlock fork: cookies branch omits credentials (no session cookies; gateway ACAO: *).
-    expect(lastInit?.credentials).toBe('omit')
+    expect(lastInit?.credentials).toBe('include')
     const headers = new Headers(lastInit?.headers as HeadersInit)
     expect(headers.get('x-request-source')).toBe('web')
   })
