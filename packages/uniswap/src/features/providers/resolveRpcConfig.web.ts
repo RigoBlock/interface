@@ -19,8 +19,9 @@ export type { RpcConfigResolver, RpcConfigResolverInput } from '@universe/chains
  *
  * This file ships to both the web app (Vite) and the browser extension (WXT).
  * The two diverge in session strategy:
- *   - Web app: cookie-based — UniRPC reuses the browser's session cookie via
- *     `credentials: 'include'`, so no per-request header construction is needed.
+ *   - Web app: cookie-based upstream — UniRPC reuses the browser's session cookie via
+ *     `credentials: 'include'`. RigoBlock fork: no session cookies and the gateway
+ *     sends ACAO: *, so the web resolver passes `credentials: 'omit'` instead.
  *   - Extension: header-based — extensions can't share the web app's cookie jar,
  *     so each request resolves a session/device header pair.
  *
@@ -46,7 +47,11 @@ const webResolveUniRpcConfig = createUniRpcConfigResolver({
   // UniRPC-only chains intentionally follow this too — e2e has no gateway session
   // for them either — so this overrides the shared chain-aware getter.
   getFeatureFlag: () => !isE2eTestEnv(),
-  credentials: 'include',
+  // RigoBlock fork: the CF gateway returns Access-Control-Allow-Origin: *, which browsers
+  // reject for credentialed requests. RigoBlock does not use Uniswap session cookies,
+  // so omit credentials (same rationale as ~/theme-independent provideSessionService.web.ts
+  // and uniswap/src/data/transport.ts).
+  credentials: 'omit',
 })
 
 // Extension is header-based (can't share the web origin's cookie jar).
@@ -76,7 +81,8 @@ const asUniRpcConfig = (config: RpcConfig): RpcConfig => {
   }
   return isExtensionApp
     ? { ...promoted, getRequestHeaders: resolveExtensionUniRpcHeaders }
-    : { ...promoted, credentials: 'include' }
+    : // RigoBlock fork: see webResolveUniRpcConfig above — no session cookies, wildcard ACAO.
+      { ...promoted, credentials: 'omit' }
 }
 
 export const defaultResolveRpcConfig = createRpcConfigResolver({

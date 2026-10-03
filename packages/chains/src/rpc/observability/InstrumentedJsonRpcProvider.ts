@@ -23,7 +23,7 @@ export class InstrumentedJsonRpcProvider extends StaticJsonRpcProvider {
      * cross-origin requests — silently breaking cookie-based session auth on
      * web (e.g. ENS, portfolio, gas-estimate paths).
      */
-    credentials?: 'include'
+    credentials?: 'include' | 'omit'
     chainIdOrNetwork: Networkish
     observer: RpcObserver
   }) {

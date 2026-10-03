@@ -4,10 +4,12 @@ import type { SessionService } from '@universe/sessions'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 /**
- * On web the session is an HttpOnly cookie; the browser only attaches it to
+ * Upstream, web session is an HttpOnly cookie; the browser only attaches it to
  * cross-origin trading API requests when the fetch runs with
- * `credentials: 'include'`. The factory exists so every trading API client
- * gets that behavior by construction — these tests are that contract.
+ * `credentials: 'include'`. The RigoBlock fork has no Uniswap session cookies
+ * and the gateway responds with Access-Control-Allow-Origin: *, which browsers
+ * reject for credentialed requests — so the factory sets `credentials: 'omit'`
+ * and these tests are that contract.
  */
 describe('createTradingApiFetchClient', () => {
   afterEach(() => {
@@ -29,25 +31,25 @@ describe('createTradingApiFetchClient', () => {
     return { fetchMock, client }
   }
 
-  it('sends credentials: include on GET requests so the web session cookie is attached', async () => {
+  it('sends credentials: omit on GET requests (RigoBlock fork: no session cookies, gateway ACAO: *)', async () => {
     const { fetchMock, client } = setup()
 
     await client.get('/quote')
 
     expect(fetchMock).toHaveBeenCalledWith(
       'https://trading.example.com/quote',
-      expect.objectContaining({ credentials: 'include' }),
+      expect.objectContaining({ credentials: 'omit' }),
     )
   })
 
-  it('sends credentials: include on POST requests so the web session cookie is attached', async () => {
+  it('sends credentials: omit on POST requests (RigoBlock fork: no session cookies, gateway ACAO: *)', async () => {
     const { fetchMock, client } = setup()
 
     await client.post('/quote', { body: JSON.stringify({ amount: '1' }) })
 
     expect(fetchMock).toHaveBeenCalledWith(
       'https://trading.example.com/quote',
-      expect.objectContaining({ credentials: 'include', method: 'POST' }),
+      expect.objectContaining({ credentials: 'omit', method: 'POST' }),
     )
   })
 

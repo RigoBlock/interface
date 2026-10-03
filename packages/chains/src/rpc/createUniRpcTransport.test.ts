@@ -51,9 +51,9 @@ async function sendRequest(
 describe('createUniRpcTransportFactory — cookies session', () => {
   const buildTransport = createUniRpcTransportFactory({ session: { type: 'cookies' } })
 
-  test('sets credentials:include on outgoing fetch (cross-origin cookie auth)', async () => {
+  test('sets credentials:omit on outgoing fetch (RigoBlock fork: no session cookies, gateway ACAO: *)', async () => {
     await sendRequest(buildTransport, { rpcUrl: RPC_URL, headers: STATIC_HEADERS })
-    expect(lastInit?.credentials).toBe('include')
+    expect(lastInit?.credentials).toBe('omit')
   })
 
   test('sends static headers (x-request-source) in outgoing fetch', async () => {

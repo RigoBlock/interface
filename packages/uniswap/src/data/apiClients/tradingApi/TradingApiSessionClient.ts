@@ -40,7 +40,8 @@ const withSessionRetry = createWithSessionRetry({
   },
 })
 
-// The factory sets credentials: 'include' so web requests carry the session cookie.
+// Upstream the factory sets credentials: 'include' so web requests carry the session cookie;
+// the RigoBlock fork omits credentials (no Uniswap session cookies; gateway ACAO is *).
 const entryGatewayTradingFetchClientWithSession = createTradingApiFetchClient({
   getBaseUrl: () => getUniswapServiceUrls(config).tradingApiUrl,
   getHeaders,

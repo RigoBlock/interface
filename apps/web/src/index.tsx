@@ -63,6 +63,7 @@ import { onHashcashSolveCompleted, onTurnstileSolveCompleted, sessionInitAnalyti
 import store from '~/state'
 import { LivePricesProvider } from '~/state/livePrices/LivePricesProvider'
 import { ColorSchemeProvider } from '~/theme/colorSchemeProvider'
+import { DeprecatedThemeProvider } from '~/theme/index'
 import { isBrowserRouterEnabled } from '~/utils/env'
 import { unregister as unregisterServiceWorker } from '~/utils/serviceWorker'
 import { getIsSessionServiceEnabledOnWeb } from '~/utils/sessionService'
@@ -267,15 +268,17 @@ const RootApp = (): JSX.Element => {
                                             <BlockNumberProvider>
                                               <Updaters />
                                               <ColorSchemeProvider>
-                                                <PortalProvider>
-                                                  <WebNotificationServiceManager />
-                                                  <App />
-                                                  {AgentationLazy && isDevEnv() && (
-                                                    <Suspense fallback={null}>
-                                                      <AgentationLazy />
-                                                    </Suspense>
-                                                  )}
-                                                </PortalProvider>
+                                                <DeprecatedThemeProvider>
+                                                  <PortalProvider>
+                                                    <WebNotificationServiceManager />
+                                                    <App />
+                                                    {AgentationLazy && isDevEnv() && (
+                                                      <Suspense fallback={null}>
+                                                        <AgentationLazy />
+                                                      </Suspense>
+                                                    )}
+                                                  </PortalProvider>
+                                                </DeprecatedThemeProvider>
                                               </ColorSchemeProvider>
                                             </BlockNumberProvider>
                                           </LocalizationContextProvider>

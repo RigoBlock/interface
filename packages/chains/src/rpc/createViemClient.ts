@@ -72,8 +72,9 @@ export function createViemClientFactory(ctx: CreateViemClientFactoryCtx): Create
               session: { type: 'headers', getSessionHeaders: getRequestHeaders },
             })({ config: uniRpcTransportConfig })
           : createUniRpcTransportFactory({
-              // Cookie-based session auth (web). The transport unconditionally
-              // sets credentials: 'include' for the cookies branch.
+              // Cookie-based session auth upstream (web). The transport sets
+              // credentials for the cookies branch — 'include' upstream, 'omit' in
+              // the RigoBlock fork (no session cookies; gateway ACAO is *).
               session: { type: 'cookies' },
             })({ config: uniRpcTransportConfig })
 

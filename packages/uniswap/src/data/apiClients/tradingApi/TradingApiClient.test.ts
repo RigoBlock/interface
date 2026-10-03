@@ -601,16 +601,17 @@ describe('getFeatureFlaggedHeaders', () => {
 })
 
 /**
- * On web the session lives in an HttpOnly cookie, so every trading API request
- * must run with credentials: 'include' for the backend to see the session.
- * Guards against regressing to a fetch client that drops the cookie.
+ * Upstream, web session lives in an HttpOnly cookie, so every trading API request
+ * runs with credentials: 'include'. The RigoBlock fork has no Uniswap session
+ * cookies and the gateway sends ACAO: *, so credentials must be 'omit' —
+ * guards against regressing to a credentialed fetch the CORS preflight rejects.
  */
 describe('TradingApiClient web session credentials', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('sends credentials: include on fetchQuote so the session cookie reaches the backend', async () => {
+  it('sends credentials: omit on fetchQuote (RigoBlock fork: no session cookies, gateway ACAO: *)', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
       status: 200,
@@ -629,7 +630,7 @@ describe('TradingApiClient web session credentials', () => {
 
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining('/quote'),
-      expect.objectContaining({ credentials: 'include' }),
+      expect.objectContaining({ credentials: 'omit' }),
     )
   })
 })
