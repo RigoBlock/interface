@@ -15,7 +15,7 @@ interface LiveDotRendererProps {
   hoverCoordinates?: { x: number; y: number } | null
   chartContainer?: HTMLElement | null
   overrideColor?: string
-  dataKey?: string | number // Tracks when chart data changes (e.g., time period change)
+  dataKey?: unknown // Tracks when chart data changes (e.g., time period change); identity-compared
   coordinateOverride?: { x: number; y: number } | null // Synchronous coordinates from controller.update()
 }
 

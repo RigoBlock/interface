@@ -121,14 +121,12 @@ export function Chart<TParamType extends ChartDataParams<TDataType>, TDataType e
     [format, isLargeScreen, locale, params, colors, handleCrosshairMove],
   )
 
-  // Create a stable key that changes when chart data changes (e.g., time period change)
-  const dataKey = useMemo(() => {
-    if (params.data.length === 0) {
-      return undefined
-    }
-    const lastItem = params.data[params.data.length - 1]
-    return JSON.stringify(lastItem)
-  }, [params.data])
+  // Use array identity as the key: callers memoize series, so any data change
+  // (new points, mid-series history reconstruction, period change) re-triggers
+  // the live-dot coordinate recomputation. The previous JSON.stringify(lastItem)
+  // key missed mid-series updates — the line redrew at new y-scale but the dot
+  // kept stale coordinates until the next live tick.
+  const dataKey = useMemo(() => (params.data.length === 0 ? undefined : params.data), [params.data])
 
   // Chart model state should not affect React render cycles since the chart canvas is drawn outside of React, so we store via ref
   const chartModelRef = useRef<ChartModel<TDataType>>(undefined)
