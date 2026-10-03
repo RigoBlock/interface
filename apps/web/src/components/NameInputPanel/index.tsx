@@ -1,6 +1,6 @@
 import { ChangeEvent, ReactNode, useCallback } from 'react'
 import { Trans } from 'react-i18next'
-import { useTheme } from 'tamagui'
+import { useTheme } from 'styled-components'
 import i18n from 'uniswap/src/i18n'
 import { AutoColumn } from '~/components/deprecated/Column'
 import { RowBetween } from '~/components/deprecated/Row'
@@ -110,7 +110,7 @@ export default function NameInputPanel({
         <InputContainer>
           <AutoColumn gap="md">
             <RowBetween>
-              <StyledLabel style={{ color: theme.neutral2?.get(), fontWeight: 500, fontSize: 14 }}>
+              <StyledLabel style={{ color: theme.neutral2, fontWeight: 500, fontSize: 14 }}>
                 {label ?? <Trans>Pool Name</Trans>}
               </StyledLabel>
             </RowBetween>

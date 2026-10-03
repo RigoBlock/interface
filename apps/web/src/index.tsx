@@ -66,7 +66,7 @@ import { ColorSchemeProvider } from '~/theme/colorSchemeProvider'
 import { DeprecatedThemeProvider } from '~/theme/index'
 import { isBrowserRouterEnabled } from '~/utils/env'
 import { unregister as unregisterServiceWorker } from '~/utils/serviceWorker'
-import { getIsSessionServiceEnabledOnWeb } from '~/utils/sessionService'
+import { getIsSessionServiceEnabledOnWeb, isRigoblockHostname } from '~/utils/sessionService'
 import { getCanonicalUrl } from '~/utils/urlRoutes'
 
 if (window.ethereum) {
@@ -110,7 +110,11 @@ const provideSessionInitService = () => {
     solvers.set(ChallengeType.TURNSTILE, createTurnstileMockSolver())
   }
 
-  if (getIsHashcashSolverEnabled()) {
+  // RigoBlock fork: the fork's Statsig proxy does not serve the
+  // HashcashSolverEnabled flag, but the gateway's session challenge requires a
+  // REAL solver (the mock's fake tokens fail Verify) — register the real
+  // hashcash solver on rigoblock hosts regardless of the flag.
+  if (getIsHashcashSolverEnabled() || isRigoblockHostname()) {
     solvers.set(
       ChallengeType.HASHCASH,
       createHashcashSolver({

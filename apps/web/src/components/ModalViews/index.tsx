@@ -1,7 +1,7 @@
 import { Flex } from '@universe/mycelium'
 import { ArrowUpCircle, CheckCircle } from 'react-feather'
 import { Trans } from 'react-i18next'
-import { useTheme } from 'tamagui'
+import { useTheme } from 'styled-components'
 import { ModalCloseIcon } from 'ui/src'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
 import Circle from '~/assets/images/blue-loader.svg'
@@ -70,9 +70,9 @@ export function SubmittedView({
       </RowBetween>
       <ConfirmedIcon>
         {!transactionSuccess ? (
-          <ArrowUpCircle strokeWidth={0.5} size={90} color={theme.accent1?.get()} />
+          <ArrowUpCircle strokeWidth={0.5} size={90} color={theme.accent1} />
         ) : (
-          <CheckCircle strokeWidth={0.5} size={90} color={theme.success?.get()} />
+          <CheckCircle strokeWidth={0.5} size={90} color={theme.success} />
         )}
       </ConfirmedIcon>
       <AutoColumn gap="100px" justify="center">

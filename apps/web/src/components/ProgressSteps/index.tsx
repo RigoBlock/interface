@@ -1,4 +1,4 @@
-import { useTheme } from 'tamagui'
+import { useTheme } from 'styled-components'
 import { AutoColumn } from '~/components/deprecated/Column'
 import styled from '~/lib/deprecated-styled'
 
@@ -68,7 +68,7 @@ export default function ProgressCircles({ steps, disabled = false, ...rest }: Pr
               <Circle $confirmed={step} $disabled={disabled || (!steps[i - 1] && i !== 0)}>
                 {step ? '✓' : i + 1 + '.'}
               </Circle>
-              <StyledStepText style={{ color: theme.neutral3?.get() }}>|</StyledStepText>
+              <StyledStepText style={{ color: theme.neutral3 }}>|</StyledStepText>
             </CircleRow>
           )
         })}

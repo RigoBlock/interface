@@ -1,6 +1,7 @@
 import {
   DEV_ENTRY_GATEWAY_API_BASE_URL,
   PROD_ENTRY_GATEWAY_API_BASE_URL,
+  RIGOBLOCK_ENTRY_GATEWAY_BASE_URL,
   STAGING_ENTRY_GATEWAY_API_BASE_URL,
 } from '@universe/api/src/clients/base/urls'
 import { AppId, type BaseConfig, BaseConfigSchema, getConfig } from '@universe/config'
@@ -21,8 +22,16 @@ vi.mock('@universe/environment', async (importOriginal) => {
   return {
     ...actual,
     getCurrentEnv: vi.fn(),
+    // Mutable per-test flags so specs can cover both the RigoBlock web fork
+    // (isWebApp: true) and upstream platforms (isWebApp: false).
+    get isWebApp() {
+      return mockPlatformFlags.isWebApp
+    },
+    isE2eTestEnv: () => mockPlatformFlags.isE2eTestEnv,
   }
 })
+
+const mockPlatformFlags = { isWebApp: true, isE2eTestEnv: false }
 
 const mockGetConfig = vi.mocked(getConfig)
 const mockGetCurrentEnv = vi.mocked(getCurrentEnv)
@@ -38,13 +47,48 @@ describe('getEntryGatewayUrl', () => {
   beforeEach(() => {
     setConfig()
     mockGetCurrentEnv.mockReturnValue(Environment.Staging)
+    mockPlatformFlags.isWebApp = true
+    mockPlatformFlags.isE2eTestEnv = false
   })
 
   afterEach(() => {
     vi.clearAllMocks()
   })
 
+  describe('RigoBlock fork (web)', () => {
+    it('returns the RigoBlock API proxy base for default calls', () => {
+      expect(getEntryGatewayUrl()).toBe(RIGOBLOCK_ENTRY_GATEWAY_BASE_URL)
+      expect(getEntryGatewayUrl()).toBe('https://interface.gateway.rigoblock.com/v2/entry-gateway')
+    })
+
+    it('ignores entryGatewayApiUrlOverride on web (the fork uses the in-code proxy base)', () => {
+      setConfig({ entryGatewayApiUrlOverride: 'https://example.test' })
+      expect(getEntryGatewayUrl()).toBe(RIGOBLOCK_ENTRY_GATEWAY_BASE_URL)
+    })
+
+    it('still env-pins to the uniswap backend when a caller requires a specific env', () => {
+      expect(getEntryGatewayUrl({ env: Environment.Production })).toBe(PROD_ENTRY_GATEWAY_API_BASE_URL)
+    })
+
+    it('keeps upstream behavior in e2e (no proxy session exists there)', () => {
+      mockPlatformFlags.isE2eTestEnv = true
+      mockGetCurrentEnv.mockReturnValue(Environment.Production)
+      expect(getEntryGatewayUrl()).toBe(PROD_ENTRY_GATEWAY_API_BASE_URL)
+    })
+
+    it('keeps upstream behavior for non-web platforms', () => {
+      mockPlatformFlags.isWebApp = false
+      mockGetCurrentEnv.mockReturnValue(Environment.Production)
+      expect(getEntryGatewayUrl()).toBe(PROD_ENTRY_GATEWAY_API_BASE_URL)
+    })
+  })
+
   describe('proxy disabled', () => {
+    beforeEach(() => {
+      // Upstream-platform behavior (extension/mobile/e2e) — web is covered above.
+      mockPlatformFlags.isWebApp = false
+    })
+
     it('returns the URL for the current env when no override is given', () => {
       mockGetCurrentEnv.mockReturnValue(Environment.Production)
       expect(getEntryGatewayUrl()).toBe(PROD_ENTRY_GATEWAY_API_BASE_URL)
@@ -90,6 +134,12 @@ describe('getEntryGatewayUrl', () => {
   })
 
   describe('explicit override', () => {
+    beforeEach(() => {
+      // The override is an upstream-platform escape hatch; the RigoBlock web
+      // fork resolves the proxy base in code instead.
+      mockPlatformFlags.isWebApp = false
+    })
+
     it('honors entryGatewayApiUrlOverride for default (non-env-pinned) calls when proxying is disabled', () => {
       setConfig({
         entryGatewayApiUrlOverride: 'https://example.test',

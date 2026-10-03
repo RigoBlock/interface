@@ -7,12 +7,13 @@
  * immediate retries on error and multiplies request volume several-fold
  * while the endpoint is already rejecting traffic.
  *
- * Behavior: the first 429 response records a per-origin cooldown (honoring
- * Retry-After when present, otherwise exponential backoff). While an origin
- * is cooling down, requests to it fail fast with a synthetic 429 error
- * WITHOUT touching the network. Callers (viem/ethers retry loops) still see
- * an error and apply their own scheduling, but no HTTP request is made, so
- * the endpoint gets relief. A successful response clears the backoff.
+ * Behavior: a 429 response (or a run of 401s — see UNAUTH_THRESHOLD) records
+ * a per-origin cooldown (honoring `Retry-After` for 429s, otherwise
+ * exponential backoff). While an origin is cooling down, requests to it fail
+ * fast with a synthetic 429 error WITHOUT touching the network. Callers
+ * (viem/ethers retry loops) still see an error and apply their own
+ * scheduling, but no HTTP request is made, so the endpoint gets relief. A
+ * successful response clears the backoff.
  *
  * The gate is module-scoped and keyed by origin so all transports (viem,
  * ethers, session-gated) share one cooldown per endpoint.
@@ -21,10 +22,17 @@
 const DEFAULT_COOLDOWN_MS = 5_000
 const MAX_COOLDOWN_MS = 120_000
 const MAX_TRACKED_ORIGINS = 50
+// 401 handling: the session gate legitimately sees single 401s (recover →
+// retry once), so only trip the cooldown after several consecutive
+// unauthorized responses — i.e. the endpoint is persistently rejecting this
+// client and pollers would otherwise spam it on every interval.
+const UNAUTH_THRESHOLD = 3
+const UNAUTH_COOLDOWN_MS = 15_000
 
 interface OriginRateLimitState {
   cooldownUntilMs: number
   consecutive429s: number
+  consecutive401s: number
 }
 
 const stateByOrigin = new Map<string, OriginRateLimitState>()
@@ -59,20 +67,39 @@ export function parseRetryAfterMs(response: Response, nowMs: number): number | n
 }
 
 /**
- * Records a 429 response: extends the origin's cooldown. Callers invoke this
- * from a response hook (viem `onFetchResponse`) or a fetch wrapper.
+ * Records an error response: extends the origin's cooldown. Callers invoke
+ * this from a response hook (viem `onFetchResponse`) or a fetch wrapper.
+ *
+ * - 429 (Too Many Requests): cooldown immediately, backing off exponentially
+ *   per consecutive 429 (honoring Retry-After when present).
+ * - 401 (Unauthorized): counted; the cooldown trips only after
+ *   UNAUTH_THRESHOLD consecutive 401s so the session gate's recover →
+ *   retry-once flow (a single 401) is never blocked.
  */
 export function noteRateLimitedResponse(url: string, response: Response): void {
-  if (response.status !== 429) {
+  const origin = getOrigin(url)
+  if (response.status !== 429 && response.status !== 401) {
     return
   }
-  const origin = getOrigin(url)
   if (stateByOrigin.size >= MAX_TRACKED_ORIGINS && !stateByOrigin.has(origin)) {
     return
   }
-  const state = stateByOrigin.get(origin) ?? { cooldownUntilMs: 0, consecutive429s: 0 }
-  state.consecutive429s += 1
+  const state = stateByOrigin.get(origin) ?? { cooldownUntilMs: 0, consecutive429s: 0, consecutive401s: 0 }
   const nowMs = Date.now()
+
+  if (response.status === 401) {
+    state.consecutive401s += 1
+    state.consecutive429s = 0
+    if (state.consecutive401s >= UNAUTH_THRESHOLD) {
+      state.consecutive401s = 0
+      state.cooldownUntilMs = nowMs + jitter(UNAUTH_COOLDOWN_MS)
+    }
+    stateByOrigin.set(origin, state)
+    return
+  }
+
+  state.consecutive429s += 1
+  state.consecutive401s = 0
   const retryAfterMs = parseRetryAfterMs(response, nowMs)
   const backoffMs = Math.min(
     MAX_COOLDOWN_MS,
@@ -120,7 +147,7 @@ export async function rateLimitedFetch(input: RequestInfo | URL, init?: RequestI
   const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
   throwIfRateLimited(url)
   const response = await fetch(input, init)
-  if (response.status === 429) {
+  if (response.status === 429 || response.status === 401) {
     noteRateLimitedResponse(url, response)
   } else if (response.ok) {
     noteSuccessfulResponse(url)

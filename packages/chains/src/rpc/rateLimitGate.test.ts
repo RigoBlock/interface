@@ -110,12 +110,60 @@ describe('rateLimitGate', () => {
     expect(() => throwIfRateLimited(url)).not.toThrow()
   })
 
-  test('non-429 responses are ignored by noteRateLimitedResponse', () => {
+  test('non-429/401 responses are ignored by noteRateLimitedResponse', () => {
     const origin = uniqueOrigin()
     noteRateLimitedResponse(`${origin}/rpc/1`, new Response('ok', { status: 200 }))
     noteRateLimitedResponse(`${origin}/rpc/1`, new Response('server error', { status: 500 }))
 
     expect(getRateLimitCooldownRemainingMs(`${origin}/rpc/1`)).toBe(0)
+  })
+
+  describe('401 handling', () => {
+    const response401 = (): Response => new Response('unauthorized', { status: 401 })
+
+    test('a single 401 does not gate (session-gate recovery must stay possible)', () => {
+      const origin = uniqueOrigin()
+      const url = `${origin}/rpc/1`
+
+      noteRateLimitedResponse(url, response401())
+
+      expect(getRateLimitCooldownRemainingMs(url)).toBe(0)
+      expect(() => throwIfRateLimited(url)).not.toThrow()
+    })
+
+    test('two consecutive 401s still do not gate', () => {
+      const origin = uniqueOrigin()
+      const url = `${origin}/rpc/1`
+
+      noteRateLimitedResponse(url, response401())
+      noteRateLimitedResponse(url, response401())
+
+      expect(getRateLimitCooldownRemainingMs(url)).toBe(0)
+    })
+
+    test('three consecutive 401s trip the cooldown (persistent-auth-failure spam guard)', () => {
+      const origin = uniqueOrigin()
+      const url = `${origin}/rpc/1`
+
+      noteRateLimitedResponse(url, response401())
+      noteRateLimitedResponse(url, response401())
+      noteRateLimitedResponse(url, response401())
+
+      expect(getRateLimitCooldownRemainingMs(url)).toBeGreaterThan(0)
+      expect(() => throwIfRateLimited(url)).toThrow(/rate limited/)
+    })
+
+    test('a success resets the consecutive-401 count', () => {
+      const origin = uniqueOrigin()
+      const url = `${origin}/rpc/1`
+
+      noteRateLimitedResponse(url, response401())
+      noteRateLimitedResponse(url, response401())
+      noteSuccessfulResponse(url)
+      noteRateLimitedResponse(url, response401())
+
+      expect(getRateLimitCooldownRemainingMs(url)).toBe(0)
+    })
   })
 
   test('rateLimitedFetch makes no network call while cooling down', async () => {

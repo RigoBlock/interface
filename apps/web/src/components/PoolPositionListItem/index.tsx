@@ -6,7 +6,7 @@ import { useCallback, useState } from 'react'
 //import { useToken } from '~/hooks/Tokens'
 import { Trans } from 'react-i18next'
 import { Link } from 'react-router'
-import { useTheme } from 'tamagui'
+import { useTheme } from 'styled-components'
 //import Badge from '~/components/Badge'
 import { ButtonPrimary } from '~/components/Button/buttons'
 import { RowBetween, RowFixed } from '~/components/deprecated/Row'
@@ -167,7 +167,7 @@ export default function PoolPositionListItem({
               {chainId && <ChainLogo chainId={chainId as UniverseChainId} size={16} />}
               {!isSubRow && <DataText>{name}</DataText>}
               {userHasStake && (
-                <LabelText color={theme.success?.get()}>
+                <LabelText color={theme.success}>
                   <BadgeText>
                     <Trans>active</Trans>
                   </BadgeText>
@@ -175,7 +175,7 @@ export default function PoolPositionListItem({
                 </LabelText>
               )}
               {showOperatorView && userIsOwner && (
-                <LabelText color={theme.success?.get()}>
+                <LabelText color={theme.success}>
                   <BadgeText>
                     <Trans>owned</Trans>
                   </BadgeText>
@@ -191,7 +191,7 @@ export default function PoolPositionListItem({
                     return false
                   }
                 })() && (
-                  <LabelText color={theme.success?.get()}>
+                  <LabelText color={theme.success}>
                     <BadgeText>
                       <Trans>held</Trans>
                     </BadgeText>

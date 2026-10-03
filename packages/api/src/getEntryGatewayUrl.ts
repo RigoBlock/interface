@@ -1,10 +1,11 @@
 import {
   DEV_ENTRY_GATEWAY_API_BASE_URL,
   PROD_ENTRY_GATEWAY_API_BASE_URL,
+  RIGOBLOCK_ENTRY_GATEWAY_BASE_URL,
   STAGING_ENTRY_GATEWAY_API_BASE_URL,
 } from '@universe/api/src/clients/base/urls'
 import { getConfig } from '@universe/config'
-import { Environment, getCurrentEnv } from '@universe/environment'
+import { Environment, getCurrentEnv, isE2eTestEnv, isWebApp } from '@universe/environment'
 
 export const ENTRY_GATEWAY_PROXY_PATH = '/entry-gateway'
 
@@ -68,6 +69,13 @@ export function getEntryGatewayUrl(options?: GetEntryGatewayUrlOptions): string 
   // requirement — silently rerouting it to the override would break services
   // like unitags that need a specific env regardless of deployment.
   if (!options?.env) {
+    // RigoBlock fork (web, non-e2e): default entry-gateway traffic is served
+    // by the RigoBlock API proxy — same call format as upstream, proxy base
+    // instead of the Uniswap backend host (which has no CORS for rigoblock
+    // origins). E2E keeps the upstream behavior (no proxy session exists).
+    if (isWebApp && !isE2eTestEnv()) {
+      return RIGOBLOCK_ENTRY_GATEWAY_BASE_URL
+    }
     const override: string = config.entryGatewayApiUrlOverride
     if (override) {
       return override

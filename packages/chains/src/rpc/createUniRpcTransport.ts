@@ -106,7 +106,7 @@ export function createUniRpcTransportFactory(ctx: UniRpcTransportFactoryCtx) {
           }
         },
         onFetchResponse: (response) => {
-          if (response.status === 429) {
+          if (response.status === 429 || response.status === 401) {
             noteRateLimitedResponse(config.rpcUrl, response)
           } else if (response.ok) {
             noteSuccessfulResponse(config.rpcUrl)
@@ -129,7 +129,7 @@ export function createUniRpcTransportFactory(ctx: UniRpcTransportFactoryCtx) {
         patchJsonRpcIdInInit(init)
       },
       onFetchResponse: (response) => {
-        if (response.status === 429) {
+        if (response.status === 429 || response.status === 401) {
           noteRateLimitedResponse(config.rpcUrl, response)
         } else if (response.ok) {
           noteSuccessfulResponse(config.rpcUrl)
