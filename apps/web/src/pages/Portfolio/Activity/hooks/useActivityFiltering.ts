@@ -57,6 +57,8 @@ interface UseActivityFilteringParams {
   selectedTransactionType: string
   selectedTimePeriod: string
   searchText?: string
+  /** Skip the underlying fetch entirely (e.g. smart pool addresses, which Zerion cannot track). */
+  skip?: boolean
 }
 
 interface UseActivityFilteringResult {
@@ -95,6 +97,7 @@ export function useActivityFiltering({
   selectedTransactionType,
   selectedTimePeriod,
   searchText,
+  skip,
 }: UseActivityFilteringParams): UseActivityFilteringResult {
   // Determine if we can use server-side filtering (EVM-only wallet)
   // Server-side filtering only works for EVM and will filter out all Solana transactions
@@ -118,6 +121,7 @@ export function useActivityFiltering({
       filterTransactionTypes: serverFilterTypes,
       searchText,
       maxItems: Infinity,
+      skip,
     })
 
   // Track chainId changes to show loading skeleton when switching networks

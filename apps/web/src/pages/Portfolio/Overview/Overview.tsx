@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { ChartPeriod, WalletBalanceCategory } from '@uniswap/client-data-api/dist/data/v1/api_pb'
+import { areAddressesEqual, Platform } from '@universe/chains'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { Flex, Separator, useMedia } from '@universe/mycelium'
 import { styled } from '@universe/mycelium/styled'
@@ -46,6 +47,7 @@ import { useHyperliquidPortfolioHistory } from '~/pages/Portfolio/Perps/hyperliq
 import { usePortfolioStakingContext } from '~/pages/Portfolio/PortfolioStakingContext'
 import { PortfolioTab } from '~/pages/Portfolio/types'
 import { buildPortfolioUrl } from '~/pages/Portfolio/utils/portfolioUrls'
+import { useActiveSmartPool } from '~/state/application/hooks'
 import { filterDefinedWalletAddresses } from '~/utils/filterDefinedWalletAddresses'
 
 const ACTIONS_AND_STATS_VARIANTS = {
@@ -71,6 +73,14 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   const portfolioPoolsBalancesEnabled = useFeatureFlag(FeatureFlags.PortfolioPoolsBalances)
   const { chainId, externalAddress, isExternalWallet } = usePortfolioRoutes()
   const portfolioAddresses = usePortfolioAddresses()
+  const activeSmartPool = useActiveSmartPool()
+  const isSmartPoolActivity =
+    !!portfolioAddresses.evmAddress &&
+    !!activeSmartPool.address &&
+    areAddressesEqual({
+      addressInput1: { address: portfolioAddresses.evmAddress, platform: Platform.EVM },
+      addressInput2: { address: activeSmartPool.address, platform: Platform.EVM },
+    })
 
   // Staking totals are fetched once by PortfolioPageInner and shared across tabs so the value
   // doesn't reset when the animated tab content remounts.
@@ -336,7 +346,8 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
     ownerAddresses: filterDefinedWalletAddresses([portfolioAddresses.evmAddress, portfolioAddresses.svmAddress]),
     fiatOnRampParams: undefined,
     chainIds: chainId ? [chainId] : undefined,
-    skip: isPortfolioZero,
+    // Zerion cannot track smart pool contracts — skip rather than surface a permanent error state.
+    skip: isPortfolioZero || isSmartPoolActivity,
   })
 
   return (

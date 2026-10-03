@@ -1,5 +1,6 @@
 import { Row } from '@tanstack/react-table'
 import { SharedEventName } from '@uniswap/analytics-events'
+import { areAddressesEqual, Platform } from '@universe/chains'
 import { Flex, TouchableArea } from '@universe/mycelium'
 import { TestID } from '@universe/test'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -19,6 +20,7 @@ import { PaginationSkeletonRow } from '~/pages/Portfolio/Activity/PaginationSkel
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
 import { usePortfolioOutageContext } from '~/pages/Portfolio/PortfolioOutageContext'
+import { useActiveSmartPool } from '~/state/application/hooks'
 import { useOpenTransactionDetailsModal } from '~/state/transactionDetailsModalStore'
 
 export function PortfolioActivity() {
@@ -30,6 +32,17 @@ export function PortfolioActivity() {
 
   const { evmAddress, svmAddress } = usePortfolioAddresses()
   const { chainId, isExternalWallet } = usePortfolioRoutes()
+  const activeSmartPool = useActiveSmartPool()
+  // Zerion-backed ListTransactions only tracks EOAs — querying a smart pool address always fails
+  // ("untrackable wallet address" → gateway 500) and trips the portfolio outage banner. Skip the
+  // query so the tab shows its normal empty state instead.
+  const isSmartPoolActivity =
+    !!evmAddress &&
+    !!activeSmartPool.address &&
+    areAddressesEqual({
+      addressInput1: { address: evmAddress, platform: Platform.EVM },
+      addressInput2: { address: activeSmartPool.address, platform: Platform.EVM },
+    })
 
   const { transactionData, sectionData, showLoading, isFetchingNextPage, sentinelRef, error, dataUpdatedAt } =
     useActivityFiltering({
@@ -39,6 +52,7 @@ export function PortfolioActivity() {
       selectedTransactionType,
       selectedTimePeriod,
       searchText,
+      skip: isSmartPoolActivity,
     })
 
   const { setActivityOutage } = usePortfolioOutageContext()
