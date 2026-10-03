@@ -49,7 +49,7 @@ interface UniRpcTransportFactoryCtx {
   session: SessionStrategy
 }
 
-interface UniRpcTransportInput {
+export interface UniRpcTransportInput {
   config: UniRpcConfig
 }
 
