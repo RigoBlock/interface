@@ -216,3 +216,43 @@ describe('createUniRpcTransportFactory — generic transport contract', () => {
     await expect(sendRequest(buildTransport, { rpcUrl: RPC_URL, headers: STATIC_HEADERS })).rejects.toThrow()
   })
 })
+
+describe('createUniRpcTransportFactory — 429 rate-limit gate (RigoBlock fork)', () => {
+  // Unique origin: the gate's cooldown state is module-scoped and these tests
+  // must not gate the other tests in this file.
+  const GATED_RPC_URL = 'https://rate-limit-gate-test.invalid/rpc/1'
+
+  test('after a 429, subsequent requests fail fast without hitting the network', async () => {
+    ;(globalThis.fetch as Mock).mockResolvedValueOnce(new Response('too many requests', { status: 429 }))
+    const buildTransport = createUniRpcTransportFactory({ session: { type: 'cookies' } })
+
+    await expect(sendRequest(buildTransport, { rpcUrl: GATED_RPC_URL, headers: STATIC_HEADERS })).rejects.toThrow()
+
+    const callsAfter429 = (globalThis.fetch as Mock).mock.calls.length
+    // Second request: the gate must reject it before fetch, even though viem
+    // retries internally (retryCount: 0 in sendRequest keeps this to one call).
+    await expect(sendRequest(buildTransport, { rpcUrl: GATED_RPC_URL, headers: STATIC_HEADERS })).rejects.toThrow(
+      /rate limited/,
+    )
+    expect((globalThis.fetch as Mock).mock.calls.length).toBe(callsAfter429)
+  })
+
+  test('headers-session strategy gates on 429 as well', async () => {
+    ;(globalThis.fetch as Mock).mockResolvedValueOnce(new Response('too many requests', { status: 429 }))
+    const getSessionHeaders = vi.fn().mockResolvedValue({ 'x-session-id': 'sess-1' })
+    const buildTransport = createUniRpcTransportFactory({ session: { type: 'headers', getSessionHeaders } })
+
+    await expect(
+      sendRequest(buildTransport, { rpcUrl: `${GATED_RPC_URL}-headers`, headers: STATIC_HEADERS }),
+    ).rejects.toThrow()
+
+    const callsAfter429 = (globalThis.fetch as Mock).mock.calls.length
+    const headerResolutionsAfter429 = getSessionHeaders.mock.calls.length
+    await expect(
+      sendRequest(buildTransport, { rpcUrl: `${GATED_RPC_URL}-headers`, headers: STATIC_HEADERS }),
+    ).rejects.toThrow(/rate limited/)
+    expect((globalThis.fetch as Mock).mock.calls.length).toBe(callsAfter429)
+    // Gate check runs before header resolution — no wasted session lookups either.
+    expect(getSessionHeaders.mock.calls.length).toBe(headerResolutionsAfter429)
+  })
+})

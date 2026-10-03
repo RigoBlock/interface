@@ -7,6 +7,7 @@ import { extractRpcErrorMeta } from './observability/extractRpcErrorMeta'
 import { InstrumentedJsonRpcProvider } from './observability/InstrumentedJsonRpcProvider'
 import { normalizeRpcError } from './observability/normalizeRpcError'
 import { generateRequestId, getRpcObserver, type RpcObserver } from './observability/rpcObserver'
+import { rateLimitedFetch } from './rateLimitGate'
 import type { RpcConfigResolver } from './resolveRpcConfig'
 import { RPCType, UniverseChainId } from './types'
 import { HEADER_RESOLVE_TIMEOUT_MS, withTimeout } from './withTimeout'
@@ -49,12 +50,15 @@ function createJsonRpcFetchFunc(config: {
   let nextId = 1
   // No-op when getSessionGate returns null (not bootstrapped); awaits ready
   // and retries once on 401 otherwise. Emits SessionGate.* events to DD.
+  // rateLimitedFetch fails fast without network I/O while the endpoint is
+  // cooling down from a 429, so ethers' polling/retry loops can't spam a
+  // rate-limiting endpoint.
   const getSession = config.getSessionGate ?? ((): null => null)
   const doFetch = requireSessionFetch({
     getSession,
     source: SessionGateSource.UnirpcEthers,
     getLogger: (): typeof logger => logger,
-  })(fetch)
+  })(rateLimitedFetch)
 
   return async (method: string, params?: Array<unknown>): Promise<unknown> => {
     const requestId = generateRequestId()

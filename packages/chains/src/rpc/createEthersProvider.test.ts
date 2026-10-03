@@ -111,3 +111,36 @@ describe('createEthersProviderFactory — branching contract', () => {
     expect(provider).toBeInstanceOf(FlashbotsRpcProvider)
   })
 })
+
+describe('createEthersProviderFactory — 429 rate-limit gate (RigoBlock fork)', () => {
+  const GATED_RPC_URL = 'https://ethers-rate-limit-gate-test.invalid/rpc/1'
+
+  function buildGatedProvider() {
+    const factory = createEthersProviderFactory({
+      resolveRpcConfig: () => ({
+        rpcUrl: GATED_RPC_URL,
+        isUniRpc: true,
+        headers: { 'x-request-source': 'web' },
+        getRequestHeaders: async () => ({ 'x-session-id': 'sess' }),
+      }),
+    })
+    const provider = factory({ chainId: CHAIN_ID, rpcType: RPCType.Public })
+    if (!provider) {
+      throw new Error('expected provider')
+    }
+    return provider
+  }
+
+  test('after a 429, subsequent sends fail fast without hitting the network', async () => {
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValueOnce(new Response('too many requests', { status: 429 })) as unknown as typeof fetch
+    const provider = buildGatedProvider()
+
+    await expect(provider.send('eth_blockNumber', [])).rejects.toThrow()
+
+    const callsAfter429 = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.length
+    await expect(provider.send('eth_blockNumber', [])).rejects.toThrow(/rate limited/)
+    expect((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(callsAfter429)
+  })
+})

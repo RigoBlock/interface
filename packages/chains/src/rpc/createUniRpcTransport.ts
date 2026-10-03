@@ -1,5 +1,6 @@
 import { http } from 'viem'
 import type { UniRpcConfig } from './getUniRpcConfig'
+import { noteRateLimitedResponse, noteSuccessfulResponse, throwIfRateLimited } from './rateLimitGate'
 import { HEADER_RESOLVE_TIMEOUT_MS, withTimeout } from './withTimeout'
 
 // UniRPC requests should be fast — the gateway has its own latency SLOs and
@@ -83,6 +84,10 @@ export function createUniRpcTransportFactory(ctx: UniRpcTransportFactoryCtx) {
           headers: config.headers,
         },
         onFetchRequest: async (_request, init) => {
+          // RigoBlock fork: fail fast (no network I/O) while the endpoint is
+          // cooling down from a 429 — otherwise every poller/retry loop
+          // multiplies request volume against an already rate-limiting endpoint.
+          throwIfRateLimited(config.rpcUrl)
           // Bound header resolution so a hung session/device-id provider
           // can't hang the fetch past the transport timeout. The 6s
           // UNIRPC_TIMEOUT_MS only applies after fetch is invoked — without
@@ -100,6 +105,13 @@ export function createUniRpcTransportFactory(ctx: UniRpcTransportFactoryCtx) {
             },
           }
         },
+        onFetchResponse: (response) => {
+          if (response.status === 429) {
+            noteRateLimitedResponse(config.rpcUrl, response)
+          } else if (response.ok) {
+            noteSuccessfulResponse(config.rpcUrl)
+          }
+        },
         timeout: UNIRPC_TIMEOUT_MS,
       })
     }
@@ -113,7 +125,15 @@ export function createUniRpcTransportFactory(ctx: UniRpcTransportFactoryCtx) {
         credentials: 'omit',
       },
       onFetchRequest: (_request, init) => {
+        throwIfRateLimited(config.rpcUrl)
         patchJsonRpcIdInInit(init)
+      },
+      onFetchResponse: (response) => {
+        if (response.status === 429) {
+          noteRateLimitedResponse(config.rpcUrl, response)
+        } else if (response.ok) {
+          noteSuccessfulResponse(config.rpcUrl)
+        }
       },
       timeout: UNIRPC_TIMEOUT_MS,
     })
