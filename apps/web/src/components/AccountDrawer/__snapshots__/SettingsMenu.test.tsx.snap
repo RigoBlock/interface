@@ -515,7 +515,7 @@ exports[`SettingsMenu > renders for embedded wallet user (Login Methods + Log ou
                   stroke="currentColor"
                   stroke-linecap="round"
                   stroke-width="8"
-                  style="width: 14px; height: 14px; color: rgb(255, 55, 199);"
+                  style="width: 14px; height: 14px; color: rgb(254, 178, 57);"
                   viewBox="0 0 48 48"
                 >
                   <line
@@ -993,7 +993,7 @@ exports[`SettingsMenu > renders for standard wallet user 1`] = `
                   stroke="currentColor"
                   stroke-linecap="round"
                   stroke-width="8"
-                  style="width: 14px; height: 14px; color: rgb(255, 55, 199);"
+                  style="width: 14px; height: 14px; color: rgb(254, 178, 57);"
                   viewBox="0 0 48 48"
                 >
                   <line

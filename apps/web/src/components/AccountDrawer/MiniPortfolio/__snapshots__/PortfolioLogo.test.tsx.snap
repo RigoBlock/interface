@@ -30,7 +30,7 @@ exports[`PortfolioLogo > renders with L2 icon 1`] = `
             >
               <img
                 height="40"
-                src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/arbitrum/assets/0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1/logo.png"
+                src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/arbitrum/assets/0x7F4638A58C0615037deCc86f1daE60E55fE92874/logo.png"
                 style="object-fit: cover; width: 40px; height: 40px; border-radius: 40px; z-index: 1;"
                 width="40"
               />
@@ -125,7 +125,7 @@ exports[`PortfolioLogo > renders without L2 icon 1`] = `
             >
               <img
                 height="40"
-                src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
+                src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0x4FbB350052Bca5417566f188eB2EBCE5b19BC964/logo.png"
                 style="object-fit: cover; width: 40px; height: 40px; border-radius: 40px; z-index: 1;"
                 width="40"
               />

@@ -36,7 +36,7 @@ exports[`OrderContent > should render without error, filled order 1`] = `
                 >
                   <img
                     height="40"
-                    src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
+                    src="eth-logo.png"
                     style="object-fit: cover; width: 40px; height: 40px; border-radius: 40px; z-index: 1;"
                     width="40"
                   />
@@ -135,7 +135,7 @@ exports[`OrderContent > should render without error, filled order 1`] = `
             >
               252.074
                
-              DAI
+              ETH
             </h2>
             <span
               class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[12px] [line-height:16px] [font-weight:485] [color:var(--stext-neutral2)]"
@@ -158,7 +158,7 @@ exports[`OrderContent > should render without error, filled order 1`] = `
           >
             <img
               height="36"
-              src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
+              src="eth-logo.png"
               style="object-fit: cover; width: 36px; height: 36px; border-radius: 36px; z-index: 1;"
               width="36"
             />
@@ -304,7 +304,7 @@ exports[`OrderContent > should render without error, filled order 1`] = `
           class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[14px] [line-height:18px] [font-weight:485] [color:var(--stext-neutral1)] text-right"
         >
           <div
-            aria-label="1 WETH = 2,359.34 DAI "
+            aria-label="1 WETH = 2,359.34 ETH "
             class="[container-name:true] flex basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 [container-type:normal] rounded-[12px] bg-transparent flex-row items-center justify-start flex-wrap gap-[4px] max-w-[100%] [cursor:pointer] [transition:transform_80ms_ease-in-out,_opacity_80ms_ease-in-out] [user-select:text] active:opacity-[0.75] active:[transform:scale(0.98)] focus-visible:[transform:scaleX(0.98)_scaleY(0.98)] focus-visible:[outline-offset:1px] focus-visible:[outline-style:solid] focus-visible:[outline-width:1px] focus-visible:[outline-color:var(--neutral3)] group"
             data-testid="trade-price-toggle"
             role="button"
@@ -313,7 +313,7 @@ exports[`OrderContent > should render without error, filled order 1`] = `
             <span
               class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[14px] [line-height:18px] [font-weight:485] [color:var(--stext-neutral1)] text-left"
             >
-              1 WETH = 2,359.34 DAI 
+              1 WETH = 2,359.34 ETH 
             </span>
           </div>
         </span>
@@ -400,7 +400,7 @@ exports[`OrderContent > should render without error, limit order 1`] = `
                 >
                   <img
                     height="40"
-                    src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
+                    src="eth-logo.png"
                     style="object-fit: cover; width: 40px; height: 40px; border-radius: 40px; z-index: 1;"
                     width="40"
                   />
@@ -499,7 +499,7 @@ exports[`OrderContent > should render without error, limit order 1`] = `
             >
               252.074
                
-              DAI
+              ETH
             </h2>
             <span
               class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[12px] [line-height:16px] [font-weight:485] [color:var(--stext-neutral2)]"
@@ -522,7 +522,7 @@ exports[`OrderContent > should render without error, limit order 1`] = `
           >
             <img
               height="36"
-              src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
+              src="eth-logo.png"
               style="object-fit: cover; width: 36px; height: 36px; border-radius: 36px; z-index: 1;"
               width="36"
             />
@@ -668,7 +668,7 @@ exports[`OrderContent > should render without error, limit order 1`] = `
           class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[14px] [line-height:18px] [font-weight:485] [color:var(--stext-neutral1)] text-right"
         >
           <div
-            aria-label="1 WETH = 2,359.34 DAI "
+            aria-label="1 WETH = 2,359.34 ETH "
             class="[container-name:true] flex basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 [container-type:normal] rounded-[12px] bg-transparent flex-row items-center justify-start flex-wrap gap-[4px] max-w-[100%] [cursor:pointer] [transition:transform_80ms_ease-in-out,_opacity_80ms_ease-in-out] [user-select:text] active:opacity-[0.75] active:[transform:scale(0.98)] focus-visible:[transform:scaleX(0.98)_scaleY(0.98)] focus-visible:[outline-offset:1px] focus-visible:[outline-style:solid] focus-visible:[outline-width:1px] focus-visible:[outline-color:var(--neutral3)] group"
             data-testid="trade-price-toggle"
             role="button"
@@ -677,7 +677,7 @@ exports[`OrderContent > should render without error, limit order 1`] = `
             <span
               class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[14px] [line-height:18px] [font-weight:485] [color:var(--stext-neutral1)] text-left"
             >
-              1 WETH = 2,359.34 DAI 
+              1 WETH = 2,359.34 ETH 
             </span>
           </div>
         </span>
@@ -824,7 +824,7 @@ exports[`OrderContent > should render without error, open order 1`] = `
                 >
                   <img
                     height="40"
-                    src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
+                    src="eth-logo.png"
                     style="object-fit: cover; width: 40px; height: 40px; border-radius: 40px; z-index: 1;"
                     width="40"
                   />
@@ -923,7 +923,7 @@ exports[`OrderContent > should render without error, open order 1`] = `
             >
               252.074
                
-              DAI
+              ETH
             </h2>
             <span
               class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[12px] [line-height:16px] [font-weight:485] [color:var(--stext-neutral2)]"
@@ -946,7 +946,7 @@ exports[`OrderContent > should render without error, open order 1`] = `
           >
             <img
               height="36"
-              src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
+              src="eth-logo.png"
               style="object-fit: cover; width: 36px; height: 36px; border-radius: 36px; z-index: 1;"
               width="36"
             />
@@ -1092,7 +1092,7 @@ exports[`OrderContent > should render without error, open order 1`] = `
           class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[14px] [line-height:18px] [font-weight:485] [color:var(--stext-neutral1)] text-right"
         >
           <div
-            aria-label="1 WETH = 2,359.34 DAI "
+            aria-label="1 WETH = 2,359.34 ETH "
             class="[container-name:true] flex basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 [container-type:normal] rounded-[12px] bg-transparent flex-row items-center justify-start flex-wrap gap-[4px] max-w-[100%] [cursor:pointer] [transition:transform_80ms_ease-in-out,_opacity_80ms_ease-in-out] [user-select:text] active:opacity-[0.75] active:[transform:scale(0.98)] focus-visible:[transform:scaleX(0.98)_scaleY(0.98)] focus-visible:[outline-offset:1px] focus-visible:[outline-style:solid] focus-visible:[outline-width:1px] focus-visible:[outline-color:var(--neutral3)] group"
             data-testid="trade-price-toggle"
             role="button"
@@ -1101,7 +1101,7 @@ exports[`OrderContent > should render without error, open order 1`] = `
             <span
               class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[14px] [line-height:18px] [font-weight:485] [color:var(--stext-neutral1)] text-left"
             >
-              1 WETH = 2,359.34 DAI 
+              1 WETH = 2,359.34 ETH 
             </span>
           </div>
         </span>
@@ -1220,7 +1220,7 @@ exports[`OrderContent cancel-flow states (flag on) > renders the timed-out alert
                 >
                   <img
                     height="40"
-                    src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
+                    src="eth-logo.png"
                     style="object-fit: cover; width: 40px; height: 40px; border-radius: 40px; z-index: 1;"
                     width="40"
                   />
@@ -1319,7 +1319,7 @@ exports[`OrderContent cancel-flow states (flag on) > renders the timed-out alert
             >
               252.074
                
-              DAI
+              ETH
             </h2>
             <span
               class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[12px] [line-height:16px] [font-weight:485] [color:var(--stext-neutral2)]"
@@ -1342,7 +1342,7 @@ exports[`OrderContent cancel-flow states (flag on) > renders the timed-out alert
           >
             <img
               height="36"
-              src="https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
+              src="eth-logo.png"
               style="object-fit: cover; width: 36px; height: 36px; border-radius: 36px; z-index: 1;"
               width="36"
             />
@@ -1488,7 +1488,7 @@ exports[`OrderContent cancel-flow states (flag on) > renders the timed-out alert
           class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[14px] [line-height:18px] [font-weight:485] [color:var(--stext-neutral1)] text-right"
         >
           <div
-            aria-label="1 WETH = 2,359.34 DAI "
+            aria-label="1 WETH = 2,359.34 ETH "
             class="[container-name:true] flex basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 [container-type:normal] rounded-[12px] bg-transparent flex-row items-center justify-start flex-wrap gap-[4px] max-w-[100%] [cursor:pointer] [transition:transform_80ms_ease-in-out,_opacity_80ms_ease-in-out] [user-select:text] active:opacity-[0.75] active:[transform:scale(0.98)] focus-visible:[transform:scaleX(0.98)_scaleY(0.98)] focus-visible:[outline-offset:1px] focus-visible:[outline-style:solid] focus-visible:[outline-width:1px] focus-visible:[outline-color:var(--neutral3)] group"
             data-testid="trade-price-toggle"
             role="button"
@@ -1497,7 +1497,7 @@ exports[`OrderContent cancel-flow states (flag on) > renders the timed-out alert
             <span
               class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[14px] [line-height:18px] [font-weight:485] [color:var(--stext-neutral1)] text-left"
             >
-              1 WETH = 2,359.34 DAI 
+              1 WETH = 2,359.34 ETH 
             </span>
           </div>
         </span>

@@ -43,7 +43,7 @@ exports[`SettingsToggle > Updates value on click 1`] = `
             stroke="currentColor"
             stroke-linecap="round"
             stroke-width="8"
-            style="width: 14px; height: 14px; color: rgb(255, 55, 199);"
+            style="width: 14px; height: 14px; color: rgb(254, 178, 57);"
             viewBox="0 0 48 48"
           >
             <line
@@ -111,7 +111,7 @@ exports[`SettingsToggle > renders with icon 1`] = `
       aria-checked="true"
       aria-selected="true"
       role="switch"
-      style="appearance: none; margin: 0px; outline: none; position: relative; box-sizing: border-box; display: flex; flex-direction: row; align-items: center; justify-content: flex-start; height: 32px; width: 60px; min-height: 32px; min-width: 60px; flex-shrink: 0; padding: 4px; border-radius: 9999px; background-color: rgb(255, 55, 199); cursor: pointer; pointer-events: auto; transition: background-color 80ms ease-in-out;"
+      style="appearance: none; margin: 0px; outline: none; position: relative; box-sizing: border-box; display: flex; flex-direction: row; align-items: center; justify-content: flex-start; height: 32px; width: 60px; min-height: 32px; min-width: 60px; flex-shrink: 0; padding: 4px; border-radius: 9999px; background-color: rgb(254, 178, 57); cursor: pointer; pointer-events: auto; transition: background-color 80ms ease-in-out;"
       type="button"
     >
       <span
@@ -125,7 +125,7 @@ exports[`SettingsToggle > renders with icon 1`] = `
             stroke="currentColor"
             stroke-linecap="round"
             stroke-width="8"
-            style="width: 14px; height: 14px; color: rgb(255, 55, 199);"
+            style="width: 14px; height: 14px; color: rgb(254, 178, 57);"
             viewBox="0 0 48 48"
           >
             <line

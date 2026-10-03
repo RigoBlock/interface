@@ -1,18 +1,26 @@
 import '~/test-utils/tokens/mocks'
 import { UniverseChainId } from '@universe/chains'
-import { DAI, DAI_ARBITRUM_ONE, USDC_ARBITRUM, USDC_MAINNET } from 'uniswap/src/constants/tokens'
+import { GRG } from 'uniswap/src/constants/tokens'
+import { USDC_ARBITRUM, USDC_MAINNET } from 'uniswap/src/constants/tokens'
 import { PortfolioLogo } from '~/components/AccountDrawer/MiniPortfolio/PortfolioLogo'
 import { render, screen } from '~/test-utils/render'
 
 describe('PortfolioLogo', () => {
+  // The fork swaps DAI for GRG in COMMON_BASES, so GRG is the currency that resolves
+  // synchronously in tests (upstream used DAI here).
   it('renders without L2 icon', () => {
-    const { container } = render(<PortfolioLogo chainId={UniverseChainId.Mainnet} currencies={[DAI, USDC_MAINNET]} />)
+    const { container } = render(
+      <PortfolioLogo chainId={UniverseChainId.Mainnet} currencies={[GRG[UniverseChainId.Mainnet], USDC_MAINNET]} />,
+    )
     expect(container).toMatchSnapshot()
   })
 
   it('renders with L2 icon', () => {
     const { container } = render(
-      <PortfolioLogo chainId={UniverseChainId.ArbitrumOne} currencies={[DAI_ARBITRUM_ONE, USDC_ARBITRUM]} />,
+      <PortfolioLogo
+        chainId={UniverseChainId.ArbitrumOne}
+        currencies={[GRG[UniverseChainId.ArbitrumOne], USDC_ARBITRUM]}
+      />,
     )
     expect(container).toMatchSnapshot()
   })

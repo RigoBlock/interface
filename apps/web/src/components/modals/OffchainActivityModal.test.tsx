@@ -4,7 +4,9 @@ import { WETH9 } from '@uniswap/sdk-core'
 import { TradingApi } from '@universe/api'
 import { UniverseChainId } from '@universe/chains'
 import { getFeatureFlag, useFeatureFlag } from '@universe/gating'
-import { DAI } from 'uniswap/src/constants/tokens'
+// The fork swaps DAI for GRG in COMMON_BASES, so GRG is the input currency that
+// resolves its logo synchronously in tests (upstream used DAI here).
+import { GRG } from 'uniswap/src/constants/tokens'
 import {
   TransactionOriginType,
   TransactionStatus,
@@ -55,7 +57,7 @@ describe('OrderContent', () => {
         isUniswapXOrder: true,
         type: TransactionType.Swap,
         tradeType: 0,
-        inputCurrencyId: currencyId(DAI),
+        inputCurrencyId: currencyId(GRG[UniverseChainId.Mainnet]),
         outputCurrencyId: currencyId(WETH9[UniverseChainId.Mainnet]),
         inputCurrencyAmountRaw: '252074033564766400000',
         expectedOutputCurrencyAmountRaw: '106841079134757921',
@@ -85,7 +87,7 @@ describe('OrderContent', () => {
         isUniswapXOrder: true,
         type: TransactionType.Swap,
         tradeType: 0,
-        inputCurrencyId: currencyId(DAI),
+        inputCurrencyId: currencyId(GRG[UniverseChainId.Mainnet]),
         outputCurrencyId: currencyId(WETH9[UniverseChainId.Mainnet]),
         inputCurrencyAmountRaw: '252074033564766400000',
         expectedOutputCurrencyAmountRaw: '106841079134757921',
@@ -116,7 +118,7 @@ describe('OrderContent', () => {
         isUniswapXOrder: true,
         type: TransactionType.Swap,
         tradeType: 0,
-        inputCurrencyId: currencyId(DAI),
+        inputCurrencyId: currencyId(GRG[UniverseChainId.Mainnet]),
         outputCurrencyId: currencyId(WETH9[UniverseChainId.Mainnet]),
         inputCurrencyAmountRaw: '252074033564766400000',
         expectedOutputCurrencyAmountRaw: '106841079134757921',
@@ -148,7 +150,7 @@ function createCancellingLimitOrder(overrides?: Partial<UniswapXOrderDetails>): 
       isUniswapXOrder: true,
       type: TransactionType.Swap,
       tradeType: 0,
-      inputCurrencyId: currencyId(DAI),
+      inputCurrencyId: currencyId(GRG[UniverseChainId.Mainnet]),
       outputCurrencyId: currencyId(WETH9[UniverseChainId.Mainnet]),
       inputCurrencyAmountRaw: '252074033564766400000',
       expectedOutputCurrencyAmountRaw: '106841079134757921',
