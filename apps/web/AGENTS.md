@@ -143,3 +143,10 @@ RIGOBLOCK_GAS_OVERHEAD = 250000        // swap proxy overhead
 RIGOBLOCK_LIQUIDITY_GAS_OVERHEAD = 250000  // LP proxy overhead
 RIGOBLOCK_BRIDGE_GAS_FALLBACK = 2750000    // bridge fallback
 ```
+
+## Fork-Sync Notes (Oct 2026, main → feat/rigoblock-uniswap-sync)
+
+- **Hidden upstream features**: Launches, Explore "Auctions", and Pool "Launch Auction" are removed from routes/nav/explore (page files still exist upstream-style but are unreachable). Do not re-add them in future syncs.
+- **Positions page** uses upstream's Liquidity Service (`useWalletPositionsWeb`); `liquidityServiceUrl` in `packages/uniswap/src/constants/urls.ts` routes to `{rigoblock gateway}/v2/liquidity`. The gateway proxy must serve that path.
+- **Env vars** follow upstream naming (no `REACT_APP_` prefix). `ENTRY_GATEWAY_API_URL_OVERRIDE` is intentionally allowed in production (see `BaseEnvFieldRules` in `packages/config/src/BaseConfig.ts`) — it points entry-gateway traffic at the RigoBlock gateway.
+- **`.tamagui` generated bundles** are oxlint-ignored (`oxlint.config.ts`); rigoblock legacy files importing viem/ethers directly are in `DIRECT_VIEM_ETHERS_IMPORT_ALLOWLIST` (`config/oxlint-plugins/universe-custom.js`).
