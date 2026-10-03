@@ -326,7 +326,9 @@ describe('parseConfig', () => {
           values: {
             environment: Environment.Production,
             customApiKey: '',
-            statsigProxyUrlOverride: 'https://custom-statsig.example.com',
+            // RigoBlock fork: amplitude/statsig proxy overrides are allowed in production,
+            // so this test uses a base override URL that remains forbidden (graphqlUrlOverride).
+            graphqlUrlOverride: 'https://custom-graphql.example.com',
           },
           schema: z.object({ customApiKey: optionalString }),
           envFieldRules: { [Environment.Production]: { required: ['customApiKey'] } },
@@ -337,29 +339,29 @@ describe('parseConfig', () => {
         // App-provided rule
         expect(message).toContain('customApiKey  Required for environment "production"')
         // Base rule, unioned in for the same environment
-        expect(message).toContain('statsigProxyUrlOverride  Forbidden for environment "production"')
+        expect(message).toContain('graphqlUrlOverride  Forbidden for environment "production"')
       }
     })
 
     it('forbids a base override URL in production and allows it outside production', () => {
       expect(() =>
         parseConfig({
-          values: { environment: Environment.Production, statsigProxyUrlOverride: 'https://custom.example.com' },
+          values: { environment: Environment.Production, graphqlUrlOverride: 'https://custom.example.com' },
           schema: z.object({}),
         }),
-      ).toThrow('statsigProxyUrlOverride  Forbidden for environment "production"')
+      ).toThrow('graphqlUrlOverride  Forbidden for environment "production"')
 
       const staging = parseConfig({
-        values: { environment: Environment.Staging, statsigProxyUrlOverride: 'https://custom.example.com' },
+        values: { environment: Environment.Staging, graphqlUrlOverride: 'https://custom.example.com' },
         schema: z.object({}),
       })
-      expect(staging.statsigProxyUrlOverride).toBe('https://custom.example.com')
+      expect(staging.graphqlUrlOverride).toBe('https://custom.example.com')
 
       const emptyInProduction = parseConfig({
-        values: { environment: Environment.Production, statsigProxyUrlOverride: '' },
+        values: { environment: Environment.Production, graphqlUrlOverride: '' },
         schema: z.object({}),
       })
-      expect(emptyInProduction.statsigProxyUrlOverride).toBe('')
+      expect(emptyInProduction.graphqlUrlOverride).toBe('')
     })
 
     it('still enforces a base rule on a field the app schema overrides', () => {
@@ -367,10 +369,10 @@ describe('parseConfig', () => {
       // the field schema does not detach the base rule.
       expect(() =>
         parseConfig({
-          values: { environment: Environment.Production, statsigProxyUrlOverride: 'https://custom.example.com' },
-          schema: z.object({ statsigProxyUrlOverride: z.string() }),
+          values: { environment: Environment.Production, graphqlUrlOverride: 'https://custom.example.com' },
+          schema: z.object({ graphqlUrlOverride: z.string() }),
         }),
-      ).toThrow('statsigProxyUrlOverride  Forbidden for environment "production"')
+      ).toThrow('graphqlUrlOverride  Forbidden for environment "production"')
     })
 
     it('enforces base rules for a BaseConfigSchema parse with extendBaseConfig: false (getConfig path)', () => {
@@ -381,12 +383,12 @@ describe('parseConfig', () => {
           values: {
             appId: AppId.Web,
             environment: Environment.Production,
-            statsigProxyUrlOverride: 'https://custom.example.com',
+            graphqlUrlOverride: 'https://custom.example.com',
           },
           schema: BaseConfigSchema,
           extendBaseConfig: false,
         }),
-      ).toThrow('statsigProxyUrlOverride  Forbidden for environment "production"')
+      ).toThrow('graphqlUrlOverride  Forbidden for environment "production"')
     })
 
     it('skips base rule keys that are not in the schema shape (extendBaseConfig: false)', () => {

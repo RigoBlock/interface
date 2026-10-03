@@ -167,17 +167,18 @@ export type BaseConfig = z.infer<typeof BaseConfigSchema>
 export const BaseEnvFieldRules: EnvFieldRules<BaseConfig> = {
   [Environment.Production]: {
     forbidden: [
-      'amplitudeProxyUrlOverride',
       'apiBaseUrlOverride',
       'apiBaseUrlV2Override',
       // RigoBlock fork: allowed in production — the fork routes entry-gateway
       // traffic through its own gateway proxy (interface.gateway.rigoblock.com)
-      // via ENTRY_GATEWAY_API_URL_OVERRIDE in apps/web/.env.production.
+      // via ENTRY_GATEWAY_API_URL_OVERRIDE in apps/web/.env.
       'forApiUrlOverride',
       'graphqlUrlOverride',
+      // RigoBlock fork: allowed in production — the fork routes analytics/gating
+      // traffic through its own gateway proxy (AMPLITUDE_PROXY_URL_OVERRIDE /
+      // STATSIG_PROXY_URL_OVERRIDE in apps/web/.env), same rationale as above.
       'liquidityServiceUrlOverride',
       'scantasticApiUrlOverride',
-      'statsigProxyUrlOverride',
       'tradingApiUrlOverride',
       'tradingApiWebTestEnv',
       'uniswapNotifApiBaseUrlOverride',
