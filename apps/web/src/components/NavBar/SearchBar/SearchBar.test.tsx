@@ -20,7 +20,9 @@ vi.mock('~/components/NavBar/SearchBar/SearchModal', () => ({
 // Scoped queries instead of a blanket `matches: visible`: only the search-bar visibility
 // breakpoint should track `visible`, not every media query in the render tree.
 // The dark-scheme leg stays true because the committed snapshot was recorded under it.
-const SEARCH_BAR_VISIBLE_QUERY = '(min-width: 1560px)'
+// RigoBlock fork: the app uses a 1280px threshold (see useIsSearchBarVisible.ts — upstream
+// raised it to 1560px for the Launches Beta pill, which the fork does not have).
+const SEARCH_BAR_VISIBLE_QUERY = '(min-width: 1280px)'
 const DARK_SCHEME_QUERY = '(prefers-color-scheme: dark)'
 
 function mockSearchBarVisible(visible: boolean) {
