@@ -4,7 +4,7 @@ import { ChevronsOut } from '@universe/mycelium/icons/ChevronsOut'
 import { useReducer } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Separator } from 'ui/src'
-import { UniswapWalletOptions } from '~/components/WalletModal/UniswapWalletOptions'
+
 import { WalletModalLayout } from '~/components/WalletModal/WalletModalLayout'
 import { WalletOptionsGrid } from '~/components/WalletModal/WalletOptionsGrid'
 
@@ -18,7 +18,9 @@ export function StandardWalletModal(): JSX.Element {
     </Flex>
   )
 
-  const uniswapOptions = <UniswapWalletOptions />
+  // RigoBlock fork: Uniswap-branded wallet options (Uniswap Extension, Uniswap
+  // Mobile, passkey "Log in") are not offered on the RigoBlock interface.
+  const uniswapOptions = null
 
   const expandToggle = (
     <Flex row alignItems="center" py={8} userSelect="none" {...clickableStyle} onPress={toggleExpandMoreWallets}>

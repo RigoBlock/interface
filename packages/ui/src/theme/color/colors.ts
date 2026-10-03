@@ -129,9 +129,10 @@ const sporeLight = {
 
   accent1: '#feb239',
   accent1Hovered: '#ffa81f',
-  accent2: '#FEF4FF',
-  accent2Hovered: '#FEEBFC',
-  accent2Solid: '#FFF3FC',
+  // RigoBlock fork: accent2 is the gold-tinted soft accent (upstream uses pink tints)
+  accent2: '#FEF5EA',
+  accent2Hovered: '#FFE8BC',
+  accent2Solid: '#FFF9F0',
   accent3: '#222222',
   accent3Hovered: colors.black,
 
@@ -178,9 +179,10 @@ const sporeDark = {
   surface5Hovered: 'rgba(0,0,0,0.06)',
   accent1: '#feb239',
   accent1Hovered: '#ffa81f',
-  accent2: '#361A37',
-  accent2Hovered: '#510D43',
-  accent2Solid: '#261621',
+  // RigoBlock fork: dark-mode gold-tinted soft accent (upstream uses plum tints)
+  accent2: '#37230C',
+  accent2Hovered: '#4A2F10',
+  accent2Solid: '#2A1B08',
   accent3: colors.white,
   accent3Hovered: '#F5F5F5',
 
@@ -258,16 +260,17 @@ export const colorsLight = {
   statusWarning2: sporeLight.statusWarning2,
   statusWarning2Hovered: sporeLight.statusWarning2Hovered,
 
-  DEP_backgroundBranded: '#FCF7FF',
+  // RigoBlock fork: branded tokens use the gold accent (upstream: magentaVibrant)
+  DEP_backgroundBranded: '#FEF9F0',
   DEP_backgroundOverlay: opacifyRaw(60, colors.white),
 
-  DEP_accentBranded: DEP_accentColors.magentaVibrant,
-  DEP_shadowBranded: DEP_accentColors.magentaVibrant,
+  DEP_accentBranded: '#feb239',
+  DEP_shadowBranded: '#feb239',
 
-  DEP_brandedAccentSoft: DEP_accentColors.magenta100,
-  DEP_magentaDark: opacifyRaw(12, DEP_accentColors.magentaVibrant),
+  DEP_brandedAccentSoft: '#FEF5EA',
+  DEP_magentaDark: opacifyRaw(12, '#feb239'),
 
-  DEP_fiatBanner: colors.fiatOnRampBanner,
+  DEP_fiatBanner: '#feb239',
 
   chain_1: sporeLight.neutral1,
   chain_130: networkColors.unichain.light,
@@ -364,14 +367,14 @@ export const colorsDark = {
   DEP_backgroundBranded: '#100D1C',
   DEP_backgroundOverlay: opacifyRaw(10, colors.white),
 
-  DEP_accentBranded: DEP_accentColors.magentaVibrant,
-  // TODO(MOB-160): accommodate one-off color in cleaner way
-  DEP_shadowBranded: '#B60ACF',
+  // RigoBlock fork: branded tokens use the gold accent (upstream: magentaVibrant/#B60ACF)
+  DEP_accentBranded: '#feb239',
+  DEP_shadowBranded: '#B26A00',
 
-  DEP_brandedAccentSoft: '#46244F', // git blame Chelsy
-  DEP_magentaDark: opacifyRaw(12, DEP_accentColors.magentaVibrant),
+  DEP_brandedAccentSoft: '#37230C',
+  DEP_magentaDark: opacifyRaw(12, '#feb239'),
 
-  DEP_fiatBanner: colors.fiatOnRampBanner,
+  DEP_fiatBanner: '#feb239',
 
   chain_1: sporeDark.neutral1,
   chain_130: networkColors.unichain.dark,

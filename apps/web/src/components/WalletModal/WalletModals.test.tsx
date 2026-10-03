@@ -232,25 +232,13 @@ describe('SwitchWalletModal', () => {
     mocked(useOrderedWallets).mockReturnValue([METAMASK_WALLET])
   })
 
-  it('shows the Other wallets row when the embedded wallet is enabled and no platform is targeted', () => {
+  it('hides the Other wallets row on the RigoBlock fork even when the embedded wallet is enabled', () => {
     mocked(useFeatureFlag).mockImplementation((flag) => flag === FeatureFlags.EmbeddedWallet)
 
     render(<SwitchWalletModal connectOnPlatform="any" onClose={vi.fn()} />)
 
     expect(screen.getByText(METAMASK_WALLET.name)).toBeDefined()
-    expect(screen.getByText(OTHER_WALLETS_LABEL)).toBeDefined()
-  })
-
-  it('opens the other wallets menu and records the switch menu as the place to return to', () => {
-    mocked(useFeatureFlag).mockImplementation((flag) => flag === FeatureFlags.EmbeddedWallet)
-
-    render(<SwitchWalletModal connectOnPlatform="any" onClose={vi.fn()} />)
-    fireEvent.click(screen.getByText(OTHER_WALLETS_LABEL))
-
-    expect(setMenu).toHaveBeenCalledWith({
-      variant: MenuStateVariant.OTHER_WALLETS,
-      returnTo: MenuStateVariant.SWITCH,
-    })
+    expect(screen.queryByText(OTHER_WALLETS_LABEL)).toBeNull()
   })
 
   it('hides the Other wallets row when the embedded wallet is disabled', () => {

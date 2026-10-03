@@ -18,12 +18,11 @@ export type { RpcConfigResolver, RpcConfigResolverInput } from '@universe/chains
  * Prefer ProviderManager for provider access — this exists for the edge cases.
  *
  * This file ships to both the web app (Vite) and the browser extension (WXT).
- * The two diverge in session strategy:
- *   - Web app: cookie-based upstream — UniRPC reuses the browser's session cookie via
- *     `credentials: 'include'`. RigoBlock fork: no session cookies and the gateway
- *     sends ACAO: *, so the web resolver passes `credentials: 'omit'` instead.
- *   - Extension: header-based — extensions can't share the web app's cookie jar,
- *     so each request resolves a session/device header pair.
+ * Session strategy (RigoBlock fork): header-based on both — each request resolves
+ * an X-Session-ID / X-Device-ID header pair from the session service. Upstream web
+ * used cookie-based auth (credentials: 'include'), which the RigoBlock gateway's
+ * wildcard CORS response makes impossible; the entry gateway accepts the header pair
+ * and rejects unauthenticated /rpc/* calls with 401.
  *
  * Mobile uses the `.native.ts` sibling.
  */
@@ -38,6 +37,21 @@ const SHARED_UNI_RPC_CONFIG = {
   requestSource: REQUEST_SOURCE,
 } as const
 
+// Header-based session auth (extension AND RigoBlock web app). Upstream web uses
+// cookie-based auth (credentials: 'include'), but the RigoBlock gateway answers CORS
+// with Access-Control-Allow-Origin: *, which browsers reject for credentialed requests —
+// and the entry gateway rejects unauthenticated /rpc/* calls with 401. The same gateway
+// accepts the X-Session-ID / X-Device-ID header pair the extension sends, so the fork's
+// web app authenticates the same way (session is created via the session client and
+// stored in localStorage by provideSessionService, no cookies involved).
+const resolveHeaderSessionUniRpcHeaders = async (): Promise<Record<string, string>> => {
+  const [session, deviceId] = await Promise.all([provideSessionStorage().get(), provideDeviceIdService().getDeviceId()])
+  return {
+    ...(session?.sessionId && { 'X-Session-ID': session.sessionId }),
+    ...(deviceId && { 'X-Device-ID': deviceId }),
+  }
+}
+
 const webResolveUniRpcConfig = createUniRpcConfigResolver({
   ...SHARED_UNI_RPC_CONFIG,
   // Web app always routes through UniRPC; extension stays gated above.
@@ -47,29 +61,18 @@ const webResolveUniRpcConfig = createUniRpcConfigResolver({
   // UniRPC-only chains intentionally follow this too — e2e has no gateway session
   // for them either — so this overrides the shared chain-aware getter.
   getFeatureFlag: () => !isE2eTestEnv(),
-  // RigoBlock fork: the CF gateway returns Access-Control-Allow-Origin: *, which browsers
-  // reject for credentialed requests. RigoBlock does not use Uniswap session cookies,
-  // so omit credentials (same rationale as ~/theme-independent provideSessionService.web.ts
-  // and uniswap/src/data/transport.ts).
-  credentials: 'omit',
+  // RigoBlock fork: header-based session auth — see resolveHeaderSessionUniRpcHeaders above.
+  getRequestHeaders: resolveHeaderSessionUniRpcHeaders,
 })
-
-// Extension is header-based (can't share the web origin's cookie jar).
-const resolveExtensionUniRpcHeaders = async (): Promise<Record<string, string>> => {
-  const [session, deviceId] = await Promise.all([provideSessionStorage().get(), provideDeviceIdService().getDeviceId()])
-  return {
-    ...(session?.sessionId && { 'X-Session-ID': session.sessionId }),
-    ...(deviceId && { 'X-Device-ID': deviceId }),
-  }
-}
 
 const extensionResolveUniRpcConfig = createUniRpcConfigResolver({
   ...SHARED_UNI_RPC_CONFIG,
-  getRequestHeaders: resolveExtensionUniRpcHeaders,
+  getRequestHeaders: resolveHeaderSessionUniRpcHeaders,
 })
 
 // Public RPCs now point at the entry gateway; when the legacy path returns one,
-// authenticate it the same way the primary path does — cookie on web, header on extension.
+// authenticate it the same way the primary path does. Upstream: cookie on web,
+// header on extension. RigoBlock fork: header-based on both — see above.
 const asUniRpcConfig = (config: RpcConfig): RpcConfig => {
   if (!config.rpcUrl.startsWith(`${getEntryGatewayUrl()}/rpc/`)) {
     return config
@@ -79,10 +82,7 @@ const asUniRpcConfig = (config: RpcConfig): RpcConfig => {
     isUniRpc: true,
     headers: { 'x-request-source': REQUEST_SOURCE, ...config.headers },
   }
-  return isExtensionApp
-    ? { ...promoted, getRequestHeaders: resolveExtensionUniRpcHeaders }
-    : // RigoBlock fork: see webResolveUniRpcConfig above — no session cookies, wildcard ACAO.
-      { ...promoted, credentials: 'omit' }
+  return { ...promoted, getRequestHeaders: resolveHeaderSessionUniRpcHeaders }
 }
 
 export const defaultResolveRpcConfig = createRpcConfigResolver({

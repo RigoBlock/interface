@@ -130,17 +130,17 @@
   --color-surface5-hovered-light: rgba(0, 0, 0, 0.06);
   --color-surface5-hovered-dark: rgba(0, 0, 0, 0.06);
 
-  /* Semantic Colors - Accents */
-  --color-accent1-light: #ff37c7;
-  --color-accent1-dark: #ff37c7;
-  --color-accent1-hovered-light: #e500a5;
-  --color-accent1-hovered-dark: #e500a5;
-  --color-accent2-light: rgba(255, 55, 199, 0.08);
-  --color-accent2-dark: rgba(255, 55, 199, 0.08);
-  --color-accent2-hovered-light: rgba(255, 55, 199, 0.12);
-  --color-accent2-hovered-dark: rgba(255, 55, 199, 0.12);
-  --color-accent2-solid-light: #fff3fc;
-  --color-accent2-solid-dark: #261621;
+  /* Semantic Colors - Accents (RigoBlock fork: gold accent, tracked to colors.ts) */
+  --color-accent1-light: #feb239;
+  --color-accent1-dark: #feb239;
+  --color-accent1-hovered-light: #ffa81f;
+  --color-accent1-hovered-dark: #ffa81f;
+  --color-accent2-light: rgba(254, 178, 57, 0.08);
+  --color-accent2-dark: rgba(254, 178, 57, 0.08);
+  --color-accent2-hovered-light: rgba(254, 178, 57, 0.12);
+  --color-accent2-hovered-dark: rgba(254, 178, 57, 0.12);
+  --color-accent2-solid-light: #fef5ea;
+  --color-accent2-solid-dark: #37230c;
   /* Neutral-themed fills use neutral1 with surface1 labels (design decision: Zack Labadie + Philippe Cao, 2026-07-29 —
      no separate inverse value). accent3 is a deprecated alias of neutral1 kept for migration compat; values duplicated
      because the native pipeline and token parsers need literals — remove when legacy Tamagui accent3 is gone. */
@@ -390,7 +390,7 @@
   /* Brand Colors */
   --color-uniswapx-violet: #4673fa;
   --color-uniswapx-purple: #7d55fb;
-  --color-fiat-onramp-banner: #fb36d0;
+  --color-fiat-onramp-banner: #feb239;
   --color-pools-brand-green-light: #5ac53b;
   --color-pools-brand-green-dark: #d0ed27;
 

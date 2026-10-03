@@ -15,15 +15,15 @@
 @layer theme {
   :root {
     @variant light {
-      --stext-DEP_accentBranded: #FC72FF;
+      --stext-DEP_accentBranded: #feb239;
       --stext-DEP_accentSoft: #feb23933;
-      --stext-DEP_backgroundBranded: #FCF7FF;
+      --stext-DEP_backgroundBranded: #FEF9F0;
       --stext-DEP_backgroundOverlay: #FFFFFF99;
       --stext-DEP_blue400: #4C82FB;
-      --stext-DEP_brandedAccentSoft: #FAD8F8;
+      --stext-DEP_brandedAccentSoft: #FEF5EA;
       --stext-DEP_fiatBanner: #FB36D0;
-      --stext-DEP_magentaDark: #FC72FF1f;
-      --stext-DEP_shadowBranded: #FC72FF;
+      --stext-DEP_magentaDark: #feb2391f;
+      --stext-DEP_shadowBranded: #feb239;
       --stext-accent1: #feb239;
       --stext-accent1Hovered: #ffa81f;
       --stext-accent2: #FEF4FF;
@@ -112,14 +112,14 @@
       --stext-white: #FFFFFF;
     }
     @variant dark {
-      --stext-DEP_accentBranded: #FC72FF;
+      --stext-DEP_accentBranded: #feb239;
       --stext-DEP_accentSoft: #feb23933;
       --stext-DEP_backgroundBranded: #100D1C;
       --stext-DEP_backgroundOverlay: #FFFFFF1a;
       --stext-DEP_blue400: #4C82FB;
       --stext-DEP_brandedAccentSoft: #46244F;
       --stext-DEP_fiatBanner: #FB36D0;
-      --stext-DEP_magentaDark: #FC72FF1f;
+      --stext-DEP_magentaDark: #feb2391f;
       --stext-DEP_shadowBranded: #B60ACF;
       --stext-accent1: #feb239;
       --stext-accent1Hovered: #ffa81f;

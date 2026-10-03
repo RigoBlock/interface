@@ -1,13 +1,9 @@
 import { Platform } from '@universe/chains'
 import { isMobileWeb } from '@universe/environment'
-import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { Flex, Text, TouchableArea } from '@universe/mycelium'
 import { ArrowLeft } from '@universe/mycelium/icons/ArrowLeft'
 import { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
-import { useEvent } from 'utilities/src/react/hooks'
-import { MenuStateVariant, useSetMenu } from '~/components/AccountDrawer/menuState'
-import { UniswapWalletOptions } from '~/components/WalletModal/UniswapWalletOptions'
 import { WalletModalLayout } from '~/components/WalletModal/WalletModalLayout'
 import { WalletOptionsGrid } from '~/components/WalletModal/WalletOptionsGrid'
 import { useOrderedWallets } from '~/features/wallet/connection/hooks/useOrderedWalletConnectors'
@@ -33,11 +29,6 @@ export function SwitchWalletModal({
 }): JSX.Element {
   const { t } = useTranslation()
   const wallets = useOrderedWallets({ showSecondaryConnectors: isMobileWeb, platformFilter: connectOnPlatform })
-  const isEmbeddedWalletEnabled = useFeatureFlag(FeatureFlags.EmbeddedWallet)
-  const setMenu = useSetMenu()
-  const openOtherWallets = useEvent(() =>
-    setMenu({ variant: MenuStateVariant.OTHER_WALLETS, returnTo: MenuStateVariant.SWITCH }),
-  )
 
   const header = (
     <Flex row justifyContent="flex-start" alignItems="center" width="100%" gap="$gap8">
@@ -48,14 +39,14 @@ export function SwitchWalletModal({
     </Flex>
   )
 
-  const uniswapOptions = <UniswapWalletOptions />
+  // RigoBlock fork: Uniswap-branded wallet options are not offered on the RigoBlock interface.
+  const uniswapOptions = null
 
   const walletOptions = (
     <WalletOptionsGrid
       connectOnPlatform={connectOnPlatform}
       showMobileConnector={false}
-      showOtherWallets={isEmbeddedWalletEnabled && connectOnPlatform === 'any'}
-      onShowOtherWallets={openOtherWallets}
+      showOtherWallets={false}
       maxHeight="100vh"
       opacity={1}
     />

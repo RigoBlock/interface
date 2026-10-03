@@ -2,6 +2,17 @@
 
 This file provides guidance to AI agents when working with code in this repository. Always run all tests, lint, and typecheck after making changes, and before considering a task to be 'complete'.
 
+## RigoBlock Fork — Read First
+
+This repo is the **RigoBlock fork** of the Uniswap interface (`main` tracks upstream Uniswap; RigoBlock work happens on `rigoblock-wrap`-style branches). You are building the RigoBlock interface, not Uniswap's. When syncing upstream into the fork, these invariants MUST survive every merge — upstream changes will silently undo them:
+
+1. **Smart-pool context** (swap/LP pages): balances, position queries and tx `from`/`to` fields use the vault address; vault txs need NO token approvals; gas overhead (`RIGOBLOCK_GAS_OVERHEAD`) is applied exactly once in the sagas. See `apps/web/AGENTS.md` §Critical Invariants.
+2. **Branding is RigoBlock gold (`#feb239`), in all four theme layers** — `packages/ui/src/theme/color/colors.ts`, `packages/tailwind/css/theme.css`, `packages/mycelium/src/theme-hooks-compat/theme-colors.generated.ts`, `packages/mycelium/src/text-compat/spore-text-colors*.generated.css`. Upstream generated mirrors hardcode Uniswap pink; after any sync grep for `FC72FF|FF37C7` and re-apply gold.
+3. **No Uniswap-only UI**: no Launches / Auctions / "Launch Auction" entries, and no Uniswap-branded wallet options (Uniswap Extension, Uniswap Mobile, passkey "Log in") in wallet modals.
+4. **API traffic**: data/liquidity/RPC calls go through the RigoBlock gateway (`interface.gateway.rigoblock.com`), which proxies Uniswap's backend APIs; the trading API uses RigoBlock's own `trading-api-labs` host. The gateway answers CORS with `Access-Control-Allow-Origin: *`, so clients MUST use `credentials: 'omit'` and authenticate RPC via `X-Session-ID`/`X-Device-ID` headers (never cookies). See `apps/web/AGENTS.md` §Fork-Sync Notes for the full list.
+
+**Never "fix" a RigoBlock behavior by reverting it to upstream's way — if a conflict resolution looks like it restores upstream behavior for approvals, branding, wallet options, or API auth, that resolution is wrong.**
+
 ## Project Overview
 
 Uniswap Universe is a monorepo containing all Uniswap front-end interfaces:
