@@ -16,6 +16,7 @@
     "sitemap:generate": "nx sitemap:generate web",
     "start": "nx start web",
     "dev": "nx dev web",
+    "write-build-env": "node scripts/writeBuildEnv.mjs",
     "build:production": "nx build web -c production",
     "build:staging": "nx build web -c staging",
     "build:e2e": "nx build web -c e2e",
