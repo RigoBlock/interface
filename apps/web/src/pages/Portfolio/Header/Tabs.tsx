@@ -12,7 +12,7 @@ import { buildPortfolioUrl, pathToPortfolioTab } from '~/pages/Portfolio/utils/p
 const PORTFOLIO_TAB_TEST_IDS: Record<PortfolioTab, string> = {
   [PortfolioTab.Overview]: TestID.PortfolioTabOverview,
   [PortfolioTab.Tokens]: TestID.PortfolioTabTokens,
-  [PortfolioTab.Staking]: TestID.PortfolioTabOverview,
+  [PortfolioTab.Staking]: TestID.PortfolioTabStaking,
   [PortfolioTab.Pools]: TestID.PortfolioTabPools,
   [PortfolioTab.Defi]: TestID.PortfolioTabDefi,
   [PortfolioTab.Perps]: TestID.PortfolioTabPerps,

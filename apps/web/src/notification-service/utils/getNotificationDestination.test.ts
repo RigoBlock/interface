@@ -53,10 +53,11 @@ describe('getNotificationDestination', () => {
     expect(getNotificationDestination(notification)).toBe('/positions')
   })
 
-  it('resolves an absolute app.uniswap.org URL even when the current origin differs', () => {
-    expect(window.location.origin).not.toBe('https://app.uniswap.org')
+  it('resolves an absolute app hostname URL even when the current origin differs', () => {
+    // RigoBlock: UNISWAP_WEB_HOSTNAME is app.rigoblock.com.
+    expect(window.location.origin).not.toBe('https://app.rigoblock.com')
 
-    const notification = createNotification({ backgroundLink: externalLink('https://app.uniswap.org/swap') })
+    const notification = createNotification({ backgroundLink: externalLink('https://app.rigoblock.com/swap') })
 
     expect(getNotificationDestination(notification)).toBe('/swap')
   })
@@ -149,15 +150,15 @@ describe('getNotificationDestination', () => {
   })
 
   it('keeps a doubled slash on the path instead of reading it as a host', () => {
-    // `app.uniswap.org//explore` has the pathname `//explore`, which resolved against the origin
+    // `app.rigoblock.com//explore` has the pathname `//explore`, which resolved against the origin
     // would collapse to `/` and suppress on the landing page.
-    const notification = createNotification({ backgroundLink: externalLink('https://app.uniswap.org//explore') })
+    const notification = createNotification({ backgroundLink: externalLink('https://app.rigoblock.com//explore') })
 
     expect(getNotificationDestination(notification)).toBe('//explore')
   })
 
   it('handles a bare doubled slash without throwing', () => {
-    const notification = createNotification({ backgroundLink: externalLink('https://app.uniswap.org//') })
+    const notification = createNotification({ backgroundLink: externalLink('https://app.rigoblock.com//') })
 
     expect(getNotificationDestination(notification)).toBe('/')
   })

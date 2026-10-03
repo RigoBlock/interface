@@ -3,6 +3,7 @@ import { Token } from '@uniswap/sdk-core'
 import { UniverseChainId } from '@universe/chains'
 import { FeatureFlags, useFeatureFlag, useStatsigClientStatus } from '@universe/gating'
 import { useQueryState, useQueryStates } from 'nuqs'
+import { nativeOnChain } from 'uniswap/src/constants/tokens'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { useCurrencyInfoWithLoading } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
@@ -133,7 +134,10 @@ describe('useLiquidityUrlState — currency resolution across the chain hold', (
     expect(requestedCurrencyIds()).not.toContain(MAINNET_CURRENCY_ID)
   })
 
-  it('resolves the preset token on the rollout chain once readiness arrives', () => {
+  it('does not resolve the preset token on a rollout chain the fork does not allow, even once readiness arrives', () => {
+    // RigoBlock: the enabled-chain allowlist excludes CHAIN_ROLLOUT_FLAGS chains, so the Robinhood
+    // flag can never enable the chain — readiness lands on the same default-chain fallback as
+    // flag-off and the preset token is cleared as a chain mismatch.
     setStatsigReady(false)
 
     const { result, rerender } = renderHook(() => useLiquidityUrlState())
@@ -144,9 +148,9 @@ describe('useLiquidityUrlState — currency resolution across the chain hold', (
     useFeatureFlagMock.mockImplementation((flag: FeatureFlags) => flag === FeatureFlags.Robinhood)
     rerender()
 
-    expect(result.current.chainId).toBe(UniverseChainId.Robinhood)
-    expect(requestedCurrencyIds()).toContain(ROBINHOOD_CURRENCY_ID)
-    expect(result.current.tokenA).toEqual(USDG_ROBINHOOD)
+    expect(result.current.chainId).toBe(UniverseChainId.Mainnet)
+    expect(requestedCurrencyIds()).not.toContain(ROBINHOOD_CURRENCY_ID)
+    expect(result.current.tokenA).toEqual(nativeOnChain(UniverseChainId.Mainnet))
     expect(result.current.loading).toBe(false)
   })
 })

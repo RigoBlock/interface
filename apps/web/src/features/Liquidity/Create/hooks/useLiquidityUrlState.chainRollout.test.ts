@@ -177,15 +177,18 @@ describe('useLiquidityUrlState — chain rollout flags', () => {
     expect(result.current.loading).toBe(true)
   })
 
-  it('resolves to the URL chain once Statsig reports the rollout flag as enabled', () => {
+  it('falls back to the default chain for a rollout chain the fork does not allow, even with the flag on', () => {
+    // RigoBlock: getEnabledChains restricts enabled chains to a fork allowlist that excludes every
+    // CHAIN_ROLLOUT_FLAGS chain, so a Statsig rollout flag can never enable Robinhood here — the
+    // flag-on outcome is the same default-chain fallback as flag-off.
     setStatsigReady(true)
     setEnabledRolloutFlags([FeatureFlags.Robinhood])
     setUrlState(UniverseChainId.Robinhood, USDG_ROBINHOOD.address)
 
     const { result } = renderHook(() => useLiquidityUrlState())
 
-    expect(result.current.chainId).toBe(UniverseChainId.Robinhood)
-    expect(result.current.tokenA).toEqual(USDG_ROBINHOOD)
+    expect(result.current.chainId).toBe(UniverseChainId.Mainnet)
+    expect(result.current.tokenA).toEqual(nativeOnChain(UniverseChainId.Mainnet))
     expect(result.current.loading).toBe(false)
   })
 
@@ -254,7 +257,9 @@ describe('useLiquidityUrlState — chain rollout flags', () => {
   })
 
   describe('readiness transitions', () => {
-    it('resolves to the URL chain and never rewrites it when readiness arrives with the flag on', () => {
+    it('falls back to the default chain when readiness arrives with the flag on, for a rollout chain the fork does not allow', () => {
+      // RigoBlock: the enabled-chain allowlist excludes CHAIN_ROLLOUT_FLAGS chains, so once Statsig
+      // is ready Robinhood still reads as unsupported and the hold resolves into the fallback.
       setStatsigReady(false)
       setEnabledRolloutFlags([])
       setUrlState(UniverseChainId.Robinhood, USDG_ROBINHOOD.address)
@@ -272,13 +277,12 @@ describe('useLiquidityUrlState — chain rollout flags', () => {
       setEnabledRolloutFlags([FeatureFlags.Robinhood])
       rerender()
 
-      expect(result.current.chainId).toBe(UniverseChainId.Robinhood)
-      expect(result.current.tokenA).toEqual(USDG_ROBINHOOD)
+      expect(result.current.chainId).toBe(UniverseChainId.Mainnet)
+      expect(result.current.tokenA).toEqual(nativeOnChain(UniverseChainId.Mainnet))
       expect(result.current.loading).toBe(false)
 
       act(() => runUrlSync(result.current))
-      expect(syncedChains()).toEqual([UniverseChainId.Robinhood])
-      expect(syncedChains()).not.toContain(UniverseChainId.Mainnet)
+      expect(syncedChains()).toEqual([UniverseChainId.Mainnet])
     })
 
     it('falls back exactly as before when readiness arrives with the flag off', () => {

@@ -367,7 +367,8 @@ describe('Web Accounts Store Provider', () => {
       // Given
       const wagmiAccount = createMockWagmiAccount({
         address: '0x1234567890123456789012345678901234567890',
-        chainId: 999, // Unsupported chain
+        // RigoBlock: 999 is a real chain id here (HyperEVM), so use an id no chain registers.
+        chainId: 424242, // Unsupported chain
         status: 'connected',
       })
 
@@ -385,7 +386,7 @@ describe('Web Accounts Store Provider', () => {
       expect(session).toBeDefined()
       expect(session?.chainScope.type).toBe(ChainScopeType.SingleChain)
       expect(session?.chainScope.currentChain.supportedByApp).toBe(false)
-      expect((session?.chainScope.currentChain as any).unsupportedChain).toBe(999)
+      expect((session?.chainScope.currentChain as any).unsupportedChain).toBe(424242)
 
       // Clean up
       consoleSpy.mockRestore()

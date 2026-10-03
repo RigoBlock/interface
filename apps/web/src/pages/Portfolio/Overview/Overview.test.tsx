@@ -3,6 +3,7 @@ import { TestID } from '@universe/test'
 import type { PortfolioBalanceBreakdown } from 'uniswap/src/data/apiClients/dataApiService/balances/getWalletBalances/getWalletBalances'
 import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
 import { PortfolioOverview } from '~/pages/Portfolio/Overview/Overview'
+import { PortfolioStakingProvider } from '~/pages/Portfolio/PortfolioStakingContext'
 import { render, screen } from '~/test-utils/render'
 
 const mockPortfolioPoolsBalancesEnabled = vi.hoisted(() => ({ value: true }))
@@ -134,6 +135,31 @@ vi.mock('~/pages/Portfolio/Overview/PortfolioPerformance', () => ({
   PortfolioPerformance: () => <div data-testid="portfolio-performance" />,
 }))
 
+// RigoBlock: PortfolioOverview reads staking totals from PortfolioStakingContext, provided by
+// PortfolioPageInner in the app. Stub the data hook (no redux/network) and wrap renders in the
+// real provider via renderOverview below.
+vi.mock('~/pages/Portfolio/hooks/usePortfolioStaking', () => ({
+  usePortfolioStaking: () => ({
+    stakingChains: [],
+    stakingData: {},
+    totalStakeAmount: undefined,
+    totalStakeUSD: undefined,
+    grgPriceUSD: undefined,
+    hasAnyStake: false,
+    isLoading: false,
+    targetAddress: undefined,
+    isViewingOwnStakes: true,
+  }),
+}))
+
+function renderOverview(): void {
+  render(
+    <PortfolioStakingProvider>
+      <PortfolioOverview />
+    </PortfolioStakingProvider>,
+  )
+}
+
 describe('PortfolioOverview', () => {
   beforeEach(() => {
     mockPortfolioPoolsBalancesEnabled.value = true
@@ -145,7 +171,7 @@ describe('PortfolioOverview', () => {
   it('marks the chart loading while the chart query is pending', () => {
     mockChartQuery.value = { data: undefined, isPending: true }
 
-    render(<PortfolioOverview />)
+    renderOverview()
 
     const chart = screen.getByTestId(TestID.PortfolioTotalBalance)
     expect(chart).toHaveAttribute('data-loading', 'true')
@@ -156,7 +182,7 @@ describe('PortfolioOverview', () => {
     // Solana filter on an EVM-only wallet); that must settle into the empty state, not an endless skeleton.
     mockChartQuery.value = { data: {}, isPending: false }
 
-    render(<PortfolioOverview />)
+    renderOverview()
 
     const chart = screen.getByTestId(TestID.PortfolioTotalBalance)
     expect(chart).toHaveAttribute('data-loading', 'false')
@@ -168,7 +194,7 @@ describe('PortfolioOverview', () => {
     // data while the new fetch runs; that transition must show the skeleton, not the empty state.
     mockChartQuery.value = { data: {}, isPending: false, isPlaceholderData: true }
 
-    render(<PortfolioOverview />)
+    renderOverview()
 
     expect(screen.getByTestId(TestID.PortfolioTotalBalance)).toHaveAttribute('data-loading', 'true')
   })
@@ -176,7 +202,7 @@ describe('PortfolioOverview', () => {
   it('shows previous chart data as placeholder while a new period loads', () => {
     mockChartQuery.value = { data: defaultChartData, isPending: false, isPlaceholderData: true }
 
-    render(<PortfolioOverview />)
+    renderOverview()
 
     const chart = screen.getByTestId(TestID.PortfolioTotalBalance)
     expect(chart).toHaveAttribute('data-loading', 'false')
@@ -184,7 +210,7 @@ describe('PortfolioOverview', () => {
   })
 
   it('renders the portfolio chart with action tiles as the second column', () => {
-    render(<PortfolioOverview />)
+    renderOverview()
 
     const chart = screen.getByTestId(TestID.PortfolioTotalBalance)
     const actionTiles = screen.getByTestId(TestID.PortfolioActionTiles)
@@ -195,7 +221,7 @@ describe('PortfolioOverview', () => {
   it('renders the portfolio chart in demo view', () => {
     mockShowDemoView.value = true
 
-    render(<PortfolioOverview />)
+    renderOverview()
 
     expect(screen.getByTestId(TestID.PortfolioTotalBalance)).toBeInTheDocument()
   })
@@ -210,7 +236,7 @@ describe('PortfolioOverview', () => {
       failedChainIds: [],
     }
 
-    render(<PortfolioOverview />)
+    renderOverview()
 
     const chart = screen.getByTestId(TestID.PortfolioTotalBalance)
     expect(chart).toHaveAttribute('data-earn-balance-usd', '3259.01')
@@ -226,7 +252,7 @@ describe('PortfolioOverview', () => {
       earn: { balanceUSD: 3259.01, percentChange: 2.2, absoluteChangeUSD: 70 },
     }
 
-    render(<PortfolioOverview />)
+    renderOverview()
 
     expect(screen.getByTestId(TestID.PortfolioTotalBalance)).toHaveAttribute('data-token-balance-usd', '8368.94')
     expect(screen.getByTestId(TestID.PortfolioTotalBalance)).toHaveAttribute('data-pool-balance-usd', '7373.05')

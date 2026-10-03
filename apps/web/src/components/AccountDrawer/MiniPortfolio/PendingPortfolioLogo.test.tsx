@@ -2,7 +2,7 @@ import '~/test-utils/tokens/mocks'
 import { within } from '@testing-library/react'
 import { UniverseChainId } from '@universe/chains'
 import { TestID } from '@universe/test'
-import { DAI, DAI_ARBITRUM_ONE } from 'uniswap/src/constants/tokens'
+import { DAI, USDC_ARBITRUM } from 'uniswap/src/constants/tokens'
 import { PendingPortfolioLogo } from '~/components/AccountDrawer/MiniPortfolio/PendingPortfolioLogo'
 import { render, screen } from '~/test-utils/render'
 
@@ -16,7 +16,9 @@ describe('PendingPortfolioLogo', () => {
   })
 
   it('preserves the lower-right network badge inside the pending logo frame', () => {
-    render(<PendingPortfolioLogo chainId={UniverseChainId.ArbitrumOne} currencies={[DAI_ARBITRUM_ONE]} />)
+    // RigoBlock: DAI is not one of the fork's Arbitrum common bases (GRG is featured instead), so
+    // its logo doesn't resolve offline; USDC does, exercising the badge path.
+    render(<PendingPortfolioLogo chainId={UniverseChainId.ArbitrumOne} currencies={[USDC_ARBITRUM]} />)
 
     const pendingLogo = screen.getByTestId(TestID.ActivityPopupPendingLogo)
     expect(within(pendingLogo).getByTestId(TestID.ActivityPopupPendingRing)).toBeInTheDocument()

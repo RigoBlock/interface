@@ -117,7 +117,9 @@ export function formatHlPrice(px: number | string, szDecimals: number): string {
 
 /** Minimum base-asset size increment (human units) for a market with szDecimals. */
 export function quantumFor(szDecimals: number): number {
-  return 10 ** -szDecimals
+  // Division keeps the result identical to the `1e-n` literal; `10 ** -n` is off by 1 ulp on
+  // current V8 and would not match values parsed from wire data elsewhere.
+  return 1 / 10 ** szDecimals
 }
 
 /**

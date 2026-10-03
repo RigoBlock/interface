@@ -6,6 +6,7 @@ import { SAMPLE_SEED_ADDRESS_1 } from 'uniswap/src/test/fixtures/assets/constant
 import { useConnectionStatus } from '~/features/accounts/store/hooks'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { PortfolioOverviewTables } from '~/pages/Portfolio/Overview/OverviewTables'
+import { PortfolioStakingProvider } from '~/pages/Portfolio/PortfolioStakingContext'
 import { PortfolioTab } from '~/pages/Portfolio/types'
 import { mocked } from '~/test-utils/mocked'
 import { render, screen } from '~/test-utils/render'
@@ -50,6 +51,23 @@ vi.mock('~/pages/Portfolio/Overview/PortfolioEarnSection', () => ({
   ),
 }))
 
+// RigoBlock: OverviewTables renders the staking summary from PortfolioStakingContext, which is
+// provided by PortfolioPageInner in the app. Stub the data hook so the real provider can be used
+// without redux/network, and wrap renders in it.
+vi.mock('~/pages/Portfolio/hooks/usePortfolioStaking', () => ({
+  usePortfolioStaking: () => ({
+    stakingChains: [],
+    stakingData: {},
+    totalStakeAmount: undefined,
+    totalStakeUSD: undefined,
+    grgPriceUSD: undefined,
+    hasAnyStake: false,
+    isLoading: false,
+    targetAddress: undefined,
+    isViewingOwnStakes: true,
+  }),
+}))
+
 const ACTIVITY_DATA = {} as ActivityRenderData
 const PORTFOLIO_ADDRESSES = { evmAddress: SAMPLE_SEED_ADDRESS_1, svmAddress: undefined }
 
@@ -75,11 +93,13 @@ function mockEnabledChains(): void {
 
 function renderOverviewTables(): void {
   render(
-    <PortfolioOverviewTables
-      activityData={ACTIVITY_DATA}
-      chainId={undefined}
-      portfolioAddresses={PORTFOLIO_ADDRESSES}
-    />,
+    <PortfolioStakingProvider>
+      <PortfolioOverviewTables
+        activityData={ACTIVITY_DATA}
+        chainId={undefined}
+        portfolioAddresses={PORTFOLIO_ADDRESSES}
+      />
+    </PortfolioStakingProvider>,
   )
 }
 

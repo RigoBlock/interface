@@ -33,6 +33,19 @@ vi.mock('~/hooks/useSelectChain', () => ({
   useSelectChain: (): (() => Promise<boolean>) => async () => true,
 }))
 
+// RigoBlock: the hook routes claims through the active smart pool (redux). These tests cover the
+// plain-wallet path, so the smart pool reads as unset without needing a redux <Provider>.
+vi.mock('~/state/application/hooks', () => ({
+  useActiveSmartPool: (): { address?: string } => ({ address: undefined }),
+}))
+
+// RigoBlock: the hook reads the active smart pool to route claims through the vault; tests here
+// exercise the non-smart-pool path, so no pool is active.
+vi.mock('~/state/application/hooks', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('~/state/application/hooks')>()),
+  useActiveSmartPool: vi.fn(() => ({ address: null, name: '' })),
+}))
+
 const UNI = '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984'
 const COLLECT_ARGS = { chainId: UniverseChainId.Mainnet, tokenAddresses: [UNI] }
 

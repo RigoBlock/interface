@@ -24,9 +24,11 @@ describe('PortfolioTabs', () => {
   // one place the tabs' style pools hit the real compat emission layer —
   // which throws under NODE_ENV=test on any class outside the generated
   // safelist (the INFRA-3654 gap: borderBottomColor in hoverStyle).
+  // RigoBlock: the Activity tab is intentionally hidden (Activity API doesn't support smart
+  // pools), so assert the fork-specific Staking tab alongside Overview.
   it('renders the real tabs through the compat emission layer', () => {
     render(<PortfolioTabs />)
     expect(screen.getByTestId(TestID.PortfolioTabOverview)).toBeInTheDocument()
-    expect(screen.getByTestId(TestID.PortfolioTabActivity)).toBeInTheDocument()
+    expect(screen.getByTestId(TestID.PortfolioTabStaking)).toBeInTheDocument()
   })
 })

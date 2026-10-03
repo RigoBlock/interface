@@ -87,12 +87,16 @@ function renderWithLngParam(store: Store): void {
 const getCurrentLanguage = (store: Store): Language => (store.getState() as HarnessState).userSettings.currentLanguage
 
 describe('LanguageProvider', () => {
-  it('persists the lng query param language across rehydration and navigation without the param', async () => {
+  it('ignores an unsupported lng query param across rehydration and navigation', async () => {
+    // RigoBlock: the web app only supports English (WEB_SUPPORTED_LANGUAGES), so `?lng=fr-FR`
+    // does not parse to a supported locale and the language must stay English throughout —
+    // including after rehydration replaces the userSettings slice and on navigation.
     const { store, rehydrateWith } = createHarness()
     renderWithLngParam(store)
 
-    // the URL locale is stored before rehydration completes
-    await waitFor(() => expect(getCurrentLanguage(store)).toBe(Language.French))
+    // the unsupported URL locale must not be stored while rehydration is pending
+    await waitFor(() => expect((store.getState() as { _persist: { rehydrated: boolean } })._persist).toBeDefined())
+    expect(getCurrentLanguage(store)).toBe(Language.English)
 
     // rehydration delivers a previously-persisted language, replacing the userSettings slice
     act(() => rehydrateWith({ ...initialUserSettingsState, currentLanguage: Language.English }))
@@ -100,12 +104,9 @@ describe('LanguageProvider', () => {
       expect((store.getState() as { _persist: { rehydrated: boolean } })._persist.rehydrated).toBe(true),
     )
 
-    // the URL locale must be re-stored after rehydration...
-    await waitFor(() => expect(getCurrentLanguage(store)).toBe(Language.French))
-
-    // ...so navigating to a page without the param keeps the language
+    // navigating to a page without the param keeps the (only supported) language
     act(() => navigateTo('/explore'))
-    await waitFor(() => expect(document.documentElement.getAttribute('lang')).toBe('fr-FR'))
-    expect(getCurrentLanguage(store)).toBe(Language.French)
+    await waitFor(() => expect(document.documentElement.getAttribute('lang')).toBe('en-US'))
+    expect(getCurrentLanguage(store)).toBe(Language.English)
   })
 })

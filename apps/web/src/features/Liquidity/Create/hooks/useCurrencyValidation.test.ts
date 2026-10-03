@@ -188,8 +188,14 @@ describe('useCurrencyValidation', () => {
 
       expect(mockValidateCurrencies).toHaveBeenCalledWith(mockTokenAddressA, mockTokenAddressB)
       // Call counts are not asserted: the test provider tree mounts components twice.
-      expect(useCurrencyWithLoadingMock).toHaveBeenCalledWith({ address: mockTokenAddressA, chainId: mockChainId })
-      expect(useCurrencyWithLoadingMock).toHaveBeenCalledWith({ address: mockTokenAddressB, chainId: mockChainId })
+      expect(useCurrencyWithLoadingMock).toHaveBeenCalledWith(
+        { address: mockTokenAddressA, chainId: mockChainId },
+        { skip: undefined },
+      )
+      expect(useCurrencyWithLoadingMock).toHaveBeenCalledWith(
+        { address: mockTokenAddressB, chainId: mockChainId },
+        { skip: undefined },
+      )
       expect(result.current).toEqual({
         currencyAddressA: mockTokenAddressA,
         currencyAddressB: mockTokenAddressB,

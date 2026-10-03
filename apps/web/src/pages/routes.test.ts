@@ -61,9 +61,9 @@ describe('Embed routes', () => {
 
   it('findRouteByPath still resolves the full app routes from an embed document', () => {
     // The embed surface exposes the ENTIRE app, so standalone routes stay reachable.
+    // RigoBlock: /limit (and /buy) are disabled in RouteDefinitions, so /swap and /send anchor this.
     expect(findRouteByPath('/swap')?.path).toBe('/swap')
     expect(findRouteByPath('/send')?.path).toBe('/send')
-    expect(findRouteByPath('/limit')?.path).toBe('/limit')
   })
 
   it('findRouteByPath does not resolve non-embed paths to embed routes', () => {

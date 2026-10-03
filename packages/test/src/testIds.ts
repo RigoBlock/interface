@@ -295,6 +295,7 @@ export const TestID = {
   PortfolioTabDefi: 'portfolio-tab-defi',
   PortfolioTabNfts: 'portfolio-tab-nfts',
   PortfolioTabOverview: 'portfolio-tab-overview',
+  PortfolioTabStaking: 'portfolio-tab-staking',
   PortfolioTabPerps: 'portfolio-tab-perps',
   PortfolioTabPools: 'portfolio-tab-pools',
   PortfolioTabTokens: 'portfolio-tab-tokens',

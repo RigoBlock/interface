@@ -95,7 +95,9 @@ describe('useLiquidityPositionDropdownOptions', () => {
     expect(labels).toContain('Collect fees')
     expect(labels).toContain('Add liquidity')
     expect(labels).toContain('Remove liquidity')
-    expect(labels).toContain('Pool info')
+    // RigoBlock: explore/pool-info routes are disabled by default (shouldDisableExploreRoutesAtom),
+    // so the Pool info option is omitted from the write-actions menu (it remains for readOnly views).
+    expect(labels).not.toContain('Pool info')
     expect(labels).toContain('Hide position')
   })
 

@@ -3,7 +3,6 @@ import { fireEvent, waitFor } from '@testing-library/react'
 import { attemptPinDecryption, EmbeddedWalletApiClient, executeRecovery } from '@universe/embedded-wallet'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import { RecoverWalletModal } from '~/components/Passkey/RecoverWalletModal'
-import { useOAuthResult } from '~/components/Passkey/useOAuthResult'
 import { useModalState } from '~/hooks/useModalState'
 import store from '~/state'
 import { setCloseModal, setOpenModal } from '~/state/application/reducer'
@@ -22,12 +21,6 @@ vi.mock('@wagmi/core', () => ({
 
 vi.mock('~/hooks/useModalState', () => ({
   useModalState: vi.fn(),
-}))
-
-// Mock the OAuth return detection directly: the test provider tree mounts components
-// more than once, which makes the real sessionStorage-consuming hook non-deterministic.
-vi.mock('~/components/Passkey/useOAuthResult', () => ({
-  useOAuthResult: vi.fn(() => ({ provider: null, providerEmail: undefined, pending: false })),
 }))
 
 vi.mock('@universe/embedded-wallet/src/data/rest/embeddedWallet/requests', () => ({
@@ -120,8 +113,6 @@ function setupMocks() {
   vi.mocked(useAuthorizationSignature).mockReturnValue({
     generateAuthorizationSignature: mockGenerateAuthorizationSignature,
   } as unknown as ReturnType<typeof useAuthorizationSignature>)
-  // Default to no pending OAuth return; individual tests override this.
-  vi.mocked(useOAuthResult).mockReturnValue({ provider: null, providerEmail: undefined, pending: false })
 }
 
 function typeEmail(value: string) {
@@ -207,7 +198,6 @@ describe('RecoverWalletModal', () => {
       ready: false,
       authenticated: false,
     } as unknown as ReturnType<typeof usePrivy>)
-    vi.mocked(useOAuthResult).mockReturnValue({ provider: null, providerEmail: undefined, pending: true })
     render(<RecoverWalletModal />)
     // Should show spinner, not email entry
     expect(screen.queryByPlaceholderText('Recovery email')).not.toBeInTheDocument()
@@ -419,11 +409,6 @@ describe('RecoverWalletModal', () => {
         encryptedKeyId: 'key-123',
         walletAddress: '0x1234',
       } as never)
-      vi.mocked(useOAuthResult).mockReturnValue({
-        provider: 'google',
-        providerEmail: 'user@gmail.com',
-        pending: false,
-      })
 
       render(<RecoverWalletModal />)
 
@@ -444,7 +429,6 @@ describe('RecoverWalletModal', () => {
         authenticated: true,
         user: { google: { email: undefined } },
       } as unknown as ReturnType<typeof usePrivy>)
-      vi.mocked(useOAuthResult).mockReturnValue({ provider: 'google', providerEmail: undefined, pending: false })
 
       render(<RecoverWalletModal />)
 
@@ -469,11 +453,6 @@ describe('RecoverWalletModal', () => {
         encryptedKeyId: 'key-456',
         walletAddress: '0x5678',
       } as never)
-      vi.mocked(useOAuthResult).mockReturnValue({
-        provider: 'apple',
-        providerEmail: 'user@icloud.com',
-        pending: false,
-      })
 
       render(<RecoverWalletModal />)
 

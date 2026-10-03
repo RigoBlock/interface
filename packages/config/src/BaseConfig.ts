@@ -170,7 +170,9 @@ export const BaseEnvFieldRules: EnvFieldRules<BaseConfig> = {
       'amplitudeProxyUrlOverride',
       'apiBaseUrlOverride',
       'apiBaseUrlV2Override',
-      'entryGatewayApiUrlOverride',
+      // RigoBlock fork: allowed in production — the fork routes entry-gateway
+      // traffic through its own gateway proxy (interface.gateway.rigoblock.com)
+      // via ENTRY_GATEWAY_API_URL_OVERRIDE in apps/web/.env.production.
       'forApiUrlOverride',
       'graphqlUrlOverride',
       'liquidityServiceUrlOverride',

@@ -22,7 +22,10 @@ const createAssetModuleMock = (filename: string) => {
   return { default: staticPath }
 }
 
-vi.mock('ui/src/assets/backgrounds/for-connecting-v2.svg', () => createAssetModuleMock('svg'))
+vi.mock('ui/src/assets/backgrounds/for-connecting-v2.svg', () => createAssetModuleMock('for-connecting-v2.svg'))
+// svgr's `ReactComponent` export only exists in the app build; fork files importing it get the
+// mocked component here so vitest can transform them (see createPool/CreateModal).
+vi.mock('~/assets/images/dropdown.svg', () => createAssetModuleMock('dropdown.svg'))
 vi.mock('ui/src/assets/logos/png/polygon-logo.png', () => createAssetModuleMock('png'))
 vi.mock('ui/src/assets/logos/png/uniswap-logo.png', () => createAssetModuleMock('png'))
 vi.mock('ui/src/assets/logos/png/arbitrum-logo.png', () => createAssetModuleMock('png'))

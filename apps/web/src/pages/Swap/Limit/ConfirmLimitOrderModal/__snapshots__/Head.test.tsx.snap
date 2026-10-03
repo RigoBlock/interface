@@ -18,7 +18,7 @@ exports[`ConfirmSwapModal/Head > should render correctly for a Limit order 1`] =
       class="flex basis-auto box-border relative min-h-[0px] min-w-[0px] flex-row grow shrink items-center justify-end gap-[12px]"
     >
       <a
-        href="https://support.uniswap.org/hc/en-us"
+        href="https://discord.gg/invite/FXd8EU8"
         style="text-decoration: none;"
         target="_blank"
       >
@@ -83,7 +83,7 @@ exports[`ConfirmSwapModal/Head > should render correctly for a classic swap 1`] 
       class="flex basis-auto box-border relative min-h-[0px] min-w-[0px] flex-row grow shrink items-center justify-end gap-[12px]"
     >
       <a
-        href="https://support.uniswap.org/hc/en-us"
+        href="https://discord.gg/invite/FXd8EU8"
         style="text-decoration: none;"
         target="_blank"
       >

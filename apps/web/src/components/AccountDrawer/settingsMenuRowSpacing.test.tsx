@@ -31,9 +31,9 @@ vi.mock('~/hooks/useLocalCurrencyLinkProps', () => ({
   useLocalCurrencyLinkProps: () => ({ to: '/', onClick: () => undefined }),
 }))
 
-function rowClasses(testId: string, pattern: RegExp): string[] {
+function rowClasses(testId: string, pattern: RegExp, minRows = 2): string[] {
   const rows = screen.getAllByTestId(testId)
-  expect(rows.length).toBeGreaterThan(1)
+  expect(rows.length).toBeGreaterThanOrEqual(minRows)
 
   const row = rows[0]?.closest('a')
   expect(row).not.toBeNull()
@@ -42,14 +42,14 @@ function rowClasses(testId: string, pattern: RegExp): string[] {
 }
 
 // The containers set no `gap`, so an empty result means the rows butt together.
-function verticalPaddingClasses(testId: string): string[] {
-  return rowClasses(testId, /^(py|pt|pb)-/)
+function verticalPaddingClasses(testId: string, minRows = 2): string[] {
+  return rowClasses(testId, /^(py|pt|pb)-/, minRows)
 }
 
 // The row owns no horizontal inset: the sheet/dropdown container supplies it, and a row-level
 // value would stack on top of it (INFRA-4019).
-function horizontalPaddingClasses(testId: string): string[] {
-  return rowClasses(testId, /^(px|pl|pr|mx|ml|mr)-/)
+function horizontalPaddingClasses(testId: string, minRows = 2): string[] {
+  return rowClasses(testId, /^(px|pl|pr|mx|ml|mr)-/, minRows)
 }
 
 describe('Settings list row spacing', () => {
@@ -62,8 +62,9 @@ describe('Settings list row spacing', () => {
       </MemoryRouter>,
     )
 
-    expect(verticalPaddingClasses(TestID.WalletLanguageItem)).toEqual(['py-[12px]'])
-    expect(horizontalPaddingClasses(TestID.WalletLanguageItem)).toEqual([])
+    // RigoBlock: the web app supports English only, so a single language row renders.
+    expect(verticalPaddingClasses(TestID.WalletLanguageItem, 1)).toEqual(['py-[12px]'])
+    expect(horizontalPaddingClasses(TestID.WalletLanguageItem, 1)).toEqual([])
   })
 
   it('gives each Currency row vertical padding', () => {
