@@ -87,6 +87,20 @@ export function resolveEnvConfigs({
     }
   }
 
+  // RigoBlock fork: Pages/CI builds inject config via build environment variables
+  // (set in the Cloudflare dashboard) so secrets don't have to live in the checked-in
+  // .env. When UNISWAP_ENV_PROCESS_FIRST is present in the live environment, any
+  // process.env key matching a config-layer key wins over the file value; keys the
+  // dashboard does not provide still fall back to the file. Local dev (flag absent)
+  // keeps the upstream file-first behavior.
+  if (processEnv.UNISWAP_ENV_PROCESS_FIRST) {
+    for (const key of Object.keys(env)) {
+      if (processEnv[key] !== undefined) {
+        env[key] = processEnv[key] as string
+      }
+    }
+  }
+
   if (overrideProcessEnv) {
     Object.assign(processEnv, env)
   }

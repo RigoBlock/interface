@@ -1,0 +1,190 @@
+/**
+ * RigoBlock Uniswap API proxy — Cloudflare Worker (reference copy).
+ *
+ * Multi-tenant reverse proxy in front of Uniswap's backend APIs:
+ *   /v2/liquidity/*      -> liquidity.backend-prod.api.uniswap.org
+ *   /v2/entry-gateway/*  -> entry-gateway.backend-prod.api.uniswap.org
+ *   everything else      -> {prefix}.uniswap.org (legacy/production-app traffic)
+ *
+ * Credentialed CORS: the web app uses upstream's cookie session auth
+ * (credentials: 'include'), so responses echo the request Origin and set
+ * Access-Control-Allow-Credentials. Backend Set-Cookie headers are rewritten
+ * (Domain stripped, SameSite=None; Secure) so the browser accepts them for the
+ * rigoblock host. See apps/web/AGENTS.md §Fork-Sync Notes.
+ *
+ * @typedef {Object} Env
+ */
+
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url)
+    const requestOrigin = request.headers.get('Origin')
+
+    // Credentialed CORS: browsers reject '*' when credentials are included,
+    // so echo the caller's origin and allow credentials. Requests without an
+    // Origin header (server-to-server, curl) keep the old wildcard behavior.
+    const applyCors = (h) => {
+      if (requestOrigin) {
+        h.set('Access-Control-Allow-Origin', requestOrigin)
+        h.set('Access-Control-Allow-Credentials', 'true')
+        h.set('Vary', 'Origin')
+      } else {
+        h.set('Access-Control-Allow-Origin', '*')
+      }
+      return h
+    }
+
+    const respond = (body = null, init = {}) => {
+      const h = applyCors(new Headers(init.headers))
+      h.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+      // '*' is treated LITERALLY for credentialed requests — reflect the ask instead.
+      h.set('Access-Control-Allow-Headers', request.headers.get('Access-Control-Request-Headers') || '*')
+      h.set('Access-Control-Max-Age', '86400')
+      return new Response(body, { ...init, headers: h })
+    }
+
+    // ── OPTIONS preflight (safe) ─────────────────────
+    if (request.method === 'OPTIONS') {
+      const acrm = request.headers.get('Access-Control-Request-Method')
+      if (acrm && ['GET', 'POST'].includes(acrm.toUpperCase())) {
+        return respond(null, { status: 204 })
+      }
+      return respond('Bad preflight', { status: 400 })
+    }
+
+    if (!['GET', 'POST', 'HEAD'].includes(request.method)) {
+      return respond('Method Not Allowed', { status: 405 })
+    }
+
+    // ── PREFIX ROUTING LOGIC ─────────────────────────
+    const getPrefix = (hostname) => {
+      const parts = hostname.split('.')
+      const idx = parts.indexOf('rigoblock')
+      return idx > 0 ? parts.slice(0, idx).join('.') : ''
+    }
+
+    // Finalizer for direct-backend branches: credentialed CORS + cookie rewriting.
+    // The rewrite is required because the backend sets cookies for its own domain
+    // (.uniswap.org) — the browser would reject them on a rigoblock host.
+    // SameSite=None; Secure is needed because localhost dev is cross-site.
+    // mintDeviceId: if no x-device-id cookie exists yet, mint a stable one so the
+    // session flow (InitSession -> Challenge -> Verify) has a device to bind to.
+    const finalizeDirect = (response, { mintDeviceId = false } = {}) => {
+      const res = new Response(response.body, response)
+      applyCors(res.headers)
+      const setCookies = typeof response.headers.getSetCookie === 'function'
+        ? response.headers.getSetCookie()
+        : []
+      res.headers.delete('Set-Cookie')
+      for (const c of setCookies) {
+        let cookie = c.replace(/;\s*Domain=[^;]*/gi, '').replace(/;\s*SameSite=[^;]*/gi, '')
+        cookie += '; SameSite=None; Secure'
+        res.headers.append('Set-Cookie', cookie)
+      }
+      if (mintDeviceId && !/x-device-id=/.test(request.headers.get('Cookie') || '')) {
+        res.headers.append('Set-Cookie', `x-device-id=${crypto.randomUUID()}; Path=/; SameSite=None; Secure`)
+      }
+      return res
+    }
+
+    if (url.pathname.startsWith('/v2/liquidity/')) {
+      // Strip /v2/liquidity prefix, forward to liquidity backend
+      const targetPath = url.pathname.replace('/v2/liquidity', '')
+      const targetUrl = `https://liquidity.backend-prod.api.uniswap.org${targetPath}${url.search}`
+
+      const headers = new Headers(request.headers)
+      headers.set('host', 'liquidity.backend-prod.api.uniswap.org')
+      // x-api-key is already in the request headers from the client
+
+      const response = await fetch(targetUrl, {
+        method: request.method,
+        headers,
+        body: request.body,
+      })
+      return finalizeDirect(response)
+    }
+
+    if (url.pathname.startsWith('/v2/entry-gateway/')) {
+      // Strip /v2/entry-gateway prefix, forward to entry-gateway backend
+      const targetPath = url.pathname.replace('/v2/entry-gateway', '')
+      const targetUrl = `https://entry-gateway.backend-prod.api.uniswap.org${targetPath}${url.search}`
+
+      const headers = new Headers(request.headers)
+      headers.set('host', 'entry-gateway.backend-prod.api.uniswap.org')
+      headers.set('Origin', 'https://app.uniswap.org')
+
+      const response = await fetch(targetUrl, {
+        method: request.method,
+        headers,
+        body: request.body,
+      })
+      // Cookie session auth (x-session-id / x-device-id) lives here.
+      return finalizeDirect(response, { mintDeviceId: true })
+    }
+
+    const prefix = getPrefix(url.hostname)
+    const targetUrl = prefix
+      ? `https://${prefix}.uniswap.org${url.pathname}${url.search}`
+      : `https://interface.uniswap.org${url.pathname}${url.search}`
+
+    // ── Caching with POST body hash ──────────────────
+    // Never serve a cached response to a cookie-bearing request (session cookies
+    // must not be shared across users), and key on Origin so the echoed CORS
+    // header can't leak across origins.
+    const hasCookie = !!request.headers.get('Cookie')
+    const cache = caches.default
+    let cacheKey = null
+
+    if (!hasCookie) {
+      if (request.method === 'POST') {
+        const body = await request.clone().text()
+        const hash = body
+          ? await crypto.subtle
+              .digest('SHA-256', new TextEncoder().encode(body))
+              .then((b) => Array.from(new Uint8Array(b)).map((x) => x.toString(16).padStart(2, '0')).join(''))
+          : ''
+        cacheKey = new Request(
+          url.toString() + (hash ? '?hash=' + hash : '') + (requestOrigin ? '&o=' + requestOrigin : ''),
+          request,
+        )
+      } else {
+        cacheKey = new Request(url.toString() + (requestOrigin ? '?o=' + requestOrigin : ''), request)
+      }
+    }
+
+    let response = cacheKey ? await cache.match(cacheKey) : null
+
+    try {
+      if (!response) {
+        const fwd = new Request(targetUrl, request)
+        const origin = url.hostname.startsWith('liquidity.')
+          ? 'https://app.uniswap.org'
+          : new URL(targetUrl).origin
+        fwd.headers.set('Origin', origin)
+        // fwd.headers.set('Referer', 'https://app.uniswap.org/')
+        // Inject API key from Cloudflare secret (wrangler secret put UNISWAP_API_KEY)
+        // if (env.UNISWAP_API_KEY) {
+        //   fwd.headers.set('x-api-key', env.UNISWAP_API_KEY)
+        // }
+        response = await fetch(fwd)
+        // The Cache API only accepts GET/HEAD keys ("Cannot cache response to
+        // non-GET request") — cache those, swallow any residual put failure.
+        if (cacheKey && request.method !== 'POST' && response.ok) {
+          ctx.waitUntil(cache.put(cacheKey, response.clone()).catch((err) => console.error('cache put failed:', err)))
+        }
+      }
+
+      response = new Response(response.body, response)
+      response.headers.set('Cache-Control', 'public, max-age=5, s-maxage=5')
+
+      return respond(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+      })
+    } catch (err) {
+      console.error(err)
+      return respond('Internal Server Error', { status: 500 })
+    }
+  },
+}

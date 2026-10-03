@@ -144,4 +144,32 @@ describe('resolveEnvConfigs', () => {
 
     expect(env).toEqual({ FOO: 'base' })
   })
+
+  // RigoBlock fork: Cloudflare Pages builds provide config as (encrypted) build
+  // environment variables via UNISWAP_ENV_PROCESS_FIRST, so secrets don't live in
+  // the checked-in .env. Local dev never sets the flag and stays file-first.
+  it('lets process.env win over .env for known keys when UNISWAP_ENV_PROCESS_FIRST is set', () => {
+    writeEnv(rootDir, '.env', { SECRET_KEY: 'from-file', FOO: 'base' })
+
+    const env = resolveEnvConfigs({
+      rootDir,
+      isE2eTest: false,
+      processEnv: { UNISWAP_ENV_PROCESS_FIRST: 'true', SECRET_KEY: 'from-dashboard' },
+    })
+
+    expect(env.SECRET_KEY).toBe('from-dashboard')
+    expect(env.FOO).toBe('base')
+  })
+
+  it('keeps file-first behavior when UNISWAP_ENV_PROCESS_FIRST is absent', () => {
+    writeEnv(rootDir, '.env', { SECRET_KEY: 'from-file' })
+
+    const env = resolveEnvConfigs({
+      rootDir,
+      isE2eTest: false,
+      processEnv: { SECRET_KEY: 'from-shell' },
+    })
+
+    expect(env.SECRET_KEY).toBe('from-file')
+  })
 })
