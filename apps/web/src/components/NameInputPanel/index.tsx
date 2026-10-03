@@ -7,7 +7,7 @@ import { RowBetween } from '~/components/deprecated/Row'
 import styled from '~/lib/deprecated-styled'
 import { flexColumnNoWrap } from '~/theme/styles'
 
-// Local replacement for the deleted ThemedText.DeprecatedBlack (rebass-based) preset.
+// Local label style (was the ThemedText.DeprecatedBlack preset before the upstream cleanup).
 const StyledLabel = styled.span`
   font-weight: 485;
   letter-spacing: -0.01em;

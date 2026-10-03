@@ -258,7 +258,7 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
             </ThemedText.DeprecatedBody>
             {/* confirmed={approval === ApprovalState.APPROVED} disabled={approval !== ApprovalState.NOT_APPROVED} */}
             {!usingDelegate && approval !== ApprovalState.APPROVED && (
-              <ButtonConfirmed mr="0.5rem" onClick={onAttemptToApprove}>
+              <ButtonConfirmed style={{ marginRight: '0.5rem' }} onClick={onAttemptToApprove}>
                 <Trans>Approve Staking</Trans>
               </ButtonConfirmed>
             )}

@@ -255,7 +255,7 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
 
           <RowBetween>
             <ButtonConfirmed
-              mr="0.5rem"
+              style={{ marginRight: '0.5rem' }}
               onClick={onAttemptToApprove}
               confirmed={approval === ApprovalState.APPROVED}
               disabled={approval !== ApprovalState.NOT_APPROVED}

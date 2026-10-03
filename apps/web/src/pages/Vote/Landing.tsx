@@ -2,8 +2,7 @@ import JSBI from 'jsbi'
 import { darken } from 'polished'
 import { useState } from 'react'
 import { Trans } from 'react-i18next'
-import { Link } from 'react-router'
-import { Button } from 'rebass/styled-components'
+import { Link, useNavigate } from 'react-router'
 import { useSporeColors } from 'ui/src'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
@@ -43,7 +42,10 @@ const TopSection = styled(AutoColumn)`
   width: 100%;
 `
 
-const Proposal = styled(Button)`
+const Proposal = styled.button`
+  appearance: none;
+  border: none;
+  font-size: inherit;
   padding: 0.75rem 1rem;
   width: 100%;
   margin-top: 1rem;
@@ -102,6 +104,7 @@ export default function Landing() {
   const { isOpen, closeModal, toggleModal: toggleDelegateModal } = useModalState(ModalName.Delegate)
   const colors = useSporeColors()
   const account = useAccount()
+  const navigate = useNavigate()
 
   const [hideCancelled, setHideCancelled] = useState(true)
   const { formatCurrencyAmount } = useLocalizationContext()
@@ -209,8 +212,7 @@ export default function Landing() {
                   ''
                 )}
                 <ButtonPrimary
-                  as={Link}
-                  to="/create-proposal"
+                  onClick={() => navigate('/create-proposal')}
                   style={{
                     width: 'fit-content',
                     borderRadius: '8px',

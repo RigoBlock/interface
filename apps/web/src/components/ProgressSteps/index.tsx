@@ -2,7 +2,7 @@ import { useTheme } from 'styled-components'
 import { AutoColumn } from '~/components/deprecated/Column'
 import styled from '~/lib/deprecated-styled'
 
-// Local replacement for the deleted ThemedText.DeprecatedMain (rebass-based) preset.
+// Local step-text style (was the ThemedText.DeprecatedMain preset before the upstream cleanup).
 const StyledStepText = styled.span`
   font-weight: 485;
   letter-spacing: -0.01em;

@@ -12,8 +12,8 @@ import { buildSparklinesFromMultichain } from '~/features/Explore/state/listToke
 import { processMultichainTokensForDisplay } from '~/features/Explore/state/listTokens/utils/processMultichainTokensForDisplay'
 import { useExploreQueryLatencyTracking } from '~/features/Explore/state/useExploreQueryLatencyTracking'
 import { toSearchQueryParam } from '~/features/Explore/utils/toSearchQueryParam'
-import { useInfiniteLoadMore } from '~/hooks/useInfiniteLoadMore'
 import { useBackendSupportedChainIds } from '~/hooks/useBackendSupportedChainIds'
+import { useInfiniteLoadMore } from '~/hooks/useInfiniteLoadMore'
 
 /**
  * Hook that returns top tokens data for the Explore page. Adds explore-specific sparklines and latency tracking.

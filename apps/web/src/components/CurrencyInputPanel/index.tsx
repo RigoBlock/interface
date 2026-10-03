@@ -17,7 +17,6 @@ import { CurrencyField } from 'uniswap/src/types/currency'
 import { currencyId } from 'uniswap/src/utils/currencyId'
 import { NumberType } from 'utilities/src/format/types'
 import { ReactComponent as DropDown } from '~/assets/images/dropdown.svg'
-import { ButtonGray } from '~/components/Button/buttons'
 import { FiatValue } from '~/components/CurrencyInputPanel/FiatValue'
 import { LoadingOpacityContainer, loadingOpacityMixin } from '~/components/Loader/styled'
 import { DoubleCurrencyLogo } from '~/components/Logo/DoubleLogo'
@@ -57,13 +56,14 @@ const Container = styled.div<{ $hideInput: boolean; $disabled: boolean }>`
   `}
 `
 
-const CurrencySelect = styled(ButtonGray)<{
+const CurrencySelect = styled.button<{
   $visible: boolean
   $selected: boolean
   $hideInput?: boolean
   disabled?: boolean
   $pointerEvents?: string
 }>`
+  display: flex;
   align-items: center;
   background-color: ${({ $selected, theme }) => ($selected ? theme.surface1 : theme.accent1)};
   opacity: ${({ disabled }) => (!disabled ? 1 : 0.4)};

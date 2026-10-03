@@ -354,7 +354,6 @@ function* submitTransactionAsync(params: HandleOnChainStepParams): SagaGenerator
   }
 }
 
-
 function* pollForTransaction(hash: HexString, chainId: number) {
   const POLL_INTERVAL = 2_000
   const MAX_POLLING_TIME = isL2ChainId(chainId) ? 12_000 : 24_000

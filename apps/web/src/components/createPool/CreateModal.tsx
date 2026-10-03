@@ -15,7 +15,7 @@ import { TransactionStatus } from 'uniswap/src/features/transactions/types/trans
 import { currencyId } from 'uniswap/src/utils/currencyId'
 import { logger } from 'utilities/src/logger/logger'
 import { ReactComponent as DropDown } from '~/assets/images/dropdown.svg'
-import { ButtonGray, ButtonPrimary } from '~/components/Button/buttons'
+import { ButtonPrimary } from '~/components/Button/buttons'
 import { AutoColumn } from '~/components/deprecated/Column'
 import { RowBetween, RowFixed } from '~/components/deprecated/Row'
 import { LoadingView, SubmittedView } from '~/components/ModalViews'
@@ -40,12 +40,13 @@ const ContentWrapper = styled(AutoColumn)`
   padding: 24px;
 `
 
-const CurrencySelect = styled(ButtonGray)<{
+const CurrencySelect = styled.button<{
   $visible: boolean
   $selected: boolean
   $hideInput?: boolean
   disabled?: boolean
 }>`
+  display: flex;
   align-items: center;
   background-color: ${({ $selected, theme }) => ($selected ? theme.surface1 : theme.accent1)};
   opacity: ${({ disabled }) => (!disabled ? 1 : 0.4)};

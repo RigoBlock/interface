@@ -21,7 +21,7 @@ const ConfirmedIcon = styled(ColumnCenter)`
   padding: 60px 0;
 `
 
-// Local replacement for the deleted ThemedText.DeprecatedSubHeader (rebass-based) preset.
+// Local sub-header style (was the ThemedText.DeprecatedSubHeader preset before the upstream cleanup).
 const SubHeaderText = styled.span`
   font-weight: 485;
   font-size: 14px;

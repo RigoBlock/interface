@@ -1,10 +1,10 @@
-import { useCallback } from 'react'
+import { Text } from '@universe/mycelium'
+import { useCallback, type ReactNode } from 'react'
+import { ChevronDown } from 'react-feather'
 import { Trans } from 'react-i18next'
-import { Text } from 'rebass'
 import { ModalCloseIcon } from 'ui/src'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
-import { ButtonDropdownLight } from '~/components/Button/buttons'
 import Column from '~/components/deprecated/Column'
 import { RowBetween } from '~/components/deprecated/Row'
 import { MenuItem, PaddedColumn, Separator } from '~/components/SearchModal/styled'
@@ -38,9 +38,14 @@ const ActionSelectorHeader = styled.div`
   margin-bottom: 10px;
 `
 
-const ActionDropdown = styled(ButtonDropdownLight)`
+const ActionDropdownButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
   padding: 0px;
   background-color: transparent;
+  border: 1px solid ${({ theme }) => theme.surface3};
   color: ${({ theme }) => theme.neutral1};
   font-size: 1.25rem;
 
@@ -52,6 +57,17 @@ const ActionDropdown = styled(ButtonDropdownLight)`
     background-color: transparent;
   }
 `
+
+function ActionDropdown({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+  return (
+    <ActionDropdownButton onClick={onClick} type="button">
+      <RowBetween>
+        <span style={{ display: 'flex', alignItems: 'center' }}>{children}</span>
+        <ChevronDown size={24} />
+      </RowBetween>
+    </ActionDropdownButton>
+  )
+}
 
 const ProposalActionSelectorFlex = styled.div`
   margin-top: 10px;

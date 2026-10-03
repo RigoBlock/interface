@@ -13,6 +13,24 @@ This repo is the **RigoBlock fork** of the Uniswap interface (`main` tracks upst
 
 **Never "fix" a RigoBlock behavior by reverting it to upstream's way — if a conflict resolution looks like it restores upstream behavior for approvals, branding, wallet options, or API auth, that resolution is wrong.**
 
+### Fork-sync playbook (how to merge upstream and keep the build green)
+
+1. **Merge `main` (upstream) into the rigoblock branch**, then run the mechanical checks: `bun install`, `bun g:typecheck`, `bun web build:production`. A green typecheck is NOT enough — only the production build resolves every import, so it is the gate that catches missing modules.
+2. **When upstream deletes a dependency or module that fork pages still import, do NOT re-add the old package.** That is dead baggage and will rot again on the next sync. Instead migrate the fork code forward:
+   - Replace deleted UI primitives with the components the modern app uses — `Text`/`Flex` from `@universe/mycelium` and `Button` from `ui/src` — so RigoBlock colors/theme come from the theme for free. Never write a local clone of a deleted upstream package (that is exactly the baggage the sync will keep breaking).
+   - The two legacy compat surfaces that remain are themselves thin adapters over those shared components, not forks of upstream modules: the `ThemedText` presets in `~/theme/components/text.tsx` (wrap mycelium `Text`; old styled-components color keys map to spore tokens) and `~/components/Button/buttons.tsx` (`ButtonPrimary`/`ButtonError`/`ButtonConfirmed` wrap `ui/src`'s `Button`; unused upstream variants were dropped). Plus `~/lib/deprecated-styled` (the styled-components alias) and `~/components/deprecated/{Row,Column}.tsx` for layout. When touching a call site, prefer migrating it off these compat surfaces entirely.
+   - Keep RigoBlock specs when re-styling: accent1 gold `#feb239` (hovered `#ffa81f`), applied via the theme (`theme.accent1` / spore `$accent1`), never hardcoded upstream pink.
+   - Example (Oct 2026): upstream deleted `rebass`. The fork's legacy Vote/CreateProposal/earn pages were migrated onto mycelium `Text` and `ui/src` `Button` instead of re-adding `rebass` — the production build failed on `rebass/styled-components` imports that a stale local `node_modules` had masked, which is why step 1 gates on `bun web build:production`.
+3. **Audit imports of everything upstream removed.** After a sync, diff the manifests and grep the fork tree for imports of deleted packages:
+   ```bash
+   git diff <merge-base>..origin/main -- '**/package.json' bun.lock | grep '^[-].*"'   # removed deps
+   grep -rn "from '<deleted-package>'" apps/ packages/                                  # stragglers
+   ```
+   Then migrate each straggler per rule 2.
+4. **Beware phantom local dependencies.** A package can import successfully in a dirty local `node_modules` (stale hoisting from an old lockfile or a transitive dep of something else) yet be absent from `bun.lock`, so CI installs clean and the build fails there — while your machine keeps passing. `styled-components` in `apps/web` survived only as a transitive dep of `@privy-io/react-auth` until it was declared directly. Any package the fork imports must be declared in the importing workspace's `package.json` — never rely on hoisting or transitivity. If unsure, delete the package dir from `node_modules` and rebuild.
+5. **Re-apply the invariants** listed above and in `apps/web/AGENTS.md` §Fork-Sync Notes (branding gold in all four theme layers, gateway/API config, hidden Uniswap-only UI, wallet options, HyperEvm additions, rate-limit gate, etc.). Upstream syncs will silently revert each of them.
+6. **Fresh-install CI parity before calling a sync done:** `rm -rf node_modules && bun install && bun web build:production`, then run tests/lint/typecheck. Dashboard build vars must also match `.bun-version`/`engines` (see `scripts/check-runtime-versions.sh`).
+
 ## Project Overview
 
 Uniswap Universe is a monorepo containing all Uniswap front-end interfaces:

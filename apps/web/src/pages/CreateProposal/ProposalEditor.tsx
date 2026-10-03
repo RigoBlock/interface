@@ -1,7 +1,7 @@
 /* oxlint-disable react/display-name */
+import { Text } from '@universe/mycelium'
 import { memo } from 'react'
 import { Trans } from 'react-i18next'
-import { Text } from 'rebass'
 import { TextInput } from 'uniswap/src/components/input/TextInput'
 import i18n from 'uniswap/src/i18n'
 import { ResizingTextArea } from '~/components/ResizingTextArea'

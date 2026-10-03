@@ -4,7 +4,6 @@ import { ChevronsOut } from '@universe/mycelium/icons/ChevronsOut'
 import { useReducer } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Separator } from 'ui/src'
-
 import { WalletModalLayout } from '~/components/WalletModal/WalletModalLayout'
 import { WalletOptionsGrid } from '~/components/WalletModal/WalletOptionsGrid'
 

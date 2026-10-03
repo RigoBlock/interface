@@ -9,8 +9,8 @@ import { toSearchQueryParam } from '~/features/Explore/utils/toSearchQueryParam'
 import { toPoolsFilterRequestParams } from '~/features/Liquidity/PoolsFilter/toRequest'
 import { poolSortFieldToOrderBy } from '~/features/Liquidity/utils/convertPoolToPoolStat'
 import { getPoolsListParams, resolvePoolsListChainId } from '~/features/Liquidity/utils/getPoolsListParams'
-import { useInfiniteLoadMore } from '~/hooks/useInfiniteLoadMore'
 import { useBackendSupportedChainIds } from '~/hooks/useBackendSupportedChainIds'
+import { useInfiniteLoadMore } from '~/hooks/useInfiniteLoadMore'
 import { useListPoolsAsPoolStats } from '~/pages/Explore/hooks/useListPoolsAsPoolStats'
 import type { PoolStat } from '~/types/explore'
 import type { PoolsFilterState } from '~/types/poolsFilter'
@@ -83,17 +83,7 @@ export function useV2ListPools({
         currencies: [currency0, currency1],
         searchQuery,
       }),
-    [
-      effectiveChainId,
-      fallbackChainIds,
-      orderBy,
-      ascending,
-      protocol,
-      filterParams,
-      currency0,
-      currency1,
-      searchQuery,
-    ],
+    [effectiveChainId, fallbackChainIds, orderBy, ascending, protocol, filterParams, currency0, currency1, searchQuery],
   )
 
   const hasTokenFilter = Boolean(currency0 || currency1)

@@ -1,6 +1,6 @@
+import { Text } from '@universe/mycelium'
 import { Trans } from 'react-i18next'
-import { Link } from 'react-router'
-import { Text } from 'rebass'
+import { useNavigate } from 'react-router'
 import { useSporeColors } from 'ui/src'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
@@ -24,6 +24,7 @@ export const ProposalSubmissionModal = ({
   onDismiss: () => void
 }) => {
   const colors = useSporeColors()
+  const navigate = useNavigate()
   const account = useAccount()
 
   const transaction = useTransaction(hash)
@@ -73,7 +74,13 @@ export const ProposalSubmissionModal = ({
                 </Text>
               </ExternalLink>
             )}
-            <ButtonPrimary as={Link} to="/vote" onClick={onDismiss} style={{ margin: '20px 0 0 0' }}>
+            <ButtonPrimary
+              onClick={() => {
+                onDismiss()
+                navigate('/vote')
+              }}
+              style={{ margin: '20px 0 0 0' }}
+            >
               <Text fontWeight={535} fontSize={20}>
                 <Trans i18nKey="common.return.label" />
               </Text>
