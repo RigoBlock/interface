@@ -28,6 +28,7 @@ import {
 } from '~/pages/routeDefinition'
 import { SwapPage } from '~/pages/Swap'
 import { shouldDisableExploreRoutesAtom } from '~/state/application/atoms'
+import { useOperatedPoolAddresses } from '~/state/pool/hooks'
 import { isBrowserRouterEnabled } from '~/utils/env'
 import { createLazy } from '~/utils/lazyWithRetry'
 
@@ -70,6 +71,7 @@ export function useRouterConfig(): RouterConfig {
   const { hash } = useLocation()
   const isEmbeddedWalletEnabled = useFeatureFlag(FeatureFlags.EmbeddedWallet)
   const [shouldDisableExploreRoutes] = useAtom(shouldDisableExploreRoutesAtom)
+  const operatedPoolAddresses = useOperatedPoolAddresses()
 
   return useMemo(
     () => ({
@@ -77,8 +79,9 @@ export function useRouterConfig(): RouterConfig {
       hash,
       isEmbeddedWalletEnabled,
       shouldDisableExploreRoutes: Boolean(shouldDisableExploreRoutes),
+      isPoolOperator: operatedPoolAddresses.size > 0,
     }),
-    [browserRouterEnabled, hash, isEmbeddedWalletEnabled, shouldDisableExploreRoutes],
+    [browserRouterEnabled, hash, isEmbeddedWalletEnabled, shouldDisableExploreRoutes, operatedPoolAddresses],
   )
 }
 
@@ -250,6 +253,9 @@ export const routes: RouteDefinition[] = [
   }),
   createRouteDefinition({
     path: '/positions',
+    // Operator-only surface (mirrors the Pool nav tab): non-operators and disconnected wallets
+    // fall through to the catch-all NotFound route.
+    enabled: (args) => args.isPoolOperator === true,
     getElement: () => <Pool />,
     getTitle: getPositionPageTitle,
     getDescription: getPositionPageDescription,

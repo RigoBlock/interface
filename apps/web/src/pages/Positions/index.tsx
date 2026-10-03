@@ -1,4 +1,5 @@
 import { Platform } from '@universe/chains'
+import { parseOptionalHex } from '@universe/encoding'
 import { Flex, Text } from '@universe/mycelium'
 import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -161,7 +162,10 @@ export function Pool() {
       >
         <Flex grow shrink gap="$spacing24" maxWidth="100%" $xl={{ maxWidth: '100%' }}>
           {showSummaryChips && (
-            <PositionsSummaryChips walletAddress={account.address} bleedGutters={SUMMARY_CHIPS_BLEED_GUTTERS} />
+            <PositionsSummaryChips
+              walletAddress={parseOptionalHex(address)}
+              bleedGutters={SUMMARY_CHIPS_BLEED_GUTTERS}
+            />
           )}
           {!showDiscoveryEmptyState && <Text variant="heading3">{t('pool.positions.title')}</Text>}
           {connectedWithoutEVM ? (

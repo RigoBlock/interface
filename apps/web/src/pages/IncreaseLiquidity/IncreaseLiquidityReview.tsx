@@ -33,6 +33,7 @@ import { useSelectChain } from '~/hooks/useSelectChain'
 import { IncreaseLiquidityStep, useIncreaseLiquidityContext } from '~/pages/IncreaseLiquidity/IncreaseLiquidityContext'
 import { useIncreaseLiquidityTxContext } from '~/pages/IncreaseLiquidity/IncreaseLiquidityTxContext'
 import { useSetOverrideOneClickSwapFlag } from '~/pages/Swap/Swap/settings/OneClickSwap'
+import { useActiveSmartPool } from '~/state/application/hooks'
 import { liquiditySaga } from '~/state/sagas/liquidity/liquiditySaga'
 import { ExternalLink } from '~/theme/components/Links'
 
@@ -58,6 +59,7 @@ export function IncreaseLiquidityReview({ onClose }: { onClose: () => void }) {
     setCurrentTransactionStep,
   } = useIncreaseLiquidityContext()
   const { txInfo, gasFeeEstimateUSD, dependentAmount, setTransactionError } = useIncreaseLiquidityTxContext()
+  const activeSmartPool = useActiveSmartPool()
 
   // we override permit as rigoblock automatically sets permit2 approval
   txInfo && (txInfo.permit = undefined)
@@ -181,6 +183,7 @@ export function IncreaseLiquidityReview({ onClose }: { onClose: () => void }) {
         startChainId,
         account,
         liquidityTxContext: txInfo,
+        smartPoolAddress: activeSmartPool.address ?? undefined,
         setCurrentStep: setCurrentTransactionStep,
         setSteps,
         onSuccess,

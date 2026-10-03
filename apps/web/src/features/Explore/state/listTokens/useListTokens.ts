@@ -2,6 +2,7 @@ import { useInfiniteQuery } from '@tanstack/react-query'
 import { UniverseChainId } from '@universe/chains'
 import { useMemo } from 'react'
 import { useFeatureFlaggedChainIds } from 'uniswap/src/features/chains/hooks/useFeatureFlaggedChainIds'
+import { isBackendSupportedChainId } from 'uniswap/src/features/chains/utils'
 import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
 import type { PricePoint } from '~/data/util'
 import { EXPLORE_API_PAGE_SIZE } from '~/features/Explore/state/constants'
@@ -35,6 +36,10 @@ export function useListTokens(
   const featureFlaggedChainIds = useFeatureFlaggedChainIds()
 
   const chainIds = useMemo(() => (chainId !== undefined ? [chainId] : enabledChainIds), [chainId, enabledChainIds])
+  // An explicitly selected chain the data API cannot serve (HyperEvm/999) must not be sent either:
+  // the BE 400s the entire request for one unrecognized chainId. Such a selection simply has no
+  // backend token data, so the query stays disabled and the table renders empty.
+  const isChainSelectionSupported = chainId === undefined || isBackendSupportedChainId(chainId)
 
   // Keyed on the normalized search the request will carry, so a blank or whitespace-only box shares
   // the unsearched entry instead of refetching.
@@ -80,6 +85,7 @@ export function useListTokens(
     // without this, one failed request drops the tokens table into its error state until the next
     // heartbeat tick (up to 60s away on Explore).
     retry: 2,
+    enabled: isChainSelectionSupported,
   })
 
   const { topTokens, tokenSortRank } = useMemo(() => {

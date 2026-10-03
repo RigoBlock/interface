@@ -35,6 +35,7 @@ import { SignerMnemonicAccountDetails } from 'uniswap/src/features/wallet/types/
 import { currencyId } from 'uniswap/src/utils/currencyId'
 import { createSaga } from 'uniswap/src/utils/saga'
 import { logger } from 'utilities/src/logger/logger'
+import { RPC_PROVIDERS } from '~/constants/providers'
 import { popupRegistry } from '~/state/popups/registry'
 import { PopupType } from '~/state/popups/types'
 import { getLiquidityEventName } from '~/state/sagas/liquidity/getLiquidityEventName'
@@ -61,6 +62,42 @@ type LiquidityParams = {
   onSuccess: () => void
   onFailure: (e?: unknown) => void
   disableOneClickSwap?: () => void
+  /** RigoBlock: active smart pool (vault) address when the LP action runs in vault context. */
+  smartPoolAddress?: string
+}
+
+const RIGOBLOCK_LIQUIDITY_GAS_OVERHEAD = 250000
+
+function* estimateSmartPoolLiquidityGas(params: {
+  txRequest: { to?: string; data?: unknown; gasLimit?: unknown }
+  address: string
+  smartPoolAddress: string
+  chainId: number
+}) {
+  const { txRequest, address, smartPoolAddress, chainId } = params
+  const provider = chainId in RPC_PROVIDERS ? RPC_PROVIDERS[chainId as keyof typeof RPC_PROVIDERS] : undefined
+  if (!provider) {
+    throw new Error(`estimateSmartPoolLiquidityGas: no RPC provider for chain ${chainId}`)
+  }
+  let estimate: BigNumber
+  try {
+    estimate = yield* call([provider, provider.estimateGas], {
+      from: address,
+      to: smartPoolAddress,
+      data: txRequest.data ? txRequest.data.toString() : undefined,
+      value: '0',
+    })
+  } catch (gasError) {
+    // Never send a vault-routed LP tx without a gasLimit: if it cannot be estimated locally, it
+    // would also revert onchain (estimation only fails when the tx itself is not executable).
+    // Aborting here surfaces as a TransactionStepFailedError instead of wasting a reverted tx.
+    logger.warn('liquiditySaga', 'estimateSmartPoolLiquidityGas', 'Gas estimation failed, aborting LP tx', {
+      error: gasError,
+    })
+    throw gasError
+  }
+  // 20% margin, same convention as the swap saga's smart-pool estimation
+  txRequest.gasLimit = estimate.mul(120).div(100).add(RIGOBLOCK_LIQUIDITY_GAS_OVERHEAD).toString()
 }
 
 function* getLiquidityTxRequest(
@@ -106,6 +143,9 @@ interface HandlePositionStepParams extends Omit<HandleOnChainStepParams, 'step' 
     | CollectFeesTransactionStep
   signature?: string
   action: LiquidityAction
+  /** RigoBlock: vault address + chain for smart-pool gas handling. */
+  smartPoolAddress?: string
+  chainId: number
   analytics?:
     | Omit<UniverseEventProperties[LiquidityEventName.AddLiquiditySubmitted], 'transaction_hash'>
     | Omit<UniverseEventProperties[LiquidityEventName.RemoveLiquiditySubmitted], 'transaction_hash'>
@@ -113,7 +153,7 @@ interface HandlePositionStepParams extends Omit<HandleOnChainStepParams, 'step' 
     | Omit<UniverseEventProperties[LiquidityEventName.CollectLiquiditySubmitted], 'transaction_hash'>
 }
 function* handlePositionTransactionStep(params: HandlePositionStepParams) {
-  const { action, step, signature, analytics } = params
+  const { action, step, signature, analytics, smartPoolAddress, chainId } = params
   const info = getLiquidityTransactionInfo(action)
   const { txRequest } = yield* call(getLiquidityTxRequest, step, signature)
 
@@ -129,15 +169,29 @@ function* handlePositionTransactionStep(params: HandlePositionStepParams) {
   }
 
   // Now that we have the txRequest, we can create a definitive LiquidityTransactionStep, incase we started with an async step.
-  // Add gas overhead for RigoBlock smart pool transactions (remove liquidity, collect fees)
-  // Smart pool routing adds gas overhead for the pool contract execution
+  // Add gas overhead for RigoBlock smart pool transactions (remove liquidity, collect fees).
+  // Smart pool routing adds gas overhead for the pool contract execution.
+  // Detection is explicit: the client-side overrides in the LP tx hooks set txRequest.to = vault,
+  // so compare against the vault address — a plain "to !== EOA" check would match every LP tx.
   const isSmartPoolTx =
+    smartPoolAddress &&
     txRequest.to &&
-    params.address &&
-    normalizeTokenAddressForCache(txRequest.to) !== normalizeTokenAddressForCache(params.address)
-  if (isSmartPoolTx && txRequest.gasLimit) {
-    const RIGOBLOCK_LIQUIDITY_GAS_OVERHEAD = 250000
-    txRequest.gasLimit = BigNumber.from(txRequest.gasLimit).add(RIGOBLOCK_LIQUIDITY_GAS_OVERHEAD).toString()
+    normalizeTokenAddressForCache(txRequest.to) === normalizeTokenAddressForCache(smartPoolAddress)
+  if (isSmartPoolTx) {
+    if (txRequest.gasLimit) {
+      txRequest.gasLimit = BigNumber.from(txRequest.gasLimit).add(RIGOBLOCK_LIQUIDITY_GAS_OVERHEAD).toString()
+    } else {
+      // The liquidity API returns no gasLimit when server simulation is skipped (smart pools), and
+      // ethers would otherwise estimate through the gateway — which cannot simulate vault-routed LP
+      // calldata. Estimate locally against the vault; if estimation fails, abort (the tx would
+      // revert onchain anyway) rather than sending with a guessed gasLimit.
+      yield* call(estimateSmartPoolLiquidityGas, {
+        txRequest,
+        address: params.address,
+        smartPoolAddress,
+        chainId,
+      })
+    }
   }
   const onChainStep = { ...step, txRequest }
   let hash: string | undefined
@@ -265,6 +319,8 @@ function* modifyLiquidity(params: LiquidityParams & { steps: TransactionStep[] }
             setCurrentStep,
             action,
             signature,
+            smartPoolAddress: params.smartPoolAddress,
+            chainId: params.liquidityTxContext.action.currency0Amount.currency.chainId,
             analytics,
           })
           break

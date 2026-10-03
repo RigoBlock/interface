@@ -273,6 +273,7 @@ export function ClaimFeeModal() {
         startChainId,
         account,
         liquidityTxContext: txInfo,
+        smartPoolAddress: activeSmartPool.address ?? undefined,
         setCurrentStep: setCurrentTransactionStep,
         setSteps: () => undefined,
         onSuccess: () => {

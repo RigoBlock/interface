@@ -30,6 +30,7 @@ import { useAccount } from '~/hooks/useAccount'
 import { useSelectChain } from '~/hooks/useSelectChain'
 import { useRemoveLiquidityModalContext } from '~/pages/RemoveLiquidity/RemoveLiquidityModalContext'
 import { useRemoveLiquidityTxContext } from '~/pages/RemoveLiquidity/RemoveLiquidityTxContext'
+import { useActiveSmartPool } from '~/state/application/hooks'
 import { liquiditySaga } from '~/state/sagas/liquidity/liquiditySaga'
 
 export function RemoveLiquidityReview({ onClose }: { onClose: () => void }) {
@@ -50,6 +51,7 @@ export function RemoveLiquidityReview({ onClose }: { onClose: () => void }) {
   const { needsPasskeySignin } = useGetPasskeyAuthStatus(connectedAccount.connector?.id)
 
   const { txContext, gasFeeEstimateUSD } = removeLiquidityTxContext
+  const activeSmartPool = useActiveSmartPool()
 
   const onSuccess = () => {
     setSteps([])
@@ -142,6 +144,7 @@ export function RemoveLiquidityReview({ onClose }: { onClose: () => void }) {
         startChainId,
         account,
         liquidityTxContext: txContext,
+        smartPoolAddress: activeSmartPool.address ?? undefined,
         setCurrentStep: setCurrentTransactionStep,
         setSteps,
         onSuccess,

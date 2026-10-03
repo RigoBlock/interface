@@ -6,6 +6,7 @@ export interface RouterConfig {
   hash?: string
   isEmbeddedWalletEnabled?: boolean
   shouldDisableExploreRoutes?: boolean
+  isPoolOperator?: boolean
 }
 
 // SEO titles and descriptions sourced from https://docs.google.com/spreadsheets/d/1_6vSxGgmsx6QGEZ4mdHppv1VkuiJEro3Y_IopxUHGB4/edit#gid=0

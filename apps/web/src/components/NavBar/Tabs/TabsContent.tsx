@@ -16,6 +16,7 @@ import { ADD_LIQUIDITY_PATH } from '~/pages/AddLiquidity/poolLinkParams'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { PortfolioTab } from '~/pages/Portfolio/types'
 import { buildPortfolioUrl } from '~/pages/Portfolio/utils/portfolioUrls'
+import { useOperatedPoolAddresses } from '~/state/pool/hooks'
 import { EntryPointKind, resolveEntryPoint } from '~/utils/createPositionEntryPoint'
 
 export type TabsSection = {
@@ -44,6 +45,10 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
   const portfolioPoolsBalancesEnabled = useFeatureFlag(FeatureFlags.PortfolioPoolsBalances)
   const entryPoint = resolveEntryPoint({ search, state })
   const isPortfolioPoolsEntryPointActive = entryPoint.kind === EntryPointKind.PortfolioPools
+
+  // The Pool tab leads to operator-only surfaces (positions/LP management), so it is hidden
+  // unless the connected wallet operates at least one pool (disconnected wallets included).
+  const operatedPoolAddresses = useOperatedPoolAddresses()
 
   return [
     {
@@ -135,28 +140,33 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
     //    },
     //  ],
     //},
-    {
-      title: t('common.pool'),
-      href: '/positions',
-      isActive:
-        !isPortfolioPoolsEntryPointActive && (pathname.startsWith('/positions') || pathname.startsWith('/liquidity')),
-      icon: <Pools color="$accent1" size="$icon.24" />,
-      elementName: ElementName.NavbarPoolTab,
-      items: [
-        {
-          label: t('nav.tabs.viewPositions'),
-          href: '/positions',
-          internal: true,
-          elementName: ElementName.NavbarPoolDropdownViewPositions,
-        },
-        {
-          label: t('nav.tabs.createPosition'),
-          href: ADD_LIQUIDITY_PATH,
-          internal: true,
-          elementName: ElementName.NavbarPoolDropdownCreatePosition,
-        },
-      ],
-    },
+    ...(operatedPoolAddresses.size > 0
+      ? [
+          {
+            title: t('common.pool'),
+            href: '/positions',
+            isActive:
+              !isPortfolioPoolsEntryPointActive &&
+              (pathname.startsWith('/positions') || pathname.startsWith('/liquidity')),
+            icon: <Pools color="$accent1" size="$icon.24" />,
+            elementName: ElementName.NavbarPoolTab,
+            items: [
+              {
+                label: t('nav.tabs.viewPositions'),
+                href: '/positions',
+                internal: true,
+                elementName: ElementName.NavbarPoolDropdownViewPositions,
+              },
+              {
+                label: t('nav.tabs.createPosition'),
+                href: ADD_LIQUIDITY_PATH,
+                internal: true,
+                elementName: ElementName.NavbarPoolDropdownCreatePosition,
+              },
+            ],
+          },
+        ]
+      : []),
     {
       title: t('common.portfolio'),
       href: buildPortfolioUrl({

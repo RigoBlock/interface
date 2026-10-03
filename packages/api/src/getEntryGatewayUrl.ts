@@ -45,8 +45,9 @@ interface GetEntryGatewayUrlOptions {
 /**
  * Returns the appropriate Entry Gateway API base URL based on the current environment.
  * When proxy is enabled, returns the proxy path. Otherwise returns the direct
- * URL. `ENTRY_GATEWAY_API_URL_OVERRIDE` is only honored when the proxy is
- * disabled and the caller has not pinned a specific backend env.
+ * URL. `ENTRY_GATEWAY_API_URL_OVERRIDE` is honored when the proxy is
+ * disabled, for unpinned calls and (RigoBlock fork) for prod-pinned calls;
+ * non-prod pins bypass it.
  */
 export function getEntryGatewayUrl(options?: GetEntryGatewayUrlOptions): string {
   const config = getConfig()
@@ -62,12 +63,17 @@ export function getEntryGatewayUrl(options?: GetEntryGatewayUrlOptions): string 
     return ENTRY_GATEWAY_PROXY_PATH
   }
 
-  // Env-pinned calls bypass the override. The override is meant to redirect
-  // *default* traffic to a chosen backend (e.g. corn-staging on a staging
-  // deployment). A caller saying `{ env: PROD }` has stated a hard
-  // requirement — silently rerouting it to the override would break services
-  // like unitags that need a specific env regardless of deployment.
-  if (!options?.env) {
+  // Env-pinned calls normally bypass the override — the override redirects *default* traffic
+  // (e.g. corn-staging on a staging deployment), and a caller pinning `{ env: PROD }` has stated
+  // a hard requirement (INFRA-1798).
+  //
+  // RigoBlock fork exception: a PROD pin ALSO honors the override. The fork points
+  // ENTRY_GATEWAY_API_URL_OVERRIDE at the RigoBlock gateway proxy, which is the fork's only
+  // browser-reachable route to Uniswap's prod entry gateway — direct backend-prod calls are
+  // CORS-blocked from rigoblock origins (this was the production data.v1/unitag/RWA failure).
+  // The proxy only fronts prod, so a prod pin keeps its meaning; non-prod pins still bypass.
+  const pinnedEnv = options?.env
+  if (!pinnedEnv || pinnedEnv === Environment.Production) {
     const override: string = config.entryGatewayApiUrlOverride
     if (override) {
       return override

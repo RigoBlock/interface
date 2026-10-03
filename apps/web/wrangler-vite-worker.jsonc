@@ -42,7 +42,10 @@
     "production": {
       "name": "app",
       "vars": {
-        "ENTRY_GATEWAY_API_URL": "https://entry-gateway.backend-prod.api.uniswap.org",
+        // RigoBlock: the BFF proxy target must be the RigoBlock gateway proxy — the only allowed
+        // route to Uniswap's backend. The proxy worker does not support WebSocket upgrades, so
+        // WEBSOCKET_URL stays pointed at the backend (worker→backend WS is server-side, no CORS).
+        "ENTRY_GATEWAY_API_URL": "https://interface.gateway.rigoblock.com/v2/entry-gateway",
         "WEBSOCKET_URL": "https://entry-gateway.backend-prod.api.uniswap.org/ws",
         "EMBED_FRAME_ANCESTORS": "https://dexscreener.com https://*.dexscreener.com https://omen.town https://*.omen.town",
       },

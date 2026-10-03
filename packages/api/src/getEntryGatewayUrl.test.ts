@@ -111,8 +111,23 @@ describe('getEntryGatewayUrl', () => {
       expect(getEntryGatewayUrl({ env: Environment.Staging })).toBe(`${ENTRY_GATEWAY_PROXY_PATH}/staging`)
     })
 
-    it('bypasses the override when env is pinned, even with proxy disabled', () => {
+    it('bypasses the override for non-prod pins, even with proxy disabled', () => {
       setConfig({ entryGatewayApiUrlOverride: 'https://example.test' })
+      expect(getEntryGatewayUrl({ env: Environment.Staging })).toBe(STAGING_ENTRY_GATEWAY_API_BASE_URL)
+      expect(getEntryGatewayUrl({ env: Environment.Development })).toBe(DEV_ENTRY_GATEWAY_API_BASE_URL)
+    })
+
+    it('RigoBlock fork: a PROD pin honors the override (rigoblock proxy is the route to prod)', () => {
+      // The override points at the RigoBlock gateway proxy — the only browser-reachable route to
+      // Uniswap's prod entry gateway from rigoblock origins. Prod-pinned services (unitags, data
+      // API v1) must go through it or their calls are CORS-blocked in production.
+      setConfig({ entryGatewayApiUrlOverride: 'https://interface.gateway.rigoblock.com/v2/entry-gateway' })
+      expect(getEntryGatewayUrl({ env: Environment.Production })).toBe(
+        'https://interface.gateway.rigoblock.com/v2/entry-gateway',
+      )
+    })
+
+    it('falls back to the prod URL for a PROD pin when no override is set', () => {
       expect(getEntryGatewayUrl({ env: Environment.Production })).toBe(PROD_ENTRY_GATEWAY_API_BASE_URL)
     })
   })

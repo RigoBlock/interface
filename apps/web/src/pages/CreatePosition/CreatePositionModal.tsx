@@ -20,6 +20,7 @@ import { useAccount } from '~/hooks/useAccount'
 import { useSelectChain } from '~/hooks/useSelectChain'
 import { useCreateLiquidityContext } from '~/pages/CreatePosition/CreateLiquidityContextProvider'
 import { useSetOverrideOneClickSwapFlag } from '~/pages/Swap/Swap/settings/OneClickSwap'
+import { useActiveSmartPool } from '~/state/application/hooks'
 import { liquiditySaga } from '~/state/sagas/liquidity/liquiditySaga'
 
 export function CreatePositionModal({
@@ -65,6 +66,7 @@ export function CreatePositionModal({
   const startChainId = connectedAccount.chainId
   const navigate = useNavigate()
   const trace = useTrace()
+  const activeSmartPool = useActiveSmartPool()
 
   const onSuccess = useCallback(() => {
     setSteps([])
@@ -94,6 +96,7 @@ export function CreatePositionModal({
         startChainId,
         account,
         liquidityTxContext: txInfo,
+        smartPoolAddress: activeSmartPool.address ?? undefined,
         setCurrentStep: setCurrentTransactionStep,
         setSteps,
         onSuccess,
@@ -136,6 +139,7 @@ export function CreatePositionModal({
   }, [
     txInfo,
     account,
+    activeSmartPool.address,
     currencyAmounts,
     dispatch,
     selectChain,
