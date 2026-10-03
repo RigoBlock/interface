@@ -356,6 +356,25 @@ async function main(): Promise<void> {
     await writeFile(filePath, source)
   }
 
+  // ChainId enum — add HyperEvm (999). Fork addition: upstream's published spec does not list
+  // 999 yet, and this file is rebuilt on every `tradingapi:generate`, so the injection must live
+  // here to survive regens. Ungates every crosschain path (checkIsBridgePair, swappable-tokens
+  // prefetch, bridging-token fetch, quote request) — they all filter through
+  // toTradingApiSupportedChainId. Numeric enum, so insert directly rather than via addEnumMember
+  // (which only emits string-valued members).
+  {
+    const filePath = `${path}/ChainId.ts`
+    let source = await readFile(filePath)
+    if (!source.includes("'_999'")) {
+      const closingBraceIdx = source.lastIndexOf('\n}')
+      source =
+        source.slice(0, closingBraceIdx) +
+        "\n    '_999' = 999, // HyperEvm (fork addition: upstream spec lags; enables crosschain bridging to/from HyperEvm)" +
+        source.slice(closingBraceIdx)
+      await writeFile(filePath, source)
+    }
+  }
+
   // Margin plan surface — TEMPORARY.
   // The margin endpoints have not merged to the Trading API's main branch yet, so `api.json` (a
   // verbatim sync of the published spec) does not carry them and these members are injected ahead
