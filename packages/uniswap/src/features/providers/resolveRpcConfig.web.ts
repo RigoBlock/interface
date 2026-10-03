@@ -7,6 +7,7 @@ import {
 } from '@universe/chains'
 import { isE2eTestEnv, isExtensionApp, REQUEST_SOURCE } from '@universe/environment'
 import { FeatureFlags, getFeatureFlag, isStatsigClientRegistered } from '@universe/gating'
+import { logger } from 'utilities/src/logger/logger'
 import { selectRpcUrl } from 'uniswap/src/features/providers/rpcUrlSelector'
 import { isUniRpcOnlyChain } from 'uniswap/src/features/providers/unirpcOnlyChains'
 
@@ -44,8 +45,17 @@ const SHARED_UNI_RPC_CONFIG = {
 // accepts the X-Session-ID / X-Device-ID header pair the extension sends, so the fork's
 // web app authenticates the same way (session is created via the session client and
 // stored in localStorage by provideSessionService, no cookies involved).
+let hasWarnedMissingSession = false
 const resolveHeaderSessionUniRpcHeaders = async (): Promise<Record<string, string>> => {
   const [session, deviceId] = await Promise.all([provideSessionStorage().get(), provideDeviceIdService().getDeviceId()])
+  if (!session?.sessionId && !hasWarnedMissingSession) {
+    hasWarnedMissingSession = true
+    logger.warn(
+      'resolveRpcConfig.web.ts',
+      'resolveHeaderSessionUniRpcHeaders',
+      'X-Session-ID unavailable — session not initialized; /rpc/* calls will 401. Check SessionService InitSession/Challenge/Verify in the network tab and localStorage UNISWAP_SESSION_ID.',
+    )
+  }
   return {
     ...(session?.sessionId && { 'X-Session-ID': session.sessionId }),
     ...(deviceId && { 'X-Device-ID': deviceId }),
