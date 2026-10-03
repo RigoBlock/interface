@@ -80,7 +80,7 @@ describe('PAY_PORTION_FULL_PRECISION downgrade', () => {
       ['0x' + commands.toString('hex'), [input], DEADLINE],
     )
 
-    const result = modifyV4ExecuteCalldata(calldata, SMART_POOL)
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
     expect(result).not.toBe(calldata)
 
     const { commands: outCommands, inputs: outInputs } = decodeOutputCalldata(result)
@@ -103,7 +103,7 @@ describe('PAY_PORTION_FULL_PRECISION downgrade', () => {
       ['0x' + commands.toString('hex'), [input], DEADLINE],
     )
 
-    const result = modifyV4ExecuteCalldata(calldata, SMART_POOL)
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
     const { commands: outCommands, inputs: outInputs } = decodeOutputCalldata(result)
     expect(outCommands).toBe('0x06')
     const [, outRecipient] = abiCoder.decode(['address', 'address', 'uint256'], outInputs[0]!)
@@ -161,7 +161,7 @@ describe('V4 action codes are preserved during recipient replacement', () => {
       ['0x', settleParams, takeParams],
     )
 
-    const result = modifyV4ExecuteCalldata(calldata, SMART_POOL)
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
     expect(result).not.toBe(calldata)
 
     const { inputs } = decodeOutputCalldata(result)
@@ -185,7 +185,7 @@ describe('V4 action codes are preserved during recipient replacement', () => {
     // Multi-hop ExactIn: [SWAP_EXACT_IN(0x07), SETTLE(0x0b), TAKE(0x0e)]
     const calldata = buildV4SwapCalldata([V4_SWAP_EXACT_IN, V4_SETTLE, V4_TAKE], ['0x', settleParams, takeParams])
 
-    const result = modifyV4ExecuteCalldata(calldata, SMART_POOL)
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
     const { inputs } = decodeOutputCalldata(result)
     const { actionsHex } = decodeV4SwapInput(inputs[0]!)
     const actionsBytes = Buffer.from(actionsHex.slice(2), 'hex')
@@ -204,7 +204,7 @@ describe('V4 action codes are preserved during recipient replacement', () => {
       ['0x', settleParams, takeParams],
     )
 
-    const result = modifyV4ExecuteCalldata(calldata, SMART_POOL)
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
     expect(result).toBe(calldata)
   })
 
@@ -218,7 +218,7 @@ describe('V4 action codes are preserved during recipient replacement', () => {
       ['0x', settleParams, takePortionParams, takeParams],
     )
 
-    const result = modifyV4ExecuteCalldata(calldata, SMART_POOL)
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
     const { inputs } = decodeOutputCalldata(result)
     const { actionsHex, params: outParams } = decodeV4SwapInput(inputs[0]!)
     const actionsBytes = Buffer.from(actionsHex.slice(2), 'hex')
@@ -272,7 +272,7 @@ describe('WRAP_ETH + V3_SWAP_EXACT_IN (ETH → token via smart pool)', () => {
     // ADDRESS_THIS and MSG_SENDER are whitelisted by AUniswapRouter._processRecipients —
     // only the user EOA recipient in V3 needs to be replaced.
     const calldata = buildWrapEthV3Calldata(ADDRESS_THIS, FEE_RECIPIENT, false)
-    const result = modifyV4ExecuteCalldata(calldata, SMART_POOL)
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
     expect(result).not.toBe(calldata)
 
     const { inputs } = decodeOutputCalldata(result)
@@ -292,7 +292,7 @@ describe('WRAP_ETH + V3_SWAP_EXACT_IN (ETH → token via smart pool)', () => {
 
   it('leaves MSG_SENDER in WRAP_ETH untouched', () => {
     const calldata = buildWrapEthV3Calldata(MSG_SENDER, FEE_RECIPIENT, false)
-    const result = modifyV4ExecuteCalldata(calldata, SMART_POOL)
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
 
     const { inputs } = decodeOutputCalldata(result)
     const [wrapRecipient] = abiCoder.decode(['address', 'uint256'], inputs[0]!)
@@ -306,7 +306,7 @@ describe('WRAP_ETH + V3_SWAP_EXACT_IN (ETH → token via smart pool)', () => {
   it('replaces user address in WRAP_ETH when present', () => {
     // Unusual but possible: WRAP_ETH with a user address recipient
     const calldata = buildWrapEthV3Calldata(FEE_RECIPIENT, FEE_RECIPIENT, false)
-    const result = modifyV4ExecuteCalldata(calldata, SMART_POOL)
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
 
     const { inputs } = decodeOutputCalldata(result)
     const [wrapRecipient] = abiCoder.decode(['address', 'uint256'], inputs[0]!)
@@ -329,7 +329,7 @@ describe('V3_SWAP_EXACT_IN recipient replacement', () => {
       ['bytes', 'bytes[]', 'uint256'],
       ['0x' + commands.toString('hex'), [input], DEADLINE],
     )
-    const result = modifyV4ExecuteCalldata(calldata, SMART_POOL)
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
     const { inputs } = decodeOutputCalldata(result)
     const [recipient, , , , payerIsUser] = abiCoder.decode(
       ['address', 'uint256', 'uint256', 'bytes', 'bool'],
@@ -350,7 +350,7 @@ describe('V3_SWAP_EXACT_IN recipient replacement', () => {
         ['bytes', 'bytes[]', 'uint256'],
         ['0x' + commands.toString('hex'), [input], DEADLINE],
       )
-      const result = modifyV4ExecuteCalldata(calldata, SMART_POOL)
+      const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
       // calldata should be unchanged since recipient is a special constant
       expect(result).toBe(calldata)
     }
@@ -372,7 +372,7 @@ describe('V3_SWAP_EXACT_OUT recipient replacement', () => {
       ['bytes', 'bytes[]', 'uint256'],
       ['0x' + commands.toString('hex'), [input], DEADLINE],
     )
-    const result = modifyV4ExecuteCalldata(calldata, SMART_POOL)
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
     const { inputs } = decodeOutputCalldata(result)
     const [recipient] = abiCoder.decode(['address', 'uint256', 'uint256', 'bytes', 'bool'], inputs[0]!)
     expect(recipient.toLowerCase()).toBe(SMART_POOL.toLowerCase())
@@ -396,7 +396,7 @@ describe('V2 swap recipient replacement', () => {
       ['bytes', 'bytes[]', 'uint256'],
       ['0x' + commands.toString('hex'), [input], DEADLINE],
     )
-    const result = modifyV4ExecuteCalldata(calldata, SMART_POOL)
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
     const { inputs } = decodeOutputCalldata(result)
     const [recipient] = abiCoder.decode(['address', 'uint256', 'uint256', 'address[]', 'bool'], inputs[0]!)
     expect(recipient.toLowerCase()).toBe(SMART_POOL.toLowerCase())
@@ -412,7 +412,7 @@ describe('V2 swap recipient replacement', () => {
       ['bytes', 'bytes[]', 'uint256'],
       ['0x' + commands.toString('hex'), [input], DEADLINE],
     )
-    const result = modifyV4ExecuteCalldata(calldata, SMART_POOL)
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
     const { inputs } = decodeOutputCalldata(result)
     const [recipient] = abiCoder.decode(['address', 'uint256', 'uint256', 'address[]', 'bool'], inputs[0]!)
     expect(recipient.toLowerCase()).toBe(SMART_POOL.toLowerCase())
@@ -431,7 +431,7 @@ describe('UNWRAP_WETH recipient replacement', () => {
       ['bytes', 'bytes[]', 'uint256'],
       ['0x' + commands.toString('hex'), [input], DEADLINE],
     )
-    const result = modifyV4ExecuteCalldata(calldata, SMART_POOL)
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
     const { inputs } = decodeOutputCalldata(result)
     const [recipient, amount] = abiCoder.decode(['address', 'uint256'], inputs[0]!)
     expect(recipient.toLowerCase()).toBe(SMART_POOL.toLowerCase())
@@ -445,7 +445,93 @@ describe('UNWRAP_WETH recipient replacement', () => {
       ['bytes', 'bytes[]', 'uint256'],
       ['0x' + commands.toString('hex'), [input], DEADLINE],
     )
-    const result = modifyV4ExecuteCalldata(calldata, SMART_POOL)
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
     expect(result).toBe(calldata)
+  })
+})
+
+
+// --------------------------------------------------------------------------
+// poolSupportsUr211 (protocol >= 4.4.7) — UR 2.1.x command preservation
+// --------------------------------------------------------------------------
+
+describe('PAY_PORTION_FULL_PRECISION with poolSupportsUr211', () => {
+  const PORTION_5_BIPS_1E18 = (BigInt(5) * BigInt('100000000000000')).toString()
+
+  function buildFullPrecisionCalldata(): string {
+    const input = abiCoder.encode(['address', 'address', 'uint256'], [SOME_TOKEN, FEE_RECIPIENT, PORTION_5_BIPS_1E18])
+    const commands = Buffer.from([CMD_PAY_PORTION_FULL_PRECISION])
+    return abiCoder.encode(['bytes', 'bytes[]', 'uint256'], ['0x' + commands.toString('hex'), [input], DEADLINE])
+  }
+
+  it('preserves the 0x07 command and 1e18 portion when poolSupportsUr211 is true', () => {
+    const calldata = buildFullPrecisionCalldata()
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL, poolSupportsUr211: true })
+    expect(result).not.toBe(calldata)
+
+    const { commands: outCommands, inputs: outInputs } = decodeOutputCalldata(result)
+    expect(outCommands).toBe('0x07')
+    const [outToken, outRecipient, outPortion] = abiCoder.decode(['address', 'address', 'uint256'], outInputs[0]!)
+    expect(outToken.toLowerCase()).toBe(SOME_TOKEN.toLowerCase())
+    // Recipient is still rewritten to the smart pool
+    expect(outRecipient.toLowerCase()).toBe(SMART_POOL.toLowerCase())
+    // Portion stays in 1e18 precision (NOT converted to bips)
+    expect(outPortion.toString()).toBe(PORTION_5_BIPS_1E18)
+  })
+
+  it('still downgrades 0x07 → 0x06 when poolSupportsUr211 is false', () => {
+    const calldata = buildFullPrecisionCalldata()
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL, poolSupportsUr211: false })
+    const { commands: outCommands } = decodeOutputCalldata(result)
+    expect(outCommands).toBe('0x06')
+  })
+
+  it('still downgrades 0x07 → 0x06 when poolSupportsUr211 is omitted', () => {
+    const calldata = buildFullPrecisionCalldata()
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
+    const { commands: outCommands } = decodeOutputCalldata(result)
+    expect(outCommands).toBe('0x06')
+  })
+})
+
+describe('stripBalanceCheckERC20 with poolSupportsUr211', () => {
+  function buildBalanceCheckCalldata(): string {
+    const balanceCheckInput = abiCoder.encode(['address', 'uint256'], [SOME_TOKEN, 100])
+    const commands = Buffer.from([CMD_BALANCE_CHECK_ERC20])
+    return abiCoder.encode(
+      ['bytes', 'bytes[]', 'uint256'],
+      ['0x' + commands.toString('hex'), [balanceCheckInput], DEADLINE],
+    )
+  }
+
+  it('preserves BALANCE_CHECK_ERC20 (0x0e) when poolSupportsUr211 is true', () => {
+    const consoleInfoSpy = vi.spyOn(console, 'info').mockImplementation(() => {})
+    const calldata = buildBalanceCheckCalldata()
+
+    const stripped = stripBalanceCheckERC20(calldata, { poolSupportsUr211: true })
+    expect(stripped).toBe(calldata)
+    const { commands: outCommands } = decodeOutputCalldata(stripped)
+    expect(outCommands.toLowerCase()).toBe('0x0e')
+    consoleInfoSpy.mockRestore()
+  })
+
+  it('still strips BALANCE_CHECK_ERC20 when poolSupportsUr211 is false', () => {
+    const consoleInfoSpy = vi.spyOn(console, 'info').mockImplementation(() => {})
+    const calldata = buildBalanceCheckCalldata()
+
+    const stripped = stripBalanceCheckERC20(calldata, { poolSupportsUr211: false })
+    expect(stripped).not.toBe(calldata)
+    const { commands: outCommands } = decodeOutputCalldata(stripped)
+    expect(outCommands.toLowerCase()).not.toContain('0e')
+    consoleInfoSpy.mockRestore()
+  })
+
+  it('still strips BALANCE_CHECK_ERC20 when poolSupportsUr211 is omitted', () => {
+    const consoleInfoSpy = vi.spyOn(console, 'info').mockImplementation(() => {})
+    const calldata = buildBalanceCheckCalldata()
+
+    const stripped = stripBalanceCheckERC20(calldata)
+    expect(stripped).not.toBe(calldata)
+    consoleInfoSpy.mockRestore()
   })
 })

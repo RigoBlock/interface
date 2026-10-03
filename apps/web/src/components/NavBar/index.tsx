@@ -87,11 +87,11 @@ const SelectedPoolContainer = deprecatedStyled(UnpositionedFlex)`
   margin-top: 8px;
 
   @media screen and (max-width: ${breakpoints.md}px) {
-    position: absolute;
-    left: -100px;
-    transform: translateX(0);
+    /* RigoBlock fork: the old left: -100px rule pulled the pool pill ~100px left
+       of center, painting it over the logo wordmark ("RigoBlock" showed only
+       "Block" on narrow viewports). Keep the pill centered in the SearchContainer. */
     min-width: 150px;
-    max-width: calc(40% - 200px);
+    max-width: 100%;
     height: 42px;
     overflow: hidden;
     margin-top: 8px;

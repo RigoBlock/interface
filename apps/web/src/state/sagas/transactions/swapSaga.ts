@@ -7,6 +7,7 @@ import { normalizeTokenAddressForCache } from '@universe/chains'
 import ms from 'ms'
 import { call, put, type SagaGenerator } from 'typed-redux-saga'
 import POOL_EXTENDED_ABI from 'uniswap/src/abis/pool-extended.json'
+import { getSmartPoolUniversalRouterVersion } from 'uniswap/src/data/apiClients/tradingApi/smartPoolUniversalRouterVersion'
 import { isL2ChainId } from 'uniswap/src/features/chains/utils'
 import { SwapEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
@@ -411,9 +412,19 @@ interface NonBridgeTransactionModificationParams {
 
 function* handleNonBridgeTransactionModifications(params: NonBridgeTransactionModificationParams): SagaGenerator<void> {
   const { txRequest, smartPoolAddress, calldata, trade, address } = params
+  // RigoBlock: smart pools running protocol >= 4.4.7 decode UR 2.1.x commands natively. Resolve
+  // once per transaction so PAY_PORTION_FULL_PRECISION and BALANCE_CHECK_ERC20 are preserved for
+  // those pools instead of being downgraded/stripped for the old decoder.
+  const swapChainId = trade.inputAmount.currency.chainId
+  const smartPoolUrVersion = yield* call(getSmartPoolUniversalRouterVersion, swapChainId)
+  const poolSupportsUr211 = smartPoolUrVersion === TradingApi.UniversalRouterVersion._2_1_2
   try {
     const parametersOnly = calldata.slice(10)
-    const updatedParams = modifyV4ExecuteCalldata('0x' + parametersOnly, smartPoolAddress)
+    const updatedParams = modifyV4ExecuteCalldata({
+      calldata: '0x' + parametersOnly,
+      smartPoolAddress,
+      poolSupportsUr211,
+    })
     if (updatedParams !== '0x' + parametersOnly) {
       const functionSelector = calldata.slice(0, 10)
       txRequest.data = functionSelector + updatedParams.slice(2)
@@ -434,7 +445,7 @@ function* handleNonBridgeTransactionModifications(params: NonBridgeTransactionMo
   }
   if (txRequest.data) {
     const currentCalldata = typeof txRequest.data === 'string' ? txRequest.data : txRequest.data.toString()
-    const strippedCalldata = stripBalanceCheckERC20(currentCalldata)
+    const strippedCalldata = stripBalanceCheckERC20(currentCalldata, { poolSupportsUr211 })
     if (strippedCalldata !== currentCalldata) {
       txRequest.data = strippedCalldata
     }

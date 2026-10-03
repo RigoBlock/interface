@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- RigoBlock fork additions (UR 2.1.x command preservation) pushed this file past the line cap; same exemption as swapSaga.ts */
 import { AbiCoder } from '@ethersproject/abi'
 import { normalizeTokenAddressForCache } from '@universe/chains'
 import { logger } from 'utilities/src/logger/logger'
@@ -44,6 +45,9 @@ interface CommandHandlerContext {
   smartPoolAddress: string
   commandsBytes: Uint8Array
   i: number
+  // RigoBlock: true when the smart pool's onchain protocol >= 4.4.7 (decoder handles UR 2.1.x
+  // commands). When false, UR 2.1.x-only commands are downgraded/removed for old decoders.
+  poolSupportsUr211: boolean
 }
 
 interface CommandHandlerResult {
@@ -134,11 +138,21 @@ function handlePayPortionFullPrecisionCommand(
   input: string,
   ctx: CommandHandlerContext,
 ): CommandHandlerResult | undefined {
-  const { abiCoder, smartPoolAddress, commandsBytes, i } = ctx
+  const { abiCoder, smartPoolAddress, commandsBytes, i, poolSupportsUr211 } = ctx
   try {
+    const [token, recipient, portion] = abiCoder.decode(['address', 'address', 'uint256'], input)
+    if (poolSupportsUr211) {
+      // Protocol >= 4.4.7 decodes PAY_PORTION_FULL_PRECISION natively: keep the 0x07 command and
+      // the 1e18-precision portion, only rewrite the recipient to the pool.
+      if (!shouldReplaceRecipient(recipient, smartPoolAddress)) {
+        return undefined
+      }
+      return {
+        modifiedInput: abiCoder.encode(['address', 'address', 'uint256'], [token, smartPoolAddress, portion]),
+      }
+    }
     // PAY_PORTION_FULL_PRECISION (0x07): abi.encode(token, recipient, portion) with 1e18 precision.
     // Downgrade to PAY_PORTION (0x06) using bips so old UR routes the fee. Loss is at most 1 bip.
-    const [token, recipient, portion] = abiCoder.decode(['address', 'address', 'uint256'], input)
     const portionBigInt = BigInt(portion.toString())
     const bips = (portionBigInt * BigInt(10000)) / BigInt('1000000000000000000')
     const finalRecipient = shouldReplaceRecipient(recipient, smartPoolAddress) ? smartPoolAddress : recipient
@@ -370,7 +384,19 @@ function processV4SwapInput(input: string, ctx: V4SwapInputContext): string | un
   }
 }
 
-export function modifyV4ExecuteCalldata(calldata: string, smartPoolAddress: string): string {
+// RigoBlock: true when the active smart pool runs protocol >= 4.4.7 (decoder supports UR 2.1.x
+// commands); skips the PAY_PORTION_FULL_PRECISION downgrade and BALANCE_CHECK_ERC20 stripping.
+export interface UniversalRouterCalldataOptions {
+  poolSupportsUr211?: boolean
+}
+
+interface ModifyV4ExecuteCalldataParams extends UniversalRouterCalldataOptions {
+  calldata: string
+  smartPoolAddress: string
+}
+
+export function modifyV4ExecuteCalldata(params: ModifyV4ExecuteCalldataParams): string {
+  const { calldata, smartPoolAddress, poolSupportsUr211 = false } = params
   try {
     const abiCoder = new AbiCoder()
     const decoded = abiCoder.decode(['bytes', 'bytes[]', 'uint256'], calldata)
@@ -386,7 +412,7 @@ export function modifyV4ExecuteCalldata(calldata: string, smartPoolAddress: stri
       const input = inputs[i]
       if (command in COMMAND_HANDLERS) {
         const handler = COMMAND_HANDLERS[command]
-        const result = handler(input, { abiCoder, smartPoolAddress, commandsBytes, i })
+        const result = handler(input, { abiCoder, smartPoolAddress, commandsBytes, i, poolSupportsUr211 })
         if (result?.modifiedInput) {
           modifiedInputs[i] = result.modifiedInput
           inputsWereModified = true
@@ -419,13 +445,23 @@ export function modifyV4ExecuteCalldata(calldata: string, smartPoolAddress: stri
  * Strips BALANCE_CHECK_ERC20 commands from Universal Router calldata
  *
  * RigoBlock smart pools handle balance checks internally, and some chain-specific
- * Universal Router deployments may not support this command.
- * This function removes any BALANCE_CHECK_ERC20 commands from the calldata.
+ * Universal Router deployments may not support this command, so this removes any
+ * BALANCE_CHECK_ERC20 commands — unless `options.poolSupportsUr211` is true (protocol >= 4.4.7
+ * pools decode UR 2.1.x commands natively and the guard must stay in place).
  *
  * @param calldata - The Universal Router execute calldata (with or without function selector)
  * @returns The modified calldata without BALANCE_CHECK_ERC20 commands
  */
-export function stripBalanceCheckERC20(calldata: string): string {
+export function stripBalanceCheckERC20(calldata: string, options?: UniversalRouterCalldataOptions): string {
+  // Protocol >= 4.4.7 pools keep the BALANCE_CHECK_ERC20 guard: the decoder handles the command.
+  if (options?.poolSupportsUr211) {
+    logger.info(
+      'universalRouterCalldata',
+      'stripBalanceCheckERC20',
+      'Pool supports UR 2.1.x commands; keeping BALANCE_CHECK_ERC20 in calldata',
+    )
+    return calldata
+  }
   try {
     const abiCoder = new AbiCoder()
     // Check if this has a function selector (starts with 0x and has selector)

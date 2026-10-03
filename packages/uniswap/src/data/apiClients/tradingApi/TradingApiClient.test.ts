@@ -27,6 +27,10 @@ import {
 } from '@universe/gating'
 import { getIsPermissionedTokenFromCache } from 'uniswap/src/data/apiClients/tradingApi/getIsPermissionedTokenFromCache'
 import {
+  initializeSmartPoolUniversalRouterVersion,
+  resetSmartPoolUniversalRouterVersionForTests,
+} from 'uniswap/src/data/apiClients/tradingApi/smartPoolUniversalRouterVersion'
+import {
   checkWalletDelegation,
   getFeatureFlaggedHeaders,
   TradingApiClient,
@@ -496,6 +500,7 @@ describe('getFeatureFlaggedHeaders', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    resetSmartPoolUniversalRouterVersionForTests()
     mockGetFeatureFlag.mockReturnValue(false)
     mockGetExperimentValueFromLayer.mockReturnValue(false)
   })
@@ -602,16 +607,17 @@ describe('getFeatureFlaggedHeaders', () => {
 
 /**
  * Upstream, web session lives in an HttpOnly cookie, so every trading API request
- * runs with credentials: 'include'. The RigoBlock fork has no Uniswap session
- * cookies and the gateway sends ACAO: *, so credentials must be 'omit' —
- * guards against regressing to a credentialed fetch the CORS preflight rejects.
+ * runs with credentials: 'include' — the RigoBlock gateway now answers credentialed
+ * CORS (origin echo + Access-Control-Allow-Credentials), so this stays upstream's
+ * 'include'. Guards against regressing to 'omit', which would drop the session
+ * cookie and break authenticated trading API calls.
  */
 describe('TradingApiClient web session credentials', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('sends credentials: omit on fetchQuote (RigoBlock fork: no session cookies, gateway ACAO: *)', async () => {
+  it('sends credentials: include on fetchQuote so the session cookie reaches the backend', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
       status: 200,
@@ -630,7 +636,7 @@ describe('TradingApiClient web session credentials', () => {
 
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining('/quote'),
-      expect.objectContaining({ credentials: 'omit' }),
+      expect.objectContaining({ credentials: 'include' }),
     )
   })
 })
@@ -785,6 +791,75 @@ describe('getFeatureFlaggedHeaders permissioned Universal Router 2.2.0 override'
 
     // RigoBlock: AUniswapDecoder.sol requires UR V2.0 structs; a regression here would yield 2.1.1/2.2.0.
     expect(headers).toHaveProperty(TradingApiHeaders.UniversalRouterVersion, TradingApi.UniversalRouterVersion._2_0)
+  })
+})
+
+describe('getFeatureFlaggedHeaders smart pool Universal Router version selection', () => {
+  const mockGetFeatureFlag = getFeatureFlag as MockedFunction<typeof getFeatureFlag>
+  const mockGetExperimentValueFromLayer = getExperimentValueFromLayer as MockedFunction<
+    typeof getExperimentValueFromLayer
+  >
+  const mockGetIsPermissionedTokenFromCache = getIsPermissionedTokenFromCache as MockedFunction<
+    typeof getIsPermissionedTokenFromCache
+  >
+  const mainnetChainId = toTradingApiSupportedChainId(UniverseChainId.Mainnet)
+  const smartPool = { address: '0xEfa4bDf566aE50537A507863612638680420645C', chainId: UniverseChainId.Mainnet }
+
+  function initSmartPoolContext({ version }: { version: string }): void {
+    initializeSmartPoolUniversalRouterVersion({
+      getActiveSmartPool: () => smartPool,
+      getSmartPoolVersion: () => Promise.resolve(version),
+    })
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    resetSmartPoolUniversalRouterVersionForTests()
+    mockGetFeatureFlag.mockReturnValue(false)
+    mockGetExperimentValueFromLayer.mockReturnValue(false)
+    mockGetIsPermissionedTokenFromCache.mockReturnValue(false)
+  })
+
+  afterEach(() => {
+    resetSmartPoolUniversalRouterVersionForTests()
+  })
+
+  it('uses 2.1.2 when the active smart pool runs protocol >= 4.4.7', async () => {
+    initSmartPoolContext({ version: '4.4.7' })
+
+    const headers = await getFeatureFlaggedHeaders(TRADING_API_PATHS.quote, { chainId: mainnetChainId })
+
+    expect(headers).toHaveProperty(TradingApiHeaders.UniversalRouterVersion, TradingApi.UniversalRouterVersion._2_1_2)
+  })
+
+  it('keeps 2.0 when the active smart pool runs an older protocol (4.4.6)', async () => {
+    initSmartPoolContext({ version: '4.4.6' })
+
+    const headers = await getFeatureFlaggedHeaders(TRADING_API_PATHS.quote, { chainId: mainnetChainId })
+
+    expect(headers).toHaveProperty(TradingApiHeaders.UniversalRouterVersion, TradingApi.UniversalRouterVersion._2_0)
+  })
+
+  it('keeps 2.0 when the active smart pool is on a different chain than the request', async () => {
+    initializeSmartPoolUniversalRouterVersion({
+      getActiveSmartPool: () => ({ ...smartPool, chainId: UniverseChainId.ArbitrumOne }),
+      getSmartPoolVersion: () => Promise.resolve('4.4.7'),
+    })
+
+    const headers = await getFeatureFlaggedHeaders(TRADING_API_PATHS.quote, { chainId: mainnetChainId })
+
+    expect(headers).toHaveProperty(TradingApiHeaders.UniversalRouterVersion, TradingApi.UniversalRouterVersion._2_0)
+  })
+
+  it('still forces 2.2.0 for a permissioned token when a 4.4.7 smart pool is active', async () => {
+    initSmartPoolContext({ version: '4.4.7' })
+
+    const headers = await getFeatureFlaggedHeaders(TRADING_API_PATHS.swap5792, {
+      chainId: mainnetChainId,
+      isPermissionedToken: true,
+    })
+
+    expect(headers).toHaveProperty(TradingApiHeaders.UniversalRouterVersion, TradingApi.UniversalRouterVersion._2_2_0)
   })
 })
 

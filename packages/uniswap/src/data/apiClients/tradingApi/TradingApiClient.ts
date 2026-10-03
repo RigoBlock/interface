@@ -25,6 +25,7 @@ import { config } from 'uniswap/src/config'
 import { getUniswapServiceUrls } from 'uniswap/src/constants/urls'
 import { BASE_UNISWAP_HEADERS } from 'uniswap/src/data/apiClients/createUniswapFetchClient'
 import { getIsPermissionedTokenFromCache } from 'uniswap/src/data/apiClients/tradingApi/getIsPermissionedTokenFromCache'
+import { getSmartPoolUniversalRouterVersion } from 'uniswap/src/data/apiClients/tradingApi/smartPoolUniversalRouterVersion'
 import { filterChainIdsByPlatform } from 'uniswap/src/features/chains/utils'
 import { tradingApiToUniverseChainId } from 'uniswap/src/features/transactions/swap/utils/tradingApi'
 
@@ -75,19 +76,24 @@ export enum TradingApiHeaders {
 // with them, so for a permissioned token 2.2.0 is a correctness requirement, not a rollout
 // choice. No separate feature flag gates this: permissioned-pool support (the backend and this)
 // launches as a unit, so "a permissioned token is involved" is itself the gate.
-function getUniversalRouterVersionHeader(params: {
+async function getUniversalRouterVersionHeader(params: {
   chainId: UniverseChainId | undefined
   options?: GetFeatureFlagHeadersOptions
-}): string {
+}): Promise<string> {
   if (isPermissionedTokenRequest(params)) {
     return TradingApi.UniversalRouterVersion._2_2_0
   }
 
-  // TODO: update when AUniswapRouter is upgraded in protocol to support UR V2.1.1.
   // RigoBlock: AUniswapDecoder.sol was compiled against UR V2.0 struct layouts.
-  // UR V2.1.1 introduces `maxHopSlippage` in ExactInput(Single)Params which causes ABI
-  // misalignment on-chain, resulting in _handleAction(0x) reverts on all V4 swaps.
-  // Force V2.0 until the vault adapter is upgraded to support V2.1.1 structs.
+  // UR V2.1.x introduces `maxHopSlippage` in ExactInput(Single)Params which causes ABI
+  // misalignment on-chain on older adapters, resulting in _handleAction(0x) reverts on all
+  // V4 swaps. Smart pools running protocol >= 4.4.7 ship an upgraded decoder that supports
+  // UR 2.1.2: select it based on the ACTIVE smart pool's onchain VERSION(); older pools
+  // (or no active pool) keep the V2.0 fallback below.
+  const smartPoolVersion = await getSmartPoolUniversalRouterVersion(params.chainId)
+  if (smartPoolVersion) {
+    return smartPoolVersion
+  }
   return TradingApi.UniversalRouterVersion._2_0
 }
 
@@ -127,7 +133,7 @@ export const getFeatureFlaggedHeaders = async (
   await waitForStatsigReady()
   const chainId = tradingApiToUniverseChainId(options?.chainId)
   const headers: Record<string, string> = {
-    [TradingApiHeaders.UniversalRouterVersion]: getUniversalRouterVersionHeader({ chainId, options }),
+    [TradingApiHeaders.UniversalRouterVersion]: await getUniversalRouterVersionHeader({ chainId, options }),
   }
   const uniquoteEnabled = getFeatureFlag(FeatureFlags.UniquoteEnabled)
   const viemProviderEnabled = getFeatureFlag(FeatureFlags.ViemProviderEnabled)

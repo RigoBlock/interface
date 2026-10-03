@@ -67,6 +67,7 @@ import { DeprecatedThemeProvider } from '~/theme/index'
 import { isBrowserRouterEnabled } from '~/utils/env'
 import { unregister as unregisterServiceWorker } from '~/utils/serviceWorker'
 import { isRigoblockHostname } from '~/utils/sessionService'
+import { initializeSmartPoolUniversalRouterVersionForWeb } from '~/utils/smartPoolUniversalRouter'
 import { getCanonicalUrl } from '~/utils/urlRoutes'
 
 if (window.ethereum) {
@@ -80,6 +81,7 @@ if (__DEV__ && !isTestEnv()) {
 }
 
 initializePortfolioQueryOverrides({ store })
+initializeSmartPoolUniversalRouterVersionForWeb()
 
 const loadListsUpdater = () => import('~/state/lists/updater')
 const loadApplicationUpdater = () => import('~/state/application/updater')
