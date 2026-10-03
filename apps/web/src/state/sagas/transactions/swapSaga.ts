@@ -412,18 +412,18 @@ interface NonBridgeTransactionModificationParams {
 
 function* handleNonBridgeTransactionModifications(params: NonBridgeTransactionModificationParams): SagaGenerator<void> {
   const { txRequest, smartPoolAddress, calldata, trade, address } = params
-  // RigoBlock: smart pools running protocol >= 4.4.7 decode UR 2.1.x commands natively. Resolve
-  // once per transaction so PAY_PORTION_FULL_PRECISION and BALANCE_CHECK_ERC20 are preserved for
-  // those pools instead of being downgraded/stripped for the old decoder.
+  // RigoBlock: smart pools whose governance-mapped AUniswapRouter adapter decodes UR 2.1.x
+  // commands keep PAY_PORTION_FULL_PRECISION and BALANCE_CHECK_ERC20 instead of the
+  // downgrade/strip applied for old adapters. Resolve once per transaction.
   const swapChainId = trade.inputAmount.currency.chainId
   const smartPoolUrVersion = yield* call(getSmartPoolUniversalRouterVersion, swapChainId)
-  const poolSupportsUr211 = smartPoolUrVersion === TradingApi.UniversalRouterVersion._2_1_2
+  const poolUsesUr212 = smartPoolUrVersion === TradingApi.UniversalRouterVersion._2_1_2
   try {
     const parametersOnly = calldata.slice(10)
     const updatedParams = modifyV4ExecuteCalldata({
       calldata: '0x' + parametersOnly,
       smartPoolAddress,
-      poolSupportsUr211,
+      poolSupportsUr211: poolUsesUr212,
     })
     if (updatedParams !== '0x' + parametersOnly) {
       const functionSelector = calldata.slice(0, 10)
@@ -445,7 +445,7 @@ function* handleNonBridgeTransactionModifications(params: NonBridgeTransactionMo
   }
   if (txRequest.data) {
     const currentCalldata = typeof txRequest.data === 'string' ? txRequest.data : txRequest.data.toString()
-    const strippedCalldata = stripBalanceCheckERC20(currentCalldata, { poolSupportsUr211 })
+    const strippedCalldata = stripBalanceCheckERC20(currentCalldata, { poolSupportsUr211: poolUsesUr212 })
     if (strippedCalldata !== currentCalldata) {
       txRequest.data = strippedCalldata
     }

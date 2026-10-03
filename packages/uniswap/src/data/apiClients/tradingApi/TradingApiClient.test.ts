@@ -29,6 +29,7 @@ import { getIsPermissionedTokenFromCache } from 'uniswap/src/data/apiClients/tra
 import {
   initializeSmartPoolUniversalRouterVersion,
   resetSmartPoolUniversalRouterVersionForTests,
+  UR_2_1_2_APPLICATION_ADAPTERS,
 } from 'uniswap/src/data/apiClients/tradingApi/smartPoolUniversalRouterVersion'
 import {
   checkWalletDelegation,
@@ -804,11 +805,13 @@ describe('getFeatureFlaggedHeaders smart pool Universal Router version selection
   >
   const mainnetChainId = toTradingApiSupportedChainId(UniverseChainId.Mainnet)
   const smartPool = { address: '0xEfa4bDf566aE50537A507863612638680420645C', chainId: UniverseChainId.Mainnet }
+  const ur212Adapter = UR_2_1_2_APPLICATION_ADAPTERS[UniverseChainId.Mainnet] as string
+  const oldAdapter = '0x27213E28D7fDA5c57Fe9e5dd923818DBCcf71c47'
 
-  function initSmartPoolContext({ version }: { version: string }): void {
+  function initSmartPoolContext({ adapter }: { adapter: string | undefined }): void {
     initializeSmartPoolUniversalRouterVersion({
       getActiveSmartPool: () => smartPool,
-      getSmartPoolVersion: () => Promise.resolve(version),
+      getApplicationAdapter: () => Promise.resolve(adapter),
     })
   }
 
@@ -824,16 +827,16 @@ describe('getFeatureFlaggedHeaders smart pool Universal Router version selection
     resetSmartPoolUniversalRouterVersionForTests()
   })
 
-  it('uses 2.1.2 when the active smart pool runs protocol >= 4.4.7', async () => {
-    initSmartPoolContext({ version: '4.4.7' })
+  it('uses 2.1.2 when the pool resolves the governance-mapped UR 2.1.2 adapter', async () => {
+    initSmartPoolContext({ adapter: ur212Adapter })
 
     const headers = await getFeatureFlaggedHeaders(TRADING_API_PATHS.quote, { chainId: mainnetChainId })
 
     expect(headers).toHaveProperty(TradingApiHeaders.UniversalRouterVersion, TradingApi.UniversalRouterVersion._2_1_2)
   })
 
-  it('keeps 2.0 when the active smart pool runs an older protocol (4.4.6)', async () => {
-    initSmartPoolContext({ version: '4.4.6' })
+  it('keeps 2.0 when the pool still resolves the old adapter', async () => {
+    initSmartPoolContext({ adapter: oldAdapter })
 
     const headers = await getFeatureFlaggedHeaders(TRADING_API_PATHS.quote, { chainId: mainnetChainId })
 
@@ -843,7 +846,7 @@ describe('getFeatureFlaggedHeaders smart pool Universal Router version selection
   it('keeps 2.0 when the active smart pool is on a different chain than the request', async () => {
     initializeSmartPoolUniversalRouterVersion({
       getActiveSmartPool: () => ({ ...smartPool, chainId: UniverseChainId.ArbitrumOne }),
-      getSmartPoolVersion: () => Promise.resolve('4.4.7'),
+      getApplicationAdapter: () => Promise.resolve(ur212Adapter),
     })
 
     const headers = await getFeatureFlaggedHeaders(TRADING_API_PATHS.quote, { chainId: mainnetChainId })
@@ -851,8 +854,8 @@ describe('getFeatureFlaggedHeaders smart pool Universal Router version selection
     expect(headers).toHaveProperty(TradingApiHeaders.UniversalRouterVersion, TradingApi.UniversalRouterVersion._2_0)
   })
 
-  it('still forces 2.2.0 for a permissioned token when a 4.4.7 smart pool is active', async () => {
-    initSmartPoolContext({ version: '4.4.7' })
+  it('still forces 2.2.0 for a permissioned token when a UR 2.1.2 smart pool is active', async () => {
+    initSmartPoolContext({ adapter: ur212Adapter })
 
     const headers = await getFeatureFlaggedHeaders(TRADING_API_PATHS.swap5792, {
       chainId: mainnetChainId,

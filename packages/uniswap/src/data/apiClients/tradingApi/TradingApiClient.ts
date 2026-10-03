@@ -87,9 +87,10 @@ async function getUniversalRouterVersionHeader(params: {
   // RigoBlock: AUniswapDecoder.sol was compiled against UR V2.0 struct layouts.
   // UR V2.1.x introduces `maxHopSlippage` in ExactInput(Single)Params which causes ABI
   // misalignment on-chain on older adapters, resulting in _handleAction(0x) reverts on all
-  // V4 swaps. Smart pools running protocol >= 4.4.7 ship an upgraded decoder that supports
-  // UR 2.1.2: select it based on the ACTIVE smart pool's onchain VERSION(); older pools
-  // (or no active pool) keep the V2.0 fallback below.
+  // V4 swaps. UR 2.1.2 support ships with the governance AUniswapRouter adapter, not the pool
+  // version: select 2.1.2 when the ACTIVE smart pool's `getApplicationAdapter(0x3593564c)`
+  // matches the governance-mapped UR-2.1.2 adapter for its chain; otherwise keep the V2.0
+  // fallback below.
   const smartPoolVersion = await getSmartPoolUniversalRouterVersion(params.chainId)
   if (smartPoolVersion) {
     return smartPoolVersion

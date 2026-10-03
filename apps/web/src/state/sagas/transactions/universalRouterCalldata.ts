@@ -45,8 +45,8 @@ interface CommandHandlerContext {
   smartPoolAddress: string
   commandsBytes: Uint8Array
   i: number
-  // RigoBlock: true when the smart pool's onchain protocol >= 4.4.7 (decoder handles UR 2.1.x
-  // commands). When false, UR 2.1.x-only commands are downgraded/removed for old decoders.
+  // RigoBlock: true when the smart pool's governance-mapped AUniswapRouter adapter decodes
+  // UR 2.1.x commands. When false, UR 2.1.x-only commands are downgraded/removed for old adapters.
   poolSupportsUr211: boolean
 }
 
@@ -142,8 +142,8 @@ function handlePayPortionFullPrecisionCommand(
   try {
     const [token, recipient, portion] = abiCoder.decode(['address', 'address', 'uint256'], input)
     if (poolSupportsUr211) {
-      // Protocol >= 4.4.7 decodes PAY_PORTION_FULL_PRECISION natively: keep the 0x07 command and
-      // the 1e18-precision portion, only rewrite the recipient to the pool.
+      // UR 2.1.x-capable adapters decode PAY_PORTION_FULL_PRECISION natively: keep the 0x07
+      // command and the 1e18-precision portion, only rewrite the recipient to the pool.
       if (!shouldReplaceRecipient(recipient, smartPoolAddress)) {
         return undefined
       }
@@ -384,8 +384,8 @@ function processV4SwapInput(input: string, ctx: V4SwapInputContext): string | un
   }
 }
 
-// RigoBlock: true when the active smart pool runs protocol >= 4.4.7 (decoder supports UR 2.1.x
-// commands); skips the PAY_PORTION_FULL_PRECISION downgrade and BALANCE_CHECK_ERC20 stripping.
+// RigoBlock: true when the active smart pool's governance-mapped AUniswapRouter adapter decodes
+// UR 2.1.x commands; skips the PAY_PORTION_FULL_PRECISION downgrade and BALANCE_CHECK_ERC20 stripping.
 export interface UniversalRouterCalldataOptions {
   poolSupportsUr211?: boolean
 }
@@ -446,14 +446,14 @@ export function modifyV4ExecuteCalldata(params: ModifyV4ExecuteCalldataParams): 
  *
  * RigoBlock smart pools handle balance checks internally, and some chain-specific
  * Universal Router deployments may not support this command, so this removes any
- * BALANCE_CHECK_ERC20 commands — unless `options.poolSupportsUr211` is true (protocol >= 4.4.7
- * pools decode UR 2.1.x commands natively and the guard must stay in place).
+ * BALANCE_CHECK_ERC20 commands — unless `options.poolSupportsUr211` is true (UR 2.1.x-capable
+ * adapters decode the command natively and the guard must stay in place).
  *
  * @param calldata - The Universal Router execute calldata (with or without function selector)
  * @returns The modified calldata without BALANCE_CHECK_ERC20 commands
  */
 export function stripBalanceCheckERC20(calldata: string, options?: UniversalRouterCalldataOptions): string {
-  // Protocol >= 4.4.7 pools keep the BALANCE_CHECK_ERC20 guard: the decoder handles the command.
+  // UR 2.1.x-capable adapters keep the BALANCE_CHECK_ERC20 guard: the decoder handles the command.
   if (options?.poolSupportsUr211) {
     logger.info(
       'universalRouterCalldata',
