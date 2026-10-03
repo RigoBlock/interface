@@ -16,7 +16,7 @@
   :root {
     @variant light {
       --stext-DEP_accentBranded: #FC72FF;
-      --stext-DEP_accentSoft: #FC72FF33;
+      --stext-DEP_accentSoft: #feb23933;
       --stext-DEP_backgroundBranded: #FCF7FF;
       --stext-DEP_backgroundOverlay: #FFFFFF99;
       --stext-DEP_blue400: #4C82FB;
@@ -24,10 +24,10 @@
       --stext-DEP_fiatBanner: #FB36D0;
       --stext-DEP_magentaDark: #FC72FF1f;
       --stext-DEP_shadowBranded: #FC72FF;
-      --stext-accent1: #FF37C7;
-      --stext-accent1Hovered: #E500A5;
-      --stext-accent2: rgba(255, 55, 199, 0.08);
-      --stext-accent2Hovered: rgba(255, 55, 199, 0.12);
+      --stext-accent1: #feb239;
+      --stext-accent1Hovered: #ffa81f;
+      --stext-accent2: #FEF4FF;
+      --stext-accent2Hovered: #FEEBFC;
       --stext-accent2Solid: #FFF3FC;
       --stext-accent3: #222222;
       --stext-accent3Hovered: #000000;
@@ -66,10 +66,11 @@
       --stext-chain_80001: #8247E5;
       --stext-chain_81457: #222222;
       --stext-chain_8453: #0052FF;
+      --stext-chain_999: #3B785C;
       --stext-color: #131313;
-      --stext-colorFocus: #FF37C7;
-      --stext-colorHover: #FF37C7;
-      --stext-colorPress: #FF37C7;
+      --stext-colorFocus: #feb239;
+      --stext-colorHover: #feb239;
+      --stext-colorPress: #feb239;
       --stext-neutral1: #131313;
       --stext-neutral1Contrast: #FFFFFF;
       --stext-neutral1Hovered: rgba(19, 19, 19, 0.83);
@@ -112,7 +113,7 @@
     }
     @variant dark {
       --stext-DEP_accentBranded: #FC72FF;
-      --stext-DEP_accentSoft: #FC72FF33;
+      --stext-DEP_accentSoft: #feb23933;
       --stext-DEP_backgroundBranded: #100D1C;
       --stext-DEP_backgroundOverlay: #FFFFFF1a;
       --stext-DEP_blue400: #4C82FB;
@@ -120,10 +121,10 @@
       --stext-DEP_fiatBanner: #FB36D0;
       --stext-DEP_magentaDark: #FC72FF1f;
       --stext-DEP_shadowBranded: #B60ACF;
-      --stext-accent1: #FF37C7;
-      --stext-accent1Hovered: #E500A5;
-      --stext-accent2: rgba(255, 55, 199, 0.08);
-      --stext-accent2Hovered: rgba(255, 55, 199, 0.12);
+      --stext-accent1: #feb239;
+      --stext-accent1Hovered: #ffa81f;
+      --stext-accent2: #361A37;
+      --stext-accent2Hovered: #510D43;
       --stext-accent2Solid: #261621;
       --stext-accent3: #FFFFFF;
       --stext-accent3Hovered: #F5F5F5;
@@ -162,10 +163,11 @@
       --stext-chain_80001: #8247E5;
       --stext-chain_81457: #FCFC03;
       --stext-chain_8453: #0052FF;
+      --stext-chain_999: #97FCE4;
       --stext-color: #FFFFFF;
-      --stext-colorFocus: #FF37C7;
-      --stext-colorHover: #FF37C7;
-      --stext-colorPress: #FF37C7;
+      --stext-colorFocus: #feb239;
+      --stext-colorHover: #feb239;
+      --stext-colorPress: #feb239;
       --stext-neutral1: #FFFFFF;
       --stext-neutral1Contrast: #131313;
       --stext-neutral1Hovered: rgba(255, 255, 255, 0.85);

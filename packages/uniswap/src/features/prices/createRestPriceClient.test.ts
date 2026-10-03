@@ -14,9 +14,15 @@ vi.mock('@connectrpc/connect', () => {
   }
 })
 
-vi.mock('@universe/api', () => {
+// Fork: createRestPriceClient now pulls in createUniswapFetchClient → constants/urls,
+// which imports far more than the two stubs below from @universe/api — spread the
+// actual module and override only what the price client reads.
+vi.mock('@universe/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@universe/api')>()
   return {
+    ...actual,
     getEntryGatewayUrl: vi.fn(() => '/entry-gateway'),
+    getRbCloudflareApiBaseUrl: vi.fn(() => 'https://interface.gateway.rigoblock.com'),
     getTransport: vi.fn(() => ({})),
   }
 })

@@ -1,3 +1,4 @@
+import { UNISWAP_WEB_HOSTNAME } from 'uniswap/src/constants/urls'
 import { DappVerificationStatus } from 'wallet/src/features/dappRequests/types'
 import {
   applyFirstPartyOverride,
@@ -114,14 +115,15 @@ describe('mergeVerificationStatuses', () => {
 })
 
 describe('isFirstPartyDapp', () => {
-  it('returns true for app.uniswap.org', () => {
-    expect(isFirstPartyDapp('https://app.uniswap.org')).toBe(true)
-    expect(isFirstPartyDapp('https://app.uniswap.org/swap?foo=bar')).toBe(true)
+  // Fork: first-party tracks UNISWAP_WEB_HOSTNAME, which is app.rigoblock.com in this fork.
+  it('returns true for the app hostname', () => {
+    expect(isFirstPartyDapp(`https://${UNISWAP_WEB_HOSTNAME}`)).toBe(true)
+    expect(isFirstPartyDapp(`https://${UNISWAP_WEB_HOSTNAME}/swap?foo=bar`)).toBe(true)
   })
 
   it('returns false for non-first-party hostnames', () => {
     expect(isFirstPartyDapp('https://uniswap.org')).toBe(false)
-    expect(isFirstPartyDapp('https://evil.app.uniswap.org.attacker.com')).toBe(false)
+    expect(isFirstPartyDapp(`https://evil.${UNISWAP_WEB_HOSTNAME}.attacker.com`)).toBe(false)
     expect(isFirstPartyDapp('https://example.com')).toBe(false)
   })
 
@@ -132,7 +134,7 @@ describe('isFirstPartyDapp', () => {
 })
 
 describe('applyFirstPartyOverride', () => {
-  const firstPartyUrl = 'https://app.uniswap.org'
+  const firstPartyUrl = `https://${UNISWAP_WEB_HOSTNAME}`
   const thirdPartyUrl = 'https://example.com'
 
   it('upgrades Unverified to Verified for first-party URL', () => {

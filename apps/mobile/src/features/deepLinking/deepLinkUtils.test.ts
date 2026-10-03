@@ -10,7 +10,9 @@ vi.mock('utilities/src/logger/logger', () => ({
 describe('getDeepLinkAction', () => {
   it.each`
     url                                                                                                  | expected
-    ${'https://app.uniswap.org/app?screen=transaction&fiatOnRamp=true&userAddress=0x123'}                | ${DeepLinkAction.UniswapWebLink}
+    // Fork: UNISWAP_WEB_HOSTNAME is app.rigoblock.com, so app.uniswap.org is an external link.
+    ${'https://app.uniswap.org/app?screen=transaction&fiatOnRamp=true&userAddress=0x123'}                | ${DeepLinkAction.UniswapExternalBrowserLink}
+    ${'https://app.rigoblock.com/app?screen=transaction&fiatOnRamp=true&userAddress=0x123'}              | ${DeepLinkAction.UniswapWebLink}
     ${'uniswap://wc?uri=wc:123@2?relay-protocol=irn&symKey=51e'}                                         | ${DeepLinkAction.WalletConnectAsParam}
     ${'uniswap://wc:123@2?relay-protocol=irn&symKey=51e'}                                                | ${DeepLinkAction.UniswapWalletConnect}
     ${'uniswap://widget/#/tokens/ethereum/0x...'}                                                        | ${DeepLinkAction.UniswapWidget}

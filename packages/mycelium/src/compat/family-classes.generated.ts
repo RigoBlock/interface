@@ -72,6 +72,7 @@ export const ENCODED_COMPAT_FAMILY_CLASSES: readonly string[] = [
   '⟦color¦var(--stext-chain_80001)⟧',
   '⟦color¦var(--stext-chain_81457)⟧',
   '⟦color¦var(--stext-chain_8453)⟧',
+  '⟦color¦var(--stext-chain_999)⟧',
   '⟦color¦var(--stext-color)⟧',
   '⟦color¦var(--stext-colorFocus)⟧',
   '⟦color¦var(--stext-colorHover)⟧',

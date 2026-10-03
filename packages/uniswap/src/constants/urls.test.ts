@@ -35,8 +35,10 @@ describe('getUniswapServiceUrls — beta API target', () => {
 
     const urls = getUniswapServiceUrls({})
 
-    expect(urls.embeddedWalletHostname).toBe('app.corn-staging.com')
-    expect(urls.liquidityServiceUrl).toContain('backend-staging')
+    // Fork: the wallet is served from the app hostname (app.rigoblock.com); only the
+    // entry gateway keeps a beta/staging target.
+    expect(urls.embeddedWalletHostname).toBe('app.rigoblock.com')
+    expect(urls.liquidityServiceUrl).toBe('https://interface.gateway.rigoblock.com/v2/liquidity')
     expect(urls.privyEmbeddedWalletUrl).toContain('backend-staging')
   })
 
@@ -46,7 +48,8 @@ describe('getUniswapServiceUrls — beta API target', () => {
     const urls = getUniswapServiceUrls({ isBetaUsingProdApi: true })
 
     expect(urls.embeddedWalletHostname).toBe(UNISWAP_WEB_HOSTNAME)
-    expect(urls.liquidityServiceUrl).toContain('backend-prod')
+    // Fork: the RigoBlock gateway is env-independent; only the entry gateway targets prod.
+    expect(urls.liquidityServiceUrl).toBe('https://interface.gateway.rigoblock.com/v2/liquidity')
     expect(urls.privyEmbeddedWalletUrl).toContain('backend-prod')
   })
 
@@ -55,8 +58,8 @@ describe('getUniswapServiceUrls — beta API target', () => {
 
     const urls = getUniswapServiceUrls({ isBetaUsingProdApi: false })
 
-    expect(urls.embeddedWalletHostname).toBe('app.corn-staging.com')
-    expect(urls.liquidityServiceUrl).toContain('backend-staging')
+    expect(urls.embeddedWalletHostname).toBe('app.rigoblock.com')
+    expect(urls.liquidityServiceUrl).toBe('https://interface.gateway.rigoblock.com/v2/liquidity')
   })
 
   it('ignores isBetaUsingProdApi outside a beta build (dev stays on staging/dev hosts)', () => {
@@ -65,8 +68,10 @@ describe('getUniswapServiceUrls — beta API target', () => {
     // isBetaUsingProdApi only gates beta; dev routing must be unaffected.
     const urls = getUniswapServiceUrls({ isBetaUsingProdApi: true })
 
-    expect(urls.embeddedWalletHostname).toBe('dev.ew.unihq.org')
-    expect(urls.liquidityServiceUrl).toContain('backend-staging')
+    // Fork: dev/e2e builds use the staging embedded-wallet host.
+    expect(urls.embeddedWalletHostname).toBe('staging.ew.unihq.org')
+    expect(urls.liquidityServiceUrl).toBe('https://interface.gateway.rigoblock.com/v2/liquidity')
+    expect(urls.privyEmbeddedWalletUrl).toContain('backend-dev')
   })
 })
 

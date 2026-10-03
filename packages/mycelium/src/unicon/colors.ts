@@ -5,7 +5,8 @@
 
 export const UNICON_COLORS = {
   light: [
-    '#F50DB4', // 0 - pink
+    // Fork branding: slot 0 tracks ui/src/components/Unicon/Colors.ts (#F5A40D amber, was pink upstream).
+    '#F5A40D', // 0 - amber
     '#FFBF17', // 1 - yellow
     '#FF8934', // 2 - orange
     '#85754A', // 3 - brown
@@ -17,7 +18,8 @@ export const UNICON_COLORS = {
     '#4300B0', // 9 - purple
   ],
   dark: [
-    '#FC74FE', // 0 - pink
+    // Fork branding: slot 0 tracks ui/src/components/Unicon/Colors.ts (#FED074 amber, was pink upstream).
+    '#FED074', // 0 - amber
     '#FFF612', // 1 - yellow
     '#FF4D00', // 2 - orange
     '#996F01', // 3 - brown

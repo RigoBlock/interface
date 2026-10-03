@@ -36,7 +36,14 @@ describe(fromGraphQLChain, () => {
 
   it('handles supported chain', () => {
     expect(fromGraphQLChain(GraphQLApi.Chain.Arbitrum)).toEqual(UniverseChainId.ArbitrumOne)
-    expect(fromGraphQLChain(GraphQLApi.Chain.Megaeth)).toEqual(UniverseChainId.MegaETH)
+    expect(fromGraphQLChain(GraphQLApi.Chain.Base)).toEqual(UniverseChainId.Base)
+  })
+
+  // Fork: chains outside the RigoBlock set (e.g. MegaETH) are commented out of
+  // fromGraphQLChain and must map to null.
+  it('handles chains outside the fork set', () => {
+    expect(fromGraphQLChain(GraphQLApi.Chain.Megaeth)).toEqual(null)
+    expect(fromGraphQLChain(GraphQLApi.Chain.Solana)).toEqual(null)
   })
 
   it('handles unsupported chain', () => {
@@ -124,55 +131,26 @@ describe('getEnabledChains', () => {
     expect(
       getEnabledChains({ appId: AppId.Web, isTestnetModeEnabled: false, featureFlaggedChainIds: ALL_CHAIN_IDS }),
     ).toEqual({
+      // Fork: allowedChains in utils.ts restricts the enabled set to the
+      // RigoBlock chain set (incl. HyperEVM, excl. Solana and the long tail).
       chains: [
         UniverseChainId.Mainnet,
         UniverseChainId.Unichain,
-        UniverseChainId.Monad,
-        UniverseChainId.Solana,
         UniverseChainId.Polygon,
         UniverseChainId.ArbitrumOne,
         UniverseChainId.Optimism,
         UniverseChainId.Base,
         UniverseChainId.Bnb,
-        UniverseChainId.Blast,
-        UniverseChainId.Avalanche,
-        UniverseChainId.Celo,
-        UniverseChainId.WorldChain,
-        UniverseChainId.Linea,
-        UniverseChainId.MegaETH,
-        UniverseChainId.Robinhood,
-        UniverseChainId.Arc,
-        UniverseChainId.Ink,
-        UniverseChainId.Soneium,
-        UniverseChainId.Tempo,
-        UniverseChainId.XLayer,
-        UniverseChainId.Zora,
-        UniverseChainId.Zksync,
+        UniverseChainId.HyperEvm,
       ],
       gqlChains: [
         GraphQLApi.Chain.Ethereum,
         GraphQLApi.Chain.Unichain,
-        GraphQLApi.Chain.Monad,
-        GraphQLApi.Chain.Solana,
         GraphQLApi.Chain.Polygon,
         GraphQLApi.Chain.Arbitrum,
         GraphQLApi.Chain.Optimism,
         GraphQLApi.Chain.Base,
         GraphQLApi.Chain.Bnb,
-        GraphQLApi.Chain.Blast,
-        GraphQLApi.Chain.Avalanche,
-        GraphQLApi.Chain.Celo,
-        GraphQLApi.Chain.Worldchain,
-        GraphQLApi.Chain.Linea,
-        GraphQLApi.Chain.Megaeth,
-        GraphQLApi.Chain.Robinhood,
-        GraphQLApi.Chain.Arc,
-        GraphQLApi.Chain.Ink,
-        GraphQLApi.Chain.Soneium,
-        GraphQLApi.Chain.Tempo,
-        GraphQLApi.Chain.Xlayer,
-        GraphQLApi.Chain.Zora,
-        GraphQLApi.Chain.Zksync,
       ],
       defaultChainId: UniverseChainId.Mainnet,
       isTestnetModeEnabled: false,
@@ -202,8 +180,9 @@ describe('getEnabledChains', () => {
         featureFlaggedChainIds: ALL_CHAIN_IDS,
       }),
     ).toEqual({
-      chains: [UniverseChainId.Sepolia, UniverseChainId.UnichainSepolia],
-      gqlChains: [GraphQLApi.Chain.EthereumSepolia, GraphQLApi.Chain.AstrochainSepolia],
+      // Fork: only Sepolia is in the allowedChains set (Unichain Sepolia is not).
+      chains: [UniverseChainId.Sepolia],
+      gqlChains: [GraphQLApi.Chain.EthereumSepolia],
       defaultChainId: UniverseChainId.Sepolia,
       isTestnetModeEnabled: true,
     })
@@ -224,19 +203,13 @@ describe('getEnabledChains', () => {
         ],
       }),
     ).toEqual({
-      chains: [
-        UniverseChainId.Mainnet,
-        UniverseChainId.Unichain,
-        UniverseChainId.Base,
-        UniverseChainId.Sepolia,
-        UniverseChainId.UnichainSepolia,
-      ],
+      // Fork: Unichain Sepolia is outside the allowedChains set and drops out.
+      chains: [UniverseChainId.Mainnet, UniverseChainId.Unichain, UniverseChainId.Base, UniverseChainId.Sepolia],
       gqlChains: [
         GraphQLApi.Chain.Ethereum,
         GraphQLApi.Chain.Unichain,
         GraphQLApi.Chain.Base,
         GraphQLApi.Chain.EthereumSepolia,
-        GraphQLApi.Chain.AstrochainSepolia,
       ],
       defaultChainId: UniverseChainId.Mainnet,
       isTestnetModeEnabled: false,

@@ -13,6 +13,19 @@ vi.mock('uniswap/src/features/language/navigatorLocale', () => ({
   getLocale: vi.fn(),
 }))
 
+// Fork: WEB_SUPPORTED_LANGUAGES is trimmed to English-only in this fork, but
+// getWalletDeviceLanguage serves wallet platforms (mobile/extension), so pin
+// isWebApp=false to exercise WALLET_SUPPORTED_LANGUAGES (fork-intact).
+vi.mock('@universe/environment', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@universe/environment')>()
+  return {
+    ...actual,
+    get isWebApp(): boolean {
+      return false
+    },
+  }
+})
+
 // Import the functions under test after mocks are set up
 // We need to use dynamic import to ensure mocks are applied
 const { getWalletDeviceLanguage, getWalletDeviceLocale } = await import('uniswap/src/i18n/utils')

@@ -43,6 +43,9 @@ function makeParams(sponsored: boolean): GetSwapInstructionsParams {
     },
     transactionSettings: {},
     approvalAction: ApprovalAction.None,
+    // Fork: derivedSwapInfo is required by the service (RigoBlock smart-pool
+    // approval filtering reads smartPoolAddress); a non-pool swap has none.
+    derivedSwapInfo: { smartPoolAddress: undefined },
   } as unknown as GetSwapInstructionsParams
 }
 

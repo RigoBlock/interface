@@ -98,8 +98,10 @@ describe(getTradingApiSwapFee, () => {
       ...CLASSIC_QUOTE_RESPONSE,
     }
 
+    // Fork: the RigoBlock branch returns the swapper as the fee recipient
+    // (getTradingApiSwapFee.ts: `recipient: swapper`), not ulFee.recipient.
     expect(getTradingApiSwapFee(quote)).toEqual({
-      recipient: PORTION_RECIPIENT_AGGREGATED_OUTPUTS,
+      recipient: '0xAAAA44272dc658575Ba38f43C438447dDED45358',
       percent: new Percent(PORTION_BIPS_AGGREGATED_OUTPUTS, '10000'),
       amount: PORTION_AMOUNT_AGGREGATED_OUTPUTS,
       feeField: CurrencyField.OUTPUT,
@@ -117,8 +119,9 @@ describe(getTradingApiSwapFee, () => {
       },
     }
 
+    // Fork: recipient is the swapper address, not ulFee.recipient (see above).
     expect(getTradingApiSwapFee(quote)).toEqual({
-      recipient: PORTION_RECIPIENT_AGGREGATED_OUTPUTS,
+      recipient: '0xAAAA44272dc658575Ba38f43C438447dDED45358',
       percent: new Percent(PORTION_BIPS_AGGREGATED_OUTPUTS, '10000'),
       amount: PORTION_AMOUNT_AGGREGATED_OUTPUTS,
       feeField: CurrencyField.OUTPUT,
@@ -147,8 +150,9 @@ describe(getTradingApiSwapFee, () => {
       },
     }
 
+    // Fork: recipient is the swapper address, not ulFee.recipient (see above).
     expect(getTradingApiSwapFee(quote)).toEqual({
-      recipient: PORTION_RECIPIENT_AGGREGATED_OUTPUTS,
+      recipient: '0xAAAA44272dc658575Ba38f43C438447dDED45358',
       percent: new Percent(1250, 1_000_000),
       amount: PORTION_AMOUNT_AGGREGATED_OUTPUTS,
       feeField: CurrencyField.OUTPUT,

@@ -167,8 +167,11 @@ describe('native-safe compat safelist', () => {
       // native 1174 - 1 = 1173, excluded stays 9283.
       // Pools brand green adds four plain theme entries (text, outline, background, border)
       // to both artifacts, leaving the exclusion census unchanged.
-      web: 10460,
-      native: 1177,
+      // Fork: HyperEVM (chain_999) adds one plain theme entry (`--stext-chain_999`)
+      // to both artifacts, census unchanged: web 10460 + 1 = 10461,
+      // native 1177 + 1 = 1178, excluded stays 9283.
+      web: 10461,
+      native: 1178,
       excluded: 9283,
       // negated-theme is 0 since INFRA-3263 respelled the light pool from
       // `not-dark:` to `light:` — the rule stays as vocabulary armor. The old

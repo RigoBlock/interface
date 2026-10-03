@@ -186,6 +186,10 @@ export type {
 export { InputCompat as Input } from './input-compat/InputCompat'
 export { inputStyles } from './input-compat/props'
 export type { InputCompatProps as InputProps, InputCompatStyleProps as InputStyleProps } from './input-compat/props'
+// Exported so consumers can annotate `style` props without indexed-access
+// (`FlexProps['style']`), which is not portable in declaration emit when the
+// package resolves through node_modules (TS2883).
+export type { CompatStyleProp } from './compat/props'
 
 /**
  * Tamagui → Tailwind migration surface (INFRA-3228): the `ColorTokens` interop

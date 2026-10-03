@@ -69,13 +69,14 @@ describe('chain app support invariants', () => {
     expect(chains).not.toContain(UniverseChainId.Solana)
   })
 
-  it('getEnabledChains includes Solana on web when all rollout flags are enabled', () => {
+  // Fork: getEnabledChains' allowedChains set excludes Solana entirely — even on web.
+  it('getEnabledChains excludes Solana on web even when all rollout flags are enabled', () => {
     const { chains } = getEnabledChains({
       appId: AppId.Web,
       isTestnetModeEnabled: false,
       featureFlaggedChainIds: ALL_CHAIN_IDS,
     })
 
-    expect(chains).toContain(UniverseChainId.Solana)
+    expect(chains).not.toContain(UniverseChainId.Solana)
   })
 })

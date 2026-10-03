@@ -6057,7 +6057,7 @@ exports[`ReceiveScreen > renders without error 1`] = `
                 <span
                   class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-medium)] text-[14px] [line-height:16.1px] [font-weight:535] [color:var(--stext-neutral1)]"
                 >
-                  15
+                  8
                    
                   networks
                 </span>
@@ -12132,7 +12132,7 @@ exports[`ReceiveScreen > renders without error 1`] = `
               <span
                 class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-medium)] text-[14px] [line-height:16.1px] [font-weight:535] [color:var(--stext-neutral1)]"
               >
-                15
+                8
                  
                 networks
               </span>

@@ -101,10 +101,11 @@ describe(getFiatOnRampURL, () => {
   })
 })
 
+// Fork: web links point at the RigoBlock app hostname (UNISWAP_WEB_URL → app.rigoblock.com).
 describe(getEarnVaultUrl, () => {
   it('includes the source entry point in the web vault URL', () => {
     expect(getEarnVaultUrl(earnVault, EarnEntryPoint.PortfolioEarnSection)).toEqual(
-      'https://app.uniswap.org/explore/tokens/base/0x4200000000000000000000000000000000000006?modal=earn-vault&earnEntryPoint=portfolio_earn_section',
+      'https://app.rigoblock.com/explore/tokens/base/0x4200000000000000000000000000000000000006?modal=earn-vault&earnEntryPoint=portfolio_earn_section',
     )
   })
 })
@@ -143,7 +144,7 @@ describe(tdpChainSelectionFromFilter, () => {
 describe(getTokenUrl, () => {
   it('returns a chain-specific token URL by default', () => {
     expect(getTokenUrl(`${UniverseChainId.Base}-0x4200000000000000000000000000000000000006`)).toEqual(
-      'https://app.uniswap.org/explore/tokens/base/0x4200000000000000000000000000000000000006',
+      'https://app.rigoblock.com/explore/tokens/base/0x4200000000000000000000000000000000000006',
     )
   })
 
@@ -153,7 +154,7 @@ describe(getTokenUrl, () => {
         addMobileUTMTags: true,
       }),
     ).toEqual(
-      'https://app.uniswap.org/explore/tokens/base/0x4200000000000000000000000000000000000006?utm_medium=mobile&utm_source=share-tdp',
+      'https://app.rigoblock.com/explore/tokens/base/0x4200000000000000000000000000000000000006?utm_medium=mobile&utm_source=share-tdp',
     )
   })
 })

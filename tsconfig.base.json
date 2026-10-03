@@ -63,7 +63,6 @@
       "uniswap/*": ["./packages/uniswap/*"],
       "utilities/*": ["./packages/utilities/*"],
       "wallet/*": ["./packages/wallet/*"],
-      "@universe/mycelium/*": ["./packages/mycelium/*"],
       "@universe/experiments/*": ["./packages/experiments/*"],
       "@universe/embedded-wallet/*": ["./packages/embedded-wallet/*"],
       "@universe/test/*": ["./packages/test/*"]

@@ -1,6 +1,6 @@
 import { EventConsumer, EventMapBase } from '@react-navigation/core'
 import { isWebPlatform } from '@universe/environment'
-import { Flex, type FlexProps } from '@universe/mycelium'
+import { Flex, type CompatStyleProp } from '@universe/mycelium'
 import { ReactElement, useCallback, useEffect, useMemo, useState } from 'react'
 import { LayoutChangeEvent } from 'react-native'
 import Animated, {
@@ -55,7 +55,7 @@ const OnboardingAnimation = ({
   innerCircleSize,
   outerCircleSize,
 }: {
-  elementsStyle: FlexProps['style']
+  elementsStyle: CompatStyleProp
   innerCircleSize: number
   outerCircleSize: number
 }): JSX.Element => {
@@ -312,17 +312,20 @@ const RotateElement = ({
   )
 }
 
-export const LandingBackground = ({
+// Annotated as a function declaration so declaration emit can name the return
+// type without inferring through @universe/mycelium's internal prop types
+// (TS2883 once the tsconfig path mapping for @universe/mycelium was removed).
+export function LandingBackground({
   navigationEventConsumer,
   elementsStyle,
   innerCircleSize = DEFAULT_INNER_CIRCLE_SIZE,
   outerCircleSize = DEFAULT_OUTER_CIRCLE_SIZE,
 }: {
   navigationEventConsumer?: EventConsumer<EventMapBase>
-  elementsStyle?: FlexProps['style']
+  elementsStyle?: CompatStyleProp
   innerCircleSize?: number
   outerCircleSize?: number
-}): JSX.Element | null => {
+}): JSX.Element | null {
   const [blurred, setBlurred] = useState(false)
   const [hideAnimation, setHideAnimation] = useState(false)
 
