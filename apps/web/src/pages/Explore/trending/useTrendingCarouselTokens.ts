@@ -6,9 +6,9 @@ import {
   rankedTokenToCardItem,
   type RankedTokenCardItem,
 } from 'uniswap/src/data/apiClients/dataApiService/utils/rankedTokenCardItem'
-import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { findTrendingCategory } from 'uniswap/src/features/tokenCategories/findTrendingCategory'
 import type { TokenCategory } from 'uniswap/src/features/tokenCategories/types'
+import { useBackendSupportedChainIds } from '~/hooks/useBackendSupportedChainIds'
 
 export const TRENDING_CAROUSEL_TOKEN_COUNT = 12
 
@@ -20,7 +20,8 @@ export function useTrendingCarouselTokens(): {
   const { data: categories, isPending: categoriesPending } = useListCategoriesQuery()
   const trendingCategory = findTrendingCategory(categories)
   const trendingCategoryId = trendingCategory?.id
-  const { chains: chainIds } = useEnabledChains()
+  // Data API cannot serve HyperEvm (999) — requests carrying it 400 with "unrecognized chains".
+  const chainIds = useBackendSupportedChainIds()
 
   // TODO(CONS-3522): swap to the non-paginated ListTokens query; the carousel never pages.
   const { multichainTokens, isLoading: tokensLoading } = useExploreListTokens({

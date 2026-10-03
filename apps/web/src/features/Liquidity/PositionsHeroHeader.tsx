@@ -1,13 +1,11 @@
 import { Button, type ButtonProps, Flex, type FlexCompatProps, Text } from '@universe/mycelium'
 import { Droplet } from '@universe/mycelium/icons/Droplet'
 import { Plus } from '@universe/mycelium/icons/Plus'
-import { useMedia, useSporeColors } from '@universe/mycelium/theme-hooks-compat'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import { heights } from '@universe/mycelium/tokens'
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { LaunchTokenModal } from '~/features/Liquidity/LaunchTokenModal'
 import { ADD_LIQUIDITY_PATH, CREATE_POOL_PATH } from '~/pages/AddLiquidity/poolLinkParams'
 import { MAX_CONTENT_WIDTH_PX } from '~/theme'
 import { createDottedBackgroundStyles } from '~/utils/createDottedBackgroundStyles'
@@ -27,8 +25,6 @@ const linkButtonProps: ButtonProps = {
 export function PositionsHeroHeader() {
   const { t } = useTranslation()
   const colors = useSporeColors()
-  const media = useMedia()
-  const [isLaunchTokenModalOpen, setIsLaunchTokenModalOpen] = useState(false)
 
   const { dottedBackgroundStyle } = createDottedBackgroundStyles({ dotColor: colors.neutral1.val, dotOpacity: 12 })
 
@@ -66,24 +62,9 @@ export function PositionsHeroHeader() {
                 {t('addLiquidity.createPool')}
               </Button>
             </Trace>
-            {!media.md && (
-              <Trace logPress element={ElementName.LaunchTokenButton}>
-                <Button
-                  variant="branded"
-                  size="medium"
-                  fill={false}
-                  emphasis="secondary"
-                  icon={<Plus />}
-                  onPress={() => setIsLaunchTokenModalOpen(true)}
-                >
-                  {t('toucan.createAuction.launchToken')}
-                </Button>
-              </Trace>
-            )}
           </Flex>
         </Flex>
       </Flex>
-      <LaunchTokenModal isOpen={isLaunchTokenModalOpen} onClose={() => setIsLaunchTokenModalOpen(false)} />
     </Flex>
   )
 }

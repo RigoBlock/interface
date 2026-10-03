@@ -2,7 +2,6 @@ import type { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/pool
 import type { Currency } from '@uniswap/sdk-core'
 import type { UniverseChainId } from '@universe/chains'
 import { useMemo } from 'react'
-import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import type { PoolTableSortState } from '~/data/pools/poolStats'
 import { OrderDirection } from '~/data/util'
 import { EXPLORE_API_PAGE_SIZE } from '~/features/Explore/state/constants'
@@ -11,6 +10,7 @@ import { toPoolsFilterRequestParams } from '~/features/Liquidity/PoolsFilter/toR
 import { poolSortFieldToOrderBy } from '~/features/Liquidity/utils/convertPoolToPoolStat'
 import { getPoolsListParams, resolvePoolsListChainId } from '~/features/Liquidity/utils/getPoolsListParams'
 import { useInfiniteLoadMore } from '~/hooks/useInfiniteLoadMore'
+import { useBackendSupportedChainIds } from '~/hooks/useBackendSupportedChainIds'
 import { useListPoolsAsPoolStats } from '~/pages/Explore/hooks/useListPoolsAsPoolStats'
 import type { PoolStat } from '~/types/explore'
 import type { PoolsFilterState } from '~/types/poolsFilter'
@@ -56,7 +56,8 @@ export function useV2ListPools({
   /** The one chain the list is filtered to; undefined for all networks. */
   chainId?: UniverseChainId
 } {
-  const enabledChains = useEnabledChains()
+  // Data API cannot serve HyperEvm (999) — requests carrying it 400 with "unrecognized chains".
+  const fallbackChainIds = useBackendSupportedChainIds()
 
   // The advanced filter (when present) supplies chain, protocol and TVL/APR stats filters.
   const filterParams = useMemo(() => (poolsFilter ? toPoolsFilterRequestParams(poolsFilter) : undefined), [poolsFilter])
@@ -75,7 +76,7 @@ export function useV2ListPools({
     () =>
       getPoolsListParams({
         chainId: effectiveChainId,
-        fallbackChainIds: enabledChains.chains,
+        fallbackChainIds,
         sort: { orderBy, ascending },
         protocol,
         filterParams,
@@ -84,7 +85,7 @@ export function useV2ListPools({
       }),
     [
       effectiveChainId,
-      enabledChains.chains,
+      fallbackChainIds,
       orderBy,
       ascending,
       protocol,

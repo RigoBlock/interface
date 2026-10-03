@@ -1,7 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { UniverseChainId } from '@universe/chains'
 import { useMemo } from 'react'
-import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { useFeatureFlaggedChainIds } from 'uniswap/src/features/chains/hooks/useFeatureFlaggedChainIds'
 import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
 import type { PricePoint } from '~/data/util'
@@ -14,6 +13,7 @@ import { processMultichainTokensForDisplay } from '~/features/Explore/state/list
 import { useExploreQueryLatencyTracking } from '~/features/Explore/state/useExploreQueryLatencyTracking'
 import { toSearchQueryParam } from '~/features/Explore/utils/toSearchQueryParam'
 import { useInfiniteLoadMore } from '~/hooks/useInfiniteLoadMore'
+import { useBackendSupportedChainIds } from '~/hooks/useBackendSupportedChainIds'
 
 /**
  * Hook that returns top tokens data for the Explore page. Adds explore-specific sparklines and latency tracking.
@@ -26,7 +26,8 @@ export function useListTokens(
   options?: UseListTokensOptions,
 ): UseListTokensResult {
   const effectiveOptions = useMemo(() => getEffectiveListTokensOptions(options), [options])
-  const { chains: enabledChainIds } = useEnabledChains()
+  // Data API cannot serve HyperEvm (999) — requests carrying it 400 with "unrecognized chains".
+  const enabledChainIds = useBackendSupportedChainIds()
   // Superset of enabledChainIds by construction: useEnabledChains derives its set FROM
   // useFeatureFlaggedChainIds (getEnabledChains drops chains outside it), and testnet chains are
   // never rollout-flag-gated, so every fetched chain passes the display filter in both testnet
