@@ -9,6 +9,7 @@ import {
 } from 'uniswap/src/data/apiClients/dataApiService/relatedTokens/relatedTokenMappers'
 import type { RankedTokenCardItem } from 'uniswap/src/data/apiClients/dataApiService/utils/rankedTokenCardItem'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
+import { isBackendSupportedChainId } from 'uniswap/src/features/chains/utils'
 import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
 import { ONE_MINUTE_MS } from 'utilities/src/time/time'
 
@@ -29,7 +30,10 @@ export function useRelatedTokensQuery({
   subject: RelatedTokensSubject
   enabled?: boolean
 }): { tokens: RankedTokenCardItem[]; isLoading: boolean; isError: boolean; refetch: () => void } {
-  const { chains: chainIds } = useEnabledChains()
+  // RigoBlock: the data API rejects the whole request when chainIds carries a backend-unsupported
+  // chain (HyperEvm/999 → 400 "unrecognized chains"), so filter before building the request.
+  const { chains } = useEnabledChains()
+  const chainIds = useMemo(() => chains.filter(isBackendSupportedChainId), [chains])
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: [ReactQueryCacheKey.DataApiService, 'listTokens', 'relatedTokens', categoryId, chainIds],

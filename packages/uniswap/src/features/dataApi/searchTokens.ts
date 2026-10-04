@@ -13,6 +13,7 @@ import { transformSearchToMultichain } from 'uniswap/src/data/apiClients/dataApi
 import { dataApiMultichainTokenToSearchResult } from 'uniswap/src/data/apiClients/dataApiService/utils/dataApiMultichainToken'
 import { useConnectionStatus } from 'uniswap/src/features/accounts/store/hooks'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
+import { isBackendSupportedChainId } from 'uniswap/src/features/chains/utils'
 import { MultichainSearchResult } from 'uniswap/src/features/dataApi/types'
 import { NUMBER_OF_RESULTS_LONG } from 'uniswap/src/features/search/SearchModal/constants'
 import { useEvent } from 'utilities/src/react/hooks'
@@ -35,13 +36,16 @@ function useSearchV1Tokens<T>({
   select: (data: SearchTokensResponse) => T
 }): UseQueryResult<T, ConnectError> {
   const { chains: enabledChainIds } = useEnabledChains()
+  // RigoBlock: the data API rejects the whole request when chainIds carries a backend-unsupported
+  // chain (HyperEvm/999 → 400 "unrecognized chains"), so filter before building the request.
+  const backendChainIds = useMemo(() => enabledChainIds.filter(isBackendSupportedChainId), [enabledChainIds])
 
   const isSvmConnected = useConnectionStatus(Platform.SVM).isConnected
 
   const variables = useMemo(
     () => ({
       searchQuery: searchQuery ?? undefined,
-      chainIds: chainFilter ? [chainFilter] : (chainIds ?? enabledChainIds),
+      chainIds: chainFilter ? [chainFilter] : (chainIds?.filter(isBackendSupportedChainId) ?? backendChainIds),
       searchType: SearchTypeV1.TOKEN,
       page: 1,
       size,
@@ -49,12 +53,12 @@ function useSearchV1Tokens<T>({
       multichain,
       useSubstreamData: true,
     }),
-    [searchQuery, chainFilter, chainIds, size, enabledChainIds, isSvmConnected, multichain],
+    [searchQuery, chainFilter, chainIds, size, backendChainIds, isSvmConnected, multichain],
   )
 
   return useSearchV1Query<T>({
     input: variables,
-    enabled: !skip,
+    enabled: !skip && (!chainFilter || isBackendSupportedChainId(chainFilter)),
     select,
   })
 }
@@ -80,15 +84,18 @@ function useSearchTokens({
   size?: number
 }): UseQueryResult<MultichainSearchResult[], ConnectError> {
   const { chains: enabledChainIds } = useEnabledChains()
+  // RigoBlock: the data API rejects the whole request when chainIds carries a backend-unsupported
+  // chain (HyperEvm/999 → 400 "unrecognized chains"), so filter before building the request.
+  const backendChainIds = useMemo(() => enabledChainIds.filter(isBackendSupportedChainId), [enabledChainIds])
 
   const variables = useMemo(
     () => ({
       searchQuery: searchQuery ?? undefined,
-      chainIds: chainFilter ? [chainFilter] : (chainIds ?? enabledChainIds),
+      chainIds: chainFilter ? [chainFilter] : (chainIds?.filter(isBackendSupportedChainId) ?? backendChainIds),
       types: [SearchType.TOKEN],
       maxResults: size,
     }),
-    [searchQuery, chainFilter, chainIds, size, enabledChainIds],
+    [searchQuery, chainFilter, chainIds, size, backendChainIds],
   )
 
   const select = useEvent((data: SearchResponse): MultichainSearchResult[] => {
@@ -107,7 +114,7 @@ function useSearchTokens({
 
   return useSearchQuery<MultichainSearchResult[]>({
     input: variables,
-    enabled: !skip,
+    enabled: !skip && (!chainFilter || isBackendSupportedChainId(chainFilter)),
     select,
   })
 }

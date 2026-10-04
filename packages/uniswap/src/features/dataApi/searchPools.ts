@@ -12,6 +12,7 @@ import {
   useSearchV1Query,
 } from 'uniswap/src/data/apiClients/dataApiService/search/searchV1'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
+import { isBackendSupportedChainId } from 'uniswap/src/features/chains/utils'
 import { PoolSearchResult } from 'uniswap/src/features/dataApi/types'
 import { NUMBER_OF_RESULTS_LONG } from 'uniswap/src/features/search/SearchModal/constants'
 import { useEvent } from 'utilities/src/react/hooks'
@@ -30,7 +31,10 @@ export function useSearchPools({
   const { chains: enabledChainIds } = useEnabledChains({ platform: Platform.EVM })
   const isSearchV2Enabled = useIsV2EndpointsSearchEnabled()
 
-  const chainIds = useMemo(() => (chainFilter ? [chainFilter] : enabledChainIds), [chainFilter, enabledChainIds])
+  // RigoBlock: the data API rejects the whole request when chainIds carries a backend-unsupported
+  // chain (HyperEvm/999 → 400 "unrecognized chains"), so filter before building the request.
+  const backendChainIds = useMemo(() => enabledChainIds.filter(isBackendSupportedChainId), [enabledChainIds])
+  const chainIds = useMemo(() => (chainFilter ? [chainFilter] : backendChainIds), [chainFilter, backendChainIds])
 
   const variablesV1 = useMemo(
     () => ({
@@ -52,7 +56,7 @@ export function useSearchPools({
 
   const v1Result = useSearchV1Query<PoolSearchResult[]>({
     input: variablesV1,
-    enabled: !skip && !isSearchV2Enabled,
+    enabled: !skip && !isSearchV2Enabled && (!chainFilter || isBackendSupportedChainId(chainFilter)),
     select: poolSelectV1,
   })
 
@@ -72,7 +76,7 @@ export function useSearchPools({
 
   const v2Result = useSearchQuery<PoolSearchResult[]>({
     input: variables,
-    enabled: !skip && isSearchV2Enabled,
+    enabled: !skip && isSearchV2Enabled && (!chainFilter || isBackendSupportedChainId(chainFilter)),
     select: poolSelect,
   })
 

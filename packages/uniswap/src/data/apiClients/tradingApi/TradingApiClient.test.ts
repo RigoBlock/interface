@@ -29,7 +29,7 @@ import { getIsPermissionedTokenFromCache } from 'uniswap/src/data/apiClients/tra
 import {
   initializeSmartPoolUniversalRouterVersion,
   resetSmartPoolUniversalRouterVersionForTests,
-  UR_2_1_2_APPLICATION_ADAPTERS,
+  UR_2_0_0_APPLICATION_ADAPTERS,
 } from 'uniswap/src/data/apiClients/tradingApi/smartPoolUniversalRouterVersion'
 import {
   checkWalletDelegation,
@@ -805,10 +805,12 @@ describe('getFeatureFlaggedHeaders smart pool Universal Router version selection
   >
   const mainnetChainId = toTradingApiSupportedChainId(UniverseChainId.Mainnet)
   const smartPool = { address: '0xEfa4bDf566aE50537A507863612638680420645C', chainId: UniverseChainId.Mainnet }
-  const ur212Adapter = UR_2_1_2_APPLICATION_ADAPTERS[UniverseChainId.Mainnet] as string
-  const oldAdapter = '0x27213E28D7fDA5c57Fe9e5dd923818DBCcf71c47'
+  // The adapter governance currently maps the UR selectors to (pool decodes UR 2.0 calldata).
+  const ur200Adapter = UR_2_0_0_APPLICATION_ADAPTERS[UniverseChainId.Mainnet] as string
+  // Any other non-zero address simulates a future governance upgrade to a 2.1.2-capable adapter.
+  const upgradedAdapter = '0x8E0F4Cb68e276e31cF48B33EddD40325f5a736D2'
 
-  function initSmartPoolContext({ adapter }: { adapter: string | undefined }): void {
+  function initSmartPoolContext({ adapter }: { adapter: string }): void {
     initializeSmartPoolUniversalRouterVersion({
       getActiveSmartPool: () => smartPool,
       getApplicationAdapter: () => Promise.resolve(adapter),
@@ -827,26 +829,37 @@ describe('getFeatureFlaggedHeaders smart pool Universal Router version selection
     resetSmartPoolUniversalRouterVersionForTests()
   })
 
-  it('uses 2.1.2 when the pool resolves the governance-mapped UR 2.1.2 adapter', async () => {
-    initSmartPoolContext({ adapter: ur212Adapter })
-
-    const headers = await getFeatureFlaggedHeaders(TRADING_API_PATHS.quote, { chainId: mainnetChainId })
-
-    expect(headers).toHaveProperty(TradingApiHeaders.UniversalRouterVersion, TradingApi.UniversalRouterVersion._2_1_2)
-  })
-
-  it('keeps 2.0 when the pool still resolves the old adapter', async () => {
-    initSmartPoolContext({ adapter: oldAdapter })
+  it('keeps 2.0 while the governance mapping still points at the UR-2.0.0 adapter', async () => {
+    initSmartPoolContext({ adapter: ur200Adapter })
 
     const headers = await getFeatureFlaggedHeaders(TRADING_API_PATHS.quote, { chainId: mainnetChainId })
 
     expect(headers).toHaveProperty(TradingApiHeaders.UniversalRouterVersion, TradingApi.UniversalRouterVersion._2_0)
   })
 
+  it('uses 2.1.2 when governance has re-mapped the selector to a new adapter', async () => {
+    initSmartPoolContext({ adapter: upgradedAdapter })
+
+    const headers = await getFeatureFlaggedHeaders(TRADING_API_PATHS.quote, { chainId: mainnetChainId })
+
+    expect(headers).toHaveProperty(TradingApiHeaders.UniversalRouterVersion, TradingApi.UniversalRouterVersion._2_1_2)
+  })
+
+  it('fails the request instead of guessing a version when the mapping returns no adapter', async () => {
+    initializeSmartPoolUniversalRouterVersion({
+      getActiveSmartPool: () => smartPool,
+      getApplicationAdapter: () => Promise.resolve('0x0000000000000000000000000000000000000000'),
+    })
+
+    await expect(getFeatureFlaggedHeaders(TRADING_API_PATHS.quote, { chainId: mainnetChainId })).rejects.toThrow(
+      /returned no adapter/,
+    )
+  })
+
   it('keeps 2.0 when the active smart pool is on a different chain than the request', async () => {
     initializeSmartPoolUniversalRouterVersion({
       getActiveSmartPool: () => ({ ...smartPool, chainId: UniverseChainId.ArbitrumOne }),
-      getApplicationAdapter: () => Promise.resolve(ur212Adapter),
+      getApplicationAdapter: () => Promise.resolve(upgradedAdapter),
     })
 
     const headers = await getFeatureFlaggedHeaders(TRADING_API_PATHS.quote, { chainId: mainnetChainId })
@@ -855,7 +868,7 @@ describe('getFeatureFlaggedHeaders smart pool Universal Router version selection
   })
 
   it('still forces 2.2.0 for a permissioned token when a UR 2.1.2 smart pool is active', async () => {
-    initSmartPoolContext({ adapter: ur212Adapter })
+    initSmartPoolContext({ adapter: upgradedAdapter })
 
     const headers = await getFeatureFlaggedHeaders(TRADING_API_PATHS.swap5792, {
       chainId: mainnetChainId,

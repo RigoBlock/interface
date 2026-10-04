@@ -1,14 +1,17 @@
 import { TradingApi } from '@universe/api'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   getSmartPoolUniversalRouterVersion,
   initializeSmartPoolUniversalRouterVersion,
   resetSmartPoolUniversalRouterVersionForTests,
-  UR_2_1_2_APPLICATION_ADAPTERS,
+  UR_2_0_0_APPLICATION_ADAPTERS,
 } from 'uniswap/src/data/apiClients/tradingApi/smartPoolUniversalRouterVersion'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const MAINNET_ADAPTER = UR_2_1_2_APPLICATION_ADAPTERS[1] as string
-const OLD_ADAPTER = '0x27213E28D7fDA5c57Fe9e5dd923818DBCcf71c47'
+// The adapter governance CURRENTLY maps the UR selectors to (pool decodes UR 2.0 calldata).
+const MAINNET_UR200_ADAPTER = UR_2_0_0_APPLICATION_ADAPTERS[1] as string
+// Any other non-zero address simulates a future governance upgrade to a 2.1.2-capable adapter.
+const UPGRADED_ADAPTER = '0x8E0F4Cb68e276e31cF48B33EddD40325f5a736D2'
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 const POOL = { address: '0xEfa4bDf566aE50537A507863612638680420645C', chainId: 1 }
 const OTHER_CHAIN_POOL = { address: '0x27213E28D7fDA5c57Fe9e5dd923818DBCcf71c47', chainId: 137 }
@@ -38,7 +41,7 @@ describe('getSmartPoolUniversalRouterVersion', () => {
   })
 
   it('returns undefined when the request has no chainId', async () => {
-    initWith({ adapter: MAINNET_ADAPTER })
+    initWith({ adapter: UPGRADED_ADAPTER })
     await expect(getSmartPoolUniversalRouterVersion(undefined)).resolves.toBeUndefined()
   })
 
@@ -60,46 +63,51 @@ describe('getSmartPoolUniversalRouterVersion', () => {
     expect(getApplicationAdapter).not.toHaveBeenCalled()
   })
 
-  it('resolves UR 2.1.2 when the governance adapter matches', async () => {
-    initWith({ adapter: MAINNET_ADAPTER })
-    await expect(getSmartPoolUniversalRouterVersion(1)).resolves.toBe(TradingApi.UniversalRouterVersion._2_1_2)
-  })
-
-  it('matches the governance adapter case-insensitively', async () => {
-    initWith({ adapter: '0x' + MAINNET_ADAPTER.slice(2).toUpperCase() })
-    await expect(getSmartPoolUniversalRouterVersion(1)).resolves.toBe(TradingApi.UniversalRouterVersion._2_1_2)
-  })
-
-  it('returns undefined when the pool still resolves the old adapter', async () => {
-    initWith({ adapter: OLD_ADAPTER })
+  it('keeps UR 2.0 while the mapping still points at the UR-2.0.0 adapter (current onchain state)', async () => {
+    initWith({ adapter: MAINNET_UR200_ADAPTER })
     await expect(getSmartPoolUniversalRouterVersion(1)).resolves.toBeUndefined()
   })
 
-  it('returns undefined when the pool resolves no adapter', async () => {
+  it('matches the UR-2.0.0 adapter case-insensitively', async () => {
+    initWith({ adapter: '0x' + MAINNET_UR200_ADAPTER.slice(2).toUpperCase() })
+    await expect(getSmartPoolUniversalRouterVersion(1)).resolves.toBeUndefined()
+  })
+
+  it('resolves UR 2.1.2 when governance has re-mapped the selector to a new adapter', async () => {
+    initWith({ adapter: UPGRADED_ADAPTER })
+    await expect(getSmartPoolUniversalRouterVersion(1)).resolves.toBe(TradingApi.UniversalRouterVersion._2_1_2)
+  })
+
+  it('throws when the mapping returns the zero address instead of failing soft', async () => {
+    initWith({ adapter: ZERO_ADDRESS })
+    await expect(getSmartPoolUniversalRouterVersion(1)).rejects.toThrow(/returned no adapter/)
+  })
+
+  it('throws when the adapter read returns nothing', async () => {
     initWith({ adapter: undefined })
-    await expect(getSmartPoolUniversalRouterVersion(1)).resolves.toBeUndefined()
+    await expect(getSmartPoolUniversalRouterVersion(1)).rejects.toThrow(/returned no adapter/)
   })
 
-  it('returns undefined on a chain with no governance-mapped adapter even when an adapter is returned', async () => {
-    expect(UR_2_1_2_APPLICATION_ADAPTERS[999]).toBeUndefined()
-    const getApplicationAdapter = initWith({ pool: { ...POOL, chainId: 999 }, adapter: MAINNET_ADAPTER })
-
-    await expect(getSmartPoolUniversalRouterVersion(999)).resolves.toBeUndefined()
-    expect(getApplicationAdapter).toHaveBeenCalled()
-  })
-
-  it('returns undefined when the adapter read fails', async () => {
+  it('propagates RPC errors instead of falling back to a version guess', async () => {
     const getApplicationAdapter = vi.fn().mockRejectedValue(new Error('rpc down'))
     initializeSmartPoolUniversalRouterVersion({
       getActiveSmartPool: () => POOL,
       getApplicationAdapter,
     })
 
-    await expect(getSmartPoolUniversalRouterVersion(1)).resolves.toBeUndefined()
+    await expect(getSmartPoolUniversalRouterVersion(1)).rejects.toThrow('rpc down')
   })
 
-  it('caches a positive resolution for 60s without re-reading the chain', async () => {
-    const getApplicationAdapter = initWith({ adapter: MAINNET_ADAPTER })
+  it('returns undefined on a chain with no known UR-2.0.0 adapter even when an adapter is mapped', async () => {
+    expect(UR_2_0_0_APPLICATION_ADAPTERS[999]).toBeUndefined()
+    const getApplicationAdapter = initWith({ pool: { ...POOL, chainId: 999 }, adapter: UPGRADED_ADAPTER })
+
+    await expect(getSmartPoolUniversalRouterVersion(999)).resolves.toBeUndefined()
+    expect(getApplicationAdapter).toHaveBeenCalled()
+  })
+
+  it('caches a positive (upgraded) resolution for 60s without re-reading the chain', async () => {
+    const getApplicationAdapter = initWith({ adapter: UPGRADED_ADAPTER })
 
     await expect(getSmartPoolUniversalRouterVersion(1)).resolves.toBe(TradingApi.UniversalRouterVersion._2_1_2)
     vi.advanceTimersByTime(30_000)
@@ -111,8 +119,8 @@ describe('getSmartPoolUniversalRouterVersion', () => {
     expect(getApplicationAdapter).toHaveBeenCalledTimes(2)
   })
 
-  it('caches a negative resolution for 15s before retrying', async () => {
-    const getApplicationAdapter = initWith({ adapter: OLD_ADAPTER })
+  it('caches a negative (still-2.0) resolution for 15s before retrying', async () => {
+    const getApplicationAdapter = initWith({ adapter: MAINNET_UR200_ADAPTER })
 
     await expect(getSmartPoolUniversalRouterVersion(1)).resolves.toBeUndefined()
     vi.advanceTimersByTime(10_000)
@@ -120,6 +128,21 @@ describe('getSmartPoolUniversalRouterVersion', () => {
     expect(getApplicationAdapter).toHaveBeenCalledTimes(1)
 
     vi.advanceTimersByTime(6_000)
+    await expect(getSmartPoolUniversalRouterVersion(1)).resolves.toBeUndefined()
+    expect(getApplicationAdapter).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not cache a failed read, so the next request retries it', async () => {
+    const getApplicationAdapter = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('rpc down'))
+      .mockResolvedValue(MAINNET_UR200_ADAPTER)
+    initializeSmartPoolUniversalRouterVersion({
+      getActiveSmartPool: () => POOL,
+      getApplicationAdapter,
+    })
+
+    await expect(getSmartPoolUniversalRouterVersion(1)).rejects.toThrow('rpc down')
     await expect(getSmartPoolUniversalRouterVersion(1)).resolves.toBeUndefined()
     expect(getApplicationAdapter).toHaveBeenCalledTimes(2)
   })

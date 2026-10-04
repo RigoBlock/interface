@@ -8,6 +8,7 @@ import { OnchainItemListOptionType, type TokenOption } from 'uniswap/src/compone
 import { getListTokensQueryOptions } from 'uniswap/src/data/apiClients/dataApiService/tokens/queries'
 import { dataApiMultichainTokenToSearchResult } from 'uniswap/src/data/apiClients/dataApiService/utils/dataApiMultichainToken'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
+import { isBackendSupportedChainId } from 'uniswap/src/features/chains/utils'
 import type { CurrencyInfo, MultichainSearchResult, PortfolioBalance } from 'uniswap/src/features/dataApi/types'
 import { normalizeCurrencyIdForMapLookup } from 'uniswap/src/utils/currencyId'
 import type { DerivedQueryResult } from 'utilities/src/reactQuery/types'
@@ -39,9 +40,12 @@ export function useTop1DVolumeTokens({
   skip = false,
 }: ChainScope & { pageSize?: number; skip?: boolean }): DerivedQueryResult<MultichainSearchResult[]> {
   const { chains: enabledChainIds } = useEnabledChains()
+  // RigoBlock: the data API rejects the whole request when chainIds carries a backend-unsupported
+  // chain (HyperEvm/999 → 400 "unrecognized chains"), so filter before building the request.
+  const backendChainIds = useMemo(() => enabledChainIds.filter(isBackendSupportedChainId), [enabledChainIds])
   const queryChainIds = useMemo(
-    () => (chainFilter ? [chainFilter] : (chainIds ?? enabledChainIds)),
-    [chainFilter, chainIds, enabledChainIds],
+    () => (chainFilter ? [chainFilter] : (chainIds?.filter(isBackendSupportedChainId) ?? backendChainIds)),
+    [chainFilter, chainIds, backendChainIds],
   )
 
   const { data, error, isLoading, isFetching, refetch } = useQuery(
@@ -54,7 +58,7 @@ export function useTop1DVolumeTokens({
         // Required by BE — UNSPECIFIED is rejected, mirrors apps/web's getListTokens.ts.
         sparklineDuration: HistoryDuration.DAY,
       },
-      enabled: !skip,
+      enabled: !skip && (!chainFilter || isBackendSupportedChainId(chainFilter)) && queryChainIds.length > 0,
       select: selectTop1DVolumeTokenResults,
     }),
   )

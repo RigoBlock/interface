@@ -84,13 +84,14 @@ async function getUniversalRouterVersionHeader(params: {
     return TradingApi.UniversalRouterVersion._2_2_0
   }
 
-  // RigoBlock: AUniswapDecoder.sol was compiled against UR V2.0 struct layouts.
-  // UR V2.1.x introduces `maxHopSlippage` in ExactInput(Single)Params which causes ABI
-  // misalignment on-chain on older adapters, resulting in _handleAction(0x) reverts on all
-  // V4 swaps. UR 2.1.2 support ships with the governance AUniswapRouter adapter, not the pool
-  // version: select 2.1.2 when the ACTIVE smart pool's `getApplicationAdapter(0x3593564c)`
-  // matches the governance-mapped UR-2.1.2 adapter for its chain; otherwise keep the V2.0
-  // fallback below.
+  // RigoBlock: the UR calldata flavor a smart pool can decode depends on the AUniswapRouter
+  // adapter its fallback resolves via governance (`IAuthority.getApplicationAdapter(0x3593564c)`),
+  // not on the pool's own version. Governance currently maps the selector to the UR-2.0.0 adapter
+  // deployment per chain, so the pool decodes UR 2.0 calldata and that is what we request. The
+  // 2.0/2.1.2 flavors share selectors and differ only in the bytes param encoding, so feeding a
+  // 2.1.2-encoded calldata to the 2.0.0 adapter (or vice versa) misaligns the ABI and reverts
+  // onchain. When governance upgrades UR support it re-points the selector at a NEW adapter; only
+  // then does the resolution below return 2.1.2. A null mapping read throws instead of guessing.
   const smartPoolVersion = await getSmartPoolUniversalRouterVersion(params.chainId)
   if (smartPoolVersion) {
     return smartPoolVersion

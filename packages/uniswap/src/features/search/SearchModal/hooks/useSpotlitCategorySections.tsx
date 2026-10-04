@@ -19,6 +19,7 @@ import { useAllTokenCategories } from 'uniswap/src/data/apiClients/dataApiServic
 import { dataApiServiceClientV2 } from 'uniswap/src/data/apiClients/dataApiService/clients/DataApiClientV2'
 import { dataApiMultichainTokenToSearchResult } from 'uniswap/src/data/apiClients/dataApiService/utils/dataApiMultichainToken'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
+import { isBackendSupportedChainId } from 'uniswap/src/features/chains/utils'
 import type { MultichainSearchResult } from 'uniswap/src/features/dataApi/types'
 import {
   getSpotlitCategorySectionId,
@@ -118,12 +119,17 @@ export function useSpotlitCategorySections({
   )
   const configured = tokenCategoriesEnabled && spotlitCategoryIds.length > 0
   const shelfConfigured = configured && (categoriesLoading || categories.length > 0)
-  const fetchEnabled = shelfConfigured && !skip
+  // An explicitly selected backend-unsupported chain (HyperEvm/999) simply has no data-API tokens:
+  // skip rather than 400 the request.
+  const fetchEnabled = shelfConfigured && !skip && (chainFilter === null || isBackendSupportedChainId(chainFilter))
 
   const { chains: enabledChainIds } = useEnabledChains()
+  // RigoBlock: the data API rejects the whole request when chainIds carries a backend-unsupported
+  // chain (HyperEvm/999 → 400 "unrecognized chains"), so filter before building the request.
+  const backendChainIds = useMemo(() => enabledChainIds.filter(isBackendSupportedChainId), [enabledChainIds])
   const chainIds = useMemo(
-    () => (chainFilter === null ? enabledChainIds : [chainFilter]),
-    [chainFilter, enabledChainIds],
+    () => (chainFilter === null ? backendChainIds : [chainFilter]),
+    [chainFilter, backendChainIds],
   )
   const selectOptions = useMemo(
     () => (chainFilter === null ? selectMultichainOptions : makeSelectFlatOptions(chainFilter)),
