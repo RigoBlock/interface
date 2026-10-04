@@ -1,4 +1,6 @@
 import { AbiCoder } from '@ethersproject/abi'
+import { BigNumber } from '@ethersproject/bignumber'
+import { Actions as V4SdkActions, V4_BASE_ACTIONS_ABI_DEFINITION, V4_SWAP_ACTIONS_V2_1_1 } from '@uniswap/v4-sdk'
 import { describe, expect, it, vi } from 'vitest'
 import { modifyV4ExecuteCalldata, stripBalanceCheckERC20 } from './universalRouterCalldata'
 
@@ -23,6 +25,29 @@ const V4_TAKE_PORTION = 0x10
 const NATIVE_TOKEN = '0x0000000000000000000000000000000000000000'
 const SOME_TOKEN = '0xBC0BEA8E634ec838a2a45F8A43E7E16Cd2a8BA99'
 const DEADLINE = 9999999999
+
+// Planner struct types as defined by @uniswap/v4-sdk (the same definitions the rewriter decodes
+// with). Fixtures MUST be encoded with these — the rewriter no longer tolerates hand-rolled or
+// placeholder encodings.
+const SWAP_EXACT_IN_STRUCT_V20 = V4_BASE_ACTIONS_ABI_DEFINITION[V4SdkActions.SWAP_EXACT_IN][0]?.type as string
+const SWAP_EXACT_IN_STRUCT_V211 = V4_SWAP_ACTIONS_V2_1_1[V4SdkActions.SWAP_EXACT_IN]?.[0]?.type as string
+const SWAP_EXACT_IN_SINGLE_STRUCT_V20 = V4_BASE_ACTIONS_ABI_DEFINITION[V4SdkActions.SWAP_EXACT_IN_SINGLE][0]
+  ?.type as string
+const SWAP_EXACT_OUT_STRUCT_V20 = V4_BASE_ACTIONS_ABI_DEFINITION[V4SdkActions.SWAP_EXACT_OUT][0]?.type as string
+const SWAP_EXACT_OUT_STRUCT_V211 = V4_SWAP_ACTIONS_V2_1_1[V4SdkActions.SWAP_EXACT_OUT]?.[0]?.type as string
+
+const PATH_KEY = [SOME_TOKEN, 3000, 60, NATIVE_TOKEN, '0x'] as const
+
+/** Minimal valid SWAP_EXACT_IN_SINGLE (UR 2.0 flavor) action params. */
+function buildSwapExactInSingleMinimal(): string {
+  const poolKey = [SOME_TOKEN, '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', 3000, 60, NATIVE_TOKEN]
+  return abiCoder.encode([SWAP_EXACT_IN_SINGLE_STRUCT_V20], [[poolKey, true, 1000, 1000, '0x']])
+}
+
+/** Minimal valid SWAP_EXACT_IN (UR 2.0 flavor) action params. */
+function buildSwapExactInMinimal(): string {
+  return abiCoder.encode([SWAP_EXACT_IN_STRUCT_V20], [[SOME_TOKEN, [PATH_KEY], 1000, 1000]])
+}
 
 /** Build calldata for a V4_SWAP with given inner actions and params. */
 function buildV4SwapCalldata(
@@ -158,7 +183,7 @@ describe('V4 action codes are preserved during recipient replacement', () => {
     // Single-hop ExactIn: [SWAP_EXACT_IN_SINGLE(0x06), SETTLE(0x0b), TAKE(0x0e)]
     const calldata = buildV4SwapCalldata(
       [V4_SWAP_EXACT_IN_SINGLE, V4_SETTLE, V4_TAKE],
-      ['0x', settleParams, takeParams],
+      [buildSwapExactInSingleMinimal(), settleParams, takeParams],
     )
 
     const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
@@ -183,7 +208,10 @@ describe('V4 action codes are preserved during recipient replacement', () => {
     const takeParams = abiCoder.encode(['address', 'address', 'uint256'], [NATIVE_TOKEN, FEE_RECIPIENT, 100])
 
     // Multi-hop ExactIn: [SWAP_EXACT_IN(0x07), SETTLE(0x0b), TAKE(0x0e)]
-    const calldata = buildV4SwapCalldata([V4_SWAP_EXACT_IN, V4_SETTLE, V4_TAKE], ['0x', settleParams, takeParams])
+    const calldata = buildV4SwapCalldata(
+      [V4_SWAP_EXACT_IN, V4_SETTLE, V4_TAKE],
+      [buildSwapExactInMinimal(), settleParams, takeParams],
+    )
 
     const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
     const { inputs } = decodeOutputCalldata(result)
@@ -201,7 +229,7 @@ describe('V4 action codes are preserved during recipient replacement', () => {
 
     const calldata = buildV4SwapCalldata(
       [V4_SWAP_EXACT_IN_SINGLE, V4_SETTLE, V4_TAKE],
-      ['0x', settleParams, takeParams],
+      [buildSwapExactInSingleMinimal(), settleParams, takeParams],
     )
 
     const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
@@ -215,7 +243,7 @@ describe('V4 action codes are preserved during recipient replacement', () => {
 
     const calldata = buildV4SwapCalldata(
       [V4_SWAP_EXACT_IN_SINGLE, V4_SETTLE, V4_TAKE_PORTION, V4_TAKE],
-      ['0x', settleParams, takePortionParams, takeParams],
+      [buildSwapExactInSingleMinimal(), settleParams, takePortionParams, takeParams],
     )
 
     const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
@@ -552,7 +580,10 @@ describe('V4 OPEN-delta input amount pinning', () => {
   it('pins SETTLE amount 0 to the exact trade input, preserving payerIsUser', () => {
     const settleParams = abiCoder.encode(['address', 'uint256', 'bool'], [SOME_TOKEN, 0, true])
     const takeParams = abiCoder.encode(['address', 'address', 'uint256'], [NATIVE_TOKEN, SMART_POOL, 0])
-    const calldata = buildV4SwapCalldata([V4_SWAP_EXACT_IN, V4_SETTLE, V4_TAKE], ['0x', settleParams, takeParams])
+    const calldata = buildV4SwapCalldata(
+      [V4_SWAP_EXACT_IN, V4_SETTLE, V4_TAKE],
+      [buildSwapExactInMinimal(), settleParams, takeParams],
+    )
 
     const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL, exactInput: EXACT_INPUT })
     const { inputs } = decodeOutputCalldata(result)
@@ -566,7 +597,10 @@ describe('V4 OPEN-delta input amount pinning', () => {
   it('leaves SETTLE with an explicit amount untouched', () => {
     const settleParams = abiCoder.encode(['address', 'uint256', 'bool'], [SOME_TOKEN, 1000, true])
     const takeParams = abiCoder.encode(['address', 'address', 'uint256'], [NATIVE_TOKEN, SMART_POOL, 0])
-    const calldata = buildV4SwapCalldata([V4_SWAP_EXACT_IN, V4_SETTLE, V4_TAKE], ['0x', settleParams, takeParams])
+    const calldata = buildV4SwapCalldata(
+      [V4_SWAP_EXACT_IN, V4_SETTLE, V4_TAKE],
+      [buildSwapExactInMinimal(), settleParams, takeParams],
+    )
 
     const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL, exactInput: EXACT_INPUT })
     expect(result).toBe(calldata)
@@ -578,7 +612,7 @@ describe('V4 OPEN-delta input amount pinning', () => {
     const takeParams = abiCoder.encode(['address', 'address', 'uint256'], [NATIVE_TOKEN, SMART_POOL, 0])
     const calldata = buildV4SwapCalldata(
       [V4_SWAP_EXACT_IN, V4_SETTLE, V4_SETTLE, V4_TAKE],
-      ['0x', settleParams, otherSettleParams, takeParams],
+      [buildSwapExactInMinimal(), settleParams, otherSettleParams, takeParams],
     )
 
     const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL, exactInput: NATIVE_EXACT_INPUT })
@@ -594,7 +628,7 @@ describe('V4 OPEN-delta input amount pinning', () => {
     const takeParams = abiCoder.encode(['address', 'address', 'uint256'], [NATIVE_TOKEN, SMART_POOL, 0])
     const calldata = buildV4SwapCalldata(
       [V4_SETTLE_ALL, V4_SWAP_EXACT_IN, V4_TAKE],
-      [settleAllParams, '0x', takeParams],
+      [settleAllParams, buildSwapExactInMinimal(), takeParams],
     )
 
     const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL, exactInput: EXACT_INPUT })
@@ -610,10 +644,7 @@ describe('V4 OPEN-delta input amount pinning', () => {
 
   it('pins SWAP_EXACT_IN_SINGLE amountIn 0 to the exact trade input', () => {
     const poolKey = [SOME_TOKEN, '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', 3000, 60, NATIVE_TOKEN] as const
-    const swapParams = abiCoder.encode(
-      ['tuple(address,address,uint24,int24,address)', 'bool', 'uint128', 'uint128', 'bytes'],
-      [poolKey, true, 0, 1000, '0x'],
-    )
+    const swapParams = abiCoder.encode([SWAP_EXACT_IN_SINGLE_STRUCT_V20], [[poolKey, true, 0, 1000, '0x']])
     const settleParams = abiCoder.encode(['address', 'uint256', 'bool'], [SOME_TOKEN, 0, true])
     const takeParams = abiCoder.encode(['address', 'address', 'uint256'], [NATIVE_TOKEN, SMART_POOL, 0])
     const calldata = buildV4SwapCalldata(
@@ -625,24 +656,21 @@ describe('V4 OPEN-delta input amount pinning', () => {
     const { inputs } = decodeOutputCalldata(result)
     const { params } = decodeV4SwapInput(inputs[0]!)
     const [decodedPoolKey, zeroForOne, amountIn, amountOutMin, hookData] = abiCoder.decode(
-      ['tuple(address,address,uint24,int24,address)', 'bool', 'uint128', 'uint128', 'bytes'],
+      [SWAP_EXACT_IN_SINGLE_STRUCT_V20],
       params[0]!,
-    )
+    )[0] as [string[], boolean, BigNumber, BigNumber, string]
     expect(zeroForOne).toBe(true)
-    expect(BigInt(amountIn.toString())).toBe(BigInt(EXACT_INPUT.amountRaw))
-    expect(BigInt(amountOutMin.toString())).toBe(BigInt(1000))
+    expect(amountIn.toString()).toBe(EXACT_INPUT.amountRaw)
+    expect(amountOutMin.toString()).toBe('1000')
     expect(hookData).toBe('0x')
-    expect((decodedPoolKey as string[])[0].toLowerCase()).toBe(SOME_TOKEN.toLowerCase())
+    expect(decodedPoolKey[0]!.toLowerCase()).toBe(SOME_TOKEN.toLowerCase())
     // SETTLE pinned too
     expect(decodeSettleParams(params[1]!).amount).toBe(BigInt(EXACT_INPUT.amountRaw))
   })
 
-  it('pins SWAP_EXACT_IN amountIn 0 at the UR 2.0 word index', () => {
+  it('pins SWAP_EXACT_IN amountIn 0 to the exact trade input (UR 2.0 flavor)', () => {
     const pathKey = ['0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', 3000, 60, NATIVE_TOKEN, '0x'] as const
-    const swapParams = abiCoder.encode(
-      ['address', 'tuple(address,uint24,int24,address,bytes)[]', 'uint128', 'uint128'],
-      [SOME_TOKEN, [pathKey], 0, 1000],
-    )
+    const swapParams = abiCoder.encode([SWAP_EXACT_IN_STRUCT_V20], [[SOME_TOKEN, [pathKey], 0, 1000]])
     const settleParams = abiCoder.encode(['address', 'uint256', 'bool'], [SOME_TOKEN, 0, true])
     const takeParams = abiCoder.encode(['address', 'address', 'uint256'], [NATIVE_TOKEN, SMART_POOL, 0])
     const calldata = buildV4SwapCalldata([V4_SWAP_EXACT_IN, V4_SETTLE, V4_TAKE], [swapParams, settleParams, takeParams])
@@ -655,23 +683,22 @@ describe('V4 OPEN-delta input amount pinning', () => {
     })
     const { inputs } = decodeOutputCalldata(result)
     const { params } = decodeV4SwapInput(inputs[0]!)
-    const [currencyIn, path, amountIn, amountOutMin] = abiCoder.decode(
-      ['address', 'tuple(address,uint24,int24,address,bytes)[]', 'uint128', 'uint128'],
-      params[0]!,
-    )
+    const [currencyIn, path, amountIn, amountOutMin] = abiCoder.decode([SWAP_EXACT_IN_STRUCT_V20], params[0]!)[0] as [
+      string,
+      unknown[],
+      BigNumber,
+      BigNumber,
+    ]
     expect(currencyIn.toLowerCase()).toBe(SOME_TOKEN.toLowerCase())
-    expect(BigInt(amountIn.toString())).toBe(BigInt(EXACT_INPUT.amountRaw))
-    expect(BigInt(amountOutMin.toString())).toBe(BigInt(1000))
-    expect((path as unknown[]).length).toBe(1)
+    expect(amountIn.toString()).toBe(EXACT_INPUT.amountRaw)
+    expect(amountOutMin.toString()).toBe('1000')
+    expect(path.length).toBe(1)
   })
 
-  it('pins SWAP_EXACT_IN amountIn 0 at the UR 2.1.1 word index', () => {
+  it('pins SWAP_EXACT_IN amountIn 0 to the exact trade input (UR 2.1.1 flavor)', () => {
     const pathKey = ['0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', 3000, 60, NATIVE_TOKEN, '0x'] as const
     // UR 2.1.1 struct: (currencyIn, path[], minHopPriceX36[], amountIn, amountOutMinimum)
-    const swapParams = abiCoder.encode(
-      ['address', 'tuple(address,uint24,int24,address,bytes)[]', 'uint256[]', 'uint128', 'uint128'],
-      [SOME_TOKEN, [pathKey], [], 0, 1000],
-    )
+    const swapParams = abiCoder.encode([SWAP_EXACT_IN_STRUCT_V211], [[SOME_TOKEN, [pathKey], [], 0, 1000]])
     const settleParams = abiCoder.encode(['address', 'uint256', 'bool'], [SOME_TOKEN, 0, true])
     const takeParams = abiCoder.encode(['address', 'address', 'uint256'], [NATIVE_TOKEN, SMART_POOL, 0])
     const calldata = buildV4SwapCalldata([V4_SWAP_EXACT_IN, V4_SETTLE, V4_TAKE], [swapParams, settleParams, takeParams])
@@ -685,19 +712,69 @@ describe('V4 OPEN-delta input amount pinning', () => {
     const { inputs } = decodeOutputCalldata(result)
     const { params } = decodeV4SwapInput(inputs[0]!)
     const [currencyIn, path, minHopPriceX36, amountIn, amountOutMin] = abiCoder.decode(
-      ['address', 'tuple(address,uint24,int24,address,bytes)[]', 'uint256[]', 'uint128', 'uint128'],
+      [SWAP_EXACT_IN_STRUCT_V211],
       params[0]!,
-    )
-    expect(BigInt(amountIn.toString())).toBe(BigInt(EXACT_INPUT.amountRaw))
-    expect(BigInt(amountOutMin.toString())).toBe(BigInt(1000))
-    expect((minHopPriceX36 as unknown[]).length).toBe(0)
-    expect((path as unknown[]).length).toBe(1)
+    )[0] as [string, unknown[], unknown[], BigNumber, BigNumber]
+    expect(amountIn.toString()).toBe(EXACT_INPUT.amountRaw)
+    expect(amountOutMin.toString()).toBe('1000')
+    expect(minHopPriceX36.length).toBe(0)
+    expect(path.length).toBe(1)
+  })
+
+  it('normalizes a UR 2.1.1-flavored native-input SWAP_EXACT_IN down to UR 2.0 flavor (production tx2)', () => {
+    // Production shape (Oct 2026): the trading API emits UR 2.1.1-flavored V4 structs even
+    // though every deployed RigoBlock adapter decodes UR 2.0. A UR-2.0 adapter reads amountIn
+    // from the 2.0 struct position = the minHopPriceX36 slot (~0x1a0) and under-funds the
+    // router's msg.value → V4TooLittleReceived (0x8b063d73). The rewriter must re-encode the
+    // swap struct in the pool's flavor and pin the open amounts.
+    const lit = '0x232ce3bd40fcd6f80f3d55a522d03f25df784ee2'
+    const pathKey = [lit, 3000, 60, NATIVE_TOKEN, '0x'] as const
+    const swapParams = abiCoder.encode([SWAP_EXACT_IN_STRUCT_V211], [
+      [NATIVE_TOKEN, [pathKey], [], 0, BigInt('10000000000000000')],
+    ])
+    const settleParams = abiCoder.encode(['address', 'uint256', 'bool'], [NATIVE_TOKEN, 0, true])
+    const takeParams = abiCoder.encode(['address', 'address', 'uint256'], [lit, SMART_POOL, 0])
+    const calldata = buildV4SwapCalldata([V4_SWAP_EXACT_IN, V4_SETTLE, V4_TAKE], [swapParams, settleParams, takeParams])
+
+    const result = modifyV4ExecuteCalldata({
+      calldata,
+      smartPoolAddress: SMART_POOL,
+      poolSupportsUr211: false,
+      exactInput: NATIVE_EXACT_INPUT,
+    })
+    const { inputs } = decodeOutputCalldata(result)
+    const { actionsHex, params } = decodeV4SwapInput(inputs[0]!)
+    const actionsBytes = Buffer.from(actionsHex.slice(2), 'hex')
+    expect(actionsBytes[0]).toBe(V4_SWAP_EXACT_IN) // 0x07 unchanged
+    expect(actionsBytes[1]).toBe(V4_SETTLE) // 0x0b unchanged
+    expect(actionsBytes[2]).toBe(V4_TAKE) // 0x0e unchanged
+
+    // Swap re-encoded in UR 2.0 flavor: 4 fields, amountIn pinned at the 2.0 position
+    const [currencyIn, path, amountIn, amountOutMin] = abiCoder.decode([SWAP_EXACT_IN_STRUCT_V20], params[0]!)[0] as [
+      string,
+      unknown[],
+      BigNumber,
+      BigNumber,
+    ]
+    expect(currencyIn).toBe(NATIVE_TOKEN)
+    expect(amountIn.toString()).toBe(NATIVE_EXACT_INPUT.amountRaw)
+    expect(amountOutMin.toString()).toBe('10000000000000000')
+    expect(path.length).toBe(1)
+
+    // SETTLE pinned to the exact input as well
+    const settle = decodeSettleParams(params[1]!)
+    expect(settle.currency).toBe(NATIVE_TOKEN)
+    expect(settle.amount).toBe(BigInt(NATIVE_EXACT_INPUT.amountRaw))
+    expect(settle.payerIsUser).toBe(true)
   })
 
   it('does not modify V4 input when exactInput is not provided', () => {
     const settleParams = abiCoder.encode(['address', 'uint256', 'bool'], [SOME_TOKEN, 0, true])
     const takeParams = abiCoder.encode(['address', 'address', 'uint256'], [NATIVE_TOKEN, SMART_POOL, 0])
-    const calldata = buildV4SwapCalldata([V4_SWAP_EXACT_IN, V4_SETTLE, V4_TAKE], ['0x', settleParams, takeParams])
+    const calldata = buildV4SwapCalldata(
+      [V4_SWAP_EXACT_IN, V4_SETTLE, V4_TAKE],
+      [buildSwapExactInMinimal(), settleParams, takeParams],
+    )
 
     const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
     expect(result).toBe(calldata)
@@ -711,60 +788,22 @@ describe('V4 EXACT_OUTPUT open settle → SETTLE_ALL', () => {
   const AMOUNT_OUT = BigInt('4167000000000000') // 0x24b3148c87a000 — ETH out
   const MAX_AMOUNT_IN = BigInt('1268830193286593298') // 0x6e383c3100447b12 — quoted max LIT in
 
-  // The v4 planner encodes PathKey[] elements INLINE (no per-element offset word) — the layout
-  // v4-periphery's CalldataDecoder actually reads. ethers' AbiCoder would offset-prefix each
-  // dynamic tuple element, so build the words explicitly to match production calldata.
-  function word(v: bigint): string {
-    return v.toString(16).padStart(64, '0')
-  }
-  function addrWord(a: string): string {
-    return word(BigInt(a))
+  function pathKeyWith(intermediateCurrency: string): readonly [string, number, number, string, string] {
+    return [intermediateCurrency, 3000, 60, NATIVE_TOKEN, '0x']
   }
 
-  /** Production-style SWAP_EXACT_OUT params, UR 2.1 flavor (minHopPriceX36[] present). */
+  /** SWAP_EXACT_OUT params, UR 2.1.1 flavor (minHopPriceX36[] present), AbiCoder-canonical. */
   function buildSwapExactOutUr211(intermediateCurrency: string = INPUT_TOKEN): string {
-    const headWords = 5 // currencyOut, pathOff, minHopOff, amountOut, amountInMaximum
-    const pathOff = BigInt(headWords * 32) // 0xa0, struct-relative
-    const elementWords = 5 // intermediateCurrency, fee, tickSpacing, hooks, hookDataOff
-    const words = [
-      word(0x20n), // struct offset wrapper
-      addrWord(NATIVE_TOKEN), // currencyOut = ETH
-      word(pathOff),
-      word(0x1a0n), // minHopPriceX36 offset (as emitted by the API in production)
-      word(AMOUNT_OUT),
-      word(MAX_AMOUNT_IN),
-      word(1n), // path length
-      addrWord(intermediateCurrency),
-      word(3000n),
-      word(60n),
-      word(0n), // hooks
-      word(BigInt(elementWords * 32)), // hookData offset, element-relative
-      word(0n), // hookData length
-      word(0n), // minHopPriceX36 length
-    ]
-    return '0x' + words.join('')
+    return abiCoder.encode([SWAP_EXACT_OUT_STRUCT_V211], [
+      [NATIVE_TOKEN, [pathKeyWith(intermediateCurrency)], [], AMOUNT_OUT, MAX_AMOUNT_IN],
+    ])
   }
 
-  /** Production-style SWAP_EXACT_OUT params, UR 2.0 flavor (no minHopPriceX36 field). */
+  /** SWAP_EXACT_OUT params, UR 2.0 flavor (no minHopPriceX36 field). */
   function buildSwapExactOutUr20(): string {
-    const headWords = 4 // currencyOut, pathOff, amountOut, amountInMaximum
-    const pathOff = BigInt(headWords * 32) // 0x80, struct-relative
-    const elementWords = 5
-    const words = [
-      word(0x20n),
-      addrWord(NATIVE_TOKEN),
-      word(pathOff),
-      word(AMOUNT_OUT),
-      word(MAX_AMOUNT_IN),
-      word(1n),
-      addrWord(INPUT_TOKEN),
-      word(3000n),
-      word(60n),
-      word(0n),
-      word(BigInt(elementWords * 32)),
-      word(0n),
-    ]
-    return '0x' + words.join('')
+    return abiCoder.encode([SWAP_EXACT_OUT_STRUCT_V20], [
+      [NATIVE_TOKEN, [pathKeyWith(INPUT_TOKEN)], AMOUNT_OUT, MAX_AMOUNT_IN],
+    ])
   }
 
   function buildExactOutCalldata(swapParams: string, settleParams: string, takeParams: string): string {
@@ -777,7 +816,7 @@ describe('V4 EXACT_OUTPUT open settle → SETTLE_ALL', () => {
     return { actionsBytes: Buffer.from(actionsHex.replace('0x', ''), 'hex'), params }
   }
 
-  it('rewrites SETTLE(currency, 0, true) to SETTLE_ALL(currency, amountInMaximum), UR 2.1 flavor', () => {
+  it('rewrites SETTLE(currency, 0, true) to SETTLE_ALL(currency, amountInMaximum), normalizing to UR 2.0 flavor', () => {
     const settleParams = abiCoder.encode(['address', 'uint256', 'bool'], [INPUT_TOKEN, 0, true])
     const takeParams = abiCoder.encode(
       ['address', 'address', 'uint256'],
@@ -792,6 +831,17 @@ describe('V4 EXACT_OUTPUT open settle → SETTLE_ALL', () => {
     const [currency, maxAmount] = abiCoder.decode(['address', 'uint256'], params[1]!)
     expect(currency.toLowerCase()).toBe(INPUT_TOKEN)
     expect(BigInt(maxAmount.toString())).toBe(MAX_AMOUNT_IN)
+    // Swap action re-encoded in the pool's UR 2.0 flavor (no minHopPriceX36 field)
+    const [currencyOut, path, amountOut, amountInMaximum] = abiCoder.decode([SWAP_EXACT_OUT_STRUCT_V20], params[0]!)[0] as [
+      string,
+      [string, BigNumber, number, string, string][],
+      BigNumber,
+      BigNumber,
+    ]
+    expect(currencyOut).toBe(NATIVE_TOKEN)
+    expect(amountOut.toString()).toBe(AMOUNT_OUT.toString())
+    expect(amountInMaximum.toString()).toBe(MAX_AMOUNT_IN.toString())
+    expect(path[0]![0].toLowerCase()).toBe(INPUT_TOKEN)
     // TAKE untouched
     const [takeCurrency, takeRecipient, takeAmount] = abiCoder.decode(['address', 'address', 'uint256'], params[2]!)
     expect(takeCurrency).toBe(NATIVE_TOKEN)
@@ -799,7 +849,7 @@ describe('V4 EXACT_OUTPUT open settle → SETTLE_ALL', () => {
     expect(BigInt(takeAmount.toString())).toBe(AMOUNT_OUT)
   })
 
-  it('reads amountInMaximum at the UR 2.0 word index when no minHopPriceX36 field is present', () => {
+  it('reads amountInMaximum from a UR 2.0-flavored SWAP_EXACT_OUT when the API emits UR 2.0', () => {
     const settleParams = abiCoder.encode(['address', 'uint256', 'bool'], [INPUT_TOKEN, 0, true])
     const takeParams = abiCoder.encode(
       ['address', 'address', 'uint256'],
@@ -820,13 +870,18 @@ describe('V4 EXACT_OUTPUT open settle → SETTLE_ALL', () => {
       ['address', 'address', 'uint256'],
       [NATIVE_TOKEN, SMART_POOL, AMOUNT_OUT.toString()],
     )
+    // poolSupportsUr211: the API-emitted UR 2.1.1 flavor matches the pool's flavor, so no
+    // normalization is needed and nothing else rewrites here.
     const calldata = buildExactOutCalldata(buildSwapExactOutUr211(), settleParams, takeParams)
 
-    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL, poolSupportsUr211: true })
     expect(result).toBe(calldata)
   })
 
-  it('skips native-input exact-output swaps', () => {
+  it('keeps the SETTLE open on native-input exact-output swaps, but still normalizes the swap flavor', () => {
+    // Native input cannot be capped (the consumed amount is only known at execution time, so
+    // no msg.value can be derived for the adapter) — the SETTLE stays open. The swap action is
+    // still re-encoded in the pool's flavor.
     const settleParams = abiCoder.encode(['address', 'uint256', 'bool'], [NATIVE_TOKEN, 0, true])
     const takeParams = abiCoder.encode(
       ['address', 'address', 'uint256'],
@@ -838,6 +893,78 @@ describe('V4 EXACT_OUTPUT open settle → SETTLE_ALL', () => {
     )
 
     const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
-    expect(result).toBe(calldata)
+    expect(result).not.toBe(calldata)
+    const { actionsBytes, params } = decodeResult(result)
+    expect(actionsBytes[0]).toBe(V4_SWAP_EXACT_OUT) // 0x09 unchanged
+    expect(actionsBytes[1]).toBe(V4_SETTLE) // NOT rewritten (native input)
+    expect(actionsBytes[2]).toBe(V4_TAKE)
+    // SETTLE untouched
+    const settle = decodeSettleParams(params[1]!)
+    expect(settle.currency).toBe(NATIVE_TOKEN)
+    expect(settle.amount).toBe(BigInt(0))
+    expect(settle.payerIsUser).toBe(true)
+    // Swap normalized to UR 2.0 flavor
+    const [currencyOut, path, amountOut, amountInMaximum] = abiCoder.decode([SWAP_EXACT_OUT_STRUCT_V20], params[0]!)[0] as [
+      string,
+      [string, BigNumber, number, string, string][],
+      BigNumber,
+      BigNumber,
+    ]
+    expect(currencyOut).toBe(NATIVE_TOKEN)
+    expect(path[0]![0]).toBe(NATIVE_TOKEN)
+    expect(amountOut.toString()).toBe(AMOUNT_OUT.toString())
+    expect(amountInMaximum.toString()).toBe(MAX_AMOUNT_IN.toString())
+  })
+
+  // Second production encoding (Oct 2026): the planner switched to AbiCoder-style
+  // OFFSET-PREFIXED PathKey elements — word after the path length is 0x20 pointing one word
+  // ahead at the element — instead of inline elements. Byte shape lifted verbatim from a
+  // production exact-out calldata that reverted CurrencyNotSettled because the rewriter read
+  // the 0x20 offset word as the currency and skipped the SETTLE→SETTLE_ALL rewrite.
+  function word(v: bigint): string {
+    return v.toString(16).padStart(64, '0')
+  }
+  function addrWord(a: string): string {
+    return word(BigInt(a))
+  }
+
+  function buildSwapExactOutUr211OffsetPrefixed(intermediateCurrency: string = INPUT_TOKEN): string {
+    const words = [
+      word(0x20n), // struct offset wrapper
+      addrWord(NATIVE_TOKEN), // currencyOut = ETH
+      word(0xa0n), // path offset, struct-relative
+      word(0x1a0n), // minHopPriceX36 offset
+      word(AMOUNT_OUT),
+      word(MAX_AMOUNT_IN),
+      word(1n), // path length
+      word(0x20n), // OFFSET-PREFIX: path[0] element data one word ahead
+      addrWord(intermediateCurrency),
+      word(3000n), // fee
+      word(60n), // tickSpacing
+      word(0n), // hooks
+      word(0xa0n), // hookData offset, element-relative
+      word(0n), // hookData length
+      word(0n), // minHopPriceX36 length
+    ]
+    return '0x' + words.join('')
+  }
+
+  it('resolves the input currency through an offset-prefixed path element (AbiCoder flavor)', () => {
+    const settleParams = abiCoder.encode(['address', 'uint256', 'bool'], [INPUT_TOKEN, 0, true])
+    const takeParams = abiCoder.encode(
+      ['address', 'address', 'uint256'],
+      [NATIVE_TOKEN, SMART_POOL, AMOUNT_OUT.toString()],
+    )
+    const calldata = buildExactOutCalldata(
+      buildSwapExactOutUr211OffsetPrefixed(),
+      settleParams,
+      takeParams,
+    )
+
+    const { actionsBytes, params } = decodeResult(modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL }))
+    expect(actionsBytes[1]).toBe(V4_SETTLE_ALL) // 0x0b -> 0x0c
+    const [currency, maxAmount] = abiCoder.decode(['address', 'uint256'], params[1]!)
+    expect(currency.toLowerCase()).toBe(INPUT_TOKEN)
+    expect(BigInt(maxAmount.toString())).toBe(MAX_AMOUNT_IN)
   })
 })

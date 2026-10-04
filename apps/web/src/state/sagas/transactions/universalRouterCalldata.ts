@@ -1,5 +1,13 @@
 /* eslint-disable max-lines -- RigoBlock fork additions (UR 2.1.x command preservation) pushed this file past the line cap; same exemption as swapSaga.ts */
 import { AbiCoder } from '@ethersproject/abi'
+import { BigNumber } from '@ethersproject/bignumber'
+import {
+  Actions as V4PlannerActions,
+  URVersion,
+  V4_BASE_ACTIONS_ABI_DEFINITION,
+  V4_SWAP_ACTIONS_V2_1_1,
+  isAtLeastV2_1_1,
+} from '@uniswap/v4-sdk'
 import { normalizeTokenAddressForCache } from '@universe/chains'
 import { logger } from 'utilities/src/logger/logger'
 
@@ -28,16 +36,159 @@ const UNIVERSAL_ROUTER_COMMANDS = {
   V4_SWAP: 0x10,
 }
 
-// V4 Universal Router Action Constants
-const V4_ACTIONS = {
-  SWAP_EXACT_IN_SINGLE: 0x06, // 6 in decimal
-  SWAP_EXACT_IN: 0x07, // 7 in decimal
-  SWAP_EXACT_OUT_SINGLE: 0x08, // 8 in decimal
-  SWAP_EXACT_OUT: 0x09, // 9 in decimal
-  SETTLE: 0x0b, // 11 in decimal
-  SETTLE_ALL: 0x0c, // 12 in decimal
-  TAKE: 0x0e, // 14 in decimal
-  TAKE_PORTION: 0x10, // 16 in decimal
+// V4 planner action structs come in two flavors: UR 2.0 (no minHopPriceX36) and UR 2.1.1+
+// (minHopPriceX36 inserted into each swap struct). Decoding/encoding below uses the ABI
+// definitions from @uniswap/v4-sdk (the same library family that produces the planner
+// calldata) — ethers' offset/bounds validation makes a flavor mismatch throw instead of
+// silently reading the wrong word.
+interface V4AbiParamDef {
+  readonly name: string
+  readonly type: string
+}
+
+// Field order of the swap action structs per flavor (matches the SDK's planner ABI defs).
+// Partial: only the four swap actions (6/7/8/9) have flavor-dependent structs.
+const V4_SWAP_FIELD_ORDER: Partial<Record<number, { v20: string[]; v211: string[] }>> = {
+  [V4PlannerActions.SWAP_EXACT_IN_SINGLE]: {
+    v20: ['poolKey', 'zeroForOne', 'amountIn', 'amountOutMinimum', 'hookData'],
+    v211: ['poolKey', 'zeroForOne', 'amountIn', 'amountOutMinimum', 'minHopPriceX36', 'hookData'],
+  },
+  [V4PlannerActions.SWAP_EXACT_IN]: {
+    v20: ['currencyIn', 'path', 'amountIn', 'amountOutMinimum'],
+    v211: ['currencyIn', 'path', 'minHopPriceX36', 'amountIn', 'amountOutMinimum'],
+  },
+  [V4PlannerActions.SWAP_EXACT_OUT_SINGLE]: {
+    v20: ['poolKey', 'zeroForOne', 'amountOut', 'amountInMaximum', 'hookData'],
+    v211: ['poolKey', 'zeroForOne', 'amountOut', 'amountInMaximum', 'minHopPriceX36', 'hookData'],
+  },
+  [V4PlannerActions.SWAP_EXACT_OUT]: {
+    v20: ['currencyOut', 'path', 'amountOut', 'amountInMaximum'],
+    v211: ['currencyOut', 'path', 'minHopPriceX36', 'amountOut', 'amountInMaximum'],
+  },
+}
+
+function v4ActionAbiDef(actionType: number, urVersion: URVersion): readonly V4AbiParamDef[] | undefined {
+  const v211SwapDefs = V4_SWAP_ACTIONS_V2_1_1 as unknown as Record<number, readonly V4AbiParamDef[]>
+  if (isAtLeastV2_1_1(urVersion) && actionType in v211SwapDefs) {
+    return v211SwapDefs[actionType]
+  }
+  return (V4_BASE_ACTIONS_ABI_DEFINITION as unknown as Record<number, readonly V4AbiParamDef[]>)[actionType]
+}
+
+interface DecodedV4Action {
+  actionType: number
+  values: unknown[]
+}
+
+interface DecodedV4Actions {
+  urVersion: URVersion
+  actions: DecodedV4Action[]
+}
+
+// Decodes a single V4 action param with the given flavor's ABI def. Swap action defs are a single
+// tuple-typed param (`abi.encode(struct)`), so the decoded tuple is unwrapped to plain field
+// values; multi-param actions (SETTLE, TAKE, …) decode to the fields directly.
+// oxlint-disable-next-line max-params -- (actionType, param, urVersion, abiCoder) are all required; bundling hurts readability
+function decodeV4Action(
+  actionType: number,
+  param: string,
+  urVersion: URVersion,
+  abiCoder: AbiCoder,
+): { values: unknown[] } {
+  const def = v4ActionAbiDef(actionType, urVersion)
+  if (!def) {
+    throw new Error(`Unsupported V4 action ${actionType}`)
+  }
+  const types = def.map((d) => d.type)
+  const decoded = abiCoder.decode(types, param) as unknown as unknown[]
+  // The planner emits canonical abi.encode output, so the decoded values must re-encode to the
+  // exact same bytes. A flavor mismatch on a swap struct does NOT make ethers throw — it
+  // silently misreads scalars (e.g. amountIn becomes the minHopPriceX36 offset word) — but only
+  // the emitted flavor survives this round-trip check.
+  if (abiCoder.encode(types, decoded).toLowerCase() !== param.toLowerCase()) {
+    throw new Error(`Non-canonical round-trip for V4 action ${actionType} (UR ${urVersion})`)
+  }
+  const values = def.length === 1 ? [...(decoded[0] as unknown[])] : [...decoded]
+  return { values }
+}
+
+// Re-encodes action field values with the given flavor's ABI def (mirrors decodeV4Action's
+// unwrapping: single-tuple defs take the tuple as the one top-level arg).
+// oxlint-disable-next-line max-params -- (actionType, values, urVersion, abiCoder) are all required; bundling hurts readability
+function encodeV4Action(actionType: number, values: unknown[], urVersion: URVersion, abiCoder: AbiCoder): string {
+  const def = v4ActionAbiDef(actionType, urVersion)
+  if (!def) {
+    throw new Error(`Unsupported V4 action ${actionType}`)
+  }
+  return abiCoder.encode(
+    def.map((d) => d.type),
+    def.length === 1 ? [values] : values,
+  )
+}
+
+// Decodes every action of a V4_SWAP input with the SDK's planner ABI definitions, detecting the
+// EMITTED flavor. The trading API ships UR 2.1.1-flavored structs even on UR 2.0 requests, so
+// both flavors are tried; the canonical-encoding round-trip inside decodeV4Action rejects the
+// mismatched one (which otherwise silently misreads scalars without throwing).
+// oxlint-disable-next-line max-params -- (actionsBytes, params, abiCoder) are all required; bundling hurts readability
+function decodeV4Actions(actionsBytes: Uint8Array, params: string[], abiCoder: AbiCoder): DecodedV4Actions | undefined {
+  for (const urVersion of [URVersion.V2_1_1, URVersion.V2_0]) {
+    try {
+      const actions: DecodedV4Action[] = []
+      for (let j = 0; j < actionsBytes.length; j++) {
+        const actionType = actionsBytes[j] as number
+        const { values } = decodeV4Action(actionType, params[j] as string, urVersion, abiCoder)
+        actions.push({ actionType, values })
+      }
+      return { urVersion, actions }
+    } catch {
+      // Flavor mismatch (or malformed calldata): try the other flavor.
+    }
+  }
+  return undefined
+}
+
+// oxlint-disable-next-line max-params -- (actionType, values, urVersion) are all required; bundling hurts readability
+function swapFieldsByName(actionType: number, values: unknown[], urVersion: URVersion): Record<string, unknown> {
+  const order = V4_SWAP_FIELD_ORDER[actionType]?.[urVersion === URVersion.V2_0 ? 'v20' : 'v211']
+  if (!order) {
+    return {}
+  }
+  return Object.fromEntries(order.map((name, i) => [name, values[i]]))
+}
+
+// minHopPriceX36 has no UR 2.0 equivalent; when upconverting to UR 2.1.1 the neutral
+// "no min-hop constraint" value is used (empty array for multi-hop, 0 for single-hop).
+function defaultMinHopValue(actionType: number, field: string): unknown {
+  if (field !== 'minHopPriceX36') {
+    return undefined
+  }
+  return actionType === V4PlannerActions.SWAP_EXACT_IN || actionType === V4PlannerActions.SWAP_EXACT_OUT ? [] : 0
+}
+
+// oxlint-disable-next-line max-params -- (actionType, fields, urVersion) are all required; bundling hurts readability
+function swapValuesFromFields(actionType: number, fields: Record<string, unknown>, urVersion: URVersion): unknown[] {
+  const order = V4_SWAP_FIELD_ORDER[actionType]?.[urVersion === URVersion.V2_0 ? 'v20' : 'v211']
+  if (!order) {
+    return []
+  }
+  return order.map((name) => (name in fields ? fields[name] : defaultMinHopValue(actionType, name)))
+}
+
+const NATIVE_CURRENCY_ADDRESS = '0x0000000000000000000000000000000000000000'
+
+function isNativeCurrency(address: unknown): boolean {
+  return typeof address === 'string' && normalizeTokenAddressForCache(address) === NATIVE_CURRENCY_ADDRESS
+}
+
+function sameCurrency(a: unknown, b: string): boolean {
+  return typeof a === 'string' && normalizeTokenAddressForCache(a) === normalizeTokenAddressForCache(b)
+}
+
+// Input currency of a *SINGLE swap action: poolKey.currency0 when zeroForOne, else currency1.
+function singleSwapInputCurrency(fields: Record<string, unknown>): unknown {
+  const poolKey = fields.poolKey as unknown as { 0: unknown; 1: unknown }
+  return fields.zeroForOne ? poolKey[0] : poolKey[1]
 }
 
 // ActionConstants from V4 periphery
@@ -52,7 +203,6 @@ const ACTION_CONSTANTS = {
 // RigoBlock adapter rejects. A smart pool's input tokens only reach the PoolManager through an
 // explicit-amount SETTLE(payerIsUser=true) pull from the vault, so an OPEN input amount resolves
 // to 0 credit and the swap reverts with PoolManager SwapAmountCannotBeZero (0xbe8b8507).
-const V4_OPEN_DELTA = BigInt(0)
 
 /**
  * RigoBlock: the exact input amount of the trade being executed, used to pin OPEN-delta
@@ -96,14 +246,6 @@ interface CommandWarningContext {
   error: unknown
 }
 
-interface V4ActionContext {
-  paramCalldata: string
-  abiCoder: AbiCoder
-  smartPoolAddress: string
-  actionIndex: number
-  commandIndex: number
-}
-
 interface V4SwapInputContext {
   abiCoder: AbiCoder
   smartPoolAddress: string
@@ -111,8 +253,9 @@ interface V4SwapInputContext {
   // RigoBlock: when set, OPEN-delta input amounts on the trade's input currency are pinned to
   // this exact amount (see V4ExactInput). Undefined in tests/paths without trade context.
   exactInput?: V4ExactInput
-  // Which V4 swap-param layout the API encoded: UR 2.1.1+ inserted minHopPriceX36 into the
-  // SWAP_EXACT_IN struct, shifting the amountIn word.
+  // The UR flavor the pool's governance-mapped adapter + router decode: UR 2.1.x when true,
+  // UR 2.0 when false. V4_SWAP actions are normalized to this flavor — the API has shipped
+  // UR 2.1.1-flavored structs on UR 2.0 requests, which UR-2.0 deployments mis-decode.
   poolSupportsUr211: boolean
 }
 
@@ -353,279 +496,172 @@ const COMMAND_HANDLERS: Record<number, CommandHandler> = {
   [UNIVERSAL_ROUTER_COMMANDS.V2_SWAP_EXACT_OUT]: handleV2SwapExactOutCommand,
 }
 
-function processV4Action(actionType: number, ctx: V4ActionContext): string | undefined {
-  const { paramCalldata, abiCoder, smartPoolAddress, actionIndex, commandIndex } = ctx
-  try {
-    if (actionType === V4_ACTIONS.TAKE) {
-      const [currency, recipient, amount] = abiCoder.decode(['address', 'address', 'uint256'], paramCalldata)
-      if (!shouldReplaceRecipient(recipient, smartPoolAddress)) {
-        return undefined
-      }
-      return abiCoder.encode(['address', 'address', 'uint256'], [currency, smartPoolAddress, amount])
+// RigoBlock: pin OPEN-delta (0) input amounts to the exact trade input. Without this, a
+// full-balance (MAX) V4 swap emitted as SETTLE(currency, 0, …) + SWAP_EXACT_IN(…, 0, …)
+// resolves the swap amount from 0 router credit and reverts with SwapAmountCannotBeZero.
+interface V4ActionRewrite {
+  values: unknown[]
+  newActionType?: number
+}
+
+// SETTLE(currency, 0, payerIsUser) → SETTLE(currency, exactInput, payerIsUser) on the trade's
+// input currency; SETTLE_ALL(currency, maxAmount) → explicit-amount SETTLE(currency, exactInput, true)
+// (the router holds no input tokens in the fork's flow, so SETTLE_ALL would resolve to 0 paid);
+// SWAP_EXACT_IN[_SINGLE] amountIn 0 on the input currency → exactInput.
+// oxlint-disable-next-line max-params -- (action, decodedUrVersion, exactInput) are all required; bundling hurts readability
+function rewriteExactInAction(
+  action: DecodedV4Action,
+  decodedUrVersion: URVersion,
+  exactInput: V4ExactInput,
+): V4ActionRewrite | undefined {
+  const { actionType, values } = action
+  if (actionType === V4PlannerActions.SETTLE) {
+    const [currency, amount, payerIsUser] = values as [string, BigNumber, boolean]
+    if (!sameCurrency(currency, exactInput.currency) || !amount.isZero()) {
+      return undefined
     }
-    if (actionType === V4_ACTIONS.TAKE_PORTION) {
-      const [currency, recipient, bips] = abiCoder.decode(['address', 'address', 'uint256'], paramCalldata)
-      if (!shouldReplaceRecipient(recipient, smartPoolAddress)) {
-        return undefined
-      }
-      return abiCoder.encode(['address', 'address', 'uint256'], [currency, smartPoolAddress, bips])
+    return { values: [currency, exactInput.amountRaw, payerIsUser] }
+  }
+  if (actionType === V4PlannerActions.SETTLE_ALL) {
+    const [currency] = values as [string, BigNumber]
+    if (!sameCurrency(currency, exactInput.currency)) {
+      return undefined
     }
-    return undefined
-  } catch (error) {
-    logger.warn(
-      'universalRouterCalldata',
-      'modifyV4ExecuteCalldata',
-      `Failed to decode V4 action ${actionIndex} in command ${commandIndex}`,
-      { error },
-    )
-    return undefined
+    return { values: [currency, exactInput.amountRaw, true], newActionType: V4PlannerActions.SETTLE }
   }
-}
-
-// Reads a 32-byte word from hex calldata. Out-of-range/empty words read as 0 (the test-suite
-// uses '0x' placeholders for unused swap params; malformed calldata reverts on-chain anyway).
-function readWord(calldata: string, wordIndex: number): bigint {
-  const hex = calldata.startsWith('0x') ? calldata.slice(2) : calldata
-  const offset = wordIndex * 64
-  const word = hex.slice(offset, offset + 64)
-  if (word.length === 0) {
-    return V4_OPEN_DELTA
-  }
-  return BigInt('0x' + word.padStart(64, '0'))
-}
-
-// Shared context for the V4 input-amount pinning helpers below.
-interface V4PinContext {
-  exactInput: V4ExactInput
-  poolSupportsUr211?: boolean
-  abiCoder?: AbiCoder
-}
-
-// RigoBlock: pins an OPEN-delta (0) input amount on the trade's input currency to the exact
-// quoted amount. Only the amount word is rewritten — the ABI layout around it is untouched.
-// Returns undefined when no rewrite applies.
-function pinOpenAmountWord(
-  paramCalldata: string,
-  pin: { amountWordIndex: number; exactInput: V4ExactInput },
-): string | undefined {
-  const { amountWordIndex, exactInput } = pin
-  if (readWord(paramCalldata, amountWordIndex) !== V4_OPEN_DELTA) {
-    return undefined
-  }
-  const hex = paramCalldata.startsWith('0x') ? paramCalldata.slice(2) : paramCalldata
-  const offset = amountWordIndex * 64
-  const word = BigInt(exactInput.amountRaw).toString(16).padStart(64, '0')
-  return '0x' + hex.slice(0, offset) + word + hex.slice(offset + 64)
-}
-
-// SETTLE(currency, amount, payerIsUser): amount word at index 1.
-function processV4SettleAction(paramCalldata: string, exactInput: V4ExactInput): string | undefined {
-  if (
-    normalizeTokenAddressForCache(readWord(paramCalldata, 0).toString(16).padStart(40, '0')) !==
-    normalizeTokenAddressForCache(exactInput.currency)
-  ) {
-    return undefined
-  }
-  return pinOpenAmountWord(paramCalldata, { amountWordIndex: 1, exactInput })
-}
-
-// SWAP_EXACT_IN_SINGLE(poolKey, zeroForOne, amountIn, amountOutMinimum[, minHopPriceX36], hookData):
-// poolKey.currency0/currency1 at words 0/1, zeroForOne at word 5, amountIn at word 6 in both
-// UR 2.0 and 2.1.x layouts.
-function processV4SwapExactInSingleAction(paramCalldata: string, exactInput: V4ExactInput): string | undefined {
-  const zeroForOne = readWord(paramCalldata, 5) !== V4_OPEN_DELTA
-  const inputCurrencyWord = zeroForOne ? 0 : 1
-  const inputCurrency = readWord(paramCalldata, inputCurrencyWord).toString(16).padStart(40, '0')
-  if (normalizeTokenAddressForCache(inputCurrency) !== normalizeTokenAddressForCache(exactInput.currency)) {
-    return undefined
-  }
-  return pinOpenAmountWord(paramCalldata, { amountWordIndex: 6, exactInput })
-}
-
-// SWAP_EXACT_IN(currencyIn, path[], amountIn, amountOutMinimum): amountIn at word 2 (UR 2.0) or
-// word 3 (UR 2.1.x, which inserted minHopPriceX36[] after path).
-function processV4SwapExactInAction(paramCalldata: string, ctx: V4PinContext): string | undefined {
-  const inputCurrency = readWord(paramCalldata, 0).toString(16).padStart(40, '0')
-  if (normalizeTokenAddressForCache(inputCurrency) !== normalizeTokenAddressForCache(ctx.exactInput.currency)) {
-    return undefined
-  }
-  return pinOpenAmountWord(paramCalldata, {
-    amountWordIndex: ctx.poolSupportsUr211 ? 3 : 2,
-    exactInput: ctx.exactInput,
-  })
-}
-
-// SETTLE_ALL(currency, maxAmount) resolves the paid amount from the router's own debt/balance,
-// which is always 0 in the fork's flow (input tokens are pulled from the vault, never held by
-// the router). It cannot be fixed by pinning a word — re-encode as an explicit-amount SETTLE
-// that pulls the exact input from the pool (payerIsUser=true), and flag the action byte change.
-function processV4SettleAllAction(
-  paramCalldata: string,
-  ctx: V4PinContext,
-): { paramCalldata: string; newActionType: number } | undefined {
-  const currency = readWord(paramCalldata, 0).toString(16).padStart(40, '0')
-  if (normalizeTokenAddressForCache(currency) !== normalizeTokenAddressForCache(ctx.exactInput.currency)) {
-    return undefined
-  }
-  return {
-    paramCalldata: ctx.abiCoder!.encode(
-      ['address', 'uint256', 'bool'],
-      ['0x' + currency, ctx.exactInput.amountRaw, true],
-    ),
-    newActionType: V4_ACTIONS.SETTLE,
-  }
-}
-
-// RigoBlock: EXACT_OUTPUT trades — the API emits SETTLE(currency, 0=OPEN, payerIsUser) assuming a
-// prior PERMIT2_TRANSFER_FROM filled the router (a command the adapter rejects). In the vault flow
-// the open settle resolves to 0 paid and the PoolManager reverts CurrencyNotSettled at unlock end.
-// SETTLE_ALL(currency, maxAmount) settles the EXACT consumed amount from the vault via Permit2,
-// capped at the quoted amountInMaximum (V4TooMuchRequested) — the correct primitive here.
-// Extracts the input currency and amountInMaximum from the SWAP_EXACT_OUT action itself.
-function extractV4ExactOutput(params: string[], actionTypes: number[]): V4ExactOutput | undefined {
-  for (let j = 0; j < actionTypes.length; j++) {
-    const paramCalldata = params[j]
-    if (actionTypes[j] === V4_ACTIONS.SWAP_EXACT_OUT) {
-      // abi.encode(struct)-wrapped: w0 = 0x20 struct offset, w1 = currencyOut, w2 = path offset
-      // (relative to the struct head at word 1). Path data starts at byte 32 + w2: array length
-      // word, then path[0].intermediateCurrency = the trade's input currency.
-      const pathOffset = readWord(paramCalldata, 2)
-      if (pathOffset % 32n !== 0n || pathOffset < 0x40n) {
-        return undefined
-      }
-      const pathLengthWord = Number(32n + pathOffset) / 32
-      const pathLength = readWord(paramCalldata, pathLengthWord)
-      if (pathLength < 1n || pathLength > 4n) {
-        return undefined
-      }
-      const inputCurrency = readWord(paramCalldata, pathLengthWord + 1)
-        .toString(16)
-        .padStart(40, '0')
-      if (inputCurrency === '0'.repeat(40)) {
-        return undefined // native input is not safely fixable (msg.value is consumed-amount dependent)
-      }
-      // amountInMaximum sits at word 4 (UR 2.0) or word 5 (UR 2.1.x, which inserted
-      // minHopPriceX36[] between path and amountOut). Detect from the calldata itself rather than
-      // trusting the requested UR version — the API's EMITTED flavor is what the router decodes,
-      // and the two diverge in production. In the 2.1 flavor word 3 is a byte offset (32-aligned,
-      // in-bounds) instead of amountOut.
-      const byteLength = BigInt((paramCalldata.length - 2) / 2)
-      const word3 = readWord(paramCalldata, 3)
-      const isUr211Flavor = word3 % 32n === 0n && word3 >= 0x40n && 32n + word3 <= byteLength
-      return {
-        currency: '0x' + inputCurrency,
-        maxAmountRaw: readWord(paramCalldata, isUr211Flavor ? 5 : 4).toString(),
-      }
+  if (actionType === V4PlannerActions.SWAP_EXACT_IN_SINGLE || actionType === V4PlannerActions.SWAP_EXACT_IN) {
+    const fields = swapFieldsByName(actionType, values, decodedUrVersion)
+    const inputCurrency =
+      actionType === V4PlannerActions.SWAP_EXACT_IN ? fields.currencyIn : singleSwapInputCurrency(fields)
+    const amountIn = fields.amountIn as BigNumber | undefined
+    if (!amountIn?.isZero() || !sameCurrency(inputCurrency, exactInput.currency)) {
+      return undefined
     }
-    if (actionTypes[j] === V4_ACTIONS.SWAP_EXACT_OUT_SINGLE) {
-      // Same unwrapped convention as SWAP_EXACT_IN_SINGLE: poolKey.currency0/currency1 at words
-      // 0/1, zeroForOne at word 5, amountOut at word 6, amountInMaximum at word 7.
-      const zeroForOne = readWord(paramCalldata, 5) !== V4_OPEN_DELTA
-      const inputCurrency = readWord(paramCalldata, zeroForOne ? 0 : 1)
-        .toString(16)
-        .padStart(40, '0')
-      if (inputCurrency === '0'.repeat(40)) {
+    return {
+      values: swapValuesFromFields(actionType, { ...fields, amountIn: exactInput.amountRaw }, decodedUrVersion),
+    }
+  }
+  return undefined
+}
+
+// EXACT_OUTPUT trades carry no exactInput: derive the settle cap from the SWAP_EXACT_OUT action
+// itself (input currency = path[0].intermediateCurrency / single-pool currency, capped at the
+// quoted amountInMaximum). Native input is not safely fixable — the consumed amount is only known
+// at execution time, so no msg.value can be derived for the adapter.
+function extractV4ExactOutput(decoded: DecodedV4Actions): V4ExactOutput | undefined {
+  for (const action of decoded.actions) {
+    if (
+      action.actionType === V4PlannerActions.SWAP_EXACT_OUT ||
+      action.actionType === V4PlannerActions.SWAP_EXACT_OUT_SINGLE
+    ) {
+      const fields = swapFieldsByName(action.actionType, action.values, decoded.urVersion)
+      const path = fields.path
+      const firstHop = Array.isArray(path) ? (path[0] as unknown[] | undefined) : undefined
+      const inputCurrency =
+        action.actionType === V4PlannerActions.SWAP_EXACT_OUT ? firstHop?.[0] : singleSwapInputCurrency(fields)
+      const amountInMaximum = fields.amountInMaximum as BigNumber | undefined
+      if (typeof inputCurrency !== 'string' || isNativeCurrency(inputCurrency) || !amountInMaximum) {
         return undefined
       }
-      return { currency: '0x' + inputCurrency, maxAmountRaw: readWord(paramCalldata, 7).toString() }
+      return { currency: inputCurrency, maxAmountRaw: amountInMaximum.toString() }
     }
   }
   return undefined
 }
 
 // SETTLE(currency, 0=OPEN, payerIsUser) on an exact-output trade's input currency →
-// SETTLE_ALL(currency, amountInMaximum). Native (zero-address) currencies are skipped: the
-// consumed amount is only known at execution time, so no msg.value can be derived for the adapter.
-function processV4ExactOutSettleAction(
-  paramCalldata: string,
-  pin: { exactOutput: V4ExactOutput; abiCoder: AbiCoder },
-): { paramCalldata: string; newActionType: number } | undefined {
-  const { exactOutput, abiCoder } = pin
-  const currency = readWord(paramCalldata, 0).toString(16).padStart(40, '0')
-  if (
-    currency === '0'.repeat(40) ||
-    normalizeTokenAddressForCache(currency) !== normalizeTokenAddressForCache(exactOutput.currency) ||
-    readWord(paramCalldata, 1) !== V4_OPEN_DELTA
-  ) {
+// SETTLE_ALL(currency, amountInMaximum). The API emits the open settle assuming a prior
+// PERMIT2_TRANSFER_FROM filled the router (a command the adapter rejects); in the vault flow the
+// open settle resolves to 0 paid and the PoolManager reverts CurrencyNotSettled at unlock end.
+// SETTLE_ALL settles the EXACT consumed amount from the vault via Permit2, capped at the quoted
+// amountInMaximum (V4TooMuchRequested) — the correct primitive here.
+function rewriteExactOutSettleAction(action: DecodedV4Action, exactOutput: V4ExactOutput): V4ActionRewrite | undefined {
+  const [currency, amount] = action.values as [string, BigNumber, boolean]
+  if (isNativeCurrency(currency) || !sameCurrency(currency, exactOutput.currency) || !amount.isZero()) {
     return undefined
   }
-  return {
-    paramCalldata: abiCoder.encode(['address', 'uint256'], ['0x' + currency, exactOutput.maxAmountRaw]),
-    newActionType: V4_ACTIONS.SETTLE_ALL,
-  }
-}
-
-// RigoBlock: pin OPEN-delta input amounts to the exact trade input. Without this, a
-// full-balance (MAX) V4 swap emitted as SETTLE(currency, 0, …) + SWAP_EXACT_IN(…, 0, …)
-// resolves the swap amount from 0 router credit and reverts with SwapAmountCannotBeZero.
-type V4ExactInPin = {
-  actionType: number
-  paramCalldata: string
-  ctx: V4SwapInputContext
-  exactInput: V4ExactInput
-}
-
-function processV4ExactInAction(pin: V4ExactInPin): { paramCalldata: string; newActionType?: number } | undefined {
-  const { actionType, paramCalldata, ctx, exactInput } = pin
-  if (actionType === V4_ACTIONS.SETTLE) {
-    const newParams = processV4SettleAction(paramCalldata, exactInput)
-    return newParams ? { paramCalldata: newParams } : undefined
-  }
-  if (actionType === V4_ACTIONS.SETTLE_ALL) {
-    return processV4SettleAllAction(paramCalldata, { ...ctx, exactInput })
-  }
-  if (actionType === V4_ACTIONS.SWAP_EXACT_IN_SINGLE) {
-    const newParams = processV4SwapExactInSingleAction(paramCalldata, exactInput)
-    return newParams ? { paramCalldata: newParams } : undefined
-  }
-  if (actionType === V4_ACTIONS.SWAP_EXACT_IN) {
-    const newParams = processV4SwapExactInAction(paramCalldata, { ...ctx, exactInput })
-    return newParams ? { paramCalldata: newParams } : undefined
-  }
-  return undefined
+  return { values: [currency, exactOutput.maxAmountRaw], newActionType: V4PlannerActions.SETTLE_ALL }
 }
 
 function processV4SwapInput(input: string, ctx: V4SwapInputContext): string | undefined {
-  const { abiCoder, smartPoolAddress, commandIndex, exactInput } = ctx
+  const { abiCoder, smartPoolAddress, commandIndex, exactInput, poolSupportsUr211 } = ctx
   try {
     const [actions, params] = abiCoder.decode(['bytes', 'bytes[]'], input)
     const actionsBytes = actions.startsWith('0x')
       ? new Uint8Array(Buffer.from(actions.slice(2), 'hex'))
       : new Uint8Array(Buffer.from(actions, 'hex'))
+    const paramList = params as string[]
+    const decoded = decodeV4Actions(actionsBytes, paramList, abiCoder)
+    if (!decoded) {
+      logger.warn(
+        'universalRouterCalldata',
+        'modifyV4ExecuteCalldata',
+        `Failed to decode V4_SWAP actions in command ${commandIndex} with either UR flavor`,
+      )
+      return undefined
+    }
+    // The pool's adapter + router decode exactly ONE flavor; normalize the whole action list to
+    // it. The API has shipped UR 2.1.1-flavored structs on UR 2.0 requests (Oct 2026), which the
+    // UR-2.0 deployments mis-decode (amountIn read from the minHopPriceX36 slot under-funds the
+    // router → V4TooLittleReceived), so this normalization is required, not cosmetic.
+    const poolUrVersion = poolSupportsUr211 ? URVersion.V2_1_1 : URVersion.V2_0
+    const flavorMismatch = decoded.urVersion !== poolUrVersion
+    if (flavorMismatch && decoded.urVersion === URVersion.V2_1_1 && poolUrVersion === URVersion.V2_0) {
+      for (const action of decoded.actions) {
+        const minHop = swapFieldsByName(action.actionType, action.values, decoded.urVersion).minHopPriceX36
+        const isNonEmpty = Array.isArray(minHop) ? minHop.length > 0 : BigNumber.isBigNumber(minHop) && !minHop.isZero()
+        if (isNonEmpty) {
+          logger.warn(
+            'universalRouterCalldata',
+            'modifyV4ExecuteCalldata',
+            'Dropping non-empty minHopPriceX36 while normalizing V4 calldata from UR 2.1.1 to UR 2.0 flavor',
+          )
+        }
+      }
+    }
     const modifiedActions = new Uint8Array(actionsBytes)
-    const modifiedParams = [...params]
+    const modifiedParams = [...paramList]
     let v4InputWasModified = false
     // RigoBlock: EXACT_OUTPUT trades carry no exactInput; derive the settle cap from the
     // SWAP_EXACT_OUT action so an OPEN-delta SETTLE can become a capped SETTLE_ALL.
-    const exactOutput = exactInput ? undefined : extractV4ExactOutput(params, [...actionsBytes])
-    for (let j = 0; j < actionsBytes.length; j++) {
-      const actionType = actionsBytes[j]
-      if (actionType === V4_ACTIONS.TAKE || actionType === V4_ACTIONS.TAKE_PORTION) {
-        const newParams = processV4Action(actionType, {
-          paramCalldata: params[j],
-          abiCoder,
-          smartPoolAddress,
-          actionIndex: j,
-          commandIndex,
-        })
-        if (newParams) {
-          modifiedParams[j] = newParams
-          v4InputWasModified = true
+    const exactOutput = exactInput ? undefined : extractV4ExactOutput(decoded)
+    for (let j = 0; j < decoded.actions.length; j++) {
+      const action = decoded.actions[j] as DecodedV4Action
+      let rewrite: V4ActionRewrite | undefined
+      if (action.actionType === V4PlannerActions.TAKE || action.actionType === V4PlannerActions.TAKE_PORTION) {
+        const recipient = action.values[1] as string
+        if (shouldReplaceRecipient(recipient, smartPoolAddress)) {
+          action.values[1] = smartPoolAddress
+          rewrite = { values: action.values }
         }
+      } else if (exactInput) {
+        rewrite = rewriteExactInAction(action, decoded.urVersion, exactInput)
+      } else if (exactOutput && action.actionType === V4PlannerActions.SETTLE) {
+        rewrite = rewriteExactOutSettleAction(action, exactOutput)
+      }
+      const isSwapAction = action.actionType in V4_SWAP_FIELD_ORDER
+      const newActionType = rewrite?.newActionType ?? action.actionType
+      const needsFlavorNormalization = flavorMismatch && isSwapAction
+      if (!rewrite && !needsFlavorNormalization) {
         continue
       }
-      const result = exactInput
-        ? processV4ExactInAction({ actionType, paramCalldata: params[j], ctx, exactInput })
-        : exactOutput && actionType === V4_ACTIONS.SETTLE
-          ? processV4ExactOutSettleAction(params[j], { exactOutput, abiCoder })
-          : undefined
-      if (result) {
-        modifiedParams[j] = result.paramCalldata
-        if (result.newActionType !== undefined) {
-          modifiedActions[j] = result.newActionType
-        }
-        v4InputWasModified = true
+      let outValues = rewrite?.values ?? action.values
+      if (isSwapAction) {
+        const fields = swapFieldsByName(action.actionType, outValues, decoded.urVersion)
+        outValues = swapValuesFromFields(newActionType, fields, poolUrVersion)
       }
+      const def = v4ActionAbiDef(newActionType, poolUrVersion)
+      if (!def) {
+        logger.warn(
+          'universalRouterCalldata',
+          'modifyV4ExecuteCalldata',
+          `No ABI definition for V4 action ${newActionType} (UR ${poolUrVersion}) in command ${commandIndex}`,
+        )
+        continue
+      }
+      modifiedParams[j] = encodeV4Action(newActionType, outValues, poolUrVersion, abiCoder)
+      modifiedActions[j] = newActionType
+      v4InputWasModified = true
     }
     if (!v4InputWasModified) {
       return undefined
@@ -643,8 +679,10 @@ function processV4SwapInput(input: string, ctx: V4SwapInputContext): string | un
   }
 }
 
-// RigoBlock: true when the active smart pool's governance-mapped AUniswapRouter adapter decodes
-// UR 2.1.x commands; skips the PAY_PORTION_FULL_PRECISION downgrade and BALANCE_CHECK_ERC20 stripping.
+// RigoBlock: `poolSupportsUr211` is true when the active smart pool's governance-mapped
+// AUniswapRouter adapter decodes UR 2.1.x commands. It (a) skips the PAY_PORTION_FULL_PRECISION
+// downgrade and BALANCE_CHECK_ERC20 stripping, and (b) selects the UR flavor V4_SWAP actions are
+// normalized to (UR 2.1.x when true, UR 2.0 when false — see processV4SwapInput).
 export interface UniversalRouterCalldataOptions {
   poolSupportsUr211?: boolean
   // RigoBlock: exact input of the trade being executed. When provided, OPEN-delta (0) input
