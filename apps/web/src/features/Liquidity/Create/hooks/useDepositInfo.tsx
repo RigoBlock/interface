@@ -4,10 +4,10 @@ import { Pair } from '@uniswap/v2-sdk'
 import { Pool as V3Pool } from '@uniswap/v3-sdk'
 import { Pool as V4Pool } from '@uniswap/v4-sdk'
 import { isValidHexString } from '@universe/encoding'
-import { parseUnits } from 'ethers/lib/utils'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NATIVE_TOKEN_PLACEHOLDER } from 'uniswap/src/constants/addresses'
+import { portfolioBalanceToCurrencyAmount } from 'uniswap/src/features/dataApi/balances/portfolioBalanceToCurrencyAmount'
 import type { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
 import { useMaxAmountSpend } from 'uniswap/src/features/gas/hooks/useMaxAmountSpend'
 import { applyNativeTokenPercentageBuffer } from 'uniswap/src/features/gas/utils'
@@ -92,12 +92,7 @@ export function useDepositInfo(state: UseDepositInfoProps): DepositInfo {
       return undefined
     }
 
-    try {
-      const rawAmount = parseUnits(portfolioBalance.quantity.toString(), currency.decimals).toString()
-      return CurrencyAmount.fromRawAmount(currency, rawAmount)
-    } catch {
-      return undefined
-    }
+    return portfolioBalanceToCurrencyAmount(portfolioBalance, currency)
   }
 
   const token0Balance = state.isSmartPool

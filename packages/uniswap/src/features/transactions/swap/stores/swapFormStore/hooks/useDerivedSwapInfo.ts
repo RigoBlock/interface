@@ -2,12 +2,12 @@ import { Currency, CurrencyAmount, TradeType } from '@uniswap/sdk-core'
 import { TradingApi } from '@universe/api'
 import { UniverseChainId, Platform } from '@universe/chains'
 import { isValidHexString } from '@universe/encoding'
-import { parseUnits } from 'ethers/lib/utils'
 import { useMemo } from 'react'
 import { NATIVE_TOKEN_PLACEHOLDER } from 'uniswap/src/constants/addresses'
 import { useUniswapContextSelector } from 'uniswap/src/contexts/UniswapContext'
 import { useAccountsStore } from 'uniswap/src/features/accounts/store/hooks'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
+import { portfolioBalanceToCurrencyAmount } from 'uniswap/src/features/dataApi/balances/portfolioBalanceToCurrencyAmount'
 import { useTradingApiGasOverrides } from 'uniswap/src/features/gas/hooks/useTradingApiGasOverrides'
 import { useShouldWaitForPermissionedCheck } from 'uniswap/src/features/permissionedTokens/useShouldWaitForPermissionedCheck'
 import { useOnChainCurrencyBalance } from 'uniswap/src/features/portfolio/api'
@@ -114,12 +114,7 @@ export function useDerivedSwapInfo({
       return undefined
     }
 
-    try {
-      const rawAmount = parseUnits(portfolioBalance.quantity.toString(), currency.decimals).toString()
-      return CurrencyAmount.fromRawAmount(currency, rawAmount)
-    } catch {
-      return undefined
-    }
+    return portfolioBalanceToCurrencyAmount(portfolioBalance, currency)
   }
 
   const tokenInBalance = smartPoolAddress
