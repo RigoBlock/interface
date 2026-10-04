@@ -2,8 +2,9 @@ import type { PlainMessage } from '@bufbuild/protobuf'
 import { useQuery, UseQueryResult } from '@tanstack/react-query'
 import type { GetTokenResponse, GetTokensResponse } from '@uniswap/client-data-api/dist/data/v2/api_pb'
 import type { Token } from '@uniswap/client-data-api/dist/data/v2/types_pb'
-import { normalizeTokenAddressForCache, UniverseChainId } from '@universe/chains'
+import { UniverseChainId, areAddressesEqual, normalizeTokenAddressForCache } from '@universe/chains'
 import { useCallback, useMemo } from 'react'
+import { getLocalChainTokenInfo } from 'uniswap/src/components/TokenSelector/hooks/useLocalChainTokens'
 import { getCommonBase } from 'uniswap/src/constants/routing'
 import {
   getGetTokenQueryOptions,
@@ -51,6 +52,23 @@ function selectCurrencyInfo(
       copyCommonBase.currencyId = _currencyId
 
       return copyCommonBase
+    }
+  }
+
+  // Non-backend-supported chains (e.g. HyperEvm 999) have neither a REST token nor a common
+  // base — resolve from local chain config (the same primary-stablecoin knowledge the token
+  // selector lists via useLocalChainTokens) so the swap form can render the selected asset.
+  if (chainId && address && !isBackendSupportedChainId(chainId)) {
+    const localToken = getLocalChainTokenInfo(chainId)
+    if (
+      localToken &&
+      localToken.currency.isToken &&
+      areAddressesEqual({
+        addressInput1: { address: localToken.currency.address, chainId },
+        addressInput2: { address, chainId },
+      })
+    ) {
+      return { ...localToken, currencyId: _currencyId }
     }
   }
 

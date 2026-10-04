@@ -11,6 +11,7 @@ import { UniswapProvider } from 'uniswap/src/contexts/UniswapContext'
 import { UrlContext } from 'uniswap/src/contexts/UrlContext'
 import { SharedPersistQueryClientProvider } from 'uniswap/src/data/reactQuery/SharedPersistQueryClientProvider'
 import { AssetType } from 'uniswap/src/entities/assets'
+import { DEFAULT_NATIVE_ADDRESS } from 'uniswap/src/features/chains/evm/defaults'
 import {
   TransactionModalContext,
   TransactionScreen,
@@ -28,6 +29,10 @@ import { mockUniswapContext } from 'uniswap/src/test/render'
 import { CurrencyField } from 'uniswap/src/types/currency'
 
 const RWA_ADDRESS = '0xe92f673ca36c5e2efd2de7628f815f84807e803f'
+
+// USDC on HyperEvm — the chain's locally-configured primary stablecoin; the data API does not
+// index chain 999, so ETH@1 has no resolvable counterpart there.
+const HYPEREVM_USDC_ADDRESS = '0xb88339CB7199b77E23DB6E890353E22632Ba630f'
 
 // Mounts a *real* swap-form Zustand store (via `createSwapFormStore`, which wires the real
 // `updateSwapForm` action) directly through `SwapFormStoreContext.Provider`. We bypass the heavy
@@ -285,5 +290,57 @@ describe('useOnSelectTradeableAsset', () => {
       { inputCurrency: undefined, outputCurrency: selectedCurrency },
       selectedCurrency,
     )
+  })
+
+  // Regression (HyperEvm): selecting the chain's local stablecoin as output must keep the user's
+  // existing input — ETH@1 has no counterpart on a chain the backends don't index, and the other
+  // field's chain filter must follow the asset actually kept, not the newly-selected chain.
+  it('keeps the existing input and its chain filter when the output changes to a chain with no counterpart', async () => {
+    const { result } = RNRenderHook(
+      () => ({
+        select: useOnSelectTradeableAsset({}),
+        input: useSwapFormStore((s) => s.input),
+        output: useSwapFormStore((s) => s.output),
+        filteredChainIds: useSwapFormStore((s) => s.filteredChainIds),
+      }),
+      { wrapper: Wrapper },
+    )
+
+    await act(async () => {
+      result.current.select({
+        tradeableAsset: {
+          address: DEFAULT_NATIVE_ADDRESS,
+          chainId: UniverseChainId.Mainnet,
+          type: AssetType.Currency,
+        },
+        field: CurrencyField.INPUT,
+        allowCrossChainPair: false,
+      })
+    })
+
+    await act(async () => {
+      result.current.select({
+        tradeableAsset: {
+          address: HYPEREVM_USDC_ADDRESS,
+          chainId: UniverseChainId.HyperEvm,
+          type: AssetType.Currency,
+        },
+        field: CurrencyField.OUTPUT,
+        allowCrossChainPair: false,
+      })
+    })
+
+    expect(result.current.input).toMatchObject({
+      address: DEFAULT_NATIVE_ADDRESS,
+      chainId: UniverseChainId.Mainnet,
+    })
+    expect(result.current.output).toMatchObject({
+      address: HYPEREVM_USDC_ADDRESS,
+      chainId: UniverseChainId.HyperEvm,
+    })
+    expect(result.current.filteredChainIds).toEqual({
+      [CurrencyField.INPUT]: UniverseChainId.Mainnet,
+      [CurrencyField.OUTPUT]: UniverseChainId.HyperEvm,
+    })
   })
 })

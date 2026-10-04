@@ -6,6 +6,26 @@ import { buildCurrencyInfo } from 'uniswap/src/features/dataApi/utils/buildCurre
 import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
 
 /**
+ * Builds the CurrencyInfo for a chain's locally-configured primary stablecoin — the token
+ * selectable on chains without backend (indexer) support, e.g. HyperEVM USDC. Exported for
+ * non-hook consumers (e.g. useCurrencyInfo's synchronous fallback) so they resolve the same
+ * local knowledge as the token selector lists.
+ */
+export function getLocalChainTokenInfo(chainId: UniverseChainId): CurrencyInfo | undefined {
+  const stablecoin = getPrimaryStablecoin(chainId)
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- getPrimaryStablecoin is typed non-nullable but returns stablecoins[0], which can be undefined at runtime for chains without stablecoin config
+  if (!stablecoin) {
+    return undefined
+  }
+  return buildCurrencyInfo({
+    currency: stablecoin,
+    currencyId: buildCurrencyId(chainId, stablecoin.address),
+    logoUrl: undefined,
+    safetyInfo: undefined,
+  })
+}
+
+/**
  * Tokens that are selectable on chains without backend (indexer) support — e.g. HyperEVM.
  * The Uniswap backends do not index these chains, so token lists, trending tokens and
  * search all fail there. Rigoblock smart pools only use the chain's primary stablecoin
@@ -21,19 +41,8 @@ export function useLocalChainTokens(chainFilter: Maybe<UniverseChainId> | Univer
     return chains
       .filter((chainId) => !isBackendSupportedChainId(chainId))
       .flatMap((chainId) => {
-        const stablecoin = getPrimaryStablecoin(chainId)
-        // oxlint-disable-next-line typescript/no-unnecessary-condition -- getPrimaryStablecoin is typed non-nullable but returns stablecoins[0], which can be undefined at runtime for chains without stablecoin config
-        if (!stablecoin) {
-          return []
-        }
-        return [
-          buildCurrencyInfo({
-            currency: stablecoin,
-            currencyId: buildCurrencyId(chainId, stablecoin.address),
-            logoUrl: undefined,
-            safetyInfo: undefined,
-          }),
-        ]
+        const tokenInfo = getLocalChainTokenInfo(chainId)
+        return tokenInfo ? [tokenInfo] : []
       })
   }, [chainFilter])
 }

@@ -1,21 +1,19 @@
 import { defaultAbiCoder } from '@ethersproject/abi'
-import { getAddress } from '@ethersproject/address'
 import { BigNumber } from '@ethersproject/bignumber'
-import { Contract } from '@ethersproject/contracts'
-import { TransactionResponse } from '@ethersproject/providers'
 import { UniverseChainId } from '@universe/chains'
+import { isValidHexString } from '@universe/encoding'
 import { useCallback } from 'react'
 import { SmartPoolBridgeError } from 'uniswap/src/features/transactions/errors'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { logger } from 'utilities/src/logger/logger'
+import { getAddress, walletActions } from 'viem'
 import { getConnectorClient } from 'wagmi/actions'
 import { wagmiConfig } from '~/connection/wagmiConfig'
 import { RPC_PROVIDERS } from '~/constants/providers'
-import { clientToProvider } from '~/hooks/useEthersProvider'
 import { useSelectChain } from '~/hooks/useSelectChain'
 import { usePortfolioAddress } from '~/pages/Portfolio/hooks/usePortfolioAddress'
 import { HYPERLIQUID_BRIDGE_USDC } from '~/pages/Portfolio/Perps/hyperliquid/hyperliquidBridgeConfig'
-import { useTransactionAdder } from '~/state/transactions/hooks'
+import { useTransactionAdderFromHash } from '~/state/transactions/adder'
 import { calculateGasMargin } from '~/utils/calculateGasMargin'
 import { WrongChainError } from '~/utils/errors'
 
@@ -44,23 +42,6 @@ const ACROSS_PARAMS_TYPES = [
   'uint32', // exclusivityDeadline
   'bytes', // message
 ]
-
-const ACROSS_PARAMS_TUPLE = `tuple(${[
-  'address depositor',
-  'address recipient',
-  'address inputToken',
-  'address outputToken',
-  'uint256 inputAmount',
-  'uint256 outputAmount',
-  'uint256 destinationChainId',
-  'address exclusiveRelayer',
-  'uint32 quoteTimestamp',
-  'uint32 fillDeadline',
-  'uint32 exclusivityDeadline',
-  'bytes message',
-].join(',')})`
-
-const RIGOBLOCK_VAULT_BRIDGE_ABI = [`function depositV3(${ACROSS_PARAMS_TUPLE} acrossParams)`]
 
 /**
  * Builds a standard Across SpokePool depositV3 calldata (selector 0x7b939232) for a
@@ -96,14 +77,21 @@ export function buildStandardAcrossDepositV3Calldata(params: {
 /**
  * Submits a pre-built Rigoblock vault depositV3 calldata (from
  * modifyAcrossDepositV3ForSmartPool) on the vault address, after switching the wallet to
- * the source chain. Mirrors useHyperliquidOrderCallback: connector client → ethers
- * signer → estimateGas + calculateGasMargin → addTransaction.
+ * the source chain. The calldata is sent RAW: it is already Rigoblock-flavored — selector
+ * 0x770d096f + a SINGLE tuple(address,address,address,address,uint256,uint256,uint256,
+ * address,uint32,uint32,uint32,bytes) param, produced by encodeRigoblockDepositV3 in
+ * bridgeCalldata.ts. That selector/encoding deliberately differs from Across's own
+ * depositV3 (0x7b939232, separate params): the Across SpokePool is compiled with viaIR,
+ * RigoBlock contracts are not, so the vault ABI takes the tuple form. Do NOT re-encode it
+ * as Across-style separate params and do NOT swap the selector. (The pre-fix code decoded
+ * this calldata into the tuple and re-encoded it through an ethers Contract ABI — a
+ * byte-identical round-trip, verified, which is why sending the raw bytes is equivalent.)
  */
 export function useHyperliquidBridgeCallback(poolAddress?: string): {
   sendBridgeTransaction: (input: { sourceChainId: UniverseChainId; calldata: string }) => Promise<string | undefined>
 } {
   const account = usePortfolioAddress()
-  const addTransaction = useTransactionAdder()
+  const addTransaction = useTransactionAdderFromHash()
   const selectChain = useSelectChain()
 
   const sendBridgeTransaction = useCallback(
@@ -124,19 +112,14 @@ export function useHyperliquidBridgeCallback(poolAddress?: string): {
         throw new WrongChainError()
       }
 
-      // Use the connected wallet client directly, mirroring useHyperliquidOrderCallback.
-      const client = await getConnectorClient(wagmiConfig)
-      const provider = clientToProvider(client)
-      if (!provider) {
-        throw new Error('Failed to get wallet provider')
-      }
-
-      const signer = provider.getSigner(account.address)
-      const vaultContract = new Contract(getAddress(poolAddress), RIGOBLOCK_VAULT_BRIDGE_ABI, signer)
-
-      // Decode the pre-encoded Rigoblock depositV3 calldata back into the AcrossParams
-      // tuple so we can go through the typed Contract call path.
-      const acrossParams = defaultAbiCoder.decode([ACROSS_PARAMS_TUPLE], `0x${input.calldata.slice(10)}`)[0]
+      // Send through the wagmi connector client (viem), NOT the ethers Web3Provider
+      // signer: the signer's sendTransaction unconditionally calls eth_blockNumber
+      // before broadcasting and runs BigNumber.from on the result, which the wallet
+      // transport resolves to undefined through the gateway — the bare
+      // "invalid BigNumber value" error fires before any wallet popup. viem with an
+      // explicit `gas` skips eth_estimateGas entirely and only calls eth_chainId
+      // (already exercised by getConnectorClient) plus eth_sendTransaction.
+      const client = (await getConnectorClient(wagmiConfig)).extend(walletActions)
 
       logger.info(
         'useHyperliquidBridgeCallback',
@@ -200,13 +183,32 @@ export function useHyperliquidBridgeCallback(poolAddress?: string): {
         gasLimit = BigNumber.from(RIGOBLOCK_BRIDGE_GAS_FALLBACK)
       }
 
-      const response = (await vaultContract.depositV3(acrossParams, { gasLimit })) as TransactionResponse
+      let hash: string
+      try {
+        if (!isValidHexString(input.calldata)) {
+          throw new SmartPoolBridgeError('Bridge calldata is not valid hex data')
+        }
+        hash = await client.sendTransaction({
+          to: getAddress(poolAddress),
+          data: input.calldata,
+          gas: gasLimit.toBigInt(),
+        })
+      } catch (sendError) {
+        const sendErrorMsg = sendError instanceof Error ? sendError.message : String(sendError)
+        logger.warn('useHyperliquidBridgeCallback', 'sendBridgeTransaction', 'Bridge transaction send failed', {
+          error: sendError,
+        })
+        throw new SmartPoolBridgeError(`Failed to send the bridge transaction: ${sendErrorMsg}`)
+      }
 
-      addTransaction(response, {
-        type: TransactionType.ClaimUni, // TODO: replace with a bridge-specific type
-        recipient: account.address,
-      })
-      return response.hash
+      addTransaction(
+        { hash, chainId: input.sourceChainId },
+        {
+          type: TransactionType.ClaimUni, // TODO: replace with a bridge-specific type
+          recipient: account.address,
+        },
+      )
+      return hash
     },
     [account.address, addTransaction, poolAddress, selectChain],
   )

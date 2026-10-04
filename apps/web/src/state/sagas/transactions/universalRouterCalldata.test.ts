@@ -703,3 +703,141 @@ describe('V4 OPEN-delta input amount pinning', () => {
     expect(result).toBe(calldata)
   })
 })
+
+const V4_SWAP_EXACT_OUT = 0x09
+
+describe('V4 EXACT_OUTPUT open settle → SETTLE_ALL', () => {
+  const INPUT_TOKEN = '0x232ce3bd40fcd6f80f3d55a522d03f25df784ee2' // LIT (shape from production)
+  const AMOUNT_OUT = BigInt('4167000000000000') // 0x24b3148c87a000 — ETH out
+  const MAX_AMOUNT_IN = BigInt('1268830193286593298') // 0x6e383c3100447b12 — quoted max LIT in
+
+  // The v4 planner encodes PathKey[] elements INLINE (no per-element offset word) — the layout
+  // v4-periphery's CalldataDecoder actually reads. ethers' AbiCoder would offset-prefix each
+  // dynamic tuple element, so build the words explicitly to match production calldata.
+  function word(v: bigint): string {
+    return v.toString(16).padStart(64, '0')
+  }
+  function addrWord(a: string): string {
+    return word(BigInt(a))
+  }
+
+  /** Production-style SWAP_EXACT_OUT params, UR 2.1 flavor (minHopPriceX36[] present). */
+  function buildSwapExactOutUr211(intermediateCurrency: string = INPUT_TOKEN): string {
+    const headWords = 5 // currencyOut, pathOff, minHopOff, amountOut, amountInMaximum
+    const pathOff = BigInt(headWords * 32) // 0xa0, struct-relative
+    const elementWords = 5 // intermediateCurrency, fee, tickSpacing, hooks, hookDataOff
+    const words = [
+      word(0x20n), // struct offset wrapper
+      addrWord(NATIVE_TOKEN), // currencyOut = ETH
+      word(pathOff),
+      word(0x1a0n), // minHopPriceX36 offset (as emitted by the API in production)
+      word(AMOUNT_OUT),
+      word(MAX_AMOUNT_IN),
+      word(1n), // path length
+      addrWord(intermediateCurrency),
+      word(3000n),
+      word(60n),
+      word(0n), // hooks
+      word(BigInt(elementWords * 32)), // hookData offset, element-relative
+      word(0n), // hookData length
+      word(0n), // minHopPriceX36 length
+    ]
+    return '0x' + words.join('')
+  }
+
+  /** Production-style SWAP_EXACT_OUT params, UR 2.0 flavor (no minHopPriceX36 field). */
+  function buildSwapExactOutUr20(): string {
+    const headWords = 4 // currencyOut, pathOff, amountOut, amountInMaximum
+    const pathOff = BigInt(headWords * 32) // 0x80, struct-relative
+    const elementWords = 5
+    const words = [
+      word(0x20n),
+      addrWord(NATIVE_TOKEN),
+      word(pathOff),
+      word(AMOUNT_OUT),
+      word(MAX_AMOUNT_IN),
+      word(1n),
+      addrWord(INPUT_TOKEN),
+      word(3000n),
+      word(60n),
+      word(0n),
+      word(BigInt(elementWords * 32)),
+      word(0n),
+    ]
+    return '0x' + words.join('')
+  }
+
+  function buildExactOutCalldata(swapParams: string, settleParams: string, takeParams: string): string {
+    return buildV4SwapCalldata([V4_SWAP_EXACT_OUT, V4_SETTLE, V4_TAKE], [swapParams, settleParams, takeParams])
+  }
+
+  function decodeResult(result: string): { actionsBytes: Buffer; params: string[] } {
+    const { inputs } = decodeOutputCalldata(result)
+    const { actionsHex, params } = decodeV4SwapInput(inputs[0]!)
+    return { actionsBytes: Buffer.from(actionsHex.replace('0x', ''), 'hex'), params }
+  }
+
+  it('rewrites SETTLE(currency, 0, true) to SETTLE_ALL(currency, amountInMaximum), UR 2.1 flavor', () => {
+    const settleParams = abiCoder.encode(['address', 'uint256', 'bool'], [INPUT_TOKEN, 0, true])
+    const takeParams = abiCoder.encode(
+      ['address', 'address', 'uint256'],
+      [NATIVE_TOKEN, SMART_POOL, AMOUNT_OUT.toString()],
+    )
+    const calldata = buildExactOutCalldata(buildSwapExactOutUr211(), settleParams, takeParams)
+
+    const { actionsBytes, params } = decodeResult(modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL }))
+    expect(actionsBytes[0]).toBe(V4_SWAP_EXACT_OUT) // 0x09 unchanged
+    expect(actionsBytes[1]).toBe(V4_SETTLE_ALL) // 0x0b -> 0x0c
+    expect(actionsBytes[2]).toBe(V4_TAKE) // 0x0e unchanged
+    const [currency, maxAmount] = abiCoder.decode(['address', 'uint256'], params[1]!)
+    expect(currency.toLowerCase()).toBe(INPUT_TOKEN)
+    expect(BigInt(maxAmount.toString())).toBe(MAX_AMOUNT_IN)
+    // TAKE untouched
+    const [takeCurrency, takeRecipient, takeAmount] = abiCoder.decode(['address', 'address', 'uint256'], params[2]!)
+    expect(takeCurrency).toBe(NATIVE_TOKEN)
+    expect(takeRecipient.toLowerCase()).toBe(SMART_POOL.toLowerCase())
+    expect(BigInt(takeAmount.toString())).toBe(AMOUNT_OUT)
+  })
+
+  it('reads amountInMaximum at the UR 2.0 word index when no minHopPriceX36 field is present', () => {
+    const settleParams = abiCoder.encode(['address', 'uint256', 'bool'], [INPUT_TOKEN, 0, true])
+    const takeParams = abiCoder.encode(
+      ['address', 'address', 'uint256'],
+      [NATIVE_TOKEN, SMART_POOL, AMOUNT_OUT.toString()],
+    )
+    const calldata = buildExactOutCalldata(buildSwapExactOutUr20(), settleParams, takeParams)
+
+    const { actionsBytes, params } = decodeResult(modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL }))
+    expect(actionsBytes[1]).toBe(V4_SETTLE_ALL)
+    const [currency, maxAmount] = abiCoder.decode(['address', 'uint256'], params[1]!)
+    expect(currency.toLowerCase()).toBe(INPUT_TOKEN)
+    expect(BigInt(maxAmount.toString())).toBe(MAX_AMOUNT_IN)
+  })
+
+  it('leaves an explicit-amount SETTLE untouched', () => {
+    const settleParams = abiCoder.encode(['address', 'uint256', 'bool'], [INPUT_TOKEN, 555, true])
+    const takeParams = abiCoder.encode(
+      ['address', 'address', 'uint256'],
+      [NATIVE_TOKEN, SMART_POOL, AMOUNT_OUT.toString()],
+    )
+    const calldata = buildExactOutCalldata(buildSwapExactOutUr211(), settleParams, takeParams)
+
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
+    expect(result).toBe(calldata)
+  })
+
+  it('skips native-input exact-output swaps', () => {
+    const settleParams = abiCoder.encode(['address', 'uint256', 'bool'], [NATIVE_TOKEN, 0, true])
+    const takeParams = abiCoder.encode(
+      ['address', 'address', 'uint256'],
+      [SOME_TOKEN, SMART_POOL, AMOUNT_OUT.toString()],
+    )
+    const calldata = buildV4SwapCalldata(
+      [V4_SWAP_EXACT_OUT, V4_SETTLE, V4_TAKE],
+      [buildSwapExactOutUr211(NATIVE_TOKEN), settleParams, takeParams],
+    )
+
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
+    expect(result).toBe(calldata)
+  })
+})

@@ -86,13 +86,26 @@ describe(useCurrencyInfo, () => {
   })
 
   // Regression: HyperEvm (999) is enabled in the fork but not served by the data API — a GetToken
-  // request for it would 400. The query is disabled and the hook falls back to the synchronous
-  // selectCurrencyInfo(undefined-data) path, which has no common base for this address.
-  it('does not fetch and resolves to undefined for a backend-unsupported chain currencyId', () => {
+  // request for it would 400. The query is disabled and the hook falls back to local chain config
+  // (the same primary-stablecoin knowledge the token selector lists via useLocalChainTokens).
+  it('does not fetch and resolves the local primary stablecoin for a backend-unsupported chain currencyId', () => {
     // The mocked query options reuse one hardcoded queryKey across this describe, so a previous
     // test's cached response would otherwise leak in and mask the disabled-query behavior.
     SharedQueryClient.clear()
     const { result } = renderHookWithProviders(() => useCurrencyInfo(HYPEREVM_USDC_ID))
+
+    expect(mockGetGetTokenQueryOptions).toHaveBeenCalledWith(expect.objectContaining({ enabled: false }))
+    expect(result.current?.currency.symbol).toBe('USDC')
+    expect(result.current?.currency.decimals).toBe(6)
+    expect(result.current?.currencyId).toBe(HYPEREVM_USDC_ID)
+  })
+
+  // An address on a backend-unsupported chain that isn't the chain's configured stablecoin has
+  // no local metadata either — it must not resolve.
+  it('resolves to undefined for an unknown token on a backend-unsupported chain', () => {
+    SharedQueryClient.clear()
+    const unknownTokenId = buildCurrencyId(UniverseChainId.HyperEvm, ADDRESS)
+    const { result } = renderHookWithProviders(() => useCurrencyInfo(unknownTokenId))
 
     expect(mockGetGetTokenQueryOptions).toHaveBeenCalledWith(expect.objectContaining({ enabled: false }))
     expect(result.current).toBeUndefined()

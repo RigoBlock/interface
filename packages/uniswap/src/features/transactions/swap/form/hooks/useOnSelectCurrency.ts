@@ -127,19 +127,26 @@ export function useOnSelectTradeableAsset({
         !isBridgePair
       ) {
         // if new token chain changes, try to find the other token's match on the new chain
-        newState[otherField] = resolveOtherFieldOnChainChange({
+        const resolvedOtherFieldAsset = resolveOtherFieldOnChainChange({
           tradeableAsset,
           otherFieldTokenProjects,
         })
+        // Only overwrite the other field when a counterpart actually resolves on the new chain
+        // (e.g. ETH@1 has no HyperEvm match) — otherwise keep the user's existing selection.
+        if (resolvedOtherFieldAsset) {
+          newState[otherField] = resolvedOtherFieldAsset
+        }
       }
 
       if (!isBridgePair) {
-        const newFilteredChainIds = { ...filteredChainIds }
-
-        newFilteredChainIds[CurrencyField.INPUT] = tradeableAsset.chainId
-        newFilteredChainIds[CurrencyField.OUTPUT] = tradeableAsset.chainId
-
-        newState.filteredChainIds = newFilteredChainIds
+        newState.filteredChainIds = getSelectionFilteredChainIds({
+          filteredChainIds,
+          field,
+          otherField,
+          tradeableAsset,
+          newState,
+          otherFieldTradeableAsset,
+        })
       }
 
       newState[field] = tradeableAsset
@@ -257,6 +264,36 @@ function findProjectCurrency(
     }
   }
   return undefined
+}
+
+/**
+ * Chain filters for a non-bridge selection: the selected field follows the new token's chain.
+ * The other field's filter follows the asset the form actually keeps — rewritten by this
+ * selection when a counterpart resolved, otherwise the pre-existing asset stays on its own
+ * chain (e.g. selecting USDC@999 as output must not chain-filter the kept ETH@1 input to 999).
+ */
+function getSelectionFilteredChainIds({
+  filteredChainIds,
+  field,
+  otherField,
+  tradeableAsset,
+  newState,
+  otherFieldTradeableAsset,
+}: {
+  filteredChainIds: SwapFormState['filteredChainIds']
+  field: CurrencyField
+  otherField: CurrencyField
+  tradeableAsset: TradeableAsset
+  newState: Partial<SwapFormState>
+  otherFieldTradeableAsset: TradeableAsset | undefined
+}): SwapFormState['filteredChainIds'] {
+  const finalOtherFieldAsset = otherField in newState ? newState[otherField] : otherFieldTradeableAsset
+
+  return {
+    ...filteredChainIds,
+    [field]: tradeableAsset.chainId,
+    [otherField]: finalOtherFieldAsset?.chainId ?? tradeableAsset.chainId,
+  }
 }
 
 /**
