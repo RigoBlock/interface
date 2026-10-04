@@ -28,11 +28,20 @@ const MAX_TRACKED_ORIGINS = 50
 // client and pollers would otherwise spam it on every interval.
 const UNAUTH_THRESHOLD = 3
 const UNAUTH_COOLDOWN_MS = 15_000
+// Fetch-failure handling: a CORS-blocked response (e.g. an edge-generated 429
+// without ACAO headers) never reaches JS as a Response — fetch rejects with a
+// bare TypeError, so the 429/401 hooks above never fire and retry loops would
+// hammer the endpoint forever. Treat a run of consecutive fetch-level failures
+// the same as 429s and cool the origin down. Any completed HTTP response
+// (even an error status) resets the counter: the network path is fine then.
+const FETCH_FAILURE_THRESHOLD = 3
+const FETCH_FAILURE_BASE_COOLDOWN_MS = 5_000
 
 interface OriginRateLimitState {
   cooldownUntilMs: number
   consecutive429s: number
   consecutive401s: number
+  consecutiveFetchFailures: number
 }
 
 const stateByOrigin = new Map<string, OriginRateLimitState>()
@@ -78,18 +87,30 @@ export function parseRetryAfterMs(response: Response, nowMs: number): number | n
  */
 export function noteRateLimitedResponse(url: string, response: Response): void {
   const origin = getOrigin(url)
+  // Any completed response means the network path works — reset fetch-failure
+  // bookkeeping before the status checks below (including the ignore path).
+  const existing = stateByOrigin.get(origin)
+  if (existing) {
+    existing.consecutiveFetchFailures = 0
+  }
   if (response.status !== 429 && response.status !== 401) {
     return
   }
   if (stateByOrigin.size >= MAX_TRACKED_ORIGINS && !stateByOrigin.has(origin)) {
     return
   }
-  const state = stateByOrigin.get(origin) ?? { cooldownUntilMs: 0, consecutive429s: 0, consecutive401s: 0 }
+  const state = stateByOrigin.get(origin) ?? {
+    cooldownUntilMs: 0,
+    consecutive429s: 0,
+    consecutive401s: 0,
+    consecutiveFetchFailures: 0,
+  }
   const nowMs = Date.now()
 
   if (response.status === 401) {
     state.consecutive401s += 1
     state.consecutive429s = 0
+    state.consecutiveFetchFailures = 0
     if (state.consecutive401s >= UNAUTH_THRESHOLD) {
       state.consecutive401s = 0
       state.cooldownUntilMs = nowMs + jitter(UNAUTH_COOLDOWN_MS)
@@ -100,12 +121,42 @@ export function noteRateLimitedResponse(url: string, response: Response): void {
 
   state.consecutive429s += 1
   state.consecutive401s = 0
+  state.consecutiveFetchFailures = 0
   const retryAfterMs = parseRetryAfterMs(response, nowMs)
-  const backoffMs = Math.min(
-    MAX_COOLDOWN_MS,
-    retryAfterMs ?? DEFAULT_COOLDOWN_MS * 2 ** (state.consecutive429s - 1),
-  )
+  const backoffMs = Math.min(MAX_COOLDOWN_MS, retryAfterMs ?? DEFAULT_COOLDOWN_MS * 2 ** (state.consecutive429s - 1))
   state.cooldownUntilMs = nowMs + jitter(backoffMs)
+  stateByOrigin.set(origin, state)
+}
+
+/**
+ * Records a fetch that failed before a Response was produced (network error,
+ * timeout, or a CORS-blocked response — the browser hides those 429s from JS).
+ * After FETCH_FAILURE_THRESHOLD consecutive failures the origin enters the
+ * same cooldown as a 429 so retry loops stop touching the network.
+ */
+export function noteFetchFailure(url: string): void {
+  const origin = getOrigin(url)
+  if (stateByOrigin.size >= MAX_TRACKED_ORIGINS && !stateByOrigin.has(origin)) {
+    return
+  }
+  const state = stateByOrigin.get(origin) ?? {
+    cooldownUntilMs: 0,
+    consecutive429s: 0,
+    consecutive401s: 0,
+    consecutiveFetchFailures: 0,
+  }
+  const nowMs = Date.now()
+  state.consecutiveFetchFailures += 1
+  state.consecutive429s = 0
+  state.consecutive401s = 0
+  if (state.consecutiveFetchFailures >= FETCH_FAILURE_THRESHOLD) {
+    const backoffMs = Math.min(
+      MAX_COOLDOWN_MS,
+      FETCH_FAILURE_BASE_COOLDOWN_MS * 2 ** (state.consecutiveFetchFailures - FETCH_FAILURE_THRESHOLD),
+    )
+    // Never shorten an existing (e.g. 429-driven) cooldown.
+    state.cooldownUntilMs = Math.max(state.cooldownUntilMs, nowMs + jitter(backoffMs))
+  }
   stateByOrigin.set(origin, state)
 }
 
@@ -115,6 +166,11 @@ export function noteSuccessfulResponse(url: string): void {
   if (stateByOrigin.has(origin)) {
     stateByOrigin.delete(origin)
   }
+}
+
+/** Test-only: clears all per-origin state between test cases. */
+export function resetRateLimitGateForTests(): void {
+  stateByOrigin.clear()
 }
 
 export function getRateLimitCooldownRemainingMs(url: string, nowMs = Date.now()): number {
@@ -141,12 +197,27 @@ export function throwIfRateLimited(url: string): void {
 
 /**
  * Drop-in `fetch` replacement that consults the gate before the network and
- * records 429s / successes afterwards.
+ * records 429s / successes / failures afterwards.
  */
 export async function rateLimitedFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
   throwIfRateLimited(url)
-  const response = await fetch(input, init)
+  let response: Response
+  try {
+    response = await fetch(input, init)
+  } catch (error) {
+    // No Response was produced (network error, timeout, or a CORS-blocked
+    // response — the browser hides those 429s from JS). Count it so retry
+    // loops stop touching the network after a run of failures.
+    noteFetchFailure(url)
+    throw error
+  }
+  // Any completed response means the network path works — reset fetch-failure
+  // bookkeeping (noteRateLimitedResponse/noteSuccessfulResponse handle status).
+  const state = stateByOrigin.get(getOrigin(url))
+  if (state) {
+    state.consecutiveFetchFailures = 0
+  }
   if (response.status === 429 || response.status === 401) {
     noteRateLimitedResponse(url, response)
   } else if (response.ok) {

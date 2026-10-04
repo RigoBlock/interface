@@ -129,4 +129,5 @@ export const RIGOBLOCK_BRIDGE_SUPPORTED_CHAINS: UniverseChainId[] = [
   UniverseChainId.Base,
   UniverseChainId.Bnb,
   UniverseChainId.Unichain, // Unichain currently only supports sending and receiving ETH (not USDC)
+  UniverseChainId.HyperEvm, // Crosschain bridging TARGET only (USDC in) — HyperEvm pools cannot bridge out
 ]

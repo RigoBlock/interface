@@ -1,6 +1,6 @@
 import { http } from 'viem'
 import type { UniRpcConfig } from './getUniRpcConfig'
-import { noteRateLimitedResponse, noteSuccessfulResponse, throwIfRateLimited } from './rateLimitGate'
+import { noteRateLimitedResponse, noteSuccessfulResponse, rateLimitedFetch, throwIfRateLimited } from './rateLimitGate'
 import { HEADER_RESOLVE_TIMEOUT_MS, withTimeout } from './withTimeout'
 
 // UniRPC requests should be fast — the gateway has its own latency SLOs and
@@ -79,6 +79,7 @@ export function createUniRpcTransportFactory(ctx: UniRpcTransportFactoryCtx) {
     if (ctx.session.type === 'headers') {
       const { getSessionHeaders } = ctx.session
       return http(config.rpcUrl, {
+        fetchFn: rateLimitedFetch,
         fetchOptions: {
           headers: config.headers,
         },
@@ -116,6 +117,7 @@ export function createUniRpcTransportFactory(ctx: UniRpcTransportFactoryCtx) {
     }
 
     return http(config.rpcUrl, {
+      fetchFn: rateLimitedFetch,
       fetchOptions: {
         headers: config.headers,
         credentials: 'include',

@@ -13,8 +13,42 @@
  * (Domain stripped, SameSite=None; Secure) so the browser accepts them for the
  * rigoblock host. See apps/web/AGENTS.md §Fork-Sync Notes.
  *
+ * Rate limiting is done HERE (per-IP sliding window over /v2/*), not by a
+ * dashboard WAF rule: a WAF block response is served at the edge before this
+ * worker runs and cannot carry custom headers, so a tripped rule surfaces in
+ * the browser as a misleading "No Access-Control-Allow-Origin header" CORS
+ * error (seen at initial-load bursts). The worker 429 goes through respond(),
+ * so it always carries the credentialed CORS headers. If you add a dashboard
+ * rule anyway, make sure this limiter stays the primary one (or keep the
+ * dashboard threshold well above it) and remember its block response has no CORS.
+ *
  * @typedef {Object} Env
  */
+
+// ── In-worker per-IP sliding-window rate limiter ─
+// Module scope persists per worker isolate; buckets are pruned on access.
+const RATE_LIMIT = { windowMs: 10_000, maxRequests: 200 }
+const rateLimitBuckets = new Map() // ip -> timestamps within the current window
+
+function isRateLimited(ip) {
+  const now = Date.now()
+  const windowStart = now - RATE_LIMIT.windowMs
+  const stamps = (rateLimitBuckets.get(ip) || []).filter((t) => t > windowStart)
+  if (stamps.length >= RATE_LIMIT.maxRequests) {
+    rateLimitBuckets.set(ip, stamps)
+    return true
+  }
+  stamps.push(now)
+  rateLimitBuckets.set(ip, stamps)
+  if (rateLimitBuckets.size > 10_000) {
+    for (const [key, arr] of rateLimitBuckets) {
+      if (!arr.length || arr[arr.length - 1] < windowStart) {
+        rateLimitBuckets.delete(key)
+      }
+    }
+  }
+  return false
+}
 
 export default {
   async fetch(request, env, ctx) {
@@ -55,6 +89,16 @@ export default {
 
     if (!['GET', 'POST', 'HEAD'].includes(request.method)) {
       return respond('Method Not Allowed', { status: 405 })
+    }
+
+    // Rate limit /v2/* API traffic per IP inside the worker (see the note above):
+    // the 429 goes through respond(), so it carries credentialed CORS headers
+    // instead of the browser-masking "No ACAO header" error an edge WAF rule produces.
+    if (url.pathname.startsWith('/v2/')) {
+      const ip = request.headers.get('cf-connecting-ip') || 'unknown'
+      if (isRateLimited(ip)) {
+        return respond('Too Many Requests', { status: 429, headers: { 'Retry-After': '10' } })
+      }
     }
 
     // ── PREFIX ROUTING LOGIC ─────────────────────────

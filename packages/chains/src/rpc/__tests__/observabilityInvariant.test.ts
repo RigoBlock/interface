@@ -18,6 +18,7 @@ import { afterEach, beforeEach, describe, expect, type Mock, test, vi } from 'vi
 import { createEthersProviderFactory } from '../createEthersProvider'
 import { createViemClientFactory } from '../createViemClient'
 import { setRpcObserver, type RpcObserver } from '../observability/rpcObserver'
+import { resetRateLimitGateForTests } from '../rateLimitGate'
 import type { RpcConfig } from '../rpcUrlSelector'
 import { RPCType, UniverseChainId, type ViemChainInfo } from '../types'
 
@@ -61,6 +62,9 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  // Several tests share the https://gateway origin; clear the module-scoped
+  // rate-limit gate so a failure run in one test can't fail-fast the next.
+  resetRateLimitGateForTests()
   // Restore the default observer so other test files aren't affected.
   // (rpcObserver lazy-initializes — we re-trigger by setting noopObserver.)
   setRpcObserver({ onRequest: () => {}, onResponse: () => {}, onError: () => {} })

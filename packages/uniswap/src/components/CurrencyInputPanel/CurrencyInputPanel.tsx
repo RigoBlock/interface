@@ -103,6 +103,7 @@ export const CurrencyInputPanel = memo(
       const maxInputAmount = useMaxAmountSpend({
         currencyAmount: currencyBalance,
         txType: transactionType,
+        isSmartPool,
         isGasCovered,
       })
 

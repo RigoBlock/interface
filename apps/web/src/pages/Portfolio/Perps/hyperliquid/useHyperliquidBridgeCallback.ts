@@ -5,10 +5,12 @@ import { Contract } from '@ethersproject/contracts'
 import { TransactionResponse } from '@ethersproject/providers'
 import { UniverseChainId } from '@universe/chains'
 import { useCallback } from 'react'
+import { SmartPoolBridgeError } from 'uniswap/src/features/transactions/errors'
 import { TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { logger } from 'utilities/src/logger/logger'
 import { getConnectorClient } from 'wagmi/actions'
 import { wagmiConfig } from '~/connection/wagmiConfig'
+import { RPC_PROVIDERS } from '~/constants/providers'
 import { clientToProvider } from '~/hooks/useEthersProvider'
 import { useSelectChain } from '~/hooks/useSelectChain'
 import { usePortfolioAddress } from '~/pages/Portfolio/hooks/usePortfolioAddress'
@@ -24,6 +26,9 @@ const ACROSS_DEPOSIT_V3_SELECTOR = '0x7b939232'
 const FILL_DEADLINE_SECONDS = 21_600
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+
+/** Same fallback as swapSaga.estimateBridgeGas, used when local estimation fails for a non-revert reason. */
+const RIGOBLOCK_BRIDGE_GAS_FALLBACK = 2_750_000
 
 const ACROSS_PARAMS_TYPES = [
   'address', // depositor
@@ -140,12 +145,62 @@ export function useHyperliquidBridgeCallback(poolAddress?: string): {
         { tags: { file: 'useHyperliquidBridgeCallback', function: 'sendBridgeTransaction' } },
       )
 
-      // estimateGas reverts surface here (e.g. missing AIntents adapter, OutputAmountTooLow)
-      // so the modal can show the reason instead of swallowing it.
-      const estimatedGasLimit = (await vaultContract.estimateGas.depositV3(acrossParams)) as BigNumber
-      const response = (await vaultContract.depositV3(acrossParams, {
-        gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
-      })) as TransactionResponse
+      // Estimate gas LOCALLY via RPC_PROVIDERS on the raw calldata. Estimating through the
+      // wallet-connected provider sends eth_estimateGas to the gateway, which cannot simulate
+      // an EOA→vault tx (it returns result=undefined → "bad result from backend / invalid
+      // BigNumber value"). Same pattern as swapSaga.estimateBridgeGas. Revert-class failures
+      // are thrown so the modal can show the reason; anything else falls back to a fixed limit.
+      const localProvider =
+        input.sourceChainId in RPC_PROVIDERS
+          ? RPC_PROVIDERS[input.sourceChainId as keyof typeof RPC_PROVIDERS]
+          : undefined
+      let gasLimit: BigNumber
+      try {
+        if (!localProvider) {
+          throw new Error('no local provider')
+        }
+        const estimatedGas = await localProvider.estimateGas({
+          from: getAddress(account.address),
+          to: getAddress(poolAddress),
+          data: input.calldata,
+          value: '0',
+        })
+        gasLimit = BigNumber.from(calculateGasMargin(estimatedGas.toBigInt()))
+      } catch (gasError) {
+        const gasErrorMsg = gasError instanceof Error ? gasError.message : String(gasError)
+        if (
+          gasErrorMsg.includes('execution reverted') ||
+          gasErrorMsg.includes('UNPREDICTABLE_GAS_LIMIT') ||
+          gasErrorMsg.includes('cannot estimate gas')
+        ) {
+          let userMessage = 'Bridge transaction would revert on the source chain. '
+          if (gasErrorMsg.includes('0xd99e07af')) {
+            userMessage =
+              "Bridge amount is too small: the output amount after fees is below the protocol's " +
+              'minimum threshold (OutputAmountTooLow). Please increase the transfer amount.'
+          } else if (gasErrorMsg.includes('0x0f6e887f')) {
+            userMessage =
+              'The pool is temporarily unable to process bridge transfers (EffectiveSupplyTooLow). ' +
+              'Please try again later.'
+          } else {
+            userMessage +=
+              'The pool may be in a temporary invalid state or the amount is not supported. ' +
+              'Please try again later or use a different route.'
+          }
+          throw new SmartPoolBridgeError(userMessage)
+        }
+        logger.warn(
+          'useHyperliquidBridgeCallback',
+          'sendBridgeTransaction',
+          'Local gas estimation failed, using fallback',
+          {
+            error: gasError,
+          },
+        )
+        gasLimit = BigNumber.from(RIGOBLOCK_BRIDGE_GAS_FALLBACK)
+      }
+
+      const response = (await vaultContract.depositV3(acrossParams, { gasLimit })) as TransactionResponse
 
       addTransaction(response, {
         type: TransactionType.ClaimUni, // TODO: replace with a bridge-specific type

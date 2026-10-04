@@ -63,8 +63,14 @@ export function useTokenSectionsForSearchResults({
 
   // Chains without backend support (e.g. HyperEVM) are not indexed — the search
   // endpoint would fail, so we match locally against the chain's configured tokens.
+  // In All-Networks mode (no chainFilter) this covers every enabled chain the backend
+  // does not index, so e.g. HyperEVM USDC is findable when searching.
   const isChainIndexed = !chainFilter || isBackendSupportedChainId(chainFilter)
-  const localChainTokens = useLocalChainTokens(chainFilter)
+  const localChains = useMemo(
+    () => (chainFilter ? [chainFilter] : chainIds.filter((chainId) => !isBackendSupportedChainId(chainId))),
+    [chainFilter, chainIds],
+  )
+  const localChainTokens = useLocalChainTokens(localChains)
 
   // Only call search endpoint if isBalancesOnlySearch is false
   const {
@@ -80,7 +86,7 @@ export function useTokenSectionsForSearchResults({
   })
 
   const localSearchResults = useMemo(() => {
-    if (isChainIndexed || !searchFilter) {
+    if (!localChains.length || !searchFilter) {
       return []
     }
     const query = searchFilter.trim().toLowerCase()
@@ -101,7 +107,7 @@ export function useTokenSectionsForSearchResults({
           }))
       )
     })
-  }, [isChainIndexed, localChainTokens, searchFilter])
+  }, [localChains, localChainTokens, searchFilter])
 
   const searchResultCurrencies = useMemo(
     () => searchResultsMultichain?.flatMap((r) => r.tokens).filter((c) => !isWSOL(c.currency)),
@@ -141,10 +147,22 @@ export function useTokenSectionsForSearchResults({
     portfolioBalancesById,
   })
 
+  // In All-Networks mode the backend search covers indexed chains only — prepend the
+  // local tokens of non-indexed chains (e.g. HyperEVM USDC) so they are selectable.
+  const combinedSearchResults = useMemo(() => {
+    if (!isChainIndexed) {
+      return localSearchTokenOptions
+    }
+    if (localSearchTokenOptions?.length && searchResults) {
+      return [...localSearchTokenOptions, ...searchResults]
+    }
+    return searchResults ?? localSearchTokenOptions
+  }, [isChainIndexed, localSearchTokenOptions, searchResults])
+
   const searchResultsSections = useOnchainItemListSection({
     sectionKey: OnchainItemSectionName.SearchResults,
     // Use local search when only searching balances
-    options: isBalancesOnlySearch ? portfolioTokenOptions : isChainIndexed ? searchResults : localSearchTokenOptions,
+    options: isBalancesOnlySearch ? portfolioTokenOptions : combinedSearchResults,
   })
 
   // Create section for other chains search results if they exist

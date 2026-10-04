@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import {
   getRateLimitCooldownRemainingMs,
+  noteFetchFailure,
   noteRateLimitedResponse,
   noteSuccessfulResponse,
   parseRetryAfterMs,
@@ -215,5 +216,114 @@ describe('rateLimitGate', () => {
     const now = Date.now()
     expect(parseRetryAfterMs(new Response('', { status: 429 }), now)).toBeNull()
     expect(parseRetryAfterMs(response429({ 'Retry-After': 'not-a-date' }), now)).toBeNull()
+  })
+
+  describe('fetch-failure handling (CORS-blocked 429s are invisible to response hooks)', () => {
+    test('a single fetch failure does not gate (transient hiccups must recover)', () => {
+      const origin = uniqueOrigin()
+      const url = `${origin}/rpc/1`
+
+      noteFetchFailure(url)
+
+      expect(getRateLimitCooldownRemainingMs(url)).toBe(0)
+      expect(() => throwIfRateLimited(url)).not.toThrow()
+    })
+
+    test('three consecutive fetch failures trip the cooldown', () => {
+      const origin = uniqueOrigin()
+      const url = `${origin}/rpc/1`
+
+      noteFetchFailure(url)
+      noteFetchFailure(url)
+      expect(getRateLimitCooldownRemainingMs(url)).toBe(0)
+
+      noteFetchFailure(url)
+
+      expect(getRateLimitCooldownRemainingMs(url)).toBeGreaterThan(0)
+      expect(() => throwIfRateLimited(url)).toThrow(/rate limited/)
+    })
+
+    test('consecutive fetch failures back off exponentially', () => {
+      const origin = uniqueOrigin()
+      const url = `${origin}/rpc/1`
+
+      noteFetchFailure(url)
+      noteFetchFailure(url)
+      noteFetchFailure(url)
+      const first = getRateLimitCooldownRemainingMs(url)
+
+      noteFetchFailure(url)
+      const second = getRateLimitCooldownRemainingMs(url)
+
+      expect(second).toBeGreaterThan(first)
+    })
+
+    test('a completed response resets the fetch-failure count', () => {
+      const origin = uniqueOrigin()
+      const url = `${origin}/rpc/1`
+
+      noteFetchFailure(url)
+      noteFetchFailure(url)
+      // A response arrived (any status) — the network path works again.
+      noteRateLimitedResponse(url, new Response('server error', { status: 500 }))
+      noteFetchFailure(url)
+
+      expect(getRateLimitCooldownRemainingMs(url)).toBe(0)
+    })
+
+    test('rateLimitedFetch records a rejected fetch and stops network I/O after the threshold', async () => {
+      const origin = uniqueOrigin()
+      const url = `${origin}/rpc/1`
+      const fetchSpy = vi.fn(async () => {
+        throw new TypeError('Failed to fetch')
+      })
+      globalThis.fetch = fetchSpy as unknown as typeof fetch
+
+      await expect(rateLimitedFetch(url, { method: 'POST' })).rejects.toThrow('Failed to fetch')
+      await expect(rateLimitedFetch(url, { method: 'POST' })).rejects.toThrow('Failed to fetch')
+      expect(getRateLimitCooldownRemainingMs(url)).toBe(0)
+
+      await expect(rateLimitedFetch(url, { method: 'POST' })).rejects.toThrow('Failed to fetch')
+      expect(getRateLimitCooldownRemainingMs(url)).toBeGreaterThan(0)
+      expect(fetchSpy).toHaveBeenCalledTimes(3)
+
+      // While cooling down, no further network calls are made.
+      await expect(rateLimitedFetch(url, { method: 'POST' })).rejects.toThrow(/rate limited/)
+      expect(fetchSpy).toHaveBeenCalledTimes(3)
+    })
+
+    test('rateLimitedFetch recovers once responses complete again after the cooldown', async () => {
+      const origin = uniqueOrigin()
+      const url = `${origin}/rpc/1`
+
+      globalThis.fetch = vi
+        .fn()
+        .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+        .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+        .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+        .mockResolvedValueOnce(
+          new Response('{"jsonrpc":"2.0","id":1,"result":"0x1"}', { status: 200 }),
+        ) as unknown as typeof fetch
+
+      for (let i = 0; i < 3; i++) {
+        await expect(rateLimitedFetch(url, { method: 'POST' })).rejects.toThrow('Failed to fetch')
+      }
+      expect(getRateLimitCooldownRemainingMs(url)).toBeGreaterThan(0)
+
+      // During the cooldown the gate fails fast without network I/O.
+      await expect(rateLimitedFetch(url, { method: 'POST' })).rejects.toThrow(/rate limited/)
+      expect(globalThis.fetch).toHaveBeenCalledTimes(3)
+
+      // After the cooldown expires, the next request reaches the network and a
+      // successful response clears the cooldown state entirely.
+      const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 60_000)
+      try {
+        const response = await rateLimitedFetch(url, { method: 'POST' })
+        expect(response.status).toBe(200)
+        expect(getRateLimitCooldownRemainingMs(url)).toBe(0)
+      } finally {
+        nowSpy.mockRestore()
+      }
+    })
   })
 })
