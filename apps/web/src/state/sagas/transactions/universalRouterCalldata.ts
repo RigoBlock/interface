@@ -30,6 +30,10 @@ const UNIVERSAL_ROUTER_COMMANDS = {
 
 // V4 Universal Router Action Constants
 const V4_ACTIONS = {
+  SWAP_EXACT_IN_SINGLE: 0x06, // 6 in decimal
+  SWAP_EXACT_IN: 0x07, // 7 in decimal
+  SETTLE: 0x0b, // 11 in decimal
+  SETTLE_ALL: 0x0c, // 12 in decimal
   TAKE: 0x0e, // 14 in decimal
   TAKE_PORTION: 0x10, // 16 in decimal
 }
@@ -38,6 +42,24 @@ const V4_ACTIONS = {
 const ACTION_CONSTANTS = {
   MSG_SENDER: '0x0000000000000000000000000000000000000001',
   ADDRESS_THIS: '0x0000000000000000000000000000000000000002',
+}
+
+// ActionConstants.OPEN_DELTA: a 0 amount in a V4 SETTLE/swap action means "resolve at execution
+// time from the router's delta/balance". That assumes an EOA-style flow where the tokens were
+// moved into the router earlier in the SAME execute() (PERMIT2_TRANSFER_FROM etc.) — commands the
+// RigoBlock adapter rejects. A smart pool's input tokens only reach the PoolManager through an
+// explicit-amount SETTLE(payerIsUser=true) pull from the vault, so an OPEN input amount resolves
+// to 0 credit and the swap reverts with PoolManager SwapAmountCannotBeZero (0xbe8b8507).
+const V4_OPEN_DELTA = BigInt(0)
+
+/**
+ * RigoBlock: the exact input amount of the trade being executed, used to pin OPEN-delta
+ * input amounts in V4 planner actions to explicit values. `currency` is the input token
+ * address, or the zero address for native currency.
+ */
+export interface V4ExactInput {
+  currency: string
+  amountRaw: string
 }
 
 interface CommandHandlerContext {
@@ -75,6 +97,12 @@ interface V4SwapInputContext {
   abiCoder: AbiCoder
   smartPoolAddress: string
   commandIndex: number
+  // RigoBlock: when set, OPEN-delta input amounts on the trade's input currency are pinned to
+  // this exact amount (see V4ExactInput). Undefined in tests/paths without trade context.
+  exactInput?: V4ExactInput
+  // Which V4 swap-param layout the API encoded: UR 2.1.1+ inserted minHopPriceX36 into the
+  // SWAP_EXACT_IN struct, shifting the amountIn word.
+  poolSupportsUr211: boolean
 }
 
 function shouldReplaceRecipient(recipient: string, smartPoolAddress: string): boolean {
@@ -343,36 +371,164 @@ function processV4Action(actionType: number, ctx: V4ActionContext): string | und
   }
 }
 
+// Reads a 32-byte word from hex calldata. Out-of-range/empty words read as 0 (the test-suite
+// uses '0x' placeholders for unused swap params; malformed calldata reverts on-chain anyway).
+function readWord(calldata: string, wordIndex: number): bigint {
+  const hex = calldata.startsWith('0x') ? calldata.slice(2) : calldata
+  const offset = wordIndex * 64
+  const word = hex.slice(offset, offset + 64)
+  if (word.length === 0) {
+    return V4_OPEN_DELTA
+  }
+  return BigInt('0x' + word.padStart(64, '0'))
+}
+
+// Shared context for the V4 input-amount pinning helpers below.
+interface V4PinContext {
+  exactInput: V4ExactInput
+  poolSupportsUr211?: boolean
+  abiCoder?: AbiCoder
+}
+
+// RigoBlock: pins an OPEN-delta (0) input amount on the trade's input currency to the exact
+// quoted amount. Only the amount word is rewritten — the ABI layout around it is untouched.
+// Returns undefined when no rewrite applies.
+function pinOpenAmountWord(
+  paramCalldata: string,
+  pin: { amountWordIndex: number; exactInput: V4ExactInput },
+): string | undefined {
+  const { amountWordIndex, exactInput } = pin
+  if (readWord(paramCalldata, amountWordIndex) !== V4_OPEN_DELTA) {
+    return undefined
+  }
+  const hex = paramCalldata.startsWith('0x') ? paramCalldata.slice(2) : paramCalldata
+  const offset = amountWordIndex * 64
+  const word = BigInt(exactInput.amountRaw).toString(16).padStart(64, '0')
+  return '0x' + hex.slice(0, offset) + word + hex.slice(offset + 64)
+}
+
+// SETTLE(currency, amount, payerIsUser): amount word at index 1.
+function processV4SettleAction(paramCalldata: string, exactInput: V4ExactInput): string | undefined {
+  if (
+    normalizeTokenAddressForCache(readWord(paramCalldata, 0).toString(16).padStart(40, '0')) !==
+    normalizeTokenAddressForCache(exactInput.currency)
+  ) {
+    return undefined
+  }
+  return pinOpenAmountWord(paramCalldata, { amountWordIndex: 1, exactInput })
+}
+
+// SWAP_EXACT_IN_SINGLE(poolKey, zeroForOne, amountIn, amountOutMinimum[, minHopPriceX36], hookData):
+// poolKey.currency0/currency1 at words 0/1, zeroForOne at word 5, amountIn at word 6 in both
+// UR 2.0 and 2.1.x layouts.
+function processV4SwapExactInSingleAction(paramCalldata: string, exactInput: V4ExactInput): string | undefined {
+  const zeroForOne = readWord(paramCalldata, 5) !== V4_OPEN_DELTA
+  const inputCurrencyWord = zeroForOne ? 0 : 1
+  const inputCurrency = readWord(paramCalldata, inputCurrencyWord).toString(16).padStart(40, '0')
+  if (normalizeTokenAddressForCache(inputCurrency) !== normalizeTokenAddressForCache(exactInput.currency)) {
+    return undefined
+  }
+  return pinOpenAmountWord(paramCalldata, { amountWordIndex: 6, exactInput })
+}
+
+// SWAP_EXACT_IN(currencyIn, path[], amountIn, amountOutMinimum): amountIn at word 2 (UR 2.0) or
+// word 3 (UR 2.1.x, which inserted minHopPriceX36[] after path).
+function processV4SwapExactInAction(paramCalldata: string, ctx: V4PinContext): string | undefined {
+  const inputCurrency = readWord(paramCalldata, 0).toString(16).padStart(40, '0')
+  if (normalizeTokenAddressForCache(inputCurrency) !== normalizeTokenAddressForCache(ctx.exactInput.currency)) {
+    return undefined
+  }
+  return pinOpenAmountWord(paramCalldata, {
+    amountWordIndex: ctx.poolSupportsUr211 ? 3 : 2,
+    exactInput: ctx.exactInput,
+  })
+}
+
+// SETTLE_ALL(currency, maxAmount) resolves the paid amount from the router's own debt/balance,
+// which is always 0 in the fork's flow (input tokens are pulled from the vault, never held by
+// the router). It cannot be fixed by pinning a word — re-encode as an explicit-amount SETTLE
+// that pulls the exact input from the pool (payerIsUser=true), and flag the action byte change.
+function processV4SettleAllAction(
+  paramCalldata: string,
+  ctx: V4PinContext,
+): { paramCalldata: string; newActionType: number } | undefined {
+  const currency = readWord(paramCalldata, 0).toString(16).padStart(40, '0')
+  if (normalizeTokenAddressForCache(currency) !== normalizeTokenAddressForCache(ctx.exactInput.currency)) {
+    return undefined
+  }
+  return {
+    paramCalldata: ctx.abiCoder!.encode(
+      ['address', 'uint256', 'bool'],
+      ['0x' + currency, ctx.exactInput.amountRaw, true],
+    ),
+    newActionType: V4_ACTIONS.SETTLE,
+  }
+}
+
 function processV4SwapInput(input: string, ctx: V4SwapInputContext): string | undefined {
-  const { abiCoder, smartPoolAddress, commandIndex } = ctx
+  const { abiCoder, smartPoolAddress, commandIndex, exactInput } = ctx
   try {
     const [actions, params] = abiCoder.decode(['bytes', 'bytes[]'], input)
     const actionsBytes = actions.startsWith('0x')
       ? new Uint8Array(Buffer.from(actions.slice(2), 'hex'))
       : new Uint8Array(Buffer.from(actions, 'hex'))
+    const modifiedActions = new Uint8Array(actionsBytes)
     const modifiedParams = [...params]
     let v4InputWasModified = false
     for (let j = 0; j < actionsBytes.length; j++) {
       const actionType = actionsBytes[j]
-      if (actionType !== V4_ACTIONS.TAKE && actionType !== V4_ACTIONS.TAKE_PORTION) {
+      if (actionType === V4_ACTIONS.TAKE || actionType === V4_ACTIONS.TAKE_PORTION) {
+        const newParams = processV4Action(actionType, {
+          paramCalldata: params[j],
+          abiCoder,
+          smartPoolAddress,
+          actionIndex: j,
+          commandIndex,
+        })
+        if (newParams) {
+          modifiedParams[j] = newParams
+          v4InputWasModified = true
+        }
         continue
       }
-      const newParams = processV4Action(actionType, {
-        paramCalldata: params[j],
-        abiCoder,
-        smartPoolAddress,
-        actionIndex: j,
-        commandIndex,
-      })
-      if (newParams) {
-        modifiedParams[j] = newParams
-        v4InputWasModified = true
+      // RigoBlock: pin OPEN-delta input amounts to the exact trade input. Without this, a
+      // full-balance (MAX) V4 swap emitted as SETTLE(currency, 0, …) + SWAP_EXACT_IN(…, 0, …)
+      // resolves the swap amount from 0 router credit and reverts with SwapAmountCannotBeZero.
+      if (!exactInput) {
+        continue
+      }
+      if (actionType === V4_ACTIONS.SETTLE) {
+        const newParams = processV4SettleAction(params[j], exactInput)
+        if (newParams) {
+          modifiedParams[j] = newParams
+          v4InputWasModified = true
+        }
+      } else if (actionType === V4_ACTIONS.SETTLE_ALL) {
+        const result = processV4SettleAllAction(params[j], { ...ctx, exactInput })
+        if (result) {
+          modifiedParams[j] = result.paramCalldata
+          modifiedActions[j] = result.newActionType
+          v4InputWasModified = true
+        }
+      } else if (actionType === V4_ACTIONS.SWAP_EXACT_IN_SINGLE) {
+        const newParams = processV4SwapExactInSingleAction(params[j], exactInput)
+        if (newParams) {
+          modifiedParams[j] = newParams
+          v4InputWasModified = true
+        }
+      } else if (actionType === V4_ACTIONS.SWAP_EXACT_IN) {
+        const newParams = processV4SwapExactInAction(params[j], { ...ctx, exactInput })
+        if (newParams) {
+          modifiedParams[j] = newParams
+          v4InputWasModified = true
+        }
       }
     }
     if (!v4InputWasModified) {
       return undefined
     }
-    return abiCoder.encode(['bytes', 'bytes[]'], [actions, modifiedParams])
+    const finalActions = '0x' + Buffer.from(modifiedActions).toString('hex')
+    return abiCoder.encode(['bytes', 'bytes[]'], [finalActions, modifiedParams])
   } catch (error) {
     logger.warn(
       'universalRouterCalldata',
@@ -388,6 +544,11 @@ function processV4SwapInput(input: string, ctx: V4SwapInputContext): string | un
 // UR 2.1.x commands; skips the PAY_PORTION_FULL_PRECISION downgrade and BALANCE_CHECK_ERC20 stripping.
 export interface UniversalRouterCalldataOptions {
   poolSupportsUr211?: boolean
+  // RigoBlock: exact input of the trade being executed. When provided, OPEN-delta (0) input
+  // amounts on the trade's input currency in V4 planner actions are pinned to this exact amount
+  // — the fork's adapter pulls input tokens from the pool via an explicit-amount SETTLE, so an
+  // OPEN input amount would otherwise resolve to 0 credit and revert (SwapAmountCannotBeZero).
+  exactInput?: V4ExactInput
 }
 
 interface ModifyV4ExecuteCalldataParams extends UniversalRouterCalldataOptions {
@@ -396,7 +557,7 @@ interface ModifyV4ExecuteCalldataParams extends UniversalRouterCalldataOptions {
 }
 
 export function modifyV4ExecuteCalldata(params: ModifyV4ExecuteCalldataParams): string {
-  const { calldata, smartPoolAddress, poolSupportsUr211 = false } = params
+  const { calldata, smartPoolAddress, poolSupportsUr211 = false, exactInput } = params
   try {
     const abiCoder = new AbiCoder()
     const decoded = abiCoder.decode(['bytes', 'bytes[]', 'uint256'], calldata)
@@ -421,7 +582,13 @@ export function modifyV4ExecuteCalldata(params: ModifyV4ExecuteCalldataParams): 
           commandsWasModified = true
         }
       } else if (command === UNIVERSAL_ROUTER_COMMANDS.V4_SWAP) {
-        const modifiedInput = processV4SwapInput(input, { abiCoder, smartPoolAddress, commandIndex: i })
+        const modifiedInput = processV4SwapInput(input, {
+          abiCoder,
+          smartPoolAddress,
+          commandIndex: i,
+          exactInput,
+          poolSupportsUr211,
+        })
         if (modifiedInput) {
           modifiedInputs[i] = modifiedInput
           inputsWereModified = true

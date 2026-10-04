@@ -534,3 +534,172 @@ describe('stripBalanceCheckERC20 with poolSupportsUr211', () => {
     consoleInfoSpy.mockRestore()
   })
 })
+
+// --------------------------------------------------------------------------
+// OPEN-delta input pinning (RigoBlock: full-balance V4 swaps)
+// --------------------------------------------------------------------------
+
+const V4_SETTLE_ALL = 0x0c
+const EXACT_INPUT = { currency: SOME_TOKEN, amountRaw: '501643000000000000000' }
+const NATIVE_EXACT_INPUT = { currency: NATIVE_TOKEN, amountRaw: '1000000000000000000' }
+
+function decodeSettleParams(params: string): { currency: string; amount: bigint; payerIsUser: boolean } {
+  const [currency, amount, payerIsUser] = abiCoder.decode(['address', 'uint256', 'bool'], params)
+  return { currency, amount: BigInt(amount.toString()), payerIsUser }
+}
+
+describe('V4 OPEN-delta input amount pinning', () => {
+  it('pins SETTLE amount 0 to the exact trade input, preserving payerIsUser', () => {
+    const settleParams = abiCoder.encode(['address', 'uint256', 'bool'], [SOME_TOKEN, 0, true])
+    const takeParams = abiCoder.encode(['address', 'address', 'uint256'], [NATIVE_TOKEN, SMART_POOL, 0])
+    const calldata = buildV4SwapCalldata([V4_SWAP_EXACT_IN, V4_SETTLE, V4_TAKE], ['0x', settleParams, takeParams])
+
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL, exactInput: EXACT_INPUT })
+    const { inputs } = decodeOutputCalldata(result)
+    const { params } = decodeV4SwapInput(inputs[0]!)
+    const settle = decodeSettleParams(params[1]!)
+    expect(settle.currency.toLowerCase()).toBe(SOME_TOKEN.toLowerCase())
+    expect(settle.amount).toBe(BigInt(EXACT_INPUT.amountRaw))
+    expect(settle.payerIsUser).toBe(true)
+  })
+
+  it('leaves SETTLE with an explicit amount untouched', () => {
+    const settleParams = abiCoder.encode(['address', 'uint256', 'bool'], [SOME_TOKEN, 1000, true])
+    const takeParams = abiCoder.encode(['address', 'address', 'uint256'], [NATIVE_TOKEN, SMART_POOL, 0])
+    const calldata = buildV4SwapCalldata([V4_SWAP_EXACT_IN, V4_SETTLE, V4_TAKE], ['0x', settleParams, takeParams])
+
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL, exactInput: EXACT_INPUT })
+    expect(result).toBe(calldata)
+  })
+
+  it('leaves SETTLE open amount on a different currency untouched', () => {
+    const settleParams = abiCoder.encode(['address', 'uint256', 'bool'], [SOME_TOKEN, 0, true])
+    const otherSettleParams = abiCoder.encode(['address', 'uint256', 'bool'], [NATIVE_TOKEN, 0, true])
+    const takeParams = abiCoder.encode(['address', 'address', 'uint256'], [NATIVE_TOKEN, SMART_POOL, 0])
+    const calldata = buildV4SwapCalldata(
+      [V4_SWAP_EXACT_IN, V4_SETTLE, V4_SETTLE, V4_TAKE],
+      ['0x', settleParams, otherSettleParams, takeParams],
+    )
+
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL, exactInput: NATIVE_EXACT_INPUT })
+    const { inputs } = decodeOutputCalldata(result)
+    const { params } = decodeV4SwapInput(inputs[0]!)
+    // input currency is native here: the SOME_TOKEN settle stays open, the native settle is pinned
+    expect(decodeSettleParams(params[1]!).amount).toBe(BigInt(0))
+    expect(decodeSettleParams(params[2]!).amount).toBe(BigInt(NATIVE_EXACT_INPUT.amountRaw))
+  })
+
+  it('rewrites SETTLE_ALL on the input currency to an explicit SETTLE', () => {
+    const settleAllParams = abiCoder.encode(['address', 'uint256'], [SOME_TOKEN, 0])
+    const takeParams = abiCoder.encode(['address', 'address', 'uint256'], [NATIVE_TOKEN, SMART_POOL, 0])
+    const calldata = buildV4SwapCalldata(
+      [V4_SETTLE_ALL, V4_SWAP_EXACT_IN, V4_TAKE],
+      [settleAllParams, '0x', takeParams],
+    )
+
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL, exactInput: EXACT_INPUT })
+    const { inputs } = decodeOutputCalldata(result)
+    const { actionsHex, params } = decodeV4SwapInput(inputs[0]!)
+    const actionsBytes = Buffer.from(actionsHex.slice(2), 'hex')
+    expect(actionsBytes[0]).toBe(V4_SETTLE) // 0x0c -> 0x0b
+    const settle = decodeSettleParams(params[0]!)
+    expect(settle.currency.toLowerCase()).toBe(SOME_TOKEN.toLowerCase())
+    expect(settle.amount).toBe(BigInt(EXACT_INPUT.amountRaw))
+    expect(settle.payerIsUser).toBe(true)
+  })
+
+  it('pins SWAP_EXACT_IN_SINGLE amountIn 0 to the exact trade input', () => {
+    const poolKey = [SOME_TOKEN, '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', 3000, 60, NATIVE_TOKEN] as const
+    const swapParams = abiCoder.encode(
+      ['tuple(address,address,uint24,int24,address)', 'bool', 'uint128', 'uint128', 'bytes'],
+      [poolKey, true, 0, 1000, '0x'],
+    )
+    const settleParams = abiCoder.encode(['address', 'uint256', 'bool'], [SOME_TOKEN, 0, true])
+    const takeParams = abiCoder.encode(['address', 'address', 'uint256'], [NATIVE_TOKEN, SMART_POOL, 0])
+    const calldata = buildV4SwapCalldata(
+      [V4_SWAP_EXACT_IN_SINGLE, V4_SETTLE, V4_TAKE],
+      [swapParams, settleParams, takeParams],
+    )
+
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL, exactInput: EXACT_INPUT })
+    const { inputs } = decodeOutputCalldata(result)
+    const { params } = decodeV4SwapInput(inputs[0]!)
+    const [decodedPoolKey, zeroForOne, amountIn, amountOutMin, hookData] = abiCoder.decode(
+      ['tuple(address,address,uint24,int24,address)', 'bool', 'uint128', 'uint128', 'bytes'],
+      params[0]!,
+    )
+    expect(zeroForOne).toBe(true)
+    expect(BigInt(amountIn.toString())).toBe(BigInt(EXACT_INPUT.amountRaw))
+    expect(BigInt(amountOutMin.toString())).toBe(BigInt(1000))
+    expect(hookData).toBe('0x')
+    expect((decodedPoolKey as string[])[0].toLowerCase()).toBe(SOME_TOKEN.toLowerCase())
+    // SETTLE pinned too
+    expect(decodeSettleParams(params[1]!).amount).toBe(BigInt(EXACT_INPUT.amountRaw))
+  })
+
+  it('pins SWAP_EXACT_IN amountIn 0 at the UR 2.0 word index', () => {
+    const pathKey = ['0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', 3000, 60, NATIVE_TOKEN, '0x'] as const
+    const swapParams = abiCoder.encode(
+      ['address', 'tuple(address,uint24,int24,address,bytes)[]', 'uint128', 'uint128'],
+      [SOME_TOKEN, [pathKey], 0, 1000],
+    )
+    const settleParams = abiCoder.encode(['address', 'uint256', 'bool'], [SOME_TOKEN, 0, true])
+    const takeParams = abiCoder.encode(['address', 'address', 'uint256'], [NATIVE_TOKEN, SMART_POOL, 0])
+    const calldata = buildV4SwapCalldata([V4_SWAP_EXACT_IN, V4_SETTLE, V4_TAKE], [swapParams, settleParams, takeParams])
+
+    const result = modifyV4ExecuteCalldata({
+      calldata,
+      smartPoolAddress: SMART_POOL,
+      poolSupportsUr211: false,
+      exactInput: EXACT_INPUT,
+    })
+    const { inputs } = decodeOutputCalldata(result)
+    const { params } = decodeV4SwapInput(inputs[0]!)
+    const [currencyIn, path, amountIn, amountOutMin] = abiCoder.decode(
+      ['address', 'tuple(address,uint24,int24,address,bytes)[]', 'uint128', 'uint128'],
+      params[0]!,
+    )
+    expect(currencyIn.toLowerCase()).toBe(SOME_TOKEN.toLowerCase())
+    expect(BigInt(amountIn.toString())).toBe(BigInt(EXACT_INPUT.amountRaw))
+    expect(BigInt(amountOutMin.toString())).toBe(BigInt(1000))
+    expect((path as unknown[]).length).toBe(1)
+  })
+
+  it('pins SWAP_EXACT_IN amountIn 0 at the UR 2.1.1 word index', () => {
+    const pathKey = ['0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', 3000, 60, NATIVE_TOKEN, '0x'] as const
+    // UR 2.1.1 struct: (currencyIn, path[], minHopPriceX36[], amountIn, amountOutMinimum)
+    const swapParams = abiCoder.encode(
+      ['address', 'tuple(address,uint24,int24,address,bytes)[]', 'uint256[]', 'uint128', 'uint128'],
+      [SOME_TOKEN, [pathKey], [], 0, 1000],
+    )
+    const settleParams = abiCoder.encode(['address', 'uint256', 'bool'], [SOME_TOKEN, 0, true])
+    const takeParams = abiCoder.encode(['address', 'address', 'uint256'], [NATIVE_TOKEN, SMART_POOL, 0])
+    const calldata = buildV4SwapCalldata([V4_SWAP_EXACT_IN, V4_SETTLE, V4_TAKE], [swapParams, settleParams, takeParams])
+
+    const result = modifyV4ExecuteCalldata({
+      calldata,
+      smartPoolAddress: SMART_POOL,
+      poolSupportsUr211: true,
+      exactInput: EXACT_INPUT,
+    })
+    const { inputs } = decodeOutputCalldata(result)
+    const { params } = decodeV4SwapInput(inputs[0]!)
+    const [currencyIn, path, minHopPriceX36, amountIn, amountOutMin] = abiCoder.decode(
+      ['address', 'tuple(address,uint24,int24,address,bytes)[]', 'uint256[]', 'uint128', 'uint128'],
+      params[0]!,
+    )
+    expect(BigInt(amountIn.toString())).toBe(BigInt(EXACT_INPUT.amountRaw))
+    expect(BigInt(amountOutMin.toString())).toBe(BigInt(1000))
+    expect((minHopPriceX36 as unknown[]).length).toBe(0)
+    expect((path as unknown[]).length).toBe(1)
+  })
+
+  it('does not modify V4 input when exactInput is not provided', () => {
+    const settleParams = abiCoder.encode(['address', 'uint256', 'bool'], [SOME_TOKEN, 0, true])
+    const takeParams = abiCoder.encode(['address', 'address', 'uint256'], [NATIVE_TOKEN, SMART_POOL, 0])
+    const calldata = buildV4SwapCalldata([V4_SWAP_EXACT_IN, V4_SETTLE, V4_TAKE], ['0x', settleParams, takeParams])
+
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
+    expect(result).toBe(calldata)
+  })
+})

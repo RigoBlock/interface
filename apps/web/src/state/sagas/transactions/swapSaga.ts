@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 
 import { BigNumber, type BigNumberish } from '@ethersproject/bignumber'
-import { Currency } from '@uniswap/sdk-core'
+import { Currency, TradeType } from '@uniswap/sdk-core'
 import { TradingApi } from '@universe/api'
 import { normalizeTokenAddressForCache } from '@universe/chains'
 import ms from 'ms'
@@ -420,10 +420,23 @@ function* handleNonBridgeTransactionModifications(params: NonBridgeTransactionMo
   const poolUsesUr212 = smartPoolUrVersion === TradingApi.UniversalRouterVersion._2_1_2
   try {
     const parametersOnly = calldata.slice(10)
+    // RigoBlock: pass the trade's exact input so the rewriter can pin OPEN-delta V4 input
+    // amounts (see V4ExactInput) — a full-balance V4 swap otherwise reverts on-chain.
+    // EXACT_INPUT only: for EXACT_OUTPUT trades inputAmount is the quoted MAX input, and
+    // pinning an open settle to it would over-pull the vault (excess stranded in the
+    // PoolManager), so those are left exactly as the API emitted them.
+    const inputCurrency = trade.inputAmount.currency
     const updatedParams = modifyV4ExecuteCalldata({
       calldata: '0x' + parametersOnly,
       smartPoolAddress,
       poolSupportsUr211: poolUsesUr212,
+      exactInput:
+        trade.tradeType === TradeType.EXACT_INPUT
+          ? {
+              currency: inputCurrency.isNative ? '0x0000000000000000000000000000000000000000' : inputCurrency.address,
+              amountRaw: trade.inputAmount.quotient.toString(),
+            }
+          : undefined,
     })
     if (updatedParams !== '0x' + parametersOnly) {
       const functionSelector = calldata.slice(0, 10)
