@@ -384,13 +384,13 @@ export class EmbeddedWalletProvider implements EmbeddedWalletProviderApi {
     const client = this.getPublicClient(this.chainId)
 
     try {
-      const { status, typeHex, ...rest } = await client.getTransactionReceipt({
+      const { status, ...rest } = await client.getTransactionReceipt({
         hash,
       })
 
       // Same ethers/viem shape mismatch as getTransactionByHash: ethers expects a hex
       // status ('0x1'/'0x0'), viem returns 'success'/'reverted'.
-      return { ...rest, status: status === 'success' ? '0x1' : '0x0', type: typeHex }
+      return { ...rest, status: status === 'success' ? '0x1' : '0x0' }
     } catch (e) {
       if (e instanceof Error && e.name === 'TransactionNotFoundError') {
         return null

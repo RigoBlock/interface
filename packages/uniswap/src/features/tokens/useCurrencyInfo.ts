@@ -9,10 +9,10 @@ import {
   getGetTokenQueryOptions,
   getGetTokensQueryOptions,
 } from 'uniswap/src/data/apiClients/dataApiService/tokens/queries'
+import { isBackendSupportedChainId } from 'uniswap/src/features/chains/utils'
 import { CurrencyInfo, RestContract } from 'uniswap/src/features/dataApi/types'
 import { currencyIdToRestContractInput } from 'uniswap/src/features/dataApi/utils/currencyIdToContractInput'
 import { restV2TokenToCurrencyInfo } from 'uniswap/src/features/dataApi/utils/restV2TokenToCurrencyInfo'
-import { isBackendSupportedChainId } from 'uniswap/src/features/chains/utils'
 import {
   buildNativeCurrencyId,
   buildWrappedNativeCurrencyId,

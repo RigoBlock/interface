@@ -57,9 +57,7 @@ export function usePrefetchSwappableTokens(input: Maybe<TradeableAsset>): void {
       // RigoBlock fork: the trading API 400s swappable_tokens when tokenInChainId is HyperEvm
       // (999) — nothing is swappable FROM HyperEvm, so skip the prefetch entirely.
       const tokenInChainId =
-        input?.chainId === UniverseChainId.HyperEvm
-          ? undefined
-          : toTradingApiSupportedChainId(input?.chainId)
+        input?.chainId === UniverseChainId.HyperEvm ? undefined : toTradingApiSupportedChainId(input?.chainId)
       if (!tokenIn || !tokenInChainId) {
         return
       }

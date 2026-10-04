@@ -47,8 +47,8 @@ import {
 } from 'uniswap/src/test/fixtures/dataApi/tokens'
 import { act, renderHook, waitFor } from 'uniswap/src/test/test-utils'
 import { createArray } from 'uniswap/src/test/utils'
-import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
 import { portfolioBalancesById } from 'uniswap/src/utils/balances'
+import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
 import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
 import type { Mock } from 'vitest'
 

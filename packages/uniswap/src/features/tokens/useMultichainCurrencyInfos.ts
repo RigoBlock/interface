@@ -4,9 +4,9 @@ import type { GetTokensMultiChainResponse } from '@uniswap/client-data-api/dist/
 import { useCallback, useMemo } from 'react'
 import { getGetTokensMultiChainQueryOptions } from 'uniswap/src/data/apiClients/dataApiService/tokens/queries'
 import { dataApiMultichainTokenToCurrencyInfos } from 'uniswap/src/data/apiClients/dataApiService/utils/dataApiMultichainToken'
+import { isBackendSupportedChainId } from 'uniswap/src/features/chains/utils'
 import type { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { currencyIdToRestContractInput } from 'uniswap/src/features/dataApi/utils/currencyIdToContractInput'
-import { isBackendSupportedChainId } from 'uniswap/src/features/chains/utils'
 import type { CurrencyId } from 'uniswap/src/types/currency'
 import { areCurrencyIdsEqual } from 'uniswap/src/utils/currencyId'
 
