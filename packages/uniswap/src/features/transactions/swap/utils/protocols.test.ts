@@ -20,8 +20,15 @@ vi.mock('@universe/gating', async (importOriginal) => {
 const mockUseFeatureFlag = useFeatureFlag as Mock
 
 describe('protocols', () => {
+  // RigoBlock: UNISWAPX_LATEST may still appear in persisted settings, so filterProtocols must
+  // strip it no matter what the upstream `uniswapx` feature flag says.
   const allProtocols: FrontendSupportedProtocol[] = [
     TradingApi.ProtocolItems.UNISWAPX_LATEST,
+    TradingApi.ProtocolItems.V4,
+    TradingApi.ProtocolItems.V3,
+    TradingApi.ProtocolItems.V2,
+  ]
+  const classicProtocols: FrontendSupportedProtocol[] = [
     TradingApi.ProtocolItems.V4,
     TradingApi.ProtocolItems.V3,
     TradingApi.ProtocolItems.V2,
@@ -31,20 +38,16 @@ describe('protocols', () => {
     vi.clearAllMocks()
   })
 
-  it('defaults to UniswapX latest, V4, V3, and V2', () => {
-    expect(DEFAULT_PROTOCOL_OPTIONS).toEqual(allProtocols)
+  it('defaults to V4, V3, and V2 (RigoBlock: classic-only)', () => {
+    expect(DEFAULT_PROTOCOL_OPTIONS).toEqual(classicProtocols)
   })
 
-  it('preserves selected protocols when UniswapX is enabled', () => {
-    expect(filterProtocols(allProtocols, true)).toEqual(allProtocols)
+  it('filters UniswapX latest even when UniswapX is enabled', () => {
+    expect(filterProtocols(allProtocols, true)).toEqual(classicProtocols)
   })
 
   it('filters only UniswapX latest when UniswapX is disabled', () => {
-    expect(filterProtocols(allProtocols, false)).toEqual([
-      TradingApi.ProtocolItems.V4,
-      TradingApi.ProtocolItems.V3,
-      TradingApi.ProtocolItems.V2,
-    ])
+    expect(filterProtocols(allProtocols, false)).toEqual(classicProtocols)
   })
 
   it('does not add UniswapX latest when the user toggled it off', () => {
@@ -66,12 +69,12 @@ describe('protocols', () => {
     expect(filterProtocols(selectedProtocols, false)).toEqual([TradingApi.ProtocolItems.V4])
   })
 
-  it('uses the global UniswapX feature flag in the hook path', () => {
+  it('consults the global UniswapX feature flag but still filters UniswapX latest', () => {
     mockUseFeatureFlag.mockImplementation((flag: FeatureFlags) => flag === FeatureFlags.UniswapX)
 
     const { result } = renderHook(() => useProtocols(allProtocols))
 
-    expect(result.current).toEqual(allProtocols)
+    expect(result.current).toEqual(classicProtocols)
     expect(mockUseFeatureFlag).toHaveBeenCalledWith(FeatureFlags.UniswapX)
   })
 
@@ -80,10 +83,6 @@ describe('protocols', () => {
 
     const { result } = renderHook(() => useProtocols(allProtocols))
 
-    expect(result.current).toEqual([
-      TradingApi.ProtocolItems.V4,
-      TradingApi.ProtocolItems.V3,
-      TradingApi.ProtocolItems.V2,
-    ])
+    expect(result.current).toEqual(classicProtocols)
   })
 })

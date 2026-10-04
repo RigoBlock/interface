@@ -56,11 +56,11 @@ describe('createEVMTradeService — UniswapX gating', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    // UniswapX global flag ON for all cases — we're isolating the mismatch dimension
+    // UniswapX global flag ON for all cases — RigoBlock must still never send UNISWAPX_LATEST
     vi.mocked(getFeatureFlag).mockImplementation((flag) => flag === FeatureFlags.UniswapX)
   })
 
-  it('keeps UniswapX when the account/chain supports it', async () => {
+  it('never sends UniswapX even when the account/chain supports it and the global flag is on (RigoBlock: classic-only)', async () => {
     const service = createEVMTradeService({
       tradeRepository,
       getIsL2ChainId: () => false,
@@ -70,7 +70,8 @@ describe('createEVMTradeService — UniswapX gating', () => {
 
     await service.getTrade(input)
 
-    expect(getProtocolsSentToApi()).toContain(TradingApi.ProtocolItems.UNISWAPX_LATEST)
+    expect(getProtocolsSentToApi()).not.toContain(TradingApi.ProtocolItems.UNISWAPX_LATEST)
+    expect(getProtocolsSentToApi()).toContain(TradingApi.ProtocolItems.V3)
   })
 
   it('removes UniswapX when the account has a delegation mismatch (getIsUniswapXSupported=false)', async () => {
@@ -87,7 +88,7 @@ describe('createEVMTradeService — UniswapX gating', () => {
     expect(getProtocolsSentToApi()).toContain(TradingApi.ProtocolItems.V3)
   })
 
-  it('defaults to supported when no getIsUniswapXSupported is provided', async () => {
+  it('never sends UniswapX when getIsUniswapXSupported is not provided (RigoBlock: classic-only)', async () => {
     const service = createEVMTradeService({
       tradeRepository,
       getIsL2ChainId: () => false,
@@ -96,6 +97,7 @@ describe('createEVMTradeService — UniswapX gating', () => {
 
     await service.getTrade(input)
 
-    expect(getProtocolsSentToApi()).toContain(TradingApi.ProtocolItems.UNISWAPX_LATEST)
+    expect(getProtocolsSentToApi()).not.toContain(TradingApi.ProtocolItems.UNISWAPX_LATEST)
+    expect(getProtocolsSentToApi()).toContain(TradingApi.ProtocolItems.V3)
   })
 })
