@@ -8,7 +8,10 @@ import { useEffect, useRef } from 'react'
 import { useWalletCheckDelegationQuery } from 'uniswap/src/data/apiClients/tradingApi/useWalletCheckDelegationQuery'
 import { logExperimentQualifyingEvent } from 'uniswap/src/features/telemetry/utils/logExperimentQualifyingEvent'
 import type { DerivedSwapInfo } from 'uniswap/src/features/transactions/swap/types/derivedSwapInfo'
-import { toTradingApiSupportedChainId } from 'uniswap/src/features/transactions/swap/utils/tradingApi'
+import {
+  isTradingApiDelegationSupportedChainId,
+  toTradingApiSupportedChainId,
+} from 'uniswap/src/features/transactions/swap/utils/tradingApi'
 import { useWallet } from 'uniswap/src/features/wallet/hooks/useWallet'
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { logger } from 'utilities/src/logger/logger'
@@ -160,7 +163,11 @@ export function useEthAsErc20UniswapXQualifyingEvent(derivedSwapInfo: DerivedSwa
   const basicEligible = checkBasicEligibility({ derivedSwapInfo, hasWallet: !!walletAddress, minUsdByChain })
 
   // 2. Check delegation (async, via /check_delegation API)
-  const tradingApiChainId = toTradingApiSupportedChainId(chainId)
+  // isTradingApiDelegationSupportedChainId (not toTradingApiSupportedChainId): HyperEvm (999) is
+  // quote-supported but check_delegation 400s on it.
+  const tradingApiChainId = isTradingApiDelegationSupportedChainId(chainId)
+    ? toTradingApiSupportedChainId(chainId)
+    : undefined
   const { data: delegationResponse } = useWalletCheckDelegationQuery({
     params:
       basicEligible && walletAddress && tradingApiChainId

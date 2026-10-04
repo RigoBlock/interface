@@ -1,6 +1,6 @@
 import type { Currency, CurrencyAmount, TradeType } from '@uniswap/sdk-core'
 import { type ClassicQuoteResponse, type DiscriminatedQuoteResponse, TradingApi } from '@universe/api'
-import { type UniverseChainId, areAddressesEqual } from '@universe/chains'
+import { UniverseChainId, areAddressesEqual } from '@universe/chains'
 import { DynamicConfigs, getDynamicConfigValue, SwapConfigKey } from '@universe/gating'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { isUniverseChainId } from 'uniswap/src/features/chains/utils'
@@ -158,6 +158,15 @@ export function toTradingApiSupportedChainId(chainId: Maybe<number>): TradingApi
     return undefined
   }
   return chainId
+}
+
+// Fork: HyperEvm (999) is a TradingApi-supported chain for quotes/bridging (the codegen injects
+// it — see packages/api/scripts/modifyTradingApiTypes.mts), but the fork's trading API rejects it
+// for /wallet/check_delegation with a 400 for the ENTIRE request. It also has no Universal Router
+// deployment (supportedURVersions: []), so a delegation status there is meaningless — delegation
+// checks must exclude it and report "not delegated" instead.
+export function isTradingApiDelegationSupportedChainId(chainId: Maybe<number>): boolean {
+  return toTradingApiSupportedChainId(chainId) !== undefined && chainId !== UniverseChainId.HyperEvm
 }
 
 export function getClassicQuoteFromResponse(

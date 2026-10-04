@@ -4,6 +4,7 @@
  * Multi-tenant reverse proxy in front of Uniswap's backend APIs:
  *   /v2/liquidity/*      -> liquidity.backend-prod.api.uniswap.org
  *   /v2/entry-gateway/*  -> entry-gateway.backend-prod.api.uniswap.org
+ *   /v2/img/*            -> coin-images.coingecko.com (token logos for browser color extraction)
  *   everything else      -> {prefix}.uniswap.org (legacy/production-app traffic)
  *
  * Credentialed CORS: the web app uses upstream's cookie session auth
@@ -96,12 +97,40 @@ export default {
       headers.set('host', 'liquidity.backend-prod.api.uniswap.org')
       // x-api-key is already in the request headers from the client
 
-      const response = await fetch(targetUrl, {
-        method: request.method,
-        headers,
-        body: request.body,
-      })
-      return finalizeDirect(response)
+      try {
+        const response = await fetch(targetUrl, {
+          method: request.method,
+          headers,
+          body: request.body,
+        })
+        return finalizeDirect(response)
+      } catch (err) {
+        console.error(err)
+        return respond('Bad Gateway', { status: 502 })
+      }
+    }
+
+    if (url.pathname.startsWith('/v2/img/')) {
+      // Token-logo image proxy for browser color extraction (packages/ui rn-image-colors.web.ts).
+      // CoinGecko's CDN serves ACAO:* but its WAF intermittently challenges direct browser
+      // bursts with a 403 page that has NO CORS headers — the "temporary" CORS storms in prod.
+      // Serving through here makes delivery deterministic. Deliberately NOT finalizeDirect:
+      // no cookies are forwarded or set, and the response is anonymously cacheable.
+      const targetPath = url.pathname.replace('/v2/img', '')
+      const targetUrl = `https://coin-images.coingecko.com${targetPath}${url.search}`
+      const headers = new Headers(request.headers)
+      headers.delete('Cookie')
+      headers.set('host', 'coin-images.coingecko.com')
+      try {
+        const response = await fetch(targetUrl, { method: request.method, headers })
+        const res = new Response(response.body, response)
+        applyCors(res.headers)
+        res.headers.set('Cache-Control', 'public, max-age=86400, s-maxage=604800')
+        return res
+      } catch (err) {
+        console.error(err)
+        return respond('Bad Gateway', { status: 502 })
+      }
     }
 
     if (url.pathname.startsWith('/v2/entry-gateway/')) {
@@ -113,13 +142,21 @@ export default {
       headers.set('host', 'entry-gateway.backend-prod.api.uniswap.org')
       headers.set('Origin', 'https://app.uniswap.org')
 
-      const response = await fetch(targetUrl, {
-        method: request.method,
-        headers,
-        body: request.body,
-      })
-      // Cookie session auth (x-session-id / x-device-id) lives here.
-      return finalizeDirect(response, { mintDeviceId: true })
+      try {
+        const response = await fetch(targetUrl, {
+          method: request.method,
+          headers,
+          body: request.body,
+        })
+        // Cookie session auth (x-session-id / x-device-id) lives here.
+        return finalizeDirect(response, { mintDeviceId: true })
+      } catch (err) {
+        // If the upstream fetch throws (network error/timeout), still return CORS headers —
+        // otherwise the browser reports a misleading "No ACAO header" CORS error for what is
+        // really a backend outage.
+        console.error(err)
+        return respond('Bad Gateway', { status: 502 })
+      }
     }
 
     const prefix = getPrefix(url.hostname)

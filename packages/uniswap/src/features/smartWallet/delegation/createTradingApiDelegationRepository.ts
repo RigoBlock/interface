@@ -3,7 +3,7 @@ import type {
   ChainDelegationDetails,
   DelegationRepository,
 } from 'uniswap/src/features/smartWallet/delegation/delegationRepository'
-import { toTradingApiSupportedChainId } from 'uniswap/src/features/transactions/swap/utils/tradingApi'
+import { isTradingApiDelegationSupportedChainId } from 'uniswap/src/features/transactions/swap/utils/tradingApi'
 import type { Logger } from 'utilities/src/logger/logger'
 
 interface TradingApiClient {
@@ -28,9 +28,11 @@ export function createTradingApiDelegationRepository(ctx: {
     const result: ChainDelegationDetails = {}
     // The TradingApi rejects unsupported chain ids (e.g. HyperEVM) with a 400 for the entire
     // request — only query supported chains and report the rest as not delegated.
-    const supportedChainIds = input.chainIds.filter((chainId) => toTradingApiSupportedChainId(chainId) !== undefined)
+    // isTradingApiDelegationSupportedChainId excludes HyperEvm (999): quote/bridge-supported, but
+    // check_delegation 400s on it and it has no Universal Router deployment to delegate to.
+    const supportedChainIds = input.chainIds.filter(isTradingApiDelegationSupportedChainId)
     for (const chainId of input.chainIds) {
-      if (toTradingApiSupportedChainId(chainId) === undefined) {
+      if (!isTradingApiDelegationSupportedChainId(chainId)) {
         result[String(chainId)] = null
       }
     }

@@ -4,6 +4,7 @@ import { deriveEmbeddedWalletDelegationResult } from '@universe/embedded-wallet'
 import { checkWalletDelegation } from 'uniswap/src/data/apiClients/tradingApi/TradingApiClient'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { SwapDelegationInfo } from 'uniswap/src/features/smartWallet/delegation/types'
+import { isTradingApiDelegationSupportedChainId } from 'uniswap/src/features/transactions/swap/utils/tradingApi'
 import { useEvent } from 'utilities/src/react/hooks'
 import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
 import { MAX_REACT_QUERY_CACHE_TIME_MS, ONE_HOUR_MS } from 'utilities/src/time/time'
@@ -37,16 +38,19 @@ export function useGetSwapDelegationInfo(): (chainId?: UniverseChainId) => SwapD
   const isEmbeddedWallet = useIsEmbeddedWallet()
   const evmAddress = useActiveAddress(Platform.EVM)
   const { chains } = useEnabledChains()
+  // check_delegation 400s the ENTIRE request if any chainId is rejected — HyperEvm (999) is
+  // TradingApi-supported for quotes but not for delegation checks, so exclude it here.
+  const delegationChainIds = chains.map((chain) => chain.valueOf()).filter(isTradingApiDelegationSupportedChainId)
 
   // Only track delegation for embedded wallets so regular wallets make no extra request.
-  const enabled = isEmbeddedWallet && Boolean(evmAddress) && chains.length > 0
+  const enabled = isEmbeddedWallet && Boolean(evmAddress) && delegationChainIds.length > 0
 
   const delegationQuery = useQuery({
-    queryKey: [ReactQueryCacheKey.WalletDelegation, evmAddress, ...chains],
+    queryKey: [ReactQueryCacheKey.WalletDelegation, evmAddress, ...delegationChainIds],
     queryFn: async () =>
       checkWalletDelegation({
         walletAddresses: evmAddress ? [evmAddress] : [],
-        chainIds: chains.map((chain) => chain.valueOf()),
+        chainIds: delegationChainIds,
       }),
     enabled,
     staleTime: ONE_HOUR_MS,
