@@ -6,6 +6,7 @@ import { getGetTokensMultiChainQueryOptions } from 'uniswap/src/data/apiClients/
 import { dataApiMultichainTokenToCurrencyInfos } from 'uniswap/src/data/apiClients/dataApiService/utils/dataApiMultichainToken'
 import type { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { currencyIdToRestContractInput } from 'uniswap/src/features/dataApi/utils/currencyIdToContractInput'
+import { isBackendSupportedChainId } from 'uniswap/src/features/chains/utils'
 import type { CurrencyId } from 'uniswap/src/types/currency'
 import { areCurrencyIdsEqual } from 'uniswap/src/utils/currencyId'
 
@@ -25,15 +26,19 @@ export function useMultichainCurrencyInfosQuery<TData>(
   currencyIds: CurrencyId[],
   { skip, select: selectGroups }: UseMultichainCurrencyInfosOptions & { select: SelectMultichainCurrencyInfos<TData> },
 ): UseQueryResult<TData> {
-  const params = useMemo(
-    () => ({
+  const params = useMemo(() => {
+    // Backend-unsupported chains (e.g. HyperEvm 999) make GetTokensMultiChain 400 the whole
+    // request — drop them; the select below tolerates missing groups.
+    const tokens = currencyIds
+      .map((id) => currencyIdToRestContractInput(id))
+      .filter(({ chainId }) => isBackendSupportedChainId(chainId))
+    return {
       identifier: {
         case: 'tokens' as const,
-        value: { tokens: currencyIds.map((id) => currencyIdToRestContractInput(id)) },
+        value: { tokens },
       },
-    }),
-    [currencyIds],
-  )
+    }
+  }, [currencyIds])
   const select = useCallback(
     (data: PlainMessage<GetTokensMultiChainResponse> | undefined) =>
       selectGroups((data?.tokens ?? []).map(dataApiMultichainTokenToCurrencyInfos), currencyIds),
@@ -43,7 +48,9 @@ export function useMultichainCurrencyInfosQuery<TData>(
   return useQuery(
     getGetTokensMultiChainQueryOptions({
       params,
-      enabled: !skip && currencyIds.length > 0,
+      // Disabled entirely when every requested currencyId is on a backend-unsupported chain —
+      // otherwise we'd 400 for an all-999 request (e.g. selecting USDC on HyperEvm).
+      enabled: !skip && params.identifier.value.tokens.length > 0,
       select,
       keepPreviousData: false,
     }),

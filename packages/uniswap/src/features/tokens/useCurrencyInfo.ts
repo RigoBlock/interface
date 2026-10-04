@@ -12,6 +12,7 @@ import {
 import { CurrencyInfo, RestContract } from 'uniswap/src/features/dataApi/types'
 import { currencyIdToRestContractInput } from 'uniswap/src/features/dataApi/utils/currencyIdToContractInput'
 import { restV2TokenToCurrencyInfo } from 'uniswap/src/features/dataApi/utils/restV2TokenToCurrencyInfo'
+import { isBackendSupportedChainId } from 'uniswap/src/features/chains/utils'
 import {
   buildNativeCurrencyId,
   buildWrappedNativeCurrencyId,
@@ -64,6 +65,7 @@ function useCurrencyInfoQuery(
     () => (_currencyId ? currencyIdToRestContractInput(_currencyId) : undefined),
     [_currencyId],
   )
+  const currencyChainId = _currencyId ? currencyIdToChain(_currencyId) : null
   const select = useCallback(
     (data: PlainMessage<GetTokenResponse> | undefined) =>
       _currencyId ? selectCurrencyInfo(_currencyId, data) : undefined,
@@ -73,7 +75,9 @@ function useCurrencyInfoQuery(
   return useQuery(
     getGetTokenQueryOptions({
       params: restParams,
-      enabled: !!restParams && !options?.skip,
+      // Backend-unsupported chains (e.g. HyperEvm 999) make the data API 400 — skip the fetch;
+      // common bases still resolve synchronously via the selectCurrencyInfo fallback below.
+      enabled: !!restParams && !options?.skip && currencyChainId !== null && isBackendSupportedChainId(currencyChainId),
       select,
       keepPreviousData: false,
     }),
@@ -109,8 +113,15 @@ export function useRestTokensQuery<TData>(
 ): UseQueryResult<TData> {
   // Resolved once and reused for both the request and response-matching below, so the native
   // currency's REST-wire address (e.g. 0x0, which can differ from the currencyId's own address)
-  // can't drift between the two.
-  const restContracts = useMemo(() => currencyIds.map((id) => currencyIdToRestContractInput(id)), [currencyIds])
+  // can't drift between the two. Backend-unsupported chains (e.g. HyperEvm 999) make the data
+  // API 400 the whole request — drop them; positional matching maps their slots to undefined.
+  const restContracts = useMemo(
+    () =>
+      currencyIds
+        .map((id) => currencyIdToRestContractInput(id))
+        .filter(({ chainId }) => isBackendSupportedChainId(chainId)),
+    [currencyIds],
+  )
   const restParams = useMemo(() => ({ tokens: restContracts }), [restContracts])
   const select = useCallback(
     (data: PlainMessage<GetTokensResponse> | undefined) =>

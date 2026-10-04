@@ -361,11 +361,14 @@ export class EmbeddedWalletProvider implements EmbeddedWalletProviderApi {
     const client = this.getPublicClient(this.chainId)
 
     try {
-      const rest = await client.getTransaction({
+      const { gas, input, typeHex, ...rest } = await client.getTransaction({
         hash,
       })
-      // fixes a type mismatch where type was expected to be a BigNumber
-      return { ...rest, type: rest.typeHex }
+      // Ethers' transaction formatter expects the ethers field names (gasLimit, data)
+      // — viem returns gas/input — and a hex type. Without this mapping ethers hits
+      // BigNumber.from(undefined) ("invalid BigNumber value") while polling the
+      // broadcast transaction.
+      return { ...rest, gasLimit: gas, data: input, input, type: typeHex }
     } catch (e) {
       if (e instanceof Error && e.name === 'TransactionNotFoundError') {
         return null
@@ -381,11 +384,13 @@ export class EmbeddedWalletProvider implements EmbeddedWalletProviderApi {
     const client = this.getPublicClient(this.chainId)
 
     try {
-      const { ...rest } = await client.getTransactionReceipt({
+      const { status, typeHex, ...rest } = await client.getTransactionReceipt({
         hash,
       })
 
-      return rest
+      // Same ethers/viem shape mismatch as getTransactionByHash: ethers expects a hex
+      // status ('0x1'/'0x0'), viem returns 'success'/'reverted'.
+      return { ...rest, status: status === 'success' ? '0x1' : '0x0', type: typeHex }
     } catch (e) {
       if (e instanceof Error && e.name === 'TransactionNotFoundError') {
         return null

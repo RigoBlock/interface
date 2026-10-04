@@ -6,7 +6,7 @@ import type { ListRankedRwasResponse, RankedRwa, RwaCategory } from '@uniswap/cl
 import { OnchainItemListOptionType, type RwaTokenOption } from 'uniswap/src/components/lists/items/types'
 import { entryGatewayProdPostTransport } from 'uniswap/src/data/transport'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { toSupportedChainId } from 'uniswap/src/features/chains/utils'
+import { isBackendSupportedChainId, toSupportedChainId } from 'uniswap/src/features/chains/utils'
 import { ONE_MINUTE_MS } from 'utilities/src/time/time'
 
 /**
@@ -27,7 +27,8 @@ export function useListRankedRwasQuery({
   enabled?: boolean
 }): UseQueryResult<ListRankedRwasResponse, ConnectError> {
   const { chains: enabledChainIds } = useEnabledChains()
-  const resolvedChainIds = chainIds.length > 0 ? chainIds : enabledChainIds
+  // Backend-unsupported chains (e.g. HyperEvm 999) make ListRankedRwas 400 the whole request.
+  const resolvedChainIds = (chainIds.length > 0 ? chainIds : enabledChainIds).filter(isBackendSupportedChainId)
 
   return useQuery(
     listRankedRwas,

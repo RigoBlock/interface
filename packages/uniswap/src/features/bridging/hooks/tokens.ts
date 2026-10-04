@@ -44,8 +44,14 @@ export function useBridgingTokenWithHighestBalance({
   isLoading: boolean
 } {
   const currencyId = buildCurrencyId(currencyChainId, currencyAddress)
-  const tokenIn = currencyAddress ? getTokenAddressFromChainForTradingApi(currencyAddress, currencyChainId) : undefined
-  const tokenInChainId = toTradingApiSupportedChainId(currencyChainId)
+  // RigoBlock fork: the trading API 400s swappable_tokens when tokenInChainId is HyperEvm
+  // (999) — nothing is swappable FROM HyperEvm, so skip the query entirely.
+  const tokenIn =
+    currencyChainId !== UniverseChainId.HyperEvm && currencyAddress
+      ? getTokenAddressFromChainForTradingApi(currencyAddress, currencyChainId)
+      : undefined
+  const tokenInChainId =
+    currencyChainId === UniverseChainId.HyperEvm ? undefined : toTradingApiSupportedChainId(currencyChainId)
 
   const multichainQueryIds = useMemo(() => [currencyId], [currencyId])
   const { data: currencyOnAllChains, isLoading: currencyInfosLoading } = useMultichainCurrencyInfos(multichainQueryIds)
@@ -145,10 +151,16 @@ export function useBridgingTokensOptions({
   /** Optional list of chains to restrict bridging tokens to (e.g., for smart pools) */
   supportedBridgingChains?: UniverseChainId[]
 }): DerivedQueryResult<TokenOption[] | undefined> & { shouldNest?: boolean } {
-  const tokenIn = oppositeSelectedToken?.address
-    ? getTokenAddressFromChainForTradingApi(oppositeSelectedToken.address, oppositeSelectedToken.chainId)
-    : undefined
-  const tokenInChainId = toTradingApiSupportedChainId(oppositeSelectedToken?.chainId)
+  // RigoBlock fork: same HyperEvm guard as above — the trading API 400s swappable_tokens
+  // with a 999 tokenInChainId.
+  const tokenIn =
+    oppositeSelectedToken?.address && oppositeSelectedToken.chainId !== UniverseChainId.HyperEvm
+      ? getTokenAddressFromChainForTradingApi(oppositeSelectedToken.address, oppositeSelectedToken.chainId)
+      : undefined
+  const tokenInChainId =
+    oppositeSelectedToken?.chainId === UniverseChainId.HyperEvm
+      ? undefined
+      : toTradingApiSupportedChainId(oppositeSelectedToken?.chainId)
   const {
     data: bridgingTokens,
     isLoading: loadingBridgingTokens,

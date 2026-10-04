@@ -28,6 +28,10 @@ vi.mock('uniswap/src/data/apiClients/dataApiService/tokens/queries', async (impo
 const ADDRESS = '0x1234567890123456789012345678901234567890'
 const CURRENCY_ID = buildCurrencyId(UniverseChainId.Mainnet, ADDRESS)
 
+// USDC on HyperEvm — a real enabled chain the data API does not serve (backendSupported: false).
+const HYPEREVM_USDC_ADDRESS = '0xb88339CB7199b77E23DB6E890353E22632Ba630f'
+const HYPEREVM_USDC_ID = buildCurrencyId(UniverseChainId.HyperEvm, HYPEREVM_USDC_ADDRESS)
+
 const REST_TOKEN = {
   chainId: UniverseChainId.Mainnet,
   address: ADDRESS,
@@ -81,6 +85,19 @@ describe(useCurrencyInfo, () => {
     expect(mockGetGetTokenQueryOptions).toHaveBeenCalledWith(expect.objectContaining({ enabled: false }))
   })
 
+  // Regression: HyperEvm (999) is enabled in the fork but not served by the data API — a GetToken
+  // request for it would 400. The query is disabled and the hook falls back to the synchronous
+  // selectCurrencyInfo(undefined-data) path, which has no common base for this address.
+  it('does not fetch and resolves to undefined for a backend-unsupported chain currencyId', () => {
+    // The mocked query options reuse one hardcoded queryKey across this describe, so a previous
+    // test's cached response would otherwise leak in and mask the disabled-query behavior.
+    SharedQueryClient.clear()
+    const { result } = renderHookWithProviders(() => useCurrencyInfo(HYPEREVM_USDC_ID))
+
+    expect(mockGetGetTokenQueryOptions).toHaveBeenCalledWith(expect.objectContaining({ enabled: false }))
+    expect(result.current).toBeUndefined()
+  })
+
   // Regression: the REST project.logoUrl override exists to patch broken *token* commonBase
   // images (WEB-5111) — it must never clobber a native currency's own maintained static logo,
   // since backend project metadata keyed on the native placeholder address isn't reliable.
@@ -112,6 +129,21 @@ describe(useCurrencyInfos, () => {
     const { result } = renderHookWithProviders(() => useCurrencyInfos([CURRENCY_ID]))
 
     await waitFor(() => expect(result.current[0]?.currency.name).toBe('USD Coin (REST)'))
+  })
+
+  // Regression: HyperEvm (999) is enabled in the fork but not served by the data API — including
+  // it in the GetTokens request 400s the whole call, so the contract is dropped and its slot maps
+  // to undefined positionally.
+  it('drops backend-unsupported chain currencyIds from the GetTokens request', async () => {
+    const { result } = renderHookWithProviders(() => useCurrencyInfos([CURRENCY_ID, HYPEREVM_USDC_ID]))
+
+    await waitFor(() => expect(result.current[0]?.currency.name).toBe('USD Coin (REST)'))
+    expect(mockGetGetTokensQueryOptions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        params: { tokens: [{ chainId: UniverseChainId.Mainnet, address: ADDRESS }] },
+      }),
+    )
+    expect(result.current[1]).toBeUndefined()
   })
 
   // Regression: the native currencyId embeds the display address (0xeee...), but the REST

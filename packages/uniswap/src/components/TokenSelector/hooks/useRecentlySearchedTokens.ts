@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux'
 import { TokenOption } from 'uniswap/src/components/lists/items/types'
 import { MAX_RECENT_SEARCH_RESULTS } from 'uniswap/src/components/TokenSelector/constants'
 import { currencyInfosToTokenOptions } from 'uniswap/src/components/TokenSelector/hooks/useCurrencyInfosToTokenOptions'
-import { isUniverseChainId } from 'uniswap/src/features/chains/utils'
+import { isBackendSupportedChainId, isUniverseChainId } from 'uniswap/src/features/chains/utils'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { SearchHistoryResultType, TokenSearchHistoryResult } from 'uniswap/src/features/search/SearchHistoryResult'
 import { selectSearchHistory } from 'uniswap/src/features/search/selectSearchHistory'
@@ -31,6 +31,9 @@ export function useRecentlySearchedTokens(
       )
       // Filter out invalid chainIds to prevent crashes from corrupted search history data
       .filter((searchResult) => isUniverseChainId(searchResult.chainId))
+      // Backend-unsupported chains (e.g. HyperEvm 999) make the follow-up GetTokens/GetToken
+      // queries 400 the whole request — drop them from the recent list.
+      .filter((searchResult) => isBackendSupportedChainId(searchResult.chainId))
       .filter((searchResult) =>
         chainFilter ? searchResult.chainId === chainFilter : (chainIdSet?.has(searchResult.chainId) ?? true),
       )

@@ -2,6 +2,7 @@ import type { QueryClient, QueryFunction, QueryKey, UseQueryResult } from '@tans
 import { skipToken, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { TradingApi, UseQueryApiHelperHookArgs } from '@universe/api'
 import { V1_TRADING_API_PATHS, type SwappableTokensParams } from '@universe/api'
+import { UniverseChainId } from '@universe/chains'
 import { useEffect } from 'react'
 import { TradingApiClient } from 'uniswap/src/data/apiClients/tradingApi/TradingApiClient'
 import type { TradeableAsset } from 'uniswap/src/entities/assets'
@@ -53,7 +54,12 @@ export function usePrefetchSwappableTokens(input: Maybe<TradeableAsset>): void {
   useEffect(() => {
     const prefetchSwappableTokens = async (): Promise<void> => {
       const tokenIn = input?.address ? getTokenAddressFromChainForTradingApi(input.address, input.chainId) : undefined
-      const tokenInChainId = toTradingApiSupportedChainId(input?.chainId)
+      // RigoBlock fork: the trading API 400s swappable_tokens when tokenInChainId is HyperEvm
+      // (999) — nothing is swappable FROM HyperEvm, so skip the prefetch entirely.
+      const tokenInChainId =
+        input?.chainId === UniverseChainId.HyperEvm
+          ? undefined
+          : toTradingApiSupportedChainId(input?.chainId)
       if (!tokenIn || !tokenInChainId) {
         return
       }

@@ -47,6 +47,7 @@ import {
 } from 'uniswap/src/test/fixtures/dataApi/tokens'
 import { act, renderHook, waitFor } from 'uniswap/src/test/test-utils'
 import { createArray } from 'uniswap/src/test/utils'
+import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
 import { portfolioBalancesById } from 'uniswap/src/utils/balances'
 import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
 import type { Mock } from 'vitest'
@@ -1170,5 +1171,44 @@ describe(useRecentlySearchedTokens, () => {
 
     // Should return empty array, not crash
     expect(result.current).toEqual([])
+  })
+
+  // Regression: HyperEvm (999) is a valid enabled chain but not served by the data API — leaving
+  // it in the recent list would make the follow-up GetTokens request 400 for every entry batch.
+  it('excludes search history entries on backend-unsupported chains (HyperEvm 999)', async () => {
+    const usdcToken = usdcV2Token()
+    const usdcAddress = usdcToken.address
+    const searchHistory: PreloadedState<UniswapState> = {
+      searchHistory: {
+        results: [
+          {
+            type: SearchHistoryResultType.Token,
+            chainId: UniverseChainId.HyperEvm,
+            address: '0xb88339CB7199b77E23DB6E890353E22632Ba630f', // USDC on HyperEvm
+            searchId: 'token-999-0xb88339cb7199b77e23db6e890353e22632ba630f',
+          },
+          {
+            type: SearchHistoryResultType.Token,
+            chainId: UniverseChainId.Mainnet,
+            address: usdcAddress,
+            searchId: `token-1-${usdcAddress}`,
+          },
+        ],
+      },
+    }
+    mockTokensQuery([usdcToken])
+
+    const { result } = renderHook(() => useRecentlySearchedTokens(null), {
+      preloadedState: searchHistory,
+    })
+
+    await waitFor(() => expect(result.current).toHaveLength(1))
+    expect(result.current[0]?.currencyInfo.currencyId).toBe(buildCurrencyId(UniverseChainId.Mainnet, usdcAddress))
+    // The GetTokens request must not include the HyperEvm contract, or the whole batch 400s.
+    expect(mockGetGetTokensQueryOptions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        params: { tokens: [{ chainId: UniverseChainId.Mainnet, address: usdcAddress }] },
+      }),
+    )
   })
 })

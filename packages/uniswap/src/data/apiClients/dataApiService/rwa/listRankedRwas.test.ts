@@ -1,5 +1,8 @@
 import { PartialMessage } from '@bufbuild/protobuf'
+import { ConnectError } from '@connectrpc/connect'
 import { useQuery } from '@connectrpc/connect-query'
+import type { UseQueryResult } from '@tanstack/react-query'
+import { listRankedRwas } from '@uniswap/client-data-api/dist/data/v1/api-DataApiService_connectquery'
 import { RankedRwa, RwaCategory } from '@uniswap/client-data-api/dist/data/v1/api_pb'
 import { UniverseChainId } from '@universe/chains'
 import { OnchainItemListOptionType } from 'uniswap/src/components/lists/items/types'
@@ -48,6 +51,61 @@ function makeRwa(overrides?: PartialMessage<RankedRwa>): RankedRwa {
     ...overrides,
   })
 }
+
+describe(useListRankedRwasQuery, () => {
+  const baseArgs = { category: RwaCategory.STOCKS, chainIds: [] as number[], includeSparkline1d: false }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockUseQuery.mockReturnValue({ data: undefined, isLoading: false, isSuccess: false } as UseQueryResult<
+      unknown,
+      ConnectError
+    >)
+  })
+
+  // Regression: HyperEvm (999) is enabled in the fork but not served by the data API — including
+  // it in chainIds 400s the whole ListRankedRwas request.
+  it('excludes a backend-unsupported chain passed explicitly in chainIds', () => {
+    mockUseEnabledChains.mockReturnValue({ chains: CHAIN_IDS })
+
+    renderHook(() =>
+      useListRankedRwasQuery({
+        ...baseArgs,
+        chainIds: [UniverseChainId.Mainnet, UniverseChainId.HyperEvm, UniverseChainId.Base],
+      }),
+    )
+
+    expect(mockUseQuery).toHaveBeenCalledWith(
+      listRankedRwas,
+      expect.objectContaining({ chainIds: [UniverseChainId.Mainnet, UniverseChainId.Base] }),
+      expect.objectContaining({ enabled: true }),
+    )
+  })
+
+  it('excludes a backend-unsupported chain from the enabled-chains fallback', () => {
+    mockUseEnabledChains.mockReturnValue({ chains: [UniverseChainId.Mainnet, UniverseChainId.HyperEvm] })
+
+    renderHook(() => useListRankedRwasQuery(baseArgs))
+
+    expect(mockUseQuery).toHaveBeenCalledWith(
+      listRankedRwas,
+      expect.objectContaining({ chainIds: [UniverseChainId.Mainnet] }),
+      expect.objectContaining({ enabled: true }),
+    )
+  })
+
+  it('disables the query when no backend-supported chain remains', () => {
+    mockUseEnabledChains.mockReturnValue({ chains: [UniverseChainId.HyperEvm] })
+
+    renderHook(() => useListRankedRwasQuery({ ...baseArgs, chainIds: [UniverseChainId.HyperEvm] }))
+
+    expect(mockUseQuery).toHaveBeenCalledWith(
+      listRankedRwas,
+      expect.objectContaining({ chainIds: [] }),
+      expect.objectContaining({ enabled: false }),
+    )
+  })
+})
 
 describe('buildRwaTokenOption', () => {
   it('maps issuerTokens[0].chainTokens[0] with issuer-token metadata, no decimals', () => {

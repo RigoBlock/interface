@@ -26,8 +26,11 @@ vi.mock('uniswap/src/data/apiClients/dataApiService/tokens/queries', async (impo
 const USDC_MAINNET_ADDRESS = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
 const USDC_BASE_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
 const BRIDGED_ETH_POLYGON_ADDRESS = '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619'
+// USDC on HyperEvm — a real enabled chain the data API does not serve (backendSupported: false).
+const USDC_HYPEREVM_ADDRESS = '0xb88339CB7199b77E23DB6E890353E22632Ba630f'
 
 const USDC_MAINNET_ID = buildCurrencyId(UniverseChainId.Mainnet, USDC_MAINNET_ADDRESS)
+const USDC_HYPEREVM_ID = buildCurrencyId(UniverseChainId.HyperEvm, USDC_HYPEREVM_ADDRESS)
 const USDC_BASE_ID = buildCurrencyId(UniverseChainId.Base, USDC_BASE_ADDRESS)
 const ETH_MAINNET_ID = buildNativeCurrencyId(UniverseChainId.Mainnet)
 const BRIDGED_ETH_POLYGON_ID = buildCurrencyId(UniverseChainId.Polygon, BRIDGED_ETH_POLYGON_ADDRESS)
@@ -101,6 +104,36 @@ describe(useMultichainCurrencyInfos, () => {
     renderHookWithProviders(() => useMultichainCurrencyInfos([USDC_MAINNET_ID], { skip: true }))
 
     expect(mockGetGetTokensMultiChainQueryOptions).toHaveBeenCalledWith(expect.objectContaining({ enabled: false }))
+  })
+
+  // Regression: HyperEvm (999) is enabled in the fork but not served by the data API — including
+  // it in the request 400s the whole GetTokensMultiChain call.
+  it('does not fetch when every requested currencyId is on a backend-unsupported chain', () => {
+    mockResponse([])
+    renderHookWithProviders(() => useMultichainCurrencyInfos([USDC_HYPEREVM_ID]))
+
+    expect(mockGetGetTokensMultiChainQueryOptions).toHaveBeenCalledWith(expect.objectContaining({ enabled: false }))
+  })
+
+  it('drops backend-unsupported chain tokens from a mixed request', async () => {
+    mockResponse([USDC])
+    const { result } = renderHookWithProviders(() => useMultichainCurrencyInfos([USDC_MAINNET_ID, USDC_HYPEREVM_ID]))
+
+    expect(mockGetGetTokensMultiChainQueryOptions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        enabled: true,
+        params: {
+          identifier: {
+            case: 'tokens',
+            // currencyIdToGraphQLAddress lowercases the address on the way into the REST contract.
+            value: { tokens: [{ chainId: UniverseChainId.Mainnet, address: USDC_MAINNET_ADDRESS.toLowerCase() }] },
+          },
+        },
+      }),
+    )
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    expect(currencyIdsOf(result.current.data)).toEqual([USDC_MAINNET_ID, USDC_BASE_ID])
   })
 })
 
