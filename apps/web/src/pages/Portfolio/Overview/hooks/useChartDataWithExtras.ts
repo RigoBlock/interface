@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { GmxPnlHistoryPoint } from '~/pages/Portfolio/hooks/useGmxPnlHistory'
 import { GmxValueHistoryPoint } from '~/pages/Portfolio/hooks/useGmxValueHistory'
 import { HyperliquidPortfolioHistoryPoint } from '~/pages/Portfolio/Perps/hyperliquid/useHyperliquidPortfolioHistory'
+import { synthesizeHyperEvmChartData } from '~/pages/Portfolio/Overview/hooks/synthesizeHyperEvmChartData'
 
 // Historical account value at a timestamp, given daily cumulative-PnL points. Before the
 // first point the first bucket's cumulative value applies; with no history (or no current
@@ -76,9 +77,16 @@ function valueFromHistory({
  * forward-fill (both poll every 5s), so the end of the line tracks unrealized PnL in
  * real time while history stays fixed. When a source reports no history at all, its
  * current value is bootstrapped flatly instead.
+ *
+ * RigoBlock: a non-backend-supported chain (HyperEVM 999) has no base series from the data
+ * API at all — when the flag says so, a zero-valued base is synthesized from the Hyperliquid
+ * history timestamps (or a flat period window when there is no history, see
+ * synthesizeHyperEvmChartData) so the extras below can draw the line.
  */
 export function useChartDataWithExtras({
   portfolioChartData,
+  isSelectedChainBackendSupported,
+  fallbackChartWindow,
   stakingValueStable,
   gmxTotalNetValueUsd,
   gmxPnlHistory,
@@ -90,6 +98,12 @@ export function useChartDataWithExtras({
   hyperEvmUsdcValue,
 }: {
   portfolioChartData: PlainMessage<GetPortfolioChartResponse> | undefined
+  // RigoBlock: false when the selected chain is not served by the backend chart API (HyperEVM)
+  // — the base series is then synthesized on the Hyperliquid history timestamps.
+  isSelectedChainBackendSupported?: boolean
+  // RigoBlock: window for the flat fallback base when there is no Hyperliquid history
+  // (the selected period ending at first render, see useHyperEvmChartWindow).
+  fallbackChartWindow?: { startSec: number; endSec: number }
   stakingValueStable: number
   gmxTotalNetValueUsd: number
   gmxPnlHistory: GmxPnlHistoryPoint[]
@@ -101,8 +115,21 @@ export function useChartDataWithExtras({
   hyperEvmUsdcValue: number
 }): PlainMessage<GetPortfolioChartResponse> | undefined {
   return useMemo(() => {
-    if (!portfolioChartData?.points) {
-      return portfolioChartData
+    const baseChartData =
+      portfolioChartData ??
+      (isSelectedChainBackendSupported === false
+        ? synthesizeHyperEvmChartData({
+            baseChartData: undefined,
+            isSelectedChainBackendSupported: false,
+            // The synthesis path only runs for a chain the Hyperliquid account is attributed
+            // to (HyperEVM), so its history is chain-attributable by construction.
+            hyperliquidHistoryForChain: true,
+            hyperliquidHistory,
+            fallbackWindow: fallbackChartWindow,
+          })
+        : undefined)
+    if (!baseChartData?.points) {
+      return baseChartData
     }
     const stakingExtra = isNaN(stakingValueStable) ? 0 : stakingValueStable
     const hyperliquidFlatExtra = [hyperliquidSpotValue, hyperEvmUsdcValue].reduce(
@@ -117,11 +144,11 @@ export function useChartDataWithExtras({
 
     const hasExtras = stakingExtra !== 0 || hyperliquidFlatExtra !== 0 || gmxExtra !== 0 || hlPerpsExtra !== 0
     if (!hasExtras) {
-      return portfolioChartData
+      return baseChartData
     }
     return {
-      ...portfolioChartData,
-      points: portfolioChartData.points.map((point) => {
+      ...baseChartData,
+      points: baseChartData.points.map((point) => {
         const timestampSec = Number(point.timestamp)
         const hlExtra =
           hyperliquidHistory.length > 0
@@ -149,6 +176,8 @@ export function useChartDataWithExtras({
     }
   }, [
     portfolioChartData,
+    isSelectedChainBackendSupported,
+    fallbackChartWindow,
     stakingValueStable,
     gmxTotalNetValueUsd,
     gmxPnlHistory,

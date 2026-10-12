@@ -395,91 +395,116 @@ function handleUnwrapWethCommand(input: string, ctx: CommandHandlerContext): Com
   }
 }
 
-function handleV3SwapExactInCommand(input: string, ctx: CommandHandlerContext): CommandHandlerResult | undefined {
-  const { abiCoder, smartPoolAddress, i } = ctx
-  try {
-    const [recipient, amountIn, amountOutMin, path, payerIsUser] = abiCoder.decode(
-      ['address', 'uint256', 'uint256', 'bytes', 'bool'],
-      input,
-    )
-    if (!shouldReplaceRecipient(recipient, smartPoolAddress)) {
-      return undefined
-    }
-    return {
-      modifiedInput: abiCoder.encode(
-        ['address', 'uint256', 'uint256', 'bytes', 'bool'],
-        [smartPoolAddress, amountIn, amountOutMin, path, payerIsUser],
-      ),
-    }
-  } catch (error) {
-    logCommandDecodeWarning({ commandName: 'V3_SWAP_EXACT_IN', commandIndex: i, error })
-    return undefined
-  }
+// UR 2.1.1+ appends a trailing `uint256[] minHopPriceX36` param (per-hop price floor) to the
+// V2/V3 swap inputs — the same addition the V4 swap structs gained. UR 2.0 inputs end at
+// `payerIsUser`. The pool's router decodes exactly ONE flavor: feeding it the other misaligns
+// the calldata (the UR-2.1.x decoder reads a garbage minHopPriceX36 offset → nonsensical price
+// floor → V3TooMuchRequestedPerHop / V2TooMuchRequestedPerHop on the first hop), so like the V4
+// structs these inputs are normalized to the pool's flavor.
+const V2_V3_SWAP_BASE_TYPES: Record<number, readonly string[]> = {
+  [UNIVERSAL_ROUTER_COMMANDS.V3_SWAP_EXACT_IN]: ['address', 'uint256', 'uint256', 'bytes', 'bool'],
+  [UNIVERSAL_ROUTER_COMMANDS.V3_SWAP_EXACT_OUT]: ['address', 'uint256', 'uint256', 'bytes', 'bool'],
+  [UNIVERSAL_ROUTER_COMMANDS.V2_SWAP_EXACT_IN]: ['address', 'uint256', 'uint256', 'address[]', 'bool'],
+  [UNIVERSAL_ROUTER_COMMANDS.V2_SWAP_EXACT_OUT]: ['address', 'uint256', 'uint256', 'address[]', 'bool'],
 }
 
-function handleV3SwapExactOutCommand(input: string, ctx: CommandHandlerContext): CommandHandlerResult | undefined {
-  const { abiCoder, smartPoolAddress, i } = ctx
-  try {
-    const [recipient, amountOut, amountInMax, path, payerIsUser] = abiCoder.decode(
-      ['address', 'uint256', 'uint256', 'bytes', 'bool'],
-      input,
-    )
-    if (!shouldReplaceRecipient(recipient, smartPoolAddress)) {
-      return undefined
-    }
-    return {
-      modifiedInput: abiCoder.encode(
-        ['address', 'uint256', 'uint256', 'bytes', 'bool'],
-        [smartPoolAddress, amountOut, amountInMax, path, payerIsUser],
-      ),
-    }
-  } catch (error) {
-    logCommandDecodeWarning({ commandName: 'V3_SWAP_EXACT_OUT', commandIndex: i, error })
-    return undefined
-  }
+interface DecodedV2V3SwapInput {
+  urVersion: URVersion
+  recipient: string
+  // Base params between recipient and payerIsUser (amounts + path).
+  middleValues: unknown[]
+  payerIsUser: boolean
+  minHopPriceX36: string[] | undefined
 }
 
-function handleV2SwapExactInCommand(input: string, ctx: CommandHandlerContext): CommandHandlerResult | undefined {
-  const { abiCoder, smartPoolAddress, i } = ctx
+// Decodes a V2/V3 swap input in whichever flavor it was emitted, using the canonical-encoding
+// round-trip to tell them apart — a plain 5-param decode SUCCEEDS on 6-param data (ethers
+// ignores the trailing array) and would silently drop minHopPriceX36 on re-encode.
+function decodeV2V3SwapInput({
+  baseTypes,
+  input,
+  abiCoder,
+}: {
+  baseTypes: readonly string[]
+  input: string
+  abiCoder: AbiCoder
+}): DecodedV2V3SwapInput | undefined {
+  const types211 = [...baseTypes, 'uint256[]']
   try {
-    const [recipient, amountIn, amountOutMin, path, payerIsUser] = abiCoder.decode(
-      ['address', 'uint256', 'uint256', 'address[]', 'bool'],
-      input,
-    )
-    if (!shouldReplaceRecipient(recipient, smartPoolAddress)) {
-      return undefined
+    const decoded = abiCoder.decode(types211, input)
+    if (abiCoder.encode(types211, decoded).toLowerCase() === input.toLowerCase()) {
+      const [recipient, ...rest] = decoded as unknown[]
+      const minHopPriceX36 = rest[rest.length - 1] as string[]
+      return {
+        urVersion: URVersion.V2_1_1,
+        recipient: recipient as string,
+        middleValues: rest.slice(0, -2),
+        payerIsUser: rest[rest.length - 2] as boolean,
+        minHopPriceX36: [...minHopPriceX36],
+      }
     }
-    return {
-      modifiedInput: abiCoder.encode(
-        ['address', 'uint256', 'uint256', 'address[]', 'bool'],
-        [smartPoolAddress, amountIn, amountOutMin, path, payerIsUser],
-      ),
-    }
-  } catch (error) {
-    logCommandDecodeWarning({ commandName: 'V2_SWAP_EXACT_IN', commandIndex: i, error })
-    return undefined
+  } catch {
+    // Not the UR 2.1.1+ flavor (or malformed): try UR 2.0.
   }
+  try {
+    const decoded = abiCoder.decode([...baseTypes], input)
+    if (abiCoder.encode([...baseTypes], decoded).toLowerCase() === input.toLowerCase()) {
+      const [recipient, ...rest] = decoded as unknown[]
+      return {
+        urVersion: URVersion.V2_0,
+        recipient: recipient as string,
+        middleValues: rest.slice(0, -1),
+        payerIsUser: rest[rest.length - 1] as boolean,
+        minHopPriceX36: undefined,
+      }
+    }
+  } catch {
+    // Malformed input.
+  }
+  return undefined
 }
 
-function handleV2SwapExactOutCommand(input: string, ctx: CommandHandlerContext): CommandHandlerResult | undefined {
-  const { abiCoder, smartPoolAddress, i } = ctx
-  try {
-    const [recipient, amountOut, amountInMax, path, payerIsUser] = abiCoder.decode(
-      ['address', 'uint256', 'uint256', 'address[]', 'bool'],
-      input,
-    )
-    if (!shouldReplaceRecipient(recipient, smartPoolAddress)) {
+function handleV2V3SwapCommand(commandName: string, baseTypes: readonly string[]): CommandHandler {
+  return (input, ctx) => {
+    const { abiCoder, smartPoolAddress, i, poolSupportsUr211 } = ctx
+    try {
+      const decoded = decodeV2V3SwapInput({ baseTypes, input, abiCoder })
+      if (!decoded) {
+        logCommandDecodeWarning({ commandName, commandIndex: i, error: new Error('unrecognized V2/V3 input flavor') })
+        return undefined
+      }
+      const poolVersion = poolSupportsUr211 ? URVersion.V2_1_1 : URVersion.V2_0
+      const flavorMismatch = decoded.urVersion !== poolVersion
+      if (!shouldReplaceRecipient(decoded.recipient, smartPoolAddress) && !flavorMismatch) {
+        return undefined
+      }
+      if (flavorMismatch && decoded.urVersion === URVersion.V2_1_1 && decoded.minHopPriceX36?.length) {
+        logger.warn(
+          'universalRouterCalldata',
+          'modifyV4ExecuteCalldata',
+          `Dropping non-empty minHopPriceX36 while normalizing ${commandName} from UR 2.1.1 to UR 2.0 flavor`,
+        )
+      }
+      const recipient = shouldReplaceRecipient(decoded.recipient, smartPoolAddress)
+        ? smartPoolAddress
+        : decoded.recipient
+      if (poolVersion === URVersion.V2_1_1) {
+        // Upconverting (UR 2.0 → 2.1.x): an absent minHopPriceX36 becomes [] — the SDK's own
+        // "no per-hop price floor" default (see universal-router-sdk encodeSwapStep).
+        return {
+          modifiedInput: abiCoder.encode(
+            [...baseTypes, 'uint256[]'],
+            [recipient, ...decoded.middleValues, decoded.payerIsUser, decoded.minHopPriceX36 ?? []],
+          ),
+        }
+      }
+      return {
+        modifiedInput: abiCoder.encode([...baseTypes], [recipient, ...decoded.middleValues, decoded.payerIsUser]),
+      }
+    } catch (error) {
+      logCommandDecodeWarning({ commandName, commandIndex: i, error })
       return undefined
     }
-    return {
-      modifiedInput: abiCoder.encode(
-        ['address', 'uint256', 'uint256', 'address[]', 'bool'],
-        [smartPoolAddress, amountOut, amountInMax, path, payerIsUser],
-      ),
-    }
-  } catch (error) {
-    logCommandDecodeWarning({ commandName: 'V2_SWAP_EXACT_OUT', commandIndex: i, error })
-    return undefined
   }
 }
 
@@ -490,10 +515,22 @@ const COMMAND_HANDLERS: Record<number, CommandHandler> = {
   [UNIVERSAL_ROUTER_COMMANDS.TRANSFER]: handleTransferCommand,
   [UNIVERSAL_ROUTER_COMMANDS.WRAP_ETH]: handleWrapEthCommand,
   [UNIVERSAL_ROUTER_COMMANDS.UNWRAP_WETH]: handleUnwrapWethCommand,
-  [UNIVERSAL_ROUTER_COMMANDS.V3_SWAP_EXACT_IN]: handleV3SwapExactInCommand,
-  [UNIVERSAL_ROUTER_COMMANDS.V3_SWAP_EXACT_OUT]: handleV3SwapExactOutCommand,
-  [UNIVERSAL_ROUTER_COMMANDS.V2_SWAP_EXACT_IN]: handleV2SwapExactInCommand,
-  [UNIVERSAL_ROUTER_COMMANDS.V2_SWAP_EXACT_OUT]: handleV2SwapExactOutCommand,
+  [UNIVERSAL_ROUTER_COMMANDS.V3_SWAP_EXACT_IN]: handleV2V3SwapCommand(
+    'V3_SWAP_EXACT_IN',
+    V2_V3_SWAP_BASE_TYPES[UNIVERSAL_ROUTER_COMMANDS.V3_SWAP_EXACT_IN] as readonly string[],
+  ),
+  [UNIVERSAL_ROUTER_COMMANDS.V3_SWAP_EXACT_OUT]: handleV2V3SwapCommand(
+    'V3_SWAP_EXACT_OUT',
+    V2_V3_SWAP_BASE_TYPES[UNIVERSAL_ROUTER_COMMANDS.V3_SWAP_EXACT_OUT] as readonly string[],
+  ),
+  [UNIVERSAL_ROUTER_COMMANDS.V2_SWAP_EXACT_IN]: handleV2V3SwapCommand(
+    'V2_SWAP_EXACT_IN',
+    V2_V3_SWAP_BASE_TYPES[UNIVERSAL_ROUTER_COMMANDS.V2_SWAP_EXACT_IN] as readonly string[],
+  ),
+  [UNIVERSAL_ROUTER_COMMANDS.V2_SWAP_EXACT_OUT]: handleV2V3SwapCommand(
+    'V2_SWAP_EXACT_OUT',
+    V2_V3_SWAP_BASE_TYPES[UNIVERSAL_ROUTER_COMMANDS.V2_SWAP_EXACT_OUT] as readonly string[],
+  ),
 }
 
 // RigoBlock: pin OPEN-delta (0) input amounts to the exact trade input. Without this, a
@@ -697,12 +734,43 @@ interface ModifyV4ExecuteCalldataParams extends UniversalRouterCalldataOptions {
   smartPoolAddress: string
 }
 
+// execute() comes in two arities: UR 2.0 `execute(bytes,bytes[],uint256)` (with deadline) and
+// UR 2.1.x `execute(bytes,bytes[])` (deadline removed). The trading API emits whichever the
+// requested router version decodes, and the vault's adapter resolves either selector, so the
+// rewriter must preserve the arity. A plain decode cannot tell them apart (ethers tolerates
+// both misreads), so detection uses the canonical-encoding round-trip.
+interface DecodedExecuteCalldata {
+  commands: string
+  inputs: string[]
+  deadline?: BigNumber
+  hasDeadline: boolean
+}
+
+function decodeExecuteCalldata(calldata: string, abiCoder: AbiCoder): DecodedExecuteCalldata {
+  const withDeadline = ['bytes', 'bytes[]', 'uint256']
+  try {
+    const decoded = abiCoder.decode(withDeadline, calldata)
+    if (abiCoder.encode(withDeadline, decoded).toLowerCase() === calldata.toLowerCase()) {
+      const [commands, inputs, deadline] = decoded
+      return { commands: commands as string, inputs: [...(inputs as string[])], deadline, hasDeadline: true }
+    }
+  } catch {
+    // Not the UR 2.0 flavor (or malformed): try UR 2.1.x.
+  }
+  const noDeadline = ['bytes', 'bytes[]']
+  const decoded = abiCoder.decode(noDeadline, calldata)
+  if (abiCoder.encode(noDeadline, decoded).toLowerCase() !== calldata.toLowerCase()) {
+    throw new Error('Non-canonical execute calldata (neither UR 2.0 nor UR 2.1.x flavor)')
+  }
+  const [commands, inputs] = decoded
+  return { commands: commands as string, inputs: [...(inputs as string[])], hasDeadline: false }
+}
+
 export function modifyV4ExecuteCalldata(params: ModifyV4ExecuteCalldataParams): string {
   const { calldata, smartPoolAddress, poolSupportsUr211 = false, exactInput } = params
   try {
     const abiCoder = new AbiCoder()
-    const decoded = abiCoder.decode(['bytes', 'bytes[]', 'uint256'], calldata)
-    const [commands, inputs, deadline] = decoded
+    const { commands, inputs, deadline, hasDeadline } = decodeExecuteCalldata(calldata, abiCoder)
     const commandsBytes = commands.startsWith('0x')
       ? new Uint8Array(Buffer.from(commands.slice(2), 'hex'))
       : new Uint8Array(Buffer.from(commands, 'hex'))
@@ -740,7 +808,10 @@ export function modifyV4ExecuteCalldata(params: ModifyV4ExecuteCalldataParams): 
       return calldata
     }
     const finalCommands = commandsWasModified ? '0x' + Buffer.from(commandsBytes).toString('hex') : commands
-    return abiCoder.encode(['bytes', 'bytes[]', 'uint256'], [finalCommands, modifiedInputs, deadline])
+    if (hasDeadline) {
+      return abiCoder.encode(['bytes', 'bytes[]', 'uint256'], [finalCommands, modifiedInputs, deadline])
+    }
+    return abiCoder.encode(['bytes', 'bytes[]'], [finalCommands, modifiedInputs])
   } catch (error) {
     logger.error(error, {
       tags: { file: 'universalRouterCalldata', function: 'modifyV4ExecuteCalldata' },
@@ -773,12 +844,12 @@ export function stripBalanceCheckERC20(calldata: string, options?: UniversalRout
   try {
     const abiCoder = new AbiCoder()
     // Check if this has a function selector (starts with 0x and has selector)
-    // execute(bytes,bytes[],uint256) selector is 0x3593564c
-    const hasSelector = calldata.toLowerCase().startsWith('0x3593564c')
-    const dataWithoutSelector = hasSelector ? '0x' + calldata.slice(10) : calldata
-    const functionSelector = hasSelector ? calldata.slice(0, 10) : ''
-    const decoded = abiCoder.decode(['bytes', 'bytes[]', 'uint256'], dataWithoutSelector)
-    const [commands, inputs, deadline] = decoded
+    // UR 2.0: execute(bytes,bytes[],uint256) 0x3593564c; UR 2.1.x: execute(bytes,bytes[]) 0x24856bc3
+    const upperSelector = calldata.slice(0, 10).toLowerCase()
+    const knownSelector = upperSelector === '0x3593564c' || upperSelector === '0x24856bc3'
+    const dataWithoutSelector = knownSelector ? '0x' + calldata.slice(10) : calldata
+    const functionSelector = knownSelector ? calldata.slice(0, 10) : ''
+    const { commands, inputs, deadline, hasDeadline } = decodeExecuteCalldata(dataWithoutSelector, abiCoder)
     const commandsBytes = commands.startsWith('0x')
       ? new Uint8Array(Buffer.from(commands.slice(2), 'hex'))
       : new Uint8Array(Buffer.from(commands, 'hex'))
@@ -802,8 +873,11 @@ export function stripBalanceCheckERC20(calldata: string, options?: UniversalRout
     }
     const newCommandsBytes = new Uint8Array(filteredCommands)
     const newCommandsHex = '0x' + Buffer.from(newCommandsBytes).toString('hex')
-    const newCalldata = abiCoder.encode(['bytes', 'bytes[]', 'uint256'], [newCommandsHex, filteredInputs, deadline])
-    return functionSelector ? functionSelector + newCalldata.slice(2) : newCalldata
+    const encodeTypes = hasDeadline ? ['bytes', 'bytes[]', 'uint256'] : ['bytes', 'bytes[]']
+    const encoded = hasDeadline
+      ? abiCoder.encode(encodeTypes, [newCommandsHex, filteredInputs, deadline])
+      : abiCoder.encode(encodeTypes, [newCommandsHex, filteredInputs])
+    return functionSelector ? functionSelector + encoded.slice(2) : encoded
   } catch (error) {
     logger.warn(
       'universalRouterCalldata',

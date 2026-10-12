@@ -4,11 +4,11 @@ import { normalizeTokenAddressForCache } from '@universe/chains'
 // RigoBlock: which Universal Router calldata flavor a smart pool can decode on-chain depends on
 // the AUniswapRouter adapter its fallback resolves through governance — NOT on the pool's own
 // version. The pool fallback asks `IAuthority(authority).getApplicationAdapter(bytes4 selector)`
-// (MixinFallback.sol). Today governance maps the UR selectors to the UR-2.0.0-capable adapter
-// deployment for each chain (`UR_2_0_0_APPLICATION_ADAPTERS` below), so the app must request the
-// UR 2.0 calldata flavor. When RigoBlock governance upgrades UR support it re-points the selector
-// at a NEW adapter that decodes the 2.1.2 flavor. So the rule is:
-//   mapped adapter === UR_2_0_0_APPLICATION_ADAPTERS[chain]  -> keep requesting UR 2.0
+// (MixinFallback.sol). Governance initially mapped the UR selectors to the UR-2.0.0-capable
+// adapter deployment for each chain (`UR_2_0_0_APPLICATION_ADAPTERS` below); after the Oct 2026
+// governance upgrade the mapping returns a NEW adapter compiled against Universal Router 2.1.2,
+// so the app must request the UR 2.1.2 calldata flavor for it. The rule is:
+//   mapped adapter === UR_2_0_0_APPLICATION_ADAPTERS[chain]  -> governance still on the old adapter, request UR 2.0
 //   mapped adapter !== that (any other non-zero address)     -> governance upgraded, request 2.1.2
 // The selector is ALWAYS mapped, so a null/zero address means our read is wrong and MUST fail
 // loudly — never silently fall back to a version guess.
@@ -76,11 +76,11 @@ export function resetSmartPoolUniversalRouterVersionForTests(): void {
  * Returns `_2_1_2` only when an active smart pool exists on the same chain as the request AND
  * governance's `getApplicationAdapter(0x3593564c)` mapping NO LONGER points at that chain's
  * UR-2.0.0 adapter (`UR_2_0_0_APPLICATION_ADAPTERS`) — i.e. governance upgraded the mapping to a
- * 2.1.2-capable adapter. While the mapping still returns the UR-2.0.0 adapter (today's state on
- * every chain), returns undefined and the caller keeps requesting UR 2.0. Throws — refusing to
- * guess — when the mapping read returns no adapter: the selector is always mapped, so null means
- * the read itself is wrong. RPC errors propagate for the same reason (neither flavor is a safe
- * guess when the mapping is unknown).
+ * 2.1.2-capable adapter (Oct 2026: mainnet returns the new adapter `0x54309495…`). While the
+ * mapping still returns the UR-2.0.0 adapter, returns undefined and the caller keeps requesting
+ * UR 2.0. Throws — refusing to guess — when the mapping read returns no adapter: the selector is
+ * always mapped, so null means the read itself is wrong. RPC errors propagate for the same
+ * reason (neither flavor is a safe guess when the mapping is unknown).
  */
 export async function getSmartPoolUniversalRouterVersion(
   requestChainId: number | undefined,

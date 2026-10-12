@@ -39,6 +39,7 @@ import {
   PortfolioChartCategory,
   usePortfolioChartSeries,
 } from '~/pages/Portfolio/Overview/hooks/usePortfolioChartSeries'
+import { useHyperEvmChartWindow } from '~/pages/Portfolio/Overview/hooks/useHyperEvmChartWindow'
 import { OverviewStakingSection } from '~/pages/Portfolio/Overview/OverviewStakingSection'
 import { PortfolioOverviewTables } from '~/pages/Portfolio/Overview/OverviewTables'
 import { PortfolioChart } from '~/pages/Portfolio/Overview/PortfolioChart'
@@ -182,18 +183,19 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
     enabled: isSelectedChainBackendSupported && !!(portfolioAddresses.evmAddress || portfolioAddresses.svmAddress),
   })
 
-  // For a non-backend-supported chain there is no attributable history: skip the backend series
-  // entirely (the header still shows the on-chain extra values computed below).
+  // For a non-backend-supported chain there is no attributable backend history: skip the backend
+  // series entirely. The overview chart still draws for such a chain — a zero-valued base is
+  // synthesized from the Hyperliquid history (or a flat period window) by
+  // useChartDataWithExtras, and the on-chain extras are layered on top of it.
   const chartDataForSelectedChain = isSelectedChainBackendSupported ? portfolioChartData : undefined
 
-  const chartWindow = useMemo(() => {
-    const beginAt = chartDataForSelectedChain?.beginAt
-    const endAt = chartDataForSelectedChain?.endAt
-    if (!beginAt || !endAt) {
-      return undefined
-    }
-    return { startSec: Number(beginAt), endSec: Number(endAt) }
-  }, [chartDataForSelectedChain?.beginAt, chartDataForSelectedChain?.endAt])
+  // Base chart window + the HyperEVM fallback window (selected period ending at first render)
+  // that unblocks the Hyperliquid candle reconstruction when there is no base chart.
+  const { chartWindow, fallbackChartWindow } = useHyperEvmChartWindow({
+    chartDataForSelectedChain,
+    isSelectedChainBackendSupported,
+    selectedPeriod,
+  })
 
   // GMX daily cumulative PnL history (Subsquid indexer) — used to reconstruct historical account value
   const { history: gmxPnlHistory } = useGmxPnlHistory(portfolioAddresses.evmAddress, !isCandlePeriod)
@@ -220,7 +222,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
     portfolioAddresses.evmAddress,
     selectedPeriod,
     hyperliquidAccount,
-    chartWindow,
+    chartWindow ?? fallbackChartWindow,
   )
 
   // The vault's HyperEVM USDC balance (chain 999 is not indexed by the Uniswap data API)
@@ -292,9 +294,14 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
 
   // The historical chart data only covers token balances; staking, GMX perps, Hyperliquid
   // perps + Core spot USDC, and the HyperEVM USDC balance are reconstructed or bootstrapped
-  // on top of the base series (see useChartDataWithExtras).
+  // on top of the base series (see useChartDataWithExtras). A non-backend-supported chain
+  // (HyperEVM) has no base series at all — useChartDataWithExtras synthesizes one from the
+  // Hyperliquid history (or a flat period window when there is no history) so the extras can
+  // draw the line.
   const chartDataWithExtras = useChartDataWithExtras({
     portfolioChartData: chartDataForSelectedChain,
+    isSelectedChainBackendSupported,
+    fallbackChartWindow,
     stakingValueStable,
     gmxTotalNetValueUsd: gmxValueForChain,
     gmxPnlHistory: gmxHistoryForChain ? gmxPnlHistory : EMPTY_GMX_HISTORY,

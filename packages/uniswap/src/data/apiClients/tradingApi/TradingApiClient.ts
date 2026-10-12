@@ -86,12 +86,14 @@ async function getUniversalRouterVersionHeader(params: {
 
   // RigoBlock: the UR calldata flavor a smart pool can decode depends on the AUniswapRouter
   // adapter its fallback resolves via governance (`IAuthority.getApplicationAdapter(0x3593564c)`),
-  // not on the pool's own version. Governance currently maps the selector to the UR-2.0.0 adapter
-  // deployment per chain, so the pool decodes UR 2.0 calldata and that is what we request. The
-  // 2.0/2.1.2 flavors share selectors and differ only in the bytes param encoding, so feeding a
-  // 2.1.2-encoded calldata to the 2.0.0 adapter (or vice versa) misaligns the ABI and reverts
-  // onchain. When governance upgrades UR support it re-points the selector at a NEW adapter; only
-  // then does the resolution below return 2.1.2. A null mapping read throws instead of guessing.
+  // not on the pool's own version. Governance initially mapped the UR selectors to the UR-2.0.0
+  // adapter deployment per chain; after the governance upgrade the mapping returns a NEW adapter
+  // compiled against Universal Router 2.1.2, and the resolution below returns 2.1.2 for it.
+  // The 2.0/2.1.2 flavors differ in the bytes param encoding (execute arity, V4 swap structs,
+  // V2/V3 minHopPriceX36), so feeding one flavor to a router that decodes the other misaligns
+  // the ABI and reverts onchain (V3TooMuchRequestedPerHop et al.). A null mapping read throws
+  // instead of guessing. The calldata rewriter additionally normalizes whatever flavor the API
+  // shipped to the pool's flavor, so a stale header cannot by itself produce a reverting tx.
   const smartPoolVersion = await getSmartPoolUniversalRouterVersion(params.chainId)
   if (smartPoolVersion) {
     return smartPoolVersion

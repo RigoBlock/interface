@@ -968,3 +968,266 @@ describe('V4 EXACT_OUTPUT open settle → SETTLE_ALL', () => {
     expect(BigInt(maxAmount.toString())).toBe(MAX_AMOUNT_IN)
   })
 })
+
+
+// --------------------------------------------------------------------------
+// UR 2.1.x V2/V3 minHopPriceX36 (6th param) preservation
+// --------------------------------------------------------------------------
+// UR 2.1.1+ appends `uint256[] minHopPriceX36` to the V2/V3 swap inputs. The pool's router
+// decodes exactly one flavor: a 2.0 input on a UR 2.1.x router makes its decoder read a garbage
+// minHopPriceX36 offset and revert V3TooMuchRequestedPerHop on the first hop; a 2.1.x input on a
+// UR 2.0 router misaligns the whole input. The rewriter must normalize to the pool's flavor.
+
+const MIN_HOP_PRICES = ['123456789', '987654321']
+
+function buildV3SwapCalldata(swapInput: string, withDeadline = true): string {
+  const commands = Buffer.from([CMD_V3_SWAP_EXACT_IN])
+  if (withDeadline) {
+    return abiCoder.encode(['bytes', 'bytes[]', 'uint256'], ['0x' + commands.toString('hex'), [swapInput], DEADLINE])
+  }
+  return abiCoder.encode(['bytes', 'bytes[]'], ['0x' + commands.toString('hex'), [swapInput]])
+}
+
+function decodeV3Input(input: string): {
+  recipient: string
+  amountIn: string
+  amountOutMin: string
+  path: string
+  payerIsUser: boolean
+  minHopPriceX36: string[] | undefined
+} {
+  const base = ['address', 'uint256', 'uint256', 'bytes', 'bool']
+  const six = abiCoder.decode([...base, 'uint256[]'], input)
+  const [recipient, amountIn, amountOutMin, path, payerIsUser, minHopPriceX36] = six
+  return {
+    recipient,
+    amountIn: amountIn.toString(),
+    amountOutMin: amountOutMin.toString(),
+    path,
+    payerIsUser,
+    minHopPriceX36: (minHopPriceX36 as string[]).map((v) => v.toString()),
+  }
+}
+
+describe('UR 2.1.x V3_SWAP_EXACT_IN minHopPriceX36 handling', () => {
+  it('preserves the 6th param and replaces the recipient for a UR 2.1.x pool', () => {
+    const input = abiCoder.encode(
+      ['address', 'uint256', 'uint256', 'bytes', 'bool', 'uint256[]'],
+      [FEE_RECIPIENT, '1000', '900', V3_PATH, true, MIN_HOP_PRICES],
+    )
+    const calldata = buildV3SwapCalldata(input)
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL, poolSupportsUr211: true })
+
+    const { inputs } = decodeOutputCalldata(result)
+    const decoded = decodeV3Input(inputs[0]!)
+    expect(decoded.recipient.toLowerCase()).toBe(SMART_POOL.toLowerCase())
+    expect(decoded.minHopPriceX36).toEqual(MIN_HOP_PRICES)
+    expect(decoded.payerIsUser).toBe(true)
+    expect(decoded.amountIn).toBe('1000')
+    expect(decoded.path.toLowerCase()).toBe(V3_PATH)
+  })
+
+  it('returns calldata unchanged when nothing needs modification on a UR 2.1.x pool', () => {
+    const input = abiCoder.encode(
+      ['address', 'uint256', 'uint256', 'bytes', 'bool', 'uint256[]'],
+      [SMART_POOL, '1000', '900', V3_PATH, true, []],
+    )
+    const calldata = buildV3SwapCalldata(input)
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL, poolSupportsUr211: true })
+    expect(result).toBe(calldata)
+  })
+
+  it('upconverts a UR 2.0 input (no minHopPriceX36) to the 2.1.x flavor for a UR 2.1.x pool', () => {
+    // API emitted the 2.0 flavor (e.g. header fallback) but the pool's router is UR 2.1.x:
+    // the rewriter must append the "no per-hop price floor" default ([]), otherwise the router
+    // reads a garbage minHopPriceX36 offset and reverts V3TooMuchRequestedPerHop.
+    const input = abiCoder.encode(
+      ['address', 'uint256', 'uint256', 'bytes', 'bool'],
+      [FEE_RECIPIENT, '1000', '900', V3_PATH, true],
+    )
+    const calldata = buildV3SwapCalldata(input)
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL, poolSupportsUr211: true })
+
+    const { inputs } = decodeOutputCalldata(result)
+    const decoded = decodeV3Input(inputs[0]!)
+    expect(decoded.recipient.toLowerCase()).toBe(SMART_POOL.toLowerCase())
+    expect(decoded.minHopPriceX36).toEqual([])
+  })
+
+  it('downgrades a UR 2.1.x input to the 2.0 flavor for an old-adapter pool', () => {
+    const input = abiCoder.encode(
+      ['address', 'uint256', 'uint256', 'bytes', 'bool', 'uint256[]'],
+      [FEE_RECIPIENT, '1000', '900', V3_PATH, true, []],
+    )
+    const calldata = buildV3SwapCalldata(input)
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL, poolSupportsUr211: false })
+
+    const { inputs } = decodeOutputCalldata(result)
+    const base = abiCoder.decode(['address', 'uint256', 'uint256', 'bytes', 'bool'], inputs[0]!)
+    expect(base[0].toLowerCase()).toBe(SMART_POOL.toLowerCase())
+    // 5-param re-encode: byte-identical to a plain 5-param encode of the same values (the
+    // minHopPriceX36 trailer is gone).
+    expect((inputs[0] as string).toLowerCase()).toBe(
+      abiCoder
+        .encode(['address', 'uint256', 'uint256', 'bytes', 'bool'], [SMART_POOL, '1000', '900', V3_PATH, true])
+        .toLowerCase(),
+    )
+  })
+
+  it('keeps legacy 5-param behavior untouched for an old-adapter pool', () => {
+    const input = abiCoder.encode(
+      ['address', 'uint256', 'uint256', 'bytes', 'bool'],
+      [FEE_RECIPIENT, '1000', '900', V3_PATH, true],
+    )
+    const calldata = buildV3SwapCalldata(input)
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
+    const { inputs } = decodeOutputCalldata(result)
+    const base = abiCoder.decode(['address', 'uint256', 'uint256', 'bytes', 'bool'], inputs[0]!)
+    expect(base[0].toLowerCase()).toBe(SMART_POOL.toLowerCase())
+    expect((inputs[0] as string).toLowerCase()).toBe(
+      abiCoder
+        .encode(['address', 'uint256', 'uint256', 'bytes', 'bool'], [SMART_POOL, '1000', '900', V3_PATH, true])
+        .toLowerCase(),
+    )
+  })
+})
+
+describe('UR 2.1.x V2/V3 flavor handling on other swap commands', () => {
+  it('preserves minHopPriceX36 on V3_SWAP_EXACT_OUT for a UR 2.1.x pool', () => {
+    const input = abiCoder.encode(
+      ['address', 'uint256', 'uint256', 'bytes', 'bool', 'uint256[]'],
+      [FEE_RECIPIENT, '1000', '1100', V3_PATH, true, MIN_HOP_PRICES],
+    )
+    const commands = Buffer.from([CMD_V3_SWAP_EXACT_OUT])
+    const calldata = abiCoder.encode(
+      ['bytes', 'bytes[]', 'uint256'],
+      ['0x' + commands.toString('hex'), [input], DEADLINE],
+    )
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL, poolSupportsUr211: true })
+
+    const { inputs } = decodeOutputCalldata(result)
+    const [recipient, , , , , minHopPriceX36] = abiCoder.decode(
+      ['address', 'uint256', 'uint256', 'bytes', 'bool', 'uint256[]'],
+      inputs[0]!,
+    )
+    expect(recipient.toLowerCase()).toBe(SMART_POOL.toLowerCase())
+    expect((minHopPriceX36 as string[]).map((v) => v.toString())).toEqual(MIN_HOP_PRICES)
+  })
+
+  it('upconverts V2_SWAP_EXACT_IN to the 2.1.x flavor for a UR 2.1.x pool', () => {
+    const input = abiCoder.encode(
+      ['address', 'uint256', 'uint256', 'address[]', 'bool'],
+      [FEE_RECIPIENT, '1000', '900', [WETH, USDC], true],
+    )
+    const commands = Buffer.from([CMD_V2_SWAP_EXACT_IN])
+    const calldata = abiCoder.encode(
+      ['bytes', 'bytes[]', 'uint256'],
+      ['0x' + commands.toString('hex'), [input], DEADLINE],
+    )
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL, poolSupportsUr211: true })
+
+    const { inputs } = decodeOutputCalldata(result)
+    const [recipient, , , , , minHopPriceX36] = abiCoder.decode(
+      ['address', 'uint256', 'uint256', 'address[]', 'bool', 'uint256[]'],
+      inputs[0]!,
+    )
+    expect(recipient.toLowerCase()).toBe(SMART_POOL.toLowerCase())
+    expect(minHopPriceX36 as string[]).toEqual([])
+  })
+})
+
+// --------------------------------------------------------------------------
+// UR 2.1.x execute(bytes,bytes[]) arity (no deadline)
+// --------------------------------------------------------------------------
+
+const EXECUTE_2_0_SELECTOR = '0x3593564c'
+const EXECUTE_2_1_SELECTOR = '0x24856bc3'
+
+describe('UR 2.1.x execute(bytes,bytes[]) arity', () => {
+  it('rewrites a 2-arg execute calldata and keeps the 2-arg layout', () => {
+    const input = abiCoder.encode(
+      ['address', 'uint256', 'uint256', 'bytes', 'bool'],
+      [FEE_RECIPIENT, '1000', '900', V3_PATH, true],
+    )
+    const commands = Buffer.from([CMD_V3_SWAP_EXACT_IN])
+    const calldata = abiCoder.encode(['bytes', 'bytes[]'], ['0x' + commands.toString('hex'), [input]])
+
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
+
+    // Still 2-arg: encoding as 3-arg would corrupt the calldata for the adapter.
+    const [resultCommands, resultInputs] = abiCoder.decode(['bytes', 'bytes[]'], result)
+    expect(resultCommands).toBe('0x' + commands.toString('hex'))
+    const [recipient] = abiCoder.decode(['address', 'uint256', 'uint256', 'bytes', 'bool'], (resultInputs as string[])[0]!)
+    expect(recipient.toLowerCase()).toBe(SMART_POOL.toLowerCase())
+  })
+
+  it('returns an unmodified 2-arg execute calldata unchanged', () => {
+    const input = abiCoder.encode(
+      ['address', 'uint256', 'uint256', 'bytes', 'bool'],
+      [SMART_POOL, '1000', '900', V3_PATH, true],
+    )
+    const commands = Buffer.from([CMD_V3_SWAP_EXACT_IN])
+    const calldata = abiCoder.encode(['bytes', 'bytes[]'], ['0x' + commands.toString('hex'), [input]])
+
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
+    expect(result).toBe(calldata)
+  })
+
+  it('keeps the 3-arg layout for legacy UR 2.0 calldata', () => {
+    const input = abiCoder.encode(
+      ['address', 'uint256', 'uint256', 'bytes', 'bool'],
+      [FEE_RECIPIENT, '1000', '900', V3_PATH, true],
+    )
+    const commands = Buffer.from([CMD_V3_SWAP_EXACT_IN])
+    const calldata = abiCoder.encode(
+      ['bytes', 'bytes[]', 'uint256'],
+      ['0x' + commands.toString('hex'), [input], DEADLINE],
+    )
+    const result = modifyV4ExecuteCalldata({ calldata, smartPoolAddress: SMART_POOL })
+
+    const [resultCommands, resultInputs, deadline] = abiCoder.decode(['bytes', 'bytes[]', 'uint256'], result)
+    expect(resultCommands).toBe('0x' + commands.toString('hex'))
+    expect(BigInt(deadline.toString())).toBe(BigInt(DEADLINE))
+    const [recipient] = abiCoder.decode(['address', 'uint256', 'uint256', 'bytes', 'bool'], (resultInputs as string[])[0]!)
+    expect(recipient.toLowerCase()).toBe(SMART_POOL.toLowerCase())
+  })
+
+  it('strips BALANCE_CHECK_ERC20 from a 2-arg execute calldata, preserving selector and arity', () => {
+    const consoleInfoSpy = vi.spyOn(console, 'info').mockImplementation(() => {})
+    const swapInput = abiCoder.encode(
+      ['address', 'uint256', 'uint256', 'bytes', 'bool'],
+      [FEE_RECIPIENT, '1000', '900', V3_PATH, true],
+    )
+    const checkInput = abiCoder.encode(['address', 'address', 'uint256'], [USDC, SMART_POOL, '1'])
+    const commands = Buffer.from([CMD_V3_SWAP_EXACT_IN, CMD_BALANCE_CHECK_ERC20])
+    const args = abiCoder.encode(['bytes', 'bytes[]'], ['0x' + commands.toString('hex'), [swapInput, checkInput]])
+    const calldata = EXECUTE_2_1_SELECTOR + args.slice(2)
+
+    const result = stripBalanceCheckERC20(calldata, { poolSupportsUr211: false })
+    expect(result.startsWith(EXECUTE_2_1_SELECTOR)).toBe(true)
+
+    const [resultCommands, resultInputs] = abiCoder.decode(['bytes', 'bytes[]'], '0x' + result.slice(10))
+    const resultCommandsBytes = Buffer.from((resultCommands as string).slice(2), 'hex')
+    expect([...resultCommandsBytes]).toEqual([CMD_V3_SWAP_EXACT_IN])
+    expect((resultInputs as string[]).length).toBe(1)
+    const [recipient] = abiCoder.decode(['address', 'uint256', 'uint256', 'bytes', 'bool'], (resultInputs as string[])[0]!)
+    expect(recipient.toLowerCase()).toBe(FEE_RECIPIENT.toLowerCase()) // strip does not rewrite recipients
+    consoleInfoSpy.mockRestore()
+  })
+
+  it('strips BALANCE_CHECK_ERC20 from a legacy 2.0 calldata with selector, preserving the 2.0 selector', () => {
+    const consoleInfoSpy = vi.spyOn(console, 'info').mockImplementation(() => {})
+    const checkInput = abiCoder.encode(['address', 'address', 'uint256'], [USDC, SMART_POOL, '1'])
+    const commands = Buffer.from([CMD_BALANCE_CHECK_ERC20])
+    const args = abiCoder.encode(['bytes', 'bytes[]', 'uint256'], ['0x' + commands.toString('hex'), [checkInput], DEADLINE])
+    const calldata = EXECUTE_2_0_SELECTOR + args.slice(2)
+
+    const result = stripBalanceCheckERC20(calldata, { poolSupportsUr211: false })
+    expect(result.startsWith(EXECUTE_2_0_SELECTOR)).toBe(true)
+
+    const [resultCommands, resultInputs] = abiCoder.decode(['bytes', 'bytes[]', 'uint256'], '0x' + result.slice(10))
+    expect(Buffer.from((resultCommands as string).slice(2), 'hex').length).toBe(0)
+    expect((resultInputs as string[]).length).toBe(0)
+    consoleInfoSpy.mockRestore()
+  })
+})
