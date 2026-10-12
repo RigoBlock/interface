@@ -78,6 +78,7 @@ const CreateProposalButton = ({
 
   return (
     <ButtonError
+      width="100%"
       style={{ marginTop: '18px' }}
       error={hasActiveOrPendingProposal || !hasEnoughVote}
       disabled={isFormInvalid || hasActiveOrPendingProposal || !hasEnoughVote}

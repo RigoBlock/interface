@@ -366,6 +366,7 @@ export default function MoveStakeModal({ isOpen, poolInfo, isDeactivate, onDismi
               </AutoColumn>
             </LightCard>
             <ButtonPrimary
+              width="100%"
               disabled={
                 formatCurrencyAmount({ value: parsedAmount }) === '0' ||
                 (typed !== '' && !isAddress(parsedAddress ?? ''))

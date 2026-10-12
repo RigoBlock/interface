@@ -118,7 +118,7 @@ export default function RaceModal({ isOpen, poolAddress, poolName, onDismiss, ti
                     </p>
                   </AutoColumn>
                 </RowBetween>
-                <ButtonPrimary disabled={false} onClick={onRace}>
+                <ButtonPrimary width="100%" disabled={false} onClick={onRace}>
                   <ThemedText.DeprecatedMediumHeader color="white">
                     <Trans>Race</Trans>{' '}
                   </ThemedText.DeprecatedMediumHeader>

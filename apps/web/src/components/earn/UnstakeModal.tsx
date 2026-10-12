@@ -255,7 +255,7 @@ export default function UnstakeModal({ isOpen, isPool, chains, onDismiss, title 
                 </RowBetween>
               </AutoColumn>
             </LightCard>
-            <ButtonPrimary disabled={formatCurrencyAmount({ value: parsedAmount }) === '0'} onClick={onUnstake}>
+            <ButtonPrimary width="100%" disabled={formatCurrencyAmount({ value: parsedAmount }) === '0'} onClick={onUnstake}>
               <ThemedText.DeprecatedMediumHeader color="white">
                 <Trans>Unstake</Trans>{' '}
               </ThemedText.DeprecatedMediumHeader>

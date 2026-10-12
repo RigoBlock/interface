@@ -1,5 +1,6 @@
+import { type PlainMessage } from '@bufbuild/protobuf'
 import { PositionStatus, ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
-import type { Position as LiquidityServicePosition } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v2/types_pb'
+import type { Position as LiquidityServicePositionMessage } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v2/types_pb'
 import { CHAIN_TO_ADDRESSES_MAP, Currency, CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { Pair } from '@uniswap/v2-sdk'
 import { Pool as V3Pool, Position as V3Position } from '@uniswap/v3-sdk'
@@ -17,6 +18,11 @@ import { logger } from 'utilities/src/logger/logger'
 
 // V2 LP tokens are always 18 decimals with the canonical UNI-V2 symbol/name.
 const V2_LP_TOKEN_DECIMALS = 18
+
+// The getWalletPositions queryFn returns toPlainMessage(...) so persisted cache survives a reload;
+// positions arrive (and re-arrive from disk) prototype-free. Raw Messages from other call sites
+// (e.g. GetPosition) are still assignable to the Plain shape — only fields are ever read here.
+type LiquidityServicePosition = PlainMessage<LiquidityServicePositionMessage>
 
 // Sentinel token addresses for degraded rows — positions whose pool metadata the backend could
 // not resolve (token identity unset on the enriched Position). A PositionInfo always needs

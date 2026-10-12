@@ -203,7 +203,7 @@ export default function HarvestYieldModal({
                 </RowBetween>
               </AutoColumn>
             </LightCard>
-            <ButtonPrimary disabled={!canHarvest} onClick={onHarvest}>
+            <ButtonPrimary width="100%" disabled={!canHarvest} onClick={onHarvest}>
               <ThemedText.DeprecatedMediumHeader color="white">
                 <Trans>Harvest</Trans>{' '}
               </ThemedText.DeprecatedMediumHeader>

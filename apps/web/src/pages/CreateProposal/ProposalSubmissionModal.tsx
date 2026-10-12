@@ -75,6 +75,7 @@ export const ProposalSubmissionModal = ({
               </ExternalLink>
             )}
             <ButtonPrimary
+              width="100%"
               onClick={() => {
                 onDismiss()
                 navigate('/vote')

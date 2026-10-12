@@ -228,6 +228,7 @@ export default function SellModal({
 
           <RowBetween>
             <ButtonError
+              width="100%"
               disabled={!!error || !poolHoldsEnough}
               error={(!!error || !poolHoldsEnough) && !!parsedAmount}
               onClick={onSell}

@@ -8,6 +8,7 @@ import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledCh
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import HarvestYieldModal from '~/components/earn/HarvestYieldModal'
 import { RIGOBLOCK_SUPPORTED_CHAINS, RIGOBLOCK_TESTNET_CHAINS } from '~/constants/addresses'
+import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { usePortfolioAddress } from '~/pages/Portfolio/hooks/usePortfolioAddress'
 import { useMultiChainAllPoolsData } from '~/state/pool/multichain'
 import { useUnclaimedRewards, type UnclaimedReward } from '~/state/stake/hooks'
@@ -70,6 +71,7 @@ interface UserStakingRewardsProps {
 
 export function UserStakingRewards({ farmer }: UserStakingRewardsProps) {
   const { isTestnetModeEnabled } = useEnabledChains()
+  const { chainId: selectedChainId } = usePortfolioRoutes()
   const chains = useMemo(
     () => (isTestnetModeEnabled ? RIGOBLOCK_TESTNET_CHAINS : RIGOBLOCK_SUPPORTED_CHAINS),
     [isTestnetModeEnabled],
@@ -77,8 +79,13 @@ export function UserStakingRewards({ farmer }: UserStakingRewardsProps) {
   const { data: allPools } = useMultiChainAllPoolsData(chains)
   const poolEntries = useMemo(
     () =>
-      allPools?.map((pool) => ({ poolId: pool.id, chainId: pool.chainId ?? 0 })).filter((entry) => entry.chainId !== 0),
-    [allPools],
+      allPools
+        ?.map((pool) => ({ poolId: pool.id, chainId: pool.chainId ?? 0 }))
+        .filter(
+          (entry) =>
+            entry.chainId !== 0 && (selectedChainId === undefined || entry.chainId === selectedChainId),
+        ),
+    [allPools, selectedChainId],
   )
   const unclaimedRewards = useUnclaimedRewards({ farmer, pools: poolEntries })
 

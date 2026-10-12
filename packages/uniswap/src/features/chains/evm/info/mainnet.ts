@@ -73,7 +73,7 @@ export const MAINNET_CHAIN_INFO = {
           http: ['https://rpc.mevblocker.io/?referrer=uniswapwallet'],
         },
         [RPCType.Public]: {
-          http: ['https://eth-mainnet.public.blastapi.io'],
+          http: [getUniRpcEndpointUrl(UniverseChainId.Mainnet)],
         },
         // Default feeds the wallet-connector rpc maps (WalletConnect/Binance read
         // rpcUrls.default.http[0] from a cookieless in-page client), so it must be an
@@ -84,13 +84,14 @@ export const MAINNET_CHAIN_INFO = {
         // favor of publicnode + tenderly, both verified for browser CORS and the
         // connector method mix (eth_call/estimateGas/getLogs/batch).
         [RPCType.Default]: {
-          http: ['https://rpc.ankr.com/eth'],
+          http: ['https://ethereum-rpc.publicnode.com', 'https://mainnet.gateway.tenderly.co'],
         },
         [RPCType.Fallback]: {
           http: ['https://eth.drpc.org', 'https://eth-mainnet.public.blastapi.io'],
         },
         [RPCType.Interface]: {
           http: [
+            // RigoBlock fork: alchemy first (we have no QuickNode endpoint).
             `https://eth-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`,
             `https://mainnet.infura.io/v3/${config.infuraKey}`,
             //getQuicknodeEndpointUrl(UniverseChainId.Mainnet),

@@ -265,6 +265,7 @@ export default function CreateModal({ isOpen, onDismiss, title }: CreateModalPro
                   </Aligner>
                 </CurrencySelect>
                 <ButtonPrimary
+                  width="100%"
                   disabled={Boolean(
                     typedName === '' ||
                     typedName.length < 4 ||

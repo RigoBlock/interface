@@ -25,6 +25,11 @@ export type LegacyButtonProps = {
   padding?: string
   width?: string
   $borderRadius?: string
+  /**
+   * The shared `Button` fills its container by default (`flex-1 … self-stretch`);
+   * legacy interface buttons sized to their content unless a `width` was given.
+   */
+  fill?: boolean
 }
 
 function adaptButtonProps({
@@ -32,6 +37,7 @@ function adaptButtonProps({
   width,
   $borderRadius,
   altDisabledStyle,
+  fill,
   style,
   onClick,
   disabled,
@@ -41,6 +47,10 @@ function adaptButtonProps({
   const passive = Boolean(altDisabledStyle && disabled)
   return {
     ...rest,
+    // Legacy buttons were content-sized unless an explicit `width` was passed;
+    // the shared Button fills its container by default (flex-1 + self-stretch),
+    // which an inline `width` cannot defeat — so opt out unless asked to fill.
+    fill: fill ?? false,
     onClick: passive ? undefined : onClick,
     disabled: passive ? false : disabled,
     style: {

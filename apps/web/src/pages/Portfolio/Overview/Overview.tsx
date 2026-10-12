@@ -16,6 +16,7 @@ import {
 } from 'uniswap/src/data/apiClients/dataApiService/balances/getWalletBalances/getWalletBalances'
 import { useActivityData } from 'uniswap/src/features/activity/hooks/useActivityData'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
+import { isBackendSupportedChainId } from 'uniswap/src/features/chains/utils'
 import {
   usePortfolioBalanceBreakdown,
   usePortfolioTotalValue,
@@ -31,6 +32,7 @@ import { useGmxPositions } from '~/pages/Portfolio/hooks/useGmxPositions'
 import { useGmxValueHistory } from '~/pages/Portfolio/hooks/useGmxValueHistory'
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
 import { OverviewActionTiles } from '~/pages/Portfolio/Overview/ActionTiles'
+import { getPerpsExtrasForChain } from '~/pages/Portfolio/Overview/hooks/perpsChainAttribution'
 import { useChartDataWithExtras } from '~/pages/Portfolio/Overview/hooks/useChartDataWithExtras'
 import { useIsPortfolioZero } from '~/pages/Portfolio/Overview/hooks/useIsPortfolioZero'
 import {
@@ -65,6 +67,11 @@ const ActionsAndStatsContainer = styled(Flex, {
 
 // Keep in sync with the rendered PortfolioBalanceHeader height.
 const ACTIONS_TOP_OFFSET_WITH_BALANCE_HEADER = 92
+
+// Stable empty history references for chain-gated chart extras (avoids re-running the
+// useChartDataWithExtras memo on every render when a source isn't attributable to the selected chain).
+const EMPTY_GMX_HISTORY: never[] = []
+const EMPTY_HYPERLIQUID_HISTORY: never[] = []
 
 export const PortfolioOverview = memo(function PortfolioOverview() {
   const media = useMedia()
@@ -101,6 +108,11 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
 
   const { chains: allChainIds } = useEnabledChains()
   const filterChainIds = useMemo(() => (chainId ? [chainId] : allChainIds), [chainId, allChainIds])
+  // The backend portfolio/chart APIs don't recognize non-backend-supported chains (e.g.
+  // HyperEVM 999): they either error or return the full multichain set. Their totals and
+  // breakdowns are therefore not attributable to such a chain and must not be shown for it —
+  // the chain's only value comes from the on-chain extras below.
+  const isSelectedChainBackendSupported = chainId === undefined || isBackendSupportedChainId(chainId)
 
   const isPortfolioZero = useIsPortfolioZero()
   const queryClient = useQueryClient()
@@ -152,6 +164,10 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
     [portfolioBreakdown, requestedCategories],
   )
 
+  // Backend aggregates are only trustworthy when the selected chain is backend-supported.
+  const backendBalanceUSD = isSelectedChainBackendSupported ? portfolioData?.balanceUSD : undefined
+  const breakdownForSelectedChain = isSelectedChainBackendSupported ? portfolioBreakdown : undefined
+
   // Fetch portfolio historical value chart data. The base series covers a fixed
   // request-time window ([beginAt, endAt]) and does not roll while displayed — the
   // perps history reconstructions below are pinned to exactly this window so early
@@ -163,17 +179,21 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
     error: chartError,
   } = useGetPortfolioHistoricalValueChartQuery({
     input: { ...chartInput, chartPeriod: selectedPeriod },
-    enabled: !!(portfolioAddresses.evmAddress || portfolioAddresses.svmAddress),
+    enabled: isSelectedChainBackendSupported && !!(portfolioAddresses.evmAddress || portfolioAddresses.svmAddress),
   })
 
+  // For a non-backend-supported chain there is no attributable history: skip the backend series
+  // entirely (the header still shows the on-chain extra values computed below).
+  const chartDataForSelectedChain = isSelectedChainBackendSupported ? portfolioChartData : undefined
+
   const chartWindow = useMemo(() => {
-    const beginAt = portfolioChartData?.beginAt
-    const endAt = portfolioChartData?.endAt
+    const beginAt = chartDataForSelectedChain?.beginAt
+    const endAt = chartDataForSelectedChain?.endAt
     if (!beginAt || !endAt) {
       return undefined
     }
     return { startSec: Number(beginAt), endSec: Number(endAt) }
-  }, [portfolioChartData?.beginAt, portfolioChartData?.endAt])
+  }, [chartDataForSelectedChain?.beginAt, chartDataForSelectedChain?.endAt])
 
   // GMX daily cumulative PnL history (Subsquid indexer) — used to reconstruct historical account value
   const { history: gmxPnlHistory } = useGmxPnlHistory(portfolioAddresses.evmAddress, !isCandlePeriod)
@@ -206,6 +226,27 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   // The vault's HyperEVM USDC balance (chain 999 is not indexed by the Uniswap data API)
   const { balanceUsd: hyperEvmUsdcValue } = useHyperEvmUsdcBalance(portfolioAddresses.evmAddress)
 
+  // Chain attribution for the value sources the backend doesn't cover: GMX perps count on
+  // Arbitrum, the cross-chain Hyperliquid account only in the All Networks total, and the
+  // HyperEVM USDC balance on HyperEVM (999) — so a single-chain selection doesn't leak other
+  // chains' perps value into the total or chart.
+  const {
+    gmxTotalNetValueUsd: gmxValueForChain,
+    hyperliquidPerpsValueUsd: hyperliquidPerpsValueForChain,
+    hyperliquidSpotValueUsd: hyperliquidSpotValueForChain,
+    hyperEvmUsdcValueUsd: hyperEvmUsdcValueForChain,
+    gmxHistoryForChain,
+    hyperliquidHistoryForChain,
+  } = getPerpsExtrasForChain({
+    chainId,
+    extras: {
+      gmxTotalNetValueUsd,
+      hyperliquidPerpsValueUsd: hyperliquidPerpsValue,
+      hyperliquidSpotValueUsd: hyperliquidSpotValue,
+      hyperEvmUsdcValueUsd: hyperEvmUsdcValue,
+    },
+  })
+
   const handleNavigateToStaking = () => {
     navigate(
       buildPortfolioUrl({
@@ -222,15 +263,15 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   }, [totalStakeUSD])
 
   const portfolioTotalWithStaking = useMemo(() => {
-    const baseValue = portfolioData?.balanceUSD || 0
+    const baseValue = backendBalanceUSD || 0
 
     // Ensure both values are valid numbers to prevent BigNumber errors
     const safeBaseValue = isNaN(baseValue) ? 0 : baseValue
     const safeStakingValue = isNaN(stakingValueStable) ? 0 : stakingValueStable
-    const safeGmxValue = isNaN(gmxTotalNetValueUsd) ? 0 : gmxTotalNetValueUsd
-    const safeHyperliquidPerpsValue = isNaN(hyperliquidPerpsValue) ? 0 : hyperliquidPerpsValue
-    const safeHyperliquidSpotValue = isNaN(hyperliquidSpotValue) ? 0 : hyperliquidSpotValue
-    const safeHyperEvmUsdcValue = isNaN(hyperEvmUsdcValue) ? 0 : hyperEvmUsdcValue
+    const safeGmxValue = isNaN(gmxValueForChain) ? 0 : gmxValueForChain
+    const safeHyperliquidPerpsValue = isNaN(hyperliquidPerpsValueForChain) ? 0 : hyperliquidPerpsValueForChain
+    const safeHyperliquidSpotValue = isNaN(hyperliquidSpotValueForChain) ? 0 : hyperliquidSpotValueForChain
+    const safeHyperEvmUsdcValue = isNaN(hyperEvmUsdcValueForChain) ? 0 : hyperEvmUsdcValueForChain
 
     return (
       safeBaseValue +
@@ -241,28 +282,28 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
       safeHyperEvmUsdcValue
     )
   }, [
-    portfolioData?.balanceUSD,
+    backendBalanceUSD,
     stakingValueStable,
-    gmxTotalNetValueUsd,
-    hyperliquidPerpsValue,
-    hyperliquidSpotValue,
-    hyperEvmUsdcValue,
+    gmxValueForChain,
+    hyperliquidPerpsValueForChain,
+    hyperliquidSpotValueForChain,
+    hyperEvmUsdcValueForChain,
   ])
 
   // The historical chart data only covers token balances; staking, GMX perps, Hyperliquid
   // perps + Core spot USDC, and the HyperEVM USDC balance are reconstructed or bootstrapped
   // on top of the base series (see useChartDataWithExtras).
   const chartDataWithExtras = useChartDataWithExtras({
-    portfolioChartData,
+    portfolioChartData: chartDataForSelectedChain,
     stakingValueStable,
-    gmxTotalNetValueUsd,
-    gmxPnlHistory,
-    gmxValueHistory,
+    gmxTotalNetValueUsd: gmxValueForChain,
+    gmxPnlHistory: gmxHistoryForChain ? gmxPnlHistory : EMPTY_GMX_HISTORY,
+    gmxValueHistory: gmxHistoryForChain ? gmxValueHistory : EMPTY_GMX_HISTORY,
     isCandlePeriod,
-    hyperliquidPerpsValue,
-    hyperliquidHistory,
-    hyperliquidSpotValue,
-    hyperEvmUsdcValue,
+    hyperliquidPerpsValue: hyperliquidPerpsValueForChain,
+    hyperliquidHistory: hyperliquidHistoryForChain ? hyperliquidHistory : EMPTY_HYPERLIQUID_HISTORY,
+    hyperliquidSpotValue: hyperliquidSpotValueForChain,
+    hyperEvmUsdcValue: hyperEvmUsdcValueForChain,
   })
 
   const {
@@ -290,7 +331,8 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
       setSelectedCategory(PortfolioChartCategory.Total)
     }
   }, [availableCategories, selectedCategory])
-  const isChartLoading = isChartPending || (isChartPlaceholderData && !series.length)
+  const isChartLoading =
+    isSelectedChainBackendSupported && (isChartPending || (isChartPlaceholderData && !series.length))
   const isChartEmpty = useMemo(() => {
     if (!series.length) {
       return true
@@ -305,22 +347,25 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
 
   // Get the latest value from chart endpoint (last point in the array) for comparison
   const lastChartValue = useMemo(() => {
-    if (!portfolioChartData?.points || portfolioChartData.points.length === 0) {
+    if (!chartDataForSelectedChain?.points || chartDataForSelectedChain.points.length === 0) {
       return undefined
     }
-    return portfolioChartData.points[portfolioChartData.points.length - 1]?.value
-  }, [portfolioChartData])
+    return chartDataForSelectedChain.points[chartDataForSelectedChain.points.length - 1]?.value
+  }, [chartDataForSelectedChain])
 
   // Compare portfolio balance (EVM + Solana) with chart endpoint balance to detect spam-token divergence
   // Note: Use base portfolio data (without staking) for comparison since chart data doesn't include staking
   const { isTotalValueMatch } = usePortfolioChartBalanceMismatch({
     lastChartValue,
-    portfolioTotalBalanceUSD: portfolioData?.balanceUSD,
+    portfolioTotalBalanceUSD: backendBalanceUSD,
   })
 
   // Prefetch chart data for a timeframe on hover so it's ready when the user clicks
   const handleHoverPeriod = useCallback(
     (period: ChartPeriod) => {
+      if (!isSelectedChainBackendSupported) {
+        return
+      }
       if (!portfolioAddresses.evmAddress && !portfolioAddresses.svmAddress) {
         return
       }
@@ -336,7 +381,14 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
       }
       queryClient.prefetchQuery(periodQuery).catch(() => undefined)
     },
-    [queryClient, portfolioAddresses.evmAddress, portfolioAddresses.svmAddress, selectedPeriod, chartInput],
+    [
+      queryClient,
+      portfolioAddresses.evmAddress,
+      portfolioAddresses.svmAddress,
+      selectedPeriod,
+      chartInput,
+      isSelectedChainBackendSupported,
+    ],
   )
 
   // Fetch activity data once at the top level to share across the overview tables
@@ -357,9 +409,9 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
           <Trace section={SectionName.PortfolioOverviewTab} element={ElementName.PortfolioChart}>
             <PortfolioChart
               portfolioTotalBalanceUSD={portfolioTotalWithStaking} // Shows current total with staking + perps in header
-              tokensValue={portfolioBreakdown?.tokens}
-              poolsValue={portfolioPoolsBalancesEnabled ? portfolioBreakdown?.pools : undefined}
-              earnValue={portfolioBreakdown?.earn}
+              tokensValue={breakdownForSelectedChain?.tokens}
+              poolsValue={portfolioPoolsBalancesEnabled ? breakdownForSelectedChain?.pools : undefined}
+              earnValue={breakdownForSelectedChain?.earn}
               unavailableCategories={unavailableCategories}
               isPortfolioZero={isPortfolioZero}
               series={series} // Historical data with staking bootstrapped at current value; GMX and Hyperliquid reconstructed at the period's candle granularity (daily PnL / portfolio endpoint for YEAR/MAX), live values after the last history sample

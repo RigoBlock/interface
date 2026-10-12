@@ -89,7 +89,7 @@ export default function UpgradeModal({ isOpen, implementation, chainId, onDismis
               <ThemedText.DeprecatedMediumHeader fontWeight={500}>{title}</ThemedText.DeprecatedMediumHeader>
               <StyledClosed stroke="black" onClick={wrappedOnDismiss} />
             </RowBetween>
-            <ButtonError onClick={onUpgrade} disabled={!implementation}>
+            <ButtonError width="100%" onClick={onUpgrade} disabled={!implementation}>
               <ThemedText.DeprecatedMediumHeader color="white">
                 <Trans>Upgrade Implementation</Trans>
               </ThemedText.DeprecatedMediumHeader>

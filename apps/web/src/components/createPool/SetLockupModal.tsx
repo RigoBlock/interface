@@ -128,6 +128,7 @@ export default function SetLockupModal({ isOpen, currentLockup, chainId, onDismi
               placeholder="max 30 days"
             />
             <ButtonError
+              width="100%"
               disabled={parsedLockup === '' || isSameAsCurrent || isLockupTooBig}
               error={isSameAsCurrent || isLockupTooBig}
               onClick={onSetLockup}

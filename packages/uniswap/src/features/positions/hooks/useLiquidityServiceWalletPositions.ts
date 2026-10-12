@@ -1,4 +1,4 @@
-import type { PartialMessage } from '@bufbuild/protobuf'
+import type { PartialMessage, PlainMessage } from '@bufbuild/protobuf'
 import type { InfiniteData } from '@tanstack/react-query'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
@@ -157,7 +157,7 @@ export function useLiquidityServiceWalletPositions({
 
   // persistableInfiniteQueryOptions erases the InfiniteData wrapper from the inferred data type;
   // restore it explicitly (same approach as the listPools consumers).
-  const infiniteData = data as InfiniteData<GetWalletPositionsResponse> | undefined
+  const infiniteData = data as InfiniteData<PlainMessage<GetWalletPositionsResponse>> | undefined
 
   const { positions, hiddenPositions, allPositions } = useMemo(() => {
     const visible: PositionInfo[] = []
@@ -166,7 +166,8 @@ export function useLiquidityServiceWalletPositions({
     // Sorted requests page by offset, so pages can overlap; keep the first occurrence.
     const seenKeys = new Set<string>()
 
-    const loadedPositions = infiniteData?.pages.flatMap((page: GetWalletPositionsResponse) => page.positions) ?? []
+    const loadedPositions =
+      infiniteData?.pages.flatMap((page: PlainMessage<GetWalletPositionsResponse>) => page.positions) ?? []
     for (const position of loadedPositions) {
       const parsed = parseLiquidityServicePosition(position)
       if (!parsed) {

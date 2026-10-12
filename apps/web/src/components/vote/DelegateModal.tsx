@@ -258,7 +258,7 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
             </ThemedText.DeprecatedBody>
             {/* confirmed={approval === ApprovalState.APPROVED} disabled={approval !== ApprovalState.NOT_APPROVED} */}
             {!usingDelegate && approval !== ApprovalState.APPROVED && (
-              <ButtonConfirmed style={{ marginRight: '0.5rem' }} onClick={onAttemptToApprove}>
+              <ButtonConfirmed width="100%" style={{ marginRight: '0.5rem' }} onClick={onAttemptToApprove}>
                 <Trans>Approve Staking</Trans>
               </ButtonConfirmed>
             )}
@@ -312,6 +312,7 @@ export default function DelegateModal({ isOpen, poolInfo, onDismiss, title }: Vo
               </AutoColumn>
             </LightCard>
             <ButtonPrimary
+              width="100%"
               disabled={
                 !isAddress(parsedAddress ?? '') ||
                 approval !== ApprovalState.APPROVED ||

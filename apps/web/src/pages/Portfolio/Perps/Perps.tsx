@@ -2,11 +2,20 @@ import { Flex, Text } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
 import { InterfacePageName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
+import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
+import { GMX_CHAIN_ID } from '~/pages/Portfolio/hooks/useGmxPositions'
 import { GmxPerpsSection } from '~/pages/Portfolio/Perps/gmx/GmxPerpsSection'
 import { HyperliquidPerpsSection } from '~/pages/Portfolio/Perps/hyperliquid/HyperliquidPerpsSection'
 
 export function PortfolioPerps(): JSX.Element {
   const { t } = useTranslation()
+  const { chainId } = usePortfolioRoutes()
+
+  // Perps sections follow the same chain attribution as the portfolio totals: the cross-chain
+  // Hyperliquid account only belongs to the All Networks view, and GMX v2 positions belong to
+  // Arbitrum. A single-chain selection of any other chain shows neither section.
+  const showGmxSection = chainId === undefined || chainId === GMX_CHAIN_ID
+  const showHyperliquidSection = chainId === undefined
 
   return (
     <Trace logImpression page={InterfacePageName.PortfolioPerpsPage}>
@@ -18,8 +27,8 @@ export function PortfolioPerps(): JSX.Element {
           </Text>
         </Flex>
 
-        <GmxPerpsSection />
-        <HyperliquidPerpsSection />
+        {showGmxSection && <GmxPerpsSection />}
+        {showHyperliquidSection && <HyperliquidPerpsSection />}
       </Flex>
     </Trace>
   )

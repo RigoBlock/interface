@@ -101,7 +101,7 @@ export default function SetValueModal({ isOpen, onDismiss, baseTokenSymbol, chai
               <StyledClosed stroke="black" onClick={wrappedOnDismiss} />
             </RowBetween>
             {/* TODO: display return error from hook */}
-            <ButtonError disabled={false} error={false} onClick={onSetValue}>
+            <ButtonError width="100%" disabled={false} error={false} onClick={onSetValue}>
               <ThemedText.DeprecatedMediumHeader color="white">
                 <Trans>Update Value</Trans>
               </ThemedText.DeprecatedMediumHeader>

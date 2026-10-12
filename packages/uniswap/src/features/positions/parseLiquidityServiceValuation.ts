@@ -1,5 +1,6 @@
+import { type PlainMessage } from '@bufbuild/protobuf'
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
-import type { Position as LiquidityServicePosition } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v2/types_pb'
+import type { Position as LiquidityServicePositionMessage } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v2/types_pb'
 import { type Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import type { PositionInfo } from 'uniswap/src/features/positions/types'
 import { logger } from 'utilities/src/logger/logger'
@@ -14,6 +15,10 @@ type ParsedUncollectedFees = Pick<
   | 'token0UncollectedFeesUsd'
   | 'token1UncollectedFeesUsd'
 >
+
+// See parseLiquidityServicePosition.ts: the queryFn persists toPlainMessage(...) output, so
+// positions arrive prototype-free; raw Messages stay assignable (fields only are read).
+type LiquidityServicePosition = PlainMessage<LiquidityServicePositionMessage>
 
 const NO_UNCOLLECTED_FEES: ParsedUncollectedFees = {
   token0UncollectedFees: undefined,

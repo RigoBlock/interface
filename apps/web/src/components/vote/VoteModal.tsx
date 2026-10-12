@@ -108,7 +108,7 @@ export default function VoteModal({ isOpen, onDismiss, proposalId, voteOption }:
             <ThemedText.DeprecatedLargeHeader>
               <Trans i18nKey="vote.landing.voteAmount" values={{ amount: formattedVoteAmount }} />
             </ThemedText.DeprecatedLargeHeader>
-            <ButtonPrimary onClick={onVote}>
+            <ButtonPrimary width="100%" onClick={onVote}>
               <ThemedText.DeprecatedMediumHeader color="white">
                 {voteOption === VoteOption.Against ? (
                   <Trans i18nKey="account.transactionSummary.vote.against" values={{ proposalKey: proposalId }} />

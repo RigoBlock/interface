@@ -126,6 +126,7 @@ export default function CreatePool() {
                     element={ElementName.ConnectWalletButton}
                   >
                     <ButtonPrimary
+                      width="100%"
                       style={{
                         marginTop: '2em',
                         marginBottom: '2em',

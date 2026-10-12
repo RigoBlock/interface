@@ -59,6 +59,7 @@ export const BNB_CHAIN_INFO = {
   rpcUrls: {
     [RPCType.Public]: { http: [getUniRpcEndpointUrl(UniverseChainId.Bnb)] },
     [RPCType.Default]: { http: ['https://bsc-dataseed1.bnbchain.org'] },
+    // RigoBlock fork: alchemy first (we have no QuickNode endpoint).
     [RPCType.Interface]: {
       http: [
         `https://bnb-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`,

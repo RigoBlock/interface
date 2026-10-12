@@ -8,6 +8,7 @@ import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import HarvestYieldModal from '~/components/earn/HarvestYieldModal'
 import { useSmartPoolFromAddress } from '~/hooks/useSmartPools'
+import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { usePortfolioAddress } from '~/pages/Portfolio/hooks/usePortfolioAddress'
 import { usePoolIdsByAddressAcrossChains } from '~/state/pool/multichain'
 import { useUnclaimedRewards, type UnclaimedReward } from '~/state/stake/hooks'
@@ -80,7 +81,14 @@ interface PoolStakingInfoProps {
 }
 
 export function PoolStakingInfo({ poolAddress, stakingPoolExists }: PoolStakingInfoProps) {
-  const poolEntries = usePoolIdsByAddressAcrossChains(poolAddress)
+  const { chainId: selectedChainId } = usePortfolioRoutes()
+  const allPoolEntries = usePoolIdsByAddressAcrossChains(poolAddress)
+  // The rewards list must follow the portfolio's chain filter — a single-chain selection
+  // shows only that chain's staking pool (and no pool exists on non-staking chains).
+  const poolEntries = useMemo(
+    () => allPoolEntries?.filter((entry) => selectedChainId === undefined || entry.chainId === selectedChainId),
+    [allPoolEntries, selectedChainId],
+  )
   const unclaimedRewards = useUnclaimedRewards({ farmer: poolAddress, pools: poolEntries })
   const account = usePortfolioAddress()
   const poolStorage = useSmartPoolFromAddress(poolAddress, account.chainId)

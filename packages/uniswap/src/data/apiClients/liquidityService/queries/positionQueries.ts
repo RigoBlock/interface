@@ -1,4 +1,4 @@
-import { type PartialMessage } from '@bufbuild/protobuf'
+import { type PartialMessage, type PlainMessage, toPlainMessage } from '@bufbuild/protobuf'
 import { type QueryKey, queryOptions } from '@tanstack/react-query'
 import type {
   ClaimLPRewardsRequest,
@@ -210,31 +210,37 @@ type GetWalletPositionsQueryKey = readonly [
 ]
 
 // Cursor-based pagination: the page param is the structured cursor returned by the previous page
-// (undefined for the first page) and is passed straight back to the request as `cursor`.
-type GetWalletPositionsPageParam = PositionListCursor | undefined
+// (undefined for the first page) and is passed straight back to the request as `cursor`. It is the
+// plain (toPlainMessage) form of the served cursor — the same shape the queryFn returns.
+type GetWalletPositionsPageParam = PlainMessage<PositionListCursor> | undefined
 
 export function getGetWalletPositionsQueryOptions(
   client: typeof V2LiquidityServiceClient,
   { params, enabled }: GetWalletPositionsInput,
 ): ReturnType<
   typeof persistableInfiniteQueryOptions<
-    GetWalletPositionsResponse,
+    PlainMessage<GetWalletPositionsResponse>,
     Error,
-    GetWalletPositionsResponse,
+    PlainMessage<GetWalletPositionsResponse>,
     GetWalletPositionsQueryKey,
     GetWalletPositionsPageParam
   >
 > {
   return persistableInfiniteQueryOptions({
     queryKey: [ReactQueryCacheKey.LiquidityService, 'getWalletPositions', params] as const,
-    queryFn: async ({ pageParam }: { pageParam: GetWalletPositionsPageParam }): Promise<GetWalletPositionsResponse> => {
+    queryFn: async ({
+      pageParam,
+    }: {
+      pageParam: GetWalletPositionsPageParam
+    }): Promise<PlainMessage<GetWalletPositionsResponse>> => {
       if (!params) {
         throw new Error('params required')
       }
-      return client.getWalletPositions({ ...params, cursor: pageParam })
+      // toPlainMessage strips the Message prototype so the value survives disk persistence.
+      return toPlainMessage(await client.getWalletPositions({ ...params, cursor: pageParam }))
     },
     initialPageParam: undefined,
-    getNextPageParam: (lastPage: GetWalletPositionsResponse) => lastPage.nextCursor,
+    getNextPageParam: (lastPage: PlainMessage<GetWalletPositionsResponse>) => lastPage.nextCursor,
     enabled,
   })
 }

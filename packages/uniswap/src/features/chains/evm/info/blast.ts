@@ -65,6 +65,7 @@ export const BLAST_CHAIN_INFO = {
   rpcUrls: {
     [RPCType.Public]: { http: [getUniRpcEndpointUrl(UniverseChainId.Blast)] },
     [RPCType.Default]: { http: ['https://rpc.blast.io/'] },
+    // RigoBlock fork: alchemy first, infura secondary (upstream is infura-only).
     [RPCType.Interface]: {
       http: [
         `https://blast-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`,

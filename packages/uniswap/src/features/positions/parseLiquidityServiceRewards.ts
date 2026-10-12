@@ -1,7 +1,11 @@
 import type { PlainMessage } from '@bufbuild/protobuf'
 import { RewardBalance } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
-import type { Position as LiquidityServicePosition } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v2/types_pb'
+import type { Position as LiquidityServicePositionMessage } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v2/types_pb'
 import type { PositionRewardApr } from 'uniswap/src/features/positions/types'
+
+// The queryFn returns toPlainMessage(...) so persisted cache survives a reload, so positions arrive
+// (and re-arrive from disk) prototype-free; raw Messages from other call sites are still assignable.
+type LiquidityServicePosition = PlainMessage<LiquidityServicePositionMessage>
 
 /**
  * The pool's live LP-incentive boosts and the position's unclaimed balances, two orthogonal views of

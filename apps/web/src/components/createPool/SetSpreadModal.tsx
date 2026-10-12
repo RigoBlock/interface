@@ -114,6 +114,7 @@ export default function SetSpreadModal({ isOpen, currentSpread, chainId, onDismi
             </RowBetween>
             <NameInputPanel value={typed} onChange={onUserInput} label="Pool Spread (%)" placeholder="max 5%" />
             <ButtonError
+              width="100%"
               disabled={
                 typed === '' ||
                 typed.length > 4 ||

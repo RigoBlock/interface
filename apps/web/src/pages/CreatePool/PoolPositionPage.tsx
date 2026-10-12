@@ -63,6 +63,7 @@ const NAV_SIMULATE_DEPLOYMENT_BYTECODE =
 const HL_NAV_DATA_VIEW_SELECTOR = '0x5d7d86de'
 
 const PageWrapper = styled(Flex, {
+  platform: 'web',
   base: 'w-[100%] max-w-[960px] mx-auto pt-[68px] pb-[24px] px-[12px] media-md:pt-[48px] media-sm:pt-[20px]',
 })
 

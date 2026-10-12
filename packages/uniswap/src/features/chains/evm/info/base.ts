@@ -70,9 +70,8 @@ export const BASE_CHAIN_INFO = {
     : {
         [RPCType.Public]: { http: [getUniRpcEndpointUrl(UniverseChainId.Base)] },
         [RPCType.Default]: { http: ['https://mainnet.base.org/'] },
-        [RPCType.Fallback]: {
-          http: ['https://1rpc.io/base', 'https://base.meowrpc.com'],
-        },
+        [RPCType.Fallback]: { http: ['https://1rpc.io/base', 'https://base.meowrpc.com'] },
+        // RigoBlock fork: alchemy first, infura secondary (upstream is infura-only).
         [RPCType.Interface]: {
           http: [
             `https://base-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`,

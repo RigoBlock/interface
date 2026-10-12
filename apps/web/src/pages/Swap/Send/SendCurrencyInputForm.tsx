@@ -360,7 +360,7 @@ export function SendCurrencyInputForm({
                 </Flex>
               </Trace>
             )}
-            <RotatableChevron direction="down" />
+            <RotatableChevron direction="down" color="$neutral1" />
           </Flex>
         </TouchableArea>
       </CurrencyInputWrapper>

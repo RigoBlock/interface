@@ -146,7 +146,7 @@ function ErrorDetailsSection({ errorDetails, eventId }: { errorDetails: string; 
           <Text variant="body3" color="$neutral2">
             {isExpanded ? t('common.showLess.button') : t('common.showMore.button')}
           </Text>
-          <RotatableChevron size="$icon.20" direction={isExpanded ? 'up' : 'down'} />
+          <RotatableChevron size="$icon.20" direction={isExpanded ? 'up' : 'down'} color="$neutral1" />
         </TouchableArea>
       </Flex>
     </>

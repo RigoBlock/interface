@@ -32,10 +32,47 @@ function resolveColor(color: TextProps['color']): TextProps['color'] {
   return typeof color === 'string' && color in colorMap ? colorMap[color as keyof typeof colorMap] : color
 }
 
+/**
+ * The spore type scale's line heights, indexed by font size. The mycelium `Text`
+ * defaults to the `body2` variant (16px/22px) and keeps that 22px line height even
+ * when a preset or call site overrides the font size — 36px glyphs in a 22px line
+ * box overlap adjacent rows (the rebass-era presets never set a line height, so it
+ * scaled with the font). Restore the legacy pairing by line height.
+ */
+const LINE_HEIGHT_BY_FONT_SIZE: Record<number, number> = {
+  52: 50,
+  36: 40,
+  24: 28,
+  20: 24,
+  18: 24,
+  16: 22,
+  14: 18,
+  12: 16,
+  10: 12,
+}
+
 function preset(defaults: TextProps) {
-  return function ThemedTextPreset({ color, ...props }: ThemedTextProps) {
-    // tag="div" preserves the block layout the rebass-era presets had.
-    return <Text tag="div" {...defaults} color={resolveColor(color) ?? defaults.color} {...props} />
+  return function ThemedTextPreset({ color, fontSize, lineHeight, whiteSpace, wordWrap, ...props }: ThemedTextProps) {
+    const resolvedFontSize = fontSize ?? defaults.fontSize
+    // tag="div" preserves the block layout the rebass-era presets had. The mycelium
+    // Text compiles Tamagui's whitespace-pre-wrap/word-wrap:break-word defaults;
+    // legacy text used normal wrapping, which kept single values on one line.
+    // Props are spread conditionally: an explicit undefined would clobber the
+    // defaults spread above it.
+    return (
+      <Text
+        tag="div"
+        {...defaults}
+        color={resolveColor(color) ?? defaults.color}
+        {...(fontSize !== undefined ? { fontSize } : null)}
+        {...(lineHeight !== undefined
+          ? { lineHeight }
+          : { lineHeight: typeof resolvedFontSize === 'number' ? (LINE_HEIGHT_BY_FONT_SIZE[resolvedFontSize] ?? 'unset') : 'unset' })}
+        {...(whiteSpace !== undefined ? { whiteSpace } : { whiteSpace: 'normal' })}
+        {...(wordWrap !== undefined ? { wordWrap } : { wordWrap: 'normal' })}
+        {...props}
+      />
+    )
   }
 }
 

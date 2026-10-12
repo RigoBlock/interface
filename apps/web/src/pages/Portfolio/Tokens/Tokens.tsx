@@ -26,6 +26,7 @@ import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioR
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
 import { usePortfolioHeartbeatEnabled } from '~/pages/Portfolio/hooks/usePortfolioHeartbeatCoordinator'
 import { useShowDemoView } from '~/pages/Portfolio/hooks/useShowDemoView'
+import { useHeaderBalanceChainOverride } from '~/pages/Portfolio/Tokens/hooks/useHeaderBalanceChainOverride'
 import { useTransformTokenTableData } from '~/pages/Portfolio/Tokens/hooks/useTransformTokenTableData'
 import { TokensAllocationChart } from '~/pages/Portfolio/Tokens/Table/TokensAllocationChart'
 import { TokensTable } from '~/pages/Portfolio/Tokens/Table/TokensTable'
@@ -68,6 +69,8 @@ export const PortfolioTokens = memo(function PortfolioTokens() {
 
   // Use URL chain ID as primary filter, search chain filter as fallback
   const effectiveChainId = urlChainId || chainFilter
+
+  const headerBalanceOverride = useHeaderBalanceChainOverride(effectiveChainId, portfolioAddresses.evmAddress)
 
   // Multichain PnL responses use `multichainTokenProfitLoss` / `chainBreakdown`. With a single-network
   // filter, the API often omits that shape; request flat `tokenProfitLosses` instead (multichain: false).
@@ -174,6 +177,7 @@ export const PortfolioTokens = memo(function PortfolioTokens() {
                 endText={tokenData ? <TokenCountIndicator count={tokenData.length} /> : undefined}
                 chainIds={effectiveChainId ? [effectiveChainId] : undefined}
                 part={PortfolioBalancePart.Tokens}
+                {...headerBalanceOverride}
                 // The heartbeat refetches balances on its tick — avoid a second overlapping schedule
                 disablePolling={isSynchronizedHeartbeatsEnabled}
                 disableRefresh={showDemoView}

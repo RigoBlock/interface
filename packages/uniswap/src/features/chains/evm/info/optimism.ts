@@ -66,6 +66,7 @@ export const OPTIMISM_CHAIN_INFO = {
     [RPCType.PublicAlt]: { http: ['https://mainnet.optimism.io'] },
     [RPCType.Default]: { http: ['https://mainnet.optimism.io/'] },
     [RPCType.Fallback]: { http: ['https://rpc.ankr.com/optimism'] },
+    // RigoBlock fork: alchemy first, infura secondary (upstream is infura-only).
     [RPCType.Interface]: {
       http: [
         `https://opt-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`,

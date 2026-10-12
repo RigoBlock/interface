@@ -5,7 +5,7 @@ import { POLYGON_LOGO } from 'ui/src/assets'
 import { config } from 'uniswap/src/config'
 import { ALL_APPS_CHAIN_SUPPORTED_APPS } from 'uniswap/src/features/chains/chainAppSupport'
 import { CHAIN_ID_TO_URL_PARAM } from 'uniswap/src/features/chains/chainUrlParam'
-import { getQuicknodeEndpointUrl } from 'uniswap/src/features/chains/evm/rpc'
+import { getUniRpcEndpointUrl } from 'uniswap/src/features/chains/evm/rpc'
 import { buildChainTokens } from 'uniswap/src/features/chains/evm/tokens'
 import { GqlChainId, NetworkLayer, RPCType, UniverseChainInfo } from 'uniswap/src/features/chains/types'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
@@ -57,16 +57,16 @@ export const POLYGON_CHAIN_INFO = {
   blockTimeMs: 2000,
   pendingTransactionsRetryOptions: undefined,
   rpcUrls: {
-    [RPCType.Public]: {
-      http: [getQuicknodeEndpointUrl(UniverseChainId.Polygon)],
-    },
-    [RPCType.PublicAlt]: { http: ['https://polygon-rpc.com/'] },
+    [RPCType.Public]: { http: [getUniRpcEndpointUrl(UniverseChainId.Polygon)] },
+    // RigoBlock fork (Oct 2026): polygon-rpc.com 401s ("tenant disabled") for anonymous reads.
+    [RPCType.PublicAlt]: { http: ['https://polygon.drpc.org'] },
     // Default feeds wallet-connector rpc maps (cookieless). Unkeyed, CSP-allowed public endpoint.
-    [RPCType.Default]: { http: ['https://polygon-rpc.com/'] },
-    [RPCType.Fallback]: { http: ['https://polygon-rpc.com/'] },
-    [RPCType.Interface]: {
-      http: [`https://polygon-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`],
-    },
+    [RPCType.Default]: { http: ['https://polygon.drpc.org'] },
+    // RigoBlock fork (Oct 2026): polygon-rpc.com 401s ("tenant disabled") for anonymous
+    // reads — keep publicnode here instead of the dead upstream endpoint.
+    [RPCType.Fallback]: { http: ['https://polygon-bor-rpc.publicnode.com'] },
+    // RigoBlock fork: alchemy first (we have no QuickNode/Infura polygon endpoint).
+    [RPCType.Interface]: { http: [`https://polygon-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`] },
   },
   tokens,
   statusPage: undefined,

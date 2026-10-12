@@ -1,5 +1,6 @@
 import { FeatureFlags } from '@universe/gating'
 import { TestID } from '@universe/test'
+import type { UniverseChainId } from '@universe/chains'
 import type { PortfolioBalanceBreakdown } from 'uniswap/src/data/apiClients/dataApiService/balances/getWalletBalances/getWalletBalances'
 import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
 import { PortfolioOverview } from '~/pages/Portfolio/Overview/Overview'
@@ -8,6 +9,15 @@ import { render, screen } from '~/test-utils/render'
 
 const mockPortfolioPoolsBalancesEnabled = vi.hoisted(() => ({ value: true }))
 const mockShowDemoView = vi.hoisted(() => ({ value: false }))
+// Selected chain from the portfolio URL (?chain=) — undefined = All Networks.
+const mockPortfolioChainId = vi.hoisted(() => ({ value: undefined as UniverseChainId | undefined }))
+// Live perps/HyperEVM extras fed into the portfolio total by PortfolioOverview.
+const mockPerpsExtras = vi.hoisted(() => ({
+  gmxTotalNetValueUsd: 0,
+  hyperliquidPerpsValueUsd: 0,
+  hyperliquidSpotValueUsd: 0,
+  hyperEvmUsdcValueUsd: 0,
+}))
 const mockPortfolioBreakdown = vi.hoisted(
   (): {
     value: PortfolioBalanceBreakdown | undefined
@@ -77,7 +87,47 @@ vi.mock('~/components/emptyWallet/EmptyWalletCards', () => ({
 }))
 
 vi.mock('~/pages/Portfolio/Header/hooks/usePortfolioRoutes', () => ({
-  usePortfolioRoutes: () => ({ chainId: undefined, isExternalWallet: false }),
+  usePortfolioRoutes: () => ({ chainId: mockPortfolioChainId.value, isExternalWallet: false }),
+}))
+
+// Perps extras (GMX Arbitrum positions, Hyperliquid account, HyperEVM USDC) — without these
+// mocks the real hooks would fire network requests against the GMX/Hyperliquid APIs.
+vi.mock('~/pages/Portfolio/hooks/useGmxPositions', () => ({
+  GMX_CHAIN_ID: 42161,
+  useGmxPositions: () => ({
+    positions: [],
+    totalNetValueUsd: mockPerpsExtras.gmxTotalNetValueUsd,
+    totalUnrealizedPnlUsd: 0,
+    isLoading: false,
+    isError: false,
+  }),
+}))
+
+vi.mock('~/pages/Portfolio/hooks/useGmxPnlHistory', () => ({
+  useGmxPnlHistory: () => ({ history: [] }),
+}))
+
+vi.mock('~/pages/Portfolio/hooks/useGmxValueHistory', () => ({
+  useGmxValueHistory: () => ({ history: [] }),
+}))
+
+vi.mock('~/pages/Portfolio/Perps/hyperliquid/useHyperliquidAccount', () => ({
+  useHyperliquidAccount: () => ({
+    perpsAccountValueUsd: mockPerpsExtras.hyperliquidPerpsValueUsd,
+    spotUsdcBalanceUsd: mockPerpsExtras.hyperliquidSpotValueUsd,
+  }),
+}))
+
+vi.mock('~/pages/Portfolio/Perps/hyperliquid/useHyperliquidPortfolioHistory', () => ({
+  useHyperliquidPortfolioHistory: () => ({ history: [] }),
+}))
+
+vi.mock('~/pages/Portfolio/Perps/hyperliquid/useHyperEvmUsdcBalance', () => ({
+  useHyperEvmUsdcBalance: () => ({
+    balanceUsd: mockPerpsExtras.hyperEvmUsdcValueUsd,
+    balanceRaw: undefined,
+    isLoading: false,
+  }),
 }))
 
 vi.mock('~/pages/Portfolio/hooks/usePortfolioAddresses', () => ({
@@ -106,12 +156,14 @@ vi.mock('~/pages/Portfolio/Overview/OverviewTables', () => ({
 
 vi.mock('~/pages/Portfolio/Overview/PortfolioChart', () => ({
   PortfolioChart: ({
+    portfolioTotalBalanceUSD,
     tokensValue,
     poolsValue,
     earnValue,
     isLoading,
     isChartEmpty,
   }: {
+    portfolioTotalBalanceUSD: number | undefined
     tokensValue?: { balanceUSD: number }
     poolsValue?: { balanceUSD: number }
     earnValue?: { balanceUSD: number }
@@ -120,6 +172,7 @@ vi.mock('~/pages/Portfolio/Overview/PortfolioChart', () => ({
   }) => (
     <div
       data-testid={TestID.PortfolioTotalBalance}
+      data-total-balance-usd={portfolioTotalBalanceUSD}
       data-token-balance-usd={tokensValue?.balanceUSD}
       data-pool-balance-usd={poolsValue?.balanceUSD}
       data-earn-balance-usd={earnValue?.balanceUSD}
@@ -166,6 +219,11 @@ describe('PortfolioOverview', () => {
     mockShowDemoView.value = false
     mockPortfolioBreakdown.value = undefined
     mockChartQuery.value = { data: defaultChartData, isPending: false }
+    mockPortfolioChainId.value = undefined
+    mockPerpsExtras.gmxTotalNetValueUsd = 0
+    mockPerpsExtras.hyperliquidPerpsValueUsd = 0
+    mockPerpsExtras.hyperliquidSpotValueUsd = 0
+    mockPerpsExtras.hyperEvmUsdcValueUsd = 0
   })
 
   it('marks the chart loading while the chart query is pending', () => {
@@ -257,5 +315,70 @@ describe('PortfolioOverview', () => {
     expect(screen.getByTestId(TestID.PortfolioTotalBalance)).toHaveAttribute('data-token-balance-usd', '8368.94')
     expect(screen.getByTestId(TestID.PortfolioTotalBalance)).toHaveAttribute('data-pool-balance-usd', '7373.05')
     expect(screen.getByTestId(TestID.PortfolioTotalBalance)).toHaveAttribute('data-earn-balance-usd', '3259.01')
+  })
+
+  describe('perps extras chain attribution', () => {
+    // The mocked backend total is 110 (see the usePortfolioTotalValue mock above).
+    const BACKEND_TOTAL = 110
+    const GMX_VALUE = 1_000
+    const HL_PERPS_VALUE = 58_000
+    const HL_SPOT_VALUE = 500
+    const HYPEREVM_USDC_VALUE = 250
+
+    function setExtras(): void {
+      mockPerpsExtras.gmxTotalNetValueUsd = GMX_VALUE
+      mockPerpsExtras.hyperliquidPerpsValueUsd = HL_PERPS_VALUE
+      mockPerpsExtras.hyperliquidSpotValueUsd = HL_SPOT_VALUE
+      mockPerpsExtras.hyperEvmUsdcValueUsd = HYPEREVM_USDC_VALUE
+    }
+
+    it('includes all perps extras in the total on All Networks', () => {
+      setExtras()
+
+      renderOverview()
+
+      expect(screen.getByTestId(TestID.PortfolioTotalBalance)).toHaveAttribute(
+        'data-total-balance-usd',
+        String(BACKEND_TOTAL + GMX_VALUE + HL_PERPS_VALUE + HL_SPOT_VALUE + HYPEREVM_USDC_VALUE),
+      )
+    })
+
+    it('excludes perps extras from the total when an unrelated chain (BNB) is selected', () => {
+      setExtras()
+      mockPortfolioChainId.value = 56
+
+      renderOverview()
+
+      expect(screen.getByTestId(TestID.PortfolioTotalBalance)).toHaveAttribute(
+        'data-total-balance-usd',
+        String(BACKEND_TOTAL),
+      )
+    })
+
+    it('attributes GMX perps to Arbitrum only', () => {
+      setExtras()
+      mockPortfolioChainId.value = 42161
+
+      renderOverview()
+
+      expect(screen.getByTestId(TestID.PortfolioTotalBalance)).toHaveAttribute(
+        'data-total-balance-usd',
+        String(BACKEND_TOTAL + GMX_VALUE),
+      )
+    })
+
+    it('attributes the HyperEVM USDC balance to HyperEVM (999) only', () => {
+      setExtras()
+      mockPortfolioChainId.value = 999
+
+      renderOverview()
+
+      // The backend is not queried attributably for 999 (its total would be the full multichain
+      // set), so the header reflects only the on-chain HyperEVM USDC extra.
+      expect(screen.getByTestId(TestID.PortfolioTotalBalance)).toHaveAttribute(
+        'data-total-balance-usd',
+        String(HYPEREVM_USDC_VALUE),
+      )
+    })
   })
 })

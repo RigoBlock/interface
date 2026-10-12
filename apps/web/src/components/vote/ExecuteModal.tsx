@@ -92,7 +92,7 @@ export default function ExecuteModal({ isOpen, onDismiss, proposalId }: ExecuteM
                 <Trans i18nKey="proposal.willEnact" />
               </ThemedText.DeprecatedBody>
             </RowBetween>
-            <ButtonPrimary onClick={onExecute}>
+            <ButtonPrimary width="100%" onClick={onExecute}>
               <ThemedText.DeprecatedMediumHeader color="white">
                 <Trans i18nKey="vote.votePage.execute" />
               </ThemedText.DeprecatedMediumHeader>

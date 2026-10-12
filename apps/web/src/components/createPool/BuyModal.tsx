@@ -255,6 +255,7 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
 
           <RowBetween>
             <ButtonConfirmed
+              width="100%"
               style={{ marginRight: '0.5rem' }}
               onClick={onAttemptToApprove}
               confirmed={approval === ApprovalState.APPROVED}
@@ -263,6 +264,7 @@ export default function BuyModal({ isOpen, onDismiss, poolInfo, userBaseTokenBal
               <Trans>Approve</Trans>
             </ButtonConfirmed>
             <ButtonError
+              width="100%"
               disabled={!!error || approval !== ApprovalState.APPROVED || !minimumAmount}
               error={!!error && !!parsedAmount}
               onClick={onBuy}

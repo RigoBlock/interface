@@ -101,6 +101,28 @@ function isMergeableUsdcRow(balance: PortfolioMultichainBalance): boolean {
   )
 }
 
+/**
+ * Re-applies the requested chain filter client-side. The backend portfolio APIs don't recognize
+ * non-backend-supported chains (e.g. HyperEVM 999) and return the full multichain set for them
+ * (or a stale placeholder while the filtered request errors), so a single-chain selection of such
+ * a chain must drop the other chains' tokens here. For backend-supported chains the backend
+ * already filtered, making this a no-op.
+ */
+export function filterMultichainBalancesByChainIds(
+  balances: PortfolioMultichainBalance[],
+  chainIds: UniverseChainId[] | undefined,
+): PortfolioMultichainBalance[] {
+  if (!chainIds) {
+    return balances
+  }
+  return balances
+    .map((balance) => ({
+      ...balance,
+      tokens: balance.tokens.filter((token) => chainIds.includes(token.chainId as UniverseChainId)),
+    }))
+    .filter((balance) => balance.tokens.length > 0)
+}
+
 export function useTransformTokenTableData({
   chainIds,
   limit,
@@ -227,7 +249,7 @@ export function useTransformTokenTableData({
         .filter((b) => b.tokens.length > 0)
 
     // Only inject the HyperEVM USDC row when no per-chain filter is active or HyperEVM is selected
-    const allBalances = sortedBalances.balances
+    const allBalances = filterMultichainBalancesByChainIds(sortedBalances.balances, chainIds)
     const balances = ((): PortfolioMultichainBalance[] => {
       if (!hyperliquidUsdcBalance || (chainIds && !chainIds.includes(UniverseChainId.HyperEvm))) {
         return allBalances
@@ -251,7 +273,9 @@ export function useTransformTokenTableData({
     })()
 
     const visibleBalances = balancesWithTokens(balances)
-    const hiddenBalancesFiltered = balancesWithTokens(sortedBalances.hiddenBalances)
+    const hiddenBalancesFiltered = balancesWithTokens(
+      filterMultichainBalancesByChainIds(sortedBalances.hiddenBalances, chainIds),
+    )
 
     const { partitions: visibleBalancePartitions, totalUsdVisible: totalUSDVisible } =
       partitionMultichainBalancesByPerChainVisibility({

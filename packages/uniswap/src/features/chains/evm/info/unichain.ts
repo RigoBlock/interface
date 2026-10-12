@@ -61,6 +61,7 @@ export const UNICHAIN_CHAIN_INFO = {
   rpcUrls: {
     [RPCType.Public]: { http: [getUniRpcEndpointUrl(UniverseChainId.Unichain)] },
     [RPCType.Default]: { http: ['https://mainnet.unichain.org'] },
+    // RigoBlock fork: alchemy first (we have no QuickNode endpoint).
     [RPCType.Interface]: {
       http: [
         `https://unichain-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`,

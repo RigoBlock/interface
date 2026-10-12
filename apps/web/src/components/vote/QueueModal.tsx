@@ -92,7 +92,7 @@ export default function QueueModal({ isOpen, onDismiss, proposalId }: QueueModal
                 <Trans i18nKey="proposal.queue.delay" />
               </ThemedText.DeprecatedBody>
             </RowBetween>
-            <ButtonPrimary onClick={onQueue}>
+            <ButtonPrimary width="100%" onClick={onQueue}>
               <ThemedText.DeprecatedMediumHeader color="white">
                 <Trans i18nKey="common.queue" />
               </ThemedText.DeprecatedMediumHeader>

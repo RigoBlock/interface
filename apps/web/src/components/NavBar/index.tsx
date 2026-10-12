@@ -84,8 +84,10 @@ function useShouldHidePoolSelector() {
   // or the user's own-wallet portfolio link). Otherwise operators can use the selector to switch
   // the smart pool portfolio shown on /portfolio.
   const isExplicitPortfolioAddress = pathname.startsWith('/portfolio') && hasExplicitUrlAddress
+  // Governance pages have no smart-pool context — the selector is meaningless there.
+  const isGovernancePage = pathname.startsWith('/vote') || pathname.startsWith('/create-proposal')
 
-  return isEarnPage || isPoolPositionPage || isExplicitPortfolioAddress
+  return isEarnPage || isPoolPositionPage || isExplicitPortfolioAddress || isGovernancePage
 }
 
 export function Navbar() {

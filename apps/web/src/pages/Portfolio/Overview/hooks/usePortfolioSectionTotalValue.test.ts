@@ -170,4 +170,22 @@ describe('usePortfolioSectionTotalValue', () => {
     expect(result.current.totalValueLoading).toBe(false)
     expect(result.current.count).toBeUndefined()
   })
+
+  it('returns no total for a non-backend-supported chain (HyperEVM 999) even when the backend responds', () => {
+    // The backend either errors or returns the full multichain set for 999, so its breakdown
+    // is not attributable to the selected chain.
+    mockBreakdown({ tokensUSD: 8783.76 })
+
+    const { result } = renderHook(() =>
+      usePortfolioSectionTotalValue({
+        part: PortfolioBalancePart.Tokens,
+        chainId: UniverseChainId.HyperEvm,
+        enabled: true,
+      }),
+    )
+
+    expect(result.current.totalValueFormatted).toBeUndefined()
+    expect(result.current.totalValueNumeric).toBeUndefined()
+    expect(result.current.totalValueLoading).toBe(false)
+  })
 })

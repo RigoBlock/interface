@@ -699,4 +699,58 @@ describe('useTransformTokenTableData', () => {
       expect(row.tokens[0]).toBeDefined()
     }
   })
+
+  describe('chainIds filtering', () => {
+    // Regression: the backend portfolio APIs don't recognize non-backend-supported chains
+    // (HyperEVM 999) and return the full multichain set for them, so the requested chain
+    // filter must be re-applied client-side.
+    const MULTICHAIN_BALANCE = createMultichainBalance({
+      id: 'multichain-row',
+      tokens: [
+        createPortfolioTableChainBalance(USDC_INFO),
+        createPortfolioTableChainBalance(USDC_ARBITRUM_INFO, { chainId: UniverseChainId.ArbitrumOne }),
+      ],
+    })
+
+    function mockBalances(balances: PortfolioMultichainBalance[]): void {
+      mockUseSortedPortfolioBalancesMultichain.mockReturnValue({
+        data: { balances, hiddenBalances: [] },
+        balancesById: undefined,
+        loading: false,
+        error: undefined,
+        refetch: vi.fn(),
+        isPending: false,
+        isError: false,
+      } as ReturnType<typeof useSortedPortfolioBalancesMultichain>)
+    }
+
+    it('keeps only tokens on the selected chain and drops rows with none left', () => {
+      mockBalances([MULTICHAIN_BALANCE])
+
+      const { result } = renderHook(() => useTransformTokenTableData({ chainIds: [UniverseChainId.ArbitrumOne] }))
+
+      expect(result.current.visible).toHaveLength(1)
+      expect(result.current.visible![0].tokens).toHaveLength(1)
+      expect(result.current.visible![0].tokens[0].chainId).toBe(UniverseChainId.ArbitrumOne)
+    })
+
+    it('shows no backend tokens for HyperEVM (999) when the backend returns the full multichain set', () => {
+      // The mocked backend response contains no 999 tokens — as if the backend ignored the
+      // chain filter. Only the synthetic on-chain HyperEVM USDC row may appear (zero here).
+      mockBalances([MULTICHAIN_BALANCE])
+
+      const { result } = renderHook(() => useTransformTokenTableData({ chainIds: [UniverseChainId.HyperEvm] }))
+
+      expect(result.current.visible).toEqual([])
+    })
+
+    it('keeps every chain when no chainIds filter is given', () => {
+      mockBalances([MULTICHAIN_BALANCE])
+
+      const { result } = renderHook(() => useTransformTokenTableData({}))
+
+      expect(result.current.visible).toHaveLength(1)
+      expect(result.current.visible![0].tokens).toHaveLength(2)
+    })
+  })
 })
