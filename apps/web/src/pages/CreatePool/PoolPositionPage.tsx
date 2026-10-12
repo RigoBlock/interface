@@ -76,9 +76,8 @@ const DataRow = styled(Flex, {
 })
 
 const BackLink = styled(Text, {
-  variants: {},
-  base: 'no-underline text-neutral2',
-  hover: [{ class: 'text-neutral1' }],
+  platform: 'web',
+  base: 'no-underline text-neutral2 hover:text-neutral1',
 })
 
 /**

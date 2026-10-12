@@ -102,7 +102,7 @@ const PoolSelect: React.FC<PoolSelectProps> = ({ operatedPools }) => {
         borderColor="$surface3"
         borderStyle="solid"
         hoverStyle={{ backgroundColor: '$surface3Hovered', borderColor: '$surface3Hovered' }}
-        pressStyle={{ backgroundColor: '$surface1Pressed', borderColor: '$surface3' }}
+        pressStyle={{ backgroundColor: '$surface3Hovered', borderColor: '$surface3Hovered' }}
         // On small screens, allow the name to wrap and grow slightly
         $md={{ height: 'auto', minHeight: 40, maxWidth: 160 }}
         onPress={() => setShowModal(true)}

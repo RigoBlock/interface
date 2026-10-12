@@ -45,4 +45,13 @@ describe('PortfolioPerps', () => {
     expect(screen.getByTestId('gmx-perps-section')).toBeInTheDocument()
     expect(screen.queryByTestId('hyperliquid-perps-section')).not.toBeInTheDocument()
   })
+
+  it('shows only the Hyperliquid section on HyperEVM (999)', () => {
+    mockChainId.value = 999
+
+    render(<PortfolioPerps />)
+
+    expect(screen.queryByTestId('gmx-perps-section')).not.toBeInTheDocument()
+    expect(screen.getByTestId('hyperliquid-perps-section')).toBeInTheDocument()
+  })
 })

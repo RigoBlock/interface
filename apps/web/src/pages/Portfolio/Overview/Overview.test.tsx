@@ -367,17 +367,18 @@ describe('PortfolioOverview', () => {
       )
     })
 
-    it('attributes the HyperEVM USDC balance to HyperEVM (999) only', () => {
+    it('attributes the Hyperliquid account and HyperEVM USDC to HyperEVM (999)', () => {
       setExtras()
       mockPortfolioChainId.value = 999
 
       renderOverview()
 
       // The backend is not queried attributably for 999 (its total would be the full multichain
-      // set), so the header reflects only the on-chain HyperEVM USDC extra.
+      // set), so the header reflects the HyperEVM extras only: Hyperliquid perps + Core spot +
+      // the on-chain HyperEVM USDC balance.
       expect(screen.getByTestId(TestID.PortfolioTotalBalance)).toHaveAttribute(
         'data-total-balance-usd',
-        String(HYPEREVM_USDC_VALUE),
+        String(HL_PERPS_VALUE + HL_SPOT_VALUE + HYPEREVM_USDC_VALUE),
       )
     })
   })

@@ -37,10 +37,13 @@ describe('getPerpsExtrasForChain', () => {
     expect(result.hyperEvmUsdcValueUsd).toEqual(0)
   })
 
-  it('attributes the HyperEVM USDC balance to HyperEVM (999) only', () => {
+  it('attributes the Hyperliquid account (perps + Core spot) and HyperEVM USDC to HyperEVM (999)', () => {
     const result = getPerpsExtrasForChain({ chainId: UniverseChainId.HyperEvm, extras: EXTRAS })
+    expect(result.hyperliquidPerpsValueUsd).toEqual(EXTRAS.hyperliquidPerpsValueUsd)
+    expect(result.hyperliquidSpotValueUsd).toEqual(EXTRAS.hyperliquidSpotValueUsd)
+    expect(result.hyperliquidHistoryForChain).toEqual(true)
     expect(result.hyperEvmUsdcValueUsd).toEqual(EXTRAS.hyperEvmUsdcValueUsd)
     expect(result.gmxTotalNetValueUsd).toEqual(0)
-    expect(result.hyperliquidPerpsValueUsd).toEqual(0)
+    expect(result.gmxHistoryForChain).toEqual(false)
   })
 })

@@ -227,9 +227,9 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   const { balanceUsd: hyperEvmUsdcValue } = useHyperEvmUsdcBalance(portfolioAddresses.evmAddress)
 
   // Chain attribution for the value sources the backend doesn't cover: GMX perps count on
-  // Arbitrum, the cross-chain Hyperliquid account only in the All Networks total, and the
-  // HyperEVM USDC balance on HyperEVM (999) — so a single-chain selection doesn't leak other
-  // chains' perps value into the total or chart.
+  // Arbitrum, the Hyperliquid account (presented as HyperEVM positions) counts on HyperEVM
+  // (999) and All Networks, and the HyperEVM USDC balance on HyperEVM (999) — so a
+  // single-chain selection doesn't leak other chains' perps value into the total or chart.
   const {
     gmxTotalNetValueUsd: gmxValueForChain,
     hyperliquidPerpsValueUsd: hyperliquidPerpsValueForChain,
