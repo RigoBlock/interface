@@ -136,4 +136,6 @@ skills-lock.json
 .i18n/*
 !.i18n/glossary/
 !.i18n/memory/
->>>>>>> main
+
+# wrangler (Cloudflare) local deploy/dev artifacts — never commit
+.wrangler/

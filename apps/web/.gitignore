@@ -52,6 +52,9 @@ yarn-error.log*
 notes.txt
 .idea/
 
+# wrangler (Cloudflare) local deploy/dev artifacts — never commit
+.wrangler/
+
 package-lock.json
 
 .vercel
