@@ -1,6 +1,7 @@
 import { Flex } from '@universe/mycelium'
 import { ArrowUpCircle, CheckCircle } from 'react-feather'
-import { Trans } from 'react-i18next'
+
+import { Trans } from 'ui/src/i18n/Trans'
 import { useTheme } from 'styled-components'
 import { ModalCloseIcon } from 'ui/src'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'

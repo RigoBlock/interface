@@ -139,21 +139,10 @@ globalThis.origin = 'https://app.rigoblock.com'
 
   // Functional in-memory localStorage: a no-op mock breaks code that reads back
   // stored values (e.g. redux migrations reading legacy jotai atom values).
-  // vi.fn() wrappers are kept so tests can still spy on calls.
-  const localStorageStore = new Map<string, string>()
-  Object.defineProperty(window, 'localStorage', {
-    value: {
-      getItem: vi.fn((key: string) => localStorageStore.get(key) ?? null),
-      setItem: vi.fn((key: string, value: string) => localStorageStore.set(key, String(value))),
-      removeItem: vi.fn((key: string) => localStorageStore.delete(key)),
-      clear: vi.fn(() => localStorageStore.clear()),
-      key: vi.fn((index: number) => [...localStorageStore.keys()][index] ?? null),
-      get length() {
-        return localStorageStore.size
-      },
-    },
-    writable: true,
-  })
+  // vitest+jsdom provides a functional per-window localStorage whose methods live on
+  // Storage.prototype — do NOT replace it with a plain object: upstream tests spy on
+  // Storage.prototype (e.g. the Margin localStorage-failure tests), and an own-property
+  // mock shadows those spies. (The old custom Map-backed mock was removed Oct 2026.)
 
   if (typeof globalThis.TextEncoder === 'undefined') {
     globalThis.ReadableStream = Readable as unknown as typeof globalThis.ReadableStream
@@ -319,6 +308,7 @@ vi.mock('uniswap/src/features/telemetry/Trace', () => ({
 }))
 
 vi.mock('uniswap/src/features/accounts/store/hooks', () => ({
+  useActiveAddress: vi.fn(() => undefined),
   useConnectionStatus: vi.fn(() => ({ isConnecting: false })),
 }))
 
@@ -550,7 +540,6 @@ vi.mock('@universe/gating', async (importOriginal) => {
     useExperimentValueFromLayer: vi.fn(),
     useIsTokenCategoriesEnabled: vi.fn(() => false),
     useIsTokenCategoriesEnabledWithLoading: vi.fn(() => ({ value: false, isLoading: false })),
-    useIsV2EndpointsSearchEnabled: vi.fn(() => false),
     checkTypeGuard: vi.fn(),
     useStatsigClientStatus: vi.fn(() => ({
       isStatsigLoading: false,

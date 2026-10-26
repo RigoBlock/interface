@@ -35,7 +35,8 @@
     "https://privy.dev.ew.unihq.org",
     "https://privy.app.corn-staging.com",
     "https://privy.app.uniswap.org",
-    "https://api.swipelux.com/"
+    "https://api.swipelux.com/",
+    "https://privy.staging.app.uniswap.org"
   ],
   "mediaSrc": [
     "'self'",
@@ -158,7 +159,8 @@
     "https://rigoblock.com",
     "https://pulse.walletconnect.org",
     "https://track.swipelux.com",
-    "wss://*.rigoblock.com"
+    "wss://*.rigoblock.com",
+    "https://privy.staging.app.uniswap.org"
   ],
   "workerSrc": [
     "'self'",

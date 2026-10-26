@@ -1,6 +1,6 @@
 import type { PlainMessage } from '@bufbuild/protobuf'
 import { renderHook } from '@testing-library/react'
-import type { Auction } from '@uniswap/client-data-api/dist/data/v1/auction_pb'
+import type { Auction } from '@uniswap/client-launches/dist/data/v1/auction_pb'
 import { UniverseChainId } from '@universe/chains'
 import { FeatureFlags } from '@universe/gating'
 import { AuctionStaleTime } from 'uniswap/src/data/apiClients/dataApiService/auctions/queryTypes'
@@ -40,6 +40,11 @@ const HIDDEN_AUCTION = {
   ...AUCTION,
   auctionId: '1_0xD9E8355f9f57185928347a5BdDEe164006b16e58', // Abandoned Interfold auction.
 }
+const SECOND_AUCTION = {
+  ...AUCTION,
+  address: '0x2222222222222222222222222222222222222222',
+  auctionId: '1_0x2222222222222222222222222222222222222222',
+} as PlainMessage<Auction>
 
 function queryResult(
   overrides: {
@@ -153,7 +158,19 @@ describe(useTokenDetailsAuction, () => {
 
     const { result } = renderAuction()
 
-    expect(result.current).toMatchObject({ status: TokenDetailsSourceState.Found, auction: AUCTION })
+    expect(result.current).toEqual({ status: TokenDetailsSourceState.Found, auction: AUCTION, auctions: [AUCTION] })
+  })
+
+  it('exposes every visible auction and keeps the first as primary', () => {
+    mockUseQuery.mockReturnValue(queryResult({ data: { auctions: [AUCTION, SECOND_AUCTION] }, isSuccess: true }))
+
+    const { result } = renderAuction()
+
+    expect(result.current).toEqual({
+      status: TokenDetailsSourceState.Found,
+      auction: AUCTION,
+      auctions: [AUCTION, SECOND_AUCTION],
+    })
   })
 
   it('does not restore a cached hidden auction when a background refetch fails', () => {

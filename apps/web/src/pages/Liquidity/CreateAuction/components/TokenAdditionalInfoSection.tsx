@@ -4,6 +4,7 @@ import { Check } from '@universe/mycelium/icons/Check'
 import { ExternalLink } from '@universe/mycelium/icons/ExternalLink'
 import { QuestionInCircleFilled } from '@universe/mycelium/icons/QuestionInCircleFilled'
 import { XTwitter } from '@universe/mycelium/icons/XTwitter'
+import { TooltipCompat as Tooltip } from '@universe/mycelium/tooltip-compat'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AuctionEventName, ElementName } from 'uniswap/src/features/telemetry/constants'
@@ -66,8 +67,15 @@ export function TokenAdditionalInfoSection({
 
   return (
     <Flex gap="$spacing8">
-      <Flex backgroundColor="$surface2" borderRadius="$rounded20" p="$spacing16" gap="$spacing2" minHeight={120}>
-        <Text variant="body3" color="$neutral2">
+      <Flex
+        backgroundColor="$surface2"
+        borderRadius="$rounded20"
+        p="$spacing16"
+        gap="$spacing2"
+        minHeight={120}
+        $md={{ p: '$spacing12', borderRadius: '$rounded16' }}
+      >
+        <Text variant="body3" color="$neutral2" $md={{ variant: 'buttonLabel4' }}>
           {t('toucan.createAuction.step.tokenInfo.descriptionField')}
         </Text>
         <Trace logFocus element={ElementName.AuctionTokenDescription}>
@@ -90,7 +98,13 @@ export function TokenAdditionalInfoSection({
           />
         </Trace>
       </Flex>
-      <Flex backgroundColor="$surface2" borderRadius="$rounded20" p="$spacing16" gap="$spacing12">
+      <Flex
+        backgroundColor="$surface2"
+        borderRadius="$rounded20"
+        p="$spacing16"
+        gap="$spacing12"
+        $md={{ p: '$spacing12', borderRadius: '$rounded16' }}
+      >
         <Flex row alignItems="center" gap="$spacing4">
           <Text variant="body3" color="$neutral2">
             {t('toucan.createAuction.step.tokenInfo.xProfile')}
@@ -98,7 +112,19 @@ export function TokenAdditionalInfoSection({
           <Text variant="body3" color="$neutral3">
             {t('toucan.createAuction.step.tokenInfo.optional')}
           </Text>
-          <QuestionInCircleFilled color="$neutral2" size="$icon.16" />
+          <Tooltip placement="top">
+            <Tooltip.Trigger asChild>
+              <Flex cursor="help" tabIndex={0} aria-label={t('toucan.createAuction.step.tokenInfo.xProfile.tooltip')}>
+                <QuestionInCircleFilled color="$neutral2" size="$icon.16" />
+              </Flex>
+            </Tooltip.Trigger>
+            <Tooltip.Content>
+              <Tooltip.Arrow />
+              <Text variant="body4" color="$neutral1" maxWidth={280}>
+                {t('toucan.createAuction.step.tokenInfo.xProfile.tooltip')}
+              </Text>
+            </Tooltip.Content>
+          </Tooltip>
         </Flex>
         {xVerification ? (
           <Flex gap="$spacing8">

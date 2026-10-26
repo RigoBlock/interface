@@ -4,11 +4,12 @@ import { Flex } from '@universe/mycelium'
 import { SegmentedControl, type SegmentedControlOption } from '@universe/mycelium/segmented-control-compat'
 import JSBI from 'jsbi'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Trans } from 'react-i18next'
+
+import { Trans } from 'ui/src/i18n/Trans'
 import { useLocation, useNavigate } from 'react-router'
 import { Button } from 'ui/src'
 import { Plus } from 'ui/src/components/icons/Plus'
-import { NetworkFilter } from 'uniswap/src/components/network/NetworkFilter'
+import { NetworkFilter } from 'uniswap/src/components/network/NetworkFilter/NetworkFilter'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { InterfacePageName, ModalName } from 'uniswap/src/features/telemetry/constants'
@@ -282,9 +283,6 @@ export default function Earn() {
               selectedChain={selectedChain}
               onPressChain={setSelectedChain}
               chainIds={supportedChains}
-              styles={{
-                buttonPaddingY: '$spacing8',
-              }}
             />
           </Flex>
 

@@ -1,5 +1,5 @@
 import { UniverseChainId, Platform } from '@universe/chains'
-import { ETH_LOGO, HYPERLIQUID_LOGO } from 'ui/src/assets'
+import { ETH_LOGO, HYPERLIQUID_LOGO } from '@universe/mycelium/assets'
 import { config } from 'uniswap/src/config'
 import { ALL_APPS_CHAIN_SUPPORTED_APPS } from 'uniswap/src/features/chains/chainAppSupport'
 import { CHAIN_ID_TO_URL_PARAM } from 'uniswap/src/features/chains/chainUrlParam'

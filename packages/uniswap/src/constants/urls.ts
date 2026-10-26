@@ -29,7 +29,6 @@ export const UniswapHelpUrls = {
     batchedSwapsFailure: `${createHelpArticleUrl('36393697148045')}#error-messages-and-troubleshooting`,
     batchedSwapsReview: createHelpArticleUrl('36394497329933'),
     caliburUpgrades: createHelpArticleUrl('47047111847053-Upgrades-to-smart-wallet-contracts'),
-    cexTransferKorea: createHelpArticleUrl('29425131525901-How-to-transfer-crypto-to-a-Uniswap-Wallet-in-Korea'),
     contractAddressExplainer: createHelpArticleUrl('26757826138637-What-is-a-token-contract-address'),
     dappProtectionInfo: createHelpArticleUrl('37781087046029'),
     earnHelp: createHelpArticleUrl(EARN_HELP_ARTICLE),
@@ -89,6 +88,7 @@ export const UniswapHelpUrls = {
     swapProtection: createHelpArticleUrl('18814993155853'),
     swapSlippage: createHelpArticleUrl('8643879653261-What-is-Price-Slippage-'),
     swapDeadline: createHelpArticleUrl('45320061462797'),
+    tokenCategoryDefinitions: createHelpArticleUrl('49334240737677'),
     toucanBidHelp: createHelpArticleUrl(
       '43106804833421-How-to-participate-in-token-auctions-on-Uniswap#bidding-in-an-auction',
     ),
@@ -133,6 +133,7 @@ export const UniswapHelpUrls = {
 export const UniswapStaticUrls = {
   downloadWalletUrl: 'https://wallet.uniswap.org/',
   tradingApiDocsUrl: 'https://developers.uniswap.org/',
+  tradingApiRoutingDocsUrl: 'https://developers.uniswap.org/docs/trading/swapping-api/amm-vs-uniswapx-routing',
   morphoDisclaimerUrl: 'https://morpho.org/disclaimers/',
   unichainUrl: 'https://www.unichain.org/',
   uniswapXUrl: 'https://x.uniswap.org/',

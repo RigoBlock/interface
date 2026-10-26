@@ -21,7 +21,12 @@ export function MoreActionTile({ padding = '$spacing12' }: { padding?: FlexProps
   const { navigateToSwapFlow } = useUniswapContext()
   const navigate = useNavigate()
   const newPositionHref = buildCreatePositionHref()
-  const { value: isDropdownOpen, setFalse: closeDropdown, toggle: toggleDropdown } = useBooleanState(false)
+  const {
+    value: isDropdownOpen,
+    setFalse: closeDropdown,
+    setValue: setDropdownOpen,
+    toggle: toggleDropdown,
+  } = useBooleanState(false)
 
   const onPressSwap = useEvent(() => {
     navigateToSwapFlow({})
@@ -36,7 +41,7 @@ export function MoreActionTile({ padding = '$spacing12' }: { padding?: FlexProps
   return (
     <AdaptiveDropdown
       isOpen={isDropdownOpen}
-      toggleOpen={toggleDropdown}
+      toggleOpen={setDropdownOpen}
       trigger={
         <Flex width="100%">
           <ActionTileWithIconAnimation
@@ -50,6 +55,7 @@ export function MoreActionTile({ padding = '$spacing12' }: { padding?: FlexProps
       }
       containerStyle={{ height: '100%' }}
       alignRight={false}
+      adaptToSheet
     >
       <Trace logPress element={ElementName.PortfolioActionSwap}>
         <InternalMenuItem onPress={onPressSwap}>

@@ -1,5 +1,6 @@
 import { UniverseChainId, areAddressesEqual, normalizeTokenAddressForCache } from '@universe/chains'
-import { Trans } from 'react-i18next'
+
+import { Trans } from 'ui/src/i18n/Trans'
 import { GmxPosition } from '~/pages/Portfolio/hooks/useGmxPositions'
 import { GmxMarketInfo } from '~/pages/Portfolio/Perps/gmx/useGmxMarkets'
 import { GmxPriceTicker, GmxTokenInfo } from '~/pages/Portfolio/Perps/gmx/useGmxOpenPositionMarketData'

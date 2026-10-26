@@ -1,5 +1,5 @@
 import type { PlainMessage } from '@bufbuild/protobuf'
-import type { Auction } from '@uniswap/client-data-api/dist/data/v1/auction_pb'
+import type { Auction } from '@uniswap/client-launches/dist/data/v1/auction_pb'
 import { createTDPStore, type TDPState } from '~/pages/TokenDetails/context/createTDPStore'
 import { TokenDetailsSourceState } from '~/pages/TokenDetails/context/tokenDetailsSourceState'
 
@@ -14,10 +14,11 @@ describe('createTDPStore', () => {
     store.getState().actions.setAuctionSource({
       status: TokenDetailsSourceState.Found,
       auction: auction as PlainMessage<Auction>,
+      auctions: [auction as PlainMessage<Auction>],
     })
 
     expect(store.getState()).toMatchObject({
-      auctionSource: { status: TokenDetailsSourceState.Found, auction },
+      auctionSource: { status: TokenDetailsSourceState.Found, auction, auctions: [auction] },
     })
   })
 })

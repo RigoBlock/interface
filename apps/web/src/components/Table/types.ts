@@ -99,6 +99,8 @@ export type TableProps<T extends RowData = unknown> = {
   subRowHeight?: number
   /** When true, only one row can be expanded at a time (accordion behavior). */
   singleExpandedRow?: boolean
+  /** Every change to this value collapses all expanded rows. Use it for sort/filter changes that reorder rows. */
+  collapseExpandedRowsKey?: string
   centerArrows?: boolean
   headerTestId?: string
   getSubRows?: (row: T) => T[] | undefined
@@ -110,6 +112,8 @@ export type TableProps<T extends RowData = unknown> = {
   showScrollbar?: boolean
   /** CSS width expression for the pinned region when columns use `TableColumnMeta.widthOverride` — keeps the pinned divider overlay and left scroll button aligned with the rendered width. */
   pinnedWidthOverride?: string
+  /** Below md, while the rows scroll sideways, run the table through AppBody's right gutter to the screen edge; scrolled to the end, the last column still rests at the gutter. Only for tables sitting directly in that gutter. */
+  mobileFullBleed?: boolean
   /** When true, only visible flat rows are rendered (window scroll, or container scroll when maxHeight is set). Does not support getSubRows / renderUnifiedExpandableRow — expansion UI is skipped. */
   virtualized?: boolean
   /**

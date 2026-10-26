@@ -153,12 +153,12 @@ const provideSessionInitService = () => {
 function Updaters() {
   const location = useLocation()
 
-  const ListsUpdater = useDeferredComponent(loadListsUpdater)
-  const ApplicationUpdater = useDeferredComponent(loadApplicationUpdater)
-  const ActivityStateUpdater = useDeferredComponent(loadActivityStateUpdater)
-  const FiatOnRampTransactionsUpdater = useDeferredComponent(loadFiatOnRampTransactionsUpdater)
-  const WebAccountsStoreUpdater = useDeferredComponent(loadWebAccountsStoreUpdater)
-  const LogsUpdater = useDeferredComponent(loadLogsUpdater)
+  const ListsUpdater = useDeferredComponent({ importFn: loadListsUpdater })
+  const ApplicationUpdater = useDeferredComponent({ importFn: loadApplicationUpdater })
+  const ActivityStateUpdater = useDeferredComponent({ importFn: loadActivityStateUpdater })
+  const FiatOnRampTransactionsUpdater = useDeferredComponent({ importFn: loadFiatOnRampTransactionsUpdater })
+  const WebAccountsStoreUpdater = useDeferredComponent({ importFn: loadWebAccountsStoreUpdater })
+  const LogsUpdater = useDeferredComponent({ importFn: loadLogsUpdater })
 
   return (
     <>
@@ -198,7 +198,9 @@ function StatsigProvider({ children }: PropsWithChildren) {
   )
 
   // Datadog RUM disabled – RigoBlock does not collect user data. `onStatsigInit` therefore no
-  // longer initializes RUM; only the device-id timeout warning is still reported.
+  // longer initializes RUM; only the device-id timeout warning is still reported. Stable identity:
+  // `StatsigProviderWrapper` lists `onInit` in its effect deps, so `useEvent` keeps the function
+  // identity stable across re-renders.
   const onStatsigInit = useEvent(() => {
     if (didTimeOut) {
       getLogger().warn(

@@ -40,6 +40,7 @@ interface PriceChartModelParams extends ChartModelParams<PriceChartData> {
   sparkline?: boolean
   hideMinMaxLines?: boolean
   v2HoverStyles?: boolean
+  isStablecoin?: boolean
 }
 
 const LOW_PRICE_RANGE_THRESHOLD = 0.2
@@ -70,7 +71,7 @@ export function getLowPriceRangeScaleFactor({ min, max }: { min: number; max: nu
 export class PriceChartModel extends ChartModel<PriceChartData> {
   protected series: ISeriesApi<'Area'> | ISeriesApi<'Custom'>
   private originalData: PriceChartData[]
-  private lowPriceRangeScaleFactor = 1
+  protected lowPriceRangeScaleFactor = 1
   private priceAxisDecimals: number | undefined
   private type: PriceChartType
   private timePeriod?: HistoryDuration
@@ -206,6 +207,7 @@ export class PriceChartModel extends ChartModel<PriceChartData> {
       sparkline,
       hideMinMaxLines,
       v2HoverStyles,
+      isStablecoin,
     } = params
     this.hideMinMaxLines = hideMinMaxLines ?? false
     const { min, max } = getCandlestickPriceBounds(data)
@@ -215,7 +217,7 @@ export class PriceChartModel extends ChartModel<PriceChartData> {
       this.timePeriod = params.timePeriod
     }
 
-    const shouldZoomOut = isLowVarianceRange({ min, max, duration: this.timePeriod })
+    const shouldZoomOut = isLowVarianceRange({ min, max, duration: this.timePeriod, isStablecoin })
 
     // Zoom out y-axis for low-variance assets
     const scaleMargins = shouldZoomOut

@@ -1,5 +1,6 @@
 import { Text } from '@universe/mycelium'
-import { Trans } from 'react-i18next'
+
+import { Trans } from 'ui/src/i18n/Trans'
 import { useNavigate } from 'react-router'
 import { useSporeColors } from 'ui/src'
 import { Modal } from 'uniswap/src/components/modals/Modal'

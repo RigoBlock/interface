@@ -1,5 +1,5 @@
 import type { PlainMessage } from '@bufbuild/protobuf'
-import type { Bid as ApiBid } from '@uniswap/client-data-api/dist/data/v1/auction_pb'
+import type { Bid as ApiBid } from '@uniswap/client-launches/dist/data/v1/auction_pb'
 import { AuctionBidStatus, UserBid } from '~/features/Toucan/Auction/store/types'
 
 function normalizeBidStatus(status?: string): AuctionBidStatus {
@@ -28,4 +28,18 @@ export function mapApiBidToUserBid(bid: PlainMessage<ApiBid>): UserBid {
     baseTokenInitial: bid.baseTokenInitial,
     currencySpent: bid.currencySpent,
   }
+}
+
+/** Match the ADP's first-bid-ID-wins rule before normalizing statuses. */
+export function mapApiBidsToUserBids(bids: PlainMessage<ApiBid>[]): UserBid[] {
+  const seenBidIds = new Set<string>()
+  return bids
+    .filter((bid) => {
+      if (seenBidIds.has(bid.bidId)) {
+        return false
+      }
+      seenBidIds.add(bid.bidId)
+      return true
+    })
+    .map(mapApiBidToUserBid)
 }

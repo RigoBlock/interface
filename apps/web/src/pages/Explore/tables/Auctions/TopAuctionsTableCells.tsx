@@ -1,4 +1,3 @@
-import { UniverseChainId } from '@universe/chains'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { Flex, useIsTouchDevice } from '@universe/mycelium'
 import { CheckmarkCircle } from '@universe/mycelium/icons/CheckmarkCircle'
@@ -14,6 +13,7 @@ import { OrderDirection } from '~/data/util'
 import type { EnrichedAuction } from '~/features/Toucan/hooks/useTopAuctions/useTopAuctions'
 import { PoolsTradeBadge } from '~/features/Toucan/Shared/PoolsTradeBadge'
 import { isQuickLaunchAuction } from '~/features/Toucan/utils/quickLaunchClassification'
+import { isPoolsSupportedChain } from '~/features/Toucan/utils/quickLaunchLinks'
 import { scrollToExploreTokenSection } from '~/pages/Explore/categories/useExploreCategory'
 
 /**
@@ -86,16 +86,18 @@ export function AuctionTableHeader({
 export function TokenNameCell({ auction }: { auction: EnrichedAuction }) {
   const isTouchDevice = useIsTouchDevice()
   // QuickLaunch: pools.trade logo in the verified-icon slot; curated verified wins when both apply.
-  // Robinhood-only, mirroring getPoolsTradeBidPageUrl: pools.xyz serves Robinhood Chain launches
-  // exclusively, so the brand attribution would be false provenance on any other chain.
+  // Off a pools.xyz-served chain the brand attribution would be false provenance.
   const isQuickLaunchBadgeEnabled = useFeatureFlag(FeatureFlags.QuickLaunch)
   const showQuickLaunchBadge =
     isQuickLaunchBadgeEnabled &&
     !auction.verified &&
     isQuickLaunchAuction(auction) &&
-    auction.auction?.chainId === UniverseChainId.Robinhood
+    isPoolsSupportedChain(auction.auction?.chainId)
+  const tokenName = auction.auction?.tokenName ?? auction.auction?.tokenSymbol ?? auction.auction?.tokenAddress ?? '—'
   return (
-    <Flex row gap="$gap8" alignItems="center" justifyContent="flex-start">
+    // shrink + the name's minWidth 0 let a long name ellipsize instead of overflowing the
+    // overflow-hidden Cell, which would clip the symbol and badges off the end.
+    <Flex row shrink gap="$gap8" alignItems="center" justifyContent="flex-start">
       <Flex pr="$spacing4">
         {/* logoUrl already resolves API image -> config override -> indexed logo (see useTopAuctions) */}
         <TokenLogo
@@ -106,9 +108,10 @@ export function TokenNameCell({ auction }: { auction: EnrichedAuction }) {
           name={auction.auction?.tokenName}
         />
       </Flex>
-      <EllipsisText>
-        {auction.auction?.tokenName ?? auction.auction?.tokenSymbol ?? auction.auction?.tokenAddress ?? '—'}
-      </EllipsisText>
+      <MouseoverTooltip text={tokenName} placement="top" size={TooltipSize.Small} style={{ minWidth: 0 }}>
+        {/* The tooltip's wrapper forces cursor: default; restore the row's link cursor. */}
+        <EllipsisText cursor="pointer">{tokenName}</EllipsisText>
+      </MouseoverTooltip>
       <EllipsisText $platform-web={{ minWidth: 'fit-content' }} $lg={{ display: 'none' }} color="$neutral2">
         {auction.auction?.tokenSymbol}
       </EllipsisText>

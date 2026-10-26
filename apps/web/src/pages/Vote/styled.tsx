@@ -1,4 +1,5 @@
-import { Trans } from 'react-i18next'
+
+import { Trans } from 'ui/src/i18n/Trans'
 import styled, { DefaultTheme } from '~/lib/deprecated-styled'
 import { ProposalState } from '~/state/governance/hooks'
 

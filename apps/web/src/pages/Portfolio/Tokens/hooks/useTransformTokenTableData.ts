@@ -3,7 +3,7 @@ import { GetWalletTokensProfitLossResponse } from '@uniswap/client-data-api/dist
 import { UniverseChainId } from '@universe/chains'
 import { TestID } from '@universe/test'
 import { useMemo } from 'react'
-import { HYPERLIQUID_LOGO } from 'ui/src/assets'
+import { HYPERLIQUID_LOGO } from '@universe/mycelium/assets'
 import { USDC_HYPEREVM } from 'uniswap/src/constants/tokens'
 import { DEFAULT_NATIVE_ADDRESS } from 'uniswap/src/features/chains/evm/rpc'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'

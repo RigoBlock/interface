@@ -17,7 +17,6 @@ import { PoolNotFoundModal } from '~/components/NotFoundModal/PoolNotFoundModal'
 import { TokenNotFoundModal } from '~/components/NotFoundModal/TokenNotFoundModal'
 import { MAX_WIDTH_MEDIA_BREAKPOINT } from '~/constants/breakpoints'
 import { getTokenExploreURL } from '~/data/util'
-import { ExploreContextProvider } from '~/features/Explore/state'
 import { ExploreTablesFilterStoreContextProvider } from '~/features/Explore/state/exploreTablesFilterStore'
 import { ADD_LIQUIDITY_PATH } from '~/pages/AddLiquidity/poolLinkParams'
 import {
@@ -110,7 +109,7 @@ const HeaderTab = styled('h3', {
 })
 
 /** Vertical gap between explore hero sections on mWeb only (carousel ↔ tabs, tabs ↔ category table). */
-const EXPLORE_SECTION_MWEB_GAP = '$spacing20'
+const EXPLORE_SECTION_MWEB_GAP = '$spacing24'
 
 const Explore = ({ initialTab }: { initialTab?: ExploreTab }) => {
   const { t } = useTranslation()
@@ -210,116 +209,121 @@ const Explore = ({ initialTab }: { initialTab?: ExploreTab }) => {
         tab: tabName,
       }}
     >
-      <ExploreContextProvider chainId={chainInfo?.id}>
-        <ExploreTablesFilterStoreContextProvider>
-          <Flex width="100%" minWidth={320} pt="$spacing24" pb="$spacing48" px="$spacing40" $md={{ p: '$spacing16' }}>
-            <ExploreStatsSection shouldHideStats={isSolanaChain} />
-            {showTrendingShelf && <ExploreTrendingShelfSection />}
-            {showAssetShelf && <ExploreAssetShelfSection />}
-            {showEarnSection && (
-              <Flex mt={showHeroShelf ? '$none' : '$spacing32'}>
-                <EarnVaultsSection />
-              </Flex>
-            )}
-            <Flex
-              ref={tabNavRef}
-              id={EXPLORE_TOKEN_SECTION_ID}
-              row
-              maxWidth={MAX_WIDTH_MEDIA_BREAKPOINT}
-              mt={tabNavMarginTop}
-              mx="auto"
-              mb="$spacing4"
-              $md={{
-                mb: EXPLORE_SECTION_MWEB_GAP,
-              }}
-              alignItems="center"
-              justifyContent="space-between"
-              width="100%"
-              $platform-web={{
-                transition: 'margin-top 300ms ease',
-              }}
-              $lg={{
+      <ExploreTablesFilterStoreContextProvider>
+        <Flex
+          width="100%"
+          minWidth={320}
+          pt="$spacing24"
+          pb="$spacing48"
+          px="$spacing40"
+          $md={{ py: '$spacing16', px: '$none' }}
+        >
+          <ExploreStatsSection shouldHideStats={isSolanaChain} />
+          {showTrendingShelf && <ExploreTrendingShelfSection />}
+          {showAssetShelf && <ExploreAssetShelfSection />}
+          {showEarnSection && (
+            <Flex mt={showHeroShelf ? '$none' : '$spacing32'}>
+              <EarnVaultsSection />
+            </Flex>
+          )}
+          <Flex
+            ref={tabNavRef}
+            id={EXPLORE_TOKEN_SECTION_ID}
+            row
+            maxWidth={MAX_WIDTH_MEDIA_BREAKPOINT}
+            mt={tabNavMarginTop}
+            mx="auto"
+            mb="$spacing4"
+            $md={{
+              mb: EXPLORE_SECTION_MWEB_GAP,
+            }}
+            alignItems="center"
+            justifyContent="space-between"
+            width="100%"
+            $platform-web={{
+              transition: 'margin-top 300ms ease',
+            }}
+            $lg={{
+              row: false,
+              flexDirection: 'column',
+              mx: 'unset',
+              alignItems: 'flex-start',
+              gap: '$spacing16',
+            }}
+            // Pools page needs to break to multiple rows at larger breakpoint due to the extra filter options
+            {...(currentKey === ExploreTab.Pools && {
+              $lg: {},
+              $xl: {
                 row: false,
                 flexDirection: 'column',
                 mx: 'unset',
                 alignItems: 'flex-start',
                 gap: '$spacing16',
-              }}
-              // Pools page needs to break to multiple rows at larger breakpoint due to the extra filter options
-              {...(currentKey === ExploreTab.Pools && {
-                $lg: {},
-                $xl: {
-                  row: false,
-                  flexDirection: 'column',
-                  mx: 'unset',
-                  alignItems: 'flex-start',
-                  gap: '$spacing16',
-                },
-              })}
+              },
+            })}
+          >
+            <Flex
+              row
+              gap="$spacing24"
+              flexWrap="wrap"
+              justifyContent="flex-start"
+              $md={{ gap: '$spacing16' }}
+              data-testid="explore-navbar"
             >
-              <Flex
-                row
-                gap="$spacing24"
-                flexWrap="wrap"
-                justifyContent="flex-start"
-                $md={{ gap: '$spacing16' }}
-                data-testid="explore-navbar"
-              >
-                {Pages.map(({ title, loggingElementName, key }, index) => {
-                  // don't render tab; don't disrupt indices
-                  if (isSolanaChain && key !== ExploreTab.Tokens) {
-                    return null
-                  }
+              {Pages.map(({ title, loggingElementName, key }, index) => {
+                // don't render tab; don't disrupt indices
+                if (isSolanaChain && key !== ExploreTab.Tokens) {
+                  return null
+                }
 
-                  const url = getTokenExploreURL({
-                    tab: key,
-                    chainUrlParam: chainInfo ? getChainUrlParam(chainInfo.id) : '',
-                  })
-                  return (
-                    <Trace
-                      key={key}
-                      logPress
-                      eventOnTrigger={SharedEventName.NAVBAR_CLICKED}
-                      element={loggingElementName}
+                const url = getTokenExploreURL({
+                  tab: key,
+                  chainUrlParam: chainInfo ? getChainUrlParam(chainInfo.id) : '',
+                })
+                return (
+                  <Trace
+                    key={key}
+                    logPress
+                    eventOnTrigger={SharedEventName.NAVBAR_CLICKED}
+                    element={loggingElementName}
+                  >
+                    <HeaderTab
+                      // Replace the not-found entry so browser back cannot land on it and reopen the modal.
+                      onClick={() => navigate(url, { replace: isNotFoundModalOpen })}
+                      active={currentTab === index}
                     >
-                      <HeaderTab
-                        // Replace the not-found entry so browser back cannot land on it and reopen the modal.
-                        onClick={() => navigate(url, { replace: isNotFoundModalOpen })}
-                        active={currentTab === index}
-                      >
-                        {title}
-                      </HeaderTab>
-                    </Trace>
-                  )
-                })}
-              </Flex>
-              {!showExploreCategoryTables && (
-                <Flex row gap="$spacing8" justifyContent="flex-start" $md={{ width: '100%' }}>
-                  {currentKey === ExploreTab.Pools && (
-                    <Flex row>
-                      <Trace logPress element={ElementName.ExplorePoolsNewPosition}>
-                        <Button
-                          size="small"
-                          icon={<Plus />}
-                          onPress={() =>
-                            navigate(ADD_LIQUIDITY_PATH, {
-                              state: { entryPoint: '/explore/pools' },
-                            })
-                          }
-                        >
-                          {media.sm ? t('common.new') : t('pool.newPosition.title')}
-                        </Button>
-                      </Trace>
-                    </Flex>
-                  )}
-                  <ExploreTableFilters currentKey={currentKey} tabSupportedNetworks={tabSupportedNetworks} />
-                </Flex>
-              )}
+                      {title}
+                    </HeaderTab>
+                  </Trace>
+                )
+              })}
             </Flex>
-            <ExploreCategoryTablesOrPage showExploreCategoryTables={showExploreCategoryTables} page={<Page />} />
+            {!showExploreCategoryTables && (
+              <Flex row gap="$spacing8" justifyContent="flex-start" $md={{ width: '100%' }}>
+                {currentKey === ExploreTab.Pools && (
+                  <Flex row>
+                    <Trace logPress element={ElementName.ExplorePoolsNewPosition}>
+                      <Button
+                        size="small"
+                        icon={<Plus />}
+                        onPress={() =>
+                          navigate(ADD_LIQUIDITY_PATH, {
+                            state: { entryPoint: '/explore/pools' },
+                          })
+                        }
+                      >
+                        {media.sm ? t('common.new') : t('pool.newPosition.title')}
+                      </Button>
+                    </Trace>
+                  </Flex>
+                )}
+                <ExploreTableFilters currentKey={currentKey} tabSupportedNetworks={tabSupportedNetworks} />
+              </Flex>
+            )}
           </Flex>
-        </ExploreTablesFilterStoreContextProvider>
-      </ExploreContextProvider>
+          <ExploreCategoryTablesOrPage showExploreCategoryTables={showExploreCategoryTables} page={<Page />} />
+        </Flex>
+      </ExploreTablesFilterStoreContextProvider>
       <TokenNotFoundModal isOpen={isTokenNotFoundOpen} closeModal={closeNotFoundModal} />
       <PoolNotFoundModal isOpen={isPoolNotFoundOpen} closeModal={closeNotFoundModal} />
     </Trace>

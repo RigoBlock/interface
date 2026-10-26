@@ -5,9 +5,7 @@ import { useActiveAddresses } from '~/features/accounts/store/hooks'
 import { useActiveSmartPool } from '~/state/application/hooks'
 import { currencyKey } from '~/utils/currencyKey'
 
-type TokenBalances = {
-  [tokenAddress: string]: { usdValue: number; balance: number }
-}
+type TokenBalances = { [tokenAddress: string]: { usdValue: number; balance: number; rawBalance?: string } }
 
 /**
  * Returns the user's token balances via the factory hook that switches between GraphQL and REST.
@@ -42,7 +40,7 @@ export function useTokenBalances({ cacheFirst }: { cacheFirst?: boolean } = {}):
       const key = currencyKey(currency)
       const usdValue = tokenBalance.balanceUSD ?? 0
       const balance = tokenBalance.quantity
-      balanceMap[key] = { usdValue, balance }
+      balanceMap[key] = { usdValue, balance, rawBalance: tokenBalance.quantityRaw }
       return balanceMap
     }, {} as TokenBalances)
 

@@ -210,37 +210,35 @@ type GetWalletPositionsQueryKey = readonly [
 ]
 
 // Cursor-based pagination: the page param is the structured cursor returned by the previous page
-// (undefined for the first page) and is passed straight back to the request as `cursor`. It is the
-// plain (toPlainMessage) form of the served cursor — the same shape the queryFn returns.
+// (undefined for the first page) and is passed straight back to the request as `cursor`.
 type GetWalletPositionsPageParam = PlainMessage<PositionListCursor> | undefined
+
+// Persisted to disk, so pages must be plain objects: a raw Message serializes as wire-format JSON
+// (enums as strings, int64 as strings) and restores unparseable.
+export type GetWalletPositions = PlainMessage<GetWalletPositionsResponse>
 
 export function getGetWalletPositionsQueryOptions(
   client: typeof V2LiquidityServiceClient,
   { params, enabled }: GetWalletPositionsInput,
 ): ReturnType<
   typeof persistableInfiniteQueryOptions<
-    PlainMessage<GetWalletPositionsResponse>,
+    GetWalletPositions,
     Error,
-    PlainMessage<GetWalletPositionsResponse>,
+    GetWalletPositions,
     GetWalletPositionsQueryKey,
     GetWalletPositionsPageParam
   >
 > {
   return persistableInfiniteQueryOptions({
     queryKey: [ReactQueryCacheKey.LiquidityService, 'getWalletPositions', params] as const,
-    queryFn: async ({
-      pageParam,
-    }: {
-      pageParam: GetWalletPositionsPageParam
-    }): Promise<PlainMessage<GetWalletPositionsResponse>> => {
+    queryFn: async ({ pageParam }: { pageParam: GetWalletPositionsPageParam }): Promise<GetWalletPositions> => {
       if (!params) {
         throw new Error('params required')
       }
-      // toPlainMessage strips the Message prototype so the value survives disk persistence.
       return toPlainMessage(await client.getWalletPositions({ ...params, cursor: pageParam }))
     },
     initialPageParam: undefined,
-    getNextPageParam: (lastPage: PlainMessage<GetWalletPositionsResponse>) => lastPage.nextCursor,
+    getNextPageParam: (lastPage: GetWalletPositions) => lastPage.nextCursor,
     enabled,
   })
 }

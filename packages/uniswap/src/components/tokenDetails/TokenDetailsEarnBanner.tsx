@@ -1,7 +1,8 @@
 import { Flex, Text, TouchableArea, type SpaceTokens, type TextCompatProps } from '@universe/mycelium'
 import { useShadowPropsMedium } from '@universe/mycelium/theme-hooks-compat'
 import type { ReactNode } from 'react'
-import { Trans, useTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
+import { Trans } from 'ui/src'
 import { EarnSparkle } from 'ui/src/components/icons/EarnSparkle'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { NumberType } from 'utilities/src/format/types'
@@ -79,10 +80,8 @@ export function TokenDetailsEarnBanner({
         <Flex flex={1} minWidth={0} gap="$spacing2" pr="$spacing24" {...(responsive ? { $sm: { pr: '$none' } } : {})}>
           <Text variant={titleVariant} color="$neutral1">
             <Trans
-              shouldUnescape
               i18nKey="tdp.earnBanner.title"
               values={{ apy: formattedApy, symbol: tokenSymbol }}
-              tOptions={{ interpolation: { escapeValue: true } }}
               components={{
                 highlight: <Text tag="span" variant={titleVariant} color="$accent1" />,
               }}

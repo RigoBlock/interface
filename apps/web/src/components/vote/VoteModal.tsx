@@ -1,7 +1,8 @@
 import { Flex } from '@universe/mycelium'
 import { useState } from 'react'
 import { ArrowUpCircle, X } from 'react-feather'
-import { Trans } from 'react-i18next'
+
+import { Trans } from 'ui/src/i18n/Trans'
 import { useSporeColors } from 'ui/src'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'

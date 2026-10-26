@@ -1,11 +1,6 @@
 import type { PlainMessage } from '@bufbuild/protobuf'
 import { RewardBalance } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
-import type { Position as LiquidityServicePositionMessage } from '@uniswap/client-liquidity/dist/uniswap/liquidity/v2/types_pb'
-import type { PositionRewardApr } from 'uniswap/src/features/positions/types'
-
-// The queryFn returns toPlainMessage(...) so persisted cache survives a reload, so positions arrive
-// (and re-arrive from disk) prototype-free; raw Messages from other call sites are still assignable.
-type LiquidityServicePosition = PlainMessage<LiquidityServicePositionMessage>
+import type { LiquidityServicePosition, PositionRewardApr } from 'uniswap/src/features/positions/types'
 
 /**
  * The pool's live LP-incentive boosts and the position's unclaimed balances, two orthogonal views of
@@ -28,8 +23,8 @@ export function parseLiquidityServiceRewards(position: LiquidityServicePosition)
     if (!token) {
       continue
     }
-    // Copied field by field rather than spread: `token` is a protobuf Message instance, so
-    // spreading it would drop its prototype and drag its internals into the domain object.
+    // Destructured rather than spread: the two outputs take different token shapes. PositionRewardApr has
+    // no `name`, and RewardBalance requires the `symbol`/`name` the served token leaves optional.
     const { chainId, address, symbol, decimals, name, isNative } = token
     if (boostedPoolApr > 0) {
       rewards.push({ token: { chainId, address, symbol, decimals, isNative }, boostedPoolApr })

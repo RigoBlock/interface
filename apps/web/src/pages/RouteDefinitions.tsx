@@ -8,7 +8,6 @@ import { CHROME_EXTENSION_UNINSTALL_URL_PATH } from 'uniswap/src/constants/urls'
 import { WRAPPED_SOL_ADDRESS_SOLANA } from 'uniswap/src/features/chains/svm/defaults'
 import i18n from 'uniswap/src/i18n'
 import { NATIVE_CHAIN_ID } from '~/constants/tokens'
-//import CreatePool from '~/pages/CreatePool'
 import Earn from '~/pages/Earn'
 import { isEmbedPath } from '~/pages/embedPaths'
 import { EMBED_ENTRY_ROUTES } from '~/pages/embedRoutes'
@@ -72,6 +71,7 @@ export function useRouterConfig(): RouterConfig {
   const isEmbeddedWalletEnabled = useFeatureFlag(FeatureFlags.EmbeddedWallet)
   const [shouldDisableExploreRoutes] = useAtom(shouldDisableExploreRoutesAtom)
   const operatedPoolAddresses = useOperatedPoolAddresses()
+  const isMarginEnabled = useFeatureFlag(FeatureFlags.Margin)
 
   return useMemo(
     () => ({
@@ -80,8 +80,16 @@ export function useRouterConfig(): RouterConfig {
       isEmbeddedWalletEnabled,
       shouldDisableExploreRoutes: Boolean(shouldDisableExploreRoutes),
       isPoolOperator: operatedPoolAddresses.size > 0,
+      isMarginEnabled,
     }),
-    [browserRouterEnabled, hash, isEmbeddedWalletEnabled, shouldDisableExploreRoutes, operatedPoolAddresses],
+    [
+      browserRouterEnabled,
+      hash,
+      isEmbeddedWalletEnabled,
+      shouldDisableExploreRoutes,
+      operatedPoolAddresses,
+      isMarginEnabled,
+    ],
   )
 }
 
@@ -202,30 +210,16 @@ export const routes: RouteDefinition[] = [
     getElement: () => <SwapPage />,
     getTitle: () => i18n.t('title.sendTokens'),
   }),
-  //createRouteDefinition({
-  //  path: '/limits',
-  //  getElement: () => <Navigate to="/limit" replace />,
-  //  getTitle: () => i18n.t('title.placeLimit'),
-  //}),
-  //createRouteDefinition({
-  //  path: '/limit',
-  //  getElement: () => <SwapPage />,
-  //  getTitle: () => i18n.t('title.placeLimit'),
-  //}),
-  //createRouteDefinition({
-  //  path: '/buy',
-  //  getElement: () => <SwapPage />,
-  //  getTitle: () => StaticTitlesAndDescriptions.SwapTitle,
-  //}),
-  //createRouteDefinition({
-  //  path: ON_RAMP_RETURN_PATH,
-  //  getElement: () => <OnRampReturn />,
-  //  getTitle: () => StaticTitlesAndDescriptions.SwapTitle,
-  //}),
   createRouteDefinition({
     path: '/swap',
     getElement: () => <SwapPage />,
     getTitle: () => StaticTitlesAndDescriptions.SwapTitle,
+  }),
+  createRouteDefinition({
+    path: '/margin',
+    getElement: () => <SwapPage />,
+    getTitle: () => StaticTitlesAndDescriptions.SwapTitle,
+    enabled: (args) => Boolean(args.isMarginEnabled),
   }),
   // Refreshed pool routes
   createRouteDefinition({

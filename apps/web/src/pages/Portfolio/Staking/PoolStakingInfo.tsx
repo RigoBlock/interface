@@ -1,7 +1,8 @@
 import { Platform, areAddressesEqual } from '@universe/chains'
 import { Flex, Text } from '@universe/mycelium'
 import { useMemo, useState } from 'react'
-import { Trans } from 'react-i18next'
+
+import { Trans } from 'ui/src/i18n/Trans'
 import { Button } from 'ui/src'
 import { TokenLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'

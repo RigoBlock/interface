@@ -14,9 +14,12 @@ import { ChartType } from '~/components/Charts/utils'
 import { CHART_DIMENSIONS } from '~/features/Liquidity/charts/D3LiquidityChartShared/constants'
 import {
   mayBorrowSiblingPriceLine,
+  borrowsSiblingPriceLine,
   getChartDataState,
+  getFallbackPriceInverted,
   getPriceLineSource,
   getPriceStrategiesState,
+  usesFallbackPriceLine,
 } from '~/features/Liquidity/charts/D3LiquidityRangeInput/chartDataState'
 import { D3LiquidityChartHeader } from '~/features/Liquidity/charts/D3LiquidityRangeInput/D3LiquidityRangeChart/components/D3LiquidityChartHeader'
 import { D3LiquidityMinMaxInput } from '~/features/Liquidity/charts/D3LiquidityRangeInput/D3LiquidityRangeChart/components/D3LiquidityMinMaxInput'
@@ -24,6 +27,7 @@ import { DefaultPriceStrategies } from '~/features/Liquidity/charts/D3LiquidityR
 import { LiquidityRangeActionButtons } from '~/features/Liquidity/charts/D3LiquidityRangeInput/D3LiquidityRangeChart/components/LiquidityRangeActionButtons/LiquidityRangeActionButtons'
 import { D3LiquidityRangeChart } from '~/features/Liquidity/charts/D3LiquidityRangeInput/D3LiquidityRangeChart/D3LiquidityRangeChart'
 import { LiquidityChartStoreProvider } from '~/features/Liquidity/charts/D3LiquidityRangeInput/D3LiquidityRangeChart/store/LiquidityChartStoreProvider'
+import type { TickRangeChange } from '~/features/Liquidity/charts/D3LiquidityRangeInput/D3LiquidityRangeChart/store/types'
 import { toDisplayCurrentPrice } from '~/features/Liquidity/charts/D3LiquidityRangeInput/D3LiquidityRangeChart/utils/toDisplayCurrentPrice'
 import { useDensityChartData } from '~/features/Liquidity/charts/LiquidityRangeInput/hooks'
 import { ChartEntry } from '~/features/Liquidity/charts/LiquidityRangeInput/types'
@@ -59,10 +63,12 @@ export function D3LiquidityRangeInput({
   creatingPoolOrPair,
   poolHasNoActiveLiquidity,
   isInitialPriceDirty,
+  isRangeLocked,
   price,
   hook,
   currentPrice,
   migratingPosition,
+  fallbackPriceHistoryPool,
   isFullRange,
   currentTick,
   minTick,
@@ -93,6 +99,7 @@ export function D3LiquidityRangeInput({
   /** An initialized pool with no distribution at the current tick. */
   poolHasNoActiveLiquidity?: boolean
   isInitialPriceDirty?: boolean
+  isRangeLocked?: boolean
   price?: Price<Currency, Currency>
   currentPrice?: number
   isFullRange?: boolean
@@ -101,10 +108,20 @@ export function D3LiquidityRangeInput({
   maxTick?: number
   inputMode?: RangeAmountInputPriceMode
   migratingPosition?: MigratingPosition
+  /**
+   * Another pool of this pair (the migrating position's) whose history draws the line when this pool
+   * has none of its own, in preference to a sibling's.
+   */
+  fallbackPriceHistoryPool?: {
+    poolId: string
+    protocolVersion: ProtocolVersion
+    currency0: Currency
+    currency1: Currency
+  }
   setInputMode: (inputMode: RangeAmountInputPriceMode) => void
   setMinTick: (tick?: number) => void
   setMaxTick: (tick?: number) => void
-  setMinMaxTick: (ticks: { minTick?: number; maxTick?: number }) => void
+  setMinMaxTick: (range: TickRangeChange) => void
   setIsFullRange: (isFullRange: boolean) => void
   handleSelectToken: (option: string) => void
 }) {
@@ -168,7 +185,7 @@ export function D3LiquidityRangeInput({
   })
 
   // Fetch price data for the chart
-  const priceData = useLiquidityServicePoolPriceChartData({
+  const pickedPriceData = useLiquidityServicePoolPriceChartData({
     // Skipped while there is no pool to read: the pool is still loading, a new pool has no sibling, or
     // the borrowing decision hasn't settled.
     variables: {
@@ -181,6 +198,31 @@ export function D3LiquidityRangeInput({
     },
     priceInverted,
   })
+
+  const fallbackPriceInverted =
+    fallbackPriceHistoryPool &&
+    getFallbackPriceInverted({ fallbackCurrencies: fallbackPriceHistoryPool, sdkCurrencies, priceInverted })
+  // Skipped when the fallback pool's token order can't be matched to this one's.
+  const fallbackPool = fallbackPriceInverted === undefined ? undefined : fallbackPriceHistoryPool
+  const fallbackPriceData = useLiquidityServicePoolPriceChartData({
+    variables: fallbackPool && {
+      addressOrId: fallbackPool.poolId,
+      chainId: quoteCurrency.chainId as UniverseChainId,
+      duration: selectedHistoryDuration,
+      isV4: fallbackPool.protocolVersion === ProtocolVersion.V4,
+      isV3: fallbackPool.protocolVersion === ProtocolVersion.V3,
+      isV2: fallbackPool.protocolVersion === ProtocolVersion.V2,
+    },
+    priceInverted: Boolean(fallbackPriceInverted),
+  })
+
+  const priceData = usesFallbackPriceLine({
+    borrowsSibling: borrowsSiblingPriceLine({ creatingPoolOrPair, poolHasNoActiveLiquidity, hasOwnPositions }),
+    hasPickedHistory: pickedPriceData.entries.length >= MIN_DATA_POINTS,
+    hasFallbackHistory: fallbackPriceData.entries.length >= MIN_DATA_POINTS,
+  })
+    ? fallbackPriceData
+    : pickedPriceData
 
   // Re-orient a new pool's canonical initial price to the chart's display orientation so the appended
   // live-price point matches the (inverted) history entries instead of collapsing the range — see
@@ -244,7 +286,8 @@ export function D3LiquidityRangeInput({
     internalChartError,
     poolOrPairLoading,
     priceSourceLoading,
-    priceQueryLoading: finalPriceData.loading,
+    // Which series draws the line isn't known until both have settled.
+    priceQueryLoading: pickedPriceData.loading || fallbackPriceData.loading,
     hasPriceData: finalPriceData.entries.length >= MIN_DATA_POINTS,
     // The fetched series without the appended live-price point.
     hasPriceHistory: priceData.entries.length >= MIN_DATA_POINTS,
@@ -306,6 +349,7 @@ export function D3LiquidityRangeInput({
         currentPrice={displayCurrentPrice}
         creatingPoolOrPair={creatingPoolOrPair}
         isInitialPriceDirty={isInitialPriceDirty}
+        isRangeLocked={isRangeLocked}
         baseCurrency={sdkBaseCurrency}
         quoteCurrency={sdkQuoteCurrency}
         priceInverted={priceInverted}

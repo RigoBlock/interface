@@ -1,6 +1,6 @@
 import type { PlainMessage } from '@bufbuild/protobuf'
 import { useQuery } from '@tanstack/react-query'
-import type { Auction, GetAuctionResponse } from '@uniswap/client-data-api/dist/data/v1/auction_pb'
+import type { Auction, GetAuctionResponse } from '@uniswap/client-launches/dist/data/v1/auction_pb'
 import type { UniverseChainId } from '@universe/chains'
 import { FeatureFlags, useFeatureFlag, useStatsigClientStatus } from '@universe/gating'
 import { useMemo } from 'react'
@@ -10,7 +10,7 @@ import { getTdpAuctionQueryOptions, getTdpAuctionRequest } from '~/pages/TokenDe
 
 export type TokenDetailsAuctionSource =
   | { status: TokenDetailsSourceState.Disabled | TokenDetailsSourceState.Loading | TokenDetailsSourceState.NotFound }
-  | { status: TokenDetailsSourceState.Found; auction: PlainMessage<Auction> }
+  | { status: TokenDetailsSourceState.Found; auction: PlainMessage<Auction>; auctions: PlainMessage<Auction>[] }
   | { status: TokenDetailsSourceState.Error; error: Error }
 
 type UseTokenDetailsAuctionParams = {
@@ -38,10 +38,11 @@ function resolveTokenDetailsAuctionSource({
     }
   }
 
-  // Preserve backend response order; multi-auction ordering and selection remain scoped to CONS-3283.
-  const auction = data?.auctions.find((candidate) => !isHiddenAuction({ auctionId: candidate.auctionId }))
+  // Backend order is preserved; index 0 is treated as the page's primary auction.
+  const auctions = data?.auctions.filter((candidate) => !isHiddenAuction({ auctionId: candidate.auctionId })) ?? []
+  const auction = auctions.at(0)
   if (auction) {
-    return { status: TokenDetailsSourceState.Found, auction }
+    return { status: TokenDetailsSourceState.Found, auction, auctions }
   }
 
   if (error) {

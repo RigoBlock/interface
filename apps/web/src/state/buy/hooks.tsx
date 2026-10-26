@@ -2,7 +2,8 @@
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core'
 import JSBI from 'jsbi'
 import { ReactNode } from 'react'
-import { Trans } from 'react-i18next'
+
+import { Trans } from 'ui/src/i18n/Trans'
 import { parseUnits } from 'viem'
 import { useAccount } from '~/hooks/useAccount'
 import { useCurrentBlockTimestamp } from '~/hooks/useCurrentBlockTimestamp'

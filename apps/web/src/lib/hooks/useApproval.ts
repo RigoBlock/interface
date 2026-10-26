@@ -152,7 +152,7 @@ export function useApproval({
         .approve(spender, useExact ? amountToApprove.quotient.toString() : MaxUint256, {
           gasLimit: calculateGasMargin(estimatedGas.toBigInt()),
         })
-        .then((response) => {
+        .then((response: TransactionResponse) => {
           const eventProperties = {
             chain_id: chainId,
             token_symbol: token.symbol,

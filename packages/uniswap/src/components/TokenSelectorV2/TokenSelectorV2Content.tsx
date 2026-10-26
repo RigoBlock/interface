@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { InfoCircleFilled } from 'ui/src/components/icons/InfoCircleFilled'
 import PasteButton from 'uniswap/src/components/buttons/PasteButton'
-import { useNetworkSelectorOptions } from 'uniswap/src/components/network/NetworkFilterV2/useNetworkSelectorOptions'
+import { useNetworkSelectorOptions } from 'uniswap/src/components/network/NetworkFilter/useNetworkSelectorOptions'
 import { CrosschainSwapsPromoBanner } from 'uniswap/src/components/TokenSelector/CrosschainSwapsPromoBanner'
 import { useClipboardCheck } from 'uniswap/src/components/TokenSelector/hooks/useClipboardCheck'
 import { usePortfolioBalancesForAddressById } from 'uniswap/src/components/TokenSelector/hooks/usePortfolioBalancesForAddressById'
@@ -121,13 +121,14 @@ export function TokenSelectorV2Content({
     enabled: true,
   })
 
-  const { currencyFieldName, onSelectCurrencyCallback } = useTokenSelectionHandler({
+  const { currencyFieldName, onSelectCurrencyCallback, onSelectRwaTokenCallback } = useTokenSelectionHandler({
     flow,
     currencyField,
     chainFilter,
     oppositeToken,
     debouncedSearchFilter,
     onSelectCurrency,
+    onSelectRwaToken,
   })
 
   const handlePaste = async (): Promise<void> => {
@@ -253,7 +254,7 @@ export function TokenSelectorV2Content({
               debouncedSearchFilter={debouncedSearchFilter}
               parsedChainFilter={parsedChainFilter}
               onSelectCurrency={onSelectCurrencyCallback}
-              onSelectRwaToken={onSelectRwaToken}
+              onSelectRwaToken={onSelectRwaTokenCallback}
               onSendEmptyActionPress={onSendEmptyActionPress}
             />
           </>
