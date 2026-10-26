@@ -5,6 +5,8 @@
  *   /v2/liquidity/*      -> liquidity.backend-prod.api.uniswap.org
  *   /v2/entry-gateway/*  -> entry-gateway.backend-prod.api.uniswap.org
  *   /v2/img/*            -> coin-images.coingecko.com (token logos for browser color extraction)
+ *   /v1/statsig-proxy/*  -> gating.interface.gateway.uniswap.org (Statsig SDK relay)
+ *   /v1/amplitude-proxy/*-> metrics.interface.gateway.uniswap.org (analytics relay)
  *   everything else      -> {prefix}.uniswap.org (legacy/production-app traffic)
  *
  * Credentialed CORS: the web app uses upstream's cookie session auth
@@ -132,6 +134,41 @@ export default {
       return res
     }
 
+    // Statsig SDK relay: the web build's STATSIG_PROXY_URL_OVERRIDE points at
+    // beta.gateway.rigoblock.com/v1/statsig-proxy (the same-origin /config path goes
+    // through the app worker's BFF instead). Without this route the catch-all
+    // misroutes these requests to beta.gateway.uniswap.org (getPrefix() on the
+    // gateway hostname), which does not exist -> 502 -> Statsig initialization_failure.
+    if (url.pathname.startsWith('/v1/statsig-proxy')) {
+      const targetUrl = `https://gating.interface.gateway.uniswap.org${url.pathname}${url.search}`
+      const headers = new Headers(request.headers)
+      headers.delete('Cookie') // never leak rigoblock session cookies to uniswap infra
+      headers.set('host', 'gating.interface.gateway.uniswap.org')
+      try {
+        const response = await fetch(targetUrl, { method: request.method, headers, body: request.body })
+        return finalizeDirect(response)
+      } catch (err) {
+        console.error(err)
+        return respond('Bad Gateway', { status: 502 })
+      }
+    }
+
+    // Amplitude relay — same misrouting class as statsig (AMPLITUDE_PROXY_URL_OVERRIDE
+    // also points at beta.gateway.rigoblock.com/v1/amplitude-proxy).
+    if (url.pathname.startsWith('/v1/amplitude-proxy')) {
+      const targetUrl = `https://metrics.interface.gateway.uniswap.org${url.pathname}${url.search}`
+      const headers = new Headers(request.headers)
+      headers.delete('Cookie')
+      headers.set('host', 'metrics.interface.gateway.uniswap.org')
+      try {
+        const response = await fetch(targetUrl, { method: request.method, headers, body: request.body })
+        return finalizeDirect(response)
+      } catch (err) {
+        console.error(err)
+        return respond('Bad Gateway', { status: 502 })
+      }
+    }
+
     if (url.pathname.startsWith('/v2/liquidity/')) {
       // Strip /v2/liquidity prefix, forward to liquidity backend
       const targetPath = url.pathname.replace('/v2/liquidity', '')
@@ -192,6 +229,28 @@ export default {
           headers,
           body: request.body,
         })
+        // Zerion (the backend's portfolio/chart/activity provider) 400s "untrackable
+        // wallet address" for addresses with no trackable history — smart-pool vaults
+        // ALWAYS, fresh EOAs that never transacted too — and the backend wraps it as
+        // HTTP 500 / grpc-status 13. Uniswap's own backend swallows the Zerion 400 and
+        // serves empty data; do the same here, otherwise the app renders "Chart
+        // unavailable" (web), hides the chart (mobile), and can trip its outage banner.
+        // Covers GetPortfolioChart, ListTransactions, and any other Zerion-backed call.
+        // Protobuf-JSON: all response fields are optional, so "{}" is a valid empty reply.
+        if (response.status === 500) {
+          const text = await response.text()
+          if (text.includes('untrackable wallet address')) {
+            return finalizeDirect(new Response('{}', {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            }), { mintDeviceId: true })
+          }
+          return finalizeDirect(new Response(text, {
+            status: 500,
+            statusText: response.statusText,
+            headers: { 'Content-Type': response.headers.get('Content-Type') || 'application/json' },
+          }), { mintDeviceId: true })
+        }
         // Cookie session auth (x-session-id / x-device-id) lives here.
         return finalizeDirect(response, { mintDeviceId: true })
       } catch (err) {
