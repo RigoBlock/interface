@@ -1,4 +1,5 @@
-import { Trans } from 'react-i18next'
+
+import { Trans } from 'ui/src/i18n/Trans'
 import { Check } from 'ui/src/components/icons/Check'
 import { CopySheets } from 'ui/src/components/icons/CopySheets'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'

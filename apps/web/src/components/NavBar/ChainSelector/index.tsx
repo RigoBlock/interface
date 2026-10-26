@@ -1,9 +1,9 @@
 import { UniverseChainId } from '@universe/chains'
 import { Flex } from '@universe/mycelium'
-import { useCallback, useRef } from 'react'
+import { useCallback } from 'react'
 import { useSearchParams } from 'react-router'
-import { Popover } from 'ui/src'
-import { NetworkFilter } from 'uniswap/src/components/network/NetworkFilter'
+import { AlertTriangle } from 'ui/src/components/icons/AlertTriangle'
+import { NetworkFilter } from 'uniswap/src/components/network/NetworkFilter/NetworkFilter'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { useIsSupportedChainIdCallback } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
@@ -11,14 +11,15 @@ import { useAccount } from '~/hooks/useAccount'
 import { useSelectChain } from '~/hooks/useSelectChain'
 import { useMultichainContext } from '~/state/multichain/useMultichainContext'
 
-type ChainSelectorProps = {
-  hideArrow?: boolean
-}
-export const ChainSelector = ({ hideArrow }: ChainSelectorProps) => {
+// The Oct 2026 upstream sync replaced ActionSheetDropdown-based NetworkFilter with a
+// popover-based one: `styles`/`hideArrow`/`showUnsupportedConnectedChainWarning` props
+// are gone. The unsupported-chain warning is now expressed via a custom trigger
+// (previously the warning swapped the logo for a triangle), and the popover manages
+// its own scroll tracking, so the old `styles={{ sticky: true }}` is no longer needed.
+export const ChainSelector = () => {
   const account = useAccount()
   const { chainId, setSelectedChainId } = useMultichainContext()
 
-  const popoverRef = useRef<Popover>(null)
   const isSupportedChain = useIsSupportedChainIdCallback()
   const selectChain = useSelectChain()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -38,8 +39,6 @@ export const ChainSelector = ({ hideArrow }: ChainSelectorProps) => {
       searchParams.delete('field')
       targetChainId && searchParams.set('chain', getChainInfo(targetChainId).interfaceName)
       setSearchParams(searchParams)
-
-      popoverRef.current?.close()
     },
     [setSelectedChainId, selectChain, searchParams, setSearchParams],
   )
@@ -51,12 +50,12 @@ export const ChainSelector = ({ hideArrow }: ChainSelectorProps) => {
       <NetworkFilter
         selectedChain={chainId ?? null}
         onPressChain={onSelectChain}
-        showUnsupportedConnectedChainWarning={isUnsupportedConnectedChain}
-        hideArrow={hideArrow}
         chainIds={chains}
-        styles={{
-          sticky: true,
-        }}
+        trigger={
+          isUnsupportedConnectedChain
+            ? { variant: 'custom', content: <AlertTriangle color="$neutral2" size={20} /> }
+            : { variant: 'icon' }
+        }
       />
     </Flex>
   )

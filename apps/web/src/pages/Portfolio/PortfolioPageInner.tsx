@@ -25,7 +25,7 @@ export function PortfolioPageInner({ mb }: PortfolioPageInnerProps): JSX.Element
 
   return (
     <PortfolioOutageProvider>
-      <PortfolioStakingProvider address={portfolioAddresses.evmAddress} chainId={chainId}>
+<PortfolioStakingProvider address={portfolioAddresses.evmAddress} chainId={chainId}>
         <Flex
           flexDirection="column"
           gap="$spacing40"
@@ -35,7 +35,8 @@ export function PortfolioPageInner({ mb }: PortfolioPageInnerProps): JSX.Element
           pt="$none"
           position="relative"
           mb={mb}
-          $sm={{ p: '$spacing8' }}
+          $md={{ px: '$none' }}
+          $sm={{ py: '$spacing8' }}
         >
           {showDemoView && <PortfolioConnectWalletBanner />}
           {showDemoView && <ConnectWalletFixedBottomButton />}

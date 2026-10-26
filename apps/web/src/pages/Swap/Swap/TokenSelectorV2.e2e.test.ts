@@ -1,5 +1,5 @@
 import type { Locator, Page } from '@playwright/test'
-import { searchTokens } from '@uniswap/client-data-api/dist/data/v1/search-SearchService_connectquery'
+import { search } from '@uniswap/client-data-api/dist/data/v2/search-SearchService_connectquery'
 import { UniverseChainId } from '@universe/chains'
 import { FeatureFlags } from '@universe/gating'
 import { TestID } from '@universe/test'
@@ -26,6 +26,12 @@ const buildLimitUrl = createTestUrlBuilder({
   basePath: '/limit',
   defaultFeatureFlags: { [FeatureFlags.TokenSelectorUxRevamp]: true },
 })
+
+// The collapsed sidebar stays mounted (width 0, inert) so the collapse animates, which keeps it
+// "visible" to Playwright; what the user sees is a zero-width pane clipped out of the viewport.
+async function expectSidebarCollapsed(page: Page): Promise<void> {
+  await expect(page.getByTestId(TestID.TokenSelectorV2Sidebar)).not.toBeInViewport()
+}
 
 test.describe(
   'TokenSelectorV2 (UX revamp flag ON)',
@@ -63,7 +69,7 @@ test.describe(
       // Collapse via the sidebar-header collapse button: sidebar disappears,
       // the avatar + balance toggle appears next to the search field
       await page.getByTestId(TestID.TokenSelectorV2SidebarCollapse).click()
-      await expect(page.getByTestId(TestID.TokenSelectorV2Sidebar)).not.toBeVisible()
+      await expectSidebarCollapsed(page)
 
       // Re-expand from the inline toggle next to the search field
       await page.getByTestId(TestID.TokenSelectorV2SidebarToggle).click()
@@ -75,7 +81,7 @@ test.describe(
       await page.getByTestId(TestID.ChooseOutputToken).click()
 
       await expect(page.getByTestId(TestID.TokenSelectorV2NetworkChipRow)).toBeVisible()
-      await expect(page.getByTestId(TestID.TokenSelectorV2Sidebar)).not.toBeVisible()
+      await expectSidebarCollapsed(page)
       await expect(page.getByTestId(TestID.TokenSelectorV2SidebarToggle)).toBeVisible()
 
       await page.getByTestId(TestID.TokenSelectorV2SidebarToggle).click()
@@ -104,7 +110,7 @@ test.describe(
       await expect(allNetworksChip).toHaveAttribute('aria-selected', 'true')
 
       // On All Networks the output selector stacks Recent → Suggested → Stocks → Bridging above
-      // Trending (SWAP-3039 section order), putting the trending header below the react-window
+      // Trending (SWAP-3039 section order), putting the trending header below the list's
       // render window — unmounted rows can never become visible without scrolling. Wheel in
       // small steps until it mounts: steps stay well under the list viewport so the 40px header
       // row can't jump across it in one step, and once scrolled past, the sticky section header
@@ -190,24 +196,38 @@ test.describe(
     test('search select - picking a search result selects the token', async ({ page }) => {
       // Mock the search backend so the result set (and its ranking) is deterministic.
       // Scoped to this test only — the rest of the suite exercises the real backend.
-      await page.route(`**/${searchTokens.service.typeName}/${searchTokens.name}`, async (route) => {
+      await page.route(`**/${search.service.typeName}/${search.name}`, async (route) => {
         await route.fulfill({
           json: {
             tokens: [
               {
-                tokenId: 'TOKEN:1:0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-                chainId: 1,
-                address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-                decimals: 6,
-                symbol: 'USDC',
-                name: 'USD Coin',
-                standard: 'ERC20',
-                projectName: 'USD Coin',
-                logoUrl: '',
-                isSpam: 'false',
-                safetyLevel: 'VERIFIED',
+                multichainToken: {
+                  multichainId: '218c2348-eebd-4c20-9c42-f5e33829cebb',
+                  addresses: {
+                    '1': '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+                  },
+                  symbol: 'USDC',
+                  decimals: 6,
+                  name: 'USD Coin',
+                  type: 'TOKEN_TYPE_ERC20',
+                  safety: {
+                    isVerified: true,
+                    verdict: 'Benign',
+                  },
+                  project: {
+                    logoUrl: 'https://coin-images.coingecko.com/coins/images/6319/large/USDC.png?1769615602',
+                  },
+                  canonicalChainId: 1,
+                  deployments: {
+                    '1': {
+                      address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+                      decimals: 6,
+                    },
+                  },
+                },
               },
             ],
+            suppressedTokens: [],
           },
         })
       })
@@ -245,7 +265,7 @@ test.describe(
       await mockGetPortfolioResponse({ page })
       await page.goto(buildLimitUrl({}))
 
-      // Wheel in small steps until the section header mounts: sections below the react-window
+      // Wheel in small steps until the section header mounts: sections below the list's
       // render window are unmounted and can never become visible without scrolling (same
       // pattern as the chip-select test above).
       const scrollUntilVisible = async (locator: Locator): Promise<void> => {

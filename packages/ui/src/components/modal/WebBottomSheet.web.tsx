@@ -36,6 +36,7 @@ export function WebBottomSheet({
   hideHandlebar,
   snapPointsMode = 'fit',
   snapPoints,
+  sheetFitHeight = 'ratchet',
   disableRemoveScroll = false,
   ...rest
 }: ModalProps): JSX.Element | null {
@@ -49,11 +50,10 @@ export function WebBottomSheet({
   const [frameNode, setFrameNode] = useState<HTMLDivElement | null>(null)
   useSheetDrag({ isOpen, isTouchDevice, onClose, frame: frameNode })
   useSheetEscapeToClose({ isOpen, onClose })
-  // Strict Tamagui Sheet parity (per review): fit mode measures the frame once at open and
-  // freezes it there; percent mode is owned by the snap point.
+  // Ratchet the tallest height. `content` shrinks; percent mode is snap-owned.
   useSheetFitHeightFreeze({
     isOpen,
-    enabled: snapPointsMode !== 'percent',
+    enabled: snapPointsMode !== 'percent' && sheetFitHeight !== 'content',
     frame: frameNode,
     isWebApp,
     interfaceNavHeight: INTERFACE_NAV_HEIGHT,
@@ -249,6 +249,8 @@ export function WebBottomSheet({
                 data-sheet-content
                 flex={1}
                 gap={gap}
+                // On the scroller so a consumer frame pb adds to it. Declared in apps/web/src/global.css; keep the name in sync.
+                pb="var(--mweb-bottom-inset, 0px)"
                 $platform-web={{ overflow: 'auto' }}
                 {...sheetHeightStyles}
                 onPress={(e) => e.stopPropagation()}

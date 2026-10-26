@@ -1,5 +1,5 @@
 import type { PlainMessage } from '@bufbuild/protobuf'
-import type { Auction } from '@uniswap/client-data-api/dist/data/v1/auction_pb'
+import type { Auction } from '@uniswap/client-launches/dist/data/v1/auction_pb'
 import { GraphQLApi } from '@universe/api'
 import { UniverseChainId } from '@universe/chains'
 import { type ReactNode, useContext, useEffect } from 'react'
@@ -221,7 +221,7 @@ describe('TDPStoreContextProvider', () => {
     const auction = { address: '0x1111111111111111111111111111111111111111' } as PlainMessage<Auction>
     mockHeartbeat({
       address: TOKEN_A,
-      auctionSource: { status: TokenDetailsSourceState.Found, auction },
+      auctionSource: { status: TokenDetailsSourceState.Found, auction, auctions: [auction] },
     })
     rerender(
       <TDPStoreContextProvider>
@@ -230,7 +230,11 @@ describe('TDPStoreContextProvider', () => {
     )
 
     await waitFor(() => {
-      expect(storeRef.current?.getState().auctionSource).toEqual({ status: TokenDetailsSourceState.Found, auction })
+      expect(storeRef.current?.getState().auctionSource).toEqual({
+        status: TokenDetailsSourceState.Found,
+        auction,
+        auctions: [auction],
+      })
     })
   })
 

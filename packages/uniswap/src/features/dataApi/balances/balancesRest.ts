@@ -1,7 +1,7 @@
 import { type PlainMessage } from '@bufbuild/protobuf'
 import type { GetPortfolioResponse } from '@uniswap/client-data-api/dist/data/v1/api_pb.d'
 import { areEvmAddressesEqual, normalizeTokenAddressForCache, UniverseChainId } from '@universe/chains'
-import { RIGOBLOCK_LOGO } from 'ui/src/assets'
+import { RIGOBLOCK_LOGO } from '@universe/mycelium/assets'
 import type { PollingInterval } from 'uniswap/src/constants/misc'
 import { GRG } from 'uniswap/src/constants/tokens'
 import { useGetPortfolioQuery } from 'uniswap/src/data/apiClients/dataApiService/balances/getPortfolio'
@@ -156,6 +156,7 @@ function usePortfolioDataQueryWithSelect<T>(
     error: restError,
     isPending: restPending,
     isError: restIsError,
+    isPlaceholderData,
     dataUpdatedAt,
   } = useGetPortfolioQuery({
     input: {
@@ -180,6 +181,7 @@ function usePortfolioDataQueryWithSelect<T>(
     refetch: restRefetch,
     error: restError || undefined,
     dataUpdatedAt: dataUpdatedAt || undefined,
+    isPlaceholderData,
   }
 }
 

@@ -34,8 +34,9 @@ import {
   WrappedLiquidityPositionRangeChart,
 } from '~/features/Liquidity/charts/LiquidityPositionRangeChart/LiquidityPositionRangeChart'
 import { PoolOutOfSyncError } from '~/features/Liquidity/Create/PoolOutOfSyncError'
-import { useSelectedFeeBreakdown } from '~/features/Liquidity/hooks/useSelectedFeeBreakdown'
+import { useIsLiquiditySagaRunning } from '~/features/Liquidity/hooks/useIsLiquiditySagaRunning'
 import { LiquidityPositionInfoBadges } from '~/features/Liquidity/LiquidityPositionInfoBadges'
+import { LiquiditySagaPendingMessage } from '~/features/Liquidity/LiquiditySagaPendingMessage'
 import { LowLPSlippageWarning } from '~/features/Liquidity/LowLPSlippageWarning'
 import { PartialMigrationWarning } from '~/features/Liquidity/PartialMigrationWarning'
 import { useLPGeoRestriction } from '~/features/Liquidity/useLPGeoRestriction'
@@ -145,7 +146,7 @@ export function ReviewModal({
     protocolVersion,
     creatingPoolOrPair,
     positionState: { fee, hook },
-    protocolFee,
+    selectedFeeBreakdown: feeBreakdown,
     currentTransactionStep,
     price,
     poolOrPair,
@@ -166,6 +167,7 @@ export function ReviewModal({
   // Re-reading inside the modal is what catches that window — a restriction resolving now kills the
   // confirm under the user instead of leaving a live signable transaction.
   const { isGeoRestricted, restrictedTokenSymbol, unavailableLabel } = useLPGeoRestriction({ token0, token1 })
+  const isLiquiditySagaRunning = useIsLiquiditySagaRunning()
 
   // Guards both callers' submit handlers (`handleCreate`, migration's `handleConfirm`) at the
   // boundary, so neither can dispatch a liquidity saga while the block is up.
@@ -175,10 +177,6 @@ export function ReviewModal({
     }
     onConfirm()
   }, [isGeoRestricted, onConfirm])
-
-  // Breakdown for the fee badge below the pair header, from the context's served protocol fee (existing
-  // pool) or the curve (not-yet-created vanilla v4). Shared with the select step and edit summary.
-  const feeBreakdown = useSelectedFeeBreakdown({ protocolVersion, fee, servedProtocolFee: protocolFee, hook })
 
   const { formatNumberOrString, formatCurrencyAmount } = useLocalizationContext()
 
@@ -434,20 +432,23 @@ export function ReviewModal({
                 {isSignedInWithPasskey ? t('swap.button.submitting.passkey') : t('common.confirmWallet')}
               </Button>
             ) : (
-              <Button
-                size="large"
-                variant="branded"
-                onPress={handleConfirm}
-                disabled={isDisabled || isGeoRestricted}
-                fill={false}
-                icon={needsPasskeySignin && !isGeoRestricted ? <Passkey size="$icon.24" color="$white" /> : undefined}
-              >
-                {isGeoRestricted
-                  ? unavailableLabel
-                  : isSignedInWithPasskey && isSessionAuthenticated
-                    ? t('position.create.confirm')
-                    : confirmButtonText}
-              </Button>
+              <>
+                <LiquiditySagaPendingMessage />
+                <Button
+                  size="large"
+                  variant="branded"
+                  onPress={handleConfirm}
+                  disabled={isDisabled || isGeoRestricted || isLiquiditySagaRunning}
+                  fill={false}
+                  icon={needsPasskeySignin && !isGeoRestricted ? <Passkey size="$icon.24" color="$white" /> : undefined}
+                >
+                  {isGeoRestricted
+                    ? unavailableLabel
+                    : isSignedInWithPasskey && isSessionAuthenticated
+                      ? t('position.create.confirm')
+                      : confirmButtonText}
+                </Button>
+              </>
             )}
           </>
         )}

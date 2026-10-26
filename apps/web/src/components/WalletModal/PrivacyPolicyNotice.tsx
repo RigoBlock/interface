@@ -1,5 +1,6 @@
 import { Text } from '@universe/mycelium'
-import { Trans } from 'react-i18next'
+
+import { Trans } from 'ui/src/i18n/Trans'
 import { deprecatedStyled, type DefaultTheme } from '~/lib/deprecated-styled'
 import { ExternalLink } from '~/theme/components/Links'
 

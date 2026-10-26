@@ -1,7 +1,8 @@
 import JSBI from 'jsbi'
 import { darken } from 'polished'
 import { useState } from 'react'
-import { Trans } from 'react-i18next'
+
+import { Trans } from 'ui/src/i18n/Trans'
 import { Link, useNavigate } from 'react-router'
 import { useSporeColors } from 'ui/src'
 import { GRG } from 'uniswap/src/constants/tokens'

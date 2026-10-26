@@ -1,4 +1,5 @@
-import { Trans } from 'react-i18next'
+
+import { Trans } from 'ui/src/i18n/Trans'
 import { ElementName, InterfaceEventName, InterfacePageName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { useAccountDrawer } from '~/components/AccountDrawer/MiniPortfolio/hooks'

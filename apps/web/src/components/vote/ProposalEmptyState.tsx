@@ -1,6 +1,7 @@
 import { UniverseChainId } from '@universe/chains'
 /* oxlint-disable typescript/no-unnecessary-condition */
-import { Trans } from 'react-i18next'
+
+import { Trans } from 'ui/src/i18n/Trans'
 import { useAccount } from '~/hooks/useAccount'
 import styled from '~/lib/deprecated-styled'
 import { ThemedText } from '~/theme/components'

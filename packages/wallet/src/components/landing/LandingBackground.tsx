@@ -1,6 +1,7 @@
 import { EventConsumer, EventMapBase } from '@react-navigation/core'
 import { isWebPlatform } from '@universe/environment'
 import { Flex, type CompatStyleProp } from '@universe/mycelium'
+import { RIGOBLOCK_LOGO } from '@universe/mycelium/assets'
 import { ReactElement, useCallback, useEffect, useMemo, useState } from 'react'
 import { LayoutChangeEvent } from 'react-native'
 import Animated, {
@@ -17,7 +18,6 @@ import Animated, {
 import { Circle, Defs, Svg } from 'react-native-svg'
 import { Image, useIsDarkMode } from 'ui/src'
 import { Jiggly } from 'ui/src/animations'
-import { RIGOBLOCK_LOGO } from 'ui/src/assets'
 import { AnimatedFlex } from 'ui/src/components/layout/AnimatedFlex'
 import { imageSizes } from 'ui/src/theme'
 import { ONE_SECOND_MS } from 'utilities/src/time/time'

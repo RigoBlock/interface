@@ -1,6 +1,7 @@
 import { Text } from '@universe/mycelium'
 import { useEffect, useMemo, useState } from 'react'
-import { Trans } from 'react-i18next'
+
+import { Trans } from 'ui/src/i18n/Trans'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { HL_MIN_ORDER_USD } from 'uniswap/src/features/chains/evm/info/hyperevm'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'

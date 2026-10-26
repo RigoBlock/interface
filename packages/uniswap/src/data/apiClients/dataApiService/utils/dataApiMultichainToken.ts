@@ -1,13 +1,15 @@
 import type { PlainMessage } from '@bufbuild/protobuf'
 import type {
+  ChainDeployment as ChainDeploymentMessage,
   ChainTokenRankStats,
   MultichainToken as MultichainTokenMessage,
   RankedMultichainToken,
 } from '@uniswap/client-data-api/dist/data/v2/types_pb'
 import { SpamCode } from '@universe/api'
-import { chainIdToPlatform } from '@universe/chains'
+import { areEvmAddressesEqual, chainIdToPlatform, UniverseChainId } from '@universe/chains'
+import { RIGOBLOCK_LOGO } from '@universe/mycelium/assets'
 import { getNativeAddress } from 'uniswap/src/constants/addresses'
-import { getCommonBase } from 'uniswap/src/constants/routing'
+import { GRG } from 'uniswap/src/constants/tokens'
 import {
   CurrencyInfo,
   MultichainSearchResult,
@@ -21,12 +23,21 @@ import {
   getRestCurrencySafetyInfoV2,
   getRestTokenSafetyInfoV2,
 } from 'uniswap/src/features/dataApi/utils/getCurrencySafetyInfo'
+import { mapTokenIssuerInfo } from 'uniswap/src/features/rwa/issuers'
 import type { CurrencyId } from 'uniswap/src/types/currency'
 import { currencyId, isDefaultNativeAddress } from 'uniswap/src/utils/currencyId'
 
-// Field-level view so both protobuf class instances (RankedMultichainToken) and toPlainMessage
-// output (GetTokensMultiChain query data) are accepted.
-type MultichainToken = PlainMessage<MultichainTokenMessage>
+type ChainDeployment = PlainMessage<ChainDeploymentMessage>
+
+/**
+ * Field-level view so both protobuf class instances (RankedMultichainToken) and toPlainMessage
+ * output (GetTokensMultiChain query data) are accepted. `deployments` is optional because rows
+ * persisted by clients before data-api served it have no such key at all.
+ */
+export type DataApiMultichainToken = Omit<PlainMessage<MultichainTokenMessage>, 'deployments'> & {
+  deployments?: Record<string, ChainDeployment>
+}
+type MultichainToken = DataApiMultichainToken
 
 /**
  * Data-api endpoints serve native tokens under three formats: the literal 'ETH' string, the legacy
@@ -42,23 +53,42 @@ export function normalizeBackendNativeAddress({ chainId, address }: { chainId: n
   return address
 }
 
+/** One chain deployment of a v2 MultichainToken. `address` is normalized for the app; `rawAddress` is as served. */
+export type MultichainDeployment = { chainId: number; address: string; rawAddress: string; decimals: number }
+
 /**
- * v2 MultichainToken has a single top-level `decimals` shared by every deployment, which is wrong
- * for tokens whose decimals differ by chain (USDT is 6 on Ethereum but 18 on BNB). A token the app
- * already knows for this chain+address wins over the parent value.
- *
- * TODO(CONS-3725): remove once data-api returns per-deployment decimals for multichain tokens.
+ * Decimals come from `deployments` only, never from the parent `decimals`: that value is the
+ * canonical chain's and is wrong for tokens whose decimals differ by chain (USDT is 6 on Ethereum,
+ * 18 on BNB). The deprecated `addresses` map is never read for decimals, so a row persisted before
+ * data-api served `deployments` yields no deployments until refetched.
  */
-export function getMultichainDeploymentDecimals({
+function toMultichainDeployment(chainKey: string, deployment: ChainDeployment): MultichainDeployment {
+  const chainId = Number(chainKey)
+  return {
+    chainId,
+    address: normalizeBackendNativeAddress({ chainId, address: deployment.address }),
+    rawAddress: deployment.address,
+    decimals: deployment.decimals,
+  }
+}
+
+/** The token's deployment on `chainId`, or undefined when it has none there. */
+export function getMultichainDeployment({
+  multichainToken,
   chainId,
-  address,
-  parentDecimals,
 }: {
+  multichainToken: MultichainToken
   chainId: number
-  address: string
-  parentDecimals: number
-}): number {
-  return getCommonBase(chainId, address)?.currency.decimals ?? parentDecimals
+}): MultichainDeployment | undefined {
+  const chainKey = String(chainId)
+  const deployment = multichainToken.deployments?.[chainKey]
+  return deployment && toMultichainDeployment(chainKey, deployment)
+}
+
+export function listMultichainDeployments(multichainToken: MultichainToken): MultichainDeployment[] {
+  return Object.entries(multichainToken.deployments ?? {}).map(([chainKey, deployment]) =>
+    toMultichainDeployment(chainKey, deployment),
+  )
 }
 
 type ParentSafetyInfo = {
@@ -76,27 +106,20 @@ function deriveParentSafetyInfo(safety: MultichainToken['safety'], fees: Multich
   }
 }
 
-/**
- * Converts one chain deployment (from a v2 MultichainToken's `addresses` map) into a
- * CurrencyInfo. Unlike v1's `chainTokens: ChainToken[]`, v2 has no per-chain decimals/isBridged
- * — see {@link getMultichainDeploymentDecimals}.
- */
+/** Converts one chain deployment of a v2 MultichainToken into a CurrencyInfo. */
 function dataApiChainAddressToCurrencyInfo({
-  chainId,
-  address,
+  deployment,
   parent,
   parentSafetyInfo,
 }: {
-  chainId: number
-  address: string
+  deployment: MultichainDeployment
   parent: MultichainToken
   parentSafetyInfo: ParentSafetyInfo
 }): CurrencyInfo | null {
-  const normalizedAddress = normalizeBackendNativeAddress({ chainId, address })
   const currency = buildCurrency({
-    chainId,
-    address: normalizedAddress,
-    decimals: getMultichainDeploymentDecimals({ chainId, address: normalizedAddress, parentDecimals: parent.decimals }),
+    chainId: deployment.chainId,
+    address: deployment.address,
+    decimals: deployment.decimals,
     symbol: parent.symbol,
     name: parent.name,
     buyFeeBps: fractionToBpsString(parent.fees?.buyFee),
@@ -107,14 +130,26 @@ function dataApiChainAddressToCurrencyInfo({
     return null
   }
 
+  // RigoBlock: override the logoUrl for GRG tokens on Unichain (backend serves no/!wrong logo).
+  let logoUrl = parent.project?.logoUrl || undefined
+  if (!currency.isNative && currency.address && currency.chainId === UniverseChainId.Unichain) {
+    const isGrgToken = Object.values(GRG).some(
+      (grgToken) => grgToken.chainId === currency.chainId && areEvmAddressesEqual(grgToken.address, currency.address),
+    )
+    if (isGrgToken) {
+      logoUrl = RIGOBLOCK_LOGO
+    }
+  }
+
   return buildCurrencyInfo({
     currency,
     currencyId: currencyId(currency),
-    logoUrl: parent.project?.logoUrl || undefined,
+    logoUrl,
     safetyInfo: parentSafetyInfo.safetyInfo,
     isSpam: parentSafetyInfo.isSpam,
     spamCode: parentSafetyInfo.spamCode,
     categoryIds: parent.categoryIds,
+    ...(parent.issuer?.id && { issuer: mapTokenIssuerInfo(parent.issuer) }),
   })
 }
 
@@ -126,15 +161,8 @@ function dataApiChainAddressToCurrencyInfo({
 export function dataApiMultichainTokenToCurrencyInfos(multichainToken: MultichainToken): CurrencyInfo[] {
   const parentSafetyInfo = deriveParentSafetyInfo(multichainToken.safety, multichainToken.fees)
 
-  return Object.entries(multichainToken.addresses)
-    .map(([chainIdKey, address]) =>
-      dataApiChainAddressToCurrencyInfo({
-        chainId: Number(chainIdKey),
-        address,
-        parent: multichainToken,
-        parentSafetyInfo,
-      }),
-    )
+  return listMultichainDeployments(multichainToken)
+    .map((deployment) => dataApiChainAddressToCurrencyInfo({ deployment, parent: multichainToken, parentSafetyInfo }))
     .filter((c): c is CurrencyInfo => c !== null)
 }
 

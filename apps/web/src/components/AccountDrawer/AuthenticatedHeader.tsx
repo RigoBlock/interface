@@ -2,11 +2,11 @@ import type { CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { Platform } from '@universe/chains'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { Flex } from '@universe/mycelium'
+import { UNISWAP_LOGO } from '@universe/mycelium/assets'
 import { TestID } from '@universe/test'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, IconButton, Image } from 'ui/src'
-import { UNISWAP_LOGO } from 'ui/src/assets'
 import { Settings } from 'ui/src/components/icons/Settings'
 import { Shine } from 'ui/src/loading/Shine'
 import { iconSizes } from 'ui/src/theme'
@@ -204,10 +204,12 @@ export function AuthenticatedHeader({
             <LimitedSupportBanner onPress={() => setDisplayDelegationMismatchModal(true)} />
           )}
           <Flex row gap="$gap8">
-            <Flex grow>
+            {/* flexBasis 0: `grow` alone leaves basis auto, so the tiles would be sized by their
+                labels ("Receive" is wider than "Send") instead of splitting the row evenly. */}
+            <Flex grow flexBasis={0}>
               <SendActionTile />
             </Flex>
-            <Flex grow>
+            <Flex grow flexBasis={0}>
               <ReceiveActionTile />
             </Flex>
           </Flex>
@@ -219,6 +221,7 @@ export function AuthenticatedHeader({
                 my="$spacing8"
                 fill={false}
                 onPress={toggleClaimModal}
+                testID={TestID.AccountDrawerClaimReward}
                 style={{
                   background: 'linear-gradient(to right, #9139b0 0%, #4261d6 100%)',
                 }}

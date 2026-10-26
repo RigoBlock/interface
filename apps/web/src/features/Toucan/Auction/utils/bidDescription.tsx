@@ -1,6 +1,6 @@
 import { Text } from '@universe/mycelium'
 import type { ReactNode } from 'react'
-import { Trans } from 'react-i18next'
+import { Trans } from 'ui/src'
 import type { BidDescriptionState } from '~/features/Toucan/Auction/utils/bidDetails'
 
 // Module-level constants for description highlighting (no deps, never change)
@@ -16,10 +16,12 @@ export function getBidDescription({
   descriptionState,
   tokenSymbol,
   valuationSummary,
+  launchThresholdSummary,
 }: {
   descriptionState: BidDescriptionState
   tokenSymbol: string | undefined
   valuationSummary: string
+  launchThresholdSummary: string
 }): ReactNode {
   switch (descriptionState) {
     // The auction's outcome is not known yet, so there is nothing truthful to say about this bid.
@@ -40,10 +42,8 @@ export function getBidDescription({
     case 'inRangeInProgress':
       return (
         <Trans
-          shouldUnescape
           i18nKey="toucan.bidDetails.description.inRangeInProgress"
           values={{ tokenSymbol, valuationSummary }}
-          tOptions={{ interpolation: { escapeValue: true } }}
           components={COMPONENTS}
         />
       )
@@ -56,10 +56,16 @@ export function getBidDescription({
     case 'outOfRangeInProgress':
       return (
         <Trans
-          shouldUnescape
           i18nKey="toucan.bidDetails.description.outOfRangeInProgress"
           values={{ valuationSummary }}
-          tOptions={{ interpolation: { escapeValue: true } }}
+          components={COMPONENTS}
+        />
+      )
+    case 'outOfRangeInProgressAwaitingThreshold':
+      return (
+        <Trans
+          i18nKey="toucan.bidDetails.description.outOfRangeInProgressAwaitingThreshold"
+          values={{ valuationSummary, launchThreshold: launchThresholdSummary }}
           components={COMPONENTS}
         />
       )

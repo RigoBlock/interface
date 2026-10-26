@@ -10,6 +10,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import noThrowingStubImports from './no-throwing-stub-imports.js'
+import noWalletSecretsInState from './no-wallet-secrets-in-state.js'
 import preferUseIsMounted from './prefer-use-is-mounted.js'
 import styledFactoryLiteralClasses from './styled-factory-literal-classes.js'
 
@@ -1180,29 +1181,9 @@ const DIRECT_VIEM_ETHERS_IMPORT_ALLOWLIST = new Set([
   'apps/web/src/hooks/useContract.ts',
   'apps/web/src/hooks/useEthersProvider.ts',
   'apps/web/src/hooks/useEthersSigner.ts',
-  'apps/web/src/hooks/useSelectChain.ts',
-  'apps/web/src/hooks/useTransactionGasFee.ts',
   'apps/web/src/hooks/useUniswapXSwapCallback.ts',
-  'apps/web/src/lib/utils/resolveENSContentHash.ts',
-  'apps/web/src/pages/PoolDetails/Pools/hooks/useContractMultichain.tsx',
-  'apps/web/src/pages/PoolDetails/Pools/hooks/useMultiChainPositions.tsx',
-  'apps/web/src/playwright/anvil/anvil-manager.ts',
-  'apps/web/src/playwright/anvil/utils.ts',
-  'apps/web/src/playwright/fixtures/anvil.ts',
-  'apps/web/src/rpc/AppJsonRpcProvider.ts',
-  'apps/web/src/rpc/ConfiguredJsonRpcProvider.ts',
-  'apps/web/src/state/activity/polling/batch.ts',
-  'apps/web/src/features/claim/hooks.ts',
   'apps/web/src/state/routing/types.ts',
   'apps/web/src/state/routing/utils.ts',
-  'apps/web/src/state/sagas/transactions/5792.ts',
-  'apps/web/src/state/sagas/transactions/cancelOrderSaga.ts',
-  'apps/web/src/state/sagas/transactions/cancelPlanStepSaga.ts',
-  'apps/web/src/state/sagas/transactions/utils.ts',
-  'apps/web/src/state/transactions/hooks.tsx',
-  'apps/web/src/state/transactions/types.ts',
-  'apps/web/src/utils/transfer.ts',
-  'apps/web/src/utils/walletMeta.ts',
 ])
 
 /**
@@ -1276,6 +1257,15 @@ const noDirectViemEthersImport = {
         }
         reportIfDirect(node.source, node.source.value)
       },
+      // `export { x } from 'viem'` re-introduces
+      // the dependency without an ImportDeclaration.
+      ExportNamedDeclaration(node) {
+        reportIfDirect(node, node.source?.value)
+      },
+      // `export * from 'viem'` and alike
+      ExportAllDeclaration(node) {
+        reportIfDirect(node, node.source?.value)
+      },
     }
   },
 }
@@ -1302,6 +1292,7 @@ const plugin = {
     'no-throwing-stub-imports': noThrowingStubImports,
     'styled-factory-literal-classes': styledFactoryLiteralClasses,
     'prefer-use-is-mounted': preferUseIsMounted,
+    'no-wallet-secrets-in-state': noWalletSecretsInState,
   },
 }
 

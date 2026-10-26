@@ -398,7 +398,7 @@ describe('LaunchesPage', () => {
       // catch drift away from the Trending tab's shape, which is the whole point of this feed.
       expect(findHeroCall()).toMatchObject({
         launchpadIds: ['pools'],
-        chainIds: [UniverseChainId.Robinhood],
+        chainIds: [UniverseChainId.Robinhood, UniverseChainId.Arc],
         sortBy: LaunchesOrderBy.TRENDING,
         pageSize: 100,
       })
@@ -406,17 +406,45 @@ describe('LaunchesPage', () => {
       expect(findHeroCall()?.launchpadId).toBeUndefined()
     })
 
-    it('widens the hero feed to Arc alongside Robinhood when the Arc flag is on', () => {
-      mockPromoFlags({ banner: true, teaser: false, arc: true })
+    it('scopes the table and hero feeds to Robinhood and Arc by default, regardless of the Arc flag', () => {
+      mockPromoFlags({ banner: false, teaser: false, arc: false })
 
       renderLaunchesPage()
 
-      expect(findHeroCall()).toMatchObject({
-        launchpadIds: ['pools'],
-        chainIds: [UniverseChainId.Robinhood, UniverseChainId.Arc],
-        sortBy: LaunchesOrderBy.TRENDING,
-        pageSize: 100,
-      })
+      // No network is selected by default, so the table asks for every allowed chain.
+      const tableCall = mockUseLaunches.mock.calls.find(([params]) => params && 'ascending' in params)?.[0]
+      expect(tableCall?.chainIds).toEqual([UniverseChainId.Robinhood, UniverseChainId.Arc])
+      expect(findHeroCall()?.chainIds).toEqual([UniverseChainId.Robinhood, UniverseChainId.Arc])
+    })
+
+    // FORK DIVERGENCE (RigoBlock): upstream expects Robinhood + Arc here — both are feature-flag
+    // enabled in this test, so the filter would offer them. The fork maintains an intentional
+    // `allowedChains` whitelist in `getEnabledChains` (packages/uniswap/src/features/chains/utils.ts)
+    // that does NOT include those upstream-only chains (it adds HyperEvm instead), and the Launches
+    // surface is deliberately unreachable in the fork (no routes/nav entries). The filter options
+    // therefore intersect the launch chains with the fork's enabled chains — which is empty here.
+    // Keep this as the fork-behavior guard rather than skipping: a future sync that re-enables
+    // these chains in the whitelist SHOULD fail here and revisit.
+    it('gates the network filter by the fork chain whitelist (no upstream-only launch chains)', () => {
+      mocked(useFeatureFlag).mockImplementation((flag) => flag === FeatureFlags.Arc || flag === FeatureFlags.Robinhood)
+      mockUseLaunches.mockReturnValue(
+        mockLaunchesResult({
+          launches: [
+            createLaunch({
+              launchpadId: 'pons',
+              name: 'Robin Token',
+              symbol: 'ROB',
+              chainId: UniverseChainId.Robinhood,
+            }),
+          ],
+        }),
+      )
+
+      renderLaunchesPage()
+      fireEvent.click(screen.getByTestId(TestID.TokensNetworkFilterTrigger))
+
+      expect(screen.queryByTestId(`network-button-${UniverseChainId.Robinhood}`)).not.toBeInTheDocument()
+      expect(screen.queryByTestId(`network-button-${UniverseChainId.Arc}`)).not.toBeInTheDocument()
     })
 
     it('admits both Pools launch mechanisms into the hero marquee, and no other launchpad', () => {

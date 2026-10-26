@@ -1,7 +1,6 @@
 /* oxlint-disable typescript/no-unnecessary-condition */
 import { Accordion, Flex, Square, Text } from '@universe/mycelium'
 import { AnimateTransition } from '@universe/mycelium/animate-presence-pager'
-import { spacing } from '@universe/mycelium/tokens'
 import { TestID } from '@universe/test'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -17,14 +16,8 @@ import { CurrencySettings } from '~/components/NavBar/PreferencesMenu/Currency'
 import { LanguageSettings } from '~/components/NavBar/PreferencesMenu/Language'
 import { PreferencesView } from '~/components/NavBar/PreferencesMenu/shared'
 import { useTabsContent } from '~/components/NavBar/Tabs/TabsContent'
-import { IN_APP_BROWSER_CHROME_PX } from '~/constants/inAppBrowser'
 import { Socials } from '~/pages/Landing/sections/Footer'
 import { useActiveSmartPool } from '~/state/application/hooks'
-import { isInAppBrowser } from '~/utils/isInAppBrowser'
-
-const BOTTOM_CLEARANCE = `calc(${spacing.spacing32}px + env(safe-area-inset-bottom))` as const
-const IN_APP_BROWSER_BOTTOM_CLEARANCE =
-  `calc(${spacing.spacing32 + IN_APP_BROWSER_CHROME_PX}px + env(safe-area-inset-bottom))` as const
 
 function MenuSection({
   title,
@@ -106,7 +99,7 @@ export function MobileMenuDrawer({ isOpen, closeMenu }: { isOpen: boolean; close
       dataTestId={TestID.CompanyMenuMobileDrawer}
       borderColor="$surface3"
     >
-      <Flex pt="$spacing12" pb={isInAppBrowser() ? IN_APP_BROWSER_BOTTOM_CLEARANCE : BOTTOM_CLEARANCE} px="$spacing24">
+      <Flex pt="$spacing12" pb="$spacing32" px="$spacing24">
         <AnimateTransition
           currentIndex={getSettingsViewIndex(settingsView)}
           animationType={settingsView === PreferencesView.SETTINGS ? 'forward' : 'backward'}

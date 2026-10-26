@@ -1,7 +1,8 @@
 import { UniverseChainId } from '@universe/chains'
 import { Flex, Text } from '@universe/mycelium'
 import { useMemo } from 'react'
-import { Trans } from 'react-i18next'
+
+import { Trans } from 'ui/src/i18n/Trans'
 import { useNavigate } from 'react-router'
 import { ChainLogo } from '~/components/Logo/ChainLogo'
 import { useAccount } from '~/hooks/useAccount'

@@ -12,6 +12,7 @@ import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
 import {
   HoverCard,
+  HoverCardArmOnHover,
   type HoverCardPlacement,
   useHoverCardMaxContentWidth,
   useHoverCardState,
@@ -36,6 +37,8 @@ type TokenHoverCardProps = {
   children: ReactNode
   placement?: HoverCardPlacement
   offset?: number
+  /** See `HoverCard`. */
+  offsetFromScrollContainerEdge?: boolean
   widthOffset?: number
   containerWidth?: number
   onNavigate?: () => void
@@ -43,12 +46,24 @@ type TokenHoverCardProps = {
   childOwnsPressFeedback?: boolean
 } & ({ token: TokenHoverCardToken; currencyInfo?: never } | { token?: never; currencyInfo: CurrencyInfo })
 
-export function TokenHoverCard({
+export function TokenHoverCard(props: TokenHoverCardProps): JSX.Element {
+  return (
+    <HoverCardArmOnHover
+      childOwnsPressFeedback={props.childOwnsPressFeedback}
+      renderMounted={() => <MountedTokenHoverCard {...props} />}
+    >
+      {props.children}
+    </HoverCardArmOnHover>
+  )
+}
+
+function MountedTokenHoverCard({
   token,
   currencyInfo: currencyInfoProp,
   children,
   placement = 'bottom-start',
   offset,
+  offsetFromScrollContainerEdge,
   widthOffset = offset,
   containerWidth,
   onNavigate,
@@ -75,6 +90,10 @@ export function TokenHoverCard({
     price,
     pricePercentChange,
     priceAbsoluteChange,
+    statsEnabled,
+    volume24hUsd,
+    tvlUsd,
+    statsLoading,
   } = useTokenHoverCardData({ currencyInfoProp, currencyIdFromToken, gqlChain, rawAddress, hasOpenIntent, isOpen })
 
   const contractAddress = rawAddress && rawAddress !== NATIVE_CHAIN_ID ? rawAddress : undefined
@@ -83,7 +102,7 @@ export function TokenHoverCard({
 
   useFireOncePerOpen({
     isOpen,
-    ready: !chartLoading && !!currencyInfo,
+    ready: !chartLoading && !statsLoading && !!currencyInfo,
     fire: () =>
       sendAnalyticsEvent(InterfaceEventName.TokenHoverCardDataLoaded, {
         ...trace,
@@ -163,6 +182,7 @@ export function TokenHoverCard({
       isOpen={isOpen}
       placement={placement}
       offset={offset}
+      offsetFromScrollContainerEdge={offsetFromScrollContainerEdge}
       childOwnsPressFeedback={childOwnsPressFeedback}
       onOpenChange={handleOpenChange}
       content={
@@ -186,6 +206,9 @@ export function TokenHoverCard({
               priceAbsoluteChange={priceAbsoluteChange}
               priceData={entries}
               chartLoading={chartLoading}
+              volume24hUsd={volume24hUsd}
+              tvlUsd={tvlUsd}
+              statsLoading={statsLoading}
               isCopied={isCopied}
               onCopy={contractAddress ? handleCopy : undefined}
               onExpand={handleExpand}
@@ -194,7 +217,11 @@ export function TokenHoverCard({
           ) : (
             // Stays mounted when the fetch settles empty: unmounting mid-hover flickers, and an unmounted
             // Popover can't fire onOpenChange to reset isOpen.
-            <TokenHoverCardPlaceholder unavailable={currencyInfoUnavailable} maxWidth={maxContentWidth} />
+            <TokenHoverCardPlaceholder
+              unavailable={currencyInfoUnavailable}
+              showStats={statsEnabled}
+              maxWidth={maxContentWidth}
+            />
           )}
         </MultichainAddressTransitionPanel>
       }

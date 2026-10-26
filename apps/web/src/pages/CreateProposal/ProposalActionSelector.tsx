@@ -1,7 +1,8 @@
 import { Text } from '@universe/mycelium'
 import { useCallback, type ReactNode } from 'react'
 import { ChevronDown } from 'react-feather'
-import { Trans } from 'react-i18next'
+
+import { Trans } from 'ui/src/i18n/Trans'
 import { ModalCloseIcon } from 'ui/src'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'

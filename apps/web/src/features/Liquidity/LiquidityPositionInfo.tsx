@@ -25,6 +25,7 @@ import { LiquidityPositionInfoBadges } from '~/features/Liquidity/LiquidityPosit
 import { TextLoader } from '~/features/Liquidity/Loader'
 import { shouldDisableExploreRoutesAtom } from '~/state/application/atoms'
 import { ClickableTamaguiStyle } from '~/theme/components/styles'
+import { isV2MigrationUnsupportedChain } from '~/utils/networkSupportsV2Migration'
 import { isV4UnsupportedChain } from '~/utils/networkSupportsV4'
 
 // Subset only: the full style also carries `$platform-web`, whose keys the compat props reject.
@@ -210,7 +211,11 @@ export function LiquidityPositionInfo({
       }
     }
 
-    if (positionInfo.version === ProtocolVersion.V2 && positionInfo.status !== PositionStatus.CLOSED) {
+    if (
+      positionInfo.version === ProtocolVersion.V2 &&
+      positionInfo.status !== PositionStatus.CLOSED &&
+      !isV2MigrationUnsupportedChain(positionInfo.chainId)
+    ) {
       return {
         fullLabel: t('pool.migrateToV3'),
         shortLabel: t('common.migrate'),

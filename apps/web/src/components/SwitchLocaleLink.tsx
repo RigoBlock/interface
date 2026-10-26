@@ -1,6 +1,7 @@
 import { Text } from '@universe/mycelium'
 import { useMemo } from 'react'
-import { Trans } from 'react-i18next'
+
+import { Trans } from 'ui/src/i18n/Trans'
 import { DEFAULT_LOCALE, Language, Locale, mapLocaleToLanguage } from 'uniswap/src/features/language/constants'
 import { useCurrentLocale, useLanguageInfo } from 'uniswap/src/features/language/hooks'
 import { navigatorLocale } from 'uniswap/src/features/language/navigatorLocale'

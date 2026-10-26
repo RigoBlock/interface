@@ -224,6 +224,23 @@ export const ShorthandOneDecimalsCurrency: FormatCreator = {
   },
 }
 
+export const ShorthandNoDecimalsCurrency: FormatCreator = {
+  createFormat: (locale: string, currencyCode: string): Intl.NumberFormat => {
+    return getNumberFormat({
+      name: 'ShorthandNoDecimalsCurrency',
+      locale,
+      props: {
+        notation: 'compact',
+        maximumFractionDigits: 0,
+        // The Android Intl polyfill throws a RangeError without this for 2-decimal currencies.
+        minimumFractionDigits: 0,
+        currency: currencyCode,
+        style: 'currency',
+      },
+    })
+  },
+}
+
 export const OneSigFigCurrency: FormatCreator = {
   createFormat: (locale: string, currencyCode: string): Intl.NumberFormat => {
     return getNumberFormat({
@@ -491,6 +508,7 @@ export type Formatter = {
 }
 
 const lessThanPostFormatModifier: FormatterRule['postFormatModifier'] = (formatted: string) => `<${formatted}`
+const greaterThanPostFormatModifier: FormatterRule['postFormatModifier'] = (formatted: string) => `>${formatted}`
 
 // these formatter objects dictate which formatter rule to use based on the interval that
 // the number falls into. for example, based on the rule set below, if your number
@@ -538,6 +556,11 @@ export const swapTradeAmountFormatter: Formatter = {
   defaultFormat: SixSigFigsTwoDecimalsNoCommas,
 }
 
+// Above this magnitude, `swapPriceFormatter` abbreviates (e.g. "1.24B") instead of printing the
+// full digit string. Matches `tokenNonTxFormatter`'s own tier boundary. Exported so callers can
+// tell whether a given rate was abbreviated (see `getRateToDisplay`'s tooltip fallback).
+export const SWAP_PRICE_COMPACT_THRESHOLD = 1e6
+
 export const swapPriceFormatter: Formatter = {
   rules: [
     { exact: 0, formatter: '0' },
@@ -547,9 +570,29 @@ export const swapPriceFormatter: Formatter = {
       formatter: FiveDecimals,
       postFormatModifier: lessThanPostFormatModifier,
     },
-    ...swapTradeAmountFormatter.rules,
+    { upperBound: 0.1, formatter: SixSigFigsNoCommas },
+    { upperBound: 1, formatter: FiveDecimalsMaxTwoDecimalsMinNoCommas },
+    { upperBound: SWAP_PRICE_COMPACT_THRESHOLD, formatter: SixSigFigsTwoDecimalsNoCommas },
+    // Above the threshold the full digit string (e.g. a low-value memecoin's ETH-denominated rate)
+    // gets long enough to overlap adjacent UI, so switch to the same compact-notation convention
+    // used for large token quantities elsewhere (see `tokenNonTxFormatter`'s use of
+    // `ShorthandTwoDecimals`).
+    { upperBound: Infinity, formatter: ShorthandTwoDecimals },
   ],
-  defaultFormat: SixSigFigsTwoDecimalsNoCommas,
+  defaultFormat: ShorthandTwoDecimals,
+}
+
+// Full-precision counterpart to `swapPriceFormatter`, used only to render the exact value in a
+// hover tooltip once the main display abbreviates. Only ever invoked above
+// `SWAP_PRICE_COMPACT_THRESHOLD` (see `getRateToDisplay`), so it needs no lower tiers -- just the
+// same non-compact, comma-grouped formatting `swapPriceFormatter` used before it gained the
+// `ShorthandTwoDecimals` tier.
+export const swapPriceFullFormatter: Formatter = {
+  rules: [
+    { exact: 0, formatter: '0' },
+    { upperBound: Infinity, formatter: SixSigFigsTwoDecimals },
+  ],
+  defaultFormat: SixSigFigsTwoDecimals,
 }
 
 export const fiatTokenDetailsFormatter: Formatter = {
@@ -598,7 +641,19 @@ export const fiatTokenStatsFormatter: Formatter = {
       postFormatModifier: lessThanPostFormatModifier,
     },
     { upperBound: 1000, formatter: TwoDecimalsCurrency },
-    { upperBound: Infinity, formatter: ShorthandOneDecimalsCurrency },
+    // Cap at ~1e18 in the displayed currency: KRW/VND stats legitimately reach thousands of trillions,
+    // so only garbage magnitudes should trip it. 999,999.95T would round up to "1,000,000.0T".
+    { upperBound: 999_999.95e12, formatter: ShorthandOneDecimalsCurrency },
+    // Built through Intl rather than a '>$999,999T' literal so the cap carries the converted
+    // currency's symbol and the locale's compact suffix. Known gap: the Android Intl polyfill
+    // (@formatjs/intl-numberformat 7.4.1) mis-formats compact values above 1e14, so on Android this
+    // reads '>$10,000'. The one-decimal rule above is equally off there past 1e14.
+    {
+      upperBound: Infinity,
+      overrideValue: 999_999e12,
+      formatter: ShorthandNoDecimalsCurrency,
+      postFormatModifier: greaterThanPostFormatModifier,
+    },
   ],
   defaultFormat: ShorthandOneDecimalsCurrency,
 }
@@ -721,6 +776,7 @@ export const TYPE_TO_FORMATTER_RULES = {
   [NumberType.TokenTx]: tokenTxFormatter,
   [NumberType.TokenQuantityStats]: tokenQuantityStatsFormatter,
   [NumberType.SwapPrice]: swapPriceFormatter,
+  [NumberType.SwapPriceFull]: swapPriceFullFormatter,
   [NumberType.SwapTradeAmount]: swapTradeAmountFormatter,
   [NumberType.FiatStandard]: fiatStandardFormatter,
   [NumberType.FiatTokenQuantity]: fiatTokenQuantityFormatter,

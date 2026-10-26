@@ -8,7 +8,8 @@ import { styled } from '@universe/mycelium/styled'
 // TODO: this import is from node modules
 import JSBI from 'jsbi'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { Trans } from 'react-i18next'
+
+import { Trans } from 'ui/src/i18n/Trans'
 import { Link, useNavigate, useParams } from 'react-router'
 import { Button, FlexLoader, Skeleton } from 'ui/src'
 import { Edit } from 'ui/src/components/icons/Edit'

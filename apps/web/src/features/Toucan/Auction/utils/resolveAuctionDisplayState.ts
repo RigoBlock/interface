@@ -1,5 +1,5 @@
 import { computeIsGraduated } from '~/features/Toucan/Auction/utils/computeAuctionProgress'
-import { safeBigInt } from '~/features/Toucan/Auction/utils/safeBigInt'
+import { parseNonNegativeBigInt } from '~/features/Toucan/Auction/utils/safeBigInt'
 import type { TokenPoolState } from '~/types/tokenPool'
 
 export enum AuctionDisplayPhase {
@@ -49,9 +49,15 @@ export interface AuctionDisplayState {
   result: AuctionDisplayResult
   poolAvailability: PoolAvailability
   shouldShowSwap: boolean
+  /**
+   * The result is still on its way rather than settled: `Unknown` also covers a failed checkpoint,
+   * which must not be mistaken for one that is about to answer. Optional so a hand-built state
+   * defaults to "not pending", which is the safe reading everywhere it is consulted.
+   */
+  resultPending?: boolean
 }
 
-function resolvePhase({
+export function resolveAuctionPhase({
   auction,
   currentBlock,
 }: Pick<ResolveAuctionDisplayStateInput, 'auction' | 'currentBlock'>): AuctionDisplayPhase {
@@ -67,9 +73,9 @@ function resolvePhase({
     return AuctionDisplayPhase.Unknown
   }
 
-  const startBlock = safeBigInt(auction.startBlock)
-  const endBlock = safeBigInt(auction.endBlock)
-  if (startBlock === null || startBlock < 0n || endBlock === null || endBlock < 0n || currentBlock.blockNumber < 0n) {
+  const startBlock = parseNonNegativeBigInt(auction.startBlock)
+  const endBlock = parseNonNegativeBigInt(auction.endBlock)
+  if (startBlock === null || endBlock === null || currentBlock.blockNumber < 0n) {
     return AuctionDisplayPhase.Unknown
   }
 
@@ -81,7 +87,7 @@ function resolvePhase({
   return blockNumber < endBlock ? AuctionDisplayPhase.Live : AuctionDisplayPhase.Ended
 }
 
-function resolveResult({
+export function resolveAuctionResult({
   phase,
   currencyRaised,
   requiredCurrencyRaised,
@@ -108,7 +114,8 @@ function resolveResult({
   return AuctionDisplayResult.Failed
 }
 
-function resolvePoolAvailability(pools: TokenPoolState): PoolAvailability {
+/** The single reading of a pool count: every surface that gates on "has a pool" must go through this. */
+export function resolvePoolAvailability(pools: TokenPoolState): PoolAvailability {
   if (pools.status === 'loading') {
     return PoolAvailability.Loading
   }
@@ -130,13 +137,15 @@ export function resolveAuctionDisplayState({
   currencyRaised,
   pools,
 }: ResolveAuctionDisplayStateInput): AuctionDisplayState {
-  const phase = resolvePhase({ auction, currentBlock })
+  const phase = resolveAuctionPhase({ auction, currentBlock })
   const poolAvailability = resolvePoolAvailability(pools)
 
   return {
     phase,
-    result: resolveResult({ phase, currencyRaised, requiredCurrencyRaised: auction?.requiredCurrencyRaised }),
+    result: resolveAuctionResult({ phase, currencyRaised, requiredCurrencyRaised: auction?.requiredCurrencyRaised }),
     poolAvailability,
     shouldShowSwap: !auction || poolAvailability !== PoolAvailability.NoPool,
+    // 'loading' only occurs once the checkpoint query is enabled, which needs a head past the end block.
+    resultPending: phase === AuctionDisplayPhase.Loading || currencyRaised.status === 'loading',
   }
 }

@@ -2,7 +2,8 @@ import { UniverseChainId, Platform } from '@universe/chains'
 import { Flex, Text, TouchableArea, useIsDarkMode, useSporeColors } from '@universe/mycelium'
 import { SPORE_ANIMATION_CURVE_CSS } from '@universe/tailwind/animations'
 import { useMemo } from 'react'
-import { Trans, useTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
+import { Trans } from 'ui/src'
 import { iconSizes } from 'ui/src/theme'
 import { NetworkLogo } from 'uniswap/src/components/CurrencyLogo/NetworkLogo'
 import { UNISWAP_WEB_URL, UniswapStaticUrls } from 'uniswap/src/constants/urls'
@@ -201,12 +202,10 @@ export function ChooseMultiPlatformProvider({
 
         <Text variant="body4" textAlign="center" color="$neutral3">
           <Trans
-            shouldUnescape
             i18nKey="fiatOnRamp.disclaimer"
             values={{
               serviceProvider: selectedServiceProvider.name,
             }}
-            tOptions={{ interpolation: { escapeValue: true } }}
             components={{
               tosLink: (
                 <ExternalLink color={colors.neutral3.val} href={UniswapStaticUrls.termsOfServiceUrl}>

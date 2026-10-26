@@ -1,5 +1,6 @@
 import { Text } from '@universe/mycelium'
-import { Trans } from 'react-i18next'
+
+import { Trans } from 'ui/src/i18n/Trans'
 import { Switch } from 'ui/src'
 import Column from '~/components/deprecated/Column'
 import { RowBetween, RowFixed } from '~/components/deprecated/Row'

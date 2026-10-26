@@ -1,6 +1,5 @@
 /* oxlint-disable max-lines complexity */
 import { type NativeStackScreenProps } from '@react-navigation/native-stack'
-import { isWebPlatform } from '@universe/environment'
 import { Flex } from '@universe/mycelium'
 import { useIsDarkMode } from '@universe/mycelium/theme-hooks-compat'
 import { Image } from 'expo-image'
@@ -25,6 +24,7 @@ import { useBottomSheetContext } from 'uniswap/src/components/modals/BottomSheet
 import { HandleBar } from 'uniswap/src/components/modals/HandleBar'
 import { PillMultiToggle } from 'uniswap/src/components/pill/PillMultiToggle'
 import { MAX_FIAT_INPUT_DECIMALS } from 'uniswap/src/constants/transactions'
+import { BlastShutdownSelectionModal } from 'uniswap/src/features/chains/blastShutdown/BlastShutdownSelectionModal'
 import { FiatOnRampCountryPicker } from 'uniswap/src/features/fiatOnRamp/FiatOnRampCountryPicker'
 import {
   useFiatOnRampQuotes,
@@ -46,6 +46,7 @@ import UnsupportedTokenModal from 'uniswap/src/features/fiatOnRamp/UnsupportedTo
 import {
   getOptionalServiceProviderLogo,
   isSupportedFORCurrency,
+  normalizeBalancesByIdForLookup,
   organizeQuotesIntoSections,
 } from 'uniswap/src/features/fiatOnRamp/utils'
 import { pushNotification } from 'uniswap/src/features/notifications/slice/slice'
@@ -64,7 +65,7 @@ import { useUSDTokenUpdater } from 'uniswap/src/features/transactions/hooks/useU
 import { useBottomScreenGap } from 'uniswap/src/hooks/useBottomScreenGap'
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { FiatOnRampScreens } from 'uniswap/src/types/screens/mobile'
-import { currencyIdToAddress } from 'uniswap/src/utils/currencyId'
+import { currencyIdToAddress, normalizeCurrencyIdForMapLookup } from 'uniswap/src/utils/currencyId'
 import { truncateToMaxDecimals } from 'utilities/src/format/truncateToMaxDecimals'
 import { logger } from 'utilities/src/logger/logger'
 import { usePrevious } from 'utilities/src/react/hooks'
@@ -157,24 +158,16 @@ export function FiatOnRampScreen({ navigation }: Props): JSX.Element {
     inputRef.current?.triggerShakeAnimation()
   }, [])
 
-  const pendingSelectionTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
-
-  useEffect(() => {
-    return () => clearTimeout(pendingSelectionTimeoutRef.current)
-  }, [])
-
   // passed to memo(...) component
-  const resetSelection = useCallback(({ start, end }: { start: number; end?: number }): void => {
-    selectionRef.current = { start, end }
-    if (!isWebPlatform && inputRef.current) {
-      // Cancel any pending native selection update to prevent stale cursor positions
-      // when typing fast (the previous timeout would set the cursor to an outdated position).
-      clearTimeout(pendingSelectionTimeoutRef.current)
-      pendingSelectionTimeoutRef.current = setTimeout(() => {
-        inputRef.current?.textInputRef.current?.setNativeProps({ selection: { start, end } })
-      }, 0)
-    }
-  }, [])
+  const resetSelection = useCallback(
+    ({ start, end, value: forValue }: { start: number; end?: number; value?: string }): void => {
+      // The ref is updated synchronously so the DecimalPadInput reads the new caret on the next
+      // keypress; the section applies it to the native input once the value that moved it has rendered.
+      selectionRef.current = { start, end }
+      inputRef.current?.setSelection({ start, end, value: forValue })
+    },
+    [],
+  )
 
   const { appFiatCurrencySupportedInMeld, meldSupportedFiatCurrency, supportedFiatCurrencies } =
     useMeldFiatCurrencySupportInfo({
@@ -188,7 +181,10 @@ export function FiatOnRampScreen({ navigation }: Props): JSX.Element {
 
   const activeAccount = useActiveAccountWithThrow()
   const { data: balancesById } = usePortfolioBalances({ evmAddress: activeAccount.address })
-  const portfolioBalance = quoteCurrency.currencyInfo && balancesById?.[quoteCurrency.currencyInfo.currencyId]
+  const normalizedBalancesById = useMemo(() => normalizeBalancesByIdForLookup(balancesById), [balancesById])
+  const portfolioBalance =
+    quoteCurrency.currencyInfo &&
+    normalizedBalancesById?.[normalizeCurrencyIdForMapLookup(quoteCurrency.currencyInfo.currencyId)]
   const tokenMaxDecimals = Math.min(quoteCurrency.currencyInfo?.currency.decimals ?? 0, MAX_TOKEN_DECIMALS)
 
   const exceedsBalanceError = useMemo(() => {
@@ -683,6 +679,7 @@ export function FiatOnRampScreen({ navigation }: Props): JSX.Element {
           }}
         />
       )}
+      <BlastShutdownSelectionModal currencies={[isOffRamp ? undefined : quoteCurrency.currencyInfo]} />
     </Screen>
   )
 }

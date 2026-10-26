@@ -1,6 +1,7 @@
 /* oxlint-disable typescript/no-unnecessary-condition */
 import { Currency } from '@uniswap/sdk-core'
-import { Trans } from 'react-i18next'
+
+import { Trans } from 'ui/src/i18n/Trans'
 import CurrencyInputPanel from '~/components/CurrencyInputPanel'
 import { AddressInputPanel } from '~/features/claim/AddressInputPanel'
 import styled from '~/lib/deprecated-styled'

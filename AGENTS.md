@@ -33,6 +33,22 @@ This repo is the **RigoBlock fork** of the Uniswap interface (`main` tracks upst
 4. **Beware phantom local dependencies.** A package can import successfully in a dirty local `node_modules` (stale hoisting from an old lockfile or a transitive dep of something else) yet be absent from `bun.lock`, so CI installs clean and the build fails there — while your machine keeps passing. `styled-components` in `apps/web` survived only as a transitive dep of `@privy-io/react-auth` until it was declared directly. Any package the fork imports must be declared in the importing workspace's `package.json` — never rely on hoisting or transitivity. If unsure, delete the package dir from `node_modules` and rebuild.
 5. **Re-apply the invariants** listed above and in `apps/web/AGENTS.md` §Fork-Sync Notes (branding gold in all four theme layers, gateway/API config, hidden Uniswap-only UI, wallet options, HyperEvm additions, rate-limit gate, etc.). Upstream syncs will silently revert each of them.
 6. **Fresh-install CI parity before calling a sync done:** `rm -rf node_modules && bun install && bun web build:production`, then run tests/lint/typecheck. Dashboard build vars must also match `.bun-version`/`engines` (see `scripts/check-runtime-versions.sh`).
+7. **Reconcile `patchedDependencies` with `patches/` after every merge.** Git rename detection pairs a fork patch file with upstream's same-dependency rename and keeps only upstream's content — and the union of `package.json` keeps BOTH the stale and the new map entries, so `bun install` fails with `Couldn't find patch file: patches/<old>.patch`. Diff the `patchedDependencies` keys against `ls patches/` and drop entries with no file; then verify the surviving patch file still carries the fork's fixes forward (open it and grep for them). Oct 2026: upstream bumped `react-native` 0.85.3→0.86.0 and Expo SDK 54/56→57; the fork's patch entries (Yoga ghost-layout fix, hermesc podspec path, vite-8 type-only imports, metro `clientUrl`, Expo shallow-bundle `mkdir`) all existed in upstream's renamed patch files, so the correct resolution was migrating the pins forward, not restoring the fork's files.
+8. **Runtime pins move with upstream.** `.nvmrc` / `.bun-version` bumps make the `preinstall` version check fail until the pinned toolchains are installed (`mise install node@<v> bun@<v>`, then run everything through `mise exec node@<v> bun@<v> -- …`). `scripts/check-runtime-versions.sh` must pass before `bun install` will complete.
+9. **Drop dangling upstream references.** Upstream's root `tsconfig.json` can reference apps that don't exist in the tree (Oct 2026: `./apps/unilens`), which makes the extension's `wxt prepare` fail with `Tsconfig not found …/apps/unilens` and takes down `bun g:prepare`. Remove the reference in the fork and re-apply on each sync until upstream ships the app.
+
+### Cold-start — running an upstream sync from scratch
+
+Branch layout: `main` mirrors upstream `Uniswap:interface` (only ever updated by merging upstream into it); the RigoBlock fork lives on `feat/rigoblock-wrap`. Never sync directly on `feat/rigoblock-wrap` — use a throwaway branch, then merge the verified result back.
+
+1. `git fetch origin && git log --oneline feat/rigoblock-wrap..main` — review what upstream brings. `git diff <merge-base>..main --stat` to size it; a "6 commits behind" is often a full upstream catch-up (thousands of files).
+2. Preview conflicts without merging: `git merge-tree --write-tree --name-only main feat/rigoblock-wrap` (first output line is the tree hash, then conflicted paths).
+3. `git checkout -b feat/rigoblock-wrap-sync-<date> feat/rigoblock-wrap && git merge --no-ff --no-commit main`.
+4. Resolve with the doctrine: **upstream's structure, fork's behavior.** `git show :1:<path>` = base, `:2:` = fork, `:3:` = upstream. The invariant-bearing files are listed in `apps/web/AGENTS.md` §"Files to Watch During Upstream Sync" — resolve those by hand with the AGENTS.md invariant list open. Mechanical unions (i18n `en-US.json`, `csp.json`, `package.json`s, sitemaps) are safe to script as key/array unions — both sides almost only add entries.
+5. Fix the merge plumbing per playbook items 7–9 (patches, runtime pins, dangling refs), then `bun install`.
+6. Gates, in order: `bun g:prepare` → `bun g:typecheck` → `bun web build:production` (the only gate that resolves every import — typecheck alone is NOT sufficient) → targeted tests (`bunx nx run web:test -- --run`) → playbook item 6 fresh-install parity.
+7. Run the invariant audit greps (branding `FC72FF|FF37C7` in the four theme layers, `UNISWAPX_LATEST` stripping in `protocols.ts`, `uniswapOptions = null` in the wallet modals, no direct `entry-gateway.backend-prod.api.uniswap.org`, `isBackendSupportedChainId` guards, `RIGOBLOCK_*_GAS_OVERHEAD` in the sagas, rate-limit gate wiring) — see the checklist in `apps/web/AGENTS.md` §Fork-Sync Notes.
+8. Merge the sync branch back into `feat/rigoblock-wrap` and document anything notable in `apps/web/AGENTS.md` §Fork-Sync Notes (upstream syncs WILL silently undo the fixes listed there).
 
 ## Project Overview
 
@@ -113,6 +129,13 @@ bun i18n:extract                # Extract localized strings (run after changing 
 - **ALWAYS** use `styled` from `ui/src` (never styled-components); UI components may use inline styling where appropriate
 - Use theme tokens instead of hardcoded values
 - Platform-specific files: `Component.ios.tsx`, `Component.android.tsx`, `Component.web.tsx`, `Component.native.tsx` (with stub files for platforms where specific implementation isn't needed)
+
+#### Images and Icons
+
+- Search `packages/mycelium/src/assets` and the generated icon components (`@universe/mycelium/icons`, `ui/src/components/icons`) before adding an image or icon
+- Shared images go in `packages/mycelium/src/assets`, imported from `@universe/mycelium/assets`; an app's own directory is fine for an image only that app uses
+- Import generated icon components instead of `.svg` files; add new icons with `bun scripts/add-icons.ts` and the `build:icons` targets
+- Don't inline SVG markup in component files unless it needs something a static icon can't do, like per-path animation or data-driven geometry
 
 #### State Management
 

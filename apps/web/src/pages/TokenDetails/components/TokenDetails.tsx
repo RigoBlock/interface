@@ -4,6 +4,7 @@ import { useMedia } from '@universe/mycelium/theme-hooks-compat'
 import { TestID } from '@universe/test'
 import type { ReactNode } from 'react'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
+import type { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { useLogRWATokenDetailsViewed } from 'uniswap/src/features/rwa/useLogRWATokenDetailsViewed'
 import { InterfacePageName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
@@ -11,14 +12,21 @@ import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
 import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
 import { MobileBottomBar, TDPActionTabs } from '~/components/NavBar/MobileBottomBar'
 import { StickyCollapsibleHeader } from '~/components/StickyCollapsibleHeader/StickyCollapsibleHeader'
+import { shouldShowAuctionOnlyLayout } from '~/features/Toucan/Auction/utils/auctionDisplayVisibility'
 import { ScrollDirection, useScroll } from '~/hooks/useScroll'
 import { ActivitySection } from '~/pages/TokenDetails/components/activity/ActivitySection'
 import { TokenDetailsAuctionBanner } from '~/pages/TokenDetails/components/auction/TokenDetailsAuctionBanner'
 import { TokenDetailsAuctionCard } from '~/pages/TokenDetails/components/auction/TokenDetailsAuctionCard'
 import { TokenDetailsAuctionErrorBoundary } from '~/pages/TokenDetails/components/auction/TokenDetailsAuctionErrorBoundary'
+import {
+  TokenDetailsOtherAuctionsFallback,
+  TokenDetailsOtherAuctionsRow,
+} from '~/pages/TokenDetails/components/auction/TokenDetailsAuctionListEntry'
 import { TokenDetailsAuctionSkeleton } from '~/pages/TokenDetails/components/auction/TokenDetailsAuctionSkeleton'
 import { BalanceSummary } from '~/pages/TokenDetails/components/balances/BalanceSummary'
 import { ChartSection } from '~/pages/TokenDetails/components/chart/ChartSection'
+import { TokenDetailsClaimCard } from '~/pages/TokenDetails/components/claim/TokenDetailsClaimCard'
+import { TokenDetailsClaimProvider } from '~/pages/TokenDetails/components/claim/TokenDetailsClaimProvider'
 import { TokenDetailsEarnBanner } from '~/pages/TokenDetails/components/earn/TokenDetailsEarnBanner'
 import { TokenDetailsEarnSection } from '~/pages/TokenDetails/components/earn/TokenDetailsEarnSection'
 import { TokenDetailsVaultShareBanner } from '~/pages/TokenDetails/components/earn/TokenDetailsVaultShareBanner'
@@ -43,10 +51,31 @@ import { useTDPRWAMatch } from '~/pages/TokenDetails/hooks/useTDPRWAMatch'
 import { useTDPTokenCategories } from '~/pages/TokenDetails/hooks/useTDPTokenCategories'
 import { useTDPTokenWarningDisplay } from '~/pages/TokenDetails/hooks/useTDPTokenWarningDisplay'
 import { useTokenDetailsAuctionDisplay } from '~/pages/TokenDetails/hooks/useTokenDetailsAuctionDisplay'
-import {
-  shouldShowAuctionOnlyLayout,
-  shouldReserveLiveAuctionBannerSpace,
-} from '~/pages/TokenDetails/utils/tokenDetailsAuctionDisplay'
+import { shouldReserveLiveAuctionBannerSpace } from '~/pages/TokenDetails/utils/tokenDetailsAuctionDisplay'
+
+/**
+ * Balance and bridged-asset blocks where they stack under the chart. Returning null rather than an
+ * empty wrapper matters: the left column is a gapped flex, so a childless wrapper still opens a gap.
+ */
+function StackedTokenInfo({
+  showBalance,
+  currencyInfo,
+  isBridgedAsset,
+}: {
+  showBalance: boolean
+  currencyInfo: Maybe<CurrencyInfo>
+  isBridgedAsset: boolean
+}): JSX.Element | null {
+  if (!showBalance && !isBridgedAsset) {
+    return null
+  }
+  return (
+    <Flex gap="$gap24">
+      {showBalance && <BalanceSummary />}
+      <BridgedAssetSection currencyInfo={currencyInfo} isBridgedAsset={isBridgedAsset} />
+    </Flex>
+  )
+}
 
 export function TokenDetailsContent({ isCompact }: { isCompact: boolean }) {
   const media = useMedia()
@@ -98,8 +127,18 @@ export function TokenDetailsContent({ isCompact }: { isCompact: boolean }) {
   const { warningCard, warningModal } = useTDPTokenWarningDisplay({ currency, currencyInfo })
   const auctionPanel = (
     <TokenDetailsAuctionErrorBoundary>
-      {auctionDisplay.isInitialLoading ? <TokenDetailsAuctionSkeleton /> : <TokenDetailsAuctionCard />}
+      {auctionDisplay.isInitialLoading ? (
+        <TokenDetailsAuctionSkeleton />
+      ) : (
+        <Flex gap="$spacing16">
+          <TokenDetailsAuctionCard />
+          <TokenDetailsOtherAuctionsRow />
+        </Flex>
+      )}
     </TokenDetailsAuctionErrorBoundary>
+  )
+  const otherAuctionsEntry = (
+    <TokenDetailsOtherAuctionsFallback hideSwap={hideSwap} showAuctionBanner={showAuctionBanner} />
   )
 
   return (
@@ -122,67 +161,82 @@ export function TokenDetailsContent({ isCompact }: { isCompact: boolean }) {
       <TokenDetailsAuctionErrorBoundary>
         <TokenDetailsAuctionBanner />
       </TokenDetailsAuctionErrorBoundary>
-      <TokenDetailsLayout topSpacing={showAuctionBanner ? '24' : undefined}>
-        <LeftPanel>
-          <ChartSection />
-          {/* Preserve the warning when Swap is hidden or replaced by the auction card. */}
-          {(!isDesktop || hideSwap) && warningCard}
-          {warningModal}
-          {hideSwap && !isDesktop && auctionPanel}
-          <OffHoursLiquidityBanner />
-          {showEarn && <TokenDetailsEarnBanner earnData={earnData} />}
+      <TokenDetailsClaimProvider>
+        <TokenDetailsLayout topSpacing={showAuctionBanner ? '24' : undefined}>
+          <LeftPanel>
+            <ChartSection />
+            {/* Preserve the warning when Swap is hidden or replaced by the auction card. */}
+            {(!isDesktop || hideSwap) && warningCard}
+            {warningModal}
+            {!isDesktop && (
+              <TokenDetailsAuctionErrorBoundary>
+                <TokenDetailsClaimCard />
+              </TokenDetailsAuctionErrorBoundary>
+            )}
+            {hideSwap && !isDesktop && auctionPanel}
+            {!isDesktop && otherAuctionsEntry}
+            <OffHoursLiquidityBanner />
+            {showEarn && <TokenDetailsEarnBanner earnData={earnData} />}
 
-          {!showBalanceInfo && (
-            <Flex gap="$gap24">
-              {!!pageChainBalance && <BalanceSummary />}
-              <BridgedAssetSection currencyInfo={currencyInfo} isBridgedAsset={isBridgedAsset} />
+            {!showBalanceInfo && (
+              <StackedTokenInfo
+                showBalance={!!pageChainBalance}
+                currencyInfo={currencyInfo}
+                isBridgedAsset={isBridgedAsset}
+              />
+            )}
+
+            <StatsSection />
+            <TokenDetailsAuctionErrorBoundary>
+              <TokenProvenance />
+            </TokenDetailsAuctionErrorBoundary>
+
+            {tokenCategoriesEnabled ? (
+              <>
+                <MoreWaysToTrade />
+                <TokenDescription />
+                <RelatedTokensSection categories={categories} isLoading={isCategoriesLoading} />
+                <ActivitySection />
+              </>
+            ) : (
+              <>
+                <TokenDescription />
+                <ActivitySection />
+                <MoreWaysToTrade />
+                <RelatedTokens />
+              </>
+            )}
+          </LeftPanel>
+          <RightPanel>
+            {isDesktop && (
+              <TokenDetailsAuctionErrorBoundary>
+                <TokenDetailsClaimCard />
+              </TokenDetailsAuctionErrorBoundary>
+            )}
+            {isDesktop && otherAuctionsEntry}
+            {/* Confirmed Custom + NoPool replaces Swap; smaller widths place the card below the chart. */}
+            <TokenDetailsSwapSection
+              hideSwap={hideSwap}
+              isDesktop={isDesktop}
+              auctionPanel={auctionPanel}
+              warningCard={warningCard}
+            />
+
+            {/* Token info sections only show when the user has balance, a bridged asset, or an earn deposit.
+                Balance/bridged info stays desktop-only (the left panel renders it at smaller widths);
+                the Earn section renders at any width when the user has a position. */}
+            <Flex display={showRightPanelSections ? 'flex' : 'none'} gap="$gap24" mt="$gap24">
+              {showBalanceInfo && <BalanceSummary />}
+              {showEarn && <TokenDetailsEarnSection earnData={earnData} />}
+              {showBalanceInfo && <BridgedAssetSection currencyInfo={currencyInfo} isBridgedAsset={isBridgedAsset} />}
             </Flex>
-          )}
 
-          <StatsSection />
-          <TokenDetailsAuctionErrorBoundary>
-            <TokenProvenance />
-          </TokenDetailsAuctionErrorBoundary>
+            <TokenPerformance />
+          </RightPanel>
 
-          {tokenCategoriesEnabled ? (
-            <>
-              <MoreWaysToTrade />
-              <TokenDescription />
-              <RelatedTokensSection categories={categories} isLoading={isCategoriesLoading} />
-              <ActivitySection />
-            </>
-          ) : (
-            <>
-              <TokenDescription />
-              <ActivitySection />
-              <MoreWaysToTrade />
-              <RelatedTokens />
-            </>
-          )}
-        </LeftPanel>
-        <RightPanel>
-          {/* Confirmed Custom + NoPool replaces Swap; smaller widths place the card below the chart. */}
-          <TokenDetailsSwapSection
-            hideSwap={hideSwap}
-            isDesktop={isDesktop}
-            auctionPanel={auctionPanel}
-            warningCard={warningCard}
-          />
-
-          {/* Token info sections only show when the user has balance, a bridged asset, or an earn deposit.
-              Balance/bridged info stays desktop-only (the left panel renders it at smaller widths);
-              the Earn section renders at any width when the user has a position. */}
-          <Flex display={showRightPanelSections ? 'flex' : 'none'} gap="$gap24" mt="$gap24">
-            {showBalanceInfo && <BalanceSummary />}
-            {showEarn && <TokenDetailsEarnSection earnData={earnData} />}
-            {showBalanceInfo && <BridgedAssetSection currencyInfo={currencyInfo} isBridgedAsset={isBridgedAsset} />}
-          </Flex>
-
-          <TokenPerformance />
-        </RightPanel>
-
-        <TokenDetailsMobileActions hideSwap={hideSwap} />
-      </TokenDetailsLayout>
+          <TokenDetailsMobileActions hideSwap={hideSwap} />
+        </TokenDetailsLayout>
+      </TokenDetailsClaimProvider>
     </Trace>
   )
 }

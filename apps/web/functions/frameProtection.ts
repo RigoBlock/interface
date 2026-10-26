@@ -2,8 +2,8 @@ import { isEmbedPath } from '~/pages/embedPaths'
 
 // ── Frame protection ─────────────────────────────────────────────────
 // frame-ancestors cannot be enforced via <meta> CSP tags (W3C spec) — it
-// must be an HTTP response header. Cloudflare Workers returns responses
-// with immutable headers, so we clone into a mutable Response.
+// must be an HTTP response header. fetch() responses have immutable
+// headers, so we clone into a mutable Response.
 // Origins allowed to iframe-embed the app. Whitelisting an embedder
 // relaxes clickjacking protection for that origin — treat additions as a
 // deliberate product/security tradeoff.
@@ -30,11 +30,30 @@ export function withFrameProtection(res: Response): Response {
   return new Response(res.body, { status: res.status, statusText: res.statusText, headers })
 }
 
+// ── Response hardening ───────────────────────────────────────────────
+// nosniff makes the browser refuse to execute a <script src> whose response is
+// not a JavaScript MIME type, so a same-origin proxied body an attacker shapes
+// (on-chain token metadata serialized by the gateway) can never run as script.
+export function withNosniff(res: Response): Response {
+  // Response() rejects 1xx statuses, and there is nothing to harden on them.
+  if (res.status < 200) {
+    return res
+  }
+  const headers = new Headers(res.headers)
+  headers.set('X-Content-Type-Options', 'nosniff')
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers })
+}
+
 // ── Embed frame policy ───────────────────────────────────────────────
 // Documents under /embed carry a partner-scoped frame-ancestors policy so
 // vetted third-party sites can iframe the embed surface. The client mounts the
 // full app for these documents under an embedded context (see src/App.tsx);
 // Send and the embedded wallet frame-bust out on use (see src/utils/isIFramed.ts).
+
+// Separate from ALLOWED_FRAME_ANCESTORS: that is the strict policy for every other route, this is
+// the /embed partner allowlist. Deployed envs supply it via EMBED_FRAME_ANCESTORS; dev defaults here.
+export const DEV_EMBED_FRAME_ANCESTORS =
+  'https://dexscreener.com https://*.dexscreener.com https://omen.town https://*.omen.town http://localhost:*'
 
 /**
  * Parses the configured embed frame-ancestors source list into the value used
