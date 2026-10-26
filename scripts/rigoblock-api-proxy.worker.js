@@ -229,26 +229,41 @@ export default {
           headers,
           body: request.body,
         })
-        // Zerion (the backend's portfolio/chart/activity provider) 400s "untrackable
-        // wallet address" for addresses with no trackable history — smart-pool vaults
-        // ALWAYS, fresh EOAs that never transacted too — and the backend wraps it as
-        // HTTP 500 / grpc-status 13. Uniswap's own backend swallows the Zerion 400 and
-        // serves empty data; do the same here, otherwise the app renders "Chart
-        // unavailable" (web), hides the chart (mobile), and can trip its outage banner.
-        // Covers GetPortfolioChart, ListTransactions, and any other Zerion-backed call.
-        // Protobuf-JSON: all response fields are optional, so "{}" is a valid empty reply.
+        // Zerion (the backend's portfolio/chart/activity provider) classifies which
+        // addresses it tracks: EOAs and recognized smart-contract wallets (Safe etc.)
+        // work; RigoBlock smart-pool vaults return 400 "untrackable wallet address"
+        // (Zerion has not added the Rigoblock factory pattern to its wallet registry),
+        // and the backend wraps that as HTTP 500 / grpc-status 13. The app then renders
+        // "Chart unavailable" (web), hides the chart (mobile), and can trip its outage
+        // banner. This mapping is a STOPGAP so the UI shows a truthful empty state
+        // instead of an error — it does NOT discard the signal: the original status and
+        // Zerion detail are logged (see `wrangler tail`) and echoed in X-Upstream-*
+        // response headers. REMOVE this block once Zerion tracks RigoBlock vaults
+        // (contact Zerion support with the factory addresses — see apps/web/AGENTS.md
+        // §Fork-Sync Notes). All other 500s pass through byte-identical.
         if (response.status === 500) {
           const text = await response.text()
           if (text.includes('untrackable wallet address')) {
-            return finalizeDirect(new Response('{}', {
+            console.error(
+              `[gateway] Zerion untrackable wallet address (upstream 500, request-id ${response.headers.get('x-request-id') || 'n/a'}): ${url.pathname}`,
+            )
+            const empty = new Response('{}', {
               status: 200,
-              headers: { 'Content-Type': 'application/json' },
-            }), { mintDeviceId: true })
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Upstream-Status': '500',
+                'X-Upstream-Error': 'zerion-untrackable-wallet-address',
+              },
+            })
+            return finalizeDirect(empty, { mintDeviceId: true })
           }
           return finalizeDirect(new Response(text, {
             status: 500,
             statusText: response.statusText,
-            headers: { 'Content-Type': response.headers.get('Content-Type') || 'application/json' },
+            headers: {
+              'Content-Type': response.headers.get('Content-Type') || 'application/json',
+              'X-Upstream-Status': '500',
+            },
           }), { mintDeviceId: true })
         }
         // Cookie session auth (x-session-id / x-device-id) lives here.
