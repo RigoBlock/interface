@@ -1,9 +1,12 @@
 import { TouchableArea, useIsTouchDevice } from '@universe/mycelium'
 import type { ComponentProps, ReactNode } from 'react'
 import { useCallback, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { AdaptiveWebPopoverContent, Popover } from 'ui/src'
 import { useDeviceDimensions } from 'ui/src/hooks/useDeviceDimensions'
 import { useShadowPropsMedium } from 'ui/src/theme/shadows'
+import { rowPressExemptClassName } from 'uniswap/src/components/lists/items/OptionItemPressableArea'
+import { getScrollContainerScrollbarWidth } from '~/components/HoverCard/getScrollContainerScrollbarWidth'
 import { useCloseOnOutsideScroll } from '~/hooks/useCloseOnOutsideScroll'
 
 const POPOVER_HORIZONTAL_PADDING = 16
@@ -74,6 +77,11 @@ interface HoverCardProps {
   onOpenChange: (open: boolean) => void
   placement?: HoverCardPlacement
   offset?: number
+  /**
+   * Measure `offset` from the trigger's scroll container edge rather than the trigger itself. A classic
+   * (always-visible) scrollbar sits between the two, so a side-placed card would otherwise land that much closer.
+   */
+  offsetFromScrollContainerEdge?: boolean
   /** The child already shrinks on press; opts the trigger's own shrink out so the two don't compound. */
   childOwnsPressFeedback?: boolean
   children: ReactNode
@@ -84,21 +92,72 @@ interface HoverCardProps {
  * Popover shell shared by the hover cards. Consumers own the open state via `useHoverCardState` to gate fetches on it.
  * The wrapped child is the interactive element, so neither trigger wrapper is a button or a tab stop of its own.
  */
+/** Mounts the card only once its trigger is hovered: always-mounted cards were most of a virtualized row's cost.
+ *  The bare wrapper matches `HoverCard`'s trigger element so arming doesn't shift layout. */
+export function HoverCardArmOnHover({
+  childOwnsPressFeedback,
+  children,
+  renderMounted,
+}: {
+  childOwnsPressFeedback?: boolean
+  children: ReactNode
+  renderMounted: () => JSX.Element
+}): JSX.Element {
+  const [armedByPointer, setArmedByPointer] = useState(false)
+  // Arming remounts the row. Committed sync so it lands inside mouseenter: a scheduled commit can land mid-press,
+  // and the browser drops a click whose mousedown target was detached.
+  const arm = useCallback((): void => flushSync(() => setArmedByPointer(true)), [])
+
+  if (armedByPointer) {
+    return renderMounted()
+  }
+
+  return (
+    <TouchableArea
+      role="none"
+      variant="unstyled"
+      activeOpacity={1}
+      {...(childOwnsPressFeedback && { pressStyle: { scale: 1 }, focusVisibleStyle: { scaleX: 1, scaleY: 1 } })}
+      // Injection clones the row element with fresh color props every render, which would defeat its memo.
+      shouldAutomaticallyInjectColors={false}
+      {...stopPressEventPropagation}
+      onMouseEnter={arm}
+    >
+      {children}
+    </TouchableArea>
+  )
+}
+
 export function HoverCard({
   isOpen,
   onOpenChange,
   placement = 'bottom-start',
   offset,
+  offsetFromScrollContainerEdge = false,
   childOwnsPressFeedback = false,
   children,
   content,
 }: HoverCardProps): JSX.Element {
   const popoverContentRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLDivElement>(null)
   const shadowProps = useShadowPropsMedium()
   const isTouchDevice = useIsTouchDevice()
 
   const close = useCallback((): void => onOpenChange(false), [onOpenChange])
   useCloseOnOutsideScroll({ contentRef: popoverContentRef, isOpen, onClose: close })
+
+  // Re-measured on each open: the container's scrollbar comes and goes with its content.
+  const [scrollbarInset, setScrollbarInset] = useState(0)
+  const handleOpenChange = useCallback(
+    (open: boolean): void => {
+      if (open && offsetFromScrollContainerEdge) {
+        setScrollbarInset(getScrollContainerScrollbarWidth(triggerRef.current))
+      }
+      onOpenChange(open)
+    },
+    [onOpenChange, offsetFromScrollContainerEdge],
+  )
+  const resolvedOffset = offsetFromScrollContainerEdge ? (offset ?? 0) + scrollbarInset : offset
 
   if (isTouchDevice) {
     return <>{children}</>
@@ -118,16 +177,17 @@ export function HoverCard({
       hoverable={HOVERABLE_PROPS}
       open={isOpen}
       placement={placement}
-      offset={offset}
+      offset={resolvedOffset}
       stayInFrame
       allowFlip
-      onOpenChange={onOpenChange}
+      onOpenChange={handleOpenChange}
     >
-      <Popover.Trigger role="none" tabIndex={-1}>
+      <Popover.Trigger ref={triggerRef} role="none" tabIndex={-1}>
         <TouchableArea
           role="none"
           variant="unstyled"
           activeOpacity={1}
+          className={rowPressExemptClassName}
           {...inertTriggerProps}
           {...stopPressEventPropagation}
         >
@@ -143,7 +203,7 @@ export function HoverCard({
         placement={placement}
         backgroundColor="$surface1"
         borderColor="$surface3"
-        borderRadius="$rounded20"
+        borderRadius="$rounded24"
         borderWidth="$spacing1"
         p="$spacing16"
         overflow="hidden"

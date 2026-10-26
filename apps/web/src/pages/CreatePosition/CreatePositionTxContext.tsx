@@ -45,9 +45,12 @@ import { useIsLiquidityApprovalSimulationEnabled } from '~/features/Liquidity/ho
 import { useCreatePositionDependentAmountFallback } from '~/features/Liquidity/hooks/useDependentAmountFallback'
 import { generateLiquidityServiceCreateCalldataQueryParams } from '~/features/Liquidity/utils/generateLiquidityServiceCreateCalldata'
 import { getCheckLPApprovalRequestParams } from '~/features/Liquidity/utils/getCheckLPApprovalRequestParams'
+import { isImpossibleDependentAmount } from '~/features/Liquidity/utils/getDependentAmount'
+import { needsHookReview } from '~/features/Liquidity/utils/hookReview'
 import { useCreateLiquidityContext } from '~/pages/CreatePosition/CreateLiquidityContextProvider'
 import { useCreatePositionDepositInfo } from '~/pages/CreatePosition/hooks/useCreatePositionDepositInfo'
 import { useHookRejectsLiquidity } from '~/pages/CreatePosition/hooks/useHookRejectsLiquidity'
+import { isCreateCalldataQueryEnabled } from '~/pages/CreatePosition/isCreateCalldataQueryEnabled'
 import { PositionField } from '~/types/position'
 
 /** @internal - exported for testing */
@@ -296,15 +299,17 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
     currentTransactionStep?.step.type === TransactionStepType.IncreasePositionTransaction ||
     currentTransactionStep?.step.type === TransactionStepType.IncreasePositionTransactionAsync
 
-  const isQueryEnabled =
-    !isUserCommittedToCreate &&
-    !inputError &&
-    !transactionError &&
-    !approvalLoading &&
-    !approvalError &&
-    !invalidRange &&
-    Boolean(approvalCalldata) &&
-    Boolean(createCalldataQueryParams)
+  const isQueryEnabled = isCreateCalldataQueryEnabled({
+    isUserCommittedToCreate,
+    hasInputError: Boolean(inputError),
+    hasTransactionError: Boolean(transactionError),
+    approvalLoading,
+    hasApprovalError: Boolean(approvalError),
+    invalidRange,
+    hasApprovalCalldata: Boolean(approvalCalldata),
+    hasCreateCalldataQueryParams: Boolean(createCalldataQueryParams),
+    hookNeedsReview: needsHookReview(positionState),
+  })
 
   const { createCalldata, createError, createRefetch } = useCreatePositionQuery({
     createCalldataQueryParams,
@@ -409,11 +414,24 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
     return currentFee || lastKnownGasFeeRef.current
   }, [gasFeeToken0USD, gasFeeToken1USD, increaseGasFeeUsd, gasFeeToken0PermitUSD, gasFeeToken1PermitUSD])
 
+  const quotedDependentAmount = useMemo(() => {
+    if (createError && dependentAmountFallback) {
+      return dependentAmountFallback
+    }
+    if (createCalldata instanceof CreateClassicPositionResponse) {
+      return createCalldata.dependentToken?.amount
+    }
+    const dependentField =
+      depositState.exactField === PositionField.TOKEN0 ? createCalldata?.token1 : createCalldata?.token0
+    return dependentField?.amount
+  }, [createCalldata, createError, dependentAmountFallback, depositState.exactField])
+  const isQuoteImpossible = isImpossibleDependentAmount(quotedDependentAmount)
+  const dependentAmount = isQuoteImpossible ? undefined : quotedDependentAmount
   const txInfo = useMemo(() => {
     return generateCreatePositionTxRequest({
       protocolVersion,
       approvalCalldata,
-      createCalldata,
+      createCalldata: isQuoteImpossible ? undefined : createCalldata,
       createCalldataQueryParams:
         createCalldataQueryParams instanceof CreatePositionRequest ? createCalldataQueryParams : undefined,
       currencyAmounts,
@@ -424,6 +442,7 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
   }, [
     approvalCalldata,
     createCalldata,
+    isQuoteImpossible,
     createCalldataQueryParams,
     currencyAmounts,
     poolOrPair,
@@ -437,18 +456,6 @@ export function CreatePositionTxContextProvider({ children }: PropsWithChildren)
     slippage: createCalldata instanceof CreatePositionResponse ? createCalldata.slippage : undefined,
     isSlippageDirty,
   })
-
-  const dependentAmount = useMemo(() => {
-    if (createError && dependentAmountFallback) {
-      return dependentAmountFallback
-    }
-    if (createCalldata instanceof CreateClassicPositionResponse) {
-      return createCalldata.dependentToken?.amount
-    }
-    const dependentField =
-      depositState.exactField === PositionField.TOKEN0 ? createCalldata?.token1 : createCalldata?.token0
-    return dependentField?.amount
-  }, [createCalldata, createError, dependentAmountFallback, depositState.exactField])
 
   const value = useMemo(
     (): CreatePositionTxContextType => ({

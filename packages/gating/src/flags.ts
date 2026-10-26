@@ -12,6 +12,8 @@ export enum FeatureFlags {
   Arc,
   BlockaidFotLogging,
   ChainedActions,
+  ComplexRouteDiagram,
+  DisableBlast,
   DisableSwap7702,
   DisableSessionsForPlan,
   EmbeddedWallet,
@@ -24,7 +26,6 @@ export enum FeatureFlags {
   LimitCancelTimeout,
   Linea,
   MegaETH,
-  NetworkFilterV2,
   NoUniswapInterfaceFees,
   PermissionedPositions,
   PortfolioPoolsBalances,
@@ -36,6 +37,7 @@ export enum FeatureFlags {
   SmartWallet,
   SmartWalletDisableVideo,
   Tempo,
+  TempoFeeTokenPreference,
   TokenCategories,
   TokenSelectorUxRevamp,
   TurnstileSolverEnabled,
@@ -44,18 +46,17 @@ export enum FeatureFlags {
   UniRpcEnabled,
   UniswapX,
   UseUniversalRouterVersion211,
-  V2EndpointsPortfolio,
   ViemEnabled,
   ViemProviderEnabled,
   XLayer,
 
   // Wallet
-  DisableFiatOnRampKorea,
   Eip5792Methods,
   EnableExportPrivateKeys,
   EnableRestoreSeedPhrase,
   EnableTransactionSpacingForDelegatedAccounts,
 
+  NitroFetchEnabled,
   NotificationApiDataSource,
   NotificationOnboardingCard,
   NotificationService,
@@ -65,11 +66,9 @@ export enum FeatureFlags {
   SmartWalletSettings,
   SmartWalletUpgradeNotice,
   Support7677GasSponsorship,
-  UwULink,
 
   // Web
   AATestWeb,
-  AdvancedPoolsFiltering,
   AuctionSearch,
   BatchedSwaps,
   DisableV1EwRotation,
@@ -98,6 +97,8 @@ const SHARED_FEATURE_FLAG_NAMES_RECORD = {
   [FeatureFlags.Arc]: 'arc',
   [FeatureFlags.BlockaidFotLogging]: 'blockaid_fot_logging',
   [FeatureFlags.ChainedActions]: 'enable_chained_actions',
+  [FeatureFlags.ComplexRouteDiagram]: 'complex_route_diagram',
+  [FeatureFlags.DisableBlast]: 'disable_blast',
   [FeatureFlags.DisableSessionsForPlan]: 'disable_sessions_for_plan',
   [FeatureFlags.DisableSwap7702]: 'disable-swap-7702',
   [FeatureFlags.EmbeddedWallet]: 'embedded_wallet',
@@ -110,7 +111,6 @@ const SHARED_FEATURE_FLAG_NAMES_RECORD = {
   [FeatureFlags.LimitCancelTimeout]: 'limit_cancel_timeout',
   [FeatureFlags.Linea]: 'linea',
   [FeatureFlags.MegaETH]: 'megaeth',
-  [FeatureFlags.NetworkFilterV2]: 'network_filter_v2',
   [FeatureFlags.NoUniswapInterfaceFees]: 'no_uniswap_interface_fees',
   [FeatureFlags.NotificationApiDataSource]: 'notification_api_data_source',
   [FeatureFlags.PermissionedPositions]: 'permissioned_positions',
@@ -126,6 +126,7 @@ const SHARED_FEATURE_FLAG_NAMES_RECORD = {
   [FeatureFlags.SmartWalletUpgradeNotice]: 'smart_wallet_upgrade_notice',
   [FeatureFlags.Support7677GasSponsorship]: 'support_7677_gas_sponsorship',
   [FeatureFlags.Tempo]: 'tempo',
+  [FeatureFlags.TempoFeeTokenPreference]: 'tempo_fee_token_preference',
   [FeatureFlags.TokenCategories]: 'token_categories',
   [FeatureFlags.TokenSelectorUxRevamp]: 'token_selector_ux_revamp',
   [FeatureFlags.TurnstileSolverEnabled]: 'sessions_turnstile_solver_enabled',
@@ -135,7 +136,6 @@ const SHARED_FEATURE_FLAG_NAMES_RECORD = {
   [FeatureFlags.UnirouteEnabled]: 'uniroute_rollout',
   [FeatureFlags.UniswapX]: 'uniswapx',
   [FeatureFlags.UseUniversalRouterVersion211]: 'use_ur_version_2.1.1',
-  [FeatureFlags.V2EndpointsPortfolio]: 'v2_endpoints_portfolio',
   [FeatureFlags.ViemEnabled]: 'viem_enabled',
   [FeatureFlags.ViemProviderEnabled]: 'viem_provider_enabled',
   [FeatureFlags.XLayer]: 'x_layer',
@@ -145,7 +145,6 @@ const SHARED_FEATURE_FLAG_NAMES_RECORD = {
 // Add in alphabetical order to decrease probability of merge conflicts.
 const WEB_ONLY_FEATURE_FLAG_NAMES_RECORD = {
   [FeatureFlags.AATestWeb]: 'aatest_web',
-  [FeatureFlags.AdvancedPoolsFiltering]: 'advanced_pools_filtering',
   [FeatureFlags.AuctionSearch]: 'auction_search',
   [FeatureFlags.BatchedSwaps]: 'batched_swaps',
   [FeatureFlags.DisableV1EwRotation]: 'disable_v1_ew_rotation',
@@ -168,16 +167,15 @@ const WEB_ONLY_FEATURE_FLAG_NAMES_RECORD = {
 // These names must match the gate name on statsig.
 // Add in alphabetical order to decrease probability of merge conflicts.
 const WALLET_ONLY_FEATURE_FLAG_NAMES_RECORD = {
-  [FeatureFlags.DisableFiatOnRampKorea]: 'disable-fiat-onramp-korea',
   [FeatureFlags.Eip5792Methods]: 'eip_5792_methods',
   [FeatureFlags.EnableExportPrivateKeys]: 'enable-export-private-keys',
   [FeatureFlags.EnableRestoreSeedPhrase]: 'enable-restore-seed-phrase',
   [FeatureFlags.EnableTransactionSpacingForDelegatedAccounts]: 'enable_transaction_spacing_for_delegated_accounts',
+  [FeatureFlags.NitroFetchEnabled]: 'nitro_fetch_enabled',
   [FeatureFlags.NotificationOnboardingCard]: 'notification_onboarding_card',
   [FeatureFlags.NotificationService]: 'notification_system',
   [FeatureFlags.Scantastic]: 'scantastic',
   [FeatureFlags.SmartWalletSettings]: 'smart_wallet_settings',
-  [FeatureFlags.UwULink]: 'uwu-link',
 } as const satisfies Partial<Record<FeatureFlags, string>>
 
 const WEB_FEATURE_FLAG_NAMES_RECORD = {

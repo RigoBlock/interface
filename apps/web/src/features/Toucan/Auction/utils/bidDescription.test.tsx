@@ -13,6 +13,7 @@ describe('getBidDescription untrusted interpolation', () => {
           descriptionState: 'inRangeInProgress',
           tokenSymbol: HOSTILE_SYMBOL,
           valuationSummary: '1M USDC',
+          launchThresholdSummary: '1 ETH',
         })}
       </>,
     )
@@ -27,6 +28,22 @@ describe('getBidDescription untrusted interpolation', () => {
           descriptionState: 'outOfRangeInProgress',
           tokenSymbol: 'UNI',
           valuationSummary: `1M ${HOSTILE_SYMBOL}`,
+          launchThresholdSummary: '1 ETH',
+        })}
+      </>,
+    )
+    expect(container.querySelector('script, svg, [href]')).toBeNull()
+    expect(container.textContent).toContain('<highlight tag=svg>')
+  })
+
+  it('renders a markup-bearing launch threshold as inert text (outOfRangeInProgressAwaitingThreshold)', () => {
+    const { container } = render(
+      <>
+        {getBidDescription({
+          descriptionState: 'outOfRangeInProgressAwaitingThreshold',
+          tokenSymbol: 'UNI',
+          valuationSummary: '1M ETH',
+          launchThresholdSummary: `2.5 ${HOSTILE_SYMBOL}`,
         })}
       </>,
     )
@@ -41,6 +58,7 @@ describe('getBidDescription untrusted interpolation', () => {
           descriptionState: 'inRangeInProgress',
           tokenSymbol: 'AT&T',
           valuationSummary: '<$0.01',
+          launchThresholdSummary: '1 ETH',
         })}
       </>,
     )

@@ -45,6 +45,7 @@ import { Dropdown } from '~/components/Dropdowns/Dropdown'
 import { LoadingFullscreen, LoadingRows } from '~/components/Loader/styled'
 import { MouseoverTooltip, TooltipSize } from '~/components/Tooltip'
 import { BaseQuoteFiatAmount } from '~/features/Liquidity/BaseQuoteFiatAmount'
+import { BlastShutdownBanner } from '~/features/Liquidity/BlastShutdownBanner'
 import { WrappedLiquidityPositionRangeChart } from '~/features/Liquidity/charts/LiquidityPositionRangeChart/LiquidityPositionRangeChart'
 import { useEntryPointBreadcrumb } from '~/features/Liquidity/Create/hooks/useEntryPointBreadcrumb'
 import { useLpIncentivesFormattedEarnings } from '~/features/Liquidity/hooks/useLpIncentivesFormattedEarnings'
@@ -103,6 +104,7 @@ const BodyWrapper = forwardRef<HTMLElement, FlexCompatProps>(function BodyWrappe
       px="$spacing40"
       // Merge, don't spread: Tamagui deep-merged a caller's object-valued prop into the config's value for the same key.
       $lg={{ px: '$padding20', ...lg }}
+      $md={{ px: '$none' }}
       {...props}
     />
   )
@@ -443,6 +445,7 @@ function PositionPage({ chainId }: { chainId: EVMUniverseChainId | undefined }) 
               <ArrowLeft size="$icon.16" /> {breadcrumb.label}
             </BreadcrumbNavLink>
           </BreadcrumbNavContainer>
+          {positionInfo.chainId === UniverseChainId.Blast && <BlastShutdownBanner />}
           <Flex
             row
             // The actions collapse into a compact '…' below $lg, so the header keeps its single-row

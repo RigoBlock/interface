@@ -1,6 +1,7 @@
 import { Flex, iconSizes, Text, TouchableArea, type SpaceTokens, type TextCompatProps } from '@universe/mycelium'
 import type { ReactNode } from 'react'
-import { Trans, useTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
+import { Trans } from 'ui/src'
 import { TokenLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
 import type { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
@@ -74,10 +75,8 @@ export function TokenDetailsVaultShareBanner({
               t('tdp.vaultShareBanner.positionTitle')
             ) : (
               <Trans
-                shouldUnescape
                 i18nKey="tdp.vaultShareBanner.title"
                 values={{ apy: formattedApy, symbol }}
-                tOptions={{ interpolation: { escapeValue: true } }}
                 components={{
                   highlight: <Text tag="span" variant={titleVariant} color="$accent1" />,
                 }}

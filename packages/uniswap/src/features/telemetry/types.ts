@@ -45,6 +45,7 @@ import {
 } from 'uniswap/src/features/telemetry/constants'
 import { type TokenProtectionWarning } from 'uniswap/src/features/tokens/warnings/types'
 import type { MarginManageAction } from 'uniswap/src/features/transactions/margin/types'
+import type { SwapFormButtonAction } from 'uniswap/src/features/transactions/swap/types/swapFormButtonAction'
 import type { SponsoredApprovalType } from 'uniswap/src/features/transactions/swap/types/swapTxAndGasInfo'
 import { type TransactionType } from 'uniswap/src/features/transactions/types/transactionDetails'
 import { type WrapType } from 'uniswap/src/features/transactions/types/wrap'
@@ -57,7 +58,7 @@ import { type ExtensionOnboardingFlow } from 'uniswap/src/types/screens/extensio
 import { type SwapTab } from 'uniswap/src/types/screens/interface'
 import { type OnboardingScreens } from 'uniswap/src/types/screens/mobile'
 import { type ShareableEntity } from 'uniswap/src/types/sharing'
-import { type UwULinkMethod, type WCEventType, type WCRequestOutcome } from 'uniswap/src/types/walletConnect'
+import { type WCEventType, type WCRequestOutcome } from 'uniswap/src/types/walletConnect'
 import { type WidgetEvent, type WidgetType } from 'uniswap/src/types/widgets'
 import { type ITraceContext } from 'utilities/src/telemetry/trace/TraceContext'
 
@@ -133,6 +134,9 @@ export type AssetDetailsBaseProperties = {
   address?: string
   chain?: number
 }
+
+/** How a category definition card was opened: desktop hover (hover card / tooltip) or touch tap (sheet). */
+export type CategoryDefinitionTrigger = 'hover' | 'tap'
 
 export type TokenSafetyAnalyticsProperties = {
   blockaid_status?: ProtectionResult
@@ -464,6 +468,7 @@ export enum NavBarSearchTypes {
   AuctionSuggestion = 'auction-suggestion',
   AuctionTrending = 'auction-trending',
   CategorySuggestion = 'category-suggestion',
+  CategorySpotlight = 'category-spotlight',
   CollectionSuggestion = 'collection-suggestion',
   CollectionTrending = 'collection-trending',
   PoolSuggestion = 'pool-suggestion',
@@ -518,6 +523,8 @@ type InterfaceSearchResultSelectionProperties = {
   selected_search_result_address?: string
   total_suggestions?: number
   chainId?: UniverseChainId
+  /** Category result rows and spotlit section headers */
+  category_id?: string
 
   // Pool specific properties
   protocol_version?: string
@@ -678,6 +685,37 @@ export type LiquidityAnalyticsProperties = ITraceContext & {
   // `undefined` (stripped from the emitted payload) when the cache has no resolved answer.
   // See `getIsPermissionedForAnalytics`.
   is_permissioned: boolean | undefined
+}
+
+/**
+ * Token Provenance surfaces (Auction Info module, TDP <-> ADP navigation). Bounded display dimensions on
+ * purpose: wallet addresses, bid or claim amounts and claim eligibility must never be attached.
+ */
+export type TokenProvenanceAnalyticsProperties = {
+  surface: 'tdp' | 'adp'
+  chain_id: number
+  auction_type: 'crowd' | 'custom' | 'unknown'
+  auction_phase: 'loading' | 'unknown' | 'upcoming' | 'live' | 'ended'
+  pool_availability: 'has_pool' | 'loading' | 'error' | 'no_pool'
+  page_layout: 'auction_only' | 'trading'
+  launch_method?: 'instant' | 'crowd' | 'custom' | 'third_party' | 'unknown'
+  entry_point?:
+    | 'tdp_auction_banner'
+    | 'tdp_countdown_module'
+    | 'tdp_provenance_module'
+    | 'auction_now_trading_card'
+    | 'adp_trade_token_banner'
+    | 'chart_empty_state'
+    | 'tdp_header_launchpad'
+  auction_count?: number
+  has_auction_history?: boolean
+  destination?: 'auction_details' | 'pools' | 'explore_auctions'
+}
+
+export type AuctionSelectorAnalyticsProperties = {
+  chain_id: number
+  auction_count: number
+  entry_point: 'tdp_auction_banner' | 'tdp_other_auctions' | 'tdp_provenance_module'
 }
 
 export type AuctionWithdrawAnalyticsProperties = ITraceContext & {
@@ -903,7 +941,10 @@ export type AuctionFeeTierCreatedProperties = ITraceContext & {
   fee_pct: number
 }
 
-export type NotificationToggleLoggingType = 'settings_general_updates_enabled' | 'wallet_activity'
+export type NotificationToggleLoggingType =
+  | 'settings_general_updates_enabled'
+  | 'settings_price_alerts_enabled'
+  | 'wallet_activity'
 
 type TokenReportProperties = {
   is_marked_spam?: Maybe<boolean>
@@ -1297,10 +1338,8 @@ export type UniverseEventProperties = {
     surface: ExploreTableSurface
   }
   [InterfaceEventName.ExploreTableFilterSelected]: {
-    filter_type: 'volume_time_period' | 'protocol'
+    filter_type: 'volume_time_period'
     filter_value: string
-    /** Where the filter was used. */
-    surface?: ExploreTableSurface
   }
   [InterfaceEventName.LanguageSelected]: {
     previous_language: string
@@ -1318,6 +1357,11 @@ export type UniverseEventProperties = {
     chain_id?: number
     auction_address?: string
     token_address?: string
+  }
+  /** Fired once per open of a category definition (hover card, search/trending tooltip, touch sheet); `section` is the surface. */
+  [InterfaceEventName.CategoryDefinitionCardOpened]: ITraceContext & {
+    category_id: string
+    trigger: CategoryDefinitionTrigger
   }
   [InterfaceEventName.AuctionHoverCardOpened]: ITraceContext & {
     token_symbol?: string
@@ -1402,6 +1446,22 @@ export type UniverseEventProperties = {
   [AuctionEventName.AuctionCreateCompleted]: AuctionCreateAnalyticsProperties & {
     transaction_hash: string
   }
+  [AuctionEventName.AuctionBannerViewed]: TokenProvenanceAnalyticsProperties
+  [AuctionEventName.ProvenanceModuleViewed]: TokenProvenanceAnalyticsProperties
+  [AuctionEventName.ChartEmptyStateViewed]: TokenProvenanceAnalyticsProperties
+  [AuctionEventName.AuctionTypeExplainerOpened]: {
+    launch_method: NonNullable<TokenProvenanceAnalyticsProperties['launch_method']>
+  }
+  [AuctionEventName.AuctionSelectorOpened]: AuctionSelectorAnalyticsProperties
+  [AuctionEventName.AuctionSelectorAuctionClicked]: {
+    chain_id: number
+    position_rank: number
+    time_remaining_seconds?: number
+    auction_status?: 'upcoming' | 'live' | 'ended'
+  }
+  [AuctionEventName.TokenDetailsToAuctionDetailsClicked]: TokenProvenanceAnalyticsProperties
+  [AuctionEventName.TokenDetailsToLaunchesClicked]: TokenProvenanceAnalyticsProperties
+  [AuctionEventName.AuctionDetailsToTokenDetailsClicked]: TokenProvenanceAnalyticsProperties
   [MobileEventName.AutomatedOnDeviceRecoveryTriggered]: {
     showNotificationScreen: boolean
     showBiometricsScreen: boolean
@@ -1441,11 +1501,15 @@ export type UniverseEventProperties = {
   [MobileEventName.ExploreSearchResultClicked]: SearchResultContextProperties &
     AssetDetailsBaseProperties &
     TokenSafetyAnalyticsProperties & {
-      type: 'collection' | 'token' | 'address' | 'multichain_token'
+      type: 'category' | 'token' | 'address' | 'multichain_token'
+      /** Category result rows and spotlit section headers */
+      category_id?: string
     }
   [MobileEventName.ExploreTokenItemSelected]: AssetDetailsBaseProperties & {
     position: number
     section?: SectionName
+    category_id?: string
+    issuer?: string
   }
   [MobileEventName.ExploreTrendingHeaderSelected]: {
     category_id: string
@@ -1491,7 +1555,7 @@ export type UniverseEventProperties = {
   }
   [MobileEventName.WalletConnectSheetCompleted]: {
     request_type: WCEventType
-    eth_method?: EthMethod | UwULinkMethod
+    eth_method?: EthMethod
     dapp_url: string
     dapp_name: string
     wc_version: string
@@ -1526,13 +1590,22 @@ export type UniverseEventProperties = {
     /** NetworkBalanceBreakdown accordion on token details */
     balanceToggleState?: 'open' | 'close'
     /** ElementName.NetworkBalanceRow — multichain balance row on token details (web) */
-    chain_id?: UniverseChainId
+    chain_id?: UniverseChainId | typeof ALL_NETWORKS_LABEL
     multichainTokenRowState?: 'open' | 'close'
     chain_name?: string
-    /** ElementName.ExploreRwaCategoryView — selected Explore category id (`all` for the default) */
+    chain?: string
+    previous_connected_chain?: string
+    previous_chain_id?: UniverseChainId | typeof ALL_NETWORKS_LABEL
+    previous_chain_name?: string
+    /** ElementName.ExploreCategoryView — selected Explore category id (`all` for the default) */
     tab?: string
+    /** ElementName.ExploreCategoryView — true when picked inside the More menu, false when pressed in the chip row */
+    is_from_more_menu?: boolean
+    /** Explore category row slot, 0-based: All is 0, More is last. Selections made inside More carry More's slot. */
+    tab_position?: number
     /** Token category chips on the TDP (Collections pills, Related tokens), in the token selector, and row category tags */
     category_id?: string
+    tags_rendered_count?: number
     /** Token selector filter chips — whether the press turned the chip on */
     active?: boolean
     category_index?: number
@@ -1540,6 +1613,7 @@ export type UniverseEventProperties = {
     token_address?: string
     token_symbol?: string
     token_list_length?: number
+    token_list_rank?: number
     /** ElementName.TDPRwaTokenVariant — issuer of the clicked tokenized-stock variant on the TDP (ondo/dinari/xstocks) */
     issuer?: string
     /** ElementName.PositionsHiddenToggle — resulting state of the hidden-positions view toggle (web) */
@@ -1572,10 +1646,14 @@ export type UniverseEventProperties = {
     launch_list_length?: number
     /** ElementName.LaunchesLaunchpadFilterOption — resulting selected state after the toggle. */
     selected?: boolean
+    /** ElementName.SwapReview — what the swap form CTA press does (e.g. `add_funds`, `connect_wallet`, `review`). */
+    action?: SwapFormButtonAction
   }
   [SharedEventName.PAGE_VIEWED]: ITraceContext & {
     /** Token details */
     multichain?: boolean
+    /** Category details page / screen — the viewed category's BE id */
+    category_id?: string
     /** section='market-close-warning' — tokenized-stock the off-hours warning was shown for (mobile TDP) */
     token_address?: string
     token_symbol?: string
@@ -1668,6 +1746,8 @@ export type UniverseEventProperties = {
     is_fiat_input_mode?: boolean
     is_batch?: boolean
     included_permit_transaction_step?: boolean
+    token_in_category?: string | null
+    token_out_category?: string | null
   } & SwapTradeBaseProperties
   [SwapEventName.SwapEstimateGasCallFailed]: {
     error?: FetchBaseQueryError | SerializedError | Error | string
@@ -1780,6 +1860,7 @@ export type UniverseEventProperties = {
     total_token_row_count: number
     multichain_row_reduction_count: number
     multichain_asset_count: number
+    category_result_count: number
   } & Partial<ITraceContext>
   [UniswapEventName.MultichainPortfolioMetrics]: {
     total_token_row_count: number
@@ -1836,6 +1917,7 @@ export type UniverseEventProperties = {
           field: CurrencyField
           preselect_asset: boolean
           tokenSection?: OnchainItemSectionName
+          token_category?: string | null
         })
     | { token_balance_usd?: number | string }
   [UniswapEventName.TokenSelectorSidebarToggled]: ITraceContext & {

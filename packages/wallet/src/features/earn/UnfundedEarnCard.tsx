@@ -2,8 +2,9 @@ import { Flex, type SpaceTokens, Text, TouchableArea } from '@universe/mycelium'
 import { HeightAnimator } from '@universe/mycelium/height-animator'
 import { TestID } from '@universe/test'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Trans, useTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
+import { Trans } from 'ui/src'
 import { ChevronsIn } from 'ui/src/components/icons/ChevronsIn'
 import { ChevronsOut } from 'ui/src/components/icons/ChevronsOut'
 import { iconSizes } from 'ui/src/theme/iconSizes'
@@ -104,6 +105,7 @@ export function UnfundedEarnCard({
   const card = (
     <Flex
       {...EARNING_CARD_FRAME_PROPS}
+      gap="$none"
       mt={shouldPlayReveal ? undefined : mt}
       mb={shouldPlayReveal ? '$none' : (mb ?? EARNING_CARD_FRAME_PROPS.mb)}
       mx={shouldPlayReveal ? undefined : mx}
@@ -141,13 +143,13 @@ export function UnfundedEarnCard({
         )}
       </TouchableArea>
 
-      {isExpanded && (
-        <Flex gap="$spacing12" pt="$spacing8">
+      <HeightAnimator unmountChildrenWhenCollapsed open={isExpanded} animation="300ms">
+        <Flex gap="$spacing12" pt="$spacing20">
           {vaults.map((vault) => (
             <DiscoveryVaultRow key={vault.id} vault={vault} onSelect={onSelectVault} />
           ))}
         </Flex>
-      )}
+      </HeightAnimator>
     </Flex>
   )
 

@@ -1,7 +1,8 @@
 import { Flex, type FlexCompatProps, Text } from '@universe/mycelium'
 import { RotatableChevron } from '@universe/mycelium/icons/RotatableChevron'
 import { useMemo, useState } from 'react'
-import { Trans, useTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
+import { Trans } from 'ui/src'
 import { useCurrentLocale } from 'uniswap/src/features/language/hooks'
 import { formatNumberWithSubscript } from 'utilities/src/format/subscriptNotation'
 import { useAuctionValueFormatters } from '~/features/Toucan/Auction/hooks/useAuctionValueFormatters'
@@ -180,14 +181,12 @@ export function BidReceiveOutput({
           <Divider my="$spacing4" />
           <Text variant="body4" color="$neutral2">
             <Trans
-              shouldUnescape
               i18nKey="toucan.bidReview.partialFillExplanation"
               values={{
                 symbol: tokenSymbol,
                 maxFdv: maxFdvFormatted,
                 maxFdvFiat: `${pricePerToken} ${bidTokenSymbol}/token`,
               }}
-              tOptions={{ interpolation: { escapeValue: true } }}
               components={{
                 highlight: <Text variant="body4" color="$neutral1" tag="span" />,
                 fiat: <Text variant="body4" color="$neutral2" tag="span" />,

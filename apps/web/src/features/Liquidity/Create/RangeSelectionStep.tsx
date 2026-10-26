@@ -15,6 +15,7 @@ import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/type
 import { PositionInfo } from 'uniswap/src/features/positions/types'
 import { useEvent } from 'utilities/src/react/hooks'
 import { LPGeoRestrictionBanner } from '~/components/GeoRestriction/LPGeoRestrictionBanner'
+import type { TickRangeChange } from '~/features/Liquidity/charts/D3LiquidityRangeInput/D3LiquidityRangeChart/store/types'
 import { D3LiquidityRangeInput } from '~/features/Liquidity/charts/D3LiquidityRangeInput/D3LiquidityRangeInput'
 import { useDefaultInitialPrice } from '~/features/Liquidity/Create/hooks/useDefaultInitialPrice'
 import { usePoolDisplayCurrencies } from '~/features/Liquidity/Create/hooks/usePoolDisplayCurrencies'
@@ -310,6 +311,7 @@ export const SelectPriceRangeStep = ({
     ticks,
     priceRangeState,
     setPriceRangeState,
+    isRangeLocked,
   } = useCreateLiquidityContext()
   const poolCurrencies = usePoolDisplayCurrencies()
 
@@ -317,6 +319,17 @@ export const SelectPriceRangeStep = ({
   const { baseCurrency, quoteCurrency } = getBaseAndQuoteCurrencies(poolCurrencies, priceRangeState.priceInverted)
 
   const controlOptions = useTokenControlOptions([TOKEN0, TOKEN1], 'small')
+
+  const fallbackPriceHistoryPool = useMemo(
+    () =>
+      positionInfo && {
+        poolId: positionInfo.poolId,
+        protocolVersion: positionInfo.version,
+        currency0: positionInfo.currency0Amount.currency,
+        currency1: positionInfo.currency1Amount.currency,
+      },
+    [positionInfo],
+  )
 
   const handleSelectToken = useCallback(
     (option: string) => {
@@ -343,11 +356,14 @@ export const SelectPriceRangeStep = ({
   // given on the first render for its whole life. useEvent keeps the identity stable while the body
   // reads the latest tickSpacing — without it, a fee-tier change would clamp with the old spacing
   // even though the store's own spacing is synced.
+  // A single-edge edit (the +/- buttons) is always the user's, so it ends preset following even when
+  // it lands back on the preset's ticks.
   const setMinTick = useEvent((tick?: number) => {
     const tickSpacing = poolOrPair && 'tickSpacing' in poolOrPair ? poolOrPair.tickSpacing : undefined
     setPriceRangeState((prev) => ({
       ...prev,
       minTick: tickSpacing === undefined ? tick : clampMinTick({ tick, maxTick: prev.maxTick, tickSpacing }),
+      followedPreset: undefined,
     }))
   })
 
@@ -356,11 +372,18 @@ export const SelectPriceRangeStep = ({
     setPriceRangeState((prev) => ({
       ...prev,
       maxTick: tickSpacing === undefined ? tick : clampMaxTick({ tick, minTick: prev.minTick, tickSpacing }),
+      followedPreset: undefined,
     }))
   })
 
-  const setMinMaxTick = useEvent(({ minTick, maxTick }: { minTick?: number; maxTick?: number }) => {
-    setPriceRangeState((prev) => setMinMaxTickRange({ prev, minTick, maxTick }))
+  const setMinMaxTick = useEvent(({ minTick, maxTick, presetStrategy }: TickRangeChange) => {
+    setPriceRangeState((prev) => ({
+      ...setMinMaxTickRange({ prev, minTick, maxTick }),
+      followedPreset:
+        presetStrategy && minTick !== undefined && maxTick !== undefined
+          ? { strategy: presetStrategy, minTick, maxTick }
+          : undefined,
+    }))
   })
 
   const handleSelectRange = useCallback(
@@ -510,10 +533,12 @@ export const SelectPriceRangeStep = ({
               poolId={poolId}
               poolOrPairLoading={poolOrPairLoading}
               isInitialPriceDirty={priceRangeState.isInitialPriceDirty}
+              isRangeLocked={isRangeLocked}
               price={price}
               currentPrice={Number(price?.toSignificant())}
               inputMode={priceRangeState.inputMode}
               migratingPosition={migratingPosition}
+              fallbackPriceHistoryPool={fallbackPriceHistoryPool}
               minTick={priceRangeState.minTick}
               maxTick={priceRangeState.maxTick}
               isFullRange={priceRangeState.fullRange}

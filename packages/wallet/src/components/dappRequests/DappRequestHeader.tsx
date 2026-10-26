@@ -36,13 +36,20 @@ export function DappRequestHeader({
           ? colors.neutral2.val
           : colors.neutral1.val
 
-  const urlLabel = useRequestUrlLabel(dappInfo.url, dappInfo.frameUrl)
+  const urlLabel = useRequestUrlLabel(dappInfo)
 
   return (
     <Flex gap="$spacing8">
       {headerIcon || <DappHeaderIcon dappInfo={dappInfo} />}
       {typeof title === 'string' ? <Text variant="subheading1">{title}</Text> : title.element}
       <Flex gap="$spacing2">
+        {/* A long hostname wraps onto multiple lines (LinkButton is shrinkable via flexShrink,
+            and Text wraps by default) rather than truncating, so the full origin — including
+            its TLD — always stays visible. That wrap comes entirely from flexShrink; alignItems
+            stays "center" so the globe/Verified icons keep centering against the label in the
+            common single-line case instead of top-aligning against it. A connect-request modal
+            is the one place a user can tell a lookalike domain from the real one, so hiding any
+            part of it behind an ellipsis is a security regression, not just a layout nit. */}
         <Flex row gap="$spacing4" alignItems="center">
           <GlobeFilled color={urlColor} size="$icon.16" mr="$spacing4" />
           <LinkButton
@@ -61,19 +68,18 @@ export function DappRequestHeader({
 }
 
 /**
- * Formats the request url for display, showing iframe context when applicable
- * @param dappUrl - The top-level page URL
- * @param frameUrl - The actual frame URL (if in iframe)
+ * Formats the request url for display. A cross-origin iframe reads "frame via parent" so the user
+ * sees both the origin asking and the page embedding it.
  */
-function useRequestUrlLabel(dappUrl: string, frameUrl?: string): string {
+function useRequestUrlLabel({ url, tabUrl, isCrossOriginFrame }: DappConnectionInfo): string {
   const { t } = useTranslation()
 
-  if (!frameUrl) {
-    return formatDappURL(dappUrl)
+  if (!isCrossOriginFrame || !tabUrl) {
+    return formatDappURL(url)
   }
 
   return t('dapp.request.url.viaFormat', {
-    frameUrl: formatDappURL(frameUrl),
-    parentUrl: formatDappURL(dappUrl),
+    frameUrl: formatDappURL(url),
+    parentUrl: formatDappURL(tabUrl),
   })
 }

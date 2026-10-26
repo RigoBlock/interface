@@ -5,10 +5,10 @@ import { Pair } from '@uniswap/v2-sdk'
 import { Pool as V3Pool } from '@uniswap/v3-sdk'
 import { Pool as V4Pool } from '@uniswap/v4-sdk'
 import { createContext, Dispatch, SetStateAction, useContext, useEffect, useMemo, useState } from 'react'
-import { useCurrencyInfo } from 'uniswap/src/features/tokens/useCurrencyInfo'
+import type { FeeBreakdown } from 'uniswap/src/features/fees/types'
 import { TransactionStep } from 'uniswap/src/features/transactions/steps/types'
-import { currencyId } from 'uniswap/src/utils/currencyId'
 import { useEvent, usePrevious } from 'utilities/src/react/hooks'
+import { getFollowedPresetTicks } from '~/features/Liquidity/charts/D3LiquidityRangeInput/D3LiquidityRangeChart/utils/priceStrategies'
 import { useDerivedPositionInfo } from '~/features/Liquidity/Create/hooks/useDerivedPositionInfo'
 import { useLiquidityUrlState } from '~/features/Liquidity/Create/hooks/useLiquidityUrlState'
 import {
@@ -18,6 +18,7 @@ import {
   type PriceRangeState,
   RangeAmountInputPriceMode,
 } from '~/features/Liquidity/Create/types'
+import { useSelectedFeeBreakdown } from '~/features/Liquidity/hooks/useSelectedFeeBreakdown'
 import { getPriceRangeInfo } from '~/features/Liquidity/utils/priceRangeInfo'
 import type { DepositState } from '~/types/liquidity'
 import { PositionField } from '~/types/position'
@@ -53,6 +54,9 @@ interface BaseCreateLiquidityState {
   protocolFee?: number
   // See `useDerivedPositionInfo`.
   poolHasNoActiveLiquidity?: boolean
+  // LP/protocol/all-in breakdown for the currently selected tier, computed once here so every surface
+  // (selector header, review modal, edit summary) shares it; undefined for a dynamic tier.
+  selectedFeeBreakdown?: FeeBreakdown
   poolOrPairLoading?: boolean
   poolOrPair: V4Pool | V3Pool | Pair | undefined
   price: Price<Currency, Currency> | undefined
@@ -63,6 +67,9 @@ interface BaseCreateLiquidityState {
   positionState: PositionState
   step: PositionFlowStep
   currentTransactionStep?: { step: TransactionStep; accepted: boolean }
+  isReviewModalOpen: boolean
+  /** The review modal is open or a transaction is in flight, so the range must hold still. */
+  isRangeLocked: boolean
   feeTierSearchModalOpen: boolean
   hookSearchModalOpen: boolean
   selectedHookEntry?: HookEntry
@@ -116,6 +123,7 @@ type CreateLiquidityContextType = CreateLiquidityState & {
   setCurrentTransactionStep: React.Dispatch<
     React.SetStateAction<{ step: TransactionStep; accepted: boolean } | undefined>
   >
+  setIsReviewModalOpen: (isOpen: boolean) => void
   setFeeTierSearchModalOpen: React.Dispatch<React.SetStateAction<boolean>>
   setHookSearchModalOpen: React.Dispatch<React.SetStateAction<boolean>>
   setSelectedHookEntry: React.Dispatch<React.SetStateAction<HookEntry | undefined>>
@@ -201,20 +209,9 @@ export function CreateLiquidityContextProvider({
     )
   }, [tokenChainId, previousTokenChainId, setSelectedHookEntry, setPositionState])
 
-  // Token-selector currencies can come from multichain data, whose `decimals` is the parent token's
-  // rather than this deployment's (BNB USDT is 18, its parent 6). Re-resolve each leg through
-  // single-chain GetToken, as swap does; a leg stays undefined until it resolves, which keeps the pool
-  // lookup, price math and tx building off until the per-chain currency is in hand.
-  // TODO(CONS-3725): remove once data-api returns per-deployment decimals for multichain tokens.
-  const tokenAInfo = useCurrencyInfo(currencyId(currencyInputs.tokenA))
-  const tokenBInfo = useCurrencyInfo(currencyId(currencyInputs.tokenB))
-  const resolvedCurrencyInputs = useMemo(
-    () => ({ tokenA: tokenAInfo?.currency, tokenB: tokenBInfo?.currency }),
-    [tokenAInfo?.currency, tokenBInfo?.currency],
-  )
   // Derived info — the poolInfo response carries the pool's protocol fee (integer pips), so the flow no
   // longer fetches it separately; it's undefined for a not-yet-created pool.
-  const derivedPositionInfo = useDerivedPositionInfo(resolvedCurrencyInputs, positionState)
+  const derivedPositionInfo = useDerivedPositionInfo(currencyInputs, positionState)
 
   // Get URL sync function from consolidated hook
   const { setHistoryState, syncToUrl } = useLiquidityUrlState()
@@ -229,10 +226,37 @@ export function CreateLiquidityContextProvider({
     })
   }, [currencyInputs, positionState, priceRangeState, depositState, syncToUrl])
 
+  // Remembered with the step it was opened on, so it can't outlive that step — e.g. browser back off the
+  // deposit step unmounts the modal without closing it, which would otherwise lock the range for good.
+  const [reviewModalStep, setReviewModalStep] = useState<PositionFlowStep | undefined>(undefined)
+  if (reviewModalStep !== undefined && reviewModalStep !== step) {
+    setReviewModalStep(undefined)
+  }
+  const isReviewModalOpen = reviewModalStep === step
+  const setIsReviewModalOpen = useEvent((isOpen: boolean) => setReviewModalStep(isOpen ? step : undefined))
+  const isRangeLocked = isReviewModalOpen || Boolean(currentTransactionStep)
+
+  // An existing pool's followed preset is re-derived from the polled tick in this render, so the deposit
+  // step never sees the new price against the previous range (which would clear the typed amount).
+  const effectivePriceRangeState = useMemo(() => {
+    const pool = derivedPositionInfo.protocolVersion === ProtocolVersion.V2 ? undefined : derivedPositionInfo.pool
+    if (!pool || derivedPositionInfo.creatingPoolOrPair || priceRangeState.fullRange || isRangeLocked) {
+      return priceRangeState
+    }
+    const followedTicks = getFollowedPresetTicks({
+      followedPreset: priceRangeState.followedPreset,
+      minTick: priceRangeState.minTick,
+      maxTick: priceRangeState.maxTick,
+      currentTick: priceRangeState.priceInverted ? -pool.tickCurrent : pool.tickCurrent,
+      tickSpacing: pool.tickSpacing,
+    })
+    return followedTicks ? { ...priceRangeState, ...followedTicks } : priceRangeState
+  }, [derivedPositionInfo, priceRangeState, isRangeLocked])
+
   // Derived price range info
   const derivedPriceRangeInfo = useMemo(() => {
-    return getPriceRangeInfo({ derivedPositionInfo, state: priceRangeState, positionState })
-  }, [derivedPositionInfo, priceRangeState, positionState])
+    return getPriceRangeInfo({ derivedPositionInfo, state: effectivePriceRangeState, positionState })
+  }, [derivedPositionInfo, effectivePriceRangeState, positionState])
 
   const poolOrPair = useMemo(() => {
     if (!derivedPriceRangeInfo) {
@@ -273,6 +297,7 @@ export function CreateLiquidityContextProvider({
       tokenA: defaultInitialToken,
       tokenB: undefined,
     })
+    setReviewModalStep(undefined)
     setHistoryState(PositionFlowStep.SELECT_TOKENS_AND_FEE_TIER)
   })
 
@@ -310,12 +335,22 @@ export function CreateLiquidityContextProvider({
 
   const isNativeTokenAOnly = Boolean(currencyInputs.tokenA?.isNative && !currencyInputs.tokenB)
 
+  // Computed once here and shared via context so the selector header, review modal, and edit summary
+  // don't each recompute the same breakdown from the same inputs.
+  const selectedFeeBreakdown = useSelectedFeeBreakdown({
+    protocolVersion: protocolSpecificValues.protocolVersion,
+    fee: positionState.fee,
+    servedProtocolFee: derivedPositionInfo.protocolFee,
+    hook: positionState.hook,
+  })
+
   const value: CreateLiquidityContextType = {
     // State
     ...protocolSpecificValues,
     poolId: derivedPositionInfo.poolId,
     protocolFee: derivedPositionInfo.protocolFee,
     poolHasNoActiveLiquidity: derivedPositionInfo.poolHasNoActiveLiquidity,
+    selectedFeeBreakdown,
     poolOrPairLoading: derivedPositionInfo.poolOrPairLoading,
     creatingPoolOrPair: derivedPositionInfo.creatingPoolOrPair,
     price: derivedPriceRangeInfo?.price,
@@ -327,6 +362,8 @@ export function CreateLiquidityContextProvider({
     positionState,
     step,
     currentTransactionStep,
+    isReviewModalOpen,
+    isRangeLocked,
     feeTierSearchModalOpen,
     hookSearchModalOpen,
     selectedHookEntry,
@@ -339,6 +376,7 @@ export function CreateLiquidityContextProvider({
     setPositionState,
     setStep: setHistoryState,
     setCurrentTransactionStep,
+    setIsReviewModalOpen,
     setFeeTierSearchModalOpen,
     setHookSearchModalOpen,
     setSelectedHookEntry,

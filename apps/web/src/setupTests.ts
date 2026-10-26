@@ -297,6 +297,7 @@ vi.mock('uniswap/src/features/telemetry/Trace', () => ({
 }))
 
 vi.mock('uniswap/src/features/accounts/store/hooks', () => ({
+  useActiveAddress: vi.fn(() => undefined),
   useConnectionStatus: vi.fn(() => ({ isConnecting: false })),
 }))
 
@@ -528,7 +529,6 @@ vi.mock('@universe/gating', async (importOriginal) => {
     useExperimentValueFromLayer: vi.fn(),
     useIsTokenCategoriesEnabled: vi.fn(() => false),
     useIsTokenCategoriesEnabledWithLoading: vi.fn(() => ({ value: false, isLoading: false })),
-    useIsV2EndpointsSearchEnabled: vi.fn(() => false),
     checkTypeGuard: vi.fn(),
     useStatsigClientStatus: vi.fn(() => ({
       isStatsigLoading: false,

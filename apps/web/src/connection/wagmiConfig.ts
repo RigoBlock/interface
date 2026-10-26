@@ -1,6 +1,8 @@
 import { getWagmiConnectorV2 } from '@binance/w3w-wagmi-connector-v2'
 import { tryProvideSession } from '@universe/api'
 import {
+  type Chain,
+  createClient,
   createObservableTransport,
   createSessionGatedTransport,
   createUniRpcRoutedTransport,
@@ -9,8 +11,8 @@ import {
 } from '@universe/chains'
 import { embeddedWallet } from '@universe/embedded-wallet'
 import { isE2eTestEnv, isTestEnv } from '@universe/environment'
+import { UNISWAP_LOGO } from '@universe/mycelium/assets'
 import { SessionGateSource } from '@universe/sessions'
-import { UNISWAP_LOGO } from 'ui/src/assets'
 import { UNISWAP_WEB_URL } from 'uniswap/src/constants/urls'
 import { CONNECTION_PROVIDER_IDS } from 'uniswap/src/constants/web3'
 import type { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
@@ -20,8 +22,6 @@ import { isTestnetChain } from 'uniswap/src/features/chains/utils'
 import { defaultResolveRpcConfig } from 'uniswap/src/features/providers/resolveRpcConfig'
 import { logger } from 'utilities/src/logger/logger'
 import { getNonEmptyArrayOrThrow } from 'utilities/src/primitives/array'
-import type { Chain } from 'viem'
-import { createClient } from 'viem'
 import type { Config } from 'wagmi'
 import { createConfig, fallback, http } from 'wagmi'
 import { coinbaseWallet, injected, metaMask, safe } from 'wagmi/connectors'
