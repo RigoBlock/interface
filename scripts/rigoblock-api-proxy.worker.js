@@ -236,11 +236,13 @@ export default {
         // and the backend wraps that as HTTP 500 / grpc-status 13. The app then renders
         // "Chart unavailable" (web), hides the chart (mobile), and can trip its outage
         // banner. This mapping is a STOPGAP so the UI shows a truthful empty state
-        // instead of an error — it does NOT discard the signal: the original status and
-        // Zerion detail are logged (see `wrangler tail`) and echoed in X-Upstream-*
-        // response headers. REMOVE this block once Zerion tracks RigoBlock vaults
-        // (contact Zerion support with the factory addresses — see apps/web/AGENTS.md
-        // §Fork-Sync Notes). All other 500s pass through byte-identical.
+        // instead of an error. It fires ONLY on that specific upstream 500 — the moment
+        // Zerion tracks Rigoblock vaults, upstream returns 200 with real data, this block
+        // stops matching, and the chart works with NO worker change. After that the block
+        // is inert dead code: safe to remove (it was a stopgap until Zerion classified
+        // Rigoblock vaults as wallets — contact path in apps/web/AGENTS.md §Fork-Sync Notes),
+        // but leaving it in also maps the same Zerion error for any other untrackable
+        // address to a clean empty state. All other 500s pass through byte-identical.
         if (response.status === 500) {
           const text = await response.text()
           if (text.includes('untrackable wallet address')) {
