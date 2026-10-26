@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto'
 import path from 'path'
 import process from 'process'
 import { fileURLToPath } from 'url'
+import { cloudflare } from '@cloudflare/vite-plugin'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig, type ViteDevServer } from 'vite'
@@ -11,6 +12,7 @@ import bundlesize from 'vite-plugin-bundlesize'
 import commonjs from 'vite-plugin-commonjs'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import svgr from 'vite-plugin-svgr'
+import { enableDebugRoutes } from './scripts/debug-routes'
 import { createEntryGatewayProxies, createWebSocketProxy } from './vite/entry-gateway-proxy'
 import { generateVersionFilePlugin } from './vite/generateVersionFilePlugin.js'
 import { honoDevServerPlugin } from './vite/honoDevServerPlugin'
@@ -156,6 +158,10 @@ function getNextDevVersion(): string {
 }
 
 export default defineConfig(({ mode, command, isPreview }) => {
+  // Stop the Cloudflare plugin's bundled Wrangler from auto-loading .env / .env.local
+  // (and emitting "Using vars defined in ..." logs). The .env values are forwarded
+  // to the Worker below via the plugin's `config` customizer.
+  process.env.CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV = 'false'
   // Unified config: resolve .env + overrides via the shared utility (the same
   // code the Playwright test runner uses, so the build and runner configs stay identical).
   const env = resolveEnvConfigs({
@@ -172,6 +178,7 @@ export default defineConfig(({ mode, command, isPreview }) => {
   const isVercelDeploy = DEPLOY_TARGET === 'vercel'
   const isEcsDeploy = DEPLOY_TARGET === 'ecs'
   const isIpfsDeploy = DEPLOY_TARGET === 'ipfs'
+  const isCloudflareDeploy = DEPLOY_TARGET === 'cloudflare'
   if (isIpfsDeploy) {
     // IPFS gateways have no same-origin BFF: hit the entry gateway and statsig proxy directly (both allow cross-origin).
     env.ENABLE_ENTRY_GATEWAY_PROXY = 'false'
@@ -183,6 +190,13 @@ export default defineConfig(({ mode, command, isPreview }) => {
   // (web_test_sourcemap_upload.yml); every other CI static build sets DISABLE_SOURCEMAP.
   // Prod sourcemaps ship from the ECS image build. Local builds skip GITHUB_ACTIONS.
   const isSourcemapUploadBuild = !DEPLOY_TARGET && isMinifiedBuild && !DISABLE_SOURCEMAP && IS_GITHUB_ACTIONS
+  // Fork-owned (upstream deleted the Cloudflare target): the CF plugin runs for
+  // Cloudflare deploy builds. Skipped during `vite preview` — the plugin's
+  // getWorkerConfigs enumerates every env in wrangler-vite-worker.jsonc and chokes
+  // when one env's build dir is missing (INFRA-1874). The plugin owns the build/
+  // output split (emits build/client + build/app itself) and writes
+  // .wrangler/deploy/config.json so a bare `wrangler deploy` finds the built config.
+  const useCloudflarePlugin = isCloudflareDeploy && !isPreview
   const root = path.resolve(__dirname)
 
   // External package aliases only
@@ -246,9 +260,13 @@ export default defineConfig(({ mode, command, isPreview }) => {
     // Must come after envDefines: also emitted to build/client/version.json so the deploy can
     // assert it against the release tag before uploading sourcemaps.
     'process.env.VERSION': JSON.stringify(bundleVersion),
+    // Enable the BFF's debug routes on non-production Cloudflare deploys (and local
+    // dev, whose mode is 'development'); ECS/Vercel define this in their own bundles.
+    'process.env.ENABLE_DEBUG_ROUTES': JSON.stringify(enableDebugRoutes(process.env.CLOUDFLARE_ENV ?? mode)),
     // Serving stack this artifact is built for; tags DD RUM + Amplitude events per cohort.
+    // Fork: Cloudflare deploys report 'workers' (upstream reports 'local' — they no longer deploy there).
     'process.env.WEB_BUILD_TYPE': JSON.stringify(
-      isEcsDeploy ? 'ecs' : isVercelDeploy ? 'vercel' : isIpfsDeploy ? 'ipfs' : 'local',
+      isEcsDeploy ? 'ecs' : isVercelDeploy ? 'vercel' : isIpfsDeploy ? 'ipfs' : isCloudflareDeploy ? 'workers' : 'local',
     ),
   }
 
@@ -477,6 +495,28 @@ export default defineConfig(({ mode, command, isPreview }) => {
           }
         },
       },
+      // Fork-owned (upstream deleted the Cloudflare target): the CF plugin builds the
+      // Worker bundle + build/app/wrangler.json for `wrangler deploy` (see useCloudflarePlugin).
+      useCloudflarePlugin
+        ? cloudflare({
+            configPath: './wrangler-vite-worker.jsonc',
+            // Forward .env values to the Worker as vars (the dotenv auto-loader is
+            // disabled above). Return only the `vars` patch — the plugin uses defu() to
+            // merge, which concatenates arrays. Returning the full workerConfig would
+            // duplicate fields like compatibility_flags and crash the Workers runtime at
+            // startup. Skip empty strings so any wrangler-defined defaults are preserved.
+            config: () => ({
+              vars: Object.fromEntries(Object.entries(env).filter(([, value]) => value !== '')),
+            }),
+            // Workaround for cloudflare plugin bug: explicitly set environment name based on CLOUDFLARE_ENV
+            viteEnvironment:
+              process.env.CLOUDFLARE_ENV === 'production'
+                ? { name: 'app' }
+                : process.env.CLOUDFLARE_ENV === 'staging'
+                  ? { name: 'app_staging' }
+                  : undefined,
+          })
+        : undefined,
       honoDevServerPlugin(),
     ].filter(Boolean as unknown as <T>(x: T) => x is NonNullable<T>),
 
@@ -552,8 +592,9 @@ export default defineConfig(({ mode, command, isPreview }) => {
     },
 
     build: {
+      // With the CF plugin, it owns the build/ output split (emits build/client itself).
       // build/server holds the ECS bundle (vite.server.config.mts); Vercel reads build/ directly.
-      outDir: isVercelDeploy ? 'build' : 'build/client',
+      outDir: useCloudflarePlugin || isVercelDeploy ? 'build' : 'build/client',
       sourcemap: DISABLE_SOURCEMAP ? false : isMinifiedBuild ? 'hidden' : true,
       minify: isMinifiedBuild ? 'esbuild' : undefined,
       rollupOptions: {
