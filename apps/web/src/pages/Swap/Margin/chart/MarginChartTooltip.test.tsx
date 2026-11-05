@@ -1,5 +1,6 @@
 import { screen } from '@testing-library/react'
 import type { UTCTimestamp } from 'lightweight-charts'
+import { MarginDirection } from 'uniswap/src/features/transactions/margin/types'
 import type { PositionEconomics } from '~/pages/Swap/Margin/chart/marginChartMath'
 import { MarginChartTooltip, type MarginTooltipData } from '~/pages/Swap/Margin/chart/MarginChartTooltip'
 import type { MarginUsdBasis } from '~/pages/Swap/Margin/marginUsdPnl'
@@ -12,10 +13,10 @@ const econ: PositionEconomics = {
   collateral: 2,
   collateralAtOpen: 3, // distinct from current collateral so the open marker asserts the at-open size
   debt: 1786,
-  direction: 'LONG',
+  direction: MarginDirection.LONG,
 }
 // $1700 of margin went in, so at a close of 2000 equity is 2·2000 − 1786 = 2214 → +$514 (+30.24%).
-const usdBasis: MarginUsdBasis = { direction: 'LONG', collateral: 2, debt: 1786, costBasisUsd: 1700 }
+const usdBasis: MarginUsdBasis = { direction: MarginDirection.LONG, collateral: 2, debt: 1786, costBasisUsd: 1700 }
 
 function mkData(over?: Partial<MarginTooltipData>): MarginTooltipData {
   return { time: ts(1_700_000_000), value: 2000, open: 1990, high: 2010, low: 1985, close: 2000, ...over }
@@ -24,11 +25,11 @@ function mkData(over?: Partial<MarginTooltipData>): MarginTooltipData {
 function renderTooltip({
   data = mkData(),
   withEcon = false,
-  direction = 'LONG' as const,
+  direction = MarginDirection.LONG,
 }: {
   data?: MarginTooltipData
   withEcon?: boolean
-  direction?: 'LONG' | 'SHORT'
+  direction?: MarginDirection
 } = {}): void {
   render(
     <MarginChartTooltip
@@ -43,14 +44,12 @@ function renderTooltip({
 }
 
 describe('MarginChartTooltip', () => {
-  it('renders the four OHLC rows', () => {
+  // OHLC reads off the legend above the chart; a hover with no margin rows draws no tooltip at all.
+  it('renders nothing for a candle with no position and no explainer', () => {
     renderTooltip()
-    expect(screen.getByText('Open')).toBeInTheDocument()
-    expect(screen.getByText('High')).toBeInTheDocument()
-    expect(screen.getByText('Low')).toBeInTheDocument()
-    expect(screen.getByText('Close')).toBeInTheDocument()
-    expect(screen.getByText(/1,990/)).toBeInTheDocument() // open
-    expect(screen.getByText(/2,010/)).toBeInTheDocument() // high
+    expect(screen.queryByText('Open')).not.toBeInTheDocument()
+    expect(screen.queryByText(/1,990/)).not.toBeInTheDocument()
+    expect(document.body.textContent).toBe('')
   })
 
   it('renders the PnL-at-price row when a primary position exists', () => {
@@ -97,7 +96,7 @@ describe('MarginChartTooltip', () => {
   it('renders the liq explainer with "rises" for SHORT', () => {
     renderTooltip({
       withEcon: true,
-      direction: 'SHORT',
+      direction: MarginDirection.SHORT,
       data: mkData({ nearOverlay: { role: 'liq', id: 'liq', price: 2500, dwellElapsed: true } }),
     })
     expect(screen.getByText(/can be liquidated/)).toHaveTextContent('rises')

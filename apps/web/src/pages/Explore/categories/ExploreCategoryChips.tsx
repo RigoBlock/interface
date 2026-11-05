@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { FILTER_CHIP_FADE_MS, FilterChip } from 'uniswap/src/components/FilterChip/FilterChip'
 import { ElementName, SectionName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
-import type { TokenCategory } from 'uniswap/src/features/tokenCategories/types'
+import type { Category } from 'uniswap/src/features/tokenCategories/types'
 import { useEvent } from 'utilities/src/react/hooks'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
 import { CategoryDefinitionSheet } from '~/components/CategoryDefinitionCard/CategoryDefinitionSheet'
@@ -35,7 +35,7 @@ interface CategoryChipProps {
   position: number
   value: string
   onChange: (category: string) => void
-  onOpenDefinition: (category: TokenCategory) => void
+  onOpenDefinition: (category: Category) => void
 }
 
 /** Collapses to nothing on inactive chips, cancelling the chip's gap, so a selection change slides rather than jumps. */
@@ -84,6 +84,7 @@ function CategoryChip({ option, position, value, onChange, onOpenDefinition }: C
       element: ElementName.ExploreCategoryChipDefinition,
       section: SectionName.ExploreCategoryChips,
       category_id: definitionCategory.id,
+      category_kind: definitionCategory.kind,
     })
     onOpenDefinition(definitionCategory)
   })
@@ -147,9 +148,9 @@ export function ExploreCategoryChips({
   onChange,
   fadeSwapLastOption = false,
 }: ExploreCategoryChipsProps): JSX.Element {
-  const [definitionCategory, setDefinitionCategory] = useState<TokenCategory>()
+  const [definitionCategory, setDefinitionCategory] = useState<Category>()
   const [isDefinitionOpen, setIsDefinitionOpen] = useState(false)
-  const openDefinition = useEvent((category: TokenCategory): void => {
+  const openDefinition = useEvent((category: Category): void => {
     setDefinitionCategory(category)
     setIsDefinitionOpen(true)
   })

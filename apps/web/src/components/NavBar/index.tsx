@@ -1,11 +1,10 @@
 import { Token } from '@uniswap/sdk-core'
 import { normalizeTokenAddressForCache } from '@universe/chains'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-import { Flex, type FlexCompatProps } from '@universe/mycelium'
+import { Flex, type FlexCompatProps, heights, zIndexes } from '@universe/mycelium'
 import { useMedia } from '@universe/mycelium/theme-hooks-compat'
 import { forwardRef, useEffect, useMemo, useRef } from 'react'
 import { useLocation } from 'react-router'
-import { INTERFACE_NAV_HEIGHT, zIndexes } from 'ui/src/theme'
 import { useConnectionStatus } from 'uniswap/src/features/accounts/store/hooks'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { ChainSelector } from '~/components/NavBar/ChainSelector'
@@ -14,12 +13,14 @@ import { NewUserCTAButton } from '~/components/NavBar/DownloadApp/NewUserCTAButt
 import PoolSelect from '~/components/NavBar/PoolSelect'
 import { PreferenceMenu } from '~/components/NavBar/PreferencesMenu'
 import { useTabsVisible } from '~/components/NavBar/ScreenSizes'
+import { SearchBar } from '~/components/NavBar/SearchBar'
 import { useIsSearchBarVisible } from '~/components/NavBar/SearchBar/useIsSearchBarVisible'
+import { NavSearchVariant, useNavSearchVariant } from '~/components/NavBar/SearchBar/useNavSearchVariant'
 import { Tabs } from '~/components/NavBar/Tabs/Tabs'
 import { TestnetModeTooltip } from '~/components/NavBar/TestnetMode/TestnetModeTooltip'
-import { Web3Status } from '~/components/Web3Status'
+import { Web3Status } from '~/features/wallet/components/Web3Status'
 import { RIGOBLOCK_SUPPORTED_CHAINS, RIGOBLOCK_TESTNET_CHAINS } from '~/constants/addresses'
-import { useAccount } from '~/hooks/useAccount'
+import { useAccount } from '~/connection/hooks/useAccount'
 import { PageType, useIsPage } from '~/hooks/useIsPage'
 import { usePrevious } from '~/hooks/usePrevious'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
@@ -96,7 +97,7 @@ export function Navbar() {
   const media = useMedia()
   const isSmallScreen = media.md
   const areTabsVisible = useTabsVisible()
-  const isSearchBarVisible = useIsSearchBarVisible()
+  const searchVariant = useNavSearchVariant()
   const { isConnected } = useConnectionStatus()
 
   const account = useAccount()
@@ -109,6 +110,17 @@ export function Navbar() {
 
   const { isTestnetModeEnabled } = useEnabledChains()
   const isEmbeddedWalletEnabled = useFeatureFlag(FeatureFlags.EmbeddedWallet)
+  const isNewUserUxEnabled = useFeatureFlag(FeatureFlags.NewUserUx)
+  // On mobile the right-row glyphs sit 20px apart, spaced per item instead of by the row gap. The testnet
+  // pill doesn't follow that rhythm, so with it shown the row keeps the default gap.
+  const isCompactMobileRow = !isTestnetModeEnabled && !isNewUserUxEnabled
+  const rightRowMd: FlexCompatProps['$md'] = isNewUserUxEnabled
+    ? { gap: '$spacing4' }
+    : isCompactMobileRow
+      ? { gap: '$none' }
+      : undefined
+  const isSearchBarCentered = searchVariant === NavSearchVariant.LegacyInput
+  const isSearchBarVisible = useIsSearchBarVisible()
 
   // ── Operated pools derived from the staking batch (shared TanStack query with Earn page) ──
   const chains = useMemo(
@@ -223,7 +235,7 @@ export function Navbar() {
       px="$padding12"
       $md={{ px: '$padding16' }}
       width="100%"
-      height={INTERFACE_NAV_HEIGHT}
+      height={heights['interface-nav']}
       zIndex={zIndexes.sticky}
       justifyContent="center"
     >
@@ -242,14 +254,23 @@ export function Navbar() {
         </NavItemsRow>
 
         <Flex position="static" centered>
+          {isSearchBarCentered ? <SearchBar variant={searchVariant} /> : null}
           {isSearchBarVisible && userIsOperator && !hidePoolSelector && <PoolSelect operatedPools={operatedPools} />}
         </Flex>
 
-        <NavItemsRow justifyContent="flex-end">
+        <NavItemsRow justifyContent="flex-end" $md={rightRowMd}>
+          {!isSearchBarCentered && <SearchBar variant={searchVariant} />}
           {!hideChainSelector && <ChainSelector />}
           {!isSearchBarVisible && userIsOperator && !hidePoolSelector && <PoolSelect operatedPools={operatedPools} />}
-          {!isEmbeddedWalletEnabled && isLandingPage && !isSmallScreen && <NewUserCTAButton />}
-          {!isConnected && <PreferenceMenu />}
+          {!isConnected && !isEmbeddedWalletEnabled && !isNewUserUxEnabled && isLandingPage && !isSmallScreen && (
+            <NewUserCTAButton />
+          )}
+          {!isConnected && (
+            // NavIcon pads its glyph 14px per side, so the menu overlaps search's tap box to land 20px from it.
+            <Flex $md={isCompactMobileRow ? { ml: -8, mr: '$spacing6' } : undefined}>
+              <PreferenceMenu />
+            </Flex>
+          )}
           {isTestnetModeEnabled && <TestnetModeTooltip />}
           <Web3Status />
         </NavItemsRow>

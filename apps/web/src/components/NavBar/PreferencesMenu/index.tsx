@@ -1,7 +1,7 @@
 import { AnimateTransition } from '@universe/mycelium/animate-presence-pager'
+import { MoreHorizontal } from '@universe/mycelium/icons/MoreHorizontal'
 import { useCallback, useState } from 'react'
 import { Popover } from 'ui/src'
-import { MoreHorizontal } from 'ui/src/components/icons/MoreHorizontal'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { NavDropdown, NavDropdownDefaultWrapper } from '~/components/NavBar/NavDropdown/index'
@@ -34,22 +34,26 @@ export function PreferenceMenu() {
     },
     [handleExitMenu],
   )
+  const closeMenu = useCallback(() => onOpenChange(false), [onOpenChange])
 
   return (
     <Trace logPress element={ElementName.NavbarPreferencesMenu}>
-      <Popover placement="bottom" stayInFrame allowFlip onOpenChange={onOpenChange}>
+      <Popover placement="bottom" stayInFrame allowFlip open={isOpen} onOpenChange={onOpenChange}>
         <Popover.Trigger>
           <NavIcon isActive={isOpen}>
             <MoreHorizontal size={20} color="$neutral2" cursor="pointer" />
           </NavIcon>
         </Popover.Trigger>
-        <NavDropdown isOpen={isOpen} minWidth={325} padded mr={12}>
+        <NavDropdown isOpen={isOpen} minWidth={342} padded mr={12}>
           <NavDropdownDefaultWrapper>
             <AnimateTransition
               currentIndex={getSettingsViewIndex(settingsView)}
               animationType={settingsView === PreferencesView.SETTINGS ? 'forward' : 'backward'}
             >
-              <PreferenceSettings setSettingsView={(view: PreferencesView) => setSettingsView(view)} />
+              <PreferenceSettings
+                setSettingsView={(view: PreferencesView) => setSettingsView(view)}
+                closeMenu={closeMenu}
+              />
               <LanguageSettings onExitMenu={handleExitMenu} />
               <CurrencySettings onExitMenu={handleExitMenu} />
             </AnimateTransition>

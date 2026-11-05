@@ -51,7 +51,8 @@ export function useHyperEvmChartWindow({
     if (chartWindow || isSelectedChainBackendSupported) {
       return undefined
     }
-    const periodSec = CHART_PERIOD_WINDOW_SECONDS[selectedPeriod] ?? CHART_PERIOD_WINDOW_SECONDS[ChartPeriod.DAY]!
+    const periodSec =
+      CHART_PERIOD_WINDOW_SECONDS[selectedPeriod] ?? CHART_PERIOD_WINDOW_SECONDS[ChartPeriod.DAY] ?? 0
     const endSec = Math.floor(Date.now() / 1000)
     return { startSec: endSec - periodSec, endSec }
   }, [chartWindow, isSelectedChainBackendSupported, selectedPeriod])

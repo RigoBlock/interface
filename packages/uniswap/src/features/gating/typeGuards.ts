@@ -1,4 +1,3 @@
-import { GraphQLApi } from '@universe/api'
 import { UniverseChainId } from '@universe/chains'
 import { RWAIssuerLogosMap } from '@universe/gating'
 
@@ -17,7 +16,3 @@ export const isRWAIssuerLogosMap = (x: unknown): x is RWAIssuerLogosMap => {
 
 export const isUniverseChainIdArrayType = (x: unknown): x is UniverseChainId[] =>
   Array.isArray(x) && x.every((c: unknown) => typeof c === 'number')
-
-export const isContractInputArrayType = (x: unknown): x is GraphQLApi.ContractInput[] =>
-  Array.isArray(x) &&
-  x.every((val) => typeof val.chain === 'string' && (!val.address || typeof val.address === 'string'))

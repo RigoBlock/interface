@@ -74,7 +74,7 @@ type ChainCurrencyList = {
 /**
  * @deprecated
  * Instead, see the list used in the token selector's quick-select common options section at useAllCommonBaseCurrencies.ts.
- * This list is currently used as fallback list when Token GQL query fails for above list + for hardcoded tokens on testnet chains.
+ * This list is currently used as fallback list when the token metadata query fails for above list + for hardcoded tokens on testnet chains.
  */
 export const COMMON_BASES: ChainCurrencyList = {
   [UniverseChainId.Mainnet]: [
@@ -108,11 +108,6 @@ export const COMMON_BASES: ChainCurrencyList = {
     nativeOnChain(UniverseChainId.Base),
     WRAPPED_NATIVE_CURRENCY[UniverseChainId.Base] as Token,
     USDC_BASE,
-  ].map(buildPartialCurrencyInfo),
-
-  [UniverseChainId.Blast]: [
-    nativeOnChain(UniverseChainId.Blast),
-    WRAPPED_NATIVE_CURRENCY[UniverseChainId.Blast] as Token,
   ].map(buildPartialCurrencyInfo),
 
   [UniverseChainId.Bnb]: [

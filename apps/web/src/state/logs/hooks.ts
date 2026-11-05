@@ -1,7 +1,7 @@
 /* oxlint-disable typescript/no-unnecessary-condition */
 import type { Filter } from '@ethersproject/providers'
 import { useEffect, useMemo, useRef } from 'react'
-import { useAccount } from '~/hooks/useAccount'
+import { useAccount } from '~/connection/hooks/useAccount'
 import { useBlockNumber } from '~/lib/hooks/useBlockNumber'
 import { useAppDispatch, useAppSelector } from '~/state/hooks'
 import { addListener, removeListener } from '~/state/logs/slice'

@@ -4,8 +4,13 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { type MarginActivePosition } from 'uniswap/src/data/apiClients/tradingApi/MarginApiClient'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { MarginDirection } from 'uniswap/src/features/transactions/margin/types'
 import { useEvent } from 'utilities/src/react/hooks'
 import { type MarginMarket } from '~/constants/margin'
+import { getMarginCurrencyInfo, useMarginCurrencyInfos } from '~/features/margin/hooks/useMarginCurrencyInfos'
+import { marginAssetCurrencyId, marginTokenCurrencyId } from '~/features/margin/utils/marginCurrencies'
+import { marginPositionTokens } from '~/features/margin/utils/marginPositionRow'
+import { marginRowDirection, marginUnwrapSymbol } from '~/features/margin/utils/marginTokenDisplay'
 import { MarginAdjustBeforeAfterSection } from '~/pages/Swap/Margin/components/MarginAdjustBeforeAfterRows'
 import { MarginAdjustLeverageSection } from '~/pages/Swap/Margin/components/MarginAdjustLeverageSection'
 import { MarginAdjustQuoteRows } from '~/pages/Swap/Margin/components/MarginAdjustQuoteRows'
@@ -16,13 +21,9 @@ import { MarginExcludedVenueNotice } from '~/pages/Swap/Margin/components/shared
 import { MarginPairHeading } from '~/pages/Swap/Margin/components/shared/MarginPairHeading'
 import { useDraggedLeverage } from '~/pages/Swap/Margin/hooks/useDraggedLeverage'
 import { useMarginAdjustController } from '~/pages/Swap/Margin/hooks/useMarginAdjustController'
-import { getMarginCurrencyInfo, useMarginCurrencyInfos } from '~/pages/Swap/Margin/hooks/useMarginCurrencyInfos'
 import { useMarginPositionMarkIsStale } from '~/pages/Swap/Margin/hooks/useMarginPositionMarkIsStale'
 import { clampManageLeverage } from '~/pages/Swap/Margin/marginAdjustPositionModalHelpers'
-import { marginAssetCurrencyId, marginTokenCurrencyId } from '~/pages/Swap/Margin/marginCurrencies'
 import { MANAGE_MIN_LEVERAGE } from '~/pages/Swap/Margin/marginOpenButtonGate'
-import { marginPositionTokens } from '~/pages/Swap/Margin/marginPositionRow'
-import { marginRowDirection, marginUnwrapSymbol } from '~/pages/Swap/Margin/marginTokenDisplay'
 
 // Change leverage: no amount field, targetLeverageX18 only. Both directions go through the one
 // ADJUST intent — the deleted modal needed INCREASE for up and DECREASE (via close_quote, with a
@@ -90,7 +91,9 @@ export function MarginChangeLeverageModal({
   const debtLogos = { url: debtLogoUrl ?? undefined, symbol: marginUnwrapSymbol(market.debt) }
   // The Size row reads the EXPOSURE leg — a short's is its debt leg, a long's its collateral.
   const sizeLogos =
-    position.direction === 'SHORT' ? debtLogos : { url: collateralLogoUrl ?? undefined, symbol: market.displaySymbol }
+    position.direction === MarginDirection.SHORT
+      ? debtLogos
+      : { url: collateralLogoUrl ?? undefined, symbol: market.displaySymbol }
 
   return (
     <MarginActionModalShell

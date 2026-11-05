@@ -103,6 +103,7 @@ export type {
   CompatPlatformProps,
   CompatProps,
   CompatPseudoProps,
+  CompatStyleProp,
   CompatStyleProps,
   CompatThemeProps,
   DisplayValue,

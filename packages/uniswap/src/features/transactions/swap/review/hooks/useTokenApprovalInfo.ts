@@ -28,6 +28,8 @@ export interface TokenApprovalInfoParams {
   smartPoolAddress?: string
   /** From the quote response — `false` means the route never needs an ERC-20 approval, so `/check_approval` is skipped. Absent ⇒ assume applicable. */
   isTokenApprovalApplicable?: boolean
+  /** The `BRIDGE` quote. Without it, `/check_approval` approves Across's SpokePool even when another vendor (Relay) serves the bridge. */
+  bridgeQuote?: TradingApi.BridgeQuote
 }
 
 export type ApprovalTxInfo = {
@@ -55,6 +57,7 @@ export function useTokenApprovalInfo(params: TokenApprovalInfoParams): ApprovalT
     routing,
     smartPoolAddress,
     isTokenApprovalApplicable,
+    bridgeQuote,
   } = params
 
   const isWrap = wrapType !== WrapType.NotApplicable
@@ -77,6 +80,8 @@ export function useTokenApprovalInfo(params: TokenApprovalInfoParams): ApprovalT
   const gasStrategy = useActiveGasStrategy(chainId, 'general')
 
   const isGasFeeOverridesEnabled = useFeatureFlag(FeatureFlags.GasFeeOverrides)
+  // Quote requests opt into Relay only under this gate; without it every bridge is Across, whose spender the route alone decides.
+  const isRelayBridgeAggregatorEnabled = useFeatureFlag(FeatureFlags.RelayBridgeAggregator)
 
   const approvalRequestArgs: TradingApi.ApprovalRequest | undefined = useMemo(() => {
     const tokenInChainId = toTradingApiSupportedChainId(chainId)
@@ -97,6 +102,7 @@ export function useTokenApprovalInfo(params: TokenApprovalInfoParams): ApprovalT
       includeGasInfo: true,
       tokenOut: tokenOutAddress,
       tokenOutChainId,
+      ...(isBridge && bridgeQuote && isRelayBridgeAggregatorEnabled ? { quote: bridgeQuote } : {}),
     }
 
     if (isGasFeeOverridesEnabled) {
@@ -107,6 +113,7 @@ export function useTokenApprovalInfo(params: TokenApprovalInfoParams): ApprovalT
     return { ...base, gasStrategies: [gasStrategy] }
   }, [
     isGasFeeOverridesEnabled,
+    isRelayBridgeAggregatorEnabled,
     gasStrategy,
     address,
     amount,
@@ -114,6 +121,7 @@ export function useTokenApprovalInfo(params: TokenApprovalInfoParams): ApprovalT
     currencyIn,
     currencyOut?.chainId,
     isBridge,
+    bridgeQuote,
     tokenInAddress,
     tokenOutAddress,
   ])

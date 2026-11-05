@@ -1,4 +1,7 @@
-import { AnimatedFlex, Flex } from '@universe/mycelium'
+import { AnimatedFlex, Button, type ColorTokens, Flex, IconButton, validColor, fonts } from '@universe/mycelium'
+import { GridView } from '@universe/mycelium/icons/GridView'
+import { X } from '@universe/mycelium/icons/X'
+import { opacify } from '@universe/mycelium/theme-hooks-compat'
 import type { GeneratedIcon } from '@universe/mycelium/icons'
 import { withSporeCurve } from '@universe/tailwind/animations/reanimated'
 import { TestID, TestIDType } from '@universe/test'
@@ -7,10 +10,7 @@ import { useTranslation } from 'react-i18next'
 import type { LayoutChangeEvent } from 'react-native'
 import { useAnimatedStyle, useSharedValue } from 'react-native-reanimated'
 import { useTokenDetailsContext } from 'src/components/TokenDetails/TokenDetailsContext'
-import { Button, getContrastPassingTextColor, useDynamicFontSizing } from 'ui/src'
-import { IconButton } from 'ui/src/components/buttons/IconButton/IconButton'
-import { GridView, X } from 'ui/src/components/icons'
-import { type SporeColorToken, fonts, opacify, validColor } from 'ui/src/theme'
+import { getContrastPassingTextColor, useDynamicFontSizing } from 'ui/src'
 import { ContextMenu, MenuOptionItem } from 'uniswap/src/components/menus/ContextMenu'
 import { ContextMenuTriggerMode } from 'uniswap/src/components/menus/types'
 import { TokenList } from 'uniswap/src/features/dataApi/types'
@@ -103,8 +103,8 @@ function CTAButton({
 interface ActionButtonState {
   tokenColor: string | null
   disabled: boolean
-  validTokenColor: SporeColorToken | undefined
-  lightTokenColor: SporeColorToken | undefined
+  validTokenColor: ColorTokens | undefined
+  lightTokenColor: ColorTokens | undefined
   actionsWithIcons: MenuOptionItem[]
   actionMenuOpen: boolean
   closeActionMenu: () => void
@@ -119,7 +119,7 @@ function useActionButtonState(actionMenuOptions: MenuOptionItem[]): ActionButton
   const disabled = isBlocked || !isChainEnabled
 
   const validTokenColor = validColor(tokenColor)
-  const lightTokenColor = validTokenColor ? opacify(12, validTokenColor) : undefined
+  const lightTokenColor = validTokenColor ? (opacify(12, validTokenColor) as ColorTokens) : undefined
 
   const actionsWithIcons = useMemo(() => {
     return actionMenuOptions.map(

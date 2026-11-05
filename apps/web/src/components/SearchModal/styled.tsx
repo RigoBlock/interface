@@ -1,9 +1,9 @@
-import { Flex, type FlexCompatProps } from '@universe/mycelium'
+import { Flex, type FlexCompatProps, Input, type InputProps } from '@universe/mycelium'
 import { type ElementRef, forwardRef, type ForwardRefExoticComponent, type RefAttributes } from 'react'
-import { Input, type InputProps } from 'ui/src'
 import { AutoColumn } from '~/components/deprecated/Column'
 import { deprecatedStyled } from '~/lib/deprecated-styled'
 
+// RigoBlock legacy-page compat exports (used by Vote/CreateProposal/Buy pages).
 export const PaddedColumn = deprecatedStyled(AutoColumn)`
   padding: 20px;
 `

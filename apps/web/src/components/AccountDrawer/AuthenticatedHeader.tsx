@@ -1,15 +1,13 @@
 import type { CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { Platform } from '@universe/chains'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
-import { Flex } from '@universe/mycelium'
+import { Button, Flex, IconButton, Shine, iconSizes } from '@universe/mycelium'
 import { UNISWAP_LOGO } from '@universe/mycelium/assets'
+import { Settings } from '@universe/mycelium/icons/Settings'
 import { TestID } from '@universe/test'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, IconButton, Image } from 'ui/src'
-import { Settings } from 'ui/src/components/icons/Settings'
-import { Shine } from 'ui/src/loading/Shine'
-import { iconSizes } from 'ui/src/theme'
+import { Image } from 'ui/src'
 import AnimatedNumber from 'uniswap/src/components/AnimatedNumber/AnimatedNumber'
 import { TestnetModeBanner } from 'uniswap/src/components/banners/TestnetModeBanner'
 import { RelativeChange } from 'uniswap/src/components/RelativeChange/RelativeChange'
@@ -25,22 +23,26 @@ import { useHasAccountMismatchOnAnyChain } from 'uniswap/src/features/smartWalle
 import { ElementName, ModalName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { NumberType } from 'utilities/src/format/types'
-import { MultiBlockchainAddressDisplay } from '~/components/AccountDetails/MultiBlockchainAddressDisplay'
 import { AddBackupLoginCard } from '~/components/AccountDrawer/AddBackupLoginCard'
 import { DisconnectButton } from '~/components/AccountDrawer/DisconnectButton'
-import { useAccountDrawer } from '~/components/AccountDrawer/MiniPortfolio/hooks'
+import { useIsUniswapExtensionConnected } from '~/components/AccountDrawer/hooks/useIsUniswapExtensionConnected'
 import { MiniPortfolio } from '~/components/AccountDrawer/MiniPortfolio/MiniPortfolio'
 import { ReceiveActionTile } from '~/components/ActionTiles/ReceiveActionTile'
 import { SendActionTile } from '~/components/ActionTiles/SendActionTile/SendActionTile'
 import { LimitedSupportBanner } from '~/components/Banner/LimitedSupportBanner'
-import { DelegationMismatchModal } from '~/components/delegation/DelegationMismatchModal'
-import { StatusIcon } from '~/components/StatusIcon'
-import { ExtensionRequestMethods, useUniswapExtensionRequest } from '~/components/WalletModal/useWagmiConnectorWithId'
-import { useAccountsStore } from '~/features/accounts/store/hooks'
-import { useUserHasAvailableClaim, useUserUnclaimedAmount } from '~/features/claim/hooks'
+import { useAccountsStore } from '~/connection/accounts/hooks'
+import { useUserHasAvailableClaim } from '~/features/claim/hooks/useUserHasAvailableClaim'
+import { useUserUnclaimedAmount } from '~/features/claim/hooks/useUserUnclaimedAmount'
+import { MultiBlockchainAddressDisplay } from '~/features/wallet/components/AccountDetails/MultiBlockchainAddressDisplay'
+import { DelegationMismatchModal } from '~/features/wallet/components/delegation/DelegationMismatchModal'
+import { StatusIcon } from '~/features/wallet/components/StatusIcon'
+import {
+  ExtensionRequestMethods,
+  useUniswapExtensionRequest,
+} from '~/features/wallet/components/WalletModal/useWagmiConnectorWithId'
 import { useDataApiOutageModal } from '~/hooks/useDataApiOutageModal'
-import { useIsUniswapExtensionConnected } from '~/hooks/useIsUniswapExtensionConnected'
 import { useModalState } from '~/hooks/useModalState'
+import { useAccountDrawer } from '~/state/accountDrawer/hooks'
 
 export function AuthenticatedHeader({
   evmAddress,
@@ -147,7 +149,7 @@ export function AuthenticatedHeader({
                 <IconButton
                   size="small"
                   emphasis="text-only"
-                  icon={<Image height={iconSizes.icon24} source={UNISWAP_LOGO} width={iconSizes.icon24} />}
+                  icon={<Image height={iconSizes.icon20} source={UNISWAP_LOGO} width={iconSizes.icon20} />}
                   borderRadius="$rounded32"
                   hoverStyle={{
                     backgroundColor: '$surface2',

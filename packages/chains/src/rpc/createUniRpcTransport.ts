@@ -1,4 +1,5 @@
 import { http } from 'viem'
+import { createThrowOnForbiddenResponse } from './ForbiddenHttpRequestError'
 import type { UniRpcConfig } from './getUniRpcConfig'
 import { noteRateLimitedResponse, noteSuccessfulResponse, rateLimitedFetch, throwIfRateLimited } from './rateLimitGate'
 import { HEADER_RESOLVE_TIMEOUT_MS, withTimeout } from './withTimeout'
@@ -75,6 +76,7 @@ export interface UniRpcTransportInput {
 export function createUniRpcTransportFactory(ctx: UniRpcTransportFactoryCtx) {
   return (input: UniRpcTransportInput) => {
     const { config } = input
+    const onFetchResponse = createThrowOnForbiddenResponse(config.rpcUrl)
 
     if (ctx.session.type === 'headers') {
       const { getSessionHeaders } = ctx.session
@@ -106,6 +108,8 @@ export function createUniRpcTransportFactory(ctx: UniRpcTransportFactoryCtx) {
           }
         },
         onFetchResponse: (response) => {
+          onFetchResponse(response)
+          // RigoBlock fork: feed the rate-limit gate (429/401 cooldown + success reset).
           if (response.status === 429 || response.status === 401) {
             noteRateLimitedResponse(config.rpcUrl, response)
           } else if (response.ok) {
@@ -127,6 +131,8 @@ export function createUniRpcTransportFactory(ctx: UniRpcTransportFactoryCtx) {
         patchJsonRpcIdInInit(init)
       },
       onFetchResponse: (response) => {
+        onFetchResponse(response)
+        // RigoBlock fork: feed the rate-limit gate (429/401 cooldown + success reset).
         if (response.status === 429 || response.status === 401) {
           noteRateLimitedResponse(config.rpcUrl, response)
         } else if (response.ok) {

@@ -3,7 +3,7 @@ import { useCallback, type ReactNode } from 'react'
 import { ChevronDown } from 'react-feather'
 
 import { Trans } from 'ui/src/i18n/Trans'
-import { ModalCloseIcon } from 'ui/src'
+import { ModalCloseIcon } from '@universe/mycelium'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
 import Column from '~/components/deprecated/Column'

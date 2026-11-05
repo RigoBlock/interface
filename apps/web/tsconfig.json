@@ -111,6 +111,9 @@
     },
     {
       "path": "../../packages/test"
+    },
+    {
+      "path": "../../packages/cca"
     }
   ]
 }

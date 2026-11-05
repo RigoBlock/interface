@@ -8,7 +8,7 @@ import type { Abi } from 'viem'
 import { useReadContracts } from 'wagmi'
 import { assume0xAddress } from '~/chains'
 import { STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
-import { useAccount } from '~/hooks/useAccount'
+import { useAccount } from '~/connection/hooks/useAccount'
 import { StakeStatus } from '~/state/governance/hooks'
 
 export interface FreeStakeBalanceByChain {

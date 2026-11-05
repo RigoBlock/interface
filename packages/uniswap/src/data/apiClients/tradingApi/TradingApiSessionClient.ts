@@ -77,9 +77,6 @@ const TradingApiSessionClientWithRetry: PlanEndpoints = {
   refreshExistingPlan(params) {
     return withSessionRetry(() => BaseTradingApiSessionClient.refreshExistingPlan(params))
   },
-  cancelExistingPlan(params) {
-    return withSessionRetry(() => BaseTradingApiSessionClient.cancelExistingPlan(params))
-  },
 }
 
 export const TradingApiSessionClient: PlanEndpoints = TradingApiSessionClientWithRetry

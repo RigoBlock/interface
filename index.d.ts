@@ -39,3 +39,9 @@ declare type ReactElementWithAnyProps = React.ReactElement<any>
 declare namespace JSX {
   interface Element extends React.ReactElement<any, any> {}
 }
+
+// wcag-contrast ships no type declarations; the single `hex` entry point is used for
+// contrast-ratio checks in ui/src color utils.
+declare module 'wcag-contrast' {
+  export function hex(colorA: string, colorB: string): number
+}

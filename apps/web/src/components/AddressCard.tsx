@@ -1,7 +1,7 @@
 
 import { Trans } from 'ui/src/i18n/Trans'
-import { Check } from 'ui/src/components/icons/Check'
-import { CopySheets } from 'ui/src/components/icons/CopySheets'
+import { Check } from '@universe/mycelium/icons/Check'
+import { CopySheets } from '@universe/mycelium/icons/CopySheets'
 import { ExplorerDataType, getExplorerLink } from 'uniswap/src/utils/linking'
 import { shortenAddress } from 'utilities/src/addresses'
 import { useCopyClipboard } from 'utilities/src/react/useCopyClipboard'

@@ -74,7 +74,7 @@ exports[`BackupScreen > renders backup options when none are completed 1`] = `
                             <div
                               fill="none"
                               stroke-width="8"
-                              style="color: rgb(255, 55, 199); width: 16px; height: 16px;"
+                              style="color: rgb(254, 178, 57); width: 16px; height: 16px;"
                               viewbox="0 0 16 16"
                             >
                               <div
@@ -150,7 +150,7 @@ exports[`BackupScreen > renders backup options when none are completed 1`] = `
                             <div
                               fill="none"
                               stroke-width="8"
-                              style="color: rgb(255, 55, 199); width: 12px; height: 12px;"
+                              style="color: rgb(254, 178, 57); width: 12px; height: 12px;"
                               viewbox="0 0 19 19"
                             >
                               <div
@@ -250,7 +250,7 @@ exports[`BackupScreen > renders backup options when none are completed 1`] = `
           <div
             fill="none"
             stroke-width="8"
-            style="width: 28px; height: 28px; color: rgba(19, 19, 19, 0.63);"
+            style="color: rgba(19, 19, 19, 0.63); width: 28px; height: 28px;"
             viewbox="0 0 24 24"
           >
             <div
@@ -264,6 +264,10 @@ exports[`BackupScreen > renders backup options when none are completed 1`] = `
       </button>
     </div>
   </div>
+  <div
+    class="css-view-175oi2r r-bottom-1p0dtai r-left-1d2f490 r-position-u8s1d r-right-zchlnj r-top-ipm5af r-pointerEvents-12vffkv"
+    data-testid="portal-layer"
+  />
 </DocumentFragment>
 `;
 
@@ -341,7 +345,7 @@ exports[`BackupScreen > renders backup options when some are completed 1`] = `
                             <div
                               fill="none"
                               stroke-width="8"
-                              style="color: rgb(255, 55, 199); width: 16px; height: 16px;"
+                              style="color: rgb(254, 178, 57); width: 16px; height: 16px;"
                               viewbox="0 0 16 16"
                             >
                               <div
@@ -417,7 +421,7 @@ exports[`BackupScreen > renders backup options when some are completed 1`] = `
                             <div
                               fill="none"
                               stroke-width="8"
-                              style="color: rgb(255, 55, 199); width: 12px; height: 12px;"
+                              style="color: rgb(254, 178, 57); width: 12px; height: 12px;"
                               viewbox="0 0 19 19"
                             >
                               <div
@@ -517,7 +521,7 @@ exports[`BackupScreen > renders backup options when some are completed 1`] = `
           <div
             fill="none"
             stroke-width="8"
-            style="width: 28px; height: 28px; color: rgba(19, 19, 19, 0.63);"
+            style="color: rgba(19, 19, 19, 0.63); width: 28px; height: 28px;"
             viewbox="0 0 24 24"
           >
             <div
@@ -531,5 +535,9 @@ exports[`BackupScreen > renders backup options when some are completed 1`] = `
       </button>
     </div>
   </div>
+  <div
+    class="css-view-175oi2r r-bottom-1p0dtai r-left-1d2f490 r-position-u8s1d r-right-zchlnj r-top-ipm5af r-pointerEvents-12vffkv"
+    data-testid="portal-layer"
+  />
 </DocumentFragment>
 `;

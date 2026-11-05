@@ -1,11 +1,9 @@
 /**
  * Web leg of the RefreshButton compat (INFRA-3489) — the drop-in Tailwind
- * twin of the legacy `ui/src` `RefreshButton` composite
- * (`RefreshButton.web.tsx` + `RefreshButtonIcon.tsx` +
- * `loading/RefreshIcon.web.tsx`): a hover-revealed refresh icon that spins
- * one full turn per press, wrapped in the compat tooltip showing the
- * localized label plus the `R` keycap, with the same window-level `R`
- * keyboard shortcut.
+ * twin of the deleted legacy `ui/src` `RefreshButton` composite: a
+ * hover-revealed refresh icon that spins one full turn per press, wrapped in
+ * the compat tooltip showing the localized label plus the `R` keycap, with the
+ * same window-level `R` keyboard shortcut.
  *
  * Behavior mirrored from legacy, deliberately:
  * - a press mid-spin restarts the one-second spin window and still refetches;
@@ -90,8 +88,7 @@ function RefreshButtonIconCompat({
       // tailwind-merge. Spelled with `animateOnly` because the migration gate bans the
       // `animation` prop outside exempt paths — byte-identical output at this call site.
       animateOnly={[]}
-      // The children style themselves; the injected legacy `$accent3` default
-      // is a rejected token on this side (ModalCloseIconCompat precedent).
+      // The children style themselves (ModalCloseIconCompat precedent).
       shouldAutomaticallyInjectColors={false}
       onPress={handlePress}
     >

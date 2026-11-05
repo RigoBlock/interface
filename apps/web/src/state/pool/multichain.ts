@@ -26,7 +26,7 @@ import {
   STAKING_PROXY_ADDRESSES,
 } from '~/constants/addresses'
 import { getBackupRpcProvider } from '~/constants/providers'
-import { useAccount } from '~/hooks/useAccount'
+import { useAccount } from '~/connection/hooks/useAccount'
 import type { PoolRegisteredLog } from '~/state/pool/hooks'
 
 const RegistryInterface = new Interface(RB_REGISTRY_ABI)

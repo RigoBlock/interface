@@ -1,5 +1,5 @@
 import { isExtensionApp, isIOS, isMobileApp } from '@universe/environment'
-import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
+import { useSporeColors } from '@universe/mycelium'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Modal } from 'uniswap/src/components/modals/Modal'

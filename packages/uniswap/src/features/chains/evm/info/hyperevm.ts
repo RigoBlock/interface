@@ -10,7 +10,7 @@ import {
 } from 'uniswap/src/features/chains/evm/rpc'
 import { buildChainTokens } from 'uniswap/src/features/chains/evm/tokens'
 import { GENERIC_L2_GAS_CONFIG } from 'uniswap/src/features/chains/gasDefaults'
-import { GqlChainId, NetworkLayer, RPCType, UniverseChainInfo } from 'uniswap/src/features/chains/types'
+import { NetworkLayer, RPCType, UniverseChainInfo } from 'uniswap/src/features/chains/types'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { buildUSDC } from 'uniswap/src/features/tokens/stablecoin'
 
@@ -45,9 +45,8 @@ export const HYPEREVM_CHAIN_INFO = {
   testnet: false,
   name: 'HyperEVM',
   assetRepoNetworkName: undefined,
-  // The GraphQL API Chain enum has no Hyperliquid member; HyperEVM is not backend supported.
+  // HyperEVM is not backend supported (the data API 400s on chain 999).
   backendChain: {
-    chain: 'HYPERLIQUID' as unknown as GqlChainId,
     backendSupported: false,
     nativeTokenBackendAddress: undefined,
   },

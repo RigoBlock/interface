@@ -1,12 +1,13 @@
 import { chainIdToPlatform } from '@universe/chains'
-import type { ColorTokens } from '@universe/mycelium'
-import { type ButtonProps, useColorsFromTokenColor } from 'ui/src'
+import type { Button, ButtonProps } from '@universe/mycelium'
+import { useColorsFromTokenColor } from '@universe/mycelium/theme-hooks-compat'
+import type { ComponentProps } from 'react'
 import { useActiveAccount } from 'uniswap/src/features/accounts/store/hooks'
-import { useIsShowingWebFORNudge, useIsWebFORNudgeEnabled } from 'uniswap/src/features/providers/webForNudgeProvider'
 import { useTransactionModalContext } from 'uniswap/src/features/transactions/components/TransactionModal/TransactionModalContext'
 import { useIsBlockedByPermissionedPool } from 'uniswap/src/features/transactions/swap/components/SwapFormButton/hooks/useIsBlockedByPermissionedPool'
 import { useIsBlockingWithCustomMessage } from 'uniswap/src/features/transactions/swap/components/SwapFormButton/hooks/useIsBlockingWithCustomMessage'
 import { useIsSwapButtonDisabled } from 'uniswap/src/features/transactions/swap/components/SwapFormButton/hooks/useIsSwapButtonDisabled'
+import { usePromptWebFORNudge } from 'uniswap/src/features/transactions/swap/components/SwapFormButton/hooks/usePromptWebFORNudge'
 import { useNeedsGeoAcknowledgment } from 'uniswap/src/features/transactions/swap/hooks/useGeoRestrictionAcknowledgment'
 import { useGeoRestrictionMode } from 'uniswap/src/features/transactions/swap/hooks/useGeoRestrictionMode'
 import {
@@ -15,7 +16,7 @@ import {
 } from 'uniswap/src/features/transactions/swap/stores/swapFormStore/useSwapFormStore'
 
 type ButtonColors = Pick<ButtonProps, 'backgroundColor' | 'variant' | 'emphasis'> & {
-  buttonTextColor?: ColorTokens
+  buttonTextColor?: ComponentProps<typeof Button.Text>['color']
 }
 
 export const useSwapFormButtonColors = (tokenColor?: string): ButtonColors => {
@@ -31,10 +32,9 @@ export const useSwapFormButtonColors = (tokenColor?: string): ButtonColors => {
   const activeAccount = useActiveAccount(platform)
 
   const isSubmitting = useSwapFormStore((s) => s.isSubmitting)
-  const isShowingWebFORNudge = useIsShowingWebFORNudge()
   const { validTokenColor, lightTokenColor } = useColorsFromTokenColor(tokenColor)
   const { swapRedirectCallback } = useTransactionModalContext()
-  const promptWebFORNudge = useIsWebFORNudgeEnabled() && !swapRedirectCallback && !isShowingWebFORNudge
+  const promptWebFORNudge = usePromptWebFORNudge()
 
   // Geo acknowledgement keeps the button an active "Review" CTA (it opens the attestation
   // modal), so it should not adopt the blocked/disabled styling.
@@ -45,7 +45,7 @@ export const useSwapFormButtonColors = (tokenColor?: string): ButtonColors => {
   // If disabled, use defaults for background color
   // Checks if web for nudge is enabled and uses accent2 if it is
   // Otherwise, we'll try and use the color from the token (i.e. swapping on Web > TDP)
-  const buttonBackgroundColor = ((): ColorTokens | undefined => {
+  const buttonBackgroundColor = ((): ButtonColors['backgroundColor'] => {
     if (disabled || isPermissionedBlocking) {
       return undefined
     }
@@ -78,13 +78,13 @@ export const useSwapFormButtonColors = (tokenColor?: string): ButtonColors => {
     if (isPermissionedBlocking) {
       return 'primary'
     }
-    if (isInactiveAccountOrSubmitting || isBlockingOrDisabledWithoutSwapRedirect) {
+    if (isInactiveAccountOrSubmitting || promptWebFORNudge || isBlockingOrDisabledWithoutSwapRedirect) {
       return 'secondary'
     }
     return 'primary'
   })()
 
-  const buttonTextColor = ((): ColorTokens | undefined => {
+  const buttonTextColor = ((): ButtonColors['buttonTextColor'] => {
     if (promptWebFORNudge) {
       return '$accent1'
     }

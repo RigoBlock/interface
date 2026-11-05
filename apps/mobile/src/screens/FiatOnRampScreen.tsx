@@ -1,6 +1,6 @@
 /* oxlint-disable max-lines complexity */
 import { type NativeStackScreenProps } from '@react-navigation/native-stack'
-import { Flex } from '@universe/mycelium'
+import { Flex, AnimatedFlex, useIsShortMobileDevice } from '@universe/mycelium'
 import { useIsDarkMode } from '@universe/mycelium/theme-hooks-compat'
 import { Image } from 'expo-image'
 import React, { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -18,13 +18,10 @@ import {
 import { useFiatOnRampContext } from 'src/features/fiatOnRamp/FiatOnRampContext'
 import { FiatOnRampCountryListModal } from 'src/features/fiatOnRamp/FiatOnRampCountryListModal'
 import { FiatOnRampTokenSelectorModal } from 'src/features/fiatOnRamp/FiatOnRampTokenSelector'
-import { useIsShortMobileDevice } from 'ui/src'
-import { AnimatedFlex } from 'ui/src/components/layout/AnimatedFlex'
 import { useBottomSheetContext } from 'uniswap/src/components/modals/BottomSheetContext'
 import { HandleBar } from 'uniswap/src/components/modals/HandleBar'
 import { PillMultiToggle } from 'uniswap/src/components/pill/PillMultiToggle'
 import { MAX_FIAT_INPUT_DECIMALS } from 'uniswap/src/constants/transactions'
-import { BlastShutdownSelectionModal } from 'uniswap/src/features/chains/blastShutdown/BlastShutdownSelectionModal'
 import { FiatOnRampCountryPicker } from 'uniswap/src/features/fiatOnRamp/FiatOnRampCountryPicker'
 import {
   useFiatOnRampQuotes,
@@ -679,7 +676,6 @@ export function FiatOnRampScreen({ navigation }: Props): JSX.Element {
           }}
         />
       )}
-      <BlastShutdownSelectionModal currencies={[isOffRamp ? undefined : quoteCurrency.currencyInfo]} />
     </Screen>
   )
 }

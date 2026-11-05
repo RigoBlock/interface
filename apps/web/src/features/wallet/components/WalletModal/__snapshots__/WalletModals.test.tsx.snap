@@ -1,0 +1,480 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`EmbeddedWalletConnectionsModal > renders correctly 1`] = `
+<DocumentFragment>
+  <div
+    class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] gap-[16px] grow-[1] shrink p-[16px] bg-surface1"
+    data-testid="wallet-modal"
+  >
+    <div
+      class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 gap-[16px]"
+    >
+      <div
+        class="flex items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row justify-center w-[100%]"
+      >
+        <span
+          class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[16px] [line-height:20px] [font-weight:485] [color:var(--stext-neutral1)]"
+        >
+          Connect a wallet
+        </span>
+      </div>
+    </div>
+    <div
+      class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 gap-[12px]"
+    >
+      <div
+        class="flex basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row items-start"
+      >
+        <div
+          class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 w-[100%] max-h-[var(--c-max-h)] rounded-[16px] opacity-[1] overflow-hidden [transition:var(--c-t)]"
+          data-testid="option-grid"
+          style="--c-max-h: 100vh; --c-t: 250ms ease-in-out;"
+        >
+          <div
+            class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 h-[2px] bg-surface1"
+          />
+          <div
+            class="flex basis-auto box-border min-h-[0px] min-w-[0px] shrink-0 flex-row items-center justify-between px-[12px] py-[12px] w-[100%] bg-surface2 opacity-[1] relative [cursor:pointer] hover:bg-[color:var(--ch-bg)]"
+            style="--ch-bg: var(--surface2-hovered);"
+          >
+            <div
+              class="flex basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row items-center gap-[12px]"
+            >
+              <div
+                class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 p-[6px] bg-accent2 rounded-[8px]"
+              >
+                <svg
+                  fill="none"
+                  stroke-width="8"
+                  style="width: 20px; height: 20px;"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    clip-rule="evenodd"
+                    d="M4 4a3 3 0 0 0-3 3v11a3 3 0 0 0 3 3h16a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H4Zm-1 8.268V11c0-.552.448-1 1.001-1H20c.553 0 1.001.448 1.001 1v1.268A1.99 1.99 0 0 0 20 12h-4c-.552 0-1.007.528-1.236 1.103-.32.804-.975 1.754-2.764 1.754-1.71 0-2.518-.868-2.806-1.647-.228-.615-.695-1.21-1.28-1.21H4a1.99 1.99 0 0 0-1 .268ZM19.999 8c.35 0 .688.06 1.001.171V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v1.171C3.313 8.061 3.65 8 4.001 8H20Z"
+                    fill="currentColor"
+                    fill-rule="evenodd"
+                  />
+                </svg>
+              </div>
+              <span
+                class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[16px] [line-height:22px] [font-weight:485] [color:var(--stext-neutral1)] py-[8px]"
+              >
+                Other wallets
+              </span>
+            </div>
+            <div
+              class="flex flex-col basis-auto box-border min-h-[0px] min-w-[0px] shrink-0 items-center justify-center rounded-[999999px] static [transform:var(--c-tr)] transition-transform duration-150 ease-in-out"
+              style="--c-tr: rotate(180deg);"
+            >
+              <svg
+                fill="none"
+                stroke-width="8"
+                style="width: 24px; height: 24px;"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  clip-rule="evenodd"
+                  d="M15.7071 5.29289C16.0976 5.68342 16.0976 6.31658 15.7071 6.70711L10.4142 12L15.7071 17.2929C16.0976 17.6834 16.0976 18.3166 15.7071 18.7071C15.3166 19.0976 14.6834 19.0976 14.2929 18.7071L8.2929 12.7071C7.9024 12.3166 7.9024 11.6834 8.2929 11.2929L14.2929 5.29289C14.6834 4.90237 15.3166 4.90237 15.7071 5.29289Z"
+                  fill="currentColor"
+                  fill-rule="evenodd"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="flex basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row items-center justify-center gap-[16px] px-[12px] py-[4px] w-[100%]"
+      >
+        <div
+          style="display: flex; align-items: stretch; flex-direction: column; flex-basis: auto; box-sizing: border-box; position: relative; min-height: 0; min-width: 0; flex-grow: 1; flex-shrink: 1; border-top-style: solid; border-right-style: solid; border-bottom-style: solid; border-left-style: solid; border-top-width: 0; border-right-width: 0; border-left-width: 0; border-top-color: rgba(19, 19, 19, 0.08); border-right-color: rgba(19, 19, 19, 0.08); border-bottom-color: rgba(19, 19, 19, 0.08); border-left-color: rgba(19, 19, 19, 0.08); height: 0px; max-height: 0; border-bottom-width: 1px;"
+        />
+        <span
+          class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[12px] [line-height:16px] [font-weight:485] [color:var(--stext-neutral3)]"
+        >
+          or
+        </span>
+        <div
+          style="display: flex; align-items: stretch; flex-direction: column; flex-basis: auto; box-sizing: border-box; position: relative; min-height: 0; min-width: 0; flex-grow: 1; flex-shrink: 1; border-top-style: solid; border-right-style: solid; border-bottom-style: solid; border-left-style: solid; border-top-width: 0; border-right-width: 0; border-left-width: 0; border-top-color: rgba(19, 19, 19, 0.08); border-right-color: rgba(19, 19, 19, 0.08); border-bottom-color: rgba(19, 19, 19, 0.08); border-left-color: rgba(19, 19, 19, 0.08); height: 0px; max-height: 0; border-bottom-width: 1px;"
+        />
+      </div>
+      <div
+        class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 gap-[12px]"
+      >
+        <div
+          class="flex items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row self-stretch"
+        >
+          <button
+            class="group/sbtn relative box-border flex min-h-0 min-w-0 cursor-pointer items-center justify-center border border-solid border-transparent select-none [transition:transform_100ms_cubic-bezier(0.17,0.67,0.45,1),filter_100ms_cubic-bezier(0.17,0.67,0.45,1)] active:scale-[0.98] focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-solid gap-2 rounded-16 px-4 py-3 flex-row flex-1 basis-0 self-stretch focus-visible:scale-x-[0.98] focus-visible:scale-y-[0.905] bg-accent1 hover:bg-accent1-hovered active:bg-accent1-hovered focus-visible:bg-accent1-hovered focus-visible:outline-accent1-hovered"
+            data-testid="create-account"
+            dd-action-name="Create account"
+            type="button"
+          >
+            <span
+              class="text-center font-medium [font-family:var(--sbtn-font-button)] [transition:color_100ms_cubic-bezier(0.17,0.67,0.45,1)] text-[16px] [line-height:20.7px] text-white max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
+            >
+              Create account
+            </span>
+          </button>
+        </div>
+        <div
+          class="[container-name:true] flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 [container-type:normal] rounded-[12px] [cursor:pointer] bg-transparent self-center [transition:transform_80ms_ease-in-out,_opacity_80ms_ease-in-out] active:opacity-[0.75] active:[transform:scale(0.98)] focus-visible:[transform:scaleX(0.98)_scaleY(0.98)] focus-visible:[outline-offset:1px] focus-visible:[outline-style:solid] focus-visible:[outline-width:1px] focus-visible:[outline-color:var(--neutral3)] group"
+          data-testid="log-in"
+          role="button"
+          tabindex="0"
+        >
+          <div
+            class="flex basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row items-center gap-[4px] [color:var(--accent1)] group-hover:[color:var(--accent1-hovered)]"
+          >
+            <svg
+              fill="none"
+              stroke-width="8"
+              style="color: currentColor; width: 20px; height: 20px;"
+              viewBox="0 0 24 24"
+            >
+              <path
+                clip-rule="evenodd"
+                d="M16.4303 8.67684C16.2913 8.71327 16.1049 8.77702 16.0162 8.81648C15.4246 9.08059 14.8448 9.63916 14.5608 10.2281C14.2177 10.9324 14.1733 11.8886 14.4514 12.605C14.6969 13.2365 15.1406 13.7677 15.6878 14.0834L15.8978 14.2048L15.9008 16.4816L15.9067 18.7584L16.522 19.3807L17.1402 20L18.1607 18.9557C18.7228 18.3789 19.1813 17.8963 19.1813 17.878C19.1813 17.8629 18.9121 17.5714 18.5837 17.2345L17.9833 16.6182L18.3855 16.2023C18.9062 15.662 19.1813 15.3645 19.1813 15.3341C19.1813 15.322 18.986 15.1065 18.7464 14.8545C18.5068 14.6025 18.2938 14.3748 18.2761 14.3445C18.2436 14.299 18.2613 14.2807 18.421 14.1897C19.1043 13.8102 19.5569 13.3002 19.8261 12.6111C19.971 12.2377 20.0361 11.6336 19.9799 11.1266C19.8646 10.049 19.0807 9.08362 18.0365 8.72845C17.6135 8.58273 16.8562 8.55845 16.4303 8.67684ZM17.4153 9.92755C17.6934 10.0247 17.998 10.4922 17.9566 10.7593C17.93 10.9293 17.7673 11.2359 17.649 11.3361C17.4183 11.5334 17.0456 11.5729 16.7823 11.4333C16.3534 11.2056 16.2084 10.6379 16.4747 10.2433C16.5575 10.1188 16.7527 9.96701 16.8888 9.91541C17.0219 9.86683 17.2585 9.87291 17.4153 9.92755Z"
+                fill="currentColor"
+                fill-rule="evenodd"
+              />
+              <path
+                d="M9.36733 4.02012C9.28451 4.03529 9.10999 4.08386 8.98575 4.1294C7.82325 4.53011 6.87964 5.56832 6.55721 6.80385C6.48622 7.07706 6.4803 7.15296 6.47734 7.72367C6.47439 8.14563 6.48622 8.40063 6.51284 8.51295C6.85597 9.96705 7.83508 11.0265 9.19577 11.4181C9.41762 11.4819 9.54777 11.497 9.9826 11.5092C10.7961 11.5335 11.1362 11.4667 11.7781 11.154C12.3342 10.8808 12.7838 10.4953 13.1506 9.96705C13.3991 9.60884 13.5204 9.37509 13.6505 9.0017C13.8044 8.54634 13.8369 8.29135 13.8162 7.57796C13.7985 6.86457 13.7511 6.65207 13.4701 6.06921C13.0116 5.11297 12.2662 4.45726 11.2368 4.10815L10.941 4.00797L10.2311 4.0019C9.84062 3.99583 9.45312 4.00494 9.36733 4.02012Z"
+                fill="currentColor"
+              />
+              <path
+                d="M6.56435 13.4247C7.2654 13.0271 7.88954 12.8601 8.82724 12.8237C9.14374 12.8115 9.96312 12.8024 10.6464 12.8085C12.0722 12.8176 12.2615 12.8389 12.9685 13.0756L13.3678 13.2062L13.5482 13.528C13.7938 13.9651 13.9564 14.1746 14.3499 14.5753L14.6841 14.9153V19.5326H4.00566L4.0027 18.9163C3.99087 17.4622 4.01453 17.0828 4.14173 16.5879C4.48486 15.2522 5.36339 14.1047 6.56435 13.4247Z"
+                fill="currentColor"
+              />
+            </svg>
+            <span
+              class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-medium)] text-[16px] [line-height:18.4px] [font-weight:535] [color:var(--stext-accent1)] group-hover:[color:var(--cgh-col)]"
+              style="--cgh-col: var(--stext-accent1Hovered);"
+            >
+              Log in
+            </span>
+          </div>
+        </div>
+      </div>
+      <div
+        class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 gap-[8px]"
+      >
+        <div
+          class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 px-[4px]"
+        >
+          <span
+            class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[12px] [line-height:16px] [font-weight:485] [color:var(--stext-neutral3)] text-center"
+          >
+            By connecting a wallet, you agree to Uniswap Labs’ 
+            <a
+              class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[16px] [line-height:22px] [font-weight:535] [color:var(--stext-accent1)] no-underline [cursor:pointer] hover:opacity-[var(--ch-opacity)] active:opacity-[var(--ca-opacity)] sc-gLaqbQ jDLDTa"
+              href="https://rigoblock.com/legal"
+              rel="noopener noreferrer"
+              role="link"
+              style="--ch-opacity: 0.6; --ca-opacity: 0.4; transition: opacity 100ms cubic-bezier(0.17, 0.67, 0.45, 1);"
+              target="_blank"
+            >
+              Terms of Service
+            </a>
+             and consent to its 
+            <a
+              class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[16px] [line-height:22px] [font-weight:535] [color:var(--stext-accent1)] no-underline [cursor:pointer] hover:opacity-[var(--ch-opacity)] active:opacity-[var(--ca-opacity)] sc-gLaqbQ jDLDTa"
+              href="https://rigoblock.com/legal"
+              rel="noopener noreferrer"
+              role="link"
+              style="--ch-opacity: 0.6; --ca-opacity: 0.4; transition: opacity 100ms cubic-bezier(0.17, 0.67, 0.45, 1);"
+              target="_blank"
+            >
+              Privacy Policy
+            </a>
+            .
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`OtherWalletsModal > renders correctly with EW disabled 1`] = `
+<DocumentFragment>
+  <div
+    class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] gap-[16px] grow-[1] shrink px-[16px] pt-[16px] pb-[20px] bg-surface1"
+    data-testid="other-wallet-modal"
+  >
+    <div
+      class="flex items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row justify-center w-[100%]"
+    >
+      <div
+        class="[container-name:true] flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 [container-type:normal] rounded-[12px] [cursor:pointer] bg-transparent mr-[auto] [transition:transform_80ms_ease-in-out,_opacity_80ms_ease-in-out] active:opacity-[0.75] active:[transform:scale(0.98)] focus-visible:[transform:scaleX(0.98)_scaleY(0.98)] focus-visible:[outline-offset:1px] focus-visible:[outline-style:solid] focus-visible:[outline-width:1px] focus-visible:[outline-color:var(--neutral3)] group"
+        data-testid="wallet-back"
+        role="button"
+        tabindex="0"
+      >
+        <svg
+          class="[color:var(--c-col)] group-hover:[color:var(--cgh-col)]"
+          fill="none"
+          stroke-width="8"
+          style="width: 20px; height: 20px; --c-col: var(--neutral2); --cgh-col: var(--neutral2-hovered);"
+          viewBox="0 0 24 24"
+        >
+          <path
+            clip-rule="evenodd"
+            d="M20 12C20 12.5523 19.5523 13 19 13L7.41421 13L12.7071 18.2929C13.0976 18.6834 13.0976 19.3166 12.7071 19.7071C12.3166 20.0976 11.6834 20.0976 11.2929 19.7071L4.29289 12.7071C3.90237 12.3166 3.90237 11.6834 4.29289 11.2929L11.2929 4.29289C11.6834 3.90237 12.3166 3.90237 12.7071 4.29289C13.0976 4.68342 13.0976 5.31658 12.7071 5.70711L7.41421 11H19C19.5523 11 20 11.4477 20 12Z"
+            fill="currentColor"
+            fill-rule="evenodd"
+          />
+        </svg>
+      </div>
+      <span
+        class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[16px] [line-height:20px] [font-weight:485] [color:var(--stext-neutral1)] ml-[var(--c-ml)] mr-[auto]"
+        style="--c-ml: -20px;"
+      >
+        Connect a wallet
+      </span>
+    </div>
+    <div
+      class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 gap-[16px]"
+    >
+      <div
+        class="flex basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row grow items-start"
+      >
+        <div
+          class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 w-[100%] rounded-[16px] overflow-hidden [transition:var(--c-t)]"
+          data-testid="option-grid"
+          style="--c-t: 125ms ease-in-out;"
+        />
+      </div>
+      <div
+        class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 gap-[8px]"
+      >
+        <div
+          class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 px-[4px]"
+        >
+          <span
+            class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[12px] [line-height:16px] [font-weight:485] [color:var(--stext-neutral3)] text-center"
+          >
+            By connecting a wallet, you agree to Uniswap Labs’ 
+            <a
+              class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[16px] [line-height:22px] [font-weight:535] [color:var(--stext-accent1)] no-underline [cursor:pointer] hover:opacity-[var(--ch-opacity)] active:opacity-[var(--ca-opacity)] sc-gLaqbQ jDLDTa"
+              href="https://rigoblock.com/legal"
+              rel="noopener noreferrer"
+              role="link"
+              style="--ch-opacity: 0.6; --ca-opacity: 0.4; transition: opacity 100ms cubic-bezier(0.17, 0.67, 0.45, 1);"
+              target="_blank"
+            >
+              Terms of Service
+            </a>
+             and consent to its 
+            <a
+              class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[16px] [line-height:22px] [font-weight:535] [color:var(--stext-accent1)] no-underline [cursor:pointer] hover:opacity-[var(--ch-opacity)] active:opacity-[var(--ca-opacity)] sc-gLaqbQ jDLDTa"
+              href="https://rigoblock.com/legal"
+              rel="noopener noreferrer"
+              role="link"
+              style="--ch-opacity: 0.6; --ca-opacity: 0.4; transition: opacity 100ms cubic-bezier(0.17, 0.67, 0.45, 1);"
+              target="_blank"
+            >
+              Privacy Policy
+            </a>
+            .
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`OtherWalletsModal > renders correctly with EW enabled 1`] = `
+<DocumentFragment>
+  <div
+    class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] gap-[16px] grow-[1] shrink px-[16px] pt-[16px] pb-[20px] bg-surface1"
+    data-testid="other-wallet-modal"
+  >
+    <div
+      class="flex items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row justify-center w-[100%]"
+    >
+      <div
+        class="[container-name:true] flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 [container-type:normal] rounded-[12px] [cursor:pointer] bg-transparent mr-[auto] [transition:transform_80ms_ease-in-out,_opacity_80ms_ease-in-out] active:opacity-[0.75] active:[transform:scale(0.98)] focus-visible:[transform:scaleX(0.98)_scaleY(0.98)] focus-visible:[outline-offset:1px] focus-visible:[outline-style:solid] focus-visible:[outline-width:1px] focus-visible:[outline-color:var(--neutral3)] group"
+        data-testid="wallet-back"
+        role="button"
+        tabindex="0"
+      >
+        <svg
+          class="[color:var(--c-col)] group-hover:[color:var(--cgh-col)]"
+          fill="none"
+          stroke-width="8"
+          style="width: 20px; height: 20px; --c-col: var(--neutral2); --cgh-col: var(--neutral2-hovered);"
+          viewBox="0 0 24 24"
+        >
+          <path
+            clip-rule="evenodd"
+            d="M20 12C20 12.5523 19.5523 13 19 13L7.41421 13L12.7071 18.2929C13.0976 18.6834 13.0976 19.3166 12.7071 19.7071C12.3166 20.0976 11.6834 20.0976 11.2929 19.7071L4.29289 12.7071C3.90237 12.3166 3.90237 11.6834 4.29289 11.2929L11.2929 4.29289C11.6834 3.90237 12.3166 3.90237 12.7071 4.29289C13.0976 4.68342 13.0976 5.31658 12.7071 5.70711L7.41421 11H19C19.5523 11 20 11.4477 20 12Z"
+            fill="currentColor"
+            fill-rule="evenodd"
+          />
+        </svg>
+      </div>
+      <span
+        class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[16px] [line-height:20px] [font-weight:485] [color:var(--stext-neutral1)] ml-[var(--c-ml)] mr-[auto]"
+        style="--c-ml: -20px;"
+      >
+        Connect a wallet
+      </span>
+    </div>
+    <div
+      class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 gap-[16px]"
+    >
+      <div
+        class="flex basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row grow items-start"
+      >
+        <div
+          class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 w-[100%] rounded-[16px] overflow-hidden [transition:var(--c-t)]"
+          data-testid="option-grid"
+          style="--c-t: 125ms ease-in-out;"
+        />
+      </div>
+      <div
+        class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 gap-[8px]"
+      >
+        <div
+          class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 px-[4px]"
+        >
+          <span
+            class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[12px] [line-height:16px] [font-weight:485] [color:var(--stext-neutral3)] text-center"
+          >
+            By connecting a wallet, you agree to Uniswap Labs’ 
+            <a
+              class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[16px] [line-height:22px] [font-weight:535] [color:var(--stext-accent1)] no-underline [cursor:pointer] hover:opacity-[var(--ch-opacity)] active:opacity-[var(--ca-opacity)] sc-gLaqbQ jDLDTa"
+              href="https://rigoblock.com/legal"
+              rel="noopener noreferrer"
+              role="link"
+              style="--ch-opacity: 0.6; --ca-opacity: 0.4; transition: opacity 100ms cubic-bezier(0.17, 0.67, 0.45, 1);"
+              target="_blank"
+            >
+              Terms of Service
+            </a>
+             and consent to its 
+            <a
+              class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[16px] [line-height:22px] [font-weight:535] [color:var(--stext-accent1)] no-underline [cursor:pointer] hover:opacity-[var(--ch-opacity)] active:opacity-[var(--ca-opacity)] sc-gLaqbQ jDLDTa"
+              href="https://rigoblock.com/legal"
+              rel="noopener noreferrer"
+              role="link"
+              style="--ch-opacity: 0.6; --ca-opacity: 0.4; transition: opacity 100ms cubic-bezier(0.17, 0.67, 0.45, 1);"
+              target="_blank"
+            >
+              Privacy Policy
+            </a>
+            .
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`StandardWalletModal > renders correctly 1`] = `
+<DocumentFragment>
+  <div
+    class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] gap-[16px] grow-[1] shrink p-[16px] bg-surface1"
+    data-testid="wallet-modal"
+  >
+    <div
+      class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 gap-[16px]"
+    >
+      <div
+        class="flex items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row justify-between w-[100%]"
+      >
+        <span
+          class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[16px] [line-height:20px] [font-weight:485] [color:var(--stext-neutral1)]"
+        >
+          Connect a wallet
+        </span>
+      </div>
+      <div
+        class="flex basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row items-center py-[8px] [cursor:pointer] [user-select:none] hover:opacity-[var(--ch-opacity)] active:opacity-[var(--ca-opacity)] no-underline"
+        style="--ch-opacity: 0.8; --ca-opacity: 0.6; transition: opacity 100ms;"
+      >
+        <div
+          style="display: flex; align-items: stretch; flex-direction: column; flex-basis: auto; box-sizing: border-box; position: relative; min-height: 0; min-width: 0; flex-grow: 1; flex-shrink: 1; border-top-style: solid; border-right-style: solid; border-bottom-style: solid; border-left-style: solid; border-top-width: 0; border-right-width: 0; border-left-width: 0; border-top-color: rgba(19, 19, 19, 0.08); border-right-color: rgba(19, 19, 19, 0.08); border-bottom-color: rgba(19, 19, 19, 0.08); border-left-color: rgba(19, 19, 19, 0.08); height: 0px; max-height: 0; border-bottom-width: 1px;"
+        />
+        <div
+          class="flex basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row items-center mx-[18px]"
+        >
+          <span
+            class="[display:inline] box-border m-0 [word-wrap:break-word] [font-family:var(--stext-font-book)] text-[14px] [line-height:18px] [font-weight:485] [color:var(--stext-neutral2)] whitespace-nowrap"
+          >
+            Other wallets
+          </span>
+          <svg
+            fill="none"
+            stroke-width="8"
+            style="width: 20px; height: 20px;"
+            viewBox="0 0 17 16"
+          >
+            <path
+              d="M11.5201 11.6467C11.7154 11.842 11.7154 12.1587 11.5201 12.354C11.4227 12.4514 11.2947 12.5007 11.1667 12.5007C11.0387 12.5007 10.9107 12.452 10.8134 12.354L8.50004 10.0407L6.18672 12.354C5.99139 12.5494 5.6747 12.5494 5.47937 12.354C5.28403 12.1587 5.28403 11.842 5.47937 11.6467L8.14603 8.98C8.34137 8.78466 8.65806 8.78466 8.85339 8.98L11.5201 11.6467ZM8.14668 7.02003C8.24402 7.11737 8.37204 7.16668 8.50004 7.16668C8.62804 7.16668 8.75606 7.11803 8.85339 7.02003L11.5201 4.35337C11.7154 4.15804 11.7154 3.84135 11.5201 3.64601C11.3247 3.45068 11.008 3.45068 10.8127 3.64601L8.49939 5.95933L6.18607 3.64601C5.99074 3.45068 5.67405 3.45068 5.47871 3.64601C5.28338 3.84135 5.28338 4.15804 5.47871 4.35337L8.14668 7.02003Z"
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-width="0.4"
+            />
+          </svg>
+        </div>
+        <div
+          style="display: flex; align-items: stretch; flex-direction: column; flex-basis: auto; box-sizing: border-box; position: relative; min-height: 0; min-width: 0; flex-grow: 1; flex-shrink: 1; border-top-style: solid; border-right-style: solid; border-bottom-style: solid; border-left-style: solid; border-top-width: 0; border-right-width: 0; border-left-width: 0; border-top-color: rgba(19, 19, 19, 0.08); border-right-color: rgba(19, 19, 19, 0.08); border-bottom-color: rgba(19, 19, 19, 0.08); border-left-color: rgba(19, 19, 19, 0.08); height: 0px; max-height: 0; border-bottom-width: 1px;"
+        />
+      </div>
+    </div>
+    <div
+      class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 gap-[12px]"
+    >
+      <div
+        class="flex basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 flex-row items-start"
+      >
+        <div
+          class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 w-[100%] max-h-[var(--c-max-h)] rounded-[16px] opacity-[1] overflow-hidden [transition:var(--c-t)]"
+          data-testid="option-grid"
+          style="--c-max-h: 100vh; --c-t: 250ms ease-in-out;"
+        />
+      </div>
+      <div
+        class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 gap-[8px]"
+      >
+        <div
+          class="flex flex-col items-stretch basis-auto box-border relative min-h-[0px] min-w-[0px] shrink-0 px-[4px]"
+        >
+          <span
+            class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[12px] [line-height:16px] [font-weight:485] [color:var(--stext-neutral3)] text-center"
+          >
+            By connecting a wallet, you agree to Uniswap Labs’ 
+            <a
+              class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[16px] [line-height:22px] [font-weight:535] [color:var(--stext-accent1)] no-underline [cursor:pointer] hover:opacity-[var(--ch-opacity)] active:opacity-[var(--ca-opacity)] sc-gLaqbQ jDLDTa"
+              href="https://rigoblock.com/legal"
+              rel="noopener noreferrer"
+              role="link"
+              style="--ch-opacity: 0.6; --ca-opacity: 0.4; transition: opacity 100ms cubic-bezier(0.17, 0.67, 0.45, 1);"
+              target="_blank"
+            >
+              Terms of Service
+            </a>
+             and consent to its 
+            <a
+              class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[16px] [line-height:22px] [font-weight:535] [color:var(--stext-accent1)] no-underline [cursor:pointer] hover:opacity-[var(--ch-opacity)] active:opacity-[var(--ca-opacity)] sc-gLaqbQ jDLDTa"
+              href="https://rigoblock.com/legal"
+              rel="noopener noreferrer"
+              role="link"
+              style="--ch-opacity: 0.6; --ca-opacity: 0.4; transition: opacity 100ms cubic-bezier(0.17, 0.67, 0.45, 1);"
+              target="_blank"
+            >
+              Privacy Policy
+            </a>
+            .
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;

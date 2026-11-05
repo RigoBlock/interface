@@ -37,8 +37,6 @@ import { currencyId } from 'uniswap/src/utils/currencyId'
 import { createMonitoredSaga } from 'uniswap/src/utils/saga'
 import { logger } from 'utilities/src/logger/logger'
 import { RPC_PROVIDERS } from '~/constants/providers'
-import { popupRegistry } from '~/state/popups/registry'
-import { PopupType } from '~/state/popups/types'
 import { getLiquidityEventName } from '~/state/sagas/liquidity/getLiquidityEventName'
 import { handleAtomicSendCalls } from '~/state/sagas/transactions/5792'
 import {
@@ -47,6 +45,8 @@ import {
   handleOnChainStep,
   handlePermitTransactionStep,
 } from '~/state/sagas/transactions/utils'
+import { popupRegistry } from '~/utils/popups/registry'
+import { PopupType } from '~/utils/popups/types'
 
 type LiquidityParams = {
   selectChain: (chainId: number) => Promise<boolean>

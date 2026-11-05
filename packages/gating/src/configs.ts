@@ -72,6 +72,7 @@ export enum DynamicConfigs {
   Earn = 'earn_config',
   NetworkRequests = 'network_requests',
   Permit2MismatchDelegates = 'permit2_mismatch_delegates',
+  PoolCategoriesOrder = 'pool_categories_order',
   Swap = 'swap_config',
   SyncTransactionSubmissionChainIds = 'sync_transaction_submission_chain_ids',
   TokenCategoriesOrder = 'token_categories_order',
@@ -97,6 +98,7 @@ export enum DynamicConfigs {
   LiquidityGasPreEstimation = 'liquidity_gas_pre_estimation',
   LPConfig = 'lp_config',
   LpIncentivesChainIds = 'lp_incentives_chain_ids',
+  Margin = 'margin_config',
   RWAIssuerLogos = 'rwa_issuer_logos',
   SynchronizedHeartbeats = 'synchronized_heartbeats',
   UniswapBuiltHookAddresses = 'uniswap_built_hook_addresses',
@@ -156,7 +158,8 @@ export enum EarnConfigKey {
   SwapToggleMonthlyEarningsThresholdUsd = 'swapToggleMonthlyEarningsThresholdUsd',
 }
 
-export enum TokenCategoriesOrderConfigKey {
+/** Category ids pinned first, in display order; the rest keep backend order. */
+export enum CategoriesOrderConfigKey {
   OrderedCategoryIds = 'orderedCategoryIds',
 }
 
@@ -277,6 +280,10 @@ export enum LpIncentivesChainIdsConfigKey {
   ChainIds = 'chainIds',
 }
 
+export enum MarginConfigKey {
+  SupportedChainIds = 'supportedChainIds',
+}
+
 export enum VerifiedAuctionsConfigKey {
   VerifiedAuctionIds = 'verifiedAuctionIds',
 }
@@ -326,9 +333,10 @@ export type DynamicConfigKeys = {
   [DynamicConfigs.Earn]: EarnConfigKey
   [DynamicConfigs.NetworkRequests]: NetworkRequestsConfigKey
   [DynamicConfigs.Permit2MismatchDelegates]: Permit2MismatchDelegatesConfigKey
+  [DynamicConfigs.PoolCategoriesOrder]: CategoriesOrderConfigKey
   [DynamicConfigs.Swap]: SwapConfigKey
   [DynamicConfigs.SyncTransactionSubmissionChainIds]: SyncTransactionSubmissionChainIdsConfigKey
-  [DynamicConfigs.TokenCategoriesOrder]: TokenCategoriesOrderConfigKey
+  [DynamicConfigs.TokenCategoriesOrder]: CategoriesOrderConfigKey
   [DynamicConfigs.TokenCategoriesSearchSpotlight]: TokenCategoriesSearchSpotlightConfigKey
 
   // Wallet
@@ -351,6 +359,7 @@ export type DynamicConfigKeys = {
   [DynamicConfigs.LiquidityGasPreEstimation]: LiquidityGasPreEstimationConfigKey
   [DynamicConfigs.LPConfig]: LPConfigKey
   [DynamicConfigs.LpIncentivesChainIds]: LpIncentivesChainIdsConfigKey
+  [DynamicConfigs.Margin]: MarginConfigKey
   [DynamicConfigs.RWAIssuerLogos]: RWAIssuerLogosConfigKey
   [DynamicConfigs.SynchronizedHeartbeats]: SynchronizedHeartbeatsConfigKey
   [DynamicConfigs.UniswapBuiltHookAddresses]: UniswapBuiltHookAddressesConfigKey

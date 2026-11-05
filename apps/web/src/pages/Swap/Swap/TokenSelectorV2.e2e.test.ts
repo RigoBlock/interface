@@ -298,21 +298,31 @@ test.describe(
 
       const OPEN_SHEET = '.uw-sheet-frame[data-state="open"]'
 
-      /** Drag the sheet's handlebar down far past the dismiss threshold with real touch input. */
-      async function dragDismissSheet(page: Page): Promise<void> {
+      /** Drag the sheet down far past the dismiss threshold with real touch input. */
+      async function dragDismissSheet({
+        page,
+        from = (frame) => frame.locator('[data-sheet-handle]'),
+      }: {
+        page: Page
+        from?: (frame: Locator) => Locator
+      }): Promise<void> {
         const frame = page.locator(OPEN_SHEET).last()
-        const box = await frame.boundingBox()
+        // Raw CDP touches skip actionability waits, so measure the start point only once the frame's
+        // slide-in has finished — mid-animation the touch lands below it and pans instead.
+        await frame.evaluate((el) => Promise.all(el.getAnimations().map((animation) => animation.finished)))
+        const box = await from(frame).boundingBox()
         expect(box).not.toBeNull()
         if (!box) {
           return
         }
         const cdp = await page.context().newCDPSession(page)
-        const startY = box.y + 12
-        await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 224, y: startY }] })
+        const x = box.x + box.width / 2
+        const startY = box.y + box.height / 2
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y: startY }] })
         for (let step = 1; step <= 12; step++) {
           await cdp.send('Input.dispatchTouchEvent', {
             type: 'touchMove',
-            touchPoints: [{ x: 224, y: startY + step * 40 }],
+            touchPoints: [{ x, y: startY + step * 40 }],
           })
           await page.waitForTimeout(16)
         }
@@ -330,7 +340,7 @@ test.describe(
         await expect(frame).toBeVisible()
         await expect(suggestedEth).toBeVisible()
 
-        await dragDismissSheet(page)
+        await dragDismissSheet({ page })
 
         // Reopen with all queries cached: the sheet must come back at its snap-point height with
         // content rendered — not collapsed to chrome height with an empty list (SWAP-3263).
@@ -340,6 +350,16 @@ test.describe(
         const reopenedBox = await frame.boundingBox()
         expect(reopenedBox).not.toBeNull()
         expect(reopenedBox?.height ?? 0).toBeGreaterThan(300)
+      })
+
+      test('drag-dismisses from the search bar, not just the handlebar', async ({ page }) => {
+        await mockGetPortfolioResponse({ page })
+        await page.goto(buildSwapUrl({}))
+
+        await page.getByTestId(TestID.ChooseOutputToken).tap()
+        await expect(page.locator(OPEN_SHEET).last()).toBeVisible()
+
+        await dragDismissSheet({ page, from: (frame) => frame.getByTestId(TestID.ExploreSearchInput) })
       })
     })
   },

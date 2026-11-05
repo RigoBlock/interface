@@ -1,12 +1,10 @@
 import { BigNumber } from '@ethersproject/bignumber'
-import { GraphQLApi } from '@universe/api'
 import { UniverseChainId } from '@universe/chains'
 import { AppId } from '@universe/config'
 import { PollingInterval } from 'uniswap/src/constants/misc'
 import { ALL_CHAIN_IDS } from 'uniswap/src/features/chains/chainInfo'
 import {
   chainIdToHexadecimalString,
-  fromGraphQLChain,
   fromUniswapWebAppLink,
   getEnabledChains,
   getPollingIntervalByBlocktime,
@@ -29,28 +27,6 @@ describe(toSupportedChainId, () => {
   })
 })
 
-describe(fromGraphQLChain, () => {
-  it('handles undefined', () => {
-    expect(fromGraphQLChain(undefined)).toEqual(null)
-  })
-
-  it('handles supported chain', () => {
-    expect(fromGraphQLChain(GraphQLApi.Chain.Arbitrum)).toEqual(UniverseChainId.ArbitrumOne)
-    expect(fromGraphQLChain(GraphQLApi.Chain.Base)).toEqual(UniverseChainId.Base)
-  })
-
-  // Fork: chains outside the RigoBlock set (e.g. MegaETH) are commented out of
-  // fromGraphQLChain and must map to null.
-  it('handles chains outside the fork set', () => {
-    expect(fromGraphQLChain(GraphQLApi.Chain.Megaeth)).toEqual(null)
-    expect(fromGraphQLChain(GraphQLApi.Chain.Solana)).toEqual(null)
-  })
-
-  it('handles unsupported chain', () => {
-    expect(fromGraphQLChain(GraphQLApi.Chain.UnknownChain)).toEqual(null)
-  })
-})
-
 describe(getPollingIntervalByBlocktime, () => {
   it('returns the correct value for L1', () => {
     expect(getPollingIntervalByBlocktime(UniverseChainId.Mainnet)).toEqual(PollingInterval.Fast)
@@ -63,12 +39,18 @@ describe(getPollingIntervalByBlocktime, () => {
 
 describe(fromUniswapWebAppLink, () => {
   it('handles supported chain', () => {
-    expect(fromUniswapWebAppLink(GraphQLApi.Chain.Ethereum.toLowerCase())).toEqual(UniverseChainId.Mainnet)
-    expect(fromUniswapWebAppLink(GraphQLApi.Chain.Arbitrum.toLowerCase())).toEqual(UniverseChainId.ArbitrumOne)
-    expect(fromUniswapWebAppLink(GraphQLApi.Chain.Optimism.toLowerCase())).toEqual(UniverseChainId.Optimism)
-    expect(fromUniswapWebAppLink(GraphQLApi.Chain.Polygon.toLowerCase())).toEqual(UniverseChainId.Polygon)
-    expect(fromUniswapWebAppLink(GraphQLApi.Chain.Megaeth.toLowerCase())).toEqual(UniverseChainId.MegaETH)
-    // TODO: add Base test once GraphQLApi.Chain includes Base (GQL reliant)
+    expect(fromUniswapWebAppLink('ethereum')).toEqual(UniverseChainId.Mainnet)
+    expect(fromUniswapWebAppLink('arbitrum')).toEqual(UniverseChainId.ArbitrumOne)
+    expect(fromUniswapWebAppLink('optimism')).toEqual(UniverseChainId.Optimism)
+    expect(fromUniswapWebAppLink('polygon')).toEqual(UniverseChainId.Polygon)
+    expect(fromUniswapWebAppLink('megaeth')).toEqual(UniverseChainId.MegaETH)
+    expect(fromUniswapWebAppLink('base')).toEqual(UniverseChainId.Base)
+    expect(fromUniswapWebAppLink('ethereum_sepolia')).toEqual(UniverseChainId.Sepolia)
+  })
+
+  it('maps both the current and legacy Unichain Sepolia slugs', () => {
+    expect(fromUniswapWebAppLink('unichain_sepolia')).toEqual(UniverseChainId.UnichainSepolia)
+    expect(fromUniswapWebAppLink('astrochain_sepolia')).toEqual(UniverseChainId.UnichainSepolia)
   })
 
   it('handle unsupported chain', () => {
@@ -78,16 +60,19 @@ describe(fromUniswapWebAppLink, () => {
 
 describe(toUniswapWebAppLink, () => {
   it('handles supported chain', () => {
-    expect(toUniswapWebAppLink(UniverseChainId.Mainnet)).toEqual(GraphQLApi.Chain.Ethereum.toLowerCase())
-    expect(toUniswapWebAppLink(UniverseChainId.ArbitrumOne)).toEqual(GraphQLApi.Chain.Arbitrum.toLowerCase())
-    expect(toUniswapWebAppLink(UniverseChainId.Optimism)).toEqual(GraphQLApi.Chain.Optimism.toLowerCase())
-    expect(toUniswapWebAppLink(UniverseChainId.Polygon)).toEqual(GraphQLApi.Chain.Polygon.toLowerCase())
-    expect(toUniswapWebAppLink(UniverseChainId.MegaETH)).toEqual(GraphQLApi.Chain.Megaeth.toLowerCase())
-    // TODO: add Base test once GraphQLApi.Chain includes Base (GQL reliant)
+    expect(toUniswapWebAppLink(UniverseChainId.Mainnet)).toEqual('ethereum')
+    expect(toUniswapWebAppLink(UniverseChainId.ArbitrumOne)).toEqual('arbitrum')
+    expect(toUniswapWebAppLink(UniverseChainId.Optimism)).toEqual('optimism')
+    expect(toUniswapWebAppLink(UniverseChainId.Polygon)).toEqual('polygon')
+    expect(toUniswapWebAppLink(UniverseChainId.MegaETH)).toEqual('megaeth')
+    expect(toUniswapWebAppLink(UniverseChainId.Base)).toEqual('base')
+    expect(toUniswapWebAppLink(UniverseChainId.UnichainSepolia)).toEqual('unichain_sepolia')
   })
 
-  it('handle unsupported chain', () => {
-    expect(() => fromUniswapWebAppLink('unkwnown')).toThrow('Network "unkwnown" can not be mapped')
+  it('round-trips every chain', () => {
+    for (const chainId of ALL_CHAIN_IDS) {
+      expect(fromUniswapWebAppLink(toUniswapWebAppLink(chainId))).toEqual(chainId)
+    }
   })
 })
 
@@ -143,15 +128,6 @@ describe('getEnabledChains', () => {
         UniverseChainId.Bnb,
         UniverseChainId.HyperEvm,
       ],
-      gqlChains: [
-        GraphQLApi.Chain.Ethereum,
-        GraphQLApi.Chain.Unichain,
-        GraphQLApi.Chain.Polygon,
-        GraphQLApi.Chain.Arbitrum,
-        GraphQLApi.Chain.Optimism,
-        GraphQLApi.Chain.Base,
-        GraphQLApi.Chain.Bnb,
-      ],
       defaultChainId: UniverseChainId.Mainnet,
       isTestnetModeEnabled: false,
     })
@@ -166,7 +142,6 @@ describe('getEnabledChains', () => {
       }),
     ).toEqual({
       chains: [UniverseChainId.Mainnet, UniverseChainId.Polygon],
-      gqlChains: [GraphQLApi.Chain.Ethereum, GraphQLApi.Chain.Polygon],
       defaultChainId: UniverseChainId.Mainnet,
       isTestnetModeEnabled: false,
     })
@@ -182,7 +157,6 @@ describe('getEnabledChains', () => {
     ).toEqual({
       // Fork: only Sepolia is in the allowedChains set (Unichain Sepolia is not).
       chains: [UniverseChainId.Sepolia],
-      gqlChains: [GraphQLApi.Chain.EthereumSepolia],
       defaultChainId: UniverseChainId.Sepolia,
       isTestnetModeEnabled: true,
     })
@@ -205,12 +179,6 @@ describe('getEnabledChains', () => {
     ).toEqual({
       // Fork: Unichain Sepolia is outside the allowedChains set and drops out.
       chains: [UniverseChainId.Mainnet, UniverseChainId.Unichain, UniverseChainId.Base, UniverseChainId.Sepolia],
-      gqlChains: [
-        GraphQLApi.Chain.Ethereum,
-        GraphQLApi.Chain.Unichain,
-        GraphQLApi.Chain.Base,
-        GraphQLApi.Chain.EthereumSepolia,
-      ],
       defaultChainId: UniverseChainId.Mainnet,
       isTestnetModeEnabled: false,
     })

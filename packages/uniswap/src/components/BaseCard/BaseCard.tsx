@@ -1,11 +1,18 @@
-import { type ColorTokens, Flex, type FlexProps, Text, TouchableArea } from '@universe/mycelium'
+import {
+  type ColorTokens,
+  Flex,
+  type FlexProps,
+  Text,
+  TouchableArea,
+  useIsDarkMode,
+  useSporeColors,
+} from '@universe/mycelium'
+import { AlertTriangleFilled } from '@universe/mycelium/icons/AlertTriangleFilled'
+import { RotatableChevron } from '@universe/mycelium/icons/RotatableChevron'
+import { RotateRight } from '@universe/mycelium/icons/RotateRight'
+import { opacify } from '@universe/mycelium/theme-hooks-compat'
 import { ComponentProps, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useIsDarkMode, useSporeColors } from 'ui/src'
-import { AlertTriangleFilled } from 'ui/src/components/icons/AlertTriangleFilled'
-import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
-import { RotateRight } from 'ui/src/components/icons/RotateRight'
-import { opacify } from 'ui/src/theme'
 export const SHADOW_OFFSET_SMALL = { width: 0, height: 2 } as const
 
 export function Shadow({ children, ...rest }: FlexProps): JSX.Element {

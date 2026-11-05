@@ -1,7 +1,8 @@
-import { Flex, Text } from '@universe/mycelium'
+import { Flex, Text, useIsDarkMode, imageSizes, validColor } from '@universe/mycelium'
 import { USDC_LOGO } from '@universe/mycelium/assets'
-import { Image, useIsDarkMode } from 'ui/src'
-import { colors, imageSizes, opacify, validColor } from 'ui/src/theme'
+import { opacify } from '@universe/mycelium/theme-hooks-compat'
+import { colors } from '@universe/mycelium/theme-palette'
+import { Image } from 'ui/src'
 
 // As we're using this color only in this component, we define it here instead in colors.ts
 const BLUE_USDC_COLOR = '#2775CA'

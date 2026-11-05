@@ -7,24 +7,14 @@ import {
   AUCTION_DEFAULT_RETRY,
   AuctionStaleTime,
   auctionQueryKeys,
+  loadAuctionServiceClient,
 } from 'uniswap/src/data/apiClients/dataApiService/auctions/queryTypes'
-import { toGraphQLChain } from 'uniswap/src/features/chains/utils'
 import { HistoryDuration } from 'uniswap/src/features/dataApi/types'
 import { getPortfolioChartPercentChange } from 'uniswap/src/features/portfolio/portfolioChartPercentChange'
 import { parseFiniteNumber } from 'utilities/src/primitives/number'
 import type { PriceChartData } from '~/components/Charts/PriceChart'
 import { PriceChartType } from '~/components/Charts/utils'
 import { useTokenPriceChartData } from '~/hooks/useTokenPriceChartData'
-
-// Loaded on demand: the navbar search imports this card, so a static import would pull the connect
-// client and transport onto every page.
-async function getAuctionServiceClient(): Promise<
-  typeof import('uniswap/src/data/apiClients/dataApiService/auctions/AuctionServiceClient').AuctionServiceClient
-> {
-  const { AuctionServiceClient } =
-    await import('uniswap/src/data/apiClients/dataApiService/auctions/AuctionServiceClient')
-  return AuctionServiceClient
-}
 
 export interface AuctionHoverCardData {
   fdvUsd: number | undefined
@@ -61,7 +51,7 @@ export function useAuctionHoverCardData({
 
   const { data: auctionResponse, isLoading: auctionLoading } = useQuery({
     queryKey: auctionQueryKeys.getAuction(auctionRequest),
-    queryFn: async () => toPlainMessage(await (await getAuctionServiceClient()).getAuction(auctionRequest)),
+    queryFn: async () => toPlainMessage(await (await loadAuctionServiceClient()).getAuction(auctionRequest)),
     enabled: isEnabled,
     staleTime: AuctionStaleTime.FAST,
     retry: AUCTION_DEFAULT_RETRY,
@@ -70,7 +60,8 @@ export function useAuctionHoverCardData({
 
   const { data: checkpointResponse, isLoading: checkpointLoading } = useQuery({
     queryKey: auctionQueryKeys.getLatestCheckpoint(checkpointRequest),
-    queryFn: async () => toPlainMessage(await (await getAuctionServiceClient()).getLatestCheckpoint(checkpointRequest)),
+    queryFn: async () =>
+      toPlainMessage(await (await loadAuctionServiceClient()).getLatestCheckpoint(checkpointRequest)),
     enabled: isEnabled && fetchBidCount,
     staleTime: AuctionStaleTime.REALTIME,
     retry: AUCTION_DEFAULT_RETRY,
@@ -79,7 +70,7 @@ export function useAuctionHoverCardData({
 
   const chartVariables = useMemo(
     () => ({
-      chain: toGraphQLChain(chainId),
+      chainId,
       address: tokenAddress,
       duration: HistoryDuration.Day,
       multichain: false,

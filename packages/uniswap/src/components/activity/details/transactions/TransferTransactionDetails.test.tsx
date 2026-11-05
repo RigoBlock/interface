@@ -1,3 +1,4 @@
+import { UniverseChainId } from '@universe/chains'
 import { TransferTransactionDetails } from 'uniswap/src/components/activity/details/transactions/TransferTransactionDetails'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import {
@@ -31,7 +32,7 @@ const transferTypeInfo = {
 } as SendTokenTransactionInfo
 const mockTransaction = {
   id: '9920dbad-ff24-47c8-814a-094566fc45ff',
-  chainId: 81457,
+  chainId: UniverseChainId.Base,
   routing: 'CLASSIC',
   from: '0xee814caea14f6cccfeae34fea11d9a2ca6aabb11',
   typeInfo: transferTypeInfo,
@@ -94,10 +95,6 @@ vi.mock('uniswap/src/features/tokens/useCurrencyInfo', () => ({
     const chainId = parseInt(chainIdStr, 10)
     return getCurrencyInfoForChain(chainId)
   },
-}))
-
-vi.mock('ui/src/loading/Skeleton', () => ({
-  Skeleton: (): JSX.Element => <></>,
 }))
 
 describe('TransferTransactionDetails Component', () => {

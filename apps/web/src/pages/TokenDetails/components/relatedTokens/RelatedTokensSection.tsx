@@ -8,11 +8,10 @@ import { FilterChip, type FilterChipColor } from 'uniswap/src/components/FilterC
 import { TokenCard } from 'uniswap/src/components/TokenCard/TokenCard'
 import { useRelatedTokensQuery } from 'uniswap/src/data/apiClients/dataApiService/relatedTokens/useRelatedTokensQuery'
 import type { RankedTokenCardItem } from 'uniswap/src/data/apiClients/dataApiService/utils/rankedTokenCardItem'
-import { toGraphQLChain } from 'uniswap/src/features/chains/utils'
 import { currencyIdToRestContractInput } from 'uniswap/src/features/dataApi/utils/currencyIdToContractInput'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
-import { getTokenCategoryIcon } from 'uniswap/src/features/tokenCategories/categoryIcons'
+import { getCategoryIcon } from 'uniswap/src/features/tokenCategories/categoryIcons'
 import type { TokenCategory } from 'uniswap/src/features/tokenCategories/types'
 import { currencyId } from 'uniswap/src/utils/currencyId'
 import { useEvent } from 'utilities/src/react/hooks'
@@ -23,7 +22,7 @@ import { TokenCardSkeletonRow } from '~/components/TokenCardCarousel/TokenCardSk
 import { useHorizontalSnapCarousel } from '~/components/TokenCardCarousel/useHorizontalSnapCarousel'
 import { LoadingBubble } from '~/components/Tokens/loading'
 import { getTokenDetailsURL } from '~/data/util'
-import { rightEdgeFadeStyle, useWheelHorizontalScroll } from '~/pages/Explore/categories/useWheelHorizontalScroll'
+import { edgeFadeMaskStyle, useHorizontalScrollFades } from '~/hooks/useHorizontalScrollFades'
 import {
   deriveRelatedTokensSectionState,
   selectRelatedTokensCategory,
@@ -66,7 +65,7 @@ export function RelatedTokensSection({
     t,
   })
 
-  const { scrollerRef: chipsScrollerRef, showRightFade } = useWheelHorizontalScroll()
+  const { scrollerRef: chipsScrollerRef, edgeFades } = useHorizontalScrollFades()
 
   const onSelectCategory = useEvent((categoryId: string): void => {
     if (categoryId === selectedCategoryId) {
@@ -101,7 +100,7 @@ export function RelatedTokensSection({
           ref={chipsScrollerRef}
           maxWidth="100%"
           className="scrollbar-hidden"
-          $platform-web={{ overflowX: 'auto', overscrollBehaviorX: 'none', ...rightEdgeFadeStyle(showRightFade) }}
+          $platform-web={{ overflowX: 'auto', overscrollBehaviorX: 'none', ...edgeFadeMaskStyle(edgeFades) }}
         >
           <Flex row alignItems="center" gap="$spacing4">
             {categories.map((category) => (
@@ -178,7 +177,7 @@ const CategoryChip = memo(function CategoryChip({
   selected: boolean
   onSelect: (categoryId: string) => void
 }): JSX.Element {
-  const Icon = getTokenCategoryIcon(category)
+  const Icon = getCategoryIcon(category)
   const onPress = useEvent(() => onSelect(category.id))
   const renderIcon = useCallback((color: FilterChipColor) => <Icon color={color} size="$icon.16" />, [Icon])
 
@@ -209,7 +208,7 @@ const RelatedTokenCard = memo(function RelatedTokenCard({
     navigate(
       getTokenDetailsURL({
         address: token.address,
-        chain: toGraphQLChain(token.chainId),
+        chainId: token.chainId,
         chainQueryParam: TDP_MULTICHAIN_CHAIN_QUERY_VALUE,
       }),
     )

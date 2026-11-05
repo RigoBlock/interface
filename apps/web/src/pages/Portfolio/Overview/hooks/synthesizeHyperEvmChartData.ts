@@ -33,9 +33,9 @@ export function synthesizeHyperEvmChartData({
   if (baseChartData || isSelectedChainBackendSupported) {
     return baseChartData
   }
-  if (hyperliquidHistoryForChain && hyperliquidHistory.length > 0) {
-    const first = hyperliquidHistory[0]!
-    const last = hyperliquidHistory[hyperliquidHistory.length - 1]!
+  const first = hyperliquidHistory.at(0)
+  const last = hyperliquidHistory.at(-1)
+  if (hyperliquidHistoryForChain && first && last) {
     return {
       points: hyperliquidHistory.map((p) => ({ timestamp: BigInt(p.timestamp), value: 0 })),
       tokens: [],

@@ -74,9 +74,6 @@ export const rootIgnorePatterns = [
   'packages/uniswap/babel*.js',
   // ── packages/wallet ──
   'packages/wallet/babel*.js',
-  // ── packages/ui ──
-  'packages/ui/src/components/icons/**',
-  'packages/ui/src/components/logos/**',
   // ── packages/api ──
   'packages/api/codegen.ts',
   // ── tools/uniswap-nx ──
@@ -325,7 +322,7 @@ const webRestrictedSyntaxSelectors = [
   {
     selector:
       "VariableDeclarator[id.type='ObjectPattern'][init.callee.name='useWeb3React'] > ObjectPattern > Property[key.name='account']",
-    message: "Do not use account directly from useWeb3React. Use the useAccount hook from 'hooks/useAccount' instead.",
+    message: "Do not use account directly from useWeb3React. Use the useAccount hook from 'connection/hooks/useAccount' instead.",
   },
   {
     selector:
@@ -758,6 +755,8 @@ export default defineConfig({
               'apps/dev-portal/**/*.tsx',
               'apps/mission-control/**/*.ts',
               'apps/mission-control/**/*.tsx',
+              'apps/pools-xyz/**/*.ts',
+              'apps/pools-xyz/**/*.tsx',
             ],
             rules: {
               'universe-custom/no-throwing-stub-imports': ['error' as const, { platform: 'web' }],
@@ -787,6 +786,9 @@ export default defineConfig({
               // @universe/tailwind in 4 files.
               'packages/tailwind/**/*.ts',
               'packages/tailwind/**/*.tsx',
+              // transactions-ui views render through packages/uniswap adapters on web and mobile.
+              'packages/transactions-ui/**/*.ts',
+              'packages/transactions-ui/**/*.tsx',
             ],
             rules: {
               'universe-custom/no-throwing-stub-imports': ['error' as const, { platform: 'both' }],
@@ -1175,11 +1177,21 @@ export default defineConfig({
           {
             // Activates the swap-ui-views fence (import-boundaries.json):
             // files under a views/ directory in the swap tree must stay
-            // presentational. See scripts/swap-ui/POLICIES.md.
+            // presentational. See scripts/transactions-ui/POLICIES.md.
             files: [
               'packages/uniswap/src/features/transactions/swap/**/*.ts',
               'packages/uniswap/src/features/transactions/swap/**/*.tsx',
             ],
+            rules: {
+              'universe-custom/import-boundary': 'error' as const,
+            },
+          },
+          {
+            // Activates the transactions-ui fences (import-boundaries.json):
+            // views take data via props and emit callbacks, with no business
+            // logic, store, analytics or platform imports; common/ imports no
+            // product folder and product folders never import each other.
+            files: ['packages/transactions-ui/src/**/*.ts', 'packages/transactions-ui/src/**/*.tsx'],
             rules: {
               'universe-custom/import-boundary': 'error' as const,
             },
@@ -1264,11 +1276,6 @@ export default defineConfig({
                 message: 'Import test and expect from playwright/fixtures instead.',
               },
               {
-                name: 'ui/src/components/icons',
-                message:
-                  'Please import icons directly from their respective files to avoid importing the entire icons folder.',
-              },
-              {
                 name: '@universe/environment',
                 importNames: ['isIOS', 'isAndroid'],
                 message: 'Use isWebIOS and isWebAndroid instead.',
@@ -1293,7 +1300,7 @@ export default defineConfig({
                 name: '@privy-io/react-auth',
                 importNames: ['usePrivy', 'useLoginWithOAuth', 'useLoginWithEmail', 'useAuthorizationSignature'],
                 message:
-                  'Use the gated `useMaybe*` hooks from `~/hooks/useMaybePrivy` instead. `MaybePrivyProvider` only mounts <PrivyProvider> when Privy is configured (PRIVY_APP_ID / PRIVY_CLIENT_ID); Privy hooks read provider-backed contexts at render and crash the page when it is not.',
+                  'Use the gated `useMaybe*` hooks from `~/features/wallet/hooks/useMaybePrivy` instead. `MaybePrivyProvider` only mounts <PrivyProvider> when Privy is configured (PRIVY_APP_ID / PRIVY_CLIENT_ID); Privy hooks read provider-backed contexts at render and crash the page when it is not.',
               },
               {
                 name: 'i18next',
@@ -1407,14 +1414,21 @@ export default defineConfig({
       },
     },
 
-    // ── labs/rh-cca ───────────────────────────────────────────────────
+    // ── apps/pools-xyz ────────────────────────────────────────────────
     {
       // Runtime boundaries read process.env directly (SERVER_RUNTIME/PORT are
       // deploy-time, not app config) and implement react-router's 4-param
       // handleRequest contract — same relaxations dev-portal's boundary gets.
       // deployTarget.ts resolves the deploy target at build time: Node-only,
-      // resolved before Vite exists, so getConfig() can't serve it.
-      files: ['labs/rh-cca/server.ts', 'labs/rh-cca/app/entry.server.tsx', 'labs/rh-cca/deployTarget.ts'],
+      // resolved before Vite exists, so getConfig() can't serve it; the same
+      // holds for the Playwright config.
+      files: [
+        'apps/pools-xyz/server.ts',
+        'apps/pools-xyz/app/entry.server.tsx',
+        'apps/pools-xyz/deployTarget.ts',
+        'apps/pools-xyz/playwright.config.ts',
+        'apps/pools-xyz/playwright.staging.config.ts',
+      ],
       rules: {
         'max-params': 'off',
         ...(!isFastLint && {
@@ -1426,7 +1440,7 @@ export default defineConfig({
       // Vendored shadcn/ui sources (what `bunx shadcn add` emits) are kept
       // pristine so upstream diffs stay reviewable; shadcn components render
       // plain divs by design.
-      files: ['labs/rh-cca/app/components/ui/**', 'labs/rh-cca/app/lib/utils.ts'],
+      files: ['apps/pools-xyz/app/components/ui/**', 'apps/pools-xyz/app/lib/utils.ts'],
       rules: {
         'typescript/explicit-function-return-type': 'off',
         'react/forbid-elements': 'off',
@@ -1575,11 +1589,35 @@ export default defineConfig({
       },
     },
 
+    // packages/api imports itself relatively: a self-import resolves through the
+    // package's own exports map, which plain Bun (config-cli) can't follow.
+    {
+      files: ['packages/api/**'],
+      rules: {
+        'no-restricted-imports': [
+          'error' as const,
+          {
+            paths: [...sharedRestrictedImportPaths],
+            patterns: [
+              ...sharedRestrictedImportPatterns,
+              {
+                group: ['@universe/api', '@universe/api/**'],
+                message: 'Use a relative import inside @universe/api.',
+              },
+            ],
+          },
+        ],
+      },
+    },
+
+    // TODO: Remove this and convert paths in these packages to relative imports.
+    // We briefly wanted to enforce no-relative-import-paths in these packages,
+    // but it was causing issues. Newer packages use relative paths already, these
+    // should be updated for consistency.
     // ── @universe/* packages with standard pattern ────────────────────
     // (no-relative-import-paths + restrictedImportPatternsForUniversePackage)
     ...(
       [
-        'api',
         'compliance',
         'config',
         'embedded-wallet',
@@ -1587,6 +1625,8 @@ export default defineConfig({
         'notifications',
         'sessions',
         'transactional',
+        // Absolute self-imports are what let the folder fences see common/ vs product folders.
+        'transactions-ui',
         'websocket',
       ] as const
     ).map((pkg) => ({

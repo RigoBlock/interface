@@ -3,11 +3,10 @@ import type { Auction } from '@uniswap/client-launches/dist/data/v1/auction_pb'
 import { Flex, Text, TouchableArea } from '@universe/mycelium'
 import { Rocket } from '@universe/mycelium/icons/Rocket'
 import { RotatableChevron } from '@universe/mycelium/icons/RotatableChevron'
-import { opacifyRaw, useSporeColors } from '@universe/mycelium/theme-hooks-compat'
+import { opacifyRaw, useSporeColors, useColorsFromTokenColor } from '@universe/mycelium/theme-hooks-compat'
 import { TestID } from '@universe/test'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useColorsFromTokenColor } from 'ui/src'
 import { AuctionEventName, ElementName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { Trace } from 'uniswap/src/features/telemetry/Trace'
@@ -21,6 +20,7 @@ import { TokenDetailsSourceState } from '~/pages/TokenDetails/context/tokenDetai
 import { useTDPStore } from '~/pages/TokenDetails/context/useTDPStore'
 import { useTokenDetailsAuctionDisplay } from '~/pages/TokenDetails/hooks/useTokenDetailsAuctionDisplay'
 import { useTokenDetailsCcaAuctions } from '~/pages/TokenDetails/hooks/useTokenDetailsCcaAuctions'
+import { isOutweighedByTrading } from '~/pages/TokenDetails/utils/tokenDetailsAuctionDisplay'
 import { countOtherActiveAuctions } from '~/pages/TokenDetails/utils/tokenDetailsAuctionList'
 
 function useOtherActiveAuctionCount({ auctions }: { auctions: PlainMessage<Auction>[] }): number {
@@ -38,9 +38,15 @@ export function TokenDetailsOtherAuctionsFallback({
   hideSwap: boolean
   showAuctionBanner: boolean
 }): JSX.Element | null {
-  const { auction } = useTokenDetailsAuctionDisplay()
+  const display = useTokenDetailsAuctionDisplay()
   // CCA siblings remain reachable even when the primary used another launch method.
-  if (!auction || hideSwap || showAuctionBanner) {
+  if (
+    !display.auction ||
+    hideSwap ||
+    showAuctionBanner ||
+    display.isTokenVolumeLoading ||
+    isOutweighedByTrading(display)
+  ) {
     return null
   }
   return (
@@ -50,7 +56,7 @@ export function TokenDetailsOtherAuctionsFallback({
   )
 }
 
-/** "+N more" pill inside the live-auction banner. Swallows the press so the banner's own link does not fire. */
+/** "+N more" pill inside the auction banner. Swallows the press so the banner's own link does not fire. */
 export function TokenDetailsMoreAuctionsChip(): JSX.Element | null {
   return <TokenDetailsAuctionListEntry variant="chip" />
 }
@@ -69,10 +75,12 @@ function TokenDetailsAuctionListEntry({ variant }: { variant: 'chip' | 'row' }):
   const auctions = useTokenDetailsCcaAuctions()
   const count = useOtherActiveAuctionCount({ auctions })
   const chainId = useTDPStore((state) => state.currencyChainId)
+  const tokenAddress = useTDPStore((state) => state.address)
   const [isOpen, setIsOpen] = useState(false)
   const open = useEvent(() => {
     sendAnalyticsEvent(AuctionEventName.AuctionSelectorOpened, {
       chain_id: chainId,
+      token_address: tokenAddress,
       auction_count: auctions.length,
       entry_point: variant === 'chip' ? 'tdp_auction_banner' : 'tdp_other_auctions',
     })

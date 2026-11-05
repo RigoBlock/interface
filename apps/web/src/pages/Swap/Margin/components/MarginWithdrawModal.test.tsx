@@ -6,6 +6,7 @@ import {
   type MarginActivePosition,
   type MarginQuoteResponse,
 } from 'uniswap/src/data/apiClients/tradingApi/MarginApiClient'
+import { MarginDirection } from 'uniswap/src/features/transactions/margin/types'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MARGIN_CHAIN_ID } from '~/constants/margin'
 import { getDefaultMarginMarket } from '~/pages/Swap/Margin/__fixtures__/marginCatalog'
@@ -44,7 +45,7 @@ vi.mock('uniswap/src/components/AmountInput/AmountInput', () => ({
   ),
 }))
 
-vi.mock('~/hooks/useAccount', () => ({ useAccount: () => ({ address: SWAPPER }) }))
+vi.mock('~/connection/hooks/useAccount', () => ({ useAccount: () => ({ address: SWAPPER }) }))
 
 vi.mock('~/pages/Swap/Margin/hooks/useExecuteMarginPlan', () => ({
   useExecuteMarginPlan: () => ({ executePlan: mockExecutePlan }),
@@ -52,8 +53,8 @@ vi.mock('~/pages/Swap/Margin/hooks/useExecuteMarginPlan', () => ({
 
 vi.mock('~/pages/Swap/Margin/hooks/useIsPlanInFlight', () => ({ useIsPlanInFlight: mockUseIsPlanInFlight }))
 
-vi.mock('~/pages/Swap/Margin/hooks/useMarginCurrencyInfos', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('~/pages/Swap/Margin/hooks/useMarginCurrencyInfos')>()),
+vi.mock('~/features/margin/hooks/useMarginCurrencyInfos', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('~/features/margin/hooks/useMarginCurrencyInfos')>()),
   useMarginCurrencyInfos: () => new Map(),
 }))
 
@@ -84,7 +85,7 @@ function positionFixture(overrides: Partial<MarginActivePosition> = {}): MarginA
   return {
     positionId: SUB_ID,
     status: 'ACTIVE',
-    direction: 'LONG',
+    direction: MarginDirection.LONG,
     exposureToken: {
       address: MARKET.collateral.address,
       chainId: MARGIN_CHAIN_ID,
@@ -117,7 +118,7 @@ function quoteFixture(overrides: Partial<MarginQuoteResponse> = {}): MarginQuote
     action: 'withdrawEquity',
     chainId: MARGIN_CHAIN_ID,
     swapper: SWAPPER,
-    direction: 'LONG',
+    direction: MarginDirection.LONG,
     exposureToken: {
       address: MARKET.collateral.address,
       chainId: MARGIN_CHAIN_ID,
@@ -194,7 +195,8 @@ describe('MarginWithdrawModal', () => {
   // on the floor and the server 422s it (measured on mainnet).
   it('shows the ceiling from the preview quote and fills just under it on tap', () => {
     renderModal()
-    expect(screen.getByText('Available 0.500 ETH')).toBeInTheDocument()
+    // Captioned in the payout token: a withdrawal pays out the WETH collateral, not native ETH.
+    expect(screen.getByText('Available 0.500 WETH')).toBeInTheDocument()
     fireEvent.click(screen.getByLabelText('Use max'))
     const filled = Number((screen.getByLabelText(AMOUNT_LABEL) as HTMLInputElement).value)
     expect(filled).toBeLessThan(0.5)

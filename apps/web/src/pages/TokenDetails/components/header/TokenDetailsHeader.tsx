@@ -23,7 +23,6 @@ import { shortenAddress } from 'utilities/src/addresses'
 import { useEvent } from 'utilities/src/react/hooks'
 import { useBooleanState } from 'utilities/src/react/useBooleanState'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
-import { POPUP_MEDIUM_DISMISS_MS } from '~/components/Popups/constants'
 import { DetailsHeaderSubtitleMobile } from '~/components/StickyCollapsibleHeader/DetailsHeaderSubtitleMobile'
 import { DetailsHeaderTitle, useMetadataRowHidden } from '~/components/StickyCollapsibleHeader/DetailsHeaderTitle'
 import { DesktopHeaderActions } from '~/components/StickyCollapsibleHeader/HeaderActions/DesktopHeaderActions'
@@ -43,10 +42,12 @@ import { useTDPSelectedMultichainChain } from '~/pages/TokenDetails/context/useT
 import { useTDPStore } from '~/pages/TokenDetails/context/useTDPStore'
 import { useMultichainTokenEntries } from '~/pages/TokenDetails/hooks/useMultichainTokenEntries'
 import { useTDPEffectiveCurrency } from '~/pages/TokenDetails/hooks/useTDPEffectiveCurrency'
+import { useTDPLowLiquidityChainIds } from '~/pages/TokenDetails/hooks/useTDPLowLiquidityChainIds'
 import { useTDPPermissionedState } from '~/pages/TokenDetails/hooks/useTDPPermissionedState'
 import { useIsTDPRWAMatchLoading, useTDPRWAMatch } from '~/pages/TokenDetails/hooks/useTDPRWAMatch'
-import { popupRegistry } from '~/state/popups/registry'
-import { PopupType } from '~/state/popups/types'
+import { POPUP_MEDIUM_DISMISS_MS } from '~/utils/popups/constants'
+import { popupRegistry } from '~/utils/popups/registry'
+import { PopupType } from '~/utils/popups/types'
 
 interface TokenDetailsHeaderProps {
   isCompact: boolean
@@ -84,6 +85,7 @@ export function TokenDetailsHeader({ isCompact }: TokenDetailsHeaderProps) {
   const multichainEntries = useMultichainTokenEntries(multiChainMap)
   const isMultiChainAsset = multichainEntries.length > 1
   const multichainChainIds = useMemo(() => multichainEntries.map((entry) => entry.chainId), [multichainEntries])
+  const lowLiquidityChainIds = useTDPLowLiquidityChainIds()
 
   const { selectedMultichainChainId: selectedChainId, setSelectedMultichainChainId: onSelectedChainChange } =
     useTDPSelectedMultichainChain()
@@ -168,6 +170,9 @@ export function TokenDetailsHeader({ isCompact }: TokenDetailsHeaderProps) {
         logoName={effectiveCurrency.name ?? undefined}
         chainId={!isMultiChainAsset ? effectiveCurrency.chainId : null}
         dataTestId={TestID.TokenDetailsInfoContainer}
+        truncateTitleColumn
+        // Mobile only: the title has room above $md, where the tooltip would just repeat what is on screen.
+        titleTooltip={isMobileScreen ? tokenName : undefined}
         titleAdornments={
           <>
             <TokenDetailsHeaderAddressCopyMobile
@@ -189,6 +194,7 @@ export function TokenDetailsHeader({ isCompact }: TokenDetailsHeaderProps) {
             <RWAIssuerHeaderDetails issuer={heldRwaIssuer} />
             <TokenDetailsNetworkFilter
               chainIds={multichainChainIds}
+              lowLiquidityChainIds={lowLiquidityChainIds}
               selectedChainId={selectedChainId}
               setSelectedChainId={onSelectedChainChange}
               showAddressCopy={showAddressCopy}
@@ -224,6 +230,7 @@ export function TokenDetailsHeader({ isCompact }: TokenDetailsHeaderProps) {
             {metadataRowHidden && (
               <TokenDetailsNetworkFilter
                 chainIds={multichainChainIds}
+                lowLiquidityChainIds={lowLiquidityChainIds}
                 selectedChainId={selectedChainId}
                 setSelectedChainId={onSelectedChainChange}
                 showAddressCopy={false}

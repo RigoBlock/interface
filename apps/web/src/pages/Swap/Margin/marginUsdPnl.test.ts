@@ -1,5 +1,11 @@
+import {
+  DEV_UNREALIZED_PNL_IN_DEBT_BY_ACCOUNT,
+  MARGIN_POSITIONS_WIRE_PNL_ACTIVE,
+  MARGIN_POSITIONS_WIRE_PNL_DECREASED,
+} from 'uniswap/src/data/apiClients/tradingApi/__fixtures__/marginPositionsWirePnl'
 import type { MarginActivePosition } from 'uniswap/src/data/apiClients/tradingApi/MarginApiClient'
-import type { MarginDirection } from 'uniswap/src/features/transactions/margin/types'
+import { toMarginPositionsView } from 'uniswap/src/data/apiClients/tradingApi/marginPositionsView'
+import { MarginDirection } from 'uniswap/src/features/transactions/margin/types'
 import { describe, expect, it } from 'vitest'
 import type { MarginMarket, MarginTokenInfo } from '~/constants/margin'
 import {
@@ -43,7 +49,7 @@ interface PositionScenario {
 // the basis is exactly $2,000. Every golden below is hand-derived from these five numbers.
 function makeLong(overrides: Partial<PositionScenario> = {}): MarginActivePosition {
   return buildActivePosition({
-    direction: 'LONG',
+    direction: MarginDirection.LONG,
     collateral: 5,
     debt: 8000,
     mark: 2000,
@@ -55,7 +61,7 @@ function makeLong(overrides: Partial<PositionScenario> = {}): MarginActivePositi
 // The mirror: 4,000 USDC of collateral against 1 WETH of debt, $2,000 of basis.
 function makeShort(overrides: Partial<PositionScenario> = {}): MarginActivePosition {
   return buildActivePosition({
-    direction: 'SHORT',
+    direction: MarginDirection.SHORT,
     collateral: 4000,
     debt: 1,
     mark: 2000,
@@ -71,7 +77,7 @@ function makeShort(overrides: Partial<PositionScenario> = {}): MarginActivePosit
 // marginUsdBasis's own equity-based reconstruction (see marginUsdPnl.ts) round-trips losslessly.
 function buildActivePosition(scenario: PositionScenario): MarginActivePosition {
   const { direction, collateral, debt, mark } = scenario
-  const isShort = direction === 'SHORT'
+  const isShort = direction === MarginDirection.SHORT
   const equity = isShort ? collateral - debt * mark : collateral * mark - debt
   return {
     status: 'ACTIVE',
@@ -109,23 +115,24 @@ function basisOf({ position, market }: { position: MarginActivePosition; market:
 
 describe('marginUsdDecimals', () => {
   it('takes the debt leg for a LONG and the collateral leg for a SHORT', () => {
-    expect(marginUsdDecimals({ market: LONG_MARKET, direction: 'LONG' })).toBe(6)
-    expect(marginUsdDecimals({ market: SHORT_MARKET, direction: 'SHORT' })).toBe(6)
+    expect(marginUsdDecimals({ market: LONG_MARKET, direction: MarginDirection.LONG })).toBe(6)
+    expect(marginUsdDecimals({ market: SHORT_MARKET, direction: MarginDirection.SHORT })).toBe(6)
     // The stable leg is chosen by direction, not by which leg happens to be USDC.
-    expect(marginUsdDecimals({ market: SHORT_MARKET, direction: 'LONG' })).toBe(18)
+    expect(marginUsdDecimals({ market: SHORT_MARKET, direction: MarginDirection.LONG })).toBe(18)
   })
 })
 
 describe('marginRawUsdToNumber', () => {
   it('shifts by the stable leg decimals', () => {
-    expect(marginRawUsdToNumber({ raw: raw(1234.56, 6), market: LONG_MARKET, direction: 'LONG' })).toBeCloseTo(
-      1234.56,
-      6,
-    )
+    expect(
+      marginRawUsdToNumber({ raw: raw(1234.56, 6), market: LONG_MARKET, direction: MarginDirection.LONG }),
+    ).toBeCloseTo(1234.56, 6)
   })
 
   it('carries a negative realized figure through unchanged', () => {
-    expect(marginRawUsdToNumber({ raw: '-1500000000', market: LONG_MARKET, direction: 'LONG' })).toBeCloseTo(-1500, 6)
+    expect(
+      marginRawUsdToNumber({ raw: '-1500000000', market: LONG_MARKET, direction: MarginDirection.LONG }),
+    ).toBeCloseTo(-1500, 6)
   })
 })
 
@@ -191,7 +198,7 @@ describe('marginUsdBasis', () => {
       market: LONG_MARKET,
     })
     expect(basis).toEqual({
-      direction: 'LONG',
+      direction: MarginDirection.LONG,
       collateral: 5,
       debt: 8000,
       costBasisUsd: 2000,
@@ -347,5 +354,49 @@ describe('marginUsdBreakEvenPrice', () => {
   it('is undefined rather than negative for a short already worth less than its basis', () => {
     const basis = basisOf({ position: makeShort({ collateral: 1500 }), market: SHORT_MARKET })
     expect(marginUsdBreakEvenPrice({ basis })).toBeUndefined()
+  })
+})
+
+// Served WETH/USDC longs, through the client adapter, against the dollar PnL the server
+// computes for the same rows. The UI's unrealized figure excludes what withdrawals already realized,
+// which the server's includes, so the two reconcile once realizedPnlUsd is added back.
+describe('marginUsdPnlNow on the served wire', () => {
+  const RAW_UNIT_TOLERANCE = 1.5e-6
+  const rows = [MARGIN_POSITIONS_WIRE_PNL_ACTIVE, MARGIN_POSITIONS_WIRE_PNL_DECREASED].flatMap((response) =>
+    toMarginPositionsView(response).positions.flatMap((position) => (position.status === 'ACTIVE' ? [position] : [])),
+  )
+  const serverPnlUsd = (position: MarginActivePosition): number => {
+    const account = position.legs[0]?.account ?? ''
+    return Number(DEV_UNREALIZED_PNL_IN_DEBT_BY_ACCOUNT[account]) / 10 ** USDC.decimals
+  }
+
+  it('reads the rows as WETH/USDC longs', () => {
+    expect(rows).toHaveLength(7)
+    for (const position of rows) {
+      expect(position.direction).toBe(MarginDirection.LONG)
+      expect(position.exposureToken.address).toBe(WETH.address)
+      expect(position.counterToken.address).toBe(USDC.address)
+    }
+  })
+
+  it.each(rows.map((position) => [position.legs[0]?.account, position] as const))(
+    'reconciles %s with the server’s dollar PnL',
+    (_account, position) => {
+      const pnl = marginUsdPnlNow({ position, market: LONG_MARKET })
+      const basis = marginUsdBasis({ position, market: LONG_MARKET })
+      expect(pnl).toBeDefined()
+      expect(basis?.costBasisUsd).toBe(Number(position.costBasisUsd) / 10 ** USDC.decimals)
+      const realizedUsd = basis?.realizedPnlUsd ?? 0
+      expect(Math.abs((pnl?.pnlUsd ?? NaN) + realizedUsd - serverPnlUsd(position))).toBeLessThan(RAW_UNIT_TOLERANCE)
+    },
+  )
+
+  it('reports nothing for a row the server could not price', () => {
+    const position = rows.at(0)
+    if (!position) {
+      throw new Error('fixture has no rows')
+    }
+    const { costBasisUsd: _costBasisUsd, ...unpriced } = position
+    expect(marginUsdPnlNow({ position: unpriced, market: LONG_MARKET })).toBeUndefined()
   })
 })

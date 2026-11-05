@@ -3,6 +3,7 @@
  * Imported exclusively from `.web` legs — never resolved by native bundles.
  */
 import { type CSSProperties, useCallback, useEffect, useRef } from 'react'
+import { isInsideScroller, TOUCH_DRAG_SLOP_PX } from 'utilities/src/react/sheetDrag'
 
 const MODAL_STYLE_ELEMENT_ID = 'uniswap-adaptive-web-modal-styles'
 
@@ -41,6 +42,9 @@ const MODAL_CSS = `
 .uw-attachment-content-center[data-state='closed'] { animation: uw-modal-exit-down 100ms cubic-bezier(0.17, 0.67, 0.45, 1) forwards; }
 .uw-attachment-content-top[data-state='open'] { animation: uw-attachment-enter-from-above 120ms cubic-bezier(0.17, 0.67, 0.45, 1); }
 .uw-attachment-content-top[data-state='closed'] { animation: uw-modal-exit-up 100ms cubic-bezier(0.17, 0.67, 0.45, 1) forwards; }
+.uw-modal-content-center:focus-visible, .uw-modal-content-top:focus-visible,
+.uw-attachment-content-center:focus-visible, .uw-attachment-content-top:focus-visible,
+.uw-sheet-frame:focus-visible { outline: none; }
 .uw-sheet-overlay[data-state='open'] { animation: uw-modal-fade-in 500ms cubic-bezier(0.25, 0.1, 0.25, 1); }
 .uw-sheet-frame[data-state='open'] { animation: uw-sheet-enter 200ms ease-in-out; }
 /* The sheet is force-mounted while closed (Tamagui Sheet parity), so 'closed' is a static hidden
@@ -303,18 +307,16 @@ export function getSheetHeightStyles({
 }
 
 /**
- * Handle-initiated (plus frame-chrome on pointer devices) drag-to-dismiss for the bottom sheet.
+ * Handle, frame-chrome (mouse/pen) and non-scrolling-content (touch) drag-to-dismiss for the bottom sheet.
  * The drag transform is written straight to the DOM node so pointer moves don't re-render React;
  * releasing below the dismiss threshold transitions the frame back into place.
  */
 export function useSheetDrag({
   isOpen,
-  isTouchDevice,
   onClose,
   frame,
 }: {
   isOpen: boolean
-  isTouchDevice: boolean
   onClose?: () => void
   /** Frame node as state (callback ref) — see useSheetFitHeightFreeze: a RefObject read inside
    * the effect misses the WEB-6258 deferred mount (the node arrives without any dep changing),
@@ -340,36 +342,42 @@ export function useSheetDrag({
       if (event.pointerType === 'mouse' && event.button !== 0) {
         return
       }
-      const target = event.target instanceof HTMLElement ? event.target : null
+      if (removeActiveDragListeners) {
+        return
+      }
+      const target = event.target instanceof Element ? event.target : null
       const fromHandle = Boolean(target?.closest('[data-sheet-handle]'))
-      // Touch devices drag only from the handlebar so content scrolling stays untouched;
-      // pointer devices may also drag from the frame chrome (not the scrollable content).
-      if (!fromHandle && (isTouchDevice || Boolean(target?.closest('[data-sheet-content]')))) {
+      const isTouch = event.pointerType === 'touch'
+      const isExcluded = isTouch
+        ? isInsideScroller({ target, frame })
+        : Boolean(target?.closest('[data-sheet-content]'))
+      if (!fromHandle && isExcluded) {
         return
       }
 
+      let isArmed = isTouch && !fromHandle
+      const startX = event.clientX
       const startY = event.clientY
       let lastY = startY
       let lastTimestamp = performance.now()
       let velocity = 0
       let offset = 0
-      frame.style.transition = 'none'
 
-      const onPointerMove = (moveEvent: PointerEvent): void => {
-        const now = performance.now()
-        const deltaT = now - lastTimestamp
-        if (deltaT > 0) {
-          velocity = (moveEvent.clientY - lastY) / deltaT
-        }
-        lastY = moveEvent.clientY
-        lastTimestamp = now
-        offset = Math.max(0, moveEvent.clientY - startY)
-        frame.style.transform = offset > 0 ? `translateY(${offset}px)` : ''
+      const startDrag = (): void => {
+        isTouchDragActive = isTouch
+        frame.style.transition = 'none'
+      }
+      if (!isArmed) {
+        startDrag()
       }
 
       const endDrag = (dismiss: boolean): void => {
         removeActiveDragListeners?.()
         removeActiveDragListeners = undefined
+        if (isArmed) {
+          return
+        }
+        isTouchDragActive = false
         if (dismiss && onCloseRef.current) {
           // Slide out from the dragged position via inline styles (the frame stays mounted while
           // closed, so the inline transform must be driven off-screen rather than left in place;
@@ -384,30 +392,78 @@ export function useSheetDrag({
         frame.style.transform = ''
       }
 
-      const onPointerUp = (): void => {
+      const onPointerMove = (moveEvent: PointerEvent): void => {
+        if (moveEvent.pointerId !== event.pointerId) {
+          return
+        }
+        if (isArmed) {
+          const deltaX = Math.abs(moveEvent.clientX - startX)
+          const deltaY = moveEvent.clientY - startY
+          if (Math.max(deltaX, Math.abs(deltaY)) < TOUCH_DRAG_SLOP_PX) {
+            return
+          }
+          if (deltaY <= deltaX) {
+            endDrag(false)
+            return
+          }
+          isArmed = false
+          startDrag()
+        }
+        const now = performance.now()
+        const deltaT = now - lastTimestamp
+        if (deltaT > 0) {
+          velocity = (moveEvent.clientY - lastY) / deltaT
+        }
+        lastY = moveEvent.clientY
+        lastTimestamp = now
+        offset = Math.max(0, moveEvent.clientY - startY)
+        frame.style.transform = offset > 0 ? `translateY(${offset}px)` : ''
+      }
+
+      const onPointerUp = (upEvent: PointerEvent): void => {
+        if (upEvent.pointerId !== event.pointerId) {
+          return
+        }
         const dismissThreshold = Math.min(frame.offsetHeight * 0.4, 160)
         endDrag(offset > dismissThreshold || (velocity > 0.5 && offset > 24))
       }
-      const onPointerCancel = (): void => endDrag(false)
+      const onPointerCancel = (cancelEvent: PointerEvent): void => {
+        if (cancelEvent.pointerId === event.pointerId) {
+          endDrag(false)
+        }
+      }
 
-      window.addEventListener('pointermove', onPointerMove)
-      window.addEventListener('pointerup', onPointerUp)
-      window.addEventListener('pointercancel', onPointerCancel)
+      window.addEventListener('pointermove', onPointerMove, { capture: true })
+      window.addEventListener('pointerup', onPointerUp, { capture: true })
+      window.addEventListener('pointercancel', onPointerCancel, { capture: true })
       removeActiveDragListeners = () => {
-        window.removeEventListener('pointermove', onPointerMove)
-        window.removeEventListener('pointerup', onPointerUp)
-        window.removeEventListener('pointercancel', onPointerCancel)
+        window.removeEventListener('pointermove', onPointerMove, { capture: true })
+        window.removeEventListener('pointerup', onPointerUp, { capture: true })
+        window.removeEventListener('pointercancel', onPointerCancel, { capture: true })
       }
     }
 
     // Tracks the in-flight drag's window listeners so BOTH endDrag and the effect cleanup remove
     // them — an unmount/close mid-drag previously leaked all three.
     let removeActiveDragListeners: (() => void) | undefined
+    let isTouchDragActive = false
+    // Even under touch-action: none, Chromium turns a fast touch release into a fling and swallows
+    // the next tap (~300ms) as "tap to stop fling" — no click, so the trigger can't reopen the sheet.
+    // Consuming the drag's touchmove prevents the fling. Bound for the open lifetime, not per drag,
+    // so it is already registered when the touchstart is hit-tested and the touchmoves stay cancelable.
+    const onTouchMove = (event: TouchEvent): void => {
+      if (isTouchDragActive && event.cancelable) {
+        event.preventDefault()
+      }
+    }
     frame.addEventListener('pointerdown', onPointerDown)
+    frame.addEventListener('touchmove', onTouchMove, { passive: false })
     return () => {
       frame.removeEventListener('pointerdown', onPointerDown)
+      frame.removeEventListener('touchmove', onTouchMove)
       removeActiveDragListeners?.()
       removeActiveDragListeners = undefined
+      isTouchDragActive = false
     }
-  }, [isOpen, isTouchDevice, frame])
+  }, [isOpen, frame])
 }

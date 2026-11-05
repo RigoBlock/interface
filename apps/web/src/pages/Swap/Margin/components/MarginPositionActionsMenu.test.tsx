@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { TouchableArea } from '@universe/mycelium'
 import { useState } from 'react'
 import type { MarginActivePosition } from 'uniswap/src/data/apiClients/tradingApi/MarginApiClient'
+import { MarginDirection } from 'uniswap/src/features/transactions/margin/types'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MARGIN_CHAIN_ID } from '~/constants/margin'
 import { getDefaultMarginMarket } from '~/pages/Swap/Margin/__fixtures__/marginCatalog'
@@ -39,7 +40,7 @@ const ACCOUNT = '0x000000000000000000000000000000000000000A'
 const POSITION: MarginActivePosition = {
   positionId: '7',
   status: 'ACTIVE',
-  direction: 'LONG',
+  direction: MarginDirection.LONG,
   exposureToken: { address: MARKET.collateral.address, chainId: MARGIN_CHAIN_ID, decimals: MARKET.collateral.decimals },
   counterToken: { address: MARKET.debt.address, chainId: MARGIN_CHAIN_ID, decimals: MARKET.debt.decimals },
   size: '2000000000000000000',
@@ -64,7 +65,7 @@ function Harness({
   onSelect?: (request: { action: string; positionId: string }) => void
   onRowPress?: () => void
 }): JSX.Element {
-  const menu = <MarginPositionActionsMenu position={POSITION} mountKey="row" onSelect={onSelect} />
+  const menu = <MarginPositionActionsMenu position={POSITION} onSelect={onSelect} />
   return onRowPress ? <TouchableArea onPress={onRowPress}>{menu}</TouchableArea> : menu
 }
 
@@ -74,13 +75,12 @@ describe('MarginPositionActionsMenu', () => {
     mockUseIsPlanInFlight.mockReturnValue(false)
   })
 
-  it('renders all five actions with close last', () => {
+  it('renders all four actions with close last', () => {
     render(<Harness />)
     pressTrigger()
     expect(screen.getByText('Add margin')).toBeInTheDocument()
     expect(screen.getByText('Withdraw margin')).toBeInTheDocument()
     expect(screen.getByText('Change leverage')).toBeInTheDocument()
-    expect(screen.getByText('Adjust position (advanced)')).toBeInTheDocument()
     expect(screen.getByText('Close position')).toBeInTheDocument()
   })
 
@@ -122,7 +122,7 @@ describe('MarginPositionActionsMenu', () => {
     const onSelect = vi.fn()
     render(<Harness onSelect={onSelect} />)
     pressTrigger()
-    expect(screen.getAllByText('Another action is in progress')).toHaveLength(5)
+    expect(screen.getAllByText('Another action is in progress')).toHaveLength(4)
     fireEvent.click(screen.getByText('Add margin'))
     expect(onSelect).not.toHaveBeenCalled()
   })

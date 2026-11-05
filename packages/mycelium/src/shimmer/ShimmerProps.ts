@@ -23,6 +23,11 @@ export interface ShimmerProps {
    */
   shimmerDurationSeconds?: number
   /**
+   * Web only: CSS `animation-delay` for the sweep (e.g. `'0.2s'`), so sibling
+   * shimmers can be staggered. Ignored on native.
+   */
+  animationDelay?: string
+  /**
    * Extra classes merged onto the wrapper (layout, sizing — e.g. `w-full`
    * where a legacy call site passed `width="100%"`). Applied on web via
    * `cn()`; on native the wrapper is a React Native `View`, where uniwind
@@ -37,7 +42,7 @@ export interface ShimmerProps {
    */
   testID?: string
   /**
-   * A narrow slice of the legacy Tamagui Stack layout surface real call
+   * A narrow slice of the legacy Stack layout surface real call
    * sites pass straight onto `Shine` (INFRA-3822) — not the full
    * `FlexCompatStyleProps` surface, just the values already CSS property
    * names on both platforms, so they merge directly into the wrapper's style

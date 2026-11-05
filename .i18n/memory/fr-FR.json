@@ -14,8 +14,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Apple",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -31,8 +31,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Google",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -48,8 +48,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Token 1",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -65,8 +65,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Token 2",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -82,8 +82,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Bridge",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-24T23-30-00Z",
+        "approvedAt": "2026-10-24T23:30:00.309Z",
         "approvedBy": "agent"
       }
     ],
@@ -246,18 +246,17 @@
           {
             "category": "terminology",
             "severity": "major",
-            "reviewDimension": "cta-affordance",
-            "detail": "Compact toggle label expanded to 'Automatique'. The fr-FR triage ruling keeps the valid French abbreviation 'Auto' for compact toggles, and the shipped translation for this exact string is 'Auto'. 'Automatique' is reserved for the appearance/theme setting (corpus i=3533) and bloats fixed-width UI.",
+            "detail": "Per the fr-FR vendor-coverage ruling, compact toggles (slippage/gas) keep the abbreviation 'Auto'; the shipped reference also renders 'Auto' → 'Auto'. 'Automatique' expands a fixed-width toggle and breaks consistency with shipped copy.",
             "evidence": {
-              "rule": "Vendor-coverage triage ruling 2026-07-31: 'Auto' vs 'Automatique' is surface-dependent; shipped pair Auto→Auto",
+              "rule": "'Auto' vs 'Automatique' is surface-dependent (2026-07-31 triage ruling)",
               "sourceSpan": "Auto",
               "targetSpan": "Automatique"
             },
             "alternative": "Auto"
           }
         ],
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -273,8 +272,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Route",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -290,8 +289,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Route via {{provider}}",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -307,8 +306,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Blog",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -324,8 +323,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "OK",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -341,8 +340,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Extension",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -358,8 +357,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Description",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -375,8 +374,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Docs",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -392,8 +391,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Max",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -409,8 +408,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Message",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -426,8 +425,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Min",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -443,8 +442,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "minute",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -460,8 +459,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "minutes",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -477,8 +476,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Permit",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -494,8 +493,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Pool",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -511,8 +510,42 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Pools",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:common.privacyChoices.optOut",
+      {
+        "unitId": "common.privacyChoices.optOut",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "5d1160c8a782fcfc275fe20ba2a3055c30316c1f7544530db94824fb986c5a53",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Lorsque cela constitue une vente, un partage ou de la publicité ciblée au sens des lois applicables, vous pouvez vous y opposer en désactivant l’option « {{settingName}} » dans vos paramètres.",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-16T19-33-19Z",
+        "approvedAt": "2026-10-16T19:33:19.256Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:common.privacyChoices.policy",
+      {
+        "unitId": "common.privacyChoices.policy",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "5109ab4492e4bed49a87e4aa498a04262721ad8e42c81975e8a854e6d4e976cc",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Pour en savoir plus sur nos pratiques en matière de confidentialité, veuillez consulter notre <privacyLink>Politique de confidentialité</privacyLink>.",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-16T19-33-19Z",
+        "approvedAt": "2026-10-16T19:33:19.256Z",
         "approvedBy": "agent"
       }
     ],
@@ -528,8 +561,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Tokens",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -545,8 +578,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Token A",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -562,8 +595,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Token B",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -579,8 +612,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Total",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -596,8 +629,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Transactions",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -613,8 +646,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Type",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -630,8 +663,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Volume",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -647,8 +680,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Euro",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -681,8 +714,320 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "{{frameUrl}} via {{parentUrl}}",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:disclosures.autoRouter",
+      {
+        "unitId": "disclosures.autoRouter",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "1769525d3c38507cb4b1bdc3cb4a598af59b2e5d1a004c2bcb302a769bf8b857",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "L’Auto Router est un algorithme de chemin de transaction utilisé par les Produits pour analyser les chemins potentiels d’une transaction d’actifs numériques à travers les Intégrations éligibles et fournir à l’utilisateur des informations sur le chemin de transaction estimé comme devant aboutir au plus grand nombre d’actifs numériques reçus à ce moment-là, sur la base d’une exécution simulée selon les paramètres de routage objectifs divulgués.",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-15T22-12-06Z",
+        "approvedAt": "2026-10-15T22:12:06.031Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:disclosures.autoRouterParameters",
+      {
+        "unitId": "disclosures.autoRouterParameters",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "aeb91f7c1ff41c721069194cc98de27e3bfaeca2025f1b791b5c01a955b18f35",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Les paramètres suivants sont codés en dur dans le logiciel de routage des Produits (l’« Auto Router ») : (i) l’estimation des coûts de gas par simulation (ce qui peut déprioriser les routes à frais de réseau élevés) ; (ii) l’estimation du slippage par simulation (ce qui annulera une transaction qui ne respecte pas le montant maximal de slippage spécifié par l’utilisateur, ou mieux) ; (iii) la liquidité des pools, mesurée par la valeur totale verrouillée à travers les sources de liquidité (ce qui dépriorisera ou exclura les pools situés en dessous d’un seuil spécifié) ; (iv) le nombre maximal de fois qu’un échange d’un utilisateur peut être « divisé » afin de permettre au routeur d’évaluer si la division de l’échange de l’utilisateur entre plusieurs sources de liquidité peut aboutir à un meilleur prix ; (v) le nombre maximal de « hops », c’est-à-dire de séquences potentielles de conversions d’actifs numériques se terminant par la réception par l’utilisateur du token de sortie souhaité ; et (vi) le nombre maximal de chemins de routage potentiels que l’algorithme de l’Auto Router évaluera pour générer une route proposée. L’Auto Router n’explore pas les pools dont les frais dépassent 11 % afin de protéger les utilisateurs d’un impact sur le prix inattendu dû à des frais de LP inhabituellement élevés. Ces paramètres du logiciel de routage ne sont pas des paramètres par défaut au niveau des transactions configurables par l’utilisateur. Le logiciel de routage des Produits applique ces paramètres de routage de manière uniforme et le code peut être consulté <uniRouteLink>ici</uniRouteLink>.",
+        "status": "finalized",
+        "judgeIssues": [
+          {
+            "category": "fluency",
+            "severity": "minor",
+            "detail": "« déprioritisera » is a malformed coinage and is inconsistent with « déprioriser » used earlier in the same string (item i). The correct future form is « dépriorisera ».",
+            "evidence": {
+              "sourceSpan": "which will deprioritize or exclude pools",
+              "targetSpan": "ce qui déprioritisera ou exclura les pools"
+            },
+            "alternative": "ce qui dépriorisera ou exclura les pools"
+          }
+        ],
+        "agentRunId": "fr-FR-2026-10-15T22-12-06Z",
+        "approvedAt": "2026-10-15T22:12:06.031Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:disclosures.customization",
+      {
+        "unitId": "disclosures.customization",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "62979328997006241effade715257423f44996c1f2899ab5f7e15b31851362ab",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Les paramètres par défaut au niveau des transactions sont entièrement personnalisables par les utilisateurs des Produits. En modifiant ces paramètres, un utilisateur peut voir des routes supplémentaires pour son opération. Pour plus d’informations sur la manière de modifier les paramètres par défaut, voir <slippageLink>Comment modifier le slippage sur l’application Web Uniswap</slippageLink>, <swapDeadlinesLink>Comment modifier les délais d’échange sur l’interface Uniswap</swapDeadlinesLink> et <tradeOptionsLink>Comment modifier les options d’opération par défaut</tradeOptionsLink>. Uniswap Labs maintient des politiques et procédures internes concernant les paramètres par défaut et réévalue périodiquement ces paramètres afin d’assurer la conformité avec ces politiques et procédures. Uniswap Labs n’a connaissance d’aucun conflit d’intérêts significatif entre Uniswap Labs et les utilisateurs des Produits résultant des paramètres par défaut. Uniswap Labs ne reçoit aucune rémunération d’une quelconque source de liquidité en contrepartie de son inclusion dans l’analyse de routage. Les activités de développement commercial, y compris le soutien à l’écosystème pour les intégrations tierces, le soutien aux teneurs de marché (comme des prêts ou des programmes d’incitation), l’accès à l’API et le co-marketing, sont distinctes de l’analyse de routage et ne l’influencent pas.",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-15T22-12-06Z",
+        "approvedAt": "2026-10-15T22:12:06.031Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:disclosures.defaultParameters",
+      {
+        "unitId": "disclosures.defaultParameters",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "6384103f15d7e3393252e304756e6c94b8f8a5a33326c3024bae82defe2771a2",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Les paramètres par défaut au niveau des transactions suivants sont actuellement en vigueur sur les Produits : la tolérance de slippage ; le délai d’échange ; les pools et plateformes de négociation ou systèmes de négociation à registre distribué éligibles ; et les frais de priorité. Les paramètres par défaut peuvent changer de temps à autre. Ils sont définis par référence à des critères objectifs et généralement configurés pour réduire les risques pour les utilisateurs.",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-15T22-12-06Z",
+        "approvedAt": "2026-10-15T22:12:06.031Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:disclosures.feeCalculation",
+      {
+        "unitId": "disclosures.feeCalculation",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "40c78c254e0b59dd6e93159cc60e13ee83bd2cf876440febf93320a598fb304c",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "À l’aide d’un algorithme objectif et appliqué de manière uniforme, les Produits présentent des frais de Gas et des frais de priorité calculés automatiquement pour chaque transaction. Ces calculs algorithmiques sont conçus pour équilibrer la vitesse des transactions et les frais payés.",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-15T22-12-06Z",
+        "approvedAt": "2026-10-15T22:12:06.031Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:disclosures.gasFees",
+      {
+        "unitId": "disclosures.gasFees",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "537acd8dfac10d9eec9e024bf4664b063e4804e4664d00d5daaf21d3bcf9e4f6",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Les frais de Gas sont payés aux validateurs de la blockchain pour chaque transaction et sont exigés par chaque réseau blockchain applicable. Les utilisateurs sont tenus par chaque réseau de payer des frais de gas sur chaque transaction.",
+        "status": "finalized",
+        "judgeIssues": [
+          {
+            "category": "style",
+            "severity": "minor",
+            "detail": "The second occurrence of « Gas » is capitalized although the source uses lowercase « gas fees » there (only the first, defined-term « Gas Fees » is capitalized); shipped fr-FR copy uses lowercase « gas » in running prose.",
+            "evidence": {
+              "sourceSpan": "pay gas fees on every transaction",
+              "targetSpan": "payer des frais de Gas sur chaque transaction"
+            },
+            "alternative": "payer des frais de gas sur chaque transaction"
+          }
+        ],
+        "agentRunId": "fr-FR-2026-10-15T22-12-06Z",
+        "approvedAt": "2026-10-15T22:12:06.031Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:disclosures.gasLimit",
+      {
+        "unitId": "disclosures.gasLimit",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "e2996676536051b909f7239dab48bda7c4273c64c13fd6d22569c6e1f196def1",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "La limite de Gas est l’unité maximale de gas que la transaction de l’utilisateur est autorisée à consommer.",
+        "status": "finalized",
+        "judgeIssues": [
+          {
+            "category": "style",
+            "severity": "minor",
+            "detail": "The second « Gas » is capitalized where the source uses lowercase « gas » (only « Gas Limit » is a defined term); shipped strings use lowercase « gas » in prose (« unité de gas »).",
+            "evidence": {
+              "sourceSpan": "the maximum unit of gas",
+              "targetSpan": "l’unité maximale de Gas"
+            },
+            "alternative": "l’unité maximale de gas"
+          }
+        ],
+        "agentRunId": "fr-FR-2026-10-15T22-12-06Z",
+        "approvedAt": "2026-10-15T22:12:06.031Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:disclosures.integrations",
+      {
+        "unitId": "disclosures.integrations",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "0eae2dac9b2b0532da6271502d9dfedc5863c5cff281fa85a4f38949d44fbe43",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Les Produits sont intégrés aux plateformes de négociation ou systèmes de négociation à registre distribué suivants : UniswapX ; le protocole Uniswap (v4, v3, v2) ; Tempo ; et Jupiter (collectivement, les « Intégrations »). Uniswap Labs maintient des politiques et procédures internes concernant les Intégrations, qui comprennent des contrôles pour évaluer, intégrer et auditer les Intégrations et les intégrations proposées. Conformément à ces politiques et procédures, les Intégrations sont évaluées selon des critères objectifs, notamment la liquidité, la sécurité, la transparence, la vérifiabilité, la neutralité, l’auditabilité et la latence. Les Intégrations peuvent changer de temps à autre. Avant qu’une nouvelle source de liquidité ne soit intégrée aux Produits, elle doit être évaluée au regard de ces critères. Toutes les sources de liquidité intégrées – y compris le protocole Uniswap (v4, v3, v2) et UniswapX – sont réévaluées périodiquement afin de déterminer si elles doivent rester incluses ou être retirées. Une réévaluation sera également déclenchée en cas de changement important du profil de risque de la source de liquidité. Une source de liquidité peut être retirée immédiatement du calcul de routage si un problème de sécurité survient, sans attendre la prochaine réévaluation périodique.",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-15T22-12-06Z",
+        "approvedAt": "2026-10-15T22:12:06.031Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:disclosures.liquiditySources",
+      {
+        "unitId": "disclosures.liquiditySources",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "416f99fc4657215fea96c3ac83bf83227def10efe5a873ea9c6802607dc6d174",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Pour plus d’informations sur les sources de liquidité accessibles via les Produits et les critères utilisés pour les évaluer, voir <tradeOptionsLink>Comment modifier les options d’opération par défaut</tradeOptionsLink>.",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-15T22-12-06Z",
+        "approvedAt": "2026-10-15T22:12:06.031Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:disclosures.maxBaseFee",
+      {
+        "unitId": "disclosures.maxBaseFee",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "f3c3237a31031b1b4c4fae6f63b8a4406d6efa21087f5ce1348f569204603681",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Les frais de base max sont les frais de base les plus élevés par unité de gas qu’un utilisateur est prêt à payer. Les frais de base sont fixés par le réseau, par bloc.",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-15T22-12-06Z",
+        "approvedAt": "2026-10-15T22:12:06.031Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:disclosures.priorityFees",
+      {
+        "unitId": "disclosures.priorityFees",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "ffef081c895ce81ee27feb4dfbfa63d9a91f9850c6a66727de0c4b8a84fde1b9",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Les frais de priorité, le cas échéant, sont des frais optionnels que les utilisateurs peuvent payer aux validateurs pour que leurs transactions soient traitées plus rapidement.",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-15T22-12-06Z",
+        "approvedAt": "2026-10-15T22:12:06.031Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:disclosures.products",
+      {
+        "unitId": "disclosures.products",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "76f70bc50491b1d2da127941c761d2bdeaac620c5f29f5ca37444147c5b46389",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Uniswap Labs crée et exploite (a) une interface utilisateur hébergée sur un site web, accessible à l’adresse <appLink>app.uniswap.org</appLink> (l’« Interface »), (b) une application wallet mobile (le « Uniswap Wallet ») et (c) une API ainsi que d’autres produits et services (collectivement, les « Produits ») qui permettent aux utilisateurs de préparer et de soumettre des transactions sur des blockchains publiques à l’aide de leurs propres wallets auto-dépositaires. Uniswap Labs maintient des procédures internes pour préserver la sécurité des Produits, y compris en enquêtant rapidement sur les incidents suspectés et en empêchant tout accès non autorisé au moyen d’identifiants pour les employés et d’autres mesures de sécurité. Uniswap Labs contribue au développement du protocole Uniswap (v4, v3, v2) et d’UniswapX, chacun étant un ensemble autonome et open source de contrats intelligents déployés sur des blockchains publiques, mais ne possède, ne contrôle ni n’exploite le protocole Uniswap (v4, v3, v2) ou UniswapX. Uniswap Labs n’est pas un courtier-négociant et n’est pas enregistré auprès de l’U.S. Securities and Exchange Commission ni réglementé par elle dans le cadre de la création, de l’offre ou de l’exploitation des Produits. Certains actifs peuvent ne pas être disponibles sur les Produits, et certains actifs peuvent ne pas être disponibles dans certaines juridictions. Pour plus d’informations, voir la <unsupportedTokenPolicyLink>Politique relative aux tokens non pris en charge</unsupportedTokenPolicyLink>.",
+        "status": "finalized",
+        "judgeIssues": [
+          {
+            "category": "fluency",
+            "severity": "minor",
+            "detail": "The kept-English term « Token » in the final link is left singular and capitalized mid-phrase where French grammar requires the plural: « Politique relative aux Token non pris en charge » should read « aux tokens non pris en charge » (mangled grammar around a kept-English term).",
+            "evidence": {
+              "sourceSpan": "Unsupported Token Policy",
+              "targetSpan": "Politique relative aux Token non pris en charge"
+            },
+            "alternative": "Politique relative aux tokens non pris en charge"
+          },
+          {
+            "category": "locale-conventions",
+            "severity": "minor",
+            "detail": "Straight ASCII apostrophes are used in « d'UniswapX » and « l'U.S. » while the rest of the string uses the typographic apostrophe (’); fr-FR typography requires ’ consistently.",
+            "evidence": {
+              "targetSpan": "et d'UniswapX … auprès de l'U.S. Securities"
+            },
+            "alternative": "et d’UniswapX … auprès de l’U.S. Securities"
+          }
+        ],
+        "agentRunId": "fr-FR-2026-10-15T22-12-06Z",
+        "approvedAt": "2026-10-15T22:12:06.031Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:disclosures.routing",
+      {
+        "unitId": "disclosures.routing",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "8cb99ca1a941d16151b298eb5e476d4271bc551d192b817a5213d9dd04b92979",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Lors de la préparation de la transaction d’un utilisateur, le logiciel de routage des Produits analyse les chemins potentiels d’une transaction sur les Intégrations et fournit à l’utilisateur des informations sur le chemin de transaction estimé comme devant aboutir au plus grand nombre d’actifs numériques reçus à ce moment-là, sur la base des résultats d’une exécution simulée. Pour ce faire, les Produits prennent en compte par défaut les sources de liquidité disponibles à travers les Intégrations. L’utilisateur conserve toute latitude pour ajuster la configuration par défaut et activer ou désactiver les sources de liquidité que le logiciel de routage des Produits prendra en compte. En modifiant les sources de liquidité prises en compte par les Produits, un utilisateur peut voir des routes supplémentaires pour son opération.",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-15T22-12-06Z",
+        "approvedAt": "2026-10-15T22:12:06.031Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:disclosures.slippage",
+      {
+        "unitId": "disclosures.slippage",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "1f3379ed1d4df8d857eb8c4b099890188f9c71ca13bc2c9f933de0e37014de4c",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Le Slippage est la différence entre le prix attendu d’un échange au moment où il est soumis et le prix d’exécution réel lorsque l’échange est exécuté onchain. Le Slippage peut résulter de mouvements de prix ordinaires, de variations de la liquidité disponible, de la latence et de la congestion du réseau, ou de l’impact de marché de l’échange de l’utilisateur. Le Slippage est un risque inhérent au trading. Si la tolérance de Slippage est réglée trop haut, un utilisateur peut ne pas recevoir la valeur attendue d’une opération et/ou la valeur de l’opération peut être captée par d’autres parties. À l’inverse, si la tolérance de Slippage est réglée trop bas, un utilisateur peut ne pas être en mesure d’exécuter une opération. À l’aide d’un algorithme appliqué de manière uniforme, les Produits présentent une tolérance maximale de Slippage calculée automatiquement, qui se situe généralement dans une fourchette d’environ 0,5 % à 5,5 %, en fonction de facteurs tels que le réseau sélectionné et la taille de l’échange.",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-15T22-12-06Z",
+        "approvedAt": "2026-10-15T22:12:06.031Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:disclosures.swapDeadline",
+      {
+        "unitId": "disclosures.swapDeadline",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "05679769a825cb1b067e25c3b12d9dfa5db5e336a897e9ea58e2d754819f3670",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Le délai d’échange est la durée pendant laquelle un échange est autorisé à rester en attente onchain avant d’être annulé. Les Produits appliquent un délai de transaction par défaut de 30 minutes, ce qui signifie qu’un échange sera annulé s’il n’a pas été exécuté dans les 30 minutes suivant sa soumission. Cela vise à offrir aux utilisateurs une protection supplémentaire contre des mouvements de prix importants non souhaités.",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-15T22-12-06Z",
+        "approvedAt": "2026-10-15T22:12:06.031Z",
         "approvedBy": "agent"
       }
     ],
@@ -698,8 +1043,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Collection",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -715,8 +1060,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Collections",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -738,6 +1083,23 @@
       }
     ],
     [
+      "fr-FR:i18next-json:explore.collections.volume1d",
+      {
+        "unitId": "explore.collections.volume1d",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "eb34a9fef3662ca5eae07f6d83baf6128d3823051b6ffed5591e27b8dcd52448",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "{{volume}} vol. 1 j",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-26T18-33-24Z",
+        "approvedAt": "2026-10-26T18:33:24.285Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "fr-FR:i18next-json:explore.earn.apy",
       {
         "unitId": "explore.earn.apy",
@@ -749,8 +1111,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "{{apy}} APY",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -766,8 +1128,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Earn",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -783,8 +1145,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "{{apy}} APY",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -800,8 +1162,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Wallets",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -817,8 +1179,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Volume",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -834,8 +1196,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Venmo",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -855,18 +1217,17 @@
           {
             "category": "terminology",
             "severity": "major",
-            "reviewDimension": "cta-affordance",
-            "detail": "This 'Auto' is the network-cost (gas) toggle (sibling of i=1264 'Custom', described by i=1263). The fr-FR triage ruling explicitly keeps 'Auto' for compact slippage/gas toggles; 'Automatique' violates that ruling and the shipped 'Auto' rendering, and overflows the compact toggle.",
+            "detail": "This key is the gas/network-cost 'Auto' compact toggle; the ruling keeps the abbreviation 'Auto' for compact toggles (only the theme setting uses 'Automatique'). Also inconsistent with shipped 'Auto' → 'Auto'.",
             "evidence": {
-              "rule": "Vendor-coverage triage ruling 2026-07-31: compact toggles (slippage, gas) keep 'Auto'",
+              "rule": "'Auto' vs 'Automatique' is surface-dependent (2026-07-31 triage ruling)",
               "sourceSpan": "Auto",
               "targetSpan": "Automatique"
             },
             "alternative": "Auto"
           }
         ],
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -882,8 +1243,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Tokens",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -899,8 +1260,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "API",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -950,8 +1311,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Launchpad",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -967,8 +1328,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "APR",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -984,8 +1345,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Distribution",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -1001,8 +1362,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Pool",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -1018,8 +1379,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Position",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -1659,8 +2020,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "PnL {{value}} ({{pct}})",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -1744,8 +2105,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Liq.",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -1761,8 +2122,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Liq. {{distance}}",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -1773,13 +2134,25 @@
         "providerId": "i18next-json",
         "locale": "fr-FR",
         "domain": "product-ui",
-        "sourceHash": "a62a7c03d828b67d0cfafe4ec99e0d1999f4e8961c6ff07ae1960e76ec2a0acf",
+        "sourceHash": "2649e082d9a2ba377ac918877028c3f1885e2e9ab926b216943aaf06064b92a1",
         "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
-        "translation": "Nouvelle entrée",
-        "status": "clean",
-        "agentRunId": "fr-FR-2026-10-13T21-25-55Z",
-        "approvedAt": "2026-10-13T21:25:55.076Z",
+        "translation": "Entrée",
+        "status": "finalized",
+        "judgeIssues": [
+          {
+            "category": "accuracy",
+            "severity": "major",
+            "detail": "Addition: source is the bare chart label 'Entry' but the translation says 'Nouvelle entrée' ('new entry'), adding a claim of newness not in the source and diverging from the sibling shipped rendering 'Entrée ({{leverage}})'.",
+            "evidence": {
+              "sourceSpan": "Entry",
+              "targetSpan": "Nouvelle entrée"
+            },
+            "alternative": "Entrée"
+          }
+        ],
+        "agentRunId": "fr-FR-2026-10-24T23-30-00Z",
+        "approvedAt": "2026-10-24T23:30:00.309Z",
         "approvedBy": "agent"
       }
     ],
@@ -1831,6 +2204,74 @@
         "status": "clean",
         "agentRunId": "fr-FR-2026-10-13T21-25-55Z",
         "approvedAt": "2026-10-13T21:25:55.076Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.chart.ohlc.close",
+      {
+        "unitId": "margin.chart.ohlc.close",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "C",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.chart.ohlc.high",
+      {
+        "unitId": "margin.chart.ohlc.high",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "44bd7ae60f478fae1061e11a7739f4b94d1daf917982d33b6fc8a01a63f89c21",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "H",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.chart.ohlc.low",
+      {
+        "unitId": "margin.chart.ohlc.low",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "72dfcfb0c470ac255cde83fb8fe38de8a128188e03ea5ba5b2a93adbea1062fa",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "B",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-26T18-33-24Z",
+        "approvedAt": "2026-10-26T18:33:24.285Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.chart.ohlc.open",
+      {
+        "unitId": "margin.chart.ohlc.open",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "c4694f2e93d5c4e7d51f9c5deb75e6cc8be5e1114178c6a45b6fc2c566a0aa8c",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "O",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -1982,8 +2423,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Position",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -2084,8 +2525,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Volume",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -2510,6 +2951,23 @@
       }
     ],
     [
+      "fr-FR:i18next-json:margin.drawer.reducedActivity",
+      {
+        "unitId": "margin.drawer.reducedActivity",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "d37ea4701fd4b6459e2be35373ca72aa5480abe11ceb2b9628c94435ba196927",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Réduite — remboursement de {{debt}} · vente de {{collateral}} @ {{price}}",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-24T23-30-00Z",
+        "approvedAt": "2026-10-24T23:30:00.309Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "fr-FR:i18next-json:margin.error.adjust.fullExit",
       {
         "unitId": "margin.error.adjust.fullExit",
@@ -2523,6 +2981,23 @@
         "status": "clean",
         "agentRunId": "fr-FR-2026-10-13T21-25-55Z",
         "approvedAt": "2026-10-13T21:25:55.076Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.error.adjust.fundingSwapUnsupported",
+      {
+        "unitId": "margin.error.adjust.fundingSwapUnsupported",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "4b2841f9abbf331c34f5f1c9b11dc5ab21b367596bf3cb3b58d3223f1ddc8e33",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Cette action ne fonctionne qu’avec le token de collatéral de la position, sur le réseau de la position.",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -2853,8 +3328,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Route",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -2923,6 +3398,40 @@
         "status": "clean",
         "agentRunId": "fr-FR-2026-10-13T21-25-55Z",
         "approvedAt": "2026-10-13T21:25:55.076Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.leverage.decrease",
+      {
+        "unitId": "margin.leverage.decrease",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "a1a4f24aad89fe7c7c419c46458dc108c59dd2f804d5887e24c604000e048378",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Réduire le levier",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-24T23-30-00Z",
+        "approvedAt": "2026-10-24T23:30:00.309Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.leverage.increase",
+      {
+        "unitId": "margin.leverage.increase",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "a9d8c8a3b24b084830d7162805a1e5d8f5a418bb1101b7628ae3f49b2fa9d0db",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Augmenter le levier",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-24T23-30-00Z",
+        "approvedAt": "2026-10-24T23:30:00.309Z",
         "approvedBy": "agent"
       }
     ],
@@ -3352,6 +3861,57 @@
       }
     ],
     [
+      "fr-FR:i18next-json:margin.mobile.connectToViewPositions",
+      {
+        "unitId": "margin.mobile.connectToViewPositions",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "d472c68a3ca2ced681cd14221ccb4571894f98390163e0533e29e004a1e1e8b9",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Connectez un wallet pour voir vos positions",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.mobile.modify",
+      {
+        "unitId": "margin.mobile.modify",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "d94eaf69438863a8d5ef755e74e6840048386eefbf0e34f39004d2e9c9157778",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Modifier",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.mobile.viewChart",
+      {
+        "unitId": "margin.mobile.viewChart",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "3486e01bb8ba84ffca94bd81040b53654a09e138ba6c2d61106242bf90951ec4",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Voir le graphique",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "fr-FR:i18next-json:margin.payment.conversion",
       {
         "unitId": "margin.payment.conversion",
@@ -3375,13 +3935,13 @@
         "providerId": "i18next-json",
         "locale": "fr-FR",
         "domain": "product-ui",
-        "sourceHash": "422bda9e9fd6f308e8c3be5c7d26cc3bff32ebc70f67438879fdcef6034d91f2",
+        "sourceHash": "2bf63d817630601b992694bc0b0559715001b9a24e7fe0d741eea02dce9181af",
         "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
-        "translation": "Paiement",
+        "translation": "Marge",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-13T21-25-55Z",
-        "approvedAt": "2026-10-13T21:25:55.076Z",
+        "agentRunId": "fr-FR-2026-10-24T23-30-00Z",
+        "approvedAt": "2026-10-24T23:30:00.309Z",
         "approvedBy": "agent"
       }
     ],
@@ -3533,8 +4093,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "{{count}} signature",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -3550,8 +4110,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "{{count}} signatures",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -3926,6 +4486,23 @@
       }
     ],
     [
+      "fr-FR:i18next-json:margin.plan.step.addMargin",
+      {
+        "unitId": "margin.plan.step.addMargin",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "4c063442e7c458cbf337ecb992c6d384ffaf179f1fe6cffe066c455f78418238",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Déposer la marge",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "fr-FR:i18next-json:margin.plan.step.adjust",
       {
         "unitId": "margin.plan.step.adjust",
@@ -4021,6 +4598,40 @@
         "status": "clean",
         "agentRunId": "fr-FR-2026-10-13T21-25-55Z",
         "approvedAt": "2026-10-13T21:25:55.076Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.plan.step.decreasePosition",
+      {
+        "unitId": "margin.plan.step.decreasePosition",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "38d398cccf9a73a5b8f7b42922bc5e4084a94ef8e142504cb6f48e64fd48165d",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Réduire la position",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.plan.step.increasePosition",
+      {
+        "unitId": "margin.plan.step.increasePosition",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "b75aeacb0c6e8fd29444209d44ccdf5f7725da2e53c7e2b60ffe8eeed8d18a3d",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Augmenter la position",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -4144,6 +4755,40 @@
       }
     ],
     [
+      "fr-FR:i18next-json:margin.plan.step.withdrawMargin",
+      {
+        "unitId": "margin.plan.step.withdrawMargin",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "60d12f6076b55cc73143950576072e9cc906901d931e5a9e16ca64d9a43f69ed",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Retirer la marge",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.plan.title.addMargin",
+      {
+        "unitId": "margin.plan.title.addMargin",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "ad88b36d369b30e7de96515696df8f83d2f815e575f43b944d9d48a40f4f75a8",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Ajouter de la marge",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "fr-FR:i18next-json:margin.plan.title.adjust",
       {
         "unitId": "margin.plan.title.adjust",
@@ -4178,6 +4823,40 @@
       }
     ],
     [
+      "fr-FR:i18next-json:margin.plan.title.decreaseLeverage",
+      {
+        "unitId": "margin.plan.title.decreaseLeverage",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "a1a4f24aad89fe7c7c419c46458dc108c59dd2f804d5887e24c604000e048378",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Diminuer le levier",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.plan.title.increaseLeverage",
+      {
+        "unitId": "margin.plan.title.increaseLeverage",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "a9d8c8a3b24b084830d7162805a1e5d8f5a418bb1101b7628ae3f49b2fa9d0db",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Augmenter le levier",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "fr-FR:i18next-json:margin.plan.title.open",
       {
         "unitId": "margin.plan.title.open",
@@ -4191,6 +4870,23 @@
         "status": "clean",
         "agentRunId": "fr-FR-2026-10-13T21-25-55Z",
         "approvedAt": "2026-10-13T21:25:55.076Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.plan.title.withdrawMargin",
+      {
+        "unitId": "margin.plan.title.withdrawMargin",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "60d12f6076b55cc73143950576072e9cc906901d931e5a9e16ca64d9a43f69ed",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Retirer la marge",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -4780,8 +5476,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "RoE",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-26T18-33-24Z",
+        "approvedAt": "2026-10-26T18:33:24.285Z",
         "approvedBy": "agent"
       }
     ],
@@ -4797,8 +5493,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "PnL",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-26T18-33-24Z",
+        "approvedAt": "2026-10-26T18:33:24.285Z",
         "approvedBy": "agent"
       }
     ],
@@ -4850,6 +5546,176 @@
         "status": "clean",
         "agentRunId": "fr-FR-2026-10-13T21-25-55Z",
         "approvedAt": "2026-10-13T21:25:55.076Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.receipt.borrowRateTooltip",
+      {
+        "unitId": "margin.receipt.borrowRateTooltip",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "e2ea8d8789d17d5b0adeaa6db92e04ad3f27dee46b7f40daec481cf83548230a",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Taux d’emprunt sur {{venue}} : {{rate}}",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-24T23-30-00Z",
+        "approvedAt": "2026-10-24T23:30:00.309Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.receipt.breakEven",
+      {
+        "unitId": "margin.receipt.breakEven",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "b46ea9b709326282887aec506be8fe0872fa58c3b16c0ff7de283c2aa3fec11a",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Seuil de rentabilité",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-24T23-30-00Z",
+        "approvedAt": "2026-10-24T23:30:00.309Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.receipt.breakEvenTooltip",
+      {
+        "unitId": "margin.receipt.breakEvenTooltip",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "e053a4d04ddc48237602d3cea3891126baee981f9aa8f25eb019aee604d7be30",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Prix estimé auquel la clôture vous restitue votre marge, en supposant que le spread d’entrée soit payé à nouveau à la sortie.",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-24T23-30-00Z",
+        "approvedAt": "2026-10-24T23:30:00.309Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.receipt.liquidationPrice",
+      {
+        "unitId": "margin.receipt.liquidationPrice",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "1da7d9f5dd676995729dfc20cfe80f58494b85f8ecb39106186c7a70ab075ebd",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Prix de liquidation",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-24T23-30-00Z",
+        "approvedAt": "2026-10-24T23:30:00.309Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.receipt.liquidationPriceTooltip",
+      {
+        "unitId": "margin.receipt.liquidationPriceTooltip",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "5aaba78459d8a02e1f8d85b3a8e529a14e185e9c123f0b80f32b95ad7139c1ea",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Si le prix de l’oracle atteint ce niveau, la position peut être liquidée.",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-24T23-30-00Z",
+        "approvedAt": "2026-10-24T23:30:00.309Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.receipt.market",
+      {
+        "unitId": "margin.receipt.market",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "5238d9bd03d543e62fff76cbea6a2392a95f42110e36c282e4c919991f607daf",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Marché",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-24T23-30-00Z",
+        "approvedAt": "2026-10-24T23:30:00.309Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.receipt.marketTooltip",
+      {
+        "unitId": "margin.receipt.marketTooltip",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "f00d203d2ad28e22060b8880ebcb94d1b08bb4aa871f851168cb607a375e8bd7",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Le marché de prêt auprès duquel cette position emprunte, son taux actuel et son coût quotidien estimé.",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-24T23-30-00Z",
+        "approvedAt": "2026-10-24T23:30:00.309Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.receipt.oraclePrice",
+      {
+        "unitId": "margin.receipt.oraclePrice",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "7015815cf171bee33d8be86956702f6cdf9491a15c8dc7cc09375cb7fe970e66",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Prix de l’oracle : {{price}}",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-24T23-30-00Z",
+        "approvedAt": "2026-10-24T23:30:00.309Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.receipt.perDay",
+      {
+        "unitId": "margin.receipt.perDay",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "26f9fa3e71eef433159d9f7e76d35addc578dfe20bae57ed4b9ac71df74bcbb9",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "{{amount}}/jour",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-24T23-30-00Z",
+        "approvedAt": "2026-10-24T23:30:00.309Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.receipt.swapping",
+      {
+        "unitId": "margin.receipt.swapping",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "7664ffeafd9108e9c4f233646e56938060d94d486de7fa15c77b9584d78e301b",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Échange en cours",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-24T23-30-00Z",
+        "approvedAt": "2026-10-24T23:30:00.309Z",
         "approvedBy": "agent"
       }
     ],
@@ -5035,8 +5901,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Route via {{provider}}",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -5075,6 +5941,74 @@
       }
     ],
     [
+      "fr-FR:i18next-json:margin.selector.assetFilter.anyLong",
+      {
+        "unitId": "margin.selector.assetFilter.anyLong",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "89b8b9d906a30137e197d081227f018a1c4bb270cf8bca9293169d1bf55cc13c",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Tout actif long",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.selector.assetFilter.anyShort",
+      {
+        "unitId": "margin.selector.assetFilter.anyShort",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "cf5c388c57503069f57c62aa2e2cb6cda6dd132ba9e489ad1ad15a0fa569de79",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Tout actif short",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.selector.assetFilter.long",
+      {
+        "unitId": "margin.selector.assetFilter.long",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "d3afc4cdb09f70dd2c8feaa677555c1446eb8a5694460b585c57f2575b2ff22d",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Actif long",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.selector.assetFilter.short",
+      {
+        "unitId": "margin.selector.assetFilter.short",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "3cd07d18af528e7726c0a79ce6edd5f39107af3f1dde0f468b7351530957c7ca",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Actif short",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "fr-FR:i18next-json:margin.selector.borrowRateValue",
       {
         "unitId": "margin.selector.borrowRateValue",
@@ -5109,6 +6043,40 @@
       }
     ],
     [
+      "fr-FR:i18next-json:margin.selector.columnChange24h",
+      {
+        "unitId": "margin.selector.columnChange24h",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "0b509e6d4c97d169f054897e72a9d70905e12c89ef711215e5f1f66f529a719d",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "24 h",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.selector.columnMarkPrice",
+      {
+        "unitId": "margin.selector.columnMarkPrice",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "18f80225d5a4ab19d1f0c922d3fc7f56f8f2fa956c4325e637fcd41177c2055b",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Prix mark",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "fr-FR:i18next-json:margin.selector.columnMarket",
       {
         "unitId": "margin.selector.columnMarket",
@@ -5132,13 +6100,30 @@
         "providerId": "i18next-json",
         "locale": "fr-FR",
         "domain": "product-ui",
-        "sourceHash": "01675ccf3f3fc19d24ca2c338d90277b48d5511d3c10e507bf9ce4d118d1003b",
+        "sourceHash": "36200a12fc166f013e1d0af0cf1b88a4224c4e804213b2f3b7276142c75848d1",
         "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Levier max",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-13T21-25-55Z",
-        "approvedAt": "2026-10-13T21:25:55.076Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.selector.columnPair",
+      {
+        "unitId": "margin.selector.columnPair",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "989da04b0aaaa57f9d4e0178cf5178cce8e1c8d44f4efe9af946599ce2a84f27",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Paire",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -5156,6 +6141,40 @@
         "status": "clean",
         "agentRunId": "fr-FR-2026-10-13T21-25-55Z",
         "approvedAt": "2026-10-13T21:25:55.076Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.selector.debtFilter.any",
+      {
+        "unitId": "margin.selector.debtFilter.any",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "2a5d47d466ea761711f6875c10e46a2f6c95355e49c0466810dcb4b014ffa054",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Tout actif de dette",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.selector.debtFilter.label",
+      {
+        "unitId": "margin.selector.debtFilter.label",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "dba87937151e21417c2523672c394be7fd3cfd2fabb4350d7dc5a58734012cad",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Actif de dette",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -5228,19 +6247,49 @@
       }
     ],
     [
+      "fr-FR:i18next-json:margin.selector.searchPlaceholder",
+      {
+        "unitId": "margin.selector.searchPlaceholder",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "7d59556565c19b9023ebafc7e6335999a4c8f97765628601b966e9cbd48fd0bd",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Rechercher des tokens ou des paires",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "fr-FR:i18next-json:margin.selector.title",
       {
         "unitId": "margin.selector.title",
         "providerId": "i18next-json",
         "locale": "fr-FR",
         "domain": "product-ui",
-        "sourceHash": "67f63ac3a864ef1ce8314508913935437260b824515eea52fbee46306f5fb335",
+        "sourceHash": "17eaf85e89a6b92a8b1111ae760444403973a7d6ad219eea4f8be4f7ae1ed958",
         "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
-        "translation": "Sélectionner un marché",
-        "status": "clean",
-        "agentRunId": "fr-FR-2026-10-13T21-25-55Z",
-        "approvedAt": "2026-10-13T21:25:55.076Z",
+        "translation": "Sélectionner une paire",
+        "status": "finalized",
+        "judgeIssues": [
+          {
+            "category": "accuracy",
+            "severity": "major",
+            "detail": "Mistranslation: 'pair' rendered as 'marché' (market). The sibling string i=1696 'Pair' is translated 'Paire' in this run, so this is also an intra-run terminology inconsistency for the same concept.",
+            "reviewDimension": "term-type-agreement",
+            "evidence": {
+              "sourceSpan": "pair",
+              "targetSpan": "marché"
+            },
+            "alternative": "Sélectionner une paire"
+          }
+        ],
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -5290,8 +6339,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Long",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -5307,8 +6356,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Short",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -5415,6 +6464,74 @@
       }
     ],
     [
+      "fr-FR:i18next-json:margin.stats.label.high24h",
+      {
+        "unitId": "margin.stats.label.high24h",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "30c6a2350ec786d18b63af6b687c855867f04cfde8eed94841dceb1a16c4690f",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Plus haut 24 h",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-24T23-30-00Z",
+        "approvedAt": "2026-10-24T23:30:00.309Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.stats.label.liquidity",
+      {
+        "unitId": "margin.stats.label.liquidity",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "04864c05049e9d2e7a2ed9d58db8c07dbbfde8eb2f2b20406554fbff867bd17b",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Liquidité",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-24T23-30-00Z",
+        "approvedAt": "2026-10-24T23:30:00.309Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.stats.label.low24h",
+      {
+        "unitId": "margin.stats.label.low24h",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "2f0807750c5f593ad34c3c0f452f4f260eb11982d22c5a0668314905cdcdc42e",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Plus bas 24 h",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-24T23-30-00Z",
+        "approvedAt": "2026-10-24T23:30:00.309Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.stats.label.mark",
+      {
+        "unitId": "margin.stats.label.mark",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "d7cda0ca2c8586e512c425368fcb2bba62e81475bfceb4284f4906de8ec242bc",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Mark",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "fr-FR:i18next-json:margin.stats.liquidity",
       {
         "unitId": "margin.stats.liquidity",
@@ -5477,8 +6594,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Max {{max}}",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -5767,6 +6884,23 @@
       }
     ],
     [
+      "fr-FR:i18next-json:margin.table.markEntry",
+      {
+        "unitId": "margin.table.markEntry",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "c5bf8ffb56c7e547c417d206a62c4a1127edd04e5fde7d0915334bfa3ea2f7e9",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Prix mark / d’entrée",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-24T23-30-00Z",
+        "approvedAt": "2026-10-24T23:30:00.309Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "fr-FR:i18next-json:margin.table.opening",
       {
         "unitId": "margin.table.opening",
@@ -5818,6 +6952,23 @@
       }
     ],
     [
+      "fr-FR:i18next-json:margin.table.pnl",
+      {
+        "unitId": "margin.table.pnl",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "348563db65d20fad0d307cfc180be9dee3a66c79dd2529de8413d64affe991a7",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "PnL",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "fr-FR:i18next-json:margin.table.pnlRoe",
       {
         "unitId": "margin.table.pnlRoe",
@@ -5829,8 +6980,25 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "PnL/RoE",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-26T18-33-24Z",
+        "approvedAt": "2026-10-26T18:33:24.285Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:margin.table.position",
+      {
+        "unitId": "margin.table.position",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "6d031af10da7a25e554bb21247f28f0e6cef77f1471175199e7fcc571964dc3d",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Position",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -6472,6 +7640,23 @@
       }
     ],
     [
+      "fr-FR:i18next-json:network.filter.lowLiquidity",
+      {
+        "unitId": "network.filter.lowLiquidity",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "05a25d34314db561ef070b425ba6015bd5c105d2dda3c7da3082d5a742c3267f",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Liquidité faible",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-19T20-14-12Z",
+        "approvedAt": "2026-10-19T20:14:12.655Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "fr-FR:i18next-json:notification.auction.open.failed",
       {
         "unitId": "notification.auction.open.failed",
@@ -6500,8 +7685,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Performance",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -6517,8 +7702,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "APR",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -6568,8 +7753,42 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Position",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:pool.position.earned.suffix",
+      {
+        "unitId": "pool.position.earned.suffix",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "4844fdfbc864ac106bb9742de65edfbcb5257a4e7ee2d8c500b80cdafa148524",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "gagnés",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-21T15-24-49Z",
+        "approvedAt": "2026-10-21T15:24:49.508Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:pool.position.liquidity.suffix",
+      {
+        "unitId": "pool.position.liquidity.suffix",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "ead2523743ee17aed6605ba71358fd4820c5102cefa92b72d4574db2cddf575e",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "liq.",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -6585,8 +7804,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Positions",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -6602,8 +7821,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "{{tokenPair}} via {{dex}}",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -6619,8 +7838,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Mints",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -6636,8 +7855,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Wraps",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -6653,8 +7872,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Type",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -6670,8 +7889,59 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "DeFi",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:portfolio.margin.openPositions_one",
+      {
+        "unitId": "portfolio.margin.openPositions_one",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "3567af724aa11e694537ad7d9188dac527968d2becccc1b3600799766cf47cbe",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "{{count}} position sur marge ouverte",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:portfolio.margin.openPositions_other",
+      {
+        "unitId": "portfolio.margin.openPositions_other",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "fee33176e5e816c04274ad7bf029f3bba073cdb24e3df4f18bdd73a080ab8ba1",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "{{count}} positions sur marge ouvertes",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:portfolio.margin.title",
+      {
+        "unitId": "portfolio.margin.title",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "2bf63d817630601b992694bc0b0559715001b9a24e7fe0d741eea02dce9181af",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Marge",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -6687,8 +7957,76 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Allocation",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:position.create.v2.amountTooSmall",
+      {
+        "unitId": "position.create.v2.amountTooSmall",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "5f7144b32a93c97cde7ea14e54d6be791cb14e15bcb126a48c6d28ec35a84e74",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Montants trop faibles pour créer un pool v2",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-22T21-14-21Z",
+        "approvedAt": "2026-10-22T21:14:21.337Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:position.hook.rejectsRemoval",
+      {
+        "unitId": "position.hook.rejectsRemoval",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "b8866456aee593b3cfd2bb7eb599ebd1892aa8b793cd354af883d6bd6e4ca034",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Le hook de ce pool rejette actuellement les retraits, cette transaction échouerait donc.",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-23T18-15-10Z",
+        "approvedAt": "2026-10-23T18:15:10.915Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:position.hook.removeMayFail",
+      {
+        "unitId": "position.hook.removeMayFail",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "f1a7a71cf59a4e068aa8f6d4e2253be3f3b70be46d400f0a45920ef1973de077",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Le hook de ce pool peut bloquer les retraits, et cette transaction n’a pas pu être simulée. Elle peut échouer.",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-23T18-15-10Z",
+        "approvedAt": "2026-10-23T18:15:10.915Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:position.initialPrice.marketUpdated",
+      {
+        "unitId": "position.initialPrice.marketUpdated",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "a54fccb1b9e62fcbf3c5d1b992c9dc12bf09b76415f09564ce0adde7d922d185",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Prix du marché mis à jour",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-15T20-59-02Z",
+        "approvedAt": "2026-10-15T20:59:02.966Z",
         "approvedBy": "agent"
       }
     ],
@@ -6721,8 +8059,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Stable",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -6738,8 +8076,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Performance",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -6755,8 +8093,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Performance",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -6772,8 +8110,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Volume",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -6789,8 +8127,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Airdrop / spam",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -6806,8 +8144,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Tokens",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -6823,8 +8161,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "The Badger",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -6840,8 +8178,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Frontrunner",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -6857,8 +8195,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Rare",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -6874,8 +8212,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Max",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -6891,8 +8229,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Top",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -6908,8 +8246,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Volume",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -6942,8 +8280,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "$TICKER",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -7158,8 +8496,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Crowd Launch",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -7175,8 +8513,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Instant Launch",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -7192,8 +8530,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Burn",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -7226,8 +8564,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Crowd",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -7243,8 +8581,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Instant",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -7260,8 +8598,37 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Tokens",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:rhcca.position.priceUnavailable",
+      {
+        "unitId": "rhcca.position.priceUnavailable",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "abc5fecda607e617b5af85dd8280f49b97736d30dcf49ad622118c302b123465",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Données de prix des tokens actuellement indisponibles",
+        "status": "finalized",
+        "judgeIssues": [
+          {
+            "category": "fluency",
+            "severity": "minor",
+            "detail": "'Données de prix Token' is ungrammatical French — the English attributive noun 'Token' is stranded mid-phrase with a stray capital and no connecting grammar. French needs a prepositional construction and the run's standard plural form of the kept-English term.",
+            "evidence": {
+              "sourceSpan": "Token pricing data currently unavailable",
+              "targetSpan": "Données de prix Token actuellement indisponibles"
+            },
+            "alternative": "Données de prix des tokens actuellement indisponibles"
+          }
+        ],
+        "agentRunId": "fr-FR-2026-10-20T20-08-48Z",
+        "approvedAt": "2026-10-20T20:08:48.324Z",
         "approvedBy": "agent"
       }
     ],
@@ -7276,21 +8643,9 @@
         "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Graduation",
-        "status": "finalized",
-        "judgeIssues": [
-          {
-            "category": "accuracy",
-            "severity": "major",
-            "detail": "The translation contains a leaked MT annotation ' [uncertain: graduation]' that is not in the source and would be shown verbatim to users in this table-header label. This is added content (MQM addition). The bare term 'Graduation' is itself fine — it matches the run's renderings at i=3269 ('Objectif de graduation') and i=3241's siblings.",
-            "evidence": {
-              "sourceSpan": "Graduation",
-              "targetSpan": "Graduation [uncertain: graduation]"
-            },
-            "alternative": "Graduation"
-          }
-        ],
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -7306,8 +8661,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Trader",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -7323,8 +8678,25 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Type",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:search.results.auction.startsIn",
+      {
+        "unitId": "search.results.auction.startsIn",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "f63d3a93c65b2b7e8c6b1a29a7efe1834ae62f4887bd58edfb759de7b6b15f1c",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Débute dans {{time}}",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-20T18-18-55Z",
+        "approvedAt": "2026-10-20T18:18:55.895Z",
         "approvedBy": "agent"
       }
     ],
@@ -7357,8 +8729,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "{{apr}} APR",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -7374,8 +8746,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "{{apy}} APY",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -7391,8 +8763,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "OK",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -7408,8 +8780,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "ENS",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -7459,8 +8831,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Transactions",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -7524,8 +8896,42 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Notifications",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:settings.setting.shareDeviceIdentifiers.message",
+      {
+        "unitId": "settings.setting.shareDeviceIdentifiers.message",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "e2ba15a1a8521d2d7db3051027b805d819f8bcd2e8e7d9700b0edc9cea9b2f74",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Nous pouvons partager des identifiants d’appareil avec nos partenaires publicitaires afin de promouvoir nos services sur d’autres sites web et plateformes.",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-16T19-33-19Z",
+        "approvedAt": "2026-10-16T19:33:19.256Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:settings.setting.shareDeviceIdentifiers.title",
+      {
+        "unitId": "settings.setting.shareDeviceIdentifiers.title",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "ef41776a003a42bf066f2cb1cc0886b40fef5dfea0420467b3af57f131d66b59",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Partager les identifiants d’appareil",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-16T19-33-19Z",
+        "approvedAt": "2026-10-16T19:33:19.256Z",
         "approvedBy": "agent"
       }
     ],
@@ -7541,8 +8947,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Max",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -7677,8 +9083,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Via {{provider}}",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -7699,17 +9105,17 @@
             "category": "terminology",
             "severity": "major",
             "reviewDimension": "cta-affordance",
-            "detail": "This 'Auto' is the max-slippage toggle (described by i=3882). The fr-FR triage ruling keeps 'Auto' for compact slippage/gas toggles; 'Automatique' contradicts the ruling, the shipped 'Auto' rendering, and breaks consistency with i=1253 ('Auto: {{value}}') while overflowing the compact control.",
+            "detail": "This key sits in the swap slippage settings (sibling of the max-slippage strings). The fr-FR triage ruling keeps the valid French abbreviation 'Auto' on compact slippage/gas toggles; 'Automatique' is reserved for the appearance/theme setting. 'Automatique' also bloats a fixed-width toggle label.",
             "evidence": {
-              "rule": "Vendor-coverage triage ruling 2026-07-31: compact toggles (slippage, gas) keep 'Auto'",
+              "rule": "Vendor-coverage triage ruling 2026-07-31: 'Auto' vs 'Automatique' is surface-dependent — compact toggles (slippage, gas) keep 'Auto'",
               "sourceSpan": "Auto",
               "targetSpan": "Automatique"
             },
             "alternative": "Auto"
           }
         ],
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -7816,6 +9222,36 @@
       }
     ],
     [
+      "fr-FR:i18next-json:tdp.auction.startsIn",
+      {
+        "unitId": "tdp.auction.startsIn",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "5fefbb92603fab9c2557b72cf99eb3b98916bea79056b6fcbb517645a9049eea",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Débute dans",
+        "status": "finalized",
+        "judgeIssues": [
+          {
+            "category": "terminology",
+            "severity": "minor",
+            "detail": "Inconsistent rendering of \"Starts in\": the shipped translation for \"Starts in {{time}}\" is \"Débute dans {{time}}\", but this proposal uses \"Commence dans\". Both are countdown labels for the same concept (auction/launch start) and should match the shipped term.",
+            "evidence": {
+              "rule": "shipped: \"Starts in {{time}}\" → \"Débute dans {{time}}\"",
+              "sourceSpan": "Starts in",
+              "targetSpan": "Commence dans"
+            },
+            "alternative": "Débute dans"
+          }
+        ],
+        "agentRunId": "fr-FR-2026-10-26T16-31-48Z",
+        "approvedAt": "2026-10-26T16:31:48.246Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "fr-FR:i18next-json:tdp.auction.statusUnavailable",
       {
         "unitId": "tdp.auction.statusUnavailable",
@@ -7846,6 +9282,23 @@
         "status": "clean",
         "agentRunId": "fr-FR-2026-09-16T16-25-36Z",
         "approvedAt": "2026-09-16T16:25:36.884Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:tdp.auction.upcoming",
+      {
+        "unitId": "tdp.auction.upcoming",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "8445cc4d09cdb97d759ec772a31f8acd64b071c54282c509bf21b897f7126568",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Enchère à venir",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-26T16-31-48Z",
+        "approvedAt": "2026-10-26T16:31:48.246Z",
         "approvedBy": "agent"
       }
     ],
@@ -8230,8 +9683,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Launchpad",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -8266,6 +9719,82 @@
         "status": "clean",
         "agentRunId": "fr-FR-2026-09-30T20-35-47Z",
         "approvedAt": "2026-09-30T20:35:47.209Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:token.price.lowConfidence.tag",
+      {
+        "unitId": "token.price.lowConfidence.tag",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "29e142b8be7d28e49cc799fb06f36a7121919415c29811315c90594e4c4ffc60",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Fiabilité faible",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-21T17-35-25Z",
+        "approvedAt": "2026-10-21T17:35:25.891Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:token.price.lowConfidence.title",
+      {
+        "unitId": "token.price.lowConfidence.title",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "ef586d27ebbd87e6bfa32e637715042e8d9e8f612ea9de3124b29361e235f99d",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Faible fiabilité du prix",
+        "status": "finalized",
+        "judgeIssues": [
+          {
+            "category": "fluency",
+            "severity": "minor",
+            "detail": "\"Fiabilité du prix faible\" is ambiguous — \"faible\" can be read as modifying \"prix\" (a low price) rather than \"fiabilité\". Fronting the adjective removes the ambiguity.",
+            "evidence": {
+              "sourceSpan": "Low price confidence",
+              "targetSpan": "Fiabilité du prix faible"
+            },
+            "alternative": "Faible fiabilité du prix"
+          }
+        ],
+        "agentRunId": "fr-FR-2026-10-21T17-35-25Z",
+        "approvedAt": "2026-10-21T17:35:25.891Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:token.price.lowConfidence.tooltip",
+      {
+        "unitId": "token.price.lowConfidence.tooltip",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "2a666cdba05106c279a946878c66c546f38ddd6e4f754ea3212935e61a271a1a",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Le prix du token repose sur des données de marché limitées ou potentiellement de faible qualité.",
+        "status": "finalized",
+        "judgeIssues": [
+          {
+            "category": "fluency",
+            "severity": "minor",
+            "detail": "\"Token\" is capitalized mid-sentence; the kept-English DNT term should follow target casing in running prose (lowercase here), as in shipped strings (\"le prix actuel du token\").",
+            "evidence": {
+              "sourceSpan": "Token price",
+              "targetSpan": "Le prix du Token",
+              "rule": "token — DO NOT TRANSLATE (keep verbatim); fr style: label casing around kept-English terms"
+            },
+            "alternative": "Le prix du token repose sur des données de marché limitées ou potentiellement de faible qualité."
+          }
+        ],
+        "agentRunId": "fr-FR-2026-10-21T17-35-25Z",
+        "approvedAt": "2026-10-21T17:35:25.891Z",
         "approvedBy": "agent"
       }
     ],
@@ -8317,6 +9846,23 @@
         "status": "clean",
         "agentRunId": "fr-FR-2026-09-23T16-11-24Z",
         "approvedAt": "2026-09-23T16:11:24.004Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:toucan.allAuctions",
+      {
+        "unitId": "toucan.allAuctions",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "a6d3fee9c816e67519ea5a4ff5371433980d102f27650c5b854c671857a6200d",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Toutes les enchères",
+        "status": "clean",
+        "agentRunId": "fr-FR-2026-10-19T14-31-51Z",
+        "approvedAt": "2026-10-19T14:31:51.801Z",
         "approvedBy": "agent"
       }
     ],
@@ -8383,8 +9929,38 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Description",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:toucan.auction.finalFdv",
+      {
+        "unitId": "toucan.auction.finalFdv",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "67e17d632a561ea1d2f2f936e394bfe8f9f05219f620b70d8f3e160a866c4b03",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "FDV finale",
+        "status": "finalized",
+        "judgeIssues": [
+          {
+            "category": "fluency",
+            "severity": "minor",
+            "detail": "Gender agreement error: FDV is feminine in the shipped fr-FR corpus (\"la FDV au moment de l’ordre\", \"peuvent aussi affecter la FDV\"), so the adjective must be feminine — \"finale\", not \"final\".",
+            "evidence": {
+              "sourceSpan": "Final FDV",
+              "targetSpan": "FDV final",
+              "rule": "shipped corpus treats FDV as feminine (\"la FDV\")"
+            },
+            "alternative": "FDV finale"
+          }
+        ],
+        "agentRunId": "fr-FR-2026-10-21T16-44-45Z",
+        "approvedAt": "2026-10-21T16:44:45.236Z",
         "approvedBy": "agent"
       }
     ],
@@ -8451,8 +10027,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "<value>{{fdv}}</value> FDV",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -8521,6 +10097,36 @@
         "status": "clean",
         "agentRunId": "fr-FR-2026-09-16T16-25-36Z",
         "approvedAt": "2026-09-16T16:25:36.884Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "fr-FR:i18next-json:toucan.bidDetails.description.outOfRangeInProgressAwaitingThreshold",
+      {
+        "unitId": "toucan.bidDetails.description.outOfRangeInProgressAwaitingThreshold",
+        "providerId": "i18next-json",
+        "locale": "fr-FR",
+        "domain": "product-ui",
+        "sourceHash": "c9e6b4e257d95f81a7ea9c178152998f40e0db3bf41df207c687a579fa60174f",
+        "glossaryHash": "a4bb210ecb2c268abdc138bd7ddf56ee9fc0dc45f012e41ff87920eb988fe8c0",
+        "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
+        "translation": "Cet ordre a cessé de s’exécuter car le prix a dépassé votre FDV maximale de <highlight>{{valuationSummary}}</highlight>. Vous pourrez récupérer votre budget inutilisé une fois que le volume exécuté de l’enchère aura atteint son seuil de lancement de <highlight>{{launchThreshold}}</highlight>, et retirer les tokens reçus à la fin de l’enchère. Si le seuil n’est jamais atteint, vous pourrez retirer la totalité de votre budget à la fin de l’enchère.",
+        "status": "finalized",
+        "judgeIssues": [
+          {
+            "category": "terminology",
+            "severity": "minor",
+            "detail": "Shipped sibling (i=4388-type string) renders this exact clause as « cessé de s’exécuter » and « FDV maximale »; the proposal uses « cessé d’être exécuté » and « FDV maximum », creating inconsistent renderings of the same source phrasing.",
+            "evidence": {
+              "rule": "shipped: 'Cet ordre a cessé de s’exécuter car le prix a dépassé votre FDV maximale de…'",
+              "sourceSpan": "stopped filling … maximum FDV",
+              "targetSpan": "cessé d’être exécuté … FDV maximum"
+            },
+            "alternative": "cessé de s’exécuter … FDV maximale"
+          }
+        ],
+        "agentRunId": "fr-FR-2026-10-20T16-08-07Z",
+        "approvedAt": "2026-10-20T16:08:07.073Z",
         "approvedBy": "agent"
       }
     ],
@@ -8604,8 +10210,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Minute",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -8791,8 +10397,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Permanent",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -8808,8 +10414,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Description",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -8825,8 +10431,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "$TICKER",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -8859,8 +10465,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Crowd Launch",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -8905,8 +10511,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Crowd Launches",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -9002,8 +10608,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Instant Launch",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -9036,8 +10642,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Instant Launches",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -9053,8 +10659,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Pools.trade",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -9121,8 +10727,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Transaction",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -9410,8 +11016,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "<icon /> <gradient>UniswapX</gradient> <info />",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ],
@@ -9427,8 +11033,8 @@
         "styleHash": "e8bce1e182097bd5556ba3e80b60fcf9df86bb773686e1292fc99b2000a409c4",
         "translation": "Tokens",
         "status": "clean",
-        "agentRunId": "fr-FR-2026-10-15T16-27-17Z",
-        "approvedAt": "2026-10-15T16:27:17.723Z",
+        "agentRunId": "fr-FR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.035Z",
         "approvedBy": "agent"
       }
     ]

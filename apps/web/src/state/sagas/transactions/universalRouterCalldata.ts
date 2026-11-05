@@ -541,44 +541,86 @@ interface V4ActionRewrite {
   newActionType?: number
 }
 
-// SETTLE(currency, 0, payerIsUser) → SETTLE(currency, exactInput, payerIsUser) on the trade's
-// input currency; SETTLE_ALL(currency, maxAmount) → explicit-amount SETTLE(currency, exactInput, true)
+// SETTLE(currency, 0, payerIsUser) → SETTLE(currency, pin, payerIsUser) on the trade's input
+// currency; SETTLE_ALL(currency, maxAmount) → explicit-amount SETTLE(currency, pin, true)
 // (the router holds no input tokens in the fork's flow, so SETTLE_ALL would resolve to 0 paid);
-// SWAP_EXACT_IN[_SINGLE] amountIn 0 on the input currency → exactInput.
-// oxlint-disable-next-line max-params -- (action, decodedUrVersion, exactInput) are all required; bundling hurts readability
+// SWAP_EXACT_IN[_SINGLE] amountIn 0 on the input currency → pin.
+// `pin` is the per-V4_SWAP-command amount (see computeExactInPin): split-route trades emit one
+// V4_SWAP command per leg, each with its own SETTLE(0) + SWAP_EXACT_IN(amountIn), so the open
+// settle must be pinned to the LEG's explicit swap amount — pinning every leg's SETTLE to the
+// whole trade input would over-pull the vault (Nov 2026 production incident).
+// oxlint-disable-next-line max-params -- (action, decodedUrVersion, pin) are all required; bundling hurts readability
 function rewriteExactInAction(
   action: DecodedV4Action,
   decodedUrVersion: URVersion,
-  exactInput: V4ExactInput,
+  pin: V4ExactInput,
 ): V4ActionRewrite | undefined {
   const { actionType, values } = action
   if (actionType === V4PlannerActions.SETTLE) {
     const [currency, amount, payerIsUser] = values as [string, BigNumber, boolean]
-    if (!sameCurrency(currency, exactInput.currency) || !amount.isZero()) {
+    if (!sameCurrency(currency, pin.currency) || !amount.isZero()) {
       return undefined
     }
-    return { values: [currency, exactInput.amountRaw, payerIsUser] }
+    return { values: [currency, pin.amountRaw, payerIsUser] }
   }
   if (actionType === V4PlannerActions.SETTLE_ALL) {
     const [currency] = values as [string, BigNumber]
-    if (!sameCurrency(currency, exactInput.currency)) {
+    if (!sameCurrency(currency, pin.currency)) {
       return undefined
     }
-    return { values: [currency, exactInput.amountRaw, true], newActionType: V4PlannerActions.SETTLE }
+    return { values: [currency, pin.amountRaw, true], newActionType: V4PlannerActions.SETTLE }
   }
   if (actionType === V4PlannerActions.SWAP_EXACT_IN_SINGLE || actionType === V4PlannerActions.SWAP_EXACT_IN) {
     const fields = swapFieldsByName(actionType, values, decodedUrVersion)
     const inputCurrency =
       actionType === V4PlannerActions.SWAP_EXACT_IN ? fields.currencyIn : singleSwapInputCurrency(fields)
     const amountIn = fields.amountIn as BigNumber | undefined
-    if (!amountIn?.isZero() || !sameCurrency(inputCurrency, exactInput.currency)) {
+    if (!amountIn?.isZero() || !sameCurrency(inputCurrency, pin.currency)) {
       return undefined
     }
     return {
-      values: swapValuesFromFields(actionType, { ...fields, amountIn: exactInput.amountRaw }, decodedUrVersion),
+      values: swapValuesFromFields(actionType, { ...fields, amountIn: pin.amountRaw }, decodedUrVersion),
     }
   }
   return undefined
+}
+
+// EXACT_OUTPUT trades derive their settle cap from the SWAP_EXACT_OUT action; EXACT_INPUT
+// trades pin per V4_SWAP command (see computeExactInPin). Bundled so processV4SwapInput stays
+// under the complexity budget.
+function resolveSettleContext(
+  decoded: DecodedV4Actions,
+  exactInput: V4ExactInput | undefined,
+): { exactOutput: V4ExactOutput | undefined; exactInPin: V4ExactInput | undefined } {
+  return {
+    exactOutput: exactInput ? undefined : extractV4ExactOutput(decoded),
+    exactInPin: exactInput ? computeExactInPin(decoded, exactInput) : undefined,
+  }
+}
+
+// The amount an open SETTLE in ONE V4_SWAP command should be pinned to: the sum of that
+// command's explicit (non-zero) SWAP_EXACT_IN[_SINGLE] input amounts on the trade's input
+// currency. Split-route trades carry one command per leg; a single-route trade has one command
+// whose explicit swap total equals the trade input. When the command's swap amounts are
+// themselves OPEN (the full-balance MAX flavor — the API emits SETTLE(0) + SWAP_EXACT_IN(0)),
+// there is no explicit total, so fall back to the trade's exact input.
+function computeExactInPin(decoded: DecodedV4Actions, exactInput: V4ExactInput): V4ExactInput {
+  let explicitTotal = BigInt(0)
+  let hasExplicit = false
+  for (const action of decoded.actions) {
+    if (action.actionType !== V4PlannerActions.SWAP_EXACT_IN && action.actionType !== V4PlannerActions.SWAP_EXACT_IN_SINGLE) {
+      continue
+    }
+    const fields = swapFieldsByName(action.actionType, action.values, decoded.urVersion)
+    const inputCurrency =
+      action.actionType === V4PlannerActions.SWAP_EXACT_IN ? fields.currencyIn : singleSwapInputCurrency(fields)
+    const amountIn = fields.amountIn as BigNumber | undefined
+    if (amountIn && !amountIn.isZero() && sameCurrency(inputCurrency, exactInput.currency)) {
+      explicitTotal += BigInt(amountIn.toString())
+      hasExplicit = true
+    }
+  }
+  return hasExplicit ? { currency: exactInput.currency, amountRaw: explicitTotal.toString() } : exactInput
 }
 
 // EXACT_OUTPUT trades carry no exactInput: derive the settle cap from the SWAP_EXACT_OUT action
@@ -661,7 +703,9 @@ function processV4SwapInput(input: string, ctx: V4SwapInputContext): string | un
     let v4InputWasModified = false
     // RigoBlock: EXACT_OUTPUT trades carry no exactInput; derive the settle cap from the
     // SWAP_EXACT_OUT action so an OPEN-delta SETTLE can become a capped SETTLE_ALL.
-    const exactOutput = exactInput ? undefined : extractV4ExactOutput(decoded)
+    // EXACT_INPUT: pin per V4_SWAP command (split routes emit one command per leg — see
+    // computeExactInPin).
+    const { exactOutput, exactInPin } = resolveSettleContext(decoded, exactInput)
     for (let j = 0; j < decoded.actions.length; j++) {
       const action = decoded.actions[j] as DecodedV4Action
       let rewrite: V4ActionRewrite | undefined
@@ -671,8 +715,8 @@ function processV4SwapInput(input: string, ctx: V4SwapInputContext): string | un
           action.values[1] = smartPoolAddress
           rewrite = { values: action.values }
         }
-      } else if (exactInput) {
-        rewrite = rewriteExactInAction(action, decoded.urVersion, exactInput)
+      } else if (exactInPin) {
+        rewrite = rewriteExactInAction(action, decoded.urVersion, exactInPin)
       } else if (exactOutput && action.actionType === V4PlannerActions.SETTLE) {
         rewrite = rewriteExactOutSettleAction(action, exactOutput)
       }
@@ -739,38 +783,61 @@ interface ModifyV4ExecuteCalldataParams extends UniversalRouterCalldataOptions {
 // requested router version decodes, and the vault's adapter resolves either selector, so the
 // rewriter must preserve the arity. A plain decode cannot tell them apart (ethers tolerates
 // both misreads), so detection uses the canonical-encoding round-trip.
+//
+// The trading API also appends a trailing "unix<timestamp>" freshness marker AFTER the
+// abi.encode tuple. ABI decoders ignore trailing bytes, so detection compares only the
+// re-encoded prefix and carries the trailer through every re-encode untouched (Oct 2026
+// incident: the strict full-length round-trip rejected the whole calldata, swapSaga fell back
+// to a naive fee-recipient string replacement, and the pool operator stayed the SWEEP
+// recipient → the adapter reverted while decoding recipients on every chain).
 interface DecodedExecuteCalldata {
   commands: string
   inputs: string[]
   deadline?: BigNumber
   hasDeadline: boolean
+  // Bytes appended after the abi.encode tuple (e.g. the trading API's "unix<timestamp>"
+  // trailer). Preserved byte-for-byte; never inspected.
+  trailingData: string
 }
 
 function decodeExecuteCalldata(calldata: string, abiCoder: AbiCoder): DecodedExecuteCalldata {
   const withDeadline = ['bytes', 'bytes[]', 'uint256']
   try {
     const decoded = abiCoder.decode(withDeadline, calldata)
-    if (abiCoder.encode(withDeadline, decoded).toLowerCase() === calldata.toLowerCase()) {
+    const reEncoded = abiCoder.encode(withDeadline, decoded)
+    if (calldata.slice(0, reEncoded.length).toLowerCase() === reEncoded.toLowerCase()) {
       const [commands, inputs, deadline] = decoded
-      return { commands: commands as string, inputs: [...(inputs as string[])], deadline, hasDeadline: true }
+      return {
+        commands: commands as string,
+        inputs: [...(inputs as string[])],
+        deadline,
+        hasDeadline: true,
+        trailingData: calldata.slice(reEncoded.length),
+      }
     }
   } catch {
     // Not the UR 2.0 flavor (or malformed): try UR 2.1.x.
   }
   const noDeadline = ['bytes', 'bytes[]']
   const decoded = abiCoder.decode(noDeadline, calldata)
-  if (abiCoder.encode(noDeadline, decoded).toLowerCase() !== calldata.toLowerCase()) {
+  const reEncoded = abiCoder.encode(noDeadline, decoded)
+  if (calldata.slice(0, reEncoded.length).toLowerCase() !== reEncoded.toLowerCase()) {
     throw new Error('Non-canonical execute calldata (neither UR 2.0 nor UR 2.1.x flavor)')
   }
   const [commands, inputs] = decoded
-  return { commands: commands as string, inputs: [...(inputs as string[])], hasDeadline: false }
+  return {
+    commands: commands as string,
+    inputs: [...(inputs as string[])],
+    hasDeadline: false,
+    trailingData: calldata.slice(reEncoded.length),
+  }
 }
 
 export function modifyV4ExecuteCalldata(params: ModifyV4ExecuteCalldataParams): string {
   const { calldata, smartPoolAddress, poolSupportsUr211 = false, exactInput } = params
   try {
     const abiCoder = new AbiCoder()
-    const { commands, inputs, deadline, hasDeadline } = decodeExecuteCalldata(calldata, abiCoder)
+    const { commands, inputs, deadline, hasDeadline, trailingData } = decodeExecuteCalldata(calldata, abiCoder)
     const commandsBytes = commands.startsWith('0x')
       ? new Uint8Array(Buffer.from(commands.slice(2), 'hex'))
       : new Uint8Array(Buffer.from(commands, 'hex'))
@@ -809,9 +876,9 @@ export function modifyV4ExecuteCalldata(params: ModifyV4ExecuteCalldataParams): 
     }
     const finalCommands = commandsWasModified ? '0x' + Buffer.from(commandsBytes).toString('hex') : commands
     if (hasDeadline) {
-      return abiCoder.encode(['bytes', 'bytes[]', 'uint256'], [finalCommands, modifiedInputs, deadline])
+      return abiCoder.encode(['bytes', 'bytes[]', 'uint256'], [finalCommands, modifiedInputs, deadline]) + trailingData
     }
-    return abiCoder.encode(['bytes', 'bytes[]'], [finalCommands, modifiedInputs])
+    return abiCoder.encode(['bytes', 'bytes[]'], [finalCommands, modifiedInputs]) + trailingData
   } catch (error) {
     logger.error(error, {
       tags: { file: 'universalRouterCalldata', function: 'modifyV4ExecuteCalldata' },
@@ -849,7 +916,10 @@ export function stripBalanceCheckERC20(calldata: string, options?: UniversalRout
     const knownSelector = upperSelector === '0x3593564c' || upperSelector === '0x24856bc3'
     const dataWithoutSelector = knownSelector ? '0x' + calldata.slice(10) : calldata
     const functionSelector = knownSelector ? calldata.slice(0, 10) : ''
-    const { commands, inputs, deadline, hasDeadline } = decodeExecuteCalldata(dataWithoutSelector, abiCoder)
+    const { commands, inputs, deadline, hasDeadline, trailingData } = decodeExecuteCalldata(
+      dataWithoutSelector,
+      abiCoder,
+    )
     const commandsBytes = commands.startsWith('0x')
       ? new Uint8Array(Buffer.from(commands.slice(2), 'hex'))
       : new Uint8Array(Buffer.from(commands, 'hex'))
@@ -877,7 +947,8 @@ export function stripBalanceCheckERC20(calldata: string, options?: UniversalRout
     const encoded = hasDeadline
       ? abiCoder.encode(encodeTypes, [newCommandsHex, filteredInputs, deadline])
       : abiCoder.encode(encodeTypes, [newCommandsHex, filteredInputs])
-    return functionSelector ? functionSelector + encoded.slice(2) : encoded
+    const withTrailer = encoded + trailingData
+    return functionSelector ? functionSelector + withTrailer.slice(2) : withTrailer
   } catch (error) {
     logger.warn(
       'universalRouterCalldata',

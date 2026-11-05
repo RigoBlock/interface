@@ -1,4 +1,5 @@
 import { TradingApi } from '@universe/api/src'
+import { UniverseChainId } from '@universe/chains'
 import { TransactionDetailsContent } from 'uniswap/src/components/activity/details/TransactionDetailsContent'
 import { TransactionDetailsHeader } from 'uniswap/src/components/activity/details/TransactionDetailsHeader'
 import { TransactionDetailsInfoRows } from 'uniswap/src/components/activity/details/TransactionDetailsInfoRows'
@@ -34,7 +35,7 @@ vi.mock('uniswap/src/features/wallet/hooks/useWallet', () => ({
 
 const mockTransaction: TransactionDetails = {
   id: '9920dbad-ff24-47c8-814a-094566fc45ff',
-  chainId: 81457,
+  chainId: UniverseChainId.Base,
   routing: TradingApi.Routing.CLASSIC,
   from: SAMPLE_SEED_ADDRESS_1,
   transactionOriginType: TransactionOriginType.Internal,
@@ -107,10 +108,6 @@ vi.mock('@universe/gating', async (importOriginal) => {
 vi.mock('uniswap/src/features/language/localizedDayjs', () => ({
   useFormattedDateTime: vi.fn(() => 'January 1, 2023 12:00 AM'),
   FORMAT_DATE_TIME_MEDIUM: 'MMMM D, YYYY h:mm A',
-}))
-
-vi.mock('ui/src/loading/Skeleton', () => ({
-  Skeleton: (): JSX.Element => <></>,
 }))
 
 describe('TransactionDetails Components', () => {

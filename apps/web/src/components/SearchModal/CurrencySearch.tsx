@@ -13,10 +13,10 @@ import { SwapTab } from 'uniswap/src/types/screens/interface'
 import { usePrevious } from 'utilities/src/react/hooks'
 import { assume0xAddress } from '~/chains'
 import { RIGOBLOCK_BRIDGE_SUPPORTED_CHAINS } from '~/constants/addresses'
-import { useSelectChain } from '~/hooks/useSelectChain'
+import { useSelectChain } from '~/connection/hooks/useSelectChain'
 import { useActiveSmartPool } from '~/state/application/hooks'
 import { useMultichainContext } from '~/state/multichain/useMultichainContext'
-import { SwitchNetworkAction } from '~/state/popups/types'
+import { SwitchNetworkAction } from '~/utils/popups/types'
 import { showSwitchNetworkNotification } from '~/utils/showSwitchNetworkNotification'
 
 interface CurrencySearchProps {

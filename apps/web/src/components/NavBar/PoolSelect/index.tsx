@@ -3,11 +3,11 @@ import { normalizeTokenAddressForCache } from '@universe/chains'
 import { Flex, Text } from '@universe/mycelium'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
-import { Caret } from 'ui/src/components/icons/Caret'
+import { Caret } from '@universe/mycelium/icons/Caret'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import CurrencySearchModal from '~/components/SearchModal/CurrencySearchModal'
 import { useActiveSmartPool, useSelectActiveSmartPool } from '~/state/application/hooks'
-import { SwitchNetworkAction } from '~/state/popups/types'
+import { SwitchNetworkAction } from '~/utils/popups/types'
 
 interface PoolSelectProps {
   operatedPools: Token[]

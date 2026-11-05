@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { ChartPeriod, WalletBalanceCategory } from '@uniswap/client-data-api/dist/data/v1/api_pb'
 import { FeatureFlags, useFeatureFlagWithExposureLoggingDisabled } from '@universe/gating'
 import { Flex, iconSizes, ScrollView, Text } from '@universe/mycelium'
+import { AlertTriangleFilled } from '@universe/mycelium/icons/AlertTriangleFilled'
 import { TestID } from '@universe/test'
 import { useEffect, useMemo, useState } from 'react'
 import { PortfolioChart } from 'src/components/home/PortfolioChart/PortfolioChart'
@@ -13,7 +14,6 @@ import { PortfolioBalanceBreakdownCard } from 'src/screens/PortfolioChartDetails
 import { PortfolioChartDetailsMenu } from 'src/screens/PortfolioChartDetailsScreen/PortfolioChartDetailsMenu'
 import { useChartScrub } from 'src/screens/PortfolioChartDetailsScreen/useChartScrub'
 import { usePortfolioChartDetailsHeartbeatCoordinator } from 'src/screens/PortfolioChartDetailsScreen/usePortfolioChartDetailsHeartbeatCoordinator'
-import { AlertTriangleFilled } from 'ui/src/components/icons/AlertTriangleFilled'
 import { DisplayNameText } from 'uniswap/src/components/accounts/DisplayNameText'
 import { getPortfolioHistoricalValueChartQuery } from 'uniswap/src/data/apiClients/dataApiService/balances/getPortfolioChart'
 import {
@@ -54,6 +54,7 @@ export function PortfolioChartDetailsScreen(): JSX.Element {
     poolsData,
     earnData,
     loading: chartLoading,
+    isUnavailable: isChartUnavailable,
     chartColor,
   } = usePortfolioChartData({
     evmAddress: activeAccount.address,
@@ -106,14 +107,16 @@ export function PortfolioChartDetailsScreen(): JSX.Element {
     portfolioTotalBalanceUSD: breakdown?.total.balanceUSD,
   })
 
-  const canShowChart = chartData.length > 0
+  const canShowChart = chartData.length > 0 && !isChartUnavailable
   const isAllTimePeriod = chartPeriod === ChartPeriod.MAX
+  const headerChartPeriod = isChartUnavailable ? ChartPeriod.DAY : canShowChart ? chartPeriod : undefined
 
   const breakdownCardProps = useMemo(
     () =>
       getBreakdownCardProps({
         poolsEnabled: portfolioPoolsBalancesEnabled,
         poolsUnavailable,
+        chartUnavailable: isChartUnavailable,
         breakdown,
         scrub: {
           total: chartScrubFiatValue,
@@ -129,6 +132,7 @@ export function PortfolioChartDetailsScreen(): JSX.Element {
     [
       portfolioPoolsBalancesEnabled,
       poolsUnavailable,
+      isChartUnavailable,
       breakdown,
       chartScrubFiatValue,
       chartScrubTokensValue,
@@ -229,11 +233,11 @@ export function PortfolioChartDetailsScreen(): JSX.Element {
             // This screen's heartbeat coordinator refreshes balances on its 60s full tick instead.
             disablePolling
             evmOwner={activeAccount.address}
-            chartPeriod={canShowChart ? chartPeriod : undefined}
+            chartPeriod={headerChartPeriod}
             overrideBalanceUSD={chartScrubFiatValue}
             overridePercentChange={canShowChart ? chartPercentChange?.percentChange : undefined}
             overrideAbsoluteChangeUSD={canShowChart ? chartPercentChange?.absoluteChangeUSD : undefined}
-            hidePercentChange={isAllTimePeriod}
+            hidePercentChange={canShowChart && isAllTimePeriod}
           />
           {breakdownCardProps && <PortfolioBalanceBreakdownCard {...breakdownCardProps} />}
           <Flex>
@@ -244,6 +248,7 @@ export function PortfolioChartDetailsScreen(): JSX.Element {
               isExpanded={true}
               chartPeriod={chartPeriod}
               isTotalValueMatch={isTotalValueMatch}
+              isUnavailable={isChartUnavailable}
               onChartPeriodChange={setChartPeriod}
               onScrub={handleScrub}
             />

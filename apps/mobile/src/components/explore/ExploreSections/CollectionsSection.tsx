@@ -1,5 +1,5 @@
-import { useIsTokenCategoriesEnabled } from '@universe/gating'
-import { Flex, spacing, Text } from '@universe/mycelium'
+import { DynamicConfigs, useIsTokenCategoriesEnabled } from '@universe/gating'
+import { Flex, Loader, spacing, Text } from '@universe/mycelium'
 import { ArrowRight } from '@universe/mycelium/icons/ArrowRight'
 import { memo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -7,13 +7,12 @@ import { ViewStyle } from 'react-native'
 import { FlatList } from 'react-native-gesture-handler'
 import { useExploreStackNavigation } from 'src/app/navigation/types'
 import { ExploreSectionHeader } from 'src/components/explore/ExploreSections/ExploreSectionHeader'
-import { Loader } from 'ui/src'
 import { useListCategoriesQuery } from 'uniswap/src/data/apiClients/dataApiService/categories/useListCategoriesQuery'
 import { MobileEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import { CATEGORY_PILL_HEIGHT, CategoryPill, Pill } from 'uniswap/src/features/tokenCategories/CategoryPill'
 import type { TokenCategory } from 'uniswap/src/features/tokenCategories/types'
-import { useTokenCategoryOrder } from 'uniswap/src/features/tokenCategories/useTokenCategoryOrder'
+import { useCategoryOrder } from 'uniswap/src/features/tokenCategories/useCategoryOrder'
 import { MobileScreens } from 'uniswap/src/types/screens/mobile'
 
 const EMPTY_CATEGORIES: TokenCategory[] = []
@@ -39,20 +38,23 @@ function ViewAllPill({ onPress }: { onPress: () => void }): JSX.Element {
   )
 }
 
-/** Horizontally scrolling category pills in the Collections section on mobile Explore. */
+/** Horizontally scrolling category pills in the Categories section on mobile Explore. */
 export const CollectionsSection = memo(function CollectionsSection(): JSX.Element | null {
   const { t } = useTranslation()
   const navigation = useExploreStackNavigation()
   const tokenCategoriesEnabled = useIsTokenCategoriesEnabled()
   const { data: categories, isLoading } = useListCategoriesQuery()
-  const orderedCategories = useTokenCategoryOrder(categories ?? EMPTY_CATEGORIES)
+  const orderedCategories = useCategoryOrder({
+    categories: categories ?? EMPTY_CATEGORIES,
+    config: DynamicConfigs.TokenCategoriesOrder,
+  })
 
   const onViewAllPress = useCallback(() => {
     sendAnalyticsEvent(MobileEventName.ExploreCollectionsViewAllSelected)
     navigation.navigate(MobileScreens.Collections)
   }, [navigation])
 
-  const header = <ExploreSectionHeader title={t('explore.collections.title')} onPress={onViewAllPress} />
+  const header = <ExploreSectionHeader title={t('explore.categories.title')} onPress={onViewAllPress} />
 
   const renderItem = useCallback(
     ({ item, index }: { item: TokenCategory; index: number }) => (

@@ -7,19 +7,24 @@ import { useTranslation } from 'react-i18next'
 import { getAlertColor } from 'uniswap/src/components/modals/WarningModal/getAlertColor'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import { GRG } from 'uniswap/src/constants/tokens'
-import { ProtectionResult } from 'uniswap/src/features/dataApi/safety'
-import { AttackType, CurrencyInfo, TokenList } from 'uniswap/src/features/dataApi/types'
+import { CurrencyInfo, TokenList } from 'uniswap/src/features/dataApi/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import {
+  deriveTokenProtectionWarning,
   getFeeWarning,
-  TOKEN_PROTECTION_FOT_FEE_BREAKPOINT,
-  TOKEN_PROTECTION_FOT_HIGH_FEE_BREAKPOINT,
-  TOKEN_PROTECTION_FOT_HONEYPOT_BREAKPOINT,
-} from 'uniswap/src/features/tokens/warnings/feeWarning'
+  getSeverityFromTokenProtectionWarning,
+} from 'uniswap/src/features/tokens/warnings/tokenProtection'
 import { TokenProtectionWarning } from 'uniswap/src/features/tokens/warnings/types'
 import { logger } from 'utilities/src/logger/logger'
 
-export { getFeeWarning } from 'uniswap/src/features/tokens/warnings/feeWarning'
+export {
+  getFeeWarning,
+  getIsFeeRelatedWarning,
+  getSeverityFromTokenProtectionWarning,
+  TOKEN_PROTECTION_FOT_FEE_BREAKPOINT,
+  TOKEN_PROTECTION_FOT_HIGH_FEE_BREAKPOINT,
+  TOKEN_PROTECTION_FOT_HONEYPOT_BREAKPOINT,
+} from 'uniswap/src/features/tokens/warnings/tokenProtection'
 
 // Gets the FoT percentages from Currency, populated by our internal fees DB
 export function getCurrencyFeeOnTransfer(currency?: Currency): {
@@ -79,65 +84,26 @@ export function getTokenProtectionWarning(currencyInfo?: Maybe<CurrencyInfo>): T
     return TokenProtectionWarning.NonDefault
   }
   const { currency, safetyInfo } = currencyInfo
-
-  const { protectionResult, attackType } = safetyInfo
   if (currency instanceof NativeCurrency) {
     return TokenProtectionWarning.None
   }
 
-  const { maxFeePercent: feeOnTransfer } = getTokenProtectionFeeOnTransfer(currencyInfo)
-
-  // prioritize high > medium > low warning levels
-  if (safetyInfo.tokenList === TokenList.Blocked) {
-    return TokenProtectionWarning.Blocked
-  } else if (feeOnTransfer === TOKEN_PROTECTION_FOT_HONEYPOT_BREAKPOINT) {
-    return TokenProtectionWarning.MaliciousHoneypot
-  } else if (
-    (feeOnTransfer && feeOnTransfer >= TOKEN_PROTECTION_FOT_HIGH_FEE_BREAKPOINT) ||
-    ((protectionResult === ProtectionResult.Malicious || protectionResult === ProtectionResult.Spam) &&
-      attackType === AttackType.HighFees)
-  ) {
-    return TokenProtectionWarning.FotVeryHigh
-  } else if (
-    (protectionResult === ProtectionResult.Malicious || protectionResult === ProtectionResult.Spam) &&
-    attackType === AttackType.Impersonator
-  ) {
-    return TokenProtectionWarning.MaliciousImpersonator
-  } else if (feeOnTransfer && feeOnTransfer >= TOKEN_PROTECTION_FOT_FEE_BREAKPOINT) {
-    return TokenProtectionWarning.FotHigh
-  } else if (protectionResult === ProtectionResult.Malicious) {
-    return TokenProtectionWarning.MaliciousGeneral
-  } else if (attackType === AttackType.Honeypot) {
-    return TokenProtectionWarning.PotentialHoneypot
-  } else if (attackType === AttackType.ExitScamRisk) {
-    return TokenProtectionWarning.ExitScamRisk
-  } else if (protectionResult === ProtectionResult.Spam && attackType === AttackType.Airdrop) {
-    return TokenProtectionWarning.SpamAirdrop
-  } else if (feeOnTransfer && feeOnTransfer > 0 && feeOnTransfer < TOKEN_PROTECTION_FOT_FEE_BREAKPOINT) {
-    return TokenProtectionWarning.FotLow
-  } else if (safetyInfo.tokenList === TokenList.NonDefault) {
-    // Override for GRG tokens - treat them as default tokens instead of non-default
+  // RigoBlock fork: GRG tokens are whitelisted — never surface the NonDefault warning for them.
+  if (safetyInfo.tokenList === TokenList.NonDefault) {
     const isGrgToken = Object.values(GRG).some(
       (grgToken) => grgToken.chainId === currency.chainId && areEvmAddressesEqual(grgToken.address, currency.address),
     )
-
     if (isGrgToken) {
       return TokenProtectionWarning.None
     }
-
-    return TokenProtectionWarning.NonDefault
   }
 
-  return TokenProtectionWarning.None
-}
-
-export function getIsFeeRelatedWarning(tokenProtectionWarning?: TokenProtectionWarning): boolean {
-  return (
-    tokenProtectionWarning === TokenProtectionWarning.MaliciousHoneypot ||
-    tokenProtectionWarning === TokenProtectionWarning.FotVeryHigh ||
-    tokenProtectionWarning === TokenProtectionWarning.FotHigh ||
-    tokenProtectionWarning === TokenProtectionWarning.FotLow
-  )
+  return deriveTokenProtectionWarning({
+    tokenList: safetyInfo.tokenList,
+    protectionResult: safetyInfo.protectionResult,
+    attackType: safetyInfo.attackType,
+    maxFeePercent: getTokenProtectionFeeOnTransfer(currencyInfo).maxFeePercent,
+  })
 }
 
 export function getTokenWarningSeverity(currencyInfo: Maybe<CurrencyInfo>): WarningSeverity {
@@ -146,28 +112,6 @@ export function getTokenWarningSeverity(currencyInfo: Maybe<CurrencyInfo>): Warn
   }
   const tokenProtectionWarning = getTokenProtectionWarning(currencyInfo)
   return getSeverityFromTokenProtectionWarning(tokenProtectionWarning)
-}
-
-export function getSeverityFromTokenProtectionWarning(tokenProtectionWarning: TokenProtectionWarning): WarningSeverity {
-  switch (tokenProtectionWarning) {
-    case TokenProtectionWarning.Blocked:
-      return WarningSeverity.Blocked
-    case TokenProtectionWarning.MaliciousHoneypot:
-    case TokenProtectionWarning.MaliciousImpersonator:
-    case TokenProtectionWarning.MaliciousGeneral:
-    case TokenProtectionWarning.FotVeryHigh:
-    case TokenProtectionWarning.FotHigh:
-      return WarningSeverity.High
-    case TokenProtectionWarning.PotentialHoneypot:
-    case TokenProtectionWarning.ExitScamRisk:
-    case TokenProtectionWarning.SpamAirdrop:
-    case TokenProtectionWarning.FotLow:
-      return WarningSeverity.Medium
-    case TokenProtectionWarning.NonDefault:
-      return WarningSeverity.Low
-    case TokenProtectionWarning.None:
-      return WarningSeverity.None
-  }
 }
 
 // Only combine into one plural-languaged modal if there are two tokens prefilled at the same time, and BOTH are low or BOTH are blocked

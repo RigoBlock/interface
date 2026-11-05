@@ -24,12 +24,13 @@ import Trace from 'uniswap/src/features/telemetry/Trace'
 import { logger } from 'utilities/src/logger/logger'
 import { ONE_SECOND_MS } from 'utilities/src/time/time'
 import { useTimeout } from 'utilities/src/time/timing'
-import { OAuthRedirectProvider } from '~/components/Passkey/OAuthRedirectContext'
-import { useRecoveryPrivyAuth } from '~/components/Passkey/useRecoveryPrivyAuth'
 import { getPrivyConfig } from '~/config'
+import { GetHelpButton } from '~/features/wallet/components/Passkey/GetHelpButton'
+import { OAuthRedirectProvider } from '~/features/wallet/components/Passkey/OAuthRedirectContext'
+import { useRecoveryPrivyAuth } from '~/features/wallet/components/Passkey/useRecoveryPrivyAuth'
 import { useExtensionRecoveryBridge } from '~/pages/ExtensionPasskeyAuthPopUp/useExtensionRecoveryBridge'
 import { useExternallyConnectableExtensionId } from '~/pages/ExtensionPasskeyAuthPopUp/useExternallyConnectableExtensionId'
-import { DeniedView, ExportStep, GetHelpButton, LoginView } from '~/pages/ExtensionPasskeyAuthPopUp/views'
+import { DeniedView, ExportStep, LoginView } from '~/pages/ExtensionPasskeyAuthPopUp/views'
 
 // Passkey Auth Flow: Extension <> Web App
 // For a detailed flow chart of how the Web App and the Extension exchange messages,
@@ -87,7 +88,7 @@ function ExtensionPasskeyAuthPopUpContent(): JSX.Element {
   const requestId = passkeyRequestData?.requestId ?? searchParams.get('request_id')
   const encryptionKey = passkeyRequestData?.encryptionKey ?? null
 
-  const { appId: privyAppId } = getPrivyConfig(false)
+  const { appId: privyAppId, clientId: privyClientId } = getPrivyConfig(false)
   const [oauthError, setOauthError] = useState<string | undefined>()
   const handleOAuthError = useCallback((err: string) => setOauthError(err), [])
   const privy = useRecoveryPrivyAuth({ onOAuthError: handleOAuthError })
@@ -109,6 +110,7 @@ function ExtensionPasskeyAuthPopUpContent(): JSX.Element {
   const flow = useRecoveryFlow({
     privy,
     privyAppId,
+    privyClientId,
     onPinDecryptSuccess: bridgeOnPinDecryptSuccess,
     setOauthError,
   })

@@ -120,7 +120,7 @@ exports[`AccountHeader > renders correctly 1`] = `
                 <div
                   fill="none"
                   stroke-width="8"
-                  style="width: 16px; height: 16px; color: rgba(19, 19, 19, 0.35);"
+                  style="color: rgba(19, 19, 19, 0.35); width: 16px; height: 16px;"
                   viewbox="0 0 16 16"
                 >
                   <div
@@ -178,5 +178,9 @@ exports[`AccountHeader > renders correctly 1`] = `
       </div>
     </div>
   </div>
+  <div
+    class="css-view-175oi2r r-bottom-1p0dtai r-left-1d2f490 r-position-u8s1d r-right-zchlnj r-top-ipm5af r-pointerEvents-12vffkv"
+    data-testid="portal-layer"
+  />
 </DocumentFragment>
 `;

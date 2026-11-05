@@ -1,5 +1,6 @@
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { Swap } from '@universe/mycelium/icons'
+import { CandlestickChart } from '@universe/mycelium/icons/CandlestickChart'
 import { CoinConvert } from '@universe/mycelium/icons/CoinConvert'
 import { Compass } from '@universe/mycelium/icons/Compass'
 import { CreditCard } from '@universe/mycelium/icons/CreditCard'
@@ -43,6 +44,7 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
 
   const isPortfolioDefiTabEnabled = useFeatureFlag(FeatureFlags.PortfolioDefiTab)
   const portfolioPoolsBalancesEnabled = useFeatureFlag(FeatureFlags.PortfolioPoolsBalances)
+  const isMarginEnabled = useFeatureFlag(FeatureFlags.Margin)
   const entryPoint = resolveEntryPoint({ search, state })
   const isPortfolioPoolsEntryPointActive = entryPoint.kind === EntryPointKind.PortfolioPools
 
@@ -75,8 +77,12 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
     {
       title: t('common.trade'),
       href: '/swap',
-      isActive: pathname.startsWith('/swap') /*|| pathname.startsWith('/limit')*/ || pathname.startsWith('/send'),
-      icon: <CoinConvert color="$accent1" size="$icon.20" />,
+      // RigoBlock: the fork does not expose the /limit surface — keep it out of the active check.
+      isActive:
+        pathname.startsWith('/swap') ||
+        pathname.startsWith('/send') ||
+        (isMarginEnabled && pathname.startsWith('/margin')),
+      icon: <CoinConvert color="$accent1" size="$icon.24" />,
       elementName: ElementName.NavbarTradeTab,
       items: [
         ...(props?.userIsOperator
@@ -111,6 +117,17 @@ export const useTabsContent = (props?: { userIsOperator?: boolean }): TabsSectio
           internal: true,
           elementName: ElementName.NavbarTradeDropdownSell,
         },
+        ...(isMarginEnabled
+          ? [
+              {
+                label: t('margin.tab.label'),
+                icon: <CandlestickChart size="$icon.24" color="$neutral2" />,
+                href: '/margin',
+                internal: true,
+                elementName: ElementName.NavbarTradeDropdownMargin,
+              },
+            ]
+          : []),
       ],
     },
     //{

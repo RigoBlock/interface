@@ -1,5 +1,5 @@
 import type { CSSProperties, MouseEvent, ReactNode } from 'react'
-import { Button } from 'ui/src'
+import { Button } from '@universe/mycelium'
 
 export { default as LoadingButtonSpinner } from './LoadingButtonSpinner'
 

@@ -152,7 +152,7 @@ exports[`SendReviewModal > should render input in fiat correctly 1`] = `
         type="button"
       >
         <span
-          class="text-center font-medium [font-family:var(--sbtn-font-button)] [transition:color_100ms_cubic-bezier(0.17,0.67,0.45,1)] text-[18px] leading-[20.7px] text-white max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
+          class="text-center font-medium [font-family:var(--sbtn-font-button)] [transition:color_100ms_cubic-bezier(0.17,0.67,0.45,1)] text-[18px] [line-height:20.7px] text-white max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
         >
           Confirm send
         </span>
@@ -314,7 +314,7 @@ exports[`SendReviewModal > should render input in token amount correctly 1`] = `
         type="button"
       >
         <span
-          class="text-center font-medium [font-family:var(--sbtn-font-button)] [transition:color_100ms_cubic-bezier(0.17,0.67,0.45,1)] text-[18px] leading-[20.7px] text-white max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
+          class="text-center font-medium [font-family:var(--sbtn-font-button)] [transition:color_100ms_cubic-bezier(0.17,0.67,0.45,1)] text-[18px] [line-height:20.7px] text-white max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
         >
           Confirm send
         </span>

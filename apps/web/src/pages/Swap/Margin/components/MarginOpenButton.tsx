@@ -1,14 +1,13 @@
-import { Flex } from '@universe/mycelium'
+import { Button, Flex } from '@universe/mycelium'
 import { useTranslation } from 'react-i18next'
-import { Button } from 'ui/src'
 import type {
   MarginCreatePlanRequest,
   MarginQuoteResponse,
 } from 'uniswap/src/data/apiClients/tradingApi/MarginApiClient'
+import { MarginDirection } from 'uniswap/src/features/transactions/margin/types'
 import { useEvent } from 'utilities/src/react/hooks'
-import { useAccountDrawer } from '~/components/AccountDrawer/MiniPortfolio/hooks'
+import { useAccount } from '~/connection/hooks/useAccount'
 import { MARGIN_CHAIN_ID } from '~/constants/margin'
-import { useAccount } from '~/hooks/useAccount'
 import { MarginVenueEmptyNotice } from '~/pages/Swap/Margin/components/MarginVenuePreferences'
 import { decideOpenAction } from '~/pages/Swap/Margin/hooks/marginExecutionGuards'
 import { marginPlanExecutionStore, useMarginPlanExecution } from '~/pages/Swap/Margin/hooks/marginPlanExecutionStore'
@@ -19,6 +18,7 @@ import {
   isUnroutablePaymentTokenError,
   MIN_LEVERAGE,
 } from '~/pages/Swap/Margin/marginOpenButtonGate'
+import { useAccountDrawer } from '~/state/accountDrawer/hooks'
 
 export function buildOpenPlanRequest({
   derivedMarginInfo,
@@ -72,9 +72,8 @@ export function MarginOpenButton({
 
   const onOpen = useEvent(() => {
     // Form is truth: the CTA opens what the form shows. Only re-focus an OPEN the executor still
-    // holds in memory; a plan held under a foreign intent blocks. A stranded plan from a prior
-    // session is NOT resumed here — it surfaces as the pending-plan card (Cancel) plus the
-    // persisted-pointer banner, which carries the Resume.
+    // holds in memory; a plan held under a foreign intent blocks. A plan stranded by a reload is
+    // not in memory, so it neither resumes nor blocks here — and it isn't resumable from the UI yet.
     const existing = marginPlanExecutionStore.getState().plan
     const action = decideOpenAction({ existing })
     if (action.kind === 'resume') {
@@ -95,7 +94,7 @@ export function MarginOpenButton({
   if (!account.address) {
     return (
       <Flex row>
-        <Button variant="branded" size="large" fill onPress={accountDrawer.open}>
+        <Button variant="branded" size="medium" fill onPress={accountDrawer.open}>
           {t('common.connectWallet.button')}
         </Button>
       </Flex>
@@ -106,10 +105,10 @@ export function MarginOpenButton({
   const loading = isMarginOpenLoading({ isQuoteLoading, isDebouncing, isFetching, isPlaceholderData })
   const openAction = decideOpenAction({ existing: existingPlan })
 
-  let label = direction === 'SHORT' ? t('margin.cta.reviewShort') : t('margin.cta.reviewLong')
+  let label = direction === MarginDirection.SHORT ? t('margin.cta.openShort') : t('margin.cta.openLong')
   let disabled = false
-  // A plan of another intent still holds the executor: the positions-table banner owns resuming it,
-  // and nothing on this form can clear it.
+  // A plan of another intent still holds the executor: its positions-table in-flight row owns resuming
+  // it, and nothing on this form can clear it.
   if (openAction.kind === 'block') {
     label = t('margin.error.planInFlight')
     disabled = true
@@ -147,8 +146,17 @@ export function MarginOpenButton({
       {/* Sibling of the CTA, not a replacement for it: the button still says what is wrong, and the
           notice carries the sentence plus the way back into the opt-out sheet. */}
       {allowedVenues.length === 0 ? <MarginVenueEmptyNotice /> : null}
+      {/* Neutral at all times (design): the side reads from the Long/Short toggle, not the CTA's color. */}
       <Flex row>
-        <Button variant="branded" size="large" fill loading={loading} disabled={disabled || loading} onPress={onOpen}>
+        <Button
+          variant="default"
+          emphasis="primary"
+          size="medium"
+          fill
+          loading={loading}
+          disabled={disabled || loading}
+          onPress={onOpen}
+        >
           {label}
         </Button>
       </Flex>

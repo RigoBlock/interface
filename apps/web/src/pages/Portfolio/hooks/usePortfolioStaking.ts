@@ -12,7 +12,7 @@ import { usePortfolioDataMultichain } from 'uniswap/src/features/dataApi/balance
 import { PortfolioMultichainBalance } from 'uniswap/src/features/dataApi/types'
 import { assume0xAddress } from '~/chains'
 import { STAKING_PROXY_ADDRESSES } from '~/constants/addresses'
-import { useActiveAddresses } from '~/features/accounts/store/hooks'
+import { useActiveAddresses } from '~/connection/accounts/hooks'
 import {
   selectChainStakingData,
   selectStakingDataNeedsFetch,

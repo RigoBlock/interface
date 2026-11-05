@@ -11,7 +11,7 @@ import { SwapTab } from 'uniswap/src/types/screens/interface'
 import { CurrencyRow } from '~/components/SearchModal/CurrencyList'
 import { CurrencySearch } from '~/components/SearchModal/CurrencySearch'
 import styled from '~/lib/deprecated-styled'
-import { SwitchNetworkAction } from '~/state/popups/types'
+import { SwitchNetworkAction } from '~/utils/popups/types'
 
 const PoolListWrapper = styled.div`
   width: 100%;
