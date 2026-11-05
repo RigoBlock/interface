@@ -4,14 +4,17 @@ import { useMemo } from 'react'
 import { HEADER_TRANSITION } from '~/components/StickyCollapsibleHeader/constants'
 import { MultiBlockchainAddressDisplay } from '~/features/wallet/components/AccountDetails/MultiBlockchainAddressDisplay'
 import { StatusIcon } from '~/features/wallet/components/StatusIcon'
-import { useResolvedAddresses } from '~/pages/Portfolio/hooks/useResolvedAddresses'
+import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
 
 interface ConnectedAddressDisplayProps {
   isCompact: boolean
 }
 
 export function ConnectedAddressDisplay({ isCompact }: ConnectedAddressDisplayProps) {
-  const { evmAddress, svmAddress, isExternalWallet } = useResolvedAddresses()
+  // RigoBlock invariant: URL address > active smart pool > connected wallet. usePortfolioAddresses
+  // carries the smart-pool fallback; useResolvedAddresses (URL/connected wallet only) regressed
+  // the header to the user's EOA on plain /portfolio while the tabs' data used the vault.
+  const { evmAddress, svmAddress, isExternalWallet } = usePortfolioAddresses()
 
   const primaryAddress = evmAddress ?? svmAddress
 

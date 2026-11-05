@@ -1,6 +1,6 @@
 import { WalletBalanceCategory } from '@uniswap/client-data-api/dist/data/v1/api_pb'
 import type { PlainMessage } from '@bufbuild/protobuf'
-import type { GetPortfolioChartResponse } from '@uniswap/client-data-api/dist/data/v1/api_pb'
+import type { ChartPoint, GetPortfolioChartResponse } from '@uniswap/client-data-api/dist/data/v1/api_pb'
 import { areAddressesEqual, Platform } from '@universe/chains'
 import { useMemo } from 'react'
 import type { PortfolioBalanceBreakdown } from 'uniswap/src/data/apiClients/dataApiService/balances/getWalletBalances/getWalletBalances'
@@ -66,8 +66,22 @@ export function useChartValueMatch({
     [portfolioChartData, includeCategories],
   )
 
+  // Runtime chart responses may omit `points` entirely (empty response) even though the
+  // generated type marks it required.
+  const basePoints = portfolioChartData?.points as unknown as ChartPoint[] | undefined
+  const lastBaseChartValue = basePoints?.length ? basePoints.at(-1)?.value : undefined
+
   const { isTotalValueMatch } = usePortfolioChartBalanceMismatch({
-    lastChartValue: series.at(-1)?.close,
+    // RigoBlock: the Total series has the on-chain extras (GMX/Hyperliquid/staking) layered
+    // on top of the base series, but the backend total has none — comparing the two would
+    // flag a mismatch exactly when an extra moves (flipping hideYAxis and killing the
+    // hovered-point readout, Nov 2026 regression). The Total comparison must use the BASE
+    // chart's last value, as the fork always did; per-category series carry no extras, so
+    // they can keep the selected series' last close.
+    lastChartValue:
+      selectedCategory === PortfolioChartCategory.Total
+        ? lastBaseChartValue
+        : series.at(-1)?.close,
     portfolioTotalBalanceUSD: {
       [PortfolioChartCategory.Total]: backendBalanceUSD,
       [PortfolioChartCategory.Tokens]: breakdownForSelectedChain?.tokens.balanceUSD,
