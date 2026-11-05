@@ -1,3 +1,4 @@
+import { isTestEnv } from '@universe/environment'
 import { CONNECTION_PROVIDER_IDS } from 'uniswap/src/constants/web3'
 import type { Register } from 'wagmi'
 
@@ -56,4 +57,35 @@ export function settleMountReconnect(): void {
   }
   settled = true
   listeners.forEach((listener) => listener())
+}
+
+/**
+ * RigoBlock: inside an injected MetaMask (MetaMask extension or MetaMask mobile's built-in
+ * browser), the user expects the app to use their wallet, not the demo wallet. Returns the
+ * MetaMask connector to auto-connect on first visit (no stored recentConnectorId) when a
+ * MetaMask provider is present; undefined otherwise (desktop without MetaMask, iframes,
+ * tests) so the demo/connect-flow behavior is unchanged.
+ */
+export function getInjectedMetaMaskConnector(params: {
+  isIframe: boolean
+  connectors: readonly WagmiConnector[]
+  hasMetaMaskProvider: boolean
+}): WagmiConnector | undefined {
+  const { isIframe, connectors, hasMetaMaskProvider } = params
+  if (isIframe || isTestEnv() || !hasMetaMaskProvider) {
+    return undefined
+  }
+  return connectors.find((connector) => connector.id === CONNECTION_PROVIDER_IDS.METAMASK_SDK_CONNECTOR_ID)
+}
+
+/** True when an injected MetaMask provider is visible (window.ethereum or an eip-6963 announcement). */
+export function hasInjectedMetaMaskProvider(config: Register['config']): boolean {
+  if (typeof window === 'undefined') {
+    return false
+  }
+  const ethereum = (window as { ethereum?: { isMetaMask?: boolean } }).ethereum
+  return (
+    Boolean(ethereum?.isMetaMask) ||
+    Boolean(config._internal.mipd?.findProvider({ rdns: CONNECTION_PROVIDER_IDS.METAMASK_RDNS }))
+  )
 }

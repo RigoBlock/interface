@@ -273,7 +273,16 @@ export function useHyperliquidPortfolioHistory(
   })
 
   const query = isCandlePeriod ? candleQuery : portfolioQuery
-  const history = useMemo(() => query.data ?? [], [query.data])
+  // RigoBlock: the candle reconstruction disables once the last perp closes
+  // (positions gate above), but React Query keeps serving the cached series — mask it so a
+  // closed position stops contributing to the chart (its collateral is already counted in
+  // the live spot extra; keeping the stale series would double-count it). The portfolio
+  // branch (YEAR/MAX) serves absolute account-value buckets and stays valid after close.
+  const hasPositions = (account?.positions.length ?? 0) > 0
+  const history = useMemo(
+    () => (isCandlePeriod ? (hasPositions ? (query.data ?? []) : []) : (query.data ?? [])),
+    [isCandlePeriod, hasPositions, query.data],
+  )
 
   return { history, isLoading: query.isLoading, isError: query.isError }
 }

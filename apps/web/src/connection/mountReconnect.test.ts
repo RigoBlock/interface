@@ -1,6 +1,13 @@
 import { CONNECTION_PROVIDER_IDS } from 'uniswap/src/constants/web3'
 import type { Register } from 'wagmi'
-import { getConnectorsToReconnect } from '~/connection/mountReconnect'
+import { getConnectorsToReconnect, getInjectedMetaMaskConnector, hasInjectedMetaMaskProvider } from '~/connection/mountReconnect'
+
+// The auto-connect helper intentionally no-ops under isTestEnv() — pretend we're in a real
+// browser so the gating logic itself is exercised.
+vi.mock('@universe/environment', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@universe/environment')>()),
+  isTestEnv: () => false,
+}))
 
 type WagmiConnector = Register['config']['connectors'][number]
 
@@ -48,5 +55,39 @@ describe('getConnectorsToReconnect', () => {
         connectors,
       }),
     ).toEqual([safe])
+  })
+})
+
+describe('getInjectedMetaMaskConnector (RigoBlock MetaMask-mobile auto-connect)', () => {
+  const metaMask = connector(CONNECTION_PROVIDER_IDS.METAMASK_SDK_CONNECTOR_ID)
+  const other = connector('walletConnect')
+  const connectors = [other, metaMask]
+
+  it('returns the MetaMask connector when a MetaMask provider is injected and not iframed', () => {
+    expect(getInjectedMetaMaskConnector({ isIframe: false, connectors, hasMetaMaskProvider: true })).toBe(metaMask)
+  })
+
+  it('returns undefined without an injected MetaMask provider (desktop browsers stay on the connect flow)', () => {
+    expect(getInjectedMetaMaskConnector({ isIframe: false, connectors, hasMetaMaskProvider: false })).toBeUndefined()
+  })
+
+  it('returns undefined inside an iframe (Safe sessions connect only via reconnect)', () => {
+    expect(getInjectedMetaMaskConnector({ isIframe: true, connectors, hasMetaMaskProvider: true })).toBeUndefined()
+  })
+
+})
+
+describe('hasInjectedMetaMaskProvider', () => {
+  afterEach(() => {
+    delete (window as { ethereum?: unknown }).ethereum
+  })
+
+  it('detects window.ethereum.isMetaMask (MetaMask mobile built-in browser)', () => {
+    ;(window as { ethereum?: { isMetaMask?: boolean } }).ethereum = { isMetaMask: true }
+    expect(hasInjectedMetaMaskProvider({} as Register['config'])).toBe(true)
+  })
+
+  it('is false without an injected provider', () => {
+    expect(hasInjectedMetaMaskProvider({ _internal: {} } as Register['config'])).toBe(false)
   })
 })

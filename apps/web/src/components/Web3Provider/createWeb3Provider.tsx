@@ -3,9 +3,14 @@ import { WalletProvider as SolanaWalletProvider } from '@solana/wallet-adapter-r
 import React, { type PropsWithChildren, type ReactNode, useEffect, useMemo } from 'react'
 import { logger } from 'utilities/src/logger/logger'
 import { type Register, WagmiProvider } from 'wagmi'
-import { reconnect } from 'wagmi/actions'
+import { connect, reconnect } from 'wagmi/actions'
 import { useRecentConnectorId } from '~/connection/constants'
-import { getConnectorsToReconnect, settleMountReconnect } from '~/connection/mountReconnect'
+import {
+  getConnectorsToReconnect,
+  getInjectedMetaMaskConnector,
+  hasInjectedMetaMaskProvider,
+  settleMountReconnect,
+} from '~/connection/mountReconnect'
 import { SolanaSignerUpdater } from '~/connection/signSolanaTransaction'
 import { useWalletCapabilitiesStateEffect } from '~/state/walletCapabilities/hooks/useWalletCapabilitiesStateEffect'
 import { isIFramed } from '~/utils/isIFramed'
@@ -39,7 +44,26 @@ function IntentionalEvmReconnect({ config }: { config: Register['config'] }): nu
       connectors: config.connectors,
     })
     if (connectors.length === 0) {
-      settleMountReconnect()
+      // RigoBlock: inside an injected MetaMask (MetaMask mobile's built-in browser), request
+      // the connection on first visit instead of leaving the user on the demo wallet. The
+      // pending-reconnect state stays unsettled until the prompt resolves so the UI doesn't
+      // flash the demo address while MetaMask asks for approval.
+      const injectedMetaMask = getInjectedMetaMaskConnector({
+        isIframe: isIFramed(),
+        connectors: config.connectors,
+        hasMetaMaskProvider: hasInjectedMetaMaskProvider(config),
+      })
+      if (!injectedMetaMask) {
+        settleMountReconnect()
+        return
+      }
+      connect(config, { connector: injectedMetaMask })
+        .catch((error: unknown) => {
+          logger.warn('createWeb3Provider', 'IntentionalEvmReconnect', 'Injected MetaMask auto-connect failed', {
+            error,
+          })
+        })
+        .finally(settleMountReconnect)
       return
     }
     reconnect(config, { connectors })

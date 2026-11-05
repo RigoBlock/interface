@@ -249,7 +249,17 @@ export function useGmxValueHistory({
     refetchOnWindowFocus: false,
   })
 
-  const history = useMemo(() => (isCandlePeriod ? (data ?? []) : []), [isCandlePeriod, data])
+  // RigoBlock: once the last position closes, the query disables (positions gate above) but
+  // React Query keeps serving the last cached data — masking it here is what keeps the "no
+  // open positions → no extras" contract. Without it the stale series would keep attributing
+  // the closed position's value to the whole chart window while the returned collateral is
+  // ALSO counted in the base series (Zerion does not track GMX positions) — a double count
+  // that appears exactly when a position is removed (Nov 2026 production report).
+  const hasPositions = positions.length > 0
+  const history = useMemo(
+    () => (isCandlePeriod && hasPositions ? (data ?? []) : []),
+    [isCandlePeriod, hasPositions, data],
+  )
 
   return { history, isLoading, isError }
 }

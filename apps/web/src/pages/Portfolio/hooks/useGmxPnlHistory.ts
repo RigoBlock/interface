@@ -86,7 +86,10 @@ export function useGmxPnlHistory(
     refetchOnWindowFocus: false,
   })
 
-  const history = useMemo(() => data ?? [], [data])
+  // RigoBlock: mask stale cached history while the query is disabled — after the last
+  // position closes the cumulative-PnL series must not keep attributing the closed
+  // position's value (the returned collateral is already counted in the base series).
+  const history = useMemo(() => (enabled ? (data ?? []) : []), [enabled, data])
 
   return { history, isLoading, isError }
 }

@@ -66,8 +66,10 @@ export function usePortfolioExtras({
   // Hyperliquid `portfolio` endpoint bucket history.
   const isCandlePeriod = selectedPeriod !== ChartPeriod.YEAR && selectedPeriod !== ChartPeriod.MAX
 
-  // GMX daily cumulative PnL history (Subsquid indexer) — used to reconstruct historical account value
-  const { history: gmxPnlHistory } = useGmxPnlHistory(evmAddress, !isCandlePeriod)
+  // GMX daily cumulative PnL history (Subsquid indexer) — used to reconstruct historical
+  // account value. Disabled when no positions are open so a closed position's series
+  // doesn't linger in the chart (see the masking note in useGmxPnlHistory).
+  const { history: gmxPnlHistory } = useGmxPnlHistory(evmAddress, !isCandlePeriod && gmxPositions.length > 0)
 
   // GMX positions value history at the chart period's candle granularity (HOUR–MONTH),
   // pinned to the base chart window
