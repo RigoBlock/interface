@@ -74,7 +74,7 @@ exports[`BackupScreen > renders backup options when none are completed 1`] = `
                             <div
                               fill="none"
                               stroke-width="8"
-                              style="color: rgb(255, 55, 199); width: 16px; height: 16px;"
+                              style="color: rgb(254, 178, 57); width: 16px; height: 16px;"
                               viewbox="0 0 16 16"
                             >
                               <div
@@ -150,7 +150,7 @@ exports[`BackupScreen > renders backup options when none are completed 1`] = `
                             <div
                               fill="none"
                               stroke-width="8"
-                              style="color: rgb(255, 55, 199); width: 12px; height: 12px;"
+                              style="color: rgb(254, 178, 57); width: 12px; height: 12px;"
                               viewbox="0 0 19 19"
                             >
                               <div
@@ -345,7 +345,7 @@ exports[`BackupScreen > renders backup options when some are completed 1`] = `
                             <div
                               fill="none"
                               stroke-width="8"
-                              style="color: rgb(255, 55, 199); width: 16px; height: 16px;"
+                              style="color: rgb(254, 178, 57); width: 16px; height: 16px;"
                               viewbox="0 0 16 16"
                             >
                               <div
@@ -421,7 +421,7 @@ exports[`BackupScreen > renders backup options when some are completed 1`] = `
                             <div
                               fill="none"
                               stroke-width="8"
-                              style="color: rgb(255, 55, 199); width: 12px; height: 12px;"
+                              style="color: rgb(254, 178, 57); width: 12px; height: 12px;"
                               viewbox="0 0 19 19"
                             >
                               <div
