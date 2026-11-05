@@ -2,8 +2,6 @@ import { isEVMChain, Platform } from '@universe/chains'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { Flex } from '@universe/mycelium'
 import { spacing } from '@universe/mycelium/tokens'
-//! tamagui-ignore
-// tamagui-ignore
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet-async/lib/index'
 import { useTranslation } from 'react-i18next'
@@ -52,9 +50,9 @@ import {
 import { useAuctionStore, useAuctionStoreActions } from '~/features/Toucan/Auction/store/useAuctionStore'
 import { AuctionDisplayPhase } from '~/features/Toucan/Auction/utils/resolveAuctionDisplayState'
 import {
+  shouldShowTokenLaunchedBanner as getShouldShowTokenLaunchedBanner,
   getTokenLaunchTradeAvailabilityBlock,
   isTokenLaunchTradeAvailable,
-  shouldShowTokenLaunchedBanner as getShouldShowTokenLaunchedBanner,
 } from '~/features/Toucan/Auction/utils/tokenLaunchedBannerUtils'
 import { getAuctionTokenDecimals } from '~/features/Toucan/Auction/utils/tokenMetadata'
 import { isTradingRestrictedUntilTge } from '~/features/Toucan/Config/config'
@@ -62,12 +60,12 @@ import { ToucanActionButton } from '~/features/Toucan/Shared/ToucanActionButton'
 import { ToucanContainer } from '~/features/Toucan/Shared/ToucanContainer'
 import { ToucanIntroModal } from '~/features/Toucan/ToucanIntroModal'
 import { useScrollCompact } from '~/hooks/useScrollCompact'
-import { useStateRehydrated } from '~/hooks/useStateRehydrated'
 import { useDynamicMetatags } from '~/pages/metatags'
 import { NotFound } from '~/pages/NotFound'
 import { LeftPanel, RightPanel, TokenDetailsLayout } from '~/pages/TokenDetails/components/skeleton/Skeleton'
 import { formatAuctionMetatagTitleName } from '~/shared-cloud/metatags'
 import { useAppDispatch, useAppSelector } from '~/state/hooks'
+import { useStateRehydrated } from '~/state/useStateRehydrated'
 import { InterfaceState } from '~/state/webReducer'
 import { MWEB_BOTTOM_INSET } from '~/utils/mwebBottomInset'
 import { getChainIdFromChainUrlParam } from '~/utils/params/chainParams'
@@ -205,6 +203,7 @@ function ToucanTokenContent({ isModalOpen, onCloseModal }: { isModalOpen: boolea
     outcome,
     isGraduated,
     currentBlockNumber,
+    auctionTokenAddress,
   } = useAuctionStore((state) => ({
     auctionState: state.progress.state,
     auctionDetails: state.auctionDetails,
@@ -213,6 +212,7 @@ function ToucanTokenContent({ isModalOpen, onCloseModal }: { isModalOpen: boolea
     outcome: state.progress.outcome,
     isGraduated: state.progress.isGraduated,
     currentBlockNumber: state.currentBlockNumber,
+    auctionTokenAddress: state.auctionDetails?.tokenAddress,
   }))
   const { canPlaceBid, showMobileWithdrawButton, hasUserBids, showAuctionGraduated } = useBidFormState()
   // Mirror the post-auction panel so the mobile fixed button never double-renders alongside a
@@ -280,7 +280,8 @@ function ToucanTokenContent({ isModalOpen, onCloseModal }: { isModalOpen: boolea
       logImpression={Boolean(auctionDetails?.token)}
       page={InterfacePageName.AuctionDetailsPage}
       properties={{
-        tokenAddress: auctionAddress,
+        tokenAddress: auctionTokenAddress,
+        auctionAddress,
         chainName,
         tokenSymbol: auctionDetails?.token?.currency.symbol,
         tokenName: auctionDetails?.token?.currency.name,

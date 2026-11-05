@@ -19,6 +19,7 @@ import {
   usePortfolioTotalValue,
 } from 'uniswap/src/features/dataApi/balances/balancesRest'
 import { useRestPortfolioValueModifier } from 'uniswap/src/features/dataApi/balances/useRestPortfolioValueModifier'
+import { getUnavailableChartCategories } from 'uniswap/src/features/portfolio/getUnavailableChartCategories'
 import { usePortfolioChartBalanceMismatch } from 'uniswap/src/features/portfolio/usePortfolioChartBalanceMismatch'
 import { ElementName, InterfacePageName, SectionName } from 'uniswap/src/features/telemetry/constants'
 import { Trace } from 'uniswap/src/features/telemetry/Trace'
@@ -26,6 +27,7 @@ import { EmptyWalletCards } from '~/components/emptyWallet/EmptyWalletCards'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
 import { OverviewActionTiles } from '~/pages/Portfolio/Overview/ActionTiles'
+import { ExploreTokensModule } from '~/pages/Portfolio/Overview/ExploreTokensModule/ExploreTokensModule'
 import { useIsPortfolioZero } from '~/pages/Portfolio/Overview/hooks/useIsPortfolioZero'
 import {
   PortfolioChartCategory,
@@ -34,6 +36,7 @@ import {
 import { PortfolioOverviewTables } from '~/pages/Portfolio/Overview/OverviewTables'
 import { PortfolioChart } from '~/pages/Portfolio/Overview/PortfolioChart'
 import { PortfolioPerformance } from '~/pages/Portfolio/Overview/PortfolioPerformance'
+import { UnfundedBalanceCard } from '~/pages/Portfolio/Overview/UnfundedBalanceCard'
 import { filterDefinedWalletAddresses } from '~/utils/filterDefinedWalletAddresses'
 
 const ACTIONS_AND_STATS_VARIANTS = {
@@ -61,6 +64,8 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
   const { chains: allChainIds } = useEnabledChains()
 
   const isPortfolioZero = useIsPortfolioZero()
+  const isNewUserUxEnabled = useFeatureFlag(FeatureFlags.NewUserUx)
+  const showUnfundedHome = isNewUserUxEnabled && isPortfolioZero
   const queryClient = useQueryClient()
 
   const [selectedPeriod, setSelectedPeriod] = useState<ChartPeriod>(ChartPeriod.DAY)
@@ -94,7 +99,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
     ],
   )
 
-  const { data: portfolioData } = usePortfolioTotalValue({
+  const { data: portfolioData, isPending: isBalancePending } = usePortfolioTotalValue({
     evmAddress: portfolioAddresses.evmAddress,
     svmAddress: portfolioAddresses.svmAddress,
     chainIds: filterChainIds,
@@ -123,7 +128,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
     error: chartError,
   } = useGetPortfolioHistoricalValueChartQuery({
     input: { ...chartInput, chartPeriod: selectedPeriod },
-    enabled: !!(portfolioAddresses.evmAddress || portfolioAddresses.svmAddress),
+    enabled: !showUnfundedHome && !!(portfolioAddresses.evmAddress || portfolioAddresses.svmAddress),
   })
 
   const {
@@ -152,6 +157,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
     }
   }, [availableCategories, selectedCategory])
   const isChartLoading = isChartPending || (isChartPlaceholderData && !series.length)
+  const chartErrorWithoutData = portfolioChartData ? null : chartError
   const isChartEmpty = useMemo(() => {
     if (!series.length) {
       return true
@@ -164,18 +170,21 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
     return false
   }, [series])
 
-  // Get the latest value from chart endpoint (last point in the array) for comparison
-  const lastChartValue = useMemo(() => {
-    if (!portfolioChartData?.points || portfolioChartData.points.length === 0) {
-      return undefined
-    }
-    return portfolioChartData.points[portfolioChartData.points.length - 1]?.value
-  }, [portfolioChartData])
+  const unavailableChartCategories = useMemo(
+    () => getUnavailableChartCategories({ chartData: portfolioChartData, requestedCategories: includeCategories }),
+    [portfolioChartData, includeCategories],
+  )
 
-  // Compare portfolio balance (EVM + Solana) with chart endpoint balance to detect spam-token divergence
+  // Detects spam-token divergence. Compared per category, so a single-category view isn't flagged when another
+  // category's leg is missing from the chart.
   const { isTotalValueMatch } = usePortfolioChartBalanceMismatch({
-    lastChartValue,
-    portfolioTotalBalanceUSD: portfolioData?.balanceUSD,
+    lastChartValue: series.at(-1)?.close,
+    portfolioTotalBalanceUSD: {
+      [PortfolioChartCategory.Total]: portfolioData?.balanceUSD,
+      [PortfolioChartCategory.Tokens]: portfolioBreakdown?.tokens.balanceUSD,
+      [PortfolioChartCategory.Pools]: portfolioBreakdown?.pools.balanceUSD,
+      [PortfolioChartCategory.Earn]: portfolioBreakdown?.earn.balanceUSD,
+    }[selectedCategory],
   })
 
   // Prefetch chart data for a timeframe on hover so it's ready when the user clicks
@@ -209,6 +218,19 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
     skip: isPortfolioZero,
   })
 
+  if (showUnfundedHome) {
+    return (
+      <Trace logImpression page={InterfacePageName.PortfolioOverviewPage} properties={{ isExternal: isExternalWallet }}>
+        <Trace section={SectionName.PortfolioOverviewTab}>
+          <Flex gap="$spacing16" mb="$spacing40">
+            <UnfundedBalanceCard />
+            <ExploreTokensModule />
+          </Flex>
+        </Trace>
+      </Trace>
+    )
+  }
+
   return (
     <Trace logImpression page={InterfacePageName.PortfolioOverviewPage} properties={{ isExternal: isExternalWallet }}>
       <Flex gap="$spacing40" mb="$spacing40">
@@ -220,6 +242,7 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
               poolsValue={portfolioPoolsBalancesEnabled ? portfolioBreakdown?.pools : undefined}
               earnValue={portfolioBreakdown?.earn}
               unavailableCategories={unavailableCategories}
+              unavailableChartCategories={unavailableChartCategories}
               isPortfolioZero={isPortfolioZero}
               series={series}
               tokensSeries={tokensSeries}
@@ -230,8 +253,9 @@ export const PortfolioOverview = memo(function PortfolioOverview() {
               poolsPercentChange={poolsPercentChange}
               earnPercentChange={earnPercentChange}
               isLoading={isChartLoading}
+              isBalanceLoading={isBalancePending}
               isChartEmpty={isChartEmpty}
-              error={chartError}
+              error={chartErrorWithoutData}
               selectedPeriod={selectedPeriod}
               setSelectedPeriod={setSelectedPeriod}
               onHoverPeriod={handleHoverPeriod}

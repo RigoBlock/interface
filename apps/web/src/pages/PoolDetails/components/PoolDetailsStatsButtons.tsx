@@ -1,15 +1,14 @@
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
 import { UniverseChainId, areEvmAddressesEqual } from '@universe/chains'
-import { Button, Flex, Flex as FlexCompat, type FlexCompatProps, Spacer } from '@universe/mycelium'
+import { Button, Flex, Flex as FlexCompat, type FlexCompatProps, Spacer, zIndexes } from '@universe/mycelium'
+import { CoinConvert } from '@universe/mycelium/icons/CoinConvert'
+import { Plus } from '@universe/mycelium/icons/Plus'
+import { X } from '@universe/mycelium/icons/X'
 import { useIsTouchDevice, useMedia } from '@universe/mycelium/theme-hooks-compat'
 import { TestID } from '@universe/test'
 import { forwardRef, type ForwardRefExoticComponent, ReactNode, type RefAttributes, useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router'
-import { CoinConvert } from 'ui/src/components/icons/CoinConvert'
-import { Plus } from 'ui/src/components/icons/Plus'
-import { X } from 'ui/src/components/icons/X'
-import { zIndexes } from 'ui/src/theme/zIndexes'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import type { ParsedToken } from 'uniswap/src/features/dataApi/utils/parsedToken'
@@ -23,12 +22,12 @@ import { currencyId } from 'uniswap/src/utils/currencyId'
 import { LPGeoRestrictionBanner } from '~/components/GeoRestriction/LPGeoRestrictionBanner'
 import { MobileBottomBar } from '~/components/NavBar/MobileBottomBar'
 import { LoadingBubble } from '~/components/Tokens/loading'
+import { useAccount } from '~/connection/hooks/useAccount'
 import { NATIVE_CHAIN_ID } from '~/constants/tokens'
 import { getNextFlowStep } from '~/features/Liquidity/Create/flowSteps'
 import { PositionFlowStep } from '~/features/Liquidity/Create/types'
 import { useLPGeoRestriction } from '~/features/Liquidity/useLPGeoRestriction'
 import { getProtocolVersionLabel } from '~/features/Liquidity/utils/protocolVersion'
-import { useAccount } from '~/hooks/useAccount'
 import { ScrollDirection, useScroll } from '~/hooks/useScroll'
 import { buildPoolSearchParams } from '~/pages/AddLiquidity/poolLinkParams'
 import { Swap } from '~/pages/Swap'
@@ -136,8 +135,8 @@ export function PoolDetailsStatsButtons({
   const currencyInfo0 = useCurrencyInfo(currency0 && currencyId(currency0))
   const currencyInfo1 = useCurrencyInfo(currency1 && currencyId(currency1))
 
-  // Fails open while the check is in flight, as swap does: this CTA only navigates, and the
-  // add-liquidity flow it lands in gates again on the same hook before anything is signed.
+  // Drives the banner only. The CTA below only navigates; the add-liquidity flow it lands in gates on
+  // the same hook before anything is signed.
   const { isGeoRestricted, restrictedTokenSymbol } = useLPGeoRestriction({
     token0: currency0,
     token1: currency1,
@@ -223,17 +222,14 @@ export function PoolDetailsStatsButtons({
           >
             {swapModalOpen ? t('common.close') : t('common.swap')}
           </PoolButton>
-          {/* Dropped rather than disabled — the banner above already states the restriction, so a
-              dead half of the row would only repeat it. */}
-          {!isGeoRestricted && (
-            <PoolButton
-              icon={<Plus size="$icon.20" />}
-              onPress={handleAddLiquidity}
-              data-testid={TestID.PoolDetailsAddLiquidityButton}
-            >
-              {t('common.addLiquidity')}
-            </PoolButton>
-          )}
+          {/* Shown even when restricted: the add flow opens on the region modal and keeps its CTA disabled. */}
+          <PoolButton
+            icon={<Plus size="$icon.20" />}
+            onPress={handleAddLiquidity}
+            data-testid={TestID.PoolDetailsAddLiquidityButton}
+          >
+            {t('common.addLiquidity')}
+          </PoolButton>
         </Flex>
       </PoolButtonsWrapper>
       <Modal

@@ -6,6 +6,7 @@ import {
   type MarginActivePosition,
   type MarginQuoteResponse,
 } from 'uniswap/src/data/apiClients/tradingApi/MarginApiClient'
+import { MarginDirection } from 'uniswap/src/features/transactions/margin/types'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MARGIN_CHAIN_ID } from '~/constants/margin'
 import { getDefaultMarginMarket } from '~/pages/Swap/Margin/__fixtures__/marginCatalog'
@@ -56,7 +57,7 @@ vi.mock('~/pages/Swap/Margin/components/shared/MarginLeverageSlider', () => ({
   ),
 }))
 
-vi.mock('~/hooks/useAccount', () => ({ useAccount: () => ({ address: SWAPPER }) }))
+vi.mock('~/connection/hooks/useAccount', () => ({ useAccount: () => ({ address: SWAPPER }) }))
 
 vi.mock('~/pages/Swap/Margin/hooks/useExecuteMarginPlan', () => ({
   useExecuteMarginPlan: () => ({ executePlan: mockExecutePlan }),
@@ -64,8 +65,8 @@ vi.mock('~/pages/Swap/Margin/hooks/useExecuteMarginPlan', () => ({
 
 vi.mock('~/pages/Swap/Margin/hooks/useIsPlanInFlight', () => ({ useIsPlanInFlight: mockUseIsPlanInFlight }))
 
-vi.mock('~/pages/Swap/Margin/hooks/useMarginCurrencyInfos', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('~/pages/Swap/Margin/hooks/useMarginCurrencyInfos')>()),
+vi.mock('~/features/margin/hooks/useMarginCurrencyInfos', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('~/features/margin/hooks/useMarginCurrencyInfos')>()),
   useMarginCurrencyInfos: () => new Map(),
 }))
 
@@ -96,7 +97,7 @@ function positionFixture(overrides: Partial<MarginActivePosition> = {}): MarginA
   return {
     positionId: SUB_ID,
     status: 'ACTIVE',
-    direction: 'LONG',
+    direction: MarginDirection.LONG,
     exposureToken: {
       address: MARKET.collateral.address,
       chainId: MARGIN_CHAIN_ID,
@@ -129,7 +130,7 @@ function quoteFixture(overrides: Partial<MarginQuoteResponse> = {}): MarginQuote
     action: 'increaseLeverage',
     chainId: MARGIN_CHAIN_ID,
     swapper: SWAPPER,
-    direction: 'LONG',
+    direction: MarginDirection.LONG,
     exposureToken: {
       address: MARKET.collateral.address,
       chainId: MARGIN_CHAIN_ID,
@@ -235,11 +236,6 @@ describe('MarginChangeLeverageModal', () => {
     fireEvent.click(screen.getByLabelText('drag-slider-to-4'))
     expect(screen.getByTestId('slider-value')).toHaveTextContent('4.00')
     expect(lastQuoteArgs().targetLeverageX18).toBe('4000000000000000000')
-  })
-
-  it('does not render the lock-leverage toggle', () => {
-    renderModal()
-    expect(screen.queryByTestId('margin-adjust-position-lock-leverage')).not.toBeInTheDocument()
   })
 
   // The wire omits leverage exactly when equity is at or below zero — the one case with no

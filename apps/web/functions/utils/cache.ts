@@ -1,7 +1,7 @@
-import { GraphQLApi } from '@universe/api'
-
 interface TokenData {
   symbol: string
+  /** Backend-curated light-theme color, used for the OG card in place of one averaged from the logo. */
+  overrideColor?: string
 }
 interface AuctionData {
   tokenName: string
@@ -9,11 +9,14 @@ interface AuctionData {
   tokenLogoUrl?: string
   currencySymbol?: string
 }
+
+export type PoolProtocolVersion = 'V2' | 'V3' | 'V4'
+
 interface PoolData {
   token0Symbol?: string
   token1Symbol?: string
   feeTier?: string
-  protocolVersion: GraphQLApi.ProtocolVersion
+  protocolVersion: PoolProtocolVersion
   token0Image?: string
   token1Image?: string
 }

@@ -1,4 +1,6 @@
+import { useSporeColors } from '@universe/mycelium'
 import { FloatingOverlayContent, FloatingOverlayRoot } from '@universe/mycelium/floating-overlay'
+import { zIndexes } from '@universe/mycelium/tokens'
 import {
   Children,
   type ForwardedRef,
@@ -40,8 +42,6 @@ import type {
   PopoverProps,
   PopoverVia,
 } from 'ui/src/components/popover/types'
-import { useSporeColors } from 'ui/src/hooks/useSporeColors'
-import { zIndexes } from 'ui/src/theme/zIndexes'
 import { useEvent } from 'utilities/src/react/hooks'
 
 /**

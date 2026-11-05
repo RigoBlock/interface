@@ -5,10 +5,16 @@ import { useTranslation } from 'react-i18next'
 import { type MarginActivePosition } from 'uniswap/src/data/apiClients/tradingApi/MarginApiClient'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { ModalName } from 'uniswap/src/features/telemetry/constants'
+import { MarginDirection } from 'uniswap/src/features/transactions/margin/types'
 import { NumberType } from 'utilities/src/format/types'
 import { useEvent } from 'utilities/src/react/hooks'
 import { formatUnits, parseUnits } from '~/chains'
 import { type MarginMarket } from '~/constants/margin'
+import { getMarginCurrencyInfo, useMarginCurrencyInfos } from '~/features/margin/hooks/useMarginCurrencyInfos'
+import { marginAssetCurrencyId, marginTokenCurrencyId } from '~/features/margin/utils/marginCurrencies'
+import { collateralUsdValue } from '~/features/margin/utils/marginFormat'
+import { marginPositionDebt } from '~/features/margin/utils/marginPositionRow'
+import { marginUnwrapSymbol } from '~/features/margin/utils/marginTokenDisplay'
 import { MarginAdjustBeforeAfterSection } from '~/pages/Swap/Margin/components/MarginAdjustBeforeAfterRows'
 import { MarginAdjustQuoteRows } from '~/pages/Swap/Margin/components/MarginAdjustQuoteRows'
 import { MarginAdjustShowMoreSection } from '~/pages/Swap/Margin/components/MarginAdjustShowMoreSection'
@@ -18,13 +24,8 @@ import { MarginAmountField } from '~/pages/Swap/Margin/components/shared/MarginA
 import { MarginExcludedVenueNotice } from '~/pages/Swap/Margin/components/shared/MarginExcludedVenueNotice'
 import { MarginPairHeading } from '~/pages/Swap/Margin/components/shared/MarginPairHeading'
 import { useMarginAdjustController } from '~/pages/Swap/Margin/hooks/useMarginAdjustController'
-import { getMarginCurrencyInfo, useMarginCurrencyInfos } from '~/pages/Swap/Margin/hooks/useMarginCurrencyInfos'
 import { useMarginPositionMarkIsStale } from '~/pages/Swap/Margin/hooks/useMarginPositionMarkIsStale'
 import type { AdjustFunding } from '~/pages/Swap/Margin/hooks/useMarginQuote'
-import { marginAssetCurrencyId, marginTokenCurrencyId } from '~/pages/Swap/Margin/marginCurrencies'
-import { collateralUsdValue } from '~/pages/Swap/Margin/marginFormat'
-import { marginPositionDebt } from '~/pages/Swap/Margin/marginPositionRow'
-import { marginUnwrapSymbol } from '~/pages/Swap/Margin/marginTokenDisplay'
 import { marginPositionMark } from '~/pages/Swap/Margin/marginUsdPnl'
 
 // computeMaxWithdrawable returns the amount that lands health EXACTLY on the floor, so requesting it
@@ -111,7 +112,7 @@ export function MarginWithdrawModal({
   // Number('Infinity') is truthy, and formatting a non-finite value throws inside the formatter.
   const amountHuman = Number(amount)
   const amountUsd =
-    usableMark === undefined && direction !== 'SHORT'
+    usableMark === undefined && direction !== MarginDirection.SHORT
       ? undefined
       : collateralUsdValue({
           collateralAmount: Number.isFinite(amountHuman) ? amountHuman : 0,
@@ -124,7 +125,9 @@ export function MarginWithdrawModal({
   const debtLogos = { url: debtLogoUrl ?? undefined, symbol: marginUnwrapSymbol(market.debt) }
   // The Size row reads the EXPOSURE leg — a short's is its debt leg, a long's its collateral.
   const sizeLogos =
-    direction === 'SHORT' ? debtLogos : { url: collateralLogoUrl ?? undefined, symbol: market.displaySymbol }
+    direction === MarginDirection.SHORT
+      ? debtLogos
+      : { url: collateralLogoUrl ?? undefined, symbol: market.displaySymbol }
   const hasDebt = BigInt(marginPositionDebt(position)) !== 0n
 
   return (
@@ -161,7 +164,8 @@ export function MarginWithdrawModal({
           value={amount}
           onChangeText={setAmount}
           maxDecimals={collateralDecimals}
-          chip={{ kind: 'static', symbol: market.displaySymbol, logoUrl: collateralLogoUrl ?? undefined }}
+          // The payout token itself: a withdrawal pays out in the collateral, so a WETH position pays WETH.
+          chip={{ kind: 'static', symbol: market.collateral.symbol, logoUrl: collateralLogoUrl ?? undefined }}
           usdCaption={
             amountUsd === undefined
               ? undefined
@@ -175,7 +179,7 @@ export function MarginWithdrawModal({
                     amount: `${formatNumberOrString({
                       value: Number(formatUnits(BigInt(maxWithdrawableRaw), collateralDecimals)),
                       type: NumberType.TokenNonTx,
-                    })} ${market.displaySymbol}`,
+                    })} ${market.collateral.symbol}`,
                   }),
                   ariaLabel: t('margin.withdraw.useMax'),
                   onPress: onFillMax,

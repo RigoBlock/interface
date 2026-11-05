@@ -11,10 +11,11 @@ import { useEvent } from 'utilities/src/react/hooks'
 import { useNetworkFilterChainIds } from '~/components/NetworkFilter/useFilteredChains'
 import { HEADER_TRANSITION } from '~/components/StickyCollapsibleHeader/constants'
 import { HeaderDivider } from '~/components/StickyCollapsibleHeader/HeaderDivider'
-import { useActiveAddresses } from '~/features/accounts/store/hooks'
+import { useActiveAddresses } from '~/connection/accounts/hooks'
 
 interface TokenDetailsNetworkFilterProps {
   chainIds: UniverseChainId[]
+  lowLiquidityChainIds?: UniverseChainId[]
   selectedChainId: UniverseChainId | undefined
   setSelectedChainId: (chainId: UniverseChainId | undefined) => void
   showAddressCopy: boolean
@@ -25,6 +26,7 @@ interface TokenDetailsNetworkFilterProps {
 
 export function TokenDetailsNetworkFilter({
   chainIds,
+  lowLiquidityChainIds,
   showAddressCopy,
   selectedChainId,
   setSelectedChainId,
@@ -34,8 +36,12 @@ export function TokenDetailsNetworkFilter({
 }: TokenDetailsNetworkFilterProps) {
   const { t } = useTranslation()
   const activeAddresses = useActiveAddresses()
-  const tieredNetworkOptions = useNetworkSelectorOptions({ addresses: activeAddresses, chainIds })
   const { chainIds: selectableChainIds, allNetworksChainIds } = useNetworkFilterChainIds(chainIds)
+  const tieredNetworkOptions = useNetworkSelectorOptions({
+    addresses: activeAddresses,
+    chainIds: selectableChainIds,
+    lowLiquidityChainIds,
+  })
   const isNetworkSubset = !isChainDataLoading && chainIds.length > 0 && allNetworksChainIds !== undefined
 
   const onPressChain = useEvent((chainId: UniverseChainId | null) => setSelectedChainId(chainId ?? undefined))

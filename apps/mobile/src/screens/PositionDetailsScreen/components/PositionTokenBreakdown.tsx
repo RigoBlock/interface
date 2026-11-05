@@ -1,8 +1,6 @@
 import { Currency, CurrencyAmount, Price } from '@uniswap/sdk-core'
-import { Flex, Text } from '@universe/mycelium'
+import { Flex, Text, useExtractedTokenColor, useSporeColors, iconSizes } from '@universe/mycelium'
 import { useMemo } from 'react'
-import { useExtractedTokenColor, useSporeColors } from 'ui/src'
-import { iconSizes } from 'ui/src/theme'
 import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
 import { CurrencyInfo } from 'uniswap/src/features/dataApi/types'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
@@ -64,12 +62,14 @@ export function PositionTokenBreakdown({
     tokenName: currency0Info?.currency.name,
     backgroundColor: colors.surface1.val,
     defaultColor: colors.neutral3.val,
+    colorOverrides: currency0Info?.colorOverrides,
   })
   const { tokenColor: token1Color } = useExtractedTokenColor({
     imageUrl: currency1Info?.logoUrl,
     tokenName: currency1Info?.currency.name,
     backgroundColor: colors.surface1.val,
     defaultColor: colors.neutral3.val,
+    colorOverrides: currency1Info?.colorOverrides,
   })
 
   const percent0 = useMemo(

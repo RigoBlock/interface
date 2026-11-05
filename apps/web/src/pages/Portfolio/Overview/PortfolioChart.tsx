@@ -33,6 +33,7 @@ import {
 import { useShowDemoView } from '~/pages/Portfolio/hooks/useShowDemoView'
 import { ChartScrubBreakdown } from '~/pages/Portfolio/Overview/BalanceBreakdownPopover/ChartScrubBreakdown'
 import { chartPeriodToHistoryDuration } from '~/pages/Portfolio/Overview/chartPeriodToHistoryDuration'
+import { createPortfolioYAxisFormatters } from '~/pages/Portfolio/Overview/createPortfolioYAxisFormatters'
 import { PortfolioChartCategory } from '~/pages/Portfolio/Overview/hooks/usePortfolioChartSeries'
 import { PortfolioBalanceHeader } from '~/pages/Portfolio/Overview/PortfolioBalanceHeader'
 import { PortfolioChartCategorySelector } from '~/pages/Portfolio/Overview/PortfolioChartCategorySelector'
@@ -83,6 +84,7 @@ interface PortfolioChartProps {
   poolsPercentChange: number | undefined
   earnPercentChange: number | undefined
   isLoading: boolean
+  isBalanceLoading: boolean
   isChartEmpty: boolean
   error?: Error | null
   selectedPeriod: ChartPeriod
@@ -94,6 +96,8 @@ interface PortfolioChartProps {
   earnValue?: PortfolioTotalValue
   /** Opt-in categories the backend omitted, so the total is a partial sum shown with a warning. */
   unavailableCategories?: WalletBalanceCategory[]
+  /** Requested categories missing from the chart response, so the Total series is incomplete. */
+  unavailableChartCategories: WalletBalanceCategory[]
   isTotalValueMatch: boolean
   selectedCategory: PortfolioChartCategory
   setSelectedCategory: (category: PortfolioChartCategory) => void
@@ -114,6 +118,7 @@ export function PortfolioChart({
   poolsPercentChange,
   earnPercentChange,
   isLoading,
+  isBalanceLoading,
   isChartEmpty,
   error,
   portfolioTotalBalanceUSD,
@@ -121,6 +126,7 @@ export function PortfolioChart({
   poolsValue,
   earnValue,
   unavailableCategories,
+  unavailableChartCategories,
   selectedPeriod,
   setSelectedPeriod,
   onHoverPeriod,
@@ -173,19 +179,10 @@ export function PortfolioChart({
 
   const isDisabled = isPortfolioZero || !!error
 
-  // Custom y-axis formatter that removes decimals
-  const yAxisFormatter = useMemo(() => {
-    return (price: number): string => {
-      const rounded = Math.floor(price)
-      const formatter = new Intl.NumberFormat(locale, {
-        style: 'currency',
-        currency: appFiatCurrencyInfo.code,
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      })
-      return formatter.format(rounded)
-    }
-  }, [locale, appFiatCurrencyInfo.code])
+  const yAxisFormatters = useMemo(
+    () => createPortfolioYAxisFormatters({ locale, currency: appFiatCurrencyInfo.code }),
+    [locale, appFiatCurrencyInfo.code],
+  )
 
   const bodyProps = {
     data: series,
@@ -195,13 +192,18 @@ export function PortfolioChart({
     timePeriod: chartPeriodToHistoryDuration(selectedPeriod),
     overrideColor: animatedChartColor,
     hideYAxis: !isTotalValueMatch,
-    yAxisFormatter,
+    ...yAxisFormatters,
+    disableLowPriceRangeScaling: true,
   }
 
   const shouldShowBalanceHeader = !isPortfolioZero
+  const isChartPartial = unavailableChartCategories.length > 0
+  const showChartError = !!error || (isChartPartial && selectedCategory === PortfolioChartCategory.Total)
 
   // Kept visible on error (grayed out below) so the controls row layout is stable; only hidden when there's no breakdown.
-  const showCategorySelector = shouldShowBalanceHeader && hasCategoryBreakdown && !isLoading && !isChartEmpty
+  // A partial chart keeps it so the categories that did load stay viewable.
+  const showCategorySelector =
+    shouldShowBalanceHeader && (hasCategoryBreakdown || isChartPartial) && !isLoading && !isChartEmpty
 
   const categorySelector = showCategorySelector && (
     <Flex opacity={error ? 0.4 : 1} pointerEvents={error || isDemoView ? 'none' : 'auto'}>
@@ -214,10 +216,10 @@ export function PortfolioChart({
   )
 
   useEffect(() => {
-    if (!shouldShowBalanceHeader || error || isLoading || isChartEmpty) {
+    if (!shouldShowBalanceHeader || showChartError || isLoading || isChartEmpty) {
       setHoveredChartData(undefined)
     }
-  }, [error, isChartEmpty, isLoading, shouldShowBalanceHeader])
+  }, [showChartError, isChartEmpty, isLoading, shouldShowBalanceHeader])
 
   useEffect(() => {
     setHoveredChartData(undefined)
@@ -241,10 +243,12 @@ export function PortfolioChart({
           selectedCategory={selectedCategory}
           isPortfolioZero={isPortfolioZero}
           isLoading={isLoading}
+          isBalanceLoading={isBalanceLoading}
+          hideDelta={showChartError}
           hoveredData={hoveredChartData}
         />
       )}
-      {error ? (
+      {showChartError ? (
         <ChartContainer centered grow shrink>
           <ChartSkeleton
             type={ChartType.PRICE}

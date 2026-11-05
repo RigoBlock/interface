@@ -14,8 +14,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "Apple",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -31,8 +31,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "Google",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -48,8 +48,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "{{amount}} UNI",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -269,8 +269,42 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "Permit",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:common.privacyChoices.optOut",
+      {
+        "unitId": "common.privacyChoices.optOut",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "5d1160c8a782fcfc275fe20ba2a3055c30316c1f7544530db94824fb986c5a53",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "관련 법률에 따라 이것이 판매, 공유 또는 맞춤형 광고에 해당하는 경우, 설정에서 “{{settingName}}” 토글을 꺼서 거부할 수 있습니다.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-16T19-33-20Z",
+        "approvedAt": "2026-10-16T19:33:20.318Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:common.privacyChoices.policy",
+      {
+        "unitId": "common.privacyChoices.policy",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "5109ab4492e4bed49a87e4aa498a04262721ad8e42c81975e8a854e6d4e976cc",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "당사의 개인정보 보호 관행에 대한 자세한 내용은 <privacyLink>개인정보 처리방침</privacyLink>을 확인해 주십시오.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-16T19-33-20Z",
+        "approvedAt": "2026-10-16T19:33:20.318Z",
         "approvedBy": "agent"
       }
     ],
@@ -286,8 +320,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "Uniswap v2",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -303,8 +337,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "Uniswap v3",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -320,8 +354,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "Uniswap v4",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -339,6 +373,274 @@
         "status": "clean",
         "agentRunId": "ko-KR-2026-09-18T15-34-03Z",
         "approvedAt": "2026-09-18T15:34:03.340Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:disclosures.autoRouter",
+      {
+        "unitId": "disclosures.autoRouter",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "1769525d3c38507cb4b1bdc3cb4a598af59b2e5d1a004c2bcb302a769bf8b857",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "자동 라우터(Auto Router)는 제품이 적격 통합 전반에 걸쳐 디지털 자산 트랜잭션의 잠재적 경로를 분석하기 위해 사용하는 트랜잭션 경로 알고리즘으로, 공개된 객관적 라우팅 매개변수에 따른 시뮬레이션 실행을 기반으로 해당 시점에 가장 많은 수의 디지털 자산을 받을 것으로 추정되는 트랜잭션 경로에 대한 정보를 사용자에게 제공합니다.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-15T22-12-03Z",
+        "approvedAt": "2026-10-15T22:12:03.777Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:disclosures.autoRouterParameters",
+      {
+        "unitId": "disclosures.autoRouterParameters",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "aeb91f7c1ff41c721069194cc98de27e3bfaeca2025f1b791b5c01a955b18f35",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "다음 매개변수는 제품의 라우팅 소프트웨어(\"자동 라우터\")에 하드코딩되어 있습니다: (i) 시뮬레이션을 통한 gas 비용 추정(네트워크 수수료가 높은 경로의 우선순위를 낮출 수 있음), (ii) 시뮬레이션을 통한 슬리피지 추정(사용자가 지정한 최대 슬리피지 금액 또는 그보다 나은 조건을 충족하지 못하는 트랜잭션은 되돌려짐), (iii) 유동성 소스 전반의 총 예치 가치로 측정되는 풀 유동성(지정된 임계값 미만의 풀은 우선순위가 낮아지거나 제외됨), (iv) 여러 유동성 소스에 스왑을 분할하면 더 나은 가격이 나올 수 있는지 라우터가 평가할 수 있도록 사용자의 스왑을 \"분할\"할 수 있는 최대 횟수, (v) 사용자가 원하는 출력 토큰을 받는 것으로 끝나는 디지털 자산 변환의 잠재적 순서를 의미하는 \"홉\"의 최대 수, (vi) 자동 라우터 알고리즘이 제안 경로를 생성할 때 평가하는 잠재적 라우팅 경로의 최대 수. 자동 라우터는 비정상적으로 높은 LP 수수료로 인한 예기치 않은 가격 영향으로부터 사용자를 보호하기 위한 조치로 수수료가 11%를 초과하는 풀은 탐색하지 않습니다. 이러한 라우팅 소프트웨어 매개변수는 사용자가 구성할 수 있는 트랜잭션 수준 기본 매개변수가 아닙니다. 제품의 라우팅 소프트웨어는 이러한 라우팅 매개변수를 일률적으로 적용하며, 코드는 <uniRouteLink>여기</uniRouteLink>에서 확인할 수 있습니다.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-15T22-12-03Z",
+        "approvedAt": "2026-10-15T22:12:03.777Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:disclosures.customization",
+      {
+        "unitId": "disclosures.customization",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "62979328997006241effade715257423f44996c1f2899ab5f7e15b31851362ab",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "트랜잭션 수준 기본 매개변수는 제품 사용자가 완전히 사용자 지정할 수 있습니다. 이러한 매개변수를 변경하면 거래에 대한 추가 경로가 표시될 수 있습니다. 기본 매개변수를 변경하는 방법에 대한 자세한 내용은 <slippageLink>Uniswap 웹 앱에서 슬리피지를 변경하는 방법</slippageLink>, <swapDeadlinesLink>Uniswap 인터페이스에서 스왑 기한을 변경하는 방법</swapDeadlinesLink> 및 <tradeOptionsLink>기본 거래 옵션을 변경하는 방법</tradeOptionsLink>을 참조하십시오. Uniswap Labs은 기본 매개변수에 관한 내부 정책과 절차를 유지하며, 해당 정책 및 절차 준수를 보장하기 위해 기본 매개변수를 주기적으로 재평가합니다. Uniswap Labs은 기본 매개변수로 인해 Uniswap Labs과 제품 사용자 간에 발생하는 중대한 이해 상충을 알지 못합니다. Uniswap Labs은 라우팅 분석 포함에 대해 어떠한 유동성 소스로부터도 보상을 받지 않습니다. 제3자 통합에 대한 생태계 지원, 마켓 메이커 지원(대출 또는 인센티브 프로그램 등), API 액세스, 공동 마케팅을 포함한 사업 개발 활동은 라우팅 분석과 별개이며 이에 영향을 미치지 않습니다.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-15T22-12-03Z",
+        "approvedAt": "2026-10-15T22:12:03.777Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:disclosures.defaultParameters",
+      {
+        "unitId": "disclosures.defaultParameters",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "6384103f15d7e3393252e304756e6c94b8f8a5a33326c3024bae82defe2771a2",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "현재 제품에는 다음과 같은 트랜잭션 수준 기본 매개변수가 적용되고 있습니다: 슬리피지 허용치, 스왑 기한, 적격 풀 및 거래 장소 또는 분산원장 거래 시스템, 우선 수수료. 기본 매개변수는 수시로 변경될 수 있습니다. 기본 매개변수는 객관적 기준을 참조하여 설정되며 일반적으로 사용자의 위험을 줄이도록 구성됩니다.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-15T22-12-03Z",
+        "approvedAt": "2026-10-15T22:12:03.777Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:disclosures.feeCalculation",
+      {
+        "unitId": "disclosures.feeCalculation",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "40c78c254e0b59dd6e93159cc60e13ee83bd2cf876440febf93320a598fb304c",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "제품은 객관적이고 일률적으로 적용되는 알고리즘을 사용하여 각 트랜잭션에 대해 자동 계산된 Gas 수수료와 우선 수수료를 제시합니다. 이러한 알고리즘 계산은 트랜잭션 속도와 지불하는 수수료 간의 균형을 맞추도록 설계되었습니다.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-15T22-12-03Z",
+        "approvedAt": "2026-10-15T22:12:03.777Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:disclosures.gasFees",
+      {
+        "unitId": "disclosures.gasFees",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "537acd8dfac10d9eec9e024bf4664b063e4804e4664d00d5daaf21d3bcf9e4f6",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "Gas 수수료는 각 트랜잭션에 대해 블록체인 검증자에게 지급되며, 모든 해당 블록체인 네트워크에서 요구됩니다. 사용자는 각 네트워크의 요구에 따라 모든 트랜잭션에 대해 Gas 수수료를 지불해야 합니다.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-15T22-12-03Z",
+        "approvedAt": "2026-10-15T22:12:03.777Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:disclosures.gasLimit",
+      {
+        "unitId": "disclosures.gasLimit",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "e2996676536051b909f7239dab48bda7c4273c64c13fd6d22569c6e1f196def1",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "Gas 한도는 사용자의 트랜잭션이 소비할 수 있는 Gas의 최대 단위입니다.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-15T22-12-03Z",
+        "approvedAt": "2026-10-15T22:12:03.777Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:disclosures.integrations",
+      {
+        "unitId": "disclosures.integrations",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "0eae2dac9b2b0532da6271502d9dfedc5863c5cff281fa85a4f38949d44fbe43",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "제품은 다음 거래 장소 또는 분산원장 거래 시스템과 통합되어 있습니다: UniswapX, Uniswap 프로토콜(v4, v3, v2), Tempo, Jupiter(통칭 \"통합\"). Uniswap Labs은 통합에 관한 내부 정책과 절차를 유지하며, 여기에는 통합 및 제안된 통합을 평가, 온보딩, 감사하는 통제가 포함됩니다. 해당 정책 및 절차에 따라 통합은 유동성, 보안, 투명성, 검증 가능성, 중립성, 감사 가능성, 지연 시간을 포함한 객관적 기준에 따라 평가됩니다. 통합은 수시로 변경될 수 있습니다. 새로운 유동성 소스가 제품에 통합되기 전에 이러한 기준에 따라 평가되어야 합니다. Uniswap 프로토콜(v4, v3, v2) 및 UniswapX를 포함한 모든 통합 유동성 소스는 계속 포함할지 또는 제거할지를 결정하기 위해 주기적으로 재평가됩니다. 유동성 소스의 위험 프로필에 중대한 변화가 있는 경우에도 재평가가 실시됩니다. 보안 문제가 발생하면 다음 주기적 재평가를 기다리지 않고 유동성 소스를 라우팅 계산에서 즉시 제거할 수 있습니다.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-15T22-12-03Z",
+        "approvedAt": "2026-10-15T22:12:03.777Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:disclosures.liquiditySources",
+      {
+        "unitId": "disclosures.liquiditySources",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "416f99fc4657215fea96c3ac83bf83227def10efe5a873ea9c6802607dc6d174",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "제품을 통해 액세스할 수 있는 유동성 소스와 이를 평가하는 데 사용되는 기준에 대한 자세한 내용은 <tradeOptionsLink>기본 거래 옵션을 변경하는 방법</tradeOptionsLink>을 참조하십시오.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-15T22-12-03Z",
+        "approvedAt": "2026-10-15T22:12:03.777Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:disclosures.maxBaseFee",
+      {
+        "unitId": "disclosures.maxBaseFee",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "f3c3237a31031b1b4c4fae6f63b8a4406d6efa21087f5ce1348f569204603681",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "최대 기본 수수료는 사용자가 지불할 의사가 있는 gas 단위당 최고 기본 수수료입니다. 기본 수수료는 블록마다 네트워크에서 설정합니다.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-15T22-12-03Z",
+        "approvedAt": "2026-10-15T22:12:03.777Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:disclosures.priorityFees",
+      {
+        "unitId": "disclosures.priorityFees",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "ffef081c895ce81ee27feb4dfbfa63d9a91f9850c6a66727de0c4b8a84fde1b9",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "우선 수수료는 해당되는 경우 트랜잭션을 더 빠르게 처리하기 위해 사용자가 검증자에게 지불할 수 있는 선택적 수수료입니다.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-15T22-12-03Z",
+        "approvedAt": "2026-10-15T22:12:03.777Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:disclosures.products",
+      {
+        "unitId": "disclosures.products",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "76f70bc50491b1d2da127941c761d2bdeaac620c5f29f5ca37444147c5b46389",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "Uniswap Labs은 (a) <appLink>app.uniswap.org</appLink>에 있는 웹사이트 호스팅 사용자 인터페이스(\"인터페이스\"), (b) 모바일 지갑 애플리케이션(\"Uniswap Wallet\"), (c) 사용자가 자체 수탁 지갑을 사용하여 퍼블릭 블록체인에서 트랜잭션을 준비하고 제출할 수 있도록 하는 API 및 기타 제품과 서비스(통칭 \"제품\")를 만들고 운영합니다. Uniswap Labs은 의심되는 사고를 신속히 조사하고 직원 자격 증명 및 기타 보안 조치를 통해 승인되지 않은 액세스를 방지하는 것을 포함하여 제품의 보안을 보호하기 위한 내부 절차를 유지합니다. Uniswap Labs은 각각 퍼블릭 블록체인에 배포된 자율적인 오픈소스 스마트 컨트랙트 집합인 Uniswap 프로토콜(v4, v3, v2) 및 UniswapX의 개발에 기여하지만, Uniswap 프로토콜(v4, v3, v2) 또는 UniswapX를 소유, 통제 또는 운영하지 않습니다. Uniswap Labs은 브로커-딜러가 아니며 제품의 생성, 제공 또는 운영과 관련하여 미국 증권거래위원회에 등록되어 있거나 그 규제를 받지 않습니다. 일부 자산은 제품에서 제공되지 않을 수 있으며, 일부 자산은 특정 관할권에서 제공되지 않을 수 있습니다. 자세한 내용은 <unsupportedTokenPolicyLink>미지원 토큰 정책</unsupportedTokenPolicyLink>을 참조하십시오.",
+        "status": "finalized",
+        "judgeIssues": [
+          {
+            "category": "fluency",
+            "severity": "minor",
+            "detail": "Particle inconsistency within the run: this string uses 'Uniswap Labs는' while i=900/905 and shipped strings use 'Uniswap Labs은'; it also uses the phonetically wrong 'UniswapX을' where i=905 uses 'UniswapX를'. Inconsistent/incorrect post-positional particles on brand names in a legal disclosure read as unedited.",
+            "evidence": {
+              "sourceSpan": "Uniswap Labs ... UniswapX",
+              "targetSpan": "Uniswap Labs는 ... UniswapX을",
+              "rule": "shipped: 'Uniswap Labs은 이 수수료를 일절 받지 않습니다'"
+            },
+            "alternative": "Uniswap Labs은 ... UniswapX를"
+          }
+        ],
+        "agentRunId": "ko-KR-2026-10-15T22-12-03Z",
+        "approvedAt": "2026-10-15T22:12:03.777Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:disclosures.routing",
+      {
+        "unitId": "disclosures.routing",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "8cb99ca1a941d16151b298eb5e476d4271bc551d192b817a5213d9dd04b92979",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "사용자의 트랜잭션을 준비할 때 제품의 라우팅 소프트웨어는 통합에서 트랜잭션의 잠재적 경로를 분석하고, 시뮬레이션 실행 결과를 기반으로 해당 시점에 가장 많은 수의 디지털 자산을 받을 것으로 추정되는 트랜잭션 경로에 대한 정보를 사용자에게 제공합니다. 이를 위해 제품은 기본적으로 통합 전반에서 사용 가능한 유동성 소스를 고려합니다. 사용자는 기본 구성을 조정하고 제품의 라우팅 소프트웨어가 고려할 유동성 소스를 전환할 수 있는 완전한 재량권을 보유합니다. 제품이 고려하는 유동성 소스를 변경하면 거래에 대한 추가 경로가 표시될 수 있습니다.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-15T22-12-03Z",
+        "approvedAt": "2026-10-15T22:12:03.777Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:disclosures.slippage",
+      {
+        "unitId": "disclosures.slippage",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "1f3379ed1d4df8d857eb8c4b099890188f9c71ca13bc2c9f933de0e37014de4c",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "슬리피지는 스왑이 제출된 시점의 예상 가격과 스왑이 온체인에서 실행될 때의 실제 체결 가격 간의 차이입니다. 슬리피지는 일반적인 가격 변동, 가용 유동성의 변화, 네트워크 지연 및 혼잡, 또는 사용자 스왑의 시장 영향으로 인해 발생할 수 있습니다. 슬리피지는 거래에 내재된 위험입니다. 슬리피지 허용치를 너무 높게 설정하면 사용자가 거래에서 기대한 가치를 받지 못하거나 거래 가치를 다른 당사자가 가져갈 수 있습니다. 반대로 슬리피지 허용치를 너무 낮게 설정하면 거래를 실행하지 못할 수 있습니다. 제품은 일률적으로 적용되는 알고리즘을 사용하여 자동 계산된 최대 슬리피지 허용치를 제시하며, 이는 선택한 네트워크와 스왑 규모 등의 요인에 따라 일반적으로 약 0.5%~5.5% 범위입니다.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-15T22-12-03Z",
+        "approvedAt": "2026-10-15T22:12:03.777Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:disclosures.swapDeadline",
+      {
+        "unitId": "disclosures.swapDeadline",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "05679769a825cb1b067e25c3b12d9dfa5db5e336a897e9ea58e2d754819f3670",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "스왑 기한은 스왑이 되돌려지기 전에 온체인에서 대기 상태로 유지될 수 있는 시간입니다. 제품은 30분의 기본 트랜잭션 기한을 적용하며, 이는 제출 후 30분이 지나도록 실행되지 않은 스왑은 되돌려진다는 의미입니다. 이는 의도하지 않은 큰 가격 변동으로부터 사용자를 추가로 보호하기 위한 것입니다.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-15T22-12-03Z",
+        "approvedAt": "2026-10-15T22:12:03.777Z",
         "approvedBy": "agent"
       }
     ],
@@ -377,6 +679,23 @@
       }
     ],
     [
+      "ko-KR:i18next-json:explore.collections.volume1d",
+      {
+        "unitId": "explore.collections.volume1d",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "eb34a9fef3662ca5eae07f6d83baf6128d3823051b6ffed5591e27b8dcd52448",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "{{volume}} 1일 거래량",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-26T18-33-23Z",
+        "approvedAt": "2026-10-26T18:33:23.720Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "ko-KR:i18next-json:explore.earn.apy",
       {
         "unitId": "explore.earn.apy",
@@ -388,8 +707,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "{{apy}} APY",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -405,8 +724,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "Earn",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -422,8 +741,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "{{apy}} APY",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -439,8 +758,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "v2 TVL",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -456,8 +775,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "v3 TVL",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -473,8 +792,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "v4 TVL",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -490,8 +809,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "Venmo",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -507,8 +826,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "API",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -558,8 +877,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "APR",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -1199,8 +1518,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "PnL {{value}} ({{pct}})",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -1313,13 +1632,25 @@
         "providerId": "i18next-json",
         "locale": "ko-KR",
         "domain": "product-ui",
-        "sourceHash": "a62a7c03d828b67d0cfafe4ec99e0d1999f4e8961c6ff07ae1960e76ec2a0acf",
+        "sourceHash": "2649e082d9a2ba377ac918877028c3f1885e2e9ab926b216943aaf06064b92a1",
         "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
-        "translation": "새 진입",
-        "status": "clean",
-        "agentRunId": "ko-KR-2026-10-13T21-25-54Z",
-        "approvedAt": "2026-10-13T21:25:54.346Z",
+        "translation": "진입",
+        "status": "finalized",
+        "judgeIssues": [
+          {
+            "category": "accuracy",
+            "severity": "major",
+            "detail": "Source is the bare chart label 'Entry', but the translation adds '새' (new), turning it into 'new entry'. This conflates the position's actual entry line with the order-preview line and contradicts the run's own renderings ('Entry ({{leverage}}) → 진입 ({{leverage}})', 'Mark / Entry price → 마크/진입 가격').",
+            "evidence": {
+              "sourceSpan": "Entry",
+              "targetSpan": "새 진입"
+            },
+            "alternative": "진입"
+          }
+        ],
+        "agentRunId": "ko-KR-2026-10-24T23-30-02Z",
+        "approvedAt": "2026-10-24T23:30:02.096Z",
         "approvedBy": "agent"
       }
     ],
@@ -1371,6 +1702,74 @@
         "status": "clean",
         "agentRunId": "ko-KR-2026-10-13T21-25-54Z",
         "approvedAt": "2026-10-13T21:25:54.346Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.chart.ohlc.close",
+      {
+        "unitId": "margin.chart.ohlc.close",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "6b23c0d5f35d1b11f9b683f0b0a617355deb11277d91ae091d399c655b87940d",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "C",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.chart.ohlc.high",
+      {
+        "unitId": "margin.chart.ohlc.high",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "44bd7ae60f478fae1061e11a7739f4b94d1daf917982d33b6fc8a01a63f89c21",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "H",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.chart.ohlc.low",
+      {
+        "unitId": "margin.chart.ohlc.low",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "72dfcfb0c470ac255cde83fb8fe38de8a128188e03ea5ba5b2a93adbea1062fa",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "L",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.chart.ohlc.open",
+      {
+        "unitId": "margin.chart.ohlc.open",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "c4694f2e93d5c4e7d51f9c5deb75e6cc8be5e1114178c6a45b6fc2c566a0aa8c",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "O",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -2094,6 +2493,23 @@
       }
     ],
     [
+      "ko-KR:i18next-json:margin.error.adjust.fundingSwapUnsupported",
+      {
+        "unitId": "margin.error.adjust.fundingSwapUnsupported",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "4b2841f9abbf331c34f5f1c9b11dc5ab21b367596bf3cb3b58d3223f1ddc8e33",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "이 작업은 포지션의 담보 토큰으로, 포지션이 속한 네트워크에서만 가능합니다.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "ko-KR:i18next-json:margin.error.adjust.healthFloor",
       {
         "unitId": "margin.error.adjust.healthFloor",
@@ -2475,6 +2891,40 @@
         "status": "clean",
         "agentRunId": "ko-KR-2026-10-13T21-25-54Z",
         "approvedAt": "2026-10-13T21:25:54.346Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.leverage.decrease",
+      {
+        "unitId": "margin.leverage.decrease",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "a1a4f24aad89fe7c7c419c46458dc108c59dd2f804d5887e24c604000e048378",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "레버리지 낮추기",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-24T23-30-02Z",
+        "approvedAt": "2026-10-24T23:30:02.096Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.leverage.increase",
+      {
+        "unitId": "margin.leverage.increase",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "a9d8c8a3b24b084830d7162805a1e5d8f5a418bb1101b7628ae3f49b2fa9d0db",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "레버리지 높이기",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-24T23-30-02Z",
+        "approvedAt": "2026-10-24T23:30:02.096Z",
         "approvedBy": "agent"
       }
     ],
@@ -2898,8 +3348,59 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "{{venue}} · {{lltv}}% LLTV",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.mobile.connectToViewPositions",
+      {
+        "unitId": "margin.mobile.connectToViewPositions",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "d472c68a3ca2ced681cd14221ccb4571894f98390163e0533e29e004a1e1e8b9",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "포지션을 확인하려면 지갑을 연결하세요",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.mobile.modify",
+      {
+        "unitId": "margin.mobile.modify",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "d94eaf69438863a8d5ef755e74e6840048386eefbf0e34f39004d2e9c9157778",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "수정",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.mobile.viewChart",
+      {
+        "unitId": "margin.mobile.viewChart",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "3486e01bb8ba84ffca94bd81040b53654a09e138ba6c2d61106242bf90951ec4",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "차트 보기",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -2927,13 +3428,13 @@
         "providerId": "i18next-json",
         "locale": "ko-KR",
         "domain": "product-ui",
-        "sourceHash": "422bda9e9fd6f308e8c3be5c7d26cc3bff32ebc70f67438879fdcef6034d91f2",
+        "sourceHash": "2bf63d817630601b992694bc0b0559715001b9a24e7fe0d741eea02dce9181af",
         "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
-        "translation": "지불",
+        "translation": "마진",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-13T21-25-54Z",
-        "approvedAt": "2026-10-13T21:25:54.346Z",
+        "agentRunId": "ko-KR-2026-10-24T23-30-02Z",
+        "approvedAt": "2026-10-24T23:30:02.096Z",
         "approvedBy": "agent"
       }
     ],
@@ -3489,6 +3990,23 @@
       }
     ],
     [
+      "ko-KR:i18next-json:margin.plan.step.addMargin",
+      {
+        "unitId": "margin.plan.step.addMargin",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "4c063442e7c458cbf337ecb992c6d384ffaf179f1fe6cffe066c455f78418238",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "마진 입금",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "ko-KR:i18next-json:margin.plan.step.adjust",
       {
         "unitId": "margin.plan.step.adjust",
@@ -3570,6 +4088,40 @@
         "status": "clean",
         "agentRunId": "ko-KR-2026-10-13T21-25-54Z",
         "approvedAt": "2026-10-13T21:25:54.346Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.plan.step.decreasePosition",
+      {
+        "unitId": "margin.plan.step.decreasePosition",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "38d398cccf9a73a5b8f7b42922bc5e4084a94ef8e142504cb6f48e64fd48165d",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "포지션 축소",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.plan.step.increasePosition",
+      {
+        "unitId": "margin.plan.step.increasePosition",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "b75aeacb0c6e8fd29444209d44ccdf5f7725da2e53c7e2b60ffe8eeed8d18a3d",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "포지션 확대",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -3693,6 +4245,40 @@
       }
     ],
     [
+      "ko-KR:i18next-json:margin.plan.step.withdrawMargin",
+      {
+        "unitId": "margin.plan.step.withdrawMargin",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "60d12f6076b55cc73143950576072e9cc906901d931e5a9e16ca64d9a43f69ed",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "마진 출금",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.plan.title.addMargin",
+      {
+        "unitId": "margin.plan.title.addMargin",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "ad88b36d369b30e7de96515696df8f83d2f815e575f43b944d9d48a40f4f75a8",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "마진 추가",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "ko-KR:i18next-json:margin.plan.title.adjust",
       {
         "unitId": "margin.plan.title.adjust",
@@ -3727,6 +4313,40 @@
       }
     ],
     [
+      "ko-KR:i18next-json:margin.plan.title.decreaseLeverage",
+      {
+        "unitId": "margin.plan.title.decreaseLeverage",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "a1a4f24aad89fe7c7c419c46458dc108c59dd2f804d5887e24c604000e048378",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "레버리지 낮추기",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.plan.title.increaseLeverage",
+      {
+        "unitId": "margin.plan.title.increaseLeverage",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "a9d8c8a3b24b084830d7162805a1e5d8f5a418bb1101b7628ae3f49b2fa9d0db",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "레버리지 높이기",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "ko-KR:i18next-json:margin.plan.title.open",
       {
         "unitId": "margin.plan.title.open",
@@ -3740,6 +4360,23 @@
         "status": "clean",
         "agentRunId": "ko-KR-2026-10-13T21-25-54Z",
         "approvedAt": "2026-10-13T21:25:54.346Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.plan.title.withdrawMargin",
+      {
+        "unitId": "margin.plan.title.withdrawMargin",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "60d12f6076b55cc73143950576072e9cc906901d931e5a9e16ca64d9a43f69ed",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "마진 출금",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -4341,8 +4978,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "RoE",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-26T18-33-23Z",
+        "approvedAt": "2026-10-26T18:33:23.720Z",
         "approvedBy": "agent"
       }
     ],
@@ -4358,8 +4995,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "PnL",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-26T18-33-23Z",
+        "approvedAt": "2026-10-26T18:33:23.720Z",
         "approvedBy": "agent"
       }
     ],
@@ -4423,6 +5060,188 @@
         ],
         "agentRunId": "ko-KR-2026-10-13T21-25-54Z",
         "approvedAt": "2026-10-13T21:25:54.346Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.receipt.borrowRateTooltip",
+      {
+        "unitId": "margin.receipt.borrowRateTooltip",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "e2ea8d8789d17d5b0adeaa6db92e04ad3f27dee46b7f40daec481cf83548230a",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "{{venue}} 차입 금리: {{rate}}",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-24T23-30-02Z",
+        "approvedAt": "2026-10-24T23:30:02.096Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.receipt.breakEven",
+      {
+        "unitId": "margin.receipt.breakEven",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "b46ea9b709326282887aec506be8fe0872fa58c3b16c0ff7de283c2aa3fec11a",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "손익분기점",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-24T23-30-02Z",
+        "approvedAt": "2026-10-24T23:30:02.096Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.receipt.breakEvenTooltip",
+      {
+        "unitId": "margin.receipt.breakEvenTooltip",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "e053a4d04ddc48237602d3cea3891126baee981f9aa8f25eb019aee604d7be30",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "진입 스프레드를 종료 시 다시 지불한다고 가정할 때, 포지션을 종료하면 마진을 돌려받을 수 있는 예상 가격입니다.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-24T23-30-02Z",
+        "approvedAt": "2026-10-24T23:30:02.096Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.receipt.liquidationPrice",
+      {
+        "unitId": "margin.receipt.liquidationPrice",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "1da7d9f5dd676995729dfc20cfe80f58494b85f8ecb39106186c7a70ab075ebd",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "청산 가격",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-24T23-30-02Z",
+        "approvedAt": "2026-10-24T23:30:02.096Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.receipt.liquidationPriceTooltip",
+      {
+        "unitId": "margin.receipt.liquidationPriceTooltip",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "5aaba78459d8a02e1f8d85b3a8e529a14e185e9c123f0b80f32b95ad7139c1ea",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "오라클 가격이 이 수준에 도달하면 포지션이 청산될 수 있습니다.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-24T23-30-02Z",
+        "approvedAt": "2026-10-24T23:30:02.096Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.receipt.market",
+      {
+        "unitId": "margin.receipt.market",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "5238d9bd03d543e62fff76cbea6a2392a95f42110e36c282e4c919991f607daf",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "시장",
+        "status": "finalized",
+        "judgeIssues": [
+          {
+            "category": "accuracy",
+            "severity": "major",
+            "detail": "Wrong sense: this 'Market' is the detail-row label for the lending market the position borrows from (see its tooltip i=1726 '이 포지션이 차입하는 대출 시장…'). '시장가' means 'market price', so the label contradicts its own tooltip and could make users read a venue name as a price.",
+            "evidence": {
+              "sourceSpan": "Market",
+              "targetSpan": "시장가"
+            },
+            "alternative": "시장"
+          }
+        ],
+        "agentRunId": "ko-KR-2026-10-24T23-30-02Z",
+        "approvedAt": "2026-10-24T23:30:02.096Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.receipt.marketTooltip",
+      {
+        "unitId": "margin.receipt.marketTooltip",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "f00d203d2ad28e22060b8880ebcb94d1b08bb4aa871f851168cb607a375e8bd7",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "이 포지션이 차입하는 대출 시장과 현재 금리 및 예상 일일 비용입니다.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-24T23-30-02Z",
+        "approvedAt": "2026-10-24T23:30:02.096Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.receipt.oraclePrice",
+      {
+        "unitId": "margin.receipt.oraclePrice",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "7015815cf171bee33d8be86956702f6cdf9491a15c8dc7cc09375cb7fe970e66",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "오라클 가격: {{price}}",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-24T23-30-02Z",
+        "approvedAt": "2026-10-24T23:30:02.096Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.receipt.perDay",
+      {
+        "unitId": "margin.receipt.perDay",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "26f9fa3e71eef433159d9f7e76d35addc578dfe20bae57ed4b9ac71df74bcbb9",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "{{amount}}/일",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-24T23-30-02Z",
+        "approvedAt": "2026-10-24T23:30:02.096Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.receipt.swapping",
+      {
+        "unitId": "margin.receipt.swapping",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "7664ffeafd9108e9c4f233646e56938060d94d486de7fa15c77b9584d78e301b",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "스왑 중",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-24T23-30-02Z",
+        "approvedAt": "2026-10-24T23:30:02.096Z",
         "approvedBy": "agent"
       }
     ],
@@ -4670,6 +5489,74 @@
       }
     ],
     [
+      "ko-KR:i18next-json:margin.selector.assetFilter.anyLong",
+      {
+        "unitId": "margin.selector.assetFilter.anyLong",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "89b8b9d906a30137e197d081227f018a1c4bb270cf8bca9293169d1bf55cc13c",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "모든 롱 자산",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.selector.assetFilter.anyShort",
+      {
+        "unitId": "margin.selector.assetFilter.anyShort",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "cf5c388c57503069f57c62aa2e2cb6cda6dd132ba9e489ad1ad15a0fa569de79",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "모든 숏 자산",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.selector.assetFilter.long",
+      {
+        "unitId": "margin.selector.assetFilter.long",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "d3afc4cdb09f70dd2c8feaa677555c1446eb8a5694460b585c57f2575b2ff22d",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "롱 자산",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.selector.assetFilter.short",
+      {
+        "unitId": "margin.selector.assetFilter.short",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "3cd07d18af528e7726c0a79ce6edd5f39107af3f1dde0f468b7351530957c7ca",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "숏 자산",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "ko-KR:i18next-json:margin.selector.borrowRateValue",
       {
         "unitId": "margin.selector.borrowRateValue",
@@ -4728,6 +5615,40 @@
       }
     ],
     [
+      "ko-KR:i18next-json:margin.selector.columnChange24h",
+      {
+        "unitId": "margin.selector.columnChange24h",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "0b509e6d4c97d169f054897e72a9d70905e12c89ef711215e5f1f66f529a719d",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "24시간",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.selector.columnMarkPrice",
+      {
+        "unitId": "margin.selector.columnMarkPrice",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "18f80225d5a4ab19d1f0c922d3fc7f56f8f2fa956c4325e637fcd41177c2055b",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "마크 가격",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "ko-KR:i18next-json:margin.selector.columnMarket",
       {
         "unitId": "margin.selector.columnMarket",
@@ -4763,13 +5684,30 @@
         "providerId": "i18next-json",
         "locale": "ko-KR",
         "domain": "product-ui",
-        "sourceHash": "01675ccf3f3fc19d24ca2c338d90277b48d5511d3c10e507bf9ce4d118d1003b",
+        "sourceHash": "36200a12fc166f013e1d0af0cf1b88a4224c4e804213b2f3b7276142c75848d1",
         "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "최대 레버.",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-13T21-25-54Z",
-        "approvedAt": "2026-10-13T21:25:54.346Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.selector.columnPair",
+      {
+        "unitId": "margin.selector.columnPair",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "989da04b0aaaa57f9d4e0178cf5178cce8e1c8d44f4efe9af946599ce2a84f27",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "페어",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -4787,6 +5725,40 @@
         "status": "clean",
         "agentRunId": "ko-KR-2026-10-13T21-25-54Z",
         "approvedAt": "2026-10-13T21:25:54.346Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.selector.debtFilter.any",
+      {
+        "unitId": "margin.selector.debtFilter.any",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "2a5d47d466ea761711f6875c10e46a2f6c95355e49c0466810dcb4b014ffa054",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "모든 부채 자산",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.selector.debtFilter.label",
+      {
+        "unitId": "margin.selector.debtFilter.label",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "dba87937151e21417c2523672c394be7fd3cfd2fabb4350d7dc5a58734012cad",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "부채 자산",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -4859,19 +5831,50 @@
       }
     ],
     [
+      "ko-KR:i18next-json:margin.selector.searchPlaceholder",
+      {
+        "unitId": "margin.selector.searchPlaceholder",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "7d59556565c19b9023ebafc7e6335999a4c8f97765628601b966e9cbd48fd0bd",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "토큰 또는 페어 검색",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "ko-KR:i18next-json:margin.selector.title",
       {
         "unitId": "margin.selector.title",
         "providerId": "i18next-json",
         "locale": "ko-KR",
         "domain": "product-ui",
-        "sourceHash": "67f63ac3a864ef1ce8314508913935437260b824515eea52fbee46306f5fb335",
+        "sourceHash": "17eaf85e89a6b92a8b1111ae760444403973a7d6ad219eea4f8be4f7ae1ed958",
         "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
-        "translation": "시장 선택",
-        "status": "clean",
-        "agentRunId": "ko-KR-2026-10-13T21-25-54Z",
-        "approvedAt": "2026-10-13T21:25:54.346Z",
+        "translation": "페어 선택",
+        "status": "finalized",
+        "judgeIssues": [
+          {
+            "category": "terminology",
+            "severity": "major",
+            "detail": "'pair' is rendered as '시장' (market) while the glossary mandates 'pair → 페어' and the sibling string in this slice (i=1702 '토큰 또는 페어 검색') and i=1696 ('Pair → 페어') use 페어 — an intra-slice term collision. '시장 선택' also loses the pair-selection meaning in a trading UI.",
+            "evidence": {
+              "rule": "pair → 페어",
+              "sourceSpan": "Select a pair",
+              "targetSpan": "시장 선택"
+            },
+            "alternative": "페어 선택",
+            "reviewDimension": "term-type-agreement"
+          }
+        ],
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -5066,6 +6069,74 @@
         "status": "clean",
         "agentRunId": "ko-KR-2026-10-13T21-25-54Z",
         "approvedAt": "2026-10-13T21:25:54.346Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.stats.label.high24h",
+      {
+        "unitId": "margin.stats.label.high24h",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "30c6a2350ec786d18b63af6b687c855867f04cfde8eed94841dceb1a16c4690f",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "24시간 최고가",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-24T23-30-02Z",
+        "approvedAt": "2026-10-24T23:30:02.096Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.stats.label.liquidity",
+      {
+        "unitId": "margin.stats.label.liquidity",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "04864c05049e9d2e7a2ed9d58db8c07dbbfde8eb2f2b20406554fbff867bd17b",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "유동성",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-24T23-30-02Z",
+        "approvedAt": "2026-10-24T23:30:02.096Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.stats.label.low24h",
+      {
+        "unitId": "margin.stats.label.low24h",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "2f0807750c5f593ad34c3c0f452f4f260eb11982d22c5a0668314905cdcdc42e",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "24시간 최저가",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-24T23-30-02Z",
+        "approvedAt": "2026-10-24T23:30:02.096Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.stats.label.mark",
+      {
+        "unitId": "margin.stats.label.mark",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "d7cda0ca2c8586e512c425368fcb2bba62e81475bfceb4284f4906de8ec242bc",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "마크",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-24T23-30-02Z",
+        "approvedAt": "2026-10-24T23:30:02.096Z",
         "approvedBy": "agent"
       }
     ],
@@ -5434,6 +6505,23 @@
       }
     ],
     [
+      "ko-KR:i18next-json:margin.table.markEntry",
+      {
+        "unitId": "margin.table.markEntry",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "c5bf8ffb56c7e547c417d206a62c4a1127edd04e5fde7d0915334bfa3ea2f7e9",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "마크/진입 가격",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-24T23-30-02Z",
+        "approvedAt": "2026-10-24T23:30:02.096Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "ko-KR:i18next-json:margin.table.opening",
       {
         "unitId": "margin.table.opening",
@@ -5485,6 +6573,23 @@
       }
     ],
     [
+      "ko-KR:i18next-json:margin.table.pnl",
+      {
+        "unitId": "margin.table.pnl",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "348563db65d20fad0d307cfc180be9dee3a66c79dd2529de8413d64affe991a7",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "PnL",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "ko-KR:i18next-json:margin.table.pnlRoe",
       {
         "unitId": "margin.table.pnlRoe",
@@ -5496,8 +6601,25 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "PnL/RoE",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-26T18-33-23Z",
+        "approvedAt": "2026-10-26T18:33:23.720Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:margin.table.position",
+      {
+        "unitId": "margin.table.position",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "6d031af10da7a25e554bb21247f28f0e6cef77f1471175199e7fcc571964dc3d",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "포지션",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-24T23-30-02Z",
+        "approvedAt": "2026-10-24T23:30:02.096Z",
         "approvedBy": "agent"
       }
     ],
@@ -6114,6 +7236,23 @@
       }
     ],
     [
+      "ko-KR:i18next-json:network.filter.lowLiquidity",
+      {
+        "unitId": "network.filter.lowLiquidity",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "05a25d34314db561ef070b425ba6015bd5c105d2dda3c7da3082d5a742c3267f",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "낮은 유동성",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-19T20-14-08Z",
+        "approvedAt": "2026-10-19T20:14:08.543Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "ko-KR:i18next-json:notification.auction.open.failed",
       {
         "unitId": "notification.auction.open.failed",
@@ -6142,8 +7281,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "APR",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -6159,8 +7298,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "$100k – $1M",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -6176,8 +7315,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "$10M+",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -6193,8 +7332,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "<$100k",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -6233,6 +7372,40 @@
       }
     ],
     [
+      "ko-KR:i18next-json:pool.position.earned.suffix",
+      {
+        "unitId": "pool.position.earned.suffix",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "4844fdfbc864ac106bb9742de65edfbcb5257a4e7ee2d8c500b80cdafa148524",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "획득",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-21T15-24-48Z",
+        "approvedAt": "2026-10-21T15:24:48.604Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:pool.position.liquidity.suffix",
+      {
+        "unitId": "pool.position.liquidity.suffix",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "ead2523743ee17aed6605ba71358fd4820c5102cefa92b72d4574db2cddf575e",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "청산",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-21T15-24-48Z",
+        "approvedAt": "2026-10-21T15:24:48.604Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "ko-KR:i18next-json:portfolio.defi.title",
       {
         "unitId": "portfolio.defi.title",
@@ -6244,8 +7417,127 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "DeFi",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:portfolio.margin.openPositions_one",
+      {
+        "unitId": "portfolio.margin.openPositions_one",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "3567af724aa11e694537ad7d9188dac527968d2becccc1b3600799766cf47cbe",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "열린 마진 포지션 {{count}}개",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:portfolio.margin.openPositions_other",
+      {
+        "unitId": "portfolio.margin.openPositions_other",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "fee33176e5e816c04274ad7bf029f3bba073cdb24e3df4f18bdd73a080ab8ba1",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "열린 마진 포지션 {{count}}개",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:portfolio.margin.title",
+      {
+        "unitId": "portfolio.margin.title",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "2bf63d817630601b992694bc0b0559715001b9a24e7fe0d741eea02dce9181af",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "마진",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:position.create.v2.amountTooSmall",
+      {
+        "unitId": "position.create.v2.amountTooSmall",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "5f7144b32a93c97cde7ea14e54d6be791cb14e15bcb126a48c6d28ec35a84e74",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "금액이 너무 작아 v2 풀을 생성할 수 없습니다",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-22T21-14-23Z",
+        "approvedAt": "2026-10-22T21:14:23.115Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:position.hook.rejectsRemoval",
+      {
+        "unitId": "position.hook.rejectsRemoval",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "b8866456aee593b3cfd2bb7eb599ebd1892aa8b793cd354af883d6bd6e4ca034",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "이 풀의 후크가 현재 출금을 거부하고 있어 이 트랜잭션은 실패하게 됩니다.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-23T18-15-11Z",
+        "approvedAt": "2026-10-23T18:15:11.686Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:position.hook.removeMayFail",
+      {
+        "unitId": "position.hook.removeMayFail",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "f1a7a71cf59a4e068aa8f6d4e2253be3f3b70be46d400f0a45920ef1973de077",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "이 풀의 후크는 출금을 차단할 수 있으며, 이 트랜잭션은 시뮬레이션할 수 없었습니다. 실패할 수 있습니다.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-23T18-15-11Z",
+        "approvedAt": "2026-10-23T18:15:11.686Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:position.initialPrice.marketUpdated",
+      {
+        "unitId": "position.initialPrice.marketUpdated",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "a54fccb1b9e62fcbf3c5d1b992c9dc12bf09b76415f09564ce0adde7d922d185",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "시장 가격이 업데이트되었습니다",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-15T20-59-04Z",
+        "approvedAt": "2026-10-15T20:59:04.645Z",
         "approvedBy": "agent"
       }
     ],
@@ -6278,8 +7570,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "The Badger",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -6295,8 +7587,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "Frontrunner",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -6329,8 +7621,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "$TICKER",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -6533,8 +7825,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "Crowd Launch",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -6550,8 +7842,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "Instant Launch",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -6584,8 +7876,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "Crowd",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -6601,8 +7893,42 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "Instant",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:rhcca.position.priceUnavailable",
+      {
+        "unitId": "rhcca.position.priceUnavailable",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "abc5fecda607e617b5af85dd8280f49b97736d30dcf49ad622118c302b123465",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "현재 토큰 가격 데이터를 사용할 수 없습니다",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-20T20-08-43Z",
+        "approvedAt": "2026-10-20T20:08:43.024Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:search.results.auction.startsIn",
+      {
+        "unitId": "search.results.auction.startsIn",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "f63d3a93c65b2b7e8c6b1a29a7efe1834ae62f4887bd58edfb759de7b6b15f1c",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "{{time}} 후 시작",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-20T18-18-56Z",
+        "approvedAt": "2026-10-20T18:18:56.501Z",
         "approvedBy": "agent"
       }
     ],
@@ -6635,8 +7961,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "{{apr}} APR",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -6652,8 +7978,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "{{apy}} APY",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -6669,8 +7995,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "ENS",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -6743,6 +8069,40 @@
       }
     ],
     [
+      "ko-KR:i18next-json:settings.setting.shareDeviceIdentifiers.message",
+      {
+        "unitId": "settings.setting.shareDeviceIdentifiers.message",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "e2ba15a1a8521d2d7db3051027b805d819f8bcd2e8e7d9700b0edc9cea9b2f74",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "당사는 다른 웹사이트 및 플랫폼에서 서비스를 홍보하기 위해 광고 파트너와 기기 식별자를 공유할 수 있습니다.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-16T19-33-20Z",
+        "approvedAt": "2026-10-16T19:33:20.318Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:settings.setting.shareDeviceIdentifiers.title",
+      {
+        "unitId": "settings.setting.shareDeviceIdentifiers.title",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "ef41776a003a42bf066f2cb1cc0886b40fef5dfea0420467b3af57f131d66b59",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "기기 식별자 공유",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-16T19-33-20Z",
+        "approvedAt": "2026-10-16T19:33:20.318Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "ko-KR:i18next-json:swap.routing.guidestar.copyPool",
       {
         "unitId": "swap.routing.guidestar.copyPool",
@@ -6771,8 +8131,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "Uniswap API",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -6981,6 +8341,23 @@
       }
     ],
     [
+      "ko-KR:i18next-json:tdp.auction.startsIn",
+      {
+        "unitId": "tdp.auction.startsIn",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "5fefbb92603fab9c2557b72cf99eb3b98916bea79056b6fcbb517645a9049eea",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "시작까지",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-26T16-31-50Z",
+        "approvedAt": "2026-10-26T16:31:50.039Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "ko-KR:i18next-json:tdp.auction.statusUnavailable",
       {
         "unitId": "tdp.auction.statusUnavailable",
@@ -7011,6 +8388,23 @@
         "status": "clean",
         "agentRunId": "ko-KR-2026-09-16T16-25-33Z",
         "approvedAt": "2026-09-16T16:25:33.496Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:tdp.auction.upcoming",
+      {
+        "unitId": "tdp.auction.upcoming",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "8445cc4d09cdb97d759ec772a31f8acd64b071c54282c509bf21b897f7126568",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "예정된 경매",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-26T16-31-50Z",
+        "approvedAt": "2026-10-26T16:31:50.039Z",
         "approvedBy": "agent"
       }
     ],
@@ -7479,6 +8873,57 @@
       }
     ],
     [
+      "ko-KR:i18next-json:token.price.lowConfidence.tag",
+      {
+        "unitId": "token.price.lowConfidence.tag",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "29e142b8be7d28e49cc799fb06f36a7121919415c29811315c90594e4c4ffc60",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "낮은 신뢰도",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-21T17-35-26Z",
+        "approvedAt": "2026-10-21T17:35:26.541Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:token.price.lowConfidence.title",
+      {
+        "unitId": "token.price.lowConfidence.title",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "ef586d27ebbd87e6bfa32e637715042e8d9e8f612ea9de3124b29361e235f99d",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "낮은 가격 신뢰도",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-21T17-35-26Z",
+        "approvedAt": "2026-10-21T17:35:26.541Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:token.price.lowConfidence.tooltip",
+      {
+        "unitId": "token.price.lowConfidence.tooltip",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "2a666cdba05106c279a946878c66c546f38ddd6e4f754ea3212935e61a271a1a",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "토큰 가격은 제한적이거나 품질이 낮을 수 있는 시장 데이터를 기반으로 합니다.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-21T17-35-26Z",
+        "approvedAt": "2026-10-21T17:35:26.541Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "ko-KR:i18next-json:tokens.selector.categoryFilter.clear_one",
       {
         "unitId": "tokens.selector.categoryFilter.clear_one",
@@ -7526,6 +8971,23 @@
         "status": "clean",
         "agentRunId": "ko-KR-2026-09-23T16-11-08Z",
         "approvedAt": "2026-09-23T16:11:08.465Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:toucan.allAuctions",
+      {
+        "unitId": "toucan.allAuctions",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "a6d3fee9c816e67519ea5a4ff5371433980d102f27650c5b854c671857a6200d",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "모든 경매",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-19T14-31-57Z",
+        "approvedAt": "2026-10-19T14:31:57.650Z",
         "approvedBy": "agent"
       }
     ],
@@ -7598,6 +9060,23 @@
       }
     ],
     [
+      "ko-KR:i18next-json:toucan.auction.finalFdv",
+      {
+        "unitId": "toucan.auction.finalFdv",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "67e17d632a561ea1d2f2f936e394bfe8f9f05219f620b70d8f3e160a866c4b03",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "최종 FDV",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-21T16-44-48Z",
+        "approvedAt": "2026-10-21T16:44:48.873Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
       "ko-KR:i18next-json:toucan.auction.introBanner.auctionStartsInTime",
       {
         "unitId": "toucan.auction.introBanner.auctionStartsInTime",
@@ -7660,8 +9139,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "<value>{{fdv}}</value> FDV",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -7730,6 +9209,23 @@
         "status": "clean",
         "agentRunId": "ko-KR-2026-09-16T16-25-33Z",
         "approvedAt": "2026-09-16T16:25:33.496Z",
+        "approvedBy": "agent"
+      }
+    ],
+    [
+      "ko-KR:i18next-json:toucan.bidDetails.description.outOfRangeInProgressAwaitingThreshold",
+      {
+        "unitId": "toucan.bidDetails.description.outOfRangeInProgressAwaitingThreshold",
+        "providerId": "i18next-json",
+        "locale": "ko-KR",
+        "domain": "product-ui",
+        "sourceHash": "c9e6b4e257d95f81a7ea9c178152998f40e0db3bf41df207c687a579fa60174f",
+        "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
+        "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
+        "translation": "가격이 설정하신 최대 FDV <highlight>{{valuationSummary}}</highlight>을(를) 초과하여 이 주문의 체결이 중단되었습니다. 경매의 체결 물량이 출시 기준점인 <highlight>{{launchThreshold}}</highlight>에 도달하면 사용하지 않은 예산을 환불받을 수 있으며, 경매 종료 시 받은 토큰을 출금할 수 있습니다. 기준점에 끝내 도달하지 못하면 경매 종료 시 전체 예산을 출금할 수 있습니다.",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-20T16-08-06Z",
+        "approvedAt": "2026-10-20T16:08:06.653Z",
         "approvedBy": "agent"
       }
     ],
@@ -7813,8 +9309,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "100% → 0.3% v4 LP",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -8000,8 +9496,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "$TICKER",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -8034,8 +9530,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "Crowd Launch",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -8084,22 +9580,9 @@
         "glossaryHash": "f2d40aeb84e3afd761b18554926d9e85297f09a603c5442e9fcd5805b950a9f2",
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "Custom Auction",
-        "status": "finalized",
-        "judgeIssues": [
-          {
-            "category": "terminology",
-            "severity": "major",
-            "detail": "Launch-type product names in this run and in shipped strings are kept in English (Crowd Launch, Instant Launch, Custom Launch at i=4778, plus the sibling card titles i=4764/4771 in this very slice), but 'Custom Auction' — the same family of launch-model card titles — is translated as '커스텀 경매'. This breaks product-name consistency across the launch-type set; a user sees three English launch-model names and one Korean one in the same picker.",
-            "evidence": {
-              "rule": "Brand/term consistency; shipped 'Custom Launch' → 'Custom Launch' kept English",
-              "sourceSpan": "Custom Auction",
-              "targetSpan": "커스텀 경매"
-            },
-            "alternative": "Custom Auction"
-          }
-        ],
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "status": "clean",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -8166,8 +9649,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "Instant Launch",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -8217,8 +9700,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "Custom Launch",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -8234,8 +9717,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "Pools.trade",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -8574,8 +10057,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "<icon /> <gradient>UniswapX</gradient> <info />",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ],
@@ -8591,8 +10074,8 @@
         "styleHash": "819c37567f3a38c8164435e23c3ff0f6b5df39dd8f98a029a07f019f2e20a839",
         "translation": "yourname",
         "status": "clean",
-        "agentRunId": "ko-KR-2026-10-15T16-27-22Z",
-        "approvedAt": "2026-10-15T16:27:22.802Z",
+        "agentRunId": "ko-KR-2026-10-27T20-02-24Z",
+        "approvedAt": "2026-10-27T20:02:24.456Z",
         "approvedBy": "agent"
       }
     ]

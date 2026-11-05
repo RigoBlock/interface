@@ -1,6 +1,7 @@
 import { EventConsumer, EventMapBase } from '@react-navigation/core'
 import { isChrome, isMobileApp, isMobileWeb, isWebPlatform } from '@universe/environment'
 import {
+  Button,
   type FlexCompatProps as FlexProps,
   Flex,
   Input,
@@ -8,8 +9,11 @@ import {
   Text,
   type TextCompatProps as TextProps,
   TouchableArea,
+  AnimatedFlex,
+  imageSizes,
 } from '@universe/mycelium'
-import { AnimatedFlexCompat } from '@universe/mycelium/animated-flex-compat'
+import { CheckmarkCircle } from '@universe/mycelium/icons/CheckmarkCircle'
+import { InfoCircleFilled } from '@universe/mycelium/icons/InfoCircleFilled'
 import { Presence } from '@universe/mycelium/presence'
 import { fonts, spacing } from '@universe/mycelium/tokens'
 import { TestID } from '@universe/test'
@@ -17,12 +21,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { LayoutChangeEvent } from 'react-native'
 import { useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated'
-import { Button } from 'ui/src'
-import { CheckmarkCircle } from 'ui/src/components/icons/CheckmarkCircle'
-import { InfoCircleFilled } from 'ui/src/components/icons/InfoCircleFilled'
-import { AnimatedFlex } from 'ui/src/components/layout/AnimatedFlex'
 import { useDynamicFontSizing } from 'ui/src/hooks/useDynamicFontSizing'
-import { imageSizes } from 'ui/src/theme'
 import {
   slideFadePresenceChildProps,
   slideFadePresenceDescendantProps,
@@ -346,13 +345,7 @@ export function ClaimUnitagContent({
           )}
           <Presence childOwnsNativeAnimation>
             {showTextInputView && (
-              <AnimatedFlexCompat
-                key="input-container"
-                row
-                gap="$none"
-                {...WEB_STYLING}
-                {...inputContainerPresenceProps}
-              >
+              <AnimatedFlex key="input-container" row gap="$none" {...WEB_STYLING} {...inputContainerPresenceProps}>
                 <TextInput
                   ref={textInputRef}
                   // @ts-expect-error - field-sizing is a web CSS prop, not yet registered as a valid prop,
@@ -389,7 +382,7 @@ export function ClaimUnitagContent({
                   // field-sizing: content still controls min-width on Chrome.
                   {...(isWebPlatform && { flexGrow: 1 })}
                 />
-                <AnimatedFlexCompat {...suffixPresenceProps}>
+                <AnimatedFlex {...suffixPresenceProps}>
                   <SuffixComponent
                     // Value of the suffix is provided in the suffixStyling object.
                     {...SUFFIX_STYLING}
@@ -404,8 +397,8 @@ export function ClaimUnitagContent({
                     allowFontScaling={false}
                     maxFontSizeMultiplier={1}
                   />
-                </AnimatedFlexCompat>
-              </AnimatedFlexCompat>
+                </AnimatedFlex>
+              </AnimatedFlex>
             )}
           </Presence>
         </AnimatedFlex>
@@ -441,8 +434,6 @@ export function ClaimUnitagContent({
           <Button
             size="large"
             variant="branded"
-            animation="200ms"
-            animateOnly={['transform', 'background-color']}
             disabled={shouldBlockContinue || !isUnitagAvailable || !!unitagAvailableError}
             testID={TestID.Continue}
             loading={showVerificationLoading && isCheckingUnitag} // the validation happens really quickly so only show a loading spinner when the user explicitly tries to continue and we're still checking availability
@@ -474,18 +465,18 @@ function AvailabilityStatus({
     <Flex row gap="$spacing8" minHeight={fonts.body2.lineHeight} {...rest}>
       <Presence childOwnsNativeAnimation>
         {unitagAvailableError || addressError ? (
-          <AnimatedFlexCompat key="error" {...availabilityPresenceProps}>
+          <AnimatedFlex key="error" {...availabilityPresenceProps}>
             <Text color="$statusCritical" textAlign="center" variant="body2">
               {unitagAvailableError || addressError}
             </Text>
-          </AnimatedFlexCompat>
+          </AnimatedFlex>
         ) : isUnitagAvailable && showTextInputView ? (
-          <AnimatedFlexCompat key="available" row alignItems="center" gap="$spacing4" {...availabilityPresenceProps}>
+          <AnimatedFlex key="available" row alignItems="center" gap="$spacing4" {...availabilityPresenceProps}>
             <CheckmarkCircle color="$accent1" size="$icon.16" />
             <Text textAlign="center" variant="body2">
               {t('unitags.claim.available')}
             </Text>
-          </AnimatedFlexCompat>
+          </AnimatedFlex>
         ) : null}
       </Presence>
     </Flex>

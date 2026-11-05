@@ -1,21 +1,10 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "ignore": [
-    "**/*.native.ts",
-    "**/*.web.ts",
-    "**/*.native.tsx",
-    "**/*.web.tsx"
-  ],
-  "ignoreDependencies": [
-    "typescript",
-    "oxlint",
-    "@types/.+",
-    "@vitest/coverage-v8"
-  ],
+  "ignore": ["**/*.native.ts", "**/*.web.ts", "**/*.native.tsx", "**/*.web.tsx"],
+  "ignoreDependencies": ["typescript", "oxlint", "@types/.+", "@vitest/coverage-v8"],
   "workspaces": {
     ".": {
       "ignoreDependencies": [
-        "@graphql-codegen/.+",
         "@commitlint/.+",
         "@nx/devkit",
         "@nx/js",
@@ -47,15 +36,10 @@
       ]
     },
     "apps/dev-portal": {
-      "ignoreDependencies": [
-        "@babel/preset-typescript",
-        "babel-plugin-react-compiler"
-      ]
+      "ignoreDependencies": ["@babel/preset-typescript", "babel-plugin-react-compiler"]
     },
     "apps/extension": {
-      "entry": [
-        "src/entrypoints/**/*.{ts,tsx}"
-      ],
+      "entry": ["src/entrypoints/**/*.{ts,tsx}"],
       "ignoreDependencies": [
         "@svgr/webpack",
         "@tailwindcss/vite",
@@ -127,6 +111,11 @@
         "react-native-quick-crypto"
       ]
     },
+    "apps/pools-xyz": {
+      "entry": ["server.ts", "functions/vercel-entry.ts", "scripts/**/*.ts"],
+      "ignore": ["app/components/ui/**"],
+      "ignoreDependencies": ["ws"]
+    },
     "apps/web": {
       "entry": [
         "src/index.tsx",
@@ -149,7 +138,6 @@
         "@chromatic-com/storybook",
         "@datadog/datadog-ci",
         "@ethersproject/.+",
-        "@graphql-codegen/.+",
         "@hono/node-server",
         "@metamask/connect-evm",
         "@rive-app/canvas",
@@ -225,53 +213,29 @@
       ]
     },
     "labs/workbench": {
-      "entry": [
-        "functions/vercel-entry.ts",
-        "scripts/build-vercel.ts",
-        "scripts/vercel-ignore.ts"
-      ],
-      "ignore": [
-        "app/components/ui/**"
-      ]
+      "entry": ["functions/vercel-entry.ts", "scripts/build-vercel.ts", "scripts/vercel-ignore.ts"],
+      "ignore": ["app/components/ui/**"]
     },
     "config/vitest-presets": {
-      "ignoreDependencies": [
-        "identity-obj-proxy"
-      ]
+      "ignoreDependencies": ["identity-obj-proxy"]
     },
     "packages/api": {
-      "ignoreDependencies": [
-        "expo-secure-store"
-      ]
+      "ignoreDependencies": ["expo-secure-store"]
     },
     "packages/compliance": {
-      "ignoreDependencies": [
-        "@universe/api",
-        "@universe/environment"
-      ]
+      "ignoreDependencies": ["@universe/api", "@universe/environment"]
     },
     "packages/config-cli": {
-      "entry": [
-        "src/main.ts"
-      ]
+      "entry": ["src/main.ts"]
     },
     "packages/embedded-wallet": {
-      "ignoreDependencies": [
-        "react-native-argon2",
-        "react-native-passkey"
-      ]
+      "ignoreDependencies": ["react-native-argon2", "react-native-passkey"]
     },
     "packages/environment": {
-      "ignoreDependencies": [
-        "react-native",
-        "react-native-device-info"
-      ]
+      "ignoreDependencies": ["react-native", "react-native-device-info"]
     },
     "packages/gating": {
-      "ignoreDependencies": [
-        "@statsig/react-native-bindings",
-        "react"
-      ]
+      "ignoreDependencies": ["@statsig/react-native-bindings", "react"]
     },
     "packages/mycelium": {
       "ignoreDependencies": [
@@ -294,54 +258,33 @@
         "uppercamelcase",
         "utilities"
       ],
-      "ignore": [
-        "src/components/icons/**"
-      ]
+      "ignore": ["src/components/icons/**"]
     },
     "packages/notifications": {
       "ignoreDependencies": []
     },
     "packages/prices": {
-      "ignoreDependencies": [
-        "@testing-library/react"
-      ]
+      "ignoreDependencies": ["@testing-library/react"]
     },
     "packages/sessions": {
-      "ignoreDependencies": [
-        "@bufbuild/protobuf",
-        "@tanstack/react-query",
-        "openapi-typescript-codegen"
-      ]
+      "ignoreDependencies": ["@bufbuild/protobuf", "@tanstack/react-query", "openapi-typescript-codegen"]
     },
     "packages/transactional": {
-      "ignoreDependencies": [
-        "@react-email/preview-server",
-        "@universe/mycelium",
-        "@universe/tailwind"
-      ]
+      "ignoreDependencies": ["@react-email/preview-server", "@universe/mycelium", "@universe/tailwind"]
     },
     "packages/ui": {
-      "ignore": [
-        "src/components/icons/**",
-        "src/components/logos/**"
-      ],
       "ignoreDependencies": [
         "@react-native-masked-view/masked-view",
         "@shopify/react-native-skia",
-        "camelcase",
-        "cheerio",
         "esbuild-register",
         "expo-linear-gradient",
         "fs-extra",
         "moti",
-        "react-native-keyboard-controller",
-        "uniwind",
-        "uppercamelcase"
+        "react-native-keyboard-controller"
       ]
     },
     "packages/uniswap": {
       "ignoreDependencies": [
-        "@graphql-codegen/.+",
         "@react-native-masked-view/masked-view",
         "@redux-devtools/extension",
         "@typechain/ethers-v5",
@@ -374,32 +317,17 @@
       ]
     },
     "packages/websocket": {
-      "ignoreDependencies": [
-        "partysocket"
-      ]
+      "ignoreDependencies": ["partysocket"]
     },
     "tools/uniswap-nx": {
-      "ignoreDependencies": [
-        "@nx/devkit",
-        "tslib"
-      ]
+      "ignoreDependencies": ["@nx/devkit", "tslib"]
     },
     "packages/tailwind": {
-      "ignoreDependencies": [
-        "@tailwindcss/node",
-        "@tailwindcss/oxide"
-      ]
+      "ignoreDependencies": ["@tailwindcss/node", "@tailwindcss/oxide"]
     },
     "apps/unilens": {
-      "entry": [
-        "src/entrypoints/**/*.{ts,tsx}"
-      ],
-      "ignoreDependencies": [
-        "@tailwindcss/vite",
-        "@wxt-dev/module-react",
-        "react-native-web",
-        "vite"
-      ]
+      "entry": ["src/entrypoints/**/*.{ts,tsx}"],
+      "ignoreDependencies": ["@tailwindcss/vite", "@wxt-dev/module-react", "react-native-web", "vite"]
     }
   }
 }

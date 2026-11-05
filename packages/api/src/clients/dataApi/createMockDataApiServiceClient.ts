@@ -1,4 +1,4 @@
-import type { DataApiServiceClient } from '@universe/api/src/clients/dataApi/createDataApiServiceClient'
+import type { DataApiServiceClient } from './createDataApiServiceClient'
 
 const notMocked = (method: string) => (): Promise<never> =>
   Promise.reject(new Error(`DataApiServiceClient.${method} was called but not mocked`))
@@ -14,7 +14,6 @@ export function createMockDataApiServiceClient(overrides: Partial<DataApiService
     listTransactions: notMocked('listTransactions'),
     getWalletBalances: notMocked('getWalletBalances'),
     getWalletsBalances: notMocked('getWalletsBalances'),
-    listTokens: notMocked('listTokens'),
     getWalletProfitLoss: notMocked('getWalletProfitLoss'),
     getWalletTokenProfitLoss: notMocked('getWalletTokenProfitLoss'),
     getWalletTokensProfitLoss: notMocked('getWalletTokensProfitLoss'),

@@ -2,11 +2,14 @@ import { isWebApp } from '@universe/environment'
 import { useMemo } from 'react'
 import type { FlexCompatProps } from '../flex-compat/props'
 import { opacify } from './opacify'
-import { DARK_THEME_COLORS } from './theme-colors.generated'
+import { DARK_THEME_COLORS } from './theme-colors'
 import { useIsDarkMode } from './useIsDarkMode'
 
 /** Compat equivalent of the legacy `Pick<FlexProps, …>` shadow surface. */
-export type ShadowProps = Pick<FlexCompatProps, 'shadowColor' | 'shadowOffset' | 'shadowRadius' | '$platform-web'>
+// `$platform-web` narrowed to what the hooks return, so the result also spreads onto CSSProperties-typed slots.
+export type ShadowProps = Pick<FlexCompatProps, 'shadowColor' | 'shadowOffset' | 'shadowRadius'> & {
+  '$platform-web'?: { boxShadow?: string }
+}
 
 /*
  * Compat twins of `ui/src/theme/shadows.ts` (same names, keys, and values;

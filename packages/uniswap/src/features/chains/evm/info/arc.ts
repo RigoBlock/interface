@@ -1,5 +1,5 @@
 import { Token } from '@uniswap/sdk-core'
-import { GraphQLApi, TradingApi } from '@universe/api'
+import { TradingApi } from '@universe/api'
 import { UniverseChainId, Platform } from '@universe/chains'
 import { SwapConfigKey } from '@universe/gating'
 import { ARC_LOGO } from '@universe/mycelium/assets'
@@ -10,7 +10,7 @@ import {
   getUniRpcEndpointUrl,
 } from 'uniswap/src/features/chains/evm/rpc'
 import { buildChainTokens } from 'uniswap/src/features/chains/evm/tokens'
-import { GqlChainId, NetworkLayer, RPCType, UniverseChainInfo } from 'uniswap/src/features/chains/types'
+import { NetworkLayer, RPCType, UniverseChainInfo } from 'uniswap/src/features/chains/types'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { ONE_SECOND_MS } from 'utilities/src/time/time'
 
@@ -60,7 +60,6 @@ export const ARC_CHAIN_INFO = {
   testnet: false,
   assetRepoNetworkName: 'arc',
   backendChain: {
-    chain: GraphQLApi.Chain.Arc as GqlChainId,
     backendSupported: true,
     // Arc's native USDC is a real, indexable balance — resolve it via the ERC-20 address.
     nativeTokenBackendAddress: USDC_ERC20_ADDRESS,
@@ -90,7 +89,8 @@ export const ARC_CHAIN_INFO = {
   // No WETH-style wrapped native on Arc.
   wrappedNativeCurrency: null,
   networkLayer: NetworkLayer.L1,
-  blockTimeMs: 480,
+  // Measured ~508ms (Oct 2026), rounded up so block → time estimates land late, never early.
+  blockTimeMs: 510,
   pendingTransactionsRetryOptions: undefined,
   rpcUrls: {
     [RPCType.Public]: { http: [getUniRpcEndpointUrl(UniverseChainId.Arc)] },

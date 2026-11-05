@@ -1,5 +1,4 @@
 import userEvent from '@testing-library/user-event'
-import { GraphQLApi } from '@universe/api'
 import { UniverseChainId } from '@universe/chains'
 import { TestID } from '@universe/test'
 import { USDC_MAINNET } from 'uniswap/src/constants/tokens'
@@ -8,8 +7,8 @@ import { useTokenMetadata } from 'uniswap/src/features/dataApi/tokenDetails/useT
 import { Language } from 'uniswap/src/features/language/constants'
 import { useCurrentLanguage } from 'uniswap/src/features/language/hooks'
 import { ZERO_PERCENT } from '~/constants/misc'
-import { useCurrency } from '~/hooks/Tokens'
-import { useSwapTaxes } from '~/hooks/useSwapTaxes'
+import { useCurrency } from '~/hooks/currency/useCurrency'
+import { useSwapTaxes } from '~/pages/TokenDetails/components/info/hooks/useSwapTaxes'
 import { TokenDescription } from '~/pages/TokenDetails/components/info/TokenDescription'
 import type { TDPState } from '~/pages/TokenDetails/context/createTDPStore'
 import { useTDPStore } from '~/pages/TokenDetails/context/useTDPStore'
@@ -18,8 +17,10 @@ import { mocked } from '~/test-utils/mocked'
 import { validUSDCCurrency } from '~/test-utils/pools/fixtures'
 import { render, screen } from '~/test-utils/render'
 
-vi.mock('~/hooks/Tokens')
-vi.mock('~/hooks/useSwapTaxes')
+vi.mock('~/hooks/currency/useCurrency')
+vi.mock('~/hooks/currency/useCurrencyInfo')
+vi.mock('~/hooks/currency/useCurrencyWithLoading')
+vi.mock('~/pages/TokenDetails/components/info/hooks/useSwapTaxes')
 
 vi.mock('~/pages/TokenDetails/context/useTDPStore', () => ({
   useTDPStore: vi.fn(),
@@ -66,7 +67,6 @@ function mockTDPState(state: Partial<TDPState>): void {
 const USDC_STATE: Partial<TDPState> = {
   address: USDC_MAINNET.address,
   currency: USDC_MAINNET,
-  currencyChain: GraphQLApi.Chain.Ethereum,
   currencyChainId: UniverseChainId.Mainnet,
   multiChainMap: SINGLE_CHAIN_MAP,
 }
@@ -167,6 +167,30 @@ describe('TokenDescription', () => {
     expect(screen.getByText('Etherscan')).toBeVisible()
     expect(warnSpy).toHaveBeenCalled()
     warnSpy.mockRestore()
+  })
+
+  describe('with launch info', () => {
+    it('renders one Info module: launch info, labeled description, then links', () => {
+      mockTDPState(USDC_STATE)
+
+      render(<TokenDescription launchInfo={<span>launch info</span>} />)
+
+      expect(screen.getByText('Info')).toBeVisible()
+      expect(screen.queryByText('About')).toBeNull()
+      expect(screen.getByText('launch info')).toBeVisible()
+      expect(screen.getByText('Description')).toBeVisible()
+      expect(screen.getByTestId(TestID.TokenDetailsAboutLinks)).toBeVisible()
+    })
+
+    it('drops the description block instead of the empty-state copy', () => {
+      mocked(useTokenMetadata).mockReturnValue(EMPTY_METADATA)
+      mockTDPState(USDC_STATE)
+
+      render(<TokenDescription launchInfo={<span>launch info</span>} />)
+
+      expect(screen.queryByText('Description')).toBeNull()
+      expect(screen.queryByText('No token information available')).toBeNull()
+    })
   })
 
   describe('multichain', () => {

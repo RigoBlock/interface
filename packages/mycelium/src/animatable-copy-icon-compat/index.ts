@@ -1,8 +1,6 @@
 /**
  * `@universe/mycelium/animatable-copy-icon-compat` — the compat
- * `AnimatableCopyIcon` (INFRA-3653), replacing the legacy Tamagui
- * `AnimatableCopyIcon` from
- * `packages/ui/src/components/AnimatableCopyIcon/AnimatableCopyIcon.tsx`.
+ * `AnimatableCopyIcon` (INFRA-3653)
  *
  * The component is imported by its BASE specifier so Metro resolves the
  * `.native.tsx` leg and vite the `.web.tsx` leg; the platform-neutral modules
@@ -16,4 +14,4 @@ export {
   type AnimatableCopyIconColor,
   type CopyIconProps,
 } from './props'
-export { COPY_SHEETS_GLYPH, resolveCopyIconColor } from './resolve'
+export { resolveCopyIconColor } from './resolve'

@@ -29,6 +29,7 @@ import {
   useModalHeaderText,
   useModalSubtitleText,
 } from 'uniswap/src/features/tokens/warnings/safetyUtils'
+import { allowsDismissWarning } from 'uniswap/src/features/tokens/warnings/tokenProtection'
 import { TokenWarningFlagsTable } from 'uniswap/src/features/tokens/warnings/TokenWarningFlagsTable'
 import { TokenProtectionWarning } from 'uniswap/src/features/tokens/warnings/types'
 import { currencyIdToAddress } from 'uniswap/src/utils/currencyId'
@@ -45,7 +46,7 @@ interface TokenWarningProps {
   isInfoOnlyWarning?: boolean // if this is an informational-only warning. Hides the Reject button
   shouldBeCombinedPlural?: boolean // some 2-token warnings will be combined into one plural modal (see `getShouldHaveCombinedPluralTreatment`)
   hasSecondWarning?: boolean // true if this is a 2-token warning with two separate warning screens
-  feeOnTransferOverride?: FoTPercent // if defined, forces TokenWarningModal to display FOT content over any other warning content & overrides GQL fee info with TradingApi quote's fee info, which is more correct for dynamic FoT fees
+  feeOnTransferOverride?: FoTPercent // if defined, forces TokenWarningModal to display FOT content over any other warning content & overrides the token's fee info with TradingApi quote's fee info, which is more correct for dynamic FoT fees
 }
 
 interface TokenWarningModalContentProps extends TokenWarningProps {
@@ -63,19 +64,6 @@ export interface TokenWarningModalProps extends TokenWarningProps {
   closeModalOnly: () => void // callback that purely just closes the modal
   onAcknowledge: () => void
   onReportSuccess?: () => void // callback to send a report of an incorrect warning, which enables the report UI when applied
-}
-
-const WARNINGS_ALLOWING_DISMISSAL: TokenProtectionWarning[] = [
-  TokenProtectionWarning.NonDefault,
-  TokenProtectionWarning.FotLow,
-  TokenProtectionWarning.FotHigh,
-  TokenProtectionWarning.SpamAirdrop,
-  TokenProtectionWarning.MaliciousImpersonator,
-  TokenProtectionWarning.MaliciousHoneypot,
-] as const
-
-function allowsDismissWarning(tokenProtectionWarning: TokenProtectionWarning): boolean {
-  return WARNINGS_ALLOWING_DISMISSAL.includes(tokenProtectionWarning)
 }
 
 function TokenWarningModalContent({

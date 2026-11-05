@@ -19,14 +19,14 @@ import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPri
 import { marginPairKey } from 'uniswap/src/features/transactions/margin/marginPairKey'
 import { buildMarginOpenQuoteRequest } from 'uniswap/src/features/transactions/margin/stores/marginFormStore/buildMarginQuoteRequest'
 import { useMarginFormStore } from 'uniswap/src/features/transactions/margin/stores/marginFormStore/useMarginFormStore'
-import type {
+import {
   MarginDirection,
-  MarginPaymentToken,
-  MarginSide,
-  MarginVenue,
+  type MarginPaymentToken,
+  type MarginVenue,
 } from 'uniswap/src/features/transactions/margin/types'
 import { currencyId, normalizeCurrencyIdForMapLookup } from 'uniswap/src/utils/currencyId'
 import { useDebounceWithStatus } from 'utilities/src/time/timing'
+import { useAccount } from '~/connection/hooks/useAccount'
 import {
   MARGIN_CHAIN_ID,
   MARGIN_DEBOUNCE_MS,
@@ -34,24 +34,23 @@ import {
   MARGIN_QUOTE_REFETCH_MS,
   type MarginMarket,
 } from '~/constants/margin'
-import { useAccount } from '~/hooks/useAccount'
-import { useMarginVenueAllowlist } from '~/pages/Swap/Margin/hooks/useMarginVenueAllowlist'
-import { useMarginVenueRoutedAnalytics } from '~/pages/Swap/Margin/hooks/useMarginVenueRoutedAnalytics'
 import {
   getMarketDefaultPaymentToken,
   getPaymentCurrency,
   getSpendablePaymentBalance,
   isPaymentTokenDifferentFromCollateral,
-} from '~/pages/Swap/Margin/marginCurrencies'
+} from '~/features/margin/utils/marginCurrencies'
+import { marginMarketDirection } from '~/features/margin/utils/marginTokenDisplay'
+import { useMarginVenueAllowlist } from '~/pages/Swap/Margin/hooks/useMarginVenueAllowlist'
+import { useMarginVenueRoutedAnalytics } from '~/pages/Swap/Margin/hooks/useMarginVenueRoutedAnalytics'
 import { getMarginLeverageCap } from '~/pages/Swap/Margin/marginOpenButtonGate'
-import { marginMarketDirection } from '~/pages/Swap/Margin/marginTokenDisplay'
 
 // The allowlist reaching the builder is already derived, so it has nothing left to subtract.
 const NO_EXCLUSIONS: MarginVenue[] = []
 
 export interface DerivedMarginInfo {
   market: MarginMarket
-  side: MarginSide
+  side: MarginDirection
   // Ground truth for every pre-trade direction signal (CTA label, size preview, liq unit symbol):
   // the selected market's direction, falling back to the quote's own, falling back to a derivation
   // off the market's token addresses. NEVER the raw side toggle — it can diverge from the actual
@@ -170,10 +169,14 @@ export function useDerivedMarginInfo({
     getCurrencyAmount({ value: marginAmount, valueType: ValueType.Exact, currency: paymentCurrency }) ?? undefined
   const paymentUsdValue = useUSDCValue(paymentCurrencyAmount)
 
-  const [debouncedMarginAmount, isDebouncing] = useDebounceWithStatus({
-    value: marginAmount,
+  // Amount and leverage share ONE debounce so the quote never pairs a settled amount with a mid-drag
+  // leverage, and `isDebouncing` covers both. Memoized: the debounce restarts on a new value identity.
+  const quoteInputs = useMemo(() => ({ marginAmount, leverage }), [marginAmount, leverage])
+  const [debouncedQuoteInputs, isDebouncing] = useDebounceWithStatus({
+    value: quoteInputs,
     delay: MARGIN_DEBOUNCE_MS,
   })
+  const { marginAmount: debouncedMarginAmount, leverage: debouncedLeverage } = debouncedQuoteInputs
   const debouncedAmount =
     getCurrencyAmount({ value: debouncedMarginAmount, valueType: ValueType.Exact, currency: paymentCurrency }) ??
     undefined
@@ -184,20 +187,25 @@ export function useDerivedMarginInfo({
   const requestDirection =
     market.direction ??
     marginMarketDirection({ collateralToken: market.collateral.address, debtToken: market.debt.address })
-  const exposureToken = requestDirection === 'SHORT' ? market.debt.address : market.collateral.address
-  const counterToken = requestDirection === 'SHORT' ? market.collateral.address : market.debt.address
+  const exposureToken = requestDirection === MarginDirection.SHORT ? market.debt.address : market.collateral.address
+  const counterToken = requestDirection === MarginDirection.SHORT ? market.collateral.address : market.debt.address
+  // Decimals the view renders with — from the market, not guessed from the token address in the adapter.
+  const tokenDecimals = {
+    exposure: requestDirection === MarginDirection.SHORT ? market.debt.decimals : market.collateral.decimals,
+    counter: requestDirection === MarginDirection.SHORT ? market.collateral.decimals : market.debt.decimals,
+  }
 
   // Memoized: this object is the query key, and a fresh identity per render churns the
   // placeholderData closure and every downstream memo for no wire-level change.
   const quoteParams: MarginQuoteRequest | undefined = useMemo(
     () =>
       buildMarginOpenQuoteRequest({
-        chainId: MARGIN_CHAIN_ID,
+        positionChainId: MARGIN_CHAIN_ID,
         exposureToken,
         counterToken,
         direction: requestDirection,
         swapper: account.address,
-        leverage,
+        leverage: debouncedLeverage,
         equityAmountRaw: paymentAmountRaw,
         paymentToken: paymentToken.isNative ? MARGIN_NATIVE_TOKEN_ADDRESS : paymentToken.address,
         paymentChainId: paymentToken.chainId,
@@ -211,7 +219,7 @@ export function useDerivedMarginInfo({
       counterToken,
       requestDirection,
       account.address,
-      leverage,
+      debouncedLeverage,
       paymentAmountRaw,
       paymentToken,
       slippageToleranceBps,
@@ -227,6 +235,7 @@ export function useDerivedMarginInfo({
     error: quoteError,
   } = useMarginQuoteQuery({
     params: quoteParams,
+    tokenDecimals,
     refetchInterval: MARGIN_QUOTE_REFETCH_MS,
     staleTime: MARGIN_QUOTE_REFETCH_MS,
     // Bridge the prior quote across a LEVERAGE change (same market, new query key) so `quote`
@@ -282,7 +291,8 @@ export function useDerivedMarginInfo({
     quoteError,
     allowedVenues,
     excludedCount,
-    leverage,
+    // The leverage the routed quote was asked at, not the live control.
+    leverage: debouncedLeverage,
     equityUsd: paymentUsdValue ? Number(paymentUsdValue.toExact()) : undefined,
     // Only the REPORTING mount emits. This hook derives everything the form needs, so other surfaces
     // mount it just to read a field — the chart overlays do — and each extra mount is another copy of

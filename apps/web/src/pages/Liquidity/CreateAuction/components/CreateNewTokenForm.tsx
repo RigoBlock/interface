@@ -17,7 +17,7 @@ import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import Trace from 'uniswap/src/features/telemetry/Trace'
 import { useEvent } from 'utilities/src/react/hooks'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
-import { useActiveAddress } from '~/features/accounts/store/hooks'
+import { useActiveAddress } from '~/connection/accounts/hooks'
 import { NEW_LAUNCH_CHAINS } from '~/features/Toucan/supportedChains'
 import { getAuctionTokenInfoEnteredProperties } from '~/pages/Liquidity/CreateAuction/analytics'
 import { NoWalletSection } from '~/pages/Liquidity/CreateAuction/components/NoWalletSection'
@@ -167,7 +167,7 @@ export function CreateNewTokenForm({ createNew }: { createNew: CreateNewTokenFor
 
   const { status: imageStatus, errorReason: imageErrorReason, start: startImageUpload } = useTokenImageUpload()
   const isImageProcessing = imageStatus === 'uploading' || imageStatus === 'verifying'
-  // Blob preview (step-local upload) wins until the Pinata URL loads in the background; see
+  // Blob preview (step-local upload) wins until the gateway URL loads in the background; see
   // `useTokenImageUpload` + `localImagePreviewUri` on the store.
   const displayImageUri = resolveCreateNewTokenDisplayImageSrc(createNew.localImagePreviewUri, createNew.imageUrl)
 
@@ -177,9 +177,15 @@ export function CreateNewTokenForm({ createNew }: { createNew: CreateNewTokenFor
         return t('toucan.createAuction.step.tokenInfo.image.error.invalidType')
       case 'too-large':
         return t('toucan.createAuction.step.tokenInfo.image.error.tooLarge')
+      case 'too-large-to-check':
+        return t('toucan.createAuction.step.tokenInfo.image.error.tooLargeToCheck')
+      case 'too-many-frames':
+        return t('toucan.createAuction.step.tokenInfo.image.error.tooManyFrames')
       // A single generic message for every moderation slug — never surface the category.
       case 'rejected':
         return t('toucan.createAuction.step.tokenInfo.image.error.rejected')
+      case 'invalid-image':
+        return t('toucan.createAuction.step.tokenInfo.image.error.invalidImage')
       case 'upload-failed':
         return t('toucan.createAuction.step.tokenInfo.image.error.failed')
       default:

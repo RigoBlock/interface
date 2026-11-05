@@ -1,9 +1,9 @@
+import { useSporeColors } from '@universe/mycelium'
 import { FlexCompat } from '@universe/mycelium/flex-compat'
 import { memo, type PropsWithChildren } from 'react'
 import { QRCode } from 'ui/src/components/QRCode/QRCode'
+import { resolveSporeColor } from 'ui/src/components/QRCode/resolveSporeColor'
 import type { QRCodeDisplayProps } from 'ui/src/components/QRCode/types'
-import { useSporeColors } from 'ui/src/hooks/useSporeColors'
-import { resolveSporeColor } from 'ui/src/theme/color/resolveSporeColor'
 
 function QRCodeDisplayImpl({
   encodedValue,

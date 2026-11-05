@@ -1,7 +1,5 @@
-import { Flex, Text } from '@universe/mycelium'
+import { Flex, type FlexCompatProps, Text, Switch } from '@universe/mycelium'
 import { ReactNode } from 'react'
-// Switch stays on ui/src: already Tamagui-free (INFRA-3285 rebuild lane), no mycelium counterpart yet.
-import { Switch } from 'ui/src'
 
 interface SettingsToggleProps {
   title: string | ReactNode
@@ -11,11 +9,21 @@ interface SettingsToggleProps {
   isActive: boolean
   toggle: () => void
   icon?: ReactNode
+  py?: FlexCompatProps['py']
 }
 
-export function SettingsToggle({ title, description, dataid, isActive, toggle, disabled, icon }: SettingsToggleProps) {
+export function SettingsToggle({
+  title,
+  description,
+  dataid,
+  isActive,
+  toggle,
+  disabled,
+  icon,
+  py = '$padding12',
+}: SettingsToggleProps) {
   return (
-    <Flex row alignItems="center" justifyContent="space-between" py="$padding12">
+    <Flex row alignItems="center" justifyContent="space-between" py={py}>
       <Flex row gap="$gap12" alignItems="center" maxWidth="80%" $xl={{ maxWidth: '70%' }}>
         {icon}
         <Flex>

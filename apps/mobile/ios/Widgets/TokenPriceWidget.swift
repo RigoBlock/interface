@@ -51,6 +51,15 @@ let placeholderEntry = TokenPriceEntry(
   tokenPriceHistory: previewEntry.tokenPriceHistory
 )
 
+extension IntentToken {
+  /// `chain` holds the decimal chain id, written by `IntentHandler`. Widgets configured before chain ids
+  /// hold a legacy chain name there instead (never numeric), and iOS keeps that configuration until the
+  /// user edits the widget.
+  var resolvedChainId: Int? {
+    return chain.flatMap { Int($0) } ?? LegacyChainNames.chainId(forName: chain)
+  }
+}
+
 let refreshMinutes = 5
 let displayName = "Token Prices"
 let description = "Keep up to date on your favorite tokens."
@@ -60,10 +69,10 @@ struct Provider: IntentTimelineProvider {
   
   func getEntry(configuration: TokenPriceConfigurationIntent, context: Context, isSnapshot: Bool) async throws -> TokenPriceEntry {
     let entryDate = Date()
-    let chain = isSnapshot ? WidgetConstants.ethereumChain : configuration.selectedToken?.chain ?? WidgetConstants.ethereumChain
+    let chainId = isSnapshot ? WidgetConstants.ethereumChainId : configuration.selectedToken?.resolvedChainId ?? WidgetConstants.ethereumChainId
     let address = isSnapshot ? nil : configuration.selectedToken?.address
-    async let tokenPriceRequest = DataQueries.fetchTokenPriceData(chain: chain, address: address)
-    async let tokenPriceHistoryRequest = DataQueries.fetchTokenPriceHistoryData(chain: chain, address: address)
+    async let tokenPriceRequest = DataQueries.fetchTokenPriceData(chainId: chainId, address: address)
+    async let tokenPriceHistoryRequest = DataQueries.fetchTokenPriceHistoryData(chainId: chainId, address: address)
     async let conversionRequest = DataQueries.fetchCurrencyConversion(
       toCurrency: UniswapUserDefaults.readI18n().currency)
 
@@ -77,6 +86,9 @@ struct Provider: IntentTimelineProvider {
     var backgroundColor: UIColor? = nil
     if let logoUrl = tokenPriceResponse.logoUrl {
       backgroundColor = ColorExtraction.extractImageColorWithSpecialCase(imageURL: logoUrl)
+    }
+    if !isSnapshot, let backgroundColor = backgroundColor {
+      UniswapUserDefaults.writeTokenColor(chainId: chainId, address: address, color: backgroundColor)
     }
 
     return TokenPriceEntry(
@@ -93,8 +105,9 @@ struct Provider: IntentTimelineProvider {
   }
   
   /// Entry rendered when fetching fails (network error, or a chain the app hasn't synced to the widget yet).
-  /// Keeps the configured symbol and shows price placeholders; the timeline retries on its normal cadence.
+  /// Keeps the configured symbol and last known token color, and shows price placeholders; the timeline retries on its normal cadence.
   func fallbackEntry(configuration: TokenPriceConfigurationIntent) -> TokenPriceEntry {
+    let chainId = configuration.selectedToken?.resolvedChainId ?? WidgetConstants.ethereumChainId
     return TokenPriceEntry(
       date: Date(),
       configuration: configuration,
@@ -103,7 +116,7 @@ struct Provider: IntentTimelineProvider {
       pricePercentChange: nil,
       symbol: configuration.selectedToken?.symbol ?? "",
       logo: nil,
-      backgroundColor: nil,
+      backgroundColor: UniswapUserDefaults.readTokenColor(chainId: chainId, address: configuration.selectedToken?.address),
       tokenPriceHistory: nil
     )
   }
@@ -308,7 +321,9 @@ struct TokenPriceWidgetEntryView: View {
   }
   
   var body: some View {
-    let deeplinkURL = URL(string: "uniswap://widget/#/tokens/\(entry.configuration.selectedToken?.chain?.lowercased() ?? "")/\(entry.configuration.selectedToken?.address ?? "NATIVE")")
+    let selectedToken = entry.configuration.selectedToken
+    let deeplinkChain = selectedToken?.resolvedChainId.flatMap { WidgetChainRegistry().deeplinkChainParam(chainId: $0) } ?? ""
+    let deeplinkURL = URL(string: "uniswap://widget/#/tokens/\(deeplinkChain)/\(selectedToken?.address ?? "NATIVE")")
     let shouldRenderPlaceholder = !reasons.isEmpty
     let body = ZStack {
       switch family {

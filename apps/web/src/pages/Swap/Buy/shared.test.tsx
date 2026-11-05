@@ -9,15 +9,15 @@ vi.mock('uniswap/src/features/language/navigatorLocale', () => ({
 // Mock UI components to avoid React Native imports
 vi.mock('ui/src', () => ({
   Flex: 'div',
-  ModalCloseIcon: 'div',
   styled: () => 'div',
-  useSporeColors: () => ({}),
 }))
 
 // shared.tsx takes Flex from mycelium and styled from its subpath; a package-root
 // mock does not intercept the subpath, so both specifiers are mocked separately.
 vi.mock('@universe/mycelium', () => ({
   Flex: 'div',
+  ModalCloseIcon: 'div',
+  useSporeColors: () => ({}),
 }))
 
 vi.mock('@universe/mycelium/styled', () => ({

@@ -2,13 +2,14 @@ import { screen } from '@testing-library/react'
 import { TestID } from '@universe/test'
 import type { ReactNode } from 'react'
 import type { MarginActivePosition } from 'uniswap/src/data/apiClients/tradingApi/MarginApiClient'
+import { MarginDirection } from 'uniswap/src/features/transactions/margin/types'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MARGIN_CHAIN_ID } from '~/constants/margin'
 import { getDefaultMarginMarket } from '~/pages/Swap/Margin/__fixtures__/marginCatalog'
 import { MarginActionModals } from '~/pages/Swap/Margin/components/MarginActionModals'
-import { popupRegistry } from '~/state/popups/registry'
-import { PopupType } from '~/state/popups/types'
 import { render } from '~/test-utils/render'
+import { popupRegistry } from '~/utils/popups/registry'
+import { PopupType } from '~/utils/popups/types'
 
 const MARKET = getDefaultMarginMarket()
 
@@ -34,7 +35,7 @@ vi.mock('~/pages/Swap/Margin/components/shared/MarginLeverageSlider', () => ({
   MarginLeverageSlider: () => null,
 }))
 
-vi.mock('~/hooks/useAccount', () => ({ useAccount: () => ({ address: SWAPPER }) }))
+vi.mock('~/connection/hooks/useAccount', () => ({ useAccount: () => ({ address: SWAPPER }) }))
 
 vi.mock('~/pages/Swap/Margin/hooks/useExecuteMarginPlan', () => ({
   useExecuteMarginPlan: () => ({ executePlan: vi.fn() }),
@@ -42,8 +43,8 @@ vi.mock('~/pages/Swap/Margin/hooks/useExecuteMarginPlan', () => ({
 
 vi.mock('~/pages/Swap/Margin/hooks/useIsPlanInFlight', () => ({ useIsPlanInFlight: () => false }))
 
-vi.mock('~/pages/Swap/Margin/hooks/useMarginCurrencyInfos', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('~/pages/Swap/Margin/hooks/useMarginCurrencyInfos')>()),
+vi.mock('~/features/margin/hooks/useMarginCurrencyInfos', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('~/features/margin/hooks/useMarginCurrencyInfos')>()),
   useMarginCurrencyInfos: () => new Map(),
 }))
 
@@ -73,7 +74,7 @@ const ACCOUNT = '0x000000000000000000000000000000000000000A'
 const POSITION: MarginActivePosition = {
   positionId: SUB_ID,
   status: 'ACTIVE',
-  direction: 'LONG',
+  direction: MarginDirection.LONG,
   exposureToken: { address: MARKET.collateral.address, chainId: MARGIN_CHAIN_ID, decimals: MARKET.collateral.decimals },
   counterToken: { address: MARKET.debt.address, chainId: MARGIN_CHAIN_ID, decimals: MARKET.debt.decimals },
   size: '2000000000000000000', // 2 WETH
@@ -110,7 +111,6 @@ describe('MarginActionModals', () => {
     ['add', 'Add margin'],
     ['withdraw', 'Withdraw margin'],
     ['leverage', 'Change leverage'],
-    ['adjust', 'Adjust position'],
     ['close', 'Close position'],
   ] as const)('routes %s to its own modal', (action, expectedTitle) => {
     render(

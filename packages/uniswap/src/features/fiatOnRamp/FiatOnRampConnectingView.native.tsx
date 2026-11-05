@@ -1,4 +1,4 @@
-import { Flex, Text } from '@universe/mycelium'
+import { Flex, Text, AnimatedFlex, useIsDarkMode, iconSizes } from '@universe/mycelium'
 import {
   FOR_CONNECTING_BACKGROUND_DARK,
   FOR_CONNECTING_BACKGROUND_LIGHT,
@@ -7,9 +7,6 @@ import {
 import { useTranslation } from 'react-i18next'
 import { Image, ImageBackground, StyleSheet } from 'react-native'
 import { FadeIn, FadeOut } from 'react-native-reanimated'
-import { useIsDarkMode } from 'ui/src'
-import { AnimatedFlex } from 'ui/src/components/layout/AnimatedFlex'
-import { iconSizes } from 'ui/src/theme'
 import {
   SERVICE_PROVIDER_ICON_BORDER_RADIUS,
   ServiceProviderLogoStyles,

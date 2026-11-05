@@ -1,7 +1,13 @@
 import { isWebPlatform } from '@universe/environment'
-import { Flex, type FlexCompatProps as FlexProps, Separator } from '@universe/mycelium'
+import {
+  DropdownMenuSheetItem,
+  type DropdownMenuSheetItemProps,
+  Flex,
+  type FlexCompatProps as FlexProps,
+  getMenuItemColor,
+  Separator,
+} from '@universe/mycelium'
 import { Fragment, useCallback } from 'react'
-import { DropdownMenuSheetItem, DropdownMenuSheetItemProps, getMenuItemColor } from 'ui/src'
 import { MenuOptionItem } from 'uniswap/src/components/menus/ContextMenu'
 import { ElementName, SectionName, UniswapEventName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
@@ -48,6 +54,7 @@ type MenuContentProps = {
   containerStyles?: FlexProps
 }
 
+// TODO(INFRA-4485): Duplicates mycelium on web. Use `MenuContentCompat` from `@universe/mycelium/menu-compat` instead (its native leg isn't built yet).
 export function MenuContent({
   items,
   handleCloseMenu,

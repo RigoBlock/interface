@@ -86,7 +86,7 @@ const IGNORED_SPLIT_RULE_FILES: string[] = [
   'packages/mycelium/src/components/factories/createIcon.native.tsx',
   'packages/mycelium/src/components/factories/svg-elements.native.ts',
   // UniswapXText/GradientText: the base file IS the web implementation, matching the
-  // existing HiddenFromScreenReaders/useEnableFontScaling pattern in the same directory,
+  // existing HiddenFromScreenReaders pattern in the same directory,
   // so no `.web` twin exists by design.
   'packages/ui/src/components/text/UniswapXText.native.tsx',
   'packages/ui/src/components/text/GradientText.native.tsx',
@@ -196,17 +196,8 @@ async function processAddChanges() {
   // Check for UI package imports that are longer than needed
   const validLongerImports = [
     `'ui/src'`,
-    `'ui/src/storybook'`,
-    `'ui/src/theme'`,
-    `'ui/src/theme/sizing'`,
-    `'ui/src/loading'`,
-    `'ui/src/components/icons'`,
-    `'ui/src/icons'`,
     `'ui/src/animations'`,
-    `'ui/src/hooks/useDeviceDimensions'`,
     `'ui/src/hooks/useDeviceInsets'`,
-    `'ui/src/components/layout/AnimatedFlex'`,
-    `'ui/src/components/text/AnimatedText'`,
   ]
   const longestImportLength = Math.max(...validLongerImports.map((i) => i.length))
   allNonUILinesAdded.forEach((change) => {
@@ -217,11 +208,6 @@ async function processAddChanges() {
         idx,
         Math.min(change.content.length, idx + longestImportLength + 6 + 1),
       )
-
-      // Skip warning on specific icon imports, needed for web to avoid pulling in all icons
-      if (change.content.includes('ui/src/components/icons/')) {
-        return
-      }
 
       if (!validLongerImports.some((validImport) => potentialSubstring.includes(validImport))) {
         const endOfImport = change.content.indexOf(`'`, idx + 6) // skipping the "from '"

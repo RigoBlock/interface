@@ -1,11 +1,12 @@
+import { useIsDarkMode, useSporeColors, getUniconColor } from '@universe/mycelium'
+import { passesContrast, useExtractedColors } from '@universe/mycelium/theme-hooks-compat'
 import { useMemo } from 'react'
-import { getUniconColors, passesContrast, useExtractedColors, useIsDarkMode, useSporeColors } from 'ui/src'
 import { useAvatar } from 'uniswap/src/features/address/avatar'
 
 export function useAddressColorProps(address: Address): string {
   const colors = useSporeColors()
   const isDarkMode = useIsDarkMode()
-  const { color: uniconColor } = getUniconColors(address, isDarkMode) as { color: string }
+  const uniconColor = getUniconColor(address, isDarkMode)
   const { avatar, loading: avatarLoading } = useAvatar(address)
   const { colors: avatarColors } = useExtractedColors(avatar)
   const hasAvatar = !!avatar && !avatarLoading

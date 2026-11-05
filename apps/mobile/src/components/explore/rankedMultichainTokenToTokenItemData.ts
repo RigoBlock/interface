@@ -5,6 +5,7 @@ import {
   normalizeBackendNativeAddress,
   pickPrimaryDeployment,
 } from 'uniswap/src/data/apiClients/dataApiService/utils/dataApiMultichainToken'
+import { formatColorOverrides } from 'uniswap/src/features/dataApi/utils/formatColorOverrides'
 
 /** Converts a v2 RankedMultichainToken (from ListTokens) into mobile's TokenItemData shape. */
 export function rankedMultichainTokenToTokenItemData({
@@ -29,7 +30,7 @@ export function rankedMultichainTokenToTokenItemData({
   if (!deployment) {
     return null
   }
-  const chainId = deployment.chainId as UniverseChainId
+  const { chainId } = deployment
 
   // The grouping's addresses map is not scoped to the request's chains (it always carries every
   // deployment), so count only enabled chains — mirrors web's getAllowedAddressChainIds gating.
@@ -41,6 +42,7 @@ export function rankedMultichainTokenToTokenItemData({
   return {
     name: multichainToken.name,
     logoUrl: multichainToken.project?.logoUrl ?? '',
+    colorOverrides: formatColorOverrides(multichainToken.project?.colors),
     chainId,
     address: normalizeBackendNativeAddress({ chainId, address: deployment.address }),
     symbol: multichainToken.symbol,

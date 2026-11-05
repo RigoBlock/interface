@@ -24,6 +24,7 @@ import {
 } from '~/pages/TokenDetails/hooks/useTokenDetailsAuctionDisplay'
 import { mocked } from '~/test-utils/mocked'
 import { fireEvent, render, screen, waitFor } from '~/test-utils/render'
+import { SERVED_CROWD_CCA_PROVENANCE, SERVED_CUSTOM_CCA_PROVENANCE } from '~/test-utils/tokenDetails/fixtures'
 
 vi.mock('@universe/gating', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@universe/gating')>()),
@@ -60,11 +61,13 @@ function mockDisplay(overrides: Partial<TokenDetailsAuctionDisplayModel> = {}): 
     isInitialLoading: false,
     isAuctionOnlyPending: false,
     hasConfirmedPool: false,
+    tokenVolume30dUsd: undefined,
+    isTokenVolumeLoading: false,
     auction: resolvedAuction,
     chainId: UniverseChainId.Mainnet,
     launchMethod: LaunchProvenanceMethod.CustomAuction,
     // As the provider resolves it, so an overridden auction carries its own attribution.
-    provenance: mergeLaunchProvenance({ served: undefined, auction: resolvedAuction }),
+    provenance: mergeLaunchProvenance({ served: SERVED_CUSTOM_CCA_PROVENANCE, auction: resolvedAuction }),
     phase: AuctionDisplayPhase.Ended,
     result: AuctionDisplayResult.Unknown,
     poolAvailability: PoolAvailability.HasPool,
@@ -136,6 +139,7 @@ describe('TokenDetailsHeaderLaunchpad', () => {
       auction: crowdAuction,
       chainId: UniverseChainId.Robinhood,
       launchMethod: LaunchProvenanceMethod.CrowdLaunch,
+      provenance: mergeLaunchProvenance({ served: SERVED_CROWD_CCA_PROVENANCE, auction: crowdAuction }),
     })
 
     render(<HeaderLaunchpad />)
@@ -209,7 +213,7 @@ describe('TokenDetailsHeaderLaunchpad', () => {
   })
 
   it('renders nothing for a token with no attributed launch', () => {
-    mockDisplay({ auction: undefined, launchMethod: LaunchProvenanceMethod.Unknown })
+    mockDisplay({ auction: undefined, launchMethod: LaunchProvenanceMethod.Unknown, provenance: undefined })
 
     render(<HeaderLaunchpad />)
 

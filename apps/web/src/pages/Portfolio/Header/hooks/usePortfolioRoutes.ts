@@ -2,7 +2,7 @@ import { UniverseChainId, PlatformAddress, areEvmAddressesEqual, getPlatformAddr
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useEffect, useMemo } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
-import { useActiveAddresses } from '~/features/accounts/store/hooks'
+import { useActiveAddresses } from '~/connection/accounts/hooks'
 import { PageType } from '~/hooks/useIsPage'
 import { isPortfolioTab, PortfolioTab } from '~/pages/Portfolio/types'
 import { buildPortfolioUrl, pathToPortfolioTab } from '~/pages/Portfolio/utils/portfolioUrls'
@@ -66,7 +66,7 @@ export function usePortfolioRoutes(): {
   const isOwnSvmAddress = svmAddress === potentialAddress
   const isExternalWallet = Boolean(externalAddress) && !isOwnEvmAddress && !isOwnSvmAddress
 
-  const tab = useMemo(() => {
+  const urlTab = useMemo(() => {
     if (isPortfolioTab(tabSegment)) {
       return tabSegment
     }
@@ -76,6 +76,10 @@ export function usePortfolioRoutes(): {
     }
     return PortfolioTab.Overview
   }, [tabSegment, potentialAddress, pathname])
+
+  // Map instead of redirecting: the flag can read false on page load before Statsig settles,
+  // and a redirect would strand treatment users on Overview.
+  const tab = urlTab === PortfolioTab.Pools && !portfolioPoolsBalancesEnabled ? PortfolioTab.Overview : urlTab
 
   const isPortfolioPath = pathname.startsWith(PageType.PORTFOLIO)
 
@@ -96,20 +100,12 @@ export function usePortfolioRoutes(): {
     // Redirect to overview if trying to access DeFi tab when feature flag is disabled
     if (tab === PortfolioTab.Defi && !isPortfolioDefiTabEnabled) {
       navigate(buildPortfolioUrl({ chainId, externalAddress: externalAddress?.address }), { replace: true })
-      return
-    }
-
-    // Redirect to overview if trying to access Pools tab when feature flag is disabled
-    if (tab === PortfolioTab.Pools && !portfolioPoolsBalancesEnabled) {
-      navigate(buildPortfolioUrl({ chainId, externalAddress: externalAddress?.address }), { replace: true })
-      return
     }
   }, [
     potentialAddress,
     externalAddress,
     tab,
     isPortfolioDefiTabEnabled,
-    portfolioPoolsBalancesEnabled,
     navigate,
     chainId,
     isOwnEvmAddress,

@@ -123,7 +123,7 @@ export function TransactionsTable({
   })
 
   const showLoadingSkeleton = dataStillLoading || hasError
-  // TODO(WEB-3236): once GQL BE Transaction query is supported add usd, token0 amount, and token1 amount sort support
+  // TODO(WEB-3236): once the backend transactions query supports it, add usd, token0 amount, and token1 amount sort support
   const columns = useMemo(() => {
     const columnHelper = createColumnHelper<SwapTransaction>()
     return [
@@ -327,7 +327,7 @@ export function TransactionsTable({
         error={hasError}
         loadMore={loadMore}
         maxHeight={600}
-        defaultPinnedColumns={['timestamp', 'swap-type']}
+        defaultPinnedColumns={media.lg ? ['timestamp'] : ['timestamp', 'swap-type']}
         forcePinning={media.xxl}
       />
     </Flex>

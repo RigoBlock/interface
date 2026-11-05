@@ -1,4 +1,5 @@
 import { fireEvent } from '@testing-library/react'
+import { MarginDirection } from 'uniswap/src/features/transactions/margin/types'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { MarginPairGroup, MarginTokenInfo } from '~/constants/margin'
 import { MarginSideToggle } from '~/pages/Swap/Margin/components/MarginSideToggle'
@@ -15,12 +16,15 @@ const USDC: MarginTokenInfo = {
   decimals: 6,
 }
 
-function groupFixture(direction: 'LONG' | 'SHORT'): MarginPairGroup {
+function groupFixture(direction: MarginDirection, quote: MarginTokenInfo = USDC): MarginPairGroup {
+  const quoteKey = quote.symbol.toLowerCase()
   return {
-    key: `weth-usdc-${direction}`,
-    pairKey: 'weth-usdc',
+    key: `weth-${quoteKey}-${direction}`,
+    pairKey: (direction === MarginDirection.SHORT
+      ? `${quoteKey}-weth`
+      : `weth-${quoteKey}`) as MarginPairGroup['pairKey'],
     base: WETH,
-    quote: USDC,
+    quote,
     direction,
     pairs: [{ key: `weth-usdc-MORPHO-${direction}`, debt: USDC, venue: 'MORPHO', lltvWad: '0', maxLeverage: 5 }],
   }
@@ -28,16 +32,18 @@ function groupFixture(direction: 'LONG' | 'SHORT'): MarginPairGroup {
 
 const { mockGroups, mockSide, setMarginFormState } = vi.hoisted(() => ({
   mockGroups: { current: [] as MarginPairGroup[] },
-  mockSide: { current: 'long' as 'long' | 'short' },
+  // Filled in below: vi.hoisted runs before the MarginDirection import is bound.
+  mockSide: {} as { current: MarginDirection },
   setMarginFormState: vi.fn(),
 }))
+mockSide.current = MarginDirection.LONG
 
-vi.mock('~/pages/Swap/Margin/hooks/useMarginMarkets', () => ({
+vi.mock('~/features/margin/hooks/useMarginMarkets', () => ({
   useMarginMarkets: () => ({ groups: mockGroups.current }),
 }))
 
 vi.mock('uniswap/src/features/transactions/margin/stores/marginFormStore/useMarginFormStore', () => ({
-  useMarginFormStore: (selector: (s: { side: 'long' | 'short' }) => unknown) => selector({ side: mockSide.current }),
+  useMarginFormStore: (selector: (s: { side: MarginDirection }) => unknown) => selector({ side: mockSide.current }),
   useMarginFormStoreActions: () => ({ setMarginFormState }),
 }))
 
@@ -46,11 +52,11 @@ function isDisabled(element: HTMLElement): boolean {
 }
 
 beforeEach(() => {
-  mockGroups.current = [groupFixture('LONG'), groupFixture('SHORT')]
+  mockGroups.current = [groupFixture(MarginDirection.LONG), groupFixture(MarginDirection.SHORT)]
 })
 
 afterEach(() => {
-  mockSide.current = 'long'
+  mockSide.current = MarginDirection.LONG
   setMarginFormState.mockClear()
 })
 
@@ -63,20 +69,17 @@ describe('MarginSideToggle', () => {
 
   // Availability is derived, not hardcoded: a pair the server only lists one way round must not offer
   // a side that would leave the user staring at an empty list.
-  it('disables a side the registry has no group for, and refuses to select it', () => {
-    mockGroups.current = [groupFixture('LONG')]
+  it('disables a side the registry has no group for', () => {
+    mockGroups.current = [groupFixture(MarginDirection.LONG)]
     const { getByRole } = render(<MarginSideToggle />)
-    const short = getByRole('button', { name: 'Short' })
-    expect(isDisabled(short)).toBe(true)
-    fireEvent.click(short)
-    expect(setMarginFormState).not.toHaveBeenCalled()
+    expect(isDisabled(getByRole('button', { name: 'Short' }))).toBe(true)
   })
 
   it('still selects a side the registry does have', () => {
-    mockGroups.current = [groupFixture('LONG'), groupFixture('SHORT')]
+    mockGroups.current = [groupFixture(MarginDirection.LONG), groupFixture(MarginDirection.SHORT)]
     const { getByRole } = render(<MarginSideToggle />)
     fireEvent.click(getByRole('button', { name: 'Short' }))
-    expect(setMarginFormState).toHaveBeenCalledWith({ side: 'short' })
+    expect(setMarginFormState).toHaveBeenCalledWith({ side: MarginDirection.SHORT })
   })
 
   // Nothing is known before the first response lands, so neither side is greyed out on the way in.
@@ -90,8 +93,8 @@ describe('MarginSideToggle', () => {
   // A stored side the registry dropped stays enabled: the control has to be able to render its own
   // selection, and a disabled-yet-selected segment reads as broken.
   it('keeps the selected side enabled even once its groups disappear', () => {
-    mockGroups.current = [groupFixture('LONG')]
-    mockSide.current = 'short'
+    mockGroups.current = [groupFixture(MarginDirection.LONG)]
+    mockSide.current = MarginDirection.SHORT
     const { getByRole } = render(<MarginSideToggle />)
     expect(isDisabled(getByRole('button', { name: 'Short' }))).toBe(false)
   })

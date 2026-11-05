@@ -1,13 +1,12 @@
 import '~/test-utils/tokens/mocks'
 import { fireEvent } from '@testing-library/react'
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
-import { GraphQLApi } from '@universe/api'
 import { UniverseChainId } from '@universe/chains'
 import { TestID } from '@universe/test'
 import { useUniswapContext } from 'uniswap/src/contexts/UniswapContext'
 import type { AccountsStore } from 'uniswap/src/features/accounts/store/types/AccountsState'
+import { useAccount } from '~/connection/hooks/useAccount'
 import { useLPGeoRestriction } from '~/features/Liquidity/useLPGeoRestriction'
-import { useAccount } from '~/hooks/useAccount'
 import { PoolDetailsStatsButtons } from '~/pages/PoolDetails/components/PoolDetailsStatsButtons'
 import { USE_DISCONNECTED_ACCOUNT } from '~/test-utils/constants'
 import { mocked } from '~/test-utils/mocked'
@@ -16,14 +15,14 @@ import { validParsedPoolToken0, validParsedPoolToken1 } from '~/test-utils/pools
 import { render, screen } from '~/test-utils/render'
 
 vi.mock('uniswap/src/features/positions/hooks/useWalletPositions')
-vi.mock('~/hooks/useAccount')
+vi.mock('~/connection/hooks/useAccount')
 vi.mock('uniswap/src/contexts/UniswapContext')
 vi.mock('uniswap/src/features/transactions/swap/stores/swapFormStore/SwapFormStoreContext')
 vi.mock('~/pages/Swap', () => ({ Swap: () => <div>Swap Component</div> }))
 vi.mock('~/features/Liquidity/useLPGeoRestriction', () => ({ useLPGeoRestriction: vi.fn() }))
 
-const BANNER_TOKEN_HEADING = 'USDC isn’t available for liquidity provision in your region'
-const BANNER_GENERIC_HEADING = 'This token isn’t available for liquidity provision in your region'
+const BANNER_TOKEN_HEADING = 'USDC is unavailable in your region'
+const BANNER_GENERIC_HEADING = 'This token is unavailable in your region'
 
 const PROPS = {
   chainId: UniverseChainId.Mainnet,
@@ -44,9 +43,9 @@ function mockGeoRestriction(overrides: Partial<ReturnType<typeof useLPGeoRestric
 }
 
 /**
- * Seam E: the PDP's "Add liquidity" CTA. It navigates rather than signing, so a restricted user who
- * gets through lands in the create flow with the pair already committed — the block has to happen
- * here as well as downstream.
+ * Seam E: the PDP's "Add liquidity" CTA. It only navigates, so it stays visible for a restricted pair
+ * (block the action, not the product): the add flow it lands in opens the region modal and keeps its
+ * CTA disabled. The banner here states the restriction up front.
  */
 describe('PoolDetailsStatsButtons geo gate (pool details CTA seam)', () => {
   beforeEach(() => {
@@ -86,14 +85,16 @@ describe('PoolDetailsStatsButtons geo gate (pool details CTA seam)', () => {
     expect(screen.queryByTestId(TestID.LPGeoRestrictionBanner)).toBeNull()
   })
 
-  it('drops the CTA and explains the region block when the pair is restricted', () => {
+  it('keeps the CTA and explains the region block when the pair is restricted', () => {
     mockGeoRestriction({ isGeoRestricted: true, restrictedTokenSymbol: 'USDC' })
     render(<PoolDetailsStatsButtons {...PROPS} />)
 
-    // Gone rather than disabled: a dead half of the row says nothing the banner does not.
-    expect(screen.queryByTestId(TestID.PoolDetailsAddLiquidityButton)).toBeNull()
     expect(screen.getByTestId(TestID.LPGeoRestrictionBanner)).toBeVisible()
     expect(screen.getByText(BANNER_TOKEN_HEADING)).toBeInTheDocument()
+
+    // Still navigates: the add flow, not this button, is where the restriction blocks the action.
+    fireEvent.click(screen.getByTestId(TestID.PoolDetailsAddLiquidityButton))
+    expect(globalThis.window.location.pathname).toBe('/positions/add/ethereum/0xpool')
   })
 
   it('falls back to the generic banner heading when the restricted token has no symbol', () => {
@@ -124,17 +125,11 @@ describe('PoolDetailsStatsButtons geo gate (pool details CTA seam)', () => {
       return Array.from(row.children)
     }
 
-    it('leaves Swap alone in the row when the pair is restricted', () => {
-      mockGeoRestriction({ isGeoRestricted: true, restrictedTokenSymbol: 'USDC' })
-      render(<PoolDetailsStatsButtons {...PROPS} />)
-
-      const swap = screen.getByTestId(TestID.PoolDetailsSwapButton)
-      expect(swap).toHaveTextContent('Swap')
-      expect(rowChildren()).toEqual([swap])
-    })
-
-    it('hands both CTAs straight to the row when the pair is clean', () => {
-      mockGeoRestriction({})
+    it.each([
+      ['clean', {}],
+      ['restricted', { isGeoRestricted: true, restrictedTokenSymbol: 'USDC' }],
+    ])('hands both CTAs straight to the row when the pair is %s', (_, geoRestriction) => {
+      mockGeoRestriction(geoRestriction)
       render(<PoolDetailsStatsButtons {...PROPS} />)
 
       const swap = screen.getByTestId(TestID.PoolDetailsSwapButton)
