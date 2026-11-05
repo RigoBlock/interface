@@ -7,7 +7,7 @@
  */
 import { isProdEnv } from '@universe/environment'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { THEME_COLOR_NAMES } from '../theme-hooks-compat/theme-colors.generated'
+import { THEME_COLOR_NAMES } from '../theme-hooks-compat/theme-colors'
 import { getIsValidSporeColor, validColor } from './color-validation'
 
 vi.mock('@universe/environment', async (importOriginal) => {
@@ -95,7 +95,6 @@ const LEGACY_ACCEPTED_COLOR_NAMES: readonly string[] = [
   'chain_59144',
   'chain_7777777',
   'chain_80001',
-  'chain_81457',
   'chain_8453',
   'chain_999',
   'color',
@@ -198,7 +197,8 @@ describe('getIsValidSporeColor', () => {
   })
 
   it('enumerates the full legacy union (count pin against silent truncation)', () => {
-    expect(LEGACY_ACCEPTED_COLOR_NAMES).toHaveLength(153)
+    // RigoBlock fork: 151 upstream names + `hyperliquid` in the global network palette.
+    expect(LEGACY_ACCEPTED_COLOR_NAMES).toHaveLength(152)
   })
 
   it('accepts nothing beyond the legacy union (set-size pin — subset check plus equal size means set equality)', () => {

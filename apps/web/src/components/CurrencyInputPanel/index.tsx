@@ -5,7 +5,7 @@ import { darken } from 'polished'
 import { HTMLProps, ReactNode, useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Trans } from 'ui/src/i18n/Trans'
-import { breakpoints } from 'ui/src/theme'
+import { BREAKPOINT_PX } from '@universe/mycelium/theme-hooks-compat'
 import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
 import { useIsSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
 import { Locale } from 'uniswap/src/features/language/constants'
@@ -22,11 +22,11 @@ import { FiatValue } from '~/components/CurrencyInputPanel/FiatValue'
 import { LoadingOpacityContainer, loadingOpacityMixin } from '~/components/Loader/styled'
 import { DoubleCurrencyLogo } from '~/components/Logo/DoubleLogo'
 import CurrencySearchModal from '~/components/SearchModal/CurrencySearchModal'
-import { useAccount } from '~/hooks/useAccount'
+import { useAccount } from '~/connection/hooks/useAccount'
 import styled from '~/lib/deprecated-styled'
 import { useActiveSmartPool } from '~/state/application/hooks'
 import { useCurrencyBalance } from '~/state/connection/hooks'
-import { SwitchNetworkAction } from '~/state/popups/types'
+import { SwitchNetworkAction } from '~/utils/popups/types'
 import { flexColumnNoWrap, flexRowNoWrap } from '~/theme/styles'
 import { escapeRegExp } from '~/utils/escapeRegExp'
 
@@ -140,7 +140,7 @@ const StyledTokenName = styled.span<{ $active?: boolean }>`
   font-size: 20px;
   white-space: nowrap;
 
-  @media screen and (max-width: ${breakpoints.md}px) {
+  @media screen and (max-width: ${BREAKPOINT_PX.md}px) {
     font-size: 16px;
   }
 `

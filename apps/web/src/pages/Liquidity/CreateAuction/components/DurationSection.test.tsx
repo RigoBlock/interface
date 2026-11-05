@@ -1,6 +1,7 @@
 import userEvent from '@testing-library/user-event'
 import { useRef, useState } from 'react'
 import i18n from 'uniswap/src/i18n'
+import { vi } from 'vitest'
 import { DurationSection, type DurationSectionHandle } from '~/pages/Liquidity/CreateAuction/components/DurationSection'
 import { CreateAuctionStoreContext } from '~/pages/Liquidity/CreateAuction/store/CreateAuctionStoreContext'
 import { createCreateAuctionStore } from '~/pages/Liquidity/CreateAuction/store/createCreateAuctionStore'
@@ -15,6 +16,12 @@ const PRE_BID_PERIOD = i18n.t('toucan.createAuction.step.configureAuction.preBid
 const PRE_BID_RANGE_ERROR = i18n.t('toucan.createAuction.step.configureAuction.preBid.range.error')
 
 type Duration = { startTime: Date | undefined; endTime: Date | undefined; preBidStartTime: Date | undefined }
+
+// The calendar opens on the start date's month, so near a month end "a few days after the
+// start" lands in the next month and isn't a clickable cell. Pin the clock mid-month; only
+// Date is faked, so user-event still runs on real timers.
+vi.useFakeTimers({ toFake: ['Date'] })
+vi.setSystemTime(new Date(2026, 5, 15, 12))
 
 const START = new Date(Date.now() + MS_PER_DAY)
 const END = new Date(Date.now() + 6 * MS_PER_DAY)
@@ -62,6 +69,10 @@ describe('DurationSection pre-bid module', () => {
   // present, so a `??=` reads as an unnecessary nullish assignment to the type-aware lint.
   beforeAll(() => {
     Element.prototype.scrollIntoView = () => {}
+  })
+
+  afterAll(() => {
+    vi.useRealTimers()
   })
 
   it('offers the module but does not show it until it is added', () => {
@@ -169,13 +180,25 @@ describe('DurationSection pre-bid module', () => {
   // end IS the emission start, so picking a pre-bid start after it would wipe the Duration start
   // date via a date click. Clearing is the Remove button's job.
   it('does not wipe the emission start when a pre-bid start is picked past it', async () => {
-    const { seen } = renderSection({ preBidStartTime: new Date(START.getTime() - 15 * 60_000) })
+    const preBidStartTime = new Date(START.getTime() - 15 * 60_000)
+    const { seen } = renderSection({ preBidStartTime })
 
     // Open the pre-bid module's own calendar and pick a day well after the emission start.
     await userEvent.click(screen.getByLabelText(PRE_BID_START))
     const dayAfterStart = new Date(START.getTime() + 3 * MS_PER_DAY)
-    const cells = screen.getAllByText(dayAfterStart.getDate().toString())
-    await userEvent.click(cells[cells.length - 1])
+    // The calendar opens on the pre-bid start's month; near a month end the target day is in the
+    // next one, and the visible grid has no enabled cell for it.
+    const monthsAhead =
+      (dayAfterStart.getFullYear() - preBidStartTime.getFullYear()) * 12 +
+      dayAfterStart.getMonth() -
+      preBidStartTime.getMonth()
+    for (let i = 0; i < monthsAhead; i++) {
+      await userEvent.click(screen.getByLabelText('Go to next month'))
+    }
+    const cell = screen
+      .getAllByRole('gridcell', { name: dayAfterStart.getDate().toString() })
+      .find((c) => !c.hasAttribute('disabled') && !c.classList.contains('rdp-day_outside'))
+    await userEvent.click(cell!)
 
     // Pins the value, not just its existence: `toBeDefined()` would also pass if a regression
     // moved the emission start to the clicked day instead of clearing it.

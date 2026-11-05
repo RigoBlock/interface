@@ -4,7 +4,7 @@ const DEFAULT_COLOR = { red: 35, green: 43, blue: 43 }
 
 /**
  * Regression tests for the SSRF/defense-in-depth posture of the OG-image
- * color extractor. The URL flows in from the backend GraphQL response
+ * color extractor. The URL flows in from the backend data API response
  * (`project.logoUrl`); if the upstream ever returns a non-https or
  * IP-literal URL it should not be fetched.
  */
@@ -26,13 +26,17 @@ describe('getRGBColor — input validation', () => {
     expect(fetchSpy).not.toHaveBeenCalled()
   })
 
-  it('returns the USDC override without fetching when the CoinGecko URL version changes', async () => {
-    expect(await getRGBColor('https://coin-images.coingecko.com/coins/images/6319/large/USDC.png?1769615602')).toEqual({
+  it('returns the curated color without fetching the logo', async () => {
+    expect(await getRGBColor('https://assets.example.com/usdc.png', true, '#0066D9')).toEqual({
       red: 0,
       green: 102,
       blue: 217,
     })
     expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it('returns the curated color even when the token has no logo', async () => {
+    expect(await getRGBColor(undefined, true, '#0066D9')).toEqual({ red: 0, green: 102, blue: 217 })
   })
 
   it('returns DEFAULT_COLOR without fetching for file:// URLs', async () => {

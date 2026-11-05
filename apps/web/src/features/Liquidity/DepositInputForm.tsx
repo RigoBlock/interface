@@ -6,7 +6,7 @@ import { CurrencyInputPanelRef } from 'uniswap/src/components/CurrencyInputPanel
 import { CurrencyField } from 'uniswap/src/types/currency'
 import { useTokenBalanceWithBuffer } from '~/features/Liquidity/Create/hooks/useDepositInfo'
 import { useNativeTokenPercentageBufferExperiment } from '~/features/Liquidity/Create/hooks/useNativeTokenPercentageBufferExperiment'
-import { useCurrencyInfo } from '~/hooks/Tokens'
+import { useCurrencyInfo } from '~/hooks/currency/useCurrencyInfo'
 import { DepositInfo } from '~/types/liquidity'
 import { PositionField } from '~/types/position'
 
@@ -86,8 +86,8 @@ export function DepositInputForm({
   const token0BalanceWithBuffer = useTokenBalanceWithBuffer(currencyBalances?.[PositionField.TOKEN0], effectiveBuffer)
   const token1BalanceWithBuffer = useTokenBalanceWithBuffer(currencyBalances?.[PositionField.TOKEN1], effectiveBuffer)
 
-  // TODO(WEB-4920): when the backend returns the logo info make sure that there is no call being made
-  // to graphql to retrieve it
+  // TODO(WEB-4920): when the backend returns the logo info make sure that there is no separate token
+  // metadata call being made to retrieve it
   const token0CurrencyInfo = useCurrencyInfo(token0)
   const token1CurrencyInfo = useCurrencyInfo(token1)
 

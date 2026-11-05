@@ -233,9 +233,10 @@ const AuctionGraduatedSuccess = ({
 // sources; the branching is inherent, matching TokenLaunchedBanner's data container.
 // oxlint-disable-next-line complexity
 export function AuctionGraduated() {
-  const { auctionDetails, checkpointData, currentBlockNumber } = useAuctionStore((state) => ({
+  const { auctionDetails, checkpointData, isFinalPricePending, currentBlockNumber } = useAuctionStore((state) => ({
     auctionDetails: state.auctionDetails,
     checkpointData: state.checkpointData,
+    isFinalPricePending: state.progress.isFinalPricePending,
     currentBlockNumber: state.currentBlockNumber,
   }))
   const auctionToken = auctionDetails?.token
@@ -275,7 +276,7 @@ export function AuctionGraduated() {
   const bidTokenSymbol = bidTokenCurrency?.symbol
 
   // Real (redeemable) token info for the redeem card's symbol. useAuctionTokenInfo falls back to
-  // an on-chain symbol read when the token isn't GraphQL-indexed, so the redeemable amount is
+  // an on-chain symbol read when the backend has no metadata for the token, so the redeemable amount is
   // never mislabeled with the virtual token's symbol.
   const { tokenInfo: realTokenInfo, loading: realTokenLoading } = useAuctionTokenInfo(
     isRedeemable && realTokenAddress ? realTokenAddress : undefined,
@@ -307,7 +308,14 @@ export function AuctionGraduated() {
     )
   }
 
-  if (!auctionDetails || !auctionCurrency || clearingPrice === '0' || !bidTokenCurrency || !bidTokenSymbol) {
+  if (
+    !auctionDetails ||
+    !auctionCurrency ||
+    clearingPrice === '0' ||
+    isFinalPricePending ||
+    !bidTokenCurrency ||
+    !bidTokenSymbol
+  ) {
     return <AuctionGraduatedSkeleton />
   }
 

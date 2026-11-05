@@ -17,11 +17,9 @@ import { PortfolioTab } from '~/pages/Portfolio/types'
 function renderPortfolioContent({
   tab,
   isPortfolioDefiTabEnabled,
-  portfolioPoolsBalancesEnabled,
 }: {
   tab: PortfolioTab | undefined
   isPortfolioDefiTabEnabled: boolean
-  portfolioPoolsBalancesEnabled: boolean
 }) {
   switch (tab) {
     case PortfolioTab.Overview:
@@ -31,8 +29,7 @@ function renderPortfolioContent({
     case PortfolioTab.Staking:
       return <PortfolioStaking />
     case PortfolioTab.Pools:
-      // If pools tab is disabled, usePortfolioRoutes will redirect to overview tab
-      return portfolioPoolsBalancesEnabled ? <PortfolioPools /> : <></>
+      return <PortfolioPools />
     case PortfolioTab.Defi:
       // If defi tab is disabled, usePortfolioRoutes will redirect to overview tab
       return isPortfolioDefiTabEnabled ? <PortfolioDefi /> : <></>
@@ -52,12 +49,11 @@ export function PortfolioContent({ disabled }: { disabled?: boolean }): JSX.Elem
   const animationType = usePortfolioTabsAnimation(pathname)
   const { tab } = usePortfolioRoutes()
   const isPortfolioDefiTabEnabled = useFeatureFlag(FeatureFlags.PortfolioDefiTab)
-  const portfolioPoolsBalancesEnabled = useFeatureFlag(FeatureFlags.PortfolioPoolsBalances)
 
   return (
     <Flex flex={1} position="relative" $platform-web={disabled ? { pointerEvents: 'none' } : undefined}>
       <TransitionItem childKey={pathname} animationType={animationType} curve="fast">
-        {renderPortfolioContent({ tab, isPortfolioDefiTabEnabled, portfolioPoolsBalancesEnabled })}
+        {renderPortfolioContent({ tab, isPortfolioDefiTabEnabled })}
       </TransitionItem>
     </Flex>
   )

@@ -100,6 +100,7 @@ export const UniswapHelpUrls = {
       '43107626487437-What-are-Continuous-Clearing-Auctions#what-is-a-graduation-threshold',
     ),
     toucanLaunchAuctionHelp: createHelpArticleUrl('46569604134157'),
+    toucanPoolsLaunchHelp: createHelpArticleUrl('47943121516685-Launching-and-trading-tokens-on-pools-xyz'),
     // Deep-links into specific sections of the published CCA launch guide; anchors match the article's headings.
     toucanLaunchAuctionConfigureAuctionHelp: createHelpArticleUrl(
       '46569604134157-Launching-a-Continuous-Clearing-Auction',
@@ -202,7 +203,6 @@ export interface UniswapUrlOverrides {
   apiBaseUrlOverride?: string
   apiBaseUrlV2Override?: string
   forApiUrlOverride?: string
-  graphqlUrlOverride?: string
   liquidityServiceUrlOverride?: string
   scantasticApiUrlOverride?: string
   statsigProxyUrlOverride?: string
@@ -220,7 +220,6 @@ export interface UniswapServiceUrls {
   embeddedWalletHostname: string
   embeddedWalletUrl: string
   forApiUrl: string
-  graphQLUrl: string
   liquidityServiceUrl: string
   passkeysManagementUrl: string
   privyEmbeddedWalletUrl: string
@@ -256,8 +255,6 @@ export function getUniswapServiceUrls(overrides: UniswapUrlOverrides): UniswapSe
 
     // FOR traffic goes through the RigoBlock gateway, same as the other data services.
     forApiUrl: overrides.forApiUrlOverride || `${getRbCloudflareApiBaseUrl(TrafficFlows.FOR)}/v2/FOR.v1.FORService`,
-
-    graphQLUrl: overrides.graphqlUrlOverride || getRbCloudflareApiBaseUrl(TrafficFlows.GraphQL),
 
     liquidityServiceUrl: overrides.liquidityServiceUrlOverride || `${getRbCloudflareApiBaseUrl()}/v2/liquidity`,
 

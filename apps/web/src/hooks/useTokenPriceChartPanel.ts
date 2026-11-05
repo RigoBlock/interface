@@ -1,8 +1,11 @@
 import type { Currency } from '@uniswap/sdk-core'
 import { useLayoutEffect, useMemo } from 'react'
 import { PollingInterval } from 'uniswap/src/constants/misc'
-import { fromGraphQLChain } from 'uniswap/src/features/chains/utils'
-import { useTokenPriceChange, useTokenSpotPrice } from 'uniswap/src/features/dataApi/tokenDetails/useTokenDetailsData'
+import {
+  useTokenPriceChange,
+  useTokenPriceConfidenceScore,
+  useTokenSpotPrice,
+} from 'uniswap/src/features/dataApi/tokenDetails/useTokenDetailsData'
 import { buildCurrencyId, currencyId } from 'uniswap/src/utils/currencyId'
 import { DataQuality, PriceChartType } from '~/components/Charts/utils'
 import { TimePeriod } from '~/data/util'
@@ -34,23 +37,29 @@ export function useTokenPriceChartPanel({
 }: UseTokenPriceChartPanelParams): {
   priceQuery: ReturnType<typeof useTokenPriceChartData>
   pricePercentChange: number | undefined
+  priceConfidenceScore: number | undefined
   showInvalidSkeleton: boolean
   isError: boolean
   stale: boolean
 } {
-  const chainId = useMemo(() => fromGraphQLChain(variables.chain), [variables.chain])
   const spotCurrencyId = useMemo(() => {
     if (!variables.address) {
       return undefined
     }
-    return chainId ? buildCurrencyId(chainId, variables.address) : undefined
-  }, [chainId, variables.address])
+    return buildCurrencyId(variables.chainId, variables.address)
+  }, [variables.chainId, variables.address])
   // Authoritative even on the all-networks view — isMultichainAggregateView makes it return
   // GetTokenMultiChain's canonical-chain price rather than an arbitrary per-chain one.
   const currentPriceOverride = useTokenSpotPrice(spotCurrencyId, {
     isMultichainAggregateView: variables.multichain,
     // The V2 spot price must poll or the displayed price would freeze — REST token queries have no built-in polling
     refetchInterval: disablePricePolling ? undefined : PollingInterval.KindaFast,
+    skip,
+  })
+
+  // Same currency and multichain flag as the spot price, so the score is for the price actually shown.
+  const priceConfidenceScore = useTokenPriceConfidenceScore(spotCurrencyId, {
+    multichain: variables.multichain,
     skip,
   })
 
@@ -83,6 +92,7 @@ export function useTokenPriceChartPanel({
   return {
     priceQuery,
     pricePercentChange,
+    priceConfidenceScore,
     showInvalidSkeleton: priceQuery.dataQuality === DataQuality.INVALID,
     isError: priceQuery.isError ?? false,
     stale: priceQuery.dataQuality === DataQuality.STALE,

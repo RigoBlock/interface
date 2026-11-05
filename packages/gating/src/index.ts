@@ -14,6 +14,7 @@ export {
   AllowedV4WethHookAddressesConfigKey,
   AuctionFdvWarningConfigKey,
   BlockedAsyncSubmissionChainIdsConfigKey,
+  CategoriesOrderConfigKey,
   ChainsConfigKey,
   DatadogIgnoredErrorsConfigKey,
   DatadogSessionSampleRateKey,
@@ -31,6 +32,7 @@ export {
   LiquidityGasPreEstimationConfigKey,
   LPConfigKey,
   LpIncentivesChainIdsConfigKey,
+  MarginConfigKey,
   NetworkRequestsConfigKey,
   OnDeviceRecoveryConfigKey,
   RWAIssuerLogosConfigKey,
@@ -38,7 +40,6 @@ export {
   SwapConfigKey,
   SynchronizedHeartbeatsConfigKey,
   SyncTransactionSubmissionChainIdsConfigKey,
-  TokenCategoriesOrderConfigKey,
   TokenCategoriesSearchSpotlightConfigKey,
   UniswapBuiltHookAddressesConfigKey,
   VerifiedAuctionsConfigKey,
@@ -65,6 +66,10 @@ export {
   WEB_FEATURE_FLAG_NAMES,
 } from '@universe/gating/src/flags'
 export { getIsHashcashSolverEnabled, useIsHashcashSolverEnabled } from '@universe/gating/src/getIsHashcashSolverEnabled'
+export {
+  useIsPoolCategoriesEnabled,
+  useIsPoolCategoriesEnabledWithLoading,
+} from '@universe/gating/src/useIsPoolCategoriesEnabled'
 export {
   useIsTokenCategoriesEnabled,
   useIsTokenCategoriesEnabledWithLoading,
@@ -107,4 +112,12 @@ export {
   useGateValue,
   useLayer,
 } from '@universe/gating/src/sdk/statsig'
-export { getOverrides, isStatsigClientRegistered, waitForStatsigReady } from '@universe/gating/src/utils'
+export {
+  getOverrides,
+  isOverrideName,
+  isStatsigClientRegistered,
+  namedOverrideEntries,
+  waitForStatsigReady,
+} from '@universe/gating/src/utils'
+export type { GatingOverrideTarget, GatingUrlOverrides, GatingUrlParams } from '@universe/gating/src/urlOverrides'
+export { applyGatingUrlOverrides, GATING_URL_PARAMS, parseGatingUrlOverrides } from '@universe/gating/src/urlOverrides'

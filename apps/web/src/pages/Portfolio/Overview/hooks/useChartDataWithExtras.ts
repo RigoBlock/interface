@@ -46,7 +46,8 @@ function valueFromHistory({
   timestampSec: number
   liveTailValue?: number
 }): number {
-  if (history.length > 0 && liveTailValue !== undefined && timestampSec >= history[history.length - 1]!.timestamp) {
+  const lastSample = history.at(-1)
+  if (history.length > 0 && liveTailValue !== undefined && lastSample && timestampSec >= lastSample.timestamp) {
     return liveTailValue
   }
   let value = 0

@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import { UniswapLogo } from 'ui/src/components/icons/UniswapLogo'
-import { UniswapX } from 'ui/src/components/icons/UniswapX'
+import { UniswapLogo } from '@universe/mycelium/icons/UniswapLogo'
+import { UniswapX } from '@universe/mycelium/icons/UniswapX'
 import { TransactionDetailsTooltip as Tooltip } from 'uniswap/src/components/TransactionDetailsTooltip'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { useUSDCValue } from 'uniswap/src/features/transactions/hooks/useUSDCPrice'

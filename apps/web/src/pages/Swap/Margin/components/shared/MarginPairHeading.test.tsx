@@ -1,5 +1,6 @@
 import { screen } from '@testing-library/react'
 import type { MarginActivePosition } from 'uniswap/src/data/apiClients/tradingApi/MarginApiClient'
+import { MarginDirection } from 'uniswap/src/features/transactions/margin/types'
 import { describe, expect, it, vi } from 'vitest'
 import { MARGIN_CHAIN_ID } from '~/constants/margin'
 import { getDefaultMarginMarket } from '~/pages/Swap/Margin/__fixtures__/marginCatalog'
@@ -8,13 +9,13 @@ import { render } from '~/test-utils/render'
 
 // Echo the venue prop so we assert the heading wires the market's venue into the ghost;
 // the venue→logo mapping itself is covered by MarginVenueLogo.test.tsx.
-vi.mock('~/pages/Swap/Margin/components/MarginVenueLogo', () => ({
+vi.mock('~/features/margin/components/MarginVenueLogo', () => ({
   MarginVenueLogo: ({ venue }: { venue: string }) => <div data-testid="venue-logo" data-venue={venue} />,
 }))
 
 // Currency-info resolution drags in the token/data-API web; the heading needs it only for logo art.
-vi.mock('~/pages/Swap/Margin/hooks/useMarginCurrencyInfos', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('~/pages/Swap/Margin/hooks/useMarginCurrencyInfos')>()),
+vi.mock('~/features/margin/hooks/useMarginCurrencyInfos', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('~/features/margin/hooks/useMarginCurrencyInfos')>()),
   useMarginCurrencyInfos: () => new Map(),
 }))
 
@@ -39,7 +40,7 @@ describe('MarginPairHeading', () => {
       return {
         positionId: '7',
         status: 'ACTIVE',
-        direction: 'LONG',
+        direction: MarginDirection.LONG,
         exposureToken: {
           address: MARKET.collateral.address,
           chainId: MARGIN_CHAIN_ID,
@@ -102,12 +103,16 @@ describe('MarginPairHeading', () => {
       collateral: MARKET.debt,
       debt: MARKET.collateral,
       displaySymbol: MARKET.debt.symbol,
-      direction: 'SHORT' as const,
+      direction: MarginDirection.SHORT,
     }
 
     it('sizes a short by its exposure (debt) leg, not the stable collateral', () => {
       render(
-        <MarginPairHeading market={SHORT_MARKET} variant="direction" position={position({ direction: 'SHORT' })} />,
+        <MarginPairHeading
+          market={SHORT_MARKET}
+          variant="direction"
+          position={position({ direction: MarginDirection.SHORT })}
+        />,
       )
       // Decoding against the 6dp collateral would print ~53,000,000,000; the stable ticker would
       // replace ETH — the exact line pins both the amount and the exposure symbol.

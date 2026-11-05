@@ -65,7 +65,9 @@
       "wallet/*": ["./packages/wallet/*"],
       "@universe/experiments/*": ["./packages/experiments/*"],
       "@universe/embedded-wallet/*": ["./packages/embedded-wallet/*"],
-      "@universe/test/*": ["./packages/test/*"]
+      "@universe/test/*": ["./packages/test/*"],
+      "@universe/transactions-ui/*": ["./packages/transactions-ui/*"],
+      "@universe/cca/*": ["./packages/cca/*"]
     }
   }
 }

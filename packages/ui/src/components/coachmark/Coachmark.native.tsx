@@ -1,6 +1,6 @@
 import { Flex } from '@universe/mycelium'
 import { Text } from '@universe/mycelium'
-import { TouchableArea } from '@universe/mycelium'
+import { TouchableArea, useIsDarkMode, useSporeColors } from '@universe/mycelium'
 import {
   FloatingOverlayAnchor,
   FloatingOverlayArrow,
@@ -10,14 +10,11 @@ import {
   joinPlacement,
   splitPlacement,
 } from '@universe/mycelium/floating-overlay'
+import { type UseSporeColorsReturn, useShadowPropsMedium } from '@universe/mycelium/theme-hooks-compat'
+import { spacing, zIndexes } from '@universe/mycelium/tokens'
 import { type ReactNode, useEffect, useRef } from 'react'
 import { Animated, type StyleProp, type ViewStyle } from 'react-native'
 import type { CoachmarkProps } from 'ui/src/components/coachmark/Coachmark'
-import { useIsDarkMode } from 'ui/src/hooks/useIsDarkMode'
-import { type UseSporeColorsReturn, useSporeColors } from 'ui/src/hooks/useSporeColors'
-import { useShadowPropsMedium } from 'ui/src/theme/shadows'
-import { spacing } from 'ui/src/theme/spacing'
-import { zIndexes } from 'ui/src/theme/zIndexes'
 import { useEvent } from 'utilities/src/react/hooks'
 
 export const COACHMARK_BUBBLE_TEST_ID = 'coachmark-bubble'

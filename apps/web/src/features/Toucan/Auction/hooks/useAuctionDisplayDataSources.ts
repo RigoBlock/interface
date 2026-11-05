@@ -6,11 +6,12 @@ import { auctionQueries } from 'uniswap/src/data/apiClients/dataApiService/aucti
 import { getBlockNumberQueryOptions } from 'uniswap/src/features/providers/getBlockNumberQueryOptions'
 import { useEvent, usePrevious } from 'utilities/src/react/hooks'
 import { ONE_MINUTE_MS } from 'utilities/src/time/time'
+import { useTokenPoolState } from '~/features/Toucan/Auction/hooks/useTokenPoolState'
 import type { CurrencyRaisedState, CurrentBlockState } from '~/features/Toucan/Auction/utils/resolveAuctionDisplayState'
 import { parseNonNegativeBigInt } from '~/features/Toucan/Auction/utils/safeBigInt'
-import { useTokenPoolState } from '~/hooks/useTokenPoolState'
 import type { TokenPoolState } from '~/types/tokenPool'
-import { getAverageBlockTimeMs, getPollingIntervalMs } from '~/utils/averageBlockTimeMs'
+import { getPollingIntervalMs } from '~/utils/averageBlockTimeMs'
+import { blockSpanMs } from '~/utils/blockToTimestamp'
 
 const FAR_FROM_BOUNDARY_POLL_INTERVAL_MS = 2 * ONE_MINUTE_MS
 // Switch to the chain's faster polling interval within this window.
@@ -92,7 +93,6 @@ export function useAuctionDisplayDataSources({
   }, [isAtOrPastEndBlock, wasAtOrPastEndBlock, refetchPools])
 
   const checkpointEnabled = enabled && chainId !== undefined && Boolean(auctionAddress) && isAtOrPastEndBlock
-  // TODO(CONS-3362): determine whether an auction graduated or failed on the backend instead of here.
   // A fresh request can still return a cached amount from before the auction ended.
   const checkpointQuery = useQuery(getAuctionCheckpointQuery({ chainId, auctionAddress, enabled: checkpointEnabled }))
 
@@ -220,8 +220,8 @@ function getBlockPollingInterval({
   }
 
   const nextBoundary = upcoming.reduce((earliest, block) => (block < earliest ? block : earliest))
-  const timeToBoundary = (nextBoundary - blockNumber) * BigInt(getAverageBlockTimeMs(chainId))
-  return timeToBoundary <= BigInt(NEAR_BOUNDARY_WINDOW_MS)
+  const timeToBoundaryMs = blockSpanMs({ chainId, fromBlock: Number(blockNumber), toBlock: Number(nextBoundary) })
+  return timeToBoundaryMs <= NEAR_BOUNDARY_WINDOW_MS
     ? getPollingIntervalMs(chainId)
     : FAR_FROM_BOUNDARY_POLL_INTERVAL_MS
 }

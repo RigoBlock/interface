@@ -4,12 +4,11 @@
  *
  * Upstream deleted the old `DefaultTheme`-based theme (`~/theme`, `ThemedText`,
  * `themeGet`); this module restores the runtime values as well, mapped onto the
- * current spore color tokens (`ui/src/theme/color/colors`), and is mounted by
+ * current spore color tokens (`@universe/mycelium/theme-hooks-compat`), and is mounted by
  * `DeprecatedThemeProvider` in `~/theme/index.tsx`. Without that provider the
  * legacy pages crash on `theme.grids[...]`-style interpolations.
  */
-import { breakpoints } from 'ui/src/theme'
-import { colorsDark, colorsLight } from 'ui/src/theme/color/colors'
+import { BREAKPOINT_PX, DARK_THEME_COLORS, LIGHT_THEME_COLORS } from '@universe/mycelium/theme-hooks-compat'
 import { css } from '~/lib/deprecated-styled'
 
 export type DeprecatedGap = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
@@ -87,11 +86,11 @@ const deprecatedTransitions: DeprecatedTheme['transition'] = {
 const deprecatedOpacity: DeprecatedTheme['opacity'] = { hover: 0.6 }
 
 const deprecatedBreakpoint: DeprecatedBreakpoint = {
-  sm: breakpoints.sm,
-  md: breakpoints.md,
-  lg: breakpoints.lg,
-  xl: breakpoints.xl,
-  xxl: breakpoints.xxl,
+  sm: BREAKPOINT_PX.sm,
+  md: BREAKPOINT_PX.md,
+  lg: BREAKPOINT_PX.lg,
+  xl: BREAKPOINT_PX.xl,
+  xxl: BREAKPOINT_PX.xxl,
 }
 
 const MEDIA_WIDTH_PX = {
@@ -124,7 +123,7 @@ const deprecatedMediaWidth: DeprecatedMediaWidthTemplates = {
  * transitions) are preserved verbatim from the deleted theme.
  */
 export function getDeprecatedTheme(darkMode: boolean): DeprecatedTheme {
-  const colors = darkMode ? colorsDark : colorsLight
+  const colors = darkMode ? DARK_THEME_COLORS : LIGHT_THEME_COLORS
   return {
     accent1: colors.accent1,
     accent2: colors.accent2,

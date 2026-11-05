@@ -1,5 +1,4 @@
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
-import { UniverseChainId } from '@universe/chains'
 import { clickableStyle, Flex, Text, TouchableArea } from '@universe/mycelium'
 import { useAtom } from 'jotai'
 import { useCallback } from 'react'
@@ -10,7 +9,6 @@ import { useLocalizationContext } from 'uniswap/src/features/language/Localizati
 import { NumberType } from 'utilities/src/format/types'
 import { getTokenDetailsURL } from '~/data/util'
 import { shouldDisableExploreRoutesAtom } from '~/state/application/atoms'
-import { getChainUrlParam } from '~/utils/params/chainParams'
 
 type AmountRow = {
   currencyInfo: CurrencyInfo
@@ -36,7 +34,7 @@ export function LiquidityPositionAmountRows({ rows }: LiquidityPositionAmountRow
       address: currencyInfo.currency.isToken ? currencyInfo.currency.address : undefined, // util handles native addresses
       // Derived per row rather than from the first one: reward rows can be denominated in a token
       // from a different chain than the row above them.
-      chainUrlParam: getChainUrlParam(currencyInfo.currency.chainId || UniverseChainId.Mainnet),
+      chainId: currencyInfo.currency.chainId,
     })
   }, [])
 

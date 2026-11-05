@@ -107,6 +107,7 @@ export function CurrencyRow({
   disabled,
   tooltip,
   showAddress,
+  testId,
 }: {
   currencyInfo: CurrencyInfo
   onSelect: (hasWarning: boolean) => void
@@ -121,6 +122,7 @@ export function CurrencyRow({
   disabled?: boolean
   tooltip?: string
   showAddress?: boolean
+  testId?: string
 }) {
   const { currency } = currencyInfo
   const { convertFiatAmountFormatted, formatNumberOrString } = useLocalizationContext()
@@ -149,6 +151,7 @@ export function CurrencyRow({
       style={{ outline: 'none', display: 'contents' }}
     >
       <MenuItem
+        testID={testId}
         onPress={() => onSelect(warningSeverity === WarningSeverity.None)}
         selected={otherSelected || isSelected}
         dim={isBlockedToken}

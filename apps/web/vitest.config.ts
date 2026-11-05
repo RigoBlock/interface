@@ -40,7 +40,6 @@ const config = defineConfig({
         'src/**/*.d.ts',
         'src/abis/types/**',
         'src/constants/**/*.ts',
-        'src/graphql/**/__generated__/**',
         'src/locales/**',
         'src/test-utils/**',
         'src/types/v3/**',
@@ -89,4 +88,4 @@ const config = defineConfig({
   },
 })
 
-export default withRnPrimitives(config, 'web')
+export default withRnPrimitives(config)

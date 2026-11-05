@@ -6,7 +6,7 @@ import { DEFAULT_LOCALE, Language, Locale, mapLocaleToLanguage } from 'uniswap/s
 import { useCurrentLocale, useLanguageInfo } from 'uniswap/src/features/language/hooks'
 import { navigatorLocale } from 'uniswap/src/features/language/navigatorLocale'
 import { setCurrentLanguage } from 'uniswap/src/features/settings/slice'
-import { useLocationLinkProps } from '~/hooks/useLocationLinkProps'
+import { useLocationLinkProps } from '~/components/AccountDrawer/hooks/useLocationLinkProps'
 import { useAppDispatch } from '~/state/hooks'
 import { StyledInternalLink } from '~/theme/components/Links'
 

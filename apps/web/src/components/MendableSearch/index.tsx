@@ -1,5 +1,5 @@
 import { MendableSearchBar } from '@mendable/search'
-import { useIsDarkMode } from 'ui/src'
+import { useIsDarkMode } from '@universe/mycelium/theme-hooks-compat'
 import { RowFixed } from '~/components/deprecated/Row'
 import styled from '~/lib/deprecated-styled'
 

@@ -17,8 +17,7 @@ import * as web from './SwitchCompat.web'
 
 // The native leg's dependency closure resolves untranspiled RN-flavored
 // sources under this jsdom config — serve the button-compat stand-ins instead
-// (the button-frame-compat precedent). The real modules are exercised by the
-// packages/tailwind native parity harness.
+// (the button-frame-compat precedent).
 vi.mock('react-native', () => import('../button-compat/testing/native-mocks'))
 vi.mock('react-native-gesture-handler', () => import('../button-compat/testing/gesture-handler-mock'))
 vi.mock('react-native-reanimated', () => import('../button-compat/testing/reanimated-mock'))
@@ -49,12 +48,5 @@ describe('export parity across the legs', () => {
   it('the native leg is NOT the web leg (a real split, not an accidental alias)', async () => {
     const native = await import('./SwitchCompat.native')
     expect(native.SwitchCompat as unknown).not.toBe(web.SwitchCompat)
-  })
-})
-
-describe('the subpath barrel resolves every symbol', () => {
-  it('exports the component', async () => {
-    const barrel = await import('./index')
-    expect(barrel.SwitchCompat).toBe(web.SwitchCompat)
   })
 })

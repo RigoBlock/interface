@@ -26,13 +26,13 @@ import { type PoolsListsState } from '~/state/lists/poolsList/reducer'
 import { type ListsState } from '~/state/lists/types'
 import { type LogsState } from '~/state/logs/slice'
 import { type MintState } from '~/state/mint/v3/reducer'
-import { type PopupType } from '~/state/popups/types'
 import { type PortfolioStakingState } from '~/state/portfolio/stakingSlice'
 import { type RouterPreference } from '~/state/routing/types'
 import { type UserState } from '~/state/user/reducer'
 import { type SlippageTolerance } from '~/state/user/types'
 import { type WalletCapabilitiesState } from '~/state/walletCapabilities/types'
 import { type InterfaceState } from '~/state/webReducer'
+import { type PopupType } from '~/utils/popups/types'
 
 /**
  * WARNING:

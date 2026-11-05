@@ -10,6 +10,7 @@ import { deriveTokenFromMultichainToken } from 'uniswap/src/data/apiClients/data
 import { normalizeBackendNativeAddress } from 'uniswap/src/data/apiClients/dataApiService/utils/dataApiMultichainToken'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { isUniverseChainId } from 'uniswap/src/features/chains/utils'
+import { formatColorOverrides } from 'uniswap/src/features/dataApi/utils/formatColorOverrides'
 import { restV2TokenToCurrencyInfo } from 'uniswap/src/features/dataApi/utils/restV2TokenToCurrencyInfo'
 import { usePortfolioBalances } from 'uniswap/src/features/portfolio/balances/hooks'
 import {
@@ -19,8 +20,8 @@ import {
   normalizeCurrencyIdForMapLookup,
 } from 'uniswap/src/utils/currencyId'
 import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
+import { useActiveAddresses } from '~/connection/accounts/hooks'
 import { NATIVE_CHAIN_ID } from '~/constants/tokens'
-import { useActiveAddresses } from '~/features/accounts/store/hooks'
 import { useSrcColor } from '~/hooks/useColor'
 import type { LoadedTDPContext, MultiChainMap, PendingTDPContext } from '~/pages/TokenDetails/context/TDPContext'
 import { useTokenDetailsAuction } from '~/pages/TokenDetails/hooks/useTokenDetailsAuction'
@@ -51,7 +52,7 @@ export function useCreateTDPContext(): {
   const isNative = tokenAddress === NATIVE_CHAIN_ID
   const auctionSource = useTokenDetailsAuction({ chainId: currencyChainInfo.id, tokenAddress, isNative })
 
-  const tokenDBAddress = isNative ? getNativeTokenDBAddress(currencyChainInfo.backendChain.chain) : tokenAddress
+  const tokenDBAddress = isNative ? getNativeTokenDBAddress(currencyChainInfo.id) : tokenAddress
 
   // getTdpTokenMultiChainQueryOptions cache-normalizes the address, so this query key matches the ones
   // the shared token hooks (and the Launches hover-prefetch) build — GetTokenMultiChain never double-fetches.
@@ -113,6 +114,7 @@ export function useCreateTDPContext(): {
       src: extractedColorSrc,
       currencyName: currency?.name,
       backgroundColor: colors.surface2.val,
+      colorOverrides: formatColorOverrides(token?.project?.colors),
     }).tokenColor ?? undefined
 
   const { pageQueryLoading, chainDataLoading, multichainTokenLoaded } = useMemo(() => {
@@ -149,7 +151,6 @@ export function useCreateTDPContext(): {
   const state = useMemo(() => {
     return {
       currency,
-      currencyChain: currencyChainInfo.backendChain.chain,
       currencyChainId: currencyChainInfo.id,
       // `currency.address` is checksummed, whereas the `tokenAddress` url param may not be
       address: (currency?.isNative ? NATIVE_CHAIN_ID : currency?.address) ?? tokenAddress,
@@ -167,7 +168,6 @@ export function useCreateTDPContext(): {
     }
   }, [
     currency,
-    currencyChainInfo.backendChain.chain,
     currencyChainInfo.id,
     tokenAddress,
     multiChainMap,
@@ -220,7 +220,7 @@ function useMultiChainMap(multichainToken: PlainMessage<MultichainToken> | undef
     }
 
     // GetTokenMultiChain returns checksummed addresses while portfolio balance ids are built from
-    // REST portfolio casing (typically lowercase); legacy GraphQL rows are lowercase. Normalize
+    // REST portfolio casing (typically lowercase). Normalize
     // both sides of the lookup so balances never miss on address case.
     const balancesByNormalizedId =
       balancesById &&
@@ -240,7 +240,7 @@ function useMultiChainMap(multichainToken: PlainMessage<MultichainToken> | undef
       const isNativeDeployment = isNativeCurrencyAddress(chainId, normalizedAddress)
 
       const update = map[chainId] ?? {}
-      // Native deployments keep an undefined address (parity with GraphQL's null-address rows)
+      // Native deployments keep an undefined address
       update.address = isNativeDeployment ? undefined : deploymentAddress
 
       if (balancesByNormalizedId) {

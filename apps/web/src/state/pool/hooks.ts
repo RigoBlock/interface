@@ -28,9 +28,9 @@ import {
   RB_FACTORY_ADDRESSES,
   RB_REGISTRY_ADDRESSES,
 } from '~/constants/addresses'
-import { useAccount } from '~/hooks/useAccount'
-import { useContract } from '~/hooks/useContract'
-import { useTotalSupply } from '~/hooks/useTotalSupply'
+import { useAccount } from '~/connection/hooks/useAccount'
+import { useContract } from '~/connection/hooks/useContract'
+import { useTotalSupply } from '~/state/pool/useTotalSupply'
 import { useStakingContract } from '~/state/governance/hooks'
 import { useLogs } from '~/state/logs/hooks'
 import { useMultiChainAllPoolsData, useMultiChainStakingPools } from '~/state/pool/multichain'

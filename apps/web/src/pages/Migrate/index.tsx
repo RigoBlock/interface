@@ -1,15 +1,14 @@
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
 import type { Currency, CurrencyAmount } from '@uniswap/sdk-core'
-import { Flex } from '@universe/mycelium'
+import { Button, Flex } from '@universe/mycelium'
+import { ArrowDown } from '@universe/mycelium/icons/ArrowDown'
+import { RotatableChevron } from '@universe/mycelium/icons/RotatableChevron'
+import { RotateLeft } from '@universe/mycelium/icons/RotateLeft'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Dispatch, ReactNode, SetStateAction } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { useLocation, useNavigate, useParams } from 'react-router'
-import { Button } from 'ui/src'
-import { ArrowDown } from 'ui/src/components/icons/ArrowDown'
-import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
-import { RotateLeft } from 'ui/src/components/icons/RotateLeft'
 import { useGetPositionInfo } from 'uniswap/src/features/positions/hooks/useGetPositionInfo'
 import type { PositionInfo } from 'uniswap/src/features/positions/types'
 import { InterfacePageName, ModalName, SectionName } from 'uniswap/src/features/telemetry/constants'
@@ -26,8 +25,11 @@ import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
 import { BreadcrumbNavLink } from '~/components/BreadcrumbNav'
 import { ErrorCallout } from '~/components/ErrorCallout'
 import { LoadingRows } from '~/components/Loader/styled'
+import { useAccount } from '~/connection/hooks/useAccount'
+import { useSelectChain } from '~/connection/hooks/useSelectChain'
 import { getLPBaseAnalyticsProperties } from '~/features/Liquidity/analytics'
 import { FormStepsWrapper, FormWrapper } from '~/features/Liquidity/Create/FormWrapper'
+import { useInitialPriceAcceptance } from '~/features/Liquidity/Create/hooks/useInitialPriceAcceptance'
 import { useLiquidityUrlState } from '~/features/Liquidity/Create/hooks/useLiquidityUrlState'
 import { useLPSlippageValue } from '~/features/Liquidity/Create/hooks/useLPSlippageValues'
 import { DEFAULT_POSITION_STATE, MigratingPosition, PositionFlowStep } from '~/features/Liquidity/Create/types'
@@ -35,8 +37,6 @@ import { LiquidityPositionCard } from '~/features/Liquidity/LiquidityPositionCar
 import { LoadingRow } from '~/features/Liquidity/Loader'
 import { ReviewModal } from '~/features/Liquidity/ReviewModal'
 import { getCurrencyForProtocol } from '~/features/Liquidity/utils/currency'
-import { useAccount } from '~/hooks/useAccount'
-import { useSelectChain } from '~/hooks/useSelectChain'
 import {
   CreateLiquidityContextProvider,
   DEFAULT_DEPOSIT_STATE,
@@ -49,8 +49,8 @@ import { useMigratingPosition } from '~/pages/Migrate/hooks/useMigratingPosition
 import { useRedirectIfNotPositionOwner } from '~/pages/Migrate/hooks/useRedirectIfNotPositionOwner'
 import { MigratePositionTxContextProvider, useMigrateTxContext } from '~/pages/Migrate/MigrateLiquidityTxContext'
 import { useMigrateGeoGate } from '~/pages/Migrate/useMigrateGeoGate'
-import { useSetOverrideOneClickSwapFlag } from '~/pages/Swap/Swap/settings/OneClickSwap'
 import { MultichainContextProvider } from '~/state/multichain/MultichainContext'
+import { useSetOverrideOneClickSwapFlag } from '~/state/oneClickSwap/hooks'
 import { liquiditySaga } from '~/state/sagas/liquidity/liquiditySaga'
 import { useChainIdFromUrlParam } from '~/utils/params/chainParams'
 
@@ -104,6 +104,7 @@ function MigrateInner({
     openReviewModal,
     closeReviewModal: onClose,
   } = useMigrateReviewModal({ setTransactionError })
+  const initialPriceAcceptance = useInitialPriceAcceptance()
 
   const { currency0Amount, currency1Amount } = positionInfo
 
@@ -237,6 +238,7 @@ function MigrateInner({
         currencyAmounts={{ TOKEN0: currency0Amount, TOKEN1: currency1Amount }}
         currencyAmountsUSDValue={{ TOKEN0: currency0FiatAmount, TOKEN1: currency1FiatAmount }}
         feeAmounts={{ TOKEN0: positionInfo.fee0Amount, TOKEN1: positionInfo.fee1Amount }}
+        initialPriceAcceptance={initialPriceAcceptance}
         isDisabled={!txInfo?.action}
         refundedAmounts={refundedAmounts}
         transactionError={transactionError}

@@ -1,7 +1,7 @@
 import { Text } from '@universe/mycelium'
 
 import { Trans } from 'ui/src/i18n/Trans'
-import { Switch } from 'ui/src'
+import { Switch } from '@universe/mycelium'
 import Column from '~/components/deprecated/Column'
 import { RowBetween, RowFixed } from '~/components/deprecated/Row'
 import { deprecatedStyled as styled } from '~/lib/deprecated-styled'

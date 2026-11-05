@@ -1,7 +1,7 @@
 import { cn, Flex } from '@universe/mycelium'
 import type { FlexCompatProps as FlexProps } from '@universe/mycelium'
 import { PropsWithChildren } from 'react'
-import { useSporeColors } from 'ui/src'
+import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
 import styled, { DefaultTheme } from '~/lib/deprecated-styled'
 
 export const Card = ({ children, className, ...rest }: PropsWithChildren<FlexProps>) => {

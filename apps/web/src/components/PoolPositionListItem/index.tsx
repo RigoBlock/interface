@@ -3,7 +3,7 @@ import { Flex } from '@universe/mycelium'
 import { useCallback, useState } from 'react'
 //import RangeBadge from '~/components/Badge/RangeBadge'
 //import Loader from '~/components/Loader'
-//import { useToken } from '~/hooks/Tokens'
+//import { useToken } from '~/hooks/currency/useCurrencyInfo'
 
 import { Trans } from 'ui/src/i18n/Trans'
 import { Link } from 'react-router'

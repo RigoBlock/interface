@@ -8,14 +8,15 @@ import {
   Text,
   TouchableArea,
   type TouchableAreaCompatProps,
+  iconSizes,
 } from '@universe/mycelium'
 import { ENTER_PRESET_CLASSES } from '@universe/mycelium/compat'
+import { RotatableChevron } from '@universe/mycelium/icons/RotatableChevron'
 import { useShadowPropsShort } from '@universe/mycelium/theme-hooks-compat'
 import { TestID } from '@universe/test'
 import { forwardRef, type ForwardRefExoticComponent, type ReactNode, type RefAttributes } from 'react'
 import { useTranslation } from 'react-i18next'
-import { RotatableChevron } from 'ui/src/components/icons/RotatableChevron'
-import { iconSizes } from 'ui/src/theme'
+import { useCurrencyInputFontSize } from 'uniswap/src/components/CurrencyInputPanel/hooks/useCurrencyInputFontSize'
 import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
 import { useIsSupportedChainId } from 'uniswap/src/features/chains/hooks/useSupportedChainId'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
@@ -28,13 +29,13 @@ import { NumberType } from 'utilities/src/format/types'
 import { useBooleanState } from 'utilities/src/react/useBooleanState'
 import { SwapCurrencyInput } from '~/components/NumericalInput/NumericalInput'
 import { CurrencySearchModal } from '~/components/SearchModal/CurrencySearchModal'
+import { useAccount } from '~/connection/hooks/useAccount'
 import { formatCurrencySymbol } from '~/features/Swap/CurrencyInputPanel/utils'
 import { useSwapAndLimitContext } from '~/features/Swap/state/useSwapContext'
-import { useAccount } from '~/hooks/useAccount'
 import { useActiveSmartPool } from '~/state/application/hooks'
 import { useCurrencyBalance } from '~/state/connection/hooks'
 import { useMultichainContext } from '~/state/multichain/useMultichainContext'
-import { SwitchNetworkAction } from '~/state/popups/types'
+import { SwitchNetworkAction } from '~/utils/popups/types'
 
 // Explicit return type: forwardRef's inferred type isn't nameable under declaration emit (TS2883).
 export const InputPanel: ForwardRefExoticComponent<FlexCompatProps & RefAttributes<HTMLDivElement>> = forwardRef<
@@ -167,6 +168,7 @@ export function SwapCurrencyInputPanel({
   const currencyInfo = useCurrencyInfo(currencyId(currency))
   const { formatCurrencyAmount } = useLocalizationContext()
   const { t } = useTranslation()
+  const { fontSize, lineHeight, onLayout } = useCurrencyInputFontSize({ value })
 
   const isInputDisabled = !chainAllowed
 
@@ -177,7 +179,7 @@ export function SwapCurrencyInputPanel({
           {label}
         </Text>
         <Flex row flexWrap="nowrap" alignItems="center" justifyContent="space-between" mt="$spacing4">
-          <Flex fill minWidth={0}>
+          <Flex fill minWidth={0} onLayout={onLayout}>
             <SwapCurrencyInput
               testId={currencyField === CurrencyField.INPUT ? TestID.AmountInputIn : TestID.AmountInputOut}
               value={value}
@@ -186,6 +188,9 @@ export function SwapCurrencyInputPanel({
               id={id}
               maxDecimals={currency?.decimals}
               width="100%"
+              fontSize={fontSize}
+              lineHeight={lineHeight}
+              maxHeight={lineHeight}
             />
           </Flex>
           <Flex ml="$spacing12" width="fit-content">

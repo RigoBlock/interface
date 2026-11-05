@@ -2,7 +2,6 @@
  * Configuration overrides for Toucan auction parameters
  */
 export {
-  DEFAULT_VERIFIED_AUCTION_IDS,
   getAuctionMetadata,
   isTradingRestrictedUntilTge,
   type AuctionMetadataOverride,
@@ -77,40 +76,4 @@ export function getAuctionRedemptionConfig({
   tokenAddress: string
 }): AuctionRedemptionConfig | undefined {
   return AUCTION_REDEMPTION_OVERRIDES[buildOverrideKey({ chainId, address: tokenAddress })]
-}
-
-/**
- * Curated "% committed to LP" overrides, as a percent value rendered to one decimal
- * place (34.6 => "34.6%", 25 => "25.0%").
- *
- * The displayed percentage is normally computed live as
- * `tokenCountAllocatedToLpForAuction` / `tokenTotalSupply` (see useAuctionStatsData).
- * When the indexed on-chain allocation doesn't reflect the intended split, we pin the
- * displayed value here until the underlying data is corrected.
- *
- * Keyed by the AUCTION CONTRACT address (the `/explore/auctions/...` address,
- * `auctionDetails.address`) — NOT the auctioned token address — because one token can
- * run multiple CCAs with different LP splits.
- */
-const AUCTION_LP_PERCENT_OVERRIDES: Record<string, number> = {
-  // Interfold (FOLD) — second CCA. Auction contract 0xfA63…6605.
-  '1-0xfa63c5b9220a7f0d21e156490ec0b296838e6605': 25,
-  // Umia — Base CCA. Auction contract 0x2dDa…4a9b.
-  '8453-0x2ddafa49cdd62864ab2e2aad66cc294cc7ef4a9b': 34.6,
-  // Balances (BALANCE) — Ethereum CCA. Auction contract 0xA938…9226.
-  '1-0xa93807cd89a99bb564c7a887ab49cc4ecc3c9226': 100,
-}
-
-/**
- * Get the hardcoded "% committed to LP" (whole-number percent) for an auction, or
- * undefined to fall back to the computed value.
- */
-export function getAuctionLpPercentOverride({
-  chainId,
-  auctionAddress,
-}: {
-  chainId: number
-  auctionAddress: string
-}): number | undefined {
-  return AUCTION_LP_PERCENT_OVERRIDES[buildOverrideKey({ chainId, address: auctionAddress })]
 }

@@ -1,21 +1,23 @@
 import { isWebAppDesktop } from '@universe/environment'
-import { Flex, Text, TouchableArea } from '@universe/mycelium'
-import { useSporeColors } from '@universe/mycelium/theme-hooks-compat'
+import {
+  Button,
+  Flex,
+  Text,
+  TouchableArea,
+  useExtractedTokenColor,
+  useSporeColors,
+  ModalCloseIcon,
+  iconSizes,
+} from '@universe/mycelium'
+import { ArrowUpCircle } from '@universe/mycelium/icons/ArrowUpCircle'
+import { EnvelopeHeart } from '@universe/mycelium/icons/EnvelopeHeart'
+import { OrderRouting } from '@universe/mycelium/icons/OrderRouting'
+import { Verified } from '@universe/mycelium/icons/Verified'
+import { useColorsFromTokenColor } from '@universe/mycelium/theme-hooks-compat'
 import { atom } from 'jotai'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  Button,
-  getContrastPassingTextColor,
-  ModalCloseIcon,
-  useColorsFromTokenColor,
-  useExtractedTokenColor,
-} from 'ui/src'
-import { ArrowUpCircle } from 'ui/src/components/icons/ArrowUpCircle'
-import { EnvelopeHeart } from 'ui/src/components/icons/EnvelopeHeart'
-import { OrderRouting } from 'ui/src/components/icons/OrderRouting'
-import { Verified } from 'ui/src/components/icons/Verified'
-import { iconSizes } from 'ui/src/theme'
+import { getContrastPassingTextColor } from 'ui/src'
 import { CurrencyLogo } from 'uniswap/src/components/CurrencyLogo/CurrencyLogo'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import type { BaseModalProps } from 'uniswap/src/components/modals/ModalProps'
@@ -134,6 +136,7 @@ export function BridgedAssetModal({
     tokenName: currentCurrencyInfo?.currency.name,
     backgroundColor: colors.surface1.val,
     defaultColor: colors.accent1.val,
+    colorOverrides: currentCurrencyInfo?.colorOverrides,
   })
   const { validTokenColor } = useColorsFromTokenColor(tokenColor ?? undefined)
   const textColor = useMemo(() => {

@@ -1,13 +1,12 @@
 import { TouchableArea, useIsTouchDevice } from '@universe/mycelium'
+import { useDeviceDimensions, useShadowPropsMedium } from '@universe/mycelium/theme-hooks-compat'
 import type { ComponentProps, ReactNode } from 'react'
 import { useCallback, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { AdaptiveWebPopoverContent, Popover } from 'ui/src'
-import { useDeviceDimensions } from 'ui/src/hooks/useDeviceDimensions'
-import { useShadowPropsMedium } from 'ui/src/theme/shadows'
 import { rowPressExemptClassName } from 'uniswap/src/components/lists/items/OptionItemPressableArea'
 import { getScrollContainerScrollbarWidth } from '~/components/HoverCard/getScrollContainerScrollbarWidth'
-import { useCloseOnOutsideScroll } from '~/hooks/useCloseOnOutsideScroll'
+import { useCloseOnOutsideScroll } from '~/components/HoverCard/hooks/useCloseOnOutsideScroll'
 
 const POPOVER_HORIZONTAL_PADDING = 16
 

@@ -7,6 +7,7 @@ export interface RouterConfig {
   isEmbeddedWalletEnabled?: boolean
   shouldDisableExploreRoutes?: boolean
   isPoolOperator?: boolean
+  isHooksExploreEnabled?: boolean
   isMarginEnabled?: boolean
 }
 

@@ -1,7 +1,7 @@
 import { EXTENSION_PASSKEY_AUTH_PATH } from '@universe/embedded-wallet'
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
 import { useAtom } from 'jotai'
-import { lazy, Suspense, useMemo } from 'react'
+import { lazy, type ReactNode, Suspense, useMemo } from 'react'
 import { matchPath, Navigate, useLocation } from 'react-router'
 import { USDC_ARC } from 'uniswap/src/constants/tokens'
 import { CHROME_EXTENSION_UNINSTALL_URL_PATH } from 'uniswap/src/constants/urls'
@@ -11,7 +11,12 @@ import { NATIVE_CHAIN_ID } from '~/constants/tokens'
 import Earn from '~/pages/Earn'
 import { isEmbedPath } from '~/pages/embedPaths'
 import { EMBED_ENTRY_ROUTES } from '~/pages/embedRoutes'
-import { getCategoryDetailsTitle, getExploreDescription, getExploreTitle } from '~/pages/getExploreTitle'
+import {
+  getCategoryDetailsTitle,
+  getExploreDescription,
+  getExploreTitle,
+  getPoolCategoryDetailsTitle,
+} from '~/pages/getExploreTitle'
 import { getPortfolioDescription, getPortfolioTitle } from '~/pages/getPortfolioTitle'
 import {
   getAddLiquidityPageTitle,
@@ -54,6 +59,8 @@ const V2PositionPage = createLazy(() => import('~/pages/Positions/V2PositionPage
 const PoolDetails = createLazy(() => import('~/pages/PoolDetails'))
 const TokenDetails = createLazy(() => import('~/pages/TokenDetails/TokenDetailsPage'))
 const CategoryDetails = createLazy(() => import('~/pages/Explore/CategoryDetails'))
+const PoolCategoryDetails = createLazy(() => import('~/pages/Explore/CategoryDetails/PoolCategoryDetails'))
+const HooksPreview = createLazy(() => import('~/pages/Explore/tables/Hooks/HooksPreview'))
 const ExtensionPasskeyAuthPopUp = createLazy(() => import('~/pages/ExtensionPasskeyAuthPopUp'))
 const PasskeyManagement = createLazy(() => import('~/pages/PasskeyManagement'))
 const ExtensionUninstall = createLazy(() => import('~/pages/ExtensionUninstall/ExtensionUninstall'))
@@ -61,6 +68,8 @@ const Portfolio = createLazy(() => import('~/pages/Portfolio/Portfolio'))
 const BetaPage = createLazy(() => import('~/pages/Beta'))
 const Vote = lazy(() => import('~/pages/Vote'))
 const PoolPositionPage = lazy(() => import('~/pages/CreatePool/PoolPositionPage'))
+
+const getSuspendedElement = (children: ReactNode): JSX.Element => <Suspense fallback={null}>{children}</Suspense>
 
 /**
  * Convenience hook which organizes the router configuration into a single object.
@@ -71,6 +80,7 @@ export function useRouterConfig(): RouterConfig {
   const isEmbeddedWalletEnabled = useFeatureFlag(FeatureFlags.EmbeddedWallet)
   const [shouldDisableExploreRoutes] = useAtom(shouldDisableExploreRoutesAtom)
   const operatedPoolAddresses = useOperatedPoolAddresses()
+  const isHooksExploreEnabled = useFeatureFlag(FeatureFlags.HooksExplore)
   const isMarginEnabled = useFeatureFlag(FeatureFlags.Margin)
 
   return useMemo(
@@ -80,6 +90,7 @@ export function useRouterConfig(): RouterConfig {
       isEmbeddedWalletEnabled,
       shouldDisableExploreRoutes: Boolean(shouldDisableExploreRoutes),
       isPoolOperator: operatedPoolAddresses.size > 0,
+      isHooksExploreEnabled,
       isMarginEnabled,
     }),
     [
@@ -88,6 +99,7 @@ export function useRouterConfig(): RouterConfig {
       isEmbeddedWalletEnabled,
       shouldDisableExploreRoutes,
       operatedPoolAddresses,
+      isHooksExploreEnabled,
       isMarginEnabled,
     ],
   )
@@ -111,11 +123,21 @@ export const routes: RouteDefinition[] = [
     path: '/explore/category/:categorySlug',
     getTitle: getCategoryDetailsTitle,
     getDescription: getExploreDescription,
-    getElement: () => (
-      <Suspense fallback={null}>
-        <CategoryDetails />
-      </Suspense>
-    ),
+    getElement: () => getSuspendedElement(<CategoryDetails />),
+  }),
+  createRouteDefinition({
+    path: '/pools/category/:categorySlug', // before the legacy /pools/:tokenId redirect, which would swallow the slug
+    getTitle: getPoolCategoryDetailsTitle,
+    getDescription: getExploreDescription,
+    getElement: () => getSuspendedElement(<PoolCategoryDetails />),
+  }),
+  createRouteDefinition({
+    path: '/explore/hooks',
+    getTitle: getExploreTitle,
+    getDescription: getExploreDescription,
+    nestedPaths: [':chainName'],
+    getElement: () => <HooksPreview />,
+    enabled: (args) => Boolean(args.isHooksExploreEnabled),
   }),
   createRouteDefinition({
     path: '/explore',
@@ -144,11 +166,7 @@ export const routes: RouteDefinition[] = [
     enabled: (args) => !args.shouldDisableExploreRoutes,
     getTitle: () => i18n.t('common.buyAndSell'),
     getDescription: () => StaticTitlesAndDescriptions.TDPDescription,
-    getElement: () => (
-      <Suspense fallback={null}>
-        <TokenDetails />
-      </Suspense>
-    ),
+    getElement: () => getSuspendedElement(<TokenDetails />),
   }),
   createRouteDefinition({
     path: '/tokens',
@@ -173,11 +191,7 @@ export const routes: RouteDefinition[] = [
     enabled: (args) => !args.shouldDisableExploreRoutes,
     getTitle: () => StaticTitlesAndDescriptions.DetailsPageBaseTitle,
     getDescription: () => StaticTitlesAndDescriptions.PDPDescription,
-    getElement: () => (
-      <Suspense fallback={null}>
-        <PoolDetails />
-      </Suspense>
-    ),
+    getElement: () => getSuspendedElement(<PoolDetails />),
   }),
   createRouteDefinition({
     path: '/vote/*',

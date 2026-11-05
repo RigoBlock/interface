@@ -4,15 +4,15 @@ import {
   SAMPLE_SEED_ADDRESS_2,
   SAMPLE_SEED_ADDRESS_3,
 } from 'uniswap/src/test/fixtures/assets/constants'
-import { useActiveAddresses } from '~/features/accounts/store/hooks'
+import { useActiveAddresses } from '~/connection/accounts/hooks'
 import { usePortfolioRoutes } from '~/pages/Portfolio/Header/hooks/usePortfolioRoutes'
 import { usePortfolioAddresses } from '~/pages/Portfolio/hooks/usePortfolioAddresses'
 import { useActiveSmartPool } from '~/state/application/hooks'
 import { mocked } from '~/test-utils/mocked'
 import { renderHook } from '~/test-utils/render'
 
-vi.mock('~/features/accounts/store/hooks', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('~/features/accounts/store/hooks')>()
+vi.mock('~/connection/accounts/hooks', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('~/connection/accounts/hooks')>()
   return {
     ...actual,
     useActiveAddresses: vi.fn(),

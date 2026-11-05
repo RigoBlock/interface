@@ -1,5 +1,5 @@
 /* oxlint-disable eslint-js/no-restricted-syntax -- wrapper for the connected wallet account on portfolio pages */
-import { useAccount } from '~/hooks/useAccount'
+import { useAccount } from '~/connection/hooks/useAccount'
 
 /**
  * Returns the connected wallet account for actions initiated from the portfolio page

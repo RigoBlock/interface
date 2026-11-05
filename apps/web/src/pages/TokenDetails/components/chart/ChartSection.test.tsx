@@ -1,5 +1,4 @@
 import { Auction } from '@uniswap/client-launches/dist/data/v1/auction_pb'
-import { GraphQLApi } from '@universe/api'
 import { UniverseChainId } from '@universe/chains'
 import type { ReactNode } from 'react'
 import { USDC_MAINNET } from 'uniswap/src/constants/tokens'
@@ -48,7 +47,7 @@ vi.mock('~/pages/TokenDetails/components/chart/TDPChartStateContext', () => ({
 
 const mockStore = {
   currency: USDC_MAINNET,
-  currencyChain: GraphQLApi.Chain.Ethereum,
+  currencyChainId: UniverseChainId.Mainnet,
   pathTokenDbAddress: USDC_MAINNET.address,
 }
 vi.mock('~/pages/TokenDetails/context/useTDPStore', () => ({
@@ -58,6 +57,7 @@ vi.mock('~/pages/TokenDetails/context/useTDPStore', () => ({
 function mockChart({ loading = false, empty = true } = {}): void {
   vi.mocked(useTokenPriceChartPanel).mockReturnValue({
     pricePercentChange: undefined,
+    priceConfidenceScore: undefined,
     stale: false,
     showInvalidSkeleton: empty,
     isError: false,
@@ -84,6 +84,8 @@ function mockDisplay(overrides: Partial<TokenDetailsAuctionDisplayModel> = {}): 
     isInitialLoading: false,
     isAuctionOnlyPending: false,
     hasConfirmedPool: false,
+    tokenVolume30dUsd: undefined,
+    isTokenVolumeLoading: false,
     phaseEndsAtMs: undefined,
     currencyRaised: { status: 'idle' },
     currentBlock: { status: 'success', blockNumber: 150n },
@@ -127,6 +129,7 @@ describe('ChartSection price-discovery impressions', () => {
       auction_type: 'custom',
       launch_method: 'custom',
       entry_point: 'chart_empty_state',
+      auction_address: '0x1111111111111111111111111111111111111111',
       auction_phase: 'live',
       pool_availability: 'no_pool',
       page_layout: 'auction_only',

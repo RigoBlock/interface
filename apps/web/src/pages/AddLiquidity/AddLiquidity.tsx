@@ -1,14 +1,13 @@
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
 import type { Currency } from '@uniswap/sdk-core'
 import { type UniverseChainId, AddressStringFormat, normalizeAddress } from '@universe/chains'
-import { Flex, Text } from '@universe/mycelium'
+import { Button, Flex, Text, SpinningLoader } from '@universe/mycelium'
+import { Plus } from '@universe/mycelium/icons/Plus'
 import { useMedia } from '@universe/mycelium/theme-hooks-compat'
 import { useQueryState, useQueryStates } from 'nuqs'
 import { type Dispatch, type SetStateAction, useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router'
-import { Button, SpinningLoader } from 'ui/src'
-import { Plus } from 'ui/src/components/icons/Plus'
 import { getChainInfo } from 'uniswap/src/features/chains/chainInfo'
 import { v2TokenToCurrency } from 'uniswap/src/features/dataApi/utils/parsedToken'
 import type { FeeData } from 'uniswap/src/features/positions/types'
@@ -36,6 +35,7 @@ import {
 } from '~/features/Liquidity/PoolProgressIndicator/PoolProgressIndicator'
 import { canUnwrapCurrency, getCurrencyWithOptionalUnwrap } from '~/features/Liquidity/utils/currency'
 import { getProtocolVersionFromLabel } from '~/features/Liquidity/utils/protocolVersion'
+import { AddLiquidityGeoRestrictionModal } from '~/pages/AddLiquidity/AddLiquidityGeoRestrictionModal'
 import { type FlowState, resolveAddLiquidityRenderGuard } from '~/pages/AddLiquidity/addLiquidityRenderGuard'
 import { PoolBrowser } from '~/pages/AddLiquidity/PoolBrowser'
 import { ADD_LIQUIDITY_PATH } from '~/pages/AddLiquidity/poolLinkParams'
@@ -336,6 +336,7 @@ function AddLiquidityFormContent({
               />
             </Flex>
             <SharedCreateModals onDeclineHookReview={onLeavePool} />
+            <AddLiquidityGeoRestrictionModal />
           </CreatePositionTxContextProvider>
         </CreateLiquidityContextProvider>
       </LPTransactionSettingsStoreContextProvider>

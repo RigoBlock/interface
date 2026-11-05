@@ -1,9 +1,8 @@
 import { isMobileWeb, isWebPlatform } from '@universe/environment'
-import { Flex, Text } from '@universe/mycelium'
+import { Flex, Text, useExtractedTokenColor, useSporeColors, iconSizes, zIndexes } from '@universe/mycelium'
+import { InfoCircleFilled } from '@universe/mycelium/icons/InfoCircleFilled'
+import { colors as palette } from '@universe/mycelium/theme-palette'
 import { useTranslation } from 'react-i18next'
-import { useExtractedTokenColor, useSporeColors } from 'ui/src'
-import { InfoCircleFilled } from 'ui/src/components/icons/InfoCircleFilled'
-import { colors as palette, iconSizes, zIndexes } from 'ui/src/theme'
 import { TokenLogo } from 'uniswap/src/components/CurrencyLogo/TokenLogo'
 import { WarningSeverity } from 'uniswap/src/components/modals/WarningModal/types'
 import { WarningInfo } from 'uniswap/src/components/modals/WarningModal/WarningInfo'
@@ -254,6 +253,7 @@ function useExposureColor({
     tokenName: currency?.symbol ?? currency?.name,
     backgroundColor: colors.surface1.val,
     defaultColor: fallbackColor,
+    colorOverrides: currencyInfo?.colorOverrides,
   })
 
   return resolveExposureColor({ imageUrl, extractedColor: tokenColor, fallbackColor })

@@ -234,6 +234,7 @@ describe('NowTradingCard', () => {
       auction_type: 'crowd',
       launch_method: 'crowd',
       entry_point: 'auction_now_trading_card',
+      token_address: TOKEN_ADDRESS,
       auction_phase: 'ended',
       pool_availability: 'has_pool',
       page_layout: 'trading',
@@ -311,7 +312,7 @@ describe('NowTradingCard', () => {
     )
   })
 
-  it('uses the route slug when the GraphQL chain name differs', async () => {
+  it('uses the chain URL slug for the trade route', async () => {
     mockChainId = UniverseChainId.UnichainSepolia
     renderCard()
 

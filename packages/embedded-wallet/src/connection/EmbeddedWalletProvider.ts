@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- Fork-invariant viem→ethers mapping (see apps/web/AGENTS.md) plus upstream's growth pushed this past 500 lines; splitting the provider would entangle the fork's mapping helpers with upstream's class layout on every sync. */
 import {
   type Account,
   getValidAddress,

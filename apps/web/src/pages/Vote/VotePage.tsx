@@ -33,8 +33,8 @@ import {
   COMMON_CONTRACT_NAMES,
   DEFAULT_AVERAGE_BLOCK_TIME_IN_SECS,
 } from '~/constants/governance'
-import { useAccount } from '~/hooks/useAccount'
-import { useCurrentBlockTimestamp } from '~/hooks/useCurrentBlockTimestamp'
+import { useAccount } from '~/connection/hooks/useAccount'
+import { useCurrentBlockTimestamp } from '~/connection/hooks/useCurrentBlockTimestamp'
 import { useModalState } from '~/hooks/useModalState'
 import styled from '~/lib/deprecated-styled'
 import { useBlockNumber } from '~/lib/hooks/useBlockNumber'

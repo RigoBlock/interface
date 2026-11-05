@@ -102,6 +102,12 @@
     },
     {
       "path": "packages/test"
+    },
+    {
+      "path": "packages/transactions-ui"
+    },
+    {
+      "path": "packages/cca"
     }
   ]
 }

@@ -1,13 +1,12 @@
 import type { UniverseChainId } from '@universe/chains'
-import { Text, type TextCompatProps } from '@universe/mycelium'
+import { Text, type TextCompatProps, fonts } from '@universe/mycelium'
 import { Flex, TouchableArea } from '@universe/mycelium'
 import { forwardRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { fonts } from 'ui/src/theme/fonts'
 import type { ParsedToken } from 'uniswap/src/features/dataApi/utils/parsedToken'
+import { useAccount } from '~/connection/hooks/useAccount'
 import { usePositionSort } from '~/features/Liquidity/hooks/usePositionSort'
 import { PoolPositionsTable } from '~/features/Liquidity/PositionsTable'
-import { useAccount } from '~/hooks/useAccount'
 import { PoolDetailsTransactionsTable } from '~/pages/PoolDetails/components/PoolDetailsTransactionsTable'
 import { usePoolPositions } from '~/pages/PoolDetails/hooks/usePoolPositions'
 
@@ -38,19 +37,23 @@ export function PoolDetailsTableTab({
   token0,
   token1,
   isPoolDataLoading,
+  showWalletPositions = true,
 }: {
   poolAddress: string
   chainId: UniverseChainId
   token0?: ParsedToken
   token1?: ParsedToken
   isPoolDataLoading?: boolean
+  /** False when the page lists the wallet's positions elsewhere, which drops the Positions tab. */
+  showWalletPositions?: boolean
 }) {
   const { t } = useTranslation()
   const [activeTable, setActiveTable] = useState<PoolDetailsTableTabs>(PoolDetailsTableTabs.TRANSACTIONS)
   const account = useAccount()
   const { sort, onSort } = usePositionSort()
+  // No account disables the query, so the tab never appears.
   const { positions, isPlaceholderData } = usePoolPositions({
-    account: account.address,
+    account: showWalletPositions ? account.address : undefined,
     chainId,
     poolIdOrAddress: poolAddress,
     sort,

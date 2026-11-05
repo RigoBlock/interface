@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next'
 import { useLocalizationContext } from 'uniswap/src/features/language/LocalizationContext'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { NumberType } from 'utilities/src/format/types'
+import { stopPropagation } from 'utilities/src/react/stopPropagation'
 import { APP_BODY_MOBILE_GUTTER_PX } from '~/app/layout/constants'
 import { DeltaArrow } from '~/components/DeltaArrow/DeltaArrow'
 import { Table } from '~/components/Table'
@@ -19,18 +20,13 @@ import { Cell } from '~/components/Table/Cell'
 import { ClickableHeaderRow, HeaderArrow, HeaderSortText } from '~/components/Table/shared/SortableHeader'
 import { TableText } from '~/components/Table/shared/TableText'
 import { HeaderCell } from '~/components/Table/styled'
+import { MouseoverTooltip, TooltipSize } from '~/components/Tooltip'
 import { getTokenDescriptionColumnSize, TokenDescription } from '~/pages/Explore/tables/Tokens/TokenDescription'
 import { CollapsibleTokenCell } from '~/pages/Launches/CollapsibleTokenCell'
 import { LaunchItem } from '~/pages/Launches/launchesModel'
 import { formatDurationShort } from '~/pages/Launches/launchFormat'
 import { LAUNCHPAD_COLUMN_META, LAUNCHPAD_COLUMN_WIDTH, LaunchpadCellContent } from '~/pages/Launches/LaunchpadCell'
-import {
-  getCollapseTouchActionCss,
-  getConsumedScrollMarginCss,
-  getTokenColumnWidthCss,
-} from '~/pages/Launches/tokenColumnCollapse'
 import { usePrefetchLaunchTokenDetails } from '~/pages/Launches/usePrefetchLaunchTokenDetails'
-import { useTokenColumnCollapse } from '~/pages/Launches/useTokenColumnCollapse'
 
 interface LaunchTableValue {
   launch: LaunchItem
@@ -67,15 +63,20 @@ const PAGE_GUTTER_MD_PX = APP_BODY_MOBILE_GUTTER_PX
 function HeaderLabel({
   children,
   justifyContent,
+  tooltip,
 }: {
   children: string
   justifyContent: FlexCompatProps['justifyContent']
+  /** Column explainer shown on hover, same treatment as the Explore table headers. */
+  tooltip?: string
 }): JSX.Element {
   return (
     <HeaderCell justifyContent={justifyContent}>
-      <Text variant="body3" color="$neutral2" fontWeight="500">
-        {children}
-      </Text>
+      <MouseoverTooltip disabled={!tooltip} size={TooltipSize.Small} fitContent text={tooltip} placement="top">
+        <Text variant="body3" color="$neutral2" fontWeight="500">
+          {children}
+        </Text>
+      </MouseoverTooltip>
     </HeaderCell>
   )
 }
@@ -90,12 +91,15 @@ function SortableHeaderLabel({
   activeSort,
   ascending,
   onSort,
+  tooltip,
 }: {
   children: string
   sort: LaunchesOrderBy
   activeSort: LaunchesOrderBy
   ascending: boolean
   onSort: (sort: LaunchesOrderBy) => void
+  /** Column explainer shown on hover, same treatment as the Explore table headers. */
+  tooltip?: string
 }): JSX.Element {
   const active = activeSort === sort
   return (
@@ -104,7 +108,21 @@ function SortableHeaderLabel({
         <Flex opacity={active ? 1 : 0}>
           <HeaderArrow orderDirection={active && ascending ? 'asc' : 'desc'} size="$icon.16" />
         </Flex>
-        <HeaderSortText active={active}>{children}</HeaderSortText>
+        {/* The tooltip portals but its clicks still bubble through React to the header row; stop
+            them so reading the explainer doesn't re-sort. */}
+        <MouseoverTooltip
+          disabled={!tooltip}
+          size={TooltipSize.Small}
+          fitContent
+          text={tooltip}
+          placement="top"
+          onClick={stopPropagation}
+        >
+          {/* The tooltip trigger resets the cursor to default; restore the sortable header's pointer. */}
+          <HeaderSortText active={active} cursor="pointer">
+            {children}
+          </HeaderSortText>
+        </MouseoverTooltip>
       </ClickableHeaderRow>
     </HeaderCell>
   )
@@ -164,24 +182,6 @@ export function LaunchTable({
   const media = useMedia()
   const { scheduleHoverPrefetch, cancelHoverPrefetch, prefetchNow } = usePrefetchLaunchTokenDetails()
 
-  // Mobile: the pinned token column collapses to just the logo as the table scrolls horizontally,
-  // freeing viewport width for the data columns (interaction model: useTokenColumnCollapse docs).
-  const collapseRootRef = useTokenColumnCollapse({ enabled: media.lg })
-  const tokenColumnWidthOverride = media.lg ? getTokenColumnWidthCss() : undefined
-  const tokenColumnMeta = useMemo(
-    () =>
-      tokenColumnWidthOverride
-        ? {
-            widthOverride: tokenColumnWidthOverride,
-            trailingMarginCss: getConsumedScrollMarginCss(),
-            touchActionCss: getCollapseTouchActionCss(),
-            // The collapsed column parks under-scrolling values right beside the logo, where the
-            // shared 95% pinned background lets them ghost through.
-            opaquePinnedBackground: true,
-          }
-        : undefined,
-    [tokenColumnWidthOverride],
-  )
   // Mobile full-bleed: the table breaks out of the full page gutter on the right, and the last
   // column carries that same distance as trailing margin, so the scroll end rests with the normal
   // content margin. Both come from PAGE_GUTTER_*_PX.
@@ -258,7 +258,6 @@ export function LaunchTable({
       columnHelper.accessor((row) => row.launch, {
         id: 'tokenName',
         size: media.lg ? getTokenDescriptionColumnSize(true) : 238,
-        ...(tokenColumnMeta ? { meta: tokenColumnMeta } : {}),
         header: () => <HeaderLabel justifyContent="flex-start">{t('explore.table.column.token')}</HeaderLabel>,
         cell: (cell) => {
           const launch = cell.getValue?.()
@@ -292,7 +291,11 @@ export function LaunchTable({
         id: 'launchpad',
         size: LAUNCH_TABLE_LAUNCHPAD_WIDTH,
         meta: LAUNCHPAD_COLUMN_META,
-        header: () => <HeaderLabel justifyContent="flex-start">{t('launches.table.launchpad')}</HeaderLabel>,
+        header: () => (
+          <HeaderLabel justifyContent="flex-start" tooltip={t('launches.table.launchpad.tooltip')}>
+            {t('launches.table.launchpad')}
+          </HeaderLabel>
+        ),
         cell: (cell) => {
           const launch = cell.getValue?.()
           return (
@@ -305,7 +308,11 @@ export function LaunchTable({
       columnHelper.accessor((row) => row.launch.fdvUsd, {
         id: 'fdv',
         size: 115,
-        header: () => <HeaderLabel justifyContent="flex-end">{t('stats.fdv')}</HeaderLabel>,
+        header: () => (
+          <HeaderLabel justifyContent="flex-end" tooltip={t('stats.fdv.description')}>
+            {t('stats.fdv')}
+          </HeaderLabel>
+        ),
         cell: (cell) => <FiatCell value={cell.getValue?.()} loading={loading} />,
       }),
       columnHelper.accessor((row) => row.launch.volume24hUsd, {
@@ -317,6 +324,7 @@ export function LaunchTable({
             activeSort={sortBy}
             ascending={ascending}
             onSort={onSort}
+            tooltip={t('stats.volume.1d.description')}
           >
             {t('launches.card.volume24h')}
           </SortableHeaderLabel>
@@ -327,7 +335,11 @@ export function LaunchTable({
         id: 'liquidity',
         size: 120,
         // Deliberately not sortable for now (static header); revert this commit to restore TVL sorting.
-        header: () => <HeaderLabel justifyContent="flex-end">{t('common.liquidity')}</HeaderLabel>,
+        header: () => (
+          <HeaderLabel justifyContent="flex-end" tooltip={t('launches.table.liquidity.tooltip')}>
+            {t('common.liquidity')}
+          </HeaderLabel>
+        ),
         cell: (cell) => <FiatCell value={cell.getValue?.()} loading={loading} />,
       }),
       columnHelper.accessor((row) => row.launch.priceChangePercent1h, {
@@ -390,7 +402,7 @@ export function LaunchTable({
     ]
 
     return filteredColumns.filter((column): column is NonNullable<(typeof filteredColumns)[number]> => Boolean(column))
-  }, [media.lg, t, loading, sortBy, ascending, onSort, tokenColumnMeta, trailingGutterCss])
+  }, [media.lg, t, loading, sortBy, ascending, onSort, trailingGutterCss])
 
   return (
     // The negative right margins are the mobile full-bleed breakout, taking the table to the
@@ -402,7 +414,6 @@ export function LaunchTable({
     // re-anchor the sticky table header to it, and paired with overflowY: visible (the one mix CSS
     // allows) so nothing vertical gets clipped.
     <Flex
-      ref={collapseRootRef}
       alignSelf="stretch"
       $lg={{ mr: -PAGE_GUTTER_PX }}
       $md={{ mr: -PAGE_GUTTER_MD_PX }}
@@ -417,7 +428,9 @@ export function LaunchTable({
         rowHeight={ROW_HEIGHT}
         compactRowHeight={ROW_HEIGHT}
         defaultPinnedColumns={['index', 'tokenName']}
-        pinnedWidthOverride={tokenColumnWidthOverride}
+        // Mobile: the pinned token column collapses to just the logo as the table scrolls horizontally,
+        // freeing viewport width for the data columns.
+        collapsiblePinnedColumnId={media.lg ? 'tokenName' : undefined}
       />
     </Flex>
   )

@@ -1,5 +1,5 @@
 import { SharedEventName } from '@uniswap/analytics-events'
-import { Flex, spacing, Text } from '@universe/mycelium'
+import { Flex, spacing, Text, Loader } from '@universe/mycelium'
 import { TestID } from '@universe/test'
 import { memo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -7,7 +7,6 @@ import type { ViewStyle } from 'react-native'
 import { FlatList } from 'react-native-gesture-handler'
 import { useAppStackNavigation } from 'src/app/navigation/types'
 import { useTokenDetailsContext } from 'src/components/TokenDetails/TokenDetailsContext'
-import { Loader } from 'ui/src'
 import { useTokenCategories } from 'uniswap/src/data/apiClients/dataApiService/categories/useTokenCategories'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
@@ -61,7 +60,7 @@ export const TokenDetailsCollections = memo(function TokenDetailsCollections(): 
   return (
     <Flex gap="$spacing12" testID={TestID.TokenDetailsCollections}>
       <Text color="$neutral2" mx="$spacing16" variant="subheading2">
-        {t('explore.collections.title')}
+        {t('explore.categories.title')}
       </Text>
       {categories.length === 0 ? (
         <Flex row gap="$spacing8" px="$spacing16">

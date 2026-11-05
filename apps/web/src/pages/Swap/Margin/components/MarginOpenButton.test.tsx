@@ -1,13 +1,16 @@
+import { fireEvent } from '@testing-library/react'
 import { TestID } from '@universe/test'
-import type { MarginVenue } from 'uniswap/src/features/transactions/margin/types'
+import { MarginDirection, type MarginVenue } from 'uniswap/src/features/transactions/margin/types'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { getDefaultMarginMarket } from '~/pages/Swap/Margin/__fixtures__/marginCatalog'
 import { MarginOpenButton } from '~/pages/Swap/Margin/components/MarginOpenButton'
 import type { DerivedMarginInfo } from '~/pages/Swap/Margin/hooks/useDerivedMarginInfo'
 import { render } from '~/test-utils/render'
 
-vi.mock('~/hooks/useAccount', () => ({ useAccount: () => ({ address: '0x000000000000000000000000000000000000A1' }) }))
-vi.mock('~/components/AccountDrawer/MiniPortfolio/hooks', () => ({ useAccountDrawer: () => ({ open: vi.fn() }) }))
+vi.mock('~/connection/hooks/useAccount', () => ({
+  useAccount: () => ({ address: '0x000000000000000000000000000000000000A1' }),
+}))
+vi.mock('~/state/accountDrawer/hooks', () => ({ useAccountDrawer: () => ({ open: vi.fn() }) }))
 vi.mock('~/pages/Swap/Margin/hooks/useExecuteMarginPlan', () => ({
   useExecuteMarginPlan: () => ({ resumePlan: vi.fn() }),
 }))
@@ -19,10 +22,16 @@ vi.mock('~/pages/Swap/Margin/components/MarginVenuePreferences', () => ({
 
 const onRequestReview = vi.fn()
 
-function derived({ allowedVenues }: { allowedVenues: MarginVenue[] }): DerivedMarginInfo {
+function derived({
+  allowedVenues,
+  direction = MarginDirection.LONG,
+}: {
+  allowedVenues: MarginVenue[]
+  direction?: MarginDirection
+}): DerivedMarginInfo {
   return {
     market: getDefaultMarginMarket(),
-    direction: 'LONG',
+    direction,
     hasEnteredAmount: true,
     hasSufficientBalance: true,
     quote: {} as DerivedMarginInfo['quote'],
@@ -45,12 +54,26 @@ function ctaLabel(container: HTMLElement): string {
 describe('MarginOpenButton venue gate', () => {
   afterEach(() => onRequestReview.mockClear())
 
-  it('reviews normally while the pair still has a venue to route to', () => {
+  it('offers to open the position while the pair still has a venue to route to', () => {
     const { container, queryByTestId } = render(
       <MarginOpenButton derivedMarginInfo={derived({ allowedVenues: ['MORPHO'] })} onRequestReview={onRequestReview} />,
     )
-    expect(ctaLabel(container)).toBe('Review long position')
+    expect(ctaLabel(container)).toBe('Open long position')
     expect(queryByTestId(TestID.MarginVenuesNotice)).toBeNull()
+  })
+
+  it('labels the short side and opens the review on press', () => {
+    const { container } = render(
+      <MarginOpenButton
+        derivedMarginInfo={derived({ allowedVenues: ['MORPHO'], direction: MarginDirection.SHORT })}
+        onRequestReview={onRequestReview}
+      />,
+    )
+    const button = container.querySelector('button')
+    expect(ctaLabel(container)).toBe('Open short position')
+    expect(button).toBeEnabled()
+    fireEvent.click(button as HTMLButtonElement)
+    expect(onRequestReview).toHaveBeenCalledTimes(1)
   })
 
   // An empty allowlist builds no quote request at all, so there is nothing for the amount or the

@@ -13,8 +13,8 @@ import { TransactionType } from 'uniswap/src/features/transactions/types/transac
 import { logger } from 'utilities/src/logger/logger'
 import { getConnectorClient } from 'wagmi/actions'
 import { wagmiConfig } from '~/connection/wagmiConfig'
-import { clientToProvider } from '~/hooks/useEthersProvider'
-import { useSelectChain } from '~/hooks/useSelectChain'
+import { clientToProvider } from '~/connection/hooks/useEthersProvider'
+import { useSelectChain } from '~/connection/hooks/useSelectChain'
 import { usePortfolioAddress } from '~/pages/Portfolio/hooks/usePortfolioAddress'
 import {
   buildLimitOrderAction,

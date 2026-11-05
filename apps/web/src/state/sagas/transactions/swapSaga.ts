@@ -55,8 +55,6 @@ import { DEFAULT_TXN_DISMISS_MS, L2_TXN_DISMISS_MS, ZERO_PERCENT } from '~/const
 import { RPC_PROVIDERS } from '~/constants/providers'
 import { formatSwapSignedAnalyticsEventProperties } from '~/lib/utils/analytics'
 import { PendingModalError } from '~/pages/Swap/Limit/ConfirmLimitOrderModal/Error'
-import { popupRegistry } from '~/state/popups/registry'
-import { PopupType } from '~/state/popups/types'
 import { handleAtomicSendCalls } from '~/state/sagas/transactions/5792'
 import {
   checkDestinationPoolHealth,
@@ -86,6 +84,8 @@ import {
   waitForBatchInterruptible,
 } from '~/state/sagas/transactions/utils'
 import { type VitalTxFields } from '~/state/transactions/types'
+import { popupRegistry } from '~/utils/popups/registry'
+import { PopupType } from '~/utils/popups/types'
 
 interface ResolveOutputTokenPriceUSDParams {
   outputTokenPriceUSD?: number

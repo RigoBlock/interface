@@ -1,19 +1,14 @@
 import { PartialMessage, PlainMessage } from '@bufbuild/protobuf'
 import { ConnectError } from '@connectrpc/connect'
-import { createQueryOptions, useQuery } from '@connectrpc/connect-query'
+import { useQuery } from '@connectrpc/connect-query'
 import { UseQueryResult } from '@tanstack/react-query'
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
 import { search } from '@uniswap/client-data-api/dist/data/v2/search-SearchService_connectquery'
-import {
-  type SearchAuction,
-  SearchRequest,
-  SearchResponse,
-  SearchType,
-} from '@uniswap/client-data-api/dist/data/v2/search_pb'
+import { SearchRequest, SearchResponse } from '@uniswap/client-data-api/dist/data/v2/search_pb'
 import { RankedPool } from '@uniswap/client-data-api/dist/data/v2/types_pb'
-import { SharedQueryClient } from '@universe/api'
 import { normalizeBackendNativeAddress } from 'uniswap/src/data/apiClients/dataApiService/utils/dataApiMultichainToken'
 import { entryGatewayProdPostTransport } from 'uniswap/src/data/transport'
+import { isUniverseChainId } from 'uniswap/src/features/chains/utils'
 import { PoolSearchResult, PoolSearchStats } from 'uniswap/src/features/dataApi/types'
 import { SearchHistoryResultType } from 'uniswap/src/features/search/SearchHistoryResult'
 import { buildCurrencyId } from 'uniswap/src/utils/currencyId'
@@ -41,29 +36,6 @@ export function useSearchQuery<TSelectType>({
   })
 }
 
-/**
- * Fetch a single auction by token address outside of React components. Backs the curated
- * auction override lookups, which resolve a display-name match to a token address and then
- * need the auction row the backend indexes under the original token metadata.
- */
-export async function fetchAuctionByAddress({
-  chainId,
-  address,
-}: {
-  chainId: number
-  address: string
-}): Promise<SearchAuction | undefined> {
-  const result = await SharedQueryClient.fetchQuery(
-    createQueryOptions(
-      search,
-      { searchQuery: address, chainIds: [chainId], types: [SearchType.AUCTION], maxResults: 1 },
-      { transport: entryGatewayProdPostTransport },
-    ),
-  )
-
-  return result.auctions[0]
-}
-
 function buildPoolSearchStats(rankedPool: RankedPool | PlainMessage<RankedPool>): PoolSearchStats | undefined {
   const stats: PoolSearchStats = {
     volume1dUsd: rankedPool.stats?.volume1d,
@@ -84,7 +56,12 @@ export function rankedPoolToPoolSearchResult(
   rankedPool: RankedPool | PlainMessage<RankedPool>,
 ): PoolSearchResult | undefined {
   const pool = rankedPool.pool
-  if (!pool?.token0 || !pool.token1 || pool.protocolVersion === ProtocolVersion.UNSPECIFIED) {
+  if (
+    !pool?.token0 ||
+    !pool.token1 ||
+    pool.protocolVersion === ProtocolVersion.UNSPECIFIED ||
+    !isUniverseChainId(pool.chainId)
+  ) {
     return undefined
   }
 

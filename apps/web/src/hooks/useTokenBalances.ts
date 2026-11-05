@@ -1,15 +1,15 @@
 import { useMemo } from 'react'
 import { PortfolioBalance } from 'uniswap/src/features/dataApi/types'
 import { usePortfolioBalances } from 'uniswap/src/features/portfolio/balances/hooks'
-import { useActiveAddresses } from '~/features/accounts/store/hooks'
+import { useActiveAddresses } from '~/connection/accounts/hooks'
 import { useActiveSmartPool } from '~/state/application/hooks'
 import { currencyKey } from '~/utils/currencyKey'
 
 type TokenBalances = { [tokenAddress: string]: { usdValue: number; balance: number; rawBalance?: string } }
 
 /**
- * Returns the user's token balances via the factory hook that switches between GraphQL and REST.
- * When a smart pool (vault) is active, returns vault balances instead of EOA balances.
+ * Returns the user's token balances from the portfolio balances REST query.
+ * RigoBlock: when a smart pool (vault) is active, returns vault balances instead of EOA balances.
  */
 export function useTokenBalances({ cacheFirst }: { cacheFirst?: boolean } = {}): {
   balanceMap: TokenBalances
@@ -21,7 +21,6 @@ export function useTokenBalances({ cacheFirst }: { cacheFirst?: boolean } = {}):
   const evmAddress = smartPoolAddress ?? activeAddresses.evmAddress
   const svmAddress = smartPoolAddress ? undefined : activeAddresses.svmAddress
 
-  // Use the factory hook that handles GraphQL/REST switching
   const { data: balancesById, loading } = usePortfolioBalances({
     evmAddress,
     svmAddress,

@@ -1,10 +1,8 @@
 import { UniverseChainId } from '@universe/chains'
-import { ReactNode } from 'react'
-import { nativeOnChain, UNI, USDC_OPTIMISM } from 'uniswap/src/constants/tokens'
+import { UNI, USDC_OPTIMISM } from 'uniswap/src/constants/tokens'
 import { useUniswapContext } from 'uniswap/src/contexts/UniswapContext'
 import { useUrlContext } from 'uniswap/src/contexts/UrlContext'
 import { AccountsStore } from 'uniswap/src/features/accounts/store/types/AccountsState'
-import { GQL_MAINNET_CHAINS, GQL_TESTNET_CHAINS } from 'uniswap/src/features/chains/chainInfo'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
 import { useInitialCurrencyState } from '~/pages/Swap/Swap/state/hooks'
 import { ETH_MAINNET, ETH_SEPOLIA } from '~/test-utils/constants'
@@ -43,7 +41,6 @@ describe('hooks', () => {
       isTestnetModeEnabled: false,
       defaultChainId: UniverseChainId.Mainnet,
       chains: [UniverseChainId.Mainnet, UniverseChainId.Optimism],
-      gqlChains: GQL_MAINNET_CHAINS,
     })
 
     mocked(useUrlContext).mockReturnValue({
@@ -177,39 +174,6 @@ describe('hooks', () => {
     })
 
     describe('Connected wallet with balance', () => {
-      // oxlint-disable-next-line vitest/hoisted-apis-on-top -- suppressed
-      vi.mock('~/data/apollo/TokenBalancesProvider', () => ({
-        TokenBalancesProvider: ({ children }: { children: ReactNode }) => children,
-        useTokenBalancesQuery: () => ({
-          data: {
-            portfolios: [
-              {
-                tokenBalances: [
-                  {
-                    token: nativeOnChain(UniverseChainId.Polygon),
-                    denominatedValue: {
-                      value: 1000,
-                    },
-                  },
-                  {
-                    token: ETH_MAINNET,
-                    denominatedValue: {
-                      value: 800,
-                    },
-                  },
-                  {
-                    token: UNI[UniverseChainId.Optimism],
-                    denominatedValue: {
-                      value: 500,
-                    },
-                  },
-                ],
-              },
-            ],
-          },
-        }),
-      }))
-
       test('input mainnet ETH, testnet mode disabled', () => {
         mocked(useUrlContext).mockReturnValue({
           useParsedQueryString: () => ({
@@ -223,7 +187,6 @@ describe('hooks', () => {
           isTestnetModeEnabled: false,
           defaultChainId: UniverseChainId.Mainnet,
           chains: [UniverseChainId.Mainnet],
-          gqlChains: GQL_MAINNET_CHAINS,
         })
 
         const {
@@ -249,7 +212,6 @@ describe('hooks', () => {
           isTestnetModeEnabled: true,
           defaultChainId: UniverseChainId.Sepolia,
           chains: [UniverseChainId.Sepolia],
-          gqlChains: GQL_TESTNET_CHAINS,
         })
 
         const {
@@ -276,7 +238,6 @@ describe('hooks', () => {
           isTestnetModeEnabled: true,
           defaultChainId: UniverseChainId.Sepolia,
           chains: [UniverseChainId.Sepolia],
-          gqlChains: GQL_TESTNET_CHAINS,
         })
 
         const {

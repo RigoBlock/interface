@@ -5,6 +5,7 @@ import { useFeatureFlaggedChainIds } from 'uniswap/src/features/chains/hooks/use
 import { isBackendSupportedChainId } from 'uniswap/src/features/chains/utils'
 import { ReactQueryCacheKey } from 'utilities/src/reactQuery/cache'
 import type { PricePoint } from '~/data/util'
+import { useInfiniteLoadMore } from '~/features/Explore/hooks/useInfiniteLoadMore'
 import { EXPLORE_API_PAGE_SIZE } from '~/features/Explore/state/constants'
 import { getListTokens } from '~/features/Explore/state/listTokens/getListTokens'
 import { type UseListTokensOptions, type UseListTokensResult } from '~/features/Explore/state/listTokens/types'
@@ -14,7 +15,6 @@ import { processMultichainTokensForDisplay } from '~/features/Explore/state/list
 import { useExploreQueryLatencyTracking } from '~/features/Explore/state/useExploreQueryLatencyTracking'
 import { toSearchQueryParam } from '~/features/Explore/utils/toSearchQueryParam'
 import { useBackendSupportedChainIds } from '~/hooks/useBackendSupportedChainIds'
-import { useInfiniteLoadMore } from '~/hooks/useInfiniteLoadMore'
 
 /**
  * Hook that returns top tokens data for the Explore page. Adds explore-specific sparklines and latency tracking.

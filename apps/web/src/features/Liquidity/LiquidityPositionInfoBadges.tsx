@@ -1,7 +1,7 @@
 import { ProtocolVersion as RestProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
-import { GraphQLApi } from '@universe/api'
 import type { UniverseChainId } from '@universe/chains'
-import { Flex, Text, type TextCompatProps } from '@universe/mycelium'
+import { Flex, Text, type TextCompatProps, Tooltip } from '@universe/mycelium'
+import { DocumentList } from '@universe/mycelium/icons/DocumentList'
 import {
   forwardRef,
   type ForwardRefExoticComponent,
@@ -11,8 +11,6 @@ import {
   useState,
 } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Tooltip } from 'ui/src'
-import { DocumentList } from 'ui/src/components/icons/DocumentList'
 import { CopyHelper } from 'uniswap/src/components/CopyHelper/CopyHelper'
 import { FeeDisplay } from 'uniswap/src/components/FeeDisplay/FeeDisplay'
 import { UniswapBuiltHookMark } from 'uniswap/src/components/logos/UniswapBuiltHookMark'
@@ -108,7 +106,7 @@ export function LiquidityPositionInfoBadges({
   size,
   cta,
 }: {
-  version?: RestProtocolVersion | GraphQLApi.ProtocolVersion | string
+  version?: RestProtocolVersion | string
   v4hook?: string
   chainId?: UniverseChainId
   feeTier?: FeeData
@@ -258,11 +256,19 @@ export function LiquidityPositionInfoBadges({
           </PositionInfoBadge>
         )
 
+        // A truncating badge has to be able to shrink below its 160px label cap, or a narrow row (mWeb pool
+        // header) overflows into its neighbors. Every wrapper defaults to flexShrink 0, so the wrapper opts in.
+        const wrapperShrinkProps = badge.truncate ? { shrink: true, minWidth: 0 } : undefined
+
         if (!tooltipContent && !tooltipNode) {
-          return <Flex key={key}>{content}</Flex>
+          return (
+            <Flex key={key} {...wrapperShrinkProps}>
+              {content}
+            </Flex>
+          )
         }
 
-        return (
+        const tooltip = (
           <Tooltip allowFlip stayInFrame placement="top" key={key}>
             <Tooltip.Trigger>{content}</Tooltip.Trigger>
             <Tooltip.Content maxWidth="fit-content">
@@ -274,6 +280,14 @@ export function LiquidityPositionInfoBadges({
               )}
             </Tooltip.Content>
           </Tooltip>
+        )
+
+        return wrapperShrinkProps ? (
+          <Flex key={key} {...wrapperShrinkProps}>
+            {tooltip}
+          </Flex>
+        ) : (
+          tooltip
         )
       })}
       {hookEntry && chainId && showHookDetails ? (

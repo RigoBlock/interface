@@ -23,11 +23,11 @@ vi.mock('react-router', async () => ({
   useNavigate: vi.fn(),
 }))
 
-vi.mock('~/hooks/useSelectChain', () => ({
+vi.mock('~/connection/hooks/useSelectChain', () => ({
   useSelectChain: vi.fn(),
 }))
 
-vi.mock('~/hooks/useAccount', () => ({
+vi.mock('~/connection/hooks/useAccount', () => ({
   useAccount: vi.fn(),
 }))
 
@@ -43,9 +43,7 @@ vi.mock('utilities/src/telemetry/trace/TraceContext', () => ({
   useTrace: vi.fn(),
 }))
 
-vi.mock('~/hooks/Tokens', () => ({
-  useCurrencyInfo: vi.fn(),
-}))
+vi.mock('~/hooks/currency/useCurrencyInfo', () => ({ useCurrencyInfo: vi.fn() }))
 
 // The modal reads the LP geo gate, whose compliance query resolves to undefined without a network
 // layer here — react-query logs that as a console error, which the console guard fails the file on.
@@ -57,8 +55,12 @@ vi.mock('~/features/Liquidity/useLPGeoRestriction', () => ({
   }),
 }))
 
+vi.mock('~/features/Liquidity/Create/hooks/useInitialPriceAcceptance', () => ({
+  useInitialPriceAcceptance: vi.fn(() => ({ requiresAcceptance: false, acceptUpdatedPrice: vi.fn() })),
+}))
+
 import { ProtocolVersion } from '@uniswap/client-data-api/dist/data/v1/poolTypes_pb'
-import { CurrencyAmount } from '@uniswap/sdk-core'
+import { CurrencyAmount, Price } from '@uniswap/sdk-core'
 import { UniverseChainId } from '@universe/chains'
 import { useGetPasskeyAuthStatus } from '@universe/embedded-wallet'
 import { useDispatch } from 'react-redux'
@@ -67,9 +69,10 @@ import { DAI, USDC_MAINNET } from 'uniswap/src/constants/tokens'
 import { LPTransactionSettingsStoreContextProvider } from 'uniswap/src/features/transactions/components/settings/stores/transactionSettingsStore/LPTransactionSettingsStoreContextProvider'
 import { useWallet } from 'uniswap/src/features/wallet/hooks/useWallet'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
-import { useCurrencyInfo } from '~/hooks/Tokens'
-import { useAccount } from '~/hooks/useAccount'
-import { useSelectChain } from '~/hooks/useSelectChain'
+import { useAccount } from '~/connection/hooks/useAccount'
+import { useSelectChain } from '~/connection/hooks/useSelectChain'
+import { useInitialPriceAcceptance } from '~/features/Liquidity/Create/hooks/useInitialPriceAcceptance'
+import { useCurrencyInfo } from '~/hooks/currency/useCurrencyInfo'
 import { useCreateLiquidityContext } from '~/pages/CreatePosition/CreateLiquidityContextProvider'
 import { CreatePositionModal } from '~/pages/CreatePosition/CreatePositionModal'
 import { act, fireEvent, render } from '~/test-utils/render'
@@ -182,6 +185,7 @@ describe('CreatePositionModal', () => {
     })
     mockUseTrace.mockReturnValue({})
     mockUseCurrencyInfo.mockReturnValue(undefined)
+    vi.mocked(useInitialPriceAcceptance).mockReturnValue({ requiresAcceptance: false, acceptUpdatedPrice: vi.fn() })
   })
 
   describe('protocol versions', () => {
@@ -231,6 +235,21 @@ describe('CreatePositionModal', () => {
 
       const createButton = getByRole('button', { name: /Create/i })
       expect(createButton).not.toHaveAttribute('aria-disabled', 'true')
+    })
+
+    it('should disable Create button while a new pool’s moved market price awaits acceptance', () => {
+      mockUseCreateLiquidityContext.mockReturnValue({ ...mockContextValue, creatingPoolOrPair: true })
+      vi.mocked(useInitialPriceAcceptance).mockReturnValue({
+        updatedPrice: new Price(DAI, USDC_MAINNET, '1000000000000000000', '1015000'),
+        priceChangePercent: 1.5,
+        requiresAcceptance: true,
+        acceptUpdatedPrice: vi.fn(),
+      })
+
+      const { getByRole, getByText } = render(<Container {...defaultProps} />)
+
+      expect(getByText('Market price updated')).toBeInTheDocument()
+      expect(getByRole('button', { name: /Create/i })).toHaveAttribute('aria-disabled', 'true')
     })
   })
 

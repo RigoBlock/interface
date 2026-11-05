@@ -2,7 +2,6 @@ import JPEG from 'jpeg-js'
 import PNG from 'png-ts'
 import { parseToRgb } from 'polished'
 import { RgbaColor, RgbColor } from 'polished/lib/types/color'
-import { getSpecialCaseTokenColorOverride } from 'ui/src/utils/colors/specialCaseTokens'
 
 // Maps to `#232B2B` — the neutral dark slate used as the OG-card accent
 // when a token logo can't be color-averaged (missing, unreachable, decode
@@ -21,7 +20,7 @@ const FETCH_TIMEOUT_MS = 5_000
  * Defensive scheme + host validator for the token logo URL we proxy through
  * `fetch()`.
  *
- * The URL flows in from the backend GraphQL response (`project.logoUrl`), so
+ * The URL flows in from the backend data API response (`project.logoUrl`), so
  * it isn't directly user-controlled — but the same Bun-fetch / SSRF class
  * documented by Cantina #715 / #747 applies if the upstream ever returns a
  * `file://` / `data:` URL or an IP-literal hostname, so we enforce
@@ -49,13 +48,21 @@ function isSafeImageUrl(url: URL): boolean {
   return true
 }
 
-export async function getRGBColor(imageUrl: string | undefined, checkDistance = false): Promise<RgbColor | RgbaColor> {
+/** `curatedColor` (the data API's curated token color, a hex string) skips fetching and averaging the logo. */
+export async function getRGBColor(
+  imageUrl: string | undefined,
+  checkDistance = false,
+  curatedColor?: string,
+): Promise<RgbColor | RgbaColor> {
+  if (curatedColor) {
+    try {
+      return parseToRgb(curatedColor)
+    } catch {
+      // A malformed backend value falls through to averaging the logo.
+    }
+  }
   if (!imageUrl) {
     return DEFAULT_COLOR
-  }
-  const specialCaseColor = getSpecialCaseTokenColorOverride(imageUrl)
-  if (specialCaseColor) {
-    return parseToRgb(specialCaseColor)
   }
   let parsed: URL
   try {

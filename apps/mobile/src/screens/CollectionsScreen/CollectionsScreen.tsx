@@ -1,5 +1,5 @@
 import { SharedEventName } from '@uniswap/analytics-events'
-import { useIsTokenCategoriesEnabled } from '@universe/gating'
+import { DynamicConfigs, useIsTokenCategoriesEnabled } from '@universe/gating'
 import {
   Flex,
   Loader,
@@ -8,6 +8,9 @@ import {
   UniversalList,
   type UniversalListRenderItemInfo,
   type UniversalListStyle,
+  fonts,
+  iconSizes,
+  spacing,
 } from '@universe/mycelium'
 import React, { memo, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -15,20 +18,19 @@ import { useWindowDimensions } from 'react-native'
 import { useExploreStackNavigation } from 'src/app/navigation/types'
 import { BackHeader } from 'src/components/layout/BackHeader'
 import { Screen } from 'src/components/layout/Screen'
-import { fonts, iconSizes, spacing } from 'ui/src/theme'
 import { BaseCard } from 'uniswap/src/components/BaseCard/BaseCard'
 import { RelativeChange } from 'uniswap/src/components/RelativeChange/RelativeChange'
 import { useListCategoriesQuery } from 'uniswap/src/data/apiClients/dataApiService/categories/useListCategoriesQuery'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { bucketTokenCategories } from 'uniswap/src/features/tokenCategories/bucketTokenCategories'
-import { getTokenCategoryIcon } from 'uniswap/src/features/tokenCategories/categoryIcons'
+import { bucketCategories } from 'uniswap/src/features/tokenCategories/bucketTokenCategories'
+import { getCategoryIcon } from 'uniswap/src/features/tokenCategories/categoryIcons'
 import { getCategoryPileLogos } from 'uniswap/src/features/tokenCategories/getCategoryPileLogos'
 import { getTokenCategoryClassLabel } from 'uniswap/src/features/tokenCategories/getTokenCategoryClassLabel'
 import { TokenLogoPile } from 'uniswap/src/features/tokenCategories/TokenLogoPile'
 import { TokenCategory, TokenCategoryClass } from 'uniswap/src/features/tokenCategories/types'
-import { useTokenCategoryOrder } from 'uniswap/src/features/tokenCategories/useTokenCategoryOrder'
+import { useCategoryOrder } from 'uniswap/src/features/tokenCategories/useCategoryOrder'
 import { useAppInsets } from 'uniswap/src/hooks/useAppInsets'
 import { MobileScreens } from 'uniswap/src/types/screens/mobile'
 import { useEvent } from 'utilities/src/react/hooks'
@@ -66,7 +68,7 @@ const CategoryRow = memo(function CategoryRow({
   onPress: (category: TokenCategory) => void
 }): JSX.Element {
   const { t } = useTranslation()
-  const Icon = getTokenCategoryIcon(category)
+  const Icon = getCategoryIcon(category)
   const stats = category.stats
 
   const onRowPress = useEvent(() => {
@@ -120,7 +122,10 @@ function CategoryRowSkeleton(): JSX.Element {
 export function CollectionsScreen(): JSX.Element {
   const tokenCategoriesEnabled = useIsTokenCategoriesEnabled()
   const { data: categories, isFetching, error, refetch } = useListCategoriesQuery()
-  const orderedCategories = useTokenCategoryOrder(categories ?? EMPTY_CATEGORIES)
+  const orderedCategories = useCategoryOrder({
+    categories: categories ?? EMPTY_CATEGORIES,
+    config: DynamicConfigs.TokenCategoriesOrder,
+  })
 
   return (
     <Trace directFromPage logImpression screen={MobileScreens.Collections}>
@@ -154,7 +159,7 @@ function CollectionsContent({
   const trace = useTrace()
   const getBucketLabel = useBucketLabel()
 
-  const buckets = useMemo(() => bucketTokenCategories(orderedCategories), [orderedCategories])
+  const buckets = useMemo(() => bucketCategories(orderedCategories), [orderedCategories])
   const categoryIndexById = useMemo(
     () => new Map(buckets.flatMap((bucket) => bucket.categories).map((category, index) => [category.id, index])),
     [buckets],
@@ -195,7 +200,7 @@ function CollectionsContent({
             onRetry={onRetry}
           />
         ) : (
-          <BaseCard.EmptyState description={t('explore.collections.empty')} />
+          <BaseCard.EmptyState description={t('explore.categories.empty')} />
         )}
       </Flex>
     )
@@ -243,7 +248,7 @@ function CollectionsContent({
   return (
     <Screen edges={['top', 'left', 'right']}>
       <BackHeader px="$spacing16" py="$spacing12">
-        <Text variant="body1">{t('explore.collections.title')}</Text>
+        <Text variant="body1">{t('explore.categories.title')}</Text>
       </BackHeader>
       <UniversalList
         recycleItems

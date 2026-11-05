@@ -13,6 +13,13 @@ import { SessionGateSource } from '@universe/sessions'
 import { config } from 'uniswap/src/config'
 import { getUniswapServiceUrls } from 'uniswap/src/constants/urls'
 import { BASE_UNISWAP_HEADERS } from 'uniswap/src/data/apiClients/createUniswapFetchClient'
+import {
+  toMarginPositionActivityView,
+  toMarginPositionsView,
+  type MarginPositionActivityWireResponse,
+  type MarginPositionsWireResponse,
+} from 'uniswap/src/data/apiClients/tradingApi/marginPositionsView'
+import { toMarginQuoteView, type MarginTokenDecimals } from 'uniswap/src/data/apiClients/tradingApi/marginQuoteView'
 import { TradingApiSessionClient } from 'uniswap/src/data/apiClients/tradingApi/TradingApiSessionClient'
 import type { MarginDirection, MarginVenue } from 'uniswap/src/features/transactions/margin/types'
 
@@ -53,18 +60,41 @@ export type MarginActionKey = (typeof MARGIN_ACTION_KEYS)[number]
 // response echoes it back (retry policy, analytics). The oneof guarantees at
 // most one is set.
 export function marginRequestActionKey(request: MarginQuoteRequest): MarginActionKey | undefined {
-  return MARGIN_ACTION_KEYS.find((key) => request[key] !== undefined)
+  return MARGIN_ACTION_KEYS.find((key) => key in request)
 }
 
 // The position a request prices against. It rides inside the action key rather than on the envelope,
 // so surfaces that need the SUBJECT of a request — cache bridging, analytics — read it through here.
 // `open` reports absent: it has no position yet.
 export function marginRequestPositionId(request: MarginQuoteRequest): string | undefined {
-  const key = marginRequestActionKey(request)
-  if (key === undefined || key === 'open') {
-    return undefined
+  if ('close' in request) {
+    return request.close.positionId
   }
-  return request[key]?.positionId
+  if ('increaseLeverage' in request) {
+    return request.increaseLeverage.positionId
+  }
+  if ('decreaseLeverage' in request) {
+    return request.decreaseLeverage.positionId
+  }
+  if ('addEquity' in request) {
+    return request.addEquity.positionId
+  }
+  if ('withdrawEquity' in request) {
+    return request.withdrawEquity.positionId
+  }
+  if ('addEquityAndIncreaseLeverage' in request) {
+    return request.addEquityAndIncreaseLeverage.positionId
+  }
+  if ('addEquityAndDecreaseLeverage' in request) {
+    return request.addEquityAndDecreaseLeverage.positionId
+  }
+  if ('withdrawEquityAndIncreaseLeverage' in request) {
+    return request.withdrawEquityAndIncreaseLeverage.positionId
+  }
+  if ('withdrawEquityAndDecreaseLeverage' in request) {
+    return request.withdrawEquityAndDecreaseLeverage.positionId
+  }
+  return undefined
 }
 
 // The venue allowlist an `open` request was quoted against, as a stable string. Only `open` carries
@@ -72,7 +102,16 @@ export function marginRequestPositionId(request: MarginQuoteRequest): string | u
 // because the allowlist is a SET: two requests naming the same venues in a different order are the
 // same subject, and treating them as different would blank the form for no reason.
 export function marginRequestVenueKey(request: MarginQuoteRequest): string | undefined {
-  return request.open === undefined ? undefined : [...request.open.venues].sort().join(',')
+  return 'open' in request ? [...request.open.venues].sort().join(',') : undefined
+}
+
+// The wallet-side pay/receive token and its chain. Present on every key but the two pure leverage
+// moves, so read through these rather than off the envelope — the subject comparison keys on them.
+export function marginRequestWalletToken(request: MarginQuoteRequest): string | undefined {
+  return 'walletToken' in request ? request.walletToken : undefined
+}
+export function marginRequestWalletChainId(request: MarginQuoteRequest): number | undefined {
+  return 'walletChainId' in request ? request.walletChainId : undefined
 }
 
 // Keys naming an equity direction, so the wallet-side rail is required: the six
@@ -164,35 +203,10 @@ export interface MarginPositionLeverageAction {
   leverageTarget: string
 }
 
-export interface MarginQuoteRequest {
-  chainId: number
-  // The market in TRADER terms. `direction` alone flips the venue legs: LONG
-  // borrows the counter token against exposure collateral, SHORT the reverse.
-  exposureToken: string
-  counterToken: string
-  direction: MarginDirection
-  // Required on every key — the directional layer resolves live position state
-  // off it, and no action is priced without an owner.
-  swapper: string
-  // Leverage-leg controls (the flash-accounted, debt-funded swap inside the
-  // router). Always explicit; forbidden on MARGIN_NO_LEVERAGE_SWAP_ACTION_KEYS.
-  slippageTolerance?: number
-  // AMM subset only — a UniswapX fill cannot be flash-accounted inside the router.
-  protocols?: string[]
-  // Required iff the key names an equity direction (MARGIN_EQUITY_ACTION_KEYS).
-  swapConfig?: MarginSwapConfig
-  // ---- exactly one action key ----
-  open?: MarginOpenAction
-  close?: MarginPositionAction
-  increaseLeverage?: MarginPositionLeverageAction
-  decreaseLeverage?: MarginPositionLeverageAction
-  addEquity?: MarginPositionAction
-  withdrawEquity?: MarginPositionAction
-  addEquityAndIncreaseLeverage?: MarginPositionLeverageAction
-  addEquityAndDecreaseLeverage?: MarginPositionLeverageAction
-  withdrawEquityAndIncreaseLeverage?: MarginPositionLeverageAction
-  withdrawEquityAndDecreaseLeverage?: MarginPositionLeverageAction
-}
+// Generated from the backend OpenAPI spec (SWAP-3352): the ten-key request is a discriminated union
+// of one per-action member, each an intersection of the shared base + (walletBlock?) + (leverageLeg?)
+// + its action object. The FE builder constructs members directly; a wire rename now fails to compile.
+export type MarginQuoteRequest = TradingApi.MarginQuoteRequest
 
 // ---- server-authored bounds ----
 // Echoed VERBATIM inside the posted quote and re-derived + cross-checked at plan
@@ -219,10 +233,11 @@ export interface MarginBoundsIncrease {
   venueMarketId?: string
 }
 export interface MarginBoundsDecrease {
-  // Close: the full live debt + the UR dust buffer.
-  debtToRepay: string
-  // Cap on collateral sold; round-UP slippage pad.
-  maxCollateralIn: string
+  // Close: the full live debt + the UR dust buffer. Absent when the server authored no bound;
+  // consumers must treat absence as "unknown", never zero.
+  debtToRepay?: string
+  // Cap on collateral sold; round-UP slippage pad. Absent → unknown, not zero.
+  maxCollateralIn?: string
   minHopPrice?: string
   effectivePrice?: string
   swapPoolKey?: string
@@ -264,7 +279,8 @@ export interface MarginPaymentSwapQuote {
   feeBps: number
   impactBps: string
   expectedOut: string
-  minOut: string
+  // Absent when the server authored no slippage floor; do not fabricate one from expectedOut.
+  minOut?: string
 }
 
 // Display-only cross-chain summary (route row + fee list); never part of the bounds.
@@ -302,19 +318,15 @@ export interface MarginQuoteDisplay {
   // Size-weighted aggregate over the legs.
   effectivePrice?: string
   liquidationPrice?: string
-  // Fractional price move to liquidation, 18-dec: |oracle − liquidation| / oracle
-  // on DISPLAY prices, so it reads the same for a long and a short.
-  buffer?: string
   // Borrow APR, 18-dec.
   borrowRate?: string
   // Thresholds stay client-side. Absent on `close`, which leaves no position.
   healthFactor?: string
+  // The venue's oracle mark, on the same snapshot as liquidationPrice and healthFactor.
+  oraclePrice?: string
   // ---- close only ----
   collateralReturned?: string
   debtRepaid?: string
-  oraclePrice?: string
-  accruedInterest?: string
-  feesPaid?: string
 }
 
 // One venue leg. Single-element in v1; the array is the shape a multi-venue fill
@@ -369,6 +381,11 @@ export interface MarginQuoteResponse {
   // Display-only funding-rail summaries; the rail's binding floors live on swapConfig.
   paymentSwap?: MarginPaymentSwapQuote
   paymentSource?: MarginPaymentSourceInfo
+  // The verbatim wire `execution` subtree, carried UNTOUCHED for the POST /plan echo: the backend
+  // reads `marginQuote.execution` (re-deriving every bound on chain) and ignores the flat/display
+  // fields above, which exist only for the terminal UI. Always set by toMarginQuoteView on a real
+  // quote; optional only so display-only test fixtures need not synthesize an execution subtree.
+  execution?: TradingApi.MarginExecution
 }
 
 // ---- error taxonomy (hand-mirrored from the BE's lib/errors.ts enums) ----
@@ -389,7 +406,7 @@ export type MarginErrorCode =
   | 'MARGIN_INVALID_LEVERAGE'
   | 'MARGIN_SWAP_INSUFFICIENT_LIQUIDITY'
   | 'MARGIN_SWAP_PRICE_IMPACT'
-  | 'MARGIN_BORROW_INSUFFICIENT_LIQUIDITY'
+  | 'MARGIN_INSUFFICIENT_BORROW_LIQUIDITY'
   | 'MARGIN_WITHDRAW_OVER_MAX'
   | 'MARGIN_MARKET_NOT_SUPPORTED'
   | 'MARGIN_ADJUST_NO_POSITION'
@@ -481,6 +498,9 @@ export interface MarginPlanStep {
   // 0-based, stable identity (never reordered).
   stepIndex: number
   stepType: MarginPlanStepType
+  // The plan service's own type, before the relabel onto `stepType`: it is what tells a WRAP funding leg
+  // from a routed swap, which `MARGIN_PRE_SWAP` covers both of.
+  wireStepType?: TradingApi.PlanStepType
   method: MarginPlanStepMethod
   payloadType: MarginPlanStepPayloadType
   // Empty object while NOT_READY; materialized at activation/regeneration.
@@ -512,6 +532,9 @@ export interface MarginPlanResponse {
   planId: string
   swapper: string
   intent: MarginPlanIntent
+  // Which action an ADJUST plan carries (add/withdraw margin, leverage up/down, or a composite); absent
+  // for a wire intent this client does not know.
+  action?: MarginActionKey
   marketKey: string
   // Lending venue — resolve the FE market by tokens + venue (never by cross-repo marketKey).
   // Optional: BE omits it when empty.
@@ -610,19 +633,32 @@ export interface MarginMarketsResponse {
   markets: MarginMarketRow[]
 }
 
-export type MarginPositionStatus = 'ACTIVE' | 'COMPLETED' | 'LIQUIDATED' | 'PARTIALLY_LIQUIDATED'
+export const MarginPositionStatus = TradingApi.MarginPositionStatus
+export type MarginPositionStatus = TradingApi.MarginPositionStatus
+
+// The two status sets the server accepts. ACTIVE is read on chain and the finished statuses from the
+// position store, so ACTIVE is only ever requested alone (mixing them is a 400).
+export const MARGIN_ACTIVE_POSITION_STATUSES = [MarginPositionStatus.ACTIVE] as const
+export const MARGIN_TERMINAL_POSITION_STATUSES = [
+  MarginPositionStatus.COMPLETED,
+  MarginPositionStatus.LIQUIDATED,
+  MarginPositionStatus.PARTIALLY_LIQUIDATED,
+] as const
 
 export interface MarginPositionsRequest {
   swapper: string
   chainId: number
-  // Selects the tab, not a filter: ACTIVE (the default) is computed live off the
-  // accountOf walk; the terminal statuses come from the derived store — which is
-  // why cursor/limit page those and never ACTIVE.
-  status?: MarginPositionStatus
-  // Opaque; echo nextCursor back verbatim. Terminal rows only.
+  // Selects the tab: the response carries only rows in these statuses, newest close first for the
+  // terminal set. One of the two sets above, never an arbitrary MarginPositionStatus[], so a mixed
+  // request the server would 400 does not compile.
+  statuses: typeof MARGIN_ACTIVE_POSITION_STATUSES | typeof MARGIN_TERMINAL_POSITION_STATUSES
+  // Opaque; echo nextCursor back verbatim, with the statuses that returned it.
   cursor?: string
   limit?: number
 }
+
+// The wire takes the list comma-separated.
+type MarginPositionsWireRequest = Omit<MarginPositionsRequest, 'statuses'> & { statuses: string }
 
 // One venue leg of a position. v1 positions are single-leg — the array is the
 // shape a multi-venue position fills later without a wire break, so read legs[0]
@@ -637,16 +673,6 @@ export interface MarginPositionLeg {
   debt: string
   // Borrow APR, 18-dec fixed-point.
   borrowRate?: string
-}
-
-export interface MarginDecreaseActivity {
-  debtRepaid: string
-  collateralSold: string
-  // debtRepaid/collateralSold; absent when collateralSold = 0.
-  exitPrice?: string
-  // Unix seconds, decimal string.
-  timestamp: string
-  txHash: string
 }
 
 // Every status carries these. A field outside the row's status group is ABSENT,
@@ -668,19 +694,23 @@ interface MarginPositionCommon {
   // Unix seconds; "0" when unattributable.
   openedAt: string
   openTxHash?: string
+  // The lifecycle GET /margin/positions/activity serves. Absent for a position the store has not indexed.
+  activityId?: string
   legs: MarginPositionLeg[]
   // False when the pair has no single USD leg (stable/stable or volatile/volatile),
   // so `direction` is unclassifiable and every USD figure on the row is meaningless.
-  isTradable: boolean
+  // The flat-row wire does not carry it; only an explicit false suppresses the figures.
+  isTradable?: boolean
 }
 
 export interface MarginActivePosition extends MarginPositionCommon {
   status: 'ACTIVE'
-  // Live equity in COUNTER-token raw units, SIGNED (an underwater position is
-  // negative): collateral at the oracle mark minus debt.
+  // Live equity in COLLATERAL-token raw units: collateral minus the debt valued
+  // at the oracle mark, floored at 0. The collateral leg is the exposure token
+  // for a LONG and the stable counter token for a SHORT.
   equity: string
-  // LIVE exposure leverage = size × oraclePrice / equity, NOT the open-time
-  // figure (that is openedLeverage). Absent when equity is at or below zero:
+  // LIVE leverage = collateral / equity (both collateral units), NOT the
+  // open-time figure (that is openedLeverage). Absent when equity is zero:
   // such a position has no finite leverage — render ∞.
   leverage?: string
   // Counter per 1 exposure, 18-dec fixed-point.
@@ -690,9 +720,9 @@ export interface MarginActivePosition extends MarginPositionCommon {
   buffer: string
   // Headline leg's borrow APR, 18-dec fixed-point.
   borrowRate?: string
-  // Signed, counter-token raw units: live equity − costBasisUsd.
+  // Signed, collateral-token raw units: equity + collateral returned − depositedEquity.
   unrealizedPnl?: string
-  // unrealizedPnl / costBasisUsd, 18-dec, signed.
+  // unrealizedPnl / depositedEquity, 18-dec fraction, signed.
   roe?: string
   // liveDebt − debtBaseline, floored at 0.
   accruedInterest?: string
@@ -706,8 +736,9 @@ export interface MarginActivePosition extends MarginPositionCommon {
   // Exposure leverage at open, decimal string.
   openedLeverage?: string
   collateralAtOpen?: string
-  // Partial decreases — drawer activity lines (position stays ACTIVE).
-  decreases?: MarginDecreaseActivity[]
+  // Equity the owner has deposited, collateral-token raw units — the basis unrealizedPnl and roe are
+  // measured against.
+  depositedEquity?: string
   // True when this still-open position survived a partial liquidation.
   liquidated?: boolean
   lastLiquidationTxHash?: string
@@ -756,16 +787,47 @@ export interface MarginPendingPlan {
   // 0-based index of the first non-COMPLETE step.
   currentStep: number
   stepCount: number
-  // Mirrors cancelPlan's guard: false when an IN_PROGRESS step already carries a proof.
   cancellable: boolean
 }
 export interface MarginPositionsResponse {
   requestId: string
-  // Terminal history is folded in here under a terminal `status`.
+  // Only rows in the requested statuses.
   positions: MarginPosition[]
   pendingPlans: MarginPendingPlan[]
   // Present iff more TERMINAL rows remain; ACTIVE never pages.
   nextCursor?: string
+}
+
+export type MarginActivityKind =
+  | 'MARGIN_ACTIVITY_KIND_OPEN'
+  | 'MARGIN_ACTIVITY_KIND_INCREASE'
+  | 'MARGIN_ACTIVITY_KIND_DECREASE'
+  | 'MARGIN_ACTIVITY_KIND_ADD_EQUITY'
+  | 'MARGIN_ACTIVITY_KIND_WITHDRAW_EQUITY'
+  // Partial or full; a full one also ends the lifecycle.
+  | 'MARGIN_ACTIVITY_KIND_LIQUIDATION'
+  | 'MARGIN_ACTIVITY_KIND_CLOSE'
+  // A move the store could not attribute: no amounts, only the position it left.
+  | 'MARGIN_ACTIVITY_KIND_ADJUSTMENT'
+
+// One event of a position's lifecycle. Amounts are raw units; an amount the event has none of is absent.
+export interface MarginPositionActivity {
+  kind: MarginActivityKind
+  txHash: string
+  // Unix seconds, decimal string.
+  timestamp: string
+  collateralBought?: string
+  debtDrawn?: string
+  collateralSold?: string
+  debtRepaid?: string
+  equityDeposited?: string
+  equityWithdrawn?: string
+  // The event's fill, in the same terms as the row's entryPrice. Absent when the event has none.
+  price?: string
+  // The position as the event left it.
+  collateralAfter: string
+  debtAfter: string
+  entryPrice?: string
 }
 
 // Built through the trading factory so web requests carry the session cookie + x-api-key,
@@ -804,11 +866,16 @@ function toSharedCreatePlanBody(request: MarginCreatePlanRequest): TradingApi.Cr
     // quote-less body the BE would reject.
     throw new Error('RECOVER margin plans are not yet supported on the shared /plan endpoint')
   }
-  // The committed OpenAPI spec still requires `quote` and carries no `marginQuote`; the backend
-  // accepts one xor the other. Cast the whole body rather than weakening the shared request type.
+  // POST /plan decodes `marginQuote` as the proto trading.v1.MarginQuoteResponse with STRICT field
+  // checking: it rejects the first unknown key, and the flat display view carries many (`action`,
+  // `swapper`, `paymentSwap`, per-leg `bounds`, …). Echo ONLY the wire fields — `requestId` plus the
+  // verbatim `execution` subtree the server stamped — which is all /plan consumes (it re-derives every
+  // bound from `execution` and ignores `display`). The committed spec still names `quote`; the backend
+  // accepts `marginQuote` xor `quote`, so cast the body rather than weaken the shared request type.
+  const marginQuote = request.marginQuote
   return {
     routing: TradingApi.CreatePlanRequest.routing.CHAINED,
-    marginQuote: request.marginQuote,
+    marginQuote: marginQuote && { requestId: marginQuote.requestId, execution: marginQuote.execution },
   } as unknown as TradingApi.CreatePlanRequest
 }
 
@@ -830,7 +897,62 @@ const FUNDING_STEP_TYPE_TO_MARGIN: Partial<Record<TradingApi.PlanStepType, Margi
   BRIDGE: 'MARGIN_BRIDGE',
 }
 
-function toMarginStepType(wireStepType: TradingApi.PlanStepType | undefined): MarginPlanStepType {
+// A plan's `marginIntent.intent` is the proto enum member with its prefix stripped (`ADD_EQUITY`, never
+// `MARGIN_INTENT_ADD_EQUITY`) — the plan service writes `MarginIntent[intent]`, unlike the quote, which
+// carries the full name. Derived from the generated enum so a new member is a compile error here.
+type MarginWirePlanIntent = `${TradingApi.MarginIntent}` extends infer Name
+  ? Name extends `MARGIN_INTENT_${infer Short}`
+    ? Short
+    : never
+  : never
+
+interface MarginPlanIntentResolution {
+  intent: MarginPlanIntent
+  action: MarginActionKey
+}
+
+// Every leverage/equity variant is an ADJUST to this client; `action` keeps which one it was, since the
+// submit modal names the plan by it.
+const WIRE_PLAN_INTENTS: Readonly<Record<MarginWirePlanIntent, MarginPlanIntentResolution>> = {
+  OPEN: { intent: 'OPEN', action: 'open' },
+  CLOSE: { intent: 'CLOSE', action: 'close' },
+  INCREASE_LEVERAGE: { intent: 'ADJUST', action: 'increaseLeverage' },
+  DECREASE_LEVERAGE: { intent: 'ADJUST', action: 'decreaseLeverage' },
+  ADD_EQUITY: { intent: 'ADJUST', action: 'addEquity' },
+  WITHDRAW_EQUITY: { intent: 'ADJUST', action: 'withdrawEquity' },
+  ADD_EQUITY_AND_INCREASE_LEVERAGE: { intent: 'ADJUST', action: 'addEquityAndIncreaseLeverage' },
+  ADD_EQUITY_AND_DECREASE_LEVERAGE: { intent: 'ADJUST', action: 'addEquityAndDecreaseLeverage' },
+  WITHDRAW_EQUITY_AND_INCREASE_LEVERAGE: { intent: 'ADJUST', action: 'withdrawEquityAndIncreaseLeverage' },
+  WITHDRAW_EQUITY_AND_DECREASE_LEVERAGE: { intent: 'ADJUST', action: 'withdrawEquityAndDecreaseLeverage' },
+}
+
+function isWirePlanIntent(value: string | undefined): value is MarginWirePlanIntent {
+  return value !== undefined && Object.keys(WIRE_PLAN_INTENTS).includes(value)
+}
+
+function resolveWirePlanIntent(wireIntent: string | undefined): { intent: MarginPlanIntent; action?: MarginActionKey } {
+  if (isWirePlanIntent(wireIntent)) {
+    return WIRE_PLAN_INTENTS[wireIntent]
+  }
+  // An unknown wire intent passes through verbatim rather than being guessed into a known one.
+  return { intent: wireIntent as unknown as MarginPlanIntent }
+}
+
+// The BE emits a single MARGIN_EXECUTE for every margin action and names the action only on
+// `marginIntent.intent`; the executor, activity extractor, and review modal all branch on the
+// action-specific step types this client has always exposed. Resolve the execute step to its intent's
+// step type here, at the boundary, so one normalisation keeps every downstream switch intact.
+const MARGIN_INTENT_TO_EXECUTE_STEP_TYPE: Readonly<Record<MarginPlanIntent, MarginPlanStepType>> = {
+  OPEN: 'MARGIN_OPEN',
+  CLOSE: 'MARGIN_CLOSE',
+  ADJUST: 'MARGIN_ADJUST',
+  RECOVER: 'MARGIN_RECOVER',
+}
+
+function toMarginStepType(
+  wireStepType: TradingApi.PlanStepType | undefined,
+  intent: MarginPlanIntent,
+): MarginPlanStepType {
   // Optional on the GENERATED model only — the plan service's own model declares `stepType` required on
   // every step, so an absent one is a contract violation rather than a state worth modelling. Asserted
   // here at the boundary instead of pushed onto every consumer as an optional they could only ignore;
@@ -838,13 +960,19 @@ function toMarginStepType(wireStepType: TradingApi.PlanStepType | undefined): Ma
   if (wireStepType === undefined) {
     return wireStepType as unknown as MarginPlanStepType
   }
+  // The BE collapses every margin action onto one MARGIN_EXECUTE step; resolve it back to the action's
+  // own step type via the plan intent so the executor and activity extractor dispatch it correctly.
+  if (wireStepType === TradingApi.PlanStepType.MARGIN_EXECUTE) {
+    return MARGIN_INTENT_TO_EXECUTE_STEP_TYPE[intent]
+  }
   return FUNDING_STEP_TYPE_TO_MARGIN[wireStepType] ?? (wireStepType as unknown as MarginPlanStepType)
 }
 
-function toMarginPlanStep(step: TradingApi.PlanStep): MarginPlanStep {
+function toMarginPlanStep(step: TradingApi.PlanStep, intent: MarginPlanIntent): MarginPlanStep {
   return {
     stepIndex: step.stepIndex,
-    stepType: toMarginStepType(step.stepType),
+    stepType: toMarginStepType(step.stepType, intent),
+    wireStepType: step.stepType,
     method: step.method as unknown as MarginPlanStepMethod,
     payloadType: step.payloadType as unknown as MarginPlanStepPayloadType,
     payload: step.payload as unknown as MarginPlanStep['payload'],
@@ -871,11 +999,13 @@ function toMarginPlanResponse(plan: TradingApi.PlanResponse): MarginPlanResponse
     // endpoint did not treat this plan as margin — surface it rather than silently degrade.
     throw new Error('Margin plan response is missing marginIntent')
   }
+  const { intent, action } = resolveWirePlanIntent(marginIntent.intent)
   return {
     requestId: plan.requestId,
     planId: plan.planId,
     swapper: plan.swapper,
-    intent: marginIntent.intent as unknown as MarginPlanIntent,
+    intent,
+    action,
     marketKey: marginIntent.marketKey ?? '',
     venue: marginIntent.venue as MarginVenue | undefined,
     collateralToken: marginIntent.collateralToken ?? '',
@@ -883,33 +1013,77 @@ function toMarginPlanResponse(plan: TradingApi.PlanResponse): MarginPlanResponse
     subId: marginIntent.subId ?? '',
     status: plan.status as unknown as MarginPlanStatus,
     currentStepIndex: plan.currentStepIndex,
-    steps: plan.steps.map(toMarginPlanStep),
+    steps: plan.steps.map((step: TradingApi.PlanStep) => toMarginPlanStep(step, intent)),
     createdAt: plan.createdAt ?? '',
     updatedAt: plan.updatedAt ?? '',
     completedAt: plan.completedAt,
   }
 }
 
+// The wire dispatcher returns the generated `execution` envelope; the exported client adapts it to the
+// FE view (see toMarginQuoteView) so consumers keep reading the flat/bounds shape — SWAP-3352.
+const fetchMarginQuoteWire = createFetcher<MarginQuoteRequest, TradingApi.MarginQuoteResponse>({
+  client: MarginFetchClient,
+  url: getMarginApiPath('margin/quote'),
+  method: 'post',
+})
+
+const fetchMarginPositionsWire = createFetcher<MarginPositionsWireRequest, MarginPositionsWireResponse>({
+  client: MarginFetchClient,
+  url: getMarginApiPath('margin/positions'),
+  method: 'get',
+})
+
+interface MarginPositionActivityWireRequest {
+  activityId: string
+  // Opaque; echo nextCursor back verbatim with the same activityId.
+  cursor?: string
+}
+
+const fetchMarginPositionActivityWire = createFetcher<
+  MarginPositionActivityWireRequest,
+  MarginPositionActivityWireResponse
+>({
+  client: MarginFetchClient,
+  url: getMarginApiPath('margin/positions/activity'),
+  method: 'get',
+})
+
+// The endpoint serves at most 50 events a page, oldest first, so the newest events are on the last page.
+// A cursor the server keeps handing back would otherwise loop forever; past this many pages the newest
+// events are dropped rather than the request never settling.
+const MAX_MARGIN_POSITION_ACTIVITY_PAGES = 10
+
+// Every event of the lifecycle, oldest first.
+async function fetchMarginPositionActivity({ activityId }: { activityId: string }): Promise<MarginPositionActivity[]> {
+  const pages: MarginPositionActivityWireResponse[] = []
+  let cursor: string | undefined
+  do {
+    const page = await fetchMarginPositionActivityWire({ activityId, ...(cursor !== undefined && { cursor }) })
+    pages.push(page)
+    cursor = page.nextCursor
+  } while (cursor !== undefined && pages.length < MAX_MARGIN_POSITION_ACTIVITY_PAGES)
+  return toMarginPositionActivityView(pages)
+}
+
 export const MarginApiClient = {
   // One dispatcher for all ten action keys — /margin/close_quote and
   // /margin/adjust_quote are retired routes.
-  fetchMarginQuote: createFetcher<MarginQuoteRequest, MarginQuoteResponse>({
-    client: MarginFetchClient,
-    url: getMarginApiPath('margin/quote'),
-    method: 'post',
-  }),
-  fetchMarginPositions: createFetcher<MarginPositionsRequest, MarginPositionsResponse>({
-    client: MarginFetchClient,
-    url: getMarginApiPath('margin/positions'),
-    method: 'get',
-  }),
+  fetchMarginQuote: async (
+    params: MarginQuoteRequest,
+    { tokenDecimals, customHeaders }: { tokenDecimals: MarginTokenDecimals; customHeaders?: HeadersInit },
+  ): Promise<MarginQuoteResponse> =>
+    toMarginQuoteView(await fetchMarginQuoteWire(params, customHeaders), tokenDecimals),
+  fetchMarginPositions: async ({ statuses, ...params }: MarginPositionsRequest): Promise<MarginPositionsResponse> =>
+    toMarginPositionsView(await fetchMarginPositionsWire({ ...params, statuses: statuses.join(',') })),
+  fetchMarginPositionActivity,
   fetchMarginMarkets: createFetcher<MarginMarketsRequest, MarginMarketsResponse>({
     client: MarginFetchClient,
     url: getMarginApiPath('margin/markets'),
     method: 'get',
   }),
-  // The four plan methods delegate to the shared chained-plan endpoint via the adapters above,
-  // keeping their names + signatures so the executor and cancel call sites are untouched.
+  // The plan methods delegate to the shared chained-plan endpoint via the adapters above,
+  // keeping their names + signatures so the executor call sites are untouched.
   createMarginPlan: async (request: MarginCreatePlanRequest): Promise<MarginPlanResponse> => {
     return toMarginPlanResponse(await TradingApiSessionClient.createNewPlan(toSharedCreatePlanBody(request)))
   },
@@ -918,10 +1092,5 @@ export const MarginApiClient = {
   },
   updateMarginPlan: async ({ planId, steps }: MarginUpdatePlanRequest): Promise<MarginPlanResponse> => {
     return toMarginPlanResponse(await TradingApiSessionClient.updateExistingPlan({ planId, steps }))
-  },
-  // Cancel is now a status-only PATCH (plan/{id} {status:'CANCELLED'}) — there is no /cancel route.
-  // Still tolerant on a terminal plan: callers accept a reject after a successful stranded-equity sweep.
-  cancelMarginPlan: async ({ planId }: MarginGetPlanRequest): Promise<MarginPlanResponse> => {
-    return toMarginPlanResponse(await TradingApiSessionClient.cancelExistingPlan({ planId }))
   },
 }

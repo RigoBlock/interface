@@ -1,9 +1,8 @@
 import { SharedEventName } from '@uniswap/analytics-events'
-import { Flex, iconSizes, Text } from '@universe/mycelium'
+import { Flex, iconSizes, Text, Loader } from '@universe/mycelium'
 import { TestID } from '@universe/test'
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Loader } from 'ui/src'
 import {
   type CategoryFilterChip,
   MY_TOKENS_CHIP_ID,
@@ -13,7 +12,7 @@ import { AccountIcon } from 'uniswap/src/features/accounts/AccountIcon'
 import type { AddressGroup } from 'uniswap/src/features/accounts/store/types/AccountsState'
 import { ElementName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
-import { getTokenCategoryIcon } from 'uniswap/src/features/tokenCategories/categoryIcons'
+import { getCategoryIcon } from 'uniswap/src/features/tokenCategories/categoryIcons'
 import { CATEGORY_PILL_HEIGHT, Pill } from 'uniswap/src/features/tokenCategories/CategoryPill'
 import { useEvent } from 'utilities/src/react/hooks'
 
@@ -90,7 +89,7 @@ export const CategoryFilterChipRow = memo(function CategoryFilterChipRow({
       <HorizontalFadeScroll>
         <Flex row gap="$spacing8" px="$spacing20">
           {chips.map((chip) => {
-            const CategoryIcon = chip.category ? getTokenCategoryIcon(chip.category) : undefined
+            const CategoryIcon = chip.category ? getCategoryIcon(chip.category) : undefined
             return (
               <Chip
                 key={chip.id}

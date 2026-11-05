@@ -13,6 +13,7 @@ import {
 import { isBackendSupportedChainId } from 'uniswap/src/features/chains/utils'
 import { CurrencyInfo, RestContract } from 'uniswap/src/features/dataApi/types'
 import { currencyIdToRestContractInput } from 'uniswap/src/features/dataApi/utils/currencyIdToContractInput'
+import { formatColorOverrides } from 'uniswap/src/features/dataApi/utils/formatColorOverrides'
 import { restV2TokenToCurrencyInfo } from 'uniswap/src/features/dataApi/utils/restV2TokenToCurrencyInfo'
 import {
   buildNativeCurrencyId,
@@ -48,6 +49,10 @@ function selectCurrencyInfo(
       // metadata for the native placeholder address (0xeee/0x0) isn't reliable enough to trust.
       if (logoUrlOverride && !commonBase.currency.isNative) {
         copyCommonBase.logoUrl = logoUrlOverride
+      }
+      const colorOverrides = formatColorOverrides(restToken?.project?.colors)
+      if (colorOverrides) {
+        copyCommonBase.colorOverrides = colorOverrides
       }
       copyCommonBase.currencyId = _currencyId
 

@@ -9,8 +9,8 @@ import { Abi, ContractFunctionParameters, isAddress } from 'viem'
 import { useBalance, useReadContracts } from 'wagmi'
 import { erc20Abi } from '~/chains'
 import { assume0xAddress } from '~/chains'
-import { useAccount } from '~/hooks/useAccount'
-import { useInterfaceMulticall } from '~/hooks/useContract'
+import { useAccount } from '~/connection/hooks/useAccount'
+import { useInterfaceMulticall } from '~/connection/hooks/useContract'
 import { useTokenBalances } from '~/hooks/useTokenBalances'
 import { currencyKey } from '~/utils/currencyKey'
 
@@ -209,11 +209,11 @@ function useRpcCurrencyBalances(
 }
 
 /**
- * Returns raw balances as CurrencyAmounts for tokens in users balanceMap via graphql.
- * Balances from graphql are used as a fallback when user is not connected to chain.
- * Currently they're returned from graphql formatted so we need to convert to the base unit.
+ * Returns raw balances as CurrencyAmounts for tokens in users balanceMap via the portfolio API.
+ * These balances are used as a fallback when user is not connected to chain.
+ * They're returned formatted, so we need to convert to the base unit.
  */
-function useGqlCurrencyBalances(
+function usePortfolioCurrencyBalances(
   account?: string,
   currencies?: (Currency | undefined)[],
 ): (CurrencyAmount<Currency> | undefined)[] {
@@ -258,7 +258,7 @@ function useGqlCurrencyBalances(
  * @deprecated use usePortfolioBalances & getOnChainBalancesFetch from packages/uniswap instead
  *
  * Returns balances for tokens on currently-connected chainId via RPC.
- * Falls back to graphql TokenBalances if user is not connected to chain, a.k.a !isSynced.
+ * Falls back to portfolio API balances if user is not connected to chain, a.k.a !isSynced.
  */
 export function useCurrencyBalances(
   account?: string,
@@ -268,7 +268,7 @@ export function useCurrencyBalances(
   const chainId = useMemo(() => currencies?.[0]?.chainId, [currencies])
   const isSynced = !chainId || chainId === providerChainId
 
-  const gqlCurrencyBalances = useGqlCurrencyBalances(account, currencies)
+  const portfolioCurrencyBalances = usePortfolioCurrencyBalances(account, currencies)
   const rpcCurrencyBalances = useRpcCurrencyBalances(account, currencies)
 
   return useMemo(() => {
@@ -276,8 +276,8 @@ export function useCurrencyBalances(
       return []
     }
 
-    return isSynced ? rpcCurrencyBalances : gqlCurrencyBalances
-  }, [account, currencies, isSynced, gqlCurrencyBalances, rpcCurrencyBalances])
+    return isSynced ? rpcCurrencyBalances : portfolioCurrencyBalances
+  }, [account, currencies, isSynced, portfolioCurrencyBalances, rpcCurrencyBalances])
 }
 
 // get the balance for a single token/account combo

@@ -1,19 +1,15 @@
 import { useWeb3React } from '@web3-react/core'
-import { useAtom } from 'jotai'
-import { atomWithStorage } from 'jotai/utils'
 import { parse } from 'qs'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { useConversionTracking } from 'uniswap/src/data/apiClients/conversionTracking/useConversionTracking'
 import { InterfacePageName } from 'uniswap/src/features/telemetry/constants'
 import Trace from 'uniswap/src/features/telemetry/Trace'
-import { useAccountDrawer } from '~/components/AccountDrawer/MiniPortfolio/hooks'
-import { PRIVACY_SHARING_OPT_OUT_STORAGE_KEY } from '~/components/PrivacyChoices/constants'
-import { useAccount } from '~/hooks/useAccount'
+import { usePrivacySharingStore } from '~/components/PrivacyChoices/privacySharingStore'
+import { useAccount } from '~/connection/hooks/useAccount'
 import { usePrevious } from '~/hooks/usePrevious'
 import { Landing as LandingContent } from '~/pages/Landing/Landing'
-
-const privacySharingOptOutAtom = atomWithStorage<boolean>(PRIVACY_SHARING_OPT_OUT_STORAGE_KEY, false)
+import { useAccountDrawer } from '~/state/accountDrawer/hooks'
 
 export function Landing() {
   const account = useAccount()
@@ -33,7 +29,7 @@ export function Landing() {
 
   const isInitialRender = useRef(true)
 
-  const [privacySharingOptOut] = useAtom(privacySharingOptOutAtom)
+  const privacySharingOptOut = usePrivacySharingStore((state) => state.optOut)
 
   const { initConversionTracking } = useConversionTracking(account.address)
 
