@@ -9,6 +9,18 @@
  *   /v1/amplitude-proxy/*-> metrics.interface.gateway.uniswap.org (analytics relay)
  *   everything else      -> {prefix}.uniswap.org (legacy/production-app traffic)
  *
+ * HOST-based routes (the swap Trading API is a separate hostname, not a path prefix —
+ * the app's tradingApiUrl is https://trading-api-labs.{prefix}.gateway.rigoblock.com):
+ *   trading-api-labs.{prefix}.gateway.rigoblock.com -> TRADING_API_ORIGIN (secret/env)
+ *
+ * Nov 2026 outage: the trading host had NO explicit route here, so the legacy catch-all
+ * below rewrote its origin to trading-api-labs.interface.gateway.uniswap.org — a hostname
+ * that has NEVER existed (Cloudflare Error 1016 Origin DNS / HTTP 530, every swap quote
+ * dead). Uniswap's legacy trading-api-labs DNS is retired too. The trading API must route
+ * explicitly to the fork's OWN trading API deployment (it exists because Uniswap's public
+ * API cannot do smart-pool simulation overrides) — set TRADING_API_ORIGIN and keep this
+ * branch ABOVE the catch-all.
+ *
  * Credentialed CORS: the web app uses upstream's cookie session auth
  * (credentials: 'include'), so responses echo the request Origin and set
  * Access-Control-Allow-Credentials. Backend Set-Cookie headers are rewritten
@@ -274,6 +286,26 @@ export default {
         // If the upstream fetch throws (network error/timeout), still return CORS headers —
         // otherwise the browser reports a misleading "No ACAO header" CORS error for what is
         // really a backend outage.
+        console.error(err)
+        return respond('Bad Gateway', { status: 502 })
+      }
+    }
+
+    // ── Trading API (host-based, MUST stay above the catch-all) ──
+    // The app's tradingApiUrl is https://trading-api-labs.{prefix}.gateway.rigoblock.com.
+    // Without this branch the catch-all below derives origin
+    // trading-api-labs.{prefix}.gateway.uniswap.org — NXDOMAIN (Error 1016), all quotes dead.
+    // Origin: the fork's OWN trading-api-labs deployment (smart-pool simulation overrides);
+    // Uniswap's public/legacy trading API is NOT a substitute. Configure via wrangler:
+    //   wrangler secret put TRADING_API_ORIGIN   (e.g. https://trading-api-labs.<your-deployment>)
+    if (url.hostname.startsWith('trading-api-labs.') && env.TRADING_API_ORIGIN) {
+      const targetUrl = `${env.TRADING_API_ORIGIN.replace(/\/$/, '')}${url.pathname}${url.search}`
+      try {
+        const headers = new Headers(request.headers)
+        headers.set('host', new URL(targetUrl).host)
+        const response = await fetch(targetUrl, { method: request.method, headers, body: request.body })
+        return finalizeDirect(response, { mintDeviceId: true })
+      } catch (err) {
         console.error(err)
         return respond('Bad Gateway', { status: 502 })
       }
