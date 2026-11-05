@@ -1,4 +1,5 @@
 import { FeatureFlags, useFeatureFlag } from '@universe/gating'
+import { atom } from 'jotai'
 import React from 'react'
 import { Body } from '~/app/layout/Body'
 import { useRouterConfig } from '~/pages/RouteDefinitions'
@@ -7,6 +8,23 @@ import { render, renderHook, screen } from '~/test-utils/render'
 const { loadHooksPreview, mountHooksPreview } = vi.hoisted(() => ({
   loadHooksPreview: vi.fn(),
   mountHooksPreview: vi.fn(),
+}))
+
+// RigoBlock fork: /explore routes are gated behind shouldDisableExploreRoutesAtom (default
+// true) — substitute a false-defaulted atom so the upstream hooks-explore assertions exercise
+// the Explore page rather than the disabled-route fallback.
+vi.mock('~/state/application/atoms', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('~/state/application/atoms')>()),
+  shouldDisableExploreRoutesAtom: atom(false),
+}))
+
+// The fork's logs updater fires eth_getLogs against api.rigoblock.com, which 403s datacenter
+// IPs (Cloudflare bot block) — the console.warn would fail the test. Empty the provider map;
+// routing assertions don't depend on chain data.
+vi.mock('~/constants/providers', () => ({
+  RPC_PROVIDERS: {},
+  getBackupRpcProvider: () => undefined,
+  getInterfaceProvider: () => undefined,
 }))
 
 vi.mock('~/pages/Swap', () => ({

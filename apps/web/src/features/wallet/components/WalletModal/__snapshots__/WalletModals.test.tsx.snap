@@ -166,7 +166,7 @@ exports[`EmbeddedWalletConnectionsModal > renders correctly 1`] = `
           <span
             class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[12px] [line-height:16px] [font-weight:485] [color:var(--stext-neutral3)] text-center"
           >
-            By connecting a wallet, you agree to Rigoblock’s 
+            By connecting a wallet, you agree to Uniswap Labs’ 
             <a
               class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[16px] [line-height:22px] [font-weight:535] [color:var(--stext-accent1)] no-underline [cursor:pointer] hover:opacity-[var(--ch-opacity)] active:opacity-[var(--ca-opacity)] sc-gLaqbQ jDLDTa"
               href="https://rigoblock.com/legal"
@@ -255,7 +255,7 @@ exports[`OtherWalletsModal > renders correctly with EW disabled 1`] = `
           <span
             class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[12px] [line-height:16px] [font-weight:485] [color:var(--stext-neutral3)] text-center"
           >
-            By connecting a wallet, you agree to Rigoblock’s 
+            By connecting a wallet, you agree to Uniswap Labs’ 
             <a
               class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[16px] [line-height:22px] [font-weight:535] [color:var(--stext-accent1)] no-underline [cursor:pointer] hover:opacity-[var(--ch-opacity)] active:opacity-[var(--ca-opacity)] sc-gLaqbQ jDLDTa"
               href="https://rigoblock.com/legal"
@@ -344,7 +344,7 @@ exports[`OtherWalletsModal > renders correctly with EW enabled 1`] = `
           <span
             class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[12px] [line-height:16px] [font-weight:485] [color:var(--stext-neutral3)] text-center"
           >
-            By connecting a wallet, you agree to Rigoblock’s 
+            By connecting a wallet, you agree to Uniswap Labs’ 
             <a
               class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[16px] [line-height:22px] [font-weight:535] [color:var(--stext-accent1)] no-underline [cursor:pointer] hover:opacity-[var(--ch-opacity)] active:opacity-[var(--ca-opacity)] sc-gLaqbQ jDLDTa"
               href="https://rigoblock.com/legal"
@@ -448,7 +448,7 @@ exports[`StandardWalletModal > renders correctly 1`] = `
           <span
             class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[12px] [line-height:16px] [font-weight:485] [color:var(--stext-neutral3)] text-center"
           >
-            By connecting a wallet, you agree to Rigoblock’s 
+            By connecting a wallet, you agree to Uniswap Labs’ 
             <a
               class="[display:inline] box-border m-0 [word-wrap:break-word] whitespace-pre-wrap [font-family:var(--stext-font-book)] text-[16px] [line-height:22px] [font-weight:535] [color:var(--stext-accent1)] no-underline [cursor:pointer] hover:opacity-[var(--ch-opacity)] active:opacity-[var(--ca-opacity)] sc-gLaqbQ jDLDTa"
               href="https://rigoblock.com/legal"
