@@ -11,21 +11,20 @@
  *
  * HOST-based routes (the swap Trading API is a separate hostname, not a path prefix —
  * the app's tradingApiUrl is https://trading-api-labs.{prefix}.gateway.rigoblock.com):
- *   trading-api-labs.{prefix}.gateway.rigoblock.com -> TRADING_API_ORIGIN (secret/env)
+ *   trading-api-labs.{prefix}.gateway.rigoblock.com -> entry-gateway.backend-prod.api.uniswap.org
+ *     (hardcoded below — same origin as /v2/entry-gateway/*)
  *
  * Nov 2026 outage: the trading host had NO explicit route here, so the legacy catch-all
  * below rewrote its origin to trading-api-labs.interface.gateway.uniswap.org — a hostname
  * that has NEVER existed (Cloudflare Error 1016 Origin DNS / HTTP 530, every swap quote
  * dead). Uniswap's legacy trading-api-labs DNS is retired too.
  *
- * TRADING_API_ORIGIN is Uniswap's CURRENT trading API host — the same backend the
- * /v2/entry-gateway/* route proxies to: `https://entry-gateway.backend-prod.api.uniswap.org`
- * (verified serving /quote, HTTP 400 "swapper is required"). The fork does NOT run its own
- * trading API: the app requests Uniswap's endpoint with the smart-pool param overrides
- * (from/to = vault) in the request itself, and the client already carries x-api-key. The
- * separate hostname exists only to keep trade traffic on its own gateway host, so the
- * origin here is that same entry-gateway backend — set TRADING_API_ORIGIN (wrangler secret)
- * and keep this branch ABOVE the catch-all.
+ * The origin is Uniswap's CURRENT trading API host — the same backend the /v2/entry-gateway/*
+ * route proxies to: `https://entry-gateway.backend-prod.api.uniswap.org` (verified serving
+ * /quote, HTTP 400 "swapper is required"). The fork does NOT run its own trading API: the app
+ * requests Uniswap's endpoint with the smart-pool param overrides (from/to = vault) in the
+ * request itself, and the client already carries x-api-key. The separate hostname exists only
+ * to keep trade traffic on its own gateway host. Keep this branch ABOVE the catch-all.
  *
  * Credentialed CORS: the web app uses upstream's cookie session auth
  * (credentials: 'include'), so responses echo the request Origin and set
@@ -301,11 +300,11 @@ export default {
     // The app's tradingApiUrl is https://trading-api-labs.{prefix}.gateway.rigoblock.com.
     // Without this branch the catch-all below derives origin
     // trading-api-labs.{prefix}.gateway.uniswap.org — NXDOMAIN (Error 1016), all quotes dead.
-    // Origin: the fork's OWN trading-api-labs deployment (smart-pool simulation overrides);
-    // Uniswap's public/legacy trading API is NOT a substitute. Configure via wrangler:
-    //   wrangler secret put TRADING_API_ORIGIN   (e.g. https://trading-api-labs.<your-deployment>)
-    if (url.hostname.startsWith('trading-api-labs.') && env.TRADING_API_ORIGIN) {
-      const targetUrl = `${env.TRADING_API_ORIGIN.replace(/\/$/, '')}${url.pathname}${url.search}`
+    if (url.hostname.startsWith('trading-api-labs.')) {
+      // Same origin as the /v2/entry-gateway/* route — the Trading API is served by the
+      // entry-gateway backend since upstream retired the trading-api-labs host.
+      const origin = 'https://entry-gateway.backend-prod.api.uniswap.org'
+      const targetUrl = `${origin}${url.pathname}${url.search}`
       try {
         const headers = new Headers(request.headers)
         headers.set('host', new URL(targetUrl).host)
