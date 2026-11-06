@@ -1,9 +1,9 @@
 import {
   type StatsigOptions,
+  StatsigClient,
   StatsigProvider,
   type StatsigUser,
   type StorageProvider,
-  useClientAsyncInit,
 } from '@universe/gating'
 import { type ReactNode, useEffect, useMemo } from 'react'
 import { config } from 'uniswap/src/config'
@@ -38,24 +38,37 @@ export function StatsigProviderWrapper({
     [storageProvider, options],
   )
 
-  const { client, isLoading: isStatsigLoading } = useClientAsyncInit(config.statsigApiKey, user, statsigOptions)
+  // RigoBlock fork: SKIP Statsig network initialization entirely — construct the client
+  // but never call initializeAsync (no /v1/statsig-proxy relay traffic, no error or
+  // initialization_failure events). Uninitialized, every gate evaluates to its call-site
+  // default (false). Safe for the fork:
+  //  - the `uniswapx` gate is neutralized in filterProtocols regardless of its value;
+  //  - UR version selection is onchain governance mapping, not Statsig;
+  //  - no fork feature depends on a gate being ON (demo view is connection-state driven).
+  // Upstream's behavior is one line away: swap back to useClientAsyncInit(config.statsigApiKey,
+  // user, statsigOptions). (The SDK's useClientBootstrapInit would also work at runtime but
+  // its shipped types are wrong, hence the direct construction.)
+  const client = useMemo(
+    () => new StatsigClient(config.statsigApiKey, user, statsigOptions),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mirror the upstream hook's keying: recreate only when identity inputs change
+    [config.statsigApiKey, user, statsigOptions],
+  )
 
+
+  // Never loading in the fork (no network init) — fire the init callback once on mount.
+  // onInit is a useEvent-stable identity upstream (index.tsx documents this), so this fires once.
   useEffect(() => {
-    if (isStatsigLoading) {
-      return
-    }
-
     onInit?.()
-  }, [isStatsigLoading, onInit])
+  }, [onInit])
 
   useEffect(() => {
     const errorHandler = (event: unknown): void => {
-      // RigoBlock fork: the proxied Statsig relay (STATSIG_PROXY_URL_OVERRIDE -> the gateway's
-      // /v1/statsig-proxy) emits recurring, non-actionable 'error' events (event-logging
-      // hiccups, transient init retries) that upstream surfaces as console.error noise.
-      // Downgrade to info — the events stay in the logs, but they no longer spam the error
-      // console / trigger error-boundary telemetry. Gates still function identically.
-      logger.info('StatsigProviderWrapper', 'error', 'statsig client error event', { event })
+      logger.error('StatsigProviderWrapper', {
+        tags: { file: 'StatsigProviderWrapper', function: 'error' },
+        extra: {
+          event,
+        },
+      })
     }
     client.on('error', errorHandler)
     client.on('initialization_failure', errorHandler)

@@ -1,28 +1,18 @@
-import { Flex, spacing, Text, TouchableArea } from '@universe/mycelium'
+import { Flex } from '@universe/mycelium'
 import { useMedia, useScrollbarStyles, useSporeColors } from '@universe/mycelium/theme-hooks-compat'
-import { type ComponentRef, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type ComponentRef, memo, useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Modal } from 'uniswap/src/components/modals/Modal'
 import { useUpdateScrollLock } from 'uniswap/src/components/modals/ScrollLock'
 import { NetworkFilter } from 'uniswap/src/components/network/NetworkFilter/NetworkFilter'
 import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledChains'
-import { EXPANDABLE_ASSET_SEARCH_ISSUER_ROW_RIGHT_INSET_PX } from 'uniswap/src/features/expandableAsset/expandableAssetLayout'
 import { useFilterCallbacks } from 'uniswap/src/features/search/SearchModal/hooks/useFilterCallbacks'
-import { SearchModalNoQueryList } from 'uniswap/src/features/search/SearchModal/SearchModalNoQueryList'
-import { SearchModalResultsList } from 'uniswap/src/features/search/SearchModal/SearchModalResultsList'
-import { SearchTab, type SearchModalRowWrapper } from 'uniswap/src/features/search/SearchModal/types'
-import { getWebSearchTabs } from 'uniswap/src/features/search/SearchModal/utils/getWebSearchTabs'
+import { SmartPoolsSearchList } from '~/components/NavBar/SearchBar/SmartPoolsSearchList'
 import { SearchTextInput } from 'uniswap/src/features/search/SearchTextInput'
-import { ElementName, InterfaceEventName, ModalName, SectionName } from 'uniswap/src/features/telemetry/constants'
+import { InterfaceEventName, ModalName, SectionName } from 'uniswap/src/features/telemetry/constants'
 import { sendAnalyticsEvent } from 'uniswap/src/features/telemetry/send'
-import { Trace } from 'uniswap/src/features/telemetry/Trace'
-import { useEvent } from 'utilities/src/react/hooks'
 import { useTrace } from 'utilities/src/telemetry/trace/TraceContext'
 import { useDebounce } from 'utilities/src/time/timing'
-import { AuctionHoverCard } from '~/components/HoverCard/AuctionHoverCard/AuctionHoverCard'
-import { PoolHoverCard } from '~/components/HoverCard/PoolHoverCard/PoolHoverCard'
-import { TokenHoverCard } from '~/components/HoverCard/TokenHoverCard/TokenHoverCard'
-import { WalletHoverCard } from '~/components/HoverCard/WalletHoverCard/WalletHoverCard'
 import { useModalState } from '~/hooks/useModalState'
 
 const SEARCH_MODAL_WIDTH = {
@@ -30,90 +20,8 @@ const SEARCH_MODAL_WIDTH = {
   small: 540,
 }
 
-// Measured from the results list edge: with always-visible OS scrollbars its scrollbar sits between the row
-// and the modal edge, and a row-relative offset would land the card inside the modal by that width.
-const HOVER_CARD_OFFSET = 8
-
-// Compensates for the RWA issuer sub-row's extra nesting; imported (not hardcoded) to stay in sync with its layout.
-const RWA_ISSUER_ROW_HOVER_CARD_OFFSET = HOVER_CARD_OFFSET + EXPANDABLE_ASSET_SEARCH_ISSUER_ROW_RIGHT_INSET_PX
-
-const SEARCH_HOVER_CARD_PROPS = {
-  childOwnsPressFeedback: true,
-  placement: 'right-start',
-  offsetFromScrollContainerEdge: true,
-} as const
-
-const LIST_CONTENT_CONTAINER_STYLE = { paddingBottom: spacing.spacing24 }
-
-function useHoverCardWrapper({
-  containerWidth,
-  onNavigate,
-}: {
-  containerWidth: number
-  onNavigate: () => void
-}): SearchModalRowWrapper {
-  const { defaultChainId } = useEnabledChains()
-  return useCallback<SearchModalRowWrapper>(
-    (props): JSX.Element => {
-      const { element } = props
-      if (props.variant === 'auction') {
-        return (
-          <AuctionHoverCard
-            auction={props.auction}
-            {...SEARCH_HOVER_CARD_PROPS}
-            offset={HOVER_CARD_OFFSET}
-            widthOffset={HOVER_CARD_OFFSET}
-            containerWidth={containerWidth}
-            onNavigate={onNavigate}
-          >
-            {element}
-          </AuctionHoverCard>
-        )
-      }
-      if (props.variant === 'pool') {
-        return (
-          <PoolHoverCard
-            pool={props.pool}
-            {...SEARCH_HOVER_CARD_PROPS}
-            offset={HOVER_CARD_OFFSET}
-            containerWidth={containerWidth}
-          >
-            {element}
-          </PoolHoverCard>
-        )
-      }
-      if (props.variant === 'wallet') {
-        return (
-          <WalletHoverCard
-            address={props.address}
-            // Search wallets are EVM addresses; the balance query spans chains, so this only picks the explorer.
-            chainId={defaultChainId}
-            {...SEARCH_HOVER_CARD_PROPS}
-            offset={HOVER_CARD_OFFSET}
-          >
-            {element}
-          </WalletHoverCard>
-        )
-      }
-      return (
-        <TokenHoverCard
-          currencyInfo={props.currencyInfo}
-          {...SEARCH_HOVER_CARD_PROPS}
-          offset={props.variant === 'rwaIssuerChild' ? RWA_ISSUER_ROW_HOVER_CARD_OFFSET : HOVER_CARD_OFFSET}
-          widthOffset={HOVER_CARD_OFFSET}
-          containerWidth={containerWidth}
-          onNavigate={onNavigate}
-        >
-          {element}
-        </TokenHoverCard>
-      )
-    },
-    [containerWidth, defaultChainId, onNavigate],
-  )
-}
-
 export const SearchModal = memo(function SearchModalInner({
-  isAuctionSearchEnabled,
+  isAuctionSearchEnabled: _isAuctionSearchEnabled,
 }: {
   isAuctionSearchEnabled: boolean
 }): JSX.Element {
@@ -139,29 +47,9 @@ export const SearchModal = memo(function SearchModalInner({
     return undefined
   }, [isModalOpen])
 
-  const { onChangeChainFilter, onChangeText, searchFilter, chainFilter, parsedChainFilter, parsedSearchFilter } =
-    useFilterCallbacks(null, ModalName.Search)
-
-  const [activeTab, setActiveTab] = useState<SearchTab>(SearchTab.All)
-  const searchTabs = useMemo(
-    () => getWebSearchTabs({ isAuctionSearchEnabled, chainFilter }),
-    [isAuctionSearchEnabled, chainFilter],
-  )
-
-  useEffect(() => {
-    if (!searchTabs.includes(activeTab)) {
-      setActiveTab(SearchTab.All)
-    }
-  }, [activeTab, searchTabs])
+  const { onChangeChainFilter, onChangeText, searchFilter, chainFilter } = useFilterCallbacks(null, ModalName.Search)
 
   const debouncedSearchFilter = useDebounce(searchFilter)
-  const debouncedParsedSearchFilter = useDebounce(parsedSearchFilter)
-
-  // A ref, not state: the count only matters at exit, and re-rendering the modal per list update would be wasted.
-  const resultsShownRef = useRef(0)
-  const onResultsShownChange = useEvent((count: number): void => {
-    resultsShownRef.current = count
-  })
 
   const trace = useTrace({ section: SectionName.NavbarSearch })
   const closeSearch = useCallback(
@@ -171,7 +59,9 @@ export const SearchModal = memo(function SearchModalInner({
         navbar_search_input_text: debouncedSearchFilter ?? '',
         hasInput: Boolean(debouncedSearchFilter),
         result_selected: resultSelected,
-        results_shown: resultsShownRef.current,
+        // RigoBlock fork: upstream counted rendered result rows; the smart-pool list does not
+        // report a count — report the pool count as 0 (analytics-only field).
+        results_shown: 0,
         ...trace,
       })
     },
@@ -188,9 +78,6 @@ export const SearchModal = memo(function SearchModalInner({
   const { chains: enabledChains } = useEnabledChains()
 
   const searchModalWidth = media.xxl ? SEARCH_MODAL_WIDTH.small : SEARCH_MODAL_WIDTH.default
-
-  const wrapWithHoverCard = useHoverCardWrapper({ containerWidth: searchModalWidth, onNavigate: onSelect })
-  const rowWrapper = !media.xl ? wrapWithHoverCard : undefined
 
   // Tamagui's lock doesn't block ArrowUp/Down key scrolling, so we lock scroll ourselves and disable
   // Tamagui's own lock below (disableRemoveScroll) to avoid a stray scrollbar-gutter reservation.
@@ -212,7 +99,8 @@ export const SearchModal = memo(function SearchModalInner({
       height="100vh"
       onClose={onClose}
       analyticsProperties={{
-        search_tab: activeTab,
+        // RigoBlock fork: upstream's search tabs are hidden (smart-pool search only).
+        search_tab: 'smart_pools',
       }}
       // Use percent mode to avoid Tamagui bug where 'fit' snapped
       // modals may incorrectly resize on their own when keyboard is visible
@@ -259,47 +147,11 @@ export const SearchModal = memo(function SearchModalInner({
             }}
           />
         </Flex>
-        <Flex row px="$spacing20" pt="$spacing16" pb="$spacing8" gap="$spacing16">
-          {searchTabs.map((tab) => (
-            <Trace element={ElementName.SearchTab} logPress key={tab} properties={{ search_tab: tab }}>
-              <TouchableArea onPress={() => setActiveTab(tab)}>
-                <Text color={activeTab === tab ? '$neutral1' : '$neutral2'} variant="buttonLabel2">
-                  {tab}
-                </Text>
-              </TouchableArea>
-            </Trace>
-          ))}
-        </Flex>
+        {/* RigoBlock fork: upstream's token search tabs + token/pool results are hidden —
+            they navigate to /explore/* which is gated off in the fork. The search searches
+            RigoBlock smart pools instead (both empty state and typed queries). */}
         <Flex grow>
-          {searchFilter && searchFilter.length > 0 ? (
-            <SearchModalResultsList
-              chainFilter={chainFilter}
-              parsedChainFilter={parsedChainFilter}
-              debouncedParsedSearchFilter={debouncedParsedSearchFilter}
-              debouncedSearchFilter={debouncedSearchFilter}
-              searchFilter={searchFilter}
-              activeTab={activeTab}
-              auctionSearchEnabled={isAuctionSearchEnabled}
-              onSelect={onSelect}
-              onViewAll={setActiveTab}
-              renderedInModal={false}
-              contentContainerStyle={LIST_CONTENT_CONTAINER_STYLE}
-              rowWrapper={rowWrapper}
-              onResultsShownChange={onResultsShownChange}
-            />
-          ) : (
-            <SearchModalNoQueryList
-              chainFilter={chainFilter}
-              activeTab={activeTab}
-              auctionSearchEnabled={isAuctionSearchEnabled}
-              onSelect={onSelect}
-              onViewAll={setActiveTab}
-              renderedInModal
-              contentContainerStyle={LIST_CONTENT_CONTAINER_STYLE}
-              rowWrapper={rowWrapper}
-              onResultsShownChange={onResultsShownChange}
-            />
-          )}
+          <SmartPoolsSearchList chainFilter={chainFilter} query={debouncedSearchFilter ?? ''} onSelect={onSelect} />
         </Flex>
       </Flex>
     </Modal>
