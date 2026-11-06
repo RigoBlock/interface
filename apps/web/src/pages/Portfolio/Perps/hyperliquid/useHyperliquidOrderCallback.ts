@@ -1,9 +1,8 @@
-import { getAddress } from '@ethersproject/address'
 import { BigNumber } from '@ethersproject/bignumber'
-import { Contract } from '@ethersproject/contracts'
-import { TransactionResponse } from '@ethersproject/providers'
+import { Interface } from '@ethersproject/abi'
 import { UniverseChainId } from '@universe/chains'
 import { useCallback, useMemo } from 'react'
+import { getAddress, walletActions } from 'viem'
 import {
   HL_MIN_ORDER_USD,
   HL_SPOT_USDC_SYSTEM_ADDRESS,
@@ -13,7 +12,8 @@ import { TransactionType } from 'uniswap/src/features/transactions/types/transac
 import { logger } from 'utilities/src/logger/logger'
 import { getConnectorClient } from 'wagmi/actions'
 import { wagmiConfig } from '~/connection/wagmiConfig'
-import { clientToProvider } from '~/connection/hooks/useEthersProvider'
+import { isValidHexString } from '@universe/encoding'
+import { RPC_PROVIDERS } from '~/constants/providers'
 import { useSelectChain } from '~/connection/hooks/useSelectChain'
 import { usePortfolioAddress } from '~/pages/Portfolio/hooks/usePortfolioAddress'
 import {
@@ -32,12 +32,19 @@ import {
   usdToSizeRaw,
 } from '~/pages/Portfolio/Perps/hyperliquid/hlAdapterAbi'
 import { fetchHlAllMids } from '~/pages/Portfolio/Perps/hyperliquid/hyperliquidApi'
-import { useTransactionAdder } from '~/state/transactions/hooks'
+import { useTransactionAdderFromHash } from '~/state/transactions/adder'
 import { calculateGasMargin } from '~/utils/calculateGasMargin'
 import { WrongChainError } from '~/utils/errors'
 
 /** Hardcoded 1% bound for IOC market orders around the allMids mid, same safety choice as the agentic-operator. */
 const HL_MARKET_ORDER_SLIPPAGE_PCT = 0.01
+
+/**
+ * Fallback gas for AHyperliquid adapter calls when local estimation fails. sendRawAction
+ * forwards to Hyperliquid's CoreWriter (order placement / USD-class transfer / spot send),
+ * which is far heavier than a plain ERC-20 transfer — 1M covers it with headroom.
+ */
+const HL_ADAPTER_GAS_FALLBACK = 1_000_000
 
 export type HyperliquidOrderAction = 'increase' | 'decrease' | 'close' | 'open'
 
@@ -76,7 +83,7 @@ export function useHyperliquidOrderCallback(poolAddress?: string): {
   sendHlSpotSend: (amountUsd: number) => Promise<string> | undefined
 } {
   const account = usePortfolioAddress()
-  const addTransaction = useTransactionAdder()
+  const addTransaction = useTransactionAdderFromHash()
   const selectChain = useSelectChain()
 
   const executeAdapterCall = useCallback(
@@ -94,17 +101,13 @@ export function useHyperliquidOrderCallback(poolAddress?: string): {
         throw new WrongChainError()
       }
 
-      // Use the connected wallet client directly, mirroring the standard transaction flow.
-      // Do NOT use a hook-derived public provider here: that would forward eth_sendTransaction
-      // to a read-only RPC and fail in production.
-      const client = await getConnectorClient(wagmiConfig)
-      const provider = clientToProvider(client)
-      if (!provider) {
-        throw new Error('Failed to get wallet provider')
-      }
-
-      const signer = provider.getSigner(account.address)
-      const hyperliquidContract = new Contract(getAddress(poolAddress), RIGOBLOCK_HYPERLIQUID_ABI, signer)
+      // Encode the calldata PURELY (no provider) and send it RAW through the wagmi connector
+      // client (viem) — the same pattern as useHyperliquidBridgeCallback. The previous ethers
+      // Contract+signer path broke on MetaMask mobile: the signer ran eth_estimateGas /
+      // eth_sendTransaction through the wallet transport, which MetaMask's in-app provider
+      // rejected with "Invalid parameters: must provide an Ethereum address" when modifying
+      // a position (Nov 2026). viem with an explicit gas only calls eth_sendTransaction.
+      const data = new Interface(RIGOBLOCK_HYPERLIQUID_ABI).encodeFunctionData(functionName, args)
 
       logger.info(
         'useHyperliquidOrderCallback',
@@ -113,16 +116,58 @@ export function useHyperliquidOrderCallback(poolAddress?: string): {
         { tags: { file: 'useHyperliquidOrderCallback', function: 'executeAdapterCall' } },
       )
 
-      const estimatedGasLimit = (await hyperliquidContract.estimateGas[functionName](...args)) as BigNumber
-      const response = (await hyperliquidContract[functionName](...args, {
-        gasLimit: calculateGasMargin(estimatedGasLimit.toBigInt()),
-      })) as TransactionResponse
+      // Estimate gas LOCALLY via RPC_PROVIDERS on the raw calldata (EOA→vault, same as the
+      // bridge/saga pattern). Estimating through the wallet provider is both the MetaMask-
+      // mobile failure mode and a gateway round-trip that cannot simulate EOA→vault txs.
+      // RPC_PROVIDERS covers every EVM chain id, HyperEVM included.
+      const localProvider = RPC_PROVIDERS[UniverseChainId.HyperEvm]
+      let gasLimit: BigNumber
+      try {
+        const estimatedGas = await localProvider.estimateGas({
+          from: getAddress(account.address),
+          to: getAddress(poolAddress),
+          data,
+          value: '0',
+        })
+        gasLimit = BigNumber.from(calculateGasMargin(estimatedGas.toBigInt()))
+      } catch (gasError) {
+        const gasErrorMsg = gasError instanceof Error ? gasError.message : String(gasError)
+        if (
+          gasErrorMsg.includes('execution reverted') ||
+          gasErrorMsg.includes('UNPREDICTABLE_GAS_LIMIT') ||
+          gasErrorMsg.includes('cannot estimate gas')
+        ) {
+          // Revert-class failures carry the reason so the modal can show it; a tx that
+          // cannot be estimated would revert on-chain.
+          throw new Error(`Hyperliquid order would revert on HyperEVM: ${gasErrorMsg}`)
+        }
+        logger.warn(
+          'useHyperliquidOrderCallback',
+          'executeAdapterCall',
+          'Local gas estimation failed, using fallback',
+          { error: gasError },
+        )
+        gasLimit = BigNumber.from(HL_ADAPTER_GAS_FALLBACK)
+      }
 
-      addTransaction(response, {
-        type: TransactionType.ClaimUni, // TODO: replace with a Hyperliquid-specific type
-        recipient: account.address,
+      if (!isValidHexString(data)) {
+        throw new Error('Hyperliquid adapter calldata is not valid hex data')
+      }
+      const client = (await getConnectorClient(wagmiConfig)).extend(walletActions)
+      const hash = await client.sendTransaction({
+        to: getAddress(poolAddress),
+        data,
+        gas: gasLimit.toBigInt(),
       })
-      return response.hash
+
+      addTransaction(
+        { hash, chainId: UniverseChainId.HyperEvm },
+        {
+          type: TransactionType.ClaimUni, // TODO: replace with a Hyperliquid-specific type
+          recipient: account.address,
+        },
+      )
+      return hash
     },
     [account.address, addTransaction, poolAddress, selectChain],
   )

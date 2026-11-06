@@ -9,6 +9,7 @@ import { useEnabledChains } from 'uniswap/src/features/chains/hooks/useEnabledCh
 import { EXPANDABLE_ASSET_SEARCH_ISSUER_ROW_RIGHT_INSET_PX } from 'uniswap/src/features/expandableAsset/expandableAssetLayout'
 import { useFilterCallbacks } from 'uniswap/src/features/search/SearchModal/hooks/useFilterCallbacks'
 import { SearchModalNoQueryList } from 'uniswap/src/features/search/SearchModal/SearchModalNoQueryList'
+import { SmartPoolsNoQueryList } from '~/components/NavBar/SearchBar/SmartPoolsNoQueryList'
 import { SearchModalResultsList } from 'uniswap/src/features/search/SearchModal/SearchModalResultsList'
 import { SearchTab, type SearchModalRowWrapper } from 'uniswap/src/features/search/SearchModal/types'
 import { getWebSearchTabs } from 'uniswap/src/features/search/SearchModal/utils/getWebSearchTabs'
@@ -287,6 +288,10 @@ export const SearchModal = memo(function SearchModalInner({
               rowWrapper={rowWrapper}
               onResultsShownChange={onResultsShownChange}
             />
+          ) : activeTab === SearchTab.All ? (
+            // RigoBlock fork: the no-query state lists RigoBlock smart pools instead of
+            // upstream's trending-token shelf (nav.search.smartPools.* copy).
+            <SmartPoolsNoQueryList chainFilter={chainFilter} onSelect={onSelect} />
           ) : (
             <SearchModalNoQueryList
               chainFilter={chainFilter}

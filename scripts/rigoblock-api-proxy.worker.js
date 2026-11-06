@@ -16,10 +16,16 @@
  * Nov 2026 outage: the trading host had NO explicit route here, so the legacy catch-all
  * below rewrote its origin to trading-api-labs.interface.gateway.uniswap.org — a hostname
  * that has NEVER existed (Cloudflare Error 1016 Origin DNS / HTTP 530, every swap quote
- * dead). Uniswap's legacy trading-api-labs DNS is retired too. The trading API must route
- * explicitly to the fork's OWN trading API deployment (it exists because Uniswap's public
- * API cannot do smart-pool simulation overrides) — set TRADING_API_ORIGIN and keep this
- * branch ABOVE the catch-all.
+ * dead). Uniswap's legacy trading-api-labs DNS is retired too.
+ *
+ * TRADING_API_ORIGIN is Uniswap's CURRENT trading API host — the same backend the
+ * /v2/entry-gateway/* route proxies to: `https://entry-gateway.backend-prod.api.uniswap.org`
+ * (verified serving /quote, HTTP 400 "swapper is required"). The fork does NOT run its own
+ * trading API: the app requests Uniswap's endpoint with the smart-pool param overrides
+ * (from/to = vault) in the request itself, and the client already carries x-api-key. The
+ * separate hostname exists only to keep trade traffic on its own gateway host, so the
+ * origin here is that same entry-gateway backend — set TRADING_API_ORIGIN (wrangler secret)
+ * and keep this branch ABOVE the catch-all.
  *
  * Credentialed CORS: the web app uses upstream's cookie session auth
  * (credentials: 'include'), so responses echo the request Origin and set
@@ -303,6 +309,10 @@ export default {
       try {
         const headers = new Headers(request.headers)
         headers.set('host', new URL(targetUrl).host)
+        // The entry gateway enforces Origin for API-key auth (same rule as the
+        // /v2/entry-gateway/* branch below): present as the official Uniswap app, not
+        // the rigoblock origin the browser sent.
+        headers.set('Origin', 'https://app.uniswap.org')
         const response = await fetch(targetUrl, { method: request.method, headers, body: request.body })
         return finalizeDirect(response, { mintDeviceId: true })
       } catch (err) {

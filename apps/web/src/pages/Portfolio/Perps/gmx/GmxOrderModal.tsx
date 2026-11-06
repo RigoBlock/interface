@@ -1,7 +1,7 @@
 import { UniverseChainId } from '@universe/chains'
 import { Flex, Text } from '@universe/mycelium'
 import { SegmentedControl } from '@universe/mycelium/segmented-control-compat'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Trans } from 'ui/src/i18n/Trans'
 import { Button } from '@universe/mycelium'
@@ -313,6 +313,20 @@ export function GmxOrderModal({
   const transaction = useTransaction(hash)
   const confirmed = useIsTransactionConfirmed(hash)
   const transactionSuccess = transaction?.status === TransactionStatus.Success
+
+  // RigoBlock: the modal component itself never unmounts (the parent toggles isOpen), and
+  // wrappedOnDismiss's deferred reset only runs on dismiss — a session closed by any other
+  // path (or reopened quickly) resurfaced the previous transaction's confirmed view instead
+  // of the edit form. Reset the session state on every (re)open so a modify always starts
+  // on the form.
+  useEffect(() => {
+    if (isOpen) {
+      setHash(undefined)
+      setErrorReason(undefined)
+      setAttempting(false)
+      setCollateralDirection('increase')
+    }
+  }, [isOpen])
 
   const effectiveAction = action ? resolveCollateralDirection(action, collateralDirection) : undefined
 
