@@ -38,7 +38,7 @@ exports[`disable nft on searchbar > should render searchbar on larger screen 1`]
         <span
           class="[display:inline] box-border m-0 [word-wrap:break-word] [font-family:var(--stext-font-book)] text-[16px] [line-height:22px] [font-weight:485] [color:var(--stext-neutral2)] text-left whitespace-nowrap text-ellipsis overflow-hidden"
         >
-          Search smart pools
+          Search Uniswap
         </span>
       </div>
       <div

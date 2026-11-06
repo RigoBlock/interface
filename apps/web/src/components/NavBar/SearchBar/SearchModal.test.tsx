@@ -38,10 +38,6 @@ vi.mock('uniswap/src/features/search/SearchModal/SearchModalNoQueryList', () => 
   SearchModalNoQueryList: ({ activeTab }: { activeTab: string }) => <div>{`active-tab:${activeTab}`}</div>,
 }))
 
-vi.mock('~/components/NavBar/SearchBar/SmartPoolsNoQueryList', () => ({
-  SmartPoolsNoQueryList: () => <div>smart-pools-no-query</div>,
-}))
-
 const TAB_LABEL = /^(All|Tokens|Pools|Auctions|Wallets)$/
 
 function getRenderedTabs(): (string | null)[] {
@@ -82,7 +78,7 @@ describe('SearchModal', () => {
     ({ isEnabled, expectedTabs }) => {
       render(<SearchModal isAuctionSearchEnabled={isEnabled} />)
 
-      expect(screen.getByPlaceholderText('Search smart pools by name, symbol, or address')).toBeInTheDocument()
+      expect(screen.getByPlaceholderText('Search by name, symbol, or address')).toBeInTheDocument()
       expect(getRenderedTabs()).toEqual(expectedTabs)
     },
   )
@@ -108,8 +104,7 @@ describe('SearchModal', () => {
     expect(screen.getByText(`active-tab:${tab}`)).toBeInTheDocument()
 
     fireEvent.click(screen.getByText('filter-solana'))
-    // The All tab's no-query state is the fork's smart-pools list (see SmartPoolsNoQueryList).
-    expect(screen.getByText('smart-pools-no-query')).toBeInTheDocument()
+    expect(screen.getByText('active-tab:All')).toBeInTheDocument()
   })
 
   it('keeps the Tokens tab active when Solana is selected', () => {
@@ -125,7 +120,7 @@ describe('SearchModal', () => {
     vi.useFakeTimers()
     render(<SearchModal isAuctionSearchEnabled={false} />)
 
-    fireEvent.change(screen.getByPlaceholderText('Search smart pools by name, symbol, or address'), { target: { value: 'eth' } })
+    fireEvent.change(screen.getByPlaceholderText('Search by name, symbol, or address'), { target: { value: 'eth' } })
     // Let the debounced query catch up so the exit reports the settled input.
     act(() => {
       vi.advanceTimersByTime(300)
@@ -149,7 +144,7 @@ describe('SearchModal', () => {
 
     render(<SearchModal isAuctionSearchEnabled={false} />)
 
-    expect(screen.getByPlaceholderText('Search smart pools')).toBeInTheDocument()
-    expect(screen.queryByPlaceholderText('Search smart pools by name, symbol, or address')).not.toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Search Uniswap')).toBeInTheDocument()
+    expect(screen.queryByPlaceholderText('Search by name, symbol, or address')).not.toBeInTheDocument()
   })
 })

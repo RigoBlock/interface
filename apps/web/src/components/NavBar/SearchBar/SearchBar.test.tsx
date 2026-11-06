@@ -60,6 +60,6 @@ describe('disable nft on searchbar', () => {
 
     render(<SearchBar variant={NavSearchVariant.LegacyInput} />)
 
-    expect(screen.getByText('Search smart pools')).toBeInTheDocument()
+    expect(screen.getByText('Search Uniswap')).toBeInTheDocument()
   })
 })

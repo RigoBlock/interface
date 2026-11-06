@@ -50,12 +50,12 @@ export function StatsigProviderWrapper({
 
   useEffect(() => {
     const errorHandler = (event: unknown): void => {
-      logger.error('StatsigProviderWrapper', {
-        tags: { file: 'StatsigProviderWrapper', function: 'error' },
-        extra: {
-          event,
-        },
-      })
+      // RigoBlock fork: the proxied Statsig relay (STATSIG_PROXY_URL_OVERRIDE -> the gateway's
+      // /v1/statsig-proxy) emits recurring, non-actionable 'error' events (event-logging
+      // hiccups, transient init retries) that upstream surfaces as console.error noise.
+      // Downgrade to info — the events stay in the logs, but they no longer spam the error
+      // console / trigger error-boundary telemetry. Gates still function identically.
+      logger.info('StatsigProviderWrapper', 'error', 'statsig client error event', { event })
     }
     client.on('error', errorHandler)
     client.on('initialization_failure', errorHandler)
